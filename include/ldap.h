@@ -43,8 +43,8 @@ LDAP_BEGIN_DECL
  */
 #define LDAP_API_VERSION	2004
 #define LDAP_VENDOR_NAME	"OpenLDAP"
-/* We'll eventually release as 200 */
-#define LDAP_VENDOR_VERSION	19905
+/* We'll eventually release as 20000 */
+#define LDAP_VENDOR_VERSION	19910
 
 /* OpenLDAP API Features */
 #define LDAP_API_FEATURE_X_OPENLDAP LDAP_VENDOR_VERSION
