@@ -169,7 +169,6 @@ ldbm_cache_flush_all( Backend *be )
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
 			ldbm_sync( li->li_dbcache[i].dbc_db );
-#ifdef SLAP_CLEANUP
 			if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
 				Debug( LDAP_DEBUG_TRACE,
 				       "refcnt = %d, couldn't close db (%s)\n",
@@ -184,7 +183,6 @@ ldbm_cache_flush_all( Backend *be )
 				free( li->li_dbcache[i].dbc_name );
 				li->li_dbcache[i].dbc_name = NULL;
 			}
-#endif /* SLAP_CLEANUP */
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
