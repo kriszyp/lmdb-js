@@ -20,8 +20,8 @@
 
 int
 bdb_db_cache(
-    Backend	*be,
-    const char *name,
+	Backend	*be,
+	const char *name,
 	DB **dbout )
 {
 	int i;

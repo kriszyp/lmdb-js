@@ -69,17 +69,17 @@ retry:	rc = txn_abort( ltid );
 	}
 
 	/* begin transaction */
-	if (bdb->bi_txn) {
-	    rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
-	    text = NULL;
-	    if( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_add: txn_begin failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		rc = LDAP_OTHER;
-		text = "internal error";
-		goto return_results;
-	    }
+	if( bdb->bi_txn ) {
+		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+		text = NULL;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_add: txn_begin failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			rc = LDAP_OTHER;
+			text = "internal error";
+			goto return_results;
+		}
 	}
 
 	opinfo.boi_bdb = be;
@@ -275,8 +275,9 @@ retry:	rc = txn_abort( ltid );
 		goto return_results;
 	}
 
-	if( bdb->bi_txn )
+	if( bdb->bi_txn ) {
 		rc = txn_commit( ltid, 0 );
+	}
 	ltid = NULL;
 	op->o_private = NULL;
 

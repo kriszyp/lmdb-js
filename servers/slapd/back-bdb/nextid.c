@@ -48,14 +48,14 @@ retry:	if( tid != NULL ) {
 		}
 	}
 
-	if (bdb->bi_txn) {
-	    rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
-	    if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_next_id: txn_begin failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	    }
+	if( bdb->bi_txn ) {
+		rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_next_id: txn_begin failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
 	}
 
 	/* get existing value for read/modify/write */
@@ -107,8 +107,7 @@ retry:	if( tid != NULL ) {
 
 		bdb->bi_lastid = id;
 
-		if (bdb->bi_txn)
-		{
+		if (bdb->bi_txn) {
 			rc = txn_commit( ltid, 0 );
 			ltid = NULL;
 		}

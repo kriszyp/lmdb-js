@@ -201,7 +201,7 @@ bdb_bind(
 
 		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
 			/*
-			 * no krbname values present:  check against DN
+			 * no krbname values present: check against DN
 			 */
 			if ( strcasecmp( dn, krbname ) == 0 ) {
 				rc = 0;

@@ -127,7 +127,7 @@ bdb_search(
 		return rc;
 	}
 
-	if (!manageDSAit &&  e != &slap_entry_root && is_entry_referral( e ) ) {
+	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
 		struct berval **erefs = get_entry_referrals( be,
@@ -170,7 +170,7 @@ bdb_search(
 	/* if no time limit requested, use soft limit (unless root!) */
 	if ( isroot ) {
 		if ( tlimit == 0 ) {
-			tlimit = -1;        /* allow root to set no limit */
+			tlimit = -1;	/* allow root to set no limit */
 		}
 
 		if ( slimit == 0 ) {
@@ -533,28 +533,26 @@ static int search_candidates(
 	 * it just uses objectClass=*, these clauses are redundant.
 	 */
 	if (oc_filter(filter)) {
-	    if( !manageDSAit ) {
-		/* match referrals */
-		static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
-		rf.f_choice = LDAP_FILTER_EQUALITY;
-		rf.f_ava = &aa_ref;
-		rf.f_av_desc = slap_schema.si_ad_objectClass;
-		rf.f_av_value = &bv_ref;
-		rf.f_next = xf.f_or;
-		xf.f_or = &rf;
-	    }
+		if( !manageDSAit ) { /* match referrals */
+			static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+			rf.f_choice = LDAP_FILTER_EQUALITY;
+			rf.f_ava = &aa_ref;
+			rf.f_av_desc = slap_schema.si_ad_objectClass;
+			rf.f_av_value = &bv_ref;
+			rf.f_next = xf.f_or;
+			xf.f_or = &rf;
+		}
 
 #ifdef BDB_ALIASES
-	    if( deref & LDAP_DEREF_SEARCHING ) {
-		/* match aliases */
-		static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
-		af.f_choice = LDAP_FILTER_EQUALITY;
-		af.f_ava = &aa_alias;
-		af.f_av_desc = slap_schema.si_ad_objectClass;
-		af.f_av_value = &bv_alias;
-		af.f_next = xf.f_or;
-		xf.f_or = &af;
-	    }
+		if( deref & LDAP_DEREF_SEARCHING ) { /* match aliases */
+			static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+			af.f_choice = LDAP_FILTER_EQUALITY;
+			af.f_ava = &aa_alias;
+			af.f_av_desc = slap_schema.si_ad_objectClass;
+			af.f_av_value = &bv_alias;
+			af.f_next = xf.f_or;
+			xf.f_or = &af;
+		}
 #endif
 	}
 

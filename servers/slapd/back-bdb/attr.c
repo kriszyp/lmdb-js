@@ -24,7 +24,7 @@ typedef struct bdb_attrinfo {
 static int
 ainfo_type_cmp(
 	AttributeDescription *desc,
-    AttrInfo	*a
+	AttrInfo	*a
 )
 {
 	return desc - a->ai_desc;
@@ -32,8 +32,8 @@ ainfo_type_cmp(
 
 static int
 ainfo_cmp(
-    AttrInfo	*a,
-    AttrInfo	*b
+	AttrInfo	*a,
+	AttrInfo	*b
 )
 {
 	return a->ai_desc - b->ai_desc;
@@ -41,25 +41,25 @@ ainfo_cmp(
 
 void
 bdb_attr_mask(
-    struct bdb_info	*bdb,
-    AttributeDescription *desc,
-    slap_mask_t *indexmask )
+	struct bdb_info	*bdb,
+	AttributeDescription *desc,
+	slap_mask_t *indexmask )
 {
 	AttrInfo	*a;
 
 	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc,
-	    (AVL_CMP) ainfo_type_cmp );
+		(AVL_CMP) ainfo_type_cmp );
 	
 	*indexmask = a != NULL ? a->ai_indexmask : 0;
 }
 
 int
 bdb_attr_index_config(
-    struct bdb_info	*bdb,
-    const char		*fname,
-    int			lineno,
-    int			argc,
-    char		**argv )
+	struct bdb_info	*bdb,
+	const char		*fname,
+	int			lineno,
+	int			argc,
+	char		**argv )
 {
 	int rc;
 	int	i;
@@ -108,7 +108,7 @@ bdb_attr_index_config(
 		}
 	}
 
-    if( !mask ) {
+	if( !mask ) {
 		fprintf( stderr, "%s: line %d: "
 			"no indexes selected\n",
 			fname, lineno );
@@ -182,8 +182,8 @@ bdb_attr_index_config(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "attr_index_config: index %s 0x%04x\n",
-			   ad->ad_cname.bv_val, mask ));
+			"attr_index_config: index %s 0x%04x\n",
+			ad->ad_cname.bv_val, mask ));
 #else
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04x\n",
 			ad->ad_cname.bv_val, mask, 0 ); 
@@ -199,7 +199,7 @@ bdb_attr_index_config(
 		if( rc ) {
 			fprintf( stderr, "%s: line %d: duplicate index definition "
 				"for attr \"%s\" (ignored)\n",
-			    fname, lineno, attrs[i] );
+				fname, lineno, attrs[i] );
 
 			return LDAP_PARAM_ERROR;
 		}

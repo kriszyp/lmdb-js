@@ -82,18 +82,18 @@ retry:	/* transaction retry */
 	}
 
 
-	if (bdb->bi_txn) {
-	    /* begin transaction */
-	    rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
-	    text = NULL;
-	    if( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_delete: txn_begin failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		rc = LDAP_OTHER;
-		text = "internal error";
-		goto return_results;
-	    }
+	if( bdb->bi_txn ) {
+		/* begin transaction */
+		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+		text = NULL;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_delete: txn_begin failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			rc = LDAP_OTHER;
+			text = "internal error";
+			goto return_results;
+		}
 	}
 
 	opinfo.boi_bdb = be;
@@ -211,7 +211,7 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		isroot =  be_isroot( be, op->o_ndn );
+		isroot = be_isroot( be, op->o_ndn );
 		if ( ! isroot ) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 
@@ -327,7 +327,7 @@ retry:	/* transaction retry */
 
 		} else {
 			if ( isroot == -1 ) {
-				isroot =  be_isroot( be, op->o_ndn );
+				isroot = be_isroot( be, op->o_ndn );
 			}
 			
 			np_dn = ch_strdup( "" );
@@ -608,8 +608,9 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if (bdb->bi_txn)
+	if( bdb->bi_txn ) {
 		rc = txn_commit( ltid, 0 );
+	}
 	ltid = NULL;
 	op->o_private = NULL;
 
@@ -631,7 +632,7 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
-	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		txn_checkpoint( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );

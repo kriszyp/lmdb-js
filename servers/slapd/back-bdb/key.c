@@ -19,10 +19,10 @@
 /* read a key */
 int
 bdb_key_read(
-    Backend	*be,
+	Backend	*be,
 	DB *db,
 	DB_TXN *txn,
-    struct berval *k,
+	struct berval *k,
 	ID *ids
 )
 {
@@ -56,7 +56,7 @@ bdb_key_read(
 			"bdb_key_read: %ld candidates\n", (long) BDB_IDL_N(ids) ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
-	    	(long) BDB_IDL_N(ids), 0, 0 );
+			(long) BDB_IDL_N(ids), 0, 0 );
 #endif
 	}
 
@@ -66,12 +66,12 @@ bdb_key_read(
 /* Add or remove stuff from index files */
 int
 bdb_key_change(
-    Backend *be,
-    DB *db,
+	Backend *be,
+	DB *db,
 	DB_TXN *txn,
-    struct berval *k,
-    ID id,
-    int op
+	struct berval *k,
+	ID id,
+	int op
 )
 {
 	int	rc;
@@ -90,12 +90,12 @@ bdb_key_change(
 	bv2DBT(k,&key);
 
 	if (op == SLAP_INDEX_ADD_OP) {
-	    /* Add values */
-	    rc = bdb_idl_insert_key( be, db, txn, &key, id );
+		/* Add values */
+		rc = bdb_idl_insert_key( be, db, txn, &key, id );
 
 	} else {
-	    /* Delete values */
-	    rc = bdb_idl_delete_key( be, db, txn, &key, id );
+		/* Delete values */
+		rc = bdb_idl_delete_key( be, db, txn, &key, id );
 	}
 
 #ifdef NEW_LOGGING

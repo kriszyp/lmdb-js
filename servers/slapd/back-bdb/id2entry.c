@@ -141,9 +141,11 @@ int bdb_entry_return(
 	 * an entry has been modified, in which case the attr list will
 	 * have been alloc'd separately.
 	 */
-	if ((void *)e->e_attrs < (void *)e  ||
-		(void *)e->e_attrs > e->e_private)
-	    attrs_free(e->e_attrs);
+	if( (void *) e->e_attrs < (void *) e
+		|| (void *) e->e_attrs > e->e_private ) 
+	{
+		attrs_free(e->e_attrs);
+	}
 
 	ch_free(e);
 

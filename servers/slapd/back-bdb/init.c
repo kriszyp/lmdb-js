@@ -121,9 +121,11 @@ bdb_db_open( BackendDB *be )
 	}
 
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
-	if( bdb->bi_txn )
+
+	if( bdb->bi_txn ) {
 		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER;
-	else {
+
+	} else {
 		flags |= DB_INIT_CDB;
 		bdb->bi_txn_cp = 0;
 		bdb->bi_dbenv->set_lk_detect(bdb->bi_dbenv, DB_LOCK_DEFAULT);
@@ -190,8 +192,8 @@ bdb_db_open( BackendDB *be )
 			bdb->bi_dbenv_xflags, 1);
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
-			    db_strerror(rc), rc, 0 );
+				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
 			return rc;
 		}
 	}
@@ -264,14 +266,14 @@ bdb_db_close( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/* force a checkpoint */
-	if (bdb->bi_txn) {
-	rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
+	if( bdb->bi_txn ) {
+		rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
 	}
 
 	while( bdb->bi_ndatabases-- ) {

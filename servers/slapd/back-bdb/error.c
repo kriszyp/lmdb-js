@@ -1,4 +1,4 @@
-/* error.c - BDB errcall routine  */
+/* error.c - BDB errcall routine */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
