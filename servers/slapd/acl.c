@@ -1844,7 +1844,7 @@ aci_set_cb_gather( Operation *op, SlapReply *rs )
 }
 
 BerVarray
-aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
+aci_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *desc )
 {
 	AciSetCookie		*cp = (AciSetCookie *)cookie;
 	int			rc = 0;
@@ -1863,7 +1863,7 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	 * also return the syntax or some "comparison cookie".
 	 */
 	if ( strncasecmp( name->bv_val, "ldap:///", STRLENOF( "ldap:///" ) ) != 0 ) {
-		return aci_set_gather2( cookie, name, attr );
+		return aci_set_gather2( cookie, name, desc );
 	}
 
 	rc = ldap_url_parse( name->bv_val, &ludp );
@@ -1935,13 +1935,8 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 		anlistp = anlist;
 	}
 
-	anlistp[ nattrs ].an_name = *attr;
-	anlistp[ nattrs ].an_desc = NULL;
-	rc = slap_bv2ad( &anlistp[ nattrs ].an_name,
-			&anlistp[ nattrs ].an_desc, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		goto url_done;
-	}
+	anlistp[ nattrs ].an_name = desc->ad_cname;
+	anlistp[ nattrs ].an_desc = desc;
 
 	BER_BVZERO( &anlistp[ nattrs + 1 ].an_name );
 	
@@ -1997,7 +1992,7 @@ url_done:;
 }
 
 BerVarray
-aci_set_gather2( SetCookie *cookie, struct berval *name, struct berval *attr )
+aci_set_gather2( SetCookie *cookie, struct berval *name, AttributeDescription *desc )
 {
 	AciSetCookie	*cp = (AciSetCookie *)cookie;
 	BerVarray	bvals = NULL;
@@ -2010,21 +2005,16 @@ aci_set_gather2( SetCookie *cookie, struct berval *name, struct berval *attr )
 	 */
 	rc = dnNormalize( 0, NULL, NULL, name, &ndn, cp->op->o_tmpmemctx );
 	if ( rc == LDAP_SUCCESS ) {
-		const char		*text;
-		AttributeDescription	*desc = NULL;
+		if ( desc == slap_schema.si_ad_entryDN ) {
+			bvals = (BerVarray)slap_sl_malloc( sizeof( BerValue ) * 2,
+					cp->op->o_tmpmemctx );
+			bvals[ 0 ] = ndn;
+			BER_BVZERO( &bvals[ 1 ] );
+			BER_BVZERO( &ndn );
 
-		if ( slap_bv2ad( attr, &desc, &text ) == LDAP_SUCCESS ) {
-			if ( desc == slap_schema.si_ad_entryDN ) {
-				bvals = (BerVarray)slap_sl_malloc( sizeof( BerValue ) * 2,
-						cp->op->o_tmpmemctx );
-				bvals[ 0 ] = ndn;
-				BER_BVZERO( &bvals[ 1 ] );
-				BER_BVZERO( &ndn );
-
-			} else {
-				backend_attribute( cp->op,
-					cp->e, &ndn, desc, &bvals, ACL_NONE );
-			}
+		} else {
+			backend_attribute( cp->op,
+				cp->e, &ndn, desc, &bvals, ACL_NONE );
 		}
 
 		if ( !BER_BVISNULL( &ndn ) ) {
@@ -2032,7 +2022,7 @@ aci_set_gather2( SetCookie *cookie, struct berval *name, struct berval *attr )
 		}
 	}
 
-	return( bvals );
+	return bvals;
 }
 
 static int
