@@ -34,6 +34,12 @@ ldap_unbind_ext(
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
+	int rc;
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
 	return ldap_ld_free( ld, 1, sctrls, cctrls );
 }
 

@@ -73,6 +73,10 @@ ldap_modify_ext( LDAP *ld,
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
 
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( LDAP_NO_MEMORY );

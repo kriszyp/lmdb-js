@@ -367,6 +367,9 @@ LDAP_F (int) ldap_int_put_controls LDAP_P((
 	LDAPControl *const *ctrls,
 	BerElement *ber ));
 
+LDAP_F (int) ldap_int_client_controls LDAP_P((
+	LDAP *ld,
+	LDAPControl **ctrlp ));
 
 /*
  * in dsparse.c

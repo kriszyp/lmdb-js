@@ -91,6 +91,7 @@ ldap_search_ext(
 	int sizelimit,
 	int *msgidp )
 {
+	int rc;
 	BerElement	*ber;
 	int timelimit;
 
@@ -98,6 +99,10 @@ ldap_search_ext(
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
 
 	/*
 	 * if timeout is provided, both tv_sec and tv_usec must

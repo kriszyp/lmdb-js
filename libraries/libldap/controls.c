@@ -441,3 +441,34 @@ ldap_create_control(
 	*ctrlp = ctrl;
 	return LDAP_SUCCESS;
 }
+
+/*
+ * check for critical client controls and bitch if present
+ * if we ever support critical controls, we'll have to
+ * find a means for maintaining per API call control
+ * information.
+ */
+int ldap_int_client_controls( LDAP *ld, LDAPControl **ctrls )
+{
+	LDAPControl *const *c;
+
+	assert( ld != NULL );
+
+	if( ctrls == NULL ) {
+		/* use default server controls */
+		ctrls = ld->ld_cctrls;
+	}
+
+	if( ctrls == NULL || *ctrls == NULL ) {
+		return LDAP_SUCCESS;
+	}
+
+	for( c = ctrls ; *c != NULL; c++ ) {
+		if( (*c)->ldctl_iscritical ) {
+			ld->ld_errno = LDAP_NOT_SUPPORTED;
+			return ld->ld_errno;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
