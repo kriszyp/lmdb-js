@@ -137,7 +137,8 @@ bdb2i_txn_attr_config(
 							li->li_directory, DEFAULT_DIRSEP, p->dbc_name );
 
 				/*  since we have an mpool, we should not define a cache size */
-				p->dbc_db = ldbm_open( fileName, LDBM_WRCREAT, li->li_mode, 0 );
+				p->dbc_db = bdb2i_db_open( fileName, DB_TYPE,
+									LDBM_WRCREAT, li->li_mode, 0 );
 
 				/*  if the files could not be opened, something is wrong;
 					complain  */
@@ -177,7 +178,6 @@ bdb2i_open_nextid( BackendDB *be )
 	BDB2_TXN_HEAD   *head = &li->li_txn_head;
 	LDBM            db = NULL;
 	DB_INFO			dbinfo;
-	DB_ENV			*dbenv = get_dbenv( be );
 	char            fileName[MAXPATHLEN];
 
 	sprintf( fileName, "%s%s%s",
@@ -189,7 +189,7 @@ bdb2i_open_nextid( BackendDB *be )
 	dbinfo.db_malloc    = ldbm_malloc;
 
 	(void) db_open( fileName, DB_RECNO, DB_CREATE | DB_THREAD,
-					li->li_mode, dbenv, &dbinfo, &db );
+					li->li_mode, &bdb2i_dbEnv, &dbinfo, &db );
 
 	if ( db == NULL ) {
 
@@ -228,7 +228,8 @@ bdb2i_txn_open_files( BackendDB *be )
 					li->li_directory, DEFAULT_DIRSEP, dbFile->dbc_name );
 
 		/*  since we have an mpool, we should not define a cache size */
-		dbFile->dbc_db = ldbm_open( fileName, LDBM_WRCREAT, li->li_mode, 0 );
+		dbFile->dbc_db = bdb2i_db_open( fileName, DB_TYPE,
+							LDBM_WRCREAT, li->li_mode, 0 );
 
 		/*  if the files could not be opened, something is wrong; complain  */
 		if ( dbFile->dbc_db == NULL ) {
@@ -476,7 +477,30 @@ bdb2i_put_nextid( BackendDB *be, ID id )
 }
 
 
-/*  BDB2 backend-private functions of ldbm_store and ldbm_delete  */
+/*  BDB2 backend-private functions of libldbm  */
+LDBM
+bdb2i_db_open(
+	char *name,
+	int type,
+	int rw,
+	int mode,
+	int dbcachesize )
+{
+	LDBM		ret = NULL;
+	DB_INFO		dbinfo;
+
+	memset( &dbinfo, 0, sizeof( dbinfo ));
+	if ( bdb2i_dbEnv.mp_info == NULL )
+		dbinfo.db_cachesize = dbcachesize;
+	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
+	dbinfo.db_malloc    = ldbm_malloc;
+
+	(void) db_open( name, type, rw, mode, &bdb2i_dbEnv, &dbinfo, &ret );
+
+	return( ret );
+}
+
+
 int
 bdb2i_db_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
@@ -595,11 +619,12 @@ bdb2i_db_firstkey( LDBM ldbm, DBC **dbch )
 			txn_do_abort = 1;
 
 		}
+		key.flags = 0;
 		return( key );
 	} else {
 		*dbch = dbci;
 		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
-			if ( data.dptr ) free( data.dptr );
+			ldbm_datum_free( ldbm, data );
 		} else {
 			if ( txnid != NULL ) {
 
@@ -609,7 +634,8 @@ bdb2i_db_firstkey( LDBM ldbm, DBC **dbch )
 				txn_do_abort = 1;
 
 			}
-			if ( key.dptr ) free( key.dptr );
+			ldbm_datum_free( ldbm, key );
+			key.flags = 0;
 			key.dptr = NULL;
 			key.dsize = 0;
 		}
@@ -624,13 +650,12 @@ bdb2i_db_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
 {
 	Datum	data;
 	int		rc;
-	void 	*oldKey = key.dptr;
 
 	ldbm_datum_init( data );
-	data.flags = DB_DBT_MALLOC;
+	key.flags = data.flags = DB_DBT_MALLOC;
 
 	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
-		if ( data.dptr ) free( data.dptr );
+		ldbm_datum_free( ldbm, data );
 	} else {
 		if ( txnid != NULL ) {
 
@@ -640,11 +665,10 @@ bdb2i_db_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
 			txn_do_abort = 1;
 
 		}
+		key.flags = 0;
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
-
-	if ( oldKey ) free( oldKey );
 
 	return( key );
 }

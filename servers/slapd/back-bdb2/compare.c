@@ -78,7 +78,7 @@ bdb2_back_compare(
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
-	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( 1 );
@@ -86,7 +86,7 @@ bdb2_back_compare(
 	}
 
 	ret = bdb2i_back_compare_internal( be, conn, op, dn, ava );
-	(void) bdb2i_leave_backend_r( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_r( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "CMP", conn, op );
 
 	return( ret );

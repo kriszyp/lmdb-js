@@ -14,7 +14,7 @@
 
 
 int
-bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
+bdb2i_enter_backend_rw( DB_LOCK *lock, int writer )
 {
 	u_int32_t      locker;
 	db_lockmode_t  lock_type;
@@ -27,7 +27,7 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
 		case SLAP_TOOLID_MODE:
-			if ( ( ret = lock_id( dbEnv->lk_info, &locker )) != 0 ) {
+			if ( ( ret = lock_id( bdb2i_dbEnv.lk_info, &locker )) != 0 ) {
 
 				Debug( LDAP_DEBUG_ANY,
 					"bdb2i_enter_backend(): unable to get locker id -- %s\n",
@@ -40,8 +40,8 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 			lock_dbt.data = PORTER_OBJ;
 			lock_dbt.size = strlen( PORTER_OBJ );
 
-			switch ( ( ret = lock_get( dbEnv->lk_info, locker, 0, &lock_dbt,
-							lock_type, lock ))) {
+			switch ( ( ret = lock_get( bdb2i_dbEnv.lk_info, locker, 0,
+								&lock_dbt, lock_type, lock ))) {
 
 				case 0:
 					Debug( LDAP_DEBUG_TRACE,
@@ -76,7 +76,7 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 		start transaction control  */
 	if ( writer && ( ret == 0 )) {
 
-		ret = bdb2i_start_transction( dbEnv->tx_info );
+		ret = bdb2i_start_transction( bdb2i_dbEnv.tx_info );
 
 	}
 
@@ -85,7 +85,7 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 
 
 int
-bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
+bdb2i_leave_backend_rw( DB_LOCK lock, int writer )
 {
 	/*  since one or more error can occure,
 		we must have several return codes that are or'ed at the end  */
@@ -101,7 +101,7 @@ bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
 	}
 
 	/*  check whether checkpointing is needed  */
-	ret_transaction |= bdb2i_set_txn_checkpoint( dbEnv->tx_info, 0 );
+	ret_transaction |= bdb2i_set_txn_checkpoint( bdb2i_dbEnv.tx_info, 0 );
 
 	/*  now release the lock  */
 	switch ( slapMode ) {
@@ -110,7 +110,7 @@ bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
 		case SLAP_TOOLID_MODE:
-			switch( ( ret_lock = lock_put( dbEnv->lk_info, lock ))) {
+			switch( ( ret_lock = lock_put( bdb2i_dbEnv.lk_info, lock ))) {
 
 				case 0:
 					Debug( LDAP_DEBUG_TRACE,

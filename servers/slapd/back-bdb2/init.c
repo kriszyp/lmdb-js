@@ -23,7 +23,6 @@ bdb2i_back_init_private(
 
 	bt->lty_dbhome = DEFAULT_DB_HOME;
 	bt->lty_mpsize = DEFAULT_DBCACHE_SIZE;
-	bt->lty_dbenv  = &ldbm_Env;
 
 	if ( slapMode == SLAP_TIMEDSERVER_MODE )
 		bt->lty_betiming = 1;

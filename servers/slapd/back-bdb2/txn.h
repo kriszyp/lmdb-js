@@ -22,6 +22,10 @@
 
 
 
+/*  the DB environment for the backend  */
+DB_ENV                    bdb2i_dbEnv;
+
+
 /*  variables for transaction support  */
 DB_TXN                    *txnid       = NULL;
 int                       txn_do_abort = 0;

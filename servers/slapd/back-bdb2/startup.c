@@ -31,7 +31,6 @@ bdb2i_back_startup_internal(
 )
 {
 	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
-	DB_ENV          *dbEnv = lty->lty_dbenv;
 	int             envFlags;
 	int             err      = 0;
 	char            *home;
@@ -53,21 +52,21 @@ bdb2i_back_startup_internal(
 	home = lty->lty_dbhome;
 
 	/*  general initialization of the environment  */
-	memset( dbEnv, 0, sizeof( DB_ENV ));
-	dbEnv->db_errcall = bdb2i_db_errcall;
-	dbEnv->db_errpfx  = "==>";
+	memset( &bdb2i_dbEnv, 0, sizeof( DB_ENV ));
+	bdb2i_dbEnv.db_errcall = bdb2i_db_errcall;
+	bdb2i_dbEnv.db_errpfx  = "==>";
 
 	/*  initialize the lock subsystem  */
-	dbEnv->lk_max     = 0;
+	bdb2i_dbEnv.lk_max     = 0;
 
 	/*  remove old locking tables  */
 	remove_old_locks( home );
 
 	/*  initialize the mpool subsystem  */
-	dbEnv->mp_size   = lty->lty_mpsize;
+	bdb2i_dbEnv.mp_size   = lty->lty_mpsize;
 
 	/*  now do the db_appinit  */
-	if ( ( err = db_appinit( home, NULL, dbEnv, envFlags )) ) {
+	if ( ( err = db_appinit( home, NULL, &bdb2i_dbEnv, envFlags )) ) {
 		char  error[BUFSIZ];
 
 		if ( err < 0 ) sprintf( error, "%ld\n", (long) err );
@@ -90,22 +89,21 @@ bdb2i_back_shutdown_internal(
 )
 {
 	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
-	DB_ENV           *dbEnv = lty->lty_dbenv;
 	int              err;
 
 	/*  remove old locking tables  */
-	dbEnv->db_errpfx  = "bdb2i_back_shutdown(): lock_unlink:";
-	if ( ( err = lock_unlink( NULL, 1, dbEnv )) != 0 )
+	bdb2i_dbEnv.db_errpfx  = "bdb2i_back_shutdown(): lock_unlink:";
+	if ( ( err = lock_unlink( NULL, 1, &bdb2i_dbEnv )) != 0 )
 		Debug( LDAP_DEBUG_ANY, "bdb2i_back_shutdown(): lock_unlink: %s\n",
 					strerror( err ), 0, 0);
 
 	/*  remove old memory pool  */
-	dbEnv->db_errpfx  = "bdb2i_back_shutdown(): memp_unlink:";
-	if ( ( err = memp_unlink( NULL, 1, dbEnv )) != 0 )
+	bdb2i_dbEnv.db_errpfx  = "bdb2i_back_shutdown(): memp_unlink:";
+	if ( ( err = memp_unlink( NULL, 1, &bdb2i_dbEnv )) != 0 )
 		Debug( LDAP_DEBUG_ANY, "bdb2i_back_shutdown(): memp_unlink: %s\n",
 					strerror( err ), 0, 0);
 
-	(void) db_appexit( dbEnv );
+	(void) db_appexit( &bdb2i_dbEnv );
 
 	return( 0 );
 }

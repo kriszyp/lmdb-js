@@ -173,12 +173,12 @@ void bdb2i_uncond_stop_timing LDAP_P(( struct timeval time1,
  * porter.c
  */
 
-int bdb2i_enter_backend_rw  LDAP_P(( DB_ENV *dbEnv, DB_LOCK *lock, int writer ));
-#define bdb2i_enter_backend_r(dbEnv,lock)  bdb2i_enter_backend_rw( (dbEnv), (lock), 0 )
-#define bdb2i_enter_backend_w(dbEnv,lock)  bdb2i_enter_backend_rw( (dbEnv), (lock), 1 )
-int bdb2i_leave_backend_rw LDAP_P(( DB_ENV *dbEnv, DB_LOCK lock, int writer ));
-#define bdb2i_leave_backend_r(dbEnv,lock)  bdb2i_leave_backend_rw( (dbEnv), (lock), 0 )
-#define bdb2i_leave_backend_w(dbEnv,lock)  bdb2i_leave_backend_rw( (dbEnv), (lock), 1 )
+int bdb2i_enter_backend_rw  LDAP_P(( DB_LOCK *lock, int writer ));
+#define bdb2i_enter_backend_r(lock)  bdb2i_enter_backend_rw((lock), 0 )
+#define bdb2i_enter_backend_w(lock)  bdb2i_enter_backend_rw((lock), 1 )
+int bdb2i_leave_backend_rw LDAP_P(( DB_LOCK lock, int writer ));
+#define bdb2i_leave_backend_r(lock)  bdb2i_leave_backend_rw((lock), 0 )
+#define bdb2i_leave_backend_w(lock)  bdb2i_leave_backend_rw((lock), 1 )
 
 /*
  *  txn.c
@@ -203,6 +203,8 @@ void bdb2i_check_default_attr_index_mod LDAP_P((
  LDAPModList *modlist ));
 ID bdb2i_get_nextid  LDAP_P(( BackendDB *be ));
 int bdb2i_put_nextid LDAP_P(( BackendDB *be, ID id ));
+LDBM bdb2i_db_open LDAP_P(( char *name, int type, int rw, int mode,
+ int dbcachesize ));
 int bdb2i_db_store   LDAP_P(( LDBM ldbm, Datum key, Datum data, int flags ));
 int bdb2i_db_delete  LDAP_P(( LDBM ldbm, Datum key ));
 Datum bdb2i_db_fetch LDAP_P(( LDBM ldbm, Datum key ));

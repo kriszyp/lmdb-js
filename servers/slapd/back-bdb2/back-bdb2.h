@@ -154,6 +154,9 @@ typedef  struct _bdb2_txn_head {
 	int              withDefIDX;
 #define  BDB2_WITH_DEF_IDX          1
 
+	/*  a handle for the backend's environment  */
+	DB_ENV           **dbenvH;
+
 } BDB2_TXN_HEAD;
 
 
@@ -165,14 +168,13 @@ struct ldbtype {
 	char			*lty_dbhome;
 	size_t			lty_mpsize;
 	int				lty_betiming;
-
-	/*  XXX do we need a private DB_ENV for all DB2 backend types ?  */
-	DB_ENV			*lty_dbenv;
 };
 
-#define get_dbenv(be) ((struct ldbtype *) (be)->bd_info->bi_private)->lty_dbenv
 #define with_timing(bi) (((struct ldbtype *) \
 			(bi)->bi_private)->lty_betiming == 1)
+
+/*  The DB environment  */
+extern DB_ENV       bdb2i_dbEnv;
 
 
 /*  the private description of a database  */

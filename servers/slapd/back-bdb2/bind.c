@@ -120,6 +120,7 @@ bdb2i_back_bind_internal(
 			goto return_results;
 		}
 
+		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
 			if( *edn != NULL ) free( *edn );
@@ -131,6 +132,8 @@ bdb2i_back_bind_internal(
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
 			    NULL, NULL );
+
+			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
 		}
@@ -139,6 +142,7 @@ bdb2i_back_bind_internal(
 		{
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL );
+			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
 		}
@@ -224,7 +228,7 @@ bdb2_back_bind(
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
-	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( 1 );
@@ -233,7 +237,7 @@ bdb2_back_bind(
 
 	ret = bdb2i_back_bind_internal( be, conn, op, dn, method, cred, edn );
 
-	(void) bdb2i_leave_backend_r( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_r( lock );
 
 	bdb2i_stop_timing( be->bd_info, time1, "BIND", conn, op );
 

@@ -128,7 +128,7 @@ bdb2_back_modify(
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
-	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_w( &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -147,7 +147,7 @@ bdb2_back_modify(
 	}
 
 	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist );
-	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_w( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "MOD", conn, op );
 
 	return( ret );

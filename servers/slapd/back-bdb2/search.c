@@ -337,7 +337,7 @@ bdb2_back_search(
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
-	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -347,7 +347,7 @@ bdb2_back_search(
 	ret = bdb2i_back_search_internal( be, conn, op, base, scope, deref,
 					slimit, tlimit, filter, filterstr, attrs, attrsonly );
 
-	(void) bdb2i_leave_backend_r( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_r( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "SRCH", conn, op );
 
 	return( ret );

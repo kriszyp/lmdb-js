@@ -16,7 +16,7 @@ bdb2i_back_db_close_internal( BackendDB *be )
 
 	/*  since close will probably write the NEXTID file,
 		wee need transaction control  */
-	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_w( &lock ) != 0 ) {
 		return( -1 );
 	}
 
@@ -31,8 +31,8 @@ bdb2i_back_db_close_internal( BackendDB *be )
 
 	/*  before closing all files, leave the backend (thus commiting
 		all writes) and set a last checkpoint  */
-	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
-	(void) bdb2i_set_txn_checkpoint( get_dbenv( be )->tx_info, 1 );
+	(void) bdb2i_leave_backend_w( lock );
+	(void) bdb2i_set_txn_checkpoint( bdb2i_dbEnv.tx_info, 1 );
 
 	/*  close all DB files  */
 	Debug( LDAP_DEBUG_TRACE, "bdb2 backend closing DB files\n", 0, 0, 0 );

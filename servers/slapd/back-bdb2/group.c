@@ -141,7 +141,7 @@ bdb2_back_group(
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
-	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( &lock ) != 0 ) {
 
 		return( 1 );
 
@@ -150,7 +150,7 @@ bdb2_back_group(
 	ret = bdb2i_back_group_internal( be, target, gr_ndn, op_ndn,
 					objectclassValue, groupattrName );
 
-	(void) bdb2i_leave_backend_r( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_r( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "GRP", NULL, NULL );
 
 	return( ret );
