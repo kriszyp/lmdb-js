@@ -38,7 +38,7 @@ do_search(
 	struct berval nbase = { 0, NULL };
 	struct berval	fstr = { 0, NULL };
 	Filter		*filter = NULL;
-	struct berval	**attrs = NULL;
+	AttributeName	an, *al = NULL, *alast, *anew;
 	Backend		*be;
 	int			rc;
 	const char	*text;
@@ -156,7 +156,26 @@ do_search(
 
 
 	/* attributes */
-	if ( ber_scanf( op->o_ber, /*{*/ "{V}}", &attrs ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{" /*}*/ ) == LBER_ERROR ) {
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
+		rc = SLAPD_DISCONNECT;
+		goto return_results;
+	}
+	while ( ber_scanf( op->o_ber, "o", &an.an_name ) != LBER_ERROR) {
+		anew = ch_malloc(sizeof(AttributeName));
+		anew->an_next = NULL;
+		anew->an_name = an.an_name;
+		anew->an_desc = NULL;
+		slap_bv2ad( &anew->an_name, &anew->an_desc, &text );
+		if (!al) {
+			al = anew;
+		} else {
+			alast->an_next = anew;
+		}
+		alast = anew;
+	}
+	if ( ber_scanf( op->o_ber, /*{{*/ "}}" ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
 		rc = SLAPD_DISCONNECT;
@@ -185,13 +204,13 @@ do_search(
 #endif
 
 
-	if ( attrs != NULL ) {
-		for ( i = 0; attrs[i] != NULL; i++ ) {
+	if ( al != NULL ) {
+		for ( anew = al; anew; anew=anew->an_next ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-				"do_search:	   %s", attrs[i]->bv_val ));
+				"do_search:	   %s", anew->an_name.bv_val ));
 #else
-			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i]->bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ARGS, " %s", anew->an_name.bv_val, 0, 0 );
 #endif
 
 		}
@@ -255,7 +274,7 @@ do_search(
 
 			if( rc == LDAP_COMPARE_TRUE ) {
 				send_search_entry( NULL, conn, op,
-					entry, attrs, attrsonly, NULL );
+					entry, al, attrsonly, NULL );
 			}
 			entry_free( entry );
 
@@ -311,7 +330,7 @@ do_search(
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, &pbase, &nbase,
 			scope, deref, sizelimit,
-		    timelimit, filter, fstr.bv_val, attrs, attrsonly );
+		    timelimit, filter, fstr.bv_val, al, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
@@ -324,8 +343,10 @@ return_results:;
 
 	if( fstr.bv_val != NULL) free( fstr.bv_val );
 	if( filter != NULL) filter_free( filter );
-	if ( attrs != NULL ) {
-		ber_bvecfree( attrs );
+	for (; al; al=anew ) {
+		anew = al->an_next;
+		free(al->an_name.bv_val);
+		free(al);
 	}
 
 	return rc;

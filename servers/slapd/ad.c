@@ -282,27 +282,25 @@ int is_ad_subtype(
 
 int ad_inlist(
 	AttributeDescription *desc,
-	struct berval **attrs )
+	AttributeName *attrs )
 {
-	int i;
-	for( i=0; attrs[i] != NULL; i++ ) {
+	for( ; attrs; attrs=attrs->an_next ) {
 		ObjectClass *oc;
-		AttributeDescription *ad = NULL;
 		const char *text;
 		int rc;
 		
-		rc = slap_bv2ad( attrs[i], &ad, &text );
-		if( rc == LDAP_SUCCESS ) {
-			rc = is_ad_subtype( desc, ad );
-			if( rc ) return 1;
+		if ( attrs->an_desc ) {
+			if ( is_ad_subtype( desc, attrs->an_desc ))
+				return 1;
 			continue;
 		}
+
 
 		/*
 		 * EXTENSION: see if requested description is an object class
 		 * if so, return attributes which the class requires/allows
 		 */
-		oc = oc_bvfind( attrs[i] );
+		oc = oc_bvfind( &attrs->an_name );
 		if( oc != NULL ) {
 			if ( oc == slap_schema.si_oc_extensibleObject ) {
 				/* extensibleObject allows the return of anything */
@@ -398,4 +396,61 @@ int slap_bv2undef_ad(
 		**ad = *desc;
 
 	return LDAP_SUCCESS;
+}
+
+int
+an_find(
+    AttributeName *a,
+    struct berval *s
+)
+{
+	if( a == NULL ) return 0;
+
+	for ( ; a; a=a->an_next ) {
+		if ( a->an_name.bv_len != s->bv_len) continue;
+		if ( strcasecmp( s->bv_val, a->an_name.bv_val ) == 0 ) {
+			return( 1 );
+		}
+	}
+
+	return( 0 );
+}
+
+/* Convert a delimited string into a list of AttributeNames; Add on
+ * to an existing list if it was given.
+ */
+AttributeName *
+str2anlist( AttributeName *an, const char *in, const char *brkstr )
+{
+	char	*str;
+	char	*s;
+	char	*lasts;
+	const char *text;
+	AttributeName *a, *anew;
+
+	/* protect the input string from strtok */
+	str = ch_strdup( in );
+
+	/* find last element in list */
+	for (a = an; a && a->an_next; a=a->an_next);
+	
+	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
+		s != NULL;
+		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
+	{
+		anew = ch_malloc( sizeof( AttributeName ) );
+		anew->an_next = NULL;
+		anew->an_desc = NULL;
+		ber_str2bv(s, 0, 1, &anew->an_name);
+		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
+		if (!an) {
+			an = anew;
+		} else {
+			a->an_next = anew;
+		}
+		a = anew;
+	}
+
+	free( str );
+	return( an );
 }

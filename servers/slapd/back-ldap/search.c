@@ -47,7 +47,7 @@
 #include "back-ldap.h"
 
 static void ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
-                             LDAPMessage *e, struct berval **attrs, int attrsonly );
+                             LDAPMessage *e, AttributeName *attrs, int attrsonly );
 
 int
 ldap_back_search(
@@ -62,7 +62,7 @@ ldap_back_search(
     int		tlimit,
     Filter	*filter,
     const char	*filterstr,
-    struct berval	**attrs,
+    AttributeName	*attrs,
     int		attrsonly
 )
 {
@@ -223,10 +223,11 @@ ldap_back_search(
 
 	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
 	if ( mapped_attrs == NULL && attrs) {
-		for (count=0; attrs[count]; count++);
+		AttributeName *an;
+		for (count=0, an=attrs; an; an=an->an_next,count++);
 		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
-		for (count=0; attrs[count]; count++) {
-			mapped_attrs[count] = attrs[count]->bv_val;
+		for (count=0, an=attrs; an; an=an->an_next,count++) {
+			mapped_attrs[count] = an->an_name.bv_val;
 		}
 		mapped_attrs[count] = NULL;
 	}
@@ -365,7 +366,7 @@ ldap_send_entry(
 	Operation *op,
 	struct ldapconn *lc,
 	LDAPMessage *e,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int attrsonly
 )
 {

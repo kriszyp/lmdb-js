@@ -202,7 +202,7 @@ parse_acl(
 					}
 
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
-					a->acl_attrs = str2bvec( a->acl_attrs,
+					a->acl_attrs = str2anlist( a->acl_attrs,
 						right, "," );
 				} else {
 					fprintf( stderr,
@@ -1271,13 +1271,17 @@ void
 acl_free( AccessControl *a )
 {
 	Access *n;
+	AttributeName *an;
 
 	if ( a->acl_filter )
 		filter_free( a->acl_filter );
 	if ( a->acl_dn_pat.bv_len )
 		free ( a->acl_dn_pat.bv_val );
-	if ( a->acl_attrs )
-		ber_bvecfree( a->acl_attrs );
+	for (; a->acl_attrs; a->acl_attrs = an) {
+		an = a->acl_attrs->an_next;
+		free( a->acl_attrs->an_name.bv_val );
+		free( a->acl_attrs );
+	}
 	for (; a->acl_access; a->acl_access = n) {
 		n = a->acl_access->a_next;
 		access_free( a->acl_access );
@@ -1482,15 +1486,16 @@ print_acl( Backend *be, AccessControl *a )
 	}
 
 	if ( a->acl_attrs != NULL ) {
-		int	i, first = 1;
+		int	first = 1;
+		AttributeName *an;
 		to++;
 
 		fprintf( stderr, " attrs=" );
-		for ( i = 0; a->acl_attrs[i] != NULL; i++ ) {
+		for ( an = a->acl_attrs; an; an=an->an_next ) {
 			if ( ! first ) {
 				fprintf( stderr, "," );
 			}
-			fputs( a->acl_attrs[i]->bv_val, stderr );
+			fputs( an->an_name.bv_val, stderr );
 			first = 0;
 		}
 		fprintf(  stderr, "\n" );

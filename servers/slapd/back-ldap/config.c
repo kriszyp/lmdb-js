@@ -429,29 +429,30 @@ ldap_back_map_filter(
 char **
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
-		struct berval **a,
+		AttributeName *a,
 		int remap
 )
 {
-	int i, j, count;
+	int i;
 	char *mapped, **na;
+	AttributeName *an;
 
 	if (a == NULL)
 		return(NULL);
 
-	for (count = 0; a[count] != NULL; count++) {
+	for (i = 0, an=a; an; an=an->an_next, i++) {
 		/*  */
 	}
 
-	na = (char **)ch_calloc( count + 1, sizeof(char *) );
+	na = (char **)ch_calloc( i + 1, sizeof(char *) );
 	if (na == NULL)
 		return(NULL);
 
-	for (i = 0, j = 0; i < count; i++) {
-		mapped = ldap_back_map(at_map, a[i]->bv_val, remap);
+	for (i = 0, an=a; an; an=an->an_next) {
+		mapped = ldap_back_map(at_map, an->an_name.bv_val, remap);
 		if (mapped != NULL) {
-			na[j] = mapped;
-			j++;
+			na[i] = mapped;
+			i++;
 		}
 	}
 	return(na);

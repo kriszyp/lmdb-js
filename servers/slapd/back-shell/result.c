@@ -23,7 +23,7 @@ read_and_send_results(
     Connection	*conn,
     Operation	*op,
     FILE	*fp,
-    struct berval **attrs,
+    AttributeName *attrs,
     int		attrsonly
 )
 {

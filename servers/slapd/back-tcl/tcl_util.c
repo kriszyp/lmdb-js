@@ -26,7 +26,7 @@ interp_send_results (
 	Connection * conn,
 	Operation * op,
 	char *result,
-	char **attrs,
+	AttributeName *attrs,
 	int attrsonly
 )
 {

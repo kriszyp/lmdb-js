@@ -618,7 +618,7 @@ send_search_entry(
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-    struct berval	**attrs,
+    AttributeName	*attrs,
     int		attrsonly,
 	LDAPControl **ctrls
 )
@@ -707,11 +707,11 @@ send_search_entry(
 
 	/* check for special all user attributes ("*") type */
 	userattrs = ( attrs == NULL ) ? 1
-		: bvec_inlist( attrs, &AllUser );
+		: an_find( attrs, &AllUser );
 
 	/* check for special all operational attributes ("+") type */
 	opattrs = ( attrs == NULL ) ? 0
-		: bvec_inlist( attrs, &AllOper );
+		: an_find( attrs, &AllOper );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;

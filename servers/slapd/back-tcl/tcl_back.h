@@ -57,7 +57,7 @@ int interp_send_results (
 	Connection * conn,
 	Operation * op,
 	char *result,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int attrsonly
 );
 

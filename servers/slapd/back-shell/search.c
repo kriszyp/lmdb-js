@@ -28,13 +28,14 @@ shell_back_search(
     int		time,
     Filter	*filter,
     const char	*filterstr,
-    struct berval	**attrs,
+    AttributeName	*attrs,
     int		attrsonly
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	int 			i;
 	FILE			*rfp, *wfp;
+	AttributeName		*an;
 
 	if ( si->si_search == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
@@ -61,8 +62,8 @@ shell_back_search(
 	fprintf( wfp, "filter: %s\n", filterstr );
 	fprintf( wfp, "attrsonly: %d\n", attrsonly ? 1 : 0 );
 	fprintf( wfp, "attrs:%s", attrs == NULL ? " all" : "" );
-	for ( i = 0; attrs != NULL && attrs[i] != NULL; i++ ) {
-		fprintf( wfp, " %s", attrs[i]->bv_val );
+	for ( an = attrs; an; an=an->an_next ) {
+		fprintf( wfp, " %s", an->an_name.bv_val );
 	}
 	fprintf( wfp, "\n" );
 	fclose( wfp );

@@ -37,7 +37,7 @@ LDAP_SLAPD_F (int) is_ad_subtype LDAP_P((
 
 LDAP_SLAPD_F (int) ad_inlist LDAP_P((
 	AttributeDescription *desc,
-	struct berval **attrs ));
+	AttributeName *attrs ));
 
 LDAP_SLAPD_F (int) slap_str2undef_ad LDAP_P((
 	const char *,
@@ -52,6 +52,10 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
 	AttributeType *type,
 	struct berval *lang ));
+
+LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
+	const char *str, const char *brkstr ));
+LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));	
 
 /*
  * acl.c
@@ -225,7 +229,7 @@ LDAP_SLAPD_F (Attribute *) backend_operational(
 	Connection *conn,
 	Operation *op,
 	Entry *e,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int opattrs );
 
 
@@ -271,8 +275,6 @@ LDAP_SLAPD_F (void) charray_free LDAP_P(( char **array ));
 LDAP_SLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
 LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
 LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
-LDAP_SLAPD_F (struct berval **) str2bvec LDAP_P(( struct berval **vec,
-	const char *str, const char *brkstr ));
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
@@ -281,9 +283,6 @@ LDAP_SLAPD_F (void) bvarray_free LDAP_P(( struct berval *a ));
 
 LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
 	char *dst, const char *src ));
-LDAP_SLAPD_F (int) bvec_inlist LDAP_P((
-    struct berval **a,
-    struct berval *s ));	
 
 /*
  * controls.c
@@ -664,7 +663,7 @@ LDAP_SLAPD_F (int) send_search_reference LDAP_P((
 
 LDAP_SLAPD_F (int) send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, struct berval **attrs, int attrsonly,
+	Entry *e, AttributeName *attrs, int attrsonly,
 	LDAPControl **ctrls ));
 
 LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,

@@ -108,7 +108,7 @@ send_search_entry(
 	Connection  *conn, 
 	Operation   *op,
 	Entry	*e,
-	struct berval	**attrs,
+	AttributeName	*attrs,
 	int		attrsonly,
 	LDAPControl **ctrls
 )        

@@ -1078,7 +1078,7 @@ Attribute *backend_operational(
 	Connection *conn,
 	Operation *op,
 	Entry *e,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int opattrs	)
 {
 	Attribute *a = NULL, **ap = &a;

@@ -39,7 +39,7 @@ perl_back_search(
 	int timelimit,
 	Filter *filter,
 	const char *filterstr,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int attrsonly
 	)
 {
@@ -48,6 +48,7 @@ perl_back_search(
 	int err = 0;
 	char *matched = NULL, *info = NULL;
 	PerlBackend *perl_back = (PerlBackend *)be->be_private;
+	AttributeName *an;
 	Entry	*e;
 	char *buf;
 	int i;
@@ -65,8 +66,8 @@ perl_back_search(
 		XPUSHs(sv_2mortal(newSViv( timelimit )));
 		XPUSHs(sv_2mortal(newSViv( attrsonly )));
 
-		for ( i = 0; attrs != NULL && attrs[i] != NULL; i++ ) {
-			XPUSHs(sv_2mortal(newSVpv( attrs[i]->bv_val , 0)));
+		for ( an = attrs; an; an = an->an_next ) {
+			XPUSHs(sv_2mortal(newSVpv( an->an_name.bv_val , 0)));
 		}
 		PUTBACK;
 

@@ -29,7 +29,7 @@ tcl_back_search (
 	int timelimit,
 	Filter * filter,
 	const char *filterstr,
-	struct berval **attrs,
+	AttributeName *attrs,
 	int attrsonly
 )
 {
@@ -38,6 +38,7 @@ tcl_back_search (
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 	char **sattrs = NULL;
 	Entry *e;
+	AttributeName *an;
 
 	if (ti->ti_search == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
@@ -45,11 +46,11 @@ tcl_back_search (
 		return (-1);
 	}
 
-	for (i = 0; attrs != NULL && attrs[i] != NULL; i++);
+	for (i = 0, an = attrs; an != NULL; an=an->an_next, i++);
 	if (i > 0) {
 		sattrs = ch_malloc( (i+1) * sizeof(char *));
-		for (i = 0; attrs[i]; i++)
-			sattrs[i] = attrs[i]->bv_val;
+		for (i = 0, an = attrs; an; an=an->an_next, i++)
+			sattrs[i] = an->an_name.bv_val;
 		sattrs[i] = NULL;
 		attrs_tcl = Tcl_Merge (i, sattrs);
 		free(sattrs);
@@ -82,7 +83,7 @@ tcl_back_search (
 		Debug (LDAP_DEBUG_SHELL, "tcl_search_error: %s\n", results,
 			0, 0);
 	} else {
-		interp_send_results (be, conn, op, results, NULL, 0);
+		interp_send_results (be, conn, op, results, attrs, 0);
 	}
 
 	if (err != LDAP_SUCCESS)

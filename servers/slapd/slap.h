@@ -456,6 +456,12 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_BINARY	0x1U
 } AttributeDescription;
 
+typedef struct slap_attr_name {
+	struct slap_attr_name *an_next;
+	struct berval an_name;
+	AttributeDescription *an_desc;
+} AttributeName;
+
 #define slap_ad_is_lang(ad)		( (ad)->ad_lang.bv_len != 0 )
 #define slap_ad_is_binary(ad)	( (int)((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
@@ -825,7 +831,7 @@ typedef struct slap_acl {
 	slap_style_t acl_dn_style;
 	regex_t		acl_dn_re;
 	struct berval	acl_dn_pat;
-	struct berval	**acl_attrs;
+	AttributeName	*acl_attrs;
 
 	/* "by" part: list of who has what access to the entries */
 	Access	*acl_access;
@@ -1047,7 +1053,7 @@ typedef int (BI_op_search) LDAP_P((BackendDB *bd,
 		int scope, int deref,
 		int slimit, int tlimit,
 		Filter *f, const char *filterstr,
-		struct berval **attrs, int attrsonly));
+		AttributeName *attrs, int attrsonly));
 typedef int (BI_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		struct berval *dn, struct berval *ndn,
@@ -1109,7 +1115,7 @@ typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
 
 typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
-		Entry *e, struct berval **attrs, int opattrs, Attribute **a ));
+		Entry *e, AttributeName *attrs, int opattrs, Attribute **a ));
 
 typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

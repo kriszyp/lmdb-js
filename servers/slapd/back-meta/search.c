@@ -84,7 +84,7 @@ meta_send_entry(
 		struct metaconn	*lc,
 		int 		i,
 		LDAPMessage 	*e,
-		struct berval 	**attrs,
+		AttributeName 	*attrs,
 		int 		attrsonly
 );
 
@@ -107,7 +107,7 @@ meta_back_search(
 		int		tlimit,
 		Filter		*filter,
 		const char	*filterstr,
-		struct berval	**attrs,
+		AttributeName	*attrs,
 		int		attrsonly
 )
 {
@@ -351,10 +351,11 @@ meta_back_search(
 		mapped_attrs = ldap_back_map_attrs( &li->targets[ i ]->at_map,
 				attrs, 0 );
 		if ( mapped_attrs == NULL && attrs) {
-			for ( count = 0; attrs[ count ]; count++ );
+			AttributeName *an;
+			for ( count=0, an=attrs; an; an=an->an_next, count++ );
 			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
-			for ( count = 0; attrs[ count ]; count++ ) {
-				mapped_attrs[ count ] = attrs[ count ]->bv_val;
+			for ( count=0, an=attrs; an; an=an->an_next, count++ ) {
+				mapped_attrs[ count ] = an->an_name.bv_val;
 			}
 			mapped_attrs[ count ] = NULL;
 		}
@@ -572,7 +573,7 @@ meta_send_entry(
 		struct metaconn *lc,
 		int 		target,
 		LDAPMessage 	*e,
-		struct berval 	**attrs,
+		AttributeName 	*attrs,
 		int 		attrsonly
 )
 {
