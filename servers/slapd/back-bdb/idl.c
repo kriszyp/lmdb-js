@@ -19,24 +19,29 @@
 void idl_dump( ID *ids )
 {
 	if( BDB_IDL_IS_RANGE( ids ) ) {
-		fprintf( stderr, "IDL: range %ld - %ld\n", (long) ids[0] );
+		Debug( LDAP_DEBUG_ANY,
+			"IDL: range %ld - %ld\n", (long) ids[0], 0, 0 );
+
 	} else {
 		ID i;
-		fprintf( stderr, "IDL: size %ld", (long) ids[0] );
+		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0], 0, 0 );
 
 		for( i=1; i<=ids[0]; i++ ) {
-			if( i % 16 ) fprintf( stderr, "\n" );
-			fprintf( stderr, "  %02lx" );
+			if( i % 16 == 1 ) {
+				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+			}
+			Debug( LDAP_DEBUG_ANY, "  %02lx", ids[i], 0, 0 );
 		}
 
-		fprintf( stderr, "\n" );
+		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
 	}
 }
 #endif
 
 unsigned bdb_idl_search( ID *ids, ID id )
 {
-#if BDB_IDL_BINARY_SEARCH
+#define IDL_BINARY_SEARCH
+#ifdef IDL_BINARY_SEARCH
 	/*
 	 * binary search of id in ids
 	 * if found, returns position of id
@@ -87,7 +92,7 @@ static int idl_insert( ID *ids, ID id )
 	unsigned x = bdb_idl_search( ids, id );
 
 #ifdef IDL_DEBUG
-	fprintf( stderr, "insert: %04lx at %d\n", id, x );
+	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", id, x, 0 );
 	idl_dump( ids );
 #endif
 
@@ -117,7 +122,6 @@ static int idl_insert( ID *ids, ID id )
 	} else {
 		/* insert id */
 		AC_MEMCPY( &ids[x+1], &ids[x], (ids[0]-x) * sizeof(ID) );
-		ids[0]++;
 		ids[x] = id;
 	}
 
@@ -133,7 +137,7 @@ static int idl_delete( ID *ids, ID id )
 	unsigned x = bdb_idl_search( ids, id );
 
 #ifdef IDL_DEBUG
-	fprintf( stderr, "delete: %04lx at %d\n", id, x );
+	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", id, x, 0 );
 	idl_dump( ids );
 #endif
 
