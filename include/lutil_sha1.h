@@ -5,6 +5,7 @@
 #define _LDAP_SHA1_H_
 
 #include <ldap_cdefs.h>
+#include <ac/bytes.h>
 
 LDAP_BEGIN_DECL
 
@@ -14,11 +15,7 @@ LDAP_BEGIN_DECL
  * 100% Public Domain
  */
 
-/* XXX   I wonder if this will work on 64bit architectures... */
-#ifndef LDAP_UINT32
-#define LDAP_UINT32
-typedef unsigned long uint32;
-#endif
+typedef LDAP_UINT4 uint32;
 
 typedef struct {
     uint32 state[5];

@@ -4,6 +4,7 @@
 #define _LDAP_MD5_H_
 
 #include <ldap_cdefs.h>
+#include <ac/bytes.h>
 
 LDAP_BEGIN_DECL
 
@@ -13,10 +14,7 @@ LDAP_BEGIN_DECL
    important.  ANSI guarantees that "unsigned long" will be big enough,
    and always using it seems to have few disadvantages.  */
 
-#ifndef LDAP_UINT32
-#define LDAP_UINT32
-typedef unsigned long uint32;
-#endif
+typedef LDAP_UINT4 uint32;
 
 struct ldap_MD5Context {
 	uint32 buf[4];

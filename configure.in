@@ -213,7 +213,7 @@ dnl Checks the compiler and UNIX Variants
 AC_PROG_CC
 
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
-	AC_WARN([cross compiling....  go for it])
+	AC_WARN([cross compiling....  some functionality will be removed.])
 
 elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
 	AC_WARN([programs compiled here do run here...])
@@ -949,14 +949,13 @@ OL_C_UPPER_LOWER
 AC_C_CONST
 
 if test $cross_compiling = yes ; then
-	AC_MSG_WARN([Assuming BYTE_ORDER is defined])
+	AC_DEFINE(CROSS_COMPILING, 1)
 else
 	AC_C_BIGENDIAN
+	AC_CHECK_SIZEOF(short) 
+	AC_CHECK_SIZEOF(int) 
+	AC_CHECK_SIZEOF(long)
 fi
-
-dnl AC_CHECK_SIZEOF(short) 
-dnl AC_CHECK_SIZEOF(int) 
-dnl AC_CHECK_SIZEOF(long)
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
