@@ -29,6 +29,7 @@ ber_get_option(
 
 	if(outvalue == NULL) {
 		/* no place to get to */
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -38,6 +39,7 @@ ber_get_option(
 			return LBER_OPT_SUCCESS;
 		}
 
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -69,6 +71,7 @@ ber_get_option(
 
 	default:
 		/* bad param */
+		ber_errno = LBER_ERROR_PARAM;
 		break;
 	}
 
@@ -96,6 +99,7 @@ ber_set_option(
 		if(!( f->bmf_malloc && f->bmf_calloc
 			&& f->bmf_realloc && f->bmf_free ))
 		{
+			ber_errno = LBER_ERROR_PARAM;
 			return LBER_OPT_ERROR;
 		}
 
@@ -103,6 +107,7 @@ ber_set_option(
 			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions));
 
 		if ( ber_int_memory_fns == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
 			return LBER_OPT_ERROR;
 		}
 
@@ -116,6 +121,7 @@ ber_set_option(
 
 	if(invalue == NULL) {
 		/* no place to set from */
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -129,6 +135,7 @@ ber_set_option(
 			return LBER_OPT_SUCCESS;
 		}
 
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -160,6 +167,7 @@ ber_set_option(
 
 	default:
 		/* bad param */
+		ber_errno = LBER_ERROR_PARAM;
 		break;
 	}
 

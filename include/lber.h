@@ -64,7 +64,7 @@ LDAP_BEGIN_DECL
  * as valid BER tags, and so it is safe to use them to report errors.  In
  * fact, any tag for which the following is true is invalid:
  */
-#define LBER_INVALID(t)     (((t) & (ber_tag_t) 0x080) \
+#define LBER_INVALID(t)     (((t) & (ber_tag_t) 0x080UL) \
 	&& (((t) & (ber_tag_t) ~ 0x0FF))
 
 #define LBER_ERROR			((ber_tag_t) -1)

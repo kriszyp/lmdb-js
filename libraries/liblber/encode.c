@@ -299,8 +299,7 @@ ber_put_ostring(
 #ifdef STR_TRANSLATION
 	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0 &&
 	    ber->ber_encode_translate_proc ) {
-		if ( (*(ber->ber_encode_translate_proc))( &str, &len, 0 )
-		    != 0 ) {
+		if ( (*(ber->ber_encode_translate_proc))( &str, &len, 0 ) != 0 ) {
 			return( -1 );
 		}
 		free_str = 1;

@@ -83,7 +83,6 @@ ber_memfree( void *p )
 
 	assert( ber_int_memory_fns->bmf_free );
 
-		
 	(*ber_int_memory_fns->bmf_free)( p );
 }
 
@@ -268,10 +267,12 @@ ber_bvdup(
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
 	}
 
 	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		return NULL;
 	}
 
@@ -282,6 +283,7 @@ ber_bvdup(
 	}
 
 	if(( new->bv_val = LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		LBER_FREE( new );
 		return NULL;
 	}
@@ -312,6 +314,7 @@ ber_strdup( LDAP_CONST char *s )
 	len = strlen( s ) + 1;
 
 	if ( (p = LBER_MALLOC( len )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		return( NULL );
 	}
 
