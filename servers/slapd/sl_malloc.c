@@ -54,6 +54,10 @@ sl_mem_init()
 	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &sl_mfuncs );
 }
 
+#ifdef NO_THREADS
+static struct slab_heap *slheap;
+#endif
+
 void *
 sl_mem_create(
 	ber_len_t size,
@@ -63,7 +67,11 @@ sl_mem_create(
 	struct slab_heap *sh = NULL;
 	int pad = 2*sizeof(int)-1;
 
+#ifdef NO_THREADS
+	sh = slheap;
+#else
 	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
+#endif
 
 	/* round up to doubleword boundary */
 	size += pad;
@@ -72,7 +80,11 @@ sl_mem_create(
 	if (!sh) {
 		sh = ch_malloc( sizeof(struct slab_heap) );
 		sh->h_base = ch_malloc( size );
+#ifdef NO_THREADS
+		slheap = sh;
+#else
 		ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, (void *)sh, sl_mem_destroy );
+#endif
 	} else if ( size > (char *) sh->h_end - (char *) sh->h_base ) {
 		sh->h_base = ch_realloc( sh->h_base, size );
 	}
@@ -87,8 +99,12 @@ sl_mem_detach(
 	void *memctx
 )
 {
+#ifdef NO_THREADS
+	slheap = NULL;
+#else
 	/* separate from context */
 	ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, NULL, NULL );
+#endif
 }
 
 void *
@@ -212,9 +228,13 @@ sl_context( void *ptr )
 	struct slab_heap *sh = NULL;
 	void *ctx;
 
+#ifdef NO_THREADS
+	sh = slheap;
+#else
 	ctx = ldap_pvt_thread_pool_context();
 
 	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
+#endif
 
 	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
 		return sh;

@@ -11,11 +11,16 @@ OpenLDAP 2.2.12 Engineering
 	Fixed slapd entry2mods normalization bug (ITS#3144,3152)
 	Fixed slapd extended match memory leak (ITS#3146)
 	Fixed slapd syncrepl persist interval issue (ITS#3064)
+	Fixed slapd abandon/cancel pending bug (ITS#3160)
+	Fixed slapd sl_malloc memory leak (ITS#3155)
 	Fixed back-ldap normalization bug 
 	Fixed pcache cache_entries init bug (ITS#3150)
 	Fixed pcache consistency_check bug (ITS#3151)
+	Fixed pcache erroneous reply (ITS#3153)
+	Fixed pcache remove_query_data bug (ITS#3170)
 	Fixed libldap SASL mutex init bug (ITS#3123)
 	Fixed libldap SASL buffering bug (ITS#3139)
+	Fixed liblutil passwd seed len bug (ITS#3169)
 	Build Environment
 		Fixed liblber memory debug portability bug (ITS#3116)
 		Fixed back-perl perl portability bug (ITS#2554,2946)

@@ -633,9 +633,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 		&op.ors_filterstr );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
-	/* Massive shortcut: search scope == base */
 	switch ( op.oq_search.rs_scope ) {
-	case LDAP_SCOPE_BASE:
 	case LDAP_X_SCOPE_EXACT:
 exact_match:
 		if ( dn_match( &op.o_req_ndn, assertDN ) ) {
@@ -886,9 +884,7 @@ void slap_sasl2dn( Operation *opx,
 	/* Must do an internal search */
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 
-	/* Massive shortcut: search scope == base */
 	switch ( op.oq_search.rs_scope ) {
-	case LDAP_SCOPE_BASE:
 	case LDAP_X_SCOPE_EXACT:
 		*sasldn = op.o_req_ndn;
 		op.o_req_ndn.bv_len = 0;
@@ -902,6 +898,7 @@ void slap_sasl2dn( Operation *opx,
 		/* correctly parsed, but illegal */
 		goto FINISHED;
 
+	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
 #ifdef LDAP_SCOPE_SUBORDINATE
