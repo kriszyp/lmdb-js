@@ -17,14 +17,14 @@ if [ x"$MONITORDB" = x"yes" ] ; then
 else
 	MON=nomonitor
 fi
-sed -e "s/@BACKEND@/${BACKEND}/"	\
-	-e "s/^#${BACKEND}#//"			\
+sed -e "s/@BACKEND@/${BACKEND}/"			\
+	-e "s/^#${BACKEND}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
-	-e "s/^#${AC_ldap}#//"			\
+	-e "s/^#${AC_ldap}#//"				\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${MON}#//"				\
-	-e "s/@CACHETTL@/${CACHETTL}/"   \
+	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
