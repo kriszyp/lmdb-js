@@ -333,45 +333,6 @@ int backend_num( Backend *be )
 	return -1;
 }
 
-
-int backend_sync( Backend *be )
-{
-	int i;
-	int rc = 0;
-  
-	if( be != NULL ) {
-		/* sync a specific backend database */
-
-		if ( be->bd_info->bi_nDB == 0 ) {
-			/* no database of this type, we never opened it */
-			return 0;
-		}
-
-		if ( be->bd_info->bi_db_sync ) {
-			be->bd_info->bi_db_sync( be );
-		}
-
-		return 0;
-	}
-
-	/* sync each backend database */
-	for( i = 0; i < nBackendDB; i++ ) {
-		if ( backendDB[i].bd_info->bi_db_sync ) {
-			rc = backendDB[i].bd_info->bi_db_sync(
-				&backendDB[i] );
-		}
-    
-		if(rc != 0) {
-			Debug(	LDAP_DEBUG_ANY,
-				"backend_sync: bi_sync %s failed!\n",
-				backendDB[i].be_type, 0, 0 );
-		}
-	}
-
-	return 0;
-}
-
-  
 int backend_shutdown( Backend *be )
 {
 	int i;

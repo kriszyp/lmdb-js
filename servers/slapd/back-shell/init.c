@@ -44,7 +44,6 @@ shell_back_initialize(
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = shell_back_db_destroy;
-	bi->bi_db_sync = 0;
 
 	bi->bi_op_bind = shell_back_bind;
 	bi->bi_op_unbind = shell_back_unbind;

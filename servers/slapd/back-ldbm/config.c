@@ -122,7 +122,6 @@ ldbm_back_db_config(
 		}
 
 		li->li_dbsyncfreq = i;
-		li->li_dbwritesync = 0;
 
 		if ( argc > 2 ) {
 			i = atoi( argv[2] );

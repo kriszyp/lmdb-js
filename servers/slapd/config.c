@@ -34,7 +34,6 @@ slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
-int		global_backendsyncfreq = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
@@ -1740,33 +1739,6 @@ read_config( const char *fname )
 			}
 
 			global_idletimeout = i;
-
-		/* set backend sync frequency */
-		} else if ( strcasecmp( cargv[0], "backendsyncfreq" ) == 0 ) {
-#ifndef NO_THREADS
-			int i;
-			if ( cargc < 2 ) {
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing frquency value in \"backendsyncfreq <seconds>\" line\n",
-				    fname, lineno, 0 );
-				return 1;
-			}
-
-			i = atoi( cargv[1] );
-
-			if( i < 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: frquency value (%d) invalid \"backendsyncfreq <seconds>\" line\n",
-				    fname, lineno, i );
-				return 1;
-			}
-
-			global_backendsyncfreq = i;
-#else
-			Debug( LDAP_DEBUG_ANY,
-	    "\"dbsyncfreq\" not supported in non-threaded environment\n");
-			return 1;
-#endif
 
 		/* include another config file */
 		} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {

@@ -1628,38 +1628,6 @@ slapd_daemon_task(
 }
 
 
-static void *
-sync_daemon(
-	void *ptr
-)
-{
-	sleep( 1 );
-
-	Debug( LDAP_DEBUG_ANY, "synchronizer starting\n", 0, 0, 0 );
-  
-	while (!slapd_shutdown) {
-    
-		sleep( global_backendsyncfreq );
-
-		/*  
-		  How do we wait for slapd to be idle? 
-		  Maybe this would work ?
-		while (ldap_pvt_thread_pool_backload(&connection_pool) != 0)
-			sleep(1);
-		*/
-
-		if (!slapd_shutdown) {
-			Debug( LDAP_DEBUG_TRACE, "synchronizing\n", 0, 0, 0 );
-			backend_sync( NULL );
-		}
-	}
-
-  	Debug( LDAP_DEBUG_ANY, "synchronizer stopping\n", 0, 0, 0 );
-  
-	return NULL;
-}
-
-
 int slapd_daemon( void )
 {
 	int rc;
@@ -1670,7 +1638,6 @@ int slapd_daemon( void )
 #if defined( SLAPD_LISTENER_THREAD )
 	{
 		ldap_pvt_thread_t	listener_tid;
-                ldap_pvt_thread_t	sync_tid;
 
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &listener_tid,
@@ -1686,27 +1653,9 @@ int slapd_daemon( void )
 #endif
 			return rc;
 		}
-
- 		/* sync thread */
- 		if ( global_backendsyncfreq > 0 )
- 		{
- 			rc = ldap_pvt_thread_create( &sync_tid,
- 				0, sync_daemon, NULL );
  
- 			if ( rc != 0 )
- 			{
- 				Debug(	LDAP_DEBUG_ANY,
- 					"sync ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
- 			}
- 		}
-                 
   		/* wait for the listener thread to complete */
   		ldap_pvt_thread_join( listener_tid, (void *) NULL );
- 
- 		if ( global_backendsyncfreq > 0 )
- 		{
- 			ldap_pvt_thread_join( sync_tid, (void *) NULL );
- 		}
 	}
 #else
 	/* experimental code */

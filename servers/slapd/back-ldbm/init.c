@@ -52,7 +52,6 @@ ldbm_back_initialize(
 	bi->bi_db_open = ldbm_back_db_open;
 	bi->bi_db_close = ldbm_back_db_close;
 	bi->bi_db_destroy = ldbm_back_db_destroy;
-	bi->bi_db_sync = ldbm_cache_sync;
 
 	bi->bi_op_bind = ldbm_back_bind;
 	bi->bi_op_unbind = ldbm_back_unbind;

@@ -49,7 +49,6 @@ int sql_back_initialize(
 	bi->bi_db_open = backsql_db_open;
 	bi->bi_db_close = backsql_db_close;
 	bi->bi_db_destroy = backsql_db_destroy;
-	bi->bi_db_sync = 0;
 
 #ifdef BACKSQL_ALL_DONE
 	bi->bi_op_abandon = backsql_abandon;
