@@ -21,8 +21,8 @@ SRCS = overlays.c \
 	pcache.c \
 	ppolicy.c \
 	refint.c \
-	unique.c \
-	rwm.c rwmconf.c rwmdn.c rwmmap.c
+	rwm.c rwmconf.c rwmdn.c rwmmap.c \
+	unique.c
 OBJS = overlays.lo \
 	chain.lo \
 	denyop.lo \
@@ -31,8 +31,8 @@ OBJS = overlays.lo \
 	pcache.lo \
 	ppolicy.lo \
 	refint.lo \
-	unique.lo \
-	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
+	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
+	unique.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -70,11 +70,11 @@ ppolicy.la : ppolicy.lo $(@PLAT@_LINK_LIBS)
 refint.la : refint.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
 
-unique.la : unique.lo $(@PLAT@_LINK_LIBS)
-	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
-
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
+
+unique.la : unique.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
 	@if test -n "$?" ; then \
