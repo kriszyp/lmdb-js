@@ -469,6 +469,161 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 }
 
 
+#elif defined( HAVE_NT_MULTITHREADS )
+
+#include <process.h>
+#include <winsock2.h>
+
+int
+pthread_attr_init( pthread_attr_t *attr )
+{
+	*attr = 0;
+	return( 0 );
+}
+
+int
+pthread_attr_destroy( pthread_attr_t *attr )
+{
+	return( 0 );
+}
+
+int
+pthread_attr_getdetachstate( pthread_attr_t *attr, int *detachstate )
+{
+	*detachstate = *attr;
+	return( 0 );
+}
+
+int
+pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
+{
+	*attr = detachstate;
+	return( 0 );
+}
+
+int
+pthread_create(
+    pthread_t		*tid,
+    pthread_attr_t	*attr,
+    VFP			func,
+    void		*arg
+)
+{
+	*tid = (pthread_t)_beginthread( (void *) func, 0, arg );
+	 return ( (unsigned long)*tid == -1 ? -1 : 0 );
+}
+
+void
+pthread_yield()
+{
+
+}
+
+void
+pthread_exit( void )
+{
+	_endthread( );
+}
+
+void
+pthread_join( pthread_t tid, int *pStatus )
+{
+	DWORD status;
+	status = WaitForSingleObject( tid, INFINITE );
+	if ( pStatus != NULL)
+	{
+		if ( status != WAIT_FAILED )
+			*pStatus = 0;
+		else
+			*pStatus = WAIT_ABANDONED;
+	}
+}
+
+
+void
+pthread_kill( pthread_t tid, int sig )
+{
+	return;
+}
+
+
+int
+pthread_mutex_init( pthread_mutex_t *mp, pthread_mutexattr_t *attr )
+{
+	*mp = CreateMutex( NULL, 0, NULL );
+	return ( 0 );
+}
+
+int
+pthread_mutex_destroy( pthread_mutex_t *mp )
+{
+	CloseHandle( *mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_lock( pthread_mutex_t *mp )
+{
+	WaitForSingleObject( *mp, INFINITE );
+	return ( 0 );
+}
+
+int
+pthread_mutex_unlock( pthread_mutex_t *mp )
+{
+	ReleaseMutex( *mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_trylock( pthread_mutex_t *mp )
+{
+	DWORD status;
+
+	status = WaitForSingleObject( *mp, 0 );
+	if ( (status == WAIT_FAILED) || (status == WAIT_TIMEOUT) )
+		return 0;
+	else
+		return 1;
+}
+
+int
+pthread_cond_init( pthread_cond_t *cv, pthread_condattr_t *attr )
+{
+	*cv = CreateEvent( NULL, FALSE, FALSE, NULL );
+	return( 0 );
+}
+
+int
+pthread_cond_destroy( pthread_cond_t *cv )
+{
+	CloseHandle( *cv );
+	return( 0 );
+}
+
+int
+pthread_cond_wait( pthread_cond_t *cv, pthread_mutex_t *mp )
+{
+	ReleaseMutex( *mp );
+	WaitForSingleObject( *cv, INFINITE );
+	WaitForSingleObject( *mp, INFINITE );
+	return( 0 );
+}
+
+int
+pthread_cond_signal( pthread_cond_t *cv )
+{
+	SetEvent( *cv );
+	return( 0 );
+}
+
+int
+pthread_cond_broadcast( pthread_cond_t *cv )
+{
+	SetEvent( *cv );
+	return( 0 );
+}
+
 #else
 
 /***********************************************************************

@@ -182,6 +182,42 @@ typedef struct lwpcv {
 
 LDAP_END_DECL
 
+#elif HAVE_NT_THREADS
+
+#include <windows.h>
+#include <process.h>
+
+typedef void	(*VFP)(void*);
+
+/* thread attributes and thread type */
+typedef int		pthread_attr_t;
+typedef HANDLE	pthread_t;
+
+/* default attr states */
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+/* thread state - joinable or not */
+#define PTHREAD_CREATE_JOINABLE 0
+#define PTHREAD_CREATE_DETACHED 0
+/* thread scope - who is in scheduling pool */
+#define PTHREAD_SCOPE_PROCESS   0
+#define PTHREAD_SCOPE_SYSTEM    0
+
+/* mutex attributes and mutex type */
+typedef int    pthread_mutexattr_t;
+typedef HANDLE pthread_mutex_t;
+
+/* mutex and condition variable scope - process or system */
+#define PTHREAD_SHARE_PRIVATE   USYNC_THREAD
+#define PTHREAD_SHARE_PROCESS   USYNC_PROCESS
+
+/* condition variable attributes and condition variable type */
+typedef int     pthread_condattr_t;
+typedef HANDLE  pthread_cond_t;
+typedef int     any_t;
+
+
 #else
 
 /***********************************
