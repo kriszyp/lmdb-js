@@ -56,6 +56,7 @@ Modify -lldap to be reentrant/threadsafe <bart@openldap.org>
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Extend slapd to support identd (RFC1413) information in ACLs
+Extend slapd to support hashed userPassword generation
 Port slapd (incl back-ldbm & tools) to NT <gwilliams@openldap.org>
 Port slurpd to NT
 
@@ -66,7 +67,6 @@ Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Extend gateways to support tcp_wrappers
 Extend slapd/tcp_wrapper to support identd
 Extend mail500 (and other daemons) to use ldap_getfilter(3)
-Update Kerberos Support
 Add useful information to our FAQ http://www.openldap.org/faq/
 Update any manual page
 
