@@ -616,12 +616,6 @@ AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PROG_AWK
-OL_PROG_LN_H
-AC_PROG_LN_S
-
-if test "$LN_H" = "cp" -a "$LN_S" = "ln"; then
-	LN_S="$LN_H"
-fi
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
@@ -2114,33 +2108,16 @@ dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
-dnl HAVE_CYRUS_SASL2 implicitly defines HAVE_CYRUS_SASL
 ol_link_sasl=no
 ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
-	AC_CHECK_HEADERS(sasl/sasl.h)
+	AC_CHECK_HEADERS(sasl.h)
 
-	if test $ac_cv_header_sasl_sasl_h = yes ; then
+	if test $ac_cv_header_sasl_h ; then
 		AC_CHECK_LIB(sasl2, sasl_client_init,
-			[have_cyrus_sasl2=yes], [have_cyrus_sasl2=no])
-
-		if test $have_cyrus_sasl2 != no ; then
-			SASL_LIBS="-lsasl2"
-			AC_DEFINE(HAVE_CYRUS_SASL2,1,[define if you have Cyrus SASL v2])
-			ol_link_sasl=yes
-		fi
-	else
-		AC_CHECK_HEADERS(sasl.h)
-
-		if test $ac_cv_header_sasl_h = yes ; then
-			AC_CHECK_LIB(sasl, sasl_client_init,
-				[have_cyrus_sasl=yes], [have_cyrus_sasl=no])
-
-			if test $have_cyrus_sasl != no ; then
-				SASL_LIBS="-lsasl"
-				ol_link_sasl=yes
-			fi
-		fi
+			[ol_link_sasl="-lsasl2"],
+			[AC_CHECK_LIB(sasl, sasl_client_init,
+				[ol_link_sasl="-lsasl"])])
 	fi
 
 	if test $ol_link_sasl = no ; then
@@ -2155,6 +2132,7 @@ if test $ol_with_cyrus_sasl != no ; then
 		fi
 	else
 		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
+		SASL_LIBS="$ol_link_sasl"
 		if test $ol_enable_spasswd != no ; then
 			ol_link_spasswd=yes
 		fi

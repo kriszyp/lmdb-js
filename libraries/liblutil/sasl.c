@@ -13,11 +13,7 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#ifdef HAVE_CYRUS_SASL2
-#include <sasl/sasl.h>
-#else
 #include <sasl.h>
-#endif
 
 #include <ldap.h>
 #include "lutil_ldap.h"

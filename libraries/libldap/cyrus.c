@@ -23,11 +23,11 @@
 ldap_pvt_thread_mutex_t ldap_int_sasl_mutex;
 #endif
 
-#ifdef HAVE_CYRUS_SASL2
-#include <sasl/sasl.h>
+#include <sasl.h>
+
+#if SASL_VERSION_MAJOR >= 2
 #define SASL_CONST const
 #else
-#include <sasl.h>
 #define SASL_CONST
 #endif
 
@@ -125,7 +125,7 @@ sb_sasl_remove( Sockbuf_IO_Desc *sbiod )
 	assert( sbiod != NULL );
 	
 	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	/*
 	 * SASLv2 encode/decode buffers are managed by
 	 * libsasl2. Ensure they are not freed by liblber.
@@ -207,7 +207,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	if ( len == 0 )
 		return bufptr;
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	ber_pvt_sb_buf_init( &p->buf_in );
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_in );
@@ -301,7 +301,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	}
 
 	/* now encode the next packet. */
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	ber_pvt_sb_buf_init( &p->buf_out );
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
@@ -441,7 +441,7 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	rc = sasl_client_new( "ldap", host, NULL, NULL,
 		session_callbacks, 0, &ctx );
 #else
@@ -461,7 +461,7 @@ ldap_int_sasl_open(
 	lc->lconn_sasl_ctx = ctx;
 
 	if( ssf ) {
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		(void) sasl_setprop( ctx, SASL_SSF_EXTERNAL,
 			(void *) &ssf );
 #else
@@ -556,7 +556,7 @@ ldap_int_sasl_bind(
 	do {
 		saslrc = sasl_client_start( ctx,
 			mechs,
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 			NULL,
 #endif
 			&prompts,
@@ -574,7 +574,7 @@ ldap_int_sasl_bind(
 			}
 		}
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		/* XXX the application should free interact results. */
 		if ( prompts != NULL && prompts->result != NULL ) {
 			LDAP_FREE( (void *)prompts->result );
@@ -608,7 +608,7 @@ ldap_int_sasl_bind(
 		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
 
 		if ( ccred.bv_val != NULL ) {
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 			LDAP_FREE( ccred.bv_val );
 #endif
 			ccred.bv_val = NULL;
@@ -649,7 +649,7 @@ ldap_int_sasl_bind(
 			Debug( LDAP_DEBUG_TRACE, "sasl_client_start: %d\n",
 				saslrc, 0, 0 );
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 			/* XXX the application should free interact results. */
 			if ( prompts != NULL && prompts->result != NULL ) {
 				LDAP_FREE( (void *)prompts->result );
@@ -690,7 +690,7 @@ ldap_int_sasl_bind(
 			fprintf( stderr, "SASL username: %s\n", data );
 		}
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		saslrc = sasl_getprop( ctx, SASL_DEFUSERREALM, (SASL_CONST void **) &data );
 #else
 		saslrc = sasl_getprop( ctx, SASL_REALM, (SASL_CONST void **) &data );
@@ -727,7 +727,7 @@ ldap_int_sasl_external(
 {
 	int sc;
 	sasl_conn_t *ctx;
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 	sasl_external_properties_t extprops;
 #endif
 
@@ -737,7 +737,7 @@ ldap_int_sasl_external(
 		return LDAP_LOCAL_ERROR;
 	}
    
-#ifdef HAVE_CYRUS_SASL2 
+#if SASL_VERSION_MAJOR >= 2
 	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
 #else
 	memset( &extprops, '\0', sizeof(extprops) );
@@ -962,7 +962,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 
 	case LDAP_OPT_X_SASL_SSF_EXTERNAL: {
 		int sc;
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 		sasl_external_properties_t extprops;
 #endif
 		sasl_conn_t *ctx;
@@ -977,7 +977,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 			return -1;
 		}
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL, arg);
 #else
 		memset(&extprops, 0L, sizeof(extprops));

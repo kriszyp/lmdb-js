@@ -17,12 +17,13 @@
 
 #ifdef HAVE_CYRUS_SASL
 #include <limits.h>
-#ifdef HAVE_CYRUS_SASL2
-#include <sasl/sasl.h>
+
+#include <sasl.h>
+
+#if SASL_VERSION_MAJOR >= 2
 #include <lutil.h>
 #define	SASL_CONST const
 #else
-#include <sasl.h>
 #define	SASL_CONST
 #endif
 
@@ -54,7 +55,7 @@ slap_sasl_log(
 	}
 
 	switch (priority) {
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	case SASL_LOG_NONE:
 		level = LDAP_DEBUG_NONE;
 		label = "None";
@@ -282,7 +283,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char *user_realm, struct berval
 	return( LDAP_SUCCESS );
 }
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 static int
 slap_sasl_checkpass(
 	sasl_conn_t *sconn,
@@ -503,20 +504,6 @@ slap_sasl_authorize(
 		authzid ? authzid : "<empty>" );
 #endif
 
-	/* Figure out how much data we have for the dn */
-	rc = sasl_getprop( ctx, SASL_REALM, (void **)&realm );
-	if( rc != SASL_OK && rc != SASL_NOTDONE ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			"slap_sasl_authorize: getprop(REALM) failed.\n" ));
-#else
-		Debug(LDAP_DEBUG_TRACE,
-			"authorize: getprop(REALM) failed!\n", 0,0,0);
-#endif
-		*errstr = "Could not extract realm";
-		return SASL_NOAUTHZ;
-	}
-
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
 	rc = slap_sasl_getdn( conn, (char *)authcid, realm, &authcDN, FLAG_GETDN_AUTHCID );
@@ -579,7 +566,7 @@ slap_sasl_authorize(
 	*errstr = NULL;
 	return SASL_OK;
 }
-#endif /* HAVE_CYRUS_SASL2 */
+#endif /* SASL_VERSION_MAJOR >= 2 */
 
 static int
 slap_sasl_err2ldap( int saslerr )
@@ -689,7 +676,7 @@ int slap_sasl_destroy( void )
 int slap_sasl_open( Connection *conn )
 {
 	int sc = LDAP_SUCCESS;
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	char *ipremoteport = NULL, *iplocalport = NULL;
 #endif
 
@@ -703,7 +690,7 @@ int slap_sasl_open( Connection *conn )
 	conn->c_sasl_layers = 0;
 
 	session_callbacks =
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		ch_calloc( 5, sizeof(sasl_callback_t));
 #else
 		ch_calloc( 3, sizeof(sasl_callback_t));
@@ -718,7 +705,7 @@ int slap_sasl_open( Connection *conn )
 	session_callbacks[1].proc = &slap_sasl_authorize;
 	session_callbacks[1].context = conn;
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	session_callbacks[2].id = SASL_CB_CANON_USER;
 	session_callbacks[2].proc = &slap_sasl_canonicalize;
 	session_callbacks[2].context = conn;
@@ -741,7 +728,7 @@ int slap_sasl_open( Connection *conn )
 	}
 
 	/* create new SASL context */
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 	if ( conn->c_sock_name.bv_len != 0 &&
 	     strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0) {
 		char *p;
@@ -819,7 +806,7 @@ int slap_sasl_external(
 	slap_ssf_t ssf,
 	const char *auth_id )
 {
-#if defined(HAVE_CYRUS_SASL2)
+#if SASL_VERSION_MAJOR >= 2
 	int sc;
 	sasl_conn_t *ctx = conn->c_sasl_context;
 
@@ -903,7 +890,7 @@ char ** slap_sasl_mechs( Connection *conn )
 
 		mechs = str2charray( mechstr, "," );
 
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 		ch_free( mechstr );
 #endif
 	}
@@ -970,7 +957,7 @@ int slap_sasl_bind(
 		return rc;
 	}
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 #define	START( ctx, mech, cred, clen, resp, rlen, err ) \
 	sasl_server_start( ctx, mech, cred, clen, resp, rlen )
 #define	STEP( ctx, cred, clen, resp, rlen, err ) \
@@ -1001,7 +988,7 @@ int slap_sasl_bind(
 		char *username = NULL;
 		char *realm = NULL;
 
-#ifdef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR >= 2
 		sc = sasl_getprop( ctx, SASL_DEFUSERREALM, (const void **)&realm );
 #else
 		sc = sasl_getprop( ctx, SASL_REALM, (void **)&realm );
@@ -1056,7 +1043,7 @@ int slap_sasl_bind(
 			NULL, errstr, NULL, NULL );
 	}
 
-#ifndef HAVE_CYRUS_SASL2
+#if SASL_VERSION_MAJOR < 2
 	if( response.bv_len ) {
 		ch_free( response.bv_val );
 	}
