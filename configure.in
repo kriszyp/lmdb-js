@@ -1909,6 +1909,12 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	ol_enable_ldbm=no
 fi
 
+if test $ol_enable_bdb = yes -o \
+	$ol_enable_hdb = yes -o \
+	$ol_enable_ldbm = yes ; then
+	SLAPD_LIBS="$SLAPD_LIBS \$(LDBM_LIBS)"
+fi
+
 dnl ----------------------------------------------------------------
 
 if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
