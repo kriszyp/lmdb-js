@@ -126,7 +126,7 @@ bdb_bt_compare(
 	c = curkey->data;
 
 #ifdef WORDS_BIGENDIAN
-	for( i = 0; i < sizeof(ID); i++)
+	for( i = 0; i < (int)sizeof(ID); i++)
 #else
 	for( i = sizeof(ID)-1; i >= 0; i--)
 #endif

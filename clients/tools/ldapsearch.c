@@ -729,7 +729,7 @@ getNextPage:
 		i = 0;
 		moreEntries = getchar();
 		while ( moreEntries != EOF && moreEntries != '\n' ) { 
-			if ( i < sizeof(buf) - 1 ) {
+			if ( i < (int)sizeof(buf) - 1 ) {
 				buf[i] = moreEntries;
 				i++;
 			}

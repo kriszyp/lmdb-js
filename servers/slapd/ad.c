@@ -748,7 +748,8 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 int
 ad_define_option( const char *name, const char *fname, int lineno )
 {
-	int i, j, len, optlen;
+	int i;
+	unsigned int optlen;
 
 	if ( options == &lang_option ) {
 		options = NULL;

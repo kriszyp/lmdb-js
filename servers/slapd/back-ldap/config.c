@@ -444,7 +444,7 @@ suffix_massage_config(
 			 */
 			return -1;
 
-		} else if ( len >= sizeof( vbuf_ ) ) {
+		} else if ( len >= (int)sizeof( vbuf_ ) ) {
 			/* 
 			 * C99: snprintf returns the required size 
 			 */
@@ -459,7 +459,7 @@ suffix_massage_config(
 		if ( len == -1 ) {
 			return -1;
 
-		} else if ( len >= sizeof( rbuf_ ) ) {
+		} else if ( len >= (int)sizeof( rbuf_ ) ) {
 			rbuf = ch_malloc( len + 1 );
 			len = snprintf( rbuf, sizeof( rbuf_ ), "%%1%s)%%2", 
 					nrnc->bv_val );

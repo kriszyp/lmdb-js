@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
 #include <ac/socket.h>
 
 #define SLAPD_TOOLS
