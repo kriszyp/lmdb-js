@@ -121,6 +121,15 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 #define LDAP_HEX(c)			(LDAP_DIGIT(c) || \
 								LDAP_HEXLOWER(c) || LDAP_HEXUPPER(c))
 
+/* controls.c */
+struct ldapcontrol;
+LDAP_F (struct ldapcontrol *) ldap_control_dup LDAP_P((
+	const struct ldapcontrol *ctrl ));
+
+LDAP_F (struct ldapcontrol **) ldap_controls_dup LDAP_P((
+	struct ldapcontrol *const *ctrls ));
+
+
 #ifdef HAVE_CYRUS_SASL
 /* cyrus.c */
 struct sasl_security_properties; /* avoid pulling in <sasl.h> */
