@@ -22,8 +22,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include <unistd.h>
-#include <sys/types.h>
+#include <ac/unistd.h>
 
 #include "ldap-int.h"
 #include "ldap_log.h"
@@ -361,8 +360,11 @@ ldap_int_open_connection(
 	 * yet anyway.
 	 */
 	if( proto == LDAP_PROTO_IPC ) {
-		char authid[64];
-		sprintf( authid, "uid=%d+gid=%d", geteuid(), getegid() );
+		char authid[sizeof("uidNumber=XXXXXX,gidNumber=XXXXXX,"
+			"cn=peercred,cn=external,cn=auth")];
+		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
+			"cn=peercred,cn=external,cn=auth",
+			geteuid(), getegid() );
 		ldap_int_sasl_external( ld, conn, authid, sasl_ssf );
 	}
 #endif
