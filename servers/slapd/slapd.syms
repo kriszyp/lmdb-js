@@ -4,7 +4,6 @@ acl_check_modlist
 active_threads
 active_threads_cond
 active_threads_mutex
-add_values
 attrs_dup
 attrs_free
 attr_delete
@@ -89,7 +88,6 @@ connection_write
 default_referral
 defsize
 deftime
-delete_values
 deref_internal_r
 dn2entry_rw
 dn2id
@@ -176,8 +174,11 @@ ldap_modrdn_s
 ldap_msgfree
 ldap_next_attribute
 ldap_pvt_str2upper
+ldap_pvt_thread_mutex_init
 ldap_pvt_thread_mutex_lock
+ldap_pvt_thread_mutex_trylock
 ldap_pvt_thread_mutex_unlock
+ldap_pvt_thread_yield
 ldap_result
 ldap_search
 ldap_srvtab
@@ -273,7 +274,6 @@ rdn_validate
 read_config
 register_matching_rule
 register_syntax
-replace_values
 replog
 replogfile
 replog_mutex
