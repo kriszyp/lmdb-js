@@ -1151,6 +1151,10 @@ acl_check_modlist(
 			}
 			break;
 
+			/* adding attribute thru modrdn */
+		case SLAP_MOD_SOFTADD:
+			break;
+
 		default:
 			assert( 0 );
 			return( 0 );
