@@ -27,6 +27,9 @@ if [ $RC != 0 ]; then
 	exit $RC
 fi
 
+echo "Waiting 5 seconds for ldif2ldbm to build slapd database..."
+sleep 5
+
 echo "Starting slapd on TCP/IP port $PORT..."
 $SLAPD -f $CONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!

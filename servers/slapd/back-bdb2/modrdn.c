@@ -27,7 +27,6 @@ bdb2i_back_modrdn_internal(
 	char		*new_dn = NULL, *new_ndn = NULL;
 	char		sep[2];
 	Entry		*e, *p = NULL;
-	int			rootlock = 0;
 	int			rc = -1;
 
 	/* get entry with writer lock */
@@ -107,9 +106,6 @@ bdb2i_back_modrdn_internal(
 			goto return_results;
 		}
 
-		/* DDD ldap_pvt_thread_mutex_lock(&li->li_root_mutex); */
-		rootlock = 1;
-
 		new_dn = ch_strdup( newrdn );
 	}
 
@@ -178,11 +174,6 @@ return_results:
 		/* free parent and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, p );
 
-	}
-
-	if ( rootlock ) {
-		/* release root writer lock */
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 	}
 
 	/* free entry and writer lock */

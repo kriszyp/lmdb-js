@@ -172,12 +172,6 @@ bdb2i_back_db_init_internal(
 	    1 );
 	free( argv[ 1 ] );
 
-	/* initialize various mutex locks & condition variables */
-	/* DDD ldap_pvt_thread_mutex_init( &li->li_root_mutex ); */
-	/* DDD ldap_pvt_thread_mutex_init( &li->li_add_mutex ); */
-	/* DDD ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex ); */
-	/* DDD ldap_pvt_thread_mutex_init( &li->li_nextid_mutex ); */
-
 	/*  initialize the TP file head  */
 	if ( bdb2i_txn_head_init( &li->li_txn_head ) != 0 )
 		return 1;

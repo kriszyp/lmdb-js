@@ -22,24 +22,17 @@ bdb2i_back_add_internal(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*pdn;
 	Entry		*p = NULL;
-	int			rootlock = 0;
 	int			rc; 
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb2i_back_add: %s\n", e->e_dn, 0, 0);
 
-	/* nobody else can add until we lock our parent */
-	/* DDD ldap_pvt_thread_mutex_lock(&li->li_add_mutex); */
-
 	if ( ( bdb2i_dn2id( be, e->e_ndn ) ) != NOID ) {
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
 
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
-
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
 			0, 0, 0 );
 
@@ -60,7 +53,6 @@ bdb2i_back_add_internal(
 
 		/* get parent with writer lock */
 		if ( (p = bdb2i_dn2entry_w( be, pdn, &matched )) == NULL ) {
-			/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
@@ -74,9 +66,6 @@ bdb2i_back_add_internal(
 			free( pdn );
 			return -1;
 		}
-
-		/* don't need the add lock anymore */
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
 
 		free(pdn);
 
@@ -102,7 +91,6 @@ bdb2i_back_add_internal(
 	} else {
 		/* no parent, must be adding entry to root */
 		if ( ! be_isroot( be, op->o_ndn ) ) {
-			/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
@@ -111,14 +99,6 @@ bdb2i_back_add_internal(
 			entry_free( e );
 			return -1;
 		}
-
-		/*
-		 * no parent, acquire the root write lock
-		 * and release the add lock.
-		 */
-		/* DDD ldap_pvt_thread_mutex_lock(&li->li_root_mutex); */
-		rootlock = 1;
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_add_mutex); */
 	}
 
 	e->e_id = bdb2i_next_id( be );
@@ -132,11 +112,6 @@ bdb2i_back_add_internal(
 		if( p != NULL) {
 			/* free parent and writer lock */
 			bdb2i_cache_return_entry_w( &li->li_cache, p ); 
-		}
-
-		if ( rootlock ) {
-			/* release root lock */
-			/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 		}
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
@@ -212,11 +187,6 @@ return_results:;
 		/* free parent and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, p ); 
 
-	}
-
-	if ( rootlock ) {
-		/* release root lock */
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 	}
 
 	/* free entry and writer lock */

@@ -79,7 +79,6 @@ struct cache {
 	Avlnode		*c_idtree;
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
-	/* DDD ldap_pvt_thread_mutex_t	c_mutex; */
 };
 
 #define CACHE_READ_LOCK		1
@@ -182,9 +181,6 @@ struct ldbminfo {
 	ID			li_nextid_wrote;
 #endif
 	char		*li_nextid_file;
-	/* DDD ldap_pvt_thread_mutex_t		li_root_mutex; */
-	/* DDD ldap_pvt_thread_mutex_t		li_add_mutex; */
-	/* DDD ldap_pvt_thread_mutex_t		li_nextid_mutex; */
 	int			li_mode;
 	char			*li_directory;
 	struct cache		li_cache;

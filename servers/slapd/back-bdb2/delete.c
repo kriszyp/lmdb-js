@@ -23,7 +23,6 @@ bdb2i_back_delete_internal(
 	char	*matched = NULL;
 	char	*pdn = NULL;
 	Entry	*e, *p = NULL;
-	int rootlock = 0;
 	int	rc = -1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb2i_back_delete: %s\n", dn, 0, 0);
@@ -93,9 +92,6 @@ bdb2i_back_delete_internal(
 				"", "");
 			goto return_results;
 		}
-
-		/* DDD ldap_pvt_thread_mutex_lock(&li->li_root_mutex); */
-		rootlock = 1;
 	}
 
 	if ( bdb2i_id2children_remove( be, p, e ) != 0 ) {
@@ -134,11 +130,6 @@ return_results:;
 		/* free parent and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, p );
 
-	}
-
-	if ( rootlock ) {
-		/* release root lock */
-		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 	}
 
 	/* free entry and writer lock */

@@ -98,8 +98,6 @@ bdb2i_next_id( BackendDB *be )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
 
-	/* DDD ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex ); */
-
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == NOID ) {
 		li->li_nextid = next_id_read( be );
@@ -124,7 +122,6 @@ bdb2i_next_id( BackendDB *be )
 	(void) next_id_write( be, li->li_nextid );
 #endif
 
-	/* DDD ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex ); */
 	return( id );
 }
 
@@ -134,10 +131,7 @@ bdb2i_next_id_return( BackendDB *be, ID id )
 #ifdef SLAPD_NEXTID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	/* DDD ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex ); */
-
 	if ( id != li->li_nextid - 1 ) {
-		/* DDD ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex ); */
 		return;
 	}
 
@@ -146,8 +140,6 @@ bdb2i_next_id_return( BackendDB *be, ID id )
 #if !( SLAPD_NEXTID_CHUCK > 1 )
 	(void) next_id_write( be, li->li_nextid );
 #endif
-
-	/* DDD ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex ); */
 #endif
 }
 
@@ -156,8 +148,6 @@ bdb2i_next_id_get( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
-
-	/* DDD ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex ); */
 
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == NOID ) {
@@ -173,8 +163,6 @@ bdb2i_next_id_get( BackendDB *be )
 	}
 
 	id = li->li_nextid;
-
-	/* DDD ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex ); */
 
 	return( id );
 }
