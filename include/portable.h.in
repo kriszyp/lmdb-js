@@ -299,17 +299,17 @@
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
 
-/* Define if you have the strtoul function.  */
-#undef HAVE_STRTOUL
+/* Define if you have the strtoll function.  */
+#undef HAVE_STRTOLL
 
 /* Define if you have the strtoq function.  */
 #undef HAVE_STRTOQ
 
+/* Define if you have the strtoul function.  */
+#undef HAVE_STRTOUL
+
 /* Define if you have the strtouq function.  */
 #undef HAVE_STRTOUQ
-
-/* Define if you have the strtoll function.  */
-#undef HAVE_STRTOLL
 
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
@@ -827,7 +827,7 @@
 /* define if you have -lslp */
 #undef HAVE_SLP
 
-/* define if you have `long long' */
+/* define if you have 'long long' */
 #undef HAVE_LONG_LONG
 
 /* Define to `int' if <sys/types.h> does not define. */
