@@ -17,6 +17,7 @@ Changes included in OpenLDAP 1.2
 	Build environment
 		Fixed --without-threads building
 		Fixed mkdep to handle multiple dependent files on one line
+		Fixed slapd library dependencies
 		Fixed openldap.m4 to "protect" shell variable
 		Fixed HAVE_PHREAD_FINAL typo
 		Fixed pthread detection on Digital UNIX
