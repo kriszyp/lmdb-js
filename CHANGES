@@ -4,6 +4,7 @@ Changes included in OpenLDAP 1.1.1
 	CVS Tag: OPENLDAP_REL_ENG_1_1
 	Updated INSTALL and hints
 	Updated slapd/ldif2dbm to disable write sync'ing
+	Fixed slapd & slurpd syslogging
 	Fixed libldif/line64 analyzed 3 not 4 bug
 	Fixed slapd/value.c value_cmp bug
 	Fixed slapd/back-ldbm/cache.c delete_internal dntree/idtree bug

@@ -15,7 +15,9 @@
 #ifndef _SLURPD_H_
 #define _SLURPD_H_
 
-#define LDAP_SYSLOG
+#ifndef LDAP_SYSLOG
+#define LDAP_SYSLOG 1
+#endif
 
 #include <ac/syslog.h>
 #include <ac/errno.h>

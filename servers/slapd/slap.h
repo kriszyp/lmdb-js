@@ -5,6 +5,10 @@
 
 #include <stdlib.h>
 
+#ifndef LDAP_SYSLOG
+#define LDAP_SYSLOG 1
+#endif
+
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
