@@ -96,6 +96,14 @@ or in the log output when slapd starts with "-d 5" or greater.
 .B upper_func <SQL function name>
 Specifies the name of a function that converts a given value to uppercase.
 This is used for CIS matching when the RDBMS is case sensitive.
+.TP
+.B strcast_func <SQL function name>
+Specifies the name of a function that converts a given value to a string
+for appropriate ordering.  This is used when selecting distinct data.
+.TP
+.B has_ldapinfo_dn_ru { yes | no }
+Explicitly inform the backend whether the SQL schema has dn_ru or not.
+Overrides automatic check (required by PostgreSQL).
 
 .SH METAINFORMATION USED
 .LP
@@ -103,7 +111,8 @@ Almost everything mentioned later is illustrated in examples located
 in the
 .B slapd/back-sql/rdbms_depend/
 directory in the OpenLDAP source tree, and contains scripts for
-generating sample database for Oracle, MS SQL Server and mySQL.
+generating sample database for Oracle, MS SQL Server, mySQL and more
+(including PostgreSQL and IBM db2).
 .LP
 The first thing that one must arrange is what set of LDAP
 object classes can present your RDBMS information.
@@ -164,7 +173,7 @@ for telephoneNumber we can use:
 .LP
 .nf
   SELECT phones.phone AS telephoneNumber FROM persons,phones
-   WHERE persons.id=phones.pers.id AND persons.id=?
+   WHERE persons.id=phones.pers_id AND persons.id=?
 .fi
 .LP
 If we wanted to service LDAP requests with filters like
@@ -172,7 +181,7 @@ If we wanted to service LDAP requests with filters like
 .LP
 .nf
   SELECT ... FROM persons,phones
-   WHERE persons.id=phones.pers.id
+   WHERE persons.id=phones.pers_id
      AND persons.id=?
      AND phones.phone like '123%'
 .fi
