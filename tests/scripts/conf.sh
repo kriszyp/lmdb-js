@@ -22,10 +22,14 @@ if [ x"$MONITORDB" = x"yes" -o x"$MONITORDB" = xmod ] ; then
 else
 	MON=nomonitor
 fi
-if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" = x"yes" ] ; then
+if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" != x"no" ] ; then
 	SASL="sasl"
+	if [ x"$USE_SASL" = x"yes" ] ; then
+		USE_SASL=DIGEST-MD5
+	fi
 else
 	SASL="nosasl"
+	SASL_MECH=
 fi
 sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
@@ -38,5 +42,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
+	-e "s/#SASL_MECH#/\"mech=${USE_SASL}\"/"	\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   

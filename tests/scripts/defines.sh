@@ -96,6 +96,7 @@ CMPOUT=/dev/null
 SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
+LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $LDAP_TOOLARGS -LLL"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
 LDAPRSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS"
 LDAPMODIFY="$CLIENTDIR/ldapmodify $TOOLPROTO $TOOLARGS"
@@ -202,6 +203,7 @@ CERTIFICATEOUT=$DATADIR/certificate.out
 DNOUT=$DATADIR/dn.out
 EMPTYDNOUT1=$DATADIR/emptydn.out.slapadd
 EMPTYDNOUT2=$DATADIR/emptydn.out
+IDASSERTOUT=$DATADIR/idassert.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

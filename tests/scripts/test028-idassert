@@ -22,11 +22,19 @@ if test $BACKLDAP = "ldapno" ; then
 fi 
 
 if test $WITH_SASL = "yes" ; then
-	if test $USE_SASL = "yes" ; then
-		echo "Using SASL authc/authz..."
+	if test $USE_SASL != "no" ; then
+		if test $USE_SASL = "yes" ; then
+			MECH="DIGEST-MD5"
+		else
+			MECH="$USE_SASL"
+		fi
+		echo "Using SASL authc/authz with mech=$MECH; unset SLAPD_USE_SASL to disable"
 	else
-		echo "Using proxyAuthz with simple authc"
-		echo "set SLAPD_USE_SASL=yes to enable SASL authc/authz..."
+		echo "Using proxyAuthz with simple authc..."
+		echo "        set SLAPD_USE_SASL={yes|<mech>} to enable SASL authc/authz"
+		echo "        if SLAPD_USE_SASL=\"yes\", <mech> defaults to DIGEST-MD5"
+		echo "        FIXME: should be mandatory, right?"
+		echo "        FIXME: authz with CRAM-MD5 does not work..."
 	fi
 else
 	echo "SASL not available; using proxyAuthz with simple authc..."
@@ -167,6 +175,58 @@ if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
+fi
+
+ID="uid=jaj,ou=People,dc=example,dc=it"
+BASE="o=Example,c=US"
+echo "Testing ldapsearch as $ID for \"$BASE\"..."
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
+	-D "$ID" -w jaj > $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $LDIFFILTER < $IDASSERTOUT > $LDIFFLT
+echo "Comparing filter output..."
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+	
+if test $? != 0 ; then
+	echo "comparison failed - search with identity assertion didn't succeed"
+	exit 1
+fi
+
+if test $USE_SASL != "no" ; then
+	ID="it/jaj"
+	BASE="o=Example,c=US"
+	echo "Testing ldapsearch as $ID for \"$BASE\" with SASL bind and identity assertion..."
+	$LDAPSASLSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
+		-Q -U "$ID" -w jaj -Y $MECH > $SEARCHOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	echo "Filtering ldapsearch results..."
+	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	echo "Filtering original ldif used to create database..."
+	. $LDIFFILTER < $IDASSERTOUT > $LDIFFLT
+	echo "Comparing filter output..."
+	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+	
+	if test $? != 0 ; then
+		echo "comparison failed - search with SASL bind and identity assertion didn't succeed"
+		exit 1
+	fi
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
