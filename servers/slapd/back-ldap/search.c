@@ -253,7 +253,7 @@ fail:;
 				rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
+					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
 				}
 
 				/* cleanup */

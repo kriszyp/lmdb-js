@@ -30,33 +30,35 @@
 #include "back-ldap.h"
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+#define SLAP_CHAINING_DEFAULT				LDAP_CHAINING_PREFERRED
 #define SLAP_CH_RESOLVE_SHIFT				SLAP_CONTROL_SHIFT
 #define SLAP_CH_RESOLVE_MASK				(0x3 << SLAP_CH_RESOLVE_SHIFT)
 #define SLAP_CH_RESOLVE_CHAINING_PREFERRED		(LDAP_CHAINING_PREFERRED << SLAP_CH_RESOLVE_SHIFT)
 #define SLAP_CH_RESOLVE_CHAINING_REQUIRED		(LDAP_CHAINING_REQUIRED << SLAP_CH_RESOLVE_SHIFT)
 #define SLAP_CH_RESOLVE_REFERRALS_PREFERRED		(LDAP_REFERRALS_PREFERRED << SLAP_CH_RESOLVE_SHIFT)
 #define SLAP_CH_RESOLVE_REFERRALS_REQUIRED		(LDAP_REFERRALS_REQUIRED << SLAP_CH_RESOLVE_SHIFT)
-#define SLAP_CH_RESOLVE_DEFAULT				SLAP_CH_RESOLVE_CHAINING_PREFERRED
+#define SLAP_CH_RESOLVE_DEFAULT				(SLAP_CHAINING_DEFAULT << SLAP_CH_RESOLVE_SHIFT)
 #define	SLAP_CH_CONTINUATION_SHIFT			(SLAP_CH_RESOLVE_SHIFT + 2)
 #define SLAP_CH_CONTINUATION_MASK			(0x3 << SLAP_CH_CONTINUATION_SHIFT)
 #define SLAP_CH_CONTINUATION_CHAINING_PREFERRED		(LDAP_CHAINING_PREFERRED << SLAP_CH_CONTINUATION_SHIFT)
 #define SLAP_CH_CONTINUATION_CHAINING_REQUIRED		(LDAP_CHAINING_REQUIRED << SLAP_CH_CONTINUATION_SHIFT)
 #define SLAP_CH_CONTINUATION_REFERRALS_PREFERRED	(LDAP_REFERRALS_PREFERRED << SLAP_CH_CONTINUATION_SHIFT)
 #define SLAP_CH_CONTINUATION_REFERRALS_REQUIRED		(LDAP_REFERRALS_REQUIRED << SLAP_CH_CONTINUATION_SHIFT)
-#define SLAP_CH_CONTINUATION_DEFAULT			SLAP_CH_CONTINUATION_CHAINING_PREFERRED
+#define SLAP_CH_CONTINUATION_DEFAULT			(SLAP_CHAINING_DEFAULT << SLAP_CH_CONTINUATION_SHIFT)
 
 #define o_chaining			o_ctrlflag[sc_chainingBehavior]
 #define get_chaining(op)		((op)->o_chaining & SLAP_CONTROL_MASK)
 #define get_chainingBehavior(op)	((op)->o_chaining & (SLAP_CH_RESOLVE_MASK|SLAP_CH_CONTINUATION_MASK))
 #define get_resolveBehavior(op)		((op)->o_chaining & SLAP_CH_RESOLVE_MASK)
 #define get_continuationBehavior(op)	((op)->o_chaining & SLAP_CH_CONTINUATION_MASK)
+
+static int		sc_chainingBehavior;
 #endif /*  LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 #define	LDAP_CH_NONE			((void *)(0))
 #define	LDAP_CH_RES			((void *)(1))
 #define LDAP_CH_ERR			((void *)(2))
 
-static int		sc_chainingBehavior;
 static BackendInfo	*lback;
 
 typedef struct ldap_chain_t {
@@ -64,9 +66,84 @@ typedef struct ldap_chain_t {
 	unsigned		lc_flags;
 #define LDAP_CHAIN_F_NONE		0x00U
 #define	LDAP_CHAIN_F_CHAINING		0x01U
-	LDAPControl		lc_chaining_ctrl;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	LDAPControl		lc_chaining_ctrl;
+	char			lc_chaining_ctrlflag;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 } ldap_chain_t;
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+static int
+chaining_control_add(
+		ldap_chain_t	*lc,
+		Operation 	*op, 
+		LDAPControl	***oldctrlsp )
+{
+	LDAPControl	**ctrls = NULL;
+	int		c = 0;
+
+	*oldctrlsp = op->o_ctrls;
+
+	/* default chaining control not defined */
+	if ( !( lc->lc_flags & LDAP_CHAIN_F_CHAINING ) ) {
+		return 0;
+	}
+
+	/* already present */
+	if ( get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+		return 0;
+	}
+
+	/* FIXME: check other incompatibilities */
+
+	/* add to other controls */
+	if ( op->o_ctrls ) {
+		for ( c = 0; op->o_ctrls[ c ]; c++ )
+			/* count them */ ;
+	}
+
+	ctrls = ch_calloc( sizeof( LDAPControl *), c + 2 );
+	ctrls[ 0 ] = &lc->lc_chaining_ctrl;
+	if ( op->o_ctrls ) {
+		for ( c = 0; op->o_ctrls[ c ]; c++ ) {
+			ctrls[ c + 1 ] = op->o_ctrls[ c ];
+		}
+	}
+	ctrls[ c + 1 ] = NULL;
+
+	op->o_ctrls = ctrls;
+
+	op->o_chaining = lc->lc_chaining_ctrlflag;
+
+	return 0;
+}
+
+static int
+chaining_control_remove(
+		Operation 	*op, 
+		LDAPControl	***oldctrlsp )
+{
+	LDAPControl	**oldctrls = *oldctrlsp;
+
+	/* we assume that the first control is the chaining control
+	 * added by the chain overlay, so it's the only one we explicitly 
+	 * free */
+	if ( op->o_ctrls != oldctrls ) {
+		assert( op->o_ctrls );
+		assert( op->o_ctrls[ 0 ] );
+
+		free( op->o_ctrls );
+
+		op->o_chaining = 0;
+		op->o_ctrls = oldctrls;
+	} 
+
+	*oldctrlsp = NULL;
+
+	return 0;
+}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 static int
 ldap_chain_operational( Operation *op, SlapReply *rs )
@@ -185,9 +262,16 @@ ldap_chain_op(
 	/* NOTE: returned if ref is empty... */
 	int		rc = LDAP_OTHER;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	LDAPControl	**ctrls = NULL;
+	
+	(void)chaining_control_add( lc, op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 	if ( lip->url != NULL ) {
 		op->o_bd->be_private = lip;
-		return ( *op_f )( op, rs );
+		rc = ( *op_f )( op, rs );
+		goto done;
 	}
 
 	li = *lip;
@@ -254,6 +338,11 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			break;
 		}
 	}
+
+done:;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	(void)chaining_control_remove( op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 	return rc;
 }
@@ -405,6 +494,12 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 					odn = op->o_req_dn,
 					ondn = op->o_req_ndn;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			LDAPControl	**ctrls = NULL;
+	
+			(void)chaining_control_add( lc, op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 			rs->sr_type = REP_SEARCH;
 
 			sc2.sc_response = ldap_chain_cb_search_response;
@@ -477,6 +572,10 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				rc = rs->sr_err;
 			}
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			(void)chaining_control_remove( op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 			op->o_req_dn = odn;
 			op->o_req_ndn = ondn;
 			rs->sr_type = REP_SEARCHREF;
@@ -547,6 +646,13 @@ dont_chain:;
 	return rc;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+static int
+ldap_chain_parse_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	LDAPControl	*ctrl );
+
 static int
 str2chain( const char *s )
 {
@@ -565,6 +671,7 @@ str2chain( const char *s )
 
 	return -1;
 }
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 static int
 ldap_chain_db_config(
@@ -581,40 +688,45 @@ ldap_chain_db_config(
 	char		*argv0 = NULL;
 	int		rc;
 
-	be->be_private = lc->lc_li;
 	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		argv0 = argv[ 0 ];
 		argv[ 0 ] = &argv[ 0 ][ STRLENOF( "chain-" ) ];
 
-		if ( strcasecmp( argv0, "chaining" ) == 0 ) {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+		if ( strcasecmp( argv[ 0 ], "chaining" ) == 0 ) {
+			char			**tmpargv = argv;
 			BerElementBuffer	berbuf;
 			BerElement		*ber = (BerElement *)&berbuf;
 			int			resolve = -1,
 						continuation = -1,
 						iscritical = 0;
+			Operation		op = { 0 };
+			SlapReply		rs = { 0 };
 
-			for ( argc--, argv++; argc > 0; argc--, argv++ ) {
-				if ( strncasecmp( argv[0], "resolve=", STRLENOF( "resolve=" ) ) == 0 ) {
-					resolve = str2chain( argv[ 0 ] + STRLENOF( "resolve=" ) );
+			lc->lc_chaining_ctrlflag = 0;
+
+			for ( argc--, tmpargv++; argc > 0; argc--, tmpargv++ ) {
+				if ( strncasecmp( tmpargv[ 0 ], "resolve=", STRLENOF( "resolve=" ) ) == 0 ) {
+					resolve = str2chain( tmpargv[ 0 ] + STRLENOF( "resolve=" ) );
 					if ( resolve == -1 ) {
 						fprintf( stderr, "%s line %d: "
 							"illegal <resolve> value %s "
 							"in \"chain-chaining>\"\n",
-							fname, lineno, argv[ 0 ] );
+							fname, lineno, tmpargv[ 0 ] );
 						return 1;
 					}
 
-				} else if ( strncasecmp( argv[0], "continuation=", STRLENOF( "continuation=" ) ) == 0 ) {
-					continuation = str2chain( argv[ 0 ] + STRLENOF( "continuation=" ) );
+				} else if ( strncasecmp( tmpargv[ 0 ], "continuation=", STRLENOF( "continuation=" ) ) == 0 ) {
+					continuation = str2chain( tmpargv[ 0 ] + STRLENOF( "continuation=" ) );
 					if ( continuation == -1 ) {
 						fprintf( stderr, "%s line %d: "
 							"illegal <continuation> value %s "
 							"in \"chain-chaining\"\n",
-							fname, lineno, argv[ 0 ] );
+							fname, lineno, tmpargv[ 0 ] );
 						return 1;
 					}
 
-				} else if ( strcasecmp( argv[ 0 ], "critical" ) == 0 ) {
+				} else if ( strcasecmp( tmpargv[ 0 ], "critical" ) == 0 ) {
 					iscritical = 1;
 
 				} else {
@@ -630,7 +742,7 @@ ldap_chain_db_config(
 
 				if ( resolve == -1 ) {
 					/* default */
-					resolve = LDAP_CHAINING_PREFERRED;
+					resolve = SLAP_CHAINING_DEFAULT;
 				}
 
 				ber_init2( ber, NULL, LBER_USE_DER );
@@ -675,16 +787,32 @@ ldap_chain_db_config(
 			lc->lc_chaining_ctrl.ldctl_oid = LDAP_CONTROL_X_CHAINING_BEHAVIOR;
 			lc->lc_chaining_ctrl.ldctl_iscritical = iscritical;
 
+			if ( ldap_chain_parse_ctrl( &op, &rs, &lc->lc_chaining_ctrl ) != LDAP_SUCCESS )
+			{
+				fprintf( stderr, "%s line %d: "
+					"unable to parse chaining control%s%s\n",
+					fname, lineno,
+					rs.sr_text ? ": " : "",
+					rs.sr_text ? rs.sr_text : "" );
+				return 1;
+			}
+
+			lc->lc_chaining_ctrlflag = op.o_chaining;
+
 			lc->lc_flags |= LDAP_CHAIN_F_CHAINING;
 
-			return 0;
+			rc = 0;
+			goto done;
 		}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	}
 
 
+	be->be_private = lc->lc_li;
 	rc = lback->bi_db_config( be, fname, lineno, argc, argv );
 	be->be_private = private;
 
+done:;
 	if ( argv0 ) {
 		argv[ 0 ] = argv0;
 	}
