@@ -46,7 +46,7 @@ init_module(
 	return 0;
 }
 
-#endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC*/
+#endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
 
 int
 sql_back_initialize(
@@ -94,7 +94,7 @@ sql_back_initialize(
  
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = backsql_connection_destroy;
-	
+
 	Debug( LDAP_DEBUG_TRACE,"<==backsql_initialize()\n", 0, 0, 0 );
 	return 0;
 }
@@ -195,7 +195,7 @@ backsql_db_open(
 		if ( backsql_split_pattern( backsql_def_concat_func, 
 				&si->concat_func, 2 ) ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-				"unable to parse pattern '%s'",
+				"unable to parse pattern \"%s\"",
 				backsql_def_concat_func, 0, 0 );
 			return 1;
 		}
@@ -294,7 +294,7 @@ backsql_db_open(
 		si->subtree_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' as default\n",
+			"setting \"%s\" as default\n",
 			si->subtree_cond.bv_val, 0, 0 );
 	}
 
@@ -328,7 +328,7 @@ backsql_db_open(
 		si->children_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' as default\n",
+			"setting \"%s\" as default\n",
 			si->children_cond.bv_val, 0, 0 );
 	}
 
@@ -346,7 +346,7 @@ backsql_db_open(
 			"(use \"oc_query\" directive in slapd.conf)\n", 
 			0, 0, 0 );
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' by default\n", si->oc_query, 0, 0 );
+			"setting \"%s\" by default\n", si->oc_query, 0, 0 );
 	}
 	
 	if ( si->at_query == NULL ) {
@@ -355,7 +355,7 @@ backsql_db_open(
 			"(use \"at_query\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug(LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' by default\n",
+			"setting \"%s\" by default\n",
 			backsql_def_at_query, 0, 0 );
 		si->at_query = ch_strdup( backsql_def_at_query );
 	}
@@ -366,7 +366,7 @@ backsql_db_open(
 			"(use \"insentry_query\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug(LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' by default\n",
+			"setting \"%s\" by default\n",
 			backsql_def_insentry_query, 0, 0 );
 		si->insentry_query = ch_strdup( backsql_def_insentry_query );
 	}
@@ -377,7 +377,7 @@ backsql_db_open(
 			"(use \"delentry_query\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting '%s' by default\n",
+			"setting \"%s\" by default\n",
 			backsql_def_delentry_query, 0, 0 );
 		si->delentry_query = ch_strdup( backsql_def_delentry_query );
 	}

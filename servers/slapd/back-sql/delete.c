@@ -38,7 +38,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLHSTMT		sth;
 	RETCODE			rc;
 	backsql_oc_map_rec	*oc = NULL;
-	backsql_entryID		e_id;
+	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT;
 	Entry			e;
 	/* first parameter no */
 	SQLUSMALLINT		pno;

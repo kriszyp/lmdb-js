@@ -37,7 +37,9 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	SQLHDBC			dbh;
 	SQLHSTMT		sth;
 	RETCODE			rc;
-	backsql_entryID		e_id, pe_id, new_pid;
+	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT,
+				pe_id = BACKSQL_ENTRYID_INIT,
+				new_pid = BACKSQL_ENTRYID_INIT;
 	backsql_oc_map_rec	*oc = NULL;
 	struct berval		p_dn, p_ndn,
 				*new_pdn = NULL, *new_npdn = NULL,
@@ -204,6 +206,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"old parent entry id is %ld\n", pe_id.eid_id, 0, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	backsql_free_entryID( &pe_id, 0 );
 
 	rs->sr_err = backsql_dn2id( bi, &new_pid, dbh, new_npdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -373,12 +377,16 @@ modrdn_return:
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree( old_rdn );
 	}
-	if( mod != NULL ) {
+	if ( mod != NULL ) {
 		Modifications *tmp;
 		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
 			free( mod );
 		}
+	}
+
+	if ( new_pid.eid_dn.bv_val ) {
+		backsql_free_entryID( &pe_id, 0 );
 	}
 
 	send_ldap_result( op, rs );

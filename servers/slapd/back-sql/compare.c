@@ -32,13 +32,14 @@ int
 backsql_compare( Operation *op, SlapReply *rs )
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
-	backsql_entryID		user_id;
+	backsql_entryID		user_id = BACKSQL_ENTRYID_INIT;
 	SQLHDBC			dbh;
 	Entry			*e = NULL, user_entry;
 	Attribute		*a = NULL, *a_op = NULL;
 	backsql_srch_info	bsi;
 	int			rc;
 	AttributeName		anlist[2];
+	struct berval		dn;
 
 	user_entry.e_name.bv_val = NULL;
 	user_entry.e_name.bv_len = 0;
@@ -59,7 +60,17 @@ backsql_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	rc = backsql_dn2id( bi, &user_id, dbh, &op->o_req_ndn );
+	dn = op->o_req_dn;
+	if ( backsql_api_dn2odbc( op, rs, &dn ) ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+			"backsql_api_dn2odbc failed\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto return_results;
+	}
+
+	rc = backsql_dn2id( bi, &user_id, dbh, &dn );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
 			"could not retrieve compare dn id - no such entry\n", 
@@ -106,8 +117,8 @@ backsql_compare( Operation *op, SlapReply *rs )
 		e = &user_entry;
 
 	} else {
-		backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-				-1, -1, -1, NULL, dbh, op, anlist );
+		backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
+				-1, -1, -1, NULL, dbh, op, rs, anlist );
 		e = backsql_id2entry( &bsi, &user_entry, &user_id );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
@@ -145,6 +156,10 @@ backsql_compare( Operation *op, SlapReply *rs )
 
 return_results:;
 	send_ldap_result( op, rs );
+
+	if ( dn.bv_val != op->o_req_dn.bv_val ) {
+		ch_free( dn.bv_val );
+	}
 
 	if ( e != NULL ) {
 		if ( e->e_name.bv_val != NULL ) {

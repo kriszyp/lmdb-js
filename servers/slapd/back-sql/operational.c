@@ -45,7 +45,7 @@ backsql_operational(
 	Attribute		**aa = a;
 	int			rc = 0;
 
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry '%s'\n",
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry \"%s\"\n",
 			rs->sr_entry->e_nname.bv_val, 0, 0 );
 
 

@@ -75,13 +75,18 @@ backsql_dn2id(
 
 	/* TimesTen */
 	char			upperdn[ BACKSQL_MAX_DN_LEN + 1 ];
-	char			*toBind;
+	struct berval		toBind;
 	int			i, j;
 
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_dn2id(): dn='%s'\n", 
-			dn->bv_val, 0, 0 );
+	/*
+	 * NOTE: id can be NULL; in this case, the function
+	 * simply checks whether the DN can be successfully 
+	 * turned into an ID, returning LDAP_SUCCESS for
+	 * positive cases, or the most appropriate error
+	 */
 
-	assert( id );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_dn2id(): dn=\"%s\"%s\n", 
+			dn->bv_val, id == NULL ? " (no ID)" : "", 0 );
 
 	if ( dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -92,7 +97,7 @@ backsql_dn2id(
 	}
 	
 	/* begin TimesTen */
-	Debug(LDAP_DEBUG_TRACE, "id_query '%s'\n", bi->id_query, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "id_query \"%s\"\n", bi->id_query, 0, 0);
 	assert( bi->id_query );
  	rc = backsql_Prepare( dbh, &sth, bi->id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
@@ -116,29 +121,30 @@ backsql_dn2id(
 		upperdn[ i ] = '\0';
 		ldap_pvt_str2upper( upperdn );
 
-		Debug( LDAP_DEBUG_TRACE, "==>backsql_dn2id(): upperdn='%s'\n",
+		Debug( LDAP_DEBUG_TRACE, "==>backsql_dn2id(): upperdn=\"%s\"\n",
 				upperdn, 0, 0 );
-		toBind = upperdn;
+		ber_str2bv( upperdn, 0, 0, &toBind );
+
 	} else {
 		if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
 			AC_MEMCPY( upperdn, dn->bv_val, dn->bv_len + 1 );
 			ldap_pvt_str2upper( upperdn );
 			Debug( LDAP_DEBUG_TRACE,
-				"==>backsql_dn2id(): upperdn='%s'\n",
+				"==>backsql_dn2id(): upperdn=\"%s\"\n",
 				upperdn, 0, 0 );
-			toBind = upperdn;
+			ber_str2bv( upperdn, 0, 0, &toBind );
 
 		} else {
-			toBind = dn->bv_val;
+			toBind = *dn;
 		}
 	}
 
-	rc = backsql_BindParamStr( sth, 1, toBind, BACKSQL_MAX_DN_LEN );
+	rc = backsql_BindParamStr( sth, 1, toBind.bv_val, BACKSQL_MAX_DN_LEN );
 	if ( rc != SQL_SUCCESS) {
 		/* end TimesTen */ 
 		Debug( LDAP_DEBUG_TRACE, "backsql_dn2id(): "
 			"error binding dn=\"%s\" parameter:\n", 
-			toBind, 0, 0 );
+			toBind.bv_val, 0, 0 );
 		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
@@ -148,7 +154,7 @@ backsql_dn2id(
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_dn2id(): "
 			"error executing query (\"%s\", \"%s\"):\n", 
-			bi->id_query, toBind, 0 );
+			bi->id_query, toBind.bv_val, 0 );
 		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
@@ -157,37 +163,32 @@ backsql_dn2id(
 	backsql_BindRowAsStrings( sth, &row );
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
-#ifdef BACKSQL_ARBITRARY_KEY
-		ber_str2bv( row.cols[ 0 ], 0, 1, &id->eid_id );
-		ber_str2bv( row.cols[ 1 ], 0, 1, &id->eid_keyval );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-		id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
-		id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
-		id->eid_oc_id = strtol( row.cols[ 2 ], NULL, 0 );
-		ber_dupbv( &id->eid_dn, dn );
-		id->eid_next = NULL;
-
 		res = LDAP_SUCCESS;
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_dn2id(): id=%s keyval=%s oc_id=%s\n",
+				row.cols[ 0 ], row.cols[ 1 ], row.cols[ 2 ] );
+
+		if ( id != NULL ) {
+#ifdef BACKSQL_ARBITRARY_KEY
+			ber_str2bv( row.cols[ 0 ], 0, 1, &id->eid_id );
+			ber_str2bv( row.cols[ 1 ], 0, 1, &id->eid_keyval );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+			id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
+			id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+			id->eid_oc_id = strtol( row.cols[ 2 ], NULL, 0 );
+
+			ber_dupbv( &id->eid_dn, dn );
+			id->eid_next = NULL;
+		}
 
 	} else {
 		res = LDAP_NO_SUCH_OBJECT;
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_dn2id(): no match\n",
+				0, 0, 0 );
 	}
 	backsql_FreeRow( &row );
 
 	SQLFreeStmt( sth, SQL_DROP );
-	if ( res == LDAP_SUCCESS ) {
-#ifdef BACKSQL_ARBITRARY_KEY
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_dn2id(): id=%s\n",
-				id->eid_id.bv_val, 0, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_dn2id(): id=%ld\n",
-				id->eid_id, 0, 0 );
-#endif /* !BACKSQL_ARBITRARY_KEY */
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_dn2id(): no match\n",
-				0, 0, 0 );
-	}
 	return res;
 }
 
@@ -203,7 +204,7 @@ backsql_count_children(
 	RETCODE 		rc;
 	int			res = LDAP_SUCCESS;
 
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_count_children(): dn='%s'\n", 
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_count_children(): dn=\"%s\"\n", 
 			dn->bv_val, 0, 0 );
 
 	if ( dn->bv_len > BACKSQL_MAX_DN_LEN ) {
@@ -215,7 +216,7 @@ backsql_count_children(
 	}
 	
 	/* begin TimesTen */
-	Debug(LDAP_DEBUG_TRACE, "children id query '%s'\n", 
+	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
 			bi->has_children_query, 0, 0);
 	assert( bi->has_children_query );
  	rc = backsql_Prepare( dbh, &sth, bi->has_children_query, 0 );
@@ -310,12 +311,12 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
-		"oc='%s' attr='%s' keyval=%s\n",
+		"oc=\"%s\" attr=\"%s\" keyval=%s\n",
 		BACKSQL_OC_NAME( bsi->bsi_oc ), at->bam_ad->ad_cname.bv_val, 
 		bsi->bsi_c_eid->eid_keyval.bv_val );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
-		"oc='%s' attr='%s' keyval=%ld\n",
+		"oc=\"%s\" attr=\"%s\" keyval=%ld\n",
 		BACKSQL_OC_NAME( bsi->bsi_oc ), at->bam_ad->ad_cname.bv_val, 
 		bsi->bsi_c_eid->eid_keyval );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
@@ -343,7 +344,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	rc = SQLExecute( sth );
 	if ( ! BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
-			"error executing attribute query '%s'\n",
+			"error executing attribute query \"%s\"\n",
 			at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -377,7 +378,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 					(int)row.col_prec[ i ], 0, 0 );
 			} else {
       				Debug( LDAP_DEBUG_TRACE, "NULL value "
-					"in this row for attribute '%s'\n",
+					"in this row for attribute \"%s\"\n",
 					row.col_names[ i ].bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 			}
@@ -454,8 +455,8 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			rc = backsql_supad2at( bsi->bsi_oc, attr->an_desc, &vat );
 			if ( rc != 0 || vat == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
-						"attribute '%s' is not defined "
-						"for objectlass '%s'\n",
+						"attribute \"%s\" is not defined "
+						"for objectlass \"%s\"\n",
 						attr->an_name.bv_val, 
 						BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
 				continue;

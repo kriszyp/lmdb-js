@@ -80,7 +80,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): driver name='%s'\n",
+	Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): driver name=\"%s\"\n",
 			drv_name, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -333,7 +333,7 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 			SQL_NTS, si->dbpasswd, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-			"SQLConnect() to database '%s' as user '%s' "
+			"SQLConnect() to database \"%s\" as user \"%s\" "
 			"%s:\n", si->dbname, si->dbuser,
 			rc == SQL_SUCCESS_WITH_INFO ?
 			"succeeded with info" : "failed" );

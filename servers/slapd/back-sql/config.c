@@ -334,6 +334,15 @@ backsql_db_config(
 			"fail_if_no_mapping=%s\n", 
 			BACKSQL_FAIL_IF_NO_MAPPING( si ) ? "yes" : "no", 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "sqllayer") ) {
+		if ( backsql_api_config( si, argv[ 1 ] ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"unable to load sqllayer \"%s\"\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}

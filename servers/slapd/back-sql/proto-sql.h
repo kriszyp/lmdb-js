@@ -88,6 +88,14 @@ int backsql_modify_internal(
 	Modifications		*modlist );
 
 /*
+ * api.c
+ */
+int backsql_api_config( backsql_info *si, const char *name );
+int backsql_api_register( backsql_api *ba );
+int backsql_api_dn2odbc( Operation *op, SlapReply *rs, struct berval *dn );
+int backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn );
+
+/*
  * entry-id.c
  */
 
@@ -138,7 +146,7 @@ int backsql_destroy_schema_map( backsql_info *si );
 void backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,
-		Operation *op, AttributeName *attrs );
+		Operation *op, SlapReply *rs, AttributeName *attrs );
 
 /*
  * sql-wrap.h

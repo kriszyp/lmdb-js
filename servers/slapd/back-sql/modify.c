@@ -36,7 +36,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
 	SQLHDBC 		dbh;
 	backsql_oc_map_rec	*oc = NULL;
-	backsql_entryID		e_id;
+	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT;
 	Entry			e;
 
 	/*
