@@ -131,6 +131,7 @@ int bdb_tool_entry_close( BackendDB *be );
 ID bdb_tool_entry_next( BackendDB *be );
 Entry* bdb_tool_entry_get( BackendDB *be, ID id );
 ID bdb_tool_entry_put( BackendDB *be, Entry *e );
+int bdb_tool_entry_reindex( BackendDB *be, ID id );
 
 
 LDAP_END_DECL
