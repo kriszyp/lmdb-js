@@ -131,6 +131,7 @@ ldap_ld_free(
 		ld->ld_options.ldo_tm_net = NULL;
 	}
 
+#ifdef HAVE_CYRUS_SASL
 	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {
 		LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );
 		ld->ld_options.ldo_def_sasl_mech = NULL;
@@ -150,6 +151,7 @@ ldap_ld_free(
 		LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
 		ld->ld_options.ldo_def_sasl_authzid = NULL;
 	}
+#endif
 
 	ber_sockbuf_free( ld->ld_sb );   
    
