@@ -1824,7 +1824,8 @@ string_expand(
 
 	flag = 0;
 	for ( dp = bv->bv_val, sp = pat->bv_val; size < bv->bv_len &&
-		sp < pat->bv_val + pat->bv_len ; sp++) {
+		sp < pat->bv_val + pat->bv_len ; sp++ )
+	{
 		/* did we previously see a $ */
 		if ( flag ) {
 			if ( flag == 1 && *sp == '$' ) {
@@ -1832,7 +1833,7 @@ string_expand(
 				size++;
 				flag = 0;
 
-			} else if ( flag == 1 && *sp == '{') {
+			} else if ( flag == 1 && *sp == '{' /*'}'*/) {
 				flag = 2;
 
 			} else if ( *sp >= '0' && *sp <= '9' ) {
@@ -1843,13 +1844,13 @@ string_expand(
 				n = *sp - '0';
 
 				if ( flag == 2 ) {
-					for ( sp++; *sp != '\0' && *sp != /* { */ '}'; sp++ ) {
+					for ( sp++; *sp != '\0' && *sp != /*'{'*/ '}'; sp++ ) {
 						if ( *sp >= '0' && *sp <= '9' ) {
 							n = 10*n + ( *sp - '0' );
 						}
 					}
 
-					if ( *sp != /* { */ '}' ) {
+					if ( *sp != /*'{'*/ '}' ) {
 						/* error */
 					}
 				}
