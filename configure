@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.462 2003/03/02 20:46:41 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.408.2.33 2003/03/05 23:48:30 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -10217,7 +10217,7 @@ if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
 	{ echo "configure: error: DNSSRV requires res_query()" 1>&2; exit 1; }
 fi
 
-for ac_func in getaddrinfo gai_strerror inet_ntop 
+for ac_func in getaddrinfo getnameinfo gai_strerror inet_ntop 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:10224: checking for $ac_func" >&5
@@ -10665,7 +10665,7 @@ EOF
 
 		else
 			have_krb5=no
-			echo "configure: warning: Unrecongized Kerberos5 Implementation" 1>&2
+			echo "configure: warning: Unrecognized Kerberos5 Implementation" 1>&2
 		fi
 
 		if test $have_krb5 = yes ; then
