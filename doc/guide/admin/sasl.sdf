@@ -203,6 +203,91 @@ associated DN:
 >	uid=ursula,cn=foreign.realm,cn=gssapi,cn=auth
 
 
+H3: DIGEST-MD5
+
+This section describes the use of the SASL DIGEST-MD5 mechanism using
+secrets stored either in the directory itself or in Cyrus SASL's own
+database. DIGEST-MD5 relies on the client and the server sharing a
+"secret", usually a password. The server generates a challenge and the
+client a response proving that it knows the shared secret. This is much
+more secure than simply sending the secret over the wire.
+
+Cyrus SASL supports several shared-secret mechanisms. To do this, it
+needs access to the plaintext password (unlike mechanisms which pass
+plaintext passwords over the wire, where the server can store a hashed
+version of the password).
+
+Secret passwords are normally stored in Cyrus SASL's own {{sasldb}}
+database, but if OpenLDAP has been compiled with Cyrus SASL 2.1 it is
+possible to store the secrets in the LDAP database itself. With Cyrus
+SASL 1.5, secrets may only be stored in the {{sasldb}}.  In either
+case it is very important to apply file access controls and LDAP access
+controls to prevent exposure of the passwords.
+
+The configuration and commands discussed in this section assume the use
+of Cyrus SASL 2.1. If you are using version 1.5 then certain features
+will not be available, and the command names will not have the trailing
+digit "2".
+
+To use secrets stored in {{sasldb,}} simply add users with the
+{{saslpasswd2}} command:
+
+>       saslpasswd2 -c <username>
+
+The passwords for such users must be managed with the {{saslpasswd2}}
+command.
+
+To use secrets stored in the LDAP directory, place plaintext passwords
+in the {{EX:userPassword}} attribute. It will be necessary to add an
+option to {{EX:slapd.conf}} to make sure that passwords changed through
+LDAP are stored in plaintext:
+
+>       password-hash   {CLEARTEXT}
+
+Passwords stored in this way can be managed either with {{EX:ldappasswd}}
+or by simply modifying the {{EX:userPassword}} attribute.
+
+Wherever the passwords are stored, a mapping will be needed from SASL
+authentication IDs to regular DNs. The DIGEST-MD5 mechanism produces
+authentication IDs of the form:
+
+>	uid=<username>,cn=<realm>,cn=digest-md5,cn=auth
+
+NOTE that if the default realm is used, the realm name is omitted from
+the ID, giving:
+
+>	uid=<username>,cn=digest-md5,cn=auth
+
+See {{SECT: Mapping Authentication identities to LDAP entries}} below
+for information on mapping such IDs to DNs.
+
+With suitable mappings in place, users can specify SASL IDs when
+performing LDAP operations, and the password stored in {{sasldb}} or in
+the directory itself will be used to verify the authentication.
+For example, the user identified by the directory entry:
+
+>       dn: cn=Andrew Findlay+uid=u000997,dc=example,dc=com
+>       objectclass: inetOrgPerson
+>       objectclass: person
+>       sn: Findlay
+>       uid: u000997
+>       userPassword: secret
+
+can issue commands of the form:
+
+>       ldapsearch -U u000997 -b dc=example,dc=com 'cn=andrew*'
+
+or can specify the realm explicitly:
+
+>       ldapsearch -U u000997@myrealm -b dc=example,dc=com 'cn=andrew*'
+
+If several SASL mechanisms are supported at your site, it may be
+necessary to specify which one to use, e.g.:
+
+>       ldapsearch -Y DIGEST-MD5 -U u000997 -b dc=example,dc=com 'cn=andrew*'
+
+
+
 H3: Mapping Authentication identities to LDAP entries
 
 The authentication mechanism in the slapd server will use SASL
@@ -220,7 +305,8 @@ or
 >	uid=<username>,cn=<mechanism>,cn=auth
 
 depending on whether or not <mechanism> employs the concept of
-"realms".
+"realms". Note also that the realm part will be omitted if the default
+realm was used in the authentication.
 
 It is not intended that you should add LDAP entries of the above
 form to your LDAP database. Chances are you have an LDAP entry for
@@ -251,7 +337,8 @@ The search pattern can contain any of the regular expression
 characters listed in {{regexec}}(3C). The main characters of note
 are dot ".", asterisk "*", and the open and close parenthesis "("
 and ")".  Essentially, the dot matches any character, the asterisk
-matches one or more characters, and terms in parenthesis are
+allows zero or more repeats of the immediately preceding character or
+pattern, and terms in parenthesis are
 remembered for the replacement pattern.
 
 The replacement pattern will produce the final authentication DN
@@ -281,7 +368,7 @@ written
 An even more lenient rule could be written as
 
 >	sasl-regexp
->	  uid=(.*),.*cn=auth 
+>	  uid=(.*),cn=.*,cn=auth 
 >	  uid=$1,ou=person,dc=example,dc=com
 
 Be careful about setting the search pattern too leniently, however,
@@ -292,6 +379,11 @@ security holes. If there is only one authentication mechanism in
 place at your site, and zero or one realms in use, you might be
 able to map between authentication identities and LDAP DN's with
 a single {{EX:sasl-regexp}} directive.
+
+Don't forget to allow for the case where the realm is omitted as well
+as the case with an explicitly specified realm. This may well
+require a separate {{EX:sasl-regexp}} directive for each case, with the
+explicit-realm entry being listed first.
 
 Some sites may have people's DN's spread to multiple areas of the
 LDAP tree, such as if there were an ou=accounting tree and an
@@ -360,6 +452,32 @@ The attributes that are used in the search filter <filter> in the
 URL should be indexed to allow faster searching. If they are not,
 the authentication step alone can take uncomfortably long periods,
 and users may assume the server is down.
+
+A more complex site might have several realms in use, each mapping to
+a different sub-tree in the directory. These can be handled with
+statements of the form:
+
+>	# Match Engineering realm
+>       sasl-regexp
+>	   uid=(.*),cn=engineering.example.com,cn=digest-md5,cn=auth
+>	   ldap:///dc=eng,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+>
+>	# Match Accounting realm
+>       sasl-regexp
+>	   uid=(.*),cn=accounting.example.com,cn=digest-md5,cn=auth
+>	   ldap:///dc=accounting,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+>
+>	# Default realm is customers.example.com
+>       sasl-regexp
+>	   uid=(.*),cn=digest-md5,cn=auth
+>	   ldap:///dc=customers,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+
+Note that the explicitly-named realms are handled first, to avoid the
+realm name becoming part of the UID. Note also the limitation of
+matches to those entries with objectClass=person to avoid matching
+other entries that happen to refer to the UID.
+
+See {{slapd.conf}}(5) for more detailed information.
 
 
 H2: SASL Authorization
