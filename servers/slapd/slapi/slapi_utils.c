@@ -2698,10 +2698,38 @@ Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr )
 int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v )
 {
 #ifdef LDAP_SLAPI
-	/*
-	 * FIXME: here we may lose alignment between a_vals/a_nvals
-	 */
-	return value_add_one( &a->a_vals, (Slapi_Value *)v );
+	struct berval nval;
+	struct berval *nvalp;
+	int rc;
+	AttributeDescription *desc = a->a_desc;
+
+	if ( desc->ad_type->sat_equality &&
+	     desc->ad_type->sat_equality->smr_normalize ) {
+		rc = (*desc->ad_type->sat_equality->smr_normalize)(
+			SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+			desc->ad_type->sat_syntax,
+			desc->ad_type->sat_equality,
+			(Slapi_Value *)v, &nval, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+		nvalp = &nval;
+	} else {
+		nvalp = NULL;
+	}
+
+	rc = value_add_one( &a->a_vals, (Slapi_Value *)v );
+	if ( rc == 0 && nvalp != NULL ) {
+		rc = value_add_one( &a->a_nvals, nvalp );
+	} else {
+		a->a_nvals = a->a_vals;
+	}
+
+	if ( nvalp != NULL ) {
+		slapi_ch_free_string( &nval.bv_val );
+	}
+
+	return rc;
 #else
 	return -1;
 #endif
