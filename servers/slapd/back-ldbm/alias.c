@@ -205,6 +205,7 @@ Entry *deref_internal_r(
 	}
 
 	free( dn );
+	charray_free( dnlist );
 	return entry;
 }
 

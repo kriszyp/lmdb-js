@@ -204,6 +204,7 @@ Entry *bdb2i_deref_r(
 	}
 
 	free( dn );
+	charray_free( dnlist );
 	return entry;
 }
 
