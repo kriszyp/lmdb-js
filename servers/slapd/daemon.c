@@ -127,17 +127,8 @@ slapd_daemon(
 	}
 
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
-#ifdef HAVE_LINUX_THREADS
-	/*
-	 * LinuxThreads are implemented using SIGUSR1/USR2,
-	 * so we'll use SIGSTKFLT and SIGUNUSED
-	 */
-	(void) SIGNAL( SIGSTKFLT, do_nothing );
-	(void) SIGNAL( SIGUNUSED, set_shutdown );
-#else  /* !linux */
-	(void) SIGNAL( SIGUSR1, do_nothing );
-	(void) SIGNAL( SIGUSR2, set_shutdown );
-#endif /* !linux */
+	(void) SIGNAL( LDAP_SIGUSR1, do_nothing );
+	(void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
 	(void) SIGNAL( SIGTERM, set_shutdown );
 	(void) SIGNAL( SIGINT, set_shutdown );
 	(void) SIGNAL( SIGHUP, set_shutdown );
@@ -401,17 +392,8 @@ set_shutdown( int sig )
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal %d\n", sig, 0, 0 );
 	slapd_shutdown = 1;
-#ifdef HAVE_LINUX_THREADS
-	/*
-	 * LinuxThreads are implemented using SIGUSR1/USR2,
-	 * so we'll use SIGSTKFLT and SIGUNUSED
-	 */
-	pthread_kill( listener_tid, SIGSTKFLT );
-	(void) SIGNAL( SIGUNUSED, set_shutdown );
-#else /* !linux */
-	pthread_kill( listener_tid, SIGUSR1 );
-	(void) SIGNAL( SIGUSR2, set_shutdown );
-#endif /* !linux */
+	pthread_kill( listener_tid, LDAP_SIGUSR1 );
+	(void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
 	(void) SIGNAL( SIGTERM, set_shutdown );
 	(void) SIGNAL( SIGINT, set_shutdown );
 	(void) SIGNAL( SIGHUP, set_shutdown );
@@ -421,13 +403,5 @@ static void
 do_nothing( int sig )
 {
 	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal %d\n", sig, 0, 0 );
-#ifdef HAVE_LINUX_THREADS
-	/*
-	 * LinuxThreads are implemented using SIGUSR1/USR2,
-	 * so we'll use SIGSTKFLT and SIGUNUSED
-	 */
-	(void) SIGNAL( SIGSTKFLT, do_nothing );
-#else /* !linux */
-	(void) SIGNAL( SIGUSR1, do_nothing );
-#endif /* !linux */
+	(void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 }

@@ -55,13 +55,8 @@ fm(
      * SIG(UNUSED|USR2) - causes slurpd to read its administrative interface file.
      *           (not yet implemented).
      */
-#ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, do_nothing );
-    (void) SIGNAL( SIGUNUSED, do_admin );
-#else
-    (void) SIGNAL( SIGUSR1, do_nothing );
-    (void) SIGNAL( SIGUSR2, do_admin );
-#endif
+    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
+    (void) SIGNAL( LDAP_SIGUSR2, do_admin );
     (void) SIGNAL( SIGTERM, set_shutdown );
     (void) SIGNAL( SIGINT, set_shutdown );
     (void) SIGNAL( SIGHUP, set_shutdown );
@@ -140,11 +135,7 @@ set_shutdown(int x)
     int	i;
 
     sglob->slurpd_shutdown = 1;				/* set flag */
-#ifdef HAVE_LINUX_THREADS
-    pthread_kill( sglob->fm_tid, SIGSTKFLT );	/* wake up file mgr */
-#else
-    pthread_kill( sglob->fm_tid, SIGUSR1 );		/* wake up file mgr */
-#endif
+    pthread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
     sglob->rq->rq_lock( sglob->rq );			/* lock queue */
     pthread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
     for ( i = 0; i < sglob->num_replicas; i++ ) {
@@ -165,11 +156,7 @@ set_shutdown(int x)
 RETSIGTYPE
 do_nothing(int i)
 {
-#ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, do_nothing );
-#else
-    (void) SIGNAL( SIGUSR1, do_nothing );
-#endif
+    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 }
 
 
