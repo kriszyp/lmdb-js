@@ -175,10 +175,6 @@ SOURCE=.\dnssrv.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dsparse.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\error.c
 # End Source File
 # Begin Source File
@@ -336,10 +332,6 @@ SOURCE=.\string.c
 # Begin Source File
 
 SOURCE=.\tls.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\tmplout.c
 # End Source File
 # Begin Source File
 

@@ -172,10 +172,6 @@ SOURCE=..\libldap\dnssrv.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\dsparse.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\error.c
 # End Source File
 # Begin Source File
@@ -322,10 +318,6 @@ SOURCE=.\threads.c
 # Begin Source File
 
 SOURCE=..\libldap\tls.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libldap\tmplout.c
 # End Source File
 # Begin Source File
 
