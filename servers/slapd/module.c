@@ -7,18 +7,29 @@
 
 #include <ltdl.h>
 
-int module_load(const char* file_name, int argc, char *argv[]) {
+int module_load(const char* file_name, int argc, char *argv[])
+{
     lt_dlhandle* module = NULL;
+    const char *error;
+
+    /*
+     * The result of lt_dlerror(), when called, must be cached prior
+     * to calling Debug. This is because Debug is a macro that expands
+     * into multiple function calls.
+     */
+
     int (*initialize) LDAP_P((int argc, char *argv[]));
 
     if (lt_dlinit()) {
-	Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", lt_dlerror(), 0, 0);
+	error = lt_dlerror();
+	Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", error, 0, 0);
 	return -1;
     }
 
     if ((module = lt_dlopen(file_name)) == NULL) {
+	error = lt_dlerror();
 	Debug(LDAP_DEBUG_ANY, "lt_dlopen failed: (%s) %s\n", file_name,
-	    lt_dlerror(), 0);
+	    error, 0);
 	return -1;
     }
 
@@ -32,10 +43,19 @@ int module_load(const char* file_name, int argc, char *argv[]) {
     return -1;
 }
 
-int module_path(const char *path) {
+int module_path(const char *path)
+{
+    const char *error;
+
+    /*
+     * The result of lt_dlerror(), when called, must be cached prior
+     * to calling Debug. This is because Debug is a macro that expands
+     * into multiple function calls.
+     */
 
     if (lt_dlinit()) {
-	Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", lt_dlerror(), 0, 0);
+	error = lt_dlerror();
+	Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", error, 0, 0);
 	return -1;
     }
 
