@@ -739,7 +739,7 @@ access line is:
 >		[aci=<attrname>]
 >	<access> ::= [self]{<level>|<priv>}
 >	<level> ::= none | auth | compare | search | read | write
->	<priv> ::= {=|+|-}{w|r|s|c|x}+
+>	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
 >	<control> ::= [stop | continue | break]
 
 where the <what> part selects the entries and/or attributes to which
@@ -879,7 +879,7 @@ The kind of <access> granted can be one of the following:
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
 	title="Table 5.4: Access Levels"
 Level	Privileges	Description
-none			no access
+none	=0		no access
 auth	=x		needed to bind
 compare	=cx		needed to compare
 search	=scx		needed to apply search filters
