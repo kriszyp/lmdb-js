@@ -912,11 +912,13 @@ do_syncrepl(
 		return NULL;
 	}
 
-	if ( slapd_shutdown && si->si_ld ) {
-		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
-		connection_client_stop( s );
-		ldap_unbind( si->si_ld );
-		si->si_ld = NULL;
+	if ( slapd_shutdown ) {
+		if ( si->si_ld ) {
+			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
+			connection_client_stop( s );
+			ldap_unbind( si->si_ld );
+			si->si_ld = NULL;
+		}
 		return NULL;
 	}
 
