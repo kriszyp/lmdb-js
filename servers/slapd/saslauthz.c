@@ -488,7 +488,7 @@ int slap_sasl_match( char *rule, struct berval *assertDN, struct berval *authc )
 	Filter *filter=NULL;
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_smatch, &sm};
+	slap_callback cb = { sasl_sc_r, sasl_sc_s, sasl_sc_smatch, NULL };
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
@@ -539,6 +539,7 @@ int slap_sasl_match( char *rule, struct berval *assertDN, struct berval *authc )
 
 	sm.dn = assertDN;
 	sm.match = 0;
+	cb.sc_private = &sm;
 
 	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
 	op.o_tag = LDAP_REQ_SEARCH;
