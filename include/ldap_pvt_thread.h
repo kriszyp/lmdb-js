@@ -180,6 +180,9 @@ LDAP_F int
 ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #endif
 
+#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
+#define LDAP_PVT_THREAD_CREATE_DETACHED 1
+
 LDAP_F int 
 ldap_pvt_thread_create LDAP_P((
 	ldap_pvt_thread_t * thread, 
@@ -229,34 +232,43 @@ LDAP_F int
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 typedef struct ldap_pvt_thread_rdwr_var {
-	int lt_readers_reading;
-	int lt_writer_writing;
-	ldap_pvt_thread_mutex_t lt_mutex;
-	ldap_pvt_thread_cond_t lt_lock_free;
+	ldap_pvt_thread_mutex_t ltrw_mutex;	
+	ldap_pvt_thread_cond_t ltrw_read;	/* wait for read */
+	ldap_pvt_thread_cond_t ltrw_write;	/* wait for write */
+	int ltrw_valid;
+#define LDAP_PVT_THREAD_RDWR_VALUE 0x0bad
+	int ltrw_r_active;
+	int ltrw_w_active;
+	int ltrw_r_wait;
+	int ltrw_w_wait;
 } ldap_pvt_thread_rdwr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED 1
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 LDAP_F int 
 ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
 ldap_pvt_thread_rdwr_rlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
+ldap_pvt_thread_rdwr_rtrylock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+LDAP_F int 
 ldap_pvt_thread_rdwr_runlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
 ldap_pvt_thread_rdwr_wlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+LDAP_F int 
+ldap_pvt_thread_rdwr_wtrylock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
 ldap_pvt_thread_rdwr_wunlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
 #ifdef LDAP_DEBUG
 LDAP_F int 
-ldap_pvt_thread_rdwr_rchk LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+ldap_pvt_thread_rdwr_readers LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
-ldap_pvt_thread_rdwr_wchk LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+ldap_pvt_thread_rdwr_writers LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
-ldap_pvt_thread_rdwr_rwchk LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 #endif /* LDAP_DEBUG */
+
+#define LDAP_PVT_THREAD_EINVAL EINVAL
+#define LDAP_PVT_THREAD_EBUSY EINVAL
 
 LDAP_END_DECL
 

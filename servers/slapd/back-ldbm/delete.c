@@ -39,10 +39,6 @@ ldbm_back_delete(
 		return( -1 );
 	}
 
-	Debug (LDAP_DEBUG_TRACE,
-		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
-
 	/* check for deleted */
 
 	if ( has_children( be, e ) ) {
@@ -64,10 +60,6 @@ ldbm_back_delete(
 		goto return_results;
 	}
 #endif
-
-	Debug (LDAP_DEBUG_TRACE,
-		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
 
 	/* delete from parent's id2children entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
