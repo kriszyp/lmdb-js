@@ -9,7 +9,7 @@
 all-common: $(PROGRAMS) FORCE
 
 clean-common: 	FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/*
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o *.lo a.out core *.core .libs/*
 
 depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
