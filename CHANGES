@@ -1,15 +1,20 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_0
 	Fixed slapd/back-ldbm/cache entry lock assert bugs
 	Fixed slapd uncaught signals in main thread problem 
 	Fixed slapd/back-ldbm/modrdn extra space bug
+	Fixed slapd/back-ldbm/cache add vs. update bug
+	Fixed libraries/libldap tmplout Y2k bug
+	Added Randy's LDAP TCL API
 	Build environment
 		Fixed detections requiring AC_TRY_LINK
 		Fixed build/man.mk "ln -sf" bug
 		Removed "ldap.openldap.org" as default HOST
 		Removed "dc=OpenLDAP, dc=org" as default BASE
+		Updated MSVC5 workspace/project files for NT/95
+		Added ldap.conf/slap.conf steps to INSTALL
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA2

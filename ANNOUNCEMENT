@@ -27,13 +27,13 @@
 
 	In addition, there are some contributed components:
 
-	- gtk-tool - a demonstration ldap interface written gtk
 	- php3-tool - a demonstration ldap interface written php3 
 	- saucer - a simple command-line oriented client program
 	- whois++d - a WHOIS++-to-LDAP gateway
 
 CHANGES
 	Changes from OpenLDAP 1.1
+	- ldaptcl, a NeoSoft's TCP LDAP API
 	- ldappasswd tool, password prompting, salted MD5/SHA1 support
 	- platforms updates, and
 	- numerous bug fixes and build changes.
