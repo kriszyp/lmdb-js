@@ -109,6 +109,7 @@ bdb_csn_commit(
 			if ( ret != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
 						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				switch( ret ) {
 				case DB_LOCK_DEADLOCK:
 				case DB_LOCK_NOTGRANTED:
@@ -124,13 +125,23 @@ bdb_csn_commit(
 				break;
 			case DB_LOCK_DEADLOCK :
 			case DB_LOCK_NOTGRANTED :
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				goto rewind;
 			default :
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				rs->sr_err = ret;
 				rs->sr_text = "context csn update failed";
 				return BDB_CSN_ABORT;
 			}
-			bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
+			ret = bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
+			if ( ret != LDAP_SUCCESS ) {
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
+				switch( ret ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					goto rewind;
+				}
+			}
 		}
 		break;
 	case DB_NOTFOUND:
