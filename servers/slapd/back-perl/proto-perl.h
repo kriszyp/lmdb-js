@@ -20,6 +20,8 @@
 
 LDAP_BEGIN_DECL
 
+extern BI_init		perl_back_initialize;
+
 extern BI_open		perl_back_open;
 extern BI_close		perl_back_close;
 extern BI_destroy	perl_back_destroy;

@@ -32,6 +32,8 @@
 
 LDAP_BEGIN_DECL
 
+extern BI_init		shell_back_initialize;
+
 extern BI_open		shell_back_open;
 extern BI_close		shell_back_close;
 extern BI_destroy	shell_back_destroy;

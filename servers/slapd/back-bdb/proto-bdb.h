@@ -576,14 +576,7 @@ bdb_trans_backoff( int num_retries );
  * former external.h
  */
 
-#ifndef BDB_SYMBOL
-#ifdef BDB_HIER
-#define	BDB_SYMBOL(x)	LDAP_CONCAT(hdb_,x)
-#else
-#define BDB_SYMBOL(x)	LDAP_CONCAT(bdb_,x)
-#endif
-#endif
-
+#define bdb_back_initialize		BDB_SYMBOL(back_initialize)
 #define bdb_db_config			BDB_SYMBOL(db_config)
 #define bdb_add				BDB_SYMBOL(add)
 #define bdb_bind			BDB_SYMBOL(bind)
@@ -605,6 +598,8 @@ bdb_trans_backoff( int num_retries );
 #define bdb_tool_dn2id_get		BDB_SYMBOL(tool_dn2id_get)
 #define bdb_tool_id2entry_get		BDB_SYMBOL(tool_id2entry_get)
 #define bdb_tool_entry_modify		BDB_SYMBOL(tool_entry_modify)
+
+extern BI_init				bdb_back_initialize;
 
 extern BI_db_config			bdb_db_config;
 

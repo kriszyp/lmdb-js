@@ -25,6 +25,8 @@
 
 LDAP_BEGIN_DECL
 
+extern BI_init			meta_back_initialize;
+
 extern BI_open			meta_back_open;
 extern BI_close			meta_back_close;
 extern BI_destroy		meta_back_destroy;

@@ -16,7 +16,6 @@
  */
 
 #include "perl_back.h"
-#include "external.h"
 
 static void perl_back_xs_init LDAP_P((PERL_BACK_XS_INIT_PARAMS));
 EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
@@ -159,20 +158,9 @@ perl_back_xs_init(PERL_BACK_XS_INIT_PARAMS)
 
 #if SLAPD_PERL == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( perl )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "perl";
-	bi.bi_init = perl_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_PERL */
+#endif /* SLAPD_PERL == SLAPD_MOD_DYNAMIC */
 
 

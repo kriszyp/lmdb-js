@@ -22,7 +22,6 @@
 #include <ac/stdlib.h>
 
 #include "back-bdb.h"
-#include "external.h"
 #include <lutil.h>
 
 static const struct bdbi_database {
@@ -659,21 +658,13 @@ bdb_back_initialize(
 
 #if	(SLAPD_BDB == SLAPD_MOD_DYNAMIC && !defined(BDB_HIER)) || \
 	(SLAPD_HDB == SLAPD_MOD_DYNAMIC && defined(BDB_HIER))
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
 
-	memset( &bi, '\0', sizeof( bi ) );
+/* conditionally define the init_module() function */
 #ifdef BDB_HIER
-	bi.bi_type = "hdb";
-#else
-	bi.bi_type = "bdb";
-#endif
-	bi.bi_init = bdb_back_initialize;
+SLAP_BACKEND_INIT_MODULE( hdb )
+#else /* !BDB_HIER */
+SLAP_BACKEND_INIT_MODULE( bdb )
+#endif /* !BDB_HIER */
 
-	backend_add( &bi );
-	return 0;
-}
-#endif /* SLAPD_BDB */
+#endif /* SLAPD_[BH]DB == SLAPD_MOD_DYNAMIC */
 

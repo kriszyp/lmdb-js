@@ -23,7 +23,6 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
-#include "external.h"
 
 int
 ldbm_back_initialize(
@@ -241,20 +240,9 @@ ldbm_back_db_destroy(
 
 #if SLAPD_LDBM == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( ldbm )
 
-	memset( &bi, '\0', sizeof(bi) );
-	bi.bi_type = "ldbm";
-	bi.bi_init = ldbm_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_LDBM */
+#endif /* SLAPD_LDBM == SLAPD_MOD_DYNAMIC */
 
 

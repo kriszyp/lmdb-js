@@ -221,6 +221,8 @@ int next_id_write LDAP_P(( Backend *be, ID id ));
  * former external.h
  */
 
+extern BI_init			ldbm_back_initialize;
+
 extern BI_open			ldbm_back_open;
 extern BI_close			ldbm_back_close;
 extern BI_destroy		ldbm_back_destroy;

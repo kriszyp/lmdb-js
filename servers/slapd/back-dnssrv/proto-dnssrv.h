@@ -22,6 +22,8 @@
 
 LDAP_BEGIN_DECL
 
+extern BI_init			dnssrv_back_initialize;
+
 extern BI_open			dnssrv_back_open;
 extern BI_close			dnssrv_back_close;
 extern BI_destroy		dnssrv_back_destroy;

@@ -24,11 +24,12 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "external.h"
 
 /*
  * former external.h
  */
+
+extern BI_init			null_back_initialize;
 
 extern BI_db_init		null_back_db_init;
 extern BI_db_destroy 		null_back_db_destroy;
@@ -174,18 +175,7 @@ null_back_initialize(
 
 #if SLAPD_NULL == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( null )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "null";
-	bi.bi_init = null_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_NULL */
+#endif /* SLAPD_NULL == SLAPD_MOD_DYNAMIC */

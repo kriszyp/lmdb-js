@@ -20,22 +20,19 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
 
 #include "slap.h"
 #include "proto-sql.h"
-#include "external.h"
 
 int
 sql_back_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
-#if 0 /* needs updating */
+#if 0 /* needs improvements */
 #ifdef LDAP_CONTROL_NOOP
 		LDAP_CONTROL_NOOP,
 #endif /* LDAP_CONTROL_NOOP */
@@ -485,21 +482,8 @@ backsql_connection_destroy( Backend *bd, Connection *c )
 
 #if SLAPD_SQL == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
-
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "sql";
-	bi.bi_init = sql_back_initialize;
-
-	backend_add( &bi );
-	
-	return 0;
-}
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( sql )
 
 #endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
-
-#endif /* SLAPD_SQL */
 

@@ -24,7 +24,6 @@
 
 #include "slap.h"
 #include "back-relay.h"
-#include "external.h"
 
 int
 relay_back_initialize( BackendInfo *bi )
@@ -126,19 +125,8 @@ relay_back_db_destroy( Backend *be )
 
 #if SLAPD_RELAY == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo	bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( relay )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "relay";
-	bi.bi_init = relay_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_RELAY */
+#endif /* SLAPD_RELAY == SLAPD_MOD_DYNAMIC */
 

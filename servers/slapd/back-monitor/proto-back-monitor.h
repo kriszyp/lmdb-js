@@ -178,6 +178,8 @@ int monitor_subsys_rww_update LDAP_P(( Operation *op, Entry *e ));
  * former external.h
  */
 
+extern BI_init			monitor_back_initialize;
+
 extern BI_db_init		monitor_back_db_init;
 extern BI_db_open		monitor_back_db_open;
 extern BI_config		monitor_back_config;

@@ -1457,20 +1457,8 @@ monitor_back_db_destroy(
 
 #if SLAPD_MONITOR == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( monitor )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "monitor";
-	bi.bi_init = monitor_back_initialize;
-	
-	backend_add( &bi );
-	
-	return 0;
-}
-
-#endif /* SLAPD_MONITOR */
-
+#endif /* SLAPD_MONITOR == SLAPD_MOD_DYNAMIC */
 

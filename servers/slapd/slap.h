@@ -2680,6 +2680,19 @@ typedef struct slap_component_syntax_info {
 } ComponentSyntaxInfo;
 
 #endif
+
+#define SLAP_BACKEND_INIT_MODULE(b) \
+	int \
+	init_module( int argc, char *argv[] ) \
+	{ \
+		BackendInfo bi; \
+		memset( &bi, '\0', sizeof( bi ) ); \
+		bi.bi_type = #b ; \
+		bi.bi_init = b ## _back_initialize; \
+		backend_add( &bi ); \
+		return 0; \
+	}
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

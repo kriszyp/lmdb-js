@@ -37,7 +37,6 @@
 #include "slap.h"
 
 #include "shell.h"
-#include "external.h"
 
 int
 shell_back_initialize(
@@ -100,19 +99,8 @@ shell_back_db_destroy(
 
 #if SLAPD_SHELL == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( shell )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "shell";
-	bi.bi_init = shell_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_SHELL */
+#endif /* SLAPD_SHELL == SLAPD_MOD_DYNAMIC */
 

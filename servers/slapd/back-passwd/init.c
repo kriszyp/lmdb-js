@@ -22,7 +22,6 @@
 
 #include "slap.h"
 #include "back-passwd.h"
-#include "external.h"
 
 ldap_pvt_thread_mutex_t passwd_mutex;
 
@@ -75,19 +74,8 @@ passwd_back_destroy(
 
 #if SLAPD_PASSWD == SLAPD_MOD_DYNAMIC
 
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo bi;
+/* conditionally define the init_module() function */
+SLAP_BACKEND_INIT_MODULE( passwd )
 
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "passwd";
-	bi.bi_init = passwd_back_initialize;
-
-	backend_add( &bi );
-
-	return 0;
-}
-
-#endif /* SLAPD_PASSWD */
+#endif /* SLAPD_PASSWD == SLAPD_MOD_DYNAMIC */
 

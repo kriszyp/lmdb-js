@@ -259,6 +259,9 @@ int backsql_entryUUID_decode( struct berval *entryUUID, unsigned long *oc_id,
 /*
  * former external.h
  */
+
+extern BI_init			sql_back_initialize;
+
 extern BI_destroy		backsql_destroy;
 
 extern BI_db_init		backsql_db_init;
