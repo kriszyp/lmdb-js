@@ -295,7 +295,10 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			dnl All POSIX Thread (final) implementations should have
 			dnl sched_yield instead of pthread yield.
 			dnl check for both
+			save_LIBS="$LIBS"
+			LIBS="$LTHREAD_LIBS $LIBS"
 			AC_CHECK_FUNCS(sched_yield pthread_yield)
+			LIBS="$save_LIBS"
 
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
