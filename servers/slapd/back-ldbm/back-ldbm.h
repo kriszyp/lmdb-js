@@ -106,6 +106,7 @@ struct attrinfo {
 
 struct ldbminfo {
 	ID			li_nextid;
+	char		*li_nextid_file;
 	pthread_mutex_t		li_root_mutex;
 	pthread_mutex_t		li_add_mutex;
 	pthread_mutex_t		li_nextid_mutex;
