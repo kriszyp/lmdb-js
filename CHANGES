@@ -17,6 +17,7 @@ Changes included in OpenLDAP 1.2.4
 		Added sys/select.h detection
 		Fix xrpcomp $libexecdir sed
 		Move LDAP_LIBPATH to LDFLAGS
+		Fix map page building when using a TMPROOT
 
 Changes included in OpenLDAP 1.2.3
 	CVS Tag: OPENLDAP_REL_ENG_1_2_3
