@@ -40,13 +40,22 @@ module_loaded_t *module_list = NULL;
 
 static int module_unload (module_loaded_t *module);
 
+#ifdef HAVE_EBCDIC
+static char ebuf[BUFSIZ];
+#endif
+
 int module_init (void)
 {
 	if (lt_dlinit()) {
 		const char *error = lt_dlerror();
+#ifdef HAVE_EBCDIC
+		strcpy( ebuf, error );
+		__etoa( ebuf );
+		error = ebuf;
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG( SLAPD, CRIT, 
-			"module_init: lt_ldinit failed: %s\n", error, 0, 0 );
+			"module_init: lt_dlinit failed: %s\n", error, 0, 0 );
 #else
 		Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", error, 0, 0);
 #endif
@@ -65,6 +74,11 @@ int module_kill (void)
 
 	if (lt_dlexit()) {
 		const char *error = lt_dlerror();
+#ifdef HAVE_EBCDIC
+		strcpy( ebuf, error );
+		__etoa( ebuf );
+		error = ebuf;
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG( SLAPD, CRIT, "module_kill: lt_dlexit failed: %s\n", 
 			error, 0, 0 );
@@ -83,6 +97,11 @@ int module_load(const char* file_name, int argc, char *argv[])
 	const char *error;
 	int rc;
 	MODULE_INIT_FN initialize;
+#ifdef HAVE_EBCDIC
+#define	file	ebuf
+#else
+#define	file	file_name
+#endif
 
 	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t));
 	if (module == NULL) {
@@ -97,13 +116,22 @@ int module_load(const char* file_name, int argc, char *argv[])
 		return -1;
 	}
 
+#ifdef HAVE_EBCDIC
+	strcpy( file, file_name );
+	__atoe( file );
+#endif
 	/*
 	 * The result of lt_dlerror(), when called, must be cached prior
 	 * to calling Debug. This is because Debug is a macro that expands
 	 * into multiple function calls.
 	 */
-	if ((module->lib = lt_dlopen(file_name)) == NULL) {
+	if ((module->lib = lt_dlopen(file)) == NULL) {
 		error = lt_dlerror();
+#ifdef HAVE_EBCDIC
+		strcpy( ebuf, error );
+		__etoa( ebuf );
+		error = ebuf;
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG( SLAPD, CRIT, 
 			"module_load: lt_dlopen failed: (%s) %s.\n", 
@@ -124,7 +152,13 @@ int module_load(const char* file_name, int argc, char *argv[])
 #endif
 
    
+#ifdef HAVE_EBCDIC
+#pragma convlit(suspend)
+#endif
 	if ((initialize = lt_dlsym(module->lib, "init_module")) == NULL) {
+#ifdef HAVE_EBCDIC
+#pragma convlit(resume)
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG( SLAPD, ERR, 
 			"module_load: module %s : no init_module() function found\n",
@@ -217,11 +251,21 @@ int module_load(const char* file_name, int argc, char *argv[])
 
 int module_path(const char *path)
 {
+#ifdef HAVE_EBCDIC
+	strcpy(ebuf, path);
+	__atoe(ebuf);
+	path = ebuf;
+#endif
 	return lt_dlsetsearchpath( path );
 }
 
 void *module_resolve (const void *module, const char *name)
 {
+#ifdef HAVE_EBCDIC
+	strcpy(ebuf, name);
+	__atoe(ebuf);
+	name = ebuf;
+#endif
 	if (module == NULL || name == NULL)
 		return(NULL);
 	return(lt_dlsym(((module_loaded_t *)module)->lib, name));
@@ -246,7 +290,13 @@ static int module_unload (module_loaded_t *module)
 		}
 
 		/* call module's terminate routine, if present */
+#ifdef HAVE_EBCDIC
+#pragma convlit(suspend)
+#endif
 		if ((terminate = lt_dlsym(module->lib, "term_module"))) {
+#ifdef HAVE_EBCDIC
+#pragma convlit(resume)
+#endif
 			terminate();
 		}
 
