@@ -187,8 +187,7 @@ int value_find(
 		rc = value_match( &match, ad, mr, vals[i],
 			nval == NULL ? val : nval, &text );
 
-		if( rc == LDAP_SUCCESS && match == 0 )
-		{
+		if( rc == LDAP_SUCCESS && match == 0 ) {
 			return LDAP_SUCCESS;
 		}
 	}

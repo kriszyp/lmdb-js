@@ -36,7 +36,18 @@ objectClassMatch(
 	ObjectClass *oc = oc_find( value->bv_val );
 	ObjectClass *asserted = oc_find( a->bv_val );
 
-	if( asserted == NULL || oc == NULL ) {
+	if( asserted == NULL ) {
+		if( isdigit( *value.bv_val ) ) {
+			/* OID form, return FALSE */
+			*matchp = 1;
+			return LDAP_SUCCESS;
+		}
+
+		/* desc form, return undefined */
+		return LDAP_CONSTRAINT_VIOLATION;
+	}
+
+	if ( oc == NULL ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
