@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.11 Release
+	Fixed slapd oc flags bug
+	Fixed slapd objectIdentifierFirstComponentMatch bug
+
 OpenLDAP 2.1.10 Release
 	Fixed slapd acl/group value_find_ex() bug (ITS#2227)
 	Fixed slapd empty values return filter control bug (ITS#2219)
