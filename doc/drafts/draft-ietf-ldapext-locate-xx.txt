@@ -1,0 +1,165 @@
+INTERNET-DRAFT                                         Michael P. Armijo
+<draft-ietf-ldapext-locate-01.txt>                          Levon Esibov
+January, 2000                                                 Paul Leach
+Expires: July, 2000                                Microsoft Corporation
+
+                Discovering LDAP Services with DNS
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   Distribution of this memo is unlimited.  It is filed as <draft-
+   ietf-ldapext-locate-01.txt>, and expires on July 4, 2000.  
+   Please send comments to the authors.
+
+1. Abstract
+
+   This draft defines a way that native Internet LDAP servers can make 
+   use of the DNS's knowledge base to provide clients a method to 
+   resolve LDAP services for a given domain.
+
+
+2. Introduction
+
+   The LDAPv3 protocol [1] is designed to be a lightweight access 
+   protocol for directory services supporting X.500 models. This may 
+   be the X.500 directory itself, but the LDAP specification 
+   explicitly allows it to be a different directory.  Let us define 
+   a "native LDAP server" to be one that is not a front end to the 
+   X.500 directory service. Let us further define an "Internet based 
+   organization" as one that has a domain name, and an "Internet LDAP 
+   server" to be one containing a directory entries for such an 
+   organization.
+
+   This draft defines a way that native Internet LDAP servers can make 
+   use of the DNS's knowledge base to perform the same function, while 
+   still supporting integration with the X.500 directory.
+
+   This draft builds on RFC 2247[2] to define a mechanism by which 
+   collections of native Internet LDAP servers can be integrated to 
+   create a directory service. That work supports this cause by 
+   defining a mapping from an LDAP DN to a DNS name that can be 
+   resolved to the address of a server holding the entry corresponding 
+   to the DN. For example, the DN "CN=Fred,OU=Eng,DC=example,DC=net" 
+   maps to the DNS name "example.net". 
+
+   In an Internet context, many of the names about which users seek 
+   information are DNS names, or include DNS names. A native LDAP based 
+   directory service for the Internet should make it convenient to 
+   process such names -- there is a huge social investment spanning two 
+   decades to get to the point where names like 
+   "john.doe@somewhere.example" and "http://www.example.net" can 
+   appear in newspaper articles, TV commercials, and on billboards 
+   and millions of people understand what to do with them. As a result, 
+   we assume that Internet based organizations wish to preserve this 
+   investment, yet also want to deploy directory services.
+
+   Widespread use of, and dependence on, LDAP services will require that 
+   they are robust and scalable. Both of these features are typically 
+   supported by replicated servers. Use of SRV records to locate LDAP 
+   servers supports clients' use of replicated servers.
+
+
+3. Locating LDAP servers through DNS
+
+   LDAP server location information is to be stored using DNS Service 
+   Location Record (SRV)[6].  The data in a SRV record contains the DNS 
+   name of the server that provides the LDAP service, corresponding Port 
+   number, and parameters that enable the client to choose an 
+   appropriate server from multiple servers according to the algorithm 
+   described in the SRV protocol[6].  The name of this record always has 
+   the following format:
+
+   _<Service>._<Proto>.<Domain>
+
+   where <Service> is always "ldap", <Proto> is a protocol that can 
+   be either "udp" or "tcp", and <Domain> is the domain hosted by the 
+   LDAP Server.  Note that "ldap" is the symbolic name for the LDAP 
+   service in Assigned Numbers [7], as required by the SRV Protocol[6].
+
+   Presence of such records enables clients to find the LDAP servers 
+   using standard DNS query [3].  As an example, a client that searches 
+   for an LDAP server in the example.net domain that supports TCP protocol 
+   will submit a DNS query for a set of SRV records with owner name:
+ 
+   _ldap._tcp.example.net.
+
+   The client will receive the list of SRV records published in DNS 
+   that satisfy the requested criteria.  The following is an example 
+   of such record:
+
+   _ldap._tcp.example.net.   IN	   SRV   0 0 389 phoenix.example.net.
+
+   The set of returned records may contain multiple records in the 
+   case where multiple LDAP servers serve the same domain.  
+
+
+4. Security Considerations
+
+   This document describes a method that uses DNS SRV records to 
+   discover LDAP servers.  All security considerations related to DNS
+   SRV records are inherited by this document.  See the security 
+   considerations section in [6] for more details.
+
+
+5. References
+
+   [1] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access 
+   Protocol(v3)".  RFC 2251, December 1997.
+
+   [2] S. Kille, M. Wahl, "Using Domains in LDAP/X.500 Distinguished 
+   Names". RFC 2247, January 1998.
+
+   [3] P. Mockapetris, RFC 1034, DOMAIN NAMES - CONCEPTS AND FACILITIES,  
+   November, 1987.
+ 
+   [4] P. Mockapetris, RFC 1035, DOMAIN NAMES - IMPLEMENTATION AND 
+   SPECIFICATION, November, 1987.
+
+   [5] T. Howes, M. Smith, "The LDAP URL Format". RFC 2255  December 1997.
+
+   [6] A. Gulbrandsen, P. Vixie, L. Esibov, "A DNS RR for specifying the 
+   location of services (DNS SRV)". 
+   http://www.ietf.org/internet-drafts/draft-ietf-
+   dnsind-rfc2052bis-05.txt, November 1999.
+
+   [7] J. Reynolds, J. Postel, "Assigned Numbers", STD 2, October 1994
+
+
+6. Authors' Addresses
+
+   Michael P. Armijo
+   One Microsoft Way
+   Redmond, WA 98052
+   micharm@microsoft.com
+
+   Paul Leach
+   One Microsoft Way
+   Redmond, WA 98052
+   paulle@microsoft.com
+
+   Levon Esibov
+   One Microsoft Way
+   Redmond, WA 98052
+   levone@microsoft.com
+
+   Expires July, 2000
+
