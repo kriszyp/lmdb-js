@@ -380,7 +380,7 @@ acl_access_allowed(
 }
 
 /*
- * acl_check_mods - check access control on the given entry to see if
+ * acl_check_modlist - check access control on the given entry to see if
  * it allows the given modifications by the user associated with op.
  * returns	LDAP_SUCCESS	mods allowed ok
  *		anything else	mods not allowed - return is an error
@@ -388,12 +388,12 @@ acl_access_allowed(
  */
 
 int
-acl_check_mods(
+acl_check_modlist(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-    LDAPMod	*mods
+    LDAPModList	*mlist
 )
 {
 	int		i;
@@ -402,31 +402,31 @@ acl_check_mods(
 
 	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
 
-	for ( ; mods != NULL; mods = mods->mod_next ) {
+	for ( ; mlist != NULL; mlist = mlist->ml_next ) {
 		regmatch_t       matches[MAXREMATCHES];
 
 		/* the lastmod attributes are ignored by ACL checking */
-		if ( strcasecmp( mods->mod_type, "modifiersname" ) == 0 ||
-			strcasecmp( mods->mod_type, "modifytimestamp" ) == 0 ||
-			strcasecmp( mods->mod_type, "creatorsname" ) == 0 ||
-			strcasecmp( mods->mod_type, "createtimestamp" ) == 0 ) 
+		if ( strcasecmp( mlist->ml_type, "modifiersname" ) == 0 ||
+			strcasecmp( mlist->ml_type, "modifytimestamp" ) == 0 ||
+			strcasecmp( mlist->ml_type, "creatorsname" ) == 0 ||
+			strcasecmp( mlist->ml_type, "createtimestamp" ) == 0 ) 
 		{
 			Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access allowed\n",
-				mods->mod_type, 0, 0 );
+				mlist->ml_type, 0, 0 );
 			continue;
 		}
 
-		a = acl_get_applicable( be, op, e, mods->mod_type, edn,
+		a = acl_get_applicable( be, op, e, mlist->ml_type, edn,
 			MAXREMATCHES, matches );
 
-		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+		switch ( mlist->ml_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_REPLACE:
 		case LDAP_MOD_ADD:
-			if ( mods->mod_bvalues == NULL ) {
+			if ( mlist->ml_bvalues == NULL ) {
 				break;
 			}
-			for ( i = 0; mods->mod_bvalues[i] != NULL; i++ ) {
-				if ( ! acl_access_allowed( a, be, conn, e, mods->mod_bvalues[i], 
+			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
+				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
 					free(edn);
@@ -436,7 +436,7 @@ acl_check_mods(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( mods->mod_bvalues == NULL ) {
+			if ( mlist->ml_bvalues == NULL ) {
 				if ( ! acl_access_allowed( a, be, conn, e,
 					NULL, op, ACL_WRITE, edn, matches) ) 
 				{
@@ -445,8 +445,8 @@ acl_check_mods(
 				}
 				break;
 			}
-			for ( i = 0; mods->mod_bvalues[i] != NULL; i++ ) {
-				if ( ! acl_access_allowed( a, be, conn, e, mods->mod_bvalues[i], 
+			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
+				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
 					free(edn);

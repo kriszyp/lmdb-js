@@ -8,22 +8,22 @@ ldap_friendly_name, ldap_free_friendlymap \- LDAP unfriendly to friendly name ma
 #include <ldap.h>
 .LP
 .ft B
-typedef struct friendly {
-        char *f_unfriendly;
-        char *f_friendly;
-} FriendlyMap;
+typedef struct ldap_friendly {
+        char *lf_unfriendly;
+        char *lf_friendly;
+} LDAPFriendlyMap;
 .LP
 .ft B
 char *ldap_friendly_name(filename, name, map)
 .ft
 char *filename;
 char *name;
-FriendlyMap **map;
+LDAPFriendlyMap **map;
 .LP
 .ft B
 void ldap_free_friendlymap(map)
 .ft
-FriendlyMap **map;
+LDAPFriendlyMap **map;
 .SH DESCRIPTION
 This routine is used to map one set of strings to another.  Typically,
 this is done for country names, to map from the two-letter country
@@ -40,7 +40,7 @@ For example:
 .LP
 .nf
 .ft tt
-        FriendlyMap *map = NULL;
+        LDAPFriendlyMap *map = NULL;
 
         printf( "unfriendly %s => friendly %s\\n", name,
             ldap_friendly_name( "DATADIR/ldapfriendly", name, &map ) );

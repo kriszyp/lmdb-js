@@ -59,22 +59,27 @@ LDAP_BEGIN_DECL
 #define LDAP_COMPAT
 #endif
 
+/* LDAP_OPTions defined by draft-ldapext-ldap-c-api-01 */
 #define LDAP_OPT_API_INFO			0x0000
 #define LDAP_OPT_DESC				0x0001
 #define LDAP_OPT_DEREF				0x0002
 #define LDAP_OPT_SIZELIMIT			0x0003
 #define LDAP_OPT_TIMELIMIT			0x0004
+/* 0x05 - 0x07 not defined by current draft */
 #define LDAP_OPT_REFERRALS			0x0008
 #define LDAP_OPT_RESTART			0x0009
+/* 0x0a - 0x10 not defined by current draft */
 #define LDAP_OPT_PROTOCOL_VERSION	0x0011
 #define LDAP_OPT_SERVER_CONTROLS	0x0012
 #define LDAP_OPT_CLIENT_CONTROLS	0x0013
+/* 0x14 - 0x2f not defined by current draft */
 #define LDAP_OPT_HOST_NAME			0x0030
 #define	LDAP_OPT_ERROR_NUMBER		0x0031
 #define LDAP_OPT_ERROR_STRING		0x0032
 
-/* for LDAPv2 compatibility */
-#define LDAP_OPT_DNS				0x0101	/* use DN & DNS */
+/* not defined by current draft */
+/*	for LDAPv2 compatibility */
+#define LDAP_OPT_DNS				0x1001	/* use DN & DNS */
 
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
@@ -147,12 +152,14 @@ typedef struct ldapcontrol {
 /* possible result types a server can return */
 #define LDAP_RES_BIND			0x61L	/* application + constructed */
 #define LDAP_RES_SEARCH_ENTRY		0x64L	/* application + constructed */
+#define LDAP_RES_SEARCH_REFERENCE	0x73L	/* V3: application + constructed */
 #define LDAP_RES_SEARCH_RESULT		0x65L	/* application + constructed */
 #define LDAP_RES_MODIFY			0x67L	/* application + constructed */
 #define LDAP_RES_ADD			0x69L	/* application + constructed */
 #define LDAP_RES_DELETE			0x6bL	/* application + constructed */
 #define LDAP_RES_MODRDN			0x6dL	/* application + constructed */
 #define LDAP_RES_COMPARE		0x6fL	/* application + constructed */
+#define LDAP_RES_EXTENDED		0x78L	/* V3: application + constructed */
 #define LDAP_RES_ANY			(-1L)
 
 /* old broken stuff for backwards compatibility */
@@ -241,7 +248,6 @@ typedef struct ldapmod {
 	} mod_vals;
 #define mod_values	mod_vals.modv_strvals
 #define mod_bvalues	mod_vals.modv_bvals
-	struct ldapmod	*mod_next;
 } LDAPMod;
 
 /* 
@@ -449,10 +455,10 @@ typedef struct ldap LDAP;
  * structure for ldap friendly mapping routines
  */
 
-typedef struct friendly {
-	char	*f_unfriendly;
-	char	*f_friendly;
-} FriendlyMap;
+typedef struct ldap_friendly {
+	char	*lf_unfriendly;
+	char	*lf_friendly;
+} LDAPFriendlyMap;
 
 
 /*
@@ -691,8 +697,8 @@ LDAP_F void ldap_mods_free LDAP_P(( LDAPMod **mods, int freemods ));
  * in friendly.c
  */
 LDAP_F char *ldap_friendly_name LDAP_P(( char *filename, char *uname,
-	FriendlyMap **map ));
-LDAP_F void ldap_free_friendlymap LDAP_P(( FriendlyMap **map ));
+	LDAPFriendlyMap **map ));
+LDAP_F void ldap_free_friendlymap LDAP_P(( LDAPFriendlyMap **map ));
 
 
 /*

@@ -23,7 +23,7 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include "ldap-int.h"
 
 char *
-ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
+ldap_friendly_name( char *filename, char *uname, LDAPFriendlyMap **map )
 {
 	int	i, entries;
 	FILE	*fp;
@@ -46,8 +46,8 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 		}
 		rewind( fp );
 
-		if ( (*map = (FriendlyMap *) malloc( (entries + 1) *
-		    sizeof(FriendlyMap) )) == NULL ) {
+		if ( (*map = (LDAPFriendlyMap *) malloc( (entries + 1) *
+		    sizeof(LDAPFriendlyMap) )) == NULL ) {
 			fclose( fp );
 			return( uname );
 		}
@@ -83,35 +83,35 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 				}
 			}
 
-			(*map)[i].f_unfriendly = ldap_strdup( buf );
-			(*map)[i].f_friendly   = ldap_strdup( s );
+			(*map)[i].lf_unfriendly = ldap_strdup( buf );
+			(*map)[i].lf_friendly   = ldap_strdup( s );
 			i++;
 		}
 
 		fclose( fp );
-		(*map)[i].f_unfriendly = NULL;
+		(*map)[i].lf_unfriendly = NULL;
 	}
 
-	for ( i = 0; (*map)[i].f_unfriendly != NULL; i++ ) {
-		if ( strcasecmp( uname, (*map)[i].f_unfriendly ) == 0 )
-			return( (*map)[i].f_friendly );
+	for ( i = 0; (*map)[i].lf_unfriendly != NULL; i++ ) {
+		if ( strcasecmp( uname, (*map)[i].lf_unfriendly ) == 0 )
+			return( (*map)[i].lf_friendly );
 	}
 	return( uname );
 }
 
 
 void
-ldap_free_friendlymap( FriendlyMap **map )
+ldap_free_friendlymap( LDAPFriendlyMap **map )
 {
-	struct friendly* pF = *map;
+	LDAPFriendlyMap* pF = *map;
 
 	if ( pF == NULL )
 		return;
 
-	while ( pF->f_unfriendly )
+	while ( pF->lf_unfriendly )
 	{
-		free( pF->f_unfriendly );
-		free( pF->f_friendly );
+		free( pF->lf_unfriendly );
+		free( pF->lf_friendly );
 		pF++;
 	}
 	free( *map );

@@ -477,7 +477,7 @@ code_to_str( int i )
 char *
 friendly_name( char *s )
 {
-	static FriendlyMap *map = NULL;
+	static LDAPFriendlyMap *map = NULL;
 	static char *cp;
 
 	cp = ldap_friendly_name(FRIENDLYFILE, s, &map);

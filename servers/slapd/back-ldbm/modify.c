@@ -21,14 +21,14 @@ ldbm_back_modify(
     Connection	*conn,
     Operation	*op,
     char	*dn,
-    LDAPMod	*mods
+    LDAPModList	*modlist
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*matched;
+	LDAPModList	*ml;
 	Entry		*e;
 	int		i, err;
-	LDAPMod		*mod;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
@@ -45,12 +45,14 @@ ldbm_back_modify(
 
 	/* lock entry */
 
-	if ( (err = acl_check_mods( be, conn, op, e, mods )) != LDAP_SUCCESS ) {
+	if ( (err = acl_check_modlist( be, conn, op, e, modlist )) != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, err, NULL, NULL );
 		goto error_return;
 	}
 
-	for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
+	for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
+		LDAPMod	*mod = &ml->ml_mod;
+
 		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
 			err = add_values( e, mod, op->o_dn );
@@ -88,7 +90,7 @@ ldbm_back_modify(
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
 	/* modify indexes */
-	if ( index_add_mods( be, mods, e->e_id ) != 0 ) {
+	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
 		goto error_return;
 	}

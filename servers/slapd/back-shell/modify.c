@@ -16,7 +16,7 @@ shell_back_modify(
     Connection	*conn,
     Operation	*op,
     char	*dn,
-    LDAPMod	*mods
+    LDAPModList	*ml
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
@@ -41,25 +41,25 @@ shell_back_modify(
 	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
-	for ( ; mods != NULL; mods = mods->mod_next ) {
-		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+	for ( ; ml != NULL; ml = ml->ml_next ) {
+		switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
-			fprintf( wfp, "add: %s\n", mods->mod_type );
+			fprintf( wfp, "add: %s\n", ml->ml_type );
 			break;
 
 		case LDAP_MOD_DELETE:
-			fprintf( wfp, "delete: %s\n", mods->mod_type );
+			fprintf( wfp, "delete: %s\n", ml->ml_type );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			fprintf( wfp, "replace: %s\n", mods->mod_type );
+			fprintf( wfp, "replace: %s\n", ml->ml_type );
 			break;
 		}
 
-		for ( i = 0; mods->mod_bvalues != NULL && mods->mod_bvalues[i]
+		for ( i = 0; ml->ml_bvalues != NULL && ml->ml_bvalues[i]
 		    != NULL; i++ ) {
-			fprintf( wfp, "%s: %s\n", mods->mod_type,
-			    mods->mod_bvalues[i]->bv_val );
+			fprintf( wfp, "%s: %s\n", ml->ml_type,
+			    ml->ml_bvalues[i]->bv_val );
 		}
 	}
 	fclose( wfp );

@@ -179,6 +179,18 @@ struct acl {
 };
 
 /*
+ * A list of LDAPMods
+ */
+typedef struct ldapmodlist {
+	struct ldapmod ml_mod;
+	struct ldapmodlist *ml_next;
+#define ml_op		ml_mod.mod_op
+#define ml_type		ml_mod.mod_type
+#define ml_values	ml_mod.mod_values
+#define ml_bvalues	ml_mod.mod_bvalues
+} LDAPModList;
+
+/*
  * represents schema information for a database
  */
 
@@ -218,7 +230,7 @@ struct backend {
 	void	(*be_unbind) LDAP_P((Backend *be, struct conn *c, struct op *o ));
 	int	(*be_search) LDAP_P((Backend *be, struct conn *c, struct op *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
 	int	(*be_compare)LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, Ava *ava));
-	int	(*be_modify) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, LDAPMod *m));
+	int	(*be_modify) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, LDAPModList *m));
 	int	(*be_modrdn) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, char *newrdn, int deleteoldrdn ));
 	int	(*be_add)    LDAP_P((Backend *be, struct conn *c, struct op *o, Entry *e));
 	int	(*be_delete) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn));

@@ -16,8 +16,11 @@ int acl_access_allowed LDAP_P(( struct acl *a, Backend *be, Connection *conn, En
 	struct berval *val, Operation *op, int  access, char *edn,
 	regmatch_t *matches ));
 
-int acl_check_mods LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e,
-	LDAPMod *mods ));
+int acl_check_modlist LDAP_P(( Backend *be,
+	Connection *conn,
+	Operation *op,
+	Entry *e,
+	LDAPModList *ml ));
 
 /*
  * aclparse.c
@@ -281,7 +284,7 @@ extern int  ldbm_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, c
 extern void ldbm_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
 extern int  ldbm_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
 extern int  ldbm_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));
-extern int  ldbm_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPMod *m));
+extern int  ldbm_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPModList *ml));
 extern int  ldbm_back_modrdn LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, char *newrdn, int deleteoldrdn ));
 extern int  ldbm_back_add    LDAP_P((Backend *be, Connection *c, Operation *o, Entry *e));
 extern int  ldbm_back_delete LDAP_P((Backend *be, Connection *c, Operation *o, char *dn));
@@ -302,7 +305,7 @@ extern int  shell_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, 
 extern void shell_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
 extern int  shell_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
 extern int  shell_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));
-extern int  shell_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPMod *m));
+extern int  shell_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPModList *m));
 extern int  shell_back_modrdn LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, char *newrdn, int deleteoldrdn ));
 extern int  shell_back_add    LDAP_P((Backend *be, Connection *c, Operation *o, Entry *e));
 extern int  shell_back_delete LDAP_P((Backend *be, Connection *c, Operation *o, char *dn));

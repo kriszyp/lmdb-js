@@ -109,7 +109,7 @@ ID idl_nextid LDAP_P(( IDList *idl, ID id ));
  */
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
-int index_add_mods LDAP_P(( Backend *be, LDAPMod *mods, ID id ));
+int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
 IDList * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
 int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
 

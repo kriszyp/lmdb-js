@@ -22,7 +22,7 @@ replog(
     int		flag
 )
 {
-	LDAPMod	*mods;
+	LDAPModList	*ml;
 	Entry	*e;
 	char	*newrdn, *tmp;
 	int	deleteoldrdn;
@@ -50,35 +50,35 @@ replog(
 	switch ( optype ) {
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
-		mods = change;
-		for ( ; mods != NULL; mods = mods->mod_next ) {
-			switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+		ml = change;
+		for ( ; ml != NULL; ml = ml->ml_next ) {
+			switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
 			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", mods->mod_type );
+				fprintf( fp, "add: %s\n", ml->ml_type );
 				break;
 
 			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", mods->mod_type );
+				fprintf( fp, "delete: %s\n", ml->ml_type );
 				break;
 
 			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", mods->mod_type );
+				fprintf( fp, "replace: %s\n", ml->ml_type );
 				break;
 			}
 
-			for ( i = 0; mods->mod_bvalues != NULL &&
-			    mods->mod_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; ml->ml_bvalues != NULL &&
+			    ml->ml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( mods->mod_type );
+				len = strlen( ml->ml_type );
 				len = LDIF_SIZE_NEEDED( len,
-				    mods->mod_bvalues[i]->bv_len ) + 1;
+				    ml->ml_bvalues[i]->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
-				ldif_put_type_and_value( &bufp, mods->mod_type,
-				    mods->mod_bvalues[i]->bv_val,
-				    mods->mod_bvalues[i]->bv_len );
+				ldif_put_type_and_value( &bufp, ml->ml_type,
+				    ml->ml_bvalues[i]->bv_val,
+				    ml->ml_bvalues[i]->bv_len );
 				*bufp = '\0';
 
 				fputs( buf, fp );

@@ -56,18 +56,20 @@ index_add_entry(
 int
 index_add_mods(
     Backend	*be,
-    LDAPMod	*mods,
+    LDAPModList	*ml,
     ID		id
 )
 {
 	int	rc;
 
-	for ( ; mods != NULL; mods = mods->mod_next ) {
-		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+	for ( ; ml != NULL; ml = ml->ml_next ) {
+		LDAPMod *mod = &ml->ml_mod;
+
+		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
 		case LDAP_MOD_REPLACE:
-			rc = index_add_values( be, mods->mod_type,
-			    mods->mod_bvalues, id );
+			rc = index_add_values( be, mod->mod_type,
+			    mod->mod_bvalues, id );
 			break;
 
 		case LDAP_MOD_DELETE:

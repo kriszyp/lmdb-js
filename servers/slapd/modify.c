@@ -20,8 +20,8 @@
 
 #include "slap.h"
 
-static void	modlist_free(LDAPMod *mods);
-static void	add_lastmods(Operation *op, LDAPMod **mods);
+static void	modlist_free(LDAPModList *ml);
+static void	add_lastmods(Operation *op, LDAPModList **ml);
 
 
 void
@@ -33,8 +33,8 @@ do_modify(
 	char		*dn, *odn;
 	char		*last;
 	unsigned long	tag, len;
-	LDAPMod		*mods, *tmp;
-	LDAPMod		**modtail;
+	LDAPModList	*modlist, *tmp;
+	LDAPModList	**modtail;
 	Backend		*be;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
@@ -58,7 +58,7 @@ do_modify(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
@@ -69,16 +69,17 @@ do_modify(
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
 	/* collect modifications & save for later */
-	mods = NULL;
-	modtail = &mods;
+	modlist = NULL;
+	modtail = &modlist;
+
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
 	    tag != LBER_DEFAULT;
 	    tag = ber_next_element( op->o_ber, &len, last ) )
 	{
-		(*modtail) = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
+		(*modtail) = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
 
-		if ( ber_scanf( op->o_ber, "{i{a[V]}}", &(*modtail)->mod_op,
-		    &(*modtail)->mod_type, &(*modtail)->mod_bvalues )
+		if ( ber_scanf( op->o_ber, "{i{a[V]}}", &(*modtail)->ml_op,
+		    &(*modtail)->ml_type, &(*modtail)->ml_bvalues )
 		    == LBER_ERROR )
 		{
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
@@ -86,43 +87,45 @@ do_modify(
 			free( dn );
 			free( odn );
 			free( *modtail );
-			modlist_free( mods );
+			modlist_free( modlist );
 			return;
 		}
 
-		if ( (*modtail)->mod_op != LDAP_MOD_ADD &&
-		    (*modtail)->mod_op != LDAP_MOD_DELETE &&
-		    (*modtail)->mod_op != LDAP_MOD_REPLACE )
+		if ( (*modtail)->ml_op != LDAP_MOD_ADD &&
+		    (*modtail)->ml_op != LDAP_MOD_DELETE &&
+		    (*modtail)->ml_op != LDAP_MOD_REPLACE )
 		{
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    "unrecognized modify operation" );
 			free( dn );
 			free( odn );
-			modlist_free( mods );
+			modlist_free( modlist );
 			return;
 		}
 
-		if ( (*modtail)->mod_bvalues == NULL && (*modtail)->mod_op
-		  != LDAP_MOD_DELETE ) {
+		if ( (*modtail)->ml_bvalues == NULL
+			&& (*modtail)->ml_op != LDAP_MOD_DELETE )
+		{
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    "no values given" );
 			free( dn );
 			free( odn );
-			modlist_free( mods );
+			modlist_free( modlist );
 			return;
 		}
-		attr_normalize( (*modtail)->mod_type );
+		attr_normalize( (*modtail)->ml_type );
 
-		modtail = &(*modtail)->mod_next;
+		modtail = &(*modtail)->ml_next;
 	}
 	*modtail = NULL;
 
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
-	for ( tmp = mods; tmp != NULL; tmp = tmp->mod_next ) {
-		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n", tmp->mod_op
-		    == LDAP_MOD_ADD ? "add" : (tmp->mod_op == LDAP_MOD_DELETE ?
-		    "delete" : "replace"), tmp->mod_type, 0 );
+	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
+		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
+			tmp->ml_op == LDAP_MOD_ADD
+				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
+					? "delete" : "replace"), tmp->ml_type, 0 );
 	}
 #endif
 
@@ -137,7 +140,7 @@ do_modify(
 	if ( (be = select_backend( dn )) == NULL ) {
 		free( dn );
 		free( odn );
-		modlist_free( mods );
+		modlist_free( modlist );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 		return;
@@ -159,10 +162,10 @@ do_modify(
 
 			if ( (be->be_lastmod == ON || ( be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON ) ) && be->be_updatedn == NULL ) {
-				add_lastmods( op, &mods );
+				add_lastmods( op, &modlist );
 			}
-			if ( (*be->be_modify)( be, conn, op, odn, mods ) == 0 ) {
-				replog( be, LDAP_REQ_MODIFY, dn, mods, 0 );
+			if ( (*be->be_modify)( be, conn, op, odn, modlist ) == 0 ) {
+				replog( be, LDAP_REQ_MODIFY, dn, modlist, 0 );
 			}
 
 		/* send a referral */
@@ -177,33 +180,35 @@ do_modify(
 
 	free( dn );
 	free( odn );
-	modlist_free( mods );
+	modlist_free( modlist );
 }
 
 static void
 modlist_free(
-    LDAPMod	*mods
+    LDAPModList	*ml
 )
 {
-	LDAPMod	*next;
+	LDAPModList *next;
 
-	for ( ; mods != NULL; mods = next ) {
-		next = mods->mod_next;
-		free( mods->mod_type );
-		if ( mods->mod_bvalues != NULL )
-			ber_bvecfree( mods->mod_bvalues );
-		free( mods );
+	for ( ; ml != NULL; ml = next ) {
+		next = ml->ml_next;
+
+		free( ml->ml_type );
+		if ( ml->ml_bvalues != NULL )
+			ber_bvecfree( ml->ml_bvalues );
+
+		free( ml );
 	}
 }
 
 static void
-add_lastmods( Operation *op, LDAPMod **mods )
+add_lastmods( Operation *op, LDAPModList **modlist )
 {
 	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
-	LDAPMod		**m;
-	LDAPMod		*tmp;
+	LDAPModList		**m;
+	LDAPModList		*tmp;
 	struct tm	*ltm;
 
 	Debug( LDAP_DEBUG_TRACE, "add_lastmods\n", 0, 0, 0 );
@@ -212,20 +217,20 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	bvals[1] = NULL;
 
 	/* remove any attempts by the user to modify these attrs */
-	for ( m = mods; *m != NULL; m = &(*m)->mod_next ) {
-            if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0 || 
-				strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ||
-				strcasecmp( (*m)->mod_type, "createtimestamp" ) == 0 || 
-				strcasecmp( (*m)->mod_type, "creatorsname" ) == 0 ) {
+	for ( m = modlist; *m != NULL; m = &(*m)->ml_next ) {
+            if ( strcasecmp( (*m)->ml_type, "modifytimestamp" ) == 0 || 
+				strcasecmp( (*m)->ml_type, "modifiersname" ) == 0 ||
+				strcasecmp( (*m)->ml_type, "createtimestamp" ) == 0 || 
+				strcasecmp( (*m)->ml_type, "creatorsname" ) == 0 ) {
 
                 Debug( LDAP_DEBUG_TRACE,
 					"add_lastmods: found lastmod attr: %s\n",
-					(*m)->mod_type, 0, 0 );
+					(*m)->ml_type, 0, 0 );
                 tmp = *m;
-                *m = (*m)->mod_next;
-                free( tmp->mod_type );
-                if ( tmp->mod_bvalues != NULL ) {
-                    ber_bvecfree( tmp->mod_bvalues );
+                *m = (*m)->ml_next;
+                free( tmp->ml_type );
+                if ( tmp->ml_bvalues != NULL ) {
+                    ber_bvecfree( tmp->ml_bvalues );
                 }
                 free( tmp );
                 if (!*m)
@@ -240,14 +245,14 @@ add_lastmods( Operation *op, LDAPMod **mods )
 		bv.bv_val = op->o_dn;
 		bv.bv_len = strlen( bv.bv_val );
 	}
-	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
-	tmp->mod_type = ch_strdup( "modifiersname" );
-	tmp->mod_op = LDAP_MOD_REPLACE;
-	tmp->mod_bvalues = (struct berval **) ch_calloc( 1,
+	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	tmp->ml_type = ch_strdup( "modifiersname" );
+	tmp->ml_op = LDAP_MOD_REPLACE;
+	tmp->ml_bvalues = (struct berval **) ch_calloc( 1,
 	    2 * sizeof(struct berval *) );
-	tmp->mod_bvalues[0] = ber_bvdup( &bv );
-	tmp->mod_next = *mods;
-	*mods = tmp;
+	tmp->ml_bvalues[0] = ber_bvdup( &bv );
+	tmp->ml_next = *modlist;
+	*modlist = tmp;
 
 	pthread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
@@ -260,11 +265,11 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	pthread_mutex_unlock( &currenttime_mutex );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
-	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
-	tmp->mod_type = ch_strdup( "modifytimestamp" );
-	tmp->mod_op = LDAP_MOD_REPLACE;
-	tmp->mod_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
-	tmp->mod_bvalues[0] = ber_bvdup( &bv );
-	tmp->mod_next = *mods;
-	*mods = tmp;
+	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	tmp->ml_type = ch_strdup( "modifytimestamp" );
+	tmp->ml_op = LDAP_MOD_REPLACE;
+	tmp->ml_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
+	tmp->ml_bvalues[0] = ber_bvdup( &bv );
+	tmp->ml_next = *modlist;
+	*modlist = tmp;
 }
