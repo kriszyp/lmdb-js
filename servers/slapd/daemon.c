@@ -1612,19 +1612,25 @@ slapd_daemon_task(
 			) {
 #ifdef SLAPD_RLOOKUPS
 				if ( use_reverse_lookup ) {
+					struct hostent he;
+					int herr;
+					char *ha = NULL;
+					hp = NULL;
 #  ifdef LDAP_PF_INET6
 					if ( from.sa_addr.sa_family == AF_INET6 )
-						hp = gethostbyaddr(
+						ldap_pvt_gethostbyaddr_a(
 							(char *)&(from.sa_in6_addr.sin6_addr),
 							sizeof(from.sa_in6_addr.sin6_addr),
-							AF_INET6 );
+							AF_INET6, &he, &ha,
+							&hp, &herr );
 					else
 #  endif /* LDAP_PF_INET6 */
-					hp = gethostbyaddr(
+					ldap_pvt_gethostbyaddr_a(
 						(char *) &(from.sa_in_addr.sin_addr),
 						sizeof(from.sa_in_addr.sin_addr),
-						AF_INET );
+						AF_INET, &he, &ha, &hp, &herr );
 					dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
+					if (ha) ldap_memfree( ha );
 				}
 #else
 				dnsname = NULL;
