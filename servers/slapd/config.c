@@ -59,9 +59,7 @@ read_config( const char *fname )
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS+1];
 	int	lineno, i;
-#ifdef HAVE_TLS
 	int rc;
-#endif
 	struct berval *vals[2];
 	struct berval val;
 
