@@ -13,6 +13,7 @@
 
 #include "slap.h"
 #include "external.h"
+#include <ldap_pvt.h>
 
 static Entry *pw2entry(
 	Backend *be,
@@ -183,7 +184,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		user = str2lower( user );
+		user = ldap_pvt_str2lower( user );
 
 		if ( (pw = getpwnam( user )) == NULL ) {
 			matched = parent;
