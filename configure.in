@@ -205,8 +205,7 @@ else
 
 	if test "$ac_cv_header_pthread_h" = yes ; then
 		dnl We have some form of pthreads
-		AC_MSG_CHECKING(POSIX thread version)
-		AC_CACHE_VAL(cf_cv_pthread_version,[
+		AC_CACHE_CHECK([POSIX thread version],cf_cv_pthread_version,[
 			AC_EGREP_CPP(final,[
 #include <pthread.h>
 /* this check could be improved */
@@ -231,7 +230,6 @@ else
 				cf_cv_pthread_version=unknown
 			fi
 		])
-		AC_MSG_RESULT($cf_cv_pthread_version)
 		
 		if test $cf_cv_pthread_version = final ; then
 			LTHREAD_DEFS="$LTHREAD_DEFS -DPOSIX_THREADS"
@@ -240,6 +238,24 @@ else
 		else
 			AC_MSG_ERROR(unknown pthread version)
 		fi
+
+		dnl Now the hard part, how to link
+
+		AC_CACHE_CHECK([compiler for -pthread option], cf_cv_pthread_flag,[
+			dnl save the CPPFLAGS
+			save_CPPFLAGS=$CPPFLAGS
+			CPPFLAGS="-pthread $CPPFLAGS"
+			AC_TRY_LINK([#include <pthread.h>],[
+				if(0) pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0);
+				], cf_cv_pthread_flag=yes, cf_cv_pthread_flag=no)
+			dnl restore the CPPFLAGS
+			CPPFLAGS=$save_CPPFLAGS
+		])
+
+		if test $cf_cv_pthread_flag = yes ; then
+			LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
+		fi
+		
 	else
 		LTHREAD_DEFS="-DNO_THREADS"
 	fi
@@ -273,8 +289,7 @@ dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
 			fi
 		fi
 
-		AC_MSG_CHECKING(for db2)
-		AC_CACHE_VAL(cf_cv_db2,[
+		AC_CACHE_CHECK(for db2, cf_cv_db2,[
 			AC_EGREP_CPP(__db_version_2,[
 #include <db.h>
 /* this check could be improved */
@@ -284,7 +299,6 @@ dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
 #endif
 #endif
 			], cf_cv_db2=yes, cf_cv_db2=no)])
-		AC_MSG_RESULT($cf_cv_db2)
 
 		if test $cf_cv_db2 = yes ; then
 			if test $opt_db2 = yes ; then
