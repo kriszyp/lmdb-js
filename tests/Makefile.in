@@ -8,8 +8,7 @@ SCRIPTSDIR=./scripts
 
 all:	FORCE
 	@echo "Initiating LDAP tests..."; \
-	test -d test-db || $(MKDIR) test-db ; \
-	test -d test-repl || $(MKDIR) test-repl ; \
+	$(MKDIR) -p test-db test-repl ; \
 	$(SCRIPTSDIR)/all $(SCRIPTSDIR)
 
 install:	FORCE

@@ -128,6 +128,7 @@ AC_SUBST(BUILD_SLURPD)
 
 dnl general LDAP arguments
 LDAP_DEFS=
+LDAP_LIBS=
 
 if test "$LDAP_DEBUG" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
@@ -145,8 +146,16 @@ if test "$LDAP_CLDAP" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
 fi
 
+LTHREAD_LIBS=
+if test "$opt_thread" = "no" ; then
+	LTHREAD_DEFS="-DNO_THREADS"
+else
+	LTHREAD_DEFS="-DNO_THREADS"
+fi
+
 dnl ldapd arguments
 LDAPD_DEFS=
+LDAPD_LIBS=
 
 dnl slapd arguments
 SLAPD_DEFS=
@@ -327,10 +336,12 @@ AC_SUBST(LDAPD_DEFS)
 AC_SUBST(LDAPD_LIBS)
 AC_SUBST(SLAPD_DEFS)
 AC_SUBST(SLAPD_LIBS)
-AC_SUBST(SLUPPD_DEFS)
-AC_SUBST(SLUPPD_LIBS)
+AC_SUBST(SLURPD_DEFS)
+AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_DEFS)
 AC_SUBST(LDBM_LIBS)
+AC_SUBST(LTHREAD_DEFS)
+AC_SUBST(LTHREAD_LIBS)
 
 dnl AC_OUTPUT( \
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
@@ -343,7 +354,6 @@ dnl servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Ma
 dnl servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
 dnl servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 dnl servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
-dnl servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
@@ -366,6 +376,7 @@ libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.
 libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk \
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
+servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])
