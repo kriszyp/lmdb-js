@@ -243,7 +243,7 @@ do_search(
 				entry, filter );
 
 			if( rc == LDAP_COMPARE_TRUE ) {
-				send_search_entry( &backends[0], conn, op,
+				send_search_entry( NULL, conn, op,
 					entry, attrs, attrsonly, NULL );
 			}
 			entry_free( entry );
