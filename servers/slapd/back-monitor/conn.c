@@ -38,6 +38,8 @@
 #include "slap.h"
 #include "back-monitor.h"
 
+#define CONN_CN_PREFIX	"Connection"
+
 int
 monitor_subsys_conn_init(
 	BackendDB		*be
@@ -257,9 +259,9 @@ conn_create(
 	assert( ep != NULL );
 
 	snprintf( buf, sizeof( buf ),
-		"dn: cn=Connection %ld,%s\n"
+		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
 		SLAPD_MONITOR_OBJECTCLASSES
-		"cn: Connection %ld\n",
+		"cn: " CONN_CN_PREFIX " %ld\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		c->c_connid );
 	e = str2entry( buf );
@@ -269,14 +271,14 @@ conn_create(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=Connection %ld,%s' entry\n",
+			"'cn=" CONN_CN_PREFIX " %ld,%s' entry\n",
 			c->c_connid, 
 			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=Connection %ld,%s' entry\n",
+			"'cn=" CONN_CN_PREFIX " %ld,%s' entry\n",
 			c->c_connid, 
 			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val, 0 );
 #endif
@@ -405,7 +407,8 @@ monitor_subsys_conn_create(
 		assert( values );
 		assert( values[ 0 ][ 0 ] );
 
-		connid = atol( values[ 0 ][ 0 ]->la_value.bv_val );
+		connid = atol( values[ 0 ][ 0 ]->la_value.bv_val
+				+ sizeof( CONN_CN_PREFIX ) );
 
 		ldap_rdnfree( values );
 
