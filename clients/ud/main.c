@@ -157,6 +157,8 @@ main( int argc, char **argv )
 	/* now tackle the user's commands */
 	do_commands();
 	/* NOTREACHED */
+
+	return 0;
 }
 
 void
@@ -521,9 +523,10 @@ initialize_client( void )
 {
 	FILE *fp;				/* for config file */
 	static char buffer[MED_BUF_SIZE];	/* for input */
+#ifdef HAVE_GETPWUID
 	struct passwd *pw;			/* for getting the home dir */
+#endif
 	register char *cp;			/* for fiddling with buffer */
-	char *term;				/* for tty set-up */
 	char *config;				/* config file to use */
 	static char bp[1024];			/* for tty set-up */
 
@@ -535,7 +538,7 @@ initialize_client( void )
 	 *  A per-user config file has precedence over any system-wide
 	 *  config file, if one exists.
 	 */
-#ifdef HAVE_GETPWUID_H
+#ifdef HAVE_GETPWUID
 	if ((pw = getpwuid((uid_t) geteuid())) == (struct passwd *) NULL)
 		config = config_file;
 	else {
@@ -650,6 +653,7 @@ initialize_client( void )
 
 #ifndef NO_TERMCAP
 	{
+	char *term;
 	struct winsize win;			/* for tty set-up */
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))

@@ -23,6 +23,14 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
+#ifdef HAVE_CONIO_H
+#include <conio.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
