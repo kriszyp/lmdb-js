@@ -70,14 +70,14 @@ even for non-installed headers.  See lber.h and ldap.h for examples.
 CVS updating
 ------------
 
-<URL:http://www.openldap.org/repo.html> describes how to check out
+<URL:http://www.openldap.org/software/repo.html> describes how to check out
 -stable.  To get the -devel (HEAD) branch, omit `-r OPENLDAP_STABLE'.
 You can use 'cvs status -v README' to get a list available CVS tags.
 
 Core members should subscribe to the -core mailing list.  This
 list is for private discussions between core team members.  The
--devel list is the primary list used to for technical disscusions
-and coordinating efforts.
+openldap-devel@openldap.org mailing list is the primary developer
+forum for both  technical disscusions and coordinating efforts.
 
 Please test patches before committing.  This should include compiling
 and linking the system AND running the test suite.
