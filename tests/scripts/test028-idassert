@@ -101,7 +101,7 @@ if test $RC != 0 ; then
 fi
 
 AUTHZID="u:bjorn"
-echo "Testing ldapwhoami as proxy US, $AUTHZID..."
+echo "Testing ldapwhoami as proxy US, $AUTHZID... (should fail)"
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
@@ -111,7 +111,7 @@ if test $RC != 1 ; then
 fi
 
 AUTHZID="u:bjensen"
-echo "Testing ldapwhoami as proxy US, $AUTHZID..."
+echo "Testing ldapwhoami as proxy US, $AUTHZID... (should fail)"
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
@@ -130,7 +130,7 @@ if test $RC != 0 ; then
 fi
 
 AUTHZID="u:it/jaj"
-echo "Testing ldapwhoami as proxy IT, $AUTHZID..."
+echo "Testing ldapwhoami as proxy IT, $AUTHZID... (should fail)"
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
@@ -140,7 +140,7 @@ if test $RC != 1 ; then
 fi
 
 AUTHZID="u:bjorn"
-echo "Testing ldapwhoami as proxy IT, $AUTHZID..."
+echo "Testing ldapwhoami as proxy IT, $AUTHZID... (should fail)"
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
