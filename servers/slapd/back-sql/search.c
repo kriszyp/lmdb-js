@@ -84,7 +84,7 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 void
 backsql_init_search(
 	backsql_srch_info 	*bsi, 
-	struct berval		*nbase, 
+	struct berval		*base, 
 	int 			scope, 
 	int 			slimit,
 	int 			tlimit,
@@ -96,7 +96,7 @@ backsql_init_search(
 {
 	AttributeName		*p;
 	
-	bsi->base_dn = nbase;
+	bsi->base_dn = base;
 	bsi->scope = scope;
 	bsi->slimit = slimit;
 	bsi->tlimit = tlimit;
@@ -989,20 +989,6 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 
 int
 backsql_search( Operation *op, SlapReply *rs )
-	/*
-	BackendDB	*be,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*base,
-	struct berval	*nbase,
-	int		scope,
-	int		deref,
-	int		slimit,
-	int		tlimit,
-	Filter		*filter,
-	struct berval	*filterstr,
-	AttributeName	*attrs,
-	int		attrsonly ) */
 {
 	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	SQLHDBC			dbh;

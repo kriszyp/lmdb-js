@@ -370,8 +370,6 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 	e->e_attrs = NULL;
 	e->e_private = NULL;
  
-	/* if ( bsi->base_dn != NULL)??? */
-	
 	e->e_id = eid->id;
  
 	if ( bsi->attrs != NULL ) {
@@ -380,16 +378,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		for ( i = 0; bsi->attrs[ i ].an_name.bv_val; i++ ) {
 			AttributeName *attr = &bsi->attrs[ i ];
 
-			if ( attr->an_desc == ad_oc
-#if 0	/* FIXME: what is 0.10 ? */
-					|| !BACKSQL_NCMP( &attr->an_name, &bv_n_0_10 ) 
-#endif
-					) {
-#if 0
-				backsql_entry_addattr( bsi->e, 
-						&bv_n_objectclass,
-						BACKSQL_OC_NAME( bsi->oc ) );
-#endif
+			if ( attr->an_desc == ad_oc ) {
 				continue;
 			}
 
@@ -438,10 +427,12 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			return NULL;
 		}
 
-		if ( bsi->bsi_flags | BSQL_SF_ALL_OPER 
+		if ( ( bsi->bsi_flags | BSQL_SF_ALL_OPER )
 				|| an_find( bsi->attrs, &AllOper ) ) {
-			if ( attr_merge_normalize_one( bsi->e, ad_soc, &soc,
-						bsi->op->o_tmpmemctx ) ) {
+			rc = attr_merge_normalize_one( bsi->e,
+					slap_schema.si_ad_structuralObjectClass,
+					&soc, bsi->op->o_tmpmemctx );
+			if ( rc != LDAP_SUCCESS ) {
 				entry_free( e );
 				return NULL;
 			}

@@ -57,7 +57,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	anlist[0].an_desc = op->oq_compare.rs_ava->aa_desc;
 	anlist[1].an_name.bv_val = NULL;
 	backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op, anlist);
+			-1, -1, -1, NULL, dbh, op, anlist );
 	e = backsql_id2entry( &bsi, &user_entry, &user_id );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "

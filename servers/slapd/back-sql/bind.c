@@ -29,6 +29,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	Entry			*e, user_entry;
 	Attribute		*a;
 	backsql_srch_info	bsi;
+	AttributeName		anlist[2];
 	int			rc;
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
@@ -74,8 +75,11 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
+	anlist[0].an_name = password->ad_cname;
+	anlist[0].an_desc = password;
+	anlist[1].an_name.bv_val = NULL;
 	backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op, NULL );
+			-1, -1, -1, NULL, dbh, op, anlist );
 	e = backsql_id2entry( &bsi, &user_entry, &user_id );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
