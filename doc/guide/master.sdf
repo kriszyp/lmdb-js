@@ -7,6 +7,8 @@
 
 !include "preamble.sdf"
 
+!include "copyright.sdf"
+
 !include "intro.sdf"
 !include "quickstart.sdf"
 !include "config.sdf"
@@ -18,6 +20,4 @@
 !include "tuning.sdf"
 !include "referrals.sdf"
 !include "replication.sdf"
-
-
 
