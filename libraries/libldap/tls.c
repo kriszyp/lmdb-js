@@ -478,7 +478,7 @@ sb_tls_bio_read( BIO *b, char *buf, int len )
 }
 
 static int
-sb_tls_bio_write( BIO *b, char *buf, int len )
+sb_tls_bio_write( BIO *b, const char *buf, int len )
 {
 	struct tls_data		*p;
 	int			ret;
@@ -491,7 +491,7 @@ sb_tls_bio_write( BIO *b, char *buf, int len )
 	if ( p == NULL || p->sbiod == NULL )
 		return 0;
 
-	ret = LBER_SBIOD_WRITE_NEXT( p->sbiod, buf, len );
+	ret = LBER_SBIOD_WRITE_NEXT( p->sbiod, (char *)buf, len );
 
 	BIO_clear_retry_flags( b );
 	if ( ret < 0 && errno == EWOULDBLOCK )
@@ -501,7 +501,7 @@ sb_tls_bio_write( BIO *b, char *buf, int len )
 }
 
 static long
-sb_tls_bio_ctrl( BIO *b, int cmd, long num, char *ptr )
+sb_tls_bio_ctrl( BIO *b, int cmd, long num, void *ptr )
 {
 	if ( cmd == BIO_CTRL_FLUSH ) {
 		/* The OpenSSL library needs this */
@@ -517,7 +517,7 @@ sb_tls_bio_gets( BIO *b, char *buf, int len )
 }
 
 static int
-sb_tls_bio_puts( BIO *b, char *str )
+sb_tls_bio_puts( BIO *b, const char *str )
 {
 	return sb_tls_bio_write( b, str, strlen( str ) );
 }
@@ -1069,9 +1069,11 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	assert( ssl != NULL );
 
 	/* 
-	 * compare host with name(s) in certificate 
+	 * compare host with name(s) in certificate. avoid NULL host
 	 */
 
+	if( host == NULL )
+		host = "localhost";
 	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
 	if (ld->ld_errno != LDAP_SUCCESS) {
 		return ld->ld_errno;
