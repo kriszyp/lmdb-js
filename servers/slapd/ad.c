@@ -473,7 +473,7 @@ str2anlist( AttributeName *an, const char *in, const char *brkstr )
 			if ( !anew->an_oc ) {
 				free( an );
 				/* overwrites input string on error! */
-				strcpy( in, s );
+				strcpy( (char *)in, s );
 				return NULL;
 			}
 		}
