@@ -37,7 +37,7 @@ extern int	shell_back_search LDAP_P(( BackendDB *bd,
 extern int	shell_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn,
-	Ava *ava ));
+	AttributeAssertion *ava ));
 
 extern int	shell_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,

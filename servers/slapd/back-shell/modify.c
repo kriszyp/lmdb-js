@@ -22,9 +22,10 @@ shell_back_modify(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
-    LDAPModList	*ml
+    Modifications	*ml
 )
 {
+	Modification *mod;
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 	int			i;
@@ -47,25 +48,30 @@ shell_back_modify(
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
-	for ( ; ml != NULL; ml = ml->ml_next ) {
-		switch ( ml->ml_op ) {
+	for ( ; ml != NULL; ml = ml->sml_next ) {
+		mod = &ml->sml_mod;
+
+		/* FIXME: should use LDIF routines to deal with binary data */
+
+		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
-			fprintf( wfp, "add: %s\n", ml->ml_type );
+			fprintf( wfp, "add: %s\n", mod->sm_desc->ad_cname->bv_val );
 			break;
 
 		case LDAP_MOD_DELETE:
-			fprintf( wfp, "delete: %s\n", ml->ml_type );
+			fprintf( wfp, "delete: %s\n", mod->sm_desc->ad_cname->bv_val );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			fprintf( wfp, "replace: %s\n", ml->ml_type );
+			fprintf( wfp, "replace: %s\n", mod->sm_desc->ad_cname->bv_val );
 			break;
 		}
 
-		for ( i = 0; ml->ml_bvalues != NULL && ml->ml_bvalues[i]
-		    != NULL; i++ ) {
-			fprintf( wfp, "%s: %s\n", ml->ml_type,
-			    ml->ml_bvalues[i]->bv_val );
+		if( mod->sm_bvalues != NULL ) {
+			for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+				fprintf( wfp, "%s: %s\n", mod->sm_desc->ad_cname->bv_val,
+					mod->sm_bvalues[i]->bv_val /* binary! */ );
+			}
 		}
 	}
 	fclose( wfp );

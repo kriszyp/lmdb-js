@@ -22,7 +22,7 @@ shell_back_compare(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
-    Ava		*ava
+    AttributeAssertion *ava
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
@@ -41,12 +41,19 @@ shell_back_compare(
 		return( -1 );
 	}
 
+	/*
+	 * FIX ME:  This should use LDIF routines so that binary
+	 *	values are properly dealt with
+	 */
+
 	/* write out the request to the compare process */
 	fprintf( wfp, "COMPARE\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
-	fprintf( wfp, "%s: %s\n", ava->ava_type, ava->ava_value.bv_val );
+	fprintf( wfp, "%s: %s\n",
+		ava->aa_desc->ad_cname->bv_val,
+		ava->aa_value->bv_val /* could be binary! */ );
 	fclose( wfp );
 
 	/* read in the result and send it along */
