@@ -17,7 +17,7 @@
 
 
 /* return 0 IFF we can retrieve the attributes
- * of entry with e_ndn
+ * of entry with ndn
  */
 int
 ldap_back_attribute(
@@ -25,7 +25,7 @@ ldap_back_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*e_ndn,
+	const char	*ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals
 )
@@ -40,7 +40,7 @@ ldap_back_attribute(
 	LDAP *ld;
 
 	*vals = NULL;
-	if (target != NULL && strcmp(target->e_ndn, e_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, ndn) == 0) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 		if ((attr = attr_find(target->e_attrs, entry_at)) == NULL)
@@ -73,7 +73,7 @@ ldap_back_attribute(
 		if (ldap_bind_s(ld, li->binddn, li->bindpw, LDAP_AUTH_SIMPLE) == LDAP_SUCCESS) {
 			gattr[0] = mapped;
 			gattr[1] = NULL;
-			if (ldap_search_ext_s(ld, e_ndn, LDAP_SCOPE_BASE, "(objectclass=*)",
+			if (ldap_search_ext_s(ld, ndn, LDAP_SCOPE_BASE, "(objectclass=*)",
 									gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 									LDAP_NO_LIMIT, &result) == LDAP_SUCCESS)
 			{

@@ -72,7 +72,7 @@ extern int	ldap_back_group LDAP_P(( BackendDB *bd,
 extern int	ldap_back_attribute LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
 	Entry *target,
-	const char* e_ndn,
+	const char* ndn,
 	AttributeDescription* entry_at,
 	struct berval ***vals));
 
