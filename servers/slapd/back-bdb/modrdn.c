@@ -156,7 +156,7 @@ retry:	/* transaction retry */
 	}
 
 	p_ndn = dn_parent( be, e->e_ndn );
-	if ( p_ndn != NULL ) {
+	if ( p_ndn != NULL && p_ndn[ 0 ] != '\0' ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
@@ -206,9 +206,10 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		if( ! be_isroot( be, op->o_ndn ) ) {
+		if( ! be_isroot( be, op->o_ndn ) && !be_issuffix( be, "" ) ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: no parent & not root\n",
+				"bdb_modrdn: no parent, not root "
+				"& \"\" is not suffix\n",
 				0, 0, 0);
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
