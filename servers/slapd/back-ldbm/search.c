@@ -554,8 +554,8 @@ search_candidates(
 	ID_BLOCK		*candidates;
 	Filter		f, fand, rf, af, xf;
     AttributeAssertion aa_ref, aa_alias;
-	struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
-	struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+	struct berval bv_ref = { sizeof("referral")-1, "referral" };
+	struct berval bv_alias = { sizeof("alias")-1, "alias" };
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1,
