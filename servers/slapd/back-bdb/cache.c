@@ -75,7 +75,7 @@ bdb_cache_entry_db_relock(
 	if ( !lock ) return 0;
 
 	lockobj.data = &ei->bei_id;
-	lockobj.size = sizeof(ei->bei_id);
+	lockobj.size = sizeof(ei->bei_id) + 1;
 
 	list[0].op = DB_LOCK_PUT;
 	list[0].lock = *lock;
@@ -122,7 +122,7 @@ bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
 		db_rw = DB_LOCK_READ;
 
 	lockobj.data = &ei->bei_id;
-	lockobj.size = sizeof(ei->bei_id);
+	lockobj.size = sizeof(ei->bei_id) + 1;
 
 	rc = LOCK_GET(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
