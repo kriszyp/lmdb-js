@@ -1125,8 +1125,14 @@ static int process_response(
 		return ldap_result2error( ld, res, 1 );
 	}
 
+#ifdef LDAP_GROUP_TRANSACTION
 	/* assume (successful) transaction intermediate response */
 	return LDAP_SUCCESS;
+
+#else
+	/* intermediate response? */
+	return LDAP_DECODING_ERROR;
+#endif
 }
 
 static char *
