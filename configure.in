@@ -44,10 +44,11 @@ AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
 AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 
-dnl We use autoconf features new to 2.13.
+dnl require: dnl autoconf 2.13.1
+dnl also:
 dnl aclocal.m4 should be built using aclocal from automake 1.4
 dnl libtool 1.3.3 should be installed.
-AC_PREREQ(2.13)dnl Required Autoconf version
+AC_PREREQ(2.13.1)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
