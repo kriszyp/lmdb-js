@@ -27,7 +27,7 @@
 int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
-int		global_default_access = ACL_READ;
+int		global_default_access = ACL_AUTH;
 int		global_readonly = 0;
 char		*replogfile;
 int		global_lastmod = ON;
