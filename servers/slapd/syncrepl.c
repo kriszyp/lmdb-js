@@ -178,7 +178,6 @@ do_syncrepl(
 	int	err;
 	ber_len_t	len;
 	int	syncinfo_arrived = 0;
-	int	cancel_response = 0;
 
 	char **tmp = NULL;
 	AttributeDescription** descs = NULL;
@@ -304,6 +303,10 @@ do_syncrepl(
 				lutil_sasl_interact,
 				defaults );
 
+		/* FIXME : different error behaviors according to
+			1) return code
+			2) on err policy : exit, retry, backoff ...
+		*/
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, "do_syncrepl: "
@@ -526,20 +529,21 @@ do_syncrepl(
 							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 							&syncCookie_req, &syncCookie, &text );
 				if (si->type == LDAP_SYNC_REFRESH_AND_PERSIST) {
-					if ( cancel_response ) {
-						if ( syncCookie.bv_len && match < 0) {
-							syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie );
-						}
-						if ( ctrl_ber )
-							ber_free( ctrl_ber, 1 );
-						goto done;
+					/* FIXME : different error behaviors according to
+						1) err code : LDAP_BUSY ...
+						2) on err policy : stop service, stop sync, retry
+					*/
+					if ( syncCookie.bv_len && match < 0) {
+						syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie );
 					}
-					else {
-						if ( ctrl_ber )
-							ber_free( ctrl_ber, 1 );
-						break;
-					}
+					if ( ctrl_ber )
+						ber_free( ctrl_ber, 1 );
+					goto done;
 				} else {
+					/* FIXME : different error behaviors according to
+						1) err code : LDAP_BUSY ...
+						2) on err policy : stop service, stop sync, retry
+					*/
 					if ( syncCookie.bv_len && match < 0 ) {
 						syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie);
 					}
