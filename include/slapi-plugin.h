@@ -194,6 +194,8 @@ int slapi_filter_get_attribute_type( Slapi_Filter *f, char **type );
 int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 	char ***any, char **final );
 Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
+int slapi_x_filter_append( int choice, Slapi_Filter **pContainingFilter,
+	Slapi_Filter **pNextFilter, Slapi_Filter *filterToAppend );
 int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access );
 int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f );
