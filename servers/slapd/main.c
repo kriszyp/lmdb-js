@@ -103,6 +103,7 @@ static int   cnvt_str2int( char *, STRDISP_P, int );
 #endif	/* LOG_LOCAL4 */
 
 static int check_config = 0;
+static int version = 0;
 
 static void
 usage( char *name )
@@ -130,6 +131,7 @@ usage( char *name )
 		"\t-t\t\tCheck configuration file and exit\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
+		"\t-V\t\tprint version info (-VV only)\n"
 #endif
     );
 }
@@ -239,7 +241,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:s:n:t"
+			     "c:d:f:h:s:n:t:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -346,6 +348,9 @@ int main( int argc, char **argv )
 		case 't':
 			check_config++;
 			break;
+		case 'V':
+			version++;
+			break;
 
 		default:
 			usage( argv[0] );
@@ -364,11 +369,10 @@ int main( int argc, char **argv )
 	ldif_debug = slap_debug;
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( SLAPD, INFO, "%s", Versionstr, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
-#endif
+	if ( version ) {
+		fprintf( stderr, "%s\n", Versionstr );
+		if ( version > 1 ) goto stop;
+	}
 
 	if( serverName == NULL ) {
 		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
@@ -382,6 +386,12 @@ int main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
 #elif LOG_DEBUG
 	openlog( serverName, OPENLOG_OPTIONS );
+#endif
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( SLAPD, INFO, "%s", Versionstr, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 #endif
 
 	if( !check_config && slapd_daemon_init( urls ) != 0 ) {

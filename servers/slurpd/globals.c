@@ -84,6 +84,7 @@ init_globals( void )
     g->myname = NULL;
     g->serverName = NULL;
     g->srpos = 0L;
+    g->version = 0;
     if ( St_init( &(g->st)) < 0 ) {
 	fprintf( stderr, "Cannot initialize status data\n" );
 	exit( EXIT_FAILURE );
