@@ -57,6 +57,9 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 	time_t t;
 	unsigned int op;
 	struct tm *ltm;
+#ifdef HAVE_GMTIME_R
+	struct tm ltm_buf;
+#endif
 	int n;
 
 	time( &t );
@@ -66,7 +69,11 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 	}
 	op = ++csnop;
 
+#ifdef HAVE_GMTIME_R
+	ltm = gmtime_r( &t, &ltm_buf );
+#else
 	ltm = gmtime( &t );
+#endif
 	n = snprintf( buf, len,
 		"%4d%02d%02d%02d%02d%02dZ#%06x#%02x#%06x",
 	    ltm->tm_year + 1900, ltm->tm_mon + 1, ltm->tm_mday, ltm->tm_hour,
