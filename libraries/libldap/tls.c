@@ -31,6 +31,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/safestack.h>
 #elif defined( HAVE_SSL_H )
 #include <ssl.h>
 #endif
