@@ -192,7 +192,7 @@ slapi_entry_attr_delete(
 	char		*type ) 
 {
 #if defined(LDAP_SLAPI)
-	AttributeDescription	*ad;
+	AttributeDescription	*ad = NULL;
 	const char		*text;
 
 	if ( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
@@ -234,7 +234,7 @@ slapi_entry_attr_merge(
 	struct berval	**vals ) 
 {
 #if defined(LDAP_SLAPI)
-	AttributeDescription	*ad;
+	AttributeDescription	*ad = NULL;
 	const char		*text;
 	BerVarray		bv;
 	int			rc;
@@ -265,7 +265,7 @@ slapi_entry_attr_find(
 	Slapi_Attr	**attr ) 
 {
 #if defined(LDAP_SLAPI)
-	AttributeDescription	*ad;
+	AttributeDescription	*ad = NULL;
 	const char		*text;
 	int			rc;
 
@@ -1415,7 +1415,7 @@ Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type )
 {
 #ifdef LDAP_SLAPI
 	const char *text;
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 
 	if( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
 		return NULL;
@@ -1542,8 +1542,8 @@ int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 int slapi_attr_type_cmp( const char *t1, const char *t2, int opt )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *a1;
-	AttributeDescription *a2;
+	AttributeDescription *a1 = NULL;
+	AttributeDescription *a2 = NULL;
 	const char *text;
 	int ret;
 
@@ -1641,7 +1641,7 @@ int slapi_attr_get_bervals_copy( Slapi_Attr *a, struct berval ***vals )
 char *slapi_attr_syntax_normalize( const char *s )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	const char *text;
 
 	if ( slap_str2ad( s, &ad, &text ) != LDAP_SUCCESS ) {
@@ -2164,7 +2164,7 @@ int slapi_x_attrset_add_attr_copy( Slapi_AttrSet *as, Slapi_Attr *a )
 int slapi_x_attrset_find( Slapi_AttrSet *as, const char *type, Slapi_Attr **attr )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	const char *text;
 
 	if ( as == NULL || *as == NULL ) {
@@ -2184,7 +2184,7 @@ int slapi_x_attrset_find( Slapi_AttrSet *as, const char *type, Slapi_Attr **attr
 int slapi_x_attrset_merge( Slapi_AttrSet *as, const char *type, Slapi_ValueSet *vals )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	Slapi_AttrSet *a;
 	const char *text;
 
@@ -2238,7 +2238,7 @@ int slapi_x_attrset_merge_bervals( Slapi_AttrSet *as, const char *type, struct b
 int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	const char *text;
 
 	if ( as == NULL ) {
