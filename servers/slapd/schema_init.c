@@ -405,31 +405,27 @@ octetStringSubstringsIndexer(
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		/* count number of indices to generate */
-		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
-			continue;
-		}
-
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
-					(SLAP_INDEX_SUBSTR_MINLEN - 1);
-			} else {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MINLEN - 1);
+			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_IF_MAXLEN -
+					(SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
+			} else if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN ) {
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) {
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_ANY_LEN - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
-					( SLAP_INDEX_SUBSTR_MINLEN - 1);
-			} else {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MINLEN - 1);
+			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_IF_MAXLEN -
+					( SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
+			} else if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN ) {
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
 			}
 		}
 	}
@@ -449,13 +445,11 @@ octetStringSubstringsIndexer(
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		ber_len_t j,max;
 
-		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
-
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( values[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = values[i].bv_len - (SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = values[i].bv_len - (SLAP_INDEX_SUBSTR_ANY_LEN - 1);
 
 			for( j=0; j<max; j++ ) {
 				HASH_Init( &HASHcontext );
@@ -472,17 +466,20 @@ octetStringSubstringsIndexer(
 					(unsigned char *)mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
 					(unsigned char *)&values[i].bv_val[j],
-					SLAP_INDEX_SUBSTR_MAXLEN );
+					SLAP_INDEX_SUBSTR_ANY_LEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < values[i].bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : values[i].bv_len;
+		/* skip if too short */ 
+		if( values[i].bv_len < SLAP_INDEX_SUBSTR_IF_MINLEN ) continue;
 
-		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
+		max = SLAP_INDEX_SUBSTR_IF_MAXLEN < values[i].bv_len
+			? SLAP_INDEX_SUBSTR_IF_MAXLEN : values[i].bv_len;
+
+		for( j=SLAP_INDEX_SUBSTR_IF_MINLEN; j<=max; j++ ) {
 			char pre;
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
@@ -526,7 +523,6 @@ octetStringSubstringsIndexer(
 			}
 
 		}
-
 	}
 
 	if( nkeys > 0 ) {
@@ -563,8 +559,9 @@ octetStringSubstringsFilter (
 
 	sa = (SubstringsAssertion *) assertedValue;
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL
-		&& sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
+		sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
 	{
 		nkeys++;
 	}
@@ -572,16 +569,17 @@ octetStringSubstringsFilter (
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				/* don't bother accounting for stepping */
+			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) {
+				/* don't bother accounting with stepping */
 				nkeys += sa->sa_any[i].bv_len -
-					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+					( SLAP_INDEX_SUBSTR_ANY_LEN - 1 );
 			}
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
+		sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
 	{
 		nkeys++;
 	}
@@ -600,14 +598,15 @@ octetStringSubstringsFilter (
 	keys = slap_sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
 	nkeys = 0;
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
-		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
+		sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		value = &sa->sa_initial;
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_IF_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_IF_MAXLEN : value->bv_len;
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -630,18 +629,18 @@ octetStringSubstringsFilter (
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
-		klen = SLAP_INDEX_SUBSTR_MAXLEN;
+		klen = SLAP_INDEX_SUBSTR_ANY_LEN;
 
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_ANY_LEN ) {
 				continue;
 			}
 
 			value = &sa->sa_any[i];
 
 			for(j=0;
-				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
-				j += SLAP_INDEX_SUBSTR_STEP )
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_ANY_LEN;
+				j += SLAP_INDEX_SUBSTR_ANY_STEP )
 			{
 				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -663,14 +662,15 @@ octetStringSubstringsFilter (
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
+		sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		value = &sa->sa_final;
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_IF_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_IF_MAXLEN : value->bv_len;
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {

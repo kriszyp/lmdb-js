@@ -225,9 +225,21 @@ typedef struct slap_ssf_set {
 	| SLAP_INDEX_SUBSTR_ANY \
 	| SLAP_INDEX_SUBSTR_FINAL )
 
-#define SLAP_INDEX_SUBSTR_MINLEN	2
-#define SLAP_INDEX_SUBSTR_MAXLEN	4
-#define SLAP_INDEX_SUBSTR_STEP	2
+/* constants for initial/final substrings indices */
+#ifndef SLAP_INDEX_SUBSTR_IF_MINLEN
+# define SLAP_INDEX_SUBSTR_IF_MINLEN	2
+#endif
+#ifndef SLAP_INDEX_SUBSTR_IF_MAXLEN
+# define SLAP_INDEX_SUBSTR_IF_MAXLEN	4
+#endif
+
+/* constants for any substrings indices */
+#ifndef SLAP_INDEX_SUBSTR_ANY_LEN
+# define SLAP_INDEX_SUBSTR_ANY_LEN	4
+#endif
+#ifndef SLAP_INDEX_SUBSTR_ANY_STEP
+# define SLAP_INDEX_SUBSTR_ANY_STEP	2
+#endif
 
 #define SLAP_INDEX_FLAGS         0xF000UL
 #define SLAP_INDEX_NOSUBTYPES    0x1000UL /* don't use index w/ subtypes */
