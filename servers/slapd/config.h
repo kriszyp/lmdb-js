@@ -49,7 +49,7 @@ typedef struct ConfigTable {
 #define ARG_PAREN	0x01000000
 #define ARG_NONZERO	0x02000000
 #define ARG_UNIQUE	0x10000000
-#define ARG_SPECIAL	0x20000000	/* one special case */
+#define ARG_MUTEX	0x20000000	/* modify in single-thread mode */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
 
@@ -113,5 +113,5 @@ typedef struct ConfigFile {
 	BerVarray c_dseFiles;
 } ConfigFile;
 
-void config_back_init( ConfigFile *cfp, ConfigTable *ct );
+int config_back_init( ConfigFile *cfp, ConfigTable *ct );
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);

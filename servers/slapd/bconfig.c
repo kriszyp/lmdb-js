@@ -40,6 +40,71 @@ typedef struct {
 	CfEntryInfo *cb_root;
 } CfBackInfo;
 
+static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
+	*cfAd_include;
+
+static ObjectClass *cfOc_global, *cfOc_backend, *cfOc_database,
+	*cfOc_include, *cfOc_overlay;
+
+static struct oc_info {
+	char *def;
+	ObjectClass **oc;
+} cf_ocs[] = {
+	{ "( OLcfgOc:1 "
+		"NAME 'olcConfig' "
+		"DESC 'OpenLDAP configuration object' "
+		"ABSTRACT SUP top "
+		"MAY ( cn $ olcConfigFile ) )", NULL },
+	{ "( OLcfgOc:3 "
+		"NAME 'olcGlobal' "
+		"DESC 'OpenLDAP Global configuration options' "
+		"SUP olcConfig STRUCTURAL "
+		"MAY ( olcAccess $ olcAllows $ olcArgsFile $ olcAttributeOptions $ "
+		 "olcAuthRewrite $ olcAuthzPolicy $ olcAuthzRegexp $ "
+		 "olcConcurrency $ olcConnMaxPending $ olcConnMaxPendingAuth $ "
+		 "olcDefaultSearchBase $ olcDisallows $ olcGentleHUP $ "
+		 "olcIdleTimeout $ olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
+		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
+		 "olcLogLevel $ olcModuleLoad $ olcModulePath $ olcObjectIdentifier $ "
+		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
+		 "olcPlugin $ olcPluginLogFile $ olcReadOnly $ olcReferral $ "
+		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
+		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
+		 "olcRootDSE $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcSchemaCheck $ olcSchemaDN $ olcSecurity $ olcSizeLimit $ "
+		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
+		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
+		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
+		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
+		 "olcTLSRandFile $ olcTLSVerifyClient ) )", &cfOc_global },
+	{ "( OLcfgOc:4 "
+		"NAME 'olcBackendConfig' "
+		"DESC 'OpenLDAP Backend-specific options' "
+		"SUP olcConfig STRUCTURAL "
+		"MAY ( olcBackend ) )", &cfOc_backend },
+	{ "( OLcfgOc:5 "
+		"NAME 'olcDatabaseConfig' "
+		"DESC 'OpenLDAP Database-specific options' "
+		"SUP olcConfig STRUCTURAL "
+		"MAY ( olcDatabase $ olcAccess $ olcLastMod $ olcLimits $ "
+		 "olcMaxDerefDepth $ olcReadOnly $ olcReplica $ olcReplogFile $ "
+		 "olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ olcSchemaDN $ "
+		 "olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
+		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )", &cfOc_database },
+	{ "( OLcfgOc:6 "
+		"NAME 'olcIncludeFile' "
+		"DESC 'OpenLDAP configuration include file' "
+		"SUP olcConfig STRUCTURAL "
+		"MAY ( olcInclude $ olcModuleLoad $ olcModulePath $ olcRootDSE ) )",
+		&cfOc_include },
+	{ "( OLcfgOc:7 "
+		"NAME 'olcOverlayConfig' "
+		"DESC 'OpenLDAP Overlay-specific options' "
+		"SUP olcConfig STRUCTURAL "
+		"MAY ( olcOverlay ) )", &cfOc_overlay },
+	{ NULL, NULL }
+};
+
 static int
 config_back_bind( Operation *op, SlapReply *rs )
 {
@@ -168,7 +233,8 @@ config_alloc_entry( struct berval *pdn, struct berval *rdn )
 }
 
 static int
-config_build_entry( Entry *e, void *private, char *oc, struct berval *rdn )
+config_build_entry( Entry *e, void *private, ObjectClass *oc,
+	 struct berval *rdn )
 {
 	struct berval vals[2];
 	struct berval ad_name;
@@ -179,7 +245,7 @@ config_build_entry( Entry *e, void *private, char *oc, struct berval *rdn )
 
 	BER_BVZERO( &vals[1] );
 
-	ber_str2bv( oc, 0, 0, &vals[0] );
+	vals[0] = oc->soc_cname;
 	attr_merge(e, slap_schema.si_ad_objectClass, vals, NULL );
 	ptr = strchr(rdn->bv_val, '=');
 	ad_name.bv_val = rdn->bv_val;
@@ -201,7 +267,7 @@ config_back_db_open( BackendDB *be )
 	struct berval rdn;
 	Entry *e, *parent;
 	CfEntryInfo *ce, *ceparent, *ceprev;
-	int i, rc, buflen = 0;
+	int i, rc, buflen = 0, len;
 	char *buf = NULL;
 	BackendInfo *bi;
 	BackendDB *bptr;
@@ -215,7 +281,7 @@ config_back_db_open( BackendDB *be )
 	ce->ce_table = be->bd_info->bi_cf_table;
 	cfb->cb_root = ce;
 
-	config_build_entry( e, be->be_private, "olcGlobal", &rdn );
+	config_build_entry( e, be->be_private, cfOc_global, &rdn );
 	c.be = be;
 	c.bi = be->bd_info;
 	ct = ce->ce_table;
@@ -239,17 +305,17 @@ config_back_db_open( BackendDB *be )
 		if (!bi->bi_cf_table) continue;
 		if (!bi->bi_private) continue;
 
-		if ( buflen < STRLENOF("olcbackend=")+strlen(bi->bi_type)+1) {
-			buflen = STRLENOF("olcbackend=") + strlen(bi->bi_type)+1;
+		len = cfAd_backend->ad_cname.bv_len + 2 + strlen(bi->bi_type);
+		if ( buflen < len ) {
+			buflen = len;
 			buf = realloc(buf, buflen);
 		}
 		rdn.bv_val = buf;
-		rdn.bv_len = sprintf(buf, "olcBackend=%s", bi->bi_type);
+		rdn.bv_len = sprintf(buf, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
 		e = config_alloc_entry( &parent->e_nname, &rdn );
 		ce = e->e_private;
 		ce->ce_table = bi->bi_cf_table;
-		config_build_entry( e, bi->bi_private, "olcBackendConfig",
-			&rdn );
+		config_build_entry( e, bi->bi_private, cfOc_backend, &rdn );
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -266,17 +332,19 @@ config_back_db_open( BackendDB *be )
 			bptr = &backendDB[i];
 		}
 		bi = bptr->bd_info;
-		if ( buflen < STRLENOF("olcdatabase={xxxxxxxx}")+strlen(bi->bi_type)+1) {
-			buflen = STRLENOF("olcdatabase={xxxxxxxx}")+strlen(bi->bi_type)+1;
+		len = cfAd_database->ad_cname.bv_len + STRLENOF("{xxxxxxxx}") +
+			strlen( bi->bi_type ) + 2;
+		if ( buflen < len ) {
+			buflen = len;
 			buf = realloc(buf, buflen);
 		}
 		rdn.bv_val = buf;
-		rdn.bv_len = sprintf(buf, "olcDatabase={%0x}%s", i, bi->bi_type);
+		rdn.bv_len = sprintf(buf, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
+			i, bi->bi_type);
 		e = config_alloc_entry( &parent->e_nname, &rdn );
 		ce = e->e_private;
 		ce->ce_table = bptr->be_cf_table;
-		config_build_entry( e, bptr->be_private, "olcDatabaseConfig",
-			&rdn );
+		config_build_entry( e, bptr->be_private, cfOc_database, &rdn );
 		c.be = bptr;
 		c.bi = bi;
 		ct = be->bd_info->bi_cf_table;
@@ -299,6 +367,9 @@ config_back_db_open( BackendDB *be )
 		
 	}
 	/* Create includeFile nodes... */
+
+
+	ch_free( buf );
 
 	return 0;
 }
@@ -344,13 +415,28 @@ config_back_initialize( BackendInfo *bi )
 	return 0;
 }
 
+static struct {
+	char *name;
+	AttributeDescription **desc;
+	AttributeDescription *sub;
+} ads[] = {
+	{ "attribute", NULL, NULL },
+	{ "backend", &cfAd_backend, NULL },
+	{ "database", &cfAd_database, NULL },
+	{ "ditcontentrule", NULL, NULL },
+	{ "include", &cfAd_include, NULL },
+	{ "objectclass", NULL, NULL },
+	{ "overlay", &cfAd_overlay, NULL },
+	{ NULL, NULL, NULL }
+};
 
-void config_back_init( ConfigFile *cfp, ConfigTable *ct )
+int config_back_init( ConfigFile *cfp, ConfigTable *ct )
 {
 	BackendInfo bi = {0};
 	BackendDB *be;
 	struct berval dn;
 	CfBackInfo *cfb;
+	int i;
 
 	bi.bi_type = "config";
 	bi.bi_init = config_back_initialize;
@@ -366,4 +452,47 @@ void config_back_init( ConfigFile *cfp, ConfigTable *ct )
 	cfb = ch_calloc( 1, sizeof(CfBackInfo));
 	cfb->cb_config = cfp;
 	be->be_private = cfb;
+
+	/* set up the notable AttributeDescriptions */
+	ads[0].sub = slap_schema.si_ad_attributeTypes;
+	ads[3].sub = slap_schema.si_ad_ditContentRules;
+	ads[5].sub = slap_schema.si_ad_objectClasses;
+
+	i = 0;
+	for (;ct->name;ct++) {
+		if (strcmp(ct->name, ads[i].name)) continue;
+		if (ads[i].sub) {
+			ct->ad = ads[i].sub;
+		} else {
+			*ads[i].desc = ct->ad;
+		}
+		i++;
+		if (!ads[i].name) break;
+	}
+
+	/* set up the objectclasses */
+	for (i=0;cf_ocs[i].def;i++) {
+		LDAPObjectClass *oc;
+		int code;
+		const char *err;
+
+		oc = ldap_str2objectclass( cf_ocs[i].def, &code, &err,
+			LDAP_SCHEMA_ALLOW_ALL );
+		if ( !oc ) {
+			fprintf( stderr, "config_back_init: objectclass \"%s\": %s, %s\n",
+				cf_ocs[i].def, ldap_scherr2str(code), err );
+			return code;
+		}
+		code = oc_add(oc,0,&err);
+		if ( code ) {
+			fprintf( stderr, "config_back_init: objectclass \"%s\": %s, %s\n",
+				cf_ocs[i].def, scherr2str(code), err );
+			return code;
+		}
+		if ( cf_ocs[i].oc ) {
+			*cf_ocs[i].oc = oc_find(oc->oc_names[0]);
+		}
+		ldap_memfree(oc);
+	}
+	return 0;
 }

@@ -89,46 +89,47 @@ static char	*strtok_quote(char *line, char *sep);
 static int load_ucdata(char *path);
 #endif
 
-/* state info for back-config */
-static ConfigFile cf_prv, *cfn = &cf_prv;
 
 int read_config_file(const char *fname, int depth, ConfigArgs *cf);
 
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
-int config_generic(ConfigArgs *c);
-int config_search_base(ConfigArgs *c);
-int config_passwd_hash(ConfigArgs *c);
-int config_schema_dn(ConfigArgs *c);
-int config_sizelimit(ConfigArgs *c);
-int config_timelimit(ConfigArgs *c);
-int config_limits(ConfigArgs *c); 
-int config_overlay(ConfigArgs *c);
-int config_suffix(ConfigArgs *c); 
-int config_deref_depth(ConfigArgs *c);
-int config_rootdn(ConfigArgs *c);
-int config_rootpw(ConfigArgs *c);
-int config_restrict(ConfigArgs *c);
-int config_allows(ConfigArgs *c);
-int config_disallows(ConfigArgs *c);
-int config_requires(ConfigArgs *c);
-int config_security(ConfigArgs *c);
-int config_referral(ConfigArgs *c);
-int config_loglevel(ConfigArgs *c);
-int config_syncrepl(ConfigArgs *c);
-int config_replica(ConfigArgs *c);
-int config_updatedn(ConfigArgs *c);
-int config_updateref(ConfigArgs *c);
-int config_include(ConfigArgs *c);
+/* All of these table entries and handlers really belong
+ * in back-config, only the parser/table engine belongs here.
+ */
+/* state info for back-config */
+static ConfigFile cf_prv, *cfn = &cf_prv;
+
+static int config_fname(ConfigArgs *c);
+static int config_generic(ConfigArgs *c);
+static int config_search_base(ConfigArgs *c);
+static int config_passwd_hash(ConfigArgs *c);
+static int config_schema_dn(ConfigArgs *c);
+static int config_sizelimit(ConfigArgs *c);
+static int config_timelimit(ConfigArgs *c);
+static int config_limits(ConfigArgs *c); 
+static int config_overlay(ConfigArgs *c);
+static int config_suffix(ConfigArgs *c); 
+static int config_deref_depth(ConfigArgs *c);
+static int config_rootdn(ConfigArgs *c);
+static int config_rootpw(ConfigArgs *c);
+static int config_restrict(ConfigArgs *c);
+static int config_allows(ConfigArgs *c);
+static int config_disallows(ConfigArgs *c);
+static int config_requires(ConfigArgs *c);
+static int config_security(ConfigArgs *c);
+static int config_referral(ConfigArgs *c);
+static int config_loglevel(ConfigArgs *c);
+static int config_syncrepl(ConfigArgs *c);
+static int config_replica(ConfigArgs *c);
+static int config_updatedn(ConfigArgs *c);
+static int config_updateref(ConfigArgs *c);
+static int config_include(ConfigArgs *c);
 #ifdef HAVE_TLS
-int config_tls_option(ConfigArgs *c);
-int config_tls_verify(ConfigArgs *c);
+static int config_tls_option(ConfigArgs *c);
+static int config_tls_verify(ConfigArgs *c);
 #endif
-#ifdef LDAP_SLAPI
-int config_plugin(ConfigArgs *c);
-#endif
-int config_pluginlog(ConfigArgs *c);
 
 enum {
 	CFG_ACL = 1,
@@ -167,7 +168,9 @@ enum {
 	CFG_LASTMOD,
 	CFG_AZPOLICY,
 	CFG_AZREGEXP,
-	CFG_SASLSECP
+	CFG_SASLSECP,
+	CFG_SSTR_IF_MAX,
+	CFG_SSTR_IF_MIN,
 };
 
 typedef struct {
@@ -189,7 +192,7 @@ static OidRec OidMacros[] = {
 
 /* alphabetical ordering */
 
-ConfigTable SystemConfiguration[] = {
+static ConfigTable SystemConfiguration[] = {
 	{ "access",	NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_ACL,
 		&config_generic, "( OLcfgAt:1 NAME 'olcAccess' "
 			"DESC 'Access Control List' "
@@ -212,12 +215,15 @@ ConfigTable SystemConfiguration[] = {
 		&config_generic, "( OLcfgAt:5 NAME 'olcAttributeOptions' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "auth-rewrite", NULL, 2, 2, 14,
 #ifdef SLAP_AUTH_REWRITE
-	{ "auth-rewrite", NULL, 2, 2, 14, ARG_MAGIC|CFG_REWRITE,
-		&config_generic, "( OLcfgAt:6 NAME 'olcAuthRewrite' "
+		ARG_MAGIC|CFG_REWRITE, &config_generic,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		 "( OLcfgAt:6 NAME 'olcAuthRewrite' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-#endif
 	{ "authz-policy", "policy", 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
 		&config_generic, "( OLcfgAt:7 NAME 'olcAuthzPolicy' "
 			"EQUALITY caseIgnoreMatch "
@@ -254,14 +260,14 @@ ConfigTable SystemConfiguration[] = {
 	/* use standard schema */
 	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT,
 		&config_generic, NULL, NULL, NULL },
+	{ "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
-	{ "gentlehup", "on|off", 2, 2, 0, ARG_ON_OFF,
-		&global_gentlehup, "( OLcfgAt:17 NAME 'olcGentleHUP' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+		ARG_ON_OFF, &global_gentlehup,
 #else
-	{ "gentlehup", NULL, 2, 2, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:17 NAME 'olcGentleHUP' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
 	{ "idletimeout", "timeout", 2, 2, 0, ARG_INT,
 		&global_idletimeout, "( OLcfgAt:18 NAME 'olcIdleTimeout' "
 			"SYNTAX OMsInteger )", NULL, NULL },
@@ -269,11 +275,11 @@ ConfigTable SystemConfiguration[] = {
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
 		&config_include, "( OLcfgAt:19 NAME 'olcInclude' "
 			"SUP labeledURI )", NULL, NULL },
-	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO,
-		&index_substr_if_minlen, "( OLcfgAt:20 NAME 'olcIndexSubstrIfMinLen' "
+	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
+		&config_generic, "( OLcfgAt:20 NAME 'olcIndexSubstrIfMinLen' "
 			"SYNTAX OMsInteger )", NULL, NULL },
-	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_SPECIAL,
-		&index_substr_if_maxlen, "( OLcfgAt:21 NAME 'olcIndexSubstrIfMaxLen' "
+	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MAX,
+		&config_generic, "( OLcfgAt:21 NAME 'olcIndexSubstrIfMaxLen' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_len, "( OLcfgAt:22 NAME 'olcIndexSubstrAnyLen' "
@@ -299,14 +305,22 @@ ConfigTable SystemConfiguration[] = {
 	{ "maxDerefDepth", "depth", 2, 2, 0, ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH,
 		&config_generic, "( OLcfgAt:29 NAME 'olcMaxDerefDepth' "
 			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "moduleload",	"file", 2, 0, 0,
 #ifdef SLAPD_MODULES
-	{ "moduleload",	"file", 2, 0, 0, ARG_MAGIC|CFG_MODLOAD,
-		&config_generic, "( OLcfgAt:30 NAME 'olcModuleLoad' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "modulepath", "path", 2, 2, 0, ARG_MAGIC|CFG_MODPATH,
-		&config_generic, "( OLcfgAt:31 NAME 'olcModulePath' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		ARG_MAGIC|CFG_MODLOAD, &config_generic,
+#else
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:30 NAME 'olcModuleLoad' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "modulepath", "path", 2, 2, 0,
+#ifdef SLAPD_MODULES
+		ARG_MAGIC|CFG_MODPATH, &config_generic,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:31 NAME 'olcModulePath' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	/* use standard schema */
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
 		&config_generic, NULL, NULL, NULL },
@@ -325,19 +339,22 @@ ConfigTable SystemConfiguration[] = {
 	{ "pidfile", "file", 2, 2, 0, ARG_STRING,
 		&slapd_pid_file, "( OLcfgAt:37 NAME 'olcPidFile' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "plugin", NULL, 0, 0, 0,
 #ifdef LDAP_SLAPI
-	{ "plugin", NULL, 0, 0, 0, ARG_MAGIC|CFG_PLUGIN,
-		&config_generic, "( OLcfgAt:38 NAME 'olcPlugin' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "pluginlog", "filename", 2, 2, 0, ARG_STRING,
-		&slapi_log_file, "( OLcfgAt:39 NAME 'olcPluginLogFile' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		ARG_MAGIC|CFG_PLUGIN, &config_generic,
 #else
-	{ "plugin", NULL, 0, 0, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
-	{ "pluginlog", NULL, 0, 0, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:38 NAME 'olcPlugin' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pluginlog", "filename", 2, 2, 0,
+#ifdef LDAP_SLAPI
+		ARG_STRING, &slapi_log_file,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:39 NAME 'olcPluginLogFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "readonly", "on|off", 2, 2, 0, ARG_MAY_DB|ARG_ON_OFF|ARG_MAGIC|CFG_RO,
 		&config_generic, "( OLcfgAt:40 NAME 'olcReadOnly' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
@@ -362,17 +379,17 @@ ConfigTable SystemConfiguration[] = {
 	{ "require", "features", 2, 0, 7, ARG_MAY_DB|ARG_MAGIC,
 		&config_requires, "( OLcfgAt:47 NAME 'olcRequires' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "restrict", "op_list", 2, 0, 0, ARG_MAGIC,
+	{ "restrict", "op_list", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_restrict, "( OLcfgAt:48 NAME 'olcRestrict' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "reverse-lookup", "on|off", 2, 2, 0,
 #ifdef SLAPD_RLOOKUPS
-	{ "reverse-lookup", "on|off", 2, 2, 0, ARG_ON_OFF,
-		&use_reverse_lookup, "( OLcfgAt:49 NAME 'olcReverseLookup' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+		ARG_ON_OFF, &use_reverse_lookup,
 #else
-	{ "reverse-lookup", NULL, 2, 2, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:49 NAME 'olcReverseLookup' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
 	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
 		&config_rootdn, "( OLcfgAt:50 NAME 'olcRootDN' "
 			"SYNTAX OMsDN )", NULL, NULL },
@@ -384,28 +401,32 @@ ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsOctetString )", NULL, NULL },
 	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
 		&config_generic, NULL, NULL, NULL },
+	{ "sasl-host", "host", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
-	{ "sasl-host", "host", 2, 2, 0, ARG_STRING|ARG_UNIQUE,
-		&global_host, "( OLcfgAt:53 NAME 'olcSaslHost' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sasl-realm", "realm", 2, 2, 0, ARG_STRING|ARG_UNIQUE,
-		&global_realm, "( OLcfgAt:54 NAME 'olcSaslRealm' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sasl-regexp", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
-		&config_generic, NULL, NULL, NULL },
-	{ "sasl-secprops", "properties", 2, 2, 0, ARG_MAGIC|CFG_SASLSECP,
-		&config_generic, "( OLcfgAt:56 NAME 'olcSaslSecProps' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		ARG_STRING|ARG_UNIQUE, &global_host,
 #else
-	{ "sasl-host", NULL, 2, 2, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
-	{ "sasl-realm",	NULL, 2, 2, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:53 NAME 'olcSaslHost' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "sasl-realm", "realm", 2, 2, 0,
+#ifdef HAVE_CYRUS_SASL
+		ARG_STRING|ARG_UNIQUE, &global_realm,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:54 NAME 'olcSaslRealm' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "sasl-regexp", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
-	{ "sasl-secprops", NULL, 2, 2, 0, ARG_IGNORED,
-		NULL, NULL, NULL, NULL },
+	{ "sasl-secprops", "properties", 2, 2, 0,
+#ifdef HAVE_CYRUS_SASL
+		ARG_MAGIC|CFG_SASLSECP, &config_generic,
+#else
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:56 NAME 'olcSaslSecProps' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "saslRegexp",	NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
 	{ "schemacheck", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,
@@ -426,11 +447,14 @@ ConfigTable SystemConfiguration[] = {
 	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_LONG,
 		&sockbuf_max_incoming_auth, "( OLcfgAt:62 NAME 'olcSockbufMaxIncomingAuth' "
 			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "srvtab", "file", 2, 2, 0,
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	{ "srvtab", "file", 2, 2, 0, ARG_STRING,
-		&ldap_srvtab, "( OLcfgAt:63 NAME 'olcSrvtab' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		ARG_STRING, &ldap_srvtab,
+#else
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:63 NAME 'olcSrvtab' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
 		&config_suffix, "( OLcfgAt:64 NAME 'olcSuffix' "
 			"SYNTAX OMsDN )", NULL, NULL },
@@ -443,32 +467,70 @@ ConfigTable SystemConfiguration[] = {
 	{ "timelimit", "limit", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|CFG_TIME,
 		&config_timelimit, "( OLcfgAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "TLSCACertificateFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-	{ "TLSCACertificateFile", NULL, 0, 0, 0, CFG_TLS_CA_FILE|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:68 NAME 'olcTLSCACertificateFile' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSCACertificatePath", NULL,	0, 0, 0, CFG_TLS_CA_PATH|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:69 NAME 'olcTLSCACertificatePath' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSCertificateFile", NULL, 0, 0, 0, CFG_TLS_CERT_FILE|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:70 NAME 'olcTLSCertificateFile' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSCertificateKeyFile", NULL, 0, 0, 0, CFG_TLS_CERT_KEY|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:71 NAME 'olcTLSCertificateKeyFile' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSCipherSuite",	NULL, 0, 0, 0, CFG_TLS_CIPHER|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:72 NAME 'olcTLSCipherSuite' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSCRLCheck", NULL, 0, 0, 0, CFG_TLS_CRLCHECK|ARG_MAGIC,
-		&config_tls_option,	"( OLcfgAt:73 NAME 'olcTLSCRLCheck' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSRandFile", NULL, 0, 0, 0, CFG_TLS_RAND|ARG_MAGIC,
-		&config_tls_option, "( OLcfgAt:74 NAME 'olcTLSRandFile' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "TLSVerifyClient", NULL, 0, 0, 0, CFG_TLS_VERIFY|ARG_MAGIC,
-		&config_tls_verify, "( OLcfgAt:75 NAME 'olcTLSVerifyClient' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+		CFG_TLS_CA_FILE|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
 #endif
+		"( OLcfgAt:68 NAME 'olcTLSCACertificateFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCACertificatePath", NULL,	0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CA_PATH|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:69 NAME 'olcTLSCACertificatePath' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCertificateFile", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CERT_FILE|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:70 NAME 'olcTLSCertificateFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCertificateKeyFile", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CERT_KEY|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:71 NAME 'olcTLSCertificateKeyFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCipherSuite",	NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CIPHER|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:72 NAME 'olcTLSCipherSuite' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCRLCheck", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_CRLCHECK|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:73 NAME 'olcTLSCRLCheck' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSRandFile", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_RAND|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:74 NAME 'olcTLSRandFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSVerifyClient", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_VERIFY|ARG_MAGIC, &config_tls_verify,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgAt:75 NAME 'olcTLSVerifyClient' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
 	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_MAGIC,
@@ -477,6 +539,12 @@ ConfigTable SystemConfiguration[] = {
 	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_updateref, "( OLcfgAt:77 NAME 'olcUpdateRef' "
 			"SUP labeledURI )", NULL, NULL },
+	/* This attr is read-only */
+	{ "", "", 0, 0, 0, ARG_MAGIC|ARG_STRING,
+		&config_fname, "( OLcfgAt:78 NAME 'olcConfigFile' "
+			"DESC 'File for slapd configuration directives' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -571,8 +639,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				break;
 		}
 		j = (arg_type & ARG_NONZERO) ? 1 : 0;
-		rc = (Conf == SystemConfiguration) ? ((arg_type & ARG_SPECIAL) && (larg < index_substr_if_maxlen)) : 0;
-		if(iarg < j || larg < j || barg < j || rc) {
+		if(iarg < j || larg < j || barg < j ) {
 			larg = larg ? larg : (barg ? barg : iarg);
 			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
 			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf[i].what, larg, Conf[i].name);
@@ -635,14 +702,18 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 {
 	int rc = 0;
 	struct berval bv;
+
+	if ( cf->arg_type & ARG_IGNORED ) {
+		return 1;
+	}
+
 	memset(&c->values, 0, sizeof(c->values));
 	c->rvalue_vals = NULL;
 	c->rvalue_nvals = NULL;
 	c->emit = 1;
 	c->line="";
-	if ( cf->arg_type & ARG_IGNORED ) {
-		return 1;
-	}
+	c->type = cf->arg_type & ARGS_USERLAND;
+
 	if ( cf->arg_type & ARG_MAGIC ) {
 		rc = (*((ConfigDriver*)cf->arg_item))(c);
 		if ( rc ) return rc;
@@ -703,6 +774,7 @@ init_config_attrs(ConfigTable *ct) {
 				ct[i].attribute, err );
 			return code;
 		}
+		ldap_memfree( at );
 	}
 }
 
@@ -875,9 +947,9 @@ badline:
 	return(1);
 }
 
-int
+static int
 config_generic(ConfigArgs *c) {
-	char *p = strchr(c->line,'(' /*')'*/);
+	char *p;
 	int i;
 
 	if ( c->emit ) {
@@ -891,6 +963,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_RO:
 			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
+			break;
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
 			break;
@@ -906,11 +979,19 @@ config_generic(ConfigArgs *c) {
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
+		case CFG_SSTR_IF_MAX:
+			c->value_int = index_substr_if_maxlen;
+			break;
+		case CFG_SSTR_IF_MIN:
+			c->value_int = index_substr_if_minlen;
+			break;
 		default:
 			rc = 1;
 		}
 		return rc;
 	}
+
+ 	p = strchr(c->line,'(' /*')'*/);
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
@@ -1069,6 +1150,26 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NOLASTMOD;
 			break;
 
+		case CFG_SSTR_IF_MAX:
+			if (c->value_int < index_substr_if_minlen) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"invalid max value (%d)\n",
+					c->log, c->value_int, 0 );
+				return(1);
+			}
+			index_substr_if_maxlen = c->value_int;
+			break;
+
+		case CFG_SSTR_IF_MIN:
+			if (c->value_int > index_substr_if_maxlen) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"invalid min value (%d)\n",
+					c->log, c->value_int, 0 );
+				return(1);
+			}
+			index_substr_if_minlen = c->value_int;
+			break;
+
 #ifdef SLAPD_MODULES
 		case CFG_MODLOAD:
 			if(module_load(c->argv[1], c->argc - 2, (c->argc > 2) ? c->argv + 2 : NULL))
@@ -1126,7 +1227,12 @@ config_generic(ConfigArgs *c) {
 }
 
 
-int
+static int
+config_fname(ConfigArgs *c) {
+	return(1);
+}
+
+static int
 config_search_base(ConfigArgs *c) {
 	struct berval dn;
 
@@ -1161,7 +1267,7 @@ config_search_base(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_passwd_hash(ConfigArgs *c) {
 	int i;
 	if (c->emit) {
@@ -1195,7 +1301,7 @@ config_passwd_hash(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_schema_dn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
@@ -1209,7 +1315,7 @@ config_schema_dn(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
@@ -1248,7 +1354,7 @@ config_sizelimit(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_timelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
@@ -1287,7 +1393,7 @@ config_timelimit(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_overlay(ConfigArgs *c) {
 	if (c->emit) {
 		return 1;
@@ -1302,7 +1408,7 @@ config_overlay(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_suffix(ConfigArgs *c) {
 	Backend *tbe;
 	struct berval pdn, ndn;
@@ -1348,7 +1454,7 @@ config_suffix(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_rootdn(ConfigArgs *c) {
 	if (c->emit) {
 		ber_bvarray_add(&c->rvalue_vals, &c->be->be_rootdn);
@@ -1360,7 +1466,7 @@ config_rootdn(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
 	if (c->emit) {
@@ -1406,7 +1512,7 @@ verbs_to_mask(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t *m) {
 	return(0);
 }
 
-int
+static int
 config_restrict(ConfigArgs *c) {
 	slap_mask_t restrictops = 0;
 	int i, j;
@@ -1463,7 +1569,7 @@ config_restrict(ConfigArgs *c) {
 	return(1);
 }
 
-int
+static int
 config_allows(ConfigArgs *c) {
 	slap_mask_t allows = 0;
 	int i;
@@ -1488,7 +1594,7 @@ config_allows(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_disallows(ConfigArgs *c) {
 	slap_mask_t disallows = 0;
 	int i;
@@ -1514,7 +1620,7 @@ config_disallows(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_requires(ConfigArgs *c) {
 	slap_mask_t requires = 0;
 	int i;
@@ -1540,7 +1646,7 @@ config_requires(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_loglevel(ConfigArgs *c) {
 	int i;
 	char *next;
@@ -1596,7 +1702,7 @@ config_loglevel(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_syncrepl(ConfigArgs *c) {
 	if (c->emit) {
 		return 1;
@@ -1613,7 +1719,7 @@ config_syncrepl(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_referral(ConfigArgs *c) {
 	struct berval vals[2];
 	if (c->emit) {
@@ -1632,7 +1738,7 @@ config_referral(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_security(ConfigArgs *c) {
 	slap_ssf_set_t *set = &c->be->be_ssf_set;
 	char *next;
@@ -1688,7 +1794,7 @@ config_security(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_replica(ConfigArgs *c) {
 	int i, nr = -1;
 	char *replicahost, *replicalog = NULL;
@@ -1786,7 +1892,7 @@ config_replica(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_updatedn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
@@ -1820,7 +1926,7 @@ config_updatedn(ConfigArgs *c) {
 	return(0);
 }
 
-int
+static int
 config_updateref(ConfigArgs *c) {
 	struct berval vals[2];
 	if (c->emit) {
@@ -1847,7 +1953,7 @@ config_updateref(ConfigArgs *c) {
 
 /* XXX meaningless in ldif */
 
-int
+static int
 config_include(ConfigArgs *c) {
 	unsigned long savelineno = c->lineno;
 	int rc;
@@ -1876,7 +1982,7 @@ config_include(ConfigArgs *c) {
 }
 
 #ifdef HAVE_TLS
-int
+static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
 	if (c->emit) {
@@ -1899,7 +2005,7 @@ config_tls_option(ConfigArgs *c) {
 	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
 }
 
-int
+static int
 config_tls_verify(ConfigArgs *c) {
 	int i;
 	if (c->emit) {
