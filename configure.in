@@ -34,7 +34,7 @@ dnl General "with" options
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
-	auto, [auto posix dce mach yes no] )
+	auto, [auto posix dce mach yes no manual] )
 
 dnl Server options
 
@@ -54,7 +54,7 @@ OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 dnl SLAPD Backend options
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
-	[auto db2 db gdbm ndbm])
+	[auto db2 db gdbm ndbm manual])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
 
@@ -298,6 +298,17 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 	fi
 fi
 
+if test $ol_with_threads = manual ; then
+	dnl User thinks he can manually configure threads.
+	$ol_link_threads=yes
+
+	AC_MSG_WARN([thread defines and link options must be set manually])
+
+	AC_CHECK_HEADERS(pthread.h sched.h)
+	AC_CHECK_FUNC(sched_yield)
+	OL_LINUX_THREADS
+fi
+
 if test $ol_link_threads = no ; then
 	if test $ol_with_threads = yes ; then
 		AC_MSG_ERROR([no suitable thread support])
@@ -359,6 +370,15 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
 		fi
 	fi
+fi
+
+if test $ol_with_ldbm_api = manual ; then
+	dnl User thinks he can manually configure LDBM api.
+	$ol_link_ldbm=yes
+
+	AC_MSG_WARN([LDBM defines and link options must be set manually])
+
+	AC_CHECK_HEADERS(db.h db_185.h gdbm.h ndbm.h)
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
@@ -457,8 +477,8 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for header files.
-AC_HEADER_DIRENT
 AC_HEADER_STDC
+AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS( \
 	stddef.h	\
