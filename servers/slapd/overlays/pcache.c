@@ -1867,6 +1867,9 @@ proxy_cache_open(
 	int rc = 0;
 
 	if ( cm->db.bd_info->bi_db_open ) {
+		cm->db.be_pending_csn_list = (struct be_pcl *)
+							ch_calloc( 1, sizeof( struct be_pcl ));
+		LDAP_TAILQ_INIT( cm->db.be_pending_csn_list );
 		rc = cm->db.bd_info->bi_db_open( &cm->db );
 	}
 
