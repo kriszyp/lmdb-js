@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.10 Engineering
+	<insert change description here>
+
 OpenLDAP 2.0.9 Release
 	Add slapd obsolete schema check
 	Add slapd collective schema check
