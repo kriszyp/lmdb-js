@@ -51,7 +51,6 @@ shell_back_search(
 
 	/* write out the request to the search process */
 	fprintf( wfp, "SEARCH\n" );
-	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "base: %s\n", base->bv_val );
