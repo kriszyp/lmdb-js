@@ -2,6 +2,7 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.12 Engineering
 	Fixed ldapmodrdn SASL auth bug (ITS#1179)
+	Updated ldaptcl API
 
 OpenLDAP 2.0.11 Release
 	Fix attribute parse bug (ITS#1159)
