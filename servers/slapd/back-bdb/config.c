@@ -49,7 +49,7 @@ static ConfigTable bdbcfg[] = {
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "cachesize", "size", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_OFFSET,
+	{ "cachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_maxsize),
 		"( OLcfgAt:1.2 NAME 'dbCacheSize' "
 			"DESC 'Entry cache size in entries' "
@@ -71,7 +71,7 @@ static ConfigTable bdbcfg[] = {
 		"( OLcfgAt:1.5 NAME 'dbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
 		"SYNTAX OMsBoolean )", NULL, NULL },
-	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_OFFSET,
+	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info,bi_idl_cache_max_size),
 		"( OLcfgAt:1.6 NAME 'dbIDLcacheSize' "
 		"DESC 'IDL cache size in IDLs' "
