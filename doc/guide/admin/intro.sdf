@@ -194,19 +194,19 @@ H2: What is the difference between LDAPv2 and LDAPv3?
 LDAPv3 was developed in the late 1990's to replace LDAPv2.
 LDAPv3 adds the following features to LDAP:
 
- - Strong Authentication via {{TERM:SASL}}
- - Integrity and Confidentiality Protection via {{TERM:TLS}} (SSL)
+ - Strong authentication and data security services via {{TERM:SASL}}
+ - Certificate authentication and data security services via {{TERM:TLS}} (SSL)
  - Internationalization through the use of Unicode
  - Referrals and Continuations
  - Schema Discovery
  - Extensibility (controls, extended operations, and more)
 
-LDAPv2 is historic ({{REF:RFC3494}}).  As most implementations
-(including {{slapd}}(8)) of LDAPv2 do not conform to the LDAPv2
-technical specification, interoperatibility amongst implementations
-claiming LDAPv2 support will be limited.  As LDAPv2 differs
-significantly from LDAPv3, deploying both LDAPv2 and LDAPv3
-simultaneously can be quite problematic.  LDAPv2 should be avoided.
+LDAPv2 is historic ({{REF:RFC3494}}).  As most {{so-called}} LDAPv2
+implementations (including {{slapd}}(8)) do not conform to the
+LDAPv2 technical specification, interoperatibility amongst
+implementations claiming LDAPv2 support is limited.  As LDAPv2
+differs significantly from LDAPv3, deploying both LDAPv2 and LDAPv3
+simultaneously is quite problematic.  LDAPv2 should be avoided.
 LDAPv2 is disabled by default.
 
 
@@ -239,8 +239,8 @@ This feature utilizes {{TCP wrappers}}.
 control facility, allowing you to control access to the information
 in your database(s). You can control access to entries based on
 LDAP authorization information, {{TERM:IP}} address, domain name
-and other criteria.  {{slapd}} supports both {{static}} and
-{{dynamic}} access control information.
+and other criteria.  {{slapd}} supports both {{static}} and {{dynamic}}
+access control information.
 
 {{B:Internationalization}}: {{slapd}} supports Unicode and language
 tags.
@@ -248,11 +248,12 @@ tags.
 {{B:Choice of database backends}}: {{slapd}} comes with a variety
 of different database backends you can choose from. They include
 {{TERM:BDB}}, a high-performance transactional database backend;
+{{TERM:HDB}}, a hierarchical high-performance transactional backend;
 {{TERM:LDBM}}, a lightweight DBM based backend; {{SHELL}}, a backend
 interface to arbitrary shell scripts; and PASSWD, a simple backend
-interface to the {{passwd}}(5) file.  The BDB backend utilizes
-{{ORG:Sleepycat}} {{PRD:Berkeley DB}}.  The LDBM utilizes either
-{{PRD:Berkeley DB}} or {{PRD:GDBM}}.
+interface to the {{passwd}}(5) file.  The BDB and HDB backends
+utilize {{ORG:Sleepycat}} {{PRD:Berkeley DB}}.  The LDBM utilizes
+either {{PRD:Berkeley DB}} or {{PRD:GDBM}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single
@@ -264,7 +265,7 @@ backends.
 {{slapd}} lets you write your own modules easily. {{slapd}} consists
 of two distinct parts: a front end that handles protocol communication
 with LDAP clients; and modules which handle specific tasks such as
-database operations. Because these two pieces communicate via a
+database operations.  Because these two pieces communicate via a
 well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
@@ -273,8 +274,8 @@ programming languages ({{PRD:Perl}}, {{shell}}, {{PRD:SQL}}, and
 {{PRD:TCL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
-multi-threaded {{slapd}} process handles all incoming requests
-using a pool of threads.  This reduces the amount of system overhead
+multi-threaded {{slapd}} process handles all incoming requests using
+a pool of threads.  This reduces the amount of system overhead
 required while providing high performance.
 
 {{B:Replication}}: {{slapd}} can be configured to maintain shadow
