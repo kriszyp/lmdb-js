@@ -18,11 +18,6 @@
 
 #include "portable.h"
 
-#ifndef lint
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-static char avl_version[] = "AVL library version 1.0\n";
-#endif
-
 #include <stdio.h>
 #include <ac/stdlib.h>
 
