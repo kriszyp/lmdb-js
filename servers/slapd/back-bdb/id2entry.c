@@ -18,6 +18,7 @@ int bdb_id2entry_add(
 	Entry *e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	struct berval *bv;
 	int rc;
@@ -34,9 +35,71 @@ int bdb_id2entry_add(
 	DBTzero( &data );
 	bv2DBT( bv, &data );
 
-	rc = bdb->bi_id2entry->bdi_db->put( bdb->bi_id2entry->bdi_db,
-		tid, &key, &data, DB_NOOVERWRITE );
+	rc = db->put( db, tid, &key, &data, DB_NOOVERWRITE );
 
 	ber_bvfree( bv );
 	return rc;
+}
+
+int bdb_id2entry(
+	Backend *be,
+	DB_TXN *tid,
+	ID id,
+	Entry **e )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_id2entry->bdi_db;
+	DBT key, data;
+	struct berval bv;
+	int rc;
+
+	DBTzero( &key );
+	key.data = (char *) &id;
+	key.size = sizeof(ID);
+
+	DBTzero( &data );
+	data.flags = DB_DBT_MALLOC;
+
+	/* fetch it */
+	rc = db->get( db, tid, &key, &data, 0 );
+
+	if( rc != 0 ) {
+		return rc;
+	}
+
+	DBT2bv( &data, &bv );
+
+	rc = entry_decode( &bv, e );
+
+	ch_free( data.data );
+	return rc;
+}
+
+int bdb_id2entry_delete(
+	Backend *be,
+	DB_TXN *tid,
+	ID id )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_id2entry->bdi_db;
+	DBT key;
+	struct berval *bv;
+	int rc;
+
+	DBTzero( &key );
+	key.data = (char *) &id;
+	key.size = sizeof(ID);
+
+	rc = db->del( db, tid, &key, 0 );
+
+	ber_bvfree( bv );
+	return rc;
+}
+
+int bdb_entry_return(
+	Backend *be,
+	Entry *e )
+{
+	entry_free( e );
+	return 0;
 }

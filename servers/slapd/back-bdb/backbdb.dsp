@@ -143,6 +143,10 @@ SOURCE=.\delete.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\dn2entry.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\dn2id.c
 # End Source File
 # Begin Source File

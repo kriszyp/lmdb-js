@@ -26,8 +26,33 @@ Entry *bdb_deref_internal_r LDAP_P((
 	bdb_deref_internal_r( be, NULL, dn, err, matched, text)
 
 /*
+ * dn2entry.c
+ */
+int bdb_dn2entry LDAP_P(( Backend *be, DB_TXN *tid,
+	const char *dn, Entry **e, Entry **matched, int flags ));
+
+#define dn2entry_r(be, tid, dn, p, m) \
+	bdb_dn2entry((be), (tid), (dn), (p), (m), 0 )
+
+#define dn2entry_w(be, tid, dn, p, m) \
+	bdb_dn2entry((be), (tid), (dn), (p), (m), DB_RMW )
+
+/*
  * dn2id.c
  */
+int bdb_dn2id(
+	BackendDB *be,
+	DB_TXN *tid,
+	const char *dn,
+	ID *id );
+
+int bdb_dn2id_matched(
+	BackendDB *be,
+	DB_TXN *tid,
+	const char *dn,
+	ID *id,
+	char **matchedDN );
+
 int bdb_dn2id_add(
 	BackendDB *be,
 	DB_TXN *tid,
@@ -44,12 +69,6 @@ int bdb_dn2id_children(
 	BackendDB *be,
 	DB_TXN *tid,
 	const char *dn );
-
-int bdb_dn2entry_rw LDAP_P(( Backend *be, DB_TXN *tid,
-	const char *dn, Entry **e, Entry **matched, int rw ));
-
-#define dn2entry_r(be, tid, dn, p, m) bdb_dn2entry_rw((be), (tid), (dn), (p), (m), 0)
-#define dn2entry_w(be, tid, dn, p, m) bdb_dn2entry_rw((be), (tid), (dn), (p), (m), 1)
 
 /*
  * entry.c
@@ -73,6 +92,12 @@ int bdb_id2entry_delete(
 	Backend *be,
 	DB_TXN *tid,
 	ID id );
+
+int bdb_id2entry(
+	Backend *be,
+	DB_TXN *tid,
+	ID id,
+	Entry **e );
 
 /*
  * idl.c

@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 static struct bdbi_database {
 	char *file;
@@ -273,15 +274,15 @@ bdb_initialize(
 	bi->bi_db_close = bdb_db_close;
 	bi->bi_db_destroy = bdb_db_destroy;
 
+	bi->bi_op_add = bdb_add;
+	bi->bi_op_compare = bdb_compare;
+	bi->bi_op_delete = bdb_delete;
 #if 0
 	bi->bi_op_bind = bi_back_bind;
 	bi->bi_op_unbind = bi_back_unbind;
 	bi->bi_op_search = bi_back_search;
-	bi->bi_op_compare = bi_back_compare;
 	bi->bi_op_modify = bi_back_modify;
 	bi->bi_op_modrdn = bi_back_modrdn;
-	bi->bi_op_add = bi_back_add;
-	bi->bi_op_delete = bi_back_delete;
 	bi->bi_op_abandon = bi_back_abandon;
 
 	bi->bi_extended = bi_back_extended;
