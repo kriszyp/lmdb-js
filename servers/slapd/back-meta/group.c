@@ -222,12 +222,12 @@ meta_back_group(
 	}
 	
 	ldap_back_map( &li->targets[ candidate ]->oc_map,
-			&group_oc_name, &group_oc_name, 0 );
+			&group_oc_name, &group_oc_name, BACKLDAP_MAP );
 	if ( group_oc_name.bv_val == NULL ) {
 		goto cleanup;
 	}
 	ldap_back_map( &li->targets[ candidate ]->at_map,
-			&group_at_name, &group_at_name, 0 );
+			&group_at_name, &group_at_name, BACKLDAP_MAP );
 	if ( group_at_name.bv_val == NULL ) {
 		goto cleanup;
 	}

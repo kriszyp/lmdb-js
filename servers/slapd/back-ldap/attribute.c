@@ -63,7 +63,7 @@ ldap_back_attribute(
 		}
 
 	}
-	ldap_back_map(&li->at_map, &entry_at->ad_cname, &mapped, 0);
+	ldap_back_map(&li->at_map, &entry_at->ad_cname, &mapped, BACKLDAP_MAP);
 	if (mapped.bv_val == NULL) {
 		return 1;
 	}
@@ -109,7 +109,8 @@ ldap_back_attribute(
 			else
 				j++;
 		} else {
-			ldap_back_map(&li->oc_map, &v[j], &mapped, 1);
+			ldap_back_map(&li->oc_map, &v[j], &mapped,
+					BACKLDAP_REMAP);
 			if (mapped.bv_val) {
 				ber_dupbv( &v[j], &mapped );
 				if (v[j].bv_val)

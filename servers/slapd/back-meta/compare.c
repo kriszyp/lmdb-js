@@ -156,9 +156,10 @@ meta_back_compare(
 		if ( ava->aa_desc->ad_type->sat_oid 
 			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
 			ldap_back_map( &li->targets[ i ]->oc_map,
-					&ava->aa_value, &mapped_value, 0 );
+					&ava->aa_value, &mapped_value,
+					BACKLDAP_MAP );
 
-			if ( mapped_value.bv_val == NULL ) {
+			if ( mapped_value.bv_val == NULL || mapped_value.bv_val[0] == '\0' ) {
 				continue;
 			}
 		/*
@@ -166,8 +167,9 @@ meta_back_compare(
 		 */
 		} else {
 			ldap_back_map( &li->targets[ i ]->at_map,
-				&ava->aa_desc->ad_cname, &mapped_attr, 0 );
-			if ( mapped_attr.bv_val == NULL ) {
+				&ava->aa_desc->ad_cname, &mapped_attr,
+				BACKLDAP_MAP );
+			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
 				continue;
 			}
 		}

@@ -118,7 +118,8 @@ ldap_back_modify(
 			continue;
 		}
 
-		ldap_back_map(&li->at_map, &ml->sml_desc->ad_cname, &mapped, 0);
+		ldap_back_map(&li->at_map, &ml->sml_desc->ad_cname, &mapped,
+				BACKLDAP_MAP);
 		if (mapped.bv_val == NULL) {
 			continue;
 		}

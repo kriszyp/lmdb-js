@@ -235,7 +235,7 @@ ldap_back_search(
 #else /* !ENABLE_REWRITE */
 			filterstr,
 #endif /* !ENABLE_REWRITE */
-		       	0);
+		       	BACKLDAP_MAP);
 	if ( mapped_filter == NULL ) {
 #ifdef ENABLE_REWRITE
 		mapped_filter = mfilter.bv_val;
@@ -250,7 +250,7 @@ ldap_back_search(
 	}
 #endif /* ENABLE_REWRITE */
 
-	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
+	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, BACKLDAP_MAP);
 	if ( mapped_attrs == NULL && attrs) {
 		for (count=0; attrs[count].an_name.bv_val; count++);
 		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
@@ -491,7 +491,7 @@ ldap_send_entry(
 	attrp = &ent.e_attrs;
 
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		ldap_back_map(&li->at_map, &a, &mapped, 1);
+		ldap_back_map(&li->at_map, &a, &mapped, BACKLDAP_REMAP);
 		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0')
 			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
@@ -536,7 +536,8 @@ ldap_send_entry(
 
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
-				ldap_back_map(&li->oc_map, bv, &mapped, 1);
+				ldap_back_map(&li->oc_map, bv, &mapped,
+						BACKLDAP_REMAP);
 				if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 					LBER_FREE(bv->bv_val);
 					bv->bv_val = NULL;

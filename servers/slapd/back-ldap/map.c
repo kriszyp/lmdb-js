@@ -97,7 +97,7 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	Avlnode *tree;
 	struct ldapmapping *mapping, fmapping;
 
-	if (remap)
+	if (remap == BACKLDAP_REMAP)
 		tree = map->remap;
 	else
 		tree = map->map;

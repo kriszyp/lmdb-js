@@ -158,7 +158,8 @@ meta_back_modify(
 		}
 
 		ldap_back_map( &li->targets[ candidate ]->at_map,
-				&ml->sml_desc->ad_cname, &mapped, 0 );
+				&ml->sml_desc->ad_cname, &mapped,
+				BACKLDAP_MAP );
 		if ( mapped.bv_val == NULL ) {
 			continue;
 		}

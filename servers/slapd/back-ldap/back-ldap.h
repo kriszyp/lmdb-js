@@ -106,6 +106,8 @@ int mapping_dup (void *, void *);
 void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
+#define BACKLDAP_MAP	0
+#define BACKLDAP_REMAP	1
 char *
 ldap_back_map_filter(
 		struct ldapmap *at_map,
@@ -131,4 +133,4 @@ extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BerVarray a_vals, v
 
 LDAP_END_DECL
 
-#endif
+#endif /* SLAPD_LDAP_H */

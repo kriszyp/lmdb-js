@@ -154,10 +154,12 @@ ldap_back_group(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	ldap_back_map(&li->oc_map, &group_oc_name, &group_oc_name, 0);
+	ldap_back_map(&li->oc_map, &group_oc_name, &group_oc_name,
+			BACKLDAP_MAP);
 	if (group_oc_name.bv_val == NULL)
 		goto cleanup;
-	ldap_back_map(&li->at_map, &group_at_name, &group_at_name, 0);
+	ldap_back_map(&li->at_map, &group_at_name, &group_at_name,
+			BACKLDAP_MAP);
 	if (group_at_name.bv_val == NULL)
 		goto cleanup;
 
