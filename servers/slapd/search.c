@@ -164,10 +164,10 @@ do_search(
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
 		"do_search: conn %d	filter: %s\n", 
-		op->o_connid, op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0 );
+		op->o_connid, !BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
-		op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #endif
 
 	/* attributes */
@@ -263,7 +263,7 @@ do_search(
 	while ( op->ors_scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
-		if ( op->o_req_ndn.bv_len == 0 ) {
+		if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
 #ifdef LDAP_CONNECTIONLESS
 			/* Ignore LDAPv2 CLDAP Root DSE queries */
 			if (op->o_protocol == LDAP_VERSION2 && op->o_conn->c_is_udp) {
@@ -334,7 +334,7 @@ do_search(
 		break;
 	}
 
-	if( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
+	if( BER_BVISEMPTY( &op->o_req_ndn ) && !BER_BVISEMPTY( &default_search_nbase ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
@@ -419,10 +419,10 @@ return_results:;
 	if ( ( op->o_sync_slog_size != -1 ) )
 		return rs->sr_err;
 
-	if( op->o_req_dn.bv_val != NULL) slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	if( op->o_req_ndn.bv_val != NULL) slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if( !BER_BVISNULL( &op->o_req_dn ) ) slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	if( !BER_BVISNULL( &op->o_req_ndn ) ) slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
-	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	if( !BER_BVISNULL( &op->ors_filterstr ) ) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
 	if( op->ors_attrs != NULL ) op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
 #ifdef LDAP_SLAPI
@@ -440,10 +440,10 @@ static char **anlist2charray( Operation *op, AttributeName *an )
 	int i;
 
 	if ( an != NULL ) {
-		for ( i = 0; an[i].an_name.bv_val != NULL; i++ )
+		for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
 			;
 		attrs = (char **)op->o_tmpalloc( (i + 1) * sizeof(char *), op->o_tmpmemctx );
-		for ( i = 0; an[i].an_name.bv_val != NULL; i++ ) {
+		for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
 			attrs[i] = an[i].an_name.bv_val;
 		}
 		attrs[i] = NULL;
@@ -519,7 +519,7 @@ static int call_search_rewrite_plugins( Operation *op )
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_TARGET, (void **)&op->o_req_dn.bv_val );
 		op->o_req_dn.bv_len = strlen( op->o_req_dn.bv_val );
 
-		if( op->o_req_ndn.bv_val != NULL) {
+		if( !BER_BVISNULL( &op->o_req_ndn ) ) {
 			slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		}
 		rc = dnNormalize( 0, NULL, NULL, &op->o_req_dn, &op->o_req_ndn,
@@ -534,10 +534,10 @@ static int call_search_rewrite_plugins( Operation *op )
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"call_search_rewrite_plugins: after compute_rewrite_search filter: %s\n", 
-			op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+			!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
-			op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+			!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #endif
 	}
 
