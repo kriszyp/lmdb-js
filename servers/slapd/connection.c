@@ -525,6 +525,7 @@ long connection_init(
 	c->c_n_get = 0;
 	c->c_n_read = 0;
 	c->c_n_write = 0;
+	c->c_writewaiter = 0;
 
 	/* set to zero until bind, implies LDAP_VERSION3 */
 	c->c_protocol = 0;
