@@ -12,10 +12,6 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#ifdef WIN32
-time_t starttime;
-#endif
-
 #include "ldif.h"
 
 #define MAXARGS      		100
@@ -313,5 +309,5 @@ main( int argc, char **argv )
 	slap_shutdown(dbnum);
 	slap_destroy();
 
-	exit( 0 );
+	return( 0 );
 }

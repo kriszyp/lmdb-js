@@ -14,10 +14,6 @@
 #include "ldapconfig.h"
 #include "ldif.h"
 
-#ifdef WIN32
-time_t starttime;
-#endif
-
 #define MAXARGS      		100
 
 static void
@@ -175,5 +171,5 @@ main( int argc, char **argv )
 	slap_shutdown(dbnum);
 	slap_destroy();
 
-	exit( 0 );
+	return( 0 );
 }
