@@ -1261,7 +1261,8 @@ send_paged_response(
 
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
 	op->o_conn->c_pagedresults_state.ps_count =
-		((PagedResultsState *)op->o_pagedresults_state)->ps_count + rs->sr_nentries;
+		((PagedResultsState *)op->o_pagedresults_state)->ps_count +
+		rs->sr_nentries;
 
 	/* return size of 0 -- no estimate */
 	ber_printf( ber, "{iO}", 0, &cookie ); 
