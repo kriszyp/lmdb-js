@@ -779,6 +779,16 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			}
 			break;
 
+		case 'W':	/* BVarray */
+			if ( (bv = va_arg( ap, BVarray )) == NULL )
+				break;
+			for ( i = 0; bv[i].bv_val != NULL; i++ ) {
+				if ( (rc = ber_put_berval( ber, &bv[i],
+				    ber->ber_tag )) == -1 )
+					break;
+			}
+			break;
+
 		case '{':	/* begin sequence */
 			rc = ber_start_seq( ber, ber->ber_tag );
 			break;

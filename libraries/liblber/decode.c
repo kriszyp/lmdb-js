@@ -680,7 +680,8 @@ ber_scanf ( BerElement *ber,
 
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
-			if ( *(fmt + 1) != 'v' && *(fmt + 1) != 'V' )
+			if ( *(fmt + 1) != 'v' && *(fmt + 1) != 'V'
+				&& *(fmt + 1) != 'W' )
 				rc = ber_skip_tag( ber, &len );
 			break;
 
