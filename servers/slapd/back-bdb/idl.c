@@ -255,7 +255,19 @@ bdb_idl_fetch_key(
 	int rc;
 	DBT data;
 #ifdef BDB_IDL_MULTI
+	/* buf must be large enough to grab the entire IDL in one
+	 * get(), otherwise BDB 4 will leak resources on subsequent
+	 * get's. We can safely call get() twice - once for the data,
+	 * and once to get the DB_NOTFOUND result meaning there's
+	 * no more data. See ITS#2040 for details.
+	 */
+	ID buf[BDB_IDL_DB_SIZE*5];
 	DBC *cursor;
+	ID *i;
+	void *ptr;
+	size_t len;
+	int rc2;
+	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
 #endif
 
 	{
@@ -275,18 +287,6 @@ bdb_idl_fetch_key(
 	DBTzero( &data );
 
 #ifdef BDB_IDL_MULTI
-	/* buf must be large enough to grab the entire IDL in one
-	 * get(), otherwise BDB 4 will leak resources on subsequent
-	 * get's. We can safely call get() twice - once for the data,
-	 * and once to get the DB_NOTFOUND result meaning there's
-	 * no more data. See ITS#2040 for details.
-	 */
-	ID buf[BDB_IDL_DB_SIZE*5];
-	ID *i;
-	void *ptr;
-	size_t len;
-	int rc2;
-	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
 	data.data = buf;
 	data.ulen = sizeof(buf);
 	data.flags = DB_DBT_USERMEM;
