@@ -166,7 +166,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( oldpwfile ) {
-		rc = lutil_get_filed_password( prog, &oldpw );
+		rc = lutil_get_filed_password( oldpwfile, &oldpw );
 		if( rc ) return EXIT_FAILURE;
 	}
 
@@ -187,7 +187,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( newpwfile ) {
-		rc = lutil_get_filed_password( prog, &newpw );
+		rc = lutil_get_filed_password( newpwfile, &newpw );
 		if( rc ) return EXIT_FAILURE;
 	}
 
