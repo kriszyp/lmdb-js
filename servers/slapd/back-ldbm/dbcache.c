@@ -333,7 +333,7 @@ ldbm_cache_sync_daemon(
 
 		sleep( li->li_dbsyncfreq );
 
-		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
+		while (i && ldap_pvt_thread_pool_backload(&SLAPD_GLOBAL(connection_pool)) != 0) {
 			Debug( LDAP_DEBUG_TRACE, "delay syncing %s\n", li->li_directory, 0, 0 );
 			sleep(li->li_dbsyncwaitinterval);
 			i--;
