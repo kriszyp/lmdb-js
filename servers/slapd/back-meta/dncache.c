@@ -99,12 +99,10 @@ meta_dncache_cmp(
 	struct metadncacheentry *cc1 = ( struct metadncacheentry * )c1;
 	struct metadncacheentry *cc2 = ( struct metadncacheentry * )c2;
 
-	int			d = cc1->dn.bv_len - cc2->dn.bv_len;
-	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
- 	return d != 0 ? d : strcmp( cc1->dn.bv_val, cc2->dn.bv_val );
+ 	return ber_bvcmp( &cc1->dn, &cc2->dn);
 }
 
 /*
@@ -122,15 +120,10 @@ meta_dncache_dup(
 	struct metadncacheentry *cc1 = ( struct metadncacheentry * )c1;
 	struct metadncacheentry *cc2 = ( struct metadncacheentry * )c2;
 	
-	int			d = cc1->dn.bv_len - cc2->dn.bv_len;
-	int			cmp;
-	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	cmp = d != 0 ? d : strcmp( cc1->dn.bv_val, cc2->dn.bv_val );
-
- 	return ( cmp == 0 ) ? -1 : 0;
+ 	return ( ber_bvcmp( &cc1->dn, &cc2->dn ) == 0 ) ? -1 : 0;
 }
 
 /*
