@@ -31,18 +31,18 @@
 #	include <pwd.h>
 #endif
 
-static int supported_hash(
-	const char* method,
-	const char** methods )
+static int is_allowed_scheme(
+	const char* scheme,
+	const char** schemes )
 {
 	int i;
 
-	if(methods == NULL) {
+	if(schemes == NULL) {
 		return 1;
 	}
 
-	for(i=0; methods[i] != NULL; i++) {
-		if(strcasecmp(method, methods[i]) == 0) {
+	for(i=0; schemes[i] != NULL; i++) {
+		if(strcasecmp(scheme, schemes[i]) == 0) {
 			return 1;
 		}
 	}
@@ -50,20 +50,40 @@ static int supported_hash(
 	return 0;
 }
 
-static const char *passwd_hash(
+const char *lutil_passwd_schemes[] = {
+#ifdef SLAPD_CRYPT
+	"{CRYPT}",
+#endif
+	"{MD5}", "{SMD5}",
+	"{SHA}", "{SSHA}",
+# if defined( HAVE_GETSPNAM ) \
+  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
+	"{UNIX}",
+#endif
+#ifdef SLAPD_CLEARTEXT
+	"{CLEARTEXT}",		/* psuedo scheme */
+#endif
+	NULL,
+};
+
+int lutil_passwd_scheme( char *scheme ) {
+	return is_allowed_scheme( scheme, lutil_passwd_schemes );
+}
+
+static const char *passwd_scheme(
 	const char* passwd,
-	const char* method,
-	const char** methods )
+	const char* scheme,
+	const char** schemes )
 {
 	int len;
 
-	if( !supported_hash( method, methods ) ) {
+	if( !is_allowed_scheme( scheme, schemes ) ) {
 		return NULL;
 	}
 
-	len = strlen(method);
+	len = strlen(scheme);
 
-	if( strncasecmp( passwd, method, len ) == 0 ) {
+	if( strncasecmp( passwd, scheme, len ) == 0 ) {
 		return &passwd[len];
 	}
 
@@ -77,7 +97,7 @@ int
 lutil_passwd(
 	const char *cred,
 	const char *passwd,
-	const char **methods)
+	const char **schemes)
 {
 	const char *p;
 
@@ -85,7 +105,7 @@ lutil_passwd(
 		return -1;
 	}
 
-	if ((p = passwd_hash( passwd, "{MD5}", methods )) != NULL ) {
+	if ((p = passwd_scheme( passwd, "{MD5}", schemes )) != NULL ) {
 		lutil_MD5_CTX MD5context;
 		unsigned char MD5digest[16];
 		char base64digest[25];  /* ceiling(sizeof(input)/3) * 4 + 1 */
@@ -103,7 +123,7 @@ lutil_passwd(
 
 		return( strcmp(p, base64digest) );
 
-	} else if ((p = passwd_hash( passwd, "{SHA}", methods )) != NULL ) {
+	} else if ((p = passwd_scheme( passwd, "{SHA}", schemes )) != NULL ) {
 		lutil_SHA1_CTX SHA1context;
 		unsigned char SHA1digest[20];
 		char base64digest[29];  /* ceiling(sizeof(input)/3) * 4 + 1 */
@@ -121,7 +141,7 @@ lutil_passwd(
 
 		return( strcmp(p, base64digest) );
 
-	} else if ((p = passwd_hash( passwd, "{SSHA}", methods )) != NULL ) {
+	} else if ((p = passwd_scheme( passwd, "{SSHA}", schemes )) != NULL ) {
 		lutil_SHA1_CTX SHA1context;
 		unsigned char SHA1digest[20];
 		int pw_len = strlen(p);
@@ -150,7 +170,7 @@ lutil_passwd(
 		free(orig_pass);
 		return(rc);
 
-	} else if ((p = passwd_hash( passwd, "{SMD5}", methods )) != NULL ) {
+	} else if ((p = passwd_scheme( passwd, "{SMD5}", schemes )) != NULL ) {
 		lutil_MD5_CTX MD5context;
 		unsigned char MD5digest[16];
 		int pw_len = strlen(p);
@@ -180,12 +200,12 @@ lutil_passwd(
 		return ( rc );
 
 #ifdef SLAPD_CRYPT
-	} else if ((p = passwd_hash( passwd, "{CRYPT}", methods )) != NULL ) {
+	} else if ((p = passwd_scheme( passwd, "{CRYPT}", schemes )) != NULL ) {
 		return( strcmp(p, crypt(cred, p)) );
 
 # if defined( HAVE_GETSPNAM ) \
   || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
-	} else if ((p = passwd_hash( passwd, "{UNIX}", methods )) != NULL ) {
+	} else if ((p = passwd_scheme( passwd, "{UNIX}", schemes )) != NULL ) {
 
 #  ifdef HAVE_GETSPNAM
 		struct spwd *spwd = getspnam(p);
@@ -209,7 +229,7 @@ lutil_passwd(
 	}
 
 #ifdef SLAPD_CLEARTEXT
-	return supported_hash("{CLEARTEXT}", methods ) &&
+	return is_allowed_scheme("{CLEARTEXT}", schemes ) &&
 		strcmp(passwd, cred) != 0;
 #else
 	return( 1 );

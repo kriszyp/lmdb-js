@@ -50,6 +50,11 @@ lutil_passwd LDAP_P((
 	const char *passwd,
 	const char **methods ));
 
+extern const char* lutil_passwd_schemes[];
+
+LDAP_F( int )
+lutil_passwd_scheme LDAP_P((char *scheme));
+
 /* utils.c */
 LDAP_F( char* )
 lutil_progname LDAP_P((
