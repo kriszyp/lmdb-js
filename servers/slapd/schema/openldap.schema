@@ -18,8 +18,10 @@
 #
 # other slapd items
 #
-attributetype ( 1.3.6.1.4.1.4203.666.1.3  NAME 'entry' SUP name
-      SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
+attributetype ( 1.3.6.1.4.1.4203.666.1.3 NAME 'entry'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5
+	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.4203.666.1.4 NAME 'children' SUP name
-      SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
+attributetype ( 1.3.6.1.4.1.4203.666.1.4 NAME 'children'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5
+	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )

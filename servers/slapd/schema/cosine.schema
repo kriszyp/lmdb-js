@@ -2,7 +2,7 @@
 #
 # RFC1274: Cosine and Internet X.500 schema
 #
-# This file contains LDAPv3 schema derived from X.500 "pilot"
+# This file contains LDAPv3 schema derived from X.500 COSINE "pilot"
 # schema.  As this schema was defined for X.500(89), some
 # oddities were introduced in the mapping to LDAPv3.  The
 # mappings were based upon: draft-ietf-asid-ldapv3-attributes-03.txt
@@ -11,9 +11,8 @@
 # It may be best to avoid use this schema.
 #
 # Note: It seems that the pilot schema evolved beyond what was
-# described in RFC1274.  However, this document describes RFC1274
-# as published.  So called "newPilot" objects, such as found on
-# U-Mich/OpenLDAP 1.x servers is available in newpilot.schema.
+# described in RFC1274.  However, this document attempts to describes
+# RFC1274 as published. 
 
 
 # Network Working Group                                          P. Barker
