@@ -13,6 +13,7 @@ OpenLDAP 2.2.12 Engineering
 	Fixed back-ldap normalization bug 
 	Fixed pcache cache_entries init bug (ITS#3150)
 	Fixed pcache consistency_check bug (ITS#3151)
+	Fixed libldap SASL mutex init bug (ITS#3123)
 	Fixed libldap SASL buffering bug (ITS#3139)
 	Build Environment
 		Fixed liblber memory debug portability bug (ITS#3116)

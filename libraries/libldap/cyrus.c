@@ -114,8 +114,6 @@ int ldap_int_sasl_init( void )
 		ldap_pvt_sasl_mutex_lock,
 		ldap_pvt_sasl_mutex_unlock,    
 		ldap_pvt_sasl_mutex_dispose );    
-
-	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
 #endif
 
 	if ( sasl_client_init( NULL ) == SASL_OK ) {
