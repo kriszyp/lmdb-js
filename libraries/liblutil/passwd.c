@@ -369,14 +369,14 @@ int lutil_passwd_hash(
 #if defined(SLAPD_LMHASH) || defined(SLAPD_CRYPT)
 static int pw_string(
 	const struct berval *sc,
-	const struct berval *passwd )
+	struct berval *passwd )
 {
 	struct berval pw;
 
-	pw->bv_len = sc->bv_len + passwd->bv_len;
-	pw->bv_val = ber_memalloc( pw->bv_len + 1 );
+	pw.bv_len = sc->bv_len + passwd->bv_len;
+	pw.bv_val = ber_memalloc( pw.bv_len + 1 );
 
-	if( pw->bv_val == NULL ) {
+	if( pw.bv_val == NULL ) {
 		return -1;
 	}
 
@@ -1098,16 +1098,16 @@ static int hash_crypt(
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return NULL;	/* NUL character in password */
+			return -1;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return NULL;	/* passwd must behave like a string */
+		return -1;	/* passwd must behave like a string */
 	}
 
 	if( lutil_entropy( salt, sizeof( salt ) ) < 0 ) {
-		return NULL; 
+		return -1; 
 	}
 
 	for( i=0; i< ( sizeof(salt) - 1 ); i++ ) {
@@ -1125,7 +1125,7 @@ static int hash_crypt(
 
 	hash->bv_val = crypt( passwd->bv_val, (char *) salt );
 
-	if( hash->bv_val == NULL ) return NULL;
+	if( hash->bv_val == NULL ) return -1;
 
 	hash->bv_len = strlen( hash->bv_val );
 
