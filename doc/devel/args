@@ -1,21 +1,22 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapcompare		 * DE *HI*K M*OPQR  UVWXYZ   de *h**k *n*p*    vwx z
-ldapdelete       *CDE *HI*K M*OPQR  UVWXYZ  cdef*h**k *n*p*    vwxy
-ldapmodify       *CDEF*HI*K M*OPQRS UVWXYZabcdef*h**k *n*p*r t vwxy
-ldapmodrdn       *CDE *HI*K M*OPQR  UVWXYZ  cdef*h**k *n*p*rs  vwxy
-ldappasswd      A*CDE *HI*   *O QRS UVWXYZa  de *h**  * * * s  vwxy  
-ldapsearch      A*CDE *HI*KLM*OPQRSTUVWXYZab*def*h**kl*n*p* stuvwxyz
-ldapwhoami		 * DE *HI*   *O QR  UVWXYZ   def*h**  *n*p*    vwx  
+ldapcompare		 * DE**HI*K M*OPQR  UVWXYZ   de *h**k *n*p*    vwxyz
+ldapdelete       *CDE**HI*K M*OPQR  UVWXYZ  cdef*h**k *n*p*    vwxy
+ldapmodify       *CDE**HI*K M*OPQRS UVWXYZabcde *h**k *n*p*r t vwxy
+ldapmodrdn       *CDE**HI*K M*OPQR  UVWXYZ  cdef*h**k *n*p*rs  vwxy
+ldappasswd      A*CDE**HI*   *O QRS UVWXYZa  def*h**  * * * s  vwxy  
+ldapsearch      A*CDE**HI*KLM*OPQRSTUVWXYZab*def*h**kl*n*p* stuvwxyz
+ldapwhoami		 * DE**HI*   *O QR  UVWXYZ   def*h**  *n*p*    vwxy 
 
 
 * reserved
-	GJNgijmoqy01235789
+	BFGJNgijmoq01235789
 
 * General flags:
 	-C Chase Referrals
 	-D Bind DN
 	-E Tool-specific Extensions	(e.g., -E <[!]oid[=options]>*)
 	-e General Extensions		(e.g., -e <[!]oid[=options]>*)
+	-f file
 	-H URI
 	-P protocol version
 	-V version information

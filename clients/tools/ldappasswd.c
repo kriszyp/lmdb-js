@@ -24,11 +24,14 @@
 #include "common.h"
 
 
-static char	*newpw = NULL;
-static char	*oldpw = NULL;
+static struct berval newpw = { 0, NULL };
+static struct berval oldpw = { 0, NULL };
+
 static int   want_newpw = 0;
 static int   want_oldpw = 0;
 
+static char *oldpwfile = NULL;
+static char *newpwfile = NULL;
 
 void
 usage( void )
@@ -40,15 +43,17 @@ usage( void )
 "Password change options:\n"
 "  -a secret  old password\n"
 "  -A         prompt for old password\n"
+"  -t file    read file for old password\n"
 "  -s secret  new password\n"
 "  -S         prompt for new password\n"
+"  -T file    read file for new password\n"
 	        , prog );
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
 
 
-const char options[] = "a:As:S"
+const char options[] = "a:As:St:T:"
 	"Cd:D:e:h:H:InO:p:QR:U:vVw:WxX:y:Y:Z";
 
 int
@@ -56,9 +61,9 @@ handle_private_option( int i )
 {
 	switch ( i ) {
 #if 0
+	case 'E': /* passwd controls */ {
 		int		crit;
 		char	*control, *cvalue;
-	case 'E': /* passwd controls */
 		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
 			         prog, protocol );
@@ -80,19 +85,21 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
+
 		fprintf( stderr, "Invalid passwd control name: %s\n", control );
 		usage();
+		}
 #endif
 
 	case 'a':	/* old password (secret) */
-		oldpw = strdup (optarg);
-
+		oldpw.bv_val = strdup( optarg );
 		{
 			char* p;
 			for( p = optarg; *p != '\0'; p++ ) {
 				*p = '\0';
 			}
 		}
+		oldpw.bv_len = strlen( oldpw.bv_val );
 		break;
 
 	case 'A':	/* prompt for old password */
@@ -100,17 +107,26 @@ handle_private_option( int i )
 		break;
 
 	case 's':	/* new password (secret) */
-		newpw = strdup (optarg);
+		newpw.bv_val = strdup (optarg);
 		{
 			char* p;
 			for( p = optarg; *p != '\0'; p++ ) {
 				*p = '\0';
 			}
 		}
+		newpw.bv_len = strlen( newpw.bv_val );
 		break;
 
 	case 'S':	/* prompt for user password */
 		want_newpw++;
+		break;
+
+	case 't':
+		oldpwfile = optarg;
+		break;
+
+	case 'T':
+		newpwfile = optarg;
 		break;
 
 	default:
@@ -151,35 +167,49 @@ main( int argc, char *argv[] )
 		user = NULL;
 	}
 
-	if( want_oldpw && oldpw == NULL ) {
+	if( oldpwfile ) {
+		rc = lutil_get_filed_password( prog, &oldpw );
+		if( rc ) return EXIT_FAILURE;
+	}
+
+	if( want_oldpw && oldpw.bv_val == NULL ) {
 		/* prompt for old password */
 		char *ckoldpw;
-		oldpw = strdup(getpassphrase("Old password: "));
+		oldpw.bv_val = strdup(getpassphrase("Old password: "));
 		ckoldpw = getpassphrase("Re-enter old password: ");
 
-		if( oldpw== NULL || ckoldpw == NULL ||
-			strcmp( oldpw, ckoldpw ))
+		if( oldpw.bv_val == NULL || ckoldpw == NULL ||
+			strcmp( oldpw.bv_val, ckoldpw ))
 		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
+
+		oldpw.bv_len = strlen( oldpw.bv_val );
 	}
 
-	if( want_newpw && newpw == NULL ) {
+	if( newpwfile ) {
+		rc = lutil_get_filed_password( prog, &newpw );
+		if( rc ) return EXIT_FAILURE;
+	}
+
+	if( want_newpw && newpw.bv_val == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
-		newpw = strdup(getpassphrase("New password: "));
+		newpw.bv_val = strdup(getpassphrase("New password: "));
 		cknewpw = getpassphrase("Re-enter new password: ");
 
-		if( newpw== NULL || cknewpw == NULL ||
-			strcmp( newpw, cknewpw ))
+		if( newpw.bv_val == NULL || cknewpw == NULL ||
+			strcmp( newpw.bv_val, cknewpw ))
 		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
+
+		newpw.bv_len = strlen( newpw.bv_val );
 	}
 
-	if (want_bindpw && passwd.bv_val == NULL ) {
+	if( want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
 		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
 		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
@@ -192,7 +222,7 @@ main( int argc, char *argv[] )
 	if ( authzid || manageDSAit || noop )
 		tool_server_controls( ld, NULL, 0 );
 
-	if( user != NULL || oldpw != NULL || newpw != NULL ) {
+	if( user != NULL || oldpw.bv_val != NULL || newpw.bv_val != NULL ) {
 		/* build change password control */
 		ber = ber_alloc_t( LBER_USE_DER );
 
@@ -210,16 +240,16 @@ main( int argc, char *argv[] )
 			free(user);
 		}
 
-		if( oldpw != NULL ) {
-			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, oldpw );
-			free(oldpw);
+		if( oldpw.bv_val != NULL ) {
+			ber_printf( ber, "tO",
+				LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, &oldpw );
+			free(oldpw.bv_val);
 		}
 
-		if( newpw != NULL ) {
-			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, newpw );
-			free(newpw);
+		if( newpw.bv_val != NULL ) {
+			ber_printf( ber, "tO",
+				LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, &newpw );
+			free(newpw.bv_val);
 		}
 
 		ber_printf( ber, /*{*/ "N}" );
@@ -256,7 +286,8 @@ main( int argc, char *argv[] )
 		return rc;
 	}
 
-	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 0 );
+	rc = ldap_parse_result( ld, res,
+		&code, &matcheddn, &text, &refs, NULL, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_parse_result" );

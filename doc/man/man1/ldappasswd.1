@@ -11,6 +11,8 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-a \ oldPasswd\fR]
 [\c
+.BI \-t \ oldpasswdfile\fR]
+[\c
 .BI \-D \ binddn\fR]
 [\c
 .BI \-d \ debuglevel\fR]
@@ -27,11 +29,15 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-s \ newPasswd\fR]
 [\c
+.BI \-T \ newpasswdfile\fR]
+[\c
 .BR \-v ]
 [\c
 .BR \-W ]
 [\c
 .BI \-w \ passwd\fR]
+[\c
+.BI \-y \ passwdfile\fR]
 [\c
 .BR \-O \ security-properties ]
 [\c
@@ -82,6 +88,9 @@ This is used instead of specifying the password on the command line.
 .BI \-a \ oldPasswd
 Set the old password to \fIoldPasswd\fP.
 .TP
+.BI \-t \ oldPasswdFile
+Set the old password to the contents of \fIoldPasswdFile\fP.
+.TP
 .B \-x 
 Use simple authentication instead of SASL.
 .TP
@@ -116,6 +125,9 @@ This is used instead of specifying the password on the command line.
 .BI \-s \ newPasswd
 Set the new password to \fInewPasswd\fP.
 .TP
+.BI \-T \ newPasswdFile
+Set the new password to the contents of \fInewPasswdFile\fP.
+.TP
 .B \-v
 Increase the verbosity of output.  Can be specified multiple times.
 .TP
@@ -125,6 +137,10 @@ This is used instead of specifying the password on the command line.
 .TP
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password to bind with.
+.TP
+.BI \-y \ passwdfile
+Use complete contents of \fIpasswdfile\fP as the password for
+simple authentication.
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.
