@@ -2148,6 +2148,7 @@ typedef struct slap_listener Listener;
 typedef struct slap_conn {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */
+	int			c_conn_idx;		/* slot in connections array */
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		*c_sb;			/* ber connection stuff		  */

@@ -92,6 +92,8 @@ static ldap_pvt_thread_start_t connection_operation;
  */
 int connections_init(void)
 {
+	int i;
+
 	assert( connections == NULL );
 
 	if( connections != NULL) {
@@ -125,6 +127,8 @@ int connections_init(void)
 
 	assert( connections[0].c_struct_state == SLAP_C_UNINITIALIZED );
 	assert( connections[dtblsize-1].c_struct_state == SLAP_C_UNINITIALIZED );
+
+	for (i=0; i<dtblsize; i++) connections[i].c_conn_idx = i;
 
 	/*
 	 * per entry initialization of the Connection array initialization
