@@ -112,10 +112,8 @@ monitor_send_children(
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_attrs = attrs;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
-			rs->sr_attrs = NULL;
 		}
 
 		if ( ( mp->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
@@ -168,16 +166,15 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		return( 0 );
 	}
 
+	rs->sr_attrs = op->oq_search.rs_attrs;
 	switch ( op->oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
 		monitor_entry_update( mi, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_attrs = attrs;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
-			rs->sr_attrs = NULL;
 		}
 		rc = LDAP_SUCCESS;
 		monitor_cache_release( mi, e );
@@ -196,10 +193,8 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_attrs = attrs;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
-			rs->sr_attrs = NULL;
 		}
 
 		rc = monitor_send_children( op, rs, e, 1 );
@@ -210,6 +205,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 	}
 	
+	rs->sr_attrs = NULL;
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 
