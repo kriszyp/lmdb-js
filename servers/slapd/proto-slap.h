@@ -422,6 +422,7 @@ LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive, int wake
 
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
+LDAP_SLAPD_F (void) slap_wake_listener LDAP_P((void));
 
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));

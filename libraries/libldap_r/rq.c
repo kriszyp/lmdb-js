@@ -66,9 +66,9 @@ ldap_pvt_runqueue_remove(
 			break;
 	}
 
-	if ( e == entry ) {
-		LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
-	}
+	assert( e == entry );
+
+	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
 
 	LDAP_FREE( entry );
 }

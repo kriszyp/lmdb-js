@@ -907,10 +907,11 @@ do_syncrepl(
 		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
 	}
 
+	if ( dostop ) {
+		connection_client_stop( s );
+	}
+
 	if ( rc == LDAP_SUCCESS ) {
-		if ( dostop ) {
-			connection_client_stop( s );
-		}
 		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
 			defer = 0;
 		}
@@ -929,15 +930,13 @@ do_syncrepl(
 		}
 
 		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
-			if ( dostop ) {
-				connection_client_stop( s );
-			}
 			ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
 		} else if ( si->si_retrynum[i] >= -1 ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
 			rtask->interval.tv_sec = si->si_retryinterval[i];
 			ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+			slap_wake_listener();
 		}
 	}
 	

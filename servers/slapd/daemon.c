@@ -2147,3 +2147,8 @@ void slapd_add_internal(ber_socket_t s, int isactive) {
 Listener ** slapd_get_listeners(void) {
 	return slap_listeners;
 }
+
+void slap_wake_listener()
+{
+	WAKE_LISTENER(1);
+}
