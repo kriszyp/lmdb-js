@@ -1689,6 +1689,7 @@ syncprov_db_open(
 
 	Connection conn;
 	char opbuf[OPERATION_BUFFER_SIZE];
+	char ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	Operation *op = (Operation *)opbuf;
 	Entry *e;
 	Attribute *a;
@@ -1698,6 +1699,8 @@ syncprov_db_open(
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;
 	op->o_ndn = be->be_rootndn;
+
+	ctxcsnbuf[0] = '\0';
 
 	op->o_bd->bd_info = on->on_info->oi_orig;
 	rc = be_entry_get_rw( op, be->be_nsuffix, NULL,
@@ -1712,6 +1715,7 @@ syncprov_db_open(
 			strncpy( si->si_ctxcsnbuf, a->a_nvals[0].bv_val,
 				si->si_ctxcsn.bv_len );
 			si->si_ctxcsnbuf[si->si_ctxcsn.bv_len] = '\0';
+			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_r( op, e );
 		op->o_bd->bd_info = (BackendInfo *)on;
@@ -1724,6 +1728,14 @@ syncprov_db_open(
 	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
 		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
 				&si->si_ctxcsn, 0 );
+	}
+
+	/* If our ctxcsn is different from what was read from the root
+	 * entry, write the new value out.
+	 */
+	if ( strcmp( si->si_ctxcsnbuf, ctxcsnbuf )) {
+		SlapReply rs = {REP_RESULT};
+		syncprov_checkpoint( op, &rs, on );
 	}
 
 	op->o_bd->bd_info = (BackendInfo *)on;
