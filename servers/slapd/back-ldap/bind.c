@@ -37,8 +37,8 @@ ldap_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
-    char		*ndn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
     struct berval	*cred,
 	char		**edn

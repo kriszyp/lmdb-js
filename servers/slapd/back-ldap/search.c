@@ -41,14 +41,14 @@ ldap_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
-    char	*nbase,
+    const char	*base,
+    const char	*nbase,
     int		scope,
     int		deref,
     int		size,
     int		time,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )
