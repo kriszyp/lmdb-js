@@ -24,11 +24,10 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
-#define DN_INDICES 1
-/* #define DN_INDICES 1 *//* generate dn eq, subtree, and parent indices */
+/* #undef DN_INDICES *//* generate dn eq, subtree, and parent indices */
 #define DN_ENTRY_PREFIX		'='
-#define DN_SUBTREE_PREFIX 	'+'
-#define DN_PARENT_PREFIX 	'-'
+#define DN_SUBTREE_PREFIX 	'?'
+#define DN_PARENT_PREFIX 	'@'
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
@@ -42,7 +41,7 @@ LDAP_BEGIN_DECL
 /* allow 3 characters per byte + PREFIX + EOS */
 #define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
 
-#undef CONT_POSTFIX	/* postfix original key */
+/* #undef CONT_POSTFIX *//* postfix original key */
 
 #define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
 

@@ -111,7 +111,8 @@ main( int argc, char **argv )
 						if( pdn != NULL ) {
 							key.dsize = strlen( pdn ) + 2;
 							key.dptr = ch_malloc( key.dsize );
-							sprintf( key.dptr, "%c%s", DN_PARENT_PREFIX, pdn );
+							sprintf( key.dptr, "%c%s",
+								DN_PARENT_PREFIX, pdn );
 							rc = idl_insert_key( be, db, key, id );
 							free( key.dptr );
 						}
@@ -131,7 +132,8 @@ main( int argc, char **argv )
 							for( i=0; subtree[i] != NULL; i++ ) {
 								key.dsize = strlen( subtree[i] ) + 2;
 								key.dptr = ch_malloc( key.dsize );
-								sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, subtree[i] );
+								sprintf( key.dptr, "%c%s",
+									DN_SUBTREE_PREFIX, subtree[i] );
 
 								rc = idl_insert_key( be, db, key, id );
 
