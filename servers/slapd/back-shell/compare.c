@@ -30,7 +30,7 @@ shell_back_compare(
 	Entry e;
 	FILE			*rfp, *wfp;
 
-	if ( IS_NULLCMD( si->si_compare ) ) {
+	if ( si->si_compare == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "compare not implemented", NULL, NULL );
 		return( -1 );

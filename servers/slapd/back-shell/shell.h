@@ -12,41 +12,16 @@
 
 LDAP_BEGIN_DECL
 
-#if defined(HAVE_RECVMSG) && !defined(NO_THREADS)
-#  define SHELL_SURROGATE_PARENT
-#endif
-
-#ifdef SHELL_SURROGATE_PARENT
-
-extern ldap_pvt_thread_mutex_t shell_surrogate_index_mutex;
-extern ldap_pvt_thread_mutex_t shell_surrogate_fd_mutex[2];
-extern int                     shell_surrogate_fd[2];
-extern pid_t                   shell_surrogate_pid;
-
-typedef struct berval Cmd_info;
-#define MAKE_CMD_INFO(args)  make_cmd_info( args )
-#define IS_NULLCMD(cmd)      ((cmd).bv_val == NULL)
-
-extern void make_surrogate_parent LDAP_P(( void ));
-
-#else /* !SHELL_SURROGATE_PARENT */
-
-typedef char **Cmd_info;
-#define MAKE_CMD_INFO(args)  ldap_charray_dup( args )
-#define IS_NULLCMD(cmd)      ((cmd) == NULL)
-
-#endif /* SHELL_SURROGATE_PARENT */
-
 struct shellinfo {
-	Cmd_info si_bind;	/* cmd + args to exec for bind	  */
-	Cmd_info si_unbind;	/* cmd + args to exec for unbind  */
-	Cmd_info si_search;	/* cmd + args to exec for search  */
-	Cmd_info si_compare;	/* cmd + args to exec for compare */
-	Cmd_info si_modify;	/* cmd + args to exec for modify  */
-	Cmd_info si_modrdn;	/* cmd + args to exec for modrdn  */
-	Cmd_info si_add;	/* cmd + args to exec for add	  */
-	Cmd_info si_delete;	/* cmd + args to exec for delete  */
-	Cmd_info si_abandon;	/* cmd + args to exec for abandon */
+	char	**si_bind;		/* cmd + args to exec for bind	  */
+	char	**si_unbind;	/* cmd + args to exec for unbind  */
+	char	**si_search;	/* cmd + args to exec for search  */
+	char	**si_compare;	/* cmd + args to exec for compare */
+	char	**si_modify;	/* cmd + args to exec for modify  */
+	char	**si_modrdn;	/* cmd + args to exec for modrdn  */
+	char	**si_add;		/* cmd + args to exec for add	  */
+	char	**si_delete;	/* cmd + args to exec for delete  */
+	char	**si_abandon;	/* cmd + args to exec for abandon */
 };
 
 struct slap_backend_db;
@@ -54,7 +29,7 @@ struct slap_conn;
 struct slap_op;
 
 extern pid_t forkandexec LDAP_P((
-	Cmd_info args,
+	char **args,
 	FILE **rfp,
 	FILE **wfp));
 

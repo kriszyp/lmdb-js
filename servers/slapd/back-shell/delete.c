@@ -29,7 +29,7 @@ shell_back_delete(
 	Entry e;
 	FILE			*rfp, *wfp;
 
-	if ( IS_NULLCMD( si->si_delete ) ) {
+	if ( si->si_delete == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "delete not implemented", NULL, NULL );
 		return( -1 );

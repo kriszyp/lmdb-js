@@ -33,7 +33,7 @@ shell_back_bind(
 	FILE			*rfp, *wfp;
 	int			rc;
 
-	if ( IS_NULLCMD( si->si_bind ) ) {
+	if ( si->si_bind == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "bind not implemented", NULL, NULL );
 		return( -1 );

@@ -25,7 +25,7 @@ shell_back_unbind(
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 
-	if ( IS_NULLCMD( si->si_unbind ) ) {
+	if ( si->si_unbind == NULL ) {
 		return 0;
 	}
 

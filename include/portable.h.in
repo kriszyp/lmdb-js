@@ -227,9 +227,6 @@
 /* Define if you have the recvfrom function.  */
 #undef HAVE_RECVFROM
 
-/* Define if you have the recvmsg function.  */
-#undef HAVE_RECVMSG
-
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
 

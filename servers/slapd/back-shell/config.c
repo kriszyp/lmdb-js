@@ -15,28 +15,6 @@
 #include "slap.h"
 #include "shell.h"
 
-#ifdef SHELL_SURROGATE_PARENT
-
-static struct berval make_cmd_info(
-	char **args
-)
-{
-	struct berval ret = { 0, 0 };
-	int i;
-	ber_len_t offset;
-	for( i = 0; args[i] != NULL; i++ )
-		ret.bv_len += strlen( args[i] ) + 1;
-	ret.bv_val = ch_malloc( ret.bv_len );
-	offset = 0;
-	for( i = 0; args[i] != NULL; i++ ) {
-		strcpy( ret.bv_val + offset, args[i] );
-		offset += strlen( args[i] ) + 1;
-	}
-	return ret;
-}
-
-#endif /* SHELL_SURROGATE_PARENT */
-
 int
 shell_back_db_config(
     BackendDB	*be,
@@ -62,7 +40,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_bind = MAKE_CMD_INFO( &argv[1] );
+		si->si_bind = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for unbinds */
 	} else if ( strcasecmp( argv[0], "unbind" ) == 0 ) {
@@ -72,7 +50,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_unbind = MAKE_CMD_INFO( &argv[1] );
+		si->si_unbind = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for searches */
 	} else if ( strcasecmp( argv[0], "search" ) == 0 ) {
@@ -82,7 +60,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_search = MAKE_CMD_INFO( &argv[1] );
+		si->si_search = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for compares */
 	} else if ( strcasecmp( argv[0], "compare" ) == 0 ) {
@@ -92,7 +70,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_compare = MAKE_CMD_INFO( &argv[1] );
+		si->si_compare = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for modifies */
 	} else if ( strcasecmp( argv[0], "modify" ) == 0 ) {
@@ -102,7 +80,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_modify = MAKE_CMD_INFO( &argv[1] );
+		si->si_modify = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for modrdn */
 	} else if ( strcasecmp( argv[0], "modrdn" ) == 0 ) {
@@ -112,7 +90,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_modrdn = MAKE_CMD_INFO( &argv[1] );
+		si->si_modrdn = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for add */
 	} else if ( strcasecmp( argv[0], "add" ) == 0 ) {
@@ -122,7 +100,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_add = MAKE_CMD_INFO( &argv[1] );
+		si->si_add = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for delete */
 	} else if ( strcasecmp( argv[0], "delete" ) == 0 ) {
@@ -132,7 +110,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_delete = MAKE_CMD_INFO( &argv[1] );
+		si->si_delete = ldap_charray_dup( &argv[1] );
 
 	/* command + args to exec for abandon */
 	} else if ( strcasecmp( argv[0], "abandon" ) == 0 ) {
@@ -142,7 +120,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_abandon = MAKE_CMD_INFO( &argv[1] );
+		si->si_abandon = ldap_charray_dup( &argv[1] );
 
 	/* anything else */
 	} else {

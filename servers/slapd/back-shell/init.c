@@ -10,7 +10,6 @@
 #include <stdio.h>
 
 #include <ac/socket.h>
-#include <ac/unistd.h>
 
 #include "slap.h"
 #include "shell.h"
@@ -38,7 +37,7 @@ shell_back_initialize(
 	bi->bi_open = 0;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
-	bi->bi_destroy = shell_back_destroy;
+	bi->bi_destroy = 0;
 
 	bi->bi_db_init = shell_back_db_init;
 	bi->bi_db_config = shell_back_db_config;
@@ -65,32 +64,6 @@ shell_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-#ifdef SHELL_SURROGATE_PARENT
-	ldap_pvt_thread_mutex_init( &shell_surrogate_index_mutex );
-	ldap_pvt_thread_mutex_init( &shell_surrogate_fd_mutex[0] );
-	ldap_pvt_thread_mutex_init( &shell_surrogate_fd_mutex[1] );
-#endif
-
-	return 0;
-}
-
-int
-shell_back_destroy(
-	BackendInfo *bi
-)
-{
-#ifdef SHELL_SURROGATE_PARENT
-	ldap_pvt_thread_mutex_destroy( &shell_surrogate_index_mutex );
-	ldap_pvt_thread_mutex_destroy( &shell_surrogate_fd_mutex[0] );
-	ldap_pvt_thread_mutex_destroy( &shell_surrogate_fd_mutex[1] );
-	if ( shell_surrogate_fd[0] >= 0 ) {
-		close( shell_surrogate_fd[0] );
-		close( shell_surrogate_fd[1] );
-	}
-	if ( shell_surrogate_pid >= 0 )
-		kill( shell_surrogate_pid, SIGTERM );
-#endif
-
 	return 0;
 }
 
@@ -100,11 +73,6 @@ shell_back_db_init(
 )
 {
 	struct shellinfo	*si;
-
-#ifdef SHELL_SURROGATE_PARENT
-	if ( shell_surrogate_fd[0] < 0 )
-		make_surrogate_parent();
-#endif
 
 	si = (struct shellinfo *) ch_calloc( 1, sizeof(struct shellinfo) );
 
