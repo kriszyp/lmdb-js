@@ -1807,9 +1807,6 @@ typedef struct slap_op {
 	LDAP_LIST_ENTRY(slap_op) link;
 #endif
 
-#ifdef LDAP_CONNECTIONLESS
-	Sockaddr	o_peeraddr;	/* UDP peer address		  */
-#endif
 	AuthorizationInformation o_authz;
 
 	BerElement	*o_ber;		/* ber of the request		  */
