@@ -136,7 +136,7 @@ depend-local: FORCE
 			$$DEPEND_LDBM $$DEPEND_BDB2
 
 install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
-	 install-quipu-$(HAVE_QUIPU)
+	 install-quipu-$(BUILD_QUIPU)
 
 install-ldbm-no install-bdb2-no install-quipu-no:
 
