@@ -200,16 +200,16 @@ main( int argc, char **argv )
 
 		if ( strcasecmp( control, "authzid" ) == 0 ) {
 			if( authzid != NULL ) {
-				fprintf( stderr, "authzid control previously specified");
+				fprintf( stderr, "authzid control previously specified\n");
 				return EXIT_FAILURE;
 			}
 			if( cvalue == NULL ) {
-				fprintf( stderr, "authzid: control value expected" );
+				fprintf( stderr, "authzid: control value expected\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}
 			if( !crit ) {
-				fprintf( stderr, "authzid: must be marked critical" );
+				fprintf( stderr, "authzid: must be marked critical\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}
@@ -220,11 +220,11 @@ main( int argc, char **argv )
 			
 		} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( manageDSAit ) {
-				fprintf( stderr, "manageDSAit control previously specified");
+				fprintf( stderr, "manageDSAit control previously specified\n");
 				return EXIT_FAILURE;
 			}
 			if( cvalue != NULL ) {
-				fprintf( stderr, "manageDSAit: no control value expected" );
+				fprintf( stderr, "manageDSAit: no control value expected\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}
@@ -234,11 +234,11 @@ main( int argc, char **argv )
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( noop ) {
-				fprintf( stderr, "noop control previously specified");
+				fprintf( stderr, "noop control previously specified\n");
 				return EXIT_FAILURE;
 			}
 			if( cvalue != NULL ) {
-				fprintf( stderr, "noop: no control value expected" );
+				fprintf( stderr, "noop: no control value expected\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}

@@ -310,7 +310,7 @@ main( int argc, char **argv )
 		if ( strcasecmp( control, "mv" ) == 0 ) {
 			/* ValuesReturnFilter control */
 			if( valuesReturnFilter ) {
-				fprintf( stderr, "ValuesReturnFilter previously specified");
+				fprintf( stderr, "ValuesReturnFilter previously specified\n");
 				return EXIT_FAILURE;
 			}
 			valuesReturnFilter= 1 + crit;
@@ -329,7 +329,7 @@ main( int argc, char **argv )
 			int num, tmp;
 			/* PagedResults control */
 			if ( pagedResults != 0 ) {
-				fprintf( stderr, "PagedResultsControl previously specified" );
+				fprintf( stderr, "PagedResultsControl previously specified\n" );
 				return EXIT_FAILURE;
 			}
 			
@@ -346,7 +346,7 @@ main( int argc, char **argv )
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
 			if( subentries ) {
-				fprintf( stderr, "subentries control previously specified");
+				fprintf( stderr, "subentries control previously specified\n");
 				return EXIT_FAILURE;
 			}
 			if( cvalue == NULL || strcasecmp( cvalue, "true") == 0 ) {
