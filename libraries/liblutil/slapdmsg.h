@@ -46,20 +46,20 @@
 
 
 //
-// MessageId: MSG_SLAPD_STARTED
+// MessageId: MSG_SVC_STARTED
 //
 // MessageText:
 //
-//  OpenLDAP SLAPD service started. debuglevel=%1, conffile=%2, urls=%3, mode=%4
+//  OpenLDAP service started. debuglevel=%1, conffile=%2, urls=%3
 //
-#define MSG_SLAPD_STARTED                0x40000500L
+#define MSG_SVC_STARTED                  0x40000500L
 
 //
-// MessageId: MSG_SLAPD_STOPPED
+// MessageId: MSG_SVC_STOPPED
 //
 // MessageText:
 //
-//  OpenLDAP SLAPD service stopped.
+//  OpenLDAP service stopped.
 //
-#define MSG_SLAPD_STOPPED                0x40000501L
+#define MSG_SVC_STOPPED                  0x40000501L
 

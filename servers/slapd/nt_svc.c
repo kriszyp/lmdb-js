@@ -16,12 +16,6 @@
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
 
 /* in ntservice.c */
-int srv_install( char* service, char * displayName, char* filename,
-		 BOOL auto_start );
-int srv_remove ( char* service, char* filename );
-DWORD svc_installed (LPTSTR lpszServiceName, LPTSTR lpszBinaryPathName);
-DWORD svc_running (LPTSTR lpszServiceName);
-
 int main( int argc, LPTSTR *argv )
 {
 	int		length;
@@ -30,10 +24,7 @@ int main( int argc, LPTSTR *argv )
 	/*
 	 * Because the service was registered as SERVICE_WIN32_OWN_PROCESS,
 	 * the lpServiceName element of the SERVICE_TABLE_ENTRY will be
-	 * ignored. Since we don't even know the name of the service at
-	 * this point (since it could have been installed under a name
-	 * different than SERVICE_NAME), we might as well just provide
-	 * the parameter as "".
+	 * ignored.
 	 */
 
 	SERVICE_TABLE_ENTRY		DispatchTable[] = {
@@ -42,9 +33,10 @@ int main( int argc, LPTSTR *argv )
 	};
 
 	/*
-	// set the service's current directory to being the installation directory for the service.
-	// this way we don't have to write absolute paths in the configuration files
-	*/
+	 * set the service's current directory to the installation directory
+	 * for the service. this way we don't have to write absolute paths
+	 * in the configuration files
+	 */
 	GetModuleFileName( NULL, filename, sizeof( filename ) );
 	fname_start = strrchr( filename, *LDAP_DIRSEP );
 
@@ -65,7 +57,7 @@ int main( int argc, LPTSTR *argv )
 				auto_start = TRUE;
 
 			strcat(filename, " service");
-			if ( !srv_install(svcName, displayName, filename, auto_start) ) 
+			if ( !lutil_srv_install(svcName, displayName, filename, auto_start) ) 
 			{
 				fputs( "service failed installation ...\n", stderr  );
 				return EXIT_FAILURE;
@@ -79,7 +71,7 @@ int main( int argc, LPTSTR *argv )
 			char *svcName = SERVICE_NAME;
 			if ( (argc > 2) && (argv[2] != NULL) )
 				svcName = argv[2];
-			if ( !srv_remove(svcName, filename) ) 
+			if ( !lutil_srv_remove(svcName, filename) ) 
 			{
 				fputs( "failed to remove the service ...\n", stderr  );
 				return EXIT_FAILURE;

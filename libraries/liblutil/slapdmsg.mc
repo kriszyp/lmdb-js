@@ -12,17 +12,17 @@
 
 MessageID=0x500
 Severity=Informational
-SymbolicName=MSG_SLAPD_STARTED
+SymbolicName=MSG_SVC_STARTED
 Facility=Application
 Language=English
-OpenLDAP SLAPD service started. debuglevel=%1, conffile=%2, urls=%3, mode=%4
+OpenLDAP service started. debuglevel=%1, conffile=%2, urls=%3
 .
 
 
 MessageID=0x501
 Severity=Informational
-SymbolicName=MSG_SLAPD_STOPPED
+SymbolicName=MSG_SVC_STOPPED
 Facility=Application
 Language=English
-OpenLDAP SLAPD service stopped.
+OpenLDAP service stopped.
 .
