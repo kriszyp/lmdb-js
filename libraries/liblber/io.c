@@ -307,7 +307,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 
 			/* fake error if write was not atomic */
 			if (rc < towrite) {
-#if !defined(MACOS) && !defined(DOS)
+#ifdef EMSGSIZE
 			    errno = EMSGSIZE;
 #endif
 			    return( -1 );
