@@ -104,8 +104,16 @@ struct attrinfo {
 
 #define MAXDBCACHE	10
 
+/* this could be made an option */
+#ifndef SLAPD_NEXTID_CHUNK
+#define SLAPD_NEXTID_CHUNK	32
+#endif
+
 struct ldbminfo {
 	ID			li_nextid;
+#if SLAPD_NEXTID_CHUNK > 1
+	ID			li_nextid_wrote;
+#endif
 	char		*li_nextid_file;
 	pthread_mutex_t		li_root_mutex;
 	pthread_mutex_t		li_add_mutex;

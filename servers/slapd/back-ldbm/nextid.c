@@ -82,6 +82,20 @@ next_id_write( Backend *be, ID id )
 	return rc;
 }
 
+int
+next_id_save( Backend *be )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	ID id = next_id_get( be );
+	int rc = next_id_write( be, id );
+
+	if (rc == 0) {
+		li->li_nextid_wrote = id;
+	}
+
+	return rc;
+}
+
 ID
 next_id( Backend *be )
 {
@@ -97,10 +111,22 @@ next_id( Backend *be )
 		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
 		}
+
+#if SLAPD_NEXTID_CHUNK > 1
+		li->li_nextid_wrote = li->li_nextid;
+#endif
 	}
 
 	id = li->li_nextid++;
+
+#if SLAPD_NEXTID_CHUNK > 1
+	if ( li->li_nextid > li->li_nextid_wrote ) {
+		li->li_nextid_wrote += SLAPD_NEXTID_CHUNK;
+		(void) next_id_write( be, li->li_nextid_wrote );
+	}
+#else
 	(void) next_id_write( be, li->li_nextid );
+#endif
 
 	pthread_mutex_unlock( &li->li_nextid_mutex );
 	return( id );
@@ -109,7 +135,7 @@ next_id( Backend *be )
 void
 next_id_return( Backend *be, ID id )
 {
-#ifdef NEXT_ID_RETURN
+#ifdef SLAPD_NEXTID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
@@ -120,7 +146,10 @@ next_id_return( Backend *be, ID id )
 	}
 
 	li->li_nextid--;
+
+#if !( SLAPD_NEXTID_CHUCK > 1 )
 	(void) next_id_write( be, li->li_nextid );
+#endif
 
 	pthread_mutex_unlock( &li->li_nextid_mutex );
 #endif
@@ -141,6 +170,10 @@ next_id_get( Backend *be )
 		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
 		}
+
+#if SLAPD_NEXTID_CHUNK > 1
+		li->li_nextid_wrote = li->li_nextid;
+#endif
 	}
 
 	id = li->li_nextid;
