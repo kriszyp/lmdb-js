@@ -498,7 +498,6 @@ ldap_back_entry_get(
 {
 	struct ldapconn *lc;
 	int		rc = 1,
-			is_oc,
 			do_not_cache;
 	struct berval	bdn;
 	LDAPMessage	*result = NULL,
@@ -508,6 +507,7 @@ ldap_back_entry_get(
 	Connection	*oconn;
 	SlapReply	rs;
 	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
 
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
@@ -524,9 +524,8 @@ ldap_back_entry_get(
 	op->o_conn = oconn;
 
 	if ( at ) {
-		is_oc = ( strcasecmp( "objectclass", at->ad_cname.bv_val ) == 0 );
-		if ( oc && !is_oc ) {
-			gattr[0] = "objectclass";
+		if ( oc && at != slap_schema.si_ad_objectClass ) {
+			gattr[0] = slap_schema.si_ad_objectClass->ad_cname.bv_val;
 			gattr[1] = at->ad_cname.bv_val;
 			gattr[2] = NULL;
 
@@ -547,9 +546,17 @@ ldap_back_entry_get(
 		*ptr++ = '\0';
 	}
 
+	ctrls = op->o_ctrls;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, &rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+	
 retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
-				at ? gattr : NULL, 0, NULL, NULL, LDAP_NO_LIMIT,
+				at ? gattr : NULL, 0, ctrls, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
@@ -576,6 +583,10 @@ retry:
 	}
 
 cleanup:
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	if ( result ) {
 		ldap_msgfree( result );
 	}
