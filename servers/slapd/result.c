@@ -287,7 +287,8 @@ send_ldap_response(
 			text == NULL ? "" : text );
 
 		if( rc != -1 && ref != NULL ) {
-			rc = ber_printf( ber, "{V}", ref );
+			rc = ber_printf( ber, "t{V}",
+				LDAP_TAG_REFERRAL, ref );
 		}
 
 		if( rc != -1 && sasldata != NULL ) {
