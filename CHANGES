@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.16 Engineering
+	Fixed slapd modify mem leak
 	Build Environment
 		Regenerated configure script
 
