@@ -1451,6 +1451,7 @@ slapd_daemon_task(
 
 		case 0:		/* timeout - let threads run */
 			ebadf = 0;
+#ifndef HAVE_YIELDING_SELECT
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, DETAIL2,
 				   "slapd_daemon_task: select timeout - yielding\n", 0, 0, 0 );
@@ -1460,6 +1461,7 @@ slapd_daemon_task(
 #endif
 
 			ldap_pvt_thread_yield();
+#endif
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -1932,7 +1934,9 @@ slapd_daemon_task(
 				slapd_close( rd );
 			}
 		}
+#ifndef HAVE_YIELDING_SELECT
 		ldap_pvt_thread_yield();
+#endif
 	}
 
 	if( slapd_shutdown == 1 ) {
