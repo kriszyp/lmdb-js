@@ -2586,7 +2586,7 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 
 	cfb->cb_db.bd_info = backend_info( "ldif" );
 	if ( !cfb->cb_db.bd_info )
-		return 1;
+		return 0;	/* FIXME: eventually this will be a fatal error */
 
 	if ( cfb->cb_db.bd_info->bi_db_init( &cfb->cb_db )) return 1;
 
