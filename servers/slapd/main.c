@@ -162,7 +162,11 @@ main( argc, argv )
 	if ( ! inetd ) {
 		/* pre-open config file before detach in case it is a relative path */
 		fp = fopen( configfile, "r" );
-		detach();
+#ifdef LDAP_DEBUG
+		lutil_detach( ldap_debug, 0 );
+#else
+		lutil_detach( 0, 0 );
+#endif
 	}
 #ifdef LOG_LOCAL4
 	openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
