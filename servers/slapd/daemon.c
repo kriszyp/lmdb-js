@@ -398,7 +398,12 @@ static int slap_get_listener_addresses(
 		sai = res;
 		sap = *sal;
 
-		do {
+		for ( sai=res; sai; sai=sai->ai_next ) {
+			if( sai->ai_addr == NULL ) {
+				freeaddrinfo(res);
+				goto errexit;
+			}
+
 			switch (sai->ai_family) {
 #  ifdef LDAP_PF_INET6
 			case AF_INET6:
@@ -428,7 +433,7 @@ static int slap_get_listener_addresses(
 				(*sap)->sa_family = sai->ai_family;
 				sap++;
 			}
-		} while ((sai = sai->ai_next) != NULL);
+		}
 
 		*sap = NULL;
 		freeaddrinfo(res);
