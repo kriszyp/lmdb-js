@@ -686,6 +686,15 @@ read_config( const char *fname, int depth )
 		} else if ( strncasecmp( cargv[0], "sasl", 4 ) == 0 ) {
 			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
 				return 1;
+#ifdef SLAP_X_SASL_REWRITE
+		/* use authid rewrite instead of sasl regexp */
+		} else if ( strncasecmp( cargv[0], "authid-rewrite", sizeof("authid-rewrite") - 1 ) == 0 ) {
+			int rc = slap_sasl_rewrite_config( fname, lineno,
+					cargc, cargv );
+			if ( rc ) {
+				return rc;
+			}
+#endif /* SLAP_X_SASL_REWRITE */
 
 		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
 			struct berval dn;
@@ -784,7 +793,7 @@ read_config( const char *fname, int depth )
 
 			for ( i = 1; i < cargc; i++ ) {
 				if ( strncasecmp( cargv[i], "size", 4 ) == 0 ) {
-					rc = parse_limit( cargv[i], lim );
+					rc = limits_parse_one( cargv[i], lim );
 					if ( rc ) {
 #ifdef NEW_LOGGING
 						LDAP_LOG( CONFIG, CRIT, 
@@ -864,7 +873,7 @@ read_config( const char *fname, int depth )
 
 			for ( i = 1; i < cargc; i++ ) {
 				if ( strncasecmp( cargv[i], "time", 4 ) == 0 ) {
-					rc = parse_limit( cargv[i], lim );
+					rc = limits_parse_one( cargv[i], lim );
 					if ( rc ) {
 #ifdef NEW_LOGGING
 						LDAP_LOG( CONFIG, CRIT, 
@@ -932,7 +941,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			if ( parse_limits( be, fname, lineno, cargc, cargv ) ) {
+			if ( limits_parse( be, fname, lineno, cargc, cargv ) ) {
 				return( 1 );
 			}
 
