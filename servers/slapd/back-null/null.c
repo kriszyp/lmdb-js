@@ -17,115 +17,38 @@ struct null_info {
 };
 
 int
-null_back_bind(
-	Backend			*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	int				method,
-	struct berval	*cred,
-	struct berval	*edn
-)
+null_back_bind( Operation *op, SlapReply *rs )
 {
-	struct null_info *ni = (struct null_info *) be->be_private;
+	struct null_info *ni = (struct null_info *) op->o_bd->be_private;
 
-	if( ni->bind_allowed )
+	if ( ni->bind_allowed ) {
 		/* front end will send result on success (0) */
 		return 0;
-	send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-	                  NULL, NULL, NULL, NULL );
-	return LDAP_INVALID_CREDENTIALS;
-}
+	}
 
-int
-null_back_add(
-	BackendDB	*be,
-	Connection	*conn,
-	Operation	*op,
-	Entry		*e )
-{
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
-	return 0;
-}
+	rs->sr_err = LDAP_INVALID_CREDENTIALS;
+	send_ldap_result( op, rs );
 
-int
-null_back_compare(
-	BackendDB		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	AttributeAssertion *ava
-)
-{
-	send_ldap_result( conn, op, LDAP_COMPARE_FALSE, NULL, NULL, NULL, NULL );
-	return 0;
-}
-
-int
-null_back_delete(
-	BackendDB		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*dn,
-	struct berval	*ndn
-)
-{
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
-	return 0;
-}
-
-int
-null_back_modify(
-	BackendDB		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	Modifications	*modlist )
-{
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
-	return 0;
-}
-
-int
-null_back_modrdn(
-	Backend			*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	struct berval	*newrdn,
-	struct berval	*nnewrdn,
-	int				deleteoldrdn,
-	struct berval	*newSuperior,
-	struct berval	*nnewSuperior )
-{
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
-	return 0;
-}
-
-int
-null_back_search(
-	BackendDB		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval	*base,
-	struct berval	*nbase,
-	int				scope,
-	int				deref,
-	int				slimit,
-	int				tlimit,
-	Filter			*filter,
-	struct berval	*filterstr,
-	AttributeName	*attrs,
-	int				attrsonly )
-{
-	send_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL, 0 );
 	return 1;
 }
 
+/* add, delete, modify, modrdn, search */
+int
+null_back_success( Operation *op, SlapReply *rs )
+{
+	rs->sr_err = LDAP_SUCCESS;
+	send_ldap_result( op, rs );
+	return 0;
+}
+
+/* compare */
+int
+null_back_false( Operation *op, SlapReply *rs )
+{
+	rs->sr_err = LDAP_COMPARE_FALSE;
+	send_ldap_result( op, rs );
+	return 0;
+}
 
 int
 null_back_db_config(
@@ -167,7 +90,11 @@ null_back_db_config(
 int
 null_back_db_init( BackendDB *be )
 {
-	be->be_private = ch_calloc( 1, sizeof(struct null_info) );
+	struct null_info *ni;
+
+	ni = ch_calloc( 1, sizeof(struct null_info) );
+	ni->bind_allowed = 0;
+	be->be_private = ni;
 	return 0;
 }
 
@@ -199,12 +126,12 @@ null_back_initialize(
 
 	bi->bi_op_bind = null_back_bind;
 	bi->bi_op_unbind = 0;
-	bi->bi_op_search = null_back_search;
-	bi->bi_op_compare = null_back_compare;
-	bi->bi_op_modify = null_back_modify;
-	bi->bi_op_modrdn = null_back_modrdn;
-	bi->bi_op_add = null_back_add;
-	bi->bi_op_delete = null_back_delete;
+	bi->bi_op_search = null_back_success;
+	bi->bi_op_compare = null_back_false;
+	bi->bi_op_modify = null_back_success;
+	bi->bi_op_modrdn = null_back_success;
+	bi->bi_op_add = null_back_success;
+	bi->bi_op_delete = null_back_success;
 	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = 0;
