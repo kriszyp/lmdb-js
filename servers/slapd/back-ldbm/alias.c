@@ -121,7 +121,7 @@ char *derefDN ( Backend     *be,
   
 
   Debug( LDAP_DEBUG_TRACE, 
-	 "<= dereferencing dn %s\n", 
+	 "<= dereferencing dn: \"%s\"\n", 
 	 dn, 0, 0 );
   
   newDN = ch_strdup ( dn );
@@ -203,8 +203,10 @@ char *derefDN ( Backend     *be,
     }
   }
   
-  /* free reader lock */
-  cache_return_entry_r(&li->li_cache, eMatched);
+  if(eMatched != NULL) {
+    /* free reader lock */
+    cache_return_entry_r(&li->li_cache, eMatched);
+  }
 
   /*
    * the final part of the DN might be an alias 
