@@ -258,6 +258,13 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
 	rs->sr_err = access_allowed( op, e,
 		entry, NULL, ACL_WRITE, NULL );
 

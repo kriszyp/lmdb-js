@@ -615,6 +615,14 @@ dn2entry_retry:
 		return 1;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		send_ldap_result( sop, rs );
+		return 1;
+	}
+
 	/* if not root, get appropriate limits */
 	if ( be_isroot( op->o_bd, &sop->o_ndn ) ) {
 		isroot = 1;
