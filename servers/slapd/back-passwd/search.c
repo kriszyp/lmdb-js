@@ -297,8 +297,9 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	e->e_name.bv_val = ch_strdup( buf );
 	e->e_name.bv_len = strlen( e->e_name.bv_val );
 
+	/* FIXME: use dnNormalize() !! */
 	e->e_nname.bv_val = ch_strdup( buf );
-	(void) dn_normalize( e->e_nname );
+	(void) dn_normalize( e->e_nname.bv_val );
 	e->e_nname.bv_len = strlen( e->e_name.bv_val );
 
 	val.bv_val = pw->pw_name;
