@@ -1885,10 +1885,10 @@ caseExactIgnoreSubstringsFilter
 	}
 
 	if( nkeys == 0 ) {
+#ifndef SLAP_NVALUES
 		if ( sa->sa_final.bv_val ) free( sa->sa_final.bv_val );
 		if ( sa->sa_any ) ber_bvarray_free( sa->sa_any );
 		if ( sa->sa_initial.bv_val ) free( sa->sa_initial.bv_val );
-#ifndef SLAP_NVALUES
 		ch_free( sa );
 #endif
 		*keysp = NULL;
@@ -2002,10 +2002,11 @@ caseExactIgnoreSubstringsFilter
 		ch_free( keys );
 		*keysp = NULL;
 	}
+
+#ifndef SLAP_NVALUES
 	if ( sa->sa_final.bv_val ) free( sa->sa_final.bv_val );
 	if ( sa->sa_any ) ber_bvarray_free( sa->sa_any );
 	if ( sa->sa_initial.bv_val ) free( sa->sa_initial.bv_val );
-#ifndef SLAP_NVALUES
 	ch_free( sa );
 #endif
 
