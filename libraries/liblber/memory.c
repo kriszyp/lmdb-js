@@ -531,7 +531,7 @@ ber_mem2bv(
 
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-	if( s == NULL || len == 0 ) {
+	if( s == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
 	}
