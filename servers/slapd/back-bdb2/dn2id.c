@@ -178,14 +178,16 @@ bdb2i_dn2idl(
 int
 bdb2i_dn2id_delete(
     BackendDB	*be,
-    const char	*dn
+    const char	*dn,
+	ID id
 )
 {
 	struct dbcache	*db;
 	Datum		key;
 	int		rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_delete( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_delete( \"%s\", %ld )\n",
+		dn, id, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -194,6 +196,42 @@ bdb2i_dn2id_delete(
 		    0, 0 );
 		return( -1 );
 	}
+
+	{
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			ldbm_datum_init( key );
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+			(void) bdb2i_idl_delete_key( be, db, key, id );
+			free( key.dptr );
+			free( pdn );
+		}
+	}
+
+#if 0
+	{
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				ldbm_datum_init( key );
+				key.dsize = strlen( subtree[i] ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, subtree[i] );
+
+				(void) bdb2i_idl_delete_key( be, db, key, id );
+
+				free( key.dptr );
+			}
+
+			charray_free( subtree );
+		}
+	}
+#endif
 
 	ldbm_datum_init( key );
 

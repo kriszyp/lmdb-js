@@ -184,7 +184,7 @@ ID bdb2_tool_entry_put(
 	rc = bdb2i_cache_store( id2entry, key, data, LDBM_REPLACE );
 
 	if( rc != 0 ) {
-		(void) bdb2i_dn2id_delete( be, e->e_ndn );
+		(void) bdb2i_dn2id_delete( be, e->e_ndn, e->e_id );
 		return NOID;
 	}
 

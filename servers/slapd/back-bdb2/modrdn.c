@@ -225,12 +225,6 @@ bdb2i_back_modrdn_internal(
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );
 
-	if ( (bdb2i_dn2id ( be, new_ndn ) ) != NOID ) {
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
@@ -239,23 +233,8 @@ bdb2i_back_modrdn_internal(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* delete old one */
-	if ( bdb2i_dn2id_delete( be, e->e_ndn ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
-	(void) bdb2i_cache_delete_entry( &li->li_cache, e );
-	free( e->e_dn );
-	free( e->e_ndn );
-	e->e_dn = new_dn;
-	e->e_ndn = new_ndn;
-
-
-	/* add new one */
-	if ( bdb2i_dn2id_add( be,  e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+	if ( (bdb2i_dn2id ( be, new_ndn ) ) != NOID ) {
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
@@ -401,6 +380,37 @@ bdb2i_back_modrdn_internal(
 	}
 #endif
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		goto return_results;
+	}
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+
+	/* delete old one */
+	if ( bdb2i_dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
+	(void) bdb2i_cache_delete_entry( &li->li_cache, e );
+
+	free( e->e_dn );
+	free( e->e_ndn );
+	e->e_dn = new_dn;
+	e->e_ndn = new_ndn;
+	new_dn = NULL;
+	new_ndn = NULL;
+
+	/* add new one */
+	if ( bdb2i_dn2id_add( be,  e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
 	/* modify memory copy of entry */
 	if ( bdb2i_back_modify_internal( be, conn, op, dn, &mod[0], e )
 	     != 0 ) {
@@ -420,19 +430,17 @@ bdb2i_back_modrdn_internal(
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			NULL, NULL, NULL, NULL );
-		goto return_results_after;
+		goto return_results;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
 	rc = 0;
-	goto return_results_after;	
 
 return_results:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
 
-return_results_after:
 	/* NOTE:
 	 * new_dn and new_ndn are not deallocated because they are used by
 	 * the cache entry.

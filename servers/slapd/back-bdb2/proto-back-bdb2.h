@@ -76,7 +76,7 @@ int bdb2i_cache_delete LDAP_P(( struct dbcache *db, Datum key ));
 
 int bdb2i_dn2id_add LDAP_P(( BackendDB *be, const char *dn, ID id ));
 ID bdb2i_dn2id LDAP_P(( BackendDB *be, const char *dn ));
-int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, const char *dn ));
+int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, const char *dn, ID id ));
 
 ID_BLOCK *
 bdb2i_dn2idl LDAP_P((

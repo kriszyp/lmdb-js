@@ -126,7 +126,7 @@ bdb2i_back_delete_internal(
 	}
 
 	/* delete from dn2id mapping */
-	if ( bdb2i_dn2id_delete( be, e->e_ndn ) != 0 ) {
+	if ( bdb2i_dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- bdb2i_back_delete: operations error %s\n",
 			dn, 0, 0);
