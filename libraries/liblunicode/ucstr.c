@@ -82,21 +82,22 @@ void ucstr2upper(
 }
 
 char * UTF8normalize(
-	const char *s,
+	struct berval *bv;
 	char casefold )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
-	char *out;
+	char *out, *s;
 	unsigned long *ucs, *p, *ucsout;
 
 	static unsigned char mask[] = {
                 0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
-	if ( s == NULL ) {
+	if ( bv == NULL ) {
 		return NULL;
 	}
-	
-	len = strlen( s );
+
+	s = bv->bv_val;
+	len = bv->bv_len;
 
 	if ( len == 0 ) {
 		out = (char *) malloc( 1 );

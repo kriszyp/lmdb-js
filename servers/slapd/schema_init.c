@@ -255,7 +255,7 @@ dnNormalize(
 
 	if ( val->bv_len != 0 ) {
 		char *dn;
-		out = ber_bvstr( UTF8normalize( val->bv_val, UTF8_CASEFOLD ) );
+		out = ber_bvstr( UTF8normalize( val, UTF8_CASEFOLD ) );
 
 		dn = dn_validate( out->bv_val );
 
@@ -617,7 +617,7 @@ UTF8SubstringsassertionNormalize(
 	}
 
 	if( sa->sa_initial != NULL ) {
-		nsa->sa_initial = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, casefold ) );
+		nsa->sa_initial = ber_bvstr( UTF8normalize( sa->sa_initial, casefold ) );
 		if( nsa->sa_initial == NULL ) {
 			goto err;
 		}
@@ -629,7 +629,7 @@ UTF8SubstringsassertionNormalize(
 		}
 		nsa->sa_any = (struct berval **)ch_malloc( (i + 1) * sizeof(struct berval *) );
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			nsa->sa_any[i] = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, casefold ) );
+			nsa->sa_any[i] = ber_bvstr( UTF8normalize( sa->sa_any[i], casefold ) );
 			if( nsa->sa_any[i] == NULL ) {
 				goto err;
 			}
@@ -638,7 +638,7 @@ UTF8SubstringsassertionNormalize(
 	}
 
 	if( sa->sa_final != NULL ) {
-		nsa->sa_final = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, casefold ) );
+		nsa->sa_final = ber_bvstr( UTF8normalize( sa->sa_final, casefold ) );
 		if( nsa->sa_final == NULL ) {
 			goto err;
 		}
@@ -702,7 +702,7 @@ approxMatch(
 	size_t avlen;
 
 	/* Yes, this is necessary */
-	nval = UTF8normalize( value->bv_val, UTF8_NOCASEFOLD );
+	nval = UTF8normalize( value, UTF8_NOCASEFOLD );
 	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
@@ -710,7 +710,7 @@ approxMatch(
 	strip8bitChars( nval );
 
 	/* Yes, this is necessary */
-	assertv = UTF8normalize( ((struct berval *)assertedValue)->bv_val,
+	assertv = UTF8normalize( ((struct berval *)assertedValue),
 				 UTF8_NOCASEFOLD );
 	if( assertv == NULL ) {
 		ch_free( nval );
@@ -816,7 +816,7 @@ approxIndexer(
 
 	for( j=0; values[j] != NULL; j++ ) {
 		/* Yes, this is necessary */
-		val = UTF8normalize( values[j]->bv_val, UTF8_NOCASEFOLD );
+		val = UTF8normalize( values[j], UTF8_NOCASEFOLD );
 		strip8bitChars( val );
 
 		/* Isolate how many words there are. There will be a key for each */
@@ -869,7 +869,7 @@ approxFilter(
 	struct berval **keys;
 
 	/* Yes, this is necessary */
-	val = UTF8normalize( ((struct berval *)assertValue)->bv_val,
+	val = UTF8normalize( ((struct berval *)assertValue),
 			     UTF8_NOCASEFOLD );
 	if( val == NULL ) {
 		keys = (struct berval **)ch_malloc( sizeof(struct berval *) );
@@ -924,14 +924,14 @@ approxMatch(
 	char *s, *t;
 
 	/* Yes, this is necessary */
-	s = UTF8normalize( value->bv_val, UTF8_NOCASEFOLD );
+	s = UTF8normalize( value, UTF8_NOCASEFOLD );
 	if( s == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
 
 	/* Yes, this is necessary */
-	t = UTF8normalize( ((struct berval *)assertedValue)->bv_val,
+	t = UTF8normalize( ((struct berval *)assertedValue),
 			   UTF8_NOCASEFOLD );
 	if( t == NULL ) {
 		free( s );
@@ -979,7 +979,7 @@ approxIndexer(
 	/* Copy each value and run it through phonetic() */
 	for( i=0; values[i] != NULL; i++ ) {
 		/* Yes, this is necessary */
-		s = UTF8normalize( values[i]->bv_val, UTF8_NOCASEFOLD );
+		s = UTF8normalize( values[i], UTF8_NOCASEFOLD );
 
 		/* strip 8-bit chars and run through phonetic() */
 		keys[i] = ber_bvstr( phonetic( strip8bitChars( s ) ) );
@@ -1008,7 +1008,7 @@ approxFilter(
 	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * 2 );
 
 	/* Yes, this is necessary */
-	s = UTF8normalize( ((struct berval *)assertValue)->bv_val,
+	s = UTF8normalize( ((struct berval *)assertValue),
 			     UTF8_NOCASEFOLD );
 	if( s == NULL ) {
 		keys[0] = NULL;
@@ -1059,7 +1059,7 @@ caseExactIgnoreSubstringsMatch(
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
 
-	nav = UTF8normalize( value->bv_val, casefold );
+	nav = UTF8normalize( value, casefold );
 	if( nav == NULL ) {
 		match = 1;
 		goto done;
@@ -1232,7 +1232,7 @@ int caseExactIgnoreIndexer(
 
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value;
-		value = ber_bvstr( UTF8normalize( values[i]->bv_val,
+		value = ber_bvstr( UTF8normalize( values[i],
 			casefold ) );
 
 		HASH_Init( &HASHcontext );
@@ -1284,7 +1284,7 @@ int caseExactIgnoreFilter(
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
 
-	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val,
+	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue),
 		casefold ) );
 	/* This usually happens if filter contains bad UTF8 */
 	if( value == NULL ) {
@@ -1353,7 +1353,7 @@ int caseExactIgnoreSubstringsIndexer(
 
 	nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
 	for( i=0; values[i] != NULL; i++ ) {
-		nvalues[i] = ber_bvstr( UTF8normalize( values[i]->bv_val,
+		nvalues[i] = ber_bvstr( UTF8normalize( values[i],
 			casefold ) );
 	}
 	nvalues[i] = NULL;
