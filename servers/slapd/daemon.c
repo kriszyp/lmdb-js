@@ -988,9 +988,7 @@ slapd_daemon_task(
 		ber_socket_t nfds;
 #define SLAPD_EBADF_LIMIT 16
 		int ebadf = 0;
-#if defined( EMFILE ) || defined( ENFILE )
 		int emfile = 0;
-#endif
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 		time_t	now = slap_get_time();
@@ -1006,13 +1004,9 @@ slapd_daemon_task(
 		struct timeval		zero;
 		struct timeval		*tvp;
 
-		if(
-#if defined( EMFILE ) || defined( ENFILE )
-			emfile ||
-#endif
-			( global_idletimeout > 0 && difftime(
-				last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
-				now ) < 0 ))
+		if( emfile || ( global_idletimeout > 0 && difftime(
+			last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
+			now ) < 0 ))
 		{
 			connections_timeout_idle(now);
 		}
@@ -1202,9 +1196,6 @@ slapd_daemon_task(
 			if ( s == AC_SOCKET_INVALID ) {
 				int err = sock_errno();
 
-				ldap_pvt_thread_yield();
-
-#if defined( EMFILE ) || defined( ENFILE )
 #ifdef EMFILE
 				if( err == EMFILE ) {
 					emfile++;
@@ -1213,28 +1204,33 @@ slapd_daemon_task(
 #ifdef ENFILE
 				if( err == ENFILE ) {
 					emfile++;
+				} else 
+#endif
+				{
+					emfile=0;
 				}
-#endif
-				/* prevent busy loop */
-#  ifdef HAVE_USLEEP
-				if( emfile % 4 == 3 ) usleep( 250 );
-#  else
-				if( emfile % 8 == 7 ) sleep( 1 );
-#  endif
-				else continue;
-#endif
 
+				if( emfile < 3 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-					"slapd_daemon_task: accept(%ld) failed errno=%d (%s)\n",
-					(long)slap_listeners[l]->sl_sd, err, sock_errstr(err) ));
+					LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+						"slapd_daemon_task: accept(%ld) failed errno=%d (%s)\n",
+						(long)slap_listeners[l]->sl_sd, err, sock_errstr(err) ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%ld) failed errno=%d (%s)\n",
-				    (long) slap_listeners[l]->sl_sd, err,
-				    sock_errstr(err) );
+					Debug( LDAP_DEBUG_ANY,
+					    "daemon: accept(%ld) failed errno=%d (%s)\n",
+					    (long) slap_listeners[l]->sl_sd, err,
+					    sock_errstr(err) );
 #endif
+				} else {
+					/* prevent busy loop */
+#  ifdef HAVE_USLEEP
+					if( emfile % 4 == 3 ) usleep( 250 );
+#  else
+					if( emfile % 8 == 7 ) sleep( 1 );
+#  endif
+				}
 
+				ldap_pvt_thread_yield();
 				continue;
 			}
 			emfile = 0;
@@ -1244,13 +1240,14 @@ slapd_daemon_task(
 			if ( s >= dtblsize ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-					   "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
-					   (long)s, (long)dtblsize ));
+				   "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
+				   (long)s, (long)dtblsize ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %ld beyond descriptor table size %ld\n",
 					(long) s, (long) dtblsize, 0 );
 #endif
+
 				slapd_close(s);
 				ldap_pvt_thread_yield();
 				continue;
