@@ -570,7 +570,7 @@ parse_limit(
 					return( 1 );
 				}
 				arg++;
-				if ( strcasecmp( arg, "noEntriesLeft" ) == 0 ) {
+				if ( strcasecmp( arg, "noEstimate" ) == 0 ) {
 					limit->lms_s_pr_hide = 1;
 				} else {
 					char	*next = NULL;

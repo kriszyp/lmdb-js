@@ -345,6 +345,17 @@ and
 .BR timelimit ;
 no limit is set on 
 .BR unchecked .
+
+If 
+.B pagedResults
+control is defined, additional size limits may be enforced; the syntax is
+.BR size.pr={<integer>|noEstimate} ,
+where
+.BR integer
+is the max page size if no explicit limit is set; the keyword
+.BR noEstimate
+inhibits the server to return an estimate of the total number
+of entries that will be returned.
 .RE
 .\".TP
 .\".B logfile <filename>
