@@ -43,12 +43,9 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid )
 	rc = bdb->bi_id2entry->bdi_db->cursor( bdb->bi_id2entry->bdi_db,
 		tid, &cursor, 0 );
 
-	while (rc == 0) {
+	if (rc == 0) {
 		rc = cursor->c_get(cursor, &key, &data, DB_LAST);
 		cursor->c_close(cursor);
-		if (rc != 0)
-			break;
-		break;
 	}
 
 	switch(rc) {
