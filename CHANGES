@@ -15,6 +15,7 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	Fixed -llber seqorset buffer overrun bug (ITS#479)
 	Build Environment
 		Do not list unsupported LDBM API option NDBM
+		Allow DEFAULT_DB_PAGE_SIZE to be defined at build time
 
 Changes included in OpenLDAP 1.2.9
 	CVS Tag: OPENLDAP_REL_ENG_1_2_9
