@@ -46,6 +46,9 @@ typedef struct avlnode {
 typedef int	(*IFP)();
 
 LDAP_F int
+avl_free LDAP_P(( Avlnode *root, IFP dfree ));
+
+LDAP_F int
 avl_insert LDAP_P((Avlnode **, caddr_t, IFP, IFP));
 
 LDAP_F caddr_t

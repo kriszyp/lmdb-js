@@ -1,13 +1,17 @@
 /* testavl.c - Test Tim Howes AVL code */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+
 #include <ac/string.h>
 #include <sys/types.h>
 
 #include "avl.h"
+
+static void ravl_print LDAP_P(( Avlnode *root, int depth ));
+static void myprint LDAP_P(( Avlnode *root ));
 
 main( argc, argv )
 int	argc;
@@ -17,7 +21,6 @@ char	**argv;
 	char	command[ 10 ];
 	char	name[ 80 ];
 	char	*p;
-	int	free(), strcmp();
 
 	printf( "> " );
 	while ( fgets( command, sizeof( command ), stdin ) != NULL ) {
@@ -78,9 +81,7 @@ char	**argv;
 	/* NOTREACHED */
 }
 
-static ravl_print( root, depth )
-Avlnode	*root;
-int	depth;
+static void ravl_print( Avlnode *root, int depth )
 {
 	int	i;
 
@@ -96,15 +97,14 @@ int	depth;
 	ravl_print( root->avl_left, depth+1 );
 }
 
-myprint( root )
-Avlnode	*root;
+static void myprint( Avlnode *root )
 {
 	printf( "********\n" );
 
 	if ( root == 0 )
 		printf( "\tNULL\n" );
 	else
-		( void ) ravl_print( root, 0 );
+		ravl_print( root, 0 );
 
 	printf( "********\n" );
 }
