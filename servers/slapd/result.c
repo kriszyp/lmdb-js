@@ -698,7 +698,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 * to particular value of attribute and equals 1 if value matches
 	 * to ValuesReturnFilter or 0 if not
 	 */	
-	if ( op->vrFilter != NULL ) {
+	if ( op->o_vrFilter != NULL ) {
 		int	k = 0;
 		size_t	size;
 
@@ -827,7 +827,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					continue;
 				}
 
-				if ( op->vrFilter && e_flags[j][i] == 0 ){
+				if ( op->o_vrFilter && e_flags[j][i] == 0 ){
 					continue;
 				}
 
@@ -873,7 +873,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	/* only have subschemaSubentry implemented */
 	aa = backend_operational( op, rs, opattrs );
 
-	if ( aa != NULL && op->vrFilter != NULL ) {
+	if ( aa != NULL && op->o_vrFilter != NULL ) {
 		int	k = 0;
 		size_t	size;
 
@@ -1020,7 +1020,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					continue;
 				}
 
-				if ( op->vrFilter && e_flags[j][i] == 0 ){
+				if ( op->o_vrFilter && e_flags[j][i] == 0 ){
 					continue;
 				}
 
