@@ -46,7 +46,7 @@ do_add( Operation *op, SlapReply *rs )
 {
 	BerElement	*ber = op->o_ber;
 	char		*last;
-	struct berval dn = { 0, NULL };
+	struct berval dn = BER_BVNULL;
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;

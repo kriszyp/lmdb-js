@@ -1318,7 +1318,7 @@ int connection_read(ber_socket_t s)
 
 		} else if ( rc == 0 ) {
 			void *ssl;
-			struct berval authid = { 0, NULL };
+			struct berval authid = BER_BVNULL;
 
 			c->c_needs_tls_accept = 0;
 

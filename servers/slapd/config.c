@@ -73,11 +73,11 @@ char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
 int		cargc = 0, cargv_size = 0;
 char	**cargv;
-struct berval default_search_base = { 0, NULL };
-struct berval default_search_nbase = { 0, NULL };
+struct berval default_search_base = BER_BVNULL;
+struct berval default_search_nbase = BER_BVNULL;
 unsigned		num_subordinates = 0;
-struct berval global_schemadn = { 0, NULL };
-struct berval global_schemandn = { 0, NULL };
+struct berval global_schemadn = BER_BVNULL;
+struct berval global_schemandn = BER_BVNULL;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;

@@ -41,21 +41,21 @@ static struct {
 	struct berval s;
 	struct berval n;
 } int_2_level[] = {
-	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	{ 0, NULL } },
-	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	{ 0, NULL } },
-	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	{ 0, NULL } },
-	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	{ 0, NULL } },
-	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	{ 0, NULL } },	/* useless */
-	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	{ 0, NULL } },
-	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	{ 0, NULL } },
-	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	{ 0, NULL } },
-	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	{ 0, NULL } },
-	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	{ 0, NULL } },
-	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	{ 0, NULL } },
-	{ 0,			{ 0, NULL },	{ 0, NULL } }
+	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	BER_BVNULL },
+	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	BER_BVNULL },
+	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	BER_BVNULL },
+	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	BER_BVNULL },
+	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	BER_BVNULL },
+	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	BER_BVNULL },
+	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	BER_BVNULL },	/* useless */
+	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	BER_BVNULL },
+	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	BER_BVNULL },
+	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	BER_BVNULL },
+	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	BER_BVNULL },
+	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	BER_BVNULL },
+	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	BER_BVNULL },
+	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	BER_BVNULL },
+	{ 0,			BER_BVNULL,	BER_BVNULL }
 };
 
 static int loglevel2int( struct berval *l );
@@ -79,7 +79,7 @@ monitor_subsys_log_init(
 	struct berval		desc[] = {
 		BER_BVC("This entry allows to set the log level runtime."),
 		BER_BVC("Set the attribute 'managedInfo' to the desired log levels."),
-		{ 0, NULL }
+		BER_BVNULL
 	};
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );

@@ -804,7 +804,7 @@ nameUIDPretty(
 	} else {
 		int rc;
 		struct berval dnval = *val;
-		struct berval uidval = { 0, NULL };
+		struct berval uidval = BER_BVNULL;
 
 		if( val->bv_val[val->bv_len-1] == 'B'
 			&& val->bv_val[val->bv_len-2] == '\'' )
@@ -875,7 +875,7 @@ uniqueMemberNormalize(
 
 	ber_dupbv( &out, val );
 	if( out.bv_len != 0 ) {
-		struct berval uid = { 0, NULL };
+		struct berval uid = BER_BVNULL;
 
 		if( out.bv_val[out.bv_len-1] == 'B'
 			&& out.bv_val[out.bv_len-2] == '\'' )
@@ -935,10 +935,10 @@ uniqueMemberMatch(
 {
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
-	struct berval assertedDN = { 0, NULL };
-	struct berval assertedUID = { 0, NULL };
-	struct berval valueDN = { 0, NULL };
-	struct berval valueUID = { 0, NULL };
+	struct berval assertedDN = BER_BVNULL;
+	struct berval assertedUID = BER_BVNULL;
+	struct berval valueDN = BER_BVNULL;
+	struct berval valueUID = BER_BVNULL;
 
 	if( asserted->bv_len != 0 ) {
 		assertedDN = *asserted;
@@ -1372,7 +1372,7 @@ approxIndexer(
 	BerVarray keys=NULL;
 
 	for( j=0; values[j].bv_val != NULL; j++ ) {
-		struct berval val = { 0, NULL };
+		struct berval val = BER_BVNULL;
 		/* Yes, this is necessary */
 		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX, NULL );
 		assert( val.bv_val != NULL );
@@ -2210,7 +2210,7 @@ certificateExactNormalize(
 	unsigned char *p;
 	char *serial = NULL;
 	ber_len_t seriallen;
-	struct berval issuer_dn = { 0, NULL };
+	struct berval issuer_dn = BER_BVNULL;
 	X509_NAME *name = NULL;
 	ASN1_INTEGER *sn = NULL;
 	X509 *xcert = NULL;

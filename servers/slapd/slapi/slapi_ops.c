@@ -342,7 +342,7 @@ slapi_int_ldapmod_to_entry(
 	char *ldn, 
 	LDAPMod **mods )
 {
-	struct berval		dn = { 0, NULL };
+	struct berval		dn = BER_BVNULL;
 	Entry			*pEntry=NULL;
 	LDAPMod			*pMod;
 	struct berval		*bv;
@@ -516,7 +516,7 @@ slapi_delete_internal(
 	Slapi_PBlock		*pPB = NULL;
 	Slapi_PBlock		*pSavePB = NULL;
 	SlapReply		rs = { REP_RESULT };
-	struct berval		dn = { 0, NULL };
+	struct berval		dn = BER_BVNULL;
 
 	int			manageDsaIt = 0;
 	int			isCritical;
@@ -763,8 +763,8 @@ slapi_modrdn_internal(
 	int log_change )
 {
 #ifdef LDAP_SLAPI
-	struct berval		dn = { 0, NULL };
-	struct berval		newrdn = { 0, NULL };
+	struct berval		dn = BER_BVNULL;
+	struct berval		newrdn = BER_BVNULL;
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
@@ -893,7 +893,7 @@ slapi_modify_internal(
 	Slapi_PBlock		*pPB = NULL;
 	Slapi_PBlock		*pSavePB = NULL;
 
-	struct berval dn = { 0, NULL };
+	struct berval dn = BER_BVNULL;
 
 	int			manageDsaIt = 0;
 	int			isCritical;
@@ -1088,9 +1088,9 @@ slapi_search_internal(
 	Operation		*op = NULL;
 	Slapi_PBlock		*ptr = NULL;		
 	Slapi_PBlock		*pSavePB = NULL;		
-	struct berval		dn = { 0, NULL };
+	struct berval		dn = BER_BVNULL;
 	Filter			*filter=NULL;
-	struct berval		fstr = { 0, NULL };
+	struct berval		fstr = BER_BVNULL;
 	AttributeName		*an = NULL;
 	const char		*text = NULL;
 

@@ -31,7 +31,7 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-	struct berval		dn, ndn, mdn = { 0, NULL };
+	struct berval		dn, ndn, mdn = BER_BVNULL;
 	int			rc = 0;
 	dncookie		dc;
 
@@ -200,8 +200,8 @@ rwm_compare( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	int			rc;
-	struct berval		mapped_at = { 0, NULL },
-				mapped_vals[2] = { { 0, NULL }, { 0, NULL } };
+	struct berval		mapped_at = BER_BVNULL,
+				mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "compareDn" );
@@ -422,7 +422,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	Entry		*e = NULL;
-	struct berval	dn = { 0, NULL }, ndn = { 0, NULL };
+	struct berval	dn = BER_BVNULL, ndn = BER_BVNULL;
 	dncookie	dc;
 	int		rc = SLAP_CB_CONTINUE;
 

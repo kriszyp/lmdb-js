@@ -259,7 +259,7 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 			slap_mr_normalize_func *normf = NULL;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr = NULL;
-			struct berval		bv = { 0, NULL };
+			struct berval		bv = BER_BVNULL;
 			int			do_sort = 0;
 
 			assert( ava );

@@ -66,8 +66,8 @@ slapadd( int argc, char **argv )
 	const char *progname = "slapadd";
 
 	struct berval csn;
-	struct berval maxcsn = { 0, NULL };
-	struct berval ldifcsn = { 0, NULL };
+	struct berval maxcsn = BER_BVNULL;
+	struct berval ldifcsn = BER_BVNULL;
 	int match;
 	int	provider_subentry = 0;
 	struct subentryinfo *sei;
@@ -75,7 +75,7 @@ slapadd( int argc, char **argv )
 	Attribute *attr;
 	Entry *ctxcsn_e;
 	ID	ctxcsn_id;
-	struct berval	ctxcsn_ndn = { 0, NULL };
+	struct berval	ctxcsn_ndn = BER_BVNULL;
 	int ret;
 	struct berval bvtext;
 	int i;

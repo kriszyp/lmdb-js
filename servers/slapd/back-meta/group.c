@@ -56,9 +56,9 @@ meta_back_group(
 	char *gattr[ 2 ];
 	char *filter = NULL, *ptr;
 	LDAP *ld = NULL;
-	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
+	struct berval mop_ndn = BER_BVNULL, mgr_ndn = BER_BVNULL;
 
-	struct berval group_oc_name = { 0, NULL };
+	struct berval group_oc_name = BER_BVNULL;
 	struct berval group_at_name = group_at->ad_cname;
 
 	if ( group_oc->soc_names && group_oc->soc_names[ 0 ] ) {

@@ -185,7 +185,7 @@ int main( int argc, char **argv )
 	char	    *serverName;
 	int	    serverMode = SLAP_SERVER_MODE;
 
-	struct berval cookie = { 0, NULL };
+	struct berval cookie = BER_BVNULL;
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
 

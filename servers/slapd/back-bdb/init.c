@@ -36,7 +36,7 @@ static const struct bdbi_database {
 	{ NULL, NULL, 0, 0 }
 };
 
-struct berval bdb_uuid = { 0, NULL };
+struct berval bdb_uuid = BER_BVNULL;
 
 typedef void * db_malloc(size_t);
 typedef void * db_realloc(void *, size_t);

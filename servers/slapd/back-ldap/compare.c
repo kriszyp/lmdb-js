@@ -38,8 +38,8 @@ ldap_back_compare(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	struct berval mapped_at = { 0, NULL }, mapped_val = { 0, NULL };
-	struct berval mdn = { 0, NULL };
+	struct berval mapped_at = BER_BVNULL, mapped_val = BER_BVNULL;
+	struct berval mdn = BER_BVNULL;
 	ber_int_t msgid;
 	int freeval = 0;
 	dncookie dc;

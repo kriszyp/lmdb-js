@@ -50,24 +50,24 @@ do_modrdn(
     SlapReply	*rs
 )
 {
-	struct berval dn = { 0, NULL };
-	struct berval newrdn = { 0, NULL };
-	struct berval newSuperior = { 0, NULL };
+	struct berval dn = BER_BVNULL;
+	struct berval newrdn = BER_BVNULL;
+	struct berval newSuperior = BER_BVNULL;
 	ber_int_t	deloldrdn;
 
-	struct berval pnewSuperior = { 0, NULL };
+	struct berval pnewSuperior = BER_BVNULL;
 
-	struct berval nnewSuperior = { 0, NULL };
+	struct berval nnewSuperior = BER_BVNULL;
 
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
 	int manageDSAit;
 
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 #ifdef NEW_LOGGING

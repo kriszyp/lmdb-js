@@ -41,7 +41,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	LDAPMod			*mods = NULL;
 	Modifications		*ml;
 	int			candidate = -1, i;
-	struct berval		mdn = { 0, NULL };
+	struct berval		mdn = BER_BVNULL;
 	struct berval		mapped;
 	dncookie		dc;
 

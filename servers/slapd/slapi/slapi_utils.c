@@ -171,7 +171,7 @@ slapi_entry_set_dn(
 	char		*ldn )
 {
 #ifdef LDAP_SLAPI
-	struct berval	dn = { 0, NULL };
+	struct berval	dn = BER_BVNULL;
 
 	dn.bv_val = ldn;
 	dn.bv_len = strlen( ldn );

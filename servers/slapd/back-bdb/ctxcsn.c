@@ -39,7 +39,7 @@ bdb_csn_commit(
 )
 {
 	struct bdb_info	*bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval	ctxcsn_ndn = { 0, NULL };
+	struct berval	ctxcsn_ndn = BER_BVNULL;
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	max_committed_csn;

@@ -40,9 +40,9 @@ static char * referral_dn_muck(
 {
 	int rc;
 	struct berval bvin;
-	struct berval nrefDN = { 0, NULL };
-	struct berval nbaseDN = { 0, NULL };
-	struct berval ntargetDN = { 0, NULL };
+	struct berval nrefDN = BER_BVNULL;
+	struct berval nbaseDN = BER_BVNULL;
+	struct berval ntargetDN = BER_BVNULL;
 
 	if( !baseDN ) {
 		/* no base, return target */

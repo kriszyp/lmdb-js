@@ -42,7 +42,7 @@ ldap_back_add(
 	Attribute *a;
 	LDAPMod **attrs;
 	struct berval mapped;
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;

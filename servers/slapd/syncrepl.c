@@ -343,7 +343,7 @@ do_syncrep1(
 			sc = NULL;
 		} else {
 			/* stored cookie */
-			struct berval newcookie = { 0, NULL };
+			struct berval newcookie = BER_BVNULL;
 			ber_dupbv( &cookie_bv, &cookie[0] );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
 			slap_parse_sync_cookie( &si->si_syncCookie );
@@ -434,10 +434,10 @@ do_syncrep2(
 	Entry		*entry = NULL;
 
 	int		syncstate;
-	struct berval	syncUUID = { 0, NULL };
+	struct berval	syncUUID = BER_BVNULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
 	struct sync_cookie	syncCookie_req = { NULL, -1, NULL };
-	struct berval		cookie = { 0, NULL };
+	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;
 	ber_len_t	len;
@@ -1042,8 +1042,8 @@ syncrepl_entry(
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL };
 	struct berval	*syncuuid_bv = NULL;
-	struct berval	syncUUID_strrep = { 0, NULL };
-	struct berval	uuid_bv = { 0, NULL };
+	struct berval	syncUUID_strrep = BER_BVNULL;
+	struct berval	uuid_bv = BER_BVNULL;
 
 	SlapReply	rs = {REP_RESULT};
 	Filter f = {0};
@@ -1052,11 +1052,11 @@ syncrepl_entry(
 	int ret = LDAP_SUCCESS;
 	const char *text;
 
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
@@ -1305,11 +1305,11 @@ syncrepl_del_nonpresent(
 	Modifications **modtail = &modlist;
 	Attribute	*attr;
 
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 	op->o_req_dn = si->si_base;

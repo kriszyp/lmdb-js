@@ -1207,7 +1207,7 @@ dn_match_cleanup:;
 
 		if ( b->a_group_pat.bv_len ) {
 			struct berval bv;
-			struct berval ndn = { 0, NULL };
+			struct berval ndn = BER_BVNULL;
 			int rc;
 
 			if ( op->o_ndn.bv_len == 0 ) {
@@ -1763,14 +1763,14 @@ aci_match_set (
 	int setref
 )
 {
-	struct berval set = { 0, NULL };
+	struct berval set = BER_BVNULL;
 	int rc = 0;
 	AciSetCookie cookie;
 
 	if (setref == 0) {
 		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
 	} else {
-		struct berval subjdn, ndn = { 0, NULL };
+		struct berval subjdn, ndn = BER_BVNULL;
 		struct berval setat;
 		BerVarray bvals;
 		const char *text;

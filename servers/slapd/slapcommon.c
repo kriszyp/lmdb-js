@@ -94,7 +94,7 @@ slap_tool_init(
 {
 	char *options;
 	char *conffile = SLAPD_DEFAULT_CONFIGFILE;
-	struct berval base = { 0, NULL };
+	struct berval base = BER_BVNULL;
 	char *subtree = NULL;
 	char *ldiffile	= NULL;
 	int rc, i, dbnum;

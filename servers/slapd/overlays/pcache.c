@@ -205,7 +205,7 @@ static int base_scope_compare(
 	int scope_stored,
 	int scope_incoming	)
 {
-	struct berval pdn_incoming = { 0, NULL };
+	struct berval pdn_incoming = BER_BVNULL;
 
 	if (scope_stored < scope_incoming)
 		return 0;

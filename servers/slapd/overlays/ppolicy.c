@@ -1246,7 +1246,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	pw_hist			*tl = NULL, *p;
 	int			zapReset, send_ctrl = 0;
 	Entry			*e;
-	struct berval		newpw = { 0, NULL }, oldpw = { 0, NULL },
+	struct berval		newpw = BER_BVNULL, oldpw = BER_BVNULL,
 				*bv, cr[2];
 	LDAPPasswordPolicyError pErr = PP_noError;
 

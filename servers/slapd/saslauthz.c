@@ -276,9 +276,9 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		Connection	c = *op->o_conn;
 		char		buf[ SLAP_LDAPDN_MAXLEN ];
 		struct berval	id,
-				user = { 0, NULL },
-				realm = { 0, NULL },
-				mech = { 0, NULL };
+				user = BER_BVNULL,
+				realm = BER_BVNULL,
+				mech = BER_BVNULL;
 
 		if ( sizeof( buf ) <= uri->bv_len ) {
 			return LDAP_INVALID_SYNTAX;
@@ -849,7 +849,7 @@ void slap_sasl2dn( Operation *opx,
 	slap_callback cb = { NULL, sasl_sc_sasl2dn, NULL, NULL };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
-	struct berval regout = { 0, NULL };
+	struct berval regout = BER_BVNULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 

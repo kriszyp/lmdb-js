@@ -376,7 +376,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	Entry		*e = NULL, base;
 	Entry	*matched = NULL;
 	EntryInfo	*ei;
-	struct berval	realbase = { 0, NULL };
+	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit;
 	int		tentries = 0;
 	ID		lastid = NOID;
@@ -558,7 +558,7 @@ dn2entry_retry:
 	}
 
 	if ( e == NULL ) {
-		struct berval matched_dn = { 0, NULL };
+		struct berval matched_dn = BER_BVNULL;
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
@@ -1674,7 +1674,7 @@ send_pagerequest_response(
 	LDAPControl	ctrl, *ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
-	struct berval	cookie = { 0, NULL };
+	struct berval	cookie = BER_BVNULL;
 	PagedResultsCookie respcookie;
 
 #ifdef NEW_LOGGING

@@ -47,8 +47,8 @@ do_bind(
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
 	ber_tag_t method;
-	struct berval mech = { 0, NULL };
-	struct berval dn = { 0, NULL };
+	struct berval mech = BER_BVNULL;
+	struct berval dn = BER_BVNULL;
 	ber_tag_t tag;
 	Backend *be = NULL;
 

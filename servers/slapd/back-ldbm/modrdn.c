@@ -42,8 +42,8 @@ ldbm_back_modrdn(
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	struct berval	p_dn, p_ndn;
-	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
-	struct berval	old_ndn = { 0, NULL };
+	struct berval	new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
+	struct berval	old_ndn = BER_BVNULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */

@@ -61,7 +61,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	LDAPMessage	*res = NULL, *e;
 	int	rc = 0, *msgid, sres = LDAP_SUCCESS;
 	char *err = NULL;
-	struct berval match = { 0, NULL }, mmatch = { 0, NULL };
+	struct berval match = BER_BVNULL, mmatch = BER_BVNULL;
 	BerVarray v2refs = NULL;
 		
 	int i, last = 0, candidates = 0, initial_candidates = 0,
@@ -110,8 +110,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 		struct berval	realbase = op->o_req_dn;
 		int		realscope = op->ors_scope;
 		ber_len_t	suffixlen = 0;
-		struct berval	mbase = { 0, NULL }; 
-		struct berval	mfilter = { 0, NULL };
+		struct berval	mbase = BER_BVNULL; 
+		struct berval	mfilter = BER_BVNULL;
 		char		**mapped_attrs = NULL;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
@@ -558,7 +558,7 @@ meta_send_entry(
 	Entry 			ent = {0};
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
-	struct berval 		dummy = { 0, NULL };
+	struct berval 		dummy = BER_BVNULL;
 	struct berval 		*bv, bdn;
 	const char 		*text;
 	dncookie		dc;

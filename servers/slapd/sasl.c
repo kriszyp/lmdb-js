@@ -1615,9 +1615,9 @@ char* slap_sasl_secprops( const char *in )
 int
 slap_sasl_setpass( Operation *op, SlapReply *rs )
 {
-	struct berval id = { 0, NULL };	/* needs to come from connection */
-	struct berval new = { 0, NULL };
-	struct berval old = { 0, NULL };
+	struct berval id = BER_BVNULL;	/* needs to come from connection */
+	struct berval new = BER_BVNULL;
+	struct berval old = BER_BVNULL;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -1783,7 +1783,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	/* Username strings */
 	if( is_dn == SET_U ) {
 		char		*p;
-		struct berval	realm = { 0, NULL }, c1 = *dn;
+		struct berval	realm = BER_BVNULL, c1 = *dn;
 
 		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
 

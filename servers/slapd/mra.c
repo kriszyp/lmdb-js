@@ -48,9 +48,9 @@ get_mra(
 	int rc;
 	ber_tag_t tag, rtag;
 	ber_len_t length;
-	struct berval type = { 0, NULL };
-	struct berval value = { 0, NULL };
-	struct berval rule_text = { 0, NULL };
+	struct berval type = BER_BVNULL;
+	struct berval value = BER_BVNULL;
+	struct berval rule_text = BER_BVNULL;
 	MatchingRuleAssertion ma;
 
 	memset( &ma, 0, sizeof ma);

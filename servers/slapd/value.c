@@ -217,8 +217,8 @@ value_match(
 	const char ** text )
 {
 	int rc;
-	struct berval nv1 = { 0, NULL };
-	struct berval nv2 = { 0, NULL };
+	struct berval nv1 = BER_BVNULL;
+	struct berval nv2 = BER_BVNULL;
 
 	assert( mr != NULL );
 
@@ -246,7 +246,7 @@ int value_find_ex(
 {
 	int	i;
 	int rc;
-	struct berval nval = { 0, NULL };
+	struct berval nval = BER_BVNULL;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {

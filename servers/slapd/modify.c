@@ -44,7 +44,7 @@ do_modify(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct berval dn = { 0, NULL };
+	struct berval dn = BER_BVNULL;
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;

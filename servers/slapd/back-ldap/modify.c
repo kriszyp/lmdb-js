@@ -43,7 +43,7 @@ ldap_back_modify(
 	Modifications *ml;
 	int i, j, rc;
 	struct berval mapped;
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;
