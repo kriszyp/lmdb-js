@@ -23,27 +23,32 @@ fi
 
 echo ""
 
-RELAYS=
-# back-relay
-if test $BACKRELAY = relayno ; then 
-	echo "relay backend not available, test skipped"
-else
-	RELAYS="$RELAYS relay"
+if test "x$RELAYS" = "x" ; then
+	RELAYS=
+	# back-relay
+	if test $BACKRELAY = relayno ; then 
+		echo "relay backend not available, test skipped"
+	else
+		RELAYS="${RELAYS}relay "
+	fi
+
+	# back-ldap
+	if test $BACKLDAP = ldapno ; then 
+		echo "ldap backend not available, test skipped"
+	else
+		RELAYS="${RELAYS}ldap "
+	fi
+
+	# back-meta
+	if test $BACKMETA = metano ; then 
+		echo "meta backend not available, test skipped"
+	else
+		RELAYS="${RELAYS}meta "
+	fi 
 fi
 
-# back-ldap
-if test $BACKLDAP = ldapno ; then 
-	echo "ldap backend not available, test skipped"
-else
-	RELAYS="$RELAYS ldap"
-fi
-
-# back-meta
-if test $BACKMETA = metano ; then 
-	echo "meta backend not available, test skipped"
-else
-	RELAYS="$RELAYS meta"
-fi 
+echo "Using $RELAYS..."
+echo ""
 
 first=1
 for RELAY in $RELAYS ; do
