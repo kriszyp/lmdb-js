@@ -272,7 +272,12 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 
 	envFlags |= DB_INIT_MPOOL | DB_INIT_CDB | DB_USE_ENVIRON;
 
+#if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR > 0
 	err = env->open( env, home, envFlags, 0 );
+#else
+	/* 3.0.x requires an extra argument */
+	err = env->open( env, home, NULL, envFlags, 0 );
+#endif
 
 	if ( err != 0 )
 	{
