@@ -120,14 +120,14 @@ ldap_sasl_bind(
 			cred );
 		
 	} else if ( cred == NULL || cred->bv_val == NULL ) {
-		/* SASL bind w/o creditials */
+		/* SASL bind w/o credentials */
 		rc = ber_printf( ber, "{it{ist{sN}N}" /*}*/,
 			id, LDAP_REQ_BIND,
 			ld->ld_version, dn, LDAP_AUTH_SASL,
 			mechanism );
 
 	} else {
-		/* SASL bind w/ creditials */
+		/* SASL bind w/ credentials */
 		rc = ber_printf( ber, "{it{ist{sON}N}" /*}*/,
 			id, LDAP_REQ_BIND,
 			ld->ld_version, dn, LDAP_AUTH_SASL,
