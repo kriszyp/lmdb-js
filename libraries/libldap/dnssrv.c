@@ -172,10 +172,11 @@ int ldap_domain2hostlist(
 	char **list )
 {
 #ifdef HAVE_RES_QUERY
+#define DNSBUFSIZ (64*1024)
     char *request;
     char *hostlist = NULL;
     int rc, len, cur = 0;
-    unsigned char reply[1024];
+    unsigned char reply[DNSBUFSIZ];
 
 	assert( domain != NULL );
 	assert( list != NULL );
@@ -198,7 +199,7 @@ int ldap_domain2hostlist(
     len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
     if (len >= 0) {
 	unsigned char *p;
-	char host[1024];
+	char host[DNSBUFSIZ];
 	int status;
 	u_short port;
 	/* int priority, weight; */
