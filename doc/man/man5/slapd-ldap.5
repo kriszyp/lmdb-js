@@ -49,8 +49,7 @@ suffix> before sending the request to the remote server, and <remote
 suffix> in the results are changed back to <suffix> before returning
 them to the client.
 The <suffix> field must be defined as a valid suffix (or suffixAlias?)
-for the current database; the <massaged suffix> shouldn't have already
-been defined as a valid suffix or suffixAlias for the current server.
+for the current database.
 .TP
 .B map "{attribute | objectclass} {<local name> | *} [<foreign name> | *]"
 Map attribute names and object classes from the foreign server to
@@ -76,7 +75,7 @@ Directory objectclass `group':
   map objectclass groupOfNames group
 .fi
 .LP
-This presents a limited a limited attribute set from the foreign
+This presents a limited attribute set from the foreign
 server:
 .LP
 .nf
