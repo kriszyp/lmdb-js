@@ -257,6 +257,14 @@ main( int argc, char *argv[] )
 		usage( argv[0] );
 	} 
 
+	if (authmethod == -1) {
+#ifdef HAVE_CYRUS_SASL
+		authmethod = LDAP_AUTH_SASL;
+#else
+		authmethod = LDAP_AUTH_SIMPLE;
+#endif
+	}
+
 	dn = strdup( argv[optind] );
 
 	if( want_oldpw && oldpw == NULL ) {
