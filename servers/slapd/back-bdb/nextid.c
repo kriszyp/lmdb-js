@@ -70,10 +70,10 @@ retry:	if( tid != NULL ) {
 		break;
 
 	case 0:
-		if ( data.size != sizeof(ID) ) {
+		if ( data.size != sizeof( id ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_next_id: get size mismatch: expected %ld, got %ld\n",
-				(long) sizeof( ID ), (long) data.size, 0 );
+				(long) sizeof( id ), (long) data.size, 0 );
 			rc = -1;
 			goto done;
 		}
@@ -87,6 +87,7 @@ retry:	if( tid != NULL ) {
 	}
 
 	id++;
+	data.size = sizeof( id );
 
 	/* put new value */
 	rc = bdb->bi_nextid->bdi_db->put( bdb->bi_nextid->bdi_db,
