@@ -268,8 +268,10 @@ slapd_daemon_task(
 		fd_set			writefds;
 
 		struct sockaddr_in	from;
-		struct hostent		*hp;
-		struct timeval		zero;
+#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
+        struct hostent		*hp;
+#endif
+        struct timeval		zero;
 		struct timeval		*tvp;
 
 		char	*client_name;
