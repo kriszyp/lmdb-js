@@ -489,7 +489,7 @@ typedef struct slap_filter {
 } Filter;
 
 /* compare routines can return undefined */
-#define SLAPD_COMPARE_UNDEFINED	((ber_tag_t) -1)
+#define SLAPD_COMPARE_UNDEFINED	((ber_int_t) -1)
 
 /*
  * represents an attribute (description + values)

@@ -255,7 +255,7 @@ LIBLDBM_F (Datum) ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
 /* initialization of Datum structures */
 #if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 2)
 	LIBLDBM_F (void *) ldbm_malloc( size_t size );
-#   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
+#   define ldbm_datum_init(d) ((void)memset(&(d), '\0', sizeof(Datum)))
 #else
 #   define ldbm_datum_init(d) ((void)0)
 #endif  /* HAVE_BERKELEY_DB */
