@@ -204,6 +204,12 @@ parse_acl(
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
 					a->acl_attrs = str2anlist( a->acl_attrs,
 						right, "," );
+					if ( a->acl_attrs == NULL ) {
+						fprintf( stderr,
+				"%s: line %d: unknown attr \"%s\" in to clause\n",
+						    fname, lineno, right );
+						acl_usage();
+					}
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",

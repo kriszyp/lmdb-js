@@ -301,7 +301,11 @@ int ad_inlist(
 		 * EXTENSION: see if requested description is an object class
 		 * if so, return attributes which the class requires/allows
 		 */
-		oc = oc_bvfind( &attrs->an_name );
+		oc = attrs->an_oc;
+		if( oc == NULL ) {
+			oc = oc_bvfind( &attrs->an_name );
+			attrs->an_oc = oc;
+		}
 		if( oc != NULL ) {
 			if ( oc == slap_schema.si_oc_extensibleObject ) {
 				/* extensibleObject allows the return of anything */
@@ -461,8 +465,18 @@ str2anlist( AttributeName *an, const char *in, const char *brkstr )
 		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
 	{
 		anew->an_desc = NULL;
+		anew->an_oc = NULL;
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
+		if ( !anew->an_desc ) {
+			anew->an_oc = oc_bvfind( &anew->an_name );
+			if ( !anew->an_oc ) {
+				free( an );
+				/* overwrites input string on error! */
+				strcpy( in, s );
+				return NULL;
+			}
+		}
 		anew++;
 	}
 	anew->an_name.bv_val = NULL;

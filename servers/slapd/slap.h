@@ -497,6 +497,7 @@ typedef struct slap_attr_desc {
 typedef struct slap_attr_name {
 	struct berval an_name;
 	AttributeDescription *an_desc;
+	ObjectClass *an_oc;
 } AttributeName;
 
 #define slap_ad_is_lang(ad)		( (ad)->ad_lang.bv_len != 0 )

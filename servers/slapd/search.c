@@ -166,6 +166,7 @@ do_search(
 	}
 	for ( i=0; i<siz; i++ ) {
 		an[i].an_desc = NULL;
+		an[i].an_oc = NULL;
 		slap_bv2ad(&an[i].an_name, &an[i].an_desc, &text);
 	}
 
