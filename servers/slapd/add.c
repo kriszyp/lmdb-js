@@ -243,16 +243,31 @@ do_add( Connection *conn, Operation *op )
 			goto done;
 		}
 
-		/* check for special objectClass */
+		/*
+		 * check for special objectClasses: alias, to allow
+		 *
+		 * dn: DC=alias,DC=example,DC=net
+		 * aliasedObjectName: DC=aliased,DC=example,DC=net
+		 * objectClass: alias
+		 */
 		if ( oc == slap_schema.si_oc_alias ) {
 			break;
 		}
 
+		/*
+		 * FIXME: a referral should be implemented
+		 * as exemplified in RFC3296:
+		 *
+		 *       dn: DC=sub,DC=example,DC=net
+		 *       dc: sub
+		 *       ref: ldap://B/DC=sub,DC=example,DC=net 
+		 *       objectClass: referral
+		 *       objectClass: extensibleObject 
+		 *
+		 * in this case there would be no need to treat
+		 * the "referral" objectClass as special.
+		 */
 		if ( oc == slap_schema.si_oc_referral ) {
-			break;
-		}
-
-		if ( oc == slap_schema.si_oc_extensibleObject ) {
 			break;
 		}
 	}
