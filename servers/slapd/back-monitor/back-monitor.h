@@ -48,7 +48,7 @@ LDAP_BEGIN_DECL
  * selection.
  */
 struct monitorcache {
-	struct berval		*mc_ndn;
+	struct berval		mc_ndn;
 	Entry   		*mc_e;
 };
 

@@ -54,7 +54,7 @@ monitor_cache_cmp(
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	return ber_bvcmp( cc1->mc_ndn, cc2->mc_ndn );
+	return ber_bvcmp( &cc1->mc_ndn, &cc2->mc_ndn );
 }
 
 /*
@@ -72,7 +72,7 @@ monitor_cache_dup(
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	return ber_bvcmp( cc1->mc_ndn, cc2->mc_ndn ) == 0 ? -1 : 0;
+	return ber_bvcmp( &cc1->mc_ndn, &cc2->mc_ndn ) == 0 ? -1 : 0;
 }
 
 /*
@@ -95,7 +95,7 @@ monitor_cache_add(
 	ldap_pvt_thread_mutex_init( &mp->mp_mutex );
 
 	mc = ( struct monitorcache * )ch_malloc( sizeof( struct monitorcache ) );
-	mc->mc_ndn = &e->e_nname;
+	mc->mc_ndn = e->e_nname;
 	mc->mc_e = e;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	rc = avl_insert( &mi->mi_cache, ( caddr_t )mc,
@@ -141,7 +141,7 @@ monitor_cache_get(
 	assert( ndn != NULL );
 	assert( ep != NULL );
 
-	tmp_mc.mc_ndn = ndn;
+	tmp_mc.mc_ndn = *ndn;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	mc = ( struct monitorcache * )avl_find( mi->mi_cache,
 			( caddr_t )&tmp_mc, monitor_cache_cmp );
@@ -251,7 +251,7 @@ monitor_cache_release(
 
 		/* volatile entries do not return to cache */
 		ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
-		tmp_mc.mc_ndn = &e->e_nname;
+		tmp_mc.mc_ndn = e->e_nname;
 		mc = avl_delete( &mi->mi_cache,
 				( caddr_t )&tmp_mc, monitor_cache_cmp );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
