@@ -204,7 +204,7 @@ int is_ad_subtype(
 		return 0;
 	}
 
-	if( super->ad_flags && ( super->ad_flags == sub->ad_flags )) {
+	if( super->ad_flags && ( super->ad_flags != sub->ad_flags )) {
 		return 0;
 	}
 
