@@ -20,6 +20,7 @@
 #endif
 
 #include <ldap.h>
+#include "ldap_pvt.h"
 #include "lutil_ldap.h"
 
 
