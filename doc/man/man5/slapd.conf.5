@@ -425,7 +425,12 @@ Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 .TP
 .B sockbuf_max_incoming <integer>
-Specify the maximum incoming LDAP PDU size.  The default is 262143.
+Specify the maximum incoming LDAP PDU size for anonymous sessions.
+The default is 262143.
+.TP
+.B sockbuf_max_incoming_auth <integer>
+Specify the maximum incoming LDAP PDU size for authenticated sessions.
+The default is 4194303.
 .TP
 .B srvtab <filename>
 Specify the srvtab file in which the kerberos keys necessary for

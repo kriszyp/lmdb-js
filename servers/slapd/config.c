@@ -42,6 +42,7 @@ char		*default_search_base = NULL;
 char		*default_search_nbase = NULL;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
+ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
 
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
@@ -277,6 +278,43 @@ read_config( const char *fname )
 			}
 
 			sockbuf_max_incoming = max;
+
+		/* set sockbuf max authenticated */
+		} else if ( strcasecmp( cargv[0], "sockbuf_max_incoming_auth" ) == 0 ) {
+			long max;
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					   "%s: line %d: missing max in \"sockbuf_max_incoming_auth <bytes>\" line\n",
+					   fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					   "%s: line %d: missing max in \"sockbuf_max_incoming_auth <bytes>\" line\n",
+				    fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+
+			max = atol( cargv[1] );
+
+			if( max < 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					   "%s: line %d: invalid max value (%ld) in "
+					   "\"sockbuf_max_incoming_auth <bytes>\" line.\n",
+					   fname, lineno, max ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: invalid max value (%ld) in "
+					"\"sockbuf_max_incoming_auth <bytes>\" line.\n",
+				    fname, lineno, max );
+#endif
+
+				return( 1 );
+			}
+
+			sockbuf_max_incoming_auth = max;
 
 		/* default search base */
 		} else if ( strcasecmp( cargv[0], "defaultSearchBase" ) == 0 ) {

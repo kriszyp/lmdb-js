@@ -280,10 +280,18 @@ do_bind(
 			conn->c_authmech = conn->c_sasl_bind_mech;
 			conn->c_sasl_bind_mech = NULL;
 			conn->c_sasl_bind_in_progress = 0;
+
 			conn->c_sasl_ssf = ssf;
 			if( ssf > conn->c_ssf ) {
 				conn->c_ssf = ssf;
 			}
+
+			if( conn->c_dn != NULL ) {
+				ber_len_t max = sockbuf_max_incoming;
+				ber_sockbuf_ctrl( conn->c_sb,
+					LBER_SB_OPT_SET_MAX_INCOMING, &max );
+			}
+
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
 			conn->c_sasl_bind_in_progress = 1;
 
@@ -466,6 +474,12 @@ do_bind(
 			} else {
 				conn->c_dn = ndn;
 				ndn = NULL;
+			}
+
+			if( conn->c_dn != NULL ) {
+				ber_len_t max = sockbuf_max_incoming;
+				ber_sockbuf_ctrl( conn->c_sb,
+					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
 
 #ifdef NEW_LOGGING
