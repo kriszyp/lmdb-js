@@ -62,9 +62,10 @@ library call.
 .LP
 .B ldapdelete
 opens a connection to an LDAP server, binds, and deletes one or more
-entries.  If one or more \fIdn\fP arguments are provided, entries with
-those Distinguished Names are deleted.  Each \fIdn\fP should be a
-string-represented DN as defined in RFC 1779.  If no \fIdn\fP arguments
+entries.  If one or more \fIDN\fP arguments are provided, entries with
+those Distinguished Names are deleted.  Each \fIDN\fP should be provided
+using the LDAPv3 string representation as defined in RFC 2253.
+If no \fIdn\fP arguments
 are provided, a list of DNs is read from standard input (or from
 \fIfile\fP if the -f flag is used).
 .SH OPTIONS
@@ -117,8 +118,7 @@ replaced with a line from \fIfile\fP.
 Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
-Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 .TP
 .B \-W
 Prompt for simple authentication.
@@ -196,12 +196,6 @@ status and a diagnostic message being written to standard error.
 .BR ldapsearch (1),
 .BR ldap (3),
 .BR ldap_delete (3)
-.LP
-Kille, S.,
-.IR "A String Representation of Distinguished Names",
-.SM RFC
-1779,
-ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
 .SH AUTHOR

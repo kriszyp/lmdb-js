@@ -80,7 +80,7 @@ library call.
 .B ldapsearch
 opens a connection to an LDAP server, binds, and performs a search
 using the filter \fIfilter\fP.  The \fIfilter\fP should conform to
-the string representation for LDAP filters as defined in RFC 1558.
+the string representation for search filters as defined in RFC 2254.
 .LP
 If
 .B ldapsearch
@@ -97,21 +97,22 @@ Show what would be done, but don't actually perform the search.  Useful for
 debugging in conjunction with -v.
 .TP
 .B \-u
-Include the User Friendly form of the Distinguished Name (DN) in the output
+Include the User Friendly Name form of the Distinguished Name (DN)
+in the output.
 .TP
 .B \-v
-Run in verbose mode, with many diagnostics written to standard output
+Run in verbose mode, with many diagnostics written to standard output.
 .TP
 .B \-k
 Use Kerberos authentication instead of simple authentication.  It is
 assumed that you already have a valid ticket granting ticket.
 .B ldapsearch
-must be compiled with KERBEROS defined for this option to have any effect.
+must be compiled with Kerberos for this option to have any effect.
 .TP
 .B \-K
-Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+Same as \-k, but only does step 1 of the Kerberos bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your kerberos servers.
+registered with your Kerberos servers.
 .TP
 .B \-t
 Write retrieved values to a set of temporary files.  This is useful for
@@ -165,8 +166,7 @@ character, then the lines are read from standard input.
 Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
-Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 .TP
 .B \-W
 Prompt for simple authentication.
@@ -263,20 +263,22 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 .B \-ZZ\c
 , the command will require the operation to be successful.
 .SH OUTPUT FORMAT
-If one or more entries are found, each entry is written to standard output
-in the form:
+If one or more entries are found, each entry is written to standard
+output in LDAP Interchange Data Format or
+.BR ldif (5):
 .LP
 .nf
-    Distinguished Name (DN)
-    User Friendly Name (this line present only if the -u option is used)
-    attributename=value
-    attributename=value
-    attributename=value
+	dn: uid=bjensen, dc=example, dc=net
+	objectClass: person
+	objectClass: dcObject
+	uid: bjensen
+	cn: Barbara Jensen
+	sn: Jensen
     ...
 .fi
 .LP
 Multiple entries are separated with a single blank line.  
-If the -t option is used, the name of a temporary file
+If the -t option is used, the URI of a temporary file
 is used in place of the actual value.  If the -A option
 is given, only the "attributename" part is written.
 .SH EXAMPLE
@@ -286,28 +288,30 @@ The following command:
     ldapsearch -LLL "(sn=smith)" cn sn telephoneNumber
 .fi
 .LP
-will perform a subtree search (using the default search base) for
-entries with a surname (sn) of smith.  The common name (cn), surname
+will perform a subtree search (using the default search base defined
+in
+.BR ldap.conf (5))
+for entries with a surname (sn) of smith.  The common name (cn), surname
 (sn) and telephoneNumber values will be retrieved and printed to
 standard output.
 The output might look something like this if two entries are found:
 .LP
 .nf
-dn: uid=jts, ou=Volunteers, ou=People, dc=OpenLDAP, dc=org
-cn: John Smith
-cn: John T. Smith
-sn: Smith
-sn;lang-en: Smith
-sn;lang-de: Schmidt
-telephoneNumber: 1 555 123-4567
+    dn: uid=jts, dc=example, dc=com
+	cn: John Smith
+	cn: John T. Smith
+	sn: Smith
+	sn;lang-en: Smith
+	sn;lang-de: Schmidt
+	telephoneNumber: 1 555 123-4567
 
-dn: uid=sss, ou=Staff, ou=People, dc=OpenLDAP, dc=org
-cn: Steve Smith
-cn: Steve S. Smith
-sn: Smith
-sn;lang-en: Smith
-sn;lang-de: Schmidt
-telephoneNumber: 1 555 765-4321
+	dn: uid=sss, dc=example, dc=com
+	cn: Steve Smith
+	cn: Steve S. Smith
+	sn: Smith
+	sn;lang-en: Smith
+	sn;lang-de: Schmidt
+	telephoneNumber: 1 555 765-4321
 .fi
 .LP
 The command:
@@ -324,10 +328,10 @@ output might look like this if one entry with one value for each of the
 requested attributes is found:
 .LP
 .nf
-dn: uid=xyz, ou=Staff, ou=People, dc=OpenLDAP, dc=org
-ufn: xyz, Staff, People, OpenLDAP, org
-audio:< file::/tmp/ldapsearch-audio-a19924
-jpegPhoto:< file::=/tmp/ldapsearch-jpegPhoto-a19924
+    dn: uid=xyz, dc=example, dc=com
+    ufn: xyz, example, com
+    audio:< file::/tmp/ldapsearch-audio-a19924
+    jpegPhoto:< file::=/tmp/ldapsearch-jpegPhoto-a19924
 .fi
 .LP
 This command:
@@ -337,34 +341,34 @@ This command:
 .fi
 .LP
 will perform a one-level search at the c=US level for all entries
-whose organizationName (o) begins begins with \fBUniversity\fP.
-The organizationName and description attribute values will be retrieved
+whose organization name (o) begins begins with \fBUniversity\fP.
+The organization name and description attribute values will be retrieved
 and printed to standard output, resulting in output similar to this:
 .LP
 .nf
-dn: o=University of Alaska Fairbanks, c=US
-o: University of Alaska Fairbanks
-description: Preparing Alaska for a brave new yesterday
-description: leaf node only
+    dn: o=University of Alaska Fairbanks, c=US
+    o: University of Alaska Fairbanks
+    description: Preparing Alaska for a brave new yesterday
+    description: leaf node only
 
-dn: o=University of Colorado at Boulder, c=US
-o: University of Colorado at Boulder
-description: No personnel information
-description: Institution of education and research
+    dn: o=University of Colorado at Boulder, c=US
+    o: University of Colorado at Boulder
+    description: No personnel information
+    description: Institution of education and research
 
-dn: o=University of Colorado at Denver, c=US
-o: University of Colorado at Denver
-o: UCD
-o: CU/Denver
-o: CU-Denver
-description: Institute for Higher Learning and Research
+    dn: o=University of Colorado at Denver, c=US
+    o: University of Colorado at Denver
+    o: UCD
+    o: CU/Denver
+    o: CU-Denver
+    description: Institute for Higher Learning and Research
 
-dn: o=University of Florida, c=US
-o: University of Florida
-o: UFl
-description: Warper of young minds
+    dn: o=University of Florida, c=US
+    o: University of Florida
+    o: UFl
+    description: Warper of young minds
 
-etc....
+    etc....
 .fi
 .SH DIAGNOSTICS
 Exit status is 0 if no errors occur.  Errors result in a non-zero exit
@@ -375,20 +379,9 @@ status and a diagnostic message being written to standard error.
 .BR ldapmodify (1),
 .BR ldapmodrdn (1),
 .BR ldap.conf (5),
+.BR ldif (5),
 .BR ldap (3),
 .BR ldap_search (3)
-.LP
-Kille, S.,
-.IR "A String Representation of Distinguished Names",
-.SM RFC
-1779,
-ISODE Consortium, March 1995.
-.LP
-Howes, T.,
-.IR "A String Representation of LDAP Search Filters",
-.SM RFC
-1558,
-University of Michigan, December 1993.
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
