@@ -48,17 +48,17 @@
 
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
-	extern char *strdup LDAP_P(( const char *s ));
+	extern char *(strdup) LDAP_P(( const char *s ));
 #else
 	/* some systems have strdup(), but fail to declare it */
-	extern char *strdup();
+	extern char *(strdup)();
 #endif
 
 /*
  * some systems fail to declare strcasecmp() and strncasecmp()
  * we need them declared so we can obtain pointers to them
  */
-extern int strcasecmp(), strncasecmp();
+extern int (strcasecmp)(), (strncasecmp)();
 
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )
