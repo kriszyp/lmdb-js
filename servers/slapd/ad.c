@@ -435,7 +435,7 @@ an_find(
  * to an existing list if it was given.
  */
 AttributeName *
-str2anlist( AttributeName *an, const char *in, const char *brkstr )
+str2anlist( AttributeName *an, char *in, const char *brkstr )
 {
 	char	*str;
 	char	*s;
@@ -473,7 +473,7 @@ str2anlist( AttributeName *an, const char *in, const char *brkstr )
 			if ( !anew->an_oc ) {
 				free( an );
 				/* overwrites input string on error! */
-				strcpy( (char *)in, s );
+				strcpy( in, s );
 				return NULL;
 			}
 		}
