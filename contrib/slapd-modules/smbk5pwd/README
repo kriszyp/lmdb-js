@@ -1,0 +1,51 @@
+Copyright 2004 Howard Chu, Symas Corp. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.
+
+A copy of this license is available in the file LICENSE in the
+top-level directory of the distribution or, alternatively, at
+<http://www.OpenLDAP.org/license.html>.
+
+This directory contains a slapd overlay, smbk5pwd, that extends the
+PasswordModify Extended Operation to update Kerberos keys and Samba
+password hashes for an LDAP user.
+
+The Kerberos support is written for Heimdal using its hdb-ldap backend.
+If a PasswordModify is performed on an entry that has the krb5KDCEntry
+objectclass, then the krb5Key and krb5KeyVersionNumber will be updated
+using the new password in the PasswordModify request.
+
+The Samba support is written using the Samba 3.0 LDAP schema. If a
+PasswordModify is performed on an entry that has the sambaSamAccount
+objectclass, then the sambaLMPassword, sambaNTPassword, and sambaPwdLastSet
+attributes will be updated accordingly.
+
+To use the overlay, add:
+
+	include <path to>/krb5-kdc.schema
+	include <path to>/samba.schema
+
+	moduleload <path to>smbk5pwd.so
+	...
+
+	database bdb
+	...
+	overlay smbk5pwd
+
+to your slapd configuration file. (You should obtain the necessary schema
+files from the Heimdal and/or Samba distributions. At this time, there
+are several known errors in these schema files that you will have to
+correct before they will load in slapd.)
+
+The provided Makefile builds both Kerberos and Samba support by default.
+You must edit the Makefile to insure that the correct include and library
+paths are used. You can change the DEFS macro if you only want one or the
+other of Kerberos or Samba support.
+
+This overlay is only set up to be built as a dynamically loaded module.
+If you need to build it statically, you will have to move it into the
+slapd/overlays directory and edit the Makefile and overlays.c to reference
+it. You will also have to define SLAPD_OVER_SMBK5PWD to SLAPD_MOD_STATIC,
+and add the relevant libraries to the main slapd link command.
