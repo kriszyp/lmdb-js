@@ -55,7 +55,7 @@ monitor_info(
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
 	e->e_ndn = ch_strdup(SLAPD_MONITOR_DN);
-	(void) dn_normalize_case( e->e_ndn );
+	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
 
 	{

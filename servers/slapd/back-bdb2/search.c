@@ -246,7 +246,7 @@ bdb2i_back_search_internal(
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					(void) dn_normalize_case( dn );
+					(void) dn_normalize( dn );
 					scopeok = (dn == realbase)
 						? 1
 						: (strcmp( dn, realbase ) ? 0 : 1 );

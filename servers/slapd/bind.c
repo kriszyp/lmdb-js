@@ -111,7 +111,7 @@ do_bind(
 
 	ndn = ch_strdup( dn );
 
-	if ( dn_normalize_case( ndn ) == NULL ) {
+	if ( dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -272,6 +272,7 @@ do_bind(
 				NULL, NULL, default_referral, NULL );
 
 		} else {
+			/* noSuchObject is not allowed to be returned by bind */
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 		}

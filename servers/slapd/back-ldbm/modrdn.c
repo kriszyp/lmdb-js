@@ -191,7 +191,7 @@ ldbm_back_modrdn(
 		       0, 0, 0 );
 
 		np_ndn = ch_strdup( np_dn );
-		(void) dn_normalize_case( np_ndn );
+		(void) dn_normalize( np_ndn );
 
 		/* newSuperior == oldParent?, if so ==> ERROR */
 		/* newSuperior == entry being moved?, if so ==> ERROR */
@@ -258,7 +258,7 @@ ldbm_back_modrdn(
 
 
 	new_ndn = ch_strdup(new_dn);
-	(void) dn_normalize_case( new_ndn );
+	(void) dn_normalize( new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );

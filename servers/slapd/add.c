@@ -69,7 +69,7 @@ do_add( Connection *conn, Operation *op )
 
 	ndn = ch_strdup( dn );
 
-	if ( dn_normalize_case( ndn ) == NULL ) {
+	if ( dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );

@@ -84,7 +84,7 @@ do_modrdn(
 
 	ndn = ch_strdup( dn );
 
-	if( dn_normalize_case( ndn ) == NULL ) {
+	if( dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -127,7 +127,7 @@ do_modrdn(
 
 		nnewSuperior = ch_strdup( newSuperior );
 
-		if( dn_normalize_case( nnewSuperior ) == NULL ) {
+		if( dn_normalize( nnewSuperior ) == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,

@@ -107,7 +107,7 @@ do_search(
 
 	nbase = ch_strdup( base );
 
-	if( dn_normalize_case( nbase ) == NULL ) {
+	if( dn_normalize( nbase ) == NULL ) {
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
 			NULL, "invalid DN", NULL, NULL );
 		rc = -1;

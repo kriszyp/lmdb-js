@@ -247,7 +247,7 @@ read_config( const char *fname )
 				    fname, lineno, tmp_be->be_suffix[0] );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
+				(void) dn_validate( dn );
 				charray_add( &be->be_suffix, dn );
 				(void) ldap_pvt_str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
@@ -299,8 +299,6 @@ read_config( const char *fname )
 				aliased_dn = ch_strdup( cargv[2] );
 				(void) dn_normalize( aliased_dn );
 
-				(void) dn_normalize_case( alias );
-				(void) dn_normalize_case( aliased_dn );
 				charray_add( &be->be_suffixAlias, alias );
 				charray_add( &be->be_suffixAlias, aliased_dn );
 
@@ -347,7 +345,7 @@ read_config( const char *fname )
 				be->be_root_dn = ch_strdup( cargv[1] );
 				be->be_root_ndn = ch_strdup( cargv[1] );
 
-				if( dn_normalize_case( be->be_root_ndn ) == NULL ) {
+				if( dn_normalize( be->be_root_ndn ) == NULL ) {
 					free( be->be_root_dn );
 					free( be->be_root_ndn );
 					Debug( LDAP_DEBUG_ANY,
@@ -556,7 +554,7 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 			} else {
 				be->be_update_ndn = ch_strdup( cargv[1] );
-				if( dn_normalize_case( be->be_update_ndn ) == NULL ) {
+				if( dn_normalize( be->be_update_ndn ) == NULL ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: updatedn DN is invalid\n",
 					    fname, lineno, 0 );

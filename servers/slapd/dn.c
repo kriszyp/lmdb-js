@@ -29,12 +29,12 @@
 #define B4SEPARATOR		8
 
 /*
- * dn_normalize - put dn into a canonical format.  the dn is
- * normalized in place, as well as returned if valid.
+ * dn_validate - validate and compress dn.  the dn is
+ * compressed in place are returned if valid.
  */
 
 char *
-dn_normalize( char *dn )
+dn_validate( char *dn )
 {
 	char	*d, *s;
 	int	state, gotesc;
@@ -146,7 +146,7 @@ dn_normalize( char *dn )
 		default:
 			dn = NULL;
 			Debug( LDAP_DEBUG_ANY,
-			    "dn_normalize - unknown state %d\n", state, 0, 0 );
+			    "dn_validate - unknown state %d\n", state, 0, 0 );
 			break;
 		}
 		if ( *s == '\\' ) {
@@ -176,18 +176,18 @@ dn_normalize( char *dn )
 }
 
 /*
- * dn_normalize_case - put dn into a canonical form suitable for storing
+ * dn_normalize - put dn into a canonical form suitable for storing
  * in a hash database.  this involves normalizing the case as well as
  * the format.  the dn is normalized in place as well as returned if valid.
  */
 
 char *
-dn_normalize_case( char *dn )
+dn_normalize( char *dn )
 {
 	ldap_pvt_str2upper( dn );
 
-	/* normalize format */
-	dn = dn_normalize( dn );
+	/* validate and compress dn */
+	dn = dn_validate( dn );
 
 	/* and upper case it */
 	return( dn );

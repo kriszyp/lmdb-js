@@ -205,8 +205,8 @@ void connection_done LDAP_P((Connection *));
  * dn.c
  */
 
+char * dn_validate LDAP_P(( char *dn ));
 char * dn_normalize LDAP_P(( char *dn ));
-char * dn_normalize_case LDAP_P(( char *dn ));
 char * dn_parent LDAP_P(( Backend *be, const char *dn ));
 char ** dn_subtree LDAP_P(( Backend *be, const char *dn ));
 char * dn_rdn LDAP_P(( Backend *be, char *dn ));

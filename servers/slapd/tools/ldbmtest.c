@@ -298,7 +298,7 @@ main( int argc, char **argv )
 			} else {
 				buf[strlen( buf ) - 1] = '\0';
 			}
-			(void) dn_normalize_case( buf );
+			(void) dn_normalize( buf );
 			if ( (tbe = select_backend( buf )) == NULL ) {
 				fprintf( stderr, "unknown suffix \"%s\"\n",
 				    buf );

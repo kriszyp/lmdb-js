@@ -145,7 +145,7 @@ str2entry( char *s )
 
 	/* generate normalized dn */
 	e->e_ndn = ch_strdup( e->e_dn );
-	(void) dn_normalize_case( e->e_ndn );
+	(void) dn_normalize( e->e_ndn );
 
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %ld (0x%lx)\n",
 		e->e_dn, e->e_id, (unsigned long)e );

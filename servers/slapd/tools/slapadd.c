@@ -59,7 +59,7 @@ main( int argc, char **argv )
 
 		if( !noschemacheck ) {
 			/* make sure the DN is valid */
-			if( dn_normalize_case( e->e_ndn ) == NULL ) {
+			if( dn_normalize( e->e_ndn ) == NULL ) {
 				fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
 					progname, e->e_dn, lineno );
 				rc = EXIT_FAILURE;

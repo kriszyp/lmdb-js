@@ -148,7 +148,7 @@ ldap_send_entry(
 
 	ent.e_dn = ldap_get_dn(lc->ld, e);
 	ent.e_ndn = ch_strdup( ent.e_dn);
-	(void) dn_normalize_case( ent.e_ndn );
+	(void) dn_normalize( ent.e_ndn );
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;

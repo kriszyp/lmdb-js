@@ -198,7 +198,7 @@ slap_tool_init(
 	if( base != NULL ) {
 		char *tbase = ch_strdup( base );
 
-		if( dn_normalize_case( tbase ) == NULL ) {
+		if( dn_normalize( tbase ) == NULL ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
 				progname, base );
 			exit( EXIT_FAILURE );

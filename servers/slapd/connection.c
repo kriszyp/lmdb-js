@@ -1053,7 +1053,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 
 	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
-	(void) dn_normalize_case( arg->co_op->o_ndn );
+	(void) dn_normalize( arg->co_op->o_ndn );
 
 	arg->co_op->o_protocol = conn->c_protocol;
 	arg->co_op->o_connid = conn->c_connid;

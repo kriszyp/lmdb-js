@@ -371,7 +371,7 @@ acl_access_allowed(
 			 */
 			/* see if asker is listed in dnattr */
 			string_expand(buf, sizeof(buf), b->a_group_pat, edn, matches);
-			if ( dn_normalize_case(buf) == NULL ) {
+			if ( dn_normalize(buf) == NULL ) {
 				/* did not expand to a valid dn */
 				continue;
 			}
@@ -748,7 +748,7 @@ aci_group_member (
 	grpdn = (char *)ch_malloc(1024);
 	if (grpoc != NULL && grpat != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, edn, matches);
-		if ( dn_normalize_case(grpdn) != NULL ) {
+		if ( dn_normalize(grpdn) != NULL ) {
 			rc = (backend_group(be, e, grpdn, op->o_ndn, grpoc, grpat) == 0);
 		}
 		ch_free(grpdn);
@@ -826,7 +826,7 @@ aci_access_allowed (
 		if (subjdn == NULL)
 			return(0);
 		rc = 0;
-		if (dn_normalize_case(subjdn) != NULL)
+		if ( dn_normalize(subjdn) != NULL )
 			rc = (strcasecmp(op->o_ndn, subjdn) == 0);
 		ch_free(subjdn);
 		return(rc);
