@@ -298,10 +298,17 @@ struct ldap {
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
-#if defined(HAVE_RES_QUERY) && defined(LDAP_R_COMPILE)
+#ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>
+
+#ifdef HAVE_RES_QUERY
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
-#endif /* HAVE_RES_QUERY && LDAP_R_COMPILE */
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
+#endif
+#endif
 
 /*
  * in init.c
