@@ -34,6 +34,9 @@ static struct bdbi_database {
 
 struct berval bdb_uuid = { 0, NULL };
 
+typedef void * db_malloc(size_t);
+typedef void * db_realloc(void *, size_t);
+
 static int
 bdb_open( BackendInfo *bi )
 {
@@ -195,6 +198,9 @@ bdb_db_open( BackendDB *be )
 #endif
 		return rc;
 	}
+
+	bdb->bi_dbenv->set_alloc( bdb->bi_dbenv, (db_malloc *)ber_memalloc,
+		(db_realloc *)ber_memrealloc, ber_memfree );
 
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
 		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
