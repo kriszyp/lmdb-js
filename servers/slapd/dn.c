@@ -263,7 +263,7 @@ char * dn_rdn(
 	}
 
 	while(*dn_in && ASCII_SPACE(*dn_in)) {
-		dn++;
+		dn_in++;
 	}
 
 	if( *dn_in == '\0' ) {
