@@ -44,7 +44,6 @@ ldbm_back_add(
 
 	if ( ( dn2id( be, e->e_ndn ) ) != NOID ) {
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-		entry_free( e );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
@@ -58,7 +57,6 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			text, 0, 0 );
 
-		entry_free( e );
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
 		return( -1 );
@@ -107,7 +105,6 @@ ldbm_back_add(
 				free( matched_dn );
 			}
 
-			entry_free( e );
 			free( pdn );
 			return -1;
 		}
@@ -129,7 +126,6 @@ ldbm_back_add(
 			    NULL, "no write access to parent", NULL, NULL );
 
 
-			entry_free( e );
 			return -1;
 		}
 
@@ -145,7 +141,6 @@ ldbm_back_add(
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
 			    NULL, "parent is an alias", NULL, NULL );
 
-			entry_free( e );
 			return -1;
 		}
 
@@ -166,7 +161,6 @@ ldbm_back_add(
 
 			ber_bvecfree( refs );
 			free( matched_dn );
-			entry_free( e );
 			return -1;
 		}
 
@@ -187,7 +181,6 @@ ldbm_back_add(
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, NULL, NULL, NULL );
 
-			entry_free( e );
 			return -1;
 		}
 
@@ -220,9 +213,6 @@ ldbm_back_add(
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
-
-		/* free the entry */
-		entry_free( e );
 
 		send_ldap_result( conn, op,
 			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER,

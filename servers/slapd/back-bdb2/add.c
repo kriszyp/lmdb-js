@@ -32,7 +32,6 @@ bdb2i_back_add_internal(
 	Debug(LDAP_DEBUG_ARGS, "==> bdb2i_back_add: %s\n", e->e_dn, 0, 0);
 
 	if ( ( bdb2i_dn2id( be, e->e_ndn ) ) != NOID ) {
-		entry_free( e );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
@@ -42,7 +41,6 @@ bdb2i_back_add_internal(
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
 			0, 0, 0 );
 
-		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
@@ -90,7 +88,6 @@ bdb2i_back_add_internal(
 				free( matched_dn );
 			}
 
-			entry_free( e );
 			free( pdn );
 			return -1;
 		}
@@ -108,7 +105,6 @@ bdb2i_back_add_internal(
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, NULL, NULL, NULL );
 
-			entry_free( e );
 			return -1;
 		}
 
@@ -124,7 +120,6 @@ bdb2i_back_add_internal(
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
 			    NULL, NULL, NULL, NULL );
 
-			entry_free( e );
 			return -1;
 		}
 
@@ -145,7 +140,6 @@ bdb2i_back_add_internal(
 
 			ber_bvecfree( refs );
 			free( matched_dn );
-			entry_free( e );
 			return -1;
 		}
 
@@ -164,7 +158,6 @@ bdb2i_back_add_internal(
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, NULL, NULL, NULL );
 
-			entry_free( e );
 			return -1;
 		}
 	}
@@ -188,9 +181,6 @@ bdb2i_back_add_internal(
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
-
-		/* free the entry */
-		entry_free( e );
 
 		send_ldap_result( conn, op,
 			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OPERATIONS_ERROR,
