@@ -275,6 +275,7 @@ at_add(
 	if ( sat->sat_sup ) {
 		sat->sat_syntax = sat->sat_sup->sat_syntax;
 		sat->sat_equality = sat->sat_sup->sat_equality;
+		sat->sat_approx = sat->sat_sup->sat_approx;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
 		sat->sat_substr = sat->sat_sup->sat_substr;
 	}
