@@ -128,39 +128,40 @@ init_syncrepl(syncinfo_t *si)
 			/* Add Attributes */
 			for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
 				attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
-				attrs[ n ] = NULL;
 			}
+			attrs[ n ] = NULL;
 		}
 
 	} else {
-		attrs = ( char ** ) ch_malloc( ( si->si_allattrs + si->si_allopattrs + 1 ) * sizeof( char * ) );
+		for ( n = 0; sync_descs[ n ] != NULL; n++ ) ;
+
+		attrs = ( char ** ) ch_malloc((
+					(si->si_allattrs   ? 1 : ( si->si_allopattrs ? 0 : 1)) +
+					(si->si_allopattrs ? 1 : ( si->si_allattrs   ? n : 1))
+					+ 1 ) * sizeof( char * ) );
 		if ( attrs == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0, 0, 0 );
 		}
 		
-		/* 
-		 * FIXME: currently, if "attrs=*" is specified,
-		 * it is silently turned into "attrs=* +";
-		 * unless this behavior is intended, the #unifdef'd
-		 * code fixes the problem.  However, this breaks
-		 * the syncrepl tests (at least
-		 * test019-syncreplication-cascade), so the consumers'
-		 * slapd-conf need be modified with "attrs=* +"
-		 * to fix them.  Comments?
-		 */
-#if 0
 		i = 0;
 		if ( si->si_allattrs ) {
 			attrs[i++] = ch_strdup( "*" );
 		}
+
 		if ( si->si_allopattrs ) {
 			attrs[i++] = ch_strdup( "+" );
+		} else {
+			for ( j = 0; sync_descs[ j ] != NULL; j++ ) {
+				attrs[ i++ ] = ch_strdup ( sync_descs[j]->ad_cname.bv_val );
+			}
 		}
 		attrs[i] = NULL;
-#endif
-		attrs[0] = ch_strdup( "*" );
-		attrs[1] = ch_strdup( "+" );
-		attrs[2] = NULL;
+
+		if ( !si->si_allattrs && !si->si_allopattrs ) {
+			attrs[0] = ch_strdup( "*" );
+			attrs[1] = ch_strdup( "+" );
+			attrs[2] = NULL;
+		}
 	}
 	
 	si->si_attrs = attrs;
@@ -2034,15 +2035,16 @@ slap_uuidstr_from_normalized(
 		new = uuidstr;
 	} else {
 		new = (struct berval *)slap_sl_malloc( sizeof(struct berval), ctx );
+		if ( new == NULL ) {
+			return NULL;
+		}
 	}
 
 	new->bv_len = 36;
 
 	if ( ( new->bv_val = slap_sl_malloc( new->bv_len + 1, ctx ) ) == NULL ) {
-		if ( !uuidstr ) {
+		if ( new != uuidstr ) {
 			slap_sl_free( new, ctx );
-		} else {
-			BER_BVZERO( uuidstr );
 		}
 		return NULL;
 	}
