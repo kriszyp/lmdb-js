@@ -33,13 +33,10 @@ monitor_info( Connection *conn, Operation *op )
 	int    nconns, nwritewaiters, nreadwaiters;
 	struct tm	*ltm;
 	char		*p;
-#ifdef LDAP_COUNTERS
-    int        i;
-    char       buf2[22]
-    char       buf3[22]
+    char       buf2[22];
+    char       buf3[22];
 	Connection *c;
 	int			connindex;
-#endif
     time_t		currenttime;
 
 	vals[0] = &val;
@@ -71,7 +68,6 @@ monitor_info( Connection *conn, Operation *op )
 	nwritewaiters = 0;
 	nreadwaiters = 0;
 
-#ifdef LDAP_COUNTERS
 	/* loop through the connections */
 	for ( c = connection_first( &connindex );
 		c != NULL;
@@ -90,25 +86,45 @@ monitor_info( Connection *conn, Operation *op )
 		ltm = gmtime( &c->c_starttime );
 		strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
 
-		ltm = gmtime( &c->.c_activitytime );
-		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+		ltm = gmtime( &c->c_activitytime );
+		strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
 #else
 		ltm = localtime( &c->.c_starttime );
 		strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 
-		ltm = localtime( &c->.c_activitytime );
+		ltm = localtime( &c->c_activitytime );
 		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 #endif
 
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
-		sprintf( buf, "%d : %s : %d : %d : %s : %s%s%s%s : %s", i,
-		    buf2, c[i].c_n_ops_received, c[i].c_n_ops_completed,
-		    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
-		    c[i].c_currentber ? "r" : "",
-		    c[i].c_writewaiter ? "w" : "",
-		    c[i].c_ops != NULL ? "x" : "",
-		    c[i].c_pending_ops != NULL ? "p" : ""
+		sprintf( buf,
+			"%ld : %ld "
+			": %ld/%ld/%ld/%ld "
+			": %ld/%ld/%ld "
+			": %s%s%s%s "
+			": %s : %s : %s "
+			": %s : %s",
+
+			c->c_connid,
+			(long) c->c_protocol,
+
+			c->c_n_ops_received, c->c_n_ops_executing,
+			c->c_n_ops_pending, c->c_n_ops_completed,
+
+			/* add low-level counters here */
+			c->c_n_get, c->c_n_read, c->c_n_write,
+
+		    c->c_currentber ? "r" : "",
+		    c->c_writewaiter ? "w" : "",
+		    c->c_ops != NULL ? "x" : "",
+		    c->c_pending_ops != NULL ? "p" : "",
+
+		    c->c_cdn ? c->c_cdn : "<anonymous>",
+		    c->c_client_addr ? c->c_client_addr : "unknown",
+		    c->c_client_name ? c->c_client_name : "unknown",
+
+		    buf2,
 			buf3
 		);
 
@@ -117,7 +133,6 @@ monitor_info( Connection *conn, Operation *op )
 		attr_merge( e, "connection", vals );
 	}
 	connection_done(c);
-#endif
 
 	sprintf( buf, "%d", nconns );
 	val.bv_val = buf;
@@ -144,7 +159,6 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "readwaiters", vals );
 
-#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock(&num_ops_mutex);
 	sprintf( buf, "%ld", num_ops_initiated );
 	ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
@@ -172,7 +186,6 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "bytessent", vals );
-#endif
 
 	currenttime = slap_get_time();
 

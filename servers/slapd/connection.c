@@ -238,6 +238,8 @@ static Connection* connection_get( ber_socket_t s )
 			"connection_get(%d): got connid=%ld\n",
 			s, c->c_connid, 0 );
 
+		c->c_n_get++;
+
 		assert( c->c_struct_state == SLAP_C_USED );
 		assert( c->c_conn_state != SLAP_C_INVALID );
 		assert( ber_pvt_sb_in_use( c->c_sb ) );
@@ -349,11 +351,13 @@ long connection_init(
     c->c_client_addr = ch_strdup( addr );
 
     c->c_n_ops_received = 0;
-#ifdef LDAP_COUNTERS
     c->c_n_ops_executing = 0;
     c->c_n_ops_pending = 0;
     c->c_n_ops_completed = 0;
-#endif
+
+	c->c_n_get = 0;
+	c->c_n_read = 0;
+	c->c_n_write = 0;
 
     c->c_activitytime = c->c_starttime = slap_get_time();
 
@@ -602,11 +606,9 @@ connection_operation( void *arg_v )
 	ber_tag_t tag = arg->co_op->o_tag;
 	Connection *conn = arg->co_conn;
 
-#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
-#endif
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
@@ -651,17 +653,14 @@ connection_operation( void *arg_v )
 		break;
 	}
 
-#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
-#endif
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-#ifdef LDAP_COUNTERS
+	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;
-#endif
 
 	slap_op_remove( &conn->c_ops, arg->co_op );
 	slap_op_free( arg->co_op );
@@ -717,6 +716,8 @@ int connection_read(ber_socket_t s)
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
+
+	c->c_n_read++;
 
 	if( c->c_conn_state == SLAP_C_CLOSING ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -826,9 +827,11 @@ connection_input(
 		|| conn->c_conn_state == SLAP_C_CLOSING )
 	{
 		Debug( LDAP_DEBUG_ANY, "deferring operation\n", 0, 0, 0 );
+		conn->c_n_ops_pending++;
 		slap_op_add( &conn->c_pending_ops, op );
 
 	} else {
+		conn->c_n_ops_executing++;
 		connection_op_activate( conn, op );
 	}
 
@@ -868,6 +871,9 @@ connection_resched( Connection *conn )
 	{
 		/* pending operations should not be marked for abandonment */
 		assert(!op->o_abandon);
+
+		conn->c_n_ops_pending--;
+		conn->c_n_ops_executing++;
 
 		connection_op_activate( conn, op );
 
@@ -946,6 +952,8 @@ int connection_write(ber_socket_t s)
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
+
+	c->c_n_write++;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%ld\n",
