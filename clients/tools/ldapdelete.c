@@ -462,9 +462,8 @@ static int dodelete(
 	}
 
 	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if ( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "ldapdelete: ldap_result: %s (%d)\n",
-			ldap_err2string( rc ), rc );
+	if ( rc < 0 ) {
+		ldap_perror( ld, "ldapdelete: ldap_result" );
 		return rc;
 	}
 

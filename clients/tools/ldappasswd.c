@@ -450,8 +450,8 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_result" );
+	if ( rc < 0 ) {
+		ldap_perror( ld, "ldappasswd: ldap_result" );
 		return rc;
 	}
 
@@ -514,7 +514,7 @@ main( int argc, char *argv[] )
 
 	ber_memfree( text );
 	ber_memfree( matcheddn );
-	ber_memvfree( refs );
+	ber_memvfree( (void **) refs );
 	ber_memfree( retoid );
 	ber_bvfree( retdata );
 
