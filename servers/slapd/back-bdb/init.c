@@ -317,11 +317,17 @@ bdb_db_close( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_db_info *db;
 
 	while( bdb->bi_ndatabases-- ) {
-		rc = bdb->bi_databases[bdb->bi_ndatabases]->bdi_db->close(
-			bdb->bi_databases[bdb->bi_ndatabases]->bdi_db, 0 );
+		db = bdb->bi_databases[bdb->bi_ndatabases];
+		rc = db->bdi_db->close( db->bdi_db, 0 );
+		if( db->bdi_name )
+			free( db->bdi_name );
+		free( db );
 	}
+	free( bdb->bi_databases );
+	bdb_attr_index_destroy( bdb->bi_attrs );
 
 	return 0;
 }
