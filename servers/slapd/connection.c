@@ -107,7 +107,13 @@ static Connection* connection_get( int s )
 		}
 	}
 #endif
+
 	if( c != NULL ) {
+		/* we do this BEFORE locking to aid in debugging */
+		Debug( LDAP_DEBUG_TRACE,
+			"connection_get(%d): got connid=%ld\n",
+			s, c->c_connid, 0 );
+
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	}
 	return c;
