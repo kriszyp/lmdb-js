@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.314 2000/06/09 21:09:52 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.315 2000/06/18 17:36:48 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -10,7 +10,7 @@
 # in file LICENSE in the top-level directory of the distribution.
 
 echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
-echo "Copying restrictions apply, see COPYRIGHT file."
+echo "Restrictions apply, see COPYRIGHT and LICENSE files."
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13.1 
