@@ -17,6 +17,12 @@ else
 	SLAVECONF=$DATADIR/slapd-repl-slave.conf
 fi
 
+if test "$LDAP_PROTO" ; then
+	PROTO="-P $LDAP_PROTO"
+else
+	PROTO=""
+fi
+
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 
 CLIENTDIR=../clients/tools
@@ -24,10 +30,10 @@ CLIENTDIR=../clients/tools
 
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
-LDAPSEARCH=$CLIENTDIR/ldapsearch
-LDAPMODIFY=$CLIENTDIR/ldapmodify
-LDAPADD=$CLIENTDIR/ldapadd
-LDAPMODRDN=$CLIENTDIR/ldapmodrdn
+LDAPSEARCH="$CLIENTDIR/ldapsearch $PROTO"
+LDAPMODIFY="$CLIENTDIR/ldapmodify $PROTO"
+LDAPADD="$CLIENTDIR/ldapadd $PROTO"
+LDAPMODRDN="$CLIENTDIR/ldapmodrdn $PROTO"
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-5}
 ADDR=127.0.0.1
