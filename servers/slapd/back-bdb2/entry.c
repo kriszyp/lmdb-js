@@ -8,12 +8,12 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-bdb2.h"
+#include "proto-back-bdb2.h"
 
 
 int
-ldbm_back_entry_release_rw(
+bdb2_back_entry_release_rw(
 	BackendDB *be,
 	Entry   *e,
 	int     rw
