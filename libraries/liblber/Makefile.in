@@ -1,0 +1,40 @@
+# $OpenLDAP$
+## Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## LIBLBER
+##
+
+LIBRARY = liblber.la
+
+NT_SRCS = nt_err.c
+NT_OBJS = nt_err.lo
+
+LIB_DEFS = -DLBER_LIBRARY
+
+SRCS= assert.c decode.c encode.c io.c bprint.c debug.c \
+	memory.c options.c sockbuf.c $(@PLAT@_SRCS)
+OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo debug.lo\
+	memory.lo options.lo sockbuf.lo $(@PLAT@_OBJS)
+XSRCS= version.c
+
+PROGRAMS= dtest etest idtest
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS = $(LIBRARY) $(LDAP_LIBLUTIL_A)
+XXLIBS = 
+NT_LINK_LIBS = $(AC_LIBS)
+
+dtest:    $(XLIBS) dtest.o
+	$(LTLINK) -o $@ dtest.o $(LIBS)
+etest:  $(XLIBS) etest.o
+	$(LTLINK) -o $@ etest.o $(LIBS)
+idtest:  $(XLIBS) idtest.o
+	$(LTLINK) -o $@ idtest.o $(LIBS)
+
+install-local: FORCE
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+

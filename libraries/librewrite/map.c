@@ -24,6 +24,8 @@
 
 #include <portable.h>
 
+#include <stdio.h>
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -541,6 +543,7 @@ rewrite_xmap_apply(
 			break;
 		}
 
+#ifdef HAVE_PW_GECOS
 		if ( pwd->pw_gecos != NULL && pwd->pw_gecos[0] != '\0' ) {
 			int l = strlen( pwd->pw_gecos );
 			
@@ -555,7 +558,9 @@ rewrite_xmap_apply(
 				break;
 			}
 			val->bv_len = l;
-		} else {
+		} else
+#endif /* HAVE_PW_GECOS */
+		{
 			val->bv_val = strdup( key->bv_val );
 			val->bv_len = key->bv_len;
 		}

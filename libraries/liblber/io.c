@@ -33,6 +33,7 @@
 #endif
 
 #include "lber-int.h"
+#include "ldap_log.h"
 
 ber_slen_t
 ber_read(
@@ -207,11 +208,14 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 
 	if ( sb->sb_debug ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "liblber", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( BER, DETAIL1,
 			   "ber_flush: %ld bytes to sd %ld%s\n",
 			   towrite, (long)sb->sb_fd,
-			   ber->ber_rwptr != ber->ber_buf ? " (re-flush)" : "" ));
-		BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+			   ber->ber_rwptr != ber->ber_buf ? " (re-flush)" : "" );
+
+		if(LDAP_LOGS_TEST(BER, DETAIL2))
+				BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+
 #else
 		ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
 			"ber_flush: %ld bytes to sd %ld%s\n",
@@ -441,7 +445,7 @@ ber_get_next(
 	assert( LBER_VALID( ber ) );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "liblber", LDAP_LEVEL_ENTRY, "ber_get_next: enter\n" ));
+	LDAP_LOG( BER, ENTRY, "ber_get_next: enter\n", 0, 0, 0 );
 #else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_get_next\n" );
@@ -509,6 +513,8 @@ ber_get_next(
 			ber->ber_ptr = (char *)p;
 		}
 
+		if (i == 1) continue;
+
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
 			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
@@ -548,9 +554,9 @@ ber_get_next(
 			return LBER_DEFAULT;
 		} else if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "liblber", LDAP_LEVEL_ERR, 
+			LDAP_LOG( BER, ERR, 
 				"ber_get_next: sockbuf_max_incoming limit hit "
-				"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming ));
+				"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming, 0 );
 #else
 			ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
 				"ber_get_next: sockbuf_max_incoming limit hit "
@@ -616,10 +622,11 @@ done:
 		*len = ber->ber_len;
 		if ( ber->ber_debug ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "liblber", LDAP_LEVEL_DETAIL1,
-				"ber_get_next: tag 0x%lx len %ld\n",
-				ber->ber_tag, ber->ber_len ));
-			BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+			LDAP_LOG( BER, DETAIL1, 
+				"ber_get_next: tag 0x%lx len %ld\n", 
+				ber->ber_tag, ber->ber_len, 0  );
+			if(LDAP_LOGS_TEST(BER, DETAIL2))
+					BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
 #else
 			ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 				"ber_get_next: tag 0x%lx len %ld contents:\n",
