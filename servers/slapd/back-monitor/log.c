@@ -319,11 +319,20 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			const char *text = NULL;
 			struct berval asserted;
 
+#ifdef SLAP_NVALUES
+			rc = asserted_value_validate_normalize(
+				mod->sm_desc, mr,
+				SLAP_MR_EQUALITY,
+				&mod->sm_bvalues[i],
+				&asserted,
+				&text );
+#else
 			rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
 				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
+#endif
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -403,11 +412,20 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		struct berval asserted;
 
+#ifdef SLAP_NVALUES
+		rc = asserted_value_validate_normalize(
+				mod->sm_desc, mr,
+				SLAP_MR_EQUALITY,
+				&mod->sm_bvalues[i],
+				&asserted,
+				&text );
+#else
 		rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
 				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
+#endif
 
 		if( rc != LDAP_SUCCESS ) return rc;
 

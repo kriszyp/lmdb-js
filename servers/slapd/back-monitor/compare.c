@@ -81,7 +81,15 @@ monitor_back_compare(
 			a = attrs_find( a->a_next, ava->aa_desc )) {
 		rc = LDAP_COMPARE_FALSE;
 
-		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 ) {
+#ifdef SLAP_NVALUES
+		if ( value_find_ex( ava->aa_desc,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			a->a_nvals ? a->a_nvals : a->a_vals,
+			&ava->aa_value ) == 0 )
+#else
+		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 )
+#endif
+		{
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}
