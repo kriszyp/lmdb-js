@@ -17,6 +17,48 @@
 
 
 int
+ldbm_back_config(
+    BackendInfo	*bi,
+    const char	*fname,
+    int		lineno,
+    int		argc,
+    char	**argv
+)
+{
+	int rc;
+	struct ldbm_backend_info *lbi =
+		(struct ldbm_backend_info *) bi->bi_private;
+
+	if ( lbi == NULL ) {
+		fprintf( stderr, "%s: line %d: ldbm backend info is null!\n",
+		    fname, lineno );
+		return 1;
+	}
+
+	/* directory where database files live */
+	if ( strcasecmp( argv[0], "directory" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+		"%s: line %d: missing dir in \"directory <dir>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		if ( lbi->lbi_directory ) {
+			free( lbi->lbi_directory );
+		}
+		lbi->lbi_directory = ch_strdup( argv[1] );
+
+	/* anything else */
+	} else {
+		fprintf( stderr,
+"%s: line %d: unknown directive \"%s\" in ldbm backend definition (ignored)\n",
+		    fname, lineno, argv[0] );
+	}
+
+	return 0;
+}
+
+int
 ldbm_back_db_config(
     Backend	*be,
     const char	*fname,

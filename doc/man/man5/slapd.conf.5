@@ -1,5 +1,5 @@
-.TH SLAPD.CONF 5 "17 October 2000" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.TH SLAPD.CONF 5 "28 May 2001" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2001 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -56,9 +56,10 @@ backslash character (`\\'), the character should be preceded by a
 backslash character.
 .LP
 The specific configuration options available are discussed below in the
-Global Configuration Options, General Backend Options, LDBM
-Backend-Specific Options, Shell Backend-Specific Options, and Password
-Backend-Specific Options sections.  Refer to the "OpenLDAP
+Global Configuration Options, General Backend Options, General Database
+Options, LDBM Backend-Specific Options, LDBM Database-Specific Options,
+Shell Database-Specific Options, and Password
+Database-Specific Options sections.  Refer to the "OpenLDAP
 Administrator's Guide" for more details on the slapd configuration
 file.
 .SH GLOBAL CONFIGURATION OPTIONS
@@ -480,7 +481,21 @@ is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
-for the backend in which they are defined.  They are supported by every
+for the specified backend.  They are supported by every
+type of backend.
+.TP
+.B backend <databasetype>
+Mark the beginning of a backend definition. <databasetype>
+should be one of
+.B ldbm,
+.B shell,
+or
+.B passwd
+depending on which backend will serve the database.
+
+.SH GENERAL DATABASE OPTIONS
+Options in this section only apply to the configuration file section
+for the database in which they are defined.  They are supported by every
 type of backend.
 .TP
 .B database <databasetype>
@@ -590,10 +605,20 @@ Specify the referral to pass back when
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
 .SH LDBM BACKEND-SPECIFIC OPTIONS
-Options in this category only apply to the LDBM backend database. That is,
-they must follow a "database ldbm" line and come before any subsequent
-"database" lines.  The LDBM backend is a high-performance database that
-makes extensive use of indexing and caching to speed data access. 
+Options in this category only apply to the LDBM backend. That is,
+they must follow "backend ldbm" line and come before any subsequent
+"backend" or "database" lines.  The LDBM backend is a high-performance
+database that makes extensive use of indexing and caching to speed
+data access. 
+.TP
+.B directory <directory>
+Specify the directory where shared LDBM files, namely those associated
+with a BerkeleyDB environment, for all LDBM databases are kept.
+The default is unset.
+.SH LDBM DATABASE-SPECIFIC OPTIONS
+Options in this category only apply to the LDBM databases. That is,
+they must follow "database ldbm" line and come before any subsequent
+"backend" or "database" lines.
 .TP
 .B cachesize <integer>
 Specify the size in entries of the in-memory cache maintained 
@@ -649,10 +674,10 @@ other subtypes.
 .B mode <integer>
 Specify the file protection mode that newly created database 
 index files should have.  The default is 0600.
-.SH SHELL BACKEND-SPECIFIC OPTIONS
+.SH SHELL DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the SHELL backend database. That is,
 they must follow a "database shell" line and come before any subsequent
-"database" lines.  The Shell backend executes external programs to
+"backend" or "database" lines.  The Shell backend executes external programs to
 implement operations, and is designed to make it easy to tie an existing
 database to the
 .B slapd
@@ -681,10 +706,10 @@ to the given LDAP operation.
 Note that you need only supply configuration lines for those commands you
 want the backend to handle. Operations for which a command is not
 supplied will be refused with an "unwilling to perform" error.
-.SH PASSWORD BACKEND-SPECIFIC OPTIONS
+.SH PASSWORD DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the PASSWD backend database.
 That is, they must follow a "database passwd" line and come before any
-subsequent "database" lines.  The PASSWD database serves up the user
+subsequent "backend" or "database" lines.  The PASSWD database serves up the user
 account information listed in the system
 .BR passwd (5)
 file.
