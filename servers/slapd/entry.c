@@ -24,7 +24,7 @@ static int		emaxsize;/* max size of ebuf			 */
 /*
  * Empty root entry
  */
-const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, 0, NULL };
+const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL };
 
 int entry_destroy(void)
 {
@@ -363,6 +363,11 @@ entry_free( Entry *e )
 		e->e_ndn = NULL;
 	}
 
+	if ( e->e_bv.bv_val != NULL ) {
+		free( e->e_bv.bv_val );
+		e->e_bv.bv_val = NULL;
+	}
+
 	/* free attributes */
 	attrs_free( e->e_attrs );
 	e->e_attrs = NULL;
@@ -575,7 +580,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	    "entry_decode: \"%s\"\n",
 	    x->e_dn, 0, 0 );
 #endif
-	x->e_private = bv->bv_val;
+	x->e_bv = *bv;
 
 	/* A valid entry must have at least one attr, so this
 	 * pointer can never be NULL

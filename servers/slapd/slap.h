@@ -756,6 +756,8 @@ typedef struct slap_entry {
 
 	slap_mask_t	e_ocflags;
 
+	struct berval	e_bv;		/* For entry_encode/entry_decode */
+
 	/* for use by the backend for any purpose */
 	void*	e_private;
 } Entry;
