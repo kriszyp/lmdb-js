@@ -7,6 +7,7 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd extended op referrals (ITS#2678, ITS#2781)
 	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
+	Fixed lunicode insufficient buffer allocation bug (ITS#2727)
 	Fixed libldap_r pthread support (ITS#2820)
 	Fixed slapd berbuf align bugs
 	Added lutil_passwd extensions

@@ -117,9 +117,9 @@ struct berval * UTF8bvnormalize(
 		return ber_dupbv( newbv, bv );
 	}
 	
-	/* FIXME: Should first check to see if string is already in
-	 * proper normalized form. This is almost as time consuming
-	 * as the normalization though.
+	/* Should first check to see if string is already in proper
+	 * normalized form. This is almost as time consuming as
+	 * the normalization though.
 	 */
 
 	/* finish off everything up to character before first non-ascii */
@@ -136,7 +136,7 @@ struct berval * UTF8bvnormalize(
 				out[outpos++] = TOLOWER( s[i-1] );
 			}
 			if ( i == len ) {
-				out[outpos++] = TOLOWER( s[len - 1] );
+				out[outpos++] = TOLOWER( s[len-1] );
 				out[outpos] = '\0';
 				return ber_str2bv( out, outpos, 0, newbv);
 			}
@@ -249,6 +249,18 @@ struct berval * UTF8bvnormalize(
 
 		last = i;
 
+		/* Allocate more space in out if necessary */
+		if (len - i >= outsize - outpos) {
+			outsize += 1 + ((len - i) - (outsize - outpos));
+			outtmp = (char *) realloc(out, outsize);
+			if (outtmp == NULL) {
+				free(out);
+				free(ucs);
+				return NULL;
+			}
+			out = outtmp;
+		}
+
 		/* s[i] is ascii */
 		/* finish off everything up to char before next non-ascii */
 		for ( i++; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
@@ -317,7 +329,8 @@ int UTF8bvnormcmp(
 					break;
 				}
 			} else if (((len < l1) && !LDAP_UTF8_ISASCII(s1)) ||
-				   ((len < l2) && !LDAP_UTF8_ISASCII(s2))) {
+			   ((len < l2) && !LDAP_UTF8_ISASCII(s2)))
+			{
 				break;
 			}
 			return res;
@@ -344,10 +357,9 @@ int UTF8bvnormcmp(
 		l2 -= i - 1;
 	}
 			
-	/* FIXME: Should first check to see if strings are already in
+	/* Should first check to see if strings are already in
 	 * proper normalized form.
 	 */
-
 	ucs = malloc( ( ( norm1 || l1 > l2 ) ? l1 : l2 ) * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		return l1 > l2 ? 1 : -1; /* what to do??? */
