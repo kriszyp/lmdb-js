@@ -185,6 +185,20 @@ int backend_startup_one(Backend *be)
 				rc, 0, 0 );
 		}
 	}
+
+	/* back-relay takes care of itself; so may do other */
+	if ( be->be_controls == NULL ) {
+		BackendInfo	*bi = be->bd_info;
+	
+		if ( overlay_is_over( be ) ) {
+			bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
+		}
+
+		if ( bi->bi_controls ) {
+			be->be_controls = ldap_charray_dup( bi->bi_controls );
+		}
+	}
+
 	return rc;
 }
 
@@ -503,10 +517,6 @@ backend_db_init(
 	be = &backends[nbackends++];
 
 	be->bd_info = bi;
-
-	if ( bi->bi_controls ) {
-		be->be_controls = ldap_charray_dup( bi->bi_controls );
-	}
 
 	be->be_def_limit = frontendDB->be_def_limit;
 	be->be_dfltaccess = frontendDB->be_dfltaccess;
