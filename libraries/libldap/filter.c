@@ -475,7 +475,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 	rc = parens ? -1 : 0;
 
 done:
-	free( freeme );
+	LDAP_FREE( freeme );
 	return rc;
 }
 
