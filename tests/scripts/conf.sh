@@ -1,6 +1,5 @@
 #! /bin/sh
 # $OpenLDAP$
-# . $SRCDIR/scripts/defines.sh
 if [ x"$MONITORDB" = x"yes" ] ; then
 	MON=monitor
 else
