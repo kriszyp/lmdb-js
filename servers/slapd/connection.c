@@ -817,9 +817,9 @@ int connection_read(ber_socket_t s)
 #define CONNECTION_INPUT_LOOP 1
 
 #ifdef DATA_READY_LOOP
-	while(!rc && ber_pvt_sb_data_ready(&c->c_sb))
+	while(rc >= 0 && ber_pvt_sb_data_ready(&c->c_sb))
 #elif CONNECTION_INPUT_LOOP
-	while(!rc)
+	while(rc >= 0)
 #endif
 	{
 		rc = connection_input( c );
@@ -835,6 +835,10 @@ int connection_read(ber_socket_t s)
 		connection_close( c );
 	}
 
+	if ( ber_pvt_sb_needs_read( c->c_sb ) )
+		slapd_set_read( s, 1 );
+	if ( ber_pvt_sb_needs_write( c->c_sb ) )
+		slapd_set_write( s, 1 );
 	connection_return( c );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	return 0;
@@ -1054,6 +1058,10 @@ int connection_write(ber_socket_t s)
 
 	ldap_pvt_thread_cond_signal( &c->c_write_cv );
 
+	if ( ber_pvt_sb_needs_read( c->c_sb ) )
+		slapd_set_read( s, 1 );
+	if ( ber_pvt_sb_needs_write( c->c_sb ) )
+		slapd_set_write( s, 1 );
 	connection_return( c );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	return 0;
