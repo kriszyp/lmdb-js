@@ -89,7 +89,7 @@ main( int argc, char **argv )
 
                 last = key;
         }
-#ifdef HAVE_BERKELEY_DB2
+#ifndef HAVE_BERKELEY_DB2
         if ( last.dptr != NULL )
                 ldbm_datum_free( dbp, last );
 #endif

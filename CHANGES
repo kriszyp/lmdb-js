@@ -11,6 +11,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed slapd (cn=*=+=*) regex bug (ITS#272)
 	Fixed -lldap (cn=*\**) filter handling (ITS#247 ITS#275)
 	Fixed slapd errno handling
+	Fixed ldbmcat crash (ITS#211 ITS#283)
 	Build environment
 		Disable config.cache to ensure consistent detection
 	Documentation
