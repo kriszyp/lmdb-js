@@ -170,7 +170,7 @@ main( int argc, char **argv )
 {
     char		*rbuf, *start, *rejbuf = NULL;
     FILE		*fp, *rejfp;
-	char		*matched_msg = NULL, *error_msg = NULL;
+	char		*matched_msg, *error_msg;
 	int		rc, retval;
 	int count, len;
 
@@ -253,14 +253,20 @@ main( int argc, char **argv )
 	if ( rc && rejfp ) {
 		fprintf(rejfp, "# Error: %s (%d)", ldap_err2string(rc), rc);
 
+		matched_msg = NULL;
 		ldap_get_option(ld, LDAP_OPT_MATCHED_DN, &matched_msg);
-		if ( matched_msg != NULL && *matched_msg != '\0' ) {
-			fprintf( rejfp, ", matched DN: %s", matched_msg );
+		if ( matched_msg != NULL ) {
+			if ( *matched_msg != '\0' )
+				fprintf( rejfp, ", matched DN: %s", matched_msg );
+			ldap_memfree( matched_msg );
 		}
 
+		error_msg = NULL;
 		ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
-		if ( error_msg != NULL && *error_msg != '\0' ) {
-			fprintf( rejfp, ", additional info: %s", error_msg );
+		if ( error_msg != NULL ) {
+			if ( *error_msg != '\0' )
+				fprintf( rejfp, ", additional info: %s", error_msg );
+			ldap_memfree( error_msg );
 		}
 		fprintf( rejfp, "\n%s\n", rejbuf );
 	}
@@ -548,8 +554,8 @@ end_line:
                         }
                     }
                     pctrls[npc+ndefc] = NULL;
-                    ldap_controls_free(defctrls);  /* Must be freed by library */
                 }
+                ldap_controls_free(defctrls);  /* Must be freed by library */
             }
         }
     }
