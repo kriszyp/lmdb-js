@@ -48,7 +48,7 @@ static char	*sasl_mech = NULL;
 static char	*sasl_secprops = NULL;
 #endif
 static int	use_tls = 0;
-static int	ldapadd, replace, not, verbose, contoper, force;
+static int	ldapadd, not, verbose, contoper, force;
 static LDAP	*ld = NULL;
 
 #define LDAPMOD_MAXLINE		4096
@@ -102,7 +102,6 @@ usage( const char *prog )
 "	specified by \"-f file\".\n"
 "Add or modify options:\n"
 "  -a         add values (default%s)\n"
-"  -r         replace values\n"
 "  -F         force all changes records to be used\n"
 
 "Common options:\n"
@@ -179,9 +178,6 @@ main( int argc, char **argv )
 	    break;
 	case 'F':	/* force all changes records to be used */
 	    force = 1;
-	    break;
-	case 'r':	/* default is to replace rather than add values */
-	    replace = 1;
 	    break;
 
 	/* Common Options */
@@ -376,6 +372,9 @@ main( int argc, char **argv )
 			prog );
 		return( EXIT_FAILURE );
 #endif
+	case 'r':	/* replace (obsolete) */
+		break;
+
 	case 'R':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_realm != NULL ) {
@@ -848,7 +847,7 @@ process_ldif_rec( char *rbuf, int count )
 		addmodifyop( &pmods, modop, val.bv_val, NULL );
 		goto end_line;
 	    } else {	/* no modify op:  use default */
-		modop = replace ? LDAP_MOD_REPLACE : LDAP_MOD_ADD;
+		modop = ldapadd ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 	    }
 	}
 
