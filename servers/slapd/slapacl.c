@@ -39,8 +39,9 @@ slapacl( int argc, char **argv )
 {
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapacl";
-	Connection		conn;
-	Operation		op;
+	Connection		conn = {0};
+	Operation		op = {0};
+	Opheader		ohdr = {0};
 	Entry			e = { 0 };
 	char			*attr = NULL;
 
@@ -49,10 +50,7 @@ slapacl( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	memset( &conn, 0, sizeof( Connection ) );
-	memset( &op, 0, sizeof( Operation ) );
-
-	connection_fake_init( &conn, &op, &conn );
+	connection_fake_init( &conn, &op, &ohdr, &conn );
 
 	if ( !BER_BVISNULL( &authcID ) ) {
 		rc = slap_sasl_getdn( &conn, &op, &authcID, NULL,

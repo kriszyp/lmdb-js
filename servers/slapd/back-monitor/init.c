@@ -374,6 +374,7 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 {
 	Connection	conn = { 0 };
 	Operation	op = { 0 };
+	Opheader	ohdr = { 0 };
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
 	AttributeName	anlist[ 2 ];
@@ -385,7 +386,7 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 		return -1;
 	}
 
-	connection_fake_init( &conn, &op, &conn );
+	connection_fake_init( &conn, &op, &ohdr, &conn );
 
 	op.o_tag = LDAP_REQ_SEARCH;
 

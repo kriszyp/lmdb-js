@@ -1695,6 +1695,7 @@ void
 connection_fake_init(
 	Connection *conn,
 	Operation *op,
+	Opheader *ohdr,
 	void *ctx )
 {
 	conn->c_connid = -1;
@@ -1705,6 +1706,7 @@ connection_fake_init(
 	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
+	op->o_hdr = ohdr;
 	/* set memory context */
 	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx);
 	op->o_tmpmfuncs = &slap_sl_mfuncs;

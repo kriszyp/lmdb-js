@@ -79,18 +79,16 @@ slapauth( int argc, char **argv )
 {
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapauth";
-	Connection		conn;
-	Operation		op;
+	Connection		conn = {0};
+	Operation		op = {0};
+	Opheader		ohdr = {0};
 
 	slap_tool_init( progname, SLAPAUTH, argc, argv );
 
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	memset( &conn, 0, sizeof( Connection ) );
-	memset( &op, 0, sizeof( Operation ) );
-
-	connection_fake_init( &conn, &op, &conn );
+	connection_fake_init( &conn, &op, &ohdr, &conn );
 
 	if ( !BER_BVISNULL( &authzID ) ) {
 		struct berval	authzdn;

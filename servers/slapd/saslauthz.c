@@ -992,21 +992,13 @@ exact_match:
 		goto CONCLUDED;
 	}
 
+	op.o_hdr = opx->o_hdr;
 	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = *authc;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = opx->o_threadctx;
-	op.o_tmpmemctx = opx->o_tmpmemctx;
-	op.o_tmpmfuncs = opx->o_tmpmfuncs;
-#ifdef LDAP_SLAPI
-	op.o_pb = opx->o_pb;
-#endif
-	op.o_conn = opx->o_conn;
-	op.o_connid = opx->o_connid;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
 	if( !BER_BVISNULL( &base ) ) {
 		ch_free( base.bv_val );
@@ -1163,21 +1155,13 @@ void slap_sasl2dn( Operation *opx,
 		goto FINISHED;
 	}
 
-	op.o_conn = opx->o_conn;
-	op.o_connid = opx->o_connid;
+	op.o_hdr = opx->o_hdr;
 	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = opx->o_conn->c_ndn;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = opx->o_threadctx;
-	op.o_tmpmemctx = opx->o_tmpmemctx;
-	op.o_tmpmfuncs = opx->o_tmpmfuncs;
-#ifdef LDAP_SLAPI
-	op.o_pb = opx->o_pb;
-#endif
 	op.ors_deref = LDAP_DEREF_NEVER;
 	op.ors_slimit = 1;
 	op.ors_tlimit = SLAP_NO_LIMIT;

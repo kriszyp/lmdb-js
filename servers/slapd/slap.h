@@ -2139,18 +2139,57 @@ typedef struct syncrepl_state {
 /*
  * represents an operation pending from an ldap client
  */
-typedef struct slap_op {
-	unsigned long o_opid;	/* id of this operation */
-	unsigned long o_connid; /* id of conn initiating this op */
-	char		o_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
-	struct slap_conn *o_conn;	/* connection spawning this op */
-	BackendDB	*o_bd;	/* backend DB processing this op */
+typedef struct slap_op_header {
+	unsigned long oh_opid;	/* id of this operation */
+	unsigned long oh_connid; /* id of conn initiating this op */
+	struct slap_conn *oh_conn;	/* connection spawning this op */
 
-	ber_int_t	o_msgid;	/* msgid of the request */
-	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
+	ber_int_t	oh_msgid;	/* msgid of the request */
+	ber_int_t	oh_protocol;	/* version of the LDAP protocol used by client */
+
+	ldap_pvt_thread_t	oh_tid;	/* thread handling this op */
+
+	void	*oh_threadctx;		/* thread pool thread context */
+	void	*oh_tmpmemctx;		/* slab malloc context */
+	BerMemoryFunctions *oh_tmpmfuncs;
+
+	char		oh_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
+
+#ifdef LDAP_SLAPI
+	void    *oh_pb;                  /* NS-SLAPI plugin */
+	void	*oh_extensions;		/* NS-SLAPI plugin */
+#endif
+} Opheader;
+
+typedef struct slap_op {
+	Opheader *o_hdr;
+
+#define o_opid o_hdr->oh_opid
+#define o_connid o_hdr->oh_connid
+#define o_conn o_hdr->oh_conn
+#define o_msgid o_hdr->oh_msgid
+#define o_protocol o_hdr->oh_protocol
+#define o_tid o_hdr->oh_tid
+#define o_threadctx o_hdr->oh_threadctx
+#define o_tmpmemctx o_hdr->oh_tmpmemctx
+#define o_tmpmfuncs o_hdr->oh_tmpmfuncs
+
+#define	o_tmpalloc	o_tmpmfuncs->bmf_malloc
+#define o_tmpcalloc	o_tmpmfuncs->bmf_calloc
+#define	o_tmprealloc	o_tmpmfuncs->bmf_realloc
+#define	o_tmpfree	o_tmpmfuncs->bmf_free
+
+#define o_log_prefix o_hdr->oh_log_prefix
+
+#ifdef LDAP_SLAPI
+#define o_pb o_hdr->oh_pb
+#define o_extensions o_hdr->oh_extensions
+#endif
+
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
 
+	BackendDB	*o_bd;	/* backend DB processing this op */
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;
 
@@ -2213,9 +2252,6 @@ typedef struct slap_op {
 #define ore_reqoid oq_extended.rs_reqoid
 #define ore_flags oq_extended.rs_flags
 #define ore_reqdata oq_extended.rs_reqdata
-
-	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
-
 	volatile sig_atomic_t o_abandon;	/* abandon flag */
 	volatile sig_atomic_t o_cancel;		/* cancel flag */
 #define SLAP_CANCEL_NONE				0x00
@@ -2337,25 +2373,12 @@ typedef struct slap_op {
 	slap_callback *o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 
-	void	*o_threadctx;		/* thread pool thread context */
-	void	*o_tmpmemctx;		/* slab malloc context */
-	BerMemoryFunctions *o_tmpmfuncs;
-#define	o_tmpalloc	o_tmpmfuncs->bmf_malloc
-#define o_tmpcalloc	o_tmpmfuncs->bmf_calloc
-#define	o_tmprealloc	o_tmpmfuncs->bmf_realloc
-#define	o_tmpfree	o_tmpmfuncs->bmf_free
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 
-
 	int o_nocaching;
 	int	o_delete_glue_parent;
-
-#ifdef LDAP_SLAPI
-	void    *o_pb;                  /* NS-SLAPI plugin */
-	void	*o_extensions;		/* NS-SLAPI plugin */
-#endif
 
 } Operation;
 

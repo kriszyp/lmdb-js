@@ -541,7 +541,9 @@ void
 filter_free( Filter *f )
 {
 	Operation op;
+	Opheader ohdr;
 
+	op.o_hdr = &ohdr;
 	op.o_tmpmemctx = slap_sl_context( f );
 	op.o_tmpmfuncs = &slap_sl_mfuncs;
 	filter_free_x( &op, f );
@@ -776,6 +778,9 @@ void
 filter2bv( Filter *f, struct berval *fstr )
 {
 	Operation op;
+	Opheader ohdr;
+
+	op.o_hdr = &ohdr;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 

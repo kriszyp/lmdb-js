@@ -890,6 +890,7 @@ do_syncrepl(
 	syncinfo_t *si = ( syncinfo_t * ) rtask->arg;
 	Connection conn = {0};
 	Operation op = {0};
+	Opheader ohdr = {0};
 	int rc = LDAP_SUCCESS;
 	int first = 0;
 	int dostop = 0;
@@ -918,7 +919,7 @@ do_syncrepl(
 		return NULL;
 	}
 
-	connection_fake_init( &conn, &op, ctx );
+	connection_fake_init( &conn, &op, &ohdr, ctx );
 
 	/* use global malloc for now */
 	op.o_tmpmemctx = NULL;

@@ -398,18 +398,13 @@ slap_auxprop_lookup(
 
 		if ( op.o_bd && op.o_bd->be_search ) {
 			SlapReply rs = {REP_RESULT};
+			op.o_hdr = conn->c_sasl_bindop->o_hdr;
 			op.o_tag = LDAP_REQ_SEARCH;
-			op.o_protocol = LDAP_VERSION3;
 			op.o_ndn = conn->c_ndn;
 			op.o_callback = &cb;
 			op.o_time = slap_get_time();
 			op.o_do_not_cache = 1;
 			op.o_is_auth_check = 1;
-			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
-			op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
-			op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
-			op.o_conn = conn;
-			op.o_connid = conn->c_connid;
 			op.o_req_dn = op.o_req_ndn;
 			op.ors_scope = LDAP_SCOPE_BASE;
 			op.ors_deref = LDAP_DEREF_NEVER;
@@ -504,18 +499,13 @@ slap_auxprop_store(
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
+		op.o_hdr = conn->c_sasl_bindop->o_hdr;
 		op.o_tag = LDAP_REQ_MODIFY;
-		op.o_protocol = LDAP_VERSION3;
 		op.o_ndn = op.o_req_ndn;
 		op.o_callback = &cb;
 		op.o_time = slap_get_time();
 		op.o_do_not_cache = 1;
 		op.o_is_auth_check = 1;
-		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
-		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
-		op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
-		op.o_conn = conn;
-		op.o_connid = conn->c_connid;
 		op.o_req_dn = op.o_req_ndn;
 		op.orm_modlist = modlist;
 

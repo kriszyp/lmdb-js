@@ -1411,6 +1411,7 @@ consistency_check(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	Operation op = {0};
+	Opheader ohdr = {0};
 	Connection conn = {0};
 
 	SlapReply rs = {REP_RESULT};
@@ -1418,7 +1419,7 @@ consistency_check(
 	int i, return_val, pause = 1;
 	QueryTemplate* templ;
 
-	connection_fake_init( &conn, &op, ctx );
+	connection_fake_init( &conn, &op, &ohdr, ctx );
 
 	op.o_bd = &cm->db;
 	op.o_dn = cm->db.be_rootdn;

@@ -19,8 +19,6 @@
 
 #include "portable.h"
 
-#define	SLAPD_OVER_SYNCPROV	SLAPD_MOD_DYNAMIC
-
 #ifdef SLAPD_OVER_SYNCPROV
 
 #include <ac/string.h>
@@ -394,8 +392,11 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	Entry e_uuid = {0};
 	Attribute a_uuid = {0};
 	Operation sop = *so->s_op;
+	Opheader ohdr;
 	syncrepl_state *srs = sop.o_controls[sync_cid];
 
+	ohdr = *sop.o_hdr;
+	sop.o_hdr = &ohdr;
 	sop.o_tmpmemctx = op->o_tmpmemctx;
 
 	ctrls[1] = NULL;
@@ -789,7 +790,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	Filter *fand, *fava;
 	syncops *sop = NULL;
 	searchstate *ss;
-	syncrepl_state *srs = op->o_controls[sync_cid];
+	syncrepl_state *srs;
 
 	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
 
@@ -797,6 +798,8 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "illegal value for derefAliases" );
 		return rs->sr_err;
 	}
+
+	srs = op->o_controls[sync_cid];
 
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {

@@ -2025,21 +2025,13 @@ aci_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	
 	p.cookie = cookie;
 	
+	op2.o_hdr = cp->op->o_hdr;
 	op2.o_tag = LDAP_REQ_SEARCH;
-	op2.o_protocol = LDAP_VERSION3;
 	op2.o_ndn = op2.o_bd->be_rootndn;
 	op2.o_callback = &cb;
 	op2.o_time = slap_get_time();
 	op2.o_do_not_cache = 1;
 	op2.o_is_auth_check = 0;
-	op2.o_threadctx = cp->op->o_threadctx;
-	op2.o_tmpmemctx = cp->op->o_tmpmemctx;
-	op2.o_tmpmfuncs = cp->op->o_tmpmfuncs;
-#ifdef LDAP_SLAPI
-	op2.o_pb = cp->op->o_pb;
-#endif
-	op2.o_conn = cp->op->o_conn;
-	op2.o_connid = cp->op->o_connid;
 	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->op->o_tmpmemctx );
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
