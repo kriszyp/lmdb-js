@@ -189,7 +189,7 @@ OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verif
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 ol_enable_multimaster=${ol_enable_multimaster-no}
-OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta], no)dnl
+OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and the rwm overlay], auto)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
 OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimental)], no)dnl
 OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
@@ -532,6 +532,10 @@ fi
 
 if test $ol_enable_chain != no -a $ol_enable_ldap = no ; then
 	AC_MSG_ERROR([--enable-chain requires --enable-ldap])
+fi
+
+if test $ol_enable_meta = yes -a $ol_enable_ldap = no ; then
+	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
 if test $ol_enable_slurpd = yes ; then
@@ -2665,12 +2669,6 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 fi
 
 if test "$ol_enable_meta" != no ; then
-	if test "$ol_enable_ldap" = no ; then
-		AC_MSG_ERROR([need --enable-ldap to use --enable-meta])
-	fi
-	if test "$ol_enable_rewrite" = no ; then
-		AC_MSG_ERROR([need --enable-rewrite to use --enable-meta])
-	fi
 	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
 	BUILD_SLAPD=yes
 	BUILD_META=yes
