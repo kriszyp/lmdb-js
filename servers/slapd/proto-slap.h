@@ -13,6 +13,8 @@ LDAP_BEGIN_DECL
 LDAP_SLAPD_F( int ) schema_init_done;
 LDAP_SLAPD_F( struct slap_internal_schema ) slap_schema;
 
+LDAP_SLAPD_F( int ) slap_valid_descr( const char * );
+
 LDAP_SLAPD_F (int) slap_str2ad LDAP_P((
 	const char *,
 	AttributeDescription **ad,

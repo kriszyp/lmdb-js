@@ -350,6 +350,16 @@ oc_add(
 	ObjectClass	*soc;
 	int		code;
 
+	if ( oc->oc_names != NULL ) {
+		int i;
+
+		for( i=0; oc->oc_names[i]; i++ ) {
+			if( !slap_valid_descr( oc->oc_names[i] ) ) {
+				return SLAP_SCHERR_BAD_DESCR;
+			}
+		}
+	}
+
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	AC_MEMCPY( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
