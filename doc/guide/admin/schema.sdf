@@ -196,7 +196,7 @@ where Attribute Type Description is defined by the following
 >
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
-OID in numeric form (e.g. {{EX:1.2.3}}), qdescrs is one or more
+OID in dotted-decimal form (e.g. {{EX:1.2.3}}), qdescrs is one or more
 names, woid is either the name or OID, and noidlen is an optional length
 specifier (e.g {{EX:{10}}}).
 
