@@ -96,13 +96,14 @@ The possible result types returned are:
 The
 .B ldap_msgfree()
 routine is used to free the memory allocated for
-a result by
+result(s) by
 .B ldap_result()
 or
 .BR ldap_search_s (3)
-and friends.  It takes
-a pointer to the result to be freed and returns the type of the
-message it freed.
+and friends.
+It takes a pointer to the result or result chain to be freed and returns
+the type of the last message in the chain.
+If the parameter is NULL, the function does nothing and returns zero.
 .LP
 The
 .B ldap_msgtype()
