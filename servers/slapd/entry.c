@@ -115,13 +115,15 @@ str2entry( char *s )
 
 			if ( e->e_dn != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-					   "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
-					   e->e_id, e->e_dn, value.bv_val != NULL ? value.bv_val : "" ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
+					"entry %ld has multiple dns \"%s\" and \"%s\" "
+					"(second ignored)\n",
+					(long) e->e_id, e->e_dn, value.bv_val != NULL ? value.bv_val : "" ));
 #else
-				Debug( LDAP_DEBUG_ANY,
- "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
-				    e->e_id, e->e_dn,
+				Debug( LDAP_DEBUG_ANY, "str2entry: "
+					"entry %ld has multiple dns \"%s\" and \"%s\" "
+					"(second ignored)\n",
+				    (long) e->e_id, e->e_dn,
 					value.bv_val != NULL ? value.bv_val : "" );
 #endif
 				if( value.bv_val != NULL ) free( value.bv_val );
@@ -237,10 +239,11 @@ str2entry( char *s )
 	if ( e->e_dn == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "str2entry:  entry %ld has no dn.\n", e->e_id ));
+			   "str2entry:  entry %ld has no dn.\n",
+				(long) e->e_id ));
 #else
 		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
-		    e->e_id, 0, 0 );
+		    (long) e->e_id, 0, 0 );
 #endif
 		entry_free( e );
 		return( NULL );
@@ -570,11 +573,11 @@ int entry_encode(
 	
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "entry_encode: id: 0x%08lx  \"%s\"\n",
-		   e->e_id, e->e_dn ));
+		"entry_encode: id: 0x%08lx  \"%s\"\n",
+		(long) e->e_id, e->e_dn ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
-		e->e_id, e->e_dn, 0 );
+		(long) e->e_id, e->e_dn, 0 );
 #endif
 	ber = ber_alloc_t( LBER_USE_DER );
 	if( ber == NULL ) {
@@ -607,10 +610,11 @@ done:
 	if( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "entry_encode: id=0x%08lx  failed (%d)\n", e->e_id, rc ));
+			"entry_encode: id=0x%08lx  failed (%d)\n",
+			(long) e->e_id, rc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "=> entry_encode(0x%08lx): failed (%d)\n",
-			e->e_id, rc, 0 );
+			(long) e->e_id, rc, 0 );
 #endif
 	}
 	return rc;
