@@ -302,8 +302,8 @@ else
 		exit $RC
 	fi
 
-	echo "Waiting 5 seconds for syncrepl to send changes..."
-	sleep 5
+	echo "Waiting 15 seconds for syncrepl to receive changes..."
+	sleep 15
 fi
 
 echo "Using ldapsearch to read all the entries from the master..."
