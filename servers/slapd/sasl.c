@@ -554,8 +554,6 @@ slap_sasl_canonicalize(
 	return SASL_OK;
 }
 
-#define	CANON_BUF_SIZE	256	/* from saslint.h */
-
 static int
 slap_sasl_authorize(
 	sasl_conn_t *sconn,
