@@ -288,10 +288,8 @@ lutil_passwd(
 			? memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
 			: 1;
 	}
-#else
-	return 1;
 #endif
-
+	return 1;
 }
 
 struct berval * lutil_passwd_generate( ber_len_t len )
