@@ -79,7 +79,12 @@ int lutil_entropy( char *buf, int nbytes )
 		 *	MD5 is a strong cryptographic hash, this should
 		 *	be fairly resistant to attack
 		 */
-		static sig_atomic_t counter = 0;
+
+		/*
+		 * the caller may be provide external synchronization OR
+		 * provide entropy (in buf) to ensure quality results.
+		 */
+		static int counter = 0;
 		int n;
 
 		struct rdata_s {
@@ -91,7 +96,7 @@ int lutil_entropy( char *buf, int nbytes )
 			pid_t	pid;
 
 #ifdef HAVE_GETTIMEOFDAY
-			struct timeval *tv;
+			struct timeval tv;
 #else
 			time_t	time;
 #endif
