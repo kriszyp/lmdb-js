@@ -984,8 +984,22 @@ config_generic(ConfigArgs *c) {
 			else
 				rc = 1;
 			break;
-		case CFG_LIMITS:	/* FIXME */
-			rc = 1;
+		case CFG_LIMITS:
+			if ( c->be->be_limits ) {
+				char buf[4096*3];
+				struct berval bv;
+				int i;
+
+				for ( i=0; c->be->be_limits[i]; i++ ) {
+					bv.bv_len = sprintf( buf, "{%d}", i );
+					bv.bv_val = buf+bv.bv_len;
+					limits_unparse( c->be->be_limits[i], &bv );
+					bv.bv_len += bv.bv_val - buf;
+					bv.bv_val = buf;
+					value_add_one( &c->rvalue_vals, &bv );
+				}
+			}
+			if ( !c->rvalue_vals ) rc = 1;
 			break;
 		case CFG_RO:
 			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
@@ -1483,10 +1497,13 @@ config_sizelimit(ConfigArgs *c) {
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->emit) {
-		struct berval bv = BER_BVNULL;
+		char buf[8192];
+		struct berval bv;
+		bv.bv_val = buf;
+		bv.bv_len = 0;
 		limits_unparse_one( lim, SLAP_LIMIT_SIZE, &bv );
 		if ( !BER_BVISEMPTY( &bv ))
-			ber_bvarray_add( &c->rvalue_vals, &bv );
+			value_add_one( &c->rvalue_vals, &bv );
 		else
 			rc = 1;
 		return rc;
@@ -1528,10 +1545,13 @@ config_timelimit(ConfigArgs *c) {
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->emit) {
-		struct berval bv = BER_BVNULL;
+		char buf[8192];
+		struct berval bv;
+		bv.bv_val = buf;
+		bv.bv_len = 0;
 		limits_unparse_one( lim, SLAP_LIMIT_TIME, &bv );
 		if ( !BER_BVISEMPTY( &bv ))
-			ber_bvarray_add( &c->rvalue_vals, &bv );
+			value_add_one( &c->rvalue_vals, &bv );
 		else
 			rc = 1;
 		return rc;
