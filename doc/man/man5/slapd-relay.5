@@ -1,0 +1,117 @@
+.TH SLAPD-RELAY 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.SH NAME
+slapd-relay \- relay backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The primary purpose of this
+.BR slapd (8)
+backend is to map a naming context defined in a database 
+running in the same 
+.BR slapd (8)
+instance into a virtual naming context, with attributeType
+and objectClass manipulation, if required.
+It requires the
+.B rewrite-remap
+.BR overlay .
+.LP
+This backend and the above mentioned overlay are experimental.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the relay backend database.
+That is, they must follow a "database relay" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.TP
+.B relay <real naming context> [massage]
+The naming context of the database that is presented 
+under a virtual naming context.
+The presence of the directive implies that one single database
+will be presented under a virtual naming context.
+This directive automatically instantiates the 
+.B rewrite-remap
+.BR overlay .
+If the optional
+.B massage
+keyword is present, the suffix massaging is automatically
+configured as well.
+
+.SH SCENARIOS
+.LP
+If no
+.B relay
+directive is given, the 
+.B relay
+database does not refer to any specific database, but the most
+appropriate one is looked-up after rewriting the request DN
+for the operation that is being handled.
+.LP
+This allows to write carefully crafted rewrite rules that
+cause some of the requests to be directed to one database, and
+some to another; e.g., authentication can be mapped to one 
+database, and searches to another and so.
+.LP
+Another possibility is to map the same operation to different 
+databases based on details of the virtual naming context,
+e.g. groups on one database and persons on another.
+.LP
+.SH Caveats
+The
+.B rewrite-remap overlay
+is far from complete.
+.LP
+.SH EXAMPLES
+To implement a plain virtual naming context mapping
+that refers to a single database, use
+.LP
+.nf
+  database        relay
+  suffix          "dc=virtual,dc=naming,dc=context"
+  relay           "dc=real,dc=naming,dc=context" massage
+.fi
+.LP
+To implement a plain virtual naming context mapping
+that looks up the real naming context for each operation, use
+.LP
+.nf
+  database        relay
+  suffix          "dc=virtual,dc=naming,dc=context"
+  overlay         rewrite-remap
+  suffixmassage   "dc=virtual,dc=naming,dc=context"
+          "dc=real,dc=naming,dc=context"
+.fi
+.LP
+To implement the old-fashioned suffixalias, e.g. mapping
+the virtual to the real naming context, but not the results
+back from the real to the virtual naming context, use
+.LP
+.nf
+  database        relay
+  suffix          "dc=virtual,dc=naming,dc=context"
+  relay           "dc=real,dc=naming,dc=context"
+  rewriteEngine   on
+  rewriteContext  default
+  rewriteRule     "dc=virtual,dc=naming,dc=context"
+          "dc=real,dc=naming,dc=context" ":"
+  rewriteRule     searchFilter
+  rewriteRule     searchResult
+  rewriteRule     searchResultAttrDN
+  rewriteRule     matchedDN
+.fi
+.LP
+Note that the virtual database is bound to a single real database,
+so the 
+.B rewrite-remap overlay
+is automatically instantiated, but the rewrite rules 
+are written explicitly to map all the virtual to real 
+naming context data flow, but none of the real to virtual.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8).
