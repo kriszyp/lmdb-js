@@ -1793,7 +1793,6 @@ aci_get_part(
 
 typedef struct aci_set_gather_t {
 	SetCookie		*cookie;
-	AttributeDescription	*desc;
 	BerVarray		bvals;
 } aci_set_gather_t;
 
@@ -1804,27 +1803,32 @@ aci_set_cb_gather( Operation *op, SlapReply *rs )
 	
 	if ( rs->sr_type == REP_SEARCH ) {
 		BerVarray	bvals = NULL;
+		int		j;
 
-		if ( p->desc == slap_schema.si_ad_entryDN ) {
-			bvals = slap_sl_malloc( sizeof( BerValue ) * 2, op->o_tmpmemctx );
-			ber_dupbv_x( &bvals[ 0 ], &rs->sr_entry->e_nname, op->o_tmpmemctx );
-			BER_BVZERO( &bvals[ 1 ] );
+		for ( j = 0; !BER_BVISNULL( &rs->sr_attrs[ j ].an_name ); j++ ) {
+			AttributeDescription	*desc = rs->sr_attrs[ j ].an_desc;
+			
+			if ( desc == slap_schema.si_ad_entryDN ) {
+				bvals = slap_sl_malloc( sizeof( BerValue ) * 2, op->o_tmpmemctx );
+				ber_dupbv_x( &bvals[ 0 ], &rs->sr_entry->e_nname, op->o_tmpmemctx );
+				BER_BVZERO( &bvals[ 1 ] );
 
-		} else {
-			Attribute	*a;
+			} else {
+				Attribute	*a;
 
-			a = attr_find( rs->sr_entry->e_attrs, p->desc );
-			if ( a != NULL ) {
-				int	i;
+				a = attr_find( rs->sr_entry->e_attrs, desc );
+				if ( a != NULL ) {
+					int	i;
 
-				for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ )
-					;
+					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ )
+						;
 
-				bvals = slap_sl_malloc( sizeof( BerValue ) * ( i + 1 ), op->o_tmpmemctx );
-				for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
-					ber_dupbv_x( &bvals[ i ], &a->a_nvals[ i ], op->o_tmpmemctx );
+					bvals = slap_sl_malloc( sizeof( BerValue ) * ( i + 1 ), op->o_tmpmemctx );
+					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
+						ber_dupbv_x( &bvals[ i ], &a->a_nvals[ i ], op->o_tmpmemctx );
+					}
+					BER_BVZERO( &bvals[ i ] );
 				}
-				BER_BVZERO( &bvals[ i ] );
 			}
 		}
 
@@ -1847,10 +1851,10 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	LDAPURLDesc		*ludp = NULL;
 	Operation		op2 = { 0 };
 	SlapReply		rs = {REP_RESULT};
-	AttributeName		anlist[2];
+	AttributeName		*anlist = NULL;
+	int			nattrs = 0;
 	slap_callback		cb = { NULL, aci_set_cb_gather, NULL, NULL };
 	aci_set_gather_t	p = { 0 };
-	struct berval		aname;
 	const char		*text = NULL;
 
 	/* this routine needs to return the bervals instead of
@@ -1892,20 +1896,34 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	op2.ors_scope = ludp->lud_scope;
 
 	if ( ludp->lud_attrs && ludp->lud_attrs[0] ) {
-		if ( ludp->lud_attrs[1] ) {
-			rc = LDAP_PROTOCOL_ERROR;
-			goto url_done;
+		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ )
+			;
+		anlist = slap_sl_malloc( sizeof( AttributeName ) * ( nattrs + 2 ),
+				cp->op->o_tmpmemctx );
+
+		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
+			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlist[ nattrs ].an_name );
+			rc = slap_bv2ad( &anlist[ nattrs ].an_name,
+					&anlist[ nattrs ].an_desc, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				goto url_done;
+			}
 		}
-		ber_str2bv( ludp->lud_attrs[0], 0, 0, &aname );
 
 	} else {
-		aname = *attr;
+		anlist = slap_sl_malloc( sizeof( AttributeName ) * 2,
+				cp->op->o_tmpmemctx );
 	}
 
-	rc = slap_bv2ad( &aname, &p.desc, &text );
+	anlist[ nattrs ].an_name = *attr;
+	rc = slap_bv2ad( &anlist[ nattrs ].an_name,
+			&anlist[ nattrs ].an_desc, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		goto url_done;
 	}
+
+	BER_BVZERO( &anlist[ nattrs + 1 ].an_name );
+	
 	p.cookie = cookie;
 	
 	rc = dnNormalize( 0, NULL, NULL, &op2.o_req_dn,
@@ -1935,9 +1953,6 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->op->o_tmpmemctx );
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
-	anlist[0].an_name = p.desc->ad_cname;
-	anlist[0].an_desc = p.desc;
-	BER_BVZERO( &anlist[1].an_name );
 	op2.ors_attrs = anlist;
 	op2.ors_attrsonly = 0;
 	op2.o_sync_slog_size = -1;
@@ -1953,8 +1968,15 @@ url_done:;
 	if ( op2.ors_filter ) {
 		filter_free_x( cp->op, op2.ors_filter );
 	}
-	slap_sl_free( op2.o_req_ndn.bv_val, cp->op->o_tmpmemctx );
-	ldap_free_urldesc( ludp );
+	if ( !BER_BVISNULL( &op2.o_req_ndn ) ) {
+		slap_sl_free( op2.o_req_ndn.bv_val, cp->op->o_tmpmemctx );
+	}
+	if ( ludp ) {
+		ldap_free_urldesc( ludp );
+	}
+	if ( anlist ) {
+		slap_sl_free( anlist, cp->op->o_tmpmemctx );
+	}
 
 	return p.bvals;
 }
@@ -1973,13 +1995,26 @@ aci_set_gather2( SetCookie *cookie, struct berval *name, struct berval *attr )
 	 */
 	rc = dnNormalize( 0, NULL, NULL, name, &ndn, cp->op->o_tmpmemctx );
 	if ( rc == LDAP_SUCCESS ) {
-		const char *text;
-		AttributeDescription *desc = NULL;
+		const char		*text;
+		AttributeDescription	*desc = NULL;
+
 		if ( slap_bv2ad( attr, &desc, &text ) == LDAP_SUCCESS ) {
-			backend_attribute( cp->op,
-				cp->e, &ndn, desc, &bvals, ACL_NONE );
+			if ( desc == slap_schema.si_ad_entryDN ) {
+				bvals = (BerVarray)slap_sl_malloc( sizeof( BerValue ) * 2,
+						cp->op->o_tmpmemctx );
+				bvals[ 0 ] = ndn;
+				BER_BVZERO( &bvals[ 1 ] );
+				BER_BVZERO( &ndn );
+
+			} else {
+				backend_attribute( cp->op,
+					cp->e, &ndn, desc, &bvals, ACL_NONE );
+			}
 		}
-		slap_sl_free( ndn.bv_val, cp->op->o_tmpmemctx );
+
+		if ( !BER_BVISNULL( &ndn ) ) {
+			slap_sl_free( ndn.bv_val, cp->op->o_tmpmemctx );
+		}
 	}
 
 	return( bvals );
