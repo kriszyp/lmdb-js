@@ -58,7 +58,7 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 
 static int ldbm_initialized = 0;
 
-#if defined( HAVE_BERKELEY_DB_THREAD ) || defined( HAVE_BERKELEY_DB_THREAD )
+#ifdef HAVE_BERKELEY_DB_THREAD
 #define LDBM_LOCK	((void)0)
 #define LDBM_UNLOCK	((void)0)
 #else
@@ -100,7 +100,6 @@ ldbm_db_errcall( const char *prefix, char *message )
 }
 
 /*  a dbEnv for BERKELEYv2  */
-static DB_ENV    ldbm_Env_internal;
 DB_ENV           *ldbm_Env = NULL;
 
 int ldbm_initialize( void )
@@ -110,26 +109,30 @@ int ldbm_initialize( void )
 
 	if(ldbm_initialized++) return 1;
 
-	memset( &ldbm_Env_internal, 0, sizeof( DB_ENV ));
-	ldbm_Env = &ldbm_Env_internal;
+#if DB_VERSION_MAJOR < 3
+	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
+
+	if( ldbm_Env == NULL ) return 1;
 
 	ldbm_Env->db_errcall   = ldbm_db_errcall;
 	ldbm_Env->db_errpfx    = "==>";
+#else
+	ldbm_Env = NULL;
+#endif
 
-	envFlags = DB_CREATE
+	envFlags = 
 #if defined( HAVE_BERKELEY_DB_THREAD )
-		| DB_THREAD
+		DB_THREAD |
 #endif
-	;
+		DB_CREATE;
 
-        if (
 #if DB_VERSION_MAJOR >= 3
-            ( err = db_env_create( &ldbm_Env, 0))
+	err = db_env_create( &ldbm_Env, 0 );
 #elif DB_VERSION_MAJOR >= 2
-            ( err = db_appinit( NULL, NULL, ldbm_Env, envFlags ))
+	err = db_appinit( NULL, NULL, ldbm_Env, envFlags );
 #endif
-            )
-            {
+
+	if ( err ) {
 		char error[BUFSIZ];
 
 		if ( err < 0 ) {
@@ -144,7 +147,11 @@ int ldbm_initialize( void )
 #endif
 	 	return( 1 );
 	}
+
 #if DB_VERSION_MAJOR >= 3
+	ldbm_Env->set_errcall( ldbm_Env, ldbm_db_errcall );
+	ldbm_Env->set_errpfx( ldbm_Env, "==>" );
+
         envFlags |= DB_INIT_MPOOL;
         err = ldbm_Env->open( ldbm_Env, NULL, NULL, envFlags, 0 );
         if ( err != 0 )
@@ -161,6 +168,7 @@ int ldbm_initialize( void )
                     "ldbm_initialize(): FATAL error in db_appinit() : %s\n",
                     error );
 #endif
+		    ldbm_Env->close( ldbm_Env, 0 );
             return( 1 );
 	}
 #endif

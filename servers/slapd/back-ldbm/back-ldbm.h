@@ -14,7 +14,7 @@ LDAP_BEGIN_DECL
 
 #define DEFAULT_CACHE_SIZE	1000
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined(HAVE_BERKELEY_DB) && DB_VERSION_MAJOR >= 2
 #	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
 #else
 #	define DEFAULT_DBCACHE_SIZE 100000
@@ -122,8 +122,10 @@ struct ldbminfo {
 	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
-#ifdef HAVE_BERKELEY_DB2
-	DB_ENV                      li_db_env;
+#if 0
+#if defined(HAVE_BERKELEY_DB) && DB_VERSION_MAJOR >= 2
+	DB_ENV                      *li_db_env;
+#endif
 #endif
 };
 
