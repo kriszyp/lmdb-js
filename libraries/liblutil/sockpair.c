@@ -56,7 +56,12 @@ int lutil_pair( LBER_SOCKET_T sds[2] )
 		return rc;
 	}
 
-	sds[0] = sds[1] = sd;
+	sds[0] = sd;
+#if !HAVE_WINSOCK
+	sds[1] = dup( sds[0] );
+#else
+	sds[1] = sds[0];
+#endif
 	return 0;
 #endif
 }
