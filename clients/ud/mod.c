@@ -505,7 +505,7 @@ mail_is_good:
 		 *  are done.
 		 */
 		if (count++ > 1)
-			(void) strcat(buffer, "$");
+			(void) strcat(buffer, " $ ");
 		(void) strcat(buffer, line);
 		if (!multiline)
 			break;
