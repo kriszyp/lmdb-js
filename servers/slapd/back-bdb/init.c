@@ -138,10 +138,10 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE | DB_INIT_LOCK;
+	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
 
 if ( !( slapMode & SLAP_TOOL_QUICK ))
-		flags |= DB_INIT_LOG | DB_INIT_TXN;
+		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
 	
 #if 0
 	/* Never do automatic recovery, must perform it manually.
@@ -371,7 +371,9 @@ if ( !( slapMode & SLAP_TOOL_QUICK ))
 		return rc;
 	}
 
-	XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+	if ( !( slapMode & SLAP_TOOL_QUICK )) {
+		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+	}
 
 	/* If we're in server mode and time-based checkpointing is enabled,
 	 * submit a task to perform periodic checkpoints.
@@ -424,7 +426,9 @@ bdb_db_close( BackendDB *be )
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
 
-	XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+	if ( !( slapMode & SLAP_TOOL_QUICK )) {
+		XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+	}
 
 	return 0;
 }
@@ -441,11 +445,13 @@ bdb_db_destroy( BackendDB *be )
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
 		/* force a checkpoint */
-		rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+			}
 		}
 
 		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );

@@ -577,7 +577,7 @@ hdb_dn2id_delete(
 	data.data = d;
 
 	/* Delete our ID from the parent's list */
-	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE | DB_RMW );
+	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
 	if ( rc == 0 ) {
 		if ( !strcmp( d->nrdn, BEI(e)->bei_nrdn.bv_val ))
 			rc = cursor->c_del( cursor, 0 );
@@ -591,7 +591,7 @@ hdb_dn2id_delete(
 	 */
 	if ( rc == 0 ) {
 		BDB_ID2DISK( e->e_id, &nid );
-		rc = cursor->c_get( cursor, &key, &data, DB_SET | DB_RMW );
+		rc = cursor->c_get( cursor, &key, &data, DB_SET );
 		if ( rc == 0 )
 			rc = cursor->c_del( cursor, 0 );
 	}
