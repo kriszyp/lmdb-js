@@ -682,12 +682,18 @@ parse_woid(char **sp, int *code)
 
 /* Parse a noidlen */
 static char *
-parse_noidlen(char **sp, int *code, int *len)
+parse_noidlen(char **sp, int *code, int *len, int be_liberal)
 {
 	char * sval;
 	int kind;
+	int quoted = 0;
 
 	*len = 0;
+	/* Netscape puts the SYNTAX value in quotes (incorrectly) */
+	if ( be_liberal && **sp == '\'' ) {
+		quoted = 1;
+		(*sp)++;
+	}
 	sval = parse_numericoid(sp, code);
 	if ( !sval ) {
 		return NULL;
@@ -704,19 +710,28 @@ parse_noidlen(char **sp, int *code, int *len)
 		}
 		(*sp)++;
 	}		
+	if ( be_liberal && quoted ) {
+		if ( **sp == '\'' ) {
+			(*sp)++;
+		} else {
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			LDAP_FREE(sval);
+			return NULL;
+		}
+	}
 	return sval;
 }
 
 /*
- * Next routine will accept a qdstring in place of an oid.  This is
- * necessary to interoperate with Netscape Directory server that
- * will improperly quote each oid (at least those of the descr kind)
- * in the SUP clause.
+ * Next routine will accept a qdstring in place of an oid if
+ * be_liberal is set.  This is necessary to interoperate with Netscape
+ * Directory server that will improperly quote each oid (at least
+ * those of the descr kind) in the SUP clause.
  */
 
 /* Parse a woid or a $-separated list of them enclosed in () */
 static char **
-parse_oids(char **sp, int *code)
+parse_oids(char **sp, int *code, int be_liberal)
 {
 	char ** res;
 	char ** res1;
@@ -744,7 +759,8 @@ parse_oids(char **sp, int *code)
 		pos = 0;
 		parse_whsp(sp);
 		kind = get_token(sp,&sval);
-		if ( kind == TK_BAREWORD || kind == TK_QDSTRING ) {
+		if ( kind == TK_BAREWORD ||
+		     ( be_liberal && kind == TK_QDSTRING ) ) {
 			res[pos] = sval;
 			pos++;
 		} else {
@@ -761,7 +777,7 @@ parse_oids(char **sp, int *code)
 				parse_whsp(sp);
 				kind = get_token(sp,&sval);
 				if ( kind == TK_BAREWORD ||
-				     kind == TK_QDSTRING ) {
+				     ( be_liberal && kind == TK_QDSTRING ) ) {
 					if ( pos == size-2 ) {
 						size++;
 						res1 = LDAP_REALLOC(res,size*sizeof(char *));
@@ -789,7 +805,8 @@ parse_oids(char **sp, int *code)
 		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
-	} else if ( kind == TK_BAREWORD || kind == TK_QDSTRING ) {
+	} else if ( kind == TK_BAREWORD ||
+		    ( be_liberal && kind == TK_QDSTRING ) ) {
 		res = LDAP_CALLOC(2,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
@@ -1135,7 +1152,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 				seen_syntax = 1;
 				parse_whsp(&ss);
-				at->at_syntax_oid = parse_noidlen(&ss,code,&at->at_syntax_len);
+				at->at_syntax_oid = parse_noidlen(&ss,code,&at->at_syntax_len,be_liberal);
 				if ( !at->at_syntax_oid ) {
 					*errp = ss;
 					ldap_attributetype_free(at);
@@ -1287,6 +1304,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	 * extract info from those servers.
 	 */
 	parse_whsp(&ss);
+	savepos = ss;
 	oc->oc_oid = parse_numericoid(&ss,code);
 	if ( !oc->oc_oid ) {
 		if ( be_liberal ) {
@@ -1384,7 +1402,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_sup = 1;
-				oc->oc_sup_oids = parse_oids(&ss,code);
+				oc->oc_sup_oids = parse_oids(&ss,code,be_liberal);
 				if ( !oc->oc_sup_oids ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
@@ -1428,7 +1446,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_must = 1;
-				oc->oc_at_oids_must = parse_oids(&ss,code);
+				oc->oc_at_oids_must = parse_oids(&ss,code,0);
 				if ( !oc->oc_at_oids_must ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
@@ -1443,7 +1461,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_may = 1;
-				oc->oc_at_oids_may = parse_oids(&ss,code);
+				oc->oc_at_oids_may = parse_oids(&ss,code,0);
 				if ( !oc->oc_at_oids_may ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
