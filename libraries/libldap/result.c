@@ -413,6 +413,9 @@ try_read1msg(
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
 	ber_int_t	lderr;
+#ifdef LDAP_CONNECTIONLESS
+	int		firstmsg = 1, moremsgs = 0, isv2 = 0;
+#endif
 	/*
 	 * v3ref = flag for V3 referral / search reference
 	 * 0 = not a ref, 1 = sucessfully chased ref, -1 = pass ref to application
@@ -446,7 +449,9 @@ retry:
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr from;
 		ber_int_sb_read(sb, &from, sizeof(struct sockaddr));
+		if (ld->ld_options.ldo_version == LDAP_VERSION2) isv2=1;
 	}
+nextresp3:
 #endif
 	tag = ber_get_next( sb, &len, ber );
 	if ( tag == LDAP_TAG_MESSAGE ) {
@@ -515,9 +520,8 @@ retry_ber:
 		goto retry_ber;
 	}
 #ifdef LDAP_CONNECTIONLESS
-	if (LDAP_IS_UDP(ld) && ld->ld_options.ldo_version == LDAP_VERSION2) {
-		struct berval blank;
-		ber_scanf(ber, "m{", &blank);
+	if (LDAP_IS_UDP(ld) && isv2) {
+		ber_scanf(ber, "x{");
 	}
 #endif
 	/* the message type */
@@ -821,6 +825,84 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	new->lm_msgtype = tag;
 	new->lm_ber = ber;
 
+#ifdef LDAP_CONNECTIONLESS
+	/* CLDAP replies all fit in a single datagram. In LDAPv2 RFC1798
+	 * the responses are all a sequence wrapped in one message. In
+	 * LDAPv3 each response is in its own message. The datagram must
+	 * end with a SearchResult. We can't just parse each response in
+	 * separate calls to try_read1msg because the header info is only
+	 * present at the beginning of the datagram, not at the beginning
+	 * of each response. So parse all the responses at once and queue
+	 * them up, then pull off the first response to return to the
+	 * caller when all parsing is complete.
+	 */
+	if ( LDAP_IS_UDP(ld) ) {
+		/* If not a result, look for more */
+		if ( tag != LDAP_RES_SEARCH_RESULT ) {
+			int ok = 0;
+			moremsgs = 1;
+			if (isv2) {
+				/* LDAPv2: dup the current ber, skip past the current
+				 * response, and see if there are any more after it.
+				 */
+				ber = ber_dup( ber );
+				ber_scanf( ber, "x" );
+				if (ber_peek_tag(ber, &len) != LBER_DEFAULT) {
+					/* There's more - dup the ber buffer so they can all be
+					 * individually freed by ldap_msgfree.
+					 */
+					struct berval bv;
+					ber_get_option(ber, LBER_OPT_BER_REMAINING_BYTES, &len);
+					bv.bv_val = LDAP_MALLOC(len);
+					if (bv.bv_val) {
+						ok=1;
+						ber_read(ber, bv.bv_val, len);
+						bv.bv_len = len;
+						ber_init2(ber, &bv, ld->ld_lberoptions );
+					}
+				}
+			} else {
+				/* LDAPv3: Just allocate a new ber. Since this is a buffered
+				 * datagram, if the sockbuf is readable we still have data
+				 * to parse.
+				 */
+				ber = ldap_alloc_ber_with_options(ld);
+				if (ber_sockbuf_ctrl(sb, LBER_SB_OPT_DATA_READY, NULL)) ok=1;
+			}
+			/* set up response chain */
+			if ( firstmsg ) {
+				firstmsg = 0;
+				new->lm_next = ld->ld_responses;
+				ld->ld_responses = new;
+			} else {
+				tmp->lm_chain = new;
+			}
+			tmp = new;
+			/* "ok" means there's more to parse */
+			if (ok) {
+				if (isv2) goto nextresp2;
+				else goto nextresp3;
+			} else {
+				/* got to end of datagram without a SearchResult. Free
+				 * our dup'd ber, but leave any buffer alone. For v2 case,
+				 * the previous response is still using this buffer. For v3,
+				 * the new ber has no buffer to free yet.
+				 */
+				ber_free(ber, 0);
+				return -1;
+			}
+		} else if ( moremsgs ) {
+		/* got search result, and we had multiple responses in 1 datagram.
+		 * stick the result onto the end of the chain, and then pull the
+		 * first response off the head of the chain.
+		 */
+			tmp->lm_chain = new;
+			*result = chkResponseList( ld, msgid, all );
+			ld->ld_errno = LDAP_SUCCESS;
+			return( (*result)->lm_msgtype );
+		}
+	}
+#endif
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
