@@ -167,7 +167,7 @@ Supported Environmental Variables
 	specified compiler.  For example, to require strict
 	ANSI C using the GNU C Compiler, use:
 
-	[env] CC="gcc -ansi -predantic" ./configure
+	[env] CC="gcc -ansi -pedantic" ./configure
 
 	(you can use CFLAGS to specify compiler flags)
 
