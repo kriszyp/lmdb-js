@@ -571,17 +571,17 @@ ldap_back_entry_get(
 			rc = 1;
 			goto cleanup;
 		}
+		is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
+		if (oc && !is_oc) {
+			gattr[0] = "objectclass";
+			gattr[1] = mapped.bv_val;
+			gattr[2] = NULL;
+		} else {
+			gattr[0] = mapped.bv_val;
+			gattr[1] = NULL;
+		}
 	}
 
-	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
-	if (oc && !is_oc) {
-		gattr[0] = "objectclass";
-		gattr[1] = mapped.bv_val;
-		gattr[2] = NULL;
-	} else {
-		gattr[0] = mapped.bv_val;
-		gattr[1] = NULL;
-	}
 	if (oc) {
 		char *ptr;
 		ldap_back_map(&li->rwmap.rwm_oc, &oc->soc_cname, &mapped,
