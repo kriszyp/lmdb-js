@@ -794,6 +794,7 @@ int connection_read(ber_socket_t s)
 			       "connection_read(%d): TLS accept error error=%d id=%ld, closing.\n",
 			       s, rc, c->c_connid );
 
+			c->c_needs_tls_accept = 0;
 			/* connections_mutex and c_mutex are locked */
 			connection_closing( c );
 			connection_close( c );
