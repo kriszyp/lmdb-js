@@ -317,11 +317,6 @@ wait4msg(
 
 		    if ( lc == NULL ) {
 			    rc = ldap_int_select( ld, tvp );
-#ifdef LDAP_R_COMPILE
-			    ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-			    ldap_pvt_thread_yield();
-			    ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
 #ifdef LDAP_DEBUG
 			    if ( rc == -1 ) {
 #ifdef NEW_LOGGING
