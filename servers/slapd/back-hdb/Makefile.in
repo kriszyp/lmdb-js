@@ -1,0 +1,52 @@
+# $OpenLDAP$
+# Copyright 2003 Howard Chu @ Symas Corp. See master COPYRIGHT file for terms.
+
+XXDIR = $(srcdir)/../back-bdb
+
+XXSRCS = init.c tools.c config.c \
+	add.c bind.c compare.c delete.c modify.c modrdn.c search.c \
+	extended.c passwd.c referral.c operational.c \
+	attr.c index.c key.c dbcache.c filterindex.c \
+	dn2entry.c dn2id.c error.c id2entry.c idl.c nextid.c cache.c
+SRCS = $(XXSRCS)
+OBJS = init.lo tools.lo config.lo \
+	add.lo bind.lo compare.lo delete.lo modify.lo modrdn.lo search.lo \
+	extended.lo passwd.lo referral.lo operational.lo \
+	attr.lo index.lo key.lo dbcache.lo filterindex.lo \
+	dn2entry.lo dn2id.lo error.lo id2entry.lo idl.lo nextid.lo cache.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-hdb"
+BUILD_MOD = @BUILD_HDB@
+BUILD_MOD_DYNAMIC = @BUILD_HDB_DYNAMIC@
+
+mod_DEFS = -DSLAPD_IMPORT
+MOD_DEFS = $(@BUILD_HDB@_DEFS)
+
+shared_LDAP_LIBS = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+
+.links : Makefile
+	@for i in $(XXSRCS); do \
+		$(RM) $$i; \
+		$(LN_S) $(XXDIR)/$$i . ; \
+	done
+	touch .links
+
+$(XXSRCS) : .links
+
+LIBBASE = back_hdb
+
+XINCPATH = -I.. -I$(srcdir)/.. -I$(srcdir) -I$(XXDIR)
+XDEFS = $(MODULES_CPPFLAGS)
+
+depend-common: .links
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+
