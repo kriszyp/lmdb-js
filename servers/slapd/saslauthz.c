@@ -616,15 +616,16 @@ slap_sasl_check_authz( Connection *conn,
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-	       assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
+		"slap_sasl_check_authz: does %s match %s rule in %s?\n",
+	    assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( NULL, NULL, conn->c_sasl_bindop, NULL, searchDN, ad, &vals );
+	rc = backend_attribute( NULL, NULL, conn->c_sasl_bindop, NULL,
+		searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
@@ -641,11 +642,12 @@ COMPLETE:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
-		   "slap_sasl_check_authz: %s check returning %s\n", 
-		   ad->ad_cname.bv_val, rc, 0 );
+		"slap_sasl_check_authz: %s check returning %s\n", 
+		ad->ad_cname.bv_val, rc, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "<==slap_sasl_check_authz: %s check returning %d\n", ad->ad_cname.bv_val, rc, 0);
+	   "<==slap_sasl_check_authz: %s check returning %d\n",
+		ad->ad_cname.bv_val, rc, 0);
 #endif
 
 	return( rc );

@@ -128,14 +128,6 @@ ldbm_back_attribute(
 		goto return_results;
 	}
 
-	if (conn != NULL && op != NULL
-		&& access_allowed( be, conn, op, e, slap_schema.si_ad_entry,
-			NULL, ACL_READ, NULL ) == 0)
-	{
-		rc = LDAP_INSUFFICIENT_ACCESS;
-		goto return_results;
-	}
-
 	if ((attr = attr_find(e->e_attrs, entry_at)) == NULL) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
@@ -152,7 +144,7 @@ ldbm_back_attribute(
 
 	if (conn != NULL && op != NULL
 		&& access_allowed( be, conn, op, e, entry_at, NULL,
-			ACL_READ, &acl_state ) == 0)
+			ACL_AUTH, &acl_state ) == 0)
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -168,7 +160,7 @@ ldbm_back_attribute(
 		if( conn != NULL
 			&& op != NULL
 			&& access_allowed( be, conn, op, e, entry_at,
-				iv, ACL_READ, &acl_state ) == 0)
+				iv, ACL_AUTH, &acl_state ) == 0)
 		{
 			continue;
 		}
