@@ -239,16 +239,16 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		
 		ber_str2bv( oc_row.cols[ 2 ], 0, 1, &oc_map->keytbl );
 		ber_str2bv( oc_row.cols[ 3 ], 0, 1, &oc_map->keycol );
-		oc_map->create_proc = ( oc_row.is_null[ 4 ] < 0 ) ? NULL 
+		oc_map->create_proc = ( oc_row.value_len[ 4 ] < 0 ) ? NULL 
 			: ch_strdup( oc_row.cols[ 4 ] );
 
 		colnum = 5;
 		if ( BACKSQL_CREATE_NEEDS_SELECT( si ) ) {
 			colnum = 6;
-			oc_map->create_keyval = ( oc_row.is_null[ 5 ] < 0 ) 
+			oc_map->create_keyval = ( oc_row.value_len[ 5 ] < 0 ) 
 				? NULL : ch_strdup( oc_row.cols[ 5 ] );
 		}
-		oc_map->delete_proc = ( oc_row.is_null[ colnum ] < 0 ) ? NULL 
+		oc_map->delete_proc = ( oc_row.value_len[ colnum ] < 0 ) ? NULL 
 			: ch_strdup( oc_row.cols[ colnum ] );
 		oc_map->expect_return = strtol( oc_row.cols[ colnum + 1 ], 
 				NULL, 0 );
@@ -332,7 +332,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 			}
 				
 			ber_str2bv( at_row.cols[ 1 ], 0, 1, &at_map->sel_expr );
-			if ( at_row.is_null[ 8 ] < 0 ) {
+			if ( at_row.value_len[ 8 ] < 0 ) {
 				at_map->sel_expr_u.bv_val = NULL;
 				at_map->sel_expr_u.bv_len = 0;
 			} else {
@@ -343,17 +343,22 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 			ber_str2bv( at_row.cols[ 2 ], 0, 0, &bv );
 			backsql_merge_from_clause( &at_map->from_tbls, 
 					&tmpslen, &bv );
-			if ( at_row.is_null[ 3 ] < 0 ) {
+			if ( at_row.value_len[ 3 ] < 0 ) {
 				at_map->join_where.bv_val = NULL;
 				at_map->join_where.bv_len = 0;
 			} else {
 				ber_str2bv( at_row.cols[ 3 ], 0, 1, 
 						&at_map->join_where );
 			}
-			at_map->add_proc = ( at_row.is_null[ 4 ] < 0 ) ? NULL
-				: ch_strdup( at_row.cols[4] );
-			at_map->delete_proc = ( at_row.is_null[ 5 ] < 0 ) ? NULL
-				: ch_strdup( at_row.cols[ 5 ] );
+			at_map->add_proc = NULL;
+			if ( at_row.value_len[ 4 ] > 0 ) {
+				at_map->add_proc = ch_strdup( at_row.cols[4] );
+			}
+			at_map->delete_proc = NULL;
+			if ( at_row.value_len[ 5 ] > 0 ) {
+				at_map->delete_proc
+					= ch_strdup( at_row.cols[ 5 ] );
+			}
 			at_map->param_order = strtol( at_row.cols[ 6 ], 
 					NULL, 0 );
 			at_map->expect_return = strtol( at_row.cols[ 7 ],

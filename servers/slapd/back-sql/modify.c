@@ -44,13 +44,16 @@
 
 static int
 backsql_modify_internal(
-	backsql_info		*bi,
+	BackendDB 		*be,
+	Connection 		*conn,
+	Operation 		*op,
 	SQLHDBC			dbh, 
 	backsql_oc_map_rec	*oc,
 	backsql_entryID		*e_id,
 	Modifications		*modlist,
 	const char		**text )
 {
+	backsql_info	*bi = (backsql_info*)be->be_private;
 	RETCODE		rc;
 	SQLHSTMT	sth;
 	Modifications	*ml;
@@ -490,8 +493,8 @@ backsql_modify(
 		 * FIXME: we don't want to send back 
 		 * excessively detailed messages
 		 */
-		send_ldap_result( conn, op, res, "", 
-				res == LDAP_OTHER ?  "SQL-backend error" : "", 
+		send_ldap_result( conn, op, res, NULL,
+				res == LDAP_OTHER ?  "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
 	}
@@ -500,7 +503,7 @@ backsql_modify(
 	if ( res != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
 			"could not lookup entry id\n", 0, 0, 0 );
-		send_ldap_result( conn, op, res , "", 
+		send_ldap_result( conn, op, res , NULL, 
 				res == LDAP_OTHER ? "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
@@ -523,7 +526,7 @@ backsql_modify(
 		 * FIXME: we don't want to send back 
 		 * excessively detailed messages
 		 */
-		send_ldap_result( conn, op, LDAP_OTHER, "",
+		send_ldap_result( conn, op, LDAP_OTHER, NULL,
 				"SQL-backend error", NULL, NULL );
 		return 1;
 	}
@@ -535,19 +538,13 @@ backsql_modify(
 		res = LDAP_INSUFFICIENT_ACCESS;
 
 	} else {
-		res = backsql_modify_internal( bi, dbh, oc, &e_id, 
-				modlist, &text );
+		res = backsql_modify_internal( be, conn, op,
+				dbh, oc, &e_id, modlist, &text );
 	}
 
 	if ( res == LDAP_SUCCESS ) {
 		/*
 		 * Commit only if all operations succeed
-		 *
-		 * FIXME: backsql_modify_internal() does not fail 
-		 * if add/delete operations are not available, or
-		 * if a multiple value add actually results in a replace, 
-		 * or if a single operation on an attribute fails 
-		 * for any reason
 		 */
 		SQLTransact( SQL_NULL_HENV, dbh, 
 				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
@@ -555,7 +552,7 @@ backsql_modify(
 	send_ldap_result( conn, op, res, NULL, text, NULL, NULL );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
-	return 0;
+	return op->o_noop;
 }
 
 int
@@ -596,7 +593,7 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
-		send_ldap_result( conn, op, res, "",
+		send_ldap_result( conn, op, res, NULL,
 				res == LDAP_OTHER ?  "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
@@ -606,7 +603,7 @@ backsql_modrdn(
 	if ( res != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"could not lookup entry id\n", 0, 0, 0 );
-		send_ldap_result( conn, op, res, "",
+		send_ldap_result( conn, op, res, NULL,
 				res == LDAP_OTHER ?  "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
@@ -638,7 +635,7 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"parent is \"\" - aborting\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, 
-				"", "not allowed within namingContext", 
+				NULL, "not allowed within namingContext", 
 				NULL, NULL );
 		goto modrdn_return;
 	}
@@ -664,7 +661,8 @@ backsql_modrdn(
 			Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 				"newSuperior is \"\" - aborting\n", 0, 0, 0 );
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, 
-					"", "not allowed within namingContext", 
+					NULL,
+					"not allowed within namingContext", 
 					NULL, NULL );
 			goto modrdn_return;
 		}
@@ -703,8 +701,9 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"newSuperior is equal to entry being moved "
 			"- aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", 
-				NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "newSuperior is equal to old DN",
+				NULL, NULL );
 		goto modrdn_return;
 	}
 
@@ -713,8 +712,8 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"new dn is invalid ('%s') - aborting\n",
 			new_dn.bv_val, 0, 0 );
-		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, "", 
-				NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
+				NULL, "new DN is invalid", NULL, NULL );
 		goto modrdn_return;
 	}
 	
@@ -725,7 +724,7 @@ backsql_modrdn(
 	if ( res != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"could not lookup old parent entry id\n", 0, 0, 0 );
-		send_ldap_result( conn, op, res, "", 
+		send_ldap_result( conn, op, res, NULL, 
 				res == LDAP_OTHER ? "SQL-backend error" : "",
 				NULL, NULL );
 		goto modrdn_return;
@@ -738,7 +737,7 @@ backsql_modrdn(
 	if ( res != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"could not lookup new parent entry id\n", 0, 0, 0 );
-		send_ldap_result( conn, op, res, "",
+		send_ldap_result( conn, op, res, NULL,
 				res == LDAP_OTHER ? "SQL-backend error" : "",
 				NULL, NULL );
 		goto modrdn_return;
@@ -759,8 +758,8 @@ backsql_modrdn(
 			"failed to delete record from ldap_entries\n",
 			0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		goto modrdn_return;
 	}
 
@@ -780,8 +779,8 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"could not insert ldap_entries record\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		goto modrdn_return;
 	}
 
@@ -853,18 +852,13 @@ backsql_modrdn(
 	}
 
 	oc = backsql_id2oc( bi, e_id.oc_id );
-	res = backsql_modify_internal( bi, dbh, oc, &e_id, mod, &text );
+	res = backsql_modify_internal( be, conn, op, 
+			dbh, oc, &e_id, mod, &text );
 
 	if ( res == LDAP_SUCCESS ) {
 
 		/*
 		 * Commit only if all operations succeed
-		 *
-		 * FIXME: backsql_modify_internal() does not fail 
-		 * if add/delete operations are not available, or
-		 * if a multiple value add actually results in a replace, 
-		 * or if a single operation on an attribute fails for any
-		 * reason
 		 */
 		SQLTransact( SQL_NULL_HENV, dbh,
 				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
@@ -896,10 +890,10 @@ modrdn_return:
 		}
 	}
 
-	send_ldap_result( conn, op, res, "", text, NULL, NULL );
+	send_ldap_result( conn, op, res, NULL, text, NULL, NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modrdn()\n", 0, 0, 0 );
-	return 0;
+	return op->o_noop;
 }
 
 int
@@ -931,38 +925,44 @@ backsql_add(
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(): adding entry '%s'\n",
 			e->e_name.bv_val, 0, 0 );
 
+	/* check schema */
+	if ( global_schemacheck ) {
+		const char	*text = NULL;
+		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+		int		rc;
+		rc = entry_schema_check( be, e, NULL,
+				&text, textbuf, sizeof( textbuf ) );
+		if ( rc != LDAP_SUCCESS ) {
+
+			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+				"entry failed schema check -- aborting\n",
+				0, 0, 0 );
+			send_ldap_result( conn, op, rc, NULL,
+					"operation not permitted "
+					"within namingContext",
+					NULL, NULL );
+			return 1;
+		}
+	}
+
+	/* search structural objectClass */
 	for ( at = e->e_attrs; at != NULL; at = at->a_next ) {
-		if ( at->a_desc == slap_schema.si_ad_objectClass ) {
-			if ( global_schemacheck ) {
-				const char	*text = NULL;
-				char		textbuf[ 1024 ];
-				size_t		textlen = sizeof( textbuf );
-				struct berval	soc;
-
-				int rc = structural_class( at->a_vals, &soc, 
-						NULL, &text, textbuf, textlen );
-				if ( rc != LDAP_SUCCESS ) {
-					break;
-				}
-				oc = backsql_name2oc( bi, &soc );
-
-			} else {
-
-				/*
-				 * FIXME: only the objectClass provided first
-				 * is considered when creating a new entry
-				 */
-				oc = backsql_name2oc( bi, &at->a_vals[ 0 ] );
-			}
+		if ( at->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			break;
 		}
 	}
+
+	/* there must exist */
+	assert( at != NULL );
+
+	/* I guess we should play with sub/supertypes to find a suitable oc */
+	oc = backsql_name2oc( bi, &at->a_vals[0] );
 
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"cannot determine objectclass of entry -- aborting\n",
 			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, "",
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 				"operation not permitted within namingContext",
 				NULL, NULL );
 		return 1;
@@ -972,7 +972,7 @@ backsql_add(
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"create procedure is not defined for this objectclass "
 			"- aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, "",
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 				"operation not permitted within namingContext",
 				NULL, NULL );
 		return 1;
@@ -980,9 +980,9 @@ backsql_add(
 	} else if ( BACKSQL_CREATE_NEEDS_SELECT( bi )
 			&& oc->create_keyval == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
-			"create procedure needs select, but none is defined"
-			"- aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, "",
+			"create procedure needs select procedure, "
+			"but none is defined - aborting\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 				"operation not permitted within namingContext",
 				NULL, NULL );
 		return 1;
@@ -993,7 +993,7 @@ backsql_add(
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
-		send_ldap_result( conn, op, prc, "",
+		send_ldap_result( conn, op, prc, NULL,
 				prc == LDAP_OTHER ?  "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
@@ -1007,8 +1007,8 @@ backsql_add(
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"entry '%s' exists\n",
 			e->e_name.bv_val, 0, 0 );
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", 
-				NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+				NULL, NULL, NULL, NULL );
 		return 1;
 	}
 
@@ -1027,7 +1027,8 @@ backsql_add(
 			pdn.bv_val, 0, 0 );
 
 		if ( res != LDAP_NO_SUCH_OBJECT ) {
-			send_ldap_result( conn, op, res, "", NULL, NULL, NULL );
+			send_ldap_result( conn, op, res,
+					NULL, NULL, NULL, NULL );
 			return 1;
 		}
 
@@ -1036,7 +1037,7 @@ backsql_add(
 		 */
 		while ( 1 ) {
 			struct berval	dn;
-			char		*matched = "";
+			char		*matched = NULL;
 
 			dn = pdn;
 			dnParent( &dn, &pdn );
@@ -1057,8 +1058,8 @@ backsql_add(
 				/* fail over to next case */
 
 			default:
-				send_ldap_result( conn, op, res, matched, 
-						NULL, NULL, NULL );
+				send_ldap_result( conn, op, res,
+						matched, NULL, NULL, NULL );
 				return 1;
 			} 
 		}
@@ -1081,14 +1082,10 @@ backsql_add(
 		return 1;
 	}
 
-#ifndef BACKSQL_REALLOC_STMT
 	rc = SQLAllocStmt( dbh, &sth );
-#else /* BACKSQL_REALLOC_STMT */
-	rc = backsql_Prepare( dbh, &sth, oc->create_proc, 0 );
-#endif /* BACKSQL_REALLOC_STMT */
 	if ( rc != SQL_SUCCESS ) {
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
 	}
 
@@ -1099,24 +1096,23 @@ backsql_add(
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_add(): executing '%s'\n",
 		oc->create_proc, 0, 0 );
-#ifndef BACKSQL_REALLOC_STMT
 	rc = SQLExecDirect( sth, oc->create_proc, SQL_NTS );
-#else /* BACKSQL_REALLOC_STMT */
-	rc = SQLExecute( sth );
-#endif /* BACKSQL_REALLOC_STMT */
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"create_proc execution failed\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc);
 		SQLFreeStmt( sth, SQL_DROP );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
+	}
+	if ( op->o_noop ) {
+		SQLTransact( SQL_NULL_HENV, dbh, SQL_ROLLBACK );
 	}
 
 	if ( !BACKSQL_IS_ADD( oc->expect_return ) ) {
 		SWORD		ncols;
-		SQLINTEGER	is_null;
+		SQLINTEGER	value_len;
 
 		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
 #ifndef BACKSQL_REALLOC_STMT
@@ -1125,16 +1121,18 @@ backsql_add(
 			SQLFreeStmt( sth, SQL_DROP );
 			rc = SQLAllocStmt( dbh, &sth );
 			if ( rc != SQL_SUCCESS ) {
-				send_ldap_result( conn, op, LDAP_OTHER, "",
-					"SQL-backend error", NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "SQL-backend error",
+						NULL, NULL );
 				return 1;
 			}
 #endif /* BACKSQL_REALLOC_STMT */
 
 			rc = SQLExecDirect( sth, oc->create_keyval, SQL_NTS );
 			if ( rc != SQL_SUCCESS ) {
-				send_ldap_result( conn, op, LDAP_OTHER, "",
-					"SQL-backend error", NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "SQL-backend error",
+						NULL, NULL );
 				return 1;
 			}
 		}
@@ -1150,8 +1148,8 @@ backsql_add(
 				0, 0, 0 );
 			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
-			send_ldap_result( conn, op, LDAP_OTHER, "",
-					"SQL-backend error", NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "SQL-backend error", NULL, NULL );
 			return 1;
 
 		} else if ( ncols != 1 ) {
@@ -1160,8 +1158,8 @@ backsql_add(
 				ncols, 0, 0 );
 			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
-			send_ldap_result( conn, op, LDAP_OTHER, "",
-					"SQL-backend error", NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "SQL-backend error", NULL, NULL );
 			return 1;
 		}
 
@@ -1186,25 +1184,20 @@ backsql_add(
 		rc = SQLBindCol( sth, (SQLUSMALLINT)1, SQL_C_ULONG,
 				(SQLPOINTER)&new_keyval, 
 				(SQLINTEGER)sizeof( new_keyval ), 
-				&is_null );
+				&value_len );
 
 		rc = SQLFetch( sth );
 
-#if 0
-		/*
-		 * FIXME: what does is_null mean?
-		 */
-		if ( is_null ) {
+		if ( value_len <= 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
-				"create_proc result is null\n",
+				"create_proc result is empty?\n",
 				0, 0, 0 );
 			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
-			send_ldap_result( conn, op, LDAP_OTHER, "",
-					"SQL-backend error", NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "SQL-backend error", NULL, NULL );
 			return 1;
 		}
-#endif
 	}
 
 #ifndef BACKSQL_REALLOC_STMT
@@ -1245,7 +1238,7 @@ backsql_add(
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 				send_ldap_result( conn, op, 
-						LDAP_UNWILLING_TO_PERFORM, "",
+						LDAP_UNWILLING_TO_PERFORM, NULL,
 						"operation not permitted "
 						"within namingContext",
 						NULL, NULL );
@@ -1263,7 +1256,7 @@ backsql_add(
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 				send_ldap_result( conn, op, 
-						LDAP_UNWILLING_TO_PERFORM, "",
+						LDAP_UNWILLING_TO_PERFORM, NULL,
 						"operation not permitted "
 						"within namingContext",
 						NULL, NULL );
@@ -1278,9 +1271,8 @@ backsql_add(
 		if ( rc != SQL_SUCCESS ) {
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-				send_ldap_result( conn, op, 
-						LDAP_OTHER, "",
-						"SQL-backend error",
+				send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "SQL-backend error",
 						NULL, NULL );
 				return 1;
 			}
@@ -1347,8 +1339,8 @@ backsql_add(
 				backsql_PrintErrors( bi->db_env, dbh, sth, rc );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					send_ldap_result( conn, op, 
-							LDAP_OTHER, "",
+					send_ldap_result( conn, op, LDAP_OTHER,
+							NULL,
 							"SQL-backend error",
 							NULL, NULL );
 					return 1;
@@ -1365,8 +1357,8 @@ backsql_add(
 #ifdef BACKSQL_REALLOC_STMT
 	rc = backsql_Prepare( dbh, &sth, bi->insentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
 	}
 #endif /* BACKSQL_REALLOC_STMT */
@@ -1397,8 +1389,8 @@ backsql_add(
 		 * execute delete_proc to delete data added !!!
 		 */
 		SQLFreeStmt( sth, SQL_DROP );
-		send_ldap_result( conn, op, LDAP_OTHER, "", 
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
 	}
 	
@@ -1406,19 +1398,18 @@ backsql_add(
 
 	/*
 	 * Commit only if all operations succeed
-	 *
-	 * FIXME: backsql_add() does not fail if add operations 
-	 * are not available for some attributes, or if
-	 * a multiple value add actually results in a replace, 
-	 * or if a single operation on an attribute fails 
-	 * for any reason
 	 */
 	SQLTransact( SQL_NULL_HENV, dbh, 
-				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
+			op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, "",
-			NULL, NULL, NULL );
-	return 0;
+	/*
+	 * FIXME: NOOP does not work for add -- it works for all 
+	 * the other operations, and I don't get the reason :(
+	 */
+
+	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
+
+	return op->o_noop;
 }
 
 int
@@ -1454,7 +1445,7 @@ backsql_delete(
 			"no write access to parent\n", 
 			0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, 
-				"", NULL, NULL, NULL );
+				NULL, NULL, NULL, NULL );
 		return 1;
 
 	}
@@ -1464,7 +1455,7 @@ backsql_delete(
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
-		send_ldap_result( conn, op, res, "", 
+		send_ldap_result( conn, op, res, NULL, 
 				res == LDAP_OTHER ? "SQL-backend error" : "",
 				NULL, NULL );
 		return 1;
@@ -1474,7 +1465,7 @@ backsql_delete(
 	if ( res != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"could not lookup entry id\n", 0, 0, 0 );
-		send_ldap_result( conn, op, res, "", NULL, NULL, NULL );
+		send_ldap_result( conn, op, res, NULL, NULL, NULL, NULL );
 		return 1;
 	}
 
@@ -1499,9 +1490,9 @@ backsql_delete(
 	oc = backsql_id2oc( bi, e_id.oc_id );
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
-			"cannot determine objectclass of entry "
-			"-- aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, "",
+			"cannot determine objectclass of entry -- aborting\n",
+			0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 				"operation not permitted within namingContext",
 				NULL, NULL );
  		return 1;
@@ -1511,7 +1502,7 @@ backsql_delete(
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"delete procedure is not defined "
 			"for this objectclass - aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, "",
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 				"operation not permitted within namingContext",
 				NULL, NULL );
 		return 1;
@@ -1537,8 +1528,8 @@ backsql_delete(
 			"delete_proc execution failed\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
 	}
 #ifndef BACKSQL_REALLOC_STMT
@@ -1557,8 +1548,8 @@ backsql_delete(
 			0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "SQL-backend error", NULL, NULL );
 		return 1;
 	}
 	
@@ -1574,11 +1565,11 @@ backsql_delete(
 	 * for any reason
 	 */
 	SQLTransact( SQL_NULL_HENV, dbh, 
-				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
+			op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, "", NULL, NULL, NULL );
+	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL, NULL, NULL );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );
-	return 0;
+	return op->o_noop;
 }
 
 #endif /* SLAPD_SQL */

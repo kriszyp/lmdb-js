@@ -65,13 +65,13 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	}
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>_SQLPrepare()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_Prepare()\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "_SQLPrepare(): driver name='%s'\n",
+	Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): driver name='%s'\n",
 			drv_name, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -89,7 +89,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 		rc = SQLSetStmtOption( *sth, SQL_CONCURRENCY, 
 				SQL_CONCUR_ROWVER );
 		if ( rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO ) {
-			Debug( LDAP_DEBUG_TRACE, "_SQLPrepare(): "
+			Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): "
 				"SQLSetStmtOption(SQL_CONCURRENCY,"
 				"SQL_CONCUR_ROWVER) failed:\n", 
 				0, 0, 0 );
@@ -108,7 +108,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	}
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==_SQLPrepare() calling SQLPrepare()\n",
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_Prepare() calling SQLPrepare()\n",
 			0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -160,7 +160,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 	rc = SQLNumResultCols( sth, &row->ncols );
 	if ( rc != SQL_SUCCESS ) {
 #ifdef BACKSQL_TRACE
-		Debug( LDAP_DEBUG_TRACE, "_SQLBindRowAsStrings(): "
+		Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings(): "
 			"SQLNumResultCols() failed:\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 		
@@ -177,7 +177,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 				sizeof( char * ) );
 		row->col_prec = (UDWORD *)ch_calloc( row->ncols,
 				sizeof( UDWORD ) );
-		row->is_null = (SQLINTEGER *)ch_calloc( row->ncols,
+		row->value_len = (SQLINTEGER *)ch_calloc( row->ncols,
 				sizeof( SQLINTEGER ) );
 		for ( i = 1; i <= row->ncols; i++ ) {
 			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
@@ -213,7 +213,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 						SQL_C_CHAR,
 						(SQLPOINTER)row->cols[ i - 1 ],
 						col_prec + 1,
-						&row->is_null[ i - 1 ] );
+						&row->value_len[ i - 1 ] );
 			} else {
 				row->cols[ i - 1 ] = (char *)ch_calloc( col_prec + 1, sizeof( char ) );
 				row->col_prec[ i - 1 ] = col_prec;
@@ -221,7 +221,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 						SQL_C_CHAR,
 						(SQLPOINTER)row->cols[ i - 1 ],
 						col_prec + 1,
-						&row->is_null[ i - 1 ] );
+						&row->value_len[ i - 1 ] );
 			}
 		}
 
@@ -247,7 +247,7 @@ backsql_FreeRow( BACKSQL_ROW_NTS *row )
 	ber_bvarray_free( row->col_names );
 	ldap_charray_free( row->cols );
 	free( row->col_prec );
-	free( row->is_null );
+	free( row->value_len );
 
 	return SQL_SUCCESS;
 }

@@ -48,7 +48,7 @@ insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (6,'documentTitl
 
 insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
 
-insert into ldap_referrals (entry_id,url) values (4,'http://localhost');
+insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost/');
 
 -- procedures
 
