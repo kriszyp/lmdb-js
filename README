@@ -23,14 +23,11 @@ REQUIRED SOFTWARE
 
 	SLAPD:
 		LDBM compatible datastore
-			(Sleepycat Berkeley DB 2.3.16 or GDBM)
+			(Sleepycat Berkeley DB 2.7.5 or GDBM)
 
 	SLURPD:
 		LTHREAD compatible thread package
 			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
-
-	LDAPD:
-		ISODE compatible X.500 distribution
 
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
