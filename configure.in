@@ -124,9 +124,6 @@ OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding s
 dnl ----------------------------------------------------------------
 dnl Server options
 dnl ----------------------------------------------------------------
-dnl LDAPD OPTIONS
-AC_ARG_WITH(xxldapdoptions,[LDAPD (X.500-to-LDAP Gateway) Options:])
-OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
@@ -430,11 +427,10 @@ LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
 
-LDAPD_LIBS=
+QUIPU_LIBS=
 SLAPD_LIBS=
 SLURPD_LIBS=
 
-BUILD_LDAPD=no
 BUILD_SLAPD=no
 BUILD_SLURPD=no
 
@@ -828,39 +824,6 @@ elif test $ol_enable_dns != no ; then
 	AC_MSG_WARN([no res_search, disabling DNS support])
 fi
 
-
-dnl ----------------------------------------------------------------
-dnl ISODE tests
-ol_link_isode=no
-if test $ol_enable_ldapd != no ; then
-	AC_MSG_WARN([ldapd is not supported and may suffer from bit rot.])
-
-	dnl look for ISODE libraries
-	AC_CHECK_LIB(xtpp, main, [
-		ol_link_isode=yes
-		AC_DEFINE(HAVE_XTPP,1, [define if you have -lxttp])
-		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lxtdsap -lxtisode -losi"
-		],:,[-lxtdsap -lxtisode -losi])
-	AC_CHECK_LIB(dsap, main, [
-		ol_link_isode=yes
-		AC_DEFINE(HAVE_DSAP,1, [define if you have -ldsap])
-		LDAPD_LIBS="$LDAPD_LIBS -ldsap"
-		],:,[-lisode])
-	AC_CHECK_LIB(isode, main, [
-		ol_link_isode=yes
-		AC_DEFINE(HAVE_ISODE,1, [define if you have -lisode])
-		LDAPD_LIBS="$LDAPD_LIBS -lisode"
-		],:)
-fi
-
-if test $ol_link_isode != no; then
-	AC_CHECK_LIB(pp, main, [
-		AC_DEFINE(HAVE_PP,1, [define if you have -lpp])
-		LDAPD_LIBS="-lpp $LDAPD_LIBS"
-		],:)
-
-	AC_PATH_PROG(PEPSY, pepsy)
-fi
 
 dnl ----------------------------------------------------------------
 dnl QUIPU
@@ -2364,10 +2327,6 @@ if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	BUILD_SLURPD=yes
 fi
 
-if test "$ol_link_isode" != no ; then
-	BUILD_LDAPD=yes
-fi
-
 dnl ----------------------------------------------------------------
 
 if test "$LINK_BINS_DYNAMIC" = yes; then
@@ -2393,7 +2352,6 @@ AC_SUBST(LIB_LINKAGE)
 AC_SUBST(LT_LIB_LINKAGE)
 AC_SUBST(DYN_EXT)
 
-AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_BDB2)
   AC_SUBST(BUILD_DNSSRV)
@@ -2417,9 +2375,9 @@ AC_SUBST(BUILD_SLAPD)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
-AC_SUBST(LDAPD_LIBS)
 AC_SUBST(LDIF_LIBS)
 AC_SUBST(SLAPD_LIBS)
+AC_SUBST(QUIPU_LIBS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)
@@ -2480,7 +2438,6 @@ libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
-servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/mod.mk \
 servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \

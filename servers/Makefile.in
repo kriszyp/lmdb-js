@@ -4,5 +4,5 @@
 ##
 ## servers Makefile.in for OpenLDAP
 
-SUBDIRS= ldapd slapd slurpd
+SUBDIRS= slapd slurpd
 

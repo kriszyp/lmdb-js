@@ -618,18 +618,6 @@
 /* define if you have res_search() */
 #undef HAVE_RES_SEARCH
 
-/* define if you have -lxttp */
-#undef HAVE_XTPP
-
-/* define if you have -ldsap */
-#undef HAVE_DSAP
-
-/* define if you have -lisode */
-#undef HAVE_ISODE
-
-/* define if you have -lpp */
-#undef HAVE_PP
-
 /* define if you have HEIMDAL Kerberos */
 #undef HAVE_HEIMDAL_KERBEROS
 
