@@ -467,7 +467,7 @@ int main( int argc, char **argv )
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "main: TLS init def ctx failed: %d\n",
-		    0, 0, 0 );
+		    rc, 0, 0 );
 #endif
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
