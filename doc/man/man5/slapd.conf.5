@@ -639,7 +639,7 @@ form
 .RS
 .RS
 .TP
-.B uid=<username>[,cn=<realm>],cn=<mechanism>,cn=auth
+.B UID=<username>[[,CN=<realm>],CN=<mechanism>,]CN=auth
 
 .RE
 This SASL name is then compared against the
@@ -651,11 +651,9 @@ string. If there are wildcard strings in the
 .B match
 regular expression that are enclosed in parenthesis, e.g. 
 .RS
-.RS
 .TP
-.B uid=(.*),cn=.*
+.B UID=([^,]*),CN=.*
 
-.RE
 .RE
 then the portion of the SASL name that matched the wildcard will be stored
 in the numbered placeholder variable $1. If there are other wildcard strings
@@ -664,15 +662,20 @@ placeholders can then be used in the
 .B replace
 string, e.g. 
 .RS
-.RS
 .TP
-.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
+.B UID=$1,OU=Accounts,DC=example,DC=com 
 
 .RE
+The replaced SASL name can be either a DN or an LDAP URI. If the
+latter, the server will use the URI to search its own database(s)
+and, if the search returns exactly one entry, the SASL name is
+replaced by the DN of that entry.   The LDAP URI must have no
+hostport, attrs, or extensions components, e.g.
+.RS
+.TP
+.B ldap:///OU=Accounts,DC=example,DC=com??one?(UID=$1)
+
 .RE
-The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
-server will use the URI to search its own database, and if the search returns 
-exactly one entry, the SASL name is replaced by the DN of that entry.
 Multiple 
 .B sasl-regexp 
 options can be given in the configuration file to allow for multiple matching 
