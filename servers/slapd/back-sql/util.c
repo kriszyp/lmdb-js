@@ -110,7 +110,8 @@ backsql_strcat( struct berbuf *dest, ... )
 
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_strcat(): "
-				"new buflen=%d, dest=%p\n", dest->bb_len, dest, 0 );
+				"new buflen=%d, dest=%p\n",
+				dest->bb_len, dest, 0 );
 #endif /* BACKSQL_TRACE */
 		}
 		AC_MEMCPY( dest->bb_val.bv_val + cdlen, cstr, cslen + 1 );
@@ -120,7 +121,7 @@ backsql_strcat( struct berbuf *dest, ... )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_strcat() (dest=\"%s\")\n", 
-			dest, 0, 0 );
+			dest->bb_val.bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	dest->bb_val.bv_len = cdlen;
@@ -231,7 +232,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_strfcat() (dest=\"%s\")\n", 
-			dest, 0, 0 );
+			dest->bb_val.bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	dest->bb_val.bv_len = cdlen;
@@ -340,7 +341,8 @@ backsql_merge_from_clause(
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_merge_from_clause(): "
 		"dest_from=\"%s\",src_from=\"%s\"\n",
- 		dest_from ? dest_from->bb_val.bv_val : "<NULL>", src_from, 0 );
+ 		dest_from ? dest_from->bb_val.bv_val : "<NULL>",
+		src_from->bv_val, 0 );
 #endif /* BACKSQL_TRACE */
 
 	srcc = ch_strdup( src_from->bv_val );

@@ -396,8 +396,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	return 1;
 }
 
-Entry *
-backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
+int
+backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 {
 	int			i;
 	int			rc;
@@ -405,34 +405,43 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
 
-	rc = dnPrettyNormal( NULL, &eid->eid_dn, &e->e_name, &e->e_nname,
+	assert( bsi->bsi_e );
+
+	memset( bsi->bsi_e, 0, sizeof( Entry ) );
+
+	rc = dnPrettyNormal( NULL, &eid->eid_dn,
+			&bsi->bsi_e->e_name, &bsi->bsi_e->e_nname,
 			bsi->bsi_op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
-		return NULL;
+		return rc;
 	}
+
+	bsi->bsi_e->e_attrs = NULL;
+	bsi->bsi_e->e_private = NULL;
 
 	bsi->bsi_oc = backsql_id2oc( bsi->bsi_op->o_bd->be_private,
 			eid->eid_oc_id );
-	bsi->bsi_e = e;
 	bsi->bsi_c_eid = eid;
-	e->e_attrs = NULL;
-	e->e_private = NULL;
 
 #ifndef BACKSQL_ARBITRARY_KEY	
-	e->e_id = eid->eid_id;
+	bsi->bsi_e->e_id = eid->eid_id;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
  
+	rc = attr_merge_normalize_one( bsi->bsi_e, ad_oc,
+				&bsi->bsi_oc->bom_oc->soc_cname,
+				bsi->bsi_op->o_tmpmemctx );
+	if ( rc != LDAP_SUCCESS ) {
+		entry_clean( bsi->bsi_e );
+		return rc;
+	}
+
 	if ( bsi->bsi_attrs != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"custom attribute list\n", 0, 0, 0 );
 		for ( i = 0; bsi->bsi_attrs[ i ].an_name.bv_val; i++ ) {
 			backsql_at_map_rec	**vat;
-			AttributeName		*attr = &bsi->bsi_attrs[ i ];
+			AttributeName		*an = &bsi->bsi_attrs[ i ];
 			int			j;
-
-			if ( attr->an_desc == ad_oc ) {
-				continue;
-			}
 
 			/* if one of the attributes listed here is
 			 * a subtype of another, it must be ignored,
@@ -446,18 +455,19 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				}
 
 				/* skip subtypes */
-				if ( is_at_subtype( attr->an_desc->ad_type, bsi->bsi_attrs[ j ].an_desc->ad_type ) )
+				if ( is_at_subtype( an->an_desc->ad_type,
+							bsi->bsi_attrs[ j ].an_desc->ad_type ) )
 				{
 					goto next;
 				}
 			}
 
-			rc = backsql_supad2at( bsi->bsi_oc, attr->an_desc, &vat );
+			rc = backsql_supad2at( bsi->bsi_oc, an->an_desc, &vat );
 			if ( rc != 0 || vat == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 						"attribute \"%s\" is not defined "
 						"for objectlass \"%s\"\n",
-						attr->an_name.bv_val, 
+						an->an_name.bv_val, 
 						BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
 				continue;
 			}
@@ -478,13 +488,6 @@ next:;
 				bsi, 0, AVL_INORDER );
 	}
 
-	if ( attr_merge_normalize_one( bsi->bsi_e, ad_oc,
-				&bsi->bsi_oc->bom_oc->soc_cname,
-				bsi->bsi_op->o_tmpmemctx ) ) {
-		entry_free( e );
-		return NULL;
-	}
-
 	if ( global_schemacheck ) {
 		const char	*text = NULL;
 		char		textbuf[ 1024 ];
@@ -499,8 +502,12 @@ next:;
 		rc = structural_class( bv, &soc, NULL, 
 				&text, textbuf, textlen );
 		if ( rc != LDAP_SUCCESS ) {
-			entry_free( e );
-			return NULL;
+      			Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
+				"structural_class() failed %d (%s)\n",
+				bsi->bsi_e->e_name.bv_val,
+				rc, text ? text : "" );
+			entry_clean( bsi->bsi_e );
+			return rc;
 		}
 
 		if ( ( bsi->bsi_flags | BSQL_SF_ALL_OPER )
@@ -509,15 +516,15 @@ next:;
 					slap_schema.si_ad_structuralObjectClass,
 					&soc, bsi->bsi_op->o_tmpmemctx );
 			if ( rc != LDAP_SUCCESS ) {
-				entry_free( e );
-				return NULL;
+				entry_clean( bsi->bsi_e );
+				return rc;
 			}
 		}
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_id2entry()\n", 0, 0, 0 );
 
-	return e;
+	return LDAP_SUCCESS;
 }
 
 #endif /* SLAPD_SQL */

@@ -1,4 +1,4 @@
-insert into institutes (id,name) values (1,'sql');
+insert into institutes (id,name) values (1,'Example');
 
 insert into persons (id,name) values (1,'Mitya Kovalev');
 insert into persons (id,name) values (2,'Torvlobnor Puzdoy');

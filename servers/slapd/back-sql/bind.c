@@ -101,21 +101,24 @@ backsql_bind( Operation *op, SlapReply *rs )
 
 	backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
 			-1, -1, -1, NULL, dbh, op, rs, anlist );
-	e = backsql_id2entry( &bsi, &user_entry, &user_id );
-	if ( e == NULL ) {
+	bsi.bsi_e = &user_entry;
+	rc = backsql_id2entry( &bsi, &user_id );
+	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
-			"error in backsql_id2entry() - auth failed\n",
-			0, 0, 0 );
-		rs->sr_err = LDAP_OTHER;
+			"error %d in backsql_id2entry() "
+			"- auth failed\n", rc, 0, 0 );
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto error_return;
 	}
+	e = &user_entry;
 
 	if ( ! access_allowed( op, e, password, NULL, ACL_AUTH, NULL ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto error_return;
 	}
 
-	if ( ( a = attr_find( e->e_attrs, password ) ) == NULL ) {
+	a = attr_find( e->e_attrs, password );
+	if ( a == NULL ) {
 		rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
 		goto error_return;
 	}

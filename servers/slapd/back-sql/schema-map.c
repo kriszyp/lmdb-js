@@ -113,13 +113,14 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 {
 	backsql_at_map_rec	*at_map;
 	char			s[] = "+9223372036854775807L";
-	ber_len_t		slen;
+	struct berval		sbv;
 	struct berbuf		bb;
 	
-
+	sbv.bv_val = s;
 	snprintf( s, sizeof( s ), "%ld", oc_map->bom_id );
-	slen = strlen( s );
+	sbv.bv_len = strlen( s );
 
+	/* extra objectClasses */
 	at_map = (backsql_at_map_rec *)ch_calloc(1, 
 			sizeof( backsql_at_map_rec ) );
 	at_map->bam_ad = slap_schema.si_ad_objectClass;
@@ -136,7 +137,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	bb.bb_val.bv_val = NULL;
 	bb.bb_val.bv_len = 0;
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lbcbll",
+	backsql_strfcat( &bb, "lbcblb",
 			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=" ),
 				"ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
@@ -144,7 +145,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 			&oc_map->bom_keycol,
 			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
 				" and ldap_entries.oc_map_id=", 
-			slen, s );
+			&sbv );
 
 	at_map->bam_oc = oc_map->bom_oc;
 	at_map->bam_join_where = bb.bb_val;
@@ -162,22 +163,22 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				oc_map->bom_oc->soc_cname.bv_val, 0 );
 	}
 
+	/* referral attribute */
 	at_map = (backsql_at_map_rec *)ch_calloc( 1, 
 			sizeof( backsql_at_map_rec ) );
 	at_map->bam_ad = slap_schema.si_ad_ref;
 	ber_str2bv( "ldap_referrals.url", 0, 1, &at_map->bam_sel_expr );
 	ber_str2bv( "ldap_referrals,ldap_entries", 0, 1, &at_map->bam_from_tbls );
-	
-	bb.bb_val.bv_val = NULL;
-	bb.bb_val.bv_len = 0;
+
 	bb.bb_len = at_map->bam_from_tbls.bv_len + 1;
+	bb.bb_val = at_map->bam_from_tbls;
 	backsql_merge_from_clause( &bb, &oc_map->bom_keytbl );
 	at_map->bam_from_tbls = bb.bb_val;
 
 	bb.bb_val.bv_val = NULL;
 	bb.bb_val.bv_len = 0;
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lbcbll",
+	backsql_strfcat( &bb, "lbcblb",
 			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=" ),
 				"ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
@@ -185,7 +186,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 			&oc_map->bom_keycol,
 			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
 				" and ldap_entries.oc_map_id=", 
-			slen, s );
+			&sbv );
 
 	at_map->bam_oc = NULL;
 	at_map->bam_join_where = bb.bb_val;

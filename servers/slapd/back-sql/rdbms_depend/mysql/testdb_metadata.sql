@@ -53,8 +53,8 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 values (7,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (8,1,'documentDN','ldap_entries.dn','ldap_entries,documents,authors_docs,persons',
-        'ldap_entries.keyval=documents.id AND ldap_entries.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
+values (8,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons',
+        'documentIdentifier.keyval=documents.id AND documentIdentifier.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
 	NULL,NULL,3,0);
 
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
@@ -64,22 +64,22 @@ values (8,1,'documentDN','ldap_entries.dn','ldap_entries,documents,authors_docs,
 --	parent		the "ldap_entries.id" of the parent of this objectClass; 0 if it is the "suffix" of the database
 --	keyval		the value of the "keytbl.keycol" defined for this objectClass
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (1,'o=sql,c=RU',3,0,1);
+values (1,'o=Example,c=RU',3,0,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (2,'cn=Mitya Kovalev,o=sql,c=RU',1,1,1);
+values (2,'cn=Mitya Kovalev,o=Example,c=RU',1,1,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (3,'cn=Torvlobnor Puzdoy,o=sql,c=RU',1,1,2);
+values (3,'cn=Torvlobnor Puzdoy,o=Example,c=RU',1,1,2);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (4,'cn=Akakiy Zinberstein,o=sql,c=RU',1,1,3);
+values (4,'cn=Akakiy Zinberstein,o=Example,c=RU',1,1,3);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (5,'documentTitle=book1,o=sql,c=RU',2,1,1);
+values (5,'documentTitle=book1,o=Example,c=RU',2,1,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (6,'documentTitle=book2,o=sql,c=RU',2,1,2);
+values (6,'documentTitle=book2,o=Example,c=RU',2,1,2);
 	
 
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
@@ -92,4 +92,5 @@ values (4,'referral');
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
 --	url		the URI of the referral
 insert into ldap_referrals (entry_id,url)
-values (4,'http://localhost');
+values (4,'ldap://localhost/');
+
