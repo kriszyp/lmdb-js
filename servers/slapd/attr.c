@@ -122,8 +122,8 @@ int
 attr_merge(
 	Entry		*e,
 	AttributeDescription *desc,
-	BerVarray	vals
-	, BerVarray	nvals
+	BerVarray	vals,
+	BerVarray	nvals
 ) {
 	int rc;
 
@@ -153,11 +153,48 @@ attr_merge(
 }
 
 int
+attr_merge_normalize(
+	Entry		*e,
+	AttributeDescription *desc,
+	BerVarray	vals
+) {
+	BerVarray	nvals = NULL;
+	int		rc;
+
+	if ( desc->ad_type->sat_equality->smr_normalize ) {
+		int	i;
+		
+		for ( i = 0; vals[i].bv_val; i++);
+
+		nvals = ch_calloc( sizeof(struct berval), i + 1 );
+		for ( i = 0; vals[i].bv_val; i++ ) {
+			rc = (*desc->ad_type->sat_equality->smr_normalize)(
+					0,
+					desc->ad_type->sat_syntax,
+					desc->ad_type->sat_equality,
+					&vals[i], &nvals[i] );
+
+			if ( rc != LDAP_SUCCESS ) {
+				nvals[i+1].bv_val = NULL;
+				goto error_return;
+			}
+		}
+		nvals[i].bv_val = NULL;
+	}
+
+	rc = attr_merge( e, desc, vals, nvals );
+
+error_return:;
+	ber_bvarray_free( nvals );
+	return rc;
+}
+
+int
 attr_merge_one(
 	Entry		*e,
 	AttributeDescription *desc,
-	struct berval	*val
-	, struct berval *nval
+	struct berval	*val,
+	struct berval	*nval
 ) {
 	int rc;
 	Attribute	**a;
@@ -181,6 +218,32 @@ attr_merge_one(
 
 	if( !rc && nval ) rc = value_add_one( &(*a)->a_nvals, nval );
 	else (*a)->a_nvals = (*a)->a_vals;
+	return rc;
+}
+
+int
+attr_merge_normalize_one(
+	Entry		*e,
+	AttributeDescription *desc,
+	struct berval	*val
+) {
+	struct berval	nval;
+	int		rc;
+
+	if ( desc->ad_type->sat_equality->smr_normalize ) {
+		rc = (*desc->ad_type->sat_equality->smr_normalize)(
+				0,
+				desc->ad_type->sat_syntax,
+				desc->ad_type->sat_equality,
+				val, &nval );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+	}
+
+	rc = attr_merge_one( e, desc, val, &nval );
+	ch_free( nval.bv_val );
 	return rc;
 }
 

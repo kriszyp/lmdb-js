@@ -146,6 +146,12 @@ LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
 	struct berval *nval ));
+LDAP_SLAPD_F (int) attr_merge_normalize LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	BerVarray vals ));
+LDAP_SLAPD_F (int) attr_merge_normalize_one LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	struct berval *val ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
