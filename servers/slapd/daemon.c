@@ -1645,7 +1645,7 @@ slapd_daemon_task(
 				{
 					/* DENY ACCESS */
 					Statslog( LDAP_DEBUG_STATS,
-						"fd=%ld host access from %s (%s) denied.\n",
+						"fd=%ld DENIED from %s (%s)",
 						(long) s,
 						dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 						peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
@@ -1694,8 +1694,8 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"daemon: conn=%ld fd=%ld connection from %s "
-				"(%s) accepted.\n",
+				"conn=%ld fd=%ld ACCEPT from %s "
+				"(%s)\n",
 				id, (long) s,
 				peername,
 				slap_listeners[l]->sl_name.bv_val,

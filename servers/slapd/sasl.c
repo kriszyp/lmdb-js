@@ -740,7 +740,7 @@ slap_sasl_authorize(
 	/* Nothing to do if no authzID was given */
 	if ( !auxvals[1].name || !auxvals[1].values ) {
 		conn->c_sasl_dn = authcDN;
-		return SASL_OK;
+		goto ok;
 	}
 	
 	AC_MEMCPY( &authzDN, auxvals[1].values[0], sizeof(authzDN) );
@@ -764,6 +764,7 @@ slap_sasl_authorize(
 	}
 
 	conn->c_sasl_dn = authzDN;
+ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
 	    		"conn=%lu op=%lu BIND authcid=\"%s\"\n",
@@ -849,8 +850,7 @@ slap_sasl_authorize(
 #endif
 
 		conn->c_sasl_dn = authcDN;
-		*errstr = NULL;
-		return SASL_OK;
+		goto ok;
 	}
 	rc = slap_sasl_getdn( conn, (char *)authzid, 0, realm,
 		&authzDN, SLAP_GETDN_AUTHZID );
@@ -877,7 +877,9 @@ slap_sasl_authorize(
 		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
+	conn->c_sasl_dn = authzDN;
 
+ok:
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
 		"slap_sasl_authorize: conn %d authorization allowed\n",
@@ -895,7 +897,6 @@ slap_sasl_authorize(
 			auth_identity, 0, 0);
 	}
 
-	conn->c_sasl_dn = authzDN;
 	*errstr = NULL;
 	return SASL_OK;
 }
