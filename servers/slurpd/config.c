@@ -21,6 +21,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/ctype.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -53,8 +54,7 @@ slurpd_read_config(
 )
 {
     FILE	*fp;
-    char	buf[BUFSIZ];
-    char	*line, *p;
+    char	*line;
     int		cargc;
     char	*cargv[MAXARGS];
 
@@ -227,7 +227,7 @@ getline(
 	    *p = '\0';
 	}
 	lineno++;
-	if ( ! isspace( buf[0] ) ) {
+	if ( ! isspace( (unsigned char) buf[0] ) ) {
 	    return( line );
 	}
 

@@ -25,6 +25,7 @@
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 
 #include "../slapd/slap.h"
 #include "slurp.h"
@@ -177,7 +178,7 @@ Re_parse(
 		*p++ = '\0';
 	    }
 	    re->re_timestamp = strdup( value );
-	    if ( p != NULL && isdigit( *p )) {
+	    if ( p != NULL && isdigit( (unsigned char) *p )) {
 		re->re_seq = atoi( p );
 	    }
 	    state |= GOT_TIME;
@@ -499,7 +500,6 @@ Re_write(
     int		i;
     char	*s;
     int		rc = 0;
-    Rh		*rh;
 
     if ( re == NULL || fp == NULL ) {
 	Debug( LDAP_DEBUG_ANY, "Internal error: Re_write: NULL argument\n",

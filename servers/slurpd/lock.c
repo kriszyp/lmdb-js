@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/time.h>
 #include <ac/unistd.h>

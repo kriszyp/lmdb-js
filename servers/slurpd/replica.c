@@ -32,9 +32,6 @@ replicate(
     Ri	*ri
 )
 {
-    int i;
-    unsigned long seq;
-
     Debug( LDAP_DEBUG_ARGS, "begin replication thread for %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
 

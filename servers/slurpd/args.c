@@ -28,7 +28,7 @@
 #include "globals.h"
 
 
-static int
+static void
 usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );

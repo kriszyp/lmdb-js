@@ -46,7 +46,6 @@ Ri_process(
 {
     Rq		*rq = sglob->rq;
     Re		*re, *new_re;
-    int		i;
     int		rc ;
     char	*errmsg;
 

@@ -36,7 +36,7 @@ ch_malloc(
 	char	*new;
 
 	if ( (new = (char *) malloc( size )) == NULL ) {
-		fprintf( stderr, "malloc of %d bytes failed\n", size );
+		fprintf( stderr, "malloc of %lu bytes failed\n", size );
 		exit( 1 );
 	}
 
@@ -63,7 +63,7 @@ ch_realloc(
 	}
 
 	if ( (new = (char *) realloc( block, size )) == NULL ) {
-		fprintf( stderr, "realloc of %d bytes failed\n", size );
+		fprintf( stderr, "realloc of %lu bytes failed\n", size );
 		exit( 1 );
 	}
 
@@ -86,7 +86,7 @@ ch_calloc(
 	char	*new;
 
 	if ( (new = (char *) calloc( nelem, size )) == NULL ) {
-		fprintf( stderr, "calloc of %d elems of %d bytes failed\n",
+		fprintf( stderr, "calloc of %lu elems of %lu bytes failed\n",
 		    nelem, size );
 		exit( 1 );
 	}

@@ -20,6 +20,7 @@
 
 #include <ac/errno.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/time.h>
 
 #include <ac/krb.h>
@@ -30,7 +31,6 @@
 #include "slurp.h"
 
 /* Forward references */
-static int get_changetype LDAP_P(( char * ));
 static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
 static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
 static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
@@ -75,7 +75,6 @@ do_ldap(
     int	rc = 0;
     int	lderr = LDAP_SUCCESS;
     int	retry = 2;
-    char *msg;
 
     *errmsg = NULL;
 
@@ -224,7 +223,7 @@ op_ldap_modify(
     int		state;	/* This code is a simple-minded state machine */
     int		nvals;	/* Number of values we're modifying */
     int		nops;	/* Number of LDAPMod structs in ldmarr */
-    LDAPMod	*ldm, *nldm, **ldmarr;
+    LDAPMod	*ldm, **ldmarr;
     int		i, len;
     char	*type, *value;
     int		rc = 0;
@@ -583,10 +582,9 @@ do_bind(
     int	*lderr
 )
 {
-    int		rc;
     int		ldrc;
-    char	msgbuf[ 1024];
 #ifdef HAVE_KERBEROS
+    int rc;
     int retval = 0;
     int kni, got_tgt;
     char **krbnames;
@@ -769,7 +767,7 @@ LDAPMod **ldmarr )
 	if ( ldm->mod_bvalues != NULL ) {
 	    for ( j = 0; ( b = ldm->mod_bvalues[ j ] ) != NULL; j++ ) {
 		msgbuf = ch_malloc( b->bv_len + 512 );
-		sprintf( msgbuf, "***** bv[ %d ] len = %d, val = <%s>",
+		sprintf( msgbuf, "***** bv[ %d ] len = %ld, val = <%s>",
 			j, b->bv_len, b->bv_val );
 		Debug( LDAP_DEBUG_TRACE,
 			"Trace (%d):%s\n", getpid(), msgbuf, 0 );
@@ -849,8 +847,8 @@ char *s )
     char *p;
 
     for ( p = s; ( p != NULL ) && ( *p != '\0' ); p++ ) {
-	if ( islower( *p )) {
-	    *p = toupper( *p );
+	if ( islower( (unsigned char) *p )) {
+	    *p = toupper( (unsigned char) *p );
 	}
     }
 }
