@@ -42,7 +42,9 @@ typedef struct syncops {
 	struct berval	s_base;		/* ndn of search base */
 	ID		s_eid;		/* entryID of search base */
 	Operation	*s_op;		/* search op */
-	Filter	*s_filter;
+	long	s_sid;
+	long	s_rid;
+	struct berval s_filterstr;
 	int		s_flags;	/* search status */
 	struct syncres *s_res;
 	struct syncres *s_restail;
@@ -438,11 +440,12 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	Attribute a_uuid = {0};
 	Operation sop = *so->s_op;
 	Opheader ohdr;
-	syncrepl_state *srs = sop.o_controls[sync_cid];
 
 	ohdr = *sop.o_hdr;
 	sop.o_hdr = &ohdr;
 	sop.o_tmpmemctx = op->o_tmpmemctx;
+	sop.o_bd = op->o_bd;
+	sop.o_controls = op->o_controls;
 
 	if ( queue && (so->s_flags & PS_IS_REFRESHING) ) {
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
@@ -453,7 +456,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 
 	ctrls[1] = NULL;
 	slap_compose_sync_cookie( op, &cookie, &opc->sctxcsn,
-		srs->sr_state.sid, srs->sr_state.rid );
+		so->s_sid, so->s_rid );
 
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
@@ -568,7 +571,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 
 		/* check if current o_req_dn is in scope and matches filter */
-		if ( fc.fscope && test_filter( op, e, ss->s_filter ) ==
+		if ( fc.fscope && test_filter( op, e, ss->s_op->ors_filter ) ==
 			LDAP_COMPARE_TRUE ) {
 			if ( saveit ) {
 				sm = op->o_tmpalloc( sizeof(syncmatches), op->o_tmpmemctx );
@@ -756,7 +759,6 @@ syncprov_op_extended( Operation *op, SlapReply *rs )
 typedef struct searchstate {
 	slap_overinst *ss_on;
 	syncops *ss_so;
-	int ss_done;
 } searchstate;
 
 static int
@@ -767,9 +769,62 @@ syncprov_search_cleanup( Operation *op, SlapReply *rs )
 		free( rs->sr_ctrls[0] );
 		op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
 	}
-	if ( ss->ss_done )
-		op->o_sync_mode |= SLAP_SYNC_REFRESH_AND_PERSIST;
 	return 0;
+}
+
+static void
+syncprov_detach_op( Operation *op, syncops *so )
+{
+	Operation *op2;
+	int i, alen = 0;
+	size_t size;
+	char *ptr;
+
+	/* count the search attrs */
+	for (i=0; op->ors_attrs && op->ors_attrs[i].an_name.bv_val; i++) {
+		alen += op->ors_attrs[i].an_name.bv_len + 1;
+	}
+	/* Make a new copy of the operation */
+	size = sizeof(Operation) + sizeof(Opheader) +
+		(i ? ( (i+1) * sizeof(AttributeName) + alen) : 0) +
+		op->o_req_dn.bv_len + 1 +
+		op->o_req_ndn.bv_len + 1 +
+		op->o_ndn.bv_len + 1 +
+		so->s_filterstr.bv_len + 1;
+	op2 = (Operation *)ch_malloc( size );
+	*op2 = *op;
+	op2->o_hdr = (Opheader *)(op2+1);
+	*op2->o_hdr = *op->o_hdr;
+	if ( i ) {
+		op2->ors_attrs = (AttributeName *)(op2->o_hdr + 1);
+		ptr = (char *)(op2->ors_attrs+i+1);
+		for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
+			op2->ors_attrs[i] = op->ors_attrs[i];
+			op2->ors_attrs[i].an_name.bv_val = ptr;
+			ptr = lutil_strcopy( ptr, op->ors_attrs[i].an_name.bv_val ) + 1;
+		}
+	} else {
+		ptr = (char *)(op2->o_hdr + 1);
+	}
+	op2->o_ndn.bv_val = ptr;
+	ptr = lutil_strcopy(ptr, op->o_ndn.bv_val) + 1;
+	op2->o_dn = op2->o_ndn;
+	op2->o_req_dn.bv_val = ptr;
+	ptr = lutil_strcopy(ptr, op->o_req_dn.bv_val) + 1;
+	op2->o_req_ndn.bv_val = ptr;
+	ptr = lutil_strcopy(ptr, op->o_req_ndn.bv_val) + 1;
+	op2->ors_filterstr.bv_val = ptr;
+	strcpy( ptr, so->s_filterstr.bv_val );
+	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
+	op2->ors_filter = str2filter( ptr );
+	op2->o_controls = NULL;
+	op2->o_callback = NULL;
+	so->s_op = op2;
+
+	/* Increment number of ops so that idletimeout ignores us */
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+	op->o_conn->c_n_ops_executing++;
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 }
 
 static int
@@ -860,8 +915,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 				ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 
 			/* Detach this Op from frontend control */
-				ss->ss_done = 1;
-				;
+			syncprov_detach_op( op, ss->ss_so );
 
 			return LDAP_SUCCESS;
 		}
@@ -893,7 +947,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {
-		syncops so;
+		syncops so = {0};
 		fbase_cookie fc;
 		opcookie opc;
 		slap_callback sc;
@@ -919,6 +973,8 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		*sop = so;
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		sop->s_sid = srs->sr_state.sid;
+		sop->s_rid = srs->sr_state.rid;
 		sop->s_next = si->si_ops;
 		si->si_ops = sop;
 		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
@@ -984,7 +1040,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	 * for persistent search evaluation
 	 */
 	if ( sop ) {
-		sop->s_filter = op->ors_filter;
+		sop->s_filterstr= op->ors_filterstr;
 	}
 
 	fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
@@ -1014,17 +1070,12 @@ shortcut:
 	ss = (searchstate *)(cb+1);
 	ss->ss_on = on;
 	ss->ss_so = sop;
-	ss->ss_done = 0;
 	cb->sc_response = syncprov_search_response;
 	cb->sc_cleanup = syncprov_search_cleanup;
 	cb->sc_private = ss;
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
 
-	/* FIXME: temporary hack to make sure back-bdb's native Psearch handling
-	 * doesn't get invoked. We can skip this after the back-bdb code is
-	 * removed, and also delete ss->ss_done.
-	 */
 	op->o_sync_mode &= SLAP_CONTROL_MASK;
 
 	/* If this is a persistent search and no changes were reported during
