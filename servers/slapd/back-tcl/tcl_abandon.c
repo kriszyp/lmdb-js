@@ -7,6 +7,10 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ *
+ * $Id$
+ *
+ * $Log$
  */
 
 #include "portable.h"
@@ -50,5 +54,5 @@ int tcl_back_abandon (
 	if (code != TCL_OK) {
 		Debug(LDAP_DEBUG_ANY, "tcl_abandon_error: %s\n", results, 0, 0);
 	}
-
+	return( 0 );
 }
