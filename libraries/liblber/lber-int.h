@@ -270,5 +270,7 @@ ber_pvt_sb_udp_set_dst LDAP_P((Sockbuf *sb, void *addr ));
 LDAP_F(	void * )
 ber_pvt_sb_udp_get_src LDAP_P((Sockbuf *sb ));
 
+LDAP_F( int )
+ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 
 #endif /* _LBER_INT_H */

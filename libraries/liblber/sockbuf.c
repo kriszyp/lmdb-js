@@ -644,6 +644,23 @@ int ber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
    return 0;
 }
 
+int ber_pvt_socket_set_nonblock( ber_socket_t sd, int nb )
+{
+#if HAVE_FCNTL
+	int flags = fcntl(ber_pvt_sb_get_desc(sb), F_GETFL);
+	if( nb ) {
+		flags |= O_NONBLOCK;
+	} else {
+		flags &= ~O_NONBLOCK;
+	}
+	return fcntl( ber_pvt_sb_get_desc(sb), F_SETFL, flags );
+		
+#elif defined( FIONBIO )
+	ioctl_t status = nb ? 1 : 0;
+	return ioctl( sd, FIONBIO, &status );
+#endif
+}
+
 #define USE_NONBLOCK
 #ifdef USE_NONBLOCK
 int ber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
@@ -662,19 +679,11 @@ int ber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
       sb->sb_read_ahead = 0;
 #endif
    }
-   if (ber_pvt_sb_in_use(sb)) {
-#if HAVE_FCNTL
-		int flags = fcntl(ber_pvt_sb_get_desc(sb), F_GETFL);
-		flags |= O_NONBLOCK;
-		return fcntl(ber_pvt_sb_get_desc(sb), F_SETFL, flags);
-		
-#elif defined( FIONBIO )
-	   /* WINSOCK requires the status to be a long */
-		ioctl_t status = (nb!=0);
-		return ioctl( ber_pvt_sb_get_desc(sb), FIONBIO, &status );
-#endif /* FIONBIO */
-   }
-   return 0;
+	if (ber_pvt_sb_in_use(sb)) {
+		return ber_pvt_socket_set_nonblock(
+			ber_pvt_sb_get_desc(sb), nb );
+	}
+	return 0;
 }
 #endif
 	 
