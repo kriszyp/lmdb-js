@@ -17,6 +17,8 @@
  *  - flock
  *
  * Other implementations will be added as needed.
+ *
+ * NOTE: lutil_lockf() MUST block until an exclusive lock is acquired.
  */
 
 #include "portable.h"
@@ -51,6 +53,7 @@
 
 #ifdef USE_LOCKF
 int lutil_lockf ( int fd ) {
+	/* use F_LOCK instead of F_TLOCK, ie: block */
 	return lockf( fd, F_LOCK, 0 );
 }
 
@@ -62,27 +65,33 @@ int lutil_unlockf ( int fd ) {
 #ifdef USE_FCNTL
 int lutil_lockf ( int fd ) {
 	struct flock file_lock;
+
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_WRLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
+
+	/* use F_SETLKW instead of F_SETLK, ie: block */
 	return( fcntl( fd, F_SETLKW, &file_lock ) );
 }
 
 int lutil_unlockf ( int fd ) {
 	struct flock file_lock;
+
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_UNLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
-	return( fcntl ( fd, F_SETLK, &file_lock ) );
+
+	return( fcntl ( fd, F_SETLKW, &file_lock ) );
 }
 #endif
 
 #ifdef USE_FLOCK
 int lutil_lockf ( int fd ) {
+	/* use LOCK_EX instead of LOCK_EX|LOCK_NB, ie: block */
 	return flock( fd, LOCK_EX );
 }
 

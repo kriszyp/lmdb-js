@@ -30,9 +30,7 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	}
 
 	/* acquire the lock */
-	while ( ldap_lockf( fileno(*lfp) ) != 0 ) {
-		;	/* NULL */
-	}
+	ldap_lockf( fileno(*lfp) );
 
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {

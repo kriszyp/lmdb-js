@@ -8,8 +8,10 @@
  * in file LICENSE in the top-level directory of the distribution.
  */
 
-/* File locking methods */
-/* only available if fcntl() locking is required */
+/* File locking methods
+ *
+ * lutil_lockf() will block until an exclusive lock is acquired.
+ */
 
 #ifndef _LUTIL_LOCKF_H_
 #define _LUTIL_LOCKF_H_
