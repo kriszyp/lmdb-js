@@ -1312,7 +1312,7 @@ ldap_search_st LDAP_P((	/* deprecated */
 	struct timeval *timeout,
 	LDAPMessage **res ));
 
-
+#ifdef LDAP_UFN
 /*
  * in ufn.c						 	
  *	(deprecated)
@@ -1361,7 +1361,7 @@ ldap_ufn_setprefix LDAP_P(( /* deprecated */
 LDAP_F( int )
 ldap_ufn_timeout LDAP_P(( /* deprecated */
 	void *tvparam ));
-
+#endif
 
 /*
  * in unbind.c

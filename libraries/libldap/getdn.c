@@ -54,88 +54,26 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 char *
 ldap_dn2ufn( LDAP_CONST char *dn )
 {
-	char	*p, *ufn, *r;
-	int	state;
+	char	*ufn;
+	char	**vals;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
+
+	/* produces completely untyped UFNs */
 
 	if( dn == NULL ) {
 		return NULL;
 	}
 
-	if ( ( p = ldap_utf8_strpbrk( dn, "=" ) ) == NULL ) {
-		return( LDAP_STRDUP( dn ) );
+	vals = ldap_explode_dn( dn , 1 );
+	if( vals == NULL ) {
+		return NULL;
 	}
-	ufn = LDAP_STRDUP( ++p );
 
-	if( ufn == NULL ) return NULL;
+	ufn = ldap_charray2str( vals, ", " );
 
-#define INQUOTE		1
-#define OUTQUOTE	2
-	state = OUTQUOTE;
-	for ( p = ufn, r = ufn; *p; LDAP_UTF8_INCR(p) ) {
-		switch ( *p ) {
-		case '\\':
-			if ( p[1] != '\0' ) {
-				*r++ = '\\';
-				LDAP_UTF8_COPY(r,++p);
-				LDAP_UTF8_INCR(r);
-			}
-			break;
-
-		case '"':
-			if ( state == INQUOTE )
-				state = OUTQUOTE;
-			else
-				state = INQUOTE;
-			*r++ = *p;
-			break;
-
-		case ';':
-		case ',':
-			if ( state == OUTQUOTE )
-				*r++ = ',';
-			else
-				*r++ = *p;
-			break;
-
-		case '=':
-			if ( state == INQUOTE ) {
-				*r++ = *p;
-			} else {
-				char	*rsave = r;
-
-				*r = '\0';
-				LDAP_UTF8_DECR( r );
-
-				while ( !ldap_utf8_isspace( r )
-					&& *r != ';' && *r != ',' && r > ufn )
-				{
-					LDAP_UTF8_DECR( r );
-				}
-				LDAP_UTF8_INCR( r );
-
-				if ( strcasecmp( r, "c" )
-				    && strcasecmp( r, "o" )
-				    && strcasecmp( r, "ou" )
-				    && strcasecmp( r, "st" )
-				    && strcasecmp( r, "l" )
-				    && strcasecmp( r, "cn" ) ) {
-					r = rsave;
-					*r++ = '=';
-				}
-			}
-			break;
-
-		default:
-			LDAP_UTF8_COPY(r, p);
-			LDAP_UTF8_INCR(r);
-			break;
-		}
-	}
-	*r = '\0';
-
-	return( ufn );
+	ldap_memvfree( vals );
+	return ufn;
 }
 
 char **
@@ -236,6 +174,9 @@ ldap_dcedn2dn( LDAP_CONST char *dce )
 
 	return dn;
 }
+
+#define INQUOTE		1
+#define OUTQUOTE	2
 
 static char **
 explode_name( const char *name, int notypes, int is_type )

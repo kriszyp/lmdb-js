@@ -12,6 +12,8 @@
 
 #include "portable.h"
 
+#ifdef LDAP_UFN
+
 #include <stdio.h>
 
 #include <ac/stdlib.h>
@@ -496,3 +498,5 @@ ldap_ufn_timeout( void *tvparam )
 
 	return( tv->tv_usec <= 0 ? 1 : 0 );
 }
+
+#endif

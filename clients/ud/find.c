@@ -199,6 +199,7 @@ find( char *who, int quiet )
 		search_attrs[k] = NULL;
 	}
 
+#if LDAP_UFN
 	/*
 	 *  If the user-supplied name has any commas in it, we
 	 *  assume that it is a UFN, and do everything right
@@ -240,6 +241,7 @@ find( char *who, int quiet )
 		}
 		ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 	}
+#endif
 
 	/*
 	 *  Old users of the MTS *USERDIRECTORY will likely wrap the name

@@ -599,6 +599,7 @@ main( int argc, char **argv )
 			timeout.tv_sec = atoi( line );
 			break;
 
+#ifdef LDAP_UFN
 		case 'U':	/* set ufn search prefix */
 			getline( line, sizeof(line), stdin, "ufn prefix? " );
 			ldap_ufn_setprefix( ld, line );
@@ -629,6 +630,7 @@ main( int argc, char **argv )
 			}
 			free_list( types );
 			break;
+#endif
 
 		case 'l':	/* URL search */
 			getline( line, sizeof(line), stdin,
@@ -765,12 +767,14 @@ main( int argc, char **argv )
     printf( "          [B]ind async  [c]ompare         [l]URL search\n" );
     printf( "          [modi]fy      [modr]dn          [rem]ove\n" );
     printf( "          [res]ult      [s]earch          [q]uit/unbind\n\n" );
-    printf( "          [u]fn search  [ut]fn search with timeout\n" );
+#ifdef LDAP_UFN
+    printf( "          [u]fn search  [ut]fn search with timeout [U]fn prefix\n" );
+#endif
     printf( "          [d]ebug       [e]nable cache    set ms[g]id\n" );
     printf( "          d[n]suffix    [t]imeout         [v]ersion\n" );
-    printf( "          [U]fn prefix  [x]uncache entry  [X]uncache request\n" );
     printf( "          [?]help       [o]ptions         [O]cache options\n" );
     printf( "          [E]xplode dn  [p]arse LDAP URL\n" );
+    printf( "          [x]uncache entry  [X]uncache request\n" );
 			break;
 
 		default:
