@@ -305,6 +305,11 @@ if test $ol_link_isode != no; then
 	AC_PATH_PROG(PEPSY, pepsy)
 fi
 
+dnl
+dnl check for kerberos
+dnl
+ol_link_kerberos=no
+
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
 
@@ -317,11 +322,11 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 			ol_link_kerberos=yes
 
 			AC_DEFINE(HAVE_KERBEROS)
-
 			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
 		fi
 	fi
 fi
+
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 	AC_CHECK_HEADERS(krb.h des.h)
 
@@ -334,10 +339,15 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 
 			AC_DEFINE(HAVE_KERBEROS)
 			KRB_LIBS="-lkrb -ldes"
-
-			AC_CHECK_FUNCS(des_string_to_key)
 		fi
 	fi
+fi
+
+if test $ol_link_kerberos = yes ; then
+	save_LIBS=$LIBS
+	$LIBS="$KRB_LIBS $LIBS"
+	AC_CHECK_FUNCS(des_string_to_key)
+	LIBS=$save_LIBS
 fi
 
 ol_link_threads=no
