@@ -360,6 +360,9 @@ done:
 	if( rc == 0 ) {
 		db_appexit( &env );
 	}
+
+	unlink("__db_mpool.share");
+	unlink("__db_lock.share");
 #endif
 
 	return rc;

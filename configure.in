@@ -1728,8 +1728,6 @@ if test $ol_with_ldbm_api = auto \
 		OL_BERKELEY_COMPAT_DB
 	else
 		OL_BERKELEY_DB
-
-		if( -e __db_lock.share ) rm -f __db_lock.share
 	fi
 
 	if test $ol_cv_berkeley_db != no ; then
