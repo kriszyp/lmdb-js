@@ -51,7 +51,7 @@ tcl_back_abandon (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OPERATIONS_ERROR;
+		err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_abandon_error: %s\n", results,
 			0, 0);
 	}

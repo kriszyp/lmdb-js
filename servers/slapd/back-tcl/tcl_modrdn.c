@@ -55,7 +55,7 @@ tcl_back_modrdn (
 	}
 
 	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
-		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+		send_ldap_result (conn, op, LDAP_OTHER, NULL,
 			NULL, NULL, NULL );
 		return (-1);
 	}
@@ -85,7 +85,7 @@ tcl_back_modrdn (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OPERATIONS_ERROR;
+		err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_modrdn_error: %s\n", results,
 			0, 0);
 	} else {
