@@ -643,7 +643,7 @@ int
 ldap_msgtype( LDAPMessage *lm )
 {
 	assert( lm != NULL );
-	return ( lm == NULL ) ? lm->lm_msgtype : -1;
+	return ( lm != NULL ) ? lm->lm_msgtype : -1;
 }
 
 
@@ -652,7 +652,7 @@ ldap_msgid( LDAPMessage *lm )
 {
 	assert( lm != NULL );
 
-	return ( lm == NULL ) ? lm->lm_msgid : -1;
+	return ( lm != NULL ) ? lm->lm_msgid : -1;
 }
 
 
