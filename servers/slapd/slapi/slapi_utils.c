@@ -850,6 +850,28 @@ slapi_dn_normalize( char *dn )
 {
 #ifdef LDAP_SLAPI
 	struct berval	bdn;
+	struct berval	pdn;
+
+	assert( dn != NULL );
+	
+	bdn.bv_val = dn;
+	bdn.bv_len = strlen( dn );
+
+	if ( dnPretty2( NULL, &bdn, &pdn, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	return pdn.bv_val;
+#else /* LDAP_SLAPI */
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
+char *
+slapi_dn_normalize_case( char *dn ) 
+{
+#ifdef LDAP_SLAPI
+	struct berval	bdn;
 	struct berval	ndn;
 
 	assert( dn != NULL );
@@ -861,23 +883,7 @@ slapi_dn_normalize( char *dn )
 		return NULL;
 	}
 
-	/*
-	 * FIXME: ain't it safe to set dn = ndn.bv_val ?
-	 */
-	dn = ch_strdup( ndn.bv_val );
-	ch_free( ndn.bv_val );
-	
-	return dn;
-#else /* LDAP_SLAPI */
-	return NULL;
-#endif /* LDAP_SLAPI */
-}
-
-char *
-slapi_dn_normalize_case( char *dn ) 
-{
-#ifdef LDAP_SLAPI
-	return slapi_dn_normalize( dn );
+	return ndn.bv_val;
 #else /* LDAP_SLAPI */
 	return NULL;
 #endif /* LDAP_SLAPI */
