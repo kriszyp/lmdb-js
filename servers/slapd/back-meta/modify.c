@@ -106,7 +106,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
 				&ml->sml_desc->ad_cname, &mapped,
 				BACKLDAP_MAP );
-		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
+		if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 			continue;
 		}
 
@@ -119,22 +119,25 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 * to allow their use in ACLs at the back-ldap
 		 * level.
 		 */
-		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 )
-		{
-			( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
-		}
-
 		if ( ml->sml_values != NULL ) {
-			for ( j = 0; ml->sml_values[ j ].bv_val; j++ )
-				;
-			mods[ i ].mod_bvalues =
-				(struct berval **)ch_malloc( ( j + 1 ) *
-				sizeof(struct berval *) );
-			for ( j = 0; ml->sml_values[ j ].bv_val; j++ ) {
-				mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
+			/* mod_op must be delete all values */
+			if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
+						SLAPD_DN_SYNTAX ) == 0 )
+			{
+				( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
 			}
-			mods[ i ].mod_bvalues[ j ] = NULL;
+
+			if ( ml->sml_values != NULL ) {
+				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ )
+					;
+				mods[ i ].mod_bvalues =
+					(struct berval **)ch_malloc( ( j + 1 ) *
+					sizeof(struct berval *) );
+				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ ) {
+					mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
+				}
+				mods[ i ].mod_bvalues[ j ] = NULL;
+			}
 
 		} else {
 			mods[ i ].mod_bvalues = NULL;

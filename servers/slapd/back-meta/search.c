@@ -690,7 +690,8 @@ meta_send_entry(
 		 * everything pass thru the ldap backend.
 		 */
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
-				slap_schema.si_syn_distinguishedName ) {
+				slap_schema.si_syn_distinguishedName )
+		{
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
 
 		} else if ( attr->a_desc == slap_schema.si_ad_ref ) {

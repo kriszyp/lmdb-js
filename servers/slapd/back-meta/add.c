@@ -109,7 +109,8 @@ meta_back_add( Operation *op, SlapReply *rs )
 		 * level.
 		 */
 		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
+					SLAPD_DN_SYNTAX ) == 0 )
+		{
 			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
 		}
 
