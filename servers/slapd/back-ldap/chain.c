@@ -31,11 +31,13 @@
 
 static BackendInfo *lback;
 
+#if 0
 static int
 ldap_chain_chk_referrals( Operation *op, SlapReply *rs )
 {
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 ldap_chain_operational( Operation *op, SlapReply *rs )
@@ -93,7 +95,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback	*sc = op->o_callback;
 	LDAPControl	**prev = op->o_ctrls;
 	LDAPControl	**ctrls = NULL, *c[ 2 ], authz;
-	int		i, nctrls, rc = 0;
+	int		i, nctrls = 0, rc = 0;
 	int		cache = op->o_do_not_cache;
 	char		*authzid = NULL;
 	BerVarray	ref;
@@ -476,8 +478,9 @@ chain_init( void )
 	
 	ldapchain.on_response = ldap_chain_response;
 
-
+#if 0
 	ldapchain.on_bi.bi_chk_referrals = ldap_chain_chk_referrals;
+#endif
 
 	return overlay_register( &ldapchain );
 }
