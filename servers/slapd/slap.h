@@ -36,7 +36,6 @@
 #include "ldap_queue.h"
 
 #ifdef LDAP_DEVEL
-#define SLAP_NVALUES 1
 #define SLAP_EXTENDED_SCHEMA 1
 #define LDAP_CACHING
 #endif
@@ -320,9 +319,6 @@ typedef struct slap_syntax {
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 
 	slap_syntax_validate_func	*ssyn_validate;
-#ifndef SLAP_NVALUES
-	slap_syntax_transform_func	*ssyn_normalize;
-#endif
 	slap_syntax_transform_func	*ssyn_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
@@ -344,11 +340,7 @@ typedef struct slap_syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
 	slap_syntax_validate_func *sd_validate;
-#ifdef SLAP_NVALUES
 	slap_syntax_transform_func *sd_normalizeXXX; /* to be deleted */
-#else
-	slap_syntax_transform_func *sd_normalize;
-#endif
 	slap_syntax_transform_func *sd_pretty;
 #ifdef SLAPD_BINARY_CONVERSION
 	slap_syntax_transform_func *sd_ber2str;
@@ -436,29 +428,7 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0200U )
 #define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0400U )
 
-#ifndef SLAP_NVALUES
-#define SLAP_MR_DN_FOLD			0x0080U
-#endif
 
-#ifndef SLAP_NVALUES
-/*
- * normally the asserted value is expected to conform to
- * assertion syntax specified in the matching rule, however
- * at times (such as during individual value modification),
- * the asserted value is expected to conform to the
- * attribute's value syntax.
- */
-#define SLAP_MR_ASSERTION_SYNTAX_MATCH		0x0000U
-#define SLAP_MR_ATTRIBUTE_SYNTAX_MATCH		0x0001U
-
-/* For SLAP_MR_ATTRIBUTE_SYNTAX_MATCHes, this flag indicates
- * that the asserted value of the attribute syntax has been
- * converted to the assertion syntax.  (Not sure why we just
- * don't clear the SLAP_MR_ATTRIBUTE_SYNTAX_MATCH flag instead.)
- */
-#define SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH	0x0002U
-
-#else
 /*
  * The asserted value, depending on the particular usage,
  * is expected to conform to either the assertion syntax
@@ -477,7 +447,6 @@ typedef struct slap_matching_rule {
 	((usage) & SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX )
 #define SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ASSERTION_SYNTAX )
-#endif
 
 /* either or both the asserted value or attribute value
  * may be provided in normalized form
@@ -947,9 +916,7 @@ typedef struct slap_valuesreturnfilter {
 typedef struct slap_attr {
 	AttributeDescription *a_desc;
 	BerVarray	a_vals;		/* preserved values */
-#ifdef SLAP_NVALUES
 	BerVarray	a_nvals;	/* normalized values */
-#endif
 	struct slap_attr *a_next;
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
@@ -1000,9 +967,7 @@ typedef struct slap_mod {
 	struct berval sm_type;
 	BerVarray sm_values;
 #define sm_bvalues sm_values
-#ifdef SLAP_NVALUES
 	BerVarray sm_nvalues;
-#endif
 } Modification;
 
 typedef struct slap_mod_list {

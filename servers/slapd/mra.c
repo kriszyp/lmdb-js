@@ -201,25 +201,8 @@ get_mra(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-#ifndef SLAP_NVALUES
-		/*
-		 * OK, if no matching rule, normalize for equality, otherwise
-		 * normalize for the matching rule.
-		 */
-		rc = value_validate_normalize( ma.ma_desc, SLAP_MR_EQUALITY,
-			&value, &ma.ma_value, text );
-	} else {
-		/*
-		 * Need to normalize, but how?
-		 */
-		rc = value_validate( ma.ma_rule, &value, text );
-		if ( rc == LDAP_SUCCESS ) {
-			ber_dupbv( &ma.ma_value, &value );
-		}
-#endif
 	}
 
-#ifdef SLAP_NVALUES
 	/*
 	 * Normalize per matching rule
 	 */
@@ -227,7 +210,6 @@ get_mra(
 		ma.ma_rule,
 		SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 		&value, &ma.ma_value, text );
-#endif
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;

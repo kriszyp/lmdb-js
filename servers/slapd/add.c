@@ -108,9 +108,7 @@ do_add( Operation *op, SlapReply *rs )
 		Modifications *mod;
 		ber_tag_t rtag;
 
-#ifdef SLAP_NVALUES
 		tmp.sml_nvalues = NULL;
-#endif
 
 		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_values );
 
@@ -145,9 +143,7 @@ do_add( Operation *op, SlapReply *rs )
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
 		mod->sml_values = tmp.sml_values;
-#ifdef SLAP_NVALUES
 		mod->sml_nvalues = NULL;
-#endif
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -414,7 +410,6 @@ slap_mods2entry(
 			ch_free( mods->sml_values );
 			mods->sml_values = NULL;
 
-#ifdef SLAP_NVALUES
 			if( mods->sml_nvalues ) {
 				attr->a_nvals = ch_realloc( attr->a_nvals,
 					sizeof( struct berval ) * (i+j) );
@@ -428,7 +423,6 @@ slap_mods2entry(
 			} else {
 				attr->a_nvals = attr->a_vals;
 			}
-#endif
 
 			continue;
 #else
@@ -462,7 +456,6 @@ slap_mods2entry(
 
 			} else {
 				int		rc;
-#ifdef SLAP_NVALUES
 				int match;
 
 				for ( i = 0; mods->sml_nvalues[i].bv_val != NULL; i++ ) {
@@ -482,11 +475,6 @@ slap_mods2entry(
 						}
 					}
 				}
-#else
-				rc = modify_check_duplicates( mods->sml_desc, mr,
-						NULL, mods->sml_bvalues, 0,
-						text, textbuf, textlen );
-#endif
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
 				}
@@ -504,14 +492,12 @@ slap_mods2entry(
 		attr->a_vals = mods->sml_values;
 		mods->sml_values = NULL;
 
-#ifdef SLAP_NVALUES
 		if ( mods->sml_nvalues ) {
 			attr->a_nvals = mods->sml_nvalues;
 			mods->sml_nvalues = NULL;
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
-#endif
 
 		*tail = attr;
 		tail = &attr->a_next;

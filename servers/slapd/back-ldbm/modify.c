@@ -223,11 +223,7 @@ int ldbm_modify_internal(
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
 			rc = index_values( op->o_bd, ap->a_desc,
-#ifdef SLAP_NVALUES
 				ap->a_nvals,
-#else
-				ap->a_vals,
-#endif
 				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -249,11 +245,7 @@ int ldbm_modify_internal(
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXADD ) {
 			rc = index_values( op->o_bd, ap->a_desc,
-#ifdef SLAP_NVALUES
 				ap->a_nvals,
-#else
-				ap->a_vals,
-#endif
 				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING

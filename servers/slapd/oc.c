@@ -483,9 +483,7 @@ oc_schema_info( Entry *e )
 	AttributeDescription *ad_objectClasses = slap_schema.si_ad_objectClasses;
 	ObjectClass	*oc;
 	struct berval	val;
-#ifdef SLAP_NVALUES
 	struct berval	nval;
-#endif
 
 	LDAP_SLIST_FOREACH( oc, &oc_list, soc_next ) {
 		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
@@ -498,14 +496,10 @@ oc_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
 #endif
-#ifdef SLAP_NVALUES
 		nval.bv_val = oc->soc_oid;
 		nval.bv_len = strlen(oc->soc_oid);
 
 		if( attr_merge_one( e, ad_objectClasses, &val, &nval ) )
-#else
-		if( attr_merge_one( e, ad_objectClasses, &val ) )
-#endif
 		{
 			return -1;
 		}

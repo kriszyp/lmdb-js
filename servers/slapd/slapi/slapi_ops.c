@@ -299,9 +299,7 @@ freeMods( Modifications *ml )
 		next = ml->sml_next;
 
 		slapi_ch_free( (void **)&ml->sml_bvalues );
-#ifdef SLAP_NVALUES
 		slapi_ch_free( (void **)&ml->sml_nvalues );
-#endif
 		slapi_ch_free( (void **)&ml );
 	}
 }
@@ -366,9 +364,7 @@ LDAPModToEntry(
 				tmp.sml_type.bv_val = pMod->mod_type;
 				tmp.sml_type.bv_len = strlen( pMod->mod_type );
 				tmp.sml_bvalues = bv;
-#ifdef SLAP_NVALUES
 				tmp.sml_nvalues = NULL;
-#endif
 		
 				mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
@@ -377,9 +373,7 @@ LDAPModToEntry(
 				mod->sml_desc = NULL;
 				mod->sml_type = tmp.sml_type;
 				mod->sml_bvalues = tmp.sml_bvalues;
-#ifdef SLAP_NVALUES
 				mod->sml_nvalues = tmp.sml_nvalues;
-#endif
 
 				*modtail = mod;
 				modtail = &mod->sml_next;
@@ -395,9 +389,7 @@ LDAPModToEntry(
 					tmp.sml_type.bv_val = pMod->mod_type;
 					tmp.sml_type.bv_len = strlen( pMod->mod_type );
 					tmp.sml_bvalues = bv;
-#ifdef SLAP_NVALUES
 					tmp.sml_nvalues = NULL;
-#endif
 		
 					mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
@@ -406,9 +398,7 @@ LDAPModToEntry(
 					mod->sml_desc = NULL;
 					mod->sml_type = tmp.sml_type;
 					mod->sml_bvalues = tmp.sml_bvalues;
-#ifdef SLAP_NVALUES
 					mod->sml_nvalues = tmp.sml_nvalues;
-#endif
 
 					*modtail = mod;
 					modtail = &mod->sml_next;
@@ -921,9 +911,7 @@ slapi_modify_internal(
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
 			tmp.sml_bvalues = bv;
-#ifdef SLAP_NVALUES
 			tmp.sml_nvalues = NULL;
-#endif
 
 			mod  = (Modifications *)ch_malloc( sizeof(Modifications) );
 
@@ -932,9 +920,7 @@ slapi_modify_internal(
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
 			mod->sml_bvalues = tmp.sml_bvalues;
-#ifdef SLAP_NVALUES
 			mod->sml_nvalues = tmp.sml_nvalues;
-#endif
 		} else { 
 			rs.sr_err = values2obj( pMod->mod_values, &bv );
 			if ( rs.sr_err != LDAP_SUCCESS )
@@ -942,9 +928,7 @@ slapi_modify_internal(
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
 			tmp.sml_bvalues = bv;
-#ifdef SLAP_NVALUES
 			tmp.sml_nvalues = NULL;
-#endif
 
 			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
@@ -953,9 +937,7 @@ slapi_modify_internal(
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
 			mod->sml_bvalues = tmp.sml_bvalues;
-#ifdef SLAP_NVALUES
 			mod->sml_nvalues = tmp.sml_nvalues;
-#endif
 		}
 		*modtail = mod;
 		modtail = &mod->sml_next;

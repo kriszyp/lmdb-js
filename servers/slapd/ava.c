@@ -63,14 +63,9 @@ get_ava(
 		return rc;
 	}
 
-#ifdef SLAP_NVALUES
 	rc = asserted_value_validate_normalize(
 		aa->aa_desc, ad_mr(aa->aa_desc, usage),
 		usage, &value, &aa->aa_value, text );
-#else
-	rc = value_validate_normalize( aa->aa_desc, usage,
-		&value, &aa->aa_value, text );
-#endif
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( aa );

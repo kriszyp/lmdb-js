@@ -404,9 +404,7 @@ cr_schema_info( Entry *e )
 	ContentRule	*cr;
 
 	struct berval	val;
-#ifdef SLAP_NVALUES
 	struct berval	nval;
-#endif
 
 	LDAP_SLIST_FOREACH(cr, &cr_list, scr_next) {
 		if ( ldap_contentrule2bv( &cr->scr_crule, &val ) == NULL ) {
@@ -421,14 +419,10 @@ cr_schema_info( Entry *e )
 	       (long) val.bv_len, val.bv_val, 0 );
 #endif
 
-#ifdef SLAP_NVALUES
 		nval.bv_val = cr->scr_oid;
 		nval.bv_len = strlen(cr->scr_oid);
 
 		if( attr_merge_one( e, ad_ditContentRules, &val, &nval ) )
-#else
-		if( attr_merge_one( e, ad_ditContentRules, &val ) )
-#endif
 		{
 			return -1;
 		}

@@ -181,9 +181,6 @@ mr_add(
 	smr->smr_compat_syntaxes = compat_syn;
 	smr->smr_normalize = def->mrd_normalize;
 	smr->smr_match = def->mrd_match;
-#ifndef SLAP_NVALUES
-	smr->smr_convert = def->mrd_convert;
-#endif
 	smr->smr_indexer = def->mrd_indexer;
 	smr->smr_filter = def->mrd_filter;
 	smr->smr_associated = amr;
@@ -443,9 +440,7 @@ int mr_schema_info( Entry *e )
 {
 	AttributeDescription *ad_matchingRules = slap_schema.si_ad_matchingRules;
 	MatchingRule *mr;
-#ifdef SLAP_NVALUES
 	struct berval nval;
-#endif
 
 	LDAP_SLIST_FOREACH(mr, &mr_list, smr_next ) {
 		if ( mr->smr_usage & SLAP_MR_HIDE ) {
@@ -467,13 +462,9 @@ int mr_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%lu] %s\n",
 			mr->smr_str.bv_len, mr->smr_str.bv_val, 0 );
 #endif
-#ifdef SLAP_NVALUES
 		nval.bv_val = mr->smr_oid;
 		nval.bv_len = strlen(mr->smr_oid);
 		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str, &nval ) )
-#else
-		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str ) )
-#endif
 		{
 			return -1;
 		}
@@ -486,9 +477,7 @@ int mru_schema_info( Entry *e )
 	AttributeDescription *ad_matchingRuleUse 
 		= slap_schema.si_ad_matchingRuleUse;
 	MatchingRuleUse	*mru;
-#ifdef SLAP_NVALUES
 	struct berval nval;
-#endif
 
 	LDAP_SLIST_FOREACH( mru, &mru_list, smru_next ) {
 
@@ -505,13 +494,9 @@ int mru_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mru [%lu] %s\n",
 			mru->smru_str.bv_len, mru->smru_str.bv_val, 0 );
 #endif
-#ifdef SLAP_NVALUES
 		nval.bv_val = mru->smru_oid;
 		nval.bv_len = strlen(mru->smru_oid);
 		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str, &nval ) )
-#else
-		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str ) )
-#endif
 		{
 			return -1;
 		}

@@ -1140,14 +1140,10 @@ backend_group(
 	if ( e ) {
 		a = attr_find( e->e_attrs, group_at );
 		if ( a ) {
-#ifdef SLAP_NVALUES
 			rc = value_find_ex( group_at,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				a->a_nvals, op_ndn );
-#else
-			rc = value_find_ex( group_at, 0, a->a_vals, op_ndn );
-#endif
 		} else {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
@@ -1214,20 +1210,12 @@ backend_attribute(
 			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
 				if ( op->o_conn && access_allowed( op,
 					e, entry_at,
-#ifdef SLAP_NVALUES
 					&a->a_nvals[i],
-#else
-					&a->a_vals[i],
-#endif
 					ACL_AUTH, &acl_state ) == 0 ) {
 					continue;
 				}
 				ber_dupbv( &v[j],
-#ifdef SLAP_NVALUES
 					&a->a_nvals[i]
-#else
-					&a->a_vals[i]
-#endif
 					);
 				if (v[j].bv_val ) j++;
 			}

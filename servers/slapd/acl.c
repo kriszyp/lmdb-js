@@ -900,14 +900,9 @@ dn_match_cleanup:;
 				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
 				if( value_find_ex( b->a_dn_at,
-#ifdef SLAP_NVALUES
 					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 					at->a_nvals,
-#else
-					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					at->a_vals,
-#endif
 					&bv ) == 0 )
 				{
 					/* found it */
@@ -1120,11 +1115,7 @@ dn_match_cleanup:;
 			for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
 				if (aci_mask( op,
 					e, desc, val,
-#ifdef SLAP_NVALUES
 					&at->a_nvals[i],
-#else
-					&at->a_vals[i],
-#endif
 					matches, &grant, &deny ) != 0)
 				{
 					tgrant |= grant;
@@ -1347,13 +1338,9 @@ acl_check_modlist(
 		case LDAP_MOD_ADD:
 			assert( mlist->sml_bvalues != NULL );
 
-#ifdef SLAP_NVALUES
 			for ( bv = mlist->sml_nvalues
 					? mlist->sml_nvalues : mlist->sml_values;
 				bv->bv_val != NULL; bv++ )
-#else
-			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
-#endif
 			{
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
@@ -1372,13 +1359,9 @@ acl_check_modlist(
 				}
 				break;
 			}
-#ifdef SLAP_NVALUES
 			for ( bv = mlist->sml_nvalues
 					? mlist->sml_nvalues : mlist->sml_values;
 				bv->bv_val != NULL; bv++ )
-#else
-			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
-#endif
 			{
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
@@ -1841,14 +1824,9 @@ aci_mask(
 			at = attrs_find( at->a_next, ad ) )
 		{
 			if (value_find_ex( ad,
-#ifdef SLAP_NVALUES
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				at->a_nvals,
-#else
-				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				at->a_vals,
-#endif
 				&bv) == 0 )
 			{
 				rc = 1;

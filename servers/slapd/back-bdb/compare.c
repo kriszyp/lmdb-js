@@ -116,14 +116,10 @@ dn2entry_retry:
 	{
 		rs->sr_err = LDAP_COMPARE_FALSE;
 
-#ifdef SLAP_NVALUES
 		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 			a->a_nvals, &op->oq_compare.rs_ava->aa_value ) == 0 )
-#else
-		if ( value_find( op->oq_compare.rs_ava->aa_desc, a->a_vals, &op->oq_compare.rs_ava->aa_value ) == 0 )
-#endif
 		{
 			rs->sr_err = LDAP_COMPARE_TRUE;
 			break;

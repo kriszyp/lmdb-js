@@ -214,14 +214,12 @@ static int test_mra_filter(
 			a = attrs_find( a->a_next, mra->ma_desc ) )
 		{
 			struct berval *bv;
-#ifdef SLAP_NVALUES
 			/* If ma_rule is not the same as the attribute's
 			 * normal rule, then we can't use the a_nvals.
 			 */
 			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
 				bv = a->a_nvals;
 			else
-#endif
 				bv = a->a_vals;
 			for ( ; bv->bv_val != NULL; bv++ )
 			{
@@ -257,15 +255,9 @@ static int test_mra_filter(
 			}
 
 			/* normalize for equality */
-#ifdef SLAP_NVALUES
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				&mra->ma_value, &value, &text );
-#else
-			rc = value_validate_normalize( a->a_desc, 
-				SLAP_MR_EQUALITY,
-				&mra->ma_value, &value, &text );
-#endif
 			if ( rc != LDAP_SUCCESS ) {
 				continue;
 			}
@@ -277,11 +269,9 @@ static int test_mra_filter(
 			}
 
 			/* check match */
-#ifdef SLAP_NVALUES
 			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
 				bv = a->a_nvals;
 			else
-#endif
 				bv = a->a_vals;
 			for ( ; bv->bv_val != NULL; bv++ )
 			{
@@ -344,15 +334,10 @@ static int test_mra_filter(
 					}
 
 					/* normalize for equality */
-#ifdef SLAP_NVALUES
 					rc = asserted_value_validate_normalize( ad,
 						mra->ma_rule,
 						SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 						&mra->ma_value, &value, &text );
-#else
-					rc = value_validate_normalize( ad, SLAP_MR_EQUALITY,
-						&mra->ma_value, &value, &text );
-#endif
 					if ( rc != LDAP_SUCCESS ) {
 						continue;
 					}
@@ -431,11 +416,7 @@ test_ava_filter(
 			continue;
 		}
 
-#ifdef SLAP_NVALUES
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
-#else
-		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
-#endif
 		{
 			int ret;
 			int rc;
@@ -659,11 +640,7 @@ test_substrings_filter(
 			continue;
 		}
 
-#ifdef SLAP_NVALUES
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
-#else
-		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
-#endif
 		{
 			int ret;
 			int rc;

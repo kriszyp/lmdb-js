@@ -250,11 +250,7 @@ controls_root_dse_info( Entry *e )
 	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
 		vals[0].bv_val = sc->sc_oid;
 		vals[0].bv_len = strlen( sc->sc_oid );
-#ifdef SLAP_NVALUES
 		if ( attr_merge( e, ad_supportedControl, vals, NULL ) )
-#else
-		if ( attr_merge( e, ad_supportedControl, vals ) )
-#endif /* SLAP_NVALUES */
 			return -1;
 	}
 

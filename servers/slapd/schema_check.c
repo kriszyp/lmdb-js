@@ -856,14 +856,10 @@ entry_naming_check(
 			rc = LDAP_NAMING_VIOLATION;
 		}
 
-#ifdef SLAP_NVALUES
 		if ( value_find_ex( desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			attr->a_nvals,
 			&ava->la_value ) != 0 )
-#else
-		if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 )
-#endif
 		{
 			snprintf( textbuf, textlen, 
 				"value of naming attribute '%s' is not present in entry",

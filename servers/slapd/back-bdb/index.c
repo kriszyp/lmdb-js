@@ -348,13 +348,8 @@ bdb_index_entry(
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
-#ifdef SLAP_NVALUES
 		rc = bdb_index_values( be, txn, ap->a_desc,
 			ap->a_nvals, e->e_id, op );
-#else
-		rc = bdb_index_values( be, txn, ap->a_desc,
-			ap->a_vals, e->e_id, op );
-#endif
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING

@@ -151,9 +151,6 @@ syn_add(
 	ssyn->ssyn_oidlen = strlen(syn->syn_oid);
 	ssyn->ssyn_flags = def->sd_flags;
 	ssyn->ssyn_validate = def->sd_validate;
-#ifndef SLAP_NVALUES
-	ssyn->ssyn_normalize = def->sd_normalize;
-#endif
 	ssyn->ssyn_pretty = def->sd_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
@@ -213,9 +210,7 @@ syn_schema_info( Entry *e )
 	AttributeDescription *ad_ldapSyntaxes = slap_schema.si_ad_ldapSyntaxes;
 	Syntax		*syn;
 	struct berval	val;
-#ifdef SLAP_NVALUES
 	struct berval	nval;
-#endif
 
 	LDAP_SLIST_FOREACH(syn, &syn_list, ssyn_next ) {
 		if ( ! syn->ssyn_validate ) {
@@ -241,14 +236,10 @@ syn_schema_info( Entry *e )
 #endif
 #endif
 
-#ifdef SLAP_NVALUES
 		nval.bv_val = syn->ssyn_oid;
 		nval.bv_len = strlen(syn->ssyn_oid);
 
 		if( attr_merge_one( e, ad_ldapSyntaxes, &val, &nval ) )
-#else
-		if( attr_merge_one( e, ad_ldapSyntaxes, &val ) )
-#endif
 		{
 			return -1;
 		}

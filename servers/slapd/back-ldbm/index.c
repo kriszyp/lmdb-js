@@ -310,11 +310,7 @@ index_entry(
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
 		index_values( be, ap->a_desc,
-#ifdef SLAP_NVALUES
 			ap->a_nvals,
-#else
-			ap->a_vals,
-#endif
 			e->e_id, op );
 	}
 

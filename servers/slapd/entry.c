@@ -45,9 +45,7 @@ str2entry( char *s )
 	Entry		*e;
 	char		*type;
 	struct berval	vals[2];
-#ifdef SLAP_NVALUES
 	struct berval	nvals[2], *nvalsp;
-#endif
 	AttributeDescription *ad;
 	const char *text;
 	char	*next;
@@ -239,7 +237,6 @@ str2entry( char *s )
 			}
 		}
 
-#ifdef SLAP_NVALUES
 		nvalsp = NULL;
 		nvals[0].bv_val = NULL;
 
@@ -272,13 +269,8 @@ str2entry( char *s )
 
 			nvalsp = &nvals[0];
 		}
-#endif
 
-#ifdef SLAP_NVALUES
 		rc = attr_merge( e, ad, vals, nvalsp );
-#else
-		rc = attr_merge( e, ad, vals );
-#endif
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1,
@@ -295,9 +287,7 @@ str2entry( char *s )
 
 		free( type );
 		free( vals[0].bv_val );
-#ifdef SLAP_NVALUES
 		free( nvals[0].bv_val );
-#endif
 	}
 
 	/* check to make sure there was a dn: line */
@@ -544,7 +534,6 @@ int entry_encode(Entry *e, struct berval *bv)
 		}
 		len += entry_lenlen(i);
 		siz += sizeof(struct berval);	/* empty berval at end */
-#ifdef SLAP_NVALUES
 		if (a->a_nvals != a->a_vals) {
 			for (i=0; a->a_nvals[i].bv_val; i++) {
 				siz += sizeof(struct berval);
@@ -556,7 +545,6 @@ int entry_encode(Entry *e, struct berval *bv)
 		} else {
 			len += entry_lenlen(0);	/* 0 nvals */
 		}
-#endif
 	}
 	len += 1;	/* NUL byte at end */
 	len += entry_lenlen(siz);
@@ -589,7 +577,6 @@ int entry_encode(Entry *e, struct berval *bv)
 			ptr += a->a_vals[i].bv_len;
 			*ptr++ = '\0';
 		    }
-#ifdef SLAP_NVALUES
 		    if (a->a_nvals != a->a_vals) {
 		    	entry_putlen(&ptr, i);
 			for (i=0; a->a_nvals[i].bv_val; i++) {
@@ -602,7 +589,6 @@ int entry_encode(Entry *e, struct berval *bv)
 		    } else {
 		    	entry_putlen(&ptr, 0);
 		    }
-#endif
 		}
 	}
 	*ptr = '\0';
@@ -709,7 +695,6 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr->bv_len = 0;
 		bptr++;
 
-#ifdef SLAP_NVALUES
 		j = entry_getlen(&ptr);
 		if (j) {
 			a->a_nvals = bptr;
@@ -727,7 +712,6 @@ int entry_decode(struct berval *bv, Entry **e)
 		} else {
 			a->a_nvals = a->a_vals;
 		}
-#endif
 	}
 
 	if (a) a->a_next = NULL;

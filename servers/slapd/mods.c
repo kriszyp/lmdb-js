@@ -30,251 +30,7 @@ modify_check_duplicates(
 {
 	int		i, j, numvals = 0, nummods,
 			rc = LDAP_SUCCESS, matched;
-#ifdef SLAP_NVALUES
 	/* this function is no longer used */
-#else
-	BerVarray	nvals = NULL, nmods = NULL;
-
-	/*
-	 * FIXME: better do the following
-	 * 
-	 *   - count the existing values
-	 *   - count the new values
-	 *   
-	 *   - if the existing values are less than the new ones {
-	 *       - normalize all the existing values
-	 *       - for each new value {
-	 *           - normalize
-	 *           - check with existing
-	 *           - cross-check with already normalized new vals
-	 *       }
-	 *   } else {
-	 *       - for each new value {
-	 *           - normalize
-	 *           - cross-check with already normalized new vals
-	 *       }
-	 *       - for each existing value {
-	 *           - normalize
-	 *           - check with already normalized new values
-	 *       }
-	 *   }
-	 *
-	 * The first case is good when adding a lot of new values,
-	 * and significantly at first import of values (e.g. adding
-	 * a new group); the latter case seems to be quite important
-	 * as well, because it is likely to be the most frequently
-	 * used when administering the entry.  The current 
-	 * implementation will always normalize all the existing
-	 * values before checking.  If there's no duplicate, the
-	 * performances should not change; they will in case of error.
-	 */
-
-	for ( nummods = 0; mods[ nummods ].bv_val != NULL; nummods++ )
-		/* count new values */ ;
-
-	if ( vals ) {
-		for ( numvals = 0; vals[ numvals ].bv_val != NULL; numvals++ )
-			/* count existing values */ ;
-
-		if ( numvals < nummods ) {
-			nvals = SLAP_CALLOC( numvals + 1, sizeof( struct berval ) );
-			if( nvals == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR,
-					"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY, 
-					"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
-#endif
-				goto return_results;
-			}
-
-			/* normalize the existing values first */
-			for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
-				rc = value_normalize( ad, SLAP_MR_EQUALITY,
-					&vals[ j ], &nvals[ j ], text );
-
-				/* existing attribute values must normalize */
-				assert( rc == LDAP_SUCCESS );
-
-				if ( rc != LDAP_SUCCESS ) {
-					nvals[ j ].bv_val = NULL;
-					goto return_results;
-				}
-			}
-			nvals[ j ].bv_val = NULL;
-		}
-	}
-
-	/*
-	 * If the existing values are less than the new values,
-	 * it is more convenient to normalize all the existing
-	 * values and test each new value against them first,
-	 * then to other already normalized values
-	 */
-	nmods = SLAP_CALLOC( nummods + 1, sizeof( struct berval ) );
-	if ( nmods == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, 
-			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
-#endif
-		goto return_results;
-	}
-
-	for ( i=0; mods[i].bv_val != NULL; i++ ) {
-		rc = value_normalize( ad, SLAP_MR_EQUALITY,
-			&mods[i], &nmods[i], text );
-
-		if ( rc != LDAP_SUCCESS ) {
-			nmods[i].bv_val = NULL;
-			goto return_results;
-		}
-
-		if ( numvals > 0 && numvals < nummods ) {
-			for ( matched=0, j=0; nvals[j].bv_val; j++ ) {
-				int match;
-
-				rc = (*mr->smr_match)( &match,
-					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-					ad->ad_type->sat_syntax,
-					mr, &nmods[ i ], &nvals[ j ] );
-
-				if ( rc != LDAP_SUCCESS ) {
-					nmods[ i + 1 ].bv_val = NULL;
-					*text = textbuf;
-					snprintf( textbuf, textlen,
-						"%s: matching rule failed",
-						ad->ad_cname.bv_val );
-					goto return_results;
-				}
-
-				if ( match == 0 ) {
-					if ( permissive ) {
-						matched++;
-						continue;
-					}
-					*text = textbuf;
-					snprintf( textbuf, textlen,
-						"%s: value #%d provided more than once",
-						ad->ad_cname.bv_val, i );
-					rc = LDAP_TYPE_OR_VALUE_EXISTS;
-					nmods[ i + 1 ].bv_val = NULL;
-					goto return_results;
-				}
-			}
-
-			if ( permissive && matched == j ) {
-				nmods[ i + 1 ].bv_val = NULL;
-				rc = LDAP_TYPE_OR_VALUE_EXISTS;
-				goto return_results;
-			}
-		}
-	
-		for ( matched = 0, j = 0; j < i; j++ ) {
-			int match;
-
-			rc = (*mr->smr_match)( &match,
-				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-				ad->ad_type->sat_syntax,
-				mr, &nmods[ i ], &nmods[ j ] );
-			if ( rc != LDAP_SUCCESS ) {
-				nmods[ i + 1 ].bv_val = NULL;
-				*text = textbuf;
-				snprintf( textbuf, textlen,
-					"%s: matching rule failed",
-					ad->ad_cname.bv_val );
-				goto return_results;
-			}
-
-			if ( match == 0 ) {
-				if ( permissive ) {
-					matched++;
-					continue;
-				}
-				*text = textbuf;
-				snprintf( textbuf, textlen,
-					"%s: value #%d provided more than once",
-					ad->ad_cname.bv_val, j );
-				rc = LDAP_TYPE_OR_VALUE_EXISTS;
-				nmods[ i + 1 ].bv_val = NULL;
-				goto return_results;
-			}
-		}
-
-		if ( permissive && matched == j ) {
-			nmods[ i + 1 ].bv_val = NULL;
-			rc = LDAP_TYPE_OR_VALUE_EXISTS;
-			goto return_results;
-		}
-	}
-	nmods[ i ].bv_val = NULL;
-
-	/*
-	 * if new values are more than existing values, it is more
-	 * convenient to normalize and check all new values first,
-	 * then check each new value against existing values, which 
-	 * can be normalized in place
-	 */
-
-	if ( numvals >= nummods ) {
-		for ( j = 0; vals[ j ].bv_val; j++ ) {
-			struct berval	asserted;
-
-			rc = value_normalize( ad, SLAP_MR_EQUALITY,
-				&vals[ j ], &asserted, text );
-
-			if ( rc != LDAP_SUCCESS ) {
-				goto return_results;
-			}
-
-			for ( matched = 0, i = 0; nmods[ i ].bv_val; i++ ) {
-				int match;
-
-				rc = (*mr->smr_match)( &match,
-					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-					ad->ad_type->sat_syntax,
-					mr, &nmods[ i ], &asserted );
-				if ( rc != LDAP_SUCCESS ) {
-					*text = textbuf;
-					snprintf( textbuf, textlen,
-						"%s: matching rule failed",
-						ad->ad_cname.bv_val );
-					goto return_results;
-				}
-
-				if ( match == 0 ) {
-					if ( permissive ) {
-						matched++;
-						continue;
-					}
-					*text = textbuf;
-					snprintf( textbuf, textlen,
-						"%s: value #%d provided more than once",
-						ad->ad_cname.bv_val, j );
-					rc = LDAP_TYPE_OR_VALUE_EXISTS;
-					goto return_results;
-				}
-			}
-
-			if ( permissive && matched == i ) {
-				rc = LDAP_TYPE_OR_VALUE_EXISTS;
-				goto return_results;
-			}
-		}
-	}
-
-return_results:;
-	if ( nvals ) {
-		ber_bvarray_free( nvals );
-	}
-	if ( nmods ) {
-		ber_bvarray_free( nmods );
-	}
-
-#endif
 	return rc;
 }
 
@@ -362,7 +118,6 @@ modify_add_values(
 		}
 
 	} else {
-#ifdef SLAP_NVALUES
 		/* no normalization is done in this routine nor
 		 * in the matching routines called by this routine. 
 		 * values are now normalized once on input to the
@@ -371,53 +126,16 @@ modify_add_values(
 		 * This should outperform the old code.  No numbers
 		 * are available yet.
 		 */
-#else
-		/*
-		 * The original code performs ( n ) normalizations 
-		 * and ( n * ( n - 1 ) / 2 ) matches, which hide
-		 * the same number of normalizations.  The new code
-		 * performs the same number of normalizations ( n )
-		 * and ( n * ( n - 1 ) / 2 ) mem compares, far less
-		 * expensive than an entire match, if a match is
-		 * equivalent to a normalization and a mem compare ...
-		 * 
-		 * This is far more memory expensive than the previous,
-		 * but it can heavily improve performances when big
-		 * chunks of data are added (typical example is a group
-		 * with thousands of DN-syntax members; on my system:
-		 * for members of 5-RDN DNs,
-
-		members		orig		bvmatch (dirty)	new
-		1000		0m38.456s	0m0.553s 	0m0.608s
-		2000		2m33.341s	0m0.851s	0m1.003s
-
-		 * Moreover, 100 groups with 10000 members each were
-		 * added in 37m27.933s (an analogous LDIF file was
-		 * loaded into Active Directory in 38m28.682s, BTW).
-		 * 
-		 * Maybe we could switch to the new algorithm when
-		 * the number of values overcomes a given threshold?
-		 */
-#endif
 
 		int		rc;
 
 		if ( mod->sm_bvalues[1].bv_val == 0 ) {
 			if ( a != NULL ) {
 				int		i;
-#ifndef SLAP_NVALUES
-				struct berval	asserted;
-				rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
-					&mod->sm_bvalues[ 0 ], &asserted, text );
-				if ( rc != LDAP_SUCCESS ) {
-					return rc;
-				}
-#endif
 
 				for ( matched = 0, i = 0; a->a_vals[ i ].bv_val; i++ ) {
 					int	match;
 
-#ifdef SLAP_NVALUES
 					if( mod->sm_nvalues ) {
 						rc = value_match( &match, mod->sm_desc, mr,
 							SLAP_MR_EQUALITY
@@ -437,22 +155,12 @@ modify_add_values(
 							text );
 					}
 
-#else
-					rc = value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-						&a->a_vals[i],
-						&asserted,
-						text );
-#endif
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
 						if ( permissive ) {
 							matched++;
 							continue;
 						}
-#ifndef SLAP_NVALUES
-						free( asserted.bv_val );
-#endif
 						*text = textbuf;
 						snprintf( textbuf, textlen,
 							"modify/%s: %s: value #0 already exists",
@@ -460,9 +168,6 @@ modify_add_values(
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
-#ifndef SLAP_NVALUES
-				free( asserted.bv_val );
-#endif
 				if ( permissive && matched == i ) {
 					/* values already exist; do nothing */
 					return LDAP_SUCCESS;
@@ -485,11 +190,7 @@ modify_add_values(
 	}
 
 	/* no - add them */
-#ifdef SLAP_NVALUES
 	if( attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues ) != 0 )
-#else
-	if( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 )
-#endif
 	{
 		/* this should return result of attr_merge */
 		*text = textbuf;
@@ -514,9 +215,6 @@ modify_delete_values(
 	int		i, j, k, rc = LDAP_SUCCESS;
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
-#ifndef SLAP_NVALUES
-	BerVarray	nvals = NULL;
-#endif
 	char		dummy = '\0';
 
 	/*
@@ -562,63 +260,13 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-#ifndef SLAP_NVALUES
-	/* find each value to delete */
-	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ )
-		/* count existing values */ ;
-
-	nvals = (BerVarray)SLAP_CALLOC( j + 1, sizeof ( struct berval ) );
-	if( nvals == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"modify_delete_values: SLAP_CALLOC failed", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, 
-			"modify_delete_values: SLAP_CALLOC failed", 0, 0, 0 );
-#endif
-				goto return_results;
-	}
-
-	/* normalize existing values */
-	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ ) {
-		rc = value_normalize( a->a_desc, SLAP_MR_EQUALITY,
-			&a->a_vals[ j ], &nvals[ j ], text );
-
-		if ( rc != LDAP_SUCCESS ) {
-			nvals[ j ].bv_val = NULL;
-			goto return_results;
-		}
-	}
-#endif
 
 	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int	found = 0;
-#ifndef SLAP_NVALUES
-		struct	berval asserted;
-
-		/* normalize the value to be deleted */
-		rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
-			&mod->sm_bvalues[ i ], &asserted, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			goto return_results;
-		}
-
-		/* search it */
-		for ( j = 0; nvals[ j ].bv_val != NULL; j++ )
-#else
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ )
-#endif
 		{
 			int match;
 
-#ifndef SLAP_NVALUES
-			if ( nvals[j].bv_val == &dummy ) {
-				continue;
-			}
-
-#endif
-#ifdef SLAP_NVALUES
 			if( mod->sm_nvalues ) {
 				assert( a->a_nvals );
 				rc = (*mr->smr_match)( &match,
@@ -638,18 +286,8 @@ modify_delete_values(
 					mr, &a->a_vals[j],
 					&mod->sm_values[i] );
 			}
-#else
-			rc = (*mr->smr_match)( &match,
-				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-				a->a_desc->ad_type->sat_syntax,
-				mr, &nvals[ j ],
-				&asserted );
-#endif
 
 			if ( rc != LDAP_SUCCESS ) {
-#ifndef SLAP_NVALUES
-				free( asserted.bv_val );
-#endif
 				*text = textbuf;
 				snprintf( textbuf, textlen,
 					"%s: matching rule failed",
@@ -664,24 +302,16 @@ modify_delete_values(
 			found = 1;
 
 			/* delete value and mark it as dummy */
-#ifdef SLAP_NVALUES
 			free( a->a_vals[j].bv_val );
 			a->a_vals[j].bv_val = &dummy;
 			if( a->a_nvals != a->a_vals ) {
 				free( a->a_nvals[j].bv_val );
 				a->a_nvals[j].bv_val = &dummy;
 			}
-#else
-			free( nvals[ j ].bv_val );
-			nvals[ j ].bv_val = &dummy;
-#endif
 
 			break;
 		}
 
-#ifndef SLAP_NVALUES
-		free( asserted.bv_val );
-#endif
 
 		if ( found == 0 ) {
 			*text = textbuf;
@@ -694,49 +324,25 @@ modify_delete_values(
 	}
 
 	/* compact array skipping dummies */
-#ifdef SLAP_NVALUES
 	for ( k = 0, j = 0; a->a_vals[k].bv_val != NULL; k++ )
-#else
-	for ( k = 0, j = 0; nvals[k].bv_val != NULL; j++, k++ )
-#endif
 	{
-#ifdef SLAP_NVALUES
 		/* skip dummies */
 		if( a->a_vals[k].bv_val == &dummy ) {
 			assert( a->a_nvals == NULL || a->a_nvals[k].bv_val == &dummy );
 			continue;
 		}
-#else
-		/* delete and skip dummies */ ;
-		for ( ; nvals[ k ].bv_val == &dummy; k++ ) {
-			free( a->a_vals[ k ].bv_val );
-		}
-#endif
 		if ( j != k ) {
 			a->a_vals[ j ] = a->a_vals[ k ];
-#ifdef SLAP_NVALUES
 			if (a->a_nvals != a->a_vals) {
 				a->a_nvals[ j ] = a->a_nvals[ k ];
 			}
-#endif
 		}
 
-#ifndef SLAP_NVALUES
-		if ( a->a_vals[ k ].bv_val == NULL ) {
-			break;
-		}
-#else
 		j++;
-#endif
 	}
 
 	a->a_vals[j].bv_val = NULL;
-#ifdef SLAP_NVALUES
 	if (a->a_nvals != a->a_vals) a->a_nvals[j].bv_val = NULL;
-#else
-
-	assert( i == k - j );
-#endif
 
 	/* if no values remain, delete the entire attribute */
 	if ( a->a_vals[0].bv_val == NULL ) {
@@ -750,17 +356,6 @@ modify_delete_values(
 	}
 
 return_results:;
-#ifndef SLAP_NVALUES
-	if ( nvals ) {
-		/* delete the remaining normalized values */
-		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
-			if ( nvals[ j ].bv_val != &dummy ) {
-				ber_memfree( nvals[ j ].bv_val );
-			}
-		}
-		ber_memfree( nvals );
-	}
-#endif
 
 	return rc;
 }
@@ -792,10 +387,8 @@ slap_mod_free(
 	if ( mod->sm_values != NULL ) ber_bvarray_free( mod->sm_values );
 	mod->sm_values = NULL;
 
-#ifdef SLAP_NVALUES
 	if ( mod->sm_nvalues != NULL ) ber_bvarray_free( mod->sm_nvalues );
 	mod->sm_nvalues = NULL;
-#endif
 
 	if( freeit ) free( mod );
 }

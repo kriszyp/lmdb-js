@@ -567,9 +567,7 @@ slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
-#ifdef SLAP_NVALUES
 	mod.sm_nvalues = NULL;
-#endif
 
 	rc = modify_add_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
@@ -643,9 +641,7 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 	if ( rc != LDAP_SUCCESS ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
-#if SLAP_NVALUES
 	mod.sm_nvalues = NULL;
-#endif
 
 	rc = modify_delete_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
@@ -2375,9 +2371,7 @@ Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type )
 
 	a->a_desc = ad;
 	a->a_vals = NULL;
-#ifdef SLAP_NVALUES
 	a->a_nvals = NULL;
-#endif
 	a->a_next = NULL;
 	a->a_flags = 0;
 
@@ -2407,11 +2401,9 @@ Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr )
 int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v )
 {
 #ifdef LDAP_SLAPI
-#ifdef SLAP_NVALUES
 	/*
 	 * FIXME: here we may lose alignment between a_vals/a_nvals
 	 */
-#endif
 	return value_add_one( &a->a_vals, (Slapi_Value *)v );
 #else
 	return -1;
@@ -2463,14 +2455,9 @@ int slapi_attr_value_cmp( const Slapi_Attr *a, const struct berval *v1, const st
 	const char *text;
 
 	mr = a->a_desc->ad_type->sat_equality;
-#ifdef SLAP_NVALUES
 	rc = value_match( &ret, a->a_desc, mr,
 			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 		(struct berval *)v1, (void *)v2, &text );
-#else
-	rc = value_match( &ret, a->a_desc, mr, SLAP_MR_ASSERTION_SYNTAX_MATCH,
-		(struct berval *)v1, (void *)v2, &text );
-#endif
 	if ( rc != LDAP_SUCCESS ) 
 		return -1;
 
@@ -2492,13 +2479,8 @@ int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 
 	mr = a->a_desc->ad_type->sat_equality;
 	for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
-#ifdef SLAP_NVALUES
 		rc = value_match( &ret, a->a_desc, mr,
 			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, bv, v, &text );
-#else
-		rc = value_match( &ret, a->a_desc, mr,
-			SLAP_MR_ASSERTION_SYNTAX_MATCH, bv, v, &text );
-#endif
 		if ( rc != LDAP_SUCCESS ) {
 			return -1;
 		}
@@ -3249,9 +3231,7 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 			}
 			mod->sml_bvalues[i].bv_val = NULL;
 		}
-#ifdef SLAP_NVALUES
 		mod->sml_nvalues = NULL;
-#endif
 
 		*modtail = mod;
 		modtail = &mod->sml_next;

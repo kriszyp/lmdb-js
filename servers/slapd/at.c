@@ -600,9 +600,7 @@ at_schema_info( Entry *e )
 	AttributeDescription *ad_attributeTypes = slap_schema.si_ad_attributeTypes;
 	AttributeType	*at;
 	struct berval	val;
-#ifdef SLAP_NVALUES
 	struct berval	nval;
-#endif
 
 	LDAP_SLIST_FOREACH(at,&attr_list,sat_next) {
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
@@ -611,14 +609,10 @@ at_schema_info( Entry *e )
 			return -1;
 		}
 
-#ifdef SLAP_NVALUES
 		nval.bv_val = at->sat_oid;
 		nval.bv_len = strlen(at->sat_oid);
 
 		if( attr_merge_one( e, ad_attributeTypes, &val, &nval ) )
-#else
-		if( attr_merge_one( e, ad_attributeTypes, &val ) )
-#endif
 		{
 			return -1;
 		}

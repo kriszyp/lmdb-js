@@ -28,6 +28,8 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
+#define SLAP_NVALUES 1
+
 #ifdef SLAP_NVALUES
 /* TO BE DELETED */
 #define SLAP_MR_DN_FOLD (0)

@@ -239,9 +239,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validf = NULL;
-#ifdef SLAP_NVALUES
 			slap_mr_normalize_func *normf = NULL;
-#endif
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr = NULL;
 			struct berval		bv = { 0, NULL };
@@ -281,11 +279,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			} else { /* normalization */
 				validf = ad->ad_type->sat_syntax->ssyn_validate;
 				mr = ad->ad_type->sat_equality;
-#ifdef SLAP_NVALUES
 				if( mr ) normf = mr->smr_normalize;
-#else
-				transf = ad->ad_type->sat_syntax->ssyn_normalize;
-#endif
 			}
 
 			if ( validf ) {
@@ -302,11 +296,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 			if ( transf ) {
 				/*
-#ifdef SLAP_NVALUES
 			 	 * transform value by pretty function
-#else
-			 	 * transform value by normalize/pretty function
-#endif
 				 *	if value is empty, use empty_bv
 				 */
 				rc = ( *transf )( ad->ad_type->sat_syntax,
@@ -320,7 +310,6 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				}
 			}
 
-#ifdef SLAP_NVALUES
 			if ( normf ) {
 				/*
 			 	 * normalize value
@@ -340,17 +329,6 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				}
 			}
 
-#else
-			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
-				char *s = bv.bv_val;
-
-				if ( UTF8bvnormalize( &bv, &bv, 
-						LDAP_UTF8_CASEFOLD ) == NULL ) {
-					return LDAP_INVALID_SYNTAX;
-				}
-				free( s );
-			}
-#endif
 
 			if( bv.bv_val ) {
 				free( ava->la_value.bv_val );
@@ -365,19 +343,12 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 }
 
 int
-#ifdef SLAP_NVALUES
 dnNormalize(
     slap_mask_t use,
     Syntax *syntax,
     MatchingRule *mr,
     struct berval *val,
     struct berval *out )
-#else
-dnNormalize(
-    Syntax *syntax,
-    struct berval *val,
-    struct berval *out )
-#endif
 {
 	assert( val );
 	assert( out );

@@ -223,11 +223,7 @@ test_ava_vrFilter(
 
 		}
 
-#ifdef SLAP_NVALUES
 		bv = a->a_nvals;
-#else
-		bv = a->a_vals;
-#endif
 		for ( j=0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
 			int rc;
@@ -310,11 +306,7 @@ test_substrings_vrFilter(
 			continue;
 		}
 
-#ifdef SLAP_NVALUES
 		bv = a->a_nvals;
-#else
-		bv = a->a_vals;
-#endif
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
 			int rc;
@@ -365,26 +357,14 @@ test_mra_vrFilter(
 				continue;
 			}
 
-#ifdef SLAP_NVALUES
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				&mra->ma_value, &value, &text );
-#else
-			/* normalize for equality */
-			rc = value_validate_normalize( a->a_desc, 
-				SLAP_MR_EQUALITY,
-				&mra->ma_value, &value,
-				&text );
-#endif
 
 			if( rc != LDAP_SUCCESS ) continue;
 		}
 
-#ifdef SLAP_NVALUES
 		bv = a->a_nvals;
-#else
-		bv = a->a_vals;
-#endif
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
 			int rc;

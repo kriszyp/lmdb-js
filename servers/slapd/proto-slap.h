@@ -135,7 +135,6 @@ LDAP_SLAPD_F (int) at_next LDAP_P(( AttributeType **at ));
 LDAP_SLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
-#ifdef SLAP_NVALUES
 #define attr_mergeit( e, d, v ) attr_merge( e, d, v, NULL /* FIXME */ )
 #define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v, NULL /* FIXME */ )
 
@@ -147,16 +146,6 @@ LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
 	struct berval *nval ));
-#else
-#define attr_mergeit( e, d, v ) attr_merge( e, d, v )
-#define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v )
-LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
-	AttributeDescription *desc,
-	BerVarray vals ));
-LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
-	AttributeDescription *desc,
-	struct berval *val ));
-#endif
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -381,7 +370,6 @@ LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
 
-#ifdef SLAP_NVALUES
 LDAP_SLAPD_F (int) dnNormalize LDAP_P((
 	slap_mask_t use,
 	Syntax *syntax, 
@@ -389,13 +377,6 @@ LDAP_SLAPD_F (int) dnNormalize LDAP_P((
 	struct berval *val, 
 	struct berval *normalized ));
 #define dnNormalize2(s,v,n)		dnNormalize(0,(s),NULL,(v),(n))
-#else
-LDAP_SLAPD_F (int) dnNormalize LDAP_P((
-	Syntax *syntax, 
-	struct berval *val, 
-	struct berval *normalized ));
-#define dnNormalize2(s,v,n)		dnNormalize((s),(v),(n))
-#endif
 
 LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
 	Syntax *syntax, 
@@ -1004,7 +985,6 @@ LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * value.c
  */
-#ifdef SLAP_NVALUES
 LDAP_SLAPD_F (int) asserted_value_validate_normalize LDAP_P((
 	AttributeDescription *ad,
 	MatchingRule *mr,
@@ -1012,25 +992,6 @@ LDAP_SLAPD_F (int) asserted_value_validate_normalize LDAP_P((
 	struct berval *in,
 	struct berval *out,
 	const char ** text ));
-#else
-LDAP_SLAPD_F (int) value_validate LDAP_P((
-	MatchingRule *mr,
-	struct berval *in,
-	const char ** text ));
-LDAP_SLAPD_F (int) value_normalize LDAP_P((
-	AttributeDescription *ad,
-	unsigned usage,
-	struct berval *in,
-	struct berval *out,
-	const char ** text ));
-LDAP_SLAPD_F (int) value_validate_normalize LDAP_P((
-	AttributeDescription *ad,
-	unsigned usage,
-	struct berval *in,
-	struct berval *out,
-	const char ** text ));
-#define value_find(ad,values,value) (value_find_ex((ad),0,(values),(value)))
-#endif
 
 LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,

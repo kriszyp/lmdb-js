@@ -319,20 +319,12 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			const char *text = NULL;
 			struct berval asserted;
 
-#ifdef SLAP_NVALUES
 			rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr,
 				SLAP_MR_EQUALITY,
 				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
-#else
-			rc = value_normalize( mod->sm_desc,
-				SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i],
-				&asserted,
-				&text );
-#endif
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -341,11 +333,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-#ifdef SLAP_NVALUES
 					0,
-#else
-					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-#endif
 					&a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
@@ -412,20 +400,12 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		struct berval asserted;
 
-#ifdef SLAP_NVALUES
 		rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr,
 				SLAP_MR_EQUALITY,
 				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
-#else
-		rc = value_normalize( mod->sm_desc,
-				SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i],
-				&asserted,
-				&text );
-#endif
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
@@ -433,11 +413,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
-#ifdef SLAP_NVALUES
 				0,
-#else
-				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-#endif
 				&a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {

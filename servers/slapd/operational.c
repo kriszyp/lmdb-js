@@ -28,12 +28,10 @@ slap_operational_subschemaSubentry( Backend *be )
 	a->a_vals[1].bv_len = 0;
 	a->a_vals[1].bv_val = NULL;
 
-#ifdef SLAP_NVALUES
 	a->a_nvals = ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( a->a_nvals, &global_schemandn );
 	a->a_nvals[1].bv_len = 0;
 	a->a_nvals[1].bv_val = NULL;
-#endif
 
 	a->a_next = NULL;
 	a->a_flags = 0;
@@ -65,9 +63,7 @@ slap_operational_hasSubordinate( int hs )
 	ber_str2bv( val, len, 1, a->a_vals );
 	a->a_vals[1].bv_val = NULL;
 
-#ifdef SLAP_NVALUES
 	a->a_nvals = a->a_vals;
-#endif
 
 	a->a_next = NULL;
 	a->a_flags = 0;

@@ -1655,7 +1655,6 @@ int slap_mods_check_syncrepl(
                                 return LDAP_CONSTRAINT_VIOLATION;
                         }
 
-#ifdef SLAP_NVALUES
                         if( nvals && ad->ad_type->sat_equality &&
                                 ad->ad_type->sat_equality->smr_normalize )
                         {
@@ -1686,7 +1685,6 @@ int slap_mods_check_syncrepl(
                                 ml->sml_nvalues[nvals].bv_val = NULL;
                                 ml->sml_nvalues[nvals].bv_len = 0;
                         }
-#endif
                 }
 		prevml = ml;
 		ml = ml->sml_next;
@@ -1704,9 +1702,7 @@ int slap_mods_opattrs_syncrepl(
         char *textbuf, size_t textlen )
 {
         struct berval name, timestamp, csn;
-#ifdef SLAP_NVALUES
         struct berval nname;
-#endif
         char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
         char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
         Modifications *mod;
@@ -1736,14 +1732,10 @@ int slap_mods_opattrs_syncrepl(
                 if( op->o_dn.bv_len == 0 ) {
                         name.bv_val = SLAPD_ANONYMOUS;
                         name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
-#ifdef SLAP_NVALUES
                         nname = name;
-#endif
                 } else {
                         name = op->o_dn;
-#ifdef SLAP_NVALUES
                         nname = op->o_ndn;
-#endif
                 }
         }
 
@@ -1767,14 +1759,12 @@ int slap_mods_opattrs_syncrepl(
                         mod->sml_values[1].bv_len = 0;
                         mod->sml_values[1].bv_val = NULL;
                         assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                         mod->sml_nvalues =
                                 (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
                         ber_dupbv( &mod->sml_nvalues[0], &tmpval );
                         mod->sml_nvalues[1].bv_len = 0;
                         mod->sml_nvalues[1].bv_val = NULL;
                         assert( mod->sml_nvalues[0].bv_val );
-#endif
                         *modtail = mod;
                         modtail = &mod->sml_next;
                 }
@@ -1789,14 +1779,12 @@ int slap_mods_opattrs_syncrepl(
                         mod->sml_values[1].bv_len = 0;
                         mod->sml_values[1].bv_val = NULL;
                         assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                         mod->sml_nvalues =
                                 (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
                         ber_dupbv( &mod->sml_nvalues[0], &nname );
                         mod->sml_nvalues[1].bv_len = 0;
                         mod->sml_nvalues[1].bv_val = NULL;
                         assert( mod->sml_nvalues[0].bv_val );
-#endif
                         *modtail = mod;
                         modtail = &mod->sml_next;
 
@@ -1809,9 +1797,7 @@ int slap_mods_opattrs_syncrepl(
                         mod->sml_values[1].bv_len = 0;
                         mod->sml_values[1].bv_val = NULL;
                         assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                         mod->sml_nvalues = NULL;
-#endif
                         *modtail = mod;
                         modtail = &mod->sml_next;
                 }
@@ -1827,9 +1813,7 @@ int slap_mods_opattrs_syncrepl(
                 mod->sml_values[1].bv_len = 0;
                 mod->sml_values[1].bv_val = NULL;
                 assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                 mod->sml_nvalues = NULL;
-#endif
                 *modtail = mod;
                 modtail = &mod->sml_next;
 
@@ -1842,14 +1826,12 @@ int slap_mods_opattrs_syncrepl(
                 mod->sml_values[1].bv_len = 0;
                 mod->sml_values[1].bv_val = NULL;
                 assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                 mod->sml_nvalues =
                         (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
                 ber_dupbv( &mod->sml_nvalues[0], &nname );
                 mod->sml_nvalues[1].bv_len = 0;
                 mod->sml_nvalues[1].bv_val = NULL;
                 assert( mod->sml_nvalues[0].bv_val );
-#endif
                 *modtail = mod;
                 modtail = &mod->sml_next;
 
@@ -1862,9 +1844,7 @@ int slap_mods_opattrs_syncrepl(
                 mod->sml_values[1].bv_len = 0;
                 mod->sml_values[1].bv_val = NULL;
                 assert( mod->sml_values[0].bv_val );
-#ifdef SLAP_NVALUES
                 mod->sml_nvalues = NULL;
-#endif
                 *modtail = mod;
                 modtail = &mod->sml_next;
         }
@@ -1922,7 +1902,6 @@ slap_mods2entry_syncrepl(
 			AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 				sizeof( struct berval ) * j );
 
-#ifdef SLAP_NVALUES
 			if( attr->a_nvals ) {
 				attr->a_nvals = ch_realloc( attr->a_nvals,
 					sizeof( struct berval ) * (i+j) );
@@ -1934,7 +1913,6 @@ slap_mods2entry_syncrepl(
 				ch_free( mods->sml_nvalues );
 				mods->sml_nvalues = NULL;
 			}
-#endif
 
 			continue;
 #else
@@ -1990,9 +1968,7 @@ slap_mods2entry_syncrepl(
 		/*	should check for duplicates */
 		attr->a_vals = mods->sml_values;
 
-#ifdef SLAP_NVALUES
 		attr->a_nvals = mods->sml_nvalues;
-#endif
 
 		*tail = attr;
 		tail = &attr->a_next;

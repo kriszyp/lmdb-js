@@ -647,9 +647,7 @@ return_results:
 	if ( mod != NULL ) {
 		Modifications *tmp;
 		for (; mod; mod = tmp ) {
-#ifdef SLAP_NVALUES
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
-#endif
 			tmp = mod->sml_next;
 			free( mod );
 		}

@@ -36,9 +36,7 @@ static int	get_simple_vrFilter(
 	ValuesReturnFilter **f,
 	const char **text );
 
-#ifdef SLAP_NVALUES
 #define XXX 1
-#endif
 
 int
 get_filter(
@@ -430,7 +428,6 @@ get_ssa(
 			goto return_error;
 		}
 
-#ifdef SLAP_NVALUES
 		/* validate/normalize using equality matching rule validator! */
 		rc = asserted_value_validate_normalize(
 			ssa.sa_desc, ssa.sa_desc->ad_type->sat_equality,
@@ -439,21 +436,6 @@ get_ssa(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
 		}
-#else
-		/* validate using equality matching rule validator! */
-		rc = value_validate( ssa.sa_desc->ad_type->sat_equality,
-			&value, text );
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-
-		rc = value_normalize( ssa.sa_desc, usage,
-			&value, &nvalue, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-#endif
 
 		rc = LDAP_PROTOCOL_ERROR;
 
@@ -1459,7 +1441,6 @@ get_substring_vrFilter(
 			goto return_error;
 		}
 
-#ifdef SLAP_NVALUES
 		/* validate/normalize using equality matching rule validator! */
 		rc = asserted_value_validate_normalize(
 			vrf->vrf_sub_desc, vrf->vrf_sub_desc->ad_type->sat_equality,
@@ -1467,20 +1448,6 @@ get_substring_vrFilter(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
 		}
-#else
-		/* valiate using equality matching rule validator! */
-		rc = value_validate( vrf->vrf_sub_desc->ad_type->sat_equality,
-			&value, text );
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-
-		rc = value_normalize( vrf->vrf_sub_desc, usage,
-			&value, &bv, text );
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-#endif
 
 		value = bv;
 

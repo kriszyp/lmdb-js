@@ -255,10 +255,8 @@ fail:;
 					v = a->a_vals;
 					if (a->a_vals != &dummy)
 						ber_bvarray_free(a->a_vals);
-#ifdef SLAP_NVALUES
 					if (a->a_nvals != v)
 						ber_bvarray_free(a->a_nvals);
-#endif
 					ch_free(a);
 				}
 				
@@ -407,9 +405,7 @@ ldap_build_entry(
 	const char *text;
 	int last;
 	int private = flags & LDAP_BUILD_ENTRY_PRIVATE;
-#ifdef SLAP_NVALUES
 	int normalize = flags & LDAP_BUILD_ENTRY_NORMALIZE;
-#endif /* SLAP_NVALUES */
 
 	/* safe assumptions ... */
 	assert( ent );
@@ -625,7 +621,6 @@ ldap_build_entry(
 
 next_attr:;
 
-#ifdef SLAP_NVALUES
 		if ( normalize ) {
 			if ( last && attr->a_desc->ad_type->sat_equality &&
 				attr->a_desc->ad_type->sat_equality->smr_normalize ) {
@@ -647,7 +642,6 @@ next_attr:;
 		} else {
 			attr->a_nvals = NULL;
 		}
-#endif
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
