@@ -174,6 +174,8 @@ static long send_ldap_ber(
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
+		/* Don't process any more requests until we can reply */
+		slapd_clr_read( sd, 0 );
 		slapd_set_write( sd, 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
