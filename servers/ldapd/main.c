@@ -106,6 +106,7 @@ main( int argc, char **argv )
 	int			udps;
 #endif
 	int			myport = LDAP_PORT;
+	int			no_detach = 0;
 	int			i, pid, socktype;
 	char			*myname;
 	fd_set			readfds;
@@ -150,13 +151,15 @@ main( int argc, char **argv )
 			dsapargc = 3;
 			break;
 
-		case 'd':	/* turn on debugging */
+		case 'd':	/* set debug level and 'do not detach' flag */
+			no_detach = 1;
 #ifdef LDAP_DEBUG
 			ldap_debug = atoi( optarg );
 			if ( ldap_debug & LDAP_DEBUG_PACKETS )
 				ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug );
 #else
-			fprintf( stderr, "Not compiled with -DLDAP_DEBUG!\n" );
+			if ( atoi( optarg ) != 0 )
+				fputs( "Not compiled with -DLDAP_DEBUG!\n", stderr );
 #endif
 			break;
 
@@ -261,11 +264,7 @@ main( int argc, char **argv )
 		setproctitle( "initializing" );
 #endif
 #ifndef VMS
-#  ifdef LDAP_DEBUG
-		lutil_detach( ldap_debug, 1 );
-#  else
-		lutil_detach( 0, 1 );
-#  endif
+		lutil_detach( no_detach, 1 );
 #endif
 		(void) SIGNAL( SIGCHLD, wait4child );
 		(void) SIGNAL( SIGINT, log_and_exit );

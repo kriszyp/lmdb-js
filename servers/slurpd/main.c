@@ -87,14 +87,10 @@ main(
     }
 
     /*
-     * Detach from the controlling terminal, if debug level = 0,
-     * and if not in one-shot mode.
+     * Detach from the controlling terminal
+     * unless the -d flag is given or in one-shot mode.
      */
-#ifdef LDAP_DEBUG
-    if (( ldap_debug == 0 )  && !sglob->one_shot_mode )
-#else /* LDAP_DEBUG */
-    if ( !sglob->one_shot_mode )
-#endif /* LDAP_DEBUG */
+    if ( ! (sglob->no_detach || sglob->one_shot_mode) )
 	lutil_detach( 0, 0 );
 
     /*

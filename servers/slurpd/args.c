@@ -65,9 +65,10 @@ doargs(
 
     while ( (i = getopt( argc, argv, "hd:f:r:t:k:o" )) != EOF ) {
 	switch ( i ) {
-	case 'd':	/* turn on debugging */
-#ifdef LDAP_DEBUG
+	case 'd':	/* set debug level and 'do not detach' flag */
+	    g->no_detach = 1;
 	    if ( optarg[0] == '?' ) {
+#ifdef LDAP_DEBUG
 		printf( "Debug levels:\n" );
 		printf( "\tLDAP_DEBUG_TRACE\t%d\n",
 			LDAP_DEBUG_TRACE );
@@ -87,13 +88,18 @@ doargs(
 			LDAP_DEBUG_ACL );
 		printf( "\tLDAP_DEBUG_ANY\t\t%d\n",
 			LDAP_DEBUG_ANY );
+		puts( "\tThe -d flag also prevents slurpd from detaching." );
+#endif /* LDAP_DEBUG */
+		puts( "\tDebugging is disabled.  -d 0 prevents slurpd from detaching." );
 		return( -1 );
-	    } else {
-		ldap_debug |= atoi( optarg );
 	    }
-#else /* LDAP_DEBUG */
+#ifdef LDAP_DEBUG
+	    ldap_debug |= atoi( optarg );
+#else /* !LDAP_DEBUG */
+	    if ( atoi( optarg ) != 0 )
 		/* can't enable debugging - not built with debug code */
-	    fprintf( stderr, "must compile with LDAP_DEBUG for debugging\n" );
+		fputs( "must compile with LDAP_DEBUG for debugging\n",
+		       stderr );
 #endif /* LDAP_DEBUG */
 	    break;
 	case 'f':	/* slapd config file */

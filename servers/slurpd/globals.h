@@ -44,6 +44,8 @@ typedef struct globals {
     char slurpd_replogfile[ MAXPATHLEN ];
     /* Non-zero if we were given a replog file to process on command-line */
     int	one_shot_mode;
+    /* Non-zero if we should not detach the process */
+    int no_detach;
     /* Name of program */
     char *myname;
     /* Current offset into slurpd replica logfile */

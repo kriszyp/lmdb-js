@@ -132,7 +132,7 @@ void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
 int main( int argc, char **argv )
 #endif
 {
-	int		i;
+	int		i, no_detach = 0;
 	int		rc;
 	char *urls = NULL;
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -233,16 +233,16 @@ int main( int argc, char **argv )
 			urls = ch_strdup( optarg );
             break;
 
+		case 'd':	/* set debug level and 'do not detach' flag */
+			no_detach = 1;
 #ifdef LDAP_DEBUG
-		case 'd':	/* turn on debugging */
 			slap_debug |= atoi( optarg );
-			break;
 #else
-		case 'd':	/* turn on debugging */
-			fprintf( stderr,
-			    "must compile with LDAP_DEBUG for debugging\n" );
-			break;
+			if ( atoi( optarg ) != 0 )
+				fputs( "must compile with LDAP_DEBUG for debugging\n",
+				       stderr );
 #endif
+			break;
 
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
@@ -389,11 +389,7 @@ int main( int argc, char **argv )
 #endif
 
 #ifndef HAVE_WINSOCK
-#ifdef LDAP_DEBUG
-		lutil_detach( ldap_debug, 0 );
-#else
-		lutil_detach( 0, 0 );
-#endif
+		lutil_detach( no_detach, 0 );
 #endif /* HAVE_WINSOCK */
 
 #ifdef CSRIMALLOC

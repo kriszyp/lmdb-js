@@ -38,8 +38,7 @@ file ( see
 ).
 If the
 .B \-d
-flag is given and debugging is set to some non-zero
-value,
+flag is given, even with a zero argument,
 .B slapd
 will not fork and disassociate from the invoking tty.
 .LP
@@ -59,7 +58,7 @@ See "The SLAPD and SLURPD Administrator's Guide" for more details on
 .BI \-d " debug\-level"
 Turn on debugging as defined by
 .I debug\-level.
-If this option is specified,
+If this option is specified, even with a zero argument,
 .B slapd
 will not fork or disassociate from the invoking terminal.  Some general
 operation and status messages are printed for any value of \fIdebug\-level\fP.
