@@ -20,7 +20,7 @@ This API supports SASL (RFC2829) and Start TLS (RFC2830).  This
 API is based upon IETF C LDAP API draft specification, a work in
 progress.
 .LP
-The OpenLDAP Software package includes a stand-alone server in
+The OpenLDAP Software package includes a stand\-alone server in
 .BR slapd (8),
 various LDAP clients, and an LDAP client library used to provide
 programmatic access to the LDAP protocol. This man page gives an
@@ -35,9 +35,9 @@ with created using
 .BR ldap_init (3).
 The underlying session is established upon first use which is
 commonly an LDAP bind operation.  The LDAP bind operation is
-performed by calling one of
+performed by calling
 .BR ldap_sasl_bind (3)
-and friends.  Next, other operations are performed
+or one of its friends.  Next, other operations are performed
 by calling one of the synchronous or asynchronous routines (e.g.,
 .BR ldap_search_ext_s (3)
 or
@@ -53,7 +53,7 @@ Errors can be interpreted by calling
 .BR ldap_err2string (3).
 .SH SEARCH FILTERS
 Search filters to be passed to the ldap search routines are to be
-constructed by hand.
+constructed by hand and should conform to RFC 2254.
 .SH DISPLAYING RESULTS
 Results obtained from the ldap search routines can be output by hand,
 by calling
@@ -93,9 +93,13 @@ routines to encode and decode LDAP protocol elements using the
 (slightly simplified) Basic Encoding Rules defined by LDAP.  They are
 not normally used directly by an LDAP application program except
 in the handling of controls and extended operations.  The
-routines provide a printf and scanf-like interface, as well as
-lower-level access.  These routines are found in the -llber
-library.
+routines provide a printf and scanf\-like interface, as well as
+lower\-level access.  These routines are discussed in
+.BR lber\-decode (3),
+.BR lber\-encode (3),
+.BR lber\-memory (3),
+and
+.BR lber\-types (3).
 .SH INDEX
 .TP 20
 .SM ldap_open(3)
@@ -244,7 +248,7 @@ asynchronously modify the RDN of an entry
 synchronously modify the RDN of an entry
 .TP
 .SM ldap_modrdn(3)
-depreciated - use ldap_modrdn2(3)
+deprecated - use ldap_modrdn2(3)
 .TP
 .SM ldap_modrdn_s(3)
 depreciated - use ldap_modrdn2_s(3)
