@@ -3,11 +3,10 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * Portions Copyright IBM Corp. 1997,2002,2003
- * Redistribution and use in source and binary forms are permitted
- * provided that this notice is preserved and that due credit is
- * given to IBM Corporation. This software is provided ``as is''
- * without express or implied warranty.
+ * Copyright IBM Corp. 1997,2002,2003
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
  */
 
 #ifndef _SLAPI_PLUGIN_H
