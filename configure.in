@@ -45,7 +45,7 @@ OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl SLAPD OPTIONS
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
-OL_ARG_ENABLE(aclgroup,[    --enable-aclgroup	enable ACL group support], auto)dnl
+OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
 OL_ARG_ENABLE(md5,[    --enable-md5	enable MD5 passwords], auto)dnl
 OL_ARG_ENABLE(sha1,[    --enable-sha1	enable SHA1 passwords], auto)dnl
@@ -69,50 +69,50 @@ OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_ldbm = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_passwd argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_passwd argument])
 	fi
 	if test $ol_enable_shell = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument])
 	fi
-	if test $ol_enable_aclgroup = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroup argument]);
+	if test $ol_enable_aclgroups = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroups argument])
 	fi
 	if test $ol_enable_crypt = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_crypt argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_crypt argument])
 	fi
 	if test $ol_enable_md5 = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_md5 argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_md5 argument])
 	fi
 	if test $ol_enable_sha1 = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_sha1 argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_sha1 argument])
 	fi
 	if test $ol_enable_wrappers = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument])
 	fi
 	if test $ol_enable_phonetic = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_phonetic argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_phonetic argument])
 	fi
 	if test $ol_enable_rlookups = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_rlookups argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --enable_rlookups argument])
 	fi
 	if test $ol_with_ldbm_api != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_api argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_api argument])
 	fi
 	if test $ol_with_ldbm_type != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_type argument]);
+		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_type argument])
 	fi
 	if test $ol_enable_slurpd = yes ; then
-		AC_MSG_ERROR([slurpd requires slapd]);
+		AC_MSG_ERROR([slurpd requires slapd])
 	fi
 
 	# force settings to no
 	ol_enable_ldbm=no
 	ol_enable_shell=no
 	ol_enable_passwd=no
-	ol_enable_aclgroup=no
+	ol_enable_aclgroups=no
 	ol_enable_crypt=no
 	ol_enable_md5=no
 	ol_enable_sha1=no
@@ -127,15 +127,15 @@ elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
 
 	if test $ol_with_ldbm_api != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_api argument]);
+		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_api argument])
 	fi
 
 	if test $ol_with_ldbm_type != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument]);
+		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument])
 	fi
 
 	if test $ol_enable_passwd = no -a $ol_enable_shell = no ; then
-		AC_MSG_ERROR([slapd requires a backend]);
+		AC_MSG_ERROR([slapd requires a backend])
 	fi
 
 	ol_with_ldbm_api=no
@@ -146,18 +146,18 @@ else
 
 	if test $ol_with_ldbm_api = gdbm -a \
 		$ol_with_ldbm_type = btree ; then
-		AC_MSG_ERROR([GDBM only supports LDBM type hash]);
+		AC_MSG_ERROR([GDBM only supports LDBM type hash])
 	fi
 	if test $ol_with_ldbm_api = ndbm -a \
 		$ol_with_ldbm_type = btree ; then
-		AC_MSG_ERROR([NDBM only supports LDBM type hash]);
+		AC_MSG_ERROR([NDBM only supports LDBM type hash])
 	fi
 fi
 
 if test $ol_enable_slurpd = yes ; then
 	dnl SLURPD was specifically enabled
 	if test $ol_with_threads = no ; then
-		AC_MSG_ERROR([slurpd requires threads]);
+		AC_MSG_ERROR([slurpd requires threads])
 	fi
 fi
 
@@ -571,7 +571,7 @@ if test $ol_with_ldbm_api = manual ; then
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
-	AC_MSG_WARN(Could not find LDBM with BTREE support);
+	AC_MSG_WARN(Could not find LDBM with BTREE support)
 	$ol_with_ldbm_api=none
 fi
 
@@ -801,26 +801,21 @@ if test $ol_enable_cldap != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 fi
 
-if test $ol_enable_aclgroup != no ; then
-	AC_DEFINE(SLAPD_ACLGROUP,1)
+if test $ol_enable_aclgroups != no ; then
+	AC_DEFINE(SLAPD_ACLGROUPS,1)
 fi
-
 if test $ol_enable_crypt != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1)
 fi
-
 if test $ol_enable_md5 != no ; then
 	AC_DEFINE(SLAPD_MD5,1)
 fi
-
 if test $ol_enable_sha1 != no ; then
 	AC_DEFINE(SLAPD_SHA1,1)
 fi
-
 if test $ol_enable_phonetic != no ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
 fi
-
 if test $ol_enable_rlookups != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1)
 fi

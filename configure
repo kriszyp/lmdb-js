@@ -35,7 +35,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-slapd	enable building slapd (yes)"
 ac_help="$ac_help
-    --enable-aclgroup	enable ACL group support (auto)"
+    --enable-aclgroups	enable ACL group support (auto)"
 ac_help="$ac_help
     --enable-crypt	enable crypt(3) passwords (auto)"
 ac_help="$ac_help
@@ -817,10 +817,10 @@ else
   	ol_enable_slapd="yes"
 fi
 # end --enable-slapd
-# OpenLDAP --enable-aclgroup
-	# Check whether --enable-aclgroup or --disable-aclgroup was given.
-if test "${enable_aclgroup+set}" = set; then
-  enableval="$enable_aclgroup"
+# OpenLDAP --enable-aclgroups
+	# Check whether --enable-aclgroups or --disable-aclgroups was given.
+if test "${enable_aclgroups+set}" = set; then
+  enableval="$enable_aclgroups"
   
 	ol_arg=invalid
 	for ol_val in auto yes no ; do
@@ -829,14 +829,14 @@ if test "${enable_aclgroup+set}" = set; then
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $enableval for --enable-aclgroup" 1>&2; exit 1; }
+		{ echo "configure: error: bad value $enableval for --enable-aclgroups" 1>&2; exit 1; }
 	fi
-	ol_enable_aclgroup="$ol_arg"
+	ol_enable_aclgroups="$ol_arg"
 
 else
-  	ol_enable_aclgroup="auto"
+  	ol_enable_aclgroups="auto"
 fi
-# end --enable-aclgroup
+# end --enable-aclgroups
 # OpenLDAP --enable-crypt
 	# Check whether --enable-crypt or --disable-crypt was given.
 if test "${enable_crypt+set}" = set; then
@@ -1085,50 +1085,50 @@ fi
 
 if test $ol_enable_slapd = no ; then
 		if test $ol_enable_ldbm = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_ldbm argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_ldbm argument" 1>&2
 	fi
 	if test $ol_enable_passwd = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_passwd argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_passwd argument" 1>&2
 	fi
 	if test $ol_enable_shell = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_shell argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_shell argument" 1>&2
 	fi
-	if test $ol_enable_aclgroup = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_aclgroup argument" 1>&2;
+	if test $ol_enable_aclgroups = yes ; then
+		echo "configure: warning: slapd disabled, ignoring --enable_aclgroups argument" 1>&2
 	fi
 	if test $ol_enable_crypt = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_crypt argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_crypt argument" 1>&2
 	fi
 	if test $ol_enable_md5 = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_md5 argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_md5 argument" 1>&2
 	fi
 	if test $ol_enable_sha1 = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_sha1 argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_sha1 argument" 1>&2
 	fi
 	if test $ol_enable_wrappers = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_wrappers argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_wrappers argument" 1>&2
 	fi
 	if test $ol_enable_phonetic = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_phonetic argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_phonetic argument" 1>&2
 	fi
 	if test $ol_enable_rlookups = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_rlookups argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --enable_rlookups argument" 1>&2
 	fi
 	if test $ol_with_ldbm_api != auto ; then
-		echo "configure: warning: slapd disabled, ignoring --with_ldbm_api argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --with_ldbm_api argument" 1>&2
 	fi
 	if test $ol_with_ldbm_type != auto ; then
-		echo "configure: warning: slapd disabled, ignoring --with_ldbm_type argument" 1>&2;
+		echo "configure: warning: slapd disabled, ignoring --with_ldbm_type argument" 1>&2
 	fi
 	if test $ol_enable_slurpd = yes ; then
-		{ echo "configure: error: slurpd requires slapd" 1>&2; exit 1; };
+		{ echo "configure: error: slurpd requires slapd" 1>&2; exit 1; }
 	fi
 
 	# force settings to no
 	ol_enable_ldbm=no
 	ol_enable_shell=no
 	ol_enable_passwd=no
-	ol_enable_aclgroup=no
+	ol_enable_aclgroups=no
 	ol_enable_crypt=no
 	ol_enable_md5=no
 	ol_enable_sha1=no
@@ -1142,15 +1142,15 @@ if test $ol_enable_slapd = no ; then
 elif test $ol_enable_ldbm = no ; then
 	
 	if test $ol_with_ldbm_api != auto ; then
-		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_api argument" 1>&2;
+		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_api argument" 1>&2
 	fi
 
 	if test $ol_with_ldbm_type != auto ; then
-		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_type argument" 1>&2;
+		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_type argument" 1>&2
 	fi
 
 	if test $ol_enable_passwd = no -a $ol_enable_shell = no ; then
-		{ echo "configure: error: slapd requires a backend" 1>&2; exit 1; };
+		{ echo "configure: error: slapd requires a backend" 1>&2; exit 1; }
 	fi
 
 	ol_with_ldbm_api=no
@@ -1160,17 +1160,17 @@ else
 	
 	if test $ol_with_ldbm_api = gdbm -a \
 		$ol_with_ldbm_type = btree ; then
-		{ echo "configure: error: GDBM only supports LDBM type hash" 1>&2; exit 1; };
+		{ echo "configure: error: GDBM only supports LDBM type hash" 1>&2; exit 1; }
 	fi
 	if test $ol_with_ldbm_api = ndbm -a \
 		$ol_with_ldbm_type = btree ; then
-		{ echo "configure: error: NDBM only supports LDBM type hash" 1>&2; exit 1; };
+		{ echo "configure: error: NDBM only supports LDBM type hash" 1>&2; exit 1; }
 	fi
 fi
 
 if test $ol_enable_slurpd = yes ; then
 		if test $ol_with_threads = no ; then
-		{ echo "configure: error: slurpd requires threads" 1>&2; exit 1; };
+		{ echo "configure: error: slurpd requires threads" 1>&2; exit 1; }
 	fi
 fi
 
@@ -3949,7 +3949,7 @@ done
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
-	echo "configure: warning: Could not find LDBM with BTREE support" 1>&2;
+	echo "configure: warning: Could not find LDBM with BTREE support" 1>&2
 	$ol_with_ldbm_api=none
 fi
 
@@ -6115,41 +6115,36 @@ EOF
 
 fi
 
-if test $ol_enable_aclgroup != no ; then
+if test $ol_enable_aclgroups != no ; then
 	cat >> confdefs.h <<\EOF
-#define SLAPD_ACLGROUP 1
+#define SLAPD_ACLGROUPS 1
 EOF
 
 fi
-
 if test $ol_enable_crypt != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_CRYPT 1
 EOF
 
 fi
-
 if test $ol_enable_md5 != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_MD5 1
 EOF
 
 fi
-
 if test $ol_enable_sha1 != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_SHA1 1
 EOF
 
 fi
-
 if test $ol_enable_phonetic != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_PHONETIC 1
 EOF
 
 fi
-
 if test $ol_enable_rlookups != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_RLOOKUPS 1
