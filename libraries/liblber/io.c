@@ -551,10 +551,17 @@ ber_get_next(
 					return LBER_DEFAULT;
 				}
 			}
-			if (sblen == 1) continue;
-
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
+		}
+
+		if ( ber->ber_ptr == ber->ber_rwptr ) {
+#if defined( EWOULDBLOCK )
+			errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+			errno = EAGAIN;
+#endif			
+			return LBER_DEFAULT;
 		}
 
 		/* Now look for the length */
