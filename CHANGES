@@ -8,7 +8,6 @@ OpenLDAP 2.0.13 Engineering
 	Fixed back-ldbm dbhandle cache bug
 	Fixed back-shell fgets handling
 	Added slapd access to dn.base="" support
-	Added slapd extensible matching support (ITS#1302)
 	Added -lldap improved TLS certificate checking
 
 OpenLDAP 2.0.12 Release
