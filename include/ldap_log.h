@@ -111,14 +111,18 @@ LDAP_BEGIN_DECL
 #   ifdef LDAP_SYSLOG
 #   define Debug( level, fmt, arg1, arg2, arg3 )	\
 	do { \
-		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
 		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
 
 #   else
 #       define Debug( level, fmt, arg1, arg2, arg3 ) \
-	    lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) )
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
+	} while ( 0 )
 #   endif
 
 #ifndef LDAP_LOG

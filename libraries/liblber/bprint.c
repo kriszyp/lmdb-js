@@ -16,7 +16,7 @@
 
 typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
 
-static int ber_log_check( int errlvl, int loglvl );
+#define	ber_log_check(errlvl, loglvl)	(errlvl & loglvl)
 
 BER_LOG_FN ber_int_log_proc = NULL;
 
@@ -102,11 +102,6 @@ int ber_pvt_log_output( char *subsystem, int level, const char *fmt, ... )
 	return 1;
 }
 	
-static int ber_log_check( int errlvl, int loglvl )
-{
-	return errlvl & loglvl ? 1 : 0;
-}
-
 int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 {
 	char buf[ 1024 ];
