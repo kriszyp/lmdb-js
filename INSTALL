@@ -38,7 +38,7 @@ Making and Installing the OpenLDAP Distribution
         Variable        Description     Example
         CC              C compiler      gcc
         CFLAGS          C flags         -O -g
-        CPPFLAGS        cpp flags       -I/path/include -Ddef
+        CPPFLAGS        cpp flags       -I/path/include -DFOO=42
         LDFLAGS         ld flags        -L/usr/local/lib
         LIBS            libraries       -llib
         PATH            command path    /usr/local/bin:/usr/bin:/bin
