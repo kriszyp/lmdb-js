@@ -91,11 +91,13 @@ lock_fclose(
     FILE	*lfp
 )
 {
+	int rc = fclose( fp );
+
 	/* unlock */
 	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
-	return( fclose( fp ) );
+	return( rc );
 }
 
 
