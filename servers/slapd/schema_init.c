@@ -541,7 +541,8 @@ IA5StringConvert(
 	struct berval *bv = ch_malloc( sizeof(struct berval) );
 
 	bv->bv_len = len * sizeof( ldap_unicode_t );
-	bv->bv_val = (char *) u = ch_malloc( bv->bv_len + sizeof(ldap_unicode_t) );
+	u = (ldap_unicode_t *) ch_malloc( bv->bv_len + sizeof(ldap_unicode_t) );
+	bv->bv_val = (char *) u;
 
 	for(i=0; i < len; i++ ) {
 		/*
