@@ -276,7 +276,7 @@ do_compare(
 	slapi_x_connection_set_pb( pb, conn );
 	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 	slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
 	slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
 

@@ -231,7 +231,7 @@ do_add( Connection *conn, Operation *op )
 	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)e );
 	slapi_pblock_set( pb, SLAPI_ADD_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_ADD_FN, pb );
 	if ( rc != 0 ) {

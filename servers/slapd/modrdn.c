@@ -337,7 +337,7 @@ do_modrdn(
 	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
 			(void *)newSuperior.bv_val );
 	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
 	if ( rc != 0 ) {

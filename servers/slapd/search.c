@@ -28,6 +28,17 @@
 #include "slap.h"
 #include "slapi.h"
 
+#ifdef LDAP_SLAPI
+static char **anlist2charray( AttributeName *an );
+static Slapi_PBlock *initSearchPlugin( Backend *be, Connection *conn, Operation *op,
+	struct berval *base, int scope, int deref, int sizelimit, int timelimit,
+	Filter *filter, struct berval *fstr, char **attrs,
+	int attrsonly, int managedsait );
+static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
+static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, struct berval *fstr );
+static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
+#endif /* LDAPI_SLAPI */
+
 int
 do_search(
     Connection	*conn,	/* where to send results */
@@ -46,8 +57,10 @@ do_search(
 	int			rc;
 	const char	*text;
 	int			manageDSAit;
-
-	Slapi_PBlock *pb = op->o_pb;
+#ifdef LDAP_SLAPI
+	Slapi_PBlock	*pb;
+	char		**attrs = NULL;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_search: conn %d\n", conn->c_connid, 0, 0 );
@@ -250,7 +263,7 @@ do_search(
 		if ( nbase.bv_len == 0 ) {
 #ifdef LDAP_CONNECTIONLESS
 			/* Ignore LDAPv2 CLDAP Root DSE queries */
-			if (op->o_protocol==LDAP_VERSION2 && conn->c_is_udp) {
+			if (op->o_protocol == LDAP_VERSION2 && conn->c_is_udp) {
 				goto return_results;
 			}
 #endif
@@ -262,7 +275,19 @@ do_search(
 				goto return_results;
 			}
 
+#ifdef LDAP_SLAPI
+			attrs = anlist2charray( an );
+			pb = initSearchPlugin( NULL, conn, op, &nbase, scope,
+				deref, sizelimit, timelimit, filter, &fstr,
+				attrs, attrsonly, manageDSAit );
+			rc = doPreSearchPluginFNs( NULL, pb );
+			if ( rc == LDAP_SUCCESS ) {
+				doSearchRewriteFNs( NULL, pb, &filter, &fstr );
+#endif /* LDAP_SLAPI */
 			rc = root_dse_info( conn, &entry, &text );
+#ifdef LDAP_SLAPI
+			}
+#endif /* LDAP_SLAPI */
 
 		} else if ( bvmatch( &nbase, &global_schemandn ) ) {
 			/* check restrictions */
@@ -273,12 +298,27 @@ do_search(
 				goto return_results;
 			}
 
+#ifdef LDAP_SLAPI
+			attrs = anlist2charray( an );
+			pb = initSearchPlugin( NULL, conn, op, &nbase, scope,
+				deref, sizelimit, timelimit, filter, &fstr,
+				attrs, attrsonly, manageDSAit );
+			rc = doPreSearchPluginFNs( NULL, pb );
+			if ( rc == LDAP_SUCCESS ) {
+				doSearchRewriteFNs( NULL, pb, &filter, &fstr );
+#endif /* LDAP_SLAPI */
 			rc = schema_info( &entry, &text );
+#ifdef LDAP_SLAPI
+			}
+#endif /* LDAP_SLAPI */
 		}
 
 		if( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
+#ifdef LDAP_SLAPI
+			doPostSearchPluginFNs( NULL, pb );
+#endif /* LDAP_SLAPI */
 			goto return_results;
 
 		} else if ( entry != NULL ) {
@@ -293,7 +333,9 @@ do_search(
 
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL, NULL, NULL );
-
+#ifdef LDAP_SLAPI
+			doPostSearchPluginFNs( NULL, pb );
+#endif /* LDAP_SLAPI */
 			goto return_results;
 		}
 	}
@@ -339,19 +381,105 @@ do_search(
 	/* deref the base if needed */
 	suffix_alias( be, &nbase );
 
-#if defined( LDAP_SLAPI )
+#ifdef LDAP_SLAPI
+	attrs = anlist2charray( an );
+	pb = initSearchPlugin( be, conn, op, &pbase,
+		scope, deref, sizelimit,
+		timelimit, filter, &fstr, attrs, attrsonly,
+		manageDSAit );
+	rc = doPreSearchPluginFNs( be, pb );
+	if ( rc != LDAP_SUCCESS ) {
+		goto return_results;
+	}
+
+	doSearchRewriteFNs( be, pb, &filter, &fstr );
+#endif /* LDAP_SLAPI */
+
+	/* actually do the search and send the result(s) */
+	if ( be->be_search ) {
+		(*be->be_search)( be, conn, op, &pbase, &nbase,
+			scope, deref, sizelimit,
+			timelimit, filter, &fstr, an, attrsonly );
+	} else {
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "operation not supported within namingContext",
+			NULL, NULL );
+	}
+
+#ifdef LDAP_SLAPI
+	doPostSearchPluginFNs( be, pb );
+#endif /* LDAP_SLAPI */
+
+return_results:;
+#ifdef LDAP_CLIENT_UPDATE
+	if ( !( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+#endif /* LDAP_CLIENT_UPDATE */
+	{
+		if( pbase.bv_val != NULL) free( pbase.bv_val );
+		if( nbase.bv_val != NULL) free( nbase.bv_val );
+
+		if( fstr.bv_val != NULL) free( fstr.bv_val );
+		if( filter != NULL) filter_free( filter );
+		if( an != NULL ) free( an );
+#ifdef LDAP_SLAPI
+		if( attrs != NULL) ch_free( attrs );
+#endif /* LDAP_SLAPI */
+	}
+
+	return rc;
+}
+
+#ifdef LDAP_SLAPI
+
+static char **anlist2charray( AttributeName *an )
+{
+	char **attrs;
+	int i;
+
+	if ( an != NULL ) {
+		for ( i = 0; an[i].an_name.bv_val != NULL; i++ )
+			;
+		attrs = (char **)ch_malloc( (i + 1) * sizeof(char *) );
+		for ( i = 0; an[i].an_name.bv_val != NULL; i++ ) {
+			attrs[i] = an[i].an_name.bv_val;
+		}
+		attrs[i] = NULL;
+	} else {
+		attrs = NULL;
+	}
+
+	return attrs;
+}
+
+static Slapi_PBlock *initSearchPlugin( Backend *be, Connection *conn, Operation *op,
+	struct berval *base, int scope, int deref, int sizelimit,
+	int timelimit, Filter *filter, struct berval *fstr,
+	char **attrs, int attrsonly, int managedsait )
+{
+	Slapi_PBlock *pb;
+
+	pb = op->o_pb;
+
 	slapi_x_backend_set_pb( pb, be );
 	slapi_x_connection_set_pb( pb, conn );
 	slapi_x_operation_set_pb( pb, op );
-	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET, (void *)base.bv_val );
+	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET, (void *)base->bv_val );
 	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE, (void *)scope );
 	slapi_pblock_set( pb, SLAPI_SEARCH_DEREF, (void *)deref );
 	slapi_pblock_set( pb, SLAPI_SEARCH_SIZELIMIT, (void *)sizelimit );
 	slapi_pblock_set( pb, SLAPI_SEARCH_TIMELIMIT, (void *)timelimit );
 	slapi_pblock_set( pb, SLAPI_SEARCH_FILTER, (void *)filter );
-	slapi_pblock_set( pb, SLAPI_SEARCH_STRFILTER, (void *)fstr.bv_val );
+	slapi_pblock_set( pb, SLAPI_SEARCH_STRFILTER, (void *)fstr->bv_val );
+	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRS, (void *)attrs );
 	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)attrsonly );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)managedsait );
+
+	return pb;
+}
+
+static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
+{
+	int rc;
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_SEARCH_FN, pb );
 	if ( rc != 0 ) {
@@ -368,40 +496,38 @@ do_search(
 #endif
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
 			rc = LDAP_OTHER;
-		return rc;
+	} else {
+		rc = LDAP_SUCCESS;
 	}
 
+	return rc;
+}
+
+static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, struct berval *fstr )
+{
 	if ( doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
 		/*
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
 		 */
-		slapi_pblock_get( pb, SLAPI_SEARCH_FILTER, (void *)&filter);
-		ch_free( fstr.bv_val );
-		filter2bv( filter, &fstr );
+		slapi_pblock_get( pb, SLAPI_SEARCH_FILTER, (void *)filter);
+		ch_free( fstr->bv_val );
+		filter2bv( *filter, fstr );
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"do_search: after compute_rewrite_search filter: %s\n", 
-			fstr.bv_len ? fstr.bv_val : "empty", 0 );
+			fstr->bv_len ? fstr->bv_val : "empty", 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
-			fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
+			fstr->bv_len ? fstr->bv_val : "empty", 0, 0 );
 #endif
 	}
-#endif /* defined( LDAP_SLAPI ) */
 
-	/* actually do the search and send the result(s) */
-	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, &pbase, &nbase,
-			scope, deref, sizelimit,
-			timelimit, filter, &fstr, an, attrsonly );
-	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "operation not supported within namingContext",
-			NULL, NULL );
-	}
+	return LDAP_SUCCESS;
+}
 
-#if defined( LDAP_SLAPI )
+static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
+{
 	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_search: search postoperation plugins "
@@ -411,20 +537,8 @@ do_search(
 				"failed.\n", 0, 0, 0);
 #endif
 	}
-#endif /* defined( LDAP_SLAPI ) */
 
-return_results:;
-#ifdef LDAP_CLIENT_UPDATE
-	if ( !( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
-#endif /* LDAP_CLIENT_UPDATE */
-	{
-		if( pbase.bv_val != NULL) free( pbase.bv_val );
-		if( nbase.bv_val != NULL) free( nbase.bv_val );
-
-		if( fstr.bv_val != NULL) free( fstr.bv_val );
-		if( filter != NULL) filter_free( filter );
-		if( an != NULL ) free( an );
-	}
-
-	return rc;
+	return LDAP_SUCCESS;
 }
+#endif /* LDAP_SLAPI */
+

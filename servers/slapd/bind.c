@@ -543,7 +543,7 @@ do_bind(
 	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&cred );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
 	if ( rc != SLAPI_BIND_SUCCESS ) {
