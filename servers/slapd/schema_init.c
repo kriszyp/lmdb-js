@@ -44,7 +44,6 @@
 /* recycled matching routines */
 #define numericStringMatch				caseIgnoreMatch
 #define objectIdentifierMatch			numericStringMatch
-#define integerMatch					numericStringMatch
 #define telephoneNumberMatch			numericStringMatch
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			numericStringMatch
@@ -1705,6 +1704,159 @@ integerValidate(
 		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
+	return LDAP_SUCCESS;
+}
+
+static int
+integerMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	char *vb, *ve, *avb, *ave;
+
+	vb = value->bv_val;
+	ve = vb + value->bv_len - 1;
+	avb = ((struct berval *) assertedValue)->bv_val;
+	ave = avb + ((struct berval *) assertedValue)->bv_len - 1;
+
+	/* Is '0' safe?  Should we ignore whitespace too?  Can they be
+	 * negative?  RFC2252 does not suggest so, and integerValidate
+	 * above doesn't either. */
+
+	while ( *vb == '0' && vb <= ve )
+		vb++;
+
+	while ( *avb == '0' && avb <= ave )
+		avb++;
+
+	match = (ve - vb) - (ave - avb);
+
+	if( match == 0 ) {
+		while ( *vb == *avb && vb < ve ) {
+			vb++;
+			avb++;
+		}
+		match = (unsigned char)*vb - (unsigned char)*avb;
+	}
+
+	*matchp = match;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int integerIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[16];
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* just count them */
+	}
+
+	assert( i > 0 );
+
+	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		struct berval *value = values[i];
+		char *vb, *ve;
+
+		vb = value->bv_val;
+		ve = vb + value->bv_len - 1;
+		while ( *vb == '0' && vb <= ve )
+			vb++;
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			vb, ve - vb + 1 );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		keys[i] = ber_bvdup( &digest );
+	}
+
+	keys[i] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int integerFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	struct berval *value;
+	char *vb, *ve;
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	value = (struct berval *) assertValue;
+
+	vb = value->bv_val;
+	ve = vb + value->bv_len - 1;
+	while ( *vb == '0' && vb <= ve )
+		vb++;
+
+	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+
+	lutil_MD5Init( &MD5context );
+	if( prefix != NULL && prefix->bv_len > 0 ) {
+		lutil_MD5Update( &MD5context,
+			prefix->bv_val, prefix->bv_len );
+	}
+	lutil_MD5Update( &MD5context,
+		syntax->ssyn_oid, slen );
+	lutil_MD5Update( &MD5context,
+		mr->smr_oid, mlen );
+	lutil_MD5Update( &MD5context,
+		vb, ve - vb + 1 );
+	lutil_MD5Final( MD5digest, &MD5context );
+
+	keys[0] = ber_bvdup( &digest );
+	keys[1] = NULL;
+
+	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 
@@ -3790,7 +3942,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		integerMatch, NULL, NULL,
+		integerMatch, integerIndexer, integerFilter,
 		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
