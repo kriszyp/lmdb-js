@@ -1,6 +1,18 @@
 #! /bin/sh
 # $OpenLDAP$
 
+SRCDIR="."
+if test $# -ge 1 ; then
+	SRCDIR=$1; shift
+fi
+BACKEND=ldbm
+if test $# -ge 1 ; then
+	BACKEND=$1; shift
+fi
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
 #
 # Test replication:
 # - start master
@@ -10,18 +22,6 @@
 # - perform some modifies and deleted
 # - retrieve database over ldap and compare against expected results
 #
-
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
-	SRCDIR=$1; shift
-fi
-if test $# -eq 1 ; then
-	BACKEND=$1; shift
-fi
-
-echo "running defines.sh $SRCDIR $BACKEND"
-. $SRCDIR/scripts/defines.sh
 
 if test ! -x $SLURPD ; then
 	echo ">>>>> $SLURPD is not executable or do not exist."
@@ -35,11 +35,13 @@ echo "Cleaning up in $REPLDIR..."
 rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $MASTERCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+. $CONFFILTER $BACKEND < $MASTERCONF > $DBCONF
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $SLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+. $CONFFILTER $BACKEND < $SLAVECONF > $REPLCONF
+$SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
@@ -169,9 +171,9 @@ SEARCHOUT=$MASTEROUT
 LDIF=$SLAVEOUT
 
 echo "Filtering ldapsearch results..."
-. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+. $LDIFFILTER < $LDIF > $LDIFFLT
 
 echo "Comparing retrieved entries from master and slave..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT

@@ -1,21 +1,22 @@
 #! /bin/sh
 # $OpenLDAP$
 
+SRCDIR="."
+if test $# -ge 1 ; then
+	SRCDIR=$1; shift
+fi
+BACKEND=ldbm
+if test $# -ge 1 ; then
+	BACKEND=$1; shift
+fi
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
 #
 # Test default referral
 #
 
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
-	SRCDIR=$1; shift
-fi
-if test $# -eq 1 ; then
-	BACKEND=$1; shift
-fi
-
-echo "running defines.sh $SRCDIR $BACKEND"
-. $SRCDIR/scripts/defines.sh
 
 echo "Cleaning up in $DBDIR and $REPLDIR ..."
 
@@ -23,7 +24,8 @@ rm -f $DBDIR/[!C]*
 rm -f $REPLDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-$SLAPADD -f $CONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND < $CONF > $DBCONF
+$SLAPADD -f $DBCONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -31,11 +33,12 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -n master -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -n master -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -n slave -f $REFSLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+. $CONFFILTER $BACKEND < $REFSLAVECONF > $REPLCONF
+$SLAPD -n slave -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Testing for master slapd..."
@@ -109,9 +112,9 @@ kill -HUP $PID $SLAVEPID
 LDIF=$SEARCHOUTMASTER
 
 echo "Filtering ldapsearch results..."
-. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+. $LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

@@ -3,26 +3,21 @@
 
 DATADIR=$SRCDIR/data
 PROGDIR=./progs
+DBDIR=./test-db
+REPLDIR=./test-repl
 
-if test "$BACKEND" = "bdb2" ; then
-	CONF=$DATADIR/slapd-bdb2-master.conf
-	PWCONF=$DATADIR/slapd-bdb2-pw.conf
-	ACLCONF=$DATADIR/slapd-bdb2-acl.conf
-	MASTERCONF=$DATADIR/slapd-bdb2-repl-master.conf
-	SLAVECONF=$DATADIR/slapd-bdb2-repl-slave.conf
-	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
-	SCHEMACONF=$DATADIR/slapd-bdb2-schema.conf
-	TIMING="-t"
-else
-	CONF=$DATADIR/slapd.conf
-	MCONF=$DATADIR/slapd-master.conf
-	PWCONF=$DATADIR/slapd-pw.conf
-	ACLCONF=$DATADIR/slapd-acl.conf
-	MASTERCONF=$DATADIR/slapd-repl-master.conf
-	SLAVECONF=$DATADIR/slapd-repl-slave.conf
-	REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
-	SCHEMACONF=$DATADIR/slapd-schema.conf
-fi
+CONF=$DATADIR/slapd.conf
+MCONF=$DATADIR/slapd-master.conf
+PWCONF=$DATADIR/slapd-pw.conf
+ACLCONF=$DATADIR/slapd-acl.conf
+MASTERCONF=$DATADIR/slapd-repl-master.conf
+SLAVECONF=$DATADIR/slapd-repl-slave.conf
+REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
+SCHEMACONF=$DATADIR/slapd-schema.conf
+
+DBCONF=$DBDIR/slapd.conf
+ADDCONF=$DBDIR/slapadd.conf
+REPLCONF=$REPLDIR/slapd.conf
 
 TOOLARGS="-x $LDAP_TOOLARGS"
 TOOLPROTO="-P 3"
@@ -31,6 +26,9 @@ PASSWDCONF=$DATADIR/slapd-passwd.conf
 
 CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
+
+LDIFFILTER=$SRCDIR/scripts/acfilter.sh
+CONFFILTER=$SRCDIR/scripts/conf.sh
 
 SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
@@ -52,8 +50,6 @@ PORT=9009
 SLAVEPORT=9010
 MASTERURI="ldap://localhost:$PORT/"
 SLAVEURI="ldap://localhost:$SLAVEPORT/"
-DBDIR=./test-db
-REPLDIR=./test-repl
 LDIF=$DATADIR/test.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif

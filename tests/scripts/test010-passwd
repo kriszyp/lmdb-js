@@ -1,16 +1,16 @@
 #! /bin/sh
 # $OpenLDAP$
 
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
+SRCDIR="."
+if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
-if test $# -eq 1 ; then
+BACKEND=ldbm
+if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
 
-echo "running defines.sh $SRCDIR $BACKEND"
+echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 echo "Cleaning up in $DBDIR..."
@@ -18,7 +18,8 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $PWCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+. $CONFFILTER $PWCONF < $CONF > $DBCONF
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Using ldapsearch to check that slapd is running..."

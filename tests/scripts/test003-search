@@ -1,16 +1,16 @@
 #! /bin/sh
 # $OpenLDAP$
 
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
+SRCDIR="."
+if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
-if test $# -eq 1 ; then
+BACKEND=ldbm
+if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
 
-echo "running defines.sh $SRCDIR $BACKEND"
+echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 echo "Cleaning up in $DBDIR..."
@@ -18,7 +18,8 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-$SLAPADD -f $MCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND < $MCONF > $ADDCONF
+$SLAPADD -f $ADDCONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -26,7 +27,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Running slapindex to index slapd database..."
-$SLAPINDEX -f $CONF
+. $CONFFILTER $BACKEND < $CONF > $DBCONF
+$SLAPINDEX -f $DBCONF
 RC=$?
 if test $RC != 0 ; then
 	echo "warning: slapindex failed ($RC)"
@@ -34,7 +36,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd searching..."
@@ -97,9 +99,9 @@ kill -HUP $PID
 LDIF=$SEARCHOUTMASTER
 
 echo "Filtering ldapsearch results..."
-. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+. $LDIFFILTER < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
