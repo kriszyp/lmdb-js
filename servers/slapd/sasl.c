@@ -225,7 +225,7 @@ int slap_sasl_getdn( Connection *conn, char *id,
 		p = slap_strcopy( p, c1 );
 		ch_free( c1 );
 
-		if( user_realm ) {
+		if( user_realm && *user_realm ) {
 			p = slap_strcopy( p, ",cn=" );
 			p = slap_strcopy( p, user_realm );
 		}
