@@ -1222,30 +1222,50 @@ read_config( const char *fname )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing passwd in \"rootpw <passwd>\""
-					   " line\n", fname, lineno ));
+					"%s: line %d: missing passwd in \"rootpw <passwd>\""
+					" line\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing passwd in \"rootpw <passwd>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing passwd in \"rootpw <passwd>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
 				return( 1 );
 			}
+
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: rootpw line must appear inside a database "
-					   "definition (ignored)\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"rootpw line must appear inside a database "
+					"definition (ignored)\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"rootpw line must appear inside a database "
+					"definition (ignored)\n",
 				    fname, lineno, 0 );
 #endif
 
 			} else {
-				be->be_rootpw.bv_val = ch_strdup( cargv[1] );
-				be->be_rootpw.bv_len = strlen( be->be_rootpw.bv_val );
+				Backend *tmp_be = select_backend( &be->be_rootndn, 0, 0 );
+
+				if( tmp_be != be ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+						"%s: line %d: "
+						"rootpw cannot be set when rootdn not under suffix "
+						"(ignored)\n",
+						fname, lineno ));
+#else
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"rootpw cannot be set when rootdn not under suffix"
+						"(ignored)\n",
+				    	fname, lineno, 0 );
+#endif
+
+				} else {
+					be->be_rootpw.bv_val = ch_strdup( cargv[1] );
+					be->be_rootpw.bv_len = strlen( be->be_rootpw.bv_val );
+				}
 			}
 
 		/* make this database read-only */
