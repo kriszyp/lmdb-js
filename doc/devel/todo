@@ -38,18 +38,21 @@ Implement LDAP sorted search results control
 
 Medium projects
 ---------------
+Add DSML capabilities to command line tools
 Implement authPassword (RFC 3112)
 Implement DIT Structure Rules and Name Forms
 Implement LDAP Transactions extension
 Implement native support for simple SASL mechanisms (e.g. EXTERNAL and PLAIN)
+Implement LDAPprep
 Redesign slapd memory allocation fault handling
 Localize tools
 
 
 Small projects
 --------------
-Add DSML capabilities to command line tools
 Add dumpasn1 logging support
+Implement SASLprep
+Redesign test suite to use configure generated run script
 Add tests to test suite
 Convert utfconv.txt into man page(s).
 Recode linked-list structs to use <ldap_queue.h> macros
