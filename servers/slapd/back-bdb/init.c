@@ -14,6 +14,10 @@
 
 #include "back-bdb.h"
 
+static char *bdbi_dbnames[BDB_INDICES] = {
+	"nextid", "id2entry", "dn2entry"
+};
+
 static int
 bi_back_destroy( BackendInfo *bi )
 {
@@ -54,7 +58,7 @@ bi_back_db_init( Backend *be )
 static int
 bi_back_db_open( BackendDB *be )
 {
-	int rc;
+	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	u_int32_t flags;
 	/* we should check existance of dbenv_home and db_directory */
@@ -121,18 +125,59 @@ bi_back_db_open( BackendDB *be )
 		bdb->bi_dbenv_mode );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: db_open(%s) failed: %s (%d)\n",
+			"bi_back_db_open: dbenv_open(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
 		return rc;
 	}
 
-	/* we now need to open (and create) all database */
+	flags = DB_THREAD;
+
+#if 0
+	if( be->be_read_only ) {
+		flags |= DB_RDONLY;
+	} else
+#endif
+	{
+		flags |= DB_CREATE;
+	}
+
+	/* open (and create) main database */
+	for( i = 0; i < BDB_INDICES; i++ ) {
+		struct bdb_db_info *db;
+
+		db = (struct bdb_db_info *) ch_calloc(1, sizeof(struct bdb_db_info));
+
+		rc = db_create( &db->bdi_db, bdb->bi_dbenv, 0 );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bi_back_db_open: db_create(%s) failed: %s (%d)\n",
+				bdb->bi_dbenv_home, db_strerror(rc), rc );
+			return rc;
+		}
+
+		rc = db->bdi_db->open( db->bdi_db,
+			bdbi_dbnames[i],
+			bdbi_dbnames[i],
+			DB_BTREE,
+			flags,
+			bdb->bi_dbenv_mode );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bi_back_db_open: db_open(%s) failed: %s (%d)\n",
+				bdb->bi_dbenv_home, db_strerror(rc), rc );
+			return rc;
+		}
+	}
+
+	/* <insert> open (and create) index databases */
+
 
 	return 0;
 }
 
 static int
-bi_back_db_destroy( BackendDB *be )
+bi_back_db_close( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -145,6 +190,20 @@ bi_back_db_destroy( BackendDB *be )
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
+
+	while( bdb->bi_ndatabases-- ) {
+		rc = bdb->bi_databases[bdb->bi_ndatabases]->bdi_db->close(
+			bdb->bi_databases[bdb->bi_ndatabases]->bdi_db, 0 );
+	}
+
+	return 0;
+}
+
+static int
+bi_back_db_destroy( BackendDB *be )
+{
+	int rc;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/* close db environment */
 	rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
@@ -207,13 +266,13 @@ bdb_back_initialize(
 	bi->bi_config = 0;
 	bi->bi_destroy = bi_back_destroy;
 
-#if 0
 	bi->bi_db_init = bi_back_db_init;
-	bi->bi_db_config = bi_back_db_config;
+	bi->bi_db_config = 0;
 	bi->bi_db_open = bi_back_db_open;
 	bi->bi_db_close = bi_back_db_close;
 	bi->bi_db_destroy = bi_back_db_destroy;
 
+#if 0
 	bi->bi_op_bind = bi_back_bind;
 	bi->bi_op_unbind = bi_back_unbind;
 	bi->bi_op_search = bi_back_search;
@@ -230,22 +289,22 @@ bdb_back_initialize(
 	bi->bi_acl_group = bi_back_group;
 	bi->bi_acl_attribute = bi_back_attribute;
 	bi->bi_chk_referrals = bi_back_referrals;
+#endif
 
 	/*
 	 * hooks for slap tools
 	 */
-	bi->bi_tool_entry_open = bi_tool_entry_open;
-	bi->bi_tool_entry_close = bi_tool_entry_close;
-	bi->bi_tool_entry_first = bi_tool_entry_first;
-	bi->bi_tool_entry_next = bi_tool_entry_next;
-	bi->bi_tool_entry_get = bi_tool_entry_get;
-	bi->bi_tool_entry_put = bi_tool_entry_put;
-	bi->bi_tool_entry_reindex = bi_tool_entry_reindex;
-	bi->bi_tool_sync = bi_tool_sync;
+	bi->bi_tool_entry_open = bdb_tool_entry_open;
+	bi->bi_tool_entry_close = bdb_tool_entry_close;
+	bi->bi_tool_entry_first = bdb_tool_entry_next;
+	bi->bi_tool_entry_next = bdb_tool_entry_next;
+	bi->bi_tool_entry_get = bdb_tool_entry_get;
+	bi->bi_tool_entry_put = bdb_tool_entry_put;
+	bi->bi_tool_entry_reindex = 0;
+	bi->bi_tool_sync = 0;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
-#endif
 
 	return 0;
 }

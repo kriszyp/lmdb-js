@@ -131,11 +131,19 @@ SOURCE=".\back-bdb.h"
 # End Source File
 # Begin Source File
 
+SOURCE=.\dn2id.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\error.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\external.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\idl.c
 # End Source File
 # Begin Source File
 
