@@ -419,6 +419,7 @@ approx_candidates(
 		save = idl;
 		idl = idl_intersection( be, idl, tmp );
 		idl_free( save );
+		idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
@@ -583,6 +584,7 @@ substring_candidates(
 		save = idl;
 		idl = idl_intersection( be, idl, tmp );
 		idl_free( save );
+		idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
