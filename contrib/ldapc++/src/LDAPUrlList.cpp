@@ -1,9 +1,10 @@
 /*
- * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2002 OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
 #include "LDAPUrlList.h"
+#include <assert.h>
 #include "debug.h"
 
 using namespace std;
