@@ -78,6 +78,20 @@ cr_bvfind( struct berval *crname )
 	return( NULL );
 }
 
+static int
+cr_destroy_one( ContentRule *c )
+{
+	assert( c != NULL );
+
+	if (c->scr_auxiliaries) ldap_memfree(c->scr_auxiliaries);
+	if (c->scr_required) ldap_memfree(c->scr_required);
+	if (c->scr_allowed) ldap_memfree(c->scr_allowed);
+	if (c->scr_precluded) ldap_memfree(c->scr_precluded);
+	ldap_contentrule_free((LDAPContentRule *)c);
+
+	return 0;
+}
+
 void
 cr_destroy( void )
 {
@@ -89,11 +103,7 @@ cr_destroy( void )
 		c = LDAP_SLIST_FIRST(&cr_list);
 		LDAP_SLIST_REMOVE_HEAD(&cr_list, scr_next);
 
-		if (c->scr_auxiliaries) ldap_memfree(c->scr_auxiliaries);
-		if (c->scr_required) ldap_memfree(c->scr_required);
-		if (c->scr_allowed) ldap_memfree(c->scr_allowed);
-		if (c->scr_precluded) ldap_memfree(c->scr_precluded);
-		ldap_contentrule_free((LDAPContentRule *)c);
+		cr_destroy_one( c );
 	}
 }
 
