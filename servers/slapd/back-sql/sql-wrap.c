@@ -245,7 +245,7 @@ backsql_FreeRow( BACKSQL_ROW_NTS *row )
 	}
 
 	ber_bvarray_free( row->col_names );
-	charray_free( row->cols );
+	ldap_charray_free( row->cols );
 	free( row->col_prec );
 	free( row->is_null );
 
