@@ -31,6 +31,10 @@ main( int argc, char **argv )
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 
+	struct berval name, timestamp, csn;
+	char timebuf[22];
+	char csnbuf[64];
+
 #ifdef NEW_LOGGING
 	lutil_log_initialize(argc, argv );
 #endif
@@ -137,6 +141,27 @@ main( int argc, char **argv )
 			}
 		}
 
+		if ( SLAP_LASTMOD(be) ) {
+			struct tm *ltm;
+			time_t now = slap_get_time();
+
+			ltm = gmtime(&now);
+			lutil_gentime( timebuf, sizeof(timebuf), ltm );
+
+			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
+			csn.bv_val = csnbuf;
+
+			timestamp.bv_val = timebuf;
+			timestamp.bv_len = strlen(timebuf);
+
+			if ( be->be_rootndn.bv_len == 0 ) {
+				name.bv_val = SLAPD_ANONYMOUS;
+				name.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
+			} else {
+				name = be->be_rootndn;
+			}
+		}
+
 		if( global_schemacheck ) {
 			/* check schema */
 
@@ -150,6 +175,42 @@ main( int argc, char **argv )
 				if( continuemode ) continue;
 				break;
 			}
+		}
+
+		if ( SLAP_LASTMOD(be) ) {
+			char uuidbuf[40];
+			struct berval vals[2];
+
+			vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+			vals[0].bv_val = uuidbuf;
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_entryUUID, vals );
+
+			ber_dupbv( &vals[0], &name );
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_creatorsName, vals);
+
+			ber_dupbv( &vals[0], &name );
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_modifiersName, vals);
+
+			ber_dupbv( &vals[0], &timestamp );
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
+
+			ber_dupbv( &vals[0], &timestamp );
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
+
+			ber_dupbv( &vals[0], &csn );
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+			attr_merge( e, slap_schema.si_ad_entryCSN, vals );
 		}
 
 		if (!dryrun) {
