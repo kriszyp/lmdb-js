@@ -43,8 +43,18 @@ oidm_find(char *oid)
 
 			if( pos ) {
 				int suflen = strlen(oid + pos);
-				char *tmp = ch_malloc( om->som_oid.bv_len
+				char *tmp = SLAP_MALLOC( om->som_oid.bv_len
 					+ suflen + 1);
+				if( tmp == NULL ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, ERR,
+						"oidm_find: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"oidm_find: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+					return NULL;
+				}
 				strcpy(tmp, om->som_oid.bv_val);
 				if( suflen ) {
 					suflen = om->som_oid.bv_len;
@@ -98,7 +108,15 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 		return 1;
 	}
 
-	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
+	om = (OidMacro *) SLAP_MALLOC( sizeof(OidMacro) );
+	if( om == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, "parse_oidm: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "parse_oidm: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+		return 1;
+	}
 
 	om->som_names = NULL;
 	ldap_charray_add( &om->som_names, argv[1] );
