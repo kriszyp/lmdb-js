@@ -662,19 +662,19 @@ main( int argc, char *argv[] )
 
 		if( user != NULL ) {
 			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, user );
+				LDAP_TAG_EXOP_MODIFY_PASSWD_ID, user );
 			free(user);
 		}
 
 		if( oldpw != NULL ) {
 			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD, oldpw );
+				LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, oldpw );
 			free(oldpw);
 		}
 
 		if( newpw != NULL ) {
 			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
+				LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, newpw );
 			free(newpw);
 		}
 
@@ -697,7 +697,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_extended_operation( ld,
-		LDAP_EXOP_X_MODIFY_PASSWD, bv, 
+		LDAP_EXOP_MODIFY_PASSWD, bv, 
 		NULL, NULL, &id );
 
 	ber_bvfree( bv );

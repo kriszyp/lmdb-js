@@ -704,7 +704,6 @@ int slap_sasl_bind(
 			rc = slap_sasl_getdn( conn, username, edn, FLAG_GETDN_FINAL );
 
 			if( rc == LDAP_SUCCESS ) {
-				int i;
 				sasl_ssf_t *ssf = NULL;
 				(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
 				*ssfp = ssf ? *ssf : 0;

@@ -102,7 +102,6 @@ int slap_bv2ad(
 	AttributeDescription desc, *d2;
 	char *name, *options;
 	char *opt, *next;
-	char *s, *ptr;
 	int nlang;
 	int langlen;
 
@@ -201,14 +200,15 @@ int slap_bv2ad(
 				int rc;
 
 				rc = strncasecmp( opt, langs[i].bv_val,
-					optlen < langs[i].bv_len ? optlen : langs[i].bv_len );
+					(unsigned) optlen < langs[i].bv_len
+						? optlen : langs[i].bv_len );
 
-				if( rc == 0 && optlen == langs[i].bv_len ) {
+				if( rc == 0 && (unsigned)optlen == langs[i].bv_len ) {
 					/* duplicate (ignore) */
 					goto done;
 
 				} else if ( rc > 0 ||
-					( rc == 0 && optlen > langs[i].bv_len ))
+					( rc == 0 && (unsigned)optlen > langs[i].bv_len ))
 				{
 					AC_MEMCPY( &langs[i+1], &langs[i],
 						(nlang-i)*sizeof(struct berval) );

@@ -31,7 +31,7 @@ int passwd_extop(
 	int rc;
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
 		*text = "only authenticated users may change passwords";
@@ -101,7 +101,7 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_peek_tag( ber, &len );
 	}
 
-	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID ) {
+	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_ID ) {
 		if( id == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -133,7 +133,7 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_peek_tag( ber, &len);
 	}
 
-	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD ) {
+	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_OLD ) {
 		if( oldpass == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -165,7 +165,7 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_peek_tag( ber, &len);
 	}
 
-	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW ) {
+	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_NEW ) {
 		if( newpass == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -257,7 +257,7 @@ struct berval * slap_passwd_return(
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
 	rc = ber_printf( ber, "{tON}",
-		LDAP_TAG_EXOP_X_MODIFY_PASSWD_GEN, cred );
+		LDAP_TAG_EXOP_MODIFY_PASSWD_GEN, cred );
 
 	if( rc >= 0 ) {
 		(void) ber_flatten( ber, &bv );

@@ -17,7 +17,7 @@ static struct exop {
 	char *oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
-	{ LDAP_EXOP_X_MODIFY_PASSWD, bdb_exop_passwd },
+	{ LDAP_EXOP_MODIFY_PASSWD, bdb_exop_passwd },
 	{ NULL, NULL }
 };
 

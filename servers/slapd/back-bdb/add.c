@@ -64,8 +64,8 @@ bdb_add(
 	}
 
 	if( 0 ) {
-retry:          /* transaction retry */
-                rc = txn_abort( ltid );
+retry:	/* transaction retry */
+		rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {

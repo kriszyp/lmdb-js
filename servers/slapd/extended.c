@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 
 #include "slap.h"
 
@@ -37,6 +38,8 @@ static struct extop_list {
 	char *oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } *supp_ext_list = NULL;
+
+static SLAP_EXTOP_MAIN_FN whoami_extop;
 
 /* this list of built-in extops is for extops that are not part
  * of backends or in external modules.	essentially, this is
@@ -50,7 +53,8 @@ static struct {
 #ifdef HAVE_TLS
 	{ LDAP_EXOP_START_TLS, starttls_extop },
 #endif
-	{ LDAP_EXOP_X_MODIFY_PASSWD, passwd_extop },
+	{ LDAP_EXOP_MODIFY_PASSWD, passwd_extop },
+	{ LDAP_EXOP_X_WHO_AM_I, whoami_extop },
 	{ NULL, NULL }
 };
 
@@ -214,8 +218,9 @@ do_extended(
 		free( rspoid );
 	}
 
-	if ( rspdata != NULL )
+	if ( rspdata != NULL ) {
 		ber_bvfree( rspdata );
+	}
 
 done:
 	if ( reqdata != NULL ) {
@@ -292,4 +297,43 @@ find_extop( struct extop_list *list, char *oid )
 			return(ext);
 	}
 	return(NULL);
+}
+
+
+int
+whoami_extop (
+	Connection *conn,
+	Operation *op,
+	const char * reqoid,
+	struct berval * reqdata,
+	char ** rspoid,
+	struct berval ** rspdata,
+	LDAPControl ***rspctrls,
+	const char ** text,
+	BerVarray * refs )
+{
+	struct berval *bv;
+
+	if ( reqdata != NULL ) {
+		/* no request data should be provided */
+		*text = "no request data expected";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	bv = (struct berval *) ch_malloc( sizeof(struct berval) );
+	if( op->o_dn.bv_len ) {
+		bv->bv_len = op->o_dn.bv_len + sizeof("dn:")-1;
+		bv->bv_val = ch_malloc( bv->bv_len + 1 );
+		AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:")-1 );
+		AC_MEMCPY( &bv->bv_val[sizeof("dn:")-1], op->o_dn.bv_val,
+			op->o_dn.bv_len );
+		bv->bv_val[bv->bv_len] = '\0';
+
+	} else {
+		bv->bv_len = 0;
+		bv->bv_val = NULL;
+	}
+
+	*rspdata = bv;
+	return LDAP_SUCCESS;
 }

@@ -42,7 +42,7 @@ ldbm_back_exop_passwd(
 	struct berval ndn;
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
 	rc = slap_passwd_parse( reqdata,
 		&id, NULL, &new, text );

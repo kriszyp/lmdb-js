@@ -19,15 +19,18 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
-#define SLAP_CTRL_ABANDON	0x0001
-#define SLAP_CTRL_ADD		0x2002
-#define SLAP_CTRL_BIND		0x0004
-#define SLAP_CTRL_COMPARE	0x1008
-#define SLAP_CTRL_DELETE	0x2010
-#define SLAP_CTRL_MODIFY	0x2020
-#define SLAP_CTRL_RENAME	0x2040
-#define SLAP_CTRL_SEARCH	0x1080
-#define SLAP_CTRL_UNBIND	0x0100
+#define SLAP_CTRL_FRONTEND	0x80000000U
+
+#define SLAP_CTRL_OPFLAGS	0x0000FFFFU
+#define SLAP_CTRL_ABANDON	0x00000001U
+#define SLAP_CTRL_ADD		0x00002002U
+#define SLAP_CTRL_BIND		0x00000004U
+#define SLAP_CTRL_COMPARE	0x00001008U
+#define SLAP_CTRL_DELETE	0x00002010U
+#define SLAP_CTRL_MODIFY	0x00002020U
+#define SLAP_CTRL_RENAME	0x00002040U
+#define SLAP_CTRL_SEARCH	0x00001080U
+#define SLAP_CTRL_UNBIND	0x00000100U
 
 #define SLAP_CTRL_INTROGATE	(SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH)
 #define SLAP_CTRL_UPDATE \
@@ -42,10 +45,11 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseSubentries;
+static SLAP_CTRL_PARSE_FN parseNoOp;
 
 static struct slap_control {
 	char *sc_oid;
-	int sc_ops_mask;
+	slap_mask_t sc_mask;
 	char **sc_extendedops;
 	SLAP_CTRL_PARSE_FN *sc_parse;
 
@@ -56,6 +60,11 @@ static struct slap_control {
 	{ LDAP_CONTROL_SUBENTRIES,
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries },
+#ifdef LDAP_CONTROL_NOOP
+	{ LDAP_CONTROL_NOOP,
+		SLAP_CTRL_UPDATE, NULL,
+		parseNoOp },
+#endif
 	{ NULL }
 };
 
@@ -248,7 +257,7 @@ int get_ctrls(
 		c = find_ctrl( tctrl->ldctl_oid );
 		if( c != NULL ) {
 			/* recongized control */
-			int tagmask = -1;
+			slap_mask_t tagmask;
 			switch( op->o_tag ) {
 			case LDAP_REQ_ADD:
 				tagmask = SLAP_CTRL_ADD;
@@ -276,7 +285,7 @@ int get_ctrls(
 				break;
 			case LDAP_REQ_EXTENDED:
 				/* FIXME: check list of extended operations */
-				tagmask = -1;
+				tagmask = ~0U;
 				break;
 			default:
 				rc = LDAP_OTHER;
@@ -284,7 +293,7 @@ int get_ctrls(
 				goto return_results;
 			}
 
-			if (( c->sc_ops_mask & tagmask ) == tagmask ) {
+			if (( c->sc_mask & tagmask ) == tagmask ) {
 				/* available extension */
 
 				if( !c->sc_parse ) {
@@ -296,6 +305,11 @@ int get_ctrls(
 				rc = c->sc_parse( conn, op, tctrl, &errmsg );
 
 				if( rc != LDAP_SUCCESS ) goto return_results;
+
+				if( c->sc_mask & SLAP_CTRL_FRONTEND ) {
+					/* kludge to disable backend_control() check */
+					tctrl->ldctl_iscritical = 0;
+				}
 
 			} else if( tctrl->ldctl_iscritical ) {
 				/* unavailable CRITICAL control */
@@ -387,3 +401,27 @@ static int parseSubentries (
 
 	return LDAP_SUCCESS;
 }
+
+static int parseNoOp (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	if ( op->o_noop != SLAP_NO_CONTROL ) {
+		*text = "noop control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		*text = "noop control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_noop = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+

@@ -1409,6 +1409,7 @@ typedef struct slap_op {
 	char o_managedsait;
 	char o_subentries;
 	char o_subentries_visibility;
+	char o_noop;
 
 	int		o_abandon;	/* abandon flag */
 	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
