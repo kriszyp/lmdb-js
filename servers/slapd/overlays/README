@@ -1,3 +1,4 @@
-This directory contains project-maintained SLAPD overlays.  A number
-of other SLAPD overlays are available in the contrib directory.
+This directory contains a number of SLAPD overlays, some
+project-maintained, some not.  Some are generally usable,
+others are purely experimental.
 
