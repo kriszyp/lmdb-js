@@ -60,6 +60,23 @@ LDAP_BEGIN_DECL
 
 #define DEFAULT_CACHE_SIZE     1000
 
+/* The default search IDL stack cache depth */
+#define DEFAULT_SEARCH_STACK_DEPTH	16
+
+/* for the IDL cache */
+#define SLAP_IDL_CACHE	1
+
+#ifdef SLAP_IDL_CACHE
+typedef struct bdb_idl_cache_entry_s {
+	struct berval kstr;
+	ldap_pvt_thread_rdwr_t idl_entry_rwlock;
+	ID      *idl;
+	DB      *db;
+	struct bdb_idl_cache_entry_s* idl_lru_prev;
+	struct bdb_idl_cache_entry_s* idl_lru_next;
+} bdb_idl_cache_entry_t;
+#endif
+
 /* for the in-core cache of entries */
 typedef struct bdb_cache {
         int             c_maxsize;
@@ -100,6 +117,7 @@ struct bdb_info {
 	Cache		bi_cache;
 	Avlnode		*bi_attrs;
 	void		*bi_search_stack;
+	int		bi_search_stack_depth;
 #ifdef BDB_HIER
 	Avlnode		*bi_tree;
 	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
@@ -116,6 +134,14 @@ struct bdb_info {
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
 #ifdef LDAP_CLIENT_UPDATE
 	LDAP_LIST_HEAD(pl, slap_op) psearch_list;
+#endif
+#ifdef SLAP_IDL_CACHE
+	int		bi_idl_cache_max_size;
+	int		bi_idl_cache_size;
+	Avlnode		*bi_idl_tree;
+	bdb_idl_cache_entry_t	*bi_idl_lru_head;
+	bdb_idl_cache_entry_t	*bi_idl_lru_tail;
+	ldap_pvt_thread_mutex_t bi_idl_tree_mutex;
 #endif
 };
 

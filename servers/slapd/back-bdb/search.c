@@ -957,8 +957,6 @@ static int oc_filter(
 	return rc;
 }
 
-#define SRCH_STACK_SIZE	16
-
 static void search_stack_free( void *key, void *data)
 {
 	ch_free(data);
@@ -980,7 +978,7 @@ static void *search_stack(
 	}
 
 	if ( !ret ) {
-		ret = ch_malloc( SRCH_STACK_SIZE * BDB_IDL_UM_SIZE * sizeof( ID ) );
+		ret = ch_malloc( bdb->bi_search_stack_depth * BDB_IDL_UM_SIZE * sizeof( ID ) );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx, search_stack,
 				ret, search_stack_free );
@@ -1000,6 +998,7 @@ static int search_candidates(
 	int deref,
 	ID	*ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc, depth = 1;
 	Filter		f, scopef, rf, xf;
 	ID		*stack;
@@ -1087,7 +1086,7 @@ static int search_candidates(
 #endif
 
 	/* Allocate IDL stack, plus 1 more for former tmp */
-	if ( depth+1 > SRCH_STACK_SIZE ) {
+	if ( depth+1 > bdb->bi_search_stack_depth ) {
 		stack = ch_malloc( (depth + 1) * BDB_IDL_UM_SIZE * sizeof( ID ) );
 	} else {
 		stack = search_stack( be, op );
@@ -1095,7 +1094,7 @@ static int search_candidates(
 
 	rc = bdb_filter_candidates( be, &f, ids, stack, stack+BDB_IDL_UM_SIZE );
 
-	if ( depth+1 > SRCH_STACK_SIZE ) {
+	if ( depth+1 > bdb->bi_search_stack_depth ) {
 		ch_free( stack );
 	}
 

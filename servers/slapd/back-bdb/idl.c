@@ -18,6 +18,43 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
+#ifdef SLAP_IDL_CACHE
+#define IDL_LRU_DELETE( bdb, e ) do { 					\
+	if ( e->idl_lru_prev != NULL ) {				\
+		e->idl_lru_prev->idl_lru_next = e->idl_lru_next; 	\
+	} else {							\
+		bdb->bi_idl_lru_head = e->idl_lru_next;			\
+	}								\
+	if ( e->idl_lru_next != NULL ) {				\
+		e->idl_lru_next->idl_lru_prev = e->idl_lru_prev;	\
+	} else {							\
+		bdb->bi_idl_lru_tail = e->idl_lru_prev;			\
+	}								\
+} while ( 0 )
+
+#define IDL_LRU_ADD( bdb, e ) do {					\
+	e->idl_lru_next = bdb->bi_idl_lru_head;				\
+	if ( e->idl_lru_next != NULL ) {				\
+		e->idl_lru_next->idl_lru_prev = (e);			\
+	}								\
+	(bdb)->bi_idl_lru_head = (e);					\
+	e->idl_lru_prev = NULL;						\
+	if ( (bdb)->bi_idl_lru_tail == NULL ) {				\
+		(bdb)->bi_idl_lru_tail = (e);				\
+	}								\
+} while ( 0 )
+
+static int
+bdb_idl_entry_cmp( bdb_idl_cache_entry_t* idl1, bdb_idl_cache_entry_t* idl2 )
+{
+	int rc;
+
+	if ((rc = idl1->db - idl2->db )) return rc;
+	if ((rc = idl1->kstr.bv_len - idl2->kstr.bv_len )) return rc;
+	return ( memcmp ( idl1->kstr.bv_val, idl2->kstr.bv_val , idl1->kstr.bv_len ) );
+}
+#endif
+
 #if IDL_DEBUG > 0
 static void idl_check( ID *ids )
 {
@@ -262,6 +299,9 @@ bdb_idl_fetch_key(
 	size_t len;
 	int rc2;
 	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
+#ifdef SLAP_IDL_CACHE
+	bdb_idl_cache_entry_t idl_tmp;
+#endif
 
 	/* buf must be large enough to grab the entire IDL in one
 	 * get(), otherwise BDB 4 will leak resources on subsequent
@@ -286,6 +326,24 @@ bdb_idl_fetch_key(
 #endif
 	}
 	assert( ids != NULL );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			BDB_IDL_CPY( ids, matched_idl_entry->idl );
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			IDL_LRU_ADD( bdb, matched_idl_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+			return LDAP_SUCCESS;
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 
@@ -400,6 +458,36 @@ bdb_idl_fetch_key(
 		return -1;
 	}
 
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *ee;
+		ee = (bdb_idl_cache_entry_t *) malloc( sizeof( bdb_idl_cache_entry_t ) );
+		ee->db = db;
+		ee->idl = (ID*) malloc ( BDB_IDL_SIZEOF ( ids ) );
+		ee->idl_lru_prev = NULL;
+		ee->idl_lru_next = NULL;
+		BDB_IDL_CPY( ee->idl, ids );
+		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		avl_insert( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp, avl_dup_error );
+		IDL_LRU_ADD( bdb, ee );
+		if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+			int i = 0;
+			while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
+				ee = bdb->bi_idl_lru_tail;
+				avl_delete( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp );
+				IDL_LRU_DELETE( bdb, ee );
+				i++;
+				--bdb->bi_idl_cache_size;
+				free( ee->kstr.bv_val );
+				free( ee->idl );
+				free( ee );
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
+
 	return rc;
 }
 
@@ -433,6 +521,25 @@ bdb_idl_insert_key(
 	}
 
 	assert( id != NOID );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry, (AVL_CMP) bdb_idl_entry_cmp );
+			--bdb->bi_idl_cache_size;
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			free( matched_idl_entry->kstr.bv_val );
+			free( matched_idl_entry->idl );
+			free( matched_idl_entry );
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 	data.size = sizeof( ID );
@@ -624,6 +731,25 @@ bdb_idl_delete_key(
 #endif
 	}
 	assert( id != NOID );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry, (AVL_CMP) bdb_idl_entry_cmp );
+			--bdb->bi_idl_cache_size;
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			free( matched_idl_entry->kstr.bv_val );
+			free( matched_idl_entry->idl );
+			free( matched_idl_entry );
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 	data.data = &tmp;
@@ -1007,3 +1133,4 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 
 	return NOID;
 }
+
