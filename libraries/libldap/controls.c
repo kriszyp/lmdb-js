@@ -117,8 +117,10 @@ int ldap_int_get_controls(
 	char *opaque;
 
 	assert( ber != NULL );
-	assert( ctrls != NULL );
 
+	if( ctrls == NULL ) {
+		return LDAP_SUCCESS;
+	}
 	*ctrls = NULL;
 
 	len = ber_pvt_ber_remaining(ber);
@@ -127,6 +129,7 @@ int ldap_int_get_controls(
 		/* no controls */
 		return LDAP_SUCCESS;
 	}
+
 
 	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
 		if( tag == LBER_ERROR ) {
