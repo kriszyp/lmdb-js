@@ -281,7 +281,7 @@ get_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
 #endif
-		err = get_filter_list( conn, ber, &f->f_and, &ftmp, text );
+		err = get_filter_list( conn, ber, &f->f_or, &ftmp, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
