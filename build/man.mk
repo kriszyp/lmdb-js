@@ -35,7 +35,8 @@ install-common:
 		if test -f "$(srcdir)/$$page.links" ; then \
 			for link in `$(CAT) $(srcdir)/$$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
-				$(LN_S) -f $$page $(MANDIR)/$$link; \
+				$(RM) $(MANDIR)/$$link; \
+				$(LN_S) $$page $(MANDIR)/$$link; \
 			done; \
 		fi; \
 	done

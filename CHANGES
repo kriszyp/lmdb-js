@@ -2,7 +2,8 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	<insert changes here>
+	Build environment
+		Don't use "ln -s -f file link" (ITS#227)
 
 Changes included in OpenLDAP 1.2.4
 	CVS Tag: OPENLDAP_REL_ENG_1_2_4
