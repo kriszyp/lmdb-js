@@ -18,6 +18,8 @@
 #include "lutil.h"
 #include "lber_pvt.h"
 
+#include "ldap_rq.h"
+
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
@@ -331,6 +333,12 @@ int backend_startup(Backend *be)
 		}
 	}
 
+#ifdef LDAP_SYNCREPL
+	ldap_pvt_thread_mutex_init( &syncrepl_rq.rq_mutex );
+	LDAP_STAILQ_INIT( &syncrepl_rq.task_list );
+	LDAP_STAILQ_INIT( &syncrepl_rq.run_list );
+#endif
+
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
 		/* append global access controls */
@@ -355,8 +363,10 @@ int backend_startup(Backend *be)
 #ifdef LDAP_SYNCREPL
 		if ( backendDB[i].syncinfo != NULL ) {
 			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
+			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
 							(void *) &backendDB[i] );
+			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
 #endif
 	}

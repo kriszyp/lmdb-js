@@ -256,11 +256,11 @@ struct runqueue_s syncrepl_rq;
 
 void init_syncrepl( )
 {
-        return -1;
+	return;
 }
 
 void* do_syncrepl( void *ctx, void *arg )
 {
-                return -1;
+	return NULL;
 }
 #endif

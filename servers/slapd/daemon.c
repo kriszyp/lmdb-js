@@ -1219,8 +1219,8 @@ slapd_daemon_task(
 #ifdef LDAP_SYNCREPL
 		struct timeval		diff;
 		struct timeval		*cat;
-		BackendDB			*db;
 		time_t				tdelta = 1;
+		struct re_s*		rtask;
 #endif
 
 		now = slap_get_time();
@@ -1298,13 +1298,13 @@ slapd_daemon_task(
 
 #ifdef LDAP_SYNCREPL
 		/* cat is of struct timeval containing the earliest schedule */
-		ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat, &db );
+		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		if ( cat != NULL ) {
 			diff.tv_sec = cat->tv_sec - slap_get_time();
 			if ( diff.tv_sec == 0 )
 				diff.tv_sec = tdelta;
-		} else {
-			cat = NULL;
 		}
 #endif
 
@@ -1387,11 +1387,19 @@ slapd_daemon_task(
 #endif
 
 #ifdef LDAP_SYNCREPL
-			if ( cat && cat->tv_sec && cat->tv_sec <= slap_get_time() ) {
+			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+			} else if ( cat && cat->tv_sec && cat->tv_sec <= slap_get_time() ) {
+				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 				ldap_pvt_thread_pool_submit( &connection_pool,
-								do_syncrepl, (void *) db );
-				/* FIXME : reschedule upon do_syncrepl termination */
-				ldap_pvt_runqueue_resched( &syncrepl_rq );
+								do_syncrepl, (void *) rtask );
+			} else {
+				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 			}
 #endif
 			ldap_pvt_thread_yield();

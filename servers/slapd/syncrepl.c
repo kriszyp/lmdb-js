@@ -118,7 +118,8 @@ do_syncrepl(
 	void	*ctx,
 	void	*arg )
 {
-	Backend *be = arg;
+	struct re_s* rtask = arg;
+	Backend *be = rtask->private;
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
 
 	SlapReply	rs = {REP_RESULT};
@@ -634,7 +635,6 @@ do_syncrepl(
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrepl : unknown result\n", 0, 0, 0 );
 #endif
-		return NULL;
 	}
 
 done:
@@ -646,6 +646,16 @@ done:
 	if ( res )
 		ldap_msgfree( res );
 	ldap_unbind( ld );
+
+	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
+	if ( si->type == LDAP_SYNC_REFRESH_ONLY ) {
+		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+	} else {
+		ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+	}
+	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+
 	return NULL;
 }
 
