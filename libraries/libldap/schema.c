@@ -212,9 +212,9 @@ print_qdescrs(safe_string *ss, char **sa)
 	 */
 	if ( !sa[0] || ( sa[0] && sa[1] ) ) {
 		print_whsp(ss);
-		print_literal(ss,"(");
+		print_literal(ss,"("/*)*/);
 		print_qdescrlist(ss,sa);
-		print_literal(ss,")");
+		print_literal(ss,/*(*/")");
 		return(print_whsp(ss));
 	} else {
 	  return(print_qdescr(ss,*sa));
@@ -245,10 +245,10 @@ static int
 print_oids(safe_string *ss, char **sa)
 {
 	if ( sa[0] && sa[1] ) {
-		print_literal(ss,"(");
+		print_literal(ss,"("/*)*/);
 		print_oidlist(ss,sa);
 		print_whsp(ss);
-		return(print_literal(ss,")"));
+		return(print_literal(ss,/*(*/")"));
 	} else {
 		return(print_woid(ss,*sa));
 	}
@@ -282,6 +282,8 @@ print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
 			print_whsp(ss);
 		}
 	}
+
+	return 0;
 }
 
 char *
@@ -294,7 +296,7 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, syn->syn_oid);
@@ -309,7 +311,7 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 
 	print_extensions(ss, syn->syn_extensions);
 
-	print_literal(ss,")");
+	print_literal(ss,/*(*/ ")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -326,7 +328,7 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"(" /*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, mr->mr_oid);
@@ -358,7 +360,7 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 
 	print_extensions(ss, mr->mr_extensions);
 
-	print_literal(ss,")");
+	print_literal(ss,/*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -375,7 +377,7 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, oc->oc_oid);
@@ -437,7 +439,7 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 
 	print_extensions(ss, oc->oc_extensions);
 
-	print_literal(ss,")");
+	print_literal(ss, /*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -454,7 +456,7 @@ ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, at->at_oid);
@@ -540,7 +542,7 @@ ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 
 	print_extensions(ss, at->at_extensions);
 
-	print_literal(ss,")");
+	print_literal(ss,/*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -833,12 +835,12 @@ parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 	if ( !sval ) {
 		return NULL;
 	}
-	if ( **sp == '{' ) {
+	if ( **sp == '{' /*}*/ ) {
 		(*sp)++;
 		*len = atoi(*sp);
 		while ( isdigit(**sp) )
 			(*sp)++;
-		if ( **sp != '}' ) {
+		if ( **sp != /*{*/ '}' ) {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
 			return NULL;
