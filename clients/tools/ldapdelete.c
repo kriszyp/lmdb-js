@@ -435,7 +435,10 @@ static int dodelete(
     LDAP	*ld,
     const char	*dn)
 {
-	int	rc;
+	int id;
+	int	rc, code;
+	char *matcheddn = NULL, *text = NULL, **refs = NULL;
+	LDAPMessage *res;
 
 	if ( verbose ) {
 		printf( "%sdeleting entry \"%s\"\n",
@@ -451,16 +454,49 @@ static int dodelete(
 	 */
 	if ( prune ) deletechildren( ld, dn );
 
-	rc = ldap_delete_s( ld, dn );
+	rc = ldap_delete_ext( ld, dn, NULL, NULL, &id );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_delete" );
+		ldap_perror( ld, "ldap_delete_ext" );
+		return rc;
 	}
 
-	if ( verbose ) {
-		printf( "\tremoved\n" );
+	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_result" );
+		return rc;
 	}
 
-	return rc;
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
+
+	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+
+		if( text && *text ) {
+			printf( "Additional info: %s\n", text );
+		}
+
+		if( matcheddn && *matcheddn ) {
+			printf( "Matched DN: %s\n", matcheddn );
+		}
+
+		if( refs ) {
+			int i;
+			for( i=0; refs[i]; i++ ) {
+				printf("Referral: %s\n", refs[i] );
+			}
+		}
+	}
+
+	ber_memfree( text );
+	ber_memfree( matcheddn );
+	ber_memvfree( refs );
+
+	return code;
 }
 
 /*

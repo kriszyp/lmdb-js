@@ -91,8 +91,11 @@ main( int argc, char *argv[] )
 	LDAP	       *ld;
 	struct berval *bv = NULL;
 
-	char	*retoid;
-	struct berval *retdata;
+	int id, code;
+	LDAPMessage *res;
+	char *matcheddn = NULL, *text = NULL, **refs = NULL;
+	char	*retoid = NULL;
+	struct berval *retdata = NULL;
 
 	if (argc == 1)
 		usage (argv[0]);
@@ -429,12 +432,42 @@ main( int argc, char *argv[] )
 		ber_free( ber, 1 );
 	}
 
-	rc = ldap_extended_operation_s( ld,
+	if ( noupdates ) {
+		rc = LDAP_SUCCESS;
+		goto skip;
+	}
+
+	rc = ldap_extended_operation( ld,
 		LDAP_EXOP_X_MODIFY_PASSWD, bv, 
-		NULL, NULL,
-		&retoid, &retdata );
+		NULL, NULL, &id );
 
 	ber_bvfree( bv );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_extended_operation" );
+		ldap_unbind( ld );
+		return EXIT_FAILURE;
+	}
+
+	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_result" );
+		return rc;
+	}
+
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
+
+	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
 
 	if( retdata != NULL ) {
 		ber_tag_t tag;
@@ -460,15 +493,32 @@ main( int argc, char *argv[] )
 		ber_free( ber, 1 );
 	}
 
-	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_extended_operation" );
-		ldap_unbind( ld );
-		return EXIT_FAILURE;
+	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+
+		if( text && *text ) {
+			printf( "Additional info: %s\n", text );
+		}
+
+		if( matcheddn && *matcheddn ) {
+			printf( "Matched DN: %s\n", matcheddn );
+		}
+
+		if( refs ) {
+			int i;
+			for( i=0; refs[i]; i++ ) {
+				printf("Referral: %s\n", refs[i] );
+			}
+		}
 	}
 
-	ldap_memfree( retoid );
+	ber_memfree( text );
+	ber_memfree( matcheddn );
+	ber_memvfree( refs );
+	ber_memfree( retoid );
 	ber_bvfree( retdata );
 
+skip:
 	/* disconnect from server */
 	ldap_unbind (ld);
 
