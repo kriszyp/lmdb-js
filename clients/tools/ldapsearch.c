@@ -32,6 +32,7 @@
 #include "ldif.h"
 #include "ldap_defaults.h"
 
+#undef DEPSEP
 #define DEFSEP		"="
 
 static void
