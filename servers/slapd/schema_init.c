@@ -2791,18 +2791,18 @@ firstComponentNormalize(
 {
 	int rc;
 	struct berval oid;
-	ber_len_t len;
+	ber_len_t len = 0;
 
-	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
 
-	if( val->bv_val[0] != '(' /*')'*/ &&
-		val->bv_val[0] != '{' /*'}'*/ )
+	if( val->bv_val[0] == '(' /*')'*/ ||
+		val->bv_val[0] == '{' /*'}'*/ )
 	{
-		return LDAP_INVALID_SYNTAX;
+		len = 1;
 	}
 
 	/* trim leading white space */
-	for( len=1;
+	for( ;
 		len < val->bv_len && ASCII_SPACE(val->bv_val[len]);
 		len++ )
 	{
