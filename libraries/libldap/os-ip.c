@@ -115,7 +115,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 	osip_debug(ld, "ldap_prepare_socket: %d\n", s,0,0);
 
 #ifdef TCP_NODELAY
-	if( proto = LDAP_PROTO_TCP ) {
+	if( proto == LDAP_PROTO_TCP ) {
 		int dummy = 1;
 		if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
 			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
