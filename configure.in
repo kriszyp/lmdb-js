@@ -2939,7 +2939,6 @@ libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
-libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
