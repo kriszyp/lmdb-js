@@ -461,17 +461,19 @@ bdb_db_close( BackendDB *be )
 	bdb_cache_release_all (&bdb->bi_cache);
 
 #ifdef SLAP_IDL_CACHE
-	ldap_pvt_thread_mutex_lock ( &bdb->bi_idl_tree_mutex );
-	entry = bdb->bi_idl_lru_head;
-	while ( entry != NULL ) {
-		next_entry = entry->idl_lru_next;
-		avl_delete( &bdb->bi_idl_tree, (caddr_t) entry, bdb_idl_entry_cmp );
-		free( entry->idl );
-		free( entry->kstr.bv_val );
-		free( entry );
-		entry = next_entry;
+	if ( bdb->bi_idl_cache_max_size ) {
+		ldap_pvt_thread_mutex_lock ( &bdb->bi_idl_tree_mutex );
+		entry = bdb->bi_idl_lru_head;
+		while ( entry != NULL ) {
+			next_entry = entry->idl_lru_next;
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) entry, bdb_idl_entry_cmp );
+			free( entry->idl );
+			free( entry->kstr.bv_val );
+			free( entry );
+			entry = next_entry;
+		}
+		ldap_pvt_thread_mutex_unlock ( &bdb->bi_idl_tree_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock ( &bdb->bi_idl_tree_mutex );
 #endif
 
 	return 0;
