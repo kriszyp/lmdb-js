@@ -27,7 +27,7 @@ slap_operational_subschemaSubentry( Backend *be )
 	Attribute	*a;
 
 	/* The backend wants to take care of it */
-	if ( be && be->be_schemadn.bv_val ) return NULL;
+	if ( be && be!= frontendDB && be->be_schemadn.bv_val ) return NULL;
 
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_subschemaSubentry;
