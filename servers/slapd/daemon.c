@@ -864,9 +864,7 @@ slapd_daemon_task(
 			 * active.
 			 */
 
-			while ( ( rc = connection_read( rd ) ) > 0 )
-				;
-			if ( rc < 0 ) {
+			if ( connection_read( rd ) < 0 ) {
 				slapd_close( rd );
 			}
 		}
