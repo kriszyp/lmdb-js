@@ -794,7 +794,7 @@ bdb_cache_modify(
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
-	int rc = 0;	
+	int rc;
 	/* Get write lock on data */
 	rc = bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
 
@@ -825,10 +825,11 @@ bdb_cache_modrdn(
 {
 	EntryInfo *ei = BEI(e), *pei;
 	struct berval rdn;
-	int rc = 0;
+	int rc;
 
 	/* Get write lock on data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc =  bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	if ( rc ) return rc;
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
@@ -911,7 +912,13 @@ bdb_cache_delete(
 	bdb_cache_entryinfo_lock( ei );
 
 	/* Get write lock on the data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	if ( rc ) {
+		/* couldn't lock, undo and give up */
+		ei->bei_state ^= CACHE_ENTRY_DELETED;
+		bdb_cache_entryinfo_unlock( ei );
+		return rc;
+	}
 
 	/* set cache write lock */
 	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );

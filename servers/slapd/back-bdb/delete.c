@@ -545,8 +545,13 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	} else {
-		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
+		rc = bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
 			locker, &lock );
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
