@@ -61,6 +61,18 @@ FreeComponentBits ( ComponentBits* v ) {
 }
 
 /*
+ * GSER Encoder : BIT STRING
+ */
+int
+GEncComponentBits ( GenBuf *b, ComponentBits *in )
+{
+    if ( !in )
+	return (-1);
+    return GEncAsnBitsContent ( b, &in->value );
+}
+
+
+/*
  * GSER Decoder : BIT STRING
  */
 int
@@ -164,6 +176,16 @@ BDecComponentBits ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
  
 	return LDAP_SUCCESS;
 }
+
+/*
+ * Component GSER BMPString Encoder
+ */
+ int
+ GEncComponentBMPString ( GenBuf *b, ComponentBMPString *in )
+ {
+    if ( !in || in->value.octetLen <= 0 ) return (-1);
+    return GEncBMPStringContent ( b, &in->value );
+ }
 
 /*
  * Component GSER BMPString Decoder
@@ -275,6 +297,17 @@ BDecComponentBMPString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
 }
 
 /*
+ * Component GSER Encoder : UTF8 String
+ */
+int
+GEncComponentUTF8String ( GenBuf *b, ComponentUTF8String *in )
+{
+    if ( !in || in->value.octetLen <= 0 )
+        return (-1);
+    return GEncUTF8StringContent ( b, &in->value );
+}
+
+/*
  * Component GSER Decoder :  UTF8 String
  */
 int
@@ -379,6 +412,17 @@ BDecComponentUTF8String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 }
 
 /*
+ * Component GSER Encoder :  Teletex String
+ */
+int
+GEncComponentTeletexString ( GenBuf *b, ComponentTeletexString *in )
+{
+    if ( !in || in->value.octetLen <= 0 )
+        return (-1);
+    return GEncTeletexStringContent ( b, &in->value );
+}
+
+/*
  * Component GSER Decoder :  Teletex String
  */
 int
@@ -447,6 +491,17 @@ MatchingComponentBool(char* oid, ComponentSyntaxInfo* csi_attr,
         b = ((ComponentBool*)csi_assert);
 
         return (a->value == b->value) ? LDAP_COMPARE_TRUE:LDAP_COMPARE_FALSE;
+}
+
+/*
+ * GSER Encoder : BOOLEAN
+ */
+int
+GEncComponentBool ( GenBuf *b, ComponentBool *in )
+{
+    if ( !in )
+        return (-1);
+    return GEncAsnBoolContent ( b, &in->value );
 }
 
 /*
@@ -575,6 +630,17 @@ MatchingComponentEnum ( char* oid, ComponentSyntaxInfo *csi_attr,
 }
 
 /*
+ * GSER Encoder : ENUMERATE
+ */
+int
+GEncComponentEnum ( GenBuf *b, ComponentEnum *in )
+{
+    if ( !in )
+	return (-1);
+    return GEncAsnEnumContent ( b, &in->value );
+}
+
+/*
  * GSER Decoder : ENUMERATE
  */
 int
@@ -680,8 +746,15 @@ BDecComponentEnum ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 }
 
 /*
- * IA5String
+ * Component GSER Encoder : IA5String
  */
+int
+GEncComponentIA5Stirng ( GenBuf *b, ComponentIA5String* in )
+{
+    if ( !in || in->value.octetLen <= 0 ) return (-1);
+    return GEncIA5StringContent( b, &in->value );
+}
+
 /*
  * Component BER Decoder : IA5String
  */
@@ -762,6 +835,16 @@ function*/
         b = ((ComponentInt*)csi_assert);
                                                                           
         return ( a->value == b->value ) ? LDAP_COMPARE_TRUE:LDAP_COMPARE_FALSE;
+}
+
+/*
+ * GSER Encoder : INTEGER
+ */
+int
+GEncComponentInt ( GenBuf *b, ComponentInt* in )
+{
+    if ( !in ) return (-1);
+    return GEncAsnIntContent ( b, &in->value );
 }
 
 /*
@@ -881,6 +964,16 @@ MatchingComponentNull ( char *oid, ComponentSyntaxInfo *csi_attr,
         b = ((ComponentNull*)csi_assert);
                                                                           
         return (a->value == b->value) ? LDAP_COMPARE_TRUE:LDAP_COMPARE_FALSE;
+}
+
+/*
+ * GSER Encoder : NULL
+ */
+int
+GEncComponentNull ( GenBuf *b, ComponentNull *in )
+{
+    if ( !in ) return (-1);
+    return GEncAsnNullContent ( b, &in->value );
 }
 
 /*
@@ -1078,6 +1171,17 @@ MatchingComponentOcts ( char* oid, ComponentSyntaxInfo* csi_attr,
 }
 
 /*
+ * GSER Encoder : OCTET STRING
+ */
+int
+GEncComponentOcts ( GenBuf* b, ComponentOcts *in )
+{
+    if ( !in || in->value.octetLen <= 0 )
+        return (-1);
+    return GEncAsnOctsContent ( b, &in->value );
+}
+
+/*
  * GSER Decoder : OCTET STRING
  */
 int
@@ -1202,6 +1306,15 @@ MatchingComponentOid ( char *oid, ComponentSyntaxInfo *csi_attr ,
         rc = ( strncmp( a->value.octs, b->value.octs, a->value.octetLen ) == 0 );
                                                                           
         return rc ? LDAP_COMPARE_TRUE:LDAP_COMPARE_FALSE;
+}
+
+/*
+ * GSER Encoder : OID
+ */
+GEncComponentOid ( GenBuf *b, ComponentOid *in )
+{
+    if ( !in || in->value.octetLen <= 0 ) return (-1);
+    return GEncAsnOidContent( b, &in->value );
 }
 
 /*
@@ -1436,6 +1549,17 @@ MatchingComponentReal (char* oid, ComponentSyntaxInfo *csi_attr,
 }
 
 /*
+ * GSER Encoder : Real
+ */
+int
+GEncComponentReal ( GenBuf *b, ComponentReal *in )
+{
+    if ( !in )
+	return (-1);
+    return GEncAsnRealContent ( b, &in->value );
+}
+
+/*
  * GSER Decoder : Real
  */
 int
@@ -1564,6 +1688,17 @@ MatchingComponentRelativeOid ( char* oid, ComponentSyntaxInfo *csi_attr,
 }
 
 /*
+ * GSER Encoder : RELATIVE_OID.
+ */
+int
+GEncComponentRelativeOid ( GenBuf *b, ComponentRelativeOid *in )
+{
+    if ( !in || in->value.octetLen <= 0 )
+	return (-1);
+    return GEncAsnRelativeOidContent ( b , &in->value );
+}
+
+/*
  * GSER Decoder : RELATIVE_OID.
  */
 int
@@ -1664,7 +1799,18 @@ BDecComponentRelativeOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, vo
 }
 
 /*
- * GSER Decoder : UniverseString
+ * GSER Encoder : UniversalString
+ */
+int
+GEncComponentUniversalString ( GenBuf *b, ComponentUniversalString *in )
+{
+    if ( !in || in->value.octetLen <= 0 )
+	return (-1);
+    return GEncUniversalStringContent( b, &in->value );
+}
+
+/*
+ * GSER Decoder : UniversalString
  */
 static int
 UTF8toUniversalString( char* octs, int len){
@@ -1819,6 +1965,14 @@ SetAnyTypeByComponentInt( ComponentAny *v, ComponentInt id) {
 		v->cai = (ComponentAnyInfo*) anyInfo;
 	else
 		v->cai = NULL;
+}
+
+int
+GEncComponentAny ( GenBuf *b, ComponentAny *in )
+{
+    if ( in->cai != NULL  && in->cai->Encode != NULL )
+        return in->cai->Encode(b, &in->value );
+    else return (-1);
 }
 
 int
