@@ -360,7 +360,7 @@ main (int argc, char *argv[])
 	int		i, j;
 	int		ldapport = 0;
 	int		debug = 0;
-	int		scope = -1;
+	int		scope = LDAP_SCOPE_SUBTREE;
 	int		sizelimit = -1;
 	int		timelimit = -1;
 	int		version = -1;

@@ -96,9 +96,9 @@ main( int argc, char **argv )
     debug = verbose = allow_binary = not = vals2tmp =
 	    attrsonly = ldif = want_bindpw = 0;
 
-	deref = referrals = sizelimit = timelimit =
-    	scope = version = -1;
+	deref = referrals = sizelimit = timelimit = version = -1;
 
+	scope = LDAP_SCOPE_SUBTREE;
     authmethod = LDAP_AUTH_SIMPLE;
 
     while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:P:p:F:a:w:l:z:S:")) != EOF ) {
