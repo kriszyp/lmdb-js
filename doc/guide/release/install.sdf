@@ -100,7 +100,7 @@ E:	% su root -c 'make install'
 
 + That's it!
 
-.See the {{Administrator's Guide}} and the manual pages for the
+See the {{Administrator's Guide}} and the manual pages for the
 individual applications for configuration and use information.
 You may also want to edit the configuration files used by the
 various components.  These configuration files are located in
@@ -114,18 +114,18 @@ the OpenLDAP configuration directory (normally
 >	slapd.conf		Standalone LDAP daemon
 >	schema/*.schema		Schema Definitions
 
-.There are section 5 man pages for these configuration files.
+There are section 5 man pages for these configuration files.
 
 
 P2: Building OpenLDAP For More Than One Platform
 
-.You can build OpenLDAP for more than one platform from the
+You can build OpenLDAP for more than one platform from the
 same source tree.
 This is accomplished by using {{make}}(1) {{EX:VPATH}} support.
 If your {{make}}(1) program is old and doesn't have {{EX:VPATH}}
 support, install {{BSD Make}} or {{GNU Make}}.
 
-.Follow these steps for each different platform:
+Follow these steps for each different platform:
 
 ^ Create a directory for the platform object files.
 
@@ -139,7 +139,7 @@ E:	% cd obj-platform
 
 E:	% [env settings] ../configure --src-dir=.. [options]
 
-( replace "{{F:..}}" with the appropriate path )
+. ( replace "{{F:..}}" with the appropriate path )
 
 + Continue as above (starting at step 6).
 
@@ -158,7 +158,7 @@ The configure script will also use your environmental
 variables for determining compiler/linker options.   This can
 be used to manual specify features and compilation options.
 
-.WARNING: Executables built in your environment may not run
+Note[label=Warning]: Executables built in your environment may not run
 in your users' environments.  The portability of executables
 between environments is your responsibility.
 
@@ -221,14 +221,14 @@ E:	% [env] PATH="/usr/css/bin:$PATH" ./configure
 	
 * Using locally installed software
 
-To use software under installed under {{F:/usr/local}}.
+.To use software under installed under {{F:/usr/local}}.
 
 E:	[env] \
 E:		CPPFLAGS="-I/usr/local/include" \
 E:		LDFLAGS="-L/usr/local/lib" \
 E:		./configure
 
-.NOTE: You may have add additional flags if your system
+Note: You may have add additional flags if your system
 supports shared libraries.
 
 
