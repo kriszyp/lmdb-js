@@ -70,6 +70,8 @@
 #define objectIdentifierIndexer	octetStringIndexer
 #define objectIdentifierFilter	octetStringFilter
 
+#define OpenLDAPaciMatch						NULL
+
 #define bitStringMatch			octetStringMatch
 #define bitStringIndexer		octetStringIndexer
 #define bitStringFilter			octetStringFilter
@@ -185,6 +187,8 @@
 #define objectIdentifierMatch			octetStringMatch
 #define objectIdentifierIndexer			caseIgnoreIA5Indexer
 #define objectIdentifierFilter			caseIgnoreIA5Filter
+
+#define OpenLDAPaciMatch						NULL
 
 #define generalizedTimeMatch			caseIgnoreIA5Match
 #define generalizedTimeOrderingMatch	caseIgnoreIA5Match
