@@ -135,6 +135,13 @@ ldif_parse_line(
 		s++;
 	}
 
+	/* check for continued line markers that should be deleted */
+	for ( p = s, d = s; *p; p++ ) {
+		if ( *p != CONTINUED_LINE_MARKER )
+			*d++ = *p;
+	}
+	*d = '\0';
+
 	/* if no value is present, error out */
 	if ( *s == '\0' ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
@@ -144,13 +151,6 @@ ldif_parse_line(
 		vlen = 0;
 		goto done;
 	}
-
-	/* check for continued line markers that should be deleted */
-	for ( p = s, d = s; *p; p++ ) {
-		if ( *p != CONTINUED_LINE_MARKER )
-			*d++ = *p;
-	}
-	*d = '\0';
 
 	if ( b64 ) {
 		char *byte = s;
