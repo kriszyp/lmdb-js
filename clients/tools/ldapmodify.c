@@ -53,28 +53,16 @@ extern int ldap_debug, lber_debug;
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
 
 
-#ifdef NEEDPROTOS
-static int process_ldapmod_rec( char *rbuf );
-static int process_ldif_rec( char *rbuf );
-static void addmodifyop( LDAPMod ***pmodsp, int modop, char *attr,
-	char *value, int vlen );
-static int domodify( char *dn, LDAPMod **pmods, int newentry );
-static int dodelete( char *dn );
-static int domodrdn( char *dn, char *newrdn, int deleteoldrdn );
-static void freepmods( LDAPMod **pmods );
-static int fromfile( char *path, struct berval *bv );
-static char *read_one_record( FILE *fp );
-#else /* NEEDPROTOS */
-static int process_ldapmod_rec();
-static int process_ldif_rec();
-static void addmodifyop();
-static int domodify();
-static int dodelete();
-static int domodrdn();
-static void freepmods();
-static int fromfile();
-static char *read_one_record();
-#endif /* NEEDPROTOS */
+static int process_ldapmod_rec LDAP_P(( char *rbuf ));
+static int process_ldif_rec LDAP_P(( char *rbuf ));
+static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
+	char *value, int vlen ));
+static int domodify LDAP_P(( char *dn, LDAPMod **pmods, int newentry ));
+static int dodelete LDAP_P(( char *dn ));
+static int domodrdn LDAP_P(( char *dn, char *newrdn, int deleteoldrdn ));
+static void freepmods LDAP_P(( LDAPMod **pmods ));
+static int fromfile LDAP_P(( char *path, struct berval *bv ));
+static char *read_one_record LDAP_P(( FILE *fp ));
 
 
 main( argc, argv )

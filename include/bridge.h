@@ -189,7 +189,7 @@
 /*
  * put a cover on the tty-related ioctl calls we need to use
  */
-#if !defined( HAVE_TERMIOS )
+#if !defined( HAVE_TERMIOS_H )
 #define TERMIO_TYPE struct sgttyb
 #define TERMFLAG_TYPE int
 #define GETATTR( fd, tiop )	ioctl((fd), TIOCGETP, (caddr_t)(tiop))

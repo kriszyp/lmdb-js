@@ -3,7 +3,7 @@
 #ifndef _LTHREAD_H
 #define _LTHREAD_H
 
-#include <portable.h>
+#include "portable.h"
 
 LDAP_BEGIN_DECL
 

@@ -10,21 +10,29 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <ac/string.h>
 #include <signal.h>
-#include <string.h>
+
 #ifdef DOS
 #include <malloc.h>
 #endif
 #include <memory.h>
 #if defined( NeXT )
-#include <stdlib.h>
 #endif
 #include <ctype.h>
+#include <ac/time.h>
 #include <errno.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include <ldapconfig.h>
+
 #if !defined(DOS) && !defined( VMS)
 #include <sys/types.h>
 #endif
@@ -34,6 +42,7 @@
 #else /* USE_TERMIOS */
 #include <sgtty.h>
 #endif /* USE_TERMIOS */
+
 #include "ud.h"
 
 #if defined(VMS)
@@ -80,7 +89,7 @@ char *prompt;
 #endif
 	/*
 	 *  Stolen from the getpass() routine.  Can't use the plain
-	 *  getpass() for two reasons.  One is that X.500 passwords
+	 *  getpass() for two reasons.  One is that LDAP passwords
 	 *  can be really, really long - much longer than 8 chars.
 	 *  The second is that we like to make this client available
 	 *  out of inetd via a Merit asynch port, and we need to be
@@ -226,8 +235,6 @@ FILE *where;
 fatal(s)
 char *s;
 {
-	void exit();
-
 	if (errno != 0)
 		perror(s);
 #ifdef KERBEROS
@@ -594,13 +601,15 @@ unsigned int size;
 void Free(ptr)
 char *ptr;
 {
-	extern int free();
-
+#ifndef STDC_HEADERS
 	if (free(ptr) < 0) {
 		perror("free");
 		exit(-1);
 		/*NOTREACHED*/
 	}
+#else
+	free(ptr);
+#endif
 	return;
 }
 

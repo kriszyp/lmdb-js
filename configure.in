@@ -661,13 +661,12 @@ fi
 
 # ud needs termcap (should insert check here)
 ol_link_termcap=no
-
 AC_CHECK_HEADERS(termcap.h ncurses.h)
 
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
 	if test $have_termcap = yes ; then
-dnl		AC_DEFINE(HAVE_TERMCAP)
+		AC_DEFINE(HAVE_TERMCAP)
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-ltermcap
 	fi
@@ -676,7 +675,7 @@ fi
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
 	if test $have_ncurses = yes ; then
-dnl		AC_DEFINE(HAVE_NCURSES)
+		AC_DEFINE(HAVE_NCURSES)
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-lncurses
 	fi
@@ -723,7 +722,7 @@ AC_CHECK_HEADERS( \
 	sys/ioctl.h	\
 	sys/time.h	\
 	syslog.h	\
-	termio.h	\
+	termios.h	\
 	unistd.h	\
 )
 

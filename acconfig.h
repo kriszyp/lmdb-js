@@ -38,6 +38,9 @@
 /* define if you have Sun LWP (Solaris style) */
 #undef HAVE_LWP_THR
 
+/* define if you have -lncurses */
+#undef HAVE_NCURSES
+
 /* define if you have NDBM */
 #undef HAVE_NDBM
 
@@ -49,6 +52,9 @@
 
 /* define if your POSIX Threads implementatin is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
+
+/* define if you have -ltermcap */
+#undef HAVE_TERMCAP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
