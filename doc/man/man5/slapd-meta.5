@@ -169,7 +169,7 @@ so "dc=foo, dc=com" would not match "dc=foo,dc=com".
 .LP
 See the "REWRITING" section.
 .TP
-.B map {objectClass|attribute} {<source>|*} [<dest>|*]
+.B map "{attribute|objectclass} [<local name>|*] {<foreign name>|*}"
 This maps object classes and attributes as in the LDAP backend.
 See
 .BR slapd-ldap (5).
