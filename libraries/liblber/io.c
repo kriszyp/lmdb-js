@@ -541,12 +541,14 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 
 #if defined( DOS ) && !defined( _WIN32 )
 		if ( *len > 65535 ) {	/* DOS can't allocate > 64K */
+			errno = ERANGE;
 		    return( LBER_DEFAULT );
 		}
 #endif /* DOS && !_WIN32 */
 
 		if ( ( sb->sb_options & LBER_MAX_INCOMING_SIZE ) &&
 		    *len > (unsigned long) sb->sb_max_incoming ) {
+			errno = ERANGE;
 			return( LBER_DEFAULT );
 		}
 

@@ -114,6 +114,12 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 		*len = lc;
 	}
 
+
+	/* BER element should have enough data left */
+	if( *len > ber->ber_end - ber->ber_ptr ) {
+		return LBER_DEFAULT;
+	}
+
 	return( tag );
 }
 
@@ -190,7 +196,8 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
-	if ( datalen > (*len - 1) )
+
+	if ( datalen >= *len )
 		return( LBER_DEFAULT );
 
 	if ( (unsigned long) ber_read( ber, buf, datalen ) != datalen )
