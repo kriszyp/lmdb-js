@@ -965,19 +965,36 @@ AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
 		int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyname_r("segovia.cs.purdue.edu", &hent,
 			buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyname_r_nargs=5, 
- 		[AC_TRY_COMPILE([#include <sys/types.h>
+		ol_cv_func_gethostbyname_r_nargs5=yes, 
+		ol_cv_func_gethostbyname_r_nargs5=no)
+
+	AC_TRY_COMPILE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #define BUFSIZE (sizeof(struct hostent)+10)],
-			[struct hostent hent;struct hostent *rhent;
-			char buffer[BUFSIZE];
-			int bufsize=BUFSIZE;int h_errno;
-			(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
-				&rhent, &h_errno);],
-			ol_cv_func_gethostbyname_r_nargs=6,
-			ol_cv_func_gethostbyname_r_nargs=0)])])
+		[struct hostent hent;struct hostent *rhent;
+		char buffer[BUFSIZE];
+		int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
+			&rhent, &h_errno);],
+		ol_cv_func_gethostbyname_r_nargs6=yes,
+		ol_cv_func_gethostbyname_r_nargs6=no)
+
+	if test $ol_cv_func_gethostbyname_r_nargs5 = yes -a \
+		$ol_cv_func_gethostbyname_r_nargs6 = no ; then
+
+		ol_cv_func_gethostbyname_r_nargs=5
+
+	elif test $ol_cv_func_gethostbyname_r_nargs5 = no -a \
+		$ol_cv_func_gethostbyname_r_nargs6 = yes ; then
+
+		ol_cv_func_gethostbyname_r_nargs=6
+
+	else
+		ol_cv_func_gethostbyname_r_nargs=0
+	fi
+  ])
   if test $ol_cv_func_gethostbyname_r_nargs -gt 1 ; then
 	AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS,
 		$ol_cv_func_gethostbyname_r_nargs,
@@ -1000,22 +1017,39 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
 	    int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyaddr_r( (void *)&(add.s_addr),
 			alen, AF_INET, &hent, buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyaddr_r_nargs=7,
-		[AC_TRY_COMPILE([#include <sys/types.h>
+		ol_cv_func_gethostbyaddr_r_nargs7=yes,
+		ol_cv_func_gethostbyaddr_r_nargs7=no)
+
+	AC_TRY_COMPILE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #define BUFSIZE (sizeof(struct hostent)+10)],
-			[struct hostent hent;
-			struct hostent *rhent; char buffer[BUFSIZE]; 
-			struct in_addr add;
-			size_t alen=sizeof(struct in_addr);
-			int bufsize=BUFSIZE;int h_errno;
-			(void)gethostbyaddr_r( (void *)&(add.s_addr),
-				alen, AF_INET, &hent, buffer, bufsize, 
-				&rhent, &h_errno);],
-			ol_cv_func_gethostbyaddr_r_nargs=8,
-			ol_cv_func_gethostbyaddr_r_nargs=0)])])
+		[struct hostent hent;
+		struct hostent *rhent; char buffer[BUFSIZE]; 
+		struct in_addr add;
+		size_t alen=sizeof(struct in_addr);
+		int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyaddr_r( (void *)&(add.s_addr),
+			alen, AF_INET, &hent, buffer, bufsize, 
+			&rhent, &h_errno);],
+		ol_cv_func_gethostbyaddr_r_nargs8=yes,
+		ol_cv_func_gethostbyaddr_r_nargs8=no)
+
+	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
+		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
+
+		ol_cv_func_gethostbyname_r_nargs=7
+
+	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no -a \
+		$ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then
+
+		ol_cv_func_gethostbyaddr_r_nargs=8
+
+	else
+		ol_cv_func_gethostbyaddr_r_nargs=0
+	fi
+  ])
   if test $ol_cv_func_gethostbyaddr_r_nargs -gt 1 ; then
     AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS,
 		$ol_cv_func_gethostbyaddr_r_nargs,
