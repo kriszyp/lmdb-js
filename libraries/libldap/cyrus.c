@@ -82,7 +82,8 @@ int ldap_int_sasl_init( void )
 		return 0;
 	}
 
-#ifndef CSRIMALLOC
+/* SASL 2 takes care of its own memory completely internally */
+#if SASL_VERSION_MAJOR < 2 && !defined(CSRIMALLOC)
 	sasl_set_alloc(
 		ber_memalloc,
 		ber_memcalloc,
