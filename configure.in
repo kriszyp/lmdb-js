@@ -819,6 +819,8 @@ if test $ac_cv_func_getaddrinfo = no ; then
 		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
 	fi
 else
+	AC_CHECK_FUNCS( gai_strerror )
+
 	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrstrlen],[
 		AC_EGREP_CPP(__has_inet6_addrstrlen__,[
 #			include <netinet/in.h>

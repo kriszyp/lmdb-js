@@ -144,6 +144,9 @@
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 
+/* Define if you have the gai_strerror function.  */
+#undef HAVE_GAI_STRERROR
+
 /* Define if you have the getaddrinfo function.  */
 #undef HAVE_GETADDRINFO
 
