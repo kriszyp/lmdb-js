@@ -146,8 +146,8 @@ do_syncrepl(
 	Entry		*entry = NULL;
 
 	int		syncstate;
-	struct berval	syncUUID;
-	struct berval	syncCookie;
+	struct berval	syncUUID = { 0, NULL };
+	struct berval	syncCookie = { 0, NULL };
 
 	int	rc;
 	int	err;
@@ -571,7 +571,7 @@ do_syncrepl(
 					}
 
 					if ( ber_peek_tag( res_ber, &len )
-						== LDAP_SYNC_TAG_COOKIE ) {
+								== LDAP_SYNC_TAG_COOKIE ) {
 						ber_scanf( res_ber, "o}", &syncCookie );
 						if ( syncCookie.bv_len ) {
 							ber_bvfree( si->syncCookie );
@@ -660,7 +660,7 @@ syncrepl_message_to_entry(
 	Entry		*e;
 	BerElement	*ber = NULL;
 	BerElement	*tmpber;
-	struct berval	bv;
+	struct berval	bv = {0, NULL};
 	Modifications	tmp;
 	Modifications	*mod;
 	Modifications	**modtail = modlist;
@@ -670,9 +670,9 @@ syncrepl_message_to_entry(
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	struct berval	**bvals;
+	struct berval	**bvals = NULL;
 	char		*dn;
-	struct berval	bdn;
+	struct berval	bdn = {0, NULL};
 	Attribute	*attr;
 	struct berval	empty_bv = { 0, NULL };
 	int		rc;
@@ -726,7 +726,7 @@ syncrepl_message_to_entry(
 
 		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
-		mod->sml_op = LDAP_MOD_ADD;
+		mod->sml_op = LDAP_MOD_REPLACE;
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
@@ -1007,7 +1007,7 @@ syncrepl_del_nonpresent(
 	struct berval	base_bv = {0, NULL};
 	Filter *filter;
 	SlapReply	rs = {REP_RESULT};
-	struct berval	filterstr_bv;
+	struct berval	filterstr_bv = {0, NULL};
 	struct nonpresent_entry *np_list, *np_prev;
 
 	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
@@ -1187,10 +1187,10 @@ syncrepl_updateCookie(
 	Modifications *modlist;
 	Modifications **modtail = &modlist;
 
-	struct berval* ocbva;
-	struct berval* cnbva;
-	struct berval* ssbva;
-	struct berval* scbva;
+	struct berval* ocbva = NULL;
+	struct berval* cnbva = NULL;
+	struct berval* ssbva = NULL;
+	struct berval* scbva = NULL;
 
 	char substr[64];
 	char rdnstr[67];
@@ -1519,7 +1519,7 @@ int slap_mods_check_syncrepl(
 			 * and pretty if appropriate
 			 */
 			for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
-				struct berval pval;
+				struct berval pval = {0, NULL};
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
 							&ml->sml_values[nvals], &pval, ctx );
@@ -1596,8 +1596,10 @@ int slap_mods_opattrs_syncrepl(
 	const char **text,
 	char *textbuf, size_t textlen )
 {
-	struct berval name, timestamp, csn;
-	struct berval nname;
+	struct berval name = {0, NULL};
+	struct berval timestamp = {0, NULL};
+	struct berval csn = {0, NULL};
+	struct berval nname = {0, NULL};
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Modifications *mod;
@@ -1635,7 +1637,7 @@ int slap_mods_opattrs_syncrepl(
 	}
 
 	if( op->o_tag == LDAP_REQ_ADD ) {
-		struct berval tmpval;
+		struct berval tmpval = {0, NULL};
 
 		if( global_schemacheck ) {
 			int rc = mods_structural_class( mods, &tmpval,
