@@ -25,6 +25,10 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
+#ifdef LDAP_SYNC
+#include "lutil.h"
+#endif
+
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
@@ -198,6 +202,15 @@ do_delete(
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
+
+#ifdef LDAP_SYNC
+			if ( !repl_user ) {
+				struct berval csn = { 0 , NULL };
+				char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+			}
+#endif
+
 			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
@@ -252,6 +265,11 @@ do_delete(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
+
+#ifdef LDAP_SYNC
+	slap_graduate_commit_csn( op );
+#endif
+
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	return rs->sr_err;

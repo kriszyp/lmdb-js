@@ -37,6 +37,10 @@ bdb_delete( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_SYNC
 	Operation* ps_list;
+	int     rc;
+	EntryInfo   *suffix_ei;
+	Entry       *ctxcsn_e;
+	int         ctxcsn_added = 0;
 #endif
 
 #ifdef NEW_LOGGING
@@ -456,6 +460,16 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
+#ifdef LDAP_SYNC
+	rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+	switch ( rc ) {
+	case BDB_CSN_ABORT :
+		goto return_results;
+	case BDB_CSN_RETRY :
+		goto retry;
+	}
+#endif
+
 	if( op->o_noop ) {
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
@@ -464,8 +478,21 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
+#ifdef LDAP_SYNC
+		struct berval ctx_nrdn;
+#endif
+
 		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
 			locker, &lock );
+
+#ifdef LDAP_SYNC
+		if ( ctxcsn_added ) {
+			ctx_nrdn.bv_val = "cn=ldapsync";
+			ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
+			bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+		}
+#endif
+
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
 	ltid = NULL;
