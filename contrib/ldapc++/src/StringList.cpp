@@ -19,7 +19,6 @@ StringList::StringList(char** values){
     }else{
         char** i;
         for(i=values; *i != 0; i++){
-            cerr << *i << endl;
             m_data.push_back(string(*i));
         }
     }

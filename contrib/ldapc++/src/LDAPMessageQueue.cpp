@@ -156,8 +156,6 @@ LDAPRequest* LDAPMessageQueue::chaseReferral(LDAPMsg* ref){
     LDAPRequest *refReq=req->followReferral(ref);
     if(refReq !=0){
         if(refReq->getConstraints()->getHopLimit() < refReq->getHopCount()){
-            cout << "LIMIT:" << refReq->getConstraints()->getHopLimit() 
-                << "  COUNT:" << refReq->getHopCount() << endl;
             delete(refReq);
             throw LDAPException(LDAP_REFERRAL_LIMIT_EXCEEDED);
         }

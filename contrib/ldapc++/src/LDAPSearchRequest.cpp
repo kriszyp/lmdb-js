@@ -95,7 +95,6 @@ LDAPRequest* LDAPSearchRequest::followReferral(LDAPMsg* ref){
     }
     con = getConnection()->referralConnect(urls,usedUrl,m_cons);
     if(con != 0){
-        cerr << usedUrl->getFilter();
         if((usedUrl->getFilter() != "") && 
             (usedUrl->getFilter() != m_filter)){
                 filter=usedUrl->getFilter();

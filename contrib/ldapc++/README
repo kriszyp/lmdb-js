@@ -14,6 +14,8 @@ libraries in the default place:
         C-libraries are located.
 --with-ldap-includes=<path to ldap include files> : To tell configure
         where the OpenLDAP include files are located.
+--enable-debug to enable compliation with debugging symbols and stderr
+        output
 (run "configure --help" to see all possible command line options)
 
 If configure finishes without problems. You can simply call "make" to 

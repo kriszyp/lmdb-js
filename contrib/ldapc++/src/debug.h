@@ -19,14 +19,14 @@
 #define PRINT_FILE	\
 	cerr << "file: " __FILE__  << " line: " << __LINE__ 
 
+#ifdef WITH_DEBUG
 #define DEBUG(level, arg)       \
     if((level) & DEBUGLEVEL){     \
         cerr  << arg ;          \
     } 
-
-/*
-*	#undef DEBUG
-*	#define DEBUG(level,arg)
-*/
+#else
+#undef DEBUG
+#define DEBUG(level,arg)
+#endif //WITH_DEBUG
 
 #endif // DEBUG_H

@@ -71,7 +71,8 @@ LDAPMessageQueue* LDAPBindRequest::sendRequest(){
 
 LDAPRequest* LDAPBindRequest::followReferral(LDAPMsg* urls){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPBindRequest::followReferral()" << endl);
-    cerr << "ReferralChasing for bind-operation not implemented yet" << endl;
+    DEBUG(LDAP_DEBUG_TRACE,
+            "ReferralChasing for bind-operation not implemented yet" << endl);
     return 0;
 }
 

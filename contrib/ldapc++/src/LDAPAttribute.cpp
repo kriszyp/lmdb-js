@@ -165,7 +165,6 @@ LDAPMod* LDAPAttribute::toLDAPMod() const {
 	ret->mod_op=LDAP_MOD_BVALUES;	//always assume binary-Values
 	ret->mod_type= new char[m_name.size()+1];
     m_name.copy(ret->mod_type,string::npos);
-    cerr << "                         " << m_name<< endl;
     ret->mod_type[m_name.size()]=0;
 	ret->mod_bvalues=this->getBerValues();
 	return ret;
