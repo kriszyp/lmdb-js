@@ -620,16 +620,13 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
-		struct berval ctx_nrdn;
 		EntryInfo *ctx_ei;
 
 		bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 
 		if ( !op->o_bd->syncinfo ) {
 			if ( ctxcsn_added ) {
-				ctx_nrdn.bv_val = "cn=ldapsync";
-				ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
 			}
 		}
 
