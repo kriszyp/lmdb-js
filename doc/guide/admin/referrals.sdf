@@ -82,11 +82,11 @@ H2: Superior Knowledge Information
 
 Superior knowledge information may be specified using the
 {{EX:referral}} directive.  The value is a list of {{TERM:URI}}s
-referring to superior directory services.  For servers
-without immediate superiors, such as for {{EX:a.example.net}}
-in the example above, the server can be configured to use
-directory service with {{global knowledge}}, such as the
-OpenLDAP Root Service.
+referring to superior directory services.  For servers without
+immediate superiors, such as for {{EX:a.example.net}} in the example
+above, the server can be configured to use directory service with
+{{global knowledge}}, such as the {{OpenLDAP Root Service}}
+(http://www.openldap.org/faq/index.cgi?file=393).
 
 E:	referral	ldap://root.openldap.org/
 
