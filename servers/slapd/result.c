@@ -236,14 +236,14 @@ send_ldap_response(
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
-	    rc = ber_printf( ber, "{is{t{ess",
+	    rc = ber_printf( ber, "{is{t{ess" /*"}}}"*/,
 		msgid, "", tag, err,
 		matched == NULL ? "" : matched,
 		text == NULL ? "" : text );
 	} else
 #endif
 	{
-	    rc = ber_printf( ber, "{it{ess",
+	    rc = ber_printf( ber, "{it{ess" /*"}}"*/,
 		msgid, tag, err,
 		matched == NULL ? "" : matched,
 		text == NULL ? "" : text );
@@ -275,11 +275,11 @@ send_ldap_response(
 	}
 
 	if( rc != -1 ) {
-		rc = ber_printf( ber, "N}N}" );
+		rc = ber_printf( ber, /*"{{"*/ "N}N}" );
 	}
 #ifdef LDAP_CONNECTIONLESS
 	if( conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1 ) {
-		rc = ber_printf( ber, "N}" );
+		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
 #endif
 
