@@ -348,7 +348,9 @@ meta_back_search(
 		if ( mapped_filter == NULL ) {
 			mapped_filter = ( char * )mfilter.bv_val;
 		} else {
-			free( mfilter.bv_val );
+			if ( mfilter.bv_val != filterstr->bv_val ) {
+				free( mfilter.bv_val );
+			}
 		}
 		mfilter.bv_val = NULL;
 		mfilter.bv_len = 0;
@@ -668,8 +670,10 @@ meta_send_entry(
 			continue;
 		}
 
-		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
+		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
+				|| attr->a_vals == NULL ) {
 			attr->a_vals = &dummy;
+
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
