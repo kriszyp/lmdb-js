@@ -22,6 +22,8 @@ const struct berval slap_empty_bv = { 0, "" };
 
 #define SLAP_LDAPDN_PRETTY 0x1
 
+#define SLAP_LDAPDN_MAXLEN 8192
+
 /*
  * The DN syntax-related functions take advantage of the dn representation
  * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
@@ -113,7 +115,10 @@ dnValidate(
 	assert( in );
 
 	if ( in->bv_len == 0 ) {
-		return( LDAP_SUCCESS );
+		return LDAP_SUCCESS;
+
+	} else if ( in->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	rc = ldap_bv2dn( in, &dn, LDAP_DN_FORMAT_LDAP );
@@ -418,7 +423,13 @@ dnPretty2(
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
 
-	if ( val->bv_len != 0 ) {
+	if ( val->bv_len == 0 ) {
+		ber_dupbv( out, val );
+
+	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		return LDAP_INVALID_SYNTAX;
+
+	} else {
 		LDAPDN		*dn = NULL;
 		int		rc;
 
@@ -450,8 +461,6 @@ dnPretty2(
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
-	} else {
-		ber_dupbv( out, val );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
@@ -475,7 +484,15 @@ dnPrettyNormal(
 	assert( pretty );
 	assert( normal );
 
-	if ( val->bv_len != 0 ) {
+	if ( val->bv_len == 0 ) {
+		ber_dupbv( pretty, val );
+		ber_dupbv( normal, val );
+
+	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		/* too big */
+		return LDAP_INVALID_SYNTAX;
+
+	} else {
 		LDAPDN		*dn = NULL;
 		int		rc;
 
@@ -525,9 +542,6 @@ dnPrettyNormal(
 			pretty->bv_len = 0;
 			return LDAP_INVALID_SYNTAX;
 		}
-	} else {
-		ber_dupbv( pretty, val );
-		ber_dupbv( normal, val );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPrettyNormal: <%s>, <%s>\n",
@@ -678,7 +692,9 @@ rdnValidate( struct berval *rdn )
 	 * input is a pretty or normalized DN
 	 * hence, we can just search for ','
 	 */
-	if( rdn == NULL || rdn->bv_len == 0 ) {
+	if( rdn == NULL || rdn->bv_len == 0 ||
+		rdn->bv_len > SLAP_LDAPDN_MAXLEN )
+	{
 		return LDAP_INVALID_SYNTAX;
 	}
 
