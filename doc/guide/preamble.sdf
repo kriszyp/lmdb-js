@@ -109,7 +109,7 @@ IAB|Internet Architecture Board|http://www.iab.org/
 IETF|Internet Engineering Task Force|http://www.ietf.org/
 IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
 IRTF|Internet Research Task Force|http://www.irtf.org/
-ISO|International Organization for Standardization|http://www.iso.ch/
+ISO|International Standards Organisation|http://www.iso.ch/
 ITU|International Telephone Union|http://www.itu.int/
 RFC|RFC Editor|http://www.rfc-editor.org/
 OpenSSL|OpenSSL|http://www.openssl.org/
@@ -139,6 +139,7 @@ TCL|http://tcl.activestate.com/
 # Internet and X.500 terms
 !block terms; data
 Term|Definition
+AES|Advance Encryption Standard
 API|Application Program Interface
 ASN|Abstract Syntax Notation
 ASN.1|Abstract Syntax Notation 1
@@ -151,6 +152,8 @@ CA|Certificate Authority
 CLDAP|Connection-less LDAP
 DAP|Directory Access Protocol
 DER|Distinguished Encoding Rules
+DES|Data Encryption Standard
+3DES|Triple DES
 DIT|Directory Information Tree
 DN|Distinguished Name
 DNS|Domain Name System
@@ -172,11 +175,15 @@ LDIF|LDAP Data Interchange Format
 LDBM|LDAP Database Manager
 MIB|Management Information Base
 OID|Object Identifier
-OSI|OSI
+OSI|Open Systems Interconnect
+OTP|One Time Password
 PEM|Privacy Enhanced eMail
 PS|Proposed Standard
 RDN|Relative Distinguished Name
 RFC|Request for Comments
+SRP|Secure Remote Password
+SSL|Secure Socket Layer
+STD|Internet Standard
 TCP|Transmission Control Protocol
 TLS|Transport Layer Security
 SASL|Simple Authentication and Security Layer

@@ -9,16 +9,17 @@ Internet.  Hence, OpenLDAP Software provides many different security
 mechanisms.  This chapter describes these mechanisms and discusses
 security considerations for using OpenLDAP Software.
 
-H2: Host Security
-
 H2: Network Security
 
-H3: Selective Hearing
+H3: Selective Listening
 
 By default, {{slapd}}(8) will listen on both the IPv4 and IPv6 "any"
 addresses.  It is often desirable to have {{slapd}} listen on select
 address/port pairs.  For example, listening only on the IPv4 address
-127.0.0.1 will disallow remote access to the directory server.
+{{EX:127.0.0.1}} will disallow remote access to the directory server.
+E.g.:
+
+>	slapd -h ldap://127.0.0.1
 
 While the server can be configured to listen on a particular interface
 address, this doesn't necessarily restrict access to the server to
@@ -32,12 +33,13 @@ information.
 
 H3: IP Firewall
 
-IP firewall capabilities of the server system can be used to restrict
-access based upon the client's IP address and/or network interface
-used to communicate with the client.
+{{TERM:IP}} firewall capabilities of the server system can be used
+to restrict access based upon the client's IP address and/or network
+interface used to communicate with the client.
 
-Generally, slapd(8) listens on port 389/tcp for LDAP over TCP (e.g.
-ldap://) and port 636/tcp for LDAP over SSL (e.g.  ldaps://).
+Generally, {{slapd}}(8) listens on port 389/tcp for LDAP over {{TERM:TCP}}
+(e.g.  ldap://) and port 636/tcp for LDAP over {{TERM:SSL}} (e.g.
+ldaps://).
 
 As specifics of how to configure IP firewall are dependent on the
 particular kind of IP firewall used, no examples are provided here.
@@ -46,19 +48,39 @@ See the document associated with your IP firewall.
 
 H3: TCP Wrappers
 
-OpenLDAP supports TCP wrappers.  TCP wrappers provide a rule-based
+OpenLDAP supports {{TERM:TCP}} Wrappers.  TCP Wrappers provide a rule-based
 access control system for controlling TCP/IP access to the server.
 For example, the {{host_options}}(5) rule:
 
 >	slapd: 10.0.0.0/255.0.0.0 127.0.0.1 : ALLOW
 >	slapd: ALL : DENY
 
-allows only incoming connections from the private network 10 and
-localhost (127.0.0.1) to access the directory service.
+allows only incoming connections from the private network {{F:10.0.0.0}}
+and localhost ({{F:127.0.0.1}}) to access the directory service.
 
 It is noted that TCP wrappers require the connection to be accepted.
 As significant processing is required just to deny a connection,
-it is generally advised that IP firewall protection be
-used instead of TCP wrappers.
+it is generally advised that IP firewall protection be used instead
+of TCP wrappers.
 
 See {{hosts_access}}(5) for more information on TCP wrapper rules.
+
+
+H2: Integrity and Confidentiality Protection
+
+{{TERM[expand]TLS}} (TLS) can be used to provide integrity and
+confidentiality protection.  OpenLDAP supports both StartTLS and
+ldaps://.  See the {{SECT:Using TLS}} chapter for more information.
+
+A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
+and {{TERM:GSSAPI}}, provide integrity and confidentiality protection.
+See the {{SECT:Using SASL}} chapter for more information.
+
+The server uses {{TERM[expand]Security Strength Factors}} (SSF) to
+indicate the relative strength of protection.  A SSF of zero (0)
+indicates no protections are in place.  A SSF of one (1) indicates
+integrity protection are in place.  A SSF greater than one (>1)
+roughly correlates to the effective encryption key length.  For
+example, {{TERM:DES}} is 56, {{TERM:3DES}} is 112, and {{TERM:AES}}
+is 128.
+
