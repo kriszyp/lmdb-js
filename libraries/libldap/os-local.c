@@ -139,6 +139,8 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
 	defined(HAVE_SENDMSG) && defined(HAVE_MSGHDR_MSG_ACCRIGHTS)
 #define DO_SENDMSG
+static const char abandonPDU[] = {LDAP_TAG_MESSAGE, 6,
+	LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
 #endif
 
 static int
@@ -173,9 +175,7 @@ sendcred:
 		{
 			int fds[2];
 			/* Abandon, noop, has no reply */
-			char txt[] = {LDAP_TAG_MESSAGE, 6,
-				LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
-			struct iovec iov = {txt, sizeof(txt)};
+			struct iovec iov = {abandonPDU, sizeof(abandonPDU)};
 			struct msghdr msg = {0};
 			if (pipe(fds) == 0) {
 				msg.msg_iov = &iov;
