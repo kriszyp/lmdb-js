@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA2
 	Fixed slapd/ldbm/add cache set state deadlock bug
 	Fixed slapd/ldbm/add,modrdn,delete e_ndn handling
 	Fixed -lldap/ldap_init() bug
