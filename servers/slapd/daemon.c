@@ -166,15 +166,6 @@ set_socket( struct sockaddr_in *addr )
 	}
 #endif	/* !FD_SETSIZE */
 
-#ifdef HAVE_WINSOCK
-	{
-		WORD    vers = MAKEWORD( 2, 0);
-		int     err;
-		WSADATA wsaData;
-		err = WSAStartup( vers, &wsaData );
-	}
-#endif
-
 	if( addr != NULL ) {
 		int	tmp;
 
@@ -598,23 +589,32 @@ slapd_daemon_task(
 
 int slapd_daemon( int inetd, int tcps )
 {
-	int status;
+	int rc;
 	int *args = ch_malloc( sizeof( int[2] ) );
 	args[0] = inetd;
 	args[1] = tcps;
+
+#ifdef HAVE_WINSOCK
+	{
+		WORD    vers = MAKEWORD( 2, 0);
+		int     err;
+		WSADATA wsaData;
+		err = WSAStartup( vers, &wsaData );
+	}
+#endif
 
 	connections_init();
 
 #define SLAPD_LISTENER_THREAD 1
 #if SLAPD_LISTENER_THREAD
 	/* listener as a separate THREAD */
-	status = ldap_pvt_thread_create( &listener_tid,
+	rc = ldap_pvt_thread_create( &listener_tid,
 		0, slapd_daemon_task, args );
 
-	if ( status != 0 ) {
+	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
-		return -1;
+		    "listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+		goto destory;
 	}
 
 	/* wait for the listener thread to complete */
@@ -625,8 +625,16 @@ int slapd_daemon( int inetd, int tcps )
 	slapd_daemon_task( args );
 #endif
 
+	rc = 0;
+
+destory:
 	connections_destroy();
-	return 0;
+
+#ifdef HAVE_WINSOCK
+    WSACleanup( );
+#endif
+
+	return rc;
 }
 
 void

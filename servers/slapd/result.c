@@ -13,10 +13,6 @@
 
 #include "slap.h"
 
-#ifdef HAVE_WINSOCK
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#endif
-
 static void
 send_ldap_result2(
     Connection	*conn,

@@ -10,10 +10,6 @@
 
 #include "slap.h"
 
-#ifdef HAVE_WINSOCK
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#endif
-
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;

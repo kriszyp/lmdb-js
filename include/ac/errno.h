@@ -28,6 +28,10 @@ extern char     *sys_errlist[];
 #endif
 #endif
     
+#if !defined( EWOULDBLOCK ) && defined( WSAEWOULDBLOCK )
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+
 /* use _POSIX_VERSION for POSIX.1 code */
 
 #endif /* _AC_ERRNO_H */
