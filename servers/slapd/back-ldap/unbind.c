@@ -32,24 +32,26 @@
 #include "back-ldap.h"
 
 int
-ldap_back_unbind(
+ldap_back_conn_destroy(
     Backend		*be,
-    Connection		*conn,
-    Operation		*op
+    Connection		*conn
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc, *lp;
 
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	for (lc = li->lcs, lp = (struct ldapconn *)&li->lcs; lc;
 		lp=lc, lc=lc->next)
-		if (lc->conn == conn)
+		if (lc->conn == conn) {
+			lp->next = lc->next;
 			break;
+		}
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	if (lc) {
 		if (lc->bound)
 			ldap_unbind(lc->ld);
-		lp->next = lc->next;
 		free(lc);
 	}
 

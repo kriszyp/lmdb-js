@@ -19,8 +19,8 @@ extern int ldap_back_bind LDAP_P(( BackendDB *bd,
 	char *dn, int method, char* mech,
 	struct berval *cred, char** edn ));
 
-extern int	ldap_back_unbind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op ));
+extern int	ldap_back_conn_destroy LDAP_P(( BackendDB *bd,
+	Connection *conn ));
 
 extern int	ldap_back_search LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
