@@ -57,9 +57,16 @@ int is_entry_objectclass(
 	ObjectClass *oc,
 	int set_flags )
 {
+	/*
+	 * set_flags should only be true if oc is one of operational
+	 * object classes which we support objectClass flags for
+	 * (e.g., referral, alias, ...).  See <slap.h>.
+	 */
+
 	Attribute *attr;
 	struct berval *bv;
 	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
+
 	assert(!( e == NULL || oc == NULL ));
 
 	if( e == NULL || oc == NULL ) {
@@ -67,14 +74,14 @@ int is_entry_objectclass(
 	}
 
 	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
-		return (e->e_ocflags & oc->soc_flags) == oc->soc_flags;
+		/* flags are set, use them */
+		return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
 	}
 
 	/*
 	 * find objectClass attribute
 	 */
 	attr = attr_find(e->e_attrs, objectClass);
-
 	if( attr == NULL ) {
 		/* no objectClass attribute */
 #ifdef NEW_LOGGING
@@ -95,7 +102,7 @@ int is_entry_objectclass(
 	for( bv=attr->a_vals; bv->bv_val; bv++ ) {
 		ObjectClass *objectClass = oc_bvfind( bv );
 
-		if ( objectClass == oc && !set_flags ) {
+		if ( !set_flags && objectClass == oc ) {
 			return 1;
 		}
 		
@@ -103,9 +110,11 @@ int is_entry_objectclass(
 			e->e_ocflags |= objectClass->soc_flags;
 		}
 	}
-	e->e_ocflags |= SLAP_OC__END;	/* We've finished this */
 
-	return (e->e_ocflags & oc->soc_flags) == oc->soc_flags;
+	/* mark flags as set */
+	e->e_ocflags |= SLAP_OC__END;
+
+	return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
 }
 
 
