@@ -5,7 +5,7 @@
 P1: Making and Installing the OpenLDAP Distribution
 
 This file provides brief instructions on how to build and install
-OpenLDAP on UNIX (and UNIX-{{like}}) system.  More detailed
+OpenLDAP on UNIX (and UNIX-{{like}}) systems.  More detailed
 information and instructions can be found in
 {{The OpenLDAP Administrator's Guide}}
 (available from {{URL:http://www.openldap.org/doc/}}).
@@ -40,7 +40,7 @@ E:	% ./configure --help
 
 .to list available configuration options.
 
-.The {{EX:configure}} script uses environmental variables for
+.The {{EX:configure}} script uses environment variables for
 determining compiler/linker options including:
 
 >	Variable	Description	Example
@@ -55,7 +55,7 @@ determining compiler/linker options including:
 
 E:	% [env settings] ./configure [options]
 
-.If all goes well, the {{EX:configure}} script with automatically
+.If all goes well, the {{EX:configure}} script will automatically
 detect the appropriate settings.  However, you may need to
 specify options and/or environment variables to obtain desired
 results.
@@ -76,7 +76,7 @@ if you have not done so already.
 + Test the standalone system
 
 .This step requires the standalone LDAP server, {{slapd}}(8),
-with {{LDBM}} support.
+with {{BDB}} or {{LDBM}} support.
 
 E:	% make test
 
@@ -85,7 +85,7 @@ return to step 4 after reviewing your configuration settings.  You
 may want to consult the {{Installation}} section of the {{FAQ}}
 if you have not done so already.
 
-+ install the binaries and man pages.  You may need to be come the
++ Install the binaries and man pages.  You may need to become the
 {{super-user}} (e.g. {{EX:root}}) to do this (depending on where you
 are installing things):
 
