@@ -104,7 +104,11 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	
 	assert( u == 'u' || u == 'U' );
 
-	user->bv_val = strrchr( id->bv_val, ':' );
+	/* uauthzid form:
+	 *		u[.mech[/realm]]:user
+	 */
+	
+	user->bv_val = strchr( id->bv_val, ':' );
 	if ( user->bv_val == NULL ) {
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -112,22 +116,22 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	user->bv_val++;
 	user->bv_len = id->bv_len - ( user->bv_val - id->bv_val );
 
-	realm->bv_val = strchr( id->bv_val, '/' );
-	if ( realm->bv_val != NULL ) {
-		realm->bv_val[ 0 ] = '\0';
-		realm->bv_val++;
-		realm->bv_len = user->bv_val - realm->bv_val - 1;
-	}
-
 	mech->bv_val = strchr( id->bv_val, '.' );
 	if ( mech->bv_val != NULL ) {
 		mech->bv_val[ 0 ] = '\0';
 		mech->bv_val++;
+
+		realm->bv_val = strchr( id->bv_val, '/' );
+
 		if ( realm->bv_val ) {
 			mech->bv_len = realm->bv_val - mech->bv_val - 1;
+			realm->bv_len = user->bv_val - realm->bv_val - 1;
 		} else {
 			mech->bv_len = user->bv_val - mech->bv_val - 1;
 		}
+
+	} else {
+		realm->bv_val = NULL;
 	}
 
 	if ( id->bv_val[ 1 ] != '\0' ) {
@@ -137,14 +141,14 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	if ( mech->bv_val != NULL ) {
 		assert( mech->bv_val == id->bv_val + 2 );
 
-		memmove( mech->bv_val - 2, mech->bv_val, mech->bv_len + 1 );
+		AC_MEMCPY( mech->bv_val - 2, mech->bv_val, mech->bv_len + 1 );
 		mech->bv_val -= 2;
 	}
 
 	if ( realm->bv_val ) {
 		assert( realm->bv_val >= id->bv_val + 2 );
 
-		memmove( realm->bv_val - 2, realm->bv_val, realm->bv_len + 1 );
+		AC_MEMCPY( realm->bv_val - 2, realm->bv_val, realm->bv_len + 1 );
 		realm->bv_val -= 2;
 	}
 
