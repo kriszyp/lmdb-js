@@ -13,16 +13,16 @@
 . scripts/defines.sh
 
 echo "Cleaning up in $DBDIR..."
-rm -f $DBDIR/*
+rm -f $DBDIR/[!C]*
 echo "Cleaning up in $REPLDIR..."
-rm -f $REPLDIR/*
+rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $MASTERCONF -p $PORT -d 1 > /dev/null 2>&1 &
+$SLAPD -f $MASTERCONF -p $PORT -d 1 > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $SLAVECONF -p $SLAVEPORT -d 1 > /dev/null 2>&1 &
+$SLAPD -f $SLAVECONF -p $SLAVEPORT -d 1 > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
@@ -48,7 +48,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Starting slurpd..."
-$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > /dev/null 2>&1 &
+$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
 
 echo "Using ldapmodify to populate the database..."
@@ -123,8 +123,8 @@ changetype: delete
 
 EOMODS
 
-echo "Waiting 10 seconds for slurpd to send changes..."
-sleep 10
+echo "Waiting 15 seconds for slurpd to send changes..."
+sleep 15
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
