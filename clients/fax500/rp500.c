@@ -129,6 +129,7 @@ main( int argc, char **argv )
 	}
 
 	result = NULL;
+#ifdef LDAP_UFN
 	if ( strchr( key, ',' ) != NULL ) {
 		int ld_deref = LDAP_DEREF_FINDING;
 		ldap_set_option(ld, LDAP_OPT_DEREF, &ld_deref);
@@ -140,7 +141,9 @@ main( int argc, char **argv )
 			exit( -1 );
 		}
 		matches = ldap_count_entries( ld, result );
-	} else {
+	} else
+#endif
+	{
 		for ( fi = ldap_getfirstfilter( filtd, "rp500", key );
 		    fi != NULL; fi = ldap_getnextfilter( filtd ) ) {
 			if ( (rc = ldap_search_s( ld, base, LDAP_SCOPE_SUBTREE,

@@ -58,13 +58,13 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 		return  NULL;
 	}
 
-#if 0
+#if LDAP_SEQORSET_BAILOUT
 	if( len == 0 ) {
 		return NULL;
 	}
 #endif
 	
-#if 0
+#if LBER_SEQORSET_AVOID_OVERRUN
 	/* set the length to avoid overrun */
 	rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
 	if( rc != LBER_OPT_SUCCESS ) {
@@ -100,7 +100,7 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	assert( entry != NULL );
 	assert( ber != NULL );
 
-#if 0
+#if LDAP_SEQORSET_BAILOUT
 	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
 		return NULL;
 	}

@@ -81,8 +81,10 @@ Please try again later.\r\n"
 #define FINGER_DEREF		LDAP_DEREF_FINDING
 	/* attribute to use when sorting results */
 #define FINGER_SORT_ATTR	SORT_ATTR
+#ifdef LDAP_UFN
 	/* enable ufn support */
 #define FINGER_UFN
+#endif
 	/* timeout for searches */
 #define FINGER_TIMEOUT		60
 	/* number of DN components to show in entry displays */
@@ -99,8 +101,10 @@ Please try again later.\r\n"
 #define GO500_SORT_ATTR	SORT_ATTR
 	/* timeout for searches */
 #define GO500_TIMEOUT	180
+#ifdef LDAP_UFN
 	/* enable ufn support */
 #define GO500_UFN
+#endif
 	/*
 	 * only set and uncomment this if your hostname() does not return
 	 * a fully qualified hostname
@@ -118,8 +122,10 @@ Please try again later.\r\n"
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
 #define GO500GW_TIMEOUT		180
+#ifdef LDAP_UFN
 	/* enable ufn support */
 #define GO500GW_UFN
+#endif
 	/* attribute to use when sorting results */
 #define GO500GW_SORT_ATTR	SORT_ATTR
 	/*
@@ -146,8 +152,10 @@ Please try again later.\r\n"
 #define RCPT500_SORT_ATTR	SORT_ATTR
 	/* max number of hits displayed in full before a list is presented */
 #define RCPT500_LISTLIMIT	1
+#ifdef LDAP_UFN
 	/* enable ufn support */
 #define RCPT500_UFN
+#endif
 	/* number of DN components to show in entry displays */
 #define RCPT500_RDNCOUNT	DEFAULT_RDNCOUNT	
 
