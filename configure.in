@@ -1026,7 +1026,7 @@ fi
 dnl ----------------------------------------------------------------
 dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
 dnl PF_LOCAL may use getaddrinfo in available
-AC_CHECK_FUNCS( getaddrinfo gai_strerror inet_ntop )
+AC_CHECK_FUNCS( getaddrinfo getnameinfo gai_strerror inet_ntop )
 
 ol_link_ipv6=no
 if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
