@@ -143,7 +143,6 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !acl_check_modlist( op, &m, op->oq_modify.rs_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = &m;
@@ -153,7 +152,36 @@ backsql_modify( Operation *op, SlapReply *rs )
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
 			&bsi.bsi_base_id,
 			op->oq_modify.rs_modlist );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		e = &m;
+		goto do_transact;
+	}
 
+	if ( global_schemacheck ) {
+		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+
+		entry_clean( &m );
+
+		bsi.bsi_e = &m;
+		rs->sr_err = backsql_id2entry( &bsi, &bsi.bsi_base_id );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			e = &m;
+			goto do_transact;
+		}
+
+		rs->sr_err = entry_schema_check( op->o_bd, &m,
+				NULL,
+				&rs->sr_text, textbuf, sizeof( textbuf ) );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+				"entry failed schema check -- aborting\n",
+				m.e_name.bv_val, 0, 0 );
+			e = NULL;
+			goto do_transact;
+		}
+	}
+
+do_transact:;
 	/*
 	 * Commit only if all operations succeed
 	 */
@@ -182,10 +210,12 @@ done:;
 
 	send_ldap_result( op, rs );
 
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	}
 
-	if ( bsi.bsi_e != NULL ) {
-		entry_clean( bsi.bsi_e );
+	if ( !BER_BVISNULL( &m.e_nname ) ) {
+		entry_clean( &m );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {

@@ -224,6 +224,7 @@ extern char
 	backsql_def_needs_select_oc_query[],
 	backsql_def_at_query[],
 	backsql_def_delentry_stmt[],
+	backsql_def_renentry_stmt[],
 	backsql_def_insentry_stmt[],
 	backsql_def_delobjclasses_stmt[],
 	backsql_def_delreferrals_stmt[],

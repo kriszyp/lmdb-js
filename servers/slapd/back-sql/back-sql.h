@@ -474,6 +474,7 @@ typedef struct backsql_info {
 			*sql_at_query;
 	char		*sql_insentry_stmt,
 			*sql_delentry_stmt,
+			*sql_renentry_stmt,
 			*sql_delobjclasses_stmt,
 			*sql_delreferrals_stmt;
 	char		*sql_id_query;

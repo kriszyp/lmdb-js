@@ -1789,7 +1789,7 @@ backsql_search( Operation *op, SlapReply *rs )
 				base_entry = { 0 };
 	int			manageDSAit;
 	time_t			stoptime = 0;
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	backsql_entryID		*eid = NULL;
 	struct berval		nbase = BER_BVNULL,
 				realndn = BER_BVNULL;
@@ -2303,7 +2303,7 @@ backsql_entry_get(
 		int			rw,
 		Entry			**ent )
 {
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	SQLHDBC			dbh = SQL_NULL_HDBC;
 	int			rc;
 	SlapReply		rs = { 0 };
@@ -2331,7 +2331,9 @@ backsql_entry_get(
 			dbh, op, &rs, at ? anlist : NULL,
 			BACKSQL_ISF_GET_ENTRY );
 
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	}
 
 	if ( rc == LDAP_SUCCESS ) {
 

@@ -34,7 +34,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	SQLHDBC			dbh = SQL_NULL_HDBC;
 	Entry			e = { 0 };
 	Attribute		*a = NULL;
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	int			rc;
 	AttributeName		anlist[2],
 				*anlistp = NULL;
@@ -174,10 +174,12 @@ return_results:;
 		rs->sr_ref = NULL;
 	}
 
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	}
 
-	if ( bsi.bsi_e ) {
-		entry_clean( bsi.bsi_e );
+	if ( !BER_BVISNULL( &e.e_nname ) ) {
+		entry_clean( &e );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {

@@ -180,7 +180,7 @@ backsql_operational(
 			&& !got[ BACKSQL_OP_ENTRYUUID ]
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID ) == NULL )
 	{
-		backsql_srch_info	bsi;
+		backsql_srch_info	bsi = { 0 };
 
 		rc = backsql_init_search( &bsi, &rs->sr_entry->e_nname,
 				LDAP_SCOPE_BASE,
@@ -197,6 +197,7 @@ backsql_operational(
 		*ap = backsql_operational_entryUUID( bi, &bsi.bsi_base_id );
 
 		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+
 		if ( bsi.bsi_attrs != NULL ) {
 			op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
 		}

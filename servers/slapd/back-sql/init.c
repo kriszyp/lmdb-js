@@ -47,6 +47,12 @@ sql_back_initialize(
 
 	bi->bi_controls = controls;
 
+	bi->bi_flags |=
+#if 0
+		SLAP_BFLAG_INCREMENT |
+#endif
+		SLAP_BFLAG_REFERRALS;
+
 	Debug( LDAP_DEBUG_TRACE,"==>sql_back_initialize()\n", 0, 0, 0 );
 	
 	bi->bi_db_init = backsql_db_init;
@@ -137,6 +143,7 @@ backsql_db_destroy(
 	free( bi->sql_at_query );
 	free( bi->sql_insentry_stmt );
 	free( bi->sql_delentry_stmt );
+	free( bi->sql_renentry_stmt );
 	free( bi->sql_delobjclasses_stmt );
 	free( bi->sql_delreferrals_stmt );
 
@@ -373,6 +380,17 @@ backsql_db_open(
 			"setting \"%s\" by default\n",
 			backsql_def_delentry_stmt, 0, 0 );
 		bi->sql_delentry_stmt = ch_strdup( backsql_def_delentry_stmt );
+	}
+
+	if ( bi->sql_renentry_stmt == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"entry deletion SQL statement not specified "
+			"(use \"renentry_stmt\" directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting \"%s\" by default\n",
+			backsql_def_renentry_stmt, 0, 0 );
+		bi->sql_renentry_stmt = ch_strdup( backsql_def_renentry_stmt );
 	}
 
 	if ( bi->sql_delobjclasses_stmt == NULL ) {

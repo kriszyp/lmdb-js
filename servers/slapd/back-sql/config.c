@@ -291,6 +291,21 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"delentry_stmt=%s\n", bi->sql_delentry_stmt, 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "renentry_stmt" ) ||
+			!strcasecmp( argv[ 0 ], "renentry_query" ) )
+	{
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL statement "
+				"in \"renentry_stmt\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		bi->sql_renentry_stmt = ch_strdup( argv[ 1 ] );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"renentry_stmt=%s\n", bi->sql_renentry_stmt, 0, 0 );
+
 	} else if ( !strcasecmp( argv[ 0 ], "delobjclasses_stmt" ) ||
 			!strcasecmp( argv[ 0 ], "delobjclasses_query" ) )
 	{

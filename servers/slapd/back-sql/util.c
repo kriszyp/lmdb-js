@@ -48,6 +48,8 @@ char backsql_def_at_query[] =
 	"param_order,expect_return,sel_expr_u FROM ldap_attr_mappings "
 	"WHERE oc_map_id=?";
 char backsql_def_delentry_stmt[] = "DELETE FROM ldap_entries WHERE id=?";
+char backsql_def_renentry_stmt[] =
+	"UPDATE ldap_entries SET dn=?,parent=?,keyval=? WHERE id=?";
 char backsql_def_insentry_stmt[] = 
 	"INSERT INTO ldap_entries (dn,oc_map_id,parent,keyval) "
 	"VALUES (?,?,?,?)";

@@ -43,11 +43,13 @@
  * - operational attributes
  * - empty attributes
  */
+#define backsql_opattr_skip(ad) \
+	(is_at_operational( (ad)->ad_type ) && (ad) != slap_schema.si_ad_ref )
 #define	backsql_attr_skip(ad, vals) \
 	( \
 		( (ad) == slap_schema.si_ad_objectClass \
 				&& (vals) && BER_BVISNULL( &((vals)[ 1 ]) ) ) \
-		|| is_at_operational( (ad)->ad_type ) \
+		|| backsql_opattr_skip( (ad) ) \
 		|| ( (vals) && BER_BVISNULL( &((vals)[ 0 ]) ) ) \
 	)
 
@@ -316,7 +318,7 @@ backsql_modify_internal(
 #if 0
 		/* NOTE: some day we'll have to pass 
 		 * the normalized values as well */
-		BerVarray		nvalues;
+		BerVarray		sm_nvalues;
 #endif
 		backsql_at_map_rec	*at = NULL;
 		struct berval		*at_val;
@@ -951,7 +953,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	unsigned long		new_keyval = 0;
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;

@@ -34,7 +34,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	SQLHDBC			dbh = SQL_NULL_HDBC;
 	Entry			e = { 0 };
 	Attribute		*a;
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	AttributeName		anlist[2];
 	int			rc;
  
@@ -101,10 +101,12 @@ backsql_bind( Operation *op, SlapReply *rs )
 	}
 
 error_return:;
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	}
 
-	if ( bsi.bsi_e ) {
-		entry_clean( bsi.bsi_e );
+	if ( !BER_BVISNULL( &e.e_nname ) ) {
+		entry_clean( &e );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {
