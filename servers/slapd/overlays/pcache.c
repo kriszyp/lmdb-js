@@ -108,8 +108,7 @@ typedef struct query_manager_s {
 
 /* LDAP query cache manager */
 typedef struct cache_manager_s {
-	BackendInfo *bi;	/* underlying database info */
-	void *be_private;	/* for the underlying database */
+	BackendDB	db;	/* underlying database */
 	unsigned long	num_cached_queries; 		/* total number of cached queries */
 	unsigned long   max_queries;			/* upper bound on # of cached queries */
 	int 	numattrsets;			/* number of attribute sets */
@@ -1073,17 +1072,13 @@ cache_entries(
 	struct berval	crp_uuid;
 	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 	Operation op_tmp = *op;
-	BackendDB db = *op->o_bd;
 
 	query_uuid->bv_len = lutil_uuidstr(uuidbuf, sizeof(uuidbuf));
 	ber_str2bv(uuidbuf, query_uuid->bv_len, 1, query_uuid);
 
-	op_tmp.o_bd = &db;
-	op_tmp.o_dn = db.be_rootdn;
-	op_tmp.o_ndn = db.be_rootndn;
-	db.bd_info = cm->bi;
-	db.be_private =cm->be_private;
-	db.be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+	op_tmp.o_bd = &cm->db;
+	op_tmp.o_dn = cm->db.be_rootdn;
+	op_tmp.o_ndn = cm->db.be_rootndn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_META, DETAIL1, "UUID for query being added = %s\n",
@@ -1377,7 +1372,7 @@ proxy_cache_search(
 	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
 
 	if (answerable) {
-		BackendDB db, *be;
+		BackendDB *be = op->o_bd;
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY ANSWERABLE\n", 0, 0, 0 );
 #else /* !NEW_LOGGING */
@@ -1385,12 +1380,8 @@ proxy_cache_search(
 #endif /* !NEW_LOGGING */
 		free(filter_attrs);
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock);
-		db = *op->o_bd;
-		db.bd_info = cm->bi;
-		db.be_private = cm->be_private;
-		be = op->o_bd;
-		op->o_bd = &db;
-		i = cm->bi->bi_op_search( op, rs );
+		op->o_bd = &cm->db;
+		i = cm->db.bd_info->bi_op_search( op, rs );
 		op->o_bd = be;
 		return i;
 	}
@@ -1525,23 +1516,19 @@ consistency_check(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	Operation op = {0};
-	BackendDB be = on->on_info->oi_bd;
 
 	SlapReply rs = {REP_RESULT};
 	CachedQuery* query, *query_prev;
 	int i, return_val, pause = 1;
 	QueryTemplate* templ;
 
-	op.o_bd = &be;
-	op.o_dn = be.be_rootdn;
-	op.o_ndn = be.be_rootndn;
+	op.o_bd = &cm->db;
+	op.o_dn = cm->db.be_rootdn;
+	op.o_ndn = cm->db.be_rootndn;
 	op.o_threadctx = ctx;
 
 	op.o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
 	op.o_tmpmfuncs = &sl_mfuncs;
-
-	be.bd_info = cm->bi;
-	be.be_private = cm->be_private;
 
       	cm->cc_arg = arg;
 
@@ -1651,7 +1638,6 @@ proxy_cache_config(
 	AttributeName*  attr_name;
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
-	void *private = be->be_private;
 
 	int 		index, i;
 	int 		num;
@@ -1664,17 +1650,13 @@ proxy_cache_config(
 			return( 1 );
 		}
 
-		cm->bi = backend_info( argv[1] );
-		if ( !cm->bi ) {
+		cm->db.bd_info = backend_info( argv[1] );
+		if ( !cm->db.bd_info ) {
 			fprintf( stderr, "%s: line %d: backend %s unknown\n",
 				fname, lineno, argv[1] );
 			return( 1 );
 		}
-		be->be_private = NULL;
-		i = cm->bi->bi_db_init( be );
-		cm->be_private = be->be_private;
-		be->be_private = private;
-		if ( i ) return( 1 );
+		if ( cm->db.bd_info->bi_db_init( &cm->db ) ) return( 1 );
 
 		cm->max_entries = atoi( argv[2] );
 
@@ -1820,10 +1802,7 @@ proxy_cache_config(
 	}
 	/* anything else */
 	else {
-		be->be_private = cm->be_private;
-		i = cm->bi->bi_db_config( be, fname, lineno, argc, argv );
-		be->be_private = private;
-		return i;
+		return cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
 	}
 	return 0;
 }
@@ -1842,6 +1821,9 @@ proxy_cache_init(
 
 	qm = (query_manager*)ch_malloc(sizeof(query_manager));
 
+	cm->db = *be;
+	cm->db.be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+	cm->db.be_private = NULL;
 	cm->qm = qm;
 	cm->numattrsets = 0;
 	cm->numtemplates = 0; 
@@ -1875,13 +1857,10 @@ proxy_cache_open(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
-	void *private = be->be_private;
 	int rc = 0;
 
-	if ( cm->be_private && cm->bi->bi_db_open ) {
-		be->be_private = cm->be_private;
-		rc = cm->bi->bi_db_open( be );
-		be->be_private = private;
+	if ( cm->db.bd_info->bi_db_open ) {
+		rc = cm->db.bd_info->bi_db_open( &cm->db );
 	}
 
 	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
@@ -1900,13 +1879,10 @@ proxy_cache_close(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
-	void *private = be->be_private;
 	int i, j, rc = 0;
 
-	if ( cm->be_private && cm->bi->bi_db_close ) {
-		be->be_private = cm->be_private;
-		rc = cm->bi->bi_db_close( be );
-		be->be_private = private;
+	if ( cm->db.bd_info->bi_db_close ) {
+		rc = cm->db.bd_info->bi_db_close( &cm->db );
 	}
 	for ( i=0; i<cm->numtemplates; i++ ) {
 		CachedQuery *qc, *qn;
@@ -1941,13 +1917,10 @@ proxy_cache_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
-	void *private = be->be_private;
 	int rc = 0;
 
-	if ( cm->be_private && cm->bi->bi_db_destroy ) {
-		be->be_private = cm->be_private;
-		rc = cm->bi->bi_db_destroy( be );
-		be->be_private = private;
+	if ( cm->db.bd_info->bi_db_destroy ) {
+		rc = cm->db.bd_info->bi_db_destroy( &cm->db );
 	}
 	ldap_pvt_thread_mutex_destroy(&qm->lru_mutex);
 	ldap_pvt_thread_mutex_destroy(&cm->cache_mutex);
