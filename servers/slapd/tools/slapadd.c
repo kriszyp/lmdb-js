@@ -152,12 +152,12 @@ main( int argc, char **argv )
 		if ( SLAP_LASTMOD(be) ) {
 			struct tm *ltm;
 			time_t now = slap_get_time();
-			char uuidbuf[40];
-			struct berval vals[2];
+			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
+			struct berval vals[ 2 ];
 
 			struct berval name, timestamp, csn;
-			char timebuf[22];
-			char csnbuf[64];
+			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 			ltm = gmtime(&now);
 			lutil_gentime( timebuf, sizeof(timebuf), ltm );
