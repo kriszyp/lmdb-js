@@ -32,7 +32,7 @@ Large projects
 --------------
 Redesign slapd memory allocation fault handling
 Update to latest autoconf and friends
-Implement localization
+Localize slapd
 
 
 Medium projects
@@ -41,17 +41,15 @@ Implement LDAP Transactions extension
 Implement Proxy Authorization Control extension
 Implement LDAP Cancel extension
 Implement authPassword (RFC 3112)
-Populate matchingRuleUse attribute in the subschema
+Localize tools
 
 
 Small projects
 --------------
-Add dumpasn1 logging support
-Add LDIFv1 control support
 Implement -V version options
+Add dumpasn1 logging support
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Recode linked-list structs to use <ldap_queue.h> macros
-Create ldapbind(1) to support bind operations
 Convert utfconv.txt into man page(s).
 Update any manual page
 
