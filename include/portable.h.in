@@ -1001,6 +1001,12 @@
 /* define to support dynamic PERL backend */
 #undef SLAPD_PERL_DYNAMIC
 
+/* define to support relay backend */
+#undef SLAPD_RELAY
+
+/* define to support dynamic relay backend */
+#undef SLAPD_RELAY_DYNAMIC
+
 /* define to support SHELL backend */
 #undef SLAPD_SHELL
 
@@ -1012,6 +1018,12 @@
 
 /* define to support dynamic SQL backend */
 #undef SLAPD_SQL_DYNAMIC
+
+/* define for Dynamic Group overlay */
+#undef SLAPD_OVER_CHAIN
+
+/* define for Dynamic Group overlay */
+#undef SLAPD_OVER_DENYOP
 
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
