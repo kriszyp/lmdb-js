@@ -175,9 +175,8 @@ ldbm_cache_fetch(
 )
 {
 	Datum	data;
-#ifdef HAVE_BERKELEY_DB2
-	memset( &data, 0, sizeof( data ) );
-#endif
+
+	ldbm_datum_init( data );
 
 	pthread_mutex_lock( &db->dbc_mutex );
 #ifdef reentrant_database

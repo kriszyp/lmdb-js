@@ -17,10 +17,8 @@ id2entry_add( Backend *be, Entry *e )
 	Datum		key, data;
 	int		len, rc, flags;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
@@ -71,9 +69,7 @@ id2entry_delete( Backend *be, Entry *e )
 	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
 #endif
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-#endif
+	ldbm_datum_init( key );
 
 	/* XXX - check for writer lock - should also check no reader pending */
 	Debug (LDAP_DEBUG_TRACE,
@@ -112,10 +108,8 @@ id2entry( Backend *be, ID id, int rw )
 	Datum		key, data;
 	Entry		*e;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_%s( %ld )\n",
 		rw ? "w" : "r", id, 0 );

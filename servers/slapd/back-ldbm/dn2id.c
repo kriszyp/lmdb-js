@@ -23,10 +23,8 @@ dn2id_add(
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
@@ -68,10 +66,8 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	dn = ch_strdup( dn );
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
@@ -125,9 +121,7 @@ dn2id_delete(
 	Datum		key;
 	int		rc;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-#endif
+	ldbm_datum_init( key );
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\" )\n", dn, 0, 0 );
 

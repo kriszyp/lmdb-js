@@ -25,8 +25,9 @@ id2children_add(
 
 #ifdef HAVE_BERKELEY_DB2
 	Datum		data;
-	memset( &key, 0, sizeof( key ) );
-	memset( &data, 0, sizeof( data ) );
+
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %lu, %lu )\n",
@@ -82,7 +83,7 @@ id2children_remove(
 		return( -1 );
 	}
 
-	memset( &key, 0, sizeof(key) );
+	ldbm_datum_init( key );
 	sprintf( buf, "%c%ld", EQ_PREFIX, p ? p->e_id : 0 );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
@@ -112,9 +113,7 @@ has_children(
 	IDList		*idl;
 	char		buf[20];
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-#endif
+	ldbm_datum_init( key );
 
 	Debug( LDAP_DEBUG_TRACE, "=> has_children( %lu )\n", p->e_id , 0, 0 );
 

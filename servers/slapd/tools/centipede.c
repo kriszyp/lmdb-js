@@ -474,7 +474,7 @@ generate_new_centroids(
 	char		**val;
 	char		last;
 
-	memset( &data, 0 , sizeof( data ));
+	ldbm_datum_init( data );
 
 	if ( verbose ) {
 		printf( "Generating new centroids for..." );
@@ -499,7 +499,7 @@ generate_new_centroids(
 			/* for each value */
 			for ( j = 0; val[j] != NULL; j++ ) {
 
-				memset( &key, 0 , sizeof( key ));
+				ldbm_datum_init( key );
 
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
@@ -576,13 +576,13 @@ diff_centroids(
 		fflush( stdout );
 	}
 
-	memset( &okey, 0, sizeof( okey ));
-	memset( &nkey, 0, sizeof( nkey ));
-	memset( &olast, 0, sizeof( olast ));
-	memset( &nlast, 0, sizeof( nlast ));
-	memset( &lastkey, 0, sizeof( lastkey ));
-	memset( &key, 0, sizeof( key ));
-	memset( &data, 0, sizeof( data ));
+	ldbm_datum_init( okey );
+	ldbm_datum_init( nkey );
+	ldbm_datum_init( olast );
+	ldbm_datum_init( nlast );
+	ldbm_datum_init( lastkey );
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	if ( (mods = (LDAPMod **) malloc( sizeof(LDAPMod *) * 4 )) == NULL ||
 	     (mods[0] = (LDAPMod *) malloc( sizeof(LDAPMod) )) == NULL ||
@@ -846,8 +846,8 @@ full_centroid(
 		fflush( stdout );
 	}
 
-	memset( &key, 0, sizeof( key ));
-	memset( &lastkey, 0, sizeof( lastkey ));
+	ldbm_datum_init( key );
+	ldbm_datum_init( lastkey );
 
 	if ( (mods = (LDAPMod **) malloc( sizeof(LDAPMod *) * 3 )) == NULL ||
 	     (mods[0] = (LDAPMod *) malloc( sizeof(LDAPMod) )) == NULL ||

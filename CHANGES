@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.1.2
 	Fixed slapd/nonauthorized add bug (ITS#26)
 	Fixed misc. overlapping strcpy bugs
 	Fixed misc. memory leaks
+	Update DB2 support for newer SleepyCat releases (ITS#27)
 	Update slapd/slurpd to workaround FreeBSD pthread_exit bug (ITS#28)
 	Build environment
 		Fixed --disable-crypt/-disable-cleartext options
