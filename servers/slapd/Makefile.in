@@ -201,6 +201,7 @@ install-schema: FORCE
 
 install-conf: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
+	@-$(MKDIR) $(DESTDIR)$(localstatedir)/openldap-ldbm
 	@for i in $(CFFILES); do \
 		tmpcf=$$i.tmp ; \
 		if test $$i = slapd.conf ; then \
