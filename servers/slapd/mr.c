@@ -226,6 +226,11 @@ int mr_schema_info( Entry *e )
 	vals[1] = NULL;
 
 	for ( mr = mr_list; mr; mr = mr->smr_next ) {
+		if ( ! mr->smr_match ) {
+			/* skip rules without matching functions */
+			continue;
+		}
+
 		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
 
 		if ( val.bv_val == NULL ) {

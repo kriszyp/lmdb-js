@@ -3662,7 +3662,6 @@ struct syntax_defs_rec {
 #endif
 };
 
-#define X_HIDE "X-HIDE 'TRUE' "
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
@@ -3792,7 +3791,7 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 
 	/* OpenLDAP Void Syntax */
-	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' " X_HIDE ")" ,
+	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
 		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
 	{NULL, 0, NULL, NULL, NULL}
 };
