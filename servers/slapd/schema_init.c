@@ -257,6 +257,7 @@ caseIgnoreIA5Match(
 
 struct syntax_defs_rec {
 	char *sd_desc;
+	int sd_flags;
 	slap_syntax_validate_func *sd_validate;
 	slap_syntax_transform_func *sd_ber2str;
 	slap_syntax_transform_func *sd_str2ber;
@@ -264,96 +265,102 @@ struct syntax_defs_rec {
 
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'AttributeTypeDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )",
+		SLAP_SYNTAX_BINARY,
 		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'BitString' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )",
+		SLAP_SYNTAX_BINARY,
 		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'CertificateList' )",
+		SLAP_SYNTAX_BINARY,
 		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'CertificatePair' )",
+		SLAP_SYNTAX_BINARY,
 		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'DeliveryMethod' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'DirectoryString' )",
-		UTF8StringValidate, NULL, NULL},
+		0, UTF8StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DITContentRuleDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DITStructureRuleDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'EnhancedGuide' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'FacsimileTelephoneNumber' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'GeneralizedTime' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5String' )",
-		IA5StringValidate, NULL, NULL},
+		0, IA5StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'MatchingRuleDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'MatchingRuleUseDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'MailPreference' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'NameAndOptionalUID' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'NameFormDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'NumericString' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'ObjectClassDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'OtherMailbox' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'OctetString' )",
-		octetStringValidate, NULL, NULL},
+		0, octetStringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'PostalAddress' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'ProtocolInformation' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'PresentationAddress' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'PrintableString' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'SupportedAlgorithm' )",
-		NULL, NULL, NULL},
+		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'TelephoneNumber' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'TeletexTerminalIdentifier' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'TelexNumber' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTCTime' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAPSyntaxDescription' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'SubstringAssertion' )",
-		NULL, NULL, NULL},
+		0, NULL, NULL, NULL},
 
-	{NULL, NULL, NULL}
+	{NULL, 0, NULL, NULL, NULL}
 };
 
 struct mrule_defs_rec {
-	char *mrd_desc;
-	slap_mr_convert_func *mrd_convert;
-	slap_mr_normalize_func *mrd_normalize;
-	slap_mr_match_func *mrd_match;
+	char *						mrd_desc;
+	slap_mr_convert_func *		mrd_convert;
+	slap_mr_normalize_func *	mrd_normalize;
+	slap_mr_match_func *		mrd_match;
+	slap_mr_indexer_func *		mrd_indexer;
+	slap_mr_filter_func *		mrd_filter;
 };
 
 /*
@@ -414,108 +421,108 @@ struct mrule_defs_rec {
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, NULL, objectIdentifierMatch},
+		NULL, NULL, objectIdentifierMatch, NULL, NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
-		NULL, NULL, distinguishedNameMatch},
+		NULL, NULL, distinguishedNameMatch, NULL, NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		NULL, UTF8StringNormalize, caseIgnoreMatch},
+		NULL, UTF8StringNormalize, caseIgnoreMatch, NULL, NULL},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		NULL, UTF8StringNormalize, caseIgnoreOrderingMatch},
+		NULL, UTF8StringNormalize, caseIgnoreOrderingMatch, NULL, NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, UTF8StringNormalize, caseIgnoreSubstringsMatch},
+		NULL, UTF8StringNormalize, caseIgnoreSubstringsMatch, NULL, NULL},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		NULL, UTF8StringNormalize, caseExactMatch},
+		NULL, UTF8StringNormalize, caseExactMatch, NULL, NULL},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		NULL, UTF8StringNormalize, caseExactOrderingMatch},
+		NULL, UTF8StringNormalize, caseExactOrderingMatch, NULL, NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, UTF8StringNormalize, caseExactSubstringsMatch},
+		NULL, UTF8StringNormalize, caseExactSubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
-		NULL, NULL, numericStringMatch},
+		NULL, NULL, numericStringMatch, NULL, NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, NULL, numericStringSubstringsMatch},
+		NULL, NULL, numericStringSubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
-		NULL, NULL, caseIgnoreListMatch},
+		NULL, NULL, caseIgnoreListMatch, NULL, NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		NULL, NULL, integerMatch},
+		NULL, NULL, integerMatch, NULL, NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		NULL, NULL, bitStringMatch},
+		NULL, NULL, bitStringMatch, NULL, NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		NULL, NULL, octetStringMatch},
+		NULL, NULL, octetStringMatch, NULL, NULL},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
-		NULL, NULL, telephoneNumberMatch},
+		NULL, NULL, telephoneNumberMatch, NULL, NULL},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, NULL, telephoneNumberSubstringsMatch},
+		NULL, NULL, telephoneNumberSubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		NULL, NULL, presentationAddressMatch},
+		NULL, NULL, presentationAddressMatch, NULL, NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		NULL, NULL, uniqueMemberMatch},
+		NULL, NULL, uniqueMemberMatch, NULL, NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		NULL, NULL, protocolInformationMatch},
+		NULL, NULL, protocolInformationMatch, NULL, NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		NULL, NULL, generalizedTimeMatch},
+		NULL, NULL, generalizedTimeMatch, NULL, NULL},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		NULL, NULL, generalizedTimeOrderingMatch},
+		NULL, NULL, generalizedTimeOrderingMatch, NULL, NULL},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		NULL, NULL, integerFirstComponentMatch},
+		NULL, NULL, integerFirstComponentMatch, NULL, NULL},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, NULL, objectIdentifierFirstComponentMatch},
+		NULL, NULL, objectIdentifierFirstComponentMatch, NULL, NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		NULL, IA5StringNormalize, caseExactIA5Match},
+		NULL, IA5StringNormalize, caseExactIA5Match, NULL, NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		NULL, IA5StringNormalize, caseIgnoreIA5Match},
+		NULL, IA5StringNormalize, caseIgnoreIA5Match, NULL, NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		NULL, IA5StringNormalize, caseIgnoreIA5SubstringsMatch},
+		NULL, IA5StringNormalize, caseIgnoreIA5SubstringsMatch, NULL, NULL},
 
 	{NULL, NULL, NULL, NULL}
 };
@@ -533,6 +540,7 @@ schema_init( void )
 
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
 		res = register_syntax( syntax_defs[i].sd_desc,
+		    syntax_defs[i].sd_flags,
 		    syntax_defs[i].sd_validate,
 		    syntax_defs[i].sd_ber2str,
 			syntax_defs[i].sd_str2ber );
@@ -549,7 +557,9 @@ schema_init( void )
 			mrule_defs[i].mrd_desc,
 			mrule_defs[i].mrd_convert,
 			mrule_defs[i].mrd_normalize,
-		    mrule_defs[i].mrd_match );
+		    mrule_defs[i].mrd_match,
+			mrule_defs[i].mrd_indexer,
+			mrule_defs[i].mrd_filter );
 
 		if ( res ) {
 			fprintf( stderr,

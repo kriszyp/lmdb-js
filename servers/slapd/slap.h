@@ -148,6 +148,9 @@ typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
 	int	ssyn_flags;
 
+#define SLAP_SYNTAX_NONE	0
+#define SLAP_SYNTAX_BINARY	1
+
 	slap_syntax_validate_func	*ssyn_validate;
 
 	/* convert to and from binary */

@@ -197,7 +197,7 @@ int ldbm_tool_index_attr(
 	char* type )
 {
 	static DBCache *db = NULL;
-	int indexmask, syntaxmask;
+	int indexmask;
 	char * at_cn;
 #ifndef SLAPD_SCHEMA_COMPAT
 	AttributeType *at;

@@ -468,7 +468,7 @@ LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 
 LIBSLAPD_F (Syntax *) syn_find LDAP_P((const char *synname));
 LIBSLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
-LIBSLAPD_F (int) syn_add LDAP_P((LDAP_SYNTAX *syn,
+LIBSLAPD_F (int) syn_add LDAP_P((LDAP_SYNTAX *syn, int flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber,
@@ -479,9 +479,11 @@ LIBSLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
+	slap_mr_indexer_func *indexer,
+	slap_mr_filter_func *filter,
 	const char **err));
 
-LIBSLAPD_F (int) register_syntax LDAP_P((char *desc,
+LIBSLAPD_F (int) register_syntax LDAP_P((char *desc, int flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber ));
@@ -489,16 +491,23 @@ LIBSLAPD_F (int) register_syntax LDAP_P((char *desc,
 LIBSLAPD_F (int) register_matching_rule LDAP_P((char * desc,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
-	slap_mr_match_func *match ));
+	slap_mr_match_func *match,
+	slap_mr_indexer_func *indexer,
+	slap_mr_filter_func *filter	));
 
 LIBSLAPD_F (void) schema_info LDAP_P((Connection *conn, Operation *op,
 	char **attrs, int attrsonly));
-LIBSLAPD_F (int) schema_init LDAP_P((void));
 
 LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, const char* objectclass ));
 #define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
 #define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
+
+
+/*
+ * schema_init.c
+ */
+LIBSLAPD_F (int) schema_init LDAP_P((void));
 
 
 /*

@@ -677,6 +677,7 @@ syn_insert(
 int
 syn_add(
     LDAP_SYNTAX		*syn,
+	int flags,
     slap_syntax_validate_func	*validate,
     slap_syntax_transform_func	*ber2str,
     slap_syntax_transform_func	*str2ber,
@@ -689,6 +690,7 @@ syn_add(
 	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
 	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX));
 
+	ssyn->ssyn_flags = flags;
 	ssyn->ssyn_validate = validate;
 	ssyn->ssyn_ber2str = ber2str;
 	ssyn->ssyn_str2ber = str2ber;
@@ -793,6 +795,8 @@ mr_add(
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
     slap_mr_match_func	*match,
+	slap_mr_indexer_func *indexer,
+    slap_mr_filter_func	*filter,
     const char		**err
 )
 {
@@ -806,6 +810,8 @@ mr_add(
 	smr->smr_convert = convert;
 	smr->smr_normalize = normalize;
 	smr->smr_match = match;
+	smr->smr_indexer = indexer;
+	smr->smr_filter = filter;
 
 	if ( smr->smr_syntax_oid ) {
 		if ( (syn = syn_find(smr->smr_syntax_oid)) ) {
@@ -824,7 +830,7 @@ mr_add(
 
 int
 register_syntax(
-	char * desc,
+	char * desc, int flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber )
@@ -840,7 +846,7 @@ register_syntax(
 		return( -1 );
 	}
 
-	code = syn_add( syn, validate, ber2str, str2ber, &err );
+	code = syn_add( syn, flags, validate, ber2str, str2ber, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
@@ -855,7 +861,9 @@ register_matching_rule(
 	char * desc,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
-	slap_mr_match_func *match )
+	slap_mr_match_func *match,
+	slap_mr_indexer_func *indexer,
+	slap_mr_filter_func *filter )
 {
 	LDAP_MATCHING_RULE *mr;
 	int		code;
@@ -868,7 +876,7 @@ register_matching_rule(
 		return( -1 );
 	}
 
-	code = mr_add( mr, convert, normalize, match, &err );
+	code = mr_add( mr, convert, normalize, match, indexer, filter, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );

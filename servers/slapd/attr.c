@@ -75,7 +75,9 @@ Attribute *attr_dup( Attribute *a )
 	}
 
 	tmp->a_type = ch_strdup( a->a_type );
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	tmp->a_at = a->a_at;
+#else
 	tmp->a_syntax = a->a_syntax;
 #endif
 	tmp->a_next = NULL;
