@@ -41,6 +41,8 @@ ldapdelete \- LDAP delete entry tool
 [\c
 .BI \-U \ username\fR]
 [\c
+.BR \-x ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -106,6 +108,9 @@ Read a series of lines from \fIfile\fP, performing one LDAP search for
 each line.  In this case, the \fIfilter\fP given on the command line
 is treated as a pattern where the first occurrence of \fB%s\fP is
 replaced with a line from \fIfile\fP.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be

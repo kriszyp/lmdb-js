@@ -41,6 +41,8 @@ ldapmodrdn \- LDAP rename entry tool
 [\c
 .BI \-U \ username\fR]
 [\c
+.BR \-x ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -108,6 +110,9 @@ compiled with LDAP_DEBUG defined for this option to have any effect.
 .B \-f file
 Read the entry modification information from \fIfile\fP instead of from
 standard input or the command-line.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .B \-D binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be

@@ -57,6 +57,8 @@ ldapsearch \- LDAP search tool
 [\c
 .BI \-U \ username\fR]
 [\c
+.BR \-x ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -154,6 +156,9 @@ each line.  In this case, the \fIfilter\fP given on the command line
 is treated as a pattern where the first occurrence of \fB%s\fP is
 replaced with a line from \fIfile\fP.  If \fIfile\fP is a single \fI-\fP
 character, then the lines are read from standard input.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be

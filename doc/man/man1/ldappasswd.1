@@ -37,6 +37,8 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-U \ username\fR]
 [\c
+.BR \-x ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -65,6 +67,9 @@ Set the old password to \fIoldPasswd\fP.
 .TP
 .B \-C
 Automatically chase referrals.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should

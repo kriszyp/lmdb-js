@@ -45,6 +45,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BI \-U \ username\fR]
 [\c
+.BR \-x ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -177,6 +179,9 @@ must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .BI \-f \ file
 Read the entry modification information from \fIfile\fP instead of from
 standard input.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
