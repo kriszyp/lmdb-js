@@ -293,7 +293,7 @@ void *getRegParam( char *svc, char *value )
 	static char vValue[1024];
 	DWORD valLen = sizeof( vValue );
 
-	if ( svc && strcmp(svc, SERVICE_NAME) )
+	if ( svc != NULL )
 		sprintf ( path, "SOFTWARE\\%s", svc );
 	else
 		strcpy (path, "SOFTWARE\\OpenLDAP\\Parameters" );

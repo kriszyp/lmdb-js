@@ -172,20 +172,23 @@ int main( int argc, char **argv )
 		int *i;
 		char *newConfigFile;
 		char *newUrls;
+		char *regService = NULL;
 
 		if ( is_NT_Service ) {
 			NTservice = argv[0];
 			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
+			if ( strcmp(NTservice, SERVICE_NAME) )
+			    regService = NTservice;
 		}
 
-		i = (int*)getRegParam( NTservice, "DebugLevel" );
+		i = (int*)getRegParam( regService, "DebugLevel" );
 		if ( i != NULL ) 
 		{
 			slap_debug = *i;
 			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
 		}
 
-		newUrls = (char *) getRegParam(NTservice, "Urls");
+		newUrls = (char *) getRegParam(regService, "Urls");
 		if (newUrls)
 		{
 		    if (urls)
@@ -196,7 +199,7 @@ int main( int argc, char **argv )
 			  urls, 0, 0);
 		}
 
-		newConfigFile = (char*)getRegParam( NTservice, "ConfigFile" );
+		newConfigFile = (char*)getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) 
 		{
 			configfile = newConfigFile;
