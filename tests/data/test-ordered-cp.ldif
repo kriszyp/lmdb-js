@@ -1,10 +1,10 @@
 #LEAD COMMENT
 dn: dc=example,dc=com
-objectclass: dcobject
 dc: example
 #EMBEDDED COMMENT
 objectclass: organization
 objectclass: domainRelatedObject
+objectclass: dcobject
 l: Anytown, Michigan
 st: Michigan
 o: Example, Inc.

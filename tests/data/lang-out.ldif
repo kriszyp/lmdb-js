@@ -1,8 +1,7 @@
 dn: dc=example,dc=com
-objectClass: dcObject
+dc: example
 objectClass: organization
 objectClass: extensibleObject
-dc: example
 o: Example, Inc.
 o;lang-x;lang-xx;lang-y;lang-yy;lang-z;lang-zz: Example, Inc.
 name;lang-en-us: Billy Ray

@@ -1,5 +1,4 @@
 dn: dc=example,dc=com
-objectclass: dcobject
 dc: example
 objectClass: organization
 objectClass: extensibleObject
