@@ -25,6 +25,8 @@ technical specification (e.g., an RFC) for the schema.
 
 ---
 
+This notice applies to all files in this directory.
+
 Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
 
@@ -33,6 +35,11 @@ modification, are permitted only as authorized by the OpenLDAP
 Public License.  A copy of this license is available at
 http://www.OpenLDAP.org/license.html or in file LICENSE in the
 top-level directory of the distribution.
+
+---
+
+This notice applies to all schema in this directory which are derived
+from RFCs and other Internet Standards documents.
 
 Portions Copyright 1991-2003, The Internet Society.  All Rights Reserved.
 
