@@ -98,7 +98,7 @@ value_normalize(
 		if ( (syntax & SYNTAX_TEL) && (*s == ' ' || *s == '-') ) {
 			continue;
 		}
-		*d++ = TOUPPER( *s );
+		*d++ = TOUPPER( (unsigned char) *s );
 	}
 	*d = '\0';
 }

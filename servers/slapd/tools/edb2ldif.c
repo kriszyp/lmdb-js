@@ -761,7 +761,7 @@ read_edbmap( char *mapfile, struct edbmap **edbmapp )
 	}
 
 	*filename++ = '\0';
-	while ( isspace( *filename )) {	/* strip leading whitespace */
+	while ( isspace((unsigned char) *filename) ) { /* strip leading whitespace */
 	    ++filename;
 	}
 
@@ -770,12 +770,12 @@ read_edbmap( char *mapfile, struct edbmap **edbmapp )
 	}
 
 	p = filename + strlen( filename ) - 1;
-	while ( isspace( *p )) {	/* strip trailing whitespace */
+	while ( isspace((unsigned char) *p) ) { /* strip trailing whitespace */
 	    *p-- = '\0';
 	}
 
 	rdn = line;
-	while ( isspace( *rdn )) {	/* strip leading whitespace */
+	while ( isspace((unsigned char) *rdn)) { /* strip leading whitespace */
 	    ++rdn;
 	}
 
@@ -784,7 +784,7 @@ read_edbmap( char *mapfile, struct edbmap **edbmapp )
 	}
 
 	p = rdn + strlen( rdn ) - 1;
-	while ( isspace( *p )) {	/* strip trailing whitespace */
+	while ( isspace((unsigned char) *p)) { /* strip trailing whitespace */
 	    *p-- = '\0';
 	}
 

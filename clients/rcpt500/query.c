@@ -261,7 +261,7 @@ append_entry_list( char *reply, char *query, LDAP *ldp, LDAPMessage *ldmsgp )
 
 	    if (( cn = ldap_get_values( ldp, e, "cn" )) != NULL ) {
 		for ( i = 0; cn[i] != NULL; i++ ) {
-		    if ( isdigit( *( cn[i] + strlen( cn[i] ) - 1 ))) {
+		    if ( isdigit((unsigned char) cn[i][strlen( cn[i] ) - 1])) {
 			rdn = strdup( cn[i] );
 			free_rdn = 1;
 			break;
@@ -325,7 +325,7 @@ remove_trailing_space( char *s )
 {
     char	*p = s + strlen( s ) - 1;
 
-    while ( isspace( *p ) && p > s ) {
+    while ( isspace( (unsigned char) *p ) && p > s ) {
 	--p;
     }
     *(++p) = '\0';

@@ -157,7 +157,7 @@ next_token( char **sp )
 
     p = *sp;
 
-    while ( isspace( *p )) {		/* skip leading white space */
+    while ( isspace( (unsigned char) *p )) {	/* skip leading white space */
 	++p;
     }
 
@@ -172,7 +172,7 @@ next_token( char **sp )
     t = tokstart = p;
 
     for ( ;; ) {
-	if ( *p == '\0' || ( isspace( *p ) && !in_quote )) {
+	if ( *p == '\0' || ( isspace( (unsigned char) *p ) && !in_quote )) {
 	    if ( *p != '\0' ) {
 		++p;
 	    }

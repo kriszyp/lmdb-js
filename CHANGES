@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2.1
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Updated ctype and string generic headers.
+	Fix ctype 'unsigned char' bug 
 	Build environment
 		Added pthread '-mt' check for Solaris 2.x.
 

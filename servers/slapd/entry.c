@@ -49,7 +49,7 @@ str2entry( char	*s )
 
 	/* check to see if there's an id included */
 	next = s;
-	if ( isdigit( *s ) ) {
+	if ( isdigit( (unsigned char) *s ) ) {
 		id = atoi( s );
 		if ( (s = str_getline( &next )) == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,

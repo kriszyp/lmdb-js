@@ -198,7 +198,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 		while ( args != NULL ) {
 		    if (( p = strchr( args, ' ' )) != NULL ) {
 			*p++ = '\0';
-			while ( isspace( *p )) {
+			while ( isspace( (unsigned char) *p )) {
 			    ++p;
 			}
 		    }
@@ -233,7 +233,7 @@ find_input_tag( char **linep )	/* linep is set to start of args */
 
     for ( i = 0; ips[ i ].ip_type != 0; ++i ) {
 	if ( strncasecmp( *linep, ips[ i ].ip_tag, p - *linep ) == 0 ) {
-	    while ( isspace( *(++p) )) {
+	    while ( isspace( (unsigned char) *(++p) )) {
 		;
 	    }
 	    *linep = p;

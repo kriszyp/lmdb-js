@@ -60,7 +60,7 @@ str_parse_line(
 	int	i, b64;
 
 	/* skip any leading space */
-	while ( isspace( *line ) ) {
+	while ( isspace( (unsigned char) *line ) ) {
 		line++;
 	}
 	*type = line;
@@ -73,7 +73,7 @@ str_parse_line(
 	}
 
 	/* trim any space between type and : */
-	for ( p = s - 1; p > line && isspace( *p ); p-- ) {
+	for ( p = s - 1; p > line && isspace( (unsigned char) *p ); p-- ) {
 		*p = '\0';
 	}
 	*s++ = '\0';
@@ -89,7 +89,7 @@ str_parse_line(
 	}
 
 	/* skip space between : and value */
-	while ( isspace( *s ) ) {
+	while ( isspace( (unsigned char) *s ) ) {
 		s++;
 	}
 
@@ -171,8 +171,7 @@ str_parse_line(
 char *
 str_getline( char **next )
 {
-	char	*l;
-	char	c;
+	char		*l;
 
 	if ( *next == NULL || **next == '\n' || **next == '\0' ) {
 		return( NULL );
@@ -180,7 +179,7 @@ str_getline( char **next )
 
 	l = *next;
 	while ( (*next = strchr( *next, '\n' )) != NULL ) {
-		c = *(*next + 1);
+		unsigned char c = *(*next + 1);
 		if ( isspace( c ) && c != '\n' ) {
 			**next = CONTINUED_LINE_MARKER;
 			*(*next+1) = CONTINUED_LINE_MARKER;

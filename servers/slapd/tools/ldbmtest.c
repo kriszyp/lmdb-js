@@ -432,7 +432,7 @@ get_idlist( FILE *fp, Datum *data )
 			printf( "%d IDs entered.  Max number of ids? [%d] ", i,
 			    i );
 			if ( fgets( buf, sizeof(buf), fp ) != NULL &&
-			    isdigit( buf[0] ) ) {
+			     isdigit( (unsigned char) buf[0] ) ) {
 				nmax = atol( buf );
 			}
 		} else {

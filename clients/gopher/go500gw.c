@@ -406,7 +406,7 @@ do_queries( int s )
 	query = buf;
 
 	/* strip off leading white space */
-	while ( isspace( *query )) {
+	while ( isspace( (unsigned char) *query )) {
 		++query;
 		--len;
 	}

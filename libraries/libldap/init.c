@@ -92,14 +92,15 @@ static void openldap_ldap_init_w_conf(const char *file)
 		if(*start == '#') continue;
 
 		/* trim leading white space */
-		while((*start != '\0') && isspace(*start)) start++;
+		while((*start != '\0') && isspace((unsigned char) *start))
+			start++;
 
 		/* anything left? */
 		if(*start == '\0') continue;
 
 		/* trim trailing white space */
 		end = &start[strlen(start)-1];
-		while(isspace(*end)) end--;
+		while(isspace((unsigned char)*end)) end--;
 		end[1] = '\0';
 
 		/* anything left? */
@@ -108,7 +109,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 
 		/* parse the command */
 		cmd=start;
-		while((*start != '\0') && !isspace(*start)) {
+		while((*start != '\0') && !isspace((unsigned char)*start)) {
 			start++;
 		}
 		if(*start == '\0') {
@@ -119,7 +120,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 		*start++ = '\0';
 
 		/* we must have some non-whitespace to skip */
-		while(isspace(*start)) start++;
+		while(isspace((unsigned char)*start)) start++;
 		opt = start;
 
 		for(i=0; attrs[i].type != ATTR_NONE; i++) {

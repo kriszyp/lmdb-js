@@ -28,7 +28,7 @@
  *  parsing names.
  */
 #define MAX_NAME_COMPS		8
-#define isnamesepartor(x)	(isspace(x))
+#define isnamesepartor(x)	(isspace((unsigned char) (x)))
 #define isignorechar(x)		(((x) == '.') || ((x) == '_'))
 
 /*

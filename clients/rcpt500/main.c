@@ -236,7 +236,7 @@ read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
 {
     char	*hdr;
 
-    for ( hdr = buf + offset; isspace( *hdr ); ++hdr ) {
+    for ( hdr = buf + offset; isspace( (unsigned char) *hdr ); ++hdr ) {
 	;
     }
     if (( hdr = strdup( hdr )) == NULL ) {
@@ -249,7 +249,7 @@ read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
     while ( 1 ) {
 	*linep = fgets( buf, MAXSIZE, fp );
 	buf[ strlen( buf ) - 1 ] = '\0';	/* remove trailing newline */
-	if ( *linep == NULL || !isspace( **linep )) {
+	if ( *linep == NULL || !isspace( (unsigned char) **linep )) {
 	    break;
 	}
 	if (( hdr = realloc( hdr, strlen( hdr ) +
@@ -355,16 +355,16 @@ find_command( char *text, char **argp )
 
     p = text;
     for ( s = argbuf; *p != '\0'; ++p ) {
-	*s++ = TOLOWER( *p );
+	*s++ = TOLOWER( (unsigned char) *p );
     }
     *s = '\0';
 
     for ( i = 0; cmds[ i ].cmd_text != NULL; ++i ) {
 	if (( s = strstr( argbuf, cmds[ i ].cmd_text )) != NULL
-		    && isspace( *(s + strlen( cmds[ i ].cmd_text )))) {
+	    && isspace( (unsigned char) s[ strlen( cmds[ i ].cmd_text ) ] )) {
 	    strcpy( argbuf, text + (s - argbuf) + strlen( cmds[ i ].cmd_text ));
 	    *argp = argbuf;
-	    while ( isspace( **argp )) {
+	    while ( isspace( (unsigned char) **argp )) {
 		++(*argp);
 	    }
 	    return( i );

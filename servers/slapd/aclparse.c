@@ -243,7 +243,7 @@ parse_acl(
 
 				/* normalize the domain */
 				for ( s = b->a_domainpat; *s; s++ ) {
-					*s = TOLOWER( *s );
+					*s = TOLOWER( (unsigned char) *s );
 				}
 			} else if ( strcasecmp( left, "addr" ) == 0 ) {
 				regtest(fname, lineno, right);

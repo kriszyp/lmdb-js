@@ -333,12 +333,12 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 	    if ( *p == '%' ) {
 		++p;
 		if ( *p == 'v' ) {
-		    if ( isdigit( *(p+1))) {
+		    if ( isdigit( (unsigned char) p[1] )) {
 			++p;
 			wordnum = *p - '1';
 			if ( *(p+1) == '-' ) {
 			    ++p;
-			    if ( isdigit( *(p+1))) {
+			    if ( isdigit( (unsigned char) p[1] )) {
 				++p;
 				endwordnum = *p - '1';	/* e.g., "%v2-4" */
 				if ( endwordnum > wordcount - 1 ) {

@@ -217,18 +217,18 @@ char	*dn, *attributes[];
 	ufn = ldap_dn2ufn( dn );
 	if ( ( s = index( ufn, ',' ) ) != NULL ) {
 		*s++ = '\0';
-		while ( *s != '\0' && isspace( *s ) )
+		while ( *s != '\0' && isspace( (unsigned char) *s ) )
 			s++;
 		department = s;
 		while ( s != NULL && *s != '\0' && !EQ( s, organisation ) )
 			if ( ( s = index( s, ',' ) ) != NULL ) {
 				s++;
-				while ( *s != '\0' && isspace( *s ) )
+				while ( *s && isspace( (unsigned char) *s ) )
 					s++;
 			}
 		if ( s != NULL )
 			if ( s != department ) {
-				while ( isspace( *--s ) )
+				while ( isspace( (unsigned char) *--s ) )
 					;
 				*s = '\0';
 			} else

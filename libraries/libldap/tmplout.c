@@ -254,7 +254,7 @@ do_entry2text(
 		freevals = 1;
 	    }
 
-		*attr = TOUPPER( *attr );
+	    *attr = TOUPPER( (unsigned char) *attr );
 
 	    err = do_vals2text( ld, buf, vals, attr, labelwidth,
 		    LDAP_SYN_CASEIGNORESTR, writeproc, writeparm, eol, 
@@ -303,14 +303,14 @@ do_entry2text(
 		if ( show && LDAP_GET_SYN_TYPE( colp->ti_syntaxid )
 			== LDAP_SYN_TYPE_BOOLEAN && LDAP_IS_TMPLITEM_OPTION_SET(
 			colp, LDAP_DITEM_OPT_HIDEIFFALSE ) &&
-			TOUPPER( vals[ 0 ][ 0 ] ) != 'T' ) {
+			TOUPPER( (unsigned char) vals[ 0 ][ 0 ] ) != 'T' ) {
 		    show = 0;
 		}
 
 		if ( colp->ti_syntaxid == LDAP_SYN_SEARCHACTION ) {
 		    if (( opts & LDAP_DISP_OPT_DOSEARCHACTIONS ) != 0 ) {
 			if ( colp->ti_attrname == NULL || ( show &&
-				TOUPPER( vals[ 0 ][ 0 ] ) == 'T' )) {
+				TOUPPER( (unsigned char) vals[ 0 ][ 0 ] ) == 'T' )) {
 			    err = searchaction( ld, buf, base, entry, dn, colp,
 				    labelwidth, rdncount, writeproc,
 				    writeparm, eol, urlprefix );
@@ -674,7 +674,7 @@ do_vals2text(
 	    p = s = outval;
 	    while (( s = strchr( s, '$' )) != NULL ) {
 		*s++ = '\0';
-		while ( isspace( *s )) {
+		while ( isspace( (unsigned char) *s )) {
 		    ++s;
 		}
 		if ( html ) {
@@ -690,7 +690,7 @@ do_vals2text(
 	    break;
 
 	case LDAP_SYN_BOOLEAN:
-	    outval = TOUPPER( outval[ 0 ] ) == 'T' ? "TRUE" : "FALSE";
+	    outval = TOUPPER((unsigned char) outval[0]) == 'T' ? "TRUE" : "FALSE";
 	    ++writeoutval;
 	    break;
 
@@ -703,13 +703,13 @@ do_vals2text(
 	case LDAP_SYN_LABELEDURL:
 	    if ( !notascii && ( p = strchr( outval, '$' )) != NULL ) {
 		*p++ = '\0';
-		while ( isspace( *p )) {
+		while ( isspace( (unsigned char) *p )) {
 		    ++p;
 		}
 		s = outval;
 	    } else if ( !notascii && ( s = strchr( outval, ' ' )) != NULL ) {
 		*s++ = '\0';
-		while ( isspace( *s )) {
+		while ( isspace( (unsigned char) *s )) {
 		    ++s;
 		}
 		p = outval;
@@ -883,7 +883,7 @@ time2text( char *ldtimestr, int dateonly )
 		return( fmterr );
 	}
 
-    for ( ndigits=0; isdigit(ldtimestr[ndigits]); ndigits++) { 
+    for ( ndigits=0; isdigit((unsigned char) ldtimestr[ndigits]); ndigits++) {
 		; /* EMPTY */
     }
 

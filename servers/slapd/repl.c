@@ -96,7 +96,7 @@ replog(
 		tmp = entry2str( e, &len, 0 );
 		while ( (tmp = strchr( tmp, '\n' )) != NULL ) {
 			tmp++;
-			if ( ! isspace( *tmp ) )
+			if ( ! isspace( (unsigned char) *tmp ) )
 				break;
 		}
 		fprintf( fp, "%s", tmp );

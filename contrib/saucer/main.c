@@ -532,7 +532,7 @@ int is_whitespace(register char *s)
 	if (!s)
 		return 1;
 
-	while (*s  &&  isspace(*s))
+	while (*s  &&  isspace((unsigned char) *s))
 		++s;
 
 	return !*s;
@@ -634,7 +634,7 @@ char *skip_to_whitespace(register char *s)
 	if (!s)
 		return s;
 
-	while (*s  &&  !isspace(*s))
+	while (*s  &&  !isspace((unsigned char) *s))
 		++s;
 
 	return s;
@@ -645,7 +645,7 @@ char *skip_whitespace(register char *s)
 	if (!s)
 		return s;
 
-	while (*s  &&  isspace(*s))
+	while (*s  &&  isspace((unsigned char) *s))
 		++s;
 
 	return s;

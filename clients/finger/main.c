@@ -228,7 +228,7 @@ do_query( void )
 			p = buf;
 		}
 
-		for ( ; *p && isspace( *p ); p++ )
+		for ( ; *p && isspace( (unsigned char) *p ); p++ )
 			;	/* NULL */
 
 		do_search( ld, p );
@@ -370,7 +370,7 @@ do_search( LDAP *ld, char *buf )
 				cn = ldap_get_values( ld, e, "cn" );
 				for ( i = 0; cn[i] != NULL; i++ ) {
 					last = strlen( cn[i] ) - 1;
-					if ( isdigit( cn[i][last] ) ) {
+					if (isdigit((unsigned char) cn[i][last])) {
 						rdn = strdup( cn[i] );
 						break;
 					}

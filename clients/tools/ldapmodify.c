@@ -211,7 +211,7 @@ main( int argc, char **argv )
 
 	if ( !use_ldif && ( q = strchr( rbuf, '\n' )) != NULL ) {
 	    for ( p = rbuf; p < q; ++p ) {
-		if ( !isdigit( *p )) {
+		if ( !isdigit( (unsigned char) *p )) {
 		    break;
 		}
 	    }
@@ -452,20 +452,21 @@ process_ldapmod_rec( char *rbuf )
 		value = p;
 	    }
 
-	    for ( attr = line; *attr != '\0' && isspace( *attr ); ++attr ) {
+	    for ( attr = line;
+		  *attr != '\0' && isspace( (unsigned char) *attr ); ++attr ) {
 		;	/* skip attribute leading white space */
 	    }
 
-	    for ( q = p - 1; q > attr && isspace( *q ); --q ) {
+	    for ( q = p - 1; q > attr && isspace( (unsigned char) *q ); --q ) {
 		*q = '\0';	/* remove attribute trailing white space */
 	    }
 
 	    if ( value != NULL ) {
-		while ( isspace( *value )) {
+		while ( isspace( (unsigned char) *value )) {
 		    ++value;		/* skip value leading white space */
 		}
 		for ( q = value + strlen( value ) - 1; q > value &&
-			isspace( *q ); --q ) {
+			isspace( (unsigned char) *q ); --q ) {
 		    *q = '\0';	/* remove value trailing white space */
 		}
 		if ( *value == '\0' ) {

@@ -298,7 +298,7 @@ str2upper( char *s )
 	char	*p;
 
 	for ( p = s; *p != '\0'; ++p ) {
-		*p = TOUPPER( *p );
+		*p = TOUPPER( (unsigned char) *p );
 	}
 }
 
@@ -363,7 +363,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 #ifdef HAVE_AFS_KERBEROS
 	strcpy( lcrealm, realm );
 	for ( p = lcrealm; *p != '\0'; ++p ) {
-		*p = TOLOWER( *p );
+		*p = TOLOWER( (unsigned char) *p );
 	}
 
 	ka_StringToKey( passwd, lcrealm, key );

@@ -88,7 +88,7 @@ getToken( char *token )
 		if ( log )
 			syslog( LOG_INFO, "Whois++ Query: %s", buffer );
 	}
-	while ( buffer[idx] != '\0' && isspace( buffer[idx] ) )
+	while ( buffer[idx] != '\0' && isspace( (unsigned char) buffer[idx] ) )
 		idx++;
 	token[0] = buffer[idx++];
 	token[1] = '\0';
@@ -154,7 +154,8 @@ getToken( char *token )
 				token[i++] = buffer[idx++];
 			else
 				token[i++] = ch;
-		} while ( ch != '\0' && !isspace( ch ) && !isspecial( ch ) );
+		} while ( ch != '\0' &&
+			  !isspace( (unsigned char) ch ) && !isspecial( ch ) );
 		token[--i] = '\0';
 		idx--;
 /**/		/*
@@ -376,7 +377,7 @@ processTerm(
 		} else {
 			if ( ( s = strchr( buffer, ',' ) ) != NULL ) {
 				*s++ = '\0';
-				while ( *s && isspace( *s ) )
+				while ( *s && isspace( (unsigned char) *s ) )
 					s++;
 				sprintf( query, "(sn%s%s)",
 					(soundex)?"~=":"=", buffer );
@@ -384,7 +385,7 @@ processTerm(
 				/* let's just make sure there is no title */
 				if ( ( t = strrchr( s, ',' ) ) != NULL ) {
 					*t++ = '\0';
-					while ( *t && isspace( *t ) )
+					while ( *t && isspace( (unsigned char) *t ) )
 						t++;
 					sprintf( query, "(personalTitle%s%s)",
 						(soundex)?"~=":"=", t );

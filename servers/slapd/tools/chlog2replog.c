@@ -232,7 +232,8 @@ static void
 de_t61(char *s, int t61mark)
 {
 	char	*next = s;
-	int	c, hex;
+	unsigned char	c;
+	unsigned int	hex;
 
 	while ( *s ) {
 		switch ( *s ) {
@@ -533,7 +534,8 @@ main( int argc, char **argv )
 	/* See if we've got a line continuation to deal with */
 	nbuflen = strlen( nbuf );
 	if ( state == ST_CONCAT ) {
-	    for ( p = nbuf; isspace( *p ); p++, nbuflen-- ); /* skip space */
+	    for ( p = nbuf; isspace( (unsigned char) *p ); p++, nbuflen-- )
+		; /* skip space */
 	    buf = realloc( buf, buflen + nbuflen + 1 );
 	    strcat( buf, p );
 	    buflen += ( nbuflen );

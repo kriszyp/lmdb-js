@@ -146,7 +146,7 @@ attr_key_rfc1779(
 
     if ( x == NULL ) {
         x = "?";
-    } else if ( isdigit ( *x ) ) {
+    } else if ( isdigit ( (unsigned char) *x ) ) {
         sprintf ( key, "OID.%s", x );
         return;
     } else if (strcasecmp(x,"commonName")==0) {
@@ -787,7 +787,8 @@ static void
 de_t61( char *s, int t61mark )
 {
 	char	*next = s;
-	int	c, hex;
+	unsigned char	c;
+	unsigned int	hex;
 
 	while ( *s ) {
 		switch ( *s ) {

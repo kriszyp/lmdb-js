@@ -97,11 +97,11 @@ phonetic( char *s )
         }
 
         adjacent = '0';
-	phoneme[0] = TOUPPER(*p);
+	phoneme[0] = TOUPPER((unsigned char)*p);
 
 	phoneme[1]  = '\0';
         for ( i = 0; i < 99 && (! iswordbreak(*p)); p++ ) {
-		ch = TOUPPER (*p);
+		ch = TOUPPER ((unsigned char)*p);
 
                 code = '0';
 
@@ -199,8 +199,8 @@ phonetic( char *Word )
 
 	for (n = ntrans + 4, n_end = ntrans + 35; !iswordbreak( *Word ) &&
 	    n < n_end; Word++) {
-		if (isalpha(*Word))
-			*n++ = TOUPPER(*Word);
+		if (isalpha((unsigned char)*Word))
+			*n++ = TOUPPER((unsigned char)*Word);
 	}
 	Metaph = buf;
 	*Metaph = '\0';

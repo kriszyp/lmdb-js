@@ -138,7 +138,7 @@ dn_normalize_case( char *dn )
 
 	/* normalize case */
 	for ( s = dn; *s; s++ ) {
-		*s = TOUPPER( *s );
+		*s = TOUPPER( (unsigned char) *s );
 	}
 
 	return( dn );
@@ -266,7 +266,7 @@ dn_upcase( char *dn )
 
 	/* normalize case */
 	for ( s = dn; *s; s++ ) {
-		*s = TOUPPER( *s );
+		*s = TOUPPER( (unsigned char) *s );
 	}
 
 	return( dn );

@@ -92,8 +92,8 @@ ldap_dn2ufn( char *dn )
 				char	*rsave = r;
 
 				*r-- = '\0';
-				while ( !isspace( *r ) && *r != ';'
-				    && *r != ',' && r > ufn )
+				while ( !isspace( (unsigned char) *r )
+					&& *r != ';' && *r != ',' && r > ufn )
 					r--;
 				r++;
 

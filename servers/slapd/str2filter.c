@@ -101,7 +101,7 @@ str2list( char *str, unsigned long ftype )
 	fp = &f->f_list;
 
 	while ( *str ) {
-		while ( *str && isspace( *str ) )
+		while ( *str && isspace( (unsigned char) *str ) )
 			str++;
 		if ( *str == '\0' )
 			break;
