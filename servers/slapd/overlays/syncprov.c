@@ -373,13 +373,13 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 		e_uuid.e_nname = opc->sndn;
 		rs.sr_entry = &e_uuid;
 		if ( opc->sreference ) {
-			send_search_entry( &sop, &rs );
-		} else {
 			struct berval bv;
 			bv.bv_val = NULL;
 			bv.bv_len = 0;
 			rs.sr_ref = &bv;
 			send_search_reference( &sop, &rs );
+		} else {
+			send_search_entry( &sop, &rs );
 		}
 		break;
 	default:
@@ -400,10 +400,21 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	Entry *e;
 	Attribute *a;
 	int rc;
+	struct berval newdn;
 
 	fc.fdn = &op->o_req_ndn;
+	/* compute new DN */
+	if ( op->o_tag == LDAP_REQ_MODRDN && !saveit ) {
+		struct berval pdn;
+		if ( op->orr_nnewSup ) pdn = *op->orr_nnewSup;
+		else dnParent( fc.fdn, &pdn );
+		build_new_dn( &newdn, &pdn, &op->orr_nnewrdn, op->o_tmpmemctx );
+		fc.fdn = &newdn;
+	}
 	if ( op->o_tag != LDAP_REQ_ADD ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = be_entry_get_rw( op, fc.fdn, NULL, NULL, 0, &e );
+		op->o_bd->bd_info = (BackendInfo *)on;
 		if ( rc ) return;
 	} else {
 		e = op->ora_e;
