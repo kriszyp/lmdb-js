@@ -1,11 +1,14 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.14 Engineering
-	Fix slapd directoryString exact index normalization bug
-	Fix back-bdb bdb_cache_find_entry* retry bug
-	Fix back-bdb log message bug
-	Fix back-bdb group/atttribute txn code
+	Fixed slapd directoryString exact index normalization bug
+	Fixed slapd schema_check name check crash
+	Fixed slapd DirectoryString extraneous space bug (ITS#2328)
+	Fixed back-bdb bdb_cache_find_entry* retry bug
+	Fixed back-bdb log message bug
+	Fixed back-bdb group/atttribute txn code
 	Updated slapadd to complain about holes in the DIT
+	Build Environment
 	Documentation
 		Misc man page updates
 

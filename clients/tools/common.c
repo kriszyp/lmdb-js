@@ -544,7 +544,7 @@ tool_args( int argc, char **argv )
 #endif
 	} else {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		if ( authmethod = LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
+		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
 			fprintf( stderr, "%s: -k/-K incompatible with LDAPv%d\n",
 			         prog, protocol );
 			exit( EXIT_FAILURE );

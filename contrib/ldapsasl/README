@@ -48,3 +48,19 @@ better for a real production environment. Please send feedback via the
 openldap-software mailing list for now.
 
   -- Howard Chu, 2002-07-12
+
+Update... With OpenLDAP 2.1.13 you can use SASL/EXTERNAL on ldapi://.
+This is fast and secure, and needs no username or password to be stored.
+The SASL config file is just
+
+ldapdb_uri: ldapi://
+ldapdb_mech: EXTERNAL
+
+The slapd.conf will need to map these usernames to LDAP DNs:
+
+sasl-regexp uidNumber=(.*)\\+gidNumber=(.*),cn=peercred,cn=external,cn=auth
+	ldap:///dc=example,dc=com??sub?(&(uidNumber=$1)(gidNumber=$2))
+
+sasl-regexp uid=(.*),cn=external,cn=auth
+	ldap:///dc=example,dc=com??sub?(uid=$1)
+
