@@ -87,40 +87,32 @@ for i in 0 1 2 3 4 5; do
 done
 
 BASE="dc=example,dc=com"
-echo "Testing ldapsearch as anonymous for \"$BASE\" on first slapd..."
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
-	 > $SEARCHOUT 2>&1
 
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+for P in $PORT1 $PORT2 ; do
+	echo "Testing ldapsearch as anonymous for \"$BASE\" on port $P..."
+	$LDAPSEARCH -h $LOCALHOST -p $P -b "$BASE" -S "" \
+		 > $SEARCHOUT 2>&1
 
-echo "Testing ldapsearch as anonymous for \"$BASE\" on second slapd..."
-$LDAPSEARCH -h $LOCALHOST -p $PORT2 -b "$BASE" \
-	 >> $SEARCHOUT 2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
-
-echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $CHAINOUT > $LDIFFLT
-echo "Comparing filter output..."
-$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+	echo "Filtering ldapsearch results..."
+	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	echo "Filtering original ldif used to create database..."
+	. $LDIFFILTER < $CHAINOUT > $LDIFFLT
+	echo "Comparing filter output..."
+	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
-if test $? != 0 ; then
-	echo "comparison failed - chained search as anonymous didn't succeed"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit 1
-fi
+	if test $? != 0 ; then
+		echo "comparison failed - chained search as anonymous didn't succeed"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	fi
+done
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
