@@ -850,20 +850,17 @@ bdb_idl_delete_key(
 			/* It's a range, see if we need to rewrite
 			 * the boundaries
 			 */
-			hi = 0;
 			data.data = &lo;
 			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 			if ( rc != 0 ) {
 				err = "c_get lo";
 				goto fail;
 			}
-			if ( id > lo ) {
-				data.data = &hi;
-				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-				if ( rc != 0 ) {
-					err = "c_get hi";
-					goto fail;
-				}
+			data.data = &hi;
+			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+			if ( rc != 0 ) {
+				err = "c_get hi";
+				goto fail;
 			}
 			if ( id == lo || id == hi ) {
 				if ( id == lo ) {
@@ -881,6 +878,12 @@ bdb_idl_delete_key(
 						goto fail;
 					}
 				} else {
+					if ( id == lo ) {
+						/* reposition on lo slot */
+						data.data = &lo;
+						cursor->c_get( cursor, key, &data, DB_PREV );
+						lo = id;
+					}
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {
 						err = "c_del";
