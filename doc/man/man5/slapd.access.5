@@ -6,9 +6,9 @@ slapd.access \- access configuration for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
-The file
-.B ETCDIR/slapd.conf (5)
-contains configuration information for the
+The 
+.BR slapd.conf (5)
+file contains configuration information for the
 .BR slapd (8)
 daemon. This configuration file is also used by the
 .BR slurpd (8)
@@ -82,8 +82,8 @@ The optional style qualificator
 .B <dnstyle>
 can be 
 .BR regex ,
-which implies a regex (7)
-.B pattern 
+which implies a regular expression pattern, as detailed in
+.BR regex (7),
 will be used (the default),
 .B base
 or
@@ -147,16 +147,17 @@ It can have the forms
 	sockurl[.<style>]=<pattern>
 	set[.<style>]=<pattern>
 
-	aci=<attrname>
-.fi
-.LP
-Each of them can be prefixed by the modifiers
-.LP
-.nf
 	ssf=<n>
 	transport_ssf=<n>
 	tls_ssf=<n>
 	sasl_ssf=<n>
+
+	aci=<attrname>
+.fi
+.LP
+They may be specified in combination.
+.LP
+.nf
 .fi
 .LP
 The wildcard
@@ -264,16 +265,13 @@ means that the access control is determined by the values in the
 of the entry itself.
 ACIs are experimental; they must be enabled at compile time.
 .LP
-The modifiers
+The statements
 .BR ssf=<n> ,
 .BR transport_ssf=<n> ,
 .BR tls_ssf=<n> ,
 and
 .BR sasl_ssf=<n>
-set the required Security Strenght Factor (ssf) required to grant access.
-They are prefixed to the 
-.B <who>
-clause they alter.
+set the required Security Strength Factor (ssf) required to grant access.
 .LP
 The field
 .B <access> ::= [self]{<level>|<priv>}
@@ -294,7 +292,7 @@ only in case the operation involves the name of the user that's requesting
 the access.
 It implies the user that requests access is bound.
 An example is the
-.B self write
+.B selfwrite
 access to the member attribute of a group, which allows one to add/delete
 its own DN from the member list of a group, without affecting other members.
 .LP
@@ -318,7 +316,7 @@ While
 is trivial, 
 .B auth
 access means that one is allowed access to an attribute to perform
-authentication operations (e.g.
+authentication/authorization operations (e.g.
 .BR bind )
 with no other access.
 This is useful to grant unauthenticated users the least possible 
@@ -407,7 +405,7 @@ ETCDIR/slapd.conf
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
-.B      OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B      OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.
