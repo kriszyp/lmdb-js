@@ -437,11 +437,11 @@ ldap_send_entry(
 					!= LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-						"slap_str2undef_ad(%s):	"
+						"slap_bv2undef_ad(%s):	"
 						"%s\n", mapped.bv_val, text ));
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY, 
-						"slap_str2undef_ad(%s):	"
+						"slap_bv2undef_ad(%s):	"
  						"%s\n%s", mapped.bv_val, text, "" );
 #endif /* !NEW_LOGGING */
 				

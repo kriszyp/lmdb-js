@@ -79,8 +79,10 @@ ldap_back_add(
 #ifdef ENABLE_REWRITE
 	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn.bv_val )) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val == NULL ) {
-			mdn.bv_val = e->e_dn;
+		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
+			mdn.bv_len = strlen( mdn.bv_val );
+		} else {
+			mdn = e->e_name;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
