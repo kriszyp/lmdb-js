@@ -192,31 +192,10 @@ size allowed.  0 disables security layers.  The default is 65536.
 .RE
 .SH TLS OPTIONS
 If OpenLDAP is built with Transport Layer Security support, there
-are more options you can specify.
-.TP
-.B TLS <level>
-Specifies whether client connections should use ldaps:// by default.
-This option is deprecated in favor of the
-.B URI
-option.  Using the
-.B TLS
-option may break some applications.
-.LP
-The
-.B <level>
-can be specified as one of the following keywords:
-.RS
-.TP
-.B never
-This is the default. Connections will be opened in the clear unless
-TLS is explicitly specified (e.g. using an "ldaps://" URL.)
-.TP
-.B hard
-All connections will be established with TLS.
-Note that using this option effectively makes the library open every
-session as an ldaps session and is incompatible with the LDAPv3 StartTLS
-request.
-.RE
+are more options you can specify.  These options are used when an
+.B ldaps:// URI
+is selected (by default or otherwise) or when the application
+negotiates TLS by issuing the LDAP Start TLS operation.
 .TP
 .B TLS_CACERT <filename>
 Specifies the file that contains certificates for all of the Certificate
