@@ -56,11 +56,11 @@ ldap_back_conn_destroy(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"ldap_back_conn_destroy: fetching conn %d\n",
+			"ldap_back_conn_destroy: fetching conn %ld\n",
 			conn->c_connid ));
 #else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_TRACE,
-		"=>ldap_back_conn_destroy: fetching conn %d\n",
+		"=>ldap_back_conn_destroy: fetching conn %ld\n",
 		conn->c_connid, 0, 0 );
 #endif /* !NEW_LOGGING */
 
@@ -72,7 +72,7 @@ ldap_back_conn_destroy(
 
 	if (lc) {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_conn_destroy: destroying conn %d\n",
+			"=>ldap_back_conn_destroy: destroying conn %ld\n",
 			lc->conn->c_connid, 0, 0 );
 
 #ifdef ENABLE_REWRITE

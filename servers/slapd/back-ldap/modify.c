@@ -57,7 +57,7 @@ ldap_back_modify(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
-	LDAPMod **modv;
+	LDAPMod **modv = NULL;
 	LDAPMod *mods;
 	Modifications *ml;
 	int i;

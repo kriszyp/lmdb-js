@@ -39,7 +39,7 @@ ldap_back_group(
 
 	LDAPMessage	*result;
 	char *gattr[2];
-	char *filter;
+	char *filter = NULL;
 	LDAP *ld;
 	char *mop_ndn, *mgr_ndn;
 
