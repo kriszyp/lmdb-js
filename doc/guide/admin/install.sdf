@@ -93,14 +93,14 @@ configure detects a usable Cyrus SASL installation.
 H3: Database software
 
 OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:LDBM}},
-requires that a compatible database package for entry storage.  LDBM
+requires a compatible database package for entry storage.  LDBM
 is compatible with {{ORG[expand]Sleepy}}'s {{PRD:BerkeleyDB}} (recommended)
 or the {{ORG[expand]FSF}}'s {{PRD:GNU}} Database Manager ({{PRD:GDBM}}).
 If neither of these packages are available at configure time,
 you will not be able build slapd(8) with primary database backend.
 
 Your operating system may provide one of these two packages in
-in base system or as an optional software component.  You may
+the base system or as an optional software component.  You may
 need may need to obtain the software and install it yourself.
 
 {{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepy}}'s
@@ -127,20 +127,21 @@ H3: TCP Wrappers
 
 {{slapd}}(8) supports TCP wrappers (IP level access control filters)
 if preinstalled.  Use of TCP wrappers or other IP level access
-filters (such as those provided by a IP-level firewall) is recommended
+filters (such as those provided by an IP-level firewall) is recommended
 for servers containing non-public information.
 
 
 H2: Running configure
 
-If you haven't already done so, extra the distribution for the
+If you haven't already done so, extract the distribution from the
 compressed archive file and change directory to the top of the
 distribution:
 
 .{{EX:gunzip -c openldap-VERSION.tgz | tar xf -}}
 .{{EX:cd openldap-VERSION}}
 
-Replacing {{EX:VERSION}} with the appropriate version string.
+You'll have to replace {{EX:VERSION}} with the version name of the
+release.
 
 Note: If you intend to build OpenLDAP for multiple platforms from a
 single source tree you should consult the {{F: INSTALL}} file in the
@@ -166,13 +167,13 @@ LDFLAGS 	Specify linker flags
 LIBS    	Specify additional libraries
 !endblock
 
-Now run the configure script with any desired configure options or
+Now run the configure script with any desired configuration options or
 environment variables.
 
 >	[[env] settings] ./configure [options]
 
 As an example, let's assume that we want a copy of OpenLDAP configured
-to use the LDBM backend, and the shell backend.  The LDBM backend
+to use the LDBM backend and the shell backend.  The LDBM backend
 is turned on by default, so we don't need to do anything special
 to enable it.
 
@@ -199,7 +200,7 @@ For more information on backends see the chapter on configuration.
 
 The {{EX:configure}} script will normally auto-detect appropriate settings.
 If you have problems at this stage, consult any platform specific
-hints and check your {{EX:configure}} options if any.
+hints and check your {{EX:configure}} options, if any.
 
 
 H2: Building the Software
@@ -208,7 +209,8 @@ Once you have run the {{EX:configure}} script the last line of output
 should be:
 >	Please "make depend" to build dependencies
 
-If the last line of output does not match, {{EX:configure}} has failed.
+If the last line of output does not match, {{EX:configure}} has failed,
+and you will need to review its output to determine what went wrong.
 You should not proceed until {{EX:configure}} completes successfully.
 
 To build dependencies, run:
@@ -229,7 +231,7 @@ made, you should run the test suite to verify the build.
 
 >	make test
 
-The test will run a number of tests.
+This command will run a number of tests.
 
 
 H2: Installing the Software
@@ -241,8 +243,8 @@ By default OpenLDAP is installed in {{F:/usr/local}}.  If you changed this
 setting with the {{F:--prefix}} configure option, it will be installed
 in the location you provided.
 
-Typically, the installation is done as {{root}}. From the top level OpenLDAP
-source directory, type:
+Typically, the installation is done as the super-user: {{root}}. From the top
+level OpenLDAP source directory, type:
 
 >	make install
 

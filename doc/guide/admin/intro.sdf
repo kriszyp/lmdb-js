@@ -82,7 +82,8 @@ example LDAP directory tree using traditional naming.
 FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
 The tree may also be arranged based upon Internet domain names.
-Figure 1.2 shows an example using this increasing popular naming approach.
+Figure 1.2 shows an example using this increasingly popular naming
+approach.
 
 !import "intro_dctree.gif"; align="center"; \
 	title="LDAP directory tree (Internet naming)"
@@ -191,14 +192,14 @@ of the LDAP tree, using the same or different backend databases.
 {{B:Generic modules API}}: If you require even more customization,
 {{slapd}} lets you write your own modules easily. {{slapd}} 
 consists of two distinct parts: a front end that handles protocol 
-communication with LDAP clients; and modules which handles specific
+communication with LDAP clients; and modules which handle specific
 tasks such as database operations. Because these two pieces communicate
 via a well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules
 which extend {{slapd}} in numerous ways.  Also, a number of
-{{programmable database}} modules are provided.  These allowing you
+{{programmable database}} modules are provided.  These allow you
 to expose external data sources to {{slapd}} using popular programming
-languages ({{PRD:Perl}}, {{Shell}}, {{PRD:SQL}}, and {{PRD:TCL}}.
+languages ({{PRD:Perl}}, {{Shell}}, {{PRD:SQL}}, and {{PRD:TCL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance. A 
 single multi-threaded {{slapd}} process handles all incoming 

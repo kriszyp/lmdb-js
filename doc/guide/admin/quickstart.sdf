@@ -66,7 +66,7 @@ procedures.
 
 . You will need to run the provided {{EX:configure}} script to
 {{configure}} to the distribution for building on your system.  The
-{{EX:configure}} accepts many command line options that enable or
+{{EX:configure}} script accepts many command line options that enable or
 disable optional software features.  Usually the defaults are okay,
 but you may want to change them.  To get a complete list of options
 that {{EX:configure}} accepts, use the {{EX:--help}} option:
@@ -173,13 +173,13 @@ by running the command:
 
 
 . To check to see if the server is running and configured correctly,
-you can run search it with {{ldapsearch}}(1).  By default, ldapsearch
-is installed as {{F:/usr/local/bin/ldapsearch}}:
+you can run a search against it with {{ldapsearch}}(1).  By default,
+ldapsearch is installed as {{F:/usr/local/bin/ldapsearch}}:
 
 ..{{EX:ldapsearch -x -b '' -s base '(objectclass=*)' namingContexts}}
 
 . Note the use of single quotes around command parameters to prevent
-special characters from interpreted by the shell.  This should return:
+special characters from being interpreted by the shell.  This should return:
 
 ..{{EX:dn:}}
 ..{{EX:namingContexts: dc=example, dc=com}}
@@ -193,9 +193,9 @@ in the {{slapd}}(8) manual page and the
 +{{B:Add initial entries to your directory}}.
 
 . You can use {{ldapadd}}(1) to add entries to your LDAP directory.
-{{ldapadd}} expects input in LDIF form. We'll do it two steps:
+{{ldapadd}} expects input in LDIF form. We'll do it in two steps:
 
-^^ create LDIF file
+^^ create an LDIF file
 ++ run ldapadd
 
 . Use your favorite editor and create an LDIF file that contains:

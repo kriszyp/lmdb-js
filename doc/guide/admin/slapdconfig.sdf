@@ -18,8 +18,8 @@ detailed description of commonly used config file directives.
 
 H2: Configuration File Format
 
-The {{slapd.conf}}(5) file consists three types of configuration
-information: global, backend specific, database specific.  Global
+The {{slapd.conf}}(5) file consists of three types of configuration
+information: global, backend specific, and database specific.  Global
 information is specified first, followed by information associated
 with a particular backend type, which is then followed by information
 associated with a particular database instance.  Global directives can
@@ -61,7 +61,7 @@ the character should be preceded by a backslash character `{{EX:\}}'.
 
 The distribution contains an example configuration file that will
 be installed in the {{F: /usr/local/etc/openldap}} directory.
-A number of files containing schema definition (attribute types
+A number of files containing schema definitions (attribute types
 and object classes) are also provided in the
 {{F: /usr/local/etc/openldap/schema}} directory.
 
@@ -80,8 +80,8 @@ its use.
 H3: Global Directives
 
 Directives described in this section apply to all backends
-and databases, unless specifically overridden in a backend or
-database definition. Arguments to directives should be replaced
+and databases unless specifically overridden in a backend or
+database definition. Arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.
 
 
@@ -107,9 +107,9 @@ for information regarding how to use this directive.
 H4: defaultaccess { none | compare | search | read | write }
 
 This directive specifies the default access to grant requesters
-when no {{EX:access}} directives have been specified.  Access
-levels implies all lesser access levels (e.g., read access
-implies search and compare but no write).
+when no {{EX:access}} directives have been specified.  Any given
+access level implies all lesser access levels (e.g., read access
+implies search and compare but not write).
 
 Note: It is recommend that the {{EX:access}} directive be used
 to specify access control.  See the {{SECT:Access Control}}
@@ -124,7 +124,7 @@ E: defaultaccess read
 H4: idletimeout <integer>
 
 Specify the number of seconds to wait before forcibly closing
-an idle client connections.  A idletimeout of 0, the default,
+an idle client connection.  An idletimeout of 0, the default,
 disables this feature.
 
 
@@ -367,7 +367,7 @@ definition.
 Queries with a DN ending in "dc=example, dc=com"
 will be passed to this backend.
 
-Note: when the backend to pass a query to is selected, slapd
+Note: When the backend to pass a query to is selected, slapd
 looks at the suffix line(s) in each database definition in the
 order they appear in the file. Thus, if one database suffix is a
 prefix of another, it must appear after it in the config file.
@@ -469,11 +469,11 @@ indexes are maintained.
 >	index objectClass,uid
 >	index cn,sn eq,sub,approx
 
-The first line sets the default to indices to maintain to present
+The first line sets the default set of indices to maintain to present
 and equality.  The second line causes the default (pres,eq) set
 of indices to be maintained for {{EX:objectClass}} and {{EX:uid}} attribute
 types.  The third line causes equality, substring, and approximate
-filters to be maintained for {{EX:cn}} and {{EX:sn}} attribute types.
+indices to be maintained for {{EX:cn}} and {{EX:sn}} attribute types.
 
 H4: mode <integer>
 
@@ -486,13 +486,14 @@ created database index files should have.
 
 
 
-H3: Other Backend and Databases
+H3: Other Backend Databases
 
-{{slapd}}(8) supports a number of other backend database types.
+{{slapd}}(8) supports a number of backend database types besides the default LDBM.
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 5.2: Backend Database Types"
 Types	Description
+ldbm	Berkeley or GNU DBM compatible backend
 passwd	Provides read-only access to {{F:/etc/passwd}}
 shell	Shell (extern program) backend
 sql	SQL Programmable backend
@@ -576,7 +577,7 @@ attribute is not enough; access to the entry itself through the
 {{EX:entry}} attribute is also required. The complete examples at
 the end of this section should help clear things up.
 
-Lastly, there is a special entry selector {{EX:"*"}} is used to
+Lastly, there is a special entry selector {{EX:"*"}} that is used to
 select any entry.  It is used when no other {{EX:<what>}}
 selector has been provided.  It's equivalent to "{{EX:dn=.*}}"
 
@@ -585,7 +586,7 @@ H3: Who to grant access to
 
 The <who> part identifies the entity or entities being granted
 access. Note that access is granted to "entities" not "entries."
-The follow table summaries entity specifiers:
+The following table summarizes entity specifiers:
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 5.3: Access Entity Specifiers"
@@ -603,10 +604,10 @@ to match against the "normalized" DN of the current entity.
 >	dn=<regular expression>
 
 By "normalized", we mean that all extra spaces have been
-removed from the entities DN and commas are used to
+removed from the entity's DN and commas are used to
 separate RDN components.
 
-Other control factors forms are also supported.
+Other control factors are also supported.
 For example, a {{EX:<what>}} can be restricted by a
 regular expression matching the client's IP address or domain name:
 
@@ -632,7 +633,7 @@ The kind of <access> granted can be one of the following:
 
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
 	title="Table 5.4: Access Levels"
-Level	Privledges	Description
+Level	Privileges	Description
 none			no access
 auth	=x		needed to bind
 compare	=cx		needed to compare
@@ -642,9 +643,10 @@ write	=wrscx		needed to modify/rename
 !endblock
 
 Each level implies all lower levels of access. So, for
-example, granting someone write access to an entry also
-grants them read, search, compare, and auth access.  However,
-one may use the privledges specify to grant specific permissions.
+example, granting someone {{EX:write}} access to an entry also
+grants them {{EX:read}}, {{EX:search}}, {{EX:compare}}, and 
+{{EX:auth}} access.  However, one may use the privileges specifier
+to grant specific permissions.
 
 
 H3: Access Control Evaluation
@@ -661,7 +663,7 @@ entry and/or attribute. The corresponding access directive is
 the one slapd will use to evaluate access.
 
 Next, slapd compares the entity requesting access to the
-{{EX:<who>}} selectors within the access directive selected above,
+{{EX:<who>}} selectors within the access directive selected above
 in the order in which they appear. It stops with the first {{EX:<who>}}
 selector that matches the requester. This determines the
 access the entity requesting access has to the entry and/or
@@ -701,7 +703,7 @@ This directive allows users to modify their own entries,
 allows authenticate, and allows authenticated users to read.
 Note that only the first {{EX:by <who>}} clause which matches applies.
 Hence, the anonymous users are granted {{EX:auth}}, not {{EX:read}}.
-The last clause just as well have been "{{EX:by users read}}".
+The last clause could just as well have been "{{EX:by users read}}".
 
 The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
@@ -722,10 +724,10 @@ trailing directive would never be reached, since all
 
 Also note that if no {{EX:access to}} directive matches or
 no {{EX:by <who>}} clause, {{B:access is denied}}.  That is, every
-{{EX:access to}} directive ends with a implicit {{EX:by * none}}
-clause and access list itself ends with {{EX:access to * by * none}}
-directive.  Only if no access controls are specified, is the
-{{EX:defaultaccess}} granted.
+{{EX:access to}} directive ends with an implicit {{EX:by * none}}
+clause and every access list ends with an implicit
+{{EX:access to * by * none}} directive.  Only if no access controls
+are specified is the {{EX:defaultaccess}} granted.
 
 The next example again shows the importance of ordering,
 both of the access directives and the {{EX:by <who>}} clauses.
@@ -788,7 +790,7 @@ E:  2.	include /usr/local/etc/schema/core.schema
 E:  3.	referral ldap://root.openldap.org
 E:  4.	access to * by * read
  
-Line 1 is a comment. Lines 2 include another config file
+Line 1 is a comment. Line 2 includes another config file
 which containing {{core}} schema definitions.
 The {{EX:referral}} directive on line 3
 means that queries not local to one of the databases defined
@@ -861,12 +863,13 @@ Lines 20 through 22 indicate the indexes to maintain for
 various attributes.
 
 Lines 24 through 33 specify access control for entries in the
-database. For all entries, the {{EX:userPassword}} attribute is
-writable by the entry and the "admin" entry, may be used for
-authentication/authorization purposes, but is otherwise not
-readable.  All other attributes by writable by the entry and
-the "admin" entry, may be used for authentication/authorization
-purposes, but may be read by authenticated users.
+database. For all entries, the {{EX:userPassword}} attribute 
+is writable by the entry itself and by the "admin" entry.  It 
+may be used for authentication/authorization purposes, but is 
+otherwise not readable.  All other attributes are writable by 
+the entry and the "admin" entry, may be used for 
+authentication/authorization purposes, but may be read by 
+authenticated users.
 
 The next section of the example configuration file defines
 another LDBM database. This one handles queries involving

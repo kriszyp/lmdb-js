@@ -12,7 +12,7 @@ from {{inetd}}(8) is {{NOT}} an option.
 H2: Command-Line Options
 
 {{slapd}}(8) supports a number of command-line options as detailed
-in manual page.  This section details a few commonly used options.
+in the manual page.  This section details a few commonly used options.
 
 >	-f <filename>
 
@@ -21,17 +21,17 @@ The default is normally {{F:/usr/local/etc/openldap/slapd.conf}}.
 
 >	-h <URLs>
 
-This option specifies alternative listener configuration.  The
-default is {{EX:ldap:///}} which implies LDAP over TCP, on all
-interfaces, on the default LDAP port 389.  You can specify
+This option specifies alternative listener configurations.  The
+default is {{EX:ldap:///}} which implies LDAP over TCP on all
+interfaces on the default LDAP port 389.  You can specify
 specific host-port pairs or other protocol schemes (such as
 ldaps:// or ldapi://).  For example,
 {{EX:-h "ldaps:// ldap://127.0.0.1:666"}} will create
-two listeners: one for LDAP over SSL, on all interfaces, on
-the default LDAP/SSL port 646 and one for LDAP over TCL, only
-the {{EX:localhost}} ({{loopback}}) interface, on port 666.
-Hosts may be specified using IPv4 dot-decimal form or
-using host names.  Ports values must be numeric.
+two listeners: one for LDAP over SSL on all interfaces on
+the default LDAP/SSL port 646, and one for LDAP over TCL on
+the {{EX:localhost}} ({{loopback}}) interface on port 666.
+Hosts may be specified using IPv4 dotted-decimal form or
+using host names.  Port values must be numeric.
 
 >	-n <service-name>
 
@@ -55,8 +55,8 @@ can be either a group name or gid.
 
 This option specifies a run-time directory.  slapd will
 {{chroot}}(2) to this directory after opening listeners but
-before any reading any configuration file or initializing
-any backend.
+before reading any configuration files or initializing
+any backends.
 .
 
 >	-d <level> | ?
@@ -105,7 +105,7 @@ In general, slapd is run like this:
 
 >	/usr/local/etc/libexec/slapd [<option>]*
 
-where {{F:/usr/local/etc/libexec}} is determined by {{EX:configure}}.
+where {{F:/usr/local/etc/libexec}} is determined by {{EX:configure}}
 and <option> is one of the options described above (or in {{slapd}}(8)).
 Unless you have specified a debugging level (including level {{EX:0}}),
 slapd will automatically fork and detach itself from its controlling
@@ -119,5 +119,5 @@ To kill off slapd safely, you should give a command like this
 
 where {{F:/usr/local/var}} is determined by {{EX:configure}}.
 
-Killing slapd by a more drastic method may cause its information
+Killing slapd by a more drastic method may cause information
 loss or database corruption.
