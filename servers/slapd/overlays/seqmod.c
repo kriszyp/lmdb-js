@@ -19,8 +19,6 @@
 
 #include "portable.h"
 
-#define	SLAPD_OVER_SEQMOD	SLAPD_MOD_STATIC
-
 #ifdef SLAPD_OVER_SEQMOD
 
 #include "slap.h"
@@ -54,7 +52,8 @@ sm_avl_cmp( const void *c1, const void *c2 )
 static int
 seqmod_op_cleanup( Operation *op, SlapReply *rs )
 {
-	seqmod_info *sm = op->o_callback->sc_private;
+	slap_callback *sc = op->o_callback;
+	seqmod_info *sm = sc->sc_private;
 	modtarget *mt;
 	Avlnode	 *av;
 
@@ -73,8 +72,8 @@ seqmod_op_cleanup( Operation *op, SlapReply *rs )
 		avl_delete( &sm->sm_mods, mt, sm_avl_cmp );
 	}
 	ldap_pvt_thread_mutex_unlock( &sm->sm_mutex );
-	op->o_callback = op->o_callback->sc_next;
-	op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
 
 	return 0;
 }
