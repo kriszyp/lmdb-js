@@ -180,6 +180,7 @@ over_op_func(
 		}
 	}
 
+	op->o_bd = be;
 	func = &oi->oi_bd.bd_info->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
 		rc = func[which]( op, rs );
@@ -188,7 +189,6 @@ over_op_func(
 	if ( rc == SLAP_CB_CONTINUE ) {
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
-	op->o_bd = be;
 	op->o_callback = cb.sc_private;
 	return rc;
 }
