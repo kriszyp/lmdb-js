@@ -1207,7 +1207,7 @@ test_comp_filter_item(
 	if ( !a->a_comp_data && attr_converter && nibble_mem_allocator ) {
 		a->a_comp_data = malloc( sizeof( ComponentData ) );
 		/* Memory chunk pre-allocation for decoders */
-		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*4, 1024 );
+		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
 		a->a_comp_data->cd_tree = attr_converter (a, syn, bv);
 	}
 
