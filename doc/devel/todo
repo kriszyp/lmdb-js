@@ -56,5 +56,6 @@ Extend gateways to support tcp_wrappers.
 Extend slapd/tcp_wrapper to support identd.
 Extend configure.in to support autodetect of Kerberos features.
 Extend mail500 (and other daemons) to use ldap_getfilter(3)
+Update back-passwd (see ITS#40)
 Add useful information to our FAQ http://www.openldap.org/faq/
 Update any manual page
