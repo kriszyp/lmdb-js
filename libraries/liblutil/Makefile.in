@@ -1,5 +1,7 @@
 # Makefile for -llutil
 # $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+## 
 ## Copyright 1998-2003 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
@@ -12,6 +14,10 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 LIBRARY	= liblutil.a
+PROGRAM = testavl
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
 
 NT_SRCS = ntservice.c
 NT_OBJS = ntservice.o slapdmsg.res
@@ -19,18 +25,21 @@ NT_OBJS = ntservice.o slapdmsg.res
 UNIX_SRCS = detach.c
 UNIX_OBJS = detach.o
 
+XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA)
+
 SRCS	= base64.c csn.c entropy.c sasl.c signal.c hash.c passfile.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c uuid.c sockpair.c \
-	ldif.c fetch.c \
+	avl.c ldif.c fetch.c \
+	testavl.c \
 	@LIBSRCS@ $(@PLAT@_SRCS)
 
 OBJS	= base64.o csn.o entropy.o sasl.o signal.o hash.o passfile.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o uuid.o sockpair.o \
-	ldif.o fetch.o \
+	avl.o ldif.o fetch.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
 
-LDAP_INCDIR= ../../include       
-LDAP_LIBDIR= ../../libraries
+testavl: $(XLIBS) testavl.o
+	(LTLINK) -o $@ testavl.o $(LIBS)
 
 # These rules are for a Mingw32 build, specifically.
 # It's ok for them to be here because the clean rule is harmless, and

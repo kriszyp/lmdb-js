@@ -94,13 +94,14 @@ configuration directory (normally /usr/local/etc/openldap).
         slapd.conf              Standalone LDAP daemon
         schema/*.schema         Schema Definitions
 
-End of OpenLDAP INSTALL file.
-
+---
 $OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.16 2002/02/18
 17:09:26 kurt Exp $
 
-Copyright 1998-2003 The OpenLDAP Foundation, Redwood City,
-	California, USA.  All rights reserved.
+This work is part of OpenLDAP Software <http://www.openldap.org/>.
+
+Copyright 1998-2003 The OpenLDAP Foundation.
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted only as authorized by the OpenLDAP

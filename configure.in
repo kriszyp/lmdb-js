@@ -1,4 +1,5 @@
 dnl $OpenLDAP$
+dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
 dnl Copyright 1998-2003 The OpenLDAP Foundation.
 dnl All rights reserved.
@@ -20,6 +21,8 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
+# This work is part of OpenLDAP Software <http://www.openldap.org/>.
+#
 # Copyright 1998-2003 The OpenLDAP Foundation.
 # All rights reserved.
 #
@@ -2933,7 +2936,6 @@ clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
-libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
