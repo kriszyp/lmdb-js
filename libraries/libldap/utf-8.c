@@ -161,7 +161,7 @@ int ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
 		p[len++] = 0x80 | ( (c >> 6) & 0x3f );
 		p[len++] = 0x80 | ( c & 0x3f );
 
-	} else if( c < 0x400000 ) {
+	} else if( c < 0x4000000 ) {
 		p[len++] = 0xf8 | ( c >> 24 );
 		p[len++] = 0x80 | ( (c >> 18) & 0x3f );
 		p[len++] = 0x80 | ( (c >> 12) & 0x3f );
