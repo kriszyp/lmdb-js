@@ -124,7 +124,7 @@ monitor_subsys_log_init(
 					monitor_ad_desc->ad_type->sat_syntax,
 					monitor_ad_desc->ad_type->sat_equality,
 					&int_2_level[ i ].s,
-					&int_2_level[ i ].n );
+					&int_2_level[ i ].n, NULL );
 			if ( rc ) {
 				return( -1 );
 			}
@@ -348,11 +348,8 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			struct berval asserted;
 
 			rc = asserted_value_validate_normalize(
-				mod->sm_desc, mr,
-				SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i],
-				&asserted,
-				&text );
+				mod->sm_desc, mr, SLAP_MR_EQUALITY,
+				&mod->sm_bvalues[i], &asserted, &text, NULL );
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -430,11 +427,8 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		struct berval asserted;
 
 		rc = asserted_value_validate_normalize(
-				mod->sm_desc, mr,
-				SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i],
-				&asserted,
-				&text );
+				mod->sm_desc, mr, SLAP_MR_EQUALITY,
+				&mod->sm_bvalues[i], &asserted, &text, NULL );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 

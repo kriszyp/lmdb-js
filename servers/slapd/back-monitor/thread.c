@@ -75,7 +75,7 @@ monitor_subsys_thread_init(
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 
-	attr_merge_normalize_one( e, monitor_ad_desc, &bv );
+	attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
 
 	monitor_cache_release( mi, e );
 
@@ -112,7 +112,7 @@ monitor_subsys_thread_update(
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
-		attr_merge_normalize_one( e, monitor_ad_desc, &bv );
+		attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
 	}
 
 	return( 0 );

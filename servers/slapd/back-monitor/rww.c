@@ -120,7 +120,7 @@ monitor_subsys_readw_update_internal(
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
 
-		attr_merge_normalize_one( e, monitor_ad_desc, &bv );
+		attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
 	}
 
 	return( 0 );

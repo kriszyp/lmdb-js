@@ -127,7 +127,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "TLS";
 			bv.bv_len = sizeof("TLS")-1;
 
-			attr_merge_normalize_one( e, monitor_ad_desc, &bv );
+			attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
 		}
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
@@ -137,7 +137,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "UDP";
 			bv.bv_len = sizeof("UDP")-1;
 
-			attr_merge_normalize_one( e, monitor_ad_desc, &bv );
+			attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
 		}
 #endif /* HAVE_TLS */
 
