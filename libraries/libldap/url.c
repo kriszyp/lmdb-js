@@ -210,6 +210,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
     ludp->lud_filter = NULL;
 	ludp->lud_ldaps = ldaps;
 	ludp->lud_scope = LDAP_SCOPE_BASE;
+
 	ludp->lud_filter = LDAP_STRDUP("(objectClass=*)");
 
 	if( ludp->lud_filter == NULL ) {
@@ -359,6 +360,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_BADFILTER;
 		}
 
+		LDAP_FREE( ludp->lud_filter );
 		ludp->lud_filter = LDAP_STRDUP( p );
 
 		if( ludp->lud_filter == NULL ) {
