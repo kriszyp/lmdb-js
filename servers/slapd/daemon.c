@@ -360,7 +360,7 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = errno;
 
-				if( err != EINTR || err == EBADF) {
+				if( err != EINTR || err != EBADF) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err,
