@@ -1501,6 +1501,7 @@ syncprov_detach_op( Operation *op, syncops *so )
 	int i, alen = 0;
 	size_t size;
 	char *ptr;
+	GroupAssertion *g1, *g2;
 
 	/* count the search attrs */
 	for (i=0; op->ors_attrs && !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++) {
@@ -1543,6 +1544,16 @@ syncprov_detach_op( Operation *op, syncops *so )
 	op2->o_controls = NULL;
 	op2->o_callback = NULL;
 	so->s_op = op2;
+
+	/* Copy any cached group ACLs individually */
+	op2->o_groups = NULL;
+	for ( g1=op->o_groups; g1; g1=g1->ga_next ) {
+		g2 = ch_malloc( sizeof(GroupAssertion) + g1->ga_len );
+		*g2 = *g1;
+		strcpy( g2->ga_ndn, g1->ga_ndn );
+		g2->ga_next = op2->o_groups;
+		op2->o_groups = g2;
+	}
 
 	/* Increment number of ops so that idletimeout ignores us */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
