@@ -2104,8 +2104,27 @@ aci_mask(
 	if (aci_get_part(aci, 3, '#', &bv) < 0)
 		return(0);
 
+	/* see if we have a public (i.e. anonymous) access */
+	if (ber_bvstrcasecmp( &aci_bv_public, &bv ) == 0) {
+		return(1);
+	}
+
+	/* otherwise require an identity */
+	if ( BER_BVISNULL( &op->o_ndn ) || BER_BVISEMPTY( &op->o_ndn ) ) {
+		return 0;
+	}
+
+	/* NOTE: this may fail if a DN contains a valid '#' (unescaped);
+	 * just grab all the berval up to its end (ITS#3303).
+	 * NOTE: the problem could be solved by providing the DN with
+	 * the embedded '#' encoded as hexpairs: "cn=Foo#Bar" would 
+	 * become "cn=Foo\23Bar" and be safely used by aci_mask(). */
+#if 0
 	if (aci_get_part(aci, 4, '#', &sdn) < 0)
 		return(0);
+#endif
+	sdn.bv_val = bv.bv_val + bv.bv_len + STRLENOF( "#" );
+	sdn.bv_len = aci->bv_len - ( sdn.bv_val - aci->bv_val );
 
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
@@ -2116,9 +2135,6 @@ aci_mask(
 			free(ndn.bv_val);
 		}
 		return (rc);
-
-	} else if (ber_bvstrcasecmp( &aci_bv_public, &bv ) == 0) {
-		return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
