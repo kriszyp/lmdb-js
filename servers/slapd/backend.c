@@ -93,8 +93,7 @@ int backend_init(void)
 		"backend_init: failed\n",
 		0, 0, 0 );
 
-
-	return rc;
+	return rc ? rc : -1;
 }
 
 int backend_startup(int n)
