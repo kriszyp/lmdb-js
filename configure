@@ -1662,12 +1662,12 @@ OPENLDAP_VERSION=$OL_VERSION
 
 
 cat >>confdefs.h <<_ACEOF
-#define OPENLDAP_PACKAGE $OL_PACKAGE
+#define OPENLDAP_PACKAGE "$OL_PACKAGE"
 _ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
-#define OPENLDAP_VERSION $OL_VERSION
+#define OPENLDAP_VERSION "$OL_VERSION"
 _ACEOF
 
 
@@ -34924,7 +34924,6 @@ if test "${with_xxinstall+set}" = set; then
   withval="$with_xxinstall"
 
 fi;
-
 
           ac_config_files="$ac_config_files Makefile:build/top.mk:Makefile.in:build/dir.mk"
 

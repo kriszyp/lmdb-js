@@ -59,8 +59,8 @@ OPENLDAP_VERSION=$OL_VERSION
 AC_SUBST(OPENLDAP_PACKAGE)
 AC_SUBST(OPENLDAP_VERSION)
 
-AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,$OL_PACKAGE,OpenLDAP Package)
-AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,$OL_VERSION,OpenLDAP Version)
+AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$OL_PACKAGE",OpenLDAP Package)
+AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$OL_VERSION",OpenLDAP Version)
 
 AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Vendor Version)
 AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Vendor Major)
@@ -2882,9 +2882,6 @@ AC_ARG_WITH(xxinstall,[
 See INSTALL file for further details.])
 
 dnl ----------------------------------------------------------------
-dnl final output
-dnl
-
 AC_CONFIG_FILES(Makefile:build/top.mk:Makefile.in:build/dir.mk)
 AC_CONFIG_FILES(doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk)
 AC_CONFIG_FILES(doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk)
@@ -2893,7 +2890,7 @@ AC_CONFIG_FILES(doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:buil
 AC_CONFIG_FILES(doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk)
 AC_CONFIG_FILES(doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk)
 AC_CONFIG_FILES(clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk )
+AC_CONFIG_FILES(clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk)
 AC_CONFIG_FILES(include/Makefile:build/top.mk:include/Makefile.in)
 AC_CONFIG_FILES(libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk)
 AC_CONFIG_FILES(libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk)
