@@ -56,14 +56,13 @@
 #define objectIdentifierFirstComponentNormalize		NULL
 #define generalizedTimeNormalize					NULL
 #define bitStringNormalize							NULL
-#define telephoneNumberNormalize					NULL
 
 #define distinguishedNameNormalize	dnNormalize
 #define distinguishedNameMatch  	dnMatch
 #define distinguishedNameIndexer	octetStringIndexer
 #define distinguishedNameFilter		octetStringFilter
 
-#define uniqueMemberMatch			dnMatch
+#define uniqueMemberMatch			dnMatch /* FIXME! */
 
 #define objectIdentifierMatch	octetStringMatch
 #define objectIdentifierIndexer	octetStringIndexer
@@ -2016,7 +2015,6 @@ caseExactIgnoreSubstringsFilter
 
 	return LDAP_SUCCESS;
 }
-
 #ifndef SLAP_NVALUES
 
 static int
@@ -2033,13 +2031,23 @@ caseIgnoreMatch(
 		LDAP_UTF8_CASEFOLD );
 	return LDAP_SUCCESS;
 }
+#endif
 	
 /* Remove all spaces and '-' characters */
 static int
+#ifdef SLAP_NVALUES
+telephoneNumberNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 xtelephoneNumberNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	char *p, *q;
 
@@ -2064,7 +2072,6 @@ xtelephoneNumberNormalize(
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 static int
 oidValidate(
