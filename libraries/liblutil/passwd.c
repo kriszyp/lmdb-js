@@ -165,7 +165,6 @@ static const struct pw_scheme pw_schemes[] =
 
 #ifdef SLAPD_CRYPT
 	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
-#endif
 # if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 	{ {sizeof("{UNIX}")-1, "{UNIX}"},	chk_unix, NULL },
 # endif
