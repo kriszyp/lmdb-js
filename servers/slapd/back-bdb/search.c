@@ -294,7 +294,7 @@ bdb_search(
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
 			send_search_result( conn, op, 
-					LDAP_UNWILLING_TO_PERFORM,
+					LDAP_ADMINLIMIT_EXCEEDED,
 					NULL, NULL, NULL, NULL, 0 );
 			rc = 1;
 			goto done;
