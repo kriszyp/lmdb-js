@@ -665,7 +665,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				if( lc->lconn_rebind_queue == NULL ) {
 					/* Create a referral list */
 					lc->lconn_rebind_queue =
-						(char ***) LDAP_MALLOC( sizeof(void *) * 2));
+						(char ***) LDAP_MALLOC( sizeof(void *) * 2);
 
 					if( lc->lconn_rebind_queue == NULL) {
 						ld->ld_errno = LDAP_NO_MEMORY;
