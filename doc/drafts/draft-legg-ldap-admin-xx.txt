@@ -1,0 +1,395 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                                   S. Legg
+draft-legg-ldap-admin-00.txt                         Adacel Technologies
+Intended Category: Standards Track                    September 18, 2002
+
+
+                 Directory Administrative Model in LDAP
+
+    Copyright (C) The Internet Society (2002). All Rights Reserved.
+
+   Status of this Memo
+
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as
+   Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress".
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   Distribution of this document is unlimited.  Comments should be sent
+   to the LDUP working group mailing list <ietf-ldup@imc.org> or to the
+   author.
+
+   This Internet-Draft expires on 18 March 2003.
+
+
+1. Abstract
+
+   This document adapts the X.500 directory administrative model for use
+   by the Lightweight Directory Access Protocol.  The administrative
+   model partitions the Directory Information Tree for various aspects
+   of directory data administration, e.g. subschema, access control and
+   collective attributes.  The generic framework that applies to every
+   aspect of administration is described in this document.  The
+   definitions that apply for a specific aspect of administration, e.g.
+   access control administration, are described in other documents.
+
+
+
+Legg                      Expires 18 March 2003                 [Page 1]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [RFC2119].
+
+
+2. Table of Contents
+
+   1. Abstract ....................................................    1
+   2. Table of Contents ...........................................    2
+   3. Introduction ................................................    2
+   4. Administrative Areas ........................................    2
+   5. Autonomous Administrative Areas .............................    3
+   6. Specific Administrative Areas ...............................    3
+   7. Inner Administrative Areas ..................................    4
+   8. Administrative Entries ......................................    5
+   9. Security Considerations .....................................    5
+   10. Acknowledgements ...........................................    5
+   11. Normative References .......................................    5
+   12. Informative References .....................................    6
+   13. Copyright Notice ...........................................    6
+   14. Author's Address ...........................................    6
+
+
+3. Introduction
+
+   This document adapts the X.500 directory administrative model [X501]
+   for use by the Lightweight Directory Access Protocol (LDAP)
+   [RFC2251].  The administrative model partitions the Directory
+   Information Tree (DIT) for various aspects of directory data
+   administration, e.g. subschema, access control and collective
+   attributes.  This document provides the definitions for the generic
+   parts of the administrative model that apply to every aspect of
+   directory data administration.
+
+   Sections 4 to 8, in conjunction with [SUBENTRY], describe the means
+   by which administrative authority is aportioned and exercised in the
+   DIT.
+
+   Aspects of administration that conform to the administrative model
+   described in this document are detailed elsewhere, e.g.  access
+   control administration is described in [ACA] and collective attribute
+   administration is described in [COLLECT].
+
+   This document is derived from, and duplicates substantial portions
+   of, Sections 4 and 8 of [X501].
+
+
+4. Administrative Areas
+
+
+
+Legg                      Expires 18 March 2003                 [Page 2]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+   An administrative area is a subtree of the DIT considered from the
+   perspective of administration.  The root entry of the subtree is an
+   administrative point.  An administrative point is represented by an
+   entry holding an administrativeRole attribute [SUBENTRY].  The values
+   of this attribute identify the kind of administrative point.
+
+
+5. Autonomous Administrative Areas
+
+   The DIT may be partitioned into one or more non-overlapping subtrees
+   termed autonomous administrative areas.  It is expected that the
+   entries in an autonomous administrative area are all administered by
+   the same administrative authority.
+
+   An administrative authority may be responsible for several autonomous
+   administrative areas in separated parts of the DIT but it SHOULD NOT
+   arbitrarily partition the collection of entries under its control
+   into autonomous administrative areas (thus creating adjacent
+   autonomous areas administered by the same authority).
+
+   The root entry of an autonomous administrative area's subtree is
+   called an autonomous administrative point.  An autonomous
+   administrative area extends from its autonomous administrative point
+   downwards until another autonomous administrative point is
+   encountered, at which point another autonomous administrative area
+   begins.
+
+
+6. Specific Administrative Areas
+
+   Entries in an administrative area may be considered in terms of a
+   specific administrative function.  When viewed in this context, an
+   administrative area is termed a specific administrative area.
+
+   Examples of specific administrative areas are subschema specific
+   administrative areas, access control specific areas and collective
+   attribute specific areas.
+
+   An autonomous administrative area may be considered as implicitly
+   defining a single specific administrative area for each specific
+   aspect of administration.  In this case, there is a precise
+   correspondence between each such specific administrative area and the
+   autonomous administrative area.
+
+   Alternatively, for each specific aspect of administration, the
+   autonomous administrative area may be partitioned into
+   non-overlapping specific administrative areas.
+
+
+
+
+Legg                      Expires 18 March 2003                 [Page 3]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+   If so partitioned for a particular aspect of administration, each
+   entry of the autonomous administrative area is contained in one and
+   only one specific administrative area for that aspect, i.e. specific
+   administrative areas do not overlap.
+
+   The root entry of a specific administrative area's subtree is called
+   a specific administrative point.  A specific administrative area
+   extends from its specific administrative point downwards until
+   another specific administrative point of the same administrative
+   aspect is encountered, at which point another specific administrative
+   area begins.  Specific administrative areas are always bounded by the
+   autonomous administrative area they partition.
+
+   Where an autonomous administrative area is not partitioned for a
+   specific aspect of administration, the specific administrative area
+   for that aspect coincides with the autonomous administrative area.
+   In this case, the autonomous administrative point is also the
+   specific administrative point for this aspect of administration.  A
+   particular administrative point may be the root of an autonomous
+   administrative area and may be the root of one or more specific
+   administrative areas for different aspects of administration.
+
+   It is not necessary for an administrative point to represent each
+   specific aspect of administrative authority.  For example, there
+   might be an administrative point, subordinate to the root of the
+   autonomous administrative area, which is used for access control
+   purposes only.
+
+
+7. Inner Administrative Areas
+
+   For some aspects of administration, e.g. access control or collective
+   attributes, inner administrative areas may be defined within the
+   specific administrative areas, to allow a limited form of delegation,
+   or for administrative or operational convenience.
+
+   An inner administrative area may be nested within another inner
+   administrative area.  The rules for nested inner areas are defined as
+   part of the definition of the specific administrative aspect for
+   which they are allowed.
+
+   The root entry of an inner administrative area's subtree is called an
+   inner administrative point.  An inner administrative area (within a
+   specific administrative area) extends from its inner administrative
+   point downwards until a specific administrative point of the same
+   administrative aspect is encountered.  An inner administrative area
+   is bounded by the specific administrative area within which it is
+   defined.
+
+
+
+Legg                      Expires 18 March 2003                 [Page 4]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+8. Administrative Entries
+
+   An entry located at an administrative point is an administrative
+   entry.  Administrative entries MAY have subentries [SUBENTRY] as
+   immediate subordinates.  The administrative entry and its associated
+   subentries are used to control the entries encompassed by the
+   associated administrative area.  Where inner administrative areas are
+   used, the scopes of these areas may overlap.  Therefore, for each
+   specific aspect of administrative authority, a definition is required
+   of the method of combination of administrative information when it is
+   possible for entries to be included in more than one subtree or
+   subtree refinement associated with an inner area defined for that
+   aspect.
+
+
+9. Security Considerations
+
+   This document defines a generic framework for employing policy of
+   various kinds, e.g. access controls, to entries in the DIT.  Such
+   policy can only be correctly enforced at a directory server holding a
+   replica of a portion of the DIT if the administrative entries for
+   administrative areas that overlap the portion of the DIT being
+   replicated, and the subentries of those administrative entries
+   relevant to any aspect of policy that is required to be enforced at
+   the replica, are included in the replicated information.
+
+   Administrative entries and subentries SHOULD be protected from
+   unauthorized examination or changes by appropriate access controls.
+
+
+10. Acknowledgements
+
+   This document is derived from, and duplicates substantial portions
+   of, Sections 4 and 8 of [X501].
+
+
+11. Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [RFC2251]  Wahl, M., Howes, T. and S. Kille, "Lightweight Directory
+              Access Protocol (v3)", RFC 2251, December 1997.
+
+   [SUBENTRY] Zeilenga, K. and S. Legg, "Subentries in LDAP",
+              draft-zeilenga-ldap-subentry-xx.txt, a work in progress,
+              August 2002.
+
+
+
+
+Legg                      Expires 18 March 2003                 [Page 5]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+12. Informative References
+
+   [ACA]      Legg, S., "Access Control Administration in LDAP",
+              draft-legg-ldap-acm-admin-xx.txt, a work in progress,
+              September 2002.
+
+   [COLLECT]  Zeilenga, K., "Collective Attributes in LDAP",
+              draft-zeilenga-ldap-collective-xx.txt, a work in progress,
+              August 2002.
+
+   [X501]     ITU-T Recommendation X.501 (02/2001), Information
+              technology - Open Systems Interconnection - The Directory:
+              Models
+
+
+13. Copyright Notice
+
+      Copyright (C) The Internet Society (2002). All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+14. Author's Address
+
+   Steven Legg
+   Adacel Technologies Ltd.
+
+
+
+Legg                      Expires 18 March 2003                 [Page 6]
+
+INTERNET-DRAFT       Directory Administrative Model   September 18, 2002
+
+
+   405-409 Ferntree Gully Road
+   Mount Waverley, Victoria 3149
+   AUSTRALIA
+
+   Phone: +61 3 9451 2107
+     Fax: +61 3 9541 2121
+   EMail: steven.legg@adacel.com.au
+
+
+15. Appendix A - Changes From Previous Drafts
+
+   This document reproduces Section 4 from
+   draft-legg-ldap-acm-admin-00.txt as a standalone document.  All
+   changes made are purely editorial.  No technical changes have been
+   introduced.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Legg                      Expires 18 March 2003                 [Page 7]
+
