@@ -1,0 +1,672 @@
+
+
+
+LDAP Data Interchange Format (LDIF)                         Gordon Good
+INTERNET-DRAFT                                  Netscape Communications
+                                                       22 February 1999
+
+   The LDAP Data Interchange Format (LDIF) - Technical Specification
+                 Filename: draft-good-ldap-ldif-03.txt
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance
+   with all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that
+   other groups may also distribute working documents as
+   Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six
+   months and may be updated, replaced, or obsoleted by other
+   documents at any time.  It is inappropriate to use Internet-
+   Drafts as reference material or to cite them other than as
+   "work in progress."
+
+   To view the list Internet-Draft Shadow Directories, see
+   http://www.ietf.org/shadow.html.
+
+   This Internet Draft expires August 22nd, 1999.
+
+
+Abstract
+
+   This document describes a file format suitable for describing
+   directory information or modifications made to directory information.
+   The file format, known as LDIF, for LDAP Data Interchange Format, is
+   typically used to import and export directory information between
+   LDAP-based directory servers, or to describe a set of changes which
+   are to be applied to a directory.
+
+
+Background and Intended Usage
+
+   There are a number of situations where a common interchange format is
+   desirable.  For example, one might wish to export a copy of the
+   contents of a directory server to a file, move that file to a
+   different machine, and import the contents into a second directory
+   server.
+
+   Additionally, by using a well-defined interchange format, development
+
+
+
+Good                       February 22, 1999                    [Page 1]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   of data import tools from legacy systems is facilitated.  A fairly
+   simple set of tools written in awk or perl can, for example, convert
+   a database of personnel information into an LDIF file. Thie file can
+   then be imported into a directory server, regardless of the internal
+   database representation the target directory server uses.
+
+   The LDIF format was originally developed and used in the University
+   of Michigan LDAP implementation.  The first use of LDIF was in
+   describing directory entries.  Later, the format was expanded to
+   allow representation of changes to directory entries.
+
+   Relationship to the application/directory MIME content-type:
+
+   The application/directory MIME content-type [1] is a general
+   framework and format for conveying directory information, and is
+   independent of any particular directory service.  The LDIF format is
+   a simpler format which is perhaps easier to create, and also may also
+   be used, as noted, to describe a set of changes to be applied to a
+   directory.
+
+   The key words "MUST", "MAY", and "SHOULD" used in this document are
+   to be interpreted as described in [7].
+
+
+Definition of the LDAP Data Interchange Format
+
+
+   The LDIF format is used to convey directory information, or a
+   description of a set of changes made to directory entries.  An LDIF
+   file consists of a series of records separated by line separators.  A
+   record consists of a sequence of lines describing a directory entry,
+   or a sequence of lines describing a set of changes to a directory
+   entry.  An LDIF file specifies a set of directory entries, or a set
+   of changes to be applied to directory entries, but not both.
+
+   There is a one-to-one correlation between LDAP operations which
+   modify the directory (add, delete, modify, and modrdn), and the types
+   of changerecords described below ("add", "delete", "modify", and
+   "modrdn" or "moddn").  This correspondence is intentional, and
+   permits a straightforward translation from LDIF changerecords to
+   protocol operations.
+
+Formal Syntax Definition of LDIF
+
+   The following definition uses the augmented Backus-Naur Form
+   specified in RFC 822 [2].
+
+   ldif-file            = ldif-content / ldif-changes
+
+
+
+Good                       February 22, 1999                    [Page 2]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   ldif-content         = version-spec 1*SEP
+                          ldif-attrval-record *(1*SEP ldif-attrval-record)
+   ldif-changes         = version-spec 1*SEP
+                          ldif-change-record *(1*SEP ldif-change-record)
+   ldif-attrval-record  = dn-spec SEP 1*(attrval-spec SEP)
+   ldif-change-record   = dn-spec SEP 1*(changerecord SEP)
+
+   version-spec         = "version:" *SPACE version-number
+   version-number       = 1*DIGIT  ; version-number MUST be "1" for the
+                                   ; LDIF format described in this document.
+
+   dn-spec              = ("dn:" *SPACE dn) / ("dn::" *SPACE base64-dn)
+   dn                   = <a distinguished name, as defined in RFC 2253 [3]>
+   base64-dn            = <a dn which has been base-64 encoded, as
+                          defined in RFC 1521 [5]>
+   rdn                  = <a relative distinguished name, as defined in RFC
+                          2253 [3]>
+   base64-rdn           = <an rdn which has been base-64 encoded, as
+                          defined in RFC 1521 [5]>
+
+   attrval-spec         = attribute-description ((":") / (":" *SPACE value) /
+                                                 ("::" *SPACE base64-value) /
+                                                 (":<" *SPACE url))
+   url                  = <a Uniform Resource Locator, as defined in [6]>
+                                  ; (See Note 6, below)
+   attribute-description = <an attribute description, as defined in [4].
+                            An attribute description MAY NOT contain a
+                            colon ":">
+   value                = 1*safe-initval *safe
+                                  ; (See Note 9, below)
+   safe                 = <any value except CR or LF>
+   safe-initval         = <any value except CR, LF, colon (":", ASCII 58
+                          decimal), SPACE, and less-than ("<" , ASCII 60
+                          decimal)>
+   base64-value         = <base-64-encoded value, as defined in RFC 1521 [5]>
+
+   changerecord         = change-add / change-delete / change-modify /
+                          change-moddn
+   change-add           = "changetype:" *SPACE "add" 1*(SEP attrval-spec)
+   change-delete        = "changetype:" *SPACE "delete"
+   change-moddn         = "changetype:" *SPACE ("modrdn" / "moddn") SEP
+                          ("newrdn:" *SPACE rdn /
+                           "newrdn::" *SPACE base-64-rdn) SEP
+                          "deleteoldrdn:" *SPACE ("0" / "1")
+                          0,1*(SEP (("newsuperior:" *SPACE dn) /
+                                    ("newsuperior::" *SPACE base-64-dn)))
+   change-modify        = "changetype:" *SPACE "modify" 1*(SEP mod-spec)
+   mod-spec             = mod-add-spec / mod-delete-spec / mod-replace-spec
+
+
+
+Good                       February 22, 1999                    [Page 3]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   mod-add-spec         = "add:" *SPACE attribute-description
+                          1*(SEP attrval-spec) SEP "-"
+   mod-delete-spec      = "delete:" *SPACE attribute-description
+                          *(SEP attrval-spec) SEP "-"
+   mod-replace-spec     = "replace:" *SPACE attribute-description
+                          *(SEP attrval-spec) SEP "-"
+   SPACE                = <ASCII SP, space>
+   SEP                  = (CR LF / LF)
+   CR                   = <ASCII CR, carriage return>
+   LF                   = <ASCII LF, line feed>
+   DIGIT                = <any ASCII decimal digit (60 - 71 decimal) >
+
+
+   Notes on LDIF Syntax
+
+   1) For the LDIF format described in this document, the version number
+   MUST be "1". If the version number is absent, implementations MAY
+   choose to interpret the contents as an older LDIF file format,
+   supported by the University of Michigan ldap-3.3 implementation [8].
+
+   2) Any line, including comment lines, in an LDIF file MAY be wrapped
+   by inserting a line separator (SEP) and a SPACE.  Any line which
+   begins with a single space MUST be treated as a continuation of the
+   previous line. When joining folded lines, exactly one space character
+   at the beginning of each continued line must be discarded.
+
+   3) Any line which begins with a pound-sign ("#", ASCII 35) is a
+   comment line, and MUST be ignored when parsing an LDIF file.
+
+   4) Any dn or value which contains characters other than those defined
+   as "safe", or begins with a character other than those defined as
+   "safe-initval", above, MUST be base-64 encoded.  Other values MAY be
+   base-64 encoded.
+
+   5) To represent a zero-length attribute value, use an attrval-spec of
+   "attribute-description:".  For example, "seeAlso:" represents a
+   zero-length "seeAlso" attribute value.
+
+   6) When a URL is specified in an attrval-spec, the following
+   conventions apply:
+      a) Implementations SHOULD support the file:// URL format.  The
+         contents of the referenced file are to be included verbatim
+         in the interpreted output of the LDIF file.
+      b) Implementations MAY support other URL formats.  The semantics
+         associated with each supported URL will be documented in
+         an associated Applicability Statement.
+
+   7) While it is permissible for character values larger than 126 to be
+
+
+
+Good                       February 22, 1999                    [Page 4]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   contained in an attribute value, implementations SHOULD base-64
+   encode any value which contains such characters when generating LDIF.
+   However, implementations MAY leave the values unencoded.  This
+   relaxation is designed to allow editing of LDIF files containing
+   UTF-8 data.
+
+   8) Attribute values contained in LDIF files represent directory data,
+   and therefore MUST be valid UTF-8 strings. Implementations which read
+   LDIF MAY interpret files in which the values are stored in some other
+   character set encoding, but implementations MUST NOT generate LDIF
+   content which does not contain valid UTF-8 data.
+
+   9) Values that end with SPACE SHOULD be base-64 encoded.
+
+Examples of LDAP Data Interchange Format
+
+
+   Example 1: An simple LDAP file with two entries
+
+   version: 1
+   dn: cn=Barbara Jensen, ou=Product Development, dc=airius, dc=com
+   objectclass: top
+   objectclass: person
+   objectclass: organizationalPerson
+   cn: Barbara Jensen
+   cn: Barbara J Jensen
+   cn: Babs Jensen
+   sn: Jensen
+   uid: bjensen
+   telephonenumber: +1 408 555 1212
+   description: A big sailing fan.
+
+   dn: cn=Bjorn Jensen, ou=Accounting, dc=airius, dc=com
+   objectclass: top
+   objectclass: person
+   objectclass: organizationalPerson
+   cn: Bjorn Jensen
+   sn: Jensen
+   telephonenumber: +1 408 555 1212
+
+   Example 2: A file containing an entry with a folded attribute value
+
+   version: 1
+   dn:cn=Barbara Jensen, ou=Product Development, dc=airius, dc=com
+   objectclass:top
+   objectclass:person
+   objectclass:organizationalPerson
+   cn:Barbara Jensen
+
+
+
+Good                       February 22, 1999                    [Page 5]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   cn:Barbara J Jensen
+   cn:Babs Jensen
+   sn:Jensen
+   uid:bjensen
+   telephonenumber:+1 408 555 1212
+   description:Babs is a big sailing fan, and travels extensively in search of
+    perfect sailing conditions.
+   title:Product Manager, Rod and Reel Division
+
+   Example 3: A file containing a base-64-encoded value
+
+   version: 1
+   dn: cn=Gern Jensen, ou=Product Testing, dc=airius, dc=com
+   objectclass: top
+   objectclass: person
+   objectclass: organizationalPerson
+   cn: Gern Jensen
+   cn: Gern O Jensen
+   sn: Jensen
+   uid: gernj
+   telephonenumber: +1 408 555 1212
+   description:: V2hhdCBhIGNhcmVmdWwgcmVhZGVyIHlvdSBhcmUhICBUaGlzIHZhbHVlIGlzIGJ
+    hc2UtNjQtZW5jb2RlZCBiZWNhdXNlIGl0IGhhcyBhIGNvbnRyb2wgY2hhcmFjdGVyIGluIGl0ICh
+    hIENSKS4NICBCeSB0aGUgd2F5LCB5b3Ugc2hvdWxkIHJlYWxseSBnZXQgb3V0IG1vcmUu
+
+   Example 4: A file containing an entries with UTF-8-encoded attribute
+   values, including language tags.  Comments indicate the contents
+   of UTF-8-encoded attributes and distinguished names.
+
+   version: 1
+   dn:: b3U95Za25qWt6YOoLG89QWlyaXVz
+   # dn:: ou=<JapaneseOU>,o=Airius
+   objectclass: top
+   objectclass: organizationalUnit
+   ou:: 5Za25qWt6YOo
+   # ou:: <JapaneseOU>
+   ou;lang-ja:: 5Za25qWt6YOo
+   # ou;lang-ja:: <JapaneseOU>
+   ou;lang-ja;phonetic:: 44GI44GE44GO44KH44GG44G2
+   # ou;lang-ja:: <JapaneseOU_in_phonetic_representation>
+   ou;lang-en: Sales
+   description: Japanese office
+
+   dn:: dWlkPXJvZ2FzYXdhcmEsb3U95Za25qWt6YOoLG89QWlyaXVz
+   # dn:: uid=<uid>,ou=<JapaneseOU>,o=Airius
+   userpassword: {SHA}O3HSv1MusyL4kTjP+HKI5uxuNoM=
+   objectclass: top
+   objectclass: person
+
+
+
+Good                       February 22, 1999                    [Page 6]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   objectclass: organizationalPerson
+   objectclass: inetOrgPerson
+   uid: rogasawara
+   mail: rogasawara@airius.co.jp
+   givenname;lang-ja:: 44Ot44OJ44OL44O8
+   # givenname;lang-ja:: <JapaneseGivenname>
+   sn;lang-ja:: 5bCP56yg5Y6f
+   # sn;lang-ja:: <JapaneseSn>
+   cn;lang-ja:: 5bCP56yg5Y6fIOODreODieODi+ODvA==
+   # cn;lang-ja:: <JapaneseCn>
+   title;lang-ja:: 5Za25qWt6YOoIOmDqOmVtw==
+   # title;lang-ja:: <JapaneseTitle>
+   preferredlanguage: ja
+   givenname:: 44Ot44OJ44OL44O8
+   # givenname:: <JapaneseGivenname>
+   sn:: 5bCP56yg5Y6f
+   # sn:: <JapaneseSn>
+   cn:: 5bCP56yg5Y6fIOODreODieODi+ODvA==
+   # cn:: <JapaneseCn>
+   title:: 5Za25qWt6YOoIOmDqOmVtw==
+   # title:: <JapaneseTitle>
+   givenname;lang-ja;phonetic:: 44KN44Gp44Gr44O8
+   # givenname;lang-ja;phonetic::
+   <JapaneseGivenname_in_phonetic_representation_kana>
+   sn;lang-ja;phonetic:: 44GK44GM44GV44KP44KJ
+   # sn;lang-ja;phonetic:: <JapaneseSn_in_phonetic_representation_kana>
+   cn;lang-ja;phonetic:: 44GK44GM44GV44KP44KJIOOCjeOBqeOBq+ODvA==
+   # cn;lang-ja;phonetic:: <JapaneseCn_in_phonetic_representation_kana>
+   title;lang-ja;phonetic:: 44GI44GE44GO44KH44GG44G2IOOBtuOBoeOCh+OBhg==
+   # title;lang-ja;phonetic:: <JapaneseTitle_in_phonetic_representation_kana>
+   givenname;lang-en: Rodney
+   sn;lang-en: Ogasawara
+   cn;lang-en: Rodney Ogasawara
+   title;lang-en: Sales, Director
+
+   Example 5: A file containing a reference to an external file
+
+   version: 1
+   dn: cn=Horatio Jensen, ou=Product Testing, dc=airius, dc=com
+   objectclass: top
+   objectclass: person
+   objectclass: organizationalPerson
+   cn: Horatio Jensen
+   cn: Horatio N Jensen
+   sn: Jensen
+   uid: hjensen
+   telephonenumber: +1 408 555 1212
+   jpegphoto:< file:///usr/local/directory/photos/hjensen.jpg
+
+
+
+Good                       February 22, 1999                    [Page 7]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   Example 6: A file containing a series of change records and comments
+
+   version: 1
+   # Add a new entry
+   dn: cn=Fiona Jensen, ou=Marketing, dc=airius, dc=com
+   changetype: add
+   objectclass: top
+   objectclass: person
+   objectclass: organizationalPerson
+   cn: Fiona Jensen
+   sn: Jensen
+   uid: fiona
+   telephonenumber: +1 408 555 1212
+   jpegphoto:< file:///usr/local/directory/photos/fiona.jpg
+
+   # Delete an existing entry
+   dn: cn=Robert Jensen, ou=Marketing, dc=airius, dc=com
+   changetype: delete
+
+   # Modify an entry's relative distinguished name
+   dn: cn=Paul Jensen, ou=Product Development, dc=airius, dc=com
+   changetype: modrdn
+   newrdn: cn=Paula Jensen
+   deleteoldrdn: 1
+
+   # Rename an entry and move all of its children to a new location in
+   # the directory tree (only implemented by LDAPv3 servers).
+   dn: ou=PD Accountants, ou=Product Development, dc=airius, dc=com
+   changetype: modrdn
+   newrdn: ou=Product Development Accountants
+   deleteoldrdn: 0
+   newsuperior: ou=Accounting, dc=airius, dc=com
+
+   # Modify an entry: add an additional value to the postaladdress attribute,
+   # completely delete the description attribute, replace the telephonenumber
+   # attribute with two values, and delete a specific value from the
+   # facsimiletelephonenumber attribute
+   dn: cn=Paula Jensen, ou=Product Development, dc=airius, dc=com
+   changetype: modify
+   add: postaladdress
+   postaladdress: 123 Anystreet $ Sunnyvale, CA $ 94086
+   -
+   delete: description
+   -
+   replace: telephonenumber
+   telephonenumber: +1 408 555 1234
+   telephonenumber: +1 408 555 5678
+   -
+
+
+
+Good                       February 22, 1999                    [Page 8]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   delete: facsimiletelephonenumber
+   facsimiletelephonenumber: +1 408 555 9876
+   -
+
+
+Security Considerations
+
+   Given typical directory applications, an LDIF file is likely to
+   contain sensitive personal data.  Appropriate measures should be
+   taken to protect the privacy of those persons whose data is contained
+   in an LDIF file.
+
+   Since ":<" directives can cause external content to be included when
+   processing an LDIF file, one should be cautious of accepting LDIF
+   files from external sources.  A "trojan" LDIF file could name a file
+   with sensitive contents and cause it to be included in a directory
+   entry, which a hostile entity could read via LDAP.
+
+   LDIF does not provide any method for carrying authentication
+   information with an LDIF file.  Users of LDIF files must take care to
+   verify the integrity of an LDIF file received from an external
+   source.
+
+Appendix A: Differences from previous versions of this document
+
+   This section summarizes the differences between previous revisions of
+   this draft, as an aid to document reviewers. This section will be
+   deleted prior to publication as an RFC.
+
+   Differences between draft-ietf-asid-ldif-00.txt and draft-ietf-asid-
+   ldif-01.txt
+
+   1) The BNF has been modified to explicitly disallow ldif content and
+   change records in the same file.  In other words, a given LDIF file
+   is either a series of directory entries, or a series of
+   modifications.  An LDIF file MUST NOT contain both types of records.
+
+   2) External references are now URLs, instead of simple filenames.
+
+   3) The BNF has been modified to allow base-64-encoded distinguished
+   names.
+
+   4) Multiple separators are now permitted between records.
+
+   Differences between draft-ietf-asid-ldif-01.txt and draft-ietf-asid-
+   ldif-02.txt
+
+   1) The BNF has been modified such that a simple attribute name
+
+
+
+Good                       February 22, 1999                    [Page 9]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   ("attrname") has been replaced with an "attribute-description" as
+   defined in the LDAPv3 protocol document [4].  This permits language
+   codes and other attribute options to be carried in an LDIF file.
+
+   2) A new option, "charset", may be used in attribute descriptions.
+   This facilitates multi-lingual character set conversion.
+
+   3) The definition of the "safe" and "safe-initval" productions has
+   been relaxed to allow non-ASCII characters with values greater than
+   126.  This permits more natural expression of character sets such as
+   Latin-1 in LDIF files.
+
+   Differences between draft-ietf-asid-ldif-02.txt and draft-good-ldap-
+   ldif-00.txt
+
+   1) The "charset-option" and "charset-name" productions were removed
+   from the BNF, due to objections within the working group.  UTF-8 is
+   the only character set which may be used in LDIF.
+
+   2) Examples were reworked to reflect the above change, and to include
+   an example of a non-western language represented in UTF-8.
+
+   Differences between draft-ietf-good-ldif-00.txt and draft-good-ldap-
+   ldif-01.txt
+
+   1) Added version identifiers to the examples - they were missing.
+
+   2) Clarified that LDIF file must use UTF-8.
+
+   Differences between draft-ietf-good-ldif-01.txt and draft-good-ldap-
+   ldif-02.txt
+
+   1) Added a recommendation that values ending in SPACE should be
+   base-64 encoded.
+
+   2) Clarified the procedure for joining folded lines.
+
+   3) Updated header to reflect new IETF I-D guidelines.
+
+   Differences between draft-ietf-good-ldif-02.txt and draft-good-ldap-
+   ldif-03.txt
+
+   1) Fixed reference from RFC 1779 to RFC 2253.
+
+   2) Version string is now required.
+
+   3) Comment lines may be folded (this is now explicitly mentioned in
+   note 2).
+
+
+
+Good                       February 22, 1999                   [Page 10]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+   4) Moved this section (differences between draft versions) to an
+   appendix.
+
+   5) Updated examples to use "dc=airius, dc=com" instead of "o=Ace
+   Industry, c=US"
+
+   6) Cleaned up references section.
+
+
+Acknowledgments
+
+   The LDAP Interchange Format was developed as part of the University
+   of Michigan LDAP reference implementation, and was developed by Tim
+   Howes, Mark Smith, and Gordon Good.  It is based in part upon work
+   supported by the National Science Foundation under Grant No.  NCR-
+   9416667.
+
+
+References
+
+
+   [1]  Howes, T., Smith, M., "A MIME Content-Type for Directory Infor-
+        mation", RFC 2425, September 1998,
+        <URL:http://www.ietf.org/rfc/rfc2245.txt>
+
+   [2]  Crocker,  D.H., "Standard for the Format of ARPA Internet Text
+        Messages", RFC 822, August 1982,
+        <URL:http://ds.internic.net/rfc/rfc822.txt>
+
+   [3]  Wahl, M., Kille, S., Howes, T., "A String Representation of Dis-
+        tinguished Names", RFC 2253,
+        <URL:http://www.ietf.org/rfc/rfc2253.txt>
+
+   [4]  Wahl, M., Howes, T., Kille, S., "Lightweight Directory Access
+        Protocol (v3)", RFC 2251, July, 1997,
+        <URL:ftp://www.ietf.org/rfc/rfc2251.txt>
+
+   [5]  Borenstein, N., Freed, N., "MIME (Multipurpose Internet Mail
+        Extensions) Part One: Mechanisms for Specifying and Describing
+        the Format of Internet Message Bodies", section 5.2, "Base64
+        Content-Transfer-Encoding", RFC 1521, December 1993,
+        <URL:http://ds.internic.net/rfc/rfc1521.txt>
+
+   [6]  T. Berners-Lee,  L.  Masinter, M. McCahill, "Uniform Resource
+        Locators (URL)", RFC 1738, December 1994,
+        <URL:http://ds.internic.net/rfc/rfc1738.txt>
+
+   [7]  S. Bradner, "Key Words for use in RFCs to Indicate Requirement
+
+
+
+Good                       February 22, 1999                   [Page 11]
+
+INTERNET-DRAFT        LDAP Data Interchange Format      22 February 1999
+
+
+        Levels", Harvard University, RFC 2119, March 1997,
+        <URL:http://ds.internic.net/rfc/rfc2119.txt>
+
+   [8]  The SLAPD and SLURPD Administrators Guide.  University of Michi-
+        gan, April 1996.  <URL:
+        http://www.umich.edu/~dirsvcs/ldap/doc/guides/slapd/toc.html>
+
+
+
+Author's Address
+
+        Gordon Good
+        Netscape Communications Corp.
+        501 E. Middlefield Rd.
+        Mailstop MV068
+        Mountain View, CA 94043, USA
+        Phone:  +1 650 937-3825
+        EMail:  ggood@netscape.com
+
+                 This Internet Draft expires August 22nd, 1999.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Good                       February 22, 1999                   [Page 12]
+

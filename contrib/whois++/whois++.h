@@ -41,8 +41,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include "syslog.h"
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #define	EQ(x,y)		(strcasecmp(x,y) == 0)
 
@@ -139,9 +138,10 @@ EXTERN char		*banner;
 EXTERN char		**category;
 EXTERN table		*templateTranslationTable;
 
-extern int		displayDescribe(), parseCommand();
-extern void		needHelp();
-extern void		showTemplate(), listTemplates();
-extern char		**specifyAttributes();
-extern char		*lowerCase(), *version(), *attributeLabel();
+extern int		displayDescribe(), parseCommand(char *query);
+extern void		needHelp(char *reason);
+extern void		showTemplate(char *template), listTemplates(char *query);
+extern char		**specifyAttributes(char *objectClass);
+extern char		*lowerCase(char *string), *version(void), *attributeLabel();
 extern char		*rfc931_name();
+extern char		*templateToObjectClass(char *template);

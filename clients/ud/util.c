@@ -10,158 +10,31 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#ifdef DOS
-#include <malloc.h>
-#endif
-#include <memory.h>
-#if defined( NeXT )
-#include <stdlib.h>
-#endif
-#include <ctype.h>
-#include <errno.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
-#if !defined(DOS) && !defined( VMS)
-#include <sys/types.h>
-#endif
-#include "portable.h"
-#ifdef USE_TERMIOS
-#include <termios.h>
-#else /* USE_TERMIOS */
-#include <sgtty.h>
-#endif /* USE_TERMIOS */
+
+#include "ldap_defaults.h"
 #include "ud.h"
 
-#if defined(VMS)
-#define getch getchar
-#endif
-
-#ifdef DEBUG
-extern int debug;
-#endif
-
-char * mygetpass(prompt)
-char *prompt;
-{
-#if defined(DOS) || defined(VMS)
-	static char buf[256];
-	int i, c;
-
-#ifdef DEBUG
-	if (debug & D_TRACE)
-		printf("->mygetpass(%s)\n", prompt);
-#endif
-	printf("%s", prompt);
-	i = 0;
-	while ( (c = getch()) != EOF && c != '\n' && c != '\r' )
-		buf[i++] = c;
-	if ( c == EOF )
-		return( NULL );
-	buf[i] = '\0';
-	return (buf);
-#else
-	int no_pass = 0;
-	char i, j, k;
-	TERMIO_TYPE ttyb;
-	TERMFLAG_TYPE flags;
-	static char pbuf[513];
-	register char *p;
-	register int c;
-	FILE *fi;
-	SIG_FN (*sig)();
-
-#ifdef DEBUG
-	if (debug & D_TRACE)
-		printf("->mygetpass(%s)\n", prompt);
-#endif
-	/*
-	 *  Stolen from the getpass() routine.  Can't use the plain
-	 *  getpass() for two reasons.  One is that X.500 passwords
-	 *  can be really, really long - much longer than 8 chars.
-	 *  The second is that we like to make this client available
-	 *  out of inetd via a Merit asynch port, and we need to be
-	 *  able to do telnet control codes to turn on and off line
-	 *  blanking.
-	 */
-	if ((fi = fdopen(open("/dev/tty", 2), "r")) == NULL)
-		fi = stdin;
-	else
-		setbuf(fi, (char *)NULL);
-	sig = signal(SIGINT, SIG_IGN);
-	if (fi != stdin) {
-		if (GETATTR(fileno(fi), &ttyb) < 0)
-			perror("GETATTR");
-	}
-	flags = GETFLAGS( ttyb );
-	SETFLAGS( ttyb, flags & ~ECHO );
-	if (fi != stdin) {
-		if (SETATTR(fileno(fi), &ttyb) < 0)
-			perror("SETATTR");
-	}
-
-	/*  blank the line if through Merit */
-	if (fi == stdin) {
-		printf("%c%c%c", 255, 251, 1);
-		fflush(stdout);
-		(void) scanf("%c%c%c", &i, &j, &k);
-		fflush(stdin);
-	}
-
-	/* fetch the password */
-	fprintf(stdout, "%s", prompt); 
-	fflush(stdout);
-	for (p=pbuf; (c = getc(fi))!='\n' && c!=EOF;) {
-		if (c == '\r')
-			break;
-		if (p < &pbuf[512])
-			*p++ = c;
-	}
-	if (c == EOF)
-		no_pass = 1;
-	else {
-		*p = '\0';
-		if (*(p - 1) == '\r')
-			*(p - 1) = '\0';
-	}
-
-	/*  unblank the line if through Merit */
-	if (fi == stdin) {
-		printf("%c%c%c", 255, 252, 1);
-		fflush(stdout);
-		(void) scanf("%c%c%c", &i, &j, &k);
-		fflush(stdin);
-		printf("\n"); fflush(stdout);
-	}
-	fprintf(stdout, "\n"); 
-	fflush(stdout);
-
-	/* tidy up */
-	SETFLAGS( ttyb, flags );
-	if (fi != stdin) {
-		if (SETATTR(fileno(fi), &ttyb) < 0)
-			perror("SETATTR");
-	}
-	(void) signal(SIGINT, sig);
-	if (fi != stdin)
-		(void) fclose(fi);
-	else
-		i = getchar();
-	if (no_pass)
-		return(NULL);
-	return(pbuf);
-#endif /* DOS */
-}
-
-void printbase(lead, s)
-char *lead, *s;
+void
+printbase( char *lead, char *s )
 {
 	register char **cp;
 	char **rdns;
-	char * friendly_name();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -187,12 +60,9 @@ char *lead, *s;
 	return;
 }
 
-fetch_buffer(buffer, length, where)
-char *buffer;
-int length;
-FILE *where;
+void
+fetch_buffer( char *buffer, int length, FILE *where )
 {
-	extern LDAP *ld;
 	register int i;
     	char *p;
 
@@ -209,36 +79,35 @@ FILE *where;
 			errno = 0;	 /* so fatal() doesn't bitch */
 		fatal("fgets");
 	}
-	for (i = strlen(buffer) - 1; i >= 0 && !isprint(buffer[i]); i--)
+	for (i = strlen(buffer) - 1;
+	     i >= 0 && !isprint((unsigned char) buffer[i]); i--)
 		buffer[i] = '\0';
 
 	p = buffer;
 	while ( *p != '\0' ) {
-		if ( isprint( *p )) {
+		if ( isprint( (unsigned char) *p )) {
 			++p;
 		} else {
-			strcpy( p, p + 1 ); 
+			SAFEMEMCPY( p, p + 1, strlen( p + 1 ) + 1 ); 
 		}
 	}
 
 }
 
-fatal(s)
-char *s;
+void
+fatal( char *s )
 {
-	void exit();
-
 	if (errno != 0)
 		perror(s);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
-	exit(-1);
+	exit( EXIT_FAILURE );
 }
 
-isgroup()
+int
+isgroup( void )
 {
-	extern struct entry Entry;
 	char **vp;
 	register int i;
 	int group = FALSE;
@@ -266,14 +135,11 @@ isgroup()
  *  Print out the string 's' on a field of 'width' chracters.  Each line
  *  should be indented 'lead' characters.
  */
-format(str, width, lead)
-char *str;
-int width, lead;
+void
+format( char *str, int width, int lead )
 {
 	char *s, *original, *leader = "";
 	register char *cp;
-	void * Malloc();
-	void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -297,7 +163,7 @@ int width, lead;
 	 */
 	s = original = strdup(str);
 	for (;;) {
-		if ((strlen(s) + lead) < width) {
+		if (((int) strlen(s) + lead) < width) {
 			printf("%s%s\n", leader, s);
 			Free(leader);
 			Free(original);
@@ -305,10 +171,10 @@ int width, lead;
 			/*NOTREACHED*/
 		}
 		cp = s + width - lead;
-		while (!isspace(*cp) && (cp != s))
+		while (!isspace((unsigned char)*cp) && (cp != s))
 			cp--;
 		*cp = '\0';
-		while (isspace(*s))
+		while (isspace((unsigned char)*s))
 			s++;
 		printf("%s%s\n", leader, s);
 		s = cp + 1;
@@ -322,14 +188,18 @@ int width, lead;
  *  indented 'indent' spaces, then followed by 'tag', and then followed by
  *  subsequent lines of 's'.
  */
-format2(s, first_tag, tag, first_indent, indent, width)
-char *s, *first_tag, *tag;
-int first_indent, indent, width;
+void
+format2(
+    char *s,
+    char *first_tag,
+    char *tag,
+    int first_indent,
+    int indent,
+    int width
+)
 {
 	char c, *fi, *i;
 	register char *cp;
-	void * Malloc();
-	void Free();
 
 	if (first_tag == NULL)
 		first_tag = "";
@@ -364,7 +234,7 @@ int first_indent, indent, width;
 		i = "";
 
 	/* now do the first line */
-	if ((strlen(s) + strlen(first_tag) + first_indent) < width) {
+	if (((int) strlen(s) + (int) strlen(first_tag) + first_indent) < width) {
 		printf("%s%s%s\n", fi, first_tag, s);
 		Free(fi);
 		Free(i);
@@ -380,7 +250,7 @@ int first_indent, indent, width;
 	 *  back it up to the first space character.
 	 */
 	cp = s + width - first_indent - strlen(first_tag);
-	while (!isspace(*cp) && (cp != s))
+	while (!isspace((unsigned char)*cp) && (cp != s))
 		cp--;
 
 	/*
@@ -398,12 +268,12 @@ int first_indent, indent, width;
 	 *  as well.  We should gobble up all of these since we don't want
 	 *  unexpected leading blanks.
 	 */  
-	for (s = cp + 1; isspace(*s); s++)
+	for (s = cp + 1; isspace((unsigned char)*s); s++)
 		;
 
 	/* now do all of the other lines */
 	for (;;) {
-		if ((strlen(s) + strlen(tag) + indent) < width) {
+		if (((int) strlen(s) + (int) strlen(tag) + indent) < width) {
 			printf("%s%s%s\n", i, tag, s);
 			Free(fi);
 			Free(i);
@@ -411,7 +281,7 @@ int first_indent, indent, width;
 			/*NOTREACHED*/
 		}
 		cp = s + width - indent - strlen(tag);
-		while (!isspace(*cp) && (cp != s))
+		while (!isspace((unsigned char)*cp) && (cp != s))
 			cp--;
 		c = *cp;
 		*cp = '\0';
@@ -424,15 +294,13 @@ int first_indent, indent, width;
 #define IN_A_QUOTE   0
 #define OUT_OF_QUOTE 1
 
-char * strip_ignore_chars(cp)
-char *cp;
+char *
+strip_ignore_chars( char *cp )
 {
 	int had_a_comma = FALSE;
 	int flag = OUT_OF_QUOTE;
 	register char *rcp, *cp1;
 	char *tmp;
-	void * Malloc();
-	void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -477,7 +345,8 @@ char *cp;
 	return(tmp);
 }
 
-char * code_to_str(i)
+char *
+code_to_str( int i )
 {
 	switch(i) {
 	case LDAP_MOD_ADD : return("ADD");
@@ -487,10 +356,10 @@ char * code_to_str(i)
 	}
 }
 
-char * friendly_name(s)
-char *s;
+char *
+friendly_name( char *s )
 {
-	static FriendlyMap *map = NULL;
+	static LDAPFriendlyMap *map = NULL;
 	static char *cp;
 
 	cp = ldap_friendly_name(FRIENDLYFILE, s, &map);
@@ -502,28 +371,27 @@ char *s;
 #ifdef UOFM
 
 /* return TRUE if s has the syntax of a uniqname */
-isauniqname(s)
-char *s;
+int
+isauniqname( char *s )
 {
 	int i = strlen(s);
 
 	if ((i < 3) || (i > 8))		/* uniqnames are 3-8 chars */
 		return(FALSE);
-	if (!isalpha(*s))		/* uniqnames begin with a letter */
+	if (!isalpha((unsigned char)*s)) /* uniqnames begin with a letter */
 		return(FALSE);
 	for ( ; *s != '\0'; s++)	/* uniqnames are alphanumeric */
-		if (!isalnum(*s))
+		if (!isalnum((unsigned char)*s))
 			return(FALSE);
 	return(TRUE);
 }
 #endif
 
 /* return TRUE if this attribute should be printed as a DN */
-isadn(s)
-char *s;
+int
+isadn( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -533,13 +401,13 @@ char *s;
 	return(FALSE);
 }
 
-char * my_ldap_dn2ufn(s)
-char *s;
+char *
+my_ldap_dn2ufn( char *s )
 {
 	register char **cpp;
 	static char short_DN[BUFSIZ];
 
-	if (strstr(s, UD_BASE) == NULL)
+	if (strstr(s, NULL) == NULL)
 		return(ldap_dn2ufn(s));
 	cpp = ldap_explode_dn(s, TRUE);
 	sprintf(short_DN, "%s, %s", *cpp, *(cpp + 1));
@@ -548,11 +416,10 @@ char *s;
 }
 
 /* return TRUE if this attribute should be printed as a URL */
-isaurl(s)
-char *s;
+int
+isaurl( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -563,11 +430,10 @@ char *s;
 }
 
 /* return TRUE if this attribute should be printed as a date and time */
-isadate(s)
-char *s;
+int
+isadate( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -577,37 +443,30 @@ char *s;
 	return(FALSE);
 }
 
-void * Malloc(size)
-unsigned int size;
+void *
+Malloc( unsigned int size )
 {
 	void *void_ptr;
 
 	void_ptr = (void *) malloc(size);
 	if (void_ptr == NULL) {
 		perror("malloc");
-		exit(-1);
+		exit( EXIT_FAILURE );
 		/*NOTREACHED*/
 	}
 	return(void_ptr);
 }
 
-void Free(ptr)
-char *ptr;
+void
+Free( void *ptr )
 {
-	extern int free();
-
-	if (free(ptr) < 0) {
-		perror("free");
-		exit(-1);
-		/*NOTREACHED*/
-	}
-	return;
+	free(ptr);
 }
 
-char * nextstr(s)
-char *s;
+char *
+nextstr( char *s )
 {
-	while (isspace(*s) && (*s != '\0'))
+	while (isspace((unsigned char) *s) && (*s != '\0'))
 		s++;
 	if (s == NULL)
 		return(NULL);
@@ -616,22 +475,18 @@ char *s;
 	return(s);
 }
 
-void free_mod_struct(modp)
-LDAPMod *modp;
+void
+free_mod_struct( LDAPMod *modp )
 {
-	void Free();
-
 	if (modp->mod_values != NULL)
 		(void) ldap_value_free(modp->mod_values);
 	Free(modp->mod_type);
 	Free(modp);
 }
 
-void StrFreeDup(ptr, new_value)
-char **ptr, *new_value;
+void
+StrFreeDup( char **ptr, char *new_value )
 {
-	void Free();
-
 	if (*ptr != NULL)
 		Free(*ptr);
 	if (new_value == NULL)
@@ -641,8 +496,8 @@ char **ptr, *new_value;
 }
 
 
-confirm_action( msg )
-	char	*msg;
+int
+confirm_action( char *msg )
 { 
         char 	tmp[SMALL_BUF_SIZE];
 	int	i;

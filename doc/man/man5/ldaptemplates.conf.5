@@ -1,4 +1,4 @@
-.TH LDAPTEMPLATES.CONF 5  "13 December 1994" "U-M LDAP LDVERSION"
+.TH LDAPTEMPLATES.CONF 5 "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldaptemplates.conf \- configuration file for LDAP display template routines
 .SH SYNOPSIS
@@ -111,7 +111,7 @@ The next line is the default location under which new entries are created.
 It should be a string-represented Distringuished Name. E.g.,
 .nf
 .ft B
-    "o=University of Michigan, c=US"
+    "dc=OpenLDAP, dc=org"
 .ft
 .fi
 .LP
@@ -243,7 +243,7 @@ for display of people entries and one for display of contries.
 
     #
     # default location when adding new entries (DN; "" means no default)
-    "o=University of Michigan, c=US"
+    "dc=OpenLDAP, dc=Org"
 
     #
     # rules used to define default values for new entries
@@ -273,3 +273,8 @@ ETCDIR/ldaptemplates.conf
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_disptmpl (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

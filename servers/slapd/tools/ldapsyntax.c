@@ -10,19 +10,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/ds_search.h>
 /* #include <quipu/dap2.h> */
 #include <quipu/dua.h>
-#include <sys/types.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
+
 #include "ldif.h"
 #include "ldapsyntax.h"
 
@@ -42,8 +45,8 @@ static void	de_crypt( char *s );
 
 extern char	*progname;
 
-#define SEPARATOR(c)	(c == ',' || c == ';')
-#define SPACE(c)	(c == ' ' || c == '\n')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SPACE(c)    	((c) == ' ' || (c) == '\n')
 
 
 int
@@ -120,7 +123,7 @@ av2ldif( FILE *outfp, AV_Sequence av, DN dn, short syntax, char *attrname,
 	    if ( fputs( buf, outfp ) == EOF ) {
 		rc = -1;
 	    }
-	    free( buf );
+	    ber_memfree( buf );
 	}
     }
 
@@ -244,7 +247,8 @@ char	*s;
 int	t61mark;
 {
 	char	*next = s;
-	int	c, hex;
+	unsigned char	c;
+	unsigned int	hex;
 
 	while ( *s ) {
 		switch ( *s ) {
@@ -311,7 +315,7 @@ de_crypt( char *s )
     char *p;
 
     if ( strncmp( s, "{CRYPT}", 7 ) == 0 ) {
-	strcpy( s, s + 7 );			/* strip off "{CRYPT}" */
+	SAFEMEMCPY( s, s + 7, strlen( s + 7 ) + 1 ); /* strip off "{CRYPT}" */
 
 	for ( p = s; *p != '\0'; ++p) {		/* "decrypt" each byte */
 	    if ( *p != CRYPT_MASK ) {
@@ -410,11 +414,13 @@ photo2ldif( PS ps, AttributeValue av )
     if ( pe->pe_class == PE_CLASS_UNIV && pe->pe_form == PE_FORM_PRIM
 	    && pe->pe_id == PE_PRIM_BITS ) {
 	len = ps_get_abs( pe );
-	if (( phber = der_alloc()) == NULLBER ) {
+	if (( phber = der_alloc()) == NULL ) {
 	    return( -1 );
 	}
-	if ( ber_printf( phber, "t{[tB]{B}}", 0xA3, 0x81, faxparamset,
-		31, (char *)pe->pe_prim, len * 8 ) == -1 ) {
+	if ( ber_printf( phber, "t{[tB]{B}}",
+		(ber_tag_t) 0xA3, (ber_tag_t) 0x81, faxparamset, (ber_len_t) 31,
+		(char *)pe->pe_prim, (ber_len_t) (len * 8) ) == -1 )
+	{
 	    ber_free( phber, 1 );
 	    return( -1 );
 	}

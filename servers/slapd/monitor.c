@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -10,54 +14,65 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap_defaults.h"
 #include "slap.h"
-#include "ldapconfig.h"
 
 #if defined( SLAPD_MONITOR_DN )
 
-extern int		nbackends;
-extern Backend		*backends;
-extern int		active_threads;
-extern int		dtblsize;
-extern Connection	*c;
-extern long		ops_initiated;
-extern long		ops_completed;
-extern long		num_entries_sent;
-extern long		num_bytes_sent;
-extern time_t		currenttime;
-extern time_t		starttime;
-extern int		num_conns;
-
-
-extern char Versionstr[];
-
-/*
- * no mutex protection in here - take our chances!
- */
-
 void
-monitor_info( Connection *conn, Operation *op )
+monitor_info(
+	Connection *conn,
+	Operation *op,
+	char ** attrs,
+	int attrsonly )
 {
 	Entry		*e;
-	char		buf[BUFSIZ], buf2[20];
+	char		buf[BUFSIZ];
 	struct berval	val;
 	struct berval	*vals[2];
-	int		i, nconns, nwritewaiters, nreadwaiters;
+	int    nconns, nwritewaiters, nreadwaiters;
 	struct tm	*ltm;
-	char		*p, *tmpdn;
+	char		*p;
+    char       buf2[22];
+    char       buf3[22];
+	Connection *c;
+	int			connindex;
+    time_t		currenttime;
 
 	vals[0] = &val;
 	vals[1] = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
 	e->e_attrs = NULL;
-	e->e_dn = strdup( SLAPD_MONITOR_DN );
+	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
+	e->e_ndn = ch_strdup(SLAPD_MONITOR_DN);
+	(void) dn_normalize_case( e->e_ndn );
+	e->e_private = NULL;
 
-	val.bv_val = Versionstr;
+	{
+		char *rdn = ch_strdup( SLAPD_MONITOR_DN );
+		val.bv_val = strchr( rdn, '=' );
+
+		if( val.bv_val != NULL ) {
+			*val.bv_val = '\0';
+			val.bv_len = strlen( ++val.bv_val );
+
+			attr_merge( e, rdn, vals );
+		}
+
+		free( rdn );
+	}
+
+	val.bv_val = (char *) Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {
 		val.bv_len = strlen( Versionstr );
 	} else {
@@ -65,7 +80,9 @@ monitor_info( Connection *conn, Operation *op )
 	}
 	attr_merge( e, "version", vals );
 
+	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	sprintf( buf, "%d", active_threads );
+	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "threads", vals );
@@ -73,82 +90,168 @@ monitor_info( Connection *conn, Operation *op )
 	nconns = 0;
 	nwritewaiters = 0;
 	nreadwaiters = 0;
-	for ( i = 0; i < dtblsize; i++ ) {
-		if ( c[i].c_sb.sb_sd != -1 ) {
-			nconns++;
-			if ( c[i].c_writewaiter ) {
-				nwritewaiters++;
-			}
-			if ( c[i].c_gettingber ) {
-				nreadwaiters++;
-			}
-			ltm = localtime( &c[i].c_starttime );
-			strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
-			pthread_mutex_lock( &c[i].c_dnmutex );
-			sprintf( buf, "%d : %s : %ld : %ld : %s : %s%s", i,
-			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
-			    c[i].c_dn ? c[i].c_dn : "NULLDN",
-			    c[i].c_gettingber ? "r" : "",
-			    c[i].c_writewaiter ? "w" : "" );
-			pthread_mutex_unlock( &c[i].c_dnmutex );
-			val.bv_val = buf;
-			val.bv_len = strlen( buf );
-			attr_merge( e, "connection", vals );
+
+	/* loop through the connections */
+	for ( c = connection_first( &connindex );
+		c != NULL;
+		c = connection_next( c, &connindex ))
+	{
+		nconns++;
+		if ( c->c_writewaiter ) {
+			nwritewaiters++;
 		}
+		if ( c->c_currentber != NULL ) {
+			nreadwaiters++;
+		}
+
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifndef LDAP_LOCALTIME
+		ltm = gmtime( &c->c_starttime );
+		strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+
+		ltm = gmtime( &c->c_activitytime );
+		strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+#else
+		ltm = localtime( &c->.c_starttime );
+		strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+
+		ltm = localtime( &c->c_activitytime );
+		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+#endif
+
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
+		sprintf( buf,
+			"%ld : %ld "
+			": %ld/%ld/%ld/%ld "
+			": %ld/%ld/%ld "
+			": %s%s%s%s%s%s "
+			": %s : %s : %s "
+			": %s : %s : %s : %s ",
+
+			c->c_connid,
+			(long) c->c_protocol,
+
+			c->c_n_ops_received, c->c_n_ops_executing,
+			c->c_n_ops_pending, c->c_n_ops_completed,
+
+			/* add low-level counters here */
+			c->c_n_get, c->c_n_read, c->c_n_write,
+
+		    c->c_currentber ? "r" : "",
+		    c->c_writewaiter ? "w" : "",
+		    c->c_ops != NULL ? "x" : "",
+		    c->c_pending_ops != NULL ? "p" : "",
+			connection_state2str( c->c_conn_state ),
+			c->c_bind_in_progress ? "S" : "",
+
+		    c->c_cdn ? c->c_cdn : "<anonymous>",
+
+			c->c_listener_url,
+		    c->c_peer_domain,
+		    c->c_peer_name,
+		    c->c_sock_name,
+
+		    buf2,
+			buf3
+		);
+
+		val.bv_val = buf;
+		val.bv_len = strlen( buf );
+		attr_merge( e, "connection", vals );
 	}
+	connection_done(c);
+
 	sprintf( buf, "%d", nconns );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "currentconnections", vals );
+	attr_merge( e, "currentConnections", vals );
 
-	sprintf( buf, "%d", num_conns );
+	sprintf( buf, "%ld", connections_nextid() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "totalconnections", vals );
+	attr_merge( e, "totalConnections", vals );
 
-	sprintf( buf, "%d", dtblsize );
+	sprintf( buf, "%ld", (long) dtblsize );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "dtablesize", vals );
+	attr_merge( e, "dTableSize", vals );
 
 	sprintf( buf, "%d", nwritewaiters );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "writewaiters", vals );
+	attr_merge( e, "writeWaiters", vals );
 
 	sprintf( buf, "%d", nreadwaiters );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "readwaiters", vals );
+	attr_merge( e, "readWaiters", vals );
 
-	sprintf( buf, "%ld", ops_initiated );
+	ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+	sprintf( buf, "%ld", num_ops_initiated );
+	ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "opsinitiated", vals );
+	attr_merge( e, "opsInitiated", vals );
 
-	sprintf( buf, "%ld", ops_completed );
+	ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+	sprintf( buf, "%ld", num_ops_completed );
+	ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "opscompleted", vals );
+	attr_merge( e, "opsCompleted", vals );
 
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 	sprintf( buf, "%ld", num_entries_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "entriessent", vals );
+	attr_merge( e, "entriesSent", vals );
 
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
+	sprintf( buf, "%ld", num_refs_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
+	val.bv_val = buf;
+	val.bv_len = strlen( buf );
+	attr_merge( e, "referencesSent", vals );
+
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
+	sprintf( buf, "%ld", num_pdu_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
+	val.bv_val = buf;
+	val.bv_len = strlen( buf );
+	attr_merge( e, "pduSent", vals );
+
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 	sprintf( buf, "%ld", num_bytes_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
-	attr_merge( e, "bytessent", vals );
+	attr_merge( e, "bytesSent", vals );
 
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	currenttime = slap_get_time();
+
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
-        ltm = localtime( &starttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &starttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &starttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "starttime", vals );
@@ -158,15 +261,29 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "nbackends", vals );
 
-#ifdef THREAD_SUNOS5_LWP
-	sprintf( buf, "%d", thr_getconcurrency() );
+#ifdef HAVE_THREAD_CONCURRENCY
+	sprintf( buf, "%d", ldap_pvt_thread_get_concurrency() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "concurrency", vals );
 #endif
 
-	send_search_entry( &backends[0], conn, op, e, NULL, 0 );
-	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "extensibleObject";
+	val.bv_len = sizeof("extensibleObject")-1;
+	attr_merge( e, "objectClass", vals );
+
+	send_search_entry( &backends[0], conn, op, e,
+		attrs, attrsonly, NULL );
+	send_search_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL, 1 );
 
 	entry_free( e );
 }

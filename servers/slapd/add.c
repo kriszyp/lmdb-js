@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -10,35 +14,37 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern char	*dn_normalize();
+static int	add_created_attrs(Operation *op, Entry *e);
 
-extern char		*default_referral;
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-extern int		global_lastmod;
-
-static void	add_created_attrs();
-
-void
-do_add( conn, op )
-    Connection	*conn;
-    Operation	*op;
+int
+do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
-	char		*dn, *last;
-	unsigned long	len, tag;
+	char		*dn, *ndn, *last;
+	ber_len_t	len;
+	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
+	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
+
+	if( op->o_bind_in_progress ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: SASL bind in progress.\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS, NULL,
+		    "SASL bind in progress", NULL, NULL );
+		return LDAP_SASL_BIND_IN_PROGRESS;
+	}
 
 	/*
 	 * Parse the add request.  It looks like this:
@@ -52,18 +58,32 @@ do_add( conn, op )
 	 *	}
 	 */
 
+	/* get the name */
+	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
+	}
+
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( dn );
+		free( ndn );
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
-	/* get the name */
-	if ( ber_scanf( ber, "{a", &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-		    "decoding error" );
-		return;
-	}
 	e->e_dn = dn;
-	dn = dn_normalize( strdup( dn ) );
-	Debug( LDAP_DEBUG_ARGS, "    do_add: dn (%s)\n", dn, 0, 0 );
+	e->e_ndn = ndn;
+	e->e_private = NULL;
+
+	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */
 	e->e_attrs = NULL;
@@ -73,19 +93,20 @@ do_add( conn, op )
 		struct berval	**vals;
 
 		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "decoding error" );
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
 			entry_free( e );
-			return;
+			return -1;
 		}
 
 		if ( vals == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
 			    0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-			    NULL );
+			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+				NULL, "no values for type", NULL, NULL );
+			free( type );
 			entry_free( e );
-			return;
+			return LDAP_PROTOCOL_ERROR;
 		}
 
 		attr_merge( e, type, vals );
@@ -94,19 +115,34 @@ do_add( conn, op )
 		ber_bvecfree( vals );
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, 0, 0 );
+	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
+		entry_free( e );
+		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
+	}
+
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+		entry_free( e );
+		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		return rc;
+	} 
+
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
+	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( dn )) == NULL ) {
+	be = select_backend( e->e_ndn );
+	if ( be == NULL ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
-		return;
+		send_ldap_result( conn, op, LDAP_REFERRAL, NULL,
+		    NULL, default_referral, NULL );
+		return rc;
 	}
 
 	/*
@@ -115,59 +151,85 @@ do_add( conn, op )
 	 * 2) this backend is master for what it holds;
 	 * 3) it's a replica and the dn supplied is the updatedn.
 	 */
-	if ( be->be_add != NULL ) {
+	if ( be->be_add ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (be->be_lastmod == ON || be->be_lastmod == 0 &&
-			    global_lastmod == ON) && be->be_updatedn == NULL ) {
-				add_created_attrs( op, e );
+#ifdef SLAPD_MULTIMASTER
+		if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
+			global_lastmod == ON)) && (be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn )) )
+#else
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+#endif
+		{
+#ifndef SLAPD_MULTIMASTER
+			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
+				global_lastmod == ON)) && be->be_update_ndn == NULL )
+#endif
+			{
+				rc = add_created_attrs( op, e );
+
+				if( rc != LDAP_SUCCESS ) {
+					entry_free( e );
+					send_ldap_result( conn, op, rc,
+						NULL, "no-user-modification attribute type",
+						NULL, NULL );
+					return rc;
+				}
 			}
+
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
-				replog( be, LDAP_REQ_ADD, e->e_dn, e, 0 );
+#ifdef SLAPD_MULTIMASTER
+				if (be->be_update_ndn == NULL ||
+					strcmp( be->be_update_ndn, op->o_ndn ))
+#endif
+				{
+					replog( be, op, e->e_dn, e );
+				}
+				be_entry_release_w( be, e );
 			}
+
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			entry_free( e );
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-			    default_referral );
+			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
+				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
+#endif
 		}
 	} else {
+	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
+
+	return rc;
 }
 
-static void
+static int
 add_created_attrs( Operation *op, Entry *e )
 {
-	char		buf[20];
+	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
-	Attribute	**a, **next;
-	Attribute	*tmp;
+	Attribute	*a;
 	struct tm	*ltm;
+	time_t		currenttime;
 
 	Debug( LDAP_DEBUG_TRACE, "add_created_attrs\n", 0, 0, 0 );
 
 	bvals[0] = &bv;
 	bvals[1] = NULL;
 
-	/* remove any attempts by the user to add these attrs */
-	for ( a = &e->e_attrs; *a != NULL; a = next ) {
-		if ( strcasecmp( (*a)->a_type, "createtimestamp" ) == 0
-		    || strcasecmp( (*a)->a_type, "creatorsname" ) == 0 ) {
-			tmp = *a;
-			*a = (*a)->a_next;
-			attr_free( tmp );
-			next = a;
-		} else {
-			next = &(*a)->a_next;
+	/* return error on any attempts by the user to add these attrs */
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		if ( oc_check_no_usermod_attr( a->a_type ) ) {
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "NULLDN";
+		bv.bv_val = "<anonymous>";
 		bv.bv_len = strlen( bv.bv_val );
 	} else {
 		bv.bv_val = op->o_dn;
@@ -175,12 +237,20 @@ add_created_attrs( Operation *op, Entry *e )
 	}
 	attr_merge( e, "creatorsname", bvals );
 
-	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-	pthread_mutex_unlock( &currenttime_mutex );
+	currenttime = slap_get_time();
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	attr_merge( e, "createtimestamp", bvals );
+
+	return LDAP_SUCCESS;
 }

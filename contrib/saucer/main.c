@@ -13,22 +13,37 @@
  * 'saucer' LDAP command-line client source code.
  *
  * Author: Eric Rosenquist, 1994.
+ *
+ * 07-Mar-1999 readline support added: O. Steffensen (oddbjorn@tricknology.org)
  */
 
-#include <ctype.h>
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+
+#include <ac/stdlib.h>
+
+#ifdef HAVE_READLINE
+#  include <readline/readline.h>
+#  ifdef HAVE_READLINE_HISTORY_H
+#    include <readline/history.h>
+#  endif
+#endif
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
+#include <ldap_log.h>
 
 #define DN_MAXLEN	4096
 
 typedef struct {
-	char	*cmd;
-	int		(*func)();
-	char	*help_msg;
+	const char	*cmd;
+	int		(*func) (char **, int);
+	const char	*help_msg;
 } CMDTABLE;
 
 typedef enum {
@@ -62,15 +77,25 @@ int			cmd_quit(char **cmdargv, int cmdargc);
 int			cmd_search(char **cmdargv, int cmdargc);
 int			cmd_set(char **cmdargv, int cmdargc);
 int			cmd_show(char **cmdargv, int cmdargc);
+
+int		bind_user(void);
+void		display_search_results(LDAPMessage *result);
+int		do_command(char *cmd);
+void		do_commands(FILE *file);
+int		is_whitespace(register char *s);
 char		*make_dn(char *dn, int relative);
+void		show_syntax(unsigned int cmdnum);
 char		*skip_to_char(register char *s, register int c);
 char		*skip_to_whitespace(register char *s);
 char		*skip_whitespace(register char *s);
+int		table_lookup(const char *, const char *const *, int);
 FILE		*user_tailor(void);
 
-static char	*binary_attrs[] = { "audio", "jpegPhoto", "personalSignature", "photo" };
+static const char *const binary_attrs[] = {
+	"audio", "jpegPhoto", "personalSignature", "photo"
+};
 
-CMDTABLE	cmdtable[] = {
+const CMDTABLE	cmdtable[] = {
 	"help"  , cmd_help  , "[command]",
 	"list"  , cmd_list  , "[RDN-or-DN] [-absolute]",
 	"moveto", cmd_moveto, "[RDN-or-DN] [-absolute]",
@@ -98,7 +123,7 @@ int bind_user(void)
 
 int cmd_help(char **cmdargv, int cmdargc)
 {
-	int		i;
+	unsigned int	i;
 
 	if (cmdargc == 2) {
 		for (i = 0; i < sizeof(cmdtable) / sizeof(cmdtable[0]); i++)
@@ -128,7 +153,7 @@ int cmd_list(char **cmdargv, int cmdargc)
 	char		*dn      = NULL;
 	int			errflag  = 0;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[]  = { "absolute" };
 	int			relative = 1;
 	LDAPMessage	*result;
 
@@ -176,7 +201,7 @@ int cmd_moveto(char **cmdargv, int cmdargc)
 	int			errflag  = 0;
 	char		**exploded_dn;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[]  = { "absolute" };
 	int			relative = 1;
 
 	for (i = 1; i < cmdargc; i++) {
@@ -252,11 +277,11 @@ int cmd_search(char **cmdargv, int cmdargc)
 	int			errflag       = 0;
 	char		*filter       = NULL;
 	int			i, j;
-	static char	*opts[]       = { "absolute", "object", "scope" };
+	static const char *const opts[] = { "absolute", "object", "scope" };
 	int			relative      = 1;
 	LDAPMessage	*result;
-	static char	*scope_opts[] = { "base", "onelevel", "subtree" };
-	static int	scope_vals[]  = { LDAP_SCOPE_BASE, LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE };
+	static const char *const scope_opts[]= { "base","onelevel","subtree" };
+	static const int scope_vals[] = { LDAP_SCOPE_BASE, LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE };
 	static int	search_scope  = LDAP_SCOPE_ONELEVEL;
 
 	for (i = 1; i < cmdargc; i++) {
@@ -311,10 +336,14 @@ int cmd_search(char **cmdargv, int cmdargc)
 
 int cmd_set(char **cmdargv, int cmdargc)
 {
-	static char	*alias_opts[] = { "never", "search", "find", "always" };
+	static const char *const alias_opts[] = {
+		"never", "search", "find", "always"
+	};
 	int			errflag       = 0;
 	int			i, j;
-	static char	*opts[]       = { "aliasderef", "sizelimit", "timelimit" };
+	static const char *const opts[] = {
+		"aliasderef", "sizelimit", "timelimit"
+	};
 
 	for (i = 1; i < cmdargc; i++) {
 		if (cmdargv[i][0] == '-') {
@@ -322,20 +351,22 @@ int cmd_set(char **cmdargv, int cmdargc)
 			case 0:
 				if ((++i < cmdargc)  &&
 					(j = table_lookup(cmdargv[i], alias_opts, sizeof(alias_opts) / sizeof(alias_opts[0]))) >= 0)
-					ld->ld_deref = j;
+					ldap_set_option(ld, LDAP_OPT_DEREF, &j);
 				else
 					errflag = 1;
 				break;
 			case 1:
-				if (++i < cmdargc)
-					ld->ld_sizelimit = atoi(cmdargv[i]);
-				else
+				if (++i < cmdargc) {
+					j = atoi(cmdargv[i]);
+					ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &j);
+				} else
 					errflag = 1;
 				break;
 			case 2:
-				if (++i < cmdargc)
-					ld->ld_timelimit = atoi(cmdargv[i]);
-				else
+				if (++i < cmdargc) {
+					j = atoi(cmdargv[i]);
+					ldap_set_option(ld, LDAP_OPT_TIMELIMIT, &j);
+				} else
 					errflag = 1;
 				break;
 			default:
@@ -347,11 +378,16 @@ int cmd_set(char **cmdargv, int cmdargc)
 
 	if (errflag)
 		show_syntax(CMD_SET);
-	else
+	else {
+		int opt_a, opt_s, opt_t;
+		ldap_get_option(ld, LDAP_OPT_DEREF, &opt_a);
+		ldap_get_option(ld, LDAP_OPT_SIZELIMIT, &opt_s);
+		ldap_get_option(ld, LDAP_OPT_TIMELIMIT, &opt_t);
 		printf("Alias dereferencing is %s, Sizelimit is %d entr%s, Timelimit is %d second%s.\n",
-			   alias_opts[ld->ld_deref],
-			   ld->ld_sizelimit, ld->ld_sizelimit == 1 ? "y" : "ies",
-			   ld->ld_timelimit, ld->ld_timelimit == 1 ? ""  : "s");
+		       alias_opts[opt_a],
+		       opt_s, opt_s == 1 ? "y" : "ies",
+		       opt_t, opt_t == 1 ? ""  : "s");
+	}
 
 	return 0;
 }
@@ -359,10 +395,9 @@ int cmd_set(char **cmdargv, int cmdargc)
 int cmd_show(char **cmdargv, int cmdargc)
 {
 	char		*dn      = NULL;
-	LDAPMessage	*entry;
 	int			errflag  = 0;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[] = { "absolute" };
 	int			relative = 1;
 	LDAPMessage	*result;
 
@@ -403,7 +438,7 @@ int cmd_show(char **cmdargv, int cmdargc)
 	return 0;
 }
 
-display_search_results(LDAPMessage *result)
+void display_search_results(LDAPMessage *result)
 {
 	BerElement	*cookie;
 	int			i;
@@ -414,7 +449,7 @@ display_search_results(LDAPMessage *result)
 	for (entry = ldap_first_entry(ld, result); entry; entry = ldap_next_entry(ld, entry)) {
 		if (s = ldap_get_dn(ld, entry)) {
 			printf("  %s\n", s);
-			free(s);
+			ldap_memfree(s);
 		}
 
 		/* Make one pass to calculate the length of the longest attribute name */
@@ -516,13 +551,39 @@ void do_commands(FILE *file)
 {
 	char	cmd_buf[BUFSIZ];
 	int		tty = isatty(fileno(file));
+	char	*buf = cmd_buf;
+	int	status;
 
 	for (;;) {
 		if (tty)
-			printf("Cmd? ");
-		if (!fgets(cmd_buf, sizeof(cmd_buf), file))
-			break;
-		if (do_command(cmd_buf))
+		{
+			char 	prompt[40];
+			sprintf(prompt, (strlen(default_dn) < 18
+					 ? "saucer dn=%s> "
+					 : "saucer dn=%.15s..> "), default_dn);
+#ifndef HAVE_READLINE
+			fputs (prompt, stdout);
+#else
+			buf = readline (prompt);
+			if (!buf)
+				break;
+			add_history (buf);
+#endif
+		}
+#ifdef HAVE_READLINE
+		else
+#endif
+		{
+			if (!fgets(cmd_buf, sizeof(cmd_buf), file))
+				break;
+		}
+
+		status = do_command(buf);
+#ifdef HAVE_READLINE
+		if (tty)
+			free(buf);
+#endif
+		if (status)
 			break;
 	}
 }
@@ -532,7 +593,7 @@ int is_whitespace(register char *s)
 	if (!s)
 		return 1;
 
-	while (*s  &&  isspace(*s))
+	while (*s  &&  isspace((unsigned char) *s))
 		++s;
 
 	return !*s;
@@ -541,6 +602,7 @@ int is_whitespace(register char *s)
 int main(int argc, char **argv)
 {
 	int		error_flag = 0;
+	int		tmp;
 	FILE	*rc;
 
 	progname = argv[0];
@@ -551,8 +613,9 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 #ifdef LDAP_DEBUG
-			lber_debug = atoi(optarg);
-			ldap_debug = atoi(optarg);
+			tmp = atoi(optarg);
+			ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &tmp);
+			ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &tmp);
 #endif
 			break;
 		case 'h':
@@ -571,15 +634,15 @@ int main(int argc, char **argv)
 	if (error_flag) {
 		fprintf(stderr, "usage: %s [-h host] [-p portnumber] [-u X500UserName]\n\t[-c credentials] [-d debug-level]\n",
 				progname);
-		exit(2);
+		exit( EXIT_FAILURE );
 	}
 
 	rc = user_tailor();
 
-	if (!(ld = ldap_open(hostname, portnum))) {
-		fprintf(stderr, "%s: unable to connect to server at host `%s' on port %d\n",
+	if (!(ld = ldap_init(hostname, portnum))) {
+		fprintf(stderr, "%s: unable to initialize LDAP session (%s:%d)\n",
 				progname, hostname, portnum);
-		exit(2);
+		exit( EXIT_FAILURE );
 	}
 
 	if (!bind_user())
@@ -599,7 +662,6 @@ int main(int argc, char **argv)
 char *make_dn(char *dn, int relative)
 {
 	static char	dn_buf[DN_MAXLEN];
-	char		*s;
 
 	if (!dn)
 		dn = "";
@@ -613,7 +675,7 @@ char *make_dn(char *dn, int relative)
 	return strcat(strcat(strcpy(dn_buf, dn), ", "), default_dn);
 }
 
-show_syntax(int cmdnum)
+void show_syntax(unsigned int cmdnum)
 {
 	printf("Syntax: %s %s\n", cmdtable[cmdnum].cmd, cmdtable[cmdnum].help_msg);
 }
@@ -634,7 +696,7 @@ char *skip_to_whitespace(register char *s)
 	if (!s)
 		return s;
 
-	while (*s  &&  !isspace(*s))
+	while (*s  &&  !isspace((unsigned char) *s))
 		++s;
 
 	return s;
@@ -645,13 +707,13 @@ char *skip_whitespace(register char *s)
 	if (!s)
 		return s;
 
-	while (*s  &&  isspace(*s))
+	while (*s  &&  isspace((unsigned char) *s))
 		++s;
 
 	return s;
 }
 
-int table_lookup(char *word, char **table, int table_count)
+int table_lookup(const char *word, const char *const *table, int table_count)
 {
 	register int	i;
 	int				wordlen;

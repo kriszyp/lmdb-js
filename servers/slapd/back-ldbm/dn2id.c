@@ -1,17 +1,19 @@
 /* dn2id.c - routines to deal with the dn2id index */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
-
-extern struct dbcache	*ldbm_cache_open();
-extern Entry		*cache_find_entry_dn();
-extern Entry		*id2entry();
-extern char		*dn_parent();
-extern Datum		ldbm_cache_fetch();
+#include "proto-back-ldbm.h"
 
 int
 dn2id_add(
@@ -20,9 +22,10 @@ dn2id_add(
     ID		id
 )
 {
-	int		rc;
-	struct dbcache	*db;
+	int		rc, flags;
+	DBCache	*db;
 	Datum		key, data;
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
@@ -33,17 +36,60 @@ dn2id_add(
 		return( -1 );
 	}
 
-	dn = strdup( dn );
-	dn_normalize_case( dn );
+	ldbm_datum_init( key );
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
-	rc = ldbm_cache_store( db, key, data, LDBM_INSERT );
+	flags = LDBM_INSERT;
+	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 
-	free( dn );
+	rc = ldbm_cache_store( db, key, data, flags );
+
+	free( key.dptr );
+
+	if ( rc != -1 ) {
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			ldbm_datum_init( key );
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+			rc = idl_insert_key( be, db, key, id );
+			free( key.dptr );
+			free( pdn );
+		}
+	}
+
+	if ( rc != -1 ) {
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				ldbm_datum_init( key );
+				key.dsize = strlen( subtree[i] ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s",
+					DN_SUBTREE_PREFIX, subtree[i] );
+
+				rc = idl_insert_key( be, db, key, id );
+
+				free( key.dptr );
+
+				if(rc == -1) break;
+			}
+
+			charray_free( subtree );
+		}
+
+	}
+
 	ldbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_add %d\n", rc, 0, 0 );
@@ -57,42 +103,37 @@ dn2id(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
-	Entry		*e;
+	DBCache	*db;
 	ID		id;
 	Datum		key, data;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 
-	dn = strdup( dn );
-	dn_normalize_case( dn );
-
 	/* first check the cache */
-	if ( (e = cache_find_entry_dn( &li->li_cache, dn )) != NULL ) {
-		id = e->e_id;
-		free( dn );
-		Debug( LDAP_DEBUG_TRACE, "<= dn2id %d (in cache)\n", e->e_id,
-		    0, 0 );
-		cache_return_entry( &li->li_cache, e );
-
+	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
+		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", id,
+			0, 0 );
 		return( id );
 	}
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
-	    == NULL ) {
-		free( dn );
+		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "<= dn2id could not open dn2id%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+			LDBM_SUFFIX, 0, 0 );
 		return( NOID );
 	}
 
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
 	data = ldbm_cache_fetch( db, key );
 
 	ldbm_cache_close( be, db );
-	free( dn );
+
+	free( key.dptr );
 
 	if ( data.dptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
@@ -103,9 +144,45 @@ dn2id(
 
 	ldbm_datum_free( db->dbc_db, data );
 
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id %d\n", id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
 	return( id );
 }
+
+ID_BLOCK *
+dn2idl(
+    Backend	*be,
+    char	*dn,
+	int		prefix
+)
+{
+	DBCache	*db;
+	Datum		key;
+	ID_BLOCK	*idl;
+
+	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
+
+	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
+		== NULL ) {
+		Debug( LDAP_DEBUG_ANY, "<= dn2idl could not open dn2id%s\n",
+			LDBM_SUFFIX, 0, 0 );
+		return NULL;
+	}
+
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", prefix, dn );
+
+	idl = idl_fetch( be, db, key );
+
+	ldbm_cache_close( be, db );
+
+	free( key.dptr );
+
+	return( idl );
+}
+
 
 int
 dn2id_delete(
@@ -113,8 +190,7 @@ dn2id_delete(
     char	*dn
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	int		rc;
 
@@ -128,11 +204,15 @@ dn2id_delete(
 		return( -1 );
 	}
 
-	dn_normalize_case( dn );
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
 	rc = ldbm_cache_delete( db, key );
+
+	free( key.dptr );
 
 	ldbm_cache_close( be, db );
 
@@ -146,37 +226,53 @@ dn2id_delete(
  */
 
 Entry *
-dn2entry(
+dn2entry_rw(
     Backend	*be,
     char	*dn,
-    char	**matched
+    Entry	**matched,
+    int         rw
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	ID		id;
-	Entry		*e;
+	Entry		*e = NULL;
 	char		*pdn;
 
-	if ( (id = dn2id( be, dn )) != NOID && (e = id2entry( be, id ))
-	    != NULL ) {
+	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: \"%s\"\n",
+		rw ? "w" : "r", dn, 0);
+
+	if( matched != NULL ) {
+		/* caller cares about match */
+		*matched = NULL;
+	}
+
+	if ( (id = dn2id( be, dn )) != NOID &&
+		(e = id2entry_rw( be, id, rw )) != NULL )
+	{
 		return( e );
 	}
-	*matched = NULL;
 
-	/* stop when we get to the suffix */
-	if ( be_issuffix( be, dn ) ) {
-		return( NULL );
+	if ( id != NOID ) {
+		Debug(LDAP_DEBUG_ANY,
+			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
+			rw ? "w" : "r", id, dn);
+		/* must have been deleted from underneath us */
+		/* treat as if NOID was found */
 	}
+
+	/* caller doesn't care about match */
+	if( matched == NULL ) return NULL;
 
 	/* entry does not exist - see how much of the dn does exist */
+	/* dn_parent checks returns NULL if dn is suffix */
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
-		if ( (e = dn2entry( be, pdn, matched )) != NULL ) {
-			*matched = pdn;
-			cache_return_entry( &li->li_cache, e );
-		} else {
-			free( pdn );
+		/* get entry with reader lock */
+		if ( (e = dn2entry_r( be, pdn, matched )) != NULL ) {
+			*matched = e;
 		}
+		free( pdn );
 	}
 
-	return( NULL );
+	return NULL;
 }
+

@@ -1,0 +1,11 @@
+Package version 1.2:
+
+- Filter no longer a required controlArray member, defaults to objectclass=*.
+- Sets errorCode with LDAP macro string value (better to test than the more
+  human readable values).
+- Shorten minimum required characters for search scope definitions: now allows
+  "base", "one", and "sub".  For the latter two, additional characters are
+  ignored.
+- Now compiles successfully with -devel branch.
+- Client cache management code enabled for OpenLDAP versions <= 1.2.4.  (This
+  code is relatively untested and feedback is welcome.)

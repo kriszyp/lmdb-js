@@ -1,0 +1,23 @@
+SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
+		delete.c modify.c modrdn.c
+OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
+		delete.lo modify.lo modrdn.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-ldap"
+BUILD_MOD = @BUILD_LDAP@
+LINKAGE = @BUILD_LDAP_DYNAMIC@
+
+LIBBASE = back_ldap
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

@@ -25,7 +25,11 @@ if test -e $RELNAME ; then
 	exit 1
 fi
 
-cvs export -r$CVSTAG -d $RELNAME $*
+echo Release: $RELNAME
+echo CVS Tag: $CVSTAG
+echo Modules: $*
+
+cvs -q export -r $CVSTAG -d $RELNAME $*
 
 if test ! -d $RELNAME ; then
 	echo "error: $RELNAME doesn't exists"

@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1991, 1992, 1993 
  * Regents of the University of Michigan.  All rights reserved.
  *
@@ -16,40 +20,34 @@
  *	Simon Fraser University, Academic Computing Services
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#if defined(NeXT)
-#include <stdlib.h>
-#include <sys/file.h>
-#else NeXT
-#include <unistd.h>
-#endif NeXT
-#include <pwd.h>
-#include <string.h>
-#ifndef DOS
-#if defined( NeXT ) || defined( ultrix ) || defined( osf1 ) || (defined(SunOS) && SunOS < 40)
-#include <sgtty.h>
-#else /* defined( NeXT ) || defined( ultrix ) etc. */
-#include <termios.h>
-#endif /* defined( NeXT ) || defined( ultrix ) etc. */
-#endif /* !DOS */
-#if defined( aix ) || defined( __NetBSD__ )
-#include <sys/ioctl.h>
-#endif /* aix || __NetBSD__ */
-#include <ctype.h>
-#include <signal.h>
+
+#include <ac/stdlib.h>
+
 #include <setjmp.h>
-#include <memory.h>
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
-#include "portable.h"
-#include "ud.h"
 
-#ifndef lint
-char copyright[] =
-"@(#) Copyright (c) 1991, 1992, 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "ldap_defaults.h"
+#include "ud.h"
 
 /*
  *  Used with change_base() to indicate which base we are changing.
@@ -57,19 +55,19 @@ char copyright[] =
 #define BASE_SEARCH     0
 #define BASE_GROUPS     1
 
-#define	iscom(x)	(!strncasecmp(x, cmd, strlen(cmd)))
+#define	iscom(x)	(!strncasecmp((x), cmd, strlen(cmd)))
 
 static char *server = NULL;
 static char *config_file = UD_CONFIG_FILE;
 static char *filter_file = FILTERFILE;
-static int ldap_port = LDAP_PORT;
+static int ldap_port = 0;
 static int dereference = TRUE;
 
-char *default_bind_object = UD_BINDDN;
+char *default_bind_object = NULL;
 
 char *bound_dn;			/* bound user's Distinguished Name */
-char *group_base;		/* place in X.500 tree where groups are */
-char *search_base;		/* place in X.500 tree where searches start */
+char *group_base;		/* place in LDAP tree where groups are */
+char *search_base;		/* place in LDAP tree where searches start */
 
 static jmp_buf env;		/* spot to jump to on an interrupt */
 
@@ -84,16 +82,17 @@ LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
 #ifdef DEBUG
 int debug;			/* debug flag */
 #endif
+int ldebug;			/* library debug flag */
 
-main(argc, argv)
-int argc;
-char *argv[];
+#ifndef HAVE_MKVERSION
+char Version[] = OPENLDAP_PACKAGE " " OPENLDAP_VERSION " UserDirectory (ud)";
+#endif
+
+int
+main( int argc, char **argv )
 {
-	extern char Version[];			/* version number */
-	extern char *optarg;			/* for parsing argv */
 	register int c;				/* for parsing argv */
 	register char *cp;			/* for parsing Version */
-	extern void initialize_attribute_strings();
 
 	verbose = 1;
 
@@ -101,14 +100,11 @@ char *argv[];
 	while ((c = getopt(argc, argv, "c:d:Df:l:p:s:u:vV")) != -1) {
 		switch (c) {
 		case 'l' :
-#ifdef LDAP_DEBUG
-			ldap_debug = (int) strtol(optarg, (char **) NULL, 0);
-			lber_debug = ldap_debug;
-#endif
+			ldebug |= (int) strtol(optarg, (char **) NULL, 0);
 			break;
 		case 'd' :
 #ifdef DEBUG
-			debug = (int) strtol(optarg, (char **) NULL, 0);
+			debug |= (int) strtol(optarg, (char **) NULL, 0);
 #endif
 			break;
 		case 's' :
@@ -143,10 +139,10 @@ char *argv[];
 			printf("   64  authentication information\n");
 			printf("  128  initialization information\n\n");
 			format("These are masks, and may be added to form multiple debug levels.  For example, '-d 35' would perform a function trace, print out information about the find() function, and would print out information about the output routines too.", 75, 2);
-			exit(0);
+			exit( EXIT_SUCCESS );
 		default:
 			fprintf(stderr, "Usage: %s [-c filter-config-file] [-d debug-level] [-l ldap-debug-level] [-s server] [-p port] [-V]\n", argv[0]);
-			exit(-1);
+			exit( EXIT_FAILURE);
 			/* NOTREACHED */
 		}
 	}
@@ -158,26 +154,28 @@ char *argv[];
 	printf(Version);
 	fflush( stdout );
 
+#ifdef SIGPIPE
+	(void) SIGNAL (SIGPIPE, SIG_IGN);
+#endif
+
 	initialize_client();
 	initialize_attribute_strings();
 
 	/* now tackle the user's commands */
 	do_commands();
 	/* NOTREACHED */
+
+	return 0;
 }
 
-do_commands()
+void
+do_commands( void )
 {
 	LDAPMessage *mp;			/* returned by find() */
 	register char *cp;			/* misc char pointer */
 	register char *ap;			/* misc char pointer */
-	static char buf[MED_BUF_SIZE];		/* for prompting */
 	static char cmd[MED_BUF_SIZE];		/* holds the command */
 	static char input[MED_BUF_SIZE];	/* buffer for input */
-	extern LDAPMessage *find();
-	extern void purge_group(), add_group(), remove_group(), x_group(),
-		tidy_up(), list_groups(), list_memberships(), edit();
-	extern char *nextstr();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -199,19 +197,19 @@ do_commands()
 			putchar('\n');
 			continue;
 		}
-		while (isspace(*cp))
+		while (isspace((unsigned char)*cp))
 			cp++;	
 		ap = cmd;
 		if (memset(cmd, '\0', sizeof(cmd)) == NULL)
 			fatal("memset");
-		while (!isspace(*cp) && (*cp != '\0'))
+		while (!isspace((unsigned char)*cp) && (*cp != '\0'))
 			*ap++ = *cp++;
 		if (iscom("status"))
 			status();
 		else if (iscom("stop") || iscom("quit"))
 			break;
 		else if (iscom("cb") || iscom("cd") || iscom("moveto")) {
-			while (isspace(*cp) && (*cp != '\0')) 
+			while (isspace((unsigned char)*cp) && (*cp != '\0'))
 				cp++;
 			if (!strncasecmp(cp, "base", 4))
 				cp += 4;
@@ -262,11 +260,14 @@ do_commands()
 				printf("  Verbose mode has been turned on.\n");
 		}
 		else if (!strncasecmp("dereference", cmd, strlen(cmd))) {
+			int deref;
 			dereference = 1 - dereference;
-			if (dereference == 1)
-				ld->ld_deref = LDAP_DEREF_ALWAYS;
-			else
-				ld->ld_deref = LDAP_DEREF_NEVER;
+			if (dereference == 1) {
+				deref = LDAP_DEREF_ALWAYS;
+			} else {
+				deref = LDAP_DEREF_NEVER;
+			}
+			ldap_set_option(ld, LDAP_OPT_DEREF, (void *) &deref);
 		}
 		else if (!strncasecmp("tidy", cmd, strlen(cmd)))
 			tidy_up();
@@ -278,26 +279,34 @@ do_commands()
 	printf(" Thank you!\n");
 	
 	ldap_unbind(ld);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
-	exit(0);
+	exit( EXIT_SUCCESS );
 	/* NOTREACHED */
 }
 
-status()
+void
+status( void )
 {
-	void printbase();
 	register char **rdns;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->status()\n");
 #endif
-	printf("  Current server is %s", server);
-	if ( ld != NULL && ld->ld_host != NULL && strcasecmp( ld->ld_host,
-	    server ) != 0 )
-		printf( " (%s)", ld->ld_host );
+	printf("  Current server is %s", server != NULL ? server : "<default>" );
+	if ( ld != NULL ) {
+		char *host = NULL;
+		
+		ldap_get_option(ld, LDAP_OPT_HOST_NAME, &host);
+
+		if ( host != NULL &&
+			( server == NULL || strcasecmp( host, server ) != 0 ) )
+		{
+			printf( " (%s)", host );
+		}
+	}
 	putchar( '\n' );
 	printbase("  Search base is ", search_base);
 	printbase("  Group  base is ", group_base);
@@ -310,13 +319,15 @@ status()
 	}
 	printf( "  Verbose mode is %sabled\n", ( verbose ? "en" : "dis" ));
 	if ( ld != NULL ) {
-		printf( "  Aliases are %sbeing dereferenced\n", ( ld->ld_deref == LDAP_DEREF_ALWAYS ) ? "" : "not" );
+		int deref = LDAP_DEREF_NEVER;
+		ldap_get_option(ld, LDAP_OPT_DEREF, &deref);
+		printf( "  Aliases are %sbeing dereferenced\n",
+			( deref == LDAP_DEREF_ALWAYS ) ? "" : "not" );
 	}
 }
 
-change_base(type, base, s)
-int type;
-char **base, *s;
+void
+change_base( int type, char **base, char *s )
 {
 	register char *cp;			/* utility pointers */
 	char **rdns;				/* for parsing */
@@ -330,13 +341,9 @@ char **base, *s;
 	static char *choices[MED_BUF_SIZE];	/* bases from which to choose */
 	static char resp[SMALL_BUF_SIZE];	/* for prompting user */
 	static char buf[MED_BUF_SIZE];
-	void printbase();
 	static char *attrs[] = { "objectClass", NULL };
 	LDAPMessage *mp;			/* results from a search */
 	LDAPMessage *ep;			/* for going thru bases */
-	extern char * friendly_name();
-	extern void StrFreeDup();
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -374,7 +381,7 @@ char **base, *s;
 	}
 
 	/*
-	 *  User wants to ascend one level in the X.500 tree.
+	 *  User wants to ascend one level in the LDAP tree.
 	 *  Easy:  Just strip off the first element of the
 	 *  current search base, unless it's the root, in
 	 *  which case we just do nothing.
@@ -400,7 +407,7 @@ char **base, *s;
 			 *
 			 *  sequence now that 'cp' is pointing to the '='.
 			 */
-			while(!isspace(*cp))
+			while(!isspace((unsigned char)*cp))
 				cp--;
 			cp++;
 			/*
@@ -426,8 +433,10 @@ char **base, *s;
 		 *  type a number at that point too.
 		 */
 		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, "(|(objectClass=quipuNonLeafObject)(objectClass=externalNonLeafObject))", attrs, FALSE, &mp) != LDAP_SUCCESS) {
-			if ((ld->ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||
-			    (ld->ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
+			int ld_errno = 0;
+			ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+			if ((ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||
+			    (ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
 				if (verbose) {
 					printf("  Your query was too general and a limit was exceeded.  The results listed\n");
 					printf("  are not complete.  You may want to try again with a more refined query.\n\n");
@@ -482,7 +491,7 @@ char **base, *s;
 			if (j == 0) {
 				(void) ldap_msgfree(mp);
 				for (i = 0; i < matches; i++)
-					Free(choices[i]);
+					ldap_memfree(choices[i]);
 				return;
 			}
 			if ((j < 1) || (j >= i))
@@ -492,7 +501,7 @@ char **base, *s;
 				printbase(output_string, *base);
 				(void) ldap_msgfree(mp);
 				for (i = 0; choices[i] != NULL; i++)
-					Free(choices[i]);
+					ldap_memfree(choices[i]);
 				return;
 			}
 		}
@@ -500,7 +509,7 @@ char **base, *s;
 	/* set the search base back to the original default value */
 	else if (!strcasecmp(s, "default")) {
 		if (type == BASE_SEARCH)
-			StrFreeDup(base, UD_BASE);
+			StrFreeDup(base, NULL);
 		else if (type == BASE_GROUPS)
 			StrFreeDup(base, UD_WHERE_GROUPS_ARE_CREATED);
 		printbase(output_string, *base);
@@ -531,27 +540,33 @@ char **base, *s;
 	}
 }
 
-initialize_client()
+void
+initialize_client( void )
 {
 	FILE *fp;				/* for config file */
 	static char buffer[MED_BUF_SIZE];	/* for input */
+#ifdef HAVE_GETPWUID
 	struct passwd *pw;			/* for getting the home dir */
+#endif
 	register char *cp;			/* for fiddling with buffer */
-	char *term;				/* for tty set-up */
 	char *config;				/* config file to use */
 	static char bp[1024];			/* for tty set-up */
-	extern SIG_FN attn();			/* ^C signal handler */
-	extern char *getenv();
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->initialize_client()\n");
 #endif
+
+	if (ldebug) {
+		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ldebug );
+		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &ldebug );
+	}
+
 	/*
 	 *  A per-user config file has precedence over any system-wide
 	 *  config file, if one exists.
 	 */
+#ifdef HAVE_GETPWUID
 	if ((pw = getpwuid((uid_t) geteuid())) == (struct passwd *) NULL)
 		config = config_file;
 	else {
@@ -566,6 +581,9 @@ initialize_client()
 				config = config_file;
 		}
 	}
+#else
+	config = config_file;
+#endif /* getpwduid() */
 #ifdef DEBUG
 	if (debug & D_INITIALIZE)
 		printf("Using config file %s\n", config);
@@ -588,7 +606,17 @@ initialize_client()
 				if (server != NULL)
 					continue;
 				cp = buffer + 6;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
+					cp++;
+				if ((*cp == '\0') || (*cp == '\n'))
+					continue;
+				server = strdup(cp);
+			} 
+			else if (!strncasecmp(buffer, "host", 4)) {
+				if (server != NULL)
+					continue;
+				cp = buffer + 4;
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -596,7 +624,7 @@ initialize_client()
 			}
 			else if (!strncasecmp(buffer, "base", 4)) {
 				cp = buffer + 4;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -604,7 +632,7 @@ initialize_client()
 			}
 			else if (!strncasecmp(buffer, "groupbase", 9)) {
 				cp = buffer + 9;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -616,30 +644,32 @@ initialize_client()
 	}
 	if (group_base == NULL)
 		group_base = strdup(UD_WHERE_GROUPS_ARE_CREATED);
-	if (search_base == NULL)
-		search_base = strdup(UD_BASE);
-	if (server == NULL)
-		server = strdup(LDAPHOST);
 
 	/*
 	 *  Set up our LDAP connection.  The values of retry and timeout
 	 *  are meaningless since we will immediately be doing a null bind
 	 *  because we want to be sure to use TCP, not UDP.
 	 */
-	if ((ld = ldap_open(server, ldap_port)) == NULL) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
-		exit(0);
+	if ((ld = ldap_init(server, ldap_port)) == NULL) {
+		fprintf(stderr, "  Initialization of LDAP session failed.\n");
+		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}
-	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_PASSWD,
+	if (ldap_bind_s(ld, (char *) default_bind_object, NULL,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
-		if (ld->ld_errno != LDAP_UNAVAILABLE)
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
+		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
+		if (ld_errno != LDAP_UNAVAILABLE)
 			ldap_perror(ld, "  ldap_bind_s");
-		exit(0);
+		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+	{
+		int deref = LDAP_DEREF_ALWAYS;
+		ldap_set_option(ld, LDAP_OPT_DEREF, (void *) &deref);
+	}
 	bind_status = UD_NOT_BOUND;
 	if ( default_bind_object != NULL ) {
 		bound_dn = strdup(default_bind_object);
@@ -648,11 +678,7 @@ initialize_client()
 	}
 
 	/* enabled local caching of ldap results, 15 minute lifetime */
-#ifdef DOS
-	ldap_enable_cache( ld, 60 * 15, 100 * 1024 );	/* 100k max memory */
-#else /* DOS */
 	ldap_enable_cache( ld, 60 * 15, 0 );		/* no memory limit */
-#endif /* DOS */
 
 	/* initialize the search filters */
 	if ((lfdp = ldap_init_getfilter(filter_file)) == NULL) {
@@ -665,21 +691,18 @@ initialize_client()
 	lpp = DEFAULT_TTY_HEIGHT;
 	col_size = DEFAULT_TTY_WIDTH;
 
-	(void) signal(SIGINT, attn);
+	(void) SIGNAL (SIGINT, attn);
 
-#if !defined(DOS) && !defined(NOTERMCAP)
+#ifndef NO_TERMCAP
 	{
-	struct winsize win;			/* for tty set-up */
-	extern SIG_FN chwinsz();		/* WINSZ signal handler */
+	char *term;
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
 	else {
-		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) < 0) {
-			lpp = tgetnum("li");
-			col_size = tgetnum("co");
-		}
-		else {
+#ifdef TIOCGWINSZ
+		struct winsize win;		/* for tty set-up */
+		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) >= 0) {
 			if ((lpp = win.ws_row) == 0)
 				lpp = tgetnum("li");
 			if ((col_size = win.ws_col) == 0)
@@ -688,37 +711,44 @@ initialize_client()
 				lpp = DEFAULT_TTY_HEIGHT;
 			if ((col_size <= 0) || tgetflag("hc"))
 				col_size = DEFAULT_TTY_WIDTH;
+			(void) SIGNAL (SIGWINCH, chwinsz);
+		} else
+#endif
+		{
+			lpp = tgetnum("li");
+			col_size = tgetnum("co");
 		}
 	}
-	(void) signal(SIGWINCH, chwinsz);
-
 	}
 #endif
 }
 
-SIG_FN attn()
+RETSIGTYPE
+attn( int sig )
 {
 	fflush(stderr);
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
-#if defined(DOS) || defined(SYSV)
-	(void) signal(SIGINT, attn);
-#endif
+
+	(void) SIGNAL (SIGINT, attn);
+
 	longjmp(env, 1);
 }
 
-#if !defined(DOS) && !defined(NOTERMCAP)
-SIG_FN chwinsz() 
+#if !defined(NO_TERMCAP) && defined(TIOCGWINSZ)
+RETSIGTYPE
+chwinsz( int sig )
 {
 	struct winsize win;
 
-	(void) signal(SIGWINCH, SIG_IGN);
+	(void) SIGNAL (SIGWINCH, SIG_IGN);
 	if (ioctl(fileno(stdout), TIOCGWINSZ, &win) != -1) {
 		if (win.ws_row != 0)
 			lpp = win.ws_row;
 		if (win.ws_col != 0)
 			col_size = win.ws_col;
 	}
-	(void) signal(SIGWINCH, chwinsz);
+
+	(void) SIGNAL (SIGWINCH, chwinsz);
 }
 #endif

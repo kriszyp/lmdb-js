@@ -1,0 +1,161 @@
+##
+## Makefile.in for slapd
+##
+PROGRAMS=slapd
+XPROGRAMS=sslapd libbackends.a .backend
+XSRCS=version.c
+SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
+		attr.c entry.c config.c backend.c result.c operation.c \
+		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
+		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
+		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
+		repl.c lock.c controls.c extended.c \
+		schema.c schemaparse.c monitor.c configinfo.c \
+		root_dse.c sasl.c module.c suffixalias.c
+OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
+		attr.o entry.o config.o backend.o result.o operation.o \
+		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
+		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
+		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
+		repl.o lock.o controls.o extended.o \
+		schema.o schemaparse.o monitor.o configinfo.o \
+		root_dse.o sasl.o module.o suffixalias.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+SLAP_DIR=
+SLAPD_MODULES=@SLAPD_MODULES_LIST@
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
+
+# $(LTHREAD_LIBS) must be last
+XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
+XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
+	$(PERL_LDFLAGS) $(SECURITY_LIBS) \
+	$(LDIF_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
+
+BUILD_OPT = "--enable-slapd"
+BUILD_SRV = @BUILD_SLAPD@
+
+all-local-srv: all-cffiles
+
+slapd: libbackends.a version.o
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+	(cd tools; $(MAKE) $(MFLAGS) all)
+
+sslapd: version.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+
+.backend: FORCE
+	@for i in back-*; do \
+		if [ -d $$i ]; then \
+			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+			( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		fi; \
+	done; \
+	echo " "
+
+libbackends.a: .backend
+	@$(RM) -r tmp
+	@$(MKDIR) tmp
+	@-for i in back-*/*.a; do \
+		( \
+		  cd tmp; \
+		  $(AR) x ../$$i; \
+		  pre=`echo $$i | sed -e 's/\/.*$$//' -e 's/back-//'`; \
+		  for j in *.o; do \
+			mv $$j $${pre}$$j; \
+		  done; \
+		  $(AR) ruv libbackends.a *.o 2>&1 | grep -v truncated; \
+		  $(RM) *.o __.SYMDEF; \
+		  echo "added backend library $$i"; \
+		); \
+	done
+	@mv -f tmp/libbackends.a ./libbackends.a
+	@$(RM) -r tmp
+	@if [ ! -z "$(RANLIB)" ]; then \
+		$(RANLIB) libbackends.a; \
+	fi
+	@ls -l libbackends.a
+
+version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
+	@-$(RM) $@
+	$(MKVERSION) -s -n Versionstr slapd > $@
+
+depend-local-srv: FORCE
+	@for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
+			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+		fi; \
+	done
+
+clean-local-srv: FORCE
+	@for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+		fi; \
+	done
+	rm -f *.tmp all-cffiles
+
+veryclean-local-srv: FORCE
+	@for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
+		fi; \
+	done
+
+install-local-srv: install-slapd install-conf install-tools
+
+install-slapd: FORCE
+	@-$(MKDIR) $(libexecdir)
+	@-$(MKDIR) $(localstatedir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
+	    for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
+			( cd $$i; $(MAKE) $(MFLAGS) install ); \
+		fi; \
+	    done; \
+	fi
+
+
+CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
+
+all-cffiles: slapd
+	@for i in $(CFFILES); do \
+		tmpcf=$$i.tmp; \
+		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+			$(srcdir)/$$i > $$tmpcf ; \
+	done
+	touch all-cffiles
+
+install-conf: FORCE
+	@-$(MKDIR) $(sysconfdir)
+	@for i in $(CFFILES); do \
+		tmpcf=$$i.tmp ; \
+		if test $$i = slapd.conf ; then \
+			mode=600 ; \
+		else \
+			mode=644 ; \
+		fi ; \
+		if test ! -f $(sysconfdir)/$$i; then \
+			echo "installing $$i in $(sysconfdir)"; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i; \
+		else \
+			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
+		fi; \
+		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i.default ; \
+	done
+
+install-tools: FORCE
+	@-$(MKDIR) $(sbindir)
+	(cd tools; $(MAKE) $(MFLAGS) install)
+

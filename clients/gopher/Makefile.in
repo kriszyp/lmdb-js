@@ -1,0 +1,36 @@
+##
+## Makefile for gopher clients
+##
+PROGRAMS= go500gw go500
+
+SRCS=	go500.c go500gw.c 
+XSRCS= gwversion.c goversion.c
+GOOBJS =  go500.o
+GWOBJS =  go500gw.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+go500 : goversion.o
+	$(LTLINK) -o $@ $(GOOBJS) goversion.o $(LIBS)
+
+go500gw : gwversion.o
+	$(LTLINK) -o $@ $(GWOBJS) gwversion.o $(LIBS)
+
+goversion.c: ${GOOBJS} $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) go500 > $@
+
+gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) go500gw > $@
+
+install-local: $(PROGRAMS) go500gw.help FORCE
+	-$(MKDIR) $(libexecdir) $(datadir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
+	-$(MV) $(datadir)/go500gw.help $(datadir)/go500gw.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/go500gw.help $(datadir)

@@ -1,61 +1,42 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1993 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  getfilter.c -- optional add-on to libldap
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#if defined(NeXT)
-#include <regex.h>
-#endif
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/regex.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <stdlib.h>
-#include <sys/errno.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
-
-#include "lber.h"
-#include "ldap.h"
-#include "regex.h"
-
-#ifdef NEEDPROTOS
-static int break_into_words( char *str, char *delims, char ***wordsp );
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-#else /* NEEDPROTOS */
-static int break_into_words();
-int next_line_tokens();
-void free_strarray();
-#endif /* NEEDPROTOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-extern int	errno;
-extern char	*re_comp();
 #endif
+
+#include "ldap-int.h"
+
+static int break_into_words LDAP_P((
+	/* LDAP_CONST */ char *str,
+	LDAP_CONST char *delims,
+	char ***wordsp ));
 
 #define FILT_MAX_LINE_LEN	1024
 
 LDAPFiltDesc *
-ldap_init_getfilter( char *fname )
+ldap_init_getfilter( LDAP_CONST char *fname )
 {
     FILE		*fp;
     char		*buf;
@@ -79,7 +60,7 @@ ldap_init_getfilter( char *fname )
 	return( NULL );
     }
 
-    if (( buf = malloc( (size_t)len )) == NULL ) {
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
 	fclose( fp );
 	return( NULL );
     }
@@ -89,28 +70,30 @@ ldap_init_getfilter( char *fname )
     fclose( fp );
 
     if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	free( buf );
+	LDAP_FREE( buf );
 	return( NULL );
     }
 
 
     lfdp = ldap_init_getfilter_buf( buf, rlen );
-    free( buf );
+    LDAP_FREE( buf );
 
     return( lfdp );
 }
 
 
 LDAPFiltDesc *
-ldap_init_getfilter_buf( char *buf, long buflen )
+ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 {
     LDAPFiltDesc	*lfdp;
     LDAPFiltList	*flp, *nextflp;
     LDAPFiltInfo	*fip, *nextfip;
-    char		*tag, **tok;
-    int			tokcnt, i;
+    char			*tag, **tok;
+    int				tokcnt, i;
+	int				rc;
+	regex_t			re;
 
-    if (( lfdp = (LDAPFiltDesc *)calloc( 1, sizeof( LDAPFiltDesc))) == NULL ) {
+    if (( lfdp = (LDAPFiltDesc *)LDAP_CALLOC( 1, sizeof( LDAPFiltDesc))) == NULL ) {
 	return( NULL );
     }
 
@@ -124,32 +107,33 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	switch( tokcnt ) {
 	case 1:		/* tag line */
 	    if ( tag != NULL ) {
-		free( tag );
+		LDAP_FREE( tag );
 	    }
 	    tag = tok[ 0 ];
-	    free( tok );
+	    LDAP_FREE( tok );
 	    break;
 	case 4:
 	case 5:		/* start of filter info. list */
-	    if (( nextflp = (LDAPFiltList *)calloc( 1, sizeof( LDAPFiltList )))
+	    if (( nextflp = (LDAPFiltList *)LDAP_CALLOC( 1, sizeof( LDAPFiltList )))
 		    == NULL ) {
 		ldap_getfilter_free( lfdp );
 		return( NULL );
 	    }
-	    nextflp->lfl_tag = strdup( tag );
+	    nextflp->lfl_tag = LDAP_STRDUP( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
-	    if ( re_comp( nextflp->lfl_pattern ) != NULL ) {
-#ifndef NO_USERINTERFACE
+	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
+#ifdef LDAP_LIBUI
+		char error[512];
+		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
-		fprintf( stderr, "bad regular expresssion %s\n",
-			nextflp->lfl_pattern );
-#if !defined( MACOS ) && !defined( DOS )
+		fprintf( stderr, "bad regular expression %s, %s\n",
+			nextflp->lfl_pattern, error );
 		errno = EINVAL;
-#endif
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		free_strarray( tok );
 		return( NULL );
 	    }
+		regfree(&re);
 		
 	    nextflp->lfl_delims = tok[ 1 ];
 	    nextflp->lfl_ilist = NULL;
@@ -169,7 +153,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	case 2:
 	case 3:		/* filter, desc, and optional search scope */
 	    if ( nextflp != NULL ) { /* add to info list */
-		if (( nextfip = (LDAPFiltInfo *)calloc( 1,
+		if (( nextfip = (LDAPFiltInfo *)LDAP_CALLOC( 1,
 			sizeof( LDAPFiltInfo ))) == NULL ) {
 		    ldap_getfilter_free( lfdp );
 		    free_strarray( tok );
@@ -194,34 +178,30 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		    } else {
 			free_strarray( tok );
 			ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 			errno = EINVAL;
-#endif
 			return( NULL );
 		    }
-		    free( tok[ 2 ] );
+		    LDAP_FREE( tok[ 2 ] );
 		    tok[ 2 ] = NULL;
 		} else {
 		    nextfip->lfi_scope = LDAP_SCOPE_SUBTREE;	/* default */
 		}
 		nextfip->lfi_isexact = ( strchr( tok[ 0 ], '*' ) == NULL &&
 			strchr( tok[ 0 ], '~' ) == NULL );
-		free( tok );
+		LDAP_FREE( tok );
 	    }
 	    break;
 
 	default:
 	    free_strarray( tok );
 	    ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 	    errno = EINVAL;
-#endif
 	    return( NULL );
 	}
     }
 
     if ( tag != NULL ) {
-	free( tag );
+	LDAP_FREE( tag );
     }
 
     return( lfdp );
@@ -229,53 +209,75 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 
 
 void
-ldap_setfilteraffixes( LDAPFiltDesc *lfdp, char *prefix, char *suffix )
+ldap_setfilteraffixes( LDAPFiltDesc *lfdp, LDAP_CONST char *prefix, LDAP_CONST char *suffix )
 {
     if ( lfdp->lfd_filtprefix != NULL ) {
-	free( lfdp->lfd_filtprefix );
+	LDAP_FREE( lfdp->lfd_filtprefix );
     }
-    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : strdup( prefix );
+    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : LDAP_STRDUP( prefix );
 
     if ( lfdp->lfd_filtsuffix != NULL ) {
-	free( lfdp->lfd_filtsuffix );
+	LDAP_FREE( lfdp->lfd_filtsuffix );
     }
-    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : strdup( suffix );
+    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : LDAP_STRDUP( suffix );
 }
 
 
 LDAPFiltInfo *
-ldap_getfirstfilter( LDAPFiltDesc *lfdp, char *tagpat, char *value )
+ldap_getfirstfilter(
+	LDAPFiltDesc *lfdp,
+	/* LDAP_CONST */ char *tagpat,
+	/* LDAP_CONST */ char *value )
 {
     LDAPFiltList	*flp;
+	int				rc;
+	regex_t			re;
 
     if ( lfdp->lfd_curvalcopy != NULL ) {
-	free( lfdp->lfd_curvalcopy );
-	free( lfdp->lfd_curvalwords );
+	LDAP_FREE( lfdp->lfd_curvalcopy );
+	LDAP_FREE( lfdp->lfd_curvalwords );
     }
 
     lfdp->lfd_curval = value;
     lfdp->lfd_curfip = NULL;
 
-    for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = flp->lfl_next ) {
-	if ( re_comp( tagpat ) == NULL && re_exec( flp->lfl_tag ) == 1
-		&& re_comp( flp->lfl_pattern ) == NULL
-		&& re_exec( lfdp->lfd_curval ) == 1 ) {
-	    lfdp->lfd_curfip = flp->lfl_ilist;
-	    break;
-	}
+	for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = flp->lfl_next ) {
+		/* compile tagpat, continue if we fail */
+		if (regcomp(&re, tagpat, 0) != 0)
+			continue;
+
+		/* match tagpatern and tag, continue if we fail */
+		rc = regexec(&re, flp->lfl_tag, 0, NULL, 0);
+		regfree(&re);
+		if (rc != 0)
+			continue;
+
+		/* compile flp->ifl_pattern, continue if we fail */
+		if (regcomp(&re, flp->lfl_pattern, 0) != 0)
+			continue;
+
+		/* match ifl_pattern and lfd_curval, continue if we fail */
+		rc = regexec(&re, lfdp->lfd_curval, 0, NULL, 0);
+		regfree(&re);
+		if (rc != 0)
+			continue;
+
+		/* we successfully compiled both patterns and matched both values */
+		lfdp->lfd_curfip = flp->lfl_ilist;
+		break;
     }
 
     if ( lfdp->lfd_curfip == NULL ) {
 	return( NULL );
     }
 
-    if (( lfdp->lfd_curvalcopy = strdup( value )) == NULL ) {
+    if (( lfdp->lfd_curvalcopy = LDAP_STRDUP( value )) == NULL ) {
 	return( NULL );
     }
 
     if ( break_into_words( lfdp->lfd_curvalcopy, flp->lfl_delims,
 		&lfdp->lfd_curvalwords ) < 0 ) {
-	free( lfdp->lfd_curvalcopy );
+	LDAP_FREE( lfdp->lfd_curvalcopy );
 	lfdp->lfd_curvalcopy = NULL;
 	return( NULL );
     }
@@ -310,10 +312,18 @@ ldap_getnextfilter( LDAPFiltDesc *lfdp )
 
 
 void
-ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
-	char *prefix, char *suffix, char *attr, char *value, char **valwords )
+ldap_build_filter(
+	char *filtbuf,
+	ber_len_t buflen,
+	LDAP_CONST char *pattern,
+	LDAP_CONST char *prefix,
+	LDAP_CONST char *suffix,
+	LDAP_CONST char *attr,
+	LDAP_CONST char *value,
+	char **valwords )
 {
-	char	*p, *f;
+	const char *p;
+	char *f;
 	size_t	slen;
 	int	i, wordcount, wordnum, endwordnum;
 	
@@ -336,12 +346,12 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 	    if ( *p == '%' ) {
 		++p;
 		if ( *p == 'v' ) {
-		    if ( isdigit( *(p+1))) {
+		    if ( isdigit( (unsigned char) p[1] )) {
 			++p;
 			wordnum = *p - '1';
 			if ( *(p+1) == '-' ) {
 			    ++p;
-			    if ( isdigit( *(p+1))) {
+			    if ( isdigit( (unsigned char) p[1] )) {
 				++p;
 				endwordnum = *p - '1';	/* e.g., "%v2-4" */
 				if ( endwordnum > wordcount - 1 ) {
@@ -388,14 +398,15 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 		*f++ = *p;
 	    }
 		
-	    if ( f - filtbuf > buflen ) {
+	    if ( (size_t) (f - filtbuf) > buflen ) {
 		/* sanity check */
 		--f;
 		break;
 	    }
 	}
 
-	if ( suffix != NULL && ( f - filtbuf ) < buflen ) {
+	if ( suffix != NULL && ( (size_t) (f - filtbuf) < buflen ) )
+	{
 	    strcpy( f, suffix );
 	} else {
 	    *f = '\0';
@@ -404,27 +415,28 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 
 
 static int
-break_into_words( char *str, char *delims, char ***wordsp )
+break_into_words( /* LDAP_CONST */ char *str, LDAP_CONST char *delims, char ***wordsp )
 {
     char	*word, **words;
     int		count;
-	
-    if (( words = (char **)calloc( 1, sizeof( char * ))) == NULL ) {
+    char        *tok_r;	
+
+    if (( words = (char **)LDAP_CALLOC( 1, sizeof( char * ))) == NULL ) {
 	return( -1 );
     }
     count = 0;
     words[ count ] = NULL;
 
-    word = strtok( str, delims );
+    word = ldap_pvt_strtok( str, delims, &tok_r );
     while ( word != NULL ) {
-	if (( words = (char **)realloc( words,
+	if (( words = (char **)LDAP_REALLOC( words,
 		( count + 2 ) * sizeof( char * ))) == NULL ) {
 	    return( -1 );
 	}
 
 	words[ count ] = word;
 	words[ ++count ] = NULL;
-	word = strtok( NULL, delims );
+	word = ldap_pvt_strtok( NULL, delims, &tok_r );
     }
 	
     *wordsp = words;

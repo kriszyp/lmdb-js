@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5  "13 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD.CONF 5 "5 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
 slapd.conf \- configuration file for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
@@ -10,12 +10,11 @@ contains configuration information for the
 .BR slapd (8)
 daemon.  This configuration file is also used by the
 .BR slurpd (8)
-replication daemon and by the LDBM indexing utilities
-.BR ldif2ldbm (8),
-.BR ldif2index (8),
-.BR ldif2id2entry (8),
+replication daemon and by the SLAPD tools
+.BR slapadd (8),
+.BR slapcat (8),
 and
-.BR ldif2id2children (8).
+.BR slapindex (8).
 .LP
 The
 .B slapd.conf
@@ -103,13 +102,42 @@ distinguished name
 .RE
 .TP
 .B
-defaultaccess { none | compare | search | read | write | delete }
+defaultaccess [self]{ none | compare | search | read | write }
 Specify the default access to grant requestors not matched by 
 any other access line.  The default behavior is to grant read access.
+.TP
+.B idletimeout <integer>
+Specify the number of seconds to wait before forcibly closing
+an idle client connections.  A idletimeout of 0 disables this
+feature.  The default is 0.
 .TP
 .B include <filename>
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
+.TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
+.TP
+.B argsfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's command line options
+if started without the debugging command line option.
+.TP
+.B
+locale { <locale-name> | on | off }
+Obey <locale-name>'s character classification and case conversion; i.e. the
+.BR locale (5)
+LC_CTYPE category.  See
+.BR locale (5)
+for details about locales.  "on" takes the locale from the environment,
+typically $LANG or $LC_CTYPE, and will only work properly if slapd will
+run with the same environment variables as when the database was
+generated.  "off" (the default setting) resets to the initial "C" locale.
 .TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
@@ -169,9 +197,10 @@ used in conjunction with the schemacheck option.
 Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
+If specified multiple times, each url is provided.
 .TP
 .B schemacheck { on | off }
-Turn schema checking on or off. The default is off.
+Turn schema checking on or off. The default is on.
 .TP
 .B sizelimit <integer>
 Specify the maximum number of entries to return from a search operation.
@@ -186,6 +215,34 @@ meaningful if you are using Kerberos authentication.
 Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
+.SH TLS OPTIONS
+If
+.B slapd
+is build with support for Transport Layer Security, there are more options
+you can specify.
+.TP
+.B TLSCipherSuite <cipher-suite-spec>
+Permits configuring what ciphers will be accepted and the preference order.
+<cipher-suite-spec> should be a cipher specification for OpenSSL.  Example:
+
+TLSCipherSuite HIGH:MEDIUM:+SSLv2
+
+To check what ciphers a given spec selects, use:
+
+openssl ciphers -v <cipher-suite-spec>
+.TP
+.B TLSCertificateFile <filename>
+Specifies the file that contains the
+.B slapd
+server certificate.
+.TP
+.B TLSCertificateKeyFile <filename>
+Specifies the file that contains the
+.B slapd
+server private key that matches the certificate stored in the
+.B TLSCertificateFile
+file.  Currently, the private key must not be protected with a password, so
+it is of critical importance that it is protected carefully. 
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the backend in which they are defined.  They are supported by every
@@ -205,7 +262,7 @@ Controls whether
 .B slapd
 will automatically maintain the 
 modifiersName, modifyTimestamp, creatorsName, and 
-createTimestamp attributes for entries.  By default, lastmod is off.
+createTimestamp attributes for entries.  By default, lastmod is on.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
@@ -238,7 +295,10 @@ Specify the DN of an entry that is not subject to access control
 or administrative limit restrictions for operations on this database.
 .TP
 .B rootpw <password>
-Specify a password for the rootdn.
+Specify a password (or hash of the password) for the rootdn.
+This option accepts all password formats known to the server
+including \fB{SHA}\fP, \fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext.  
+Cleartext passwords are not recommended.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
@@ -252,6 +312,12 @@ It specifies the DN allowed to make changes to the replica (typically,
 this is the DN
 .BR slurpd (8)
 binds as when making changes to the replica).
+.TP
+.B updateref <url>
+Specify the referral to pass back when
+.BR slapd (8)
+is asked to modify a replicated local database.
+If specified multiple times, each url is provided.
 .SH LDBM BACKEND-SPECIFIC OPTIONS
 Options in this category only apply to the LDBM backend database. That is,
 they must follow a "database ldbm" line and come before any subsequent
@@ -266,6 +332,11 @@ by the LDBM backend database instance.  The default is 1000 entries.
 Specify the size in bytes of the in-memory cache associated 
 with each open index file. If not supported by the underlying database 
 method, this option is ignored without comment.  The default is 100000 bytes.
+.TP
+.B dbcachenowsync
+Specify that database writes should not be immediately synchronized
+with in memory changes.  Enabling this option may improve performance
+at the expense of data security.
 .TP
 .B directory <directory>
 Specify the directory where the LDBM files containing the database and
@@ -333,8 +404,17 @@ ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR ldap (3),
 .BR slapd.replog (5),
+.BR locale (5),
 .BR passwd (5),
 .BR slapd (8),
+.BR slapadd (8),
+.BR slapcat (8),
+.BR slapindex (8),
 .BR slurpd (8),
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

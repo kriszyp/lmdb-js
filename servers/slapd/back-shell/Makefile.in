@@ -1,0 +1,23 @@
+SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
+		modify.c modrdn.c compare.c abandon.c result.c
+OBJS	= init.lo config.lo fork.lo search.lo bind.lo unbind.lo add.lo delete.lo \
+		modify.lo modrdn.lo compare.lo abandon.lo result.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-shell"
+BUILD_MOD = @BUILD_SHELL@
+LINKAGE = @BUILD_SHELL_DYNAMIC@
+
+LIBBASE = back_shell
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

@@ -10,45 +10,52 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/krb.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_PWD_H
 #include <pwd.h>
-#include <string.h>
-#include <ctype.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
+
+#include "ldap_defaults.h"
 #include "ud.h"
-#ifdef KERBEROS
-#include <sys/types.h>
-#include <krb.h>
-#endif
 
-extern LDAP *ld;		/* our LDAP descriptor */
-extern int verbose;		/* verbosity indicator */
-extern char *mygetpass();	/* getpass() passwds are too short */
-
-#ifdef DEBUG
-extern int debug;		/* debug flag */
-#endif
-
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
 #endif
 
-auth(who, implicit)
-char *who;
-int implicit;
+static void set_bound_dn(char *s);
+
+
+int
+auth( char *who, int implicit )
 {
 	int rc;			/* return code from ldap_bind() */
-	char *passwd = NULL;	/* returned by mygetpass() */
+	char *passwd = NULL;	/* returned by getpass() */
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
+#ifdef HAVE_GETPWUID
 	struct passwd *pw;	/* for getting user id */
+#else
+	char *user;
+#endif
 	char uidname[20];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -58,14 +65,6 @@ int implicit;
 	static char prompt[MED_BUF_SIZE];	/* place for us to sprintf the prompt */
 	static char name[MED_BUF_SIZE];	/* place to store the user's name */
 	static char password[MED_BUF_SIZE];	/* password entered by user */
-	extern struct entry Entry;	/* look here for a name if needed */
-	extern LDAPMessage *find();	/* for looking up 'name' */
-	extern char *search_base;	/* for printing later */
-	extern char *default_bind_object;	/* bind as this on failure */
-	extern void printbase();	/* used to pretty-print a base */
-	extern int bind_status;
-	extern void Free();
-	static void set_bound_dn();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -77,11 +76,26 @@ int implicit;
 	 *  The user needs to bind.  If <who> is not specified, we
 	 *  assume that authenticating as user id is what user wants.
 	 */
-	if (who == NULL && implicit && (pw = getpwuid((uid_t)geteuid()))
-	    != (struct passwd *) NULL) {
-		sprintf(uidname, "uid=%s", pw->pw_name);
-		/* who = pw->pw_name; /* */
-		who = uidname;
+	if (who == NULL && implicit) {
+		uidname[0] = '\0';
+
+#ifdef HAVE_GETPWUID
+		if ((pw = getpwuid((uid_t)geteuid())) != (struct passwd *) NULL) {
+			sprintf(uidname, "uid=%s", pw->pw_name);
+		}
+#else
+		user = getenv("USER");
+		if(user == NULL) user = getenv("USERNAME");
+		if(user == NULL) user = getenv("LOGNAME");
+
+		if(user != NULL) {
+			sprintf(uidname, "uid=%s", user);
+		}
+#endif
+
+		if(uidname[0] != '\0') {
+			who = uidname;
+		}
 	}
 
 	if ( who == NULL ) {
@@ -110,7 +124,6 @@ int implicit;
 	 *  from the user.  Then perform the ldap_bind().
 	 */
 	if ((mp = find(who, TRUE)) == NULL) {
-		(void) ldap_msgfree(mp);
 		printf("  I could not find \"%s\" in the Directory.\n", who);
 		printf("  I used a search base of ");
 		printbase("", search_base);
@@ -130,7 +143,7 @@ int implicit;
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -155,7 +168,7 @@ int implicit;
 
 		if ( hassimple && !kinited ) {
 			printf("  Which password would you like to use?\n");
-			printf("    1 -> X.500 password\n");
+			printf("    1 -> LDAP password\n");
 #ifdef UOFM
 			printf("    2 -> UMICH password (aka Uniqname or Kerberos password)\n");
 #else
@@ -221,37 +234,39 @@ int implicit;
 	} else {
 #endif
 		authmethod = LDAP_AUTH_SIMPLE;
-		sprintf(prompt, "  Enter your X.500 password: ");
+		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
-			passwd = mygetpass(prompt);
+			passwd = getpass(prompt);
 		} while (passwd != NULL && *passwd == '\0');
 		if (passwd == NULL) {
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	}
 	(void) ldap_value_free(krbnames);
 #endif
 	ldap_flush_cache( ld );
 	rc = ldap_bind_s(ld, Entry.DN, passwd, authmethod);
 	if (rc != LDAP_SUCCESS) {
-		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
+		int ld_errno;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
-		else if (ld->ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef KERBEROS
+		else if (ld_errno == LDAP_INVALID_CREDENTIALS)
+#ifdef HAVE_KERBEROS
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			}
 #endif
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
-			 (char *) UD_PASSWD, LDAP_AUTH_SIMPLE);
+			 (char *) NULL, LDAP_AUTH_SIMPLE);
 		if (default_bind_object == NULL)
 			set_bound_dn(NULL);
 		else
@@ -274,26 +289,24 @@ int implicit;
 	return(0);
 }
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-str2upper( s )
-    char	*s;
+static void
+str2upper( char *s )
 {
 	char	*p;
 
 	for ( p = s; *p != '\0'; ++p ) {
-		if ( islower( *p )) {
-			*p = toupper( *p );
-		}
+		*p = TOUPPER( (unsigned char) *p );
 	}
 }
 
 
-static valid_tgt( names )
-    char	**names;
+static int
+valid_tgt( char **names )
 {
 	int		i;
 	char		name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
@@ -307,12 +320,12 @@ static valid_tgt( names )
 			return( 0 );
 		}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 		/*
 		 * realm must be uppercase for krb_ routines
 		 */
 		str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 		/*
 		* check ticket file for a valid ticket granting ticket
@@ -333,9 +346,7 @@ static char *kauth_name;
 
 /*ARGSUSED*/
 int
-krbgetpass( user, inst, realm, pw, key )
-    char *user, *inst, *realm, *pw;
-    C_Block key;
+krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 {
 	char	*p, lcrealm[ REALM_SZ ], prompt[256], *passwd;
 
@@ -345,30 +356,28 @@ krbgetpass( user, inst, realm, pw, key )
 	sprintf(prompt, "  Enter Kerberos password for %s: ", kauth_name );
 #endif
 	do {
-		passwd = mygetpass(prompt);
+		passwd = getpass(prompt);
 	} while (passwd != NULL && *passwd == '\0');
 	if (passwd == NULL) {
 		return(-1);
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	strcpy( lcrealm, realm );
 	for ( p = lcrealm; *p != '\0'; ++p ) {
-		if ( isupper( *p )) {
-			*p = tolower( *p );
-		}
+		*p = TOLOWER( (unsigned char) *p );
 	}
 
 	ka_StringToKey( passwd, lcrealm, key );
-#else /* AFSKERBEROS */
+#else /* HAVE_AFS_KERBEROS */
 	string_to_key( passwd, key );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	return( 0 );
 }
 
-static kinit( kname )
-    char	*kname;
+static int
+kinit( char *kname )
 {
 	int	rc;
 	char	name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
@@ -382,12 +391,12 @@ static kinit( kname )
 		return( -1 );
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	/*
 	 * realm must be uppercase for krb_ routines
 	 */
 	str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
@@ -407,7 +416,8 @@ static kinit( kname )
 	return( 0 );
 }
 
-destroy_tickets()
+void
+destroy_tickets( void )
 {
 	if ( *tktpath != '\0' ) {
 		unlink( tktpath );
@@ -415,13 +425,10 @@ destroy_tickets()
 }
 #endif
 
-static void set_bound_dn(s)
-char *s;
+static void
+set_bound_dn( char *s )
 {
-	extern void Free();
-	extern char *bound_dn;
-
 	if (bound_dn != NULL)
 		Free(bound_dn);
-	bound_dn = strdup(s);
+	bound_dn = (s == NULL) ? NULL : strdup(s);
 }

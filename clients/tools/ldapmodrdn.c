@@ -1,55 +1,83 @@
-/* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP.
+ *
+ * Support for MODIFYDN REQUEST V3 (newSuperior) by:
+ * 
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
 
-#include "ldapconfig.h"
-
-static char	*binddn = LDAPMODRDN_BINDDN;
-static char	*base = LDAPMODRDN_BASE;
+static char	*binddn = NULL;
 static char	*passwd = NULL;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
+static char	*base = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
+static int domodrdn LDAP_P((
+    LDAP	*ld,
+    char	*dn,
+    char	*rdn,
+    int		remove,		/* flag: remove old RDN */
+    char	*newSuperior));
 
-#define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
-					 realloc( ptr, size ))
-
-
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main(int argc, char **argv)
 {
-    char		*usage = "usage: %s [-nvkc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
-    char		*myname,*infile, *p, *entrydn, *rdn, buf[ 4096 ];
+	char		*usage = "usage: %s [-nvkWc] [-M[M]] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ] [-s newSuperior]\n";
+    char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-    int			rc, i, kerberos, remove, havedn, authmethod;
-    LDAPMod		**pmods;
-
-    extern char	*optarg;
-    extern int	optind;
+	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
+    char	*newSuperior=NULL;
 
     infile = NULL;
-    kerberos = not = contoper = verbose = remove = 0;
+    not = contoper = verbose = remove = want_bindpw = debug = manageDSAit = 0;
+    authmethod = LDAP_AUTH_SIMPLE;
+	version = -1;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "kKcnvrh:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WkKMcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-	    kerberos = 2;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		return( EXIT_FAILURE );
+#endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
-	    kerberos = 1;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		return( EXIT_FAILURE );
+#endif
 	    break;
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
@@ -60,15 +88,22 @@ main( argc, argv )
 	case 'D':	/* bind DN */
 	    binddn = strdup( optarg );
 	    break;
+	case 's':	/* newSuperior */
+	    newSuperior = strdup( optarg );
+	    version = LDAP_VERSION3;	/* This option => force V3 */
+	    break;
 	case 'w':	/* password */
 	    passwd = strdup( optarg );
+		{
+			char* p;
+
+			for( p = optarg; *p == '\0'; p++ ) {
+				*p = '*';
+			}
+		}
 	    break;
 	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
-#endif /* LDAP_DEBUG */
+	    debug |= atoi( optarg );
 	    break;
 	case 'f':	/* read from file */
 	    infile = strdup( optarg );
@@ -85,60 +120,136 @@ main( argc, argv )
 	case 'r':	/* remove old RDN */
 	    remove++;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
+	case 'W':
+		want_bindpw++;
+		break;
+	case 'P':
+		switch( atoi(optarg) )
+		{
+		case 2:
+			version = LDAP_VERSION2;
+			break;
+		case 3:
+			version = LDAP_VERSION3;
+			break;
+		default:
+			fprintf( stderr, "protocol version should be 2 or 3\n" );
+		    fprintf( stderr, usage, argv[0] );
+		    return( EXIT_FAILURE );
+		}
+		break;
 	default:
 	    fprintf( stderr, usage, argv[0] );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     }
 
+    if (newSuperior != NULL) {
+		if (version == LDAP_VERSION2) {
+			fprintf( stderr,
+				"%s: version conflict!, -s newSuperior requires LDAPv3\n",
+				myname);
+			fprintf( stderr, usage, argv[0] );
+			return( EXIT_FAILURE );
+		}
+
+		/* promote to LDAPv3 */
+		version = LDAP_VERSION3;
+    }
+    
     havedn = 0;
     if (argc - optind == 2) {
 	if (( rdn = strdup( argv[argc - 1] )) == NULL ) {
 	    perror( "strdup" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
         if (( entrydn = strdup( argv[argc - 2] )) == NULL ) {
 	    perror( "strdup" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
         }
 	++havedn;
     } else if ( argc - optind != 0 ) {
 	fprintf( stderr, "%s: invalid number of arguments, only two allowed\n", myname);
 	fprintf( stderr, usage, argv[0] );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     } else {
 	fp = stdin;
     }
 
-    if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	perror( "ldap_open" );
-	exit( 1 );
+	if ( debug ) {
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
+    if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+	perror( "ldap_init" );
+	return( EXIT_FAILURE );
     }
 
-    ld->ld_deref = LDAP_DEREF_NEVER;	/* this seems prudent */
+	/* this seems prudent */
+	{
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
+	}
 
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod = LDAP_AUTH_KRBV4;
-    }
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
+
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+	}
+
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     rc = 0;
     if (havedn)
-	rc = domodrdn(ld, entrydn, rdn, remove);
+	rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	if ( *buf != '\0' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
@@ -146,14 +257,14 @@ main( argc, argv )
 	    if ( havedn ) {	/* have DN, get RDN */
 		if (( rdn = strdup( buf )) == NULL ) {
                     perror( "strdup" );
-                    exit( 1 );
+                    return( EXIT_FAILURE );
 		}
-		rc = domodrdn(ld, entrydn, rdn, remove);
+		rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    return( EXIT_FAILURE );
 	        }
 		++havedn;
 	    }
@@ -162,29 +273,32 @@ main( argc, argv )
 
     ldap_unbind( ld );
 
-    exit( rc );
+	/* UNREACHABLE */
+	return( rc );
 }
 
-domodrdn( ld, dn, rdn, remove )
-    LDAP	*ld;
-    char	*dn;
-    char	*rdn;
-    int		remove;	/* flag: remove old RDN */
+static int domodrdn(
+    LDAP	*ld,
+    char	*dn,
+    char	*rdn,
+    int		remove,		/* flag: remove old RDN */
+    char	*newSuperior)
 {
     int	i;
 
     if ( verbose ) {
-	printf( "modrdn %s:\n\t%s\n", dn, rdn );
-	if (remove)
-	    printf("removing old RDN\n");
-	else
-	    printf("keeping old RDN\n");
-    }
+		printf( "Renaming \"%s\"\n", dn );
+		printf( "\tnew rdn=\"%s\" (%s old rdn)\n",
+			rdn, remove ? "delete" : "keep" );
+		if( newSuperior != NULL ) {
+			printf("\tnew parent=\"%s\"\n", newSuperior);
+		}
+	}
 
     if ( !not ) {
-	i = ldap_modrdn2_s( ld, dn, rdn, remove );
+	i = ldap_rename2_s( ld, dn, rdn, remove, newSuperior );
 	if ( i != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_modrdn2_s" );
+	    ldap_perror( ld, "ldap_rename2_s" );
 	} else if ( verbose ) {
 	    printf( "modrdn complete\n" );
 	}

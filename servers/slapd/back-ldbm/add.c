@@ -1,16 +1,19 @@
 /* add.c - ldap ldbm back-end add routine */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
-
-extern int	global_schemacheck;
-extern char	*dn_parent();
-extern char	*dn_normalize();
-extern Entry	*dn2entry();
+#include "proto-back-ldbm.h"
 
 int
 ldbm_back_add(
@@ -21,49 +24,33 @@ ldbm_back_add(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched;
-	char		*dn = NULL, *pdn = NULL;
-	Entry		*p;
+	char		*pdn;
+	Entry		*p = NULL;
+	int			rootlock = 0;
+	int			rc; 
 
-	dn = dn_normalize( strdup( e->e_dn ) );
-	matched = NULL;
-	if ( (p = dn2entry( be, dn, &matched )) != NULL ) {
-		cache_return_entry( &li->li_cache, p );
+	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
+
+	/* nobody else can add until we lock our parent */
+	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
+
+	if ( ( dn2id( be, e->e_ndn ) ) != NOID ) {
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 		entry_free( e );
-		free( dn );
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
-	if ( matched != NULL ) {
-		free( matched );
-	}
-	/* XXX race condition here til we cache_add_entry_lock below XXX */
 
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n", 0, 0,
-		    0 );
-		entry_free( e );
-		free( dn );
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, "",
-		    "" );
-		return( -1 );
-	}
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
-	/*
-	 * Try to add the entry to the cache, assign it a new dnid
-	 * and mark it locked.  This should only fail if the entry
-	 * already exists.
-	 */
+		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
+			0, 0, 0 );
 
-	e->e_id = next_id( be );
-	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING )
-	    != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
-		    0 );
-		next_id_return( be, e->e_id );
 		entry_free( e );
-		free( dn );
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
 
@@ -73,53 +60,168 @@ ldbm_back_add(
 	 * add the entry.
 	 */
 
-	if ( (pdn = dn_parent( be, dn )) != NULL ) {
-		/* no parent */
-		matched = NULL;
-		if ( (p = dn2entry( be, pdn, &matched )) == NULL ) {
-			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			    matched, "" );
+	pdn = dn_parent( be, e->e_ndn );
+
+	if( pdn != NULL && *pdn != '\0' ) {
+		Entry *matched = NULL;
+
+		assert( *pdn != '\0' );
+
+		/* get parent with writer lock */
+		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
+			char *matched_dn;
+			struct berval **refs;
+
+			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+
 			if ( matched != NULL ) {
-				free( matched );
+				matched_dn = ch_strdup( matched->e_dn );
+				refs = is_entry_referral( matched )
+					? get_entry_referrals( be, conn, op, matched )
+					: NULL;
+				cache_return_entry_r( &li->li_cache, matched );
+
+			} else {
+				matched_dn = NULL;
+				refs = default_referral;
 			}
-			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
-			    0, 0 );
-			goto error_return;
-		}
-		if ( matched != NULL ) {
-			free( matched );
+
+			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
+				0, 0, 0 );
+
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+			    matched_dn, NULL, refs, NULL );
+
+			if( matched != NULL ) {
+				ber_bvecfree( refs );
+				free( matched_dn );
+			}
+
+			entry_free( e );
+			free( pdn );
+			return -1;
 		}
 
-		if ( ! access_allowed( be, conn, op, p, "children", NULL,
-		    op->o_dn, ACL_WRITE ) ) {
+		/* don't need the add lock anymore */
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+
+		free(pdn);
+
+		if ( ! access_allowed( be, conn, op, p,
+			"children", NULL, ACL_WRITE ) )
+		{
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p ); 
+
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    "", "" );
-			goto error_return;
+			    NULL, NULL, NULL, NULL );
+
+
+			entry_free( e );
+			return -1;
 		}
-	} else {
-		if ( ! be_isroot( be, op->o_dn ) ) {
-			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
+
+		if ( is_entry_alias( p ) ) {
+			/* parent is an alias, don't allow add */
+
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p );
+
+			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
 			    0, 0 );
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    "", "" );
-			goto error_return;
+
+			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+			    NULL, NULL, NULL, NULL );
+
+			entry_free( e );
+			return -1;
 		}
-		p = NULL;
+
+		if ( is_entry_referral( p ) ) {
+			/* parent is a referral, don't allow add */
+			char *matched_dn = ch_strdup( p->e_dn );
+			struct berval **refs = is_entry_referral( p )
+				? get_entry_referrals( be, conn, op, p )
+				: NULL;
+
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p );
+
+			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
+			    0, 0 );
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+			    matched_dn, NULL, refs, NULL );
+
+			ber_bvecfree( refs );
+			free( matched_dn );
+			entry_free( e );
+			return -1;
+		}
+
+	} else {
+		if(pdn != NULL) {
+			assert( *pdn == '\0' );
+			free(pdn);
+		}
+
+		/* no parent, must be adding entry to root */
+		if ( !be_isroot( be, op->o_ndn ) && !be_issuffix( be, "" ) ) {
+			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+
+			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
+					pdn == NULL ? "suffix" : "entry at root",
+					0, 0 );
+
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			    NULL, NULL, NULL, NULL );
+
+			entry_free( e );
+			return -1;
+		}
+
+		/*
+		 * no parent, acquire the root write lock
+		 * and release the add lock.
+		 */
+		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
+		rootlock = 1;
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
+
+	e->e_id = next_id( be );
 
 	/*
-	 * add it to the id2children index for the parent
+	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
+	rc = cache_add_entry_rw(&li->li_cache, e, CACHE_WRITE_LOCK);
 
-	if ( id2children_add( be, p, e ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "id2children_add failed\n", 0,
-		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "",
-		    "" );
-		goto error_return;
+	if ( rc != 0 ) {
+		if( p != NULL) {
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p ); 
+		}
+
+		if ( rootlock ) {
+			/* release root lock */
+			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
+		}
+
+		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
+		    0 );
+
+		/* free the entry */
+		entry_free( e );
+
+		send_ldap_result( conn, op,
+			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+
+		return( -1 );
 	}
+
+	rc = -1;
 
 	/*
 	 * Add the entry to the attribute indexes, then add it to
@@ -130,44 +232,52 @@ ldbm_back_add(
 	if ( index_add_entry( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "index_add_entry failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto error_return;
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+
+		goto return_results;
 	}
 
 	/* dn2id index */
-	if ( dn2id_add( be, dn, e->e_id ) != 0 ) {
+	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto error_return;
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+
+		goto return_results;
 	}
 
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "id2entry_add failed\n", 0,
 		    0, 0 );
-		(void) dn2id_delete( be, dn );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto error_return;
+		(void) dn2id_delete( be, e->e_ndn );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+
+		goto return_results;
 	}
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
-	if ( dn != NULL )
-		free( dn );
-	if ( pdn != NULL )
-		free( pdn );
-	cache_set_state( &li->li_cache, e, 0 );
-	cache_return_entry( &li->li_cache, e );
-	return( 0 );
+	send_ldap_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL );
+	rc = 0;
 
-error_return:;
-	if ( dn != NULL )
-		free( dn );
-	if ( pdn != NULL )
-		free( pdn );
-	next_id_return( be, e->e_id );
-	cache_delete_entry( &li->li_cache, e );
-	cache_return_entry( &li->li_cache, e );
+return_results:;
+	if (p != NULL) {
+		/* free parent and writer lock */
+		cache_return_entry_w( &li->li_cache, p ); 
+	}
 
-	return( -1 );
+	if ( rootlock ) {
+		/* release root lock */
+		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
+	}
+
+	if ( rc ) {
+		/* free entry and writer lock */
+		cache_return_entry_w( &li->li_cache, e );
+	}
+
+	return( rc );
 }

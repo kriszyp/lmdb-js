@@ -22,16 +22,17 @@ exec_prefix = @exec_prefix@
 ldap_subdir = @ldap_subdir@
 
 bindir = $(TMPROOT)@bindir@
-datadir = $(TMPROOT)@datadir@/$(ldap_subdir)
+datadir = $(TMPROOT)@datadir@$(ldap_subdir)
 includedir = $(TMPROOT)@includedir@
 infodir = $(TMPROOT)@infodir@
 libdir = $(TMPROOT)@libdir@
 libexecdir = $(TMPROOT)@libexecdir@
 localstatedir = $(TMPROOT)@localstatedir@
 mandir = $(TMPROOT)@mandir@
+moduledir = $(TMPROOT)@libexecdir@$(ldap_subdir)
 sbindir = $(TMPROOT)@sbindir@
 sharedstatedir = $(TMPROOT)@sharedstatedir@
-sysconfdir = $(TMPROOT)@sysconfdir@/$(ldap_subdir)
+sysconfdir = $(TMPROOT)@sysconfdir@$(ldap_subdir)
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
@@ -94,6 +95,7 @@ LDAP_LIBADIR= $(top_builddir)/libraries
 LDAP_LIBPATH= -L$(LDAP_LIBADIR)
 
 LUTIL_LIBS = @LUTIL_LIBS@
+LDIF_LIBS = @LDIF_LIBS@
 LDBM_LIBS = @LDBM_LIBS@
 LTHREAD_LIBS = @LTHREAD_LIBS@
 
@@ -119,9 +121,13 @@ AC_LDFLAGS = @LDFLAGS@
 AC_LIBS = @LIBS@
 
 KRB_LIBS = @KRB_LIBS@
+SASL_LIBS = @SASL_LIBS@
 TLS_LIBS = @TLS_LIBS@
+SECURITY_LIBS = @SASL_LIBS@ @KRB_LIBS@ @TLS_LIBS@
+
 MODULES_CPPFLAGS = @SLAPD_MODULES_CPPFLAGS@
 MODULES_LDFLAGS = @SLAPD_MODULES_LDFLAGS@
+MODULES_LIBS = @MODULES_LIBS@
 PERL_CPPFLAGS = @SLAPD_PERL_CPPFLAGS@
 PERL_LDFLAGS = @SLAPD_PERL_LDFLAGS@
 TERMCAP_LIBS = @TERMCAP_LIBS@

@@ -16,22 +16,26 @@
  * slapd/slurpd locking conventions.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 
 #include "ldif.h"
 
-static int dn2ldif();
-static void de_t61();
+static int dn2ldif(PS ps, DN dn);
+static void de_t61(char *s, int t61mark);
 
 extern FILE *lock_fopen( char *, char *, FILE ** );
 extern int lock_fclose( FILE *, FILE * );
-extern char *ch_realloc( char *, unsigned long ); 
+extern void *ch_realloc( void *, unsigned long ); 
 
 short	ldap_dn_syntax;
 PS	rps;
@@ -118,8 +122,8 @@ dn2ldap( char *edbdn )
 }
 
 
-#define SEPARATOR(c)	(c == ',' || c == ';')
-#define SPACE(c)	(c == ' ' || c == '\n')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SPACE(c)    	((c) == ' ' || (c) == '\n')
 
 static int
 dn2ldif( PS ps, DN dn )
@@ -225,12 +229,11 @@ dn2ldif( PS ps, DN dn )
 
 
 static void
-de_t61( s, t61mark )
-char	*s;
-int	t61mark;
+de_t61(char *s, int t61mark)
 {
 	char	*next = s;
-	int	c, hex;
+	unsigned char	c;
+	unsigned int	hex;
 
 	while ( *s ) {
 		switch ( *s ) {
@@ -292,9 +295,7 @@ int	t61mark;
 
 
 char *
-getattr( buf, sep )
-char *buf;
-char sep;
+getattr(char *buf, char sep)
 {
     char *val;
 #define RBSIZE 255
@@ -311,24 +312,20 @@ char sep;
 
 
 char *
-getattr_ldif( buf )
-char *buf;
+getattr_ldif(char *buf)
 {
     return( getattr( buf, ':' ));
 }
 
 
 char *
-getattr_edb( buf )
-char *buf;
+getattr_edb(char *buf)
 {
     return( getattr( buf, '=' ));
 }
 
 char *
-getval( buf, sep )
-char *buf;
-char sep;
+getval(char *buf, char sep)
 {
     char *val;
 
@@ -340,16 +337,14 @@ char sep;
 }
 
 char *
-getval_ldif( buf )
-char *buf;
+getval_ldif(char *buf)
 {
     return( getval( buf, ':' ));
 }
 
 
 char *
-getval_edb( buf )
-char *buf;
+getval_edb(char *buf)
 {
     return( getval( buf, '=' ));
 }
@@ -358,10 +353,9 @@ char *buf;
 
 
 int
-isDNsyntax( attr )
-char *attr;
+isDNsyntax(char *attr)
 {
-    oid_table_attr *p, *name2attr();
+    oid_table_attr *p, *name2attr(char *);
 
     p = name2attr( attr );
     if ( p == ( oid_table_attr * ) 0 ) {
@@ -377,10 +371,7 @@ char *attr;
 
 
 void
-print_as( as, modtype, ofp )
-Attr_Sequence as;
-int modtype;
-FILE *ofp;
+print_as(Attr_Sequence as, int modtype, FILE *ofp)
 {
     Attr_Sequence p;
     AV_Sequence	av;
@@ -422,7 +413,7 @@ FILE *ofp;
 	    }
 	    if ( obuf != NULL ) {
 		fputs( obuf, ofp );
-		free( obuf );
+		ber_memfree( obuf );
 	    }
 	}
 	if ( modtype != 0 ) {
@@ -482,13 +473,13 @@ main( int argc, char **argv )
 	    break;
 	default:
 	    usage( progname );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 
     if (( dn_suffix == NULL ) || ( nreplicas == 0 )) {
 	usage( progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( ofile == NULL ) {
@@ -503,12 +494,12 @@ main( int argc, char **argv )
     if (( std_ps = ps_alloc( std_open )) == NULLPS ||
 	    std_setup( std_ps, ofp ) != OK ) {
 	fprintf( stderr, "std_ps setup failed - help!\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     if (( rps = ps_alloc( str_open )) == NULLPS ||
 	    str_setup( rps, NULLCP, 0, 0 ) != OK ) {
 	fprintf( stderr, "rps setup failed - help!\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
 
@@ -543,7 +534,8 @@ main( int argc, char **argv )
 	/* See if we've got a line continuation to deal with */
 	nbuflen = strlen( nbuf );
 	if ( state == ST_CONCAT ) {
-	    for ( p = nbuf; isspace( *p ); p++, nbuflen-- ); /* skip space */
+	    for ( p = nbuf; isspace( (unsigned char) *p ); p++, nbuflen-- )
+		; /* skip space */
 	    buf = realloc( buf, buflen + nbuflen + 1 );
 	    strcat( buf, p );
 	    buflen += ( nbuflen );
@@ -577,7 +569,7 @@ main( int argc, char **argv )
 	    if ( ofile != NULL ) {
 		if (( ofp = lock_fopen( ofile, "a", &lfp )) == NULL ) {
 		    perror( "open" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 	    }
 	    /*
@@ -705,5 +697,5 @@ main( int argc, char **argv )
 	sprintf( nbuf, "%s.lock", ofile );
 	(void) unlink( nbuf );
     }
-    exit( 0 );
+    exit( EXIT_SUCCESS );
 }

@@ -10,40 +10,51 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
-#include <signal.h>
 #include "portable.h"
-#include "ldapconfig.h"
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#include <ac/setproctitle.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
+#include <ldap.h>
+#include <disptmpl.h>
+
+#include "ldap_defaults.h"
+
+#define ldap_debug debug
+#include "ldap_log.h"
+
+#include "lutil.h"
+
 
 int	debug;
 int	dosyslog;
+int ldap_syslog;
+int ldap_syslog_level;
 int	inetd;
 int	dtblsize;
 
-char	*ldaphost = LDAPHOST;
-char	*base = GO500_BASE;
+char	*ldaphost = NULL;
+char	*base = NULL;
 int	rdncount = GO500_RDNCOUNT;
 char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
@@ -51,24 +62,23 @@ char	*templatefile = TEMPLATEFILE;
 char	myhost[MAXHOSTNAMELEN];
 int	myport;
 
-static set_socket();
-static SIG_FN wait4child();
-static do_queries();
-static do_error();
-static do_search();
-static do_read();
-extern int strcasecmp();
+static void usage	( char *name );
+static int  set_socket	(int port);
+static RETSIGTYPE wait4child(int sig);
+static void do_queries	(int s);
+static void do_error	(FILE *fp, char *s);
+static void do_search	(LDAP *ld, FILE *fp, char *buf);
+static void do_read	(LDAP *ld, FILE *fp, char *dn);
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-f filterfile] [-t templatefile]\r\n\t[-a] [-l] [-p port] [-x ldaphost] [-b searchbase] [-c rdncount]\r\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
-main (argc, argv)
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	int			s, ns, rc;
 	int			port = -1;
@@ -77,15 +87,13 @@ char	**argv;
 	fd_set			readfds;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
-	int			fromlen;
-	SIG_FN			wait4child();
-	extern char		*optarg;
-	extern char		**Argv;
-	extern int		Argc;
+	socklen_t         	fromlen;
 
+#if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
-        Argv = argv;
-        Argc = argc;
+	Argv = argv;
+ 	Argc = argc;
+#endif
 
 	while ( (i = getopt( argc, argv, "b:d:f:lp:c:t:x:I" )) != EOF ) {
 		switch( i ) {
@@ -94,7 +102,7 @@ char	**argv;
 			break;
 
 		case 'd':	/* debug level */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* ldap filter file */
@@ -136,24 +144,41 @@ char	**argv;
 	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost) )
 	    == -1 ) {
 		perror( "gethostname" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 #endif
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	dtblsize = FD_SETSIZE;
+#endif
+
+#ifdef FD_SETSIZE
+	if (dtblsize > FD_SETSIZE) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
 
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )
-		(void) detach( debug );
+		lutil_detach( debug && !isatty( 1 ), 1 );
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL )
 		myname = strdup( argv[0] );
 	else
 		myname = strdup( myname + 1 );
+
+	if ( debug ) {
+		ber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3
@@ -170,7 +195,7 @@ char	**argv;
 		s = set_socket( port );
 
 		/* arrange to reap children */
-		(void) signal( SIGCHLD, (void *) wait4child );
+		(void) SIGNAL( SIGCHLD, wait4child );
 	} else {
 		myport = GO500_PORT;
 
@@ -189,13 +214,15 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
+#ifdef LDAP_PROCTITLE
 			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
+#endif
 		}
 
 		do_queries( 0 );
 
-		exit( 0 );
+		exit( EXIT_SUCCESS );
 	}
 
 	for ( ;; ) {
@@ -216,7 +243,7 @@ char	**argv;
 		if ( (ns = accept( s, (struct sockaddr *) &from, &fromlen ))
 		    == -1 ) {
 			if ( debug ) perror( "accept" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
@@ -230,7 +257,7 @@ char	**argv;
 
 		switch( pid = fork() ) {
 		case 0:		/* child */
-			close( s );
+			tcp_close( s );
 			do_queries( ns );
 			break;
 
@@ -239,7 +266,7 @@ char	**argv;
 			break;
 
 		default:	/* parent */
-			close( ns );
+			tcp_close( ns );
 			if ( debug )
 				fprintf( stderr, "forked child %d\n", pid );
 			break;
@@ -248,9 +275,8 @@ char	**argv;
 	/* NOT REACHED */
 }
 
-static
-set_socket( port )
-int	port;
+static int
+set_socket( int port )
 {
 	int			s, one;
 	struct sockaddr_in	addr;
@@ -261,30 +287,41 @@ int	port;
 
 	if ( (s = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
                 perror( "socket" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
+#ifdef SO_REUSEADDR
         /* set option so clients can't keep us from coming back up */
-	one = 1;
+		one = 1;
         if ( setsockopt( s, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
 	    sizeof(one) ) < 0 ) {
                 perror( "setsockopt" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
+#endif
+#ifdef SO_KEEPALIVE
+		/* enable keep alives */
+		one = 1;
+        if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE, (char *) &one,
+	    sizeof(one) ) < 0 ) {
+                perror( "setsockopt" );
+                exit( EXIT_FAILURE );
+        }
+#endif
 
         /* bind to a name */
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
         addr.sin_port = htons( port );
         if ( bind( s, (struct sockaddr *) &addr, sizeof(addr) ) ) {
                 perror( "bind" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
 	/* listen for connections */
         if ( listen( s, 5 ) == -1 ) {
                 perror( "listen" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
         if ( debug ) printf("tcp socket allocated, bound, and listening\n");
@@ -292,25 +329,28 @@ int	port;
 	return( s );
 }
 
-static SIG_FN
-wait4child()
+static RETSIGTYPE
+wait4child( int sig )
 {
+#ifndef HAVE_WAITPID
         WAITSTATUSTYPE     status;
+#endif
 
         if ( debug ) printf( "parent: catching child status\n" );
-#ifdef USE_WAITPID
-	while (waitpid ((pid_t) -1, 0, WAIT_FLAGS) > 0)
-#else /* USE_WAITPID */
-        while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
-#endif /* USE_WAITPID */
-                ;       /* NULL */
 
-	(void) signal( SIGCHLD, (void *) wait4child );
+#ifdef HAVE_WAITPID
+	while (waitpid ((pid_t) -1, (int *) NULL, WAIT_FLAGS) > 0)
+		;	/* NULL */
+#else
+	while ( wait4((pid_t) -1, &status, WAIT_FLAGS, 0 ) > 0 )
+		;	/* NULL */
+#endif
+
+	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
-static
-do_queries( s )
-int	s;
+static void
+do_queries( int s )
 {
 	char		buf[1024], *query;
 	int		len;
@@ -321,7 +361,7 @@ int	s;
 	LDAP		*ld;
 
 	if ( (fp = fdopen( s, "a+")) == NULL ) {
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	timeout.tv_sec = GO500_TIMEOUT;
@@ -330,16 +370,16 @@ int	s;
 	FD_SET( fileno( fp ), &readfds );
 
 	if ( (rc = select( dtblsize, &readfds, 0, 0, &timeout )) <= 0 )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	if ( fgets( buf, sizeof(buf), fp ) == NULL )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	len = strlen( buf );
 	if ( debug ) {
 		fprintf( stderr, "got %d bytes\n", len );
 #ifdef LDAP_DEBUG
-		lber_bprint( buf, len );
+		ber_bprint( buf, len );
 #endif
 	}
 
@@ -354,32 +394,34 @@ int	s;
 	query = buf;
 
 	/* strip off leading white space */
-	while ( isspace( *query )) {
+	while ( isspace( (unsigned char) *query )) {
 		++query;
 		--len;
 	}
 
 	rewind(fp);
 
-	if ( *query != '~' && *query != '@' ) {
-		if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
-			fprintf(fp,
-			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-			    LDAP_SERVER_DOWN, myhost, myport );
-			fprintf( fp, ".\r\n" );
-			rewind(fp);
-			exit( 1 );
-		}
+	if ( *query == '~' || *query == '@' ) {
+		ld = NULL;
+	} else if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		fprintf(fp,
+			"0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
+			LDAP_SERVER_DOWN, myhost, myport );
+		fprintf( fp, ".\r\n" );
+		rewind(fp);
+		exit( EXIT_FAILURE );
+	} else {
+		int deref = GO500_DEREF;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-		ld->ld_deref = GO500_DEREF;
-		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, NULL ))
-		    != LDAP_SUCCESS ) {
+		rc = ldap_simple_bind_s( ld, NULL, NULL );
+		if ( rc != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
 			    rc, myhost, myport );
 			fprintf( fp, ".\r\n" );
 			rewind(fp);
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -407,16 +449,17 @@ int	s;
 
 	fprintf( fp, ".\r\n" );
 	rewind(fp);
-	ldap_unbind( ld );
 
-	exit( 1 );
+	if ( ld != NULL) {
+		ldap_unbind( ld );
+	}
+
+	exit( EXIT_FAILURE );
 	/* NOT REACHED */
 }
 
-static
-do_error( fp, s )
-FILE	*fp;
-char	*s;
+static void
+do_error( FILE *fp, char *s )
 {
 	int	code;
 
@@ -428,11 +471,8 @@ char	*s;
 	fprintf( fp, ".\r\n" );
 }
 
-static
-do_search( ld, fp, buf )
-LDAP	*ld;
-FILE	*fp;
-char	*buf;
+static void
+do_search( LDAP *ld, FILE *fp, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
@@ -464,7 +504,7 @@ char	*buf;
 		if ( (filtd = ldap_init_getfilter( filterfile )) == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		tv.tv_sec = GO500_TIMEOUT;
@@ -540,16 +580,13 @@ char	*buf;
 }
 
 static int
-entry2textwrite( void *fp, char *buf, int len )
+entry2textwrite( void *fp, char *buf, ber_len_t len )
 {
-        return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
+	return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }
 
-static
-do_read( ld, fp, dn )
-LDAP	*ld;
-FILE	*fp;
-char	*dn;
+static void
+do_read( LDAP *ld, FILE *fp, char *dn )
 {
 	static struct ldap_disptmpl *tmpllist;
 
@@ -559,7 +596,7 @@ char	*dn;
 	    entry2textwrite, (void *) fp, "\r\n", rdncount,
 	    LDAP_DISP_OPT_DOSEARCHACTIONS ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_entry2text_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( tmpllist != NULL ) {

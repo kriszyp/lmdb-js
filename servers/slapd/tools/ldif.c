@@ -1,30 +1,38 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <memory.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "lber.h"
-#include "ldap.h"
+
+#include <ac/stdlib.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
+#include <ldap.h>
+
 #include "ldif.h"
 
-int	ldap_syslog;
-int	ldap_syslog_level;
-
-
-usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-b] <attrtype>\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	char	buf[BUFSIZ];
 	char	*type, *out;
-	int	binary = 0;
+	int	len, binary = 0;
 
 	if (argc < 2 || argc > 3 ) {
 		usage( argv[0] );
@@ -50,7 +58,7 @@ main( argc, argv )
 
 		if (( val = (char *) malloc( BUFSIZ )) == NULL ) {
 			perror( "malloc" );
-			exit( 1 );
+			return EXIT_FAILURE;
 		}
 		max = BUFSIZ;
 		cur = 0;
@@ -60,34 +68,36 @@ main( argc, argv )
 				if (( val = (char *) realloc( val, max )) ==
 				    NULL ) {
 					perror( "realloc" );
-					exit( 1 );
+					return EXIT_FAILURE;
 				}
 			}
 			memcpy( val + cur, buf, nread );
 			cur += nread;
 		}
 
-		if (( out = ldif_type_and_value( type, val, cur )) == NULL ) {
-		    	perror( "ldif_type_and_value" );
-			exit( 1 );
+		if (( out = ldif_put( LDIF_PUT_BINARY, type, val, cur )) == NULL ) {
+		    perror( "ldif_type_and_value" );
+			return EXIT_FAILURE;
 		}
 
 		fputs( out, stdout );
-		free( out );
+		ber_memfree( out );
 		free( val );
-		exit( 0 );
+		return EXIT_SUCCESS;
 	}
 
 	/* not binary:  one value per line... */
-	while ( gets( buf ) != NULL ) {
-		if (( out = ldif_type_and_value( type, buf, strlen( buf ) ))
+	while ( fgets( buf, sizeof(buf), stdin ) != NULL ) {
+		if( buf[len=strlen(buf)] == '\n') buf[len] = '\0';
+
+		if (( out = ldif_put( LDIF_PUT_VALUE, type, buf, strlen( buf ) ))
 		    == NULL ) {
 		    	perror( "ldif_type_and_value" );
-			exit( 1 );
+			return EXIT_FAILURE;
 		}
 		fputs( out, stdout );
-		free( out );
+		ber_memfree( out );
 	}
 
-	exit( 0 );
+	return EXIT_SUCCESS;
 }

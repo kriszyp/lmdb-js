@@ -15,10 +15,14 @@
  * config.c - configuration file handling routines
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/ctype.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -29,19 +33,11 @@
 #define MAXARGS	100
 
 /* Forward declarations */
-#ifdef NEEDPROTOS
-static void	add_replica( char **, int );
-static int	parse_replica_line( char **, int, Ri *);
-static void	parse_line( char *, int *, char ** );
-static char	*getline( FILE * );
-static char	*strtok_quote( char *, char * );
-#else /* NEEDPROTOS */
-static void	add_replica();
-static int	parse_replica_line();
-static void	parse_line();
-static char	*getline();
-static char	*strtok_quote();
-#endif /* NEEDPROTOS */
+static void	add_replica LDAP_P(( char **, int ));
+static int	parse_replica_line LDAP_P(( char **, int, Ri *));
+static void	parse_line LDAP_P(( char *, int *, char ** ));
+static char	*getline LDAP_P(( FILE * ));
+static char	*strtok_quote LDAP_P(( char *, char * ));
 
 /* current config file line # */
 static int	lineno;
@@ -59,8 +55,7 @@ slurpd_read_config(
 )
 {
     FILE	*fp;
-    char	buf[BUFSIZ];
-    char	*line, *p;
+    char	*line;
     int		cargc;
     char	*cargv[MAXARGS];
 
@@ -69,7 +64,7 @@ slurpd_read_config(
 
     if ( (fp = fopen( fname, "r" )) == NULL ) {
 	perror( fname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     lineno = 0;
@@ -101,7 +96,7 @@ slurpd_read_config(
 			"line %d: missing filename in \"replogfile ",
 			lineno );
 		    fprintf( stderr, "<filename>\" line\n" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		} else if ( cargc > 2 && *cargv[2] != '#' ) {
 		    fprintf( stderr,
 			"line %d: extra cruft at the end of \"replogfile %s\"",
@@ -178,11 +173,13 @@ strtok_quote(
 	    } else {
 		inquote = 1;
 	    }
-	    strcpy( next, next + 1 );
+	    SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 	    break;
 
 	case '\\':
-	    strcpy( next, next + 1 );
+	    if ( next[1] )
+		SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
+	    next++;		/* dont parse the escaped character */
 	    break;
 
 	default:
@@ -233,7 +230,7 @@ getline(
 	    *p = '\0';
 	}
 	lineno++;
-	if ( ! isspace( buf[0] ) ) {
+	if ( ! isspace( (unsigned char) buf[0] ) ) {
 	    return( line );
 	}
 
@@ -261,13 +258,13 @@ add_replica(
 	    ( nr + 1 )  * sizeof( Re * ));
     if ( sglob->replicas == NULL ) {
 	fprintf( stderr, "out of memory, add_replica\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     sglob->replicas[ nr ] = NULL; 
 
     if ( Ri_init( &(sglob->replicas[ nr - 1 ])) < 0 ) {
 	fprintf( stderr, "out of memory, Ri_init\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     if ( parse_replica_line( cargv, cargc,
 	    sglob->replicas[ nr - 1] ) < 0 ) {
@@ -290,7 +287,7 @@ add_replica(
 		sglob->replicas[ nr - 1 ] );
 	if ( sglob->replicas[ nr - 1]->ri_stel == NULL ) {
 	    fprintf( stderr, "Failed to add status element structure\n" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 }
@@ -344,7 +341,7 @@ parse_replica_line(
 		ri->ri_port = atoi( hp );
 	    }
 	    if ( ri->ri_port <= 0 ) {
-		ri->ri_port = LDAP_PORT;
+		ri->ri_port = 0;
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
@@ -357,21 +354,21 @@ parse_replica_line(
 		strlen( BINDMETHSTR ))) {
 	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		ri->ri_bind_method = AUTH_KERBEROS;
 		if ( ri->ri_srvtab == NULL ) {
 		    ri->ri_srvtab = strdup( sglob->default_srvtab );
 		}
 		gots |= GOT_METHOD;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
 	    fprintf( stderr, "specified in the slapd configuration file,\n" );
 	    fprintf( stderr, "but slurpd was not built with kerberos.\n" );
 	    fprintf( stderr, "You must rebuild the LDAP release with\n" );
 	    fprintf( stderr, "kerberos support if you wish to use\n" );
 	    fprintf( stderr, "bindmethod=kerberos\n" );
-	    exit( 1 );
-#endif /* KERBEROS */
+	    exit( EXIT_FAILURE );
+#endif /* HAVE_KERBEROS */
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
 		gots |= GOT_METHOD;

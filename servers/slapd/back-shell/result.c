@@ -1,13 +1,15 @@
 /* result.c - shell backend result reading function */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
 #include "slap.h"
 #include "shell.h"
-
-extern Entry	*str2entry();
 
 int
 read_and_send_results(
@@ -57,7 +59,7 @@ read_and_send_results(
 				    buf, 0, 0 );
 			} else {
 				send_search_entry( be, conn, op, e, attrs,
-				    attrsonly );
+				    attrsonly, NULL );
 				entry_free( e );
 			}
 
@@ -68,7 +70,7 @@ read_and_send_results(
 
 	/* otherwise, front end will send this result */
 	if ( err != 0 || op->o_tag != LDAP_REQ_BIND ) {
-		send_ldap_result( conn, op, err, matched, info );
+		send_ldap_result( conn, op, err, matched, info, NULL, NULL );
 	}
 
 	free( buf );

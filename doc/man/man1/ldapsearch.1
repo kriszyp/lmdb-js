@@ -1,32 +1,61 @@
-.TH LDAPSEARCH 1 "29 March 1996" "U-M LDAP LDVERSION"
+.TH LDAPSEARCH 1 "17 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
-ldapsearch \- ldap search tool
+ldapsearch \- LDAP search tool
 .SH SYNOPSIS
 .B ldapsearch
-.B [\-n]
-.B [\-u]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-t]
-.B [\-A]
-.B [\-B]
-.B [\-L]
-.B [\-R]
-.B [\-d debuglevel]
-.B [\-F sep]
-.B [\-f file]
-.B [\-D binddn]
-.B [\-w bindpasswd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-b searchbase]
-.B [\-s scope ]
-.B [\-a deref]
-.B [\-l time limit]
-.B [\-z size limit]
-.B filter
-.B [attrs....]
+[\c
+.BR \-n ]
+[\c
+.BR \-u ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-t ]
+[\c
+.BR \-A ]
+[\c
+.BR \-B ]
+[\c
+.BR \-L ]
+[\c
+.BR \-M[M] ]
+[\c
+.BR \-R ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-F \ sep\fR]
+[\c
+.BI \-f \ file\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ bindpasswd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BI \-b \ searchbase\fR]
+[\c
+.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
+[\c
+.BI \-a \ never\fR\||\|\fIalways\fR\||\|\fIsearch\fR\||\|\fIfind\fR]
+[\c
+.BI \-l \ timelimit\fR]
+[\c
+.BI \-z \ sizelimit\fR]
+.I filter
+[\c
+.IR attrs... ]
 .SH DESCRIPTION
 .I ldapsearch
 is a shell-accessible interface to the
@@ -43,7 +72,9 @@ If
 finds one or more entries, the attributes specified by
 \fIattrs\fP are retrieved and the entries and values are printed to
 standard output.  If no \fIattrs\fP are listed, all attributes are
-returned.
+returned.  If * is listed, all user attributes are returned.
+If + is listed, all operational attributes are returned.
+If only 1.1 is listed, no attributes are listed.
 .SH OPTIONS
 .TP
 .B \-n
@@ -87,18 +118,23 @@ Display search results in
 format.  This option also turns on the -B option, and causes the -F option
 to be ignored.
 .TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
+.TP
 .B \-R
 Do not automatically follow referrals returned while searching.
 .B ldapsearch
 must be compiled with LDAP_REFERRALS defined for referrals to be
 automatically followed by default, and for this option to have any effect.
 .TP
-.B \-F sep
+.BI \-F \ sep
 Use \fIsep\fP as the field separator between attribute names and values.
 The default separator is `=', unless the -L flag has been specified, in
 which case this option is ignored.
 .TP
-.B \-S attribute
+.BI \-S \ attribute
 Sort the entries returned based on \fIattribute\fP. The default is not
 to sort entries returned.  If \fIattribute\fP is a zero-length string (""),
 the entries are sorted by the components of their Distingished Name.  See
@@ -110,61 +146,82 @@ normally prints out entries as it receives them. The use of the
 option defeats this behavior, causing all entries to be retrieved,
 then sorted, then printed.
 .TP
-.B \-d debuglevel
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapsearch
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
+.BI \-f \ file
 Read a series of lines from \fIfile\fP, performing one LDAP search for
 each line.  In this case, the \fIfilter\fP given on the command line
 is treated as a pattern where the first occurrence of \fB%s\fP is
 replaced with a line from \fIfile\fP.  If \fIfile\fP is a single \fI-\fP
 character, then the lines are read from standard input.
 .TP
-.B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+.BI \-D \ binddn
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
-.B \-w bindpasswd
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
+.TP
+.BI \-w \ bindpasswd
 Use \fIbindpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
+.BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
 .TP
-.B \-p ldapport
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
 .TP
-.B \-b searchbase
+.BI \-b \ searchbase
 Use \fIsearchbase\fP as the starting point for the search instead of
 the default.
 .TP
-.B \-s scope
-Specify the scope of the search.  \fIscope\fP should be one of
-.B base,
-.B one,
+.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub
+Specify the scope of the search to be one of
+.IR base ,
+.IR one ,
 or
-.B sub
+.I sub
 to specify a base object, one-level, or subtree search.  The default
 is
-.BR sub .
+.IR sub .
 .TP
-.B \-a deref
-Specify how aliases dereferencing is done.  \fIderef\fP should be one of
-.B never,
-.B always,
-.B search,
+.BI \-a \ never\fR\||\|\fIalways\fR\||\|\fIsearch\fR\||\|\fIfind
+Specify how aliases dereferencing is done.  Should be one of
+.IR never ,
+.IR always ,
+.IR search ,
 or
-.B find
+.I find
 to specify that aliases are never dereferenced, always dereferenced,
 dereferenced when searching, or dereferenced only when locating the
 base object for the search.  The default is to never dereference aliases.
 .TP
-.B \-l timelimit
-wait at most \fItimelimit\fP seconds for a search to complete.
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .TP
-.B \-z sizelimit
-retrieve at most \fIsizelimit\fP seconds for a search to complete.
+.BI \-l \ timelimit
+wait at most \fItimelimit\fP seconds for a search to complete.  A
+timelimit of
+.I 0
+(zero) removes the
+.B ldap.conf
+limit.
+A server may impose a maximal timelimit which only
+the root user may override.
+.TP
+.BI \-z \ sizelimit
+retrieve at most \fIsizelimit\fP entries for a search.  A sizelimit
+of 
+.I 0
+(zero) removes the 
+.B ldap.conf
+limit.
+A server may impose a maximal sizelimit which only
+the root user may override.
 .SH OUTPUT FORMAT
 If one or more entries are found, each entry is written to standard output
 in the form:
@@ -187,45 +244,45 @@ is given, only the "attributename" part is written.
 The following command:
 .LP
 .nf
-    ldapsearch "cn=mark smith" cn telephoneNumber
+    ldapsearch "(sn=smith)" cn sn telephoneNumber
 .fi
 .LP
-will perform a subtree search (using the default search base) for entries
-with a commonName of "mark smith".  The commonName and telephoneNumber
-values will be retrieved and printed to standard output.
+will perform a subtree search (using the default search base) for
+entries with a surname (sn) of smith.  The common name (cn), surname
+(sn) and telephoneNumber values will be retrieved and printed to
+standard output.
 The output might look something like this if two entries are found:
 .LP
 .nf
-cn=Mark D Smith, ou="College of Literature, Science, and the Arts", ou=Students, ou=People, o=University of Michigan, c=US
-cn=Mark Smith
-cn=Mark David Smith
-cn=Mark D Smith 1
-cn=Mark D Smith
-telephoneNumber=+1 313 930-9489
+uid=jts, ou=Volunteers, ou=People, dc=OpenLDAP, dc=org
+cn=John Smith
+cn=John T. Smith
+sn=Smith
+telephoneNumber=+1 555 123-4567
 
-cn=Mark C Smith, ou=Information Technology Division, ou=Faculty and Staff, ou=People, o=University of Michigan, c=US
-cn=Mark Smith
-cn=Mark C Smith 1
-cn=Mark C Smith
-telephoneNumber=+1 313 764-2277
+uid=sss, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+cn=Steve Smith
+cn=Steve S. Smith
+sn=Smith
+telephoneNumber=+1 555 765-4321
 .fi
 .LP
 The command:
 .LP
 .nf
-    ldapsearch -u -t "uid=mcs" jpegPhoto audio
+    ldapsearch -u -t "uid=xyz" jpegPhoto audio
 .fi
 .LP
 will perform a subtree search using the default search base for entries
-with user id of "mcs".  The user friendly form of the entry's DN will be
+with user id of "xyz".  The user friendly form of the entry's DN will be
 output after the line that contains the DN itself, and the jpegPhoto
 and audio values will be retrieved and written to temporary files.  The
 output might look like this if one entry with one value for each of the
 requested attributes is found:
 .LP
 .nf
-cn=Mark C Smith, ou=Information Technology Division, ou=Faculty and Staff, ou=People, o=University of Michigan, c=US
-Mark C Smith, Information Technology Division, Faculty and Staff, People, University of Michigan, US
+uid=xyz, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+xyz, Staff, People, OpenLDAP, org
 audio=/tmp/ldapsearch-audio-a19924
 jpegPhoto=/tmp/ldapsearch-jpegPhoto-a19924
 .fi
@@ -233,12 +290,12 @@ jpegPhoto=/tmp/ldapsearch-jpegPhoto-a19924
 This command:
 .LP
 .nf
-    ldapsearch -L -s one -b "c=US" "o=university*" o description
+    ldapsearch -L -s one -b "c=US" "o=University*" o description
 .fi
 .LP
-will perform a one-level search at the c=US level for all organizations
-whose organizationName begins with \fBuniversity\fP.  Search results
-will be displayed in the LDIF format.
+will perform a one-level search at the c=US level for all entries
+whose organizationName (o) begins begins with \fBUniversity\fP.
+Search results will be displayed in the LDIF format.
 The organizationName and description attribute values will be retrieved
 and printed to standard output, resulting in output similar to this:
 .LP
@@ -275,6 +332,7 @@ status and a diagnostic message being written to standard error.
 .BR ldapdelete (1),
 .BR ldapmodify (1),
 .BR ldapmodrdn (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_search (3)
 .LP
@@ -289,3 +347,8 @@ Howes, T.,
 .SM RFC
 1558,
 University of Michigan, December 1993.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

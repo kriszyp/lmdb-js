@@ -1,0 +1,50 @@
+## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
+##
+## include Makefile.in for OpenLDAP
+
+all-local: ldap_config.h FORCE
+
+install-local: FORCE
+		-$(MKDIR) -p $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/lber.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 lber_types.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap_cdefs.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap_features.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap_schema.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/disptmpl.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/srchpref.h $(includedir)
+
+clean-local: FORCE 
+	$(RM) ldap_config.h
+
+veryclean-local: clean-local FORCE
+	$(RM) portable.h lber_types.h ldap_features.h
+
+depend-local: ldap_config.h FORCE
+
+LDAP_CONFIG=$(srcdir)/ldap_config.h.in
+
+ldap_config.h: $(LDAP_CONFIG) Makefile
+	@$(RM) $@
+	@echo "Making $@"
+	@echo "/* Generated from $(LDAP_CONFIG) on `date` */" > $@;  \
+	$(SED) \
+			-e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%DATADIR%;$(datadir);' \
+			-e 's;%BINDIR%;$(bindir);' \
+			-e 's;%SBINDIR%;$(sbindir);' \
+			-e 's;%LIBEXECDIR%;$(libexecdir);' \
+			-e 's;%RUNDIR%;$(localstatedir);' \
+			-e 's;%EDITOR%;$(EDITOR);' \
+			-e 's;%FINGER%;$(FINGER);' \
+			-e 's;%SENDMAIL%;$(SENDMAIL);' \
+			 $(LDAP_CONFIG) >> $@; \
+	$(CHMOD) 444 $@
+
+all-common:			all-local
+install-common:		all-common install-local
+clean-common:		clean-local
+veryclean-common:	veryclean-local
+depend-common:		depend-local

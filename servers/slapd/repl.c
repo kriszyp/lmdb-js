@@ -1,35 +1,36 @@
 /* repl.c - log modifications for replication purposes */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/socket.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <sys/socket.h>
-#include <slap.h>
+#endif
 
-extern pthread_mutex_t	replog_mutex;
-extern pthread_mutex_t	entry2str_mutex;
-extern time_t		currenttime;
-extern char		*replogfile;
+#include "slap.h"
 
-extern FILE	*lock_fopen();
-extern int	lock_fclose();
-extern char	*ch_malloc();
-extern char	*entry2str();
 
 void
 replog(
     Backend	*be,
-    int		optype,
+    Operation *op,
     char	*dn,
-    void	*change,
-    int		flag
+    void	*change
 )
 {
-	LDAPMod	*mods;
+	LDAPModList	*ml;
 	Entry	*e;
-	char	*newrdn, *tmp;
-	int	deleteoldrdn;
+	struct replog_moddn *moddn;
+	char *tmp;
 	FILE	*fp, *lfp;
 	int	len, i;
 
@@ -37,10 +38,10 @@ replog(
 		return;
 	}
 
-	pthread_mutex_lock( &replog_mutex );
+	ldap_pvt_thread_mutex_lock( &replog_mutex );
 	if ( (fp = lock_fopen( be->be_replogfile ? be->be_replogfile :
 	    replogfile, "a", &lfp )) == NULL ) {
-		pthread_mutex_unlock( &replog_mutex );
+		ldap_pvt_thread_mutex_unlock( &replog_mutex );
 		return;
 	}
 
@@ -48,41 +49,42 @@ replog(
 	    i++ ) {
 		fprintf( fp, "replica: %s\n", be->be_replica[i] );
 	}
-	fprintf( fp, "time: %ld\n", currenttime );
+	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
 
-	switch ( optype ) {
+	switch ( op->o_tag ) {
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
-		mods = change;
-		for ( ; mods != NULL; mods = mods->mod_next ) {
-			switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+		ml = change;
+		for ( ; ml != NULL; ml = ml->ml_next ) {
+			switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
 			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", mods->mod_type );
+				fprintf( fp, "add: %s\n", ml->ml_type );
 				break;
 
 			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", mods->mod_type );
+				fprintf( fp, "delete: %s\n", ml->ml_type );
 				break;
 
 			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", mods->mod_type );
+				fprintf( fp, "replace: %s\n", ml->ml_type );
 				break;
 			}
 
-			for ( i = 0; mods->mod_bvalues != NULL &&
-			    mods->mod_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; ml->ml_bvalues != NULL &&
+			    ml->ml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( mods->mod_type );
+				len = strlen( ml->ml_type );
 				len = LDIF_SIZE_NEEDED( len,
-				    mods->mod_bvalues[i]->bv_len ) + 1;
-				buf = ch_malloc( len );
+				    ml->ml_bvalues[i]->bv_len ) + 1;
+				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
-				put_type_and_value( &bufp, mods->mod_type,
-				    mods->mod_bvalues[i]->bv_val,
-				    mods->mod_bvalues[i]->bv_len );
+				ldif_sput( &bufp, LDIF_PUT_VALUE,
+					ml->ml_type,
+				    ml->ml_bvalues[i]->bv_val,
+				    ml->ml_bvalues[i]->bv_len );
 				*bufp = '\0';
 
 				fputs( buf, fp );
@@ -96,15 +98,15 @@ replog(
 	case LDAP_REQ_ADD:
 		e = change;
 		fprintf( fp, "changetype: add\n" );
-		pthread_mutex_lock( &entry2str_mutex );
-		tmp = entry2str( e, &len, 0 );
+		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+		tmp = entry2str( e, &len );
 		while ( (tmp = strchr( tmp, '\n' )) != NULL ) {
 			tmp++;
-			if ( ! isspace( *tmp ) )
+			if ( ! isspace( (unsigned char) *tmp ) )
 				break;
 		}
 		fprintf( fp, "%s", tmp );
-		pthread_mutex_unlock( &entry2str_mutex );
+		ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 		break;
 
 	case LDAP_REQ_DELETE:
@@ -112,13 +114,16 @@ replog(
 		break;
 
 	case LDAP_REQ_MODRDN:
-		newrdn = change;
+		moddn = change;
 		fprintf( fp, "changetype: modrdn\n" );
-		fprintf( fp, "newrdn: %s\n", newrdn );
-		fprintf( fp, "deleteoldrdn: %d\n", flag ? 1 : 0 );
+		fprintf( fp, "newrdn: %s\n", moddn->newrdn );
+		fprintf( fp, "deleteoldrdn: %d\n", moddn->deloldrdn ? 1 : 0 );
+		if( moddn->newsup != NULL ) {
+			fprintf( fp, "newsuperior: %s\n", moddn->newsup );
+		}
 	}
 	fprintf( fp, "\n" );
 
 	lock_fclose( fp, lfp );
-	pthread_mutex_unlock( &replog_mutex );
+	ldap_pvt_thread_mutex_unlock( &replog_mutex );
 }

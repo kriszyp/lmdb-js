@@ -1,12 +1,20 @@
 /* value.c - routines for dealing with values */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <sys/stat.h>
-#include "portable.h"
+
 #include "slap.h"
 
 int
@@ -94,12 +102,10 @@ value_normalize(
 		if ( (syntax & SYNTAX_TEL) && (*s == ' ' || *s == '-') ) {
 			continue;
 		}
-		*d++ = TOUPPER( *s );
+		*d++ = TOUPPER( (unsigned char) *s );
 	}
 	*d = '\0';
 }
-
-#define MIN( a, b )	(a < b ? a : b )
 
 int
 value_cmp(
@@ -110,7 +116,6 @@ value_cmp(
 )
 {
 	int		rc;
-	struct stat	st1, st2;
 
 	if ( normalize & 1 ) {
 		v1 = ber_bvdup( v1 );
@@ -133,53 +138,10 @@ value_cmp(
 		break;
 
 	case SYNTAX_BIN:
-		rc = memcmp( v1->bv_val, v2->bv_val, MIN( v1->bv_len,
-		    v2->bv_len ) );
+		rc = (v1->bv_len == v2->bv_len
+		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )
+		      : v1->bv_len > v2->bv_len ? 1 : -1);
 		break;
-	}
-
-	if ( normalize & 1 ) {
-		ber_bvfree( v1 );
-	}
-	if ( normalize & 2 ) {
-		ber_bvfree( v2 );
-	}
-
-	return( rc );
-}
-
-int
-value_ncmp(
-    struct berval	*v1,
-    struct berval	*v2,
-    int			syntax,
-    int			len,
-    int			normalize
-)
-{
-	int	rc;
-
-	if ( normalize & 1 ) {
-		v1 = ber_bvdup( v1 );
-		value_normalize( v1->bv_val, syntax );
-	}
-	if ( normalize & 2 ) {
-		v2 = ber_bvdup( v2 );
-		value_normalize( v2->bv_val, syntax );
-	}
-
-	switch ( syntax ) {
-	case SYNTAX_CIS:
-	case (SYNTAX_CIS | SYNTAX_TEL):
-		rc = strncasecmp( v1->bv_val, v2->bv_val, len );
-		break;
-
-	case SYNTAX_CES:
-		rc = strncmp( v1->bv_val, v2->bv_val, len );
-		break;
-
-	case SYNTAX_BIN:
-		rc = memcmp( v1->bv_val, v2->bv_val, len );
 	}
 
 	if ( normalize & 1 ) {

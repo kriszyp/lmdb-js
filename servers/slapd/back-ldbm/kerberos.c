@@ -1,19 +1,25 @@
 /* kerberos.c - ldbm backend kerberos bind routines */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
+
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
-
-#ifdef KERBEROS
-#include "krb.h"
 
 #define LDAP_KRB_PRINCIPAL	"ldapserver"
 
 extern char		*ldap_srvtab;
-extern Entry		*dn2entry();
 extern Attribute	*attr_find();
 
 krbv4_ldap_auth(

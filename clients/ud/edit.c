@@ -10,40 +10,47 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#include <sys/wait.h>
-#include <signal.h>
+#endif
+#ifdef HAVE_PROCESS_H
+#include <process.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
+
+#include "ldap_defaults.h"
 #include "ud.h"
 
-extern struct entry Entry; 
-extern int verbose;
-extern LDAP *ld;
-
-extern LDAPMessage *find();
+static int  load_editor( void );
+static int  modifiable( char *s, short flag );
+static int  print_attrs_and_values( FILE *fp, struct attribute *attrs, short flag );
+static int  ovalues( char *attr );
+static void write_entry( void );
 
 static char *entry_temp_file;
 
-#ifdef DEBUG
-extern int debug;
-#endif
 
-edit(who)
-char *who;
+void
+edit( char *who )
 {
 	LDAPMessage *mp;			/* returned from find() */
 	char *dn, **rdns;			/* distinguished name */
 	char name[MED_BUF_SIZE];		/* entry to modify */
-	extern int bind_status;
-	static int load_editor();
-	static int write_entry();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -88,7 +95,7 @@ char *who;
 	}
 	dn = ldap_get_dn(ld, ldap_first_entry(ld, mp));
 	rdns = ldap_explode_dn(dn, TRUE);
-	Free(dn);
+	ldap_memfree(dn);
 	if (verbose) {
 		printf("\n  Editing directory entry \"%s\"...\n", *rdns);
 	}
@@ -97,24 +104,23 @@ char *who;
 	(void) ldap_value_free(rdns);
 	if (load_editor() < 0)
 		return;
-	(void) write_entry();
+	write_entry();
 	(void) unlink(entry_temp_file);
 	ldap_uncache_entry(ld, Entry.DN);
 	return;
 }
 
-static load_editor()
+static int
+load_editor( void )
 {
 	FILE *fp;
 	char *cp, *editor = UD_DEFAULT_EDITOR;
 	static char template[MED_BUF_SIZE];
-	extern char * mktemp();
-	extern int isgroup(), fatal();
-	static int print_attrs_and_values();
+#ifndef HAVE_SPAWNLP
 	int pid;
 	int status;
+#endif
 	int rc;
-	void (*handler)();
 	
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -164,39 +170,50 @@ static load_editor()
 			++p;
 		}
 		printf("  Using %s as the editor...\n", p );
+#ifndef HAVE_SPAWNLP
 		sleep(2);
+#endif
 	}
+#ifdef HAVE_SPAWNLP
+	rc = _spawnlp( _P_WAIT, editor, editor, entry_temp_file, NULL );
+	if(rc != 0) {
+		fatal("spawnlp");
+	}
+#else
 	if ((pid = fork()) == 0) {	
 		/* child - edit the Directory entry */
-		(void) signal(SIGINT, SIG_IGN);
+		(void) SIGNAL(SIGINT, SIG_IGN);
 		(void) execlp(editor, editor, entry_temp_file, NULL);
 		/*NOTREACHED*/
 		(void) fatal(editor);	
 	}
 	else if (pid > 0) {
 		/* parent - wait until the child proc is done editing */
-		handler = signal(SIGINT, SIG_IGN);
+		RETSIGTYPE (*handler)();
+		handler = SIGNAL(SIGINT, SIG_IGN);
 		(void) wait(&status);
-		(void) signal(SIGINT, handler);
+		(void) SIGNAL(SIGINT, handler);
 	}
 	else {
 		fatal("fork");
 		/*NOTREACHED*/
 	}
+#endif
 	return(0);
 }
 
-static int print_attrs_and_values(fp, attrs, flag)
-FILE *fp;
-struct attribute attrs[];
-short flag;
+static int
+print_attrs_and_values( FILE *fp, struct attribute *attrs, short int flag )
 {
-	static int modifiable();
 	register int i, j;
 
 	for (i = 0; attrs[i].quipu_name != NULL; i++) {
-		if (!modifiable(attrs[i].quipu_name, flag|ATTR_FLAG_MAY_EDIT))
+		if (!modifiable(attrs[i].quipu_name,
+			(short) (flag|ATTR_FLAG_MAY_EDIT)))
+		{
 			continue;
+		}
+
 		fprintf(fp, "%s\n", attrs[i].quipu_name);
 		if ( attrs[i].number_of_values > MAX_VALUES ) {
 			printf("  The %s attribute has more than %d values.\n",
@@ -210,12 +227,10 @@ short flag;
 	return( 0 );
 }
 
-static modifiable(s, flag)
-char *s;
-short flag;
+static int
+modifiable( char *s, short int flag )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++) {
 		if (strcasecmp(s, attrlist[i].quipu_name))
@@ -228,7 +243,8 @@ short flag;
 	return(FALSE);
 }
 
-static write_entry()
+static void
+write_entry( void )
 {
 	int i = 0, j, number_of_values = -1;
 
@@ -237,10 +253,6 @@ static write_entry()
 
 	LDAPMod *mods[MAX_ATTRS + 1];
 	LDAPMod *modp = NULL;
-
-	static int ovalues();
-	extern char * code_to_str();
-	extern void free_mod_struct();
 
 	/* parse the file and write the values to the Directory */
 	if ((fp = fopen(entry_temp_file, "r")) == NULL) {
@@ -255,8 +267,8 @@ static write_entry()
 		cp = line;
 		if (*cp == '#')
 			continue;
-		if (isspace(*cp)) {	/* value */
-			while (isspace(*cp))
+		if (isspace((unsigned char)*cp)) {	/* value */
+			while (isspace((unsigned char)*cp))
 				cp++;
 			values[number_of_values++] = strdup(cp);
 			if ( number_of_values >= MAX_VALUES ) {
@@ -266,7 +278,7 @@ static write_entry()
 			continue;
 		}
 		/* attribute */
-		while (isspace(*cp))
+		while (isspace((unsigned char)*cp))
 			cp++;
 		/*
 		 *  If the number of values is greater than zero, then we
@@ -435,8 +447,8 @@ static write_entry()
 	return;
 }
 
-static ovalues(attr)
-char *attr;
+static int
+ovalues( char *attr )
 {
 	struct attribute *ap;
 

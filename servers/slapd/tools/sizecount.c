@@ -1,30 +1,34 @@
-#include <stdio.h>
-#include <ldbm.h>
-#include <lber.h>
-#include <ldap.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
+#include <ldap.h>
+#include <ldbm.h>
 
 #define CACHE_SIZE	1000000
 #define MODE		0600
 #define DB_FLAGS	(LDBM_WRCREAT|LDBM_NEWDB)
 #define SUBLEN		3
 
-extern char	*first_word();
-extern char	*next_word();
-extern char	*word_dup();
-extern char	*phonetic();
+extern char	*first_word(char *);
+extern char	*next_word(char *);
+extern char	*word_dup(char *);
+extern char	*phonetic(char *);
 
 extern int ldap_debug;
-extern int lber_debug;
 
+int slap_debug;
 int	ldap_syslog;
 int	ldap_syslog_level;
 
-static void	add();
+static void	add(LDBM ldbm, char *s, int *count, int *size, int freeit);
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	LDAP			*ld;
 	LDAPMessage		*res, *e;
@@ -40,17 +44,16 @@ main( argc, argv )
 
 /*
 	ldap_debug = 255;
-	lber_debug = 255;
 */
-	if ( (ld = ldap_open( "vertigo:5555", LDAP_PORT )) == NULL ) {
-		perror( "ldap_open" );
-		exit( 1 );
+	if ( (ld = ldap_init( "vertigo:5555", 0 )) == NULL ) {
+		perror( "ldap_init" );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( ldap_search( ld, "cn=index", LDAP_SCOPE_ONELEVEL, "(objectclass=*)",
 	  attrs, 0 ) == -1 ) {
 		ldap_perror( ld, "ldap_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	printf( "attr\tdn\tnentries\tvcount\tvsize\twcount\twsize\tpcount\tpsize\tscount\tssize\n" );
@@ -78,7 +81,7 @@ main( argc, argv )
 			  DB_FLAGS, MODE, CACHE_SIZE )) == NULL || (sldbm = ldbm_open(
 			  "scount.ldbm", DB_FLAGS, MODE, CACHE_SIZE )) == NULL ) {
 				perror( "ldbm_open" );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			vcount = 0; vsize = 0;
 			wcount = 0; wsize = 0;
@@ -88,6 +91,9 @@ main( argc, argv )
 				for ( j = 0; bvals[j] != NULL; j++ ) {
 					Datum	key, data;
 					char	*w;
+
+					ldbm_datum_init( key );
+					ldbm_datum_init( data );
 
 					/* update value count */
 					vcount++;
@@ -157,7 +163,7 @@ main( argc, argv )
 	(void) unlink( "pcount.ldbm" );
 	(void) unlink( "scount.ldbm" );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 static void
@@ -171,6 +177,9 @@ add(
 {
 	Datum	key, data;
 
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
+
 	key.dptr = s;
 	key.dsize = strlen( key.dptr ) + 1;
 	data.dptr = "";
@@ -179,6 +188,6 @@ add(
 		(*count)++;
 		(*size) += strlen( key.dptr );
 	}
-	if ( freeit )
+	if ( freeit && ( key.dptr != NULL ) )
 		ldbm_datum_free( ldbm, key );
 }

@@ -1,0 +1,43 @@
+##
+## Makefile.in for slurpd
+##
+
+PROGRAMS = slurpd
+XPROGRAMS = sslurpd
+
+XSRCS	= version.c
+
+SRCS	=	admin.c args.c ch_malloc.c config.c \
+		fm.c globals.c ldap_op.c lock.c main.c re.c \
+		reject.c replica.c replog.c ri.c rq.c sanity.c st.c
+OBJS	=	admin.o args.o ch_malloc.o config.o \
+		fm.o globals.o ldap_op.o lock.o main.o re.o \
+		reject.o replica.o replog.o ri.o rq.o sanity.o st.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+BUILD_OPT = "--enable-slurpd"
+BUILD_SRV = @BUILD_SLURPD@
+
+all-local-srv: 	slurpd
+
+# $(LTHREAD_LIBS) must be last!
+XLIBS = -lldif -lldap_r -llber -llutil
+XXLIBS = $(SLURPD_LIBS) $(SECURITY_LIBS) \
+	$(LDIF_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+
+slurpd:	version.o
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+
+sslurpd:	version.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+
+version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
+	@-$(RM) $@
+	$(MKVERSION) slurpd > $@
+
+install-local-srv: FORCE
+	@-$(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slurpd $(libexecdir)

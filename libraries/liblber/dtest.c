@@ -1,5 +1,9 @@
 /* dtest.c - lber decoding test program */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Portions
  * Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -11,51 +15,83 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include <console.h>
-#else /* MACOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* MACOS */
-#include "lber.h"
+#include "portable.h"
 
-static usage( char *name )
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_CONSOLE_H
+#include <console.h>
+#endif
+
+#include <lber.h>
+
+static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmt\n", name );
 }
 
+int
 main( int argc, char **argv )
 {
-	long		i, i2, num;
-	unsigned long	len;
-	int		tag;
-	char		*str, *s1, *s2;
-	BerElement	ber;
-	Sockbuf		sb;
-	extern char	*optarg;
+	char *s;
+	int rc;
 
-#ifdef MACOS
+	ber_tag_t	tag;
+	ber_len_t	len;
+
+	BerElement	*ber;
+	Sockbuf		*sb;
+
+	/* enable debugging */
+	int ival = -1;
+	ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ival );
+
+	if ( argc < 2 ) {
+		usage( argv[0] );
+		return( EXIT_FAILURE );
+	}
+
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
-#endif /* MACOS */
+#endif
 
-	bzero( &sb, sizeof(sb) );
-	sb.sb_sd = 0;
-	sb.sb_ber.ber_buf = NULL;
-	if ( (tag = ber_get_next( &sb, &len, &ber )) == -1 ) {
+	sb = ber_sockbuf_alloc_fd( fileno(stdin) );
+
+	if( (ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+		perror( "ber_alloc_t" );
+		return( EXIT_FAILURE );
+	}
+
+	if(( tag = ber_get_next( sb, &len, ber) ) == LBER_ERROR ) {
 		perror( "ber_get_next" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
-	printf( "message has tag 0x%x and length %ld\n", tag, len );
 
-	if ( ber_scanf( &ber, "i", &i ) == -1 ) {
-		fprintf( stderr, "ber_scanf returns -1\n" );
-		exit( 1 );
+	printf("decode: message tag 0x%lx and length %ld\n",
+	        (unsigned long) tag, (long) len );
+
+	for( s = argv[1]; *s; s++ ) {
+		char buf[128];
+		char fmt[2];
+		fmt[0] = *s;
+		fmt[1] = '\0';
+
+		printf("decode: format %s\n", fmt );
+		len = sizeof(buf);
+		rc = ber_scanf( ber, fmt, &buf[0], &len );
+
+		if( rc == LBER_ERROR ) {
+			perror( "ber_scanf" );
+			return( EXIT_FAILURE );
+		}
 	}
-	printf( "got int %d\n", i );
 
-	return( 0 );
+	ber_sockbuf_free( sb );
+	return( EXIT_SUCCESS );
 }

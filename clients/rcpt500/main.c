@@ -6,59 +6,56 @@
  * All Rights Reserved
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <string.h>
-#include <ctype.h>
-
 #include "portable.h"
-#include "ldapconfig.h"
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/unistd.h>
+
+#include "ldap_defaults.h"
 #include "rcpt500.h"
 
-#ifdef ultrix
-extern char *strdup();
-#endif
-
 int dosyslog = 0;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 int do_cldap = 0;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
+
 int derefaliases = 1;
 int sizelimit = RCPT500_SIZELIMIT;
 int rdncount = RCPT500_RDNCOUNT;
 int ldapport = 0;
-char *ldaphost = LDAPHOST;
-char *searchbase = RCPT500_BASE;
-char *dapuser = RCPT500_BINDDN;
+char *ldaphost = NULL;
+char *searchbase = NULL;
+char *dapuser = NULL;
 char *filterfile = FILTERFILE;
 char *templatefile = TEMPLATEFILE;
-char reply[ MAXSIZE * RCPT500_LISTLIMIT ];
-
+static char reply[ MAXSIZE * RCPT500_LISTLIMIT ];
 
 
 /*
  * functions
  */
-int	read_msg();
-char	*read_hdr();
-int 	send_reply();
+static int  read_msg(FILE *fp, struct msginfo *msgp);
+static char *read_hdr(FILE *fp, int off, char *buf, int MAXSIZEe, char **ln_p);
+static int  send_reply(struct msginfo *msgp, char *body);
+static int  find_command(char *text, char **argp);
 
 /*
  * main is invoked by sendmail via the alias file
  * the entire incoming message gets piped to our standard input
  */
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
     char		*prog, *usage = "%s [-l] [-U] [-h ldaphost] [-p ldapport] [-b searchbase] [-a] [-z sizelimit] [-u dapuser] [-f filterfile] [-t templatefile] [-c rdncount]\n";
     struct msginfo	msg;
     int			c, errflg;
-    char		*replytext;
-
-    extern int		optind;
-    extern char		*optarg;
 
     *reply = '\0';
 
@@ -78,11 +75,12 @@ main( argc, argv )
 	    dosyslog = 1;
 	    break;
 	case 'U':
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    do_cldap = 1;
-#else /* CLDAP */
-	    fprintf( stderr, "Compile with -DCLDAP for -U support\n" );
-#endif /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
+	    fprintf( stderr,
+			"Compile with -DLDAP_CONNECTIONLESS for -U support\n" );
+#endif /* LDAP_CONNECTIONLESS */
 	    break;	
 	case 'b':
 	    searchbase = optarg;
@@ -114,8 +112,12 @@ main( argc, argv )
     }
     if ( errflg || optind < argc ) {
 	fprintf( stderr, usage, prog );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
     if ( dosyslog ) {
 	/*
@@ -168,10 +170,8 @@ main( argc, argv )
 }
 
 
-int
-read_msg( fp, msgp )
-    FILE		*fp;
-    struct msginfo	*msgp;
+static int
+read_msg( FILE *fp, struct msginfo *msgp )
 {
     char	buf[ MAXSIZE ], *line;
     int		command = -1;
@@ -231,30 +231,25 @@ read_msg( fp, msgp )
 }
 
 
-char *
-read_hdr( fp, offset, buf, MAXSIZEe, linep )
-    FILE	*fp;
-    int		offset;
-    char	*buf;
-    int		MAXSIZEe;
-    char	**linep;
+static char *
+read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
 {
     char	*hdr;
 
-    for ( hdr = buf + offset; isspace( *hdr ); ++hdr ) {
+    for ( hdr = buf + offset; isspace( (unsigned char) *hdr ); ++hdr ) {
 	;
     }
     if (( hdr = strdup( hdr )) == NULL ) {
 	if ( dosyslog ) {
 	    syslog( LOG_ERR, "strdup: %m" );
 	}
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     while ( 1 ) {
 	*linep = fgets( buf, MAXSIZE, fp );
 	buf[ strlen( buf ) - 1 ] = '\0';	/* remove trailing newline */
-	if ( *linep == NULL || !isspace( **linep )) {
+	if ( *linep == NULL || !isspace( (unsigned char) **linep )) {
 	    break;
 	}
 	if (( hdr = realloc( hdr, strlen( hdr ) +
@@ -262,7 +257,7 @@ read_hdr( fp, offset, buf, MAXSIZEe, linep )
 	    if ( dosyslog ) {
 		syslog( LOG_ERR, "realloc: %m" );
 	    }
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	strcat( hdr, "\n" );
 	strcat( hdr, *linep );
@@ -272,10 +267,8 @@ read_hdr( fp, offset, buf, MAXSIZEe, linep )
 }
 
 
-int
-send_reply( msgp, body )
-    struct msginfo	*msgp;
-    char		*body;
+static int
+send_reply( struct msginfo *msgp, char *body )
 {
     char	buf[ MAXSIZE ];
     FILE	*cmdpipe;
@@ -353,10 +346,8 @@ send_reply( msgp, body )
 }
 
 
-int
-find_command( text, argp )
-    char	*text;
-    char	**argp;
+static int
+find_command( char *text, char **argp )
 {
     int		i;
     char	*s, *p;
@@ -364,16 +355,16 @@ find_command( text, argp )
 
     p = text;
     for ( s = argbuf; *p != '\0'; ++p ) {
-	*s++ = tolower( *p );
+	*s++ = TOLOWER( (unsigned char) *p );
     }
     *s = '\0';
 
     for ( i = 0; cmds[ i ].cmd_text != NULL; ++i ) {
 	if (( s = strstr( argbuf, cmds[ i ].cmd_text )) != NULL
-		    && isspace( *(s + strlen( cmds[ i ].cmd_text )))) {
+	    && isspace( (unsigned char) s[ strlen( cmds[ i ].cmd_text ) ] )) {
 	    strcpy( argbuf, text + (s - argbuf) + strlen( cmds[ i ].cmd_text ));
 	    *argp = argbuf;
-	    while ( isspace( **argp )) {
+	    while ( isspace( (unsigned char) **argp )) {
 		++(*argp);
 	    }
 	    return( i );

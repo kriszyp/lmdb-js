@@ -13,5 +13,10 @@ localities and are one-level in scope.  At the lower levels of the tree
 be for people and are subtree in scope.  What sort of search is done
 depends on what you type, but a variety of things are tried.
 
-If you have comments, suggestions or questions about this service,
-please send mail to x500@umich.edu.            -- Tim Howes 8/25/93
+We would appreciate any feedback you can provide.  If you have
+problems, report them using our Issue Tracking System:
+        http://www.OpenLDAP.com/its/
+or by sending e-mail to:
+        OpenLDAP-its@OpenLDAP.org
+Additional mailing lists are available.  Please see:
+        http://www.OpenLDAP.com/lists/

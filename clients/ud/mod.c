@@ -10,33 +10,27 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <sys/types.h>
 #include "ud.h"
 
-extern struct entry Entry; 
-extern int verbose;
-extern LDAP *ld;
+static char *get_URL( void );
+static int  check_URL( char *url );
 
-extern LDAPMessage *find();
 
-#ifdef DEBUG
-extern int debug;
-#endif
-
-modify(who)
-char *who;
+void
+modify( char *who )
 {
-#ifdef UOFM
-	void set_updates();	/* routine to modify noBatchUpdates */
-#endif
 	LDAPMessage *mp;	/* returned from find() */
 	char *dn;		/* distinguished name */
 	char **rdns;		/* for fiddling with the DN */
@@ -46,11 +40,9 @@ char *who;
 #ifdef UOFM
 	static char printed_warning = 0;	/* for use with the */
 	struct attribute no_batch_update_attr;
-	extern char * fetch_boolean_value();
+	int ld_errno;
 #endif
 	int is_a_group;		/* TRUE if it is; FALSE otherwise */
-	extern void Free();
-	extern int bind_status;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -106,10 +98,13 @@ char *who;
 	 */
 	no_batch_update_attr.quipu_name = "noBatchUpdates";
 	(void) fetch_boolean_value(dn, no_batch_update_attr);
-	if (verbose && !printed_warning && (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)) {
+
+	ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
+	if (verbose && !printed_warning && (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)) {
 		printed_warning = 1;
 		printf("\n  WARNING!\n");
-		printf("  You are about to make a modification to an X.500 entry\n");
+		printf("  You are about to make a modification to an LDAP entry\n");
 		printf("  that has its \"automatic updates\" field set to ON.\n");
 		printf("  This means that the entry will be automatically updated\n");
 		printf("  each month from official University sources like the\n");
@@ -153,20 +148,22 @@ char *who;
 		parse_answer(mp);
 		(void) ldap_msgfree(mp);
 	}
-	(void) Free(dn);
+	ldap_memfree(dn);
 	ldap_value_free(rdns);
 	return;
 }
 
 /* generic routine for changing any field */
-void change_field(who, attr)
-char *who;			/* DN of entry we are changing */
-struct attribute attr;		/* attribute to change */
+void
+change_field(
+    char *who,			/* DN of entry we are changing */
+    int attr_idx		/* attribute to change */
+)
 {
+	struct attribute attr = Entry.attrs[attr_to_index(attrlist[attr_idx].quipu_name)];
 
 #define	IS_MOD(x)	(!strncasecmp(resp, (x), strlen(resp)))
 				
-	char *get_value();		/* routine to extract values */
 	static char buf[MED_BUF_SIZE];	/* for printing things */
 	static char resp[SMALL_BUF_SIZE];	/* for user input */
 	char *prompt, *prompt2, *more;
@@ -174,7 +171,6 @@ struct attribute attr;		/* attribute to change */
 	static LDAPMod mod;
 	static LDAPMod *mods[2] = { &mod };	/* passed to ldap_modify */
 	static char *values[MAX_VALUES];	/* passed to ldap_modify */
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -372,18 +368,15 @@ struct attribute attr;		/* attribute to change */
 #define MAX_DESC_LINES  24
 #define INTL_ADDR_LIMIT	30
 
-char *get_value(id, prompt)
-char *id, *prompt;
+char *
+get_value( char *id, char *prompt )
 {
 	char *cp;		/* for the Malloc() */
 	int count;		/* line # of new value -- if multiline */
 	int multiline = 0;	/* 1 if this value is multiline */
 	static char line[LINE_SIZE];	/* raw line from user */
-	static char buffer[MAX_DESC_LINES * LINE_SIZE];	/* holds ALL of the 
+	static char buffer[MAX_DESC_LINES * (LINE_SIZE+2)]; /* holds ALL of the
 							   lines we get */
-	extern void * Malloc();
-	static char * get_URL();
-
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->get_value(%s, %s)\n", id, prompt);
@@ -481,7 +474,7 @@ mail_is_good:
 			if (lmp == (LDAPMessage *) NULL) {
 				printf("  Could not find \"%s\" in the Directory\n", line);
 				if (verbose) 
-					format("Owners of groups must be valid entries in the X.500 Directory.  The name you have typed above could not be found in the X.500 Directory.", 72, 2);
+					format("Owners of groups must be valid entries in the LDAP Directory.  The name you have typed above could not be found in the LDAP Directory.", 72, 2);
 				return(NULL);
 			}
 			elmp = ldap_first_entry(ld, lmp);
@@ -491,6 +484,7 @@ mail_is_good:
 			}
 			tmp = ldap_get_dn(ld, elmp);
 			strcpy(buffer, tmp);
+			ldap_memfree(tmp);
 			(void) ldap_msgfree(lmp);
 			break;
 		}
@@ -511,7 +505,7 @@ mail_is_good:
 		 *  are done.
 		 */
 		if (count++ > 1)
-			(void) strcat(buffer, "$");
+			(void) strcat(buffer, " $ ");
 		(void) strcat(buffer, line);
 		if (!multiline)
 			break;
@@ -537,12 +531,15 @@ mail_is_good:
 	return(cp);
 }
 
-void set_boolean(who, attr)
-char *who;			/* DN of entry we are changing */
-struct attribute attr;		/* boolean attribute to change */
+void
+set_boolean(
+	char *who,		/* DN of entry we are changing */
+	int attr_idx		/* boolean attribute to change */
+)
 {
+	struct attribute attr = Entry.attrs[attr_to_index(attrlist[attr_idx].quipu_name)];
+
 	char *cp, *s;
-	extern char * fetch_boolean_value();
 	static char response[16];
 	static char *newsetting[2] = { NULL, NULL };
 	LDAPMod mod, *mods[2];
@@ -578,7 +575,7 @@ struct attribute attr;		/* boolean attribute to change */
 	printf("  Please enter Y for yes, N for no, or RETURN to cancel:  ");
 	fflush(stdout);
 	(void) fetch_buffer(response, sizeof(response), stdin);
-	for (s = response; isspace(*s); s++)
+	for (s = response; isspace((unsigned char)*s); s++)
 			;
 	if ((*s == 'y') || (*s == 'Y')) {
 		if (ldap_modify_s(ld, who, mods)) {
@@ -596,11 +593,10 @@ struct attribute attr;		/* boolean attribute to change */
 
 #ifdef UOFM
 
-void set_updates(who)
-char *who;
+void
+set_updates( char *who, int dummy )
 {
 	char *cp, *s;
-	extern char * fetch_boolean_value();
 	static char response[16];
 	static char value[6];
 	static char *newsetting[2] = { value, NULL };
@@ -620,9 +616,9 @@ char *who;
 	if (verbose) {
 		printf("\n  By default, updates that are received from the Personnel\n");
 		printf("  Office and the Office of the Registrar are applied to all\n");
-		printf("  entries in the X.500 database each month.  Sometimes this\n");
+		printf("  entries in the LDAP database each month.  Sometimes this\n");
 		printf("  feature is undesirable.  For example, if you maintain your\n");
-		printf("  entry in the X.500 database manually, you may not want to\n");
+		printf("  entry in the LDAP database manually, you may not want to\n");
 		printf("  have these updates applied to your entry, possibly overwriting\n");
 		printf("  correct information with out-dated information.\n\n");
 	}
@@ -644,7 +640,7 @@ char *who;
 	printf("\n  Change this setting [no]? ");
 	fflush(stdout);
 	(void) fetch_buffer(response, sizeof(response), stdin);
-	for (s = response; isspace(*s); s++)
+	for (s = response; isspace((unsigned char)*s); s++)
 			;
 	if ((*s == 'y') || (*s == 'Y')) {
 		if (!strcmp(cp, "TRUE"))
@@ -666,11 +662,10 @@ char *who;
 
 #endif
 
-print_mod_list(group)
-int group;
+void
+print_mod_list( int group )
 {
 	register int i, j = 1;
-	extern struct attribute attrlist[];
 
 	if (group == TRUE) {
 	    for (i = 0; attrlist[i].quipu_name != NULL; i++) {
@@ -695,15 +690,11 @@ int group;
 #endif
 }
 			
-perform_action(choice, dn, group)
-char choice[];
-char *dn;
-int group;
+int
+perform_action( char *choice, char *dn, int group )
 {
 	int selection;
 	register int i, j = 1;
-	extern struct attribute attrlist[];
-	extern void mod_addrDN(), change_field(), set_boolean();
 
 	selection = atoi(choice);
 	if (selection < 1) {
@@ -739,22 +730,14 @@ int group;
 		return(1);
 		/* NOTREACHED */
 	}
-	if (attrlist[i].mod_func == change_field)
-		(*attrlist[i].mod_func)(dn, Entry.attrs[attr_to_index(attrlist[i].quipu_name)]);
-	else if (attrlist[i].mod_func == mod_addrDN)
-		(*attrlist[i].mod_func)(dn, i);
-	else if (attrlist[i].mod_func == set_boolean)
-		(*attrlist[i].mod_func)(dn, Entry.attrs[attr_to_index(attrlist[i].quipu_name)]);
-	else
-		(*attrlist[i].mod_func)(dn);
+	(*attrlist[i].mod_func)(dn, i);
 	return(0);
 }
 
-static char * get_URL()
+static char *
+get_URL( void )
 {
 	char *rvalue, label[MED_BUF_SIZE], url[MED_BUF_SIZE];
-	static int check_URL();
-	extern void * Malloc();
 
 	if (verbose) {
 		printf("  First, enter the URL.  (Example: http://www.us.itd.umich.edu/users/).\n");
@@ -782,13 +765,13 @@ static char * get_URL()
 	return((char *) rvalue);
 }
 
-static check_URL(url)
-char *url;
+static int
+check_URL( char *url )
 {
 	register char *cp;
 
 	for (cp = url; *cp != '\n' && *cp != '\0'; cp++) {
-		if (isspace(*cp))
+		if (isspace((unsigned char)*cp))
 			return(-1);
 			/*NOTREACHED*/
 	}
@@ -797,17 +780,25 @@ char *url;
 }
 
 
+void
 mod_perror( LDAP *ld )
 {
-	if ( ld == NULL || ( ld->ld_errno != LDAP_UNAVAILABLE &&
-	    ld->ld_errno != LDAP_UNWILLING_TO_PERFORM )) {
+	int ld_errno = 0;
+
+	if(ld != NULL) {
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+	}
+
+	if (( ld == NULL ) || ( ld_errno != LDAP_UNAVAILABLE &&
+	    ld_errno != LDAP_UNWILLING_TO_PERFORM ))
+	{
 		ldap_perror( ld, "modify" );
 		return;
 	}
 
 	fprintf( stderr, "\n  modify: failed because part of the online directory is not able\n" );
 	fprintf( stderr, "  to be modified right now" );
-	if ( ld->ld_errno == LDAP_UNAVAILABLE ) {
+	if ( ld_errno == LDAP_UNAVAILABLE ) {
 		fprintf( stderr, " or is temporarily unavailable" );
 	}
 	fprintf( stderr, ".\n  Please try again later.\n" );

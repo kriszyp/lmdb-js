@@ -1,20 +1,38 @@
-.TH LDAPDELETE 1 "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAPDELETE 1 "17 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
-ldapdelete \- ldap delete entry tool
+ldapdelete \- LDAP delete entry tool
 .SH SYNOPSIS
 .B ldapdelete
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-c]
-.B [\-d debuglevel]
-.B [\-f file]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [dn]...
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-c ]
+[\c
+.BR \-M[M] ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-f \ file\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.IR dn ]...
 .SH DESCRIPTION
 .I ldapdelete
 is a shell-accessible interface to the
@@ -55,44 +73,57 @@ Continuous operation mode.  Errors  are  reported,  but
 will  continue  with  deletions.   The default is to exit after
 reporting an error.
 .TP
-.B \-d debuglevel
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
+.TP
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapdelete
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
+.BI \-f \ file
 Read a series of lines from \fIfile\fP, performing one LDAP search for
 each line.  In this case, the \fIfilter\fP given on the command line
 is treated as a pattern where the first occurrence of \fB%s\fP is
 replaced with a line from \fIfile\fP.
 .TP
-.B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+.BI \-D \ binddn
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
-.B \-w passwd
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
+.TP
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
+.BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
 .TP
-.B \-p ldapport
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .SH EXAMPLE
 The following command:
 .LP
 .nf
-    ldapdelete "cn=Delete Me, o=University of Michigan, c=US"
+    ldapdelete "cn=Delete Me, dc=OpenLDAP, dc=org"
 .fi
 .LP
 will attempt to delete the entry named with commonName "Delete Me"
-directly below the University of Michigan organizational entry.  Of
+directly below the "dc=OpenLDAP, dc=org" entry.  Of
 course it would probably be necessary to supply a \fIbinddn\fP and
 \fIpasswd\fP for deletion to be allowed (see the -D and -w options).
 .SH DIAGNOSTICS
 Exit status is 0 if no errors occur.  Errors result in a non-zero exit
 status and a diagnostic message being written to standard error.
 .SH "SEE ALSO"
+.BR ldap.conf (5),
 .BR ldapadd (1),
 .BR ldapmodify (1),
 .BR ldapmodrdn (1),
@@ -107,3 +138,8 @@ Kille, S.,
 ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

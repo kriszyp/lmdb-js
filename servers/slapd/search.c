@@ -10,32 +10,41 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
+#include "ldap_defaults.h"
 #include "slap.h"
-#include "ldapconfig.h"
 
-extern int	get_filter();
-extern Backend	*select_backend();
 
-extern char	*default_referral;
-
-void
-do_search( conn, op )
-    Connection	*conn;	/* where to send results 		       */
-    Operation	*op;	/* info about the op to which we're responding */
+int
+do_search(
+    Connection	*conn,	/* where to send results 		       */
+    Operation	*op	/* info about the op to which we're responding */
+)
 {
 	int		i, err;
-	int		scope, deref, attrsonly;
-	int		sizelimit, timelimit;
-	char		*base, *fstr;
-	Filter		*filter;
-	char		**attrs;
+	ber_int_t		scope, deref, attrsonly;
+	ber_int_t		sizelimit, timelimit;
+	char		*base = NULL, *fstr = NULL;
+	Filter		*filter = NULL;
+	char		**attrs = NULL;
 	Backend		*be;
+	int			rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
+
+	if( op->o_bind_in_progress ) {
+		Debug( LDAP_DEBUG_ANY, "do_search: SASL bind in progress.\n",
+			0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+			NULL, "SASL bind in progress", NULL, NULL );
+		return LDAP_SASL_BIND_IN_PROGRESS;
+	}
 
 	/*
 	 * Parse the search request.  It looks like this:
@@ -62,86 +71,122 @@ do_search( conn, op )
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{aiiiib", &base, &scope, &deref, &sizelimit,
+	if ( ber_scanf( op->o_ber, "{aiiiib",
+		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR ) {
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
+		goto return_results;
 	}
-	if ( scope != LDAP_SCOPE_BASE && scope != LDAP_SCOPE_ONELEVEL
-	    && scope != LDAP_SCOPE_SUBTREE ) {
-		free( base );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-		    "Unknown search scope" );
-		return;
+
+	switch( scope ) {
+	case LDAP_SCOPE_BASE:
+	case LDAP_SCOPE_ONELEVEL:
+	case LDAP_SCOPE_SUBTREE:
+		break;
+	default:
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			NULL, "invalid scope", NULL, NULL );
+		rc = -1;
+		goto return_results;
 	}
-	(void) dn_normalize( base );
+
+	switch( deref ) {
+	case LDAP_DEREF_NEVER:
+	case LDAP_DEREF_FINDING:
+	case LDAP_DEREF_SEARCHING:
+	case LDAP_DEREF_ALWAYS:
+		break;
+	default:
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			NULL, "invalid deref", NULL, NULL );
+		rc = -1;
+		goto return_results;
+	}
+
+	if( dn_normalize_case( base ) == NULL ) {
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
+			NULL, "invalid DN", NULL, NULL );
+		rc = -1;
+		goto return_results;
+	}
 
 	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base, scope, deref );
 	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n", sizelimit, timelimit,
 	    attrsonly);
 
 	/* filter - returns a "normalized" version */
-	filter = NULL;
-	fstr = NULL;
 	if ( (err = get_filter( conn, op->o_ber, &filter, &fstr )) != 0 ) {
-		if ( fstr != NULL ) {
-			free( fstr );
+		if( err == -1 ) {
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decode error" );
+		} else {
+			send_ldap_result( conn, op, err,
+				NULL, "Bad search filter", NULL, NULL );
 		}
-		free( base );
-		send_ldap_result( conn, op, err, NULL, "Bad search filter" );
-		return;
+		goto return_results;
 	}
+
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr, 0, 0 );
 
 	/* attributes */
-	attrs = NULL;
-	if ( ber_scanf( op->o_ber, "{v}}", &attrs ) == LBER_ERROR ) {
-		free( base );
-		free( fstr );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
+		goto return_results;
 	}
+
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
+		goto return_results;
+	} 
+
+	rc = 0;
+
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
+
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 			attr_normalize( attrs[i] );
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 		}
 	}
+
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%d op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    conn->c_connid, op->o_opid, base, scope, fstr );
+	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
+	    op->o_connid, op->o_opid, base, scope, fstr );
 
-#if defined( SLAPD_MONITOR_DN ) || defined( SLAPD_CONFIG_DN ) || defined( SLAPD_SCHEMA_DN )
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )
-		if ( strcasecmp( base, SLAPD_MONITOR_DN ) == 0 ) {
-			free( base );
-			free( fstr );
-			monitor_info( conn, op );
-			return;
+		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
+			monitor_info( conn, op, attrs, attrsonly );
+			goto return_results;
 		}
 #endif
+
 #if defined( SLAPD_CONFIG_DN )
-		if ( strcasecmp( base, SLAPD_CONFIG_DN ) == 0 ) {
-			free( base );
-			free( fstr );
-			config_info( conn, op );
-			return;
+		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
+			config_info( conn, op, attrs, attrsonly );
+			goto return_results;
 		}
 #endif
+
 #if defined( SLAPD_SCHEMA_DN )
-		if ( strcasecmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
-			free( base );
-			free( fstr );
-			schema_info( conn, op );
-			return;
+		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
+			schema_info( conn, op, attrs, attrsonly );
+			goto return_results;
 		}
 #endif
+
+		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
+			root_dse_info( conn, op, attrs, attrsonly );
+			goto return_results;
+		}
 	}
-#endif /* monitor or config or schema dn */
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -149,31 +194,31 @@ do_search( conn, op )
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( base )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
 
-		free( base );
-		free( fstr );
-		filter_free( filter );
-		if ( attrs != NULL ) {
-			charray_free( attrs );
-		}
-		return;
+		goto return_results;
 	}
 
+	/* deref the base if needed */
+	base = suffix_alias( be, base );
+
 	/* actually do the search and send the result(s) */
-	if ( be->be_search != NULL ) {
+	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
-	free( base );
-	free( fstr );
-	filter_free( filter );
+return_results:;
+	if( base != NULL) free( base );
+	if( fstr != NULL) free( fstr );
+	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {
 		charray_free( attrs );
 	}
+
+	return rc;
 }

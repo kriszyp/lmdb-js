@@ -1,31 +1,24 @@
 /* filterentry.c - apply a filter to an entry */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#ifdef sunos5
-#include "regexpr.h"
-#else
-#include "regex.h"
-#endif
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/regex.h>
+
 #include "slap.h"
 
-extern Attribute	*attr_find();
-extern char		*first_word();
-extern char		*next_word();
-extern char		*phonetic();
-extern char		*re_comp();
-
-#ifndef sunos5
-extern pthread_mutex_t	regex_mutex;
-#endif
-
-static int	test_filter_list();
-static int	test_substring_filter();
-static int	test_ava_filter();
-static int	test_approx_filter();
-static int	test_presence_filter();
+static int	test_filter_list(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *flist, int ftype);
+static int	test_substring_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *f);
+static int	test_ava_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava, int type);
+static int	test_approx_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava);
+static int	test_presence_filter(Backend *be, Connection *conn, Operation *op, Entry *e, char *type);
 
 /*
  * test_filter - test a filter against a single entry.
@@ -99,7 +92,7 @@ test_filter(
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "    unknown filter type %d\n",
+		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
 		rc = -1;
 	}
@@ -121,8 +114,9 @@ test_ava_filter(
 	int		i, rc;
 	Attribute	*a;
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, ava->ava_type,
-	    &ava->ava_value, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		ava->ava_type, &ava->ava_value, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -145,13 +139,13 @@ test_ava_filter(
 			break;
 
 		case LDAP_FILTER_GE:
-			if ( rc > 0 ) {
+			if ( rc >= 0 ) {
 				return( 0 );
 			}
 			break;
 
 		case LDAP_FILTER_LE:
-			if ( rc < 0 ) {
+			if ( rc <= 0 ) {
 				return( 0 );
 			}
 			break;
@@ -170,8 +164,9 @@ test_presence_filter(
     char	*type
 )
 {
-	if ( be != NULL && ! access_allowed( be, conn, op, e, type, NULL,
-	    op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -188,11 +183,12 @@ test_approx_filter(
 )
 {
 	char		*w1, *w2, *c1, *c2;
-	int		i, rc, match;
+	int		i;
 	Attribute	*a;
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, ava->ava_type,
-	    NULL, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		ava->ava_type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -223,11 +219,12 @@ test_approx_filter(
 			    w2 = next_word( w2 ) ) {
 				c2 = phonetic( w2 );
 				if ( strcmp( c1, c2 ) == 0 ) {
+					free( c2 );
 					break;
 				}
+				free( c2 );
 			}
 			free( c1 );
-			free( c2 );
 
 			/*
 			 * if we stopped because we ran out of words
@@ -263,7 +260,7 @@ test_filter_list(
     int		ftype
 )
 {
-	int	rc, nomatch;
+	int	nomatch;
 	Filter	*f;
 
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_list\n", 0, 0, 0 );
@@ -322,11 +319,13 @@ test_substring_filter(
 	char		pat[BUFSIZ];
 	char		buf[BUFSIZ];
 	struct berval	*val;
+	regex_t		re;
 
 	Debug( LDAP_DEBUG_FILTER, "begin test_substring_filter\n", 0, 0, 0 );
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, f->f_sub_type,
-	    NULL, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		f->f_sub_type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -389,19 +388,16 @@ test_substring_filter(
 	}
 
 	/* compile the regex */
-#ifdef sunos5
-	if ( (p = compile( pat, NULL, NULL )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "compile failed (%s)\n", p, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "test_substring_filter: regcomp pat: %s\n",
+		pat, 0, 0 );
+	if ((rc = regcomp(&re, pat, 0))) {
+		char error[512];
+
+		regerror(rc, &re, error, sizeof(error));
+		Debug( LDAP_DEBUG_ANY, "regcomp failed (%s) %s\n",
+			p, error, 0 );
 		return( -1 );
 	}
-#else /* sunos5 */
-	pthread_mutex_lock( &regex_mutex );
-	if ( (p = re_comp( pat )) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "re_comp failed (%s)\n", p, 0, 0 );
-		pthread_mutex_unlock( &regex_mutex );
-		return( -1 );
-	}
-#endif /* sunos5 */
 
 	/* for each value in the attribute see if regex matches */
 	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
@@ -417,29 +413,18 @@ test_substring_filter(
 		}
 		value_normalize( realval, a->a_syntax );
 
-#ifdef sunos5
-		rc = step( realval, p );
-#else /* sunos5 */
-		rc = re_exec( realval );
-#endif /* sunos5 */
+		rc = !regexec(&re, realval, 0, NULL, 0);
 
 		if ( tmp != NULL ) {
 			free( tmp );
 		}
 		if ( rc == 1 ) {
-#ifdef sunos5
-			free( p );
-#else /* sunos5 */
-			pthread_mutex_unlock( &regex_mutex );
-#endif /* sunos5 */
+			regfree(&re);
 			return( 0 );
 		}
 	}
-#ifdef sunos5
-	free( p );
-#else /* sunos5 */
-	pthread_mutex_unlock( &regex_mutex );
-#endif /* sunos5 */
+
+	regfree(&re);
 
 	Debug( LDAP_DEBUG_FILTER, "end test_substring_filter 1\n", 0, 0, 0 );
 	return( 1 );

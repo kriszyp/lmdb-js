@@ -1,52 +1,67 @@
 /* ldapdelete.c - simple program to delete an entry using LDAP */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/stdlib.h>
+#include <ac/ctype.h>
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
 
-#include "ldapconfig.h"
-
-static char	*binddn = LDAPDELETE_BINDDN;
-static char	*base = LDAPDELETE_BASE;
+static char	*binddn = NULL;
 static char	*passwd = NULL;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
+static char	*base = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
+static int dodelete LDAP_P((
+    LDAP	*ld,
+    char	*dn));
 
-#define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
-					 realloc( ptr, size ))
-
-
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
-    char		*usage = "usage: %s [-n] [-v] [-k] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
-    char		*p, buf[ 4096 ];
+	char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-M[M]] [-d debug-level] [-f file] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
+    char		buf[ 4096 ];
     FILE		*fp;
-    int			i, rc, kerberos, linenum, authmethod;
+	int		i, rc, authmethod, want_bindpw, version, debug, manageDSAit;
 
-    extern char	*optarg;
-    extern int	optind;
-
-    kerberos = not = verbose = contoper = 0;
+    not = verbose = contoper = want_bindpw = debug = manageDSAit = 0;
     fp = NULL;
+    authmethod = LDAP_AUTH_SIMPLE;
+	version = -1;
 
-    while (( i = getopt( argc, argv, "nvkKch:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WMnvkKch:P:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-	    kerberos = 2;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		fprintf( stderr, usage, argv[0] );
+		return( EXIT_FAILURE );
+#endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
-	    kerberos = 1;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		fprintf( stderr, usage, argv[0] );
+		return( EXIT_FAILURE );
+#endif
 	    break;
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
@@ -59,19 +74,22 @@ main( argc, argv )
 	    break;
 	case 'w':	/* password */
 	    passwd = strdup( optarg );
+		{
+			char* p;
+
+			for( p = optarg; *p == '\0'; p++ ) {
+				*p = '*';
+			}
+		}
 	    break;
 	case 'f':	/* read DNs from a file */
 	    if (( fp = fopen( optarg, "r" )) == NULL ) {
 		perror( optarg );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    break;
 	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
-#endif /* LDAP_DEBUG */
+	    debug |= atoi( optarg );
 	    break;
 	case 'p':
 	    ldapport = atoi( optarg );
@@ -82,9 +100,31 @@ main( argc, argv )
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
+	case 'W':
+		want_bindpw++;
+		break;
+	case 'P':
+		switch( atoi(optarg) )
+		{
+		case 2:
+			version = LDAP_VERSION2;
+			break;
+		case 3:
+			version = LDAP_VERSION3;
+			break;
+		default:
+			fprintf( stderr, "protocol version should be 2 or 3\n" );
+		    fprintf( stderr, usage, argv[0] );
+		    return( EXIT_FAILURE );
+		}
+		break;
 	default:
 	    fprintf( stderr, usage, argv[0] );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     }
 
@@ -94,24 +134,65 @@ main( argc, argv )
 	}
     }
 
-    if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	perror( "ldap_open" );
-	exit( 1 );
+	if ( debug ) {
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
+    if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+	perror( "ldap_init" );
+	return( EXIT_FAILURE );
     }
 
-    ld->ld_deref = LDAP_DEREF_NEVER;	/* prudent, but probably unnecessary */
+	{
+		/* this seems prudent */
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref );
+	}
 
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod = LDAP_AUTH_KRBV4;
-    }
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
+
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+	}
+
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     if ( fp == NULL ) {
 	for ( ; optind < argc; ++optind ) {
@@ -129,18 +210,19 @@ main( argc, argv )
 
     ldap_unbind( ld );
 
-    exit( rc );
+	return( rc );
 }
 
 
-dodelete( ld, dn )
-    LDAP	*ld;
-    char	*dn;
+static int dodelete(
+    LDAP	*ld,
+    char	*dn)
 {
     int	rc;
 
     if ( verbose ) {
-	printf( "%sdeleting entry %s\n", not ? "!" : "", dn );
+	printf( "%sdeleting entry \"%s\"\n",
+		(not ? "!" : ""), dn );
     }
     if ( not ) {
 	rc = LDAP_SUCCESS;
@@ -148,7 +230,7 @@ dodelete( ld, dn )
 	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
-	    printf( "entry removed\n" );
+	    printf( "\tremoved\n" );
 	}
     }
 

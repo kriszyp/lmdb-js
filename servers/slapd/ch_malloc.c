@@ -1,58 +1,105 @@
 /* ch_malloc.c - malloc routines that test returns from malloc and friends */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#define CH_FREE 1
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-char *
+#ifndef CSRIMALLOC
+
+void *
 ch_malloc(
-    unsigned long	size
+    ber_len_t	size
 )
 {
-	char	*new;
+	void	*new;
 
-	if ( (new = (char *) malloc( size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "malloc of %d bytes failed\n", size, 0, 0 );
-		exit( 1 );
+	if ( (new = (void *) ber_memalloc( size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_malloc of %lu bytes failed\n",
+			(long) size, 0, 0 );
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
 }
 
-char *
+void *
 ch_realloc(
-    char		*block,
-    unsigned long	size
+    void		*block,
+    ber_len_t	size
 )
 {
-	char	*new;
+	void	*new;
 
 	if ( block == NULL ) {
 		return( ch_malloc( size ) );
 	}
 
-	if ( (new = (char *) realloc( block, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "realloc of %d bytes failed\n", size, 0, 0 );
-		exit( 1 );
+	if( size == 0 ) {
+		ch_free( block );
+	}
+
+	if ( (new = (void *) ber_memrealloc( block, size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
+			(long) size, 0, 0 );
+		assert( 0 );
+		exit( EXIT_FAILURE );
+	}
+
+	return( new );
+}
+
+void *
+ch_calloc(
+    ber_len_t	nelem,
+    ber_len_t	size
+)
+{
+	void	*new;
+
+	if ( (new = (void *) ber_memcalloc( nelem, size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_calloc of %lu elems of %lu bytes failed\n",
+		  (long) nelem, (long) size, 0 );
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
 }
 
 char *
-ch_calloc(
-    unsigned long	nelem,
-    unsigned long	size
+ch_strdup(
+    const char *string
 )
 {
 	char	*new;
 
-	if ( (new = (char *) calloc( nelem, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "calloc of %d elems of %d bytes failed\n",
-		  nelem, size, 0 );
-		exit( 1 );
+	if ( (new = ber_strdup( string )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_strdup(%s) failed\n", string, 0, 0 );
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
 }
+
+void
+ch_free( void *ptr )
+{
+	ber_memfree( ptr );
+}
+
+#endif

@@ -1,0 +1,61 @@
+## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## tests Makefile.in for OpenLDAP
+SUBDIRS= progs
+
+BUILD_BDB2 = @BUILD_BDB2@
+
+test: tests
+tests: bdb2 ldbm
+
+bdb2: test-bdb2
+test-bdb2:	FORCE
+	@-$(LN_S) $(srcdir)/data . 
+	@if test "$(BUILD_BDB2)" = "yes" ; then \
+		echo "Initiating LDAP tests..." ; \
+		$(MKDIR) test-db test-repl || true; \
+		$(srcdir)/scripts/all $(srcdir) bdb2 ; \
+	else \
+		echo "run configure with --enable-bdb2" ; \
+	fi
+
+ldbm: test-ldbm
+test-ldbm:	FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@echo "Initiating LDAP tests..."
+	@-$(MKDIR) test-db test-repl || true
+	@$(srcdir)/scripts/all $(srcdir) ldbm
+
+passwd: test-passwd
+test-passwd: FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@echo "Initiating LDAP tests..."
+	@-$(MKDIR) test-db test-repl || true
+	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
+
+test-nis-schema:        test-nis-schema-ldbm
+test-nis-schema-ldbm:
+	@-$(LN_S) $(srcdir)/data .
+	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
+	$(MKDIR) test-db test-repl ; \
+	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
+
+test-nis-schema-bdb2:
+	@-$(LN_S) $(srcdir)/data .
+	@echo "Initiating LDAP server with NIS schema & DB2 backend..."; \
+	@if test "$(BUILD_BDB2)" = "yes" ; then \
+		echo "Initiating LDAP tests..." ; \
+		$(MKDIR) test-db test-repl ; \
+		$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) bdb2 ; \
+	else \
+		echo "run configure with --enable-bdb2" ; \
+	fi
+
+clean-local:	FORCE
+	-$(RM) test-db/[!C]* test-repl/[!C]* *leak *gmon *core
+
+veryclean-local: FORCE
+	@-$(RM) data
+	$(RM) -r test-db test-repl
+

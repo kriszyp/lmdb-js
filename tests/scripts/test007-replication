@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 #
 # Test replication:
@@ -10,27 +10,43 @@
 # - retrieve database over ldap and compare against expected results
 #
 
-. scripts/defines.sh
+if test $# -eq 0 ; then
+	SRCDIR="."
+else
+	SRCDIR=$1; shift
+fi
+if test $# -eq 1 ; then
+	BACKEND=$1; shift
+fi
+
+echo "running defines.sh $SRCDIR $BACKEND"
+. $SRCDIR/scripts/defines.sh
+
+if test ! -x $SLURPD ; then
+	echo ">>>>> $SLURPD is not executable or do not exist."
+	echo ">>>>> Test skipped."
+	exit 0
+fi
 
 echo "Cleaning up in $DBDIR..."
-rm -f $DBDIR/*
+rm -f $DBDIR/[!C]*
 echo "Cleaning up in $REPLDIR..."
-rm -f $REPLDIR/*
+rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $MASTERCONF -p $PORT -d 1 > /dev/null 2>&1 &
+$SLAPD -f $MASTERCONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $SLAVECONF -p $SLAVEPORT -d 1 > /dev/null 2>&1 &
+$SLAPD -f $SLAVECONF -p $SLAVEPORT -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $PORT \
-		'cn=Monitor' > /dev/null 2>&1
+	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
@@ -38,36 +54,40 @@ done
 
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $SLAVEPORT \
-		'cn=Monitor' > /dev/null 2>&1
+	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
 done
 
 echo "Starting slurpd..."
-$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > /dev/null 2>&1 &
+$SLURPD -f $MASTERCONF -d ${SLURPD_DEBUG-4} -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
 
-echo "Using ldapmodify to populate the database..."
-$LDAPMODIFY -a -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
+echo "Using ldapadd to populate the master directory..."
+$LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
-if [ $RC != 0 ]; then
-	echo "ldapmodify failed!"
+if test $RC != 0 ; then
+	echo "ldapadd failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
 
-echo "Using ldapmodify to modify the database..."
+echo "Waiting 15 seconds for slurpd to send changes..."
+sleep 15
+
+echo "Using ldapmodify to modify slave directory..."
+
 #
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
-	/dev/null 2>&1 << EOMODS
+$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $SLAVEPORT -w $PASSWD > \
+	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 changetype: modify
 add: drink
@@ -123,24 +143,24 @@ changetype: delete
 
 EOMODS
 
-echo "Waiting 10 seconds for slurpd to send changes..."
-sleep 10
+echo "Waiting 15 seconds for slurpd to send changes..."
+sleep 15
 
 echo "Using ldapsearch to read all the entries from the master..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
 
 echo "Using ldapsearch to read all the entries from the slave..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
@@ -148,9 +168,18 @@ fi
 
 kill -HUP $PID $SLAVEPID $SLURPPID
 
+SEARCHOUT=$MASTEROUT
+LDIF=$SLAVEOUT
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+
 echo "Comparing retrieved entries from master and slave..."
-cmp $MASTEROUT $SLAVEOUT
-if [ $? != 0 ]; then
+cmp $SEARCHFLT $LDIFFLT
+
+if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"
 	exit 1
 fi

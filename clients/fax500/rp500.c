@@ -10,49 +10,55 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <ldapconfig.h>
-#include "lber.h"
-#include "ldap.h"
+#endif
+
+#include <lber.h>
+#include <ldap.h>
+
+#include "fax500.h"
+#include "ldap_defaults.h"
 
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50
 
 int		debug;
-char		*ldaphost = LDAPHOST;
-char		*base = DEFAULT_BASE;
-int		deref;
-int		sizelimit;
+char	*ldaphost = NULL;
+char	*base = NULL;
+int		deref = LDAP_DEREF_ALWAYS;
+int		sizelimit = DEFAULT_SIZELIMIT;
 LDAPFiltDesc	*filtd;
 
-static print_entry();
+static void	print_entry(LDAP *ld, LDAPMessage *e);
 
-static
-usage( name )
-    char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-x ldaphost] [-b searchbase] [-a] [-z sizelimit] [-f filterfile] searchstring\r\n", name );
 	exit( -1 );
 }
 
-main (argc, argv)
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	int		i, rc, matches;
 	char		*filterfile = FILTERFILE;
-	struct timeval	timeout;
 	char		buf[10];
 	char		*key;
 	LDAP		*ld;
@@ -62,10 +68,7 @@ main (argc, argv)
 	static char	*attrs[] = { "title", "o", "ou", "postalAddress",
 					"telephoneNumber", "mail",
 					"facsimileTelephoneNumber", NULL };
-	extern char	*optarg;
-	extern int	optind;
 
-	deref = LDAP_DEREF_ALWAYS;
 	while ( (i = getopt( argc, argv, "ab:d:f:x:z:" )) != EOF ) {
 		switch( i ) {
 		case 'a':	/* do not deref aliases when searching */
@@ -107,14 +110,19 @@ main (argc, argv)
 		exit( -1 );
 	}
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
-		perror( "ldap_open" );
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
+	if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		perror( "ldap_init" );
 		exit( -1 );
 	}
-	ld->ld_sizelimit = sizelimit ? sizelimit : DEFAULT_SIZELIMIT;
-	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, RP_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
+
+	if ( ldap_simple_bind_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "X.500 is temporarily unavailable.\n" );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( -1 );
@@ -122,7 +130,8 @@ main (argc, argv)
 
 	result = NULL;
 	if ( strchr( key, ',' ) != NULL ) {
-		ld->ld_deref = LDAP_DEREF_FINDING;
+		int ld_deref = LDAP_DEREF_FINDING;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &ld_deref);
 		if ( (rc = ldap_ufn_search_s( ld, key, attrs, 0, &result ))
 		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED &&
 		    rc != LDAP_TIMELIMIT_EXCEEDED )
@@ -174,13 +183,12 @@ main (argc, argv)
 				rdn++;
 			if ( strcasecmp( rdn, buf ) == 0 ) {
 				char	**cn;
-				char	*s;
 				int	i, last;
 
 				cn = ldap_get_values( ld, e, "cn" );
 				for ( i = 0; cn[i] != NULL; i++ ) {
 					last = strlen( cn[i] ) - 1;
-					if ( isdigit( cn[i][last] ) ) {
+					if ( isdigit((unsigned char) cn[i][last]) ) {
 						rdn = strdup( cn[i] );
 						break;
 					}
@@ -210,7 +218,7 @@ main (argc, argv)
 
 		if ( fgets( buf, sizeof(buf), stdin ) == NULL
 		    || buf[0] == '\n' ) {
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 		i = atoi( buf ) - 1;
 		e = ldap_first_entry( ld, result );
@@ -219,13 +227,13 @@ main (argc, argv)
 		}
 		if ( e == NULL ) {
 			fprintf( stderr, "Invalid choice!\n" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		print_entry( ld, e );
 	} else if ( matches == 0 ) {
 		fprintf( stderr, "No matches found for \"%s\"\n", key );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else {
 		fprintf( stderr, "Error return from ldap_count_entries\n" );
 		exit( -1 );
@@ -235,16 +243,14 @@ main (argc, argv)
 	return( 0 );
 }
 
-static
-print_entry( ld, e )
-    LDAP	*ld;
-    LDAPMessage	*e;
+static void
+print_entry( LDAP *ld, LDAPMessage *e )
 {
 	int	i;
 	char	*dn, *rdn;
 	char	**ufn;
 	char	**title, **dept, **addr, **phone, **fax, **mail;
-	char	*faxmail, *org, *faxtotpc();
+	char	*faxmail, *org;
 
 	dn = ldap_get_dn( ld, e );
 	ufn = ldap_explode_dn( dn, 0 );
@@ -253,9 +259,9 @@ print_entry( ld, e )
 	if ( (fax = ldap_get_values( ld, e, "facsimileTelephoneNumber" ))
 	    == NULL ) {
 		fprintf( stderr, "Entry \"%s\" has no fax number.\n", dn );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
-	faxmail = faxtotpc( fax[0] );
+	faxmail = faxtotpc( fax[0], NULL );
 	title = ldap_get_values( ld, e, "title" );
 	phone = ldap_get_values( ld, e, "telephoneNumber" );
 	mail = ldap_get_values( ld, e, "mail" );

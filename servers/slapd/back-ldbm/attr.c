@@ -1,18 +1,23 @@
 /* attr.c - backend routines for dealing with attributes */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
-
-extern char	**str2charray();
 
 static int
 ainfo_type_cmp(
     char		*type,
-    struct attrinfo	*a
+    AttrInfo	*a
 )
 {
 	return( strcasecmp( type, a->ai_type ) );
@@ -20,8 +25,8 @@ ainfo_type_cmp(
 
 static int
 ainfo_cmp(
-    struct attrinfo	*a,
-    struct attrinfo	*b
+    AttrInfo	*a,
+    AttrInfo	*b
 )
 {
 	return( strcasecmp( a->ai_type, b->ai_type ) );
@@ -36,8 +41,8 @@ ainfo_cmp(
 
 static int
 ainfo_dup(
-    struct attrinfo	*a,
-    struct attrinfo	*b
+    AttrInfo	*a,
+    AttrInfo	*b
 )
 {
 	/*
@@ -61,14 +66,14 @@ attr_masks(
     int			*syntaxmask
 )
 {
-	struct attrinfo	*a;
+	AttrInfo	*a;
 
 	*indexmask = 0;
 	*syntaxmask = 0;
-	if ( (a = (struct attrinfo *) avl_find( li->li_attrs, type,
-	    ainfo_type_cmp )) == NULL ) {
-		if ( (a = (struct attrinfo *) avl_find( li->li_attrs, "default",
-		    ainfo_type_cmp )) == NULL ) {
+	if ( (a = (AttrInfo *) avl_find( li->li_attrs, type,
+	    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
+		if ( (a = (AttrInfo *) avl_find( li->li_attrs, "default",
+		    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
 			return;
 		}
 	}
@@ -92,15 +97,15 @@ attr_index_config(
 {
 	int		i, j;
 	char		**attrs, **indexes;
-	struct attrinfo	*a;
+	AttrInfo	*a;
 
 	attrs = str2charray( argv[0], "," );
 	if ( argc > 1 ) {
 		indexes = str2charray( argv[1], "," );
 	}
 	for ( i = 0; attrs[i] != NULL; i++ ) {
-		a = (struct attrinfo *) ch_malloc( sizeof(struct attrinfo) );
-		a->ai_type = strdup( attrs[i] );
+		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
+		a->ai_type = ch_strdup( attrs[i] );
 		a->ai_syntaxmask = attr_syntax( a->ai_type );
 		if ( argc == 1 ) {
 			a->ai_indexmask = (INDEX_PRESENCE | INDEX_EQUALITY |
@@ -141,7 +146,9 @@ attr_index_config(
 			a->ai_indexmask |= INDEX_FROMINIT;
 		}
 
-		switch (avl_insert( &li->li_attrs, a, ainfo_cmp, ainfo_dup )) {
+		switch (avl_insert( &li->li_attrs, (caddr_t) a,
+			(AVL_CMP) ainfo_cmp, (AVL_DUP) ainfo_dup ))
+		{
 		case 1:		/* duplicate - updating init version */
 			free( a->ai_type );
 			free( (char *) a );
@@ -163,3 +170,19 @@ attr_index_config(
 	if ( argc > 1 )
 		charray_free( indexes );
 }
+
+
+static void
+ainfo_free( void *attr )
+{
+	AttrInfo *ai = attr;
+	free( ai->ai_type );
+	free( ai );
+}
+
+void
+attr_index_destroy( Avlnode *tree )
+{
+	avl_free( tree, ainfo_free );
+}
+

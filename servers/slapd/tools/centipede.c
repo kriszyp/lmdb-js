@@ -1,13 +1,19 @@
 /* centipede.c - generate and install indexing information (view w/tabstop=4) */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
-#include <lber.h>
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>		/* get link(), unlink() */
+
 #include <ldap.h>
-#include <ldapconfig.h>
 #include <ldbm.h>
+
+int	slap_debug;
 
 #define DEFAULT_LDAPFILTER	"(objectclass=*)"
 
@@ -35,13 +41,13 @@ int		destldapauthmethod;
 int		verbose;
 int		not;
 
-static LDAP		*start_ldap_search();
-static LDAP		*bind_to_destination_ldap();
-static int		create_tmp_files();
-static int		generate_new_centroids();
-static LDAPMod	**diff_centroids();
-static LDAPMod	**full_centroid();
-static char		**charray_add_dup();
+static LDAP		*start_ldap_search(char *ldapsrcurl, char *ldapfilter, char **attrs);
+static LDAP		*bind_to_destination_ldap(char *ldapsrcurl, char *ldapdesturl);
+static int		create_tmp_files(char **attrs, char ***tmpfile, LDBM **ldbm);
+static int		generate_new_centroids(LDAP *ld, char **attrs, LDBM *ldbm);
+static LDAPMod	**diff_centroids(char *attr, LDBM oldbm, LDBM nldbm, int nentries);
+static LDAPMod	**full_centroid(char *attr, LDBM ldbm, int nentries);
+static char		**charray_add_dup(char ***a, int *cur, int *max, char *s);
 
 static void usage( char *name )
 {
@@ -66,9 +72,10 @@ static void usage( char *name )
 	fprintf( stderr, "\t-c size\t\tldbm cache size\n" );
 }
 
+int
 main( int argc, char **argv )
 {
-	char		*ldapfilter, *ldapref;
+	char		*ldapfilter;
 	char		*ldapsrcurl, *ldapdesturl;
 	LDAP		*ld;
 	LDAPMod		**mods;
@@ -79,13 +86,11 @@ main( int argc, char **argv )
 	char		buf[BUFSIZ];
 	int			i, j, k, count;
 	char		*s;
-	extern int	optind;
-	extern char	*optarg;
 
 	ldapsrcurl = NULL;
 	ldapdesturl = NULL;
-	ldaphost = LDAPHOST;
-	ldapbase = DEFAULT_BASE;
+	ldaphost = NULL;
+	ldapbase = NULL;
 	srcldapauthmethod = LDAP_AUTH_SIMPLE;
 	destldapauthmethod = LDAP_AUTH_SIMPLE;
 	srcldapbinddn = NULL;
@@ -161,9 +166,8 @@ main( int argc, char **argv )
 				srcldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
-				exit( 1 );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
+				exit( EXIT_FAILURE );
 			}
 			break;
 
@@ -174,9 +178,8 @@ main( int argc, char **argv )
 				destldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
-				exit( 1 );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
+				exit( EXIT_FAILURE );
 			}
 			break;
 
@@ -194,12 +197,12 @@ main( int argc, char **argv )
 
 		default:
 			usage( argv[0] );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 	if ( optind == argc || ldapsrcurl == NULL || ldapdesturl == NULL ) {
 		usage( argv[0] );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	attrs = &argv[optind];
 
@@ -210,12 +213,12 @@ main( int argc, char **argv )
 
 	if ( (ld = start_ldap_search( ldapsrcurl, ldapfilter, attrs )) == NULL ) {
 		fprintf( stderr, "could not initiate ldap search\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( create_tmp_files( attrs, &tmpfile, &ldbm ) != 0 ) {
 		fprintf( stderr, "could not create temp files\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	/*
@@ -226,10 +229,10 @@ main( int argc, char **argv )
 	if ( (count = generate_new_centroids( ld, attrs, ldbm )) < 1 ) {
 		if ( count == 0 ) {
 		    fprintf( stderr, "no entries matched\n" );
-		    exit( 0 );
+		    exit( EXIT_SUCCESS );
 		} else {
 		    fprintf( stderr, "could not generate new centroid\n" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 	}
 
@@ -243,7 +246,7 @@ main( int argc, char **argv )
 	if ( (ld = bind_to_destination_ldap( ldapsrcurl, ldapdesturl )) == NULL ) {
 		fprintf( stderr,
 		  "could not bind to index server, or could not create index entry\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	for ( i = 0; ldbm[i] != NULL; i++ ) {
@@ -335,7 +338,7 @@ main( int argc, char **argv )
 	free( ldbm );
 	free( tmpfile );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 /*
@@ -353,9 +356,11 @@ start_ldap_search(
 	char	*s, *s2;
 	int		i;
 
-	if ( strncmp( ldapsrcurl, "ldap://", 7 ) == 0 ) {
-		s = ldapsrcurl + 7;
+	if ( strncmp( ldapsrcurl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapsrcurl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {
@@ -378,8 +383,8 @@ start_ldap_search(
 		fflush( stdout );
 	}
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
-		perror( "ldap_open" );
+	if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		perror( "ldap_init" );
 		return( NULL );
 	}
 
@@ -468,6 +473,8 @@ generate_new_centroids(
 	char		**val;
 	char		last;
 
+	ldbm_datum_init( data );
+
 	if ( verbose ) {
 		printf( "Generating new centroids for..." );
 		fflush( stdout );
@@ -490,11 +497,12 @@ generate_new_centroids(
 
 			/* for each value */
 			for ( j = 0; val[j] != NULL; j++ ) {
+
+				ldbm_datum_init( key );
+
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
-					if ( isascii( *s ) ) {
-						*s = tolower( *s );
-					}
+					*s = TOLOWER( (unsigned char) *s );
 					last = *s;
 				}
 				if ( isascii( last ) && isdigit( last ) ) {
@@ -509,8 +517,10 @@ generate_new_centroids(
 
 				/* generate a word-based centroid */
 				} else {
-					for ( w = strtok( val[j], WORD_BREAKS ); w != NULL;
-					  w = strtok( NULL, WORD_BREAKS ) ) {
+					char *lasts;
+					for ( w = ldap_pvt_strtok( val[j], WORD_BREAKS, &lasts );
+					  w != NULL;
+					  w = ldap_pvt_strtok( NULL, WORD_BREAKS, &lasts ) ) {
 						key.dptr = w;
 						key.dsize = strlen( key.dptr ) + 1;
 						(void) ldbm_store( ldbm[i], key, data, LDBM_INSERT );
@@ -550,16 +560,26 @@ diff_centroids(
 	Datum	olast, nlast;
 	Datum	lastkey, key;
 	Datum	data;
-	int		rc;
 	LDAPMod	**mods;
 	char	**avals, **dvals;
 	int		amax, acur, dmax, dcur;
 	char	**vals;
 
+	LDBMCursor	*ocursorp;
+	LDBMCursor	*ncursorp;
+
 	if ( verbose ) {
 		printf( "Generating mods for differential %s centroid...", attr );
 		fflush( stdout );
 	}
+
+	ldbm_datum_init( okey );
+	ldbm_datum_init( nkey );
+	ldbm_datum_init( olast );
+	ldbm_datum_init( nlast );
+	ldbm_datum_init( lastkey );
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	if ( (mods = (LDAPMod **) malloc( sizeof(LDAPMod *) * 4 )) == NULL ||
 	     (mods[0] = (LDAPMod *) malloc( sizeof(LDAPMod) )) == NULL ||
@@ -569,7 +589,7 @@ diff_centroids(
 		 (vals[0] = (char *) malloc( 20 )) == NULL )
 	{
 		perror( "malloc" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 	}
 	/* add values in mods[0] */
 	mods[0]->mod_op = LDAP_MOD_ADD;
@@ -600,10 +620,12 @@ diff_centroids(
 
 	olast.dptr = NULL;
 	nlast.dptr = NULL;
-	for ( okey = ldbm_firstkey( oldbm ), nkey = ldbm_firstkey( nldbm );
+
+	for ( okey = ldbm_firstkey( oldbm, &ocursorp ),
+			nkey = ldbm_firstkey( nldbm, &ncursorp );
 	      okey.dptr != NULL && nkey.dptr != NULL; )
 	{
-		rc = strcmp( okey.dptr, nkey.dptr );
+		int	rc = strcmp( okey.dptr, nkey.dptr );
 
 		if ( rc == 0 ) {
 			/* value is in both places - leave it */
@@ -616,8 +638,9 @@ diff_centroids(
 			}
 			nlast = nkey;
 
-			okey = ldbm_nextkey( oldbm, olast );
-			nkey = ldbm_nextkey( nldbm, nlast );
+			okey = ldbm_nextkey( oldbm, olast, ocursorp );
+			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
+
 		} else if ( rc > 0 ) {
 			/* new value is not in old centroid - add it */
 			if ( charray_add_dup( &avals, &acur, &amax, nkey.dptr ) == NULL ) {
@@ -629,7 +652,9 @@ diff_centroids(
 				ldbm_datum_free( nldbm, nlast );
 			}
 			nlast = nkey;
-			nkey = ldbm_nextkey( nldbm, nlast );
+
+			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
+
 		} else {
 			/* old value is not in new centroid - delete it */
 			if ( charray_add_dup( &dvals, &dcur, &dmax, okey.dptr ) == NULL ) {
@@ -641,7 +666,8 @@ diff_centroids(
 				ldbm_datum_free( oldbm, olast );
 			}
 			olast = okey;
-			okey = ldbm_nextkey( oldbm, olast );
+
+			okey = ldbm_nextkey( oldbm, olast, ocursorp );
 		}
 	}
 
@@ -651,7 +677,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-		okey = ldbm_nextkey( oldbm, olast );
+		okey = ldbm_nextkey( oldbm, olast, ocursorp );
 		if ( olast.dptr != NULL ) {
 			ldbm_datum_free( oldbm, olast );
 		}
@@ -666,7 +692,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-		nkey = ldbm_nextkey( nldbm, nlast );
+		nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
 		if ( nlast.dptr != NULL ) {
 			ldbm_datum_free( nldbm, nlast );
 		}
@@ -687,8 +713,9 @@ diff_centroids(
 
 	/* generate list of values to add */
 	lastkey.dptr = NULL;
-	for ( key = ldbm_firstkey( nldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( nldbm, lastkey ) ) {
+	for ( key = ldbm_firstkey( nldbm, &ncursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( nldbm, lastkey, ncursorp ) )
+	{
 		/* see if it's in the old one */
 		data = ldbm_fetch( oldbm, key );
 
@@ -712,8 +739,9 @@ diff_centroids(
 
 	/* generate list of values to delete */
 	lastkey.dptr = NULL;
-	for ( key = ldbm_firstkey( oldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( oldbm, lastkey ) ) {
+	for ( key = ldbm_firstkey( oldbm, &ocursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( oldbm, lastkey, ocursorp ) )
+	{
 		/* see if it's in the new one */
 		data = ldbm_fetch( nldbm, key );
 
@@ -773,10 +801,15 @@ full_centroid(
 	char	**vals;
 	int		vcur, vmax;
 
+	LDBMCursor *cursorp;
+
 	if ( verbose ) {
 		printf( "Generating mods for full %s centroid...", attr );
 		fflush( stdout );
 	}
+
+	ldbm_datum_init( key );
+	ldbm_datum_init( lastkey );
 
 	if ( (mods = (LDAPMod **) malloc( sizeof(LDAPMod *) * 3 )) == NULL ||
 	     (mods[0] = (LDAPMod *) malloc( sizeof(LDAPMod) )) == NULL ||
@@ -785,7 +818,7 @@ full_centroid(
 	     (vals[0] = (char *) malloc( 20 )) == NULL )
 	{
 		perror( "malloc" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 	}
 	mods[0]->mod_op = LDAP_MOD_REPLACE;
 	mods[0]->mod_type = attr;
@@ -800,8 +833,10 @@ full_centroid(
 	lastkey.dptr = NULL;
 	vals = NULL;
 	vcur = vmax = 0;
-	for ( key = ldbm_firstkey( ldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( ldbm, lastkey ) ) {
+
+	for ( key = ldbm_firstkey( ldbm, &cursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( ldbm, lastkey, cursorp ) )
+	{
 		if ( charray_add_dup( &vals, &vcur, &vmax, key.dptr ) == NULL ) {
 			ldap_mods_free( mods, 1 );
 			return( NULL );
@@ -862,10 +897,13 @@ bind_to_destination_ldap(
 	/* first, pick out the destination ldap server info */
 	if ( ldapbase != NULL ) {
 		free( ldapbase );
+		ldapbase = NULL;
 	}
-	if ( strncmp( ldapdesturl, "ldap://", 7 ) == 0 ) {
-		s = ldapdesturl + 7;
+	if ( strncmp( ldapdesturl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapdesturl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {
@@ -897,8 +935,8 @@ bind_to_destination_ldap(
 	free( ldapbase );
 	ldapbase = strdup( buf );
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
-		perror( "ldap_open" );
+	if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		perror( "ldap_init" );
 		return( NULL );
 	}
 
@@ -966,8 +1004,6 @@ charray_add_dup(
 	char    *s
 )
 {
-	int n;
- 
 	if ( *a == NULL ) {
 		*a = (char **) malloc( (BUFSIZ + 1) * sizeof(char *) );
 		*cur = 0;

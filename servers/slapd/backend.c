@@ -1,144 +1,412 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* backend.c - routines for dealing with back-end databases */
 
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include <sys/stat.h>
+
 #include "slap.h"
+#include "lutil.h"
 
-#ifdef LDAP_LDBM
-extern int	ldbm_back_bind();
-extern int	ldbm_back_unbind();
-extern int	ldbm_back_search();
-extern int	ldbm_back_compare();
-extern int	ldbm_back_modify();
-extern int	ldbm_back_modrdn();
-extern int	ldbm_back_add();
-extern int	ldbm_back_delete();
-extern int	ldbm_back_abandon();
-extern int	ldbm_back_config();
-extern int	ldbm_back_init();
-extern int	ldbm_back_close();
+#include "ldap_defaults.h"
+
+#ifdef SLAPD_LDAP
+#include "back-ldap/external.h"
+#endif
+#ifdef SLAPD_LDBM
+#include "back-ldbm/external.h"
+#endif
+#ifdef SLAPD_BDB2
+#include "back-bdb2/external.h"
+#endif
+#ifdef SLAPD_PASSWD
+#include "back-passwd/external.h"
+#endif
+#ifdef SLAPD_PERL
+#include "back-perl/external.h"
+#endif
+#ifdef SLAPD_SHELL
+#include "back-shell/external.h"
+#endif
+#ifdef SLAPD_TCL
+#include "back-tcl/external.h"
 #endif
 
-#ifdef LDAP_PASSWD
-extern int	passwd_back_search();
-extern int	passwd_back_config();
+static BackendInfo binfo[] = {
+#if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
+	{"ldap",	ldap_back_initialize},
 #endif
-
-#ifdef LDAP_SHELL
-extern int	shell_back_bind();
-extern int	shell_back_unbind();
-extern int	shell_back_search();
-extern int	shell_back_compare();
-extern int	shell_back_modify();
-extern int	shell_back_modrdn();
-extern int	shell_back_add();
-extern int	shell_back_delete();
-extern int	shell_back_abandon();
-extern int	shell_back_config();
-extern int	shell_back_init();
+#if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
+	{"ldbm",	ldbm_back_initialize},
 #endif
+#if defined(SLAPD_BDB2) && !defined(SLAPD_BDB2_DYNAMIC)
+	{"bdb2",	bdb2_back_initialize},
+#endif
+#if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
+	{"passwd",	passwd_back_initialize},
+#endif
+#if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
+	{"perl",	perl_back_initialize},
+#endif
+#if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
+	{"shell",	shell_back_initialize},
+#endif
+#if defined(SLAPD_TCL) && !defined(SLAPD_LDAP_TCL)
+	{"tcl",		tcl_back_initialize},
+#endif
+	{NULL}
+};
 
-extern int	defsize;
-extern int	deftime;
+int			nBackendInfo = 0;
+BackendInfo	*backendInfo = NULL;
 
-#define BACKEND_GRAB_SIZE	10
+int			nBackendDB = 0; 
+BackendDB	*backendDB = NULL;
 
-int		nbackends;
-Backend		*backends;
-static int	maxbackends;
+int backend_init(void)
+{
+	int rc = -1;
 
-Backend *
-new_backend(
+	if((nBackendInfo != 0) || (backendInfo != NULL)) {
+		/* already initialized */
+		Debug( LDAP_DEBUG_ANY,
+			"backend_init: already initialized.\n", 0, 0, 0 );
+		return -1;
+	}
+
+	for( ;
+		binfo[nBackendInfo].bi_type != NULL;
+		nBackendInfo++ )
+	{
+		rc = binfo[nBackendInfo].bi_init( &binfo[nBackendInfo] );
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_init: initialized for type \"%s\"\n",
+					binfo[nBackendInfo].bi_type, 0, 0 );
+
+			/* destroy those we've already inited */
+			for( nBackendInfo--;
+				nBackendInfo >= 0 ;
+				nBackendInfo-- )
+			{ 
+				if ( binfo[nBackendInfo].bi_destroy ) {
+					binfo[nBackendInfo].bi_destroy(
+						&binfo[nBackendInfo] );
+				}
+			}
+			return rc;
+		}
+	}
+
+	if ( nBackendInfo > 0) {
+		backendInfo = binfo;
+		return 0;
+	}
+
+#ifdef SLAPD_MODULES	
+	return 0;
+#else
+	Debug( LDAP_DEBUG_ANY,
+		"backend_init: failed\n",
+		0, 0, 0 );
+
+	return rc;
+#endif /* SLAPD_MODULES */
+}
+
+int backend_add(BackendInfo *aBackendInfo)
+{
+   int rc = 0;
+
+   if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
+      Debug( LDAP_DEBUG_ANY,
+	     "backend_add: initialization for type \"%s\" failed\n",
+	     aBackendInfo->bi_type, 0, 0 );
+      return rc;
+   }
+
+   /* now add the backend type to the Backend Info List */
+   {
+      BackendInfo *newBackendInfo = 0;
+
+      /* if backendInfo == binfo no deallocation of old backendInfo */
+      if (backendInfo == binfo) {
+	 newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
+	 memcpy(newBackendInfo, backendInfo, sizeof(BackendInfo) * 
+		nBackendInfo);
+      } else {
+	 newBackendInfo = ch_realloc(backendInfo, sizeof(BackendInfo) * 
+				     (nBackendInfo + 1));
+      }
+      memcpy(&newBackendInfo[nBackendInfo], aBackendInfo, 
+	     sizeof(BackendInfo));
+      backendInfo = newBackendInfo;
+      nBackendInfo++;
+
+      return 0;
+   }	    
+}
+
+int backend_startup(Backend *be)
+{
+	int i;
+	int rc = 0;
+
+	if( ! ( nBackendDB > 0 ) ) {
+		/* no databases */
+		Debug( LDAP_DEBUG_ANY,
+			"backend_startup: %d databases to startup.\n",
+			nBackendDB, 0, 0 );
+		return 1;
+	}
+
+	if(be != NULL) {
+		/* startup a specific backend database */
+		Debug( LDAP_DEBUG_TRACE,
+			"backend_startup: starting database\n",
+			0, 0, 0 );
+
+		if ( be->bd_info->bi_open ) {
+			rc = be->bd_info->bi_open( be->bd_info );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_open failed!\n",
+				0, 0, 0 );
+			return rc;
+		}
+
+		if ( be->bd_info->bi_db_open ) {
+			rc = be->bd_info->bi_db_open( be );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_db_open failed!\n",
+				0, 0, 0 );
+			return rc;
+		}
+
+		return rc;
+	}
+
+	/* open each backend type */
+	for( i = 0; i < nBackendInfo; i++ ) {
+		if( backendInfo[i].bi_nDB == 0) {
+			/* no database of this type, don't open */
+			continue;
+		}
+
+		if( backendInfo[i].bi_open ) {
+			rc = backendInfo[i].bi_open(
+				&backendInfo[i] );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_open %d failed!\n",
+				i, 0, 0 );
+			return rc;
+		}
+	}
+
+	/* open each backend database */
+	for( i = 0; i < nBackendDB; i++ ) {
+		if ( backendDB[i].bd_info->bi_db_open ) {
+			rc = backendDB[i].bd_info->bi_db_open(
+				&backendDB[i] );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_db_open %d failed!\n",
+				i, 0, 0 );
+			return rc;
+		}
+	}
+
+	return rc;
+}
+
+int backend_num( Backend *be )
+{
+	int i;
+
+	if( be == NULL ) return -1;
+
+	for( i = 0; i < nBackendDB; i++ ) {
+		if( be == &backendDB[i] ) return i;
+	}
+	return -1;
+}
+
+int backend_shutdown( Backend *be )
+{
+	int i;
+	int rc = 0;
+
+	if( be != NULL ) {
+		/* shutdown a specific backend database */
+
+		if ( be->bd_info->bi_nDB == 0 ) {
+			/* no database of this type, we never opened it */
+			return 0;
+		}
+
+		if ( be->bd_info->bi_db_close ) {
+			be->bd_info->bi_db_close( be );
+		}
+
+		if( be->bd_info->bi_close ) {
+			be->bd_info->bi_close( be->bd_info );
+		}
+
+		return 0;
+	}
+
+	/* close each backend database */
+	for( i = 0; i < nBackendDB; i++ ) {
+		BackendInfo  *bi;
+
+		if ( backendDB[i].bd_info->bi_db_close ) {
+			backendDB[i].bd_info->bi_db_close(
+				&backendDB[i] );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_close: bi_close %s failed!\n",
+				bi->bi_type, 0, 0 );
+		}
+	}
+
+	/* close each backend type */
+	for( i = 0; i < nBackendInfo; i++ ) {
+		if( backendInfo[i].bi_nDB == 0 ) {
+			/* no database of this type */
+			continue;
+		}
+
+		if( backendInfo[i].bi_close ) {
+			backendInfo[i].bi_close(
+				&backendInfo[i] );
+		}
+	}
+
+	return 0;
+}
+
+int backend_destroy(void)
+{
+	int i;
+
+	/* destroy each backend database */
+	for( i = 0; i < nBackendDB; i++ ) {
+		if ( backendDB[i].bd_info->bi_db_destroy ) {
+			backendDB[i].bd_info->bi_db_destroy(
+				&backendDB[i] );
+		}
+	}
+
+	/* destroy each backend type */
+	for( i = 0; i < nBackendInfo; i++ ) {
+		if( backendInfo[i].bi_destroy ) {
+			backendInfo[i].bi_destroy(
+				&backendInfo[i] );
+		}
+	}
+
+#ifdef SLAPD_MODULES
+	if (backendInfo != binfo) {
+	   free(backendInfo);
+	}
+#endif /* SLAPD_MODULES */
+
+	nBackendInfo = 0;
+	backendInfo = NULL;
+
+	return 0;
+}
+
+BackendInfo* backend_info(char *type)
+{
+	int i;
+
+	/* search for the backend type */
+	for( i = 0; i < nBackendInfo; i++ ) {
+		if( strcasecmp(backendInfo[i].bi_type, type) == 0 ) {
+			return &backendInfo[i];
+		}
+	}
+
+	return NULL;
+}
+
+
+BackendDB *
+backend_db_init(
     char	*type
 )
 {
 	Backend	*be;
-	int	foundit;
+	BackendInfo *bi = backend_info(type);
+	int	rc = 0;
 
-	if ( nbackends == maxbackends ) {
-		maxbackends += BACKEND_GRAB_SIZE;
-		backends = (Backend *) ch_realloc( (char *) backends,
-		    maxbackends * sizeof(Backend) );
-		memset( &backends[nbackends], '\0', BACKEND_GRAB_SIZE *
-		    sizeof(Backend) );
+	if( bi == NULL ) {
+		fprintf( stderr, "Unrecognized database type (%s)\n", type );
+		return NULL;
 	}
+
+	backendDB = (BackendDB *) ch_realloc(
+			(char *) backendDB,
+		    (nBackendDB + 1) * sizeof(Backend) );
+
+	memset( &backendDB[nbackends], '\0', sizeof(Backend) );
 
 	be = &backends[nbackends++];
+
+	be->bd_info = bi;
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
-	foundit = 0;
 
-#ifdef LDAP_LDBM
-	if ( strcasecmp( type, "ldbm" ) == 0 ) {
-		be->be_bind = ldbm_back_bind;
-		be->be_unbind = ldbm_back_unbind;
-		be->be_search = ldbm_back_search;
-		be->be_compare = ldbm_back_compare;
-		be->be_modify = ldbm_back_modify;
-		be->be_modrdn = ldbm_back_modrdn;
-		be->be_add = ldbm_back_add;
-		be->be_delete = ldbm_back_delete;
-		be->be_abandon = ldbm_back_abandon;
-		be->be_config = ldbm_back_config;
-		be->be_init = ldbm_back_init;
-		be->be_close = ldbm_back_close;
-		be->be_type = "ldbm";
-		foundit = 1;
-	}
-#endif
+	be->be_realm = global_realm != NULL
+		? ch_strdup( global_realm ) : NULL;
 
-#ifdef LDAP_PASSWD
-	if ( strcasecmp( type, "passwd" ) == 0 ) {
-		be->be_bind = NULL;
-		be->be_unbind = NULL;
-		be->be_search = passwd_back_search;
-		be->be_compare = NULL;
-		be->be_modify = NULL;
-		be->be_modrdn = NULL;
-		be->be_add = NULL;
-		be->be_delete = NULL;
-		be->be_abandon = NULL;
-		be->be_config = passwd_back_config;
-		be->be_init = NULL;
-		be->be_close = NULL;
-		be->be_type = "passwd";
-		foundit = 1;
-	}
-#endif
-
-#ifdef LDAP_SHELL
-	if ( strcasecmp( type, "shell" ) == 0 ) {
-		be->be_bind = shell_back_bind;
-		be->be_unbind = shell_back_unbind;
-		be->be_search = shell_back_search;
-		be->be_compare = shell_back_compare;
-		be->be_modify = shell_back_modify;
-		be->be_modrdn = shell_back_modrdn;
-		be->be_add = shell_back_add;
-		be->be_delete = shell_back_delete;
-		be->be_abandon = shell_back_abandon;
-		be->be_config = shell_back_config;
-		be->be_init = shell_back_init;
-		be->be_close = NULL;
-		be->be_type = "shell";
-		foundit = 1;
-	}
-#endif
-
-	if ( be->be_init != NULL ) {
-		(*be->be_init)( be );
+	if(bi->bi_db_init) {
+		rc = bi->bi_db_init( be );
 	}
 
-	if ( foundit == 0 ) {
-		fprintf( stderr, "Unrecognized database type (%s)\n", type );
-		exit( 1 );
+	if(rc != 0) {
+		fprintf( stderr, "database init failed (%s)\n", type );
+		nbackends--;
+		return NULL;
 	}
 
+	bi->bi_nDB++;
 	return( be );
+}
+
+void
+be_db_close( void )
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].bd_info->bi_db_close ) {
+			(*backends[i].bd_info->bi_db_close)( &backends[i] );
+		}
+	}
 }
 
 Backend *
@@ -148,20 +416,35 @@ select_backend( char * dn )
 
 	dnlen = strlen( dn );
 	for ( i = 0; i < nbackends; i++ ) {
-		for ( j = 0; backends[i].be_suffix != NULL &&
-		    backends[i].be_suffix[j] != NULL; j++ ) {
-			len = strlen( backends[i].be_suffix[j] );
+		for ( j = 0; backends[i].be_nsuffix != NULL &&
+		    backends[i].be_nsuffix[j] != NULL; j++ )
+		{
+			len = strlen( backends[i].be_nsuffix[j] );
 
 			if ( len > dnlen ) {
 				continue;
 			}
 
-			if ( strcasecmp( backends[i].be_suffix[j],
+			if ( strcmp( backends[i].be_nsuffix[j],
 			    dn + (dnlen - len) ) == 0 ) {
 				return( &backends[i] );
 			}
 		}
 	}
+
+#ifdef LDAP_ALLOW_NULL_SEARCH_BASE
+	/* Add greg@greg.rim.or.jp
+	 * It's quick hack for cheap client
+	 * Some browser offer a NULL base at ldap_search
+	 *
+	 * Should only be used as a last resort. -Kdz
+	 */
+	if(dnlen == 0) {
+		Debug( LDAP_DEBUG_TRACE,
+			"select_backend: use default backend\n", 0, 0, 0 );
+		return( &backends[0] );
+	}
+#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
 
 	return( NULL );
 }
@@ -174,8 +457,8 @@ be_issuffix(
 {
 	int	i;
 
-	for ( i = 0; be->be_suffix != NULL && be->be_suffix[i] != NULL; i++ ) {
-		if ( strcasecmp( be->be_suffix[i], suffix ) == 0 ) {
+	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
+		if ( strcmp( be->be_nsuffix[i], suffix ) == 0 ) {
 			return( 1 );
 		}
 	}
@@ -184,41 +467,66 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, char *dn )
+be_isroot( Backend *be, char *ndn )
 {
-	if ( dn == NULL ) {
+	int rc;
+
+	if ( ndn == NULL || be->be_root_ndn == NULL ) {
 		return( 0 );
 	}
 
-	return( be->be_rootdn ? strcasecmp( be->be_rootdn, dn ) == 0
-	    : 0 );
+	rc = strcmp( be->be_root_ndn, ndn ) ? 0 : 1;
+
+	return(rc);
+}
+
+char *
+be_root_dn( Backend *be )
+{
+	if ( be->be_root_dn == NULL ) {
+		return( "" );
+	}
+
+	return be->be_root_dn;
 }
 
 int
-be_isroot_pw( Backend *be, char *dn, struct berval *cred )
+be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 {
-	if ( ! be_isroot( be, dn ) || be->be_rootpw == NULL ) {
+	int result;
+
+	if ( ! be_isroot( be, ndn ) ) {
 		return( 0 );
 	}
 
-	return( strcmp( be->be_rootpw, cred->bv_val ) == 0 );
+#ifdef SLAPD_CRYPT
+	ldap_pvt_thread_mutex_lock( &crypt_mutex );
+#endif
+
+	result = lutil_passwd( cred->bv_val, be->be_root_pw, NULL );
+
+#ifdef SLAPD_CRYPT
+	ldap_pvt_thread_mutex_unlock( &crypt_mutex );
+#endif
+
+	return result == 0;
 }
 
-void
-be_close()
+int
+be_entry_release_rw( Backend *be, Entry *e, int rw )
 {
-	int	i;
-
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_close != NULL ) {
-			(*backends[i].be_close)( &backends[i] );
-		}
+	if ( be->be_release ) {
+		/* free and release entry from backend */
+		return be->be_release( be, e, rw );
+	} else {
+		/* free entry */
+		entry_free( e );
+		return 0;
 	}
 }
 
-
-void
-be_unbind(
+int
+backend_unbind(
 	Connection   *conn,
 	Operation    *op
 )
@@ -226,8 +534,78 @@ be_unbind(
 	int	i;
 
 	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_unbind != NULL ) {
+		if ( backends[i].be_unbind ) {
 			(*backends[i].be_unbind)( &backends[i], conn, op );
 		}
 	}
+
+	return 0;
 }
+
+int
+backend_connection_init(
+	Connection   *conn
+)
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_connection_init ) {
+			(*backends[i].be_connection_init)( &backends[i], conn);
+		}
+	}
+
+	return 0;
+}
+
+int
+backend_connection_destroy(
+	Connection   *conn
+)
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_connection_destroy ) {
+			(*backends[i].be_connection_destroy)( &backends[i], conn);
+		}
+	}
+
+	return 0;
+}
+
+int 
+backend_group(
+	Backend	*be,
+	Entry	*target,
+	char	*gr_ndn,
+	char	*op_ndn,
+	char	*objectclassValue,
+	char	*groupattrName
+)
+{
+	if (be->be_group)
+		return( be->be_group(be, target, gr_ndn, op_ndn,
+			objectclassValue, groupattrName) );
+	else
+		return(1);
+}
+
+#ifdef SLAPD_SCHEMA_DN
+Attribute *backend_subschemasubentry( Backend *be )
+{
+	/* should be backend specific */
+	static struct berval ss_val = {
+		sizeof(SLAPD_SCHEMA_DN)-1,
+		SLAPD_SCHEMA_DN };
+	static struct berval *ss_vals[2] = { &ss_val, NULL };
+	static Attribute ss_attr = {
+		"subschemasubentry",
+		ss_vals,
+		SYNTAX_DN | SYNTAX_CIS,
+		NULL
+	};
+
+	return &ss_attr;
+}
+#endif

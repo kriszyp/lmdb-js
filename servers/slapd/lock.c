@@ -1,15 +1,24 @@
 /* lock.c - routines to open and apply an advisory lock to a file */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include "portable.h"
-#ifdef USE_LOCKF
-#include <unistd.h>
-#endif
+
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
-#include <sys/socket.h>
+#endif
 #include "slap.h"
 
 FILE *
@@ -27,22 +36,14 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	}
 
 	/* acquire the lock */
-#ifdef USE_LOCKF
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
-#else
-	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) {
-#endif
-		;	/* NULL */
-	}
+	ldap_lockf( fileno(*lfp) );
 
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", fname, 0, 0 );
-#ifdef USE_LOCKF
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#else
-		flock( fileno( *lfp ), LOCK_UN );
-#endif
+		ldap_unlockf( fileno(*lfp) );
+		fclose( *lfp );
+		*lfp = NULL;
 		return( NULL );
 	}
 
@@ -53,11 +54,7 @@ int
 lock_fclose( FILE *fp, FILE *lfp )
 {
 	/* unlock */
-#ifdef USE_LOCKF
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#else
-	flock( fileno( lfp ), LOCK_UN );
-#endif
+	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
 	return( fclose( fp ) );

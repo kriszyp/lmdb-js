@@ -1,25 +1,49 @@
 /* back-ldbm.h - ldap ldbm back-end header file */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #ifndef _BACK_LDBM_H_
 #define _BACK_LDBM_H_
 
 #include "ldbm.h"
 
+LDAP_BEGIN_DECL
+
 #define DEFAULT_CACHE_SIZE	1000
-#define DEFAULT_DBCACHE_SIZE	100000
+
+#ifdef HAVE_BERKELEY_DB2
+#	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
+#else
+#	define DEFAULT_DBCACHE_SIZE 100000
+#endif
+
 #define DEFAULT_DB_DIRECTORY	"/usr/tmp"
 #define DEFAULT_MODE		0600
 
 #define SUBLEN			3
 
+#define DN_BASE_PREFIX		'='
+#define DN_ONE_PREFIX	 	'@'
+#define DN_SUBTREE_PREFIX 	'?'
+
+#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
+#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
+
 /*
- * there is a single index for each attribute.  these prefixes insure
+ * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
  */
 #define EQ_PREFIX	'='	/* prefix for equality keys     */
 #define APPROX_PREFIX	'~'	/* prefix for approx keys       */
 #define SUB_PREFIX	'*'	/* prefix for substring keys    */
 #define CONT_PREFIX	'\\'	/* prefix for continuation keys */
+
+/* allow 3 characters per byte + PREFIX + EOS */
+#define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
+
+#define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
 
 #define DEFAULT_BLOCKSIZE	8192
 
@@ -37,52 +61,62 @@
  *		the list is terminated by an id of NOID.
  *	b_ids	a list of the actual ids themselves
  */
-typedef struct block {
-	ID		b_nmax;		/* max number of ids in this list  */
-#define ALLIDSBLOCK	0		/* == 0 => this is an allid block  */
-	ID		b_nids;		/* current number of ids used	   */
-#define INDBLOCK	0		/* == 0 => this is an indirect blk */
-	ID		b_ids[1];	/* the ids - actually bigger 	   */
-} Block, IDList;
 
-#define ALLIDS( idl )		((idl)->b_nmax == ALLIDSBLOCK)
-#define INDIRECT_BLOCK( idl )	((idl)->b_nids == INDBLOCK)
+typedef ID ID_BLOCK;
+
+#define ID_BLOCK_NMAX_OFFSET	0
+#define ID_BLOCK_NIDS_OFFSET	1
+#define ID_BLOCK_IDS_OFFSET		2
+
+/* all ID_BLOCK macros operate on a pointer to a ID_BLOCK */
+
+#define ID_BLOCK_NMAX(b)		((b)[ID_BLOCK_NMAX_OFFSET])
+#define ID_BLOCK_NIDS(b)		((b)[ID_BLOCK_NIDS_OFFSET])
+#define ID_BLOCK_ID(b, n)		((b)[ID_BLOCK_IDS_OFFSET+(n)])
+
+#define ID_BLOCK_NOID(b, n)		(ID_BLOCK_ID((b),(n)) == NOID)
+
+#define ID_BLOCK_ALLIDS_VALUE	0
+#define ID_BLOCK_ALLIDS(b)		(ID_BLOCK_NMAX(b) == ID_BLOCK_ALLIDS_VALUE)
+
+#define ID_BLOCK_INDIRECT_VALUE	0
+#define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
 
 /* for the in-core cache of entries */
-struct cache {
+typedef struct ldbm_cache {
 	int		c_maxsize;
 	int		c_cursize;
 	Avlnode		*c_dntree;
 	Avlnode		*c_idtree;
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
-	pthread_mutex_t	c_mutex;
-};
+	ldap_pvt_thread_mutex_t	c_mutex;
+} Cache;
+
+#define CACHE_READ_LOCK		0
+#define CACHE_WRITE_LOCK	1
 
 /* for the cache of open index files */
-struct dbcache {
-	char		*dbc_name;
+typedef struct ldbm_dbcache {
 	int		dbc_refcnt;
-	time_t		dbc_lastref;
-	pthread_mutex_t	dbc_mutex;
-	pthread_cond_t	dbc_cv;
-	int		dbc_readers;
-	long		dbc_blksize;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
-	LDBM		dbc_db;
-};
+	time_t	dbc_lastref;
+	long	dbc_blksize;
+	char	*dbc_name;
+	LDBM	dbc_db;
+} DBCache;
 
 /* for the cache of attribute information (which are indexed, etc.) */
-struct attrinfo {
+typedef struct ldbm_attrinfo {
 	char	*ai_type;	/* type name (cn, sn, ...)	*/
 	int	ai_indexmask;	/* how the attr is indexed	*/
-#define INDEX_PRESENCE	0x01
-#define INDEX_EQUALITY	0x02
-#define INDEX_APPROX	0x04
-#define INDEX_SUB	0x08
-#define INDEX_UNKNOWN	0x10
-#define INDEX_FROMINIT	0x20
+#define INDEX_PRESENCE		0x0001
+#define INDEX_EQUALITY		0x0002
+#define INDEX_APPROX		0x0004
+#define INDEX_SUB			0x0008
+#define INDEX_UNKNOWN		0x0010
+#define INDEX_FROMINIT		0x1000
 	int	ai_syntaxmask;	/* what kind of syntax		*/
 /* ...from slap.h...
 #define SYNTAX_CIS      0x01
@@ -90,25 +124,31 @@ struct attrinfo {
 #define SYNTAX_BIN      0x04
    ... etc. ...
 */
-};
+} AttrInfo;
 
-#define MAXDBCACHE	10
+#define MAXDBCACHE	16
 
 struct ldbminfo {
 	ID			li_nextid;
-	pthread_mutex_t		li_nextid_mutex;
+	ldap_pvt_thread_mutex_t		li_nextid_mutex;
+	ldap_pvt_thread_mutex_t		li_root_mutex;
+	ldap_pvt_thread_mutex_t		li_add_mutex;
 	int			li_mode;
 	char			*li_directory;
-	struct cache		li_cache;
+	Cache		li_cache;
 	Avlnode			*li_attrs;
 	int			li_dbcachesize;
-	struct dbcache		li_dbcache[MAXDBCACHE];
-	pthread_mutex_t		li_dbcache_mutex;
-	pthread_cond_t		li_dbcache_cv;
+	int			li_dbcachewsync;
+	DBCache		li_dbcache[MAXDBCACHE];
+	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
+	ldap_pvt_thread_cond_t		li_dbcache_cv;
+#ifdef HAVE_BERKELEY_DB2
+	DB_ENV                      li_db_env;
+#endif
 };
 
-#ifdef NEEDPROTOS
+LDAP_END_DECL
+
 #include "proto-back-ldbm.h"
-#endif
 
 #endif /* _back_ldbm_h_ */

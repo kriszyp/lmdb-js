@@ -10,12 +10,18 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/dirent.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 
 #include <quipu/config.h>
@@ -53,6 +59,7 @@ struct edbmap {
 static int edb2ldif( FILE *outfp, char *edbfile, char *basedn, int recurse );
 static int convert_entry( FILE *fp, char *edbname, FILE *outfp,
 	char *basedn, char *loc_addvals, int loc_addlen, char *linebuf );
+static int add_rdn_values (Attr_Sequence entryas, RDN rdn);
 static int read_edbmap( char *mapfile, struct edbmap **edbmapp );
 static char *file2rdn( struct edbmap *edbmap, char *filename );
 static void free_edbmap( struct edbmap *edbmap );
@@ -77,15 +84,12 @@ int		ldap_syslog = 0;
 int		ldap_syslog_level = 0;
 
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
     char	*usage = "usage: %s [-d] [-o] [-r] [-v] [-b basedn] [-a addvalsfile] [-f fileattrdir] [-i ignoreattr...] [edbfile...]\n";
     char	edbfile[ MAXNAMLEN ], *basedn;
     int		c, rc, errflg, ignore_count, recurse;
-    extern int  optind;
-    extern char	*optarg;
     extern char	dsa_mode;
 #ifdef HAVE_FILE_ATTR_DIR
     extern char	*file_attr_directory;
@@ -105,7 +109,7 @@ main( argc, argv )
     always_addvals = NULL;
     basedn = NULL;
 
-    while (( c = getopt( argc, argv, "dorva:b:f:h:i:" )) != -1 ) {
+    while (( c = getopt( argc, argv, "dorva:b:f:h:i:" )) != EOF ) {
 	switch( c ) {
 	case 'd':
 #ifdef LDAP_DEBUG
@@ -133,7 +137,7 @@ main( argc, argv )
 	    } else if (( always_addvals = read_file( optarg, &always_addlen ))
 		    == NULL ) {
 		print_err( optarg );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    break;
 
@@ -157,7 +161,7 @@ main( argc, argv )
 	    }
 	    if ( file_attr_directory == NULL ) {
 		print_err( "malloc" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 #else /* HAVE_FILE_ATTR_DIR */
 	    fprintf( stderr, "Ignoring -f:  this option requires a newer version of ISODE.\n" );
@@ -177,7 +181,7 @@ main( argc, argv )
 	    }
 	    if ( ignore_attr == NULL ) {
 		print_err( "malloc/realloc" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    ignore_attr[ ignore_count ] = optarg;
 	    ignore_attr[ ++ignore_count ] = NULL;
@@ -190,7 +194,7 @@ main( argc, argv )
 
     if ( errflg ) {
 	fprintf( stderr, usage, progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( basedn == NULL ) {
@@ -209,7 +213,7 @@ main( argc, argv )
     if ( init_syntaxes() < 0 ) {
 	fprintf( stderr, "%s: init_syntaxes failed -- check your oid tables \n",
 	    progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
 
@@ -238,16 +242,12 @@ main( argc, argv )
     fprintf( stderr, "edb2ldif: exit( %d )\n", ( rc < 0 ) ? 1 : 0 );
 #endif
 
-    exit( ( rc < 0 ) ? 1 : 0 );
+    exit( ( rc < 0 ) ? EXIT_FAILURE : EXIT_SUCCESS );
 }
 
 
 static int
-edb2ldif( outfp, edbfile, basedn, recurse )
-    FILE	*outfp;
-    char	*edbfile;
-    char	*basedn;
-    int		recurse;
+edb2ldif( FILE *outfp, char *edbfile, char *basedn, int recurse )
 {
     FILE	*fp;
     char	*addvals, *p, *rdn, line[ MAX_LINE_SIZE + 1 ];
@@ -470,14 +470,15 @@ edb2ldif( outfp, edbfile, basedn, recurse )
  * return > 0 if entry converted, 0 if end of file, < 0 if error occurs
  */
 static int
-convert_entry( fp, edbname, outfp, basedn, loc_addvals, loc_addlen, linebuf )
-    FILE	*fp;
-    char	*edbname;
-    FILE	*outfp;
-    char	*basedn;
-    char	*loc_addvals;
-    int		loc_addlen;
-    char	*linebuf;
+convert_entry(
+    FILE	*fp,
+    char	*edbname,
+    FILE	*outfp,
+    char	*basedn,
+    char	*loc_addvals,
+    int		loc_addlen,
+    char	*linebuf
+)
 {
     Attr_Sequence	as, tmpas;
     AV_Sequence		av;
@@ -691,10 +692,8 @@ convert_entry( fp, edbname, outfp, basedn, loc_addvals, loc_addlen, linebuf )
 }
 
 
-int
-add_rdn_values( entryas, rdn )
-    Attr_Sequence	entryas;
-    RDN			rdn;
+static int
+add_rdn_values( Attr_Sequence entryas, RDN rdn )
 {
 /*
  * this routine is based on code from the real_unravel_attribute() routine
@@ -730,9 +729,7 @@ add_rdn_values( entryas, rdn )
 
 /* read the EDB.map file and return a linked list of translations */
 static int
-read_edbmap( mapfile, edbmapp )
-    char		*mapfile;
-    struct edbmap	**edbmapp;
+read_edbmap( char *mapfile, struct edbmap **edbmapp )
 {
     FILE		*fp;
     char		*p, *filename, *rdn, line[ MAX_LINE_SIZE + 1 ];
@@ -764,7 +761,7 @@ read_edbmap( mapfile, edbmapp )
 	}
 
 	*filename++ = '\0';
-	while ( isspace( *filename )) {	/* strip leading whitespace */
+	while ( isspace((unsigned char) *filename) ) { /* strip leading whitespace */
 	    ++filename;
 	}
 
@@ -773,12 +770,12 @@ read_edbmap( mapfile, edbmapp )
 	}
 
 	p = filename + strlen( filename ) - 1;
-	while ( isspace( *p )) {	/* strip trailing whitespace */
+	while ( isspace((unsigned char) *p) ) { /* strip trailing whitespace */
 	    *p-- = '\0';
 	}
 
 	rdn = line;
-	while ( isspace( *rdn )) {	/* strip leading whitespace */
+	while ( isspace((unsigned char) *rdn)) { /* strip leading whitespace */
 	    ++rdn;
 	}
 
@@ -787,7 +784,7 @@ read_edbmap( mapfile, edbmapp )
 	}
 
 	p = rdn + strlen( rdn ) - 1;
-	while ( isspace( *p )) {	/* strip trailing whitespace */
+	while ( isspace((unsigned char) *p)) { /* strip trailing whitespace */
 	    *p-- = '\0';
 	}
 
@@ -815,9 +812,7 @@ read_edbmap( mapfile, edbmapp )
 
 
 static char *
-file2rdn( edbmap, filename )
-    struct edbmap	*edbmap;
-    char		*filename;
+file2rdn( struct edbmap *edbmap, char *filename )
 {
 #ifdef LDAP_DEBUG
     if ( debugflg ) {
@@ -838,8 +833,7 @@ file2rdn( edbmap, filename )
 
 /* free the edbmap list */
 static void
-free_edbmap( edbmap )
-    struct edbmap	*edbmap;
+free_edbmap( struct edbmap *edbmap )
 {
     struct edbmap	*tmp;
 
@@ -860,13 +854,8 @@ free_edbmap( edbmap )
 
 
 static void
-print_err( msg )
-    char	*msg;
+print_err( char *msg )
 {
-    extern int	sys_nerr;
-    extern char	*sys_errlist[];
-    extern int	errno;
-
 #ifdef LDAP_DEBUG
     if ( debugflg ) {
 	fprintf( stderr, "print_err( \"%s\" )\n", msg );
@@ -874,7 +863,7 @@ print_err( msg )
 #endif
 
     if ( errno > sys_nerr ) {
-	fprintf( stderr, "%s: %s: error %d\n", progname, msg, errno );
+	fprintf( stderr, "%s: %s: errno=%d\n", progname, msg, errno );
     } else {
 	fprintf( stderr, "%s: %s: %s\n", progname, msg, sys_errlist[ errno ] );
     }

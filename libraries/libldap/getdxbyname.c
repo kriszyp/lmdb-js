@@ -1,63 +1,45 @@
-#ifdef LDAP_DNS
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
- * getdxbyname - retrieve DX records from the DNS (from TXT records for now)
+ * ldap_getdxbyname - retrieve DX records from the DNS (from TXT records for now)
  */
+
+#include "portable.h"
+
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include <ac/stdlib.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <resolv.h>
-#endif
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
-
-
-#ifdef NEEDPROTOS
-static char ** decode_answer( unsigned char *answer, int len );
-#else /* NEEDPROTOS */
-static char **decode_answer();
-#endif /* NEEDPROTOS */
-
-extern int h_errno;
-extern char *h_errlist[];
-
+static char ** decode_answer LDAP_P(( unsigned char *answer, ber_len_t len ));
 
 #define MAX_TO_SORT	32
 
 
 /*
- * getdxbyname - lookup DNS DX records for domain and return an ordered
+ * ldap_getdxbyname - lookup DNS DX records for domain and return an ordered
  *	array.
  */
 char **
-getdxbyname( char *domain )
+ldap_getdxbyname( const char *domain )
 {
     unsigned char	buf[ PACKETSZ ];
     char		**dxs;
     int			rc;
 
-    Debug( LDAP_DEBUG_TRACE, "getdxbyname( %s )\n", domain, 0, 0 );
+    Debug( LDAP_DEBUG_TRACE, "ldap_getdxbyname( %s )\n", domain, 0, 0 );
 
     memset( buf, 0, sizeof( buf ));
 
@@ -66,10 +48,10 @@ getdxbyname( char *domain )
 	/*
 	 * punt:  return list conisting of the original domain name only
 	 */
-	if (( dxs = (char **)malloc( 2 * sizeof( char * ))) == NULL ||
-		( dxs[ 0 ] = strdup( domain )) == NULL ) {
+	if (( dxs = (char **)LDAP_MALLOC( 2 * sizeof( char * ))) == NULL ||
+		( dxs[ 0 ] = LDAP_STRDUP( domain )) == NULL ) {
 	    if ( dxs != NULL ) {
-		free( dxs );
+		LDAP_FREE( dxs );
 	    }
 	    dxs = NULL;
 	} else {
@@ -82,7 +64,7 @@ getdxbyname( char *domain )
 
 
 static char **
-decode_answer( unsigned char *answer, int len )
+decode_answer( unsigned char *answer, ber_len_t len )
 {
     HEADER		*hp;
     char		buf[ 256 ], **dxs;
@@ -91,9 +73,11 @@ decode_answer( unsigned char *answer, int len )
     int			dx_pref[ MAX_TO_SORT ];
 
 #ifdef LDAP_DEBUG
+#ifdef notdef
     if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
-/*	__p_query( answer );	/* */
+		__p_query( answer );
     }
+#endif
 #endif /* LDAP_DEBUG */
 
     dxs = NULL;
@@ -147,12 +131,12 @@ decode_answer( unsigned char *answer, int len )
 		if ( *q >= 3 && strncasecmp( q + 1, "dx:", 3 ) == 0 ) {
 		    txt_len = *q - 3;
 		    r = q + 4;
-		    while ( isspace( *r )) { 
+		    while ( isspace( (unsigned char) *r )) { 
 			++r;
 			--txt_len;
 		    }
 		    pref = 0;
-		    while ( isdigit( *r )) {
+		    while ( isdigit( (unsigned char) *r )) {
 			pref *= 10;
 			pref += ( *r - '0' );
 			++r;
@@ -161,18 +145,14 @@ decode_answer( unsigned char *answer, int len )
 		    if ( dx_count < MAX_TO_SORT - 1 ) {
 			dx_pref[ dx_count ] = pref;
 		    }
-		    while ( isspace( *r )) { 
+		    while ( isspace( (unsigned char) *r )) { 
 			++r;
 			--txt_len;
 		    }
-		    if ( dx_count == 0 ) {
-			dxs = (char **)malloc( 2 * sizeof( char * ));
-		    } else {
-			dxs = (char **)realloc( dxs,
+			dxs = (char **)LDAP_REALLOC( dxs,
 				( dx_count + 2 ) * sizeof( char * ));
-		    }
 		    if ( dxs == NULL || ( dxs[ dx_count ] =
-				(char *)calloc( 1, txt_len + 1 )) == NULL ) {
+				(char *)LDAP_CALLOC( 1, txt_len + 1 )) == NULL ) {
 			err = NO_RECOVERY;
 			continue;
 		    }
@@ -215,4 +195,4 @@ decode_answer( unsigned char *answer, int len )
     return( dxs );
 }
 
-#endif /* LDAP_DNS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */

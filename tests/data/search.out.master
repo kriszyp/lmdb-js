@@ -13,21 +13,16 @@ postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann
  Arbor, MI 48103-4943
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: bjensen
-userpassword: bjensen
+userpassword:: YmplbnNlbg==
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
 krbname: bjensen@umich.edu
-multilinedescription: Mythical manager of the rsdd unix project 
+multilinedescription: Mythical manager of the rsdd unix project
 nobatchupdates: TRUE
 notice: Off sailing this month.
 onvacation: FALSE
 labeledurl: http://www.umich.edu/ U-M Home Page
 drink: water
-lastmodifiedtime: 960404035839Z
-lastmodifiedby: cn=Barbara Jensen, ou=Information Technology Division, ou=Peop
- le, o=University of Michigan, c=US
-modifytimestamp: 960404171405Z
-modifiersname: cn=Manager,o=University of Michigan,c=US
 homephone: +1 313 555 2333
 pager: +1 313 555 3233
 facsimiletelephonenumber: +1 313 555 2274
@@ -45,7 +40,7 @@ cn: Biiff Jensen
 sn: Jensen
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: bjorn
-userpassword: bjorn
+userpassword:: Ympvcm4=
 krbname: jdoe@umich.edu
 nobatchupdates: TRUE
 onvacation: FALSE
@@ -55,8 +50,6 @@ multilinedescription: Hiker, biker
 title: Director, Embedded Systems
 postaladdress: Info Tech Division $ 535 W. William St. $ Ann Arbor, MI 48103
 mail: bjorn@mailgw.umich.edu
-modifytimestamp: 960404171424Z
-modifiersname: cn=Manager,o=University of Michigan,c=US
 homephone: +1 313 555 5444
 pager: +1 313 555 4474
 facsimiletelephonenumber: +1 313 555 2177
@@ -131,8 +124,6 @@ member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=U
  niversity of Michigan, c=US
 member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
  ty of Michigan, c=US
-modifytimestamp: 960404171730Z
-modifiersname: cn=Manager,o=University of Michigan,c=US
 labeledurl: http://www.itd.umich.edu ITD Home Page
 
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Mich
@@ -150,7 +141,7 @@ postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: jaj
 krbname: jaj@umich.edu
-userpassword: jaj
+userpassword:: amFq
 nobatchupdates: TRUE
 onvacation: FALSE
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
@@ -159,8 +150,6 @@ multilinedescription: Outstanding
 title: Mad Cow Researcher, UM Alumni Association
 pager: +1 313 555 3923
 mail: jaj@mail.alumni.umich.edu
-modifytimestamp: 960404171231Z
-modifiersname: cn=Manager,o=University of Michigan,c=US
 facsimiletelephonenumber: +1 313 555 4332
 telephonenumber: +1 313 555 0895
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -283,8 +272,6 @@ objectclass: organizationalUnit
 objectclass: quipuObject
 objectclass: quipuNonLeafObject
 ou: Groups
-lastmodifiedtime: 950120182331Z
-lastmodifiedby: cn=manager, o=university of michigan, c=US
 
 dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
@@ -310,7 +297,6 @@ member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=U
  niversity of Michigan, c=US
 member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
  ty of Michigan, c=US
-modifiersname: cn=Manager,o=University of Michigan,c=US
 labeledurl: http://www.itd.umich.edu ITD Home Page
 
 dn: ou=People, o=University of Michigan, c=US
@@ -336,8 +322,6 @@ o: U-M
 o: U of M
 description: The University of Michigan at Ann Arbor
 postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
- 09 $ USpostalcode: 48109
+ 09 $ US
 telephonenumber: +1 313 764-1817
-lastmodifiedtime: 930106182800Z
-lastmodifiedby: cn=manager, o=university of michigan, c=US
 associateddomain: umich.edu

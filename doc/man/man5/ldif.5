@@ -1,44 +1,37 @@
-.TH LDIF 5  "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDIF 5 "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldif \- LDAP Data Interchange Format
 .SH DESCRIPTION
 The LDAP Data Interchange Format (LDIF) is used to represent LDAP
-entries in text form. The
-.BR ldif2ldbm (8)
-tools can be used to convert from LDIF format to the LDBM format
-used by
-.BR slapd (8).
-The
-.BR ldbmcat (8)
-tool can be used to do the reverse conversion. See "The SLAPD and
-SLURPD Administrator's Guide" for more information on this format and
-the conversion tools.
+entries in text form. LDAP tools, such as
+.BR ldapadd (1)
+and
+.BR ldapsearch (1),
+read and write LDIF.
 .LP
 The basic form of an LDIF entry is:
 .LP
 .nf
 .ft tt
-	[<id>]
 	dn: <distinguished name>
 	<attrtype>: <attrvalue>
 	<attrtype>: <attrvalue>
+	<attrtype>:: <base64-encoded-value>
+	<attrtype>:< <URL>
 	...
 .ft
 .fi
 .LP
-where <id> is the optional entry ID (a positive decimal number).
-Normally, you would not supply the <id>, allowing the database creation
-tools to do that for you. The
-.BR ldbmcat (8)
-program, however, produces an LDIF format that includes <id> so that
-new indexes created will be consistent with the existing database.  A
-line may be continued by starting the next line with a single space or
-tab character, e.g.,
+The value may be specified as ASCII text or as base64 encoded data,
+or a URL may be provided to the location of the attribute value.
+.LP
+A line may be continued by starting the next line with a single space
+or tab, e.g.,
 .LP
 .nf
 .ft tt
-	dn: cn=Barbara J Jensen, o=University of Michi
-	 gan, c=US
+	dn: cn=Barbara J Jensen, dc=Open
+	 LDAP, dc=org
 .ft
 .fi
 .LP
@@ -51,14 +44,24 @@ Multiple attribute values are specified on separate lines, e.g.,
 .ft
 .fi
 .LP
-If an <attrvalue> contains a non-printing character, or begins with a
-space or a colon ':', the <attrtype> is followed by a double colon and
-the value is encoded in base 64 notation. e.g., the value " begins with
-a space" would be encoded like this:
+If an value contains a non-printing character, or begins
+with a space or a colon ':', the <attrtype> is followed by a
+double colon and the value is encoded in base 64 notation. e.g.,
+the value " begins with a space" would be encoded like this:
 .LP
 .nf
 .ft tt
 	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+.ft
+.fi
+.LP
+If the attribute value is located in a file, the <attrtype> is
+followed by a ':<' and a file:// URL.  e.g., the value contained
+in the file /tmp/value would be listed like this:
+.LP
+.nf
+.ft tt
+	cn:< file://tmp/value
 .ft
 .fi
 .LP
@@ -69,22 +72,20 @@ Here is an example of an LDIF file containing three entries.
 .LP
 .nf
 .ft tt
-	dn: cn=Barbara J Jensen, o=University of Michi
-	 gan, c=US
+	dn: cn=Barbara J Jensen, dc=OpenLDAP, dc=Org
 	cn: Barbara J Jensen
 	cn: Babs Jensen
 	objectclass: person
+	description:< file://tmp/barbara
 	sn: Jensen
 
-	dn: cn=Bjorn J Jensen, o=University of Michi
-	 gan, c=US
+	dn: cn=Bjorn J Jensen, dc=OpenLDAP, dc=Org
 	cn: Bjorn J Jensen
 	cn: Bjorn Jensen
 	objectclass: person
 	sn: Jensen
 
-	dn: cn=Jennifer J Jensen, o=University of Michi
-	 gan, c=US
+	dn: cn=Jennifer J Jensen, dc=OpenLDAP, dc=Org
 	cn: Jennifer J Jensen
 	cn: Jennifer Jensen
 	objectclass: person
@@ -100,8 +101,12 @@ Notice that the jpegPhoto in Jennifer Jensen's entry is encoded using
 base 64.
 .SH SEE ALSO
 .BR ldap (3),
-.BR slapd (8),
-.BR ldif2ldbm (8),
-.BR ldbmcat (8)
+.BR ldapsearch (1),
+.BR ldapadd (1)
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

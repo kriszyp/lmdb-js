@@ -14,12 +14,18 @@
 */
 
 
-#include <sys/types.h>
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
+#include <ac/stdarg.h>
+
 #include <pwd.h>
-#include <varargs.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include "shellutil.h"
@@ -192,7 +198,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 		while ( args != NULL ) {
 		    if (( p = strchr( args, ' ' )) != NULL ) {
 			*p++ = '\0';
-			while ( isspace( *p )) {
+			while ( isspace( (unsigned char) *p )) {
 			    ++p;
 			}
 		    }
@@ -227,7 +233,7 @@ find_input_tag( char **linep )	/* linep is set to start of args */
 
     for ( i = 0; ips[ i ].ip_type != 0; ++i ) {
 	if ( strncasecmp( *linep, ips[ i ].ip_tag, p - *linep ) == 0 ) {
-	    while ( isspace( *(++p) )) {
+	    while ( isspace( (unsigned char) *(++p) )) {
 		;
 	    }
 	    *linep = p;
@@ -269,7 +275,7 @@ estrdup( char *s )
 
     if (( p = strdup( s )) == NULL ) {
 	debug_printf( "strdup failed\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -289,7 +295,7 @@ erealloc( void *s, unsigned size )
 
     if ( p == NULL ) {
 	debug_printf( "realloc( p, %d ) failed\n", size );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -303,7 +309,7 @@ ecalloc( unsigned nelem, unsigned elsize )
 
     if (( p = calloc( nelem, elsize )) == NULL ) {
 	debug_printf( "calloc( %d, %d ) failed\n", nelem, elsize );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -314,19 +320,30 @@ ecalloc( unsigned nelem, unsigned elsize )
 
 /* VARARGS */
 void
-debug_printf( va_alist /* char *fmt, args... */ )
+debug_printf
+#if HAVE_STDARG
+	( char *fmt, ... )
+#else
+	( va_alist )
     va_dcl
+#endif
 {
-    char	*fmt;
     va_list	ap;
+#if !HAVE_STDARG
+    char	*fmt;
+#endif
 
-    if ( debugflg ) {
-	va_start( ap );
-	fmt = va_arg( ap, char * );
-	fprintf( stderr, "%s: ", progname );
-	vfprintf( stderr, fmt, ap );
-	va_end( ap );
-    }
+	if ( debugflg ) {
+#if HAVE_STDARG
+		va_start( ap, fmt );
+#else
+		va_start( ap );
+		fmt = va_arg( ap, char * );
+#endif
+		fprintf( stderr, "%s: ", progname );
+		vfprintf( stderr, fmt, ap );
+		va_end( ap );
+	}
 }
 
 

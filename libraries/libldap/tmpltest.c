@@ -1,26 +1,28 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
-#include "srchpref.h"
 
-#ifdef MACOS
-#include <stdlib.h>
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/time.h>
+
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
-#endif /* MACOS */
+#endif /* HAVE_CONSOLE_H */
 
-#ifdef NEEDPROTOS
-void dump_tmpl( struct ldap_disptmpl *tmpl );
-void dump_srchpref( struct ldap_searchobj *sp );
-#else /* NEEDPROTOS */
-void dump_tmpl();
-void dump_srchpref();
-#endif /* NEEDPROTOS */
+#include <ldap.h>
+#include <disptmpl.h>
+#include <srchpref.h>
 
+static void dump_tmpl	 ( struct ldap_disptmpl *tmpl );
+static void dump_srchpref( struct ldap_searchobj *sp );
 
-#define NULLSTRINGIFNULL( s )	( s == NULL ? "(null)" : s )
-
+#define NULLSTRINGIFNULL( s )	( (s) == NULL ? "(null)" : (s) )
 
 int
 main( int argc, char **argv )
@@ -29,7 +31,7 @@ main( int argc, char **argv )
     struct ldap_searchobj	*so, *sop;
     int				err;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	for ( argc = 0; argv[ argc ] != NULL; ++argc ) {
 	    ;
@@ -40,25 +42,25 @@ main( int argc, char **argv )
     if (( err = ldap_init_templates( "ldaptemplates.conf", &templates ))
 	    != 0 ) {
 	fprintf( stderr, "ldap_init_templates failed (%d)\n", err );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if (( err = ldap_init_searchprefs( "ldapsearchprefs.conf", &so ))
 	    != 0 ) {
 	fprintf( stderr, "ldap_init_searchprefs failed (%d)\n", err );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( argc == 1 ) {
 	printf( "*** Display Templates:\n" );
-	for ( dtp = ldap_first_disptmpl( templates ); dtp != NULLDISPTMPL;
+	for ( dtp = ldap_first_disptmpl( templates ); dtp != NULL;
 		dtp = ldap_next_disptmpl( templates, dtp )) {
 	    dump_tmpl( dtp );
 	    printf( "\n\n" );
 	}
 
 	printf( "\n\n*** Search Objects:\n" );
-	for ( sop = ldap_first_searchobj( so ); sop != NULLSEARCHOBJ;
+	for ( sop = ldap_first_searchobj( so ); sop != NULL;
 		    sop = ldap_next_searchobj( so, sop )) {
 	    dump_srchpref( sop );
 	    printf( "\n\n" );
@@ -76,17 +78,17 @@ main( int argc, char **argv )
     ldap_free_templates( templates );
     ldap_free_searchprefs( so );
 
-    exit( 0 );
+    exit( EXIT_SUCCESS );
 }
 
 
-static char *syn_name[] = {
+static const char *const syn_name[] = {
     "?", "CIS", "MLS", "DN", "BOOL", "JPEG", "JPEGBTN", "FAX", "FAXBTN",
     "AUDIOBTN", "TIME", "DATE", "URL", "SEARCHACT", "LINKACT", "ADDDNACT",
     "VERIFYACT",
 };
 
-static char *syn_type[] = {
+static const char *const syn_type[] = {
     "?", "txt", "img", "?", "bool", "?", "?", "?", "btn",
     "?", "?", "?", "?", "?", "?", "?",
     "action", "?"
@@ -94,11 +96,11 @@ static char *syn_type[] = {
 
 static char *includeattrs[] = { "objectClass", "sn", NULL };
 
-static char *item_opts[] = {
+static const char *const item_opts[] = {
     "ro", "sort", "1val", "hide", "required", "hideiffalse", NULL
 };
 
-static unsigned long item_opt_vals[] = {
+static const unsigned long item_opt_vals[] = {
     LDAP_DITEM_OPT_READONLY,		LDAP_DITEM_OPT_SORTVALUES,
     LDAP_DITEM_OPT_SINGLEVALUED,	LDAP_DITEM_OPT_HIDEIFEMPTY,
     LDAP_DITEM_OPT_VALUEREQUIRED,	LDAP_DITEM_OPT_HIDEIFFALSE,
@@ -189,11 +191,11 @@ dump_tmpl( struct ldap_disptmpl *tmpl )
 
     printf( "\ntemplate items:\n" );
     rowcnt = 0;
-    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULLTMPLITEM;
+    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULL;
 	    rowp = ldap_next_tmplrow( tmpl, rowp )) {
 	++rowcnt;
 	colcnt = 0;
-	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 	    ++colcnt;
 	    printf( "  %2d-%d: %s (%s%s", rowcnt, colcnt,

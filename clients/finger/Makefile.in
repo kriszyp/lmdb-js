@@ -1,0 +1,21 @@
+SRCS=	main.c
+XSRCS=	version.c
+OBJS=	main.o
+PROGRAMS= in.xfingerd
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+in.xfingerd : version.o
+	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
+
+version.c: ${OBJS} ${LDAP_LIBDEPEND}
+	@-$(RM) $@
+	$(MKVERSION) in.xfingerd > $@
+
+install-local: $(PROGRAMS) FORCE
+	-$(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(libexecdir)

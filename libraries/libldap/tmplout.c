@@ -1,77 +1,73 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * tmplout.c:  display template library output routines for LDAP clients
  * 12 April 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
-#include <stdlib.h>
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
-#ifdef VMS
-#include <sys/socket.h>
-#endif /* VMS */
+#include <ldap.h>
+#include <disptmpl.h>
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
+#include "ldap_log.h"
 
-#ifdef NEEDPROTOS
-static int do_entry2text( LDAP *ld, char *buf, char *base, LDAPMessage *entry,
+#include "ldap-int.h"
+#include "ldap_defaults.h"
+
+#define writeptype ldap_writeptype
+
+/* local functions */
+static int do_entry2text LDAP_P((
+	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
 	writeptype writeproc, void *writeparm, char *eol, int rdncount,
-	unsigned long opts, char *urlprefix );
-static int do_entry2text_search( LDAP *ld, char *dn, char *base,
+	unsigned long opts, char *urlprefix ));
+static int do_entry2text_search LDAP_P((
+	LDAP *ld, char *dn, char *base,
 	LDAPMessage *entry, struct ldap_disptmpl *tmpllist, char **defattrs,
 	char ***defvals, writeptype writeproc, void *writeparm, char *eol,
-	int rdncount, unsigned long opts, char *urlprefix );
-static int do_vals2text( LDAP *ld, char *buf, char **vals, char *label,
+	int rdncount, unsigned long opts, char *urlprefix ));
+static int do_vals2text LDAP_P((
+	LDAP *ld, char *buf, char **vals, char *label,
 	int labelwidth, unsigned long syntaxid, writeptype writeproc,
-	void *writeparm, char *eol, int rdncount, char *urlprefix );
-static int max_label_len( struct ldap_disptmpl *tmpl );
-static int output_label( char *buf, char *label, int width,
-	writeptype writeproc, void *writeparm, char *eol, int html );
-static int output_dn( char *buf, char *dn, int width, int rdncount,
-	writeptype writeproc, void *writeparm, char *eol, char *urlprefix );
-static void strcat_escaped( char *s1, char *s2 );
-static char *time2text( char *ldtimestr, int dateonly );
-static long gtime( struct tm *tm );
-static int searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry,
+	void *writeparm, char *eol, int rdncount, char *urlprefix ));
+static int max_label_len LDAP_P(( struct ldap_disptmpl *tmpl ));
+static int output_label LDAP_P((
+	char *buf, char *label, int width,
+	writeptype writeproc, void *writeparm, char *eol, int html ));
+static int output_dn LDAP_P((
+	char *buf, char *dn, int width, int rdncount,
+	writeptype writeproc, void *writeparm, char *eol, char *urlprefix ));
+static void strcat_escaped LDAP_P(( char *s1, char *s2 ));
+static char *time2text LDAP_P(( char *ldtimestr, int dateonly ));
+static long gtime LDAP_P(( struct tm *tm ));
+static int searchaction LDAP_P((
+	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	char *dn, struct ldap_tmplitem *tip, int labelwidth, int rdncount,
-	writeptype writeproc, void *writeparm, char *eol, char *urlprefix );
-#else /* NEEDPROTOS */
-static int do_entry2text();
-static int do_entry2text_search();
-static int do_vals2text();
-static int max_label_len();
-static int output_label();
-static int output_dn();
-static void strcat_escaped();
-static char *time2text();
-static long gtime();
-static int searchaction();
-#endif /* NEEDPROTOS */
+	writeptype writeproc, void *writeparm, char *eol, char *urlprefix ));
 
 #define DEF_LABEL_WIDTH		15
 #define SEARCH_TIMEOUT_SECS	120
 #define OCATTRNAME		"objectClass"
 
 
-#define NONFATAL_LDAP_ERR( err )	( err == LDAP_SUCCESS || \
-	err == LDAP_TIMELIMIT_EXCEEDED || err == LDAP_SIZELIMIT_EXCEEDED )
+#define NONFATAL_LDAP_ERR( err )	( (err) == LDAP_SUCCESS || \
+	(err) == LDAP_TIMELIMIT_EXCEEDED || (err) == LDAP_SIZELIMIT_EXCEEDED )
 
 #define DEF_LDAP_URL_PREFIX	"ldap:///"
 
@@ -155,9 +151,9 @@ do_entry2text(
     }
 
     if ( buf == NULL ) {
-	if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+	if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	    ld->ld_errno = LDAP_NO_MEMORY;
-	    free( dn );
+	    LDAP_FREE( dn );
 	    return( ld->ld_errno );
 	}
 	freebuf = 1;
@@ -206,7 +202,7 @@ do_entry2text(
 	    sprintf( buf + strlen( buf ),
 		    "%s\">Move Up To <EM>%s</EM></A>%s<BR>",
 		    ( vals[ 1 ] == NULL ) ? "??one" : "",
-		    ( untagged != NULL ) ? untagged + 1 : vals[ 1 ], eol, eol );
+		    ( untagged != NULL ) ? untagged + 1 : vals[ 1 ], eol );
 	    (*writeproc)( writeparm, buf, strlen( buf ));
 
 	    /*
@@ -262,9 +258,7 @@ do_entry2text(
 		freevals = 1;
 	    }
 
-	    if ( islower( *attr )) {	/* cosmetic -- upcase attr. name */
-		*attr = toupper( *attr );
-	    }
+	    *attr = TOUPPER( (unsigned char) *attr );
 
 	    err = do_vals2text( ld, buf, vals, attr, labelwidth,
 		    LDAP_SYN_CASEIGNORESTR, writeproc, writeparm, eol, 
@@ -273,11 +267,15 @@ do_entry2text(
 		ldap_value_free( vals );
 	    }
 	}
+
+	if( ber != NULL) {
+		ber_free( ber, 0 );
+	}
     } else {
 	for ( rowp = ldap_first_tmplrow( tmpl );
-		NONFATAL_LDAP_ERR( err ) && rowp != NULLTMPLITEM;
+		NONFATAL_LDAP_ERR( err ) && rowp != NULL;
 		rowp = ldap_next_tmplrow( tmpl, rowp )) {
-	    for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	    for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		    colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 		vals = NULL;
 		if ( colp->ti_attrname == NULL || ( vals = ldap_get_values( ld,
@@ -313,14 +311,14 @@ do_entry2text(
 		if ( show && LDAP_GET_SYN_TYPE( colp->ti_syntaxid )
 			== LDAP_SYN_TYPE_BOOLEAN && LDAP_IS_TMPLITEM_OPTION_SET(
 			colp, LDAP_DITEM_OPT_HIDEIFFALSE ) &&
-			toupper( vals[ 0 ][ 0 ] ) != 'T' ) {
+			TOUPPER( (unsigned char) vals[ 0 ][ 0 ] ) != 'T' ) {
 		    show = 0;
 		}
 
 		if ( colp->ti_syntaxid == LDAP_SYN_SEARCHACTION ) {
 		    if (( opts & LDAP_DISP_OPT_DOSEARCHACTIONS ) != 0 ) {
 			if ( colp->ti_attrname == NULL || ( show &&
-				toupper( vals[ 0 ][ 0 ] ) == 'T' )) {
+				TOUPPER( (unsigned char) vals[ 0 ][ 0 ] ) == 'T' )) {
 			    err = searchaction( ld, buf, base, entry, dn, colp,
 				    labelwidth, rdncount, writeproc,
 				    writeparm, eol, urlprefix );
@@ -347,9 +345,9 @@ do_entry2text(
 	(*writeproc)( writeparm, buf, strlen( buf ));
     }
 
-    free( dn );
+    LDAP_FREE( dn );
     if ( freebuf ) {
-	free( buf );
+	LDAP_FREE( buf );
     }
 
     return( err );
@@ -427,7 +425,7 @@ do_entry2text_search(
     struct ldap_disptmpl	*tmpl;
     struct timeval		timeout;
 
-    if ( dn == NULL && entry == NULLMSG ) {
+    if ( dn == NULL && entry == NULL ) {
 	ld->ld_errno = LDAP_PARAM_ERROR;
 	return( ld->ld_errno );
     }
@@ -437,7 +435,7 @@ do_entry2text_search(
     timeout.tv_sec = SEARCH_TIMEOUT_SECS;
     timeout.tv_usec = 0;
 
-    if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+    if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	ld->ld_errno = LDAP_NO_MEMORY;
 	return( ld->ld_errno );
     }
@@ -457,7 +455,7 @@ do_entry2text_search(
 
     if ( dn == NULL ) {
 	if (( dn = ldap_get_dn( ld, entry )) == NULL ) {
-	    free( buf );
+	    LDAP_FREE( buf );
 	    if ( freetmpls ) {
 		ldap_free_templates( tmpllist );
 	    }
@@ -468,19 +466,19 @@ do_entry2text_search(
 
 
     if ( tmpllist != NULL ) {
-	ldmp = NULLMSG;
+	ldmp = NULL;
 
 	if ( entry == NULL ) {
 	    char	*ocattrs[2];
 
 	    ocattrs[0] = OCATTRNAME;
 	    ocattrs[1] = NULL;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    if ( LDAP_IS_CLDAP( ld ))
 		    err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE,
 			"objectClass=*", ocattrs, 0, &ldmp, NULL );
 	    else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		    err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
 			    "objectClass=*", ocattrs, 0, &timeout, &ldmp );
 
@@ -509,17 +507,17 @@ do_entry2text_search(
 	fetchattrs = ldap_tmplattrs( tmpl, NULL, 1, LDAP_SYN_OPT_DEFER );
     }
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
 	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
 		fetchattrs, 0, &ldmp, NULL );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
 		fetchattrs, 0, &timeout, &ldmp );
 
     if ( freedn ) {
-	free( dn );
+	LDAP_FREE( dn );
     }
     if ( fetchattrs != NULL ) {
 	ldap_value_free( fetchattrs );
@@ -530,14 +528,14 @@ do_entry2text_search(
 	if ( freetmpls ) {
             ldap_free_templates( tmpllist );
         }
-	free( buf );
+	LDAP_FREE( buf );
 	return( ld->ld_errno );
     }
 
     err = do_entry2text( ld, buf, base, entry, tmpl, defattrs, defvals,
 	    writeproc, writeparm, eol, rdncount, opts, urlprefix );
 
-    free( buf );
+    LDAP_FREE( buf );
     if ( freetmpls ) {
 	ldap_free_templates( tmpllist );
     }
@@ -631,7 +629,7 @@ do_vals2text(
     }
 
     if ( buf == NULL ) {
-	if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+	if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	    ld->ld_errno = LDAP_NO_MEMORY;
 	    return( ld->ld_errno );
 	}
@@ -684,7 +682,7 @@ do_vals2text(
 	    p = s = outval;
 	    while (( s = strchr( s, '$' )) != NULL ) {
 		*s++ = '\0';
-		while ( isspace( *s )) {
+		while ( isspace( (unsigned char) *s )) {
 		    ++s;
 		}
 		if ( html ) {
@@ -700,7 +698,7 @@ do_vals2text(
 	    break;
 
 	case LDAP_SYN_BOOLEAN:
-	    outval = toupper( outval[ 0 ] ) == 'T' ? "TRUE" : "FALSE";
+	    outval = TOUPPER((unsigned char) outval[0]) == 'T' ? "TRUE" : "FALSE";
 	    ++writeoutval;
 	    break;
 
@@ -713,13 +711,13 @@ do_vals2text(
 	case LDAP_SYN_LABELEDURL:
 	    if ( !notascii && ( p = strchr( outval, '$' )) != NULL ) {
 		*p++ = '\0';
-		while ( isspace( *p )) {
+		while ( isspace( (unsigned char) *p )) {
 		    ++p;
 		}
 		s = outval;
 	    } else if ( !notascii && ( s = strchr( outval, ' ' )) != NULL ) {
 		*s++ = '\0';
-		while ( isspace( *s )) {
+		while ( isspace( (unsigned char) *s )) {
 		    ++s;
 		}
 		p = outval;
@@ -757,7 +755,7 @@ do_vals2text(
     }
 
     if ( freebuf ) {
-	free( buf );
+	LDAP_FREE( buf );
     }
 
     return( LDAP_SUCCESS );
@@ -772,9 +770,9 @@ max_label_len( struct ldap_disptmpl *tmpl )
 
     maxlen = 0;
 
-    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULLTMPLITEM;
+    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULL;
 	    rowp = ldap_next_tmplrow( tmpl, rowp )) {
-	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 	    if (( len = strlen( colp->ti_label )) > maxlen ) {
 		maxlen = len;
@@ -852,10 +850,10 @@ output_dn( char *buf, char *dn, int width, int rdncount,
 
 
 
-#define HREF_CHAR_ACCEPTABLE( c )	(( c >= '-' && c <= '9' ) ||	\
-					 ( c >= '@' && c <= 'Z' ) ||	\
-					 ( c == '_' ) ||		\
-					 ( c >= 'a' && c <= 'z' ))
+#define HREF_CHAR_ACCEPTABLE( c )	(( (c) >= '-' && (c) <= '9' ) || \
+					 ( (c) >= '@' && (c) <= 'Z' ) || \
+					 ( (c) == '_' )               || \
+					 ( (c) >= 'a' && (c) <= 'z' ))
 
 static void
 strcat_escaped( char *s1, char *s2 )
@@ -878,7 +876,7 @@ strcat_escaped( char *s1, char *s2 )
 }
 
 
-#define GET2BYTENUM( p )	(( *p - '0' ) * 10 + ( *(p+1) - '0' ))
+#define GET2BYTENUM( p )	(( *(p) - '0' ) * 10 + ( *((p)+1) - '0' ))
 
 static char *
 time2text( char *ldtimestr, int dateonly )
@@ -886,20 +884,33 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
+    char		timebuf[32];
+	int ndigits;
 
-    memset( (char *)&t, 0, sizeof( struct tm ));
-    if ( (int) strlen( ldtimestr ) < 13 ) {
-	return( fmterr );
+	if (strlen( ldtimestr ) < 12 ) {
+		return( fmterr );
+	}
+
+    for ( ndigits=0; isdigit((unsigned char) ldtimestr[ndigits]); ndigits++) {
+		; /* EMPTY */
     }
 
-    for ( p = ldtimestr; p - ldtimestr < 12; ++p ) {
-	if ( !isdigit( *p )) {
+	if ( ndigits != 12 && ndigits != 14) {
 	    return( fmterr );
 	}
-    }
+	
+    memset( (char *)&t, 0, sizeof( struct tm ));
 
     p = ldtimestr;
+
+	if( ndigits == 14) {
+		/* came with a century */
+		/* POSIX says tm_year should be year - 1900 */
+    	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
+		p += 2;
+	}
     t.tm_year = GET2BYTENUM( p ); p += 2;
+
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;
     t.tm_hour = GET2BYTENUM( p ); p += 2;
@@ -911,11 +922,12 @@ time2text( char *ldtimestr, int dateonly )
     }
 
     gmttime = gtime( &t );
-    timestr = ctime( &gmttime );
 
+    timestr = ldap_pvt_ctime( &gmttime, timebuf );
+   
     timestr[ strlen( timestr ) - 1 ] = zone;	/* replace trailing newline */
     if ( dateonly ) {
-	strcpy( timestr + 11, timestr + 20 );
+	SAFEMEMCPY( timestr + 11, timestr + 20, strlen( timestr + 20 ) + 1 );
     }
 
     return( timestr );
@@ -924,23 +936,29 @@ time2text( char *ldtimestr, int dateonly )
 
 
 /* gtime.c - inverse gmtime */
-
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
-
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.
  */
 
-static int	dmsize[] = {
+static const int dmsize[] = {
     31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
 
 #define	dysize(y)	\
 	(((y) % 4) ? 365 : (((y) % 100) ? 366 : (((y) % 400) ? 365 : 366)))
 
-#define	YEAR(y)		((y) >= 100 ? (y) : (y) + 1900)
+/*
+ * Y2K YEAR
+ */
+	/* per STDC & POSIX tm_year should be offset by 1900 */
+#define YEAR_POSIX(y)		((y) + 1900)
+
+	/*
+	 * year is < 1900, year is offset by 1900
+	 */
+#define YEAR_CAREFUL(y)		((y) < 1900 ? (y) + 1900 : (y))
+
+#define YEAR(y) YEAR_CAREFUL(y)
 
 /*  */
 
@@ -987,7 +1005,7 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
 	struct ldap_tmplitem *tip, int labelwidth, int rdncount,
 	writeptype writeproc, void *writeparm, char *eol, char *urlprefix )
 {
-    int			err, lderr, i, count, html;
+    int			err = 0, lderr, i, count, html;
     char		**vals, **members;
     char		*value, *filtpattern, *attr, *selectname;
     char		*retattrs[2], filter[ 256 ];
@@ -1014,6 +1032,8 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
     } else if ( strcasecmp( attr, "-dnb" ) == 0 ) {
 	return( LDAP_PARAM_ERROR );
     } else if ( strcasecmp( attr, "-dnt" ) == 0 ) {
+	value = dn;
+    } else if ( strcasecmp( attr, "-dn" ) == 0 ) {
 	value = dn;
     } else if (( vals = ldap_get_values( ld, entry, attr )) != NULL ) {
 	value = vals[ 0 ];
@@ -1047,18 +1067,18 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
     timeout.tv_sec = SEARCH_TIMEOUT_SECS;
     timeout.tv_usec = 0;
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
 	lderr = cldap_search_s( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
 		0, &ldmp, NULL );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	lderr = ldap_search_st( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
 		0, &timeout, &ldmp );
 
     if ( lderr == LDAP_SUCCESS || NONFATAL_LDAP_ERR( lderr )) {
 	if (( count = ldap_count_entries( ld, ldmp )) > 0 ) {
-	    if (( members = (char **)malloc( (count + 1) * sizeof(char *)))
+	    if (( members = (char **)LDAP_MALLOC( (count + 1) * sizeof(char *)))
 		    == NULL ) {
 		err = LDAP_NO_MEMORY;
 	    } else {

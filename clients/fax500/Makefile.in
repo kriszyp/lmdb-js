@@ -1,0 +1,36 @@
+PROGRAMS= rp500 fax500 xrpcomp.tmp
+
+SRCS= main.c faxtotpc.c rp500.c
+XSRCS=fax5version.c rpversion.c
+
+FAX5OBJS = main.o faxtotpc.o
+RPOBJS =  rp500.o faxtotpc.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+rp500 : rpversion.o
+	$(LTLINK) -o $@ $(RPOBJS) rpversion.o $(LIBS)
+
+fax500 : fax5version.o
+	$(LTLINK) -o $@ $(RPOBJS) fax5version.o $(LIBS)
+
+rpversion.c: ${RPOBJS} $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) rp500 > $@
+
+fax5version.c: ${FAX5OBJS} $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) fax500 > $@
+
+xrpcomp.tmp: xrpcomp
+	$(SED) -e 's|%LIBEXECDIR%|$(libexecdir)|' $(srcdir)/xrpcomp > xrpcomp.tmp
+
+install-local: $(PROGRAMS) FORCE
+	-$(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rp500 $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 fax500 $(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 xrpcomp.tmp $(libexecdir)/xrpcomp

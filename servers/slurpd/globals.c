@@ -14,7 +14,12 @@
  * globals.c - initialization code for global data
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -29,7 +34,8 @@ int ldap_debug = 0;
 /*
  * Initialize the globals
  */
-Globals *init_globals()
+Globals *
+init_globals( void )
 {
     Globals *g;
 
@@ -53,20 +59,16 @@ Globals *init_globals()
     g->srpos = 0L;
     if ( St_init( &(g->st)) < 0 ) {
 	fprintf( stderr, "Cannot initialize status data\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
-    pthread_mutex_init( &(g->rej_mutex), pthread_mutexattr_default );
+    ldap_pvt_thread_mutex_init( &(g->rej_mutex) );
     if ( Rq_init( &(g->rq)) < 0 ) {
 	fprintf( stderr, "Cannot initialize queue\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     g->default_srvtab = SRVTAB;
-#endif /* KERBEROS */
-#if defined( THREAD_SUNOS4_LWP )
-    g->tsl_list = NULL;
-    mon_create( &g->tsl_mon ); 
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_KERBEROS */
 
     return g;
 }

@@ -393,6 +393,9 @@
 /* Define if you have the <locale.h> header file.  */
 #undef HAVE_LOCALE_H
 
+/* Define if you have the <ltdl.h> header file.  */
+#undef HAVE_LTDL_H
+
 /* Define if you have the <lwp/lwp.h> header file.  */
 #undef HAVE_LWP_LWP_H
 
@@ -431,6 +434,9 @@
 
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
+
+/* Define if you have the <quipu/commonarg.h> header file.  */
+#undef HAVE_QUIPU_COMMONARG_H
 
 /* Define if you have the <readline/history.h> header file.  */
 #undef HAVE_READLINE_HISTORY_H
@@ -548,6 +554,9 @@
 
 /* Define if you have the inet library (-linet).  */
 #undef HAVE_LIBINET
+
+/* Define if you have the ltdl library (-lltdl).  */
+#undef HAVE_LIBLTDL
 
 /* Define if you have the net library (-lnet).  */
 #undef HAVE_LIBNET
@@ -687,6 +696,12 @@
 /* define if you have no termcap support */
 #undef NO_TERMCAP
 
+/* define if you have Cyrus SASL */
+#undef HAVE_CYRUS_SASL
+
+/* define if you actually have FreeBSD fetch(3) */
+#undef HAVE_FETCH
+
 /* define if you have -lreadline */
 #undef HAVE_READLINE
 
@@ -720,6 +735,9 @@
 /* define if cross compiling */
 #undef CROSS_COMPILING
 
+/* define to you inet_aton(3) is available */
+#undef HAVE_INET_ATON
+
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
@@ -749,6 +767,9 @@
 
 /* define to support cleartext passwords */
 #undef SLAPD_CLEARTEXT
+
+/* define to support multimaster replication */
+#undef SLAPD_MULTIMASTER
 
 /* define to support phonetic */
 #undef SLAPD_PHONETIC

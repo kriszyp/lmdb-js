@@ -10,65 +10,60 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
-#include <signal.h>
 #include "portable.h"
-#include "ldapconfig.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
+#include <ldap.h>
+#include <disptmpl.h>
+
+#include "ldap_defaults.h"
+
 
 int	dosyslog = 1;
-char	*ldaphost = LDAPHOST;
-int	ldapport = LDAP_PORT;
-char	*base = FINGER_BASE;
+char	*ldaphost = NULL;
+int	ldapport = 0;
+char	*base = NULL;
 int	deref;
 char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
 int	rdncount = FINGER_RDNCOUNT;
 
-static do_query();
-static do_search();
-static do_read();
-static print_attr();
+static void do_query(void);
+static void do_search(LDAP *ld, char *buf);
+static void do_read(LDAP *ld, LDAPMessage *e);
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-l] [-x ldaphost] [-p ldapport] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
-main (argc, argv)
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	int			i;
 	char			*myname;
-	unsigned long		mypeer = -1;
 	struct hostent		*hp;
 	struct sockaddr_in	peername;
-	int			peernamelen;
+	socklen_t         	peernamelen;
 	int			interactive = 0;
-	extern char		*optarg;
 
 	deref = FINGER_DEREF;
 	while ( (i = getopt( argc, argv, "f:ilp:t:x:p:c:" )) != EOF ) {
@@ -111,9 +106,8 @@ char	**argv;
 		if ( getpeername( 0, (struct sockaddr *)&peername,
 		    &peernamelen ) != 0 ) {
 			perror( "getpeername" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
-		mypeer = (unsigned long) peername.sin_addr.s_addr;
 	}
 
 #ifdef FINGER_BANNER
@@ -128,6 +122,10 @@ char	**argv;
 	else
 		myname = strdup( myname + 1 );
 
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL4
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
@@ -136,13 +134,12 @@ char	**argv;
 #endif
 	}
 
-	if ( dosyslog && mypeer != -1 ) {
-		struct in_addr	addr;
-
-		hp = gethostbyaddr( (char *) &mypeer, sizeof(mypeer), AF_INET );
-		addr.s_addr = mypeer;
-		syslog( LOG_INFO, "connection from %s (%s)", (hp == NULL) ?
-		    "unknown" : hp->h_name, inet_ntoa( addr ) );
+	if ( dosyslog && !interactive ) {
+		hp = gethostbyaddr( (char *) &peername.sin_addr.s_addr,
+				    sizeof(peername.sin_addr.s_addr), AF_INET );
+		syslog( LOG_INFO, "connection from %s (%s)",
+			(hp == NULL) ? "unknown" : hp->h_name,
+			inet_ntoa( peername.sin_addr ) );
 	}
 
 	do_query();
@@ -150,7 +147,8 @@ char	**argv;
 	return( 0 );
 }
 
-static do_query()
+static void
+do_query( void )
 {
 	char		buf[256];
 	int		len, rc, tblsize;
@@ -158,25 +156,39 @@ static do_query()
 	fd_set		readfds;
 	LDAP		*ld;
 
-	if ( (ld = ldap_open( ldaphost, ldapport )) == NULL ) {
+	if ( (ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 		fprintf( stderr, FINGER_UNAVAILABLE );
-		perror( "ldap_open" );
-		exit( 1 );
+		perror( "ldap_init" );
+		exit( EXIT_FAILURE );
 	}
-	ld->ld_sizelimit = FINGER_SIZELIMIT;
-	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	{
+		int limit = FINGER_SIZELIMIT;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &limit);
+	}
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
+
+	if ( ldap_simple_bind_s( ld, NULL, NULL )
+		!= LDAP_SUCCESS )
+	{
 		fprintf( stderr, FINGER_UNAVAILABLE );
 		ldap_perror( ld, "ldap_simple_bind_s" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	tblsize = FD_SETSIZE;
+#endif
+
+#ifdef FD_SETSIZE
+	if (tblsize > FD_SETSIZE) {
+		tblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
 
 	timeout.tv_sec = FINGER_TIMEOUT;
 	timeout.tv_usec = 0;
@@ -188,11 +200,11 @@ static do_query()
 			perror( "select" );
 		else
 			fprintf( stderr, "connection timed out on input\r\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( fgets( buf, sizeof(buf), stdin ) == NULL )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	len = strlen( buf );
 
@@ -220,7 +232,7 @@ static do_query()
 			p = buf;
 		}
 
-		for ( ; *p && isspace( *p ); p++ )
+		for ( ; *p && isspace( (unsigned char) *p ); p++ )
 			;	/* NULL */
 
 		do_search( ld, p );
@@ -228,8 +240,7 @@ static do_query()
 }
 
 static void
-spaces2dots( s )
-    char	*s;
+spaces2dots( char *s )
 {
 	for ( ; *s; s++ ) {
 		if ( *s == ' ' ) {
@@ -238,14 +249,14 @@ spaces2dots( s )
 	}
 }
 
-static do_search( ld, buf )
-LDAP	*ld;
-char	*buf;
+static void
+do_search( LDAP *ld, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
 	int		rc, matches, i, ufn;
 	struct timeval	tv;
+	LDAPFiltDesc	*fd;
 	LDAPFiltInfo	*fi;
 	LDAPMessage	*result, *e;
 	static char	*attrs[] = { "cn", "title", "objectClass", "joinable",
@@ -253,7 +264,6 @@ char	*buf;
 					FINGER_SORT_ATTR,
 #endif
 					0 };
-	extern int	strcasecmp();
 
 	ufn = 0;
 #ifdef FINGER_UFN
@@ -267,23 +277,23 @@ char	*buf;
 		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
 			fprintf( stderr, FINGER_UNAVAILABLE );
 			ldap_perror( ld, "ldap_search_st" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		matches = ldap_count_entries( ld, result );
 		ufn = 1;
 	} else {
 #endif
-		if ( (ld->ld_filtd = ldap_init_getfilter( filterfile ))
+		if ( (fd = ldap_init_getfilter( filterfile ))
 		    == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
-		for ( fi = ldap_getfirstfilter( ld->ld_filtd, "finger", buf );
+		for ( fi = ldap_getfirstfilter( fd, "finger", buf );
 		    fi != NULL;
-		    fi = ldap_getnextfilter( ld->ld_filtd ) )
+		    fi = ldap_getnextfilter( fd ) )
 		{
 			tv.tv_sec = FINGER_TIMEOUT;
 			tv.tv_usec = 0;
@@ -294,7 +304,7 @@ char	*buf;
 			{
 				fprintf( stderr, FINGER_UNAVAILABLE );
 				ldap_perror( ld, "ldap_search_st" );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 
 			if ( (matches = ldap_count_entries( ld, result )) != 0 )
@@ -318,7 +328,7 @@ char	*buf;
 		fflush( stdout );
 	} else if ( matches < 0 ) {
 		fprintf( stderr, "error return from ldap_count_entries\r\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else if ( matches <= FINGER_LISTLIMIT ) {
 		printf( "%d %s match%s found for \"%s\":\r\n", matches,
 		    ufn ? "UFN" : fi->lfi_desc, matches > 1 ? "es" : "", buf );
@@ -365,7 +375,7 @@ char	*buf;
 				cn = ldap_get_values( ld, e, "cn" );
 				for ( i = 0; cn[i] != NULL; i++ ) {
 					last = strlen( cn[i] ) - 1;
-					if ( isdigit( cn[i][last] ) ) {
+					if (isdigit((unsigned char) cn[i][last])) {
 						rdn = strdup( cn[i] );
 						break;
 					}
@@ -399,15 +409,14 @@ char	*buf;
 
 
 static int
-entry2textwrite( void *fp, char *buf, int len )
+entry2textwrite( void *fp, char *buf, ber_len_t len )
 {
 	return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }
 
 
-static do_read( ld, e )
-LDAP		*ld;
-LDAPMessage	*e;
+static void
+do_read( LDAP *ld, LDAPMessage *e )
 {
 	static struct ldap_disptmpl *tmpllist;
 	static char	*defattrs[] = { "mail", NULL };
@@ -420,7 +429,7 @@ LDAPMessage	*e;
 	    defvals, entry2textwrite, (void *)stdout, "\r\n", rdncount,
 	    LDAP_DISP_OPT_DOSEARCHACTIONS ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_entry2text_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( tmpllist != NULL ) {

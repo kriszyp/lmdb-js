@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -10,27 +14,53 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
-
-extern char	*default_referral;
-
-void
+int
 do_modrdn(
     Connection	*conn,
     Operation	*op
 )
 {
-	char	*dn, *odn, *newrdn;
-	int	deloldrdn;
+	char	*ndn, *newrdn;
+	ber_int_t	deloldrdn;
 	Backend	*be;
+	/* Vars for LDAP v3 newSuperior support */
+	char	*newSuperior = NULL;
+	char    *nnewSuperior = NULL;
+	Backend	*newSuperior_be = NULL;
+	ber_len_t	length;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
+
+	if( op->o_bind_in_progress ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: SASL bind in progress.\n",
+			0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+			NULL, "SASL bind in progress", NULL, NULL );
+		return LDAP_SASL_BIND_IN_PROGRESS;
+	}
 
 	/*
 	 * Parse the modrdn request.  It looks like this:
@@ -38,24 +68,102 @@ do_modrdn(
 	 *	ModifyRDNRequest := SEQUENCE {
 	 *		entry	DistinguishedName,
 	 *		newrdn	RelativeDistinguishedName
+	 *		deleteoldrdn	BOOLEAN,
+	 *		newSuperior	[0] LDAPDN OPTIONAL (v3 Only!)
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab}", &dn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
-	odn = strdup( dn );
-	dn_normalize( dn );
+
+	if( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", ndn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( ndn );
+		free( newrdn );
+		return rc;
+	}
+
+	if( !rdn_validate( newrdn ) ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid RDN", NULL, NULL );
+		free( ndn );
+		free( newrdn );
+		return rc;
+	}
+
+	/* Check for newSuperior parameter, if present scan it */
+
+	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
+		if ( op->o_protocol < LDAP_VERSION3 ) {
+			/* Conection record indicates v2 but field 
+			 * newSuperior is present: report error.
+			 */
+			Debug( LDAP_DEBUG_ANY,
+			       "modrdn(v2): invalid field newSuperior!\n",
+			       0, 0, 0 );
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
+			return -1;
+		}
+
+		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
+		     == LBER_ERROR ) {
+
+		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
+			   0, 0, 0 );
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
+		    return -1;
+		}
+
+		nnewSuperior = ch_strdup( newSuperior );
+
+		if( dn_normalize_case( nnewSuperior ) == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
+				newSuperior, 0, 0 );
+			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+				"invalid (new superior) DN", NULL, NULL );
+			free( ndn );
+			free( newrdn );
+			return rc;
+		}
+
+	}
 
 	Debug( LDAP_DEBUG_ARGS,
-	    "do_modrdn: dn (%s) newrdn (%s) deloldrdn (%d)\n", dn, newrdn,
-	    deloldrdn );
+	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
+		ndn, newrdn,
+		newSuperior != NULL ? newSuperior : "" );
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MODRDN dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, 0, 0 );
+	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
+		free( ndn );
+		free( newrdn );	
+		free( newSuperior );
+		free( nnewSuperior );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
+	}
+
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+		free( ndn );
+		free( newrdn );	
+		free( newSuperior );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
+		return rc;
+	} 
+
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
+	    op->o_connid, op->o_opid, ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -63,40 +171,85 @@ do_modrdn(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
-		free( odn );
-		free( newrdn );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
-		return;
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( ndn );
+		free( newrdn );	
+		free( newSuperior );
+		free( nnewSuperior );
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
+		return rc;
 	}
+
+	/* Make sure that the entry being changed and the newSuperior are in 
+	 * the same backend, otherwise we return an error.
+	 */
+	if( newSuperior != NULL ) {
+		newSuperior_be = select_backend( nnewSuperior );
+
+		if ( newSuperior_be != be ) {
+			/* newSuperior is in same backend */
+			rc = LDAP_AFFECTS_MULTIPLE_DSAS;
+
+			send_ldap_result( conn, op, rc,
+				NULL, NULL, NULL, NULL );
+
+			free( ndn );
+			free( newrdn );
+			free( newSuperior );
+			free( nnewSuperior );
+
+			return rc;
+		}
+
+		/* deref suffix alias if appropriate */
+		nnewSuperior = suffix_alias( be, nnewSuperior );
+	}
+
+	/* deref suffix alias if appropriate */
+	ndn = suffix_alias( be, ndn );
 
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
 	 * 2) this backend is master for what it holds;
-	 * 3) it's a replica and the dn supplied is the updatedn.
+	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
-	if ( be->be_modrdn != NULL ) {
+	if ( be->be_modrdn ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (*be->be_modrdn)( be, conn, op, dn, newrdn,
-			    deloldrdn ) == 0 ) {
-				replog( be, LDAP_REQ_MODRDN, odn, newrdn,
-				    deloldrdn );
+#ifndef SLAPD_MULTIMASTER
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+#endif
+		{
+			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
+			    deloldrdn, newSuperior ) == 0
+#ifdef SLAPD_MULTIMASTER
+				&& ( be->be_update_ndn == NULL ||
+					strcmp( be->be_update_ndn, op->o_ndn ) )
+#endif
+			) {
+				struct replog_moddn moddn;
+			   	moddn.newrdn = newrdn;
+				moddn.deloldrdn = deloldrdn;
+				moddn.newsup = newSuperior;
+
+				replog( be, op, ndn, &moddn );
 			}
+#ifndef SLAPD_MULTIMASTER
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-			    default_referral );
+			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
+				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
+#endif
 		}
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
-	free( dn );
-	free( odn );
-	free( newrdn );
+	free( ndn );
+	free( newrdn );	
+	free( newSuperior );
+	free( nnewSuperior );
+	return rc;
 }

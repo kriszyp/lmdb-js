@@ -1,5 +1,9 @@
 /* avl.c - routines to implement an avl tree */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1993 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -11,34 +15,38 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #ifndef lint
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 static char avl_version[] = "AVL library version 1.0\n";
 #endif
 
-#include <sys/types.h>
 #include <stdio.h>
+#include <ac/stdlib.h>
+
+#define AVL_INTERNAL
 #include "avl.h"
 
 #define ROTATERIGHT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_left == NULL ) {\
-		(void) printf("RR error\n"); exit(1); \
+	if ( *(x) == NULL || (*(x))->avl_left == NULL ) {\
+		(void) fputs("RR error\n", stderr); exit( EXIT_FAILURE ); \
 	}\
-	tmp = (*x)->avl_left;\
-	(*x)->avl_left = tmp->avl_right;\
-	tmp->avl_right = *x;\
-	*x = tmp;\
+	tmp = (*(x))->avl_left;\
+	(*(x))->avl_left = tmp->avl_right;\
+	tmp->avl_right = *(x);\
+	*(x) = tmp;\
 }
 #define ROTATELEFT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_right == NULL ) {\
-		(void) printf("RL error\n"); exit(1); \
+	if ( *(x) == NULL || (*(x))->avl_right == NULL ) {\
+		(void) fputs("RL error\n", stderr); exit( EXIT_FAILURE ); \
 	}\
-	tmp = (*x)->avl_right;\
-	(*x)->avl_right = tmp->avl_left;\
-	tmp->avl_left = *x;\
-	*x = tmp;\
+	tmp = (*(x))->avl_right;\
+	(*(x))->avl_right = tmp->avl_left;\
+	tmp->avl_left = *(x);\
+	*(x) = tmp;\
 }
 
 /*
@@ -46,14 +54,15 @@ static char avl_version[] = "AVL library version 1.0\n";
  * and balance of an avl tree.
  */
 
-static
-ravl_insert( iroot, data, taller, fcmp, fdup, depth )
-    Avlnode 	**iroot;
-    caddr_t	data;
-    int		*taller;
-    IFP		fcmp;		/* comparison function */
-    IFP		fdup;		/* function to call for duplicates */
-    int		depth;
+static int
+ravl_insert(
+    Avlnode	**iroot,
+    void*	data,
+    int		*taller,
+    AVL_CMP		fcmp,			/* comparison function */
+    AVL_DUP		fdup,			/* function to call for duplicates */
+    int		depth
+)
 {
 	int	rc, cmp, tallersub;
 	Avlnode	*l, *r;
@@ -200,11 +209,8 @@ ravl_insert( iroot, data, taller, fcmp, fdup, depth )
  * NOTE: this routine may malloc memory
  */
 
-avl_insert( root, data, fcmp, fdup )
-    Avlnode	**root;
-    caddr_t	data;
-    IFP		fcmp;
-    IFP		fdup;
+int
+avl_insert( Avlnode **root, void* data, AVL_CMP fcmp, AVL_DUP fdup )
 {
 	int	taller;
 
@@ -216,11 +222,10 @@ avl_insert( root, data, fcmp, fdup )
  * been shortened because of a deletion.
  */
 
-static
-right_balance( root )
-    Avlnode	**root;
+static int
+right_balance( Avlnode **root )
 {
-	int	shorter;
+	int	shorter = -1;
 	Avlnode	*r, *l;
 
 	switch( (*root)->avl_bf ) {
@@ -281,11 +286,10 @@ right_balance( root )
  * been shortened because of a deletion.
  */
 
-static
-left_balance( root )
-    Avlnode	**root;
+static int
+left_balance( Avlnode **root )
 {
-	int	shorter;
+	int	shorter = -1;
 	Avlnode	*r, *l;
 
 	switch( (*root)->avl_bf ) {
@@ -348,16 +352,12 @@ left_balance( root )
  * rebalancing.
  */
 
-static caddr_t
-ravl_delete( root, data, fcmp, shorter )
-    Avlnode	**root;
-    caddr_t	data;
-    IFP		fcmp;
-    int		*shorter;
+static void*
+ravl_delete( Avlnode **root, void* data, AVL_CMP fcmp, int *shorter )
 {
 	int	shortersubtree = 0;
 	int	cmp;
-	caddr_t	savedata;
+	void*	savedata;
 	Avlnode	*minnode, *savenode;
 
 	if ( *root == NULLAVL )
@@ -441,23 +441,16 @@ ravl_delete( root, data, fcmp, shorter )
  * the avl tree rooted at root.
  */
 
-caddr_t
-avl_delete( root, data, fcmp )
-    Avlnode	**root;
-    caddr_t	data;
-    IFP		fcmp;
+void*
+avl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
 	int	shorter;
 
 	return( ravl_delete( root, data, fcmp, &shorter ) );
 }
 
-static
-avl_inapply( root, fn, arg, stopflag )
-    Avlnode	*root;
-    IFP		fn;
-    caddr_t	arg;
-    int		stopflag;
+static int
+avl_inapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
 	if ( root == 0 )
 		return( AVL_NOMORE );
@@ -476,12 +469,8 @@ avl_inapply( root, fn, arg, stopflag )
 		return( avl_inapply( root->avl_right, fn, arg, stopflag ) );
 }
 
-static
-avl_postapply( root, fn, arg, stopflag )
-    Avlnode	*root;
-    IFP		fn;
-    caddr_t	arg;
-    int		stopflag;
+static int
+avl_postapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
 	if ( root == 0 )
 		return( AVL_NOMORE );
@@ -499,12 +488,8 @@ avl_postapply( root, fn, arg, stopflag )
 	return( (*fn)( root->avl_data, arg ) );
 }
 
-static
-avl_preapply( root, fn, arg, stopflag )
-    Avlnode	*root;
-    IFP		fn;
-    caddr_t	arg;
-    int		stopflag;
+static int
+avl_preapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
 	if ( root == 0 )
 		return( AVL_NOMORE );
@@ -531,12 +516,8 @@ avl_preapply( root, fn, arg, stopflag )
  * of nodes.
  */
 
-avl_apply( root, fn, arg, stopflag, type )
-    Avlnode	*root;
-    IFP		fn;
-    caddr_t	arg;
-    int		stopflag;
-    int		type;
+int
+avl_apply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag, int type )
 {
 	switch ( type ) {
 	case AVL_INORDER:
@@ -564,21 +545,23 @@ avl_apply( root, fn, arg, stopflag, type )
  * AVL_NOMORE is returned.
  */
 
-avl_prefixapply( root, data, fmatch, marg, fcmp, carg, stopflag )
-    Avlnode	*root;
-    caddr_t	data;
-    IFP		fmatch;
-    caddr_t	marg;
-    IFP		fcmp;
-    caddr_t	carg;
-    int		stopflag;
+int
+avl_prefixapply(
+    Avlnode	*root,
+    void*	data,
+    AVL_CMP		fmatch,
+    void*	marg,
+    AVL_CMP		fcmp,
+    void*	carg,
+    int		stopflag
+)
 {
 	int	cmp;
 
 	if ( root == 0 )
 		return( AVL_NOMORE );
 
-	cmp = (*fcmp)( data, root->avl_data, carg );
+	cmp = (*fcmp)( data, root->avl_data /* , carg */);
 	if ( cmp == 0 ) {
 		if ( (*fmatch)( root->avl_data, marg ) == stopflag )
 			return( stopflag );
@@ -613,9 +596,8 @@ avl_prefixapply( root, data, fmatch, marg, fcmp, carg, stopflag )
  * number of items actually freed is returned.
  */
 
-avl_free( root, dfree )
-    Avlnode	*root;
-    IFP		dfree;
+int
+avl_free( Avlnode *root, AVL_FREE dfree )
 {
 	int	nleft, nright;
 
@@ -631,6 +613,7 @@ avl_free( root, dfree )
 
 	if ( dfree )
 		(*dfree)( root->avl_data );
+	free( root );
 
 	return( nleft + nright + 1 );
 }
@@ -642,11 +625,8 @@ avl_free( root, dfree )
  * < 0 if arg1 is less than arg2 and > 0 if arg1 is greater than arg2.
  */
 
-caddr_t
-avl_find( root, data, fcmp )
-    Avlnode	*root;
-    caddr_t	data;
-    IFP	fcmp;
+void*
+avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
 	int	cmp;
 
@@ -667,13 +647,10 @@ avl_find( root, data, fcmp )
  * they match, non-zero otherwise.
  */
 
-caddr_t
-avl_find_lin( root, data, fcmp )
-    Avlnode	*root;
-    caddr_t	data;
-    IFP		fcmp;
+void*
+avl_find_lin( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
-	caddr_t	res;
+	void*	res;
 
 	if ( root == 0 )
 		return( NULL );
@@ -692,28 +669,28 @@ avl_find_lin( root, data, fcmp )
 		return( avl_find_lin( root->avl_right, data, fcmp ) );
 }
 
-static caddr_t	*avl_list;
+/* NON-REENTRANT INTERFACE */
+
+static void*	*avl_list;
 static int	avl_maxlist;
 static int	avl_nextlist;
 
 #define AVL_GRABSIZE	100
 
 /* ARGSUSED */
-static
-avl_buildlist( data, arg )
-    caddr_t	data;
-    int	arg;
+static int
+avl_buildlist( void* data, void* arg )
 {
 	static int	slots;
 
-	if ( avl_list == (caddr_t *) 0 ) {
-		avl_list = (caddr_t *) malloc(AVL_GRABSIZE * sizeof(caddr_t));
+	if ( avl_list == (void* *) 0 ) {
+		avl_list = (void* *) malloc(AVL_GRABSIZE * sizeof(void*));
 		slots = AVL_GRABSIZE;
 		avl_maxlist = 0;
 	} else if ( avl_maxlist == slots ) {
 		slots += AVL_GRABSIZE;
-		avl_list = (caddr_t *) realloc( (char *) avl_list,
-		    (unsigned) slots * sizeof(caddr_t));
+		avl_list = (void* *) realloc( (char *) avl_list,
+		    (unsigned) slots * sizeof(void*));
 	}
 
 	avl_list[ avl_maxlist++ ] = data;
@@ -733,13 +710,12 @@ avl_buildlist( data, arg )
  * different trees) cannot be active at once.
  */
 
-caddr_t
-avl_getfirst( root )
-    Avlnode	*root;
+void*
+avl_getfirst( Avlnode *root )
 {
 	if ( avl_list ) {
 		free( (char *) avl_list);
-		avl_list = (caddr_t *) 0;
+		avl_list = (void* *) 0;
 	}
 	avl_maxlist = 0;
 	avl_nextlist = 0;
@@ -747,32 +723,37 @@ avl_getfirst( root )
 	if ( root == 0 )
 		return( 0 );
 
-	(void) avl_apply( root, avl_buildlist, (caddr_t) 0, -1, AVL_INORDER );
+	(void) avl_apply( root, avl_buildlist, (void*) 0, -1, AVL_INORDER );
 
 	return( avl_list[ avl_nextlist++ ] );
 }
 
-caddr_t
-avl_getnext()
+void*
+avl_getnext( void )
 {
 	if ( avl_list == 0 )
 		return( 0 );
 
 	if ( avl_nextlist == avl_maxlist ) {
-		free( (caddr_t) avl_list);
-		avl_list = (caddr_t *) 0;
+		free( (void*) avl_list);
+		avl_list = (void* *) 0;
 		return( 0 );
 	}
 
 	return( avl_list[ avl_nextlist++ ] );
 }
 
-avl_dup_error()
+/* end non-reentrant code */
+
+
+int
+avl_dup_error( void* left, void* right )
 {
 	return( -1 );
 }
 
-avl_dup_ok()
+int
+avl_dup_ok( void* left, void* right )
 {
 	return( 0 );
 }

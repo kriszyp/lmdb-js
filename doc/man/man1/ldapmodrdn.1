@@ -1,20 +1,40 @@
-.TH LDAPMODRDN 1 "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAPMODRDN 1 "17 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
-ldapmodrdn \- ldap modify entry RDN tool
+ldapmodrdn \- LDAP rename entry tool
 .SH SYNOPSIS
 .B ldapmodrdn
-.B [\-r]
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-c]
-.B [\-d debuglevel]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-f file] [dn rdn]
+[\c
+.BR \-r ]
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-c ]
+[\c
+.BR \-M[M] ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BI \-f \ file\fR]
+[\c
+.I dn  rdn\fR]
 .SH DESCRIPTION
 .B ldapmodrdn
 is a shell-accessible interface to the
@@ -56,6 +76,11 @@ Continuous operation mode.  Errors  are  reported,  but ldapmodify
 will  continue  with  modifications.   The default is to exit after
 reporting an error.
 .TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
+.TP
 .B \-d debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapmodrdn
@@ -67,8 +92,12 @@ Read the entry modification information from \fIfile\fP instead of from
 standard input or the command-line.
 .TP
 .B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
+.TP
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
 .TP
 .B \-w passwd
 Use \fIpasswd\fP as the password for simple authentication.
@@ -78,6 +107,9 @@ Specify an alternate host on which the ldap server is running.
 .TP
 .B \-p ldapport
 Specify an alternate TCP port where the ldap server is listening.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .SH INPUT FORMAT
 If the command-line arguments \fIdn\fP and \fIrdn\fP are given, \fIrdn\fP
 will replace the RDN of the entry specified by the DN, \fIdn\fP.
@@ -99,7 +131,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    cn=Modify Me, o=University of Michigan, c=US
+    cn=Modify Me, dc=OpenLDAP, dc=org
     cn=The New Me
 .fi
 .LP
@@ -120,6 +152,7 @@ status and a diagnostic message being written to standard error.
 .BR ldapdelete (1),
 .BR ldapmodify (1),
 .BR ldapsearch (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_modrdn2 (3)
 .LP
@@ -130,3 +163,8 @@ Kille, S.,
 ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

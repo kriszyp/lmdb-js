@@ -10,31 +10,39 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define CH_FREE 1
+
 /*
  * ch_malloc.c - malloc() and friends, with check for NULL return.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/stdlib.h>
+#include <ac/socket.h>
+
 #include "../slapd/slap.h"
 
 
+#ifndef CSRIMALLOC
 
 /*
  * Just like malloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_malloc(
-    unsigned long	size
+    ber_len_t	size
 )
 {
-	char	*new;
+	void	*new;
 
-	if ( (new = (char *) malloc( size )) == NULL ) {
-		fprintf( stderr, "malloc of %d bytes failed\n", size );
-		exit( 1 );
+	if ( (new = (void *) ber_memalloc( size )) == NULL ) {
+		fprintf( stderr, "malloc of %lu bytes failed\n",
+			(long) size );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
@@ -47,21 +55,26 @@ ch_malloc(
  * Just like realloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_realloc(
-    char		*block,
-    unsigned long	size
+    void		*block,
+    ber_len_t	size
 )
 {
-	char	*new;
+	void	*new;
 
 	if ( block == NULL ) {
 		return( ch_malloc( size ) );
 	}
 
-	if ( (new = (char *) realloc( block, size )) == NULL ) {
-		fprintf( stderr, "realloc of %d bytes failed\n", size );
-		exit( 1 );
+	if ( size == 0 ) {
+		ch_free( block );
+	}
+
+	if ( (new = (void *) ber_memrealloc( block, size )) == NULL ) {
+		fprintf( stderr, "realloc of %lu bytes failed\n",
+			(long) size );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
@@ -74,18 +87,18 @@ ch_realloc(
  * Just like calloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_calloc(
-    unsigned long	nelem,
-    unsigned long	size
+    ber_len_t	nelem,
+    ber_len_t	size
 )
 {
-	char	*new;
+	void	*new;
 
-	if ( (new = (char *) calloc( nelem, size )) == NULL ) {
-		fprintf( stderr, "calloc of %d elems of %d bytes failed\n",
-		    nelem, size );
-		exit( 1 );
+	if ( (new = (void *) ber_memcalloc( nelem, size )) == NULL ) {
+		fprintf( stderr, "calloc of %lu elems of %lu bytes failed\n",
+		    (long) nelem, (long) size );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
@@ -97,12 +110,13 @@ ch_calloc(
  */
 void
 ch_free(
-    char *p
+    void *p
 )
 {
     if ( p != NULL ) {
-	free( p );
+		ber_memfree( p );
     }
     return;
 }
-	
+
+#endif

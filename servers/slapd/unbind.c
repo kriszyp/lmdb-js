@@ -1,4 +1,8 @@
 /* unbind.c - decode an ldap unbind operation and pass it to a backend db */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * Copyright (c) 1995 Regents of the University of Michigan.
@@ -13,18 +17,16 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern void      be_unbind();
 
-extern char		*default_referral;
-extern pthread_mutex_t	new_conn_mutex;
-
-void
+int
 do_unbind(
     Connection	*conn,
     Operation	*op
@@ -38,12 +40,11 @@ do_unbind(
 	 *	UnBindRequest ::= NULL
 	 */
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d UNBIND\n", conn->c_connid,
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d UNBIND\n", op->o_connid,
 	    op->o_opid, 0, 0, 0 );
 
 	/* pass the unbind to all backends */
-	be_unbind( conn, op );
-	
-	/* close the connection to the client */
-	close_connection( conn, op->o_connid, op->o_opid );
+	backend_unbind( conn, op );
+
+	return 0;
 }

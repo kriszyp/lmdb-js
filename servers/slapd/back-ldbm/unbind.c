@@ -1,16 +1,21 @@
 /* unbind.c - handle an ldap unbind operation */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-int
+void
 ldbm_back_unbind(
 	Backend     *be,
 	Connection  *conn,
 	Operation   *op
 )
 {
-	return( 0 );
 }

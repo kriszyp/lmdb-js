@@ -1,27 +1,25 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
-extern char	*first_word();
-extern char	*next_word();
-extern char	*phonetic();
-extern IDList	*index_read();
-extern IDList	*idl_intersection();
-extern IDList	*idl_union();
-extern IDList	*idl_notin();
-extern IDList	*idl_allids();
-
-static IDList	*ava_candidates();
-static IDList	*presence_candidates();
-static IDList	*approx_candidates();
-static IDList	*list_candidates();
-static IDList	*substring_candidates();
-static IDList	*substring_comp_candidates();
+static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );
+static ID_BLOCK	*presence_candidates( Backend *be, char *type );
+static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
+static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
+static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
+static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
 
 /*
  * test_filter - test a filter against a single entry.
@@ -30,18 +28,28 @@ static IDList	*substring_comp_candidates();
  *		>0	an ldap error code
  */
 
-IDList *
+ID_BLOCK *
 filter_candidates(
     Backend	*be,
     Filter	*f
 )
 {
-	IDList	*result;
+	ID_BLOCK	*result, *tmp1, *tmp2;
 
 	Debug( LDAP_DEBUG_TRACE, "=> filter_candidates\n", 0, 0, 0 );
 
 	result = NULL;
 	switch ( f->f_choice ) {
+	case SLAPD_FILTER_DN_ONE:
+		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
+		result = dn2idl( be, f->f_dn, DN_ONE_PREFIX );
+		break;
+
+	case SLAPD_FILTER_DN_SUBTREE:
+		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
+		result = dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
+		break;
+
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
 		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_EQUALITY );
@@ -84,24 +92,27 @@ filter_candidates(
 
 	case LDAP_FILTER_NOT:
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
-		result = idl_notin( be, idl_allids( be ), filter_candidates( be,
-		    f->f_not ) );
+		tmp1 = idl_allids( be );
+		tmp2 = filter_candidates( be, f->f_not );
+		result = idl_notin( be, tmp1, tmp2 );
+		idl_free( tmp2 );
+		idl_free( tmp1 );
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %d\n",
-	    result ? result->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %ld\n",
+	    result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
 	return( result );
 }
 
-static IDList *
+static ID_BLOCK *
 ava_candidates(
     Backend	*be,
     Ava		*ava,
     int		type
 )
 {
-	IDList	*idl;
+	ID_BLOCK	*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> ava_candidates 0x%x\n", type, 0, 0 );
 
@@ -120,36 +131,36 @@ ava_candidates(
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 presence_candidates(
     Backend	*be,
     char	*type
 )
 {
-	IDList	*idl;
+	ID_BLOCK	*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
 	idl = index_read( be, type, 0, "*" );
 
-	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 approx_candidates(
     Backend	*be,
     Ava		*ava
 )
 {
 	char	*w, *c;
-	IDList	*idl, *tmp;
+	ID_BLOCK	*idl, *tmp;
 
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 
@@ -174,19 +185,19 @@ approx_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 list_candidates(
     Backend	*be,
     Filter	*flist,
     int		ftype
 )
 {
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 	Filter	*f;
 
 	Debug( LDAP_DEBUG_TRACE, "=> list_candidates 0x%x\n", ftype, 0, 0 );
@@ -215,19 +226,19 @@ list_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 substring_candidates(
     Backend	*be,
     Filter	*f
 )
 {
 	int	i;
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 
 	Debug( LDAP_DEBUG_TRACE, "=> substring_candidates\n", 0, 0, 0 );
 
@@ -282,12 +293,12 @@ substring_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 substring_comp_candidates(
     Backend	*be,
     char	*type,
@@ -296,7 +307,7 @@ substring_comp_candidates(
 )
 {
 	int	i, len;
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 	char	*p;
 	char	buf[SUBLEN + 1];
 
@@ -348,9 +359,14 @@ substring_comp_candidates(
 			idl_free( tmp );
 			idl_free( tmp2 );
 		}
+
+		/* break if no candidates */
+		if( idl == NULL ) {
+			break;
+		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %d\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }

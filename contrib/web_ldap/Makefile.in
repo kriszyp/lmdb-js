@@ -1,0 +1,18 @@
+PROGRAMS= web_ldap
+
+SRCS=	web_ldap.c util.c
+OBJS=	web_ldap.o util.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+web_ldap: ${OBJS} $(LDAP_LIBDEPEND)
+	$(LTLINK) -o $@ $(OBJS) $(LIBS)
+
+install-local: $(PROGRAMS) FORCE
+	-test -d $(libexecdir) || $(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 web_ldap $(libexecdir)
+	@echo ">> You must copy and edit web_ldap.cfg and web_ldap.html as needed. <<"

@@ -1,0 +1,21 @@
+SRCS	= search.c config.c init.c
+OBJS	= search.lo config.lo init.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-passwd"
+BUILD_MOD = @BUILD_PASSWD@
+LINKAGE = @BUILD_PASSWD_DYNAMIC@
+
+LIBBASE = back_passwd
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+
