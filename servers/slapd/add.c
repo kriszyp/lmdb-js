@@ -83,12 +83,12 @@ do_add( Connection *conn, Operation *op )
 
 	e->e_dn = dn;
 	e->e_ndn = ndn;
+	e->e_attrs = NULL;
 	e->e_private = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */
-	e->e_attrs = NULL;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
 		char		*type;
@@ -97,18 +97,17 @@ do_add( Connection *conn, Operation *op )
 		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-			entry_free( e );
-			return -1;
+			rc = -1;
+			goto done;
 		}
 
 		if ( vals == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
 			    0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for type", NULL, NULL );
 			free( type );
-			entry_free( e );
-			return LDAP_PROTOCOL_ERROR;
+			goto done;
 		}
 
 		attr_merge( e, type, vals );
@@ -118,17 +117,16 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
-		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = -1;
+		goto done;
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto done;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
@@ -141,10 +139,9 @@ do_add( Connection *conn, Operation *op )
 	 */
 	be = select_backend( e->e_ndn );
 	if ( be == NULL ) {
-		entry_free( e );
-		send_ldap_result( conn, op, LDAP_REFERRAL, NULL,
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL,
 		    NULL, default_referral, NULL );
-		return rc;
+		goto done;
 	}
 
 	/* make sure this backend recongizes critical controls */
@@ -153,17 +150,15 @@ do_add( Connection *conn, Operation *op )
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
-		entry_free( e );
-		return rc;
+		goto done;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: database is read-only\n",
 		       0, 0, 0 );
-		entry_free( e );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
-		return LDAP_UNWILLING_TO_PERFORM;
+		goto done;
 	}
 
 	/*
@@ -191,11 +186,10 @@ do_add( Connection *conn, Operation *op )
 				rc = add_created_attrs( op, e );
 
 				if( rc != LDAP_SUCCESS ) {
-					entry_free( e );
 					send_ldap_result( conn, op, rc,
 						NULL, "no-user-modification attribute type",
 						NULL, NULL );
-					return rc;
+					goto done;
 				}
 			}
 
@@ -208,20 +202,24 @@ do_add( Connection *conn, Operation *op )
 					replog( be, op, e->e_dn, e );
 				}
 				be_entry_release_w( be, e );
+				e = NULL;
 			}
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			entry_free( e );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
 #endif
 		}
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
-		entry_free( e );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );
+	}
+
+done:
+	if( e ) {
+		entry_free( e );
 	}
 
 	return rc;
