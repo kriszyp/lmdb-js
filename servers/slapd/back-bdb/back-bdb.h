@@ -14,7 +14,7 @@
 
 LDAP_BEGIN_DECL
 
-/* #define BDB_HIER		1 */
+#define BDB_HIER		1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -160,7 +160,7 @@ struct bdb_op_info {
 	int		boi_acl_cache;
 };
 
-#define	DB_OPEN(db, file, name, type, flags, mode) \
+#define	DB_OPEN(db, txn, file, name, type, flags, mode) \
 	(db)->open(db, file, name, type, flags, mode)
 
 #if DB_VERSION_MAJOR < 4
@@ -191,8 +191,8 @@ struct bdb_op_info {
 /* BDB 4.1.17 adds txn arg to db->open */
 #if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
 #undef DB_OPEN
-#define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
+#define	DB_OPEN(db, txn, file, name, type, flags, mode) \
+	(db)->open(db, txn, file, name, type, flags, mode)
 #endif
 
 #define BDB_REUSE_LOCKERS

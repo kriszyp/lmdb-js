@@ -380,14 +380,14 @@ bdb_db_open( BackendDB *be )
 #ifdef HAVE_EBCDIC
 		strcpy( path, bdbi_databases[i].file );
 		__atoe( path );
-		rc = DB_OPEN( db->bdi_db, 
+		rc = DB_OPEN( db->bdi_db, NULL,
 			path,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
 			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 #else
-		rc = DB_OPEN( db->bdi_db, 
+		rc = DB_OPEN( db->bdi_db, NULL,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,

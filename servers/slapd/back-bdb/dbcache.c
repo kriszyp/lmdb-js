@@ -46,6 +46,7 @@ bdb_db_hash(
 int
 bdb_db_cache(
 	Backend	*be,
+	DB_TXN *tid,
 	const char *name,
 	DB **dbout )
 {
@@ -110,7 +111,7 @@ bdb_db_cache(
 #ifdef HAVE_EBCDIC
 	__atoe( file );
 #endif
-	rc = DB_OPEN( db->bdi_db,
+	rc = DB_OPEN( db->bdi_db, tid,
 		file, name,
 		DB_HASH, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
 		bdb->bi_dbenv_mode );

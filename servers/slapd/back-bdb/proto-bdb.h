@@ -51,6 +51,7 @@ BI_acl_attribute bdb_attribute;
 int
 bdb_db_cache(
     Backend	*be,
+    DB_TXN *tid,
     const char *name,
 	DB **db );
 
