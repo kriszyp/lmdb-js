@@ -447,10 +447,16 @@ bdb_idl_insert_key(
 				if ( count >= BDB_IDL_DB_SIZE ) {
 				/* No room, convert to a range */
 					lo = tmp;
+					hi = NOID;
 					data.data = &hi;
-					rc = cursor->c_get( cursor, key, &data, DB_LAST );
+					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
 					if ( rc != 0 ) {
-						err = "c_get last";
+						err = "c_put NOID";
+						goto fail;
+					}
+					rc = cursor->c_get( cursor, key, &data, DB_PREV );
+					if ( rc != 0 ) {
+						err = "c_get prev";
 						goto fail;
 					}
 					if ( id < lo )
