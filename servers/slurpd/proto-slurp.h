@@ -34,8 +34,8 @@ void ch_free	LDAP_P((void *p));
 /* config.c */
 int slurpd_read_config	LDAP_P((char *fname));
 
-char *slurpd_pid_file;
-char *slurpd_args_file;
+extern char *slurpd_pid_file;
+extern char *slurpd_args_file;
 
 /* ch_malloc.c */
 void ch_free LDAP_P(( void *p ));
