@@ -615,6 +615,12 @@
 /* Version number of package */
 #undef VERSION
 
+/* define this if you have mkversion */
+#undef HAVE_MKVERSION
+
+/* defined to be the EXE extension */
+#undef EXEEXT
+
 /* define if you have -lxttp */
 #undef HAVE_XTPP
 

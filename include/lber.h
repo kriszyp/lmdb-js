@@ -67,7 +67,7 @@ LDAP_BEGIN_DECL
 #define LBER_INVALID(tag) ( ( (tag) & 0xFFFFFF80UL ) != 0 )
 #define LBER_ERROR		0xffffffffUL
 #define LBER_DEFAULT		0xffffffffUL
-/* #define LBER_END_SEQORSET	0xfffffffeUL *//* no part of LDAP C-API */
+/* #define LBER_END_SEQORSET	0xfffffffeUL *//* not part of LDAP C-API */
 
 /* general BER types we know about */
 #define LBER_BOOLEAN		0x01UL
