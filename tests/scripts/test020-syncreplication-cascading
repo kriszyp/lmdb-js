@@ -8,11 +8,6 @@ fi
 
 . $SRCDIR/scripts/args.sh $*
 
-if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb"; then
-	echo "Test only valid for back-bdb"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -43,6 +38,8 @@ echo "Resetting $P3REPLDIR..."
 rm -rf $P3REPLDIR
 mkdir $P3REPLDIR
 
+SAVE=$BACKEND
+BACKEND=bdb
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
@@ -51,6 +48,7 @@ if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+BACKEND=$SAVE
 
 echo "Waiting 5 seconds to wait for master to start..."
 sleep 5
@@ -77,6 +75,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+SAVE=$BACKEND
+BACKEND=bdb
 echo "Starting R1 slave slapd on TCP/IP port $R1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $R1SRSLAVECONF > $R1REPLCONF
 $SLAPD -f $R1REPLCONF -h $R1SLAVEURI -d $LVL $TIMING > $R1SLAVELOG 2>&1 &
@@ -85,6 +85,7 @@ if test $WAIT != 0 ; then
     echo SLAVE R1 PID $R1SLAVEPID
     read foo
 fi
+BACKEND=$SAVE
 
 echo "Using ldapsearch to check that R1 slave slapd is running..."
 for i in 0 1 2 3 4 5; do
@@ -125,6 +126,8 @@ done
 echo "Waiting for the R2 slave to replicate..."
 sleep 10
 
+SAVE=$BACKEND
+BACKEND=bdb
 echo "Starting P1 slave slapd on TCP/IP port $P1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $P1REPLCONF
 $SLAPD -f $P1REPLCONF -h $P1SLAVEURI -d $LVL $TIMING > $P1SLAVELOG 2>&1 &
@@ -133,6 +136,7 @@ if test $WAIT != 0 ; then
     echo SLAVE P1 PID $P1SLAVEPID
     read foo
 fi
+BACKEND=$SAVE
 
 echo "Using ldapsearch to check that the P1 slave slapd is running..."
 for i in 0 1 2 3 4 5; do

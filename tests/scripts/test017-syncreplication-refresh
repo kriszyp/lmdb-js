@@ -8,11 +8,6 @@ fi
 
 . $SRCDIR/scripts/args.sh $*
 
-if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb"; then
-	echo "Test only valid for back-bdb"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -31,6 +26,8 @@ echo "Resetting $R1REPLDIR..."
 rm -rf $R1REPLDIR
 mkdir $R1REPLDIR
 
+SAVE=$BACKEND
+BACKEND=bdb
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
@@ -39,6 +36,7 @@ if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+BACKEND=$SAVE
 
 echo "Waiting 5 seconds to wait for master to start..."
 sleep 5
