@@ -1608,16 +1608,15 @@ consistency_check(
 		}
 		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex);
 	}
-	/* If there were no queries, defer processing for a while */
-	if ( pause ) {
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-		cm->cc_paused = 1;
-		if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-			ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
-		}
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 1 );
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
+		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
 	}
+	/* If there were no queries, defer processing for a while */
+	cm->cc_paused = pause;
+	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, pause );
+
+	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 	return NULL;
 }
 
