@@ -495,7 +495,7 @@ slap_passwd_hash(
 static ldap_pvt_thread_mutex_t passwd_mutex;
 static lutil_cryptfunc slapd_crypt;
 
-int slapd_crypt( const char *key, const char *salt, char **hash )
+static int slapd_crypt( const char *key, const char *salt, char **hash )
 {
 	char *cr;
 	int rc;
