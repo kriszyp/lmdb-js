@@ -101,6 +101,4 @@ typedef struct config_args_s {
 
 typedef int (ConfigDriver)(ConfigArgs *c);
 
-struct verb_mask_list { char *word; int mask; };
-
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);

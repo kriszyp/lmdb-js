@@ -549,19 +549,19 @@ badline:
 /* restrictops, allows, disallows, requires, loglevel */
 
 int
-verb_to_mask(ConfigArgs *c, struct verb_mask_list *v, int word) {
-	int j;
-	for(j = 0; v[j].word; j++)
-		if(!strcasecmp(c->argv[word], v[j].word))
+verb_to_mask(const char *word, slap_verbmasks *v) {
+	int i;
+	for(i = 0; v[i].word; i++)
+		if(!strcasecmp(word, v[i].word))
 			break;
-	return(j);
+	return(i);
 }
 
 int
-verbs_to_mask(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t *m) {
+verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 	int i, j;
-	for(i = 1; i < c->argc; i++) {
-		j = verb_to_mask(c, v, i);
+	for(i = 1; i < argc; i++) {
+		j = verb_to_mask(argv[i], v);
 		if(!v[j].word) return(1);
 		while (!v[j].mask) j--;
 		*m |= v[j].mask;
@@ -570,7 +570,7 @@ verbs_to_mask(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t *m) {
 }
 
 int
-mask_to_verbs(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t m) {
+mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	int i, j;
 	struct berval bv;
 
@@ -579,19 +579,19 @@ mask_to_verbs(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t m) {
 		if (!v[i].mask) continue;
 		if (( m & v[i].mask ) == v[i].mask ) {
 			ber_str2bv( v[i].word, 0, 0, &bv );
-			value_add_one( &c->rvalue_vals, &bv );
+			value_add_one( bva, &bv );
 		}
 	}
 	return 0;
 }
 
-static struct verb_mask_list tlskey[] = {
+static slap_verbmasks tlskey[] = {
 	{ "no",		SB_TLS_OFF },
 	{ "yes",		SB_TLS_ON },
 	{ "critical",	SB_TLS_CRITICAL }
 };
 
-static struct verb_mask_list methkey[] = {
+static slap_verbmasks methkey[] = {
 	{ "simple",	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
 	{ "sasl",	LDAP_AUTH_SASL },
@@ -603,7 +603,7 @@ typedef struct cf_aux_table {
 	struct berval key;
 	int off;
 	int quote;
-	struct verb_mask_list *aux;
+	slap_verbmasks *aux;
 } cf_aux_table;
 
 static cf_aux_table bindkey[] = {
@@ -619,7 +619,7 @@ static cf_aux_table bindkey[] = {
 	{ BER_BVNULL, 0, 0, NULL }
 };
 
-int bindconf_parse( char *word, slap_bindconf *bc ) {
+int bindconf_parse( const char *word, slap_bindconf *bc ) {
 	int i, rc = 0;
 	char **cptr;
 	cf_aux_table *tab;

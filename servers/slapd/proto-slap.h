@@ -443,6 +443,18 @@ LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 	char ***, char *, const char * ));
+LDAP_SLAPD_F (int) verb_to_mask LDAP_P((
+	const char *word,  slap_verbmasks *v ));
+LDAP_SLAPD_F (int) verbs_to_mask LDAP_P((
+	int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m ));
+LDAP_SLAPD_F (int) mask_to_verbs LDAP_P((
+	slap_verbmasks *v, slap_mask_t m, BerVarray *bva ));
+LDAP_SLAPD_F (int) bindconf_parse LDAP_P((
+	const char *word,  slap_bindconf *bc ));
+LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
+	slap_bindconf *bc, struct berval *bv ));
+LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;
 #endif

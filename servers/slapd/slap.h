@@ -1418,6 +1418,11 @@ struct slap_replica_info {
 	slap_bindconf ri_bindconf;	/* for back-config */
 };
 
+typedef struct slap_verbmasks {
+	const char *word;
+	const int mask;
+} slap_verbmasks;
+
 #define SLAP_LIMIT_TIME	1
 #define SLAP_LIMIT_SIZE	2
 

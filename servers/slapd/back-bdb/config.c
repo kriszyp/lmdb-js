@@ -129,7 +129,7 @@ bdb_cf_oc(ConfigArgs *c)
 	return 1;
 }
 
-static struct verb_mask_list bdb_lockd[] = {
+static slap_verbmasks bdb_lockd[] = {
 	{ "default", DB_LOCK_DEFAULT },
 	{ "oldest", DB_LOCK_OLDEST },
 	{ "random", DB_LOCK_RANDOM },
@@ -213,7 +213,7 @@ bdb_cf_gen(ConfigArgs *c)
 		break;
 
 	case BDB_LOCKD:
-		rc = verb_to_mask( c, bdb_lockd, 1 );
+		rc = verb_to_mask( c->argv[1], bdb_lockd );
 		if ( !bdb_lockd[rc].word ) {
 			fprintf( stderr, "%s: "
 				"bad policy (%s) in \"lockDetect <policy>\" line\n",

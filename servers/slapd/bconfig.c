@@ -1323,7 +1323,7 @@ static int
 config_restrict(ConfigArgs *c) {
 	slap_mask_t restrictops = 0;
 	int i;
-	struct verb_mask_list restrictable_ops[] = {
+	slap_verbmasks restrictable_ops[] = {
 		{ "bind",		SLAP_RESTRICT_OP_BIND },
 		{ "add",		SLAP_RESTRICT_OP_ADD },
 		{ "modify",		SLAP_RESTRICT_OP_MODIFY },
@@ -1343,9 +1343,10 @@ config_restrict(ConfigArgs *c) {
 	};
 
 	if (c->emit) {
-		return mask_to_verbs( c, restrictable_ops, c->be->be_restrictops );
+		return mask_to_verbs( restrictable_ops, c->be->be_restrictops,
+			&c->rvalue_vals );
 	}
-	i = verbs_to_mask( c, restrictable_ops, &restrictops );
+	i = verbs_to_mask( c->argc, c->argv, restrictable_ops, &restrictops );
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown operation %s in \"restrict <features>\" line\n",
@@ -1362,7 +1363,7 @@ static int
 config_allows(ConfigArgs *c) {
 	slap_mask_t allows = 0;
 	int i;
-	struct verb_mask_list allowable_ops[] = {
+	slap_verbmasks allowable_ops[] = {
 		{ "bind_v2",		SLAP_ALLOW_BIND_V2 },
 		{ "bind_anon_cred",	SLAP_ALLOW_BIND_ANON_CRED },
 		{ "bind_anon_dn",	SLAP_ALLOW_BIND_ANON_DN },
@@ -1370,9 +1371,9 @@ config_allows(ConfigArgs *c) {
 		{ NULL,	0 }
 	};
 	if (c->emit) {
-		return mask_to_verbs( c, allowable_ops, global_allows );
+		return mask_to_verbs( allowable_ops, global_allows, &c->rvalue_vals );
 	}
-	i = verbs_to_mask(c, allowable_ops, &allows);
+	i = verbs_to_mask(c->argc, c->argv, allowable_ops, &allows);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"allow <features>\" line\n",
@@ -1387,7 +1388,7 @@ static int
 config_disallows(ConfigArgs *c) {
 	slap_mask_t disallows = 0;
 	int i;
-	struct verb_mask_list disallowable_ops[] = {
+	slap_verbmasks disallowable_ops[] = {
 		{ "bind_anon",		SLAP_DISALLOW_BIND_ANON },
 		{ "bind_simple",	SLAP_DISALLOW_BIND_SIMPLE },
 		{ "bind_krb4",		SLAP_DISALLOW_BIND_KRBV4 },
@@ -1396,9 +1397,9 @@ config_disallows(ConfigArgs *c) {
 		{ NULL, 0 }
 	};
 	if (c->emit) {
-		return mask_to_verbs( c, disallowable_ops, global_disallows );
+		return mask_to_verbs( disallowable_ops, global_disallows, &c->rvalue_vals );
 	}
-	i = verbs_to_mask(c, disallowable_ops, &disallows);
+	i = verbs_to_mask(c->argc, c->argv, disallowable_ops, &disallows);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"disallow <features>\" line\n",
@@ -1413,7 +1414,7 @@ static int
 config_requires(ConfigArgs *c) {
 	slap_mask_t requires = 0;
 	int i;
-	struct verb_mask_list requires_ops[] = {
+	slap_verbmasks requires_ops[] = {
 		{ "bind",		SLAP_REQUIRE_BIND },
 		{ "LDAPv3",		SLAP_REQUIRE_LDAP_V3 },
 		{ "authc",		SLAP_REQUIRE_AUTHC },
@@ -1422,9 +1423,9 @@ config_requires(ConfigArgs *c) {
 		{ NULL, 0 }
 	};
 	if (c->emit) {
-		return mask_to_verbs( c, requires_ops, c->be->be_requires );
+		return mask_to_verbs( requires_ops, c->be->be_requires, &c->rvalue_vals );
 	}
-	i = verbs_to_mask(c, requires_ops, &requires);
+	i = verbs_to_mask(c->argc, c->argv, requires_ops, &requires);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"require <features>\" line\n",
@@ -1439,7 +1440,7 @@ static int
 config_loglevel(ConfigArgs *c) {
 	int i;
 	char *next;
-	struct verb_mask_list loglevel_ops[] = {
+	slap_verbmasks loglevel_ops[] = {
 		{ "Trace",	LDAP_DEBUG_TRACE },
 		{ "Packets",	LDAP_DEBUG_PACKETS },
 		{ "Args",	LDAP_DEBUG_ARGS },
@@ -1459,7 +1460,7 @@ config_loglevel(ConfigArgs *c) {
 	};
 
 	if (c->emit) {
-		return mask_to_verbs( c, loglevel_ops, ldap_syslog );
+		return mask_to_verbs( loglevel_ops, ldap_syslog, &c->rvalue_vals );
 	}
 
 	ldap_syslog = 0;
@@ -1477,7 +1478,7 @@ config_loglevel(ConfigArgs *c) {
 				return( 1 );
 			}
 		} else {
-			int j = verb_to_mask(c, loglevel_ops, c->argv[i][0]);
+			int j = verb_to_mask(c->argv[i], loglevel_ops);
 			if(!loglevel_ops[j].word) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: unknown level \"%s\" "
@@ -1904,13 +1905,13 @@ config_tls_option(ConfigArgs *c) {
 static int
 config_tls_config(ConfigArgs *c) {
 	int i, flag;
-	struct verb_mask_list crlkeys[] = {
+	slap_verbmasks crlkeys[] = {
 		{ "none",	LDAP_OPT_X_TLS_CRL_NONE },
 		{ "peer",	LDAP_OPT_X_TLS_CRL_PEER },
 		{ "all",	LDAP_OPT_X_TLS_CRL_ALL },
 		{ NULL, 0 }
 	};
-	struct verb_mask_list vfykeys[] = {
+	slap_verbmasks vfykeys[] = {
 		{ "never",	LDAP_OPT_X_TLS_NEVER },
 		{ "demand",	LDAP_OPT_X_TLS_DEMAND },
 		{ "try",	LDAP_OPT_X_TLS_TRY },
