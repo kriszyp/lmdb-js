@@ -129,6 +129,8 @@ struct name {								\
 
 #define LDAP_SLIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
+#define LDAP_SLIST_NEXT_INITIALIZER(next)				\
+	{ NULL }
 
 #define LDAP_SLIST_ENTRY(type)						\
 struct {								\
@@ -271,6 +273,8 @@ struct name {								\
 
 #define LDAP_LIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
+#define LDAP_LIST_NEXT_PREV_INITIALIZER(next, prev)			\
+	{ NULL, NULL }
 
 #define LDAP_LIST_ENTRY(type)						\
 struct {								\
