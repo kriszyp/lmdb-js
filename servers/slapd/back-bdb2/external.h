@@ -17,7 +17,7 @@ extern int	bdb2_back_db_close LDAP_P(( BackendDB *bd ));
 extern int	bdb2_back_db_destroy LDAP_P(( BackendDB *bd ));
 
 extern int	bdb2_back_db_config LDAP_P(( BackendDB *bd,
-	char *fname, int lineno, int argc, char **argv ));
+	const char *fname, int lineno, int argc, char **argv ));
 
 extern int bdb2_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
@@ -55,8 +55,8 @@ extern int	bdb2_back_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, int msgid ));
 
 extern int	bdb2_back_group LDAP_P(( BackendDB *bd,
-	Entry *target, char* gr_ndn, char* op_ndn,
-	char* objectclassValue, char* groupattrName));
+	Entry *target, const char* gr_ndn, const char* op_ndn,
+	const char* objectclassValue, const char* groupattrName));
 
 /* hooks for slap tools */
 extern int bdb2_tool_entry_open LDAP_P(( BackendDB *be, int mode ));

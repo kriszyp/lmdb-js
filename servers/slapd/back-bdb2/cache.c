@@ -350,14 +350,14 @@ ID
 bdb2i_cache_find_entry_dn2id(
 	BackendDB		*be,
     struct cache	*cache,
-    char		*dn
+    const char		*dn
 )
 {
 	Entry		e, *ep;
 	ID			id;
 	int		count = 0;
 
-	e.e_dn = dn;
+	e.e_dn = (char *) dn;
 	e.e_ndn = ch_strdup( dn );
 	(void) dn_normalize_case( e.e_ndn );
 

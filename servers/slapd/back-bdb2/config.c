@@ -180,7 +180,7 @@ bdb2i_back_db_config_internal(
 int
 bdb2_back_db_config(
     BackendDB	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv

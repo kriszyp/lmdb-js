@@ -37,7 +37,8 @@ Entry * bdb2i_deref_r LDAP_P((
 
 void bdb2i_attr_masks LDAP_P(( struct ldbminfo *li, char *type, int *indexmask,
  int *syntaxmask ));
-void bdb2i_attr_index_config LDAP_P(( struct ldbminfo *li, char *fname,
+void bdb2i_attr_index_config LDAP_P(( struct ldbminfo *li,
+ const char *fname,
  int lineno, int argc, char **argv, int init ));
 
 /*
@@ -52,7 +53,7 @@ void bdb2i_cache_return_entry_rw LDAP_P(( struct cache *cache, Entry *e,
 #define bdb2i_cache_return_entry_w(c, e) bdb2i_cache_return_entry_rw((c), (e), 1)
 
 ID bdb2i_cache_find_entry_dn2id LDAP_P(( BackendDB *be, struct cache *cache,
- char *dn ));
+ const char *dn ));
 Entry * bdb2i_cache_find_entry_id LDAP_P(( struct cache *cache, ID id, int rw ));
 int bdb2i_cache_delete_entry LDAP_P(( struct cache *cache, Entry *e ));
 
@@ -73,19 +74,19 @@ int bdb2i_cache_delete LDAP_P(( struct dbcache *db, Datum key ));
  * dn2id.c
  */
 
-int bdb2i_dn2id_add LDAP_P(( BackendDB *be, char *dn, ID id ));
-ID bdb2i_dn2id LDAP_P(( BackendDB *be, char *dn ));
-int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, char *dn ));
+int bdb2i_dn2id_add LDAP_P(( BackendDB *be, const char *dn, ID id ));
+ID bdb2i_dn2id LDAP_P(( BackendDB *be, const char *dn ));
+int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, const char *dn ));
 
 ID_BLOCK *
 bdb2i_dn2idl LDAP_P((
     BackendDB	*be,
-    char	*dn,
+    const char	*dn,
 	int	prefix ));
 
 Entry * bdb2i_dn2entry_rw LDAP_P((
 	BackendDB *be,
-	char *dn,
+	const char *dn,
 	Entry **matched,
 	int rw ));
 

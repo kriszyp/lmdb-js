@@ -14,7 +14,7 @@
 int
 bdb2i_dn2id_add(
     BackendDB	*be,
-    char	*dn,
+    const char	*dn,
     ID		id
 )
 {
@@ -91,7 +91,7 @@ bdb2i_dn2id_add(
 ID
 bdb2i_dn2id(
     BackendDB	*be,
-    char	*dn
+    const char	*dn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -143,7 +143,7 @@ bdb2i_dn2id(
 ID_BLOCK *
 bdb2i_dn2idl(
     BackendDB	*be,
-    char	*dn,
+    const char	*dn,
 	int	prefix )
 {
 	struct dbcache	*db;
@@ -178,7 +178,7 @@ bdb2i_dn2idl(
 int
 bdb2i_dn2id_delete(
     BackendDB	*be,
-    char	*dn
+    const char	*dn
 )
 {
 	struct dbcache	*db;
@@ -219,7 +219,7 @@ bdb2i_dn2id_delete(
 Entry *
 bdb2i_dn2entry_rw(
     BackendDB	*be,
-    char	*dn,
+    const char	*dn,
     Entry	**matched,
     int         rw
 )

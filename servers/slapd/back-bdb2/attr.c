@@ -86,7 +86,7 @@ bdb2i_attr_masks(
 void
 bdb2i_attr_index_config(
     struct ldbminfo	*li,
-    char		*fname,
+    const char		*fname,
     int			lineno,
     int			argc,
     char		**argv,
