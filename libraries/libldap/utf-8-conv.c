@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2001 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -70,7 +70,7 @@ Note:  This code does not prevent UTF-8 sequences which are longer than
 	   necessary from being decoded.
 */
 
-/*------------------------------------------------------------------------------ 
+/*----------------------------------------------------------------------------- 
    Convert a UTF-8 character to a wide char. 
    Return the length of the UTF-8 input character in bytes.
 */
@@ -163,7 +163,7 @@ ldap_x_utf8s_to_wcs ( wchar_t *wcstr, const char *utf8str, size_t count )
 }
 
 
-/*------------------------------------------------------------------------------ 
+/*----------------------------------------------------------------------------- 
    Convert one wide char to a UTF-8 character.
    Return the length of the converted UTF-8 character in bytes.
    No more than 'count' bytes will be written to the output buffer.
