@@ -378,8 +378,10 @@ rewrite_session_destroy(
 	count = avl_free( info->li_cookies, NULL );
 	info->li_cookies = NULL;
 
+#if 0
 	fprintf( stderr, "count = %d; num_cookies = %d\n", 
 			count, info->li_num_cookies );
+#endif
 	
 	assert( count == info->li_num_cookies );
 	info->li_num_cookies = 0;
