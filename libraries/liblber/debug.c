@@ -304,6 +304,7 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 }
 
 #if defined(HAVE_EBCDIC) && defined(LDAP_SYSLOG)
+#undef syslog
 void eb_syslog( int pri, const char *fmt, ... )
 {
 	char buffer[4096];
@@ -313,8 +314,11 @@ void eb_syslog( int pri, const char *fmt, ... )
 	vsnprintf( buffer, sizeof(buffer), fmt, vl );
 	buffer[sizeof(buffer)-1] = '\0';
 
+	/* The syslog function appears to only work with pure EBCDIC */
 	__atoe(buffer);
+#pragma convlit(suspend)
 	syslog( pri, "%s", buffer );
+#pragma convlit(resume)
 	va_end( vl );
 }
 #endif
