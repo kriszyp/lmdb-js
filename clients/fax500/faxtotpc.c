@@ -13,8 +13,7 @@
  * Routines for parsing the facsimileTelephoneNumber field out of
  * an X.500 entry and converting it to a "tpc.int" domain name.
  *
- * char *faxtotpc(str)
- * char *str;
+ * char *faxtotpc( char *str, char *userinfo)
  *
  * faxtotpc() returns a pointer to a string allocated with malloc(3).
  */

@@ -258,7 +258,7 @@ print_entry( ld, e )
 		fprintf( stderr, "Entry \"%s\" has no fax number.\n", dn );
 		exit( 1 );
 	}
-	faxmail = faxtotpc( fax[0] );
+	faxmail = faxtotpc( fax[0], NULL );
 	title = ldap_get_values( ld, e, "title" );
 	phone = ldap_get_values( ld, e, "telephoneNumber" );
 	mail = ldap_get_values( ld, e, "mail" );
