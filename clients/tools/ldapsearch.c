@@ -736,7 +736,6 @@ main( int argc, char **argv )
 		return EXIT_FAILURE;
 	}
 
-
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_start_tls" );
 		if ( use_tls > 1 ) {
@@ -831,8 +830,10 @@ main( int argc, char **argv )
 		fprintf( stderr, "\n" );
 	}
 
-	if (ldif < 3 ) {
-		printf( "version: %d\n\n", ldif ? 1 : 2 );
+	if ( ldif == 0 ) {
+		printf( "# extended LDIF\n" );
+	} else if ( ldif < 3 ) {
+		printf( "version: %d\n\n", 1 );
 	}
 
 	if (ldif < 2 ) {
