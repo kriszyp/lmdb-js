@@ -105,7 +105,7 @@ typedef struct ldbm_dbcache {
 	LDBM	dbc_db;
 } DBCache;
 
-#define MAXDBCACHE	16
+#define MAXDBCACHE	128
 
 struct ldbminfo {
 	ID			li_nextid;
