@@ -965,6 +965,12 @@
 /* define to support dynamic DNS SRV backend */
 #undef SLAPD_DNSSRV_DYNAMIC
 
+/* define to support HDB backend */
+#undef SLAPD_HDB
+
+/* define to support dynamic HDB backend */
+#undef SLAPD_HDB_DYNAMIC
+
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
 
