@@ -303,6 +303,9 @@ do_syncrep1(
 		}
 	}
 
+	/* set SSF for local authorization */
+	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_ssf );
+
 	/* get syncrepl cookie of shadow replica from subentry */
 	assert( si->si_rid < 1000 );
 	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
