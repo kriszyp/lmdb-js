@@ -207,9 +207,13 @@ slap_sl_mem_create(
 		sh->sh_map = (unsigned char **)
 					ch_malloc(order * sizeof(unsigned char *));
 		for (i = 0; i < order; i++) {
-			sh->sh_map[i] = (unsigned char *)
-							ch_malloc(size >> (1 << (order_start + i + 3)));
-			memset(sh->sh_map[i], 0, size >> (1 << (order_start + i + 3)));
+			int shiftamt = order_start + 1 + i;
+			int nummaps = size >> shiftamt;
+			assert(nummaps);
+			nummaps >>= 3;
+			if (!nummaps) nummaps = 1;
+			sh->sh_map[i] = (unsigned char *) ch_malloc(nummaps);
+			memset(sh->sh_map[i], 0, nummaps);
 		}
 		sh->sh_stack = stack;
 		return sh;
@@ -247,8 +251,6 @@ slap_sl_malloc(
 
 	/* ber_set_option calls us like this */
 	if (!ctx) return ber_memalloc_x(size, NULL);
-
-	Debug(LDAP_DEBUG_TRACE, "==> slap_sl_malloc (%d)\n", size, 0, 0);
 
 	/* round up to doubleword boundary */
 	size += sizeof(ber_len_t) + pad;
@@ -412,8 +414,6 @@ slap_sl_free(void *ptr, void *ctx)
 	struct slab_object *so;
 	unsigned long diff;
 	int i, k, inserted = 0;
-
-	Debug( LDAP_DEBUG_TRACE, "==> slap_sl_free \n", 0, 0, 0);
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
