@@ -30,6 +30,11 @@ MAKING AND INSTALLING THE DISTRIBUTION
     You will probably want to do a little configuration to suit your
     site, though.  There are two files you might want to edit:
 
+	Make-common.dist
+		contains distribution defaults.  This file is used to
+		contruct Make-common and should not be edited except to
+		add new features/options to the distribution.
+	
 	Make-common
 		contains default definitions for where things will be
 		installed, where to find various things, etc.  These defaults

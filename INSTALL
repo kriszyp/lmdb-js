@@ -42,7 +42,7 @@ these steps:
     lines near the end of the Make-common file.  By default only the
     stand-alone server, LDAP libraries and client software are built.
 
- 3. make the software:
+ 4. make the software:
 
 	% make
 
@@ -86,7 +86,7 @@ these steps:
 
 	% make test
 
- 4. install the binaries and man pages.  You may need to be superuser to
+ 5. install the binaries and man pages.  You may need to be superuser to
     do this (depending on where you are installing things):
 
 	% su
