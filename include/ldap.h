@@ -1273,6 +1273,12 @@ ldap_explode_rdn LDAP_P(( /* deprecated */
 	LDAP_CONST char *rdn,
 	int notypes ));
 
+typedef int LDAPDN_rewrite_func LDAP_P(( LDAPDN *dn, unsigned flags ));
+
+LDAP_F( int )
+ldap_X509dn2bv LDAP_P(( void *x509_name, struct berval *dn,
+	LDAPDN_rewrite_func *func, unsigned flags ));
+
 LDAP_F( char * )
 ldap_dn2dcedn LDAP_P(( LDAP_CONST char *dn ));	/* deprecated */
 
