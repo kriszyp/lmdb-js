@@ -1055,7 +1055,7 @@ read_config( const char *fname )
 
 			tmp_be = select_backend( &nalias, 0, 0 );
 			free( nalias.bv_val );
-			if ( tmp_be != be ) {
+			if ( tmp_be && tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias served by a preceeding "
@@ -1092,7 +1092,7 @@ read_config( const char *fname )
 
 			tmp_be = select_backend( &naliased, 0, 0 );
 			free( naliased.bv_val );
-			if ( tmp_be != be ) {
+			if ( tmp_be && tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias derefs to a different backend "
