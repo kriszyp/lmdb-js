@@ -157,7 +157,19 @@ dn_parent(
 	char	*s;
 	int	inquote, gotesc;
 
-	if ( dn == NULL || *dn == '\0' || be_issuffix( be, dn ) ) {
+	if( dn == NULL ) {
+		return NULL;
+	}
+
+	while(*dn && SPACE(*dn)) {
+		dn++;
+	}
+
+	if( *dn == '\0' ) {
+		return( NULL );
+	}
+
+	if ( be_issuffix( be, dn ) ) {
 		return( NULL );
 	}
 
@@ -175,7 +187,7 @@ dn_parent(
 		if ( *(s + 1) == '\0' ) {
 			return( NULL );
 		} else {
-			return( ch_strdup( s + 1 ) );
+			return( ch_strdup( &s[1] ) );
 		}
 	}
 
@@ -187,22 +199,25 @@ dn_parent(
 	inquote = 0;
 	for ( s = dn; *s; s++ ) {
 		if ( *s == '\\' ) {
-			if ( *(s + 1) )
+			if ( *(s + 1) ) {
 				s++;
+			}
 			continue;
 		}
 		if ( inquote ) {
-			if ( *s == '"' )
+			if ( *s == '"' ) {
 				inquote = 0;
+			}
 		} else {
-			if ( *s == '"' )
+			if ( *s == '"' ) {
 				inquote = 1;
-			else if ( DNSEPARATOR( *s ) )
-				return( ch_strdup( s + 1 ) );
+			} else if ( DNSEPARATOR( *s ) ) {
+				return( ch_strdup( &s[1] ) );
+			}
 		}
 	}
 
-	return( ch_strdup("") );
+	return( ch_strdup( "" ) );
 }
 
 /*
