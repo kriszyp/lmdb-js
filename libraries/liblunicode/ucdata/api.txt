@@ -1,5 +1,5 @@
 #
-# $Id: api.txt,v 1.2 1999/11/19 15:24:29 mleisher Exp $
+# $Id: api.txt,v 1.3 2001/01/02 18:46:20 mleisher Exp $
 #
 
                              The MUTT UCData API
@@ -18,8 +18,9 @@ and ucdata_reload().
 #define UCDATA_DECOMP 0x04
 #define UCDATA_CMBCL  0x08
 #define UCDATA_NUM    0x10
+#define UCDATA_COMP   0x20
 #define UCATA_ALL (UCDATA_CASE|UCDATA_CTYPE|UCDATA_DECOMP|\
-                   UCDATA_CMBCL|UCDATA_NUM)
+                   UCDATA_CMBCL|UCDATA_NUM|UCDATA_COMP)
 -----------------------------------------------------------------------------
 
 void ucdata_load(char *paths, int masks)
@@ -79,6 +80,19 @@ int ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
        putchar('\n');
     }
 
+int uccanondecomp(const unsigned long *in, int inlen, unsigned long **out,
+                  int *outlen)
+
+  This function decomposes an input string and does canonical reordering of
+  the characters at the same time.
+
+  If a -1 is returned, memory allocation was not successful.  If a zero is
+  returned, no decomposition occured.  Any other value means the output string
+  contains the fully decomposed string in canonical order.
+
+  If the "outlen" parameter comes back with a value > 0, then the string
+  returned in the "out" parameter needs to be deallocated by the caller. 
+
 -----------------------------------------------------------------------------
 
 int ucdecomp_hangul(unsigned long code, unsigned long *num,
@@ -103,6 +117,30 @@ int ucdecomp_hangul(unsigned long code, unsigned long *num,
          printf("0x%08lX,", decomp[i]);
        putchar('\n');
     }
+
+-----------------------------------------------------------------------------
+
+int uccomp(unsigned long ch1, unsigned long ch2, unsigned long *comp)
+
+  This function takes a pair of characters and determines if they combine to
+  form another character.
+
+  If a zero is returned, no composition is formed by the character pair.  Any
+  other value indicates the "comp" parameter has a value.
+
+int uccomp_hangul(unsigned long *str, int len)
+
+  This function composes the Hangul Jamo in the string.  The composition is
+  done in-place.
+
+  The return value provides the new length of the string.  This will be
+  smaller than "len" if compositions occured.
+
+int uccanoncomp(unsigned long *str, int len)
+
+  This function does a canonical composition of characters in the string.
+
+  The return value is the new length of the string.
 
 -----------------------------------------------------------------------------
 

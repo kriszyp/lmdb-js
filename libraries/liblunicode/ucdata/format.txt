@@ -1,5 +1,5 @@
 #
-# $Id: format.txt,v 1.1 1998/07/24 15:17:21 mleisher Exp $
+# $Id: format.txt,v 1.2 2001/01/02 18:46:20 mleisher Exp $
 #
 
 CHARACTER DATA
@@ -158,6 +158,30 @@ The format for the binary form of these tables is:
   divided into 3 portions allows 21845 nodes for each case mapping table.  The
   distribution of mappings may be more or less than 21845 per table, but only
   65536 are allowed.
+
+COMPOSITIONS
+============
+
+This data file is called "comp.dat" and contains data that tracks character
+pairs that have a single Unicode value representing the combination of the two
+characters.
+
+The format for the binary form of this table is:
+
+  unsigned short ByteOrderMark
+  unsigned short NumCompositionNodes, count of composition nodes
+  unsigned long  Bytes, total number of bytes used for composition nodes
+  unsigned long  CompositionNodes[NumCompositionNodes * 4]
+
+  If the ByteOrderMark is equal to 0xFFFE, endian swapping is required in the
+  same way as described in the CHARACTER PROPERTIES section.
+
+  The CompositionNodes[] array consists of groups of 4 unsigned longs.  The
+  first of these is the character code representing the combination of two
+  other character codes, the second records the number of character codes that
+  make up the composition (not currently used), and the last two are the pair
+  of character codes whose combination is represented by the character code in
+  the first field.
 
 DECOMPOSITIONS
 ==============

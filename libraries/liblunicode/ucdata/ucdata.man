@@ -1,7 +1,7 @@
 .\"
-.\" $Id: ucdata.man,v 1.4 1999/11/19 16:08:33 mleisher Exp $
+.\" $Id: ucdata.man,v 1.5 2001/01/02 18:46:20 mleisher Exp $
 .\"
-.TH ucdata 3 "19 November 1999"
+.TH ucdata 3 "03 January 2001"
 .SH NAME 
 ucdata \- package for providing Unicode/ISO10646 character information
 
@@ -16,9 +16,17 @@ void ucdata_reload(char * paths, int masks)
 .sp
 int ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
 .sp
+int uccanondecomp(const unsigned long *in, int inlen, unsigned long **out,
+int *outlen)
+.sp
 int ucdecomp_hangul(unsigned long code, unsigned long *num,
 unsigned long decomp[])
 .sp
+int uccomp(unsigned long ch1, unsigned long ch2, unsigned long *comp)
+.sp
+int uccomp_hangul(unsigned long *str, int len)
+.sp
+int uccanoncomp(unsiged long *str, int len)
 .nf
 struct ucnumber {
   int numerator;
@@ -203,6 +211,17 @@ Example call:
        putchar('\n');
     }
 .TP 4
+.BR uccanondecomp()
+This function will decompose a string, insuring the characters are in
+canonical order for comparison.
+.sp
+If a decomposed string is returned, the caller is responsible for deallocating
+the string.
+.sp
+If a -1 is returned, memory allocation failed.  If a zero is returned, no
+decomposition was done.  Any other value means a decomposition string was
+created and the values returned in the `out' and `outlen' parameters.
+.TP 4
 .BR ucdecomp_hangul()
 This function determines if a Hangul syllable has a
 decomposition and returns the decomposition information.
@@ -225,6 +244,25 @@ Example call:
          printf("0x%08lX,", decomp[i]);
        putchar('\n');
     }
+.TP 4
+.BR uccomp()
+This function determines if a pair of characters have a composition, and
+returns that composition if one exists.
+.sp
+A zero is returned is no composition exists for the character pair.  Any other
+value indicates the `comp' field holds the character code representing the
+composition of the two character codes.
+.TP 4
+.BR uccomp_hangul()
+This composes the Hangul Jamo in-place in the string.
+.sp
+The returned value is the new length of the string.
+.TP 4
+.BR uccanoncomp()
+This function does a full composition in-place in the string, including the
+Hangul composition.
+.sp
+The returned value is the new length of the string.
 .TP 4
 .BR ucnumber_lookup()
 This function determines if the code is a number and
@@ -453,6 +491,8 @@ Christophe Pierret <cpierret@businessobjects.com>
 Kent Johnson <kent@pondview.mv.com>
 .br
 Valeriy E. Ushakov <uwe@ptc.spbu.ru>
+.br
+Stig Venaas <Stig.Venaas@uninett.no>
 
 .SH AUTHOR
 Mark Leisher
