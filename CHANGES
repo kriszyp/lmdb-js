@@ -4,7 +4,7 @@ OpenLDAP 2.2.20 Engineering
 	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
 	Fixed slapd ID to DN mapping when values need DN escaping (ITS#3419)
 	Fixed slapd sl_realloc memory overrun (ITS#3420, #3404, #3296)
-	Fixed slapd syncrepl consumer bugs (ITS#3423, #3425, #3443)
+	Fixed slapd syncrepl bugs (ITS#3423, #3425, #3443, #3448)
 	Fixed back-bdb locks in backend_group (ITS#3263, #3365)
 	Fixed back-ldap failed connection retry (ITS#3217)
 	Fixed back-sql segfault when logging and delete_rule is NULL (ITS#3407)
