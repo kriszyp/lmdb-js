@@ -414,7 +414,7 @@ get_substring_filter(
 			goto return_error;
 		}
 
-		/* valiate using equality matching rule validator! */
+		/* validate using equality matching rule validator! */
 		rc = value_validate( f->f_sub_desc->ad_type->sat_equality,
 			&value, text );
 		if( rc != LDAP_SUCCESS ) {
