@@ -122,10 +122,16 @@ bdb_idl_insert_key(
 		data.size = 2 * sizeof( ID );
 
 	} else if ( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_insert_key: get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		return rc;
 
 	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_insert_key: odd size: expected %ld multiple, got %ld\n",
+			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
 	} else if ( BDB_IS_ALLIDS(ids) ) {
@@ -133,6 +139,9 @@ bdb_idl_insert_key(
 
 	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
 		/* size mismatch */
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_insert_key: get size mismatch: expected %ld, got %ld\n",
+			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
 		return -1;
 
 	} else {
@@ -146,6 +155,11 @@ bdb_idl_insert_key(
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
 
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_insert_key: get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+	}
 	return rc;
 }
 
@@ -171,10 +185,16 @@ bdb_idl_delete_key(
 	rc = db->get( db, tid, key, &data, DB_RMW );
 
 	if ( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_delete_key: get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		return rc;
 
 	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_delete_key: odd size: expected %ld multiple, got %ld\n",
+			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
 	} else if ( BDB_IS_ALLIDS(ids) ) {
@@ -182,6 +202,9 @@ bdb_idl_delete_key(
 
 	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
 		/* size mismatch */
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_delete_key: get size mismatch: expected %ld, got %ld\n",
+			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
 		return -1;
 
 	} else {
@@ -192,6 +215,11 @@ bdb_idl_delete_key(
 		if( BDB_IS_ALLIDS(ids) ) {
 			/* delete the key */
 			rc = db->del( db, tid, key, 0 );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"=> bdb_idl_delete_key: delete failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+			}
 			return rc;
 		}
 
@@ -200,6 +228,12 @@ bdb_idl_delete_key(
 
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_idl_delete_key: put failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+	}
 
 	return rc;
 }
