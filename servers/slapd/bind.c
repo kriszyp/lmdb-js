@@ -45,7 +45,7 @@ do_bind(
 	int	rc = LDAP_SUCCESS;
 	const char *text;
 	struct berval cred = { 0, NULL };
-	Backend *be;
+	Backend *be = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );
