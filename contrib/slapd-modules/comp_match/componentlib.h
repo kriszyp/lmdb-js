@@ -26,7 +26,7 @@
 #include <asn-gser.h>
 #include <string.h>
 
-#define MAX_IDENTIFIER_LEN	128
+#define MAX_IDENTIFIER_LEN	32
 #define COMPONENTNOT_NULL(ptr)  ((ptr) != NULL)
 
 typedef struct slap_component_type {
