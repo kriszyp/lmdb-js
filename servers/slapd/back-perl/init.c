@@ -25,10 +25,8 @@
 #include "perl_back.h"
 
 
-LDAP_F( void )
-perl_back_xs_init LDAP_P((void));
-LDAP_F( void )
-boot_DynaLoader LDAP_P((CV* cv));
+static void perl_back_xs_init LDAP_P((void));
+EXT void boot_DynaLoader LDAP_P((CV* cv));
 
 PerlInterpreter *perl_interpreter = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
