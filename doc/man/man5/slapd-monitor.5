@@ -10,8 +10,8 @@ ETCDIR/slapd.conf
 The monitor backend to
 .BR slapd (8)
 is not an actual database; if enabled, it is automatically generated
-and maintained by slapd with information about the running status of
-the daemon.
+and dynamically maintained by slapd with information about the running 
+status of the daemon.
 
 .SH CONFIGURATION
 These
@@ -27,10 +27,9 @@ file.
 Moreover, the suffix of the database cannot be explicitly set by means
 of the 
 .B suffix
-directive; on the contrary, the suffix is automatically set to
-.BR cn=Monitor .
-
-No specific database directives can be specified.
+directive; on the contrary, the suffix is automatically set
+to "\fIcn=Monitor\fP".
+.LP
 The
 .B monitor
 database honors the 
@@ -40,13 +39,22 @@ and the
 directives, and the usual ACL directives, e.g. the
 .B access
 directive.
-
+.LP
+The following directives can be used:
+.TP
+.B l	<locality>
+The
+.B <locality>
+string is added to the "\fIcn=Monitor\fP" entry as value of the
+.B l
+attribute (Note: this may be subjected to changes).
+.LP
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
-
 .SH USAGE
 The usage is:
+.TP
 1) enable the monitor backend at configure:
 .LP
 .RS
@@ -54,7 +62,7 @@ The usage is:
 configure --enable-monitor
 .fi
 .RE
-.LP
+.TP
 2) activate the monitor database in the
 .BR slapd.conf (5)
 file:
@@ -64,10 +72,10 @@ file:
 database	monitor
 .fi
 .RE
-.LP
+.TP
 3) add ACLs as detailed in
 .BR slapd.access (5)
-to control access to the database:
+to control access to the database, e.g.:
 .LP
 .RS
 .nf
@@ -77,7 +85,12 @@ access to dn.subtree="cn=Monitor"
 	by * none
 .fi
 .RE
-.LP
+.TP
+4) ensure that the \fBcore.schema\fP file is loaded.
+The monitor backend relies on some standard track attributeTypes
+that must be already defined when the backend is started.
+.SH KNOWN LIMITATIONS
+The monitor backend does not honor size/time limits in search operations.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
