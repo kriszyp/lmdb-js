@@ -1079,9 +1079,6 @@ operations_error:
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-	conn->c_n_ops_executing--;
-	conn->c_n_ops_completed++;
-
 	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 
@@ -1094,6 +1091,8 @@ operations_error:
 
 co_op_free:
 
+	conn->c_n_ops_executing--;
+	conn->c_n_ops_completed++;
 	memctx = NULL;
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx );
 	slap_op_free( op );
