@@ -5,7 +5,7 @@ SRCDIR="."
 if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
-BACKEND=ldbm
+BACKEND=bdb
 if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
@@ -111,6 +111,7 @@ fi
 echo "Using ldapsearch to read all the entries..."
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	'objectclass=*' > $SEARCHOUT 2>&1
+RC=$?
 
 kill -HUP $PID
 

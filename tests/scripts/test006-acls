@@ -125,7 +125,7 @@ EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	    'objectClass=*' | . $LDIFFILTER >> $SEARCHOUT 2>&1
+	    'objectClass=*' >> $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
 if test $RC != 0 ; then

@@ -74,7 +74,8 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w $PASSWD -s newsecret \
-	-D $MANAGERDN "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+	-D "$MANAGERDN" "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -83,6 +84,7 @@ fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w secret -s newsecret \
 	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -91,6 +93,7 @@ fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w secret -s newsecret \
 	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -103,6 +106,7 @@ echo "Using ldappasswd (PASS 2)  ..."
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -111,6 +115,7 @@ fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -119,6 +124,7 @@ fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -127,6 +133,7 @@ fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID

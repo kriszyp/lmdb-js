@@ -182,6 +182,7 @@ sleep 15
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -193,6 +194,7 @@ fi
 echo "Using ldapsearch to read the subtree entries from the master..."
 $LDAPSEARCH -S "" -b "ou=Groups, $BASEDN" -h $LOCALHOST -p $PORT \
 	'objectclass=*' > $SUBMASTEROUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -204,6 +206,7 @@ fi
 echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "ou=Groups, $BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

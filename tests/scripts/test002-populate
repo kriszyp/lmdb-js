@@ -54,6 +54,7 @@ fi
 echo "Using ldapsearch to read all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	'objectclass=*' > $SEARCHOUT 2>&1
+RC=$?
 
 kill -HUP $PID
 

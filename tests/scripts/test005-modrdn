@@ -198,12 +198,13 @@ echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones 1)...
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
+
+kill -HUP $PID
+
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
 	exit $RC
 fi
-
 
 LDIF=$MODRDNOUTMASTER3
 
@@ -216,15 +217,9 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
-	kill -HUP $PID
 	exit 1
 fi
-kill -HUP $PID
 
 echo ">>>>> Test succeeded"
-
-
-
-# echo "modrdn test not yet written"
 
 exit 0

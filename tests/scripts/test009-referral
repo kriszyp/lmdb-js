@@ -86,6 +86,7 @@ cat /dev/null > $SEARCHOUT
 echo "Testing exact searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'sn=jensen' >> $SEARCHOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
@@ -95,6 +96,7 @@ fi
 echo "Testing OR searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(|(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
@@ -104,6 +106,7 @@ fi
 echo "Testing AND matching and ends-with searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
@@ -113,6 +116,7 @@ fi
 echo "Testing NOT searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(!(objectclass=pilotPerson))' >> $SEARCHOUT 2>&1
+RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID

@@ -54,6 +54,7 @@ fi
 echo "Using ldapsearch to read all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT -s base \
 	'(&)' > $SEARCHOUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -64,6 +65,7 @@ fi
 echo "Using ldapsearch to read name ..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT -s base \
 	'(&)' 'name' >> $SEARCHOUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -74,6 +76,7 @@ fi
 echo "Using ldapsearch to read name language tag ..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT -s base \
 	'(&)' 'name;lang-en-US' >> $SEARCHOUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -84,6 +87,7 @@ fi
 echo "Using ldapsearch to read name language range ..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT -s base \
 	'(&)' 'name;lang-en-' >> $SEARCHOUT 2>&1
+RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
