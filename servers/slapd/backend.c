@@ -1111,17 +1111,13 @@ backend_group(
 		}
 	} 
 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
-	for (g = conn->c_groups; g; g=g->ga_next) {
+	for (g = op->o_groups; g; g=g->ga_next) {
 		if (g->ga_be != be || g->ga_oc != group_oc ||
 			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
 			continue;
 		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
-
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if (g) {
 		return g->ga_res;
@@ -1140,10 +1136,8 @@ backend_group(
 			g->ga_res = res;
 			g->ga_len = gr_ndn->bv_len;
 			strcpy(g->ga_ndn, gr_ndn->bv_val);
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			g->ga_next = conn->c_groups;
-			conn->c_groups = g;
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			g->ga_next = op->o_groups;
+			op->o_groups = g;
 		}
 
 		return res;
