@@ -10,14 +10,26 @@
 
 
 /* define this if needed to get reentrant functions */
+#ifndef REENTRANT
 #undef REENTRANT
+#endif
+#ifndef _REENTRANT
 #undef _REENTRANT
+#endif
 
 /* define this if needed to get threadsafe functions */
+#ifndef THREADSAFE
 #undef THREADSAFE
+#endif
+#ifndef _THREADSAFE
 #undef _THREADSAFE
+#endif
+#ifndef THREAD_SAFE
 #undef THREAD_SAFE
+#endif
+#ifndef _THREAD_SAFE
 #undef _THREAD_SAFE
+#endif
 
 /* define this if cross compiling */
 #undef CROSS_COMPILING

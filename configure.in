@@ -273,7 +273,8 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
-dnl Check for resolv
+dnl Check for resolver routines
+AC_CHECK_LIB(bind, res_search)
 AC_CHECK_LIB(resolv, res_search)
 
 dnl HP-UX requires -lV3
@@ -448,7 +449,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		if test $ol_link_threads = no ; then
 			dnl try DEC Threads -lpthread -lexc
 			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_join, [
+			AC_CHECK_LIB(pthread, pthread_mutex_lock, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
 				if test $ol_with_yielding_select = auto ; then
@@ -461,7 +462,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		if test $ol_link_threads = no ; then
 			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
 			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_join, [
+			AC_CHECK_LIB(pthreads, pthread_mutex_unlock, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
 				if test $ol_with_yielding_select = auto ; then
@@ -498,7 +499,18 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			LIBS="$save_LIBS"
 		fi
 
-		dnl HP-UX 11 check
+		dnl IRIX Pthread check
+		if test $ol_link_threads = no ; then
+			dnl try IRIX Pthreads -Wl,-woff,85 -lpthreads
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_join, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"
+				],[-Wl,-woff,85])
+			LIBS="$save_LIBS"
+		fi
+
+		dnl HP-UX 11 Pthread check
 		if test $ol_link_threads = no; then
 			save_LIBS="$LIBS"
 			LIBS="$LIBS -lpthread"
@@ -1325,7 +1337,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_SHELL)
 AC_SUBST(BUILD_SLURPD)
-
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDAPD_LIBS)

@@ -1,6 +1,12 @@
 #!/bin/sh
 
-. scripts/defines.sh
+if [ $# -eq 0 ]; then
+	SRCDIR="."
+else
+	SRCDIR=$1; shift
+fi
+
+. $SRCDIR/scripts/defines.sh $SRCDIR
 
 echo "Cleaning up in $DBDIR..."
 
@@ -96,7 +102,7 @@ EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'objectClass=*' | . scripts/acfilter.sh >> $SEARCHOUT 2>&1
+	    'objectClass=*' | . $SRCDIR/scripts/acfilter.sh >> $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
 if [ $RC != 0 ]; then

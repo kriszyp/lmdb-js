@@ -12,6 +12,7 @@ install-common: FORCE
 	-$(MKDIR) -p $(MANDIR)
 	@TMPMAN=/tmp/ldapman.$$$$$(MANCOMPRESSSUFFIX); \
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
+	cd $(srcdir); \
 	for page in *.$(MANSECT); do \
 		$(SED) -e "s%LDVERSION%$$VERSION%" \
 			-e 's%ETCDIR%$(sysconfdir)%' \

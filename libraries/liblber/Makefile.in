@@ -16,7 +16,7 @@ PROGRAMS= dtest etest idtest
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries       
 
-LIBS = $(LDAP_LIBPATH) $(LDAP_LIBLBER) $(AC_LIBS)
+XXLIBS = $(LDAP_LIBPATH) $(LDAP_LIBLBER)
 
 dtest:    $(LIBRARY) dtest.o
 	$(LTLINK) $(LDFLAGS) -o $@ dtest.o $(LIBS)

@@ -9,6 +9,9 @@ RPOBJS =  rp500.o faxtotpc.o
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
+XLIBS = $(LDAP_LIBS)
+XXLIBS	= $(KRB_LIBS)
+
 rp500 : rpversion.o
 	$(LTLINK) -o $@ $(RPOBJS) rpversion.o $(LIBS)
 

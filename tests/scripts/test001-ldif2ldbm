@@ -1,7 +1,16 @@
 #!/bin/sh
 
-. scripts/defines.sh
+if [ $# -eq 0 ]; then
+	SRCDIR="."
+else
+	SRCDIR=$1; shift
+fi
 
+echo "running defines.sh $SRCDIR"
+
+. $SRCDIR/scripts/defines.sh $SRCDIR
+
+echo "Datadir is $DATADIR"
 
 echo "Cleaning up in $DBDIR..."
 

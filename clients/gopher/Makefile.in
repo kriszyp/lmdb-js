@@ -11,7 +11,8 @@ GWOBJS =  go500gw.o
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = -llutil @LUTIL_LIBS@
+XLIBS = $(LDAP_LIBS)
+XXLIBS	= $(KRB_LIBS)
 
 go500 : goversion.o
 	$(LTLINK) -o $@ $(GOOBJS) goversion.o $(LIBS)
@@ -40,4 +41,4 @@ install-local: $(PROGRAMS) go500gw.help FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
 	-$(MV) $(datadir)/go500gw.help $(datadir)/go500gw.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(datadir)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/go500gw.help $(datadir)

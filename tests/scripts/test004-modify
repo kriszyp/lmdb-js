@@ -1,6 +1,12 @@
 #!/bin/sh
 
-. scripts/defines.sh
+if [ $# -eq 0 ]; then
+	SRCDIR="."
+else
+	SRCDIR=$1; shift
+fi
+
+. $SRCDIR/scripts/defines.sh $SRCDIR
 
 echo "Cleaning up in $DBDIR..."
 

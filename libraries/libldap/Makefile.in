@@ -28,7 +28,7 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-LIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER) $(AC_LIBS)
+XXLIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)
@@ -46,14 +46,14 @@ install-local: $(CFFILES) FORCE
 	@for i in $(CFFILES); do \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i; \
 		else \
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i.default; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i.default; \
 	done
 	-$(MKDIR) $(datadir)
 	-$(MV) $(datadir)/ldapfriendly $(datadir)/ldapfriendly-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfriendly $(datadir)/ldapfriendly
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldapfriendly $(datadir)/ldapfriendly
 

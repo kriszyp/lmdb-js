@@ -4,10 +4,11 @@
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c ldappasswd.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o ldappasswd.o
 
-XLIBS	= $(KRB_LIBS)
-
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
+
+XLIBS = $(LDAP_LIBS)
+XXLIBS	= $(KRB_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c
 
@@ -26,7 +27,7 @@ ldapmodrdn:	ldrversion.o
 	$(LTLINK) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
 
 ldappasswd:	ldappasswd.o
-	$(LTLINK) -o $@ ldappasswd.o $(LIBS) @LUTIL_LIBS@ $(LDAP_LIBPATH) -llutil
+	$(LTLINK) -o $@ ldappasswd.o $(LUTIL_LIBS) $(LIBS)
 
 ldapadd:	ldapmodify
 	$(RM) $@

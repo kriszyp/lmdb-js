@@ -3,15 +3,16 @@
 echo ">>>>> Executing all LDAP tests..."
 
 if [ $# -eq 0 ]; then
-	SCRIPTDIR="."
+	SRCDIR="."
 else
-	SCRIPTDIR=$1; shift
+	SRCDIR=$1; shift
 fi
 
-for i in $SCRIPTDIR/test*; do
-	CMD=$i $*
-	echo ">>>>> Starting $CMD ..."
-	$CMD
+echo ">>>>> Test Directory: $SRCDIR"
+
+for CMD in $SRCDIR/scripts/test*; do
+	echo ">>>>> Starting `basename $CMD` ..."
+	$CMD $SRCDIR
 	RC=$?
 	if [ $RC -eq 0 ]; then
 		echo ">>>>> $CMD completed OK."
