@@ -307,6 +307,12 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
+	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+		ldap_pvt_thread_yield();
+		txn_checkpoint( bdb->bi_dbenv,
+			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+	}
+
 done:
 	if( ltid != NULL ) {
 		txn_abort( ltid );

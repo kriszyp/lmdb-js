@@ -269,6 +269,12 @@ return_results:
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, text, NULL, NULL );
 
+	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+		ldap_pvt_thread_yield();
+		txn_checkpoint( bdb->bi_dbenv,
+			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+	}
+
 done:
 	/* free entry */
 	if( e != NULL ) {

@@ -69,6 +69,10 @@ struct bdb_info {
 
 	int			bi_ndatabases;
 	struct bdb_db_info **bi_databases;
+
+	int			bi_txn_cp;
+	u_int32_t	bi_txn_cp_min;
+	u_int32_t	bi_txn_cp_kbyte;
 };
 #define bi_nextid	bi_databases[BDB_NEXTID]
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

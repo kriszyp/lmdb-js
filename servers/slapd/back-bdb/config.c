@@ -42,6 +42,19 @@ bdb_db_config(
 		}
 		bdb->bi_dbenv_home = ch_strdup( argv[1] );
 
+
+	/* mode with which to create new database files */
+	} else if ( strcasecmp( argv[0], "checkpoint" ) == 0 ) {
+		if ( argc < 3 ) {
+			fprintf( stderr, "%s: line %d: "
+				"missing parameters in \"checkpoint <kbyte> <min>\" line\n",
+				fname, lineno );
+			return 1;
+		}
+		bdb->bi_txn_cp = 1;
+		bdb->bi_txn_cp_kbyte = strtol( argv[1], NULL, 0 );
+		bdb->bi_txn_cp_min = strtol( argv[2], NULL, 0 );
+
 	/* mode with which to create new database files */
 	} else if ( strcasecmp( argv[0], "mode" ) == 0 ) {
 		if ( argc < 2 ) {

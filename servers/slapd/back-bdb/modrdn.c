@@ -60,6 +60,12 @@ bdb_modrdn(
 	Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn(%s,%s,%s)\n",
 		dn, newrdn, (newSuperior ? newSuperior : "NULL") );
 
+	if( newSuperior != NULL ) {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		text = "newSuperior not implemented (yet)";
+		goto return_results;
+	}
+
 	if (0) {
 		/* transaction retry */
 retry:	rc = txn_abort( ltid );
@@ -514,6 +520,12 @@ retry:	rc = txn_abort( ltid );
 return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
+
+	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+		ldap_pvt_thread_yield();
+		txn_checkpoint( bdb->bi_dbenv,
+			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+	}
 
 done:
 	if( new_dn != NULL ) free( new_dn );

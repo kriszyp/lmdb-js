@@ -192,7 +192,6 @@ retry:	/* transaction retry */
 		}
 		*text = "entry update failed";
 		rc = LDAP_OTHER;
-		goto done;
 	}
 
 done:
