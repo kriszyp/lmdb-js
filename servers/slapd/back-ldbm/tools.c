@@ -116,6 +116,9 @@ ID ldbm_tool_entry_next(
 	}
 
 	AC_MEMCPY( &id, key.dptr, key.dsize );
+#ifndef WORDS_BIGENDIAN
+	id = ntohl( id );
+#endif
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 
@@ -126,12 +129,20 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 {
 	Entry *e;
 	Datum key, data;
+#ifndef WORDS_BIGENDIAN
+	ID id2;
+#endif
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
 	ldbm_datum_init( key );
 
+#ifndef WORDS_BIGENDIAN
+	id2 = htonl( id );
+	key.dptr = (char *) &id2;
+#else
 	key.dptr = (char *) &id;
+#endif
 	key.dsize = sizeof(ID);
 
 	data = ldbm_cache_fetch( id2entry, key );
@@ -207,7 +218,12 @@ ID ldbm_tool_entry_put(
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
+#ifndef WORDS_BIGENDIAN
+	id = htonl( e->e_id );
+	key.dptr = (char *) &id;
+#else
 	key.dptr = (char *) &e->e_id;
+#endif
 	key.dsize = sizeof(ID);
 
 	data.dptr = entry2str( e, &len );
