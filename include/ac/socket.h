@@ -67,6 +67,9 @@
 #	define tcp_close( s )		closesocket( s );
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
 #	define ioctl_t				u_long
+
+#define EWOULDBLOCK WSAEWOULDBLOCK
+
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
 #elif DOS

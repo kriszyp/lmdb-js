@@ -24,11 +24,11 @@
 #if HAVE_CRYPT_H
 #	include <crypt.h>
 #else
-	extern char *crypt();
+	extern char *(crypt)();
 #endif
 
 #ifndef HAVE_GETPASS
-extern char* getpass LDAP_P((const char *getpass));
+extern char* (getpass) LDAP_P((const char *getpass));
 #endif
 
 /* getopt() defines may be in separate include file */
@@ -46,10 +46,10 @@ extern char* getpass LDAP_P((const char *getpass));
 #endif
 
 #ifndef HAVE_TEMPNAM
-	extern char *tempnam(const char *tmpdir, const char *prefix);
+	extern char *(tempnam)(const char *tmpdir, const char *prefix);
 #endif
 #ifndef HAVE_MKTEMP
-	extern char *mktemp(char *);
+	extern char *(mktemp)(char *);
 #endif
 
 /* use lutil file locking */

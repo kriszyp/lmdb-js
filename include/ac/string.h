@@ -57,7 +57,7 @@ extern char *ldap_pvt_strdup( const char * s );
 #else
 #	ifdef DECL_STRDUP
 		/* some systems fail to declare strdup */
-		extern char *strdup();
+		extern char *(strdup)();
 #	endif
 #endif
 

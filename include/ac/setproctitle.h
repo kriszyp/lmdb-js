@@ -18,7 +18,7 @@
 #	include <libutil.h>
 #else
 	/* use lutil version */
-	extern void setproctitle LDAP_P((const char *fmt, ...));
+	extern void (setproctitle) LDAP_P((const char *fmt, ...));
 	extern int Argc;
 	extern char **Argv;
 #endif
