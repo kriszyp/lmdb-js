@@ -94,15 +94,16 @@ main( int argc, char **argv )
     LDAP		*ld;
 
     infile = NULL;
-    deref = verbose = allow_binary = not = kerberos = vals2tmp =
+    verbose = allow_binary = not = kerberos = vals2tmp =
 	    attrsonly = ldif = 0;
 #ifdef LDAP_REFERRALS
     ldap_options = LDAP_OPT_REFERRALS;
 #else /* LDAP_REFERRALS */
     ldap_options = 0;
 #endif /* LDAP_REFERRALS */
-    sizelimit = timelimit = 0;
-    scope = LDAP_SCOPE_SUBTREE;
+
+    deref = sizelimit = timelimit = -1;
+	scope = LDAP_SCOPE_SUBTREE;
 
     while (( i = getopt( argc, argv,
 #ifdef HAVE_KERBEROS
@@ -260,9 +261,15 @@ main( int argc, char **argv )
 	exit( 1 );
     }
 
-    ld->ld_deref = deref;
-    ld->ld_timelimit = timelimit;
-    ld->ld_sizelimit = sizelimit;
+	if(deref != -1) {
+    	ld->ld_deref = deref;
+	}
+	if(timelimit != -1) {
+    	ld->ld_timelimit = timelimit;
+	}
+	if(sizelimit != -1) {
+    	ld->ld_sizelimit = sizelimit;
+	}
     ld->ld_options = ldap_options;
 
     if ( !kerberos ) {
