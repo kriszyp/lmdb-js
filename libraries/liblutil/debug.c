@@ -169,7 +169,7 @@ void lutil_log_int(
 #endif
 #endif
 
-	if( file != NULL ) {
+	if( file == NULL ) {
 		/*
 		 * Use stderr unless file was specified via:
 		 *   ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file)
