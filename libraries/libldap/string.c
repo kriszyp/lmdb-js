@@ -103,8 +103,10 @@ ldap_pvt_str2upper( char *str )
 	char    *s;
 
 	/* to upper */
-	for ( s = str; *s; s++ ) {
-		*s = TOUPPER( (unsigned char) *s );
+	if ( str ) {
+		for ( s = str; *s; s++ ) {
+			*s = TOUPPER( (unsigned char) *s );
+		}
 	}
 
 	return( str );
@@ -116,8 +118,10 @@ ldap_pvt_str2lower( char *str )
 	char    *s;
 
 	/* to lower */
-	for ( s = str; *s; s++ ) {
-		*s = TOLOWER( (unsigned char) *s );
+	if ( str ) {
+		for ( s = str; *s; s++ ) {
+			*s = TOLOWER( (unsigned char) *s );
+		}
 	}
 
 	return( str );
