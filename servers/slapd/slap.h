@@ -35,6 +35,8 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
+#define SLAP_EXTENDED_SCHEMA 1
+
 LDAP_BEGIN_DECL
 /*
  * SLAPD Memory allocation macros
@@ -1269,6 +1271,8 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
+
+#define SLAP_DISALLOW_AUX_WO_CR		0x4000U
 
 	slap_mask_t	be_requires;	/* pre-operation requirements */
 #define SLAP_REQUIRE_BIND		0x0001U	/* bind before op */
