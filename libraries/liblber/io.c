@@ -475,7 +475,7 @@ get_tag( Sockbuf *sb )
 
 /*
  * A rewrite of ber_get_next that can safely be called multiple times 
- * for the same packet. It will simply continue were it stopped until
+ * for the same packet. It will simply continue where it stopped until
  * a full packet is read.
  */
 
@@ -575,27 +575,17 @@ get_lenbyte:
 		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
 			ber->ber_rwptr;
 		assert( to_go > 0 );
-		res = ber_pvt_sb_read( sb, netlen, to_go );
+		res = BerRead( sb, netlen, to_go );
 		if (res <= 0) {
 			return LBER_DEFAULT;
 		}
 		ber->ber_rwptr += res;
 
-		if (res==to_go) {
-			/* convert length. */
-			ber->ber_len = 0;
-			for( to_go = 0; to_go < res ; to_go++ ) {
-				ber->ber_len <<= 8;
-				ber->ber_len |= netlen[to_go];
-			}
-			goto fill_buffer;
-		} else {
-#if defined( EWOULDBLOCK )
-			errno = EWOULDBLOCK;
-#elif defined( EAGAIN )
-			errno = EAGAIN;
-#endif			
-			return LBER_DEFAULT;
+		/* convert length. */
+		ber->ber_len = 0;
+		for( to_go = 0; to_go < res ; to_go++ ) {
+			ber->ber_len <<= 8;
+			ber->ber_len |= netlen[to_go];
 		}
 	}
 
