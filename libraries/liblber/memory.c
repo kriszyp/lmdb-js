@@ -11,6 +11,17 @@
 #include "lber-int.h"
 
 #if LDAP_MEMORY_DEBUG
+/*
+ * LDAP_MEMORY_DEBUG should only be enabled for the purposes of
+ * debugging memory management within OpenLDAP libraries and slapd.
+ * It should only be enabled by an experienced developer as it
+ * causes the inclusion of numerous assert()'s, many of which may
+ * be triggered by a prefectly valid program.
+ *
+ * The code behind this macro is subject to change as needed to
+ * support this testing.
+ */
+
 struct ber_mem_hdr {
 	union bmu_align_u {
 		ber_len_t	bmu_len_t;
@@ -34,6 +45,7 @@ static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK };
 		assert( (p) != BER_MEM_BADADDR );	\
 		assert( (p) != (void *) &ber_int_mem_hdr );	\
 	} while(0)
+
 #else
 #define BER_MEM_VALID(p)	/* no-op */
 #endif
