@@ -1,5 +1,6 @@
-/*
- * close.c - tcl close routines
+/* close.c - tcl close routines
+ *
+ * $Id: tcl_close.c,v 1.3 1999/02/17 01:02:11 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,13 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id: tcl_close.c,v 1.2 1999/02/17 00:55:03 bcollins Exp $
- *
- * $Log: tcl_close.c,v $
- * Revision 1.2  1999/02/17 00:55:03  bcollins
- * Implemented all of the (db_)destroy and (db_)close functions
- *
  */
 
 #include "portable.h"
@@ -28,26 +22,26 @@ tcl_back_close (
 	BackendInfo * bi
 )
 {
-	Tcl_DeleteInterp(global_i->interp);
+	Tcl_DeleteInterp (global_i->interp);
 
-	return( 0 );
+	return (0);
 }
 
 int
-tcl_back_destroy(
-		BackendInfo *bi
+tcl_back_destroy (
+	BackendInfo * bi
 )
 {
-	Tcl_Free(global_i->interp);
-	free(global_i);
-	ldap_pvt_thread_mutex_destroy( &tcl_interpreter_mutex );
+	free (global_i->interp);
+	free (global_i);
+	ldap_pvt_thread_mutex_destroy (&tcl_interpreter_mutex);
 
-	return( 0 );
+	return (0);
 }
 
 int
-tcl_back_db_close(
-		BackendDB *bd
+tcl_back_db_close (
+	BackendDB * bd
 )
 {
 	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
@@ -55,35 +49,35 @@ tcl_back_db_close(
 
 	/* Disable the interp and associated struct */
 	ti->ti_ii->count--;
-	if (!ti->ti_ii->count && strcasecmp("default", ti->ti_ii->name)) {
+	if (!ti->ti_ii->count && strcasecmp ("default", ti->ti_ii->name)) {
 		/* no more db's using this and it's not the default */
-		for(ti_tmp = global_i; ti_tmp->next != ti->ti_ii; ti_tmp = ti_tmp->next)
-			;
+		for (ti_tmp = global_i; ti_tmp->next != ti->ti_ii; ti_tmp
+			= ti_tmp->next);
 		/* This bypasses this interp struct in the global hash */
 		ti_tmp->next = ti->ti_ii->next;
-		Tcl_DeleteInterp(ti->ti_ii->interp);
+		Tcl_DeleteInterp (ti->ti_ii->interp);
 	}
-	return( 0 );
+	return (0);
 }
 
 int
-tcl_back_db_destroy(
-		BackendDB *bd
+tcl_back_db_destroy (
+	BackendDB * bd
 )
 {
 	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
 
-       /*
-	* Now free up the allocated memory used
-	*/
+	/*
+	 * Now free up the allocated memory used
+	 */
 	ti->ti_ii->count--;
-	if (!ti->ti_ii->count && strcasecmp("default", ti->ti_ii->name)) {
-		Tcl_Free(ti->ti_ii->interp);
-		free(ti->ti_ii);
-		free(ti);
+	if (!ti->ti_ii->count && strcasecmp ("default", ti->ti_ii->name)) {
+		free (ti->ti_ii->interp);
+		free (ti->ti_ii);
+		free (ti);
 	}
-	free( bd->be_private );
+	free (bd->be_private);
 	bd->be_private = NULL;
 
-	return( 0 );
+	return (0);
 }

@@ -1,5 +1,6 @@
-/*
- * unbind.c - tcl unbind routines
+/* unbind.c - tcl unbind routines
+ *
+ * $Id: tcl_unbind.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,10 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id$
- *
- * $Log$
  */
 
 #include "portable.h"
@@ -20,7 +17,8 @@
 #include "slap.h"
 #include "tcl_back.h"
 
-int tcl_back_unbind (
+int
+tcl_back_unbind (
 	Backend * be,
 	Connection * conn,
 	Operation * op
@@ -33,27 +31,30 @@ int tcl_back_unbind (
 	if (ti->ti_unbind == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"unbind not implemented");
-		return;
+		return(-1);
 	}
 
-	for ( i = 0; be->be_suffix[i] != NULL; i++ )
-		;
-	suf_tcl = Tcl_Merge(i, be->be_suffix);
+	for (i = 0; be->be_suffix[i] != NULL; i++);
+	suf_tcl = Tcl_Merge (i, be->be_suffix);
 
-	command = (char *) ch_malloc (strlen(ti->ti_unbind) + strlen(suf_tcl)
-		+ strlen(conn->c_dn ? conn->c_dn : "") + 64);
-	sprintf(command, "%s UNBIND {%ld} {%s} {%s}",
-		ti->ti_unbind, op->o_msgid, suf_tcl, conn->c_dn ? conn->c_dn : "");
-	Tcl_Free(suf_tcl);
+	command = (char *) ch_malloc (strlen (ti->ti_unbind) + strlen (suf_tcl)
+		+ strlen (conn->c_dn ? conn->c_dn : "") + 64);
+	sprintf (command, "%s UNBIND {%ld} {%s} {%s}",
+		ti->ti_unbind, op->o_msgid, suf_tcl, conn->c_dn ?
+		conn->c_dn : "");
+	Tcl_Free (suf_tcl);
 
-	ldap_pvt_thread_mutex_lock( &tcl_interpreter_mutex );
-	code = Tcl_GlobalEval(ti->ti_ii->interp, command);
-	results = (char *) strdup(ti->ti_ii->interp->result);
-	ldap_pvt_thread_mutex_unlock( &tcl_interpreter_mutex );
-	free(command);
+	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
+	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
+	results = (char *) strdup (ti->ti_ii->interp->result);
+	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
+	free (command);
 
 	if (code != TCL_OK) {
-		Debug(LDAP_DEBUG_ANY, "tcl_unbind_error: %s\n", results, 0, 0);
+		Debug (LDAP_DEBUG_ANY, "tcl_unbind_error: %s\n", results,
+			0, 0);
 	}
-	return 0;
+
+	free(results);
+	return (err);
 }

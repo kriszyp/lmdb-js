@@ -1,5 +1,6 @@
-/*
- * compare.c - tcl compare routines
+/* compare.c - tcl compare routines
+ *
+ * $Id: tcl_compare.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,10 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id$
- *
- * $Log$
  */
 
 #include "portable.h"
@@ -39,33 +36,35 @@ tcl_back_compare (
 		return (-1);
 	}
 
-	for ( i = 0; be->be_suffix[i] != NULL; i++ )
-		;
-	suf_tcl = Tcl_Merge(i, be->be_suffix);
+	for (i = 0; be->be_suffix[i] != NULL; i++);
+	suf_tcl = Tcl_Merge (i, be->be_suffix);
 
-	command = (char *) ch_malloc (strlen(ti->ti_compare) +
-		strlen(suf_tcl) + strlen(dn) + strlen(ava->ava_type) +
-		strlen(ava->ava_value.bv_val) + 64);
-	sprintf(command, "%s COMPARE {%ld} {%s} {%s} {%s: %s}",
+	command = (char *) ch_malloc (strlen (ti->ti_compare) +
+		strlen (suf_tcl) + strlen (dn) + strlen (ava->ava_type) +
+		strlen (ava->ava_value.bv_val) + 64);
+	sprintf (command, "%s COMPARE {%ld} {%s} {%s} {%s: %s}",
 		ti->ti_compare, op->o_msgid, suf_tcl, dn, ava->ava_type,
-	ava->ava_value.bv_val);
-	Tcl_Free(suf_tcl);
+		ava->ava_value.bv_val);
+	Tcl_Free (suf_tcl);
 
-	ldap_pvt_thread_mutex_lock( &tcl_interpreter_mutex );
-	code = Tcl_GlobalEval(ti->ti_ii->interp, command);
-	results = (char *) strdup(ti->ti_ii->interp->result);
-	ldap_pvt_thread_mutex_unlock( &tcl_interpreter_mutex );
-	free(command);
+	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
+	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
+	results = (char *) strdup (ti->ti_ii->interp->result);
+	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
+	free (command);
 
 	if (code != TCL_OK) {
 		err = LDAP_OPERATIONS_ERROR;
-		Debug(LDAP_DEBUG_ANY, "tcl_compare_error: %s\n", results, 0, 0);
+		Debug (LDAP_DEBUG_ANY, "tcl_compare_error: %s\n", results,
+			0, 0);
 	} else {
-		interp_send_results ( be, conn, op, results, NULL, 0 );
+		interp_send_results (be, conn, op, results, NULL, 0);
 	}
 
 	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL, "internal backend error");
-	return (0);
+		send_ldap_result (conn, op, err, NULL,
+			"internal backend error");
 
+	free(results);
+	return (err);
 }

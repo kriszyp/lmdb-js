@@ -1,5 +1,6 @@
-/*
- * search.c - tcl search routines
+/* search.c - tcl search routines
+ *
+ * $Id: tcl_search.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,10 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id$
- *
- * $Log$
  */
 
 #include "portable.h"
@@ -20,7 +17,8 @@
 #include "slap.h"
 #include "tcl_back.h"
 
-int tcl_back_search (
+int
+tcl_back_search (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
@@ -46,40 +44,44 @@ int tcl_back_search (
 		return (-1);
 	}
 
-	for ( i = 0; attrs != NULL && attrs[i] != NULL; i++ )
-		;
+	for (i = 0; attrs != NULL && attrs[i] != NULL; i++);
 	if (i > 0)
-		attrs_tcl = Tcl_Merge(i, attrs);
+		attrs_tcl = Tcl_Merge (i, attrs);
 
-	for ( i = 0; be->be_suffix[i] != NULL; i++ )
-		;
-	suf_tcl = Tcl_Merge(i, be->be_suffix);
+	for (i = 0; be->be_suffix[i] != NULL; i++);
+	suf_tcl = Tcl_Merge (i, be->be_suffix);
 
-	command = (char *) ch_malloc (strlen(ti->ti_search) + strlen(suf_tcl)
-		+ strlen(base) + 40 + strlen(filterstr) + (attrs_tcl == NULL ? 5
-		: strlen(attrs_tcl)) + 72);
-	sprintf(command, "%s SEARCH {%ld} {%s} {%s} {%d} {%d} {%d} {%d} {%s} {%d} {%s}",
+	command = (char *) ch_malloc (strlen (ti->ti_search) + strlen (suf_tcl)
+		+ strlen (base) + 40 + strlen (filterstr) + (attrs_tcl ==
+			NULL ? 5
+			: strlen (attrs_tcl)) + 72);
+	sprintf (command,
+		"%s SEARCH {%ld} {%s} {%s} {%d} {%d} {%d} {%d} {%s} {%d} {%s}",
 		ti->ti_search, op->o_msgid, suf_tcl, base, scope, deref,
-		sizelimit, timelimit, filterstr, attrsonly ? 1 : 0, attrs_tcl == 
+		sizelimit, timelimit, filterstr, attrsonly ? 1 : 0,
+		attrs_tcl ==
 		NULL ? "{all}" : attrs_tcl);
-	Tcl_Free( attrs_tcl );
-	Tcl_Free( suf_tcl );
+	Tcl_Free (attrs_tcl);
+	Tcl_Free (suf_tcl);
 
-	ldap_pvt_thread_mutex_lock( &tcl_interpreter_mutex );
-	code = Tcl_GlobalEval(ti->ti_ii->interp, command);
+	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
+	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
 	results = (char *) strdup(ti->ti_ii->interp->result);
-	ldap_pvt_thread_mutex_unlock( &tcl_interpreter_mutex );
-	free(command);
+	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
+	free (command);
 
 	if (code != TCL_OK) {
 		err = LDAP_OPERATIONS_ERROR;
-		Debug(LDAP_DEBUG_ANY, "tcl_search_error: %s\n", results, 0, 0);
+		Debug (LDAP_DEBUG_ANY, "tcl_search_error: %s\n", results,
+			0, 0);
 	} else {
-		interp_send_results ( be, conn, op, results, NULL, 0 );
+		interp_send_results (be, conn, op, results, NULL, 0);
 	}
 
 	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL, "internal backend error");
-	return (0);
+		send_ldap_result (conn, op, err, NULL,
+			"internal backend error");
 
+	free(results);
+	return (err);
 }

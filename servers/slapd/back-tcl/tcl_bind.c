@@ -1,5 +1,6 @@
-/*
- * bind.c - tcl bind routines
+/* bind.c - tcl bind routines
+ *
+ * $Id: tcl_bind.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,10 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id$
- *
- * $Log$
  */
 
 #include "portable.h"
@@ -20,14 +17,15 @@
 #include "slap.h"
 #include "tcl_back.h"
 
-int tcl_back_bind (
+int
+tcl_back_bind (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
 	char *dn,
 	int method,
 	struct berval *cred,
-	char** edn
+	char **edn
 )
 {
 	char *command, *suf_tcl, *results;
@@ -42,31 +40,34 @@ int tcl_back_bind (
 		return (-1);
 	}
 
-	for ( i = 0; be->be_suffix[i] != NULL; i++ )
-		;
-	suf_tcl = Tcl_Merge(i, be->be_suffix);
+	for (i = 0; be->be_suffix[i] != NULL; i++);
+	suf_tcl = Tcl_Merge (i, be->be_suffix);
 
-	command = (char *) ch_malloc (strlen(ti->ti_bind) + strlen(suf_tcl) +
-		strlen(dn) + strlen(cred->bv_val) + 64);
-	sprintf(command, "%s BIND {%ld} {%s} {%s} {%d} {%lu} {%s}",
+	command = (char *) ch_malloc (strlen (ti->ti_bind) + strlen
+		(suf_tcl) +
+		strlen (dn) + strlen (cred->bv_val) + 64);
+	sprintf (command, "%s BIND {%ld} {%s} {%s} {%d} {%lu} {%s}",
 		ti->ti_bind, op->o_msgid, suf_tcl, dn, method, cred->bv_len,
 		cred->bv_val);
-	Tcl_Free(suf_tcl);
+	Tcl_Free (suf_tcl);
 
-	ldap_pvt_thread_mutex_lock( &tcl_interpreter_mutex );
-	code = Tcl_GlobalEval(ti->ti_ii->interp, command);
-	results = (char *) strdup(ti->ti_ii->interp->result);
-	ldap_pvt_thread_mutex_unlock( &tcl_interpreter_mutex );
-	free(command);
+	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
+	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
+	results = (char *) strdup (ti->ti_ii->interp->result);
+	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
+	free (command);
 
 	if (code != TCL_OK) {
 		err = LDAP_OPERATIONS_ERROR;
-		Debug(LDAP_DEBUG_ANY, "tcl_bind_error: %s\n", results, 0, 0);
+		Debug (LDAP_DEBUG_ANY, "tcl_bind_error: %s\n", results, 0, 0);
 	} else {
-		err = interp_send_results ( be, conn, op, results, NULL, 0 );
+		err = interp_send_results (be, conn, op, results, NULL, 0);
 	}
 
 	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL, "internal backend error");
+		send_ldap_result (conn, op, err, NULL,
+			"internal backend error");
+
+	free(results);
 	return (err);
 }

@@ -1,5 +1,6 @@
-/*
- * tcl_init.c - tcl backend initialization
+/* tcl_init.c - tcl backend initialization
+ *
+ * $Id: tcl_init.c,v 1.3 1999/02/17 01:02:11 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -7,13 +8,6 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
- *
- * $Id: tcl_init.c,v 1.2 1999/02/17 00:55:54 bcollins Exp $
- *
- * $Log: tcl_init.c,v $
- * Revision 1.2  1999/02/17 00:55:54  bcollins
- * Implemented the open, init functions correctly
- *
  */
 
 #include "portable.h"
@@ -28,12 +22,13 @@
 ldap_pvt_thread_mutex_t tcl_interpreter_mutex;
 
 int
-tcl_back_initialize(
-	BackendInfo	*bi
+tcl_back_initialize (
+	BackendInfo * bi
 )
 {
 	/* Initialize the global interpreter array */
 	global_i = (struct i_info *) ch_malloc (sizeof (struct i_info));
+
 	global_i->count = 0;
 	global_i->name = "default";
 	global_i->next = NULL;
@@ -41,7 +36,7 @@ tcl_back_initialize(
 	Tcl_Init (global_i->interp);
 
 	/* Initialize the global interpreter lock */
-	ldap_pvt_thread_mutex_init( &tcl_interpreter_mutex );
+	ldap_pvt_thread_mutex_init (&tcl_interpreter_mutex);
 
 	bi->bi_open = tcl_back_open;
 	bi->bi_config = NULL;
@@ -70,12 +65,13 @@ tcl_back_initialize(
 }
 
 int
-tcl_back_open(
-	BackendInfo	*bi
+tcl_back_open (
+	BackendInfo * bi
 )
 {
 	/* Initialize the global interpreter array */
 	global_i = (struct i_info *) ch_malloc (sizeof (struct i_info));
+
 	global_i->count = 0;
 	global_i->name = "default";
 	global_i->next = NULL;
@@ -83,19 +79,19 @@ tcl_back_open(
 	Tcl_Init (global_i->interp);
 
 	/* Initialize the global interpreter lock */
-	ldap_pvt_thread_mutex_init( &tcl_interpreter_mutex );
+	ldap_pvt_thread_mutex_init (&tcl_interpreter_mutex);
 
-	return( 0 );
+	return (0);
 }
 
 int
-tcl_back_db_init(
-	Backend	*be
+tcl_back_db_init (
+	Backend * be
 )
 {
-	struct tclinfo	*ti;
+	struct tclinfo *ti;
 
-	ti = (struct tclinfo *) ch_calloc( 1, sizeof(struct tclinfo) );
+	ti = (struct tclinfo *) ch_calloc (1, sizeof (struct tclinfo));
 
 	/*
 	 * For some reason this causes problems
@@ -116,15 +112,16 @@ tcl_back_db_init(
 	return ti == NULL;
 }
 
-int tcl_back_db_open (
-        BackendDB * bd
+int
+tcl_back_db_open (
+	BackendDB * bd
 )
 {
 	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
 
-	if (ti->ti_ii->interp == NULL) { /* we need to make a new one */
+	if (ti->ti_ii->interp == NULL) {	/* we need to make a new one */
 		ti->ti_ii->interp = Tcl_CreateInterp ();
-		Tcl_Init (ti->interp);
+		Tcl_Init (ti->ti_ii->interp);
 	}
 
 	/* raise that count for the interpreter */
@@ -134,7 +131,7 @@ int tcl_back_db_open (
 	readtclscript (ti->script_path, ti->ti_ii->interp);
 
 	/* Intall the debug command */
-	Tcl_CreateCommand( ti->ti_ii->interp, "ldap:debug", &tcl_ldap_debug,
+	Tcl_CreateCommand (ti->ti_ii->interp, "ldap:debug", &tcl_ldap_debug,
 		NULL, NULL);
 
 	return 0;
