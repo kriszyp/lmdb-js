@@ -633,6 +633,19 @@ slap_sasl_checkpass(
 	return rc;
 }
 
+static int
+slap_sasl_cb_setpass(
+	sasl_conn_t *sconn,
+	void *context,
+	const char *username,
+	const char *pass,
+	unsigned passlen,
+	struct propctx *propctx,
+	unsigned flags)
+{
+	Connection *conn = (Connection *)context;
+}
+
 /* Convert a SASL authcid or authzid into a DN. Store the DN in an
  * auxiliary property, so that we can refer to it in sasl_authorize
  * without interfering with anything else. Also, the SASL username
@@ -1068,6 +1081,10 @@ int slap_sasl_open( Connection *conn )
 	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
 	session_callbacks[cb].proc = &slap_sasl_checkpass;
 	session_callbacks[cb++].context = conn;
+
+	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_SETPASS;
+	session_callbacks[cb].proc = &slap_sasl_cb_setpass;
+	session_callbacks[cb++].context = conn;
 #endif
 
 	session_callbacks[cb].id = SASL_CB_LIST_END;
@@ -1468,7 +1485,7 @@ slap_sasl_setpass(
 		id.bv_val, new.bv_val, new.bv_len, 0, text );
 #else
 	rc = sasl_setpass( conn->c_sasl_context, id.bv_val,
-		old.bv_val, old.bv_len, new.bv_val, new.bv_len, 0 );
+		new.bv_val, new.bv_len, old.bv_val, old.bv_len, 0 );
 	if( rc != SASL_OK ) {
 		*text = sasl_errdetail( conn->c_sasl_context );
 	}
