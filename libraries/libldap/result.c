@@ -598,9 +598,12 @@ Debug( LDAP_DEBUG_TRACE,
 			}
 
 			/* Check if all requests are finished, lr is now parent */
-			for(tmplr=lr ; tmplr != NULL; tmplr=tmplr->lr_refnext) {
+			tmplr = lr;
+			if (tmplr->lr_status == LDAP_REQST_COMPLETED) {
+				for(tmplr=lr->lr_child; tmplr != NULL; tmplr=tmplr->lr_refnext) {
 				if( tmplr->lr_status != LDAP_REQST_COMPLETED) {
 					break;
+					}
 				}
 			}
 

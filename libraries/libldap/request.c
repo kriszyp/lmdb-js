@@ -187,8 +187,8 @@ ldap_send_server_request(
 		lr->lr_origid = parentreq->lr_origid;
 		lr->lr_parentcnt = parentreq->lr_parentcnt + 1;
 		lr->lr_parent = parentreq;
-		lr->lr_refnext = parentreq->lr_refnext;
-		parentreq->lr_refnext = lr;
+		lr->lr_refnext = parentreq->lr_child;
+		parentreq->lr_child = lr;
 	} else {			/* original request */
 		lr->lr_origid = lr->lr_msgid;
 	}
@@ -525,25 +525,9 @@ ldap_dump_requests_and_responses( LDAP *ld )
 }
 #endif /* LDAP_DEBUG */
 
-
 void
-ldap_free_request( LDAP *ld, LDAPRequest *lr )
+ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 {
-	LDAPRequest	*tmplr, *nextlr;
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",
-		lr->lr_origid, lr->lr_msgid, 0 );
-
-	if ( lr->lr_parent != NULL ) {
-		--lr->lr_parent->lr_outrefcnt;
-	} else {
-		/* free all referrals (child requests) */
-		for ( tmplr = lr->lr_refnext; tmplr != NULL; tmplr = nextlr ) {
-			nextlr = tmplr->lr_refnext;
-			ldap_free_request( ld, tmplr );
-		}
-	}
-
 	if ( lr->lr_prev == NULL ) {
 		ld->ld_requests = lr->lr_next;
 	} else {
@@ -568,6 +552,29 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 
 	LDAP_FREE( lr );
 }
+
+void
+ldap_free_request( LDAP *ld, LDAPRequest *lr )
+{
+	LDAPRequest     *tmplr, *nextlr;
+	LDAPRequest     **ttmplr;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",
+		lr->lr_origid, lr->lr_msgid, 0 );
+
+	if ( lr->lr_parent != NULL ) {
+		--lr->lr_parent->lr_outrefcnt;
+		for ( ttmplr = &lr->lr_parent->lr_child; *ttmplr && *ttmplr != lr; ttmplr = &(*ttmplr)->lr_refnext ); 
+		if ( *ttmplr == lr )  
+			*ttmplr = lr->lr_refnext;
+	} else {
+		/* free all referrals (child requests) */
+		while ( lr->lr_child )
+			ldap_free_request( ld, lr->lr_child );
+	}
+	ldap_free_request_int( ld, lr );
+}
+
 
 /*
  * Chase v3 referrals
