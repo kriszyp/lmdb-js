@@ -49,8 +49,8 @@ static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
-static SLAP_CTRL_PARSE_FN parsePermitModify;
-static SLAP_CTRL_PARSE_FN parseNoReferrals;
+static SLAP_CTRL_PARSE_FN parsePermissiveModify;
+static SLAP_CTRL_PARSE_FN parseDomainScope;
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
@@ -113,6 +113,21 @@ static struct slap_control {
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter },
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	{ LDAP_CONTROL_PAGEDRESULTS,
+		SLAP_CTRL_SEARCH, NULL,
+		parsePagedResults },
+#endif
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
+		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
+		parseDomainScope },
+#endif
+#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
+	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
+		SLAP_CTRL_MODIFY, NULL,
+		parsePermissiveModify },
+#endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
 		SLAP_CTRL_SEARCH, NULL,
@@ -121,27 +136,6 @@ static struct slap_control {
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp },
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-	{ LDAP_CONTROL_PAGEDRESULTS,
-		SLAP_CTRL_SEARCH, NULL,
-		parsePagedResults },
-#endif
-	{ LDAP_CONTROL_MANAGEDSAIT,
-		SLAP_CTRL_ACCESS, NULL,
-		parseManageDSAit },
-	{ LDAP_CONTROL_PROXY_AUTHZ,
-		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
-		parseProxyAuthz },
-#ifdef LDAP_CONTROL_PERMITMODIFY
-	{ LDAP_CONTROL_PERMITMODIFY,
-		SLAP_CTRL_UPDATE, NULL,
-		parsePermitModify },
-#endif
-#ifdef LDAP_CONTROL_NOREFERRALS
-	{ LDAP_CONTROL_NOREFERRALS,
-		SLAP_CTRL_SEARCH, NULL,
-		parseNoReferrals },
-#endif
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
@@ -152,6 +146,12 @@ static struct slap_control {
 		SLAP_CTRL_SEARCH, NULL,
 		parseLdupSync },
 #endif
+	{ LDAP_CONTROL_MANAGEDSAIT,
+		SLAP_CTRL_ACCESS, NULL,
+		parseManageDSAit },
+	{ LDAP_CONTROL_PROXY_AUTHZ,
+		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
+		parseProxyAuthz },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -813,24 +813,24 @@ static int parseSubentries (
 }
 #endif
 
-#ifdef LDAP_CONTROL_PERMITMODIFY
-static int parsePermitModify (
+#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
+static int parsePermissiveModify (
 	Connection *conn,
 	Operation *op,
 	LDAPControl *ctrl,
 	const char **text )
 {
-	if ( op->o_permitmodify != SLAP_NO_CONTROL ) {
-		*text = "permitmodify control specified multiple times";
+	if ( op->o_permissive_modify != SLAP_NO_CONTROL ) {
+		*text = "permissiveModify control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	if ( ctrl->ldctl_value.bv_len ) {
-		*text = "permitmodify control value not empty";
+		*text = "permissiveModify control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	op->o_permitmodify = ctrl->ldctl_iscritical
+	op->o_permissive_modify = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 
@@ -838,24 +838,24 @@ static int parsePermitModify (
 }
 #endif
 
-#ifdef LDAP_CONTROL_NOREFERRALS
-static int parseNoReferrals (
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+static int parseDomainScope (
 	Connection *conn,
 	Operation *op,
 	LDAPControl *ctrl,
 	const char **text )
 {
-	if ( op->o_noreferrals != SLAP_NO_CONTROL ) {
-		*text = "noreferrals control specified multiple times";
+	if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
+		*text = "domainScope control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	if ( ctrl->ldctl_value.bv_len ) {
-		*text = "noreferrals control value not empty";
+		*text = "domainScope control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	op->o_noreferrals = ctrl->ldctl_iscritical
+	op->o_domain_scope = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 

@@ -74,7 +74,7 @@ ldbm_back_search(
 		ber_dupbv( &realbase, &e->e_nname );
 
 		candidates = search_candidates( be, e, filter,
-		    scope, deref, manageDSAit );
+		    scope, deref, manageDSAit || get_domainScope(op) );
 
 		goto searchit;
 		

@@ -320,6 +320,7 @@ static struct slap_schema_oc_map {
 		"MUST cn )",
 		0, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_monitor) },
+#ifdef LDAP_DEVEL
 	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
 			"NAME 'collectiveAttributeSubentry' "
 			"AUXILIARY )",
@@ -332,6 +333,7 @@ static struct slap_schema_oc_map {
 			"SUP top AUXILIARY )",
 		dynamicObjectClass, SLAP_OC_DYNAMICOBJECT,
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
+#endif
 	{ NULL, NULL, NULL, 0, 0 }
 };
 
@@ -423,6 +425,7 @@ static struct slap_schema_ad_map {
 		NULL, 0,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
+#ifdef LDAP_DEVEL
 	{ "collectiveAttributeSubentries", "( 2.5.18.12 "
 			"NAME 'collectiveAttributeSubentries' "
 			"EQUALITY distinguishedNameMatch "
@@ -438,6 +441,7 @@ static struct slap_schema_ad_map {
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
+#endif
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
 			"DESC 'LCUP/LDUP: UUID of the entry' "
@@ -687,6 +691,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_aci) },
 #endif
 
+#ifdef LDAP_DEVEL
 	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
 			"DESC 'RFC2589: entry time-to-live' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "
@@ -702,6 +707,7 @@ static struct slap_schema_ad_map {
 		rootDseAttribute, 0,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_dynamicSubtrees) },
+#endif
 
 	/* userApplication attributes (which system schema depends upon) */
 	{ "distinguishedName", "( 2.5.4.49 NAME 'distinguishedName' "

@@ -480,8 +480,8 @@ slap_send_ldap_result(
 	assert( err != LDAP_PARTIAL_RESULTS );
 
 	if ( err == LDAP_REFERRAL ) {
-#ifdef LDAP_CONTROL_NOREFERRALS
-		if( op->o_noreferrals ) {
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+		if( op->o_domain_scope ) {
 			ref = NULL;
 		}
 #endif
@@ -1383,15 +1383,15 @@ slap_send_search_reference(
 		return( 1 );
 	}
 
-#ifdef LDAP_CONTROL_NOREFERRALS
-	if( op->o_noreferrals ) {
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+	if( op->o_domain_scope ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"send_search_reference: conn %lu noreferrals control in (%s).\n",
+			"send_search_reference: conn %lu domainScope control in (%s).\n",
 			op->o_connid, e->e_dn, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"send_search_reference: noreferrals control in (%s)\n", 
+			"send_search_reference: domainScope control in (%s)\n", 
 			e->e_dn, 0, 0 );
 #endif
 

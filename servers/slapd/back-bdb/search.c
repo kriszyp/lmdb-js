@@ -1049,7 +1049,8 @@ static int search_candidates(
 	 * these clauses are redundant.
 	 */
 	if (!oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
-		if( !get_manageDSAit(op) ) { /* match referrals */
+		if( !get_manageDSAit(op) && !get_domainScope(op) ) {
+			/* match referral objects */
 			struct berval bv_ref = { sizeof("referral")-1, "referral" };
 			rf.f_choice = LDAP_FILTER_EQUALITY;
 			rf.f_ava = &aa_ref;
@@ -1060,7 +1061,8 @@ static int search_candidates(
 		}
 
 #ifdef BDB_ALIASES
-		if( deref & LDAP_DEREF_SEARCHING ) { /* match aliases */
+		if( deref & LDAP_DEREF_SEARCHING ) {
+			/* match alias objects */
 			struct berval bv_alias = { sizeof("alias")-1, "alias" };
 			af.f_choice = LDAP_FILTER_EQUALITY;
 			af.f_ava = &aa_alias;

@@ -59,11 +59,11 @@ static struct {
 	struct berval oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
-	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
-	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
 #ifdef LDAP_EXOP_X_CANCEL
 	{ BVC(LDAP_EXOP_X_CANCEL), cancel_extop },
 #endif
+	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
+	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
 #ifdef HAVE_TLS
 	{ BVC(LDAP_EXOP_START_TLS), starttls_extop },
 #endif

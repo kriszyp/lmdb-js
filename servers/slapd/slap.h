@@ -1683,15 +1683,18 @@ typedef struct slap_op {
 
 	char o_valuesreturnfilter;
 
-#ifdef LDAP_CONTROL_PERMITMODIFY
-	char o_permitmodify;
-#define get_permitmodify(op)			((int)(op)->o_permitmodify)
+#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
+	char o_permissive_modify;
+#define get_permissiveModify(op)		((int)(op)->o_permissive_modify)
 #else
-#define get_permitmodify(op)			(0)
+#define get_permissiveModify(op)		(0)
 #endif
 
-#ifdef LDAP_CONTROL_NOREFERRALS
-	char o_noreferrals;
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+	char o_domain_scope;
+#define get_domainScope(op)				((int)(op)->o_domain_scope)
+#else
+#define get_domainScope(op)				(0)
 #endif
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
