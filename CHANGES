@@ -1,5 +1,9 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.10 Engineering
+	Build Environment
+		Fix configure bug
+
 OpenLDAP 2.2.9 Release
 	Fixed slapd syncrepl replication bugs (ITS#3055,3056,3069)
 	Fixed slapd slurpd update bugs

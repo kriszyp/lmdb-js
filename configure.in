@@ -382,10 +382,6 @@ else
 	fi
 fi
 
-if test $ol_enable_chain != no -a $ol_enable_ldap = no ; then
-	AC_MSG_ERROR([--enable-chain requires --enable-ldap])
-fi
-
 if test $ol_enable_meta = yes -a $ol_enable_ldap = no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
