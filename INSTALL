@@ -109,6 +109,13 @@ these steps:
 
     There are section 5 man pages for all of these files.
 
+ 9. edit client configuration files as needed.
+	See ldap.conf(5) for details.
+
+10. edit server configuration files as needed.
+	See slapd.conf(5) if running slapd.
+	See ldapd.conf(5) if running ldapd.
+
 
 Building LDAP For More Than One Platform
 
