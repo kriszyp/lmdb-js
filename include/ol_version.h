@@ -9,4 +9,4 @@
 #ifndef _OLV_STATIC
 #define	_OLV_STATIC	static
 #endif
-#include "version0.h"
+#include "ol_version0.h"

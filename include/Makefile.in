@@ -4,7 +4,7 @@
 ##
 ## include Makefile.in for OpenLDAP
 
-all-local: ldap_config.h version0.h FORCE
+all-local: ldap_config.h ol_version0.h FORCE
 
 install-local: FORCE
 	-$(MKDIR) $(DESTDIR)$(includedir)
@@ -61,7 +61,7 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 			 $(LDAP_CONFIG) >> $@; \
 	$(CHMOD) 444 $@
 
-version0.h: $(top_srcdir)/build/version.h
+ol_version0.h: $(top_srcdir)/build/version.h
 	$(CPP) -D_OLV_PKG=\"$(PACKAGE)\" -D_OLV_VER=\"$(VERSION)\" \
 		-D_OLV_WHO=\"$$USER@`uname -n`\" $? > $@
 
