@@ -465,52 +465,41 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		char gid[DB_XIDDATASIZE];
+		struct berval nrdn;
+		Entry *e = entry_dup( op->ora_e );
 
-		memset( gid, 0, sizeof(gid) );
-		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
-			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
-
-		if (( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
-			rs->sr_text = "txn_prepare failed";
-
+		if (pdn.bv_len) {
+			nrdn.bv_val = e->e_nname.bv_val;
+			nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
 		} else {
-			struct berval nrdn;
-			Entry *e = entry_dup( op->ora_e );
+			nrdn = e->e_nname;
+		}
 
-			if (pdn.bv_len) {
-				nrdn.bv_val = e->e_nname.bv_val;
-				nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
-			} else {
-				nrdn = e->e_nname;
+		bdb_cache_add( bdb, ei, e, &nrdn, locker );
+
+		if ( suffix_ei == NULL ) {
+			suffix_ei = e->e_private;
+		}
+
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+			if ( ctxcsn_added ) {
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
+						(struct berval *)&slap_ldapsync_cn_bv, locker );
 			}
+		}
 
-			bdb_cache_add( bdb, ei, e, &nrdn, locker );
-
-			if ( suffix_ei == NULL ) {
-				suffix_ei = e->e_private;
+		if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
+			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+				bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
 			}
+			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+		}
 
-			if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				if ( ctxcsn_added ) {
-					bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-							(struct berval *)&slap_ldapsync_cn_bv, locker );
-				}
-			}
-
-			if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
-				ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
-				LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-					bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
-				}
-				ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
-			}
-
-			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
-				rs->sr_text = "txn_commit failed";
-			} else {
-				rs->sr_err = LDAP_SUCCESS;
-			}
+		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
+			rs->sr_text = "txn_commit failed";
+		} else {
+			rs->sr_err = LDAP_SUCCESS;
 		}
 	}
 

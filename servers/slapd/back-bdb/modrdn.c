@@ -980,48 +980,38 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		char gid[DB_XIDDATASIZE];
+		bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
+			bdb->bi_dbenv, locker, &lock );
 
-		memset( gid, 0, sizeof(gid) );
-		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
-			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+			if ( ctxcsn_added ) {
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
+					(struct berval *)&slap_ldapsync_cn_bv, locker );
+			}
+		}
 
-		if(( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
-			rs->sr_text = "txn_prepare failed";
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+			/* Loop through in-scope entries for each psearch spec */
+			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
+			}
+			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
+			while ( pm_list != NULL ) {
+				bdb_psearch(op, rs, pm_list->ps_op,
+							e, LDAP_PSEARCH_BY_SCOPEOUT);
+				pm_prev = pm_list;
+				LDAP_LIST_REMOVE ( pm_list, ps_link );
+				pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
+				ch_free( pm_prev );
+			}
+		}
+
+		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
+			rs->sr_text = "txn_commit failed";
 		} else {
-			bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
-				bdb->bi_dbenv, locker, &lock );
-
-			if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				if ( ctxcsn_added ) {
-					bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-						(struct berval *)&slap_ldapsync_cn_bv, locker );
-				}
-			}
-
-			if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
-				/* Loop through in-scope entries for each psearch spec */
-				ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
-				LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-					bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
-				}
-				ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
-				pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-				while ( pm_list != NULL ) {
-					bdb_psearch(op, rs, pm_list->ps_op,
-								e, LDAP_PSEARCH_BY_SCOPEOUT);
-					pm_prev = pm_list;
-					LDAP_LIST_REMOVE ( pm_list, ps_link );
-					pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
-					ch_free( pm_prev );
-				}
-			}
-
-			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
-				rs->sr_text = "txn_commit failed";
-			} else {
-				rs->sr_err = LDAP_SUCCESS;
-			}
+			rs->sr_err = LDAP_SUCCESS;
 		}
 	}
  

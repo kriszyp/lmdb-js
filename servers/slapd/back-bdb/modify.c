@@ -617,8 +617,6 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
-		EntryInfo *ctx_ei;
-
 		bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
