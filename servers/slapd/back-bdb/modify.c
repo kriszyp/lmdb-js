@@ -266,6 +266,10 @@ int bdb_modify_internal(
 	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );
+		/* clear the indexing flags */
+		for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
+			ap->a_flags = 0;
+		}
 		e->e_attrs = save_attrs;
 
 		if ( rc != LDAP_SUCCESS ) {
