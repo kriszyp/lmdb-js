@@ -6,6 +6,9 @@ read TODO!
 
 Just type 'make' to compile and if you have all the necessary stuff it'll do so.
 You do need the latest version of Gtk+ and Gtk-- (which may be tricky to build).
+You can also edit the Makefile and under "OPTS=-g" add " -DDEBUG" (line should
+read "OPTS=-g -DDEBUG") to get a trace of what the gtk-tool is doing (getting
+entries, traversing trees etc...)
 After that, hopefully all goes well, you start the thing by doing:
 ./main -s localhost
 
