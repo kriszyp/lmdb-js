@@ -36,13 +36,13 @@ objectclass ( 2.16.840.1.113730.3.2.3 NAME 'mailRecipient'
 
 #
 # RFC2247
-#
+#	This may need to be moved to core.schema
 objectclass ( 1.3.6.1.4.1.1466.344 NAME 'dcObject' SUP top AUXILIARY MUST dc )
 
 
 #
 # RFC2377
-#
+#	This may need to be moved to core.schema
 objectclass ( 1.3.6.1.1.3.1 NAME 'uidObject' SUP top AUXILIARY MUST uid )
 
 

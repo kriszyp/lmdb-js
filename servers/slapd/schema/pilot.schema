@@ -11,7 +11,7 @@
 # seems that Netscape does not know either.  Searches on Altavista
 # have not shed any light, so we will have to ask for help.
 
-# This file uses definitions from slapd.std.schema
+# This file uses definitions from core.schema
 
 # ccitt.data.pss.ucl.pilot ( 0.9.2342.19200300.100 )
 #	1 pilotAttributeType
