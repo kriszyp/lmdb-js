@@ -319,6 +319,8 @@ bdb_idl_insert_key(
 	data.data = &id;
 	data.size = sizeof(id);
 	data.flags = DB_DBT_USERMEM;
+
+	rc = db->put( db, tid, key, &data, DB_NODUPDATA );
 #else
 	data.data = ids;
 	data.ulen = sizeof ids;
@@ -379,11 +381,10 @@ bdb_idl_insert_key(
 
 		data.size = BDB_IDL_SIZEOF( ids );
 	}
-#endif
 
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
-
+#endif
 	if( rc == DB_KEYEXIST ) rc = 0;
 
 	if( rc != 0 ) {
@@ -429,7 +430,8 @@ bdb_idl_delete_key(
 		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 		rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
 			DB_GET_BOTH | DB_RMW  );
-		rc = cursor->c_del( cursor, 0 );
+		if (rc == 0)
+			rc = cursor->c_del( cursor, 0 );
 		rc = cursor->c_close( cursor );
 	}
 #else
