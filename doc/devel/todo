@@ -25,12 +25,14 @@ OpenLDAP 2.0 Projects
 		Update back-tcl
 		Complete Unicode Support
 	SLURPD v3 update
-	clients
-		use _ext API, avoid deprecated routines
-		referral chasing options/rebind proc
 	client API update
 		Implement LDAP errno draft (deferred)
 		Implement per referral callback
+		Update SASL API to support callbacks and/or prompting
+	clients
+		Update clients to use above SASL API
+		use _ext API, avoid deprecated routines
+		referral chasing options/rebind proc
 	Add TLS SASL/EXTERNAL support
 	SLAPD/SLURD Admin Guide
 	Update manual pages
