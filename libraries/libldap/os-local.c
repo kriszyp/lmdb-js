@@ -111,10 +111,10 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #else
 {
 	/* error slippery */
-	struct sockaddr_un sun;
+	struct sockaddr_un sa;
 	char ch;
-	int dummy = sizeof(sun);
-	if ( getpeername( s, (struct sockaddr *) &sun, &dummy ) == -1 ) {
+	int dummy = sizeof(sa);
+	if ( getpeername( s, (struct sockaddr *) &sa, &dummy ) == -1 ) {
 		/* XXX: needs to be replace with ber_stream_read() */
 		read(s, &ch, 1);
 		TRACE;
@@ -128,7 +128,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #undef TRACE
 
 static int
-ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sun, int async)
+ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 {
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
@@ -144,7 +144,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sun, int async)
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
-	if ( connect(s, (struct sockaddr *) sun, sizeof(struct sockaddr_un)) == 0 )
+	if ( connect(s, (struct sockaddr *) sa, sizeof(struct sockaddr_un)) == 0 )
 	{
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
