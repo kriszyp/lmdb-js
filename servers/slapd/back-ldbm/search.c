@@ -49,7 +49,7 @@ ldbm_back_search(
 	ID		id;
 	Entry		*e;
 	Attribute	*ref;
-	char		*matched;
+	char		*matched = NULL;
 	int		rmaxsize, nrefs;
 	char		*rbuf, *rcur, *r;
 	int		nentries = 0;
