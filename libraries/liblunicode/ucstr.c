@@ -1,6 +1,7 @@
 #include "portable.h"
 
 #include <ldap_pvt_uc.h>
+#include <ac/ctype.h>
 
 int ucstrncmp(
 	const ldap_unicode_t *u1,
