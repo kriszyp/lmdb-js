@@ -310,8 +310,6 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 
 #ifdef HAVE_TLS
 	tls = (srv->lud_properties & LDAP_URL_USE_SSL);
-	if (tls == 0)
-		tls = (srv->lud_properties & LDAP_URL_USE_SSL_UNSPECIFIED);
 
 	if ( tls != 0 ) {
 		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );

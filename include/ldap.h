@@ -501,7 +501,6 @@ typedef struct ldap_url_desc {
 
 /* lud_properties */
 #define	LDAP_URL_USE_SSL		0x00000001
-#define LDAP_URL_USE_SSL_UNSPECIFIED	0x00000002
 
 /* lud_protocol */
 #define LDAP_PROTO_TCP			0x00

@@ -592,7 +592,7 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 		}
 		ldap_pvt_hex_unescape(ludp->lud_host);
 		ludp->lud_protocol = LDAP_PROTO_TCP;
-		ludp->lud_properties = LDAP_URL_USE_SSL_UNSPECIFIED;
+		ludp->lud_properties = 0;
 		ludp->lud_next = *ludlist;
 		*ludlist = ludp;
 	}
