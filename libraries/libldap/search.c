@@ -98,12 +98,21 @@ ldap_search_ext(
 	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
 
 	/*
-	 * if timeout is provided, use only tv_sec as timelimit.
-	 * otherwise, use default.
+	 * if timeout is provided, both tv_sec and tv_usec must
+	 * be non-zero
 	 */
-	timelimit = (timeout != NULL)
-			?  timeout->tv_sec
-			: -1;
+	if( timeout != NULL ) {
+		if( timeout->tv_sec == 0 && timeout->tv_usec == 0 ) {
+			return LDAP_PARAM_ERROR;
+		}
+
+		/* timelimit must be non-zero if timeout is provided */
+		timelimit = timeout->tv_sec != 0 ? timeout->tv_sec : 1;
+
+	} else {
+		/* no timeout, no timelimit */
+		timelimit = -1;
+	}
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
 	    attrsonly, sctrls, cctrls, timelimit, sizelimit ); 
@@ -157,8 +166,12 @@ ldap_search_ext_s(
 		return( rc );
 	}
 
-	if ( ldap_result( ld, msgid, 1, timeout, res ) == -1 )
+	rc = ldap_result( ld, msgid, 1, timeout, res );
+
+	if( rc <= 0 ) {
+		/* error(-1) or timeout(0) */
 		return( ld->ld_errno );
+	}
 
 	return( ldap_result2error( ld, *res, 0 ) );
 }
@@ -348,7 +361,6 @@ static int ldap_is_attr_oid ( const char *attr )
 	}
 
 	return digit;
-
 }
 
 static int ldap_is_attr_desc ( const char *attr )
