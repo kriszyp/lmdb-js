@@ -2707,7 +2707,7 @@ if test "$ol_link_perl" != no ; then
 fi
 
 if test "$ol_enable_shell" != no ; then
-	if( "$ol_link_thread" != no ; then
+	if test "$ol_link_thread" != no ; then
 		AC_MSG_WARN([Use of --without-threads is recommended with back-shell])
 	fi
 	AC_DEFINE(SLAPD_SHELL,1,[define to support SHELL backend])

@@ -22588,7 +22588,7 @@ EOF
 fi
 
 if test "$ol_enable_shell" != no ; then
-	if( "$ol_link_thread" != no ; then
+	if test "$ol_link_thread" != no ; then
 		echo "configure: warning: Use of --without-threads is recommended with back-shell" 1>&2
 	fi
 	cat >> confdefs.h <<\EOF
