@@ -42,9 +42,12 @@ is as follows:
 .LP
 If slapd is compiled with \fI--enable-slapi\fP, support for plugins
 according to \fINetscape's Directory Server Plug-Ins\fP.
-Version 4.0 of the API is currently implemented.
+Version 4 of the API is currently implemented, with some extensions
+from version 5.
 .LP
-Database specific data may contain plugin information.
+Both global and database specific data may contain plugin information.
+Plugins associated with a specific database are called before global
+plugins.
 This manpage details the
 .BR slapd (8)
 configuration statements that affect the loading of SLAPI \fIplugins\fP.
@@ -63,10 +66,13 @@ can be one of
 that is executed before processing the operation for the specified
 database, 
 .BR postoperation ,
-that is execured after the operation for the specified database
-has been processed, or
-.BR extendedop .
-The latter is used when executing an extended operation [FIXME].
+that is executed after the operation for the specified database
+has been processed,
+.BR extendedop ,
+that is used when executing an extended operation, or
+.BR object .
+The latter is used for miscellaneous types such as ACL, computed
+attribute and search filter rewriter plugins.
 .LP
 The
 .BR <libpath>
@@ -79,7 +85,9 @@ The
 argument specifies what symbol must be called when the plugin is first
 loaded.
 This function should register the functions provided by the plugin
-for the desired operations.
+for the desired operations. It should be noted that it is this 
+init function, not the plugin type specified as the first argument,
+that determines when and for what operations the plugin will be invoked.
 The optional
 .BR <arguments>
 list is passed to the init function.
