@@ -252,8 +252,6 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 			vl = 1 + 2 * ava->la_value->bv_len;
 
 		} else {
-			int rc;
-			
 			if ( strval2strlen( ava->la_value, 
 						ava->la_flags, &vl ) ) {
 				goto error_return;
@@ -261,12 +259,13 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 		}
 		
 		if ( !notypes ) {
+			al = ava->la_attr->bv_len;
 			l = vl + ava->la_attr->bv_len + 1;
 
 			str = LDAP_MALLOC( l + 1 );
 			AC_MEMCPY( str, ava->la_attr->bv_val, 
 					ava->la_attr->bv_len );
-			str[ ava->la_attr->bv_len + 1 ] = '=';
+			str[ al++ ] = '=';
 
 		} else {
 			l = vl;
