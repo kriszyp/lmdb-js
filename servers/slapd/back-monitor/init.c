@@ -595,7 +595,7 @@ monitor_back_db_open(
 			return -1;
 		}
 
-		(*ad)->ad_type->sat_flags != mat[i].flags;
+		(*ad)->ad_type->sat_flags |= mat[i].flags;
 	}
 
 	for ( i = 0; moc[i].name; i++ ) {
