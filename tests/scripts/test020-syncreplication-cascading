@@ -407,7 +407,7 @@ if test $? != 0 ; then
 fi
 
 echo "Comparing retrieved entries from master and P3 slave..."
-$CMP $SEARCHFLT $P2LDIFFLT > $CMPOUT
+$CMP $SEARCHFLT $P3LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - master and P3 slave databases differ"
