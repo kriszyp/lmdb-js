@@ -92,12 +92,12 @@ ldap_back_dn_massage(
 int
 ldap_back_dn_massage(
 	dncookie *dc,
-	struct berval *dn,
+	struct berval *odn,
 	struct berval *res
 )
 {
 	int     i, src, dst;
-	struct berval pretty = {0,NULL};
+	struct berval pretty = {0,NULL}, *dn = odn;
 
 	assert( res );
 
@@ -157,12 +157,13 @@ ldap_back_dn_massage(
 			break;
 		}
 	}
+	if (pretty.bv_val) {
+		ch_free(pretty.bv_val);
+		dn = odn;
+	}
 	/* Nothing matched, just return the original DN */
 	if (res->bv_val == NULL) {
 		*res = *dn;
-	}
-	if (pretty.bv_val) {
-		ch_free(pretty.bv_val);
 	}
 
 	return 0;

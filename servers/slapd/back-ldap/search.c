@@ -317,7 +317,7 @@ fail:;
 	/*
 	 * Rewrite the matched portion of the search base, if required
 	 */
-	if ( match != NULL ) {
+	if ( match && *match ) {
 		struct berval dn, mdn;
 
 #ifdef ENABLE_REWRITE
