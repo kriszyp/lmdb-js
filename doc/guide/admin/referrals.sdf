@@ -46,24 +46,12 @@ E:	objectClass: extensibleObject
 E:	dc: subtree
 E:	ref: ldap://b.example.net/dc=subtree,dc=example,dc=net/
 
-Adding, modify, and deleting referral objects is generally done
-using {{ldapmodify}}(1) or similiar tools which support the
-ManageDsaIT control.  The ManageDsaIT control informs the server
-that you intend to manage the referral object as a regular
-entry.  This keeps the server from sending a referral result
-for requests to updating referral objects.  The -M option of
-{{ldapmodify}}(1) (and other tools) enables ManageDsaIT.  For
-example:
-
-E:  ldapmodify -M -f referral.ldif -x -D "cn=Manager,dc=example,dc=net" -W
-
 The server uses this information to generate referrals and
 search continuations to subordinate servers.
 
 For those familiar with X.500, a {{named referral}} object is
 similar to an X.500 knowledge reference held in a {{subr}}
 {{TERM:DSE}}.
-
 
 !if 0
 H2: Immediate Superior Knowledge Information
@@ -115,3 +103,24 @@ to any of the naming contexts held by the server.
 For those familiar with X.500, this use of the {{ref}} attribute
 is similar to an X.500 knowledge reference held in a
 {{Supr}} {{TERM:DSE}}.
+
+H2: ManageDSAit
+
+Adding, modify, and deleting referral objects is generally done
+using {{ldapmodify}}(1) or similiar tools which support the
+ManageDsaIT control.  The ManageDsaIT control informs the server
+that you intend to manage the referral object as a regular
+entry.  This keeps the server from sending a referral result
+for requests to introgating or updating referral objects.
+The -M option of {{ldapmodify}}(1) (and other tools) enables
+ManageDsaIT.  For example:
+
+E:  ldapmodify -M -f referral.ldif -x -D "cn=Manager,dc=example,dc=net" -W
+
+or with ldapsearch:
+
+E:  ldapsearch -M -b "dc=example,dc=net" -x "(objectclass=referral)" '*' ref
+
+Note: the {{EX:ref}} attribute is operational and must be explicitly
+requested when desired in search results.
+
