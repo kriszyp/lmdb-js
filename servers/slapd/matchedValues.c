@@ -360,14 +360,14 @@ test_mra_vrFilter(
 
 #ifndef SLAP_X_MRA_MATCH_DNATTRS
 		if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
-			return( LDAP_SUCCESS );
+			continue;
 		}
 		value = mra->ma_value;
 
 #else /* SLAP_X_MRA_MATCH_DNATTRS */
 		if ( mra->ma_desc ) {
 			if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
-				return( LDAP_SUCCESS );
+				continue;
 			}
 			value = mra->ma_value;
 
