@@ -1,0 +1,31 @@
+# $OpenLDAP$
+
+UNIX_PRGS = mail500
+PROGRAMS = $(@PLAT@_PRGS)
+
+SRCS=	main.c
+XSRCS= version.c
+OBJS=	main.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+mail500 : version.o
+	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
+
+version.c: ${OBJS} $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) mail500 > $@
+
+install-local: $(PROGRAMS) FORCE
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
+
