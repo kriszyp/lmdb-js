@@ -51,14 +51,18 @@ ldbm_back_modrdn(
 	char		*old_rdn;		/* Old rdn's attr type & val */
 	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
 	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
-	struct berval	bv;			/* Stores new rdn att */
-	struct berval	*bvals[2];		/* Stores new rdn att */
-	LDAPMod		mod;			/* Used to delete old rdn */
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
 	char		*np_dn = NULL;  /* newSuperior dn */
 	char		*np_ndn = NULL; /* newSuperior ndn */
 	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
+	/* Used to interface with ldbm_modify_internal() */
+	struct berval	add_bv;			/* Stores new rdn att */
+	struct berval	*add_bvals[2];		/* Stores new rdn att */
+	struct berval	del_bv;			/* Stores old rdn att */
+	struct berval	*del_bvals[2];		/* Stores old rdn att */
+	LDAPModList	mod[2];			/* Used to delete old rdn */
+
 
 	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
 	       (newSuperior ? newSuperior : "NULL"),
@@ -301,10 +305,20 @@ ldbm_back_modrdn(
 
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 		       0, 0, 0 );
-
-		bvals[0] = &bv;		/* Array of bervals */
-		bvals[1] = NULL;
 		
+		/* Add new attribute value to the entry.
+		 */
+
+		add_bvals[0] = &add_bv;		/* Array of bervals */
+		add_bvals[1] = NULL;
+
+		add_bv.bv_val = new_rdn_val;
+		add_bv.bv_len = strlen(new_rdn_val);
+		
+		mod[0].ml_type = old_rdn_type;	
+		mod[0].ml_bvalues = add_bvals;
+		mod[0].ml_op = LDAP_MOD_ADD | LDAP_MOD_BVALUES;
+		mod[0].ml_next = NULL;
 
 		/* Remove old rdn value if required */
 
@@ -326,61 +340,29 @@ ldbm_back_modrdn(
 
 			}
 
+			del_bvals[0] = &del_bv;		/* Array of bervals */
+			del_bvals[1] = NULL;
+
 			/* Remove old value of rdn as an attribute. */
 		    
-			bv.bv_val = old_rdn_val;
-			bv.bv_len = strlen(old_rdn_val);
+			del_bv.bv_val = old_rdn_val;
+			del_bv.bv_len = strlen(old_rdn_val);
 
 			/* No need to normalize old_rdn_type, delete_values()
 			 * does that for us
 			 */
-			mod.mod_type = old_rdn_type;	
-			mod.mod_bvalues = bvals;
-			mod.mod_op = LDAP_MOD_DELETE;	/* XXX:really needed?*/
-
-			/* Assembly mod structure */
-
-			if ( delete_values( e, &mod, op->o_ndn )
-			     != LDAP_SUCCESS ) {
-
-				/* Could not find old_rdn as an attribute or
-				 * the old value was not present. Return an 
-				 * error.
-				 */
-				Debug( LDAP_DEBUG_TRACE,
-				       "ldbm_back_modrdn: old rdn not found or att type doesn't exist\n",
-				       0, 0, 0);
-				send_ldap_result( conn, op,
-						  LDAP_OPERATIONS_ERROR,
-						  "", "");
-				goto return_results;
-
-			}
+			mod[0].ml_next = &mod[1];
+			mod[1].ml_type = old_rdn_type;	
+			mod[1].ml_bvalues = del_bvals;
+			mod[1].ml_op = LDAP_MOD_DELETE | LDAP_MOD_BVALUES;
+			mod[1].ml_next = NULL;
 
 			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: removed old_rdn_val=%s\n",
+			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",
 			       old_rdn_val, 0, 0 );
 		
 		}/* if (deleteoldrdn) */
 
-		/* Add new attribute value to the entry.
-		 */
-
-		bv.bv_val = new_rdn_val;
-		bv.bv_len = strlen(new_rdn_val);
-		
-		
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: adding new rdn attr val =\"%s\"\n",
-		       new_rdn_val, 0, 0 );
-		
-		/* No need to normalize new_rdn_type, attr_merge does it */
-
-		attr_merge( e, new_rdn_type, bvals );
-
-		/* Update new_rdn_type if it is an index */
-
-		index_add_values( be, new_rdn_type, bvals, e->e_id );
 	
 	} else {
 	    
@@ -390,10 +372,22 @@ ldbm_back_modrdn(
 		/* XXXV3: not sure of what to do here */
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: not fully implemented...\n",
-		       0, 0, 0 );  
+		       0, 0, 0 );
+  
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
+				  NULL );
+		goto return_results;
 
 	}
 
+	/* modify memory copy of entry */
+	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
+	     != 0 ) {
+	    
+	    goto return_results;
+	    
+	}
+	
 	(void) cache_update_entry( &li->li_cache, e );
 
 	/* NOTE: after this you must not free new_dn or new_ndn!

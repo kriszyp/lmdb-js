@@ -154,7 +154,7 @@ int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID 
 int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int ldbm_internal_modify LDAP_P((Backend *be, Connection *conn, Operation *op,
+int ldbm_modify_internal LDAP_P((Backend *be, Connection *conn, Operation *op,
 			         char *dn, LDAPModList *mods, Entry *e));
 
 /*

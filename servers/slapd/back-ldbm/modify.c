@@ -96,7 +96,7 @@ add_lastmods( Operation *op, LDAPModList **modlist )
  * Juan C. Gomez (gomez@engr.sgi.com) 05/18/99
  */ 
 
-int ldbm_internal_modify(
+int ldbm_modify_internal(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
@@ -183,7 +183,7 @@ int ldbm_internal_modify(
 
 	return 0;
 
-}/* int ldbm_internal_modify() */
+}/* int ldbm_modify_internal() */
 
 
 int
@@ -213,7 +213,7 @@ ldbm_back_modify(
 	}
 
 	/* Modify the entry */
-	if ( ldbm_internal_modify( be, conn, op, dn, modlist, e ) != 0 ) {
+	if ( ldbm_modify_internal( be, conn, op, dn, modlist, e ) != 0 ) {
 
 		goto error_return;
 
