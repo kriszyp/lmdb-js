@@ -100,6 +100,8 @@ ________________<BR>
 # OpenLDAP related organization
 !block organisations; data
 Name|Long|Jump
+ANSI|American National Standards Institute|http://www.ansi.org/
+BSI|British Standards Institute|http://www.bsa-global.com/
 OpenLDAP|OpenLDAP|http://www.openldap.org/
 OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
 OLP|OpenLDAP Project|http://www.openldap.org/project/
