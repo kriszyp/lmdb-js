@@ -396,31 +396,32 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl
 		dnl currently supported checks:
 		dnl
-		dnl 0)	pthread_create() in $LIBS
+		dnl Check for no flags 
+		dnl 	pthread_create() in $LIBS
 		dnl
 		dnl Check special pthread (final) flags
-		dnl 1)	pthread_create() with -kthread (FreeBSD)
-		dnl 2)	pthread_create() with -pthread (FreeBSD)
-		dnl 3)	pthread_create() with -pthreads (OSF/1)
-		dnl 4)	pthread_create() with -thread (?)
+		dnl 	pthread_create() with -kthread (FreeBSD)
+		dnl 	pthread_create() with -pthread (FreeBSD)
+		dnl 	pthread_create() with -pthreads (OSF/1)
+		dnl 	pthread_create() with -thread (?)
 		dnl
 		dnl Check pthread (final) libraries
-		dnl 5)	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
-		dnl 6)	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
-		dnl 7)	pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
-		dnl 8)	pthread_create() in -lpthread (many)
-		dnl 9)	pthread_create() in -lc_r (FreeBSD)
-		dnl 10)	pthread_create() in -lpthreads (many)
-		dnl 11)	pthread_join() -Wl,-woff,85 -lpthreads (IRIX)
-		dnl 12)	pthread_create() in HP-UX -lpthread (HP-UX 11)
+		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
+		dnl 	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
+		dnl 	pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
+		dnl 	pthread_create() in -lpthread (many)
+		dnl 	pthread_create() in -lc_r (FreeBSD)
+		dnl 	pthread_create() in -lpthreads (many)
+		dnl 	pthread_join() -Wl,-woff,85 -lpthreads (IRIX)
+		dnl 	pthread_create() in HP-UX -lpthread (HP-UX 11)
 		dnl
 		dnl Check pthread (draft4) flags (to be depreciated)
-		dnl 13)	pthread_create() with -threads (OSF/1)
+		dnl 	pthread_create() with -threads (OSF/1)
 		dnl
 		dnl Check pthread (final) libraries (to be depreciated)
-		dnl 14)	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
-		dnl 14)	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
-		dnl 14)	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
+		dnl 	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
+		dnl 	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
+		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
 		dnl
 
 		dnl pthread_create in $LIBS
