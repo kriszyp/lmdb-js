@@ -52,6 +52,10 @@
 #define get_continuationBehavior(op)	((op)->o_chaining & SLAP_CH_CONTINUATION_MASK)
 #endif /*  LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+#define	LDAP_CH_NONE			((void *)(0))
+#define	LDAP_CH_RES			((void *)(1))
+#define LDAP_CH_ERR			((void *)(2))
+
 static int		sc_chainingBehavior;
 static BackendInfo	*lback;
 
@@ -82,6 +86,11 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 {
 	assert( op->o_tag == LDAP_REQ_SEARCH );
 
+	/* if in error, don't proceed any further */
+	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+		return 0;
+	}
+
 	if ( rs->sr_type == REP_SEARCH ) {
 		Attribute	**ap = &rs->sr_entry->e_attrs;
 
@@ -103,9 +112,27 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 		
 		return SLAP_CB_CONTINUE;
 
+	} else if ( rs->sr_type == REP_SEARCHREF ) {
+		/* if we get it here, it means the library was unable
+		 * to chase the referral... */
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+		if ( get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+			switch ( get_continuationBehavior( op ) ) {
+			case SLAP_CH_RESOLVE_CHAINING_REQUIRED:
+				op->o_callback->sc_private = LDAP_CH_ERR;
+				return -1;
+
+			default:
+				break;
+			}
+		}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+		return SLAP_CB_CONTINUE;
+
 	} else if ( rs->sr_type == REP_RESULT ) {
 		/* back-ldap tried to send result */
-		op->o_callback->sc_private = (void *)(1);
+		op->o_callback->sc_private = LDAP_CH_RES;
 	}
 
 	return 0;
@@ -118,8 +145,13 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 static int
 ldap_chain_cb_response( Operation *op, SlapReply *rs )
 {
+	/* if in error, don't proceed any further */
+	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+		return 0;
+	}
+
 	if ( rs->sr_type == REP_RESULT ) {
-		op->o_callback->sc_private = (void *)(1);
+		op->o_callback->sc_private = LDAP_CH_RES;
 
 	} else if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH )
 	{
@@ -430,6 +462,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
 					break;
 				}
+
+				rc = rs->sr_err;
 			}
 
 			op->o_req_dn = odn;
@@ -462,9 +496,14 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != LDAP_SUCCESS || sc2.sc_private == LDAP_CH_ERR ) {
+		if ( rs->sr_err == LDAP_CANNOT_CHAIN ) {
+			goto cannot_chain;
+		}
+
 		switch ( ( get_chainingBehavior( op ) & chain_mask ) >> chain_shift ) {
 		case LDAP_CHAINING_REQUIRED:
+cannot_chain:;
 			op->o_callback = NULL;
 			send_ldap_error( op, rs, LDAP_CANNOT_CHAIN, "operation cannot be completed without chaining" );
 			break;
@@ -479,7 +518,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-	if ( sc2.sc_private == NULL ) {
+	if ( sc2.sc_private == LDAP_CH_NONE ) {
 		op->o_callback = NULL;
 		rc = rs->sr_err = slap_map_api2result( rs );
 		send_ldap_result( op, rs );
