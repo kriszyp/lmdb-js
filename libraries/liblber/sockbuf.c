@@ -580,12 +580,14 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
       sb->sb_read_ahead = 0;
 #endif
    }
+#ifdef FIONBIO
    if (lber_pvt_sb_in_use(sb)) {
       int status = (nb!=0);
       if (ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, (caddr_t)&status ) == -1 ) {
 	 return -1;
       }
    }
+#endif /* FIONBIO */
    return 0;
 }
 #endif
@@ -751,7 +753,7 @@ stream_read( Sockbuf *sb, void *buf, long len )
    return tcpread( lber_pvt_sb_get_desc(sb), 0, (unsigned char *)buf, 
 		   len, NULL );
 #elif (defined(DOS) && (defined(PCNFS) || defined( WINSOCK))) \
-	|| defined( _WIN32)
+	|| defined( _WIN32) || defined ( __BEOS__ )
 /*
  * PCNFS (under DOS)
  */
@@ -784,7 +786,7 @@ stream_write( Sockbuf *sb, void *buf, long len )
 		    (unsigned char *)(buf), 
 		    (len<MAX_WRITE)? len : MAX_WRITE );
 #elif (defined(DOS) && (defined(PCNFS) || defined( WINSOCK))) \
-	|| defined( _WIN32)
+	|| defined( _WIN32 ) || defined ( __BEOS__ )
 /*
  * PCNFS (under DOS)
  */
