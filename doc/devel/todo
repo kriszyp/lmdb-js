@@ -22,8 +22,8 @@ OpenLDAP 2.0 Projects
 ---------------------
 	SLAPD
 		Update back-perl
-		Update back-sql
 		Update back-tcl
+		Complete Unicode Support
 	SLURPD v3 update
 	clients
 		use _ext API, avoid deprecated routines
