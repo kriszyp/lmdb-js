@@ -41,7 +41,7 @@
 
 LDAP_BEGIN_DECL
 
-#define MONITOR_DEVEL
+/* #define MONITOR_DEVEL */
 
 /*
  * The cache maps DNs to Entries.
