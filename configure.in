@@ -565,9 +565,11 @@ AC_FUNC_VPRINTF
 AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
+	flock			\
 	gethostname		\
 	gettimeofday	\
 	getdtablesize	\
+	lockf			\
 	memcpy			\
 	mktime			\
 	select			\

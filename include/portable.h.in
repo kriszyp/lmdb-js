@@ -82,6 +82,9 @@
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 
+/* Define if you have the flock function.  */
+#undef HAVE_FLOCK
+
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
 
@@ -90,6 +93,9 @@
 
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the lockf function.  */
+#undef HAVE_LOCKF
 
 /* Define if you have the memcpy function.  */
 #undef HAVE_MEMCPY
