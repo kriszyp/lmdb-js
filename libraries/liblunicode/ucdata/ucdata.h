@@ -4,7 +4,7 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * Copyright 1999 Computing Research Labs, New Mexico State University
+ * Copyright 2001 Computing Research Labs, New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 #define _h_ucdata
 
 /*
- * $Id: ucdata.h,v 1.5 1999/11/19 15:24:29 mleisher Exp $
+ * $Id: ucdata.h,v 1.6 2001/01/02 18:46:20 mleisher Exp $
  */
 
 LDAP_BEGIN_DECL
@@ -36,7 +36,7 @@ LDAP_BEGIN_DECL
 #undef __
 #define __(x) x
 
-#define UCDATA_VERSION "2.3"
+#define UCDATA_VERSION "2.4"
 
 /**************************************************************************
  *
@@ -212,6 +212,32 @@ extern unsigned long uctotitle __((unsigned long code));
 
 /**************************************************************************
  *
+ * Functions for getting compositions.
+ *
+ **************************************************************************/
+
+/*
+ * This routine determines if there exists a composition of node1 and node2.
+ * If it returns 0, there is no composition.  Any other value indicates a
+ * composition was returned in comp.
+ */
+extern int uccomp __((unsigned long node1, unsigned long node2,
+		      unsigned long *comp));
+
+/*
+ * Does Hangul composition on the string str with length len, and returns
+ * the length of the composed string.
+ */
+extern int uccomp_hangul __((unsigned long *str, int len));
+
+/*
+ * Does canonical composition on the string str with length len, and returns
+ * the length of the composed string.
+ */
+extern int uccanoncomp __((unsigned long *str, int len));
+
+/**************************************************************************
+ *
  * Functions for getting decompositions.
  *
  **************************************************************************/
@@ -222,7 +248,6 @@ extern unsigned long uctotitle __((unsigned long code));
  * returned.
  */
 extern int ucdecomp __((unsigned long code, unsigned long *num,
-
                         unsigned long **decomp));
 
 /*
@@ -232,6 +257,15 @@ extern int ucdecomp __((unsigned long code, unsigned long *num,
 extern int ucdecomp_hangul __((unsigned long code, unsigned long *num,
                                unsigned long decomp[]));
 
+/*  
+ * This routine does canonical decomposition of the string in of length
+ * inlen, and returns the decomposed string in out with length outlen.
+ * The memory for out is allocated by this routine. It returns the length
+ * of the decomposed string if okay, and -1 on error.
+ */
+extern int uccanondecomp __((const unsigned long *in, int inlen,
+			     unsigned long **out, int *outlen));
+  
 /**************************************************************************
  *
  * Functions for getting combining classes.
@@ -279,9 +313,10 @@ extern int ucgetdigit __((unsigned long code));
 #define UCDATA_DECOMP 0x04
 #define UCDATA_CMBCL  0x08
 #define UCDATA_NUM    0x10
+#define UCDATA_COMP   0x20
 
 #define UCDATA_ALL (UCDATA_CASE|UCDATA_CTYPE|UCDATA_DECOMP|\
-                    UCDATA_CMBCL|UCDATA_NUM)
+                    UCDATA_CMBCL|UCDATA_NUM|UCDATA_COMP)
 
 /*
  * Functions to load, unload, and reload specific data files.

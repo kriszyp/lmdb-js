@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1999 Computing Research Labs, New Mexico State University
+ * Copyright 2001 Computing Research Labs, New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -20,7 +20,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ucgendat.c,v 1.3 1999/10/07 20:49:56 mleisher Exp $" */
+/* $Id: ucgendat.c,v 1.4 2001/01/02 18:46:20 mleisher Exp $" */
 
 #include "portable.h"
 
@@ -39,7 +39,7 @@
  */
 static unsigned short hdr[2] = {0xfeff, 0};
 
-#define NUMPROPS 49
+#define NUMPROPS 50
 #define NEEDPROPS (NUMPROPS + (4 - (NUMPROPS & 3)))
 
 typedef struct {
@@ -70,7 +70,7 @@ static _prop_t props[NUMPROPS] = {
     {"EN", 2}, {"ES", 2}, {"ET", 2}, {"AN", 2}, {"CS", 2}, {"B",  1},
     {"S",  1}, {"WS", 2}, {"ON", 2},
     {"Cm", 2}, {"Nb", 2}, {"Sy", 2}, {"Hd", 2}, {"Qm", 2}, {"Mr", 2},
-    {"Ss", 2}, {"Cp", 2}, {"Pi", 2}, {"Pf", 2}
+    {"Ss", 2}, {"Cp", 2}, {"Pi", 2}, {"Pf", 2}, {"AL", 2}
 };
 
 typedef struct {
@@ -107,6 +107,26 @@ typedef struct {
 static _decomp_t *decomps;
 static unsigned long decomps_used;
 static unsigned long decomps_size;
+
+/*
+ * Composition exclusion table stuff.
+ */
+#define COMPEX_SET(c) (compexs[(c) >> 15] |= (1 << ((c) & 31)))
+#define COMPEX_TEST(c) (compexs[(c) >> 15] & (1 << ((c) & 31)))
+static unsigned long compexs[2048];
+
+/*
+ * Struct for holding a composition pair, and array of composition pairs
+ */
+typedef struct {
+    unsigned long comp;
+    unsigned long count;
+    unsigned long code1;
+    unsigned long code2;
+} _comp_t;
+
+static _comp_t *comps;
+static unsigned long comps_used;
 
 /*
  * Types and lists for handling lists of case mappings.
@@ -281,24 +301,11 @@ ordered_range_insert(unsigned long c, char *name, int len)
     /*
      * Deal with directionality codes introduced in Unicode 3.0.
      */
-    if (len == 2) {
-        if (memcmp(name, "AL", 2) == 0) {
-            /*
-             * Mark the Arabic letters as having RTL directionality.
-             */
-            len = 1;
-            name = "R";
-        } else if (memcmp(name, "BN", 2) == 0) {
-            /*
-             * Mark the control characters as being Other Neutrals.
-             */
-            len = 2;
-            name = "ON";
-        }
-    } else if (len == 3 &&
-               (memcmp(name, "NSM", 3) == 0 || memcmp(name, "PDF", 3) == 0 ||
-                memcmp(name, "LRE", 3) == 0 || memcmp(name, "LRO", 3) == 0 ||
-                memcmp(name, "RLE", 3) == 0 || memcmp(name, "RLO", 3) == 0)) {
+    if ((len == 2 && memcmp(name, "BN", 2) == 0) ||
+        (len == 3 &&
+         (memcmp(name, "NSM", 3) == 0 || memcmp(name, "PDF", 3) == 0 ||
+          memcmp(name, "LRE", 3) == 0 || memcmp(name, "LRO", 3) == 0 ||
+          memcmp(name, "RLE", 3) == 0 || memcmp(name, "RLO", 3) == 0))) {
         /*
          * Mark all of these as Other Neutral to preserve compatibility with
          * older versions.
@@ -468,6 +475,12 @@ add_decomp(unsigned long code)
     (void) AC_MEMCPY((char *) decomps[i].decomp, (char *) dectmp,
                   sizeof(unsigned long) * dectmp_size);
 
+    /*
+     * NOTICE: This needs changing later so it is more general than simply
+     * pairs.  This calculation is done here to simplify allocation elsewhere.
+     */
+    if (dectmp_size == 2)
+      comps_used++;
 }
 
 static void
@@ -938,10 +951,10 @@ read_cdata(FILE *in)
             }
 
             /*
-             * If there is more than one code in the temporary decomposition
-             * array, then add the character with its decomposition.
+             * If there are any codes in the temporary decomposition array,
+             * then add the character with its decomposition.
              */
-            if (dectmp_size > 1)
+            if (dectmp_size > 0)
               add_decomp(code);
         }
 
@@ -1082,6 +1095,74 @@ expand_decomp(void)
     }
 }
 
+static int
+cmpcomps(_comp_t *comp1, _comp_t *comp2)
+{
+    long diff = comp1->code1 - comp2->code1;
+
+    if (!diff)
+	diff = comp1->code2 - comp2->code2;
+    return (int) diff;
+}
+
+/*
+ * Load composition exclusion data
+ */
+static void
+read_compexdata(FILE *in)
+{
+    unsigned short i, code;
+    char line[512], *s;
+
+    (void) memset((char *) compexs, 0, sizeof(unsigned long) << 11);
+
+    while (fscanf(in, "%[^\n]\n", line) != EOF) {
+        /*
+         * Skip blank lines and lines that start with a '#'.
+         */
+        if (line[0] == 0 || line[0] == '#')
+	    continue;
+
+	/*
+         * Collect the code.  Assume max 4 digits
+         */
+
+	for (s = line, i = code = 0; *s != '#' && i < 4; i++, s++) {
+            code <<= 4;
+            if (*s >= '0' && *s <= '9')
+		code += *s - '0';
+            else if (*s >= 'A' && *s <= 'F')
+		code += (*s - 'A') + 10;
+            else if (*s >= 'a' && *s <= 'f')
+		code += (*s - 'a') + 10;
+        }
+        COMPEX_SET(code);
+    }
+}
+
+/*
+ * Creates array of compositions from decomposition array
+ */
+static void
+create_comps(void)
+{
+    unsigned long i, cu;
+
+    comps = (_comp_t *) malloc(comps_used * sizeof(_comp_t));
+
+    for (i = cu = 0; i < decomps_used; i++) {
+	if (decomps[i].used != 2 || COMPEX_TEST(decomps[i].code))
+	    continue;
+	comps[cu].comp = decomps[i].code;
+	comps[cu].count = 2;
+	comps[cu].code1 = decomps[i].decomp[0];
+	comps[cu].code2 = decomps[i].decomp[1];
+	cu++;
+    }
+    qsort(comps, comps_used, sizeof(_comp_t),
+	  (int (*)(const void *, const void *)) cmpcomps);
+}
+
 static void
 write_cdata(char *opath)
 {
@@ -1211,6 +1292,44 @@ write_cdata(char *opath)
 
     fclose(out);
 
+    /*****************************************************************
+     *
+     * Generate the composition data.
+     *
+     *****************************************************************/
+    
+    /*
+     * Create compositions from decomposition data
+     */
+    create_comps();
+    
+    /*
+     * Open the comp.dat file.
+     */
+    sprintf(path, "%s/comp.dat", opath);
+    if ((out = fopen(path, "wb")) == 0)
+	return;
+    
+    /*
+     * Write the header.
+     */
+    hdr[1] = (unsigned short) comps_used * 4;
+    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    
+    /*
+     * Write out the byte count to maintain header size.
+     */
+    bytes = comps_used * sizeof(_comp_t);
+    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    
+    /*
+     * Now, if comps exist, write them out.
+     */
+    if (comps_used > 0)
+        fwrite((char *) comps, sizeof(_comp_t), comps_used, out);
+    
+    fclose(out);
+    
     /*****************************************************************
      *
      * Generate the decomposition data.
@@ -1355,6 +1474,21 @@ write_cdata(char *opath)
     fclose(out);
 }
 
+static void
+usage(char *prog)
+{
+    fprintf(stderr,
+            "Usage: %s [-o output-directory|-x composition-exclusions]", prog);
+    fprintf(stderr, " datafile1 datafile2 ...\n\n");
+    fprintf(stderr,
+            "-o output-directory\n\t\tWrite the output files to a different");
+    fprintf(stderr, " directory (default: .).\n");
+    fprintf(stderr,
+            "-x composition-exclusion\n\t\tFile of composition codes");
+    fprintf(stderr, " that should be excluded.\n");
+    exit(1);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1373,10 +1507,29 @@ main(int argc, char *argv[])
     argv++;
 
     while (argc > 0) {
-        if (argv[0][0] == '-' && argv[0][1] == 'o') {
-            argc--;
-            argv++;
-            opath = argv[0];
+        if (argv[0][0] == '-') {
+            switch (argv[0][1]) {
+              case 'o':
+                argc--;
+                argv++;
+                opath = argv[0];
+                break;
+              case 'x':
+                argc--;
+                argv++;
+                if ((in = fopen(argv[0], "rb")) == 0)
+                  fprintf(stderr,
+                          "%s: unable to open composition exclusion file %s\n",
+                          prog, argv[0]);
+                else {
+                    read_compexdata(in);
+                    fclose(in);
+                    in = 0;
+                }
+                break;
+              default:
+                usage(prog);
+            }
         } else {
             if (in != stdin && in != NULL)
               fclose(in);
@@ -1387,7 +1540,7 @@ main(int argc, char *argv[])
                 read_cdata(in);
                 fclose(in);
                 in = 0;
-            }
+	    }
         }
         argc--;
         argv++;

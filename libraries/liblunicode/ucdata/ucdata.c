@@ -4,7 +4,7 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * Copyright 1999 Computing Research Labs, New Mexico State University
+ * Copyright 2001 Computing Research Labs, New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ucdata.c,v 1.3 1999/08/23 16:14:09 mleisher Exp $" */
+/* $Id: ucdata.c,v 1.4 2001/01/02 18:46:20 mleisher Exp $" */
 
 #include "portable.h"
 
@@ -471,6 +471,193 @@ uctotitle(unsigned long code)
 
 /**************************************************************************
  *
+ * Support for compositions.
+ *
+ **************************************************************************/
+
+static unsigned long  _uccomp_size;
+static unsigned long *_uccomp_data;
+
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
+_uccomp_load(char *paths, int reload)
+{
+    FILE *in;
+    unsigned long size, i;
+    _ucheader_t hdr;
+
+    if (_uccomp_size > 0) {
+        if (!reload)
+            /*
+             * The compositions have already been loaded.
+             */
+            return 0;
+
+        free((char *) _uccomp_data);
+        _uccomp_size = 0;
+    }
+
+    if ((in = _ucopenfile(paths, "comp.dat", "rb")) == 0)
+        return -1;
+
+    /*
+     * Load the header.
+     */
+    fread((char *) &hdr, sizeof(_ucheader_t), 1, in);
+
+    if (hdr.bom == 0xfffe) {
+        hdr.cnt = endian_short(hdr.cnt);
+        hdr.size.bytes = endian_long(hdr.size.bytes);
+    }
+
+    _uccomp_size = hdr.cnt;
+    _uccomp_data = (unsigned long *) malloc(hdr.size.bytes);
+
+    /*
+     * Read the composition data in.
+     */
+    size = hdr.size.bytes / sizeof(unsigned long);
+    fread((char *) _uccomp_data, sizeof(unsigned long), size, in);
+
+    /*
+     * Do an endian swap if necessary.
+     */
+    if (hdr.bom == 0xfffe) {
+        for (i = 0; i < size; i++)
+            _uccomp_data[i] = endian_long(_uccomp_data[i]);
+    }
+
+    /*
+     * Assume that the data is ordered on count, so that all compositions
+     * of length 2 come first. Only handling length 2 for now.
+     */
+    for (i = 1; i < size; i += 4)
+      if (_uccomp_data[i] != 2)
+        break;
+    _uccomp_size = i - 1;
+
+    return 0;
+}
+
+static void
+_uccomp_unload(void)
+{
+    if (_uccomp_size == 0)
+        return;
+
+    free((char *) _uccomp_data);
+    _uccomp_size = 0;
+}
+
+int
+uccomp(unsigned long node1, unsigned long node2, unsigned long *comp)
+{
+    int l, r, m;
+
+    l = 0;
+    r = _uccomp_size - 1;
+
+    while (l <= r) {
+        m = ((r + l) >> 1);
+        m -= m & 3;
+        if (node1 > _uccomp_data[m+2])
+          l = m + 4;
+        else if (node1 < _uccomp_data[m+2])
+          r = m - 4;
+        else if (node2 > _uccomp_data[m+3])
+          l = m + 4;
+        else if (node2 < _uccomp_data[m+3])
+          r = m - 4;
+        else {
+            *comp = _uccomp_data[m];
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+uccomp_hangul(unsigned long *str, int len)
+{
+    const int SBase = 0xAC00, LBase = 0x1100,
+        VBase = 0x1161, TBase = 0x11A7,
+        LCount = 19, VCount = 21, TCount = 28,
+        NCount = VCount * TCount,   /* 588 */
+        SCount = LCount * NCount;   /* 11172 */
+    
+    int i, rlen;
+    unsigned long ch, last, lindex, sindex;
+
+    last = str[0];
+    rlen = 1;
+    for ( i = 1; i < len; i++ ) {
+        ch = str[i];
+
+        /* check if two current characters are L and V */
+        lindex = last - LBase;
+        if (0 <= lindex && lindex < LCount) {
+            unsigned long vindex = ch - VBase;
+            if (0 <= vindex && vindex < VCount) {
+                /* make syllable of form LV */
+                last = SBase + (lindex * VCount + vindex) * TCount;
+                str[rlen-1] = last; /* reset last */
+                continue;
+            }
+        }
+        
+        /* check if two current characters are LV and T */
+        sindex = last - SBase;
+        if (0 <= sindex && sindex < SCount && (sindex % TCount) == 0) {
+            unsigned long tindex = ch - TBase;
+            if (0 <= tindex && tindex <= TCount) {
+                /* make syllable of form LVT */
+                last += tindex;
+                str[rlen-1] = last; /* reset last */
+                continue;
+            }
+        }
+
+        /* if neither case was true, just add the character */
+        last = ch;
+        str[rlen] = ch;
+        rlen++;
+    }
+    return rlen;
+}
+
+int
+uccanoncomp(unsigned long *str, int len)
+{
+    int i, stpos, copos;
+    unsigned long cl, prevcl, st, ch, co;
+
+    st = str[0];
+    stpos = 0;
+    copos = 1;
+    prevcl = uccombining_class(st) == 0 ? 0 : 256;
+        
+    for (i = 1; i < len; i++) {
+        ch = str[i];
+        cl = uccombining_class(ch);
+        if (uccomp(st, ch, &co) && (prevcl < cl || prevcl == 0))
+          st = str[stpos] = co;
+        else {
+            if (cl == 0) {
+                stpos = copos;
+                st = ch;
+            }
+            prevcl = cl;
+            str[copos++] = ch;
+        }
+    }
+
+    return uccomp_hangul(str, copos);
+}
+
+/**************************************************************************
+ *
  * Support for decompositions.
  *
  **************************************************************************/
@@ -491,9 +678,9 @@ _ucdcmp_load(char *paths, int reload)
 
     if (_ucdcmp_size > 0) {
         if (!reload)
-          /*
-           * The decompositions have already been loaded.
-           */
+            /*
+             * The decompositions have already been loaded.
+             */
           return 0;
 
         free((char *) _ucdcmp_nodes);
@@ -501,7 +688,7 @@ _ucdcmp_load(char *paths, int reload)
     }
 
     if ((in = _ucopenfile(paths, "decomp.dat", "rb")) == 0)
-      return -1;
+        return -1;
 
     /*
      * Load the header.
@@ -528,7 +715,7 @@ _ucdcmp_load(char *paths, int reload)
      */
     if (hdr.bom == 0xfffe) {
         for (i = 0; i < size; i++)
-          _ucdcmp_nodes[i] = endian_long(_ucdcmp_nodes[i]);
+            _ucdcmp_nodes[i] = endian_long(_ucdcmp_nodes[i]);
     }
     return 0;
 }
@@ -590,6 +777,74 @@ ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
     return 1;
 }
 
+int
+uccanondecomp(const unsigned long *in, int inlen,
+              unsigned long **out, int *outlen)
+{
+    int i, j, k, l, size;
+    unsigned long num, class, *decomp, hangdecomp[3];
+
+    size = inlen;
+    *out = (unsigned long *) malloc(size * sizeof(**out));
+    if (*out == NULL)
+        return *outlen = -1;
+
+    i = 0;
+    for (j = 0; j < inlen; j++) {
+        if (ucdecomp(in[j], &num, &decomp)) {
+            if (size - i < num) {
+                size = inlen + i - j + num - 1;
+                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                if (*out == NULL)
+                    return *outlen = -1;
+            }
+            for (k = 0; k < num; k++) {
+                class = uccombining_class(decomp[k]);
+                if (class == 0) {
+                    (*out)[i] = decomp[k];
+                } else {
+                    for (l = i; l > 0; l--)
+                        if (class >= uccombining_class((*out)[l-1]))
+                            break;
+                    memmove(*out + l + 1, *out + l, (i - l) * sizeof(**out));
+                    (*out)[l] = decomp[k];
+                }
+                i++;
+            }
+        } else if (ucdecomp_hangul(in[j], &num, hangdecomp)) {
+            if (size - i < num) {
+                size = inlen + i - j + num - 1;
+                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                if (*out == NULL)
+                    return *outlen = -1;
+            }
+            for (k = 0; k < num; k++) {
+                (*out)[i] = hangdecomp[k];
+                i++;
+            }
+        } else {
+            if (size - i < 1) {
+                size = inlen + i - j;
+                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                if (*out == NULL)
+                    return *outlen = -1;
+            }
+            class = uccombining_class(in[j]);
+            if (class == 0) {
+                (*out)[i] = in[j];
+            } else {
+                for (l = i; l > 0; l--)
+                    if (class >= uccombining_class((*out)[l-1]))
+                        break;
+                memmove(*out + l + 1, *out + l, (i - l) * sizeof(**out));
+                (*out)[l] = in[j];
+            }
+            i++;
+        }
+    }
+    return *outlen = i;
+}
+
 /**************************************************************************
  *
  * Support for combining classes.
@@ -611,17 +866,17 @@ _uccmcl_load(char *paths, int reload)
 
     if (_uccmcl_size > 0) {
         if (!reload)
-          /*
-           * The combining classes have already been loaded.
-           */
-          return 0;
+            /*
+             * The combining classes have already been loaded.
+             */
+            return 0;
 
         free((char *) _uccmcl_nodes);
         _uccmcl_size = 0;
     }
 
     if ((in = _ucopenfile(paths, "cmbcl.dat", "rb")) == 0)
-      return -1;
+        return -1;
 
     /*
      * Load the header.
@@ -646,7 +901,7 @@ _uccmcl_load(char *paths, int reload)
      */
     if (hdr.bom == 0xfffe) {
         for (i = 0; i < _uccmcl_size; i++)
-          _uccmcl_nodes[i] = endian_long(_uccmcl_nodes[i]);
+            _uccmcl_nodes[i] = endian_long(_uccmcl_nodes[i]);
     }
     return 0;
 }
@@ -872,16 +1127,20 @@ int
 ucdata_load(char *paths, int masks)
 {
     int error = 0;
+
     if (masks & UCDATA_CTYPE)
-	error |= _ucprop_load(paths, 0) < 0 ? UCDATA_CTYPE : 0;
+      error |= _ucprop_load(paths, 0) < 0 ? UCDATA_CTYPE : 0;
     if (masks & UCDATA_CASE)
-    	error |= _uccase_load(paths, 0) < 0 ? UCDATA_CASE : 0;
+      error |= _uccase_load(paths, 0) < 0 ? UCDATA_CASE : 0;
     if (masks & UCDATA_DECOMP)
-    	error |= _ucdcmp_load(paths, 0) < 0 ? UCDATA_DECOMP : 0;
+      error |= _ucdcmp_load(paths, 0) < 0 ? UCDATA_DECOMP : 0;
     if (masks & UCDATA_CMBCL)
-    	error |= _uccmcl_load(paths, 0) < 0 ? UCDATA_CMBCL : 0;
+      error |= _uccmcl_load(paths, 0) < 0 ? UCDATA_CMBCL : 0;
     if (masks & UCDATA_NUM)
-    	error |= _ucnumb_load(paths, 0) < 0 ? UCDATA_NUM : 0;
+      error |= _ucnumb_load(paths, 0) < 0 ? UCDATA_NUM : 0;
+    if (masks & UCDATA_COMP)
+      error |= _uccomp_load(paths, 0) < 0 ? UCDATA_COMP : 0;
+
     return -error;
 }
 
@@ -898,6 +1157,8 @@ ucdata_unload(int masks)
       _uccmcl_unload();
     if (masks & UCDATA_NUM)
       _ucnumb_unload();
+    if (masks & UCDATA_COMP)
+      _uccomp_unload();
 }
 
 /*
@@ -907,16 +1168,20 @@ int
 ucdata_reload(char *paths, int masks)
 {
     int error = 0;
+
     if (masks & UCDATA_CTYPE)
-	error |= _ucprop_load(paths, 1) < 0 ? UCDATA_CTYPE : 0;
+        error |= _ucprop_load(paths, 1) < 0 ? UCDATA_CTYPE : 0;
     if (masks & UCDATA_CASE)
-    	error |= _uccase_load(paths, 1) < 0 ? UCDATA_CASE : 0;
+        error |= _uccase_load(paths, 1) < 0 ? UCDATA_CASE : 0;
     if (masks & UCDATA_DECOMP)
-    	error |= _ucdcmp_load(paths, 1) < 0 ? UCDATA_DECOMP : 0;
+        error |= _ucdcmp_load(paths, 1) < 0 ? UCDATA_DECOMP : 0;
     if (masks & UCDATA_CMBCL)
-    	error |= _uccmcl_load(paths, 1) < 0 ? UCDATA_CMBCL : 0;
+        error |= _uccmcl_load(paths, 1) < 0 ? UCDATA_CMBCL : 0;
     if (masks & UCDATA_NUM)
-    	error |= _ucnumb_load(paths, 1) < 0 ? UCDATA_NUM : 0;
+        error |= _ucnumb_load(paths, 1) < 0 ? UCDATA_NUM : 0;
+    if (masks & UCDATA_COMP)
+        error |= _uccomp_load(paths, 1) < 0 ? UCDATA_COMP : 0;
+
     return -error;
 }
 
