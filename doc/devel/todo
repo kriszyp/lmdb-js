@@ -33,6 +33,7 @@ Large projects
 Localize slapd
 Implement X.500 administrative models (e.g. subentries, etc.)
 Implement LDAP component matching
+Implement LDAP sorted search results control
 
 
 Medium projects
@@ -50,7 +51,6 @@ Small projects
 Add dumpasn1 logging support
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Convert utfconv.txt into man page(s).
-Implement -V version options
 Recode linked-list structs to use <ldap_queue.h> macros
 Update any manual page
 
