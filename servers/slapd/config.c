@@ -1226,12 +1226,12 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_LOGFILE: {
-			if ( logfileName ) ch_free( logfileName );
-			logfileName = c->value_string;
-			FILE *logfile = fopen(logfileName, "w");
-			if(logfile) lutil_debug_file(logfile);
-			break;
-			}
+				FILE *logfile;
+				if ( logfileName ) ch_free( logfileName );
+				logfileName = c->value_string;
+				logfile = fopen(logfileName, "w");
+				if(logfile) lutil_debug_file(logfile);
+			} break;
 
 		case CFG_LASTMOD:
 			if(SLAP_NOLASTMODCMD(c->be)) {

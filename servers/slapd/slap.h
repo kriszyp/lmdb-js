@@ -1409,11 +1409,11 @@ typedef struct slap_bindconf {
 } slap_bindconf;
 
 struct slap_replica_info {
-	char *ri_uri;				/* supersedes be_replica */
-	char *ri_host;				/* points to host part of uri */
-	BerVarray ri_nsuffix;	/* array of suffixes this replica accepts */
+	const char *ri_uri;			/* supersedes be_replica */
+	const char *ri_host;		/* points to host part of uri */
+	BerVarray ri_nsuffix;		/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
-	int ri_exclude;			/* 1 => exclude ri_attrs */
+	int ri_exclude;				/* 1 => exclude ri_attrs */
 	slap_bindconf ri_bindconf;	/* for back-config */
 };
 
