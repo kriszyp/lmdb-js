@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.27 Engineering
+OpenLDAP 2.0.27 Release
 	Build environment
 		Fix getopt(3) detection
 
