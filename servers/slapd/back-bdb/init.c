@@ -93,6 +93,10 @@ bdb_db_init( BackendDB *be )
 
 	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
 
+#ifdef LDAP_CLIENT_UPDATE
+	LDAP_LIST_INIT (&bdb->psearch_list);
+#endif
+
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );

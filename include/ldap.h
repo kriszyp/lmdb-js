@@ -202,7 +202,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
 #endif
 
+/*
 #define LDAP_CLIENT_UPDATE 1
+*/
 #ifdef LDAP_CLIENT_UPDATE
 #define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
 #define LDAP_CONTROL_ENTRY_UPDATE		"1.3.6.1.4.1.4203.666.5.4"

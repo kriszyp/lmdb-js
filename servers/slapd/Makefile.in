@@ -19,7 +19,7 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c cr.c \
 		schemaparse.c ad.c at.c mr.c syntax.c oc.c saslauthz.c \
 		oidm.c starttls.c index.c sets.c referral.c \
 		root_dse.c sasl.c module.c suffixalias.c mra.c mods.c \
-		limits.c backglue.c operational.c matchedValues.c \
+		limits.c backglue.c operational.c matchedValues.c lcup.c \
 		$(@PLAT@_SRCS)
 
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o cr.o \
@@ -32,7 +32,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o cr.o \
 		schemaparse.o ad.o at.o mr.o syntax.o oc.o saslauthz.o \
 		oidm.o starttls.o index.o sets.o referral.o \
 		root_dse.o sasl.o module.o suffixalias.o mra.o mods.o \
-		limits.o backglue.o operational.o matchedValues.o \
+		limits.o backglue.o operational.o matchedValues.o lcup.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include

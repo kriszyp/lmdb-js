@@ -81,6 +81,15 @@ bdb_search(
 		0, 0, 0);
 #endif
 
+#ifdef LDAP_CLIENT_UPDATE
+	if ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) {
+		bdb_add_psearch_spec( be, conn, op, base, base, scope,
+			deref, slimit, tlimit, filter, filterstr, attrs, attrsonly );
+		return LDAP_SUCCESS;
+	}
+#endif
+
+
 	manageDSAit = get_manageDSAit( op );
 
 	rc = LOCK_ID (bdb->bi_dbenv, &locker );
@@ -866,7 +875,7 @@ done:
 		bdb_cache_return_entry_r ( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 
-#ifdef LDAP_CLIENT_UDATE
+#ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 		if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
 			ch_free( csnfeq.f_av_value.bv_val );

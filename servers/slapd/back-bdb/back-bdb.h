@@ -114,6 +114,9 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
+#ifdef LDAP_CLIENT_UPDATE
+	LDAP_LIST_HEAD(pl, slap_op) psearch_list;
+#endif
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

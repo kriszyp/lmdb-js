@@ -42,6 +42,10 @@ bdb_add(
 #endif
 	int		noop = 0;
 
+#ifdef LDAP_CLIENT_UPDATE
+	Operation* ps_list;
+#endif
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0 );
 #else
@@ -458,6 +462,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+
 	if( op->o_noop ) {
 		if (( rc=TXN_ABORT( ltid )) != 0 ) {
 			text = "txn_abort (no-op) failed";
@@ -542,6 +547,14 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
+#ifdef LDAP_CLIENT_UPDATE
+	if ( rc == LDAP_SUCCESS && !noop ) {
+		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
+			bdb_psearch( be, conn, op, ps_list, e, LCUP_PSEARCH_BY_ADD );
+		}
+	}
+#endif /* LDAP_CLIENT_UPDATE */
+
 	if( rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
@@ -557,3 +570,4 @@ done:
 
 	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }
+

@@ -30,9 +30,12 @@ do_abandon(
     Operation	*op
 )
 {
-	ber_int_t		id;
+	ber_int_t	id;
 	Operation	*o;
-	int rc;
+	int		rc;
+#ifdef LDAP_CLIENT_UPDATE
+	int		i;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "conn: %d do_abandon\n", conn->c_connid, 0, 0);
@@ -105,6 +108,16 @@ do_abandon(
 	}
 
 done:
+
+#if LDAP_CLIENT_UPDATE
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( strncmp( backends[i].be_type, "bdb", 3 ) ) continue;
+		if ( bdb_abandon( &backends[i], conn, id ) == LDAP_SUCCESS ) {
+			break;
+		}
+	}
+#endif
+
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 #ifdef NEW_LOGGING

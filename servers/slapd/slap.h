@@ -1567,6 +1567,39 @@ typedef struct slap_paged_state {
 	ID ps_id;
 } PagedResultsState;
 
+
+#ifdef LDAP_CLIENT_UPDATE
+#define LCUP_PSEARCH_BY_ADD 0x01
+#define LCUP_PSEARCH_BY_DELETE 0x02
+#define LCUP_PSEARCH_BY_PREMODIFY 0x03
+#define LCUP_PSEARCH_BY_MODIFY 0x04
+#define LCUP_PSEARCH_BY_SCOPEOUT 0x05
+
+struct lcup_search_spec {
+	struct slap_op  *op;
+	struct berval   *base;
+	struct berval   *nbase;
+	int             scope;
+	int             deref;
+	int             slimit;
+	int             tlimit;
+	Filter          *filter;
+	struct berval   *filterstr;
+	AttributeName   *attrs;
+	int             attrsonly;
+	struct lcup_entry *elist;
+	ldap_pvt_thread_mutex_t elist_mutex;
+	int             entry_count;
+	LDAP_LIST_ENTRY(lcup_search_spec) link;
+};
+
+struct psid_entry {
+	struct lcup_search_spec* ps;
+	LDAP_LIST_ENTRY(psid_entry) link;
+};
+#endif /* LDAP_CLIENT_UPDATE */
+
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -1608,6 +1641,9 @@ typedef struct slap_op {
 #define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
 	ber_int_t o_clientupdate_interval;
 	struct berval o_clientupdate_state;
+	LDAP_LIST_HEAD(lss, lcup_search_spec) psearch_spec;
+	LDAP_LIST_HEAD(pe, psid_entry) premodify_list;
+	LDAP_LIST_ENTRY(slap_op) link;
 #endif /* LDAP_CLIENT_UPDATE */
 
 #ifdef LDAP_CONNECTIONLESS

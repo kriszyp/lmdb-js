@@ -1058,6 +1058,14 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
 	struct berval *addval ));
 
 /*
+ * lcup.c
+ */
+
+extern AttributeName uuid_attr[2];
+
+LDAP_SLAPD_F (int) build_uuid_attr LDAP_P ((void));
+
+/*
  * Other...
  */
 LDAP_SLAPD_V(unsigned) num_subordinates;

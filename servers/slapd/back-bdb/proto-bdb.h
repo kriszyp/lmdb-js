@@ -364,6 +364,40 @@ int bdb_cache_delete_entry(
 );
 void bdb_cache_release_all( Cache *cache );
 
+#ifdef LDAP_CLIENT_UPDATE
+int bdb_abandon(
+	BackendDB       *be,
+	Connection      *conn,
+	ber_int_t       id
+);
+
+int bdb_add_psearch_spec(
+	BackendDB       *be,
+	Connection      *conn,
+	Operation       *op,
+	struct berval   *base,
+	struct berval   *nbase,
+	int             scope,
+	int             deref,
+	int             slimit,
+	int             tlimit,
+	Filter          *filter,
+	struct berval   *fstr,
+	AttributeName   *attrs,
+	int             attrsonly
+);
+
+int bdb_psearch(
+	BackendDB       *be,
+	Connection      *conn,
+	Operation       *op,
+	Operation       *ps_op,
+	Entry           *entry,
+	int             psearch_type
+);
+
+#endif
+
 #ifdef BDB_REUSE_LOCKERS
 
 int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
