@@ -98,7 +98,7 @@ struct berval * UTF8bvnormalize(
 	unsigned flags )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
-	char *out, *s;
+	char *out, *outtmp, *s;
 	unsigned long *ucs, *p, *ucsout;
 
 	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
@@ -227,15 +227,21 @@ struct berval * UTF8bvnormalize(
 				   6 bytes and terminator */
 				if ( outsize - outpos < 7 ) {
 					outsize = ucsoutlen - j + outpos + 6;
-					out = (char *) realloc( out, outsize );
-					if ( out == NULL ) {
+					outtmp = (char *) realloc( out, outsize );
+					if ( outtmp == NULL ) {
+						free( out );
 						free( ucs );
+						free( ucsout );
 						return NULL;
 					}
+					out = outtmp;
 				}
 				outpos += ldap_x_ucs4_to_utf8( ucsout[j], &out[outpos] );
 			}
 		}
+
+		free( ucsout );
+		ucsout = NULL;
 		
 		if ( i == len ) {
 			break;
