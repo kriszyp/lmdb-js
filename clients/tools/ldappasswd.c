@@ -42,7 +42,9 @@ usage(const char *s)
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
+#ifdef LDAP_CONTROL_NOOP
 "             [!]noop\n"
+#endif
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server(s)\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
@@ -91,7 +93,9 @@ main( int argc, char *argv[] )
 	int		version = -1;
 	int		authmethod = -1;
 	int		manageDSAit = 0;
-	int		noop = 0;
+#ifdef LDAP_CONTROL_NOOP
+	int noop=0;
+#endif
 	int		crit;
 	char	*control, *cvalue;
 #ifdef HAVE_CYRUS_SASL
@@ -224,6 +228,7 @@ main( int argc, char *argv[] )
 			free( control );
 			break;
 			
+#ifdef LDAP_CONTROL_NOOP
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
@@ -234,7 +239,7 @@ main( int argc, char *argv[] )
 			noop = 1 + crit;
 			free( control );
 			break;
-
+#endif
 		} else {
 			fprintf( stderr, "Invalid general control name: %s\n", control );
 			usage(prog);
@@ -729,7 +734,11 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if ( manageDSAit || noop ) {
+	if ( manageDSAit
+#ifdef LDAP_CONTROL_NOOP
+		|| noop
+#endif
+	) {
 		int err, i = 0;
 		LDAPControl c1, c2;
 		LDAPControl *ctrls[3];
@@ -743,6 +752,7 @@ main( int argc, char *argv[] )
 			c1.ldctl_iscritical = manageDSAit > 1;
 		}
 
+#ifdef LDAP_CONTROL_NOOP
 		if ( noop ) {
 			ctrls[i++] = &c2;
 			ctrls[i] = NULL;
@@ -752,7 +762,8 @@ main( int argc, char *argv[] )
 			c2.ldctl_value.bv_len = 0;
 			c2.ldctl_iscritical = noop > 1;
 		}
-	
+#endif
+		
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {

@@ -75,7 +75,9 @@ usage( const char *s )
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
+#ifdef LDAP_CONTROL_NOOP
 "             [!]noop\n"
+#endif
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
@@ -186,7 +188,7 @@ main( int argc, char **argv )
 {
 	char		*infile, *filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
-	int			rc, i, first, scope, deref, attrsonly, manageDSAit, noop, crit;
+	int			rc, i, first, scope, deref, attrsonly, manageDSAit, crit;
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP		*ld = NULL;
@@ -195,11 +197,13 @@ main( int argc, char **argv )
 	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control = NULL, *cvalue;
 	char	*pw_file = NULL;
-
+#ifdef LDAP_CONTROL_NOOP
+	int noop=0;
+#endif
 
 	infile = NULL;
 	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
-		attrsonly = manageDSAit = noop = ldif = want_bindpw = 0;
+		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
 
@@ -402,6 +406,7 @@ main( int argc, char **argv )
 			free( control );
 			break;
 			
+#ifdef LDAP_CONTROL_NOOP
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
@@ -412,7 +417,7 @@ main( int argc, char **argv )
 			noop = 1 + crit;
 			free( control );
 			break;
-
+#endif
 		} else {
 			fprintf( stderr, "Invalid general control name: %s\n", control );
 			usage(prog);
@@ -943,11 +948,15 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( manageDSAit || valuesReturnFilter ) {
+	if ( manageDSAit || valuesReturnFilter
+#ifdef LDAP_CONTROL_NOOP
+		|| noop
+#endif
+	) {
 		int err;
 		int i=0;
-		LDAPControl c1,c2;
-		LDAPControl *ctrls[3];
+		LDAPControl c1,c2,c3;
+		LDAPControl *ctrls[4];
 		
 		if ( manageDSAit ) {
 			ctrls[i++]=&c1;
@@ -959,12 +968,24 @@ main( int argc, char **argv )
 			c1.ldctl_iscritical = manageDSAit > 1;
 		}
 
-		if ( valuesReturnFilter ) {
-			ctrls[i++]=&c2;
+#ifdef LDAP_CONTROL_NOOP
+		if ( noop ) {
+			ctrls[i++] = &c2;
 			ctrls[i] = NULL;
 
-			c2.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
-			c2.ldctl_iscritical = valuesReturnFilter > 1;
+			c2.ldctl_oid = LDAP_CONTROL_NOOP;
+			c2.ldctl_value.bv_val = NULL;
+			c2.ldctl_value.bv_len = 0;
+			c2.ldctl_iscritical = noop > 1;
+		}
+#endif
+
+		if ( valuesReturnFilter ) {
+			ctrls[i++]=&c3;
+			ctrls[i] = NULL;
+
+			c3.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
+			c3.ldctl_iscritical = valuesReturnFilter > 1;
 		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -980,7 +1001,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 
-			c2.ldctl_value=(*bvalp);
+			c3.ldctl_value=(*bvalp);
 		}
 
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
@@ -997,7 +1018,7 @@ main( int argc, char **argv )
 			}
 		}
 	}
-
+	
 	if ( verbose ) {
 		fprintf( stderr, "filter%s: %s\nrequesting: ",
 			infile != NULL ? " pattern" : "",
@@ -1036,6 +1057,16 @@ main( int argc, char **argv )
 		if ( manageDSAit ) {
 			printf("\n# with manageDSAit %scontrol",
 				manageDSAit > 1 ? "critical " : "" );
+		}
+#ifdef LDAP_CONTROL_NOOP
+		if ( noop ) {
+			printf("\n# with noop %scontrol",
+				noop > 1 ? "critical " : "" );
+		}
+#endif
+		if ( valuesReturnFilter ) {
+			printf("\n# with valuesReturnFilter %scontrol: %s",
+				valuesReturnFilter > 1 ? "critical " : "", vrFilter );
 		}
 
 		printf( "\n#\n\n" );
