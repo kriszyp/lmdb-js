@@ -215,10 +215,29 @@ typedef struct ldapmodlist {
 /*
  * represents schema information for a database
  */
+typedef int slap_syntax_check_func LDAP_P((struct berval * val));
+
+typedef struct slap_syntax {
+	LDAP_SYNTAX			ssyn_syn;
+	slap_syntax_check_func		*ssyn_check;
+} Syntax;
+#define ssyn_oid			ssyn_syn.syn_oid
+#define ssyn_desc			ssyn_syn.syn_desc
+
+typedef int slap_mr_normalize_func LDAP_P((struct berval * val, struct berval **normalized));
+typedef int slap_mr_compare_func LDAP_P((struct berval * val1, struct berval * val2));
 
 typedef struct slap_matching_rule {
-	int	dummy;
+	LDAP_MATCHING_RULE		smr_mrule;
+	slap_mr_normalize_func		*smr_normalize;
+	slap_mr_compare_func		*smr_compare;
+	Syntax				smr_syntax;
 } MatchingRule;
+#define smr_oid				smr_mrule.mr_oid
+#define smr_names			smr_mrule.mr_names
+#define smr_desc			smr_mrule.mr_desc
+#define smr_obsolete			smr_mrule.mr_obsolete
+#define smr_syntax_oid			smr_mrule.mr_syntax_oid
 
 typedef struct slap_attribute_type {
 	LDAP_ATTRIBUTE_TYPE		sat_atype;
@@ -227,9 +246,7 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_equality;
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
-	/*
-	  Syntax				*sat_syntax;
-	*/
+	Syntax				*sat_syntax;
 	/* The next one is created to help in the transition */
 	int				sat_syntax_compat;
 	struct slap_attribute_type	*sat_next;
