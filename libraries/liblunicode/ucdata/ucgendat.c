@@ -1,4 +1,4 @@
-/* $OpenLDAP$
+/* $OpenLDAP$ */
 /*
  * Copyright 1999 Computing Research Labs, New Mexico State University
  *
