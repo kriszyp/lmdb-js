@@ -15,7 +15,10 @@ void Gtk_LdapTree::show_impl() {
 		if (item->get_subtree() == NULL) {
 			debug("ding!\n");
 			tree = item->getSubtree(item->ld, 1);
-			if (tree != NULL) item->set_subtree(*tree);
+			if (tree != NULL) { 
+				item->set_subtree(*tree);
+			}
+			item->setDnd();
 		}
 	}
 	debug("done\n");

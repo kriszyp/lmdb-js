@@ -387,6 +387,7 @@ Gtk_Tree* Gtk_LdapServer::getSubtree() {
 		tree->append(*treeitem);
 		if (subtree != NULL) treeitem->set_subtree(*subtree);
 		treeitem->show();
+	//	treeitem->setDnd();
 	//	tree->show();
 	}
 //	this->set_subtree(*tree);

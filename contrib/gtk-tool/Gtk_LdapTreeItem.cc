@@ -14,6 +14,21 @@ Gtk_LdapTreeItem::Gtk_LdapTreeItem(char *c, My_Window *w, LDAP *ld) : Gtk_TreeIt
 	this->ld = ld;
 	this->objectClass = NULL;
 	this->getDetails();
+	this->createPopupMenu();
+}
+
+void Gtk_LdapTreeItem::setDnd() {
+	debug("Gtk_LdapTreeItem::setDnd()\n");
+	this->set_events(get_events()|GDK_ALL_EVENTS_MASK);
+	this->drag_dest_set(GTK_DEST_DEFAULT_ALL, target_table, n_targets, static_cast <GdkDragAction> (GDK_ACTION_COPY|GDK_ACTION_MOVE));
+	this->drag_data_received.connect(slot(this, &(Gtk_LdapTreeItem::item_drag_data_received)));
+	this->drag_drop.connect(slot(this,&Gtk_LdapTreeItem::target_drag_drop));
+	this->drag_source_set(static_cast<GdkModifierType>(GDK_BUTTON1_MASK|GDK_BUTTON3_MASK), target_table, n_targets, static_cast<GdkDragAction>(GDK_ACTION_COPY|GDK_ACTION_MOVE));
+	gtk_drag_source_set(GTK_WIDGET(this->gtkobj()), static_cast<GdkModifierType>(GDK_BUTTON1_MASK|GDK_BUTTON3_MASK), target_table, n_targets, static_cast<GdkDragAction>(GDK_ACTION_COPY|GDK_ACTION_MOVE));
+	this->drag_data_get.connect(slot(this, &Gtk_LdapTreeItem::source_drag_data_get));
+	this->drag_data_delete.connect(slot(this,&Gtk_LdapTreeItem::source_drag_data_delete));
+	this->drag_leave.connect(slot(this,&Gtk_LdapTreeItem::target_drag_leave));
+
 }
 
 Gtk_LdapTreeItem::Gtk_LdapTreeItem(GtkTreeItem *t) : Gtk_TreeItem(t) {
@@ -51,6 +66,7 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	debug("%i results\n", entriesCount);
 	if (entriesCount != 0) { 
 		tree = new Gtk_LdapTree();
+	//	this->set_subtree(*tree);
 		tree->set_selection_mode(GTK_SELECTION_BROWSE);
 		tree->set_view_mode(GTK_TREE_VIEW_ITEM);
 		tree->set_view_lines(false);
@@ -62,11 +78,12 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	//	this->par->progress.show();
 		while (entry != NULL) {
 			subtreeitem = new Gtk_LdapTreeItem(ldap_get_dn(this->ld, entry), this->par, this->ld);
-			subtree = subtreeitem->getSubtree(this->ld, counter);
 			debug("inserting %s into %s\n",subtreeitem->rdn,this->rdn);
 			tree->append(*subtreeitem);
+			subtree = subtreeitem->getSubtree(this->ld, counter);
 			subtreeitem->show();
 			if (subtree != NULL) subtreeitem->set_subtree(*subtree);
+		//	subtreeitem->setDnd();
 			debug("done\n");
 			entry = ldap_next_entry(this->ld, entry);
 		//	gfloat pvalue = (i*percent)/100;
@@ -223,6 +240,28 @@ int Gtk_LdapTreeItem::getDetails() {
 	debug("done\n");
 	return 0;
 }
+
+void Gtk_LdapTreeItem::createPopupMenu() {
+	debug("Gtk_LdapTreeItem::createPopupMenu()\n");
+	Gtk_MenuItem *item;
+
+	this->menu = new Gtk_Menu();
+	
+	item = new Gtk_MenuItem("Add");
+	this->menu->add(*item);
+	item = new Gtk_MenuItem("Delete");
+	this->menu->add(*item);
+	item = new Gtk_MenuItem();
+	this->menu->add(*item);
+	item = new Gtk_MenuItem("Cut");
+	this->menu->add(*item);
+	item = new Gtk_MenuItem("Copy");
+	this->menu->add(*item);
+	item = new Gtk_MenuItem("Paste");
+	this->menu->add(*item);
+	this->menu->show_all();
+	this->menu->activate();
+}
 /*
 void Gtk_LdapTreeItem::show_impl() {
 	debug("%s showed\n", this->dn);
@@ -230,11 +269,13 @@ void Gtk_LdapTreeItem::show_impl() {
 //	sig->show(GTK_WIDGET(gtkobj()));
 }
 */
+/*
 void Gtk_LdapTreeItem::select_impl() {
 	debug("%s selected\n", this->dn);
 	this->showDetails();
 	Gtk_TreeItem::select_impl();
 }
+*/
 
 void Gtk_LdapTreeItem::collapse_impl() {
 	debug("%s collapsed\n", this->dn);
@@ -248,3 +289,88 @@ void Gtk_LdapTreeItem::expand_impl() {
 	Gtk_Tree *tree;
 	Gtk_TreeItem::expand_impl();
 }
+
+void Gtk_LdapTreeItem::click() {
+	debug("%s clicked\n", this->dn);
+}
+
+/*
+gint Gtk_LdapTreeItem::button_press_event_impl(GdkEventButton *p0) {
+	debug("Gtk_LdapTreeItem::button_press_event_impl(%i)\n", p0->button);
+	GdkEventButton *bevent = (GdkEventButton *) p0;
+	if (p0->button == 3) gtk_menu_popup(this->menu->gtkobj(), NULL, NULL, NULL, NULL, bevent->button, bevent->time);
+	Gtk_TreeItem::button_press_event_impl(p0);
+//	Gtk_TreeItem::select_impl();
+}
+*/
+
+void Gtk_LdapTreeItem::item_drag_data_received(GdkDragContext *context,
+                                    gint                x,
+                                    gint                y,
+                                    GtkSelectionData   *data,
+                                    guint               info,
+                                    guint               time) {
+	debug("Gtk_LdapTreeItem::item_drag_data_received\n");
+	Gdk_DragContext gdc(context);
+	if ((data->length >= 0) && (data->format == 8)) {
+		cout << "Received \"" << (gchar *)data->data << "\" in label" << endl;
+		Gtk_Widget::drag_finish(gdc, true, false, time);
+		return;
+	}
+
+	Gtk_Widget::drag_finish(gdc , false, false, time);
+}
+
+gboolean Gtk_LdapTreeItem::target_drag_drop(GdkDragContext *context,
+                            gint x, gint y, guint theTime) {
+	debug("Gtk_LdapTreeItem::target_drag_drop\n");
+	cout << "drop" << endl;
+	have_drag = false;
+
+//	pixmap.set(trashcan_closed, trashcan_closed_mask);
+
+	Gdk_DragContext gdc(context);
+	Gdk_Atom *ga = static_cast <GdkAtom *>(context->targets->data);
+	if (context->targets) {
+		this->drag_get_data(gdc, *ga, theTime);
+		return true;
+	}
+
+	return false;
+}
+
+
+void Gtk_LdapTreeItem::source_drag_data_get(GdkDragContext	*context,
+                                 GtkSelectionData *selection_data,
+                                 guint info, guint32 time) {
+	debug("Gtk_LdapTreeItem::source_drag_data_get\n");
+	if (info == TARGET_ROOTWIN) {
+		cout << "I was dropped on the rootwin" << endl;
+	}
+	else {
+		if ( info == TARGET_URL ) {
+			gtk_selection_data_set(selection_data,
+				selection_data->target, 8,
+				reinterpret_cast < const unsigned char * >
+				("file:///home/otaylor/images/weave.png"), 37);
+		}
+		else {
+			gtk_selection_data_set(selection_data,
+				selection_data->target, 8,
+				reinterpret_cast <const unsigned char *>
+				("I'm Data!"), 9);
+		}
+	}
+}
+
+void Gtk_LdapTreeItem::source_drag_data_delete(GdkDragContext *context) {
+	debug("Gtk_LdapTreeItem::source_drag_data_delete\n");
+	debug("Delete the data!\n");
+}
+
+void Gtk_LdapTreeItem::target_drag_leave(GdkDragContext *context, guint time) {
+  debug("Gtk_LdapTreeItem::target_drag_leave\n");
+  this->have_drag = false;
+//  pixmap.set(trashcan_closed, trashcan_closed_mask);
+}
+

@@ -8,6 +8,9 @@
 
 int debug_level = 0;
 
+target_drag_leave(GdkDragContext *context, guint time) {
+}
+
 int main(int argc, char **argv) {
 	My_Window *window;
 	Gtk_LdapItem *treeresult;
@@ -68,6 +71,7 @@ int main(int argc, char **argv) {
 
 	if (hosts!=NULL) {
 		tree = new Gtk_Tree();
+		window->viewport->add(*tree);
 		for (int f=0; f<g_list_length(hosts); f++) {
 			host = strtok((char*)g_list_nth(hosts, f)->data, ":");
 			prt = strtok(NULL, "\0");
@@ -79,7 +83,7 @@ int main(int argc, char **argv) {
 			server->set_subtree(*subtree);
 			server->show();
 		}
-		window->viewport->add(*tree);
+		//window->viewport->add(*tree);
 //		tree->show();
 	}
 
@@ -91,12 +95,17 @@ int main(int argc, char **argv) {
 		Gtk_LdapTree::ItemList &items = tree->tree();
 		Gtk_LdapTree::ItemList::iterator i = items.begin();
 		server = (Gtk_LdapServer *)(* i);
-		server->select_impl();
+	//	server->select_impl();
 	}
 
 	window->set_title("gtk-tool");
 	window->activate();
 	window->set_usize(600, 500);
+
+	window->set_events(window->get_events()|GDK_ALL_EVENTS_MASK);
+	window->drag_dest_set(GTK_DEST_DEFAULT_ALL, target_table, n_targets, static_cast <GdkDragAction> (GDK_ACTION_COPY|GDK_ACTION_MOVE));
+	window->drag_source_set(static_cast<GdkModifierType>(GDK_BUTTON1_MASK|GDK_BUTTON3_MASK), target_table, n_targets, static_cast<GdkDragAction>(GDK_ACTION_COPY|GDK_ACTION_MOVE));
+        window->drag_leave.connect(window->slot(window,target_drag_leave));
 	window->show_all();
 
 	m.run();
