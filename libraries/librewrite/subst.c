@@ -55,11 +55,11 @@ rewrite_subst_compile(
 		/*
 		 * Keep only single escapes '%'
 		 */
-		if ( p[ 0 ] != REWRITE_SUBMATCH_ESCAPE ) {
+		if (  !IS_REWRITE_SUBMATCH_ESCAPE( p[ 0 ] ) ) {
 			continue;
 		} 
 
-		if ( p[ 1 ] == REWRITE_SUBMATCH_ESCAPE ) {
+		if (  IS_REWRITE_SUBMATCH_ESCAPE( p[ 1 ] ) ) {
 			/* Pull &p[1] over p, including the trailing '\0' */
 			AC_MEMCPY((char *)p, &p[ 1 ], strlen( p ) );
 			continue;

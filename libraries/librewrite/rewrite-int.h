@@ -55,7 +55,10 @@
  */
 /* the '\' conflicts with slapd.conf parsing */
 /* #define REWRITE_SUBMATCH_ESCAPE			'\\' */
-#define REWRITE_SUBMATCH_ESCAPE                 '%'
+#define REWRITE_SUBMATCH_ESCAPE_ORIG		'%'
+#define REWRITE_SUBMATCH_ESCAPE			'$'
+#define IS_REWRITE_SUBMATCH_ESCAPE(c) \
+	((c) == REWRITE_SUBMATCH_ESCAPE || (c) == REWRITE_SUBMATCH_ESCAPE_ORIG)
 
 /*
  * REGEX flags
