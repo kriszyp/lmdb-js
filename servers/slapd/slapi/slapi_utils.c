@@ -2512,6 +2512,9 @@ int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 	int rc;
 	int ret;
 
+	if ( a ->a_vals == NULL ) {
+		return -1;
+	}
 	mr = a->a_desc->ad_type->sat_equality;
 	for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
 		rc = value_match( &ret, a->a_desc, mr,
@@ -2523,7 +2526,7 @@ int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 			return 0;
 		}
 	}
-#endif
+#endif /* LDAP_SLAPI */
 	return -1;
 }
 
