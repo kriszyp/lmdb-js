@@ -45,8 +45,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    editor=`cygpath -w $(EDITOR) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
-	    finger=`cygpath -w $(FINGER) | \
-		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    sendmail=`cygpath -w $(SENDMAIL) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	else \
@@ -57,7 +55,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 	    libexecdir=$(libexecdir); \
 	    localstatedir=$(localstatedir); \
 	    editor=$(EDITOR); \
-	    finger=$(FINGER); \
 	    sendmail=$(SENDMAIL); \
 	fi; \
 	$(SED) \
@@ -68,7 +65,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 			-e "s;%LIBEXECDIR%;$$libexecdir;" \
 			-e "s;%RUNDIR%;$$localstatedir;" \
 			-e "s;%EDITOR%;$$editor;" \
-			-e "s;%FINGER%;$$finger;" \
 			-e "s;%SENDMAIL%;$$sendmail;" \
 			 $(LDAP_CONFIG) >> $@; \
 	$(CHMOD) 444 $@

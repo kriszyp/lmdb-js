@@ -56,9 +56,6 @@
 #ifndef LDAP_EDITOR
 #define LDAP_EDITOR			"%EDITOR%"
 #endif
-#ifndef LDAP_FINGER
-#define LDAP_FINGER			"%FINGER%"
-#endif
 #ifndef LDAP_SENDMAIL
 #define LDAP_SENDMAIL		"%SENDMAIL%"
 #endif
