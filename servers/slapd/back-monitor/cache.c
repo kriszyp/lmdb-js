@@ -74,13 +74,18 @@ monitor_cache_dup(
 	struct monitorcache *cc1 = ( struct monitorcache * )c1;
 	struct monitorcache *cc2 = ( struct monitorcache * )c2;
 
-	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
-	int			cmp;
 	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	cmp = d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
+#if 0
+	int 			cmp = monitor_cache_cmp( c1, c2 );
+#else
+	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
+	int 			cmp = 
+		d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
+#endif
+
 	return cmp == 0 ? -1 : 0;
 }
 
@@ -203,16 +208,19 @@ monitor_cache_dn2entry(
 	}
 
 	/* try with parent/ancestors */
-	if ( ndn && ndn->bv_len ) {
+	if ( ndn->bv_len ) {
 		p_ndn.bv_val = dn_parent( NULL, ndn->bv_val );
 	}
+
 	if ( p_ndn.bv_val == NULL ) {
 		p_ndn.bv_val = "";
 		p_ndn.bv_len = 0;
+		
 	} else {
 		p_ndn.bv_len = ndn->bv_len 
 			- ( ber_len_t ) ( p_ndn.bv_val - ndn->bv_val );
 	}
+
 	rc = monitor_cache_dn2entry( mi, &p_ndn, &e_parent, matched );
 	if ( rc || e_parent == NULL) {
 		return( -1 );
@@ -253,15 +261,26 @@ monitor_cache_release(
 	mp = ( struct monitorentrypriv * )e->e_private;
 
 	if ( mp->mp_flags & MONITOR_F_VOLATILE ) {
+		struct monitorcache	*mc, tmp_mc;
+
 		/* volatile entries do not return to cache */
+		ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
+		tmp_mc.mc_ndn = &e->e_nname;
+		mc = avl_delete( &mi->mi_cache,
+				( caddr_t )&tmp_mc, monitor_cache_cmp );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
+		ch_free( mc );
+		
 		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
 		ch_free( mp );
 		e->e_private = NULL;
 		entry_free( e );
+
 		return( 0 );
 	}
 	
 	ldap_pvt_thread_mutex_unlock( &mp->mp_mutex );
+
 	return( 0 );
 }
 

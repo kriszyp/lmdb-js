@@ -148,26 +148,8 @@ monitor_subsys_log_modify(
 		Modification	*mod = &ml->sml_mod;
 
 		/*
-		 * Operational attributes
+		 * accept all operational attributes
 		 */
-#if 0
-		if ( mod->sm_desc == slap_schema.si_ad_modifyTimestamp 
-			|| mod->sm_desc == slap_schema.si_ad_modifiersName ) {
-			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues );
-			if ( rc != 0 ) {
-				rc = LDAP_OTHER;
-				break;
-			}
-			continue;
-
-		/*
-		 * unhandled operational attributes
-		 */
-		} else if ( is_at_operational( mod->sm_desc->ad_type ) ) {
-			continue;
-
-#else
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
 			rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues );
@@ -177,7 +159,6 @@ monitor_subsys_log_modify(
 			}
 			continue;
 
-#endif
 		/*
 		 * only the monitor description attribute can be modified
 		 */
@@ -234,7 +215,7 @@ monitor_subsys_log_modify(
 
 		ldap_syslog = newlevel;
 
-#if 0
+#if 0	/* debug rather than log */
 		slap_debug = newlevel;
 		lutil_set_debug_level( "slapd", slap_debug );
 		ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
