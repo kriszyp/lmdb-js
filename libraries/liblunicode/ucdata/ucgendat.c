@@ -855,8 +855,17 @@ read_cdata(FILE *in)
          * 3. D800-DFFF Surrogates.
          * 4. E000-F8FF Private Use Area.
          * 5. F900-FA2D Han compatibility.
+	 * ...Plus additional ranges in newer Unicode versions...
          */
         switch (code) {
+	  case 0x3400:
+	    /* CJK Ideograph Extension A */
+            add_range(0x3400, 0x4db5, "Lo", "L");
+
+            add_range(0x3400, 0x4db5, "Cp", 0);
+
+	    skip = 1;
+	    break;
           case 0x4e00:
             /*
              * The Han ideographs.
@@ -910,6 +919,26 @@ read_cdata(FILE *in)
             add_range(0xf900, 0xfaff, "Cp", 0);
 
             skip = 1;
+	    break;
+	  case 0x20000:
+	    /* CJK Ideograph Extension B */
+            add_range(0x20000, 0x2a6d6, "Lo", "L");
+
+            add_range(0x20000, 0x2a6d6, "Cp", 0);
+
+	    skip = 1;
+	    break;
+	  case 0xf0000:
+	    /* Plane 15 private use */
+	    add_range(0xf0000, 0xffffd, "Co", "L");
+	    skip = 1;
+	    break;
+
+	  case 0x100000:
+	    /* Plane 16 private use */
+	    add_range(0x100000, 0x10fffd, "Co", "L");
+	    skip = 1;
+	    break;
         }
 
         if (skip)
