@@ -160,7 +160,7 @@ parse_acl(
 
 					alist = str2charray( right, "," );
 					charray_merge( &a->acl_attrs, alist );
-					free( alist );
+					charray_free( alist );
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
