@@ -383,6 +383,10 @@ struct sockaddr_in;
 struct slapd_args {
 	struct sockaddr_in *addr;
 	int tcps;
+#ifdef HAVE_TLS
+	struct sockaddr_in *tls_addr;
+	int tls_tcps;
+#endif
 };
 
 extern int	slapd_daemon LDAP_P((struct slapd_args *args));
