@@ -598,7 +598,7 @@ search_candidates(
 	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
 		? SLAPD_FILTER_DN_SUBTREE
 		: SLAPD_FILTER_DN_ONE;
-	fand.f_dn = e->e_ndn;
+	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
 	candidates = filter_candidates( be, &f );

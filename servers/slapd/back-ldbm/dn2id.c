@@ -208,7 +208,7 @@ dn2id(
 int
 dn2idl(
     Backend	*be,
-    const char	*dn,
+    struct berval	*dn,
     int		prefix,
     ID_BLOCK    **idlp
 )
@@ -218,15 +218,15 @@ dn2idl(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "dn2idl: \"%c%s\"\n", prefix, dn ));
+		   "dn2idl: \"%c%s\"\n", prefix, dn->bv_val ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn->bv_val, 0 );
 #endif
 
 	assert( idlp != NULL );
 	*idlp = NULL;
 
-	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn) ) {
+	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn->bv_val) ) {
 		*idlp = ch_malloc( sizeof(ID) );
 		**idlp = ID_BLOCK_ALLIDS_VALUE;
 		return 0;
@@ -247,9 +247,9 @@ dn2idl(
 
 	ldbm_datum_init( key );
 
-	key.dsize = strlen( dn ) + 2;
+	key.dsize = dn->bv_len + 2;
 	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", prefix, dn );
+	sprintf( key.dptr, "%c%s", prefix, dn->bv_val );
 
 	*idlp = idl_fetch( be, db, key );
 

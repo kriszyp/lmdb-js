@@ -565,7 +565,7 @@ typedef struct slap_filter {
 		ber_int_t f_un_result;
 
 		/* DN */
-		char *f_un_dn;
+		struct berval *f_un_dn;
 
 		/* present */
 		AttributeDescription *f_un_desc;
