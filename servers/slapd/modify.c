@@ -316,8 +316,15 @@ do_modify(
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
 				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
 				    op->o_connid, op->o_opid, abuf, 0, 0 );
-	    			len = 0;
+
+	    		len = 0;
 				ptr = abuf;
+
+				if( 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
+					Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+						op->o_connid, op->o_opid, tmp->sml_type.bv_val, 0, 0 );
+					continue;
+				}
 			}
 			if (len) {
 				*ptr++ = ' ';
