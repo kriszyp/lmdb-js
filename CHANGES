@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.3 Release
+	Fixed slapd access to dn="" bug (ITS#1921)
 	Fixed slapd structuralObjectClass lastmod bug (ITS#1904)
 	Fixed slapd krbName bug (ITS#1913)
 	Fixed slapd schema error alignment bug
