@@ -366,6 +366,10 @@ int slap_modlist2mods(
 		rc = slap_str2ad( ml->ml_type, &mod->sml_desc, text );
 
 		if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "modlist2mods: Attribute %s is undefined (%s)\n", ml->ml_type, text ));
+#endif
 			slap_mods_free( mod );
 			return rc;
 		}
@@ -378,6 +382,10 @@ int slap_modlist2mods(
 			/* attribute requires binary transfer */
 			slap_mods_free( mod );
 			*text = "attribute requires ;binary transfer";
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "modlist2mods: Attribute %s %s\n", ml->ml_type, text ));
+#endif
 			return LDAP_UNDEFINED_TYPE;
 		}
 
@@ -387,6 +395,10 @@ int slap_modlist2mods(
 			/* attribute requires binary transfer */
 			slap_mods_free( mod );
 			*text = "attribute disallows ;binary transfer";
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "modlist2mods: Attribute %s %s\n", ml->ml_type, text ));
+#endif
 			return LDAP_UNDEFINED_TYPE;
 		}
 
@@ -394,6 +406,10 @@ int slap_modlist2mods(
 			/* user modification disallowed */
 			slap_mods_free( mod );
 			*text = "no user modification allowed";
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "modlist2mods: Attribute %s %s\n", ml->ml_type, text ));
+#endif
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
@@ -408,8 +424,8 @@ int slap_modlist2mods(
 			if( !validate ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					   "modlist2mods: no validator for syntax %s\n",
-					   ad->ad_type->sat_syntax->ssyn_oid ));
+					   "modlist2mods: Attribute %s, no validator for syntax %s\n",
+					   ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"modlist2mods: no validator for syntax %s\n",
@@ -430,6 +446,11 @@ int slap_modlist2mods(
 				if( rc != 0 ) {
 					slap_mods_free( mod );
 					*text = "value contains invalid data";
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+						   "modlist2mods: value for attribute %s contains invalid data\n",
+						   ml->ml_type ));
+#endif
 					return LDAP_INVALID_SYNTAX;
 				}
 			}
