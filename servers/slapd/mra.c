@@ -38,7 +38,7 @@ get_mra(
 	ber_len_t length;
 	struct berval type = { 0, NULL };
 	struct berval value = { 0, NULL };
-	struct berval tmp = { 0, NULL };
+	struct berval rule_text = { 0, NULL };
 	MatchingRuleAssertion ma;
 
 	memset( &ma, 0, sizeof ma);
@@ -58,7 +58,7 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rtag = ber_scanf( ber, "m", &tmp );
+		rtag = ber_scanf( ber, "m", &rule_text );
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
@@ -70,7 +70,6 @@ get_mra(
 			*text = "Error parsing matching rule in matching rule assertion";
 			return SLAPD_DISCONNECT;
 		}
-		ber_dupbv( &ma.ma_rule_text, &tmp );
 
 		rtag = ber_scanf( ber, "t", &tag );
 		if( rtag == LBER_ERROR ) {
@@ -166,8 +165,8 @@ get_mra(
 		}
 	}
 
-	if( ma.ma_rule_text.bv_val != NULL ) {
-		ma.ma_rule = mr_bvfind( &ma.ma_rule_text );
+	if( rule_text.bv_val != NULL ) {
+		ma.ma_rule = mr_bvfind( &rule_text );
 		if( ma.ma_rule == NULL ) {
 			*text = "matching rule not recognized";
 			return LDAP_INAPPROPRIATE_MATCHING;
@@ -234,9 +233,17 @@ get_mra(
 		return rc;
 	}
 
-	*mra = ch_malloc( sizeof ma );
+	length = sizeof(ma);
+	/* Append rule_text to end of struct */
+	if (rule_text.bv_val) length += rule_text.bv_len + 1;
+	*mra = ch_malloc( length );
 	**mra = ma;
+	if (rule_text.bv_val) {
+		(*mra)->ma_rule_text.bv_len = rule_text.bv_len;
+		(*mra)->ma_rule_text.bv_val = (char *)(*mra+1);
+		AC_MEMCPY((*mra)->ma_rule_text.bv_val, rule_text.bv_val,
+			rule_text.bv_len+1);
+	}
 
 	return LDAP_SUCCESS;
 }
-
