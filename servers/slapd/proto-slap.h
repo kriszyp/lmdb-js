@@ -1071,6 +1071,8 @@ LDAP_SLAPD_F (int) slap_passwd_parse(
 	struct berval		*newpass,
 	const char		**text );
 
+LDAP_SLAPD_F (void) slap_passwd_init (void);
+
 /*
  * phonetic.c
  */
@@ -1463,9 +1465,6 @@ LDAP_SLAPD_V (int)			connection_pool_max;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
-#endif
 #ifndef HAVE_GMTIME_R
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 #endif

@@ -110,9 +110,12 @@ lutil_authpasswd_hash LDAP_P((
 	struct berval **salt,	/* salt to store */
 	const char *method ));
 
-#if defined( SLAPD_SPASSWD ) && defined( HAVE_CYRUS_SASL )
-	/* cheat to avoid pulling in <sasl.h> */
-LDAP_LUTIL_V( struct sasl_conn * ) lutil_passwd_sasl_conn;
+#ifdef SLAPD_CRYPT
+typedef int (lutil_cryptfunc) LDAP_P((
+	const char *key,
+	const char *salt,
+	char **hash ));
+LDAP_LUTIL_V (lutil_cryptfunc *) lutil_cryptptr;
 #endif
 
 LDAP_LUTIL_F( int )

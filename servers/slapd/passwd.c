@@ -23,6 +23,10 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#ifdef SLAPD_CRYPT
+#include <ac/crypt.h>
+#endif
+
 #include "slap.h"
 
 #include <lber_pvt.h>
@@ -415,37 +419,29 @@ slap_passwd_check(
 	struct berval		*bv;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 
-	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		int	rc;
+#ifdef SLAPD_SPASSWD
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
+		op->o_conn->c_sasl_authctx, NULL );
+#endif
 
+	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 		/* if e is provided, check access */
 		if ( e && access_allowed( op, e, a->a_desc, bv,
 					ACL_AUTH, &acl_state ) == 0 )
 		{
 			continue;
 		}
-
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-		ldap_pvt_thread_mutex_lock( &passwd_mutex );
-#ifdef SLAPD_SPASSWD
-		lutil_passwd_sasl_conn = op->o_conn->c_sasl_authctx;
-#endif
-#endif
-	
-		rc = lutil_passwd( bv, cred, NULL, text );
-
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-#ifdef SLAPD_SPASSWD
-		lutil_passwd_sasl_conn = NULL;
-#endif
-		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
-#endif
-
-		if ( !rc ) {
+		
+		if ( !lutil_passwd( bv, cred, NULL, text ) ) {
 			result = 0;
 			break;
 		}
 	}
+
+#ifdef SLAPD_SPASSWD
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
+		NULL, NULL );
+#endif
 
 	return result;
 }
@@ -476,16 +472,7 @@ slap_passwd_hash_type(
 
 	assert( hash );
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_lock( &passwd_mutex );
-#endif
-
 	lutil_passwd_hash( cred , hash, new, text );
-	
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
-#endif
-
 }
 void
 slap_passwd_hash(
@@ -503,3 +490,40 @@ slap_passwd_hash(
 
 	slap_passwd_hash_type( cred, new, hash, text );
 }
+
+#ifdef SLAPD_CRYPT
+static ldap_pvt_thread_mutex_t passwd_mutex;
+static lutil_cryptfunc slapd_crypt;
+
+static int slapd_crypt( const char *key, const char *salt, char **hash )
+{
+	char *cr;
+	int rc;
+
+	ldap_pvt_thread_mutex_lock( &passwd_mutex );
+
+	cr = crypt( key, salt );
+	if ( cr == NULL || cr[0] == '\0' ) {
+		/* salt must have been invalid */
+		rc = LUTIL_PASSWD_ERR;
+	} else {
+		if ( hash ) {
+			*hash = ber_strdup( cr );
+			rc = LUTIL_PASSWD_OK;
+		}
+		rc = strcmp( salt, cr ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+	return rc;
+}
+#endif /* SLAPD_CRYPT */
+
+void slap_passwd_init()
+{
+#ifdef SLAPD_CRYPT
+	ldap_pvt_thread_mutex_init( &passwd_mutex );
+	lutil_cryptptr = slapd_crypt;
+#endif
+}
+

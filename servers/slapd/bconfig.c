@@ -3147,6 +3147,29 @@ static struct {
 	{ NULL, NULL, NULL }
 };
 
+/* Notes:
+ *   add / delete: all types that may be added or deleted must use an
+ * X-ORDERED attributeType for their RDN. Adding and deleting entries
+ * should automatically renumber the index of any siblings as needed,
+ * so that no gaps in the numbering sequence exist after the add/delete
+ * is completed.
+ *   What can be added:
+ *     schema objects
+ *     backend objects for backend-specific config directives
+ *     database objects
+ *     overlay objects
+ *
+ *   delete: probably no support this time around.
+ *
+ *   modrdn: generally not done. Will be invoked automatically by add/
+ * delete to update numbering sequence. Perform as an explicit operation
+ * so that the renumbering effect may be replicated. Subtree rename must
+ * be supported, since renumbering a database will affect all its child
+ * overlays.
+ *
+ *  modify: must be fully supported. 
+ */
+
 int
 config_back_initialize( BackendInfo *bi )
 {
