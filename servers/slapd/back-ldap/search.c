@@ -48,8 +48,9 @@
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 
-static int ldap_send_entry( Backend *be, Operation *op, Connection *conn,
-                             LDAPMessage *e, AttributeName *attrs, int attrsonly );
+#include "lutil.h"
+
+static struct berval dummy = { 0, NULL };
 
 int
 ldap_back_search(
@@ -244,10 +245,26 @@ fail:;
 			ldap_pvt_thread_yield();
 
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
+			Entry ent;
+			struct berval bdn;
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_send_entry(be, op, conn, e, attrs, attrsonly) 
-					== LDAP_SUCCESS ) {
+			if ( ldap_build_entry(be, conn, e, &ent, &bdn, 1) == LDAP_SUCCESS ) {
+				Attribute *a;
 				count++;
+				send_search_entry( be, conn, op, &ent, attrs,
+					 attrsonly, NULL );
+				while (ent.e_attrs) {
+					a = ent.e_attrs;
+					ent.e_attrs = a->a_next;
+					if (a->a_vals != &dummy)
+						ber_bvarray_free(a->a_vals);
+					ch_free(a);
+				}
+				
+				if ( ent.e_dn && ( ent.e_dn != bdn.bv_val ) )
+					free( ent.e_dn );
+				if ( ent.e_ndn )
+					free( ent.e_ndn );
 			}
 			ldap_msgfree(res);
 
@@ -381,26 +398,24 @@ finish:;
 	return rc;
 }
 
-static int
-ldap_send_entry(
+int
+ldap_build_entry(
 	Backend *be,
-	Operation *op,
 	Connection *conn,
 	LDAPMessage *e,
-	AttributeName *attrs,
-	int attrsonly
+	Entry *ent,
+	struct berval *bdn,
+	int private
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;
 	struct berval a, mapped;
-	Entry ent;
 	BerElement ber = *e->lm_ber;
 	Attribute *attr, **attrp;
-	struct berval dummy = { 0, NULL };
-	struct berval *bv, bdn;
+	struct berval *bv;
 	const char *text;
 
-	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
 	}
 #ifdef ENABLE_REWRITE
@@ -409,20 +424,20 @@ ldap_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->rwinfo, "searchResult",
-				bdn.bv_val, conn, &ent.e_name.bv_val ) ) {
+				bdn->bv_val, conn, &ent->e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( ent.e_name.bv_val == NULL ) {
-			ent.e_name = bdn;
+		if ( ent->e_name.bv_val == NULL ) {
+			ent->e_name = *bdn;
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDAP, DETAIL1, 
 				"[rw] searchResult: \"%s\"" " -> \"%s\"\n", 
-				bdn.bv_val, ent.e_dn, 0 );
+				bdn->bv_val, ent->e_dn, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
- 					" -> \"%s\"\n%s", bdn.bv_val, ent.e_dn, "" );
+ 					" -> \"%s\"\n%s", bdn->bv_val, ent->e_dn, "" );
 #endif /* !NEW_LOGGING */
-			ent.e_name.bv_len = strlen( ent.e_name.bv_val );
+			ent->e_name.bv_len = strlen( ent->e_name.bv_val );
 		}
 		break;
 		
@@ -431,7 +446,7 @@ ldap_send_entry(
 		return LDAP_OTHER;
 	}
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &bdn, &ent.e_name, 0, 0 );
+	ldap_back_dn_massage( li, bdn, &ent->e_name, 0, 0 );
 #endif /* !ENABLE_REWRITE */
 
 	/*
@@ -441,14 +456,14 @@ ldap_send_entry(
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize2?
 	 */
-	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
+	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	
-	ent.e_id = 0;
-	ent.e_attrs = 0;
-	ent.e_private = 0;
-	attrp = &ent.e_attrs;
+	ent->e_id = 0;
+	ent->e_attrs = 0;
+	ent->e_private = 0;
+	attrp = &ent->e_attrs;
 
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, BACKLDAP_REMAP);
@@ -488,8 +503,13 @@ ldap_send_entry(
 			 * Note: attr->a_vals can be null when using
 			 * values result filter
 			 */
-			attr->a_vals = &dummy;
-
+			if (private) {
+				attr->a_vals = &dummy;
+			} else {
+				attr->a_vals = ch_malloc(sizeof(struct berval));
+				attr->a_vals->bv_val = NULL;
+				attr->a_vals->bv_len = 0;
+			}
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int		last;
@@ -602,19 +622,94 @@ next_attr:;
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
-	send_search_entry( be, conn, op, &ent, attrs, attrsonly, NULL );
-	while (ent.e_attrs) {
-		attr = ent.e_attrs;
-		ent.e_attrs = attr->a_next;
-		if (attr->a_vals != &dummy)
-			ber_bvarray_free(attr->a_vals);
-		ch_free(attr);
-	}
-	
-	if ( ent.e_dn && ( ent.e_dn != bdn.bv_val ) )
-		free( ent.e_dn );
-	if ( ent.e_ndn )
-		free( ent.e_ndn );
-
+	/* make sure it's free'able */
+	if (!private && ent->e_name.bv_val == bdn->bv_val)
+		ber_dupbv( &ent->e_name, bdn );
 	return LDAP_SUCCESS;
 }
+
+/* return 0 IFF we can retrieve the entry with ndn
+ */
+int
+ldap_back_entry_get(
+	Backend	*be,
+	Connection *conn,
+	Operation *op,
+	struct berval	*ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent
+)
+{
+	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
+	struct ldapconn *lc;
+	int rc = 1, is_oc;
+	struct berval mapped = { 0, NULL }, bdn;
+	LDAPMessage	*result = NULL, *e = NULL;
+	char *gattr[3];
+	char *filter;
+
+	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
+	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+		return 1;
+	}
+
+	/* Tell getconn this is a privileged op */
+	is_oc = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
+	lc = ldap_back_getconn(li, conn, op);
+	if ( !lc || !ldap_back_dobind(li, lc, NULL, op) ) {
+		op->o_do_not_cache = is_oc;
+		return 1;
+	}
+	op->o_do_not_cache = is_oc;
+
+	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
+	if (oc && !is_oc) {
+		gattr[0] = "objectclass";
+		gattr[1] = mapped.bv_val;
+		gattr[2] = NULL;
+	} else {
+		gattr[0] = mapped.bv_val;
+		gattr[1] = NULL;
+	}
+	if (oc) {
+		char *ptr;
+		filter = ch_malloc(sizeof("(objectclass=)" + oc->soc_cname.bv_len));
+		ptr = lutil_strcopy(filter, "(objectclass=");
+		ptr = lutil_strcopy(ptr, oc->soc_cname.bv_val);
+		*ptr++ = ')';
+		*ptr++ = '\0';
+	} else {
+		filter = "(objectclass=*)";
+	}
+		
+	if (ldap_search_ext_s(lc->ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
+				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
+				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)
+	{
+		goto cleanup;
+	}
+
+	if ((e = ldap_first_entry(lc->ld, result)) == NULL) {
+		goto cleanup;
+	}
+
+	*ent = ch_malloc(sizeof(Entry));
+
+	rc = ldap_build_entry(be, conn, e, *ent, &bdn, 0);
+
+	if (rc != LDAP_SUCCESS) {
+		ch_free(*ent);
+		*ent = NULL;
+	}
+
+cleanup:
+	if (result) {
+		ldap_msgfree(result);
+	}
+
+	return(rc);
+}
+

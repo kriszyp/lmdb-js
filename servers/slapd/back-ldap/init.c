@@ -89,9 +89,8 @@ ldap_back_initialize(
 
 	bi->bi_extended = ldap_back_extended;
 
-	bi->bi_acl_group = ldap_back_group;
-	bi->bi_acl_attribute = ldap_back_attribute;
 	bi->bi_chk_referrals = 0;
+	bi->bi_entry_get_rw = ldap_back_entry_get;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;

@@ -88,9 +88,6 @@ extern BI_op_add	meta_back_add;
 extern BI_op_delete	meta_back_delete;
 extern BI_op_abandon	meta_back_abandon;
 
-extern BI_acl_group	meta_back_group;
-extern BI_acl_attribute	meta_back_attribute;
-
 LDAP_END_DECL
 
 #endif /* META_EXTERNAL_H */

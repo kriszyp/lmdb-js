@@ -1080,6 +1080,31 @@ int backend_check_referrals(
 	return rc;
 }
 
+int
+be_entry_get_rw(
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **e )
+{
+	be = select_backend( ndn, 0, 0 );
+
+	if (be == NULL) {
+			return LDAP_NO_SUCH_OBJECT;
+	}
+
+	if ( be->be_fetch ) {
+		return be->be_fetch( be, conn, op, ndn,
+			oc, at, rw, e );
+	}
+
+	return LDAP_UNWILLING_TO_PERFORM;
+}
+
 int 
 backend_group(
 	Backend	*be,
@@ -1092,19 +1117,12 @@ backend_group(
 	AttributeDescription *group_at
 )
 {
+	Entry *e;
+	Attribute *a;
+	int i, j, rc;
 	GroupAssertion *g;
 
 	if ( op->o_abandon ) return SLAPD_ABANDON;
-
-	if ( !dn_match( &target->e_nname, gr_ndn ) ) {
-		/* we won't attempt to send it to a different backend */
-		
-		be = select_backend( gr_ndn, 0, 0 );
-
-		if (be == NULL) {
-			return LDAP_NO_SUCH_OBJECT;
-		}
-	} 
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -1122,29 +1140,48 @@ backend_group(
 		return g->ga_res;
 	}
 
-	if( be->be_group ) {
-		int res = be->be_group( be, conn, op,
-			target, gr_ndn, op_ndn,
-			group_oc, group_at );
-		
-		if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
-			g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
-			g->ga_be = be;
-			g->ga_oc = group_oc;
-			g->ga_at = group_at;
-			g->ga_res = res;
-			g->ga_len = gr_ndn->bv_len;
-			strcpy(g->ga_ndn, gr_ndn->bv_val);
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			g->ga_next = conn->c_groups;
-			conn->c_groups = g;
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	if ( target && dn_match( &target->e_nname, gr_ndn ) ) {
+		e = target;
+	} else {
+		rc = be_entry_get_rw(be, conn, op, gr_ndn, group_oc, group_at,
+			0, &e );
+	}
+	if ( e ) {
+		a = attr_find( e->e_attrs, group_at );
+		if ( a ) {
+#ifdef SLAP_NVALUES
+			rc = value_find_ex( group_at,
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+				a->a_nvals, op_ndn );
+#else
+			rc = value_find_ex( group_at, 0, a->a_vals, op_ndn );
+#endif
+		} else {
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
-
-		return res;
+		if (e != target ) {
+			be_entry_release_r( be, conn, op, e );
+		}
+	} else {
+		rc = LDAP_NO_SUCH_OBJECT;
 	}
 
-	return LDAP_UNWILLING_TO_PERFORM;
+	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
+		g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
+		g->ga_be = be;
+		g->ga_oc = group_oc;
+		g->ga_at = group_at;
+		g->ga_res = rc;
+		g->ga_len = gr_ndn->bv_len;
+		strcpy(g->ga_ndn, gr_ndn->bv_val);
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		g->ga_next = conn->c_groups;
+		conn->c_groups = g;
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	}
+
+	return rc;
 }
 
 int 
@@ -1158,22 +1195,71 @@ backend_attribute(
 	BerVarray *vals
 )
 {
-	if ( target == NULL || !dn_match( &target->e_nname, edn ) ) {
-		/* we won't attempt to send it to a different backend */
-		
-		be = select_backend( edn, 0, 0 );
+	Entry *e;
+	Attribute *a;
+	int i, j, rc;
+	AccessControlState acl_state = ACL_STATE_INIT;
 
-		if (be == NULL) {
-			return LDAP_NO_SUCH_OBJECT;
-		}
+	if ( target && dn_match( &target->e_nname, edn ) ) {
+		e = target;
+	} else {
+		rc = be_entry_get_rw(be, conn, op, edn, NULL, entry_at,
+			0, &e );
+		if ( rc != LDAP_SUCCESS ) return rc;
 	} 
 
-	if( be->be_attribute ) {
-		return be->be_attribute( be, conn, op, target, edn,
-			entry_at, vals );
+	if ( e ) {
+		a = attr_find( e->e_attrs, entry_at );
+		if ( a ) {
+			BerVarray v;
+
+			if ( conn && op && access_allowed( be,
+				conn, op, e, entry_at, NULL, ACL_AUTH,
+				&acl_state ) == 0 ) {
+				rc = LDAP_INSUFFICIENT_ACCESS;
+				goto freeit;
+			}
+
+			for ( i=0; a->a_vals[i].bv_val; i++ ) ;
+			
+			v = ch_malloc( sizeof(struct berval) * (i+1) );
+			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
+				if ( conn && op && access_allowed( be,
+					conn, op, e, entry_at,
+#ifdef SLAP_NVALUES
+					&a->a_nvals[i],
+#else
+					&a->a_vals[i],
+#endif
+					ACL_AUTH, &acl_state ) == 0 ) {
+					continue;
+				}
+				ber_dupbv( &v[j],
+#ifdef SLAP_NVALUES
+					&a->a_nvals[i]
+#else
+					&a->a_vals[i]
+#endif
+					);
+				if (v[j].bv_val ) j++;
+			}
+			if (j == 0) {
+				ch_free( v );
+				*vals = NULL;
+				rc = LDAP_INSUFFICIENT_ACCESS;
+			} else {
+				v[j].bv_val = NULL;
+				v[j].bv_len = 0;
+				*vals = v;
+				rc = LDAP_SUCCESS;
+			}
+		}
+freeit:		if (e != target ) {
+			be_entry_release_r( be, conn, op, e );
+		}
 	}
 
-	return LDAP_UNWILLING_TO_PERFORM;
+	return rc;
 }
 
 Attribute *backend_operational(

@@ -211,8 +211,6 @@ monitor_back_initialize(
 	bi->bi_extended = 0;
 
 	bi->bi_entry_release_rw = 0;
-	bi->bi_acl_group = 0;
-	bi->bi_acl_attribute = 0;
 	bi->bi_chk_referrals = 0;
 	bi->bi_operational = monitor_back_operational;
 

@@ -665,22 +665,11 @@ bdb_initialize(
 
 	bi->bi_extended = bdb_extended;
 
-#if 1
-	/*
-	 * these routines (and their callers) are not yet designed
-	 * to work with transaction.  Using them may cause deadlock.
-	 */
-	bi->bi_acl_group = bdb_group;
-	bi->bi_acl_attribute = bdb_attribute;
-#else
-	bi->bi_acl_group = 0;
-	bi->bi_acl_attribute = 0;
-#endif
-
 	bi->bi_chk_referrals = bdb_referrals;
 	bi->bi_operational = bdb_operational;
 	bi->bi_has_subordinates = bdb_hasSubordinates;
 	bi->bi_entry_release_rw = bdb_entry_release;
+	bi->bi_entry_get_rw = bdb_entry_get;
 
 	/*
 	 * hooks for slap tools

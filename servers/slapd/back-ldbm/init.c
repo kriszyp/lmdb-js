@@ -67,8 +67,7 @@ ldbm_back_initialize(
 	bi->bi_extended = ldbm_back_extended;
 
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
-	bi->bi_acl_group = ldbm_back_group;
-	bi->bi_acl_attribute = ldbm_back_attribute;
+	bi->bi_entry_get_rw = ldbm_back_entry_get;
 	bi->bi_chk_referrals = ldbm_back_referrals;
 	bi->bi_operational = ldbm_back_operational;
 	bi->bi_has_subordinates = ldbm_back_hasSubordinates;

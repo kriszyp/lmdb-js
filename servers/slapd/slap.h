@@ -1301,6 +1301,7 @@ struct slap_backend_db {
 
 #define		be_extended	bd_info->bi_extended
 
+#define		be_fetch	bd_info->bi_entry_get_rw
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_group	bd_info->bi_acl_group
@@ -1542,6 +1543,12 @@ typedef int (BI_op_extended) LDAP_P((
 	const char **	text,
 	BerVarray *refs ));
 
+typedef int (BI_entry_get_rw) LDAP_P((BackendDB *bd,
+		struct slap_conn *c, struct slap_op *o,
+		struct berval *ndn, ObjectClass *oc,
+		AttributeDescription *at, int rw,
+		Entry **e ));
+
 typedef int (BI_entry_release_rw) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, int rw));
@@ -1550,21 +1557,7 @@ typedef int (BI_chk_referrals) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		struct berval *dn, struct berval *ndn,
 		const char **text ));
-
-typedef int (BI_acl_group)  LDAP_P((Backend *bd,
-		struct slap_conn *c, struct slap_op *o,
-		Entry *e,
-		struct berval *bdn,
-		struct berval *edn,
-		ObjectClass *group_oc,
-		AttributeDescription *group_at ));
-
-typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
-		struct slap_conn *c, struct slap_op *o,
-		Entry *e, struct berval *edn,
-		AttributeDescription *entry_at,
-		BerVarray *vals ));
-
+		
 typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, AttributeName *attrs, int opattrs, Attribute **a ));
@@ -1660,11 +1653,9 @@ struct slap_backend_info {
 	BI_op_extended	*bi_extended;
 
 	/* Auxilary Functions */
+	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
 	BI_chk_referrals	*bi_chk_referrals;
-
-	BI_acl_group	*bi_acl_group;
-	BI_acl_attribute	*bi_acl_attribute;
 
 	BI_operational	*bi_operational;
 	BI_has_subordinates	*bi_has_subordinates;

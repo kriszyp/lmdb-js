@@ -267,3 +267,169 @@ int bdb_entry_release(
  
 	return 0;
 }
+
+/* return LDAP_SUCCESS IFF we can retrieve the specified entry.
+ */
+int bdb_entry_get(
+	BackendDB *be,
+	Connection *c,
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_op_info *boi = NULL;
+	DB_TXN *txn = NULL;
+	Entry *e;
+	int	rc;
+	const char *at_name = at->ad_cname.bv_val;
+
+	u_int32_t	locker = 0;
+	DB_LOCK		lock;
+	int		free_lock_id = 0;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 );
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
+		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
+#else
+	Debug( LDAP_DEBUG_ARGS,
+		"=> bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 ); 
+	Debug( LDAP_DEBUG_ARGS,
+		"=> bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
+		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
+#endif
+
+	if( op ) boi = (struct bdb_op_info *) op->o_private;
+	if( boi != NULL && be == boi->boi_bdb ) {
+		txn = boi->boi_txn;
+		locker = boi->boi_locker;
+	}
+
+	if ( txn != NULL ) {
+		locker = TXN_ID ( txn );
+	} else if ( !locker ) {
+		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
+		free_lock_id = 1;
+		switch(rc) {
+		case 0:
+			break;
+		default:
+			return LDAP_OTHER;
+		}
+	}
+
+dn2entry_retry:
+	/* can we find entry */
+	rc = bdb_dn2entry_rw( be, txn, ndn, &e, NULL, 0, rw, locker, &lock );
+	switch( rc ) {
+	case DB_NOTFOUND:
+	case 0:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		/* the txn must abort and retry */
+		if ( txn ) {
+			boi->boi_err = rc;
+			return LDAP_BUSY;
+		}
+		ldap_pvt_thread_yield();
+		goto dn2entry_retry;
+	default:
+		boi->boi_err = rc;
+		if ( free_lock_id ) {
+			LOCK_ID_FREE( bdb->bi_dbenv, locker );
+		}
+		return (rc != LDAP_BUSY) ? LDAP_OTHER : LDAP_BUSY;
+	}
+	if (e == NULL) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_entry_get: cannot find entry (%s)\n", 
+			ndn->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ACL,
+			"=> bdb_entry_get: cannot find entry: \"%s\"\n",
+				ndn->bv_val, 0, 0 ); 
+#endif
+		if ( free_lock_id ) {
+			LOCK_ID_FREE( bdb->bi_dbenv, locker );
+		}
+		return LDAP_NO_SUCH_OBJECT; 
+	}
+	
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_BDB, DETAIL1, "bdb_entry_get: found entry (%s)\n",
+		ndn->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_ACL,
+		"=> bdb_entry_get: found entry: \"%s\"\n",
+		ndn->bv_val, 0, 0 ); 
+#endif
+
+#ifdef BDB_ALIASES
+	/* find attribute values */
+	if( is_entry_alias( e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_entry_get: entry (%s) is an alias\n", e->e_name.bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ACL,
+			"<= bdb_entry_get: entry is an alias\n", 0, 0, 0 );
+#endif
+		rc = LDAP_ALIAS_PROBLEM;
+		goto return_results;
+	}
+#endif
+
+	if( is_entry_referral( e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_entry_get: entry (%s) is a referral.\n", e->e_name.bv_val, 0, 0);
+#else
+		Debug( LDAP_DEBUG_ACL,
+			"<= bdb_entry_get: entry is a referral\n", 0, 0, 0 );
+#endif
+		rc = LDAP_REFERRAL;
+		goto return_results;
+	}
+
+	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_entry_get: failed to find objectClass.\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ACL,
+			"<= bdb_entry_get: failed to find objectClass\n",
+			0, 0, 0 ); 
+#endif
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto return_results;
+	}
+
+return_results:
+	if( rc != LDAP_SUCCESS ) {
+		/* free entry */
+		bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+	} else {
+		*ent = e;
+	}
+
+	if ( free_lock_id ) {
+		LOCK_ID_FREE( bdb->bi_dbenv, locker );
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_BDB, ENTRY, "bdb_entry_get: rc=%d\n", rc, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"bdb_entry_get: rc=%d\n",
+		rc, 0, 0 ); 
+#endif
+	return(rc);
+}

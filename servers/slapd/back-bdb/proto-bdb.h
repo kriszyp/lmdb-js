@@ -40,12 +40,6 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
- * attribute.c
- */
-
-BI_acl_attribute bdb_attribute;
-
-/*
  * dbcache.c
  */
 int
@@ -114,6 +108,7 @@ bdb_dn2idl(
  */
 int bdb_entry_return( Entry *e );
 BI_entry_release_rw bdb_entry_release;
+BI_entry_get_rw bdb_entry_get;
 
 /*
  * error.c
@@ -129,12 +124,6 @@ int bdb_filter_candidates(
 	ID *ids,
 	ID *tmp,
 	ID *stack );
-
-/*
- * group.c
- */
-
-BI_acl_group bdb_group;
 
 /*
  * id2entry.c

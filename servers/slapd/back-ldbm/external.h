@@ -37,10 +37,6 @@ extern BI_op_add	ldbm_back_add;
 
 extern BI_op_delete	ldbm_back_delete;
 
-extern BI_acl_group	ldbm_back_group;
-
-extern BI_acl_attribute	ldbm_back_attribute;
-
 extern BI_operational	ldbm_back_operational;
 
 extern BI_has_subordinates	ldbm_back_hasSubordinates;

@@ -97,6 +97,8 @@ int ldbm_back_entry_release_rw LDAP_P(( Backend *be,
 	Connection *conn, Operation *op,
 	Entry *e, int rw ));
 
+BI_entry_get_rw ldbm_back_entry_get;
+
 /*
  * filterindex.c
  */

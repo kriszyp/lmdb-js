@@ -120,8 +120,6 @@ meta_back_initialize(
 
 	bi->bi_extended = 0;
 
-	bi->bi_acl_group = meta_back_group;
-	bi->bi_acl_attribute = meta_back_attribute;
 	bi->bi_chk_referrals = 0;
 
 	bi->bi_connection_init = 0;
