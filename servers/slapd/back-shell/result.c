@@ -59,7 +59,7 @@ read_and_send_results(
 				    buf, 0, 0 );
 			} else {
 				send_search_entry( be, conn, op, e, attrs,
-				    attrsonly, 0, NULL );
+				    attrsonly, NULL );
 				entry_free( e );
 			}
 
