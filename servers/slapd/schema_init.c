@@ -48,7 +48,6 @@
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
-#define presentationAddressMatch		NULL
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
 
@@ -370,6 +369,8 @@ nameUIDNormalize(
 
 		out->bv_val = dn;
 		out->bv_len = dnlen + uidlen;
+
+		out->bv_val[out->bv_len] = '\0';
 	}
 
 	*normalized = out;
@@ -1878,6 +1879,8 @@ integerNormalize(
 	for( ; *p != '\0'; p++ ) {
 		newval->bv_val[newval->bv_len++] = *p;
 	}
+
+	newval->bv_val[newval->bv_len] = '\0';
 
 done:
 	*normalized = newval;
@@ -4023,7 +4026,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		presentationAddressMatch, NULL, NULL,
+		NULL, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
