@@ -65,7 +65,7 @@ and {{SECT:GSSAPI}} are discussed below.
 
 The EXTERNAL mechanism utilizes authentication services provided
 by lower level network services such as {{TERM:TLS}} (TLS).  When
-used in conjunction with TLS X.509-based public key technology,
+used in conjunction with TLS {{TERM:X.509}}-based public key technology,
 EXTERNAL offers strong authentication.  Use of EXTERNAL is discussed
 in the {{SECT:Using TLS}} chapter.
 
@@ -380,8 +380,9 @@ rules and policies of the site where LDAP is running, and thus
 cannot be made by SASL alone. The SASL library leaves it up to the
 server to make the decision. The LDAP administrator sets the
 guidelines of who can authorize to what identity by adding information
-into the LDAP database entries.
-
+into the LDAP database entries. By default, the authorization
+features are disabled, and must be explicitly configured by the
+LDAP administrator before use.
 
 H3: Uses of Authorization
 
@@ -461,7 +462,7 @@ search from an LDAP URL, the authorization request fails with
 authorization DN ready to undergo approval.
 
 If the authorization identity was provided in the second form, with
-a {EX:"dn:"}} prefix, the string after the prefix is already in
+a {{EX:"dn:"}} prefix, the string after the prefix is already in
 authorization DN form, ready to undergo approval.
 
 
@@ -533,6 +534,8 @@ characters). Anything that does not begin with "ldap://" is taken
 as a DN. It is not permissable to enter another authorization
 identity of the form "u:<username>" as an authorization rule.
 
+H4: Policy Configuration
+
 The decision of which type of rules to use, saslAuthzFrom or
 saslAuthzTo, will depend on the site's situation. For example, if
 the set of people who may become a given identity can easily be
@@ -542,3 +545,16 @@ filter, and the set of people is small, it may be better to write
 a source rule in the entries of each of those people who should be
 allowed to perform the authorization.
 
+By default, processing of authorization rules is disabled. The
+{{EX:sasl-authz-policy}} directive must be set in the {{slapd.conf}}(5) file
+to enable authorization. This directive can be set to {{EX:none}}
+for no rules (the default), {{EX:from}} for source rules, {{EX:to}}
+for destination rules, or {{EX:both}} for both source and destination
+rules.
+
+Destination rules are extremely powerful. If ordinary users have
+access to write the saslAuthzTo attribute in their own entries, then
+they can write rules that would allow them to authorize as anyone else.
+As such, when using destination rules, the saslAuthzTo attribute
+should be protected with an ACL that only allows privileged users
+to set its values.
