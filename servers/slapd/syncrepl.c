@@ -821,6 +821,9 @@ done:
 	slap_sync_cookie_free( &syncCookie, 0 );
 	slap_sync_cookie_free( &syncCookie_req, 0 );
 
+	avl_free( si->si_presentlist, avl_ber_bvfree );
+	si->si_presentlist = NULL;
+
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && si->si_ld ) {
