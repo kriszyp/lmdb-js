@@ -119,7 +119,7 @@ void bdb_errcall( const char *pfx, char * msg );
  * filterentry.c
  */
 int bdb_filter_candidates(
-	Backend	*be,
+	Operation *op,
 	Filter	*f,
 	ID *ids,
 	ID *tmp,
@@ -236,14 +236,14 @@ bdb_index_param LDAP_P((
 
 extern int
 bdb_index_values LDAP_P((
-	Backend *be,
+	Operation *op,
 	DB_TXN *txn,
 	AttributeDescription *desc,
 	BerVarray vals,
 	ID id,
-	int op ));
+	int opid ));
 
-int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t, int r, Entry *e ));
+int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 
 #define bdb_index_entry_add(be,t,e) \
 	bdb_index_entry((be),(t),SLAP_INDEX_ADD_OP,(e))

@@ -136,12 +136,12 @@ done:
 }
 
 static int indexer(
-	Backend *be,
+	Operation *op,
 	char *dbname,
 	struct berval *atname,
 	BerVarray vals,
 	ID id,
-	int op,
+	int opid,
 	slap_mask_t mask )
 {
 	int rc, i;
@@ -149,6 +149,7 @@ static int indexer(
     DBCache	*db;
 	AttributeDescription *ad = NULL;
 	struct berval *keys;
+	void *mark;
 
 	assert( mask );
 
@@ -156,7 +157,7 @@ static int indexer(
 
 	if( rc != LDAP_SUCCESS ) return rc;
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
@@ -171,8 +172,10 @@ static int indexer(
 		return LDAP_OTHER;
 	}
 
+	mark = sl_mark( op->o_tmpmemctx );
+
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		key_change( be, db, atname, id, op );
+		key_change( op->o_bd, db, atname, id, opid );
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
@@ -181,11 +184,11 @@ static int indexer(
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_equality,
-			atname, vals, &keys );
+			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( be, db, &keys[i], id, op );
+				key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free( keys );
 		}
@@ -197,11 +200,11 @@ static int indexer(
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_approx,
-			atname, vals, &keys );
+			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( be, db, &keys[i], id, op );
+				key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free( keys );
 		}
@@ -213,46 +216,49 @@ static int indexer(
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_substr,
-			atname, vals, &keys );
+			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( be, db, &keys[i], id, op );
+				key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free( keys );
 		}
 	}
 
-	ldbm_cache_close( be, db );
+	ldbm_cache_close( op->o_bd, db );
+
+	sl_release( mark, op->o_tmpmemctx );
+
 	return LDAP_SUCCESS;
 }
 
 static int index_at_values(
-	Backend *be,
+	Operation *op,
 	AttributeType *type,
 	struct berval *tags,
 	BerVarray vals,
 	ID id,
-	int op )
+	int opid )
 {
 	slap_mask_t mask = 0;
 
 	if( type->sat_sup ) {
 		/* recurse */
-		(void) index_at_values( be,
+		(void) index_at_values( op,
 			type->sat_sup, tags,
-			vals, id, op );
+			vals, id, opid );
 	}
 
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
-		attr_mask( be->be_private, type->sat_ad, &mask );
+		attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
 	}
 
 	if( mask ) {
-		indexer( be, type->sat_cname.bv_val,
+		indexer( op, type->sat_cname.bv_val,
 			&type->sat_cname,
-			vals, id, op,
+			vals, id, opid,
 			mask );
 	}
 
@@ -263,12 +269,12 @@ static int index_at_values(
 
 		desc = ad_find_tags(type, tags);
 		if( desc ) {
-			attr_mask( be->be_private, desc, &mask );
+			attr_mask( op->o_bd->be_private, desc, &mask );
 		}
 
 		if( mask ) {
-			indexer( be, desc->ad_cname.bv_val, &desc->ad_cname,
-				vals, id, op,
+			indexer( op, desc->ad_cname.bv_val, &desc->ad_cname,
+				vals, id, opid,
 				mask );
 		}
 	}
@@ -277,48 +283,48 @@ static int index_at_values(
 }
 
 int index_values(
-	Backend *be,
+	Operation *op,
 	AttributeDescription *desc,
 	BerVarray vals,
 	ID id,
-	int op )
+	int opid )
 {
-	(void) index_at_values( be,
+	(void) index_at_values( op,
 		desc->ad_type, &desc->ad_tags,
-		vals, id, op );
+		vals, id, opid );
 
 	return LDAP_SUCCESS;
 }
 
 int
 index_entry(
-	Backend	*be,
-	int op,
+	Operation *op,
+	int opid,
 	Entry *e )
 {
 	Attribute *ap = e->e_attrs;
 #ifdef NEW_LOGGING
 	LDAP_LOG( INDEX, ENTRY, 
-		"index_entry: %s (%s)%ld\n", op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		"index_entry: %s (%s)%ld\n", opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_dn, e->e_id );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
-		op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_id, e->e_dn );
 #endif
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
-		index_values( be, ap->a_desc,
+		index_values( op, ap->a_desc,
 			ap->a_nvals,
-			e->e_id, op );
+			e->e_id, opid );
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( INDEX, ENTRY, "index_entry: success\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
-	    op == SLAP_INDEX_ADD_OP ? "add" : "del",
+	    opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_id, e->e_dn );
 #endif
 

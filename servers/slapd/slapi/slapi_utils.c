@@ -161,7 +161,7 @@ slapi_entry_set_dn(
 	dn.bv_val = ldn;
 	dn.bv_len = strlen( ldn );
 
-	dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname );
+	dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname, NULL );
 #endif /* LDAP_SLAPI */
 }
 
@@ -857,7 +857,7 @@ slapi_dn_normalize( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	dnNormalize2( NULL, &bdn, &ndn );
+	dnNormalize2( NULL, &bdn, &ndn, NULL );
 
 	/*
 	 * FIXME: ain't it safe to set dn = ndn.bv_val ?
@@ -909,11 +909,11 @@ slapi_dn_issuffix(
 	bsuffix.bv_val = suffix;
 	bsuffix.bv_len = strlen( suffix );
 
-	if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+	if ( dnNormalize2( NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
 		return 0;
 	}
 
-	if ( dnNormalize2( NULL, &bsuffix, &nsuffix ) != LDAP_SUCCESS ) {
+	if ( dnNormalize2( NULL, &bsuffix, &nsuffix, NULL ) != LDAP_SUCCESS ) {
 		slapi_ch_free( (void **)&ndn.bv_val );
 		return 0;
 	}

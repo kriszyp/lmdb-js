@@ -100,7 +100,7 @@ BI_entry_get_rw ldbm_back_entry_get;
  * filterindex.c
  */
 
-ID_BLOCK * filter_candidates LDAP_P(( Backend *be, Filter *f ));
+ID_BLOCK * filter_candidates LDAP_P(( Operation *op, Filter *f ));
 
 /*
  * id2children.c
@@ -157,13 +157,13 @@ index_param LDAP_P((
 
 extern int
 index_values LDAP_P((
-	Backend *be,
+	Operation *op,
 	AttributeDescription *desc,
 	BerVarray vals,
 	ID id,
-	int op ));
+	int opid ));
 
-int index_entry LDAP_P(( Backend *be, int r, Entry *e ));
+int index_entry LDAP_P(( Operation *op, int r, Entry *e ));
 #define index_entry_add(be,e) index_entry((be),SLAP_INDEX_ADD_OP,(e))
 #define index_entry_del(be,e) index_entry((be),SLAP_INDEX_DELETE_OP,(e))
 

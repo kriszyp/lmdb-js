@@ -481,7 +481,7 @@ read_config( const char *fname, int depth )
 
 				rc = dnPrettyNormal( NULL, &dn,
 					&default_search_base,
-					&default_search_nbase );
+					&default_search_nbase, NULL );
 
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -659,10 +659,10 @@ read_config( const char *fname, int depth )
 			ber_str2bv( cargv[1], 0, 0, &dn );
 			if ( be ) {
 				rc = dnPrettyNormal( NULL, &dn, &be->be_schemadn,
-					&be->be_schemandn );
+					&be->be_schemandn, NULL );
 			} else {
 				rc = dnPrettyNormal( NULL, &dn, &global_schemadn,
-					&global_schemandn );
+					&global_schemandn, NULL );
 			}
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -973,7 +973,7 @@ read_config( const char *fname, int depth )
 			dn.bv_val = cargv[1];
 			dn.bv_len = strlen( cargv[1] );
 
-			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
@@ -1117,7 +1117,7 @@ read_config( const char *fname, int depth )
 
 				rc = dnPrettyNormal( NULL, &dn,
 					&be->be_rootdn,
-					&be->be_rootndn );
+					&be->be_rootndn, NULL );
 
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -1879,7 +1879,7 @@ read_config( const char *fname, int depth )
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
 
-				rc = dnNormalize2( NULL, &dn, &be->be_update_ndn );
+				rc = dnNormalize2( NULL, &dn, &be->be_update_ndn, NULL );
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
@@ -2416,7 +2416,7 @@ read_config( const char *fname, int depth )
 	if ( !global_schemadn.bv_val ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
 			&global_schemadn );
-		dnNormalize2( NULL, &global_schemadn, &global_schemandn );
+		dnNormalize2( NULL, &global_schemadn, &global_schemandn, NULL );
 	}
 
 	if ( load_ucdata( NULL ) < 0 ) return 1;

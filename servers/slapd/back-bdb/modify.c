@@ -207,7 +207,7 @@ int bdb_modify_internal(
 	/* start with deleting the old index entries */
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
-			rc = bdb_index_values( op->o_bd, tid, ap->a_desc,
+			rc = bdb_index_values( op, tid, ap->a_desc,
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
@@ -231,7 +231,7 @@ int bdb_modify_internal(
 	/* add the new index entries */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if (ap->a_flags & SLAP_ATTR_IXADD) {
-			rc = bdb_index_values( op->o_bd, tid, ap->a_desc,
+			rc = bdb_index_values( op, tid, ap->a_desc,
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {

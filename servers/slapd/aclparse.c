@@ -239,7 +239,7 @@ parse_acl(
 			{
 				if ( a->acl_dn_style != ACL_STYLE_REGEX ) {
 					struct berval bv;
-					rc = dnNormalize2( NULL, &a->acl_dn_pat, &bv);
+					rc = dnNormalize2( NULL, &a->acl_dn_pat, &bv, NULL);
 					if ( rc != LDAP_SUCCESS ) {
 						fprintf( stderr,
 							"%s: line %d: bad DN \"%s\"\n",
@@ -410,7 +410,7 @@ parse_acl(
 					}
 
 					if ( sty != ACL_STYLE_REGEX && expand == 0 ) {
-						rc = dnNormalize2(NULL, &bv, &b->a_dn_pat);
+						rc = dnNormalize2(NULL, &bv, &b->a_dn_pat, NULL);
 						if ( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
 								"%s: line %d: bad DN \"%s\"\n",
@@ -520,7 +520,7 @@ parse_acl(
 						b->a_group_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 0, &bv );
-						rc = dnNormalize2( NULL, &bv, &b->a_group_pat );
+						rc = dnNormalize2( NULL, &bv, &b->a_group_pat, NULL );
 						if ( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
 								"%s: line %d: bad DN \"%s\"\n",

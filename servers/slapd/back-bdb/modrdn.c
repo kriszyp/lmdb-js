@@ -26,8 +26,8 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	Entry		*p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
-	LDAPRDN		*new_rdn = NULL;
-	LDAPRDN		*old_rdn = NULL;
+	LDAPRDN		new_rdn = NULL;
+	LDAPRDN		old_rdn = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	DB_TXN *	ltid = NULL;
@@ -647,7 +647,7 @@ retry:	/* transaction retry */
 	/* Build target dn and make sure target entry doesn't exist already. */
 	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
 
-	if (!new_ndn.bv_val) dnNormalize2( NULL, &new_dn, &new_ndn );
+	if (!new_ndn.bv_val) dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
@@ -676,8 +676,8 @@ retry:	/* transaction retry */
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( !new_rdn && ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn, (char **)&rs->sr_text,
-		LDAP_DN_FORMAT_LDAP ) )
+	if ( !new_rdn && ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn, (char **)&rs->sr_text,
+		LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -699,19 +699,19 @@ retry:	/* transaction retry */
 	LDAP_LOG ( OPERATION, RESULTS, 
 		"bdb_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val, 
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val, 
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val,
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {
-		if ( !old_rdn && ldap_bv2rdn( &op->o_req_dn, &old_rdn, (char **)&rs->sr_text,
-			LDAP_DN_FORMAT_LDAP ) )
+		if ( !old_rdn && ldap_bv2rdn_x( &op->o_req_dn, &old_rdn, (char **)&rs->sr_text,
+			LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 

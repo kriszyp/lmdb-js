@@ -129,7 +129,8 @@ int asserted_value_validate_normalize(
 	unsigned usage,
 	struct berval *in,
 	struct berval *out,
-	const char ** text )
+	const char ** text,
+	void *ctx )
 {
 	int rc;
 
@@ -156,7 +157,7 @@ int asserted_value_validate_normalize(
 	if( mr->smr_normalize ) {
 		rc = (mr->smr_normalize)( usage,
 			ad ? ad->ad_type->sat_syntax : NULL,
-			mr, in, out );
+			mr, in, out, ctx );
 
 		if( rc != LDAP_SUCCESS ) {
 			*text = "unable to normalize value for matching";
@@ -164,7 +165,7 @@ int asserted_value_validate_normalize(
 		}
 
 	} else {
-		ber_dupbv( out, in );
+		ber_dupbv_x( out, in, ctx );
 	}
 
 	return LDAP_SUCCESS;
@@ -207,7 +208,8 @@ int value_find_ex(
 	AttributeDescription *ad,
 	unsigned flags,
 	BerVarray vals,
-	struct berval *val )
+	struct berval *val,
+	void *ctx )
 {
 	int	i;
 	int rc;
@@ -226,7 +228,7 @@ int value_find_ex(
 		rc = (mr->smr_normalize)(
 			flags & SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK,
 			ad ? ad->ad_type->sat_syntax : NULL,
-			mr, val, &nval );
+			mr, val, &nval, ctx );
 
 		if( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
@@ -246,6 +248,6 @@ int value_find_ex(
 		}
 	}
 
-	free( nval.bv_val );
+	ber_memfree_x( nval.bv_val, ctx );
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }

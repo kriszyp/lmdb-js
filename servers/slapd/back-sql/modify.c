@@ -555,8 +555,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	struct berval		p_dn, p_ndn,
 				*new_pdn = NULL, *new_npdn = NULL,
 				new_dn, new_ndn;
-	LDAPRDN			*new_rdn = NULL;
-	LDAPRDN			*old_rdn = NULL;
+	LDAPRDN			new_rdn = NULL;
+	LDAPRDN			old_rdn = NULL;
 	Entry			e;
 	Modifications		*mod;
 	struct berval		*newSuperior = op->oq_modrdn.rs_newSup;
@@ -785,14 +785,14 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	LDAP_LOG ( OPERATION, RESULTS, 
 		"backsql_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val, 
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val, 
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"backsql_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val,
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {

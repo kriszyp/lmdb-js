@@ -212,7 +212,7 @@ get_mra(
 	rc = asserted_value_validate_normalize( ma.ma_desc,
 		ma.ma_rule,
 		SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-		&value, &ma.ma_value, text );
+		&value, &ma.ma_value, text, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;

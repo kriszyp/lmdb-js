@@ -1532,6 +1532,10 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		id ? ( *id ? id : "<empty>" ) : "NULL", len, 0 );
 #endif
 
+	if ( !op ) {
+		op = conn->c_sasl_bindop;
+	}
+
 	dn->bv_val = NULL;
 	dn->bv_len = 0;
 
@@ -1606,7 +1610,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 
 		/* Build the new dn */
 		c1 = dn->bv_val;
-		dn->bv_val = SLAP_MALLOC( len+1 );
+		dn->bv_val = sl_malloc( len+1, op->o_tmpmemctx );
 		if( dn->bv_val == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( TRANSPORT, ERR, 
@@ -1648,16 +1652,16 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		/* Dup the DN in any case, so we don't risk 
 		 * leaks or dangling pointers later,
 		 * and the DN value is '\0' terminated */
-		ber_dupbv( &dn2, dn );
+		ber_dupbv_x( &dn2, dn, op->o_tmpmemctx );
 		dn->bv_val = dn2.bv_val;
 	}
 
 	/* All strings are in DN form now. Normalize if needed. */
 	if ( do_norm ) {
-		rc = dnNormalize2( NULL, dn, &dn2 );
+		rc = dnNormalize2( NULL, dn, &dn2, op->o_tmpmemctx );
 
 		/* User DNs were constructed above and must be freed now */
-		ch_free( dn->bv_val );
+		sl_free( dn->bv_val, op->o_tmpmemctx );
 
 		if ( rc != LDAP_SUCCESS ) {
 			dn->bv_val = NULL;
@@ -1667,14 +1671,10 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		*dn = dn2;
 	}
 
-	if ( !op ) {
-		op = conn->c_sasl_bindop;
-	}
-
 	/* Run thru regexp */
 	slap_sasl2dn( op, dn, &dn2 );
 	if( dn2.bv_val ) {
-		ch_free( dn->bv_val );
+		sl_free( dn->bv_val, op->o_tmpmemctx );
 		*dn = dn2;
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, ENTRY, 

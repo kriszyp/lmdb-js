@@ -351,7 +351,7 @@ LDAPModToEntry(
 	dn.bv_val = slapi_ch_strdup(ldn);
 	dn.bv_len = strlen(ldn);
 
-	rc = dnPrettyNormal( NULL, &dn, &pEntry->e_name, &pEntry->e_nname );
+	rc = dnPrettyNormal( NULL, &dn, &pEntry->e_name, &pEntry->e_nname, NULL );
 	if ( rc != LDAP_SUCCESS )
 		goto cleanup;
 
@@ -420,7 +420,7 @@ LDAPModToEntry(
 			size_t textlen = sizeof textbuf;
 
 			rc = slap_mods_check( modlist, update, &text, 
-					textbuf, textlen );
+					textbuf, textlen, NULL );
 			if ( rc != LDAP_SUCCESS) {
 				goto cleanup;
 			}
@@ -511,7 +511,7 @@ slapi_delete_internal(
 
 	dn.bv_val = slapi_ch_strdup(ldn);
 	dn.bv_len = strlen(ldn);
-	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS )
 		goto cleanup;
 
@@ -751,7 +751,7 @@ slapi_modrdn_internal(
 	dn.bv_val = slapi_ch_strdup( olddn );
 	dn.bv_len = strlen( olddn );
 
-	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -764,7 +764,7 @@ slapi_modrdn_internal(
 	newrdn.bv_val = slapi_ch_strdup( lnewrdn );
 	newrdn.bv_len = strlen( lnewrdn );
 
-	rs.sr_err = dnPrettyNormal( NULL, &newrdn, &op->oq_modrdn.rs_newrdn, &op->oq_modrdn.rs_nnewrdn );
+	rs.sr_err = dnPrettyNormal( NULL, &newrdn, &op->oq_modrdn.rs_newrdn, &op->oq_modrdn.rs_nnewrdn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -876,7 +876,7 @@ slapi_modify_internal(
 
 	dn.bv_val = slapi_ch_strdup( ldn );
 	dn.bv_len = strlen( ldn );
-	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -979,7 +979,7 @@ slapi_modify_internal(
 			size_t textlen = sizeof( textbuf );
 
 			rs.sr_err = slap_mods_check( modlist, update,
-					&text, textbuf, textlen );
+					&text, textbuf, textlen, NULL );
 			if ( rs.sr_err != LDAP_SUCCESS ) {
 				goto cleanup;
 			}
@@ -1069,7 +1069,7 @@ slapi_search_internal_bind(
 	dn.bv_val = slapi_ch_strdup(ldn);
 	dn.bv_len = strlen(ldn);
 
-	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}

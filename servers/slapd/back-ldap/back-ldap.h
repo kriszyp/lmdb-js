@@ -40,6 +40,8 @@
 
 #include "external.h"
 
+#undef ENABLE_REWRITE
+
 /* String rewrite library */
 #ifdef ENABLE_REWRITE
 #include "rewrite.h"

@@ -177,7 +177,7 @@ do_modify(
 		goto cleanup;
 	}
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: conn %d  invalid dn (%s)\n",
@@ -394,7 +394,7 @@ do_modify(
 			size_t textlen = sizeof textbuf;
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen );
+				textbuf, textlen, op->o_tmpmemctx );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -476,7 +476,8 @@ int slap_mods_check(
 	int update,
 	const char **text,
 	char *textbuf,
-	size_t textlen )
+	size_t textlen,
+	void *ctx )
 {
 	int rc;
 
@@ -577,7 +578,7 @@ int slap_mods_check(
 				struct berval pval;
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
-						&ml->sml_values[nvals], &pval );
+						&ml->sml_values[nvals], &pval, ctx );
 				} else {
 					rc = validate( ad->ad_type->sat_syntax,
 						&ml->sml_values[nvals] );
@@ -592,7 +593,7 @@ int slap_mods_check(
 				}
 
 				if( pretty ) {
-					ber_memfree( ml->sml_values[nvals].bv_val );
+					ber_memfree_x( ml->sml_values[nvals].bv_val, ctx );
 					ml->sml_values[nvals] = pval;
 				}
 			}
@@ -614,13 +615,13 @@ int slap_mods_check(
 			if( nvals && ad->ad_type->sat_equality &&
 				ad->ad_type->sat_equality->smr_normalize )
 			{
-				ml->sml_nvalues = ch_malloc( (nvals+1)*sizeof(struct berval) );
+				ml->sml_nvalues = ber_memalloc_x( (nvals+1)*sizeof(struct berval), ctx );
 				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 					rc = ad->ad_type->sat_equality->smr_normalize(
 						0,
 						ad->ad_type->sat_syntax,
 						ad->ad_type->sat_equality,
-						&ml->sml_values[nvals], &ml->sml_nvalues[nvals] );
+						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );
 					if( rc ) {
 #ifdef NEW_LOGGING
 						LDAP_LOG( OPERATION, DETAIL1,

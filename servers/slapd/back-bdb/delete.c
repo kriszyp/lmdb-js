@@ -388,7 +388,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete indices for old attributes */
-	rs->sr_err = bdb_index_entry_del( op->o_bd, ltid, e );
+	rs->sr_err = bdb_index_entry_del( op, ltid, e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:

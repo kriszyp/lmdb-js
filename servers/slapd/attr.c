@@ -156,7 +156,8 @@ int
 attr_merge_normalize(
 	Entry		*e,
 	AttributeDescription *desc,
-	BerVarray	vals
+	BerVarray	vals,
+	void	 *memctx
 ) {
 	BerVarray	nvals = NULL;
 	int		rc;
@@ -172,7 +173,7 @@ attr_merge_normalize(
 					0,
 					desc->ad_type->sat_syntax,
 					desc->ad_type->sat_equality,
-					&vals[i], &nvals[i] );
+					&vals[i], &nvals[i], memctx );
 
 			if ( rc != LDAP_SUCCESS ) {
 				nvals[i+1].bv_val = NULL;
@@ -225,7 +226,8 @@ int
 attr_merge_normalize_one(
 	Entry		*e,
 	AttributeDescription *desc,
-	struct berval	*val
+	struct berval	*val,
+	void		*memctx
 ) {
 	struct berval	nval;
 	int		rc;
@@ -235,7 +237,7 @@ attr_merge_normalize_one(
 				0,
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
-				val, &nval );
+				val, &nval, memctx );
 
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;

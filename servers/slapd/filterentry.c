@@ -257,7 +257,7 @@ static int test_mra_filter(
 			/* normalize for equality */
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-				&mra->ma_value, &value, &text );
+				&mra->ma_value, &value, &text, op->o_tmpmemctx );
 			if ( rc != LDAP_SUCCESS ) {
 				continue;
 			}
@@ -294,22 +294,22 @@ static int test_mra_filter(
 
 	/* check attrs in DN AVAs if required */
 	if ( mra->ma_dnattrs ) {
-		LDAPDN		*dn = NULL;
+		LDAPDN		dn = NULL;
 		int		iRDN, iAVA;
 		int		rc;
 
 		/* parse and pretty the dn */
-		rc = dnPrettyDN( NULL, &e->e_name, &dn );
+		rc = dnPrettyDN( NULL, &e->e_name, &dn, op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 
 		/* for each AVA of each RDN ... */
-		for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
-			LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
+		for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+			LDAPRDN		rdn = dn[ iRDN ];
 
-			for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
-				LDAPAVA		*ava = rdn[ 0 ][ iAVA ];
+			for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+				LDAPAVA		*ava = rdn[ iAVA ];
 				struct berval	*bv = &ava->la_value, value;
 				AttributeDescription *ad = (AttributeDescription *)ava->la_private;
 				int ret;
@@ -337,7 +337,7 @@ static int test_mra_filter(
 					rc = asserted_value_validate_normalize( ad,
 						mra->ma_rule,
 						SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-						&mra->ma_value, &value, &text );
+						&mra->ma_value, &value, &text, op->o_tmpmemctx );
 					if ( rc != LDAP_SUCCESS ) {
 						continue;
 					}
@@ -354,12 +354,12 @@ static int test_mra_filter(
 					bv, &value, &text );
 
 				if( rc != LDAP_SUCCESS ) {
-					ldap_dnfree( dn );
+					ldap_dnfree_x( dn, op->o_tmpmemctx );
 					return rc;
 				}
 
 				if ( ret == 0 ) {
-					ldap_dnfree( dn );
+					ldap_dnfree_x( dn, op->o_tmpmemctx );
 					return LDAP_COMPARE_TRUE;
 				}
 			}

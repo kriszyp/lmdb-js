@@ -357,7 +357,7 @@ test_mra_vrFilter(
 
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-				&mra->ma_value, &value, &text );
+				&mra->ma_value, &value, &text, op->o_tmpmemctx );
 
 			if( rc != LDAP_SUCCESS ) continue;
 		}

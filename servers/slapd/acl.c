@@ -670,7 +670,7 @@ acl_mask(
 
 					string_expand(&bv, &b->a_dn_pat, 
 							e->e_ndn, matches);
-					if ( dnNormalize2(NULL, &bv, &pat) != LDAP_SUCCESS ) {
+					if ( dnNormalize2(NULL, &bv, &pat, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 						/* did not expand to a valid dn */
 						continue;
 					}
@@ -903,7 +903,7 @@ dn_match_cleanup:;
 					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 					at->a_nvals,
-					&bv ) == 0 )
+					&bv, op->o_tmpmemctx ) == 0 )
 				{
 					/* found it */
 					match = 1;
@@ -975,7 +975,7 @@ dn_match_cleanup:;
 				bv.bv_val = buf; 
 
 				string_expand( &bv, &b->a_group_pat, e->e_ndn, matches );
-				if ( dnNormalize2( NULL, &bv, &ndn ) != LDAP_SUCCESS ) {
+				if ( dnNormalize2( NULL, &bv, &ndn, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
 				}
@@ -1435,7 +1435,7 @@ aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 	 * also return the syntax or some "comparison cookie".
 	 */
 
-	if (dnNormalize2(NULL, name, &ndn) == LDAP_SUCCESS) {
+	if (dnNormalize2(NULL, name, &ndn, cp->op->o_tmpmemctx ) == LDAP_SUCCESS) {
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
@@ -1483,7 +1483,7 @@ aci_match_set (
 			 * NOTE: dnNormalize2 honors the ber_len field
 			 * as the length of the dn to be normalized
 			 */
-			if ( dnNormalize2(NULL, &subjdn, &ndn) == LDAP_SUCCESS
+			if ( dnNormalize2(NULL, &subjdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(op, e,

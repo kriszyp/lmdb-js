@@ -161,7 +161,7 @@ do_bind(
 		goto cleanup;
 	} 
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
@@ -543,7 +543,7 @@ do_bind(
 			if ( rs->sr_err != SLAPI_BIND_ANONYMOUS ) {
 				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
 			}
-			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn, &op->o_req_dn, &op->o_req_ndn );
+			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			op->o_conn->c_dn = op->o_req_dn;
 			op->o_conn->c_ndn = op->o_req_ndn;
@@ -588,14 +588,10 @@ do_bind(
 			if(op->orb_edn.bv_len) {
 				op->o_conn->c_dn = op->orb_edn;
 			} else {
-				op->o_conn->c_dn = op->o_req_dn;
-				op->o_req_dn.bv_val = NULL;
-				op->o_req_dn.bv_len = 0;
+				ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
 			}
 
-			op->o_conn->c_ndn = op->o_req_ndn;
-			op->o_req_ndn.bv_val = NULL;
-			op->o_req_ndn.bv_len = 0;
+			ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
 
 			if( op->o_conn->c_dn.bv_len != 0 ) {
 				ber_len_t max = sockbuf_max_incoming_auth;
@@ -649,11 +645,11 @@ cleanup:
 	op->o_conn->c_sasl_bindop = NULL;
 
 	if( op->o_req_dn.bv_val != NULL ) {
-		free( op->o_req_dn.bv_val );
+		sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn.bv_val = NULL;
 	}
 	if( op->o_req_ndn.bv_val != NULL ) {
-		free( op->o_req_ndn.bv_val );
+		sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		op->o_req_ndn.bv_val = NULL;
 	}
 

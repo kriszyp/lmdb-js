@@ -1143,7 +1143,7 @@ backend_group(
 			rc = value_find_ex( group_at,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, op_ndn );
+				a->a_nvals, op_ndn, op->o_tmpmemctx );
 		} else {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}

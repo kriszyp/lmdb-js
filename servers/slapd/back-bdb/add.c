@@ -415,7 +415,7 @@ retry:	/* transaction retry */
 	}
 
 	/* attribute indexes */
-	rs->sr_err = bdb_index_entry_add( op->o_bd, ltid, op->oq_add.rs_e );
+	rs->sr_err = bdb_index_entry_add( op, ltid, op->oq_add.rs_e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 

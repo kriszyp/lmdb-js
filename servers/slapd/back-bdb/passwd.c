@@ -92,7 +92,7 @@ bdb_exop_passwd( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = dnNormalize2( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn, op->o_tmpmemctx );
 	if( rc != LDAP_SUCCESS ) {
 		rs->sr_text = "Invalid DN";
 		goto done;

@@ -33,7 +33,7 @@ passwd_back_search(
 	char		*s;
 	time_t		stoptime;
 
-	LDAPRDN *rdn = NULL;
+	LDAPRDN rdn = NULL;
 	struct berval parent = { 0, NULL };
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
@@ -74,13 +74,13 @@ passwd_back_search(
 				goto done;
 			}
 
-			if( slap_bv2ad( &rdn[0][0]->la_attr, &desc, &rs->sr_text )) {
+			if( slap_bv2ad( &rdn[0]->la_attr, &desc, &rs->sr_text )) {
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				ldap_rdnfree(rdn);
 				goto done;
 			}
 
-			vals[0] = rdn[0][0]->la_value;
+			vals[0] = rdn[0]->la_value;
 			attr_mergeit( e, desc, vals );
 
 			ldap_rdnfree(rdn);
@@ -185,7 +185,7 @@ passwd_back_search(
 
 		ldap_pvt_thread_mutex_lock( &passwd_mutex );
 		pw_start( op->o_bd );
-		if ( (pw = getpwnam( rdn[0][0]->la_value.bv_val )) == NULL ) {
+		if ( (pw = getpwnam( rdn[0]->la_value.bv_val )) == NULL ) {
 			rs->sr_matched = parent.bv_val;
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			ldap_pvt_thread_mutex_unlock( &passwd_mutex );

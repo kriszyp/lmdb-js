@@ -252,7 +252,7 @@ ldbm_back_delete(
 	}
 
 	/* delete attribute indices */
-	(void) index_entry_del( op->o_bd, e );
+	(void) index_entry_del( op, e );
 
 	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );

@@ -174,7 +174,7 @@ add_limits(
 			bv.bv_val = (char *) pattern;
 			bv.bv_len = strlen( pattern );
 
-			rc = dnNormalize2( NULL, &bv, &lm->lm_dn_pat );
+			rc = dnNormalize2( NULL, &bv, &lm->lm_dn_pat, NULL );
 			if ( rc != LDAP_SUCCESS ) {
 				ch_free( lm );
 				return( -1 );

@@ -292,7 +292,8 @@ typedef int slap_syntax_validate_func LDAP_P((
 typedef int slap_syntax_transform_func LDAP_P((
 	struct slap_syntax *syntax,
 	struct berval * in,
-	struct berval * out));
+	struct berval * out,
+	void *memctx));
 
 typedef struct slap_syntax {
 	LDAPSyntax			ssyn_syn;
@@ -350,7 +351,8 @@ typedef struct slap_syntax_defs_rec {
 /* X -> Y Converter */
 typedef int slap_mr_convert_func LDAP_P((
 	struct berval * in,
-	struct berval * out ));
+	struct berval * out,
+	void *memctx ));
 
 /* Normalizer */
 typedef int slap_mr_normalize_func LDAP_P((
@@ -358,7 +360,8 @@ typedef int slap_mr_normalize_func LDAP_P((
 	struct slap_syntax *syntax, /* NULL if in is asserted value */
 	struct slap_matching_rule *mr,
 	struct berval * in,
-	struct berval * out ));
+	struct berval * out,
+	void *memctx ));
 
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
@@ -377,7 +380,8 @@ typedef int slap_mr_indexer_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	BerVarray values,
-	BerVarray *keys ));
+	BerVarray *keys,
+	void *memctx ));
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
@@ -387,7 +391,8 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	BerVarray *keys ));
+	BerVarray *keys,
+	void *memctx ));
 
 typedef struct slap_matching_rule_use MatchingRuleUse;
 

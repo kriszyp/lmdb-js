@@ -129,7 +129,7 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 	if ( ptr == NULL ) return sl_malloc( size, ctx );
 
 	/* Not our memory? */
-	if ( ptr < sh->h_base || ptr >= sh->h_end ) {
+	if ( !sh || ptr < sh->h_base || ptr >= sh->h_end ) {
 		return ch_realloc( ptr, size );
 	}
 
@@ -154,7 +154,7 @@ sl_free( void *ptr, void *ctx )
 {
 	struct slab_heap *sh = ctx;
 
-	if ( ptr < sh->h_base || ptr >= sh->h_end ) {
+	if ( !sh || ptr < sh->h_base || ptr >= sh->h_end ) {
 		ch_free( ptr );
 	}
 }
@@ -164,7 +164,7 @@ sl_release( void *ptr, void *ctx )
 {
 	struct slab_heap *sh = ctx;
 
-	if ( ptr >= sh->h_base && ptr <= sh->h_end ) {
+	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
 		sh->h_last = ptr;
 	}
 }
@@ -173,6 +173,9 @@ void *
 sl_mark( void *ctx )
 {
 	struct slab_heap *sh = ctx;
+	void *ret = NULL;
 
-	return sh->h_last;
+	if (sh) ret = sh->h_last;
+
+	return ret;
 }

@@ -28,14 +28,15 @@ static int objectClassNormalize(
 	struct slap_syntax *syntax, /* NULL if in is asserted value */
 	struct slap_matching_rule *mr,
 	struct berval * in,
-	struct berval * out )
+	struct berval * out,
+	void *ctx )
 {
 	ObjectClass *oc = oc_bvfind( in );
 
 	if( oc != NULL ) {
-		ber_dupbv( out, &oc->soc_cname );
+		ber_dupbv_x( out, &oc->soc_cname, ctx );
 	} else {
-		ber_dupbv( out, in );
+		ber_dupbv_x( out, in, ctx );
 	}
 
 #if OCDEBUG
@@ -118,7 +119,8 @@ static int objectSubClassIndexer(
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	BerVarray values,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	int rc, noc, i;
 	BerVarray ocvalues;
@@ -128,7 +130,7 @@ static int objectSubClassIndexer(
 	}
 
 	/* over allocate */
-	ocvalues = ch_malloc( sizeof( struct berval ) * (noc+16) );
+	ocvalues = sl_malloc( sizeof( struct berval ) * (noc+16), ctx );
 
 	/* copy listed values (and termination) */
 	for( i=0; i<noc; i++ ) {
@@ -185,8 +187,8 @@ static int objectSubClassIndexer(
 			}
 
 			if( !found ) {
-				ocvalues = ch_realloc( ocvalues,
-					sizeof( struct berval ) * (noc+2) );
+				ocvalues = sl_realloc( ocvalues,
+					sizeof( struct berval ) * (noc+2), ctx );
 
 				assert( k == noc );
 
@@ -226,9 +228,9 @@ static int objectSubClassIndexer(
 #endif
 
 	rc = octetStringIndexer( use, mask, syntax, mr,
-		prefix, ocvalues, keysp );
+		prefix, ocvalues, keysp, ctx );
 
-	ch_free( ocvalues );
+	sl_free( ocvalues, ctx );
 	return rc;
 }
 
@@ -240,7 +242,8 @@ static int objectSubClassFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertedValue,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 #if OCDEBUG
 	struct berval *bv = (struct berval *) assertedValue;
@@ -259,7 +262,7 @@ static int objectSubClassFilter(
 #endif
 
 	return octetStringFilter( use, flags, syntax, mr,
-		prefix, assertedValue, keysp );
+		prefix, assertedValue, keysp, ctx );
 }
 
 static ObjectClassSchemaCheckFN rootDseObjectClass;

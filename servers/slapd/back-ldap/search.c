@@ -408,7 +408,7 @@ ldap_build_entry(
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize2?
 	 */
-	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname ) != LDAP_SUCCESS ) {
+	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	
@@ -533,7 +533,8 @@ ldap_build_entry(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
-					&attr->a_vals[i], &attr->a_nvals[i] );
+					&attr->a_vals[i], &attr->a_nvals[i],
+					op->o_tmpmemctx );
 			}
 			attr->a_nvals[i].bv_val = NULL;
 			attr->a_nvals[i].bv_len = 0;

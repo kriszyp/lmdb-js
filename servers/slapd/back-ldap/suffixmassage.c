@@ -121,7 +121,7 @@ ldap_back_dn_massage(
 		/* DN from remote server may be in arbitrary form.
 		 * Pretty it so we can parse reliably.
 		 */
-		dnPretty2( NULL, dn, &pretty );
+		dnPretty2( NULL, dn, &pretty, NULL );
 		if (pretty.bv_val) dn = &pretty;
 	}
 

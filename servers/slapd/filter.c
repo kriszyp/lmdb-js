@@ -426,7 +426,7 @@ get_ssa(
 		/* validate/normalize using equality matching rule validator! */
 		rc = asserted_value_validate_normalize(
 			ssa.sa_desc, ssa.sa_desc->ad_type->sat_equality,
-			usage, &value, &nvalue, text );
+			usage, &value, &nvalue, text, op->o_tmpmemctx );
 
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
@@ -448,7 +448,7 @@ get_ssa(
 				|| ssa.sa_any != NULL 
 				|| ssa.sa_final.bv_val != NULL )
 			{
-				free( nvalue.bv_val );
+				sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
@@ -465,15 +465,11 @@ get_ssa(
 #endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
-				free( nvalue.bv_val );
+				sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
-#ifdef notyet
 			ber_bvarray_add_x( &ssa.sa_any, &nvalue, op->o_tmpmemctx );
-#else
-			ber_bvarray_add( &ssa.sa_any, &nvalue );
-#endif
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
@@ -486,7 +482,7 @@ get_ssa(
 #endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
-				free( nvalue.bv_val );
+				sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
@@ -505,7 +501,7 @@ get_ssa(
 #endif
 
 			assert( 0 );
-			free( nvalue.bv_val );
+			sl_free( nvalue.bv_val, op->o_tmpmemctx );
 
 return_error:
 #ifdef NEW_LOGGING
@@ -516,9 +512,9 @@ return_error:
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
 				(long) rc, 0, 0 );
 #endif
-			free( ssa.sa_initial.bv_val );
-			ber_bvarray_free( ssa.sa_any );
-			free( ssa.sa_final.bv_val );
+			sl_free( ssa.sa_initial.bv_val, op->o_tmpmemctx );
+			ber_bvarray_free_x( ssa.sa_any, op->o_tmpmemctx );
+			sl_free( ssa.sa_final.bv_val, op->o_tmpmemctx );
 			return rc;
 		}
 
@@ -562,19 +558,11 @@ filter_free_x( Operation *op, Filter *f )
 
 	case LDAP_FILTER_SUBSTRINGS:
 		if ( f->f_sub_initial.bv_val != NULL ) {
-#ifdef notyet
 			op->o_tmpfree( f->f_sub_initial.bv_val, op->o_tmpmemctx );
-#else
-			ch_free( f->f_sub_initial.bv_val );
-#endif
 		}
-		ber_bvarray_free( f->f_sub_any );
+		ber_bvarray_free_x( f->f_sub_any, op->o_tmpmemctx );
 		if ( f->f_sub_final.bv_val != NULL ) {
-#ifdef notyet
 			op->o_tmpfree( f->f_sub_final.bv_val, op->o_tmpmemctx );
-#else
-			ch_free( f->f_sub_final.bv_val );
-#endif
 		}
 		op->o_tmpfree( f->f_sub, op->o_tmpmemctx );
 		break;
@@ -1150,19 +1138,11 @@ vrFilter_free( Operation *op, ValuesReturnFilter *vrf )
 
 		case LDAP_FILTER_SUBSTRINGS:
 			if ( vrf->vrf_sub_initial.bv_val != NULL ) {
-#ifdef notyet
 				op->o_tmpfree( vrf->vrf_sub_initial.bv_val, op->o_tmpmemctx );
-#else
-				ch_free( vrf->vrf_sub_initial.bv_val );
-#endif
 			}
 			ber_bvarray_free_x( vrf->vrf_sub_any, op->o_tmpmemctx );
 			if ( vrf->vrf_sub_final.bv_val != NULL ) {
-#ifdef notyet
 				op->o_tmpfree( vrf->vrf_sub_final.bv_val, op->o_tmpmemctx );
-#else
-				ch_free( vrf->vrf_sub_final.bv_val );
-#endif
 			}
 			op->o_tmpfree( vrf->vrf_sub, op->o_tmpmemctx );
 			break;

@@ -157,7 +157,7 @@ static int search_aliases(
 
 	/* Find all aliases in database */
 	BDB_IDL_ALL( bdb, aliases );
-	rs->sr_err = bdb_filter_candidates( op->o_bd, &af, aliases,
+	rs->sr_err = bdb_filter_candidates( op, &af, aliases,
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS) {
 		return rs->sr_err;
@@ -179,7 +179,7 @@ static int search_aliases(
 		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
-		rs->sr_err = bdb_filter_candidates( op->o_bd, sf, subscop, NULL, NULL );
+		rs->sr_err = bdb_filter_candidates( op, sf, subscop, NULL, NULL );
 		if (first) {
 			first = 0;
 		} else {
@@ -1525,12 +1525,12 @@ static int search_candidates(
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, locker, &scopef, ids, stack );
 	} else {
-		rc = bdb_filter_candidates( op->o_bd, &scopef, ids,
+		rc = bdb_filter_candidates( op, &scopef, ids,
 			stack, stack+BDB_IDL_UM_SIZE );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = bdb_filter_candidates( op->o_bd, &f, ids,
+		rc = bdb_filter_candidates( op, &f, ids,
 			stack, stack+BDB_IDL_UM_SIZE );
 	}
 

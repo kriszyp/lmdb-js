@@ -810,7 +810,7 @@ entry_naming_check(
 	char *textbuf, size_t textlen )
 {
 	/* naming check */
-	LDAPRDN		*rdn = NULL;
+	LDAPRDN		rdn = NULL;
 	const char	*p = NULL;
 	ber_len_t	cnt;
 	int		rc = LDAP_SUCCESS;
@@ -827,8 +827,8 @@ entry_naming_check(
 
 	/* Check that each AVA of the RDN is present in the entry */
 	/* FIXME: Should also check that each AVA lists a distinct type */
-	for ( cnt = 0; rdn[0][cnt]; cnt++ ) {
-		LDAPAVA *ava = rdn[0][cnt];
+	for ( cnt = 0; rdn[cnt]; cnt++ ) {
+		LDAPAVA *ava = rdn[cnt];
 		AttributeDescription *desc = NULL;
 		Attribute *attr;
 		const char *errtext;
@@ -859,7 +859,7 @@ entry_naming_check(
 		if ( value_find_ex( desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 			attr->a_nvals,
-			&ava->la_value ) != 0 )
+			&ava->la_value, NULL ) != 0 )
 		{
 			snprintf( textbuf, textlen, 
 				"value of naming attribute '%s' is not present in entry",

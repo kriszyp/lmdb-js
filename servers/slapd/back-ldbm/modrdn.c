@@ -45,8 +45,8 @@ ldbm_back_modrdn(
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
-	LDAPRDN		*new_rdn = NULL;
-	LDAPRDN		*old_rdn = NULL;
+	LDAPRDN		new_rdn = NULL;
+	LDAPRDN		old_rdn = NULL;
 	int		isroot = -1;
 #define CAN_ROLLBACK	-1
 #define MUST_DESTROY	1
@@ -466,7 +466,7 @@ ldbm_back_modrdn(
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
 	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
-	dnNormalize2( NULL, &new_dn, &new_ndn );
+	dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_back_modrdn: new ndn=%s\n", 
@@ -521,14 +521,14 @@ ldbm_back_modrdn(
 	LDAP_LOG ( OPERATION, RESULTS, 
 		"ldbm_back_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val, 
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val, 
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldbm_back_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ][ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ][ 0 ]->la_value.bv_val, 0 );
+		new_rdn[ 0 ]->la_attr.bv_val,
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 #endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {

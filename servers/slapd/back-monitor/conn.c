@@ -394,7 +394,7 @@ monitor_subsys_conn_create(
 		*ep = e;
 
 	} else {
-		LDAPRDN		*values = NULL;
+		LDAPRDN		values = NULL;
 		const char	*text = NULL;
 		unsigned long 	connid;
 	       
@@ -407,9 +407,9 @@ monitor_subsys_conn_create(
 		}
 		
 		assert( values );
-		assert( values[ 0 ][ 0 ] );
+		assert( values[ 0 ] );
 
-		connid = atol( values[ 0 ][ 0 ]->la_value.bv_val
+		connid = atol( values[ 0 ]->la_value.bv_val
 				+ sizeof( CONN_CN_PREFIX ) );
 
 		ldap_rdnfree( values );

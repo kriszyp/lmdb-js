@@ -199,8 +199,8 @@ int
 slap_modrdn2mods(
 	Operation	*op, SlapReply *rs,
 	Entry		*e,
-	LDAPRDN		*oldrdn,
-	LDAPRDN		*newrdn,
+	LDAPRDN		oldrdn,
+	LDAPRDN		newrdn,
 	Modifications	**pmod )
 {
 	return 0;
@@ -217,7 +217,7 @@ slap_mods2entry(
 	return 0;
 }
 
-int slap_sasl_getdn( Connection *conn, char *id, int len,
+int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
 	return -1;

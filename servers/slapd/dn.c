@@ -42,21 +42,21 @@
  * structural representation of a distinguished name.
  */
 static int
-LDAPDN_validate( LDAPDN *dn )
+LDAPDN_validate( LDAPDN dn )
 {
 	int 		iRDN;
 	int 		rc;
 
 	assert( dn );
 
-	for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
-		LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
+	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+		LDAPRDN		rdn = dn[ iRDN ];
 		int		iAVA;
 
 		assert( rdn );
 
-		for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
+		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validate = NULL;
 
@@ -106,7 +106,7 @@ dnValidate(
 	struct berval *in )
 {
 	int		rc;
-	LDAPDN		*dn = NULL;
+	LDAPDN		dn = NULL;
 
 	assert( in );
 
@@ -152,16 +152,16 @@ dnValidate(
  * a RDN should be limited.
  */
 static void
-AVA_Sort( LDAPRDN *rdn, int iAVA )
+AVA_Sort( LDAPRDN rdn, int iAVA )
 {
 	int		i;
-	LDAPAVA		*ava_in = rdn[ 0 ][ iAVA ];
+	LDAPAVA		*ava_in = rdn[ iAVA ];
 
 	assert( rdn );
 	assert( ava_in );
 	
 	for ( i = 0; i < iAVA; i++ ) {
-		LDAPAVA		*ava = rdn[ 0 ][ i ];
+		LDAPAVA		*ava = rdn[ i ];
 		int		a, j;
 
 		assert( ava );
@@ -200,7 +200,7 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 				return;
 			}
 
-			ava = rdn[ 0 ][ i ];
+			ava = rdn[ i ];
 			a = strcmp( ava_in->la_attr.bv_val, 
 					ava->la_attr.bv_val );
 		}
@@ -209,9 +209,9 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 		 * move ahead
 		 */
 		for ( j = iAVA; j > i; j-- ) {
-			rdn[ 0 ][ j ] = rdn[ 0 ][ j - 1 ];
+			rdn[ j ] = rdn[ j - 1 ];
 		}
-		rdn[ 0 ][ i ] = ava_in;
+		rdn[ i ] = ava_in;
 
 		return;
 	}
@@ -222,21 +222,21 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
  * structural representation of a distinguished name.
  */
 static int
-LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
+LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 {
 	int 		iRDN;
 	int 		rc;
 
 	assert( dn );
 
-	for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
-		LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
+	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+		LDAPRDN		rdn = dn[ iRDN ];
 		int		iAVA;
 
 		assert( rdn );
 
-		for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
+		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validf = NULL;
 			slap_mr_normalize_func *normf = NULL;
@@ -303,7 +303,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 					ava->la_value.bv_len
 						? &ava->la_value
 						: (struct berval *) &slap_empty_bv,
-					&bv );
+					&bv, ctx );
 			
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
@@ -322,7 +322,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 					ava->la_value.bv_len
 						? &ava->la_value
 						: (struct berval *) &slap_empty_bv,
-					&bv );
+					&bv, ctx );
 			
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
@@ -331,7 +331,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 
 			if( bv.bv_val ) {
-				free( ava->la_value.bv_val );
+				ber_memfree_x( ava->la_value.bv_val, ctx );
 				ava->la_value = bv;
 			}
 
@@ -348,7 +348,8 @@ dnNormalize(
     Syntax *syntax,
     MatchingRule *mr,
     struct berval *val,
-    struct berval *out )
+    struct berval *out,
+    void *ctx)
 {
 	assert( val );
 	assert( out );
@@ -356,13 +357,13 @@ dnNormalize(
 	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
 
 	if ( val->bv_len != 0 ) {
-		LDAPDN		*dn = NULL;
+		LDAPDN		dn = NULL;
 		int		rc;
 
 		/*
 		 * Go to structural representation
 		 */
-		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn_x( val, &dn, LDAP_DN_FORMAT_LDAP, ctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -372,7 +373,7 @@ dnNormalize(
 		/*
 		 * Schema-aware rewrite
 		 */
-		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
+		if ( LDAPDN_rewrite( dn, 0, ctx ) != LDAP_SUCCESS ) {
 			ldap_dnfree( dn );
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -380,16 +381,16 @@ dnNormalize(
 		/*
 		 * Back to string representation
 		 */
-		rc = ldap_dn2bv( dn, out,
-			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+		rc = ldap_dn2bv_x( dn, out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
 
-		ldap_dnfree( dn );
+		ldap_dnfree_x( dn, ctx );
 
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	} else {
-		ber_dupbv( out, val );
+		ber_dupbv_x( out, val, ctx );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: <%s>\n", out->bv_val, 0, 0 );
@@ -426,7 +427,8 @@ int
 dnPretty2(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval *out)
+	struct berval *out,
+	void *ctx)
 {
 	assert( val );
 	assert( out );
@@ -438,17 +440,17 @@ dnPretty2(
 #endif
 
 	if ( val->bv_len == 0 ) {
-		ber_dupbv( out, val );
+		ber_dupbv_x( out, val, ctx );
 
 	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
 		return LDAP_INVALID_SYNTAX;
 
 	} else {
-		LDAPDN		*dn = NULL;
+		LDAPDN		dn = NULL;
 		int		rc;
 
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn_x( val, &dn, LDAP_DN_FORMAT_LDAP, ctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -458,8 +460,8 @@ dnPretty2(
 		/*
 		 * Schema-aware rewrite
 		 */
-		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
-			ldap_dnfree( dn );
+		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY, ctx ) != LDAP_SUCCESS ) {
+			ldap_dnfree_x( dn, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -467,10 +469,10 @@ dnPretty2(
 		/* RE: the default is the form that is used as
 		 * an internal representation; the pretty form
 		 * is a variant */
-		rc = ldap_dn2bv( dn, out,
-			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+		rc = ldap_dn2bv_x( dn, out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
 
-		ldap_dnfree( dn );
+		ldap_dnfree_x( dn, ctx );
 
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
@@ -486,8 +488,9 @@ int
 dnPrettyNormalDN(
 	Syntax *syntax,
 	struct berval *val,
-	LDAPDN **dn,
-	int flags )
+	LDAPDN *dn,
+	int flags,
+	void *ctx )
 {
 	assert( val );
 	assert( dn );
@@ -512,7 +515,7 @@ dnPrettyNormalDN(
 		int		rc;
 
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_bv2dn( val, dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn_x( val, dn, LDAP_DN_FORMAT_LDAP, ctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -522,8 +525,8 @@ dnPrettyNormalDN(
 		/*
 		 * Schema-aware rewrite
 		 */
-		if ( LDAPDN_rewrite( *dn, flags ) != LDAP_SUCCESS ) {
-			ldap_dnfree( *dn );
+		if ( LDAPDN_rewrite( *dn, flags, ctx ) != LDAP_SUCCESS ) {
+			ldap_dnfree_x( *dn, ctx );
 			*dn = NULL;
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -544,7 +547,8 @@ dnPrettyNormal(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *pretty,
-	struct berval *normal)
+	struct berval *normal,
+	void *ctx)
 {
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, ">>> dnPrettyNormal: <%s>\n", val->bv_val, 0, 0 );
@@ -557,15 +561,15 @@ dnPrettyNormal(
 	assert( normal );
 
 	if ( val->bv_len == 0 ) {
-		ber_dupbv( pretty, val );
-		ber_dupbv( normal, val );
+		ber_dupbv_x( pretty, val, ctx );
+		ber_dupbv_x( normal, val, ctx );
 
 	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
 		/* too big */
 		return LDAP_INVALID_SYNTAX;
 
 	} else {
-		LDAPDN		*dn = NULL;
+		LDAPDN		dn = NULL;
 		int		rc;
 
 		pretty->bv_val = NULL;
@@ -574,7 +578,7 @@ dnPrettyNormal(
 		normal->bv_len = 0;
 
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn_x( val, &dn, LDAP_DN_FORMAT_LDAP, ctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -584,33 +588,33 @@ dnPrettyNormal(
 		/*
 		 * Schema-aware rewrite
 		 */
-		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
-			ldap_dnfree( dn );
+		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY, ctx ) != LDAP_SUCCESS ) {
+			ldap_dnfree_x( dn, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		rc = ldap_dn2bv( dn, pretty,
-			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+		rc = ldap_dn2bv_x( dn, pretty,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
 
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_dnfree( dn );
+			ldap_dnfree_x( dn, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
-			ldap_dnfree( dn );
-			free( pretty->bv_val );
+		if ( LDAPDN_rewrite( dn, 0, ctx ) != LDAP_SUCCESS ) {
+			ldap_dnfree_x( dn, ctx );
+			ber_memfree_x( pretty->bv_val, ctx );
 			pretty->bv_val = NULL;
 			pretty->bv_len = 0;
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		rc = ldap_dn2bv( dn, normal,
-			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+		rc = ldap_dn2bv_x( dn, normal,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
 
-		ldap_dnfree( dn );
+		ldap_dnfree_x( dn, ctx );
 		if ( rc != LDAP_SUCCESS ) {
-			free( pretty->bv_val );
+			ber_memfree_x( pretty->bv_val, ctx );
 			pretty->bv_val = NULL;
 			pretty->bv_len = 0;
 			return LDAP_INVALID_SYNTAX;
@@ -701,9 +705,10 @@ dnParent(
 int
 dnExtractRdn( 
 	struct berval	*dn, 
-	struct berval 	*rdn )
+	struct berval 	*rdn,
+	void *ctx )
 {
-	LDAPRDN		*tmpRDN;
+	LDAPRDN		tmpRDN;
 	const char	*p;
 	int		rc;
 
@@ -714,14 +719,14 @@ dnExtractRdn(
 		return LDAP_OTHER;
 	}
 
-	rc = ldap_bv2rdn( dn, &tmpRDN, (char **)&p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn_x( dn, &tmpRDN, (char **)&p, LDAP_DN_FORMAT_LDAP, ctx );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	rc = ldap_rdn2bv( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+	rc = ldap_rdn2bv_x( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
 
-	ldap_rdnfree( tmpRDN );
+	ldap_rdnfree_x( tmpRDN, ctx );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}

@@ -338,7 +338,7 @@ ldbm_back_add(
 	rs->sr_err = -1;
 
 	/* attribute indexes */
-	if ( index_entry_add( op->o_bd, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
+	if ( index_entry_add( op, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR,
 			"ldbm_back_add: index_entry_add failed.\n", 0, 0, 0 );

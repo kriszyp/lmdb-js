@@ -110,7 +110,7 @@ do_compare(
 		goto cleanup;
 	} 
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
@@ -133,7 +133,7 @@ do_compare(
 	rs->sr_err = asserted_value_validate_normalize( ava.aa_desc,
 		ava.aa_desc->ad_type->sat_equality,
 		SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-		&value, &ava.aa_value, &rs->sr_text );
+		&value, &ava.aa_value, &rs->sr_text, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;
@@ -330,7 +330,7 @@ static int compare_entry(
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 			a->a_nvals,
-			&ava->aa_value ) == 0 )
+			&ava->aa_value, op->o_tmpmemctx ) == 0 )
 		{
 			rc = LDAP_COMPARE_TRUE;
 			break;

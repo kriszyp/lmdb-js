@@ -124,7 +124,8 @@ int octetStringIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	BerVarray values,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	int i;
 	size_t slen, mlen;
@@ -142,7 +143,7 @@ int octetStringIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
+	keys = sl_malloc( sizeof( struct berval ) * (i+1), ctx );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -161,7 +162,7 @@ int octetStringIndexer(
 			values[i].bv_val, values[i].bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_dupbv( &keys[i], &digest );
+		ber_dupbv_x( &keys[i], &digest, ctx );
 	}
 
 	keys[i].bv_val = NULL;
@@ -180,7 +181,8 @@ int octetStringFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertedValue,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	size_t slen, mlen;
 	BerVarray keys;
@@ -194,7 +196,7 @@ int octetStringFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval ) * 2 );
+	keys = sl_malloc( sizeof( struct berval ) * 2, ctx );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -209,7 +211,7 @@ int octetStringFilter(
 		value->bv_val, value->bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
-	ber_dupbv( keys, &digest );
+	ber_dupbv_x( keys, &digest, ctx );
 	keys[1].bv_val = NULL;
 	keys[1].bv_len = 0;
 
@@ -351,7 +353,8 @@ octetStringSubstringsIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	BerVarray values,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	ber_len_t i, j, nkeys;
 	size_t slen, mlen;
@@ -402,7 +405,7 @@ octetStringSubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
+	keys = sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -437,7 +440,7 @@ octetStringSubstringsIndexer(
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				ber_dupbv( &keys[nkeys++], &digest );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
 
@@ -464,7 +467,7 @@ octetStringSubstringsIndexer(
 					values[i].bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				ber_dupbv( &keys[nkeys++], &digest );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
@@ -484,7 +487,7 @@ octetStringSubstringsIndexer(
 					&values[i].bv_val[values[i].bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				ber_dupbv( &keys[nkeys++], &digest );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 
 		}
@@ -510,7 +513,8 @@ octetStringSubstringsFilter (
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertedValue,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx)
 {
 	SubstringsAssertion *sa;
 	char pre;
@@ -559,7 +563,7 @@ octetStringSubstringsFilter (
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
+	keys = sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
 	nkeys = 0;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
@@ -586,7 +590,7 @@ octetStringSubstringsFilter (
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_dupbv( &keys[nkeys++], &digest );
+		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
@@ -620,7 +624,7 @@ octetStringSubstringsFilter (
 					&value->bv_val[j], klen ); 
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				ber_dupbv( &keys[nkeys++], &digest );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
 	}
@@ -649,7 +653,7 @@ octetStringSubstringsFilter (
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_dupbv( &keys[nkeys++], &digest );
+		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 	}
 
 	if( nkeys > 0 ) {
@@ -746,7 +750,8 @@ uniqueMemberNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	struct berval out;
 	int rc;
@@ -773,7 +778,7 @@ uniqueMemberNormalize(
 			*(uid.bv_val++) = '\0';
 		}
 
-		rc = dnNormalize2( NULL, &out, normalized );
+		rc = dnNormalize2( NULL, &out, normalized, ctx );
 
 		if( rc != LDAP_SUCCESS ) {
 			free( out.bv_val );
@@ -982,7 +987,8 @@ UTF8StringNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	struct berval tmp, nvalue;
 	int flags;
@@ -1393,14 +1399,15 @@ telephoneNumberNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	char *p, *q;
 
 	/* validator should have refused an empty string */
 	assert( val->bv_len );
 
-	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
+	q = normalized->bv_val = sl_malloc( val->bv_len + 1, ctx );
 
 	for( p = val->bv_val; *p; p++ ) {
 		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
@@ -1412,7 +1419,7 @@ telephoneNumberNormalize(
 	normalized->bv_len = q - normalized->bv_val;
 
 	if( normalized->bv_len == 0 ) {
-		free( normalized->bv_val );
+		sl_free( normalized->bv_val, ctx );
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -1542,7 +1549,8 @@ integerNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	char *p;
 	int negative=0;
@@ -1575,12 +1583,12 @@ integerNormalize(
 	/* If there are no non-zero digits left, the number is zero, otherwise
 	   allocate space for the number and copy it into the buffer */
 	if( len == 0 ) {
-		normalized->bv_val = ch_strdup("0");
+		normalized->bv_val = ber_strdup_x("0", ctx);
 		normalized->bv_len = 1;
 
 	} else {
 		normalized->bv_len = len+negative;
-		normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
+		normalized->bv_val = sl_malloc( normalized->bv_len + 1, ctx );
 		if( negative ) normalized->bv_val[0] = '-';
 		AC_MEMCPY( normalized->bv_val + negative, p, len );
 		normalized->bv_val[len+negative] = '\0';
@@ -1680,7 +1688,8 @@ IA5StringNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	char *p, *q;
 	int casefold = (mr != slap_schema.si_mr_caseExactIA5Match);
@@ -1694,7 +1703,7 @@ IA5StringNormalize(
 		p++;
 	}
 
-	normalized->bv_val = ch_strdup( p );
+	normalized->bv_val = ber_strdup_x( p, ctx );
 	p = q = normalized->bv_val;
 
 	while ( *p ) {
@@ -1734,7 +1743,7 @@ IA5StringNormalize(
 	normalized->bv_len = q - normalized->bv_val;
 
 	if( normalized->bv_len == 0 ) {
-		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val = sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
 		normalized->bv_len = 1;
@@ -1767,14 +1776,15 @@ numericStringNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	/* removal all spaces */
 	char *p, *q;
 
 	assert( val->bv_len );
 
-	normalized->bv_val = ch_malloc( val->bv_len + 1 );
+	normalized->bv_val = sl_malloc( val->bv_len + 1, ctx );
 
 	p = val->bv_val;
 	q = normalized->bv_val;
@@ -1797,7 +1807,7 @@ numericStringNormalize(
 	normalized->bv_len = q - normalized->bv_val;
 
 	if( normalized->bv_len == 0 ) {
-		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val = sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
 		normalized->bv_len = 1;
@@ -2534,7 +2544,8 @@ generalizedTimeNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized )
+	struct berval *normalized,
+	void *ctx )
 {
 	int parts[9], rc;
 
@@ -2543,7 +2554,7 @@ generalizedTimeNormalize(
 		return rc;
 	}
 
-	normalized->bv_val = ch_malloc( 16 );
+	normalized->bv_val = sl_malloc( 16, ctx );
 	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}

@@ -22,8 +22,7 @@ ava_free(
 	int	freeit
 )
 {
-	/* op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx ); */
-	ch_free( ava->aa_value.bv_val );
+	op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx );
 	if ( freeit ) {
 		op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
 	}
@@ -68,7 +67,7 @@ get_ava(
 
 	rc = asserted_value_validate_normalize(
 		aa->aa_desc, ad_mr(aa->aa_desc, usage),
-		usage, &value, &aa->aa_value, text );
+		usage, &value, &aa->aa_value, text, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
 		op->o_tmpfree( aa, op->o_tmpmemctx );

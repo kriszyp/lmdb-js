@@ -162,7 +162,7 @@ ldap_back_db_config(
 		}
 		
 		ber_str2bv( argv[1], 0, 0, &bvnc );
-		if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, bvnc.bv_val );
 			return( 1 );
@@ -180,7 +180,7 @@ ldap_back_db_config(
 		}
 
 		ber_str2bv( argv[2], 0, 0, &brnc );
-		if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, brnc.bv_val );
 			free( nvnc.bv_val );

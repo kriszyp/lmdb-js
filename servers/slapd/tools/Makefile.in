@@ -46,7 +46,7 @@ SLAPD_OBJS = ../globals.o ../config.o ../ch_malloc.o ../cr.o ../backend.o \
 		../init.o ../controls.o ../kerberos.o ../passwd.o \
 		../index.o ../extended.o ../starttls.o ../sets.o ../mra.o \
 		../referral.o ../backglue.o ../oidm.o ../mods.o ../operation.o \
-		../cancel.o
+		../cancel.o ../sl_malloc.o
 
 SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 

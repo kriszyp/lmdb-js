@@ -173,6 +173,7 @@ ID ldbm_tool_entry_put(
 	Datum key, data;
 	int rc, len;
 	ID id;
+	Operation op = {0};
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
@@ -216,7 +217,11 @@ ID ldbm_tool_entry_put(
 		return NOID;
 	}
 
-	rc = index_entry_add( be, e );
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
+	rc = index_entry_add( &op, e );
 	if( rc != 0 ) {
 		strncpy( text->bv_val, "index add failed", text->bv_len );
 		return NOID;
@@ -260,6 +265,7 @@ int ldbm_tool_entry_reindex(
 {
 	int rc;
 	Entry *e;
+	Operation op = {0};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_tool_entry_reindex: ID=%ld\n", 
@@ -302,7 +308,11 @@ int ldbm_tool_entry_reindex(
 #endif
 
 	dn2id_add( be, &e->e_nname, e->e_id );
-	rc = index_entry_add( be, e );
+
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+	rc = index_entry_add( &op, e );
 
 	entry_free( e );
 

@@ -232,7 +232,7 @@ slap_tool_init(
 	if( base.bv_val != NULL ) {
 		struct berval nbase;
 
-		rc = dnNormalize2( NULL, &base, &nbase );
+		rc = dnNormalize2( NULL, &base, &nbase, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
 				progname, base.bv_val );

@@ -148,10 +148,10 @@ LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
 	struct berval *nval ));
 LDAP_SLAPD_F (int) attr_merge_normalize LDAP_P(( Entry *e,
 	AttributeDescription *desc,
-	BerVarray vals ));
+	BerVarray vals, void *memctx ));
 LDAP_SLAPD_F (int) attr_merge_normalize_one LDAP_P(( Entry *e,
 	AttributeDescription *desc,
-	struct berval *val ));
+	struct berval *val, void *memctx ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -370,29 +370,22 @@ LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
 
-LDAP_SLAPD_F (int) dnNormalize LDAP_P((
-	slap_mask_t use,
-	Syntax *syntax, 
-	MatchingRule *mr,
-	struct berval *val, 
-	struct berval *normalized ));
-#define dnNormalize2(s,v,n)		dnNormalize(0,(s),NULL,(v),(n))
+LDAP_SLAPD_F (slap_mr_normalize_func) dnNormalize;
+#define dnNormalize2(s,v,n,x)		dnNormalize(0,(s),NULL,(v),(n),(x))
 
 LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
 	Syntax *syntax, 
 	struct berval *val, 
 	struct berval **pretty ));
 
-LDAP_SLAPD_F (int) dnPretty2 LDAP_P(( 
-	Syntax *syntax, 
-	struct berval *val, 
-	struct berval *pretty ));
+LDAP_SLAPD_F (slap_syntax_transform_func) dnPretty2;
 
 LDAP_SLAPD_F (int) dnPrettyNormal LDAP_P(( 
 	Syntax *syntax, 
 	struct berval *val, 
 	struct berval *pretty,
-	struct berval *normal ));
+	struct berval *normal,
+	void *ctx ));
 
 LDAP_SLAPD_F (int) dnMatch LDAP_P(( 
 	int *matchp, 
@@ -406,7 +399,7 @@ LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
 LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
-	struct berval *dn, struct berval *rdn ));
+	struct berval *dn, struct berval *rdn, void *ctx ));
 
 LDAP_SLAPD_F (int) rdnValidate LDAP_P(( struct berval * rdn ));
 
@@ -423,11 +416,11 @@ LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out 
 
 LDAP_SLAPD_F (int) dnX509peerNormalize LDAP_P(( void *ssl, struct berval *dn ));
 
-LDAP_SLAPD_F (int) dnPrettyNormalDN LDAP_P(( Syntax *syntax, struct berval *val, LDAPDN **dn, int flags ));
-#define dnPrettyDN(syntax, val, dn) \
-	dnPrettyNormalDN((syntax),(val),(dn), SLAP_LDAPDN_PRETTY)
-#define dnNormalDN(syntax, val, dn) \
-	dnPrettyNormalDN((syntax),(val),(dn), 0)
+LDAP_SLAPD_F (int) dnPrettyNormalDN LDAP_P(( Syntax *syntax, struct berval *val, LDAPDN *dn, int flags, void *ctx ));
+#define dnPrettyDN(syntax, val, dn, ctx) \
+	dnPrettyNormalDN((syntax),(val),(dn), SLAP_LDAPDN_PRETTY, ctx)
+#define dnNormalDN(syntax, val, dn, ctx) \
+	dnPrettyNormalDN((syntax),(val),(dn), 0, ctx)
 
 
 /*
@@ -575,8 +568,8 @@ LDAP_SLAPD_F (int) slap_modrdn2mods(
 	Operation	*op,
 	SlapReply	*rs,
 	Entry		*e,
-	LDAPRDN		*oldrdn,
-	LDAPRDN		*newrdn,
+	LDAPRDN		oldrdn,
+	LDAPRDN		newrdn,
 	Modifications	**pmod );
 
 /*
@@ -586,7 +579,7 @@ LDAP_SLAPD_F( int ) slap_mods_check(
 	Modifications *ml,
 	int update,
 	const char **text,
-	char *textbuf, size_t textlen );
+	char *textbuf, size_t textlen, void *ctx );
 
 LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
@@ -921,23 +914,9 @@ LDAP_SLAPD_V( int ) schema_init_done;
 LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
-LDAP_SLAPD_F( int ) octetStringIndexer(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	BerVarray values,
-	BerVarray *keysp );
+LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
 
-LDAP_SLAPD_F( int ) octetStringFilter(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	void * assertValue,
-	BerVarray *keysp );
+LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
 
 /*
  * schema_prep.c
@@ -1016,7 +995,8 @@ LDAP_SLAPD_F (int) asserted_value_validate_normalize LDAP_P((
 	unsigned usage,
 	struct berval *in,
 	struct berval *out,
-	const char ** text ));
+	const char ** text,
+	void *ctx ));
 
 LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,
@@ -1030,7 +1010,8 @@ LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	AttributeDescription *ad,
 	unsigned flags,
 	BerVarray values,
-	struct berval *value ));
+	struct berval *value,
+	void *ctx ));
 
 LDAP_SLAPD_F (int) value_add LDAP_P((
 	BerVarray *vals,

@@ -108,7 +108,7 @@ do_search(
 		goto return_results;
 	}
 
-	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn );
+	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
@@ -318,11 +318,11 @@ do_search(
 	}
 
 	if( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
-		ch_free( op->o_req_dn.bv_val );
-		ch_free( op->o_req_ndn.bv_val );
+		sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
-		ber_dupbv( &op->o_req_dn, &default_search_base );
-		ber_dupbv( &op->o_req_ndn, &default_search_nbase );
+		ber_dupbv_x( &op->o_req_dn, &default_search_base, op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &default_search_nbase, op->o_tmpmemctx );
 	}
 
 	/*
@@ -392,8 +392,8 @@ return_results:;
 		return rs->sr_err;
 #endif
 
-	if( op->o_req_dn.bv_val != NULL) free( op->o_req_dn.bv_val );
-	if( op->o_req_ndn.bv_val != NULL) free( op->o_req_ndn.bv_val );
+	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );

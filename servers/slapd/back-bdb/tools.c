@@ -220,6 +220,7 @@ ID bdb_tool_entry_put(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
 	struct berval pdn;
+	Operation op = {0};
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -274,7 +275,10 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	rc = bdb_index_entry_add( be, tid, e );
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+	rc = bdb_index_entry_add( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
@@ -335,6 +339,7 @@ int bdb_tool_entry_reindex(
 	Entry *e;
 	DB_TXN *tid = NULL;
 	struct berval pdn;
+	Operation op = {0};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( TOOLS, ARGS, 
@@ -408,7 +413,10 @@ int bdb_tool_entry_reindex(
 		goto done;
 	}
 
-	rc = bdb_index_entry_add( be, tid, e );
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+	rc = bdb_index_entry_add( &op, tid, e );
 
 done:
 	if( rc == 0 ) {

@@ -78,7 +78,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname, op->o_tmpmemctx );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -242,7 +242,7 @@ do_add( Operation *op, SlapReply *rs )
 			size_t textlen = sizeof textbuf;
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen );
+				textbuf, textlen, op->o_tmpmemctx );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );

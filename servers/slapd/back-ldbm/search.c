@@ -20,7 +20,7 @@ static ID_BLOCK	*base_candidate(
 	Backend *be, Entry *e );
 
 static ID_BLOCK	*search_candidates(
-	Backend *be, Entry *e, Filter *filter,
+	Operation *op, Entry *e, Filter *filter,
 	int scope, int deref, int manageDSAit );
 
 
@@ -84,7 +84,7 @@ ldbm_back_search(
 		}
 #endif /* LDAP_CACHING */
 
-		candidates = search_candidates( op->o_bd, e, op->oq_search.rs_filter,
+		candidates = search_candidates( op, e, op->oq_search.rs_filter,
 	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
 				manageDSAit || get_domainScope(op) );
 
@@ -194,7 +194,7 @@ ldbm_back_search(
 	} else {
 		cscope = ( op->oq_search.rs_scope != LDAP_SCOPE_SUBTREE )
 			? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE;
-		candidates = search_candidates( op->o_bd, e, op->oq_search.rs_filter,
+		candidates = search_candidates( op, e, op->oq_search.rs_filter,
 		    op->oq_search.rs_scope, op->oq_search.rs_deref, manageDSAit );
 	}
 
@@ -606,7 +606,7 @@ base_candidate(
 
 static ID_BLOCK *
 search_candidates(
-    Backend	*be,
+    Operation	*op,
     Entry	*e,
     Filter	*filter,
     int		scope,
@@ -663,7 +663,7 @@ search_candidates(
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
-	candidates = filter_candidates( be, &f );
+	candidates = filter_candidates( op, &f );
 
 	return( candidates );
 }
