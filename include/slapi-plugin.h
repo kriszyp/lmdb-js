@@ -25,20 +25,26 @@
 
 #include <ldap.h>
 
-typedef struct slapi_pblock	Slapi_PBlock;
-typedef struct slapi_entry	Slapi_Entry;
-typedef struct slapi_attr	Slapi_Attr;
-typedef struct slapi_value	Slapi_Value;
-typedef struct slapi_valueset	Slapi_ValueSet;
-typedef struct slapi_filter	Slapi_Filter;
-typedef struct slapi_dn		Slapi_DN;
-typedef struct slapi_rdn	Slapi_RDN;
+typedef struct slapi_pblock		Slapi_PBlock;
+typedef struct slapi_entry		Slapi_Entry;
+typedef struct slapi_attr		Slapi_Attr;
+typedef struct slapi_value		Slapi_Value;
+typedef struct slapi_valueset		Slapi_ValueSet;
+typedef struct slapi_filter		Slapi_Filter;
+typedef struct slap_backend_db		Slapi_Backend;
+typedef struct slap_op			Slapi_Operation;
+typedef struct slap_conn		Slapi_Connection;
+typedef struct slapi_dn			Slapi_DN;
+typedef struct slapi_rdn		Slapi_RDN;
+typedef struct slapi_mod		Slapi_Mod;
+typedef struct slapi_mods		Slapi_Mods;
+typedef struct slapi_componentid	Slapi_ComponentId;
 
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
 int slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value );
-Slapi_PBlock *slapi_pblock_new();
-void slapi_pblock_destroy( Slapi_PBlock* );
+Slapi_PBlock *slapi_pblock_new( void );
+void slapi_pblock_destroy( Slapi_PBlock *pb );
 
 /* entry/attr/dn routines */
 Slapi_Entry *slapi_str2entry( char *s, int flags );
@@ -122,6 +128,11 @@ int slapi_entry_add_string(Slapi_Entry *e, const char *type, const char *value);
 int slapi_entry_delete_string(Slapi_Entry *e, const char *type, const char *value);
 int slapi_entry_first_attr( const Slapi_Entry *e, Slapi_Attr **attr );
 int slapi_entry_next_attr( const Slapi_Entry *e, Slapi_Attr *prevattr, Slapi_Attr **attr );
+const char *slapi_entry_get_uniqueid( const Slapi_Entry *e );
+void slapi_entry_set_uniqueid( Slapi_Entry *e, char *uniqueid );
+int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e );
+int slapi_entry_rdn_values_present( const Slapi_Entry *e );
+int slapi_entry_add_rdn_values( Slapi_Entry *e );
 char *slapi_attr_syntax_normalize( const char *s );
 
 Slapi_Value *slapi_value_new( void );
