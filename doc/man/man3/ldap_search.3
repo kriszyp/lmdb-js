@@ -1,4 +1,4 @@
-.TH LDAP_SEARCH 3 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAP_SEARCH 3 "25 July 1999" "OpenLDAP LDVERSION"
 .SH NAME
 ldap_search, ldap_search_s, ldap_search_st \- Perform an LDAP search operation
 .SH SYNOPSIS
@@ -87,8 +87,16 @@ filters.  See
 for routines to help in constructing search filters automatically.
 .LP
 \fIAttrs\fP is a null-terminated array of attribute types to return
-from entries that match \fIfilter\fP.  If NULL is specified, all
-attributes will be returned.  \fIAttrsonly\fP should be set to 1 if
+from entries that match \fIfilter\fP.
+If NULL is specified, all attributes will be returned.
+The type "*" (LDAP_ALL_USER_ATTRIBUTES) may be used to request
+all user attributes to be returned.
+The type "+"(LDAP_ALL_OPERATIONAL_ATTRIBUTES) may be used to request
+all operational attributes to be returned.
+To request no attributes, the type "1.1" (LDAP_NO_ATTRS)
+should be listed by itself.
+.LP
+\fIAttrsonly\fP should be set to 1 if
 only attribute types are wanted.  It should be set to 0 if both
 attributes types and attribute values are wanted.
 .SH ERRORS
