@@ -53,10 +53,9 @@ routine takes an \fIentry\fP as returned by
 or
 .BR ldap_next_entry (3)
 and returns a copy of
-the entry's DN.  Space for the DN will have been obtained via
-.BR malloc (3),
-and should be freed by the caller by a call to
-.BR free (3).
+the entry's DN.  Space for the DN will be obtained dynamically
+and should be freed by the caller using 
+.BR ldap_memfree (3).
 .LP
 The
 .B ldap_explode_dn()
@@ -89,10 +88,9 @@ is used to turn a DN as returned by
 into a more user-friendly form, stripping off type names.  See
 RFC 1781 "Using the Directory to Achieve User Friendly Naming"
 for more details on the UFN format.  The space for the UFN returned
-is obtained by a call to
-.BR malloc (3),
-and the user is responsible for freeing it via a call to
-.BR free (3).
+is obtained dynamically and the user is responsible for freeing it
+via a call to
+.BR ldap_memfree (3).
 .LP
 .B ldap_is_dns_dn()
 returns non-zero if the dn string is an experimental
@@ -124,11 +122,12 @@ will return NULL with
 .BR errno (3)
 set appropriately in case of trouble.
 .SH NOTES
-These routines malloc memory that the caller must free.
+These routines dyanamically allocate memory that the caller must free.
 .SH SEE ALSO
 .BR ldap(3),
-.BR ldap_first_entry(3),
 .BR ldap_error(3),
+.BR ldap_first_entry(3),
+.BR ldap_memfree(3),
 .BR ldap_value_free(3)
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP

@@ -119,7 +119,9 @@ should actually be a pointer to a struct timeval (this is so
 .B ldap_ufn_timeout()
 can be used as a cancelproc in the above routines).
 .SH NOTES
-These routines may malloc memory.  Return values are contained
+These routines may dynamically allocate memory.  The caller is
+required to free such memory using the supplied deallocation routines.
+Return values are contained
 in <ldap.h>.
 .SH SEE ALSO
 .BR gettimeofday (2),

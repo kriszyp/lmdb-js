@@ -69,7 +69,7 @@ for a description of possible error codes.
 .SH NOTES
 The
 .B ldap_first_attribute()
-routine mallocs memory that may need to
+routine dyanamically allocated memory that may need to
 be freed by the caller via
 .BR ber_free (3).
 .SH SEE ALSO

@@ -189,7 +189,7 @@ An unknown error occurred.
 The LDAP library can't contact the LDAP server.
 .TP
 .SM LDAP_LOCAL_ERROR
-Some local error occurred.  This is usually a failed malloc.
+Some local error occurred.  This is usually a failed dynamic memory allocation.
 .TP
 .SM LDAP_ENCODING_ERROR
 An error was encountered encoding parameters to send to the LDAP server.
@@ -212,7 +212,8 @@ An ldap routine was called with a bad parameter (e.g., a NULL ld
 pointer, etc.).
 .TP
 .SM LDAP_NO_MEMORY
-An memory allocation (e.g., malloc(3)) call failed in an ldap
+An memory allocation (e.g., malloc(3) or other dynamic memory
+allocator) call failed in an ldap
 library routine.
 .SH SEE ALSO
 .BR ldap(3),

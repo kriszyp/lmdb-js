@@ -107,7 +107,9 @@ and list functionality are subsumed by these routines,
 by using a filter like "objectclass=*" and a scope of LDAP_SCOPE_BASE (to
 emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
 .LP
-These routines may malloc memory.  Return values are contained
+These routines may dynamically allocate memory.  The caller is
+responsible for freeing such memory using supplied deallocation
+routines.  Return values are contained
 in <ldap.h>.
 .SH SEE ALSO
 .BR ldap (3),

@@ -119,8 +119,8 @@ and
 .B ldap_msgid()
 return -1 on error.
 .SH NOTES
-This routine mallocs memory for results that it receives.  The memory
-can be freed by calling
+This routine dynamically allocates memory for results that it receives.
+The memory can be freed by the caller using
 .BR ldap_msgfree .
 .SH SEE ALSO
 .BR ldap (3),

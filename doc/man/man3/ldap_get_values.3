@@ -91,7 +91,8 @@ indicate the error.  See
 .BR ldap_error (3)
 for a description of possible error codes.
 .SH NOTES
-These routines malloc memory that the caller must free.
+These routines dynamically allocate memory which the caller must free
+using the supplied routines.
 .SH SEE ALSO
 .BR ldap(3),
 .BR ldap_first_entry(3),

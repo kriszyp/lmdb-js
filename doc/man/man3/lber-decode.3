@@ -206,8 +206,9 @@ set to the actual size of the octet string.
 .TP
 .SM O
 Octet string.  A struct ber_val ** should be supplied, which upon return
-points to a malloced struct berval containing the octet string and its
-length.  ber_bvfree() can be called to free the malloced memory.
+points to a dynamically allocated struct berval containing the octet string
+and its length.  ber_bvfree() can be called to free the dynamically
+allocated memory.
 .TP
 .SM b
 Boolean.  A pointer to an integer should be supplied.
@@ -216,7 +217,8 @@ Boolean.  A pointer to an integer should be supplied.
 Integer.  A pointer to an integer should be supplied.
 .TP
 .SM B
-Bitstring.  A char ** should be supplied which will point to the malloced
+Bitstring.  A char ** should be supplied which will point to the
+dynamically allocated
 bits, followed by an unsigned long *, which will point to the length
 (in bits) of the bitstring returned.
 .TP
@@ -226,16 +228,17 @@ it is recognized.
 .TP
 .SM v
 Sequence of octet strings.  A char *** should be supplied, which upon
-return points to a malloced null-terminated array of char *'s
+return points to a dynamically allocated null-terminated array of char *'s
 containing the octet strings.  NULL is returned if the sequence is empty.
 .TP
 .SM V
 Sequence of octet strings with lengths.
 A struct berval *** should be supplied, which upon
-return points to a malloced null-terminated array of struct berval *'s
+return points to a dynamically allocated null-terminated array of
+struct berval *'s
 containing the octet strings and their lengths.
 NULL is returned if the sequence is empty.  ber_bvecfree() can be called
-to free the malloced memory.
+to free the dynamically allocated memory.
 .TP
 .SM x
 Skip element.  The next element is skipped.
@@ -265,12 +268,13 @@ the size of the buffer, and will contain the length of the octet string
 read upon return.  The buffer should be big enough to take the octet
 string value plus a terminating NULL byte.
 .LP
-The ber_get_stringa() routine is used to malloc space into which an octet
+The ber_get_stringa() routine is used to dynamically allocate space into
+which an octet
 string is read.
 .LP
-The ber_get_stringal() routine is used to malloc space into which an octet
-string and its length are read.  It takes a struct berval **, and returns
-the result in this parameter.
+The ber_get_stringal() routine is used to dynamically allocate space
+into which an octet string and its length are read.  It takes a
+struct berval **, and returns the result in this parameter.
 .LP
 The ber_get_null() routine is used to read a NULL element.  It returns
 the tag of the element it skips over.
@@ -279,7 +283,7 @@ The ber_get_boolean() routine is used to read a boolean value.  It is called
 the same way that ber_get_int() is called.
 .LP
 The ber_get_bitstringa() routine is used to read a bitstring value.  It
-takes a char ** which will hold the malloced bits, followed by an
+takes a char ** which will hold the dynamically allocated bits, followed by an
 unsigned long *, which will point to the length (in bits) of the
 bitstring returned.
 .LP
@@ -330,7 +334,9 @@ If an error occurs during decoding, generally these routines return -1.
 .SH NOTES
 .LP
 The return values for all of these functions are declared in the
-<lber.h> header file.  Some routines may malloc memory.
+<lber.h> header file.
+Some routines may dynamically allocate memory
+which must be freed by the caller using supplied deallocation routines.
 .SH SEE ALSO
 .BR lber-encode (3)
 .BR ldap-parse (3)

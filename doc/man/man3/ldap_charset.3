@@ -95,7 +95,7 @@ to be translated and \fI*lenp\fP should contain the number of bytes to
 translate.  If \fIfree_input\fP is non-zero, the input buffer will be
 freed if translation is a success.  If the translation is a success,
 LDAP_SUCCESS will be returned, \fI*bufp\fP will point to a newly
-malloc'd buffer that contains the translated characters, and
+dynamically allocated buffer that contains the translated characters, and
 \fI*lenp\fP will contain the length of the result.  If translation
 fails, an LDAP error code will be returned.
 

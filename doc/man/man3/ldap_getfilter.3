@@ -185,7 +185,9 @@ are no more appropriate filters to return.
 .SH NOTES
 .LP
 The return values for all of these functions are declared in the
-<ldap.h> header file.  Some routines may malloc memory.
+<ldap.h> header file.
+Some routines may dynamically allocate memory
+which the caller must free using the supplied deallocator routines.
 .SH FILES
 ETCDIR/ldapfilter.conf
 .SH SEE ALSO
