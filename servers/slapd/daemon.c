@@ -40,8 +40,6 @@
 
 #include "ldap_rq.h"
 
-#define	HAVE_EPOLL	1
-
 #ifdef HAVE_EPOLL
 #include <sys/epoll.h>
 #endif
@@ -117,7 +115,6 @@ static struct slap_daemon {
 #define	SLAP_EVENTS_ARE_INDEXED	0
 #define	SLAP_SOCK_IX(s)	(slap_daemon.sd_index[s])
 #define SLAP_SOCK_EP(s)	(slap_daemon.sd_epolls[SLAP_SOCK_IX(s)])
-#define SLAP_SOCK_FD(s)	(SLAP_SOCK_EP(s).data.fd)
 #define SLAP_SOCK_EV(s)	(SLAP_SOCK_EP(s).events)
 #define SLAP_SOCK_IS_ACTIVE(s)	(SLAP_SOCK_IX(s) != -1)
 #define SLAP_SOCK_NOT_ACTIVE(s)	(SLAP_SOCK_IX(s) == -1)
