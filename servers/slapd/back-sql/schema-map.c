@@ -106,10 +106,26 @@ backsql_make_attr_query(
 {
 	struct berbuf	bb = BB_NULL;
 
+#ifdef BACKSQL_ALIASING_QUOTE
+	backsql_strfcat( &bb, "lblcbclblbcbl", 
+			(ber_len_t)STRLENOF( "SELECT " ), "SELECT ", 
+			&at_map->bam_sel_expr, 
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING ), " " BACKSQL_ALIASING, 
+			BACKSQL_ALIASING_QUOTE,
+			&at_map->bam_ad->ad_cname,
+			BACKSQL_ALIASING_QUOTE,
+			(ber_len_t)STRLENOF( " FROM " ), " FROM ", 
+			&at_map->bam_from_tbls, 
+			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ", 
+			&oc_map->bom_keytbl,
+			'.', 
+			&oc_map->bom_keycol,
+			(ber_len_t)STRLENOF( "=?" ), "=?" );
+#else /* ! BACKSQL_ALIASING_QUOTE */
 	backsql_strfcat( &bb, "lblblblbcbl", 
 			(ber_len_t)STRLENOF( "SELECT " ), "SELECT ", 
 			&at_map->bam_sel_expr, 
-			(ber_len_t)STRLENOF( " AS " ), " AS ", 
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING ), " " BACKSQL_ALIASING, 
 			&at_map->bam_ad->ad_cname,
 			(ber_len_t)STRLENOF( " FROM " ), " FROM ", 
 			&at_map->bam_from_tbls, 
@@ -118,6 +134,7 @@ backsql_make_attr_query(
 			'.', 
 			&oc_map->bom_keycol,
 			(ber_len_t)STRLENOF( "=?" ), "=?" );
+#endif /* ! BACKSQL_ALIASING_QUOTE */
 
 	if ( !BER_BVISNULL( &at_map->bam_join_where ) ) {
 		backsql_strfcat( &bb, "lb",

@@ -79,6 +79,13 @@
 /*
  * add.c
  */
+int backsql_modify_delete_all_values(
+	Operation 		*op,
+	SlapReply		*rs,
+	SQLHDBC			dbh, 
+	backsql_entryID		*e_id,
+	backsql_at_map_rec	*at );
+
 int backsql_modify_internal(
 	Operation 		*op,
 	SlapReply		*rs,

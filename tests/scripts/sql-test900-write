@@ -95,6 +95,7 @@ sn: Tolstoij
 givenName: Lev
 telephoneNumber: +39 02 XXXX YYYY
 telephoneNumber: +39 02 XXXX ZZZZ
+userPassword: tanja
 
 # Adding a person with an "auxiliary" objectClass...
 dn: cn=Some One,${BASEDN}
@@ -190,6 +191,10 @@ changetype: modify
 delete: objectClass
 objectClass: simpleSecurityObject
 -
+
+# Deleting userPasswords
+dn: cn=Lev Tolstoij,${BASEDN}
+changetype: modify
 delete: userPassword
 -
 
@@ -238,7 +243,20 @@ version: 1
 # Renaming an organization
 dn: o=An Org,${BASEDN}
 changetype: modrdn
-newrdn: o=Another Org
+newrdn: o=Renamed Org
+deleteoldrdn: 1
+
+# Renaming a person
+dn: cn=Lev Tolstoij,${BASEDN}
+changetype: modrdn
+newrdn: cn=Lev Tolstoij
+deleteoldrdn: 0
+newsuperior: dc=subnet,${BASEDN}
+
+# Renaming a book
+dn: documentTitle=book2,${BASEDN}
+changetype: modrdn
+newrdn: documentTitle=Renamed Book
 deleteoldrdn: 1
 
 EOMODS

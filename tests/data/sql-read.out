@@ -40,6 +40,7 @@ telephoneNumber: 545-4563
 
 # refldap://localhost/dc=example,dc=com??sub
 
+# Testing invalid filter...
 # Testing exact search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -237,7 +238,6 @@ telephoneNumber: 545-4563
 
 # refldap://localhost/dc=example,dc=com??sub
 
-# Testing NOT search on sn...
 # Testing attribute inheritance in filter...
 dn: dc=example,dc=com
 objectClass: organization

@@ -99,6 +99,18 @@
 #undef BACKSQL_ARBITRARY_KEY
 
 /*
+ * define to the appropriate aliasing string
+ */
+#define BACKSQL_ALIASING	"AS "
+/* #define	BACKSQL_ALIASING	"" */
+
+/*
+ * define to the appropriate quoting char
+ */
+/* #define BACKSQL_ALIASING_QUOTE	'"' */
+/* #define BACKSQL_ALIASING_QUOTE	'\'' */
+
+/*
  * API
  */
 typedef struct backsql_api {

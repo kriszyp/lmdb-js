@@ -32,8 +32,8 @@
 
 #define MAX_ATTR_LEN 16384
 
-typedef struct backsql_conn {
-	int		ldap_cid;
+typedef struct backsql_db_conn {
+	unsigned long	ldap_cid;
 	SQLHDBC		dbh;
 } backsql_db_conn;
 

@@ -88,6 +88,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing invalid filter..."
+echo "# Testing invalid filter..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(foo=)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing exact search..."
 echo "# Testing exact search..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
@@ -258,7 +270,7 @@ fi
 
 #### Needs work...
 echo "Testing NOT presence search... (disabled)"
-###echo "# Testing NOT search on sn..." >> $SEARCHOUT
+###echo "# Testing NOT presence search..." >> $SEARCHOUT
 ###$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
 ###	 '(!(sn=*))' >> $SEARCHOUT 2>&1
 ###

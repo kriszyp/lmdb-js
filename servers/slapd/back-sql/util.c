@@ -318,18 +318,18 @@ backsql_get_table_spec( char **p )
 	s = q;
 
 	BACKSQL_NEXT_WORD;
-	if ( !strcasecmp( s, "as" ) ) {
+	if ( strcasecmp( s, "AS" ) == 0 ) {
 		s = q;
 		BACKSQL_NEXT_WORD;
 	}
 
-#if 0
-	backsql_strcat( &res, " AS ", s, NULL );
-	/* oracle doesn't understand AS :( and other RDBMSes don't need it */
-#endif
-
-	/* table alias */
-	backsql_strfcat( &res, "cs", ' ', s );
+	/* oracle doesn't understand "AS" :( and other RDBMSes don't need it */
+#ifdef BACKSQL_ALIASING_QUOTE
+	backsql_strfcat( &res, "scsc", " " BACKSQL_ALIASING,
+			BACKSQL_ALIASING_QUOTE, s, BACKSQL_ALIASING_QUOTE );
+#else /* ! BACKSQL_ALIASING */
+	backsql_strcat( &res, " " BACKSQL_ALIASING, s, NULL );
+#endif /* ! BACKSQL_ALIASING */
 
 	return res.bb_val.bv_val;
 }

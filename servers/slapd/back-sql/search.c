@@ -1015,9 +1015,21 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				&bsi->bsi_oc->bom_oc->soc_cname,
 				'\'' );
 	}
+#ifdef BACKSQL_ALIASING_QUOTE
+	backsql_strfcat( &bsi->bsi_sel, "lclcl",
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING ),
+				" " BACKSQL_ALIASING,
+			BACKSQL_ALIASING_QUOTE,
+			(ber_len_t)STRLENOF( "objectClass" ),
+				"objectClass",
+			BACKSQL_ALIASING_QUOTE,
+			(ber_len_t)STRLENOF( ",ldap_entries.dn " BACKSQL_ALIASING "dn" ),
+				",ldap_entries.dn " BACKSQL_ALIASING "dn" );
+#else /* ! BACKSQL_ALIASING_QUOTE */
 	backsql_strfcat( &bsi->bsi_sel, "l",
-			(ber_len_t)STRLENOF( " AS objectClass,ldap_entries.dn AS dn" ),
-			" AS objectClass,ldap_entries.dn AS dn" );
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING "objectClass,ldap_entries.dn " BACKSQL_ALIASING "dn" ),
+				" " BACKSQL_ALIASING "objectClass,ldap_entries.dn " BACKSQL_ALIASING "dn" );
+#endif /* ! BACKSQL_ALIASING_QUOTE */
 
 	backsql_strfcat( &bsi->bsi_from, "lb",
 			(ber_len_t)STRLENOF( " FROM ldap_entries," ),

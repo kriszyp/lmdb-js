@@ -39,16 +39,17 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	RETCODE			rc;
 	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT,
 				pe_id = BACKSQL_ENTRYID_INIT,
-				new_pid = BACKSQL_ENTRYID_INIT;
+				new_pe_id = BACKSQL_ENTRYID_INIT;
 	backsql_oc_map_rec	*oc = NULL;
-	struct berval		p_dn, p_ndn,
+	struct berval		p_dn = BER_BVNULL, p_ndn = BER_BVNULL,
 				*new_pdn = NULL, *new_npdn = NULL,
-				new_dn, new_ndn;
+				new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
 	LDAPRDN			new_rdn = NULL;
 	LDAPRDN			old_rdn = NULL;
 	Entry			e;
-	Modifications		*mod;
+	Modifications		*mod = NULL;
 	struct berval		*newSuperior = op->oq_modrdn.rs_newSup;
+	char			*next;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_modrdn() renaming entry \"%s\", "
 			"newrdn=\"%s\", newSuperior=\"%s\"\n",
@@ -174,9 +175,10 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
-	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn, NULL );
+	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn,
+			op->o_tmpmemctx );
 	rs->sr_err = dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn,
-		op->o_tmpmemctx );
+			op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"new dn is invalid (\"%s\") - aborting\n",
@@ -209,7 +211,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	backsql_free_entryID( &pe_id, 0 );
 
-	rs->sr_err = backsql_dn2id( bi, &new_pid, dbh, new_npdn );
+	rs->sr_err = backsql_dn2id( bi, &new_pe_id, dbh, new_npdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup new parent entry id\n", 0, 0, 0 );
@@ -221,16 +223,29 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"new parent entry id=%s\n", new_pid.eid_id.bv_val, 0, 0 );
+		"new parent entry id=%s\n", new_pe_id.eid_id.bv_val, 0, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"new parent entry id=%ld\n", new_pid.eid_id, 0, 0 );
+		"new parent entry id=%ld\n", new_pe_id.eid_id, 0, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
  
 	Debug(	LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"executing delentry_query\n", 0, 0, 0 );
-	SQLAllocStmt( dbh, &sth );
+
+	rc = backsql_Prepare( dbh, &sth, bi->delentry_query, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_modrdn(): "
+			"error preparing delentry_query\n", 0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+				sth, rc );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
 #ifdef BACKSQL_ARBITRARY_KEY
 	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
 			0, 0, e_id.eid_id.bv_val, 0, 0 );
@@ -238,54 +253,71 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
 			0, 0, &e_id.eid_id, 0, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
-	rc = SQLExecDirect( sth, bi->delentry_query, SQL_NTS );
+	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"failed to delete record from ldap_entries\n",
 			0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
 		send_ldap_result( op, rs );
-		goto modrdn_return;
+		goto done;
 	}
 
-	SQLFreeStmt( sth, SQL_RESET_PARAMS );
+	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"executing insentry_query\n", 0, 0, 0 );
+
+	rc = backsql_Prepare( dbh, &sth, bi->insentry_query, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_modrdn(): "
+			"error preparing insentry_query\n", 0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+				sth, rc );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
 	backsql_BindParamStr( sth, 1, new_dn.bv_val, BACKSQL_MAX_DN_LEN );
 	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &e_id.eid_oc_id, 0, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
 	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
-			0, 0, new_pid.eid_id.bv_val, 0, 0 );
+			0, 0, new_pe_id.eid_id.bv_val, 0, 0 );
 	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
 			0, 0, e_id.eid_keyval.bv_val, 0, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &new_pid.eid_id, 0, 0 );
+			0, 0, &new_pe_id.eid_id, 0, 0 );
 	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &e_id.eid_keyval, 0, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
-	rc = SQLExecDirect( sth, bi->insentry_query, SQL_NTS );
+	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not insert ldap_entries record\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
 		send_ldap_result( op, rs );
-		goto modrdn_return;
+		goto done;
 	}
+	SQLFreeStmt( sth, SQL_DROP );
 
 	/*
 	 * Get attribute type and attribute value of our new rdn,
 	 * we will need to add that to our new entry
 	 */
-	if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn,
-				(char **)&rs->sr_text, 
-				LDAP_DN_FORMAT_LDAP ) ) {
+	if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn, &next, 
+				LDAP_DN_FORMAT_LDAP ) )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
 			"   backsql_modrdn: can't figure out "
@@ -298,7 +330,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			0, 0, 0 );
 #endif
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
-		goto modrdn_return;
+		goto done;
 	}
 
 #ifdef NEW_LOGGING
@@ -316,9 +348,9 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 #endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {
-		if ( ldap_bv2rdn( &op->o_req_dn, &old_rdn,
-					(char **)&rs->sr_text,
-					LDAP_DN_FORMAT_LDAP ) ) {
+		if ( ldap_bv2rdn( &op->o_req_dn, &old_rdn, &next,
+					LDAP_DN_FORMAT_LDAP ) )
+		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
 				"   backsql_modrdn: can't figure out "
@@ -331,7 +363,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 				0, 0, 0 );
 #endif
 			rs->sr_err = LDAP_OTHER;
-			goto modrdn_return;		
+			goto done;		
 		}
 	}
 
@@ -350,24 +382,24 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, mod );
 
-	if ( rs->sr_err == LDAP_SUCCESS ) {
+done:;
+	/*
+	 * Commit only if all operations succeed
+	 */
+	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+		SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
 
-		/*
-		 * Commit only if all operations succeed
-		 */
-		SQLTransact( SQL_NULL_HENV, dbh,
-				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
+	} else {
+		SQLTransact( SQL_NULL_HENV, dbh, SQL_ROLLBACK );
 	}
 
-modrdn_return:
-	SQLFreeStmt( sth, SQL_DROP );
-
-	if ( new_dn.bv_val ) {
-		ch_free( new_dn.bv_val );
+modrdn_return:;
+	if ( !BER_BVISNULL( &new_dn ) ) {
+		slap_sl_free( new_dn.bv_val, op->o_tmpmemctx );
 	}
 	
-	if ( new_ndn.bv_val ) {
-		ch_free( new_ndn.bv_val );
+	if ( !BER_BVISNULL( &new_ndn ) ) {
+		slap_sl_free( new_ndn.bv_val, op->o_tmpmemctx );
 	}
 	
 	/* LDAP v2 supporting correct attribute handling. */
@@ -379,14 +411,14 @@ modrdn_return:
 	}
 	if ( mod != NULL ) {
 		Modifications *tmp;
-		for (; mod; mod=tmp ) {
+		for (; mod; mod = tmp ) {
 			tmp = mod->sml_next;
 			free( mod );
 		}
 	}
 
-	if ( new_pid.eid_dn.bv_val ) {
-		backsql_free_entryID( &pe_id, 0 );
+	if ( new_pe_id.eid_dn.bv_val ) {
+		backsql_free_entryID( &new_pe_id, 0 );
 	}
 
 	send_ldap_result( op, rs );
