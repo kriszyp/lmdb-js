@@ -27,8 +27,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -49,8 +49,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing substrings initial search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -60,8 +60,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing substrings any search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -71,8 +71,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing substrings final search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -82,8 +82,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing approx search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -93,8 +93,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing extensible filter search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -104,8 +104,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing search for telephoneNumber...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -115,8 +115,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing AND search...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -126,8 +126,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing AND search on objectClass...
 dn: dc=example,dc=com
@@ -144,8 +144,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 # Testing OR search on objectClass...
 dn: documentTitle=book1,dc=example,dc=com
@@ -225,8 +225,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -253,8 +253,8 @@ sn: Kovalev
 seeAlso: documentTitle=book1,dc=example,dc=com
 seeAlso: documentTitle=book2,dc=example,dc=com
 givenName: Mitya
-telephoneNumber: 332-2334
 telephoneNumber: 222-3234
+telephoneNumber: 332-2334
 
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 objectClass: inetOrgPerson
