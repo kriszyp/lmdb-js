@@ -329,11 +329,10 @@ search:  the name of the server <host>, the LDAP DN search base
 <base>, the LDAP attributes to retrieve <attrs>, the search scope
 <scope> which is one of the three options "base", "one", or "sub",
 and lastly an LDAP search filter <filter>. Since the search is for
-an LDAP DN on the local machine, the <host> portion is ignored. By
-the same token the <attrs> field is also ignored since only the DN
-is of concern.  These two elements are left in the format of the
-URL to maintain the clarity of what information goes where in the
-string.
+an LDAP DN on the local machine, the <host> portion should be empty.
+The <attrs> field is also ignored since only the DN is of concern.
+These two elements are left in the format of the URL to maintain
+the clarity of what information goes where in the string.
 
 Suppose that the person in the example from above did in fact have
 an authentication username of "adamson" and that information was
@@ -342,7 +341,7 @@ directive might be written as
 
 >	sasl-regexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth  
->	  ldap://localhost/ou=person,dc=example,dc=com??sub?uid=$1
+>	  ldap:///ou=person,dc=example,dc=com??sub?uid=$1
 
 This will initiate an internal search of the LDAP database inside
 the slapd server. If the search returns exactly one entry, it is
@@ -502,7 +501,7 @@ and the authenticated user can become ANY DN returned by the search.
 If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
->	saslAuthzTo: ldap://host/dc=example,dc=com??sub?objectclass=Person
+>	saslAuthzTo: ldap:///dc=example,dc=com??sub?objectclass=Person
 
 then any user who authenticated as cn=WebUpdate,dc=example,dc=com
 could authorize to any other LDAP entry under the search base
