@@ -773,6 +773,14 @@ slap_sasl_canonicalize(
 	if ( inlen > out_max )
 		inlen = out_max-1;
 
+	/* This is a Simple Bind using SPASSWD. That means the in-directory
+	 * userPassword of the Binding user already points at SASL, so it
+	 * cannot be used to actually satisfy a password comparison. Just
+	 * ignore it, some other mech will process it.
+	 */
+	if ( !conn->c_sasl_bindop ||
+		conn->c_sasl_bindop->orb_method != LDAP_AUTH_SASL ) goto done;
+
 	/* See if we need to add request, can only do it once */
 	prop_getnames( props, slap_propnames, auxvals );
 	if ( !auxvals[0].name )
@@ -866,6 +874,10 @@ slap_sasl_authorize(
 	struct propval auxvals[3];
 	struct berval authcDN, authzDN;
 	int rc;
+
+	/* Simple Binds don't support proxy authorization, ignore it */
+	if ( !conn->c_sasl_bindop ||
+		conn->c_sasl_bindop->orb_method != LDAP_AUTH_SASL ) return SASL_OK;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
