@@ -270,7 +270,8 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		rc = dnNormalize2( NULL, dn, &dn2 );
 		free(dn->bv_val);
 		if ( rc != LDAP_SUCCESS ) {
-			*dn = slap_empty_bv;
+			dn->bv_val = NULL;
+			dn->bv_len = 0;
 			return rc;
 		}
 		*dn = dn2;
