@@ -1138,8 +1138,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		"ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
-
+		"ldap_pvt_thread_pool_submit failed (%d)\n", status, 0, 0 );
 		/* should move op to pending list */
 	}
 
