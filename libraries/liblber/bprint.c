@@ -21,12 +21,12 @@
  * we set ber_pvt_err_file to stderr later, when it first gets
  * referenced.
  */
-FILE *ber_pvt_err_file;
+FILE *ber_pvt_err_file = NULL;
 
 /*
  * ber errno
  */
-BER_ERRNO_FN ber_int_errno_fn;
+BER_ERRNO_FN ber_int_errno_fn = NULL;
 
 int * ber_errno_addr(void)
 {
