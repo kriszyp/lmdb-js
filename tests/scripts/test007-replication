@@ -174,7 +174,7 @@ echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 
 echo "Comparing retrieved entries from master and slave..."
-$CMP $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"
