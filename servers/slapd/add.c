@@ -258,7 +258,7 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 			}
 
-			if ( SLAP_LASTMOD(be) && !repl_user ) {
+			if ( !repl_user ) {
 				for( modtail = &modlist;
 					*modtail != NULL;
 					modtail = &(*modtail)->sml_next )
@@ -266,7 +266,7 @@ do_add( Connection *conn, Operation *op )
 					assert( (*modtail)->sml_op == LDAP_MOD_ADD );
 					assert( (*modtail)->sml_desc != NULL );
 				}
-				rc = slap_mods_opattrs( op, modlist, modtail, &text,
+				rc = slap_mods_opattrs( be, op, modlist, modtail, &text,
 					textbuf, textlen );
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
