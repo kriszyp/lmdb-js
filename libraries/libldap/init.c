@@ -304,6 +304,12 @@ void openldap_ldap_initialize( void )
 	LDAP_BOOL_SET(&gopts, LDAP_BOOL_REFERRALS);
 #endif
 
+	openldap_ldap_initialized = 1;
+
+	if( getenv("LDAPNOINIT") != NULL ) {
+		return;
+	}
+
 	openldap_ldap_init_w_conf(DEFAULT_LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(DEFAULT_LDAP_USERRC_FILE);
 
@@ -316,6 +322,4 @@ void openldap_ldap_initialize( void )
 	}
 
 	openldap_ldap_init_w_env(NULL);
-
-	openldap_ldap_initialized = 1;
 }
