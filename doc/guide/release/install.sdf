@@ -5,9 +5,7 @@
 P1: Making and Installing the OpenLDAP Distribution
 
 This file provides brief instructions on how to build and install
-OpenLDAP on UNIX (and UNIX-{{like}}) system.  For other systems,
-please consult {{The OpenLDAP Administrator's Guide}}
-{{URL:http://www.openldap.org/doc/admin/}}.
+OpenLDAP on UNIX (and UNIX-{{like}}) system.
 
 It is recommended that you read, or at least skim through, ALL of
 the instructions in this file before attempting to build the
@@ -15,7 +13,7 @@ software.
 
 It is also recommended your review
 {{The OpenLDAP Administrator's Guide}}
-({{URL:http://www.openldap.org/devel/admin/}}) and
+({{URL:http://www.openldap.org/doc/admin/}}) and
 the {{Frequently Asked Questions}} ({{URL:http://www.openldap.org/faq/}})
 pages, in particular the
 {{Installation section}} ({{URL:http://www.openldap.org/faq/index.cgi?file=8}})
