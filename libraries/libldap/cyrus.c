@@ -124,15 +124,16 @@ sb_sasl_remove( Sockbuf_IO_Desc *sbiod )
 }
 
 static ber_len_t
-sb_sasl_pkt_length( const char *buf, int debuglevel )
+sb_sasl_pkt_length( const unsigned char *buf, int debuglevel )
 {
 	ber_len_t		size;
-	long			tmp;
 
 	assert( buf != NULL );
 
-	tmp = *((long *)buf);
-	size = ntohl( tmp );
+	size = buf[0] << 24
+		| buf[1] << 16
+		| buf[2] << 8
+		| buf[3];
    
 	/* we really should check against actual buffer size set
 	 * in the secopts.
@@ -767,7 +768,10 @@ int ldap_pvt_sasl_secprops(
 				return LDAP_NOT_SUPPORTED;
 			}
 
-			if( maxbufsize > SASL_MAX_BUFF_SIZE ) {
+			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE ) {
+				|| (maxbufsize > SASL_MAX_BUFF_SIZE ))
+			{
+				/* bad maxbufsize */
 				return LDAP_PARAM_ERROR;
 			}
 
