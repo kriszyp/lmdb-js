@@ -208,7 +208,8 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE USAGE directoryOperation )",
 		NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
-	{ "collectiveSubentry", "( 2.5.18.12 NAME 'collectiveAttributeSubentry' "
+	{ "collectiveAttributeSubentry", "( 2.5.18.12 "
+			"NAME 'collectiveAttributeSubentry' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"USAGE directoryOperation NO-USER-MODIFICATION )",
@@ -349,12 +350,12 @@ static struct slap_schema_ad_map {
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.35 USAGE directoryOperation )",
 		NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_nameForms) },
-	{ "matchingRuleUses", "( 2.5.21.8 NAME 'matchingRuleUse' "
+	{ "matchingRuleUse", "( 2.5.21.8 NAME 'matchingRuleUse' "
 			"DESC 'RFC2252: matching rule uses' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )",
 		NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_matchingRuleUses) },
+		offsetof(struct slap_internal_schema, si_ad_matchingRuleUse) },
 
 	{ "ldapSyntaxes", "( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes' "
 			"DESC 'RFC2252: LDAP syntaxes' "

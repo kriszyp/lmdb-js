@@ -555,7 +555,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_attributeTypes;
 	AttributeDescription *si_ad_ldapSyntaxes;
 	AttributeDescription *si_ad_matchingRules;
-	AttributeDescription *si_ad_matchingRuleUses;
+	AttributeDescription *si_ad_matchingRuleUse;
 
 	/* Aliases & Referrals */
 	AttributeDescription *si_ad_aliasedObjectName;

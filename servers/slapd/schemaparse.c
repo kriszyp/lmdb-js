@@ -218,14 +218,12 @@ parse_at(
 		return 1;
 	}
 
-#if 0
 	/* operational attributes should be defined internally */
 	if ( at->at_usage ) {
 		fprintf( stderr, "%s: line %d: attribute type \"%s\" is operational\n",
 			 fname, lineno, at->at_oid );
 		return 1;
 	}
-#endif
 
 	code = at_add(at,&err);
 	if ( code ) {
