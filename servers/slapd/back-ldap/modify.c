@@ -79,7 +79,7 @@ ldap_back_modify(
 
 	for (i=0, ml=modlist; ml; i++, ml=ml->sml_next) {
 		modv[i] = &mods[i];
-		mods[i].mod_op = ml->sml_op;
+		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		mods[i].mod_type = ml->sml_desc->ad_cname->bv_val;
 		mods[i].mod_bvalues = ml->sml_bvalues;
 	}
