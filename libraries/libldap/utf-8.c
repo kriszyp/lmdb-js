@@ -38,16 +38,18 @@ ber_len_t ldap_utf8_bytes( const char * p )
 
 ber_len_t ldap_utf8_chars( const char * p )
 {
-	/* could be optimized */
-	int chars=0;
-	int i=0;
-	unsigned char *u;
+	/* could be optimized and could check for invalid sequences */
+	ber_len_t chars;
 
-	for( i=0; u[i]; i++) {
-		if ( u[i] & 0xC0 != 0x80 ) chars++;
-	}
+	for( chars=0; *p ; chars++ ) {
+		int charlen = ldap_utf8_charlen( p );
 
-	return i;
+		if( !charlen ) return chars;
+
+		p = &p[charlen];
+	};
+
+	return chars;
 }
 
 int ldap_utf8_charlen( const char * p )
@@ -178,4 +180,44 @@ int ldap_utf8_isspace( const char * p )
 	}
 
 	return 0;
+}
+
+char* ldap_utf8_fgetc( FILE *s, char *buf )
+{
+	int i;
+	unsigned char *p;
+	unsigned int c;
+	int len;
+
+	if( s == NULL ) return NULL;
+
+	p = buf;
+
+	c = fgetc( s );
+	if( c == EOF ) {
+		p[0] = -1;
+		return NULL;
+	}
+
+	p[0] = c;
+
+	len = ldap_utf8_charlen( buf );
+
+	if( len < 1 ) return NULL;
+
+	for( i = 1; i < len; i++ ) {
+		unsigned int c = fgetc( s );
+		if( c == EOF ) {
+			p[i] = -1;
+			return NULL;
+		}
+		if( c & 0xC0 != 0x80 ) {
+			ungetc( c, s );
+			p[i] = -1;
+			return NULL;
+		}
+		p[i] = c;
+	}
+
+	return buf;
 }
