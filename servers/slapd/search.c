@@ -217,7 +217,7 @@ do_search(
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "search function not implemented", NULL, NULL );
 	}
 
 return_results:;
