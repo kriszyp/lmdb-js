@@ -94,25 +94,25 @@ ______________<BR>
 
 # OpenLDAP related organization
 !block organisations; data
-Name	 Long					Jump
-OpenLDAP OpenLDAP				http://www.openldap.org/
-OLF	 OpenLDAP Foundation			http://www.openldap.org/foundation/
-OLP	 OpenLDAP Project			http://www.openldap.org/project/
-UM	 University of Michigan			http://www.umich.edu/
-UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirsvcs/ldap/
-IANA	 Internet Assigned Numbers Authority	http://www.iana.org/
-IAB	 Internet Architecture Board		http://www.iab.org/
-IETF	 Internet Engineering Task Force	http://www.ietf.org/
-IESG	 Internet Engineering Steering Group	http://www.ietf.org/iesg/
-IRTF	 Internet Research Task Force		http://www.irtf.org/
-ISO	 International Standards Organisation	http://www.iso.org/
-ITU	 International Telephone Union		http://www.itu.int/
-RFC	 RFC Editor				http://www.rfc-editor.org/
-OpenSSL  OpenSSL				http://www.openssl.org/
-Cyrus	 Cyrus					http://asg.web.cmu.edu/cyrus/
-Sleepy	 Sleepycat Software			http://www.sleepycat.com/
-FSF	 Free Software Foundation		http://www.fsf.org/
-GNU	 GNU Not Unix 				http://www.gnu.org/
+Name	 Long						Jump
+OpenLDAP OpenLDAP					http://www.openldap.org/
+OLF	 OpenLDAP Foundation				http://www.openldap.org/foundation/
+OLP	 OpenLDAP Project				http://www.openldap.org/project/
+UM	 University of Michigan				http://www.umich.edu/
+UMLDAP	 University of Michigan LDAP			http://www.umich.edu/~dirsvcs/ldap/
+IANA	 Internet Assigned Numbers Authority		http://www.iana.org/
+IAB	 Internet Architecture Board			http://www.iab.org/
+IETF	 Internet Engineering Task Force		http://www.ietf.org/
+IESG	 Internet Engineering Steering Group		http://www.ietf.org/iesg/
+IRTF	 Internet Research Task Force			http://www.irtf.org/
+ISO	 International Organization for Standardization	http://www.iso.ch/
+ITU	 International Telephone Union			http://www.itu.int/
+RFC	 RFC Editor					http://www.rfc-editor.org/
+OpenSSL  OpenSSL					http://www.openssl.org/
+Cyrus	 Cyrus						http://asg.web.cmu.edu/cyrus/
+Sleepy	 Sleepycat Software				http://www.sleepycat.com/
+FSF	 Free Software Foundation			http://www.fsf.org/
+GNU	 GNU Not Unix 					http://www.gnu.org/
 !endblock
 
 !block products; data
