@@ -31,6 +31,10 @@ bdb_add(
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 	int subentry;
+#if 0
+	u_int32_t	lockid;
+	DB_LOCK		lock;
+#endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
 
@@ -69,6 +73,7 @@ retry:	rc = txn_abort( ltid );
 			text = "internal error";
 			goto return_results;
 		}
+		ldap_pvt_thread_yield();
 	}
 
 	/* begin transaction */
@@ -84,6 +89,9 @@ retry:	rc = txn_abort( ltid );
 			text = "internal error";
 			goto return_results;
 		}
+#if 0
+		lockid = TXN_ID( ltid );
+#endif
 	}
 
 	opinfo.boi_bdb = be;
@@ -100,7 +108,7 @@ retry:	rc = txn_abort( ltid );
 		pdn.bv_len = 0;
 		pdn.bv_val = "";
 	} else {
-		rc = dnParent( e->e_nname.bv_val, &pdn.bv_val );
+		rc = dnParent( e->e_nname.bv_val, (const char **)&pdn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 			text = "internal error";
 			goto return_results;
@@ -110,6 +118,16 @@ retry:	rc = txn_abort( ltid );
 
 	if( pdn.bv_len != 0 ) {
 		Entry *matched = NULL;
+
+#if 0
+		if ( ltid ) {
+			DBT obj;
+			obj.data = pdn.bv_val-1;
+			obj.size = pdn.bv_len+1;
+			rc = LOCK_GET( bdb->bi_dbenv, lockid, 0, &obj,
+				DB_LOCK_WRITE, &lock);
+		}
+#endif
 
 		/* get parent */
 		rc = bdb_dn2entry( be, ltid, &pdn, &p, &matched, 0 );
@@ -251,6 +269,15 @@ retry:	rc = txn_abort( ltid );
 			text = "no parent, cannot add subentry";
 			goto return_results;;
 		}
+#if 0
+		if ( ltid ) {
+			DBT obj;
+			obj.data = ",";
+			obj.size = 1;
+			rc = LOCK_GET( bdb->bi_dbenv, lockid, 0, &obj,
+				DB_LOCK_WRITE, &lock);
+		}
+#endif
 	}
 
 	/* dn2id index */

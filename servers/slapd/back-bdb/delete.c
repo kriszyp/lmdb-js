@@ -24,7 +24,7 @@ bdb_delete(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	Entry	*matched;
-	char	*pdn = NULL;
+	struct berval	pdn = {0, NULL};
 	Entry	*e, *p = NULL;
 	int	rc;
 	const char *text;
@@ -32,6 +32,10 @@ bdb_delete(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
+#if 0
+	u_int32_t	lockid;
+	DB_LOCK		lock;
+#endif
 
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
 		dn->bv_val, 0, 0 );
@@ -48,6 +52,7 @@ retry:	/* transaction retry */
 			text = "internal error";
 			goto return_results;
 		}
+		ldap_pvt_thread_yield();
 	}
 
 	if( bdb->bi_txn ) {
@@ -63,6 +68,9 @@ retry:	/* transaction retry */
 			text = "internal error";
 			goto return_results;
 		}
+#if 0
+		lockid = TXN_ID( ltid );
+#endif
 	}
 
 	opinfo.boi_bdb = be;
@@ -70,70 +78,29 @@ retry:	/* transaction retry */
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
-	/* get entry for read/modify/write */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
-
-	switch( rc ) {
-	case 0:
-	case DB_NOTFOUND:
-		break;
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	default:
-		rc = LDAP_OTHER;
-		text = "internal error";
-		goto return_results;
-	}
-
-	if ( e == NULL ) {
-		char *matched_dn = NULL;
-		BerVarray refs;
-
-		Debug( LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: no such object %s\n",
-			dn->bv_val, 0, 0);
-
-		if ( matched != NULL ) {
-			matched_dn = ch_strdup( matched->e_dn );
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
-				: NULL;
-			bdb_entry_return( be, matched );
-			matched = NULL;
-
-		} else {
-			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
-		}
-
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn, NULL, refs, NULL );
-
-		ber_bvarray_free( refs );
-		free( matched_dn );
-
-		rc = -1;
-		goto done;
-	}
-
-	if ( be_issuffix( be, ndn->bv_val ) ) {
-		pdn = NULL;
-	} else {
-		rc = dnParent( ndn->bv_val, &pdn );
+	if ( !be_issuffix( be, ndn->bv_val ) ) {
+		rc = dnParent( ndn->bv_val, &pdn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 			text = "internal error";
 			goto return_results;
 		}
+		if (pdn.bv_val && pdn.bv_val[0]) {
+			pdn.bv_len = ndn->bv_len - (pdn.bv_val - ndn->bv_val);
+		}
 	}
 
-	if( pdn != NULL && *pdn != '\0' ) {
-		struct berval pbv;
-
-		pbv.bv_len = ndn->bv_len - (pdn - ndn->bv_val);
-		pbv.bv_val = pdn;
+	if( pdn.bv_len != 0 ) {
+#if 0
+		if ( ltid ) {
+			DBT obj;
+			obj.data = pdn.bv_val-1;
+			obj.size = pdn.bv_len+1;
+			rc = LOCK_GET( bdb->bi_dbenv, lockid, 0, &obj,
+				DB_LOCK_WRITE, &lock);
+		}
+#endif
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, &pbv, &p, NULL, 0 );
+		rc = bdb_dn2entry( be, ltid, &pdn, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -199,6 +166,62 @@ retry:	/* transaction retry */
 				goto return_results;
 			}
 		}
+#if 0
+		if ( ltid ) {
+			DBT obj;
+			obj.data = ",";
+			obj.size = 1;
+			rc = LOCK_GET( bdb->bi_dbenv, lockid, 0, &obj,
+				DB_LOCK_WRITE, &lock);
+		}
+#endif
+	}
+
+	/* get entry for read/modify/write */
+	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
+
+	switch( rc ) {
+	case 0:
+	case DB_NOTFOUND:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	default:
+		rc = LDAP_OTHER;
+		text = "internal error";
+		goto return_results;
+	}
+
+	if ( e == NULL ) {
+		char *matched_dn = NULL;
+		BerVarray refs;
+
+		Debug( LDAP_DEBUG_ARGS,
+			"<=- bdb_delete: no such object %s\n",
+			dn->bv_val, 0, 0);
+
+		if ( matched != NULL ) {
+			matched_dn = ch_strdup( matched->e_dn );
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+			bdb_entry_return( be, matched );
+			matched = NULL;
+
+		} else {
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
+		}
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			matched_dn, NULL, refs, NULL );
+
+		ber_bvarray_free( refs );
+		free( matched_dn );
+
+		rc = -1;
+		goto done;
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {
@@ -244,7 +267,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rc = bdb_dn2id_delete( be, ltid, pdn, e );
+	rc = bdb_dn2id_delete( be, ltid, pdn.bv_val, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -257,22 +280,6 @@ retry:	/* transaction retry */
 			"<=- bdb_delete: dn2id failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		text = "DN index delete failed";
-		goto return_results;
-	}
-
-	/* delete indices for old attributes */
-	rc = bdb_index_entry_del( be, ltid, e, e->e_attrs );
-	if ( rc != LDAP_SUCCESS ) {
-		switch( rc ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		default:
-			rc = LDAP_OTHER;
-		}
-		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
-			0, 0, 0 );
-		text = "entry index delete failed";
 		goto return_results;
 	}
 
@@ -293,6 +300,21 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	/* delete indices for old attributes */
+	rc = bdb_index_entry_del( be, ltid, e, e->e_attrs );
+	if ( rc != LDAP_SUCCESS ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
+		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
+			0, 0, 0 );
+		text = "entry index delete failed";
+		goto return_results;
+	}
 
 #if 0	/* Do we want to reclaim deleted IDs? */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_lastid_mutex );

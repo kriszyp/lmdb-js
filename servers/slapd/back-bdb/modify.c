@@ -212,6 +212,7 @@ retry:	/* transaction retry */
 			text = "internal error";
 			goto return_results;
 		}
+		ldap_pvt_thread_yield();
 	}
 
 	if( bdb->bi_txn ) {
