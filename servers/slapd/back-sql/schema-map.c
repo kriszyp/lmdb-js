@@ -567,6 +567,73 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 	return res;
 }
 
+/* attributeType inheritance */
+struct supad2at_t {
+	backsql_at_map_rec	**ret;
+	AttributeDescription	*ad;
+	unsigned		n;
+};
+
+#define SUPAD2AT_STOP	(-1)
+
+static int
+supad2at_f( void *v_at, void *v_arg )
+{
+	backsql_at_map_rec	*at = (backsql_at_map_rec *)v_at;
+	struct supad2at_t	*va = (struct supad2at_t *)v_arg;
+
+	if ( is_at_subtype( at->bam_ad->ad_type, va->ad->ad_type ) ) {
+		backsql_at_map_rec	**ret;
+
+		ret = ch_realloc( va->ret, sizeof( backsql_at_map_rec *) * ( va->n + 2 ) );
+		if ( ret == NULL ) {
+			ch_free( va->ret );
+			return SUPAD2AT_STOP;
+		}
+
+		ret[ va->n ] = at;
+		va->n++;
+		ret[ va->n ] = NULL;
+		va->ret = ret;
+	}
+
+	return 0;
+}
+
+/*
+ * stores in *pret a NULL terminated array of pointers
+ * to backsql_at_map_rec whose attributeType is supad->ad_type 
+ * or derived from it
+ */
+int
+backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
+		backsql_at_map_rec ***pret )
+{
+	struct supad2at_t	va;
+	int			rc;
+
+	assert( objclass );
+	assert( supad );
+	assert( pret );
+
+	*pret = NULL;
+
+	va.ret = NULL;
+	va.ad = supad;
+	va.n = 0;
+	
+	rc = avl_apply( objclass->bom_attrs, supad2at_f, &va,
+			SUPAD2AT_STOP, AVL_INORDER );
+	if ( rc == SUPAD2AT_STOP ) {
+		return -1;
+	}
+
+	*pret = va.ret;
+
+	return 0;
+}
+
+
 #if 0
 /*
  * Deprecated

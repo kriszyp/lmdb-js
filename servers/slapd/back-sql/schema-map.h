@@ -100,6 +100,8 @@ backsql_at_map_rec *backsql_name2at( backsql_oc_map_rec *objclass,
 		struct berval *at_name );
 backsql_at_map_rec *backsql_ad2at( backsql_oc_map_rec *objclass,
 		AttributeDescription *ad );
+int backsql_supad2at( backsql_oc_map_rec *objclass,
+		AttributeDescription *supad, backsql_at_map_rec ***pret );
 int backsql_destroy_schema_map( backsql_info *si );
 
 #endif /* __BACKSQL_SCHEMA_MAP_H__ */
