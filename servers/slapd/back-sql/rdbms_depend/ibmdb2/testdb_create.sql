@@ -32,6 +32,13 @@ CREATE TABLE phones (
 	pers_id int NOT NULL 
 );
 
+drop table referrals;
+CREATE TABLE referrals (
+	id int NOT NULL,
+	name varchar(255) NOT NULL,
+	url varchar(255) NOT NULL
+);
+
 
 
 ALTER TABLE authors_docs  ADD 

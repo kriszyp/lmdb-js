@@ -50,13 +50,6 @@ alter table ldap_entries add
 		dn
 	);  
 
-drop table ldap_referrals;
-create table ldap_referrals
- (
-	entry_id integer not null references ldap_entries(id),
-	url varchar(256) not null
-);
-
 drop table ldap_entry_objclasses;
 create table ldap_entry_objclasses
  (

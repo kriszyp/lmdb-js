@@ -14,3 +14,5 @@ insert into documents (id,abstract,title) values (2,'abstract2','book2');
 insert into authors_docs (pers_id,doc_id) values (1,1);
 insert into authors_docs (pers_id,doc_id) values (1,2);
 insert into authors_docs (pers_id,doc_id) values (2,1);
+
+insert into referrals (id,name,url) values (1,'Referral','ldap://localhost:9010/');

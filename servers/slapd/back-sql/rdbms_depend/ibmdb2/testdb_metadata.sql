@@ -21,6 +21,10 @@ insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,de
 values (3,'organization','institutes','id','INSERT INTO institutes (id,name) VALUES ((SELECT max(id)+1 FROM institutes),'''')',
 	'SELECT max(id) FROM institutes','DELETE FROM institutes WHERE id=?',0);
 
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
+values (4,'referral','referrals','id','INSERT INTO referrals (id,name,url) VALUES ((SELECT max(id)+1 FROM referrals),'''','''')',
+	'SELECT max(id) FROM referrals','DELETE FROM referrals WHERE id=?',0);
+
 -- attributeType mappings: describe how an attributeType for a certain objectClass maps to the SQL data.
 --      id              a unique number identifying the attribute       
 --      oc_map_id       the value of "ldap_oc_mappings.id" that identifies the objectClass this attributeType is defined for
@@ -78,39 +82,42 @@ values (12,3,'dc','lcase(institutes.name)','institutes,ldap_entries AS dcObject,
 	'institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',
 	NULL,NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (13,4,'ou','referrals.name','referrals',NULL,'UPDATE referrals SET name=? WHERE id=?',NULL,3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (14,4,'ref','referrals.url','referrals',NULL,'UPDATE referrals SET url=? WHERE id=?',NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --      id              a unique number > 0 identifying the entry
 --      dn              the DN of the entry, in "pretty" form
 --      oc_map_id       the "ldap_oc_mappings.id" of the main objectClass of this entry (view it as the structuralObjectClass)
 --      parent          the "ldap_entries.id" of the parent of this objectClass; 0 if it is the "suffix" of the database
 --      keyval          the value of the "keytbl.keycol" defined for this objectClass
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(1,'dc=example,dc=com',3,0,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (1,'dc=example,dc=com',3,0,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(2,'cn=Mitya Kovalev,dc=example,dc=com',1,1,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (2,'cn=Mitya Kovalev,dc=example,dc=com',1,1,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(3,'cn=Torvlobnor Puzdoy,dc=example,dc=com',1,1,2);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (3,'cn=Torvlobnor Puzdoy,dc=example,dc=com',1,1,2);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(4,'cn=Akakiy Zinberstein,dc=example,dc=com',1,1,3);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (4,'cn=Akakiy Zinberstein,dc=example,dc=com',1,1,3);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(5,'documentTitle=book1,dc=example,dc=com',2,1,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (5,'documentTitle=book1,dc=example,dc=com',2,1,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values
-(6,'documentTitle=book2,dc=example,dc=com',2,1,2);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (6,'documentTitle=book2,dc=example,dc=com',2,1,2);
+
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (7,'ou=Referral,dc=example,dc=com',4,1,1);
 
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
 --      entry_id        the "ldap_entries.id" of the entry this objectClass value must be added
 --      oc_name         the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name) values (1,'dcObject');
 
-insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
-
--- referrals mapping: entries that should be treated as referrals are stored here
---      entry_id        the "ldap_entries.id" of the entry that should be treated as a referral
---      url             the URI of the referral
-insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost:9010/');
-
+insert into ldap_entry_objclasses (entry_id,oc_name) values (7,'extensibleObject');
