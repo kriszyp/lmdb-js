@@ -693,7 +693,7 @@ int slap_sasl_authorized( Connection *conn,
 	}
 
 	/* Allow the manager to authorize as any DN. */
-	if( be_isroot( conn->c_authz_backend, authcDN )) {
+	if( conn->c_authz_backend && be_isroot( conn->c_authz_backend, authcDN )) {
 		rc = LDAP_SUCCESS;
 		goto DONE;
 	}
