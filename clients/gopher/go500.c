@@ -378,23 +378,21 @@ int	s;
 
 	rewind(fp);
 
-	if ( *query != '~' && *query != '@' ) {
-		if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
-			fprintf(fp,
-			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-			    LDAP_SERVER_DOWN, myhost, myport );
-			fprintf( fp, ".\r\n" );
-			rewind(fp);
-			exit( 1 );
-		}
+	if ( *query == '~' || *query == '@' ) {
+		ld = NULL;
+	} else if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+		fprintf(fp,
+			"0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
+			LDAP_SERVER_DOWN, myhost, myport );
+		fprintf( fp, ".\r\n" );
+		rewind(fp);
+		exit( 1 );
+	} else {
+		int deref = GO500_DEREF;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-		{
-			int deref = GO500_DEREF;
-			ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
-		}
-
-		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED ))
-		    != LDAP_SUCCESS ) {
+		rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED );
+		if ( rc != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
 			    rc, myhost, myport );
@@ -428,7 +426,8 @@ int	s;
 
 	fprintf( fp, ".\r\n" );
 	rewind(fp);
-	ldap_unbind( ld );
+	if ( ld )
+		ldap_unbind( ld );
 
 	exit( 1 );
 	/* NOT REACHED */
