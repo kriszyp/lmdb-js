@@ -1,18 +1,16 @@
     A N N O U N C E M E N T
 
-    OpenLDAP 2.0-Beta
+    OpenLDAP 2.0-Gamma
 
     The OpenLDAP Project is pleased to announce the availability
-    of OpenLDAP 2.0-Beta, a suite of the Lightweight Weight
+    of OpenLDAP 2.0-Gamma, a suite of the Lightweight Weight
     Directory Protocol servers, clients, utilities, and development
     tools.
 
-    This beta release is for TESTING PURPOSES ONLY.
-    This beta release is NOT for GENERAL USE.
-    This beta release is NOT feature complete nor well tested.
-    This beta release is NOT fully documented.
+    This gamma release is for TESTING PURPOSES ONLY.
+    This gamma release is NOT for GENERAL USE.
 
-    This release contains the following major enhancements:
+    This gamma release contains the following major enhancements:
 
         * LDAPv3 support
             + RFC 2251-2256
