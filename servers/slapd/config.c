@@ -748,27 +748,6 @@ read_config( const char *fname )
 
 #endif
 
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-		} else if ( !strcasecmp( cargv[0], "extension" ) ) {
-			if ( cargc < 2 ) {
-				Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: missing oid in \"extension <oid> <libpath>\" line\n",
-						fname, lineno, 0 );
-			} else if ( cargc < 3 ) {
-				Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: missing libpath in \"extension <oid> <libpath>\" line\n",
-						fname, lineno, 0 );
-			} else {
-				rc = load_extension(cargv[1], cargv[2], cargc - 3, (cargc > 3) ? cargv + 3 : NULL);
-				if (rc != 0) {
-					Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: failed to load or initialize extension library %s\n",
-							fname, lineno, cargv[2]);
-					return rc;
-				}
-			}
-#endif
-
 		/* pass anything else to the current backend info/db config routine */
 		} else {
 			if ( bi != NULL ) {
