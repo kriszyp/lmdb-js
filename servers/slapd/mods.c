@@ -37,8 +37,10 @@ modify_add_values(
 	const char	**text,
 	char *textbuf, size_t textlen )
 {
+	int rc;
 	const char *op;
 	Attribute *a;
+	Modification pmod = *mod;
 
 	switch( mod->sm_op ) {
 	case LDAP_MOD_ADD:
@@ -54,7 +56,7 @@ modify_add_values(
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
 	if( a != NULL ) { /* check if values to add exist in attribute */
-		int	rc, i, j;
+		int	rc, i, j, p;
 		MatchingRule *mr;
 
 		mr = mod->sm_desc->ad_type->sat_equality;
@@ -68,15 +70,25 @@ modify_add_values(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
+		if( permissive ) {
+			for ( i=0; mod->sm_values[i].bv_val; i++ ) /* count 'em */;
+			pmod.sm_values = (BerVarray) ch_malloc( i*sizeof( struct berval ));
+			if( pmod.sm_nvalues != NULL ) {
+				pmod.sm_nvalues = (BerVarray) ch_malloc(
+					i*sizeof( struct berval ));
+			}
+		}
+
 		/* no normalization is done in this routine nor
 		 * in the matching routines called by this routine. 
 		 * values are now normalized once on input to the
 		 * server (whether from LDAP or from the underlying
 		 * database).
 		 */
-		for ( i=0; mod->sm_values[i].bv_val; i++ ) {
+		for ( p=i=0; mod->sm_values[i].bv_val; i++ ) {
+			int match;
+			assert( a->a_vals[0].bv_val );
 			for ( j=0; a->a_vals[j].bv_val; j++ ) {
-				int match;
 				if( mod->sm_nvalues ) {
 					rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
@@ -90,6 +102,8 @@ modify_add_values(
 				}
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
+					if( permissive ) break;
+
 					/* value already exists */
 					*text = textbuf;
 					snprintf( textbuf, textlen,
@@ -98,11 +112,32 @@ modify_add_values(
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 			}
+
+			if( permissive && !match ) {
+				if( pmod.sm_nvalues ) {
+					pmod.sm_nvalues[p] = mod->sm_nvalues[i];
+				}
+				pmod.sm_values[p++] = mod->sm_values[i];
+			}
+		}
+
+		if( permissive && p == 0 ) {
+			/* all new values match exist */
+			ch_free( pmod.sm_values );
+			if( pmod.sm_nvalues ) ch_free( pmod.sm_nvalues );
+			return LDAP_SUCCESS;
 		}
 	}
 
 	/* no - add them */
-	if( attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues ) != 0 ) {
+	rc = attr_merge( e, mod->sm_desc, pmod.sm_values, pmod.sm_nvalues );
+
+	if( a != NULL && permissive ) {
+		ch_free( pmod.sm_values );
+		if( pmod.sm_nvalues ) ch_free( pmod.sm_nvalues );
+	}
+
+	if( rc != 0 ) {
 		/* this should return result of attr_merge */
 		*text = textbuf;
 		snprintf( textbuf, textlen,
