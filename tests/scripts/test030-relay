@@ -118,7 +118,7 @@ fi
 BASEDN="o=Beispiel,c=DE"
 echo "modifying database \"$BASEDN\"..."
 $LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
-	-e manageDSAit >> $TESTOUT 2>&1 << EOMODS
+	-M >> $TESTOUT 2>&1 << EOMODS
 dn: cn=Added User,ou=Alumni Association,ou=People,$BASEDN
 changetype: add
 objectClass: OpenLDAPperson
@@ -208,8 +208,8 @@ echo "	attrs=\"'*' ref\""
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -220,8 +220,8 @@ fi
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -232,8 +232,8 @@ fi
 BASEDN="o=Esempio,c=IT"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
