@@ -16,7 +16,6 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
 
 #define LDAP_KRB_PRINCIPAL	"ldapserver"
 
