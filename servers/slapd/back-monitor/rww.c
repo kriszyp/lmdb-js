@@ -87,11 +87,11 @@ monitor_subsys_rww_init(
 			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
-			monitor_rww[i].rdn.bv_val,
+			monitor_rww[ i ].rdn.bv_val,
 			ms->mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-			&monitor_rww[i].rdn.bv_val[STRLENOF("cn")],
+			&monitor_rww[ i ].rdn.bv_val[ STRLENOF( "cn=" ) ],
 			mi->mi_creatorsName.bv_val,
 			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
@@ -108,15 +108,16 @@ monitor_subsys_rww_init(
 
 		/* steal normalized RDN */
 		dnRdn( &e->e_nname, &nrdn );
-		ber_dupbv( &monitor_rww[i].nrdn, &nrdn );
+		ber_dupbv( &monitor_rww[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
 		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
 		mp->mp_flags = ms->mss_flags \
 			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -125,7 +126,7 @@ monitor_subsys_rww_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_rww_init: "
 				"unable to add entry \"%s,%s\"\n",
-				monitor_rww[i].rdn.bv_val,
+				monitor_rww[ i ].rdn.bv_val,
 				ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
@@ -163,8 +164,8 @@ monitor_subsys_rww_update(
 
 	dnRdn( &e->e_nname, &nrdn );
 
-	for ( i = 0; !BER_BVISNULL( &monitor_rww[i].nrdn ); i++ ) {
-		if ( dn_match( &nrdn, &monitor_rww[i].nrdn ) ) {
+	for ( i = 0; !BER_BVISNULL( &monitor_rww[ i ].nrdn ); i++ ) {
+		if ( dn_match( &nrdn, &monitor_rww[ i ].nrdn ) ) {
 			break;
 		}
 	}
@@ -207,14 +208,14 @@ monitor_subsys_rww_update(
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 	assert( a );
 	len = strlen( buf );
-	if ( len > a->a_vals[0].bv_len ) {
-		a->a_vals[0].bv_val = ber_memrealloc( a->a_vals[0].bv_val, len + 1 );
-		if ( a->a_vals[0].bv_val == NULL ) {
-			BER_BVZERO( &a->a_vals[0] );
+	if ( len > a->a_vals[ 0 ].bv_len ) {
+		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
+		if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
+			BER_BVZERO( &a->a_vals[ 0 ] );
 			return( 0 );
 		}
 	}
-	AC_MEMCPY( a->a_vals[0].bv_val, buf, len + 1 );
+	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 	a->a_vals[ 0 ].bv_len = len;
 
 	return( 0 );

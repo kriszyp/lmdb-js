@@ -110,3 +110,19 @@ monitor_entry_test_flags(
 	return( ( mp->mp_flags & cond ) || ( mp->mp_info->mss_flags & cond ) );
 }
 
+struct monitorentrypriv *
+monitor_entrypriv_create( void )
+{
+	struct monitorentrypriv	*mp;
+
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+
+	mp->mp_next = NULL;
+	mp->mp_children = NULL;
+	mp->mp_info = NULL;
+	mp->mp_flags = MONITOR_F_NONE;
+	mp->mp_update = NULL;
+	mp->mp_private = NULL;
+
+	return mp;
+}

@@ -68,7 +68,7 @@ monitor_subsys_listener_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	for ( i = 0; l[i]; i++ ) {
+	for ( i = 0; l[ i ]; i++ ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
 		Entry		*e;
 
@@ -89,8 +89,8 @@ monitor_subsys_listener_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
 				mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
-				l[i]->sl_name.bv_val,
-				l[i]->sl_url.bv_val,
+				l[ i ]->sl_name.bv_val,
+				l[ i ]->sl_url.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -106,7 +106,7 @@ monitor_subsys_listener_init(
 		}
 
 #ifdef HAVE_TLS
-		if ( l[i]->sl_is_tls ) {
+		if ( l[ i ]->sl_is_tls ) {
 			struct berval bv;
 
 			bv.bv_val = "TLS";
@@ -117,7 +117,7 @@ monitor_subsys_listener_init(
 		}
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
-		if ( l[i]->sl_is_udp ) {
+		if ( l[ i ]->sl_is_udp ) {
 			struct berval bv;
 
 			BER_BVSTR( &bv, "UDP" );
@@ -126,10 +126,11 @@ monitor_subsys_listener_init(
 		}
 #endif /* HAVE_TLS */
 
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
 		mp->mp_flags = ms->mss_flags
 			| MONITOR_F_SUB;

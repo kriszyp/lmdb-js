@@ -89,10 +89,11 @@ monitor_subsys_conn_init(
 	BER_BVSTR( &bv, "0" );
 	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -141,10 +142,11 @@ monitor_subsys_conn_init(
 	BER_BVSTR( &bv, "0" );
 	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -397,10 +399,12 @@ conn_create(
 	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
 			&c->c_peer_name, NULL );
 
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
 	mp->mp_info = ms;
-	mp->mp_children = NULL;
 	mp->mp_flags = MONITOR_F_SUB | MONITOR_F_VOLATILE;
 
 	*ep = e;

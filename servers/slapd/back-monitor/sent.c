@@ -89,11 +89,11 @@ monitor_subsys_sent_init(
 				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
-				monitor_sent[i].rdn.bv_val,
+				monitor_sent[ i ].rdn.bv_val,
 				ms->mss_dn.bv_val,
 				mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 				mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-				&monitor_sent[i].rdn.bv_val[STRLENOF( "cn=" )],
+				&monitor_sent[ i ].rdn.bv_val[ STRLENOF( "cn=" ) ],
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -104,22 +104,23 @@ monitor_subsys_sent_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_sent_init: "
 				"unable to create entry \"%s,%s\"\n",
-				monitor_sent[i].rdn.bv_val,
+				monitor_sent[ i ].rdn.bv_val,
 				ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
 		/* steal normalized RDN */
 		dnRdn( &e->e_nname, &nrdn );
-		ber_dupbv( &monitor_sent[i].nrdn, &nrdn );
+		ber_dupbv( &monitor_sent[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
 		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
 		mp->mp_flags = ms->mss_flags \
 			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -128,7 +129,7 @@ monitor_subsys_sent_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_sent_init: "
 				"unable to add entry \"%s,%s\"\n",
-				monitor_sent[i].rdn.bv_val,
+				monitor_sent[ i ].rdn.bv_val,
 				ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
@@ -162,7 +163,7 @@ monitor_subsys_sent_update(
 	dnRdn( &e->e_nname, &nrdn );
 
 	for ( i = 0; i < MONITOR_SENT_LAST; i++ ) {
-		if ( dn_match( &nrdn, &monitor_sent[i].nrdn ) ) {
+		if ( dn_match( &nrdn, &monitor_sent[ i ].nrdn ) ) {
 			break;
 		}
 	}

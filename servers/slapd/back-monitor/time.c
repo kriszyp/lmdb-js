@@ -89,10 +89,11 @@ monitor_subsys_time_init(
 		return( -1 );
 	}
 	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -140,10 +141,11 @@ monitor_subsys_time_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -222,8 +224,8 @@ monitor_subsys_time_update(
 			return( -1 );
 		}
 
-		assert( len == a->a_vals[0].bv_len );
-		AC_MEMCPY( a->a_vals[0].bv_val, tmbuf, len );
+		assert( len == a->a_vals[ 0 ].bv_len );
+		AC_MEMCPY( a->a_vals[ 0 ].bv_val, tmbuf, len );
 	}
 
 	return( 0 );

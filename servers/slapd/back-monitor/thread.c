@@ -87,10 +87,11 @@ monitor_subsys_thread_init(
 		return( -1 );
 	}
 	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
@@ -137,10 +138,11 @@ monitor_subsys_thread_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;

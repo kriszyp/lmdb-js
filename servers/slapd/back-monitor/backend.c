@@ -76,7 +76,7 @@ monitor_subsys_backend_init(
 		int		j;
 		Entry		*e;
 
-		bi = &backendInfo[i];
+		bi = &backendInfo[ i ];
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Backend %d,%s\n"
@@ -125,7 +125,7 @@ monitor_subsys_backend_init(
 		}
 
 		for ( j = 0; j < nBackendDB; j++ ) {
-			BackendDB	*be = &backendDB[j];
+			BackendDB	*be = &backendDB[ j ];
 			char		buf[ SLAP_LDAPDN_MAXLEN ];
 			struct berval	dn;
 			
@@ -142,13 +142,13 @@ monitor_subsys_backend_init(
 					&dn, NULL );
 		}
 		
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
-		mp->mp_flags = ms->mss_flags
-			| MONITOR_F_SUB;
+		mp->mp_flags = ms->mss_flags | MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,

@@ -274,10 +274,10 @@ check_constraints( Modification *mod, int *newlevel )
 {
 	int		i;
 
-	for ( i = 0; mod->sm_values && mod->sm_values[i].bv_val != NULL; i++ ) {
+	for ( i = 0; mod->sm_values && !BER_BVISNULL( &mod->sm_values[ i ] ); i++ ) {
 		int		l;
 		
-		l = loglevel2int( &mod->sm_values[i] );
+		l = loglevel2int( &mod->sm_values[ i ] );
 		if ( !l ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
@@ -287,13 +287,13 @@ check_constraints( Modification *mod, int *newlevel )
 		}
 
 		assert( int_2_level[ l ].s.bv_len
-				== mod->sm_values[i].bv_len );
+				== mod->sm_values[ i ].bv_len );
 		
-		AC_MEMCPY( mod->sm_values[i].bv_val,
+		AC_MEMCPY( mod->sm_values[ i ].bv_val,
 				int_2_level[ l ].s.bv_val,
 				int_2_level[ l ].s.bv_len );
 
-		AC_MEMCPY( mod->sm_nvalues[i].bv_val,
+		AC_MEMCPY( mod->sm_nvalues[ i ].bv_val,
 				int_2_level[ l ].n.bv_val,
 				int_2_level[ l ].n.bv_len );
 
@@ -323,7 +323,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-		for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
+		for ( i = 0; !BER_BVISNULL( &mod->sm_values[ i ] ); i++ ) {
 			int rc;
 			int j;
 			const char *text = NULL;
@@ -331,16 +331,16 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 
 			rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_values[i], &asserted, &text, NULL );
+				&mod->sm_values[ i ], &asserted, &text, NULL );
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
 
-			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					0, &a->a_vals[j], &asserted, &text );
+					0, &a->a_vals[ j ], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -401,7 +401,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* find each value to delete */
-	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &mod->sm_values[ i ] ); i++ ) {
 		int rc;
 		const char *text = NULL;
 
@@ -409,16 +409,16 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_values[i], &asserted, &text, NULL );
+				&mod->sm_values[ i ], &asserted, &text, NULL );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
 		found = 0;
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+		for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
 				0,
-				&a->a_vals[j], &asserted, &text );
+				&a->a_vals[ j ], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
@@ -428,11 +428,11 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 			found = 1;
 
 			/* delete it */
-			free( a->a_vals[j].bv_val );
-			for ( k = j + 1; a->a_vals[k].bv_val != NULL; k++ ) {
-				a->a_vals[k - 1] = a->a_vals[k];
+			free( a->a_vals[ j ].bv_val );
+			for ( k = j + 1; !BER_BVISNULL( &a->a_vals[ k ] ); k++ ) {
+				a->a_vals[ k - 1 ] = a->a_vals[ k ];
 			}
-			a->a_vals[k - 1].bv_val = NULL;
+			BER_BVZERO( &a->a_vals[ k - 1 ] );
 
 			break;
 		}
@@ -446,7 +446,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* if no values remain, delete the entire attribute */
-	if ( a->a_vals[0].bv_val == NULL ) {
+	if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
 		/* should already be zero */
 		*newlevel = 0;
 		

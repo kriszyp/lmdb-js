@@ -65,6 +65,7 @@ extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn,
 		Entry *e_parent, Entry **ep ));
 extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e ));
 int monitor_entry_test_flags LDAP_P(( struct monitorentrypriv *mp, int cond ));
+extern struct monitorentrypriv * monitor_entrypriv_create LDAP_P(( void ));
 
 /*
  * init

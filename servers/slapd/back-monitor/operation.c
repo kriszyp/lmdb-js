@@ -103,7 +103,7 @@ monitor_subsys_ops_init(
 				ms->mss_dn.bv_val,
 				mi->mi_oc_monitorOperation->soc_cname.bv_val,
 				mi->mi_oc_monitorOperation->soc_cname.bv_val,
-				&monitor_op[ i ].rdn.bv_val[STRLENOF( "cn=" )],
+				&monitor_op[ i ].rdn.bv_val[ STRLENOF( "cn=" ) ],
 				mi->mi_ad_monitorOpInitiated->ad_cname.bv_val,
 				mi->mi_ad_monitorOpCompleted->ad_cname.bv_val,
 				mi->mi_creatorsName.bv_val,
@@ -123,12 +123,13 @@ monitor_subsys_ops_init(
 	
 		/* steal normalized RDN */
 		dnRdn( &e->e_nname, &rdn );
-		ber_dupbv( &monitor_op[i].nrdn, &rdn );
+		ber_dupbv( &monitor_op[ i ].nrdn, &rdn );
 	
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
 		mp->mp_flags = ms->mss_flags \
 			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;

@@ -155,7 +155,7 @@ monitor_subsys_database_init(
 		BackendInfo	*bi;
 		Entry		*e;
 
-		be = &backendDB[i];
+		be = &backendDB[ i ];
 
 		bi = be->bd_info;
 
@@ -274,10 +274,11 @@ monitor_subsys_database_init(
 		/* we must find it! */
 		assert( j >= 0 );
 
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
-		mp->mp_children = NULL;
 		mp->mp_info = ms;
 		mp->mp_flags = ms->mss_flags
 			| MONITOR_F_SUB;
@@ -373,7 +374,7 @@ monitor_subsys_database_modify(
 		return LDAP_NO_SUCH_OBJECT;
 
 	/* do not allow some changes on back-monitor (needs work)... */
-	be = &backendDB[n];
+	be = &backendDB[ n ];
 	if ( SLAP_MONITOR( be ) )
 		return LDAP_UNWILLING_TO_PERFORM;
 		
@@ -549,7 +550,7 @@ monitor_subsys_database_modify(
 		goto done;
 	}
 
-	if ( !bvmatch( &a->a_vals[0], tf ) ) {
+	if ( !bvmatch( &a->a_vals[ 0 ], tf ) ) {
 		attr_delete( &e->e_attrs, mi->mi_ad_readOnly );
 		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
 	}

@@ -548,23 +548,23 @@ monitor_back_db_init(
 	
 #ifdef INTEGRATE_CORE_SCHEMA
 	/* prepare for schema integration */
-	for ( k = 0; mat[k].name != NULL; k++ );
+	for ( k = 0; mat[ k ].name != NULL; k++ );
 #endif /* INTEGRATE_CORE_SCHEMA */
 
-	for ( i = 0; mat_core[i].name != NULL; i++ ) {
+	for ( i = 0; mat_core[ i ].name != NULL; i++ ) {
 		AttributeDescription	**ad;
 		const char		*text;
 
-		ad = ((AttributeDescription **)&(((char *)mi)[mat_core[i].offset]));
-		ad[0] = NULL;
+		ad = ((AttributeDescription **)&(((char *)mi)[ mat_core[ i ].offset ]));
+		ad[ 0 ] = NULL;
 
-		switch (slap_str2ad( mat_core[i].name, ad, &text ) ) {
+		switch (slap_str2ad( mat_core[ i ].name, ad, &text ) ) {
 		case LDAP_SUCCESS:
 			break;
 
 #ifdef INTEGRATE_CORE_SCHEMA
 		case LDAP_UNDEFINED_TYPE:
-			mat[k] = mat_core[i];
+			mat[ k ] = mat_core[ i ];
 			k++;
 			break;
 #endif /* INTEGRATE_CORE_SCHEMA */
@@ -572,31 +572,31 @@ monitor_back_db_init(
 		default:
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_db_init: %s: %s\n",
-				mat_core[i].name, text, 0 );
+				mat_core[ i ].name, text, 0 );
 			return( -1 );
 		}
 	}
 
 	/* schema integration */
-	for ( i = 0; mat[i].name; i++ ) {
+	for ( i = 0; mat[ i ].name; i++ ) {
 		LDAPAttributeType	*at;
 		int			code;
 		const char		*err;
 		AttributeDescription	**ad;
 
-		at = ldap_str2attributetype( mat[i].schema, &code,
+		at = ldap_str2attributetype( mat[ i ].schema, &code,
 			&err, LDAP_SCHEMA_ALLOW_ALL );
 		if ( !at ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"in AttributeType \"%s\" %s before %s\n",
-				mat[i].name, ldap_scherr2str(code), err );
+				mat[ i ].name, ldap_scherr2str(code), err );
 			return -1;
 		}
 
 		if ( at->at_oid == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"null OID for attributeType \"%s\"\n",
-				mat[i].name, 0, 0 );
+				mat[ i ].name, 0, 0 );
 			return -1;
 		}
 
@@ -604,34 +604,34 @@ monitor_back_db_init(
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"%s in attributeType \"%s\"\n",
-				scherr2str(code), mat[i].name, 0 );
+				scherr2str(code), mat[ i ].name, 0 );
 			return -1;
 		}
 		ldap_memfree(at);
 
-		ad = ((AttributeDescription **)&(((char *)mi)[mat[i].offset]));
-		ad[0] = NULL;
-		if ( slap_str2ad( mat[i].name, ad, &text ) ) {
+		ad = ((AttributeDescription **)&(((char *)mi)[ mat[ i ].offset ]));
+		ad[ 0 ] = NULL;
+		if ( slap_str2ad( mat[ i ].name, ad, &text ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_db_init: %s\n", text, 0, 0 );
 			return -1;
 		}
 
-		(*ad)->ad_type->sat_flags |= mat[i].flags;
+		(*ad)->ad_type->sat_flags |= mat[ i ].flags;
 	}
 
-	for ( i = 0; moc[i].name; i++ ) {
+	for ( i = 0; moc[ i ].name; i++ ) {
 		LDAPObjectClass		*oc;
 		int			code;
 		const char		*err;
 		ObjectClass		*Oc;
 
-		oc = ldap_str2objectclass(moc[i].schema, &code, &err,
+		oc = ldap_str2objectclass(moc[ i ].schema, &code, &err,
 				LDAP_SCHEMA_ALLOW_ALL );
 		if ( !oc ) {
 			Debug( LDAP_DEBUG_ANY,
 				"unable to parse monitor objectclass \"%s\": "
-				"%s before %s\n" , moc[i].name,
+				"%s before %s\n" , moc[ i ].name,
 				ldap_scherr2str(code), err );
 			return -1;
 		}
@@ -639,7 +639,7 @@ monitor_back_db_init(
 		if ( oc->oc_oid == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass \"%s\" has no OID\n" ,
-				moc[i].name, 0, 0 );
+				moc[ i ].name, 0, 0 );
 			return -1;
 		}
 
@@ -647,23 +647,23 @@ monitor_back_db_init(
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass \"%s\": %s \"%s\"\n" ,
-				moc[i].name, scherr2str(code), err );
+				moc[ i ].name, scherr2str(code), err );
 			return -1;
 		}
 
 		ldap_memfree(oc);
 
-		Oc = oc_find( moc[i].name );
+		Oc = oc_find( moc[ i ].name );
 		if ( Oc == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 					"unable to find objectClass %s "
-					"(just added)\n", moc[i].name, 0, 0 );
+					"(just added)\n", moc[ i ].name, 0, 0 );
 			return -1;
 		}
 
-		Oc->soc_flags |= moc[i].flags;
+		Oc->soc_flags |= moc[ i ].flags;
 
-		((ObjectClass **)&(((char *)mi)[moc[i].offset]))[0] = Oc;
+		((ObjectClass **)&(((char *)mi)[ moc[ i ].offset ]))[ 0 ] = Oc;
 	}
 
 	return 0;
@@ -786,13 +786,11 @@ monitor_back_db_open(
 		}
 	}
 
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
 	e->e_private = ( void * )mp;
-
-	mp->mp_info = NULL;
-	mp->mp_children = NULL;
-	mp->mp_next = NULL;
-
 	ep = &mp->mp_children;
 
 	if ( monitor_cache_add( mi, e ) ) {
@@ -864,11 +862,12 @@ monitor_back_db_open(
 			return( -1 );
 		}
 
-		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
 		e->e_private = ( void * )mp;
-		mp->mp_next = NULL;
 		mp->mp_info = monitor_subsys[ i ];
-		mp->mp_children = NULL;
 		mp->mp_flags = monitor_subsys[ i ]->mss_flags;
 
 		if ( monitor_cache_add( mi, e ) ) {
