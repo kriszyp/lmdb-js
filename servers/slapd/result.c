@@ -1,5 +1,9 @@
 /* result.c - routines to send ldap results, errors, and referrals */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 

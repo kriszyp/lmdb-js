@@ -15,6 +15,16 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+ID_BLOCK *
+filter_candidates(
+    Backend	*be,
+    Filter	*f )
+{
+	return NULL;
+}
+#else
+
 static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );
 static ID_BLOCK	*presence_candidates( Backend *be, char *type );
 static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
@@ -384,3 +394,4 @@ substring_comp_candidates(
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
+#endif

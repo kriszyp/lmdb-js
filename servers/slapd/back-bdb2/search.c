@@ -240,7 +240,7 @@ bdb2i_back_search_internal(
 		}
 
 		/* if it matches the filter and scope, send it */
-		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			char	*dn;
 
 			/* check scope */

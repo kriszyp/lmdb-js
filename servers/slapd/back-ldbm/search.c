@@ -245,7 +245,7 @@ ldbm_back_search(
 		}
 
 		/* if it matches the filter and scope, send it */
-		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			char	*dn;
 
 			/* check scope */
@@ -412,12 +412,14 @@ search_candidates(
 		rf = (Filter *) ch_malloc( sizeof(Filter) );
 		rf->f_next = NULL;
 		rf->f_choice = LDAP_FILTER_OR;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		rf->f_or = (Filter *) ch_malloc( sizeof(Filter) );
 		rf->f_or->f_choice = LDAP_FILTER_EQUALITY;
 		rf->f_or->f_avtype = ch_strdup( "objectclass" );
 		rf->f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
 		rf->f_or->f_avvalue.bv_len = sizeof("REFERRAL")-1;
 		rf->f_or->f_next = filter;
+#endif
 		f = rf;
 	} else {
 		rf = NULL;
@@ -429,12 +431,14 @@ search_candidates(
 		af = (Filter *) ch_malloc( sizeof(Filter) );
 		af->f_next = NULL;
 		af->f_choice = LDAP_FILTER_OR;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		af->f_or = (Filter *) ch_malloc( sizeof(Filter) );
 		af->f_or->f_choice = LDAP_FILTER_EQUALITY;
 		af->f_or->f_avtype = ch_strdup( "objectclass" );
 		af->f_or->f_avvalue.bv_val = ch_strdup( "ALIAS" );
 		af->f_or->f_avvalue.bv_len = sizeof("ALIAS")-1;
 		af->f_or->f_next = f;
+#endif
 		f = af;
 	} else {
 		af = NULL;
@@ -444,24 +448,28 @@ search_candidates(
 		lf = (Filter *) ch_malloc( sizeof(Filter) );
 		lf->f_next = NULL;
 		lf->f_choice = LDAP_FILTER_AND;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 
 		lf->f_and->f_choice = SLAPD_FILTER_DN_SUBTREE;
 		lf->f_and->f_dn = e->e_ndn;
 
 		lf->f_and->f_next = f;
+#endif
 		f = lf;
 
 	} else if ( scope == LDAP_SCOPE_ONELEVEL ) {
 		lf = (Filter *) ch_malloc( sizeof(Filter) );
 		lf->f_next = NULL;
 		lf->f_choice = LDAP_FILTER_AND;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 
 		lf->f_and->f_choice = SLAPD_FILTER_DN_ONE;
 		lf->f_and->f_dn = e->e_ndn;
 
 		lf->f_and->f_next = f;
+#endif
 		f = lf;
 
 	} else {
@@ -472,17 +480,23 @@ search_candidates(
 
 	/* free up filter additions we allocated above */
 	if( lf != NULL ) {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		free( lf->f_and );
+#endif
 		free( lf );
 	}
 
 	if( af != NULL ) {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		af->f_or->f_next = NULL;
+#endif
 		filter_free( af );
 	}
 
 	if( rf != NULL ) {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		rf->f_or->f_next = NULL;
+#endif
 		filter_free( rf );
 	}
 

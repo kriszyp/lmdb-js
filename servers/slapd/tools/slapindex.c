@@ -38,7 +38,11 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	type = argv[argc - 1];
+#else
 	type = attr_normalize( argv[argc - 1] );
+#endif
 
 	if ( !be->be_index_attr( be, type ) ) {
 		fprintf( stderr, "attribute type \"%s\": no indices to generate\n",

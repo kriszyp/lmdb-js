@@ -68,6 +68,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	f->f_choice = ber_peek_tag( ber, &len );
 
 	switch ( f->f_choice ) {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
 		if ( (err = get_ava( ber, &f->f_ava )) == LDAP_SUCCESS ) {
@@ -124,6 +125,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 			    f->f_avvalue.bv_val );
 		}
 		break;
+#endif
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
@@ -156,6 +158,13 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 			sprintf( *fstr, "(!%s)", ftmp );
 			free( ftmp );
 		}
+		break;
+
+	case LDAP_FILTER_EXT:
+		/* not yet implemented */
+		Debug( LDAP_DEBUG_ANY, "extensible match not yet implemented.\n",
+		       f->f_choice, 0, 0 );
+		err = -1;
 		break;
 
 	case LBER_DEFAULT:
@@ -217,6 +226,8 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 	Debug( LDAP_DEBUG_FILTER, "end get_filter_list\n", 0, 0, 0 );
 	return( LDAP_SUCCESS );
 }
+
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 
 static int
 get_substring_filter(
@@ -362,6 +373,8 @@ return_error:
 	return( LDAP_SUCCESS );
 }
 
+#endif /* not compat */
+
 void
 filter_free( Filter *f )
 {
@@ -372,14 +385,38 @@ filter_free( Filter *f )
 	}
 
 	switch ( f->f_choice ) {
+	case LDAP_FILTER_PRESENT:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		ad_free( f->f_desc, 1 );
+#else
+		if ( f->f_type != NULL ) {
+			free( f->f_type );
+		}
+#endif
+		break;
+
 	case LDAP_FILTER_EQUALITY:
 	case LDAP_FILTER_GE:
 	case LDAP_FILTER_LE:
 	case LDAP_FILTER_APPROX:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		ava_free( f->f_ava, 1 );
+#else
 		ava_free( &f->f_ava, 0 );
+#endif
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		ad_free( f->f_sub_desc, 1 );
+		if ( f->f_sub_initial != NULL ) {
+			ber_bvfree( f->f_sub_initial );
+		}
+		ber_bvecfree( f->f_sub_any );
+		if ( f->f_sub_final != NULL ) {
+			ber_bvfree( f->f_sub_final );
+		}
+#else
 		if ( f->f_sub_type != NULL ) {
 			free( f->f_sub_type );
 		}
@@ -390,12 +427,7 @@ filter_free( Filter *f )
 		if ( f->f_sub_final != NULL ) {
 			ber_bvfree( f->f_sub_final );
 		}
-		break;
-
-	case LDAP_FILTER_PRESENT:
-		if ( f->f_type != NULL ) {
-			free( f->f_type );
-		}
+#endif
 		break;
 
 	case LDAP_FILTER_AND:
@@ -412,6 +444,7 @@ filter_free( Filter *f )
 		       f->f_choice, 0, 0 );
 		break;
 	}
+
 	free( f );
 }
 

@@ -120,6 +120,9 @@ str2entry( char *s )
 
 		bval.bv_val = value;
 		bval.bv_len = vlen;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		if ( attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a )
 		    != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -129,6 +132,7 @@ str2entry( char *s )
 			free( type );
 			return( NULL );
 		}
+#endif
 
 		free( value );
 		free( type );

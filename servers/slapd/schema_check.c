@@ -16,8 +16,14 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
-static char *	oc_check_required(Entry *e, char *ocname);
-static int		oc_check_allowed(char *type, struct berval **ocl);
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static int oc_check_allowed(
+	AttributeType *type,
+	struct berval **oclist );
+#else
+static int		oc_check_allowed(char *type, struct berval **oclist);
+#endif
+static char *	oc_check_required(Entry *e, struct berval *ocname);
 
 /*
  * entry_schema_check - check that entry e conforms to the schema required
@@ -52,7 +58,7 @@ schema_check_entry( Entry *e )
 		}
 		else
 		{
-			char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
+			char *s = oc_check_required( e, aoc->a_vals[i] );
 
 			if (s != NULL) {
 				Debug( LDAP_DEBUG_ANY,
@@ -90,7 +96,7 @@ schema_check_entry( Entry *e )
 }
 
 static char *
-oc_check_required( Entry *e, char *ocname )
+oc_check_required( Entry *e, struct berval *ocname )
 {
 	ObjectClass	*oc;
 	AttributeType	*at;
@@ -102,7 +108,7 @@ oc_check_required( Entry *e, char *ocname )
 	       e->e_dn, ocname, 0 );
 
 	/* find global oc defn. it we don't know about it assume it's ok */
-	if ( (oc = oc_find( ocname )) == NULL ) {
+	if ( (oc = oc_find( ocname->bv_val )) == NULL ) {
 		return( 0 );
 	}
 
@@ -146,11 +152,15 @@ oc_check_required( Entry *e, char *ocname )
 		}
 		/* not there => schema violation */
 		if ( a == NULL ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			return at->sat_cname;
+#else
 			if ( at->sat_names && at->sat_names[0] ) {
 				return at->sat_names[0];
 			} else {
 				return at->sat_oid;
 			}
+#endif
 		}
 	}
 
@@ -158,13 +168,32 @@ oc_check_required( Entry *e, char *ocname )
 }
 
 static int
-oc_check_allowed( char *type, struct berval **ocl )
+oc_check_allowed(
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *at,
+#else
+	char *type,
+#endif
+	struct berval **ocl )
 {
 	ObjectClass	*oc;
-	AttributeType	*at;
 	int		i, j;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	Debug( LDAP_DEBUG_TRACE,
+		"oc_check_allowed type \"%s\"\n",
+		at->sat_cname, 0, 0 );
+
+	/* always allow objectclass attribute */
+	if ( strcasecmp( at->sat_cname, "objectclass" ) == 0 ) {
+		return( 0 );
+	}
+
+#else
+	AttributeType	*at;
 	char		**pp;
-	char		*p, *t;
+	char		*p;
+	char		*t;
 
 	Debug( LDAP_DEBUG_TRACE,
 	       "oc_check_allowed type \"%s\"\n", type, 0, 0 );
@@ -173,9 +202,13 @@ oc_check_allowed( char *type, struct berval **ocl )
 	if ( strcasecmp( type, "objectclass" ) == 0 ) {
 		return( 0 );
 	}
+#endif
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	/* Treat any attribute type with option as an unknown attribute type */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if( is_at_operational(at) ) {
+		return 0;
+	}
+#else
 	/*
 	 * The "type" we have received is actually an AttributeDescription.
 	 * Let's find out the corresponding type.
@@ -190,11 +223,9 @@ oc_check_allowed( char *type, struct berval **ocl )
 		       t, type, 0 );
 
 	} else
-#endif
 	{
 		t = type;
 	}
-
 
 	/*
 	 * All operational attributions are allowed by schema rules.
@@ -202,6 +233,7 @@ oc_check_allowed( char *type, struct berval **ocl )
 	if ( oc_check_op_attr( t ) ) {
 		return( 0 );
 	}
+#endif
 
 	/* check that the type appears as req or opt in at least one oc */
 	for ( i = 0; ocl[i] != NULL; i++ ) {
@@ -209,7 +241,13 @@ oc_check_allowed( char *type, struct berval **ocl )
 		if ( (oc = oc_find( ocl[i]->bv_val )) != NULL ) {
 			/* does it require the type? */
 			for ( j = 0; oc->soc_required != NULL && 
-				oc->soc_required[j] != NULL; j++ ) {
+				oc->soc_required[j] != NULL; j++ )
+			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				if( at == oc->soc_required[j] ) {
+					return 0;
+				}
+#else
 				at = oc->soc_required[j];
 				if ( at->sat_oid &&
 				     strcmp(at->sat_oid, t ) == 0 ) {
@@ -228,10 +266,17 @@ oc_check_allowed( char *type, struct berval **ocl )
 					}
 					pp++;
 				}
+#endif
 			}
 			/* does it allow the type? */
 			for ( j = 0; oc->soc_allowed != NULL && 
-				oc->soc_allowed[j] != NULL; j++ ) {
+				oc->soc_allowed[j] != NULL; j++ )
+			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				if( at == oc->soc_allowed[j] ) {
+					return 0;
+				}
+#else
 				at = oc->soc_allowed[j];
 				if ( at->sat_oid &&
 				     strcmp( at->sat_oid, t ) == 0 ) {
@@ -251,6 +296,7 @@ oc_check_allowed( char *type, struct berval **ocl )
 					}
 					pp++;
 				}
+#endif
 			}
 			/* maybe the next oc allows it */
 
@@ -264,8 +310,11 @@ oc_check_allowed( char *type, struct berval **ocl )
 		}
 	}
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	if ( t != type )
 		ldap_memfree( t );
+#endif
+
 	/* not allowed by any oc */
 	return( 1 );
 }

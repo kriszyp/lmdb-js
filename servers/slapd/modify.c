@@ -143,7 +143,10 @@ do_modify(
 			rc = LDAP_PROTOCOL_ERROR;
 			goto cleanup;
 		}
+
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		attr_normalize( (*modtail)->ml_type );
+#endif
 
 		modtail = &(*modtail)->ml_next;
 	}

@@ -31,9 +31,21 @@ do_compare(
 )
 {
 	char	*dn = NULL, *ndn=NULL;
-	Ava	ava;
+	struct berval desc;
+	struct berval value;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char *text = NULL;
+	AttributeAssertion ava;
+
+	ava.aa_desc = NULL;
+#else
+	Ava	ava;
+#endif
+
+	desc.bv_val = NULL;
+	value.bv_val = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 
@@ -73,18 +85,20 @@ do_compare(
 		goto cleanup;
 	}
 
-	if ( get_ava( op->o_ber, &ava ) != LDAP_SUCCESS ) {
+	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
@@ -92,11 +106,34 @@ do_compare(
 		goto cleanup;
 	} 
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL,
+		    text, NULL, NULL );
+		goto cleanup;
+	}
+	ava.aa_value = &value;
+
+	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
+	    dn, ava.aa_desc->ad_cname, ava.aa_value->bv_val );
+
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname, 0 );
+
+#else
+	ava.ava_type = desc.bv_val;
+	ava.ava_value = value;
+	attr_normalize( ava.ava_type );
+	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
+
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    dn, ava.ava_type, ava.ava_value.bv_val );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, ava.ava_type, 0 );
+#endif
+
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -132,7 +169,13 @@ do_compare(
 cleanup:
 	free( dn );
 	free( ndn );
-	ava_free( &ava, 0 );
+	free( desc.bv_val );
+	free( value.bv_val );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if( ava.aa_desc != NULL ) {
+		ad_free( ava.aa_desc, 1 );
+	}
+#endif
 
 	return rc;
 }

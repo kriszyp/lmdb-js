@@ -108,7 +108,7 @@ passwd_back_search(
 			val.bv_len = strlen( val.bv_val );
 			attr_merge( e, "objectClass", vals );
 	
-			if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+			if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 				send_search_entry( be, conn, op,
 					e, attrs, attrsonly, NULL );
 				sent++;
@@ -138,7 +138,7 @@ passwd_back_search(
 
 				e = pw2entry( be, pw, NULL );
 
-				if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+				if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 					/* check size limit */
 					if ( --slimit == -1 ) {
 						send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
@@ -195,7 +195,7 @@ passwd_back_search(
 
 		e = pw2entry( be, pw, rdn );
 
-		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			send_search_entry( be, conn, op,
 				e, attrs, attrsonly, NULL );
 			sent++;

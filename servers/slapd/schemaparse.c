@@ -189,11 +189,11 @@ find_oidm(char *oid)
 		if ((pos = dscompare(om->som_name, oid, ':')))
 		{
 			suflen = strlen(oid + pos);
-			new = ch_calloc(1, om->som_oidlen + suflen + 1);
-			strcpy(new, om->som_oid);
+			new = ch_calloc(1, om->som_oid.bv_len + suflen + 1);
+			strcpy(new, om->som_oid.bv_val);
 			if (suflen)
 			{
-				suflen = om->som_oidlen;
+				suflen = om->som_oid.bv_len;
 				new[suflen++] = '.';
 				strcpy(new+suflen, oid+pos+1);
 			}
@@ -222,19 +222,19 @@ usage:	fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
 
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
 	om->som_name = ch_strdup( argv[1] );
-	om->som_oid = find_oidm( argv[2] );
+	om->som_oid.bv_val = find_oidm( argv[2] );
 
-	if (!om->som_oid) {
+	if (!om->som_oid.bv_val) {
 		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
 			fname, lineno, argv[2] );
 		goto usage;
 	}
 
-	if (om->som_oid == argv[2]) {
-		om->som_oid = ch_strdup( argv[2] );
+	if (om->som_oid.bv_val == argv[2]) {
+		om->som_oid.bv_val = ch_strdup( argv[2] );
 	}
 
-	om->som_oidlen = strlen( om->som_oid );
+	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
 	om->som_next = om_list;
 	om_list = om;
 }

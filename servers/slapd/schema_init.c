@@ -129,7 +129,7 @@ UTF8StringNormalize(
 	return 0;
 }
 
-static int
+int
 IA5StringValidate(
 	Syntax *syntax,
 	struct berval *val )

@@ -318,7 +318,9 @@ index_change_values(
 
 	}
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	attr_normalize(type);
+#endif
 	attr_mask( be->be_private, type, &indexmask );
 
 	if ( indexmask == 0 ) {

@@ -35,7 +35,7 @@ static int aci_mask(
 	regmatch_t *matches, slap_access_t *grant, slap_access_t *deny );
 
 char *supportedACIMechs[] = {
-	"1.3.6.1.4.1.4203.666.7.1",	/* experimental draft aci family */
+	"1.3.6.1.4.1.4203.666.7.1",	/* experimental IETF aci family */
 	"1.3.6.1.4.1.4203.666.7.2",	/* experimental OpenLDAP aci family */
 	NULL
 };
@@ -74,7 +74,9 @@ access_allowed(
 {
 	int				count;
 	AccessControl	*a;
+#ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
+#endif
 	slap_access_mask_t mask;
 	slap_control_t control;
 
@@ -238,7 +240,8 @@ acl_get(
 		}
 
 		if ( a->acl_filter != NULL ) {
-			if ( test_filter( NULL, NULL, NULL, e, a->acl_filter ) != 0 ) {
+			ber_int_t rc = test_filter( NULL, NULL, NULL, e, a->acl_filter );
+			if ( rc != LDAP_COMPARE_TRUE ) {
 				continue;
 			}
 		}
@@ -286,7 +289,9 @@ acl_mask(
 {
 	int		i;
 	Access	*b;
+#ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
+#endif
 
 	assert( a != NULL );
 	assert( mask != NULL );

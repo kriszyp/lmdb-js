@@ -24,6 +24,10 @@ static int	str2subvals(char *val, Filter *f);
 Filter *
 str2filter( char *str )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+	return NULL;
+#else
 	Filter	*f = NULL;
 	char	*end, *freeme;
 
@@ -90,8 +94,10 @@ str2filter( char *str )
 
 	free( freeme );
 	return( f );
+#endif
 }
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * Put a list of filters like this "(filter1)(filter2)..."
  */
@@ -270,3 +276,5 @@ find_matching_paren( char *s )
 
 	return( NULL );
 }
+
+#endif

@@ -14,6 +14,23 @@
 
 #include "slap.h"
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+
+void
+ava_free(
+    AttributeAssertion *ava,
+    int	freeit
+)
+{
+	ad_free( ava->aa_desc, 1 );
+	ber_bvfree( ava->aa_value );
+	if ( freeit ) {
+		ch_free( (char *) ava );
+	}
+}
+
+#else
+
 int
 get_ava(
     BerElement	*ber,
@@ -23,14 +40,11 @@ get_ava(
 	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
-		return( -1 );
+		return -1;
 	}
 
 	attr_normalize( ava->ava_type );
-
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
-#endif
 
 	return( LDAP_SUCCESS );
 }
@@ -41,10 +55,11 @@ ava_free(
     int	freeit
 )
 {
-	free( (char *) ava->ava_type );
-	free( (char *) ava->ava_value.bv_val );
+	ch_free( (char *) ava->ava_type );
+	ch_free( (char *) ava->ava_value.bv_val );
 	if ( freeit ) {
-		free( (char *) ava );
+		ch_free( (char *) ava );
 	}
 }
 
+#endif

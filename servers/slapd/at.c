@@ -3,7 +3,7 @@
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/* at.c - routines for dealing with attributes */
+/* at.c - routines for dealing with attribute types */
 
 #include "portable.h"
 

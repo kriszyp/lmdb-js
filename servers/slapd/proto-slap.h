@@ -10,6 +10,17 @@
 
 LDAP_BEGIN_DECL
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) slap_bv2ad LDAP_P((
+	struct berval *bv,
+	AttributeDescription **ad,
+	char **text ));
+
+LIBSLAPD_F (void) ad_free LDAP_P((
+	AttributeDescription *desc,
+	int freeit ));
+#endif
+
 /*
  * acl.c
  */
@@ -83,9 +94,17 @@ LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 /*
  * ava.c
  */
-
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) get_ava LDAP_P((
+	BerElement *ber,
+	AttributeAssertion *ava ));
+LIBSLAPD_F (void) ava_free LDAP_P((
+	AttributeAssertion *ava,
+	int freeit ));
+#else
 LIBSLAPD_F (int) get_ava LDAP_P(( BerElement *ber, Ava *ava ));
 LIBSLAPD_F (void) ava_free LDAP_P(( Ava *ava, int freeit ));
+#endif
 
 /*
  * backend.c

@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Portions
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -153,7 +157,9 @@ do_search(
 
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[i] != NULL; i++ ) {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 			attr_normalize( attrs[i] );
+#endif
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 		}
 	}

@@ -136,6 +136,10 @@ SOURCE=.\aclparse.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ad.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\add.c
 # End Source File
 # Begin Source File

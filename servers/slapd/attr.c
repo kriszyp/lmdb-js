@@ -26,19 +26,6 @@
 static void at_index_print( void );
 #endif
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-void
-ad_free( AttributeDescription *ad, int freeit )
-{
-	if( ad == NULL ) return;
-
-	ber_bvfree( ad->ad_cname );
-	free( ad->ad_lang );
-
-	if( freeit ) free( ad );
-}
-#endif
-
 void
 attr_free( Attribute *a )
 {
