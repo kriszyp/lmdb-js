@@ -44,7 +44,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /I "slapi" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
+# ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /I "slapi" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -88,7 +88,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /I ".\slapi" /I "..\..\include" /I "slapi" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -110,7 +110,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /I "slapi" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
