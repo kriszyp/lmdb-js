@@ -345,11 +345,6 @@ ber_free LDAP_P((
 	BerElement *ber,
 	int freebuf ));
 
-LDAP_F( void )
-ber_clear LDAP_P((
-	BerElement *ber,
-	int freebuf ));
-
 LDAP_F( int )
 ber_flush LDAP_P((
 	Sockbuf *sb, BerElement *ber, int freeit ));
