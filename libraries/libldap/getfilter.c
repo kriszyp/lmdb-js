@@ -124,7 +124,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
-		fprintf( stderr, "bad regular expresssion %s, %s\n",
+		fprintf( stderr, "bad regular expression %s, %s\n",
 			nextflp->lfl_pattern, error );
 		errno = EINVAL;
 #endif /* LDAP_LIBUI */
