@@ -180,6 +180,7 @@ all-cffiles: slapd
 		tmpcf=$$i.tmp; \
 		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
 			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+			-e 's;%MODULEDIR%;$(moduledir);' \
 			$(srcdir)/$$i > $$tmpcf ; \
 	done
 	touch all-cffiles
