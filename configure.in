@@ -624,7 +624,6 @@ AC_PROG_LN_S
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
-AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 dnl ----------------------------------------------------------------
 dnl Perl
@@ -2762,7 +2761,6 @@ doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
 doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
 doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
-clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
 clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
 clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
