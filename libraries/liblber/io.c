@@ -510,13 +510,13 @@ ber_get_next(
 	}
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
-		(char *)&ber->ber_len + LENSIZE*2) {
+		(char *)&ber->ber_len + LENSIZE*2 -1) {
 		ber_slen_t sblen;
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
-			((char *)&ber->ber_len + LENSIZE*2)-ber->ber_rwptr);
+			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
 		ber->ber_rwptr += sblen;
 
@@ -527,10 +527,10 @@ ber_get_next(
 			tag = *p++;
 			if ((tag & LBER_BIG_TAG_MASK) == LBER_BIG_TAG_MASK) {
 				ber_len_t i;
-				for (i=1; (char *)p<ber->ber_rwptr; i++,p++) {
+				for (i=1; (char *)p<ber->ber_rwptr; i++) {
 					tag <<= 8;
-					tag |= *p;
-					if (!(*p & LBER_MORE_TAG_MASK))
+					tag |= *p++;
+					if (!(tag & LBER_MORE_TAG_MASK))
 						break;
 					/* Is the tag too big? */
 					if (i == sizeof(ber_tag_t)-1) {
@@ -542,7 +542,6 @@ ber_get_next(
 				if ((char *)p == ber->ber_rwptr) {
 					return LBER_DEFAULT;
 				}
-				p++;
 			}
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;

@@ -29,8 +29,26 @@ typedef struct lutil_sasl_defaults_s {
 	char *authcid;
 	char *passwd;
 	char *authzid;
+	char **resps;
+	int nresps;
 } lutilSASLdefaults;
 
+
+void
+lutil_sasl_freedefs(
+	void *defaults )
+{
+	lutilSASLdefaults *defs = defaults;
+	
+	if (defs->mech) ber_memfree(defs->mech);
+	if (defs->realm) ber_memfree(defs->realm);
+	if (defs->authcid) ber_memfree(defs->authcid);
+	if (defs->passwd) ber_memfree(defs->passwd);
+	if (defs->authzid) ber_memfree(defs->authzid);
+	if (defs->resps) ldap_charray_free(defs->resps);
+
+	ber_memfree(defs);
+}
 
 void *
 lutil_sasl_defaults(
@@ -47,11 +65,11 @@ lutil_sasl_defaults(
 
 	if( defaults == NULL ) return NULL;
 
-	defaults->mech = mech;
-	defaults->realm = realm;
-	defaults->authcid = authcid;
-	defaults->passwd = passwd;
-	defaults->authzid = authzid;
+	defaults->mech = mech ? ber_strdup(mech) : NULL;
+	defaults->realm = realm ? ber_strdup(realm) : NULL;
+	defaults->authcid = authcid ? ber_strdup(authcid) : NULL;
+	defaults->passwd = passwd ? ber_strdup(passwd) : NULL;
+	defaults->authzid = authzid ? ber_strdup(authzid) : NULL;
 
 	if( defaults->mech == NULL ) {
 		ldap_get_option( ld, LDAP_OPT_X_SASL_MECH, &defaults->mech );
@@ -65,6 +83,8 @@ lutil_sasl_defaults(
 	if( defaults->authzid == NULL ) {
 		ldap_get_option( ld, LDAP_OPT_X_SASL_AUTHZID, &defaults->authzid );
 	}
+	defaults->resps = NULL;
+	defaults->nresps = 0;
 
 	return defaults;
 }
@@ -160,7 +180,8 @@ static int interaction(
 	if( interact->len > 0 ) {
 		/* duplicate */
 		char *p = (char *)interact->result;
-		interact->result = strdup( p );
+		ldap_charray_add(&defaults->resps, interact->result);
+		interact->result = defaults->resps[defaults->nresps++];
 
 		/* zap */
 		memset( p, '\0', interact->len );
@@ -168,15 +189,8 @@ static int interaction(
 	} else {
 use_default:
 		/* input must be empty */
-		interact->result = strdup( (dflt && *dflt) ? dflt : "" );
-		interact->len = interact->result
-			? strlen( interact->result ) : 0;
-	}
-
-	if( defaults && defaults->passwd && interact->id == SASL_CB_PASS ) {
-		/* zap password after first use */
-		memset( defaults->passwd, '\0', strlen(defaults->passwd) );
-		defaults->passwd = NULL;
+		interact->result = (dflt && *dflt) ? dflt : "";
+		interact->len = strlen( interact->result );
 	}
 
 	return LDAP_SUCCESS;
@@ -189,12 +203,6 @@ int lutil_sasl_interact(
 	void *in )
 {
 	sasl_interact_t *interact = in;
-
-	if( interact->result ) {
-		/* we have results from a previous interaction */
-		free( (void *)interact->result );
-		interact->result = NULL;
-	}
 
 	if( ld == NULL ) return LDAP_PARAM_ERROR;
 
