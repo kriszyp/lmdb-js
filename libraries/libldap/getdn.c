@@ -1386,6 +1386,9 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 			return( 1 );
 
 		} else if (!LDAP_DN_ASCII_PRINTABLE( p[ 0 ] ) ) {
+			if ( p[ 0 ] == '\0' ) {
+				return( 1 );
+			}
 			*retFlags = LDAP_AVA_NONPRINTABLE;
 
 		} else if ( ( LDAP_DN_LDAP( flags ) && LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) 
