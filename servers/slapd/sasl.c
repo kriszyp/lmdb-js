@@ -438,6 +438,7 @@ slap_auxprop_lookup(
 			op.o_callback = &cb;
 			op.o_time = slap_get_time();
 			op.o_do_not_cache = 1;
+			op.o_is_auth_check = 1;
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 			(*be->be_search)( be, conn, &op, NULL, &dn,
@@ -563,6 +564,7 @@ slap_sasl_checkpass(
 		op.o_callback = &cb;
 		op.o_time = slap_get_time();
 		op.o_do_not_cache = 1;
+		op.o_is_auth_check = 1;
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 		(*be->be_search)( be, conn, &op, NULL, &dn,
