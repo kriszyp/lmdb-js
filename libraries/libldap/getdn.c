@@ -522,8 +522,10 @@ ldap_avafree( LDAPAVA *ava )
 {
 	assert( ava );
 
+#if 0
 	/* ava's private must be freed by caller */
 	assert( ava->la_private != NULL );
+#endif
 
 	ber_bvfree( ava->la_attr );
 	ber_bvfree( ava->la_value );
