@@ -165,6 +165,20 @@ functionality is mostly the same. Also, while most of these options may
 be configured on a system-wide basis, they may all be overridden by
 individual users in their {{.ldaprc}} files.
 
+The LDAP Start TLS operation is used in LDAP to initiate TLS
+negotatation.  All OpenLDAP command line tools support a {{E:-Z}}
+and {{E:-ZZ}} flag to indicate whether a Start TLS operation is to
+be issued.  The latter flag indicates that the tool is to cease
+processing if TLS cannot be started while the former allows the
+command to continue.
+
+In LDAPv2 environments, TLS is normally started using the LDAP
+Secure URI scheme ({{EX:ldaps://}}) instead of the normal LDAP URI
+scheme ({{EX:ldap://}}).  OpenLDAP command line tools allow either
+scheme to used with the {{EX:-U}} flag and with the {{EX:URI}}
+{{ldap.conf}}(5) option.
+
+
 H4: TLS_CACERT <filename>
 
 This is equivalent to the server's {{EX:TLSCACertificateFile}} option. As
@@ -202,13 +216,3 @@ This directive is equivalent to the server's {{EX:TLSVerifyClient}}
 option. However, for clients the default value is {{EX:demand}}
 and there generally is no good reason to change this setting.
 
-H4: TLS { never | hard }
-
-This directive specifies whether client connections should use TLS
-by default. The default setting is {{EX:never}} which specifies that
-connections will be opened in the clear unless TLS is explicitly
-specified using an "ldaps://" URL. When set to {{EX:hard}} all
-connections will be established with TLS, as if an "ldaps://" URL
-was specified. Note that the use of ldaps is a holdover from LDAPv2
-and this setting is incompatible with the LDAPv3 StartTLS request.
-As such, it's best not to use this option.
