@@ -252,14 +252,14 @@ ldap_parse_sasl_bind_result(
 		return LDAP_PARAM_ERROR;
 	}
 
-	if(servercredp != NULL) {
+	if( servercredp != NULL ) {
 		if( ld->ld_version < LDAP_VERSION2 ) {
 			return LDAP_NOT_SUPPORTED;
 		}
 		*servercredp = NULL;
 	}
 
-	if( res->lm_msgtype == LDAP_RES_BIND ) {
+	if( res->lm_msgtype != LDAP_RES_BIND ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
 	}
