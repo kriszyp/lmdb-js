@@ -35,6 +35,7 @@ all-local-srv: FORCE
 	$(MAKE) $(MFLAGS) backendslib
 	$(MAKE) $(MFLAGS) slapd
 	(cd tools; $(MAKE) $(MFLAGS) all)
+	$(MAKE) $(MFLAGS) all-cffiles
 
 slapd: version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
@@ -98,6 +99,7 @@ clean-local-srv: FORCE
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 		fi; \
 	done
+	rm -f *.tmp all-cffiles
 
 veryclean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
@@ -116,18 +118,24 @@ install-slapd: FORCE
 
 CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
 
+all-cffiles:
+	@for i in $(CFFILES); do \
+		tmpcf=$$i.tmp; \
+		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+			$(srcdir)/$$i > $$tmpcf ; \
+	done
+	touch all-cffiles
+
 install-conf: FORCE
 	@-$(MKDIR) $(sysconfdir)
 	@for i in $(CFFILES); do \
-		tmpcf=/tmp/$$i.$$ ; \
+		tmpcf=$$i.tmp ; \
 		if test $$i = slapd.conf ; then \
 			mode=600 ; \
 		else \
 			mode=644 ; \
 		fi ; \
-		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
-			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
-			$(srcdir)/$$i > $$tmpcf ; \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
 			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
@@ -136,7 +144,6 @@ install-conf: FORCE
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
 		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i.default ; \
-		$(RM) -f $$tmpcf ; \
 	done
 
 install-tools: FORCE
