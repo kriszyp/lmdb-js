@@ -313,6 +313,7 @@ ldif_sput(
 	unsigned long	bits;
 	char		*save;
 	int		pad;
+	int		namelen = 0;
 
 	ber_len_t savelen;
 	ber_len_t len=0;
@@ -339,10 +340,10 @@ ldif_sput(
 	/* name (attribute type) */
 	if( name != NULL ) {
 		/* put the name + ":" */
-		for ( i=0 ; name[i]; i++ ) {
-			*(*out)++ = name[i];
-			len++;
-		}
+		namelen = strlen(name);
+		strcpy(*out, name);
+		*out += namelen;
+		len += namelen;
 
 		if( type != LDIF_PUT_COMMENT ) {
 			*(*out)++ = ':';
@@ -416,8 +417,10 @@ ldif_sput(
 		&& strstr( name, ";binary" ) == NULL
 #endif
 #ifndef LDAP_PASSWD_DEBUG
-		&& strcasecmp( name, "userPassword" ) != 0	/* encode userPassword */
-		&& strcasecmp( name, "2.5.4.35" ) != 0		/* encode userPassword */
+		&& (namelen != (sizeof("userPassword")-1)
+		|| strcasecmp( name, "userPassword" ) != 0)	/* encode userPassword */
+		&& (namelen != (sizeof("2.5.4.35")-1) 
+		|| strcasecmp( name, "2.5.4.35" ) != 0)		/* encode userPassword */
 #endif
 	) {
 		int b64 = 0;
