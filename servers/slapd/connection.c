@@ -1606,14 +1606,18 @@ connection_input(
 		|| conn->c_n_ops_pending
 		|| conn->c_writewaiter))
 	{
-		int max = conn->c_dn.bv_len ? slap_conn_max_pending_auth
-			 : slap_conn_max_pending;
+		int max = conn->c_dn.bv_len
+			? slap_conn_max_pending_auth
+			: slap_conn_max_pending;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, INFO, 
 			"connection_input: conn %lu  deferring operation\n",
 			conn->c_connid, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "deferring operation\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"connection_input: conn=%lu deferring operation\n",
+			conn->c_connid, 0, 0 );
 #endif
 		conn->c_n_ops_pending++;
 		LDAP_STAILQ_INSERT_TAIL( &conn->c_pending_ops, op, o_next );
@@ -1742,11 +1746,12 @@ static int connection_op_activate( Operation *op )
 	ber_dupbv( &op->o_authmech, &op->o_conn->c_authmech );
 	
 	if (!op->o_protocol) {
-	    op->o_protocol = op->o_conn->c_protocol
-		? op->o_conn->c_protocol : LDAP_VERSION3;
+		op->o_protocol = op->o_conn->c_protocol
+			? op->o_conn->c_protocol : LDAP_VERSION3;
 	}
 	if (op->o_conn->c_conn_state == SLAP_C_INACTIVE
-		&& op->o_protocol > LDAP_VERSION2) {
+		&& op->o_protocol > LDAP_VERSION2)
+	{
 		op->o_conn->c_conn_state = SLAP_C_ACTIVE;
 	}
 
@@ -1764,7 +1769,8 @@ static int connection_op_activate( Operation *op )
 			op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-		"ldap_pvt_thread_pool_submit failed (%d)\n", status, 0, 0 );
+			"ldap_pvt_thread_pool_submit: failed (%d) for conn=%lu\n",
+			status, op->o_connid, 0 );
 #endif
 		/* should move op to pending list */
 	}
@@ -1791,7 +1797,7 @@ int connection_write(ber_socket_t s)
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%ld): no connection!\n",
-			(long) s, 0, 0 );
+			(long)s, 0, 0 );
 #endif
 		slapd_remove(s, 1, 0);
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -1810,10 +1816,12 @@ int connection_write(ber_socket_t s)
 #endif
 	ldap_pvt_thread_cond_signal( &c->c_write_cv );
 
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) )
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
 		slapd_set_read( s, 1 );
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) )
+	}
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
 		slapd_set_write( s, 1 );
+	}
 	connection_return( c );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	return 0;
