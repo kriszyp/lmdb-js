@@ -419,6 +419,7 @@ LDAP_SLAPD_F (void) slapd_set_read LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
+LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 
 /*
  * dn.c
