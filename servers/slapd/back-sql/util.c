@@ -212,6 +212,8 @@ backsql_strfcat( struct berval *dest, ber_len_t *buflen, const char *fmt, ... )
 #endif /* BACKSQL_TRACE */
 		}
 
+		assert( cstr );
+		
 		AC_MEMCPY( dest->bv_val + cdlen, cstr, cslen + 1 );
 		cdlen += cslen;
 	}
