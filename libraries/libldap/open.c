@@ -262,7 +262,7 @@ ldap_int_open_connection(
 
 	switch ( ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
-			port = htons( (short) srv->lud_port );
+			port = srv->lud_port;
 
 			addr = 0;
 			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {

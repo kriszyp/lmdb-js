@@ -286,7 +286,7 @@ int
 ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	int proto,
 	const char *host,
-	unsigned long address, int port, int async)
+	unsigned long address, int port, int async )
 {
 	struct sockaddr_in	sin;
 	ber_socket_t		s = AC_SOCKET_INVALID;
@@ -306,7 +306,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
 
-		snprintf(serv, sizeof serv, "%d", ntohs(port));
+		snprintf(serv, sizeof serv, "%d", port );
 		if ( err = getaddrinfo(host, serv, &hints, &res) ) {
 			osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
@@ -389,7 +389,6 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 	rc = s = -1;
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
-
 		s = ldap_int_socket( ld, PF_INET, SOCK_STREAM );
 		if ( s == AC_SOCKET_INVALID ) {
 			/* use_hp ? continue : break; */
@@ -403,13 +402,13 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		(void)memset((char *)&sin, '\0', sizeof(struct sockaddr_in));
 		sin.sin_family = AF_INET;
-		sin.sin_port = port;
+		sin.sin_port = htons((short) port);
 		p = (char *)&sin.sin_addr;
 		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
 		AC_MEMCPY(p, q, sizeof(sin.sin_addr) );
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
-				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);
+			inet_ntoa(sin.sin_addr),port,0);
 
 		rc = ldap_pvt_connect(ld, s,
 			(struct sockaddr *)&sin, sizeof(struct sockaddr_in),

@@ -1,22 +1,25 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.16 Engineering
-	Fixed CR/LF handling (ITS#1328)
 	Fixed slapd/slurpd maxargs bug (ITS#1343)
 	Fixed slapd ManageDSAIT warning
 	Fixed slurpd server down reject fix (ITS#1183)
 	Fixed -llber ber_realloc bug (ITS#1346)
 	Fixed -lldap multi-level referral chase bug (ITS#1346)
+	Fixed -lldap high port bug
+	Fixed CR/LF handling (ITS#1328)
 	Updated slapd/-lldap getaddrinfo handling
 	Updated -lldap_r pthread stack size
 	Updated slapd acl assert checks
 	Removed -lldbm use of Berkeley CDB
+	Updated -lldbm to use r/w lock with DB_THREAD
 	Added back-ldbm idl_check() code
 	Build environment
 		Updated ltconfig for MacOS X 10.1 (ITS#1361)
 		Updated slapd.conf with ACL example
 		Updated pthread detection
-		Adjust test 7 read/write ratio
+		Updated test005 /dev/null diff for Tru64 compat
+		Updated test007 read/write ratio
 
 OpenLDAP 2.0.15 Release
 	Fixed -lldap TLS external handling
