@@ -16,7 +16,7 @@
 SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth slapacl
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
-XSRCS=version.c backends.c
+XSRCS=version.c
 
 SUBDIRS=back-* shell-backends slapi overlays
 
@@ -262,8 +262,8 @@ slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 		$(LN_S) slapd$(EXEEXT) $$i$(EXEEXT); done
 
 
-sslapd: version.o
-	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
+sslapd: version.o backends.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o backends.o $(LIBS) $(WRAP_LIBS)
 
 dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
@@ -319,6 +319,8 @@ version.c: Makefile
 
 version.o: version.c $(OBJS) $(SLAPD_LIBDEPEND) 
 
+backends.o: backends.c $(srcdir)/slap.h
+
 depend-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i -a -f $$i/Makefile ; then \
@@ -331,6 +333,9 @@ depend-local-srv: FORCE
 
 clean-local:
 	$(RM) *.exp *.def *.base *.a *.objs symdummy.c
+
+veryclean-local:
+	$(RM) backends.c
 
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
