@@ -18,34 +18,445 @@
 
 #include "slap.h"
 
-#define B4LEADTYPE		0
-#define B4TYPE			1
-#define INOIDTYPE		2
-#define INKEYTYPE		3
-#define B4EQUAL			4
-#define B4VALUE			5
-#define INVALUE			6
-#define INQUOTEDVALUE	7
-#define B4SEPARATOR		8
+#define SLAP_LDAPDN_PRETTY 0x1
 
-#if 0
 /*
- * dn_pretty - "pretty" the DN
+ * The DN syntax-related functions take advantage of the dn representation
+ * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
+ * aware, so the attributes and their values need be validated (and possibly
+ * normalized).  In the current implementation the required validation/nor-
+ * malization/"pretty"ing are done on newly created DN structural represen-
+ * tations; however the idea is to move towards DN handling in structural
+ * representation instead of the current string representation.  To this
+ * purpose, we need to do only the required operations and keep track of
+ * what has been done to minimize their impact on performances.
+ *
+ * Developers are strongly encouraged to use this feature, to speed-up
+ * its stabilization.
  */
-char *dn_pretty( const char *dn_in )
-{
-	/*
-	 * dn_validate based implementation (for now)
-	 *	likely better just to zap this, dn_validate, dn_normalize
-	 */
-	char *dn, *dn_out;
 
-	dn = ch_strdup( dn_in );
-	dn_out = dn_validate( dn );
-	if( dn_out == NULL ) free( dn );
-	return dn_out;
+#define	AVA_PRIVATE( ava ) ( ( AttributeDescription * )(ava)->la_private )
+
+/*
+ * In-place, schema-aware validation of the
+ * structural representation of a distinguished name.
+ */
+static int
+LDAPDN_validate( LDAPDN *dn )
+{
+	int 		iRDN;
+	int 		rc;
+
+	assert( dn );
+
+	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+		int		iAVA;
+
+		assert( rdn );
+
+		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+			AttributeDescription	*ad;
+			slap_syntax_validate_func *validate = NULL;
+
+			assert( ava );
+			
+			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
+				const char	*text = NULL;
+
+				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+
+				ava->la_private = ( void * )ad;
+			}
+
+			/* 
+			 * Replace attr oid/name with the canonical name
+			 */
+			ber_bvfree( ava->la_attr );
+			ava->la_attr = ber_bvdup( &ad->ad_cname );
+
+			validate = ad->ad_type->sat_syntax->ssyn_validate;
+
+			if ( validate ) {
+				/*
+			 	 * validate value by validate function
+				 */
+				rc = ( *validate )( ad->ad_type->sat_syntax,
+					ava->la_value );
+			
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
 }
+
+/*
+ * dn validate routine
+ */
+int
+dnValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int		rc;
+	LDAPDN		*dn = NULL;
+
+	assert( in );
+
+	if ( in->bv_len == 0 ) {
+		return( LDAP_SUCCESS );
+	}
+
+	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+
+	/*
+	 * Schema-aware validate
+	 */
+	if ( rc == LDAP_SUCCESS ) {
+		rc = LDAPDN_validate( dn );
+	}
+	
+	ldapava_free_dn( dn );
+	
+	if ( rc != LDAP_SUCCESS ) {
+		return( LDAP_INVALID_SYNTAX );
+	}
+
+	return( LDAP_SUCCESS );
+}
+
+/*
+ * AVA sorting inside a RDN
+ *
+ * rule: sort attributeTypes in alphabetical order; in case of multiple
+ * occurrences of the same attributeType, sort values in byte order
+ * (use memcmp, which implies alphabetical order in case of IA5 value;
+ * this should guarantee the repeatability of the operation).
+ *
+ * uses a linear search; should be fine since the number of AVAs in
+ * a RDN should be limited.
+ */
+static void
+AVA_Sort( LDAPRDN *rdn, int iAVA )
+{
+	int		i;
+	LDAPAVA		*ava_in = rdn[ iAVA ][ 0 ];
+
+	assert( rdn );
+	assert( ava_in );
+	
+	for ( i = 0; i < iAVA; i++ ) {
+		LDAPAVA		*ava = rdn[ i ][ 0 ];
+		int		a, j;
+
+		assert( ava );
+
+		a = strcmp( ava_in->la_attr->bv_val, ava->la_attr->bv_val );
+
+		if ( a > 0 ) {
+			break;
+		}
+
+		while ( a == 0 ) {
+			int		v, d;
+
+			d = ava_in->la_value->bv_len - ava->la_value->bv_len;
+
+			v = memcmp( ava_in->la_value->bv_val, 
+					ava->la_value->bv_val,
+					d <= 0 ? ava_in->la_value->bv_len 
+						: ava->la_value->bv_len );
+
+			if ( v == 0 && d != 0 ) {
+				v = d;
+			}
+
+			if ( v <= 0 ) {
+				/* 
+				 * got it!
+				 */
+				break;
+			}
+
+			if ( ++i == iAVA ) {
+				/*
+				 * already sorted
+				 */
+				return;
+			}
+
+			ava = rdn[ i ][ 0 ];
+			a = strcmp( ava_in->la_value->bv_val, 
+					ava->la_value->bv_val );
+		}
+
+		/*
+		 * move ahead
+		 */
+		for ( j = iAVA; j > i; j-- ) {
+			rdn[ j ][ 0 ] = rdn[ j - 1 ][ 0 ];
+		}
+		rdn[ i ][ 0 ] = ava_in;
+
+		return;
+	}
+}
+
+/*
+ * In-place, schema-aware normalization / "pretty"ing of the
+ * structural representation of a distinguished name.
+ */
+static int
+LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
+{
+	int 		iRDN;
+	int 		rc;
+
+	assert( dn );
+
+	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+		int		iAVA;
+
+		assert( rdn );
+
+		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+			AttributeDescription	*ad;
+			slap_syntax_transform_func *transf = NULL;
+			MatchingRule *mr;
+			struct berval		*bv = NULL;
+
+			assert( ava );
+
+			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
+				const char	*text = NULL;
+
+				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+				
+				ava->la_private = ( void * )ad;
+			}
+
+			/* 
+			 * Replace attr oid/name with the canonical name
+			 */
+			ber_bvfree( ava->la_attr );
+			ava->la_attr = ber_bvdup( &ad->ad_cname );
+
+			if( flags & SLAP_LDAPDN_PRETTY ) {
+				transf = ad->ad_type->sat_syntax->ssyn_pretty;
+				mr = NULL;
+			} else {
+				transf = ad->ad_type->sat_syntax->ssyn_normalize;
+				mr = ad->ad_type->sat_equality;
+			}
+
+			if ( transf ) {
+				/*
+			 	 * transform value by normalize/pretty function
+				 */
+				rc = ( *transf )( ad->ad_type->sat_syntax,
+					ava->la_value, &bv );
+			
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+
+			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
+				struct berval *s = bv;
+
+				bv = ber_bvstr( UTF8normalize( bv ? bv : ava->la_value, 
+					UTF8_CASEFOLD ) );
+
+				ber_bvfree( s );
+			}
+
+			if( bv ) {
+				ber_bvfree( ava->la_value );
+				ava->la_value = bv;
+			}
+
+			AVA_Sort( rdn, iAVA );
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * dn normalize routine
+ */
+int
+dnNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out = NULL;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
+
+	assert( val );
+	assert( normalized );
+
+	if ( val->bv_len != 0 ) {
+		LDAPDN		*dn = NULL;
+		char		*dn_out = NULL;
+		int		rc;
+
+		/*
+		 * Go to structural representation
+		 */
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/*
+		 * Schema-aware rewrite
+		 */
+		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
+			ldapava_free_dn( dn );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/*
+		 * Back to string representation
+		 */
+		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
+
+		ldapava_free_dn( dn );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		out = ber_bvstr( dn_out );
+
+	} else {
+		out = ber_bvdup( val );
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: <%s>\n", out->bv_val, 0, 0 );
+
+	*normalized = out;
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * dn "pretty"ing routine
+ */
+int
+dnPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **pretty)
+{
+	struct berval *out = NULL;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
+
+	assert( val );
+	assert( pretty );
+
+	if ( val->bv_len != 0 ) {
+		LDAPDN		*dn = NULL;
+		char		*dn_out = NULL;
+		int		rc;
+
+		/* FIXME: should be liberal in what we accept */
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/*
+		 * Schema-aware rewrite
+		 */
+		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
+			ldapava_free_dn( dn );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* FIXME: not sure why the default isn't pretty */
+		/* RE: the default is the form that is used as
+		 * an internal representation; the pretty form
+		 * is a variant */
+		rc = ldap_dn2str( dn, &dn_out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+
+		ldapava_free_dn( dn );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		out = ber_bvstr( dn_out );
+
+	} else {
+		out = ber_bvdup( val );
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
+
+	*pretty = out;
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * dn match routine
+ *
+ * note: uses exact string match (strcmp) because it is supposed to work
+ * on normalized DNs.
+ */
+int
+dnMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+
+	assert( matchp );
+	assert( value );
+	assert( assertedValue );
+	
+	match = value->bv_len - asserted->bv_len;
+
+	if ( match == 0 ) {
+		match = strcmp( value->bv_val, asserted->bv_val );
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		"dnMatch: %d\n    %s\n    %s\n", match,
+		value->bv_val, asserted->bv_val ));
+#else
+	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
+		match, value->bv_val, asserted->bv_val );
 #endif
+
+	*matchp = match;
+	return( LDAP_SUCCESS );
+}
 
 /*
  * dn_validate - validate and compress dn.  the dn is
