@@ -121,7 +121,7 @@ oc_check_required( Entry *e, struct berval *ocname )
 
 	Debug( LDAP_DEBUG_TRACE,
 	       "oc_check_required entry (%s), objectclass \"%s\"\n",
-	       e->e_dn, ocname, 0 );
+	       e->e_dn, ocname->bv_val, 0 );
 
 	/* find global oc defn. it we don't know about it assume it's ok */
 	if ( (oc = oc_find( ocname->bv_val )) == NULL ) {
