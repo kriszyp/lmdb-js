@@ -41,7 +41,7 @@ dn2id_add(
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
-	rc = ldbm_cache_store( db, key, data, LDBM_INSERT );
+	rc = ldbm_cache_store( db, key, data, LDBM_INSERT | LDBM_SYNC );
 
 	free( dn );
 	ldbm_cache_close( be, db );

@@ -172,7 +172,7 @@ idl_store(
 	data.dptr = (char *) idl;
 	data.dsize = (2 + idl->b_nmax) * sizeof(ID);
 
-	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE );
+	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE | LDBM_SYNC );
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
 	return( rc );
