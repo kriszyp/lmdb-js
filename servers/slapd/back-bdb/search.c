@@ -428,8 +428,14 @@ bdb_search(
 				}
 
 				if (e) {
-					int result = send_search_entry( be, conn, op,
-						e, attrs, attrsonly, NULL);
+					int result;
+					
+					if( op->o_noop ) {
+						result = 0;
+					} else {
+						result = send_search_entry( be, conn, op,
+							e, attrs, attrsonly, NULL);
+					}
 
 					switch (result) {
 					case 0:		/* entry sent ok */
