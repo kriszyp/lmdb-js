@@ -553,7 +553,18 @@ int connection_read(int s)
 		Debug( LDAP_DEBUG_ANY,
 			"connection_read(%d): no connection!\n",
 			s, 0, 0 );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
+	}
+
+	if( c->c_conn_state == SLAP_C_CLOSING ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"connection_read(%d): closing, ignoring input for id=%ld\n",
+			s, c->c_connid, 0 );
+
+		connection_return( c );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
+		return 0;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -755,6 +766,7 @@ int connection_write(int s)
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%d): no connection!\n",
 			s, 0, 0 );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
 
