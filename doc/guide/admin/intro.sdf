@@ -231,9 +231,9 @@ of mechanisms including DIGEST-MD5, EXTERNAL, and GSSAPI.
 protections through the use of TLS (or SSL).  {{slapd}}'s TLS
 implementation utilizes {{PRD:OpenSSL}} software.
 
-{{B:Topology control}}: {{slapd}} allows one to restrict access to
-the server based upon network topology.  This feature utilizes
-{{TCP wrappers}}.
+{{B:Topology control}}: {{slapd}} can be configured to restrict
+access at the socket layer based upon network topology information.
+This feature utilizes {{TCP wrappers}}.
 
 {{B:Access control}}: {{slapd}} provides a rich and powerful access
 control facility, allowing you to control access to the information
@@ -250,9 +250,9 @@ of different database backends you can choose from. They include
 {{TERM:BDB}}, a high-performance transactional database backend;
 {{TERM:LDBM}}, a lightweight DBM based backend; {{SHELL}}, a backend
 interface to arbitrary shell scripts; and PASSWD, a simple backend
-interface to the {{passwd}}(5) file.  BDB utilizes {{ORG:Sleepycat}}
-{{PRD:Berkeley DB}}.  LDBM utilizes either {{PRD:Berkeley DB}} or
-{{PRD:GDBM}}.
+interface to the {{passwd}}(5) file.  The BDB backend utilizes
+{{ORG:Sleepycat}} {{PRD:Berkeley DB}}.  The LDBM utilizes either
+{{PRD:Berkeley DB}} or {{PRD:GDBM}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single
@@ -277,33 +277,39 @@ multi-threaded {{slapd}} process handles all incoming requests
 using a pool of threads.  This reduces the amount of system overhead
 required while providing high performance.
 
-{{B:Replication}}: {{slapd}} can be configured to maintain replica
-copies of its database. This {{single-master/multiple-slave}}
+{{B:Replication}}: {{slapd}} can be configured to maintain shadow
+copies of directory information.  This {{single-master/multiple-slave}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} just doesn't provide the necessary availability
 or reliability.  {{slapd}} also includes experimental support for
-{{multi-master}} replication.
+{{multi-master}} replication (for use where strong ACID properties
+are not required).  {{slapd}} supports two replication methods:
+{{slurpd}}(8)-based and {{LDAP Sync}}-based replicaton.
+
+{{B:Proxy Cache}}: {{slapd}} can be configured as a LDAP proxy
+service.
 
 {{B:Configuration}}: {{slapd}} is highly configurable through a
 single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have
 reasonable defaults, making your job much easier.
 
-{{slapd}} also has its limitations, of course.  The main BDB
-backend does not handle range queries or negation queries
-very well.
-
 
 H2: What is slurpd and what can it do?
 
-{{slurpd}}(8) is a daemon that helps {{slapd}} provide replicated
-service. It is responsible for distributing changes made to the
-master {{slapd}} database out to the various {{slapd}} replicas.
-It frees {{slapd}} from having to worry that some replicas might
-be down or unreachable when a change comes through; {{slurpd}}
+{{slurpd}}(8) is a daemon that, with {{slapd}} help, provides
+replicated service.  It is responsible for distributing changes
+made to the master {{slapd}} database out to the various {{slapd}}
+replicas.  It frees {{slapd}} from having to worry that some replicas
+might be down or unreachable when a change comes through; {{slurpd}}
 handles retrying failed requests automatically.  {{slapd}} and
 {{slurpd}} communicate through a simple text file that is used to
 log changes.
 
 See the {{SECT:Replication with slurpd}} chapter for information
 about how to configure and run {{slurpd}}(8).
+
+Alternatively, {{LDAP-Sync}}-based replication may be used to provide
+a replicated service.  See the {{SECT:LDAP Sync Replication}} chapter
+for details.
+
