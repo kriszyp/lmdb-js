@@ -27,6 +27,7 @@
 #include <ac/string.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
