@@ -1,7 +1,24 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1-Alpha (from -devel)
-	CVS Tag: OPENLDAP_REL_ENG_1_1_A
+	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA2
+	Added cross compiling detect and warnings
+	Fixed autoconf detection of threads
+	Fixed SunOS/Solaris autoconf problems
+	Fixed SCO build problems
+	Fixed ldapd manual compiling
+	Fixed configure script bugs
+	Fixed toupper/tolower bugs
+	Fixed client/tools install-local bug
+	Fixed sgtty vs termios issues
+	Fixed stdarg issues
+	Fixed USE_LOCKF bug
+	Updated INSTALL/README files
+	Updated setproctitle code
+	Removed lint
+
+Changes included in OpenLDAP 1.1-Alpha (from -devel)
+	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA
 	Fixed slapd/back-passwd sizelimit bug
 	Fixed slapd/back-ldbm/msearch entry rwlock bug
 	Fixed slapd/filterentry Equality bugs
