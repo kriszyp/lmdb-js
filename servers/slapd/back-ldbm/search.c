@@ -377,8 +377,9 @@ subtree_candidates(
 		f->f_or = (Filter *) ch_malloc( sizeof(Filter) );
 		f->f_or->f_choice = LDAP_FILTER_EQUALITY;
 		f->f_or->f_avtype = strdup( "objectclass" );
-		f->f_or->f_avvalue.bv_val = strdup( "referral" );
-		f->f_or->f_avvalue.bv_len = strlen( "referral" );
+		/* Patch to use normalized uppercase */
+		f->f_or->f_avvalue.bv_val = strdup( "REFERRAL" );
+		f->f_or->f_avvalue.bv_len = strlen( "REFERRAL" );
 		f->f_or->f_next = filter;
 		filter = f;
 

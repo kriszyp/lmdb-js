@@ -178,9 +178,11 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	*parentreq, LDAPServer *srvlist, LDAPConn *lc, int bind )
 {
 	LDAPRequest	*lr;
+	int incparent;
 
 	Debug( LDAP_DEBUG_TRACE, "send_server_request\n", 0, 0, 0 );
 
+	incparent = 0;
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 
 	if ( lc == NULL ) {
@@ -189,6 +191,11 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		} else {
 			if (( lc = find_connection( ld, srvlist, 1 )) ==
 			    NULL ) {
+				if ( bind && (parentreq != NULL) ) {
+					/* Remember the bind in the parent */
+					incparent = 1;
+					++parentreq->lr_outrefcnt;
+				}
 				lc = new_connection( ld, &srvlist, 0, 1, bind );
 			}
 			free_servers( srvlist );
@@ -200,6 +207,10 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
 			ld->ld_errno = LDAP_SERVER_DOWN;
 		}
+		if ( incparent ) {
+			/* Forget about the bind */
+			--parentreq->lr_outrefcnt; 
+		}
 		return( -1 );
 	}
 
@@ -209,6 +220,10 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		ld->ld_errno = LDAP_NO_MEMORY;
 		free_connection( ld, lc, 0, 0 );
 		ber_free( ber, 1 );
+		if ( incparent ) {
+			/* Forget about the bind */
+			--parentreq->lr_outrefcnt; 
+		}
 		return( -1 );
 	} 
 	lr->lr_msgid = msgid;
@@ -217,7 +232,10 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	lr->lr_ber = ber;
 	lr->lr_conn = lc;
 	if ( parentreq != NULL ) {	/* sub-request */
-		++parentreq->lr_outrefcnt;
+		if ( !incparent ) { 
+			/* Increment if we didn't do it before the bind */
+			++parentreq->lr_outrefcnt;
+		}
 		lr->lr_origid = parentreq->lr_origid;
 		lr->lr_parentcnt = parentreq->lr_parentcnt + 1;
 		lr->lr_parent = parentreq;
@@ -442,6 +460,7 @@ free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 				}
 				break;
 			}
+			prevlc = tmplc;
 		}
 		free_servers( lc->lconn_server );
 		if ( lc->lconn_krbinstance != NULL ) {
