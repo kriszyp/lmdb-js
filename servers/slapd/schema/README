@@ -8,7 +8,7 @@ core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
-misc.schema             misc (experimental)
+misc.schema             Miscellaneous Schema (experimental)
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project (FYI)
 
@@ -35,7 +35,7 @@ top-level directory of the distribution.
 This notice applies to all schema in this directory which are derived
 from RFCs and other Internet Standards documents.
 
-Portions Copyright 1991-2003, The Internet Society.  All Rights Reserved.
+Portions Copyright 1991-2004, The Internet Society.  All Rights Reserved.
 
 This document and translations of it may be copied and furnished
 to others, and derivative works that comment on or otherwise explain
