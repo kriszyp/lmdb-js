@@ -58,9 +58,12 @@ bdb_db_cache(
  * dn2entry.c
  */
 int bdb_dn2entry_rw LDAP_P(( BackendDB *be, DB_TXN *tid,
-       struct berval *dn, Entry **e, Entry **matched, int flags, int rw , u_int32_t locker, DB_LOCK *lock));
-#define bdb_dn2entry_r(be, tid, dn, e, m, f, locker, lock) bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 0, locker, lock)
-#define bdb_dn2entry_w(be, tid, dn, e, m, f, locker, lock) bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 1, locker, lock)
+	struct berval *dn, Entry **e, Entry **matched, int flags, int rw,
+	u_int32_t locker, DB_LOCK *lock));
+#define bdb_dn2entry_r(be, tid, dn, e, m, f, locker, lock) \
+	bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 0, locker, lock)
+#define bdb_dn2entry_w(be, tid, dn, e, m, f, locker, lock) \
+	bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 1, locker, lock)
 
 /*
  * dn2id.c
@@ -158,8 +161,10 @@ int bdb_id2entry_rw(
 	int rw,
 	u_int32_t locker,
 	DB_LOCK *lock );
-#define bdb_id2entry_r(be, tid, id, e, locker, lock)      bdb_id2entry_rw((be), (tid), (id), (e), 0, locker, lock)
-#define bdb_id2entry_w(be, tid, id, e, locker, lock)      bdb_id2entry_rw((be), (tid), (id), (e), 1, locker, lock)
+#define bdb_id2entry_r(be, tid, id, e, locker, lock) \
+	bdb_id2entry_rw((be), (tid), (id), (e), 0, locker, lock)
+#define bdb_id2entry_w(be, tid, id, e, locker, lock) \
+	bdb_id2entry_rw((be), (tid), (id), (e), 1, locker, lock)
 
 void bdb_entry_free ( Entry *e );
 
@@ -306,12 +311,17 @@ BI_op_extended bdb_exop_passwd;
  */
 
 void bdb_cache_entry_commit( Entry *e );
-void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e, int rw, DB_LOCK *lock );
-#define bdb_cache_return_entry_r(env, c, e, l) bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
-#define bdb_cache_return_entry_w(env, c, e, l) bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
+void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
+	int rw, DB_LOCK *lock );
+#define bdb_cache_return_entry_r(env, c, e, l) \
+	bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
+#define bdb_cache_return_entry_w(env, c, e, l) \
+	bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
 void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
-#define bdb_unlocked_cache_return_entry_r( c, e ) bdb_unlocked_cache_return_entry_rw((c), (e), 0)
-#define bdb_unlocked_cache_return_entry_w( c, e ) bdb_unlocked_cache_return_entry_rw((c), (e), 1)
+#define bdb_unlocked_cache_return_entry_r( c, e ) \
+	bdb_unlocked_cache_return_entry_rw((c), (e), 0)
+#define bdb_unlocked_cache_return_entry_w( c, e ) \
+	bdb_unlocked_cache_return_entry_rw((c), (e), 1)
 int bdb_cache_add_entry_rw(
 	DB_ENV	*env,
 	Cache   *cache,
