@@ -68,6 +68,7 @@ do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 static
 #endif
 volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
+volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -1951,6 +1952,7 @@ slapd_daemon_task(
 	slap_listeners = NULL;
 
 	if( !slapd_gentle_shutdown ) {
+		slapd_abrupt_shutdown = 1;
 		connections_shutdown();
 	}
 

@@ -209,6 +209,9 @@ do_syncrepl(
 	const char		*text;
 	int				match;
 
+	struct timeval *tout_p = NULL;
+	struct timeval tout = { 10, 0 };
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
 #else
@@ -444,7 +447,21 @@ do_syncrepl(
 		return NULL;
 	}
 
-	while (( rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ONE, NULL, &res )) > 0 ) {
+	if ( abs(si->type) == LDAP_SYNC_REFRESH_AND_PERSIST ){
+		tout_p = &tout;
+	} else {
+		tout_p = NULL;
+	}
+
+	while (( rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ONE, tout_p, &res )) >= 0 ) {
+
+		if ( rc == 0 ) {
+			if ( slapd_abrupt_shutdown ) {
+				break;
+			} else {
+				continue;
+			}
+		}
 
 		for ( msg = ldap_first_message( ld, res );
 		      msg != NULL;
@@ -630,6 +647,7 @@ done:
 
 	if ( res )
 		ldap_msgfree( res );
+
 	ldap_unbind( ld );
 
 	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
