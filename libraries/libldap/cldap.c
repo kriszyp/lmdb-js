@@ -109,7 +109,7 @@ cldap_open( char *host, int port )
 		}
 	    }
 
-	    if ( (address = inet_addr( host )) == -1 ) {
+	    if ( (address = inet_addr( host )) == -1UL ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 		    errno = EHOSTUNREACH;
 		    continue;
