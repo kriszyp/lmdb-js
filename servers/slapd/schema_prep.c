@@ -241,7 +241,7 @@ static struct slap_schema_ad_map {
 			"DESC 'X.500(93): structural object class of entry' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
-			"NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )",
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0, structuralObjectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 	{ "createTimestamp", "( 2.5.18.1 NAME 'createTimestamp' "
@@ -284,15 +284,15 @@ static struct slap_schema_ad_map {
 	{ "subschemaSubentry", "( 2.5.18.10 NAME 'subschemaSubentry' "
 			"DESC 'RFC2252: name of controlling subschema entry' "
 			"EQUALITY distinguishedNameMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION "
-			"SINGLE-VALUE USAGE directoryOperation )",
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE "
+			"NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
 	{ "collectiveAttributeSubentries", "( 2.5.18.12 "
 			"NAME 'collectiveAttributeSubentries' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
-			"USAGE directoryOperation NO-USER-MODIFICATION )",
+			"NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_collectiveSubentries) },
 	{ "collectiveExclusions", "( 2.5.18.7 NAME 'collectiveExclusions' "
@@ -331,8 +331,8 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
 	{ "supportedControl", "( 1.3.6.1.4.1.1466.101.120.13 "
 			"NAME 'supportedControl' "
-		   "DESC 'RFC2252: supported controls' "
-		   "SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )",
+			"DESC 'RFC2252: supported controls' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )",
 		rootDseAttribute, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedControl) },
 	{ "supportedExtension", "( 1.3.6.1.4.1.1466.101.120.7 "
