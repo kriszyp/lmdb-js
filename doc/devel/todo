@@ -43,6 +43,7 @@ Modify -lldap to be reentrant/threadsafe implement LDAP
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Add support for in-directory SASL secrets
+Implement dNSReferral <draft-zeilenga-ldap-dnsref-xx.txt>
 Implement authPassword (RFC 3112)
 Implement localization
 
