@@ -1696,13 +1696,22 @@ typedef struct req_abandon_s {
 	ber_int_t rs_msgid;
 } req_abandon_s;
 
+#ifdef LDAP_DEVEL
+#define SLAP_EXOP_HIDE 0x0000
+#else
+#define SLAP_EXOP_HIDE 0x8000
+#endif
+#define SLAP_EXOP_WRITES 0x0001		/* Exop does writes */
+
 typedef struct req_extended_s {
 	struct berval rs_reqoid;
+	int rs_flags;
 	struct berval *rs_reqdata;
 } req_extended_s;
 
 typedef struct req_pwdexop_s {
 	struct berval rs_reqoid;
+	int rs_flags;
 	struct berval rs_old;
 	struct berval rs_new;
 	Modifications *rs_mods;
@@ -2134,6 +2143,7 @@ typedef struct slap_op {
 #define orm_increment oq_modify.rs_increment
 
 #define ore_reqoid oq_extended.rs_reqoid
+#define ore_flags oq_extended.rs_flags
 #define ore_reqdata oq_extended.rs_reqdata
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */

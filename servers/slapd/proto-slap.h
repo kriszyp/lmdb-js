@@ -616,6 +616,8 @@ LDAP_SLAPD_F (Entry *) entry_dup LDAP_P(( Entry *e ));
  */
 LDAP_SLAPD_F (int) exop_root_dse_info LDAP_P ((Entry *e));
 
+#define exop_is_write( op )	((op->ore_flags & SLAP_EXOP_WRITES) != 0)
+
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_CANCEL;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_WHOAMI;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_MODIFY_PASSWD;

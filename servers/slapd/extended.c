@@ -45,11 +45,6 @@
 
 #define UNSUPPORTED_EXOP "unsupported extended operation"
 
-#ifdef LDAP_DEVEL
-#define SLAP_EXOP_HIDE 0x0000
-#else
-#define SLAP_EXOP_HIDE 0x8000
-#endif
 
 static struct extop_list {
 	struct extop_list *next;
@@ -77,7 +72,7 @@ static struct {
 } builtin_extops[] = {
 	{ &slap_EXOP_CANCEL, SLAP_EXOP_HIDE, cancel_extop },
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
-	{ &slap_EXOP_MODIFY_PASSWD, 0, passwd_extop },
+	{ &slap_EXOP_MODIFY_PASSWD, SLAP_EXOP_WRITES, passwd_extop },
 #ifdef HAVE_TLS
 	{ &slap_EXOP_START_TLS, 0, starttls_extop },
 #endif
@@ -224,6 +219,8 @@ fe_extended( Operation *op, SlapReply *rs )
 			"unsupported extended operation" );
 		goto done;
 	}
+
+	op->ore_flags = ext->flags;
 
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n",
 		op->ore_reqoid.bv_val, 0 ,0 );
