@@ -13,7 +13,7 @@ fi
 . $SRCDIR/scripts/defines.sh $SRCDIR $BDB2
 
 # Sample NIS database in LDIF format
-NIS_LDIF=$SRCDIR/../schema/nis_sample.ldif
+NIS_LDIF=$SRCDIR/../servers/slapd/schema/nis_sample.ldif
 
 # Sample configuration file for your LDAP server
 if test "$BACKEND" = "bdb2" ; then
