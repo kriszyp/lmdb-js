@@ -24,17 +24,27 @@ ldap_charray_add(
 	if ( *a == NULL ) {
 		*a = (char **) LDAP_MALLOC( 2 * sizeof(char *) );
 		n = 0;
+
+		if( *a == NULL ) {
+			return -1;
+		}
+
 	} else {
+		char **new;
+
 		for ( n = 0; *a != NULL && (*a)[n] != NULL; n++ ) {
 			;	/* NULL */
 		}
 
-		*a = (char **) LDAP_REALLOC( (char *) *a,
+		new = (char **) LDAP_REALLOC( (char *) *a,
 		    (n + 2) * sizeof(char *) );
-	}
 
-	if( *a == NULL ) {
-		return -1;
+		if( new == NULL ) {
+			/* caller is required to call ldap_charray_free(*a) */
+			return -1;
+		}
+
+		*a = new;
 	}
 
 	(*a)[n] = LDAP_STRDUP(s);
