@@ -348,7 +348,7 @@ bdb_dn2id_matched(
 
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
-				(long) *id, *id2 == 0 ? "entry" : "matched", dn );
+				(long) *id, *id2 == 0 ? "entry" : "matched", dn.bv_val );
 			break;
 
 		} else {
