@@ -40,10 +40,10 @@ void suffix_alias(
 	dnLength = dn->bv_len;
 
 	for ( i = 0;
-		be->be_suffixAlias != NULL && be->be_suffixAlias[i] != NULL;
+		be->be_suffixAlias != NULL && be->be_suffixAlias[i].bv_val != NULL;
 		i += 2 )
 	{
-		int aliasLength = be->be_suffixAlias[i]->bv_len;
+		int aliasLength = be->be_suffixAlias[i].bv_len;
 		int diff = dnLength - aliasLength;
 
 		if ( diff < 0 ) {
@@ -58,12 +58,12 @@ void suffix_alias(
 			/* XXX or an escaped separator... oh well */
 		}
 
-		if (!strcmp(be->be_suffixAlias[i]->bv_val, &dn->bv_val[diff])) {
+		if (!strcmp(be->be_suffixAlias[i].bv_val, &dn->bv_val[diff])) {
 			char *oldDN = dn->bv_val;
-			dn->bv_len = diff + be->be_suffixAlias[i+1]->bv_len;
+			dn->bv_len = diff + be->be_suffixAlias[i+1].bv_len;
 			dn->bv_val = ch_malloc( dn->bv_len + 1 );
 			strncpy( dn->bv_val, oldDN, diff );
-			strcpy( &dn->bv_val[diff], be->be_suffixAlias[i+1]->bv_val );
+			strcpy( &dn->bv_val[diff], be->be_suffixAlias[i+1].bv_val );
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "suffix_alias: converted \"%s\" to \"%s\"\n",

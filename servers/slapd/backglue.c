@@ -63,7 +63,7 @@ glue_back_select (
 	bv.bv_val = (char *) dn;
 
 	for (i = 0; i<gi->nodes; i++) {
-		if (dnIsSuffix(&bv, gi->n[i].be->be_nsuffix[0])) {
+		if (dnIsSuffix(&bv, &gi->n[i].be->be_nsuffix[0])) {
 			return gi->n[i].be;
 		}
 	}
@@ -360,20 +360,20 @@ glue_back_search (
 			if (scope == LDAP_SCOPE_ONELEVEL && 
 				dn_match(&gi->n[i].pdn, ndn)) {
 				rc = be->be_search (be, conn, op,
-					be->be_suffix[0], be->be_nsuffix[0],
+					&be->be_suffix[0], &be->be_nsuffix[0],
 					LDAP_SCOPE_BASE, deref,
 					s2limit, t2limit, filter, filterstr,
 					attrs, attrsonly);
 
 			} else if (scope == LDAP_SCOPE_SUBTREE &&
-				dnIsSuffix(be->be_nsuffix[0], ndn)) {
+				dnIsSuffix(&be->be_nsuffix[0], ndn)) {
 				rc = be->be_search (be, conn, op,
-					be->be_suffix[0], be->be_nsuffix[0],
+					&be->be_suffix[0], &be->be_nsuffix[0],
 					scope, deref,
 					s2limit, t2limit, filter, filterstr,
 					attrs, attrsonly);
 
-			} else if (dnIsSuffix(&bv, be->be_nsuffix[0])) {
+			} else if (dnIsSuffix(&bv, &be->be_nsuffix[0])) {
 				rc = be->be_search (be, conn, op, dn, ndn,
 					scope, deref,
 					s2limit, t2limit, filter, filterstr,
@@ -833,7 +833,7 @@ glue_sub_init( )
 			if (be->be_flags & SLAP_BFLAG_GLUE_LINKED) {
 				continue;
 			}
-			if (!dnIsSuffix(be->be_nsuffix[0], b1->be_nsuffix[0])) {
+			if (!dnIsSuffix(&be->be_nsuffix[0], &b1->be_nsuffix[0])) {
 				continue;
 			}
 			cont--;
@@ -890,7 +890,7 @@ glue_sub_init( )
 					gi->nodes * sizeof(gluenode));
 			}
 			gi->n[gi->nodes].be = be;
-			dnParent( be->be_nsuffix[0], &gi->n[gi->nodes].pdn ); 
+			dnParent( &be->be_nsuffix[0], &gi->n[gi->nodes].pdn ); 
 			gi->nodes++;
 		}
 		if (gi) {
@@ -898,7 +898,7 @@ glue_sub_init( )
 			gi = (glueinfo *)ch_realloc(gi,
 				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
 			gi->n[gi->nodes].be = gi->be;
-			dnParent( b1->be_nsuffix[0], &gi->n[gi->nodes].pdn );
+			dnParent( &b1->be_nsuffix[0], &gi->n[gi->nodes].pdn );
 			gi->nodes++;
 			b1->be_private = gi;
 			b1->bd_info = bi;

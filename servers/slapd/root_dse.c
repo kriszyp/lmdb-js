@@ -93,8 +93,8 @@ root_dse_info(
 		if ( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
 			continue;
 		}
-		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
-			vals[0] = *backends[i].be_suffix[j];
+		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {
+			vals[0] = backends[i].be_suffix[j];
 			attr_merge( e, ad_namingContexts, vals );
 		}
 	}

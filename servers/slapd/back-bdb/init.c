@@ -171,11 +171,11 @@ bdb_db_open( BackendDB *be )
 	u_int32_t flags;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "init", LDAP_LEVEL_ARGS, "bdb_db_open: %s\n", be->be_suffix[0]->bv_val ));
+	LDAP_LOG(( "init", LDAP_LEVEL_ARGS, "bdb_db_open: %s\n", be->be_suffix[0].bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_db_open: %s\n",
-		be->be_suffix[0]->bv_val, 0, 0 );
+		be->be_suffix[0].bv_val, 0, 0 );
 #endif
 
 	/* we should check existance of dbenv_home and db_directory */
@@ -195,7 +195,7 @@ bdb_db_open( BackendDB *be )
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
 		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER;
 
-	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0]->bv_val );
+	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 #ifndef NO_THREADS
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );

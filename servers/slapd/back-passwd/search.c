@@ -180,9 +180,9 @@ passwd_back_search(
 		 */
 		if( !be_issuffix( be, &parent ) ) {
 			int i;
-			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
-				if( dnIsSuffix( nbase, be->be_nsuffix[i] ) ) {
-					matched = be->be_suffix[i]->bv_val;
+			for( i=0; be->be_nsuffix[i].bv_val != NULL; i++ ) {
+				if( dnIsSuffix( nbase, &be->be_nsuffix[i] ) ) {
+					matched = be->be_suffix[i].bv_val;
 					break;
 				}
 			}
@@ -262,12 +262,12 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	 */
 
 	pwlen = strlen( pw->pw_name );
-	vals[0].bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0]->bv_len );
+	vals[0].bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0].bv_len );
 	vals[0].bv_val = ch_malloc( vals[0].bv_len + 1 );
 
 	/* rdn attribute type should be a configuratable item */
 	sprintf( vals[0].bv_val, "uid=%s,%s",
-		pw->pw_name, be->be_suffix[0]->bv_val );
+		pw->pw_name, be->be_suffix[0].bv_val );
 
 	rc = dnNormalize2( NULL, vals, &bv );
 	if( rc != LDAP_SUCCESS ) {

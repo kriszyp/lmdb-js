@@ -744,7 +744,7 @@ int bdb_build_tree(
 	 * Note that this code always uses be_suffix[0], so defining
 	 * multiple suffixes for a single backend won't work!
 	 */
-	rdns = ldap_explode_dn(be->be_nsuffix[0]->bv_val, 0);
+	rdns = ldap_explode_dn(be->be_nsuffix[0].bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	bdb->bi_nrdns = i;
 	charray_free(rdns);
@@ -783,8 +783,8 @@ int bdb_fix_dn(
 	
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
 	o = bdb_find_id_node(id, bdb->bi_tree);
-	rlen = be->be_suffix[0]->bv_len + 1;
-	nrlen = be->be_nsuffix[0]->bv_len + 1;
+	rlen = be->be_suffix[0].bv_len + 1;
+	nrlen = be->be_nsuffix[0].bv_len + 1;
 	for (n = o; n && n->i_parent; n=n->i_parent) {
 		rlen += n->i_rdn->rdn.bv_len + 1;
 		nrlen += n->i_rdn->nrdn.bv_len + 1;
@@ -803,8 +803,8 @@ int bdb_fix_dn(
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
 
-	strcpy(ptr, be->be_suffix[0]->bv_val);
-	strcpy(nptr, be->be_nsuffix[0]->bv_val);
+	strcpy(ptr, be->be_suffix[0].bv_val);
+	strcpy(nptr, be->be_nsuffix[0].bv_val);
 
 	return 0;
 }

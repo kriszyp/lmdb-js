@@ -114,15 +114,8 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		for ( j = 0; be->be_suffix[j]; j++ ) {
-			struct berval 		bv[ 2 ];
-
-			bv[ 0 ] = *be->be_suffix[ j ];
-			bv[ 1 ].bv_val = NULL;
-
-			attr_merge( e, ad_nc, bv );
-			attr_merge( e_database, ad_nc, bv );
-		}
+		attr_merge( e, ad_nc, be->be_suffix );
+		attr_merge( e_database, ad_nc, be->be_suffix );
 
 		for ( j = nBackendInfo; j--; ) {
 			if ( &backendInfo[ j ] == be->bd_info ) {

@@ -83,12 +83,12 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: line %d: "
 				"database (%s) not configured to hold \"%s\"\n",
 				progname, lineno,
-				be ? be->be_suffix[0]->bv_val : "<none>",
+				be ? be->be_suffix[0].bv_val : "<none>",
 				e->e_dn );
 			fprintf( stderr, "%s: line %d: "
 				"database (%s) not configured to hold \"%s\"\n",
 				progname, lineno,
-				be ? be->be_nsuffix[0]->bv_val : "<none>",
+				be ? be->be_nsuffix[0].bv_val : "<none>",
 				e->e_ndn );
 			rc = EXIT_FAILURE;
 			entry_free( e );

@@ -44,7 +44,7 @@ struct tclinfo {
 
 void readtclscript (char *script, Tcl_Interp * my_tcl);
 char *tcl_clean_entry (Entry * e);
-struct berval *tcl_merge_bvlist (struct berval **bvlist, struct berval *out);
+struct berval *tcl_merge_bvlist (BerVarray bvlist, struct berval *out);
 
 int tcl_ldap_debug (
 	ClientData clientData,

@@ -303,22 +303,3 @@ slap_mods_free(
 	}
 }
 
-void
-slap_modlist_free(
-    LDAPModList	*ml
-)
-{
-	LDAPModList *next;
-
-	for ( ; ml != NULL; ml = next ) {
-		next = ml->ml_next;
-
-		if (ml->ml_type)
-			free( ml->ml_type );
-
-		if ( ml->ml_bvalues != NULL )
-			ber_bvecfree( ml->ml_bvalues );
-
-		free( ml );
-	}
-}

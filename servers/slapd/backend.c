@@ -248,11 +248,11 @@ int backend_startup(Backend *be)
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			   "backend_startup:  starting \"%s\"\n",
-			   be->be_suffix[0]->bv_val ));
+			   be->be_suffix[0].bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"backend_startup: starting \"%s\"\n",
-			be->be_suffix[0]->bv_val, 0, 0 );
+			be->be_suffix[0].bv_val, 0, 0 );
 #endif
 
 		if ( be->bd_info->bi_open ) {
@@ -425,8 +425,8 @@ int backend_destroy(void)
 		if ( bd->bd_info->bi_db_destroy ) {
 			bd->bd_info->bi_db_destroy( bd );
 		}
-		ber_bvecfree( bd->be_suffix );
-		ber_bvecfree( bd->be_nsuffix );
+		ber_bvarray_free( bd->be_suffix );
+		ber_bvarray_free( bd->be_nsuffix );
 		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
 		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
 		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
@@ -540,7 +540,7 @@ select_backend(
 
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
-		    backends[i].be_nsuffix[j] != NULL; j++ )
+		    backends[i].be_nsuffix[j].bv_val != NULL; j++ )
 		{
 			if (( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE )
 				&& noSubs )
@@ -548,7 +548,7 @@ select_backend(
 			  	continue;
 			}
 
-			len = backends[i].be_nsuffix[j]->bv_len;
+			len = backends[i].be_nsuffix[j].bv_len;
 
 			if ( len > dnlen ) {
 				/* suffix is longer than DN */
@@ -565,7 +565,7 @@ select_backend(
 				continue;
 			}
 
-			if ( strcmp( backends[i].be_nsuffix[j]->bv_val,
+			if ( strcmp( backends[i].be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
 				if( be == NULL ) {
@@ -593,8 +593,8 @@ be_issuffix(
 {
 	int	i;
 
-	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
-		if ( ber_bvcmp( be->be_nsuffix[i], bvsuffix ) == 0 ) {
+	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i].bv_val != NULL; i++ ) {
+		if ( ber_bvcmp( &be->be_nsuffix[i], bvsuffix ) == 0 ) {
 			return( 1 );
 		}
 	}

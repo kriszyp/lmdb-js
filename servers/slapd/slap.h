@@ -1008,7 +1008,7 @@ LDAP_SLAPD_V (int) slapMode;
 
 struct slap_replica_info {
 	char *ri_host;				/* supersedes be_replica */
-	struct berval **ri_nsuffix;	/* array of suffixes this replica accepts */
+	BerVarray ri_nsuffix;	/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
 	int ri_exclude;			/* 1 => exclude ri_attrs */
 };
@@ -1150,9 +1150,9 @@ struct slap_backend_db {
 	slap_ssf_set_t be_ssf_set;
 
 	/* these should be renamed from be_ to bd_ */
-	struct berval **be_suffix;	/* the DN suffixes of data in this backend */
-	struct berval **be_nsuffix;	/* the normalized DN suffixes in this backend */
-	struct berval **be_suffixAlias; /* pairs of DN suffix aliases and deref values */
+	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
+	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
+	BerVarray	be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
 	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
 	struct berval be_rootpw;	/* the magic "root" password for this db	*/

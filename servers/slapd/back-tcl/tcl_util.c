@@ -192,7 +192,7 @@ readtclscript (
 
 struct berval *
 tcl_merge_bvlist(
-	struct berval **bvlist, struct berval *out)
+	BerVarray bvlist, struct berval *out)
 {
 	struct berval *ret = NULL;
 	int i;
@@ -212,7 +212,7 @@ tcl_merge_bvlist(
 	ret->bv_len = 0;
 	ret->bv_val = NULL;
 
-	for (i = 0; bvlist[i] != NULL; i++);
+	for (i = 0; bvlist[i].bv_val != NULL; i++);
 
 	if (i) {
 		char **strlist = ch_malloc ((i + 1) * sizeof(char *));
@@ -221,8 +221,8 @@ tcl_merge_bvlist(
 				ch_free (ret);
 			return NULL;
 		}
-		for (i = 0; bvlist[i] != NULL; i++) {
-			strlist[i] = bvlist[i]->bv_val;
+		for (i = 0; bvlist[i].bv_val != NULL; i++) {
+			strlist[i] = bvlist[i].bv_val;
 		}
 		strlist[i] = NULL;
 		ret->bv_val = Tcl_Merge(i, strlist);
