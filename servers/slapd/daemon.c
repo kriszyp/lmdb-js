@@ -835,13 +835,14 @@ slapd_daemon_task(
 			char	*peeraddr;
 #ifdef LDAP_PF_LOCAL
 			char	peername[MAXPATHLEN + sizeof("PATH=")];
-#else
-#  ifdef LDAP_INET6
+#elif defined(LDAP_INET6)
 			char	peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
-#  else
+#else
 			char	peername[sizeof("IP=255.255.255.255:65336")];
-#  endif
 #endif /* LDAP_PF_LOCAL */
+
+			peername[0] = '\0';
+
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
 
