@@ -254,7 +254,7 @@ presence_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
@@ -423,7 +423,7 @@ equality_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
@@ -612,7 +612,7 @@ approx_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
@@ -854,7 +854,7 @@ substring_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
