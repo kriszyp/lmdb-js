@@ -77,7 +77,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
-# ADD LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapdelete.exe" /libpath:"..\..\libraries\Release"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapdelete.exe" /libpath:"..\..\libraries\Release"
 
 !ENDIF 
 
