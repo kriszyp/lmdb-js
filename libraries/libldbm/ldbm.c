@@ -426,6 +426,9 @@ LDBM
 ldbm_open( char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		db;
+#ifdef HAVE_ST_BLKSIZE
+		struct stat	st;
+#endif
 
 	LDBM_LOCK;
 
@@ -436,7 +439,6 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 #ifdef HAVE_ST_BLKSIZE
 	if ( dbcachesize > 0 && stat( name, &st ) == 0 ) {
-		struct stat	st;
 		dbcachesize = (dbcachesize / st.st_blksize);
 		gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
 	}
