@@ -20,7 +20,7 @@ LDAP_BEGIN_DECL
 #	define DEFAULT_DBCACHE_SIZE 100000
 #endif
 
-#define DEFAULT_DB_DIRECTORY	"/usr/tmp"
+#define DEFAULT_DB_DIRECTORY	LDAP_RUNDIR LDAP_DIRSEP "openldap-ldbm"
 #define DEFAULT_MODE		0600
 
 #define SUBLEN			3

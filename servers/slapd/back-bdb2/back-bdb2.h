@@ -15,8 +15,8 @@ LDAP_BEGIN_DECL
 	which is suggested by Sleepycat  */
 #define DEFAULT_DBCACHE_SIZE (128 * DEFAULT_DB_PAGE_SIZE)
 
-#define DEFAULT_DB_DIRECTORY	"/usr/tmp"
-#define DEFAULT_DB_HOME         "/usr/tmp"
+#define DEFAULT_DB_DIRECTORY	LDAP_RUNDIR LDAP_DIRSEP "openldap-bdb2"
+#define DEFAULT_DB_HOME         DEFAULT_DB_DIRECTORY
 #define DEFAULT_MODE		0600
 
 #define SUBLEN			3
