@@ -165,6 +165,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 
 static void openldap_ldap_init_w_userconf(const char *file)
 {
+    if (file[file[0] == '.'] != '/') {
 	char *home = getenv("HOME");
 	char *path;
 	
@@ -184,6 +185,8 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		sprintf(path, "%s/.%s", home, file);
 		openldap_ldap_init_w_conf(path);
 	}
+	free(path);
+    }
 
 	/* try file */
 	openldap_ldap_init_w_conf(file);
