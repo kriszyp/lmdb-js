@@ -56,5 +56,6 @@ struct msg {
 #define DEFAULT_REFERRAL_TIMEOUT	900	/* DSA connections */
 
 #include "proto-ldapd.h"
+#include "ldap_log.h"
 
 #endif

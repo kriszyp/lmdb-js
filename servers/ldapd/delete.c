@@ -13,6 +13,10 @@
 #include "portable.h"
 
 #include <stdio.h>
+/* ac/socket.h must precede ISODE #includes or p_type must be #undeffed
+ * after it is included.  (Because ISODE uses p_type as a field name, and
+ * SunOS 5.5:sys/vtype.h defines it (and ac/socket.h indirectly includes it) */
+#include <ac/socket.h>
 
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
@@ -20,8 +24,6 @@
 #include <quipu/remove.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-
-#include <ac/socket.h>
 
 #include "lber.h"
 #include "ldap.h"

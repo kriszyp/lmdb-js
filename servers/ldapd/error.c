@@ -24,6 +24,7 @@
 
 #include "lber.h"
 #include "ldap.h"
+#include "ldap_log.h"
 
 void
 print_error( struct DSError *e )

@@ -27,6 +27,7 @@
 #include <quipu/dua.h>
 
 #include "lber.h"
+#include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
 #include "ldap.h"
 #include "common.h"
 
@@ -83,7 +84,7 @@ client_request(
 	 * and then the actual request choice.
 	 */
 
-	ber_init( &ber, 0 );
+	ber_init_w_nullc( &ber, 0 );
 	if ( (tag = ber_get_next( clientsb, &len, &ber )) == LBER_DEFAULT ) {
 		Debug( LDAP_DEBUG_ANY, "ber_get_next failed\n", 0, 0, 0 );
 		log_and_exit( 1 );

@@ -37,6 +37,7 @@
 #include <quipu/ds_error.h>
 
 #include "lber.h"
+#include "../../libraries/liblber/lber-int.h"	/* get struct sockbuf */
 #include "ldap.h"
 #include "common.h"
 

@@ -3,10 +3,10 @@
 ##
 PROGRAMS=ldapd
 XPROGRAMS=sldapd
-SRCS	= main.c detach.c setproctitle.c request.c bind.c result.c error.c \
+SRCS	= main.c detach.c request.c bind.c result.c error.c \
 	search.c util.c compare.c message.c add.c delete.c modrdn.c modify.c \
 	abandon.c syntax.c association.c kerberos.c certificate.c
-OBJS	= main.o detach.o setproctitle.o request.o bind.o result.o error.o \
+OBJS	= main.o detach.o request.o bind.o result.o error.o \
 	search.o util.o compare.o message.o add.o delete.o modrdn.o modify.o \
 	abandon.o syntax.o association.o kerberos.o LDAP_tables.o \
 	certificate.o
@@ -27,7 +27,7 @@ ldapd:	version.o
 sldapd:	version.o
 	$(CC) $(LDFLAGS) -static -o $@ $(OBJS) version.o $(LDFLAGS) $(LIBS) -lresolv
 
-version.c: $(OBJS) $(LDIR)/liblber/liblber.a
+version.c: $(OBJS) $(LDAP_LIBDIR)/liblber/liblber.a
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

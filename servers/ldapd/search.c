@@ -25,6 +25,7 @@
 #include <quipu/dua.h>
 
 #include "lber.h"
+#include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
 #include "ldap.h"
 #include "common.h"
 
