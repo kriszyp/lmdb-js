@@ -3,4 +3,13 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: The OpenLDAP Public License
+
+!block inline
+<FONT FACE="Courier">
+!endblock
+
 !include "../LICENSE" ; verbatim
+
+!block inline
+</FONT>
+!endblock

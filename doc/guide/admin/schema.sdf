@@ -56,7 +56,7 @@ is not discussed here.
 
 There are five steps to defining new schema:
 ^	obtain Object Identifer
-+	choose a naming prefix
++	choose a name prefix
 +	create local schema file
 +	define custom attribute types (if necessary)
 +	define custom object classes
@@ -111,7 +111,7 @@ OIDs obtained using this form may be used for any purpose including
 identifying LDAP schema elements.
 
 
-H3: Naming Prefix
+H3: Name Prefix
 
 In addition to assign a unique object identifier to each schema
 element, you should provide a least one textual name for each

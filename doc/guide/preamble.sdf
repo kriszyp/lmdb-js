@@ -27,6 +27,47 @@
 !define HTML_URL_HOME		"http://www.openldap.org/"
 !define HTML_URL_CATALOG	"../index.html"
 
+!macro HTML_HEADER
+	!block inline
+<FONT FACE="Arial,Verdana,Helvetica">
+	!endblock
+	!HTML_NAVIGATE
+!endmacro
+
+!macro HTML_FOOTER
+	!HTML_PRE_SECTION
+	!HTML_NAVIGATE
+	!block inline; expand
+</FONT>
+<P>
+<FONT COLOR="#808080" FACE="Arial,Verdana,Helvetica" SIZE="1"><B>
+______________<BR>
+<SMALL>&copy; Copyright 2000, <A HREF="http://www.OpenLDAP.org/foundation/">OpenLDAP Foundation</A>, <A HREF="mailto:info@OpenLDAP.org">info@OpenLDAP.org</A></SMALL></B></FONT>
+
+	!endblock
+!endmacro
+
+!macro HTML_TOPIC_HEADER
+	!block inline
+<FONT FACE="Arial,Verdana,Helvetica">
+	!endblock
+	!HTML_TOPIC_NAVIGATE
+!endmacro
+
+!macro HTML_TOPIC_FOOTER
+	!HTML_PRE_SECTION
+	!HTML_TOPIC_NAVIGATE
+	!block inline; expand
+</FONT>
+<P>
+<FONT COLOR="#808080" FACE="Arial,Verdana,Helvetica" SIZE="1"><B>
+______________<BR>
+<SMALL>&copy; Copyright 2000, <A HREF="http://www.OpenLDAP.org/foundation/">OpenLDAP Foundation</A>, <A HREF="mailto:info@OpenLDAP.org">info@OpenLDAP.org</A></SMALL></B></FONT>
+
+	!endblock
+!endmacro
+
+
 # OpenLDAP related organization
 !block organisations; data
 Name	 Long					Jump
