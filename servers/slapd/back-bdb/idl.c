@@ -572,7 +572,7 @@ bdb_idl_insert_key(
 		}
 	} else if ( rc == DB_NOTFOUND ) {
 put1:		data.data = &id;
-		rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+		rc = cursor->c_put( cursor, key, &data, DB_NODUPDATA );
 		/* Don't worry if it's already there */
 		if ( rc != 0 && rc != DB_KEYEXIST ) {
 			err = "c_put id";
@@ -827,6 +827,7 @@ bdb_idl_delete_key(
 	} else {
 		/* initial c_get failed, nothing was done */
 fail:
+		if ( rc != DB_NOTFOUND ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( INDEX, ERR, 
 			"bdb_idl_delete_key: %s failed: %s (%d)\n", 
@@ -835,6 +836,7 @@ fail:
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
 			"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
 #endif
+		}
 		cursor->c_close( cursor );
 		return rc;
 	}
