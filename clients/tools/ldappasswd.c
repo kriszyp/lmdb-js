@@ -101,7 +101,7 @@ main( int argc, char *argv[] )
 	LDAP	       *ld = NULL;
 	struct berval *bv = NULL;
 
-	int id, code;
+	int id, code = LDAP_OTHER;
 	LDAPMessage *res;
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
@@ -781,5 +781,5 @@ skip:
 	/* disconnect from server */
 	ldap_unbind (ld);
 
-	return EXIT_SUCCESS;
+	return code == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
 }
