@@ -11,8 +11,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-c ]
 [\c
-.BR \-r ]
-[\c
 .BR \-n ]
 [\c
 .BR \-v ]
@@ -60,8 +58,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .B ldapadd
 [\c
 .BR \-c ]
-[\c
-.BR \-r ]
 [\c
 .BR \-n ]
 [\c
@@ -134,9 +130,6 @@ Continuous operation mode.  Errors are reported, but
 .B ldapmodify
 will continue with modifications.  The default is to exit after
 reporting an error.
-.TP
-.B \-r
-Replace existing values by default.
 .TP
 .B \-n
 Show what would be done, but don't actually modify entries.  Useful for
@@ -255,8 +248,10 @@ flag is set (or if the program was invoked as
 and "modify" otherwise.
 .LP
 If changetype is "modify" and no "add:", "replace:", or "delete:" lines
-appear, the default is "replace" if the -r flag is set and "add"
-otherwise.
+appear, the default is "replace" for and "add"
+.BR ldapmodify (1)
+for
+.BR ldapadd (1).
 .LP
 Note that the above exceptions to the
 .BR slapd.replog (5)
