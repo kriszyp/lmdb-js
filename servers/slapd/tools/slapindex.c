@@ -55,7 +55,6 @@ main( int argc, char **argv )
 		id != NOID;
 		id = be->be_entry_next( be ) )
 	{
-		Attribute *attr;
 		struct berval **values;
 		Entry* e = be->be_entry_get( be, id );
 		struct berval bv;
@@ -75,7 +74,15 @@ main( int argc, char **argv )
 		}
 
 		if( strcasecmp( type, "dn" ) == 0 ) {
-			attr = attr_find( e->e_attrs, type );
+			bv.bv_val = e->e_ndn;
+			bv.bv_len = strlen( bv.bv_val );
+			bvals[0] = &bv;
+			bvals[1] = NULL;
+
+			values = bvals;
+
+		} else {
+			Attribute *attr = attr_find( e->e_attrs, type );
 
 			if( attr == NULL ) {
 				entry_free( e );
@@ -83,18 +90,10 @@ main( int argc, char **argv )
 			}
 
 			values = attr->a_vals;
-
-		} else {
-			bv.bv_val = e->e_ndn;
-			bv.bv_len = strlen( bv.bv_val );
-			bvals[0] = &bv;
-			bvals[1] = NULL;
-
-			values = bvals;
 		}
 
 		if ( be->be_index_change( be,
-			type, attr->a_vals, id, SLAP_INDEX_ADD_OP ) )
+			type, values, id, SLAP_INDEX_ADD_OP ) )
 		{
 			rc = EXIT_FAILURE;
 
