@@ -110,11 +110,6 @@ static struct m_s {
 	{ NULL }
 };
 
-static const struct berval *write_exop[] = {
-	&slap_EXOP_MODIFY_PASSWD,
-	NULL
-};
-
 static int
 lastmod_search( Operation *op, SlapReply *rs )
 {
@@ -303,12 +298,10 @@ lastmod_op_func( Operation *op, SlapReply *rs )
 
 		case LDAP_REQ_EXTENDED:
 			/* if write, reject; otherwise process */
-			for ( i = 0; write_exop[ i ] != NULL; i++ ) {
-				if ( ber_bvcmp( write_exop[ i ], &op->oq_extended.rs_reqoid ) == 0 ) {
-					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-					rs->sr_text = "not allowed within namingContext";
-					goto return_error;
-				}
+			if ( exop_is_write( op )) {
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "not allowed within namingContext";
+				goto return_error;
 			}
 			return lastmod_exop( op, rs );
 
@@ -676,13 +669,10 @@ lastmod_response( Operation *op, SlapReply *rs )
 
 	case LDAP_REQ_EXTENDED:
 		/* if write, process */
-		for ( i = 0; write_exop[ i ] != NULL; i++ ) {
-			if ( ber_bvcmp( write_exop[ i ], &op->oq_extended.rs_reqoid ) == 0 ) {
-				goto process;
-			}
-		}
-		/* fall thru */
+		if ( exop_is_write( op ))
+			break;
 
+		/* fall thru */
 	default:
 		return SLAP_CB_CONTINUE;
 	}
