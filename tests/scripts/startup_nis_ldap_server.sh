@@ -27,7 +27,7 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-$LDIF2LDBM -f $NIS_CONF -l $NIS_LDIF
+$SLAPADD -f $NIS_CONF -l $NIS_LDIF
 RC=$?
 if [ $RC != 0 ]; then
 	echo "slapadd failed!"

@@ -29,7 +29,9 @@ PASSWDCONF=$DATADIR/slapd-passwd.conf
 CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
 
-LDIF2LDBM="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
+SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
+SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
+SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 
 CMP="diff -i"
 CMPOUT=/dev/null
