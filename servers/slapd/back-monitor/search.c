@@ -195,7 +195,7 @@ monitor_back_search(
 				attrs, attrsonly,
 				e, 0, &nentries );
 		if ( rc ) {
-			// error
+			rc = LDAP_OTHER;
 		}		
 		
 		break;
@@ -213,14 +213,14 @@ monitor_back_search(
 				attrs, attrsonly,
 				e, 1, &nentries );
 		if ( rc ) {
-			// error
+			rc = LDAP_OTHER;
 		}
 
 		break;
 	}
 	
-	send_search_result( conn, op, LDAP_SUCCESS,
+	send_search_result( conn, op, rc,
 			NULL, NULL, NULL, NULL, nentries );
 
-	return( 0 );
+	return( rc == LDAP_SUCCESS ? 0 : 1 );
 }
