@@ -763,6 +763,7 @@ bdb_cache_add(
 	ei.bei_id = e->e_id;
 	ei.bei_parent = eip;
 	ei.bei_nrdn = *nrdn;
+	ei.bei_lockpad = 0;
 
 	/* Lock this entry so that bdb_add can run to completion.
 	 * It can only fail if BDB has run out of lock resources.

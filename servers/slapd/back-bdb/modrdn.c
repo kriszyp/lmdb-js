@@ -947,37 +947,35 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	bdb_cache_find_id( op, lt2, eip->bei_id, &eip, 0, locker, &plock );
-    if ( eip ) p = eip->bei_e;
-    if ( p_ndn.bv_len != 0 ) {
-        parent_is_glue = is_entry_glue(p);
-        rs->sr_err = bdb_cache_children( op, lt2, p );
-        if ( rs->sr_err != DB_NOTFOUND ) {
-            switch( rs->sr_err ) {
-            case DB_LOCK_DEADLOCK:
-            case DB_LOCK_NOTGRANTED:
-                goto retry;
-            case 0:
-                break;
-            default:
+	if ( p_ndn.bv_len != 0 ) {
+		parent_is_glue = is_entry_glue(p);
+		rs->sr_err = bdb_cache_children( op, lt2, p );
+		if ( rs->sr_err != DB_NOTFOUND ) {
+			switch( rs->sr_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			case 0:
+				break;
+			default:
 #ifdef NEW_LOGGING
-                LDAP_LOG ( OPERATION, ERR,
-                    "<=- bdb_modrdn: has_children failed %s (%d)\n",
-                    db_strerror(rs->sr_err), rs->sr_err, 0 );
+				LDAP_LOG ( OPERATION, ERR,
+					"<=- bdb_modrdn: has_children failed %s (%d)\n",
+					db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
-                Debug(LDAP_DEBUG_ARGS,
-                    "<=- bdb_modrdn: has_children failed: %s (%d)\n",
-                    db_strerror(rs->sr_err), rs->sr_err, 0 );
+				Debug(LDAP_DEBUG_ARGS,
+					"<=- bdb_modrdn: has_children failed: %s (%d)\n",
+					db_strerror(rs->sr_err), rs->sr_err, 0 );
 #endif
-                rs->sr_err = LDAP_OTHER;
-                rs->sr_text = "internal error";
-                goto return_results;
-            }
-            parent_is_leaf = 1;
-        }
-        bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
-        p = NULL;
-    }
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "internal error";
+				goto return_results;
+			}
+			parent_is_leaf = 1;
+		}
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+		p = NULL;
+	}
 
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;

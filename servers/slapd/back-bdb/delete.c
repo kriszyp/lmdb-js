@@ -71,6 +71,10 @@ retry:	/* transaction retry */
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 			e = NULL;
 		}
+		if( p != NULL ) {
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+			p = NULL;
+		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
 			"==> bdb_delete: retrying...\n", 0, 0, 0 );
@@ -201,7 +205,17 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	if ( rc ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
 	if ( eip ) p = eip->bei_e;
 
 	if ( pdn.bv_len != 0 ) {
@@ -222,9 +236,6 @@ retry:	/* transaction retry */
 		/* check parent for "children" acl */
 		rs->sr_err = access_allowed( op, p,
 			children, NULL, ACL_WRITE, NULL );
-
-		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
-		p = NULL;
 
 		if ( !rs->sr_err  ) {
 			switch( opinfo.boi_err ) {
@@ -487,8 +498,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	bdb_cache_find_id( op, lt2, eip->bei_id, &eip, 0, locker, &plock );
-	if ( eip ) p = eip->bei_e;
 	if ( pdn.bv_len != 0 ) {
 		parent_is_glue = is_entry_glue(p);
 		rs->sr_err = bdb_cache_children( op, lt2, p );
@@ -627,6 +636,9 @@ return_results:
 	}
 
 done:
+	if ( p )
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+
 	/* free entry */
 	if( e != NULL ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {

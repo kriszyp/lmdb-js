@@ -38,7 +38,7 @@ bdb_dn2entry(
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = NULL;
-	int rc;
+	int rc, rc2;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( CACHE, ARGS, "bdb_dn2entry(\"%s\")\n", dn->bv_val, 0, 0 );
@@ -56,10 +56,11 @@ bdb_dn2entry(
 			 * or not.
 			 */
 			*e = ei;
-			if ( ei && ei->bei_id )
-				bdb_cache_find_id( op, tid, ei->bei_id,
+			if ( ei && ei->bei_id ) {
+				rc2 = bdb_cache_find_id( op, tid, ei->bei_id,
 					&ei, 1, locker, lock );
-			else if ( ei )
+				if ( rc2 ) rc = rc2;
+			} else if ( ei )
 				bdb_cache_entryinfo_unlock( ei );
 		} else if ( ei ) {
 			bdb_cache_entryinfo_unlock( ei );
@@ -72,8 +73,9 @@ bdb_dn2entry(
 		} else if ( matched && rc == DB_NOTFOUND ) {
 			/* always return EntryInfo */
 			ei = ei->bei_parent;
-			bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
+			rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
 				locker, lock );
+			if ( rc2 ) rc = rc2;
 			*e = ei;
 		}
 	}
