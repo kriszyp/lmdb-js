@@ -26,8 +26,6 @@ main( int argc, char **argv )
 
 #ifdef HAVE_BERKELEY_DB2
         DBC        *cursorp;
-
-		if ( ldbm_initialize() ) exit( 1 );
 #endif
 
         ldbm_datum_init( key );
@@ -60,8 +58,6 @@ main( int argc, char **argv )
             key = ldbm_nextkey( dbp, last ) )
 #endif
         {
-                ldbm_datum_free( dbp, last );
-
                 data = ldbm_fetch( dbp, key );
 
                 if (( s = data.dptr ) != NULL ) {
@@ -77,17 +73,16 @@ main( int argc, char **argv )
 
                     ldbm_datum_free( dbp, data );
 
-                }
+                } else {
 
+				}
+
+                ldbm_datum_free( dbp, last );
                 last = key;
 
         }
         ldbm_datum_free( dbp, last );
         ldbm_close( dbp );
-
-#ifdef HAVE_BERKELEY_DB2
-		(void) ldbm_shutdown();
-#endif
 
         exit( 0 );
 

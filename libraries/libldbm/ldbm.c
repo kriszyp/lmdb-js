@@ -25,8 +25,7 @@ ldbm_datum_free( LDBM ldbm, Datum data )
 {
 	if ( data.dptr ) {
 		free( data.dptr );
-		data.dptr = NULL;
-		data.dsize = 0;
+		memset( &data, 0, sizeof( Datum ));
 	}
 }
 
@@ -327,7 +326,6 @@ ldbm_firstkey( LDBM ldbm )
 	if ( (*ldbm->cursor)( ldbm, NULL, &dbci, 0 ))
 #  endif
 	{
-		key.flags = 0;
 		key.dptr = NULL;
 		return( key );
 	} else {
@@ -336,7 +334,6 @@ ldbm_firstkey( LDBM ldbm )
 			ldbm_datum_free( ldbm, data );
 		}
 	else {
-		key.flags = 0;
 #else
 	int	rc;
 
@@ -381,7 +378,6 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 		ldbm_datum_free( ldbm, data );
 	}
 	else {
-		key.flags = 0;
 #else
 	int	rc;
 
