@@ -367,6 +367,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef BDB_PSEARCH
 	if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
 			&ctxcsn_e, &ctxcsn_added, locker );
@@ -377,6 +378,7 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 	}
+#endif
 
 	/* post-read */
 	if( op->o_postread ) {

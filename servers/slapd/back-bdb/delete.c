@@ -482,6 +482,7 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
+#ifdef BDB_PSEARCH
 	if ( !dn_match( &ctxcsn_ndn, &op->o_req_ndn ) &&
 		 !be_issuffix( op->o_bd, &op->o_req_ndn ) &&
 			LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
@@ -494,6 +495,7 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 	}
+#endif
 
 	if( op->o_noop ) {
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {

@@ -1870,9 +1870,6 @@ done:
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 	ber_bvfree( search_context_csn );
-
-#else
-	bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 #endif
 
 	if ( !opinfo )

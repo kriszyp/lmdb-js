@@ -25,6 +25,7 @@
 #include "lutil.h"
 #include "back-bdb.h"
 
+#ifdef BDB_PSEARCH
 int
 bdb_csn_commit(
 	Operation *op,
@@ -439,3 +440,4 @@ done:
 
 	return rs->sr_err;
 }
+#endif
