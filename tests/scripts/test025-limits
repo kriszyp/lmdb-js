@@ -79,7 +79,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...success (got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -96,7 +102,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...success (got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -128,7 +140,19 @@ case $RC in
 		fi
 	;;
 	4)
-		echo "...bumped into requested size limit ($SIZELIMIT)"
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...bumped into requested size limit ($SIZELIMIT)"
+			else
+				echo "...error: got $COUNT entries with a requested sizelimit of $SIZELIMIT"
+				test $KILLSERVERS != no && kill -HUP $KILLPIDS
+				exit $RC
+			fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -160,7 +184,19 @@ case $RC in
 		fi
 	;;
 	4)
-		echo "...bumped into requested size limit ($SIZELIMIT)"
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...bumped into requested size limit ($SIZELIMIT)"
+			else
+				echo "...error: got $COUNT entries with a requested sizelimit of $SIZELIMIT"
+				test $KILLSERVERS != no && kill -HUP $KILLPIDS
+				exit $RC
+			fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -178,9 +214,18 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...didn't bump into the requested time limit ($TIMELIMIT s; got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...didn't bump into the requested time limit ($TIMELIMIT s; got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	3)
+		if test x"$COUNT" != x ; then
+			COUNT=0
+		fi
 		echo "...bumped into requested time limit ($TIMELIMIT s; got $COUNT entries)"
 	;;
 	*)
@@ -198,10 +243,22 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...didn't bump into server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...didn't bump into server-side size limit (got $COUNT entries)"
+		else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
-		echo "...bumped into server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...bumped into server-side size limit (got $COUNT entries)"
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -240,7 +297,9 @@ case $RC in
 				echo "...bumped into server-side size limit ($COUNT)"
 			fi
 		else
-			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
 		fi
 	;;
 	*)
@@ -280,7 +339,9 @@ case $RC in
 				echo "...bumped into server-side size limit ($COUNT)"
 			fi
 		else
-			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
 		fi
 	;;
 	*)
@@ -345,7 +406,7 @@ case $RC in
 		fi
 	;;
 	4)
-		echo "...error:bumped into requested ($SIZELIMIT) size limit"
+		echo "...error: bumped into server-side size limit instead of hard size administrative limit"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	;;
@@ -377,7 +438,13 @@ case $RC in
 		fi
 	;;
 	4)
-		echo "...bumped into requested ($SIZELIMIT=$COUNT) size limit"
+		if test x"$COUNT" != x ; then
+			echo "...bumped into requested ($SIZELIMIT=$COUNT) size limit"
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	11)
 		echo "...bumped into server-side hard size administrative limit"
@@ -406,7 +473,9 @@ case $RC in
 		fi
 	;;
 	11)
-		echo "...bumped into unchecked administrative limit"
+		echo "...error: bumped into unchecked administrative limit"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -487,7 +556,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -519,7 +588,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -551,7 +620,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -583,7 +652,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -615,7 +684,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -646,7 +715,7 @@ case $RC in
 		if test "x$COUNT" != "x" ; then
 			echo "...bumped into server-side size limit ($COUNT)"
 		else
-			echo "...error: bumped into server-side size limit, but got 0 entries!"
+			echo "...error: bumped into server-side size limit, but got no entries!"
 			test $KILLSERVERS != no && kill -HUP $KILLPIDS
 			exit $RC
 		fi
@@ -670,11 +739,25 @@ case $BACKEND in
 	;;
 esac
 
+if test x"$SLAPD_PAGE_SIZE" != x ; then
+	PAGESIZE="$SLAPD_PAGE_SIZE"
+	if test "$PAGESIZE" -le 0 ; then
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+
+		echo ""
+		echo "Testing with pagedResults control disabled"
+		echo ""
+		echo ">>>>> Test succeeded"
+		exit 0
+	fi
+else
+	PAGESIZE=5
+fi
+
 echo ""
-echo "Testing regular search limits with pagedResults control"
+echo "Testing regular search limits with pagedResults control (page size $PAGESIZE)"
 echo ""
 
-PAGESIZE=5
 echo "Testing no limits requested for unlimited ID..."
 $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unlimited User,ou=People,dc=example,dc=com' \
@@ -683,7 +766,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...success (got $COUNT entries)"
+		else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -701,10 +790,33 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        if test "$COUNT" -gt "$SIZELIMIT" ; then
+                                echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+                        echo "...didn't bump into the requested size limit ($SIZELIMIT; got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
-		echo "...bumped into requested size limit ($SIZELIMIT)"
+		if test x"$COUNT" != x ; then
+			if test $COUNT = $SIZELIMIT ; then
+				echo "...bumped into requested size limit ($SIZELIMIT)"
+			else
+				echo "...error: got $COUNT entries while requesting $SIZELIMIT..."
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -722,10 +834,19 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...didn't bump into the requested time limit ($TIMELIMIT s; got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	3)
-		echo "...bumped into requested time limit ($TIMELIMIT s; $COUNT entries)"
+		if test x"$COUNT" = x ; then
+			COUNT=0
+		fi
+		echo "...bumped into requested time limit ($TIMELIMIT s; got $COUNT entries)"
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -742,10 +863,22 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...didn't bump into server-side size limit (got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	4)
-		echo "...bumped into server-side size limit ($COUNT)"
+		if test x"$COUNT" != x ; then
+			echo "...bumped into server-side size limit (got $COUNT entries)"
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -763,7 +896,18 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        if test "$COUNT" -gt "$SIZELIMIT" ; then
+                                echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+                        echo "...didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
@@ -792,7 +936,18 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        if test "$COUNT" -gt "$SIZELIMIT" ; then
+                                echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+                        echo "...didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
@@ -821,10 +976,33 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        if test "$COUNT" -gt "$SIZELIMIT" ; then
+                                echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+                        echo "...didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
-		echo "...bumped into requested ($SIZELIMIT) size limit"
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...error: got size limit $SIZELIMIT but $COUNT entries"
+                        	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        	exit $RC
+                	fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -842,10 +1020,31 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        if test "$COUNT" -gt "$SIZELIMIT" ; then
+                                echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+                                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                                exit $RC
+                        fi
+                        echo "...didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
-		echo "...bumped into requested ($SIZELIMIT) size limit"
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...error: bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...error: got size limit $SIZELIMIT but $COUNT entries"
+			fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+		fi
+                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                exit $RC
 	;;
 	11)
 		echo "...bumped into hard size administrative limit"
@@ -866,7 +1065,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        echo "...didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
 		echo "...bumped into requested ($SIZELIMIT=$COUNT) size limit"
@@ -889,7 +1094,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	11)
 		echo "...bumped into unchecked administrative limit"
@@ -909,7 +1120,13 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+                        echo "...error: didn't bump into server-side unchecked limit (got $COUNT entries)"
+                else
+                        echo "...error: did not expect ldapsearch success ($RC)!"
+                fi
+                test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                exit $RC
 	;;
 	11)
 		echo "...bumped into unchecked administrative limit"
@@ -933,10 +1150,22 @@ RC=$?
 COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHOUT`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
+		if test x"$COUNT" != x ; then
+			echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+                fi
 	;;
 	4)
-		echo "...bumped into server-side size limit ($COUNT)"
+		if test x"$COUNT" != x ; then
+			echo "...bumped into server-side size limit (got $COUNT entries)"
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
