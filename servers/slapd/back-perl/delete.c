@@ -22,6 +22,7 @@
 #include "slap.h"
 #include "perl_back.h"
 
+int
 perl_back_delete(
 	Backend	*be,
 	Connection	*conn,

@@ -134,5 +134,7 @@ perl_back_search(
 
 	send_ldap_result( conn, op, return_code,
 		NULL, NULL, NULL, NULL );
+
+	return 0;
 }
 

@@ -63,4 +63,6 @@ perl_back_db_destroy(
 {
 	free( be->be_private );
 	be->be_private = NULL;
+
+	return 0;
 }

@@ -28,6 +28,7 @@
  *
  **********************************************************/
 
+int
 perl_back_compare(
 	Backend	*be,
 	Connection	*conn,
