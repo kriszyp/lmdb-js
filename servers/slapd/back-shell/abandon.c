@@ -38,19 +38,11 @@ shell_back_abandon(
 				break;
 			}
 		}
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if ( pid == -1 ) {
 		Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n", msgid, 0, 0 );
-		return 0;
-	}
-
-	/* no abandon command defined - just kill the process handling it */
-	if ( si->si_abandon == NULL ) {
-		Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n",
-			       (int) pid, 0, 0 );
-		kill( pid, SIGTERM );
 		return 0;
 	}
 
