@@ -845,7 +845,7 @@ slapd_daemon_task(
 #endif
 
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-				if ( i == slap_listeners[l]->sl_sd ) {
+				if ( rd == slap_listeners[l]->sl_sd ) {
 					is_listener = 1;
 					break;
 				}
