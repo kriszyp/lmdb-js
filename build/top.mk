@@ -236,8 +236,7 @@ veryclean: FORCE
 Makefile: Makefile.in $(top_srcdir)/build/top.mk
 
 pathtest:
-	@echo "shtool: $(SHTOOL)"
-	@$(SHTOOL) echo -e "  %Bokay%b"
+	$(SHTOOL) --version
 
 # empty rule for forcing rules
 FORCE:
