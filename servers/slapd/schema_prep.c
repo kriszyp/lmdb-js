@@ -457,7 +457,16 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
-			"DESC 'LCUP/LDUP: change sequence number of the entry' "
+			"DESC 'LCUP/LDUP: change sequence number of the entry content' "
+			"EQUALITY octetStringMatch "
+			"ORDERING octetStringOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
+	{ "namingCSN", "( 1.3.6.1.4.1.4203.666.1.13 NAME 'namingCSN' "
+			"DESC 'LCUP/LDUP: change sequence number of the entry naming (RDN)' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
