@@ -49,7 +49,7 @@ static char *v2ref( struct berval **ref, const char *text )
 		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
 		v2[len-1] = '\n';
 		memcpy(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
-		len += ref[i]->bv_len;
+		len += ref[i]->bv_len + 1;
 	}
 
 	v2[len-1] = '\0';
