@@ -130,7 +130,7 @@ bdb2i_back_db_init_internal(
 
 	/* arrange to read nextid later (on first request for it) */
 	li->li_nextid = NOID;
-#if	SLAPD_NEXTID_CHUNCK > 1
+#if	SLAPD_NEXTID_CHUNK > 1
 	li->li_nextid_wrote = NOID
 #endif
 

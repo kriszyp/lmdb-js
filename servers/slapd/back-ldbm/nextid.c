@@ -146,7 +146,7 @@ next_id_return( Backend *be, ID id )
 
 	li->li_nextid--;
 
-#if !( SLAPD_NEXTID_CHUCK > 1 )
+#if !( SLAPD_NEXTID_CHUNK > 1 )
 	(void) next_id_write( be, li->li_nextid );
 #endif
 
