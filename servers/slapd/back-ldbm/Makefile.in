@@ -15,7 +15,7 @@ XDEFS = @LDBM_DEFS@ @LTHREAD_DEFS@
 
 PROGRAMS = libback-ldbm.a
 
-all-srv: FORCE
+all-local: FORCE
 	$(MAKE) $(MFLAGS) libback-ldbm.a
 
 libback-ldbm.a:	version.o

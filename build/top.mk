@@ -84,7 +84,20 @@ LIBS = -L$(LDAP_LIBDIR) $(LDAP_LIBS) $(XLIBS) $(AC_LIBS)
 CFLAGS = $(AC_CFLAGS) $(DEFS) $(DEFINES)
 LDFLAGS = $(AC_LDFLAGS)
 
-default:	all
+all:		all-common FORCE
+install:	install-common FORCE
+clean:		clean-common FORCE
+veryclean:	veryclean-common FORCE
+depend:		depend-common FORCE
+
+# empty local rules
+all-local:
+install-local:
+clean-local:
+veryclean-local:
+depend-local:
+lint-local:
+lint5-local:
 
 Makefile: Makefile.in ${top_srcdir}/config.status
 	@if [ $(top_srcdir) = $(srcdir) ]; then ; \
@@ -96,3 +109,5 @@ Makefile: Makefile.in ${top_srcdir}/config.status
 
 # empty rule for forcing rules
 FORCE:
+
+##---------------------------------------------------------------------------

@@ -1,8 +1,9 @@
+##---------------------------------------------------------------------------
 ##
 ## Makefile Template for Libraries
 ##
 
-all: $(LIBRARY) $(PROGRAMS)
+all-common: $(LIBRARY) $(PROGRAMS)
 
 $(LIBRARY): version.o
 	$(AR) ru $@ $(OBJS) version.o
@@ -18,18 +19,22 @@ version.c: $(OBJS)
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install: all
+install-common: install-local
 
-lint: FORCE
+lint: lint-local FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-lint5: FORCE
+lint5: lint5-local FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-clean: 	FORCE
+clean-common: 	clean-local
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
 		*.o a.out core version.c
 
-depend: FORCE
+depend-common: depend-local
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
+veryclean-common: veryclean-local clean-common
+
+lint-local: FORCE
+lint5-local: FORCE

@@ -8,7 +8,7 @@ PROGRAMS= libback-passwd.a
 XINCLUDEDIR= -I..
 XDEFS = @LTHREAD_DEFS@
 
-all-srv: 	FORCE	
+all-local: 	FORCE	
 	$(MAKE) $(MFLAGS) libback-passwd.a
 
 libback-passwd.a:	version.o

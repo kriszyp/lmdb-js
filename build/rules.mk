@@ -1,21 +1,26 @@
+##---------------------------------------------------------------------------
 ##
 ## Makefile Template for Programs
 ##
 
-all: $(PROGRAMS)
+all-common: all-local $(PROGRAMS)
 
-install: all
+install-common: all install-local
 
-lint: FORCE
-	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
+clean-common: 	clean-local
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core
 
-lint5: FORCE
-	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
+veryclean-common: veryclean-local clean-local
 
-clean: 	FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
-		*.o a.out core
-
-depend: FORCE
+depend-common: depend-local
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
+lint: lint-local
+	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
+
+lint5: lint5-local
+	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
+
+# these could be empty
+lint-local: FORCE
+lint5-local: FORCE

@@ -21,7 +21,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
-all-srv: FORCE
+all-local: FORCE
 	$(MAKE) $(MFLAGS) backendslib
 	$(MAKE) $(MFLAGS) slapd
 	(cd tools; $(MAKE) $(MFLAGS) all)
@@ -79,7 +79,7 @@ version.c: libbackends.a $(OBJS) \
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-clean: FORCE
+clean-local: FORCE
 	@for i in back-* tools; do \
 		if [ -d $$i ] ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
@@ -87,7 +87,7 @@ clean: FORCE
 		fi; \
 	done
 
-install: install-slapd install-conf install-tools
+install-local: install-slapd install-conf install-tools
 
 install-slapd: FORCE
 	@-$(MKDIR) $(libexecdir)

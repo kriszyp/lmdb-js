@@ -1,9 +1,10 @@
+##---------------------------------------------------------------------------
 ##
 ## Makes subdirectories
 ##
 
-all:	allsubs
-allsubs: FORCE
+
+all-common: all-local FORCE
 	@echo "Making all in `$(PWD)`"
 	@for i in $(SUBDIRS); do 					\
 		echo "  Entering subdirectory $$i";		\
@@ -11,8 +12,7 @@ allsubs: FORCE
 		echo " ";								\
 	done
 
-install:	installsubs
-installsubs: FORCE
+install-common: install-local FORCE
 	@echo "Making install in `$(PWD)`"
 	@for i in $(SUBDIRS); do 					\
 		echo "  Entering subdirectory $$i";		\
@@ -20,8 +20,7 @@ installsubs: FORCE
 		echo " ";								\
 	done
 
-clean:	cleansubs
-cleansubs: FORCE
+clean-common: clean-local FORCE
 	@echo "Making clean in `$(PWD)`"
 	@for i in $(SUBDIRS); do 					\
 		echo "  Entering subdirectory $$i";		\
@@ -29,8 +28,7 @@ cleansubs: FORCE
 		echo " ";								\
 	done
 
-veryclean: verysubs
-verysubs: FORCE
+veryclean-common: veryclean-local FORCE
 	@echo "Making veryclean in `$(PWD)`"
 	@for i in $(SUBDIRS); do 					\
 		echo "  Entering subdirectory $$i";		\
@@ -38,8 +36,7 @@ verysubs: FORCE
 		echo " ";								\
 	done
 
-depend: dependsubs
-dependsubs: FORCE
+depend-common: depend-local FORCE
 	@echo "Making depend in `$(PWD)`"
 	@for i in $(SUBDIRS); do 					\
 		echo "  Entering subdirectory $$i";		\

@@ -8,7 +8,7 @@ XSRCS = version.c
 
 LIBRARY = liblber.a
 
-install: $(LIBRARY) FORCE
+install-local: $(LIBRARY) FORCE
 	-$(MKDIR) -p $(libdir)
 	$(INSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
 	@(cd /tmp; $(RANLIB) $(libdir)/$(LIBRARY))

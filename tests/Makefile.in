@@ -6,14 +6,22 @@
 
 SCRIPTSDIR=./scripts
 
-all:	FORCE
+all-local:	FORCE
 	@echo "Initiating LDAP tests..."; \
 	$(MKDIR) -p test-db test-repl ; \
 	$(SCRIPTSDIR)/all $(SCRIPTSDIR)
 
-install:	FORCE
-depend:	FORCE
-veryclean:	clean
-
-clean:	FORCE
+clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
+
+veryclean-local:	clean
+
+depend-local:	FORCE
+
+install-local:	FORCE
+
+all-common:			all-local
+install-common:		install-local
+clean-common:		clean-local
+veryclean-common:	veryclean-local
+depend-common:		depend-local

@@ -3,7 +3,9 @@
 ##
 ## include Makefile.in for OpenLDAP
 
-install: all FORCE
+all-local: ldapconfig.h FORCE
+
+install-local: FORCE
 		-$(MKDIR) -p $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(includedir)
@@ -12,22 +14,22 @@ install: all FORCE
 		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(includedir)
 
-all: ldapconfig.h FORCE
-
-clean: FORCE 
+clean-local: FORCE 
 	$(RM) ldapconfig.h
 
-veryclean: clean FORCE
-depend: ldapconfig.h FORCE
+veryclean-local: clean-local FORCE
+
+depend-local: ldapconfig.h FORCE
 
 ldapconfig.h: ldapconfig.h.edit Makefile
 	@$(RM) $@
+	@echo "Making ldapconfig.h"
 	@echo "/*" > $@;  \
-        echo " * This file was automatically generated.  Do not edit it." >> $@; \
-        echo " * Instead, edit the file ldapconfig.h.edit.  See the LDAP" >> $@; \
-        echo " * INSTALL file for more information." >> $@; \
-        echo " */ " >> $@; \
-        echo "" >> $@; \
+	echo " * This file was automatically generated.  Do not edit it." >> $@; \
+	echo " * Instead, edit the file ldapconfig.h.edit.  See the LDAP" >> $@; \
+	echo " * INSTALL file for more information." >> $@; \
+	echo " */ " >> $@; \
+	echo "" >> $@; \
 	$(SED) \
 			-e 's;%SYSCONFDIR%;$(sysconfdir);' \
 			-e 's;%BINDIR%;$(bindir);' \
@@ -40,3 +42,8 @@ ldapconfig.h: ldapconfig.h.edit Makefile
 			 ldapconfig.h.edit >> $@; \
 	$(CHMOD) 444 $@
 
+all-common:			all-local
+install-common:		install-local
+clean-common:		clean-local
+veryclean-common:	veryclean-local
+depend-common:		depend-local

@@ -1,6 +1,7 @@
 ##
 ## Makefile for -lldbm
 ##
+
 LIBRARY		= libldbm.a
 XPROGRAMS	= testldbm
 SRCS		= ldbm.c

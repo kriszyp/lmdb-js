@@ -15,7 +15,7 @@ OBJS	=	admin.o args.o ch_malloc.o config.o detach.o \
 BUILD_OPT = "--enable-slurpd"
 BUILD_SRV = @BUILD_SLURPD@
 
-all-srv: 	slurpd
+all-local: 	slurpd
 
 XDEFS = @SLURPD_DEFS@ @LTHREAD_DEFS@
 XLIBS = @SLURPD_LIBS@ -llthread @LTHREAD_LIBS@
@@ -31,6 +31,6 @@ version.c: $(OBJS) $(LDAP_LIBDIR)/liblber.a $(LDAP_LIBDIR)/libldap.a
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install: install-srv FORCE
+install-local: FORCE
 	@-$(MKDIR) -p $(libexecdir)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 slurpd $(libexecdir)

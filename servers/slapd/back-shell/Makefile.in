@@ -10,7 +10,7 @@ PROGRAMS =		libback-shell.a
 XINCLUDEDIR =	-I..
 XDEFS = @LTHREAD_DEFS@
 
-all-srv:	FORCE
+all-local:	FORCE
 	$(MAKE) $(MFLAGS) libback-shell.a
 
 libback-shell.a:	version.o

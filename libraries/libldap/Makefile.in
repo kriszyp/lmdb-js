@@ -26,7 +26,8 @@ ttest:	$(LIBRARY) tmpltest.o $(LIBLBER)
 	$(CC) $(LDFLAGS) -o $@ test.o $(LIBS)
 
 CFFILES= ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf
-install: $(LIBRARY) $(CFFILES) FORCE
+
+install-local: $(LIBRARY) $(CFFILES) FORCE
 	-$(MKDIR) -p $(libdir)
 	$(INSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
 	@(cd /tmp; $(RANLIB) $(libdir)/$(LIBRARY))
