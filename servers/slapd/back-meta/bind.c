@@ -359,6 +359,8 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 {
 	int i, rerr = LDAP_SUCCESS;
 	struct metasingleconn **lsc;
+	char *rmsg = NULL;
+	char *rmatch = NULL;
 
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		int err = LDAP_SUCCESS;
@@ -379,39 +381,47 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 					LDAP_OPT_MATCHED_DN, &match );
 			err = ldap_back_map_result( err );
 
-			rerr = err;
-		}
-
-		/*
-		 * FIXME: need to rewrite "match" (need rwinfo)
-		 */
-		send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
-		
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
-				"meta_back_op_result: target"
-				" <%d> sending msg \"%s\""
-				" (matched \"%s\")\n",
-				i, ( msg ? msg : "" ),
-				( match ? match : "" ) ));
+			LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
+					"meta_back_op_result: target"
+					" <%d> sending msg \"%s\""
+					" (matched \"%s\")\n",
+					i, ( msg ? msg : "" ),
+					( match ? match : "" ) ));
 #else /* !NEW_LOGGING */
-		Debug(LDAP_DEBUG_ANY,
-				"==> meta_back_op_result: target"
-				" <%d> sending msg \"%s\""
-				" (matched \"%s\")\n", 
-				i, ( msg ? msg : "" ),
-				( match ? match : "" ) );
+			Debug(LDAP_DEBUG_ANY,
+					"==> meta_back_op_result: target"
+					" <%d> sending msg \"%s\""
+					" (matched \"%s\")\n", 
+					i, ( msg ? msg : "" ),
+					( match ? match : "" ) );
 #endif /* !NEW_LOGGING */
 
-		/* better test the pointers before freeing? */
-		if ( match ) {
-			free( match );
-		}
-		if ( msg ) {
-			free( msg );
+			/*
+			 * FIXME: need to rewrite "match" (need rwinfo)
+			 */
+			switch ( err ) {
+			default:
+				rerr = err;
+				rmsg = msg;
+				msg = NULL;
+				rmatch = match;
+				match = NULL;
+				break;
+			}
+
+			/* better test the pointers before freeing? */
+			if ( match ) {
+				free( match );
+			}
+			if ( msg ) {
+				free( msg );
+			}
 		}
 	}
 
-	return ( rerr == LDAP_SUCCESS ) ? 0 : -1;
+	send_ldap_result( lc->conn, op, rerr, rmatch, rmsg, NULL, NULL );
+
+	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }
 
