@@ -373,7 +373,8 @@ send_ldap_response(
 #ifdef LDAP_SLAPI
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, ( rs->sr_matched != NULL ) ? (void *)ch_strdup( rs->sr_matched ) : NULL );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, ( rs->sr_text != NULL ) ? (void *)ch_strdup( rs->sr_text ) : NULL );
+	/* RESULT_TEXT is dup'd by pblock_set */
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, rs->sr_text );
 #endif /* LDAP_SLAPI */
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
