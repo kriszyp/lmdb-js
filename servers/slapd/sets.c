@@ -13,7 +13,8 @@
 #include "sets.h"
 
 static char **set_join (char **lset, int op, char **rset);
-static char **set_chase (SET_GATHER gatherer, void *cookie, char **set, char *attr, int attrlen, int closure);
+static char **set_chase (SET_GATHER gatherer,
+	void *cookie, char **set, char *attr, int attrlen, int closure);
 static int set_samedn (char *dn1, char *dn2);
 
 long
@@ -119,7 +120,8 @@ set_join (char **lset, int op, char **rset)
 }
 
 static char **
-set_chase (SET_GATHER gatherer, void *cookie, char **set, char *attr, int attrlen, int closure)
+set_chase (SET_GATHER gatherer,
+	void *cookie, char **set, char *attr, int attrlen, int closure)
 {
 	char **vals, **nset;
 	char attrstr[32];
@@ -195,14 +197,19 @@ set_samedn (char *dn1, char *dn2)
 }
 
 int
-set_filter (SET_GATHER gatherer, void *cookie, char *filter, char *user, char *this, char ***results)
+set_filter (SET_GATHER gatherer,
+	void *cookie, char *filter, char *user, char *this, char ***results)
 {
-#	define IS_SET(x)	( (long)(x) >= 256 )
-#	define IS_OP(x)	( (long)(x) < 256 )
-#	define SF_ERROR(x)	{ rc = -1; goto _error; }
-#	define SF_TOP()	(char **)( (stp < 0) ? 0 : stack[stp] )
-#	define SF_POP()	(char **)( (stp < 0) ? 0 : stack[stp--] )
-#	define SF_PUSH(x)	{ if (stp >= 63) SF_ERROR(overflow); stack[++stp] = (char **)(long)(x); }
+#define IS_SET(x)	( (long)(x) >= 256 )
+#define IS_OP(x)	( (long)(x) < 256 )
+#define SF_ERROR(x)	do { rc = -1; goto _error; } while (0)
+#define SF_TOP()	( (char **)( (stp < 0) ? 0 : stack[stp] ) )
+#define SF_POP()	( (char **)( (stp < 0) ? 0 : stack[stp--] ) )
+#define SF_PUSH(x)	do { \
+		if (stp >= 63) SF_ERROR(overflow); \
+		stack[++stp] = (char **)(long)(x); \
+	} while (0)
+
 	char c;
 	char **set, **lset;
 	int len, op, rc, stp;
@@ -345,7 +352,8 @@ set_filter (SET_GATHER gatherer, void *cookie, char *filter, char *user, char *t
 				SF_ERROR(syntax);
 			} else {
 				SF_POP();
-				set = set_chase(gatherer, cookie, SF_POP(), filter, len, c == '*');
+				set = set_chase(gatherer,
+					cookie, SF_POP(), filter, len, c == '*');
 				if (set == NULL)
 					SF_ERROR(memory);
 				if (c == '*')
