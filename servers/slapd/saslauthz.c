@@ -115,7 +115,8 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	{
 		/* host part must be empty */
 		/* attrs and extensions parts must be empty */
-		return LDAP_PROTOCOL_ERROR;
+		rc =  LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	/* Grab the scope */
