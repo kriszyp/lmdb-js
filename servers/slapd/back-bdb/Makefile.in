@@ -1,7 +1,11 @@
 # $OpenLDAP$
 
-SRCS = error.c init.c
-OBJS = error.lo init.lo
+SRCS = init.c tools.c \
+	add.c compare.c delete.c search.c \
+	dn2entry.lo dn2id.c error.c id2entry.c idl.c nextid.c
+OBJS = init.lo tools.lo \
+	add.lo compare.lo delete.lo search.lo \
+	dn2entry.lo dn2id.lo error.lo id2entry.lo idl.lo nextid.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

@@ -35,10 +35,10 @@ bdb_open( BackendInfo *bi )
 {
 	/* initialize the underlying database system */
 
-	int db_env_set_func_malloc( ch_malloc );
-	int db_env_set_func_realloc( ch_realloc );
-	int db_env_set_func_free( ch_free );
-	int db_env_set_func_yield( ldap_pvt_thread_yield );
+	db_env_set_func_malloc( ch_malloc );
+	db_env_set_func_realloc( ch_realloc );
+	db_env_set_func_free( ch_free );
+	db_env_set_func_yield( ldap_pvt_thread_yield );
 	return 0;
 }
 
