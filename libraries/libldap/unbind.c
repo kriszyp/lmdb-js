@@ -154,8 +154,6 @@ ldap_ld_free(
    
 	LDAP_FREE( (char *) ld );
    
-	WSACleanup();
-
 	return( err );
 }
 
