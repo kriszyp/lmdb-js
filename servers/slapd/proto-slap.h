@@ -1175,9 +1175,6 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
  * syncrepl.c
  */
 
-LDAP_SLAPD_V( const struct berval ) slap_syncrepl_bvc;
-LDAP_SLAPD_V( const struct berval ) slap_syncrepl_cn_bvc;
-
 LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
