@@ -122,16 +122,6 @@ SubstringAssertion NISnetgrouptriple Bootparameter
 .B concurrency <integer>
 Specify a desired level of concurrency.  Provided to the underlying
 thread system as a hint.  The default is not to provdide any hint.
-.HP
-.B defaultaccess { none | auth | compare | search | read | write }
-.RS
-Specify the default access level to grant requestors when
-no access directives were provided for the database.
-The default behavior is to grant 'read' access.  It is
-recommended that
-.B access
-directives be used instead.
-.RE
 .TP
 .B defaultsearchbase <dn>
 Specify a default search base to use when client submits a
