@@ -152,7 +152,7 @@ veryclean-local-srv: FORCE
 		fi; \
 	done
 
-install-local-srv: install-slapd install-conf install-tools
+install-local-srv: install-slapd install-conf install-schema install-tools
 
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
@@ -179,6 +179,19 @@ all-cffiles: slapd
 			$(srcdir)/$$i > $$tmpcf ; \
 	done
 	touch all-cffiles
+
+install-schema: FORCE
+	@-$(MKDIR) $(DESTDIR)$(sysconfdir)/schema
+	@for i in schema/*.schema ; do \
+		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
+			echo "installing $$i in $(sysconfdir)"; \
+			echo $(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i; \
+			$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i; \
+		else \
+			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(sysconfdir)/$$i"; \
+		fi; \
+		$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i.default ; \
+	done
 
 install-conf: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
