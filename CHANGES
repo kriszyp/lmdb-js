@@ -1,12 +1,15 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.13 Engineering
+	Fixed ldapdelete -c handling (ITS#1071)
+
 OpenLDAP 2.0.12 Release
 	Fixed slapd acl default clause bug (ITS#1187)
 	Fixed slapd modlist2mods error text bug
 	Fixed slapd numericString bugs (ITS#1182,1254)
 	Fixed slapd empty rootdn bug (ITS#1172)
 	Fixed slapd passwd modify replication
-	Fixed slapd textbuf bugs
+	Fixed slapd textbuf bugs (ITS#1275)
 	Fixed ldapmodrdn SASL auth bug (ITS#1179)
 	Fixed slapadd already exists bug (ITS#1191)
 	Fixed slapadd empty dn bug
@@ -18,7 +21,7 @@ OpenLDAP 2.0.12 Release
 	Added -lldap critical client control checks
 	Added ldbm sync daemon support
 	Added ldbm per-backend db_env support
-	Added ldbm BerkeleyDB 3.3 support
+	Added ldbm BerkeleyDB 3.3 support (ITS#1272)
 	Updated slapd getaddrinfo use
 	Updated slapd schema check handling
 	Updated slapd filter checks
@@ -31,7 +34,7 @@ OpenLDAP 2.0.12 Release
 	Removed -lldap UFN search support
 	Build environment
 		Removed extraneous files
-		Fixed BerkeleyDB db1 detection
+		Fixed BerkeleyDB db1 detection (ITS#1294)
 
 OpenLDAP 2.0.11 Release
 	Fixed attribute parse bug (ITS#1159)
