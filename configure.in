@@ -2956,8 +2956,10 @@ servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 ,[
+chmod +x tests/run
 date > stamp-h
 echo Please run \"make depend\" to build dependencies
 ])

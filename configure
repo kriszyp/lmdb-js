@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.489 2003/10/14 03:47:04 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.490 2003/10/18 00:39:12 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -23609,6 +23609,7 @@ servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
  include/portable.h include/ldap_features.h include/lber_types.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
@@ -23843,6 +23844,7 @@ servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 "}
 EOF
@@ -24016,6 +24018,7 @@ cat >> $CONFIG_STATUS <<EOF
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 
+chmod +x tests/run
 date > stamp-h
 echo Please run \"make depend\" to build dependencies
 
