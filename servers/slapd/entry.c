@@ -123,12 +123,12 @@ str2entry( char *s )
 			if ( e->e_dn != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
-					"entry %ld has multiple dns \"%s\" and \"%s\"\n",
+					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 					(long) e->e_id, e->e_dn,
 					value.bv_val != NULL ? value.bv_val : "" ));
 #else
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
-					"entry %ld has multiple dns \"%s\" and \"%s\"\n",
+					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 				    (long) e->e_id, e->e_dn,
 					value.bv_val != NULL ? value.bv_val : "" );
 #endif
