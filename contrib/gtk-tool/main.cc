@@ -47,7 +47,10 @@ int main(int argc, char **argv) {
 	tree = new Gtk_Tree();
 	treeresult = window->make_tree(window, ld, base_dn);
 	treeitem = new Gtk_LdapTreeItem(*treeresult->treeitem);
-	tree->append(treeitem);
+//	treeitem->remove_c(treeitem->getchild()->gtkobj());
+//	gtk_widget_destroy(GTK_WIDGET(treeitem->xpm_label->gtkobj()));
+	treeresult->treeitem->setType(ROOT_NODE);
+	tree->append(*treeitem);
 	if (treeresult->tree != NULL) {
 		subtree = new Gtk_Tree(*treeresult->tree);
 		printf("inserting %s into root\n", base_dn);
@@ -57,11 +60,11 @@ int main(int argc, char **argv) {
 	window->scroller->add(tree);
 	tree->show();
 	window->scroller->show();
-	treeitem->search();
+	treeitem->getDetails();
 	window->set_title("Hello");
 	window->activate();
 
-	window->set_usize(450, 450);
+	window->set_usize(600, 500);
 
 	window->show();
 

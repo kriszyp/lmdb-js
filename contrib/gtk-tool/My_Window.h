@@ -4,7 +4,7 @@
 #include "gtk.h"
 #include <lber.h>
 #include <ldap.h>
-#include "My_Scroller.h"
+/*#include "My_Scroller.h"*/
 #include "Gtk_LdapItem.h"
 #include "Gtk_LdapTreeItem.h"
 class Gtk_LdapTreeItem;
@@ -13,8 +13,8 @@ class My_Scroller;
 
 class My_Window : public Gtk_Window {
 public:
-	Gtk_ScrolledWindow *scroller;
-	My_Scroller *scroller2;
+	Gtk_ScrolledWindow *scroller, *scroller2;
+//	My_Scroller *scroller2;
 	Gtk_Entry *urlfield;
 	Gtk_Button *display_button;
 	Gtk_Paned *pane;

@@ -9,8 +9,6 @@ Priorities:
 
 Optional:
 	comments in the source code	
-	figure out how to insert nice little icons infront of every
-	tree item on the left side.
 	port it to NT so we can use it with the NT port of OpenLDAP
 	(is there a NT port of Gtk+?)
 

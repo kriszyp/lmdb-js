@@ -1,6 +1,17 @@
 ChangeLog for gtk-tool
 
-26/11/1998
+26/11/1998 - Pele
+	* Added nice icons in the browser pane - looks decent now.
+	* Fixed scrolling in the data (right) pane - now scrolls if there is
+	a long tab
+	* removed class My_Scroller
+	* removed file Gtk_LdapItem.cc (useless)
+	* commented-out the part where data gets reused instead of re-querying
+	the server, stupid I know, but for the time being if resolves some
+	problems with replacement of right pane.
+	* Misc. fixes
+
+26/11/1998 - Pele
 	* First appearance of ChangeLog
 	* Fixed removal of scrolled window on the right hand side
 	  thus making gtk-tool a viable project to be worked on

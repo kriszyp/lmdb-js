@@ -12,7 +12,8 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	pane->add1(*this->scroller);
 	this->scroller->show();
 
-	this->scroller2 = new My_Scroller();
+//	this->scroller2 = new My_Scroller();
+	this->scroller2 = new Gtk_ScrolledWindow();
 	this->scroller2->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	pane->add2(*this->scroller2);	
 	this->scroller2->show();
@@ -73,6 +74,7 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 	treeitem->dn = b_d; treeitem->ld = l_i;
 	treeresult = new Gtk_LdapItem();
 	if (entriesCount == 0) { 
+		treeitem->setType(LEAF_NODE);
 		treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
 		treeresult->tree = NULL;
 		return treeresult;
@@ -86,19 +88,20 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 		s = ldap_explode_dn(ldap_get_dn(l_i, entry), 1);
 		subtreeresult = make_tree(p, l_i, ldap_get_dn(l_i, entry));
 		subtreeitem = new Gtk_LdapTreeItem(*subtreeresult->treeitem);
+	//	printf("inserting %s into %s", s[0], c);
 		subtree->append(*subtreeitem);
-		printf("inserting %s into %s", s[0], c);
 		if (subtreeresult->tree != NULL) {
-			printf(".");
+	//		printf(".");
 			subsubtree = new Gtk_Tree(*subtreeresult->tree);
-			printf(".");
+	//		printf(".");
 			subtreeitem->set_subtree(*subsubtree);
-			printf(".");
+	//		printf(".");
 		}
 		subtreeitem->show();
-		printf("\n");
+	//	printf("\n");
 		entry = ldap_next_entry(l_i, entry);
 	}
+	treeitem->setType(BRANCH_NODE);
 	treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
 	treeresult->tree = new Gtk_Tree(*subtree);
 	return treeresult;
