@@ -16,11 +16,54 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $BACKRELAY = relayno ; then 
-	echo "relay backend not available, test skipped"
+if test $RWM = rwmno ; then 
+	echo "Rewrite/remap overlay not available, test skipped"
 	exit 0
 fi 
 
-RELAY=relay
-. $SRCDIR/scripts/relay
+echo ""
+
+RELAYS=
+# back-relay
+if test $BACKRELAY = relayno ; then 
+	echo "relay backend not available, test skipped"
+else
+	RELAYS="$RELAYS relay"
+fi
+
+# back-ldap
+if test $BACKLDAP = ldapno ; then 
+	echo "ldap backend not available, test skipped"
+else
+	RELAYS="$RELAYS ldap"
+fi
+
+# back-meta - disable by now, needs work to line up with rwm
+if test $BACKMETA = metano ; then 
+	echo "meta backend not available, test skipped"
+else
+	# RELAYS="$RELAYS meta"
+	echo "==> back-meta disabled by now, needs work"
+	echo ""
+fi 
+
+first=1
+for RELAY in $RELAYS ; do
+	if test $first = 1 ; then
+		first=0
+	else
+		echo ">>>>> waiting 10 seconds for things to exit"
+		sleep 10
+		echo ""
+
+		rm -rf $TESTDIR
+	fi
+
+	mkdir -p $TESTDIR $DBDIR1
+
+	. $SRCDIR/scripts/relay
+done
+
+echo ">>>>> Test succeeded"
+exit 0
 

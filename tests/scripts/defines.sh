@@ -15,6 +15,7 @@
 
 MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
+BACKMETA=${AC_meta-metano}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}

@@ -13,12 +13,8 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test $RWM = rwmno ; then 
-	echo "Rewrite/remap overlay not available, test skipped"
-	exit 0
-fi 
-
-mkdir -p $TESTDIR $DBDIR1
+echo "Testing virtual naming context mapping with $RELAY backend..."
+echo ""
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $RWMCONF > $CONF1
@@ -308,7 +304,4 @@ if test $RC != 6 ; then
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
-
-echo ">>>>> Test succeeded"
-exit 0
 
