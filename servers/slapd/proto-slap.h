@@ -1010,7 +1010,13 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
-
+#ifdef SLAP_X_SASL_REWRITE
+LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P(( 
+	const char *fname,
+	int lineno,
+	int argc, 
+	char **argv ));
+#endif /* SLAP_X_SASL_REWRITE */
 
 /*
  * schema.c
