@@ -15,12 +15,12 @@
 *            Creation date:                Z   D  D   V   V                *
 *            August 16 1995               Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            May 11 1999                ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: queries.c,v 1.6 1999/09/10 15:01:18 zrnsk01 Exp $
+ * $Id: queries.c,v 1.8 1999/09/13 13:47:47 zrnsk01 Exp $
  *
  */
 
@@ -42,6 +42,10 @@ struct hostent *hp;
     fd_set        readfds;
     LDAP        *ld;
     char tstring[100];
+
+#if OL_LDAPV > 0
+	int ldap_opt;
+#endif
 
     /* get time for performance log */
     gettimeofday(&timestore[2], NULL);
@@ -85,7 +89,13 @@ struct hostent *hp;
     len = strlen( buf );
     if ( debug ) {
         fprintf( stderr, "got %d bytes\n", len );
+
+#if OL_LDAPV > 2
+        ber_bprint( buf, len );
+#else
         lber_bprint( buf, len );
+#endif
+
     }
 
     /* strip of white spaces */
@@ -309,23 +319,21 @@ struct hostent *hp;
             rewind(fp);
 
             /*  follow aliases while searching */
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-            ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+			ldap_opt = LDAP_DEREF_ALWAYS;
+            ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
             ld->ld_deref = LDAP_DEREF_ALWAYS;
 #endif
 
             if ( !searchaliases )
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-            ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_FINDING );
+			ldap_opt = LDAP_DEREF_FINDING;
+            ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
                      ld->ld_deref = LDAP_DEREF_FINDING;
 #endif
@@ -376,32 +384,29 @@ struct hostent *hp;
 				glob->svc_cnt);
 
     /*  accesses with resolvation of alias-entries */
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-    ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+			ldap_opt = LDAP_DEREF_ALWAYS;
+            ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
     ld->ld_deref = LDAP_DEREF_ALWAYS;
 #endif
 
     if ( !searchaliases )
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-             ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_FINDING );
+			ldap_opt = LDAP_DEREF_FINDING;
+            ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
              ld->ld_deref = LDAP_DEREF_FINDING;
 #endif
     
     /*  bind to DSA by order of the user as Web-DN
-        (if with DN1 or DN2 was decided at check4access) */
+        (DN1 or DN2 was decided at check4access) */
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
     /*  a dummy call as long as socket connections are not settled
      *  with OpenLDAP
@@ -409,12 +414,6 @@ struct hostent *hp;
     if ( dosyslog )
 	    syslog( LOG_INFO, "do_queries(): calling ldap_simple_bind_s()...\n" );
 
-#  else
-
-    if ( dosyslog )
-	    syslog( LOG_INFO, "do_queries(): calling ldap_simple_bind_s()...\n" );
-
-#  endif
 #endif
 
     if ( (rc=ldap_simple_bind_s( ld, glob->webdn, glob->webpw ))

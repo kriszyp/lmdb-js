@@ -13,12 +13,12 @@
 *            Creation date:                Z   D  D   V   V                *
 *            August 16 1996               Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            December 29 1998           ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: tglobal.h,v 1.6 1999/09/10 15:01:20 zrnsk01 Exp $
+ * $Id: tglobal.h,v 1.8 1999/09/13 13:47:47 zrnsk01 Exp $
  *
  */
 
@@ -32,21 +32,18 @@ _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 extern int	debug;
 extern int	dosyslog;
+extern int  ldap_syslog;
+extern int  ldap_syslog_level;
+
 extern struct timeval timestore[];
 extern int items_displayed;
 
 extern int		searchaliases;
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV >= 2
 
 extern LDAPFriendlyMap      *fm;
 
-#  else
-
-extern LDAPFriendlyMap      *fm;
-
-#  endif
 #else
 
 extern FriendlyMap      *fm;
