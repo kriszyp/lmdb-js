@@ -197,7 +197,27 @@ main( int argc, char **argv )
 			*cvalue++ = '\0';
 		}
 
-		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+		if ( strcasecmp( control, "authzid" ) == 0 ) {
+			if( authzid != NULL ) {
+				fprintf( stderr, "authzid control previously specified");
+				return EXIT_FAILURE;
+			}
+			if( cvalue == NULL ) {
+				fprintf( stderr, "authzid: control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+			if( !crit ) {
+				fprintf( stderr, "authzid: must be marked critical" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			assert( authzid == NULL );
+			authzid = control;
+			break;
+			
+		} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( manageDSAit ) {
 				fprintf( stderr, "manageDSAit control previously specified");
 				return EXIT_FAILURE;
