@@ -448,28 +448,35 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 				struct berval	authzID = BER_BVNULL;
 				int		freeauthz = 0;
 
-				switch ( li->idassert_mode ) {
-				case LDAP_BACK_IDASSERT_OTHERID:
-				case LDAP_BACK_IDASSERT_OTHERDN:
-					authzID = li->idassert_authzID;
-					break;
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+				/* if SASL supports native authz, prepare for it */
+				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
+					switch ( li->idassert_mode ) {
+					case LDAP_BACK_IDASSERT_OTHERID:
+					case LDAP_BACK_IDASSERT_OTHERDN:
+						authzID = li->idassert_authzID;
+						break;
 
-				case LDAP_BACK_IDASSERT_ANONYMOUS:
-					BER_BVSTR( &authzID, "dn:" );
-					break;
+					case LDAP_BACK_IDASSERT_ANONYMOUS:
+						BER_BVSTR( &authzID, "dn:" );
+						break;
 
-				case LDAP_BACK_IDASSERT_SELF:
-					authzID.bv_len = STRLENOF( "dn:" ) + op->o_conn->c_dn.bv_len;
-					authzID.bv_val = slap_sl_malloc( authzID.bv_len + 1, op->o_tmpmemctx );
-					AC_MEMCPY( authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
-					AC_MEMCPY( authzID.bv_val + STRLENOF( "dn:" ),
-							op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_len + 1 );
-					freeauthz = 1;
-					break;
+					case LDAP_BACK_IDASSERT_SELF:
+						authzID.bv_len = STRLENOF( "dn:" ) + op->o_conn->c_dn.bv_len;
+						authzID.bv_val = slap_sl_malloc( authzID.bv_len + 1, op->o_tmpmemctx );
+						AC_MEMCPY( authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
+						AC_MEMCPY( authzID.bv_val + STRLENOF( "dn:" ),
+								op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_len + 1 );
+						freeauthz = 1;
+						break;
 
-				default:
-					break;
+					default:
+						break;
+					}
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 				}
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 #if 0	/* will deal with this later... */
 				if ( sasl_secprops != NULL ) {
@@ -777,8 +784,14 @@ ldap_back_proxy_authz_ctrl(
 		}
 
 	} else if ( li->idassert_authmethod == LDAP_AUTH_SASL ) {
-		/* already asserted in SASL */
-		goto done;
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+		if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
+			/* already asserted in SASL via native authz */
+			goto done;
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+		}
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 	} else if ( li->idassert_authz ) {
 		int		rc;

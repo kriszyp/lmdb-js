@@ -117,6 +117,10 @@ ldap_back_db_init(
 	BER_BVZERO( &li->idassert_sasl_realm );
 
 	li->idassert_ppolicy = 0;
+
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+	li->idassert_flags = LDAP_BACK_AUTH_NONE;
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef ENABLE_REWRITE

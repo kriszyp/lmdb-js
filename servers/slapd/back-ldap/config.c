@@ -904,6 +904,21 @@ parse_idassert(
 					}
 					ber_str2bv( val, 0, 1, &li->idassert_passwd );
 
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+				} else if ( strncasecmp( argv[arg], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "authz=" );
+
+					if ( strcasecmp( val, "native" ) == 0 ) {
+						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+					} else {
+						fprintf( stderr, "%s: line %s: "
+							"unknown SASL flag \"%s\"\n",
+							fname, lineno, val );
+						return 1;
+					}
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
+
 				} else {
 					fprintf( stderr, "%s: line %d: "
 							"unknown SASL parameter %s\n",
