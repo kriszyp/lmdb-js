@@ -9,6 +9,11 @@
 # where CVSTAG is the tag to export from the current CVSROOT
 #
 
+#
+# This script MUST NOT add files to the export nor modify
+# any file in the export.
+#
+
 set -e 		# exit immediately if any errors occur
 
 if test $# != 3 ; then
