@@ -52,15 +52,16 @@ LDAP_BEGIN_DECL
  */
 #define SLAP_MOD_SOFTADD	0x1000
 
-#define ON	1
+#define ON	(1)
 #define OFF	(-1)
-#define UNDEFINED 0
+#define UNDEFINED (0)
 
-#define MAXREMATCHES 10
+#define MAXREMATCHES (10)
 
 #define SLAP_MAX_INCOMING (1<<18 - 1)
-#define SLAP_MAX_WORKER_THREADS		32
+#define SLAP_MAX_WORKER_THREADS		(32)
 
+#define SLAP_TEXT_LEN (256)
 
 /* psuedo error code indicating abandoned operation */
 #define SLAPD_ABANDON (-1)
