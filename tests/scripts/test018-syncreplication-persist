@@ -134,7 +134,6 @@ dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University
 changetype: modify
 replace: drink
 drink: Iced Tea
-drink: Mad Dog 20/20
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
@@ -178,6 +177,7 @@ objectclass: OpenLDAPperson
 cn: Rosco P. Coltrane
 sn: Coltrane
 uid: rosco
+description: Fat tycoon
 
 dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: modrdn
@@ -199,6 +199,43 @@ fi
 
 echo "Waiting 15 seconds for syncrepl to receive changes..."
 sleep 15
+
+echo "Stopping consumer to test recovery..."
+kill -HUP $SLAVEPID
+sleep 10
+
+echo "Modifying more entries on the master..."
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+    $TESTOUT 2>&1 << EOMODS
+dn: cn=Rosco P. Coltrane, ou=Retired, ou=People, o=University of Michigan, c=US
+changetype: delete
+
+dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: modify
+add: drink
+drink: Mad Dog 20/20
+
+dn: cn=Rosco P. Coltrane, ou=Retired, ou=People, o=University of Michigan, c=US
+changetype: add
+objectclass: OpenLDAPperson
+sn: Coltrane
+uid: rosco
+cn: Rosco P. Coltrane
+
+EOMODS
+
+echo "Restarting consumer..."
+echo "RESTART" >> $LOG4
+$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING >> $LOG4 2>&1 &
+SLAVEPID=$!
+if test $WAIT != 0 ; then
+    echo SLAVEPID $SLAVEPID
+    read foo
+fi
+KILLPIDS="$PID $SLAVEPID"
+
+echo "Waiting 25 seconds for syncrepl to receive changes..."
+sleep 25
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
