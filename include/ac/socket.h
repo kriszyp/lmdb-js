@@ -76,7 +76,6 @@
 #define sock_errstr(e)	STRERROR(e)
 
 #ifdef HAVE_WINSOCK
-#	define tcp_close( s )		closesocket( s )
 #	define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
 #	define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
