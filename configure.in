@@ -2114,19 +2114,32 @@ dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
+dnl HAVE_CYRUS_SASL2 implicitly defines HAVE_CYRUS_SASL
 ol_link_sasl=no
 ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
-	AC_CHECK_HEADERS(sasl.h)
+	AC_CHECK_HEADERS(sasl/sasl.h)
 
-	if test $ac_cv_header_sasl_h = yes ; then
-		AC_CHECK_LIB(sasl, sasl_client_init,
-			[have_cyrus_sasl=yes], [have_cyrus_sasl=no])
+	if test $ac_cv_header_sasl_sasl_h = yes ; then
+		AC_CHECK_LIB(sasl2, sasl_client_init,
+			[have_cyrus_sasl2=yes], [have_cyrus_sasl2=no])
 
-		if test $have_cyrus_sasl != no ; then
-			SASL_LIBS="-lsasl"
-			AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
+		if test $have_cyrus_sasl2 != no ; then
+			SASL_LIBS="-lsasl2"
+			AC_DEFINE(HAVE_CYRUS_SASL2,1,[define if you have Cyrus SASL v2])
 			ol_link_sasl=yes
+		fi
+	else
+		AC_CHECK_HEADERS(sasl.h)
+
+		if test $ac_cv_header_sasl_h = yes ; then
+			AC_CHECK_LIB(sasl, sasl_client_init,
+				[have_cyrus_sasl=yes], [have_cyrus_sasl=no])
+
+			if test $have_cyrus_sasl != no ; then
+				SASL_LIBS="-lsasl"
+				ol_link_sasl=yes
+			fi
 		fi
 	fi
 
@@ -2140,9 +2153,11 @@ if test $ol_with_cyrus_sasl != no ; then
 				AC_MSG_WARN([Strong authentication not supported!])
 			fi
 		fi
-
-	elif test $ol_enable_spasswd != no ; then
-		ol_link_spasswd=yes
+	else
+		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
+		if test $ol_enable_spasswd != no ; then
+			ol_link_spasswd=yes
+		fi
 	fi
 
 else
@@ -2154,7 +2169,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for entropy sources
-if test $cross_compiling != yes -a $ac_cv_mingw32 != yes ; then
+if test $cross_compiling != yes -a "$ac_cv_mingw32" != yes ; then
 	dev=no
 	if test -r /dev/urandom ; then
 		dev="/dev/urandom";
