@@ -295,13 +295,15 @@ status( void )
 	if (debug & D_TRACE)
 		printf("->status()\n");
 #endif
-	printf("  Current server is %s", server);
+	printf("  Current server is %s", server != NULL ? server : "<default>" );
 	if ( ld != NULL ) {
 		char *host = NULL;
 		
 		ldap_get_option(ld, LDAP_OPT_HOST_NAME, &host);
 
-		if (( host != NULL ) && (strcasecmp( host, server ) != 0 )) {
+		if ( host != NULL &&
+			( server == NULL || strcasecmp( host, server ) != 0 ) )
+		{
 			printf( " (%s)", host );
 		}
 	}
