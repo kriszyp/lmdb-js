@@ -946,7 +946,7 @@ connection_operation( void *ctx, void *arg_v )
 #endif
 	memsiz = SLAP_SLAB_SIZE;
 
-	memctx = slap_sl_mem_create( memsiz, ctx );
+	memctx = slap_sl_mem_create( memsiz, SLAP_SLAB_STACK, ctx );
 	op->o_tmpmemctx = memctx;
 	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	if ( tag != LDAP_REQ_ADD && tag != LDAP_REQ_MODIFY ) {
@@ -1704,7 +1704,7 @@ connection_fake_init(
 	conn->c_peer_name = slap_empty_bv;
 
 	/* set memory context */
-	op->o_tmpmemctx = slap_sl_mem_create( SLAP_SLAB_SIZE, ctx );
+	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx);
 	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	op->o_threadctx = ctx;
 
