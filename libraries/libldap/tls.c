@@ -98,6 +98,17 @@ static void tls_init_threads( void )
 #endif /* LDAP_R_COMPILE */
 
 /*
+ * Tear down the TLS subsystem. Should only be called once.
+ */
+void
+ldap_pvt_tls_destroy( void )
+{
+	SSL_CTX_free(tls_def_ctx);
+	EVP_cleanup();
+	ERR_free_strings();
+}
+
+/*
  * Initialize TLS subsystem. Should be called only once.
  */
 int

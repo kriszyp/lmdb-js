@@ -169,6 +169,7 @@ ldap_pvt_str2lower LDAP_P(( char *str ));
 
 /* tls.c */
 LDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
+LDAP_F (void) ldap_pvt_tls_destroy LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_connect LDAP_P(( struct ldap *ld,
 	Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
