@@ -186,6 +186,10 @@ bdb_db_open( BackendDB *be )
 		be->be_suffix[0].bv_val, 0, 0 );
 #endif
 
+	db_env_set_func_free( ber_memfree );
+	db_env_set_func_malloc( ber_memalloc );
+	db_env_set_func_realloc( ber_memrealloc );
+
 	/* we should check existance of dbenv_home and db_directory */
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
@@ -201,9 +205,6 @@ bdb_db_open( BackendDB *be )
 #endif
 		return rc;
 	}
-
-	bdb->bi_dbenv->set_alloc( bdb->bi_dbenv, (db_malloc *)ber_memalloc,
-		(db_realloc *)ber_memrealloc, ber_memfree );
 
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
 		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
@@ -364,7 +365,7 @@ bdb_db_open( BackendDB *be )
 #ifdef BDB_HIER
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
-#elif defined(BDB_IDL_MULTI)
+#else
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
@@ -549,6 +550,9 @@ bdb_initialize(
 #endif
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
  		LDAP_CONTROL_VALUESRETURNFILTER,
+#endif
+#ifdef LDAP_CLIENT_UPDATE
+		LDAP_CONTROL_CLIENT_UPDATE,
 #endif
 		NULL
 	};
