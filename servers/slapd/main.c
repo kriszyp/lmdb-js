@@ -344,6 +344,7 @@ int main( int argc, char **argv )
 #ifdef HAVE_TLS
 		case 'T':  /* Bind on TLS port */
 			use_tls_port = 1;
+			break;
 #endif
 		default:
 			usage( argv[0] );
@@ -381,6 +382,11 @@ int main( int argc, char **argv )
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
 		goto destroy;
 	}
+
+#ifdef HAVE_TLS
+	ldap_pvt_tls_init();
+	ldap_pvt_tls_init_def_ctx();
+#endif
 
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
