@@ -216,28 +216,24 @@ do_bind(
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( conn->c_sasl_bind_mech != NULL ) {
-			assert( conn->c_sasl_bind_in_progress );
-
 			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
 				/* mechanism changed, cancel in progress bind */
-				conn->c_sasl_bind_in_progress = 0;
-				free( conn->c_sasl_bind_mech );
-				conn->c_sasl_bind_mech = NULL;
 #ifdef HAVE_CYRUS_SASL
 				sasl_dispose(&conn->c_sasl_bind_context);
 				conn->c_sasl_bind_context = NULL;
 #endif
 			}
+			free( conn->c_sasl_bind_mech );
+			conn->c_sasl_bind_mech = NULL;
 
 #ifdef LDAP_DEBUG
-		} else {
-			assert( !conn->c_sasl_bind_in_progress );
-			assert( conn->c_sasl_bind_mech == NULL );
 #ifdef HAVE_CYRUS_SASL
+		} else {
 			assert( conn->c_sasl_bind_context == NULL );
 #endif
 #endif
 		}
+
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		edn = NULL;
@@ -245,9 +241,25 @@ do_bind(
 
 		if( rc == LDAP_SUCCESS && edn != NULL ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context == NULL );
+#endif
 			conn->c_dn = edn;
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context != NULL );
+#endif
+			conn->c_sasl_bind_mech = mech;
+			mech = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+		} else {
+			assert( conn->c_sasl_bind_context != NULL );
+#endif
 		}
+
 		goto cleanup;
 
 	} else {
@@ -257,15 +269,18 @@ do_bind(
 		if ( conn->c_sasl_bind_mech != NULL ) {
 			assert( conn->c_sasl_bind_in_progress );
 
-			/* cancel in progress bind */
-			conn->c_sasl_bind_in_progress = 0;
-
 			free(conn->c_sasl_bind_mech);
 			conn->c_sasl_bind_mech = NULL;
 
 #ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context != NULL );
 			sasl_dispose(&conn->c_sasl_bind_context);
 			conn->c_sasl_bind_context = NULL;
+#endif
+		} else {
+			assert( !conn->c_sasl_bind_in_progress );
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context == NULL );
 #endif
 		}
 

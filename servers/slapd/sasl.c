@@ -144,7 +144,7 @@ int sasl_bind(
 	Debug(LDAP_DEBUG_ARGS, "==> sasl_bind: dn=%s, mech=%s, cred->bv_len=%d\n",
 		dn, mech, cred ? cred->bv_len : 0 );
 
-	if ( conn->c_sasl_bind_context ) {
+	if ( conn->c_sasl_bind_context == NULL ) {
 		sasl_callback_t callbacks[4];
 		int cbnum = 0;
 
@@ -210,6 +210,9 @@ int sasl_bind(
 				NULL, NULL, NULL, NULL );
 
 		} else {
+			Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: username=%s\n",
+				authzid, 0, 0);
+
 			if( strncasecmp( authzid, "anonymous", sizeof("anonyous")-1 ) &&
 				( ( authzid[sizeof("anonymous")] == '\0' ) ||
 				( authzid[sizeof("anonymous")] == '@' ) ) )
@@ -224,14 +227,14 @@ int sasl_bind(
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {
-		/*
-		 * We set c_sasl_bind_in_progress because it doesn't appear
-		 * that connection.c sets this (unless do_bind() itself
-		 * returns LDAP_SASL_BIND_IN_PROGRESS).
-		 */
 		send_ldap_sasl( conn, op, rc = LDAP_SASL_BIND_IN_PROGRESS,
 			NULL, NULL, NULL, NULL,  &response );
 	} 
+
+	if ( sc != SASL_CONTINUE && conn->c_sasl_bind_context != NULL ) {
+		sasl_dispose( &conn->c_sasl_bind_context );
+		conn->c_sasl_bind_context = NULL;
+	}
 
 	Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: rc=%d\n", rc, 0, 0);
 
