@@ -335,6 +335,8 @@ ldbm_firstkey( LDBM ldbm )
 		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
 			ldbm_datum_free( ldbm, data );
 		}
+	else {
+		key.flags = 0;
 #else
 	int	rc;
 
@@ -343,9 +345,8 @@ ldbm_firstkey( LDBM ldbm )
 	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_FIRST )) == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
 	}
-#endif
 	else {
-		key.flags = 0;
+#endif
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
@@ -379,6 +380,8 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
 		ldbm_datum_free( ldbm, data );
 	}
+	else {
+		key.flags = 0;
 #else
 	int	rc;
 
@@ -387,9 +390,8 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_NEXT )) == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
 	}
-#endif
 	else {
-		key.flags = 0;
+#endif
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
