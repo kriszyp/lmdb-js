@@ -43,6 +43,8 @@ OBJEXT = @OBJEXT@
 
 BUILD_LIBS_DYNAMIC = @BUILD_LIBS_DYNAMIC@
 
+SHTOOL = $(top_builddir)/@SHTOOL@
+
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
@@ -112,12 +114,12 @@ BASENAME = basename
 CAT = cat
 CHMOD = chmod
 DATE = date
-HOSTNAME = uname -n
-LN = ln
-LN_H = @LN_H@
-LN_S = @LN_S@
+HOSTNAME = $(SHTOOL) echo -e "%h%d"
+LN = $(SHTOOL) mkln
+LN_H = $(SHTOOL) mkln -f
+LN_S = $(SHTOOL) mkln -f -s
 MAKEINFO = @MAKEINFO@
-MKDIR = mkdir -p
+MKDIR = $(SHTOOL) mkdir -p
 MV = mv
 PWD = pwd
 RANLIB = @RANLIB@

@@ -48,9 +48,12 @@ WHOWHERE="$USER@`uname -n`:`pwd`"
 cat << __EOF__
 /*
  * Copyright 1998-2002 The OpenLDAP Foundation
- * COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+ * COPYING RESTRICTIONS APPLY.  See COPYRIGHT file in top level directory
  * of this package for details.
  */
+static const char copyright[] =
+"Copyright 1998-2002 The OpenLDAP Foundation\n"
+"COPYING RESTRICTIONS APPLY\n";
 
 $static $const char $SYMBOL[] =
 "@(#) \$$PACKAGE: $APPLICATION $VERSION ($WHEN) \$\n\t$WHOWHERE\n";
