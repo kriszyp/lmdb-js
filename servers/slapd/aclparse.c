@@ -576,16 +576,16 @@ str2accessmask( const char *str )
 			if( TOLOWER(str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
-			} else if( TOLOWER(str[0]) == 'r' ) {
+			} else if( TOLOWER(str[i]) == 'r' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_READ);
 
-			} else if( TOLOWER(str[0]) == 's' ) {
+			} else if( TOLOWER(str[i]) == 's' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_SEARCH);
 
-			} else if( TOLOWER(str[0]) == 'c' ) {
+			} else if( TOLOWER(str[i]) == 'c' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
 
-			} else if( TOLOWER(str[0]) == 'x' ) {
+			} else if( TOLOWER(str[i]) == 'x' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 
 			} else {
