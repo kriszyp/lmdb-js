@@ -416,6 +416,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	BerVarray	syncUUID_set = NULL;
 	int			syncUUID_set_cnt = 0;
 
+	struct	bdb_op_info *opinfo = NULL;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
 #else
@@ -423,6 +425,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		0, 0, 0);
 #endif
 	attrs = sop->oq_search.rs_attrs;
+
+	opinfo = (struct bdb_op_info *) op->o_private;
 
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
 		struct slap_session_entry *sent;
@@ -517,14 +521,18 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		}
 	}
 
-	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
+	if ( opinfo ) {
+		locker = TXN_ID( opinfo->boi_txn );
+	} else {
+		rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
 
-	switch(rs->sr_err) {
-	case 0:
-		break;
-	default:
-		send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
-		return rs->sr_err;
+		switch(rs->sr_err) {
+		case 0:
+			break;
+		default:
+			send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
+			return rs->sr_err;
+		}
 	}
 
 	if ( sop->o_req_ndn.bv_len == 0 ) {
@@ -553,14 +561,16 @@ dn2entry_retry:
 		break;
 	case LDAP_BUSY:
 		send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
 		send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return rs->sr_err;
 	}
 
@@ -600,7 +610,8 @@ dn2entry_retry:
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		if ( rs->sr_ref ) {
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
@@ -642,7 +653,8 @@ dn2entry_retry:
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		ber_memfree( matched_dn.bv_val );
@@ -1480,7 +1492,8 @@ done:
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 
-	LOCK_ID_FREE( bdb->bi_dbenv, locker );
+	if ( !opinfo )
+		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 
 	ber_bvfree( search_context_csn );
 
