@@ -112,6 +112,9 @@ usage( char *name )
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tservice name\n"
+#ifdef HAVE_CHROOT
+		"\t-r directory\n"
+#endif
 		"\t-s level\tSyslog Level\n"
 #ifdef SLAPD_BDB2
 		"\t-t\t\tEnable BDB2 timing\n"
