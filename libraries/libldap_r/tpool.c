@@ -45,7 +45,7 @@ typedef struct ldap_int_thread_key_s {
  * We don't expect to use many...
  */
 #define	MAXKEYS	32
-#define	MAXTHREADS	1024	/* must be a power of 2 */
+#define	LDAP_MAXTHR	1024	/* must be a power of 2 */
 
 static ldap_pvt_thread_t tid_zero;
 
@@ -57,7 +57,7 @@ static ldap_pvt_thread_t tid_zero;
 static struct {
 	ldap_pvt_thread_t id;
 	ldap_int_thread_key_t *ctx;
-} thread_keys[MAXTHREADS];
+} thread_keys[LDAP_MAXTHR];
 	
 
 typedef struct ldap_int_thread_ctx_s {
@@ -256,13 +256,13 @@ ldap_pvt_thread_pool_submit (
 			pool->ltp_starting--;
 
 			/* assign this thread ID to a key slot; start
-			 * at the thread ID itself (mod MAXTHREADS) and
+			 * at the thread ID itself (mod LDAP_MAXTHR) and
 			 * look for an empty slot.
 			 */
 			TID_HASH(thr, hash);
-			for (rc = hash & (MAXTHREADS-1);
+			for (rc = hash & (LDAP_MAXTHR-1);
 				!TID_EQ(thread_keys[rc].id, tid_zero);
-				rc = (rc+1) & (MAXTHREADS-1));
+				rc = (rc+1) & (LDAP_MAXTHR-1));
 			thread_keys[rc].id = thr;
 		} else {
 			/* couldn't create thread.  back out of
@@ -420,8 +420,8 @@ ldap_int_thread_pool_wrapper (
 
 	/* store pointer to our keys */
 	TID_HASH(tid, hash);
-	for (i = hash & (MAXTHREADS-1); !TID_EQ(thread_keys[i].id, tid);
-				i = (i+1) & (MAXTHREADS-1));
+	for (i = hash & (LDAP_MAXTHR-1); !TID_EQ(thread_keys[i].id, tid);
+				i = (i+1) & (LDAP_MAXTHR-1));
 	thread_keys[i].ctx = ltc_key;
 	keyslot = i;
 
@@ -557,8 +557,8 @@ void *ldap_pvt_thread_pool_context( )
 	tid = ldap_pvt_thread_self();
 
 	TID_HASH( tid, hash );
-	for (i = hash & (MAXTHREADS-1); !TID_EQ(thread_keys[i].id, tid_zero) &&
-		!TID_EQ(thread_keys[i].id, tid); i = (i+1) & (MAXTHREADS-1));
+	for (i = hash & (LDAP_MAXTHR-1); !TID_EQ(thread_keys[i].id, tid_zero) &&
+		!TID_EQ(thread_keys[i].id, tid); i = (i+1) & (LDAP_MAXTHR-1));
 
 	return thread_keys[i].ctx;
 }
