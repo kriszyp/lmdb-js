@@ -47,6 +47,7 @@ char	*s;
     fprintf( stderr, "    -z size lim\tsize limit (in entries) for search\n" );
     fprintf( stderr, "    -D binddn\tbind dn\n" );
     fprintf( stderr, "    -w passwd\tbind passwd (for simple authentication)\n" );
+    fprintf( stderr, "    -W\t\tprompt for bind passwd\n" );
 #ifdef HAVE_KERBEROS
     fprintf( stderr, "    -k\t\tuse Kerberos instead of Simple Password authentication\n" );
 #endif
@@ -92,12 +93,12 @@ char	**argv;
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
     int			rc, i, first, scope, kerberos, deref, attrsonly, debug;
-    int			ldap_options, timelimit, sizelimit, authmethod;
+    int			ldap_options, timelimit, sizelimit, authmethod, want_bindpw;
     LDAP		*ld;
 
     infile = NULL;
     deref = verbose = allow_binary = not = kerberos = vals2tmp =
-	    attrsonly = ldif = debug = 0;
+	    attrsonly = ldif = want_bindpw = debug = 0;
 
 #ifdef LDAP_REFERRALS
     ldap_options = LDAP_OPT_REFERRALS;
@@ -112,9 +113,9 @@ char	**argv;
 
     while (( i = getopt( argc, argv,
 #ifdef HAVE_KERBEROS
-	    "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
+	    "KknuvtRABLD:s:f:h:b:d:p:F:a:Ww:l:z:S:"
 #else
-	    "nuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
+	    "nuvtRABLD:s:f:h:b:d:p:F:a:Ww:l:z:S:"
 #endif
 	    )) != EOF ) {
 	switch( i ) {
@@ -211,6 +212,9 @@ char	**argv;
 	case 'w':	/* bind password */
 	    passwd = strdup( optarg );
 	    break;
+	case 'W':	/* prompt for password */
+	    want_bindpw++;
+	    break;
 	case 'l':	/* time limit */
 	    timelimit = atoi( optarg );
 	    break;
@@ -294,6 +298,11 @@ char	**argv;
     } else {
 	authmethod =  LDAP_AUTH_KRBV4;
     }
+
+	if (want_bindpw) {
+		passwd = getpass("Enter LDAP Password: ");
+	}
+
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
 	exit( 1 );

@@ -2,7 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	<insert changes here>
+	Added ldapsearch -W password prompting
 
 Changes included in OpenLDAP 1.2.6
 	CVS Tag: OPENLDAP_REL_ENG_1_2_6
