@@ -237,6 +237,10 @@ ldbm_back_search(
 							nrefs > 0 ? rbuf : NULL, nentries );
 						idl_free( candidates );
 						free( rbuf );
+
+						if( realBase != NULL) {
+							free( realBase );
+						}
 						return( 0 );
 					}
 
@@ -266,6 +270,10 @@ ldbm_back_search(
 						cache_return_entry_r( &li->li_cache, e );
 						idl_free( candidates );
 						free( rbuf );
+
+						if( realBase != NULL) {
+							free( realBase );
+						}
 						return( 0 );
 					}
 				}
