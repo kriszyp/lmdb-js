@@ -2889,7 +2889,6 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
 /*
  * Other matching rules in X.520 that we do not use (yet):
  *
- * 2.5.13.9*	numericStringOrderingMatch
  * 2.5.13.25	uTCTimeMatch
  * 2.5.13.26	uTCTimeOrderingMatch
  * 2.5.13.31*	directoryStringFirstComponentMatch
@@ -2960,7 +2959,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR, NULL,
+		SLAP_MR_SUBSTR, directoryStringSyntaxes,
 		NULL, UTF8StringNormalize, octetStringSubstringsMatch,
 		octetStringSubstringsIndexer, octetStringSubstringsFilter,
 		"caseIgnoreMatch" },
@@ -2992,6 +2991,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, numericStringNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
+
+	{"( 2.5.13.9 NAME 'numericStringOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
+		SLAP_MR_ORDERING, NULL,
+		NULL, numericStringNormalize, octetStringOrderingMatch,
+		NULL, NULL,
+		"numericStringMatch" },
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
