@@ -40,7 +40,6 @@ Medium projects
 ---------------
 Implement authPassword (RFC 3112)
 Implement DIT Structure Rules and Name Forms
-Implement LDAP Cancel extension
 Implement LDAP Transactions extension
 Redesign slapd memory allocation fault handling
 Localize tools
@@ -49,7 +48,7 @@ Localize tools
 Small projects
 --------------
 Add dumpasn1 logging support
-Add tests to test suite (ACI, moddn, manageDSAit, etc.)
+Add tests to test suite
 Convert utfconv.txt into man page(s).
 Recode linked-list structs to use <ldap_queue.h> macros
 Update any manual page
