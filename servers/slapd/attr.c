@@ -33,6 +33,69 @@ attr_free( Attribute *a )
 	free( a );
 }
 
+void
+attrs_free( Attribute *a )
+{
+	Attribute *next;
+
+	for( ; a != NULL ; a = next ) {
+		next = a->a_next;
+		attr_free( a );
+	}
+}
+
+Attribute *attr_dup( Attribute *a )
+{
+	Attribute *tmp;
+
+	if( a == NULL) return NULL;
+
+	tmp = ch_malloc( sizeof(Attribute) );
+
+	if( a->a_vals != NULL ) {
+		int i;
+
+		for( i=0; a->a_vals[i] != NULL; i++ ) {
+			/* EMPTY */ ;
+		}
+
+		tmp->a_vals = ch_malloc((i+1) * sizeof(struct berval*));
+
+		for( i=0; a->a_vals[i] != NULL; i++ ) {
+			tmp->a_vals[i] = ber_bvdup( a->a_vals[i] );
+		}
+
+		tmp->a_vals[i] = NULL;
+
+	} else {
+		tmp->a_vals = NULL;
+	}
+
+	tmp->a_type = ch_strdup( a->a_type );
+	tmp->a_syntax = a->a_syntax;
+	tmp->a_next = NULL;
+
+	return tmp;
+}
+
+Attribute *attrs_dup( Attribute *a )
+{
+	Attribute *tmp, **next;
+
+	if( a == NULL ) return NULL;
+
+	tmp = NULL;
+	next = &tmp;
+
+	for( ; a != NULL ; a = a->a_next ) {
+		*next = attr_dup( a );
+		next = &((*next)->a_next);
+	}
+	*next = NULL;
+
+	return tmp;
+}
+
 /*
  * attr_normalize - normalize an attribute name (make it all lowercase)
  */

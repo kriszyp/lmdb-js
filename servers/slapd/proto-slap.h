@@ -41,6 +41,7 @@ int str2access LDAP_P(( char *str ));
  */
 
 void attr_free LDAP_P(( Attribute *a ));
+Attribute *attr_dup LDAP_P(( Attribute *a ));
 char * attr_normalize LDAP_P(( char *s ));
 int attr_merge_fast LDAP_P(( Entry *e, char *type, struct berval **vals, int  nvals,
 	int  naddvals, int  *maxvals, Attribute ***a ));
@@ -57,6 +58,9 @@ int at_fake_if_needed LDAP_P(( char *name ));
 int at_schema_info LDAP_P(( Entry *e ));
 int at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 char * at_canonical_name LDAP_P(( char * a_type ));
+
+void attrs_free LDAP_P(( Attribute *a ));
+Attribute *attrs_dup LDAP_P(( Attribute *a ));
 
 /*
  * ava.c
