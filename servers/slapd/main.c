@@ -65,7 +65,7 @@ static struct sockaddr_in	bind_addr;
 #endif
 
 typedef int (MainFunc) LDAP_P(( int argc, char *argv[] ));
-extern MainFunc slapadd, slapcat, slapindex, slappasswd;
+extern MainFunc slapadd, slapcat, slapdn, slapindex, slappasswd, slaptest;
 
 static struct {
 	char *name;
@@ -73,8 +73,10 @@ static struct {
 } tools[] = {
 	{"slapadd", slapadd},
 	{"slapcat", slapcat},
+	{"slapdn", slapdn},
 	{"slapindex", slapindex},
 	{"slappasswd", slappasswd},
+	{"slaptest", slaptest},
 	{NULL, NULL}
 };
 

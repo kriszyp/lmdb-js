@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SLAPTOOLS=slapadd slapcat slapindex slappasswd
+SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
@@ -35,7 +35,8 @@ SRCS	= main.c globals.c config.c daemon.c \
 		oidm.c starttls.c index.c sets.c referral.c root_dse.c \
 		sasl.c module.c mra.c mods.c sl_malloc.c limits.c \
 		backglue.c operational.c matchedValues.c cancel.c syncrepl.c \
-		slapadd.c slapcat.c slapcommon.c slapindex.c slappasswd.c \
+		slapadd.c slapcat.c slapcommon.c slapdn.c slapindex.c \
+		slappasswd.c slaptest.c \
 		backover.c ctxcsn.c ldapsync.c sessionlog.c $(@PLAT@_SRCS)
 
 OBJS	= main.o globals.o config.o daemon.o \
@@ -50,7 +51,8 @@ OBJS	= main.o globals.o config.o daemon.o \
 		oidm.o starttls.o index.o sets.o referral.o root_dse.o \
 		sasl.o module.o mra.o mods.o sl_malloc.o limits.o \
 		backglue.o operational.o matchedValues.o cancel.o syncrepl.o \
-		slapadd.o slapcat.o slapcommon.o slapindex.o slappasswd.o \
+		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
+		slappasswd.o slaptest.c \
 		backover.o ctxcsn.o ldapsync.o sessionlog.o $(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir)/slapi
