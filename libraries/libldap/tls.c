@@ -713,6 +713,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
 
 	} else {
+		struct ldapoptions *lo;
 		void *ctx = ld->ld_defconn
 			? ld->ld_defconn->lconn_tls_ctx : NULL;
 
@@ -728,8 +729,15 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 
 		if( ctx == NULL ) {
+			ctx = tls_def_ctx;
 			conn->lconn_tls_ctx = tls_def_ctx;
 		}
+		lo = &ld->ld_options;
+		if ( lo->ldo_tls_connect_cb )
+			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
+		lo = LDAP_INT_GLOBAL_OPT();   
+		if ( lo && lo->ldo_tls_connect_cb )
+			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
 	err = SSL_connect( ssl );
@@ -1201,6 +1209,12 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(void **)arg = retval;
 		break;
 	}
+	case LDAP_OPT_X_TLS_CONNECT_CB:
+		*(LDAP_TLS_CONNECT_CB **)arg = lo->ldo_tls_connect_cb;
+		break;
+	case LDAP_OPT_X_TLS_CONNECT_ARG:
+		*(void **)arg = lo->ldo_tls_connect_arg;
+		break;
 	default:
 		return -1;
 	}
@@ -1252,6 +1266,12 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		} else {
 			ld->ld_defconn->lconn_tls_ctx = arg;
 		}
+		return 0;
+	case LDAP_OPT_X_TLS_CONNECT_CB:
+		lo->ldo_tls_connect_cb = (LDAP_TLS_CONNECT_CB *)arg;
+		return 0;
+	case LDAP_OPT_X_TLS_CONNECT_ARG:
+		lo->ldo_tls_connect_arg = arg;
 		return 0;
 	}
 

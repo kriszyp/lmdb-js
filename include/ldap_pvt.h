@@ -241,6 +241,9 @@ LDAP_F (int) ldap_pvt_tls_init_default_ctx LDAP_P(( void ));
 
 typedef int LDAPDN_rewrite_dummy LDAP_P (( void *dn, unsigned flags ));
 
+typedef int (LDAP_TLS_CONNECT_CB) LDAP_P (( struct ldap *ld, void *ssl,
+	void *ctx, void *arg ));
+
 LDAP_F (int) ldap_pvt_tls_get_my_dn LDAP_P(( void *ctx, struct berval *dn,
 	LDAPDN_rewrite_dummy *func, unsigned flags ));
 LDAP_F (int) ldap_pvt_tls_get_peer_dn LDAP_P(( void *ctx, struct berval *dn,

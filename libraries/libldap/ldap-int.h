@@ -170,6 +170,8 @@ struct ldapoptions {
 
 #ifdef HAVE_TLS
    	int			ldo_tls_mode;
+	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
+	void*			ldo_tls_connect_arg;
 #endif
 
 	LDAPURLDesc *ldo_defludp;
