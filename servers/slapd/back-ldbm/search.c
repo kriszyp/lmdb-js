@@ -358,7 +358,7 @@ onelevel_candidates(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	Entry		*e;
+	Entry		*e = NULL;
 	Filter		*f;
 	char		buf[20];
 	IDList		*candidates;
@@ -366,7 +366,7 @@ onelevel_candidates(
 	Debug(LDAP_DEBUG_TRACE, "onelevel_candidates: base: \"%s\"\n", base, 0, 0);
 
 	*err = LDAP_SUCCESS;
-	e = NULL;
+
 	/* get the base object with reader lock */
 	if ( base != NULL && *base != '\0' &&
 		(e = dn2entry_r( be, base, matched )) == NULL )
@@ -401,7 +401,9 @@ onelevel_candidates(
 	filter_free( f );
 
 	/* free entry and reader lock */
-	cache_return_entry_r( &li->li_cache, e );
+	if( e != NULL ) {
+		cache_return_entry_r( &li->li_cache, e );
+	}
 	return( candidates );
 }
 
@@ -441,6 +443,8 @@ subtree_candidates(
 	*err = LDAP_SUCCESS;
 	f = NULL;
 	if ( lookupbase ) {
+		e = NULL;
+
 		if ( base != NULL && *base != '\0' &&
 			(e = dn2entry_r( be, base, matched )) == NULL )
 		{
