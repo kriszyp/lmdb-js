@@ -145,7 +145,7 @@ id2entry_rw( Backend *be, ID id, int rw )
 	ldbm_cache_close( be, db );
 
 	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld )  (failed)\n",
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (failed)\n",
 			rw ? "w" : "r", id, 0 );
 		return( NULL );
 	}
@@ -160,7 +160,10 @@ id2entry_rw( Backend *be, ID id, int rw )
 	if( cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
 		entry_free( e );
 
-		/* maybe the entry got added underneath us */
+		/* XXX this is a kludge.
+		 * maybe the entry got added underneath us
+		 * There are many underlying race condtions in the cache/disk code.
+		 */
 		if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
 				rw ? "w" : "r", id, (unsigned long) e );
