@@ -294,7 +294,6 @@ glue_back_search (
 	BackendDB *be;
 	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
-	struct berval bv;
 	glue_state gs = {0};
 	slap_callback cb;
 
@@ -373,7 +372,7 @@ glue_back_search (
 					s2limit, t2limit, filter, filterstr,
 					attrs, attrsonly);
 
-			} else if (dnIsSuffix(&bv, &be->be_nsuffix[0])) {
+			} else if (dnIsSuffix(ndn, &be->be_nsuffix[0])) {
 				rc = be->be_search (be, conn, op, dn, ndn,
 					scope, deref,
 					s2limit, t2limit, filter, filterstr,
