@@ -16,6 +16,29 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
+int is_object_subclass(
+	ObjectClass *sub,
+	ObjectClass *sup )
+{
+	int i;
+
+	if( sup == sub ) {
+		return 1;
+	}
+
+	if( sup->soc_sups == NULL ) {
+		return 0;
+	}
+
+	for( i=0; sup->soc_sups[i] != NULL; i++ ) {
+		if( is_object_subclass( sup->soc_sups[i], sup ) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 int is_entry_objectclass(
 	Entry*	e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT

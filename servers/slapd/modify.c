@@ -453,7 +453,7 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 	mod->sml_op = mop;
-	mod->sml_desc = slap_schema.si_ad_modifiersName;
+	mod->sml_desc = ad_dup( slap_schema.si_ad_modifiersName );
 	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 	mod->sml_bvalues[0] = ber_bvdup( &name );
 	mod->sml_bvalues[1] = NULL;
@@ -462,7 +462,7 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 	mod->sml_op = mop;
-	mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
+	mod->sml_desc = ad_dup( slap_schema.si_ad_modifyTimestamp );
 	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 	mod->sml_bvalues[0] = ber_bvdup( &timestamp );
 	mod->sml_bvalues[1] = NULL;

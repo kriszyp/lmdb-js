@@ -16,11 +16,7 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-static int oc_check_allowed(
-	AttributeType *type,
-	struct berval **oclist );
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static int		oc_check_allowed(char *type, struct berval **oclist);
 #endif
 static char *	oc_check_required(Entry *e, struct berval *ocname);
@@ -181,8 +177,10 @@ oc_check_required( Entry *e, struct berval *ocname )
 	return( NULL );
 }
 
-static int
-oc_check_allowed(
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+static
+#endif
+int oc_check_allowed(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType *at,
 #else

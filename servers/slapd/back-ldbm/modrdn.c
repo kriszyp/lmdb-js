@@ -320,34 +320,28 @@ ldbm_back_modrdn(
 	/* Retrieve the old rdn from the entry's dn */
 
 	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
-
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "could not parse old DN", NULL, NULL );
 		goto return_results;		
-
 	}
 
 	if ( (old_rdn_type = rdn_attr_type( old_rdn )) == NULL ) {
-	    
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "count parse RDN from old DN", NULL, NULL );
 		goto return_results;		
-		
 	}
 	
 	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
-
 	    /* Not a big deal but we may say something */
 	    Debug( LDAP_DEBUG_TRACE,
 		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",
 		   old_rdn_type, new_rdn_type, 0 );
-	    
 	}		
 
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
@@ -363,13 +357,28 @@ ldbm_back_modrdn(
 		add_bv.bv_len = strlen(new_rdn_val);
 		
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		{
+			int rc;
+			const char *text;
+
+			mod[0].sml_desc = NULL;
+			rc = slap_str2ad( new_rdn_type, &mod[0].sml_desc, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_back_modrdn: %s: %s (new)\n",
+					text, new_rdn_type, 0 );
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;		
+			}
+		}
 #else
-		mod[0].ml_type = new_rdn_type;	
-		mod[0].ml_bvalues = add_bvals;
-		mod[0].ml_op = SLAP_MOD_SOFTADD;
-		mod[0].ml_next = NULL;
+		mod[0].sml_type = new_rdn_type;	
 #endif
+		mod[0].sml_bvalues = add_bvals;
+		mod[0].sml_op = SLAP_MOD_SOFTADD;
+		mod[0].sml_next = NULL;
 
 		/* Remove old rdn value if required */
 
@@ -383,7 +392,7 @@ ldbm_back_modrdn(
 				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
 				       0, 0, 0 );
 				send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, "cound not parse value from old RDN", NULL, NULL );
+					NULL, "could not parse value from old RDN", NULL, NULL );
 				goto return_results;		
 			}
 
@@ -396,17 +405,29 @@ ldbm_back_modrdn(
 			del_bv.bv_len = strlen(old_rdn_val);
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
+			{
+				int rc;
+				const char *text;
+
+				mod[1].sml_desc = NULL;
+				rc = slap_str2ad( old_rdn_type, &mod[0].sml_desc, &text );
+
+				if( rc != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"ldbm_back_modrdn: %s: %s (old)\n",
+						text, old_rdn_type, 0 );
+					send_ldap_result( conn, op, rc,
+						NULL, text, NULL, NULL );
+					goto return_results;		
+				}
+			}
 #else
-			/* No need to normalize old_rdn_type, delete_values()
-			 * does that for us
-			 */
-			mod[0].ml_next = &mod[1];
-			mod[1].ml_type = old_rdn_type;	
-			mod[1].ml_bvalues = del_bvals;
-			mod[1].ml_op = LDAP_MOD_DELETE;
-			mod[1].ml_next = NULL;
+			mod[1].sml_type = old_rdn_type;	
 #endif
+			mod[0].sml_next = &mod[1];
+			mod[1].sml_bvalues = del_bvals;
+			mod[1].sml_op = LDAP_MOD_DELETE;
+			mod[1].sml_next = NULL;
 
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",

@@ -384,11 +384,48 @@ parse_acl(
 					b->a_group_pat = ch_strdup( right );
 
 					if (value && *value) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+						b->a_group_oc = oc_find( value );
+#else
 						b->a_group_oc = ch_strdup(value);
+#endif
+						if( b->a_group_oc == NULL ) {
+							fprintf( stderr,
+								"%s: line %d: group objectclass \"%s\" unknown\n",
+								fname, lineno, value );
+							acl_usage();
+						}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+						if( is_object_subclass( b->a_group_oc,
+							slap_schema.si_oc_referral ) )
+						{
+							fprintf( stderr,
+								"%s: line %d: group objectclass \"%s\" is subclass of referral\n",
+								fname, lineno, value );
+							acl_usage();
+						}
+
+						if( is_object_subclass( b->a_group_oc,
+							slap_schema.si_oc_alias ) )
+						{
+							fprintf( stderr,
+								"%s: line %d: group objectclass \"%s\" is subclass of alias\n",
+								fname, lineno, value );
+							acl_usage();
+						}
+#endif
+
 						*--value = '/';
+
 					} else {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+						b->a_group_oc = slap_schema.si_oc_groupOfNames;
+#else
 						b->a_group_oc = ch_strdup("groupOfNames");
+#endif
 					}
+
 
 					if (name && *name) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -430,6 +467,31 @@ parse_acl(
 							fname, lineno );
 						acl_usage();
 					}
+
+
+					{
+						int rc;
+						struct berval val;
+						struct berval *vals[2];
+
+						val.bv_val = b->a_group_oc->soc_oid;
+						val.bv_len = strlen(val.bv_val);
+						vals[0] = &val;
+						vals[1] = NULL;
+
+
+						rc = oc_check_allowed( b->a_group_at->ad_type, vals );
+
+						if( rc != 0 ) {
+							fprintf( stderr,
+								"%s: line %d: group: \"%s\" not allowed by \"%s\"\n",
+								fname, lineno,
+								b->a_group_at->ad_type,
+								b->a_group_oc->soc_oid );
+							acl_usage();
+						}
+					}
+
 #endif /* SLAPD_SCHEMA_NOT_COMPAT */
 					continue;
 				}

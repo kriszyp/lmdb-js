@@ -107,7 +107,7 @@ ldbm_back_compare(
 		rc = LDAP_COMPARE_FALSE;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 )
 #else
 		if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 )
 #endif

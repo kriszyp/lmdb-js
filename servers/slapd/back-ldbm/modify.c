@@ -123,13 +123,13 @@ int ldbm_modify_internal(
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_REPLACE: {
 			/* Need to remove all values from indexes */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
 			Attribute *a = save_attrs
 				? attr_find( save_attrs, mod->sm_desc )
 				: NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
 			if( a != NULL ) {
 				(void) index_change_values( be,
 					mod->mod_type,
@@ -177,13 +177,13 @@ int ldbm_modify_internal(
 
 		case LDAP_MOD_DELETE: {
 			/* Need to add all remaining values */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
 			Attribute *a = e->e_attrs
 				? attr_find( e->e_attrs, mod->sm_desc )
 				: NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
 			if( a != NULL ) {
 				(void) index_change_values( be,
 					mod->mod_type,
@@ -313,14 +313,14 @@ add_values(
 	if ( a != NULL ) {
 		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
+			if ( value_find( desc, a->a_vals, mod->sm_bvalues[i] ) == 0 )
 #else
 			if ( value_find( a->a_vals, mod->sm_bvalues[i],
 			    a->a_syntax, 3 ) == 0 )
+#endif
 			{
 				return( LDAP_TYPE_OR_VALUE_EXISTS );
 			}
-#endif
 		}
 	}
 
@@ -339,33 +339,45 @@ delete_values(
     char	*dn
 )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	int		i, j, k, found;
 	Attribute	*a;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char *desc = mod->sm_desc->ad_cname->bv_val;
+#else
+	char *desc = mod->mod_type;
+#endif
 
 	/* delete the entire attribute */
-	if ( mod->mod_bvalues == NULL ) {
+	if ( mod->sm_bvalues == NULL ) {
 		Debug( LDAP_DEBUG_ARGS, "removing entire attribute %s\n",
-		    mod->mod_type, 0, 0 );
-		return( attr_delete( &e->e_attrs, mod->mod_type ) ?
+		    desc, 0, 0 );
+		return( attr_delete( &e->e_attrs, mod->sm_desc ) ?
 		    LDAP_NO_SUCH_ATTRIBUTE : LDAP_SUCCESS );
 	}
 
 	/* delete specific values - find the attribute first */
-	if ( (a = attr_find( e->e_attrs, mod->mod_type )) == NULL ) {
+	if ( (a = attr_find( e->e_attrs, mod->sm_desc )) == NULL ) {
 		Debug( LDAP_DEBUG_ARGS, "could not find attribute %s\n",
-		    mod->mod_type, 0, 0 );
+		    desc, 0, 0 );
 		return( LDAP_NO_SUCH_ATTRIBUTE );
 	}
 
 	/* find each value to delete */
-	for ( i = 0; mod->mod_bvalues[i] != NULL; i++ ) {
+	for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
 		found = 0;
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			int match;
+			const char *text;
+			int rc = value_match( &match, mod->sm_desc, NULL,
+				mod->sm_bvalues[i], a->a_vals[j], &text );
+
+			if( rc == LDAP_SUCCESS && match == 0 )
+#else
 			if ( value_cmp( mod->mod_bvalues[i], a->a_vals[j],
-			    a->a_syntax, 3 ) != 0 ) {
+			    a->a_syntax, 3 ) != 0 )
+#endif
+			{
 				continue;
 			}
 			found = 1;
@@ -381,8 +393,8 @@ delete_values(
 			if ( a->a_vals[0] == NULL) {
 				Debug( LDAP_DEBUG_ARGS,
 					"removing entire attribute %s\n",
-					mod->mod_type, 0, 0 );
-				if ( attr_delete( &e->e_attrs, mod->mod_type ) ) {
+					desc, 0, 0 );
+				if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
 					return LDAP_NO_SUCH_ATTRIBUTE;
 				}
 			}
@@ -394,11 +406,10 @@ delete_values(
 		if ( ! found ) {
 			Debug( LDAP_DEBUG_ARGS,
 			    "could not find value for attr %s\n",
-			    mod->mod_type, 0, 0 );
+			    desc, 0, 0 );
 			return LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	}
-#endif
 
 	return( LDAP_SUCCESS );
 }

@@ -27,10 +27,11 @@ ldbm_back_group(
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
-	const char	*objectclassValue,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ObjectClass *group_oc,
 	AttributeDescription *group_at
 #else
+	const char	*group_oc,
 	const char	*group_at
 #endif
 )
@@ -41,12 +42,20 @@ ldbm_back_group(
 	Attribute   *attr;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
-	const char *groupattrName = group_at->ad_cname->bv_val;
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
+	const char *group_oc_name = NULL;
+	const char *group_at_name = group_at->ad_cname->bv_val;
+
+	if( group_oc->soc_names && group_oc->soc_names[0] ) {
+		group_oc_name = group_oc->soc_names[0];
+	} else {
+		group_oc_name = group_oc->soc_oid;
+	}
 #else
 	struct berval bv;
-	const char *objectClass = "objectclass";
-	const char *groupattrName = group_at;
+	const char *ad_objectClass = "objectclass";
+	const char *group_oc_name = group_oc;
+	const char *group_at_name = group_at;
 #endif
 
 	Debug( LDAP_DEBUG_ARGS,
@@ -56,8 +65,8 @@ ldbm_back_group(
 		"=> ldbm_back_group: op dn: \"%s\"\n",
 		op_ndn, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> ldbm_back_group: objectClass: \"%s\" attrName: \"%s\"\n", 
-		objectclassValue, groupattrName, 0 ); 
+		"=> ldbm_back_group: oc: \"%s\" at: \"%s\"\n", 
+		group_oc_name, group_at_name, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_group: tr dn: \"%s\"\n",
@@ -91,7 +100,7 @@ ldbm_back_group(
         
 	rc = 1;
         
-	if ((attr = attr_find(e->e_attrs, objectClass)) == NULL)  {
+	if ((attr = attr_find(e->e_attrs, ad_objectClass)) == NULL)  {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find objectClass\n", 0, 0, 0 );
 		goto return_results;
@@ -120,26 +129,26 @@ ldbm_back_group(
 		goto return_results;
 	}
 
-	bv.bv_val = (char *) objectclassValue;
+	bv.bv_val = (char *) group_oc_name;
 	bv.bv_len = strlen( bv.bv_val );         
 
 	if (value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find %s in objectClass\n", 
-				objectclassValue, 0, 0 ); 
+				group_oc_name, 0, 0 ); 
 		goto return_results;
 	}
 
 	if ((attr = attr_find(e->e_attrs, group_at)) == NULL) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find %s\n",
-			groupattrName, 0, 0 ); 
+			group_at_name, 0, 0 ); 
 		goto return_results;
 	}
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= ldbm_back_group: found objectClass %s and %s\n",
-		objectclassValue, groupattrName, 0 ); 
+		group_oc_name, group_at_name, 0 ); 
 
 	bv.bv_val = (char *) op_ndn;
 	bv.bv_len = strlen( op_ndn );         
@@ -148,14 +157,14 @@ ldbm_back_group(
 	{
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: \"%s\" not in \"%s\": %s\n", 
-			op_ndn, gr_ndn, groupattrName ); 
+			op_ndn, gr_ndn, group_at_name ); 
 		goto return_results;
 	}
 #endif
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= ldbm_back_group: \"%s\" is in \"%s\": %s\n", 
-		op_ndn, gr_ndn, groupattrName ); 
+		op_ndn, gr_ndn, group_at_name ); 
 
 	rc = 0;
 

@@ -47,9 +47,7 @@ struct slap_schema_oc_map {
 	{ "LDAProotDSE", offsetof(struct slap_internal_schema, si_oc_rootdse) },
 	{ "LDAPsubentry", offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", offsetof(struct slap_internal_schema, si_oc_subschema) },
-#ifdef SLAPD_ACI_ENABLED
 	{ "groupOfNames", offsetof(struct slap_internal_schema, si_oc_groupOfNames) },
-#endif
 	{ NULL, 0 }
 };
 

@@ -448,38 +448,34 @@ acl_mask(
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
-			/* see if asker is listed in dnattr */ 
-			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL
+			/* see if asker is listed in dnattr */
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-				/* not yet implemented */
-#else
-				&& value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0
-#endif
-			)
+			for( at = attrs_find( e->e_attrs, b->a_dn_at );
+				at == NULL;
+				at = attrs_find( e->e_attrs->a_next, b->a_dn_at ) )
 			{
-				if ( b->a_dn_self && 
-					(val == NULL
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-					/* not yet implemented */
+				if( value_find( b->a_dn_at, at->a_vals, &bv ) == 0 ) {
+				}
+			}
+
 #else
-					|| value_cmp( &bv, val, at->a_syntax, 2 )
-#endif
-					) )
+			/* see if asker is listed in dnattr */
+			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL &&
+				value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
+			{
+				if ( b->a_dn_self && (val == NULL
+					|| value_cmp( &bv, val, at->a_syntax, 2 ) ) )
 				{
 					continue;
 				}
 
 			/* asker not listed in dnattr - check for self access */
 			} else if ( ! b->a_dn_self || val == NULL
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-					/* not yet implemented */
-#else
-				|| value_cmp( &bv, val, at->a_syntax, 2 ) != 0
-#endif
-			)
+				|| value_cmp( &bv, val, at->a_syntax, 2 ) != 0 )
 			{
 				continue;
 			}
+#endif
 		}
 
 		if ( b->a_group_pat != NULL && op->o_ndn != NULL ) {
@@ -695,10 +691,15 @@ acl_check_modlist(
 		 * by the user
 		 */
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		if ( is_at_no_user_mod( mlist->sml_desc->ad_type ) ) {
+ 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
+				" modify access granted\n",
+				mlist->sml_desc->ad_cname->bv_val, 0, 0 );
+			continue;
+		}
 #else
 		if ( oc_check_op_no_usermod_attr( mlist->sml_type ) ) {
- 			Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
+ 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
 				mlist->sml_type, 0, 0 );
 			continue;
@@ -984,10 +985,12 @@ aci_group_member (
 	char *grpoc;
 	char *grpat;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *grpad = NULL;
+	ObjectClass *grp_oc = NULL;
+	AttributeDescription *grp_ad = NULL;
 	char *text;
 #else
-	char *grpad;
+	char *grp_oc;
+	char *grp_ad;
 #endif
 	int rc;
 
@@ -1014,28 +1017,28 @@ aci_group_member (
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	rc = slap_str2ad( grpat, &grpad, &text );
+	rc = slap_str2ad( grpat, &grp_ad, &text );
 	if( rc != LDAP_SUCCESS ) {
 		rc = 0;
 		goto done;
 	}
 #else
-	grpad = grpat;
+	grp_ad = grpat;
 #endif
 	rc = 0;
 
 	grpdn = (char *)ch_malloc(1024);
 
-	if (grpoc != NULL && grpad != NULL && grpdn != NULL) {
+	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
 		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, e, grpdn, op->o_ndn, grpoc, grpad) == 0);
+			rc = (backend_group(be, e, grpdn, op->o_ndn, grp_oc, grp_ad) == 0);
 		}
 	}
 
-done:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if( grpad != NULL ) ad_free( grpad, 1 );
+done:
+	if( grp_ad != NULL ) ad_free( grp_ad, 1 );
 #endif
 	ch_free(grpdn);
 	ch_free(grpat);
@@ -1130,40 +1133,50 @@ aci_mask(
 			return(1);
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
-		Attribute *at;
 		char *dnattr = aci_bvstrdup(&sdn);
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		AttributeDescription *dnad = NULL;
-		char *text;
-		rc = slap_str2ad( dnattr, &dnad, &text );
+		Attribute *at;
+		AttributeDescription *ad = NULL;
+		const char *text;
+
+		rc = slap_str2ad( dnattr, &ad, &text );
 		ch_free( dnattr );
 
-		if ( rc == LDAP_SUCCESS ) {
-#else
-			char *dnad = dnattr;
-#endif
-			at = attr_find( e->e_attrs, dnad );
-#ifdef SLAPD_SCHEMA_NOT_COMAT
-			ad_free( dnad, 1 );
-#else
-			ch_free( dnad );
-#endif
-			if (at != NULL) {
-				bv.bv_val = op->o_ndn;
-				bv.bv_len = strlen( bv.bv_val );
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-				/* not yet implemented */
-#else
-				if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
-					return(1);
-#endif
-			}
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		} else {
-			ad_free( dnad, 1 );
-#endif
+		if( rc != LDAP_SUCCESS ) {
+			return 0;
 		}
+
+		rc = 0;
+
+		bv.bv_val = op->o_ndn;
+		bv.bv_len = strlen( bv.bv_val );
+
+		for(at = attrs_find( e->e_attrs, ad );
+			at != NULL;
+			at = attrs_find( at->a_next, ad ) )
+		{
+			if (value_find( ad, at->a_vals, &bv) == 0 ) {
+				rc = 1;
+				break;
+			}
+		}
+
+		ad_free( ad, 1 );
+		return rc;
+
+#else
+		Attribute *at;
+		at = attr_find( e->e_attrs, dnattr );
+		ch_free( dnattr );
+
+		if (at != NULL) {
+			bv.bv_val = op->o_ndn;
+			bv.bv_len = strlen( bv.bv_val );
+
+			if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
+				return(1);
+		}
+#endif
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
 		if (aci_group_member(&sdn, "groupOfNames", "member", be, e, op, matches))

@@ -197,16 +197,16 @@ LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	Entry *target,
 	const char *gr_ndn,
 	const char *op_ndn,
-	const char *objectclassValue,
-	AttributeDescription *groupAttrType
+	ObjectClass *group_oc,
+	AttributeDescription *group_at
 ));
 #else
 LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	Entry *target,
 	const char *gr_ndn,
 	const char *op_ndn,
-	const char *objectclassValue,
-	const char *groupattrName
+	const char *group_oc,
+	const char *group_at
 ));
 #endif
 
@@ -568,8 +568,17 @@ LIBSLAPD_F (int) oc_check_op_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_usermod_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_no_usermod_attr LDAP_P(( const char *type ));
 #endif
-LIBSLAPD_F (ObjectClass *) oc_find LDAP_P((const char *ocname));
-LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
+LIBSLAPD_F (ObjectClass *) oc_find LDAP_P((
+	const char *ocname));
+
+LIBSLAPD_F (int) oc_add LDAP_P((
+	LDAP_OBJECT_CLASS *oc,
+	const char **err));
+
+LIBSLAPD_F (int) is_object_subclass LDAP_P((
+	ObjectClass *sub,
+	ObjectClass *sup ));
+
 
 LIBSLAPD_F (Syntax *) syn_find LDAP_P((const char *synname));
 LIBSLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
@@ -637,6 +646,11 @@ LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 /*
  * schema_check.c
  */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+int oc_check_allowed(
+	AttributeType *type,
+	struct berval **oclist );
+#endif
 LIBSLAPD_F (int) entry_schema_check LDAP_P((
 	Entry *e, Attribute *attrs,
 	const char** text ));
@@ -707,10 +721,8 @@ LIBSLAPD_F (int) value_match LDAP_P((
 	const char ** text ));
 LIBSLAPD_F (int) value_find LDAP_P((
 	AttributeDescription *ad,
-	MatchingRule *mr,
 	struct berval **values,
-	struct berval *value,
-	const char ** text ));
+	struct berval *value ));
 #else
 LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));
 LIBSLAPD_F (void) value_normalize LDAP_P(( char *s, int syntax ));

@@ -635,19 +635,20 @@ backend_group(
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
-	const char	*objectclassValue,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ObjectClass *group_oc,
 	AttributeDescription *group_at
 #else
+	const char	*group_oc,
 	const char	*group_at
 #endif
 )
 {
 	if (be->be_group)
 		return( be->be_group(be, target, gr_ndn, op_ndn,
-			objectclassValue, group_at) );
+			group_oc, group_at) );
 	else
-		return(1);
+		return LDAP_UNWILLING_TO_PERFORM;
 }
 
 #ifdef SLAPD_SCHEMA_DN

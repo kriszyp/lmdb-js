@@ -274,10 +274,8 @@ value_cmp(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 int value_find(
 	AttributeDescription *ad,
-	MatchingRule *mr,
 	struct berval **vals,
-	struct berval *val,
-	const char ** text )
+	struct berval *val )
 #else
 int
 value_find(
@@ -288,12 +286,20 @@ value_find(
 #endif
 {
 	int	i;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	MatchingRule *mr = ad->ad_type->sat_equality;
+
+	if( mr == NULL ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+#endif
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		int rc;
 		int match;
-		rc = value_match( &match, ad, mr, vals[i], val, text );
+		const char *text;
+		rc = value_match( &match, ad, mr, vals[i], val, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 )
 #else

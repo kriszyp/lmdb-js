@@ -83,14 +83,15 @@ extern int	ldbm_back_abandon LDAP_P(( BackendDB *bd,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
 	Entry *target,
-	const char* gr_ndn, const char* op_ndn,
-	const char* objectclassValue,
+	const char* gr_ndn,
+	const char* op_ndn,
+	ObjectClass* group_oc,
 	AttributeDescription* group_at));
 #else
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
 	Entry *target,
 	const char* gr_ndn, const char* op_ndn,
-	const char* objectclassValue,
+	const char* group_oc,
 	const char* group_at));
 #endif
 

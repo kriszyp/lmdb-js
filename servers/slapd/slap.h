@@ -336,9 +336,7 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_rootdse;
-#ifdef SLAPD_ACI_ENABLED
 	ObjectClass *si_oc_groupOfNames;
-#endif
 
 	/* objectClass attribute */
 	AttributeDescription *si_ad_objectClass;
@@ -734,10 +732,11 @@ typedef struct slap_access {
 
 	/* ACL Groups */
 	char		*a_group_pat;
-	char		*a_group_oc;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ObjectClass				*a_group_oc;
 	AttributeDescription	*a_group_at;
 #else
+	char		*a_group_oc;
 	char		*a_group_at;
 #endif
 
@@ -989,12 +988,12 @@ struct slap_backend_info {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
-		const char *objectclassValue,
+		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
 #else
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
-		const char *objectclassValue,
+		const char *group_oc,
 		const char *group_at ));
 #endif
 
