@@ -119,7 +119,7 @@
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
-/* define this to the number of arguments ctime_r() expects
+/* define this to the number of arguments ctime_r() expects */
 #undef CTIME_R_NARGS
 
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
@@ -405,6 +405,9 @@
 
 /* Define if you have the strsep function.  */
 #undef HAVE_STRSEP
+
+/* Define if you have the strspn function.  */
+#undef HAVE_STRSPN
 
 /* Define if you have the strstr function.  */
 #undef HAVE_STRSTR
