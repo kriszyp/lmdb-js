@@ -235,8 +235,6 @@ fi
 
 AC_MSG_RESULT(done)
 
-AC_CANONICAL_HOST
-
 ## Initialize vars
 LDAP_LIBS=
 LDBM_LIBS=
