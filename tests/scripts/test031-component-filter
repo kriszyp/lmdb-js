@@ -82,7 +82,7 @@ cat /dev/null > $SEARCHOUT
 echo "Testing Component Filter Match RFC3687 Certificate searching:"
 echo "# Testing Component Filter Match RFC3687 Certificate searching:" >> $SEARCHOUT
 
-FILTER="(usertCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.serialNumber\", rule allComponentsMatch, value 0 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.serialNumber\", rule allComponentsMatch, value 0 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -174,6 +174,32 @@ if test $RC != 0 ; then
 fi
 
 FILTER="(userCertificate:componentFilterMatch:=not:item:{component \"tbsCertificate.extensions.\2a\",rule allComponentsMatch, value { extnID 2.5.29.19 , extnValue '30030101FF'H })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence\", rule distinguishedNameMatch, value \"c=US\" })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1\", rule rdnMatch, value \"c=US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

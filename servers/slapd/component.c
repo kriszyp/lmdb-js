@@ -36,7 +36,6 @@ alloc_nibble_func* nibble_mem_allocator = NULL;
 free_nibble_func* nibble_mem_free = NULL;
 convert_attr_to_comp_func* attr_converter = NULL ;
 convert_assert_to_comp_func* assert_converter = NULL ;
-convert_asn_to_ldap_func* csi_converter = NULL ;
 free_component_func* component_destructor = NULL ;
 test_component_func* test_one_component = NULL;
 test_component_func* test_all_components = NULL;
@@ -872,44 +871,6 @@ csi_value_match( MatchingRule *mr, struct berval* bv_attr,
 		return rc;
 }
 
-int
-component_value_match( MatchingRule* mr,
-	ComponentSyntaxInfo* csi_attr, ComponentSyntaxInfo* csi_assert )
-{
-	if ( mr->smr_usage & SLAP_MR_COMPONENT ){
-		if ( strcmp( mr->smr_mrule.mr_oid, OID_ALL_COMP_MATCH ) == 0 )
-		{
-			/* allComponentMatch */
-			return csi_attr->csi_comp_desc->cd_all_match( NULL,
-						csi_attr, csi_assert );
-		} else {
-			return csi_assert->csi_comp_desc->cd_all_match(
-				mr->smr_mrule.mr_oid, csi_attr, csi_assert );
-		}
-
-	} else {
-		if ( csi_attr->csi_comp_desc->cd_type == ASN_BASIC ) {
-			struct berval bv1, bv2;
-			char attr_buf[MAX_LDAP_STR_LEN],assert_buf[MAX_LDAP_STR_LEN];
-			bv1.bv_val = attr_buf;
-			bv2.bv_val = assert_buf;
-			if ( csi_converter &&
-				( csi_converter ( csi_attr, &bv1 ) == LDAP_SUCCESS ) &&
-				( csi_converter ( csi_assert, &bv2 ) == LDAP_SUCCESS ) )
-			{
-				return csi_value_match( mr, &bv1, &bv2 );
-
-			} else {
-				return LDAP_INAPPROPRIATE_MATCHING;
-			}
-
-		} else if ( csi_attr->csi_comp_desc->cd_type == ASN_COMPOSITE )
-		{
-			return LDAP_INAPPROPRIATE_MATCHING;
-		}
-	}
-}
-
 /*
  * return codes : LDAP_COMPARE_TRUE, LDAP_COMPARE_FALSE
  */
@@ -955,8 +916,15 @@ test_comp_filter_item(
 		return LDAP_PROTOCOL_ERROR;
 
 	/* Memory for storing component assertion values */
-	assert_nm = nibble_mem_allocator ( 256, 64 );
-	if ( !assert_nm ) return LDAP_PROTOCOL_ERROR;
+	if( !ca->ca_comp_data.cd_mem_op ) {
+		assert_nm = nibble_mem_allocator ( 256, 64 );
+		if ( !assert_nm )
+			return LDAP_PROTOCOL_ERROR;
+		ca->ca_comp_data.cd_mem_op = assert_nm;
+	}
+	else {
+		assert_nm = ca->ca_comp_data.cd_mem_op;
+	}
 	/* perform matching */
 	if ( ca->ca_comp_ref->cr_curr->ci_type == LDAP_COMPREF_ALL ) {
 		/*

@@ -1683,7 +1683,7 @@ int mode)
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
 	t->comp_desc->cd_extract_i = (extract_component_from_id_func*)ExtractingComponentRelativeDistinguishedName;
 	t->comp_desc->cd_type = ASN_COMPOSITE;
-	t->comp_desc->cd_type_id = COMPOSITE_ASN1_TYPE;
+	t->comp_desc->cd_type_id = RelativeDistinguishedName ;
 	t->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRelativeDistinguishedName;
     (*bytesDecoded) += totalElmtsLen1;
 	return LDAP_SUCCESS;
@@ -1755,7 +1755,7 @@ int mode)
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
 	t->comp_desc->cd_extract_i = (extract_component_from_id_func*)ExtractingComponentRelativeDistinguishedName;
 	t->comp_desc->cd_type = ASN_COMPOSITE;
-	t->comp_desc->cd_type_id = COMPOSITE_ASN1_TYPE;
+	t->comp_desc->cd_type_id = RelativeDistinguishedName ;
 	t->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRelativeDistinguishedName;
 	return LDAP_SUCCESS;
 }  /* GDecRelativeDistinguishedNameContent */
@@ -1913,7 +1913,7 @@ int mode)
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
 	t->comp_desc->cd_extract_i = (extract_component_from_id_func*)ExtractingComponentRDNSequence;
 	t->comp_desc->cd_type = ASN_COMPOSITE;
-	t->comp_desc->cd_type_id = COMPOSITE_ASN1_TYPE;
+	t->comp_desc->cd_type_id = RDNSequence;
 	t->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRDNSequence;
     (*bytesDecoded) += totalElmtsLen1;
 	return LDAP_SUCCESS;
@@ -1985,7 +1985,7 @@ int mode)
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
 	t->comp_desc->cd_extract_i = (extract_component_from_id_func*)ExtractingComponentRDNSequence;
 	t->comp_desc->cd_type = ASN_COMPOSITE;
-	t->comp_desc->cd_type_id = COMPOSITE_ASN1_TYPE;
+	t->comp_desc->cd_type_id = RDNSequence;
 	t->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRDNSequence;
 	return LDAP_SUCCESS;
 }  /* GDecRDNSequenceContent */

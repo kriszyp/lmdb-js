@@ -2185,4 +2185,192 @@ int mode) {
 	return (*decoder)( mem_op, b, tag, elmtLen, (ComponentSyntaxInfo*)v,(int*)bytesDecoded, mode );
 }
 
+/*
+ * ASN.1 specification of a distinguished name
+ * DistinguishedName ::= RDNSequence
+ * RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
+ * RelativeDistinguishedName ::= SET SIZE(1..MAX) OF AttributeTypeandValue
+ * AttributeTypeandValue ::= SEQUENCE {
+ * 	type	AttributeType
+ *	value	AttributeValue
+ * }
+ * When dnMatch/rdnMatch is used in a component assertion value
+ * the component in DistinguishedName/RelativeDistinguishedName
+ * need to be converted to the LDAP encodings in RFC2253
+ * in order to be matched against the assertion value
+ * If allComponentMatch is used, the assertion value may be
+ * decoded into the Internal Representation(Component Tree)
+ * by the corresponding GSER or BER decoder
+ * Following routine converts a component tree(DistinguishedName) into
+ * LDAP encodings in RFC2253
+ * Example)
+ * IR : ComponentRDNSequence
+ * GSER : { { type cn, value sang },{ type o, value ibm}, {type c, value us} }
+ * LDAP Encodings : cn=sang,o=ibm,c=us 
+ */
+
+int
+increment_bv_mem ( struct berval* in ) {
+	int new_size = in->bv_len + INCREMENT_SIZE;
+	in->bv_val = realloc( in->bv_val, new_size );
+	in->bv_len = new_size;
+}
+
+int
+ConvertBER2Desc( char* in, int size, struct berval* out, int* pos ) {
+	int desc_size;
+	char* desc_ptr;
+	unsigned int firstArcNum;
+	unsigned int arcNum;
+	int i, rc, start_pos = *pos;
+	char buf[MAX_OID_LEN];
+	AttributeType *at;
+	struct berval bv_name;
+
+	/*convert BER oid to desc*/
+	for ( i = 0, arcNum = 0; (i < size) && (in[i] & 0x80 ); i++ )
+		arcNum = (arcNum << 7) + (in[i] & 0x7f);
+	arcNum = (arcNum << 7) + (in[i] & 0x7f);
+	i++;
+	firstArcNum = (unsigned short)(arcNum/40);
+	if ( firstArcNum > 2 )
+		firstArcNum = 2;
+	
+	arcNum = arcNum - (firstArcNum * 40 );
+
+	rc = intToAscii ( arcNum, buf );
+
+	/*check if the buffer can store the first/second arc and two dots*/
+	if ( out->bv_len < *pos + 2 + 1 + rc )
+		increment_bv_mem ( out );
+
+	if ( firstArcNum == 1)
+		out->bv_val[*pos] = '1';
+	else
+		out->bv_val[*pos] = '2';
+	(*pos)++;
+	out->bv_val[*pos] = '.';
+	(*pos)++;
+
+	memcpy( out->bv_val + *pos, buf, rc );
+	*pos += rc;
+	out->bv_val[*pos] = '.';
+	(*pos)++;
+
+	for ( ; i < size ; ) {
+		for ( arcNum=0; (i < size) && (in[i] & 0x80) ; i++ )
+			arcNum = (arcNum << 7) + (in[i] & 0x7f);
+		arcNum = (arcNum << 7) + (in[i] & 0x7f);
+		i++;
+
+		rc = intToAscii ( arcNum, buf );
+
+		if ( out->bv_len < *pos + rc + 1 )
+			increment_bv_mem ( out );
+
+		memcpy( out->bv_val + *pos, buf, rc );
+		*pos += rc;
+		out->bv_val[*pos] = '.';
+		(*pos)++;
+	}
+	(*pos)--;/*remove the last '.'*/
+
+	/*
+	 * lookup OID database to locate desc
+	 * then overwrite OID with desc in *out
+	 * If failed to look up desc, OID form is used
+	 */
+	bv_name.bv_val = out->bv_val + start_pos;
+	bv_name.bv_len = *pos - start_pos;
+	at = at_bvfind( &bv_name );
+	if ( !at )
+		return LDAP_SUCCESS;
+	desc_size = at->sat_cname.bv_len;
+	memcpy( out->bv_val + start_pos, at->sat_cname.bv_val, desc_size );
+	*pos = start_pos + desc_size;
+	return LDAP_SUCCESS;
+}
+
+int
+ConvertComponentAttributeTypeAndValue2RFC2253 ( irAttributeTypeAndValue* in, struct berval* out, int *pos ) {
+	int rc;
+	int value_size = ((ComponentUTF8String*)in->value.value)->value.octetLen;
+	char* value_ptr =  ((ComponentUTF8String*)in->value.value)->value.octs;
+
+	rc = ConvertBER2Desc( in->type.value.octs, in->type.value.octetLen, out, pos );
+	if ( rc != LDAP_SUCCESS ) return rc;
+	if ( out->bv_len < *pos + 1/*for '='*/  )
+		increment_bv_mem ( out );
+	/*Between type and value, put '='*/
+	out->bv_val[*pos] = '=';
+	(*pos)++;
+
+	/*Assume it is string*/		
+	if ( out->bv_len < *pos + value_size )
+		increment_bv_mem ( out );
+	memcpy( out->bv_val + *pos, value_ptr, value_size );
+	out->bv_len += value_size;
+	*pos += value_size;
+	
+	return LDAP_SUCCESS;
+}
+
+int
+ConvertRelativeDistinguishedName2RFC2253 ( irRelativeDistinguishedName* in, struct berval *out , int* pos) {
+	irAttributeTypeAndValue* attr_typeNvalue;
+	int rc;
+
+
+	FOR_EACH_LIST_ELMT( attr_typeNvalue, &in->comp_list)
+	{
+		rc = ConvertComponentAttributeTypeAndValue2RFC2253( attr_typeNvalue, out, pos );
+		if ( rc != LDAP_SUCCESS ) return LDAP_INVALID_SYNTAX;
+
+		if ( out->bv_len < pos + 1/*for '+'*/  )
+			increment_bv_mem ( out );
+		/*between multivalued RDNs, put comma*/
+		out->bv_val[*pos++] = '+';
+	}
+	(*pos)--;/*remove the last '+'*/
+	return LDAP_SUCCESS;
+}
+
+int 
+ConvertRDN2RFC2253 ( irRelativeDistinguishedName* in, struct berval *out ) {
+	int rc, pos = 0;
+	out->bv_val = (char*)malloc( INITIAL_DN_SIZE );
+	out->bv_len = INITIAL_DN_SIZE;
+
+	rc = ConvertRelativeDistinguishedName2RFC2253 ( in, out , &pos);
+	if ( rc != LDAP_SUCCESS ) return rc;
+	out->bv_val[pos] = '\0';
+	out->bv_len = pos;
+	return LDAP_SUCCESS;
+}
+
+int
+ConvertRDNSequence2RFC2253( irRDNSequence *in, struct berval* out ) {
+	irRelativeDistinguishedName* rdn_seq;
+	AsnList* seq = &in->comp_list;
+	int pos = 0, rc ;
+
+	out->bv_val = (char*)malloc( INITIAL_DN_SIZE );
+	out->bv_len = INITIAL_DN_SIZE;
+
+	FOR_EACH_LIST_ELMT( rdn_seq, seq )
+	{
+		rc = ConvertRelativeDistinguishedName2RFC2253( rdn_seq, out, &pos );
+		if ( rc != LDAP_SUCCESS ) return LDAP_INVALID_SYNTAX;
+
+		if ( out->bv_len < pos + 1/*for ','*/ )
+			increment_bv_mem ( out );
+		/*Between RDN, put comma*/
+		out->bv_val[pos++] = ',';
+	}
+	pos--;/*remove the last '+'*/
+	out->bv_val[pos] = '\0';
+	out->bv_len = pos;
+	return LDAP_SUCCESS;
+}
+
 #endif

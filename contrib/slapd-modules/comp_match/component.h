@@ -508,4 +508,23 @@ m_convert_attr_to_comp ( Attribute* a, struct berval* bv );
 MatchingRule*
 retrieve_matching_rule( char* mr_oid, AsnTypeId type );
 
+#define INITIAL_DN_SIZE 128
+#define INITIAL_ATTR_SIZE 256
+#define INCREMENT_SIZE 32
+int increment_bv_mem ( struct berval* in );
+int intToAscii ( int value, char* buf );
+typedef ComponentList irRDNSequence;
+typedef ComponentList irRelativeDistinguishedName;
+typedef ComponentOid irAttributeType;
+typedef struct irAttributeTypeAndValue /* SEQUENCE */
+{
+	Syntax* syntax;
+	ComponentDesc* comp_desc;
+	struct berval identifier;
+	char id_buf[MAX_IDENTIFIER_LEN];
+	irAttributeType type; /* AttributeType */
+	ComponentAnyDefinedBy value; /* ANY DEFINED BY type */
+} irAttributeTypeAndValue;
+#define RDN_MATCH_OID "1.2.36.79672281.1.13.3"
+#define DN_MATCH_OID "2.5.13.1"
 #endif
