@@ -1,26 +1,26 @@
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
-owner: cn=Manager, o=University of Michigan, c=US
+owner: cn=Manager,o=University of Michigan,c=US
 cn: All Staff
 description: Everyone in the sample data
 objectclass: groupofnames
-member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
 
 dn: cn=Alumni Assoc Staff,ou=Groups,o=University of Michigan,c=US
-member: cn=Manager, o=University of Michigan, c=US
-member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
-member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
-member: cn=Jane Doe, ou=Alumni Association, ou=People, o=University of Michiga
- n, c=US
-member: cn=Jennifer Smith, ou=Alumni Association, ou=People, o=University of M
- ichigan, c=US
-member: cn=Mark Elliot, ou=Alumni Association, ou=People, o=University of Mich
- igan, c=US
-member: cn=Ursula Hampster, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
-owner: cn=Manager, o=University of Michigan, c=US
+member: cn=Manager,o=University of Michigan,c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
+member: cn=Jane Doe,ou=Alumni Association,ou=People,o=University of Michigan,c
+ =US
+member: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Mich
+ igan,c=US
+member: cn=Mark Elliot,ou=Alumni Association,ou=People,o=University of Michiga
+ n,c=US
+member: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
+owner: cn=Manager,o=University of Michigan,c=US
 description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
 objectclass: groupofnames
@@ -42,7 +42,7 @@ sn: Jensen
 title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
  Arbor, MI 48103-4943
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: YmplbnNlbg==
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
@@ -62,7 +62,7 @@ objectclass: newPilotPerson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: Ympvcm4=
 homepostaladdress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
 title: Director, Embedded Systems
@@ -87,7 +87,7 @@ cn: Dot Stevens
 sn: Stevens
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 drink: Lemonade
 homepostaladdress: 377 White St. Apt. 3 $ Ann Arbor, MI 48104
 description: Very tall
@@ -106,7 +106,7 @@ cn: Gern Jensen
 sn: Jensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 drink: Coffee
 homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
 description: Very odd
@@ -126,17 +126,17 @@ objectclass: organizationalUnit
 ou: Information Technology Division
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
-owner: cn=Manager, o=University of Michigan, c=US
+owner: cn=Manager,o=University of Michigan,c=US
 description: All ITD Staff
 cn: ITD Staff
 objectclass: groupofnames
-member: cn=Manager, o=University of Michigan, c=US
-member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
- ty of Michigan, c=US
-member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
-member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of 
- Michigan, c=US
+member: cn=Manager,o=University of Michigan,c=US
+member: cn=John Doe,ou=Information Technology Division,ou=People,o=University 
+ of Michigan,c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Mic
+ higan,c=US
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
@@ -149,7 +149,7 @@ cn: James Jones
 cn: Jim Jones
 sn: Jones
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: amFq
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
 homephone: +1 313 555 4772
@@ -171,7 +171,7 @@ cn: Jane Alverson
 sn: Doe
 title: Programmer Analyst, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 123 Anystreet $ Ann Arbor, MI 48104
 drink: diet coke
 description: Enthusiastic
@@ -191,7 +191,7 @@ cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 drink: Sam Adams
 homepostaladdress: 1000 Maple #44 $ Ann Arbor, MI 48103
 title: Telemarketer, UM Alumni Association
@@ -211,7 +211,7 @@ cn: John Doe
 cn: Jonathon Doe
 sn: Doe
 postaladdress: ITD $ 535 W. William $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 912 East Bllvd $ Ann Arbor, MI 48104
 title: System Administrator, Information Technology Division
 description: overworked!
@@ -241,7 +241,7 @@ cn: Mark Elliot
 cn: Mark A Elliot
 sn: Elliot
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 199 Outer Drive $ Ypsilanti, MI 48198
 homephone: +1 313 555 0388
 drink: Gasoline
@@ -283,7 +283,7 @@ cn: Ursula Hampster
 sn: Hampster
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 123 Anystreet $ Ann Arbor, MI 48104
 mail: uham@mail.alumni.umich.edu
 homephone: +1 313 555 8421
