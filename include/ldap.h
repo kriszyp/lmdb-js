@@ -516,15 +516,16 @@ typedef struct ldap_friendly {
  * types for ldap URL handling
  */
 typedef struct ldap_url_desc {
-    struct ldap_url_desc *lud_next;
-    char	*lud_scheme;
-    char	*lud_host;
-    int		lud_port;
-    char	*lud_dn;
-    char	**lud_attrs;
-    int		lud_scope;
-    char	*lud_filter;
-    char	**lud_exts;
+	struct ldap_url_desc *lud_next;
+	char	*lud_scheme;
+	char	*lud_host;
+	int		lud_port;
+	char	*lud_dn;
+	char	**lud_attrs;
+	int		lud_scope;
+	char	*lud_filter;
+	char	**lud_exts;
+	int		lud_crit_exts;
 } LDAPURLDesc;
 
 #define LDAP_URL_SUCCESS		0x00	/* Success */
