@@ -802,7 +802,7 @@ retry:	/* transaction retry */
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn )
+			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 #endif
 		text = NULL;
 		bdb_cache_entry_commit( e );
