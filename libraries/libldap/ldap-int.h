@@ -68,9 +68,6 @@ LDAP_BEGIN_DECL
 #define LDAP_URL_URLCOLON		"URL:"
 #define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
 
-#define CLDAP_URL_PREFIX         "cldap://"
-#define CLDAP_URL_PREFIX_LEN     (sizeof(CLDAP_URL_PREFIX)-1)
-
 #define LDAP_REF_STR		"Referral:\n"
 #define LDAP_REF_STR_LEN	(sizeof(LDAP_REF_STR)-1)
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
