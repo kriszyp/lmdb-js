@@ -1227,8 +1227,8 @@ int connection_read(ber_socket_t s)
 	}
 #endif
 
-/* #define CONNECTION_INPUT_LOOP 1 */
-#define	DATA_READY_LOOP 1
+#define CONNECTION_INPUT_LOOP 1
+/* #define	DATA_READY_LOOP 1 */
 
 	do
 	{
