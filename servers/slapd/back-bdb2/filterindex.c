@@ -143,7 +143,7 @@ presence_candidates(
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
-	idl = bdb2i_index_read( be, type, 0, "*" );
+	idl = bdb2i_index_read( be, type, INDEX_PRESENCE, "*" );
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
