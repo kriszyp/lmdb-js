@@ -349,7 +349,7 @@ dnl Likely combinations:
 dnl		-lsocket [ -lnsl_s | -lnsl ]
 dnl		-linet
 
-AC_CHECK_FUNC(socket, [have_socket=yes], [	
+AC_CHECK_FUNC(socket, :, [	
 dnl
 dnl hopefully we won't include too many libraries
 dnl
@@ -377,6 +377,13 @@ fi
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
+
+AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
+
+dnl Select arg types
+dnl (if this detection becomes permenent, it and the select() detection
+dnl should be done before the yielding select test) 
+AC_FUNC_SELECT_ARGTYPES
 
 # ISODE tests
 ol_link_isode=no
@@ -1250,13 +1257,11 @@ if test $ol_link_threads != no ; then
 	AC_DEFINE(THREADSAFE,1)
 	AC_DEFINE(_THREADSAFE,1)
 
-	dnl this might cause the errno symbol to be
-	dnl replaced with a function to get a thread specific errno.
-	dnl check to see if everything needs to be compiled
-	dnl with the thread libraries
+	dnl The errno declaration may dependent upon _REENTRANT.
+	dnl If it does, we must link with thread support.
 	AC_CACHE_CHECK([for thread specific errno],
 		[ol_cv_errno_thread_specific], [
-		AC_TRY_LINK([#include <errno.h>], [int x = errno;],
+		AC_TRY_LINK([#include <errno.h>], [errno = 0;],
 			[ol_cv_errno_thread_specific=yes],
 			[ol_cv_errno_thread_specific=no])
 	])
@@ -1699,7 +1704,7 @@ AC_FUNC_MEMCMP
 dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
-AC_FUNC_VFORK
+dnl AC_FUNC_VFORK
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
@@ -1724,13 +1729,11 @@ AC_CHECK_FUNCS(		\
 	mkstemp			\
 	recv			\
 	recvfrom		\
-	select			\
 	setpwfile		\
 	setsid			\
 	signal			\
 	sigset			\
 	snprintf		\
-	socket			\
 	strdup			\
 	strerror		\
 	strpbrk			\
@@ -1744,11 +1747,6 @@ AC_CHECK_FUNCS(		\
 	waitpid			\
 	wait4			\
 )
-
-dnl Select arg types
-dnl (if this detection becomes permenent, it and the select() detection
-dnl should be done before the yielding select test) 
-AC_FUNC_SELECT_ARGTYPES
 
 dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt tempnam)

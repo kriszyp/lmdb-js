@@ -43,9 +43,6 @@
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #undef HAVE_SYS_WAIT_H
 
-/* Define if you have <vfork.h>.  */
-#undef HAVE_VFORK_H
-
 /* Define if you have the vprintf function.  */
 #undef HAVE_VPRINTF
 
@@ -94,9 +91,6 @@
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef uid_t
-
-/* Define vfork as fork if vfork does not work.  */
-#undef vfork
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
@@ -299,9 +293,6 @@
 
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
-
-/* Define if you have the select function.  */
-#undef HAVE_SELECT
 
 /* Define if you have the setpwfile function.  */
 #undef HAVE_SETPWFILE
