@@ -80,6 +80,13 @@ get_ava(
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( FILTER, ERR,
+		"get_ava: unknown attributeType %s\n", type.bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_FILTER,
+		"get_ava: unknown attributeType %s\n", type.bv_val, 0, 0 );
+#endif
 		op->o_tmpfree( aa, op->o_tmpmemctx );
 		return rc;
 	}
@@ -89,6 +96,13 @@ get_ava(
 		usage, &value, &aa->aa_value, text, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( FILTER, ERR,
+		"get_ava: illegal value for attributeType %s\n", type.bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_FILTER,
+		"get_ava: illegal value for attributeType %s\n", type.bv_val, 0, 0 );
+#endif
 		op->o_tmpfree( aa, op->o_tmpmemctx );
 		return rc;
 	}
