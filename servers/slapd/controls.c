@@ -155,12 +155,7 @@ int get_ctrls(
 	}
 
 	/* one for first control, one for termination */
-#ifndef LDAP_CONTROL_PAGEDRESULTS
 	op->o_ctrls = ch_malloc( 2 * sizeof(LDAPControl *) );
-#else /* LDAP_CONTROL_PAGEDRESULTS */
-	/* FIXME: are we sure we need this? */
-	op->o_ctrls = ch_malloc( 3 * sizeof(LDAPControl *) );
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #if 0
 	if( op->ctrls == NULL ) {
