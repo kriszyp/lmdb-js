@@ -670,7 +670,7 @@ ldap_back_entry_get(
 	}
 	if (oc) {
 		char *ptr;
-		filter = ch_malloc(sizeof("(objectclass=)" + oc->soc_cname.bv_len));
+		filter = ch_malloc(sizeof("(objectclass=)") + oc->soc_cname.bv_len);
 		ptr = lutil_strcopy(filter, "(objectclass=");
 		ptr = lutil_strcopy(ptr, oc->soc_cname.bv_val);
 		*ptr++ = ')';
