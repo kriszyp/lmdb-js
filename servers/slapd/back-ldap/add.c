@@ -184,7 +184,7 @@ ldap_back_add(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( li, lc, op, rs, msgid, j, 1 ) );
+	return( ldap_back_op_result( lc, op, rs, msgid, j, 1 ) );
 }
 
 #ifdef ENABLE_REWRITE

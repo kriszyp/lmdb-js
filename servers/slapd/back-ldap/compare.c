@@ -119,5 +119,5 @@ ldap_back_compare(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( li, lc, op, rs, msgid, rc, 1 ) );
+	return( ldap_back_op_result( lc, op, rs, msgid, rc, 1 ) );
 }

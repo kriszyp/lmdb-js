@@ -1002,7 +1002,7 @@ metaConnect(
 {
 	struct metaconn* lc; 
 	result->type = SUCCESS; 
-	lc = meta_back_getconn( li, conn, op, op_type, nbase, NULL );
+	lc = meta_back_getconn( conn, op, op_type, nbase, NULL );
 	if (!lc) {
 		result->type = CONN_ERR; 
 		return 0; 

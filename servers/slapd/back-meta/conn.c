@@ -339,13 +339,13 @@ init_one_conn(
  */
 struct metaconn *
 meta_back_getconn(
-		struct metainfo *li,
 	       	Operation 	*op,
 		SlapReply	*rs,
 		int 		op_type,
 		struct berval	*ndn,
 		int 		*candidate )
 {
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc, lc_curr;
 	int cached = -1, i = -1, err = LDAP_SUCCESS;
 	int new_conn = 0;

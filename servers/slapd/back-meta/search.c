@@ -136,7 +136,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	lc = meta_back_getconn( li, op, rs, META_OP_ALLOW_MULTIPLE, 
+	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE, 
 			&op->o_req_ndn, NULL );
 	if ( !lc ) {
  		send_ldap_result( op, rs );

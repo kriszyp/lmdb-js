@@ -148,6 +148,8 @@ ldap_back_search(
 	case REWRITE_REGEXEC_OK:
 		if ( mbase.bv_val == NULL ) {
 			mbase = op->o_req_dn;
+		} else {
+			mbase.bv_len = strlen( mbase.bv_val );
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
@@ -205,7 +207,7 @@ ldap_back_search(
 			: NULL, op->oq_search.rs_slimit, &msgid);
 	if ( rc != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(li, lc, op, rs, msgid, rc, 0);
+		rc = ldap_back_op_result(lc, op, rs, msgid, rc, 0);
 		goto finish;
 	}
 
@@ -388,6 +390,10 @@ ldap_build_entry(
 	Attribute *attr, **attrp;
 	struct berval *bv;
 	const char *text;
+
+	/* safe assumptions ... */
+	assert( ent );
+	ent->e_bv.bv_val = NULL;
 
 	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;

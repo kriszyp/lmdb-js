@@ -88,7 +88,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	char			*mdn;
 	struct berval		mapped;
 
-	lc = meta_back_getconn( li, op, rs, META_OP_REQUIRE_SINGLE,
+	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
 			&op->o_req_ndn, &candidate );
 	if ( !lc ) {
 		rc = -1;

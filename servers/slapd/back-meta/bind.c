@@ -81,28 +81,13 @@ static LDAP_REBIND_PROC	meta_back_rebind;
 
 static int
 meta_back_do_single_bind(
-		struct metainfo		*li,
 		struct metaconn		*lc,
 		Operation		*op,
-		struct berval		*dn,
-		struct berval		*ndn,
-		struct berval		*cred,
-		int			method,
 		int			candidate
 );
 
 int
 meta_back_bind( Operation *op, SlapReply *rs )
-		/*
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		struct berval	*dn,
-		struct berval	*ndn,
-		int		method,
-		struct berval	*cred,
-		struct berval	*edn
-) */
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
@@ -110,11 +95,6 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	int rc = -1, i, gotit = 0, ndnlen, isroot = 0;
 	int op_type = META_OP_ALLOW_MULTIPLE;
 	int err = LDAP_SUCCESS;
-
-	struct berval *realdn = &op->o_req_dn;
-	struct berval *realndn = &op->o_req_ndn;
-	struct berval *realcred = &op->oq_bind.rb_cred;
-	int realmethod = op->oq_bind.rb_method;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_META, ENTRY, "meta_back_bind: dn: %s.\n",
@@ -129,7 +109,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
 		op_type = META_OP_REQUIRE_ALL;
 	}
-	lc = meta_back_getconn( li, op, rs, op_type,
+	lc = meta_back_getconn( op, rs, op_type,
 			&op->o_req_ndn, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
@@ -151,7 +131,12 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	lc->bound_target = META_BOUND_NONE;
 	ndnlen = op->o_req_ndn.bv_len;
 	for ( i = 0; i < li->ntargets; i++ ) {
-		int lerr;
+		int		lerr;
+		struct berval	orig_dn = op->o_req_dn;
+		struct berval	orig_ndn = op->o_req_ndn;
+		struct berval	orig_cred = op->oq_bind.rb_cred;
+		int		orig_method = op->oq_bind.rb_method;
+		
 
 		/*
 		 * Skip non-candidates
@@ -182,25 +167,24 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		}
 
 		if ( isroot && li->targets[ i ]->pseudorootdn.bv_val != NULL ) {
-			realdn = &li->targets[ i ]->pseudorootdn;
-			realndn = &li->targets[ i ]->pseudorootdn;
-			realcred = &li->targets[ i ]->pseudorootpw;
-			realmethod = LDAP_AUTH_SIMPLE;
-		} else {
-			realdn = &op->o_req_dn;
-			realndn = &op->o_req_ndn;
-			realcred = &op->oq_bind.rb_cred;
-			realmethod = op->oq_bind.rb_method;
+			op->o_req_dn = li->targets[ i ]->pseudorootdn;
+			op->o_req_ndn = li->targets[ i ]->pseudorootdn;
+			op->oq_bind.rb_cred = li->targets[ i ]->pseudorootpw;
+			op->oq_bind.rb_method = LDAP_AUTH_SIMPLE;
 		}
 		
-		lerr = meta_back_do_single_bind( li, lc, op,
-				realdn, realndn, realcred, realmethod, i );
+		lerr = meta_back_do_single_bind( lc, op, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			err = lerr;
 			( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		} else {
 			rc = LDAP_SUCCESS;
 		}
+
+		op->o_req_dn = orig_dn;
+		op->o_req_ndn = orig_ndn;
+		op->oq_bind.rb_cred = orig_cred;
+		op->oq_bind.rb_method = orig_method;
 	}
 
 	if ( isroot ) {
@@ -241,16 +225,12 @@ meta_back_bind( Operation *op, SlapReply *rs )
  */
 static int
 meta_back_do_single_bind(
-		struct metainfo		*li,
 		struct metaconn		*lc,
 		Operation		*op,
-		struct berval		*dn,
-		struct berval		*ndn,
-		struct berval		*cred,
-		int			method,
 		int			candidate
 )
 {
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct berval	mdn = { 0, NULL };
 	int		rc;
 	ber_int_t	msgid;
@@ -259,18 +239,22 @@ meta_back_do_single_bind(
 	 * Rewrite the bind dn if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"bindDn", dn->bv_val, lc->conn, &mdn.bv_val ) ) {
+				"bindDn", op->o_req_dn.bv_val,
+				lc->conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn.bv_val == NULL ) {
-			mdn = *dn;
+			mdn = op->o_req_dn;
+		} else {
+			mdn.bv_len = strlen( mdn.bv_val );
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val, 0 );
+				"[rw] bindDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn.bv_val, "" );
+				op->o_req_dn.bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -291,33 +275,39 @@ meta_back_do_single_bind(
 	}
 	
 	rc = ldap_sasl_bind(lc->conns[ candidate ].ld, mdn.bv_val,
-			LDAP_SASL_SIMPLE, cred, op->o_ctrls, NULL, &msgid);
+			LDAP_SASL_SIMPLE, &op->oq_bind.rb_cred,
+			op->o_ctrls, NULL, &msgid);
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
+
 	} else {
-		ber_dupbv( &lc->conns[ candidate ].bound_dn, dn );
+		/*
+		 * FIXME: handle response!!!
+		 */
+		ber_dupbv( &lc->conns[ candidate ].bound_dn, &op->o_req_dn );
 		lc->conns[ candidate ].bound = META_BOUND;
 		lc->bound_target = candidate;
 
 		if ( li->savecred ) {
 			if ( lc->conns[ candidate ].cred.bv_val )
 				ch_free( lc->conns[ candidate ].cred.bv_val );
-			ber_dupbv( &lc->conns[ candidate ].cred, cred );
+			ber_dupbv( &lc->conns[ candidate ].cred,
+					&op->oq_bind.rb_cred );
 			ldap_set_rebind_proc( lc->conns[ candidate ].ld, 
 					meta_back_rebind, 
 					&lc->conns[ candidate ] );
 		}
 
 		if ( li->cache.ttl != META_DNCACHE_DISABLED
-				&& ndn->bv_len != 0 ) {
+				&& op->o_req_ndn.bv_len != 0 ) {
 			( void )meta_dncache_update_entry( &li->cache,
-					ndn, candidate );
+					&op->o_req_ndn, candidate );
 		}
 	}
 
 return_results:;
 	
-	if ( mdn.bv_val != dn->bv_val ) {
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 

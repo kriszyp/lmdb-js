@@ -165,7 +165,6 @@ struct metainfo {
 #define META_OP_REQUIRE_ALL		0x02
 extern struct metaconn *
 meta_back_getconn(
-		struct metainfo		*li,
 		Operation		*op,
 		SlapReply		*rs,
 		int			op_type,

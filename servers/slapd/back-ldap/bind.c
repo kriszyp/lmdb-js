@@ -115,7 +115,7 @@ ldap_back_bind(
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
 	rc = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
 		&op->oq_bind.rb_cred, op->o_ctrls, NULL, &msgid);
-	rc = ldap_back_op_result( li, lc, op, rs, msgid, rc, 1 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, rc, 1 );
 	if (rc == LDAP_SUCCESS) {
 		lc->bound = 1;
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
@@ -425,7 +425,6 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 int
 ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 {	
-	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	int rc;
 	ber_int_t msgid;
 
@@ -433,7 +432,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 	if ( !lc->bound ) {
 		rc = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
-		rc = ldap_back_op_result( li, lc, op, rs, msgid, rc, 0 );
+		rc = ldap_back_op_result( lc, op, rs, msgid, rc, 0 );
 		if (rc == LDAP_SUCCESS) {
 			lc->bound = 1;
 		}
@@ -506,9 +505,10 @@ ldap_back_map_result(int err)
 }
 
 int
-ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
-	Operation *op, SlapReply *rs, ber_int_t msgid, int err, int sendok)
+ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
+	ber_int_t msgid, int err, int sendok)
 {
+	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	char *match = NULL;
 	LDAPMessage *res;
 	int rc;
