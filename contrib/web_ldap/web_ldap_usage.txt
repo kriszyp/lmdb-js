@@ -8,7 +8,7 @@ Under the GPL, the source code is freely-distributed and available
 to the general public. There is no warranty on the software,
 and it does not come with support, however, I would appreciate
 it if you emailed any bug-fixes you create to me (jens@colomar.com)
-and OpenLDAP-bugs@OpenLDAP.org.
+and OpenLDAP-its@OpenLDAP.org.
 
 All code here is generic ISO C, allowing most Unix compilers
 to generate the required object files and executable images.
