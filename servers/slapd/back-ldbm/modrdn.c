@@ -46,7 +46,7 @@ ldbm_back_modrdn(
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
-	Entry		*matched = NULL;
+	Entry		*matched;
 	int			rootlock = 0;
 	int			rc = -1;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
@@ -133,7 +133,7 @@ ldbm_back_modrdn(
 		 * children.
 		 */
 
-		if( (p = dn2entry_w( be, p_ndn, &matched )) == NULL) {
+		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -195,7 +195,7 @@ ldbm_back_modrdn(
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-		if( (np = dn2entry_w( be, np_ndn, &matched )) == NULL) {
+		if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
@@ -481,8 +481,6 @@ return_results:
 
 	if( p_dn != NULL ) free( p_dn );
 	if( p_ndn != NULL ) free( p_ndn );
-
-	if( matched != NULL ) free( matched );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_type != NULL ) free(new_rdn_type);
