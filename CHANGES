@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.20 Engineering
+	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
 	Fixed back-sql segfault when logging and delete_rule is NULL (ITS#3407)
 
 OpenLDAP 2.2.19 Release

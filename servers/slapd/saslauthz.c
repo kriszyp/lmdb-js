@@ -314,12 +314,14 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	rc = ldap_url_parse( uri->bv_val, &ludp );
  	switch ( rc ) {
  	case LDAP_URL_SUCCESS:
+#if 0 /* leave this for later releases */
  		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
  			/*
  			 * must be ldap:///
  			 */
  			return LDAP_PROTOCOL_ERROR;
  		}
+#endif
  		break;
  
  	case LDAP_URL_ERR_BADSCHEME:
