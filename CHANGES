@@ -1,7 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.25 Engineering
-	<insert changes here>
+	Fixed slapd extended op reqdata crash bug
 
 OpenLDAP 2.0.24 Release
 	Fixed slapd max incoming macro bug (ITS#1828)

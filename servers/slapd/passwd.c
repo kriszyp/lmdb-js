@@ -86,6 +86,11 @@ int slap_passwd_parse( struct berval *reqdata,
 		return LDAP_SUCCESS;
 	}
 
+	if( reqdata->bv_len == 0 ) {
+		*text = "empty request data field";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	ber = ber_init( reqdata );
 
 	if( ber == NULL ) {
