@@ -310,16 +310,6 @@ matching_rule_use_init( void )
 	MatchingRule	*mr;
 	MatchingRuleUse	**mru_ptr = &mru_list;
 
-#define MR_TYPE_MASK		( SLAP_MR_TYPE_MASK & ~SLAP_MR_EXT )
-#define MR_TYPE_SUBTYPE_MASK	( MR_TYPE_MASK | SLAP_MR_SUBTYPE_MASK ) 
-#if 0	/* all types regardless of EXT */
-#define MR_TYPE(x)		( (x) & MR_TYPE_MASK )
-#define MR_TYPE_SUBTYPE(x)	( (x) & MR_TYPE_SUBTYPE_MASK )
-#else	/* only those marked as EXT (as per RFC 2252) */
-#define MR_TYPE(x)		( ( (x) & SLAP_MR_EXT ) ? ( (x) & MR_TYPE_MASK ) : SLAP_MR_NONE )
-#define MR_TYPE_SUBTYPE(x)	( ( (x) & SLAP_MR_EXT ) ? ( (x) & MR_TYPE_SUBTYPE_MASK ) : SLAP_MR_NONE )
-#endif
-
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, INFO, "matching_rule_use_init\n", 0, 0, 0 );
 #else
@@ -327,9 +317,6 @@ matching_rule_use_init( void )
 #endif
 
 	for ( mr = mr_list; mr; mr = mr->smr_next ) {
-		slap_mask_t	um = MR_TYPE( mr->smr_usage );
-		slap_mask_t	usm = MR_TYPE_SUBTYPE( mr->smr_usage );
-
 		AttributeType	*at;
 		MatchingRuleUse	_mru, *mru = &_mru;
 
