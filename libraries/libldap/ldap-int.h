@@ -426,12 +426,12 @@ LIBLDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
 LIBLDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 LIBLDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 
-#ifdef LDAP_PF_LOCAL 
 /*
  * in os-local.c
  */
+#ifdef LDAP_PF_UNIX 
 LIBLDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb, const char *path, int async );
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_UNIX */
 
 /*
  * in request.c

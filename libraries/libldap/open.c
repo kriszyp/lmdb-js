@@ -303,8 +303,9 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 			ber_sockbuf_add_io( sb, &ber_sockbuf_io_udp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
-#ifdef LDAP_PF_LOCAL
-		case LDAP_PROTO_LOCAL:
+		case LDAP_PROTO_IPC:
+#ifdef LDAP_PF_UNIX
+			/* only IPC mechanism supported is PF_UNIX */
 			rc = ldap_connect_to_path( ld, sb, srv->lud_host,
 				async );
 			if ( rc == -1 )
@@ -312,7 +313,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 			ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_UNIX */
 		default:
 			return -1;
 			break;

@@ -13,7 +13,7 @@
 
 #include "portable.h"
 
-#ifdef LDAP_PF_LOCAL
+#ifdef LDAP_PF_UNIX
 
 #include <stdio.h>
 
@@ -216,4 +216,4 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 }
 #else
 static int dummy;
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_UNIX */

@@ -536,6 +536,9 @@
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
+/* Define if you have the <sys/un.h> header file.  */
+#undef HAVE_SYS_UN_H
+
 /* Define if you have the <sysexits.h> header file.  */
 #undef HAVE_SYSEXITS_H
 
@@ -851,8 +854,11 @@
 /* define to support CLDAP */
 #undef LDAP_CONNECTIONLESS
 
-/* define to support PF_LOCAL transport */
-#undef USE_PF_LOCAL
+/* define to support PF_UNIX */
+#undef LDAP_PF_UNIX
+
+/* define to support PF_INET6 */
+#undef LDAP_PF_INET6
 
 /* define to support cleartext passwords */
 #undef SLAPD_CLEARTEXT

@@ -107,7 +107,8 @@ OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(kbind,[  --enable-kbind	enable V2 Kerberos IV bind], auto)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
-OL_ARG_ENABLE(ldapi,[  --enable-ldapi	enable domain socket (PF_LOCAL) ldap], no)dnl
+OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	enable IPv6 support], auto)dnl
+OL_ARG_ENABLE(unix,[  --enable-unix		enable UNIX domain socket support], auto)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
@@ -599,6 +600,29 @@ AC_CHECK_LIB(s, afopen, [
 	AUTH_LIBS=-ls
 	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
 ])
+
+
+dnl ----------------------------------------------------------------
+dnl PF_INET6 support requires getaddrinfo
+dnl PF_UNIX may use getaddrinfo in available
+AC_CHECK_FUNCS( getaddrinfo )
+
+if test $ac_cv_func_getaddrinfo = no ; then
+	if test $ol_enable_ipv6 = yes ; then
+		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
+	fi
+	ol_enable_ipv6=no
+fi
+
+if test $ol_enable_unix != no ; then
+	AC_CHECK_HEADERS( sys/un.h )
+
+	if test $ol_enable_unix = auto ; then
+		ol_enable_unix=$ac_cv_header_sys_un_h
+	elif test $ac_cv_header_sys_un_h = no ; then
+		AC_MSG_ERROR([UNIX domain support requires sys/un.h])
+	fi
+fi
 
 dnl ----------------------------------------------------------------
 dnl Check for module support
@@ -2030,7 +2054,6 @@ AC_CHECK_FUNCS(		\
 	endgrent		\
 	endpwent		\
 	flock			\
-	getaddrinfo		\
 	getdtablesize	\
 	getgrgid		\
 	gethostname		\
@@ -2123,10 +2146,12 @@ fi
 if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1,[define to support CLDAP])
 fi
-if test "$ol_enable_ldapi" != no; then
-	AC_DEFINE(USE_PF_LOCAL,1,[define to support PF_LOCAL transport])
+if test "$ol_enable_unix" != no; then
+	AC_DEFINE(LDAP_PF_UNIX,1,[define to support PF_UNIX])
 fi
-
+if test "$ol_enable_ipv6" != no; then
+	AC_DEFINE(LDAP_PF_INET6,1,[define to support PF_INET6])
+fi
 if test "$ol_enable_cleartext" != no ; then
 	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
 fi
