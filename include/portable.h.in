@@ -609,11 +609,11 @@
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
 
-/* Name of package */
-#undef PACKAGE
+/* Package */
+#undef OPENLDAP_PACKAGE
 
-/* Version number of package */
-#undef VERSION
+/* Version */
+#undef OPENLDAP_VERSION
 
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION

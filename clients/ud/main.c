@@ -83,7 +83,7 @@ int debug;			/* debug flag */
 int ldebug;			/* library debug flag */
 
 #ifndef HAVE_MKVERSION
-char Version[] = "OpenLDAP UserDirectory (ud)";
+char Version[] = OPENLDAP_PACKAGE " " OPENLDAP_VERSION " UserDirectory (ud)";
 #endif
 
 int

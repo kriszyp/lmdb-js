@@ -14,9 +14,11 @@ define([AC_CACHE_SAVE], )dnl
 dnl Configure.in for OpenLDAP
 AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
-AM_INIT_AUTOMAKE(OpenLDAP,[2.0-devel])dnl
+AM_INIT_AUTOMAKE(OpenLDAP,[2.0-devel], [no defines])dnl
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
+AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
+AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 
 dnl We use autoconf features new to 2.13.
 dnl 	aclocal.m4 should be built using aclocal from automake 1.4
