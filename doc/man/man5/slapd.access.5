@@ -717,7 +717,7 @@ To match the desired subtree, the rule would be more precisely
 written:
 .LP
 .nf
-	access to dn.regex="^(.+,)?dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?dc=example,dc=com$"
 		by ...
 .fi
 .LP
@@ -737,7 +737,7 @@ that matches the
 clause, one could use
 .LP
 .nf
-	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
 		by dn.regex="^uid=$1,dc=example,dc=com$$" write
 		by ...
 .fi
@@ -747,7 +747,7 @@ However, since all that is required in the
 clause is substring expansion, a more efficient solution is
 .LP
 .nf
-	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
 		by dn.exact,expand="uid=$1,dc=example,dc=com" write
 		by ...
 .fi
