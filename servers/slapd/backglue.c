@@ -315,9 +315,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			 * check for abandon 
 			 */
 			if (op->o_abandon) {
-				op->ors_scope = scope0;
-				op->ors_slimit = slimit0;
-				op->ors_tlimit = tlimit0;
+				/* FIXME: see right after end_of_loop: */
 				op->o_req_dn = dn;
 				op->o_req_ndn = ndn;
 				goto done;
