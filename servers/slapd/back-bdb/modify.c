@@ -230,8 +230,10 @@ int bdb_modify_internal(
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_DELETE:
 				if ( ml->sml_bvalues ) {
+					ap = attr_find( e->e_attrs, ml->sml_desc );
 					rc = bdb_index_values( op, tid, ml->sml_desc,
 						ml->sml_nvalues ? ml->sml_nvalues : ml->sml_bvalues,
+						ap ? ap->a_nvals : NULL,
 						e->e_id, SLAP_INDEX_DELETE_OP );
 					break;
 				}
@@ -242,7 +244,7 @@ int bdb_modify_internal(
 				ap = attr_find( save_attrs, ml->sml_desc );
 				if ( ap != NULL ) {
 					rc = bdb_index_values( op, tid, ap->a_desc,
-						ap->a_nvals,
+						ap->a_nvals, NULL,
 						e->e_id, SLAP_INDEX_DELETE_OP );
 				} else {
 					rc = LDAP_SUCCESS;
@@ -255,7 +257,7 @@ int bdb_modify_internal(
 			case SLAP_MOD_SOFTADD:
 				rc = bdb_index_values( op, tid, ml->sml_desc,
 					ml->sml_nvalues ? ml->sml_nvalues : ml->sml_bvalues,
-					e->e_id, SLAP_INDEX_ADD_OP );
+					NULL, e->e_id, SLAP_INDEX_ADD_OP );
 				break;
 			}
 			ml->sml_op &= ~NULLIFIED;

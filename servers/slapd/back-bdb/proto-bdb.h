@@ -294,6 +294,7 @@ bdb_index_values LDAP_P((
 	DB_TXN *txn,
 	AttributeDescription *desc,
 	BerVarray vals,
+	BerVarray xvals,
 	ID id,
 	int opid ));
 
