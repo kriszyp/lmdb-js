@@ -239,8 +239,10 @@ struct berval * slap_passwd_return(
 	struct berval		*cred )
 {
 	int rc;
-	struct berval *bv;
-	BerElement *ber = ber_alloc_t(LBER_USE_DER);
+	struct berval *bv = NULL;
+	char berbuf[256];
+	/* opaque structure, size unknown but smaller than berbuf */
+	BerElement *ber = (BerElement *)berbuf;
 
 	assert( cred != NULL );
 
@@ -251,21 +253,17 @@ struct berval * slap_passwd_return(
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_return: %ld\n",
 		(long) cred->bv_len, 0, 0 );
 #endif
-
-
-	if( ber == NULL ) return NULL;
 	
+	ber_init_w_nullc( ber, LBER_USE_DER );
+
 	rc = ber_printf( ber, "{tON}",
 		LDAP_TAG_EXOP_X_MODIFY_PASSWD_GEN, cred );
 
-	if( rc == -1 ) {
-		ber_free( ber, 1 );
-		return NULL;
+	if( rc >= 0 ) {
+		(void) ber_flatten( ber, &bv );
 	}
 
-	(void) ber_flatten( ber, &bv );
-
-	ber_free( ber, 1 );
+	ber_free_buf( ber, 1 );
 
 	return bv;
 }
