@@ -443,7 +443,10 @@ get_substring_filter(
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
-			if ( f->f_sub_initial != NULL ) {
+			if ( f->f_sub_initial != NULL
+				|| f->f_sub_any != NULL 
+				|| f->f_sub_final != NULL )
+			{
 				ber_bvfree( value );
 				goto return_error;
 			}
@@ -461,6 +464,12 @@ get_substring_filter(
 
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
+
+			if ( f->f_sub_final != NULL ) {
+				ber_bvfree( value );
+				goto return_error;
+			}
+
 			if( ber_bvecadd( &f->f_sub_any, value ) < 0 ) {
 				ber_bvfree( value );
 				goto return_error;
@@ -478,10 +487,12 @@ get_substring_filter(
 
 		case LDAP_SUBSTRING_FINAL:
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
+
 			if ( f->f_sub_final != NULL ) {
 				ber_bvfree( value );
 				goto return_error;
 			}
+
 			f->f_sub_final = value;
 
 			if( fstr ) {
