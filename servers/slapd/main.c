@@ -274,6 +274,10 @@ int main( int argc, char **argv )
 		}
 	}
 
+#ifdef NEW_LOGGING
+        lutil_log_initialize( argc, argv );
+#endif
+
 	lutil_set_debug_level( "slapd", slap_debug );
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
