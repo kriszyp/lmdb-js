@@ -400,15 +400,19 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		 * Note however that hasSubordinates is boolean, 
 		 * so a more appropriate filter would be 
 		 * '(hasSubordinates=FALSE)'
+		 *
+		 * A more robust search for hasSubordinates
+		 * would * require joining the ldap_entries table
+		 * selecting if there are descendants of the
+		 * candidate.
 		 */
 		backsql_strfcat( &bsi->flt_where, "l",
 				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
 		if ( ad == slap_schema.si_ad_hasSubordinates ) {
 			/*
-			 * We use this flag since we need to parse
-			 * the filter anyway; we should have used
-			 * the frontend API function
-			 * filter_has_subordinates()
+			 * instruct candidate selection algorithm
+			 * and attribute list to try to detect
+			 * if an entry has subordinates
 			 */
 			bsi->bsi_flags |= BSQL_SF_FILTER_HASSUBORDINATE;
 
@@ -447,20 +451,6 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 				(ber_len_t)sizeof( " AND " ) - 1, " AND ",
 				&at->join_where );
 	}
-
-#if 0
-	/*
-	 * FIXME: this is not required any more; however, note that
-	 * attribute name syntax might collide with SQL legal aliases
-	 */
-	if ( at != &oc_attr ) {
-		backsql_strfcat( &bsi->sel, "cblb",
-				',',
-				&at->sel_expr,
-				(ber_len_t)sizeof( " AS " ) - 1, " AS ", 
-				&at->name );
- 	}
-#endif
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
