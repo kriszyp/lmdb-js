@@ -181,6 +181,7 @@ bdb_key_read(
  * nextid.c
  */
 int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *id );
+int bdb_last_id( BackendDB *be, DB_TXN *tid );
 
 /*
  * modify.c

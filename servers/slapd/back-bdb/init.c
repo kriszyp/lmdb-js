@@ -209,6 +209,16 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_databases[i] = db;
 	}
 
+	/* get nextid */
+	rc = bdb_last_id( be, NULL );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: last_id(%s) failed: %s (%d)\n",
+			bdb->bi_dbenv_home, db_strerror(rc), rc );
+		return rc;
+	}
+
+
 	/* <insert> open (and create) index databases */
 
 

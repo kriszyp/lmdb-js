@@ -121,3 +121,58 @@ done:	(void) txn_abort( ltid );
 
 	return rc;
 }
+
+int bdb_last_id( BackendDB *be, DB_TXN *tid )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	int rc;
+	ID kid = NOID;
+	ID id;
+	DBT key, data;
+
+	DBTzero( &key );
+	key.data = (char *) &kid;
+	key.size = sizeof( kid );
+
+	DBTzero( &data );
+	data.data = (char *) &id;
+	data.ulen = sizeof( id );
+	data.flags = DB_DBT_USERMEM;
+
+retry:
+	/* get existing value for read/modify/write */
+	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
+		tid, &key, &data, 0 );
+
+	switch(rc) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+
+	case DB_NOTFOUND:
+		id = 0;
+		rc = 0;
+		break;
+
+	case 0:
+		if ( data.size != sizeof( id ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_last_id: get size mismatch: expected %ld, got %ld\n",
+				(long) sizeof( id ), (long) data.size, 0 );
+			rc = -1;
+			goto done;
+		}
+		break;
+
+	default:
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_next_id: get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		goto done;
+	}
+
+	bdb->bi_lastid = id;
+
+done:
+	return rc;
+}
