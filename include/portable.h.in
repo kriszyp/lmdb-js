@@ -992,6 +992,9 @@
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 
+/* define for Last Modification overlay */
+#undef SLAPD_OVER_LASTMOD
+
 /* define for Password Policy overlay */
 #undef SLAPD_OVER_PPOLICY
 
