@@ -22,15 +22,16 @@ Schema Repository
 Large projects
 --------------
 redesign slapd threading
-autoconf support <kurt@openldap.org>
 Modify -lldap to be session-level multithreaded <kurt@openldap.org>
 Port slapd (incl back-ldbm & tools) to NT
+MajorLDAP - Design and implement an LDAP aware mailing list manager
 
 
 Medium projects
 ---------------
 Modify -lldap to be reentrant/threadsafe <kurt@openldap.org>
 Modify -llthread to have private interface 
+Extend configure.in to support autodetect of ISODE features.
 Port slurpd to NT
 
 
@@ -39,4 +40,5 @@ Small projects
 Modify -lldap to not use non-reentrant library functions <kurt@openldap.org>
 Create ldapurl (from ldapsearch?) to support searching by URL
 Create ldappasswd to support generation of crypt, sha1, md5 passwords.
-
+Extend configure.in to support autodetect of Kerberos features.
+Extend mail500 (and other daemons) to use ldap filters.
