@@ -22703,6 +22703,7 @@ for ac_func in \
 	strtoul			\
 	strtoq			\
 	strtouq			\
+	strtoll			\
 	strspn			\
 	sysconf			\
 	usleep			\

@@ -2473,6 +2473,7 @@ AC_CHECK_FUNCS(		\
 	strtoul			\
 	strtoq			\
 	strtouq			\
+	strtoll			\
 	strspn			\
 	sysconf			\
 	usleep			\

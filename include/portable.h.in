@@ -308,6 +308,9 @@
 /* Define if you have the strtouq function.  */
 #undef HAVE_STRTOUQ
 
+/* Define if you have the strtoll function.  */
+#undef HAVE_STRTOLL
+
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
 
