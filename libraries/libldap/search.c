@@ -212,7 +212,7 @@ ldap_build_search_req(
 	LDAP *ld,
 	LDAP_CONST char *base,
 	ber_int_t scope,
-	LDAP_CONST char *filter_in,
+	LDAP_CONST char *filter,
 	char **attrs,
 	ber_int_t attrsonly,
 	LDAPControl **sctrls,
@@ -222,7 +222,6 @@ ldap_build_search_req(
 {
 	BerElement	*ber;
 	int		err;
-	char	*filter;
 
 	/*
 	 * Create the search request.  It looks like this:
@@ -292,13 +291,11 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	if( filter_in != NULL ) {
-		filter = LDAP_STRDUP( filter_in );
-	} else {
-		filter = LDAP_STRDUP( "(objectclass=*)" );
+	if( filter == NULL ) {
+		filter = "(objectclass=*)";
 	}
+
 	err = ldap_int_put_filter( ber, filter );
-	LDAP_FREE( filter );
 
 	if ( err  == -1 ) {
 		ld->ld_errno = LDAP_FILTER_ERROR;

@@ -493,7 +493,7 @@ LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 
 LDAP_F( int ) ldap_int_put_filter LDAP_P((
 	BerElement *ber,
-	char *str ));
+	const char *str ));
 
 /*
  * in unbind.c

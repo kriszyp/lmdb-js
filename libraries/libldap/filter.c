@@ -153,7 +153,7 @@ find_right_paren( char *s )
 		if ( balance ) s++;
 	}
 
-	return( *s ? s : NULL );
+	return *s ? s : NULL;
 }
 
 static int hex2value( int c )
@@ -192,10 +192,10 @@ ldap_pvt_find_wildcard( const char *s )
 				return NULL;
 
 			/* allow RFC 1960 escapes */
-			case '\\':
 			case '*':
 			case '(':
 			case ')':
+			case '\\':
 				s++;
 			}
 		}
@@ -272,30 +272,37 @@ put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 	 */
 
 	/* put explicit tag */
-	if ( ber_printf( ber, "t{" /*"}"*/, tag ) == -1 )
-		return( NULL );
+	if ( ber_printf( ber, "t{" /*"}"*/, tag ) == -1 ) {
+		return NULL;
+	}
 
 	str++;
-	if ( (next = find_right_paren( str )) == NULL )
-		return( NULL );
+	if ( (next = find_right_paren( str )) == NULL ) {
+		return NULL;
+	}
 
 	*next = '\0';
-	if ( put_filter_list( ber, str, tag ) == -1 )
-		return( NULL );
+	if ( put_filter_list( ber, str, tag ) == -1 ) {
+		return NULL;
+	}
 
 	/* close the '(' */
 	*next++ = ')';
 
 	/* flush explicit tagged thang */
-	if ( ber_printf( ber, /*"{"*/ "N}" ) == -1 )
-		return( NULL );
+	if ( ber_printf( ber, /*"{"*/ "N}" ) == -1 ) {
+		return NULL;
+	}
 
-	return( next );
+	return next;
 }
 
 int
-ldap_int_put_filter( BerElement *ber, char *str )
+ldap_int_put_filter( BerElement *ber, const char *str_in )
 {
+	int rc;
+	char	*freeme;
+	char	*str;
 	char	*next;
 	int	parens, balance, escape;
 
@@ -332,7 +339,11 @@ ldap_int_put_filter( BerElement *ber, char *str )
 	 * Note: tags in a choice are always explicit
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str_in, 0, 0 );
+
+	freeme = LDAP_STRDUP( str_in );
+	if( freeme == NULL ) return LDAP_NO_MEMORY;
+	str = freeme;
 
 	parens = 0;
 	while ( *str ) {
@@ -351,7 +362,10 @@ ldap_int_put_filter( BerElement *ber, char *str )
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_AND, 0 );
-				if( str == NULL ) return( -1 );
+				if( str == NULL ) {
+					rc = -1;
+					goto done;
+				}
 
 				parens--;
 				break;
@@ -362,7 +376,10 @@ ldap_int_put_filter( BerElement *ber, char *str )
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_OR, 0 );
-				if( str == NULL ) return( -1 );
+				if( str == NULL ) {
+					rc = -1;
+					goto done;
+				}
 
 				parens--;
 				break;
@@ -373,7 +390,10 @@ ldap_int_put_filter( BerElement *ber, char *str )
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_NOT, 0 );
-				if( str == NULL ) return( -1 );
+				if( str == NULL ) {
+					rc = -1;
+					goto done;
+				}
 
 				parens--;
 				break;
@@ -385,28 +405,39 @@ ldap_int_put_filter( BerElement *ber, char *str )
 				balance = 1;
 				escape = 0;
 				next = str;
+
 				while ( *next && balance ) {
 					if ( escape == 0 ) {
-						if ( *next == '(' )
+						if ( *next == '(' ) {
 							balance++;
-						else if ( *next == ')' )
+						} else if ( *next == ')' ) {
 							balance--;
+						}
 					}
-					if ( *next == '\\' && ! escape )
+
+					if ( *next == '\\' && ! escape ) {
 						escape = 1;
-					else
+					} else {
 						escape = 0;
-					if ( balance )
-						next++;
+					}
+
+					if ( balance ) next++;
 				}
-				if ( balance != 0 )
-					return( -1 );
+
+				if ( balance != 0 ) {
+					rc = -1;
+					goto done;
+				}
 
 				*next = '\0';
+
 				if ( put_simple_filter( ber, str ) == -1 ) {
-					return( -1 );
+					rc = -1;
+					goto done;
 				}
-				*next++ = ')';
+
+				*next++ = /*'('*/ ')';
+
 				str = next;
 				parens--;
 				break;
@@ -416,8 +447,10 @@ ldap_int_put_filter( BerElement *ber, char *str )
 		case /*'('*/ ')':
 			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n",
 				0, 0, 0 );
-			if ( ber_printf( ber, /*"["*/ "]" ) == -1 )
-				return( -1 );
+			if ( ber_printf( ber, /*"["*/ "]" ) == -1 ) {
+				rc = -1;
+				goto done;
+			}
 			str++;
 			parens--;
 			break;
@@ -431,14 +464,19 @@ ldap_int_put_filter( BerElement *ber, char *str )
 				0, 0, 0 );
 			next = strchr( str, '\0' );
 			if ( put_simple_filter( ber, str ) == -1 ) {
-				return( -1 );
+				rc = -1;
+				goto done;
 			}
 			str = next;
 			break;
 		}
 	}
 
-	return( parens ? -1 : 0 );
+	rc = parens ? -1 : 0;
+
+done:
+	free( freeme );
+	return rc;
 }
 
 /*
@@ -461,7 +499,7 @@ put_filter_list( BerElement *ber, char *str, ber_tag_t tag )
 		if ( *str == '\0' ) break;
 
 		if ( (next = find_right_paren( str + 1 )) == NULL ) {
-			return( -1 );
+			return -1;
 		}
 		save = *++next;
 
@@ -581,9 +619,11 @@ put_simple_filter(
 			if( rc != -1 && rule && *rule != '\0' ) {
 				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_OID, rule );
 			}
+
 			if( rc != -1 && *str != '\0' ) {
 				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_TYPE, str );
 			}
+
 			if( rc != -1 ) {
 				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
@@ -594,10 +634,12 @@ put_simple_filter(
 					rc = -1;
 				}
 			}
+
 			if( rc != -1 && dn ) {
 				rc = ber_printf( ber, "tb",
 					LDAP_FILTER_EXT_DNATTRS, (ber_int_t) 1 );
 			}
+
 			if( rc != -1 ) { 
 				rc = ber_printf( ber, /*"{"*/ "N}" );
 			}
@@ -605,14 +647,21 @@ put_simple_filter(
 		goto done;
 
 	default:
-		{
+		if( !ldap_is_desc( str ) ) {
+			goto done;
+
+		} else {
 			char *nextstar = ldap_pvt_find_wildcard( value );
+
 			if ( nextstar == NULL ) {
 				goto done;
+
 			} else if ( *nextstar == '\0' ) {
 				ftype = LDAP_FILTER_EQUALITY;
+
 			} else if ( strcmp( value, "*" ) == 0 ) {
 				ftype = LDAP_FILTER_PRESENT;
+
 			} else {
 				rc = put_substring_filter( ber, str, value );
 				goto done;
@@ -650,8 +699,9 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	Debug( LDAP_DEBUG_TRACE, "put_substring_filter \"%s=%s\"\n",
 		type, val, 0 );
 
-	if ( ber_printf( ber, "t{s{" /*"}}"*/, ftype, type ) == -1 )
-		return( -1 );
+	if ( ber_printf( ber, "t{s{" /*"}}"*/, ftype, type ) == -1 ) {
+		return -1;
+	}
 
 	for( ; *val; val=nextstar ) {
 		nextstar = ldap_pvt_find_wildcard( val );
@@ -683,8 +733,9 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		}
 	}
 
-	if ( ber_printf( ber, /*"{{"*/ "N}N}" ) == -1 )
+	if ( ber_printf( ber, /*"{{"*/ "N}N}" ) == -1 ) {
 		return -1;
+	}
 
 	return 0;
 }
