@@ -1,9 +1,5 @@
-DROP TABLE IF EXISTS ldap_referrals;
-
-DROP TABLE IF EXISTS ldap_entry_objclasses;
-
-DROP TABLE IF EXISTS ldap_attr_mappings;
-
-DROP TABLE IF EXISTS ldap_entries;
-
-DROP TABLE IF EXISTS ldap_oc_mappings;
+DROP TABLE ldap_referrals;
+DROP TABLE ldap_entry_objclasses;
+DROP TABLE ldap_attr_mappings;
+DROP TABLE ldap_entries;
+DROP TABLE ldap_oc_mappings;
