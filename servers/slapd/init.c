@@ -24,7 +24,7 @@ int		ldap_syslog;
 #endif
 
 int		ldap_syslog_level = LOG_DEBUG;
-char		*default_referral;
+char		*default_referral = NULL;
 time_t		starttime;
 ldap_pvt_thread_t	listener_tid;
 int		g_argc;

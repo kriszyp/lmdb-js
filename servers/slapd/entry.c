@@ -151,7 +151,7 @@ str2entry( char	*s )
 
 #define MAKE_SPACE( n )	{ \
 		while ( ecur + (n) > ebuf + emaxsize ) { \
-			int	offset; \
+			ptrdiff_t	offset; \
 			offset = (int) (ecur - ebuf); \
 			ebuf = (unsigned char *) ch_realloc( (char *) ebuf, \
 			    emaxsize + GRABSIZE ); \
