@@ -2,6 +2,7 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.25 Engineering
 	Build Environment
+		Fix LDBM link bug (ITS#2863)
 		Update Berkeley DB detection
 
 OpenLDAP 2.1.24 Release
