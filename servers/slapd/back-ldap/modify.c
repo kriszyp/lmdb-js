@@ -107,10 +107,12 @@ ldap_back_modify(
 
 	mods = (LDAPMod *)ch_malloc(i*sizeof(LDAPMod));
 	if (mods == NULL) {
+		rc = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 	modv = (LDAPMod **)ch_malloc((i+1)*sizeof(LDAPMod *));
 	if (modv == NULL) {
+		rc = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -167,10 +169,12 @@ cleanup:;
 #ifdef ENABLE_REWRITE
 	}
 #endif /* ENABLE_REWRITE */
-	for (i=0; modv[i]; i++)
+	for (i=0; modv[i]; i++) {
 		ch_free(modv[i]->mod_bvalues);
-	ch_free(mods);
-	ch_free(modv);
-	return( ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 ));
+	}
+	ch_free( mods );
+	ch_free( modv );
+
+	return ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 );
 }
 
