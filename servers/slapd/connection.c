@@ -1099,14 +1099,33 @@ connection_resched( Connection *conn )
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
 		ber_socket_t	sd;
-
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
+
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_resched: attempting closing conn=%ld sd=%d\n",
+			"connection_resched: reaquiring locks conn=%ld sd=%d\n",
 			conn->c_connid, sd, 0 );
 
+		/* reaquire locks in the right order... this may
+		 * allow another thread to close this connection,
+		 * so recheck state
+		 */
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		ldap_pvt_thread_mutex_lock( &connections_mutex );
-		connection_close( conn );
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+		if( conn->c_conn_state != SLAP_C_CLOSING ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_resched: closed by other thread conn=%ld sd=%d\n",
+				conn->c_connid, sd, 0 );
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_resched: attempting closing conn=%ld sd=%d\n",
+				conn->c_connid, sd, 0 );
+
+			connection_close( conn );
+		}
+
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return 0;
 	}
