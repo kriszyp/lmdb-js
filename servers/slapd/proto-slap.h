@@ -243,7 +243,6 @@ int load_module LDAP_P(( const char* file_name, int argc, char *argv[] ));
  */
 extern char *supportedExtensions[];
 extern char *supportedControls[];
-extern char **supportedSASLMechanisms;
 
 void monitor_info LDAP_P((
 	Connection *conn,
@@ -317,6 +316,14 @@ int send_search_entry LDAP_P((
 
 int str2result LDAP_P(( char *s,
 	int *code, char **matched, char **info ));
+
+/*
+ * sasl.c
+ */
+extern char **supportedSASLMechanisms;
+
+int sasl_init(void);
+int sasl_destroy(void);
 
 /*
  * schema.c

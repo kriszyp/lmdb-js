@@ -649,6 +649,10 @@ if test $ol_enable_dns != no ; then
 		ac_cv_func_res_search=$ac_cv_lib_bind_res_search
 	fi
 	if test $ac_cv_func_res_search = no ; then 
+		AC_CHECK_LIB(bind, __res_search)
+		ac_cv_func_res_search=$ac_cv_lib_bind___res_search
+	fi
+	if test $ac_cv_func_res_search = no ; then 
 		AC_CHECK_LIB(resolv, res_search)
 		ac_cv_func_res_search=$ac_cv_lib_resolv_res_search
 	fi

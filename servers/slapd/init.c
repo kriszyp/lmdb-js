@@ -129,6 +129,10 @@ int slap_startup(int dbnum)
 
 	rc = backend_startup(dbnum);
 
+	if( rc == 0 ) {
+		rc = sasl_init();
+	}
+
 	return rc;
 }
 
@@ -139,6 +143,8 @@ int slap_shutdown(int dbnum)
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: initiated\n",
 		slap_name, 0, 0 );
+
+	sasl_destroy();
 
 	/* let backends do whatever cleanup they need to do */
 	rc = backend_shutdown(dbnum); 

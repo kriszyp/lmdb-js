@@ -99,3 +99,11 @@ struct berval **get_entry_referrals(
 	assert(0);
 	return NULL;
 }
+
+int sasl_init(void) {
+	return 0;
+}
+
+int sasl_destroy(void) {
+	return 0;
+}

@@ -21,8 +21,6 @@
 
 #include "slap.h"
 
-char **supportedSASLMechanisms = NULL;
-
 int
 do_bind(
     Connection	*conn,
