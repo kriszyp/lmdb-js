@@ -3433,7 +3433,7 @@ EOF
 fi
 
 if test $ol_with_threads = manual ; then
-		$ol_link_threads=yes
+		ol_link_threads=yes
 
 	echo "configure: warning: thread defines and link options must be set manually" 1>&2
 
@@ -3680,7 +3680,7 @@ if test $ol_link_threads = no ; then
 
 	if test $ol_with_threads = auto ; then
 		echo "configure: warning: no suitable thread support, disabling threads" 1>&2
-		$ol_with_threads = no
+		ol_with_threads = no
 	fi
 
 	cat >> confdefs.h <<\EOF
@@ -4073,7 +4073,7 @@ EOF
 fi
 
 if test $ol_with_ldbm_api = manual ; then
-		$ol_link_ldbm=yes
+		ol_link_ldbm=yes
 
 	echo "configure: warning: LDBM defines and link options must be set manually" 1>&2
 
@@ -4121,7 +4121,7 @@ fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	echo "configure: warning: Could not find LDBM with BTREE support" 1>&2
-	$ol_with_ldbm_api=none
+	ol_with_ldbm_api=none
 fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
@@ -4532,7 +4532,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	fi
 
 	echo "configure: warning: disabling LDBM" 1>&2
-	$ol_enable_ldbm=no
+	ol_enable_ldbm=no
 fi
 
 if test $ol_enable_wrappers = yes ; then

@@ -537,7 +537,7 @@ fi
 
 if test $ol_with_threads = manual ; then
 	dnl User thinks he can manually configure threads.
-	$ol_link_threads=yes
+	ol_link_threads=yes
 
 	AC_MSG_WARN([thread defines and link options must be set manually])
 
@@ -557,7 +557,7 @@ if test $ol_link_threads = no ; then
 
 	if test $ol_with_threads = auto ; then
 		AC_MSG_WARN([no suitable thread support, disabling threads])
-		$ol_with_threads = no
+		ol_with_threads = no
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
@@ -610,7 +610,7 @@ fi
 
 if test $ol_with_ldbm_api = manual ; then
 	dnl User thinks he can manually configure LDBM api.
-	$ol_link_ldbm=yes
+	ol_link_ldbm=yes
 
 	AC_MSG_WARN([LDBM defines and link options must be set manually])
 
@@ -619,7 +619,7 @@ fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
-	$ol_with_ldbm_api=none
+	ol_with_ldbm_api=none
 fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
@@ -659,7 +659,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	fi
 
 	AC_MSG_WARN(disabling LDBM)
-	$ol_enable_ldbm=no
+	ol_enable_ldbm=no
 fi
 
 if test $ol_enable_wrappers = yes ; then
