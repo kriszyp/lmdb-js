@@ -132,7 +132,6 @@ objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
-sn: Jones
 uid: jaj
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -146,6 +145,7 @@ mail: jaj@mail.alumni.example.com
 facsimiletelephonenumber: +1 313 555 4332
 telephonenumber: +1 313 555 0895
 drink: Orange Juice
+sn: Jones
 
 dn: cn=Jane Doe,ou=Alumni Association,ou=People,o=University of Michigan,c=US
 objectclass: OpenLDAPperson
