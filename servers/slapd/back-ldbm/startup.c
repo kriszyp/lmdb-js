@@ -87,7 +87,7 @@ ldbm_back_shutdown(
 #ifdef HAVE_BERKELEY_DB2
 
 void
-ldbm_db_errcall( char *prefix, char *message )
+ldbm_db_errcall( const char *prefix, char *message )
 {
 	Debug( LDAP_DEBUG_ANY, "ldbm_db_errcall(): %s %s", prefix, message, 0 );
 }
