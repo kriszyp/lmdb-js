@@ -19,7 +19,8 @@ The {{ORG[expand]OLP}} also maintains an extensive site
 makes available a number of resources which you may utilize to
 properly install OpenLDAP Software.  This includes:
 
-!block table; align=Center; coltags="N,URL"
+!block table; align=Center; coltags="N,URL"; \
+	title="Table 4.1: Other OpenLDAP resources"
 Resource			URL
 Documentation Catalog		http://www.OpenLDAP.org/doc/
 Frequently Asked Questions	http://www.OpenLDAP.org/faq/

@@ -611,7 +611,7 @@ the end of this section should help clear things up.
 
 
 
-H2: Who to grant access to
+H3: Who to grant access to
 
 The <who> part identifies the entity or entities being granted
 access. Note that access is granted to "entities" not "entries."
@@ -809,13 +809,13 @@ other objects.
 They are commonly found in protocols described by {{TERM:ASN.1}}.  In
 particular, they are heavy used by Simple Network Management
 Protocol (SNMP).  As OIDs are hierarchical, your organization
-can obtain one OID and branch in as needed.  For example,
-if your organization were assigned OID 1.1, you could branch
+can obtain one OID and branch it as needed.  For example,
+if your organization were assigned OID {{EX:1.1}}, you could branch
 the tree as follows:
 
-!block table; colaligns="RL"; align=Center; \
+!block table; colaligns="LR"; coltags="EX,N"; align=Center; \
 	title="Table 5.1: Debugging Levels"
-OID		Assignment
+{{N:OID}}		Assignment
 1.1		Organization's OID
 1.1.1		SNMP Elements
 1.1.2		LDAP Elements
