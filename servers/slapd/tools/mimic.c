@@ -215,8 +215,19 @@ slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
+	int dup,
 	const char **text,
 	char *textbuf, size_t textlen )
+{
+	return 0;
+}
+
+int
+slap_entry2mods(
+	Entry *e,
+	Modifications **mods,
+	const char **text
+)
 {
 	return 0;
 }

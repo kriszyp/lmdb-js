@@ -1967,6 +1967,10 @@ typedef struct slap_op {
 #define get_assertion(op)				((op)->o_assertion)
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
+#ifdef LDAP_SYNCREPL
+	syncinfo_t*	o_si;
+#endif
+
 #ifdef LDAP_CACHING 
  	char		o_caching_on; 
 #endif /*LDAP_CACHING */ 

@@ -302,8 +302,8 @@ freeMods( Modifications *ml )
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->sml_next;
 
-		slapi_ch_free( (void **)&ml->sml_bvalues );
-		slapi_ch_free( (void **)&ml->sml_nvalues );
+		if ( ml->sml_bvalues ) slapi_ch_free( (void **)&ml->sml_bvalues );
+		if ( ml->sml_nvalues ) slapi_ch_free( (void **)&ml->sml_nvalues );
 		slapi_ch_free( (void **)&ml );
 	}
 }
@@ -441,7 +441,7 @@ LDAPModToEntry(
 			 * in servers/slapd/add.c
 			 */
 			rc = slap_mods2entry( modlist, &pEntry, repl_user,
-					&text, textbuf, textlen );
+									0, &text, textbuf, textlen );
 			if (rc != LDAP_SUCCESS) {
 				goto cleanup;
 			}
