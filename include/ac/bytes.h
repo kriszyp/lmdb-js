@@ -21,6 +21,8 @@
 #		define AC_INT4_TYPE long
 #	elif SIZEOF_INT == 4
 #		define AC_INT4_TYPE int
+#	elif SIZEOF_SHORT == 4
+#		define AC_INT4_TYPE short
 #	else
 #		error "AC_INT4_TYPE?"
 #	endif
@@ -29,6 +31,8 @@
 #		define AC_INT2_TYPE short
 #	elif SIZEOF_INT == 2
 #		define AC_INT2_TYPE int
+#	elif SIZEOF_LONG == 2
+#		define AC_INT2_TYPE long
 #	else
 #		error "AC_INT2_TYPE?"
 #	endif
