@@ -189,6 +189,8 @@ extern char
 	backsql_def_at_query[],
 	backsql_def_delentry_query[],
 	backsql_def_insentry_query[],
+	backsql_def_delobjclasses_query[],
+	backsql_def_delreferrals_query[],
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
 	backsql_id_query[],

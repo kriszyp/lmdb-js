@@ -274,6 +274,32 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"delentry_query=%s\n", si->delentry_query, 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "delobjclasses_query" ) ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL statement "
+				"in \"delobjclasses_query\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		si->delobjclasses_query = ch_strdup( argv[ 1 ] );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"delobjclasses_query=%s\n", si->delobjclasses_query, 0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "delreferrals_query" ) ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL statement "
+				"in \"delreferrals_query\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		si->delreferrals_query = ch_strdup( argv[ 1 ] );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"delreferrals_query=%s\n", si->delreferrals_query, 0, 0 );
+
 	} else if ( !strcasecmp( argv[ 0 ], "has_ldapinfo_dn_ru") ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,

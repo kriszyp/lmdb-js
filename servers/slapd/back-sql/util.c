@@ -52,6 +52,10 @@ char backsql_def_delentry_query[] = "DELETE FROM ldap_entries WHERE id=?";
 char backsql_def_insentry_query[] = 
 	"INSERT INTO ldap_entries (dn,oc_map_id,parent,keyval) "
 	"VALUES (?,?,?,?)";
+char backsql_def_delobjclasses_query[] = "DELETE FROM ldap_entry_objclasses "
+	"WHERE entry_id=?";
+char backsql_def_delreferrals_query[] = "DELETE FROM ldap_referrals "
+	"WHERE entry_id=?";
 char backsql_def_subtree_cond[] = "ldap_entries.dn LIKE CONCAT('%',?)";
 char backsql_def_upper_subtree_cond[] = "(ldap_entries.dn) LIKE CONCAT('%',?)";
 char backsql_id_query[] = "SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";

@@ -164,6 +164,88 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLAllocStmt( dbh, &sth );
 #endif /* BACKSQL_REALLOC_STMT */
 
+	/* we should do the same for ldap_entry_objclasses and ldap_referrals,
+	 * for those RDBMSes that do not allow stored procedures... */
+	rc = backsql_Prepare( dbh, &sth, bi->delobjclasses_query, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_delete(): "
+			"error preparing ldap_entry_objclasses delete query\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, e_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
+			0, 0, &e_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+	rc = SQLExecute( sth );
+	switch ( rc ) {
+	case SQL_NO_DATA:
+		/* apparently there were no "auxiliary" objectClasses
+		 * for this entry... */
+	case SQL_SUCCESS:
+		break;
+
+	default:
+		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
+			"failed to delete record from ldap_entry_objclasses\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+	SQLFreeStmt( sth, SQL_DROP );
+
+	rc = backsql_Prepare( dbh, &sth, bi->delreferrals_query, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_delete(): "
+			"error preparing ldap_referrals delete query\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, e_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
+			0, 0, &e_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+	rc = SQLExecute( sth );
+	switch ( rc ) {
+	case SQL_NO_DATA:
+		/* apparently there were no referrals
+		 * for this entry... */
+	case SQL_SUCCESS:
+		break;
+
+	default:
+		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
+			"failed to delete record from ldap_referrals\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+	SQLFreeStmt( sth, SQL_DROP );
+
 	rc = backsql_Prepare( dbh, &sth, bi->delentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -195,6 +277,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		rs->sr_text = "SQL-backend error";
 		goto done;
 	}
+	SQLFreeStmt( sth, SQL_DROP );
 
 	/*
 	 * Commit only if all operations succeed

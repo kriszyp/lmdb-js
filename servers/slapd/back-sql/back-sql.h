@@ -285,7 +285,10 @@ typedef struct {
 	struct berval	subtree_cond;
 	struct berval	children_cond;
 	char		*oc_query, *at_query;
-	char		*insentry_query,*delentry_query;
+	char		*insentry_query,
+			*delentry_query,
+			*delobjclasses_query,
+			*delreferrals_query;
 	char		*id_query;
 	char		*has_children_query;
 

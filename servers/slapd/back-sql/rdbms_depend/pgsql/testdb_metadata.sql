@@ -112,8 +112,6 @@ as '
 	delete from phones where pers_id = $1;
 	delete from authors_docs where pers_id = $1;
 	delete from persons where id = $1;
-	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=1 and keyval = $1);
-	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=1 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 
@@ -142,8 +140,6 @@ as '
 create function delete_doc (int) returns int
 as '
 	delete from documents where id = $1;
-	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=2 and keyval = $1);
-	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=2 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 
@@ -158,8 +154,6 @@ as '
 create function delete_o (int) returns int
 as '
 	delete from institutes where id = $1;
-	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=3 and keyval = $1);
-	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=3 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 

@@ -11,8 +11,7 @@
 --      expect_return   a bitmap that marks whether create_proc (1) and delete_proc (2) return a value or not
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
 values (1,'inetOrgPerson','persons','id','insert into persons (id,name,surname) values ((select max(id)+1 from persons),'''','''')',
-	'select max(id) from persons',
-	'delete from persons where id=?',0);
+	'select max(id) from persons','delete from persons where id=?',0);
 
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
 values (2,'document','documents','id','insert into documents (id,title,abstract) values ((select max(id)+1 from documents),'''','''')',
@@ -39,7 +38,7 @@ values (1,1,'cn','persons.name||'' ''||persons.surname','persons',NULL,NULL,NULL
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (2,1,'telephoneNumber','phones.phone','persons,phones',
         'phones.pers_id=persons.id','insert into phones (id,phone,pers_id) values ((select max(id)+1 from phones),?,?)',
-	'delete from phones where pers_id=? AND phone=?',3,0);
+	'delete from phones where phone=? and pers_id=?',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (4,1,'givenName','persons.name','persons',NULL,'update persons set name=? where id=?',NULL,3,0);
@@ -65,8 +64,8 @@ values (8,2,'documentTitle','documents.title','documents',NULL,'update documents
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (9,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons',
 	'documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
-	'insert into authors_docs (pers_id,doc_id) values ((select keyval from ldap_entries where ucase(?)=ucase(dn)),?)',
-	'delete from authors_docs where pers_id = (select keyval from ldap_entries where ucase(?)=ucase(dn)) AND doc_id=?',3,0);
+	'insert into authors_docs (pers_id,doc_id) values ((select keyval from ldap_entries where ucase(cast(? as varchar(255)))=ucase(dn)),?)',
+	'delete from authors_docs where pers_id = (select keyval from ldap_entries where ucase(cast(? as varchar(255))=ucase(dn)) AND doc_id=?',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (10,2,'documentIdentifier','''document ''||rtrim(cast(documents.id as char(16)))','documents',NULL,NULL,NULL,3,0);
@@ -115,3 +114,4 @@ insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
 --      url             the URI of the referral
 insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost/');
 
+-- user-defined functions
