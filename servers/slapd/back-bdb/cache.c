@@ -817,11 +817,19 @@ bdb_cache_delete(
 	/* free cache write lock */
 	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	bdb_cache_entryinfo_unlock( ei->bei_parent );
-	bdb_cache_entryinfo_destroy( ei );
-	e->e_private = NULL;
 	return( rc );
 }
 
+void
+bdb_cache_delete_cleanup(
+	Entry *e
+)
+{
+	bdb_cache_entryinfo_destroy( e->e_private );
+	e->e_private = NULL;
+	bdb_entry_return( e );
+}
+	
 static int
 bdb_cache_delete_internal(
     Cache	*cache,

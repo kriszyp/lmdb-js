@@ -488,11 +488,9 @@ return_results:
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
-		BEI(e) = eip;
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
 		}
-		BEI(e) = NULL;
 	}
 #endif
 
@@ -506,7 +504,8 @@ done:
 	/* free entry */
 	if( e != NULL ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {
-			bdb_entry_return( e );
+			/* Free the EntryInfo and the Entry */
+			bdb_cache_delete_cleanup( e );
 		} else {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}

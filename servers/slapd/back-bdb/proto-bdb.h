@@ -408,6 +408,7 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_add				BDB_SYMBOL(cache_add)
 #define bdb_cache_children			BDB_SYMBOL(cache_children)
 #define bdb_cache_delete			BDB_SYMBOL(cache_delete)
+#define bdb_cache_delete_cleanup		BDB_SYMBOL(cache_delete_cleanup)
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
 #define bdb_cache_modify			BDB_SYMBOL(cache_modify)
@@ -466,6 +467,9 @@ int bdb_cache_delete(
 	DB_ENV	*env,
 	u_int32_t locker,
 	DB_LOCK	*lock
+);
+void bdb_cache_delete_cleanup(
+	Entry	*e
 );
 void bdb_cache_release_all( Cache *cache );
 
