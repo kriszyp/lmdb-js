@@ -685,7 +685,7 @@ static int chk_kerberos(
 
 		int status;
 		char lrealm[REALM_SZ];
-		char tkt[MaxPathLen];
+		char tkt[MAXHOSTNAMELEN];
 
 		status = krb_get_lrealm(lrealm,1);
 		if (status == KFAILURE) {
@@ -697,7 +697,7 @@ static int chk_kerberos(
 		krb_set_tkt_string (tkt);
 
 		status = krb_verify_user( passwd->bv_val, "", lrealm,
-			cred->bv_val, KRB_VERIFY_SECURE, "pop");
+			cred->bv_val, 1, "pop");
 
 		dest_tkt(); /* no point in keeping the tickets */
 
