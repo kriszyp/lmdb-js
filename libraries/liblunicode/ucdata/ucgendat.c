@@ -1622,7 +1622,7 @@ main(int argc, char *argv[])
               case 'x':
                 argc--;
                 argv++;
-                if ((in = fopen(argv[0], "rb")) == 0)
+                if ((in = fopen(argv[0], "r")) == 0)
                   fprintf(stderr,
                           "%s: unable to open composition exclusion file %s\n",
                           prog, argv[0]);
@@ -1638,7 +1638,7 @@ main(int argc, char *argv[])
         } else {
             if (in != stdin && in != NULL)
               fclose(in);
-            if ((in = fopen(argv[0], "rb")) == 0)
+            if ((in = fopen(argv[0], "r")) == 0)
               fprintf(stderr, "%s: unable to open ctype file %s\n",
                       prog, argv[0]);
             else {
