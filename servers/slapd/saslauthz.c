@@ -266,7 +266,7 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	{
 		Connection	c = *op->o_conn;
 		char		buf[ SLAP_LDAPDN_MAXLEN ];
-		struct berval	id = { uri->bv_len, (char *)buf },
+		struct berval	id,
 				user = { 0, NULL },
 				realm = { 0, NULL },
 				mech = { 0, NULL };
@@ -275,6 +275,8 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 			return LDAP_INVALID_SYNTAX;
 		}
 
+		id.bv_len = uri->bv_len;
+		id.bv_val = buf;
 		strncpy( buf, uri->bv_val, sizeof( buf ) );
 
 		rc = slap_parse_user( &id, &user, &realm, &mech );
@@ -642,7 +644,10 @@ exact_match:
 			goto exact_match;
 
 		} else if ( d > 0 ) {
-			struct berval bv = { op.o_req_ndn.bv_len, assertDN->bv_val + d };
+			struct berval bv;
+
+			bv.bv_len = op.o_req_ndn.bv_len;
+			bv.bv_val = assertDN->bv_val + d;
 
 			if ( bv.bv_val[ -1 ] == ',' && dn_match( &op.o_req_ndn, &bv ) ) {
 				rc = LDAP_SUCCESS;

@@ -435,6 +435,7 @@ slap_parse_sync_cookie(
 	} else {
 		cookie->rid = -1;
 	}
+	return 0;
 }
 
 int

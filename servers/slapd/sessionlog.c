@@ -45,7 +45,7 @@ slap_send_session_log(
 
 	uuid_attr[0].an_desc = NULL;
 	uuid_attr[0].an_oc = NULL;
-	uuid_attr[0].an_oc_exclude = NULL;
+	uuid_attr[0].an_oc_exclude = 0;
 	uuid_attr[0].an_name.bv_len = 0;
 	uuid_attr[0].an_name.bv_val = NULL;
 	e.e_attrs = NULL;
@@ -94,6 +94,7 @@ slap_send_session_log(
 			rs->sr_ctrls = NULL;
 		}
 	}
+	return LDAP_SUCCESS;
 }
 
 int

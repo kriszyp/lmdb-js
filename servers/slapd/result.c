@@ -289,7 +289,7 @@ send_ldap_response(
 {
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *) &berbuf;
-	int		rc;
+	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
 	if (op->o_callback) {

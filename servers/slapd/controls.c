@@ -752,11 +752,17 @@ static int parseProxyAuthz (
 	{
 		int	rc;
 		char		buf[ SLAP_LDAPDN_MAXLEN ];
-		struct berval	id = { ctrl->ldctl_value.bv_len, (char *)buf },
+		struct berval	id,
 				user = { 0, NULL },
 				realm = { 0, NULL },
 				mech = { 0, NULL };
 
+		if ( sizeof( buf ) <= ctrl->ldctl_value.bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		id.bv_len = ctrl->ldctl_value.bv_len;
+		id.bv_val = buf;
 		strncpy( buf, ctrl->ldctl_value.bv_val, sizeof( buf ) );
 
 		rc = slap_parse_user( &id, &user, &realm, &mech );
