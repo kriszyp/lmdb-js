@@ -354,27 +354,27 @@ main()
 
 #ifdef DB_CDB_ALLDB
 	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
-	if( rc == 0 )
+
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 #endif
 
-	{
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-		rc = env->open( env, NULL, flags, 0 );
+	rc = env->open( env, NULL, flags, 0 );
 #else
-		rc = env->open( env, NULL, NULL, flags, 0 );
+	rc = env->open( env, NULL, NULL, flags, 0 );
 #endif
+
+	if ( rc == 0 ) {
+		rc = env->close( env, 0 );
 	}
 
 	if( rc ) {
 		printf("BerkeleyDB: %s\n", db_strerror(rc) );
 		return rc;
 	}
-
-#if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-	env->remove( env, NULL, DB_FORCE );
-#else
-	env->remove( env, NULL, NULL, DB_FORCE );
-#endif
 
 #else
 	DB_ENV env;
