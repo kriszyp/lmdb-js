@@ -26,9 +26,9 @@ perl_back_modify(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
-	LDAPModList	*modlist
+	struct berval 	*dn,
+	struct berval 	*ndn,
+	Modifications	*modlist
 )
 {
 	char test[500];
@@ -47,12 +47,12 @@ perl_back_modify(
 		
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn , 0)));
+		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
 
-		for (; modlist != NULL; modlist = modlist->ml_next ) {
-			LDAPMod *mods = &modlist->ml_mod;
+		for (; modlist != NULL; modlist = modlist->sml_next ) {
+			Modification *mods = &modlist->sml_mod;
 
-			switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
+			switch ( mods->sm_op & ~LDAP_MOD_BVALUES ) {
 			case LDAP_MOD_ADD:
 				XPUSHs(sv_2mortal(newSVpv("ADD", 0 )));
 				break;
@@ -67,13 +67,13 @@ perl_back_modify(
 			}
 
 			
-			XPUSHs(sv_2mortal(newSVpv( mods->mod_type, 0 )));
+			XPUSHs(sv_2mortal(newSVpv( mods->sm_type.bv_val, 0 )));
 
 			for ( i = 0;
-				mods->mod_bvalues != NULL && mods->mod_bvalues[i] != NULL;
+				mods->sm_bvalues != NULL && mods->sm_bvalues[i].bv_val != NULL;
 				i++ )
 			{
-				XPUSHs(sv_2mortal(newSVpv( mods->mod_bvalues[i]->bv_val, 0 )));
+				XPUSHs(sv_2mortal(newSVpv( mods->sm_bvalues[i].bv_val, 0 )));
 			}
 		}
 
@@ -84,7 +84,7 @@ perl_back_modify(
 		SPAGAIN;
 
 		if (count != 1) {
-			croak("Big trouble in back_search\n");
+			croak("Big trouble in back_modify\n");
 		}
 							 
 		return_code = POPi;

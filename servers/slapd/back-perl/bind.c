@@ -76,5 +76,3 @@ perl_back_bind(
 
 	return ( return_code );
 }
-
-

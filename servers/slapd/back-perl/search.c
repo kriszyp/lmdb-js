@@ -31,14 +31,14 @@ perl_back_search(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const char *base,
-	const char *nbase,
+	struct berval *base,
+	struct berval *nbase,
 	int scope,
 	int deref,
 	int sizelimit,
 	int timelimit,
 	Filter *filter,
-	const char *filterstr,
+	struct berval *filterstr,
 	AttributeName *attrs,
 	int attrsonly
 	)
@@ -61,7 +61,7 @@ perl_back_search(
 
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( filterstr , 0)));
+		XPUSHs(sv_2mortal(newSVpv( filterstr->bv_val , 0)));
 		XPUSHs(sv_2mortal(newSViv( sizelimit )));
 		XPUSHs(sv_2mortal(newSViv( timelimit )));
 		XPUSHs(sv_2mortal(newSViv( attrsonly )));

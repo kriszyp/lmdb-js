@@ -52,7 +52,7 @@ perl_back_add(
 		SPAGAIN;
 
 		if (count != 1) {
-			croak("Big trouble in back_search\n");
+			croak("Big trouble in back_add\n");
 		}
 							 
 		return_code = POPi;
@@ -72,6 +72,6 @@ perl_back_add(
 			NULL, NULL, NULL, NULL );
 	}
 
-	Debug( LDAP_DEBUG_ANY, "Here ADD\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl ADD\n", 0, 0, 0 );
 	return( 0 );
 }

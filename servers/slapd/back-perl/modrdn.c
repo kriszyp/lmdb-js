@@ -39,11 +39,13 @@ perl_back_modrdn(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
-	const char	*newrdn,
+	struct berval	*dn,
+	struct berval	*ndn,
+	struct berval	*newrdn,
+	struct berval	*nnewrdn,
 	int		deleteoldrdn,
-	const char	*newSuperior
+	struct berval	*newSuperior,
+	struct berval	*nnewSuperior
 )
 {
 	int len;
@@ -59,11 +61,11 @@ perl_back_modrdn(
 		
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn , 0 )));
-		XPUSHs(sv_2mortal(newSVpv( newrdn , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( newrdn->bv_val , 0 )));
 		XPUSHs(sv_2mortal(newSViv( deleteoldrdn )));
 		if ( newSuperior != NULL ) {
-			XPUSHs(sv_2mortal(newSVpv( newSuperior , 0 )));
+			XPUSHs(sv_2mortal(newSVpv( newSuperior->bv_val , 0 )));
 		}
 		PUTBACK ;
 
@@ -72,7 +74,7 @@ perl_back_modrdn(
 		SPAGAIN ;
 
 		if (count != 1) {
-			croak("Big trouble in back_search\n") ;
+			croak("Big trouble in back_modrdn\n") ;
 		}
 							 
 		return_code = POPi;
@@ -94,5 +96,3 @@ perl_back_modrdn(
 	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n", 0, 0, 0 );
 	return( 0 );
 }
-
-

@@ -85,7 +85,7 @@ perl_back_initialize(
 	bi->bi_db_destroy = perl_back_db_destroy;
 
 	bi->bi_op_bind = perl_back_bind;
-	bi->bi_op_unbind = perl_back_unbind;
+	bi->bi_op_unbind = 0;
 	bi->bi_op_search = perl_back_search;
 	bi->bi_op_compare = perl_back_compare;
 	bi->bi_op_modify = perl_back_modify;

@@ -31,9 +31,9 @@ perl_back_compare(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
-	Ava		*ava
+	struct berval	*dn,
+	struct berval	*ndn,
+	AttributeAssertion		*ava
 )
 {
 	int return_code;
@@ -56,12 +56,12 @@ perl_back_compare(
 		/* XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len))); */
 		PUTBACK;
 
-		count = perl_call_method("bind", G_SCALAR);
+		count = perl_call_method("compare", G_SCALAR);
 
 		SPAGAIN;
 
 		if (count != 1) {
-			croak("Big trouble in back_search\n");
+			croak("Big trouble in back_compare\n");
 		}
 
 		return_code = POPi;
@@ -79,7 +79,7 @@ perl_back_compare(
 	}
 #endif
 
-	Debug( LDAP_DEBUG_ANY, "Here BIND\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl COMPARE\n", 0, 0, 0 );
 
 	return (0);
 }

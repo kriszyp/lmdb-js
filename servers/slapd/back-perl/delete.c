@@ -25,8 +25,8 @@ perl_back_delete(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn
+	struct berval	*dn,
+	struct berval	*ndn
 )
 {
 	int len;
@@ -42,7 +42,7 @@ perl_back_delete(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0 )));
 
 		PUTBACK;
 
@@ -70,6 +70,6 @@ perl_back_delete(
 			NULL, NULL, NULL, NULL );
 	}
 
-	Debug( LDAP_DEBUG_ANY, "Here DELETE\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl DELETE\n", 0, 0, 0 );
 	return( 0 );
 }
