@@ -320,26 +320,12 @@ ecalloc( unsigned nelem, unsigned elsize )
 
 /* VARARGS */
 void
-debug_printf
-#if HAVE_STDARG
-	( char *fmt, ... )
-#else
-	( va_alist )
-    va_dcl
-#endif
+debug_printf( const char *fmt, ... )
 {
     va_list	ap;
-#if !HAVE_STDARG
-    char	*fmt;
-#endif
 
 	if ( debugflg ) {
-#if HAVE_STDARG
 		va_start( ap, fmt );
-#else
-		va_start( ap );
-		fmt = va_arg( ap, char * );
-#endif
 		fprintf( stderr, "%s: ", progname );
 		vfprintf( stderr, fmt, ap );
 		va_end( ap );
