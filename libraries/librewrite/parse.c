@@ -90,7 +90,7 @@ parse_line(
 }
 
 int
-read_rewrite( 
+rewrite_read( 
 		FILE *fin,
 		struct rewrite_info *info
 )

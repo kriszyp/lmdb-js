@@ -28,11 +28,6 @@
 #include "rewrite-map.h"
 
 /*
- * Global data
- */
-extern struct rewrite_context *__curr_context;
-
-/*
  * Parses a plugin map
  */
 static int

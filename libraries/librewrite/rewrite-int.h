@@ -313,6 +313,7 @@ struct rewrite_info {
  * PRIVATE *
  ***********/
 
+LDAP_V (struct rewrite_context*) __curr_context;
 
 /*
  * Maps

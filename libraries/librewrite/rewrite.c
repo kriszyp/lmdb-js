@@ -39,12 +39,6 @@ int ldap_debug;
 int ldap_syslog;
 int ldap_syslog_level;
 
-extern int
-read_rewrite(
-		FILE *fin,
-		struct rewrite_info *info
-);
-
 char *
 apply( 
 		FILE *fin, 
@@ -59,7 +53,7 @@ apply(
 
 	info = rewrite_info_init(REWRITE_MODE_ERR);
 
-	if ( read_rewrite( fin, info ) != 0 ) {
+	if ( rewrite_read( fin, info ) != 0 ) {
 		exit( EXIT_FAILURE );
 	}
 
