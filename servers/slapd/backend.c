@@ -803,18 +803,22 @@ backend_check_controls(
 
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
-			if( !ldap_charray_inlist( op->o_bd->be_controls,
-				(*ctrls)->ldctl_oid ) )
+			if( (*ctrls)->ldctl_iscritical && !ldap_charray_inlist(
+				op->o_bd->be_controls, (*ctrls)->ldctl_oid ) )
 			{
 				/* Per RFC 2251 (and LDAPBIS discussions), if the control
 				 * is recognized and appropriate for the operation (which
 				 * we've already verified), then the server should make
 				 * use of the control when performing the operation
-				 * (without regard to criticality).
+				 * (regardless of the criticality of the control).
 				 * 
 				 * Here we find that operation extended by the control
 				 * is not unavailable in a particular context, hence the
 				 * return of unwillingToPerform.
+				 *
+				 * FIXME: As noted above, this check should be done
+				 * regardless of the criticality of the control.  The
+				 * frontend infrastructure doesn't (yet) support this.
 				 */
 				rs->sr_text = "control unavailable in context";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
