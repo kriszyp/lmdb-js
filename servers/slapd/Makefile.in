@@ -37,10 +37,10 @@ all-local-srv: FORCE
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 slapd: version.o
-	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 sslapd: version.o
-	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 backendslib:	FORCE
 	@for i in back-*; do \
