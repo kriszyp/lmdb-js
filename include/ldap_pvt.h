@@ -180,21 +180,21 @@ LIBLDAP_F (char *) ldap_utf8_strpbrk( const char* str, const char *set);
 LIBLDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 
 /* Optimizations */
-#define LDAP_UTF8_CHARLEN(p) (*(unsigned char *)(p) < 0x100 \
-	? 1 : ldap_utf8_charlen((p)))
+#define LDAP_UTF8_ISASCII(p) ( * (const unsigned char *) (p) < 0x100 )
+#define LDAP_UTF8_CHARLEN(p) ( LDAP_UTF8_ISASCII(p) \
+	? 1 : ldap_utf8_charlen((p)) )
 
-#define LDAP_UTF8_COPY(p) (*(unsigned char *)(s) < 0x100 \
-	? (*(d) = *(s), 1) : ldap_utf8_cpy((d),(s)))
+#define LDAP_UTF8_COPY(p) (	LDAP_UTF8_ISASCII(p) \
+	? (*(d) = *(s), 1) : ldap_utf8_cpy((d),(s)) )
 
-#define LDAP_UTF8_NEXT(p) (*(unsigned char *)(p) < 0x100 \
-	? &(p)[1] : ldap_utf8_next((p)))
+#define LDAP_UTF8_NEXT(p) (	LDAP_UTF8_ISASCII(p) \
+	? &(p)[1] : ldap_utf8_next((p)) )
 
-#define LDAP_UTF8_INCR(p) (*(unsigned char *)(p) < 0x100 \
-	? ++(p) : (p)=ldap_utf8_next((p)))
+#define LDAP_UTF8_INCR(p) ( (p) = LDAP_UTF8_NEXT(p) )
 
 /* For symmetry */
 #define LDAP_UTF8_PREV(p) (ldap_utf8_prev((p)))
-#define LDAP_UTF8_DECR(p) ((p)=ldap_utf8_prev((p)))
+#define LDAP_UTF8_DECR(p) ((p)=LDAP_UTF8_PREV((p)))
 
 LDAP_END_DECL
 
