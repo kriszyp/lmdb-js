@@ -11,9 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-static int	add_values(Entry *e, LDAPMod *mod, char *dn);
-static int	delete_values(Entry *e, LDAPMod *mod, char *dn);
-static int	replace_values(Entry *e, LDAPMod *mod, char *dn);
 
 int
 ldbm_back_modify(
@@ -115,7 +112,7 @@ error_return:;
 	return( -1 );
 }
 
-static int
+int
 add_values(
     Entry	*e,
     LDAPMod	*mod,
@@ -143,7 +140,7 @@ add_values(
 	return( LDAP_SUCCESS );
 }
 
-static int
+int
 delete_values(
     Entry	*e,
     LDAPMod	*mod,
@@ -199,7 +196,7 @@ delete_values(
 	return( LDAP_SUCCESS );
 }
 
-static int
+int
 replace_values(
     Entry	*e,
     LDAPMod	*mod,
