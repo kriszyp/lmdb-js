@@ -737,7 +737,7 @@ int structural_class(
 	}
 
 	if( sc == NULL ) {
-		*text = "no structural object classes provided";
+		*text = "no structural object class provided";
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
