@@ -17,8 +17,6 @@
 
 #include "slap.h"
 
-#include "../../libraries/liblber/lber-int.h"
-
 static int
 test_mra_vrFilter(
 	Operation	*op,

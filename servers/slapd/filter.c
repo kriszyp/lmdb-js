@@ -36,8 +36,6 @@ static int	get_simple_vrFilter(
 	ValuesReturnFilter **f,
 	const char **text );
 
-#define XXX 1
-
 int
 get_filter(
 	Connection *conn,
@@ -243,9 +241,7 @@ get_filter(
 			break;
 		}
 
-#ifdef XXX
 		assert( f.f_not != NULL );
-#endif
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -261,9 +257,7 @@ get_filter(
 			break;
 		}
 
-#ifdef XXX
 		assert( f.f_mra != NULL );
-#endif
 		break;
 
 	default:
