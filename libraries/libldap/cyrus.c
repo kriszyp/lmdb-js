@@ -686,14 +686,6 @@ ldap_int_sasl_bind(
 				saslrc, 0, 0 );
 #endif
 
-#if SASL_VERSION_MAJOR >= 2
-			/* XXX the application should free interact results. */
-			if ( prompts != NULL && prompts->result != NULL ) {
-				LDAP_FREE( (void *)prompts->result );
-				prompts->result = NULL;
-			}
-#endif
-
 			if( saslrc == SASL_INTERACT ) {
 				int res;
 				if( !interact ) break;
