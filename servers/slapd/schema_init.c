@@ -32,6 +32,9 @@
 /* TO BE DELETED */
 #define SLAP_MR_DN_FOLD (0)
 
+#define SLAP_MR_ASSOCIATED(mr, with) \
+	((mr) == (with) || (mr)->smr_associated == (with))
+
 #define xUTF8StringNormalize NULL
 #define xIA5StringNormalize NULL
 #define xtelephoneNumberNormalize NULL
@@ -39,6 +42,23 @@
 #define xintegerNormalize NULL
 #define xnumericStringNormalize NULL
 #define xnameUIDNormalize NULL
+
+/* (new) normalization routines */
+#define caseExactIA5Normalize						IA5StringNormalize
+#define caseIgnoreIA5Normalize						IA5StringNormalize
+#define caseExactNormalize							UTF8StringNormalize
+#define caseIgnoreNormalize							UTF8StringNormalize
+
+#define distinguishedNameNormalize					NULL
+#define integerNormalize							NULL
+#define integerFirstComponentNormalize				NULL
+#define numericStringNormalize						NULL
+#define objectIdentifierNormalize					NULL
+#define objectIdentifierFirstComponentNormalize		NULL
+#define generalizedTimeNormalize					NULL
+#define uniqueMemberNormalize						NULL
+#define bitStringNormalize							NULL
+#define telephoneNumberNormalize					NULL
 
 #define distinguishedNameMatch  	dnMatch
 #define distinguishedNameIndexer	octetStringIndexer
@@ -117,22 +137,6 @@
 /* validatation routines */
 #define berValidate						blobValidate
 
-/* (new) normalization routines */
-#define caseExactNormalize							NULL
-#define caseExactIA5Normalize						NULL
-#define caseIgnoreNormalize							NULL
-#define caseIgnoreIA5Normalize						NULL
-#define distinguishedNameNormalize					NULL
-#define integerNormalize							NULL
-#define integerFirstComponentNormalize				NULL
-#define numericStringNormalize						NULL
-#define objectIdentifierNormalize					NULL
-#define objectIdentifierFirstComponentNormalize		NULL
-#define generalizedTimeNormalize					NULL
-#define uniqueMemberNormalize						NULL
-#define bitStringNormalize							NULL
-#define telephoneNumberNormalize					NULL
-
 /* approx matching rules */
 #ifdef SLAP_NVALUES
 #define directoryStringApproxMatchOID	NULL
@@ -149,6 +153,23 @@
 #endif
 
 #ifndef SLAP_NVALUES
+
+/* (new) normalization routines */
+#define caseExactNormalize							NULL
+#define caseExactIA5Normalize						NULL
+#define caseIgnoreNormalize							NULL
+#define caseIgnoreIA5Normalize						NULL
+#define distinguishedNameNormalize					NULL
+#define integerNormalize							NULL
+#define integerFirstComponentNormalize				NULL
+#define numericStringNormalize						NULL
+#define objectIdentifierNormalize					NULL
+#define objectIdentifierFirstComponentNormalize		NULL
+#define generalizedTimeNormalize					NULL
+#define uniqueMemberNormalize						NULL
+#define bitStringNormalize							NULL
+#define telephoneNumberNormalize					NULL
+
 
 /* matching routines */
 #define bitStringMatch					octetStringMatch
@@ -569,8 +590,9 @@ LDAP/X.500 string syntax / matching rules have a few oddities.  This
 comment attempts to detail how slapd(8) treats them.
 
 Summary:
-  StringSyntax		X.500	LDAP	Matching
+  StringSyntax		X.500	LDAP	Matching/Comments
   DirectoryString	CHOICE	UTF8	i/e + ignore insignificant spaces
+  PrintableString	subset	subset	i/e + ignore insignificant spaces
   PrintableString	subset	subset	i/e + ignore insignificant spaces
   NumericString		subset	subset  ignore all spaces
   IA5String			ASCII	ASCII	i/e + ignore insignificant spaces
@@ -588,6 +610,7 @@ Directory String -
   must be non-empty.
 
   In LDAPv3, a directory string is a UTF-8 encoded UCS string.
+  A directory string cannot be zero length.
 
   For matching, there are both case ignore and exact rules.  Both
   also require that "insignificant" spaces be ignored.
@@ -643,7 +666,10 @@ UTF8StringValidate(
 	int len;
 	unsigned char *u = in->bv_val;
 
-	if( !in->bv_len ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_len == 0 && syntax == slap_schema.si_syn_directoryString ) {
+		/* directory strings cannot be empty */
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
 		/* get the length indicated by the first byte */
@@ -683,12 +709,79 @@ UTF8StringValidate(
 		if( LDAP_UTF8_OFFSET( u ) != len ) return LDAP_INVALID_SYNTAX;
 	}
 
-	if( count != 0 ) return LDAP_INVALID_SYNTAX;
+	if( count != 0 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
+#ifdef SLAP_NVALUES
+static int
+UTF8StringNormalize(
+	slap_mask_t use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+{
+	struct berval tmp, nvalue;
+	int flags;
+	int i, wasspace;
+
+	if( val->bv_val == NULL ) {
+		/* assume we're dealing with a syntax (e.g., UTF8String)
+		 * which allows empty strings
+		 */
+		normalized->bv_len = 0;
+		normalized->bv_val = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	flags = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactMatch )
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
+	flags |= ( use & SLAP_MR_EQUALITY_APPROX == SLAP_MR_EQUALITY_APPROX )
+		? LDAP_UTF8_APPROX : 0;
+
+	val = UTF8bvnormalize( val, &tmp, flags );
+	if( val == NULL ) {
+		return LDAP_OTHER;
+	}
+	
+	/* collapse spaces (in place) */
+	nvalue.bv_len = 0;
+	nvalue.bv_val = tmp.bv_val;
+
+	wasspace=1; /* trim leading spaces */
+	for( i=0; i<tmp.bv_len; i++) {
+		if ( ASCII_SPACE( tmp.bv_val[i] )) {
+			if( wasspace++ == 0 ) {
+				/* trim repeated spaces */
+				nvalue.bv_val[nvalue.bv_len++] = tmp.bv_val[i];
+			}
+		} else {
+			wasspace = 0;
+			nvalue.bv_val[nvalue.bv_len++] = tmp.bv_val[i];
+		}
+	}
+
+	if( nvalue.bv_len ) {
+		if( wasspace ) {
+			/* last character was a space, trim it */
+			--nvalue.bv_len;
+		}
+		nvalue.bv_val[nvalue.bv_len] = '\0';
+
+	} else {
+		/* string of all spaces is treated as one space */
+		nvalue.bv_val[0] = ' ';
+		nvalue.bv_val[1] = '\0';
+		nvalue.bv_len = 1;
+	}
+
+	return LDAP_SUCCESS;
+}
+#else
 
 static int
 xUTF8StringNormalize(
@@ -2288,15 +2381,26 @@ IA5StringValidate(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
-
+#ifdef SLAP_NVALUES
+static int
+IA5StringNormalize(
+	slap_mask_t use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 static int
 xIA5StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	char *p, *q;
+#ifdef SLAP_NVALUES
+	int casefold = !SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
+#endif
 
 	assert( val->bv_len );
 
@@ -2318,6 +2422,13 @@ xIA5StringNormalize(
 			while ( ASCII_SPACE( *p ) ) {
 				p++;
 			}
+
+#ifdef SLAP_NVALUES
+		} else if ( casefold ) {
+			/* Most IA5 rules require casefolding */
+			*q++ = TOLOWER(*p++);
+#endif
+
 		} else {
 			*q++ = *p++;
 		}
@@ -2350,6 +2461,8 @@ xIA5StringNormalize(
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 caseExactIA5Match(
@@ -4839,7 +4952,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_ORDERING, NULL,
 		NULL,
-		generalizedTimeOrderingMatch, generalizedTimeOrderingMatch,
+		generalizedTimeNormalize, generalizedTimeOrderingMatch,
 		NULL, NULL,
 		NULL},
 

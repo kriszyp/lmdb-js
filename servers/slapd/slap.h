@@ -792,13 +792,15 @@ struct slap_internal_schema {
 	MatchingRule	*si_mr_distinguishedNameMatch;
 	MatchingRule    *si_mr_caseExactMatch;
 	MatchingRule    *si_mr_caseExactSubstringsMatch;
+	MatchingRule    *si_mr_caseExactIA5Match;
 	MatchingRule	*si_mr_integerMatch;
 	MatchingRule    *si_mr_integerFirstComponentMatch;
 
 	/* Syntaxes */
-	Syntax		*si_syn_octetString;
+	Syntax		*si_syn_directoryString;
 	Syntax		*si_syn_distinguishedName;
 	Syntax		*si_syn_integer;
+	Syntax		*si_syn_octetString;
 };
 
 typedef struct slap_attr_assertion {

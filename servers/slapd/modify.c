@@ -607,6 +607,20 @@ int slap_mods_check(
 				}
 			}
 
+			/*
+			 * a rough single value check... an additional check is needed
+			 * to catch add of single value to existing single valued attribute
+			 */
+			if ((ml->sml_op == LDAP_MOD_ADD || ml->sml_op == LDAP_MOD_REPLACE)
+				&& nvals > 1 && is_at_single_value( ad->ad_type ))
+			{
+				snprintf( textbuf, textlen,
+					"%s: multiple values provided",
+					ml->sml_type.bv_val );
+				*text = textbuf;
+				return LDAP_CONSTRAINT_VIOLATION;
+			}
+
 #ifdef SLAP_NVALUES
 			if( nvals && ad->ad_type->sat_equality &&
 				ad->ad_type->sat_equality->smr_normalize )
@@ -639,20 +653,6 @@ int slap_mods_check(
 				ml->sml_nvalues[nvals].bv_len = 0;
 			}
 #endif
-
-			/*
-			 * a rough single value check... an additional check is needed
-			 * to catch add of single value to existing single valued attribute
-			 */
-			if ((ml->sml_op == LDAP_MOD_ADD || ml->sml_op == LDAP_MOD_REPLACE)
-				&& nvals > 1 && is_at_single_value( ad->ad_type ))
-			{
-				snprintf( textbuf, textlen,
-					"%s: multiple value provided",
-					ml->sml_type.bv_val );
-				*text = textbuf;
-				return LDAP_CONSTRAINT_VIOLATION;
-			}
 		}
 	}
 

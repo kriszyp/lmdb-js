@@ -796,6 +796,8 @@ static struct slap_schema_mr_map {
 	char *ssmm_name;
 	size_t ssmm_offset;
 } mr_map[] = {
+	{ "caseExactIA5Match",
+		offsetof(struct slap_internal_schema, si_mr_caseExactIA5Match) },
 	{ "caseExactMatch",
 		offsetof(struct slap_internal_schema, si_mr_caseExactMatch) },
 	{ "caseExactSubstringsMatch",
@@ -814,12 +816,14 @@ static struct slap_schema_syn_map {
 	char *sssm_name;
 	size_t sssm_offset;
 } syn_map[] = {
-	{ "1.3.6.1.4.1.1466.115.121.1.40",
-		offsetof(struct slap_internal_schema, si_syn_octetString) },
+	{ "1.3.6.1.4.1.1466.115.121.1.15",
+		offsetof(struct slap_internal_schema, si_syn_directoryString) },
 	{ "1.3.6.1.4.1.1466.115.121.1.12",
 		offsetof(struct slap_internal_schema, si_syn_distinguishedName) },
 	{ "1.3.6.1.4.1.1466.115.121.1.27",
 		offsetof(struct slap_internal_schema, si_syn_integer) },
+	{ "1.3.6.1.4.1.1466.115.121.1.40",
+		offsetof(struct slap_internal_schema, si_syn_octetString) },
 	{ NULL, 0 }
 };
 
