@@ -3510,6 +3510,10 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
 
+	if ( mods == NULL ) {
+		return NULL;
+	}
+
 	modtail = &modlist;
 
 	for( modp = mods; *modp != NULL; modp++ ) {
