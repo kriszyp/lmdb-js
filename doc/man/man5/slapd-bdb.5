@@ -70,6 +70,11 @@ results if the data comes from a transaction that is later aborted.
 In this case, the modified data is discarded and a subsequent search
 will return a different result.
 .TP
+.B idlcachesize <integer>
+Specify the size of the in-memory index cache, in index slots. The
+default is zero. A larger value will speed up frequent searches of
+indexed entries.
+.TP
 .B
 index {<attrlist>|default} [pres,eq,approx,sub,<special>]
 Specify the indexes to maintain for the given attribute (or
@@ -119,6 +124,12 @@ allocations can have a major negative impact on server performance,
 but specifying too much stack will also consume a great deal of memory.
 Each search stack uses 512K bytes per level. The default stack depth
 is 16, thus 8MB per thread is used.
+.TP
+.B shm_key <integer>
+Specify a key for a shared memory BDB environment. By default the
+BDB environment uses memory mapped files. If a non-zero value is
+specified, it will be used as the key to identify a shared memory
+region that will house the environment.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
