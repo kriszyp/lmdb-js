@@ -347,6 +347,7 @@ and exit, use the command
 
 >	slurpd -r /usr/tmp/replog.slave.example.com:389 -o
 
+!if 0
 
 H2: Replication to an X.500 DSA
 
@@ -386,3 +387,5 @@ attribute and {{EX:modifyTimeStamp}} to the OID for the
 {{EX:lastModifiedTime}} attribute. Since attribute names
 are carried as OIDs over DAP, this should perform the
 appropriate translation of attribute names.
+
+!endif

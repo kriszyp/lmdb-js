@@ -5,12 +5,12 @@
 
 H1: Generic configure Instructions
 
-!block inline
-<FONT FACE="Courier">
-!endblock
+#!block inline
+#<FONT FACE="Courier">
+#!endblock
 
 !include "../release/autoconf-install.txt" ; verbatim
 
-!block inline
-</FONT>
-!endblock
+#!block inline
+#</FONT>
+#!endblock

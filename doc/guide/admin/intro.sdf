@@ -27,7 +27,7 @@ quick-response to high-volume lookup or search operations. They may have
 the ability to replicate information widely in order to increase
 availability and reliability, while reducing response time.  When
 directory information is replicated, temporary inconsistencies between
-the replicas may be OK, as long as they get in sync eventually.
+the replicas may be okay, as long as they get in sync eventually.
 
 There are many different ways to provide a directory service. Different
 methods allow different kinds of information to be stored in the directory,
@@ -42,7 +42,6 @@ the directory service. Typically a global service defines a uniform
 {{namespace}} which gives the same view of the data no matter where
 you are in relation to the data itself.  The Internet {{TERM[expand]DNS}}
 is an example of a globally distributed directory service.
-
 
 
 H2: What is LDAP?
@@ -81,9 +80,11 @@ example LDAP directory tree using traditional naming.
 	title="LDAP directory tree (traditional naming)"
 FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
-The tree may also be arranged based upon Internet domain names.
-Figure 1.2 shows an example using this increasingly popular naming
-approach.
+The tree may also be arranged based upon Internet domain names.  This
+naming approach is becoming increasing popular as it allows for
+directory services to be locating using the {{TERM[expand]DNS}}.
+Figure 1.2 shows an example LDAP directory tree using domain-based
+naming.
 
 !import "intro_dctree.gif"; align="center"; \
 	title="LDAP directory tree (Internet naming)"
@@ -91,7 +92,7 @@ FT[align="Center"] Figure 1.2: LDAP directory tree (Internet naming)
 
 In addition, LDAP allows you to control which attributes are required
 and allowed in an entry through the use of a special attribute called 
-{{objectClass}}.  The values of the {{objectClass}} attribute
+{{EX:objectClass}}.  The values of the {{EX:objectClass}} attribute
 determine the {{schema}} rules the entry must obey.
 
 {{How is the information referenced?}}
@@ -125,9 +126,11 @@ do with LDAP and how it might be useful to you.
 
 {{How is the information protected from unauthorized access?}}
 Some directory services provide no protection, allowing anyone to see
-the information. LDAP provides a method for a client to authenticate,
-or prove its identity to a directory server, paving the way for rich
-access control to protect the information the server contains.
+the information. LDAP provides a mechanisms for a client to
+authenticate, or prove its identity to a directory server, paving
+the way for rich access control to protect the information the server
+contains.  LDAP also supports privacy and integrity security
+services.
 
 
 H2: How does LDAP work?
@@ -153,8 +156,8 @@ yourself. Some of slapd's more interesting features and capabilities include:
 
 {{B:LDAPv2}} and {{B:LDAPv3}}: {{slapd}} supports both version 2 and 3
 of the {{TERM[expand]LDAP}}.  {{slapd}} provides support
-for the latest features while maintaining interoperability with existing
-clients.  {{slapd}} supports both IPv4 and IPv6 protocols.
+for the latest features while maintaining interoperability with
+existing clients.  {{slapd}} supports both IPv4 and IPv6.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports
 strong authentication services through the use of SASL.  {{slapd}}'s
@@ -209,8 +212,8 @@ requests, reducing the amount of system overhead required.
 copies of its database. This {{single-master/multiple-slave}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} just doesn't provide the necessary availability
-or reliability.  {{slapd}}
-also includes experimental support for {{multi-master}} replication.
+or reliability.  {{slapd}} also includes experimental support for
+{{multi-master}} replication.
 
 {{B:Configuration}}: {{slapd}} is highly configurable through a 
 single configuration file which allows you to change just about 
@@ -220,7 +223,6 @@ reasonable defaults, making your job much easier.
 {{slapd}} also has its limitations, of course. The main LDBM
 database backend does not handle range queries or negation queries
 very well. These features and more will be coming in a future release.
-
 
 
 H2: What about X.500?
@@ -246,19 +248,12 @@ guide, which is all about running LDAP via {{slapd}}, without running
 X.500 DAP. If you are not running X.500 DAP, want to stop running
 X.500 DAP, or have no immediate plans to run X.500 DAP, read on.
 
-It is possible to replicate data from a {{slapd}} directory 
-server to a X.500 {{TERM:DSA}}, which allows your organization to
-make your data available as part of the global X.500 DAP directory
-service on a {{read-only}} basis.  See the
-{{SECT:Replication to an X.500 DSA}}
-section in the
-{{SECT:Replication with slurpd}} chapter of this document.
-
-Another way to make data in a {{slapd}} server available to the
-X.500 community would be by using a X.500 DAP to LDAP gateway. At
-this time, no such software has been written (to the best of our
-knowledge), but hopefully some group will see fit to write such a
-gateway.
+It is possible to replicate data from an LDAP directory 
+server to a X.500 DAP {{TERM:DSA}}.  This requires an LDAP/DAP
+gateway.  OpenLDAP does not provide such a gateway, but our
+replication daemon can be used to replicate to such a gateway.
+See the {{SECT:Replication with slurpd}} chapter of this document
+for information regarding replication.
 
 
 H2: What is slurpd and what can it do?

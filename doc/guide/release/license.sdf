@@ -4,12 +4,12 @@
 
 H1: The OpenLDAP Public License
 
-!block inline
-<FONT FACE="Courier">
-!endblock
+#!block inline
+#<FONT FACE="Courier">
+#!endblock
 
 !include "../LICENSE" ; verbatim
 
-!block inline
-</FONT>
-!endblock
+#!block inline
+#</FONT>
+#!endblock
