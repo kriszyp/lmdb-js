@@ -504,6 +504,10 @@ retry:	/* transaction retry */
 
 			bdb_cache_add( bdb, ei, op->oq_add.rs_e, &nrdn, locker );
 
+			if ( suffix_ei == NULL ) {
+				suffix_ei = op->oq_add.rs_e->e_private;
+			}
+
 			if ( !op->o_bd->syncinfo ) {
 				if ( ctxcsn_added ) {
 					ctx_nrdn.bv_val = "cn=ldapsync";

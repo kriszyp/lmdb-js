@@ -46,12 +46,18 @@ bdb_csn_commit(
 	struct berval	ctxcsn_rdn = { 0, NULL };
 	struct berval	ctxcsn_ndn = { 0, NULL };
 	EntryInfo		*ctxcsn_ei = NULL;
+	EntryInfo		eip;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	*max_committed_csn = NULL;
 	DB_LOCK			suffix_lock;
 	int				rc, ret;
 	ID				ctxcsn_id;
 	Entry			*e;
+	char			textbuf[SLAP_TEXT_BUFLEN];
+	size_t			textlen = sizeof textbuf;
+	Modifications	*ml, *mlnext, *mod, *modlist;
+	Modifications	**modtail = &modlist;
+	struct berval	*csnbva = NULL;
 
 	if ( ei ) {
 		e = ei->bei_e;
@@ -83,9 +89,51 @@ bdb_csn_commit(
 			ber_bvfree( max_committed_csn );
 			return BDB_CSN_ABORT;
 		} else {
-			attr_delete( &(*ctxcsn_e)->e_attrs, slap_schema.si_ad_contextCSN );
-			attr_merge_normalize_one( *ctxcsn_e, slap_schema.si_ad_contextCSN,
-							max_committed_csn, NULL );
+			csnbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
+			ber_dupbv( &csnbva[0], max_committed_csn );
+			mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
+			mod->sml_op = LDAP_MOD_REPLACE;
+			ber_str2bv( "contextCSN", strlen("contextCSN"), 1, &mod->sml_type );
+			mod->sml_bvalues = csnbva;
+			*modtail = mod;
+			modtail = &mod->sml_next;
+
+			ret = slap_mods_check( modlist, 1, &rs->sr_text, textbuf, textlen, NULL );
+
+			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR,
+						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
+#endif
+			}
+
+			ret = bdb_modify_internal( op, tid, modlist, *ctxcsn_e,
+									&rs->sr_text, textbuf, textlen );								
+			if ( ret != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR,
+						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_TRACE,
+						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
+#endif
+				switch( ret ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					return BDB_CSN_ABORT;
+				default:
+					goto rewind;
+				}
+			}
+
+			for ( ml = modlist; ml != NULL; ml = mlnext ) {
+				mlnext = ml->sml_next;
+				free( ml );
+			}
+
 			ret = bdb_id2entry_update( op->o_bd, tid, *ctxcsn_e );
 			switch ( ret ) {
 			case 0 :
@@ -98,29 +146,27 @@ bdb_csn_commit(
 				rs->sr_text = "context csn update failed";
 				return BDB_CSN_ABORT;
 			}
-			ret = bdb_index_entry_add( op, tid, *ctxcsn_e );
-			switch ( ret ) {
-			case 0 :
-				break;
-			case DB_LOCK_DEADLOCK :
-			case DB_LOCK_NOTGRANTED :
-				goto rewind;
-			default :
-				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "context csn indexing failed";
-				return BDB_CSN_ABORT;
-			}
 		}
 		break;
 	case DB_NOTFOUND:
-		if ( op->o_tag == LDAP_REQ_ADD && !be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname )) {
-			rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
-									0, locker, &suffix_lock );
-		} else if ( op->o_tag != LDAP_REQ_ADD && !be_issuffix( op->o_bd, &e->e_nname )) {
-			rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
-									0, locker, &suffix_lock );
+		if ( op->o_tag == LDAP_REQ_ADD ) {
+			if ( !be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname )) {
+				rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
+										0, locker, &suffix_lock );
+				eip.bei_id = (*suffix_ei)->bei_id;
+			} else {
+				*suffix_ei = NULL;
+				eip.bei_id = op->oq_add.rs_e->e_id;
+			}
 		} else {
-			*suffix_ei = ei;
+			if ( !be_issuffix( op->o_bd, &e->e_nname )) {
+				rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
+										0, locker, &suffix_lock );
+				eip.bei_id = (*suffix_ei)->bei_id;
+			} else {
+				*suffix_ei = ei;
+				eip.bei_id = e->e_id;
+			}
 		}
 
 		/* This serializes add. But this case is very rare : only once. */
@@ -142,7 +188,8 @@ bdb_csn_commit(
 		ber_bvfree( max_committed_csn );
 		(*ctxcsn_e)->e_id = ctxcsn_id;
 		*ctxcsn_added = 1;
-		ret = bdb_dn2id_add( op, tid, *suffix_ei, *ctxcsn_e );
+
+		ret = bdb_dn2id_add( op, tid, &eip, *ctxcsn_e );
 		switch ( ret ) {
 		case 0 :
 			break;
