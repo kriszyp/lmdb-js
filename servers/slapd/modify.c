@@ -344,8 +344,8 @@ do_modify(
 	slapi_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
-	modv = Modifications2LDAPMods(modlist);
-	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv);
+	modv = Modifications2LDAPMods( modlist );
+	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
 	if ( rc != 0 && rc != LDAP_OTHER ) {
@@ -775,33 +775,33 @@ static LDAPMod **Modifications2LDAPMods(Modifications *modlist)
 	Modifications *ml;
 
 	/* based on back-ldap/modify.c */
-	for (i = 0, ml = modlist; ml != NULL; i++, ml = ml->sml_next)
+	for( i = 0, ml = modlist; ml != NULL; i++, ml = ml->sml_next )
 		;
 
-	mods = (LDAPMod *)ch_malloc(i * sizeof(LDAPMod));
+	mods = (LDAPMod *)ch_malloc( i * sizeof(LDAPMod) );
 	if (mods == NULL) {
 		return NULL;
 	}
 
-	modv = (LDAPMod **)ch_malloc((i + 1) * sizeof(LDAPMod *));
+	modv = (LDAPMod **)ch_malloc( (i + 1) * sizeof(LDAPMod *) );
 	if (modv == NULL) {
 		ch_free(mods);
 		return NULL;
 	}
 
-	for (i = 0, ml = modlist; ml != NULL; ml = ml->sml_next) {
-		if (ml->sml_desc->ad_type->sat_no_user_mod) {
+	for( i = 0, ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		if ( ml->sml_desc->ad_type->sat_no_user_mod ) {
 			continue;
 		}
 		modv[i] = &mods[i];
 		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		mods[i].mod_type = ml->sml_desc->ad_cname.bv_val;
 		if (ml->sml_bvalues != NULL) {
-			for (j = 0; ml->sml_bvalues[j].bv_val != NULL; j++)
+			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ )
 				;
-			mods[i].mod_bvalues = (struct berval **)ch_malloc((j + 1) *
-				sizeof(struct berval *));
-			for (j = 0; ml->sml_bvalues[j].bv_val != NULL; j++)
+			mods[i].mod_bvalues = (struct berval **)ch_malloc( (j + 1) *
+				sizeof(struct berval *) );
+			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ )
 				mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
 		} else {
 			mods[i].mod_bvalues = NULL;
@@ -823,11 +823,11 @@ static void FreeLDAPMods(LDAPMod **modv)
 
 	mods = modv[0];
 
-	for (i = 0; modv[i] != NULL; i++) {
-		ch_free(modv[i]->mod_bvalues);
+	for( i = 0; modv[i] != NULL; i++ ) {
+		ch_free( modv[i]->mod_bvalues );
 	}
-	ch_free(mods);
-	ch_free(modv);
+	ch_free( mods );
+	ch_free( modv );
 }
 #endif /* LDAP_SLAPI */
 
