@@ -34,7 +34,7 @@ Large projects
 Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
 Implement collective attributes
-Implement localization
+Implement LCUP
 
 
 Medium projects
@@ -44,6 +44,7 @@ Modify -lldap to be reentrant/threadsafe implement LDAP
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Implement authPassword (RFC 3112)
+Implement localization
 
 
 Small projects
