@@ -4,6 +4,7 @@ OpenLDAP 2.2.15 Engineering
 	Fixed back-bdb DB_DEADLOCK memory leak bug (ITS#3213)
 	Fixed back-bdb dbcache locking bug (ITS#3201)
 	Fixed back-bdb ctxcsn locking bug
+	Fixed back-hdb dn2id bug with unsigned chars
 	Fixed back-ldap validate/pretty values (ITS#3218)
 	Fixed back-ldap shared connections failover (ITS#3217)
 	Fixed slapi slapi_int_compute_output_ber attrs bug
@@ -26,6 +27,7 @@ OpenLDAP 2.2.15 Engineering
 		Added additional res_query detection for MacOS X
 		Added default ldapi:// SSF build setting
 		Fixed OPENLDAP_FD_SETSIZE macro handlling
+		Fixed slapd linking on MS Windows
 
 OpenLDAP 2.2.14 Release
 	Fixed back-bdb ignore deadlock bug (ITS#3188)
