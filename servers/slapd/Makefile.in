@@ -255,11 +255,11 @@ all-cffiles: slapd
 install-schema: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)/schema
 	@cd $(srcdir) ; \
-	for i in schema/*.schema schema/*.conf ; do \
+	for i in schema/*.schema ; do \
 		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo $(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i; \
-			$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i; \
+			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
+			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
 		else \
 			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(sysconfdir)/$$i"; \
 		fi; \
