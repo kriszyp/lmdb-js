@@ -127,7 +127,7 @@ dn2entry_retry:
 #endif
 
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		send_ldap_result( op );
+		send_ldap_result( op, rs );
 
 		goto done;
 	}
