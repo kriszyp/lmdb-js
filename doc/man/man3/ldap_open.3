@@ -81,8 +81,8 @@ but does not open a connection
 to the LDAP server.  The actual connection open will occur when the
 first operation is attempted.  At this time,
 .B ldap_init()
-should only
-be used if the LDAP library is compiled with LDAP_REFERRALS defined.
+is preferred.  
+.B ldap_open() will be depreciated in a later release.
 .SH ERRORS
 If an error occurs, these routines will return NULL and errno should be
 set appropriately.
