@@ -385,7 +385,7 @@ static int slap_get_listener_addresses(
 		for (n=2; (sai = sai->ai_next) != NULL; n++) {
 			/* EMPTY */ ;
 		}
-		*sal = ch_malloc(n * sizeof(void *));
+		*sal = ch_calloc(n, sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
