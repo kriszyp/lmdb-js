@@ -1,0 +1,6 @@
+# Master Makefile for Net Boolean LDAP
+# Copyright 1998 Net Boolean Incorporated
+# COPYING RESTRICTIONS APPLY, See COPYING file
+
+SUBDIRS= libavl liblber libldap libldif libldbm liblthread
+
