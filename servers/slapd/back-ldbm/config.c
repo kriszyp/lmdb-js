@@ -101,6 +101,58 @@ ldbm_back_db_config(
 	{
 		li->li_dbwritesync = 0;
 
+	/* run sync thread */
+	} else if ( strcasecmp( argv[0], "dbsync" ) == 0 ) {
+#ifndef NO_THREADS
+		int i;
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: missing frquency value in \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
+			    fname, lineno, 0 );
+			return 1;
+		}
+
+		i = atoi( argv[1] );
+
+		if( i < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
+			    fname, lineno, i );
+			return 1;
+		}
+
+		li->li_dbsyncfreq = i;
+		li->li_dbwritesync = 0;
+
+		if ( argc > 2 ) {
+			i = atoi( argv[2] );
+			if ( i < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
+				    fname, lineno, i );
+				return 1;
+			}
+			li ->li_dbsyncwaitn = i;
+		}
+
+		if ( argc > 3 ) {
+			i = atoi( argv[3] );
+			if ( i <= 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
+				    fname, lineno, i );
+				return 1;
+			}
+			li ->li_dbsyncwaitinterval = i;
+		}
+
+#else
+		Debug( LDAP_DEBUG_ANY,
+    "\"dbsync\" policies not supported in non-threaded environments\n");
+		return 1;
+#endif
+
+
 	/* anything else */
 	} else {
 		fprintf( stderr,

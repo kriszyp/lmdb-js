@@ -70,6 +70,7 @@ void ldbm_cache_sync LDAP_P(( Backend *be ));
 Datum ldbm_cache_fetch LDAP_P(( DBCache *db, Datum key ));
 int ldbm_cache_store LDAP_P(( DBCache *db, Datum key, Datum data, int flags ));
 int ldbm_cache_delete LDAP_P(( DBCache *db, Datum key ));
+void *ldbm_cache_sync_daemon LDAP_P(( void *));
 
 /*
  * dn2id.c

@@ -376,3 +376,35 @@ ldbm_cache_delete(
 
 	return( rc );
 }
+
+void *
+ldbm_cache_sync_daemon(
+	void *be_ptr
+)
+{
+	Backend *be = (Backend *)be_ptr;
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+
+	Debug( LDAP_DEBUG_ANY, "synchronizer starting for %s\n", li->li_directory, 0, 0 );
+  
+	while (!li->li_dbshutdown) {
+		int i = li->li_dbsyncwaitn;
+
+		sleep( li->li_dbsyncfreq );
+
+		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
+			Debug( LDAP_DEBUG_ANY, "delay syncing %s\n", li->li_directory, 0, 0 );
+			sleep(li->li_dbsyncwaitinterval);
+			i--;
+		}
+
+		if (!li->li_dbshutdown) {
+			Debug( LDAP_DEBUG_ANY, "syncing %s\n", li->li_directory, 0, 0 );
+			ldbm_cache_sync( be );
+		}
+	}
+
+  	Debug( LDAP_DEBUG_ANY, "synchronizer stopping\n", 0, 0, 0 );
+  
+	return NULL;
+}
