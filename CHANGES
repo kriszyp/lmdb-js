@@ -6,6 +6,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd idletimeout lock bug (ITS#767)
 	Fixed slapd caseIgnoreIA5string indexing bug (ITS#786)
 	Fixed slurpd TLS initialization bug (ITS#768)
+	Fixed -lldap SASL ctx close bug (ITS#790)
 	Updated -llber bprint routine
 	Build Environment
 		Fixed VPATH schema install
