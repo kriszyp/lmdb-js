@@ -15,6 +15,9 @@
 
 #include "slap.h"
 #include "lber_pvt.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 
 /*
  * read-only global variables or variables only written by the listener
@@ -141,6 +144,16 @@ slap_init( int mode, const char *name )
 			if( rc == 0 ) {
 				rc = backend_init( );
 			}
+
+#ifdef LDAP_SLAPI
+			if( rc == 0 ) {
+				Slapi_PBlock *pb = slapi_pblock_new();
+
+				rc = doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb );
+				slapi_pblock_destroy( pb );
+			}
+#endif /* LDAP_SLAPI */
+
 			break;
 
 		default:
@@ -180,6 +193,9 @@ int slap_startup( Backend *be )
 int slap_shutdown( Backend *be )
 {
 	int rc;
+#ifdef LDAP_SLAPI
+	Slapi_PBlock *pb;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, CRIT, 
@@ -195,6 +211,12 @@ int slap_shutdown( Backend *be )
 
 	/* let backends do whatever cleanup they need to do */
 	rc = backend_shutdown( be ); 
+
+#ifdef LDAP_SLAPI
+	pb = slapi_pblock_new( );
+	(void) doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb );
+	slapi_pblock_destroy( pb );
+#endif /* LDAP_SLAPI */
 
 	return rc;
 }
