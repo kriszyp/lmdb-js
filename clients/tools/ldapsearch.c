@@ -1061,116 +1061,6 @@ done:
 	return( rc );
 }
 
-#ifdef OLD_WAY
-/* This is the original version, the old way of doing things. */
-static void
-print_entry(
-	LDAP	*ld,
-	LDAPMessage	*entry,
-	int		attrsonly)
-{
-	char		*a, *dn, *ufn;
-	char	tmpfname[ 256 ];
-	char	url[ 256 ];
-	int			i, rc;
-	BerElement		*ber = NULL;
-	struct berval	**bvals;
-	LDAPControl **ctrls = NULL;
-	FILE		*tmpfp;
-
-	dn = ldap_get_dn( ld, entry );
-	ufn = NULL;
-
-	if ( ldif < 2 ) {
-		ufn = ldap_dn2ufn( dn );
-		write_ldif( LDIF_PUT_COMMENT, NULL, ufn, ufn ? strlen( ufn ) : 0 );
-	}
-	write_ldif( LDIF_PUT_VALUE, "dn", dn, dn ? strlen( dn ) : 0);
-
-	rc = ldap_get_entry_controls( ld, entry, &ctrls );
-
-	if( rc != LDAP_SUCCESS ) {
-		fprintf(stderr, _("print_entry: %d\n"), rc );
-		ldap_perror( ld, "ldap_get_entry_controls" );
-		exit( EXIT_FAILURE );
-	}
-
-	if( ctrls ) {
-		print_ctrls( ctrls );
-		ldap_controls_free( ctrls );
-	}
-
-	if ( includeufn ) {
-		if( ufn == NULL ) {
-			ufn = ldap_dn2ufn( dn );
-		}
-		write_ldif( LDIF_PUT_VALUE, "ufn", ufn, ufn ? strlen( ufn ) : 0 );
-	}
-
-	if( ufn != NULL ) ldap_memfree( ufn );
-	ldap_memfree( dn );
-
-	for ( a = ldap_first_attribute( ld, entry, &ber ); a != NULL;
-		a = ldap_next_attribute( ld, entry, ber ) )
-	{
-		if ( attrsonly ) {
-			write_ldif( LDIF_PUT_NOVALUE, a, NULL, 0 );
-
-		} else if (( bvals = ldap_get_values_len( ld, entry, a )) != NULL ) {
-			for ( i = 0; bvals[i] != NULL; i++ ) {
-				if ( vals2tmp > 1 || ( vals2tmp && ldif_is_not_printable(
-					bvals[i]->bv_val, bvals[i]->bv_len ) ))
-				{
-					int tmpfd;
-					/* write value to file */
-					snprintf( tmpfname, sizeof tmpfname,
-						"%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
-						tmpdir, a );
-					tmpfp = NULL;
-
-					tmpfd = mkstemp( tmpfname );
-
-					if ( tmpfd < 0  ) {
-						perror( tmpfname );
-						continue;
-					}
-
-					if (( tmpfp = fdopen( tmpfd, "w")) == NULL ) {
-						perror( tmpfname );
-						continue;
-					}
-
-					if ( fwrite( bvals[ i ]->bv_val,
-						bvals[ i ]->bv_len, 1, tmpfp ) == 0 )
-					{
-						perror( tmpfname );
-						fclose( tmpfp );
-						continue;
-					}
-
-					fclose( tmpfp );
-
-					snprintf( url, sizeof url, "%s%s", urlpre,
-						&tmpfname[strlen(tmpdir) + sizeof(LDAP_DIRSEP) - 1] );
-
-					urlize( url );
-					write_ldif( LDIF_PUT_URL, a, url, strlen( url ));
-
-				} else {
-					write_ldif( LDIF_PUT_VALUE, a,
-						bvals[ i ]->bv_val, bvals[ i ]->bv_len );
-				}
-			}
-			ber_bvecfree( bvals );
-		}
-		ldap_memfree( a );
-	}
-
-	if( ber != NULL ) {
-		ber_free( ber, 0 );
-	}
-}
-#else
 /* This is the proposed new way of doing things.
  * It is more efficient, but the API is non-standard.
  */
@@ -1282,7 +1172,6 @@ print_entry(
 		ber_free( ber, 0 );
 	}
 }
-#endif
 
 static void print_reference(
 	LDAP *ld,
