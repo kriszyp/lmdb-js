@@ -151,9 +151,9 @@ information about how to use "configure", please read:
 
 USING ENVIRONMENT VARIABLES
 
-The configure script will also use your environmental
-variables for determining compiler/linker options.   This can
-be used to manual specify features and compilation options.
+The configure script will also use environmental variables for
+determining compiler/linker options.   This can be used to manually
+specify features and compilation options.
 
 WARNING: Executables built in your environment may not run
 	in your users' environments.  The portability of
