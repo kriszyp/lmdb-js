@@ -153,7 +153,7 @@ static char * slurp_file(int fd) {
 
 static int spew_file(int fd, char * spew) {
 	int written = 0;
-	int writeres;
+	int writeres = 0;
 	int len = strlen(spew);
 	char * spewptr = spew;
 	
@@ -353,13 +353,14 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 		dir_of_path = opendir(path->bv_val);
 		if(dir_of_path == NULL) { /* can't open directory */
-			Debug( LDAP_DEBUG_TRACE,
-				"=> ldif_enum_tree: failed to opendir %s\n",
-				path->bv_val, 0, 0 );
-#if 0
-			/* so, what? */
-			rc = LDAP_BUSY;
-#endif
+			if ( errno != ENOENT ) {
+				/* it shouldn't be treated as an error
+				 * only if the directory doesn't exist */
+				rc = LDAP_BUSY;
+				Debug( LDAP_DEBUG_TRACE,
+					"=> ldif_enum_tree: failed to opendir %s (%d)\n",
+					path->bv_val, errno, 0 );
+			}
 			goto leave;
 		}
 	
@@ -446,7 +447,7 @@ enum_tree(
 {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	struct berval path;
-	int index = 0, rc;
+	int rc;
 	enumCookie ck = {0};
 	struct berval pdn, pndn;
 
@@ -484,18 +485,12 @@ static int apply_modify_to_entry(Entry * entry,
 				SlapReply * rs)
 {
 	char textbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof textbuf;
-	int rc;
-	int tempdebug;
+	int rc = LDAP_UNWILLING_TO_PERFORM;
 	Modification *mods = NULL;
-	Attribute *save_attrs;
 
 	if (!acl_check_modlist(op, entry, modlist)) {
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
-
-	/*  save_attrs = entry->e_attrs; Why?
-			entry->e_attrs = attrs_dup(entry->e_attrs); */
 
 	for (; modlist != NULL; modlist = modlist->sml_next) {
 		mods = &modlist->sml_mod;
@@ -505,14 +500,14 @@ static int apply_modify_to_entry(Entry * entry,
 			rc = modify_add_values(entry, mods,
 				   get_permissiveModify(op),
 				   &rs->sr_text, textbuf,
-				   textlen);
+				   sizeof( textbuf ) );
 			break;
 				
 		case LDAP_MOD_DELETE:
 			rc = modify_delete_values(entry, mods,
 				get_permissiveModify(op),
 				&rs->sr_text, textbuf,
-				textlen);
+				sizeof( textbuf ) );
 
 			break;
 				
@@ -520,7 +515,7 @@ static int apply_modify_to_entry(Entry * entry,
 			rc = modify_replace_values(entry, mods,
 				 get_permissiveModify(op),
 				 &rs->sr_text, textbuf,
-				 textlen);
+				 sizeof( textbuf ) );
 
 			break;
 		case LDAP_MOD_INCREMENT:
@@ -530,7 +525,7 @@ static int apply_modify_to_entry(Entry * entry,
 			rc = modify_add_values(entry, mods,
 				   get_permissiveModify(op),
 				   &rs->sr_text, textbuf,
-				   textlen);
+				   sizeof( textbuf ) );
 			mods->sm_op = SLAP_MOD_SOFTADD;
 			if (rc == LDAP_TYPE_OR_VALUE_EXISTS) {
 				rc = LDAP_SUCCESS;
@@ -547,9 +542,8 @@ static int apply_modify_to_entry(Entry * entry,
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op->o_bd, entry,
-				  save_attrs, &rs->sr_text,
-				  textbuf, textlen);
+		rc = entry_schema_check(op->o_bd, entry, NULL,
+				  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
 	return rc;
 }
@@ -791,10 +785,9 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	struct stat stats;
 	int statres;
 	char textbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof textbuf;
 
 	rs->sr_err = entry_schema_check(op->o_bd, e,
-				  NULL, &rs->sr_text, textbuf, textlen);
+				  NULL, &rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 				
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
@@ -968,9 +961,8 @@ static int move_entry(Entry * entry, struct berval * ndn,
 
 static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	struct berval new_dn = {0, NULL}, new_ndn = {0, NULL};
-	struct berval * new_parent_dn = NULL;
-	struct berval p_dn, bv = {0, NULL};
+	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
+	struct berval p_dn, bv = BER_BVNULL;
 	Entry * entry = NULL;
 	LDAPRDN new_rdn = NULL;
 	LDAPRDN old_rdn = NULL;
@@ -1134,13 +1126,10 @@ static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
 
 static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
-	Attribute *save_attrs;
 	struct berval dn = e->e_nname;
 	struct berval leaf_path = BER_BVNULL;
 	struct stat stats;
 	int statres;
-	char textbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof textbuf;
 	int res = LDAP_SUCCESS;
 
 	dn2path(&dn, &be->be_nsuffix[0], &ni->li_base_path, &leaf_path);
