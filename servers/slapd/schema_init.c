@@ -2121,7 +2121,7 @@ certificateExactNormalize(
 
 	if( val->bv_val[0] != LBER_SEQUENCE ) {
 		/* assume serialNumberAndIssuer */
-		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,NULL);
+		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,ctx);
 	}
 
 	p = val->bv_val;

@@ -329,8 +329,10 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 
 
 			if( bv.bv_val ) {
-				ber_memfree_x( ava->la_value.bv_val, ctx );
+				if ( ava->la_flags & LDAP_AVA_FREE_VALUE )
+					ber_memfree_x( ava->la_value.bv_val, ctx );
 				ava->la_value = bv;
+				ava->la_flags |= LDAP_AVA_FREE_VALUE;
 			}
 
 			if( do_sort ) AVA_Sort( rdn, iAVA );
