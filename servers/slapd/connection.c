@@ -1164,14 +1164,13 @@ int connection_read(ber_socket_t s)
 			 * to propagate to client. */
 			FD_ZERO(&rfd);
 			FD_SET(s, &rfd);
-			for (rc=1; rc>0;)
-			{
+			for (rc=1; rc>0;) {
 			    tv.tv_sec = 1;
 			    tv.tv_usec = 0;
 			    rc = select(s+1, &rfd, NULL, NULL, &tv);
-			    if (rc == 1)
-				ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DRAIN,
-				    NULL);
+			    if (rc == 1) {
+					ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DRAIN, NULL);
+				}
 			}
 #endif
 			connection_close( c );
@@ -1206,9 +1205,15 @@ int connection_read(ber_socket_t s)
 			slap_sasl_external( c, c->c_tls_ssf, authid.bv_val );
 			if ( authid.bv_val )	free( authid.bv_val );
 		}
-		connection_return( c );
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-		return 0;
+
+		/* if success and data is ready, fall thru to data input loop */
+		if( rc != 0 ||
+			!ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
+		{
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( &connections_mutex );
+			return 0;
+		}
 	}
 #endif
 
