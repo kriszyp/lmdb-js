@@ -38,6 +38,8 @@ bdb_key_read(
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 
 	rc = bdb_idl_fetch_key( be, db, txn, &key, ids );
 
@@ -88,6 +90,8 @@ bdb_key_change(
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 
 	if (op == SLAP_INDEX_ADD_OP) {
 		/* Add values */

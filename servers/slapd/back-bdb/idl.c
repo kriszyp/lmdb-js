@@ -684,9 +684,12 @@ bdb_idl_delete_key(
 		if ( rc == 0 ) {
 			if ( tmp != 0 ) {
 				/* Not a range, just delete it */
-				data.data = &id;
-				rc = cursor->c_get( cursor, key, &data, 
-					DB_GET_BOTH | DB_RMW  );
+				if (tmp != id) {
+					/* position to correct item */
+					tmp = id;
+					rc = cursor->c_get( cursor, key, &data, 
+						DB_GET_BOTH | DB_RMW  );
+				}
 				if ( rc == 0 ) {
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {

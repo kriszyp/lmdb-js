@@ -39,6 +39,8 @@ bdb_dn2id_add(
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 	buf = ch_malloc( key.size );
 	key.data = buf;
 	buf[0] = DN_BASE_PREFIX;
@@ -84,6 +86,7 @@ bdb_dn2id_add(
 		dnParent( &ptr, &pdn );
 	
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
 		key.data = pdn.bv_val-1;
 		ptr = pdn;
@@ -124,6 +127,7 @@ bdb_dn2id_add(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
@@ -189,7 +193,7 @@ bdb_dn2id_delete(
 
 	if( !be_issuffix( be, &ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
-		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+		rc = db->del( db, txn, &key, 0 );
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
@@ -206,6 +210,7 @@ bdb_dn2id_delete(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
@@ -245,6 +250,7 @@ bdb_dn2id_delete(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
@@ -528,6 +534,8 @@ bdb_dn2idl(
 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
