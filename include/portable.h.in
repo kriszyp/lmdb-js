@@ -164,6 +164,9 @@
 /* Define if you have the getpassphrase function.  */
 #undef HAVE_GETPASSPHRASE
 
+/* Define if you have the getpeereid function.  */
+#undef HAVE_GETPEEREID
+
 /* Define if you have the getpwnam function.  */
 #undef HAVE_GETPWNAM
 
@@ -541,6 +544,9 @@
 
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
+
+/* Define if you have the <sys/ucred.h> header file.  */
+#undef HAVE_SYS_UCRED_H
 
 /* Define if you have the <sys/un.h> header file.  */
 #undef HAVE_SYS_UN_H

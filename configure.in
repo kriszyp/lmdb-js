@@ -834,6 +834,7 @@ AC_CHECK_HEADERS(	\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
+	sys/ucred.h		\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
@@ -2478,10 +2479,13 @@ AC_CHECK_FUNCS(		\
 )
 
 dnl We actually may need to replace more than this.
-AC_REPLACE_FUNCS(getopt)
+AC_REPLACE_FUNCS(getopt getpeereid)
 
 if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
+fi
+if test "$ac_cv_func_getpeereid" != yes; then
+	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
 if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
 	if test "$ac_cv_func_snprintf" != yes; then

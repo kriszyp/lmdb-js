@@ -32,7 +32,7 @@
  * create a replacement and hope it works
  */
 
-LIBLBER_F (void) ber_pvt_assert LDAP_P(( const char *file, int line,
+LBER_F (void) ber_pvt_assert LDAP_P(( const char *file, int line,
 					 const char *test ));
 
 /* Can't use LDAP_STRING(test), that'd expand to "test" */
