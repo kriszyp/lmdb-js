@@ -24,7 +24,7 @@
 
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
-#ifdef HAVE_HEADER_SASL_SASL_H
+#ifdef HAVE_SASL_SASL_H
 #include <sasl/sasl.h>
 #else
 #include <sasl.h>

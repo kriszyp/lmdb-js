@@ -13,7 +13,11 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_SASL_SASL_H
+#include <sasl/sasl.h>
+#else
 #include <sasl.h>
+#endif
 
 #include <ldap.h>
 #include "lutil_ldap.h"

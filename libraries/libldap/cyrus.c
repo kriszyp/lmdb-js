@@ -23,7 +23,7 @@
 ldap_pvt_thread_mutex_t ldap_int_sasl_mutex;
 #endif
 
-#ifdef HAVE_HEADER_SASL_SASL_H
+#ifdef HAVE_SASL_SASL_H
 #include <sasl/sasl.h>
 #else
 #include <sasl.h>
