@@ -321,24 +321,28 @@ static int copy_hostent( struct hostent *res, char **buf, struct hostent * src )
 	char	**tp;
 	char	*tbuf;
 	int	name_len;
-	int	n_alias;
-	int	total_alias_len;
-	int	n_addr;
+	int	n_alias=0;
+	int	total_alias_len=0;
+	int	n_addr=0;
 	int	total_addr_len;
 	int	total_len;
 	  
 	/* calculate the size needed for the buffer */
 	name_len = strlen( src->h_name ) + 1;
 	
-	for( n_alias=total_alias_len=0, p=src->h_aliases; (*p) ; p++ ) {
-		total_alias_len += strlen( *p ) + 1;
-		n_alias++; 
+	if( src->h_aliases != NULL ) {
+		for( p = src->h_aliases; (*p) != NULL; p++ ) {
+			total_alias_len += strlen( *p ) + 1;
+			n_alias++; 
+		}
 	}
 
-	for( n_addr=0, p=src->h_addr_list; (*p) ; p++ ) {
-		n_addr++;
+	if( src->h_addr_list != NULL ) {
+		for( p = src->h_addr_list; (*p) != NULL; p++ ) {
+			n_addr++;
+		}
+		total_addr_len = n_addr * src->h_length;
 	}
-	total_addr_len = n_addr * src->h_length;
 	
 	total_len = (n_alias + n_addr + 2) * sizeof( char * ) +
 		total_addr_len + total_alias_len + name_len;
@@ -352,11 +356,15 @@ static int copy_hostent( struct hostent *res, char **buf, struct hostent * src )
 		res->h_name = tbuf; tbuf+=name_len;
 		/* now the aliases */
 		res->h_aliases = tp;
-		tbuf = cpy_aliases( &tp, tbuf, src->h_aliases );
+		if ( src->h_aliases != NULL ) {
+			tbuf = cpy_aliases( &tp, tbuf, src->h_aliases );
+		}
 		*tp++=NULL;
 		/* finally the addresses */
 		res->h_addr_list = tp;
-		tbuf = cpy_addresses( &tp, tbuf, src->h_addr_list, src->h_length );
+		if ( src->h_addr_list != NULL ) {
+			tbuf = cpy_addresses( &tp, tbuf, src->h_addr_list, src->h_length );
+		}
 		*tp++=NULL;
 		return 0;
 	}
