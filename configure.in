@@ -7,6 +7,10 @@ dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl
 
+dnl Disable config.cache!
+define([AC_CACHE_LOAD], )dnl
+define([AC_CACHE_SAVE], )dnl
+
 dnl Configure.in for OpenLDAP
 AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
