@@ -55,6 +55,8 @@ ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
 
+char   *strtok_quote_ptr;
+
 int nSaslRegexp = 0;
 SaslRegexp_t *SaslRegexp = NULL;
 
@@ -2356,17 +2358,29 @@ fp_parse_line(
 {
 	char *	token;
 	char *	logline;
+	char	logbuf[sizeof("pseudorootpw ***")];
 
 	*argcp = 0;
 	token = strtok_quote( line, " \t" );
 
-	logline = (!token || strcasecmp(token, "rootpw") ? line : "rootpw *");
+	logline = line;
+	if ( token &&
+	     (strcasecmp( token, "rootpw" ) == 0 ||
+	      strcasecmp( token, "replica" ) == 0 || /* contains "credentials" */
+	      strcasecmp( token, "bindpw" ) == 0 ||       /* used in back-ldap */
+	      strcasecmp( token, "pseudorootpw" ) == 0 || /* used in back-meta */
+		  strcasecmp( token, "dbpasswd" ) == 0 ) )    /* used in back-sql */
+		sprintf( logline = logbuf, "%s ***", token );
+	if ( strtok_quote_ptr )
+		*strtok_quote_ptr = ' ';
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "config", LDAP_LEVEL_DETAIL1,
 		   "line %d (%s)\n", lineno, logline ));
 #else
 	Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, logline, 0 );
 #endif
+	if ( strtok_quote_ptr )
+		*strtok_quote_ptr = '\0';
 
 	for ( ; token != NULL; token = strtok_quote( NULL, " \t" ) ) {
 		if ( *argcp == MAXARGS ) {
@@ -2394,6 +2408,7 @@ strtok_quote( char *line, char *sep )
 	char		*tmp;
 	static char	*next;
 
+	strtok_quote_ptr = NULL;
 	if ( line != NULL ) {
 		next = line;
 	}
@@ -2428,6 +2443,7 @@ strtok_quote( char *line, char *sep )
 		default:
 			if ( ! inquote ) {
 				if ( strchr( sep, *next ) != NULL ) {
+					strtok_quote_ptr = next;
 					*next++ = '\0';
 					return( tmp );
 				}

@@ -89,7 +89,7 @@ bdb_attribute(
 			if( txn != NULL ) {
 				boi->boi_err = rc;
 			}
-			return LDAP_OTHER;
+			return (rc != LDAP_BUSY) ? LDAP_OTHER : LDAP_BUSY;
 		}
 		if (e == NULL) {
 #ifdef NEW_LOGGING

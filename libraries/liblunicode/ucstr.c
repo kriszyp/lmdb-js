@@ -212,7 +212,7 @@ struct berval * UTF8bvnormalize(
 			p++;
                 }
 		/* normalize ucs of length p - ucs */
-		uccanondecomp( ucs, p - ucs, &ucsout, &ucsoutlen );    
+		uccompatdecomp( ucs, p - ucs, &ucsout, &ucsoutlen );    
 		if ( approx ) {
 			for ( j = 0; j < ucsoutlen; j++ ) {
 				if ( ucsout[j] < 0x80 ) {
@@ -370,7 +370,7 @@ int UTF8bvnormcmp(
 			return l1 > l2 ? 1 : -1; /* what to do??? */
 		}
 	} else {
-		uccanondecomp( ucs, ulen, &ucsout1, &l1 );
+		uccompatdecomp( ucs, ulen, &ucsout1, &l1 );
 		l1 = uccanoncomp( ucsout1, l1 );
 	}
 
@@ -389,7 +389,7 @@ int UTF8bvnormcmp(
 		ucsout2 = ucs;
 		l2 = ulen;
 	} else {
-		uccanondecomp( ucs, ulen, &ucsout2, &l2 );
+		uccompatdecomp( ucs, ulen, &ucsout2, &l2 );
 		l2 = uccanoncomp( ucsout2, l2 );
 		free( ucs );
 	}

@@ -674,6 +674,10 @@ static unsigned long  _ucdcmp_size;
 static unsigned long *_ucdcmp_nodes;
 static unsigned long *_ucdcmp_decomp;
 
+static unsigned long  _uckdcmp_size;
+static unsigned long *_uckdcmp_nodes;
+static unsigned long *_uckdcmp_decomp;
+
 /*
  * Return -1 on error, 0 if okay
  */
@@ -729,6 +733,61 @@ _ucdcmp_load(char *paths, int reload)
     return 0;
 }
 
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
+_uckdcmp_load(char *paths, int reload)
+{
+    FILE *in;
+    unsigned long size, i;
+    _ucheader_t hdr;
+
+    if (_uckdcmp_size > 0) {
+        if (!reload)
+            /*
+             * The decompositions have already been loaded.
+             */
+          return 0;
+
+        free((char *) _uckdcmp_nodes);
+        _uckdcmp_size = 0;
+    }
+
+    if ((in = _ucopenfile(paths, "kdecomp.dat", "rb")) == 0)
+        return -1;
+
+    /*
+     * Load the header.
+     */
+    fread((char *) &hdr, sizeof(_ucheader_t), 1, in);
+
+    if (hdr.bom == 0xfffe) {
+        hdr.cnt = endian_short(hdr.cnt);
+        hdr.size.bytes = endian_long(hdr.size.bytes);
+    }
+
+    _uckdcmp_size = hdr.cnt << 1;
+    _uckdcmp_nodes = (unsigned long *) malloc(hdr.size.bytes);
+    _uckdcmp_decomp = _uckdcmp_nodes + (_uckdcmp_size + 1);
+
+    /*
+     * Read the decomposition data in.
+     */
+    size = hdr.size.bytes / sizeof(unsigned long);
+    fread((char *) _uckdcmp_nodes, sizeof(unsigned long), size, in);
+
+    /*
+     * Do an endian swap if necessary.
+     */
+    if (hdr.bom == 0xfffe) {
+        for (i = 0; i < size; i++)
+            _uckdcmp_nodes[i] = endian_long(_uckdcmp_nodes[i]);
+    }
+    fclose(in);
+    return 0;
+}
+
 static void
 _ucdcmp_unload(void)
 {
@@ -743,10 +802,28 @@ _ucdcmp_unload(void)
     _ucdcmp_size = 0;
 }
 
+static void
+_uckdcmp_unload(void)
+{
+    if (_uckdcmp_size == 0)
+      return;
+
+    /*
+     * Only need to free the offsets because the memory is allocated as a
+     * single block.
+     */
+    free((char *) _uckdcmp_nodes);
+    _uckdcmp_size = 0;
+}
+
 int
 ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
 {
     long l, r, m;
+
+    if (code < _ucdcmp_nodes[0]) {
+	return 0;
+    }
 
     l = 0;
     r = _ucdcmp_nodes[_ucdcmp_size] - 1;
@@ -772,6 +849,38 @@ ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
 }
 
 int
+uckdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
+{
+    long l, r, m;
+
+    if (code < _uckdcmp_nodes[0]) {
+	return 0;
+    }
+    
+    l = 0;
+    r = _uckdcmp_nodes[_uckdcmp_size] - 1;
+
+    while (l <= r) {
+        /*
+         * Determine a "mid" point and adjust to make sure the mid point is at
+         * the beginning of a code+offset pair.
+         */
+        m = (l + r) >> 1;
+        m -= (m & 1);
+        if (code > _uckdcmp_nodes[m])
+          l = m + 2;
+        else if (code < _uckdcmp_nodes[m])
+          r = m - 2;
+        else if (code == _uckdcmp_nodes[m]) {
+            *num = _uckdcmp_nodes[m + 3] - _uckdcmp_nodes[m + 1];
+            *decomp = &_uckdcmp_decomp[_uckdcmp_nodes[m + 1]];
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
 ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
 {
     if (!ucishangul(code))
@@ -786,9 +895,10 @@ ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
     return 1;
 }
 
-int
-uccanondecomp(const unsigned long *in, int inlen,
-              unsigned long **out, int *outlen)
+/* mode == 0 for canonical, mode == 1 for compatibility */
+static int
+uccanoncompatdecomp(const unsigned long *in, int inlen,
+		    unsigned long **out, int *outlen, short mode)
 {
     int l, size;
 	unsigned i, j, k;
@@ -801,7 +911,7 @@ uccanondecomp(const unsigned long *in, int inlen,
 
     i = 0;
     for (j = 0; j < (unsigned) inlen; j++) {
-        if (ucdecomp(in[j], &num, &decomp)) {
+	if (mode ? uckdecomp(in[j], &num, &decomp) : ucdecomp(in[j], &num, &decomp)) {
             if ( size - i < num) {
                 size = inlen + i - j + num - 1;
                 *out = (unsigned long *) realloc(*out, size * sizeof(**out));
@@ -853,6 +963,20 @@ uccanondecomp(const unsigned long *in, int inlen,
         }
     }
     return *outlen = i;
+}
+
+int
+uccanondecomp(const unsigned long *in, int inlen,
+              unsigned long **out, int *outlen)
+{
+    return uccanoncompatdecomp(in, inlen, out, outlen, 0);
+}
+
+int
+uccompatdecomp(const unsigned long *in, int inlen,
+	       unsigned long **out, int *outlen)
+{
+    return uccanoncompatdecomp(in, inlen, out, outlen, 1);
 }
 
 /**************************************************************************
@@ -1152,6 +1276,8 @@ ucdata_load(char *paths, int masks)
       error |= _ucnumb_load(paths, 0) < 0 ? UCDATA_NUM : 0;
     if (masks & UCDATA_COMP)
       error |= _uccomp_load(paths, 0) < 0 ? UCDATA_COMP : 0;
+    if (masks & UCDATA_KDECOMP)
+      error |= _uckdcmp_load(paths, 0) < 0 ? UCDATA_KDECOMP : 0;
 
     return -error;
 }
@@ -1171,6 +1297,8 @@ ucdata_unload(int masks)
       _ucnumb_unload();
     if (masks & UCDATA_COMP)
       _uccomp_unload();
+    if (masks & UCDATA_KDECOMP)
+      _uckdcmp_unload();
 }
 
 /*
@@ -1193,6 +1321,8 @@ ucdata_reload(char *paths, int masks)
         error |= _ucnumb_load(paths, 1) < 0 ? UCDATA_NUM : 0;
     if (masks & UCDATA_COMP)
         error |= _uccomp_load(paths, 1) < 0 ? UCDATA_COMP : 0;
+    if (masks & UCDATA_KDECOMP)
+        error |= _uckdcmp_load(paths, 1) < 0 ? UCDATA_KDECOMP : 0;
 
     return -error;
 }

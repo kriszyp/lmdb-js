@@ -44,13 +44,11 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-local	  enable AF_LOCAL (AF_UNIX) socket support [auto]"
 ac_help="$ac_help
-  --enable-rewrite	  enable rewrite [no]"
-ac_help="$ac_help
   --enable-x-compile	  enable cross compiling [no]"
 ac_help="$ac_help
   --with-cyrus-sasl	  with Cyrus SASL support [auto]"
 ac_help="$ac_help
-  --with-fetch		  with fetch URL support [auto]"
+  --with-fetch		  with freeBSD fetch URL support [auto]"
 ac_help="$ac_help
   --with-kerberos	  with Kerberos support [auto]"
 ac_help="$ac_help
@@ -85,7 +83,9 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-phonetic	  enable phonetic/soundex [no]"
 ac_help="$ac_help
-    --enable-rlookups	  enable reverse lookups [no]"
+    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta [no]"
+ac_help="$ac_help
+    --enable-rlookups	  enable reverse lookups of client hostnames [no]"
 ac_help="$ac_help
     --enable-slp          enable SLPv2 support [no]"
 ac_help="$ac_help
@@ -93,51 +93,51 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-bdb	  enable Berkeley DB backend [yes]"
 ac_help="$ac_help
-    --with-bdb-module     module type [static]"
+    --with-bdb-module     module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-dnssrv	  enable dnssrv backend [no]"
 ac_help="$ac_help
-    --with-dnssrv-module  module type [static]"
+    --with-dnssrv-module  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-ldap	  enable ldap backend [no]"
 ac_help="$ac_help
-    --with-ldap-module	  module type [static]"
+    --with-ldap-module	  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-ldbm	  enable ldbm backend [no]"
 ac_help="$ac_help
-    --with-ldbm-api       with LDBM API [auto]"
+    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm [auto]"
 ac_help="$ac_help
-    --with-ldbm-module	  module type [static]"
+    --with-ldbm-module	  module type static|dynamic [static]"
 ac_help="$ac_help
-    --with-ldbm-type	  use LDBM type [auto]"
+    --with-ldbm-type	  use LDBM type auto|btree|hash [auto]"
 ac_help="$ac_help
     --enable-meta	  enable metadirectory backend [no]"
 ac_help="$ac_help
-    --with-meta-module	  module type [static]"
+    --with-meta-module	  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-monitor	  enable monitor backend [no]"
 ac_help="$ac_help
-    --with-monitor-module module type [static]"
+    --with-monitor-module module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-null	  enable null backend [no]"
 ac_help="$ac_help
-    --with-null-module	  module type [static]"
+    --with-null-module	  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-passwd	  enable passwd backend [no]"
 ac_help="$ac_help
-    --with-passwd-module  module type [static]"
+    --with-passwd-module  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-perl	  enable perl backend [no]"
 ac_help="$ac_help
-    --with-perl-module	  module type [static]"
+    --with-perl-module	  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-shell	  enable shell backend [no]"
 ac_help="$ac_help
-    --with-shell-module	  module type [static]"
+    --with-shell-module	  module type static|dynamic [static]"
 ac_help="$ac_help
     --enable-sql	  enable sql backend [no]"
 ac_help="$ac_help
-    --with-sql-module	  module type [static]"
+    --with-sql-module	  module type static|dynamic [static]"
 ac_help="$ac_help
 
 SLURPD (Replication Daemon) Options:"
@@ -1547,26 +1547,6 @@ else
   	ol_enable_local="auto"
 fi
 # end --enable-local
-# OpenLDAP --enable-rewrite
-	# Check whether --enable-rewrite or --disable-rewrite was given.
-if test "${enable_rewrite+set}" = set; then
-  enableval="$enable_rewrite"
-  
-	ol_arg=invalid
-	for ol_val in auto yes no ; do
-		if test "$enableval" = "$ol_val" ; then
-			ol_arg="$ol_val"
-		fi
-	done
-	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $enableval for --enable-rewrite" 1>&2; exit 1; }
-	fi
-	ol_enable_rewrite="$ol_arg"
-
-else
-  	ol_enable_rewrite="no"
-fi
-# end --enable-rewrite
 # OpenLDAP --enable-x_compile
 	# Check whether --enable-x_compile or --disable-x_compile was given.
 if test "${enable_x_compile+set}" = set; then
@@ -1944,6 +1924,26 @@ else
   	ol_enable_phonetic="no"
 fi
 # end --enable-phonetic
+# OpenLDAP --enable-rewrite
+	# Check whether --enable-rewrite or --disable-rewrite was given.
+if test "${enable_rewrite+set}" = set; then
+  enableval="$enable_rewrite"
+  
+	ol_arg=invalid
+	for ol_val in auto yes no ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		{ echo "configure: error: bad value $enableval for --enable-rewrite" 1>&2; exit 1; }
+	fi
+	ol_enable_rewrite="$ol_arg"
+
+else
+  	ol_enable_rewrite="no"
+fi
+# end --enable-rewrite
 # OpenLDAP --enable-rlookups
 	# Check whether --enable-rlookups or --disable-rlookups was given.
 if test "${enable_rlookups+set}" = set; then

@@ -53,6 +53,10 @@ bdb_bind(
 	case DB_NOTFOUND:
 	case 0:
 		break;
+	case LDAP_BUSY:
+		send_ldap_result( conn, op, LDAP_BUSY,
+			NULL, "ldap server busy", NULL, NULL );
+		return LDAP_BUSY;
 	default:
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );

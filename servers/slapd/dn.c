@@ -830,6 +830,7 @@ dnIsSuffix(
 	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
 }
 
+#ifdef HAVE_TLS
 /*
  * Convert an X.509 DN into a normalized LDAP DN
  */
@@ -848,3 +849,4 @@ dnX509peerNormalize( void *ssl )
 {
 	return ldap_pvt_tls_get_peer_dn( ssl, (LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
 }
+#endif

@@ -159,6 +159,9 @@ retry:	/* transaction retry */
 	case DB_NOTFOUND:
 	case 0:
 		break;
+	case LDAP_BUSY:
+		*text = "ldap server busy";
+		goto done;
 	default:
 		rc = LDAP_OTHER;
 		*text = "internal error";

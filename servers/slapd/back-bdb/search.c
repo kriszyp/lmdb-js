@@ -88,6 +88,16 @@ bdb_search(
 	case DB_NOTFOUND:
 	case 0:
 		break;
+	case LDAP_BUSY:
+		if (e != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, e);
+		}
+		if (matched != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+		}
+		send_ldap_result( conn, op, LDAP_BUSY,
+			NULL, "ldap server busy", NULL, NULL );
+		return LDAP_BUSY;
 	default:
 		if (e != NULL) {
 			bdb_cache_return_entry_r(&bdb->bi_cache, e);
@@ -312,6 +322,12 @@ bdb_search(
 
 		/* get the entry with reader lock */
 		rc = bdb_id2entry_r( be, NULL, id, &e );
+
+		if (rc == LDAP_BUSY) {
+			send_ldap_result( conn, op, rc=LDAP_BUSY,
+				NULL, "ldap server busy", NULL, NULL );
+			goto done;
+		}
 
 		if ( e == NULL ) {
 			if( !BDB_IDL_IS_RANGE(candidates) ) {
