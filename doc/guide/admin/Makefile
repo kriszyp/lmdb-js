@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2005 The OpenLDAP Foundation.
+## Copyright 2005 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 all: guide.html index.html
 
-sdf-src: \
+sdf-src: Makefile \
+	../plain.sdf \
+	../preamble.sdf \
 	abstract.sdf \
 	config.sdf \
 	dbtools.sdf \
@@ -39,6 +41,7 @@ sdf-src: \
 	tuning.sdf
 
 sdf-img: \
+	../images/LDAPlogo.gif \
 	config_local.gif \
 	config_ref.gif \
 	config_repl.gif \
@@ -48,7 +51,8 @@ sdf-img: \
 	intro_tree.gif \
 	replication.gif
 
-guide.html: guide.sdf sdf-src
+guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
 
-index.html: index.sdf sdf-src
+index.html: index.sdf sdf-src sdf-img
+	sdf -2topics index.sdf
