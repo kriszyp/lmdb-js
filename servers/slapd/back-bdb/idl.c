@@ -239,6 +239,10 @@ bdb_idl_fetch_key(
 		data.data = buf;
 		data.ulen = BDB_IDL_UM_SIZEOF;
 		data.flags = DB_DBT_USERMEM;
+		int flags = bdb->bi_db_opflags | DB_MULTIPLE;
+
+		if ( tid )
+			flags |= DB_RMW;
 
 		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 		if( rc != 0 ) {
@@ -246,8 +250,7 @@ bdb_idl_fetch_key(
 				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 			return rc;
 		}
-		rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
-			DB_SET | DB_MULTIPLE );
+		rc = cursor->c_get( cursor, key, &data, flags | DB_SET );
 		if (rc == 0) {
 			i = ids;
 			while (rc == 0) {
@@ -259,8 +262,7 @@ bdb_idl_fetch_key(
 						AC_MEMCPY( i, j, sizeof(ID) );
 					}
 				}
-				rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
-					DB_NEXT_DUP | DB_MULTIPLE );
+				rc = cursor->c_get( cursor, key, &data, flags | DB_NEXT_DUP );
 			}
 			if ( rc == DB_NOTFOUND ) rc = 0;
 			ids[0] = i - ids;
@@ -381,7 +383,7 @@ bdb_idl_insert_key(
 				} else {
 					data.data = buf+2;
 				}
-				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
+				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH | DB_RMW );
 				if ( rc != 0 ) {
 					err = "c_get";
 fail:				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
