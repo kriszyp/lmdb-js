@@ -47,8 +47,13 @@ retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_cache_return_entry_w(&bdb->bi_cache, e);
 		}
-		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n", 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "operational", LDAP_LEVEL_DETAIL1,
+			"=> bdb_operational: retrying...\n" ));
+#else
+		Debug( LDAP_DEBUG_TRACE, "==> bdb_operational: retrying...\n", 
 				0, 0, 0 );
+#endif
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -62,9 +67,15 @@ retry:	/* transaction retry */
 	/* begin transaction */
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, bdb->bi_db_opflags );
 	if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "operational", LDAP_LEVEL_ERR,
+			"=> bdb_operational: txn_begin failed: %s (%d)\n",
+			 db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_operational: txn_begin failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 		return rc;
 	}
@@ -90,9 +101,15 @@ retry:	/* transaction retry */
 		break;
 
 	default:
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "operational", LDAP_LEVEL_ERR,
+			"=> bdb_operational: has_children failed: %s (%d)\n",
+			 db_strerror(rc), rc ));
+#else
 		Debug(LDAP_DEBUG_ARGS, 
 			"<=- bdb_operational: has_children failed: %s (%d)\n", 
 			db_strerror(rc), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 	}
 

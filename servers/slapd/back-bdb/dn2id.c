@@ -254,7 +254,7 @@ done:
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "db2id", LDAP_LEVEL_RESULTS, "<= bdb_dn2id_delete %d\n", rc ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 )
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
 #endif
 	return rc;
 }
