@@ -56,6 +56,8 @@ static char *person_attr_print_order[] = {
 	"memberOfGroup",
 	"lastModifiedBy",
 	"lastModifiedTime",
+	"modifiersname",
+	"modifytimestamp",
 	NULL
 };
 
@@ -78,6 +80,10 @@ static char *group_attr_print_order[] = {
 	"labeledURL",
 	"lastModifiedBy",
 	"lastModifiedTime",
+	"modifiersname",
+	"modifytimestamp",
+	"creatorsname",
+	"createtimestamp",
 	NULL
 };
 
@@ -578,8 +584,10 @@ time2text( char *ldtimestr, int dateonly )
 		/* POSIX says tm_year should be year - 1900 */
     	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
 		p += 2;
+	} else {
+    	t.tm_year = 0;
 	}
-    t.tm_year = GET2BYTENUM( p ); p += 2;
+    t.tm_year += GET2BYTENUM( p ); p += 2;
 
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;

@@ -69,5 +69,9 @@ struct attribute attrlist[] = {
 	{ "drink", "Favorite Beverage", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD },
 	{ "lastModifiedBy", "Last modified by", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
 	{ "lastModifiedTime", "Last modified at", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
+	{ "modifiersname", "Modifier's Name", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
+	{ "modifytimestamp", "Modify Timestamp", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
+	{ "creatorsname", "Creator's Name", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
+	{ "createtimestamp", "Create Timestamp", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
 	{ NULL, NULL, 0, ATTR_FLAG_NONE }
 };
