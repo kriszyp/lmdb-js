@@ -108,7 +108,7 @@ typedef char * caddr_t;
 #undef size_t
 
 /* Define if you have the ANSI C header files.  */
-#undef STDC_HEADERS
+#define STDC_HEADERS 1
 
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #undef TIME_WITH_SYS_TIME
@@ -285,7 +285,7 @@ typedef char * caddr_t;
 #undef HAVE_SIGSET
 
 /* Define if you have the socket function.  */
-#define HAVE_SOCKET 1
+#undef HAVE_SOCKET
 
 /* Define if you have the strdup function.  */
 #define HAVE_STRDUP 1
