@@ -804,6 +804,9 @@ acl_mask(
 		}
 	}
 
+	/* implicit "by * none" clause */
+	ACL_INIT(*mask);
+
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
 		accessmask2str(*mask, accessmaskbuf), 0, 0 );
