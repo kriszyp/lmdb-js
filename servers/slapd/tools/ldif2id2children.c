@@ -42,6 +42,8 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 
+	ldbm_ignore_nextid_file = 1;
+
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:f:i:n:" )) != EOF ) {

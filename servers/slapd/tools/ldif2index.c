@@ -39,6 +39,8 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 
+	ldbm_ignore_nextid_file = 1;
+
 	inputfile = NULL;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;

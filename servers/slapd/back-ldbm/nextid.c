@@ -27,6 +27,9 @@ next_id_read( Backend *be )
 	char*	file = li->li_nextid_file; 
 	FILE*	fp;
 
+	if ( ldbm_ignore_nextid_file )
+		return NOID;
+
 	if ( (fp = fopen( file, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "next_id_read: could not open \"%s\"\n",
@@ -62,6 +65,9 @@ next_id_write( Backend *be, ID id )
 	char*	file = li->li_nextid_file; 
 	FILE*	fp;
 	int		rc;
+
+	if ( ldbm_ignore_nextid_file )
+		return 0;
 
 	if ( (fp = fopen( file, "w" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): could not open \"%s\"\n",

@@ -142,6 +142,8 @@ struct ldbminfo {
 #endif
 };
 
+extern int ldbm_ignore_nextid_file;
+
 #include "proto-back-ldbm.h"
 
 LDAP_END_DECL

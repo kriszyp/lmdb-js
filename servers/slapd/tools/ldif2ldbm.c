@@ -65,6 +65,8 @@ main( int argc, char **argv )
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 
+	ldbm_ignore_nextid_file = 1;
+
 	sbindir = DEFAULT_SBINDIR;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;

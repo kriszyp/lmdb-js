@@ -10,6 +10,9 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+int ldbm_ignore_nextid_file = 0;
+
+
 int
 ldbm_back_db_config(
     Backend	*be,
