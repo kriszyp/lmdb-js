@@ -203,6 +203,7 @@ monitor_subsys_log_modify(
 
 			goto cleanup;
 		}
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 #endif
 
 		/* check that the entry still obeys the schema */
@@ -212,6 +213,9 @@ monitor_subsys_log_modify(
 			goto cleanup;
 		}
 
+		/*
+		 * Do we need to protect this with a mutex?
+		 */
 		ldap_syslog = newlevel;
 
 #if 0	/* debug rather than log */
