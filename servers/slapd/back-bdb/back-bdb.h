@@ -23,6 +23,8 @@
 
 LDAP_BEGIN_DECL
 
+#define DB_VERSION_FULL ((DB_VERSION_MAJOR << 24) | (DB_VERSION_MINOR << 16) | DB_VERSION_PATCH)
+
 #define BDB_SUBENTRIES 1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
@@ -227,7 +229,7 @@ struct bdb_op_info {
 #define XLOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
 
 /* BDB 4.1.17 adds txn arg to db->open */
-#if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
+#if DB_VERSION_FULL >= 0x04010011
 #undef DB_OPEN
 #define	DB_OPEN(db, file, name, type, flags, mode) \
 	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)

@@ -438,7 +438,7 @@ bdb_idl_fetch_key(
 	 *
 	 * configure now requires Berkeley DB 4.1.
 	 */
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 0)
+#if DB_VERSION_FULL < 0x04010000
 #	define BDB_ENOUGH 5
 #else
 #	define BDB_ENOUGH 1

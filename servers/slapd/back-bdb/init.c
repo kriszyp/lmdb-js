@@ -580,7 +580,7 @@ bdb_initialize(
 	bi->bi_controls = controls;
 
 	{	/* version check */
-		int major, minor, patch;
+		int major, minor, patch, ver;
 		char *version = db_version( &major, &minor, &patch );
 #ifdef HAVE_EBCDIC
 		char v2[1024];
@@ -594,9 +594,8 @@ bdb_initialize(
 		version = v2;
 #endif
 
-		if( major != DB_VERSION_MAJOR ||
-			minor != DB_VERSION_MINOR ||
-			patch < DB_VERSION_PATCH )
+		ver = (major << 24) | (minor << 16) | patch;
+		if( ver < DB_VERSION_FULL )
 		{
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_initialize: BDB library version mismatch:"
