@@ -144,6 +144,25 @@ SOURCE=.\common.c
 # Begin Source File
 
 SOURCE=.\ldappasswd.c
+
+!IF "$CFG)" == "ldappasswd - Win32 Release"
+
+# ADD CPP /D _OLV_CWD=\"$(OutDir)\"
+
+!ELSEIF "$(CFG)" == "ldappasswd - Win32 Debug"
+
+# ADD CPP /D _OLV_CWD=\"$(OutDir)\"
+
+!ELSEIF "$(CFG)" == "ldappasswd - Win32 Single Debug"
+
+# ADD CPP /D _OLV_CWD=\"$(OutDir)\"
+
+!ELSEIF "$(CFG)" == "ldappasswd - Win32 Single Release"
+
+# ADD CPP /D _OLV_CWD=\"$(OutDir)\"
+
+!ENDIF
+
 # End Source File
 # End Target
 # End Project
