@@ -174,7 +174,7 @@ modify_delete_values(
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 	char		dummy = '\0';
-	int			match = 0;
+	int		match = 0;
 
 	/*
 	 * If permissive is set, then the non-existence of an 
@@ -287,7 +287,7 @@ modify_delete_values(
 	}
 
 	/* compact array skipping dummies */
-	for ( k = 0, j = 0; a->a_vals[k].bv_val != NULL; k++ ) {
+	for ( k = 0, j = 0; !BER_BVISNULL( &a->a_vals[k] ); k++ ) {
 		/* skip dummies */
 		if( a->a_vals[k].bv_val == &dummy ) {
 			assert( a->a_nvals == NULL || a->a_nvals[k].bv_val == &dummy );
@@ -303,11 +303,13 @@ modify_delete_values(
 		j++;
 	}
 
-	a->a_vals[j].bv_val = NULL;
-	if (a->a_nvals != a->a_vals) a->a_nvals[j].bv_val = NULL;
+	BER_BVZERO( &a->a_vals[j] );
+	if (a->a_nvals != a->a_vals) {
+		BER_BVZERO( &a->a_nvals[j] );
+	}
 
 	/* if no values remain, delete the entire attribute */
-	if ( a->a_vals[0].bv_val == NULL ) {
+	if ( BER_BVISNULL( &a->a_vals[0] ) ) {
 		if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
 			*text = textbuf;
 			snprintf( textbuf, textlen,
@@ -368,7 +370,7 @@ modify_increment_values(
 			return LDAP_SUCCESS;
 		}
 
-		for( i=0; a->a_nvals[i].bv_val != NULL; i++ ) {
+		for( i = 0; !BER_BVISNULL( &a->a_nvals[i] ); i++ ) {
 			char *tmp;
 			long value = atol( a->a_nvals[i].bv_val );
 			size_t strln = snprintf( str, sizeof(str), "%ld", value+incr );
