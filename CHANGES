@@ -15,6 +15,7 @@ OpenLDAP 2.2.7 Engineering
 	Fixed back-sql oracle-related issues (ITS#2641)
 	Fixed back-bdb empty suffix/contextCSN bug (ITS#2970)
 	Fixed libldap/slapd '=' escape in DN (ITS#3009)
+	Fixed back-sql attribute subtype in search request
 	Updated ldapsearch paged results handling
 	Added total operation count in back-monitor (ITS#2983)
 	Added slapd ACL peername/expand styles (ITS#2907, ITS#3010)

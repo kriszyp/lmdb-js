@@ -595,8 +595,23 @@ supad2at_f( void *v_at, void *v_arg )
 
 	if ( is_at_subtype( at->bam_ad->ad_type, va->ad->ad_type ) ) {
 		backsql_at_map_rec	**ret;
+		unsigned		i;
 
-		ret = ch_realloc( va->ret, sizeof( backsql_at_map_rec *) * ( va->n + 2 ) );
+		/* if already listed, holler! (should never happen) */
+		if ( va->ret ) {
+			for ( i = 0; i < va->n; i++ ) {
+				if ( va->ret[ i ]->bam_ad == at->bam_ad ) {
+					break;
+				}
+			}
+
+			if ( i < va->n ) {
+				return 0;
+			}
+		}
+
+		ret = ch_realloc( va->ret,
+				sizeof( backsql_at_map_rec *) * ( va->n + 2 ) );
 		if ( ret == NULL ) {
 			ch_free( va->ret );
 			return SUPAD2AT_STOP;
@@ -632,7 +647,7 @@ backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 	va.ret = NULL;
 	va.ad = supad;
 	va.n = 0;
-	
+
 	rc = avl_apply( objclass->bom_attrs, supad2at_f, &va,
 			SUPAD2AT_STOP, AVL_INORDER );
 	if ( rc == SUPAD2AT_STOP ) {
