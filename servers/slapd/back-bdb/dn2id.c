@@ -744,7 +744,7 @@ int bdb_build_tree(
 	rdns = ldap_explode_dn(be->be_nsuffix[0].bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	bdb->bi_nrdns = i;
-	charray_free(rdns);
+	ldap_charray_free(rdns);
 
 	DBTzero( &key );
 	DBTzero( &data );
@@ -938,7 +938,7 @@ bdb_dn2id_matched(
 	for (i=0; rdns[i]; i++);
 	i -= bdb->bi_nrdns;
 	if (i < 0) {
-		charray_free(rdns);
+		ldap_charray_free(rdns);
 		return -1;
 	}
 	n = p;
@@ -951,7 +951,7 @@ bdb_dn2id_matched(
 		p = n;
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-	charray_free(rdns);
+	ldap_charray_free(rdns);
 
 	if (n) {
 		*id = n->i_id;

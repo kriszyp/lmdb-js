@@ -7,6 +7,7 @@
 #define PROTO_SLAP_H
 
 #include <ldap_cdefs.h>
+#include "ldap_pvt.h"
 
 LDAP_BEGIN_DECL
 
@@ -256,19 +257,6 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
 #define free ch_free
 #endif
 #endif
-
-/*
- * charray.c
- */
-LDAP_SLAPD_F (void) charray_add LDAP_P(( char ***a, const char *s ));
-LDAP_SLAPD_F (void) charray_add_n LDAP_P(( char ***a, const char *s, int l ));
-LDAP_SLAPD_F (void) charray_merge LDAP_P(( char ***a, char **s ));
-LDAP_SLAPD_F (void) charray_free LDAP_P(( char **array ));
-LDAP_SLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
-LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
-LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
-LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
-LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
 /*
  * controls.c

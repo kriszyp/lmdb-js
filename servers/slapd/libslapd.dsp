@@ -176,10 +176,6 @@ SOURCE=.\ch_malloc.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\charray.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\compare.c
 # End Source File
 # Begin Source File

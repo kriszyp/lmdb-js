@@ -1371,7 +1371,7 @@ char ** slap_sasl_mechs( Connection *conn )
 			return NULL;
 		}
 
-		mechs = str2charray( mechstr, "," );
+		mechs = ldap_str2charray( mechstr, "," );
 
 #if SASL_VERSION_MAJOR < 2
 		ch_free( mechstr );

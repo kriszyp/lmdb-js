@@ -748,7 +748,7 @@ backend_check_controls(
 
 	for( ; *ctrls != NULL ; ctrls++ ) {
 		if( (*ctrls)->ldctl_iscritical &&
-			!charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
+			!ldap_charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
 		{
 			*text = "control unavailable in context";
 			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;

@@ -16,6 +16,7 @@
 
 #include <lber.h>
 #include <ldif.h>
+#include <lutil.h>
 
 #include "slapcommon.h"
 

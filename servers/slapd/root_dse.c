@@ -143,7 +143,7 @@ root_dse_info(
 			vals[0].bv_len = strlen( vals[0].bv_val );
 			attr_merge( e, ad_supportedSASLMechanisms, vals );
 		}
-		charray_free( supportedSASLMechanisms );
+		ldap_charray_free( supportedSASLMechanisms );
 	}
 
 	if ( default_referral != NULL ) {

@@ -65,7 +65,7 @@ dnssrv_back_referrals(
 		goto done;
 	}
 
-	hosts = str2charray( hostlist, " " );
+	hosts = ldap_str2charray( hostlist, " " );
 
 	if( hosts == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
@@ -103,7 +103,7 @@ dnssrv_back_referrals(
 done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
-	if( hosts != NULL ) charray_free( hosts );
+	if( hosts != NULL ) ldap_charray_free( hosts );
 	ber_bvarray_free( urls );
 	return rc;
 }

@@ -65,7 +65,7 @@ oidm_destroy()
 
 	for (om = om_list; om; om = n) {
 		n = om->som_next;
-		charray_free(om->som_names);
+		ldap_charray_free(om->som_names);
 		free(om->som_oid.bv_val);
 		free(om);
 	}
@@ -101,7 +101,7 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
 
 	om->som_names = NULL;
-	charray_add( &om->som_names, argv[1] );
+	ldap_charray_add( &om->som_names, argv[1] );
 	om->som_oid.bv_val = oidm_find( argv[2] );
 
 	if (!om->som_oid.bv_val) {
