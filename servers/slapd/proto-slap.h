@@ -1053,7 +1053,6 @@ LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
-
 LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
 
 /*
