@@ -28,7 +28,7 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_KV		3
 #define ATTR_STRING	4
 #define ATTR_TLS	5
-#define ATTR_URLS	6
+#define ATTR_URIS	6
 
 struct ol_keyvalue {
 	const char *		key;
@@ -60,9 +60,9 @@ static const struct ol_attribute {
 	{ATTR_INT,		"PORT",			NULL,
 		offsetof(struct ldapoptions, ldo_defport)},
 	/* **** keep this around for backward compatibility */
-	{ATTR_URLS,		"HOST",			NULL,	1},
+	{ATTR_URIS,		"HOST",			NULL,	1},
 	/* **** */
-	{ATTR_URLS,		"URL",			NULL,	0},
+	{ATTR_URIS,		"URI",			NULL,	0},
 	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 	{ATTR_BOOL,		"DNS",			NULL,	LDAP_BOOL_DNS},
@@ -184,7 +184,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 			   	ldap_pvt_tls_config( &gopts, attrs[i].offset, opt );
 #endif
 				break;
-			case ATTR_URLS:
+			case ATTR_URIS:
 				if (attrs[i].offset == 0) {
 					ldap_set_option( NULL, LDAP_OPT_URI, opt );
 				} else {
@@ -307,7 +307,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 		   	ldap_pvt_tls_config( &gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
-		case ATTR_URLS:
+		case ATTR_URIS:
 			if (attrs[i].offset == 0) {
 				ldap_set_option( NULL, LDAP_OPT_URI, value );
 			} else {
