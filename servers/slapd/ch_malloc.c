@@ -4,6 +4,8 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#define CH_FREE 1
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -14,6 +16,8 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+
+#ifndef CSRIMALLOC
 
 void *
 ch_malloc(
@@ -97,3 +101,5 @@ ch_free( void *ptr )
 {
 	ber_memfree( ptr );
 }
+
+#endif

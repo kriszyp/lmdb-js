@@ -159,6 +159,13 @@ int main( int argc, char **argv )
 	int tls_port = 0;
 #endif
 
+#ifdef CSRIMALLOC
+	FILE *leakfile;
+	if( ( leakfile = fopen( "slapd.leak", "w" )) == NULL ) {
+		leakfile = stderr;
+	}
+#endif
+
 	g_argc = argc;
 	g_argv = argv;
 
@@ -384,6 +391,10 @@ int main( int argc, char **argv )
 #endif
 #endif /* HAVE_WINSOCK */
 
+#ifdef CSRIMALLOC
+	mal_leaktrace(1);
+#endif
+
 	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
@@ -428,6 +439,7 @@ int main( int argc, char **argv )
 shutdown:
 	/* remember an error during shutdown */
 	rc |= slap_shutdown( NULL );
+
 destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
@@ -445,6 +457,10 @@ stop:
 
     closelog();
 	slapd_daemon_destroy();
+
+#ifdef CSRIMALLOC
+	mal_dumpleaktrace( leakfile );
+#endif
 
 	MAIN_RETURN(rc);
 }

@@ -19,6 +19,15 @@ static unsigned char	*ebuf;	/* buf returned by entry2str 		 */
 static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf	     		 */
 
+int entry_destroy(void)
+{
+	free( *ebuf );
+	ebuf = NULL;
+	ecur = NULL;
+	emaxsize = 0;
+	return 0;
+}
+
 Entry *
 str2entry( char *s )
 {

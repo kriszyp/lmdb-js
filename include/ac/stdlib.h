@@ -12,6 +12,12 @@
 #ifndef _AC_STDLIB_H
 #define _AC_STDLIB_H
 
+#if defined( HAVE_CSRIMALLOC )
+#include <stdio.h>
+#define MALLOC_TRACE
+#include <libmalloc.h>
+#endif
+
 #include <stdlib.h>
 
 /* Ignore malloc.h if we have STDC_HEADERS */

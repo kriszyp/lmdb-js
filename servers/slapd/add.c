@@ -83,8 +83,6 @@ do_add( Connection *conn, Operation *op )
 	e->e_ndn = ndn;
 	e->e_private = NULL;
 
-	dn = NULL;
-
 	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */

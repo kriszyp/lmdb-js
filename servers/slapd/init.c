@@ -162,6 +162,8 @@ int slap_destroy(void)
 
 	rc = backend_destroy();
 
+	entry_destroy();
+
 	ldap_pvt_thread_destroy();
 
 	/* should destory the above mutex */

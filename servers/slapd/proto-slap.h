@@ -118,12 +118,25 @@ extern Attribute *backend_subschemasubentry( Backend * );
  * ch_malloc.c
  */
 
+#ifdef CSRIMALLOC
+#define ch_malloc malloc
+#define ch_realloc realloc
+#define ch_calloc calloc
+#define ch_strdup strdup
+#define ch_free free
+
+#else
 void * ch_malloc LDAP_P(( ber_len_t size ));
 void * ch_realloc LDAP_P(( void *block, ber_len_t size ));
 void * ch_calloc LDAP_P(( ber_len_t nelem, ber_len_t size ));
 char * ch_strdup LDAP_P(( const char *string ));
 void   ch_free LDAP_P(( void * ));
+
+#ifndef CH_FREE
+#undef free
 #define free ch_free
+#endif
+#endif
 
 /*
  * charray.c
@@ -205,6 +218,8 @@ void build_new_dn LDAP_P(( char ** new_dn, char *e_dn, char * p_dn,
 /*
  * entry.c
  */
+
+int entry_destroy LDAP_P((void));
 
 Entry * str2entry LDAP_P(( char	*s ));
 char * entry2str LDAP_P(( Entry *e, int *len ));
