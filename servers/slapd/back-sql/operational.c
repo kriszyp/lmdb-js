@@ -80,7 +80,15 @@ backsql_operational_entryCSN( Operation *op )
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 	BER_BVZERO( &a->a_vals[ 1 ] );
 
-	slap_get_csn( op, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
+	if ( op->o_sync && op->o_tag == LDAP_REQ_SEARCH ) {
+		assert( op->o_private );
+
+		entryCSN = *((struct berval *)op->o_private);
+
+	} else {
+		slap_get_csn( op, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
+	}
+
 	ber_dupbv( &a->a_vals[ 0 ], &entryCSN );
 
 	a->a_nvals = a->a_vals;

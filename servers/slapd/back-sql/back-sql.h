@@ -261,10 +261,12 @@ typedef struct backsql_srch_info {
 	Operation		*bsi_op;
 	SlapReply		*bsi_rs;
 
-	int			bsi_flags;
-#define	BSQL_SF_ALL_OPER		0x0001
-#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
-#define BSQL_SF_FILTER_ENTRYUUID	0x0004
+	unsigned		bsi_flags;
+#define	BSQL_SF_NONE			0x0000U
+#define	BSQL_SF_ALL_OPER		0x0001U
+#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002U
+#define BSQL_SF_FILTER_ENTRYUUID	0x0004U
+#define BSQL_SF_FILTER_ENTRYCSN		0x0008U
 
 	struct berval		*bsi_base_ndn;
 	backsql_entryID		bsi_base_id;

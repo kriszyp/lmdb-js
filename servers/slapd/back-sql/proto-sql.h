@@ -279,6 +279,7 @@ extern BI_op_add		backsql_add;
 extern BI_op_delete		backsql_delete;
 
 extern BI_operational		backsql_operational;
+extern BI_entry_get_rw		backsql_entry_get;
 
 extern BI_connection_destroy	backsql_connection_destroy;
 

@@ -127,7 +127,7 @@ backsql_init_search(
 	bsi->bsi_dbh = dbh;
 	bsi->bsi_op = op;
 	bsi->bsi_rs = rs;
-	bsi->bsi_flags = 0;
+	bsi->bsi_flags = BSQL_SF_NONE;
 
 	/*
 	 * handle "*"
@@ -676,13 +676,25 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		 * TODO: introduce appropriate entryCSN filtering
 		 * to support syncrepl as producer...
 		 */
-		if ( bsi->bsi_op->o_sync ) {
+		if ( !bsi->bsi_op->o_sync ) {
 			/* unsupported at present... */
 			bsi->bsi_status = LDAP_OTHER;
 			rc = -1;
 			goto done;
 		}
 
+		/* if doing a syncrepl, try to return as much as possible,
+		 * and always match the filter */
+		backsql_strfcat( &bsi->bsi_flt_where, "l",
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
+
+		/* save for later use in operational attributes */
+		bsi->bsi_op->o_private = &f->f_av_value;
+
+		bsi->bsi_flags |= BSQL_SF_FILTER_ENTRYCSN;
+		bsi->bsi_status = LDAP_SUCCESS;
+		rc = 1;
+		goto done;
 
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
 		/*
@@ -1696,6 +1708,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		int		rc;
 		Attribute	*a_hasSubordinate = NULL,
 				*a_entryUUID = NULL,
+				*a_entryCSN = NULL,
 				*a = NULL;
 		Entry		*e = NULL;
 
@@ -1878,26 +1891,19 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 		}
 
+		if ( bsi.bsi_flags & BSQL_SF_FILTER_ENTRYCSN ) {
+			a_entryCSN = backsql_operational_entryCSN( op );
+			if ( a_entryUUID != NULL ) {
+				for ( a = user_entry.e_attrs; 
+						a && a->a_next; 
+						a = a->a_next );
+
+				a->a_next = a_entryCSN;
+			}
+		}
+
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
 		{
-#if 0
-			if ( a_hasSubordinate && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
-					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->ors_attrs ) )
-			{
-				a->a_next = NULL;
-				attr_free( a_hasSubordinate );
-				a_hasSubordinate = NULL;
-			}
-
-			if ( a_entryUUID && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
-					&& !ad_inlist( slap_schema.si_ad_entryUUID, op->ors_attrs ) )
-			{
-				a->a_next = NULL;
-				attr_free( a_hasSubordinate );
-				a_hasSubordinate = NULL;
-			}
-#endif
-
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
@@ -1979,5 +1985,92 @@ done:;
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
 	return 0;
+}
+
+/* return LDAP_SUCCESS IFF we can retrieve the specified entry.
+ */
+int
+backsql_entry_get(
+		Operation		*op,
+		struct berval		*ndn,
+		ObjectClass		*oc,
+		AttributeDescription	*at,
+		int			rw,
+		Entry			**ent )
+{
+	backsql_srch_info	bsi;
+	SQLHDBC			dbh;
+	int			rc;
+	SlapReply		rs = { 0 };
+	AttributeName		anlist[ 2 ];
+
+	rc = backsql_get_db_conn( op, &dbh );
+	if ( !dbh ) {
+		return LDAP_OTHER;
+	}
+
+	if ( at ) {
+		anlist[ 0 ].an_name = at->ad_cname;
+		anlist[ 0 ].an_desc = at;
+		BER_BVZERO( &anlist[ 1 ].an_name );
+	}
+
+	rc = backsql_init_search( &bsi,
+			ndn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT, -1, NULL,
+			dbh, op, &rs, at ? anlist : NULL, 1 );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bsi.bsi_e = ch_malloc( sizeof( Entry ) );
+	rc = backsql_id2entry( &bsi, &bsi.bsi_base_id );
+
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+
+#if 0 /* not supported at present */
+		/* find attribute values */
+		if ( is_entry_alias( bsi.bsi_e ) ) {
+			Debug( LDAP_DEBUG_ACL,
+				"<= backsql_entry_get: entry is an alias\n",
+				0, 0, 0 );
+			rc = LDAP_ALIAS_PROBLEM;
+			goto return_results;
+		}
+#endif
+
+		if ( is_entry_referral( bsi.bsi_e ) ) {
+			Debug( LDAP_DEBUG_ACL,
+				"<= backsql_entry_get: entry is a referral\n",
+				0, 0, 0 );
+			rc = LDAP_REFERRAL;
+			goto return_results;
+		}
+
+		if ( oc && !is_entry_objectclass( bsi.bsi_e, oc, 0 ) ) {
+			Debug( LDAP_DEBUG_ACL,
+					"<= backsql_entry_get: "
+					"failed to find objectClass\n",
+					0, 0, 0 ); 
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			goto return_results;
+		}
+
+		*ent = bsi.bsi_e;
+	}
+
+return_results:;
+	if ( rc != LDAP_SUCCESS ) {
+		if ( bsi.bsi_e ) {
+			entry_free( bsi.bsi_e );
+		}
+	}
+
+	return rc;
 }
 
