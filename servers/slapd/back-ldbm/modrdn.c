@@ -582,22 +582,12 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-
 	/* check for abandon */
 	if ( op->o_abandon ) {
 		goto return_results;
 	}
 
-	/* delete old one */
-	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"DN index delete fail" );
-		goto return_results;
-	}
-
 	(void) cache_delete_entry( &li->li_cache, e );
-
-	/* XXX: there is no going back! */
 
 	free( e->e_dn );
 	old_ndn = e->e_nname;
@@ -610,13 +600,6 @@ ldbm_back_modrdn(
 	 * They are used by cache.
 	 */
 
-	/* add new one */
-	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"DN index add failed" );
-		goto return_results;
-	}
-
 	/* modify memory copy of entry */
 	rs->sr_err = ldbm_modify_internal( op, &mod[0], e,
 		&rs->sr_text, textbuf, textlen );
@@ -624,29 +607,39 @@ ldbm_back_modrdn(
 	case LDAP_SUCCESS:
 		break;
 
-	case SLAPD_ABANDON:
-		/* too late ... */
-		goto return_results;
-	
 	default:
-		/* here we may try to delete the newly added dn */
-		if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ||
-			dn2id_add( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
-			/* we already are in trouble ... */
-			;
-		}
 		send_ldap_result( op, rs );
+		/* FALLTHRU */
+	case SLAPD_ABANDON:
     		goto return_results;
 	}
 	
-	(void) cache_update_entry( &li->li_cache, e );
+	/* add new one */
+	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"DN index add failed" );
+		goto return_results;
+	}
+	/* delete old one */
+	if ( dn2id_delete( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
+		/* undo add of new one */
+		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"DN index delete fail" );
+		goto return_results;
+	}
 
 	/* id2entry index */
 	if ( id2entry_add( op->o_bd, e ) != 0 ) {
+		/* Try to undo */
+		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		dn2id_add( op->o_bd, &old_ndn, e->e_id );
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"entry update failed" );
 		goto return_results;
 	}
+
+	(void) cache_update_entry( &li->li_cache, e );
 
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
