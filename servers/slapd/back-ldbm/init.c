@@ -54,7 +54,7 @@ ldbm_back_initialize(
 	bi->bi_db_destroy = ldbm_back_db_destroy;
 
 	bi->bi_op_bind = ldbm_back_bind;
-	bi->bi_op_unbind = ldbm_back_unbind;
+	bi->bi_op_unbind = 0;
 	bi->bi_op_search = ldbm_back_search;
 	bi->bi_op_compare = ldbm_back_compare;
 	bi->bi_op_modify = ldbm_back_modify;

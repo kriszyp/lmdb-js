@@ -25,8 +25,6 @@ extern BI_op_extended	ldbm_back_extended;
 
 extern BI_op_bind	ldbm_back_bind;
 
-extern BI_op_unbind	ldbm_back_unbind;
-
 extern BI_op_search	ldbm_back_search;
 
 extern BI_op_compare	ldbm_back_compare;
