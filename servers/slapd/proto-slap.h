@@ -382,12 +382,12 @@ LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, char *, int, struct berval
 /*
  * daemon.c
  */
-LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s);
+LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s, int isactive);
 LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );
 LDAP_SLAPD_F (int) slapd_daemon_destroy(void);
 LDAP_SLAPD_F (int) slapd_daemon(void);
 LDAP_SLAPD_F (Listener **)	slapd_get_listeners LDAP_P((void));
-LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wake));
+LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive, int wake));
 
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));

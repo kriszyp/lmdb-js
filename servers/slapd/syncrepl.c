@@ -689,8 +689,6 @@ do_syncrepl(
 				} else {
 					connection_client_enable( s );
 				}
-				/* Don't need to resched this task for a while */
-				if ( rc == 0 ) rc = 1;
 			} else {
 				connection_client_stop( s );
 			}
@@ -701,12 +699,27 @@ do_syncrepl(
 		}
 	}
 
-	if ( rc == LDAP_SUCCESS || rc == LDAP_SERVER_DOWN ) {
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	/* At this point, we have 4 cases:
+	 * 1) for any hard failure, give up and remove this task
+	 * 2) for ServerDown, reschedule this task to run
+	 * 3) for Refresh and Success, reschedule to run
+	 * 4) for Persist and Success, reschedule to defer
+	 */
+	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
 		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 	}
+
+	if ( rc && rc != LDAP_SERVER_DOWN ) {
+		ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+	} else if ( rc == LDAP_SERVER_DOWN ||
+		si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+		rc = 0;
+	} else {
+		rc = 1;
+	}
+	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, rc );
+	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 
 	return NULL;
 }

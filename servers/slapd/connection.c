@@ -203,8 +203,10 @@ int connections_timeout_idle(time_t now)
 		c != NULL;
 		c = connection_next( c, &connindex ) )
 	{
-		/* Don't timeout a slow-running request */
-		if( c->c_n_ops_executing ) continue;
+		/* Don't timeout a slow-running request or a persistent
+		 * outbound connection */
+		if( c->c_n_ops_executing ||
+			c->c_conn_state == SLAP_C_CLIENT ) continue;
 
 		if( difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
 			/* close it */
@@ -689,7 +691,7 @@ connection_destroy( Connection *c )
 
 	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 	if ( sd != AC_SOCKET_INVALID ) {
-		slapd_remove( sd, 0 );
+		slapd_remove( sd, 1, 0 );
 
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%lu fd=%ld closed\n",
@@ -1151,7 +1153,7 @@ int connection_client_setup(
 	c->c_clientfunc = func;
 	c->c_clientarg = arg;
 	connection_return( c );
-	slapd_add_internal( s );
+	slapd_add_internal( s, 0 );
 	slapd_set_read( s, 1 );
 	return 0;
 }
@@ -1178,6 +1180,7 @@ void connection_client_stop(
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	connection_return( c );
+	slapd_remove( s, 0, 0 );
 }
 
 int connection_read(ber_socket_t s)
@@ -1201,7 +1204,7 @@ int connection_read(ber_socket_t s)
 			"connection_read(%ld): no connection!\n",
 			(long) s, 0, 0 );
 #endif
-		slapd_remove(s, 0);
+		slapd_remove(s, 1, 0);
 
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
@@ -1790,7 +1793,7 @@ int connection_write(ber_socket_t s)
 			"connection_write(%ld): no connection!\n",
 			(long) s, 0, 0 );
 #endif
-		slapd_remove(s, 0);
+		slapd_remove(s, 1, 0);
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}

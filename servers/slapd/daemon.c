@@ -195,8 +195,13 @@ void slapd_slp_dereg() {
 
 /*
  * Add a descriptor to daemon control
+ *
+ * If isactive, the descriptor is a live server session and is subject
+ * to idletimeout control. Otherwise, the descriptor is a passive
+ * listener or an outbound client session, and not subject to
+ * idletimeout.
  */
-static void slapd_add(ber_socket_t s) {
+static void slapd_add(ber_socket_t s, int isactive) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( !FD_ISSET( s, &slap_daemon.sd_actives ));
@@ -209,7 +214,9 @@ static void slapd_add(ber_socket_t s) {
 	}
 #endif
 
-	slap_daemon.sd_nactives++;
+	if ( isactive ) {
+		slap_daemon.sd_nactives++;
+	}
 
 	FD_SET( s, &slap_daemon.sd_actives );
 	FD_SET( s, &slap_daemon.sd_readers );
@@ -231,10 +238,12 @@ static void slapd_add(ber_socket_t s) {
 /*
  * Remove the descriptor from daemon control
  */
-void slapd_remove(ber_socket_t s, int wake) {
+void slapd_remove(ber_socket_t s, int wasactive, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	slap_daemon.sd_nactives--;
+	if ( wasactive ) {
+		slap_daemon.sd_nactives--;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONNECTION, DETAIL1, 
@@ -1119,7 +1128,7 @@ close_listeners(
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		if ( slap_listeners[l]->sl_sd != AC_SOCKET_INVALID ) {
 			if ( remove )
-				slapd_remove( slap_listeners[l]->sl_sd, 0 );
+				slapd_remove( slap_listeners[l]->sl_sd, 0, 0 );
 #ifdef LDAP_PF_LOCAL
 			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
 				unlink( slap_listeners[l]->sl_sa.sa_un_addr.sun_path );
@@ -1171,7 +1180,7 @@ slapd_daemon_task(
 		 * are unnecessary.
 		 */
 		if ( slap_listeners[l]->sl_is_udp ) {
-			slapd_add( slap_listeners[l]->sl_sd );
+			slapd_add( slap_listeners[l]->sl_sd, 1 );
 			continue;
 		}
 #endif
@@ -1228,7 +1237,7 @@ slapd_daemon_task(
 			return( (void*)-1 );
 		}
 
-		slapd_add( slap_listeners[l]->sl_sd );
+		slapd_add( slap_listeners[l]->sl_sd, 0 );
 	}
 
 #ifdef HAVE_NT_SERVICE_MANAGER
@@ -1332,11 +1341,6 @@ slapd_daemon_task(
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-		if ( !at ) {
-			at = ldap_pvt_thread_pool_backload(&connection_pool) -
-				 ldap_pvt_runqueue_persistent_backload( &syncrepl_rq );
-		}
-
 		if ( at 
 #if defined(HAVE_YIELDING_SELECT) || defined(NO_THREADS)
 			&&  ( tv.tv_sec || tv.tv_usec )
@@ -1350,10 +1354,10 @@ slapd_daemon_task(
 		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
 		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
 			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
 			} else {
 				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
 				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 				ldap_pvt_thread_pool_submit( &connection_pool,
 											rtask->routine, (void *) rtask );
@@ -1769,7 +1773,7 @@ slapd_daemon_task(
 				slap_listeners[l]->sl_name.bv_val,
 				0 );
 
-			slapd_add( s );
+			slapd_add( s, 1 );
 			continue;
 		}
 
@@ -2105,8 +2109,8 @@ slap_sig_wake( int sig )
 }
 
 
-void slapd_add_internal(ber_socket_t s) {
-	slapd_add(s);
+void slapd_add_internal(ber_socket_t s, int isactive) {
+	slapd_add(s, isactive);
 }
 
 Listener ** slapd_get_listeners(void) {
