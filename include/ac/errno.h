@@ -19,8 +19,13 @@
 #endif
 
 #ifdef DECL_SYS_ERRLIST 
+#ifndef HAVE_SYS_ERRLIST
+int             sys_nerr;
+char            **sys_errlist;
+#else
 extern int      sys_nerr;
 extern char     *sys_errlist[];
+#endif
 #endif
     
 /* use _POSIX_VERSION for POSIX.1 code */

@@ -666,6 +666,9 @@
 /* define if sys_errlist is declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
+/* define if you actually have sys_errlist in your libs */
+#undef HAVE_SYS_ERRLIST
+
 /* begin of postamble */
 
 #ifdef HAVE_STDDEF_H

@@ -395,6 +395,10 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 			[ol_cv_have_sys_errlist=no])])
 	AC_MSG_RESULT($ol_cv_have_sys_errlist)
 fi
+if test $ol_cv_have_sys_errlist = yes ; then
+	AC_DEFINE(HAVE_SYS_ERRLIST,1,
+		[define if you actually have sys_errlist in your libs])
+fi
 ])dnl
 
 dnl ====================================================================
