@@ -249,6 +249,7 @@ struct backend_db {
 #define		be_modrdn	bd_info->bi_op_modrdn
 #define		be_search	bd_info->bi_op_search
 
+#define		be_release	bd_info->bi_entry_release_rw
 #define		be_group	bd_info->bi_acl_group
 
 	/* these should be renamed from be_ to bd_ */
@@ -361,6 +362,7 @@ struct backend_info {
 		int msgid));
 
 	/* Auxilary Functions */
+	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 #ifdef SLAPD_ACLGROUPS
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, char *bdn, char *edn,

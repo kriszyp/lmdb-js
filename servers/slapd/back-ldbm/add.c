@@ -218,8 +218,10 @@ return_results:;
 		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 	}
 
-	/* free entry and writer lock */
-	cache_return_entry_w( &li->li_cache, e ); 
+	if ( rc ) {
+		/* free entry and writer lock */
+		cache_return_entry_w( &li->li_cache, e );
+	}
 
 	return( rc );
 }

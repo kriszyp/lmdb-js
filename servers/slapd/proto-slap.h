@@ -72,6 +72,10 @@ int be_issuffix LDAP_P(( Backend *be, char *suffix ));
 int be_isroot LDAP_P(( Backend *be, char *ndn ));
 int be_isroot_pw LDAP_P(( Backend *be, char *ndn, struct berval *cred ));
 char* be_root_dn LDAP_P(( Backend *be ));
+int be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
+#define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )
+#define be_entry_release_w( be, e ) be_entry_release_rw( be, e, 1 )
+
 
 extern int	backend_unbind LDAP_P((Connection *conn, Operation *op));
 
