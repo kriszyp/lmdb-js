@@ -236,7 +236,8 @@ slap_passwd_check(
 		ldap_pvt_thread_mutex_unlock( &crypt_mutex );
 #endif
 
-		return result;
+		if( !result )
+			return result;
 	}
 
 	return( 1 );
