@@ -311,6 +311,8 @@ dnNormalize(
 	assert( val );
 	assert( normalized );
 
+	assert( *normalized == NULL );
+
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
 		char		*dn_out = NULL;
@@ -371,6 +373,7 @@ dnPretty(
 
 	assert( val );
 	assert( pretty );
+	assert( *pretty == NULL );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -477,7 +480,8 @@ dnMatch(
 char *
 dn_validate( char *dn )
 {
-	struct berval val, *pretty;
+	struct berval val;
+	struct berval *pretty = NULL;
 	int		rc;
 
 	if ( dn == NULL || dn[0] == '\0' ) {
@@ -512,7 +516,8 @@ dn_validate( char *dn )
 char *
 dn_normalize( char *dn )
 {
-	struct berval	val, *normalized;
+	struct berval val;
+	struct berval *normalized = NULL;
 	int		rc;
 
 	if ( dn == NULL || dn[0] == '\0' ) {

@@ -232,7 +232,7 @@ parse_acl(
 			if( a->acl_dn_pat.bv_len != 0 ) {
 				if ( a->acl_dn_style != ACL_STYLE_REGEX )
 				{
-					struct berval *bv;
+					struct berval *bv = NULL;
 					dnNormalize( NULL, &a->acl_dn_pat, &bv);
 					free( a->acl_dn_pat.bv_val );
 					a->acl_dn_pat = *bv;

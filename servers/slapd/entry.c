@@ -117,7 +117,7 @@ str2entry( char *s )
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
-			struct berval *pdn;
+			struct berval *pdn = NULL;
 
 			free( type );
 
@@ -156,7 +156,8 @@ str2entry( char *s )
 				return NULL;
 			}
 
-			e->e_name.bv_val = pdn->bv_val != NULL ? pdn->bv_val : ch_strdup( "" );
+			e->e_name.bv_val = pdn->bv_val != NULL
+				? pdn->bv_val : ch_strdup( "" );
 			e->e_name.bv_len = pdn->bv_len;
 			free( pdn );
 			continue;
@@ -290,10 +291,9 @@ str2entry( char *s )
 
 	/* generate normalized dn */
 	{
-		struct berval *ndn;
+		struct berval *ndn = NULL;
 
 		rc = dnNormalize( NULL, &e->e_name, &ndn );
-
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,

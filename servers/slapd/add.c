@@ -87,7 +87,7 @@ do_add( Connection *conn, Operation *op )
 	e->e_private = NULL;
 
 	{
-		struct berval *pdn;
+		struct berval *pdn = NULL;
 		rc = dnPretty( NULL, &dn, &pdn );
 
 		if( rc != LDAP_SUCCESS ) {
@@ -108,7 +108,7 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	{
-		struct berval *ndn;
+		struct berval *ndn = NULL;
 		rc = dnNormalize( NULL, &dn, &ndn );
 
 		if( rc != LDAP_SUCCESS ) {
