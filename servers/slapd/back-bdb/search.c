@@ -164,7 +164,7 @@ static int search_aliases(
 	af.f_next = NULL;
 
 	/* Find all aliases in database */
-	BDB_IDL_ALL( bdb, aliases );
+	BDB_IDL_ZERO( aliases );
 	rs->sr_err = bdb_filter_candidates( op, &af, aliases,
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS) {
@@ -670,7 +670,7 @@ dn2entry_retry:
 		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
 
 	} else {
-		BDB_IDL_ALL( bdb, candidates );
+		BDB_IDL_ZERO( candidates );
 		BDB_IDL_ZERO( scopes );
 		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
 	}
@@ -1521,7 +1521,7 @@ static int search_candidates(
 	f.f_choice = LDAP_FILTER_AND;
 	f.f_and = &nf;
 	/* Dummy; we compute scope separately now */
-	nf.f_choice = LDAP_FILTER_NOT;
+	nf.f_choice = SLAPD_FILTER_COMPUTED;
 	nf.f_next = xf.f_or == op->oq_search.rs_filter
 		? op->oq_search.rs_filter : &xf ;
 	/* Filter depth increased again, adding dummy clause */
@@ -1534,7 +1534,7 @@ static int search_candidates(
 		sf.f_ava = &aa_subentry;
 		sf.f_av_desc = slap_schema.si_ad_objectClass;
 		sf.f_av_value = bv_subentry;
-		sf.f_next = scopef.f_next;
+		sf.f_next = nf.f_next;
 		nf.f_next = &sf;
 	}
 #endif
