@@ -124,17 +124,27 @@ meta_back_compare(
 			if ( mdn == NULL ) {
 				mdn = ( char * )dn;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] compareDn: \"%s\" -> \"%s\"\n",
+					dn, mdn ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				     	"rw> compareDn: \"%s\" -> \"%s\"\n%s",
 					dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 			break;
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Unwilling to perform",
 					NULL, NULL );
+			return -1;
 			
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, "Operations error",
+					NULL, NULL );
 			return -1;
 		}
 
@@ -301,9 +311,15 @@ finish:
 			if ( mmatch == NULL ) {
 				mmatch = ( char * )match;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] matchedDn: \"%s\" -> \"%s\"\n",
+					match, mmatch ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
 					" \"%s\" -> \"%s\"\n%s",
 					match, mmatch, "" );
+#endif /* !NEW_LOGGING */
 			break;
 			
 		
@@ -311,15 +327,21 @@ finish:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Unwilling to perform",
 					NULL, NULL );
-			/* continue to the next case */
+			rc = -1;
+			goto cleanup;
 			
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, "Operations error",
+					NULL, NULL );
 			rc = -1;
-			break;
+			goto cleanup;
 		}
-	}	
+	}
+
 	send_ldap_result( conn, op, rres, mmatch, err, NULL, NULL );
 
+cleanup:
 	if ( match != NULL ) {
 		if ( mmatch != match ) {
 			free( mmatch );

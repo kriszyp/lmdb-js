@@ -217,17 +217,27 @@ meta_back_search(
 		if ( mbase == NULL ) {
 			mbase = realbase;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] searchBase: \"%s\" -> \"%s\"\n",
+				base, mbase ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
 				base, mbase, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Unwilling to perform",
 					NULL, NULL );
-			/* continue to the next case */
+			rc = -1;
+			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, "Operations error",
+					NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
@@ -245,9 +255,15 @@ meta_back_search(
 				}
 				mfilter = ( char * )filterstr;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] searchFilter: \"%s\" -> \"%s\"\n",
+					filterstr, mfilter ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
 				filterstr, mfilter, "" );
+#endif /* !NEW_LOGGING */
 			break;
 		
 		case REWRITE_REGEXEC_UNWILLING:
@@ -375,9 +391,16 @@ meta_back_search(
 				ldap_get_option( lsc[ 0 ]->ld,
 						LDAP_OPT_MATCHED_DN, &match );
 
-				Debug( LDAP_DEBUG_ARGS,
-	"meta_back_search=> [%d] match=\"%s\" err=\"%s\"\n",
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+						"meta_back_search [%d]"
+						" match=\"%s\" err=\"%s\"\n",
+						i, match, err ));
+#else /* !NEW_LOGGING */
+				Debug( LDAP_DEBUG_ANY,
+	"=>meta_back_search [%d] match=\"%s\" err=\"%s\"\n",
      					i, match, err );	
+#endif /* !NEW_LOGGING */
 				
 				last = i;
 				rc = 0;
@@ -425,9 +448,15 @@ meta_back_search(
 			if ( mmatch == NULL ) {
 				mmatch = ( char * )match;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] matchedDn: \"%s\" -> \"%s\"\n",
+					match, mmatch ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
 				       " \"%s\" -> \"%s\"\n%s",
 				       match, mmatch, "" );
+#endif /* !NEW_LOGGING */
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
@@ -501,8 +530,15 @@ meta_send_entry(
 		if ( ent.e_dn == NULL ) {
 			ent.e_dn = dn;
 		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] searchResult[%d]:"
+					" \"%s\" -> \"%s\"\n",
+					target, dn, ent.e_dn ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
  					" -> \"%s\"\n", target, dn, ent.e_dn );
+#endif /* !NEW_LOGGING */
 			free( dn );
 			dn = NULL;
 		}
@@ -594,18 +630,30 @@ meta_send_entry(
 				char *newval;
 
 				switch ( rewrite_session( li->targets[ target ]->rwinfo,
-							"searchResult", bv->bv_val,
+							"searchResult",
+							bv->bv_val,
 							lc->conn, &newval )) {
 				case REWRITE_REGEXEC_OK:
 					/* left as is */
 					if ( newval == NULL ) {
 						break;
 					}
-			                Debug( LDAP_DEBUG_ARGS,
-				"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
-						attr->a_desc->ad_type->sat_cname,
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "backend",
+							LDAP_LEVEL_DETAIL1,
+							"[rw] searchResult on"
+							" attr=%s:"
+							" \"%s\" -> \"%s\"\n",
+					attr->a_desc->ad_type->sat_cname,
+							bv->bv_val, newval ));
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ARGS,
+						"rw> searchResult on attr=%s:"
+						" \"%s\" -> \"%s\"\n",
+					attr->a_desc->ad_type->sat_cname,
 						bv->bv_val, newval );
-
+#endif /* !NEW_LOGGING */
+					
 					free( bv->bv_val );
 					bv->bv_val = newval;
 					bv->bv_len = strlen( newval );

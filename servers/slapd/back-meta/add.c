@@ -91,6 +91,13 @@ meta_back_add(
 	LDAPMod **attrs;
 	char *mdn = NULL, *mapped;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "meta_back_add: %s\n",
+			e->e_dn ));
+#else /* !NEW_LOGGING */
+	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n", e->e_dn, 0, 0);
+#endif /* !NEW_LOGGING */
+
 	/*
 	 * get the current connection
 	 */
@@ -109,15 +116,25 @@ meta_back_add(
 		if ( mdn == NULL ) {
 			mdn = e->e_dn;
 		}
+
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] addDn: \"%s\" -> \"%s\"\n",
+				e->e_dn, mdn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
 				e->e_dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
  		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
  				NULL, "Unwilling to perform", NULL, NULL );
+		return -1;
 	       	
 	case REWRITE_REGEXEC_ERR:
+ 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 				NULL, "Operations error", NULL, NULL );
 		return -1;
 	}
 

@@ -251,10 +251,18 @@ meta_back_db_config(
 		
 		ldap_free_urldesc( ludp );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				"meta_back_db_config:"
+				" URI \"%s\", suffix \"%s\"\n",
+				li->targets[ i ]->uri,
+				li->targets[ i ]->suffix ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_CONFIG,
-	"==>meta_back_db_config: URI \"%s\", suffix \"%s\"%s\n",
+	"==>meta_back_db_config: URI \"%s\", suffix \"%s\"\n%s",
 			li->targets[ i ]->uri, li->targets[ i ]->suffix, "" );
-
+#endif /* !NEW_LOGGING */
+		
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {
 		int i = li->ntargets-1;

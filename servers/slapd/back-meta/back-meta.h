@@ -144,7 +144,6 @@ struct metainfo {
 
 extern int
 meta_back_do_single_bind(
-		Operation               *op,
 		struct metainfo         *li,
 		struct metaconn         *lc,
 		const char              *dn,

@@ -96,7 +96,7 @@ meta_back_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-				"meta_back_bind: dn: %s.\n", dn ));
+			"meta_back_bind: dn: %s.\n", dn ));
 #else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s", dn, "", "" );
 #endif /* !NEW_LOGGING */
@@ -108,7 +108,8 @@ meta_back_bind(
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
-				"meta_back_bind: no target for dn %s.\n", dn ));
+				"meta_back_bind: no target for dn %s.\n",
+				dn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
@@ -140,16 +141,20 @@ meta_back_bind(
 			 */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_WARNING,
-"==>meta_back_bind: more that one candidate is attempting to bind ...%s%s%s\n" ));
+					"==>meta_back_bind: more than one"
+					" candidate is attempting to bind"
+					" ...\n" ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
-"==>meta_back_bind: more that one candidate is attempting to bind ...%s%s%s\n", 
-				"", "", "" );
+					"==>meta_back_bind: more than one"
+					" candidate is attempting to bind"
+					" ...\n%s%s%s", 
+					"", "", "" );
 #endif /* !NEW_LOGGING */
 		}
 
 
-		lerr = meta_back_do_single_bind( op, li, lc, dn, ndn, cred,
+		lerr = meta_back_do_single_bind( li, lc, dn, ndn, cred,
 				method, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			err = lerr;
@@ -178,7 +183,6 @@ meta_back_bind(
  */
 int
 meta_back_do_single_bind(
-		Operation		*op,
 		struct metainfo		*li,
 		struct metaconn		*lc,
 		const char		*dn,
@@ -200,19 +204,21 @@ meta_back_do_single_bind(
 		if ( mdn == NULL ) {
 			mdn = ( char * )dn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn, mdn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
 				dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_result( lc->conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Unwilling to perform",
-				NULL, NULL );
-		/* continues to next case */
+		return LDAP_UNWILLING_TO_PERFORM;
 
 	case REWRITE_REGEXEC_ERR:
-		return -1;
+		return LDAP_OPERATIONS_ERROR;
 	}
 
 	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn,
@@ -274,14 +280,20 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 				NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			
-			/*
-			 * This way, the first bind error would be fatal ...
-			 */
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_WARNING,
+					"meta_back_dobind: (anonymous)"
+					" bind as \"%s\" failed"
+					" with error \"%s\"\n",
+					lsc[ 0 ]->bound_dn,
+					ldap_err2string( rc ) ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 	"==>meta_back_dobind: (anonymous) bind as \"%s\" failed"
 	" with error \"%s\"\n%s",
 				lsc[ 0 ]->bound_dn,
 				ldap_err2string( rc ), "" );
+#endif /* !NEW_LOGGING */
 
 			/*
 			 * null cred bind should always succeed
@@ -334,11 +346,20 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 			send_ldap_result( lc->conn, op, err, match, msg,
 				       	NULL, NULL );
 			
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
+						"meta_back_op_result: target"
+						" <%d> sending msg \"%s\""
+						" (matched \"%s\")\n",
+						i, ( msg ? msg : "" ),
+						( match ? match : "" ) ));
+#else /* !NEW_LOGGING */
 			Debug(LDAP_DEBUG_ANY,
 "==> meta_back_op_result: target <%d> sending msg \"%s\" (matched \"%s\")\n", 
 				i,
 				( msg ? msg : "" ),
 				( match ? match : "" ) );
+#endif /* !NEW_LOGGING */
 
 			/* better test the pointers before freeing? */
 			if ( match ) {

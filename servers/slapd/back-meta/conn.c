@@ -292,9 +292,15 @@ init_one_conn(
 			if ( lsc->bound_dn == NULL ) {
 				lsc->bound_dn = ch_strdup( conn->c_cdn );
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] bindDn: \"%s\" -> \"%s\"\n",
+					conn->c_cdn, lsc->bound_dn ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				       	"rw> bindDn: \"%s\" -> \"%s\"\n%s",
 					conn->c_cdn, lsc->bound_dn, "" );
+#endif /* !NEW_LOGGING */
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
@@ -393,11 +399,16 @@ meta_back_getconn(
 			return NULL;
 		}
 				
-
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				"meta_back_getconn: got target %d"
+				" for ndn=\"%s\" from cache\n", i, ndn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_CACHE,
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n%s",
 				i, ndn, "" );
-			
+#endif /* !NEW_LOGGING */
+
 		/*
 		 * Clear all other candidates
 		 */
@@ -477,9 +488,15 @@ meta_back_getconn(
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				"meta_back_getconn: conn %ld inserted\n",
+				lc->conn->c_connid ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld inserted\n%s%s",
 			lc->conn->c_connid, "", "" );
+#endif /* !NEW_LOGGING */
 		
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
@@ -491,9 +508,15 @@ meta_back_getconn(
 			return NULL;
 		}
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				"meta_back_getconn: conn %ld fetched\n",
+				lc->conn->c_connid ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld fetched\n%s%s",
 			lc->conn->c_connid, "", "" );
+#endif /* !NEW_LOGGING */
 	}
 	
 	return lc;
