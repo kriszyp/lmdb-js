@@ -809,6 +809,7 @@ static LDAPMod **Modifications2LDAPMods(Modifications **pmodlist)
 				sizeof(struct berval *) );
 			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ ) {
 				/* Take ownership of original values. */
+				modp->mod_bvalues[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
 				modp->mod_bvalues[j]->bv_len = ml->sml_bvalues[j].bv_len;
 				modp->mod_bvalues[j]->bv_val = ml->sml_bvalues[j].bv_val;
 				ml->sml_bvalues[j].bv_len = 0;
@@ -896,7 +897,7 @@ static Modifications *LDAPMods2Modifications (LDAPMod **mods)
  */
 static void FreeLDAPMods (LDAPMod **mods)
 {
-	int i;
+	int i, j;
 
 	if (mods == NULL)
 		return;
@@ -907,6 +908,9 @@ static void FreeLDAPMods (LDAPMod **mods)
 		 * Modification list. Do free the containing array.
 		 */
 		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
+			for ( j = 0; mods[i]->mod_bvalues[j] != NULL; j++ ) {
+				ch_free( mods[i]->mod_bvalues[j] );
+			}
 			ch_free( mods[i]->mod_bvalues );
 		} else {
 			ch_free( mods[i]->mod_values );
