@@ -275,7 +275,7 @@ ber_put_ostring(
 
 #ifdef STR_TRANSLATION
 	if ( free_str ) {
-		free( str );
+		LBER_FREE( str );
 	}
 #endif /* STR_TRANSLATION */
 
@@ -405,9 +405,11 @@ ber_start_seqorset( BerElement *ber, unsigned long tag )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( (new = (Seqorset *) calloc( sizeof(Seqorset), 1 ))
-	    == NULLSEQORSET )
+	new = (Seqorset *) LBER_CALLOC( 1, sizeof(Seqorset) );
+
+	if ( new == NULLSEQORSET )
 		return( -1 );
+
 	new->sos_ber = ber;
 	if ( ber->ber_sos == NULLSEQORSET )
 		new->sos_first = ber->ber_ptr;
@@ -561,7 +563,7 @@ ber_put_seqorset( BerElement *ber )
 	}
 
 	/* we're done with this seqorset, so free it up */
-	free( (char *) (*sos) );
+	LBER_FREE( (char *) (*sos) );
 	*sos = next;
 
 	return( taglen + lenlen + len );

@@ -190,6 +190,13 @@ ber_log_sos_dump LDAP_P((
 	int loglvl,
 	const Seqorset *sos ));
 
+/* memory.c */
+	/* simple macros to realloc for now */
+#define LBER_MALLOC(s)		(realloc(NULL,(s)))
+#define LBER_CALLOC(n,s)	(calloc((n),(s)))
+#define LBER_REALLOC(p,s)	(realloc((p),(s)))
+#define LBER_FREE(p)		(realloc((p),(size_t)0))
+
 /* sockbuf.c */
 
 /* these should be ber_int*() functions */

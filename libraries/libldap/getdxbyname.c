@@ -48,10 +48,10 @@ ldap_getdxbyname( char *domain )
 	/*
 	 * punt:  return list conisting of the original domain name only
 	 */
-	if (( dxs = (char **)malloc( 2 * sizeof( char * ))) == NULL ||
+	if (( dxs = (char **)LDAP_MALLOC( 2 * sizeof( char * ))) == NULL ||
 		( dxs[ 0 ] = strdup( domain )) == NULL ) {
 	    if ( dxs != NULL ) {
-		free( dxs );
+		LDAP_FREE( dxs );
 	    }
 	    dxs = NULL;
 	} else {
@@ -149,14 +149,10 @@ decode_answer( unsigned char *answer, int len )
 			++r;
 			--txt_len;
 		    }
-		    if ( dx_count == 0 ) {
-			dxs = (char **)malloc( 2 * sizeof( char * ));
-		    } else {
-			dxs = (char **)realloc( dxs,
+			dxs = (char **)LDAP_REALLOC( dxs,
 				( dx_count + 2 ) * sizeof( char * ));
-		    }
 		    if ( dxs == NULL || ( dxs[ dx_count ] =
-				(char *)calloc( 1, txt_len + 1 )) == NULL ) {
+				(char *)LDAP_CALLOC( 1, txt_len + 1 )) == NULL ) {
 			err = NO_RECOVERY;
 			continue;
 		    }

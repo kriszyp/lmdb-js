@@ -125,7 +125,7 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 
 		if ( candidates == NULL ) {
 			if ( prefix != NULL ) {
-				if ( (dns = (char **) malloc( sizeof(char *)
+				if ( (dns = (char **) LDAP_MALLOC( sizeof(char *)
 				    * 2 )) == NULL ) {
 					return( ld->ld_errno = LDAP_NO_MEMORY );
 				}
@@ -144,14 +144,14 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 					continue;
 
 				if ( dns == NULL ) {
-					if ( (dns = (char **) malloc(
+					if ( (dns = (char **) LDAP_MALLOC(
 					    sizeof(char *) * 8 )) == NULL ) {
 						ld->ld_errno = LDAP_NO_MEMORY;
 						return( LDAP_NO_MEMORY );
 					}
 					max = 8;
 				} else if ( i >= max ) {
-					if ( (dns = (char **) realloc( dns,
+					if ( (dns = (char **) LDAP_REALLOC( dns,
 					    sizeof(char *) * 2 * max ))
 					    == NULL )
 					{
@@ -264,7 +264,7 @@ ldap_ufn_search_ct(
 	}
 	for ( pcomp = 0; prefixcomp[pcomp] != NULL; pcomp++ )
 		;	/* NULL */
-	if ( (pbuf = (char *) malloc( strlen( ld->ld_ufnprefix ) + 1 ))
+	if ( (pbuf = (char *) LDAP_MALLOC( strlen( ld->ld_ufnprefix ) + 1 ))
 	    == NULL ) {	
 		ldap_value_free( ufncomp );
 		ldap_value_free( prefixcomp );
@@ -293,7 +293,7 @@ ldap_ufn_search_ct(
 
 	ldap_value_free( ufncomp );
 	ldap_value_free( prefixcomp );
-	free( pbuf );
+	LDAP_FREE( pbuf );
 
 	return( err );
 }
@@ -474,7 +474,7 @@ void
 ldap_ufn_setprefix( LDAP *ld, LDAP_CONST char *prefix )
 {
 	if ( ld->ld_ufnprefix != NULL )
-		free( ld->ld_ufnprefix );
+		LDAP_FREE( ld->ld_ufnprefix );
 
 	ld->ld_ufnprefix = strdup( prefix );
 }

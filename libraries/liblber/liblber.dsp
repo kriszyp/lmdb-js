@@ -151,6 +151,10 @@ SOURCE=..\..\include\lber_pvt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\memory.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\options.c
 # End Source File
 # Begin Source File

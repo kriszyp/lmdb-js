@@ -59,7 +59,7 @@ ldap_init_getfilter( LDAP_CONST char *fname )
 	return( NULL );
     }
 
-    if (( buf = malloc( (size_t)len )) == NULL ) {
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
 	fclose( fp );
 	return( NULL );
     }
@@ -69,13 +69,13 @@ ldap_init_getfilter( LDAP_CONST char *fname )
     fclose( fp );
 
     if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	free( buf );
+	LDAP_FREE( buf );
 	return( NULL );
     }
 
 
     lfdp = ldap_init_getfilter_buf( buf, rlen );
-    free( buf );
+    LDAP_FREE( buf );
 
     return( lfdp );
 }
@@ -92,7 +92,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	int				rc;
 	regex_t			re;
 
-    if (( lfdp = (LDAPFiltDesc *)calloc( 1, sizeof( LDAPFiltDesc))) == NULL ) {
+    if (( lfdp = (LDAPFiltDesc *)LDAP_CALLOC( 1, sizeof( LDAPFiltDesc))) == NULL ) {
 	return( NULL );
     }
 
@@ -106,14 +106,14 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	switch( tokcnt ) {
 	case 1:		/* tag line */
 	    if ( tag != NULL ) {
-		free( tag );
+		LDAP_FREE( tag );
 	    }
 	    tag = tok[ 0 ];
-	    free( tok );
+	    LDAP_FREE( tok );
 	    break;
 	case 4:
 	case 5:		/* start of filter info. list */
-	    if (( nextflp = (LDAPFiltList *)calloc( 1, sizeof( LDAPFiltList )))
+	    if (( nextflp = (LDAPFiltList *)LDAP_CALLOC( 1, sizeof( LDAPFiltList )))
 		    == NULL ) {
 		ldap_getfilter_free( lfdp );
 		return( NULL );
@@ -152,7 +152,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	case 2:
 	case 3:		/* filter, desc, and optional search scope */
 	    if ( nextflp != NULL ) { /* add to info list */
-		if (( nextfip = (LDAPFiltInfo *)calloc( 1,
+		if (( nextfip = (LDAPFiltInfo *)LDAP_CALLOC( 1,
 			sizeof( LDAPFiltInfo ))) == NULL ) {
 		    ldap_getfilter_free( lfdp );
 		    free_strarray( tok );
@@ -180,14 +180,14 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 			errno = EINVAL;
 			return( NULL );
 		    }
-		    free( tok[ 2 ] );
+		    LDAP_FREE( tok[ 2 ] );
 		    tok[ 2 ] = NULL;
 		} else {
 		    nextfip->lfi_scope = LDAP_SCOPE_SUBTREE;	/* default */
 		}
 		nextfip->lfi_isexact = ( strchr( tok[ 0 ], '*' ) == NULL &&
 			strchr( tok[ 0 ], '~' ) == NULL );
-		free( tok );
+		LDAP_FREE( tok );
 	    }
 	    break;
 
@@ -200,7 +200,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
     }
 
     if ( tag != NULL ) {
-	free( tag );
+	LDAP_FREE( tag );
     }
 
     return( lfdp );
@@ -211,12 +211,12 @@ void
 ldap_setfilteraffixes( LDAPFiltDesc *lfdp, LDAP_CONST char *prefix, LDAP_CONST char *suffix )
 {
     if ( lfdp->lfd_filtprefix != NULL ) {
-	free( lfdp->lfd_filtprefix );
+	LDAP_FREE( lfdp->lfd_filtprefix );
     }
     lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : strdup( prefix );
 
     if ( lfdp->lfd_filtsuffix != NULL ) {
-	free( lfdp->lfd_filtsuffix );
+	LDAP_FREE( lfdp->lfd_filtsuffix );
     }
     lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : strdup( suffix );
 }
@@ -233,8 +233,8 @@ ldap_getfirstfilter(
 	regex_t			re;
 
     if ( lfdp->lfd_curvalcopy != NULL ) {
-	free( lfdp->lfd_curvalcopy );
-	free( lfdp->lfd_curvalwords );
+	LDAP_FREE( lfdp->lfd_curvalcopy );
+	LDAP_FREE( lfdp->lfd_curvalwords );
     }
 
     lfdp->lfd_curval = value;
@@ -276,7 +276,7 @@ ldap_getfirstfilter(
 
     if ( break_into_words( lfdp->lfd_curvalcopy, flp->lfl_delims,
 		&lfdp->lfd_curvalwords ) < 0 ) {
-	free( lfdp->lfd_curvalcopy );
+	LDAP_FREE( lfdp->lfd_curvalcopy );
 	lfdp->lfd_curvalcopy = NULL;
 	return( NULL );
     }
@@ -421,7 +421,7 @@ break_into_words( /* LDAP_CONST */ char *str, LDAP_CONST char *delims, char ***w
     int		count;
     char        *tok_r;	
 
-    if (( words = (char **)calloc( 1, sizeof( char * ))) == NULL ) {
+    if (( words = (char **)LDAP_CALLOC( 1, sizeof( char * ))) == NULL ) {
 	return( -1 );
     }
     count = 0;
@@ -429,7 +429,7 @@ break_into_words( /* LDAP_CONST */ char *str, LDAP_CONST char *delims, char ***w
 
     word = ldap_pvt_strtok( str, delims, &tok_r );
     while ( word != NULL ) {
-	if (( words = (char **)realloc( words,
+	if (( words = (char **)LDAP_REALLOC( words,
 		( count + 2 ) * sizeof( char * ))) == NULL ) {
 	    return( -1 );
 	}

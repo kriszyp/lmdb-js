@@ -35,9 +35,6 @@ static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 
-#define safe_realloc( ptr, size )	( (ptr) == NULL ? malloc( size ) : \
-					 realloc( ptr, size ))
-
 #define LDAPMOD_MAXLINE		4096
 
 /* strings found in replog/LDIF entries (mostly lifted from slurpd/slurp.h) */
@@ -589,9 +586,9 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
     }
 
     if ( pmods == NULL || pmods[ i ] == NULL ) {
-	if (( pmods = (LDAPMod **)safe_realloc( pmods, (i + 2) *
+	if (( pmods = (LDAPMod **)realloc( pmods, (i + 2) *
 		sizeof( LDAPMod * ))) == NULL ) {
-	    perror( "safe_realloc" );
+	    perror( "realloc" );
 	    exit( 1 );
 	}
 	*pmodsp = pmods;
@@ -616,15 +613,15 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	    }
 	}
 	if (( pmods[ i ]->mod_bvalues =
-		(struct berval **)safe_realloc( pmods[ i ]->mod_bvalues,
+		(struct berval **)ber_memrealloc( pmods[ i ]->mod_bvalues,
 		(j + 2) * sizeof( struct berval * ))) == NULL ) {
-	    perror( "safe_realloc" );
+	    perror( "ber_realloc" );
 	    exit( 1 );
 	}
 	pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
-	if (( bvp = (struct berval *)malloc( sizeof( struct berval )))
+	if (( bvp = (struct berval *)ber_memalloc( sizeof( struct berval )))
 		== NULL ) {
-	    perror( "malloc" );
+	    perror( "ber_memalloc" );
 	    exit( 1 );
 	}
 	pmods[ i ]->mod_bvalues[ j ] = bvp;
@@ -762,34 +759,6 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 
 
 
-/*
- * for Windows we need local versions of the berval
- * free functions because the LDAP DLL uses a different
- * heap.
- */
-
-static void
-l_ber_bvfree( struct berval *bv )
-{
-    if ( bv != NULL ) {
-	if ( bv->bv_val != NULL ) {
-	    free( bv->bv_val );
-	}
-	free( (char *) bv );
-    }
-}
-
-static void
-l_ber_bvecfree( struct berval **bv )
-{
-    int	i;
-
-    for ( i = 0; bv[i] != NULL; i++ ) {
-	l_ber_bvfree( bv[i] );
-    }
-    free( (char *) bv );
-}
-
 static void
 freepmods( LDAPMod **pmods )
 {
@@ -797,7 +766,7 @@ freepmods( LDAPMod **pmods )
 
     for ( i = 0; pmods[ i ] != NULL; ++i ) {
 	if ( pmods[ i ]->mod_bvalues != NULL ) {
-	    l_ber_bvecfree( pmods[ i ]->mod_bvalues );
+	    ber_bvecfree( pmods[ i ]->mod_bvalues );
 	}
 	if ( pmods[ i ]->mod_type != NULL ) {
 	    free( pmods[ i ]->mod_type );
@@ -869,8 +838,8 @@ read_one_record( FILE *fp )
         if ( lcur + len + 1 > lmax ) {
             lmax = LDAPMOD_MAXLINE
 		    * (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
-	    if (( buf = (char *)safe_realloc( buf, lmax )) == NULL ) {
-		perror( "safe_realloc" );
+	    if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
+		perror( "realloc" );
 		exit( 1 );
 	    }
         }

@@ -69,7 +69,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		free( cred );
+		LDAP_FREE( cred );
 		return( -1 );
 	}
 
@@ -91,13 +91,13 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 #endif /* STR_TRANSLATION */
 
 	if ( rc == -1 ) {
-		free( cred );
+		LDAP_FREE( cred );
 		ber_free( ber, 1 );
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return( -1 );
 	}
 
-	free( cred );
+	LDAP_FREE( cred );
 
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
@@ -162,7 +162,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		free( cred );
+		LDAP_FREE( cred );
 		return( -1 );
 	}
 
@@ -184,7 +184,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	}
 #endif /* STR_TRANSLATION */
 
-	free( cred );
+	LDAP_FREE( cred );
 
 	if ( rc == -1 ) {
 		ber_free( ber, 1 );
@@ -273,7 +273,7 @@ ldap_get_kerberosv4_credentials(
 		return( NULL );
 	}
 
-	if ( ( cred = malloc( ktxt.length )) == NULL ) {
+	if ( ( cred = LDAP_MALLOC( ktxt.length )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( NULL );
 	}

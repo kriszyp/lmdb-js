@@ -288,6 +288,10 @@ SOURCE=..\libldap\sbind.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\schema.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\search.c
 # End Source File
 # Begin Source File

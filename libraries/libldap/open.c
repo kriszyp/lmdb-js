@@ -47,18 +47,18 @@ ldap_open( LDAP_CONST char *host, int port )
 		return( NULL );
 	}
 
-	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
+	if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
-		if(srv != NULL) free( (char*) srv );
+		if(srv != NULL) LDAP_FREE( (char*) srv );
 		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
 	srv->lsrv_port = ld->ld_defport;
 
 	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
-		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
-		free( (char *)srv );
+		if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
+		LDAP_FREE( (char *)srv );
 		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
@@ -129,7 +129,7 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 }
 #endif
 
-	if ( (ld = (LDAP *) calloc( 1, sizeof(LDAP) )) == NULL ) {
+	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
 	    WSACleanup( );
 		return( NULL );
 	}
@@ -154,7 +154,7 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	}
 
 	if ( ld->ld_options.ldo_defhost == NULL ) {
-		free( (char*)ld );
+		LDAP_FREE( (char*)ld );
 	    WSACleanup( );
 		return( NULL );
 	}
@@ -165,11 +165,11 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	}
 
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
-		free( (char*) ld->ld_options.ldo_defhost );
+		LDAP_FREE( (char*) ld->ld_options.ldo_defhost );
 		if ( ld->ld_options.ldo_defbase == NULL ) {
-			free( (char*) ld->ld_options.ldo_defbase );
+			LDAP_FREE( (char*) ld->ld_options.ldo_defbase );
 		}
-		free( (char*) ld );
+		LDAP_FREE( (char*) ld );
 	    WSACleanup( );
 		return( NULL );
 	}

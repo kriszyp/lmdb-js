@@ -149,9 +149,9 @@ do_entry2text(
     }
 
     if ( buf == NULL ) {
-	if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+	if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	    ld->ld_errno = LDAP_NO_MEMORY;
-	    free( dn );
+	    LDAP_FREE( dn );
 	    return( ld->ld_errno );
 	}
 	freebuf = 1;
@@ -343,9 +343,9 @@ do_entry2text(
 	(*writeproc)( writeparm, buf, strlen( buf ));
     }
 
-    free( dn );
+    LDAP_FREE( dn );
     if ( freebuf ) {
-	free( buf );
+	LDAP_FREE( buf );
     }
 
     return( err );
@@ -433,7 +433,7 @@ do_entry2text_search(
     timeout.tv_sec = SEARCH_TIMEOUT_SECS;
     timeout.tv_usec = 0;
 
-    if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+    if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	ld->ld_errno = LDAP_NO_MEMORY;
 	return( ld->ld_errno );
     }
@@ -453,7 +453,7 @@ do_entry2text_search(
 
     if ( dn == NULL ) {
 	if (( dn = ldap_get_dn( ld, entry )) == NULL ) {
-	    free( buf );
+	    LDAP_FREE( buf );
 	    if ( freetmpls ) {
 		ldap_free_templates( tmpllist );
 	    }
@@ -515,7 +515,7 @@ do_entry2text_search(
 		fetchattrs, 0, &timeout, &ldmp );
 
     if ( freedn ) {
-	free( dn );
+	LDAP_FREE( dn );
     }
     if ( fetchattrs != NULL ) {
 	ldap_value_free( fetchattrs );
@@ -526,14 +526,14 @@ do_entry2text_search(
 	if ( freetmpls ) {
             ldap_free_templates( tmpllist );
         }
-	free( buf );
+	LDAP_FREE( buf );
 	return( ld->ld_errno );
     }
 
     err = do_entry2text( ld, buf, base, entry, tmpl, defattrs, defvals,
 	    writeproc, writeparm, eol, rdncount, opts, urlprefix );
 
-    free( buf );
+    LDAP_FREE( buf );
     if ( freetmpls ) {
 	ldap_free_templates( tmpllist );
     }
@@ -627,7 +627,7 @@ do_vals2text(
     }
 
     if ( buf == NULL ) {
-	if (( buf = malloc( LDAP_DTMPL_BUFSIZ )) == NULL ) {
+	if (( buf = LDAP_MALLOC( LDAP_DTMPL_BUFSIZ )) == NULL ) {
 	    ld->ld_errno = LDAP_NO_MEMORY;
 	    return( ld->ld_errno );
 	}
@@ -753,7 +753,7 @@ do_vals2text(
     }
 
     if ( freebuf ) {
-	free( buf );
+	LDAP_FREE( buf );
     }
 
     return( LDAP_SUCCESS );
@@ -1083,7 +1083,7 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
 
     if ( lderr == LDAP_SUCCESS || NONFATAL_LDAP_ERR( lderr )) {
 	if (( count = ldap_count_entries( ld, ldmp )) > 0 ) {
-	    if (( members = (char **)malloc( (count + 1) * sizeof(char *)))
+	    if (( members = (char **)LDAP_MALLOC( (count + 1) * sizeof(char *)))
 		    == NULL ) {
 		err = LDAP_NO_MEMORY;
 	    } else {

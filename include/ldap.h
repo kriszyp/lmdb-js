@@ -1330,9 +1330,23 @@ ldap_build_filter LDAP_P((
  * in free.c
  */
 
+LDAP_F( void * )
+ldap_memalloc LDAP_P((
+	size_t s ));
+
+LDAP_F( void * )
+ldap_memrealloc LDAP_P((
+	void* p,
+	size_t s ));
+
+LDAP_F( void * )
+ldap_memcalloc LDAP_P((
+	size_t n,
+	size_t s ));
+
 LDAP_F( void )
 ldap_memfree LDAP_P((
-	void *p ));
+	void* p ));
 
 LDAP_F( void )
 ldap_getfilter_free LDAP_P((

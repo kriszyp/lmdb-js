@@ -96,7 +96,7 @@ char *
 	char    *p;
 	size_t	len = strlen( s ) + 1;
 
-	if ( (p = (char *) malloc( len )) == NULL ) {
+	if ( (p = (char *) LDAP_MALLOC( len )) == NULL ) {
 		return( NULL );
 	}
 

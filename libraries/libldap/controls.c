@@ -131,7 +131,7 @@ int ldap_int_get_controls LDAP_P((
 
 	/* set through each element */
 	nctrls = 0;
-	*ctrls = malloc( 1 * sizeof(LDAPControl *) );
+	*ctrls = LDAP_MALLOC( 1 * sizeof(LDAPControl *) );
 
 	if( *ctrls == NULL ) {
 		return LDAP_NO_MEMORY;
@@ -146,19 +146,19 @@ int ldap_int_get_controls LDAP_P((
 		LDAPControl *tctrl;
 		LDAPControl **tctrls;
 
-		tctrl = calloc( 1, sizeof(LDAPControl) );
+		tctrl = LDAP_CALLOC( 1, sizeof(LDAPControl) );
 
 		/* allocate pointer space for current controls (nctrls)
 		 * + this control + extra NULL
 		 */
 		tctrls = (tctrl == NULL) ? NULL :
-			realloc(*ctrls, (nctrls+2) * sizeof(LDAPControl *));
+			LDAP_REALLOC(*ctrls, (nctrls+2) * sizeof(LDAPControl *));
 
 		if( tctrls == NULL ) {
 			/* one of the above allocation failed */
 
 			if( tctrl != NULL ) {
-				free( tctrl );
+				LDAP_FREE( tctrl );
 			}
 
 			ldap_controls_free(*ctrls);
@@ -212,14 +212,14 @@ ldap_control_free( LDAPControl *c )
 {
 	if ( c != NULL ) {
 		if( c->ldctl_oid != NULL) {
-			free( c->ldctl_oid );
+			LDAP_FREE( c->ldctl_oid );
 		}
 
 		if( c->ldctl_value.bv_val != NULL ) {
-			free( c->ldctl_value.bv_val );
+			LDAP_FREE( c->ldctl_value.bv_val );
 		}
 
-		free( c );
+		LDAP_FREE( c );
 	}
 }
 
@@ -236,7 +236,7 @@ ldap_controls_free( LDAPControl **controls )
 			ldap_control_free( c );
 		}
 
-		free( controls );
+		LDAP_FREE( controls );
 	}
 }
 
@@ -260,7 +260,7 @@ LDAPControl **ldap_controls_dup( const LDAPControl **controls )
 		return NULL;
 	}
 
-	new = (LDAPControl **) malloc( i * sizeof(LDAPControl *) );
+	new = (LDAPControl **) LDAP_MALLOC( i * sizeof(LDAPControl *) );
 
 	if( new == NULL ) {
 		/* memory allocation failure */
@@ -293,7 +293,7 @@ LDAPControl *ldap_control_dup( const LDAPControl *c )
 		return NULL;
 	}
 
-	new = (LDAPControl *) malloc( sizeof(LDAPControl) );
+	new = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
 
 	if( new == NULL ) {
 		return NULL;
@@ -303,7 +303,7 @@ LDAPControl *ldap_control_dup( const LDAPControl *c )
 		new->ldctl_oid = strdup( c->ldctl_oid );
 
 		if(new->ldctl_oid == NULL) {
-			free( new );
+			LDAP_FREE( new );
 			return NULL;
 		}
 
@@ -312,13 +312,13 @@ LDAPControl *ldap_control_dup( const LDAPControl *c )
 	}
 
 	if( c->ldctl_value.bv_len > 0 ) {
-		new->ldctl_value.bv_val = (char *) malloc( c->ldctl_value.bv_len );
+		new->ldctl_value.bv_val = (char *) LDAP_MALLOC( c->ldctl_value.bv_len );
 
 		if(new->ldctl_value.bv_val == NULL) {
 			if(new->ldctl_oid != NULL) {
-				free( new->ldctl_oid );
+				LDAP_FREE( new->ldctl_oid );
 			}
-			free( new );
+			LDAP_FREE( new );
 			return NULL;
 		}
 		

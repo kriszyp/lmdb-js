@@ -116,7 +116,7 @@ ldap_init_templates( char *file, struct ldap_disptmpl **tmpllistp )
 	return( LDAP_TMPL_ERR_FILE );
     }
 
-    if (( buf = malloc( (size_t)len )) == NULL ) {
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
 	fclose( fp );
 	return( LDAP_TMPL_ERR_MEM );
     }
@@ -126,12 +126,12 @@ ldap_init_templates( char *file, struct ldap_disptmpl **tmpllistp )
     fclose( fp );
 
     if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	free( buf );
+	LDAP_FREE( buf );
 	return( LDAP_TMPL_ERR_FILE );
     }
 
     rc = ldap_init_templates_buf( buf, rlen, tmpllistp );
-    free( buf );
+    LDAP_FREE( buf );
 
     return( rc );
 }
@@ -196,27 +196,27 @@ free_disptmpl( struct ldap_disptmpl *tmpl )
 {
     if ( tmpl != NULL ) {
 	if ( tmpl->dt_name != NULL ) {
-	    free(  tmpl->dt_name );
+	    LDAP_FREE(  tmpl->dt_name );
 	}
 
 	if ( tmpl->dt_pluralname != NULL ) {
-	    free( tmpl->dt_pluralname );
+	    LDAP_FREE( tmpl->dt_pluralname );
 	}
 
 	if ( tmpl->dt_iconname != NULL ) {
-	    free( tmpl->dt_iconname );
+	    LDAP_FREE( tmpl->dt_iconname );
 	}
 
 	if ( tmpl->dt_authattrname != NULL ) {
-	    free( tmpl->dt_authattrname );
+	    LDAP_FREE( tmpl->dt_authattrname );
 	}
 
 	if ( tmpl->dt_defrdnattrname != NULL ) {
-	    free( tmpl->dt_defrdnattrname );
+	    LDAP_FREE( tmpl->dt_defrdnattrname );
 	}
 
 	if ( tmpl->dt_defaddlocation != NULL ) {
-	    free( tmpl->dt_defaddlocation );
+	    LDAP_FREE( tmpl->dt_defaddlocation );
 	}
 
 	if (  tmpl->dt_oclist != NULL ) {
@@ -225,7 +225,7 @@ free_disptmpl( struct ldap_disptmpl *tmpl )
 	    for ( ocp = tmpl->dt_oclist; ocp != NULL; ocp = nextocp ) {
 		nextocp = ocp->oc_next;
 		free_strarray( ocp->oc_objclasses );
-		free( ocp );
+		LDAP_FREE( ocp );
 	    }
 	}
 
@@ -235,12 +235,12 @@ free_disptmpl( struct ldap_disptmpl *tmpl )
 	    for ( adp = tmpl->dt_adddeflist; adp != NULL; adp = nextadp ) {
 		nextadp = adp->ad_next;
 		if( adp->ad_attrname != NULL ) {
-		    free( adp->ad_attrname );
+		    LDAP_FREE( adp->ad_attrname );
 		}
 		if( adp->ad_value != NULL ) {
-		    free( adp->ad_value );
+		    LDAP_FREE( adp->ad_value );
 		}
-		free( adp );
+		LDAP_FREE( adp );
 	    }
 	}
 
@@ -252,20 +252,20 @@ free_disptmpl( struct ldap_disptmpl *tmpl )
 		for ( colp = rowp; colp != NULL; colp = nextcolp ) {
 		    nextcolp = colp->ti_next_in_row;
 		    if ( colp->ti_attrname != NULL ) {
-			free( colp->ti_attrname );
+			LDAP_FREE( colp->ti_attrname );
 		    }
 		    if ( colp->ti_label != NULL ) {
-			free( colp->ti_label );
+			LDAP_FREE( colp->ti_label );
 		    }
 		    if ( colp->ti_args != NULL ) {
 			free_strarray( colp->ti_args );
 		    }
-		    free( colp );
+		    LDAP_FREE( colp );
 		}
 	    }
 	}
 
-	free( tmpl );
+	LDAP_FREE( tmpl );
     }
 }
 
@@ -380,13 +380,13 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
     attrcnt = 0;
     memerr = 0;
 
-    if (( attrs = (char **)malloc( sizeof( char * ))) == NULL ) {
+    if (( attrs = (char **)LDAP_MALLOC( sizeof( char * ))) == NULL ) {
 	return( NULL );
     }
 
     if ( includeattrs != NULL ) {
 	for ( i = 0; !memerr && includeattrs[ i ] != NULL; ++i ) {
-	    if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
+	    if (( attrs = (char **)LDAP_REALLOC( attrs, ( attrcnt + 2 ) *
 		    sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
 		    strdup( includeattrs[ i ] )) == NULL ) {
 		memerr = 1;
@@ -413,7 +413,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	    }
 
 	    if ( ticolp->ti_attrname != NULL ) {
-		if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
+		if (( attrs = (char **)LDAP_REALLOC( attrs, ( attrcnt + 2 ) *
 			sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
 			strdup( ticolp->ti_attrname )) == NULL ) {
 		    memerr = 1;
@@ -427,11 +427,11 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
     if ( memerr || attrcnt == 0 ) {
 	for ( i = 0; i < attrcnt; ++i ) {
 	    if ( attrs[ i ] != NULL ) {
-		free( attrs[ i ] );
+		LDAP_FREE( attrs[ i ] );
 	    }
 	}
 
-	free( (char *)attrs );
+	LDAP_FREE( (char *)attrs );
 	return( NULL );
     }
 
@@ -460,13 +460,13 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	return( tokcnt == 0 ? 0 : LDAP_TMPL_ERR_SYNTAX );
     }
 
-    if (( tmpl = (struct ldap_disptmpl *)calloc( 1,
+    if (( tmpl = (struct ldap_disptmpl *)LDAP_CALLOC( 1,
 	    sizeof( struct ldap_disptmpl ))) == NULL ) {
 	free_strarray( toks );
 	return(  LDAP_TMPL_ERR_MEM );
     }
     tmpl->dt_name = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * template plural name comes next
@@ -477,7 +477,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	return( LDAP_TMPL_ERR_SYNTAX );
     }
     tmpl->dt_pluralname = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * template icon name is next
@@ -488,7 +488,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	return( LDAP_TMPL_ERR_SYNTAX );
     }
     tmpl->dt_iconname = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * template options come next
@@ -511,7 +511,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
      * object class list is next
      */
     while (( tokcnt = next_line_tokens( bufp, blenp, &toks )) > 0 ) {
-	if (( ocp = (struct ldap_oclist *)calloc( 1,
+	if (( ocp = (struct ldap_oclist *)LDAP_CALLOC( 1,
 		sizeof( struct ldap_oclist ))) == NULL ) {
 	    free_strarray( toks );
 	    free_disptmpl( tmpl );
@@ -541,9 +541,9 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
     if ( toks[ 0 ][ 0 ] != '\0' ) {
 	tmpl->dt_authattrname = toks[ 0 ];
     } else {
-	free( toks[ 0 ] );
+	LDAP_FREE( toks[ 0 ] );
     }
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * read default attribute to use for RDN
@@ -554,7 +554,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	return( LDAP_TMPL_ERR_SYNTAX );
     }
     tmpl->dt_defrdnattrname = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * read default location for new entries
@@ -567,9 +567,9 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
     if ( toks[ 0 ][ 0 ] != '\0' ) {
 	tmpl->dt_defaddlocation = toks[ 0 ];
     } else {
-	free( toks[ 0 ] );
+	LDAP_FREE( toks[ 0 ] );
     }
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * read list of rules used to define default values for new entries
@@ -590,7 +590,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	    return( LDAP_TMPL_ERR_SYNTAX );
 	}
 		
-	if (( adp = (struct ldap_adddeflist *)calloc( 1,
+	if (( adp = (struct ldap_adddeflist *)LDAP_CALLOC( 1,
 		sizeof( struct ldap_adddeflist ))) == NULL ) {
 	    free_strarray( toks );
 	    free_disptmpl( tmpl );
@@ -601,8 +601,8 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 	if ( adsource == LDAP_ADSRC_CONSTANTVALUE ) {
 	    adp->ad_value = toks[ 2 ];
 	}
-	free( toks[ 0 ] );
-	free( (char *)toks );
+	LDAP_FREE( toks[ 0 ] );
+	LDAP_FREE( (char *)toks );
 
 	if ( tmpl->dt_adddeflist == NULL ) {
 	    tmpl->dt_adddeflist = adp;
@@ -624,7 +624,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 		return( LDAP_TMPL_ERR_SYNTAX );
 	    }
 
-	    if (( ip = (struct ldap_tmplitem *)calloc( 1,
+	    if (( ip = (struct ldap_tmplitem *)LDAP_CALLOC( 1,
 		    sizeof( struct ldap_tmplitem ))) == NULL ) {
 		free_strarray( toks );
 		free_disptmpl( tmpl );
@@ -660,13 +660,13 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 		return( LDAP_TMPL_ERR_SYNTAX );
 	    }
 
-	    free( toks[ 0 ] );
-	    free( toks[ 1 ] );
+	    LDAP_FREE( toks[ 0 ] );
+	    LDAP_FREE( toks[ 1 ] );
 	    ip->ti_syntaxid = itemsynids[ i ];
 	    ip->ti_label = toks[ 2 ];
 	    if ( toks[ 3 ][ 0 ] == '\0' ) {
 		ip->ti_attrname = NULL;
-		free( toks[ 3 ] );
+		LDAP_FREE( toks[ 3 ] );
 	    } else {
 		ip->ti_attrname = toks[ 3 ];
 	    }
@@ -674,7 +674,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 		for ( i = 0; toks[ i + 4 ] != NULL; ++i ) {
 		    ;
 		}
-		if (( ip->ti_args = (char **) calloc( i + 1, sizeof( char * )))
+		if (( ip->ti_args = (char **) LDAP_CALLOC( i + 1, sizeof( char * )))
 			== NULL ) {
 		    free_disptmpl( tmpl );
 		    return( LDAP_TMPL_ERR_MEM );
@@ -683,7 +683,7 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
 		    ip->ti_args[ i ] = toks[ i + 4 ];
 		}
 	    }
-	    free( (char *)toks );
+	    LDAP_FREE( (char *)toks );
 
 	    if ( tmpl->dt_items == NULL ) {
 		tmpl->dt_items = rowp = ip;

@@ -103,15 +103,15 @@ cleanup_and_return:
 	if( rc != LDAP_SUCCESS ) {
 		ld->ld_errno = rc;
 
-		if( ld->ld_matched != NULL )
-			free( ld->ld_matched );
+		if( ld->ld_matched != NULL ) {
+			LDAP_FREE( ld->ld_matched );
+			ld->ld_matched = NULL;
+		}
 
-		ld->ld_matched = NULL;
-
-		if( ld->ld_error != NULL )
-			free( ld->ld_error );
-
-		ld->ld_error = NULL;
+		if( ld->ld_error != NULL ) {
+			LDAP_FREE( ld->ld_error );
+			ld->ld_error = NULL;
+		}
 	}
 
 	return rc;

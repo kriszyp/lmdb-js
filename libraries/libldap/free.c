@@ -27,9 +27,25 @@
 void
 ldap_memfree( void *p )
 {
-	if(p != NULL) {
-		free( p );
-	}
+	LDAP_FREE( p );
+}
+
+void *
+ldap_memalloc( size_t s )
+{
+	return LDAP_MALLOC( s );
+}
+
+void *
+ldap_memcalloc( size_t n, size_t s )
+{
+	return LDAP_CALLOC( n, s );
+}
+
+void *
+ldap_memrealloc( void* p, size_t s )
+{
+	return LDAP_REALLOC( p, s );
 }
 
 void
@@ -41,31 +57,31 @@ ldap_getfilter_free( LDAPFiltDesc *lfdp )
     for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = nextflp ) {
 	for ( fip = flp->lfl_ilist; fip != NULL; fip = nextfip ) {
 	    nextfip = fip->lfi_next;
-	    free( fip->lfi_filter );
-	    free( fip->lfi_desc );
-	    free( fip );
+	    LDAP_FREE( fip->lfi_filter );
+	    LDAP_FREE( fip->lfi_desc );
+	    LDAP_FREE( fip );
 	}
 	nextflp = flp->lfl_next;
-	free( flp->lfl_pattern );
-	free( flp->lfl_delims );
-	free( flp->lfl_tag );
-	free( flp );
+	LDAP_FREE( flp->lfl_pattern );
+	LDAP_FREE( flp->lfl_delims );
+	LDAP_FREE( flp->lfl_tag );
+	LDAP_FREE( flp );
     }
 
     if ( lfdp->lfd_curvalcopy != NULL ) {
-	free( lfdp->lfd_curvalcopy );
+	LDAP_FREE( lfdp->lfd_curvalcopy );
     }
     if ( lfdp->lfd_curvalwords != NULL ) {
-	free( lfdp->lfd_curvalwords );
+	LDAP_FREE( lfdp->lfd_curvalwords );
     }
     if ( lfdp->lfd_filtprefix != NULL ) {
-	free( lfdp->lfd_filtprefix );
+	LDAP_FREE( lfdp->lfd_filtprefix );
     }
     if ( lfdp->lfd_filtsuffix != NULL ) {
-	free( lfdp->lfd_filtsuffix );
+	LDAP_FREE( lfdp->lfd_filtsuffix );
     }
 
-    free( lfdp );
+    LDAP_FREE( lfdp );
 }
 
 /*
@@ -88,9 +104,9 @@ ldap_mods_free( LDAPMod **mods, int freemods )
 		} else {
 			ldap_value_free( mods[i]->mod_values );
 		}
-		free( (char *) mods[i] );
+		LDAP_FREE( (char *) mods[i] );
 	}
 
 	if ( freemods )
-		free( (char *) mods );
+		LDAP_FREE( (char *) mods );
 }

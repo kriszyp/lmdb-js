@@ -80,11 +80,11 @@ ldap_send_initial_request(
 	if ( ! ber_pvt_sb_in_use(&ld->ld_sb ) ) {
 		/* not connected yet */
 
-		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
+		if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
 		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 		    strdup( ld->ld_defhost )) == NULL ))
 		{
-			if (srv != NULL) free( srv );
+			if (srv != NULL) LDAP_FREE( srv );
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
@@ -95,8 +95,8 @@ ldap_send_initial_request(
 		if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 ))
 			== NULL )
 		{
-			if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
-			free( (char *)srv );
+			if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
+			LDAP_FREE( (char *)srv );
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SERVER_DOWN;
 			return( -1 );
@@ -190,7 +190,7 @@ ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	}
 
 	use_connection( ld, lc );
-	if (( lr = (LDAPRequest *)calloc( 1, sizeof( LDAPRequest ))) ==
+	if (( lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ))) ==
 	    NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		ldap_free_connection( ld, lc, 0, 0 );
@@ -269,10 +269,10 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 	 * make a new LDAP server connection
 	 * XXX open connection synchronously for now
 	 */
-	if (( lc = (LDAPConn *)calloc( 1, sizeof( LDAPConn ))) == NULL ||
+	if (( lc = (LDAPConn *)LDAP_CALLOC( 1, sizeof( LDAPConn ))) == NULL ||
 	    ( !use_ldsb && ( (sb = ber_sockbuf_alloc()) == NULL ))) {
 		if ( lc != NULL ) {
-			free( (char *)lc );
+			LDAP_FREE( (char *)lc );
 		}
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( NULL );
@@ -296,7 +296,7 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 		    if ( !use_ldsb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		    }
-		    free( (char *)lc );
+		    LDAP_FREE( (char *)lc );
 		    ld->ld_errno = LDAP_SERVER_DOWN;
 		    return( NULL );
 		}
@@ -437,12 +437,12 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		}
 		free_servers( lc->lconn_server );
 		if ( lc->lconn_krbinstance != NULL ) {
-			free( lc->lconn_krbinstance );
+			LDAP_FREE( lc->lconn_krbinstance );
 		}
 		if ( lc->lconn_sb != &ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		}
-		free( lc );
+		LDAP_FREE( lc );
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
 		    0, 0, 0 );
 	} else {
@@ -556,14 +556,14 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 	}
 
 	if ( lr->lr_res_error != NULL ) {
-		free( lr->lr_res_error );
+		LDAP_FREE( lr->lr_res_error );
 	}
 
 	if ( lr->lr_res_matched != NULL ) {
-		free( lr->lr_res_matched );
+		LDAP_FREE( lr->lr_res_matched );
 	}
 
-	free( lr );
+	LDAP_FREE( lr );
 }
 
 
@@ -575,12 +575,12 @@ free_servers( LDAPServer *srvlist )
     while ( srvlist != NULL ) {
 	nextsrv = srvlist->lsrv_next;
 	if ( srvlist->lsrv_dn != NULL ) {
-		free( srvlist->lsrv_dn );
+		LDAP_FREE( srvlist->lsrv_dn );
 	}
 	if ( srvlist->lsrv_host != NULL ) {
-		free( srvlist->lsrv_host );
+		LDAP_FREE( srvlist->lsrv_host );
 	}
-	free( srvlist );
+	LDAP_FREE( srvlist );
 	srvlist = nextsrv;
     }
 }
@@ -693,7 +693,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 		if ( ldapref ) {
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
-			if (( srv = (LDAPServer *)calloc( 1,
+			if (( srv = (LDAPServer *)LDAP_CALLOC( 1,
 			    sizeof( LDAPServer ))) == NULL ) {
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
@@ -701,7 +701,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			}
 
 			if (( srv->lsrv_host = strdup( tmpref )) == NULL ) {
-				free( (char *)srv );
+				LDAP_FREE( (char *)srv );
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
 				return( -1 );
@@ -730,11 +730,11 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		}
 
 		if ( !newdn && refdn != NULL ) {
-			free( refdn );
+			LDAP_FREE( refdn );
 		}
 	}
 
-	free( *errstrp );
+	LDAP_FREE( *errstrp );
 	*errstrp = unfollowed;
 
 	return(( rc == 0 ) ? count : rc );
@@ -748,11 +748,11 @@ ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 
 	if ( *referralsp == NULL ) {
 		first = 1;
-		*referralsp = (char *)malloc( strlen( s ) + LDAP_REF_STR_LEN
+		*referralsp = (char *)LDAP_MALLOC( strlen( s ) + LDAP_REF_STR_LEN
 		    + 1 );
 	} else {
 		first = 0;
-		*referralsp = (char *)realloc( *referralsp,
+		*referralsp = (char *)LDAP_REALLOC( *referralsp,
 		    strlen( *referralsp ) + strlen( s ) + 2 );
 	}
 
@@ -822,7 +822,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 	if ( *dnp == NULL ) {
 		*dnp = orig_dn;
 	} else {
-		free( orig_dn );
+		LDAP_FREE( orig_dn );
 	}
 
 	if ( tag == LDAP_REQ_BIND ) {
@@ -917,7 +917,7 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 		}
 
 		if ( host != NULL ) {	/* found a server we can use */
-			if (( srv = (LDAPServer *)calloc( 1,
+			if (( srv = (LDAPServer *)LDAP_CALLOC( 1,
 			    sizeof( LDAPServer ))) == NULL ) {
 				free_servers( srvlist );
 				srvlist = NULL;

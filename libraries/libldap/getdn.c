@@ -133,8 +133,8 @@ ldap_explode_dns( LDAP_CONST char *dn_in )
 		return( NULL );
 	}
 
-	if ( (rdns = (char **) malloc( maxcomps * sizeof(char *) )) == NULL ) {
-		free( dn );
+	if ( (rdns = (char **) LDAP_MALLOC( maxcomps * sizeof(char *) )) == NULL ) {
+		LDAP_FREE( dn );
 		return( NULL );
 	}
 
@@ -144,21 +144,21 @@ ldap_explode_dns( LDAP_CONST char *dn_in )
 	{
 		if ( ncomps == maxcomps ) {
 			maxcomps *= 2;
-			if ( (rdns = (char **) realloc( rdns, maxcomps *
+			if ( (rdns = (char **) LDAP_REALLOC( rdns, maxcomps *
 			    sizeof(char *) )) == NULL )
 			{
-				free( dn );
+				LDAP_FREE( dn );
 				return NULL;
 			}
 		}
 		rdns[ncomps++] = strdup( s );
 	}
-	free(dn);
+	LDAP_FREE(dn);
 
 	rdns[ncomps] = NULL;
 
 	/* trim rdns */
-	rdns = (char **) realloc( rdns, (ncomps+1) * sizeof(char*) );
+	rdns = (char **) LDAP_REALLOC( rdns, (ncomps+1) * sizeof(char*) );
 	return( rdns );
 }
 
@@ -218,11 +218,11 @@ explode_name( LDAP_CONST char *name, int notypes, int is_dn )
 			if ( state == OUTQUOTE ) {
 				++count;
 				if ( parts == NULL ) {
-					if (( parts = (char **)malloc( 8
+					if (( parts = (char **)LDAP_MALLOC( 8
 						 * sizeof( char *))) == NULL )
 						return( NULL );
 				} else if ( count >= 8 ) {
-					if (( parts = (char **)realloc( parts,
+					if (( parts = (char **)LDAP_REALLOC( parts,
 						(count+1) * sizeof( char *)))
 						== NULL )
 						return( NULL );
@@ -248,7 +248,7 @@ explode_name( LDAP_CONST char *name, int notypes, int is_dn )
 				}
 
 				len = p - name;
-				if (( parts[ count-1 ] = (char *)calloc( 1,
+				if (( parts[ count-1 ] = (char *)LDAP_CALLOC( 1,
 				    len + 1 )) != NULL ) {
 				    	SAFEMEMCPY( parts[ count-1 ], name,
 					    len );

@@ -237,11 +237,11 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 			return( LBER_DEFAULT );
 		}
 		if ( datalen > *len ) {
-			free( transbuf );
+			LBER_FREE( transbuf );
 			return( LBER_DEFAULT );
 		}
 		SAFEMEMCPY( buf, transbuf, datalen );
-		free( transbuf );
+		LBER_FREE( transbuf );
 		--datalen;
 	}
 #endif /* STR_TRANSLATION */
@@ -265,11 +265,11 @@ ber_get_stringa( BerElement *ber, char **buf )
 		return( LBER_DEFAULT );
 	}
 
-	if ( (*buf = (char *) malloc( (size_t)datalen + 1 )) == NULL )
+	if ( (*buf = (char *) LBER_MALLOC( (size_t)datalen + 1 )) == NULL )
 		return( LBER_DEFAULT );
 
 	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
-		free( *buf );
+		LBER_FREE( *buf );
 		*buf = NULL;
 		return( LBER_DEFAULT );
 	}
@@ -281,7 +281,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 		++datalen;
 		if ( (*(ber->ber_decode_translate_proc))( buf, &datalen, 1 )
 		    != 0 ) {
-			free( *buf );
+			LBER_FREE( *buf );
 			*buf = NULL;
 			return( LBER_DEFAULT );
 		}
@@ -306,11 +306,11 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 		return( LBER_DEFAULT );
 	}
 
-	if ( (*bv = (struct berval *) malloc( sizeof(struct berval) )) == NULL )
+	if ( (*bv = (struct berval *) LBER_MALLOC( sizeof(struct berval) )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( ((*bv)->bv_val = (char *) malloc( (size_t)len + 1 )) == NULL ) {
-		free( *bv );
+	if ( ((*bv)->bv_val = (char *) LBER_MALLOC( (size_t)len + 1 )) == NULL ) {
+		LBER_FREE( *bv );
 		*bv = NULL;
 		return( LBER_DEFAULT );
 	}
@@ -358,17 +358,17 @@ ber_get_bitstringa( BerElement *ber, char **buf, unsigned long *blen )
 	}
 	--datalen;
 
-	if ( (*buf = (char *) malloc( (size_t)datalen )) == NULL )
+	if ( (*buf = (char *) LBER_MALLOC( (size_t)datalen )) == NULL )
 		return( LBER_DEFAULT );
 
 	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
-		free( buf );
+		LBER_FREE( buf );
 		*buf = NULL;
 		return( LBER_DEFAULT );
 	}
 
 	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
-		free( buf );
+		LBER_FREE( buf );
 		*buf = NULL;
 		return( LBER_DEFAULT );
 	}
@@ -573,13 +573,9 @@ va_dcl
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				if ( *sss == NULL ) {
-					*sss = (char **) malloc(
-					    2 * sizeof(char *) );
-				} else {
-					*sss = (char **) realloc( *sss,
-					    (j + 2) * sizeof(char *) );
-				}
+				*sss = (char **) LBER_REALLOC( *sss,
+					(j + 2) * sizeof(char *) );
+
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
@@ -595,13 +591,9 @@ va_dcl
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				if ( *bv == NULL ) {
-					*bv = (struct berval **) malloc(
-					    2 * sizeof(struct berval *) );
-				} else {
-					*bv = (struct berval **) realloc( *bv,
-					    (j + 2) * sizeof(struct berval *) );
-				}
+				*bv = (struct berval **) LBER_REALLOC( *bv,
+					(j + 2) * sizeof(struct berval *) );
+		
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
@@ -665,7 +657,7 @@ va_dcl
 		case 'a':	/* octet string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
-				free( *ss );
+				LBER_FREE( *ss );
 				*ss = NULL;
 			}
 			break;
@@ -690,7 +682,7 @@ va_dcl
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
 			if ( bval->bv_val != NULL ) {
-				free( bval->bv_val );
+				LBER_FREE( bval->bv_val );
 				bval->bv_val = NULL;
 			}
 			bval->bv_len = 0;
@@ -707,7 +699,7 @@ va_dcl
 		case 'B':	/* bit string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
-				free( *ss );
+				LBER_FREE( *ss );
 				*ss = NULL;
 			}
 			*(va_arg( ap, long * )) = 0; /* for length, in bits */
@@ -717,10 +709,10 @@ va_dcl
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
 				for (j = 0;  (*sss)[j];  j++) {
-					free( (*sss)[j] );
+					LBER_FREE( (*sss)[j] );
 					(*sss)[j] = NULL;
 				}
-				free( *sss );
+				LBER_FREE( *sss );
 				*sss = NULL;
 			}
 			break;
@@ -759,8 +751,8 @@ ber_bvfree( struct berval *bv )
 	assert(bv != NULL);			/* bv damn better point to something */
 
 	if ( bv->bv_val != NULL )
-		free( bv->bv_val );
-	free( (char *) bv );
+		LBER_FREE( bv->bv_val );
+	LBER_FREE( (char *) bv );
 }
 
 void
@@ -772,7 +764,7 @@ ber_bvecfree( struct berval **bv )
 
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
-	free( (char *) bv );
+	LBER_FREE( (char *) bv );
 }
 
 struct berval *
@@ -787,7 +779,7 @@ ber_bvdup(
 		return NULL;
 	}
 
-	if ( (new = (struct berval *) malloc( sizeof(struct berval) ))
+	if ( (new = (struct berval *) LBER_MALLOC( sizeof(struct berval) ))
 	    == NULL ) {
 		return( NULL );
 	}
@@ -798,8 +790,8 @@ ber_bvdup(
 		return ( new );
 	}
 
-	if ( (new->bv_val = (char *) malloc( bv->bv_len + 1 )) == NULL ) {
-		free( new );
+	if ( (new->bv_val = (char *) LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+		LBER_FREE( new );
 		return( NULL );
 	}
 

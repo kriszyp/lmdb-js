@@ -76,7 +76,7 @@ ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp )
 	return( LDAP_SEARCHPREF_ERR_FILE );
     }
 
-    if (( buf = malloc( (size_t)len )) == NULL ) {
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
 	fclose( fp );
 	return( LDAP_SEARCHPREF_ERR_MEM );
     }
@@ -86,12 +86,12 @@ ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp )
     fclose( fp );
 
     if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	free( buf );
+	LDAP_FREE( buf );
 	return( LDAP_SEARCHPREF_ERR_FILE );
     }
 
     rc = ldap_init_searchprefs_buf( buf, rlen, solistp );
-    free( buf );
+    LDAP_FREE( buf );
 
     return( rc );
 }
@@ -158,40 +158,40 @@ free_searchobj( struct ldap_searchobj *so )
 {
     if ( so != NULL ) {
 	if ( so->so_objtypeprompt != NULL ) {
-	    free(  so->so_objtypeprompt );
+	    LDAP_FREE(  so->so_objtypeprompt );
 	}
 	if ( so->so_prompt != NULL ) {
-	    free(  so->so_prompt );
+	    LDAP_FREE(  so->so_prompt );
 	}
 	if ( so->so_filterprefix != NULL ) {
-	    free(  so->so_filterprefix );
+	    LDAP_FREE(  so->so_filterprefix );
 	}
 	if ( so->so_filtertag != NULL ) {
-	    free(  so->so_filtertag );
+	    LDAP_FREE(  so->so_filtertag );
 	}
 	if ( so->so_defaultselectattr != NULL ) {
-	    free(  so->so_defaultselectattr );
+	    LDAP_FREE(  so->so_defaultselectattr );
 	}
 	if ( so->so_defaultselecttext != NULL ) {
-	    free(  so->so_defaultselecttext );
+	    LDAP_FREE(  so->so_defaultselecttext );
 	}
 	if ( so->so_salist != NULL ) {
 	    struct ldap_searchattr *sa, *nextsa;
 	    for ( sa = so->so_salist; sa != NULL; sa = nextsa ) {
 		nextsa = sa->sa_next;
 		if ( sa->sa_attrlabel != NULL ) {
-		    free( sa->sa_attrlabel );
+		    LDAP_FREE( sa->sa_attrlabel );
 		}
 		if ( sa->sa_attr != NULL ) {
-		    free( sa->sa_attr );
+		    LDAP_FREE( sa->sa_attr );
 		}
 		if ( sa->sa_selectattr != NULL ) {
-		    free( sa->sa_selectattr );
+		    LDAP_FREE( sa->sa_selectattr );
 		}
 		if ( sa->sa_selecttext != NULL ) {
-		    free( sa->sa_selecttext );
+		    LDAP_FREE( sa->sa_selecttext );
 		}
-		free( sa );
+		LDAP_FREE( sa );
 	    }
 	}
 	if ( so->so_smlist != NULL ) {
@@ -199,15 +199,15 @@ free_searchobj( struct ldap_searchobj *so )
 	    for ( sm = so->so_smlist; sm != NULL; sm = nextsm ) {
 		nextsm = sm->sm_next;
 		if ( sm->sm_matchprompt != NULL ) {
-		    free( sm->sm_matchprompt );
+		    LDAP_FREE( sm->sm_matchprompt );
 		}
 		if ( sm->sm_filter != NULL ) {
-		    free( sm->sm_filter );
+		    LDAP_FREE( sm->sm_filter );
 		}
-		free( sm );
+		LDAP_FREE( sm );
 	    }
 	}
-	free( so );
+	LDAP_FREE( so );
     }
 }
 
@@ -248,13 +248,13 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( tokcnt == 0 ? 0 : LDAP_SEARCHPREF_ERR_SYNTAX );
     }
 
-    if (( so = (struct ldap_searchobj *)calloc( 1,
+    if (( so = (struct ldap_searchobj *)LDAP_CALLOC( 1,
 	    sizeof( struct ldap_searchobj ))) == NULL ) {
 	free_strarray( toks );
 	return(  LDAP_SEARCHPREF_ERR_MEM );
     }
     so->so_objtypeprompt = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * if this is post-version zero, options come next
@@ -284,7 +284,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_prompt = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Filter prefix for "More Choices" searching is next
@@ -295,7 +295,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_filterprefix = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * "Fewer Choices" filter tag comes next
@@ -306,7 +306,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_filtertag = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Selection (disambiguation) attribute comes next
@@ -317,7 +317,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_defaultselectattr = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Label for selection (disambiguation) attribute
@@ -328,7 +328,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_defaultselecttext = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Search scope is next
@@ -361,7 +361,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
-	if (( *sa = ( struct ldap_searchattr * ) calloc( 1,
+	if (( *sa = ( struct ldap_searchattr * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchattr ))) == NULL ) {
 	    free_strarray( toks );
 	    ldap_free_searchprefs( so );
@@ -378,8 +378,8 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 		( *sa )->sa_matchtypebitmap |= (1 << j);
 	    }
 	}
-	free( toks[ 2 ] );
-	free( ( char * ) toks );
+	LDAP_FREE( toks[ 2 ] );
+	LDAP_FREE( ( char * ) toks );
 	sa = &(( *sa )->sa_next);
     }
     *sa = NULL;
@@ -394,7 +394,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
-	if (( *sm = ( struct ldap_searchmatch * ) calloc( 1,
+	if (( *sm = ( struct ldap_searchmatch * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchmatch ))) == NULL ) {
 	    free_strarray( toks );
 	    ldap_free_searchprefs( so );
@@ -402,7 +402,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	}
 	( *sm )->sm_matchprompt = toks[ 0 ];
 	( *sm )->sm_filter = toks[ 1 ];
-	free( ( char * ) toks );
+	LDAP_FREE( ( char * ) toks );
 	sm = &(( *sm )->sm_next );
     }
     *sm = NULL;

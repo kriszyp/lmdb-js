@@ -128,7 +128,7 @@ ldap_get_option(
 				info->ldapai_extensions = NULL;
 			} else {
 				int i;
-				info->ldapai_extensions = malloc(sizeof(char *) *
+				info->ldapai_extensions = LDAP_MALLOC(sizeof(char *) *
 					sizeof(features)/sizeof(LDAPAPIFeatureInfo));
 
 				for(i=0; features[i].ldapaif_name != NULL; i++) {
@@ -410,7 +410,7 @@ ldap_set_option(
 			char* host = (char *) invalue;
 
 			if(lo->ldo_defhost != NULL) {
-				free(lo->ldo_defhost);
+				LDAP_FREE(lo->ldo_defhost);
 				lo->ldo_defhost = NULL;
 			}
 
@@ -456,7 +456,7 @@ ldap_set_option(
 			}
 
 			if( ld->ld_error ) {
-				free(ld->ld_error);
+				LDAP_FREE(ld->ld_error);
 			}
 
 			ld->ld_error = strdup(err);

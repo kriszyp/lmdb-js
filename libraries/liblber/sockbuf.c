@@ -142,15 +142,15 @@ grow_buffer( Sockbuf_Buf * buf, long minsize )
       if ((buf->buf_base==NULL) || ((buf->buf_end==0) && (buf->buf_ptr==0))) {
 	 /* empty buffer */
 	 if (buf->buf_base!=NULL)
-	   free( buf->buf_base );
+	   LBER_FREE( buf->buf_base );
 	 assert( buf->buf_ptr==0 );
 	 assert( buf->buf_end==0 );
-	 buf->buf_base = malloc( minsize );
+	 buf->buf_base = LBER_MALLOC( minsize );
 	 if (buf->buf_base==NULL)
 	   return -1;
       } else {
 	 char *nb;
-	 nb = realloc( buf->buf_base, minsize );
+	 nb = LBER_REALLOC( buf->buf_base, minsize );
 	 if (nb==NULL)
 	   return -1;
 	 buf->buf_base = nb;
@@ -330,7 +330,7 @@ sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
 
 Sockbuf *ber_sockbuf_alloc( void )
 {
-	Sockbuf *sb = calloc(1, sizeof(Sockbuf));
+	Sockbuf *sb = LBER_CALLOC(1, sizeof(Sockbuf));
 
 	if( sb == NULL ) return NULL;
 
@@ -354,7 +354,7 @@ void ber_sockbuf_free( Sockbuf *sb )
 	assert(sb != NULL);
 	assert( SOCKBUF_VALID( sb ) );
 	ber_pvt_sb_destroy( sb );
-	free(sb);
+	LBER_FREE(sb);
 }
 
 long 
@@ -685,7 +685,7 @@ sockbuf_buf_destroy( Sockbuf_Buf *buf )
 	assert( buf != NULL);
 
    if (buf->buf_base)
-     free( buf->buf_base );
+     LBER_FREE( buf->buf_base );
    sockbuf_buf_init( buf );
    return 0;
 }
@@ -968,7 +968,7 @@ dgram_setup( Sockbuf *sb, void *arg )
 	assert( sb != NULL);
 	assert( SOCKBUF_VALID( sb ) );
 
-   sb->sb_iodata = malloc( sizeof( struct dgram_data ) );
+   sb->sb_iodata = LBER_MALLOC( sizeof( struct dgram_data ) );
    if (sb->sb_iodata==NULL)
      return -1;
    sb->sb_read_ahead = 1; /* important since udp is packet based. */
@@ -981,7 +981,7 @@ dgram_release( Sockbuf *sb )
 	assert( sb != NULL);
 	assert( SOCKBUF_VALID( sb ) );
 
-   free( sb->sb_iodata );
+   LBER_FREE( sb->sb_iodata );
    return 0;
 }
 

@@ -21,9 +21,6 @@ static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#define safe_realloc( ptr, size )	( (ptr) == NULL ? malloc( size ) : \
-					 realloc( ptr, size ))
-
 static int dodelete LDAP_P((
     LDAP	*ld,
     char	*dn));

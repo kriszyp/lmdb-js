@@ -55,7 +55,7 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
    	struct hostent		he_buf;
    	int			local_h_errno;
    	char   			*ha_buf=NULL;
-#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+#define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
 	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, (int) ntohs( (short) port ), 0 );
@@ -176,7 +176,7 @@ ldap_host_connected_to( Sockbuf *sb )
    	struct hostent		he_buf;
         int			local_h_errno;
    	char			*ha_buf=NULL;
-#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+#define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
 	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
@@ -282,7 +282,7 @@ ldap_new_select_info( void )
 {
 	struct selectinfo	*sip;
 
-	if (( sip = (struct selectinfo *)calloc( 1,
+	if (( sip = (struct selectinfo *)LDAP_CALLOC( 1,
 	    sizeof( struct selectinfo ))) != NULL ) {
 		FD_ZERO( &sip->si_readfds );
 		FD_ZERO( &sip->si_writefds );
@@ -295,7 +295,7 @@ ldap_new_select_info( void )
 void
 ldap_free_select_info( void *sip )
 {
-	free( sip );
+	LDAP_FREE( sip );
 }
 
 

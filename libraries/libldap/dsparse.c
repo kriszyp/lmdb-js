@@ -51,18 +51,18 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 	return( rc );
     }
 
-    if (( toks = (char **)calloc( 1, sizeof( char * ))) == NULL ) {
-	free( line );
+    if (( toks = (char **)LDAP_CALLOC( 1, sizeof( char * ))) == NULL ) {
+	LBER_FREE( line );
 	return( -1 );
     }
     tokcnt = 0;
 
     p = line;
     while (( token = next_token( &p )) != NULL ) {
-	if (( toks = (char **)realloc( toks, ( tokcnt + 2 ) *
+	if (( toks = (char **)LDAP_REALLOC( toks, ( tokcnt + 2 ) *
 		sizeof( char * ))) == NULL ) {
-	    free( (char *)toks );
-	    free( line );
+	    LBER_FREE( (char *)toks );
+	    LBER_FREE( line );
 	    return( -1 );
 	}
 	toks[ tokcnt ] = token;
@@ -75,11 +75,11 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 	toks = NULL;
     }
 
-    free( line );
+    LBER_FREE( line );
 
     if ( tokcnt == 0 ) {
 	if ( toks != NULL ) {
-	    free( (char *)toks );
+	    LBER_FREE( (char *)toks );
 	}
     } else {
 	*toksp = toks;
@@ -131,7 +131,7 @@ next_line( char **bufp, long *blenp, char **linep )
 	return( 0 );	/* end of file */
     }
 
-    if (( line = malloc( p - linestart )) == NULL ) {
+    if (( line = LDAP_MALLOC( p - linestart )) == NULL ) {
 	*linep = NULL;
 	return( -1 );	/* fatal error */
     }
@@ -203,8 +203,8 @@ free_strarray( char **sap )
 
     if ( sap != NULL ) {
 	for ( i = 0; sap[ i ] != NULL; ++i ) {
-	    free( sap[ i ] );
+	    LBER_FREE( sap[ i ] );
 	}
-	free( (char *)sap );
+	LBER_FREE( (char *)sap );
     }
 }

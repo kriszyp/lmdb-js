@@ -69,7 +69,7 @@ cldap_open( char *host, int port )
     int                 local_h_errno;
     char		*ha_buf=NULL;
 
-#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+#define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
     Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
@@ -249,21 +249,17 @@ add_addr( LDAP *ld, struct sockaddr *sap )
 {
     struct sockaddr	*newsap, **addrs;
 
-    if (( newsap = (struct sockaddr *)malloc( sizeof( struct sockaddr )))
+    if (( newsap = (struct sockaddr *)LDAP_MALLOC( sizeof( struct sockaddr )))
 	    == NULL ) {
 	ld->ld_errno = LDAP_NO_MEMORY;
 	return( -1 );
     }
 	
-    if ( ld->ld_cldapnaddr == 0 ) {	
-	addrs = (struct sockaddr **)malloc( sizeof(struct sockaddr *));
-    } else {
-	addrs = (struct sockaddr **)realloc( ld->ld_cldapaddrs,
+	addrs = (struct sockaddr **)LDAP_REALLOC( ld->ld_cldapaddrs,
 		( ld->ld_cldapnaddr + 1 ) * sizeof(struct sockaddr *));
-    }
 
     if ( addrs == NULL ) {
-	free( newsap );
+	LDAP_FREE( newsap );
 	ld->ld_errno = LDAP_NO_MEMORY;
 	return( -1 );
     }
@@ -339,13 +335,13 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	logdn = NULL;
 
 	if ( ber_scanf( &ber, "ia", &id, &logdn ) == LBER_ERROR ) {
-	    free( ber.ber_buf );	/* gack! */
+	    LDAP_FREE( ber.ber_buf );	/* gack! */
 	    ret = LDAP_DECODING_ERROR;
 	    Debug( LDAP_DEBUG_TRACE,
 		    "cldap_result: ber_scanf returned LBER_ERROR (%d)\n",
 		    ret, 0, 0 );
 	} else if ( id != msgid ) {
-	    free( ber.ber_buf );	/* gack! */
+	    LDAP_FREE( ber.ber_buf );	/* gack! */
 	    Debug( LDAP_DEBUG_TRACE,
 		    "cldap_result: looking for msgid %d; got %d\n",
 		    msgid, id, 0 );
@@ -367,13 +363,13 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 		    }
 	    }
 	    ret = cldap_parsemsg( ld, msgid, &ber, res, base );
-	    free( ber.ber_buf );	/* gack! */
+	    LDAP_FREE( ber.ber_buf );	/* gack! */
 	    Debug( LDAP_DEBUG_TRACE,
 		"cldap_result got result (%d)\n", ret, 0, 0 );
 	}
 
 	if ( logdn != NULL ) {
-		free( logdn );
+		LDAP_FREE( logdn );
 	}
     }
     
@@ -423,7 +419,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
     for ( tag = ber_first_element( ber, &len, &cookie );
 	    tag != LBER_DEFAULT && rc != LDAP_SUCCESS;
 	    tag = ber_next_element( ber, &len, cookie )) {
-	if (( ldm = (LDAPMessage *)calloc( 1, sizeof(LDAPMessage)))
+	if (( ldm = (LDAPMessage *)LDAP_CALLOC( 1, sizeof(LDAPMessage)))
 		== NULL || ( ldm->lm_ber = ldap_alloc_ber_with_options( ld ))
 		== NULLBER ) {
 	    rc = LDAP_NO_MEMORY;
@@ -458,14 +454,14 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 		/*
 		 * substitute original searchbase for trailing '*'
 		 */
-		if (( p = (char *)malloc( slen + baselen )) == NULL ) {
+		if (( p = (char *)LDAP_MALLOC( slen + baselen )) == NULL ) {
 		    rc = LDAP_NO_MEMORY;
-		    free( dn );
+		    LDAP_FREE( dn );
 		    break;	/* return w/error */
 		}
 		strcpy( p, dn );
 		strcpy( p + slen - 1, base );
-		free( dn );
+		LDAP_FREE( dn );
 		dn = p;
 	    }
 
@@ -473,7 +469,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 		    bv->bv_len ) == -1 ) {
 		break;	/* return w/error */
 	    }
-	    free( dn );
+	    LDAP_FREE( dn );
 	    ber_bvfree( bv );
 	    bv = NULL;
 		
@@ -519,7 +515,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	if ( ldm->lm_ber != NULLBER ) {
 	    ber_free( ldm->lm_ber, 1 );
 	}
-	free( ldm );
+	LDAP_FREE( ldm );
     }
     if ( bv != NULL ) {
 	ber_bvfree( bv );

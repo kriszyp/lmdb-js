@@ -44,7 +44,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 
 	/* break out on success, return out on error */
 	while ( ! found ) {
-		free(attr);
+		LDAP_FREE(attr);
 		attr = NULL;
 
 		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
@@ -57,7 +57,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 
 	}
 
-	free(attr);
+	LDAP_FREE(attr);
 	attr = NULL;
 
 	/* 
@@ -96,7 +96,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 
 	/* break out on success, return out on error */
 	while ( ! found ) {
-		free( attr );
+		LDAP_FREE( attr );
 		attr = NULL;
 
 		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
@@ -108,7 +108,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 			break;
 	}
 
-	free( attr );
+	LDAP_FREE( attr );
 	attr = NULL;
 
 	/* 
@@ -152,8 +152,8 @@ ldap_value_free( char **vals )
 	if ( vals == NULL )
 		return;
 	for ( i = 0; vals[i] != NULL; i++ )
-		free( vals[i] );
-	free( (char *) vals );
+		LDAP_FREE( vals[i] );
+	LDAP_FREE( (char *) vals );
 }
 
 void
@@ -164,8 +164,8 @@ ldap_value_free_len( struct berval **vals )
 	if ( vals == NULL )
 		return;
 	for ( i = 0; vals[i] != NULL; i++ ) {
-		free( vals[i]->bv_val );
-		free( vals[i] );
+		LDAP_FREE( vals[i]->bv_val );
+		LDAP_FREE( vals[i] );
 	}
-	free( (char *) vals );
+	LDAP_FREE( (char *) vals );
 }

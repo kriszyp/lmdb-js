@@ -141,12 +141,12 @@ ber_realloc( BerElement *ber, unsigned long len )
 
 	oldbuf = ber->ber_buf;
 
+	ber->ber_buf = (char *) LBER_REALLOC( ber->ber_buf, total );
+	
 	if ( ber->ber_buf == NULL ) {
-		if ( (ber->ber_buf = (char *) malloc( (size_t)total )) == NULL )
-			return( -1 );
-	} else if ( (ber->ber_buf = (char *) realloc( ber->ber_buf,
-	    (size_t)total )) == NULL )
+		ber->ber_buf = oldbuf;
 		return( -1 );
+	}
 
 	ber->ber_end = ber->ber_buf + total;
 
@@ -178,12 +178,12 @@ ber_free( BerElement *ber, int freebuf )
 	assert( BER_VALID( ber ) );
 
 	if ( freebuf && ber->ber_buf != NULL )
-		free( ber->ber_buf );
+		LBER_FREE( ber->ber_buf );
 
 	ber->ber_buf = NULL;
 	ber->ber_valid = LBER_UNINITIALIZED;
 
-	free( (char *) ber );
+	LBER_FREE( (char *) ber );
 }
 
 int
@@ -242,7 +242,7 @@ ber_alloc_t( int options )
 {
 	BerElement	*ber;
 
-	ber = (BerElement *) calloc( 1, sizeof(BerElement) );
+	ber = (BerElement *) LBER_CALLOC( 1, sizeof(BerElement) );
 
 	if ( ber == NULLBER )
 		return( NULLBER );
@@ -353,7 +353,7 @@ int ber_flatten(
 		return( -1 );
 	}
 
-	if ( (bv = malloc( sizeof(struct berval))) == NULL ) {
+	if ( (bv = LBER_MALLOC( sizeof(struct berval))) == NULL ) {
 		return( -1 );
 	}
 
@@ -366,7 +366,7 @@ int ber_flatten(
 		/* copy the berval */
 		ptrdiff_t len = ber->ber_ptr - ber->ber_buf;
 
-		if ( (bv->bv_val = (char *) malloc( len + 1 )) == NULL ) {
+		if ( (bv->bv_val = (char *) LBER_MALLOC( len + 1 )) == NULL ) {
 			ber_bvfree( bv );
 			return( -1 );
 		}
@@ -554,7 +554,7 @@ fill_buffer:
 			errno = ERANGE;
 			return LBER_DEFAULT;
 		}
-		ber->ber_buf = (char *) malloc( ber->ber_len );
+		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
 		if (ber->ber_buf==NULL)
 			return LBER_DEFAULT;
 		ber->ber_rwptr = ber->ber_buf;

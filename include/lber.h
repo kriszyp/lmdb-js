@@ -424,6 +424,26 @@ LDAP_F( void )
 ber_sockbuf_free(
 	Sockbuf *sb );
 
+/*
+ * LBER memory.c
+ */
+LDAP_F( void * )
+ber_memalloc LDAP_P((
+	size_t s ));
+
+LDAP_F( void * )
+ber_memrealloc LDAP_P((
+	void* p,
+	size_t s ));
+
+LDAP_F( void * )
+ber_memcalloc LDAP_P((
+	size_t n,
+	size_t s ));
+
+LDAP_F( void )
+ber_memfree LDAP_P((
+	void* p ));
 
 LDAP_END_DECL
 

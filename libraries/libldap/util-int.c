@@ -360,7 +360,7 @@ static int copy_hostent( struct hostent *res, char **buf, struct hostent * src )
 static char *safe_realloc( char **buf, int len )
 {
 	char *tmpbuf;
-	tmpbuf = realloc( *buf, len );
+	tmpbuf = LDAP_REALLOC( *buf, len );
 	if (tmpbuf) {
 		*buf=tmpbuf;
 	} 

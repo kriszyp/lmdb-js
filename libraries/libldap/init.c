@@ -165,7 +165,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 
 			case ATTR_STRING:
 				p = &((char *) &gopts)[attrs[i].offset];
-				if (* (char**) p != NULL) free(* (char**) p);
+				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = strdup(opt);
 				break;
 			}
@@ -188,9 +188,9 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	home = getenv("HOME");
 
 	if (home != NULL) {
-		path = malloc(strlen(home) + strlen(file) + 3);
+		path = LDAP_MALLOC(strlen(home) + strlen(file) + 3);
 	} else {
-		path = malloc(strlen(file) + 3);
+		path = LDAP_MALLOC(strlen(file) + 3);
 	}
 
 	if(home != NULL && path != NULL) {
@@ -206,7 +206,7 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	}
 
 	if(path != NULL) {
-		free(path);
+		LDAP_FREE(path);
 	}
 
 	/* try file */
@@ -272,7 +272,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 
 		case ATTR_STRING:
 			p = &((char *) &gopts)[attrs[i].offset];
-			if (* (char**) p != NULL) free(* (char**) p);
+			if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 			if (*value == '\0') {
 				* (char**) p = NULL;
 			} else {

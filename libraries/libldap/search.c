@@ -270,7 +270,7 @@ ldap_build_search_req(
 
 	filter = strdup( filter_in );
 	err = put_filter( ber, filter );
-	free( filter );
+	LDAP_FREE( filter );
 
 	if ( err  == -1 ) {
 		ld->ld_errno = LDAP_FILTER_ERROR;
@@ -478,10 +478,10 @@ put_filter( BerElement *ber, char *str )
 					*d = '\0';
 				}
 				if ( put_simple_filter( ber, tmp ) == -1 ) {
-					free( tmp );
+					LDAP_FREE( tmp );
 					return( -1 );
 				}
-				free( tmp );
+				LDAP_FREE( tmp );
 				*next++ = ')';
 				str = next;
 				parens--;
@@ -520,10 +520,10 @@ put_filter( BerElement *ber, char *str )
 				*d = '\0';
 			}
 			if ( put_simple_filter( ber, tmp ) == -1 ) {
-				free( tmp );
+				LDAP_FREE( tmp );
 				return( -1 );
 			}
-			free( tmp );
+			LDAP_FREE( tmp );
 			str = next;
 			break;
 		}

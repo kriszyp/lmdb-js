@@ -1034,7 +1034,7 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
   len = *buflenp;
   s = (Byte *) *bufp;
 
-  if ( (o = oo = (Byte *)malloc( 2 * len + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * len + 64 )) == NULL ) {
         return( 1 );
   }
 
@@ -1136,13 +1136,13 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
   len = o - oo;
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, len )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, len )) == NULL ) {
+    LDAP_FREE( o );
     return( 1 );
   }
 
   if ( free_input ) {
-    free( *bufp );
+    LDAP_FREE( *bufp );
   }
   *bufp = (char *) oo;
   *buflenp = len;
@@ -1571,7 +1571,7 @@ ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
   len = *buflenp;
   s = (Byte *) *bufp;
 
-  if ( (o = oo = (Byte *)malloc( 2 * len + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * len + 64 )) == NULL ) {
         return( 1 );
   }
 
@@ -1650,13 +1650,13 @@ ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
   len = o - oo;
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, len )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, len )) == NULL ) {
+    LDAP_FREE( o );
     return( 1 );
   }
 
   if ( free_input ) {
-    free( *bufp );
+    LDAP_FREE( *bufp );
   }
   *bufp = (char *) oo;
   *buflenp = len;
@@ -1694,7 +1694,7 @@ const Byte  *s;
   Byte	*o, *oo;
   Byte	n;
 
-  if ( (o = oo = (Byte *)malloc( 2 * strlen( s ) + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * strlen( s ) + 64 )) == NULL ) {
         return( NULL );
   }
 
@@ -1713,8 +1713,8 @@ const Byte  *s;
 
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, strlen( o ) + 1 )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, strlen( o ) + 1 )) == NULL ) {
+    LDAP_FREE( o );
     return( NULL );
   }
 
@@ -1748,7 +1748,7 @@ Byte  *s;
   Byte   n;
   const Couple *cc;
 
-  if ( (o = oo = (Byte *)malloc( 2 * strlen( s ) + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * strlen( s ) + 64 )) == NULL ) {
         return( NULL );
   }
 
@@ -1791,8 +1791,8 @@ Byte  *s;
 
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, strlen( o ) + 1 )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, strlen( o ) + 1 )) == NULL ) {
+    LDAP_FREE( o );
     return( NULL );
   }
 

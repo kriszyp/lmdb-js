@@ -155,11 +155,11 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 		;	/* NULL */
 
 	if ( ld->ld_error ) {
-		free( ld->ld_error );
+		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
 	}
 	if ( ld->ld_matched ) {
-		free( ld->ld_matched );
+		LDAP_FREE( ld->ld_matched );
 		ld->ld_matched = NULL;
 	}
 

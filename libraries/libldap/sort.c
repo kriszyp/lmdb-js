@@ -103,7 +103,7 @@ ldap_sort_entries(
 		return 0;
 	}
 
-	if ( (et = (struct entrything *) malloc( count *
+	if ( (et = (struct entrything *) LDAP_MALLOC( count *
 	    sizeof(struct entrything) )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( -1 );
@@ -118,7 +118,7 @@ ldap_sort_entries(
 
 			dn = ldap_get_dn( ld, e );
 			et[i].et_vals = ldap_explode_dn( dn, 1 );
-			free( dn );
+			LDAP_FREE( dn );
 		} else {
 			et[i].et_vals = ldap_get_values( ld, e, attr );
 		}
@@ -137,7 +137,7 @@ ldap_sort_entries(
 		ldap_value_free( et[i].et_vals );
 	}
 	*ep = last;
-	free( (char *) et );
+	LDAP_FREE( (char *) et );
 
 	return( 0 );
 }

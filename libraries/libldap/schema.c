@@ -13,9 +13,10 @@
 
 #include <ac/ctype.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
-#include <lber.h>
-#include <ldap.h>
+#include "ldap-int.h"
+
 #include <ldap_schema.h>
 
 /*
@@ -38,15 +39,15 @@ new_safe_string(int size)
 {
 	safe_string * ss;
 	
-	ss = malloc(sizeof(safe_string));
+	ss = LDAP_MALLOC(sizeof(safe_string));
 	if ( !ss )
 		return(NULL);
 	ss->size = size;
 	ss->pos = 0;
-	ss->val = malloc(size);
+	ss->val = LDAP_MALLOC(size);
 	ss->at_whsp = 0;
 	if ( !ss->val ) {
-		free(ss);
+		LDAP_FREE(ss);
 		return(NULL);
 	}
 	return ss;
@@ -84,10 +85,10 @@ append_to_safe_string(safe_string * ss, char * s)
 	/* We always make sure there is at least one position available */
 	if ( ss->pos + l >= ss->size-1 ) {
 		ss->size *= 2;
-		temp = realloc(ss->val, ss->size);
+		temp = LDAP_REALLOC(ss->val, ss->size);
 		if ( !temp ) {
 			/* Trouble, out of memory */
-			free(ss->val);
+			LDAP_FREE(ss->val);
 			return -1;
 		}
 		ss->val = temp;
@@ -414,10 +415,10 @@ charray_free( char **array )
 
 	for ( a = array; *a != NULL; a++ ) {
 		if ( *a != NULL ) {
-			free( *a );
+			LDAP_FREE( *a );
 		}
 	}
-	free( (char *) array );
+	LDAP_FREE( (char *) array );
 }
 
 /*
@@ -491,7 +492,7 @@ get_token(char ** sp, char ** token_val)
 			(*sp)++;
 		if ( **sp == '\'' ) {
 			q = *sp;
-			res = malloc(q-p+1);
+			res = LDAP_MALLOC(q-p+1);
 			if ( !res ) {
 				kind = TK_OUTOFMEM;
 			} else {
@@ -510,7 +511,7 @@ get_token(char ** sp, char ** token_val)
 		while ( !isspace(**sp) && **sp != '\0' )
 			(*sp)++;
 		q = *sp;
-		res = malloc(q-p+1);
+		res = LDAP_MALLOC(q-p+1);
 		if ( !res ) {
 			kind = TK_OUTOFMEM;
 		} else {
@@ -567,7 +568,7 @@ parse_numericoid(char **sp, int *code)
 	}
 	/* At this point, *sp points at the char past the numericoid. Perfect. */
 	len = *sp - start;
-	res = malloc(len+1);
+	res = LDAP_MALLOC(len+1);
 	if (!res) {
 	  *code = LDAP_SCHERR_OUTOFMEM;
 	  return(NULL);
@@ -593,7 +594,7 @@ parse_qdescrs(char **sp, int *code)
 	if ( kind == TK_LEFTPAREN ) {
 		/* Let's presume there will be at least 2 entries */
 		size = 3;
-		res = calloc(3,sizeof(char *));
+		res = LDAP_CALLOC(3,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
@@ -607,7 +608,7 @@ parse_qdescrs(char **sp, int *code)
 			if ( kind == TK_QDESCR ) {
 				if ( pos == size-2 ) {
 					size++;
-					res1 = realloc(res,size*sizeof(char *));
+					res1 = LDAP_REALLOC(res,size*sizeof(char *));
 					if ( !res1 ) {
 						charray_free(res);
 						*code = LDAP_SCHERR_OUTOFMEM;
@@ -628,7 +629,7 @@ parse_qdescrs(char **sp, int *code)
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_QDESCR ) {
-		res = calloc(2,sizeof(char *));
+		res = LDAP_CALLOC(2,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
@@ -711,7 +712,7 @@ parse_oids(char **sp, int *code)
 	if ( kind == TK_LEFTPAREN ) {
 		/* Let's presume there will be at least 2 entries */
 		size = 3;
-		res = calloc(3,sizeof(char *));
+		res = LDAP_CALLOC(3,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
@@ -738,7 +739,7 @@ parse_oids(char **sp, int *code)
 				if ( kind == TK_BAREWORD ) {
 					if ( pos == size-2 ) {
 						size++;
-						res1 = realloc(res,size*sizeof(char *));
+						res1 = LDAP_REALLOC(res,size*sizeof(char *));
 						if ( !res1 ) {
 						  charray_free(res);
 						  *code = LDAP_SCHERR_OUTOFMEM;
@@ -764,7 +765,7 @@ parse_oids(char **sp, int *code)
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_BAREWORD ) {
-		res = calloc(2,sizeof(char *));
+		res = LDAP_CALLOC(2,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
@@ -814,7 +815,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	LDAP_ATTRIBUTE_TYPE * at;
 
 	*errp = s;
-	at = calloc(1,sizeof(LDAP_ATTRIBUTE_TYPE));
+	at = LDAP_CALLOC(1,sizeof(LDAP_ATTRIBUTE_TYPE));
 
 	if ( !at ) {
 		*code = LDAP_SCHERR_OUTOFMEM;
@@ -1068,7 +1069,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	LDAP_OBJECT_CLASS * oc;
 
 	*errp = s;
-	oc = calloc(1,sizeof(LDAP_OBJECT_CLASS));
+	oc = LDAP_CALLOC(1,sizeof(LDAP_OBJECT_CLASS));
 
 	if ( !oc ) {
 		*code = LDAP_SCHERR_OUTOFMEM;

@@ -433,7 +433,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 
 	/* make a new ldap message */
-	if ( (new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
+	if ( (new = (LDAPMessage *) LDAP_CALLOC( 1, sizeof(LDAPMessage) ))
 	    == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( -1 );
@@ -567,13 +567,13 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	    parentr->lr_res_errno == LDAP_SUCCESS ) {
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( parentr->lr_res_error != NULL ) {
-			free( parentr->lr_res_error );
+			LDAP_FREE( parentr->lr_res_error );
 		}
 		parentr->lr_res_error = lr->lr_res_error;
 		lr->lr_res_error = NULL;
 		if ( LDAP_NAME_ERROR( lr->lr_res_errno )) {
 			if ( parentr->lr_res_matched != NULL ) {
-				free( parentr->lr_res_matched );
+				LDAP_FREE( parentr->lr_res_matched );
 			}
 			parentr->lr_res_matched = lr->lr_res_matched;
 			lr->lr_res_matched = NULL;
@@ -621,7 +621,7 @@ ldap_msgfree( LDAPMessage *lm )
 		next = lm->lm_chain;
 		type = lm->lm_msgtype;
 		ber_free( lm->lm_ber, 1 );
-		free( (char *) lm );
+		LDAP_FREE( (char *) lm );
 	}
 
 	return( type );

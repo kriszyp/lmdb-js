@@ -37,7 +37,7 @@ ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
 {
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache == NULLLDCACHE ) {
-		if (( ld->ld_cache = (LDAPCache *)malloc( sizeof( LDAPCache )))
+		if (( ld->ld_cache = (LDAPCache *)LDAP_MALLOC( sizeof( LDAPCache )))
 		    == NULLLDCACHE ) {
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
@@ -86,7 +86,7 @@ ldap_destroy_cache( LDAP *ld )
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULLLDCACHE ) {
 		ldap_flush_cache( ld );
-		free( (char *)ld->ld_cache );
+		LDAP_FREE( (char *)ld->ld_cache );
 		ld->ld_cache = NULLLDCACHE;
 	}
 #endif
@@ -224,17 +224,17 @@ ldap_add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request 
 		return;
 	}
 
-	if (( new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
+	if (( new = (LDAPMessage *) LDAP_CALLOC( 1, sizeof(LDAPMessage) ))
 	    != NULL ) {
 		if (( new->lm_ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-			free( (char *)new );
+			LDAP_FREE( (char *)new );
 			return;
 		}
 		len = request->ber_ptr - request->ber_buf;
-		if (( new->lm_ber->ber_buf = (char *) malloc( (size_t)len ))
+		if (( new->lm_ber->ber_buf = (char *) ber_memalloc( (size_t)len ))
 		    == NULL ) {
 			ber_free( new->lm_ber, 0 );
-			free( (char *)new );
+			LDAP_FREE( (char *)new );
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return;
 		}
@@ -482,17 +482,17 @@ msg_dup( LDAPMessage *msg )
 	LDAPMessage	*new;
 	long		len;
 
-	if (( new = (LDAPMessage *)malloc( sizeof(LDAPMessage))) != NULL ) {
+	if (( new = (LDAPMessage *)LDAP_MALLOC( sizeof(LDAPMessage))) != NULL ) {
 		*new = *msg;	/* struct copy */
 		if (( new->lm_ber = ber_dup( msg->lm_ber )) == NULLBER ) {
-			free( (char *)new );
+			LDAP_FREE( (char *)new );
 			return( NULLMSG );
 		}
 		len = msg->lm_ber->ber_end - msg->lm_ber->ber_buf;
-		if (( new->lm_ber->ber_buf = (char *) malloc(
+		if (( new->lm_ber->ber_buf = (char *) ber_memalloc(
 		    (size_t)len )) == NULL ) {
 			ber_free( new->lm_ber, 0 );
-			free( (char *)new );
+			LDAP_FREE( (char *)new );
 			return( NULLMSG );
 		}
 		SAFEMEMCPY( new->lm_ber->ber_buf, msg->lm_ber->ber_buf,
@@ -555,7 +555,7 @@ chain_contains_dn( LDAPMessage *msg, const char *dn )
 	ber = *msg->lm_ber;	/* struct copy */
 	if ( ber_scanf( &ber, "{i{a", &msgid, &s ) != LBER_ERROR ) {
 	    rc = ( strcasecmp( dn, s ) == 0 ) ? 1 : 0;
-	    free( s );
+	    LDAP_FREE( s );
 	    if ( rc != 0 ) {
 		return( rc );
 	    }
@@ -576,7 +576,7 @@ chain_contains_dn( LDAPMessage *msg, const char *dn )
 		ber = *m->lm_ber;	/* struct copy */
 		if ( ber_scanf( &ber, "{a", &s ) != LBER_ERROR ) {
 			rc = ( strcasecmp( dn, s ) == 0 ) ? 1 : 0;
-			free( s );
+			LDAP_FREE( s );
 		}
 	}
 

@@ -49,7 +49,7 @@ ldap_friendly_name(
 		}
 		rewind( fp );
 
-		if ( (*map = (LDAPFriendlyMap *) malloc( (entries + 1) *
+		if ( (*map = (LDAPFriendlyMap *) LDAP_MALLOC( (entries + 1) *
 		    sizeof(LDAPFriendlyMap) )) == NULL ) {
 			fclose( fp );
 			return( uname );
@@ -113,10 +113,10 @@ ldap_free_friendlymap( LDAPFriendlyMap **map )
 
 	while ( pF->lf_unfriendly )
 	{
-		free( pF->lf_unfriendly );
-		free( pF->lf_friendly );
+		LDAP_FREE( pF->lf_unfriendly );
+		LDAP_FREE( pF->lf_friendly );
 		pF++;
 	}
-	free( *map );
+	LDAP_FREE( *map );
 	*map = NULL;
 }

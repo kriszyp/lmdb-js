@@ -105,10 +105,6 @@ main( int argc, char **argv )
 }
 
 
-#define safe_realloc( ptr, size )   ( (ptr) == NULL ? malloc( size ) : \
-				realloc( ptr, size ))
-
-
 static void
 addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 {
@@ -130,9 +126,9 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
     }
 
     if ( pmods == NULL || pmods[ i ] == NULL ) {
-		if (( pmods = (LDAPMod **)safe_realloc( pmods, (i + 2) *
+		if (( pmods = (LDAPMod **)realloc( pmods, (i + 2) *
 			sizeof( LDAPMod * ))) == NULL ) {
-	    		perror( "safe_realloc" );
+	    		perror( "realloc" );
 	    		exit( 1 );
 		}
 		*pmodsp = pmods;
@@ -157,13 +153,13 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	    	}
 		}
 		if (( pmods[ i ]->mod_bvalues =
-			(struct berval **)safe_realloc( pmods[ i ]->mod_bvalues,
+			(struct berval **)ber_realloc( pmods[ i ]->mod_bvalues,
 			(j + 2) * sizeof( struct berval * ))) == NULL ) {
-	    		perror( "safe_realloc" );
+	    		perror( "ber_realloc" );
 	    		exit( 1 );
 		}
 		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
-		if (( bvp = (struct berval *)malloc( sizeof( struct berval )))
+		if (( bvp = (struct berval *)ber_malloc( sizeof( struct berval )))
 			== NULL ) {
 	    		perror( "malloc" );
 	    		exit( 1 );

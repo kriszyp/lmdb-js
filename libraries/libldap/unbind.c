@@ -64,9 +64,9 @@ ldap_ld_free(
 		int	i;
 
 		for ( i = 0; i < ld->ld_cldapnaddr; ++i ) {
-			free( ld->ld_cldapaddrs[ i ] );
+			LDAP_FREE( ld->ld_cldapaddrs[ i ] );
 		}
-		free( ld->ld_cldapaddrs );
+		LDAP_FREE( ld->ld_cldapaddrs );
 	}
 
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
@@ -82,22 +82,22 @@ ldap_ld_free(
 #endif /* !LDAP_NOCACHE */
 
 	if ( ld->ld_error != NULL ) {
-		free( ld->ld_error );
+		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
 	}
 
 	if ( ld->ld_matched != NULL ) {
-		free( ld->ld_matched );
+		LDAP_FREE( ld->ld_matched );
 		ld->ld_matched = NULL;
 	}
 
 	if ( ld->ld_host != NULL ) {
-		free( ld->ld_host );
+		LDAP_FREE( ld->ld_host );
 		ld->ld_host = NULL;
 	}
 
 	if ( ld->ld_ufnprefix != NULL ) {
-		free( ld->ld_ufnprefix );
+		LDAP_FREE( ld->ld_ufnprefix );
 		ld->ld_ufnprefix = NULL;
 	}
 
@@ -107,7 +107,7 @@ ldap_ld_free(
 	}
 
 	if ( ld->ld_abandoned != NULL ) {
-		free( ld->ld_abandoned );
+		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;
 	}
 
@@ -117,18 +117,18 @@ ldap_ld_free(
 	}
 
 	if ( ld->ld_options.ldo_defbase != NULL ) {
-		free( ld->ld_options.ldo_defbase );
+		LDAP_FREE( ld->ld_options.ldo_defbase );
 		ld->ld_options.ldo_defbase = NULL;
 	}
 
 	if ( ld->ld_options.ldo_defhost != NULL ) {
-		free( ld->ld_options.ldo_defhost );
+		LDAP_FREE( ld->ld_options.ldo_defhost );
 		ld->ld_options.ldo_defhost = NULL;
 	}
 
 	ber_pvt_sb_destroy( &(ld->ld_sb) );   
    
-	free( (char *) ld );
+	LDAP_FREE( (char *) ld );
    
 	WSACleanup();
 

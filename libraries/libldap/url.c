@@ -121,10 +121,10 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	/* allocate return struct */
-	if (( ludp = (LDAPURLDesc *)calloc( 1, sizeof( LDAPURLDesc )))
+	if (( ludp = (LDAPURLDesc *)LDAP_CALLOC( 1, sizeof( LDAPURLDesc )))
 	    == NULLLDAPURLDESC )
 	{
-		free( url );
+		LDAP_FREE( url );
 		return( LDAP_URL_ERR_MEM );
 	}
 
@@ -212,7 +212,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		    }
 		}
 
-		if (( ludp->lud_attrs = (char **)calloc( nattrs + 1,
+		if (( ludp->lud_attrs = (char **)LDAP_CALLOC( nattrs + 1,
 		    sizeof( char * ))) == NULL ) {
 			ldap_free_urldesc( ludp );
 			return( LDAP_URL_ERR_MEM );
@@ -238,12 +238,12 @@ ldap_free_urldesc( LDAPURLDesc *ludp )
 {
 	if ( ludp != NULLLDAPURLDESC ) {
 		if ( ludp->lud_string != NULL ) {
-			free( ludp->lud_string );
+			LDAP_FREE( ludp->lud_string );
 		}
 		if ( ludp->lud_attrs != NULL ) {
-			free( ludp->lud_attrs );
+			LDAP_FREE( ludp->lud_attrs );
 		}
-		free( ludp );
+		LDAP_FREE( ludp );
 	}
 }
 
@@ -273,11 +273,11 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	err = 0;
 
 	if ( ludp->lud_host != NULL || ludp->lud_port != 0 ) {
-		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer )))
+		if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer )))
 		    == NULL || ( srv->lsrv_host = strdup( ludp->lud_host ==
 		    NULL ? ld->ld_defhost : ludp->lud_host )) == NULL ) {
 			if ( srv != NULL ) {
-				free( srv );
+				LDAP_FREE( srv );
 			}
 			ld->ld_errno = LDAP_NO_MEMORY;
 			err = -1;

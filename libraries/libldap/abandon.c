@@ -85,6 +85,7 @@ do_abandon(
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
+	unsigned long *old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
@@ -199,22 +200,23 @@ do_abandon(
 		}
 	}
 
-	if ( ld->ld_abandoned == NULL ) {
-		if ( (ld->ld_abandoned = (int *) malloc( 2 * sizeof(int) ))
-		    == NULL ) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return( ld->ld_errno );
-		}
-		i = 0;
-	} else {
-		for ( i = 0; ld->ld_abandoned[i] != -1; i++ )
+	i = 0;
+	if ( ld->ld_abandoned != NULL ) {
+		for ( ; ld->ld_abandoned[i] != -1; i++ )
 			;	/* NULL */
-		if ( (ld->ld_abandoned = (int *) realloc( (char *)
-		    ld->ld_abandoned, (i + 2) * sizeof(int) )) == NULL ) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return( ld->ld_errno );
-		}
 	}
+
+	old_abandon = ld->ld_abandoned;
+
+	ld->ld_abandoned = (int *) LDAP_REALLOC( (char *)
+		ld->ld_abandoned, (i + 2) * sizeof(int) );
+		
+	if ( ld->ld_abandoned == NULL ) {
+		ld->ld_abandoned = old_abandon;
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return( ld->ld_errno );
+	}
+
 	ld->ld_abandoned[i] = msgid;
 	ld->ld_abandoned[i + 1] = -1;
 
