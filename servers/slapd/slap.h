@@ -36,7 +36,7 @@
 #include "ldap_queue.h"
 
 #ifdef LDAP_DEVEL
-/* #define SLAP_NVALUES 1 */
+#define SLAP_NVALUES 1
 #define SLAP_EXTENDED_SCHEMA 1
 #endif
 
