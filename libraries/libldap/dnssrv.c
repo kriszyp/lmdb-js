@@ -96,7 +96,7 @@ int ldap_dn2domain(
 
 				ndomain = LDAP_REALLOC( domain,
 					( domain == NULL ? 0 : strlen(domain) )
-					+ strlen(dc) + 2 );
+					+ strlen(dc) + "." );
 
 				if( ndomain == NULL ) {
 					LDAP_FREE( rdn );
@@ -106,12 +106,9 @@ int ldap_dn2domain(
 					return -5;
 				}
 
-				if( domain == NULL ) {
-					ndomain[0] = '\0';
-				} else {
-					strcat( ndomain, "." );
-				}
 				strcat( ndomain, dc );
+				strcat( ndomain, "." );
+
 				domain = ndomain;
 				continue;
 			}
