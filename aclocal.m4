@@ -72,6 +72,8 @@ if test $ac_cv_header_db_h = yes ; then
 #				endif
 #			endif
 		], ol_cv_header_db2=yes, ol_cv_header_db2=no)])
+else
+	ol_cv_header_db2=no
 fi
 ])dnl
 dnl --------------------------------------------------------------------
@@ -178,6 +180,14 @@ dnl
 dnl ====================================================================
 dnl Check if GDBM library exists
 dnl Check for gdbm_open in standard libraries or -lgdbm
+dnl
+dnl defines ol_cv_lib_gdbm to 'yes' or '-lgdbm' or 'no'
+dnl		'yes' implies gdbm_open is in $LIBS
+dnl
+dnl uses:
+dnl		AC_CHECK_FUNC(gdbm_open)
+dnl		AC_CHECK_LIB(gdbm,gdbm_open)
+dnl
 AC_DEFUN([OL_LIB_GDBM],
 [AC_CACHE_CHECK(for GDBM library, [ol_cv_lib_gdbm],
 [	ol_LIBS="$LIBS"
@@ -190,6 +200,13 @@ AC_DEFUN([OL_LIB_GDBM],
 dnl
 dnl --------------------------------------------------------------------
 dnl Check if GDBM exists
+dnl
+dnl defines ol_cv_gdbm to 'yes' or 'no'
+dnl 
+dnl uses:
+dnl		OL_LIB_GDBM
+dnl		AC_CHECK_HEADERS(gdbm.h)
+dnl
 AC_DEFUN([OL_GDBM],
 [AC_REQUIRE([OL_LIB_GDBM])
  AC_CHECK_HEADERS(gdbm.h)
@@ -205,6 +222,15 @@ dnl
 dnl ====================================================================
 dnl Check if NDBM library exists
 dnl Check for dbm_open in standard libraries or -lndbm or -ldbm
+dnl
+dnl defines ol_cv_lib_ndbm to 'yes' or '-lndbm' or -ldbm or 'no'
+dnl		'yes' implies ndbm_open is in $LIBS
+dnl
+dnl uses:
+dnl		AC_CHECK_FUNC(dbm_open)
+dnl		AC_CHECK_LIB(ndbm,dbm_open)
+dnl		AC_CHECK_LIB(dbm,dbm_open)
+dnl
 AC_DEFUN([OL_LIB_NDBM],
 [AC_CACHE_CHECK(for NDBM library, [ol_cv_lib_ndbm],
 [	ol_LIBS="$LIBS"
@@ -220,6 +246,13 @@ AC_DEFUN([OL_LIB_NDBM],
 dnl
 dnl --------------------------------------------------------------------
 dnl Check if NDBM exists
+dnl
+dnl defines ol_cv_ndbm to 'yes' or 'no'
+dnl 
+dnl uses:
+dnl		OL_LIB_NDBM
+dnl		AC_CHECK_HEADERS(ndbm.h)
+dnl
 AC_DEFUN([OL_NDBM],
 [AC_REQUIRE([OL_LIB_NDBM])
  AC_CHECK_HEADERS(ndbm.h)
@@ -234,6 +267,12 @@ AC_DEFUN([OL_NDBM],
 dnl
 dnl ====================================================================
 dnl Check POSIX Thread version 
+dnl
+dnl defines ol_cv_posix_version to 'final' or 'draft' or 'unknown'
+dnl 	'unknown' implies that the version could not be detected
+dnl		or that pthreads.h does exist.  Existance of pthreads.h
+dnl		should be tested separately.
+dnl
 AC_DEFUN([OL_POSIX_THREAD_VERSION],
 [AC_CACHE_CHECK([POSIX thread version],[ol_cv_pthread_version],[
 	AC_EGREP_CPP(final,[
@@ -264,6 +303,12 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 dnl
 dnl --------------------------------------------------------------------
 dnl Check LinuxThread
+dnl
+dnl defines ol_cv_linux_threads to 'yes' or 'no'
+dnl		'no' implies pthreads.h is not LinuxThreads or pthreads.h
+dnl		doesn't exists.  Existance of pthread.h should separately
+dnl		checked.
+dnl 
 AC_DEFUN([OL_LINUX_THREADS],
 [
 AC_CACHE_CHECK([for LinuxThreads], [ol_cv_linux_threads], [

@@ -328,6 +328,8 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
 			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
 		fi
 
+		dnl $ol_cv_lib_db2 should be yes or -ldb
+		dnl (it could be no, but that would be an error
 		if test $ol_cv_lib_db2 != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db2"
 		fi
@@ -351,6 +353,8 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
 		fi
 
+		dnl $ol_cv_lib_db should be yes or -ldb
+		dnl (it could be no, but that would be an error
 		if test $ol_cv_lib_db != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
 		fi
