@@ -153,7 +153,7 @@ main( int argc, char **argv )
     if( argc < 2 ) usage( prog );
 
 	/* strncmp instead of strcmp since NT binaries carry .exe extension */
-    ldapadd = ( strncmp( prog, "ldapadd", sizeof("ldapadd"-1 ) == 0 );
+    ldapadd = ( strncmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
 
     infile = NULL;
     not = verbose = want_bindpw = debug = manageDSAit = referrals = 0;
