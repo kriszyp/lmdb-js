@@ -583,6 +583,8 @@ static struct slap_schema_syn_map {
 	char *sssm_name;
 	size_t sssm_offset;
 } syn_map[] = {
+	{ "1.3.6.1.4.1.1466.115.121.1.40",
+		offsetof(struct slap_internal_schema, si_syn_octetString) },
 	{ "1.3.6.1.4.1.1466.115.121.1.12",
 		offsetof(struct slap_internal_schema, si_syn_distinguishedName) },
 	{ "1.3.6.1.4.1.1466.115.121.1.27",
@@ -703,12 +705,7 @@ slap_schema_check( void )
 		}
 	}
 
-	slap_at_undefined.sat_syntax = syn_find( SLAPD_OCTETSTRING_SYNTAX );
-	if( slap_at_undefined.sat_syntax == NULL ) {
-		fprintf( stderr, "slap_schema_check: "
-			"No octetString syntax \"" SLAPD_OCTETSTRING_SYNTAX "\"\n" );
-		return LDAP_INVALID_SYNTAX;
-	}
+	slap_at_undefined.sat_syntax = slap_schema.si_syn_distinguishedName;
 	slap_schema.si_at_undefined = &slap_at_undefined;
 
 	for( i=0; ad_map[i].ssam_name; i++ ) {

@@ -636,6 +636,7 @@ struct slap_internal_schema {
 	MatchingRule	*si_mr_integerMatch;
 
 	/* Syntaxes */
+	Syntax		*si_syn_octetString;
 	Syntax		*si_syn_distinguishedName;
 	Syntax		*si_syn_integer;
 };
