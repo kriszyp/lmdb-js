@@ -23,14 +23,6 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-/* KPASSWD/krb.h brings in a conflicting des.h so don't use both.
- * configure currently requires OpenSSL to enable LMHASH. Obviously
- * this requirement can be fulfilled by the KRB DES library as well.
- */
-#if defined(SLAPD_LMHASH) && !defined(SLAPD_KPASSWD)
-#	include <openssl/des.h>
-#endif /* SLAPD_LMHASH */
-
 #ifdef SLAPD_SPASSWD
 #	ifdef HAVE_SASL_SASL_H
 #		include <sasl/sasl.h>
@@ -43,6 +35,14 @@
 #	include <ac/krb.h>
 #	include <ac/krb5.h>
 #endif
+
+/* KPASSWD/krb.h brings in a conflicting des.h so don't use both.
+ * configure currently requires OpenSSL to enable LMHASH. Obviously
+ * this requirement can be fulfilled by the KRB DES library as well.
+ */
+#if defined(SLAPD_LMHASH) && !defined(DES_ENCRYPT)
+#	include <openssl/des.h>
+#endif /* SLAPD_LMHASH */
 
 #include <ac/param.h>
 
