@@ -67,8 +67,10 @@
 #define MAXHOSTNAMELEN  64
 #endif
 
+#undef	sock_errno
+#undef	sock_errstr
 #define sock_errno()	errno
-#define sock_errstr()	STRERROR(errno)
+#define sock_errstr(e)	STRERROR(e)
 
 #ifdef HAVE_WINSOCK
 #	define tcp_close( s )		closesocket( s )
@@ -85,7 +87,7 @@
 #undef	sock_errno
 #undef	sock_errstr
 #define	sock_errno()	WSAGetLastError()
-#define	sock_errstr()	WSAGetLastErrorString()
+#define	sock_errstr(e)	WSAGetLastErrorString()
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
