@@ -224,7 +224,8 @@ static int spew_entry(Entry * e, struct berval * path) {
 
 static Entry * get_entry_for_fd(int fd,
 	struct berval *pdn,
-	struct berval *pndn) {
+	struct berval *pndn)
+{
 	char * entry = (char *) slurp_file(fd);
 	Entry * ldentry = NULL;
 	
@@ -270,7 +271,12 @@ static Entry * get_entry(Operation *op, struct berval *base_path) {
 
 	if(path.bv_val != NULL)
 		SLAP_FREE(path.bv_val);
-	return get_entry_for_fd(fd, &pdn, &pndn);
+
+	if ( fd != -1 ) {
+		return get_entry_for_fd(fd, &pdn, &pndn);
+	}
+
+	return NULL;
 }
 
 static void fullpath(struct berval *base, struct berval *name, struct berval *res) {
