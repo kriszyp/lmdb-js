@@ -941,12 +941,17 @@ hdb_dn2idl_internal(
 #endif
 	BDB_IDL_ZERO( cx->tmp );
 
+	bdb_cache_entryinfo_lock( cx->ei );
+
 	/* If number of kids in the cache differs from on-disk, load
 	 * up all the kids from the database
 	 */
 	if ( cx->ei->bei_ckids+1 != cx->ei->bei_dkids ) {
 		EntryInfo ei;
+		db_recno_t dkids = cx->ei->bei_dkids;
 		ei.bei_parent = cx->ei;
+
+		bdb_cache_entryinfo_unlock( cx->ei );
 
 		cx->rc = cx->db->cursor( cx->db, NULL, &cx->dbc,
 			cx->bdb->bi_db_opflags );
@@ -959,14 +964,16 @@ hdb_dn2idl_internal(
 
 		/* The first item holds the parent ID. Ignore it. */
 		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
-		if ( cx->rc == DB_NOTFOUND ) goto saveit;
-		if ( cx->rc ) return cx->rc;
+		if ( cx->rc ) {
+			cx->dbc->c_close( cx->dbc );
+			if ( cx->rc == DB_NOTFOUND ) goto saveit;
+			return cx->rc;
+		}
 
 		/* If the on-disk count is zero we've never checked it.
 		 * Count it now.
 		 */
-		if ( !cx->ei->bei_dkids ) {
-			db_recno_t dkids;
+		if ( !dkids ) {
 			cx->dbc->c_count( cx->dbc, &dkids, 0 );
 			cx->ei->bei_dkids = dkids;
 		}
@@ -976,7 +983,6 @@ hdb_dn2idl_internal(
 		 */
 		if ( cx->prefix == DN_SUBTREE_PREFIX && cx->ei->bei_dkids > 1 ) {
 			eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
-			eilist[cx->ei->bei_dkids-1] = NULL;
 			ptr = eilist;
 		}
 
@@ -1014,6 +1020,8 @@ hdb_dn2idl_internal(
 			}
 		}
 		cx->dbc->c_close( cx->dbc );
+		if ( eilist )
+			*ptr = NULL;
 	} else {
 		/* The in-memory cache is in sync with the on-disk data.
 		 * do we have any kids?
@@ -1025,7 +1033,6 @@ hdb_dn2idl_internal(
 			/* Temp storage for subtree search */
 			if ( cx->prefix == DN_SUBTREE_PREFIX ) {
 				eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
-				eilist[cx->ei->bei_dkids-1] = NULL;
 			}
 
 			/* Walk the kids tree; order is irrelevant since bdb_idl_insert
@@ -1033,10 +1040,12 @@ hdb_dn2idl_internal(
 			 */
 			ap.idl = cx->tmp;
 			ap.ei = eilist;
-			bdb_cache_entryinfo_lock( cx->ei );
 			avl_apply( cx->ei->bei_kids, apply_func, &ap, -1, AVL_POSTORDER );
-			bdb_cache_entryinfo_unlock( cx->ei );
+			if ( eilist ) {
+				*ap.ei = NULL;
+			}
 		}
+		bdb_cache_entryinfo_unlock( cx->ei );
 	}
 
 	/* If we got some records, treat as success */
