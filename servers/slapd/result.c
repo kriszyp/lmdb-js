@@ -381,11 +381,15 @@ send_ldap_response(
 	{
 		if ( rs->sr_rspoid != NULL ) {
 			rc = ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_RES_OID, rs->sr_rspoid );
+				rs->sr_type == REP_EXTENDED
+					? LDAP_TAG_EXOP_RES_OID : LDAP_TAG_IM_RES_OID,
+				rs->sr_rspoid );
 		}
 		if( rc != -1 && rs->sr_rspdata != NULL ) {
 			rc = ber_printf( ber, "tO",
-				LDAP_TAG_EXOP_RES_VALUE, rs->sr_rspdata );
+				rs->sr_type == REP_EXTENDED
+					? LDAP_TAG_EXOP_RES_VALUE : LDAP_TAG_IM_RES_VALUE,
+				rs->sr_rspdata );
 		}
 	}
 

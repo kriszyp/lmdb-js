@@ -356,6 +356,9 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_RES_OID   ((ber_tag_t) 0x8aU)	/* context specific + primitive */
 #define LDAP_TAG_EXOP_RES_VALUE ((ber_tag_t) 0x8bU)	/* context specific + primitive */
 
+#define LDAP_TAG_IM_RES_OID   ((ber_tag_t) 0x80U)	/* context specific + primitive */
+#define LDAP_TAG_IM_RES_VALUE ((ber_tag_t) 0x81U)	/* context specific + primitive */
+
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
 /* LDAP Request Messages */
