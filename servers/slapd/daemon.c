@@ -425,6 +425,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	if( i == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no listeners to open (%s)\n",
 			urls, 0, 0 );
+		charray_free( u );
 		return -1;
 	}
 
@@ -437,6 +438,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 		slap_listeners[i] = open_listener( u[i], port, tls_port );
 
 		if( slap_listeners[i] == NULL ) {
+			charray_free( u );
 			return -1;
 		}
 	}
