@@ -31,7 +31,8 @@ ldbm_back_add(
 	int			rc; 
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
-
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,"ldbm_back_add: %s\n",
@@ -51,7 +52,7 @@ ldbm_back_add(
 		return( -1 );
 	}
 
-	rc = entry_schema_check( e, NULL, &text );
+	rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
 
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);

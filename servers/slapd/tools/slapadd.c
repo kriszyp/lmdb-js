@@ -94,7 +94,12 @@ main( int argc, char **argv )
 		if( global_schemacheck ) {
 			/* check schema */
 			const char *text;
-			if ( entry_schema_check( e, NULL, &text ) != LDAP_SUCCESS ) {
+			char textbuf[SLAP_TEXT_BUFLEN];
+			size_t textlen = sizeof textbuf;
+
+			rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
+
+			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
 					progname, e->e_dn, lineno, text );
 				rc = EXIT_FAILURE;

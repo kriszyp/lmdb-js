@@ -27,7 +27,8 @@ static char *	oc_check_required(Entry *e, struct berval *ocname);
 
 int
 entry_schema_check( 
-	Entry *e, Attribute *oldattrs, const char** text )
+	Entry *e, Attribute *oldattrs, const char** text,
+	char *textbuf, size_t textlen )
 {
 	Attribute	*a, *aoc;
 	ObjectClass *oc;
@@ -37,6 +38,8 @@ entry_schema_check(
 	int extensible = 0;
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
+
+	*text = textbuf;
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
@@ -55,34 +58,40 @@ entry_schema_check(
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
+			snprintf( textbuf, textlen, 
+				"unrecognized objectClass '%s'",
+				aoc->a_vals[i]->bv_val );
+
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-				   "entry_schema_check: dn (%s), objectClass \"%s\" not recognized\n",
-				   e->e_dn, aoc->a_vals[i]->bv_val ));
+				"entry_schema_check: dn (%s), %s\n",
+				e->e_dn, textbuf ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): objectClass \"%s\" not recognized\n",
-				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
+				"entry_check_schema(%s): \"%s\" not recognized\n",
+				e->e_dn, textbuf, 0 );
 #endif
 
-			*text = "unrecognized object class";
 			return LDAP_OBJECT_CLASS_VIOLATION;
 
 		} else {
 			char *s = oc_check_required( e, aoc->a_vals[i] );
 
 			if (s != NULL) {
+				snprintf( textbuf, textlen, 
+					"object class '%s' requires attribute '%s'",
+					aoc->a_vals[i]->bv_val, s );
+
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-					   "entry_schema_check: dn (%s) oc \"%s\" requires att \"%s\"\n",
-					   e->e_dn, aoc->a_vals[i]->bv_val, s ));
+					"entry_schema_check: dn=\"%s\" %s",
+					e->e_dn, textbuf ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
-					e->e_dn, aoc->a_vals[i]->bv_val, s );
+					"Entry (%s): %s\n",
+					e->e_dn, textbuf, 0 );
 #endif
 
-				*text = "missing required attribute";
 				return LDAP_OBJECT_CLASS_VIOLATION;
 			}
 
@@ -105,17 +114,21 @@ entry_schema_check(
 		ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
 		if ( ret != 0 ) {
 			char *type = a->a_desc->ad_cname->bv_val;
+
+			snprintf( textbuf, textlen, 
+				"attribute '%s' not allowed",
+				type );
+
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-				   "entry_schema_check: Entry (%s) attr \"%s\" not allowed.\n",
-				   e->e_dn, type ));
+				"entry_schema_check: dn=\"%s\" %s\n",
+				e->e_dn, textbuf ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), attr \"%s\" not allowed\n",
-			    e->e_dn, type, 0 );
+			    "Entry (%s), %s\n",
+			    e->e_dn, textbuf, 0 );
 #endif
 
-			*text = "attribute not allowed";
 			break;
 		}
 	}
@@ -186,7 +199,6 @@ int oc_check_allowed(
 		at->sat_cname, 0, 0 );
 #endif
 
-
 	/* always allow objectClass attribute */
 	if ( strcasecmp( at->sat_cname, "objectClass" ) == 0 ) {
 		return LDAP_SUCCESS;
@@ -221,17 +233,8 @@ int oc_check_allowed(
 				}
 			}
 			/* maybe the next oc allows it */
-
-#ifdef OC_UNDEFINED_IMPLES_EXTENSIBLE
-		/* we don't know about the oc. assume it allows it */
-		} else {
-			if ( t != type )
-				ldap_memfree( t );
-			return LDAP_SUCCESS;
-#endif
 		}
 	}
-
 
 	/* not allowed by any oc */
 	return LDAP_OBJECT_CLASS_VIOLATION;

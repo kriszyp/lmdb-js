@@ -671,7 +671,8 @@ int oc_check_allowed(
 	struct berval **oclist );
 LDAP_SLAPD_F (int) entry_schema_check LDAP_P((
 	Entry *e, Attribute *attrs,
-	const char** text ));
+	const char** text,
+	char *textbuf, size_t textlen ));
 
 
 /*
