@@ -29,7 +29,7 @@
 #include "ldap_defaults.h"
 
 #undef ISASCII
-#define ISASCII(uc)	((uc) < 0x100)
+#define ISASCII(uc)	((uc) < 0x80)
 
 /*
  * Basic UTF-8 routines
@@ -264,7 +264,7 @@ int ldap_utf8_copy( char* dst, const char *src )
 
 /*
  * UTF-8 ctype routines
- * Only deals with characters < 0x100 (ie: US-ASCII)
+ * Only deals with characters < 0x80 (ie: US-ASCII)
  */
 
 int ldap_utf8_isascii( const char * p )
