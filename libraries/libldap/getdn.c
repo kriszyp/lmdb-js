@@ -1020,9 +1020,10 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 
 	for ( ; p[ 0 ]; p++ ) {
 		LDAPDN 		*dn;
+		int		err;
 		
-		rc = ldap_str2rdn( p, &newRDN, &p, flags );
-		if ( rc != LDAP_SUCCESS ) {
+		err = ldap_str2rdn( p, &newRDN, &p, flags );
+		if ( err != LDAP_SUCCESS ) {
 			goto parsing_error;
 		}
 
