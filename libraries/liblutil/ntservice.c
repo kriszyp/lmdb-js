@@ -46,7 +46,8 @@ void (*stopfunc)(int);
 /* in nt_err.c */
 char *GetLastErrorString( void );
 
-int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
+int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
+		LPCTSTR lpszBinaryPathName, BOOL auto_start)
 {
 	HKEY		hKey;
 	DWORD		dwValue, dwDisposition;
@@ -58,10 +59,10 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 	 	if ((schService = CreateService( 
 							schSCManager, 
 							lpszServiceName, 
-							TEXT("OpenLDAP Directory Service"), 
-							SC_MANAGER_CREATE_SERVICE, 
+							lpszDisplayName, 
+							SERVICE_ALL_ACCESS, 
 							SERVICE_WIN32_OWN_PROCESS, 
-							SERVICE_DEMAND_START, 
+							auto_start ? SERVICE_AUTO_START : SERVICE_DEMAND_START, 
 							SERVICE_ERROR_NORMAL, 
 							lpszBinaryPathName, 
 							NULL, NULL, NULL, NULL, NULL)) != NULL)
@@ -292,8 +293,8 @@ void *getRegParam( char *svc, char *value )
 	static char vValue[1024];
 	DWORD valLen = sizeof( vValue );
 
-	if ( svc != NULL )
-		sprintf ( path, "SOFTWARE\\OpenLDAP\\%s\\Parameters", svc );
+	if ( svc && strcmp(svc, SERVICE_NAME) )
+		sprintf ( path, "SOFTWARE\\%s", svc );
 	else
 		strcpy (path, "SOFTWARE\\OpenLDAP\\Parameters" );
 	

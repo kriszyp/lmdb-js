@@ -9,38 +9,14 @@
 #include <ac/string.h>
 #include "slap.h"
 
-static void stubs()
-{
-    ldap_abandon(NULL, 0);
-    ldap_add_s(NULL, NULL, NULL);
-    ldap_bind_s(NULL, NULL, NULL, 0);
-    ldap_delete_s(NULL, NULL);
-    ldap_first_attribute(NULL, NULL, NULL);
-    ldap_first_entry(NULL, NULL);
-    ldap_get_dn(NULL, NULL);
-    ldap_get_option(NULL, 0, NULL);
-    ldap_get_values_len(NULL, NULL, NULL);
-    ldap_init(NULL, 0);
-    ldap_modify_s(NULL, NULL, NULL);
-    ldap_modrdn_s(NULL, NULL, NULL);
-    ldap_msgfree(NULL);
-    ldap_next_attribute(NULL, NULL, NULL);
-    ldap_result(NULL, 0, 0, NULL, NULL);
-    ldap_search(NULL, NULL, 0, NULL, NULL, 0);
-    ldap_unbind(NULL);
-}
-
 #ifdef HAVE_NT_SERVICE_MANAGER
-
-ldap_pvt_thread_cond_t	started_event,		stopped_event;
-ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
-
 
 /* in main.c */
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
 
 /* in ntservice.c */
-int srv_install( char* service, char* filename );
+int srv_install( char* service, char * displayName, char* filename,
+		 BOOL auto_start );
 int srv_remove ( char* service, char* filename );
 
 int main( int argc, LPTSTR *argv )
@@ -49,8 +25,17 @@ int main( int argc, LPTSTR *argv )
 	char	filename[MAX_PATH], *fname_start;
 	extern int is_NT_Service;
 
+	/*
+	 * Because the service was registered as SERVICE_WIN32_OWN_PROCESS,
+	 * the lpServiceName element of the SERVICE_TABLE_ENTRY will be
+	 * ignored. Since we don't even know the name of the service at
+	 * this point (since it could have been installed under a name
+	 * different than SERVICE_NAME), we might as well just provide
+	 * the parameter as "".
+	 */
+
 	SERVICE_TABLE_ENTRY		DispatchTable[] = {
-		{	SERVICE_NAME,	(LPSERVICE_MAIN_FUNCTION) ServiceMain	},
+		{	"",	(LPSERVICE_MAIN_FUNCTION) ServiceMain	},
 		{	NULL,			NULL	}
 	};
 
@@ -67,14 +52,24 @@ int main( int argc, LPTSTR *argv )
 		if ( _stricmp( "install", argv[1] ) == 0 ) 
 		{
 			char *svcName = SERVICE_NAME;
+			char *displayName = "OpenLDAP Directory Service";
+			BOOL auto_start = FALSE;
+
 			if ( (argc > 2) && (argv[2] != NULL) )
 				svcName = argv[2];
+
+			if ( argc > 3 && argv[3])
+				displayName = argv[3];
+
+			if ( argc > 4 && stricmp(argv[4], "auto") == 0)
+				auto_start = TRUE;
+
 			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
 			{
 				fputs( "unable to retrieve file name for the service.\n", stderr  );
 				return EXIT_FAILURE;
 			}
-			if ( !srv_install(svcName, filename) ) 
+			if ( !srv_install(svcName, displayName, filename, auto_start) ) 
 			{
 				fputs( "service failed installation ...\n", stderr  );
 				return EXIT_FAILURE;

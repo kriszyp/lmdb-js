@@ -74,6 +74,7 @@ do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 #ifdef HAVE_NT_SERVICE_MANAGER
 /* in nt_main.c */
 extern ldap_pvt_thread_cond_t			started_event;
+extern int	  is_NT_Service;
 #endif
 
 #ifndef HAVE_WINSOCK
@@ -999,6 +1000,13 @@ slapd_daemon_task(
 			0, 0, 0 );
 
 	} else if ( slapd_shutdown < 0 ) {
+#ifdef HAVE_NT_SERVICE_MANAGER
+		if (slapd_shutdown == -1)
+		    Debug( LDAP_DEBUG_TRACE,
+			  "daemon: shutdown initiated by Service Manager.\n",
+			  0, 0, 0);
+		else
+#endif
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: abnormal condition, shutdown initiated.\n",
 			0, 0, 0 );
@@ -1134,7 +1142,22 @@ static int sockdestroy(void)
 RETSIGTYPE
 slap_sig_shutdown( int sig )
 {
+	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
+
+	/*
+	 * If the NT Service Manager is controlling the server, we don't
+	 * want SIGBREAK to kill the server. For some strange reason,
+	 * SIGBREAK is generated when a user logs out.
+	 */
+
+#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
+	if (is_NT_Service && sig == SIGBREAK)
+	    Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: SIGBREAK ignored.\n",
+		  0, 0, 0);
+	else
+#endif
 	slapd_shutdown = sig;
+
 	WAKE_LISTENER(1);
 
 	/* reinstall self */

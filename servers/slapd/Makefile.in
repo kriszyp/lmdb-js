@@ -52,46 +52,113 @@ BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
 
-NT_GEN_DEFS = -DLIBLUTIL_DECL=dllexport -DLIBAVL_DECL=dllexport \
-	      -DLIBLDBM_DECL=dllexport -DLIBLDIF_DECL=dllexport
-
 NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 
 DEFINES = $(@PLAT@_@LIB_LINKAGE@_DEFS)
 
-slapd.def: slapd.syms
-	(							\
-	    echo EXPORTS > $@;					\
-	    _hint=1;						\
-	    for symbol in `cat $<`; do				\
-		echo " $$symbol @ $$_hint ; " >> $@;		\
-		_hint=`expr 1 + $$_hint`;			\
-	    done						\
-	)
-
-slapd.base: version.o
-	$(LTLINK) -o slapd $(OBJS) version.o $(LIBS) $(WRAP_LIBS) \
-	    -Wl,--base-file,$@
-	rm -f slapd
-
-slapd.exp: slapd.def slapd.base
-	dlltool --dllname slapd.exe --def slapd.def --base-file slapd.base \
-	    --output-exp $@
-
-libslapd.a: slapd.def
-	dlltool --dllname slapd.exe --def $< --output-lib $@
+# The tricky part about building slapd in NT is that it will export symbols
+# like a DLL. The symbols that it exports should be representative of all
+# of the static symbols that it knows about.
 
 NT_EXP = slapd.exp
-NT_IMP_LIB = libslapd.a
+NT_IMPLIB = libslapd.a
+NT_DUMMY  = symdummy.o
 
-slapd: $(@PLAT@_IMP_LIB) libbackends.a version.o $(@PLAT@_EXP)
-	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS) $(@PLAT@_EXP)
+# Add extra def targets here
+EXTRA_DEFS =
+
+# NT needs this if libltdl is built statically. You'll have to fix the path
+# to point to where libltdl was built, then put ltdl.def in EXTRA_DEFS
+ltdl.def: ../../../libtool/libltdl/*.o
+	dlltool --export-all-symbols --output-def $@ $^
+
+DYNAMIC_DEFS = liblber.def libldap_r.def
+
+STATIC_DEFS = libavl.def libldbm.def libldif.def liblutil.def slapd.def \
+	      $(EXTRA_DEFS)
+
+libavl.def: $(LDAP_LIBDIR)/libavl/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+liblber.def: $(LDAP_LIBDIR)/liblber/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldap_r.def: $(LDAP_LIBDIR)/libldap_r/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldbm.def: $(LDAP_LIBDIR)/libldbm/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldif.def: $(LDAP_LIBDIR)/libldif/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+liblutil.def: $(LDAP_LIBDIR)/liblutil/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+slapd.def: $(OBJS) version.o
+	dlltool --export-all-symbols --exclude-symbols main,ServiceMain@8 --output-def $@ `ls $^ | grep -v test`
+
+# We don't want to include symbols from dynamic libraries.
+all.def: $(STATIC_DEFS) $(DYNAMIC_DEFS)
+	cat $(STATIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' > $@
+	if [ "@LIB_LINKAGE@" != "DYN" ] ; \
+	then \
+	    cat $(DYNAMIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' >> $@; \
+	fi
+	echo EXPORTS > tmp.def
+	sort $@ >> tmp.def
+	rm -f $@
+	dlltool --input-def tmp.def --output-def $@
+	rm -f tmp.def
+
+DUMMYTMP = symdummytmp.c
+
+symdummy.c: all.def $(ALL_DEFS)
+	rm -f $@
+	echo "static void never_called() {" > $(DUMMYTMP)
+	cat $< | grep " @ " | while read line; \
+	do \
+	    set dummy $$line; \
+	    case $$# in \
+		5) \
+		    echo "int $$2();" >> $@; \
+		    echo "$$2();" >> $(DUMMYTMP); \
+		    ;; \
+		6) \
+		    echo "extern int $$2;" >> $@; \
+		    echo "$$2 = 0;" >> $(DUMMYTMP); \
+		    ;; \
+	    esac; \
+	done
+	echo "" >> $@
+	echo "}" >> $(DUMMYTMP)
+	cat $(DUMMYTMP) >> $@
+	rm -f $(DUMMYTMP)
+
+symdummy.o: symdummy.c
+	$(CC) $(CFLAGS) -c $<
+
+SLAPD_OBJS = $(OBJS) version.o symdummy.o
+
+slapd.exp: libbackends.a all.def $(SLAPD_OBJS)
+	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) -Wl,--base-file,slapd.base
+	rm -f slapd.exe
+	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
+	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) $@ -Wl,--base-file,slapd.base
+	rm -f slapd.exe
+	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
+
+libslapd.a: all.def
+	dlltool --dllname slapd.exe --input-def $< --output-lib $@
+
+slapd: libbackends.a version.o $(@PLAT@_EXP) $(@PLAT@_DUMMY)
+	$(LTLINK) -o $@ $(@PLAT@_EXP) $(@PLAT@_DUMMY) $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-.backend: FORCE
+.backend: $(@PLAT@_IMPLIB) FORCE
 	@for i in back-*; do \
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
@@ -123,7 +190,7 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a
 
-version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
+version.c: $(OBJS) $(SLAPD_LIBDEPEND) 
 	@-$(RM) $@
 	$(MKVERSION) -s -n Versionstr slapd > $@
 
@@ -137,7 +204,7 @@ depend-local-srv: FORCE
 	@echo ""
 
 clean-local:
-	rm -f *.exp *.def *.base *.a
+	rm -f *.exp *.def *.base *.a *.objs symdummy.c
 
 clean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \

@@ -171,18 +171,32 @@ int main( int argc, char **argv )
 	{
 		int *i;
 		char *newConfigFile;
+		char *newUrls;
 
 		if ( is_NT_Service ) {
+			NTservice = argv[0];
 			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
 		}
 
-		i = (int*)getRegParam( NULL, "DebugLevel" );
+		i = (int*)getRegParam( NTservice, "DebugLevel" );
 		if ( i != NULL ) 
 		{
 			slap_debug = *i;
 			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
 		}
-		newConfigFile = (char*)getRegParam( NULL, "ConfigFile" );
+
+		newUrls = (char *) getRegParam(NTservice, "Urls");
+		if (newUrls)
+		{
+		    if (urls)
+			ch_free(urls);
+
+		    urls = ch_strdup(newUrls);
+		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
+			  urls, 0, 0);
+		}
+
+		newConfigFile = (char*)getRegParam( NTservice, "ConfigFile" );
 		if ( newConfigFile != NULL ) 
 		{
 			configfile = newConfigFile;
@@ -352,7 +366,13 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_TLS
 	ldap_pvt_tls_init();
-	ldap_pvt_tls_init_def_ctx();
+
+	if (ldap_pvt_tls_init_def_ctx() != 0)
+	{
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		goto destroy;
+	}
 #endif
 
 	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
@@ -384,7 +404,7 @@ int main( int argc, char **argv )
 
 	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
 		goto shutdown;
 	}
 
@@ -412,6 +432,7 @@ int main( int argc, char **argv )
 	}
 
 #ifdef HAVE_NT_EVENT_LOG
+	if (is_NT_Service)
 	LogSlapdStartedEvent( NTservice, slap_debug, configfile, urls );
 #endif
 
@@ -439,6 +460,7 @@ destroy:
 
 stop:
 #ifdef HAVE_NT_EVENT_LOG
+	if (is_NT_Service)
 	LogSlapdStoppedEvent( NTservice );
 #endif
 
