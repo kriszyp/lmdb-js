@@ -65,8 +65,6 @@ ldap_pvt_thread_mutex_t	replog_mutex;
 static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
-static ldap_pvt_thread_mutex_t	currenttime_mutex;
-
 int
 slap_init( int mode, const char *name )
 {
@@ -111,7 +109,6 @@ slap_init( int mode, const char *name )
 
 			ldap_pvt_thread_pool_init(&connection_pool, SLAP_MAX_WORKER_THREADS, 0);
 
-			ldap_pvt_thread_mutex_init( &currenttime_mutex );
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );
 			ldap_pvt_thread_mutex_init( &num_ops_mutex );
@@ -210,14 +207,4 @@ int slap_destroy(void)
 
 	/* should destory the above mutex */
 	return rc;
-}
-
-/* should create a utils.c for these */
-time_t slap_get_time(void)
-{
-	time_t t;
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	time( &t );
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
-	return t;
 }

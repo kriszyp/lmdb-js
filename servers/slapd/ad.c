@@ -91,14 +91,14 @@ int slap_bv2ad(
 	if (options != NULL) *options = ';';
 	if( desc.ad_type == NULL ) {
 		*text = "attribute type undefined";
-
 		return rtn;
 	}
 
-	if (options != NULL)
+	if (options != NULL) {
 		desc.ad_cname.bv_len = options - name;
-	else
+	} else {
 		desc.ad_cname.bv_len = bv->bv_len;
+	}
 
 	desc.ad_flags = SLAP_DESC_NONE;
 	desc.ad_lang.bv_len = 0;

@@ -883,7 +883,8 @@ LDAP_SLAPD_F (char *)		slapd_args_file;
 LDAP_SLAPD_F (char)		**g_argv;
 LDAP_SLAPD_F (time_t)		starttime;
 
-LDAP_SLAPD_F (time_t) slap_get_time LDAP_P((void));
+/* use time(3) -- no mutex */
+#define slap_get_time()	time( NULL )
 
 LDAP_SLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
 
