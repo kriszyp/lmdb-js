@@ -157,16 +157,13 @@ do_extended(
 		goto done;
 	}
 
-	if( !(ext = find_extop(supp_ext_list, &reqoid))
 #ifdef LDAP_SLAPI
-		&& !(funcAddr)
+	getPluginFunc( &reqoid, &funcAddr ); /* NS-SLAPI extended operation */
+	if( !funcAddr && !(ext = find_extop(supp_ext_list, &reqoid )))
+#else
+	if( !(ext = find_extop(supp_ext_list, &reqoid )))
 #endif
-	) {
-#ifdef LDAP_SLAPI
-		/* Netscape extended operation */
-		getPluginFunc( &reqoid, &funcAddr );
-#endif
-
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_extended: conn %d  unsupported operation \"%s\"\n",
