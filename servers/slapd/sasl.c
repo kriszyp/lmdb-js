@@ -67,6 +67,35 @@ sasl_cb_log(
 	return SASL_OK;
 }
 
+static int
+slap_sasl_proxy_policy(
+	void *context,
+	const char *authcid,
+	const char *authzid,
+	const char **user,
+	const char **errstr)
+{
+	char *canon = NULL;
+
+	if ( !authcid || *authcid ) {
+		*errstr = "empty authentication identity";
+		return SASL_BADAUTH;
+	}
+
+	if ( !authzid || *authzid ) {
+		size_t len = sizeof("u:") + strlen( authcid );
+		canon = ch_malloc( len );
+		strcpy( canon, "u:" );
+		strcpy( &canon[sizeof("u:")-1], authcid );
+
+		*user = canon;
+		return SASL_OK;
+	}
+
+	*errstr = "no proxy policy";
+    return SASL_BADAUTH;
+}
+
 
 static int
 slap_sasl_err2ldap( int saslerr )
@@ -186,6 +215,7 @@ int slap_sasl_open( Connection *conn )
 	sasl_conn_t *ctx = NULL;
 	sasl_callback_t session_callbacks[] = {
 		{ SASL_CB_LOG, &sasl_cb_log, conn },
+		{ SASL_CB_PROXY_POLICY, &slap_sasl_proxy_policy, conn },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 

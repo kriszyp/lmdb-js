@@ -34,7 +34,7 @@ int ldap_int_sasl_init( void )
 	/* XXX not threadsafe */
 	static int sasl_initialized = 0;
 
-	static sasl_callback_t client_callbacks[] = {
+	sasl_callback_t client_callbacks[] = {
 #ifdef SASL_CB_GETREALM
 		{ SASL_CB_GETREALM, NULL, NULL },
 #endif
@@ -380,6 +380,19 @@ ldap_int_sasl_open(
 {
 	int rc;
 	sasl_conn_t *ctx;
+
+	sasl_callback_t session_callbacks[] = {
+#ifdef SASL_CB_GETREALM
+		{ SASL_CB_GETREALM, NULL, NULL },
+#endif
+		{ SASL_CB_USER, NULL, NULL },
+		{ SASL_CB_AUTHNAME, NULL, NULL },
+		{ SASL_CB_PASS, NULL, NULL },
+		{ SASL_CB_ECHOPROMPT, NULL, NULL },
+		{ SASL_CB_NOECHOPROMPT, NULL, NULL },
+		{ SASL_CB_LIST_END, NULL, NULL }
+	};
+
 	assert( lc->lconn_sasl_ctx == NULL );
 
 	if ( host == NULL ) {
@@ -388,7 +401,7 @@ ldap_int_sasl_open(
 	}
 
 	rc = sasl_client_new( "ldap", host,
-		NULL,
+		session_callbacks,
 #ifdef LDAP_SASL_SECURITY_LAYER
 		SASL_SECURITY_LAYER,
 #else
