@@ -4,8 +4,8 @@ H1: The {{I: slapd}} Configuration File
 
 Once the software has been built and installed, you are ready to configure it
 for use at your site. All slapd runtime configuration is accomplished through
-the {{EX: slapd.conf}} file, installed in the {{EX: ETCDIR}} 
-directory you specified in the {{EX: Make-common}} file. 
+the {{EX: slapd.conf}} file, installed in the {{EX: ETCDIR}}
+directory you specified in the {{EX: Make-common}} file.
 
 An alternate configuration file can be specified via a
 command-line option to slapd or slurpd (see Sections 5 and 8,
@@ -261,7 +261,7 @@ perform" error.
 E: readonly off
 
 H4: replica
-E: replica host=<hostname>[:<port>] 
+E: replica host=<hostname>[:<port>]
 E: "binddn=<DN>"
 E: bindmethod={ simple | kerberos }
 E: \[credentials=<password>]
@@ -271,7 +271,7 @@ This option specifies a replication site for this database. The
 {{EX: host=}} parameter specifies a host and optionally a port where
 the slave slapd instance can be found. Either a domain name
 or IP address may be used for <hostname>. If <port> is not
-given, the standard LDAP port number (389) is used. 
+given, the standard LDAP port number (389) is used.
 
 The {{EX: binddn=}} parameter gives the DN to bind as for updates to
 the slave slapd. It should be a DN which has read/write
@@ -279,13 +279,13 @@ access to the slave slapd's database, typically given as a
 "rootdn" in the slave's config file. It must also match the
 updatedn option in the slave slapd's config file. Since DNs are
 likely to contain embedded spaces, the entire "{{EX: binddn=<DN>}}"
-string should be enclosed in quotes. 
+string should be enclosed in quotes.
 
 {{EX: bindmethod}} is either simple or kerberos, depending on
 whether simple password-based authentication or kerberos
 authentication is to be used when connecting to the slave
 slapd. Simple authentication requires a valid password be
-given. Kerberos authentication requires a valid srvtab file. 
+given. Kerberos authentication requires a valid srvtab file.
 
 The {{EX: credentials=}} parameter, which is only required if using
 simple authentication, gives the password for binddn on the
@@ -488,6 +488,56 @@ This option specifies an alternate passwd file to use.
 \Default:
 
 E: file /etc/passwd
+
+
+
+H3: Tcl Backend-Specific Options
+
+H4: scriptpath <pathname>
+
+This is the full path to a file containing the tcl command(s) to handle
+the LDAP operations.
+
+H4: Proc specifiers
+
+E: bind <proc>
+
+E: unbind <proc>
+
+E: search <proc>
+
+E: compare <proc>
+
+E: modify <proc>
+
+E: modrdn <proc>
+
+E: add <proc>
+
+E: delete <proc>
+
+E: abandon <proc>
+
+These options specify the name of the proc (function) in the tcl script
+specified in 'scriptpath' to execute in response to the given LDAP
+operation.
+
+\Example:
+
+E: search proc_search
+
+Note that you need only supply those commands you want the
+tcl backend to handle. Operations for which a command is not
+supplied will be refused with an "unwilling to perform" error.
+
+H4: tclrealm <name>
+
+This is one of the biggest pluses of using the tcl backend.
+The realm let's you group several databases to the same interpretor.
+This basically means they share the same global variables and proc
+space. So global variables, as well as all the procs are callable
+between databases. If no tclrealm is specified, it is put into the
+"default" realm.
 
 
 
@@ -723,7 +773,7 @@ objectclass lines, and enforcement is turned on or off via the
 schemacheck option. The format of an {{EX: objectclass}} line is:
 
 E: objectclass <name>
-E: 	[ requires <attrs> ] 
+E: 	[ requires <attrs> ]
 E: 	[ allows <attrs> ]
 
 This option defines the schema rules for the object class
