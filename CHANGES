@@ -1,7 +1,8 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.10 Engineering
-	<insert change description here>
+	Build Environment
+		Fix TLS-less build (ITS#1156)
 
 OpenLDAP 2.0.9 Release
 	Add slapd obsolete schema check
