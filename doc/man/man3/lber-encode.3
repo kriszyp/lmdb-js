@@ -62,7 +62,7 @@ applications that need more control than
 .BR ber_printf ()
 provides.  In
 general, these routines return the length of the element encoded, or
-LBER_ERROR if an error occurred.
+-1 if an error occurred.
 .LP
 The
 .BR ber_alloc_t ()
@@ -250,14 +250,14 @@ can be achieved like so:
       rc = ber_printf( ber, "{siiiib{v}}", dn, scope, ali,
           size, time, attrsonly, attrs );
 
-      if( rc == LBER_ERROR ) {
+      if( rc == -1 ) {
               /* error */
       } else {
               /* success */
       }
 .fi
 .SH ERRORS
-If an error occurs during encoding, generally these routines return LBER_ERROR.
+If an error occurs during encoding, generally these routines return -1.
 .LP
 .SH NOTES
 .LP
