@@ -74,5 +74,22 @@
 
 #endif /* __alpha && !VMS */
 
+#ifndef BYTE_ORDER
+/*    
+ * Definitions for byte order, according to byte significance from low
+ * address to high.
+ */
+#define LITTLE_ENDIAN   1234	/* LSB first: i386, vax */
+#define BIG_ENDIAN  4321		/* MSB first: 68000, ibm, net */
+#define PDP_ENDIAN  3412		/* LSB first in word, MSW first in long */
+
+/* assume autoconf's AC_C_BIGENDIAN has been run */
+#ifdef WORDS_BIGENDIAN
+#define BYTE_ORDER  BIG_ENDIAN
+#else
+#define BYTE_ORDER  LITTLE_ENDIAN
+#endif
+
+#endif /* BYTE_ORDER */
 
 #endif /* _AC_SOCKET_H_ */
