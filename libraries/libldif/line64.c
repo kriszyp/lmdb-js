@@ -223,14 +223,16 @@ done:
 	}
 
 	if( !url && value != NULL ) {
-		value = ber_strdup( value );
-		if( value == NULL ) {
+		p = ber_memalloc( vlen );
+		if( p == NULL ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 				"ldif_parse_line: value malloc failed\n");
 			ber_memfree( type );
 			ber_memfree( freeme );
 			return( -1 );
 		}
+		memcpy( p, value, vlen );
+		value = p;
 	}
 
 	ber_memfree( freeme );
