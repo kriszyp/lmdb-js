@@ -47,7 +47,7 @@
 #endif
 
 #include <ldap.h>
-
+#include "lutil.h"
 #include "ldap_defaults.h"
 #include "ud.h"
 

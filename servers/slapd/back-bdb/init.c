@@ -9,6 +9,8 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
+#include <ac/stdlib.h>
 
 #include "back-bdb.h"
 #include "external.h"

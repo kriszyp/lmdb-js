@@ -9,6 +9,9 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif

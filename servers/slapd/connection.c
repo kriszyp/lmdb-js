@@ -365,7 +365,7 @@ long connection_init(
 
 #else
 	{
-		unsigned int i;
+		ber_socket_t	i;
 
 		c = NULL;
 
