@@ -39,14 +39,16 @@ static int list_candidates(
 	Filter *flist,
 	int ftype,
 	ID *ids,
-	ID *tmp );
+	ID *tmp,
+	ID *stack );
 
 int
 bdb_filter_candidates(
 	Backend	*be,
 	Filter	*f,
 	ID *ids,
-	ID *tmp )
+	ID *tmp,
+	ID *stack )
 {
 	int rc = -1;
 #ifdef NEW_LOGGING
@@ -146,7 +148,7 @@ bdb_filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
 #endif
 		rc = list_candidates( be, 
-			f->f_and, LDAP_FILTER_AND, ids, tmp );
+			f->f_and, LDAP_FILTER_AND, ids, tmp, stack );
 		break;
 
 	case LDAP_FILTER_OR:
@@ -156,7 +158,7 @@ bdb_filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tOR\n", 0, 0, 0 );
 #endif
 		rc = list_candidates( be, 
-			f->f_or, LDAP_FILTER_OR, ids, tmp );
+			f->f_or, LDAP_FILTER_OR, ids, tmp, stack );
 		break;
 
 	default:
@@ -187,19 +189,12 @@ list_candidates(
 	Filter	*flist,
 	int		ftype,
 	ID *ids,
-	ID *tmp )
+	ID *tmp,
+	ID *save )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc = 0;
 	Filter	*f;
-
-/* Systems that can't increase thread stack size will die with these
- * structures allocated on the stack. */
-#if !defined(LDAP_PVT_THREAD_STACK_SIZE) || (LDAP_PVT_THREAD_STACK_SIZE == 0)
-	ID *save = ch_malloc(BDB_IDL_UM_SIZEOF);
-#else
-	ID save[BDB_IDL_UM_SIZE];
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "filterindex", LDAP_LEVEL_ARGS, "=> bdb_list_candidates: 0x%x\n", ftype));
@@ -215,7 +210,8 @@ list_candidates(
 	}
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		rc = bdb_filter_candidates( be, f, save, tmp );
+		rc = bdb_filter_candidates( be, f, save, tmp,
+			save+BDB_IDL_UM_SIZE );
 
 		if ( rc != 0 ) {
 			if ( ftype == LDAP_FILTER_AND ) {
@@ -234,10 +230,6 @@ list_candidates(
 			BDB_IDL_ALL( bdb, save );
 		}
 	}
-
-#if !defined(LDAP_PVT_THREAD_STACK_SIZE) || (LDAP_PVT_THREAD_STACK_SIZE == 0)
-	free(save);
-#endif
 
 	if( rc ) {
 #ifdef NEW_LOGGING

@@ -541,13 +541,18 @@ static int base_candidate(
 }
 
 /* Is "objectClass=xx" mentioned anywhere in this filter? Presence
- * doesn't count, we're looking for explicit values.
+ * doesn't count, we're looking for explicit values. Also count depth
+ * of filter tree while we're at it.
  */
 static int oc_filter(
-	Filter *f
+	Filter *f,
+	int cur,
+	int *max
 )
 {
 	int rc = 0;
+
+	if( cur > *max ) *max = cur;
 
 	switch(f->f_choice) {
 	case LDAP_FILTER_EQUALITY:
@@ -563,8 +568,9 @@ static int oc_filter(
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
+		cur++;
 		for (f=f->f_and; f; f=f->f_next)
-			if ((rc = oc_filter(f)))
+			if ((rc = oc_filter(f, cur, max)))
 				break;
 		break;
 	default:
@@ -582,9 +588,9 @@ static int search_candidates(
 	int deref,
 	ID	*ids )
 {
-	int rc;
+	int rc, depth = 1;
 	Filter		f, scopef, rf, xf;
-	ID		tmp[BDB_IDL_UM_SIZE];
+	ID		*stack;
 	AttributeAssertion aa_ref;
 #ifdef BDB_SUBENTRIES
 	Filter	sf;
@@ -618,7 +624,7 @@ static int search_candidates(
 	/* If the user's filter doesn't mention objectClass, or if
 	 * it just uses objectClass=*, these clauses are redundant.
 	 */
-	if (oc_filter(filter) && !get_subentries_visibility(op) ) {
+	if (oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
 		if( !get_manageDSAit(op) ) { /* match referrals */
 			struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
 			rf.f_choice = LDAP_FILTER_EQUALITY;
@@ -640,6 +646,8 @@ static int search_candidates(
 			xf.f_or = &af;
 		}
 #endif
+		/* We added one of these clauses, filter depth increased */
+		if( xf.f_or != filter ) depth++;
 	}
 
 	f.f_next = NULL;
@@ -650,6 +658,8 @@ static int search_candidates(
 		: SLAPD_FILTER_DN_ONE;
 	scopef.f_dn = &e->e_nname;
 	scopef.f_next = xf.f_or == filter ? filter : &xf ;
+	/* Filter depth increased again, adding scope clause */
+	depth++;
 
 #ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
@@ -663,7 +673,12 @@ static int search_candidates(
 	}
 #endif
 
-	rc = bdb_filter_candidates( be, &f, ids, tmp );
+	/* Allocate IDL stack, plus 1 more for former tmp */
+	stack = malloc( (depth + 1) * BDB_IDL_UM_SIZE * sizeof( ID ) );
+
+	rc = bdb_filter_candidates( be, &f, ids, stack, stack+BDB_IDL_UM_SIZE );
+
+	free( stack );
 
 	if( rc ) {
 #ifdef NEW_LOGGING

@@ -120,7 +120,8 @@ int bdb_filter_candidates(
 	Backend	*be,
 	Filter	*f,
 	ID *ids,
-	ID *tmp );
+	ID *tmp,
+	ID *stack );
 
 /*
  * group.c
