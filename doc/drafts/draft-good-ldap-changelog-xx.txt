@@ -1,0 +1,449 @@
+
+
+
+
+Change Record Object Class Definition                       Gordon Good
+INTERNET-DRAFT                                  Netscape Communications
+                                                          11 March 1998
+
+       Definition of an Object Class to Hold LDAP Change Records
+               Filename: draft-good-ldap-changelog-00.txt
+
+Status of this Memo
+
+   This document is an Internet-Draft.  Internet-Drafts are working
+   documents of the Internet Engineering Task Force (IETF), its
+   areas, and its working groups.  Note that other groups may also
+   distribute working documents as Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six
+   months and may be updated, replaced, or obsoleted by other
+   documents at any time.  It is inappropriate to use Internet-
+   Drafts as reference material or to cite them other than as
+   ``work in progress.''
+
+   To learn the current status of any Internet-Draft, please check
+   the ``1id-abstracts.txt'' listing contained in the Internet-
+   Drafts Shadow Directories on ds.internic.net (US East Coast),
+   nic.nordu.net (Europe), ftp.isi.edu (US West Coast), or
+   munnari.oz.au (Pacific Rim).
+
+   This Internet Draft expires October 1st, 1998.
+
+
+
+Abstract
+
+   In order to support more flexible replication methods, it is
+   desirable to specify some manner in which an LDAP client may retrieve
+   a set of changes which have been applied to an LDAP server's
+   database.  The client, which may be another LDAP server, may then
+   choose to update its own replicated copy of the data.  This document
+   specifies an object class which may be used to represent changes
+   applied to an LDAP server.  It also specifies a method for
+   discovering the location of the container object which holds these
+   change records, so that clients and servers have a common rendezvous
+   point for this information.
+
+
+
+Background and Intended Usage
+
+   This document describes an objectclass which can be used to represent
+
+
+
+Good                         March 11, 1998                     [Page 1]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   changes which have been applied to a directory server.  It also
+   suggests a common location for a container which holds these objects.
+   A client may update its local copy of directory information by
+   reading the entries within this container, and applying the changes
+   to its local database.
+
+   The key words "MUST", "MAY", and "SHOULD" used in this document are
+   to be interpreted as described in [3].
+
+New Attribute Types Used in the changeLogEntry Object Class
+
+   ( 2.16.840.1.113730.3.1.5
+       NAME 'changeNumber'
+       DESC 'a number which uniquely identifies a change made to a
+             directory entry'
+       SYNTAX 'INTEGER'
+       EQUALITY 'integerMatch'
+       ORDERING 'integerOrderingMatch' )
+
+   ( 2.16.840.1.113730.3.1.6
+       NAME 'targetDN'
+       DESC 'the DN of the entry which was modified'
+       EQUALITY distinguishedNameMatch
+       SYNTAX 'DN' )
+
+   ( 2.16.840.1.113730.3.1.7
+       NAME 'changeType'
+       DESC 'the type of change made to an entry'
+       EQUALITY caseIgnoreMatch
+       SYNTAX 'DirectoryString' )
+
+   ( 2.16.840.1.113730.3.1.8
+       NAME 'changes'
+       DESC 'a set of changes to apply to an entry'
+       SYNTAX 'OctetString' )
+
+   ( 2.16.840.1.113730.3.1.9
+       NAME 'newRDN'
+       DESC 'the new RDN of an entry which is the target of a
+             modrdn operation'
+       EQUALITY distinguishedNameMatch
+       SYNTAX 'DN' )
+
+   ( 2.16.840.1.113730.3.1.10
+       NAME 'deleteOldRDN'
+       DESC 'a flag which indicates if the old RDN should be retained
+             as an attribute of the entry'
+       EQUALITY booleanMatch
+
+
+
+Good                         March 11, 1998                     [Page 2]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+       SYNTAX 'BOOLEAN' )
+
+   ( 2.16.840.1.113730.3.1.11
+       NAME 'newSuperior'
+       DESC 'the new parent of an entry which is the target of a
+             moddn operation'
+       EQUALITY distinguishedNameMatch
+       SYNTAX 'DN' )
+
+
+Schema Definition of the changeLogEntry Object Class
+
+   ( 2.16.840.1.113730.3.2.1
+       NAME 'changeLogEntry'
+       SUP top
+       STRUCTURAL
+       MUST (
+           changeNumber $ targetDN $ changeType
+       )
+       MAY (
+           changes $ newRDN $ deleteOldRDN $ newSuperior
+       )
+   )
+
+
+
+Discussion of changeLogEntry Attributes:
+
+   changeNumber: the change number, as assigned by the supplier.  This
+   integer MUST strictly increase as new entries are added, and must
+   always be unique within a given server.  Syntax: INTEGER
+
+   targetdn: the distinguished name of the entry which was added,
+   modified or deleted.  In the case of a modrdn operation, the targetdn
+   gives the DN of the entry before it was modified.  Syntax: DN
+
+   changeType: the type of change. One of: "add", "delete", "modify",
+   "modrdn".  Later RFCs may define additional values for changeType.
+   Syntax: DirectoryString
+
+   changes: the changes which were made to the directory server.  These
+   changes are in LDIF format, which is described in [1].
+   Syntax: OctetString
+
+   newRDN: the new RDN (Relative Distinguished Name) of the entry, if the
+   changeType is "modrdn".  If the changeType attribute does not have the
+   value "modrdn", then there should be no values contained in the newRDN
+   attribute.
+
+
+
+Good                         March 11, 1998                     [Page 3]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   Syntax: DN
+
+   deleteOldRDN: a flag which tells whether the old RDN of the entry
+   should be retained as a distinguished attribute of the entry, or
+   should be deleted.  A value of "FALSE" indicates that the RDN should be
+   retained as a distinguished attribute, and a value of "TRUE" indicates
+   that it should not be retained as a distinguished attribute of the
+   entry.  If any value other than "TRUE" or "FALSE" is contained in the
+   deleteOldRDN attribute, or if the deleteOldRDN contains multiple
+   values, the RDN should be retained as a distinguished attribute (that
+   is, "FALSE" is the default if no values are present, or if illegal
+   values are present).
+   Syntax: BOOLEAN
+
+   newSuperior: if present, gives the name of the entry which
+   becomes the immediate superior of the existing entry.  This optional
+   attribute reflects LDAPv3 functionality, and MUST NOT be generated
+   by LDAPv2 servers [2].
+   Syntax: DN
+
+
+
+Discussion of the changeLogEntry object class
+
+   The changeLogEntry object class is used to represent changes made to a
+   directory server.  The set of changes made to a directory server, then,
+   is given by the ordered set of all entries within the changelog
+   container, ordered by changeNumber.
+
+   A client may synchronize its local copy of a remote directory server's
+   contents by searching the remote server's changelog container for any
+   entries where the changenumber is greater than or equal to the last
+   change previously retrieved from that server.  If the entry with the
+   changenumber matching the last change retrieved is not returned in the
+   search results, then the server's changelog has been trimmed.  The
+   client must then fall back to reading the entire directory to bring its
+   copy in sync with the server's.
+
+   Assuming that the client has successfully retrieved one or more changelog
+   entries from the server, it can then use the information contained in each
+   entry to update the corresponding entry (named by the targetDN attribute)
+   in its local copy of the database.
+
+   Note that, due to access control restrictions, the client is not guaranteed
+   read access to the "changes" attribute.  If the client discovers that the
+   "changes" attribute has no values, then it must read the entry given by
+   the targetDN attribute, possibly only retrieving attributes it deems
+   "interesting".  However, in the case of delete and modrdn operations, there
+
+
+
+Good                         March 11, 1998                     [Page 4]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   is never a "changes" attribute, so it is never necessary to read the target
+   entry in these cases.
+
+
+
+Examples of the changeLogEntry object class
+
+   In each example below, the "changes" attribute is shown in plain text,
+   with embedded newlines.  This is done for clarity.  It is intended that
+   newlines be stored in the entry literally, not encoded in any way.
+   If a "changes" attribute value is stored in an LDIF file, it must
+   base-64 encoded.
+
+   Example 1: A changeLogEntry representing the addition of a
+   new entry to the directory
+
+   dn: changenumber=1923, cn=changelog
+   changenumber: 1923
+   targetdn: cn=Barbara Jensen, ou=Accounting, o=Ace Industry, c=US
+   changetype: add
+   changes: cn: Barbara Jensen\ncn: Babs Jensen\nsn: Jensen\n
+    givenname: Barbara\ntelephonenumber: +1 212 555-1212\nmail: babs@ace.com\n
+    objectclass: top\nobjectclass: person\nobjectclass: organizationalPerson\n
+    objectclass: inetOrgPerson
+
+   Example 2: A changeLogEntry representing the deletion of an entry
+   from the directory
+
+   dn: changenumber=2933, cn=changelog
+   changenumber: 2933
+   targetdn: cn=Gern Jensen, ou=Product Testing, o=Ace Industry, c=US
+   changetype: delete
+
+   Example 3: A changeLogEntry representing the modification of an entry
+   in the directory
+
+   dn: changenumber=5883, cn=changelog
+   changenumber: 5883
+   targetdn: cn=Bjorn Jensen, ou=Product Development, o=Ace Industry, c=US
+   changetype: modify
+   changes: delete: telephonenumber\ntelephonenumber: 1212\n-\n
+    add: telephonenumber\ntelephonenumber: +1 212 555 1212\n-
+
+   Example 4: A changeLogEntry representing a modrdn operation performed
+   on an entry in the directory
+
+   dn: changenumber=10042, cn=changelog
+   changenumber: 10042
+
+
+
+Good                         March 11, 1998                     [Page 5]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   targetdn: cn=Bjorn Jensen, ou=Product Development, o=Ace Industry, c=US
+   changetype: modrdn
+   newrdn: cn=Bjorn J Jensen
+   deleteoldrdn: FALSE
+
+
+Location of the container containing changeLogEntry objects
+
+   For LDAPv3 servers, the location of the container which holds
+   changeLogEntry objects is obtained by reading the "changeLog" attribute
+   of a server's root DSE.  For example, if the container's root is
+   "cn=changelog", then the root DSE must have an attribute named
+   "changeLog" with the value "cn=changelog".
+
+   The "changelog" attribute is defined as follows:
+
+   (   2.16.840.1.113730.3.1.35
+       NAME 'changelog'
+       DESC 'the distinguished name of the entry which contains
+             the set of entries comprising this server's changelog'
+       EQUALITY distinguishedNameMatch
+       SYNTAX 'DN'
+   )
+
+   For LDAPv2 servers, the name of the changelog container must be
+   "cn=changelog".
+
+
+Differences from previous versions of this document
+
+   Differences between draft-ietf-asid-changelog-00.txt and
+   draft-ietf-asid-changelog-01.txt
+
+   1) Fixed a deficiency in the syntax of the changeNumber attribute.  The
+   attribute now has INTEGER syntax, with appropriate matching and
+   ordering rules defined.
+
+   2) Removed unneeded substring matching rules from the changeType and
+   deleteOldRDN attribute definitions.
+
+   3) Made use of MAY, SHOULD, etc. consistent with RFC 2119.
+
+   4) Renamed document (now an individual submission).
+
+   5) Changed syntax of "changes" attribute from "Binary" to "OctetString".
+
+   6) Removed references to X.500 supplier and consumer-initiated
+   replication.
+
+
+
+Good                         March 11, 1998                     [Page 6]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   7) Updated references to current drafts/proposed standards documents.
+
+Security Considerations
+
+   Servers implementing this scheme MUST NOT allow the "changes"
+   attribute to be generally readable.  The "changes" attribute contains
+   all modifications made to an entry, and some changes may contain
+   sensitive data, e.g. passwords.
+
+   If a server does allow read access on the "changes: attribute to a
+   particular bound DN, then that DN should be trusted.  For example, two
+   cooperating servers may exchange the password for some DN which is
+   granted read access to the "changes" attribute of the changeLog.  This
+   would allow one server to retrieve changes and apply them directly to
+   its database.
+
+   In situations where the "changes" attribute is not readable by a client,
+   that client may still use the entries in the changeLog to construct a
+   list of entry DNs which are known to have changed since the last time
+   the client synchronized.  The client may then read each of those entries,
+   subject to whatever access control is in effect on the server,
+   and update its local copy of each entry.
+
+   Servers implementing this scheme should disallow write access to the
+   changelog container object and all entries contained within.
+
+
+
+Acknowledgements
+
+   This material is based in part upon work supported by the National
+   Science Foundation under Grant No. NCR-9416667.
+
+
+
+References
+
+   [1] Good, G., "The LDAP Data Interchange Format", INTERNET-DRAFT
+   draft-good-ldap-ldif-03.txt, Netscape Communications Corp., March 1997,
+   <URL:ftp://ftp.ietf.org/internet-drafts/draft-good-ldap-ldif-03.txt>
+
+   [2] Wahl, M., Howes, T., Kille, S., "Lightweight Directory Access
+   Protocol (v3)", RFC 2251 Critical Angle, Inc., Netscape Communications Corp.,
+   ISODE Consortium, July, 1997,
+   <URL:ftp://ftp.isi.edu/in-notes/rfc2251.txt>
+
+   [3] S. Bradner, "Key Words for use in RFCs to Indicate Requirement
+   Levels", Harvard University, RFC 2119, March 1997,
+
+
+
+Good                         March 11, 1998                     [Page 7]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
+   <URL:http://ds.internic.net/rfc/rfc2119.txt>
+
+
+Author's Address
+
+   Gordon Good
+   Netscape Communications Corp.
+   501 E. Middlefield Rd.
+   Mailstop MV068
+   Mountain View, CA 94043, USA
+   Phone:  +1 415 937-3825
+   EMail:  ggood@netscape.com
+
+              This Internet Draft expires October 1st, 1998.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Good                         March 11, 1998                     [Page 8]
+
