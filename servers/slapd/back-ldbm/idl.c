@@ -182,7 +182,7 @@ idl_fetch(
 	Datum	data;
 	ID_BLOCK	*idl;
 	ID_BLOCK	**tmp;
-	int	nids;
+	int	nids, nblocks;
 	unsigned i;
 
 	idl = idl_fetch_one( be, db, key );
@@ -209,21 +209,17 @@ idl_fetch(
 
 #ifndef USE_INDIRECT_NIDS
 	/* count the number of blocks & allocate space for pointers to them */
-	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ )
+	for ( nblocks = 0; !ID_BLOCK_NOID(idl, nblocks); nblocks++ )
 		;	/* NULL */
 #else
-	i = ID_BLOCK_NIDS(idl);
+	nblocks = ID_BLOCK_NIDS(idl);
 #endif
-	tmp = (ID_BLOCK **) ch_malloc( (i + 1) * sizeof(ID_BLOCK *) );
+	tmp = (ID_BLOCK **) ch_malloc( nblocks * sizeof(ID_BLOCK *) );
 
 	/* read in all the blocks */
 	cont_alloc( &data, &key );
 	nids = 0;
-#ifndef USE_INDIRECT_NIDS
-	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
-#else
-	for ( i = 0; i < ID_BLOCK_NIDS(idl); i++ ) {
-#endif
+	for ( i = 0; i < nblocks; i++ ) {
 		cont_id( &data, ID_BLOCK_ID(idl, i) );
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
@@ -240,7 +236,6 @@ idl_fetch(
 
 		nids += ID_BLOCK_NIDS(tmp[i]);
 	}
-	tmp[i] = NULL;
 	cont_free( &data );
 	idl_free( idl );
 
@@ -250,7 +245,7 @@ idl_fetch(
 	nids = 0;
 
 	/* copy in all the ids from the component blocks */
-	for ( i = 0; tmp[i] != NULL; i++ ) {
+	for ( i = 0; i < nblocks; i++ ) {
 		if ( tmp[i] == NULL ) {
 			continue;
 		}
