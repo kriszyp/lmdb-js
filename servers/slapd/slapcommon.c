@@ -74,7 +74,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPDN:
-		options = " DN [...]\n";
+		options = "\n\t[-N | -P] DN [...]\n";
 		break;
 
 	case SLAPINDEX:
@@ -194,7 +194,7 @@ slap_tool_init(
 		break;
 
 	case SLAPDN:
-		options = "d:f:F:v";
+		options = "d:f:F:NPv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -262,6 +262,13 @@ slap_tool_init(
 			ber_str2bv( optarg, 0, 0, &mech );
 			break;
 
+		case 'N':
+			if ( dn_mode && dn_mode != SLAP_TOOL_LDAPDN_NORMAL ) {
+				usage( tool, progname );
+			}
+			dn_mode = SLAP_TOOL_LDAPDN_NORMAL;
+			break;
+
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg );
 			break;
@@ -270,6 +277,13 @@ slap_tool_init(
 			if ( parse_slapacl() ) {
 				usage( tool, progname );
 			}
+			break;
+
+		case 'P':
+			if ( dn_mode && dn_mode != SLAP_TOOL_LDAPDN_PRETTY ) {
+				usage( tool, progname );
+			}
+			dn_mode = SLAP_TOOL_LDAPDN_PRETTY;
 			break;
 
 		case 'q':	/* turn on quick */

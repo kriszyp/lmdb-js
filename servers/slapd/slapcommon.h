@@ -56,6 +56,7 @@ typedef struct tool_vars {
 	slap_ssf_t tv_transport_ssf;
 	slap_ssf_t tv_tls_ssf;
 	slap_ssf_t tv_sasl_ssf;
+	unsigned tv_dn_mode;
 } tool_vars;
 
 extern tool_vars tool_globals;
@@ -83,6 +84,9 @@ extern tool_vars tool_globals;
 #define transport_ssf tool_globals.tv_transport_ssf
 #define tls_ssf tool_globals.tv_tls_ssf
 #define sasl_ssf tool_globals.tv_sasl_ssf
+#define dn_mode tool_globals.tv_dn_mode
+#define SLAP_TOOL_LDAPDN_PRETTY		SLAP_LDAPDN_PRETTY
+#define SLAP_TOOL_LDAPDN_NORMAL		(SLAP_LDAPDN_PRETTY << 1)
 
 void slap_tool_init LDAP_P((
 	const char* name,
