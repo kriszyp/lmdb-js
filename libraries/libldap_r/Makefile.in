@@ -9,9 +9,10 @@ LIBRARY = libldap_r.la
 PROGRAMS = apitest ltest
 
 XXDIR = $(srcdir)/../libldap
-XXSRCS	= apitest.c test.c extended.c \
-	bind.c controls.c open.c result.c error.c compare.c search.c \
-	modify.c add.c modrdn.c delete.c abandon.c cache.c cyrus.c \
+XXSRCS    = apitest.c test.c \
+	bind.c open.c result.c error.c compare.c search.c \
+	controls.c messages.c references.c extended.c cyrus.c \
+	modify.c add.c modrdn.c delete.c abandon.c cache.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c \
 	filter.c free.c dsparse.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
@@ -24,9 +25,9 @@ SRCS	= threads.c rdwr.c tpool.c \
 OBJS	= threads.lo rdwr.lo tpool.lo  \
 	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
 	thr_pth.lo thr_stub.lo \
-	extended.lo \
-	bind.lo controls.lo open.lo result.lo error.lo compare.lo search.lo \
-	modify.lo add.lo modrdn.lo delete.lo abandon.lo cache.lo cyrus.lo \
+	bind.lo open.lo result.lo error.lo compare.lo search.lo \
+	controls.lo messages.lo references.lo extended.lo cyrus.lo \
+	modify.lo add.lo modrdn.lo delete.lo abandon.lo cache.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo \
 	filter.lo free.lo dsparse.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
