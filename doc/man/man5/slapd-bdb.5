@@ -21,9 +21,9 @@ Berkeley DB configuration options set in the environment's
 file.  See Berkeley DB documentation for details on
 .B DB_CONFIG
 configuration options.
-.\" Where there is overlap, settings in
-.\" .B DB_CONFIG
-.\" take precedence.
+Where there is overlap, settings in
+.B DB_CONFIG
+take precedence.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -126,13 +126,12 @@ allocations can have a major negative impact on server performance,
 but specifying too much stack will also consume a great deal of memory.
 Each search stack uses 512K bytes per level. The default stack depth
 is 16, thus 8MB per thread is used.
-.\" .TP
-.\" Undocumented option, should use DB_CONFIG instead
-.\" .B shm_key <integer>
-.\" Specify a key for a shared memory BDB environment. By default the
-.\" BDB environment uses memory mapped files. If a non-zero value is
-.\" specified, it will be used as the key to identify a shared memory
-.\" region that will house the environment.
+.TP
+.B shm_key <integer>
+Specify a key for a shared memory BDB environment. By default the
+BDB environment uses memory mapped files. If a non-zero value is
+specified, it will be used as the key to identify a shared memory
+region that will house the environment.
 .TP
 .B sessionlog <sid> <limit>
 Specify a session log store for the syncrepl replication provider
