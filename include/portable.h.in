@@ -266,6 +266,9 @@
 /* Define if you have the sigset function.  */
 #undef HAVE_SIGSET
 
+/* Define if you have the snprintf function.  */
+#undef HAVE_SNPRINTF
+
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
 
@@ -310,9 +313,6 @@
 
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
-
-/* Define if you have the vsprintf function.  */
-#undef HAVE_VSPRINTF
 
 /* Define if you have the wait4 function.  */
 #undef HAVE_WAIT4
@@ -632,6 +632,9 @@
 /* define if you have AIX security lib */
 #undef HAVE_AIX_SECURITY
 
+/* define to use both <string.h> and <strings.h> */
+#undef BOTH_STRINGS_H
+
 /* define if you have libtool -ltdl */
 #undef HAVE_LIBLTDL
 
@@ -710,17 +713,11 @@
 /* if you have NT Event Log */
 #undef HAVE_NT_EVENT_LOG
 
-/* define if pthreads API compatible with final spec */
-#undef HAVE_PTHREADS_FINAL
-
-/* define if pthreads API compatible with draft4 spec */
-#undef HAVE_PTHREADS_D4
+/* define to pthreads API spec revision */
+#undef HAVE_PTHREADS
 
 /* if you have LinuxThreads */
 #undef HAVE_LINUX_THREADS
-
-/* define if you have POSIX Threads */
-#undef HAVE_PTHREADS
 
 /* Define if you have the sched_yield function. */
 #undef HAVE_SCHED_YIELD
@@ -872,6 +869,12 @@
 /* define to vsnprintf routine */
 #undef vsnprintf
 
+/* define to snprintf routine */
+#undef snprintf
+
+/* define to snprintf routine */
+#undef vsnprintf
+
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
@@ -1020,6 +1023,19 @@
 #endif
 #if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
 #define LDAP_DEBUG
+#endif
+
+#ifdef HAVE_EBCDIC 
+/* ASCII/EBCDIC converting replacements for stdio funcs
+ * vsnprintf and snprintf are used too, but they are already
+ * checked by the configure script
+ */
+#define fputs lutil_fputs
+#define fgets lutil_fgets
+#define printf lutil_printf
+#define fprintf lutil_fprintf
+#define vfprintf lutil_vfprintf
+#define vsprintf lutil_vsprintf
 #endif
 
 #include "ldap_cdefs.h"
