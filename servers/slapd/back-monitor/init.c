@@ -318,17 +318,20 @@ monitor_back_db_open(
 			"MUST cn "
 			"MAY ( "
 				"description "
+				"$ l "
+				"$ st "
+				"$ street "
+				"$ postalAddress "
+				"$ postalCode "
 				"$ seeAlso "
 				"$ monitoredInfo "
+				"$ managedInfo "
 			") )",
 			offsetof(struct monitorinfo, oc_monitor) },
 		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
-			"SUP monitor STRUCTURAL "
-			"MAY ( "
-				"l "
-			") )",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, oc_monitorServer) },
 		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.8 "
 			"NAME 'monitorContainer' "
