@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.15 Engineering
+OpenLDAP 2.1.15 Release
 	Fixed slapd saslauthz null backend crash
 	Fixed libldap IPv6 SASL host bug (ITS#2347)
 	Fixed liblber 64bit len/tag bug (ITS#2344)
