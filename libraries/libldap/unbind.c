@@ -38,6 +38,15 @@ ldap_unbind_ext(
 }
 
 int
+ldap_unbind_ext_s(
+	LDAP *ld,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	return ldap_unbind_ext( ld, sctrls, cctrls );
+}
+
+int
 ldap_unbind( LDAP *ld )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
