@@ -442,12 +442,16 @@ select_backend(
 			len = strlen( backends[i].be_nsuffix[j] );
 
 			if ( len > dnlen ) {
+				/* suffix is longer than DN */
 				continue;
 			}
 
-			if ( strcmp( backends[i].be_nsuffix[j],
-			    dn + (dnlen - len) ) == 0 )
-			{
+			if ( len < dnlen && DN_SEPARATOR( dn[(dnlen-len)-1] ) ) {
+				/* make sure we have a separator */
+				continue;
+			}
+
+			if ( strcmp( backends[i].be_nsuffix[j], &dn[dnlen-len] ) == 0 ) {
 				if( be == NULL ) {
 					be = &backends[i];
 
