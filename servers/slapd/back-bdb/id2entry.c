@@ -20,7 +20,7 @@ int bdb_id2entry_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
-	struct berval *bv;
+	struct berval bv;
 	int rc;
 
 	DBTzero( &key );
@@ -33,11 +33,11 @@ int bdb_id2entry_add(
 	}
 
 	DBTzero( &data );
-	bv2DBT( bv, &data );
+	bv2DBT( &bv, &data );
 
 	rc = db->put( db, tid, &key, &data, DB_NOOVERWRITE );
 
-	ber_bvfree( bv );
+	free( bv.bv_val );
 	return rc;
 }
 
@@ -49,7 +49,7 @@ int bdb_id2entry_update(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
-	struct berval *bv;
+	struct berval bv;
 	int rc;
 
 	DBTzero( &key );
@@ -62,11 +62,11 @@ int bdb_id2entry_update(
 	}
 
 	DBTzero( &data );
-	bv2DBT( bv, &data );
+	bv2DBT( &bv, &data );
 
 	rc = db->put( db, tid, &key, &data, 0 );
 
-	ber_bvfree( bv );
+	free( bv.bv_val );
 	return rc;
 }
 
@@ -146,6 +146,8 @@ int bdb_entry_return(
 	{
 		attrs_free(e->e_attrs);
 	}
+	if (e->e_private)
+		free(e->e_private);
 
 	ch_free(e);
 

@@ -384,26 +384,72 @@ entry_id_cmp( Entry *e1, Entry *e2 )
 
 #ifdef SLAPD_BDB
 
-/* Flatten an Entry into a buffer. The buffer contents become a direct
- * copy of the entry, with all pointers converted to offsets from the
- * beginning of the buffer. We do this by first walking through all
- * the fields of the Entry, adding up their sizes. Then a single chunk
- * of memory is malloc'd and the entry is copied. We differentiate between
- * fixed size fields and variable-length content when tallying up the
- * entry size, so that we can stick all of the variable-length stuff
- * into the back half of the buffer.
+/* This is like a ber_len */
+static ber_len_t
+entry_lenlen(ber_len_t len)
+{
+	if (len <= 0x7f)
+		return 1;
+	if (len <= 0xff)
+		return 2;
+	if (len <= 0xffff)
+		return 3;
+	if (len <= 0xffffff)
+		return 4;
+	return 5;
+}
+
+static void
+entry_putlen(unsigned char **buf, ber_len_t len)
+{
+	ber_len_t lenlen = entry_lenlen(len);
+
+	if (lenlen == 1) {
+		**buf = (unsigned char) len;
+	} else {
+		int i;
+		**buf = 0x80 | (lenlen - 1);
+		for (i=lenlen-1; i>0; i--) {
+			(*buf)[i] = (unsigned char) len;
+			len >>= 8;
+		}
+	}
+	*buf += lenlen;
+}
+
+static ber_len_t
+entry_getlen(unsigned char **buf)
+{
+	ber_len_t len;
+	int i;
+
+	len = *(*buf)++;
+	if (len <= 0x7f)
+		return len;
+	i = len & 0x7f;
+	len = 0;
+	for (;i > 0; i--) {
+		len <<= 8;
+		len |= *(*buf)++;
+	}
+	return len;
+}
+
+/* Flatten an Entry into a buffer. The buffer is filled with just the
+ * strings/bervals of all the entry components. Each field is preceded
+ * by its length, encoded the way ber_put_len works. Every field is NUL
+ * terminated.  The entire buffer size is precomputed so that a single
+ * malloc can be performed. The entry size is also recorded,
+ * to aid in entry_decode.
  */
-int entry_encode(Entry *e, struct berval **bv)
+int entry_encode(Entry *e, struct berval *bv)
 {
 	int siz = sizeof(Entry);
 	int len, dnlen, ndnlen;
-	int i, j;
-	Entry *f;
-	Attribute *a, *b;
-	struct berval **bvl, *bz;
-	char *ptr, *base, *data;
+	int i;
+	Attribute *a;
+	unsigned char *ptr;
 
-	*bv = ch_malloc(sizeof(struct berval));
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		"entry_encode: id: 0x%08lx  \"%s\"\n",
@@ -415,81 +461,65 @@ int entry_encode(Entry *e, struct berval **bv)
 	dnlen = strlen(e->e_dn);
 	ndnlen = strlen(e->e_ndn);
 	len = dnlen + ndnlen + 2;	/* two trailing NUL bytes */
+	len += entry_lenlen(dnlen);
+	len += entry_lenlen(ndnlen);
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr name */
 		siz += sizeof(Attribute);
 		len += a->a_desc->ad_cname.bv_len+1;
+		len += entry_lenlen(a->a_desc->ad_cname.bv_len);
 		for (i=0; a->a_vals[i]; i++) {
 			siz += sizeof(struct berval *);
 			siz += sizeof(struct berval);
 			len += a->a_vals[i]->bv_len + 1;
+			len += entry_lenlen(a->a_vals[i]->bv_len);
 		}
+		len += entry_lenlen(i);
 		siz += sizeof(struct berval *);	/* NULL pointer at end */
 	}
-	(*bv)->bv_len = siz + len;
-	(*bv)->bv_val = ch_malloc(siz+len);
-	base = (*bv)->bv_val;
-	ptr = base + siz;
-	f = (Entry *)base;
-	data = (char *)(f+1);
-	f->e_id = e->e_id;
-	f->e_dn = (char *)(ptr-base);
+	len += 1;	/* NUL byte at end */
+	len += entry_lenlen(siz);
+	bv->bv_len = len;
+	bv->bv_val = ch_malloc(len);
+	ptr = (unsigned char *)bv->bv_val;
+	entry_putlen(&ptr, siz);
+	entry_putlen(&ptr, dnlen);
 	memcpy(ptr, e->e_dn, dnlen);
 	ptr += dnlen;
 	*ptr++ = '\0';
-	f->e_ndn = (char *)(ptr-base);
+	entry_putlen(&ptr, ndnlen);
 	memcpy(ptr, e->e_ndn, ndnlen);
 	ptr += ndnlen;
 	*ptr++ = '\0';
-	f->e_attrs = e->e_attrs ? (Attribute *)sizeof(Entry) : NULL;
-	f->e_private = NULL;
+
 	for (a=e->e_attrs; a; a=a->a_next) {
-		b = (Attribute *)data;
-		data = (char *)(b+1);
-		b->a_desc = (AttributeDescription *)(ptr-base);
+		entry_putlen(&ptr, a->a_desc->ad_cname.bv_len);
 		memcpy(ptr, a->a_desc->ad_cname.bv_val,
 			a->a_desc->ad_cname.bv_len);
 		ptr += a->a_desc->ad_cname.bv_len;
 		*ptr++ = '\0';
 		if (a->a_vals) {
-		    bvl = (struct berval **)data;
-		    b->a_vals = (struct berval **)(data-base);
 		    for (i=0; a->a_vals[i]; i++);
-		    data = (char *)(bvl+i+1);
-		    bz = (struct berval *)data;
-		    for (j=0; j<i; j++) {
-			    bz->bv_len = a->a_vals[j]->bv_len;
-			    if (a->a_vals[j]->bv_val) {
-				bz->bv_val = (char *)(ptr-base);
-				memcpy(ptr, a->a_vals[j]->bv_val, bz->bv_len);
-			    } else {
-			    	bz->bv_val = NULL;
-			    }
-			    ptr += bz->bv_len;
-			    *ptr++ = '\0';
-			    bvl[j] = (struct berval *)(data-base);
-			    bz++;
-			    data = (char *)bz;
+		    entry_putlen(&ptr, i);
+		    for (i=0; a->a_vals[i]; i++) {
+			entry_putlen(&ptr, a->a_vals[i]->bv_len);
+			memcpy(ptr, a->a_vals[i]->bv_val,
+				a->a_vals[i]->bv_len);
+			ptr += a->a_vals[i]->bv_len;
+			*ptr++ = '\0';
 		    }
-		    bvl[j] = NULL;
-		} else {
-		    b->a_vals = NULL;
 		}
-
-		if (a->a_next)
-		    b->a_next = (Attribute *)(data-base);
-		else
-		    b->a_next = NULL;
 	}
+	*ptr = '\0';
 	return 0;
 }
 
 /* Retrieve an Entry that was stored using entry_encode above.
- * All we have to do is add the buffer address to all of the
- * stored offsets. We also must lookup the stored attribute names
- * to get AttributeDescriptions. To detect if the attributes of
- * an Entry are later modified, we note that e->e_attr is always
- * a constant offset from (e).
+ * We malloc a single block with the size stored above for the Entry
+ * and all if its Attributes. We also must lookup the stored
+ * attribute names to get AttributeDescriptions. To detect if the
+ * attributes of an Entry are later modified, we note that e->e_attr
+ * is always a constant offset from (e).
  *
  * Note: everything is stored in a single contiguous block, so
  * you can not free individual attributes or names from this
@@ -497,17 +527,24 @@ int entry_encode(Entry *e, struct berval **bv)
  */
 int entry_decode(struct berval *bv, Entry **e)
 {
-	int i;
-	long base;
+	int i, j;
+	int rc;
 	Attribute *a;
-	Entry *x = (Entry *)bv->bv_val;
-	char *type;
+	Entry *x;
 	const char *text;
 	AttributeDescription *ad;
+	unsigned char *ptr = (unsigned char *)bv->bv_val;
+	struct berval **bptr;
+	struct berval *vptr;
 
-	base = (long)bv->bv_val;
-	x->e_dn += base;
-	x->e_ndn += base;
+	i = entry_getlen(&ptr);
+	x = ch_malloc(i);
+	i = entry_getlen(&ptr);
+	x->e_dn = ptr;
+	ptr += i+1;
+	i = entry_getlen(&ptr);
+	x->e_ndn = ptr;
+	ptr += i+1;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
 		   "entry_decode: \"%s\"\n", x->e_dn ));
@@ -516,49 +553,67 @@ int entry_decode(struct berval *bv, Entry **e)
 	    "entry_decode: \"%s\"\n",
 	    x->e_dn, 0, 0 );
 #endif
-	x->e_private = NULL;
-	if (x->e_attrs)
-		x->e_attrs = (Attribute *)((long)x->e_attrs+base);
-	for (a=x->e_attrs; a; a=a->a_next) {
-		if (a->a_next)
-			a->a_next = (Attribute *)((long)a->a_next+base);
-		ad = NULL;
-		type = (char *)a->a_desc+base;
-		i = slap_str2ad( type, &ad, &text );
+	x->e_private = bv->bv_val;
 
-		if( i != LDAP_SUCCESS ) {
+	/* A valid entry must have at least one attr, so this
+	 * pointer can never be NULL
+	 */
+	x->e_attrs = (Attribute *)(x+1);
+	bptr = (struct berval **)x->e_attrs;
+	a = NULL;
+
+	while (i = entry_getlen(&ptr)) {
+		if (a) {
+			a->a_next = (Attribute *)bptr;
+		}
+		a = (Attribute *)bptr;
+		ad = NULL;
+		rc = slap_str2ad( ptr, &ad, &text );
+
+		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "entry_decode: str2ad(%s): %s\n", type, text ));
+				   "entry_decode: str2ad(%s): %s\n", ptr, text ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"<= entry_decode: str2ad(%s): %s\n", type, text, 0 );
+				"<= entry_decode: str2ad(%s): %s\n", ptr, text, 0 );
 #endif
-			i = slap_str2undef_ad( type, &ad, &text );
+			rc = slap_str2undef_ad( ptr, &ad, &text );
 
-			if( i != LDAP_SUCCESS ) {
+			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "entry_decode:  str2undef_ad(%s): %s\n", type, text));
+					   "entry_decode:  str2undef_ad(%s): %s\n", ptr, text));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= entry_decode: str2undef_ad(%s): %s\n",
-						type, text, 0 );
+						ptr, text, 0 );
 #endif
-				return i;
+				return rc;
 			}
 		}
+		ptr += i + 1;
 		a->a_desc = ad;
-		if (a->a_vals) {
-			a->a_vals = (struct berval **)((long)a->a_vals+base);
-			for (i=0; a->a_vals[i]; i++) {
-				a->a_vals[i] = (struct berval *)
-					((long)a->a_vals[i]+base);
-				if (a->a_vals[i]->bv_val)
-				    a->a_vals[i]->bv_val += base;
-			}
+		bptr = (struct berval **)(a+1);
+		a->a_vals = bptr;
+		j = entry_getlen(&ptr);
+		a->a_vals[j] = NULL;
+		vptr = (struct berval *)(bptr + j + 1);
+
+		while (j) {
+			i = entry_getlen(&ptr);
+			*bptr = vptr;
+			vptr->bv_len = i;
+			vptr->bv_val = (char *)ptr;
+			ptr += i+1;
+			bptr++;
+			vptr++;
+			j--;
 		}
+		bptr = (struct berval **)vptr;
 	}
+	if (a)
+		a->a_next = NULL;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		   "entry_decode:  %s\n", x->e_dn ));

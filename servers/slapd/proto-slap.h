@@ -341,7 +341,7 @@ LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
 LDAP_SLAPD_F (char *) entry2str LDAP_P(( Entry *e, int *len ));
 
 LDAP_SLAPD_F (int) entry_decode LDAP_P(( struct berval *bv, Entry **e ));
-LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval **bv ));
+LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval *bv ));
 
 LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
