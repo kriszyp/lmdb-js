@@ -98,7 +98,8 @@ ldbm_back_bind(
 			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
 		} else {
-			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL );
 			rc = 1;
 		}
 		if ( matched != NULL ) {
