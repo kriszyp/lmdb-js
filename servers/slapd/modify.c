@@ -324,9 +324,7 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_backend_set_pb( pb, op->o_bd );
-	slapi_x_connection_set_pb( pb, op->o_conn );
-	slapi_x_operation_set_pb( pb, op );
+	slapi_x_pblock_set_operation( pb, op );
 	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 	modv = slapi_x_modifications2ldapmods( &modlist );

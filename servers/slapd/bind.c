@@ -514,9 +514,7 @@ do_bind(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_backend_set_pb( pb, op->o_bd );
-	slapi_x_connection_set_pb( pb, op->o_conn );
-	slapi_x_operation_set_pb( pb, op );
+	slapi_x_pblock_set_operation( pb, op );
 	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->oq_bind.rb_cred );

@@ -204,9 +204,7 @@ extern int slapi_audit_init_header( Connection *conn, Operation *op,
 extern int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn, 
 						Operation *op, int rc);
 
-extern int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be );
-extern int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn );
-extern int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op );
+extern int slapi_x_pblock_set_operation( Slapi_PBlock *pb, Operation *op );
 
 extern LDAPMod **slapi_x_modifications2ldapmods(Modifications **);
 extern Modifications *slapi_x_ldapmods2modifications(LDAPMod **);

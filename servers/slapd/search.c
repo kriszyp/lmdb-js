@@ -431,9 +431,7 @@ static char **anlist2charray( AttributeName *an )
 static void initSearchPlugin( Operation *op,
 	char **attrs, int managedsait )
 {
-	slapi_x_backend_set_pb( op->o_pb, op->o_bd );
-	slapi_x_connection_set_pb( op->o_pb, op->o_conn );
-	slapi_x_operation_set_pb( op->o_pb, op );
+	slapi_x_pblock_set_operation( op->o_pb, op );
 	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_TARGET, (void *)op->o_req_dn.bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_SCOPE, (void *)op->oq_search.rs_scope );
 	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_DEREF, (void *)op->oq_search.rs_deref );

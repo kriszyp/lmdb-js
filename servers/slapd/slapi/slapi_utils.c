@@ -1353,7 +1353,7 @@ slapi_send_ldap_result(
 	char		*extOID = NULL;
 	struct berval	*extValue = NULL;
 	int		rc;
-	SlapReply	rs;
+	SlapReply	rs = { REP_RESULT };
 
 	slapi_pblock_get( pb, SLAPI_OPERATION, &op );
 
@@ -1396,11 +1396,8 @@ slapi_send_ldap_search_entry(
 	int		attrsonly )
 {
 #ifdef LDAP_SLAPI
-	Backend		*be;
-	Connection	*pConn;
 	Operation	*pOp;
-	int		rc;
-	SlapReply	rs;
+	SlapReply	rs = { REP_RESULT };
 	int		i;
 	AttributeName	*an = NULL;
 	const char	*text;
@@ -1432,14 +1429,11 @@ slapi_send_ldap_search_entry(
 	rs.sr_entry = e;
 	rs.sr_v2ref = NULL;
 
-	if ( rc = slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp) != 0 ) {
-		rc = LDAP_OTHER;
-	} else {
-		rc = send_search_entry( pOp, &rs );
+	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp ) != 0 ) {
+		return LDAP_OTHER;
 	}
 
-	return rc;
-
+	return send_search_entry( pOp, &rs );
 #else /* LDAP_SLAPI */
 	return -1;
 #endif /* LDAP_SLAPI */
@@ -2085,12 +2079,12 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 #endif /* LDAP_SLAPI */
 }
 
+#ifdef LDAP_SLAPI
 /*
  * Internal API to prime a Slapi_PBlock with a Backend.
  */
-int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
+static int initBackendPB( Slapi_PBlock *pb, Backend *be )
 {
-#ifdef LDAP_SLAPI
 	int rc;
 	
 	rc = slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
@@ -2104,12 +2098,8 @@ int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 	}
 
 	return LDAP_SUCCESS;
-#else
-	return -1;
-#endif /* LDAP_SLAPI */
 }
 
-#ifdef LDAP_SLAPI
 /*
  * If oldStyle is TRUE, then a value suitable for setting to
  * the deprecated SLAPI_CONN_AUTHTYPE value is returned 
@@ -2151,14 +2141,12 @@ static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls
 
 	return authType;
 }
-#endif
 
 /*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
-int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
+static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 {
-#ifdef LDAP_SLAPI
 	char *connAuthType;
 	int rc;
 
@@ -2220,31 +2208,33 @@ int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 	}
 
 	return rc;
-#else
-	return -1;
-#endif /* LDAP_SLAPI */
 }
+#endif /* LDAP_SLAPI */
 
 /*
  * Internal API to prime a Slapi_PBlock with an Operation.
  */
-int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op )
+int slapi_x_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 {
 #ifdef LDAP_SLAPI
 	int isRoot = 0;
 	int isUpdateDn = 0;
 	int rc;
-	Backend *be;
 	char *opAuthType;
 
-	if ( slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be ) != 0 ) {
-		be = NULL;
+	if ( op->o_bd != NULL ) {
+		isRoot = be_isroot( op->o_bd, &op->o_ndn );
+		isUpdateDn = be_isupdate( op->o_bd, &op->o_ndn );
 	}
-	if (be != NULL) {
-		isRoot = be_isroot( be, &op->o_ndn );
-		isUpdateDn = be_isupdate( be, &op->o_ndn );
-	}
-		
+
+	rc = initBackendPB( pb, op->o_bd );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	rc = initConnectionPB( pb, op->o_conn );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
 	rc = slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
 	if ( rc != LDAP_SUCCESS )
 		return rc;

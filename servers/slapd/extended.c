@@ -253,13 +253,7 @@ do_extended(
 			goto done;
 		}
 
-		rs->sr_err = slapi_x_connection_set_pb( pb, op->o_conn );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
-			goto done;
-		}
-
-		rs->sr_err = slapi_x_operation_set_pb( pb, op );
+		rs->sr_err = slapi_x_pblock_set_operation( pb, op );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_OTHER;
 			goto done;
