@@ -595,14 +595,19 @@ ber_scanf ( BerElement *ber,
 {
 	va_list		ap;
 	LDAP_CONST char		*fmt_reset;
+	char		*s, **ss;
+#ifdef TMP_SLOTS
 	char		*last;
-	char		*s, **ss, ***sss;
-	struct berval	***bv, **bvp, *bval;
-	ber_int_t	*i;
+	char ***sss;
+	ber_tag_t tag;
+	struct berval ***bv;
 	int j;
+#endif
+	struct berval	**bvp, *bval;
+	ber_int_t	*i;
 	ber_len_t	*l;
 	ber_tag_t	*t;
-	ber_tag_t	rc, tag;
+	ber_tag_t	rc;
 	ber_len_t	len;
 
 	va_start( ap, fmt );
@@ -755,7 +760,7 @@ ber_scanf ( BerElement *ber,
 			if( ber->ber_debug ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "liblber", LDAP_LEVEL_ERR,
-					   "ber_scanf: unknown fmt %c\n", *fmt ));
+					"ber_scanf: unknown fmt %c\n", *fmt ));
 #else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_scanf: unknown fmt %c\n", *fmt );
