@@ -127,7 +127,6 @@ dn2entry_retry:
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
-
 			ber_dupbv( &matched_dn, &matched->e_name );
 
 			erefs = is_entry_referral( matched )
@@ -341,8 +340,8 @@ id2entry_retry:
 			send_ldap_result( conn, op, rc=LDAP_BUSY,
 				NULL, "ldap server busy", NULL, NULL );
 			goto done;
-		}
-		else if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED ) {
+
+		} else if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED ) {
 			goto id2entry_retry;	
 		}
 
