@@ -18,7 +18,7 @@ struct lber_options ber_int_options = {
 
 int
 ber_get_option(
-	LDAP_CONST void	*item,
+	void	*item,
 	int		option,
 	void	*outvalue)
 {
