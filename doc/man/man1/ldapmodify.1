@@ -253,9 +253,6 @@ the command line) should conform to the format defined in
 .BR slapd.replog (5),
 with the exceptions noted below.
 .LP
-If the first line of a record consists of a decimal number (entry id),
-it is ignored.
-.LP
 Lines that begin with "replica:" are matched against the LDAP server host
 and port in use to decide if a particular replog record should be applied.
 Any other lines that precede the "dn:" line are ignored.
@@ -281,40 +278,6 @@ entries to be used as input to
 .I ldapmodify
 or
 .I ldapadd.
-.SH ALTERNATIVE INPUT FORMAT
-An alternative input format is supported for compatibility with older
-versions of
-.I ldapmodify.
-This format consists of one or more entries separated by blank lines,
-where each entry looks like:
-.LP
-.nf
-    Distinguished Name (DN)
-    attr=value
-    [attr=value ...]
-.fi
-.LP
-where \fIattr\fP is the name of the attribute and \fIvalue\fP is the
-value.
-.LP
-By default, values are added.  If the
-.RI \- r
-command line flag is
-given, the default is to replace existing values with the new one.
-Note that it is permissible for a given attribute to appear more than
-once (for example, to add more than one value for an attribute).  Also
-note that you can use a trailing `\\' to continue values across lines and
-preserve newlines in the value itself (this is useful for modifying
-QUIPU iattr attributes among others).
-.LP
-.I attr
-should be preceded by a \fB-\fP to remove a value.  The `=' and
-value should be omitted to remove an entire attribute.
-.LP
-.I attr
-should be preceded by a \fB+\fP to add a value in the presence of the
-\-r flag.
-.LP
 .SH EXAMPLES
 Assuming that the file
 .B /tmp/entrymods
@@ -352,23 +315,6 @@ as a
 and completely remove the
 .I description
 attribute.
-The same modifications as above can be performed using the older
-.I ldapmodify
-input format:
-.LP
-.nf
-    cn=Modify Me, dc=example, dc=com
-    mail=modme@example.com
-    +title=Grand Poobah
-    +jpegPhoto=/tmp/modme.jpeg
-    -description
-.fi
-.LP
-and the command:
-.LP
-.nf
-    ldapmodify -b -r -f /tmp/entrymods
-.fi
 .LP
 Assuming that the file
 .B /tmp/newentry
