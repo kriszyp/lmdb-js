@@ -103,6 +103,10 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		e->e_id = id;
 	}
 
+#ifdef BDB_HIER
+	bdb_fix_dn(be, id, e);
+#endif
+
 	return e;
 }
 

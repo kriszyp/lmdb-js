@@ -16,7 +16,8 @@
 LDAP_BEGIN_DECL
 
 #define BDB_FILTER_INDICES 1
-#define BDB_IDL_MULTI		1
+/* #define BDB_IDL_MULTI		1 */
+/* #define BDB_HIER		1 */
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -32,7 +33,11 @@ LDAP_BEGIN_DECL
 
 #define BDB_TXN_RETRIES	16
 
+#ifdef BDB_HIER
+#define BDB_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-hdb"
+#else
 #define BDB_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-bdb"
+#endif
 
 #ifdef BDB_SUBDIRS
 #define BDB_TMP_SUBDIR	LDAP_DIRSEP "tmp"
@@ -42,7 +47,11 @@ LDAP_BEGIN_DECL
 
 #define BDB_SUFFIX		".bdb"
 #define BDB_ID2ENTRY	0
+#ifdef BDB_HIER
+#define BDB_ID2PARENT		1
+#else
 #define BDB_DN2ID		1
+#endif
 #define BDB_NDB			2
 
 /* The bdb on-disk entry format is pretty space-inefficient. Average
@@ -50,7 +59,7 @@ LDAP_BEGIN_DECL
  * fit into a single database page, more is better. 64K is BDB's
  * upper bound. The same issues arise with IDLs in the index databases,
  * but it's nearly impossible to avoid overflows there.
- * 
+ *
  * When using BDB_IDL_MULTI, the IDL size is no longer an issue. Smaller
  * pages are better for concurrency.
  */
@@ -89,6 +98,14 @@ struct bdb_info {
 
 	slap_mask_t	bi_defaultmask;
 	Avlnode		*bi_attrs;
+#ifdef BDB_HIER
+	Avlnode		*bi_tree;
+	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
+	void		*bi_troot;
+	int		bi_nrdns;
+	int		bi_sufflen;
+	int		bi_nsufflen;
+#endif
 
 	int		bi_txn;
 	int			bi_txn_cp;
@@ -106,7 +123,11 @@ struct bdb_info {
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
+#ifdef BDB_HIER
+#define bi_id2parent	bi_databases[BDB_ID2PARENT]
+#else
 #define bi_dn2id	bi_databases[BDB_DN2ID]
+#endif
 
 struct bdb_op_info {
 	BackendDB*	boi_bdb;

@@ -23,12 +23,23 @@ int bdb_id2entry_put(
 	DBT key, data;
 	struct berval bv;
 	int rc;
+#ifdef BDB_HIER
+	char *odn, *ondn;
 
+	/* We only store rdns, and they go in the id2parent database. */
+
+	odn = e->e_dn; ondn = e->e_ndn;
+
+	e->e_dn = ""; e->e_ndn = "";
+#endif
 	DBTzero( &key );
 	key.data = (char *) &e->e_id;
 	key.size = sizeof(ID);
 
 	rc = entry_encode( e, &bv );
+#ifdef BDB_HIER
+	e->e_dn = odn; e->e_ndn = ondn;
+#endif
 	if( rc != LDAP_SUCCESS ) {
 		return -1;
 	}
@@ -47,7 +58,7 @@ int bdb_id2entry_add(
 	DB_TXN *tid,
 	Entry *e )
 {
-	return bdb_id2entry_put( be, tid, e, DB_NOOVERWRITE );
+	return bdb_id2entry_put(be, tid, e, DB_NOOVERWRITE);
 }
 
 int bdb_id2entry_update(
@@ -55,7 +66,7 @@ int bdb_id2entry_update(
 	DB_TXN *tid,
 	Entry *e )
 {
-	return bdb_id2entry_put( be, tid, e, 0 );
+	return bdb_id2entry_put(be, tid, e, 0);
 }
 
 int bdb_id2entry(
@@ -98,6 +109,9 @@ int bdb_id2entry(
 		 */
 		ch_free( data.data );
 	}
+#ifdef BDB_HIER
+	bdb_fix_dn(be, id, *e);
+#endif
 	return rc;
 }
 
@@ -143,6 +157,7 @@ int bdb_entry_return(
 
 	return 0;
 }
+
 int bdb_entry_release(
 	BackendDB *be,
 	Connection *c,

@@ -75,7 +75,7 @@ unsigned bdb_idl_search( ID *ids, ID id )
 	 */
 	unsigned base = 0;
 	unsigned cursor = 0;
-	int val;
+	int val = 0;
 	unsigned n = ids[0];
 
 #if IDL_DEBUG > 0
@@ -123,7 +123,7 @@ unsigned bdb_idl_search( ID *ids, ID id )
 #endif
 }
 
-static int idl_insert( ID *ids, ID id )
+int bdb_idl_insert( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
@@ -316,6 +316,17 @@ bdb_idl_insert_key(
 
 	DBTzero( &data );
 #ifdef BDB_IDL_MULTI
+	/* FIXME: We really ought to count how many data items currently exist
+	 * for this key, and cap off with a range when we hit the max. We need
+	 * to use a 0 in the first slot to denote a range - since the data are
+	 * sorted in ascending order, the only way to get a flag into the
+	 * first slot is to use the smallest possible ID value. The fetch
+	 * function above can turn it into a "memory-format" range. We also
+	 * have to delete all of the existing data items when converting from
+	 * a list to a range. And of course, if it's already a range, we need
+	 * to read it in and process it instead of just doing the blind put
+	 * that we do right now...
+	 */
 	data.data = &id;
 	data.size = sizeof(id);
 	data.flags = DB_DBT_USERMEM;
@@ -364,7 +375,7 @@ bdb_idl_insert_key(
 		}
 
 	} else {
-		rc = idl_insert( ids, id );
+		rc = bdb_idl_insert( ids, id );
 
 		if( rc == -1 ) {
 			Debug( LDAP_DEBUG_TRACE, "=> bdb_idl_insert_key: dup\n",
@@ -373,7 +384,7 @@ bdb_idl_insert_key(
 		}
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-				"idl_insert failed (%d)\n",
+				"bdb_idl_insert failed (%d)\n",
 				rc, 0, 0 );
 			
 			return rc;

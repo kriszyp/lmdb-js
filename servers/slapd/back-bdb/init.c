@@ -20,7 +20,11 @@ static struct bdbi_database {
 	int flags;
 } bdbi_databases[] = {
 	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
+#ifdef BDB_HIER
+	{ "id2parent" BDB_SUFFIX, "id2parent", DB_BTREE, 0 },
+#else
 	{ "dn2id" BDB_SUFFIX, "dn2id", DB_BTREE, 0 },
+#endif
 	{ NULL, NULL, 0, 0 }
 };
 
@@ -73,6 +77,9 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
+#ifdef BDB_HIER
+	ldap_pvt_thread_rdwr_init( &bdb->bi_tree_rdwr );
+#endif
 
 	be->be_private = bdb;
 	return 0;
@@ -247,16 +254,19 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 		} else {
+#ifdef BDB_HIER
+			rc = db->bdi_db->set_bt_compare( db->bdi_db,
+				bdb_bt_compare );
+#elif defined(BDB_IDL_MULTI)
+			rc = db->bdi_db->set_flags( db->bdi_db, 
+				DB_DUP | DB_DUPSORT );
+			rc = db->bdi_db->set_dup_compare( db->bdi_db,
+				bdb_bt_compare );
+#endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_PAGESIZE );
 		}
-#ifdef BDB_IDL_MULTI
-		if( i == BDB_DN2ID ) {
-			rc = db->bdi_db->set_flags( db->bdi_db, DB_DUPSORT );
-			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				bdb_bt_compare );
-		}
-#endif
+
 		rc = db->bdi_db->open( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
@@ -288,6 +298,9 @@ bdb_db_open( BackendDB *be )
 	}
 
 	/* <insert> open (and create) index databases */
+#ifdef BDB_HIER
+	rc = bdb_build_tree( be );
+#endif
 
 #ifndef NO_THREADS
 	if( bdb->bi_lock_detect != DB_LOCK_NORUN ) {
