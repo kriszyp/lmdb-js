@@ -995,6 +995,7 @@ slapi_modify_internal(
 		/* fall through */
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE:
+		case LDAP_MOD_INCREMENT:
 		break;
 
 		default:
