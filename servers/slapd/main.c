@@ -40,6 +40,9 @@ pthread_mutex_t	currenttime_mutex;
 int		active_threads;
 pthread_mutex_t	active_threads_mutex;
 pthread_mutex_t	new_conn_mutex;
+#ifdef SLAPD_CRYPT
+pthread_mutex_t crypt_mutex;
+#endif
 long		ops_initiated;
 long		ops_completed;
 int		num_conns;

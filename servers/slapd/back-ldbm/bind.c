@@ -19,8 +19,6 @@
 extern int	krbv4_ldap_auth();
 #endif
 
-pthread_mutex_t crypt_mutex;
-
 static int
 crypted_value_find(
 	struct berval       **vals,
@@ -35,13 +33,17 @@ crypted_value_find(
 		if ( syntax != SYNTAX_BIN ) {
 			int result;
 
+#ifdef SLAPD_CRYPT
 			pthread_mutex_lock( &crypt_mutex );
+#endif
 
 			result = lutil_passwd(
 				(char*) cred->bv_val,
 				(char*) vals[i]->bv_val);
 
+#ifdef SLAPD_CRYPT
 			pthread_mutex_unlock( &crypt_mutex );
+#endif
 
 			return result;
 

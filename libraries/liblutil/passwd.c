@@ -31,12 +31,7 @@ lutil_passwd(
 		return -1;
 	}
 
-	if (strncasecmp(passwd, "{CRYPT}", sizeof("{CRYPT}") - 1) == 0 ) {
-		const char *p = passwd + (sizeof("{CRYPT}") - 1);
-
-		return( strcmp(p, crypt(cred, p)) );
-
-	} else if (strncasecmp(passwd, "{MD5}", sizeof("{MD5}") - 1) == 0 ) {
+	if (strncasecmp(passwd, "{MD5}", sizeof("{MD5}") - 1) == 0 ) {
 		lutil_MD5_CTX MD5context;
 		unsigned char MD5digest[16];
 		char base64digest[25];  /* ceiling(sizeof(input)/3) * 4 + 1 */
@@ -74,6 +69,14 @@ lutil_passwd(
 		}
 
 		return( strcmp(p, base64digest) );
+
+#ifdef SLAPD_CRYPT
+	} else if (strncasecmp(passwd, "{CRYPT}", sizeof("{CRYPT}") - 1) == 0 ) {
+		const char *p = passwd + (sizeof("{CRYPT}") - 1);
+
+		return( strcmp(p, crypt(cred, p)) );
+
+#endif
 	}
 
 #ifdef SLAPD_CLEARTEXT

@@ -155,12 +155,15 @@ gen_pass (unsigned int len)
 	return ((char *)salt.salt);
 }
 
+#ifdef SLAPD_CLEARTEXT
 char *
 hash_none (const char *pw_in, Salt * salt)
 {
 	return (STRDUP (pw_in));
 }
+#endif
 
+#ifdef SLAPD_CRYPT
 char *
 hash_crypt (const char *pw_in, Salt * salt)
 {
@@ -189,6 +192,7 @@ hash_crypt (const char *pw_in, Salt * salt)
 	}
 	return (STRDUP (crypted_pw));
 }
+#endif
 
 char *
 hash_md5 (const char *pw_in, Salt * salt)
@@ -222,8 +226,12 @@ hash_sha1 (const char *pw_in, Salt * salt)
 
 static Hash hashes[] =
 {
+#ifdef SLAPD_CLEARTEXT
 	{"none",  4, hash_none,  0, HASHTYPE_NONE,  HASHTYPE_NONE,  0},
+#endif
+#ifdef SLAPD_CRYPT
 	{"crypt", 5, hash_crypt, 1, HASHTYPE_CRYPT, HASHTYPE_CRYPT, 2},
+#endif
 	{"md5",   3, hash_md5,   0, HASHTYPE_MD5,   HASHTYPE_SMD5,  0},
 	{"smd5",  4, hash_md5,   1, HASHTYPE_SMD5,  HASHTYPE_SMD5,  4},
 	{"sha",   3, hash_sha1,  0, HASHTYPE_SHA1,  HASHTYPE_SSHA1, 0},
