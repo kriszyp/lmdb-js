@@ -470,10 +470,10 @@ H4: syncrepl
 
 This directive specifies the current database as a replica of the
 master database at the provider site. The replica database at the
-replication consumer site is kept up-to-date with the master 
-database using the LDAP Content Synchronization protocol.
-See {{REF:draft-zeilenga-ldup-sync-04.txt}} for more information
-on the protocol.
+replication consumer site is kept up-to-date with the master database
+using the LDAP Content Synchronization protocol.  See
+{{EX:draft-zeilenga-ldup-sync-xx.txt}} ({{a work in progress}}) for
+more information on the protocol.
 
 The {{EX:id}} parameter is used for identification of the current
 syncrepl directive in the database, where the three-digit integer
@@ -493,15 +493,15 @@ specification is located at the provider site. {{EX:syncrepl}} and
 {{EX:replica}} are two independent replication mechanisms and they do
 not represent the replication peers of each other.
 
-The content of the syncrepl replica is defined using a search
-specification as its result set. The consumer slapd will send
-search requests to the provider slapd according to the search
+The content of the {{EX:syncrepl}} replica is defined using a search
+specification as its result set. The consumer {{slapd}}(8) will
+send search requests to the provider slapd according to the search
 specification. The search specification includes {{EX:searchbase}},
 {{EX:scope}}, {{EX:filter}}, {{EX:attrs}}, {{EX:attrsonly}},
 {{EX:sizelimit}}, and {{EX:timelimit}} parameters as in the normal
-search specification. The syncrepl search specification
-has the same value syntax and the same default values
-as in the {{REF:ldapsearch(1)}} client search tool.
+search specification. The {{EX:syncrepl}} search specification has
+the same value syntax and the same default values as in the
+{{ldapsearch}}(1) client search tool.
 
 The LDAP Content Synchronization protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
