@@ -171,6 +171,7 @@ typedef struct berval {
 	char		*bv_val;
 } BerValue;
 
+/* this should be moved to lber-int.h */
 #ifdef __MINGW32__
 #   undef LDAP_F_PRE
 #   ifdef LIBLBER_DECL

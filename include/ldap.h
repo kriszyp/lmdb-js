@@ -421,8 +421,8 @@ typedef struct ldapmsg LDAPMessage;
 typedef struct ldap_filt_info {
 	char			*lfi_filter;
 	char			*lfi_desc;
-	int			lfi_scope;	/* LDAP_SCOPE_BASE, etc */
-	int			lfi_isexact;	/* exact match filter? */
+	int			lfi_scope;
+	int			lfi_isexact;
 	struct ldap_filt_info	*lfi_next;
 } LDAPFiltInfo;
 
@@ -451,9 +451,10 @@ typedef struct ldap_filt_desc {
 
 
 /*
- * structure representing an ldap connection
+ * structure representing an ldap session which can
+ * encompass connections to multiple servers (in the
+ * face of referrals).
  */
-
 typedef struct ldap LDAP;
 
 #define LDAP_DEREF_NEVER	0x00
