@@ -77,9 +77,7 @@ starttls_extop ( Operation *op, SlapReply *rs )
 	}
 
 	/* fail if TLS could not be initialized */
-	if (ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &ctx ) != 0
-		|| ctx == NULL)
-	{
+	if ( slap_tls_ctx == NULL ) {
 		if (default_referral != NULL) {
 			/* caller will put the referral in the result */
 			rc = LDAP_REFERRAL;
