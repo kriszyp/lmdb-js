@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete         DE   I K M  P    U WXYZ  cd f h  k  n p     vw
-ldapmodify         DEF  I K M  P    U WXYZabcd f h  k  n p r t vw
-ldapmodrdn         DE   I K M  P    U WXYZ  cd f h  k  n p rs  vw
-ldappasswd      A  DE   I         S U WXYZa  d   h          s  vw    
-ldapsearch      AB DEF  I KLM  P RSTUVWXYZab d f h  kl n p  stuvw  z
+ldapdelete        *DE   I K M  P    U WXYZ  cd f h  k  n p     vw
+ldapmodify        *DEF  I K M  P    U WXYZabcd f h  k  n p r t vw
+ldapmodrdn        *DE   I K M  P    U WXYZ  cd f h  k  n p rs  vw
+ldappasswd      A *DE   I         S U WXYZa  d   h          s  vw    
+ldapsearch      AB*DEF  I KLM  P RSTUVWXYZab*d f h  kl n p  stuvw  z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -16,6 +16,9 @@ rp500                                     ab d f                 x z
 ud                 D                 V      cd f     l  p   s uv
 
 
+* reserved
+	GHJNOegijmoqxy
+
 * General flags:
 	-D bind DN
 	-P protocol version
@@ -26,12 +29,12 @@ ud                 D                 V      cd f     l  p   s uv
 	-p port
 	-v verbose
 	-w bind password
+	-W prompt for bind password
 
 * LDAPv3 Only 
 	-M ManageDSAIT
 
 	-Z StartTLS
-	-C Certificate (reserved)
 
 	-I SASL Intergity
 	-E SASL Privacy (encryption)
@@ -39,10 +42,13 @@ ud                 D                 V      cd f     l  p   s uv
 	-X SASL Authorization Identity
 	-Y SASL Mechanism
 
-* LDAPv2 Only
+	/* to be implemented */
+	-C Chase Referrals
+	-c Chase Search Rerefences
 
-	-K LDAPv2 Kerberos Bind (Step 1 only)
-	-k LDAPv2 Kerberos Bind
-
+* LDAPv2+ Only
+	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)
+	-k LDAPv2 Kerberos Bind (depecated)
+	-R Don't chase referrals (depecated)
 
 $OpenLDAP$
