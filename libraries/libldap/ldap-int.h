@@ -100,9 +100,9 @@ struct ldapoptions {
 	ber_int_t		ldo_timelimit;
 	ber_int_t		ldo_sizelimit;
 
+	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
-	char*	ldo_defhost;
 
 #ifdef LDAP_CONNECTIONLESS
 	int		ldo_cldaptries;	/* connectionless search retry count */
@@ -146,7 +146,7 @@ typedef struct ldap_conn {
 #define LDAP_CONNST_NEEDSOCKET		1
 #define LDAP_CONNST_CONNECTING		2
 #define LDAP_CONNST_CONNECTED		3
-	LDAPServer		*lconn_server;
+	LDAPURLDesc		*lconn_server;
 	char			*lconn_krbinstance;
 	struct ldap_conn	*lconn_next;
 	BerElement		*lconn_ber;/* ber receiving on this conn. */
@@ -351,7 +351,7 @@ LIBLDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
  * in open.c
  */
 LIBLDAP_F (int) ldap_open_defconn( LDAP *ld );
-LIBLDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport, char **krbinstancep, int async );
+LIBLDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srvlist, char **krbinstancep, int async );
 
 
 /*
@@ -386,8 +386,8 @@ LIBLDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 LIBLDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
 LIBLDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-LIBLDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc, int bind );
-LIBLDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb, int connect, int bind );
+LIBLDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc *srvlist, LDAPConn *lc, int bind );
+LIBLDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb, int connect, int bind );
 LIBLDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
 LIBLDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LIBLDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
@@ -438,6 +438,33 @@ LIBLDAP_F (int) ldap_send_unbind LDAP_P((
 	Sockbuf *sb,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
+
+/*
+ * in url.c
+ */
+LIBLDAP_F (LDAPURLDesc *) ldap_url_dup LDAP_P((
+	LDAPURLDesc *ludp ));
+
+LIBLDAP_F (LDAPURLDesc *) ldap_url_duplist LDAP_P((
+	LDAPURLDesc *ludlist ));
+
+LIBLDAP_F (int) ldap_url_parselist LDAP_P((
+	LDAPURLDesc **ludlist,
+	const char *url ));
+
+LIBLDAP_F (int) ldap_url_parsehosts LDAP_P((
+	LDAPURLDesc **ludlist,
+	const char *hosts ));
+
+LIBLDAP_F (char *) ldap_url_list2hosts LDAP_P((
+	LDAPURLDesc *ludlist ));
+
+LIBLDAP_F (char *) ldap_url_list2urls LDAP_P((
+	LDAPURLDesc *ludlist ));
+
+LIBLDAP_F (void) ldap_free_urllist LDAP_P((
+	LDAPURLDesc *ludlist ));
+
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 /*

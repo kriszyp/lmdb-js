@@ -114,6 +114,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
 #define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
 #define LDAP_OPT_NETWORK_TIMEOUT        0x5005  /* socket level timeout */
+#define LDAP_OPT_URI				0x5006
 
 /* TLS options */
 #define LDAP_OPT_X_TLS_CACERTFILE	0x6001
@@ -481,6 +482,7 @@ typedef struct ldap_friendly {
  * types for ldap URL handling
  */
 typedef struct ldap_url_desc {
+	struct ldap_url_desc *lud_next;
 	int		lud_ldaps;
     char	*lud_host;
     int		lud_port;

@@ -28,6 +28,7 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_KV		3
 #define ATTR_STRING	4
 #define ATTR_TLS	5
+#define ATTR_URLS	6
 
 struct ol_keyvalue {
 	const char *		key;
@@ -56,10 +57,12 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_timelimit)},
 	{ATTR_STRING,	"BASE",			NULL,
 		offsetof(struct ldapoptions, ldo_defbase)},
-	{ATTR_STRING,	"HOST",			NULL,
-		offsetof(struct ldapoptions, ldo_defhost)},
 	{ATTR_INT,		"PORT",			NULL,
 		offsetof(struct ldapoptions, ldo_defport)},
+	/* **** keep this around for backward compatibility */
+	{ATTR_URLS,		"HOST",			NULL,	1},
+	/* **** */
+	{ATTR_URLS,		"URL",			NULL,	0},
 	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 	{ATTR_BOOL,		"DNS",			NULL,	LDAP_BOOL_DNS},
@@ -181,6 +184,13 @@ static void openldap_ldap_init_w_conf(const char *file)
 			   	ldap_pvt_tls_config( &gopts, attrs[i].offset, opt );
 #endif
 				break;
+			case ATTR_URLS:
+				if (attrs[i].offset == 0) {
+					ldap_set_option( NULL, LDAP_OPT_URI, opt );
+				} else {
+					ldap_set_option( NULL, LDAP_OPT_HOST_NAME, opt );
+				}
+				break;
 			}
 		}
 	}
@@ -297,6 +307,13 @@ static void openldap_ldap_init_w_env(const char *prefix)
 		   	ldap_pvt_tls_config( &gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
+		case ATTR_URLS:
+			if (attrs[i].offset == 0) {
+				ldap_set_option( NULL, LDAP_OPT_URI, value );
+			} else {
+				ldap_set_option( NULL, LDAP_OPT_HOST_NAME, value );
+			}
+			break;
 		}
 	}
 }
@@ -326,7 +343,7 @@ void ldap_int_initialize( void )
 	gopts.ldo_tm_api = (struct timeval *)NULL;
 	gopts.ldo_tm_net = (struct timeval *)NULL;
 
-	gopts.ldo_defhost = LDAP_STRDUP("localhost");
+	ldap_url_parselist(&gopts.ldo_defludp, "ldap://localhost/");
 	gopts.ldo_defport = LDAP_PORT;
 
 	gopts.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
