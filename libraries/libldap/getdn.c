@@ -689,7 +689,20 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 		tmpDN[nrdns++] = newRDN;
 		newRDN = NULL;
 
+#if 0
+		/*
+		 * prone to attacks?
+		 */
 		assert (nrdns < TMP_SLOTS);
+#else
+		/*
+		 * make the static AVA array dynamically rescalable
+		 */
+		if (nrdns >= TMP_SLOTS) {
+			rc = LDAP_DECODING_ERROR;
+			goto parsing_error;
+		}
+#endif
 				
 		if ( p[ 0 ] == '\0' ) {
 			/* 
@@ -1037,7 +1050,12 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			 * here STRING means RFC 2253 string
 			 * FIXME: what about DCE strings? 
 			 */
-			state = B4STRINGVALUE;
+			if ( !p[ 0 ] ) {
+				/* empty value */
+				state = GOTAVA;
+			} else {
+				state = B4STRINGVALUE;
+			}
 			break;
 
 		case B4BINARYVALUE:
@@ -1101,11 +1119,15 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				 */
 				ava = ldapava_new( &attrType, &attrValue, 
 						attrValueEncoding );
+				
 				if ( ava == NULL ) {
 					rc = LDAP_NO_MEMORY;
 					goto parsing_error;
 				}
 				tmpRDN[navas++] = ava;
+
+				attrValue.bv_val = NULL;
+				attrValue.bv_len = 0;
 
 				assert(navas < TMP_SLOTS);
 			}
