@@ -33,7 +33,7 @@ bdb_operational(
 	Attribute	**aa = a;
 	int		rc;
 	DB_TXN		*ltid = NULL;
-        struct bdb_op_info opinfo;
+    struct bdb_op_info opinfo;
 	
 	assert( e );
 
@@ -50,8 +50,8 @@ retry:	/* transaction retry */
 		}
 #endif
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "operational", LDAP_LEVEL_DETAIL1,
-			"=> bdb_operational: retrying...\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"=> bdb_operational: retrying...\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "==> bdb_operational: retrying...\n", 
 				0, 0, 0 );
@@ -70,9 +70,9 @@ retry:	/* transaction retry */
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, bdb->bi_db_opflags );
 	if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "operational", LDAP_LEVEL_ERR,
+		LDAP_LOG ( OPERATION, ERR, 
 			"=> bdb_operational: txn_begin failed: %s (%d)\n",
-			 db_strerror(rc), rc ));
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_operational: txn_begin failed: %s (%d)\n",
@@ -104,9 +104,9 @@ retry:	/* transaction retry */
 
 	default:
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "operational", LDAP_LEVEL_ERR,
+		LDAP_LOG ( OPERATION, ERR, 
 			"=> bdb_operational: has_children failed: %s (%d)\n",
-			 db_strerror(rc), rc ));
+			db_strerror(rc), rc, 0 );
 #else
 		Debug(LDAP_DEBUG_ARGS, 
 			"<=- bdb_operational: has_children failed: %s (%d)\n", 

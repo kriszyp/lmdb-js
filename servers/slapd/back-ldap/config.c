@@ -325,18 +325,18 @@ suffix_massage_regexize( const char *s )
 
 	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
 
-	ptr = slap_strcopy( res, "(.*)" );
+	ptr = lutil_strcopy( res, "(.*)" );
 	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
-		ptr = slap_strncopy( ptr, p, r - p + 1 );
-		ptr = slap_strcopy( ptr, "[ ]?" );
+		ptr = lutil_strncopy( ptr, p, r - p + 1 );
+		ptr = lutil_strcopy( ptr, "[ ]?" );
 
 		if ( r[ 1 ] == ' ' ) {
 			r++;
 		}
 	}
-	slap_strcopy( ptr, p );
+	lutil_strcopy( ptr, p );
 
 	return res;
 }

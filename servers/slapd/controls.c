@@ -132,8 +132,7 @@ int get_ctrls(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"get_ctrls: conn %lu\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "get_ctrls: conn %lu\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
 #endif
@@ -203,9 +202,8 @@ int get_ctrls(
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				"get_ctrls: conn %lu get OID failed.\n",
-				conn->c_connid ));
+			LDAP_LOG( OPERATION, INFO, "get_ctrls: conn %lu get OID failed.\n",
+				conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
@@ -225,9 +223,9 @@ int get_ctrls(
 
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					"get_ctrls: conn %lu get crit failed.\n",
-					conn->c_connid ));
+				LDAP_LOG( OPERATION, INFO, 
+					"get_ctrls: conn %lu get crit failed.\n", 
+					conn->c_connid, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
@@ -248,11 +246,10 @@ int get_ctrls(
 
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "get_ctrls: conn %lu: "
+				LDAP_LOG( OPERATION, INFO, "get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
-					conn->c_connid,
-					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
-					c->ldctl_iscritical ? "" : "non" ));
+					conn->c_connid, c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+					c->ldctl_iscritical ? "" : "non" );
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
@@ -269,11 +266,10 @@ int get_ctrls(
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"get_ctrls: conn %lu oid=\"%s\" (%scritical)\n",
-			conn->c_connid,
-			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
-			c->ldctl_iscritical ? "" : "non" ));
+			conn->c_connid, c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+			c->ldctl_iscritical ? "" : "non" );
 #else
 		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
 			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
@@ -355,9 +351,8 @@ int get_ctrls(
 
 return_results:
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_RESULTS,
-		"get_ctrls: conn=%lu	n=%d rc=%d err=%s\n",
-		conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
+	LDAP_LOG( OPERATION, RESULTS, 
+		"get_ctrls: n=%d rc=%d err=%s\n", nctrls, rc, errmsg ? errmsg : "" );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: n=%d rc=%d err=%s\n",
 		nctrls, rc, errmsg ? errmsg : "");
@@ -576,9 +571,9 @@ int parseValuesReturnFilter (
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"parseValuesReturnFilter: conn %d	vrFilter: %s\n", conn->c_connid,
-		fstr.bv_len ? fstr.bv_val : "empty" ));
+	LDAP_LOG( OPERATION, ARGS, 
+		"parseValuesReturnFilter: conn %d	vrFilter: %s\n", 
+		conn->c_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "	vrFilter: %s\n",
 		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );

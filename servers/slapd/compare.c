@@ -50,8 +50,7 @@ do_compare(
 	ava.aa_desc = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_compare: conn %d\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "do_compare: conn %d\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 #endif
@@ -69,8 +68,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -81,8 +80,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, "{mm}", &desc, &value ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_compare: conn %d  get ava failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_compare: conn %d  get ava failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
 #endif
@@ -94,8 +93,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -107,8 +106,8 @@ do_compare(
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_compare: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, INFO, 
+			"do_compare: conn %d  get_ctrls failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -118,9 +117,9 @@ do_compare(
 	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_compare: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
+			conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_compare: invalid dn (%s)\n", dn.bv_val, 0, 0 );
@@ -145,10 +144,9 @@ do_compare(
 
 	if( strcasecmp( ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-			conn->c_connid, pdn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val ));
+		LDAP_LOG( OPERATION, ARGS, 
+			"do_compare: dn (%s) attr(%s) value (%s)\n",
+			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
@@ -173,10 +171,10 @@ do_compare(
 
 	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-			conn->c_connid, pdn.bv_val, ava.aa_desc->ad_cname.bv_val,
-			ava.aa_value.bv_val ));
+		LDAP_LOG( OPERATION, ARGS, 
+			"do_compare: dn (%s) attr(%s) value (%s)\n",
+			pdn.bv_val, ava.aa_desc->ad_cname.bv_val,
+			ava.aa_value.bv_val );
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
@@ -249,10 +247,9 @@ do_compare(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
-		conn->c_connid, pdn.bv_val, ava.aa_desc->ad_cname.bv_val,
-		ava.aa_value.bv_val ));
+	LDAP_LOG( OPERATION, ARGS, 
+		"do_compare: dn (%s) attr(%s) value (%s)\n",
+		pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );

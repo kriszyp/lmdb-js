@@ -40,8 +40,8 @@ do_delete(
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_delete: conn %d\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, 
+		"do_delete: conn %d\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 #endif
@@ -54,8 +54,8 @@ do_delete(
 
 	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_delete: conn: %d  ber_scanf failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -66,8 +66,8 @@ do_delete(
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_delete: conn %d  get_ctrls failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -77,9 +77,9 @@ do_delete(
 	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_delete: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
+			conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
@@ -91,8 +91,9 @@ do_delete(
 
 	if( ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
-			"Attempt to delete root DSE.\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, INFO, 
+			"do_delete: conn %d: Attempt to delete root DSE.\n", 
+			conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
 #endif
@@ -105,8 +106,8 @@ do_delete(
 
 	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
-			"Attempt to delete subschema subentry.\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
+			"Attempt to delete subschema subentry.\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
 #endif

@@ -3367,9 +3367,9 @@ objectIdentifierFirstComponentMatch(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "objectIdentifierFirstComponentMatch: %d\n	 %s\n	 %s\n",
-		   match, value->bv_val, asserted->bv_val ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"objectIdentifierFirstComponentMatch: %d\n %s\n %s\n",
+		match, value->bv_val, asserted->bv_val );
 #else
 	Debug( LDAP_DEBUG_ARGS, "objectIdentifierFirstComponentMatch "
 		"%d\n\t\"%s\"\n\t\"%s\"\n",
@@ -3516,9 +3516,9 @@ certificateExactConvert(
 	xcert = d2i_X509(NULL, &p, in->bv_len);
 	if ( !xcert ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-			   "certificateExactConvert: error parsing cert: %s\n",
-			   ERR_error_string(ERR_get_error(),NULL)));
+		LDAP_LOG( CONFIG, ENTRY, 
+			"certificateExactConvert: error parsing cert: %s\n",
+			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: "
 		       "error parsing cert: %s\n",
@@ -3551,9 +3551,8 @@ certificateExactConvert(
 	*p++ = '\0';
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "certificateExactConvert: \n	%s\n",
-		   out->bv_val));
+	LDAP_LOG( CONFIG, ARGS, 
+		"certificateExactConvert: \n	%s\n", out->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert "
 		"\n\t\"%s\"\n",
@@ -3633,9 +3632,9 @@ certificateExactMatch(
 	xcert = d2i_X509(NULL, &p, value->bv_len);
 	if ( !xcert ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-			   "certificateExactMatch: error parsing cert: %s\n",
-			   ERR_error_string(ERR_get_error(),NULL)));
+		LDAP_LOG( CONFIG, ENTRY, 
+			"certificateExactMatch: error parsing cert: %s\n",
+			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactMatch: "
 		       "error parsing cert: %s\n",
@@ -3674,10 +3673,12 @@ certificateExactMatch(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "certificateExactMatch: %d\n	 %s $ %s\n	 %s $	%s\n",
-		   *matchp, serial.bv_val, issuer_dn.bv_val,
-		   asserted_serial.bv_val, asserted_issuer_dn.bv_val));
+	LDAP_LOG( CONFIG, ARGS, "certificateExactMatch "
+		"%d\n\t\"%s $ %s\"\n",
+		*matchp, serial.bv_val, issuer_dn.bv_val );
+	LDAP_LOG( CONFIG, ARGS, "\t\"%s $ %s\"\n",
+		asserted_serial.bv_val, asserted_issuer_dn.bv_val,
+		0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
 		"%d\n\t\"%s $ %s\"\n",
@@ -3729,9 +3730,9 @@ static int certificateExactIndexer(
 		xcert = d2i_X509(NULL, &p, values[i].bv_len);
 		if ( !xcert ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-			    "certificateExactIndexer: error parsing cert: %s\n",
-				ERR_error_string(ERR_get_error(),NULL)));
+			LDAP_LOG( CONFIG, ENTRY, 
+				"certificateExactIndexer: error parsing cert: %s\n",
+				ERR_error_string(ERR_get_error(),NULL), 0, 0);
 #else
 			Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
 			       "error parsing cert: %s\n",
@@ -3749,9 +3750,8 @@ static int certificateExactIndexer(
 				  &keys[i] );
 		ber_memfree(serial.bv_val);
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-			   "certificateExactIndexer: returning: %s\n",
-			   keys[i].bv_val));
+		LDAP_LOG( CONFIG, ENTRY, 
+			"certificateExactIndexer: returning: %s\n", keys[i].bv_val, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
 		       "returning: %s\n",
@@ -4060,7 +4060,7 @@ nisNetgroupTripleValidate(
 				return LDAP_INVALID_SYNTAX;
 			}
 
-		} else if ( !ATTR_CHAR( *p ) ) {
+		} else if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4094,7 +4094,7 @@ bootParameterValidate(
 
 	/* key */
 	for (; ( p < e ) && ( *p != '=' ); p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4105,7 +4105,7 @@ bootParameterValidate(
 
 	/* server */
 	for ( p++; ( p < e ) && ( *p != ':' ); p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4116,7 +4116,7 @@ bootParameterValidate(
 
 	/* path */
 	for ( p++; p < e; p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !SLAP_PRINTABLE( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4627,7 +4627,7 @@ int
 slap_schema_init( void )
 {
 	int		res;
-	int		i;
+	int		i = 0;
 
 	/* we should only be called once (from main) */
 	assert( schema_init_done == 0 );

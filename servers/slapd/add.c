@@ -50,8 +50,7 @@ do_add( Connection *conn, Operation *op )
 	int	manageDSAit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_add: conn %d enter\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "do_add: conn %d enter\n", conn->c_connid,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 #endif
@@ -70,8 +69,8 @@ do_add( Connection *conn, Operation *op )
 	/* get the name */
 	if ( ber_scanf( ber, "{m", /*}*/ &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_add: conn %d ber_scanf failed\n", conn->c_connid,0,0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -86,9 +85,8 @@ do_add( Connection *conn, Operation *op )
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
-				dn.bv_val ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_add: conn %d invalid dn (%s)\n", conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
@@ -98,8 +96,8 @@ do_add( Connection *conn, Operation *op )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_add: conn %d  dn (%s)\n", conn->c_connid, e->e_dn ));
+	LDAP_LOG( OPERATION, ARGS, 
+		"do_add: conn %d  dn (%s)\n", conn->c_connid, e->e_dn, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", e->e_dn, 0, 0 );
 #endif
@@ -115,8 +113,8 @@ do_add( Connection *conn, Operation *op )
 
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "do_add: conn %d	 decoding error \n", conn->c_connid ));
+			LDAP_LOG( OPERATION, ERR, 
+				   "do_add: conn %d	 decoding error \n", conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
 #endif
@@ -128,9 +126,9 @@ do_add( Connection *conn, Operation *op )
 
 		if ( tmp.sml_bvalues == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			LDAP_LOG( OPERATION, INFO, 
 				"do_add: conn %d	 no values for type %s\n",
-				conn->c_connid, tmp.sml_type.bv_val ));
+				conn->c_connid, tmp.sml_type.bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				tmp.sml_type.bv_val, 0, 0 );
@@ -153,8 +151,8 @@ do_add( Connection *conn, Operation *op )
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_add: conn %d ber_scanf failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -166,8 +164,8 @@ do_add( Connection *conn, Operation *op )
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_add: conn %d get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, INFO, 
+			"do_add: conn %d get_ctrls failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -309,8 +307,8 @@ do_add( Connection *conn, Operation *op )
 		}
 	} else {
 #ifdef NEW_LOGGING
-	    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-		       "do_add: conn %d	 no backend support\n", conn->c_connid ));
+	    LDAP_LOG( OPERATION, INFO, 
+		       "do_add: conn %d	 no backend support\n", conn->c_connid, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ARGS, "	 do_add: no backend support\n", 0, 0, 0 );
 #endif

@@ -267,11 +267,6 @@ LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr 
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
-LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
-	char *dst, const char *src ));
-LDAP_SLAPD_F (char *) slap_strncopy LDAP_P((
-	char *dst, const char *src, size_t n ));
-
 /*
  * controls.c
  */
@@ -857,6 +852,7 @@ LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
 	struct berval *saslname,
 	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
+	Connection *conn,
 	struct berval *authcid,
 	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((

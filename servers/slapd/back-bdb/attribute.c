@@ -43,13 +43,12 @@ bdb_attribute(
 	DB_LOCK		lock;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val ));
-	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"bdb_attribute: at: \"%s\"\n", entry_at_name));
-	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"bdb_attribute: tr dn: \"%s\"\n",
-		target ? target->e_ndn : "" ));
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val, 0, 0 );
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_attribute: at: \"%s\"\n", entry_at_name, 0, 0);
+	LDAP_LOG( BACK_BDB, ARGS, "bdb_attribute: tr dn: \"%s\"\n",
+		target ? target->e_ndn : "", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: gr dn: \"%s\"\n",
@@ -77,9 +76,8 @@ bdb_attribute(
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"bdb_attribute: target is LOCKED (%s)\n",
-			entry_ndn->bv_val ));
+		LDAP_LOG( BACK_BDB, DETAIL1, 
+			"bdb_attribute: target is LOCKED (%s)\n", entry_ndn->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> bdb_attribute: target is entry: \"%s\"\n",
@@ -109,9 +107,9 @@ dn2entry_retry:
 		}
 		if (e == NULL) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"bdb_attribute: cannot find entry (%s)\n",
-				entry_ndn->bv_val ));
+			LDAP_LOG( BACK_BDB, INFO, 
+				"bdb_attribute: cannot find entry (%s)\n", 
+				entry_ndn->bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> bdb_attribute: cannot find entry: \"%s\"\n",
@@ -124,9 +122,8 @@ dn2entry_retry:
 		}
 		
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"bdb_attribute: found entry (%s)\n",
-			entry_ndn->bv_val ));
+		LDAP_LOG( BACK_BDB, DETAIL1, "bdb_attribute: found entry (%s)\n",
+			entry_ndn->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_attribute: found entry: \"%s\"\n",
@@ -138,8 +135,8 @@ dn2entry_retry:
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"bdb_attribute: entry (%s) is an alias\n", e->e_dn ));
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_attribute: entry (%s) is an alias\n", e->e_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_attribute: entry is an alias\n", 0, 0, 0 );
@@ -151,8 +148,8 @@ dn2entry_retry:
 
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"bdb_attribute: entry (%s) is a referral.\n", e->e_dn ));
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_attribute: entry (%s) is a referral.\n", e->e_dn, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_attribute: entry is a referral\n", 0, 0, 0 );
@@ -171,8 +168,8 @@ dn2entry_retry:
 
 	if ((attr = attr_find(e->e_attrs, entry_at)) == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"bdb_attribute: failed to find %s.\n", entry_at_name ));
+		LDAP_LOG( BACK_BDB, INFO, 
+			"bdb_attribute: failed to find %s.\n", entry_at_name, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_attribute: failed to find %s\n",
@@ -231,9 +228,7 @@ return_results:
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"bdb_attribute: rc=%d nvals=%d.\n",
-		rc, j ));
+	LDAP_LOG( BACK_BDB, ENTRY, "bdb_attribute: rc=%d nvals=%d.\n", rc, j, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_attribute: rc=%d nvals=%d\n",

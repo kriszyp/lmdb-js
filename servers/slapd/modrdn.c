@@ -65,8 +65,7 @@ do_modrdn(
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_modrdn: begin\n" ));
+	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 #endif
@@ -87,8 +86,7 @@ do_modrdn(
 	    == LBER_ERROR )
 	{
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modrdn: ber_scanf failed\n" ));
+		LDAP_LOG( OPERATION, ERR, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -106,8 +104,8 @@ do_modrdn(
 			 * newSuperior is present: report error.
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_modrdn: (v2) invalid field newSuperior.\n" ));
+			LDAP_LOG( OPERATION, ERR,
+				"do_modrdn: (v2) invalid field newSuperior.\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "modrdn(v2): invalid field newSuperior!\n",
@@ -124,8 +122,8 @@ do_modrdn(
 		     == LBER_ERROR ) {
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_modrdn: ber_scanf(\"m\") failed\n" ));
+			LDAP_LOG( OPERATION, ERR,
+				"do_modrdn: ber_scanf(\"m\") failed\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"m\") failed\n",
 				0, 0, 0 );
@@ -141,10 +139,10 @@ do_modrdn(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+	LDAP_LOG( OPERATION, ARGS, 
 		"do_modrdn: dn (%s) newrdn (%s) newsuperior(%s)\n",
 		dn.bv_val, newrdn.bv_val,
-		newSuperior.bv_len ? newSuperior.bv_val : "" ));
+		newSuperior.bv_len ? newSuperior.bv_val : "" );
 #else
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
@@ -154,8 +152,7 @@ do_modrdn(
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modrdn: ber_scanf failed\n" ));
+		LDAP_LOG( OPERATION, ERR, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -168,8 +165,7 @@ do_modrdn(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modrdn: get_ctrls failed\n" ));
+		LDAP_LOG( OPERATION, ERR, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -181,9 +177,9 @@ do_modrdn(
 	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_modrdn: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
+			conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_modrdn: invalid dn (%s)\n", dn.bv_val, 0, 0 );
@@ -195,8 +191,8 @@ do_modrdn(
 
 	if( ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn:  attempt to modify root DSE.\n" ));
+		LDAP_LOG( OPERATION, ERR,
+			"do_modrdn:  attempt to modify root DSE.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
 #endif
@@ -208,8 +204,8 @@ do_modrdn(
 #ifdef SLAPD_SCHEMA_DN
 	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modrdn: attempt to modify subschema subentry\n" ));
+		LDAP_LOG( OPERATION, ERR,
+			"do_modrdn: attempt to modify subschema subentry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry!\n", 0, 0, 0 );
 #endif
@@ -225,9 +221,9 @@ do_modrdn(
 	rc = dnPrettyNormal( NULL, &newrdn, &pnewrdn, &nnewrdn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_modrdn: conn %d  invalid newrdn (%s)\n",
-			conn->c_connid, newrdn.bv_val ));
+			conn->c_connid, newrdn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_modrdn: invalid newrdn (%s)\n", newrdn.bv_val, 0, 0 );
@@ -239,8 +235,8 @@ do_modrdn(
 
 	if( rdnValidate( &pnewrdn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modrdn: invalid rdn (%s).\n", pnewrdn.bv_val ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_modrdn: invalid rdn (%s).\n", pnewrdn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n",
 			pnewrdn.bv_val, 0, 0 );
@@ -256,9 +252,9 @@ do_modrdn(
 			&nnewSuperior );
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			LDAP_LOG( OPERATION, INFO, 
 				"do_modrdn: conn %d  invalid newSuperior (%s)\n",
-				conn->c_connid, newSuperior.bv_val ));
+				conn->c_connid, newSuperior.bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"do_modrdn: invalid newSuperior (%s)\n",

@@ -32,7 +32,8 @@ int bdb_modify_internal(
 	Attribute 	*ap;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modify", LDAP_LEVEL_ENTRY,"bdb_modify_internal: 0x%08lx: %s\n", e->e_id, e->e_dn ));
+	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify_internal: 0x%08lx: %s\n", 
+		e->e_id, e->e_dn, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
 		e->e_id, e->e_dn, 0);
@@ -51,14 +52,15 @@ int bdb_modify_internal(
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify_internal: add\n" ));
+			LDAP_LOG ( OPERATION, DETAIL1, "bdb_modify_internal: add\n", 0,0,0);
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: add\n", 0, 0, 0);
 #endif
 			err = modify_add_values( e, mod, text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
 #else
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -68,7 +70,8 @@ int bdb_modify_internal(
 
 		case LDAP_MOD_DELETE:
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify_internal: delete\n" ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"bdb_modify_internal: delete\n", 0, 0, 0 );
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: delete\n", 0, 0, 0);
 #endif
@@ -76,7 +79,8 @@ int bdb_modify_internal(
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
 #else
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -86,14 +90,16 @@ int bdb_modify_internal(
 
 		case LDAP_MOD_REPLACE:
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify_internal: replace\n" ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"bdb_modify_internal: replace\n", 0, 0, 0 );
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: replace\n", 0, 0, 0);
 #endif
 			err = modify_replace_values( e, mod, text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
 #else
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -103,7 +109,8 @@ int bdb_modify_internal(
 
 		case SLAP_MOD_SOFTADD:
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify_internal: softadd\n" ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"bdb_modify_internal: softadd\n",0,0,0 );
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: softadd\n", 0, 0, 0);
 #endif
@@ -119,7 +126,8 @@ int bdb_modify_internal(
 
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
 #else
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -129,7 +137,8 @@ int bdb_modify_internal(
 
 		default:
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: invalid op %d\n", mod->sm_op ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: invalid op %d\n", mod->sm_op, 0, 0 );
 #else
 			Debug(LDAP_DEBUG_ANY, "bdb_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);
@@ -137,7 +146,8 @@ int bdb_modify_internal(
 			*text = "Invalid modify operation";
 			err = LDAP_OTHER;
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 				err, *text, 0);
@@ -173,7 +183,9 @@ int bdb_modify_internal(
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: entry failed schema check %s\n", *text ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: entry failed schema check %s\n", 
+					*text, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
 			*text, 0, 0 );
@@ -192,7 +204,9 @@ int bdb_modify_internal(
 				attrs_free( e->e_attrs );
 				e->e_attrs = save_attrs;
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: attribute index delete failure\n" ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: attribute index delete failure\n",
+					0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "Attribute index delete failure",
@@ -213,7 +227,9 @@ int bdb_modify_internal(
 				attrs_free( e->e_attrs );
 				e->e_attrs = save_attrs;
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: attribute index add failure\n" ));
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: attribute index add failure\n", 
+					0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "Attribute index add failure",
@@ -253,7 +269,7 @@ bdb_modify(
 	DB_LOCK		lock;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modify", LDAP_LEVEL_ENTRY, "bdb_modify: %s\n", dn->bv_val ));
+	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n", dn->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn->bv_val, 0, 0 );
 #endif
@@ -265,7 +281,7 @@ retry:	/* transaction retry */
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: retrying...\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, "bdb_modify: retrying...\n", 0, 0, 0 );
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_modify: retrying...\n", 0, 0, 0);
@@ -287,7 +303,8 @@ retry:	/* transaction retry */
 	text = NULL;
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: txn_begin failed: %s (%d)\n", db_strerror(rc), rc ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_modify: txn_begin failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: txn_begin failed: %s (%d)\n",
@@ -310,7 +327,8 @@ retry:	/* transaction retry */
 
 	if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: dn2entry failed: (%d)\n", rc ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_modify: dn2entry failed: (%d)\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: dn2entry failed (%d)\n",
@@ -365,7 +383,7 @@ retry:	/* transaction retry */
 			conn, op, e );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: entry is referral\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, "bdb_modify: entry is referral\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: entry is referral\n",
@@ -385,7 +403,8 @@ retry:	/* transaction retry */
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify: modify failed (%d)\n", rc ));
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_modify: modify failed (%d)\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: modify failed (%d)\n",
@@ -403,7 +422,8 @@ retry:	/* transaction retry */
 	rc = bdb_id2entry_update( be, ltid, e );
 	if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify: id2entry update failed (%d)\n", rc ));
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_modify: id2entry update failed (%d)\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: id2entry update failed (%d)\n",
@@ -428,7 +448,9 @@ retry:	/* transaction retry */
 
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify: txn_%s failed %s (%d)\n", op->o_noop ? "abort (no_op)" : "commit", db_strerror(rc), rc ));
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_modify: txn_%s failed %s (%d)\n", 
+			op->o_noop ? "abort (no_op)" : "commit", db_strerror(rc), rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: txn_%s failed: %s (%d)\n",
@@ -440,7 +462,9 @@ retry:	/* transaction retry */
 
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: updated%s id=%08lx dn=\"%s\"\n", op->o_noop ? " (no_op)" : "", e->e_id, e->e_dn ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_modify: updated%s id=%08lx dn=\"%s\"\n", 
+			op->o_noop ? " (no_op)" : "", e->e_id, e->e_dn );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: updated%s id=%08lx dn=\"%s\"\n",

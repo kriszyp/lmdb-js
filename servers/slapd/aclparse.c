@@ -201,8 +201,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "filter" ) == 0 ) {
-					if ( (a->acl_filter = str2filter(
-					    right )) == NULL ) {
+					if ( (a->acl_filter = str2filter( right )) == NULL ) {
 						fprintf( stderr,
 				"%s: line %d: bad filter \"%s\" in to clause\n",
 						    fname, lineno, right );
@@ -227,7 +226,7 @@ parse_acl(
 			}
 
 			if ( a->acl_dn_pat.bv_len != 0 &&
-				strcmp(a->acl_dn_pat.bv_val, "*") == 0)
+				strcmp(a->acl_dn_pat.bv_val, "*") == 0 )
 			{
 				free( a->acl_dn_pat.bv_val );
 				a->acl_dn_pat.bv_val = NULL;
@@ -1107,24 +1106,24 @@ accessmask2str( slap_mask_t mask, char *buf )
 
 	if ( ACL_IS_LEVEL( mask ) ) {
 		if ( ACL_LVL_IS_NONE(mask) ) {
-			ptr = slap_strcopy( ptr, "none" );
+			ptr = lutil_strcopy( ptr, "none" );
 
 		} else if ( ACL_LVL_IS_AUTH(mask) ) {
-			ptr = slap_strcopy( ptr, "auth" );
+			ptr = lutil_strcopy( ptr, "auth" );
 
 		} else if ( ACL_LVL_IS_COMPARE(mask) ) {
-			ptr = slap_strcopy( ptr, "compare" );
+			ptr = lutil_strcopy( ptr, "compare" );
 
 		} else if ( ACL_LVL_IS_SEARCH(mask) ) {
-			ptr = slap_strcopy( ptr, "search" );
+			ptr = lutil_strcopy( ptr, "search" );
 
 		} else if ( ACL_LVL_IS_READ(mask) ) {
-			ptr = slap_strcopy( ptr, "read" );
+			ptr = lutil_strcopy( ptr, "read" );
 
 		} else if ( ACL_LVL_IS_WRITE(mask) ) {
-			ptr = slap_strcopy( ptr, "write" );
+			ptr = lutil_strcopy( ptr, "write" );
 		} else {
-			ptr = slap_strcopy( ptr, "unknown" );
+			ptr = lutil_strcopy( ptr, "unknown" );
 		}
 		
 		*ptr++ = '(';

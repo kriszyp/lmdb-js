@@ -223,10 +223,9 @@ parse_limits(
 
 	if ( argc < 3 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+		LDAP_LOG( CONFIG, CRIT, 
 			"%s : line %d: missing arg(s) in "
-			"\"limits <pattern> <limits>\" line.\n",
-			fname, lineno ));
+			"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"%s : line %d: missing arg(s) in "
@@ -328,13 +327,11 @@ parse_limits(
 		default:
 			if ( pattern[0] != '=' ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s : line %d: missing '=' in "
 					"\"dn[.{exact|base|one|subtree"
-					"|children|regex|anonymous}]"
-					"=<pattern>\" in "
-					"\"limits <pattern> <limits>\" line.\n",
-					fname, lineno ));
+					"|children|regex|anonymous}]" "=<pattern>\" in "
+					"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
@@ -369,10 +366,10 @@ parse_limits(
 		if ( parse_limit( argv[i], &limit ) ) {
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+			LDAP_LOG( CONFIG, CRIT, 
 				"%s : line %d: unknown limit type \"%s\" in "
 				"\"limits <pattern> <limits>\" line.\n",
-			fname, lineno, argv[i] ));
+				fname, lineno, argv[i] );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"%s : line %d: unknown limit type \"%s\" in "

@@ -66,9 +66,9 @@ dn2entry_retry:
 		goto dn2entry_retry;
 	default:
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "referral", LDAP_LEVEL_ERR,
-			"bdb_referrals: dn2entry failed: %s (%d)\n",
-			db_strerror(rc), rc ));
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_referrals: dn2entry failed: %s (%d)\n", 
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: dn2entry failed: %s (%d)\n",
@@ -94,9 +94,9 @@ dn2entry_retry:
 			matched_dn = ch_strdup( matched->e_dn );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "referral", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, dn->bv_val, matched_dn ));
+			(long) op->o_tag, dn->bv_val, matched_dn );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
@@ -139,9 +139,9 @@ dn2entry_retry:
 			refs, &e->e_name, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "referral", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, dn->bv_val, e->e_dn ));
+			(long) op->o_tag, dn->bv_val, e->e_dn );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",

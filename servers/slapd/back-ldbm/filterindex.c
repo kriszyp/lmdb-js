@@ -39,7 +39,7 @@ filter_candidates(
 	ID_BLOCK	*result;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY, "filter_candidates: enter\n"));
+	LDAP_LOG( FILTER, ENTRY, "filter_candidates: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> filter_candidates\n", 0, 0, 0 );
 #endif
@@ -49,8 +49,8 @@ filter_candidates(
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_DN_ONE:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  DN ONE (%s)\n", f->f_dn ));
+		LDAP_LOG( FILTER, DETAIL1, 
+			   "filter_candidates:  DN ONE (%s)\n", f->f_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 #endif
@@ -65,8 +65,8 @@ filter_candidates(
 
 	case SLAPD_FILTER_DN_SUBTREE:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  DN SUBTREE (%s)\n", f->f_dn ));
+		LDAP_LOG( FILTER, DETAIL1, 
+			   "filter_candidates:  DN SUBTREE (%s)\n", f->f_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
 #endif
@@ -81,8 +81,9 @@ filter_candidates(
 
 	case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  Present (%s)\n", f->f_desc->ad_cname.bv_val ));
+		LDAP_LOG( FILTER, DETAIL1, 
+			"filter_candidates:  Present (%s)\n", 
+			f->f_desc->ad_cname.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
 #endif
@@ -92,10 +93,10 @@ filter_candidates(
 
 	case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( FILTER, DETAIL1, 
 			   "filter_candidates:  EQUALITY (%s),(%s)\n",
 			   f->f_ava->aa_desc->ad_cname.bv_val,
-			   f->f_ava->aa_value.bv_val ));
+			   f->f_ava->aa_value.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
 #endif
@@ -105,10 +106,10 @@ filter_candidates(
 
 	case LDAP_FILTER_APPROX:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( FILTER, DETAIL1, 
 			   "filter_candidates:  APPROX (%s), (%s)\n",
 			   f->f_ava->aa_desc->ad_cname.bv_val,
-			   f->f_ava->aa_value.bv_val ));
+			   f->f_ava->aa_value.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
 #endif
@@ -118,8 +119,8 @@ filter_candidates(
 
 	case LDAP_FILTER_SUBSTRINGS:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  SUBSTRINGS\n"));
+		LDAP_LOG( FILTER, DETAIL1,
+			   "filter_candidates:  SUBSTRINGS\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
 #endif
@@ -129,8 +130,7 @@ filter_candidates(
 
 	case LDAP_FILTER_GE:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  GE\n"));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  GE\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
 #endif
@@ -140,8 +140,7 @@ filter_candidates(
 
 	case LDAP_FILTER_LE:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  LE\n" ));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  LE\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
 #endif
@@ -151,8 +150,7 @@ filter_candidates(
 
 	case LDAP_FILTER_AND:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  AND\n" ));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  AND\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
 #endif
@@ -162,8 +160,7 @@ filter_candidates(
 
 	case LDAP_FILTER_OR:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  OR\n" ));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  OR\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tOR\n", 0, 0, 0 );
 #endif
@@ -173,8 +170,7 @@ filter_candidates(
 
 	case LDAP_FILTER_NOT:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  NOT\n" ));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  NOT\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 #endif
@@ -189,8 +185,7 @@ filter_candidates(
 		break;
 	default:
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  UNKNOWN\n" ));
+		LDAP_LOG( FILTER, DETAIL1, "filter_candidates:  UNKNOWN\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN\n", 0, 0, 0 );
 #endif
@@ -202,9 +197,9 @@ filter_candidates(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "filter_candidates: return %ld\n",
-		   result ? ID_BLOCK_NIDS(result) : 0 ));
+	LDAP_LOG( FILTER, ENTRY, 
+		"filter_candidates: return %ld\n", 
+		result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %ld\n",
 	    result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
@@ -227,8 +222,7 @@ presence_candidates(
 	struct berval prefix = {0};
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "presence_candidates: enter\n" ));
+	LDAP_LOG( FILTER, ENTRY, "presence_candidates: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 #endif
@@ -244,9 +238,8 @@ presence_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-			   "presence_candidates: index_param returned %d\n",
-			   rc ));
+		LDAP_LOG( FILTER, INFO, 
+			   "presence_candidates: index_param returned %d\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= presence_candidates: index_param returned=%d\n",
@@ -259,8 +252,7 @@ presence_candidates(
 	if( dbname == NULL ) {
 		/* not indexed */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-			   "presence_candidates: not indexed\n" ));
+		LDAP_LOG( FILTER, INFO, "presence_candidates: not indexed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= presense_candidates: not indexed\n",
@@ -274,9 +266,9 @@ presence_candidates(
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
+		LDAP_LOG( FILTER, INFO, 
 			   "presence_candidates: db open failed (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+			   dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= presense_candidates db open failed (%s%s)\n",
@@ -294,8 +286,8 @@ presence_candidates(
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-				   "presence_candidates: key read failed (%d)\n", rc ));
+			LDAP_LOG( FILTER, ERR, 
+				   "presence_candidates: key read failed (%d)\n", rc, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= presense_candidates key read failed (%d)\n",
@@ -305,8 +297,7 @@ presence_candidates(
 
 		} else if( idl == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				   "presence_candidates: NULL\n" ));
+			LDAP_LOG( FILTER, DETAIL1, "presence_candidates: NULL\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= presense_candidates NULL\n",
@@ -319,9 +310,9 @@ presence_candidates(
 	ldbm_cache_close( be, db );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "presence_candidates:  return %ld\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+	LDAP_LOG( FILTER, ENTRY, 
+		"presence_candidates:  return %ld\n", 
+		idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -347,8 +338,7 @@ equality_candidates(
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "equality_candidates: enter\n" ));
+	LDAP_LOG( FILTER, ENTRY, "equality_candidates: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> equality_candidates\n", 0, 0, 0 );
 #endif
@@ -361,8 +351,8 @@ equality_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "equality_candidates:  index_param returned %d\n", rc ));
+		LDAP_LOG( FILTER, ERR, 
+			   "equality_candidates:  index_param returned %d\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: index_param returned=%d\n",
@@ -375,8 +365,7 @@ equality_candidates(
 	if( dbname == NULL ) {
 		/* not indexed */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "equality_candidates: not indexed\n" ));
+		LDAP_LOG( FILTER, ERR, "equality_candidates: not indexed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: not indexed\n",
@@ -406,9 +395,9 @@ equality_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+		LDAP_LOG( FILTER, ERR, 
 			   "equality_candidates: (%s%s) MR filter failed (%d\n",
-			   dbname, LDBM_SUFFIX, rc ));
+			   dbname, LDBM_SUFFIX, rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: (%s%s) MR filter failed (%d)\n",
@@ -420,9 +409,8 @@ equality_candidates(
 
 	if( keys == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "equality_candidates: no keys (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+		LDAP_LOG( FILTER, ERR, 
+		   "equality_candidates: no keys (%s%s)\n", dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: no keys (%s%s)\n",
@@ -436,9 +424,8 @@ equality_candidates(
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "equality_candidates: db open failed (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+		LDAP_LOG( FILTER, ERR, "equality_candidates: db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= equality_candidates db open failed (%s%s)\n",
@@ -458,8 +445,8 @@ equality_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-				   "equality_candidates: key read failed (%d)\n", rc ));
+			LDAP_LOG( FILTER, ERR, 
+				   "equality_candidates: key read failed (%d)\n", rc, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= equality_candidates key read failed (%d)\n",
@@ -473,8 +460,7 @@ equality_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-				   "equality_candidates NULL\n" ));
+			LDAP_LOG( FILTER, INFO, "equality_candidates NULL\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= equality_candidates NULL\n",
@@ -498,9 +484,9 @@ equality_candidates(
 
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "equality_candidates: return %ld\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+	LDAP_LOG( FILTER, ENTRY, 
+		   "equality_candidates: return %ld\n", 
+		   idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= equality_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -526,8 +512,7 @@ approx_candidates(
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "approx_candidates: enter\n" ));
+	LDAP_LOG( FILTER, ENTRY, "approx_candidates: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 #endif
@@ -540,8 +525,8 @@ approx_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "approx_candidates: index_param returned %d\n", rc ));
+		LDAP_LOG( FILTER, ERR, 
+			   "approx_candidates: index_param returned %d\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= approx_candidates: index_param returned=%d\n",
@@ -554,8 +539,7 @@ approx_candidates(
 	if( dbname == NULL ) {
 		/* not indexed */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "approx_candidates: not indexed\n" ));
+		LDAP_LOG( FILTER, ERR, "approx_candidates: not indexed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= approx_candidates: not indexed\n",
@@ -590,9 +574,9 @@ approx_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+		LDAP_LOG( FILTER, ERR, 
 			   "approx_candidates: (%s%s) MR filter failed (%d)\n",
-			   dbname, LDBM_SUFFIX, rc ));
+			   dbname, LDBM_SUFFIX, rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= approx_candidates: (%s%s) MR filter failed (%d)\n",
@@ -604,9 +588,9 @@ approx_candidates(
 
 	if( keys == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
+		LDAP_LOG( FILTER, INFO, 
 			   "approx_candidates: no keys (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+			   dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= approx_candidates: no keys (%s%s)\n",
@@ -620,9 +604,9 @@ approx_candidates(
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "approx_candidates db open failed (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+		LDAP_LOG( FILTER, ERR, 
+			"approx_candidates db open failed (%s%s)\n", 
+			dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= approx_candidates db open failed (%s%s)\n",
@@ -642,8 +626,8 @@ approx_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-				   "approx_candidates: key read failed (%d)\n", rc ));
+			LDAP_LOG( FILTER, ERR, 
+				   "approx_candidates: key read failed (%d)\n", rc, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
@@ -656,8 +640,7 @@ approx_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-				   "approx_candidates: NULL\n" ));
+			LDAP_LOG( FILTER, INFO, "approx_candidates: NULL\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates NULL\n",
 			    0, 0, 0 );
@@ -679,9 +662,9 @@ approx_candidates(
 	ldbm_cache_close( be, db );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "approx_candidates: return %ld\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+	LDAP_LOG( FILTER, ENTRY, 
+		"approx_candidates: return %ld\n", 
+		idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -701,8 +684,7 @@ list_candidates(
 	Filter	*f;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "list_candidates: 0x%x\n", ftype ));
+	LDAP_LOG( FILTER, ENTRY, "list_candidates: 0x%x\n", ftype, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> list_candidates 0x%x\n", ftype, 0, 0 );
 #endif
@@ -713,8 +695,7 @@ list_candidates(
 		if ( (tmp = filter_candidates( be, f )) == NULL &&
 		    ftype == LDAP_FILTER_AND ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-				   "list_candidates: NULL\n" ));
+			LDAP_LOG( FILTER, INFO, "list_candidates: NULL\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 			       "<= list_candidates NULL\n", 0, 0, 0 );
@@ -739,9 +720,8 @@ list_candidates(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "list_candidates: return %ld\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+	LDAP_LOG( FILTER, ENTRY, "list_candidates: return %ld\n",
+		   idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -767,8 +747,7 @@ substring_candidates(
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "substrings_candidates: enter\n" ));
+	LDAP_LOG( FILTER, ENTRY, "substrings_candidates: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> substrings_candidates\n", 0, 0, 0 );
 #endif
@@ -781,8 +760,8 @@ substring_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "substrings_candidates: index_param returned %d\n", rc ));
+		LDAP_LOG( FILTER, ERR, 
+			   "substrings_candidates: index_param returned %d\n", rc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= substrings_candidates: index_param returned=%d\n",
@@ -795,8 +774,7 @@ substring_candidates(
 	if( dbname == NULL ) {
 		/* not indexed */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-			   "substrings_candidates: not indexed\n" ));
+		LDAP_LOG( FILTER, ERR, "substrings_candidates: not indexed\n", 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= substrings_candidates: not indexed\n",
@@ -827,9 +805,9 @@ substring_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+		LDAP_LOG( FILTER, ERR, 
 			   "substrings_candidates: (%s%s) MR filter failed (%d)\n",
-			   dbname, LDBM_SUFFIX, rc ));
+			   dbname, LDBM_SUFFIX, rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= substrings_candidates: (%s%s) MR filter failed (%d)\n",
@@ -841,9 +819,9 @@ substring_candidates(
 
 	if( keys == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+		LDAP_LOG( FILTER, ERR, 
 			   "substrings_candidates: (0x%04lx) no keys (%s%s)\n",
-			   mask, dbname, LDBM_SUFFIX ));
+			   mask, dbname, LDBM_SUFFIX );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= substrings_candidates: (0x%04lx) no keys (%s%s)\n",
@@ -857,9 +835,9 @@ substring_candidates(
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+		LDAP_LOG( FILTER, ERR, 
 			   "substrings_candidates: db open failed (%s%s)\n",
-			   dbname, LDBM_SUFFIX ));
+			   dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= substrings_candidates db open failed (%s%s)\n",
@@ -879,9 +857,8 @@ substring_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-				   "substrings_candidates: key read failed (%d)\n",
-				   rc ));
+			LDAP_LOG( FILTER, ERR, 
+				   "substrings_candidates: key read failed (%d)\n", rc, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
@@ -894,8 +871,7 @@ substring_candidates(
 			idl_free( idl );
 			idl = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-				   "substrings_candidates: NULL\n" ));
+			LDAP_LOG( FILTER, INFO, "substrings_candidates: NULL\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates NULL\n",
 			    0, 0, 0 );
@@ -917,9 +893,9 @@ substring_candidates(
 	ldbm_cache_close( be, db );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( FILTER, ENTRY, 
 		   "substrings_candidates: return %ld\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+		   idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );

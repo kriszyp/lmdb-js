@@ -45,8 +45,7 @@ do_search(
 	int			manageDSAit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_search: conn %d\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "do_search: conn %d\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 #endif
@@ -112,9 +111,9 @@ do_search(
 	rc = dnPrettyNormal( NULL, &base, &pbase, &nbase );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, ERR, 
 			"do_search: conn %d  invalid dn (%s)\n",
-			conn->c_connid, base.bv_val ));
+			conn->c_connid, base.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
@@ -125,9 +124,10 @@ do_search(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_search \"%s\" %d %d %d %d %d\n", base.bv_val, scope,
-		deref, sizelimit, timelimit, attrsonly ));
+	LDAP_LOG( OPERATION, ARGS, "SRCH \"%s\" %d %d",
+		base.bv_val, scope, deref );
+	LDAP_LOG( OPERATION, ARGS, "    %d %d %d\n",
+		sizelimit, timelimit, attrsonly);
 #else
 	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d",
 		base.bv_val, scope, deref );
@@ -152,9 +152,9 @@ do_search(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_search: conn %d	filter: %s\n", conn->c_connid,
-		fstr.bv_len ? fstr.bv_val : "empty" ));
+	LDAP_LOG( OPERATION, ARGS, 
+		"do_search: conn %d	filter: %s\n", 
+		conn->c_connid, fstr.bv_len ? fstr.bv_val : "empty", 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
 		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
@@ -177,9 +177,9 @@ do_search(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_search: conn %d  get_ctrls failed (%d)\n",
-			conn->c_connid, rc ));
+			conn->c_connid, rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -188,8 +188,8 @@ do_search(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_search: conn %d	attrs:", conn->c_connid ));
+	LDAP_LOG( OPERATION, ARGS, 
+		"do_search: conn %d	attrs:", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
 #endif
@@ -197,8 +197,8 @@ do_search(
 	if ( siz != 0 ) {
 		for ( i = 0; i<siz; i++ ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-				"do_search:	   %s", an[i].an_name.bv_val ));
+			LDAP_LOG( OPERATION, ARGS, 
+				"do_search: %s", an[i].an_name.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ARGS, " %s", an[i].an_name.bv_val, 0, 0 );
 #endif
@@ -206,7 +206,7 @@ do_search(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS, "\n" ));
+	LDAP_LOG( OPERATION, ARGS, "\n" , 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 #endif

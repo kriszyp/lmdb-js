@@ -14,7 +14,6 @@
 
 #include "slap.h"
 
-
 void
 mra_free(
 	MatchingRuleAssertion *mra,
@@ -53,8 +52,8 @@ get_mra(
 
 	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "get_mra: ber_scanf (\"{t\") failure\n" ));
+		LDAP_LOG( OPERATION, ERR, 
+			"get_mra: ber_scanf (\"{t\") failure\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 #endif
@@ -68,8 +67,8 @@ get_mra(
 		rtag = ber_scanf( ber, "m", &ma->ma_rule_text );
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "get_mra: ber_scanf(\"o\") failure.\n" ));
+			LDAP_LOG( OPERATION, ERR,
+			   "get_mra: ber_scanf(\"o\") failure.\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for mr\n", 0, 0, 0 );
 #endif
@@ -82,8 +81,8 @@ get_mra(
 		rtag = ber_scanf( ber, "t", &tag );
 		if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "get_mra: ber_scanf (\"t\") failure\n" ));
+			LDAP_LOG( OPERATION, ERR,
+			   "get_mra: ber_scanf (\"t\") failure\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 #endif
@@ -98,8 +97,8 @@ get_mra(
 		rtag = ber_scanf( ber, "m", &type );
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "get_mra: ber_scanf (\"o\") failure.\n" ));
+			LDAP_LOG( OPERATION, ERR,
+			   "get_mra: ber_scanf (\"o\") failure.\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for ad\n", 0, 0, 0 );
 #endif
@@ -111,8 +110,8 @@ get_mra(
 		rtag = ber_scanf( ber, "t", &tag );
 		if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "get_mra: ber_scanf (\"t\") failure.\n" ));
+			LDAP_LOG( OPERATION, ERR,
+			   "get_mra: ber_scanf (\"t\") failure.\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 #endif
@@ -125,8 +124,8 @@ get_mra(
 
 	if ( tag != LDAP_FILTER_EXT_VALUE ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "get_mra: ber_scanf missing value\n" ));
+		LDAP_LOG( OPERATION, ERR, 
+			"get_mra: ber_scanf missing value\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf missing value\n", 0, 0, 0 );
 #endif
@@ -140,8 +139,8 @@ get_mra(
 
 	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "get_mra: ber_scanf (\"o\") failure.\n" ));
+		LDAP_LOG( OPERATION, ERR, 
+			"get_mra: ber_scanf (\"o\") failure.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 #endif
@@ -161,8 +160,7 @@ get_mra(
 
 	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "get_mra: ber_scanf failure\n"));
+		LDAP_LOG( OPERATION, ERR, "get_mra: ber_scanf failure\n", 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 #endif

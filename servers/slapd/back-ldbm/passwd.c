@@ -48,9 +48,8 @@ ldbm_back_exop_passwd(
 		&id, NULL, &new, text );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_exop_passwd: \"%s\"\n",
-		   id.bv_val ? id.bv_val : "" ));
+	LDAP_LOG( BACK_LDBM, ENTRY,
+		   "ldbm_back_exop_passwd: \"%s\"\n", id.bv_val ? id.bv_val : "", 0,0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
@@ -88,9 +87,9 @@ ldbm_back_exop_passwd(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+	LDAP_LOG( BACK_LDBM, DETAIL1,
 		"ldbm_back_exop_passwd: \"%s\"%s\n",
-		dn.bv_val, id.bv_len ? " (proxy)" : "" ));
+		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
 		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );

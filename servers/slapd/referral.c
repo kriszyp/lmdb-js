@@ -152,9 +152,9 @@ int validate_global_referral( const char *url )
 	default:
 		/* other error, bail */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+		LDAP_LOG( CONFIG, CRIT, 
 			"referral: invalid URL (%s): %s (%d)\n",
-			url, "" /* ldap_url_error2str(rc) */, rc ));
+			url, "" /* ldap_url_error2str(rc) */, rc );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: invalid URL (%s): %s (%d)\n",
@@ -167,9 +167,7 @@ int validate_global_referral( const char *url )
 
 	if( lurl->lud_dn && *lurl->lud_dn ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-			"referral: URL (%s): contains DN\n",
-			url ));
+		LDAP_LOG( CONFIG, CRIT, "referral: URL (%s): contains DN\n", url, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains DN\n",
@@ -179,9 +177,8 @@ int validate_global_referral( const char *url )
 
 	} else if( lurl->lud_attrs ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-			"referral: URL (%s): requests attributes\n",
-			url ));
+		LDAP_LOG( CONFIG, CRIT, 
+			"referral: URL (%s): requests attributes\n", url, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): requests attributes\n",
@@ -191,9 +188,8 @@ int validate_global_referral( const char *url )
 
 	} else if( lurl->lud_scope != LDAP_SCOPE_DEFAULT ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-			"referral: URL (%s): contains explicit scope\n",
-			url ));
+		LDAP_LOG( CONFIG, CRIT, 
+			"referral: URL (%s): contains explicit scope\n", url, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains explicit scope\n",
@@ -203,9 +199,8 @@ int validate_global_referral( const char *url )
 
 	} else if( lurl->lud_filter ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-			"referral: URL (%s): contains explicit filter\n",
-			url ));
+		LDAP_LOG( CONFIG, CRIT, 
+			"referral: URL (%s): contains explicit filter\n", url, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains explicit filter\n",

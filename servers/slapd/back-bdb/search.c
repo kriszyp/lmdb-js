@@ -63,7 +63,7 @@ bdb_search(
 	DB_LOCK		lock;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"bdb_back_search\n"));
+	LDAP_LOG ( OPERATION, ENTRY, "bdb_back_search\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_back_search\n",
 		0, 0, 0);
@@ -175,7 +175,8 @@ dn2entry_retry:
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: entry is referral\n"));
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"bdb_search: entry is referral\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
 			0, 0, 0 );
@@ -288,7 +289,7 @@ dn2entry_retry:
 
 	if ( candidates[0] == 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: no candidates\n"));
+	LDAP_LOG ( OPERATION, RESULTS, "bdb_search: no candidates\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
 			0, 0, 0 );
@@ -349,7 +350,8 @@ id2entry_retry:
 			if( !BDB_IDL_IS_RANGE(candidates) ) {
 				/* only complain for non-range IDLs */
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: candidate %ld not found\n", (long) id));
+				LDAP_LOG ( OPERATION, RESULTS,
+					"bdb_search: candidate %ld not found\n", (long) id, 0, 0);
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: candidate %ld not found\n",
@@ -411,7 +413,8 @@ id2entry_retry:
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: \"%s\" in subtree\n", e->edn));
+				LDAP_LOG ( OPERATION, RESULTS,
+					"bdb_search: \"%s\" in subtree\n", e->edn, 0, 0);
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: \"%s\" in subtree\n",
@@ -466,9 +469,9 @@ id2entry_retry:
 
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
+				LDAP_LOG(OPERATION, DETAIL2, 
 					"bdb_search: candidate referral %ld scope not okay\n",
-					id ));
+					id, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: candidate referral %ld scope not okay\n",
@@ -536,7 +539,8 @@ id2entry_retry:
 				}
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: %ld scope not okay\n", (long) id));
+				LDAP_LOG ( OPERATION, RESULTS,
+					"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: %ld scope not okay\n",
@@ -545,7 +549,8 @@ id2entry_retry:
 			}
 		} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: %ld does match filter\n", (long) id));
+				LDAP_LOG ( OPERATION, RESULTS,
+					"bdb_search: %ld does match filter\n", (long) id, 0, 0);
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_search: %ld does match filter\n",
@@ -589,7 +594,8 @@ static int base_candidate(
 	ID		*ids )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"base_candidate: base: \"%s\" (0x%08lx)\n", e->e_dn, (long) e->e_id));
+	LDAP_LOG ( OPERATION, ENTRY,
+		"base_candidate: base: \"%s\" (0x%08lx)\n", e->e_dn, (long) e->e_id, 0);
 #else
 	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_dn, (long) e->e_id, 0);
@@ -669,7 +675,9 @@ static int search_candidates(
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n", e->e_dn, (long) e->e_id, scope));
+	LDAP_LOG ( OPERATION, ENTRY,
+		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n", 
+		e->e_dn, (long) e->e_id, scope);
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
@@ -741,7 +749,8 @@ static int search_candidates(
 
 	if( rc ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_DETAIL1,"bdb_search_candidates: failed (rc=%d)\n", rc));
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_search_candidates: failed (rc=%d)\n", rc, 0, 0  );
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: failed (rc=%d)\n",
@@ -750,7 +759,10 @@ static int search_candidates(
 
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "search", LDAP_LEVEL_DETAIL1,"bdb_search_candidates: id=%ld first=%ld last=%ld\n", (long) ids[0], (long) BDB_IDL_FIRST(ids), (long) BDB_IDL_LAST(ids)));
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0], (long) BDB_IDL_FIRST(ids), 
+			(long) BDB_IDL_LAST(ids));
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",

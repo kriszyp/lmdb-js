@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 2000, Mark Adamson, Carnegie Mellon.  All rights reserved.
  * This software is not subject to any license of Carnegie Mellon University.
  *
@@ -96,8 +100,8 @@ static int slap_parseURI( struct berval *uri,
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_parseURI: parsing %s\n", uri->bv_val ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #endif
@@ -170,10 +174,9 @@ static int slap_sasl_rx_off(char *rep, int *off)
 		if ( *c == '$' ) {
 			if ( n == SASLREGEX_REPLACE ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+				LDAP_LOG( TRANSPORT, ERR, 
 					"slap_sasl_regexp_config: \"%s\" has too many $n "
-						"placeholders (max %d)\n",
-					rep, SASLREGEX_REPLACE ));
+					"placeholders (max %d)\n", rep, SASLREGEX_REPLACE, 0  );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"SASL replace pattern %s has too many $n "
@@ -194,11 +197,9 @@ static int slap_sasl_rx_off(char *rep, int *off)
 	off[n] = -1;
 	return( LDAP_SUCCESS );
 }
-#endif /* HAVE_CYRUS_SASL */
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-#ifdef HAVE_CYRUS_SASL
 	const char *c;
 	int rc, n;
 	SaslRegexp_t *reg;
@@ -212,9 +213,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	rc = dnNormalize2( NULL, &bv, &nbv );
 	if ( rc ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			   "slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
-			   match ));
+		LDAP_LOG( TRANSPORT, ERR, 
+			"slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
+			match, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"SASL match pattern %s could not be normalized.\n",
@@ -230,9 +231,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	if ( filter ) filter_free( filter );
 	if ( rc ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			   "slap_sasl_regexp_config: \"%s\" could not be parsed.\n",
-			   replace ));
+		LDAP_LOG( TRANSPORT, ERR, 
+			"slap_sasl_regexp_config: \"%s\" could not be parsed.\n",
+			replace, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"SASL replace pattern %s could not be parsed.\n",
@@ -245,9 +246,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			   "slap_sasl_regexp_config: \"%s\" could not be compiled.\n",
-			   reg->sr_match ));
+		LDAP_LOG( TRANSPORT, ERR, 
+			"slap_sasl_regexp_config: \"%s\" could not be compiled.\n",
+			reg->sr_match, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"SASL match pattern %s could not be compiled by regexp engine\n",
@@ -266,12 +267,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	}
 
 	nSaslRegexp++;
-#endif
 	return( LDAP_SUCCESS );
 }
 
-
-#ifdef HAVE_CYRUS_SASL
 
 /* Perform replacement on regexp matches */
 static void slap_sasl_rx_exp( char *rep, int *off, regmatch_t *str,
@@ -334,8 +332,8 @@ static int slap_sasl_regexp( struct berval *in, SaslUri_t *out )
 	memset( out, 0, sizeof( *out ) );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_regexp: converting SASL name %s\n", saslname ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl_regexp: converting SASL name %s\n", saslname, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_sasl_regexp: converting SASL name %s\n",
 	   saslname, 0, 0 );
@@ -369,10 +367,10 @@ static int slap_sasl_regexp( struct berval *in, SaslUri_t *out )
 	out->scope = reg->sr_replace.scope;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
 		out->dn.bv_val, scope[out->scope], out->filter.bv_val ?
-		out->filter.bv_val : "" ));
+		out->filter.bv_val : ""  );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
@@ -409,8 +407,8 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 		ndn->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-			"slap_sasl2dn: search DN returned more than 1 entry\n" ));
+	LDAP_LOG( TRANSPORT, DETAIL1,
+		    "slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_sasl2dn: search DN returned more than 1 entry\n", 0,0,0 );
@@ -441,8 +439,8 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 	SaslUri_t uri;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname->bv_val ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
 		"converting SASL name %s to a DN\n", saslname->bv_val, 0,0 );
@@ -472,9 +470,9 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		uri.dn.bv_val, uri.scope ));
+		uri.dn.bv_val, uri.scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
@@ -491,24 +489,24 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 	op.o_ndn = *saslname;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
+	op.o_do_not_cache = 1;
 
-	(*be->be_search)( be, NULL, &op, NULL, &uri.dn,
+	(*be->be_search)( be, conn, &op, NULL, &uri.dn,
 		uri.scope, LDAP_DEREF_NEVER, 1, 0,
 		filter, NULL, NULL, 1 );
 	
+FINISHED:
 	if( dn->bv_len ) {
 		conn->c_authz_backend = be;
 	}
-
-FINISHED:
 	if( uri.dn.bv_len ) ch_free( uri.dn.bv_val );
 	if( uri.filter.bv_len ) ch_free( uri.filter.bv_val );
 	if( filter ) filter_free( filter );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl2dn: Converted SASL name to %s\n",
-		dn->bv_len ? dn->bv_val : "<nothing>" ));
+		dn->bv_len ? dn->bv_val : "<nothing>", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
 		dn->bv_len ? dn->bv_val : "<nothing>", 0, 0 );
@@ -545,7 +543,7 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
  */
 
 static
-int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval *authc )
+int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assertDN, struct berval *authc )
 {
 	struct berval searchbase = {0, NULL};
 	int rc, scope;
@@ -557,8 +555,9 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule->bv_val ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl_match: comparing DN %s to rule %s\n", 
+		assertDN->bv_val, rule->bv_val,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule->bv_val, 0 );
@@ -586,9 +585,9 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	/* Must run an internal search. */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-		searchbase.bv_val, scope ));
+		searchbase.bv_val, scope,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
@@ -611,8 +610,9 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	op.o_ndn = *authc;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
+	op.o_do_not_cache = 1;
 
-	(*be->be_search)( be, /*conn=*/NULL, &op, /*base=*/NULL, &searchbase,
+	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
@@ -625,8 +625,8 @@ CONCLUDED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_match: comparison returned %d\n", rc ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl_match: comparison returned %d\n", rc, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "<===slap_sasl_match: comparison returned %d\n", rc, 0, 0);
@@ -645,15 +645,19 @@ CONCLUDED:
  * The DNs should not have the dn: prefix
  */
 static int
-slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, AttributeDescription *ad, struct berval *authc)
+slap_sasl_check_authz( Connection *conn,
+	struct berval *searchDN,
+	struct berval *assertDN,
+	AttributeDescription *ad,
+	struct berval *authc )
 {
 	int i, rc;
 	BerVarray vals=NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( TRANSPORT, ENTRY, 
 		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-		   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val ));
+	       assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
@@ -666,7 +670,7 @@ slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, Attribut
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( &vals[i], assertDN, authc );
+		rc = slap_sasl_match( conn, &vals[i], assertDN, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
@@ -676,8 +680,9 @@ COMPLETE:
 	if( vals ) ber_bvarray_free( vals );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_check_authz: %s check returning %s\n", ad->ad_cname.bv_val, rc ));
+	LDAP_LOG( TRANSPORT, RESULTS, 
+		   "slap_sasl_check_authz: %s check returning %s\n", 
+		   ad->ad_cname.bv_val, rc, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "<==slap_sasl_check_authz: %s check returning %d\n", ad->ad_cname.bv_val, rc, 0);
@@ -692,7 +697,8 @@ COMPLETE:
  * The DNs should not have the dn: prefix
  */
 
-int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
+int slap_sasl_authorized( Connection *conn,
+	struct berval *authcDN, struct berval *authzDN )
 {
 	int rc = LDAP_INAPPROPRIATE_AUTH;
 
@@ -704,8 +710,9 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_authorized: can %s become %s?\n", authcDN->bv_val, authzDN->bv_val ));
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl_authorized: can %s become %s?\n", 
+		authcDN->bv_val, authzDN->bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN->bv_val, authzDN->bv_val, 0 );
@@ -719,7 +726,7 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 
 	/* Check source rules */
 	if( authz_policy & SASL_AUTHZ_TO ) {
-		rc = slap_sasl_check_authz( authcDN, authzDN,
+		rc = slap_sasl_check_authz( conn, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;
@@ -728,7 +735,7 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 
 	/* Check destination rules */
 	if( authz_policy & SASL_AUTHZ_FROM ) {
-		rc = slap_sasl_check_authz( authzDN, authcDN,
+		rc = slap_sasl_check_authz( conn, authzDN, authcDN,
 			slap_schema.si_ad_saslAuthzFrom, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;
@@ -741,8 +748,7 @@ DONE:
 #endif
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_authorized: return %d\n", rc ));
+	LDAP_LOG( TRANSPORT, RESULTS, "slap_sasl_authorized: return %d\n", rc,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"<== slap_sasl_authorized: return %d\n", rc, 0, 0 );

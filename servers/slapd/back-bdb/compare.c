@@ -88,7 +88,8 @@ dn2entry_retry:
 			conn, op, e );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "compare", LDAP_LEVEL_DETAIL1,"bdb_compare: entry is referral\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_compare: entry is referral\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );

@@ -16,7 +16,6 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
-
 struct sindexrec {
 	char		*sir_name;
 	Syntax		*sir_syn;
@@ -164,9 +163,9 @@ register_syntax(
 	syn = ldap_str2syntax( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
-			   "register_syntax: Error - %s before %s in %s.\n",
-			   ldap_scherr2str(code), err, desc ));
+		LDAP_LOG( CONFIG, ERR, 
+			"register_syntax: Error - %s before %s in %s.\n",
+			ldap_scherr2str(code), err, desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
@@ -181,9 +180,9 @@ register_syntax(
 
 	if ( code ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
-			   "register_syntax: Error - %s %s in %s\n",
-			   scherr2str(code), err, desc ));
+		LDAP_LOG( CONFIG, ERR, 
+			"register_syntax: Error - %s %s in %s\n", 
+			scherr2str(code), err, desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
@@ -222,9 +221,9 @@ syn_schema_info( Entry *e )
 		}
 #if 0
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		LDAP_LOG( config, ENTRY,
 			   "syn_schema_info: Merging syn [%ld] %s\n",
-			   (long)vals[0].bv_len, vals[0].bv_val ));
+			   (long)vals[0].bv_len, vals[0].bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
 	       (long) vals[0].bv_len, vals[0].bv_val, 0 );

@@ -48,8 +48,7 @@ do_bind(
 	Backend *be;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_bind: conn %d\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
 #endif
@@ -58,7 +57,9 @@ do_bind(
 	 * Force to connection to "anonymous" until bind succeeds.
 	 */
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	if ( conn->c_sasl_bind_in_progress ) be = conn->c_authz_backend;
 	connection2anonymous( conn );
+	if ( conn->c_sasl_bind_in_progress ) conn->c_authz_backend = be;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if ( op->o_dn.bv_val != NULL ) {
@@ -97,8 +98,8 @@ do_bind(
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_bind: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_bind: conn %d  ber_scanf failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -144,8 +145,8 @@ do_bind(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_bind: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, INFO, 
+			"do_bind: conn %d  get_ctrls failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -155,9 +156,9 @@ do_bind(
 	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_bind: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
+		LDAP_LOG( OPERATION, INFO, 
+			"do_bind: conn %d  invalid dn (%s)\n", 
+			conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n",
 			dn.bv_val, 0, 0 );
@@ -169,9 +170,9 @@ do_bind(
 
 	if( method == LDAP_AUTH_SASL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation",	 LDAP_LEVEL_DETAIL1,
-			"do_sasl_bind: conn %d  dn (%s) mech %s\n", conn->c_connid,
-			pdn.bv_val, mech.bv_val ));
+		LDAP_LOG( OPERATION,	 DETAIL1, 
+			"do_sasl_bind: conn %d  dn (%s) mech %s\n", 
+			conn->c_connid, pdn.bv_val, mech.bv_val );
 #else
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
 			pdn.bv_val, mech.bv_val, NULL );
@@ -179,10 +180,9 @@ do_bind(
 
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			"do_bind: conn %d  version=%ld dn=\"%s\" method=%ld\n",
-			conn->c_connid, (unsigned long) version,
-			pdn.bv_val, (unsigned long)method ));
+		LDAP_LOG( OPERATION, DETAIL1, 
+			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
+			(unsigned long) version, pdn.bv_val, (unsigned long)method );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
@@ -196,9 +196,9 @@ do_bind(
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			"do_bind: conn %d  unknown version = %ld\n",
-			conn->c_connid, (unsigned long)version ));
+			conn->c_connid, (unsigned long)version, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
 			(unsigned long) version, 0, 0 );
@@ -236,9 +236,9 @@ do_bind(
 
 		if ( version < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			LDAP_LOG( OPERATION, INFO, 
 				"do_bind: conn %d  sasl with LDAPv%ld\n",
-				conn->c_connid, (unsigned long)version ));
+				conn->c_connid, (unsigned long)version , 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
 				(unsigned long) version, 0, 0 );
@@ -251,9 +251,9 @@ do_bind(
 
 		if( mech.bv_len == 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			LDAP_LOG( OPERATION, INFO, 
 				   "do_bind: conn %d  no SASL mechanism provided\n",
-				   conn->c_connid ));
+				   conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
@@ -378,9 +378,9 @@ do_bind(
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( OPERATION, DETAIL1, 
 				   "do_bind: conn %d  v%d anonymous bind\n",
-				   conn->c_connid, version ));
+				   conn->c_connid, version , 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
 				version, 0, 0 );
@@ -395,9 +395,9 @@ do_bind(
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			LDAP_LOG( OPERATION, INFO, 
 				   "do_bind: conn %d  v%d simple bind(%s) disallowed\n",
-				   conn->c_connid, version, ndn.bv_val ));
+				   conn->c_connid, version, ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d simple bind(%s) disallowed\n",
@@ -416,9 +416,9 @@ do_bind(
 				NULL, text, NULL, NULL );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: conn %d  "
+			LDAP_LOG( OPERATION, INFO, "do_bind: conn %d  "
 				"v%d unprotected simple bind(%s) disallowed\n",
-				conn->c_connid, version, ndn.bv_val ));
+				conn->c_connid, version, ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d unprotected simple bind(%s) disallowed\n",
@@ -437,9 +437,9 @@ do_bind(
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( OPERATION, DETAIL1, 
 				   "do_bind: conn %d  v%d Kerberos V4 bind\n",
-				   conn->c_connid, version ));
+				   conn->c_connid, version , 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d Kerberos V4 bind\n",
 				version, 0, 0 );
@@ -455,9 +455,9 @@ do_bind(
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		LDAP_LOG( OPERATION, INFO, 
 			   "do_bind: conn %ld  v%d unknown authentication method (%ld)\n",
-			   conn->c_connid, version, method ));
+			   conn->c_connid, version, method );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d unknown authentication method (%ld)\n",
@@ -534,9 +534,9 @@ do_bind(
 			}
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-				"do_bind: conn %d  v%d bind: \"%s\" to \"%s\" \n",
-				conn->c_connid, version, dn.bv_val, conn->c_dn.bv_val ));
+			LDAP_LOG( OPERATION, DETAIL1, 
+				"do_bind: v%d bind: \"%s\" to \"%s\" \n",
+				version, conn->c_dn.bv_val, conn->c_dn.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",

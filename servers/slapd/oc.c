@@ -25,8 +25,14 @@ int is_object_subclass(
 	if( sub == NULL || sup == NULL ) return 0;
 
 #if 1
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ARGS, 
+		"is_object_subclass(%s,%s) %d\n",
+		sup->soc_oid, sub->soc_oid, sup == sub );
+#else
 	Debug( LDAP_DEBUG_TRACE, "is_object_subclass(%s,%s) %d\n",
 		sup->soc_oid, sub->soc_oid, sup == sub );
+#endif
 #endif
 
 	if( sup == sub ) {
@@ -72,10 +78,10 @@ int is_entry_objectclass(
 	if( attr == NULL ) {
 		/* no objectClass attribute */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR, "is_entry_objectclass: "
-			"dn(%s), oid (%s), no objectClass attribute.\n",
-			e->e_dn == NULL ? "" : e->e_dn,
-			oc->soc_oclass.oc_oid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"is_entry_objectclass: dn(%s), oid (%s), no objectClass "
+			"attribute.\n", e->e_dn == NULL ? "" : e->e_dn,
+			oc->soc_oclass.oc_oid, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
 			"no objectClass attribute\n",
