@@ -646,7 +646,7 @@ list of attribute names in the <what> selector:
 
 >	attrs=<attribute list>
 
-There are two special {{psuedo}} attributes {{EX:entry}} and
+There are two special {{pseudo}} attributes {{EX:entry}} and
 {{EX:children}}.  To read (and hence return) an target entry, the
 subject must have {{EX:read}} access to the target's {{entry}}
 attribute.  To add or delete an entry, the subject must have
