@@ -29,6 +29,8 @@ LDAP_BEGIN_DECL
 #define SUB_PREFIX	'*'	/* prefix for substring keys    */
 #define CONT_PREFIX	'\\'	/* prefix for continuation keys */
 
+#define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
+
 #define DEFAULT_BLOCKSIZE	8192
 
 /*

@@ -127,7 +127,7 @@ index_read(
 
 	realval = val;
 	tmpval = NULL;
-	if ( prefix != '\0' ) {
+	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int	len = strlen( val );
 
               if ( (len + 2) < sizeof(buf) ) {
@@ -183,7 +183,7 @@ add_value(
 	realval = val;
 	tmpval = NULL;
 	idl = NULL;
-	if ( prefix != '\0' ) {
+	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int     len = strlen( val );
 
               if ( (len + 2) < sizeof(buf) ) {
@@ -357,7 +357,7 @@ index2prefix( int indextype )
 		prefix = SUB_PREFIX;
 		break;
 	default:
-		prefix = '\0';
+		prefix = UNKNOWN_PREFIX;
 		break;
 	}
 

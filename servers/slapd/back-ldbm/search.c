@@ -87,7 +87,7 @@ ldbm_back_search(
 
 	(void) dn_normalize (realBase);
 
-	Debug( LDAP_DEBUG_TRACE, "using base %s\n",
+	Debug( LDAP_DEBUG_TRACE, "using base \"%s\"\n",
 		realBase, 0, 0 );
 
 	switch ( scope ) {
@@ -323,7 +323,7 @@ base_candidates(
 	IDList		*idl;
 	Entry		*e;
 
-	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: %s\n", base, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: \"%s\"\n", base, 0, 0);
 
 	*err = LDAP_SUCCESS;
 
@@ -364,7 +364,7 @@ onelevel_candidates(
 	char		buf[20];
 	IDList		*candidates;
 
-	Debug(LDAP_DEBUG_TRACE, "onelevel_candidates: base: %s\n", base, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "onelevel_candidates: base: \"%s\"\n", base, 0, 0);
 
 	*err = LDAP_SUCCESS;
 	e = NULL;
@@ -425,8 +425,8 @@ subtree_candidates(
 	Filter		*f, **filterarg_ptr;
 	IDList		*candidates;
 
-	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: %s\n",
-		base ? base : "NULL", 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" %s\n",
+		base ? base : "NULL", lookupbase ? "lookupbase" : "", 0);
 
 	/*
 	 * get the base object - unless we already have it (from one-level).
