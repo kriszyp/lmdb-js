@@ -614,7 +614,7 @@ acl_mask(
 				b->a_sockurl_pat, 0, 0 );
 #endif
 
-			if ( strcmp( b->a_sockurl_pat, "*" ) != 0) {
+			if ( ber_strccmp( b->a_sockurl_pat, '*' ) != 0) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
 							e->e_ndn, matches ) ) 
@@ -637,7 +637,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
 				b->a_domain_pat, 0, 0 );
 #endif
-			if ( strcmp( b->a_domain_pat, "*" ) != 0) {
+			if ( ber_strccmp( b->a_domain_pat, '*' ) != 0) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( b->a_domain_pat, conn->c_peer_domain,
 							e->e_ndn, matches ) ) 
@@ -660,7 +660,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
 				b->a_peername_pat, 0, 0 );
 #endif
-			if ( strcmp( b->a_peername_pat, "*" ) != 0) {
+			if ( ber_strccmp( b->a_peername_pat, '*' ) != 0) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( b->a_peername_pat, conn->c_peer_name,
 							e->e_ndn, matches ) ) 
@@ -683,7 +683,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
 				b->a_sockname_pat, 0, 0 );
 #endif
-			if ( strcmp( b->a_sockname_pat, "*" ) != 0) {
+			if ( ber_strccmp( b->a_sockname_pat, '*' ) != 0) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( b->a_sockname_pat, conn->c_sock_name,
 							e->e_ndn, matches ) ) 

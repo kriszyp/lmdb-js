@@ -78,7 +78,10 @@ ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 			? 1 : strncasecmp((v1)->bv_val, (v2)->bv_val, (v1)->bv_len) ))
 
 #define ber_bvccmp(v1,c) \
-	( (v1)->bv_len == 1 && (v1)->bv_val[0] == c )
+	( (v1)->bv_len == 1 && (v1)->bv_val[0] == (c) )
+
+#define ber_strccmp(s,c) \
+	((s)[1] == '\0' && (s)[0] == (c) )
 
 LDAP_END_DECL
 
