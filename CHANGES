@@ -23,7 +23,7 @@ OpenLDAP 2.1.6 Release
 		Fixed misc. portability bugs
 		Updated DB_THREAD detection (ITS#2127)
 		Updated pthreads detection 
-		Updated shtool
+		Updated shtool to latest
 		Updated test suite
 	Documentation
 		Misc. updates (ITS#2093) (ITS#2105) (ITS#2106)
