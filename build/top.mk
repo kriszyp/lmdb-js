@@ -49,7 +49,14 @@ BASENAME = basename
 PWD = pwd
 CAT = cat
 MKDIR = mkdir
+CHMOD = chmod
 
+# Misc UNIX commands used in programs
+EDITOR = @EDITOR@
+FINGER = @FINGER@
+SENDMAIL = @SENDMAIL@
+
+# Version
 VERSIONFILE = $(top_srcdir)/build/version
 
 INCLUDEDIR = -I$(top_srcdir)/include $(XINCLUDEDIR)
