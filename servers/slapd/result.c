@@ -447,10 +447,15 @@ send_ldap_response(
 	}
 #endif /* LDAP_SLAPI */
 
-	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
-	num_bytes_sent += bytes;
-	num_pdu_sent++;
-	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+#ifdef HAVE_GMP
+	mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
+	mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
+#else /* ! HAVE_GMP */
+	slap_counters.sc_bytes += bytes;
+	slap_counters.sc_pdu++;
+#endif /* ! HAVE_GMP */
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 
 cleanup:;
 	/* Tell caller that we did this for real, as opposed to being
@@ -1175,11 +1180,17 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 		rs->sr_nentries++;
 
-		ldap_pvt_thread_mutex_lock( &num_sent_mutex );
-		num_bytes_sent += bytes;
-		num_entries_sent++;
-		num_pdu_sent++;
-		ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+#ifdef HAVE_GMP
+		mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
+		mpz_add_ui( slap_counters.sc_entries, slap_counters.sc_entries, 1 );
+		mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
+#else /* ! HAVE_GMP */
+		slap_counters.sc_bytes += bytes;
+		slap_counters.sc_entries++;
+		slap_counters.sc_pdu++;
+#endif /* ! HAVE_GMP */
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "conn=%lu op=%lu ENTRY dn=\"%s\"\n",
@@ -1364,11 +1375,17 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	bytes = send_ldap_ber( op->o_conn, ber );
 	ber_free_buf( ber );
 
-	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
-	num_bytes_sent += bytes;
-	num_refs_sent++;
-	num_pdu_sent++;
-	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+#ifdef HAVE_GMP
+	mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
+	mpz_add_ui( slap_counters.sc_refs, slap_counters.sc_refs, 1 );
+	mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
+#else /* ! HAVE_GMP */
+	slap_counters.sc_bytes += bytes;
+	slap_counters.sc_refs++;
+	slap_counters.sc_pdu++;
+#endif /* ! HAVE_GMP */
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif

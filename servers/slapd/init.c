@@ -72,19 +72,8 @@ ldap_pvt_thread_mutex_t	gmtime_mutex;
 ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
 
-unsigned long			num_ops_initiated = 0;
-unsigned long			num_ops_completed = 0;
-#ifdef SLAPD_MONITOR
-unsigned long			num_ops_initiated_[SLAP_OP_LAST];
-unsigned long			num_ops_completed_[SLAP_OP_LAST];
-#endif /* SLAPD_MONITOR */
-ldap_pvt_thread_mutex_t	num_ops_mutex;
+slap_counters_t			slap_counters;
 
-unsigned long			num_entries_sent;
-unsigned long			num_refs_sent;
-unsigned long			num_bytes_sent;
-unsigned long			num_pdu_sent;
-ldap_pvt_thread_mutex_t	num_sent_mutex;
 /*
  * these mutexes must be used when calling the entry2str()
  * routine since it returns a pointer to static data.
@@ -99,10 +88,11 @@ int
 slap_init( int mode, const char *name )
 {
 	int rc;
+	int i;
 
 	assert( mode );
 
-	if( slapMode != SLAP_UNDEFINED_MODE ) {
+	if ( slapMode != SLAP_UNDEFINED_MODE ) {
 		Debug( LDAP_DEBUG_ANY,
 		 "%s init: init called twice (old=%d, new=%d)\n",
 		 name, slapMode, mode );
@@ -113,57 +103,78 @@ slap_init( int mode, const char *name )
 	slapMode = mode;
 
 	switch ( slapMode & SLAP_MODE ) {
-		case SLAP_SERVER_MODE:
-		case SLAP_TOOL_MODE:
-			Debug( LDAP_DEBUG_TRACE,
-				"%s init: initiated %s.\n",	name,
-				(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
-				0 );
+	case SLAP_SERVER_MODE:
+	case SLAP_TOOL_MODE:
+		Debug( LDAP_DEBUG_TRACE,
+			"%s init: initiated %s.\n",	name,
+			(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
+			0 );
 
 
-			slap_name = name;
-	
-			(void) ldap_pvt_thread_initialize();
+		slap_name = name;
 
-			ldap_pvt_thread_pool_init( &connection_pool,
+		(void) ldap_pvt_thread_initialize();
+
+		ldap_pvt_thread_pool_init( &connection_pool,
 				connection_pool_max, 0);
 
-			ldap_pvt_thread_mutex_init( &entry2str_mutex );
-			ldap_pvt_thread_mutex_init( &replog_mutex );
-			ldap_pvt_thread_mutex_init( &num_ops_mutex );
-			ldap_pvt_thread_mutex_init( &num_sent_mutex );
+		ldap_pvt_thread_mutex_init( &entry2str_mutex );
+		ldap_pvt_thread_mutex_init( &replog_mutex );
+
+		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );
+		ldap_pvt_thread_mutex_init( &slap_counters.sc_ops_mutex );
+#ifdef HAVE_GMP
+		mpz_init( slap_counters.sc_bytes );
+		mpz_init( slap_counters.sc_pdu );
+		mpz_init( slap_counters.sc_entries );
+		mpz_init( slap_counters.sc_refs );
+
+		mpz_init( slap_counters.sc_ops_completed );
+		mpz_init( slap_counters.sc_ops_initiated );
 
 #ifdef SLAPD_MONITOR
-			{
-				int i;
-				for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-					num_ops_initiated_[ i ] = 0;
-					num_ops_completed_[ i ] = 0;
-				}
-			}
-#endif
+		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+			mpz_init( slap_counters.sc_ops_initiated_[ i ] );
+			mpz_init( slap_counters.sc_ops_completed_[ i ] );
+		}
+#endif /* SLAPD_MONITOR */
+#else /* ! HAVE_GMP */
+		slap_counters.sc_bytes = 0;
+		slap_counters.sc_pdu = 0;
+		slap_counters.sc_entries = 0;
+		slap_counters.sc_refs = 0;
+
+		slap_counters.sc_ops_completed = 0;
+		slap_counters.sc_ops_initiated = 0;
+#ifdef SLAPD_MONITOR
+		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+			slap_counters.sc_ops_initiated_[ i ] = 0;
+			slap_counters.sc_ops_completed_[ i ] = 0;
+		}
+#endif /* SLAPD_MONITOR */
+#endif /* ! HAVE_GMP */
 
 #ifndef HAVE_GMTIME_R
-			ldap_pvt_thread_mutex_init( &gmtime_mutex );
+		ldap_pvt_thread_mutex_init( &gmtime_mutex );
 #endif
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-			ldap_pvt_thread_mutex_init( &passwd_mutex );
+		ldap_pvt_thread_mutex_init( &passwd_mutex );
 #endif
 
-			rc = slap_sasl_init();
+		rc = slap_sasl_init();
 
-			if( rc == 0 ) {
-				rc = backend_init( );
-			}
+		if( rc == 0 ) {
+			rc = backend_init( );
+		}
 
-			break;
+		break;
 
-		default:
-			Debug( LDAP_DEBUG_ANY,
-				"%s init: undefined mode (%d).\n", name, mode, 0 );
+	default:
+		Debug( LDAP_DEBUG_ANY,
+			"%s init: undefined mode (%d).\n", name, mode, 0 );
 
-			rc = 1;
-			break;
+		rc = 1;
+		break;
 	}
 
 	return rc;
@@ -220,6 +231,7 @@ int slap_shutdown( Backend *be )
 int slap_destroy(void)
 {
 	int rc;
+	int i;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"%s destroy: freeing system resources.\n",
@@ -231,6 +243,38 @@ int slap_destroy(void)
 	slap_sasl_destroy();
 
 	entry_destroy();
+
+	switch ( slapMode & SLAP_MODE ) {
+	case SLAP_SERVER_MODE:
+	case SLAP_TOOL_MODE:
+
+		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );
+		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_ops_mutex );
+#ifdef HAVE_GMP
+		mpz_clear( slap_counters.sc_bytes );
+		mpz_clear( slap_counters.sc_pdu );
+		mpz_clear( slap_counters.sc_entries );
+		mpz_clear( slap_counters.sc_refs );
+		mpz_clear( slap_counters.sc_ops_completed );
+		mpz_clear( slap_counters.sc_ops_initiated );
+
+#ifdef SLAPD_MONITOR
+		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+			mpz_clear( slap_counters.sc_ops_initiated_[ i ] );
+			mpz_clear( slap_counters.sc_ops_completed_[ i ] );
+		}
+#endif /* SLAPD_MONITOR */
+#endif /* HAVE_GMP */
+		break;
+
+	default:
+		Debug( LDAP_DEBUG_ANY,
+			"slap_destroy(): undefined mode (%d).\n", slapMode, 0, 0 );
+
+		rc = 1;
+		break;
+
+	}
 
 	ldap_pvt_thread_destroy();
 

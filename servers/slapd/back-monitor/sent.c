@@ -40,10 +40,10 @@ struct monitor_sent_t {
 	struct berval	rdn;
 	struct berval	nrdn;
 } monitor_sent[] = {
+	{ BER_BVC("cn=Bytes"),		BER_BVC("cn=bytes")		},
+	{ BER_BVC("cn=PDU"),		BER_BVC("cn=pdu")		},
 	{ BER_BVC("cn=Entries"),	BER_BVC("cn=entries")		},
 	{ BER_BVC("cn=Referrals"),	BER_BVC("cn=referrals")		},
-	{ BER_BVC("cn=PDU"),		BER_BVC("cn=pdu")		},
-	{ BER_BVC("cn=Bytes"),		BER_BVC("cn=bytes")		},
 	{ BER_BVNULL,			BER_BVNULL			}
 };
 
@@ -150,9 +150,15 @@ monitor_subsys_sent_update(
 		(struct monitorinfo *)op->o_bd->be_private;
 	
 	struct berval		rdn;
+#ifdef HAVE_GMP
+	mpz_t			n;
+#else /* ! HAVE_GMP */
 	unsigned long 		n;
+#endif /* ! HAVE_GMP */
 	Attribute		*a;
+#ifndef HAVE_GMP
 	char			buf[] = "+9223372036854775807L";
+#endif /* ! HAVE_GMP */
 	int			i;
 
 	assert( mi );
@@ -170,37 +176,68 @@ monitor_subsys_sent_update(
 		return 0;
 	}
 
-	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
+	ldap_pvt_thread_mutex_lock(&slap_counters.sc_sent_mutex);
 	switch ( i ) {
 	case MONITOR_SENT_ENTRIES:
-		n = num_entries_sent;
+#ifdef HAVE_GMP
+		mpz_init_set( n, slap_counters.sc_entries );
+#else /* ! HAVE_GMP */
+		n = slap_counters.sc_entries;
+#endif /* ! HAVE_GMP */
 		break;
 
 	case MONITOR_SENT_REFERRALS:
-		n = num_refs_sent;
+#ifdef HAVE_GMP
+		mpz_init_set( n, slap_counters.sc_refs );
+#else /* ! HAVE_GMP */
+		n = slap_counters.sc_refs;
+#endif /* ! HAVE_GMP */
 		break;
 
 	case MONITOR_SENT_PDU:
-		n = num_pdu_sent;
+#ifdef HAVE_GMP
+		mpz_init_set( n, slap_counters.sc_pdu );
+#else /* ! HAVE_GMP */
+		n = slap_counters.sc_pdu;
+#endif /* ! HAVE_GMP */
 		break;
 
 	case MONITOR_SENT_BYTES:
-		n = num_bytes_sent;
+#ifdef HAVE_GMP
+		mpz_init_set( n, slap_counters.sc_bytes );
+#else /* ! HAVE_GMP */
+		n = slap_counters.sc_bytes;
+#endif /* ! HAVE_GMP */
 		break;
 
 	default:
 		assert(0);
 	}
-	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
+	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_sent_mutex);
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 	if ( a == NULL ) {
 		return -1;
 	}
 
-	snprintf( buf, sizeof( buf ), "%lu", n );
 	free( a->a_vals[ 0 ].bv_val );
+#ifdef HAVE_GMP
+	/* NOTE: there should be no minus sign allowed in the counters... */
+	a->a_vals[ 0 ].bv_len = mpz_sizeinbase( n, 10 );
+	a->a_vals[ 0 ].bv_val = ber_memalloc( a->a_vals[ 0 ].bv_len + 1 );
+	(void)mpz_get_str( a->a_vals[ 0 ].bv_val, 10, n );
+	mpz_clear( n );
+	/* NOTE: according to the documentation, the result 
+	 * of mpz_sizeinbase() can exceed the length of the
+	 * string representation of the number by 1
+	 */
+	if ( a->a_vals[ 0 ].bv_val[ a->a_vals[ 0 ].bv_len - 1 ] == '\0' ) {
+		a->a_vals[ 0 ].bv_len--;
+	}
+#else /* ! HAVE_GMP */
+	snprintf( buf, sizeof( buf ), "%lu", n );
 	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
+#endif /* ! HAVE_GMP */
 
 	return 0;
 }

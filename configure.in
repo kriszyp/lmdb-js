@@ -553,6 +553,7 @@ LIBSLAPITOOLS=
 AUTH_LIBS=
 
 SLAPD_SLP_LIBS=
+SLAPD_GMP_LIBS=
 
 dnl ================================================================
 dnl Checks for programs
@@ -2229,6 +2230,18 @@ if test $ol_enable_slp != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl Check for GMP API Library
+AC_CHECK_HEADERS( gmp.h )
+
+if test $ac_cv_header_gmp_h = yes ; then
+	AC_CHECK_LIB(gmp, __gmpz_add_ui, [have_gmp=yes], [have_gmp=no])
+	if test $have_gmp = yes ; then
+		AC_DEFINE(HAVE_GMP, 1, [define if you have -lgmp])
+		SLAPD_GMP_LIBS=-lgmp
+	fi
+fi
+
+dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for long long
@@ -2843,6 +2856,7 @@ AC_SUBST(LIBSLAPITOOLS)
 AC_SUBST(AUTH_LIBS)
 
 AC_SUBST(SLAPD_SLP_LIBS)
+AC_SUBST(SLAPD_GMP_LIBS)
 
 AC_SUBST(SLAPD_SQL_LDFLAGS)
 AC_SUBST(SLAPD_SQL_LIBS)

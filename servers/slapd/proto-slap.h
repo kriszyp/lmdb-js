@@ -641,6 +641,11 @@ LDAP_SLAPD_F (int) filter_escape_value LDAP_P(( struct berval *in,
 LDAP_SLAPD_F (int) test_filter LDAP_P(( Operation *op, Entry *e, Filter *f ));
 
 /*
+ * frontend.c
+ */
+LDAP_SLAPD_F (int) frontend_init LDAP_P(( void ));
+
+/*
  * globals.c
  */
 
@@ -1317,19 +1322,7 @@ LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
 LDAP_SLAPD_V (struct berval)	default_search_nbase;
 
-LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
-LDAP_SLAPD_V (unsigned long)		num_bytes_sent;
-LDAP_SLAPD_V (unsigned long)		num_pdu_sent;
-LDAP_SLAPD_V (unsigned long)		num_entries_sent;
-LDAP_SLAPD_V (unsigned long)		num_refs_sent;
-
-LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_ops_mutex;
-LDAP_SLAPD_V (unsigned long)		num_ops_completed;
-LDAP_SLAPD_V (unsigned long)		num_ops_initiated;
-#ifdef SLAPD_MONITOR
-LDAP_SLAPD_V (unsigned long)		num_ops_completed_[SLAP_OP_LAST];
-LDAP_SLAPD_V (unsigned long)		num_ops_initiated_[SLAP_OP_LAST];
-#endif /* SLAPD_MONITOR */
+LDAP_SLAPD_V (slap_counters_t)	slap_counters;
 
 LDAP_SLAPD_V (char *)		slapd_pid_file;
 LDAP_SLAPD_V (char *)		slapd_args_file;

@@ -865,14 +865,41 @@ void connection_done( Connection *c )
  */
 
 #ifdef SLAPD_MONITOR
-#define INCR_OP(var,index) \
+#ifdef HAVE_GMP
+#define INCR_OP_INITIATED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &num_ops_mutex ); \
-		(var)[(index)]++; \
-		ldap_pvt_thread_mutex_unlock( &num_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
+		mpz_add_ui(slap_counters.sc_ops_initiated_[(index)], \
+				slap_counters.sc_ops_initiated_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
 	} while (0)
+#define INCR_OP_COMPLETED(index) \
+	do { \
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
+		mpz_add_ui(slap_counters.sc_ops_completed, \
+				slap_counters.sc_ops_completed, 1); \
+		mpz_add_ui(slap_counters.sc_ops_completed_[(index)], \
+				slap_counters.sc_ops_completed_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+	} while (0)
+#else /* ! HAVE_GMP */
+#define INCR_OP_INITIATED(index) \
+	do { \
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
+		slap_counters.sc_ops_initiated_[(index)]++; \
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+	} while (0)
+#define INCR_OP_COMPLETED(index) \
+	do { \
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
+		slap_counters.sc_ops_completed++; \
+		slap_counters.sc_ops_completed_[(index)]++; \
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+	} while (0)
+#endif /* ! HAVE_GMP */
 #else /* !SLAPD_MONITOR */
-#define INCR_OP(var,index) 
+#define INCR_OP_INITIATED(index) 
+#define INCR_OP_COMPLETED(index) 
 #endif /* !SLAPD_MONITOR */
 
 static void *
@@ -890,9 +917,13 @@ connection_operation( void *ctx, void *arg_v )
 	void *memctx_null = NULL;
 	ber_len_t memsiz;
 
-	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
-	num_ops_initiated++;
-	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
+#ifdef HAVE_GMP
+	mpz_add_ui(slap_counters.sc_ops_initiated, slap_counters.sc_ops_initiated, 1);
+#else /* ! HAVE_GMP */
+	slap_counters.sc_ops_initiated++;
+#endif /* ! HAVE_GMP */
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	op->o_threadctx = ctx;
 
@@ -952,52 +983,52 @@ connection_operation( void *ctx, void *arg_v )
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
-		INCR_OP(num_ops_initiated_, SLAP_OP_BIND);
+		INCR_OP_INITIATED(SLAP_OP_BIND);
 		rc = do_bind( op, &rs );
 		break;
 
 	case LDAP_REQ_UNBIND:
-		INCR_OP(num_ops_initiated_, SLAP_OP_UNBIND);
+		INCR_OP_INITIATED(SLAP_OP_UNBIND);
 		rc = do_unbind( op, &rs );
 		break;
 
 	case LDAP_REQ_ADD:
-		INCR_OP(num_ops_initiated_, SLAP_OP_ADD);
+		INCR_OP_INITIATED(SLAP_OP_ADD);
 		rc = do_add( op, &rs );
 		break;
 
 	case LDAP_REQ_DELETE:
-		INCR_OP(num_ops_initiated_, SLAP_OP_DELETE);
+		INCR_OP_INITIATED(SLAP_OP_DELETE);
 		rc = do_delete( op, &rs );
 		break;
 
 	case LDAP_REQ_MODRDN:
-		INCR_OP(num_ops_initiated_, SLAP_OP_MODRDN);
+		INCR_OP_INITIATED(SLAP_OP_MODRDN);
 		rc = do_modrdn( op, &rs );
 		break;
 
 	case LDAP_REQ_MODIFY:
-		INCR_OP(num_ops_initiated_, SLAP_OP_MODIFY);
+		INCR_OP_INITIATED(SLAP_OP_MODIFY);
 		rc = do_modify( op, &rs );
 		break;
 
 	case LDAP_REQ_COMPARE:
-		INCR_OP(num_ops_initiated_, SLAP_OP_COMPARE);
+		INCR_OP_INITIATED(SLAP_OP_COMPARE);
 		rc = do_compare( op, &rs );
 		break;
 
 	case LDAP_REQ_SEARCH:
-		INCR_OP(num_ops_initiated_, SLAP_OP_SEARCH);
+		INCR_OP_INITIATED(SLAP_OP_SEARCH);
 		rc = do_search( op, &rs );
 		break;
 
 	case LDAP_REQ_ABANDON:
-		INCR_OP(num_ops_initiated_, SLAP_OP_ABANDON);
+		INCR_OP_INITIATED(SLAP_OP_ABANDON);
 		rc = do_abandon( op, &rs );
 		break;
 
 	case LDAP_REQ_EXTENDED:
-		INCR_OP(num_ops_initiated_, SLAP_OP_EXTENDED);
+		INCR_OP_INITIATED(SLAP_OP_EXTENDED);
 		rc = do_extended( op, &rs );
 		break;
 
@@ -1009,47 +1040,44 @@ connection_operation( void *ctx, void *arg_v )
 operations_error:
 	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
-	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
-
-	num_ops_completed++;
 #ifdef SLAPD_MONITOR
 	switch (oldtag) {
 	case LDAP_REQ_BIND:
-		num_ops_completed_[SLAP_OP_BIND]++;
+		INCR_OP_COMPLETED(SLAP_OP_BIND);
 		break;
 	case LDAP_REQ_UNBIND:
-		num_ops_completed_[SLAP_OP_UNBIND]++;
+		INCR_OP_COMPLETED(SLAP_OP_UNBIND);
 		break;
 	case LDAP_REQ_ADD:
-		num_ops_completed_[SLAP_OP_ADD]++;
+		INCR_OP_COMPLETED(SLAP_OP_ADD);
 		break;
 	case LDAP_REQ_DELETE:
-		num_ops_completed_[SLAP_OP_DELETE]++;
+		INCR_OP_COMPLETED(SLAP_OP_DELETE);
 		break;
 	case LDAP_REQ_MODRDN:
-		num_ops_completed_[SLAP_OP_MODRDN]++;
+		INCR_OP_COMPLETED(SLAP_OP_MODRDN);
 		break;
 	case LDAP_REQ_MODIFY:
-		num_ops_completed_[SLAP_OP_MODIFY]++;
+		INCR_OP_COMPLETED(SLAP_OP_MODIFY);
 		break;
 	case LDAP_REQ_COMPARE:
-		num_ops_completed_[SLAP_OP_COMPARE]++;
+		INCR_OP_COMPLETED(SLAP_OP_COMPARE);
 		break;
 	case LDAP_REQ_SEARCH:
-		num_ops_completed_[SLAP_OP_SEARCH]++;
+		INCR_OP_COMPLETED(SLAP_OP_SEARCH);
 		break;
 	case LDAP_REQ_ABANDON:
-		num_ops_completed_[SLAP_OP_ABANDON]++;
+		INCR_OP_COMPLETED(SLAP_OP_ABANDON);
 		break;
 	case LDAP_REQ_EXTENDED:
-		num_ops_completed_[SLAP_OP_EXTENDED]++;
+		INCR_OP_COMPLETED(SLAP_OP_EXTENDED);
 		break;
 	default:
 		/* not reachable */
 		assert( 0 );
 	}
 #endif /* SLAPD_MONITOR */
-	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
 		op->o_cancel = LDAP_TOO_LATE;
