@@ -388,7 +388,7 @@ int slap_sasl_bind(
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = conn->c_sasl_context;
 	struct berval response;
-	unsigned reslen;
+	unsigned reslen = 0;
 	const char *errstr;
 	int sc;
 
@@ -405,7 +405,7 @@ int slap_sasl_bind(
 	if ( mech != NULL ) {
 		sc = sasl_server_start( ctx,
 			mech,
-			cred->bv_val, cred->bv_len,
+			cred->bv_len ? cred->bv_val : "", cred->bv_len,
 			(char **)&response.bv_val, &reslen, &errstr );
 
 	} else {
