@@ -443,17 +443,30 @@ dnPretty(
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
 		char		*dn_out = NULL;
-		unsigned	flags = LDAP_DN_FORMAT_LDAPV3;
 		int		rc;
 
-		rc = ldap_str2dn( val->bv_val, &dn, flags );
+		/* FIXME: should be liberal in what we accept */
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
 		if ( rc != LDAP_SUCCESS ) {
 			return( LDAP_INVALID_SYNTAX );
 		}
 
-		flags |= LDAP_DN_PRETTY;
+		/* Add LDAPDN pretty code here
+		 *   pretty'ing MUST preserve values
+		 *   but MAY use alternative representation of value.
+		 *
+		 * That is, in addition to changes made by the
+		 * str->LDAPDN->str processing, this code can
+		 *	 convert values from BER to LDAP string representation
+		 *	 	(or other direction if appropriate)
+		 *	 "pretty" values
+		 *	 normalize attribute descriptions
+		 *	 reorder AVAs in RDNs
+		 */
 
-		rc = ldap_dn2str( dn, &dn_out, flags );
+		/* FIXME: not sure why the default isn't pretty */
+		rc = ldap_dn2str( dn, &dn_out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 		ldapava_free_dn( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
