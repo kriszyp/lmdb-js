@@ -259,10 +259,6 @@ alloc_handle( void *ctx_arg )
 		Debug( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n",0,0,0);
 		return NULL;
 	}
-
-	if ( tls_opt_trace ) {
-		SSL_set_info_callback( ssl, tls_info_cb );
-	}
 	return ssl;
 }
 
