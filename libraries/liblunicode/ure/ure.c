@@ -1113,7 +1113,7 @@ _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
     }
 
     symbol.id = b->symtab_used++;
-    (void) memcpy((char *) &b->symtab[symbol.id], (char *) &symbol,
+    (void) AC_MEMCPY((char *) &b->symtab[symbol.id], (char *) &symbol,
                   sizeof(_ure_symtab_t));
 
     return symbol.id;
@@ -1347,7 +1347,7 @@ _ure_add_state(ucs2_t nstates, ucs2_t *states, _ure_buffer_t *b)
             sp->st.slist_size = sp->st.slist_used + nstates;
         }
         sp->st.slist_used = nstates;
-        (void) memcpy((char *) sp->st.slist, (char *) states,
+        (void) AC_MEMCPY((char *) sp->st.slist, (char *) states,
                       sizeof(ucs2_t) * nstates);
     }
 

@@ -239,7 +239,7 @@ ber_pvt_sb_copy_out( Sockbuf_Buf *sbb, char *buf, ber_len_t len )
 	max = sbb->buf_end - sbb->buf_ptr;
 	max = ( max < len) ? max : len;
 	if ( max ) {
-		memcpy( buf, sbb->buf_base + sbb->buf_ptr, max );
+		AC_MEMCPY( buf, sbb->buf_base + sbb->buf_ptr, max );
 		sbb->buf_ptr += max;
 		if ( sbb->buf_ptr >= sbb->buf_end )
 			sbb->buf_ptr = sbb->buf_end = 0;
@@ -658,7 +658,7 @@ sb_dgram_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 	p = (struct dgram_data *)sbiod->sbiod_pvt;
 
 	if ( opt == LBER_SB_OPT_UDP_SET_DST ) {
-		memcpy( &p->dst, arg, sizeof( struct sockaddr ) );
+		AC_MEMCPY( &p->dst, arg, sizeof( struct sockaddr ) );
 		return 1;
 	}
 	else if ( opt == LBER_SB_OPT_UDP_GET_SRC ) {

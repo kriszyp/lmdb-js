@@ -135,7 +135,7 @@ ldap_create( LDAP **ldp )
 	}
    
 	/* copy the global options */
-	memcpy(&ld->ld_options, gopts, sizeof(ld->ld_options));
+	AC_MEMCPY(&ld->ld_options, gopts, sizeof(ld->ld_options));
 
 	ld->ld_valid = LDAP_VALID_SESSION;
 

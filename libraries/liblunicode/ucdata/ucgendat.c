@@ -446,7 +446,7 @@ add_decomp(unsigned long code)
          * Shift the decomps up by one if the codes don't match.
          */
         for (j = decomps_used; j > i; j--)
-          (void) memcpy((char *) &decomps[j], (char *) &decomps[j - 1],
+          (void) AC_MEMCPY((char *) &decomps[j], (char *) &decomps[j - 1],
                         sizeof(_decomp_t));
     }
 
@@ -470,7 +470,7 @@ add_decomp(unsigned long code)
 
     decomps[i].code = code;
     decomps[i].used = dectmp_size;
-    (void) memcpy((char *) decomps[i].decomp, (char *) dectmp,
+    (void) AC_MEMCPY((char *) decomps[i].decomp, (char *) dectmp,
                   sizeof(unsigned long) * dectmp_size);
 
 }
@@ -504,7 +504,7 @@ add_title(unsigned long code)
          * Shift the array up by one.
          */
         for (j = title_used; j > i; j--)
-          (void) memcpy((char *) &title[j], (char *) &title[j - 1],
+          (void) AC_MEMCPY((char *) &title[j], (char *) &title[j - 1],
                         sizeof(_case_t));
     }
 
@@ -551,7 +551,7 @@ add_upper(unsigned long code)
          * Shift the array up by one.
          */
         for (j = upper_used; j > i; j--)
-          (void) memcpy((char *) &upper[j], (char *) &upper[j - 1],
+          (void) AC_MEMCPY((char *) &upper[j], (char *) &upper[j - 1],
                         sizeof(_case_t));
     }
 
@@ -598,7 +598,7 @@ add_lower(unsigned long code)
          * Shift the array up by one.
          */
         for (j = lower_used; j > i; j--)
-          (void) memcpy((char *) &lower[j], (char *) &lower[j - 1],
+          (void) AC_MEMCPY((char *) &lower[j], (char *) &lower[j - 1],
                         sizeof(_case_t));
     }
 

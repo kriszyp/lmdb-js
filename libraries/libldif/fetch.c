@@ -80,7 +80,7 @@ ldif_fetch_url(
 			return -1;
 		}
 		p = newp;
-		SAFEMEMCPY( &p[total], buffer, bytes );
+		AC_MEMCPY( &p[total], buffer, bytes );
 		total += bytes;
 	}
 

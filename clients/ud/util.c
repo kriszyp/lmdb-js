@@ -92,7 +92,7 @@ fetch_buffer( char *buffer, int length, FILE *where )
 		if ( isprint( (unsigned char) *p )) {
 			++p;
 		} else {
-			SAFEMEMCPY( p, p + 1, strlen( p + 1 ) + 1 ); 
+			AC_MEMCPY( p, p + 1, strlen( p + 1 ) + 1 ); 
 		}
 	}
 

@@ -88,7 +88,7 @@ ber_read(
 	nleft = ber->ber_end - ber->ber_ptr;
 	actuallen = nleft < len ? nleft : len;
 
-	SAFEMEMCPY( buf, ber->ber_ptr, actuallen );
+	AC_MEMCPY( buf, ber->ber_ptr, actuallen );
 
 	ber->ber_ptr += actuallen;
 
@@ -112,7 +112,7 @@ ber_write(
 			if ( ber_realloc( ber, len ) != 0 )
 				return( -1 );
 		}
-		SAFEMEMCPY( ber->ber_ptr, buf, (size_t)len );
+		AC_MEMCPY( ber->ber_ptr, buf, (size_t)len );
 		ber->ber_ptr += len;
 		return( (ber_slen_t) len );
 
@@ -121,7 +121,7 @@ ber_write(
 			if ( ber_realloc( ber, len ) != 0 )
 				return( -1 );
 		}
-		SAFEMEMCPY( ber->ber_sos->sos_ptr, buf, (size_t)len );
+		AC_MEMCPY( ber->ber_sos->sos_ptr, buf, (size_t)len );
 		ber->ber_sos->sos_ptr += len;
 		ber->ber_sos->sos_clen += len;
 		return( (ber_slen_t) len );
@@ -392,7 +392,7 @@ int ber_flatten(
 			return( -1 );
 		}
 
-		SAFEMEMCPY( bv->bv_val, ber->ber_buf, len );
+		AC_MEMCPY( bv->bv_val, ber->ber_buf, len );
 		bv->bv_val[len] = '\0';
 		bv->bv_len = len;
 	}

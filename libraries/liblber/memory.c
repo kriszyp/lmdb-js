@@ -473,7 +473,7 @@ ber_bvdup(
 		return NULL;
 	}
 
-	SAFEMEMCPY( new->bv_val, bv->bv_val, bv->bv_len );
+	AC_MEMCPY( new->bv_val, bv->bv_val, bv->bv_len );
 	new->bv_val[bv->bv_len] = '\0';
 	new->bv_len = bv->bv_len;
 
@@ -564,6 +564,6 @@ ber_strdup( LDAP_CONST char *s )
 		return( NULL );
 	}
 
-	SAFEMEMCPY( p, s, len );
+	AC_MEMCPY( p, s, len );
 	return( p );
 }

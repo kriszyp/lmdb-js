@@ -231,7 +231,7 @@ done:
 			ber_memfree( freeme );
 			return( -1 );
 		}
-		memcpy( p, value, vlen );
+		AC_MEMCPY( p, value, vlen );
 		p[vlen] = '\0';
 		value = p;
 	}

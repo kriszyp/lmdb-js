@@ -882,12 +882,12 @@ strtok_quote( char *line, char *sep )
 			} else {
 				inquote = 1;
 			}
-			SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
+			AC_MEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 			break;
 
 		case '\\':
 			if ( next[1] )
-				SAFEMEMCPY( next,
+				AC_MEMCPY( next,
 					    next + 1, strlen( next + 1 ) + 1 );
 			next++;		/* dont parse the escaped character */
 			break;

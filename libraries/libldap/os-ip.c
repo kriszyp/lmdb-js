@@ -74,7 +74,7 @@ ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 		return 1;
 	}
 
-	SAFEMEMCPY( (char *) new, (const char *) src, sizeof(struct timeval));
+	AC_MEMCPY( (char *) new, (const char *) src, sizeof(struct timeval));
 
 	*dest = new;
 	return 0;
@@ -394,7 +394,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		sin.sin_port = port;
 		p = (char *)&sin.sin_addr;
 		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
-		SAFEMEMCPY(p, q, sizeof(sin.sin_addr) );
+		AC_MEMCPY(p, q, sizeof(sin.sin_addr) );
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
 				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);

@@ -104,7 +104,7 @@ ldap_get_entry_controls(
 	}
 
 	/* make a local copy of the BerElement */
-	SAFEMEMCPY(&be, entry->lm_ber, sizeof(be));
+	AC_MEMCPY(&be, entry->lm_ber, sizeof(be));
 
 	if ( ber_scanf( &be, "{xx" /*}*/ ) == LBER_ERROR ) {
 		rc = LDAP_DECODING_ERROR;

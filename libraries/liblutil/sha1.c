@@ -71,7 +71,7 @@ lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 
 #ifdef SHA1HANDSOFF
     uint32 block[16];
-    (void)memcpy(block, buffer, 64);
+    (void)AC_MEMCPY(block, buffer, 64);
 #else
     uint32 *block = (u_int32 *) buffer;
 #endif
@@ -151,7 +151,7 @@ lutil_SHA1Update(
 	context->count[1] += (len>>29)+1;
     j = (j >> 3) & 63;
     if ((j + len) > 63) {
-	(void)memcpy(&context->buffer[j], data, (i = 64-j));
+	(void)AC_MEMCPY(&context->buffer[j], data, (i = 64-j));
 	lutil_SHA1Transform(context->state, context->buffer);
 	for ( ; i + 63 < len; i += 64)
 	    lutil_SHA1Transform(context->state, &data[i]);
@@ -159,7 +159,7 @@ lutil_SHA1Update(
     } else {
 	i = 0;
     }
-    (void)memcpy(&context->buffer[j], &data[i], len - i);
+    (void)AC_MEMCPY(&context->buffer[j], &data[i], len - i);
 }
 
 

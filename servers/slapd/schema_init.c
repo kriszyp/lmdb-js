@@ -1666,7 +1666,7 @@ objectIdentifierFirstComponentMatch(
 
 	} else {
 		char *stored = ch_malloc( oid.bv_len + 1 );
-		memcpy( stored, oid.bv_val, oid.bv_len );
+		AC_MEMCPY( stored, oid.bv_val, oid.bv_len );
 		stored[oid.bv_len] = '\0';
 
 		if ( !strcmp( syntax->ssyn_oid, SLAP_SYNTAX_MATCHINGRULES_OID ) ) {

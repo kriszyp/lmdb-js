@@ -338,7 +338,7 @@ oc_add(
 	int		code;
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
-	memcpy( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
+	AC_MEMCPY( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
 	if( soc->soc_sup_oids == NULL &&
 		soc->soc_kind == LDAP_SCHEMA_STRUCTURAL )

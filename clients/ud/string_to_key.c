@@ -208,13 +208,13 @@ StringToKey(
         strncat (password, cell, sizeof(password)-passlen);
     if ((passlen = strlen(password)) > sizeof(password)) passlen = sizeof(password);
 
-    memcpy(ivec, "kerberos", 8);
-    memcpy(temp_key, "kerberos", 8);
+    AC_MEMCPY(ivec, "kerberos", 8);
+    AC_MEMCPY(temp_key, "kerberos", 8);
     des_fixup_key_parity (temp_key);
     des_key_sched (temp_key, schedule);
     des_cbc_cksum (password, ivec, passlen, schedule, ivec);
 
-    memcpy(temp_key, ivec, 8);
+    AC_MEMCPY(temp_key, ivec, 8);
     des_fixup_key_parity (temp_key);
     des_key_sched (temp_key, schedule);
     des_cbc_cksum (password, key, passlen, schedule, ivec);

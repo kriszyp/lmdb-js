@@ -139,7 +139,7 @@ dn2id(
 		return( NOID );
 	}
 
-	(void) memcpy( (char *) &id, data.dptr, sizeof(ID) );
+	AC_MEMCPY( (char *) &id, data.dptr, sizeof(ID) );
 
 	assert( id != NOID );
 

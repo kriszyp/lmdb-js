@@ -279,8 +279,8 @@ char* new_superior(
 
 	newDN = ch_malloc( dnlen - olen + nlen + 1 );
 
-	memcpy( newDN, dn, dnlen - olen );
-	memcpy( &newDN[dnlen - olen], newSup, nlen );
+	AC_MEMCPY( newDN, dn, dnlen - olen );
+	AC_MEMCPY( &newDN[dnlen - olen], newSup, nlen );
 	newDN[dnlen - olen + nlen] = '\0';
 
 	return newDN;

@@ -275,7 +275,7 @@ ldap_get_kerberosv4_credentials(
 	}
 
 	*len = ktxt.length;
-	memcpy( cred, ktxt.dat, ktxt.length );
+	AC_MEMCPY( cred, ktxt.dat, ktxt.length );
 
 	return( cred );
 }

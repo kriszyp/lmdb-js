@@ -25,7 +25,7 @@ static void cont_alloc( Datum *cont, Datum *key )
 
 	* (unsigned char *) cont->dptr = SLAP_INDEX_CONT_PREFIX;
 
-	memcpy( &((unsigned char *)cont->dptr)[1 + sizeof(ID)],
+	AC_MEMCPY( &((unsigned char *)cont->dptr)[1 + sizeof(ID)],
 		key->dptr, key->dsize );
 }
 
@@ -196,7 +196,7 @@ idl_fetch(
 			continue;
 		}
 
-		SAFEMEMCPY(
+		AC_MEMCPY(
 			(char *) &ID_BLOCK_ID(idl, nids),
 			(char *) &ID_BLOCK_ID(tmp[i], 0),
 			ID_BLOCK_NIDS(tmp[i]) * sizeof(ID) );
@@ -275,7 +275,7 @@ idl_split_block(
 		ID_BLOCK_NIDS(*right) = 1;
 		ID_BLOCK_ID(*right, 0) = id;
 	} else {
-		SAFEMEMCPY(
+		AC_MEMCPY(
 			(char *) &ID_BLOCK_ID(*right, 0),
 			(char *) &ID_BLOCK_ID(b, 0),
 			nr * sizeof(ID) );
@@ -284,7 +284,7 @@ idl_split_block(
 	}
 
 	/* the id being inserted & everything after in the second block */
-	SAFEMEMCPY(
+	AC_MEMCPY(
 		(char *) &ID_BLOCK_ID(*left, (nr == 0 ? 0 : 1)),
 	    (char *) &ID_BLOCK_ID(b, nr),
 		nl * sizeof(ID) );
@@ -517,7 +517,7 @@ idl_insert_key(
 
 				k3.dptr = ch_malloc(k2.dsize);
 				k3.dsize = k2.dsize;
-				memcpy(k3.dptr, k2.dptr, k3.dsize);
+				AC_MEMCPY(k3.dptr, k2.dptr, k3.dsize);
 			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
@@ -612,7 +612,7 @@ split:
 		tmp = idl_alloc( ID_BLOCK_NMAX(idl) + 1 );
 		ID_BLOCK_NIDS(tmp) = ID_BLOCK_INDIRECT_VALUE;
 		/* everything up to the split block */
-		SAFEMEMCPY(
+		AC_MEMCPY(
 			(char *) &ID_BLOCK_ID(tmp, 0),
 			(char *) &ID_BLOCK_ID(idl, 0),
 		    i * sizeof(ID) );
@@ -620,7 +620,7 @@ split:
 		ID_BLOCK_ID(tmp, i) = ID_BLOCK_ID(tmp2, 0);
 		ID_BLOCK_ID(tmp, i + 1) = ID_BLOCK_ID(tmp3, 0);
 		/* everything after the split block */
-		SAFEMEMCPY(
+		AC_MEMCPY(
 			(char *) &ID_BLOCK_ID(tmp, i + 2),
 			(char *) &ID_BLOCK_ID(idl, i + 1),
 			(ID_BLOCK_NMAX(idl) - i - 1) * sizeof(ID) );
@@ -690,7 +690,7 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 	}
 
 	/* make a slot for the new id */
-	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
+	AC_MEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
 	            (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
 
 	ID_BLOCK_ID(*idl, i) = id;
@@ -735,7 +735,7 @@ idl_delete_key (
 					ldbm_cache_delete( db, key );
 
 				} else {
-					SAFEMEMCPY (
+					AC_MEMCPY(
 						&ID_BLOCK_ID(idl, i),
 						&ID_BLOCK_ID(idl, i+1),
 						(ID_BLOCK_NIDS(idl)-i) * sizeof(ID) );
@@ -779,7 +779,7 @@ idl_delete_key (
 		{
 			if ( ID_BLOCK_ID(tmp, i) == id )
 			{
-				SAFEMEMCPY(
+				AC_MEMCPY(
 					&ID_BLOCK_ID(tmp, i),
 					&ID_BLOCK_ID(tmp, i+1),
 					(ID_BLOCK_NIDS(tmp)-(i+1)) * sizeof(ID));
@@ -791,7 +791,7 @@ idl_delete_key (
 
 				} else {
 					ldbm_cache_delete( db, data );
-					SAFEMEMCPY(
+					AC_MEMCPY(
 						&ID_BLOCK_ID(idl, j),
 						&ID_BLOCK_ID(idl, j+1),
 						(nids-(j+1)) * sizeof(ID));
@@ -829,7 +829,7 @@ idl_dup( ID_BLOCK *idl )
 
 	new = idl_alloc( ID_BLOCK_NMAX(idl) );
 
-	SAFEMEMCPY(
+	AC_MEMCPY(
 		(char *) new,
 		(char *) idl,
 		(ID_BLOCK_NMAX(idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );

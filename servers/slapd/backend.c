@@ -159,13 +159,13 @@ int backend_add(BackendInfo *aBackendInfo)
       /* if backendInfo == binfo no deallocation of old backendInfo */
       if (backendInfo == binfo) {
 	 newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
-	 memcpy(newBackendInfo, backendInfo, sizeof(BackendInfo) * 
+	 AC_MEMCPY(newBackendInfo, backendInfo, sizeof(BackendInfo) * 
 		nBackendInfo);
       } else {
 	 newBackendInfo = ch_realloc(backendInfo, sizeof(BackendInfo) * 
 				     (nBackendInfo + 1));
       }
-      memcpy(&newBackendInfo[nBackendInfo], aBackendInfo, 
+      AC_MEMCPY(&newBackendInfo[nBackendInfo], aBackendInfo, 
 	     sizeof(BackendInfo));
       backendInfo = newBackendInfo;
       nBackendInfo++;

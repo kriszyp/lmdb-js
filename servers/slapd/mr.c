@@ -125,7 +125,7 @@ mr_add(
 	int		code;
 
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
-	memcpy( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
+	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
 
 	smr->smr_usage = usage;
 	smr->smr_convert = convert;

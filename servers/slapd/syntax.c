@@ -118,7 +118,7 @@ syn_add(
 
 	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
 
-	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
+	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
 
 	ssyn->ssyn_next = NULL;
 

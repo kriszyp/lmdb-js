@@ -240,7 +240,7 @@ ldap_add_request_to_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return;
 		}
-		SAFEMEMCPY( new->lm_ber->ber_buf, request->ber_buf,
+		AC_MEMCPY( new->lm_ber->ber_buf, request->ber_buf,
 		    (size_t)len );
 		new->lm_ber->ber_ptr = new->lm_ber->ber_buf;
 		new->lm_ber->ber_end = new->lm_ber->ber_buf + len;
@@ -498,7 +498,7 @@ msg_dup( LDAPMessage *msg )
 			LDAP_FREE( (char *)new );
 			return( NULL );
 		}
-		SAFEMEMCPY( new->lm_ber->ber_buf, msg->lm_ber->ber_buf,
+		AC_MEMCPY( new->lm_ber->ber_buf, msg->lm_ber->ber_buf,
 		    (size_t)len );
 		new->lm_ber->ber_ptr = new->lm_ber->ber_buf +
 			( msg->lm_ber->ber_ptr - msg->lm_ber->ber_buf );

@@ -32,7 +32,7 @@ krbv4_ldap_auth(
 
 	Debug( LDAP_DEBUG_TRACE, "=> kerberosv4_ldap_auth\n", 0, 0, 0 );
 
-	SAFEMEMCPY( ktxt->dat, cred->bv_val, cred->bv_len );
+	AC_MEMCPY( ktxt->dat, cred->bv_val, cred->bv_len );
 	ktxt->length = cred->bv_len;
 
 	strcpy( instance, "*" );

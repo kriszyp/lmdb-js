@@ -40,7 +40,7 @@ next_id_read( Backend *be )
 	data = ldbm_cache_fetch( db, key );
 
 	if( data.dptr != NULL ) {
-		memcpy( &id, data.dptr, sizeof( ID ) );
+		AC_MEMCPY( &id, data.dptr, sizeof( ID ) );
 		ldbm_datum_free( db->dbc_db, data );
 
 	} else {

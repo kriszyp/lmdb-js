@@ -135,7 +135,7 @@ set_chase (SET_GATHER gatherer, void *cookie, char **set, char *attr, int attrle
 		set_dispose(set);
 		return(NULL);
 	}
-	memcpy(attrstr, attr, attrlen);
+	AC_MEMCPY(attrstr, attr, attrlen);
 	attrstr[attrlen] = 0;
 
 	nset = ch_calloc(1, sizeof(char *));
@@ -287,7 +287,7 @@ set_filter (SET_GATHER gatherer, void *cookie, char *filter, char *user, char *t
 			*set = ch_calloc(len + 1, sizeof(char));
 			if (*set == NULL)
 				SF_ERROR(memory);
-			memcpy(*set, &filter[-len - 1], len);
+			AC_MEMCPY(*set, &filter[-len - 1], len);
 			SF_PUSH(set);
 			set = NULL;
 			break;

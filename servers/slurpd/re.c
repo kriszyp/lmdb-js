@@ -184,7 +184,7 @@ Re_parse(
 	    break;
 	case T_DN:
 	    re->re_dn = ch_malloc( len + 1 );
-		memcpy( re->re_dn, value, len );
+		AC_MEMCPY( re->re_dn, value, len );
 		re->re_dn[ len ]='\0';
 	    state |= GOT_DN;
 	    break;
@@ -234,7 +234,7 @@ Re_parse(
 	re->re_mods[ nml ].mi_type = strdup( type );
 	if ( value != NULL ) {
 	    re->re_mods[ nml ].mi_val = ch_malloc( len + 1 );
-		memcpy( re->re_mods[ nml ].mi_val, value, len );
+		AC_MEMCPY( re->re_mods[ nml ].mi_val, value, len );
 		re->re_mods[ nml ].mi_val[ len ] = '\0';
 	    re->re_mods[ nml ].mi_len = len;
 	} else {

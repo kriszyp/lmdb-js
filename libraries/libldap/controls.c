@@ -348,7 +348,7 @@ ldap_control_dup( const LDAPControl *c )
 			return NULL;
 		}
 		
-		SAFEMEMCPY( new->ldctl_value.bv_val, c->ldctl_value.bv_val, 
+		AC_MEMCPY( new->ldctl_value.bv_val, c->ldctl_value.bv_val, 
 			c->ldctl_value.bv_len );
 
 		new->ldctl_value.bv_len = c->ldctl_value.bv_len;

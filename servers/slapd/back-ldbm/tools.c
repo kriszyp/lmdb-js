@@ -84,7 +84,7 @@ ID ldbm_tool_entry_first(
 		return NOID;
 	}
 
-	memcpy( &id, key.dptr, key.dsize );
+	AC_MEMCPY( &id, key.dptr, key.dsize );
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 
@@ -109,7 +109,7 @@ ID ldbm_tool_entry_next(
 		return NOID;
 	}
 
-	memcpy( &id, key.dptr, key.dsize );
+	AC_MEMCPY( &id, key.dptr, key.dsize );
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 

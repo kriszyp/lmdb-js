@@ -139,7 +139,7 @@ cldap_open( LDAP_CONST char *host, int port )
 		}
 
 		for ( i = 0; hp->h_addr_list[ i ] != 0; ++i ) {
-		    SAFEMEMCPY( (char *)&sock.sin_addr,
+		    AC_MEMCPY( (char *)&sock.sin_addr,
 			    (char *)hp->h_addr_list[ i ],
 			    sizeof(sock.sin_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
@@ -287,7 +287,7 @@ add_addr( LDAP *ld, struct sockaddr *sap )
 	return( -1 );
     }
 
-    SAFEMEMCPY( (char *)newsap, (char *)sap, sizeof( struct sockaddr ));
+    AC_MEMCPY( (char *)newsap, (char *)sap, sizeof( struct sockaddr ));
     addrs[ ld->ld_cldapnaddr++ ] = newsap;
     ld->ld_cldapaddrs = (void **)addrs;
     return( 0 );

@@ -348,7 +348,7 @@ static Listener * open_listener( const char* url )
 				return NULL;
 			}
 
-			memcpy( &l.sl_addr.sin_addr, he->h_addr,
+			AC_MEMCPY( &l.sl_addr.sin_addr, he->h_addr,
 			       sizeof( l.sl_addr.sin_addr ) );
 		}
 	}
@@ -731,8 +731,8 @@ slapd_daemon_task(
 			}
 		}
 #else
-		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
-		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
+		AC_MEMCPY( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
+		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
 		assert(!FD_ISSET(wake_sds[0], &readfds));
 		FD_SET( wake_sds[0], &readfds );

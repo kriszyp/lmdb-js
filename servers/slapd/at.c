@@ -247,7 +247,7 @@ at_add(
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
-	memcpy( &sat->sat_atype, at, sizeof(LDAPAttributeType));
+	AC_MEMCPY( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
 	sat->sat_cname = cname;
 

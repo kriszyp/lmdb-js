@@ -173,7 +173,7 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 			perror( "malloc" );
 			exit( EXIT_FAILURE );
 	    }
-	    SAFEMEMCPY( bvp->bv_val, value, vlen );
+	    AC_MEMCPY( bvp->bv_val, value, vlen );
 	    bvp->bv_val[ vlen ] = '\0';
     }
 }
