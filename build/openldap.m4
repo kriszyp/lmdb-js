@@ -752,7 +752,7 @@ AC_DEFUN(OL_TYPE_SOCKLEN_T,
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#ifdef HAVE_SYS_SOCKET
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 ], [socklen_t len;],
