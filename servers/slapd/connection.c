@@ -1903,8 +1903,6 @@ connection_fake_init(
 void
 connection_assign_nextid( Connection *conn )
 {
-	int rc;
-
 	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
 	conn->c_connid = conn_nextid++;
 	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
