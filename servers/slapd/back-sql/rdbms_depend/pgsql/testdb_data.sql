@@ -1,6 +1,6 @@
-insert into institutes (id,name) values (1,'sql');
+insert into institutes (id,name) values (1,'Example');
 
-insert into persons (id,name,surname) values (1,'Mitya','Kovalev');
+insert into persons (id,name,surname,password) values (1,'Mitya','Kovalev','mit');
 insert into persons (id,name,surname) values (2,'Torvlobnor','Puzdoy');
 insert into persons (id,name,surname) values (3,'Akakiy','Zinberstein');
 

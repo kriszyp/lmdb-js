@@ -3,7 +3,8 @@ drop sequence persons_id_seq;
 create table persons (
 	id serial not null primary key,
 	name varchar(255) not null,
-	surname varchar(255) not null
+	surname varchar(255) not null,
+	password varchar(64)
 );
 
 drop table institutes;

@@ -9,7 +9,7 @@
 --	delete_proc	a procedure to delete the entry; it takes "keytbl.keycol" of the row to be deleted
 --	expect_return	a bitmap that marks whether create_proc (1) and delete_proc (2) return a value or not
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
-values (1,'inetOrgPerson','persons','id',"insert into persons (name) values ('');\n select last_insert_id();",NULL,0);
+values (1,'inetOrgPerson','persons','id',NULL,NULL,0);
 
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
 values (2,'document','documents','id',NULL,NULL,0);
@@ -29,31 +29,37 @@ values (3,'organization','institutes','id',NULL,NULL,0);
 --	param_order	a mask that marks if the "keytbl.keycol" value comes before or after the value in add_proc (1) and delete_proc (2)
 --	expect_return	a mask that marks whether add_proc (1) and delete_proc(2) are expected to return a value or not
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (1,1,'cn','persons.name','persons',NULL,NULL,NULL,3,0);
+values (1,1,'cn',"concat(persons.name,' ',persons.surname)",'persons',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (2,1,'telephoneNumber','phones.phone','persons,phones',
         'phones.pers_id=persons.id',NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (3,1,'sn','persons.name','persons',NULL,NULL,NULL,3,0);
+values (3,1,'givenName','persons.name','persons',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (4,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
+values (4,1,'sn','persons.surname','persons',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (5,2,'documentTitle','documents.title','documents',NULL,NULL,NULL,3,0);
+values (5,1,'userPassword','persons.password','persons','persons.password IS NOT NULL',NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (6,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons',
+values (6,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (7,2,'documentTitle','documents.title','documents',NULL,NULL,NULL,3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (8,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons',
 	'documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
 	NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (7,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
+values (9,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (8,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons',
+values (10,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons',
         'documentIdentifier.keyval=documents.id AND documentIdentifier.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
 	NULL,NULL,3,0);
 
@@ -87,6 +93,9 @@ values (6,'documentTitle=book2,o=Example,c=RU',2,1,2);
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name)
 values (4,'referral');
+
+insert into ldap_entry_objclasses (entry_id,oc_name)
+values (2,'posixAccount');
 
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
