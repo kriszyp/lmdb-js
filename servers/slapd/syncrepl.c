@@ -524,7 +524,7 @@ do_syncrepl(
 					ber_write( ctrl_ber, rctrlp->ldctl_value.bv_val, rctrlp->ldctl_value.bv_len, 0 );
 					ber_reset( ctrl_ber, 1 );
 
-					ber_scanf( ctrl_ber, "{" );
+					ber_scanf( ctrl_ber, "{" /*"}"*/);
 					if ( ber_peek_tag( ctrl_ber, &len )
 						== LDAP_SYNC_TAG_COOKIE ) {
 						ber_scanf( ctrl_ber, "o", &syncCookie );
@@ -556,13 +556,13 @@ do_syncrepl(
 				}
 				break;
 
-			case LDAP_RES_INTERMEDIATE_RESP:
-				ldap_parse_intermediate_resp_result( ld, msg,
-						&retoid, &retdata, 0 );
-				if ( !strcmp( retoid, LDAP_SYNC_INFO ) ) {
+			case LDAP_RES_INTERMEDIATE:
+				rc = ldap_parse_intermediate( ld, msg,
+					&retoid, &retdata, NULL, 0 );
+				if ( !rc && !strcmp( retoid, LDAP_SYNC_INFO ) ) {
 					sync_info_arrived = 1;
 					res_ber = ber_init( retdata );
-					ber_scanf( res_ber, "{e", &syncstate );
+					ber_scanf( res_ber, "{e" /*"}"*/, &syncstate );
 
 					if ( syncstate == LDAP_SYNC_REFRESH_DONE ) {
 						syncrepl_del_nonpresent( ld, &op );
@@ -578,7 +578,7 @@ do_syncrepl(
 
 					if ( ber_peek_tag( res_ber, &len )
 								== LDAP_SYNC_TAG_COOKIE ) {
-						ber_scanf( res_ber, "o}", &syncCookie );
+						ber_scanf( res_ber, /*"{"*/ "o}", &syncCookie );
 						if ( syncCookie.bv_len ) {
 							ber_bvfree( si->syncCookie );
 							si->syncCookie = ber_dupbv( NULL, &syncCookie );
@@ -606,8 +606,8 @@ do_syncrepl(
 						"response\n", 0, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY, "do_syncrepl : "
-						"unknown intermediate "
-						"response\n", 0, 0, 0 );
+						"unknown intermediate response (%d)\n",
+						rc, 0, 0 );
 #endif
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );

@@ -32,13 +32,12 @@
 #include <ldap.h>
 #include <ldap_schema.h>
 
+#include "lber_pvt.h"
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
-#ifdef LDAP_DEVEL
 #define SLAP_EXTENDED_SCHEMA 1
-#define LDAP_CACHING
-#endif
+#define LDAP_CACHING 1
 
 LDAP_BEGIN_DECL
 /*
@@ -321,7 +320,11 @@ typedef struct slap_syntax {
 #define SLAP_SYNTAX_BLOB	0x0001U /* syntax treated as blob (audio) */
 #define SLAP_SYNTAX_BINARY	0x0002U /* binary transfer required (certificate) */
 #define SLAP_SYNTAX_BER		0x0004U /* stored in BER encoding (certificate) */
+#ifdef LDAP_DEVEL
+#define SLAP_SYNTAX_HIDE	0x0000U /* publish everything */
+#else
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
+#endif
 
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_pretty;
@@ -418,7 +421,11 @@ typedef struct slap_matching_rule {
 
 	slap_mask_t				smr_usage;
 
+#ifdef LDAP_DEVEL
+#define SLAP_MR_HIDE			0x0000U
+#else
 #define SLAP_MR_HIDE			0x8000U
+#endif
 
 #define SLAP_MR_TYPE_MASK		0x0F00U
 #define SLAP_MR_SUBTYPE_MASK	0x00F0U
@@ -571,7 +578,11 @@ typedef struct slap_attribute_type {
 #define SLAP_AT_NONE		0x0000U
 #define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
 #define SLAP_AT_FINAL		0x0200U /* cannot be subtyped */
+#ifdef LDAP_DEVEL
+#define SLAP_AT_HIDE		0x0000U /* publish everything */
+#else
 #define SLAP_AT_HIDE		0x8000U /* hide attribute */
+#endif
 	slap_mask_t					sat_flags;
 
 	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;
@@ -639,7 +650,11 @@ typedef struct slap_object_class {
 #define	SLAP_OC__MASK		0x001F
 #define	SLAP_OC__END		0x0020
 #define SLAP_OC_OPERATIONAL	0x4000
+#ifdef LDAP_DEVEL
+#define SLAP_OC_HIDE		0x0000
+#else
 #define SLAP_OC_HIDE		0x8000
+#endif
 
 /*
  * DIT content rule
@@ -703,9 +718,9 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_dynamicObject;
 
 #ifdef LDAP_SYNCREPL
-        ObjectClass *si_oc_glue;
-        ObjectClass *si_oc_syncConsumerSubentry;
-        ObjectClass *si_oc_syncProviderSubentry;
+	ObjectClass *si_oc_glue;
+	ObjectClass *si_oc_syncConsumerSubentry;
+	ObjectClass *si_oc_syncProviderSubentry;
 #endif
 
 	/* objectClass attribute descriptions */
@@ -732,8 +747,8 @@ struct slap_internal_schema {
 #endif /* LDAP_CACHING */
 
 #ifdef LDAP_SYNCREPL
-        AttributeDescription *si_ad_dseType;
-        AttributeDescription *si_ad_syncreplCookie;
+	AttributeDescription *si_ad_dseType;
+	AttributeDescription *si_ad_syncreplCookie;
 #endif
 
 	/* root DSE attribute descriptions */
@@ -1268,7 +1283,6 @@ typedef BackendDB Backend;
 #define backends backendDB
 
 #ifdef LDAP_SYNCREPL
-
 struct nonpresent_entry {
 	struct berval *dn;
 	struct berval *ndn;
@@ -1577,7 +1591,8 @@ typedef enum slap_reply_e {
 	REP_SASL,
 	REP_EXTENDED,
 	REP_SEARCH,
-	REP_SEARCHREF
+	REP_SEARCHREF,
+	REP_INTERMEDIATE
 } slap_reply_t;
 
 typedef struct rep_sasl_s {
@@ -1983,27 +1998,36 @@ typedef struct slap_op {
 #endif
 } Operation;
 
-#define send_ldap_error( op, rs, err, text ) \
-do { (rs)->sr_err = err; (rs)->sr_text = text; \
-(op->o_conn->c_send_ldap_result)( op, rs ); } while (0)
-#define send_ldap_discon( op, rs, err, text ) \
-do { (rs)->sr_err = err; (rs)->sr_text = text; \
-send_ldap_disconnect( op, rs ); } while (0)
-typedef void (SEND_LDAP_RESULT)(struct slap_op *op, struct slap_rep *rs);
-typedef int (SEND_SEARCH_ENTRY)(struct slap_op *op, struct slap_rep *rs);
-typedef int (SEND_SEARCH_REFERENCE)(struct slap_op *op, struct slap_rep *rs);
-typedef void (SEND_LDAP_EXTENDED)(struct slap_op *op, struct slap_rep *rs);
-typedef void (SEND_LDAP_INTERMEDIATE_RESP)(struct slap_op *op, struct slap_rep *rs);
+#define send_ldap_error( op, rs, err, text ) do { \
+		(rs)->sr_err = err; (rs)->sr_text = text; \
+		(op->o_conn->c_send_ldap_result)( op, rs ); \
+	} while (0)
+#define send_ldap_discon( op, rs, err, text ) do { \
+		(rs)->sr_err = err; (rs)->sr_text = text; \
+		send_ldap_disconnect( op, rs ); \
+	} while (0)
+
+typedef void (SEND_LDAP_RESULT)(
+	struct slap_op *op, struct slap_rep *rs);
+typedef int (SEND_SEARCH_ENTRY)(
+	struct slap_op *op, struct slap_rep *rs);
+typedef int (SEND_SEARCH_REFERENCE)(
+	struct slap_op *op, struct slap_rep *rs);
+typedef void (SEND_LDAP_EXTENDED)(
+	struct slap_op *op, struct slap_rep *rs);
+typedef void (SEND_LDAP_INTERMEDIATE)(
+	struct slap_op *op, struct slap_rep *rs);
+
 #define send_ldap_result( op, rs ) \
-(op->o_conn->c_send_ldap_result)( op, rs )
+	(op->o_conn->c_send_ldap_result)( op, rs )
 #define send_search_entry( op, rs ) \
-(op->o_conn->c_send_search_entry)( op, rs )
+	(op->o_conn->c_send_search_entry)( op, rs )
 #define send_search_reference( op, rs ) \
-(op->o_conn->c_send_search_reference)( op, rs )
+	(op->o_conn->c_send_search_reference)( op, rs )
 #define send_ldap_extended( op, rs ) \
-(op->o_conn->c_send_ldap_extended)( op, rs )
-#define send_ldap_intermediate_resp( op, rs ) \
-(op->o_conn->c_send_ldap_intermediate_resp)( op, rs )
+	(op->o_conn->c_send_ldap_extended)( op, rs )
+#define send_ldap_intermediate( op, rs ) \
+	(op->o_conn->c_send_ldap_intermediate)( op, rs )
 
 /*
  * Caches the result of a backend_group check for ACL evaluation
@@ -2099,10 +2123,10 @@ typedef struct slap_conn {
 	SEND_SEARCH_ENTRY *c_send_search_entry;
 	SEND_SEARCH_REFERENCE *c_send_search_reference;
 	SEND_LDAP_EXTENDED *c_send_ldap_extended;
-#ifdef LDAP_RES_INTERMEDIATE_RESP
-	SEND_LDAP_INTERMEDIATE_RESP *c_send_ldap_intermediate_resp;
+#ifdef LDAP_RES_INTERMEDIATE
+	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
 #endif
-	
+
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
@@ -2185,8 +2209,14 @@ enum {
 #define SLAP_SEARCH_MAX_CTRLS   10
 #endif
 
-#define SLAP_CTRL_FRONTEND			0x80000000U
-#define SLAP_CTRL_FRONTEND_SEARCH	0x01000000U	/* for NOOP */
+#ifdef LDAP_DEVEL
+#define SLAP_CTRL_HIDE				0x00000000U
+#else
+#define SLAP_CTRL_HIDE				0x80000000U
+#endif
+
+#define SLAP_CTRL_FRONTEND			0x00800000U
+#define SLAP_CTRL_FRONTEND_SEARCH	0x00010000U	/* for NOOP */
 
 #define SLAP_CTRL_OPFLAGS			0x0000FFFFU
 #define SLAP_CTRL_ABANDON			0x00000001U

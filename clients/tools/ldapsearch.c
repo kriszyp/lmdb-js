@@ -1044,12 +1044,6 @@ static int dosearch(
 					goto done;
 				}
 #endif
-
-				break;
-
-			case LDAP_RES_EXTENDED_PARTIAL:
-				npartial++;
-				print_partial( ld, msg );
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
@@ -1077,22 +1071,27 @@ static int dosearch(
 
 				goto done;
 
-#ifdef LDAP_SYNC
-			case LDAP_RES_INTERMEDIATE_RESP:
-				ldap_parse_intermediate_resp_result( ld, msg, &retoid, &retdata, 0 );
+			case LDAP_RES_INTERMEDIATE:
+				npartial++;
+#ifndef LDAP_SYNC
+				print_partial( ld, msg );
+#else
+				ldap_parse_intermediate( ld, msg,
+					&retoid, &retdata, NULL, 0 );
+
 				nresponses_psearch = 0;
 
-				if ( strcmp( retoid, LDAP_SYNC_INFO ) ) {
-					printf(_("Unexpected Intermediate Response\n"));
-					ldap_memfree( retoid );
-					ber_bvfree( retdata );
-					goto done;
-				} else {
+				if ( strcmp( retoid, LDAP_SYNC_INFO ) == 0 ) {
 					printf(_("SyncInfo Received\n"));
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					break;
 				}
+
+				print_partial( ld, msg );
+				ldap_memfree( retoid );
+				ber_bvfree( retdata );
+				goto done;
 #endif
 			}
 
@@ -1463,11 +1462,11 @@ static void print_partial(
 		printf(_("# extended partial response\n"));
 	}
 
-	rc = ldap_parse_extended_partial( ld, partial,
+	rc = ldap_parse_intermediate( ld, partial,
 		&retoid, &retdata, &ctrls, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_extended_partial");
+		ldap_perror(ld, "ldap_parse_intermediate");
 		exit( EXIT_FAILURE );
 	}
 

@@ -106,12 +106,12 @@ static struct slap_control control_defs[] = {
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
-		SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		parseClientUpdate, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_SYNC
 	{ LDAP_CONTROL_SYNC,
-		SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		parseLdupSync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
@@ -248,10 +248,14 @@ controls_root_dse_info( Entry *e )
 	vals[1].bv_len = 0;
 
 	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
+		if( sc->sc_mask & SLAP_CTRL_HIDE ) continue;
+
 		vals[0].bv_val = sc->sc_oid;
 		vals[0].bv_len = strlen( sc->sc_oid );
-		if ( attr_merge( e, ad_supportedControl, vals, NULL ) )
+
+		if ( attr_merge( e, ad_supportedControl, vals, NULL ) ) {
 			return -1;
+		}
 	}
 
 	return 0;

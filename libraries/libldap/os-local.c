@@ -182,8 +182,10 @@ sendcred:
 			int fds[2];
 			if (pipe(fds) == 0) {
 				/* Abandon, noop, has no reply */
-				struct iovec iov = {(char *)abandonPDU, sizeof(abandonPDU)};
+				struct iovec iov;
 				struct msghdr msg = {0};
+				iov.iov_base = (char *) abandonPDU;
+				iov.iov_len = sizeof abandonPDU;
 				msg.msg_iov = &iov;
 				msg.msg_iovlen = 1;
 				msg.msg_accrights = (char *)fds;

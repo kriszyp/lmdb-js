@@ -225,27 +225,26 @@ static struct slap_schema_oc_map {
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 #endif
 #ifdef LDAP_SYNCREPL
-		{ "glue", "( 1.3.6.1.4.1.4203.666.3.4 "
-				"NAME 'glue' "
-				"DESC 'Glue Entry' "
-				"SUP top STRUCTURAL )",
-			0, SLAP_OC_OPERATIONAL,
-			offsetof(struct slap_internal_schema, si_oc_glue) },
-
-		{ "syncConsumerSubentry", "( 1.3.6.1.4.1.4203.666.3.5 "
-				"NAME 'syncConsumerSubentry' "
-				"DESC 'Persistent Info for SyncRepl Consumer' "
-				"AUXILIARY "
-				"MAY syncreplCookie )",
-			0, SLAP_OC_OPERATIONAL,
-			offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
-		{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
-				"NAME 'syncProviderSubentry' "
-				"DESC 'Persistent Info for SyncRepl Producer' "
-				"AUXILIARY "
-				"MAY syncreplCookie )",
-			0, SLAP_OC_OPERATIONAL,
-			offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
+	{ "glue", "( 1.3.6.1.4.1.4203.666.3.4 "
+			"NAME 'glue' "
+			"DESC 'Glue Entry' "
+			"SUP top STRUCTURAL )",
+		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		offsetof(struct slap_internal_schema, si_oc_glue) },
+	{ "syncConsumerSubentry", "( 1.3.6.1.4.1.4203.666.3.5 "
+			"NAME 'syncConsumerSubentry' "
+			"DESC 'Persistent Info for SyncRepl Consumer' "
+			"AUXILIARY "
+			"MAY syncreplCookie )",
+		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
+	{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
+			"NAME 'syncProviderSubentry' "
+			"DESC 'Persistent Info for SyncRepl Producer' "
+			"AUXILIARY "
+			"MAY syncreplCookie )",
+		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
 #endif
 
 	{ NULL, NULL, NULL, 0, 0 }
@@ -370,7 +369,7 @@ static struct slap_schema_ad_map {
 #endif
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
-			"DESC 'LCUP/LDUP: UUID of the entry' "
+			"DESC 'UUID of the entry' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
@@ -379,7 +378,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
-			"DESC 'LCUP/LDUP: change sequence number of the entry content' "
+			"DESC 'change sequence number of the entry content' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
@@ -389,7 +388,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
 	{ "namingCSN", "( 1.3.6.1.4.1.4203.666.1.13 NAME 'namingCSN' "
-			"DESC 'LCUP/LDUP: change sequence number of the entry naming (RDN)' "
+			"DESC 'change sequence number of the entry naming (RDN)' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
@@ -400,7 +399,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_namingCSN) },
 
 	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
-			"DESC 'LCUP/LDUP: UUID of the superior entry' "
+			"DESC 'UUID of the superior entry' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
@@ -416,7 +415,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, 0, /* SLAP_AT_HIDE or SLAP_AT_NONE ? */
+		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL, 
 		offsetof(struct slap_internal_schema, si_ad_queryid) },

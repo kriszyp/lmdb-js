@@ -139,29 +139,22 @@ root_dse_info(
 	}
 
 	/* supportedExtension */
-	for ( i=0; (bv = get_supported_extop(i)) != NULL; i++ ) {
-		vals[0] = *bv;
-		if( attr_merge( e, ad_supportedExtension, vals, NULL ) )
-		{
-			return LDAP_OTHER;
-		}
+	if ( exop_root_dse_info( e ) != 0 ) {
+		return LDAP_OTHER;
 	}
 
 #ifdef LDAP_SLAPI
 	/* netscape supportedExtension */
 	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
 		vals[0] = *bv;
-		if( attr_merge( e, ad_supportedExtension, vals, NULL ))
-		{
+		if( attr_merge( e, ad_supportedExtension, vals, NULL )) {
 			return LDAP_OTHER;
 		}
 	}
 #endif /* LDAP_SLAPI */
 
 	/* supportedFeatures */
-	if( attr_merge( e, ad_supportedFeatures,
-		supportedFeatures, NULL ) )
-	{
+	if( attr_merge( e, ad_supportedFeatures, supportedFeatures, NULL ) ) {
 		return LDAP_OTHER;
 	}
 

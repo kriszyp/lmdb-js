@@ -2003,7 +2003,7 @@ bdb_send_ldap_intermediate(
 	}
 
 	rs->sr_rspdata = &rspdata;
-	send_ldap_intermediate_resp( op, rs );
+	send_ldap_intermediate( op, rs );
 	rs->sr_rspdata = NULL;
 	ber_free_buf( ber );
 
