@@ -531,6 +531,23 @@ bdb_cache_lru_add(
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
 }
 
+EntryInfo *
+bdb_cache_find_info(
+	struct bdb_info *bdb,
+	ID id
+)
+{
+	EntryInfo ei, *ei2;
+
+	ei.bei_id = id;
+
+	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+	ei2 = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
+					(caddr_t) &ei, bdb_id_cmp );
+	ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+	return ei2;
+}
+
 /*
  * cache_find_id - find an entry in the cache, given id.
  * The entry is locked for Read upon return. Call with islocked TRUE if
@@ -696,7 +713,7 @@ bdb_cache_children(
 	}
 	rc = bdb_dn2id_children( op, txn, e );
 	if ( rc == DB_NOTFOUND ) {
-		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS;
+		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	}
 	return rc;
 }
@@ -729,8 +746,9 @@ bdb_cache_add(
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	new->bei_e = e;
 	e->e_private = new;
-	new->bei_state = CACHE_ENTRY_NO_KIDS;
+	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
+	if (eip->bei_parent) eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );

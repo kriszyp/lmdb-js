@@ -419,6 +419,7 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_delete			BDB_SYMBOL(cache_delete)
 #define bdb_cache_delete_cleanup		BDB_SYMBOL(cache_delete_cleanup)
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
+#define bdb_cache_find_info			BDB_SYMBOL(cache_find_info)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
 #define bdb_cache_modify			BDB_SYMBOL(cache_modify)
 #define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
@@ -458,6 +459,10 @@ int bdb_cache_find_ndn(
 	DB_TXN	*txn,
 	struct berval   *ndn,
 	EntryInfo	**res
+);
+EntryInfo * bdb_cache_find_info(
+	struct bdb_info *bdb,
+	ID id
 );
 int bdb_cache_find_id(
 	Operation *op,

@@ -899,26 +899,15 @@ struct dn2id_cookie {
 	Operation *op;
 };
 
-/* Stuff for iterating over a bei_kids AVL tree and adding the
- * IDs to an IDL
- */
-struct apply_arg {
-	ID *idl;
-	EntryInfo **ei;
-};
-
 static int
 apply_func(
 	void *data,
 	void *arg )
 {
 	EntryInfo *ei = data;
-	struct apply_arg *ap = arg;
+	ID *idl = arg;
 
-	bdb_idl_insert( ap->idl, ei->bei_id );
-	if ( ap->ei ) {
-		*(ap->ei)++ = ei;
-	}
+	bdb_idl_insert( idl, ei->bei_id );
 	return 0;
 }
 
@@ -927,7 +916,6 @@ hdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )
 {
-	EntryInfo **eilist = NULL, **ptr;
 #ifdef SLAP_IDL_CACHE
 	if ( cx->bdb->bi_idl_cache_size ) {
 		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
@@ -940,6 +928,14 @@ hdb_dn2idl_internal(
 	}
 #endif
 	BDB_IDL_ZERO( cx->tmp );
+
+	if ( !cx->ei ) {
+		cx->ei = bdb_cache_find_info( cx->bdb, cx->id );
+		if ( !cx->ei ) {
+			cx->rc = DB_NOTFOUND;
+			goto saveit;
+		}
+	}
 
 	bdb_cache_entryinfo_lock( cx->ei );
 
@@ -978,14 +974,6 @@ hdb_dn2idl_internal(
 			cx->ei->bei_dkids = dkids;
 		}
 
-		/* If there are kids and this is a subtree search, allocate
-		 * temp storage for the list of kids.
-		 */
-		if ( cx->prefix == DN_SUBTREE_PREFIX && cx->ei->bei_dkids > 1 ) {
-			eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
-			ptr = eilist;
-		}
-
 		cx->data.data = cx->buf;
 		cx->data.ulen = BDB_IDL_UM_SIZE * sizeof(ID);
 		cx->data.flags = DB_DBT_USERMEM;
@@ -1014,43 +1002,23 @@ hdb_dn2idl_internal(
 					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
 					bdb_idl_insert( cx->tmp, ei.bei_id );
 					hdb_cache_load( cx->bdb, &ei, &ei2 );
-					if ( eilist )
-						*ptr++ = ei2;
 				}
 			}
 		}
-		cx->dbc->c_close( cx->dbc );
-		if ( eilist )
-			*ptr = NULL;
+		cx->rc = cx->dbc->c_close( cx->dbc );
 	} else {
 		/* The in-memory cache is in sync with the on-disk data.
 		 * do we have any kids?
 		 */
 		cx->rc = 0;
 		if ( cx->ei->bei_ckids > 0 ) {
-			struct apply_arg ap;
-
-			/* Temp storage for subtree search */
-			if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-				eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
-			}
 
 			/* Walk the kids tree; order is irrelevant since bdb_idl_insert
 			 * will insert in sorted order.
 			 */
-			ap.idl = cx->tmp;
-			ap.ei = eilist;
-			avl_apply( cx->ei->bei_kids, apply_func, &ap, -1, AVL_POSTORDER );
-			if ( eilist ) {
-				*ap.ei = NULL;
-			}
+			avl_apply( cx->ei->bei_kids, apply_func, cx->tmp, -1, AVL_POSTORDER );
 		}
 		bdb_cache_entryinfo_unlock( cx->ei );
-	}
-
-	/* If we got some records, treat as success */
-	if (!BDB_IDL_IS_ZERO(cx->tmp)) {
-		cx->rc = 0;
 	}
 
 saveit:
@@ -1061,19 +1029,33 @@ saveit:
 #endif
 	;
 gotit:
-	if ( cx->rc == 0 ) {
-		/* If eilist is NULL, cx->tmp is empty... */
+	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			if ( eilist ) {
+			if (cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS) {
 				bdb_idl_union( cx->ids, cx->tmp );
-				for (ptr = eilist; *ptr; ptr++) {
-					cx->ei = *ptr;
-					cx->id = cx->ei->bei_id;
+			} else {
+				ID *save, idcurs;
+				EntryInfo *ei = cx->ei;
+				int nokids = 1;
+				save = cx->op->o_tmpalloc( BDB_IDL_SIZEOF( cx->tmp ),
+					cx->op->o_tmpmemctx );
+				BDB_IDL_CPY( save, cx->tmp );
+				bdb_idl_union( cx->ids, cx->tmp );
+
+				idcurs = 0;
+				for ( cx->id = bdb_idl_first( save, &idcurs );
+					cx->id != NOID;
+					cx->id = bdb_idl_next( save, &idcurs )) {
+					cx->ei = NULL;
 					hdb_dn2idl_internal( cx );
+					if ( !BDB_IDL_IS_ZERO( cx->tmp ))
+						nokids = 0;
 				}
-				cx->op->o_tmpfree( eilist, cx->op->o_tmpmemctx );
-				cx->rc = 0;
+				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
+				if ( nokids ) ei->bei_state |= CACHE_ENTRY_NO_GRANDKIDS;
 			}
+			cx->rc = 0;
+
 		} else {
 			BDB_IDL_CPY( cx->ids, cx->tmp );
 		}
