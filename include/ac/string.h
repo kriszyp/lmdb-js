@@ -28,8 +28,8 @@
 #	endif
 
 #	ifndef HAVE_MEMCPY
-#		define memcpy(d, s, n)			bcopy ((s), (d), (n))
-#		define memmove(d, s, n)			bcopy ((s), (d), (n))
+#		define memcpy(d, s, n)		((void) bcopy ((s), (d), (n)))
+#		define memmove(d, s, n)		((void) bcopy ((s), (d), (n)))
 #	endif
 #endif
 
@@ -37,13 +37,13 @@
 	/* strdup() is missing, declare our own version */
 	extern char *strdup( const char *s );
 #else
-	/* some systems fail to declare strdup altogether */
+	/* some systems have strdup, but fail to declare it */
 	extern char *strdup();
 #endif
 
 /*
  * some systems fail to declare strcasecmp() and strncasecmp()
- * we need them defined so we obtain pointers to them
+ * we need them declared so we can obtain pointers to them
  */
 extern int strcasecmp(), strncasecmp();
 
