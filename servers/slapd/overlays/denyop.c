@@ -186,9 +186,9 @@ denyop_config(
 
 			} else {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"unknown operation \"%s\" "
+					"unknown operation \"%s\" at "
 					"\"denyop <op-list>\" line.\n",
-					op, fname, lineno );
+					fname, lineno, op );
 				return( 1 );
 			}
 
