@@ -153,5 +153,6 @@ MODRDNOUTMASTER3=$DATADIR/modrdn.out.master.3
 ACLOUTMASTER=$DATADIR/acl.out.master
 REPLOUTMASTER=$DATADIR/repl.out.master
 MODSRCHFILTERS=$DATADIR/modify.search.filters
+CERTIFICATEOUT=$DATADIR/certificate.out
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

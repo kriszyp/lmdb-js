@@ -1,0 +1,169 @@
+#! /bin/sh
+# $OpenLDAP$
+
+SRCDIR="."
+if test $# -ge 1 ; then
+	SRCDIR=$1; shift
+fi
+
+. $SRCDIR/scripts/args.sh $*
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+echo "running defines.sh $SRCDIR $BACKEND"
+. $SRCDIR/scripts/defines.sh
+
+echo "Cleaning up in $DBDIR..."
+
+rm -f $DBDIR/[!C]*
+
+echo "Running slapadd to build slapd database..."
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
+$SLAPADD -f $DBCONF -l $LDIFORDERED
+RC=$?
+if test $RC != 0 ; then
+	echo "slapadd failed ($RC)!"
+	exit $RC
+fi
+
+echo "Starting slapd on TCP/IP port $PORT..."
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+
+echo "Testing certificate handling..."
+
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Add certificates..."
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
+	$TESTOUT 2>&1 << EOMODS
+version: 1
+
+# LEADING COMMENT AND WHITE SPACE
+
+dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+changetype: modify
+add: userCertificate
+userCertificate;binary::
+ MIIDbDCCAtWgAwIBAgIBAzANBgkqhkiG9w0BAQQFADB2MQswCQYDVQQGEwJVUzETMBEGA1UECBMK
+ U29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRAwDgYDVQQDEwdJ
+ V1BMIENBMR0wGwYJKoZIhvcNAQkBFg5jYUBleGFtcGxlLm5ldDAeFw0wMzEwMTYyMjQ0MThaFw0w
+ NDEwMTUyMjQ0MThaMIGAMQswCQYDVQQGEwJVUzETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UE
+ ChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRgwFgYDVQQDEw9VcnN1bGEgSGFtcHN0ZXIxHzAd
+ BgkqhkiG9w0BCQEWEHVoYW1AZXhhbXBsZS5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB
+ AOftC+ppQ3/ZeWJRfs93FACCYAn9ajEtHy3A4GutavSQ1eLqlsU9wEkb8aEvRtOQ9BwTjaJc+0JJ
+ 53uB6th7f5Tl7LNgjsbVR5Ef3ucsdX2ulfCwm4Mun5Us/AK6QeYnyn+cimdPaWdS2XnopiAvvOml
+ nEDfDuFD3XNVs8MLuQ99AgMBAAGjgf4wgfswCQYDVR0TBAIwADAsBglghkgBhvhCAQ0EHxYdT3Bl
+ blNTTCBHZW5lcmF0ZWQgQ2VydGlmaWNhdGUwHQYDVR0OBBYEFI9vudD6euL2LxIhghjKii+3J4yq
+ MIGgBgNVHSMEgZgwgZWAFC58W9JxQvSS1HZhp8x5z3hg8isXoXqkeDB2MQswCQYDVQQGEwJVUzET
+ MBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRAw
+ DgYDVQQDEwdJV1BMIENBMR0wGwYJKoZIhvcNAQkBFg5jYUBleGFtcGxlLm5ldIIBADANBgkqhkiG
+ 9w0BAQQFAAOBgQAnYYHkbAWFdgelG/MnYISPU48XBTxZv3dcLh9cx+J/gp1VhggkxsEVaPQlhlnQ
+ CfQwtM1h4j4cSVM8Tdceif93+uF48Arl6oQe5c63MoPIZD56vJkAlg+RiAFPDy6FjX6otjpIpW3u
+ 5GeGzaDLDBn5rlUXr0kED7Ool7R9Javxzg==
+
+dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+changetype: modify
+add: userCertificate
+userCertificate;binary::
+ MIIDajCCAtOgAwIBAgIBATANBgkqhkiG9w0BAQQFADB2MQswCQYDVQQGEwJVUzETMBEGA1UECBMK
+ U29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRAwDgYDVQQDEwdJ
+ V1BMIENBMR0wGwYJKoZIhvcNAQkBFg5jYUBleGFtcGxlLm5ldDAeFw0wMzEwMTYyMjM4MzFaFw0w
+ NDEwMTUyMjM4MzFaMH8xCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQK
+ ExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxGDAWBgNVBAMTD0plbm5pZmllciBTbWl0aDEeMBwG
+ CSqGSIb3DQEJARYPamVuQGV4YW1wbGUubmV0MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC4
+ 5An7/kRRHxiLIKR6yMfIVpGhkacWlKRFgkrzF5q9lcou+2NVZvuJDtMz36a11EgQmRJzx39oh7Eg
+ 4ZHLAHk4OoPfcwfHQ0FHCOaU6uSE6EFqLC1CjbquZPRpwLnurf2EB0GpZTo+bJZHvk6tA8SykUd+
+ 9qFMmX5As41JOOifjwIDAQABo4H+MIH7MAkGA1UdEwQCMAAwLAYJYIZIAYb4QgENBB8WHU9wZW5T
+ U0wgR2VuZXJhdGVkIENlcnRpZmljYXRlMB0GA1UdDgQWBBS/e4vtKxSvjrV2JHghV/jgTEVMajCB
+ oAYDVR0jBIGYMIGVgBQufFvScUL0ktR2YafMec94YPIrF6F6pHgwdjELMAkGA1UEBhMCVVMxEzAR
+ BgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEQMA4G
+ A1UEAxMHSVdQTCBDQTEdMBsGCSqGSIb3DQEJARYOY2FAZXhhbXBsZS5uZXSCAQAwDQYJKoZIhvcN
+ AQEEBQADgYEAbbGierD9QwK2cRnVr+Gs7dcbaRtuzriLIAgnR/s2t4Py0hpnySnyBVENXkzcgt7O
+ IFEyF9ubRIe8YMfmLAO3yHxNyv4WaGTUVE0o54mZ5GaaIY2ibl7NK48u9VC/59pfxIsoi2m4HHbY
+ 1MD54XRy2CANELBVFI3CI4raj3/UiiA=
+userCertificate;binary::
+ MIIDaTCCAtKgAwIBAgIBAjANBgkqhkiG9w0BAQQFADB2MQswCQYDVQQGEwJVUzETMBEGA1UECBMK
+ U29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRAwDgYDVQQDEwdJ
+ V1BMIENBMR0wGwYJKoZIhvcNAQkBFg5jYUBleGFtcGxlLm5ldDAeFw0wMzEwMTYyMjQwMzNaFw0w
+ NDEwMTUyMjQwMzNaMH4xCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQK
+ ExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxFzAVBgNVBAMTDkplbm5pZmVyIFNtaXRoMR4wHAYJ
+ KoZIhvcNAQkBFg9qZW5AZXhhbXBsZS5uZXQwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMia
+ mobs0kC0Q/78yocNvf0iTI5x9efB3tMwsxweLg93KbuNBeFn2mczzQvuzvhs+PLnfKxAyWbkeZrq
+ w0Ve1h8ZXSHWSFg75UOFbo4wevuoYEtqmMupFEwT4rdf8Ykt5Rq1PyUJ5LgSNe0TMSqCYwTuo7+O
+ unC/5YamsIbkKcsFAgMBAAGjgf4wgfswCQYDVR0TBAIwADAsBglghkgBhvhCAQ0EHxYdT3BlblNT
+ TCBHZW5lcmF0ZWQgQ2VydGlmaWNhdGUwHQYDVR0OBBYEFDx71116utXKGemZrZVxp3p9NqU5MIGg
+ BgNVHSMEgZgwgZWAFC58W9JxQvSS1HZhp8x5z3hg8isXoXqkeDB2MQswCQYDVQQGEwJVUzETMBEG
+ A1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMRAwDgYD
+ VQQDEwdJV1BMIENBMR0wGwYJKoZIhvcNAQkBFg5jYUBleGFtcGxlLm5ldIIBADANBgkqhkiG9w0B
+ AQQFAAOBgQAPDn0+fm/GYV6elg3XFJgGA3wrVm4TeQQ8BdmIhqf25DUn/3ja3SBGI07DWz+LlYE/
+ JzDEU+1UiYAfGgp7CnzKBzCUL0jyamgj11I6OyaYBdOsEGx1MFLjsOa+TCQS1f2v1gGCs/k0a/b3
+ RRCTyoUfPHxJ0M6Cw9SGXu2K8GtHYA==
+
+EOMODS
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo 'Using ldapsearch to retrieve (userCertificate;binary=*) ...'
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+    '(userCertificate;binary=*)' > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo 'Using ldapsearch to retrieve (userCertificate=*) ...'
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+    '(userCertificate;binary=*)' > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+kill -HUP $PID
+LDIF=$CERTIFICATEOUT
+
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $LDIFFILTER < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "comparison failed - certificate operations did not complete correctly"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+exit 0
