@@ -588,13 +588,13 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.2
 
 attributetype ( 1.3.6.1.4.1.4203.666.1.3
 	NAME 'entry'
-	DESC 'OpenLDAP ACL entry psuedo attribute'
+	DESC 'OpenLDAP ACL entry pseudo attribute'
 	SYNTAX 1.3.6.1.4.1.4203.666.2.3
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.4203.666.1.4
 	NAME 'children'
-	DESC 'OpenLDAP ACL children psuedo attribute'
+	DESC 'OpenLDAP ACL children pseudo attribute'
 	SYNTAX 1.3.6.1.4.1.4203.666.2.3
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
