@@ -94,7 +94,6 @@ ID bdb2_tool_entry_next(
 {
 	Datum key;
 	ID id;
-	int count;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
@@ -211,7 +210,7 @@ int bdb2_tool_index_attr(
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_read NULL (could not open %s%s)\n", at_cn,
 		    BDB2_SUFFIX, 0 );
-		return( NULL );
+		return 0;
 	}
 
 	bdb2i_cache_close( be, db );
