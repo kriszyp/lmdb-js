@@ -95,7 +95,8 @@ main( int argc, char **argv )
     FILE		*fp;
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
 
-    if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
+    if (( prog = strrchr( argv[ 0 ], '/'  )) == NULL &&
+        ( prog = strrchr( argv[ 0 ], '\\' )) == NULL   ) { // for Windows/DOS
 	prog = argv[ 0 ];
     } else {
 	++prog;
