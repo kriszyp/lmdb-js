@@ -1195,6 +1195,7 @@ backend_group(
 
 	if ( target && dn_match( &target->e_nname, gr_ndn ) ) {
 		e = target;
+		rc = 0;
 	} else {
 		rc = be_entry_get_rw(op, gr_ndn, group_oc, group_at, 0, &e );
 	}
