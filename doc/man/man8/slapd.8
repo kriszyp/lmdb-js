@@ -126,10 +126,10 @@ The
 .B \-h
 option may be used to specify LDAP (and other scheme) URLs to serve.
 For example, if slapd is given
-.B "\-h \(dqldap://127.0.0.1:9009/ ldaps:/// ldapi:///\(dq", 
-It will bind 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
+.BR "\-h \(dqldap://127.0.0.1:9009/ ldaps:/// ldapi:///\(dq" , 
+it will listen on 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
 and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
-INADDR_ANY.
+INADDR_ANY (any interface).
 A space separated list of URLs is expected.  The URLs should be of
 LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
 scheme without a DN or other optional parameters, except an experimental
