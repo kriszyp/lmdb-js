@@ -589,7 +589,14 @@ ldap_dnfree( LDAPDN *dn )
  * and readable as soon as it works as expected.
  */
 
-#define	TMP_SLOTS	1024
+/*
+ * Default sizes of AVA and RDN static working arrays; if required
+ * the are dynamically resized.  The values can be tuned in case
+ * of special requirements (e.g. very deep DN trees or high number 
+ * of AVAs per RDN).
+ */
+#define	TMP_AVA_SLOTS	8
+#define	TMP_RDN_SLOTS	32
 
 int
 ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
@@ -599,7 +606,8 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 	int		nrdns = 0;
 
 	LDAPDN		*newDN = NULL;
-	LDAPRDN		*newRDN = NULL, *tmpDN[TMP_SLOTS];
+	LDAPRDN		*newRDN = NULL, *tmpDN_[TMP_RDN_SLOTS], **tmpDN = tmpDN_;
+	int		num_slots = TMP_RDN_SLOTS;
 	
 	assert( str );
 	assert( dn );
@@ -692,20 +700,31 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 		tmpDN[nrdns++] = newRDN;
 		newRDN = NULL;
 
-#if 0
 		/*
-		 * prone to attacks?
+		 * make the static RDN array dynamically rescalable
 		 */
-		assert (nrdns < TMP_SLOTS);
-#else
-		/*
-		 * make the static AVA array dynamically rescalable
-		 */
-		if (nrdns >= TMP_SLOTS) {
-			rc = LDAP_DECODING_ERROR;
-			goto parsing_error;
+		if ( nrdns == num_slots ) {
+			LDAPRDN	**tmp;
+
+			if ( tmpDN == tmpDN_ ) {
+				tmp = LDAP_MALLOC( num_slots * 2 * sizeof( LDAPRDN * ) );
+				if ( tmp == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					goto parsing_error;
+				}
+				AC_MEMCPY( tmp, tmpDN, num_slots * sizeof( LDAPRDN * ) );
+
+			} else {
+				tmp = LDAP_REALLOC( tmpDN, num_slots * 2 * sizeof( LDAPRDN * ) );
+				if ( tmp == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					goto parsing_error;
+				}
+			}
+
+			tmpDN = tmp;
+			num_slots *= 2;
 		}
-#endif
 				
 		if ( p[ 0 ] == '\0' ) {
 			/* 
@@ -741,10 +760,16 @@ parsing_error:;
 		ldap_rdnfree( newRDN );
 	}
 
-	for (nrdns-- ;nrdns>=0; nrdns-- )
+	for ( nrdns-- ;nrdns >= 0; nrdns-- ) {
 		ldap_rdnfree( tmpDN[nrdns] );
+	}
 
 return_result:;
+
+	if ( tmpDN != tmpDN_ ) {
+		LDAP_FREE( tmpDN );
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2dn(%s,%u)=%d\n", str, flags, rc );
 	*dn = newDN;
 	
@@ -775,7 +800,8 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 	struct berval 	attrValue = { 0, NULL };
 
 	LDAPRDN		*newRDN = NULL;
-	LDAPAVA		*tmpRDN[TMP_SLOTS];
+	LDAPAVA		*tmpRDN_[TMP_AVA_SLOTS], **tmpRDN = tmpRDN_;
+	int		num_slots = TMP_AVA_SLOTS;
 	
 	assert( str );
 	assert( rdn || flags & LDAP_DN_SKIP );
@@ -1134,7 +1160,31 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 				attrValue.bv_val = NULL;
 				attrValue.bv_len = 0;
 
-				assert(navas < TMP_SLOTS);
+				/*
+				 * prepare room for new AVAs if needed
+				 */
+				if (navas == num_slots) {
+					LDAPAVA **tmp;
+					
+					if ( tmpRDN == tmpRDN_ ) {
+						tmp = LDAP_MALLOC( num_slots * 2 * sizeof( LDAPAVA * ) );
+						if ( tmp == NULL ) {
+							rc = LDAP_NO_MEMORY;
+							goto parsing_error;
+						}
+						AC_MEMCPY( tmp, tmpRDN, num_slots * sizeof( LDAPAVA * ) );
+
+					} else {
+						tmp = LDAP_REALLOC( tmpRDN, num_slots * 2 * sizeof( LDAPAVA * ) );
+						if ( tmp == NULL ) {
+							rc = LDAP_NO_MEMORY;
+							goto parsing_error;
+						}
+					}
+
+					tmpRDN = tmp;
+					num_slots *= 2;
+				}
 			}
 			
 			/* 
@@ -1207,13 +1257,19 @@ parsing_error:;
 		free( attrValue.bv_val );
 	}
 
-	for (navas-- ; navas>=0; navas-- )
+	for ( navas-- ; navas >= 0; navas-- ) {
 		ldap_avafree( tmpRDN[navas] );
+	}
 
 return_result:;
 
+	if ( tmpRDN != tmpRDN_ ) {
+		LDAP_FREE( tmpRDN );
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2rdn(%*s)=%d\n", 
 			p - str, str, rc );
+
 	if ( rdn ) {
 		*rdn = newRDN;
 	}
