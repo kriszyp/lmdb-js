@@ -579,8 +579,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 		struct berval	pndn = op->o_req_ndn;
 
 		for ( ; entry == NULL; ) {
-			struct berval	opndn = pndn;
-			dnParent( &opndn, &pndn );
+			dnParent( &pndn, &pndn );
 			
 			if ( !dnIsSuffix( &pndn, &op->o_bd->be_nsuffix[0] ) ) {
 				break;
