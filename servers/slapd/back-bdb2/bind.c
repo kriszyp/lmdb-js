@@ -14,51 +14,6 @@
 #include "back-bdb2.h"
 #include "proto-back-bdb2.h"
 
-#include <lutil.h>
-
-#ifdef HAVE_KERBEROS
-extern int	bdb2i_krbv4_ldap_auth();
-#endif
-
-static int
-crypted_value_find(
-	struct berval       **vals,
-	struct berval       *v,
-	int                 syntax,
-	int                 normalize,
-	struct berval		*cred
-)
-{
-	int     i;
-	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( syntax != SYNTAX_BIN ) {
-			int result;
-
-#ifdef SLAPD_CRYPT
-			ldap_pvt_thread_mutex_lock( &crypt_mutex );
-#endif
-
-			result = lutil_passwd(
-				(char*) cred->bv_val,
-				(char*) vals[i]->bv_val,
-				NULL );
-
-#ifdef SLAPD_CRYPT
-			ldap_pvt_thread_mutex_unlock( &crypt_mutex );
-#endif
-
-			return result;
-
-		} else {
-                if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
-                        return( 0 );
-                }
-        }
-	}
-
-	return( 1 );
-}
-
 static int
 bdb2i_back_bind_internal(
     BackendDB		*be,
@@ -235,7 +190,7 @@ bdb2i_back_bind_internal(
 			goto return_results;
 		}
 
-		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
+		if ( slap_passwd_check( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
 		{
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL);

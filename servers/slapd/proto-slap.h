@@ -439,6 +439,23 @@ void slap_init_user LDAP_P(( char *username, char *groupname ));
 #endif
 
 /*
+ * passwd.c
+ */
+int slap_passwd_check(
+	struct berval       **vals,
+	struct berval       *v,
+	int                 syntax,
+	int                 normalize,
+	struct berval		*cred );
+
+/*
+ * kerberos.c
+ */
+#ifdef HAVE_KERBEROS
+extern int	krbv4_ldap_auth();
+#endif
+
+/*
  * Other...
  */
 
