@@ -926,8 +926,28 @@ bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
 	int lockid = (int) data;
+	int rc;
 
-	XLOCK_ID_FREE( env, lockid );
+
+	rc = XLOCK_ID_FREE( env, lockid );
+	if ( rc == EINVAL ) {
+		DB_LOCKREQ lr;
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_BDB, ERR,
+			"bdb_locker_id_free: %d err %s(%d)\n",
+			lockid, db_strerror(rc), rc );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_locker_id_free: %d err %s(%d)\n",
+			lockid, db_strerror(rc), rc );
+#endif
+		memset( &lr, 0, sizeof(lr) );
+
+		/* release all locks held by this locker. */
+		lr.op = DB_LOCK_PUT_ALL;
+		env->lock_vec( env, lockid, 0, &lr, 1, NULL );
+		XLOCK_ID_FREE( env, lockid );
+	}
 }
 
 int
