@@ -9,42 +9,21 @@ dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
 dnl top-level directory of the distribution.
 dnl
 dnl ----------------------------------------------------------------
-dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
-dnl at top of generated configure script.  Prints simple copyright.
-define([AC_INIT_BINSH],
-[[#! /bin/sh
-# $]OpenLDAP[$
-# from] translit([$OpenLDAP$], $")] [
+AC_COPYRIGHT(
+[Copyright 1998-2003 The OpenLDAP Foundation. All Rights Reserved.
 
-# Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted only as authorized by the OpenLDAP
-# Public License.  A copy of this license is available at
-# http://www.OpenLDAP.org/license.html or in file LICENSE in the
-# top-level directory of the distribution.
-
-echo "Copyright 1998-2003 The OpenLDAP Foundation,  All Rights Reserved."
-echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.  A copy of this license is available at
+http://www.OpenLDAP.org/license.html or in file LICENSE in the
+top-level directory of the distribution.
 ])dnl
-dnl ----------------------------------------------------------------
-dnl Disable config.cache!
-define([AC_CACHE_LOAD], )dnl
-define([AC_CACHE_SAVE], )dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_INIT(build/version.sh)dnl
 
-# set unset (borrowed from autoconf 2.49c)
-if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
-  ol_unset=unset
-else
-  ol_unset=false
-fi
-# unset CDPATH
-$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; export CDPATH; }
-
-AC_CONFIG_AUX_DIR(build)dnl
+AC_INIT([OpenLDAP],,[<http://www.openldap.org/its/>])
+AC_CONFIG_SRCDIR([include/ldap.h])dnl
+AC_CONFIG_AUX_DIR([build])dnl
 
 eval `$ac_aux_dir/version.sh`
 if test -z "$OL_STRING"; then
@@ -74,16 +53,19 @@ dnl Determine host platform
 dnl		we try not to use this for much
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([$OL_PACKAGE],[$OL_VERSION], [no defines])dnl
-AC_SUBST(PACKAGE)dnl
-AC_SUBST(VERSION)dnl
-AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
-AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
+OPENLDAP_PACKAGE=$OL_PACKAGE
+OPENLDAP_VERSION=$OL_VERSION
 
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Version)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Major)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Minor)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Patch)
+AC_SUBST(OPENLDAP_PACKAGE)
+AC_SUBST(OPENLDAP_VERSION)
+
+AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,$OL_PACKAGE,OpenLDAP Package)
+AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,$OL_VERSION,OpenLDAP Version)
+
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Vendor Version)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Vendor Major)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Vendor Minor)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Vendor Patch)
 
 OPENLDAP_LIBVERSION=$OL_API_LIB
 AC_SUBST(OPENLDAP_LIBVERSION)dnl
@@ -91,10 +73,10 @@ AC_SUBST(OPENLDAP_LIBVERSION)dnl
 OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
 AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
 
-dnl We use autoconf features new to 2.13.
-dnl aclocal.m4 should be built using aclocal from automake 1.4
-dnl libtool 1.4.2 should be installed.
-AC_PREREQ(2.13)dnl Required Autoconf version
+dnl We use autoconf features new to 2.57.
+dnl aclocal.m4 should be built using aclocal from automake 1.7.3
+dnl libtool 1.4.3 should be installed.
+AC_PREREQ(2.57)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
@@ -587,6 +569,7 @@ SLAPD_SLP_LIBS=
 dnl ================================================================
 dnl Checks for programs
 
+AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
@@ -821,7 +804,6 @@ AC_CHECK_HEADERS(	\
 	psap.h			\
 	pwd.h			\
 	process.h		\
-	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
 	stddef.h		\
@@ -840,7 +822,6 @@ AC_CHECK_HEADERS(	\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
-	sys/ucred.h		\
 	sys/uio.h		\
 	syslog.h		\
 	termios.h		\
@@ -849,6 +830,12 @@ AC_CHECK_HEADERS(	\
 	winsock2.h		\
 )
 
+AC_CHECK_HEADERS(sys/ucred.h,,,[#include <sys/types.h>])
+AC_CHECK_HEADERS(resolv.h,,,[
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+])
 
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
@@ -2331,7 +2318,7 @@ if test $ol_enable_proctitle != no ; then
 			[have_setproctitle=yes
 			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
 			[have_setproctitle=no
-			LIBOBJS="$LIBOBJS setproctitle.o"
+			AC_LIBOBJ([setproctitle])
 			LIBSRCS="$LIBSRCS setproctitle.c"])])
 
 	if test $have_setproctitle = yes ; then
@@ -2362,12 +2349,12 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
-AM_TYPE_PTRDIFF_T
+AC_CHECK_TYPES([ptrdiff_t, uintmax_t])
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 
-AC_CHECK_TYPE(ssize_t, [signed int])
-AC_CHECK_TYPE(caddr_t,	[char *])
+AC_CHECK_TYPES([ssize_t, signed int])
+AC_CHECK_TYPES([caddr_t, char *])
 
 OL_TYPE_SOCKLEN_T
 AC_STRUCT_ST_BLKSIZE
@@ -2897,48 +2884,47 @@ dnl ----------------------------------------------------------------
 dnl final output
 dnl
 
-AC_OUTPUT( \
-Makefile:build/top.mk:Makefile.in:build/dir.mk \
-doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
-doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
-doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk \
-doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
-doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
-doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
-clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
-clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
-include/Makefile:build/top.mk:include/Makefile.in \
-libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
-libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
-libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
-libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
-libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
-servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
-servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
-servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
-servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
-servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
-servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
-servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
-servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk \
-servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk \
-servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
-servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
-servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
-servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
-servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
-servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
-servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
-servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
-servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
-tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
-tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
-,[
-date > stamp-h
-echo Please run \"make depend\" to build dependencies
-])
+AC_CONFIG_FILES(Makefile:build/top.mk:Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk)
+AC_CONFIG_FILES(doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk)
+AC_CONFIG_FILES(doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk)
+AC_CONFIG_FILES(doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk)
+AC_CONFIG_FILES(clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk )
+AC_CONFIG_FILES(include/Makefile:build/top.mk:include/Makefile.in)
+AC_CONFIG_FILES(libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk)
+AC_CONFIG_FILES(libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk)
+AC_CONFIG_FILES(libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk)
+AC_CONFIG_FILES(libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk)
+AC_CONFIG_FILES(servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk)
+AC_CONFIG_FILES(servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk)
+AC_CONFIG_FILES(servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk)
+AC_CONFIG_FILES(servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk)
+AC_CONFIG_FILES(servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in)
+AC_CONFIG_FILES(servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk)
+AC_CONFIG_FILES(tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk)
+AC_CONFIG_FILES(tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk)
+
+AC_CONFIG_COMMANDS([time-stamp], [date >time-stamp
+echo Please run \"make depend\" to build dependencies])
+AC_OUTPUT
