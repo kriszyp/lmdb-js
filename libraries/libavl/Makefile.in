@@ -14,7 +14,7 @@ LDAP_LIBDIR= ../../libraries
 
 LIBRARY = libavl.a
 PROGRAMS	= testavl
-XLIBS = -lavl -llber
+XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA)
 
-testavl:	$(LIBRARY) testavl.o
+testavl:	$(XLIBS) testavl.o
 	$(LTLINK) -o $@ testavl.o $(LIBS)

@@ -13,13 +13,13 @@ XXSRCS	= ucdata.c ucgendat.c ure.c urestubs.c
 SRCS	= ucstr.c
 OBJS	= ucdata.o ure.o urestubs.o ucstr.o
 
-XLIB = -llunicode
+XLIB = $(LIBRARY)
 PROGRAMS = ucgendat
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-ucgendat: $(LIBRARY) ucgendat.o
+ucgendat: $(XLIBS) ucgendat.o
 	$(LTLINK) -o $@ ucgendat.o $(LIBS)
 	./ucgendat $(srcdir)/UnicodeData.txt -x $(srcdir)/CompositionExclusions.txt
 

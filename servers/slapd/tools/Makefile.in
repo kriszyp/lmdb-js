@@ -25,7 +25,7 @@ SLAPD_MODULES = @SLAPD_MODULES_LIST@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
-XLIBS = -lavl -lldif @LDBM_LIB@ -llutil -llunicode -lldap_r -llber
+XLIBS = $(SLAPD_L) $(LDBM_LIBS)
 XXLIBS = $(SLAPD_LIBS) \
 	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
@@ -55,16 +55,16 @@ build-progs: $(PROGRAMS)
 #
 # SLAP Tools
 #
-slapadd:	slapadd.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+slapadd:	slapadd.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
 	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) ../libbackends.a $(LIBS)
 
-slapcat:	slapcat.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+slapcat:	slapcat.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
 	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) ../libbackends.a $(LIBS)
 
-slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
 	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) ../libbackends.a $(LIBS)
 
-slappasswd:		slappasswd.o $(SLAPD_LIBDEPEND) 
+slappasswd:		slappasswd.o $(SLAPD_L) 
 	$(LTLINK) -o $@ slappasswd.o $(LIBS)
 
 clean-local: FORCE

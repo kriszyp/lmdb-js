@@ -12,6 +12,6 @@ OBJS		= ldbm.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS		= -lldbm -lavl
+XLIBS		= $(LIBRARY)
 XXLIBS		= $(LDBM_LIBS)
 

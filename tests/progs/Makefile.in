@@ -12,7 +12,7 @@ SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS    = -lldap -llber
+XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA)
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 # build-tools: FORCE
@@ -20,16 +20,16 @@ XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 # load-tools: $(PROGRAMS)
 
-slapd-tester: slapd-tester.o 
+slapd-tester: slapd-tester.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-tester.o $(LIBS)
 
-slapd-search: slapd-search.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+slapd-search: slapd-search.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-search.o $(LIBS)
 
-slapd-read: slapd-read.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+slapd-read: slapd-read.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-read.o $(LIBS)
 
-slapd-addel: slapd-addel.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+slapd-addel: slapd-addel.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-addel.o $(LIBS)
 
 

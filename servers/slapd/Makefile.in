@@ -46,8 +46,7 @@ SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
-# $(LTHREAD_LIBS) must be last
-XLIBS = libbackends.a -lavl @LDBM_LIB@ -lldif -llutil -llunicode -lldap_r -llber
+XLIBS = libbackends.a $(SLAPD_L)
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
@@ -59,7 +58,7 @@ all-local-srv: all-cffiles
 NT_SLAPD_DEPENDS = slapd.exp
 NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) version.o
 
-UNIX_SLAPD_DEPENDS = libbackends.a version.o
+UNIX_SLAPD_DEPENDS = libbackends.a version.o $(SLAP_L)
 UNIX_SLAPD_OBJECTS = $(OBJS) version.o
 
 SLAPD_DEPENDS = $(@PLAT@_SLAPD_DEPENDS)

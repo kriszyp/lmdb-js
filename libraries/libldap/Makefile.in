@@ -5,7 +5,6 @@
 ## Makefile.in for LDAP -lldap
 ##
 LIBRARY = libldap.la
-XLIBRARY = ../libldap.a
 
 PROGRAMS = apitest dntest ftest ltest
 
@@ -33,17 +32,17 @@ LDAP_LIBDIR= ../../libraries
 
 LIB_DEFS = -DLDAP_LIBRARY
 
-XLIBS = -lldap -llber -llutil
+XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
 XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
 
-apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
+apitest:	$(XLIBS) apitest.o
 	$(LTLINK) -o $@ apitest.o $(LIBS)
-dntest:	$(LIBRARY) dntest.o $(LDAP_LIBLBER_DEPEND)
+dntest:	$(XLIBS) dntest.o
 	$(LTLINK) -o $@ dntest.o $(LIBS)
-ftest:	$(LIBRARY) ftest.o $(LDAP_LIBLBER_DEPEND)
+ftest:	$(XLIBS) ftest.o
 	$(LTLINK) -o $@ ftest.o $(LIBS)
-ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
+ltest:	$(XLIBS) test.o
 	$(LTLINK) -o $@ test.o $(LIBS)
 
 CFFILES=ldap.conf ldapfilter.conf

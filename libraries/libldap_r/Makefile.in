@@ -5,7 +5,6 @@
 ## Makefile.in for LDAP -lldap
 ##
 LIBRARY = libldap_r.la
-XLIBRARY = ../libldap_r.a
 
 PROGRAMS = apitest ltest
 
@@ -41,10 +40,10 @@ LDAP_LIBDIR= ../../libraries
 LIB_DEFS = -DLDAP_LIBRARY
 
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
-XLIBS = -lldap_r -llber -llutil
+XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
 XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
-NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
+NT_LINK_LIBS = $(LDAP_LIBLBER_LA) $(AC_LIBS) $(SECURITY_LIBS)
 
 .links : Makefile
 	@for i in $(XXSRCS); do \
@@ -60,9 +59,9 @@ clean-local: FORCE
 
 depend-common: .links
 
-apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
+apitest:	$(XLIBS) apitest.o
 	$(LTLINK) -o $@ apitest.o $(LIBS)
-ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
+ltest:	$(XLIBS) test.o
 	$(LTLINK) -o $@ test.o $(LIBS)
 
 install-local: $(CFFILES) FORCE

@@ -9,8 +9,6 @@
 
 $(LIBRARY): version.o
 	$(AR) ru $@ $(OBJS) version.o
-	@$(RANLIB) $@;	\
-	$(RM) ../$@;	\
-	(d=`$(PWD)` ; cd .. ; $(LN_S) `$(BASENAME) $$d`/$@ $@)
+	@$(RANLIB) $@
 
 Makefile: $(top_srcdir)/build/lib-static.mk

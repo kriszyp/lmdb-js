@@ -6,7 +6,6 @@
 ##
 
 LIBRARY = liblber.la
-XLIBRARY = ../liblber.a
 
 NT_SRCS = nt_err.c
 NT_OBJS = nt_err.lo
@@ -24,15 +23,15 @@ PROGRAMS= dtest etest idtest
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries       
 
-XLIBS = -llber
+XLIBS = $(LIBRARY)
 XXLIBS = 
 NT_LINK_LIBS = $(AC_LIBS)
 
-dtest:    $(LIBRARY) dtest.o
+dtest:    $(XLIBS) dtest.o
 	$(LTLINK) -o $@ dtest.o $(LIBS)
-etest:  $(LIBRARY) etest.o
+etest:  $(XLIBS) etest.o
 	$(LTLINK) -o $@ etest.o $(LIBS)
-idtest:  $(LIBRARY) idtest.o
+idtest:  $(XLIBS) idtest.o
 	$(LTLINK) -o $@ idtest.o $(LIBS)
 
 install-local: FORCE

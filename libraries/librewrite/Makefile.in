@@ -19,9 +19,10 @@ LDAP_LIBDIR= ../../libraries
 
 LIBRARY = librewrite.a
 PROGRAMS	= rewrite
-XLIBS = -lrewrite -lavl -llutil -lldap_r -llber
+XLIBS = $(LIBRARY) $(LDAP_LIBAVL_A) $(LDAP_LIBLUTIL_A) \
+	$(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
 XXLIBS  = $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
-rewrite:	$(LIBRARY) rewrite.o parse.o
+rewrite:	$(XLIBS) rewrite.o parse.o
 	$(LTLINK) -o $@ rewrite.o parse.o $(LIBS)
