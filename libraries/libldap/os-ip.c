@@ -328,6 +328,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	ber_socket_t		s = AC_SOCKET_INVALID;
 	int			rc, i, use_hp = 0;
 	struct hostent		*hp = NULL;
+#if !defined( HAVE_GETADDRINFO ) || !defined( HAVE_INET_NTOP )
+	struct hostent he_buf;
+#endif
 	char   			*ha_buf=NULL, *p, *q;
 	int			socktype;
 
@@ -429,7 +432,6 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		struct in_addr in;
 		if (! inet_aton( host, &in) ) {
 			int local_h_errno;
-			struct hostent he_buf;
 			rc = ldap_pvt_gethostbyname_a(host, &he_buf, &ha_buf,
 					&hp, &local_h_errno);
 
