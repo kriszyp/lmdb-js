@@ -76,11 +76,13 @@ backsql_free_entryID( backsql_entryID *id, int freeit )
  */
 int
 backsql_dn2id(
-	backsql_info		*bi,
+	Operation		*op,
+	SlapReply		*rs,
 	backsql_entryID		*id,
 	SQLHDBC			dbh,
 	struct berval		*ndn )
 {
+	backsql_info		*bi = op->o_bd->be_private;
 	SQLHSTMT		sth; 
 	BACKSQL_ROW_NTS		row;
 	RETCODE 		rc;
@@ -223,16 +225,25 @@ backsql_dn2id(
 
 			ber_str2bv( row.cols[ 3 ], 0, 0, &dn );
 
-			res = dnPrettyNormal( NULL, &dn, &id->eid_dn, &id->eid_ndn, NULL );
-			if ( res != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_TRACE,
-					"<==backsql_dn2id(\"%s\"): "
-					"dnPrettyNormal failed (%d: %s)\n",
-					ndn->bv_val, res,
-					ldap_err2string( res ) );
+			if ( backsql_api_odbc2dn( op, rs, &dn ) ) {
+				res = LDAP_OTHER;
 
-				/* cleanup... */
-				(void)backsql_free_entryID( id, 0 );
+			} else {
+				res = dnPrettyNormal( NULL, &dn, &id->eid_dn, &id->eid_ndn, NULL );
+				if ( res != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"<==backsql_dn2id(\"%s\"): "
+						"dnPrettyNormal failed (%d: %s)\n",
+						ndn->bv_val, res,
+						ldap_err2string( res ) );
+
+					/* cleanup... */
+					(void)backsql_free_entryID( id, 0 );
+				}
+
+				if ( dn.bv_val != row.cols[ 3 ] ) {
+					free( dn.bv_val );
+				}
 			}
 
 			id->eid_next = NULL;

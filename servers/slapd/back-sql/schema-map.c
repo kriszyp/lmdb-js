@@ -874,7 +874,7 @@ backsql_free_attr( void *v_at )
 	if ( at->bam_delete_proc != NULL ) {
 		ch_free( at->bam_delete_proc );
 	}
-	if ( at->bam_query ) {
+	if ( at->bam_query != NULL ) {
 		ch_free( at->bam_query );
 	}
 

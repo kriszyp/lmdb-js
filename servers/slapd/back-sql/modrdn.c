@@ -64,7 +64,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( bi, &e_id, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup entry id (%d)\n",
@@ -191,7 +191,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			new_dn.bv_val, 0, 0 );
 
 	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( bi, &pe_id, dbh, &p_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &pe_id, dbh, &p_ndn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup old parent entry id\n", 0, 0, 0 );
@@ -212,7 +212,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	(void)backsql_free_entryID( &pe_id, 0 );
 
 	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( bi, &new_pe_id, dbh, new_npdn );
+	rs->sr_err = backsql_dn2id( op, rs, &new_pe_id, dbh, new_npdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup new parent entry id\n", 0, 0, 0 );

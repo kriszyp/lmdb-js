@@ -54,6 +54,7 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 	if ( ad == NULL ) {
 		ch_free( bsi->bsi_attrs );
 		bsi->bsi_attrs = NULL;
+		bsi->bsi_flags |= BSQL_SF_ALL_ATTRS;
 		return 1;
 	}
 
@@ -193,8 +194,7 @@ backsql_init_search(
 	if ( get_base_id ) {
 		assert( op->o_bd->be_private );
 
-		rc = backsql_dn2id( (backsql_info *)op->o_bd->be_private,
-				&bsi->bsi_base_id, dbh, nbase );
+		rc = backsql_dn2id( op, rs, &bsi->bsi_base_id, dbh, nbase );
 	}
 
 	return ( bsi->bsi_status = rc );

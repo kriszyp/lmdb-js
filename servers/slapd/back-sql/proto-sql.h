@@ -110,7 +110,7 @@ extern struct berval	backsql_baseObject_bv;
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 /* stores in *id the ID in table ldap_entries corresponding to DN, if any */
-int backsql_dn2id( backsql_info *bi, backsql_entryID *id,
+int backsql_dn2id( Operation *op, SlapReply *rs, backsql_entryID *id,
 		SQLHDBC dbh, struct berval *dn );
 
 /* stores in *nchildren the count of children for an entry */

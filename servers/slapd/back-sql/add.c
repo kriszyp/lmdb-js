@@ -60,11 +60,28 @@ backsql_modify_delete_all_values(
 	SQLHSTMT	asth;
 	BACKSQL_ROW_NTS	row;
 
+	assert( at );
+	if ( at->bam_delete_proc == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_modify_delete_all_values(): "
+			"missing attribute value delete procedure "
+			"for attr \"%s\"\n",
+			at->bam_ad->ad_cname.bv_val, 0, 0 );
+		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+			rs->sr_text = "SQL-backend error";
+			return rs->sr_err = LDAP_OTHER;
+		}
+
+		return LDAP_SUCCESS;
+	}
+
 	rc = backsql_Prepare( dbh, &asth, at->bam_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
-			"error preparing query\n", 0, 0, 0 );
+			"error preparing attribute value select query "
+			"\"%s\"\n",
+			at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
 
@@ -79,7 +96,8 @@ backsql_modify_delete_all_values(
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
-			"error binding key value parameter\n",
+			"error binding key value parameter "
+			"to attribute value select query\n",
 			0, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
@@ -97,7 +115,7 @@ backsql_modify_delete_all_values(
 	if ( !BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
-			"error executing attribute query\n",
+			"error executing attribute value select query\n",
 			0, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
@@ -130,7 +148,9 @@ backsql_modify_delete_all_values(
 			if ( rc != SQL_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_delete_all_values(): "
-					"error preparing query %s\n",
+					"error preparing attribute value "
+					"delete procedure "
+					"\"%s\"\n",
 					at->bam_delete_proc, 0, 0 );
 				backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
@@ -1008,7 +1028,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realndn );
+	rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realndn );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"entry exists\n",
@@ -1037,7 +1057,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_dn2id( bi, &parent_id, dbh, &realpdn );
+	rs->sr_err = backsql_dn2id( op, rs, &parent_id, dbh, &realpdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not lookup parent entry for new record \"%s\"\n",
@@ -1086,7 +1106,7 @@ backsql_add( Operation *op, SlapReply *rs )
 					goto done;
 				}
 	
-				rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realpdn );
+				rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realpdn );
 				switch ( rs->sr_err ) {
 				case LDAP_NO_SUCH_OBJECT:
 					if ( !BER_BVISEMPTY( &pdn ) ) {

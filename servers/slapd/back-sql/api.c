@@ -66,7 +66,7 @@ backsql_api_register( backsql_api *ba )
 	for ( ba2 = backsqlapi; ba2; ba2 = ba2->ba_next ) {
 		if ( strcasecmp( ba->ba_name, ba2->ba_name ) == 0 ) {
 			fprintf( stderr, "API module \"%s\" already defined\n", ba->ba_name );
-			exit(EXIT_FAILURE);
+			exit( EXIT_FAILURE );
 		}
 	}
 
