@@ -334,19 +334,22 @@ case "$target" in
 ;;
 esac
 
-if test -z "${CC}" -a $ol_aix_threads = yes ; then
-	AC_CHECK_PROGS(CC,cc_r xlc_r cc)
+if test $ol_aix_threads = yes ; then
+	if test -z "${CC}" ; then
+		AC_CHECK_PROGS(CC,cc_r xlc_r cc)
 
-	if test "$CC" = cc ; then
-		dnl no CC! don't allow --with-threads
-		if test $ol_with_threads != auto ; then
-			AC_MSG_ERROR([--with-threads requires cc_r (or other suitable compiler) on AIX])
-		else
-			AC_MSG_WARN([disabling threads, no cc_r on AIX])
-		fi
-		ol_with_threads=no
+		if test "$CC" = cc ; then
+			dnl no CC! don't allow --with-threads
+			if test $ol_with_threads != auto ; then
+				AC_MSG_ERROR([--with-threads requires cc_r (or other suitable compiler) on AIX])
+			else
+				AC_MSG_WARN([disabling threads, no cc_r on AIX])
+			fi
+			ol_with_threads=no
+  		fi
+	fi
 
-	elif test "$CC" ; then
+	if test "${CC}" = "cc_r" -o "${CC}" = "xlc_r" ; then
 		ol_with_threads=posix
 		ol_cv_pthread_create=yes
 	fi
