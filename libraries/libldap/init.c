@@ -439,7 +439,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	{
-		char hostbuf[MAXHOSTNAMELEN+1];
+		static char hostbuf[MAXHOSTNAMELEN+1];
 		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
 			hostbuf[MAXHOSTNAMELEN] = '\0';
 			ldap_int_hostname = hostbuf;
