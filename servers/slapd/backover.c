@@ -77,6 +77,48 @@ over_db_config(
 		be->bd_info = oi->oi_orig;
 		rc = oi->oi_orig->bi_db_config( be, fname, lineno,
 			argc, argv );
+
+		if ( be->bd_info != oi->oi_orig ) {
+			slap_overinfo	*oi2;
+			slap_overinst	*on2, **onp;
+			BackendDB	be2 = *be;
+			int		i;
+
+			/* a database added an overlay;
+			 * work it around... */
+			assert( overlay_is_over( be ) );
+			
+			oi2 = ( slap_overinfo * )be->bd_info->bi_private;
+			on2 = oi2->oi_list;
+
+			/* need to put a uniqueness check here as well;
+			 * note that in principle there could be more than
+			 * one overlay as a result of multiple calls to
+			 * overlay_config() */
+			be2.bd_info = (BackendInfo *)oi;
+
+			for ( i = 0, onp = &on2; *onp; i++, onp = &(*onp)->on_next ) {
+				if ( overlay_is_inst( &be2, (*onp)->on_bi.bi_type ) ) {
+					Debug( LDAP_DEBUG_ANY, "over_db_config(): "
+							"warning, freshly added "
+							"overlay #%d \"%s\" is already in list\n",
+							i, (*onp)->on_bi.bi_type, 0 );
+
+					/* NOTE: if the overlay already exists,
+					 * there is no way to merge the results
+					 * of the configuration that may have 
+					 * occurred during bi_db_config(); we
+					 * just issue a warning, and the 
+					 * administrator should deal with this */
+				}
+			}
+			*onp = oi->oi_list;
+
+			oi->oi_list = on2;
+
+			ch_free( be->bd_info );
+		}
+
 		be->bd_info = (BackendInfo *)oi;
 		if ( rc != SLAP_CONF_UNKNOWN ) return rc;
 	}
@@ -404,8 +446,8 @@ overlay_config( BackendDB *be, const char *ov )
 	BackendInfo *bi = NULL;
 
 	on = overlay_find( ov );
-	if (!on) {
-		Debug( LDAP_DEBUG_ANY, "overlay %s not found\n", ov, 0, 0 );
+	if ( !on ) {
+		Debug( LDAP_DEBUG_ANY, "overlay \"%s\" not found\n", ov, 0, 0 );
 		return 1;
 	}
 
@@ -413,7 +455,7 @@ overlay_config( BackendDB *be, const char *ov )
 	 * overlay info structure
 	 */
 	if ( !overlay_is_over( be ) ) {
-		oi = ch_malloc( sizeof(slap_overinfo) );
+		oi = ch_malloc( sizeof( slap_overinfo ) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
 
@@ -457,6 +499,12 @@ overlay_config( BackendDB *be, const char *ov )
 		be->bd_info = bi;
 
 	} else {
+		if ( overlay_is_inst( be, ov ) ) {
+			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
+					"warning, overlay \"%s\" "
+					"already in list\n", ov, 0, 0 );
+		}
+
 		oi = be->bd_info->bi_private;
 	}
 

@@ -265,7 +265,7 @@ ldap_back_db_config(
 			|| strcasecmp( argv[0], "map" ) == 0
 			|| strncasecmp( argv[0], "rewrite", STRLENOF( "rewrite" ) ) == 0 )
 	{
-		if ( li->rwm_started == 0 && !overlay_is_inst( be, "rwm" ) ) {
+		if ( li->rwm_started == 0 ) {
 			if ( overlay_config( be, "rwm" ) ) {
 				fprintf( stderr, "%s: line %d: "
 					"unable to configure the \"rwm\" "
