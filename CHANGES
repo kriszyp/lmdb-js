@@ -1,7 +1,8 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.18 Engineering
+OpenLDAP 2.0.18 Release
 	Fixed -llber ber_bvecadd bug (ITS#1398)
+	Fixed slap tools replica config bug (ITS#1385)
 	Build environment
 		Updated req_query detection
 
