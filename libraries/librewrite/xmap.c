@@ -259,7 +259,7 @@ rewrite_xmap_apply(
 			ldap_pvt_thread_mutex_unlock( &xpasswd_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
-			rc = REWRITE_NO_SUCH_OBJECT;
+			rc = LDAP_NO_SUCH_OBJECT;
 			break;
 		}
 

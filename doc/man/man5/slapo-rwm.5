@@ -188,15 +188,15 @@ n
 as return code if the rule matches; the flag does not alter the recursive
 behavior of the rule, so, to have it performed only once, it must be used 
 in combination with `:', e.g.
-.B `:U{16}'
-returns the value `16' after exactly one execution of the rule, if the
-pattern matches.
+.B `:U{32}'
+returns the value `32' (indicating noSuchObject) after exactly 
+one execution of the rule, if the pattern matches.
 As a consequence, its behavior is equivalent to `@', with the return
 code set to
 .BR n ;
 or, in other words, `@' is equivalent to `U{0}'.
-By convention, the freely available codes are above 16 included;
-the others are reserved.
+Positive errors are allowed, indicating the related LDAP error codes
+as specified in \fIdraft-ietf-ldapbis-protocol\fP.
 .LP
 The ordering of the flags can be significant.
 For instance: `IG{2}' means ignore errors and jump two lines ahead
@@ -400,26 +400,29 @@ rwm-rewriteEngine on
 rwm-rewriteEngine on
 # all dataflow from client to server referring to DNs
 rwm-rewriteContext default
-rwm-rewriteRule "(.*)<virtualnamingcontext>$" "$1<realnamingcontext>" ":"
+rwm-rewriteRule "(.+,)?<virtualnamingcontext>$" "$1<realnamingcontext>" ":"
 # empty filter rule
 rwm-rewriteContext searchFilter
 # all dataflow from server to client
 rwm-rewriteContext searchEntryDN
-rwm-rewriteRule "(.*)<realnamingcontext>$" "$1<virtualnamingcontext>" ":"
+rwm-rewriteRule "(.+,)?<realnamingcontext>$" "$1<virtualnamingcontext>" ":"
 rwm-rewriteContext searchAttrDN alias searchEntryDN
 rwm-rewriteContext matchedDN alias searchEntryDN
+# misc empty rules
+rwm-rewriteContext referralAttrDN
+rwm-rewriteContext referralDN
 
 # Everything defined here goes into the `default' context.
 # This rule changes the naming context of anything sent
 # to `dc=home,dc=net' to `dc=OpenLDAP, dc=org'
 
-rwm-rewriteRule "(.*)dc=home,[ ]?dc=net$"
+rwm-rewriteRule "(.+,)?dc=home,[ ]?dc=net$"
             "$1dc=OpenLDAP, dc=org"  ":"
 
 # since a pretty/normalized DN does not include spaces
 # after rdn separators, e.g. `,', this rule suffices:
 
-rwm-rewriteRule "(.*)dc=home,dc=net$"
+rwm-rewriteRule "(.+,)?dc=home,dc=net$"
             "$1dc=OpenLDAP,dc=org"  ":"
 
 # Start a new context (ends input of the previous one).
