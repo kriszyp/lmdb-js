@@ -63,8 +63,13 @@ slurpd_read_config(
     int		cargc;
     char	*cargv[MAXARGS];
 
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_ARGS, 
+	"slurpd_read_config: Config: opening config file \"%s\"\n", fname ));
+#else
     Debug( LDAP_DEBUG_CONFIG, "Config: opening config file \"%s\"\n",
 	    fname, 0, 0 );
+#endif
 
     if ( (fp = fopen( fname, "r" )) == NULL ) {
 	perror( fname );
@@ -78,7 +83,12 @@ slurpd_read_config(
 	    continue;
 	}
 
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_DETAIL1, 
+		"slurpd_read_config: Config: (%s)\n", line ));
+#else
 	Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
+#endif
 
 	parse_line( line, &cargc, cargv );
 
@@ -142,9 +152,15 @@ slurpd_read_config(
 	}
     }
     fclose( fp );
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+		"slurpd_read_config: Config: "
+		"** configuration file successfully read and parsed\n" ));
+#else
     Debug( LDAP_DEBUG_CONFIG,
 	    "Config: ** configuration file successfully read and parsed\n",
 	    0, 0, 0 );
+#endif
     return 0;
 }
 
@@ -313,11 +329,19 @@ add_replica(
 	sglob->replicas[ nr - 1] = NULL;
 	sglob->num_replicas--;
     } else {
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+		"add_replica: Config: ** successfully added replica \"%s%d\"\n", 
+		sglob->replicas[ nr - 1 ]->ri_hostname == NULL ?
+		"(null)" : sglob->replicas[ nr - 1 ]->ri_hostname,
+		sglob->replicas[ nr - 1 ]->ri_port, 0 ));
+#else
 	Debug( LDAP_DEBUG_CONFIG,
 		"Config: ** successfully added replica \"%s:%d\"\n",
 		sglob->replicas[ nr - 1 ]->ri_hostname == NULL ?
 		"(null)" : sglob->replicas[ nr - 1 ]->ri_hostname,
 		sglob->replicas[ nr - 1 ]->ri_port, 0 );
+#endif
 	sglob->replicas[ nr - 1]->ri_stel =
 		sglob->st->st_add( sglob->st,
 		sglob->replicas[ nr - 1 ] );
