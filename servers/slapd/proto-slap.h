@@ -218,8 +218,6 @@ void send_ldap_result LDAP_P(( Connection *conn, Operation *op, int err, char *m
 void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
 	char *matched, char *text, int nentries ));
 
-void do_close( Connection *conn, long opid );
-
 /*
  * schema.c
  */
