@@ -147,7 +147,6 @@ Ri_wake(
 	return;
     }
     ldap_pvt_thread_kill( ri->ri_tid, LDAP_SIGUSR1 );
-    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 }
 
 
