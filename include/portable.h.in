@@ -127,9 +127,6 @@
 /* define if you have crypt */
 #undef HAVE_CRYPT
 
-/* define if MDBM is available */
-#undef HAVE_MDBM
-
 /* define if you have GDBM */
 #undef HAVE_GDBM
 
@@ -579,6 +576,9 @@
 
 /* define if you have (or want) no threads */
 #undef NO_THREADS
+
+/* define if MDBM is available */
+#undef HAVE_MDBM
 
 /* define if you have -lwrap */
 #undef HAVE_TCPD
