@@ -573,7 +573,12 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_authPassword) },
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	{ "krbName", NULL,
+	{ "krbName", "( 1.3.6.1.4.1.250.1.32 "
+			"NAME ( 'krbName' 'kerberosName' ) "
+			"DESC 'Kerberos principal associated with object' "
+			"EQUALITY caseIgnoreIA5Match "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 "
+			"SINGLE-VALUE )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
