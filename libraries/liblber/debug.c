@@ -21,6 +21,7 @@
 #include "ldap_log.h"
 #include "ldap_defaults.h"
 #include "lber.h"
+#include "ldap_pvt.h"
 
 struct DEBUGLEVEL
 {
@@ -74,7 +75,7 @@ int lutil_mnem2subsys( const char *subsys )
 	    	return i;
 		}
     }
-    return 0;
+    return -1;
 }
 
 void lutil_set_all_backends( level )
@@ -100,26 +101,38 @@ int lutil_mnem2level( const char *level )
 	    return i;
 	}
     }
-    return 0;
+    return -1;
 }
 
-static void addSubsys( const char *subsys, int level )
+static int addSubsys( const char *subsys, int level )
 {
 	int i, j, subsys_num;
 
 	if ( !strcasecmp( subsys, "backend" ) )
+	{
 		lutil_set_all_backends( level );
+		return level;
+	}
 	else
 	{
 		subsys_num = lutil_mnem2subsys(subsys);
+		if(subsys_num < 0)
+		{
+			fprintf(stderr, "Unknown Subsystem name [ %s ] - Discarded\n", 
+				subsys);
+			fflush(stderr);
+			return -1;
+		}
+
 		ldap_loglevels[subsys_num] = level;
+		return level;
 	}
-	return;
+	return -1;
 }
 
-void lutil_set_debug_level( const char* subsys, int level )
+int lutil_set_debug_level( const char* subsys, int level )
 {
-    addSubsys( subsys, level );
+    return( addSubsys( subsys, level ) );
 }
 
 int lutil_debug_file( FILE *file )
