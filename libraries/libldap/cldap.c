@@ -297,7 +297,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
     Debug( LDAP_DEBUG_TRACE,
 	    "cldap_result waiting up to %d seconds for a response\n",
 	    tv.tv_sec, 0, 0 );
-    ber_init( &ber, 0 );
+    ber_init_w_nullc( &ber, 0 );
     ldap_set_ber_options( ld, &ber );
 
     if ( cldap_getmsg( ld, &tv, &ber ) == -1 ) {

@@ -161,7 +161,7 @@ LDAP_F void ber_dump LDAP_P(( BerElement *ber, int inout ));
 LDAP_F void ber_sos_dump LDAP_P(( Seqorset *sos ));
 LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,
 	BerElement *ber ));
-LDAP_F void ber_init LDAP_P(( BerElement *ber, int options ));
+LDAP_F void ber_init_w_nullc LDAP_P(( BerElement *ber, int options ));
 LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
 
 LDAP_END_DECL

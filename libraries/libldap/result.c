@@ -274,7 +274,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
 
-	ber_init( &ber, 0 );
+	ber_init_w_nullc( &ber, 0 );
 	ldap_set_ber_options( ld, &ber );
 
 	/* get the next message */
@@ -516,7 +516,7 @@ build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 	unsigned long	len;
 	long		along;
 
-	ber_init( ber, 0 );
+	ber_init_w_nullc( ber, 0 );
 	ldap_set_ber_options( ld, ber );
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
 	    (long)lr->lr_res_msgtype, lr->lr_res_errno,
