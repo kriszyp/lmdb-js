@@ -10,7 +10,7 @@ dnl
 dnl Configure.in for OpenLDAP
 AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
-AM_INIT_AUTOMAKE(openldap,[1.2], [no ac_define])dnl
+AM_INIT_AUTOMAKE(openldap,[1.1], [no ac_define])dnl
 
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
