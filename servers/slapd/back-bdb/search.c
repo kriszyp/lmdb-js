@@ -361,6 +361,14 @@ int bdb_search( Operation *op, SlapReply *rs )
 	return bdb_do_search( op, rs, op, NULL, 0 );
 }
 
+int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
+	Entry *ps_e, int ps_type )
+{
+	sop->o_private = op->o_private;
+	bdb_do_search( op, rs, sop, ps_e, ps_type );
+	sop->o_private = NULL;
+}
+
 /* For persistent searches, op is the currently executing operation,
  * sop is the persistent search. For regular searches, sop = op.
  */
