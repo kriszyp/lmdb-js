@@ -352,7 +352,7 @@ send_ldap_response(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"send_ldap_response: conn %lu ber write failed\n",
-			op->o_connid : 0, 0, 0 );
+			op->o_connid ? op->o_connid : 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"send_ldap_response: ber write failed\n",
@@ -708,7 +708,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
 					"send_search_entry: conn %lu sl_calloc failed\n",
-					op->o_connid : 0, 0, 0 );
+					op->o_connid ? op->o_connid : 0, 0, 0 );
 #else
 		    	Debug( LDAP_DEBUG_ANY, 
 					"send_search_entry: sl_calloc failed\n", 0, 0, 0 );
@@ -731,7 +731,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
 					"send_search_entry: conn %lu matched values filtering failed\n",
-					op->o_connid : 0, 0, 0 );
+					op->o_connid ? op->o_connid : 0, 0, 0 );
 #else
 		    	Debug( LDAP_DEBUG_ANY,
 					"matched values filtering failed\n", 0, 0, 0 );
@@ -918,7 +918,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				LDAP_LOG( OPERATION, ERR, 
 					"send_search_entry: conn %lu "
 					"matched values filtering failed\n", 
-					op->o_connid : 0, 0, 0);
+					op->o_connid ? op->o_connid : 0, 0, 0);
 #else
 			    	Debug( LDAP_DEBUG_ANY,
 					"matched values filtering failed\n", 0, 0, 0 );

@@ -139,7 +139,7 @@ ldbm_back_delete(
 		if( (p = dn2entry_w( op->o_bd, &pdn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_back_delete: parent of (%s) does not exist\n", op->o_req_dn. 0, 0 );
+				"ldbm_back_delete: parent of (%s) does not exist\n", op->o_req_dn, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
@@ -201,7 +201,7 @@ ldbm_back_delete(
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, ERR, 
 					"ldbm_back_delete: (%s) has no "
-					"parent & not a root.\n", dn, 0, 0 );
+					"parent & not a root.\n", op->o_ndn, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- ldbm_back_delete: no parent & "

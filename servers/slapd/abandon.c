@@ -46,7 +46,7 @@ do_abandon( Operation *op, SlapReply *rs )
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"conn: %d do_abandon: ber_scanf failed\n", conn->c_connid, 0, 0 );
+			"conn: %d do_abandon: ber_scanf failed\n", op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
 #endif

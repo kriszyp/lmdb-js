@@ -111,7 +111,7 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR, 
 			"ldbm_back_modrdn: no write access to entry of (%s)\n", 
-			dn->bv_val, 0, 0 );
+			op->o_req_dn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- ldbm_back_modrdn: no write access to entry\n", 0,
@@ -261,7 +261,7 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, ERR, 
 					"ldbm_back_modrdn: (%s) has no parent & not a root.\n", 
-					dn, 0, 0 );
+					op->o_ndn, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- ldbm_back_modrdn: no parent & "
