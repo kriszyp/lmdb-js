@@ -603,11 +603,11 @@ int slap_sasl_close( Connection *conn )
 int slap_sasl_bind(
     Connection		*conn,
     Operation		*op,  
-    const char		*dn,  
-    const char		*ndn,
+    struct berval	*dn,  
+    struct berval	*ndn,
     struct berval	*cred,
-	char				**edn,
-	slap_ssf_t			*ssfp )
+	char			**edn,
+	slap_ssf_t		*ssfp )
 {
 	int rc = 1;
 
@@ -620,15 +620,17 @@ int slap_sasl_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%ld\n",
-		   conn->c_connid, dn,
-		   conn->c_sasl_bind_in_progress ? "<continuing>" : conn->c_sasl_bind_mech,
-		   cred ? cred->bv_len : 0 ));
+		"sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%ld\n",
+		conn->c_connid,
+		dn->bv_len ? dn->bv_val : "",
+		conn->c_sasl_bind_in_progress ? "<continuing>" : conn->c_sasl_bind_mech,
+		cred ? cred->bv_len : 0 ));
 #else
 	Debug(LDAP_DEBUG_ARGS,
-	  "==> sasl_bind: dn=\"%s\" mech=%s datalen=%ld\n", dn,
-	  conn->c_sasl_bind_in_progress ? "<continuing>":conn->c_sasl_bind_mech,
-	  cred ? cred->bv_len : 0 );
+		"==> sasl_bind: dn=\"%s\" mech=%s datalen=%ld\n",
+		dn->bv_len ? dn->bv_val : "",
+		conn->c_sasl_bind_in_progress ? "<continuing>":conn->c_sasl_bind_mech,
+		cred ? cred->bv_len : 0 );
 #endif
 
 
@@ -662,7 +664,7 @@ int slap_sasl_bind(
 		if ( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-				   "slap_sasl_bind: getprop(USERNAME) failed: %d\n", sc ));
+				"slap_sasl_bind: getprop(USERNAME) failed: %d\n", sc ));
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"slap_sasl_bind: getprop(USERNAME) failed!\n",
@@ -722,7 +724,7 @@ int slap_sasl_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_bind: rc=%d\n", rc ));
+		"slap_sasl_bind: rc=%d\n", rc ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: rc=%d\n", rc, 0, 0);
 #endif

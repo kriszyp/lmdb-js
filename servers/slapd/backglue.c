@@ -776,7 +776,7 @@ int
 glue_sub_init( )
 {
 	int i, j;
-	int cont = num_subs;
+	int cont = num_subordinates;
 	BackendDB *b1, *be;
 	BackendInfo *bi;
 	glueinfo *gi;

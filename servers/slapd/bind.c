@@ -292,7 +292,7 @@ do_bind(
 
 		edn = NULL;
 		rc = slap_sasl_bind( conn, op,
-			pdn->bv_val, ndn->bv_val,
+			pdn, ndn,
 			&cred, &edn, &ssf );
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );

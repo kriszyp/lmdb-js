@@ -48,7 +48,7 @@ char		*ldap_srvtab = "";
 char		*default_passwd_hash;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
-int		num_subs = 0;
+unsigned		num_subordinates = 0;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -863,7 +863,7 @@ read_config( const char *fname )
 #endif
 			} else {
 				be->be_glueflags |= SLAP_GLUE_SUBORDINATE;
-				num_subs++;
+				num_subordinates++;
 			}
 
 		/* set database suffix */

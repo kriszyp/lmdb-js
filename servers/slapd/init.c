@@ -45,15 +45,14 @@ ldap_pvt_thread_mutex_t	gmtime_mutex;
 ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
 
-int				num_conns;
-long			num_ops_initiated;
-long			num_ops_completed;
+unsigned long			num_ops_initiated;
+unsigned long			num_ops_completed;
 ldap_pvt_thread_mutex_t	num_ops_mutex;
 
-long			num_entries_sent;
-long			num_refs_sent;
-long			num_bytes_sent;
-long			num_pdu_sent;
+unsigned long			num_entries_sent;
+unsigned long			num_refs_sent;
+unsigned long			num_bytes_sent;
+unsigned long			num_pdu_sent;
 ldap_pvt_thread_mutex_t	num_sent_mutex;
 /*
  * these mutexes must be used when calling the entry2str()

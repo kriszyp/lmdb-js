@@ -375,6 +375,7 @@ LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 
 #define SLAP_DN_MIGRATION
 #ifdef SLAP_DN_MIGRATION
+	/* These routines are deprecated!!! */
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
@@ -462,15 +463,18 @@ LDAP_SLAPD_F (void) filter_print LDAP_P(( Filter *f ));
  */
 
 LDAP_SLAPD_F (int) test_filter LDAP_P((
-	Backend *be, Connection *conn, Operation *op, Entry *e, Filter	*f ));
+	Backend *be, Connection *conn, Operation *op,
+	Entry *e, Filter *f ));
 
 /*
  * limits.c
  */
 LDAP_SLAPD_F (int) get_limits LDAP_P((
-	Backend *be, struct berval *ndn, struct slap_limits_set **limit ));
+	Backend *be, struct berval *ndn,
+	struct slap_limits_set **limit ));
 LDAP_SLAPD_F (int) parse_limits LDAP_P((
-	Backend *be, const char *fname, int lineno, int argc, char **argv ));
+	Backend *be, const char *fname, int lineno,
+	int argc, char **argv ));
 LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg, 
 	struct slap_limits_set *limit ));
 
@@ -664,7 +668,7 @@ LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
 
 LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
-	const char *dn, const char *ndn,
+	struct berval *dn, struct berval *ndn,
 	struct berval *cred,
 	char **edn, slap_ssf_t *ssf ));
 
@@ -935,7 +939,7 @@ LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
 
-LDAP_SLAPD_V(int) num_subs;
+LDAP_SLAPD_V(unsigned) num_subordinates;
 
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
@@ -968,14 +972,14 @@ LDAP_SLAPD_V (int)		nSaslRegexp;
 LDAP_SLAPD_V (SaslRegexp_t*) SaslRegexp;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
-LDAP_SLAPD_V (long)		num_bytes_sent;
-LDAP_SLAPD_V (long)		num_pdu_sent;
-LDAP_SLAPD_V (long)		num_entries_sent;
-LDAP_SLAPD_V (long)		num_refs_sent;
+LDAP_SLAPD_V (unsigned long)		num_bytes_sent;
+LDAP_SLAPD_V (unsigned long)		num_pdu_sent;
+LDAP_SLAPD_V (unsigned long)		num_entries_sent;
+LDAP_SLAPD_V (unsigned long)		num_refs_sent;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_ops_mutex;
-LDAP_SLAPD_V (long)		num_ops_completed;
-LDAP_SLAPD_V (long)		num_ops_initiated;
+LDAP_SLAPD_V (unsigned long)		num_ops_completed;
+LDAP_SLAPD_V (unsigned long)		num_ops_initiated;
 
 LDAP_SLAPD_V (char *)		slapd_pid_file;
 LDAP_SLAPD_V (char *)		slapd_args_file;
@@ -1017,9 +1021,6 @@ LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wake));
 
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
-
-LDAP_SLAPD_F (int) config_info LDAP_P((
-	Entry **e, const char **text ));
 
 LDAP_SLAPD_F (int) root_dse_info LDAP_P((
 	Connection *conn,
