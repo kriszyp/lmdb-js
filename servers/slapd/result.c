@@ -1289,6 +1289,8 @@ slap_send_search_entry(
 			}
 		}
 		slapi_x_attrset_free( &vattrs );
+		slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, NULL );
+		slapi_pblock_set( pb, SLAPI_PLUGIN_OPATTR_COALESCE_DATA, NULL );
 	}
 #endif /* LDAP_SLAPI */
 
