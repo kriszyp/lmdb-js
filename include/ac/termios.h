@@ -13,7 +13,8 @@
 #define GETFLAGS( tio )		((tio).c_lflag)
 #define SETFLAGS( tio, flags )	((tio).c_lflag = (flags))
 
-#elif defined( HAVE_SGTTY_H )
+#else /* !HAVE_TERMIOS_H */
+#if defined( HAVE_SGTTY_H )
 #include <sgtty.h>
 
 #ifdef HAVE_SYS_IOCTL_H
@@ -28,5 +29,6 @@
 #define SETFLAGS( tio, flags )  ((tio).sg_flags = (flags))
 
 #endif /* HAVE_SGTTY_H */
+#endif /* HAVE_TERMIOS_H */
 
 #endif /* _AC_TERMIOS_H */

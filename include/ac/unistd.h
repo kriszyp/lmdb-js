@@ -22,15 +22,17 @@
 #if HAVE_GETOPT_H
 #	include <getopt.h>
 
-#elif !defined(HAVE_GETOPT)
+#else
+#  if !defined(HAVE_GETOPT)
 	/* no getopt, assume we need getopt-compat.h */
 #	include <getopt-compat.h>
 
-#else
+#  else
 	/* assume we need to declare these externs */
 	extern char *optarg;
 	extern int optind, opterr, optopt;
-#endif
+#  endif
+#endif /* HAVE_GETOPT_H */
 
 #ifndef HAVE_TEMPNAM
 	extern char *tempnam(const char *tmpdir, const char *prefix);

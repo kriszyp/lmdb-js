@@ -24,11 +24,13 @@
 #endif
 
 #ifdef HAVE_WINSOCK2
-#include <winsock2.h>
-#elif HAVE_WINSOCK
-#include <winsock.h>
+# include <winsock2.h>
 #else
-#define WSACleanup()
+# if HAVE_WINSOCK
+#  include <winsock.h>
+# else
+#  define WSACleanup()
+# endif
 #endif
 
 #ifdef HAVE_PCNFS

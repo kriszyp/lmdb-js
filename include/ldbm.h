@@ -57,7 +57,9 @@ typedef DB	*LDBM;
 #define LDBM_REPLACE	0
 #define LDBM_SYNC	0x80000000
 
-#elif defined( LDBM_USE_DBHASH )
+/* Do not use #elif.  K&R does not support it. */
+#else /* !LDBM_USE_DBBTREE */
+#ifdef LDBM_USE_DBHASH
 
 /*****************************************************************
  *                                                               *
@@ -108,7 +110,8 @@ typedef DB	*LDBM;
 #define LDBM_REPLACE	0
 #define LDBM_SYNC	0x80000000
 
-#elif defined( HAVE_GDBM )
+#else /* !LDBM_USE_DBHASH */
+#ifdef HAVE_GDBM
 
 /*****************************************************************
  *                                                               *
@@ -139,7 +142,8 @@ extern gdbm_error	gdbm_errno;
 #define LDBM_SYNC	0x80000000
 
 
-#elif defined( HAVE_NDBM )
+#else /* !HAVE_GDBM */
+#ifdef HAVE_NDBM
 
 /*****************************************************************
  *                                                               *
@@ -171,7 +175,10 @@ typedef DBM	*LDBM;
 #define LDBM_REPLACE	DBM_REPLACE
 #define LDBM_SYNC	0
 
-#endif
+#endif /* HAVE_NDBM */
+#endif /* HAVE_GDBM */
+#endif /* LDBM_USE_DBHASH */
+#endif /* LDBM_USE_DBBTREE */
 
 int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
