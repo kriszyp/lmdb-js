@@ -1,3 +1,4 @@
+/*  ldap-int.h - defines & prototypes internal to the LDAP library */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -6,8 +7,6 @@
 /*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
- *
- *  ldap-int.h - defines & prototypes internal to the LDAP library
  */
 
 #ifndef	_LDAP_INT_H
@@ -58,17 +57,16 @@ LDAP_BEGIN_DECL
 #define LDAPS_URL_PREFIX_LEN	(sizeof(LDAPS_URL_PREFIX)-1)
 #define LDAPI_URL_PREFIX	"ldapi://"
 #define LDAPI_URL_PREFIX_LEN	(sizeof(LDAPI_URL_PREFIX)-1)
-#define LDAPIS_URL_PREFIX	"ldapis://"
-#define LDAPIS_URL_PREFIX_LEN	(sizeof(LDAPIS_URL_PREFIX)-1)
 #define LDAP_URL_URLCOLON		"URL:"
 #define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
-#define NULLLDAPURLDESC ((LDAPURLDesc *)NULL)
+
+#define CLDAP_URL_PREFIX         "cldap://"
+#define CLDAP_URL_PREFIX_LEN     (sizeof(CLDAP_URL_PREFIX)-1)
 
 #define LDAP_REF_STR		"Referral:\n"
 #define LDAP_REF_STR_LEN	(sizeof(LDAP_REF_STR)-1)
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
-#define LDAP_LDAP_REF_STR_LEN	(sizeof(LDAP_LDAP_REF_STR)-1)
-
+#define LDAP_LDAP_REF_STR_LEN	LDAP_URL_PREFIX_LEN
 
 #define LDAP_DEFAULT_REFHOPLIMIT 5
 
@@ -78,8 +76,8 @@ LDAP_BEGIN_DECL
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	(1 << (n))
-#define LDAP_BOOL_GET(lo, bool)	((lo)->ldo_booleans & LDAP_BOOL(bool) \
-									?  -1 : 0)
+#define LDAP_BOOL_GET(lo, bool)	\
+	((lo)->ldo_booleans & LDAP_BOOL(bool) ? -1 : 0)
 #define LDAP_BOOL_SET(lo, bool) ((lo)->ldo_booleans |= LDAP_BOOL(bool))
 #define LDAP_BOOL_CLR(lo, bool) ((lo)->ldo_booleans &= ~LDAP_BOOL(bool))
 #define LDAP_BOOL_ZERO(lo) ((lo)->ldo_booleans = 0)
@@ -134,8 +132,8 @@ struct ldapoptions {
 	/* LDAPv3 server and client controls */
 	LDAPControl	**ldo_sctrls;
 	LDAPControl **ldo_cctrls;
-	/* LDAPV3 rebind callback function
-	*/
+
+	/* LDAP rebind callback function */
 	LDAP_REBIND_PROC		*ldo_rebindproc;
 
 #ifdef HAVE_TLS
@@ -158,7 +156,6 @@ typedef struct ldap_server {
 	char			*lsrv_host;
 	char			*lsrv_dn;	/* if NULL, use default */
 	int			lsrv_port;
-/*	int			lsrv_protocol; */
 	struct ldap_server	*lsrv_next;
 } LDAPServer;
 
