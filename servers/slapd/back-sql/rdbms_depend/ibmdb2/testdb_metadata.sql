@@ -46,7 +46,7 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 values (3,1,'sn','persons.surname','persons',NULL,'update persons set surname=? where id=?',NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (5,1,'userPassword','persons.password','persons','persons.passwrod IS NOT NULL','update persons set password=? where id=?',
+values (5,1,'userPassword','persons.password','persons','persons.password IS NOT NULL','update persons set password=? where id=?',
 	NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
@@ -67,7 +67,7 @@ values (9,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor
 	'delete from authors_docs where pers_id = (select keyval from ldap_entries where ucase(?)=ucase(dn)) AND doc_id=?',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (10,2,'documentIdentifier','''document ''||documents.id','documents',NULL,NULL,NULL,3,0);
+values (10,2,'documentIdentifier','''document ''||rtrim(cast(documents.id as char(16)))','documents',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (11,3,'o','institutes.name','institutes',NULL,'update institutes set name=? where id=?',NULL,3,0);
