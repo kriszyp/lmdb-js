@@ -96,6 +96,8 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 *	2) primitive encodings used whenever possible
 	 */
 
+	*len = 0;
+
 	/*
 	 * First, we read the tag.
 	 */
@@ -109,8 +111,6 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * otherwise it's the short form.  We don't allow a length that's
 	 * greater than what we can hold in a ber_len_t.
 	 */
-
-	*len = 0;
 
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
 		return( LBER_DEFAULT );
@@ -148,6 +148,8 @@ ber_peek_tag(
 
 	assert( ber_in != NULL );
 	assert( BER_VALID( ber_in ) );
+
+	*len = 0;
 
 	ber = ber_dup( ber_in );
 

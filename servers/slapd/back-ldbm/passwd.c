@@ -28,30 +28,61 @@ ldbm_back_exop_passwd(
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-	int rc = LDAP_OPERATIONS_ERROR;
-	Entry *e;
-	struct berval *cred = NULL;
+	int rc;
+	Entry *e = NULL;
+	struct berval *hash = NULL;
+
+	struct berval *id = NULL;
+	struct berval *new = NULL;
+
+	char *dn;
 
 	assert( oid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, oid ) == 0 );
 
-	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: dn: %s\n",
-		op->o_dn, 0, 0 );
+	rc = slap_passwd_parse( reqdata,
+		&id, NULL, &new, text );
 
+	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
+		id ? id->bv_val : "", 0, 0 );
 
-	cred = slap_passwd_generate( reqdata );
-	if( cred == NULL || cred->bv_len == 0 ) {
-		*text = ch_strdup("password generation failed");
-		return LDAP_OPERATIONS_ERROR;
+	if( rc != LDAP_SUCCESS ) {
+		goto done;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "passwd: %s\n", cred->bv_val, 0, 0 );
+	if( new == NULL || new->bv_len == 0 ) {
+		*text = ch_strdup("no password provided");
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
 
-	e = dn2entry_w( be, op->o_ndn, NULL );
+	hash = slap_passwd_generate( new );
+
+	if( hash == NULL || hash->bv_len == 0 ) {
+		*text = ch_strdup("password generation failed");
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
+
+	dn = id ? id->bv_val : op->o_dn;
+
+	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
+		dn, id ? " (proxy)" : "", 0 );
+
+	if( dn == NULL || dn[0] == NULL ) {
+		*text = ch_strdup("No password is associated with the Root DSE");
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
+
+	e = dn2entry_w( be,
+		id ? id->bv_val : op->o_dn,
+		NULL );
 
 	if( e == NULL ) {
 		*text = ch_strdup("could not locate authorization entry");
-		return LDAP_OPERATIONS_ERROR;
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
 	}
 
 	if( ! access_allowed( be, conn, op, e, "entry", NULL, ACL_WRITE ) ) {
@@ -67,6 +98,8 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
+	rc = LDAP_OPERATIONS_ERROR;
+
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
 		*text = ch_strdup("authorization entry is referral");
@@ -77,7 +110,7 @@ ldbm_back_exop_passwd(
 		LDAPModList ml;
 		struct berval *vals[2];
 
-		vals[0] = cred;
+		vals[0] = hash;
 		vals[1] = NULL;
 
 		ml.ml_type = ch_strdup("userPassword");
@@ -99,10 +132,20 @@ ldbm_back_exop_passwd(
 	}
 	
 done:
-	cache_return_entry_w( &li->li_cache, e );
+	if( e != NULL ) {
+		cache_return_entry_w( &li->li_cache, e );
+	}
 
-	if( cred != NULL ) {
-		ber_bvfree( cred );
+	if( id != NULL ) {
+		ber_bvfree( id );
+	}
+
+	if( new != NULL ) {
+		ber_bvfree( new );
+	}
+
+	if( hash != NULL ) {
+		ber_bvfree( hash );
 	}
 
 	return rc;

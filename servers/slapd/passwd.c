@@ -24,9 +24,6 @@ static int passwd_main(
 	struct berval *reqdata, struct berval **rspdata, char **text )
 {
 	int rc;
-	BerElement *ber;
-	struct berval *cred = NULL;
-	ber_int_t type;
 
 	assert( oid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, oid ) == 0 );
@@ -37,33 +34,7 @@ static int passwd_main(
 	}
 
 	if( reqdata == NULL || reqdata->bv_len == 0 ) {
-		*text = ch_strdup("data missing");
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	ber = ber_init( reqdata );
-
-	if( ber == NULL ) {
-		*text = ch_strdup("password decoding error");
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	rc = ber_scanf(ber, "{iO}", &type, &cred );
-	ber_free( ber, 1 );
-
-	if( rc == LBER_ERROR ) {
-		*text = ch_strdup("data decoding error");
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	if( cred == NULL || cred->bv_len == 0 ) {
-		*text = ch_strdup("password missing");
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	if( type != 0 ) {
-		ber_bvfree( cred );
-		*text = ch_strdup("password type unknown");
+		*text = ch_strdup("request data missing");
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -72,15 +43,135 @@ static int passwd_main(
 	{
 		rc = conn->c_authz_backend->be_extended(
 			conn->c_authz_backend,
-			conn, op,
-			oid, cred, rspdata, text );
+			conn, op, oid, reqdata, rspdata, text );
 
 	} else {
 		*text = ch_strdup("operation not supported for current user");
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
 
-	ber_bvfree( cred );
+	return rc;
+}
+
+int slap_passwd_parse( struct berval *reqdata,
+	struct berval **id,
+	struct berval **old,
+	struct berval **new,
+	char **text )
+{
+	int rc = LDAP_SUCCESS;
+	ber_tag_t tag;
+	ber_len_t len;
+	BerElement *ber;
+
+	assert( reqdata != NULL );
+
+	ber = ber_init( reqdata );
+
+	if( ber == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ber_init failed\n",
+			0, 0, 0 );
+		*text = ch_strdup("password decoding error");
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	tag = ber_scanf(ber, "{" /*}*/);
+
+	if( tag == LBER_ERROR ) {
+		goto decoding_error;
+	}
+
+	tag = ber_peek_tag( ber, &len );
+
+	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID ) {
+		if( id == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID not allowed.\n",
+				0, 0, 0 );
+			*text = "user must change own password";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
+		tag = ber_scanf( ber, "O", id );
+
+		if( tag == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
+				0, 0, 0 );
+			goto decoding_error;
+		}
+
+		tag = ber_peek_tag( ber, &len);
+	}
+
+	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD ) {
+		if( old == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD not allowed.\n",
+				0, 0, 0 );
+			*text = "use bind to verify old password";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
+		tag = ber_scanf( ber, "O", old );
+
+		if( tag == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
+				0, 0, 0 );
+			goto decoding_error;
+		}
+
+		tag = ber_peek_tag( ber, &len);
+	}
+
+	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW ) {
+		if( new == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW not allowed.\n",
+				0, 0, 0 );
+			*text = "user specified passwords disallowed";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
+		tag = ber_scanf( ber, "O", new );
+
+		if( tag == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
+				0, 0, 0 );
+			goto decoding_error;
+		}
+
+		tag = ber_peek_tag( ber, &len );
+	}
+
+	if( len != 0 ) {
+decoding_error:
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_passwd_parse: decoding error, len=%ld\n",
+			(long) len, 0, 0 );
+
+		*text = ch_strdup("data decoding error");
+		rc = LDAP_PROTOCOL_ERROR;
+	}
+
+done:
+	if( rc != LDAP_SUCCESS ) {
+		if( id != NULL ) {
+			ber_bvfree( *id );
+			*id = NULL;
+		}
+
+		if( old != NULL ) {
+			ber_bvfree( *old );
+			*old = NULL;
+		}
+
+		if( new != NULL ) {
+			ber_bvfree( *new );
+			*new = NULL;
+		}
+	}
+
+	ber_free( ber, 1 );
 	return rc;
 }
 

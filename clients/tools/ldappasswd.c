@@ -27,8 +27,8 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
-		"Usage: %s [options]\n"
-		"  -D binddn\tbind dn\tREQUIRED\n"
+		"Usage: %s [options] dn\n"
+		"  -D binddn\tbind dn\n"
 		"  -d level\tdebugging level\n"
 		"  -h host\tldap server (default: localhost)\n"
 		"  -n\t\tmake no modifications\n"
@@ -46,6 +46,7 @@ int
 main( int argc, char *argv[] )
 {
 	int rc;
+	char	*dn = NULL;
 	char	*binddn = NULL;
 	char	*bindpw = NULL;
 	char	*ldaphost = NULL;
@@ -119,6 +120,12 @@ main( int argc, char *argv[] )
 		}
 	}
 
+	if( argc - optind != 1 ) {
+		usage( argv[0] );
+	} 
+
+	dn = strdup( argv[optind] );
+
 	if( newpw == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
@@ -132,8 +139,8 @@ main( int argc, char *argv[] )
 	}
 
 	if( binddn == NULL ) {
-		fprintf( stderr, "no bind DN specified\n" );
-		return EXIT_FAILURE;
+		binddn = dn;
+		dn = NULL;
 	}
 
 	/* handle bind password */
@@ -188,9 +195,19 @@ main( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	ber_printf( ber, "{es}",
-		(ber_int_t) 0,
-		newpw );
+	if( dn != NULL ) {
+		ber_printf( ber, "{tsts}",
+			LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, dn,
+			LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
+
+		free(dn);
+
+	} else {
+		ber_printf( ber, "{ts}",
+			LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
+	}
+
+	free(newpw);
 
 	rc = ber_flatten( ber, &bv );
 

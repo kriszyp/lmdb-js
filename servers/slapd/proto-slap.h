@@ -480,12 +480,22 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * passwd.c
  */
+LIBSLAPD_F (int) slap_passwd_init( void );
+
 LIBSLAPD_F (int) slap_passwd_check(
 	Attribute			*attr,
 	struct berval		*cred );
+
 LIBSLAPD_F (struct berval *) slap_passwd_generate(
 	struct berval		*cred );
-LIBSLAPD_F (int) slap_passwd_init( void );
+
+LIBSLAPD_F (int) slap_passwd_parse(
+	struct berval *reqdata,
+	struct berval **id,
+	struct berval **old,
+	struct berval **new,
+	char **text );
+
 /*
  * kerberos.c
  */
