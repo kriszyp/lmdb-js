@@ -396,7 +396,6 @@ get_ssa(
 		}
 
 		if ( value.bv_val == NULL || value.bv_len == 0 ) {
-			free( value.bv_val );
 			rc = LDAP_INVALID_SYNTAX;
 			goto return_error;
 		} 
@@ -427,7 +426,6 @@ get_ssa(
 				(long) tag, 0, 0 );
 #endif
 
-			free( value.bv_val );
 			goto return_error;
 		}
 
@@ -438,7 +436,6 @@ get_ssa(
 			usage, &value, &nvalue, text );
 
 		if( rc != LDAP_SUCCESS ) {
-			free( value.bv_val );
 			goto return_error;
 		}
 #else
@@ -446,14 +443,11 @@ get_ssa(
 		rc = value_validate( ssa.sa_desc->ad_type->sat_equality,
 			&value, text );
 		if( rc != LDAP_SUCCESS ) {
-			free( value.bv_val );
 			goto return_error;
 		}
 
 		rc = value_normalize( ssa.sa_desc, usage,
 			&value, &nvalue, text );
-
-		free( value.bv_val );
 
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
@@ -1378,6 +1372,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 	}
 }
 
+#if 0 /* unused */
 static int
 get_substring_vrFilter(
 	Connection	*conn,
@@ -1391,7 +1386,6 @@ get_substring_vrFilter(
 	struct berval value;
 	char		*last;
 	struct berval bv;
-	SubstringsAssertion ssa;
 	*text = "error decoding filter";
 
 #ifdef NEW_LOGGING
@@ -1582,4 +1576,4 @@ return_error:
 #endif
 	return( LDAP_SUCCESS );
 }
-
+#endif /* unused */
