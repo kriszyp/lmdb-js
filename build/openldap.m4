@@ -605,6 +605,27 @@ fi
 ])
 dnl
 dnl ====================================================================
+dnl Check GNU Pth pthread Header
+dnl
+dnl defines ol_cv_header linux_threads to 'yes' or 'no'
+dnl		'no' implies pthreads.h is not LinuxThreads or pthreads.h
+dnl		doesn't exists.  Existance of pthread.h should separately
+dnl		checked.
+dnl 
+AC_DEFUN([OL_HEADER_GNU_PTH_PTHREAD_H], [
+	AC_CACHE_CHECK([for GNU Pth pthread.h],
+		[ol_cv_header_gnu_pth_pthread_h],
+		[AC_EGREP_CPP(__gnu_pth__,
+			[#include <pthread.h>
+#ifdef _POSIX_THREAD_IS_GNU_PTH
+	__gnu_pth__
+#endif
+],
+			[ol_cv_header_gnu_pth_pthread_h=yes],
+			[ol_cv_header_gnu_pth_pthread_h=no])
+		])
+])dnl
+dnl ====================================================================
 dnl Check LinuxThreads Header
 dnl
 dnl defines ol_cv_header linux_threads to 'yes' or 'no'

@@ -896,7 +896,7 @@ ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = posix ; then
 
-	AC_CHECK_HEADERS(pthread.h sched.h)
+	AC_CHECK_HEADERS(pthread.h)
 
 	if test $ac_cv_header_pthread_h = yes ; then
 		OL_POSIX_THREAD_VERSION
@@ -915,6 +915,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		ol_with_threads=found
 
 		OL_HEADER_LINUX_THREADS
+		OL_HEADER_GNU_PTH_PTHREAD_H
+
+		if test $ol_cv_header_gnu_pth_pthread_h = no ; then
+			AC_CHECK_HEADERS(sched.h)
+		fi
 
 		dnl Now the hard part, how to link?
 		dnl
