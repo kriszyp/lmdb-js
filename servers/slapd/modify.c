@@ -220,7 +220,7 @@ do_modify(
 #ifdef LDAP_DEBUG
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "do_modify: modifications:\n" ));
+		"do_modify: modifications:\n" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 #endif
@@ -231,13 +231,41 @@ do_modify(
 			   "\t%s:  %s\n", tmp->ml_op == LDAP_MOD_ADD ?
 			   "add" : (tmp->ml_op == LDAP_MOD_DELETE ?
 				    "delete" : "replace"), tmp->ml_type ));
+
+		if ( tmp->ml_bvalues == NULL ) {
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "\t\tno values" ));
+		} else if ( tmp->ml_bvalues[0] == NULL ) {
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "\t\tzero values" ));
+		} else if ( tmp->ml_bvalues[1] == NULL ) {
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "\t\tone value" ));
+		} else {
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "\t\tmultiple values" ));
+		}
+
 #else
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->ml_op == LDAP_MOD_ADD
 				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
 					? "delete" : "replace"), tmp->ml_type, 0 );
-#endif
 
+		if ( tmp->ml_bvalues == NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "%s\n",
+			   "\t\tno values", NULL, NULL );
+		} else if ( tmp->ml_bvalues[0] == NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "%s\n",
+			   "\t\tzero values", NULL, NULL );
+		} else if ( tmp->ml_bvalues[1] == NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "%s, length %ld\n",
+			   "\t\tone value", (long) tmp->ml_bvalues[0]->bv_len, NULL );
+		} else {
+			Debug( LDAP_DEBUG_ARGS, "%s\n",
+			   "\t\tmultiple values", NULL, NULL );
+		}
+#endif
 	}
 #endif
 
