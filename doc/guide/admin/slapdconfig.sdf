@@ -650,11 +650,13 @@ There are two special {{psuedo}} attributes {{EX:entry}} and
 {{EX:children}}.  To read (and hence return) an target entry, the
 subject must have {{EX:read}} access to the target's {{entry}}
 attribute.  To add or delete an entry, the subject must have
-{{EX:write}} access to the entry's parent's {{EX:children}} attribute.
-To rename an entry, the subject must have {{EX:write}} access to
-both the old parent's and new parent's {{EX:children}} attributes.
-The complete examples at the end of this section should help clear
-things up.
+{{EX:write}} access to the entry's {{EX:entry}} attribute AND must
+have {{EX:write}} access to the entry's parent's {{EX:children}}
+attribute.  To rename an entry, the subject must have {{EX:write}}
+access to entry's {{EX:entry}} attribute AND have {{EX:write}}
+access to both the old parent's and new parent's {{EX:children}}
+attributes.  The complete examples at the end of this section should
+help clear things up.
 
 Lastly, there is a special entry selector {{EX:"*"}} that is used to
 select any entry.  It is used when no other {{EX:<what>}}
