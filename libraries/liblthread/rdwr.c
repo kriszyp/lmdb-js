@@ -17,8 +17,8 @@
  * 
  * Library of functions implementing reader/writer locks
  */
-#include <pthread.h>
-#include "rdwr.h"
+#include <lthread.h>
+#include <lthread_rdwr.h>
 
 int pthread_rdwr_init_np(pthread_rdwr_t *rdwrp, pthread_rdwrattr_t *attrp)
 {
