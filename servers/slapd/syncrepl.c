@@ -1347,22 +1347,28 @@ syncrepl_entry(
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s (%d)\n", 
 					"be_add", rc, 0 );
-			if ( rs_add.sr_err == LDAP_SUCCESS ) {
+			switch ( rs_add.sr_err ) {
+			case LDAP_SUCCESS:
 				be_entry_release_w( op, entry );
 				ret = 0;
-				goto done;
-			}
-			if ( rs_add.sr_err == LDAP_REFERRAL ) {
+				break;
+
+			case LDAP_REFERRAL:
+			/* we assume that LDAP_NO_SUCH_OBJECT is returned 
+			 * only if the suffix entry is not present */
+			case LDAP_NO_SUCH_OBJECT:
 				syncrepl_add_glue( op, entry );
 				ret = 0;
-				goto done;
-			} else {
+				break;
+
+			default:
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_entry : be_add failed (%d)\n",
 					rs_add.sr_err, 0, 0 );
 				ret = 1;
-				goto done;
+				break;
 			}
+			goto done;
 		}
 		/* FALLTHRU */
 		op->o_req_dn = dni.dn;
