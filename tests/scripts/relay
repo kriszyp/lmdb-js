@@ -13,8 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-set -x
-
 if test $RWM = rwmno ; then 
 	echo "Rewrite/remap overlay not available, test skipped"
 	exit 0
