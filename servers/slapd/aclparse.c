@@ -357,7 +357,7 @@ parse_acl(
 			if( i == argc || ( strcasecmp( left, "stop" ) == 0 )) { 
 				/* out of arguments or plain stop */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -367,7 +367,7 @@ parse_acl(
 			if( strcasecmp( left, "continue" ) == 0 ) {
 				/* plain continue */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_CONTINUE;
 
 				access_append( &a->acl_access, b );
@@ -377,7 +377,7 @@ parse_acl(
 			if( strcasecmp( left, "break" ) == 0 ) {
 				/* plain continue */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_BREAK;
 
 				access_append( &a->acl_access, b );
@@ -387,7 +387,7 @@ parse_acl(
 			if ( strcasecmp( left, "by" ) == 0 ) {
 				/* we've gone too far */
 				--i;
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -541,8 +541,13 @@ accessmask2str( slap_access_mask_t mask )
 	} 
 
 	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
-		strcat( buf, "0" );
+		none = 0;
+		strcat( buf, "n" );
 	} 
+
+	if ( none ) {
+		strcat( buf, "0" );
+	}
 
 	if ( ACL_IS_LEVEL( mask ) ) {
 		strcat(buf, ")");
@@ -588,7 +593,7 @@ str2accessmask( const char *str )
 			} else if( TOLOWER(str[i]) == 'x' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 
-			} else {
+			} else if( str[i] != '0' ) {
 				ACL_INVALIDATE(mask);
 				return mask;
 			}
@@ -739,6 +744,16 @@ print_access( Access *b )
 	fprintf( stderr, " %s%s",
 		b->a_dn_self ? "self" : "",
 		accessmask2str( b->a_mask ) );
+
+	if( b->a_type == ACL_BREAK ) {
+		fprintf( stderr, " break" );
+
+	} else if( b->a_type == ACL_CONTINUE ) {
+		fprintf( stderr, " continue" );
+
+	} else if( b->a_type != ACL_STOP ) {
+		fprintf( stderr, " unknown-control" );
+	}
 
 	fprintf( stderr, "\n" );
 }
