@@ -171,7 +171,6 @@ populate_queue(
 )
 {
     FILE	*fp, *lfp;
-    Rq		*rq = sglob->rq;
     char	*p;
 
     if ( acquire_lock( f, &fp, &lfp ) < 0 ) {

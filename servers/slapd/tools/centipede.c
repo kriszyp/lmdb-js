@@ -1045,8 +1045,6 @@ charray_add_dup(
 	char    *s
 )
 {
-	int n;
- 
 	if ( *a == NULL ) {
 		*a = (char **) malloc( (BUFSIZ + 1) * sizeof(char *) );
 		*cur = 0;

@@ -305,7 +305,7 @@ get_read_entries( char *filename, char *entries[] )
 static void
 fork_child( char *prog, char *args[] )
 {
-	int	status, pid;
+	int	pid;
 
 	wait4kids( maxkids );
 

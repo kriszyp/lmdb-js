@@ -26,9 +26,7 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-	int		i, cargc, indb, stop;
-	char		*cargv[MAXARGS];
-	char		*defargv[MAXARGS];
+	int		i, stop;
 	char		*tailorfile, *inputfile;
 	char		*linep, *buf, *attr;
 	char		line[BUFSIZ];

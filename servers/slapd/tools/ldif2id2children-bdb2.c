@@ -29,9 +29,7 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-	int		i, cargc, indb, stop, status;
-	char		*cargv[MAXARGS];
-	char		*defargv[MAXARGS];
+	int		i, stop;
 	char		*linep, *buf;
 	char		line[BUFSIZ];
 	int		lineno, elineno;
@@ -43,7 +41,6 @@ main( int argc, char **argv )
 	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
-	Avlnode		*avltypes = NULL;
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;

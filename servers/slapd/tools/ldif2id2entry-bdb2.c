@@ -27,10 +27,8 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-	int		i, cargc, indb, stop, status;
-	char		*cargv[MAXARGS];
-	char		*defargv[MAXARGS];
-	char		*linep, *buf;
+	int		i, stop;
+	char		*buf;
 	char		line[BUFSIZ], idbuf[BUFSIZ];
 	int      	lmax, lcur;
 	int		dbnum;
@@ -40,7 +38,6 @@ main( int argc, char **argv )
 	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
-	Avlnode		*avltypes = NULL;
 	FILE		*fp;
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
@@ -125,8 +122,6 @@ main( int argc, char **argv )
 	vals[0] = &bv;
 	vals[1] = NULL;
 	while ( ! stop ) {
-		char		*type, *val, *s;
-		int		vlen;
 		Datum		key, data;
 
 		ldbm_datum_init( key );

@@ -23,7 +23,6 @@
 static void fork_child( char *prog, char *args[] );
 static void	wait4kids( int nkidval );
 
-static char	*indexcmd;
 static char	*tailorfile;
 static char	*inputfile;
 static int      maxkids = 1;
@@ -39,7 +38,7 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-	int		i, stop, status;
+	int		i, stop;
 	char		*linep, *buf, *sbindir;
 	char		*args[MAXARGS];
 	char		buf2[20], buf3[20];
@@ -216,10 +215,6 @@ main( int argc, char **argv )
 	while ( ! stop ) {
 		char		*type, *val, *s;
 		int		vlen, indexmask, syntaxmask;
-		Datum		key, data;
-
-		ldbm_datum_init( key );
-		ldbm_datum_init( data );
 
 		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
 			int     len;
@@ -282,7 +277,7 @@ main( int argc, char **argv )
 static void
 fork_child( char *prog, char *args[] )
 {
-	int	status, pid;
+	int	pid;
 
 	wait4kids( maxkids );
 

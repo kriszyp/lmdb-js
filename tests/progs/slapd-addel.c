@@ -34,7 +34,7 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-	int		i, j;
+	int		i;
 	char        *host = "localhost";
 	int			port = -1;
 	char		*manager = NULL;

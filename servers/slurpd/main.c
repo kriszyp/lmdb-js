@@ -36,7 +36,6 @@ main(
     return( 1 );
 #else
 
-    int			status;
     int			i;
 
     /* 
