@@ -22,7 +22,6 @@ extern char	*word_dup(char *);
 extern char	*phonetic(char *);
 
 extern int ldap_debug;
-extern int lber_debug;
 
 int	ldap_syslog;
 int	ldap_syslog_level;
@@ -46,7 +45,6 @@ main( int argc, char **argv )
 
 /*
 	ldap_debug = 255;
-	lber_debug = 255;
 */
 	if ( (ld = ldap_init( "vertigo:5555", 0 )) == NULL ) {
 		perror( "ldap_init" );
