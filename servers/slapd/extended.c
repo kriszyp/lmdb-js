@@ -323,7 +323,10 @@ done2:;
 
 			send_ldap_extended( op, rs );
 
-			ber_bvarray_free( rs->sr_ref );
+			if ( rs->sr_ref != default_referral ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
 		}
 
 		if ( rs->sr_rspoid != NULL ) {
