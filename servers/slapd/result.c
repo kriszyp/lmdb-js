@@ -540,7 +540,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_RESULT;
 
-	assert( !LDAP_API_ERROR( rs->sr_err ) && ( rs->sr_err >= 0 ));
+	assert( !LDAP_API_ERROR( rs->sr_err ));
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
