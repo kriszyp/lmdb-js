@@ -578,7 +578,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill)
+			AC_CHECK_FUNCS(pthread_kill pthread_detach)
+
 			AC_CHECK_FUNCS( \
 				pthread_attr_create pthread_attr_init \
 				pthread_attr_destroy pthread_attr_delete \

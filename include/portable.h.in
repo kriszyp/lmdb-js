@@ -343,6 +343,9 @@
 /* Define if you have the pthread_attr_setdetachstate function.  */
 #undef HAVE_PTHREAD_ATTR_SETDETACHSTATE
 
+/* Define if you have the pthread_detach function.  */
+#undef HAVE_PTHREAD_DETACH
+
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
 

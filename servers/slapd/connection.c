@@ -112,7 +112,9 @@ connection_activity(
     Connection *conn
 )
 {
+#ifndef HAVE_PTHREAD_DETACH
 	pthread_attr_t	attr;
+#endif
 	struct co_arg	*arg;
 	unsigned long	tag, len;
 	long		msgid;
@@ -195,6 +197,24 @@ connection_activity(
 		free( tmpdn );
 	}
 
+#ifdef HAVE_PTHREAD_DETACH
+	if ( pthread_create( &arg->co_op->o_tid, NULL,
+	    connection_operation, (void *) arg ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+	} else {
+		pthread_mutex_lock( &active_threads_mutex );
+		active_threads++;
+		pthread_mutex_unlock( &active_threads_mutex );
+	}
+
+#if !defined(HAVE_PTHREADS_D4)
+	pthread_detach( arg->co_op->o_tid );
+#else
+	pthread_detach( &arg->co_op->o_tid );
+#endif
+
+#else /* !pthread detach */
+
 	pthread_attr_init( &attr );
 	pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 #if !defined(HAVE_PTHREADS_D4)
@@ -223,4 +243,5 @@ connection_activity(
 	}
 #endif	/* pthread draft4 */
 	pthread_attr_destroy( &attr );
+#endif
 }
