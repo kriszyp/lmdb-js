@@ -19,7 +19,7 @@ Differences from 2.0 Perl API:
   pass the scope, deferencing policy, size limit, etc.
   See SampleLDAP.pm for details.
 
-These changes were sponsored by myinternet pty ltd.
+These changes were sponsored by myinternet Limited.
 
 Luke Howard <lukeh@padl.com>
 
