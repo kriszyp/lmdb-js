@@ -23,6 +23,7 @@
 static char	*prog;
 static char	*binddn = NULL;
 static struct berval passwd = { 0, NULL };
+static char *ldapuri = NULL;
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
 static int	prune = 0;
@@ -36,7 +37,7 @@ static char	*sasl_secprops = NULL;
 #endif
 static int	use_tls = 0;
 static int	not, verbose, contoper;
-static LDAP	*ld;
+static LDAP	*ld = NULL;
 
 static int dodelete LDAP_P((
     LDAP *ld,
@@ -100,7 +101,7 @@ main( int argc, char **argv )
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
-    while (( i = getopt( argc, argv, "cf:r" "Cd:D:h:IkKMnO:p:P:QRU:vw:WxX:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cf:r" "Cd:D:h:H:IkKMnO:p:P:QRU:vw:WxX:Y:Z" )) != EOF ) {
 	switch( i ) {
 	/* Delete Specific Options */
 	case 'c':	/* continuous operation mode */
@@ -135,11 +136,30 @@ main( int argc, char **argv )
 	    binddn = strdup( optarg );
 	    break;
 	case 'h':	/* ldap host */
+		if( ldapuri != NULL ) {
+			fprintf( stderr, "%s: -h incompatible with -H\n" );
+			return EXIT_FAILURE;
+		}
 		if( ldaphost != NULL ) {
 			fprintf( stderr, "%s: -h previously specified\n" );
 			return EXIT_FAILURE;
 		}
 	    ldaphost = strdup( optarg );
+	    break;
+	case 'H':	/* ldap URI */
+		if( ldaphost != NULL ) {
+			fprintf( stderr, "%s: -H incompatible with -h\n" );
+			return EXIT_FAILURE;
+		}
+		if( ldapport ) {
+			fprintf( stderr, "%s: -H incompatible with -p\n" );
+			return EXIT_FAILURE;
+		}
+		if( ldapuri != NULL ) {
+			fprintf( stderr, "%s: -H previously specified\n" );
+			return EXIT_FAILURE;
+		}
+	    ldapuri = strdup( optarg );
 	    break;
 	case 'I':
 #ifdef HAVE_CYRUS_SASL
@@ -472,10 +492,26 @@ main( int argc, char **argv )
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 
-    if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
-		perror( "ldap_init" );
-		return( EXIT_FAILURE );
-    }
+	if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
+		if ( verbose ) {
+			fprintf( stderr, "ldap_init( %s, %d )\n",
+				ldaphost != NULL ? ldaphost : "<DEFAULT>",
+				ldapport );
+		}
+		ld = ldap_init( ldaphost, ldapport );
+
+	} else {
+		if ( verbose ) {
+			fprintf( stderr, "ldap_initialize( %s )\n",
+				ldapuri != NULL ? ldapuri : "<DEFAULT>" );
+		}
+		(void) ldap_initialize( &ld, ldapuri );
+	}
+
+	if( ld != NULL ) {
+		fprintf( stderr, "Could not create LDAP session handle (%d): %s\n", rc );
+		return EXIT_FAILURE;
+	}
 
 	{
 		/* this seems prudent for searches below */
