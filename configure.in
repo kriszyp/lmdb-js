@@ -606,7 +606,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl Check pthread (final) libraries
 		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
-		dnl 	pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
+		dnl 	(skipped) pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
 		dnl 	pthread_join() -Wl,-woff,85 -lpthread (IRIX)
 		dnl 	pthread_create() in -lpthread (many)
 		dnl 	pthread_create() in -lc_r (FreeBSD)
@@ -685,8 +685,8 @@ int main(argc, argv)
 			[ol_cv_pthread_lpthread_lmach_lexc_lc_r])
 		OL_PTHREAD_TRY_LINK([-lpthread -lmach -lexc],
 			[ol_cv_pthread_lpthread_lmach_lexc])
-		OL_PTHREAD_TRY_LINK([-lpthread -lexc],
-			[ol_cv_pthread_lpthread_lexc])
+dnl		OL_PTHREAD_TRY_LINK([-lpthread -lexc],
+dnl			[ol_cv_pthread_lpthread_lexc])
 
 		OL_PTHREAD_TRY_LINK([-lpthread -Wl,-woff,85],
 			[ol_cv_pthread_lib_lpthread_woff])
