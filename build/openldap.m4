@@ -1219,7 +1219,7 @@ AC_DEFUN([OL_SASL_COMPAT],
 dnl ====================================================================
 dnl check for msg_accrights in msghdr
 AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
- [AC_CACHE_CHECK(msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
+ [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
    [AC_TRY_COMPILE([#include <sys/socket.h>],
 		[struct msghdr m; m.msg_accrightslen=0],
 		ol_cv_msghdr_msg_accrights=yes, ol_cv_msghdr_msg_accrights=no)
