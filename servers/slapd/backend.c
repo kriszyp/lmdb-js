@@ -400,9 +400,15 @@ int backend_destroy(void)
 		}
 		ber_bvarray_free( bd->be_suffix );
 		ber_bvarray_free( bd->be_nsuffix );
-		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
-		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
-		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		if ( !BER_BVISNULL( &bd->be_rootdn ) ) {
+			free( bd->be_rootdn.bv_val );
+		}
+		if ( !BER_BVISNULL( &bd->be_rootndn ) ) {
+			free( bd->be_rootndn.bv_val );
+		}
+		if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
+			free( bd->be_rootpw.bv_val );
+		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
 	}
 	free( backendDB );
@@ -432,9 +438,15 @@ int backend_destroy(void)
 		}
 		ber_bvarray_free( bd->be_suffix );
 		ber_bvarray_free( bd->be_nsuffix );
-		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
-		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
-		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		if ( !BER_BVISNULL( &bd->be_rootdn ) ) {
+			free( bd->be_rootdn.bv_val );
+		}
+		if ( !BER_BVISNULL( &bd->be_rootndn ) ) {
+			free( bd->be_rootndn.bv_val );
+		}
+		if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
+			free( bd->be_rootpw.bv_val );
+		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
 	}
 
@@ -537,13 +549,16 @@ select_backend(
 	int manageDSAit,
 	int noSubs )
 {
-	int	i, j;
-	ber_len_t len, dnlen = dn->bv_len;
-	Backend *be = NULL;
+	int		i, j;
+	ber_len_t	len, dnlen = dn->bv_len;
+	Backend		*be = NULL;
 
 	for ( i = 0; i < nbackends; i++ ) {
-		for ( j = 0; backends[i].be_nsuffix != NULL &&
-		    backends[i].be_nsuffix[j].bv_val != NULL; j++ )
+		if ( backends[i].be_nsuffix == NULL ) {
+			continue;
+		}
+
+		for ( j = 0; !BER_BVISNULL( &backends[i].be_nsuffix[j] ); j++ )
 		{
 			if ( ( SLAP_GLUE_SUBORDINATE( &backends[i] ) )
 				&& noSubs )
@@ -596,27 +611,24 @@ be_issuffix(
 {
 	int	i;
 
-	for ( i = 0;
-		be->be_nsuffix != NULL && be->be_nsuffix[i].bv_val != NULL;
-		i++ )
-	{
+	if ( be->be_nsuffix == NULL ) {
+		return 0;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &be->be_nsuffix[i] ); i++ ) {
 		if ( bvmatch( &be->be_nsuffix[i], bvsuffix ) ) {
-			return( 1 );
+			return 1;
 		}
 	}
 
-	return( 0 );
+	return 0;
 }
 
 int
 be_isroot_dn( Backend *be, struct berval *ndn )
 {
-	if ( !ndn->bv_len ) {
-		return( 0 );
-	}
-
-	if ( !be->be_rootndn.bv_len ) {
-		return( 0 );
+	if ( BER_BVISEMPTY( ndn ) || BER_BVISEMPTY( &be->be_rootndn ) ) {
+		return 0;
 	}
 
 	return dn_match( &be->be_rootndn, ndn );
@@ -626,22 +638,22 @@ int
 be_slurp_update( Operation *op )
 {
 	return ( SLAP_SLURP_SHADOW( op->o_bd ) &&
-		be_isupdate_dn( op->o_bd, &op->o_ndn ));
+		be_isupdate_dn( op->o_bd, &op->o_ndn ) );
 }
 
 int
 be_shadow_update( Operation *op )
 {
 	return ( SLAP_SYNC_SHADOW( op->o_bd ) ||
-		( SLAP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn )));
+		( SLAP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn ) ) );
 }
 
 int
 be_isupdate_dn( Backend *be, struct berval *ndn )
 {
-	if ( !ndn->bv_len ) return( 0 );
-
-	if ( !be->be_update_ndn.bv_len ) return( 0 );
+	if ( BER_BVISEMPTY( ndn ) || BER_BVISEMPTY( &be->be_update_ndn ) ) {
+		return 0;
+	}
 
 	return dn_match( &be->be_update_ndn, ndn );
 }
@@ -667,7 +679,7 @@ be_isroot_pw( Operation *op )
 		return 0;
 	}
 
-	if( op->o_bd->be_rootpw.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &op->o_bd->be_rootpw ) ) {
 		return 0;
 	}
 
@@ -1000,7 +1012,7 @@ backend_check_restrictions(
 			}
 
 			if( !( global_allows & SLAP_ALLOW_UPDATE_ANON ) &&
-				op->o_ndn.bv_len == 0 )
+				BER_BVISEMPTY( &op->o_ndn ) )
 			{
 				rs->sr_text = "modifications require authentication";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
@@ -1008,7 +1020,7 @@ backend_check_restrictions(
 			}
 
 #ifdef SLAP_X_LISTENER_MOD
-			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & ( op->o_ndn.bv_len > 0 ? S_IWUSR : S_IWOTH ) ) ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & ( !BER_BVISEMPTY( &op->o_ndn ) ? S_IWUSR : S_IWOTH ) ) ) {
 				/* no "w" mode means readonly */
 				rs->sr_text = "modifications not allowed on this listener";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -1025,7 +1037,7 @@ backend_check_restrictions(
 			/* should check mechanism */
 			if( ( op->o_transport_ssf < ssf->sss_transport
 				&& op->o_authtype == LDAP_AUTH_SIMPLE )
-				|| op->o_dn.bv_len == 0 )
+				|| BER_BVISEMPTY( &op->o_dn ) )
 			{
 				rs->sr_text = "strong(er) authentication required";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
@@ -1034,7 +1046,7 @@ backend_check_restrictions(
 		}
 
 		if( requires & SLAP_REQUIRE_SASL ) {
-			if( op->o_authtype != LDAP_AUTH_SASL || op->o_dn.bv_len == 0 ) {
+			if( op->o_authtype != LDAP_AUTH_SASL || BER_BVISEMPTY( &op->o_dn ) ) {
 				rs->sr_text = "SASL authentication required";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
 				return rs->sr_err;
@@ -1042,7 +1054,7 @@ backend_check_restrictions(
 		}
 			
 		if( requires & SLAP_REQUIRE_AUTHC ) {
-			if( op->o_dn.bv_len == 0 ) {
+			if( BER_BVISEMPTY( &op->o_dn ) ) {
 				rs->sr_text = "authentication required";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				return rs->sr_err;
@@ -1073,7 +1085,7 @@ backend_check_restrictions(
 		}
 
 #ifdef SLAP_X_LISTENER_MOD
-		if ( !starttls && op->o_dn.bv_len == 0 ) {
+		if ( !starttls && BER_BVISEMPTY( &op->o_dn ) ) {
 			if ( op->o_conn->c_listener &&
 				!( op->o_conn->c_listener->sl_perms & S_IXOTH ))
 		{
@@ -1087,7 +1099,7 @@ backend_check_restrictions(
 		if ( !starttls && !updateop ) {
 			if ( op->o_conn->c_listener &&
 				!( op->o_conn->c_listener->sl_perms &
-					( op->o_dn.bv_len > 0 ? S_IRUSR : S_IROTH )))
+					( !BER_BVISEMPTY( &op->o_dn ) ? S_IRUSR : S_IROTH )))
 			{
 				/* no "r" mode means no read */
 				rs->sr_text = "read not allowed on this listener";
@@ -1174,15 +1186,18 @@ backend_group(
 
 	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
-	for (g = op->o_groups; g; g=g->ga_next) {
-		if (g->ga_be != op->o_bd || g->ga_oc != group_oc ||
-			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
+	for ( g = op->o_groups; g; g = g->ga_next ) {
+		if ( g->ga_be != op->o_bd || g->ga_oc != group_oc ||
+			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len )
+		{
 			continue;
-		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
+		}
+		if ( strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0 ) {
 			break;
+		}
 	}
 
-	if (g) {
+	if ( g ) {
 		rc = g->ga_res;
 		goto done;
 	}
@@ -1191,7 +1206,7 @@ backend_group(
 		e = target;
 		rc = 0;
 	} else {
-		rc = be_entry_get_rw(op, gr_ndn, group_oc, group_at, 0, &e );
+		rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
 	}
 	if ( e ) {
 #ifdef LDAP_SLAPI
@@ -1229,16 +1244,16 @@ backend_group(
 				
 				if ( rc == 0 ) {
 					rc = 1;
-					for (i=0; a->a_vals[i].bv_val; i++) {
+					for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
 						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
 							LDAP_URL_SUCCESS )
 						{
 							continue;
 						}
-						nbase.bv_val = NULL;
+						BER_BVZERO( &nbase );
 						/* host part must be empty */
 						/* attrs and extensions parts must be empty */
-						if (( ludp->lud_host && *ludp->lud_host ) ||
+						if ( ( ludp->lud_host && *ludp->lud_host ) ||
 							ludp->lud_attrs || ludp->lud_exts )
 						{
 							goto loopit;
@@ -1249,16 +1264,22 @@ backend_group(
 						{
 							goto loopit;
 						}
-						switch(ludp->lud_scope) {
+						switch ( ludp->lud_scope ) {
 						case LDAP_SCOPE_BASE:
-							if ( !dn_match( &nbase, op_ndn )) goto loopit;
+							if ( !dn_match( &nbase, op_ndn ) ) {
+								goto loopit;
+							}
 							break;
 						case LDAP_SCOPE_ONELEVEL:
-							dnParent(op_ndn, &bv );
-							if ( !dn_match( &nbase, &bv )) goto loopit;
+							dnParent( op_ndn, &bv );
+							if ( !dn_match( &nbase, &bv ) ) {
+								goto loopit;
+							}
 							break;
 						case LDAP_SCOPE_SUBTREE:
-							if ( !dnIsSuffix( op_ndn, &nbase )) goto loopit;
+							if ( !dnIsSuffix( op_ndn, &nbase ) ) {
+								goto loopit;
+							}
 							break;
 #ifdef LDAP_SCOPE_SUBORDINATE
 						case LDAP_SCOPE_SUBORDINATE:
@@ -1280,7 +1301,7 @@ backend_group(
 						}
 loopit:
 						ldap_free_urldesc( ludp );
-						if ( nbase.bv_val ) {
+						if ( !BER_BVISNULL( &nbase ) ) {
 							op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
 						}
 						if ( rc == 0 ) break;
@@ -1311,14 +1332,14 @@ loopit:
 #endif /* LDAP_SLAPI */
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
-		g = op->o_tmpalloc(sizeof(GroupAssertion) + gr_ndn->bv_len,
-			op->o_tmpmemctx);
+		g = op->o_tmpalloc( sizeof( GroupAssertion ) + gr_ndn->bv_len,
+			op->o_tmpmemctx );
 		g->ga_be = op->o_bd;
 		g->ga_oc = group_oc;
 		g->ga_at = group_at;
 		g->ga_res = rc;
 		g->ga_len = gr_ndn->bv_len;
-		strcpy(g->ga_ndn, gr_ndn->bv_val);
+		strcpy( g->ga_ndn, gr_ndn->bv_val );
 		g->ga_next = op->o_groups;
 		op->o_groups = g;
 	}
@@ -1347,11 +1368,11 @@ static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, 
 		return 1;
 	}
 
-	for ( i=0; a->a_vals[i].bv_val; i++ ) ;
+	for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) ;
 			
 	v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
 		op->o_tmpmemctx );
-	for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
+	for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
 		if ( op->o_conn && access_allowed( op,
 			e, a->a_desc,
 			&a->a_nvals[i],
@@ -1360,16 +1381,17 @@ static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, 
 		}
 		ber_dupbv_x( &v[j],
 			&a->a_nvals[i], op->o_tmpmemctx );
-		if (v[j].bv_val ) j++;
+		if ( !BER_BVISNULL( &v[j] ) ) {
+			j++;
+		}
 	}
 
-	if (j == 0) {
+	if ( j == 0 ) {
 		op->o_tmpfree( v, op->o_tmpmemctx );
 		*vals = NULL;
 		rc = 1;
 	} else {
-		v[j].bv_val = NULL;
-		v[j].bv_len = 0;
+		BER_BVZERO( &v[j] );
 		*vals = v;
 		rc = 0;
 	}
