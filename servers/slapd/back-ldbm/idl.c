@@ -138,7 +138,13 @@ idl_fetch_one(
 		return NULL;
 	}
 
-	idl = idl_dup((ID_BLOCK *) data.dptr);
+	idl = (ID_BLOCK *) data.dptr;
+	if ( ID_BLOCK_ALLIDS(idl) ) {
+		/* make sure we have the current value of highest id */
+		idl = idl_allids( be );
+	} else {
+		idl = idl_dup((ID_BLOCK *) data.dptr);
+	}
 
 	ldbm_datum_free( db->dbc_db, data );
 
@@ -176,10 +182,6 @@ idl_fetch(
 
 	if ( ID_BLOCK_ALLIDS(idl) ) {
 		/* all ids block */
-		/* make sure we have the current value of highest id */
-		idl_free( idl );
-		idl = idl_allids( be );
-
 		return( idl );
 	}
 
@@ -502,14 +504,15 @@ idl_insert_key(
 			idl_free( idl );
 
 			/* create the header indirect block */
-			idl = idl_alloc( 3 );
 #ifndef USE_INDIRECT_NIDS
+			idl = idl_alloc( 3 );
 			ID_BLOCK_NMAX(idl) = 3;
 			ID_BLOCK_NIDS(idl) = ID_BLOCK_INDIRECT_VALUE;
 			ID_BLOCK_ID(idl, 0) = ID_BLOCK_ID(tmp, 0);
 			ID_BLOCK_ID(idl, 1) = ID_BLOCK_ID(tmp2, 0);
 			ID_BLOCK_ID(idl, 2) = NOID;
 #else
+			idl = idl_alloc( 2 );
 			ID_BLOCK_NMAX(idl) = 2 | ID_BLOCK_INDIRECT_VALUE;
 			ID_BLOCK_NIDS(idl) = 2;
 			ID_BLOCK_ID(idl, 0) = ID_BLOCK_ID(tmp, 0);
@@ -649,9 +652,6 @@ idl_insert_key(
 			 */
 			if (id < ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1)) {
 			    ID id2 = ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1);
-			    Datum k3;
-
-			    ldbm_datum_init( k3 );
 
 			    --ID_BLOCK_NIDS(tmp);
 			    /* This must succeed since we just popped one
@@ -659,10 +659,7 @@ idl_insert_key(
 			     */
 			    rc = idl_insert( &tmp, id, db->dbc_maxids );
 
-				k3.dptr = ch_malloc(k2.dsize);
-				k3.dsize = k2.dsize;
-				AC_MEMCPY(k3.dptr, k2.dptr, k3.dsize);
-			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
+			    if ( (rc = idl_store( be, db, k2, tmp )) != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
 					       "idl_insert_key: idl_store returned %d\n", rc ));
@@ -672,8 +669,6 @@ idl_insert_key(
 #endif
 
 			    }
-
-				free( k3.dptr );
 
 			    id = id2;
 			    /* This new id will necessarily be inserted
@@ -798,7 +793,7 @@ split:
 			(char *) &ID_BLOCK_ID(tmp, i + 2),
 			(char *) &ID_BLOCK_ID(idl, i + 1),
 			(ID_BLOCK_NIDS(idl) - i - 1) * sizeof(ID) );
-		ID_BLOCK_NIDS(idl)++;
+		ID_BLOCK_NIDS(tmp) = ID_BLOCK_NIDS(idl) + 1;
 #endif
 
 		/* store the header block */
