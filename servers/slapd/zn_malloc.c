@@ -21,7 +21,7 @@
  */
 /* ACKNOWLEDGEMENTS
  * This work originally developed by Jong-Hyuk Choi
- * 2004/11/29   jongchoi@OpenLDAP.org
+ * 2004/12/09   jongchoi@OpenLDAP.org
  */
 
 #include "portable.h"
@@ -144,9 +144,6 @@ slap_zn_mem_create(
 	} else {
 		zh->zh_deltazones = ((SLAP_ZONE_DELTA+zpad) & ~zpad) / zh->zh_zonesize;
 	}
-
-	Debug(LDAP_DEBUG_ANY, "==> slap_zn_mem_create: %d\n",
-					zh->zh_numzones, 0, 0 );
 
 	size_shift = zh->zh_zonesize - 1;
 	do {
@@ -432,7 +429,6 @@ slap_zn_free(void *ptr, void *ctx)
 	int i, k, inserted = 0, idx;
 	struct zone_heap *zone = NULL;
 
-	fprintf(stderr,"slap_zn_free... 0x%x\n", ptr);
 	zoi.zo_ptr = (void*)((unsigned long)p >> zh->zh_zoneorder);
 	zoi.zo_idx = -1;
 
