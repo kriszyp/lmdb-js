@@ -144,7 +144,7 @@ struct berval **get_entry_referrals(
 
 	if( i < 1 ) return NULL;
 
-	refs = ch_malloc( i + 1 );
+	refs = ch_malloc( (i + 1) * sizeof(struct berval *));
 
 	for( i=0, j=0; attr->a_vals[i] != NULL; i++ ) {
 		unsigned k;
