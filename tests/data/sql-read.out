@@ -312,26 +312,31 @@ objectClass: inetOrgPerson
 # Testing operational attributes in request...
 dn: documentTitle=book1,dc=example,dc=com
 structuralObjectClass: document
+entryDN: documentTitle=book1,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 
 dn: documentTitle=book2,dc=example,dc=com
 structuralObjectClass: document
+entryDN: documentTitle=book2,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 
 dn: dc=example,dc=com
 structuralObjectClass: organization
+entryDN: dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: TRUE
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 structuralObjectClass: inetOrgPerson
+entryDN: cn=Mitya Kovalev,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 structuralObjectClass: inetOrgPerson
+entryDN: cn=Torvlobnor Puzdoy,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 
