@@ -681,25 +681,22 @@ dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
 dnl Gotta check for winsock manually
-if test "${ac_cv_header_winsock_h}" = yes; then
-    AC_MSG_CHECKING(for winsock support)
-    AC_TRY_LINK([
-#include <winsock.h>
-    ],[
-socket(0,0,0);
-select(0,NULL,NULL,NULL,NULL);
-closesocket(0);
-gethostname(NULL,0);
-    ],[
-	AC_MSG_RESULT(yes)
-	AC_DEFINE(HAVE_WINSOCK,1,[define if you have winsock])
-	ac_cv_func_socket=yes
-	ac_cv_func_select=yes
-	ac_cv_func_closesocket=yes
-	ac_cv_func_gethostname=yes
-    ],[
-	AC_MSG_RESULT(no)
-    ])
+if test $ac_cv_header_winsock_h = yes; then
+	AC_CACHE_CHECK([for winsock], [ol_cv_winsock], 
+    	AC_TRY_LINK([#include <winsock.h>],[
+			socket(0,0,0);
+			select(0,NULL,NULL,NULL,NULL);
+			closesocket(0);
+			gethostname(NULL,0);
+    	],[ol_cv_winsock=yes],[ol_cv_winsock=no])])
+
+	if test $ol_cv_winsock = yes ; then
+		AC_DEFINE(HAVE_WINSOCK,1,[define if you have winsock])
+		ac_cv_func_socket=yes
+		ac_cv_func_select=yes
+		ac_cv_func_closesocket=yes
+		ac_cv_func_gethostname=yes
+	fi
 fi
 
 dnl Find socket()
