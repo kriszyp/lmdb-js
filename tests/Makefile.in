@@ -21,13 +21,13 @@ slapd-tester: slapd-tester.o
 	$(LTLINK) -o $@ slapd-tester.o
 
 slapd-search: slapd-search.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
-	$(LTLINK) -o $@ slapd-search.o $(LDAP_LIBPATH) $(XLIBS)
+	$(LTLINK) -o $@ slapd-search.o $(LIBS)
 
 slapd-read: slapd-read.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
-	$(LTLINK) -o $@ slapd-read.o $(LDAP_LIBPATH) $(XLIBS)
+	$(LTLINK) -o $@ slapd-read.o $(LIBS)
 
 slapd-addel: slapd-addel.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
-	$(LTLINK) -o $@ slapd-addel.o $(LDAP_LIBPATH) $(XLIBS)
+	$(LTLINK) -o $@ slapd-addel.o $(LIBS)
 
 bdb2-local:	build-tools FORCE
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
