@@ -430,7 +430,7 @@ new_candidate:;
 						res, 1 );
 				res = NULL;
 
-				sres = ldap_back_map_result( rs );
+				sres = slap_map_api2result( rs );
 				if ( err != NULL ) {
 					free( err );
 				}
