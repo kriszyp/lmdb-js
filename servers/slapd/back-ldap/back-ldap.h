@@ -121,11 +121,13 @@ ldap_back_map_filter(
 		struct berval *f,
 		int remap
 );
-char **
+
+int
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
 		AttributeName *a,
-		int remap
+		int remap,
+		char ***mapped_attrs
 );
 
 extern void mapping_free ( void *mapping );

@@ -214,27 +214,32 @@ ldap_back_map_filter(
 	return(nf);
 }
 
-char **
+int
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
 		AttributeName *an,
-		int remap
+		int remap,
+		char ***mapped_attrs
 )
 {
 	int i, j;
 	char **na;
 	struct berval mapped;
 
-	if (an == NULL)
-		return(NULL);
+	if (an == NULL) {
+		*mapped_attrs = NULL;
+		return LDAP_SUCCESS;
+	}
 
 	for (i = 0; an[i].an_name.bv_val; i++) {
 		/*  */
 	}
 
 	na = (char **)ch_calloc( i + 1, sizeof(char *) );
-	if (na == NULL)
-		return(NULL);
+	if (na == NULL) {
+		*mapped_attrs = NULL;
+		return LDAP_NO_MEMORY;
+	}
 
 	for (i = j = 0; an[i].an_name.bv_val; i++) {
 		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
@@ -245,7 +250,8 @@ ldap_back_map_attrs(
 		na[j++] = LDAP_NO_ATTRS;
 	na[j] = NULL;
 
-	return(na);
+	*mapped_attrs = na;
+	return LDAP_SUCCESS;
 }
 
 #ifdef ENABLE_REWRITE

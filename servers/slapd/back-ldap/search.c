@@ -67,7 +67,7 @@ ldap_back_search(
 	struct ldapconn *lc;
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
-	int	count, rc = 0, msgid; 
+	int	rc = 0, msgid; 
 	char *match = NULL;
 	char **mapped_attrs = NULL;
 	struct berval mbase;
@@ -107,7 +107,6 @@ ldap_back_search(
 		/* positive hard limit means abort */
 		} else if ( limit->lms_t_hard > 0 ) {
 			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-			send_ldap_result( op, rs );
 			rc = 0;
 			goto finish;
 		}
@@ -127,7 +126,6 @@ ldap_back_search(
 		/* positive hard limit means abort */
 		} else if ( limit->lms_s_hard > 0 ) {
 			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-			send_ldap_result( op, rs );
 			rc = 0;
 			goto finish;
 		}
@@ -168,14 +166,14 @@ ldap_back_search(
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"Operation not allowed" );
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Operation not allowed";
 		rc = -1;
 		goto finish;
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_error( op, rs, LDAP_OTHER,
-				"Rewrite error" );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
 		rc = -1;
 		goto finish;
 	}
@@ -194,12 +192,25 @@ ldap_back_search(
 #endif /* ! ENABLE_REWRITE */
 
 	if ( rc ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
 		rc = -1;
 		goto finish;
 	}
 
-	mapped_attrs = ldap_back_map_attrs(&li->at_map, op->oq_search.rs_attrs, BACKLDAP_MAP);
+	rs->sr_err = ldap_back_map_attrs( &li->at_map, op->oq_search.rs_attrs,
+			BACKLDAP_MAP, &mapped_attrs );
+	if ( rs->sr_err ) {
+		rc = -1;
+		goto finish;
+	}
+
+#if 0
 	if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
+		int count;
+
+		/* this can happen only if ch_calloc() fails
+		 * in ldap_back_map_attrs() */
 		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++);
 		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
 		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++) {
@@ -207,10 +218,14 @@ ldap_back_search(
 		}
 		mapped_attrs[count] = NULL;
 	}
+#endif
 
-	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val, op->oq_search.rs_scope, mfilter.bv_val,
-			mapped_attrs, op->oq_search.rs_attrsonly, op->o_ctrls, NULL, tv.tv_sec ? &tv
-			: NULL, op->oq_search.rs_slimit, &msgid);
+	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val,
+			op->oq_search.rs_scope, mfilter.bv_val,
+			mapped_attrs, op->oq_search.rs_attrsonly,
+			op->o_ctrls, NULL,
+			tv.tv_sec ? &tv : NULL, op->oq_search.rs_slimit,
+			&msgid);
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
 		rc = ldap_back_op_result(lc, op, rs, msgid, 0);
@@ -361,9 +376,10 @@ fail:;
 	if ( rs->sr_v2ref ) {
 		rs->sr_err = LDAP_REFERRAL;
 	}
-	send_ldap_result( op, rs );
 
 finish:;
+	send_ldap_result( op, rs );
+
 	if ( match ) {
 		if ( rs->sr_matched != match ) {
 			free( (char *)rs->sr_matched );
