@@ -135,6 +135,22 @@ do_bind(
 			free( cred.bv_val );
 		}
 
+		pthread_mutex_lock( &conn->c_dnmutex );
+
+		conn->c_protocol = version;
+
+		if ( conn->c_cdn != NULL ) {
+			free( conn->c_cdn );
+			conn->c_cdn = NULL;
+		}
+
+		if ( conn->c_dn != NULL ) {
+			free( conn->c_dn );
+			conn->c_dn = NULL;
+		}
+
+		pthread_mutex_unlock( &conn->c_dnmutex );
+
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 		return;
 	}
@@ -152,6 +168,22 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
+			pthread_mutex_lock( &conn->c_dnmutex );
+
+			conn->c_protocol = version;
+
+			if ( conn->c_cdn != NULL ) {
+				free( conn->c_cdn );
+				conn->c_cdn = NULL;
+			}
+
+			if ( conn->c_dn != NULL ) {
+				free( conn->c_dn );
+				conn->c_dn = NULL;
+			}
+
+			pthread_mutex_unlock( &conn->c_dnmutex );
+
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
 		} else if ( default_referral && *default_referral ) {
