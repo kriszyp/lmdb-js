@@ -98,14 +98,6 @@ parse_acl(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
 	const char *text;
-	AttributeDescription *ad_distinguishedName = slap_schema.si_ad_distinguishedName;
-	AttributeDescription *ad_member = slap_schema.si_ad_member;
-#ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *ad_aci = slap_schema.si_ad_aci;
-#endif
-#else
-	static char *ad_aci = "aci";
-	static char *ad_member = "member";
 #endif
 
 	a = NULL;
@@ -343,11 +335,12 @@ parse_acl(
 					}
 
 
-					if( b->a_dn_at->ad_type->sat_syntax
-						!= ad_distinguishedName->ad_type->sat_syntax )
+					if( strcmp( b->a_dn_at->ad_type->sat_oid,
+						SLAPD_OID_DN_SYNTAX ) != 0 )
 					{
 						fprintf( stderr,
-							"%s: line %d: dnattr \"%s\": inappropriate syntax: %s\n",
+							"%s: line %d: dnattr \"%s\": "
+							"inappropriate syntax: %s\n",
 							fname, lineno, right,
 							b->a_dn_at->ad_type->sat_syntax_oid );
 						acl_usage();
@@ -389,43 +382,54 @@ parse_acl(
 #else
 						b->a_group_oc = ch_strdup(value);
 #endif
-						if( b->a_group_oc == NULL ) {
-							fprintf( stderr,
-								"%s: line %d: group objectclass \"%s\" unknown\n",
-								fname, lineno, value );
-							acl_usage();
-						}
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-						if( is_object_subclass( b->a_group_oc,
-							slap_schema.si_oc_referral ) )
-						{
-							fprintf( stderr,
-								"%s: line %d: group objectclass \"%s\" is subclass of referral\n",
-								fname, lineno, value );
-							acl_usage();
-						}
-
-						if( is_object_subclass( b->a_group_oc,
-							slap_schema.si_oc_alias ) )
-						{
-							fprintf( stderr,
-								"%s: line %d: group objectclass \"%s\" is subclass of alias\n",
-								fname, lineno, value );
-							acl_usage();
-						}
-#endif
-
 						*--value = '/';
 
+						if( b->a_group_oc == NULL ) {
+							fprintf( stderr,
+								"%s: line %d: group objectclass "
+								"\"%s\" unknown\n",
+								fname, lineno, value );
+							acl_usage();
+						}
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_oc = slap_schema.si_oc_groupOfNames;
+						b->a_group_oc = oc_find("groupOfNames");
+
+						if( b->a_group_oc == NULL ) {
+							fprintf( stderr,
+								"%s: line %d: group default objectclass "
+								"\"%s\" unknown\n",
+								fname, lineno, "groupOfNames" );
+							acl_usage();
+						}
 #else
 						b->a_group_oc = ch_strdup("groupOfNames");
 #endif
 					}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+#if 0
+					if( is_object_subclass( b->a_group_oc,
+						slap_schema.si_oc_referral ) )
+					{
+						fprintf( stderr,
+							"%s: line %d: group objectclass \"%s\" "
+							"is subclass of referral\n",
+							fname, lineno, value );
+						acl_usage();
+					}
+
+					if( is_object_subclass( b->a_group_oc,
+						slap_schema.si_oc_alias ) )
+					{
+						fprintf( stderr,
+							"%s: line %d: group objectclass \"%s\" "
+							"is subclass of alias\n",
+							fname, lineno, value );
+						acl_usage();
+					}
+#endif
+#endif
 
 					if (name && *name) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -437,34 +441,33 @@ parse_acl(
 								fname, lineno, right, text );
 							acl_usage();
 						}
-
-						if( b->a_group_at->ad_type->sat_syntax
-							!= ad_member->ad_type->sat_syntax )
-						{
-							fprintf( stderr,
-								"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
-								fname, lineno, right,
-								b->a_group_at->ad_type->sat_syntax_oid );
-							acl_usage();
-						}
 #else
 						b->a_group_at = ch_strdup(name);
 #endif
 						*--name = '/';
-
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_at = ad_dup( ad_member );
+						rc = slap_str2ad( "member", &b->a_group_at, &text );
+
+						if( rc != LDAP_SUCCESS ) {
+							fprintf( stderr,
+								"%s: line %d: group \"%s\": %s\n",
+								fname, lineno, "member", text );
+							acl_usage();
+						}
 #else
-						b->a_group_at = ch_strdup( ad_member );
+						b->a_group_at = ch_strdup( "member" );
 #endif
 					}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-					if( b->a_group_at == NULL ) {
+					if( strcmp( b->a_group_at->ad_type->sat_oid,
+						SLAPD_OID_DN_SYNTAX ) != 0 )
+					{
 						fprintf( stderr,
-							"%s: line %d: group attribute type undefined.\n",
-							fname, lineno );
+							"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
+							fname, lineno, right,
+							b->a_group_at->ad_type->sat_syntax_oid );
 						acl_usage();
 					}
 
@@ -491,8 +494,7 @@ parse_acl(
 							acl_usage();
 						}
 					}
-
-#endif /* SLAPD_SCHEMA_NOT_COMPAT */
+#endif
 					continue;
 				}
 

@@ -178,6 +178,7 @@ str2simple( const char *str )
 	case ':':
 		f->f_choice = LDAP_FILTER_EXT;
 		*s = '\0';
+		return NULL;
 		break;
 
 	default:
@@ -188,6 +189,7 @@ str2simple( const char *str )
 		} else {
 			f->f_choice = LDAP_FILTER_SUBSTRINGS;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+			f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
 			rc = slap_str2ad( str, &f->f_sub_desc, &text );
 			if( rc != LDAP_SUCCESS ) {
 				filter_free( f );
@@ -223,6 +225,8 @@ str2simple( const char *str )
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		char *tmp;
 
+		f->f_ava = ch_calloc( 1, sizeof( AttributeAssertion ) );
+		f->f_av_desc = NULL;
 		rc = slap_str2ad( str, &f->f_av_desc, &text );
 		if( rc != LDAP_SUCCESS ) {
 			filter_free( f );

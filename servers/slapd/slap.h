@@ -93,12 +93,10 @@ LDAP_BEGIN_DECL
 #define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-/* schema needed by slapd */
-#define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.666.2.1" /* experimental */
+/* must match syntaxes in schema_init.c */
+#define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.666.2.1"
+#define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
 #define SLAPD_ACI_DEFAULT_ATTR		"aci"
-#endif
-
 
 LIBSLAPD_F (int) slap_debug;
 
@@ -336,7 +334,6 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_rootdse;
-	ObjectClass *si_oc_groupOfNames;
 
 	/* objectClass attribute */
 	AttributeDescription *si_ad_objectClass;
@@ -372,11 +369,6 @@ struct slap_internal_schema {
 	/* Access Control Internals */
 	AttributeDescription *si_ad_entry;
 	AttributeDescription *si_ad_children;
-	AttributeDescription *si_ad_member;
-	AttributeDescription *si_ad_distinguishedName;
-#ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *si_ad_aci;
-#endif
 
 	/* Other */
 	AttributeDescription *si_ad_userPassword;

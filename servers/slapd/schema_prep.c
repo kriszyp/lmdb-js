@@ -47,7 +47,6 @@ struct slap_schema_oc_map {
 	{ "LDAProotDSE", offsetof(struct slap_internal_schema, si_oc_rootdse) },
 	{ "LDAPsubentry", offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", offsetof(struct slap_internal_schema, si_oc_subschema) },
-	{ "groupOfNames", offsetof(struct slap_internal_schema, si_oc_groupOfNames) },
 	{ NULL, 0 }
 };
 
@@ -103,19 +102,11 @@ struct slap_schema_ad_map {
 	{ "ref", NULL,
 		offsetof(struct slap_internal_schema, si_ad_ref) },
 
-	/* access control information */
+	/* access control internals */
 	{ "entry", NULL,
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children", NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
-	{ "distinguishedName", NULL,
-		offsetof(struct slap_internal_schema, si_ad_distinguishedName) },
-	{ "member", NULL,
-		offsetof(struct slap_internal_schema, si_ad_member) },
-#ifdef SLAPD_ACI_ENABLED
-	{ "aci", NULL,
-		offsetof(struct slap_internal_schema, si_ad_aci) },
-#endif
 
 	{ "userPassword", NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
