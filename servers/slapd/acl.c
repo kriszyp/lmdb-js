@@ -1130,15 +1130,6 @@ acl_check_modlist(
 	return( 1 );
 }
 
-static void
-aci_bvdup( struct berval *dest, struct berval *src )
-{
-	dest->bv_val = ch_malloc( src->bv_len + 1);
-	AC_MEMCPY( dest->bv_val, src->bv_val, src->bv_len );
-	dest->bv_val[src->bv_len] = 0;
-	dest->bv_len = src->bv_len;
-}
-
 static char *
 aci_bvstrdup( struct berval *bv )
 {
@@ -1276,6 +1267,15 @@ aci_match_set (
 		/* format of string is "entry/setAttrName" */
 		if (aci_get_part(subj, 0, '/', &subjdn) < 0) {
 			return(0);
+		} else {
+			/* FIXME: If dnNormalize was based on ldap_bv2dn
+			 * instead of ldap_str2dn and would honor the bv_len
+			 * we could skip this step and not worry about the
+			 * unterminated string.
+			 */
+			char *s = ch_malloc(subjdn.bv_len + 1);
+			AC_MEMCPY(s, subjdn.bv_val, subjdn.bv_len);
+			subjdn.bv_val = s;
 		}
 
 		if ( aci_get_part(subj, 1, '/', &setat) < 0 ) {
@@ -1287,7 +1287,7 @@ aci_match_set (
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(be, NULL, NULL, e,
-					&subjdn, desc, &bvals);
+					ndn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0] != NULL )
 						set = ch_strdup(bvals[0]->bv_val);
