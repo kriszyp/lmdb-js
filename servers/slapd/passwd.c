@@ -69,11 +69,14 @@ int passwd_extop(
 		rc = LDAP_OTHER;
 #endif
 
+#ifndef SLAPD_MULTIMASTER
+	/* This does not apply to multi-master case */
 	} else if( be->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
 		*refs = referral_rewrite( be->be_update_refs,
 			NULL, NULL, LDAP_SCOPE_DEFAULT );
 			rc = LDAP_REFERRAL;
+#endif /* !SLAPD_MULTIMASTER */
 
 	} else {
 		rc = be->be_extended(
