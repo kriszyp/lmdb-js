@@ -27,6 +27,10 @@
 #include "slap.h"
 #include "proto-sql.h"
 
+#ifdef BACKSQL_SYNCPROV
+#include <lutil.h>
+#endif /* BACKSQL_SYNCPROV */
+
 /*
  * Skip:
  * - null values (e.g. delete modification)
@@ -887,6 +891,25 @@ backsql_add( Operation *op, SlapReply *rs )
 	struct berval		realdn = BER_BVNULL,
 				realndn = BER_BVNULL,
 				realpdn = BER_BVNULL;
+
+#ifdef BACKSQL_SYNCPROV
+	/*
+	 * NOTE: fake successful result to force contextCSN to be bumped up
+	 */
+	if ( op->o_sync ) {
+		char		buf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+		struct berval	csn = BER_BVNULL;
+
+		slap_get_csn( op, buf, sizeof( buf ), &csn, 1 );
+
+		rs->sr_err = LDAP_SUCCESS;
+		send_ldap_result( op, rs );
+
+		slap_graduate_commit_csn( op );
+
+		return 0;
+	}
+#endif /* BACKSQL_SYNCPROV */
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );

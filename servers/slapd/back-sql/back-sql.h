@@ -88,7 +88,6 @@
  * define to enable very extensive trace logging (debug only)
  */
 #undef BACKSQL_TRACE
-#define BACKSQL_TRACE
 
 /*
  * define to enable varchars as unique keys in user tables
@@ -98,6 +97,13 @@
  * related tables.
  */
 #undef BACKSQL_ARBITRARY_KEY
+
+/*
+ * define to enable experimental support for syncporv overlay
+ */
+#ifdef LDAP_DEVEL
+#define BACKSQL_SYNCPROV
+#endif /* LDAP_DEVEL */
 
 /*
  * define to the appropriate aliasing string

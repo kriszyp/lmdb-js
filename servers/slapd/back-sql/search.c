@@ -671,6 +671,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		rc = 1;
 		goto done;
 
+#ifdef BACKSQL_SYNCPROV
 	} else if ( ad == slap_schema.si_ad_entryCSN ) {
 		/*
 		 * TODO: introduce appropriate entryCSN filtering
@@ -683,9 +684,6 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			goto done;
 		}
 
-		/* save for later use in operational attributes */
-		bsi->bsi_op->o_private = &f->f_av_value;
-
 		bsi->bsi_flags |= ( BSQL_SF_FILTER_ENTRYCSN | BSQL_SF_RETURN_ENTRYUUID);
 
 		/* if doing a syncrepl, try to return as much as possible,
@@ -693,9 +691,21 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
 				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 
+		/* save for later use in operational attributes */
+		/* FIXME: saves only the first occurrence, because 
+		 * the filter during updates is written as
+		 * "(&(entryCSN<={contextCSN})(entryCSN>={oldContextCSN})({filter}))"
+		 * so we want our fake entryCSN to match the greatest
+		 * value
+		 */
+		if ( bsi->bsi_op->o_private == NULL ) {
+			bsi->bsi_op->o_private = &f->f_av_value;
+		}
 		bsi->bsi_status = LDAP_SUCCESS;
+
 		rc = 1;
 		goto done;
+#endif /* BACKSQL_SYNCPROV */
 
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
 		/*
@@ -1896,6 +1906,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 		}
 
+#ifdef BACKSQL_SYNCPROV
 		if ( bsi.bsi_flags & BSQL_SF_FILTER_ENTRYCSN ) {
 			a_entryCSN = backsql_operational_entryCSN( op );
 			if ( a_entryCSN != NULL ) {
@@ -1908,6 +1919,7 @@ backsql_search( Operation *op, SlapReply *rs )
 				*ap = a_entryCSN;
 			}
 		}
+#endif /* BACKSQL_SYNCPROV */
 
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
 		{
@@ -1969,6 +1981,27 @@ end_of_search:;
 		ber_bvarray_free( rs->sr_v2ref );
 		rs->sr_v2ref = NULL;
 	}
+
+#ifdef BACKSQL_SYNCPROV
+	if ( op->o_sync ) {
+		Operation	op2 = *op;
+		SlapReply	rs2 = { 0 };
+		Entry		e = { 0 };
+		slap_callback	cb = { 0 };
+
+		op2.o_tag = LDAP_REQ_ADD;
+		op2.o_bd = select_backend( &op->o_bd->be_nsuffix[0], 0, 0 );
+		op2.ora_e = &e;
+		op2.o_callback = &cb;
+
+		e.e_name = op->o_bd->be_suffix[0];
+		e.e_nname = op->o_bd->be_nsuffix[0];
+
+		cb.sc_response = slap_null_cb;
+
+		op2.o_bd->be_add( &op2, &rs2 );
+	}
+#endif /* BACKSQL_SYNCPROV */
 
 done:;
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
