@@ -265,6 +265,9 @@ monitor_subsys_database_modify(
 		return LDAP_NO_SUCH_OBJECT;
 
 	be = &backendDB[n];
+	if ( SLAP_MONITOR(be) )
+		return LDAP_UNWILLING_TO_PERFORM;
+		
 	cur = (be->be_restrictops & SLAP_RESTRICT_OP_WRITES) ? 1 : 0;
 
 	save_attrs = e->e_attrs;
