@@ -27,10 +27,17 @@
 
 /* note: callers of crypt(3) should include <ac/crypt.h> */
 
-#ifndef HAVE_GETPASS
-LIBLUTIL_F(char*)(getpass) LDAP_P((const char *getpass));
-#else
+#if defined(HAVE_GETPASSPHRASE)
+LIBC_F(char*)(getpassphrase)();
+
+#elif defined(HAVE_GETPASS)
+#define getpassphrase(p) getpass(p)
 LIBC_F(char*)(getpass)();
+
+#else
+#define NEED_GETPASSPHRASE 1
+#define getpassphrase(p) lutil_getpass(p)
+LIBLUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 #endif
 
 /* getopt() defines may be in separate include file */

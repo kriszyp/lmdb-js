@@ -17,8 +17,6 @@
 
 #include "portable.h"
 
-#ifndef HAVE_GETPASS
-
 #include <stdio.h>
 
 #include <ac/stdlib.h>
@@ -29,6 +27,8 @@
 #include <ac/termios.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+
+#ifdef NEED_GETPASSPHRASE
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -44,16 +44,19 @@
 #include "ldap_defaults.h"
 
 char *
-getpass( const char *prompt )
+lutil_getpass( const char *prompt )
 {
 #if !defined(HAVE_POSIX_TERMIOS) && !defined(HAVE_SGTTY_H)
 	static char buf[256];
 	int i, c;
 
+	if( prompt == NULL ) prompt = "Password: ";
+
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->getpass(%s)\n", prompt);
 #endif
+
 	printf("%s", prompt);
 	i = 0;
 	while ( (c = getch()) != EOF && c != '\n' && c != '\r' )
@@ -72,6 +75,8 @@ getpass( const char *prompt )
 	register int c;
 	FILE *fi;
 	RETSIGTYPE (*sig)( int sig );
+
+	if( prompt == NULL ) prompt = "Password: ";
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -155,4 +160,4 @@ getpass( const char *prompt )
 #endif
 }
 
-#endif /* !HAVE_GETPASS */
+#endif /* !NEED_GETPASSPHRASE */

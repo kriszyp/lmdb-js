@@ -246,8 +246,8 @@ main( int argc, char *argv[] )
 	if( want_oldpw && oldpw == NULL ) {
 		/* prompt for old password */
 		char *ckoldpw;
-		newpw = strdup(getpass("Old password: "));
-		ckoldpw = getpass("Re-enter old password: ");
+		newpw = strdup(getpassphrase("Old password: "));
+		ckoldpw = getpassphrase("Re-enter old password: ");
 
 		if( strncmp( oldpw, ckoldpw, strlen(oldpw) )) {
 			fprintf( stderr, "passwords do not match\n" );
@@ -258,8 +258,8 @@ main( int argc, char *argv[] )
 	if( want_newpw && newpw == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
-		newpw = strdup(getpass("New password: "));
-		cknewpw = getpass("Re-enter new password: ");
+		newpw = strdup(getpassphrase("New password: "));
+		cknewpw = getpassphrase("Re-enter new password: ");
 
 		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
 			fprintf( stderr, "passwords do not match\n" );
@@ -280,7 +280,7 @@ main( int argc, char *argv[] )
 	if (want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
 		fprintf( stderr, "Bind DN: %s\n", binddn );
-		passwd.bv_val = strdup( getpass("Enter bind password: "));
+		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
 		passwd.bv_len = strlen( passwd.bv_val );
 	}
 

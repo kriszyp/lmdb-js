@@ -50,7 +50,7 @@ int
 auth( char *who, int implicit )
 {
 	int rc;			/* return code from ldap_bind() */
-	char *passwd = NULL;	/* returned by getpass() */
+	char *passwd = NULL;	/* returned by getpassphrase() */
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
@@ -241,7 +241,7 @@ auth( char *who, int implicit )
 		authmethod = LDAP_AUTH_SIMPLE;
 		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
-			passwd = getpass(prompt);
+			passwd = getpassphrase(prompt);
 		} while (passwd != NULL && *passwd == '\0');
 		if (passwd == NULL) {
 			(void) ldap_value_free(rdns);
@@ -352,7 +352,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 	sprintf(prompt, "  Enter Kerberos password for %s: ", kauth_name );
 #endif
 	do {
-		passwd = getpass(prompt);
+		passwd = getpassphrase(prompt);
 	} while (passwd != NULL && *passwd == '\0');
 	if (passwd == NULL) {
 		return(-1);

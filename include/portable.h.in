@@ -166,6 +166,9 @@
 /* Define if you have the getpass function.  */
 #undef HAVE_GETPASS
 
+/* Define if you have the getpassphrase function.  */
+#undef HAVE_GETPASSPHRASE
+
 /* Define if you have the getpwnam function.  */
 #undef HAVE_GETPWNAM
 

@@ -2138,6 +2138,7 @@ AC_CHECK_FUNCS(		\
 	getgrgid		\
 	gethostname		\
 	getpass			\
+	getpassphrase	\
 	getpwuid		\
 	getpwnam		\
 	getspnam		\
