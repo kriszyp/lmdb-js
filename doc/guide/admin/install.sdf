@@ -118,7 +118,7 @@ H3: TCP Wrappers
 
 {{slapd}}(8) supports TCP wrappers (IP level access control filters)
 if preinstalled.  Use of TCP wrappers or other IP level access
-filters (such as those provided by IP firewall) is recommended
+filters (such as those provided by a IP-level firewall) is recommended
 for servers containing non-public information.
 
 
