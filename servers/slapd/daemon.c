@@ -454,7 +454,7 @@ slapd_daemon_task(
 		slapd_add( slap_listeners[l]->sl_sd );
 	}
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_WINSOCK2
 	if ( started_event != NULL ) {
 		ldap_pvt_thread_cond_signal( &started_event );
 	}
