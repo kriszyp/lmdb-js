@@ -101,7 +101,7 @@ echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "comparison failed - database was not created correctly"
+	echo "comparison failed - language test failed!"
 	exit 1
 fi
 
