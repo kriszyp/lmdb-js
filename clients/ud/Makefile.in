@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 SRCS=	main.c find.c mod.c print.c auth.c util.c help.c \
 	string_to_key.c group.c edit.c globals.c
 XSRCS= version.c

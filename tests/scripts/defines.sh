@@ -1,3 +1,5 @@
+#!/bin/sh
+# $OpenLDAP$
 
 DATADIR=$SRCDIR/data
 PROGDIR=./progs

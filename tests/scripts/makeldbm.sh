@@ -1,4 +1,5 @@
 #! /bin/sh
+# $OpenLDAP$
 
 . scripts/defines.sh
 

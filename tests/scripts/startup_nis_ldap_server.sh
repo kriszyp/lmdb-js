@@ -1,5 +1,5 @@
-#!/bin/sh
-
+#! /bin/sh
+# $OpenLDAP$
 
 if [ $# -eq 0 ]; then
 	SRCDIR="."

@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 PROGRAMS= rcpt500
 SRCS= main.c cmds.c help.c query.c
 XSRCS= version.c
