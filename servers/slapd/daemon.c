@@ -400,9 +400,17 @@ slapd_daemon_task(
 				continue;
 			}
 
-			assert( !FD_ISSET( 0, &slap_daemon.sd_actives) );
-			assert( !FD_ISSET( 0, &slap_daemon.sd_readers) );
-			assert( !FD_ISSET( 0, &slap_daemon.sd_writers) );
+#ifdef LDAP_DEBUG
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+			/* newly accepted stream should not be in any of the FD SETS */
+
+			assert( !FD_ISSET( s, &slap_daemon.sd_actives) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_readers) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_writers) );
+
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+#endif
 
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
@@ -492,12 +500,10 @@ slapd_daemon_task(
 #ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 #ifdef HAVE_WINSOCK
-		for ( i = 0; i < readfds.fd_count; i++ )
-		{
+		for ( i = 0; i < readfds.fd_count; i++ ) {
 			Debug( LDAP_DEBUG_CONNS, " %d%s", readfds.fd_array[i], "r" );
 		}
-		for ( i = 0; i < writefds.fd_count; i++ )
-		{
+		for ( i = 0; i < writefds.fd_count; i++ ) {
 			Debug( LDAP_DEBUG_CONNS, " %d%s", writefds.fd_array[i], "w" );
 		}
 #else
@@ -528,8 +534,6 @@ slapd_daemon_task(
 				"daemon: signalling write waiter on %d\n",
 				wd, 0, 0 );
 
-			assert( FD_ISSET( wd, &slap_daemon.sd_actives) );
-
 			slapd_clr_write( wd, 0 );
 			if ( connection_write( wd ) < 0 ) {
 				FD_CLR( (unsigned) wd, &readfds );
@@ -544,8 +548,6 @@ slapd_daemon_task(
 			if ( FD_ISSET( i, &writefds ) ) {
 				Debug( LDAP_DEBUG_CONNS,
 				    "daemon: signaling write waiter on %d\n", i, 0, 0 );
-
-				assert( FD_ISSET( i, &slap_daemon.sd_actives) );
 
 				/* clear the write flag */
 				slapd_clr_write( i, 0 );
@@ -566,7 +568,10 @@ slapd_daemon_task(
 			}
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
+
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 			assert( FD_ISSET( rd, &slap_daemon.sd_actives) );
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
 			if ( connection_read( rd ) < 0 ) {
 				slapd_close( rd );
