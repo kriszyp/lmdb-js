@@ -348,7 +348,12 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 	 * Note: tags in a choice are always explicit
 	 */
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "ldap_int_put_filter: \"%s\"\n",
+		str_in ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str_in, 0, 0 );
+#endif
 
 	freeme = LDAP_STRDUP( str_in );
 	if( freeme == NULL ) return LDAP_NO_MEMORY;
@@ -366,8 +371,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 
 			switch ( *str ) {
 			case '&':
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+					"ldap_int_put_filter: AND\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: AND\n",
 				    0, 0, 0 );
+#endif
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_AND, 0 );
@@ -380,8 +390,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 				break;
 
 			case '|':
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+					"ldap_int_put_filter: OR\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: OR\n",
 				    0, 0, 0 );
+#endif
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_OR, 0 );
@@ -394,8 +409,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 				break;
 
 			case '!':
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+					"ldap_int_put_filter: NOT\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: NOT\n",
 				    0, 0, 0 );
+#endif
 
 				str = put_complex_filter( ber, str,
 				    LDAP_FILTER_NOT, 0 );
@@ -408,8 +428,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 				break;
 
 			default:
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+					"ldap_int_put_filter: simple\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: simple\n",
 				    0, 0, 0 );
+#endif
 
 				balance = 1;
 				escape = 0;
@@ -454,8 +479,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			break;
 
 		case /*'('*/ ')':
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+				"ldap_int_put_filter: end\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n",
 				0, 0, 0 );
+#endif
 			if ( ber_printf( ber, /*"["*/ "]" ) == -1 ) {
 				rc = -1;
 				goto done;
@@ -469,8 +499,13 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			break;
 
 		default:	/* assume it's a simple type=value filter */
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+				"ldap_int_put_filter: default\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n",
 				0, 0, 0 );
+#endif
 			next = strchr( str, '\0' );
 			if ( put_simple_filter( ber, str ) == -1 ) {
 				rc = -1;
@@ -498,8 +533,13 @@ put_filter_list( BerElement *ber, char *str, ber_tag_t tag )
 	char	*next = NULL;
 	char	save;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, 
+				"put_filter_list \"%s\"\n", str ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "put_filter_list \"%s\"\n",
 		str, 0, 0 );
+#endif
 
 	while ( *str ) {
 		while ( *str && LDAP_SPACE( (unsigned char) *str ) ) {
@@ -538,8 +578,13 @@ put_simple_filter(
 	ber_tag_t	ftype;
 	int		rc = -1;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, 
+				"put_simple_filter: \"%s\"\n", str ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "put_simple_filter: \"%s\"\n",
 		str, 0, 0 );
+#endif
 
 	str = LDAP_STRDUP( str );
 	if( str == NULL ) return -1;
@@ -705,8 +750,13 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	int gotstar = 0;
 	ber_tag_t	ftype = LDAP_FILTER_SUBSTRINGS;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, 
+				"put_substring_filter \"%s=%s\"\n", type, val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "put_substring_filter \"%s=%s\"\n",
 		type, val, 0 );
+#endif
 
 	if ( ber_printf( ber, "t{s{" /*"}}"*/, ftype, type ) == -1 ) {
 		return -1;
