@@ -91,7 +91,9 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 #else /* !LDAP_REFERRALS && !LDAP_DNS */
 
 #ifdef LDAP_DNS
-	if (( ld->ld_options & LDAP_OPT_DNS ) != 0 && ldap_is_dns_dn( dn )) {
+	if (( LDAP_BOOL_GET(ld, LDAP_BOOL_DNS ) == LDAP_OPT_ON )
+		&& ldap_is_dns_dn( dn ) )
+	{
 		if (( servers = dn2servers( ld, dn )) == NULL ) {
 			ber_free( ber, 1 );
 			return( -1 );
