@@ -198,7 +198,7 @@ ber_memcalloc( ber_len_t n, ber_len_t s )
 void *
 ber_memrealloc( void* p, ber_len_t s )
 {
-	void *new;
+	void *new = NULL;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	/* realloc(NULL,s) -> malloc(s) */
