@@ -86,7 +86,7 @@ See the REWRITING section for details.
 .SH REWRITING
 A string is rewritten according to a set of rules, called a `rewrite
 context'.
-The rules are based on Regular Expressions (POSIX regex) with
+The rules are based on POSIX (''extended'') regular expressions with
 substring matching; basic variable substitution and map resolution 
 of substrings is allowed by specific mechanisms detailed in the following.
 The behavior of pattern matching/substitution can be altered by a set
@@ -132,7 +132,7 @@ alter the actions that are taken after substitution.
 honors case in matching (default is case insensitive)
 .TP
 .B `R'
-use POSIX Basic Regular Expressions (default is Extended)
+use POSIX ''basic'' regular expressions (default is ''extended'')
 .TP
 .B `M{n}'
 allow no more than
@@ -189,7 +189,9 @@ errors, but jump two lines ahead only in case of match.
 More flags (mainly Action Flags) will be added as needed.
 .SH "Pattern Matching"
 See
-.BR regex (7).
+.BR regex (7)
+and/or
+.BR re_format (7).
 .SH "Substitution Pattern Syntax"
 Everything starting with `$' requires substitution;
 .LP
@@ -197,7 +199,9 @@ the only obvious exception is `$$', which is left as is;
 .LP
 the basic substitution is `$<d>', where `<d>' is a digit;
 0 means the whole string, while 1-9 is a submatch, as discussed in 
-.BR regex (7);
+.BR regex (7)
+and/or
+.BR re_format (7).
 .LP
 a `$' followed by a `{' invokes an advanced substitution.
 The pattern is:
@@ -263,9 +267,8 @@ directive.
 Substitution escaping has been delegated to the `$' symbol, 
 which is used instead of `\e' in string substitution patterns
 because `\e' is already escaped by slapd's low level parsing routines;
-as a consequence, 
-.BR regex (7)
-escaping requires two `\e' symbols, e.g. `\fB.*\e.foo\e.bar\fP' must
+as a consequence, regex escaping requires
+two `\e' symbols, e.g. `\fB.*\e.foo\e.bar\fP' must
 be written as `\fB.*\e\e.foo\e\e.bar\fP'.
 .\"
 .\" The symbol can be altered at will by redefining the related macro in
@@ -506,7 +509,8 @@ default slapd configuration file
 .BR slapd\-meta (5),
 .BR slapd\-relay (5),
 .BR slapd (8),
-.BR regex (7).
+.BR regex (7),
+.BR re_format (7).
 .SH AUTHOR
 Pierangelo Masarati; based on back-ldap rewrite/remap features
 by Howard Chu, Pierangelo Masarati.

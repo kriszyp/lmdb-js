@@ -253,10 +253,13 @@ for exact, onelevel, children and subtree matches, which cause
 .I <pattern>
 to be normalized according to the DN normalization rules, or the special
 .I regex
-style, which causes
+style, which causes the
 .I <pattern>
-to be compiled according to 
-.BR regex (7).
+to be treated as a POSIX (''extended'') regular expression, as
+discussed in
+.BR regex (7)
+and/or
+.BR re_format (7).
 A pattern of
 .I *
 means any non-anonymous DN.
@@ -326,8 +329,8 @@ are taken, when available, and combined into a name of the form
 .RE
 This name is then compared against the
 .B match
-regular expression, and if the match is successful, the name is
-replaced with the
+POSIX (''extended'') regular expression, and if the match is successful,
+the name is replaced with the
 .B replace
 string.  If there are wildcard strings in the 
 .B match
@@ -1090,9 +1093,8 @@ to allow any level of depth match, including the exact match; with
 .BR children ,
 to allow any level of depth match, not including the exact match;
 .BR regex
-explicitly requires the (default) match based on regular expression
-pattern, as detailed in
-.BR regex (7).
+explicitly requires the (default) match based on POSIX (''extended'')
+regular expression pattern.
 Finally,
 .B anonymous
 matches unbound operations; the 

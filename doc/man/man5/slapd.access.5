@@ -142,11 +142,13 @@ qualifier is
 .BR regex ,
 then 
 .B <dnpattern>
-is a regular expression pattern,
+is a POSIX (''extended'') regular expression pattern,
 as detailed in
-.BR regex (7),
+.BR regex (7)
+and/or
+.BR re_format (7),
 matching a normalized string representation of the entry's DN.
-The regex form of the pattern does not (yet) support UTF-8.
+The regex form of the pattern does not (yet) support UTF\-8.
 .LP
 The statement
 .B filter=<ldapfilter>
@@ -194,8 +196,8 @@ value. If the value
 .B <style>
 is
 .BR regex ,
-the provided value is used as a regular expression pattern.
-If the attribute has DN syntax, the value
+the provided value is used as a POSIX (''extended'') regular
+expression pattern.  If the attribute has DN syntax, the value
 .B <style>
 can be any of
 .BR base ,
@@ -415,14 +417,18 @@ which means that
 .B <group>
 will be expanded as a replacement string (but not as a regular expression)
 according to
-.BR regex (7),
+.BR regex (7)
+and/or
+.BR re_format (7),
 and
 .BR exact ,
 which means that exact match will be used.
 If the style of the DN portion of the
 .B <what>
 clause is regex, the submatches are made available according to
-.BR regex (7);
+.BR regex (7)
+and/or
+.BR re_format (7);
 other styles provide limited submatches as discussed above about 
 the DN form of the 
 .B <by>
@@ -468,9 +474,7 @@ case apply, plus the
 .B regex
 style, which implies submatch
 .B expand
-and
-.BR regex (7)
-match of the corresponding connection parameters.
+and regex match of the corresponding connection parameters.
 The
 .B exact
 style of the
@@ -907,6 +911,8 @@ default slapd configuration file
 .SH SEE ALSO
 .BR slapd (8),
 .BR slapacl (8),
+.BR regex (7),
+.BR re_format (7)
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
