@@ -320,7 +320,7 @@ with password "secret".  Note that the access control privilege of
 {{EX:cn=syncuser,dc=example,dc=com}} should be set appropriately 
 in the provider to retrieve the desired replication content.
 The consumer will write to its database with the privilege of the
-{EX:cn=replica,dc=example,dc=com}} entry as specified in the
+{{EX:cn=replica,dc=example,dc=com}} entry as specified in the
 {{EX:updatedn=}} directive. The {{EX:updatedn}} entry should have
 write permission to the replica content.
 
