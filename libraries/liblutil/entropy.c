@@ -81,8 +81,9 @@ int lutil_entropy( char *buf, int nbytes )
 		 */
 
 		/*
-		 * the caller may be provide external synchronization OR
-		 * provide entropy (in buf) to ensure quality results.
+		 * the caller may need to provide external synchronization OR
+		 * provide entropy (in buf) to ensure quality results as
+		 * access to this counter may not be atomic.
 		 */
 		static int counter = 0;
 		int n;
@@ -100,7 +101,8 @@ int lutil_entropy( char *buf, int nbytes )
 #else
 			time_t	time;
 #endif
-			unsigned long	junk;
+
+			unsigned long	junk;	/* purposely not initialized */
 		} rdata;
 
 		/* make sure rdata differs for each process */
@@ -114,7 +116,7 @@ int lutil_entropy( char *buf, int nbytes )
 			struct lutil_MD5Context ctx;
 			char digest[16];
 
-			/* hopefully has good resolution */
+			/* poor resolution */
 #ifdef HAVE_GETTIMEOFDAY
 			(void) gettimeofday( &rdata.tv, NULL );
 #else
@@ -129,7 +131,7 @@ int lutil_entropy( char *buf, int nbytes )
 			lutil_MD5Init( &ctx );
 			lutil_MD5Update( &ctx, (char *) &rdata, sizeof( rdata ) );
 
-			/* use caller to provided information */
+			/* allow caller to provided additional entropy */
 			lutil_MD5Update( &ctx, (char *) &buf, nbytes );
 
 			lutil_MD5Final( digest, &ctx );
