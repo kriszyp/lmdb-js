@@ -91,6 +91,7 @@ struct metasingleconn {
 	
 	LDAP            	*ld;
 	struct berval          	bound_dn;
+	struct berval		cred;
 	int             	bound;
 #define META_UNBOUND		0
 #define META_BOUND		1
@@ -149,6 +150,8 @@ struct metainfo {
 	
 	ldap_pvt_thread_mutex_t	conn_mutex;
 	Avlnode			*conntree;
+
+	int			savecred;
 };
 
 #define META_OP_ALLOW_MULTIPLE		0x00

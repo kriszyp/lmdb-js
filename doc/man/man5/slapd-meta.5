@@ -140,6 +140,10 @@ check permissions.
 This directive sets the password for acl checking in conjunction
 with the above mentioned "binddn" directive.
 .TP
+.B rebind-as-user
+If this option is given, the client's bind credentials are remembered
+for rebinds when chasing referrals.
+.TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"
 This directive, if present, sets the DN that will be substituted to
 the bind DN if a bind with the backend's "rootdn" succeeds.

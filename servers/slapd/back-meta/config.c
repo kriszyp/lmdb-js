@@ -356,6 +356,16 @@ meta_back_db_config(
 		}
 		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->bindpw );
 		
+	/* save bind creds for referral rebinds? */
+	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
+		if (argc != 1) {
+			fprintf( stderr,
+	"%s: line %d: rebind-as-user takes no arguments\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->savecred = 1;
+	
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
 		int 		i = li->ntargets-1;
