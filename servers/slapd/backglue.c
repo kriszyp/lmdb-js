@@ -36,7 +36,7 @@
 
 typedef struct gluenode {
 	BackendDB *be;
-	char *pdn;
+	struct berval pdn;
 } gluenode;
 
 typedef struct glueinfo {
@@ -352,7 +352,7 @@ glue_back_search (
 			}
 			be = gi->n[i].be;
 			if (scope == LDAP_SCOPE_ONELEVEL && 
-				!strcmp (gi->n[i].pdn, ndn->bv_val)) {
+				dn_match(&gi->n[i].pdn, ndn)) {
 				rc = be->be_search (be, conn, op,
 					be->be_suffix[0], be->be_nsuffix[0],
 					LDAP_SCOPE_BASE, deref,
@@ -806,6 +806,7 @@ glue_sub_init( )
 	BackendDB *b1, *be;
 	BackendInfo *bi;
 	glueinfo *gi;
+	struct berval bv;
 
 	/* While there are subordinate backends, search backwards through the
 	 * backends and connect them to their superior.
@@ -885,10 +886,13 @@ glue_sub_init( )
 			}
 			gi->n[gi->nodes].be = be;
 			if ( dnParent( be->be_nsuffix[0]->bv_val, 
-					(const char **)&gi->n[gi->nodes].pdn ) 
+					(const char **)&bv.bv_val ) 
 					!= LDAP_SUCCESS ) {
 				return -1;
 			}
+			bv.bv_len = be->be_nsuffix[0]->bv_len - (bv.bv_val -
+				be->be_nsuffix[0]->bv_val);
+			gi->n[gi->nodes].pdn = bv;
 			gi->nodes++;
 		}
 		if (gi) {
@@ -897,10 +901,13 @@ glue_sub_init( )
 				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
 			gi->n[gi->nodes].be = gi->be;
 			if ( dnParent( b1->be_nsuffix[0]->bv_val, 
-					(const char **)&gi->n[gi->nodes].pdn ) 
+					(const char **)&bv.bv_val ) 
 					!= LDAP_SUCCESS ) {
 				return -1;
 			}
+			bv.bv_len = be->be_nsuffix[0]->bv_len - (bv.bv_val -
+				be->be_nsuffix[0]->bv_val);
+			gi->n[gi->nodes].pdn = bv;
 			gi->nodes++;
 			b1->be_private = gi;
 			b1->bd_info = bi;
