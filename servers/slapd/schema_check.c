@@ -69,8 +69,8 @@ entry_schema_check(
 		}
 
 		if( !collective && is_at_collective( a->a_desc->ad_type ) ) {
-			snprintf( textbuf, textlen, "attribute '%s' "
-				"may only appear in collectiveAttributes subentry",
+			snprintf( textbuf, textlen,
+				"'%s' can only appear in collectiveAttributes subentry",
 				type );
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
@@ -226,6 +226,7 @@ entry_schema_check(
 				return rc;
 			}
 		}
+
 		if ( oc->soc_kind == LDAP_SCHEMA_ABSTRACT ) {
 			/* object class is abstract */
 			if ( oc != slap_schema.si_oc_top &&

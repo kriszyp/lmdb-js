@@ -728,14 +728,7 @@ parse_acl(
 						}
 
 					} else {
-						rc = slap_str2ad( SLAPD_ACI_ATTR, &b->a_aci_at, &text );
-
-						if( rc != LDAP_SUCCESS ) {
-							fprintf( stderr,
-								"%s: line %d: aci \"%s\": %s\n",
-								fname, lineno, SLAPD_ACI_ATTR, text );
-							acl_usage();
-						}
+						b->a_aci_at = slap_schema.si_ad_aci;
 					}
 
 					if( !is_at_syntax( b->a_aci_at->ad_type,

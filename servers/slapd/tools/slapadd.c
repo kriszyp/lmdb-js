@@ -22,7 +22,7 @@
 int
 main( int argc, char **argv )
 {
-	char		*buf;
+	char		*buf = NULL;
 	int         lineno;
 	int         lmax;
 	int			rc = EXIT_SUCCESS;
@@ -42,7 +42,6 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
-	buf = NULL;
 	lmax = 0;
 	lineno = 0;
 
@@ -55,7 +54,6 @@ main( int argc, char **argv )
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
 		ID id;
 		Entry *e = str2entry( buf );
-		char buf[1024];
 		struct berval bvtext = { textlen, textbuf };
 
 		if( e == NULL ) {

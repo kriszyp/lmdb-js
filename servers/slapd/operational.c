@@ -41,7 +41,9 @@ slap_operational_hasSubordinate( int hs )
 	a->a_desc = slap_schema.si_ad_hasSubordinates;
 
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_str2bv( hs ? "TRUE" : "FALSE", 0, 1, a->a_vals );
+	ber_str2bv( hs ? "TRUE" : "FALSE",
+		hs ? sizeof("TRUE")-1 : sizeof("FALSE")-1,
+		1, a->a_vals );
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;

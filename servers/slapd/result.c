@@ -142,7 +142,6 @@ static long send_ldap_ber(
 		    err, sock_errstr(err), 0 );
 #endif
 
-
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );
 
@@ -207,7 +206,6 @@ send_ldap_response(
 		"send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
 		(long) msgid, (long) tag, (long) err );
 #endif
-
 
 	if( ref ) {
 #ifdef NEW_LOGGING

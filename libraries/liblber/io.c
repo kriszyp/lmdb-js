@@ -461,7 +461,7 @@ ber_get_next(
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
 		(char *)(&ber->ber_usertag + 1)) {
-		int i;
+		ber_slen_t i;
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
@@ -563,7 +563,7 @@ ber_get_next(
 			}
 			ber->ber_ptr = ber->ber_buf;
 			ber->ber_usertag = 0;
-			if (i == ber->ber_len) {
+			if ((ber_len_t)i == ber->ber_len) {
 				goto done;
 			}
 			ber->ber_rwptr = ber->ber_buf + i;
@@ -596,8 +596,8 @@ done:
 		if ( ber->ber_debug ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "liblber", LDAP_LEVEL_DETAIL1,
-				   "ber_get_next: tag 0x%lx len %ld\n",
-				   ber->ber_tag, ber->ber_len ));
+				"ber_get_next: tag 0x%lx len %ld\n",
+				ber->ber_tag, ber->ber_len ));
 			BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
 #else
 			ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,

@@ -138,8 +138,6 @@ LDAP_BEGIN_DECL
 #define SLAPD_ROLE_CLASS		"organizationalRole"
 
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
-#define SLAPD_ACI_ATTR			"OpenLDAPaci"
-
 #define SLAPD_OCTETSTRING_SYNTAX "1.3.6.1.4.1.1466.115.121.1.40"
 
 /* change this to "OpenLDAPset" */
@@ -483,6 +481,27 @@ typedef struct slap_object_class {
 #define soc_extensions		soc_oclass.oc_extensions
 } ObjectClass;
 
+#ifdef LDAP_DIT_CONTENT_RULES
+/*
+ * DIT content rule
+ */
+typedef struct slap_content_rule {
+	LDAPContentRule		scr_crule;
+	ObjectClass			*scr_sclass;
+	ObjectClass			**scr_auxiliaries;	/* optional */
+	AttributeType		**scr_required;		/* optional */
+	AttributeType		**scr_allowed;		/* optional */
+	AttributeType		**scr_precluded;	/* optional */
+#define scr_oid			scr_crule.cr_oid
+#define scr_names		scr_crule.cr_names
+#define scr_desc		scr_crule.cr_desc
+#define scr_obsolete		soc_oclass.cr_obsolete
+#define scr_cr_oids_aux		soc_oclass.cr_oc_oids_aux
+#define scr_cr_oids_must	soc_oclass.cr_at_oids_must
+#define scr_cr_oids_may		soc_oclass.cr_at_oids_may
+#define scr_cr_oids_not		soc_oclass.cr_at_oids_not
+} ContentRule;
+#endif
 
 /*
  * represents a recognized attribute description ( type + options )
@@ -1347,41 +1366,36 @@ typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
 typedef struct slap_op {
 	ber_int_t	o_opid;		/* id of this operation		  */
 	ber_int_t	o_msgid;	/* msgid of the request		  */
-#ifdef LDAP_CONNECTIONLESS
-	Sockaddr	o_peeraddr;	/* UDP peer address		  */
-#endif
-
-	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
-
-	BerElement	*o_ber;		/* ber of the request		  */
-
+	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
-
-	AuthorizationInformation o_authz;
-
-	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
-
-	LDAPControl	**o_ctrls;	 /* controls */
-
 	unsigned long	o_connid; /* id of conn initiating this op  */
-
-	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
-	int		o_abandon;	/* abandon flag */
-	slap_response	*o_response;	/* callback function */
-	slap_sresult	*o_sresult;	/* search result callback */
-
-	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
-	void	*o_private;	/* anything the backend needs	  */
-	void	*o_glue;	/* for the glue backend */
+	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
 
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2
-
 	char o_managedsait;
 	char o_subentries;
 	char o_subentries_visibility;
+
+	int		o_abandon;	/* abandon flag */
+	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
+
+#ifdef LDAP_CONNECTIONLESS
+	Sockaddr	o_peeraddr;	/* UDP peer address		  */
+#endif
+	AuthorizationInformation o_authz;
+
+	BerElement	*o_ber;		/* ber of the request		  */
+	slap_response	*o_response;	/* callback function */
+	slap_sresult	*o_sresult;	/* search result callback */
+	LDAPControl	**o_ctrls;	 /* controls */
+
+	void	*o_glue;	/* for the glue backend */
+	void	*o_private;	/* anything the backend needs */
+
+	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 } Operation;
 
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)
@@ -1510,7 +1524,7 @@ typedef struct slap_listener {
 #ifdef LDAP_CONNECTIONLESS
 	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
-	ber_socket_t		sl_sd;
+	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
 } Listener;
