@@ -166,8 +166,9 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     	ber_bvfree(dn);
 	goto done;
     }
-    ret = ldap_search_s(ld, dn->bv_val+3, LDAP_SCOPE_BASE, "(objectclass=*)",
-    	attrs, 0, &res);
+    c.ldctl_value = *dn;
+    ret = ldap_search_ext_s(ld, dn->bv_val+3, LDAP_SCOPE_BASE,
+    	"(objectclass=*)", attrs, 0, ctrl, NULL, NULL, 1, &res);
     ber_bvfree(dn);
 
     if (ret != LDAP_SUCCESS) goto done;
