@@ -805,7 +805,7 @@ dn_issuffix(
 
 char * rdn_attr_type( const char * s )
 {
-	char 	**attrs, **values, *retval;
+	char 	**attrs = NULL, **values = NULL, *retval;
 
 	if ( rdn_attrs( s, &attrs, &values ) != LDAP_SUCCESS ) {
 		return NULL;
@@ -834,15 +834,14 @@ char * rdn_attr_type( const char * s )
 char *
 rdn_attr_value( const char * rdn )
 {
-	char 	**attrs, **values, *retval;
+	char 	**values = NULL, *retval;
 
-	if ( rdn_attrs( rdn, &attrs, &values ) != LDAP_SUCCESS ) {
+	if ( rdn_attrs( rdn, NULL, &values ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 
 	retval = ch_strdup( values[ 0 ] );
 
-	charray_free( attrs );
 	charray_free( values );
 
 	return retval;
@@ -873,16 +872,23 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 	
 	assert( rdn );
 	assert( values );
-
-	if ( types ) {
-		*types = NULL;
-	}
-	*values = NULL;
+	assert( *values == NULL );
+	assert( types == NULL || *types == NULL );
 
 	rc = ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
+
+#if 0
+	/*
+	 * FIXME: should we complain if the rdn is actually a dn?
+	 */
+	if ( p[ 0 ] != '\0' ) {
+		ldap_rdnfree( tmpRDN );
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+#endif
 
 	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) {
 		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
