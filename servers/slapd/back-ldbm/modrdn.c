@@ -279,27 +279,6 @@ ldbm_back_modrdn(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* delete old one */
-	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
-	(void) cache_delete_entry( &li->li_cache, e );
-	free( e->e_dn );
-	free( e->e_ndn );
-	e->e_dn = new_dn;
-	e->e_ndn = new_ndn;
-
-	/* add new one */
-	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
-
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
@@ -437,12 +416,32 @@ ldbm_back_modrdn(
 	}
 #endif
 
+	/* delete old one */
+	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
+	(void) cache_delete_entry( &li->li_cache, e );
+	free( e->e_dn );
+	free( e->e_ndn );
+	e->e_dn = new_dn;
+	e->e_ndn = new_ndn;
+
+	/* add new one */
+	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
+
 	/* modify memory copy of entry */
 	if ( ldbm_modify_internal( be, conn, op, dn,
 		&mod[deleteoldrdn ? 0 : 1], e ) != 0 ) {
 	    
 	    goto return_results;
-	    
 	}
 	
 	(void) cache_update_entry( &li->li_cache, e );
