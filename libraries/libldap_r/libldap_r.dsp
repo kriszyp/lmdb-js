@@ -288,6 +288,10 @@ SOURCE=..\libldap\result.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\sasl.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\sbind.c
 # End Source File
 # Begin Source File
