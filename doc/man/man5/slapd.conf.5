@@ -1384,6 +1384,7 @@ one subordinate to another subordinate within the namingContext.
 .B provider=ldap[s]://<hostname>[:port]
 .B [type=refreshOnly|refreshAndPersist]
 .B [interval=dd:hh:mm:ss]
+.B [retry=[<retry interval> <# of retries>]+]
 .B [searchbase=<base DN>]
 .B [filter=<filter str>]
 .B [scope=sub|one|base]
@@ -1454,10 +1455,15 @@ operation, a synchronization search remains persistent in the provider slapd.
 Further updates to the master replica will generate
 .B searchResultEntry
 to the consumer slapd as the search responses to the persistent
-synchronization search. If the connection is lost, the consumer will
-attempt to reconnect at an interval time (specified by
-.B interval
-parameter; 60 seconds by default) until the session is re-established.
+synchronization search.
+If an error occurs during replication, the consumer will attempt to
+reconnect according to the
+.B retry
+parameter which is a list of the <retry interval> and <# of retries> pairs.
+For example, retry="60 5 300 3" lets the consumer retry every 60 seconds
+for the first 10 times and then retry every 300 seconds for the next three
+times before stop retrying. + in <# of retries> means indefinite
+number of retries until success.
 The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
