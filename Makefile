@@ -295,6 +295,9 @@ makeconfig:	.makefiles buildtools
 	    NetBSD) \
 		PLATFORM="netbsd" \
 		;; \
+	    OpenBSD) \
+		PLATFORM="openbsd" \
+		;; \
 	    FreeBSD) \
 		MAJRELEASE=`echo $$OSRELEASE | sed 's/\..*//'` ; \
 		if [ $$MAJRELEASE -lt 3 ]; then \

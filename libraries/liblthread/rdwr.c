@@ -17,6 +17,7 @@
  * 
  * Library of functions implementing reader/writer locks
  */
+#include <stdlib.h>
 #include <lthread.h>
 #include <lthread_rdwr.h>
 
