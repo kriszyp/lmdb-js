@@ -273,7 +273,7 @@ ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 	buf_out->buf_ptr += ret;
 	if (buf_out->buf_ptr == buf_out->buf_end)
 		buf_out->buf_end = buf_out->buf_ptr = 0;
-	if ( ret < to_go )
+	if ( (ber_len_t)ret < to_go )
 		/* not enough data, so pretend no data was sent. */
 		return -1;
    return ret;
