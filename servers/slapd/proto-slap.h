@@ -387,8 +387,6 @@ LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 #define dn_match(dn1, dn2) 	( ber_bvcmp((dn1), (dn2)) == 0 )
 #define bvmatch(bv1, bv2)	( ((bv1)->bv_len == (bv2)->bv_len) && (memcmp((bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len) == 0) )
 
-LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
-
 LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
@@ -547,6 +545,13 @@ LDAP_SLAPD_F (int) filter_escape_value LDAP_P(( struct berval *in,
 LDAP_SLAPD_F (int) test_filter LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, Filter *f ));
+
+/*
+ * globals.c
+ */
+
+LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
+LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
 
 /*
  * index.c

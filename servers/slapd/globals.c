@@ -17,4 +17,5 @@
  */
 
 const struct berval slap_empty_bv = { 0, "" };
+const struct berval slap_unknown_bv = { sizeof("unknown") - 1, "unknown" };
 

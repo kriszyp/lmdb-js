@@ -11,11 +11,19 @@
  */
 
 #include "portable.h"
+//#include "../../../libraries/liblber/lber-int.h"
 #include <slap.h>
+#include <lber_pvt.h>
 #include <slapi.h>
-#include <lber.h>
-#include "../../../libraries/liblber/lber-int.h"
 
+/*
+ * use a fake listener when faking a connection,
+ * so it can be used in ACLs
+ */
+static struct slap_listener slap_unknown_listener = {
+	BER_BVC("unknown"),	/* FIXME: use a URI form? */
+	BER_BVC("UNKNOWN")
+};
 
 int bvptr2obj( struct berval **bvptr, struct berval **bvobj );
 
@@ -184,11 +192,9 @@ fakeConnection(
 	c->c_ndn.bv_len = 0;
 	c->c_groups = NULL;
 
-	c->c_listener = NULL;
-	c->c_peer_domain.bv_val = NULL;
-	c->c_peer_domain.bv_len = 0;
-	c->c_peer_name.bv_val = NULL;
-	c->c_peer_name.bv_len = 0;
+	c->c_listener = &slap_unknown_listener;
+	ber_dupbv( &c->c_peer_domain, (struct berval *)&slap_unknown_bv );
+	ber_dupbv( &c->c_peer_name, (struct berval *)&slap_unknown_bv );
 
 	LDAP_STAILQ_INIT( &c->c_ops );
 
