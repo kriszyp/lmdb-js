@@ -218,7 +218,8 @@ ldbm_back_db_destroy(
 	/* should free/destroy every in be_private */
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	ldbm_shutdown_env(li->li_dbenv);
+	if (li->li_dbenv)
+	    ldbm_shutdown_env(li->li_dbenv);
 
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
