@@ -39,6 +39,7 @@
 typedef struct Query_s {
 	Filter* 	filter; 	/* Search Filter */
 	AttributeName* 	attrs;		/* Projected attributes */
+	AttributeName*  save_attrs;	/* original attributes, saved for response */
 	struct berval 	base; 		/* Search Base */
 	int 		scope;		/* Search scope */
 } Query;
@@ -116,6 +117,11 @@ typedef struct cache_manager_s {
 	int 	cur_entries;			/* current number of entries cached */
 	int 	max_entries;			/* max number of entries cached */
         int     num_entries_limit;		/* max # of entries in a cacheable query */
+
+	char	response_cb;			/* install the response callback
+						 * at the tail of the callback list */
+#define PCACHE_RESPONSE_CB_HEAD	0
+#define PCACHE_RESPONSE_CB_TAIL	1
 
 	int     cc_period;		/* interval between successive consistency checks (sec) */
 	int	cc_paused;
@@ -1225,8 +1231,17 @@ proxy_cache_response(
 				si->tail = NULL;
 			}
 		}
-	} else if ( rs->sr_type == REP_RESULT && si->count ) {
-		if ( cache_entries( op, rs, &uuid ) == 0) {
+
+		if (rs->sr_attrs != op->ors_attrs ) {
+			op->o_tmpfree( rs->sr_attrs, op->o_tmpmemctx );
+		}
+		rs->sr_attrs = si->query.save_attrs;
+		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
+		op->ors_attrs = si->query.save_attrs;
+		si->query.save_attrs = NULL;
+
+	} else if ( rs->sr_type == REP_RESULT ) {
+		if ( si->count && cache_entries( op, rs, &uuid ) == 0 ) {
 			qm->addfunc(qm, &si->query, si->template_id, &uuid);
 			/* If the consistency checker suspended itself,
 			 * wake it back up
@@ -1240,6 +1255,9 @@ proxy_cache_response(
 				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 			}
 		}
+
+		/* free self */
+		op->o_callback->sc_cleanup = slap_freeself_cb;
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -1348,6 +1366,7 @@ proxy_cache_search(
 
 	query.filter = op->ors_filter;
 	query.attrs = op->ors_attrs;
+	query.save_attrs = NULL;
 	query.base = op->o_req_ndn;
 	query.scope = op->ors_scope;
 
@@ -1377,8 +1396,15 @@ proxy_cache_search(
 	}
 	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
 
+	query.save_attrs = op->ors_attrs;
+	query.attrs = NULL;
+
 	if (answerable) {
-		BackendDB *be = op->o_bd;
+		/* Need to clear the callbacks of the original operation,
+		 * in case there are other overlays */
+		BackendDB	*save_bd = op->o_bd;
+		slap_callback	*save_cb = op->o_callback;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY ANSWERABLE\n", 0, 0, 0 );
 #else /* !NEW_LOGGING */
@@ -1387,8 +1413,10 @@ proxy_cache_search(
 		free(filter_attrs);
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock);
 		op->o_bd = &cm->db;
+		op->o_callback = NULL;
 		i = cm->db.bd_info->bi_op_search( op, rs );
-		op->o_bd = be;
+		op->o_bd = save_bd;
+		op->o_callback = save_cb;
 		return i;
 	}
 
@@ -1406,8 +1434,9 @@ proxy_cache_search(
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
 
 	if (cacheable) {
-		slap_callback *cb;
-		struct search_info *si;
+		slap_callback		*cb;
+		struct search_info	*si;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
 			"QUERY CACHEABLE\n", 0, 0, 0 );
@@ -1416,13 +1445,14 @@ proxy_cache_search(
 #endif /* !NEW_LOGGING */
 		query.filter = str2filter(op->ors_filterstr.bv_val);
 		if (op->ors_attrs) {
-			for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
-				if ( op->ors_attrs[count].an_desc == slap_schema.si_ad_objectClass )
+			for ( count = 0; !BER_BVISNULL( &op->ors_attrs[ count ].an_name ); count++ ) {
+				if ( op->ors_attrs[count].an_desc == slap_schema.si_ad_objectClass ) {
 					oc_attr_absent = 0;
+				}
 			}
-			query.attrs = (AttributeName*)ch_malloc( ( count + 1 + oc_attr_absent )
-									*sizeof(AttributeName));
-			for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
+			query.attrs = (AttributeName *)ch_malloc( ( count + 1 + oc_attr_absent )
+									*sizeof(AttributeName) );
+			for ( count = 0; !BER_BVISNULL( &op->ors_attrs[ count ].an_name ); count++ ) {
 				ber_dupbv( &query.attrs[count].an_name, &op->ors_attrs[count].an_name );
 				query.attrs[count].an_desc = op->ors_attrs[count].an_desc;
 			}
@@ -1435,10 +1465,9 @@ proxy_cache_search(
 			query.attrs[ count ].an_name.bv_val = NULL;
 			query.attrs[ count ].an_name.bv_len = 0;
 		}
-		op->o_tmpfree(op->ors_attrs, op->o_tmpmemctx);
 		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
+
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
-		cb->sc_next = op->o_callback;
 		cb->sc_response = proxy_cache_response;
 		cb->sc_cleanup = NULL;
 		cb->sc_private = (cb+1);
@@ -1451,7 +1480,22 @@ proxy_cache_search(
 		si->count = 0;
 		si->head = NULL;
 		si->tail = NULL;
-		op->o_callback = cb;
+
+		if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
+			cb->sc_next = op->o_callback;
+			op->o_callback = cb;
+
+		} else {
+			slap_callback		**pcb;
+
+			/* need to move the callback at the end, in case other
+			 * overlays are present, so that the final entry is
+			 * actually cached */
+			cb->sc_next = NULL;
+			for ( pcb = &op->o_callback; *pcb; pcb = &(*pcb)->sc_next );
+			*pcb = cb;
+		}
+
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
@@ -1635,16 +1679,23 @@ proxy_cache_config(
 	char		**argv
 )
 {
-	slap_overinst *on = (slap_overinst *)be->bd_info;
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager* 	cm = on->on_bi.bi_private;
 	query_manager*  qm = cm->qm;
 	QueryTemplate* 	temp;
 	AttributeName*  attr_name;
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
+	char		*save_argv0 = NULL;
 
 	int 		index, i;
 	int 		num;
+	int		rc = 0;
+
+	if ( strncasecmp( argv[0], "proxycache-", STRLENOF( "proxycache-" ) ) == 0 ) {
+		save_argv0 = argv[0];
+		argv[0] += STRLENOF( "proxycache-" );
+	}
 
 	if ( strcasecmp( argv[0], "proxycache" ) == 0 ) {
 		if ( argc < 6 ) {
@@ -1806,12 +1857,55 @@ proxy_cache_config(
 		temp++; 
 		temp->querystr.bv_val = NULL;
 		cm->numtemplates++;
+
+	} else if ( strcasecmp( argv[0], "response-callback" ) == 0 ) {
+		/* set to "tail" to put the response callback
+		 * at the end of the callback list; this is required
+		 * in case other overlays are present, so that the
+		 * final entry is cached. */
+
+		if ( argc < 2 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"missing specifier for \"response-callback {head(default)|tail}\" "
+					"callback position\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+					"missing specifier for \"response-callback {head(default)|tail}\" "
+					"callback position\n", 0, 0, 0 );
+#endif
+			return 1;
+		}
+
+		if ( strcasecmp( argv[1], "head" ) == 0 ) {
+			cm->response_cb = PCACHE_RESPONSE_CB_HEAD;
+
+		} else if ( strcasecmp( argv[1], "tail" ) == 0 ) {
+			cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
+
+		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"unknown specifier %s for \"response-callback {head(default)|tail}\" "
+					"callback position\n", argv[1], 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+					"unknown specifier %s for \"response-callback {head(default)|tail}\" "
+					"callback position\n", argv[1], 0, 0 );
+#endif
+			return 1;
+		}
 	}
 	/* anything else */
 	else {
-		return cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
+		rc = cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
 	}
-	return 0;
+
+	if ( save_argv0 ) {
+		argv[0] = save_argv0;
+	}
+
+	return rc;
 }
 
 static int
@@ -1840,6 +1934,7 @@ proxy_cache_init(
 	cm->max_entries = 0;
 	cm->cur_entries = 0;
 	cm->max_queries = 10000;
+	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
 	cm->cc_period = 1000;
 	cm->cc_paused = 0;
 
@@ -1863,9 +1958,20 @@ proxy_cache_open(
 	BackendDB *be
 )
 {
-	slap_overinst *on = (slap_overinst *)be->bd_info;
-	cache_manager *cm = on->on_bi.bi_private;
-	int rc = 0;
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	cache_manager	*cm = on->on_bi.bi_private;
+	int		rc = 0;
+	int		i;
+
+	/* consistency check (add more...) */
+	for ( i = 0; i < cm->numattrsets; i++ ) {
+		if ( cm->qm->attr_sets[i].attrs == NULL ) {
+			fprintf( stderr, "proxy_cache_open(): "
+				"attr set %d (of %d) missing\n",
+				i, cm->numattrsets );
+			return 1;
+		}
+	}
 
 	rc = backend_startup_one( &cm->db );
 

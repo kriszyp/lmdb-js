@@ -1,5 +1,4 @@
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
@@ -26,7 +25,6 @@ uid: johnd
 title: System Administrator, Information Technology Division
 
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
 cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
@@ -35,7 +33,6 @@ title: Telemarketer, UM Alumni Association
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example
  ,dc=com
-objectClass: OpenLDAPperson
 cn: James A Jones 2
 cn: James Jones
 cn: Jim Jones
@@ -61,7 +58,6 @@ title: System Administrator, Information Technology Division
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
  =com
-objectClass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 uid: bjorn
@@ -70,13 +66,11 @@ mail: bjorn@mailgw.example.com
 telephoneNumber: +1 313 555 0355
 
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
 cn: Dorothy Stevens
 cn: Dot Stevens
 sn: Stevens
 uid: dots
 title: Secretary, UM Alumni Association
-mail: dots@mail.alumni.example.com
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
