@@ -405,6 +405,79 @@ looks at the suffix line(s) in each database definition in the
 order they appear in the file. Thus, if one database suffix is a
 prefix of another, it must appear after it in the config file.
 
+H4: syncrepl
+
+>	syncrepl id=<replica ID>
+>		provider=ldap[s]://<hostname>[:port]
+>		[updatedn=<dn>]
+>		[binddn=<dn>]
+>		[bindmethod=simple|sasl]
+>		[binddn=<simple DN>]
+>		[credentials=<simple passwd>]
+>		[saslmech=<SASL mech>]
+>		[secprops=<properties>]
+>		[realm=<realm>]
+>		[authcId=<authentication ID>]
+>		[authzId=<authorization ID>]
+>		[searchbase=<base DN>]
+>		[filter=<filter str>]
+>		[attrs=<attr list>]
+>		[scope=sub|one|base]
+>		[schemachecking=on|off]
+>		[type=refreshOnly|refreshAndPersist]
+>		[interval=dd:hh:mm]
+
+This directive specifies an LDAP Sync replication between this
+database and the specified replication provider site. The id=
+parameter identifies the LDAP Sync specification in the database.
+The {{EX:provider=}} parameter specifies a replication provider site as
+an LDAP URI.
+
+The LDAP Sync replication specification is based on the search
+specification which defines the content of the replica. The replica
+consists of the entries matching the search specification. As with
+the normal searches, the search specification consists of
+{{EX:searchbase}}, {{EX:scope}}, {{EX:filter}}, and EX:attrs}}
+parameters.
+
+The LDAP Sync replication has two types of operating modes. In the
+{{EX:refreshOnly}} mode, the next synchronization session is
+rescheduled at the interval time after the current session finishes.
+The default interval is set to one day. In the {{EX:refreshAndPersist}}
+mode, the LDAP Sync search remains persistent in the provider LDAP
+server. Further updates to the provider replica will generate
+searchResultEntry to the consumer.
+
+The schema checking can be enforced at the LDAP Sync consumer site
+by turning on the {{EX:schemachecking}} parameter. The default is off.
+
+The {{EX:binddn=}} parameter gives the DN for the LDAP Sync search
+to bind as to the provider slapd. The content of the replica will
+be subject to the access control privileges of the DN.
+
+The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}}, depending
+on whether simple password-based authentication or SASL authentication
+is to be used when connecting to the provider slapd.
+
+Simple authentication should not be used unless adequate integrity
+and data confidential protections are in place (e.g. TLS or IPSEC).
+Simple authentication requires specification of {{EX:binddn}} and
+{{EX:credentials}} parameters.
+
+SASL authentication is generally recommended. SASL authentication
+requires specification of a mechanism using the {{EX:mech}} parameter.
+Depending on the mechanism, an authentication identity and/or
+credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
+respectively.  The {{EX:authzid}} parameter may be used to specify
+a proxy authorization identity.
+
+The LDAP Sync replication is supported in three native backends:
+back-bdb, back-hdb, and back-ldbm.
+
+See the {{SECT:LDAP Sync Replication}} chapter for more information
+on how to use this directive.
+
+
 H4: updatedn <dn>
 
 This directive is only applicable in a slave slapd. It specifies

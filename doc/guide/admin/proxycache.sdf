@@ -1,0 +1,133 @@
+# $OpenLDAP$
+# Copyright 2003, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: The Proxy Cache Engine
+
+LDAP servers typically hold one or more subtrees of a DIT. Replica
+(or shadow) servers hold shadow copies of entries held by one or
+more master servers.  Changes are propagated from the master server
+to replica (slave) servers using LDAP Sync or {{slurpd}}(8). An
+LDAP cache is a special type of replica which holds entries
+corresponding to search filters instead of subtrees.
+
+H2: Overview
+
+The proxy cache extension of slapd handles a search request (query)
+by first determining whether it is contained in any cached search
+filter. Contained requests are answered from the proxy cache's local
+database.
+
+E.g. {{EX:(shoesize>=9)}} is contained in {{EX:(shoesize>=8)}} and
+{{EX:(sn=Richardson)}} is contained in {{EX:(sn=Richards*)}}
+
+Correct matching rules and syntaxes are used while comparing
+assertions for query containment. To simplify the query containment
+problem, a list of cacheable "templates" (defined below) is specified
+at configuration time. A query is cached or answered only if it
+belongs to one of these templates. The entries corresponding to
+cached queries are stored in the proxy cache local database while
+its associated meta information (filter, scope, base, attributes)
+is stored in main memory. Instead of sending a referral for requests
+which are not contained, it acts as a proxy and obtains the result
+by querying one or more target servers. The proxy cache extends the
+meta backend and uses it to connect to target servers.
+
+A template is a prototype for generating LDAP search requests.
+Templates are described by a prototype search filter and a list of
+attributes which are required in queries generated from the template.
+The representation for prototype filter is similar to RFC 2254,
+except that the assertion values are missing. Examples of prototype
+filters are: (sn=),(&(sn=)(givenname=)) which are instantiated by
+search filters (sn=Doe) and (&(sn=Doe)(givenname=John)) respectively.
+
+The cache replacement policy removes the least recently used (LRU)
+query and entries belonging to only that query. Queries are allowed
+a maximum time to live (TTL) in the cache thus providing weak
+consistency. A background thread periodically checks the cache for
+expired queries and removes them.
+
+The Proxy Cache paper
+({{URL:http://www.openldap.org/pub/kapurva/proxycaching.pdf}}) provides
+design/implementation details.
+
+
+H2: Proxy Cache Configuration
+
+The cache configuration specific directives described below must
+appear after the {{EX:"database meta"}} directive and before any other
+{{EX:"database"}} declaration in {{slapd.conf}}(5).
+
+H3: Setting cache parameters
+
+>	cacheparams <lo_thresh> <hi_thresh> <numattrsets> <max_entries> <cc_period>
+
+The directive enables proxy caching and sets general cache parameters.
+Cache replacement is invoked when the cache size crosses the
+<hi_thresh> bytes and continues till the cache size is greater than
+<lo_thresh> bytes. Total number of attributes sets (as specified
+by the attrset directive) is given by <numattrsets>. The entry
+restriction for cacheable queries is specified by <max_entries>.
+Consistency check is performed every <cc_period> duration (specified
+in secs). In each cycle queries with expired TTLs are removed.
+
+H3: Defining attribute sets
+
+> attrset <index> <attrs...>
+
+Used to associate a set of attributes to an index. Each attribute
+set is associated with an index number from 0 to <numattrsets>-1.
+These indices are used by the addtemplate directive to define
+cacheable templates.
+
+H3: Specifying cacheable templates 
+
+> addtemplate <prototype_string> <attrset_index> <TTL>
+
+Specifies a cacheable template and the "time to live" (in sec) <TTL>
+for queries belonging to the template. A template is described by
+its prototype filter string and set of required attributes identified
+by <attrset_index>.
+
+H3: Example
+
+An example {{slapd.conf}}(5) for a caching server which proxies for
+the backend server {{EX:ldap://server.mydomain.com}} and caches
+queries with base object in the {{EX:"dc=example,dc=com"}} subtree
+is described below,
+ 
+>	database 	meta
+>	suffix 		"dc=example,dc=com" 
+>	uri    		ldap://server.mydomain.com/dc=example,dc=com
+>	cacheparams 	100000 150000 1 50 100
+>	attrset 0 mail postaladdress telephonenumber 
+>	addtemplate (sn=) 0 3600
+>	addtemplate (&(sn=)(givenName=)) 0 3600
+>	addtemplate (&(departmentNumber=)(secretary=*)) 0 3600
+    
+A different name space is associated with the local cache database.
+E.g if the local database suffix is {{EX:"dc=example,dc=com,cn=cache"}},
+then following rewriting rules need to be defined to translate
+between master and cache database naming contexts.
+
+>	rewriteEngine 	on
+>	rewriteContext  cacheResult 
+>	rewriteRule	"(.*)dc=example,dc=com" "%1dc=example,dc=com,cn=cache" ":"
+>	rewriteContext  cacheBase
+>	rewriteRule     "(.*)dc=example,dc=com" "%1dc=example,dc=com,cn=cache" ":"
+>	rewriteContext  cacheReturn 
+>	rewriteRule     "(.*)dc=example,dc=com,cn=cache" "%1dc=example,dc=com" ":"
+    
+Finally, the local database for storing cached entries can be declared
+as follows:
+ 
+>	database 	ldbm
+>	suffix 		"dc=example,dc=com,cn=cache" 
+>	#other database specific directives
+
+The proxy cache database instance could be either {{TERM:BDB}} or
+{{TERM:LDBM}}. A script for demonstrating the proxy cache
+({{FILE:test019-proxycaching}}) functionality is provided in the
+tests/scripts directory of the distribution.
+
+

@@ -69,6 +69,12 @@ PB:
 !include "replication.sdf"; chapter
 PB:
 
+!include "syncrepl.sdf"; chapter
+PB:
+
+!include "proxycache.sdf"; chapter
+PB:
+
 # Appendices 
 !include "../release/autoconf.sdf"; appendix
 PB:
