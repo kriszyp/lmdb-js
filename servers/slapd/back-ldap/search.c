@@ -244,6 +244,10 @@ fail:;
 					ent.e_attrs = a->a_next;
 					if (a->a_vals != &dummy)
 						ber_bvarray_free(a->a_vals);
+#ifdef SLAP_NVALUES
+					if (a->a_nvals != a->a_vals)
+						ber_bvarray_free(a->a_nvals);
+#endif
 					ch_free(a);
 				}
 				
@@ -390,6 +394,7 @@ ldap_build_entry(
 	Attribute *attr, **attrp;
 	struct berval *bv;
 	const char *text;
+	int last;
 
 	/* safe assumptions ... */
 	assert( ent );
@@ -506,12 +511,14 @@ ldap_build_entry(
 				attr->a_vals->bv_val = NULL;
 				attr->a_vals->bv_len = 0;
 			}
+			last = 0;
+		} else {
+			for ( last = 0; attr->a_vals[last].bv_val; last++ );
+		}
+		if ( last == 0 ) {
+			/* empty */
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
-			int		last;
-
-			for ( last = 0; attr->a_vals[last].bv_val; last++ );
-
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped,
 						BACKLDAP_REMAP);
@@ -548,10 +555,6 @@ ldap_build_entry(
 		 */
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			int		last;
-
-			for ( last = 0; attr->a_vals[last].bv_val; last++ );
-
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 				struct berval	newval;
 				
@@ -613,7 +616,23 @@ ldap_build_entry(
 next_attr:;
 
 #ifdef SLAP_NVALUES
-		attr->a_nvals = attr->a_vals;
+		if ( last && attr->a_desc->ad_type->sat_equality &&
+			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
+			int i;
+
+			attr->a_nvals = ch_malloc((last+1)*sizeof(struct berval));
+			for (i=0; i<last; i++) {
+				attr->a_desc->ad_type->sat_equality->smr_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					attr->a_desc->ad_type->sat_syntax,
+					attr->a_desc->ad_type->sat_equality,
+					&attr->a_vals[i], &attr->a_nvals[i] );
+			}
+			attr->a_nvals[i].bv_val = NULL;
+			attr->a_nvals[i].bv_len = 0;
+		} else {
+			attr->a_nvals = attr->a_vals;
+		}
 #endif
 		*attrp = attr;
 		attrp = &attr->a_next;
@@ -639,7 +658,6 @@ ldap_back_entry_get(
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;    
 	struct ldapconn *lc;
 	int rc = 1, is_oc;
-	struct berval mapped = { 0, NULL }, bdn, mdn;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[3];
 	char *filter;
@@ -685,8 +703,7 @@ ldap_back_entry_get(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
-		rc = -1;
-		goto cleanup;
+		return 1;
 	}
 
 #else /* !ENABLE_REWRITE */
@@ -709,9 +726,11 @@ ldap_back_entry_get(
 	}
 	if (oc) {
 		char *ptr;
-		filter = ch_malloc(sizeof("(objectclass=)") + oc->soc_cname.bv_len);
+		ldap_back_map(&li->oc_map, &oc->soc_cname, &mapped,
+						BACKLDAP_MAP);
+		filter = ch_malloc(sizeof("(objectclass=)") + mapped.bv_len);
 		ptr = lutil_strcopy(filter, "(objectclass=");
-		ptr = lutil_strcopy(ptr, oc->soc_cname.bv_val);
+		ptr = lutil_strcopy(ptr, mapped.bv_val);
 		*ptr++ = ')';
 		*ptr++ = '\0';
 	} else {
@@ -729,7 +748,7 @@ ldap_back_entry_get(
 		goto cleanup;
 	}
 
-	*ent = ch_malloc(sizeof(Entry));
+	*ent = ch_calloc(1,sizeof(Entry));
 
 	rc = ldap_build_entry(op, e, *ent, &bdn, 0);
 
@@ -744,7 +763,7 @@ cleanup:
 	}
 
 	if ( mdn.bv_val != ndn->bv_val ) {
-		free( mdn.bv_val );
+		ch_free( mdn.bv_val );
 	}
 
 	return(rc);
