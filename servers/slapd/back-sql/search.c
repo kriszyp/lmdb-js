@@ -173,7 +173,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  int done=0,len=0;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_process_filter()\n",0,0,0);
- if (f==NULL)
+ if (f==NULL || f->f_choice==SLAPD_FILTER_COMPUTED)
   {
    return 0;
   }

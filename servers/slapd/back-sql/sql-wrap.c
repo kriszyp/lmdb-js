@@ -45,8 +45,8 @@ void backsql_PrintErrors(SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth,int rc)
 	|| rc == SQL_SUCCESS_WITH_INFO
        )
  {
-  Debug(LDAP_DEBUG_TRACE,"SQL engine state: %s\n", state,0,0);
   Debug(LDAP_DEBUG_TRACE,"Native error code: %d\n",(int) iSqlCode,0,0);
+  Debug(LDAP_DEBUG_TRACE,"SQL engine state: %s\n", state,0,0);
   Debug(LDAP_DEBUG_TRACE,"Message: %s\n",msg,0,0);
  }
 }
