@@ -882,7 +882,12 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_CANCELLED;
 			send_ldap_result( so->s_op, rs );
 		}
-		syncprov_drop_psearch( so, 0 );
+		/* Our cloned searches have no ctrls set.
+		 * we don't want to muck with real search ops
+		 * from the frontend.
+		 */
+		if ( ! so->s_op->o_sync )
+			syncprov_drop_psearch( so, 0 );
 	}
 	return SLAP_CB_CONTINUE;
 }
