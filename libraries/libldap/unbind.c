@@ -58,7 +58,11 @@ ldap_unbind_ext_s(
 int
 ldap_unbind( LDAP *ld )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_unbind\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
+#endif
 
 	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
@@ -176,7 +180,11 @@ ldap_send_unbind(
 {
 	BerElement	*ber;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_send_unbind\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
+#endif
 
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld))
