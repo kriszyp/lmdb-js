@@ -11,7 +11,7 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
 		repl.c lock.c controls.c extended.c \
 		schema.c schemaparse.c monitor.c configinfo.c \
-		root_dse.c module.c suffixalias.c
+		root_dse.c sasl.c module.c suffixalias.c
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
@@ -19,7 +19,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
 		repl.o lock.o controls.o extended.o \
 		schema.o schemaparse.o monitor.o configinfo.o \
-		root_dse.o module.o suffixalias.o
+		root_dse.o sasl.o module.o suffixalias.o
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries

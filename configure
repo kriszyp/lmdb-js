@@ -10492,7 +10492,7 @@ fi
 		if test $have_cyrus_sasl != no ; then
 			LUTIL_LIBS="$LUTIL_LIBS -lsasl"
 			cat >> confdefs.h <<\EOF
-#define HAVE_CRYUS_SASL 1
+#define HAVE_CYRUS_SASL 1
 EOF
 
 			ol_link_sasl=yes

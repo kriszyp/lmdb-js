@@ -243,7 +243,7 @@ int load_module LDAP_P(( const char* file_name, int argc, char *argv[] ));
  */
 extern char *supportedExtensions[];
 extern char *supportedControls[];
-extern char *supportedSASLMechanisms[];
+extern char **supportedSASLMechanisms;
 
 void monitor_info LDAP_P((
 	Connection *conn,

@@ -88,10 +88,12 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	}
 
 	/* supportedSASLMechanism */
-	for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
-		val.bv_val = supportedSASLMechanisms[i];
-		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedSASLMechanisms", vals );
+	if( supportedSASLMechanisms != NULL ) {
+		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
+			val.bv_val = supportedSASLMechanisms[i];
+			val.bv_len = strlen( val.bv_val );
+			attr_merge( e, "supportedSASLMechanisms", vals );
+		}
 	}
 
 	if ( default_referral != NULL ) {

@@ -700,7 +700,7 @@
 #undef NO_TERMCAP
 
 /* define if you have Cyrus SASL */
-#undef HAVE_CRYUS_SASL
+#undef HAVE_CYRUS_SASL
 
 /* define if you actually have FreeBSD fetch(3) */
 #undef HAVE_FETCH

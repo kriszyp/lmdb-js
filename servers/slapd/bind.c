@@ -21,10 +21,7 @@
 
 #include "slap.h"
 
-char *supportedSASLMechanisms[] = {
-	"X-DIGEST-MD5",
-	NULL
-};
+char **supportedSASLMechanisms = NULL;
 
 int
 do_bind(
