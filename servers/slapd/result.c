@@ -311,7 +311,7 @@ send_ldap_response(
 	long	bytes;
 
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -497,7 +497,7 @@ cleanup:;
 
 clean2:;
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -787,7 +787,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCH;
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1404,7 +1404,7 @@ error_return:;
 	}
 
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1453,7 +1453,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1625,7 +1625,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
-		int		first;
+		int		first = 1;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
