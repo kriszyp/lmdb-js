@@ -2036,17 +2036,17 @@ elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
 	if test $ol_cv_bdb_compat = yes ; then
 		ol_enable_bdb=yes
 	elif test $ol_enable_bdb = yes ; then
-		AC_MSG_ERROR(BDB: BerkeleyDB version incompatible)
+		AC_MSG_ERROR([BDB: BerkeleyDB version incompatible])
 	else
 		ol_enable_bdb=no
 	fi
 fi
 if test $ol_enable_hdb = yes -a $ol_link_ldbm != berkeley ; then
-	AC_MSG_ERROR(HDB: BerkeleyDB not available)
+	AC_MSG_ERROR([HDB: BerkeleyDB not available])
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
-	AC_MSG_WARN(Could not find LDBM with BTREE support)
+	AC_MSG_WARN([Could not find LDBM with BTREE support])
 	ol_with_ldbm_api=none
 fi
 
@@ -2089,9 +2089,9 @@ if test $ol_with_ldbm_api = ndbm ; then
 fi
 
 if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
-	AC_MSG_WARN(could not find suitable LDBM backend)
+	AC_MSG_WARN([could not find suitable LDBM backend])
 	if test $ol_enable_ldbm = yes ; then
-		AC_MSG_ERROR(select appropriate LDBM options or disable)
+		AC_MSG_ERROR([select appropriate LDBM options or disable])
 	fi
 
 	AC_MSG_WARN(disabling LDBM)
@@ -2228,7 +2228,7 @@ if test $ol_with_cyrus_sasl != no ; then
 		OL_SASL_COMPAT
 		if test $ol_cv_sasl_compat = no ; then
 			ol_link_sasl=no
-			AC_MSG_ERROR([Cyrus SASL library located but incompatible])
+			AC_MSG_ERROR([Cyrus SASL library located but is incompatible])
 		fi
 
 		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
@@ -2306,12 +2306,12 @@ if test $ol_enable_crypt != no ; then
 	if test $have_crypt = yes ; then
 		AC_DEFINE(HAVE_CRYPT,1, [define if crypt(3) is available])
 	else
-		AC_MSG_WARN(could not find crypt)
+		AC_MSG_WARN([could not find crypt])
 		if test $ol_enable_crypt = yes ; then
-			AC_MSG_ERROR(could not find crypt, select appropriate options or disable)
+			AC_MSG_ERROR([could not find crypt, select appropriate options or disable])
 		fi
 
-		AC_MSG_WARN(disabling crypt support)
+		AC_MSG_WARN([disabling crypt support])
 		ol_enable_crypt=no
 	fi
 fi
@@ -2524,7 +2524,7 @@ dnl ----------------------------------------------------------------
 dnl Sort out defines
 
 if test "$ol_enable_slapi" != no ; then
-	dnl This check is donel also if --enable-modules is used;
+	dnl This check is done also if --enable-modules is used;
 	dnl it is duplicated here, 'cause it'd be cached anyway
 	AC_CHECK_HEADERS(ltdl.h)
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.521 2004/04/07 04:08:51 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.522 2004/04/07 04:26:03 kurt Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -21056,7 +21056,7 @@ echo "$ac_t""$ol_cv_sasl_compat" 1>&6
 
 		if test $ol_cv_sasl_compat = no ; then
 			ol_link_sasl=no
-			{ echo "configure: error: Cyrus SASL library located but incompatible" 1>&2; exit 1; }
+			{ echo "configure: error: Cyrus SASL library located but is incompatible" 1>&2; exit 1; }
 		fi
 
 		cat >> confdefs.h <<\EOF
@@ -21315,7 +21315,7 @@ EOF
 	else
 		echo "configure: warning: could not find crypt" 1>&2
 		if test $ol_enable_crypt = yes ; then
-			{ echo "configure: error: could not find crypt" 1>&2; exit 1; }
+			{ echo "configure: error: could not find crypt, select appropriate options or disable" 1>&2; exit 1; }
 		fi
 
 		echo "configure: warning: disabling crypt support" 1>&2
