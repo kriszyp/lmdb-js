@@ -330,6 +330,8 @@ rewrite_session_delete(
 		rewrite_var_delete( session->ls_vars );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
+		ldap_pvt_thread_rdwr_wunlock( &session->ls_vars_mutex );
+		ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 		ldap_pvt_thread_rdwr_destroy( &session->ls_vars_mutex );
 		ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
