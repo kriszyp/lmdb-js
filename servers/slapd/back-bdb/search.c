@@ -707,8 +707,6 @@ dn2entry_retry:
 		} else {
 			search_context_csn = NULL;
 		}
-
-		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
 	}
 #endif
 
@@ -721,6 +719,12 @@ dn2entry_retry:
 		BDB_IDL_ZERO( scopes );
 		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
 	}
+
+#ifdef LDAP_SYNC
+	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+	}
+#endif
 
 	/* start cursor at beginning of candidates.
 	 */
