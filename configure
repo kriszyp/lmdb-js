@@ -44,7 +44,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-local	  enable AF_LOCAL (AF_UNIX) socket support [auto]"
 ac_help="$ac_help
-    --enable-rewrite	  enable rewrite [no]"
+  --enable-rewrite	  enable rewrite [no]"
 ac_help="$ac_help
   --enable-x-compile	  enable cross compiling [no]"
 ac_help="$ac_help
@@ -17763,10 +17763,7 @@ doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
 doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
-clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
-clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
 clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
-clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
 clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
@@ -17800,7 +17797,6 @@ tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
-contrib/web_ldap/Makefile:build/top.mk:contrib/web_ldap/Makefile.in:build/rules.mk \
  include/portable.h include/ldap_features.h include/lber_types.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
@@ -17990,10 +17986,7 @@ doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
 doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
-clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
-clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
 clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
-clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
 clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
@@ -18027,7 +18020,6 @@ tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
-contrib/web_ldap/Makefile:build/top.mk:contrib/web_ldap/Makefile.in:build/rules.mk \
 "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF

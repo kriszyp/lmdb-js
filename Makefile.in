@@ -11,7 +11,7 @@
 ##
 
 SUBDIRS= include libraries clients servers tests doc
-CLEANDIRS= contrib
+CLEANDIRS=
 INSTALLDIRS= 
 
 makefiles:	FORCE
