@@ -1063,10 +1063,13 @@ config_generic(ConfigArgs *c) {
 
 static int
 config_fname(ConfigArgs *c) {
-	if(c->op == SLAP_CONFIG_EMIT && c->line) {
-		ConfigFile *cf = (ConfigFile *)c->line;
-		value_add_one( &c->rvalue_vals, &cf->c_file );
-		return 0;
+	if(c->op == SLAP_CONFIG_EMIT) {
+		if (c->line) {
+			ConfigFile *cf = (ConfigFile *)c->line;
+			value_add_one( &c->rvalue_vals, &cf->c_file );
+			return 0;
+		}
+		return 1;
 	}
 	return(0);
 }
