@@ -117,7 +117,7 @@ meta_back_search(
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
 	struct metaconn *lc;
 	struct metasingleconn *lsc;
-	struct timeval	tv;
+	struct timeval	tv = { 0, 0 };
 	LDAPMessage	*res, *e;
 	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
 	char *match = NULL, *err = NULL;
@@ -467,11 +467,13 @@ meta_back_search(
 
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_META, ERR,
-					"meta_back_search [%d] match=\"%s\" err=\"%s\"\n",
+					"meta_back_search [%d] "
+					"match=\"%s\" err=\"%s\"\n",
 					i, match, err );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
-	"=>meta_back_search [%d] match=\"%s\" err=\"%s\"\n",
+					"=>meta_back_search [%d] "
+					"match=\"%s\" err=\"%s\"\n",
      					i, match, err );	
 #endif /* !NEW_LOGGING */
 				
@@ -561,9 +563,9 @@ finish:;
 	}
 	
 	if ( msgid ) {
-		free( msgid );
+		ch_free( msgid );
 	}
-	
+
 	return rc;
 }
 
@@ -618,7 +620,16 @@ meta_send_entry(
 		return;
 	}
 
-	dnNormalize2( NULL, &ent.e_name, &ent.e_nname );
+	/*
+	 * Note: this may fail if the target host(s) schema differs
+	 * from the one known to the meta, and a DN with unknown
+	 * attributes is returned.
+	 * 
+	 * FIXME: should we log anything, or delegate to dnNormalize2?
+	 */
+	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
+		return;
+	}
 
 	/*
 	 * cache dn
