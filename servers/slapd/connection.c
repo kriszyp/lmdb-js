@@ -30,7 +30,6 @@ static long conn_nextid = 0;
 #define SLAP_C_BINDING			0x03	/* binding */
 #define SLAP_C_CLOSING			0x04	/* closing */
 
-void slapd_remove(int s);
 static Connection* connection_get( int s );
 
 static int connection_input( Connection *c );
@@ -374,7 +373,7 @@ connection_destroy( Connection *c )
 	if ( ber_pvt_sb_in_use(c->c_sb) ) {
 		int sd = ber_pvt_sb_get_desc(c->c_sb);
 
-		slapd_remove( sd );
+		slapd_remove( sd, 0 );
 	   	ber_pvt_sb_close( c->c_sb );
 
 		Statslog( LDAP_DEBUG_STATS,
@@ -678,6 +677,9 @@ int connection_read(int s)
 		Debug( LDAP_DEBUG_ANY,
 			"connection_read(%d): no connection!\n",
 			s, 0, 0 );
+
+		slapd_remove(s, 0);
+
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
@@ -902,10 +904,14 @@ int connection_write(int s)
 	ldap_pvt_thread_mutex_lock( &connections_mutex );
 
 	c = connection_get( s );
+
+	slapd_clr_write( s, 0);
+
 	if( c == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%d): no connection!\n",
 			s, 0, 0 );
+		slapd_remove(s, 0);
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}

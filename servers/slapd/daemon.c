@@ -29,17 +29,17 @@ void hit_socket();
 /* In wsa_err.c */
 char *WSAGetLastErrorString();
 
-#define WAKE_LISTENER \
+#define WAKE_LISTENER(w) \
 do {\
-    if( wake ) {\
+    if( w ) {\
         ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
         hit_socket();\
     }\
 } while(0)
 #else
-#define WAKE_LISTENER \
+#define WAKE_LISTENER(w) \
 do {\
-    if( wake ) {\
+    if( w ) {\
         ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
     }\
 } while(0)
@@ -96,10 +96,9 @@ static void slapd_add(int s) {
 /*
  * Remove the descriptor from daemon control
  */
-void slapd_remove(int s) {
+void slapd_remove(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
-	assert( FD_ISSET( s, &slap_daemon.sd_actives ));
+	WAKE_LISTENER(wake);
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %d%s%s\n", s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
@@ -114,7 +113,7 @@ void slapd_remove(int s) {
 
 void slapd_clr_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER;
+	WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( (unsigned) s, &slap_daemon.sd_actives) );
 	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
@@ -124,7 +123,7 @@ void slapd_clr_write(int s, int wake) {
 
 void slapd_set_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER;
+    WAKE_LISTENER(wake);
 
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
@@ -135,7 +134,7 @@ void slapd_set_write(int s, int wake) {
 
 void slapd_clr_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER;
+    WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
@@ -146,7 +145,7 @@ void slapd_clr_read(int s, int wake) {
 
 void slapd_set_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER;
+    WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
@@ -155,8 +154,6 @@ void slapd_set_read(int s, int wake) {
 }
 
 static void slapd_close(int s) {
-	slapd_remove(s);
-
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %d\n", s, 0, 0 );
 	tcp_close(s);
 }
@@ -427,7 +424,7 @@ slapd_daemon_task(
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %d beyond descriptor table size %d\n",
 					s, dtblsize, 0 );
-				tcp_close(s);
+				slapd_close(s);
 				continue;
 			}
 #endif
@@ -479,7 +476,7 @@ slapd_daemon_task(
 					client_addr == NULL ? "unknown" : client_addr,
 			   	  0, 0 );
 
-				tcp_close(s);
+				slapd_close(s);
 				continue;
 			}
 #endif /* HAVE_TCPD */
@@ -491,7 +488,7 @@ slapd_daemon_task(
 					s,
 					client_name == NULL ? "unknown" : client_name,
 					client_addr == NULL ? "unknown" : client_addr);
-				tcp_close(s);
+				slapd_close(s);
 				continue;
 			}
 
@@ -564,11 +561,10 @@ slapd_daemon_task(
 				/* descriptor no longer in FD set, should be closed */
 				Debug( LDAP_DEBUG_CONNS,
 			   		"daemon: write %d inactive, closing.\n", wd, 0, 0 );
-				tcp_close( wd );
+				slapd_close( wd );
 				continue;
 			}
 
-			slapd_clr_write( wd, 0 );
 			if ( connection_write( wd ) < 0 ) {
 				FD_CLR( (unsigned) wd, &readfds );
 				slapd_close( wd );
@@ -607,7 +603,7 @@ slapd_daemon_task(
 				/* descriptor no longer in FD set, should be closed */
 				Debug( LDAP_DEBUG_CONNS,
 			   		"daemon: read %d inactive, closing.\n", rd, 0, 0 );
-				tcp_close( rd );
+				slapd_close( rd );
 				continue;
 			}
 
@@ -634,7 +630,7 @@ slapd_daemon_task(
 	}
 
 	if( tcps >= 0 ) {
-		tcp_close( tcps );
+		slapd_close( tcps );
 	}
 
 	/* we only implement "quick" shutdown */
