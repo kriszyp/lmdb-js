@@ -32,7 +32,8 @@ typedef struct CfEntryInfo {
 	struct CfEntryInfo *ce_sibs;
 	struct CfEntryInfo *ce_kids;
 	Entry *ce_entry;
-	ConfigTable *ce_table;
+	BackendInfo *ce_bi;
+	BackendDB *ce_be;
 } CfEntryInfo;
 
 typedef struct {
@@ -86,7 +87,7 @@ static struct oc_info {
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcDatabase $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MAY ( olcAccess $ olcDatabase $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcReadOnly $ olcReplica $ olcReplogFile $ "
 		 "olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ olcSchemaDN $ "
 		 "olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
@@ -232,16 +233,21 @@ config_alloc_entry( struct berval *pdn, struct berval *rdn )
 	return e;
 }
 
+#define	NO_TABLE	0
+#define	BI_TABLE	1
+#define	BE_TABLE	2
+
 static int
-config_build_entry( Entry *e, void *private, ObjectClass *oc,
-	 struct berval *rdn )
+config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
+	 struct berval *rdn, ConfigTable *ct, int table )
 {
 	struct berval vals[2];
 	struct berval ad_name;
 	AttributeDescription *ad = NULL;
-	int rc;
+	int rc, i;
 	char *ptr;
 	const char *text;
+	AttributeType **at;
 
 	BER_BVZERO( &vals[1] );
 
@@ -257,7 +263,68 @@ config_build_entry( Entry *e, void *private, ObjectClass *oc,
 	vals[0].bv_val = ptr+1;
 	vals[0].bv_len = rdn->bv_len - (vals[0].bv_val - rdn->bv_val);
 	attr_merge(e, ad, vals, NULL );
+
+	for (at=oc->soc_allowed;*at;at++) {
+		/* Skip the naming attr */
+		if ((*at)->sat_ad == ad || (*at)->sat_ad == slap_schema.si_ad_cn )
+			continue;
+		for (i=0;ct[i].name;i++) {
+			if (ct[i].ad == (*at)->sat_ad)
+				break;
+		}
+		rc = config_get_vals(&ct[i], c);
+		if (rc == LDAP_SUCCESS) {
+			attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+		}
+	}
+
+	if ( table ) {
+		if ( table == BI_TABLE )
+			ct = c->bi->bi_cf_table;
+		else
+			ct = c->be->be_cf_table;
+		for (;ct && ct->name;ct++) {
+			if (!ct->ad) continue;
+			rc = config_get_vals(ct, c);
+			if (rc == LDAP_SUCCESS) {
+				attr_merge(e, ct->ad, c->rvalue_vals, c->rvalue_nvals);
+			}
+		}
+	}
+
 	return 0;
+}
+
+static CfEntryInfo *
+config_build_includes( ConfigArgs *c, Entry *parent )
+{
+	Entry *e;
+	int i;
+	ConfigFile *cf = (ConfigFile *)c->line;
+	CfEntryInfo *ce, *ceparent, *ceprev;
+
+	ceparent = parent->e_private;
+
+	for (i=0; cf; cf=cf->c_sibs, i++) {
+		c->value_dn.bv_val = c->log;
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include{%d}", i);
+		e = config_alloc_entry( &parent->e_nname, &c->value_dn );
+		c->line = (char *)cf;
+		config_build_entry( c, e, cfOc_include, &c->value_dn,
+			c->bi->bi_cf_table, NO_TABLE );
+		ce = e->e_private;
+		if ( !ceparent->ce_kids ) {
+			ceparent->ce_kids = ce;
+		} else {
+			ceprev->ce_sibs = ce;
+		}
+		ceprev = ce;
+		if ( cf->c_kids ) {
+			c->line = (char *)cf->c_kids;
+			config_build_includes( c, e );
+		}
+	}
+	return ce;
 }
 
 static int
@@ -267,8 +334,7 @@ config_back_db_open( BackendDB *be )
 	struct berval rdn;
 	Entry *e, *parent;
 	CfEntryInfo *ce, *ceparent, *ceprev;
-	int i, rc, buflen = 0, len;
-	char *buf = NULL;
+	int i, rc;
 	BackendInfo *bi;
 	BackendDB *bptr;
 	ConfigArgs c;
@@ -278,44 +344,39 @@ config_back_db_open( BackendDB *be )
 	ber_str2bv( CONFIG_DN, STRLENOF( CONFIG_DN ), 0, &rdn );
 	e = config_alloc_entry( NULL, &rdn );
 	ce = e->e_private;
-	ce->ce_table = be->bd_info->bi_cf_table;
 	cfb->cb_root = ce;
-
-	config_build_entry( e, be->be_private, cfOc_global, &rdn );
 	c.be = be;
 	c.bi = be->bd_info;
-	ct = ce->ce_table;
-	for (ct=ce->ce_table; ct->name; ct++) {
-		if (!ct->ad) continue;
-		if (ct->arg_type & ARG_DB) continue;
-		rc = config_get_vals(ct, &c);
-		if (rc == LDAP_SUCCESS) {
-			attr_merge(e, ct->ad, c.rvalue_vals, c.rvalue_nvals);
-		}
-	}
+	c.line = (char *)cfb->cb_config;
+	ct = c.bi->bi_cf_table;
+	config_build_entry( &c, e, cfOc_global, &rdn, ct, NO_TABLE );
 
 	parent = e;
 	ceparent = ce;
 
+	/* Create includeFile nodes... */
+	if ( cfb->cb_config->c_kids ) {
+		c.line = (char *)cfb->cb_config->c_kids;
+		ceprev = config_build_includes( &c, parent );
+	}
+
 	/* Create backend nodes. Skip if they don't provide a cf_table.
 	 * There usually aren't any of these.
 	 */
+	
+	c.line = 0;
 	bi = backendInfo;
 	for (i=0; i<nBackendInfo; i++, bi++) {
 		if (!bi->bi_cf_table) continue;
 		if (!bi->bi_private) continue;
 
-		len = cfAd_backend->ad_cname.bv_len + 2 + strlen(bi->bi_type);
-		if ( buflen < len ) {
-			buflen = len;
-			buf = realloc(buf, buflen);
-		}
-		rdn.bv_val = buf;
-		rdn.bv_len = sprintf(buf, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
+		rdn.bv_val = c.log;
+		rdn.bv_len = sprintf(rdn.bv_val, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
 		e = config_alloc_entry( &parent->e_nname, &rdn );
 		ce = e->e_private;
-		ce->ce_table = bi->bi_cf_table;
-		config_build_entry( e, bi->bi_private, cfOc_backend, &rdn );
+		ce->ce_bi = bi;
+		c.bi = bi;
+		config_build_entry( &c, e, cfOc_backend, &rdn, ct, BI_TABLE );
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -332,31 +393,16 @@ config_back_db_open( BackendDB *be )
 			bptr = &backendDB[i];
 		}
 		bi = bptr->bd_info;
-		len = cfAd_database->ad_cname.bv_len + STRLENOF("{xxxxxxxx}") +
-			strlen( bi->bi_type ) + 2;
-		if ( buflen < len ) {
-			buflen = len;
-			buf = realloc(buf, buflen);
-		}
-		rdn.bv_val = buf;
-		rdn.bv_len = sprintf(buf, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
+		rdn.bv_val = c.log;
+		rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
 		e = config_alloc_entry( &parent->e_nname, &rdn );
 		ce = e->e_private;
-		ce->ce_table = bptr->be_cf_table;
-		config_build_entry( e, bptr->be_private, cfOc_database, &rdn );
 		c.be = bptr;
 		c.bi = bi;
-		ct = be->bd_info->bi_cf_table;
-		for (; ct->name; ct++) {
-			if (!ct->ad) continue;
-			if (!(ct->arg_type & (ARG_DB|ARG_MAY_DB))) continue;
-			rc = config_get_vals(ct, &c);
-			if (rc == LDAP_SUCCESS) {
-				attr_merge(e, ct->ad, c.rvalue_vals, c.rvalue_nvals);
-			}
-		}
-
+		ce->ce_be = c.be;
+		ce->ce_bi = c.bi;
+		config_build_entry( &c, e, cfOc_database, &rdn, ct, BE_TABLE );
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -364,12 +410,7 @@ config_back_db_open( BackendDB *be )
 		}
 		ceprev = ce;
 		/* Iterate through overlays */
-		
 	}
-	/* Create includeFile nodes... */
-
-
-	ch_free( buf );
 
 	return 0;
 }

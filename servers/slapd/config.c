@@ -193,6 +193,12 @@ static OidRec OidMacros[] = {
 /* alphabetical ordering */
 
 static ConfigTable SystemConfiguration[] = {
+	/* This attr is read-only */
+	{ "", "", 0, 0, 0, ARG_MAGIC|ARG_STRING,
+		&config_fname, "( OLcfgAt:78 NAME 'olcConfigFile' "
+			"DESC 'File for slapd configuration directives' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "access",	NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_ACL,
 		&config_generic, "( OLcfgAt:1 NAME 'olcAccess' "
 			"DESC 'Access Control List' "
@@ -539,12 +545,6 @@ static ConfigTable SystemConfiguration[] = {
 	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_updateref, "( OLcfgAt:77 NAME 'olcUpdateRef' "
 			"SUP labeledURI )", NULL, NULL },
-	/* This attr is read-only */
-	{ "", "", 0, 0, 0, ARG_MAGIC|ARG_STRING,
-		&config_fname, "( OLcfgAt:78 NAME 'olcConfigFile' "
-			"DESC 'File for slapd configuration directives' "
-			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
@@ -711,7 +711,6 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 	c->rvalue_vals = NULL;
 	c->rvalue_nvals = NULL;
 	c->emit = 1;
-	c->line="";
 	c->type = cf->arg_type & ARGS_USERLAND;
 
 	if ( cf->arg_type & ARG_MAGIC ) {
@@ -973,8 +972,14 @@ config_generic(ConfigArgs *c) {
 		case CFG_REPLOG:
 			c->value_string = c->be->be_replogfile;
 			break;
-		case CFG_ROOTDSE:
-			c->rvalue_vals = cfn->c_dseFiles;
+		case CFG_ROOTDSE: {
+			ConfigFile *cf = (ConfigFile *)c->line;
+			if ( cf->c_dseFiles ) {
+				c->rvalue_vals = cf->c_dseFiles;
+			} else {
+				rc = 1;
+			}
+			}
 			break;
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
@@ -1229,6 +1234,11 @@ config_generic(ConfigArgs *c) {
 
 static int
 config_fname(ConfigArgs *c) {
+	if(c->emit && c->line) {
+		ConfigFile *cf = (ConfigFile *)c->line;
+		c->value_string = cf->c_file.bv_val;
+		return 0;
+	}
 	return(1);
 }
 
