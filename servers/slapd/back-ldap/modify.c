@@ -131,7 +131,7 @@ ldap_back_modify(
 					}
 					mods[i].mod_bvalues[j] = &mapped;
 				}
-				mods[i].mod_values[j] = NULL;
+				mods[i].mod_bvalues[j] = NULL;
 
 			} else {
 				if ( ml->sml_desc->ad_type->sat_syntax ==
@@ -148,11 +148,11 @@ ldap_back_modify(
 					sizeof(struct berval *));
 				for (j = 0; ml->sml_values[j].bv_val; j++)
 					mods[i].mod_bvalues[j] = &ml->sml_values[j];
-				mods[i].mod_values[j] = NULL;
+				mods[i].mod_bvalues[j] = NULL;
 			}
 
 		} else {
-			mods[i].mod_values = NULL;
+			mods[i].mod_bvalues = NULL;
 		}
 
 		i++;
@@ -186,7 +186,7 @@ cleanup:;
 		free( mdn.bv_val );
 	}
 	for (i=0; modv[i]; i++) {
-		ch_free(modv[i]->mod_values);
+		ch_free(modv[i]->mod_bvalues);
 	}
 	ch_free( mods );
 	ch_free( modv );

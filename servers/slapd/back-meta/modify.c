@@ -141,7 +141,7 @@ cleanup:;
 	}
 	if ( modv != NULL ) {
 		for ( i = 0; modv[ i ]; i++) {
-			free( modv[ i ]->mod_values );
+			free( modv[ i ]->mod_bvalues );
 		}
 	}
 	free( mods );
