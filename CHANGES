@@ -1,6 +1,21 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.1-Beta (from -devel)
+Changes included in OpenLDAP 1.1.1
+	CVS Tag: OPENLDAP_REL_ENG_1_1
+	Updated INSTALL and hints
+	Updated slapd/ldif2dbm to disable write sync'ing
+	Fixed libldif/line64 analyzed 3 not 4 bug
+	Fixed slapd/value.c value_cmp bug
+	Fixed slapd/back-ldbm/cache.c delete_internal dntree/idtree bug
+	Fixed slapd/tools DB2 uninitialized Datum bugs
+	Build environment (autoconf)
+		Fix --enable-wrappers
+		Fix --without-SERVER-COMPONENTS
+		Fix library make clean
+		Fix ltconfig for Solaris ProC and FreeBSD elf
+
+Changes included in OpenLDAP 1.1.0
+	CVS Tag: OPENLDAP_REL_ENG_1_1_0
 	Updated ANNOUNCEMENT, INSTALL, README for release
 	Updated doc for release
 	Updated slapd.conf to use dc style BaseDN
@@ -14,7 +29,7 @@ Changes included in OpenLDAP 1.1-Beta (from -devel)
 		Updated libtool for FreeBSD3 elf
 		Fixed pthread version test 
 
-Changes included in OpenLDAP 1.1-Beta (from -devel)
+Changes included in OpenLDAP 1.1-Beta
 	CVS Tag: OPENLDAP_REL_ENG_1_1_BETA
 	Added ldap.conf support
 	Added configuration preservation support
@@ -41,7 +56,7 @@ Changes included in OpenLDAP 1.1-Beta (from -devel)
 		Fixed REENTRANT defines
 		Updated Kerberos support
 
-Changes included in OpenLDAP 1.1-Alpha (from -devel)
+Changes included in OpenLDAP 1.1-Alpha
 	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA3
 	Changed LDBM default to sync on writes
 	Added mail500 BOUNCEFROM patch
@@ -71,7 +86,7 @@ Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	Removed lint
 
 
-Changes included in OpenLDAP 1.1-Alpha (from -devel)
+Changes included in OpenLDAP 1.1-Alpha
 	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA2
 	Added cross compiling detect and warnings
 	Fixed autoconf detection of threads
@@ -89,7 +104,7 @@ Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	Updated setproctitle code
 	Removed lint
 
-Changes included in OpenLDAP 1.1-Alpha (from -devel)
+Changes included in OpenLDAP 1.1-Alpha
 	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA
 	Fixed slapd/back-passwd sizelimit bug
 	Fixed slapd/back-ldbm/msearch entry rwlock bug
