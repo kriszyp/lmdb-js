@@ -505,6 +505,7 @@ typedef struct slap_filter {
 #define	f_mrdnaddrs	f_un.f_un_mra.mra_dnattrs
 #define f_sub		f_un.f_un_sub
 #define f_sub_type	f_un.f_un_sub.f_un_sub_type
+#define f_sub_desc	f_sub_type
 #define f_sub_initial	f_un.f_un_sub.f_un_sub_initial
 #define f_sub_any	f_un.f_un_sub.f_un_sub_any
 #define f_sub_final	f_un.f_un_sub.f_un_sub_final
