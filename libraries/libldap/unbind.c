@@ -110,6 +110,11 @@ ldap_ld_free(
 		ld->ld_matched = NULL;
 	}
 
+	if( ld->ld_referrals != NULL) {
+		LDAP_VFREE(ld->ld_referrals);
+		ld->ld_referrals = NULL;
+	}  
+    
 	if ( ld->ld_abandoned != NULL ) {
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;

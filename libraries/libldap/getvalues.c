@@ -175,3 +175,39 @@ ldap_value_free_len( struct berval **vals )
 {
 	ber_bvecfree( vals );
 }
+
+char **
+ldap_value_dup( char *const *vals )
+{
+	char **new;
+	int i;
+
+	if( vals == NULL ) {
+		return NULL;
+	}
+
+	for( i=0; vals[i]; i++ ) {
+		;   /* Count the number of values */
+	}
+
+	if( i == 0 ) {
+		return NULL;
+	}
+
+	new = LDAP_MALLOC( (i+1)*sizeof(char *) );  /* Alloc array of pointers */
+	if( new == NULL ) {
+		return NULL;
+	}
+
+	for( i=0; vals[i]; i++ ) {
+		new[i] = LDAP_STRDUP( vals[i] );   /* Dup each value */
+		if( new[i] == NULL ) {
+			LDAP_VFREE( new );
+			return NULL;
+		}
+	}
+	new[i] = NULL;
+
+	return new;
+}
+

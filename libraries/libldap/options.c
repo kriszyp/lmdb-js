@@ -250,6 +250,20 @@ ldap_get_option(
 
 		return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_REFERRAL_URLS:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
+
+		if( ld->ld_referrals == NULL ) {
+			* (char ***) outvalue = NULL;
+		} else {
+			* (char ***) outvalue = ldap_value_dup(ld->ld_referrals);
+		}
+
+		return LDAP_OPT_SUCCESS;
+
 	case LDAP_OPT_API_FEATURE_INFO: {
 			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
 			int i;
@@ -316,8 +330,9 @@ ldap_set_option(
 	 * problem. Thus, we introduce a fix here.
 	 */
 
-	if (option == LDAP_OPT_DEBUG_LEVEL)
-	    dbglvl = (int *) invalue;
+	if (option == LDAP_OPT_DEBUG_LEVEL) {
+		dbglvl = (int *) invalue;
+	}
 
 	if( lo->ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize(lo, dbglvl);
@@ -573,6 +588,21 @@ ldap_set_option(
 			ld->ld_matched = LDAP_STRDUP(err);
 		} return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_REFERRAL_URLS: {
+			char *const *referrals = (char *const *) invalue;
+			
+			if(ld == NULL) {
+				/* need a struct ldap */
+				break;
+			}
+
+			if( ld->ld_referrals ) {
+				LDAP_VFREE(ld->ld_referrals);
+			}
+
+			ld->ld_referrals = ldap_value_dup(referrals);
+		} return LDAP_OPT_SUCCESS;
+
 	case LDAP_OPT_API_FEATURE_INFO:
 		/* read-only */
 		break;
@@ -584,7 +614,7 @@ ldap_set_option(
 	default:
 #ifdef HAVE_TLS
 		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
-	     	return LDAP_OPT_SUCCESS;
+			return LDAP_OPT_SUCCESS;
 #endif
 #ifdef HAVE_CYRUS_SASL
 		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 )
