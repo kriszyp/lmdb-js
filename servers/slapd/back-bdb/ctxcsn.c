@@ -60,6 +60,7 @@ bdb_csn_commit(
 			1, locker, &ctxcsn_lock );
 	switch( rc ) {
 	case 0:
+	case DB_NOTFOUND:
 		break;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
