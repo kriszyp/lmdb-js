@@ -41,7 +41,7 @@ query_cmd( struct msginfo *msgp, char *reply )
     LDAP			*ldp;
     LDAPMessage			*ldmsgp, *entry;
     char			*dn;
-    int				matches, rc, ld_errno, ufn;
+    int				matches, rc, ld_errno;
     LDAPFiltDesc		*lfdp;
     LDAPFiltInfo		*lfi;
     struct ldap_disptmpl	*tmpllist = NULL;
@@ -50,8 +50,6 @@ query_cmd( struct msginfo *msgp, char *reply )
 			RCPT500_SORT_ATTR,
 #endif
 			NULL };
-
-    ufn = 0;
 
     if ( msgp->msg_arg == NULL ) {
 	return( help_cmd( msgp, reply ));
@@ -95,23 +93,6 @@ query_cmd( struct msginfo *msgp, char *reply )
 
     matches = 0;
 
-#ifdef RCPT500_UFN
-    if ( strchr( msgp->msg_arg, ',' ) != NULL ) {
-	struct timeval	tv;
-
-	ldap_ufn_setprefix( ldp, searchbase );
-	if (( rc = ldap_ufn_search_s( ldp, msgp->msg_arg, attrs, 0, &ldmsgp ))
-		!= LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED
-		&& rc != LDAP_TIMELIMIT_EXCEEDED ) {
-	    report_ldap_err( ldp, reply );
-	    close_ldap( ldp );
-	    ldap_getfilter_free( lfdp );
-	    return( 0 );
-	}
-	matches = ldap_count_entries( ldp, ldmsgp );
-	ufn = 1;
-    } else {
-#endif /* RCPT500_UFN */
     
 	for ( lfi = ldap_getfirstfilter( lfdp, "rcpt500", msgp->msg_arg );
 		lfi != NULL; lfi = ldap_getnextfilter( lfdp )) {
@@ -134,9 +115,6 @@ query_cmd( struct msginfo *msgp, char *reply )
 		ldap_msgfree( ldmsgp );
 	    }
 	}
-#ifdef RCPT500_UFN
-    }
-#endif /* RCPT500_UFN */
 
     if ( matches == 0 ) {
 	sprintf( buf, "No matches were found for '%s'\n", msgp->msg_arg );
@@ -156,7 +134,7 @@ query_cmd( struct msginfo *msgp, char *reply )
 
     if ( matches <= RCPT500_LISTLIMIT ) {
 	sprintf( buf, "%d %s match%s found for '%s':\n\n", matches,
-		ufn ? "UFN" : lfi->lfi_desc,
+		lfi->lfi_desc,
 		( matches > 1 ) ? "es" : "", msgp->msg_arg );
 	strcat( reply, buf );
 
@@ -184,7 +162,7 @@ query_cmd( struct msginfo *msgp, char *reply )
 
     } else {
 	sprintf( buf, "%d %s matches were found for '%s':\n",
-		matches, ufn ? "UFN" : lfi->lfi_desc, msgp->msg_arg );
+		matches, lfi->lfi_desc, msgp->msg_arg );
 	strcat( reply, buf );
 	append_entry_list( reply, msgp->msg_arg, ldp, ldmsgp );
 	ldap_msgfree( ldmsgp );

@@ -969,7 +969,7 @@ int connection_read(ber_socket_t s)
 			c->c_needs_tls_accept = 0;
 
 			/* we need to let SASL know */
-			ssl = (void *)ldap_pvt_tls_sb_handle( c->c_sb );
+			ssl = (void *)ldap_pvt_tls_sb_ctx( c->c_sb );
 
 			c->c_tls_ssf = (slap_ssf_t) ldap_pvt_tls_get_strength( ssl );
 			if( c->c_tls_ssf > c->c_ssf ) {

@@ -39,6 +39,33 @@ charray_add(
 }
 
 void
+charray_add_n(
+    char	***a,
+    const char	*s,
+    int         l
+)
+{
+	int	n;
+
+	if ( *a == NULL ) {
+		*a = (char **) ch_malloc( 2 * sizeof(char *) );
+		n = 0;
+	} else {
+		for ( n = 0; *a != NULL && (*a)[n] != NULL; n++ ) {
+			;	/* NULL */
+		}
+
+		*a = (char **) ch_realloc( (char *) *a,
+		    (n + 2) * sizeof(char *) );
+	}
+
+	(*a)[n] = (char *) ch_malloc( ( l + 1 ) * sizeof( char ) );
+	strncpy( (*a)[n], s, l );
+	(*a)[n][l] = '\0';
+	(*a)[++n] = NULL;
+}
+
+void
 charray_merge(
     char	***a,
     char	**s
@@ -151,3 +178,38 @@ str2charray( const char *str_in, const char *brkstr )
 	free( str );
 	return( res );
 }
+
+
+int
+charray_strcmp( const char **a1, const char **a2 )
+{
+	for ( ; a1[0] && a2[0]; a1++, a2++ ) {
+		if ( strcmp( a1[0], a2[0] ) ) {
+			return( !0 );
+		}
+	}
+
+	if ( ! ( a1[0] && a2[0] ) ) {
+		return( !0 );
+	}
+
+	return 0;
+}
+
+
+int
+charray_strcasecmp( const char **a1, const char **a2 )
+{
+	for ( ; a1[0] && a2[0]; a1++, a2++ ) {
+		if ( strcasecmp( a1[0], a2[0] ) ) {
+			return( !0 );
+		}
+	}
+
+	if ( ! ( a1[0] && a2[0] ) ) {
+		return( !0 );
+	}
+
+	return 0;
+}
+

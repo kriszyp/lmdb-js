@@ -56,7 +56,12 @@ ldap_abandon_ext(
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
+	int rc;
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
 
 	return do_abandon( ld, msgid, msgid, sctrls, cctrls );
 }
@@ -77,7 +82,7 @@ int
 ldap_abandon( LDAP *ld, int msgid )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid, 0, 0 );
-	return do_abandon( ld, msgid, msgid, NULL, NULL ) == LDAP_SUCCESS
+	return ldap_abandon_ext( ld, msgid, NULL, NULL ) == LDAP_SUCCESS
 		? 0 : -1;
 }
 

@@ -743,27 +743,6 @@ do_search( LDAP *ld, FILE *fp, char *query )
 	*filter++ = '\0';
 	base = query;
 
-#ifdef GO500GW_UFN
-	if ( strchr( filter, ',' ) != NULL ) {
-		ldap_ufn_setprefix( ld, base );
-		timeout.tv_sec = GO500GW_TIMEOUT;
-		timeout.tv_usec = 0;
-		ldap_ufn_timeout( (void *) &timeout );
-
-		deref = LDAP_DEREF_FINDING;
-		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
-
-		if ( (rc = ldap_ufn_search_s( ld, filter, attrs, 0, &res ))
-		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
-			fprintf(fp,
-			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-			    rc, myhost, myport );
-			return;
-		}
-
-		count = ldap_count_entries( ld, res );
-	} else {
-#endif
 		if ( (scope = make_scope( ld, base )) == -1 ) {
 			fprintf( fp, "3Bad scope\r\n" );
 			exit( EXIT_FAILURE );
@@ -801,9 +780,6 @@ do_search( LDAP *ld, FILE *fp, char *query )
 		deref = LDAP_DEREF_ALWAYS;
 		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 		ldap_getfilter_free( filtd );
-#ifdef GO500GW_UFN
-	}
-#endif
 
 	if ( count == 0 ) {
 		return;

@@ -67,6 +67,10 @@ ldap_sasl_bind(
 	assert( LDAP_VALID( ld ) );
 	assert( msgidp != NULL );
 
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
 	if( msgidp == NULL ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;

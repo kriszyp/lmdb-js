@@ -75,7 +75,7 @@ starttls_extop (
 	}
 
 	/* fail if TLS could not be initialized */
-	if (ldap_pvt_tls_get_option(NULL, LDAP_OPT_X_TLS_CERT, &ctx) != 0
+	if (ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &ctx ) != 0
 		|| ctx == NULL)
 	{
 		if (default_referral != NULL) {

@@ -122,6 +122,10 @@ struct ldapoptions {
 	ber_int_t		ldo_timelimit;
 	ber_int_t		ldo_sizelimit;
 
+#ifdef HAVE_TLS
+   	int			ldo_tls_mode;
+#endif
+
 	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
@@ -146,24 +150,8 @@ struct ldapoptions {
 	/* LDAP rebind callback function */
 	LDAP_REBIND_PROC		*ldo_rebindproc;
 
-#ifdef HAVE_TLS
-   	/* tls context */
-   	void		*ldo_tls_ctx;
-   	int		ldo_tls_mode;
-#endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
-
-
-/*
- * structure for tracking LDAP server host, ports, DNs, etc.
- */
-typedef struct ldap_server {
-	char			*lsrv_host;
-	char			*lsrv_dn;	/* if NULL, use default */
-	int			lsrv_port;
-	struct ldap_server	*lsrv_next;
-} LDAPServer;
 
 
 /*
@@ -171,7 +159,13 @@ typedef struct ldap_server {
  */
 typedef struct ldap_conn {
 	Sockbuf		*lconn_sb;
+#ifdef HAVE_TLS
+   	/* tls context */
+   	void		*lconn_tls_ctx;
+#endif
+#ifdef HAVE_CYRUS_SASL
 	void		*lconn_sasl_ctx;
+#endif
 	int			lconn_refcnt;
 	time_t		lconn_lastused;	/* time */
 	int			lconn_rebind_inprogress;	/* set if rebind in progress */
@@ -184,8 +178,9 @@ typedef struct ldap_conn {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char			*lconn_krbinstance;
 #endif
+	BerElement		*lconn_ber;	/* ber receiving on this conn. */
+
 	struct ldap_conn	*lconn_next;
-	BerElement		*lconn_ber;/* ber receiving on this conn. */
 } LDAPConn;
 
 
@@ -268,9 +263,6 @@ struct ldap {
 #define ld_rebindproc	ld_options.ldo_rebindproc
 
 #define ld_version		ld_options.ldo_version
-
-	char	*ld_host;
-	int		ld_port;
 
 	unsigned short	ld_lberoptions;
 
@@ -373,6 +365,9 @@ LDAP_F (int) ldap_int_put_controls LDAP_P((
 	LDAPControl *const *ctrls,
 	BerElement *ber ));
 
+LDAP_F (int) ldap_int_client_controls LDAP_P((
+	LDAP *ld,
+	LDAPControl **ctrlp ));
 
 /*
  * in dsparse.c
@@ -408,10 +403,11 @@ LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 	int proto, const char *host, unsigned long address, int port,
 	int async );
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
+	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LDAP_V (char *) ldap_int_hostname;
 LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
+#endif
 
 LDAP_F (void) ldap_int_ip_init( void );
 LDAP_F (int) do_ldap_select( LDAP *ld, struct timeval *timeout );
@@ -540,7 +536,7 @@ LDAP_F (int) ldap_int_sasl_config LDAP_P(( struct ldapoptions *lo,
 	int option, const char *arg ));
 
 LDAP_F (int) ldap_int_sasl_bind LDAP_P((
-	struct ldap *ld,
+	LDAP *ld,
 	const char *,
 	const char *,
 	LDAPControl **, LDAPControl **,
@@ -553,7 +549,11 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 /*
  * in tls.c
  */
-LDAP_F (int) ldap_int_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
+LDAP_F (int) ldap_int_tls_config LDAP_P(( LDAP *ld,
+	int option, const char *arg ));
+
+LDAP_F (int) ldap_int_tls_start LDAP_P(( LDAP *ld,
+	LDAPConn *conn ));
 
 LDAP_END_DECL
 

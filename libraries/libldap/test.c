@@ -599,37 +599,6 @@ main( int argc, char **argv )
 			timeout.tv_sec = atoi( line );
 			break;
 
-		case 'U':	/* set ufn search prefix */
-			getline( line, sizeof(line), stdin, "ufn prefix? " );
-			ldap_ufn_setprefix( ld, line );
-			break;
-
-		case 'u':	/* user friendly search w/optional timeout */
-			getline( dn, sizeof(dn), stdin, "ufn? " );
-			strcat( dn, dnsuffix );
-			types = get_list( "attrs to return? " );
-			getline( line, sizeof(line), stdin,
-			    "attrsonly (0=attrs&values, 1=attrs only)? " );
-			attrsonly = atoi( line );
-
-			if ( command2 == 't' ) {
-				id = ldap_ufn_search_c( ld, dn, types,
-				    attrsonly, &res, ldap_ufn_timeout,
-				    &timeout );
-			} else {
-				id = ldap_ufn_search_s( ld, dn, types,
-				    attrsonly, &res );
-			}
-			if ( res == NULL )
-				ldap_perror( ld, "ldap_ufn_search" );
-			else {
-				printf( "\nresult: err %d\n", id );
-				handle_result( ld, res );
-				res = NULL;
-			}
-			free_list( types );
-			break;
-
 		case 'l':	/* URL search */
 			getline( line, sizeof(line), stdin,
 			    "attrsonly (0=attrs&values, 1=attrs only)? " );

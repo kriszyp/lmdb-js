@@ -54,9 +54,11 @@ ldap_open( LDAP_CONST char *host, int port )
 	int rc;
 	LDAP		*ld;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_open(%s, %d)\n",
+		host, port, 0 );
 
-	if (( ld = ldap_init( host, port )) == NULL ) {
+	ld = ldap_init( host, port );
+	if ( ld == NULL ) {
 		return( NULL );
 	}
 
@@ -64,13 +66,13 @@ ldap_open( LDAP_CONST char *host, int port )
 
 	if( rc < 0 ) {
 		ldap_ld_free( ld, 0, NULL, NULL );
-		return( NULL );
+		ld = NULL;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
-		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
+		ld == NULL ? "succeeded" : "failed", 0, 0 );
 
-	return( ld );
+	return ld;
 }
 
 
@@ -329,14 +331,10 @@ ldap_int_open_connection(
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
 		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
 	{
-		LDAPConn	*savedefconn = ld->ld_defconn;
 		++conn->lconn_refcnt;	/* avoid premature free */
-		ld->ld_defconn = conn;
 
-		rc = ldap_pvt_tls_start( ld, conn->lconn_sb,
-			ld->ld_options.ldo_tls_ctx );
+		rc = ldap_int_tls_start( ld, conn );
 
-		ld->ld_defconn = savedefconn;
 		--conn->lconn_refcnt;
 
 		if (rc != LDAP_SUCCESS) {

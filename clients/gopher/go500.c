@@ -482,24 +482,6 @@ do_search( LDAP *ld, FILE *fp, char *buf )
 	LDAPMessage	*e, *res;
 	static char	*attrs[] = { "title", 0 };
 
-#ifdef GO500_UFN
-	if ( strchr( buf, ',' ) != NULL ) {
-		ldap_ufn_setprefix( ld, base );
-		tv.tv_sec = GO500_TIMEOUT;
-		tv.tv_usec = 0;
-		ldap_ufn_timeout( (void *) &tv );
-
-		if ( (rc = ldap_ufn_search_s( ld, buf, attrs, 0, &res ))
-		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
-			fprintf(fp,
-			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-			    rc, myhost, myport );
-			return;
-		}
-
-		matches = ldap_count_entries( ld, res );
-	} else {
-#endif
 		if ( (filtd = ldap_init_getfilter( filterfile )) == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
@@ -525,9 +507,6 @@ do_search( LDAP *ld, FILE *fp, char *buf )
 				break;
 		}
 		ldap_getfilter_free( filtd );
-#ifdef GO500_UFN
-	}
-#endif
 
 	if ( matches <= 0 ) {
 		return;

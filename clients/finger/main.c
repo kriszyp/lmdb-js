@@ -259,7 +259,7 @@ do_search( LDAP *ld, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
-	int		rc = 0, matches = 0, i, ufn;
+	int		rc = 0, matches = 0, i;
 	struct timeval	tv;
 	LDAPFiltDesc	*fd;
 	LDAPFiltInfo	*fi = NULL;
@@ -270,25 +270,6 @@ do_search( LDAP *ld, char *buf )
 #endif
 					0 };
 
-	ufn = 0;
-#ifdef FINGER_UFN
-	if ( strchr( buf, ',' ) != NULL ) {
-		ldap_ufn_setprefix( ld, base );
-		tv.tv_sec = FINGER_TIMEOUT;
-		tv.tv_usec = 0;
-		ldap_ufn_timeout( (void *) &tv );
-
-		if ( (rc = ldap_ufn_search_s( ld, buf, attrs, 0, &result ))
-		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
-			fprintf( stderr, FINGER_UNAVAILABLE );
-			ldap_perror( ld, "ldap_search_st" );
-			exit( EXIT_FAILURE );
-		}
-
-		matches = ldap_count_entries( ld, result );
-		ufn = 1;
-	} else {
-#endif
 		if ( (fd = ldap_init_getfilter( filterfile ))
 		    == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
@@ -318,9 +299,6 @@ do_search( LDAP *ld, char *buf )
 			ldap_msgfree( result );
 			result = NULL;
 		}
-#ifdef FINGER_UFN
-	}
-#endif
 
 	if ( rc == LDAP_SIZELIMIT_EXCEEDED ) {
 		printf( "(Partial results - a size limit was exceeded)\r\n" );
@@ -336,7 +314,7 @@ do_search( LDAP *ld, char *buf )
 		exit( EXIT_FAILURE );
 	} else if ( matches <= FINGER_LISTLIMIT ) {
 		printf( "%d %s match%s found for \"%s\":\r\n", matches,
-		    ufn ? "UFN" : fi->lfi_desc, matches > 1 ? "es" : "", buf );
+		    fi->lfi_desc, matches > 1 ? "es" : "", buf );
 		fflush( stdout );
 
 		for ( e = ldap_first_entry( ld, result ); e != NULL; ) {
@@ -348,7 +326,7 @@ do_search( LDAP *ld, char *buf )
 		}
 	} else {
 		printf( "%d %s matches for \"%s\":\r\n", matches,
-		    ufn ? "UFN" : fi->lfi_desc, buf );
+		    fi->lfi_desc, buf );
 		fflush( stdout );
 
 #ifdef FINGER_SORT_ATTR

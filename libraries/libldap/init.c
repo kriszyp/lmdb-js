@@ -26,7 +26,7 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_INT	2
 #define ATTR_KV		3
 #define ATTR_STRING	4
-#define ATTR_URIS	5
+#define ATTR_OPTION	5
 
 #define ATTR_SASL	6
 #define ATTR_TLS	7
@@ -63,8 +63,8 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_defbase)},
 	{0, ATTR_INT,		"PORT",			NULL,		/* deprecated */
 		offsetof(struct ldapoptions, ldo_defport)},
-	{0, ATTR_URIS,		"HOST",			NULL,	1},	/* deprecated */
-	{0, ATTR_URIS,		"URI",			NULL,	0}, /* replaces HOST/URI */
+	{0, ATTR_OPTION,	"HOST",			NULL,	LDAP_OPT_HOST_NAME}, /* deprecated */
+	{0, ATTR_OPTION,	"URI",			NULL,	LDAP_OPT_URI}, /* replaces HOST/PORT */
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 
@@ -211,12 +211,8 @@ static void openldap_ldap_init_w_conf(
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = LDAP_STRDUP(opt);
 				break;
-			case ATTR_URIS:
-				if (attrs[i].offset == 0) {
-					ldap_set_option( NULL, LDAP_OPT_URI, opt );
-				} else {
-					ldap_set_option( NULL, LDAP_OPT_HOST_NAME, opt );
-				}
+			case ATTR_OPTION:
+				ldap_set_option( NULL, attrs[i].offset, opt );
 				break;
 			case ATTR_SASL:
 #ifdef HAVE_CYRUS_SASL
@@ -351,12 +347,8 @@ static void openldap_ldap_init_w_env(
 				* (char**) p = LDAP_STRDUP(value);
 			}
 			break;
-		case ATTR_URIS:
-			if (attrs[i].offset == 0) {
-				ldap_set_option( NULL, LDAP_OPT_URI, value );
-			} else {
-				ldap_set_option( NULL, LDAP_OPT_HOST_NAME, value );
-			}
+		case ATTR_OPTION:
+			ldap_set_option( NULL, attrs[i].offset, value );
 			break;
 		case ATTR_SASL:
 #ifdef HAVE_CYRUS_SASL
@@ -418,12 +410,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 		SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
 #endif
 
-#ifdef HAVE_TLS
-   	gopts->ldo_tls_ctx = NULL;
-#endif
-
 	gopts->ldo_valid = LDAP_INITIALIZED;
-
    	return;
 }
 

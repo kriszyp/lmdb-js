@@ -94,7 +94,7 @@ do_compare(
 		goto cleanup;
 	}
 
-	if( ndn == '\0' ) {
+	if( *ndn == '\0' ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: root dse!\n", 0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "compare upon the root DSE not supported", NULL, NULL );

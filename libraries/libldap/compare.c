@@ -51,6 +51,7 @@ ldap_compare_ext(
 	LDAPControl **cctrls,
 	int	*msgidp )
 {
+	int rc;
 	BerElement	*ber;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
@@ -60,6 +61,10 @@ ldap_compare_ext(
 	assert( dn != NULL );
 	assert( attr != NULL );
 	assert( msgidp != NULL );
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {

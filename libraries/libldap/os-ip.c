@@ -294,7 +294,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	struct hostent		*hp = NULL;
 	char   			*ha_buf=NULL, *p, *q;
 
-	osip_debug(ld, "ldap_connect_to_host\n",0,0,0);
+	osip_debug(ld, "ldap_connect_to_host: %s\n",host,0,0);
 	
 	if (host != NULL) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
@@ -423,8 +423,8 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	return rc;
 }
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) \
-	|| defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || \
+	defined( HAVE_CYRUS_SASL )
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
@@ -510,7 +510,7 @@ ldap_host_connected_to( Sockbuf *sb )
 	LDAP_FREE( ha_buf );
 	return host;
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND || HAVE_TLS */
+#endif
 
 
 /* for UNIX */

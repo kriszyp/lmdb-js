@@ -34,6 +34,12 @@ ldap_unbind_ext(
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
+	int rc;
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
 	return ldap_ld_free( ld, 1, sctrls, cctrls );
 }
 
@@ -97,21 +103,6 @@ ldap_ld_free(
 	if ( ld->ld_matched != NULL ) {
 		LDAP_FREE( ld->ld_matched );
 		ld->ld_matched = NULL;
-	}
-
-	if ( ld->ld_host != NULL ) {
-		LDAP_FREE( ld->ld_host );
-		ld->ld_host = NULL;
-	}
-
-	if ( ld->ld_ufnprefix != NULL ) {
-		LDAP_FREE( ld->ld_ufnprefix );
-		ld->ld_ufnprefix = NULL;
-	}
-
-	if ( ld->ld_filtd != NULL ) {
-		ldap_getfilter_free( ld->ld_filtd );
-		ld->ld_filtd = NULL;
 	}
 
 	if ( ld->ld_abandoned != NULL ) {

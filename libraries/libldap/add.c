@@ -105,6 +105,10 @@ ldap_add_ext(
 	assert( dn != NULL );
 	assert( msgidp != NULL );
 
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;

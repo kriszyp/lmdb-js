@@ -281,12 +281,14 @@ ldap_get_option(
 
 	default:
 #ifdef HAVE_TLS
-	   	if ( ldap_pvt_tls_get_option((struct ldapoptions *)lo, option, outvalue ) == 0 )
-	     		return LDAP_OPT_SUCCESS;
+		if ( ldap_pvt_tls_get_option( ld, option, outvalue ) == 0 ) {
+			return LDAP_OPT_SUCCESS;
+		}
 #endif
 #ifdef HAVE_CYRUS_SASL
-	   	if ( ldap_int_sasl_get_option(ld, option, outvalue ) == 0 )
-	     		return LDAP_OPT_SUCCESS;
+		if ( ldap_int_sasl_get_option( ld, option, outvalue ) == 0 ) {
+			return LDAP_OPT_SUCCESS;
+		}
 #endif
 		/* bad param */
 		break;
@@ -579,7 +581,7 @@ ldap_set_option(
 
 	default:
 #ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( lo, option, (void	*)invalue ) == 0 )
+		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
 	     	return LDAP_OPT_SUCCESS;
 #endif
 #ifdef HAVE_CYRUS_SASL

@@ -95,8 +95,8 @@ ldap_send_initial_request(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_delayed_open successful, ld_host is %s\n",
-			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
+			"ldap_open_defconn: successful\n",
+			0, 0, 0 );
 	}
 
 	{
