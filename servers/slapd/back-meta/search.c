@@ -182,6 +182,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 				goto new_candidate;
 			}
 
+		} else {
+			is_scope++;
 		}
 
 		/*
