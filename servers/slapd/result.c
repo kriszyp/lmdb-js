@@ -545,8 +545,7 @@ send_search_entry(
 	}
 
 	/* check for special all user attributes ("*") attribute */
-	allattrs = attrs == NULL
-		? 1
+	allattrs = ( attrs == NULL ) ? 1
 		: charray_inlist( attrs, LDAP_ALL_USER_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
@@ -560,7 +559,17 @@ send_search_entry(
 
 		} else {
 			/* specific addrs requested */
-			if ( !allattrs && !charray_inlist( attrs, a->a_type ) ) {
+			if ( allattrs ) {
+				/* user requested all user attributes */
+				/* if operational, make sure it's in list */
+
+				if( oc_check_operational_attr( a->a_type )
+					&& !charray_inlist( attrs, a->a_type ) )
+				{
+					continue;
+				}
+
+			} else if ( !charray_inlist( attrs, a->a_type ) ) {
 				continue;
 			}
 		}
