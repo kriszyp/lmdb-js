@@ -32,11 +32,11 @@ ava_free(
 int
 get_ava(
     BerElement	*ber,
-    AttributeAssertion	**ava
+    AttributeAssertion	**ava,
+	char **text
 )
 {
 	int rc;
-	char *text;
 	struct berval type, *value;
 	AttributeAssertion *aa;
 
@@ -44,13 +44,14 @@ get_ava(
 
 	if( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
+		*text = "Error decoding attribute value assertion";
 		return SLAPD_DISCONNECT;
 	}
 
 	aa = ch_malloc( sizeof( AttributeAssertion ) );
 	aa->aa_desc = NULL;
 
-	rc = slap_bv2ad( &type, &aa->aa_desc, &text );
+	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( type.bv_val );
@@ -83,12 +84,14 @@ ava_free(
 int
 get_ava(
     BerElement	*ber,
-    Ava		*ava
+    Ava		*ava,
+	char **text
 )
 {
 	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
+		*text = "Error decoding attribute value assertion";
 		return SLAPD_DISCONNECT;
 	}
 

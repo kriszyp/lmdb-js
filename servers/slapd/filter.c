@@ -94,8 +94,7 @@ get_filter(
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "error decoding filter";
+		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
 			break;
 		}
 
@@ -127,8 +126,7 @@ get_filter(
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "decoding filter error";
+		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
 			break;
 		}
 
@@ -153,8 +151,7 @@ get_filter(
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "decoding filter error";
+		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
 			break;
 		}
 
@@ -220,8 +217,7 @@ get_filter(
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "decoding filter error";
+		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
 			break;
 		}
 
