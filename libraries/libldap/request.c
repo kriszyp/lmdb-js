@@ -21,6 +21,7 @@
 #include <ac/unistd.h>
 
 #include "ldap-int.h"
+#include "lber.h"
 
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPServer *srv, int any ));
@@ -444,6 +445,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 			ldap_close_connection( lc->lconn_sb );
 		   	lber_pvt_sb_destroy( lc->lconn_sb );
+			ber_clear( &lc->lconn_ber, 1 );
 		}
 		prevlc = NULL;
 		for ( tmplc = ld->ld_conns; tmplc != NULL;

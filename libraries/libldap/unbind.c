@@ -91,6 +91,8 @@ ldap_ld_free( LDAP *ld, int close )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if ( ld->ld_selectinfo != NULL )
 		ldap_free_select_info( ld->ld_selectinfo );
+#else
+	ber_clear( &(ld->ld_ber), 1 );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( ld->ld_options.ldo_defbase != NULL )

@@ -29,6 +29,8 @@
 
 #ifdef LDAP_DEBUG
 #include <assert.h>
+#undef TEST_PARTIAL_READ
+#undef TEST_PARTIAL_WRITE
 #else
 #define assert( cond )
 #endif
@@ -112,16 +114,16 @@ packet_length( char *buf )
 static int
 grow_buffer( Sockbuf_Buf * buf, long minsize )
 {
-   /* round to nearest 2k */
-   if (minsize < MIN_BUF_SIZE) {
-      minsize = MIN_BUF_SIZE;
-   }  else {
-      minsize=((minsize-1)|2047)+1;
-      if (minsize > MAX_BUF_SIZE) {
+   long pw=MIN_BUF_SIZE;
+   
+   for(;(pw<minsize);pw<<=1) {
+      if (pw > MAX_BUF_SIZE) {
 	 /* this could mean that somebody is trying to crash us. */
 	 return -1;
       }
    }
+   minsize = pw;
+
    if (buf->buf_size<minsize) {
       if ((buf->buf_base==NULL) || ((buf->buf_end==0) && (buf->buf_ptr==0))) {
 	 /* empty buffer */
@@ -309,13 +311,23 @@ lber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
    /* breaks slapd :-) */
    assert( lber_pvt_sb_in_use( sb ) );
 #endif 
+
+#ifdef TEST_PARTIAL_READ
+   if ((rand() & 3)==1) { /* 1 out of 4 */
+      errno = EWOULDBLOCK;
+      return -1;
+   }
+
+   len = (rand() % len)+1;
+#endif   
    
    buf = (char *) buf_arg;
 
-   len = sockbuf_copy_out( sb, &buf, len );
-   
-   if (len==0) {
-      return (buf - (char *) buf_arg);
+   if (sb->sb_buf.buf_ptr!=sb->sb_buf.buf_end) {
+      len = sockbuf_copy_out( sb, &buf, len );
+      if (len==0) {
+	 return (buf - (char *) buf_arg);
+      }
    }
 
 #ifdef USE_SASL
@@ -336,8 +348,15 @@ lber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
       }
       for(;;) {
 	 /* read from stream into sb_sec_buf_in */
-	 ret = sockbuf_io_read( sb, sb->sb_sec_buf_in.buf_base +
+	 for(;;) {
+	    ret = sockbuf_io_read( sb, sb->sb_sec_buf_in.buf_base +
 				  sb->sb_sec_buf_in.buf_ptr, max );
+#ifdef EINTR
+	    if ((ret<0) && (errno==EINTR))
+	      continue;
+#endif
+	    break;
+	 }
 	 if (ret<=0) {
 	    /* read error. return */
 	    goto do_return;
@@ -393,10 +412,17 @@ decode_packet:
 	 long max;
 	 max = sb->sb_buf.buf_size - sb->sb_buf.buf_end;
 	 if (max>len) {
-	    ret = sockbuf_io_read( sb, 
+	    for(;;) {
+	       ret = sockbuf_io_read( sb, 
 				     sb->sb_buf.buf_base +
 				     sb->sb_buf.buf_end,
-					max );
+				     max );
+#ifdef EINTR	       
+	       if ((ret<0) && (errno==EINTR))
+		 continue;
+#endif
+	       break;
+	    }
 	    if (ret<=0) {
 	       /* some error occured */
 	       goto do_return;
@@ -408,7 +434,14 @@ decode_packet:
 	 }
       }
       /* no read_ahead, just try to put the data in the buf. */
-      ret = sockbuf_io_read( sb, buf, len );
+      for(;;) {
+	 ret = sockbuf_io_read( sb, buf, len );
+#ifdef EINTR	 
+	 if ((ret<0) && (errno==EINTR))
+	   continue;
+#endif
+	 break;
+      }
       if (ret>0) {
 	 buf+=ret;
 	 len-=ret;
@@ -433,8 +466,15 @@ long sockbuf_do_write( Sockbuf *sb )
    to_go = sb->sb_sec_out.buf_end - sb->sb_sec_out.buf_ptr;
    assert( to_go > 0 );
    /* there is something left of the last time... */
-   ret = sockbuf_io_write( sb, sb->sb_sec_out.buf_base+
-			      sb->sb_sec_out.buf_ptr, to_go );
+   for(;;) {
+      ret = sockbuf_io_write( sb, sb->sb_sec_out.buf_base+
+			     sb->sb_sec_out.buf_ptr, to_go );
+#ifdef EINTR
+      if ((ret<0) && (errno==EINTR))
+	continue;
+#endif
+      break;
+   }
    if (ret<=0) /* error */
      return ret;
    sb->sb_sec_out.buf_ptr += ret;
@@ -453,6 +493,16 @@ long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
    /* unfortunately breaks slapd */
    assert( lber_pvt_sb_in_use( sb ) );
 #endif   
+#ifdef TEST_PARTIAL_WRITE
+   if ((rand() & 3)==1) { /* 1 out of 4 */
+      errno = EWOULDBLOCK;
+      return -1;
+   }
+
+   len_arg = (rand() % len_arg)+1;
+   len = len_arg;
+#endif   
+   
 #ifdef USE_SASL
    if (sb->sb_sec) {
       assert( sb->sb_sec_prev_len <= len );
@@ -477,7 +527,14 @@ long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
       return len_arg;
    } else {
 #endif
-      return sockbuf_io_write( sb, buf, len );
+      for(;;) {
+	 ret = sockbuf_io_write( sb, buf, len );
+#ifdef EINTR
+	 if ((ret<0) && (errno==EINTR))
+	   continue;
+#endif
+	 break;
+      }
 #ifdef USE_SASL      
    }
 #endif

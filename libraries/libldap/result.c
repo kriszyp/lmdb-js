@@ -28,12 +28,12 @@ static int ldap_mark_abandoned LDAP_P(( LDAP *ld, int msgid ));
 static int wait4msg LDAP_P(( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	LDAPMessage **result ));
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-static int read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
+static int try_read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
 	LDAPMessage **result ));
 static unsigned long build_result_ber LDAP_P(( LDAP *ld, BerElement *ber, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-static int read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb,
+static int try_read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	LDAPMessage **result ));
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS )
@@ -182,7 +182,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		if ( rc == -1 ) {
 			rc = -2;	/* select interrupted: loop */
 		} else {
-			rc = read1msg( ld, msgid, all, &ld->ld_sb, result );
+			rc = try_read1msg( ld, msgid, all, &ld->ld_sb, result );
 		}
 #else /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #ifdef LDAP_DEBUG
@@ -193,7 +193,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 			if ( lber_pvt_sb_data_ready(lc->lconn_sb) ) {
-				rc = read1msg( ld, msgid, all, lc->lconn_sb,
+				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
 			}
@@ -232,7 +232,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 					    LDAP_CONNST_CONNECTED &&
 					    ldap_is_read_ready( ld,
 					    lc->lconn_sb )) {
-						rc = read1msg( ld, msgid, all,
+						rc = try_read1msg( ld, msgid, all,
 						    lc->lconn_sb, lc, result );
 					}
 				}
@@ -259,13 +259,13 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 
 
 static int
-read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
+try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
     LDAPConn *lc,
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
     LDAPMessage **result )
 {
-	BerElement	ber;
+	BerElement	*ber;
 	LDAPMessage	*new, *l, *prev, *tmp;
 	long		id;
 	unsigned long	tag, len;
@@ -275,30 +275,47 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
 	unsigned long	lderr;
+	
+	ber = &lc->lconn_ber;
+#else
+	ber = &ld->ld_ber;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
-
+#if 0
 	ber_init_w_nullc( &ber, 0 );
 	ldap_set_ber_options( ld, &ber );
-
+#endif
 	/* get the next message */
-	if ( (tag = ber_get_next( sb, &len, &ber ))
+	if ( (tag = ber_get_next( sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
-		ld->ld_errno = (tag == LBER_DEFAULT ? LDAP_SERVER_DOWN :
-		    LDAP_LOCAL_ERROR);
-		return( -1 );
+		if ( tag == LBER_DEFAULT) {
+#ifdef LDAP_DEBUG		   
+			Debug( LDAP_DEBUG_CONNS,
+			      "ber_get_next failed.\n", 0, 0, 0 );
+#endif		   
+#ifdef EWOULDBLOCK			
+			if (errno==EWOULDBLOCK) return -2;
+#endif
+#ifdef EAGAIN
+			if (errno == EAGAIN) return -2;
+#endif
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			return -1;
+		}
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		return -1;
 	}
 
 	/* message id */
-	if ( ber_get_int( &ber, &id ) == LBER_ERROR ) {
+	if ( ber_get_int( ber, &id ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( -1 );
 	}
 
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, (int)id ) ) {
-		free( ber.ber_buf );	/* gack! */
+		ber_clear( ber, 1 );	/* gack! */
 		return( -2 );	/* continue looking */
 	}
 
@@ -307,7 +324,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
 		    id, 0, 0 );
-		free( ber.ber_buf );	/* gack! */
+		ber_clear( ber, 1 );	/* gack! */
 		return( -2 );	/* continue looking */
 	}
 	Debug( LDAP_DEBUG_TRACE, "got %s msgid %ld, original id %d\n",
@@ -317,7 +334,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	/* the message type */
-	if ( (tag = ber_peek_tag( &ber, &len )) == LBER_ERROR ) {
+	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( -1 );
 	}
@@ -334,7 +351,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 			( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
 				!= LDAP_OPT_OFF ) ) )
 		{
-			tmpber = ber;	/* struct copy */
+			tmpber = *ber;	/* struct copy */
 			if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )
 			    != LBER_ERROR ) {
@@ -365,8 +382,7 @@ Debug( LDAP_DEBUG_TRACE,
 		    "read1msg:  %d new referrals\n", refer_cnt, 0, 0 );
 
 		if ( refer_cnt != 0 ) {	/* chasing referrals */
-			free( ber.ber_buf );	/* gack! */
-			ber.ber_buf = NULL;
+			ber_clear( ber, 1 );	/* gack! */
 			if ( refer_cnt < 0 ) {
 				return( -1 );	/* fatal error */
 			}
@@ -377,8 +393,7 @@ Debug( LDAP_DEBUG_TRACE,
 				simple_request = ( hadref ? 0 : 1 );
 			} else {
 				/* request with referrals or child request */
-				free( ber.ber_buf );	/* gack! */
-				ber.ber_buf = NULL;
+				ber_clear( ber, 1 );	/* gack! */
 			}
 
 			while ( lr->lr_parent != NULL ) {
@@ -400,11 +415,8 @@ Debug( LDAP_DEBUG_TRACE,
 lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
 lr->lr_res_matched ? lr->lr_res_matched : "" );
 				if ( !simple_request ) {
-					if ( ber.ber_buf != NULL ) {
-						free( ber.ber_buf ); /* gack! */
-						ber.ber_buf = NULL;
-					}
-					if ( build_result_ber( ld, &ber, lr )
+					ber_clear( ber, 1 ); /* gack! */
+					if ( build_result_ber( ld, ber, lr )
 					    == LBER_ERROR ) {
 						ld->ld_errno = LDAP_NO_MEMORY;
 						rc = -1; /* fatal error */
@@ -420,7 +432,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		}
 	}
 
-	if ( ber.ber_buf == NULL ) {
+	if ( ber->ber_buf == NULL ) {
 		return( rc );
 	}
 
@@ -433,7 +445,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 	new->lm_msgid = (int)id;
 	new->lm_msgtype = tag;
-	new->lm_ber = ber_dup( &ber );
+	new->lm_ber = ber_dup( ber );
+	ber_clear( ber, 0 ); /* don't kill buffer */
 
 #ifndef LDAP_NOCACHE
 		if ( ld->ld_cache != NULL ) {

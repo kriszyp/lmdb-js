@@ -177,6 +177,7 @@ LDAP_F long ber_read LDAP_P(( BerElement *ber, char *buf, unsigned long len ));
 LDAP_F long ber_write LDAP_P(( BerElement *ber, char *buf, unsigned long len,
 	int nosos ));
 LDAP_F void ber_free LDAP_P(( BerElement *ber, int freebuf ));
+LDAP_F void ber_clear LDAP_P(( BerElement *ber, int freebuf ));
 LDAP_F int ber_flush LDAP_P(( Sockbuf *sb, BerElement *ber, int freeit ));
 LDAP_F BerElement *ber_alloc LDAP_P(( void ));
 LDAP_F BerElement *der_alloc LDAP_P(( void ));
@@ -205,9 +206,9 @@ lber_set_option LDAP_P((void *item, int option, void *invalue));
 /*
  * LBER Sockbuf functions
  */
-LDAP_F Sockbuf *lber_pvt_sockbuf_alloc LDAP_P((void));
-LDAP_F Sockbuf *lber_pvt_sockbuf_alloc_fd LDAP_P((int fd));
-LDAP_F void lber_pvt_sockbuf_free LDAP_P((Sockbuf *sb));
+LDAP_F Sockbuf *lber_pvt_sk_alloc LDAP_P((void));
+LDAP_F Sockbuf *lber_pvt_sb_alloc_fd LDAP_P((int fd));
+LDAP_F void lber_pvt_sb_free LDAP_P((Sockbuf *sb));
 
 LDAP_END_DECL
 

@@ -32,10 +32,24 @@
 
 #include "lber-int.h"
 
+#ifdef LDAP_DEBUG
+#include <assert.h>
+#else
+#define assert(cond)
+#endif
+
 static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));
 static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 
 #define EXBUFSIZ	1024
+
+/* probably far too large... */
+#define MAX_BERBUFSIZE	(128*1024)
+
+#if defined( DOS ) && !defined( _WIN32 ) && (MAX_BERBUFSIZE > 65535)
+# undef MAX_BERBUFSIZE
+# define MAX_BERBUFSIZE 65535
+#endif
 
 static long
 BerRead( Sockbuf *sb, char *buf, long len )
@@ -329,6 +343,7 @@ ber_reset( BerElement *ber, int was_writing )
 	ber->ber_rwptr = NULL;
 }
 
+#if 0
 /* return the tag - LBER_DEFAULT returned means trouble */
 static unsigned long
 get_tag( Sockbuf *sb )
@@ -363,21 +378,22 @@ get_tag( Sockbuf *sb )
 	/* want leading, not trailing 0's */
 	return( tag >> (sizeof(long) - i - 1) );
 }
+#endif
+
+/*
+ * A rewrite of get_get_next that can safely be called multiple times 
+ * for the same packet. It will simply continue were it stopped until
+ * a full packet is read.
+ */
 
 unsigned long
 ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 {
-	unsigned long	tag = 0, netlen, toread;
-	unsigned char	lc;
-	long		rc;
-	long		noctets;
-	unsigned int	diff;
-
 	if ( ber->ber_debug ) {
 		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 			"ber_get_next\n" );
 	}
-
+	
 	/*
 	 * Any ber element looks like this: tag length contents.
 	 * Assuming everything's ok, we return the tag byte (we
@@ -389,95 +405,140 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	 *	2) definite lengths
 	 *	3) primitive encodings used whenever possible
 	 */
+	
+	if (ber->ber_rwptr == NULL) {
+		assert( ber->ber_buf == NULL );
+		ber->ber_rwptr = (char *) &ber->ber_tag;
+		ber->ber_tag = 0;
+	}
 
-	/*
-	 * first time through - malloc the buffer, set up ptrs, and
-	 * read the tag and the length and as much of the rest as we can
-	 */
-
-	if ( ber->ber_rwptr == NULL ) {
-		/*
-		 * First, we read the tag.
-		 */
-
-		if ( (tag = get_tag( sb )) == LBER_DEFAULT ) {
-			return( LBER_DEFAULT );
-		}
-		ber->ber_tag = tag;
-
-		/*
-		 * Next, read the length.  The first byte contains the length
-		 * of the length.  If bit 8 is set, the length is the long
-		 * form, otherwise it's the short form.  We don't allow a
-		 * length that's greater than what we can hold in an unsigned
-		 * long.
-		 */
-
-		*len = netlen = 0;
-		if ( lber_pvt_sb_read( sb, (char *) &lc, 1 ) != 1 ) {
-			return( LBER_DEFAULT );
-		}
-		if ( lc & 0x80 ) {
-			noctets = (lc & 0x7f);
-			if ( noctets > sizeof(unsigned long) )
-				return( LBER_DEFAULT );
-			diff = sizeof(unsigned long) - noctets;
-			if ( BerRead( sb, (char *) &netlen + diff, noctets ) !=
-			    noctets ) {
-				return( LBER_DEFAULT );
+#define PTR_IN_VAR( ptr, var )\
+(((ptr)>=(char *) &(var)) && ((ptr)< (char *) &(var)+sizeof(var)))
+	
+	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag)) {
+		if (ber->ber_rwptr == (char *) &ber->ber_tag) {
+			if (lber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
+				return LBER_DEFAULT;
+			if ((ber->ber_rwptr[0] & LBER_BIG_TAG_MASK)
+				!= LBER_BIG_TAG_MASK) {
+				ber->ber_tag = ber->ber_rwptr[0];
+				ber->ber_rwptr = (char *) &ber->ber_usertag;
+				goto get_lenbyte;
 			}
-			*len = AC_NTOHL( netlen );
+			ber->ber_rwptr++;
+		}
+		do {
+			/* reading the tag... */
+			if (lber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
+				return LBER_DEFAULT;
+			if (! (ber->ber_rwptr[0] & LBER_MORE_TAG_MASK) ) {
+				ber->ber_tag>>=sizeof(ber->ber_tag) -
+				  ((char *) &ber->ber_tag - ber->ber_rwptr);
+				ber->ber_rwptr = (char *) &ber->ber_usertag;
+				goto get_lenbyte;
+			}
+		} while (PTR_IN_VAR(ber->ber_rwptr,ber->ber_tag));
+		errno = ERANGE; /* this is a serious error. */
+		return LBER_DEFAULT;
+	}
+get_lenbyte:
+	if (ber->ber_rwptr==(char *) &ber->ber_usertag) {
+		unsigned char c;
+		if (lber_pvt_sb_read( sb, (char *) &c, 1)<=0)
+			return LBER_DEFAULT;
+		if (c & 0x80) {
+			int len = c & 0x7f;
+			if ( (len==0) || ( len>sizeof( ber->ber_len ) ) ) {
+				errno = ERANGE;
+				return LBER_DEFAULT;
+			}
+			ber->ber_rwptr = (char *) &ber->ber_len +
+				sizeof(ber->ber_len) - len;
+			ber->ber_len = 0;
 		} else {
-			*len = lc;
+			ber->ber_len = c;
+			goto fill_buffer;
 		}
-		ber->ber_len = *len;
-
-		/*
-		 * Finally, malloc a buffer for the contents and read it in.
-		 * It's this buffer that's passed to all the other ber decoding
-		 * routines.
-		 */
-
-#if defined( DOS ) && !defined( _WIN32 )
-		if ( *len > 65535 ) {	/* DOS can't allocate > 64K */
-		    return( LBER_DEFAULT );
+	}
+	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len)) {
+		int res;
+		int to_go;
+		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
+			ber->ber_rwptr;
+		assert( to_go > 0 );
+		res = lber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
+		if (res <=0)
+			return LBER_DEFAULT;
+		ber->ber_rwptr += res;
+		if (res==to_go) {
+			/* convert length. */
+			ber->ber_len = AC_NTOHL( ber->ber_len );
+			goto fill_buffer;
+		} else {
+#if defined( EWOULDBLOCK )
+			errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+			errno = EAGAIN;
+#endif			
+			return LBER_DEFAULT;
 		}
-#endif /* DOS && !_WIN32 */
-#ifdef DEADWOOD
-		if ( ( sb->sb_options & LBER_MAX_INCOMING_SIZE ) &&
-		    *len > (unsigned long) sb->sb_max_incoming ) {
-			return( LBER_DEFAULT );
+	}
+fill_buffer:	
+	/* now fill the buffer. */
+	if (ber->ber_buf==NULL) {
+		if (ber->ber_len > MAX_BERBUFSIZE) {
+			errno = ERANGE;
+			return LBER_DEFAULT;
 		}
-#endif
-		if ( (ber->ber_buf = (char *) malloc( (size_t)*len )) == NULL ) {
-			return( LBER_DEFAULT );
-		}
-		ber->ber_ptr = ber->ber_buf;
-		ber->ber_end = ber->ber_buf + *len;
+		ber->ber_buf = (char *) malloc( ber->ber_len );
+		if (ber->ber_buf==NULL)
+			return LBER_DEFAULT;
 		ber->ber_rwptr = ber->ber_buf;
+		ber->ber_ptr = ber->ber_buf;
+		ber->ber_end = ber->ber_buf + ber->ber_len;
 	}
-
-	toread = (unsigned long)ber->ber_end - (unsigned long)ber->ber_rwptr;
-	do {
-		if ( (rc = lber_pvt_sb_read( sb, ber->ber_rwptr, (long)toread )) <= 0 ) {
-			return( LBER_DEFAULT );
+	if ((ber->ber_rwptr>=ber->ber_buf) && (ber->ber_rwptr<ber->ber_end)) {
+		int res;
+		int to_go;
+		
+		to_go = ber->ber_end - ber->ber_rwptr;
+		assert( to_go > 0 );
+		
+		res = lber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
+		if (res<=0)
+			return LBER_DEFAULT;
+		ber->ber_rwptr+=res;
+		
+		if (res<to_go) {
+#if defined( EWOULDBLOCK )
+			errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+			errno = EAGAIN;
+#endif			
+			return LBER_DEFAULT;
 		}
-
-		toread -= rc;
-		ber->ber_rwptr += rc;
-	} while ( toread > 0 );
-
-	if ( ber->ber_debug ) {
-		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
-			"ber_get_next: tag 0x%lx len %ld contents:\n",
-		    tag, ber->ber_len );
-
-		lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+		
+		ber->ber_rwptr = NULL;
+		*len = ber->ber_len;
+		if ( ber->ber_debug ) {
+			lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+				"ber_get_next: tag 0x%lx len %ld contents:\n",
+				ber->ber_tag, ber->ber_len );
+			lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+		}
+		return (ber->ber_tag);
 	}
+	assert( 0 ); /* ber structure is messed up ?*/
+	return LBER_DEFAULT;
+}
 
-	*len = ber->ber_len;
+void	ber_clear( BerElement *ber, int freebuf )
+{
+	if ((freebuf) && (ber->ber_buf))
+		free( ber->ber_buf );
+	ber->ber_buf = NULL;
 	ber->ber_rwptr = NULL;
-	return( ber->ber_tag );
+	ber->ber_end = NULL;
 }
 
 Sockbuf *lber_pvt_sb_alloc( void )

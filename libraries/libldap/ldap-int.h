@@ -127,6 +127,7 @@ typedef struct ldap_conn {
 	LDAPServer		*lconn_server;
 	char			*lconn_krbinstance;
 	struct ldap_conn	*lconn_next;
+	BerElement		lconn_ber;/* ber receiving on this conn. */
 } LDAPConn;
 
 
@@ -227,8 +228,11 @@ struct ldap {
 	/* stuff used by connectionless searches. */
    	char		*ld_cldapdn;	/* DN used in connectionless search */
 	int		ld_cldapnaddr; /* number of addresses */
-   	void		**ld_cldapaddrs;/* addresses to send request to */	
-	
+   	void		**ld_cldapaddrs;/* addresses to send request to */
+#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS	
+	/* BerElement that this connection is receiving. */
+	BerElement	ld_ber;
+#endif	
 	/* do not mess with the rest though */
 	BERTranslateProc ld_lber_encode_translate_proc;
 	BERTranslateProc ld_lber_decode_translate_proc;
