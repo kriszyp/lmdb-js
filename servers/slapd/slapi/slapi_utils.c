@@ -1139,7 +1139,7 @@ void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 	char *connAuthType;
 	size_t len;
 
-	slapi_pblock_set(pb, SLAPI_CONNECTION, conn);
+	slapi_pblock_set(pb, SLAPI_CONNECTION, (void *)conn);
 	slapi_pblock_set(pb, SLAPI_CONN_ID, (void *)conn->c_connid);
 	switch (conn->c_authz.sai_method) {
 	case LDAP_AUTH_SASL: 
@@ -1161,12 +1161,40 @@ void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SSL);
 	}
 	if (connAuthType != NULL) {
-		slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, connAuthType);
+		slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
 	}
 	if (conn->c_authz.sai_dn.bv_val != NULL) {
-		slapi_pblock_set(pb, SLAPI_CONN_DN, slapi_ch_strdup(conn->c_authz.sai_dn.bv_val));
+		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
+		slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
 	}
 #endif /* defined(LDAP_SLAPI) */
+}
+
+/*
+ * Internal API to prime a Slapi_PBlock with an Operation.
+ */
+void slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
+{
+#if defined(LDAP_SLAPI)
+	int isRoot = 0;
+	int isUpdateDn = 0;
+	Backend *be;
+
+	if (slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be) != 0) {
+		be = NULL;
+	}
+	if (be != NULL) {
+		isRoot = be_isroot(be, &op->o_ndn);
+		isUpdateDn = be_isupdate(be, &op->o_ndn);
+	}
+		
+	slapi_pblock_set(pb, SLAPI_OPERATION, (void *)op);
+	slapi_pblock_set(pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time);
+	slapi_pblock_set(pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot);
+	slapi_pblock_set(pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn);
+	slapi_pblock_set(pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls);
+	slapi_pblock_set(pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val);
+#endif
 }
 
 int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
