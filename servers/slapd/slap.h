@@ -216,6 +216,7 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_SYN_NOT_FOUND	13
 #define SLAP_SCHERR_MR_INCOMPLETE	14
 #define SLAP_SCHERR_NOT_SUPPORTED	15
+#define SLAP_SCHERR_BAD_DESCR	16
 
 typedef struct slap_oid_macro {
 	struct berval som_oid;

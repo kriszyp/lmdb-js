@@ -37,7 +37,8 @@ static char *const err2text[] = {
 	"MatchingRule not found",
 	"Syntax not found",
 	"Syntax required",
-	"Qualifier not supported"
+	"Qualifier not supported",
+	"Invalid NAME"
 };
 
 char *
@@ -48,6 +49,24 @@ scherr2str(int code)
 	} else {
 		return err2text[code];
 	}
+}
+
+/* check schema descr validity */
+int slap_valid_descr( const char *descr )
+{
+	int i=0;
+
+	if( !DESC_LEADCHAR( descr[i] ) ) {
+		return 0;
+	}
+
+	while( descr[++i] ) {
+		if( !DESC_CHAR( descr[i] ) ) {
+			return 0;
+		}
+	}
+
+	return 1;
 }
 
 

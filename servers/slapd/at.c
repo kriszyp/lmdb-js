@@ -239,11 +239,19 @@ at_add(
 	char			*cname;
 
 	if ( at->at_names && at->at_names[0] ) {
+		int i;
+
+		for( i=0; at->at_names[i]; i++ ) {
+			if( !slap_valid_descr( at->at_names[i] ) ) {
+				return SLAP_SCHERR_BAD_DESCR;
+			}
+		}
+
 		cname = at->at_names[0];
+
 	} else if ( at->at_oid ) {
 		cname = at->at_oid;
 	} else {
-		cname = "";
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 
