@@ -4,7 +4,11 @@ OpenLDAP 2.0.x Engineering
 	Fixed clients printf bugs
 	Fixed -lldap SASL interoperability bug
 	Fixed -lldap PF_LOCAL declaration/call bugs
+	Updated slurpd SASL support
+	Added slurpd TLS support
 	Removed lint
+	Documentation
+		updated ldap_schema(3)
 
 OpenLDAP 2.0.3 Release
 	Fixed -lldap KBIND typo (ITS#717)
