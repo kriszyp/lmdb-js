@@ -14,7 +14,7 @@ Current contributions:
 		TCL API from NeoSoft
 
 	php3-tool
-		PHP3-based frontend from Jens Moller 
+		PHP3-based frontend from Predrag Balorda
 
     saucer
 		General purpose command-line LDAP client, modeled
@@ -23,7 +23,7 @@ Current contributions:
 		and its man page for more information.
 
 	web_ldap
-		web frontend (in C)
+		web frontend (in C) from Jens Moller
 
     web500gw
 		HTTP gateway for X.500, modeled after go500gw.
