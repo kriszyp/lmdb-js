@@ -237,9 +237,6 @@ ldap_int_open_connection(
 	int async )
 {
 	int rc = -1;
-#ifdef HAVE_CYRUS_SASL
-	char *sasl_host = NULL;
-#endif
 	char *host;
 	int port, proto;
 
@@ -279,9 +276,6 @@ ldap_int_open_connection(
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
-#ifdef HAVE_CYRUS_SASL
-			sasl_host = ldap_host_connected_to( conn->lconn_sb, host );
-#endif
 			break;
 
 #ifdef LDAP_CONNECTIONLESS
@@ -326,9 +320,6 @@ ldap_int_open_connection(
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
-#ifdef HAVE_CYRUS_SASL
-			sasl_host = ldap_host_connected_to( conn->lconn_sb, "localhost" );
-#endif
 			break;
 #endif /* LDAP_PF_LOCAL */
 		default:
@@ -343,25 +334,6 @@ ldap_int_open_connection(
 
 #ifdef LDAP_CONNECTIONLESS
 	if( proto == LDAP_PROTO_UDP ) return 0;
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-	/* establish Cyrus SASL context prior to starting TLS so
-		that SASL EXTERNAL might be used */
-	if( sasl_host != NULL ) {
-		ldap_int_sasl_open( ld, conn, sasl_host );
-		LDAP_FREE( sasl_host );
-	}
-#ifdef LDAP_PF_LOCAL
-	if( proto == LDAP_PROTO_IPC ) {
-		char authid[sizeof("uidNumber=4294967295+gidNumber=4294967295,"
-			"cn=peercred,cn=external,cn=auth")];
-		sprintf( authid, "uidNumber=%d+gidNumber=%d,"
-			"cn=peercred,cn=external,cn=auth",
-			(int) geteuid(), (int) getegid() );
-		ldap_int_sasl_external( ld, conn, authid, LDAP_PVT_SASL_LOCAL_SSF );
-	}
-#endif
 #endif
 
 #ifdef HAVE_TLS

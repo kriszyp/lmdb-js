@@ -1403,22 +1403,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		}
 	}
 
-	/*
-	 * set SASL properties to TLS ssf and authid
-	 */
-	{
-		struct berval authid = { 0, NULL };
-		ber_len_t ssf;
-
-		/* we need to let SASL know */
-		ssf = ldap_pvt_tls_get_strength( ssl );
-		/* failure is OK, we just can't use SASL EXTERNAL */
-		(void) ldap_pvt_tls_get_my_dn( ssl, &authid, NULL, 0 );
-
-		(void) ldap_int_sasl_external( ld, conn, authid.bv_val, ssf );
-		LDAP_FREE( authid.bv_val );
-	}
-
 	return LDAP_SUCCESS;
 }
 

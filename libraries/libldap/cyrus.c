@@ -532,6 +532,7 @@ ldap_int_sasl_bind(
 	unsigned credlen;
 	struct berval ccred;
 	ber_socket_t		sd;
+	void	*ssl;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( TRANSPORT, ARGS, "ldap_int_sasl_bind: %s\n", 
@@ -566,9 +567,45 @@ ldap_int_sasl_bind(
 
 	ctx = ld->ld_defconn->lconn_sasl_ctx;
 
-	if( ctx == NULL ) {
-		ld->ld_errno = LDAP_LOCAL_ERROR;
-		return ld->ld_errno;
+	/* If we already have a context, shut it down */
+	if( ctx ) {
+		/* Do an anonymous bind to kill the server's context */
+		rc = ldap_simple_bind_s( ld, "", NULL );
+
+		/* dispose of the old context */
+		ldap_int_sasl_close( ld, ld->ld_defconn );
+	}
+
+	rc = ldap_int_sasl_open( ld, ld->ld_defconn,
+		ld->ld_defconn->lconn_server->lud_host ?
+		ld->ld_defconn->lconn_server->lud_host : "localhost" );
+		
+	if ( rc != LDAP_SUCCESS ) return rc;
+
+	ctx = ld->ld_defconn->lconn_sasl_ctx;
+
+	/* Check for TLS */
+	ssl = ldap_pvt_tls_sb_ctx( ld->ld_sb );
+	if ( ssl ) {
+		struct berval authid = { 0, NULL };
+		ber_len_t fac;
+
+		fac = ldap_pvt_tls_get_strength( ssl );
+		/* failure is OK, we just can't use SASL EXTERNAL */
+		(void) ldap_pvt_tls_get_my_dn( ssl, &authid, NULL, 0 );
+
+		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid.bv_val, fac );
+		LDAP_FREE( authid.bv_val );
+	}
+
+	/* Check for local */
+	if ( ldap_pvt_url_scheme2proto( ld->ld_defconn->lconn_server->lud_scheme ) == LDAP_PROTO_IPC ) {
+		char authid[sizeof("uidNumber=4294967295+gidNumber=4294967295,"
+			"cn=peercred,cn=external,cn=auth")];
+		sprintf( authid, "uidNumber=%d+gidNumber=%d,"
+			"cn=peercred,cn=external,cn=auth",
+			(int) geteuid(), (int) getegid() );
+		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid, LDAP_PVT_SASL_LOCAL_SSF );
 	}
 
 	/* (re)set security properties */
