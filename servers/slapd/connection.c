@@ -986,13 +986,13 @@ connection_operation( void *ctx, void *arg_v )
 	 */
 #if 0
 	memsiz = ber_len( op->o_ber ) * 64;
-	if ( SLMALLOC_SLAB_SIZE > memsiz ) memsiz = SLMALLOC_SLAB_SIZE;
+	if ( SLAP_SLAB_SIZE > memsiz ) memsiz = SLAP_SLAB_SIZE;
 #endif
-	memsiz = SLMALLOC_SLAB_SIZE;
+	memsiz = SLAP_SLAB_SIZE;
 
-	memctx = sl_mem_create( memsiz, ctx );
+	memctx = slap_sl_mem_create( memsiz, ctx );
 	op->o_tmpmemctx = memctx;
-	op->o_tmpmfuncs = &sl_mfuncs;
+	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	if ( tag != LDAP_REQ_ADD && tag != LDAP_REQ_MODIFY ) {
 		/* Note - the ber and its buffer are already allocated from
 		 * regular memory; this only affects subsequent mallocs that
@@ -1129,9 +1129,9 @@ operations_error:
 
 	if ( op->o_cancel != SLAP_CANCEL_ACK &&
 				( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
-		sl_mem_detach( ctx, memctx );
+		slap_sl_mem_detach( ctx, memctx );
 	} else if (( op->o_sync_slog_size != -1 )) {
-		sl_mem_detach( ctx, memctx );
+		slap_sl_mem_detach( ctx, memctx );
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 		conn->c_n_ops_executing--;
@@ -1873,8 +1873,8 @@ connection_fake_init(
 	conn->c_peer_name = slap_empty_bv;
 
 	/* set memory context */
-	op->o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
-	op->o_tmpmfuncs = &sl_mfuncs;
+	op->o_tmpmemctx = slap_sl_mem_create( SLAP_SLAB_SIZE, ctx );
+	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	op->o_threadctx = ctx;
 
 	op->o_conn = conn;

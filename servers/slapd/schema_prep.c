@@ -115,7 +115,7 @@ static int objectSubClassIndexer(
 	}
 
 	/* over allocate */
-	ocvalues = sl_malloc( sizeof( struct berval ) * (noc+16), ctx );
+	ocvalues = slap_sl_malloc( sizeof( struct berval ) * (noc+16), ctx );
 
 	/* copy listed values (and termination) */
 	for( i=0; i<noc; i++ ) {
@@ -149,7 +149,7 @@ static int objectSubClassIndexer(
 			}
 
 			if( !found ) {
-				ocvalues = sl_realloc( ocvalues,
+				ocvalues = slap_sl_realloc( ocvalues,
 					sizeof( struct berval ) * (noc+2), ctx );
 
 				assert( k == noc );
@@ -170,7 +170,7 @@ static int objectSubClassIndexer(
 	rc = octetStringIndexer( use, mask, syntax, mr,
 		prefix, ocvalues, keysp, ctx );
 
-	sl_free( ocvalues, ctx );
+	slap_sl_free( ocvalues, ctx );
 	return rc;
 }
 

@@ -715,11 +715,11 @@ cleanup:
 	op->o_conn->c_sasl_bindop = NULL;
 
 	if( op->o_req_dn.bv_val != NULL ) {
-		sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn.bv_val = NULL;
 	}
 	if( op->o_req_ndn.bv_val != NULL ) {
-		sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		op->o_req_ndn.bv_val = NULL;
 	}
 

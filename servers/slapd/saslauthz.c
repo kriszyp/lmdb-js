@@ -562,7 +562,7 @@ static void slap_sasl_rx_exp(
 		len += str[i].rm_eo - str[i].rm_so;
 		n++;
 	}
-	out->bv_val = sl_malloc( len + 1, ctx );
+	out->bv_val = slap_sl_malloc( len + 1, ctx );
 	out->bv_len = len;
 
 	/* Fill in URI with replace string, replacing $i as we go */
@@ -902,7 +902,7 @@ exact_match:
 
 CONCLUDED:
 	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
-	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( op.o_req_ndn.bv_len ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
 
@@ -1014,7 +1014,7 @@ void slap_sasl2dn( Operation *opx,
 	rc = slap_parseURI( opx, &regout, &op.o_req_dn,
 		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter,
 		&op.ors_filterstr );
-	if ( !BER_BVISNULL( &regout ) ) sl_free( regout.bv_val, opx->o_tmpmemctx );
+	if ( !BER_BVISNULL( &regout ) ) slap_sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
 	}
@@ -1093,8 +1093,8 @@ FINISHED:
 	if( !BER_BVISEMPTY( sasldn ) ) {
 		opx->o_conn->c_authz_backend = op.o_bd;
 	}
-	if( !BER_BVISNULL( &op.o_req_dn ) ) sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
-	if( !BER_BVISNULL( &op.o_req_ndn ) ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_dn ) ) slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_ndn ) ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
 

@@ -59,7 +59,7 @@ slap_build_sync_state_ctrl(
 	ber_init2( ber, 0, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	ctrls[num_ctrls] = sl_malloc ( sizeof ( LDAPControl ), op->o_tmpmemctx );
+	ctrls[num_ctrls] = slap_sl_malloc ( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;

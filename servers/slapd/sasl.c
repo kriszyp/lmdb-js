@@ -1815,7 +1815,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 		}
 
 		/* Build the new dn */
-		dn->bv_val = sl_malloc( len + 1, op->o_tmpmemctx );
+		dn->bv_val = slap_sl_malloc( len + 1, op->o_tmpmemctx );
 		if( dn->bv_val == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( TRANSPORT, ERR, 
@@ -1861,7 +1861,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 		rc = dnNormalize( 0, NULL, NULL, dn, &dn2, op->o_tmpmemctx );
 
 		/* User DNs were constructed above and must be freed now */
-		sl_free( dn->bv_val, op->o_tmpmemctx );
+		slap_sl_free( dn->bv_val, op->o_tmpmemctx );
 
 		if ( rc != LDAP_SUCCESS ) {
 			BER_BVZERO( dn );
@@ -1873,7 +1873,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	/* Run thru regexp */
 	slap_sasl2dn( op, dn, &dn2, flags );
 	if( !BER_BVISNULL( &dn2 ) ) {
-		sl_free( dn->bv_val, op->o_tmpmemctx );
+		slap_sl_free( dn->bv_val, op->o_tmpmemctx );
 		*dn = dn2;
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, ENTRY, 

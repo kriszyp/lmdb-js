@@ -335,8 +335,8 @@ do_search(
 	}
 
 	if( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
-		sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-		sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 		ber_dupbv_x( &op->o_req_dn, &default_search_base, op->o_tmpmemctx );
 		ber_dupbv_x( &op->o_req_ndn, &default_search_nbase, op->o_tmpmemctx );
@@ -419,8 +419,8 @@ return_results:;
 	if ( ( op->o_sync_slog_size != -1 ) )
 		return rs->sr_err;
 
-	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if( op->o_req_dn.bv_val != NULL) slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	if( op->o_req_ndn.bv_val != NULL) slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
@@ -520,7 +520,7 @@ static int call_search_rewrite_plugins( Operation *op )
 		op->o_req_dn.bv_len = strlen( op->o_req_dn.bv_val );
 
 		if( op->o_req_ndn.bv_val != NULL) {
-			sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+			slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		}
 		rc = dnNormalize( 0, NULL, NULL, &op->o_req_dn, &op->o_req_ndn,
 			op->o_tmpmemctx );

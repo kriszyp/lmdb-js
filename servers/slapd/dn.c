@@ -849,7 +849,7 @@ build_new_dn( struct berval * new_dn,
 	}
 
 	new_dn->bv_len = parent_dn->bv_len + newrdn->bv_len + 1;
-	new_dn->bv_val = (char *) sl_malloc( new_dn->bv_len + 1, memctx );
+	new_dn->bv_val = (char *) slap_sl_malloc( new_dn->bv_len + 1, memctx );
 
 	ptr = lutil_strcopy( new_dn->bv_val, newrdn->bv_val );
 	*ptr++ = ',';

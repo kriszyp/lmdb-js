@@ -2360,7 +2360,7 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	SlapReply *rs,
 	LDAPControl *ctrl ));
 
-#define SLMALLOC_SLAB_SIZE	(1024*1024)
+#define SLAP_SLAB_SIZE	(1024*1024)
 
 #if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
 /* use librewrite for sasl-regexp */

@@ -330,7 +330,7 @@ bdb_abandon( Operation *op, SlapReply *rs )
 	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
 	if ( ps ) {
 		if ( ps->o_tmpmemctx ) {
-			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
 		slap_op_free ( ps );
 		return LDAP_SUCCESS;
@@ -348,7 +348,7 @@ bdb_cancel( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_CANCELLED;
 		send_ldap_result( ps, rs );
 		if ( ps->o_tmpmemctx ) {
-			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
 		slap_op_free ( ps );
 		return LDAP_SUCCESS;
@@ -1192,9 +1192,9 @@ id2entry_retry:
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
 							if ( cookie.bv_val ) ch_free( cookie.bv_val );	
-							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
+							slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
 								 sop->o_tmpmemctx );
-							sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							slap_sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
 							ctrls[num_ctrls] = NULL;
 							rs->sr_ctrls = NULL;
 						}
@@ -1228,9 +1228,9 @@ id2entry_retry:
 							rs->sr_attrs = sop->oq_search.rs_attrs;
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
-							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
+							slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
 								 sop->o_tmpmemctx );
-							sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							slap_sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
 							ctrls[num_ctrls] = NULL;
 							rs->sr_ctrls = NULL;
 						} else { /* PRESENT */
@@ -1414,10 +1414,10 @@ nochange:
 				rs->sr_rspoid = NULL;
 				send_ldap_result( sop, rs );
 				if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL ) {
-					sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
+					slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
 						sop->o_tmpmemctx );
 				}
-				sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+				slap_sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
 				ctrls[num_ctrls] = NULL;
 				if ( cookie.bv_val ) ch_free( cookie.bv_val );	
 			}

@@ -89,8 +89,8 @@ slap_send_session_log(
 			rs->sr_ctrls = ctrls;
 			rs->sr_flags = 0;
 			result = send_search_entry( op, rs );
-			sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val, op->o_tmpmemctx );
-			sl_free( ctrls[--num_ctrls], op->o_tmpmemctx );
+			slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val, op->o_tmpmemctx );
+			slap_sl_free( ctrls[--num_ctrls], op->o_tmpmemctx );
 			ctrls[num_ctrls] = NULL;
 			rs->sr_ctrls = NULL;
 		}

@@ -28,7 +28,7 @@ struct slab_heap {
 };
 
 void
-sl_mem_destroy(
+slap_sl_mem_destroy(
 	void *key,
 	void *data
 )
@@ -39,23 +39,17 @@ sl_mem_destroy(
 	ber_memfree_x(sh, NULL);
 }
 
-BER_MEMALLOC_FN sl_malloc;
-BER_MEMCALLOC_FN sl_calloc;
-BER_MEMREALLOC_FN sl_realloc;
-BER_MEMFREE_FN sl_free;
-
-
-BerMemoryFunctions sl_mfuncs =
-	{ sl_malloc, sl_calloc, sl_realloc, sl_free };
+BerMemoryFunctions slap_sl_mfuncs =
+	{ slap_sl_malloc, slap_sl_calloc, slap_sl_realloc, slap_sl_free };
 
 void
-sl_mem_init()
+slap_sl_mem_init()
 {
-	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &sl_mfuncs );
+	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &slap_sl_mfuncs );
 }
 
 void *
-sl_mem_create(
+slap_sl_mem_create(
 	ber_len_t size,
 	void *ctx
 )
@@ -63,7 +57,7 @@ sl_mem_create(
 	struct slab_heap *sh = NULL;
 	int pad = 2*sizeof(int)-1;
 
-	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
+	ldap_pvt_thread_pool_getkey( ctx, (void *)slap_sl_mem_init, (void **)&sh, NULL );
 
 	/* round up to doubleword boundary */
 	size += pad;
@@ -72,7 +66,8 @@ sl_mem_create(
 	if (!sh) {
 		sh = ch_malloc( sizeof(struct slab_heap) );
 		sh->h_base = ch_malloc( size );
-		ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, (void *)sh, sl_mem_destroy );
+		ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init,
+			(void *)sh, slap_sl_mem_destroy );
 	} else if ( size > (char *) sh->h_end - (char *) sh->h_base ) {
 		sh->h_base = ch_realloc( sh->h_base, size );
 	}
@@ -82,17 +77,17 @@ sl_mem_create(
 }
 
 void
-sl_mem_detach(
+slap_sl_mem_detach(
 	void *ctx,
 	void *memctx
 )
 {
 	/* separate from context */
-	ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( ctx, (void *)slap_sl_mem_init, NULL, NULL );
 }
 
 void *
-sl_malloc(
+slap_sl_malloc(
     ber_len_t	size,
     void *ctx
 )
@@ -111,10 +106,12 @@ sl_malloc(
 	if ((char *) sh->h_last + size >= (char *) sh->h_end ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
-			   "sl_malloc of %lu bytes failed, using ch_malloc\n", (long)size, 0,0 );
+			"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
+			(long)size, 0,0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			   "sl_malloc of %lu bytes failed, using ch_malloc\n", (long)size, 0,0 );
+			"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
+			(long)size, 0,0 );
 #endif
 		return ch_malloc( size );
 	}
@@ -126,11 +123,11 @@ sl_malloc(
 }
 
 void *
-sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
+slap_sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 {
 	void *new;
 
-	new = sl_malloc( n*size, ctx );
+	new = slap_sl_malloc( n*size, ctx );
 	if ( new ) {
 		memset( new, 0, n*size );
 	}
@@ -138,14 +135,14 @@ sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 }
 
 void *
-sl_realloc( void *ptr, ber_len_t size, void *ctx )
+slap_sl_realloc( void *ptr, ber_len_t size, void *ctx )
 {
 	struct slab_heap *sh = ctx;
 	int pad = 2*sizeof(int)-1;
 	ber_len_t *p = (ber_len_t *)ptr;
 	ber_len_t *new;
 
-	if ( ptr == NULL ) return sl_malloc( size, ctx );
+	if ( ptr == NULL ) return slap_sl_malloc( size, ctx );
 
 	/* Not our memory? */
 	if ( !sh || ptr < sh->h_base || ptr >= sh->h_end ) {
@@ -156,7 +153,7 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			   "ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
+			"ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
@@ -166,7 +163,7 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 	}
 
 	if ( size == 0 ) {
-		sl_free( ptr, ctx );
+		slap_sl_free( ptr, ctx );
 		return NULL;
 	}
 
@@ -186,14 +183,14 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 	
 	/* Nowhere to grow, need to alloc and copy */
 	} else {
-		new = sl_malloc( size, ctx );
+		new = slap_sl_malloc( size, ctx );
 		AC_MEMCPY( new, ptr, p[-1] );
 	}
 	return new;
 }
 
 void
-sl_free( void *ptr, void *ctx )
+slap_sl_free( void *ptr, void *ctx )
 {
 	struct slab_heap *sh = ctx;
 	ber_len_t *p = (ber_len_t *)ptr;
@@ -207,14 +204,14 @@ sl_free( void *ptr, void *ctx )
 }
 
 void *
-sl_context( void *ptr )
+slap_sl_context( void *ptr )
 {
 	struct slab_heap *sh = NULL;
 	void *ctx;
 
 	ctx = ldap_pvt_thread_pool_context();
 
-	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
+	ldap_pvt_thread_pool_getkey( ctx, (void *)slap_sl_mem_init, (void **)&sh, NULL );
 
 	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
 		return sh;

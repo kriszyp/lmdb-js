@@ -188,7 +188,7 @@ attr_merge_normalize(
 		
 		for ( i = 0; vals[i].bv_val; i++ );
 
-		nvals = sl_calloc( sizeof(struct berval), i + 1, memctx );
+		nvals = slap_sl_calloc( sizeof(struct berval), i + 1, memctx );
 		for ( i = 0; vals[i].bv_val; i++ ) {
 			rc = (*desc->ad_type->sat_equality->smr_normalize)(
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
@@ -275,7 +275,7 @@ attr_merge_normalize_one(
 
 	rc = attr_merge_one( e, desc, val, nvalp );
 	if ( nvalp != NULL ) {
-		sl_free( nval.bv_val, memctx );
+		slap_sl_free( nval.bv_val, memctx );
 	}
 	return rc;
 }

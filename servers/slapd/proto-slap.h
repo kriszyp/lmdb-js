@@ -1097,16 +1097,22 @@ LDAP_SLAPD_F (int) slap_add_session_log LDAP_P((
 /*
  * sl_malloc.c
  */
-LDAP_SLAPD_V (BerMemoryFunctions) sl_mfuncs;
-LDAP_SLAPD_F (void *) sl_malloc LDAP_P(( ber_len_t size, void *ctx ));
-LDAP_SLAPD_F (void *) sl_realloc LDAP_P(( void *block, ber_len_t size, void *ctx ));
-LDAP_SLAPD_F (void *) sl_calloc LDAP_P(( ber_len_t nelem, ber_len_t size, void *ctx ));
-LDAP_SLAPD_F (void) sl_free LDAP_P(( void *, void *ctx ));
-LDAP_SLAPD_F (void) sl_mem_init LDAP_P(( void ));
-LDAP_SLAPD_F (void *) sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
-LDAP_SLAPD_F (void) sl_mem_detach LDAP_P(( void *ctx, void *memctx ));
-LDAP_SLAPD_F (void) sl_mem_destroy LDAP_P(( void *key, void *data ));
-LDAP_SLAPD_F (void *) sl_context LDAP_P(( void *ptr ));
+LDAP_SLAPD_F (void *) slap_sl_malloc LDAP_P((
+	ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void *) slap_sl_realloc LDAP_P((
+	void *block, ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void *) slap_sl_calloc LDAP_P((
+	ber_len_t nelem, ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void) slap_sl_free LDAP_P((
+	void *, void *ctx ));
+
+LDAP_SLAPD_V (BerMemoryFunctions) slap_sl_mfuncs;
+
+LDAP_SLAPD_F (void) slap_sl_mem_init LDAP_P(( void ));
+LDAP_SLAPD_F (void *) slap_sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void) slap_sl_mem_detach LDAP_P(( void *ctx, void *memctx ));
+LDAP_SLAPD_F (void) slap_sl_mem_destroy LDAP_P(( void *key, void *data ));
+LDAP_SLAPD_F (void *) slap_sl_context LDAP_P(( void *ptr ));
 
 /*
  * starttls.c

@@ -177,7 +177,7 @@ int octetStringIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = sl_malloc( sizeof( struct berval ) * (i+1), ctx );
+	keys = slap_sl_malloc( sizeof( struct berval ) * (i+1), ctx );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -231,7 +231,7 @@ int octetStringFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = sl_malloc( sizeof( struct berval ) * 2, ctx );
+	keys = slap_sl_malloc( sizeof( struct berval ) * 2, ctx );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -440,7 +440,7 @@ octetStringSubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	keys = sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
+	keys = slap_sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -597,7 +597,7 @@ octetStringSubstringsFilter (
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
+	keys = slap_sl_malloc( sizeof( struct berval ) * (nkeys+1), ctx );
 	nkeys = 0;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
@@ -823,7 +823,7 @@ nameUIDPretty(
 		if( rc != LDAP_SUCCESS ) return rc;
 
 		if( uidval.bv_val ) {
-			char *tmp = sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
+			char *tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
 			int i, c, got1;
 			if( tmp == NULL ) {
 				ber_memfree_x( out->bv_val, ctx );
@@ -1482,7 +1482,7 @@ telephoneNumberNormalize(
 	/* validator should have refused an empty string */
 	assert( val->bv_len );
 
-	q = normalized->bv_val = sl_malloc( val->bv_len + 1, ctx );
+	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
 	for( p = val->bv_val; *p; p++ ) {
 		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
@@ -1494,7 +1494,7 @@ telephoneNumberNormalize(
 	normalized->bv_len = q - normalized->bv_val;
 
 	if( normalized->bv_len == 0 ) {
-		sl_free( normalized->bv_val, ctx );
+		slap_sl_free( normalized->bv_val, ctx );
 		normalized->bv_val = NULL;
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -1771,7 +1771,7 @@ IA5StringNormalize(
 
 	normalized->bv_len = q - normalized->bv_val;
 	if( normalized->bv_len == 0 ) {
-		normalized->bv_val = sl_realloc( normalized->bv_val, 2, ctx );
+		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
 		normalized->bv_len = 1;
@@ -1824,7 +1824,7 @@ UUIDNormalize(
 	int i;
 	int j;
 	normalized->bv_len = 16;
-	normalized->bv_val = sl_malloc( normalized->bv_len+1, ctx );
+	normalized->bv_val = slap_sl_malloc( normalized->bv_len+1, ctx );
 
 	for( i=0, j=0; i<36; i++ ) {
 		unsigned char nibble;
@@ -1841,7 +1841,7 @@ UUIDNormalize(
 			nibble = val->bv_val[i] - ('A'-10);
 
 		} else {
-			sl_free( normalized->bv_val, ctx );
+			slap_sl_free( normalized->bv_val, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -1892,7 +1892,7 @@ numericStringNormalize(
 
 	assert( val->bv_len );
 
-	normalized->bv_val = sl_malloc( val->bv_len + 1, ctx );
+	normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
 	p = val->bv_val;
 	q = normalized->bv_val;
@@ -1915,7 +1915,7 @@ numericStringNormalize(
 	normalized->bv_len = q - normalized->bv_val;
 
 	if( normalized->bv_len == 0 ) {
-		normalized->bv_val = sl_realloc( normalized->bv_val, 2, ctx );
+		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
 		normalized->bv_len = 1;
@@ -2083,10 +2083,10 @@ serialNumberAndIssuerPretty(
 
 	/* make room from sn + "$" */
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
-	out->bv_val = sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
 	if( out->bv_val == NULL ) {
-		sl_free( newi.bv_val, ctx );
+		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
@@ -2170,10 +2170,10 @@ serialNumberAndIssuerNormalize(
 
 	/* make room from sn + "$" */
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
-	out->bv_val = sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
 	if( out->bv_val == NULL ) {
-		sl_free( newi.bv_val, ctx );
+		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
@@ -2516,7 +2516,7 @@ generalizedTimeNormalize(
 	}
 
 	len = sizeof("YYYYmmddHHMMSSZ")-1 + fraction.bv_len;
-	normalized->bv_val = sl_malloc( len + 1, ctx );
+	normalized->bv_val = slap_sl_malloc( len + 1, ctx );
 	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}

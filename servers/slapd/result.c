@@ -858,15 +858,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		size = i * sizeof(char *) + k;
 		if ( size > 0 ) {
 			char	*a_flags;
-			e_flags = sl_calloc ( 1, i * sizeof(char *) + k, op->o_tmpmemctx );
+			e_flags = slap_sl_calloc ( 1, i * sizeof(char *) + k, op->o_tmpmemctx );
 			if( e_flags == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"send_search_entry: conn %lu sl_calloc failed\n",
+					"send_search_entry: conn %lu slap_sl_calloc failed\n",
 					op->o_connid ? op->o_connid : 0, 0, 0 );
 #else
 		    	Debug( LDAP_DEBUG_ANY, 
-					"send_search_entry: sl_calloc failed\n", 0, 0, 0 );
+					"send_search_entry: slap_sl_calloc failed\n", 0, 0, 0 );
 #endif
 				ber_free( ber, 1 );
 	
@@ -1049,7 +1049,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			 * Reuse previous memory - we likely need less space
 			 * for operational attributes
 			 */
-			tmp = sl_realloc( e_flags, i * sizeof(char *) + k,
+			tmp = slap_sl_realloc( e_flags, i * sizeof(char *) + k,
 				op->o_tmpmemctx );
 			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
@@ -1255,7 +1255,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	/* free e_flags */
 	if ( e_flags ) {
-		sl_free( e_flags, op->o_tmpmemctx );
+		slap_sl_free( e_flags, op->o_tmpmemctx );
 		e_flags = NULL;
 	}
 
@@ -1349,7 +1349,7 @@ error_return:;
 		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
 	}
 
-	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
+	if ( e_flags ) slap_sl_free( e_flags, op->o_tmpmemctx );
 
 	if (op->o_callback) {
 		slap_callback *sc = op->o_callback;
@@ -1664,7 +1664,7 @@ int slap_read_controls(
 	c.ldctl_oid = oid->bv_val;
 	c.ldctl_iscritical = 0;
 
-	*ctrl = sl_calloc( 1, sizeof(LDAPControl), NULL );
+	*ctrl = slap_sl_calloc( 1, sizeof(LDAPControl), NULL );
 	**ctrl = c;
 	return LDAP_SUCCESS;
 }

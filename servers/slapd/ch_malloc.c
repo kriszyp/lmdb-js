@@ -82,9 +82,9 @@ ch_realloc(
 		ch_free( block );
 	}
 
-	ctx = sl_context( block );
+	ctx = slap_sl_context( block );
 	if ( ctx ) {
-		return sl_realloc( block, size, ctx );
+		return slap_sl_realloc( block, size, ctx );
 	}
 
 	if ( (new = (void *) ber_memrealloc_x( block, size, NULL )) == NULL ) {
@@ -152,9 +152,9 @@ ch_free( void *ptr )
 {
 	void *ctx;
 
-	ctx = sl_context( ptr );
+	ctx = slap_sl_context( ptr );
 	if (ctx) {
-		sl_free( ptr, ctx );
+		slap_sl_free( ptr, ctx );
 	} else {
 		ber_memfree_x( ptr, NULL );
 	}

@@ -1777,7 +1777,7 @@ aci_set_gather (SetCookie *cookie, struct berval *name, struct berval *attr)
 			backend_attribute(cp->op,
 				cp->e, &ndn, desc, &bvals);
 		}
-		sl_free(ndn.bv_val, cp->op->o_tmpmemctx);
+		slap_sl_free(ndn.bv_val, cp->op->o_tmpmemctx);
 	}
 	return(bvals);
 }
@@ -1845,7 +1845,7 @@ aci_match_set (
 		cookie.e = e;
 		rc = (slap_set_filter(aci_set_gather, (SetCookie *)&cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL) > 0);
-		sl_free(set.bv_val, op->o_tmpmemctx);
+		slap_sl_free(set.bv_val, op->o_tmpmemctx);
 	}
 	return(rc);
 }

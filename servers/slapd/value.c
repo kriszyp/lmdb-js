@@ -274,11 +274,11 @@ int value_find_ex(
 			&vals[i], nval.bv_val == NULL ? val : &nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
-			sl_free( nval.bv_val, ctx );
+			slap_sl_free( nval.bv_val, ctx );
 			return rc;
 		}
 	}
 
-	sl_free( nval.bv_val, ctx );
+	slap_sl_free( nval.bv_val, ctx );
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }

@@ -208,7 +208,7 @@ int main( int argc, char **argv )
 	char	*serverNamePrefix = "";
 	size_t	l;
 
-	sl_mem_init();
+	slap_sl_mem_init();
 
 	serverName = lutil_progname( "slapd", argc, argv );
 

@@ -963,8 +963,8 @@ syncrepl_message_to_entry(
 	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
 	ber_dupbv( &op->o_req_dn, &dn );
 	ber_dupbv( &op->o_req_ndn, &ndn );
-	sl_free( ndn.bv_val, op->o_tmpmemctx );
-	sl_free( dn.bv_val, op->o_tmpmemctx );
+	slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		return LDAP_SUCCESS;
@@ -1091,7 +1091,7 @@ syncrepl_entry(
 	op->ors_filter = &f;
 
 	op->ors_filterstr.bv_len = (sizeof("entryUUID=")-1) + syncUUID->bv_len;
-	op->ors_filterstr.bv_val = (char *) sl_malloc(
+	op->ors_filterstr.bv_val = (char *) slap_sl_malloc(
 		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
 	AC_MEMCPY( op->ors_filterstr.bv_val, "entryUUID=", sizeof("entryUUID=")-1 );
 	AC_MEMCPY( &op->ors_filterstr.bv_val[sizeof("entryUUID=")-1],
@@ -1117,7 +1117,7 @@ syncrepl_entry(
 	}
 
 	if ( op->ors_filterstr.bv_val ) {
-		sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		slap_sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
 
 	cb.sc_response = null_callback;
@@ -1693,7 +1693,7 @@ syncrepl_updateCookie(
 	ber_dupbv( &e->e_nname, &slap_syncrepl_dn_bv );
 
 	if ( slap_syncrepl_dn_bv.bv_val ) {
-		sl_free( slap_syncrepl_dn_bv.bv_val, op->o_tmpmemctx );
+		slap_sl_free( slap_syncrepl_dn_bv.bv_val, op->o_tmpmemctx );
 	}
 
 	e->e_attrs = NULL;
@@ -1960,13 +1960,13 @@ slap_uuidstr_from_normalized(
 	if ( uuidstr ) {
 		new = uuidstr;
 	} else {
-		new = (struct berval *)sl_malloc( sizeof(struct berval), ctx );
+		new = (struct berval *)slap_sl_malloc( sizeof(struct berval), ctx );
 	}
 
 	new->bv_len = 36;
 
-	if (( new->bv_val = sl_malloc( new->bv_len + 1, ctx )) == NULL) {
-		if ( !uuidstr ) sl_free( new, ctx );
+	if (( new->bv_val = slap_sl_malloc( new->bv_len + 1, ctx )) == NULL) {
+		if ( !uuidstr ) slap_sl_free( new, ctx );
 		return NULL;
 	}
 

@@ -527,7 +527,7 @@ get_ssa(
 				|| ssa.sa_any != NULL 
 				|| ssa.sa_final.bv_val != NULL )
 			{
-				sl_free( nvalue.bv_val, op->o_tmpmemctx );
+				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
@@ -544,7 +544,7 @@ get_ssa(
 #endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
-				sl_free( nvalue.bv_val, op->o_tmpmemctx );
+				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
@@ -561,7 +561,7 @@ get_ssa(
 #endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
-				sl_free( nvalue.bv_val, op->o_tmpmemctx );
+				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
 				goto return_error;
 			}
 
@@ -580,7 +580,7 @@ get_ssa(
 #endif
 
 			assert( 0 );
-			sl_free( nvalue.bv_val, op->o_tmpmemctx );
+			slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
 
 return_error:
 #ifdef NEW_LOGGING
@@ -591,9 +591,9 @@ return_error:
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
 				(long) rc, 0, 0 );
 #endif
-			sl_free( ssa.sa_initial.bv_val, op->o_tmpmemctx );
+			slap_sl_free( ssa.sa_initial.bv_val, op->o_tmpmemctx );
 			ber_bvarray_free_x( ssa.sa_any, op->o_tmpmemctx );
-			sl_free( ssa.sa_final.bv_val, op->o_tmpmemctx );
+			slap_sl_free( ssa.sa_final.bv_val, op->o_tmpmemctx );
 			return rc;
 		}
 
@@ -681,8 +681,8 @@ filter_free( Filter *f )
 {
 	Operation op;
 
-	op.o_tmpmemctx = sl_context( f );
-	op.o_tmpmfuncs = &sl_mfuncs;
+	op.o_tmpmemctx = slap_sl_context( f );
+	op.o_tmpmfuncs = &slap_sl_mfuncs;
 	filter_free_x( &op, f );
 }
 
@@ -927,7 +927,7 @@ filter_escape_value_x(
 	assert( out );
 
 	i = in->bv_len * 3 + 1;
-	out->bv_val = ctx ? sl_malloc( i, ctx ) : ch_malloc( i );
+	out->bv_val = ctx ? slap_sl_malloc( i, ctx ) : ch_malloc( i );
 	out->bv_len = 0;
 
 	for( i=0; i < in->bv_len ; i++ ) {

@@ -93,7 +93,7 @@ slap_op_free( Operation *op )
 		GroupAssertion *g, *n;
 		for (g = op->o_groups; g; g=n) {
 			n = g->ga_next;
-			sl_free(g, op->o_tmpmemctx);
+			slap_sl_free(g, op->o_tmpmemctx);
 		}
 		op->o_groups = NULL;
 	}
