@@ -540,6 +540,8 @@ do_bind(
 #endif
 
 	switch ( rs->sr_err ) {
+	case 1:	/* no plugins present, continue normally */
+		break;
 	case SLAPI_BIND_SUCCESS:
 		/* Continue with backend processing */
 		break;
