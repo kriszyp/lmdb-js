@@ -25,46 +25,28 @@
 
 #include "slap.h"
 
-/*
- * former external.h
- */
-
-extern BI_init			null_back_initialize;
-
-extern BI_db_init		null_back_db_init;
-extern BI_db_destroy 		null_back_db_destroy;
-extern BI_db_config		null_back_db_config;
-
-extern BI_op_bind		null_back_bind;
-extern BI_op_search		null_back_search;
-extern BI_op_compare 		null_back_compare;
-extern BI_op_modify		null_back_modify;
-extern BI_op_modrdn		null_back_modrdn;
-extern BI_op_add		null_back_add;
-extern BI_op_delete		null_back_delete;
-
 struct null_info {
 	int bind_allowed;
 };
 
-int
+static int
 null_back_bind( Operation *op, SlapReply *rs )
 {
 	struct null_info *ni = (struct null_info *) op->o_bd->be_private;
 
 	if ( ni->bind_allowed ) {
 		/* front end will send result on success (0) */
-		return 0;
+		return LDAP_SUCCESS;
 	}
 
 	rs->sr_err = LDAP_INVALID_CREDENTIALS;
 	send_ldap_result( op, rs );
 
-	return 1;
+	return rs->sr_err;
 }
 
 /* add, delete, modify, modrdn, search */
-int
+static int
 null_back_success( Operation *op, SlapReply *rs )
 {
 	rs->sr_err = LDAP_SUCCESS;
@@ -73,7 +55,7 @@ null_back_success( Operation *op, SlapReply *rs )
 }
 
 /* compare */
-int
+static int
 null_back_false( Operation *op, SlapReply *rs )
 {
 	rs->sr_err = LDAP_COMPARE_FALSE;
@@ -81,12 +63,12 @@ null_back_false( Operation *op, SlapReply *rs )
 	return 0;
 }
 
-int
+static int
 null_back_db_config(
 	BackendDB	*be,
 	const char	*fname,
-	int			lineno,
-	int			argc,
+	int		lineno,
+	int		argc,
 	char		**argv )
 {
 	struct null_info *ni = (struct null_info *) be->be_private;
@@ -115,8 +97,7 @@ null_back_db_config(
 	return 0;
 }
 
-
-int
+static int
 null_back_db_init( BackendDB *be )
 {
 	struct null_info *ni;
@@ -127,10 +108,8 @@ null_back_db_init( BackendDB *be )
 	return 0;
 }
 
-int
-null_back_db_destroy(
-    Backend	*be
-)
+static int
+null_back_db_destroy( Backend *be )
 {
 	free( be->be_private );
 	return 0;
@@ -138,9 +117,7 @@ null_back_db_destroy(
 
 
 int
-null_back_initialize(
-    BackendInfo	*bi
-)
+null_back_initialize( BackendInfo *bi )
 {
 	bi->bi_open = 0;
 	bi->bi_close = 0;
