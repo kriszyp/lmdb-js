@@ -1268,8 +1268,11 @@ backsql_search( Operation *op, SlapReply *rs )
 				sres = 0;
 			} else {
 #endif
+				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_entry = entry;
 				sres = send_search_entry( op, rs );
+				rs->sr_entry = NULL;
+				rs->sr_attrs = NULL;
 #if 0
 			}
 #endif

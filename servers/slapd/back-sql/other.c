@@ -152,14 +152,14 @@ backsql_operational(
 			break;
 
 		default:
-			Debug(LDAP_DEBUG_TRACE, 
-				"backsql_operational(): "
-				"has_children failed( %d)\n", 
-				rc, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
+				"has_children failed( %d)\n", rc, 0, 0 );
 			rc = 1;
 			break;
 		}
 	}
+
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_operational()\n", 0, 0, 0);
 
 	return rc;
 }
