@@ -760,5 +760,7 @@ Entry *entry_dup( Entry *e )
 	ret->e_bv.bv_val = NULL;
 	ret->e_bv.bv_len = 0;
 	ret->e_private = NULL;
+
+	return ret;
 }
 
