@@ -45,7 +45,15 @@ A checkpoint operation flushes the database buffers to disk and writes
 a checkpoint record in the log.
 The checkpoint will occur if either <kbyte> data has been written or
 <min> minutes have passed since the last checkpoint.
-Both arguments default to zero, in which case they are ignored.
+Both arguments default to zero, in which case they are ignored. Note
+that the checkpoint conditions are only tested after a write operation,
+and not every <min> minutes. As such, data written within <min> minutes
+of the last checkpoint will
+.I not
+get flushed until the next write operation happens after that interval.
+Outstanding writes in this situation may not get flushed if the server
+is shutdown uncleanly, and the database will need to be recovered before
+the next startup.
 See the Berkeley DB reference guide for more details.
 .TP
 .B dbnosync
