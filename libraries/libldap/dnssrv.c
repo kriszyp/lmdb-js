@@ -217,6 +217,7 @@ int ldap_domain2hostlist(
     ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
 #endif
 
+    rc = LDAP_UNAVAILABLE;
     len = res_search(request, C_IN, T_SRV, reply, sizeof(reply));
     if (len >= 0) {
 	unsigned char *p;
