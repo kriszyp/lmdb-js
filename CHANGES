@@ -9,7 +9,6 @@ OpenLDAP 2.0.12 Engineering
 	Added slapadd already exists check (ITS#1191)
 	Added slapd modrdn children check (ITS#1053,1192)
 	Added slapd sb_max_incoming_auth support (ITS#1181)
-	Added slapd DB_ENV support
 	Added slapd crypt salt format support (ITS#1202)
 	Updated slapd schema check handling
 	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
