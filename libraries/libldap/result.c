@@ -314,6 +314,7 @@ wait4msg(
         if( (*result = chkResponseList(ld, msgid, all)) != NULL ) {
             rc = (*result)->lm_msgtype;
         } else {
+			int lc_ready = 0;
 
 			for ( lc = ld->ld_conns; lc != NULL; lc = nextlc ) {
 				nextlc = lc->lconn_next;
@@ -321,11 +322,12 @@ wait4msg(
 						LBER_SB_OPT_DATA_READY, NULL ) ) {
 					rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 						&lc, result );
+					lc_ready = 1;
 				    break;
 				}
 	        }
 
-		    if ( lc == NULL ) {
+		    if ( !lc_ready ) {
 			    rc = ldap_int_select( ld, tvp );
 #ifdef LDAP_DEBUG
 			    if ( rc == -1 ) {
