@@ -15,6 +15,7 @@
 
 MONITORDB=${AC_MONITOR-no}
 PROXYCACHE=${AC_pcache-pcacheno}
+PPOLICY=${AC_ppolicy-ppolicyno}
 WITHTLS=${AC_WITHTLS-yes}
 
 DATADIR=./testdata
@@ -40,6 +41,7 @@ RCONF=$DATADIR/slapd-referrals.conf
 MASTERCONF=$DATADIR/slapd-repl-master.conf
 SRMASTERCONF=$DATADIR/slapd-syncrepl-master.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
+PPOLICYCONF=$DATADIR/slapd-ppolicy.conf
 PROXYCACHECONF=$DATADIR/slapd-proxycache.conf
 CACHEMASTERCONF=$DATADIR/slapd-cache-master.conf
 R1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh1.conf
@@ -111,6 +113,7 @@ LDIFORDEREDNOCP=$DATADIR/test-ordered-nocp.ldif
 LDIFBASE=$DATADIR/test-base.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
+LDIFPPOLICY=$DATADIR/ppolicy.ldif
 LDIFLANG=$DATADIR/test-lang.ldif
 LDIFLANGOUT=$DATADIR/lang-out.ldif
 LDIFREF=$DATADIR/referrals.ldif

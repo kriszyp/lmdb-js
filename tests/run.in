@@ -27,10 +27,11 @@ AC_hdb=@BUILD_HDB@
 AC_ldbm=@BUILD_LDBM@
 AC_ldap=ldap@BUILD_LDAP@
 AC_pcache=pcache@BUILD_PROXYCACHE@
+AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_MONITOR=@BUILD_MONITOR@
 AC_WITH_TLS=@WITH_TLS@
 
-export AC_MONITOR AC_WITH_TLS AC_ldap AC_pcache
+export AC_MONITOR AC_WITH_TLS AC_ldap AC_pcache AC_ppolicy
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"

@@ -1,0 +1,65 @@
+dn: o=University of Michigan, c=US
+objectClass: top
+objectClass: organization
+o: University of Michigan
+
+dn: ou=People, o=University of Michigan, c=US
+objectClass: top
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Policies, o=University of Michigan, c=US
+objectClass: top
+objectClass: organizationalUnit
+ou: Policies
+
+dn: cn=Standard Policy, ou=Policies, o=University of Michigan, c=US
+objectClass: top
+objectClass: device
+objectClass: pwdPolicy
+cn: Standard Policy
+pwdAttribute: 2.5.4.35
+pwdLockoutDuration: 30
+pwdInHistory: 6
+pwdCheckQuality: 1
+pwdExpireWarning: 300
+pwdMaxAge: 600
+pwdMinLength: 5
+pwdGraceLoginLimit: 3
+pwdAllowUserChange: TRUE
+pwdMustChange: TRUE
+pwdMaxFailure: 3
+pwdFailureCountInterval: 120
+pwdSafeModify: TRUE
+
+dn: uid=nd, ou=People, o=University of Michigan, c=US
+objectClass: top
+objectClass: person
+objectClass: inetOrgPerson
+cn: Neil Dunbar
+uid: nd
+sn: Dunbar
+givenName: Neil
+userPassword: testpassword
+
+dn: uid=ndadmin, ou=People, o=University of Michigan, c=US
+objectClass: top
+objectClass: person
+objectClass: inetOrgPerson
+cn: Neil Dunbar (Admin)
+uid: ndadmin
+sn: Dunbar
+givenName: Neil
+userPassword: testpw
+
+dn: uid=test, ou=People, o=University of Michigan, c=US
+objectClass: top
+objectClass: person
+objectClass: inetOrgPerson
+cn: test test
+uid: test
+sn: Test
+givenName:  Test
+userPassword: kfhgkjhfdgkfd
+pwdPolicySubEntry: cn=No Policy, ou=Policies, o=University of Michigan, c=US
+
