@@ -1,3 +1,7 @@
+This patch is intended to be applied to Berkeley DB 4.2 and,
+if applied, will automatically be used by slapd(8) back-bdb/hdb.
+
+
 Index: dbinc/db.in
 ===================================================================
 RCS file: /var/CVSROOT/bdb42/dbinc/db.in,v
