@@ -176,11 +176,6 @@ test_filter(
 		break;
 #endif
 
-	case 0:
-		Debug( LDAP_DEBUG_FILTER, "    UNDEFINED\n", 0, 0, 0 );
-		rc = -1;
-		break;
-
 	default:
 		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
@@ -259,9 +254,12 @@ test_ava_filter(
 
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			int rc;
-
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			rc = 0;
+			const char *text;
+
+			rc = value_match( a->a_desc, mr,
+				a->a_vals[i], ava->aa_value,
+				&text );
 #else
 			rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 				3 );
