@@ -1,9 +1,19 @@
 /* dyngroup.c - Demonstration of overlay code */
 /* $OpenLDAP$ */
-/*
- * Copyright 2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
+/* This is an altered version */
 /*
  * Copyright 2003, Howard Chu, All rights reserved. <hyc@symas.com>
  * 
@@ -23,6 +33,10 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Howard Chu for inclusion in
+ * OpenLDAP Software.
  */
 
 #include "portable.h"
@@ -94,21 +108,22 @@ static int dyngroup_config(
 	if ( strcasecmp( argv[0], "attrpair" ) == 0 ) {
 		const char *text;
 		if ( argc != 3 ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: attribute description missing in \"attrpair <member-attribute> <URL-attribute>\" line.\n",
-			fname, lineno, 0 );
-		    	return( 1 );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"attribute description missing in "
+				"\"attrpair <member-attribute> <URL-attribute>\" line.\n",
+				fname, lineno, 0 );
+	    	return( 1 );
 		}
 		if ( slap_str2ad( argv[1], &ap.ap_mem, &text ) ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: attribute description unknown \"attrpair\" line: %s.\n",
-			fname, lineno, text );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"attribute description unknown \"attrpair\" line: %s.\n",
+				fname, lineno, text );
 			return( 1 );
 		}
 		if ( slap_str2ad( argv[2], &ap.ap_uri, &text ) ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: attribute description unknown \"attrpair\" line: %s.\n",
-			fname, lineno, text );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"attribute description unknown \"attrpair\" line: %s.\n",
+				fname, lineno, text );
 			return( 1 );
 		}
 		/* The on->on_bi.bi_private pointer can be used for
