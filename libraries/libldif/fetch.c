@@ -17,6 +17,7 @@
 #include "ldap_log.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
+#include "ldap_config.h"
 #include "ldif.h"
 
 int
