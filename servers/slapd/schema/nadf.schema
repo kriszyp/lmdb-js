@@ -18,11 +18,6 @@
 
 # Attribute Type Definition
 
-attribute ( 2.5.18.1 NAME 'createTimestamp' EQUALITY generalizedTimeMatch
-      ORDERING generalizedTimeOrderingMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-      SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
 # The spec says "leading zero is significant".  Is this really a
 # numeric string?
 
