@@ -311,6 +311,7 @@ send_ldap_response(
 	long	bytes;
 
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -319,8 +320,12 @@ send_ldap_response(
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 				if ( rc != SLAP_CB_CONTINUE ) break;
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -492,6 +497,7 @@ cleanup:;
 
 clean2:;
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -499,7 +505,11 @@ clean2:;
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -777,6 +787,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCH;
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -785,8 +796,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 				if ( rc != SLAP_CB_CONTINUE ) break;
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -1389,6 +1404,7 @@ error_return:;
 	}
 
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1396,7 +1412,11 @@ error_return:;
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -1433,6 +1453,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1441,8 +1462,12 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 				if ( rc != SLAP_CB_CONTINUE ) break;
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -1600,6 +1625,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
+		int		first;
 		slap_callback	*sc = op->o_callback,
 				*sc_next = op->o_callback;
 
@@ -1607,7 +1633,11 @@ rel:
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback == NULL ) {
+					sc = NULL;
+				}
 			}
+			first = 0;
 		}
 
 		op->o_callback = sc;
@@ -1631,7 +1661,7 @@ str2result(
 	*matched = NULL;
 	*info = NULL;
 
-	if ( strncasecmp( s, "RESULT", 6 ) != 0 ) {
+	if ( strncasecmp( s, "RESULT", STRLENOF( "RESULT" ) ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"str2result: (%s), expecting \"RESULT\"\n", s, 0, 0 );
@@ -1653,15 +1683,15 @@ str2result(
 			c++;
 		}
 
-		if ( strncasecmp( s, "code", 4 ) == 0 ) {
+		if ( strncasecmp( s, "code", STRLENOF( "code" ) ) == 0 ) {
 			if ( c != NULL ) {
 				*code = atoi( c );
 			}
-		} else if ( strncasecmp( s, "matched", 7 ) == 0 ) {
+		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
 			if ( c != NULL ) {
 				*matched = c;
 			}
-		} else if ( strncasecmp( s, "info", 4 ) == 0 ) {
+		} else if ( strncasecmp( s, "info", STRLENOF( "info" ) ) == 0 ) {
 			if ( c != NULL ) {
 				*info = c;
 			}
