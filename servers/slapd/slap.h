@@ -261,8 +261,6 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
-	int				sat_binary;
-	int				sat_not_h_r;
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/* The next one is created to help in the transition */
 	int				sat_syntax_compat;
@@ -288,8 +286,6 @@ typedef struct slap_attribute_type {
 #define is_at_single_value(at)	((at)->sat_single_value)
 #define is_at_collective(at)	((at)->sat_collective)
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
-#define is_at_binary(at)	((at)->sat_binary)
-#define is_at_h_r(at)		((at)->sat_not_h_r == 0)
 
 typedef struct slap_object_class {
 	LDAP_OBJECT_CLASS		soc_oclass;
