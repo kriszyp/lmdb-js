@@ -187,6 +187,7 @@ int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
 int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access );
+int slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_code );
 int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f);
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
 int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
