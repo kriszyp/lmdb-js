@@ -338,7 +338,7 @@ dn2entry_retry:
 		rc = base_candidate( be, e, candidates );
 
 	} else {
-		BDB_IDL_ALL( bdb, candidates );
+		BDB_IDL_ZERO( candidates );
 		rc = search_candidates( be, op, e, filter,
 			scope, deref, candidates );
 	}

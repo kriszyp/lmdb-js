@@ -50,7 +50,7 @@ bdb_filter_candidates(
 	ID *tmp,
 	ID *stack )
 {
-	int rc = -1;
+	int rc = 0;
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, ENTRY, "=> bdb_filter_candidates\n", 0, 0, 0 );
 #else
@@ -143,6 +143,10 @@ bdb_filter_candidates(
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 #endif
+                { struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+		BDB_IDL_ALL( bdb, ids );
+		}
+
 		break;
 
 	case LDAP_FILTER_AND:
@@ -208,13 +212,6 @@ list_candidates(
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_list_candidates 0x%x\n", ftype, 0, 0 );
 #endif
 
-	if ( ftype == LDAP_FILTER_OR ) {
-		BDB_IDL_ALL( bdb, save );
-		BDB_IDL_ZERO( ids );
-	} else {
-		BDB_IDL_CPY( save, ids );
-	}
-
 	for ( f = flist; f != NULL; f = f->f_next ) {
 		rc = bdb_filter_candidates( be, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
@@ -228,12 +225,19 @@ list_candidates(
 		}
 		
 		if ( ftype == LDAP_FILTER_AND ) {
-			bdb_idl_intersection( ids, save );
+			if ( f == flist ) {
+				BDB_IDL_CPY( ids, save );
+			} else {
+				bdb_idl_intersection( ids, save );
+			}
 			if( BDB_IDL_IS_ZERO( ids ) )
 				break;
 		} else {
-			bdb_idl_union( ids, save );
-			BDB_IDL_ALL( bdb, save );
+			if ( f == flist ) {
+				BDB_IDL_CPY( ids, save );
+			} else {
+				bdb_idl_union( ids, save );
+			}
 		}
 	}
 
@@ -505,7 +509,11 @@ equality_candidates(
 			break;
 		}
 
-		bdb_idl_intersection( ids, tmp );
+		if ( i == 0 ) {
+			BDB_IDL_CPY( ids, tmp );
+		} else {
+			bdb_idl_intersection( ids, tmp );
+		}
 
 		if( BDB_IDL_IS_ZERO( ids ) )
 			break;
@@ -670,7 +678,11 @@ approx_candidates(
 			break;
 		}
 
-		bdb_idl_intersection( ids, tmp );
+		if ( i == 0 ) {
+			BDB_IDL_CPY( ids, tmp );
+		} else {
+			bdb_idl_intersection( ids, tmp );
+		}
 
 		if( BDB_IDL_IS_ZERO( ids ) )
 			break;
@@ -829,7 +841,11 @@ substring_candidates(
 			break;
 		}
 
-		bdb_idl_intersection( ids, tmp );
+		if ( i == 0 ) {
+			BDB_IDL_CPY( ids, tmp );
+		} else {
+			bdb_idl_intersection( ids, tmp );
+		}
 
 		if( BDB_IDL_IS_ZERO( ids ) )
 			break;
