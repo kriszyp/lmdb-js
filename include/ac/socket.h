@@ -27,6 +27,8 @@
 #include <winsock2.h>
 #elif HAVE_WINSOCK
 #include <winsock.h>
+#else
+#define WSACleanup()
 #endif
 
 #ifdef HAVE_PCNFS
@@ -48,7 +50,7 @@
 #define tcp_close( s )		netclose( s ); netshut()
 #endif /* NCSA */
 #ifdef WINSOCK
-#define tcp_close( s )		closesocket( s ); WSACleanup();
+#define tcp_close( s )		closesocket( s );
 #endif /* WINSOCK */
 #else /* DOS */
 #define tcp_close( s )		close( s )

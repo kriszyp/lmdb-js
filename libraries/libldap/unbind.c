@@ -105,6 +105,8 @@ ldap_ld_free( LDAP *ld, int close )
 
 	free( (char *) ld );
 
+	WSACleanup();
+
 	return( err );
 }
 

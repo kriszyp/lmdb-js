@@ -111,14 +111,51 @@ ldap_init( char *defhost, int defport )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
 
+#ifdef HAVE_WINSOCK2
+{	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	err = WSAStartup( wVersionRequested, &wsaData );
+	if ( err != 0 ) {
+		/* Tell the user that we couldn't find a usable */
+		/* WinSock DLL.                                  */
+		return NULL;
+	}
+ 
+	/* Confirm that the WinSock DLL supports 2.0.*/
+	/* Note that if the DLL supports versions greater    */
+	/* than 2.0 in addition to 2.0, it will still return */
+	/* 2.0 in wVersion since that is the version we      */
+	/* requested.                                        */
+ 
+	if ( LOBYTE( wsaData.wVersion ) != 2 ||
+		HIBYTE( wsaData.wVersion ) != 0 )
+	{
+	    /* Tell the user that we couldn't find a usable */
+	    /* WinSock DLL.                                  */
+	    WSACleanup( );
+	    return NULL; 
+	}
+}	/* The WinSock DLL is acceptable. Proceed. */
+
+#elif HAVE_WINSOCK
+	if ( WSAStartup( 0x0101, &wsadata ) != 0 ) {
+	    return( NULL );
+	}
+#endif
 
 	if ( (ld = (LDAP *) calloc( 1, sizeof(LDAP) )) == NULL ) {
+	    WSACleanup( );
 		return( NULL );
 	}
 
 #ifdef LDAP_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*)ld );
+	    WSACleanup( );
 		return( NULL );
 	}
 	ld->ld_options = LDAP_OPT_REFERRALS;
@@ -130,6 +167,7 @@ ldap_init( char *defhost, int defport )
 		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_REFERRALS */
 		free( (char*)ld );
+	    WSACleanup( );
 		return( NULL );
 	}
 

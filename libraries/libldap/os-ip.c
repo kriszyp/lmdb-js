@@ -58,7 +58,11 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 	if ( host != NULL && ( address = inet_addr( host )) == -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
+#ifdef HAVE_WINSOCK
+			errno = WSAGetLastError();
+#else
 			errno = EHOSTUNREACH;	/* not exactly right, but... */
+#endif
 			return( -1 );
 		}
 		use_hp = 1;
@@ -91,6 +95,9 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 			rc = 0;
 			break;
 		} else {
+#ifdef HAVE_WINSOCK
+			errno = WSAGetLastError();
+#endif
 #ifdef notyet
 #ifdef LDAP_REFERRALS
 #ifdef EAGAIN
@@ -111,7 +118,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 				perror( (char *)inet_ntoa( sin.sin_addr ));
 			}
 #endif
-			close( s );
+			tcp_close( s );
 			if ( !use_hp ) {
 				break;
 			}
