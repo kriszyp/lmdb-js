@@ -23,7 +23,10 @@ ldbm_back_init(
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
 	/* arrange to read nextid later (on first request for it) */
-	li->li_nextid = -1;
+	li->li_nextid = NOID;
+#if	SLAPD_NEXTID_CHUNCK > 1
+	li->li_nextid_wrote = NOID
+#endif
 
 	/* default cache size */
 	li->li_cache.c_maxsize = DEFAULT_CACHE_SIZE;

@@ -44,8 +44,6 @@ static void	do_nothing  (int sig);
 extern char *slapd_pid_file;
 extern char *slapd_args_file;
 
-int  listener_running = 1;
-
 void *
 slapd_daemon(
     void *port
@@ -377,11 +375,15 @@ slapd_daemon(
 		ldap_pvt_thread_yield();
 	}
 
+	Debug( LDAP_DEBUG_TRACE,
+	    "slapd shutdown: shutdown initiated.\n",
+	    0, 0, 0 );
+
 	close( tcps );
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
-	    "slapd shutting down - waiting for %d threads to terminate\n",
+	    "slapd shutdown: waiting for %d threads to terminate\n",
 	    active_threads, 0, 0 );
 	while ( active_threads > 0 ) {
 		ldap_pvt_thread_cond_wait(&active_threads_cond, &active_threads_mutex);
@@ -390,13 +392,15 @@ slapd_daemon(
 
 	/* let backends do whatever cleanup they need to do */
 	Debug( LDAP_DEBUG_TRACE,
-	    "slapd shutting down - waiting for backends to close down\n", 0, 0,
-	    0 );
+	    "slapd shutdown: closing each backends.\n",
+	    0, 0, 0 );
 	be_close();
-	be_shutdown();
-	Debug( LDAP_DEBUG_ANY, "slapd stopped\n", 0, 0, 0 );
 
-	listener_running = 0;
+	Debug( LDAP_DEBUG_TRACE,
+	    "slapd shutdown: shutdown backends.\n",
+	    0, 0, 0 );
+	be_shutdown();
+	Debug( LDAP_DEBUG_ANY, "slapd: stopped\n", 0, 0, 0 );
 
 	return NULL;
 }

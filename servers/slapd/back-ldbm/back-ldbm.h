@@ -4,7 +4,6 @@
 #define _BACK_LDBM_H_
 
 #include "ldbm.h"
-#include "db.h"
 
 LDAP_BEGIN_DECL
 
@@ -48,16 +47,26 @@ LDAP_BEGIN_DECL
  *		the list is terminated by an id of NOID.
  *	b_ids	a list of the actual ids themselves
  */
-typedef struct block {
-	ID		b_nmax;		/* max number of ids in this list  */
-#define ALLIDSBLOCK	0		/* == 0 => this is an allid block  */
-	ID		b_nids;		/* current number of ids used	   */
-#define INDBLOCK	0		/* == 0 => this is an indirect blk */
-	ID		b_ids[1];	/* the ids - actually bigger 	   */
-} Block, IDList;
 
-#define ALLIDS( idl )		((idl)->b_nmax == ALLIDSBLOCK)
-#define INDIRECT_BLOCK( idl )	((idl)->b_nids == INDBLOCK)
+typedef ID ID_BLOCK;
+
+#define ID_BLOCK_NMAX_OFFSET	0
+#define ID_BLOCK_NIDS_OFFSET	1
+#define ID_BLOCK_IDS_OFFSET		2
+
+/* all ID_BLOCK macros operate on a pointer to a ID_BLOCK */
+
+#define ID_BLOCK_NMAX(b)		((b)[ID_BLOCK_NMAX_OFFSET])
+#define ID_BLOCK_NIDS(b)		((b)[ID_BLOCK_NIDS_OFFSET])
+#define ID_BLOCK_ID(b, n)		((b)[ID_BLOCK_IDS_OFFSET+(n)])
+
+#define ID_BLOCK_NOID(b, n)		(ID_BLOCK_ID((b),(n)) == NOID)
+
+#define ID_BLOCK_ALLIDS_VALUE	0
+#define ID_BLOCK_ALLIDS(b)		(ID_BLOCK_NMAX(b) == ID_BLOCK_ALLIDS_VALUE)
+
+#define ID_BLOCK_INDIRECT_VALUE	0
+#define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
 
 /* for the in-core cache of entries */
 struct cache {
@@ -67,7 +76,7 @@ struct cache {
 	Avlnode		*c_idtree;
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
-	pthread_mutex_t	c_mutex;
+	ldap_pvt_thread_mutex_t	c_mutex;
 };
 
 /* for the cache of open index files */
@@ -75,13 +84,13 @@ struct dbcache {
 	int		dbc_refcnt;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
-	time_t		dbc_lastref;
-	long		dbc_blksize;
-	char		*dbc_name;
-	LDBM		dbc_db;
+	time_t	dbc_lastref;
+	long	dbc_blksize;
+	char	*dbc_name;
+	LDBM	dbc_db;
 
 #ifdef HAVE_BERKELEY_DB2
-	struct dbcache   *next;
+	struct dbcache *dbc_next;
 #endif
 };
 
@@ -106,11 +115,20 @@ struct attrinfo {
 
 #define MAXDBCACHE	10
 
+/* this could be made an option */
+#ifndef SLAPD_NEXTID_CHUNK
+#define SLAPD_NEXTID_CHUNK	32
+#endif
+
 struct ldbminfo {
 	ID			li_nextid;
-	pthread_mutex_t		li_root_mutex;
-	pthread_mutex_t		li_add_mutex;
-	pthread_mutex_t		li_nextid_mutex;
+#if SLAPD_NEXTID_CHUNK > 1
+	ID			li_nextid_wrote;
+#endif
+	char		*li_nextid_file;
+	ldap_pvt_thread_mutex_t		li_root_mutex;
+	ldap_pvt_thread_mutex_t		li_add_mutex;
+	ldap_pvt_thread_mutex_t		li_nextid_mutex;
 	int			li_mode;
 	char			*li_directory;
 	struct cache		li_cache;
@@ -118,14 +136,12 @@ struct ldbminfo {
 	int			li_dbcachesize;
 	int			li_dbcachewsync;
 	struct dbcache		li_dbcache[MAXDBCACHE];
-	ldap_pvt_thread_mutex_t     li_dbcache_mutex;
-	ldap_pvt_thread_cond_t      li_dbcache_cv;
+	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
+	ldap_pvt_thread_cond_t		li_dbcache_cv;
 
 #ifdef HAVE_BERKELEY_DB2
-
-	/*  Berkeley DB2 Environment  */
-	DB_ENV			li_db_env;
-
+	/* Berkeley DB2 Environment */
+	DB_ENV li_db_env;
 #endif
 };
 

@@ -20,11 +20,14 @@ ldbm_back_startup(
 )
 {
 #ifndef HAVE_BERKELEY_DB2
+	/* make sure we have one and only one big mutex */
+	static int protect = 0;
 
+	if(!protect++) {
 		ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+	}
 
 #else
-
 	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
 	DB_ENV           *dbEnv = &li->li_db_env;
 	int    envFlags = DB_CREATE | DB_THREAD;
@@ -51,7 +54,6 @@ ldbm_back_startup(
 	dbEnv->db_errcall = ldbm_db_errcall;
 	dbEnv->db_errpfx  = "==>";
 
-
 	/*  now do the db_appinit  */
 	if ( ( err = db_appinit( home, NULL, dbEnv, envFlags )) ) {
 		char  error[BUFSIZ];
@@ -65,7 +67,6 @@ ldbm_back_startup(
 	 	exit( 1 );
 
 	}
-
 #endif
 }
 
@@ -76,11 +77,9 @@ ldbm_back_shutdown(
 )
 {
 #ifdef HAVE_BERKELEY_DB2
-
 	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
 
 	(void) db_appexit( &li->li_db_env );
-
 #endif
 }
 
@@ -92,7 +91,6 @@ ldbm_db_errcall( char *prefix, char *message )
 {
 	Debug( LDAP_DEBUG_ANY, "ldbm_db_errcall(): %s %s", prefix, message, 0 );
 }
-
 
 #endif  /*  HAVE_BERKELEY_DB2  */
 

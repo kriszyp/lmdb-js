@@ -49,8 +49,6 @@ static int   cnvt_str2int();
 
 #endif  /* LOG_LOCAL4 */
 
-extern int listener_running;
-
 
 static void
 usage( char *name )
@@ -189,10 +187,6 @@ main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-#ifdef SLAPD_BDB2
-	bdb2i_do_timing = 1;
-#endif
-
 	init();
 	read_config_env( configfile, &be, fp, 1 );
 
@@ -201,23 +195,16 @@ main( int argc, char **argv )
 
 		time( &starttime );
 
-		if ( status = pthread_create( &listener_tid, NULL,
+		if ( status = ldap_pvt_thread_create( &listener_tid, 0,
 			slapd_daemon, (void *) port ) != 0 )
 		{
 			Debug( LDAP_DEBUG_ANY,
-			    "listener pthread_create failed (%d)\n", status, 0, 0 );
+			    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 			exit( 1 );
 		}
 
-		/*  We must prevent the Father of All Threads to terminate
-            before the listener thread has done it's clean-up work
-            (that's not always garuanteed when using LINUX kernel
-             threads :-( ) So we have to withhold the Father, until
-             the listener says OK
-        */
-		while ( listener_running ) {
-			ldap_pvt_thread_join( listener_tid, (void *) NULL );
-		}
+		/* wait for the listener thread to complete */
+		ldap_pvt_thread_join( listener_tid, (void *) NULL );
 
 		return 0;
 
@@ -240,9 +227,9 @@ main( int argc, char **argv )
 		c.c_sb.sb_ber.ber_buf = NULL;
 		c.c_sb.sb_ber.ber_ptr = NULL;
 		c.c_sb.sb_ber.ber_end = NULL;
-		pthread_mutex_init( &c.c_dnmutex, pthread_mutexattr_default );
-		pthread_mutex_init( &c.c_opsmutex, pthread_mutexattr_default );
-		pthread_mutex_init( &c.c_pdumutex, pthread_mutexattr_default );
+		ldap_pvt_thread_mutex_init( &c.c_dnmutex );
+		ldap_pvt_thread_mutex_init( &c.c_opsmutex );
+		ldap_pvt_thread_mutex_init( &c.c_pdumutex );
 #ifdef notdefcldap
 		c.c_sb.sb_addrs = (void **) saddrlist;
 		c.c_sb.sb_fromaddr = &faddr;
@@ -272,9 +259,9 @@ main( int argc, char **argv )
 
 		while ( (tag = ber_get_next( &c.c_sb, &len, &ber ))
 		    == LDAP_TAG_MESSAGE ) {
-			pthread_mutex_lock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 			time( &currenttime );
-			pthread_mutex_unlock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 			if ( (tag = ber_get_int( &ber, &msgid ))
 			    != LDAP_TAG_MSGID ) {
