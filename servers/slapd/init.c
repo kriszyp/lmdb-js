@@ -21,4 +21,7 @@ init( void )
 	pthread_mutex_init( &replog_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &ops_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &num_sent_mutex, pthread_mutexattr_default );
+#ifdef SLAPD_CRYPT
+	pthread_mutex_init( &crypt_mutex, pthread_mutexattr_default );
+#endif
 }

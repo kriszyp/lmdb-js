@@ -31,6 +31,9 @@ pthread_mutex_t	currenttime_mutex;
 pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
+#ifdef SLAPD_CRYPT
+pthread_mutex_t	crypt_mutex;
+#endif
 
 static char	*tailorfile;
 static char	*inputfile;

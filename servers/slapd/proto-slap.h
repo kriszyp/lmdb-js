@@ -246,6 +246,9 @@ extern pthread_mutex_t	new_conn_mutex;
 extern pthread_mutex_t	num_sent_mutex;
 extern pthread_mutex_t	ops_mutex;
 extern pthread_mutex_t	replog_mutex;
+#ifdef SLAPD_CRYPT
+extern pthread_mutex_t	crypt_mutex;
+#endif
 extern pthread_t	listener_tid;
 extern struct acl	*global_acl;
 extern struct objclass	*global_oc;

@@ -52,6 +52,9 @@ pthread_mutex_t	currenttime_mutex;
 pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
+#ifdef SLAPD_CRYPT
+pthread_mutex_t	crypt_mutex;
+#endif
 
 int
 main( int argc, char **argv )

@@ -209,11 +209,23 @@ be_isroot( Backend *be, char *dn )
 int
 be_isroot_pw( Backend *be, char *dn, struct berval *cred )
 {
+	int result;
+
 	if ( ! be_isroot( be, dn ) ) {
 		return( 0 );
 	}
 
-	return( lutil_passwd( cred->bv_val, be->be_rootpw ) == 0 );
+#ifdef SLAPD_CRYPT
+	pthread_mutex_lock( &crypt_mutex );
+#endif
+
+	result = lutil_passwd( cred->bv_val, be->be_rootpw );
+
+#ifdef SLAPD_CRYPT
+	pthread_mutex_unlock( &crypt_mutex );
+#endif
+
+	return result == 0;
 }
 
 void
