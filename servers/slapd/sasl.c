@@ -633,19 +633,6 @@ slap_sasl_checkpass(
 	return rc;
 }
 
-static int
-slap_sasl_cb_setpass(
-	sasl_conn_t *sconn,
-	void *context,
-	const char *username,
-	const char *pass,
-	unsigned passlen,
-	struct propctx *propctx,
-	unsigned flags)
-{
-	Connection *conn = (Connection *)context;
-}
-
 /* Convert a SASL authcid or authzid into a DN. Store the DN in an
  * auxiliary property, so that we can refer to it in sasl_authorize
  * without interfering with anything else. Also, the SASL username
@@ -1081,10 +1068,6 @@ int slap_sasl_open( Connection *conn )
 	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
 	session_callbacks[cb].proc = &slap_sasl_checkpass;
 	session_callbacks[cb++].context = conn;
-
-	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_SETPASS;
-	session_callbacks[cb].proc = &slap_sasl_cb_setpass;
-	session_callbacks[cb++].context = conn;
 #endif
 
 	session_callbacks[cb].id = SASL_CB_LIST_END;
@@ -1457,7 +1440,7 @@ slap_sasl_setpass(
 		"slap_sasl_setpass: \"%s\"\n",
 		id.bv_val ? id.bv_val : "" ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
+	Debug( LDAP_DEBUG_ARGS, "==> slap_sasl_setpass: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
 #endif
 
