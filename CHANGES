@@ -1,6 +1,13 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.7 Engineering
+	Fixed liblber bvarray_add bug (ITS#2142)
+	Added libldap additional schema routines
+	Updated ldapmodify -c error handling (ITS#2133)
+	Build Environment
+		Update {thr,sched,pthread}_yield detection
+	Documentation
+		Misc updates
 
 OpenLDAP 2.1.6 Release
 	Fixed slapd unsupported non-critical control handling
@@ -12,13 +19,13 @@ OpenLDAP 2.1.6 Release
 	Updated slapd adlist support
 	Updated slapd disallow bind_simple_unprotected
 	Updated back-bdb/ldbm add/delete/rename ACLs
-	Updated back-shell surrogate parent code
 	Updated libldap_r Pth support (ITS#724) (ITS#1033)
 	Added libldap get referral option (ITS#2121)
 	Added libldap DIT content rule routines
 	Added back-shell "entry" ACLs
 	Added slapd obsolete schema checks
 	Disable suffixAlias feature (ITS#2117)
+	Removed back-shell surrogate parent code
 	Misc minor fixes and cleanup
 	Build Environment
 		Fixed back-bdb module linking problem
