@@ -1,28 +1,28 @@
 #
 # This file used under Irix (SGI) - please modify for your needs
 #
-CC = cc -signed
+
+#CC = cc -signed
 
 #For Optimization
-CFLAGS= -O2
+CFLAGS= -O2 $(CPPFLAGS)
+
 #For debugging
-#CFLAGS= -g
+#CFLAGS= -g $(CPPFLAGS)
+
+PREFIX=../..
+# PREFIX=/usr/local
+
+CPPFLAGS= -I$(PREFIX)/include
+LDFLAGS= -L$(PREFIX)/libraries
+
+# CC = cc $(CFLAGS) $(CPPFLAGS)
 
 #
 # Create Executables
 #
 web_ldap: web_ldap.o util.o
-	$(CC) -o web_ldap web_ldap.o util.o \
-	libldap.a liblber.a
+	$(CC) -o web_ldap web_ldap.o util.o $(LDFLAGS) -lldap -llber
 
-#
-# Create Objects
-#
-web_ldap.o: web_ldap.c
-	$(CC) -c web_ldap.c
-
-util.o: util.c
-	$(CC) -c util.c
-#
-# all done
-#
+clean:
+	rm -f *.o a.out core web_ldap
