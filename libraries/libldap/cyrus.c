@@ -455,8 +455,8 @@ ldap_int_sasl_open(
 #else
 	rc = sasl_client_new( "ldap", host, session_callbacks,
 		SASL_SECURITY_LAYER, &ctx );
-#endif
 	LDAP_FREE( session_callbacks );
+#endif
 
 	if ( rc != SASL_OK ) {
 		ld->ld_errno = sasl_err2ldap( rc );
@@ -502,6 +502,11 @@ int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 	sasl_conn_t *ctx = lc->lconn_sasl_ctx;
 
 	if( ctx != NULL ) {
+#if SASL_VERSION_MAJOR >= 2
+		const void *callbacks;
+		sasl_getprop( ctx, SASL_CALLBACK, &callbacks );
+		LDAP_FREE( (void *)callbacks );
+#endif
 		sasl_dispose( &ctx );
 		lc->lconn_sasl_ctx = NULL;
 	}
