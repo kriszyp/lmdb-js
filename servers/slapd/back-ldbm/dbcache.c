@@ -393,13 +393,13 @@ ldbm_cache_sync_daemon(
 		sleep( li->li_dbsyncfreq );
 
 		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
-			Debug( LDAP_DEBUG_ANY, "delay syncing %s\n", li->li_directory, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "delay syncing %s\n", li->li_directory, 0, 0 );
 			sleep(li->li_dbsyncwaitinterval);
 			i--;
 		}
 
 		if (!li->li_dbshutdown) {
-			Debug( LDAP_DEBUG_ANY, "syncing %s\n", li->li_directory, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "syncing %s\n", li->li_directory, 0, 0 );
 			ldbm_cache_sync( be );
 		}
 	}
