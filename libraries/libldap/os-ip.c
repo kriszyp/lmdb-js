@@ -294,7 +294,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	struct hostent		*hp = NULL;
 	char   			*ha_buf=NULL, *p, *q;
 
-	osip_debug(ld, "ldap_connect_to_host\n",0,0,0);
+	osip_debug(ld, "ldap_connect_to_host: %s\n",host,0,0);
 	
 	if (host != NULL) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )

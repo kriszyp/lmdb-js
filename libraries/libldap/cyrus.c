@@ -425,7 +425,7 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: %s\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: host=%s\n",
 		host, 0, 0 );
 
 	lc->lconn_sasl_ctx = ctx;

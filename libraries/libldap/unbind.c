@@ -99,11 +99,6 @@ ldap_ld_free(
 		ld->ld_matched = NULL;
 	}
 
-	if ( ld->ld_host != NULL ) {
-		LDAP_FREE( ld->ld_host );
-		ld->ld_host = NULL;
-	}
-
 	if ( ld->ld_abandoned != NULL ) {
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;

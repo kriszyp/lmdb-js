@@ -767,7 +767,7 @@ ldap_pvt_tls_get_peer_issuer( void *s )
 }
 
 int
-ldap_int_tls_config( struct ldapoptions *lo, int option, const char *arg )
+ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 {
 	int i;
 
@@ -778,11 +778,13 @@ ldap_int_tls_config( struct ldapoptions *lo, int option, const char *arg )
 	case LDAP_OPT_X_TLS_KEYFILE:
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		return ldap_pvt_tls_set_option( NULL, option, (void *) arg );
+
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		i = ( ( strcasecmp( arg, "on" ) == 0 ) ||
 		      ( strcasecmp( arg, "yes" ) == 0) ||
 		      ( strcasecmp( arg, "true" ) == 0 ) );
 		return ldap_pvt_tls_set_option( NULL, option, (void *) &i );
+
 	case LDAP_OPT_X_TLS:
 		i = -1;
 		if ( strcasecmp( arg, "never" ) == 0 )
@@ -795,8 +797,10 @@ ldap_int_tls_config( struct ldapoptions *lo, int option, const char *arg )
 			i = LDAP_OPT_X_TLS_TRY ;
 		if ( strcasecmp( arg, "hard" ) == 0 )
 			i = LDAP_OPT_X_TLS_HARD ;
-		if (i >= 0)
-			return ldap_pvt_tls_set_option( lo, option, &i );
+
+		if (i >= 0) {
+			return ldap_pvt_tls_set_option( ld, option, &i );
+		}
 		return -1;
 	}
 
@@ -804,17 +808,35 @@ ldap_int_tls_config( struct ldapoptions *lo, int option, const char *arg )
 }
 
 int
-ldap_pvt_tls_get_option( struct ldapoptions *lo, int option, void *arg )
+ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 {
+	struct ldapoptions *lo;
+
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();   
+	if (NULL == lo)	{
+		return LDAP_NO_MEMORY;
+	}
+
+	if(ld != NULL) {
+		assert( LDAP_VALID( ld ) );
+
+		if( !LDAP_VALID( ld ) ) {
+			return LDAP_OPT_ERROR;
+		}
+
+		lo = &ld->ld_options;
+	}
+
 	switch( option ) {
 	case LDAP_OPT_X_TLS:
 		*(int *)arg = lo->ldo_tls_mode;
 		break;
-	case LDAP_OPT_X_TLS_CERT:
-		if ( lo == NULL )
+	case LDAP_OPT_X_TLS_CTX:
+		if ( ld == NULL )
 			*(void **)arg = (void *) tls_def_ctx;
 		else
-			*(void **)arg = lo->ldo_tls_ctx;
+			*(void **)arg = ld->ld_defconn->lconn_tls_ctx;
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		*(char **)arg = tls_opt_cacertfile ?
@@ -845,8 +867,26 @@ ldap_pvt_tls_get_option( struct ldapoptions *lo, int option, void *arg )
 }
 
 int
-ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
+ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 {
+	struct ldapoptions *lo;
+
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();   
+	if (NULL == lo)	{
+		return LDAP_NO_MEMORY;
+	}
+
+	if(ld != NULL) {
+		assert( LDAP_VALID( ld ) );
+
+		if( !LDAP_VALID( ld ) ) {
+			return LDAP_OPT_ERROR;
+		}
+
+		lo = &ld->ld_options;
+	}
+
 	switch( option ) {
 	case LDAP_OPT_X_TLS:
 		switch( *(int *) arg ) {
@@ -863,12 +903,12 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 		}
 		return -1;
 
-	case LDAP_OPT_X_TLS_CERT:
-		if ( lo == NULL ) {
+	case LDAP_OPT_X_TLS_CTX:
+		if ( ld == NULL ) {
 			tls_def_ctx = (SSL_CTX *) arg;
 
 		} else {
-			lo->ldo_tls_ctx = arg;
+			ld->ld_defconn->lconn_tls_ctx = arg;
 		}
 		return 0;
 	}
@@ -914,7 +954,9 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
+#if 0
 	char *peer_cert_cn;
+#endif
 	void *ssl;
 
 	(void) ldap_pvt_tls_init();
@@ -929,8 +971,9 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	ssl = (void *) ldap_pvt_tls_sb_handle( sb );
 	assert( ssl != NULL );
 
+#if 0
 	/* 
-	 * compare ld->ld_host with name in certificate 
+	 * compare host with name in certificate 
 	 */
 
 	peer_cert_cn = ldap_pvt_tls_get_peer_hostname( ssl );
@@ -942,7 +985,7 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 		return LDAP_LOCAL_ERROR;
 	}
 
-	if ( strcasecmp(ld->ld_host, peer_cert_cn) != 0 ) {
+	if ( strcasecmp( ld->ld_host, peer_cert_cn ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 			"common name in certificate (%s).\n", 
 			ld->ld_host, peer_cert_cn, 0 );
@@ -951,6 +994,7 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	}
 
 	LDAP_FREE( peer_cert_cn );
+#endif
 
 	/*
 	 * set SASL properties to TLS ssf and authid
@@ -1145,7 +1189,7 @@ ldap_start_tls_s ( LDAP *ld,
 	char *rspoid = NULL;
 	struct berval *rspdata = NULL;
 
-	/* XXYYZ: this initiates operaton only on default connection! */
+	/* XXYYZ: this initiates operation only on default connection! */
 
 	if ( ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
 		return LDAP_LOCAL_ERROR;
@@ -1165,7 +1209,9 @@ ldap_start_tls_s ( LDAP *ld,
 		ber_bvfree( rspdata );
 	}
 
-	rc = ldap_pvt_tls_start( ld, ld->ld_sb, ld->ld_options.ldo_tls_ctx );
+	rc = ldap_pvt_tls_start( ld, ld->ld_sb,
+		ld->ld_defconn->lconn_tls_ctx );
+
 	return rc;
 #else
 	return LDAP_NOT_SUPPORTED;
