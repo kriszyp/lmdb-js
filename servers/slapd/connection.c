@@ -609,6 +609,10 @@ void connection2anonymous( Connection *c )
 		free(c->c_ndn.bv_val);
 	}
 	BER_BVZERO( &c->c_ndn );
+	if(c->c_sasl_authz_dn.bv_val != NULL) {
+		free(c->c_sasl_authz_dn.bv_val);
+	}
+	BER_BVZERO( &c->c_sasl_authz_dn );
 
 	c->c_authz_backend = NULL;
 }
@@ -1598,8 +1602,13 @@ static int connection_op_activate( Operation *op )
 
 	if (!op->o_dn.bv_len) {
 		op->o_authz = op->o_conn->c_authz;
-		ber_dupbv( &op->o_dn, &op->o_conn->c_dn );
-		ber_dupbv( &op->o_ndn, &op->o_conn->c_ndn );
+		if ( BER_BVISNULL( &op->o_conn->c_sasl_authz_dn )) {
+			ber_dupbv( &op->o_dn, &op->o_conn->c_dn );
+			ber_dupbv( &op->o_ndn, &op->o_conn->c_ndn );
+		} else {
+			ber_dupbv( &op->o_dn, &op->o_conn->c_sasl_authz_dn );
+			ber_dupbv( &op->o_ndn, &op->o_conn->c_sasl_authz_dn );
+		}
 	}
 	op->o_authtype = op->o_conn->c_authtype;
 	ber_dupbv( &op->o_authmech, &op->o_conn->c_authmech );
