@@ -518,6 +518,7 @@ int ad_inlist(
 				&attrs->an_desc->ad_tags ) ) {
 				return 1;
 			}
+			continue;
 		}
 
 		/*
