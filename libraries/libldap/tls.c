@@ -950,12 +950,24 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 	return p;
 }
 
+/* what kind of hostname were we given? */
+#define	IS_DNS	0
+#define	IS_IP4	1
+#define	IS_IP6	2
+
 int
 ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 {
 	int i, ret = LDAP_LOCAL_ERROR;
 	X509 *x;
 	const char *name;
+	char *ptr;
+	int ntype = IS_DNS;
+#ifdef LDAP_PF_INET6
+	struct in6_addr addr;
+#else
+	struct in_addr addr;
+#endif
 
 	if( ldap_int_hostname &&
 		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
@@ -982,6 +994,20 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 		return LDAP_SUCCESS;
 	}
 
+#ifdef LDAP_PF_INET6
+	if (name[0] == '[' && strchr(name, ']')) {
+		char *n2 = ldap_strdup(name+1);
+		*strchr(n2, ']') = 2;
+		if (inet_pton(AF_INET6, n2, &addr))
+			ntype = IS_IP6;
+		LDAP_FREE(n2);
+	} else 
+#endif
+	if ((ptr = strrchr(name, '.')) && isdigit(ptr[1])) {
+		if (inet_aton(name, (struct in_addr *)&addr))
+			ntype = IS_IP4;
+	}
+	
 	i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
 	if (i >= 0) {
 		X509_EXTENSION *ex;
@@ -994,17 +1020,23 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 			char *domain;
 			GENERAL_NAME *gn;
 
-			len1 = strlen(name);
-			n = sk_GENERAL_NAME_num(alt);
-			domain = strchr(name, '.');
-			if (domain) {
-				len2 = len1 - (domain-name);
+			if (ntype == IS_DNS) {
+				len1 = strlen(name);
+				domain = strchr(name, '.');
+				if (domain) {
+					len2 = len1 - (domain-name);
+				}
 			}
+			n = sk_GENERAL_NAME_num(alt);
 			for (i=0; i<n; i++) {
+				char *sn;
+				int sl;
 				gn = sk_GENERAL_NAME_value(alt, i);
 				if (gn->type == GEN_DNS) {
-					char *sn = ASN1_STRING_data(gn->d.ia5);
-					int sl = ASN1_STRING_length(gn->d.ia5);
+					if (ntype != IS_DNS) continue;
+
+					sn = ASN1_STRING_data(gn->d.ia5);
+					sl = ASN1_STRING_length(gn->d.ia5);
 
 					/* Is this an exact match? */
 					if ((len1 == sl) && !strncasecmp(name, sn, len1)) {
@@ -1013,19 +1045,34 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 
 					/* Is this a wildcard match? */
 					if ((*sn == '*') && domain && (len2 == sl-1) &&
-						!strncasecmp(domain, sn+1, len2))
-					{
+						!strncasecmp(domain, sn+1, len2)) {
 						break;
 					}
 
 #if 0
-					/* Is this a RFC 2549 style wildcard match? */
+					/* Is this a RFC 2459 style wildcard match? */
 					if ((*sn == '.') && domain && (len2 == sl) &&
-						!strncasecmp(domain, sn, len2))
-					{
+						!strncasecmp(domain, sn, len2)) {
 						break;
 					}
 #endif
+				} else if (gn->type == GEN_IPADD) {
+					if (ntype == IS_DNS) continue;
+
+					sn = ASN1_STRING_data(gn->d.ia5);
+					sl = ASN1_STRING_length(gn->d.ia5);
+
+#ifdef LDAP_PF_INET6
+					if (ntype == IS_IP6 && sl != sizeof(struct in6_addr)) {
+						continue;
+					} else
+#endif
+					if (ntype == IS_IP4 && sl != sizeof(struct in_addr)) {
+						continue;
+					}
+					if (!memcmp(sn, &addr, sl)) {
+						break;
+					}
 				}
 			}
 
