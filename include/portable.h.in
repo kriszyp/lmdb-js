@@ -429,6 +429,9 @@
 /* Define if you have the <psap.h> header file.  */
 #undef HAVE_PSAP_H
 
+/* Define if you have the <pth.h> header file.  */
+#undef HAVE_PTH_H
+
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
@@ -653,6 +656,9 @@
 
 /* define if you have Mach Cthreads */
 #undef HAVE_MACH_CTHREADS
+
+/* if you have GNU Pth */
+#undef HAVE_GNU_PTH
 
 /* if you have Solaris LWP (thr) package */
 #undef HAVE_THR

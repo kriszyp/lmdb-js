@@ -67,6 +67,24 @@ typedef struct condition	ldap_pvt_thread_cond_t;
 
 LDAP_END_DECL
 
+#elif defined( HAVE_GNU_PTH )
+/***********************************
+ *                                 *
+ * thread definitions for GNU Pth  *
+ *                                 *
+ ***********************************/
+
+#include <pth.h>
+
+LDAP_BEGIN_DECL
+
+typedef pth_t		ldap_pvt_thread_t;
+typedef pth_mutex_t	ldap_pvt_thread_mutex_t;
+typedef pth_cond_t	ldap_pvt_thread_cond_t;
+
+LDAP_END_DECL
+
+
 #elif defined( HAVE_THR )
 /********************************************
  *                                          *

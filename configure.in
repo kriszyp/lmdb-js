@@ -89,7 +89,7 @@ OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 OL_ARG_WITH(readline,[  --with-readline  with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
-	auto, [auto posix mach lwp yes no manual] )
+	auto, [auto posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls  with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
@@ -1237,6 +1237,26 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 	if test $ol_with_threads = mach ; then
 		AC_MSG_ERROR([could not locate Mach CThreads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = pth ; then
+
+	AC_CHECK_HEADERS(pth.h)
+
+	if test $ac_cv_header_pth_h = yes ; then
+		AC_CHECK_LIB(pth, pth_version, [have_pth=yes], [have_pth=no])
+
+		if test $have_pth = yes ; then
+			AC_DEFINE(HAVE_GNU_PTH,1,[if you have GNU Pth])
+			LTHREAD_LIBS="$LTHREAD_LIBS -lpth"
+			ol_link_threads=pth
+
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
+			fi
+		fi
 	fi
 fi
 
