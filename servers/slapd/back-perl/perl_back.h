@@ -8,7 +8,7 @@ LDAP_BEGIN_DECL
  * From Apache mod_perl: test for Perl version.
  */
 
-#if defined(pTHX_) || (PERL_REVISION >= 5 && PERL_VERSION >= 6)
+#if defined(pTHX_) || (PERL_REVISION > 5 || (PERL_REVISION == 5 && PERL_VERSION >= 6))
 #define PERL_IS_5_6
 #endif
 
