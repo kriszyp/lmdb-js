@@ -1836,9 +1836,14 @@ cache_back_sentry(
 
 		op->o_callback = cb; 
 		return 0; 
+
 	} else if (rs->sr_type == REP_RESULT) { 
 		op->o_callback = NULL; 
 		send_ldap_result( op, rs ); 
 		return 0; 
 	}
+
+	/* FIXME: not handled? */
+	assert(0);
+	return -1;
 }
