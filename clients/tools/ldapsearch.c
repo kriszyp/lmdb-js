@@ -1131,6 +1131,18 @@ print_entry(
 	}
 	write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
 
+	rc = ldap_get_entry_controls( ld, entry, &ctrls );
+	if( rc != LDAP_SUCCESS ) {
+		fprintf(stderr, _("print_entry: %d\n"), rc );
+		ldap_perror( ld, "ldap_get_entry_controls" );
+		exit( EXIT_FAILURE );
+	}
+
+	if( ctrls ) {
+		print_ctrls( ctrls );
+		ldap_controls_free( ctrls );
+	}
+
 	if ( includeufn ) {
 		if( ufn == NULL ) {
 			ufn = ldap_dn2ufn( bv.bv_val );
@@ -1198,17 +1210,6 @@ print_entry(
 			}
 			ber_memfree( bvals );
 		}
-	}
-	rc = ldap_pvt_get_controls( ber, &ctrls );
-	if( rc != LDAP_SUCCESS ) {
-		fprintf(stderr, _("print_entry: %d\n"), rc );
-		ldap_perror( ld, "ldap_pvt_get_controls" );
-		exit( EXIT_FAILURE );
-	}
-
-	if( ctrls ) {
-		print_ctrls( ctrls );
-		ldap_controls_free( ctrls );
 	}
 
 	if( ber != NULL ) {
