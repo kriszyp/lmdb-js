@@ -15,10 +15,12 @@ UNIX_OBJS = detach.o
 
 SRCS	= base64.c csn.c entropy.c sasl.c signal.c hash.c passfile.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c uuid.c sockpair.c \
+	ldif.c fetch.c \
 	@LIBSRCS@ $(@PLAT@_SRCS)
 
 OBJS	= base64.o csn.o entropy.o sasl.o signal.o hash.o passfile.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o uuid.o sockpair.o \
+	ldif.o fetch.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include       
