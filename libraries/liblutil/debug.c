@@ -115,8 +115,10 @@ void lutil_log_int(
 	const char *subsys, int level,
 	const char *fmt, va_list vl )
 {
+#ifdef HAVE_WINSOCK
 	time_t now;
 	struct tm *today;
+#endif
 	int i;
 
 	if ( levelArray == NULL ) return; /* logging isn't set up */

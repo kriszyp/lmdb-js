@@ -236,7 +236,7 @@ lutil_uuidstr( char *buf, size_t len )
 	struct timeval tv;
 	unsigned long long tl;
 	unsigned char *nl;
-	unsigned short t2, t3, s1, n1, n2, n3;
+	unsigned short t2, t3, s1;
 	unsigned int t1;
 
 	/*
