@@ -28,8 +28,10 @@ can be overridden by database directives.
 
 Blank lines and comment lines beginning with a '{{EX:#}}' character
 are ignored.  If a line begins with white space, it is considered a
-continuation of the previous line. The general format of slapd.conf is
-as follows:
+continuation of the previous line (even if the previous line is a
+comment).
+
+The general format of slapd.conf is as follows:
 
 >	# global configuration directives
 >	<global config directives>

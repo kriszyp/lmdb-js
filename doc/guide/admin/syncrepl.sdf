@@ -7,7 +7,7 @@ H1: LDAP Sync Replication
 The LDAP Sync replication engine is designed to function as an
 improved alternative to {{slurpd}}(8).  While the replication with
 {{slurpd}}(8) provides the replication capability for improved capacity,
-availability, and reliability, it has some drawbacks :
+availability, and reliability, it has some drawbacks:
 
 ^ It is not stateful, hence lacks the resynchronization capability.
 Because there is no representation of replica state in the replication
