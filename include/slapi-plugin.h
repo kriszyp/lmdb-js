@@ -243,6 +243,27 @@ int compute_rewrite_search_filter(Slapi_PBlock *pb);
 int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
 int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
+/* object extensions */
+typedef void *(*slapi_extension_constructor_fnptr)(void *object, void *parent);
+
+typedef void (*slapi_extension_destructor_fnptr)(void *extension,
+	void *object, void *parent);
+
+int slapi_register_object_extension( const char *pluginname,
+	const char *objectname, slapi_extension_constructor_fnptr constructor,
+	slapi_extension_destructor_fnptr destructor, int *objecttype,
+	int *extensionhandle);
+
+#define SLAPI_EXT_CONNECTION    "Connection"
+#define SLAPI_EXT_OPERATION     "Operation"
+#define SLAPI_EXT_ENTRY         "Entry"
+#define SLAPI_EXT_MTNODE        "Mapping Tree Node"
+
+void *slapi_get_object_extension(int objecttype, void *object,
+	int extensionhandle);
+void slapi_set_object_extension(int objecttype, void *object,
+	int extensionhandle, void *extension);
+
 /* parameters currently supported */
 
 /*
@@ -305,6 +326,7 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define SLAPI_X_CONN_CLIENTPATH			1300
 #define SLAPI_X_CONN_SERVERPATH			1301
 #define SLAPI_X_CONN_IS_UDP			1302
+#define SLAPI_X_CONN_SSF			1303
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
