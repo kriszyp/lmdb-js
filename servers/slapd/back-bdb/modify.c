@@ -116,8 +116,11 @@ int bdb_modify_internal(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( glue_attr_delete )
+			if ( glue_attr_delete ) {
+				err = LDAP_SUCCESS;
 				break;
+			}
+
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_modify_internal: delete\n", 0, 0, 0 );
