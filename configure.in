@@ -52,14 +52,16 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
-OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
+OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 	auto, [auto k5 k4 afs yes no])
+OL_ARG_WITH(readline,[  --with-readline  with readline support],
+	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach lwp yes no manual] )
-OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
-	auto, [auto yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls  with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
+OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
+	auto, [auto yes no manual] )
 
 dnl Server options
 
@@ -261,6 +263,7 @@ SLAPD_PERL_LDFLAGS=
 SLAPD_PERL_CPPFLAGS=
 
 KRB_LIBS=
+READLINE_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
 
@@ -461,6 +464,30 @@ if test $ol_link_kerberos = yes ; then
 fi
 
 dnl
+dnl Check for GNU readline
+dnl
+ol_link_readline=no
+if test $ol_with_readline != no ; then
+	AC_CHECK_HEADERS(readline/readline.h readline/history.h)
+
+	if test $ac_cv_header_readline_readline_h = yes ; then
+		AC_CHECK_LIB(readline, readline, 
+			[have_readline=yes], [have_readline=no])
+			
+		if test $have_readline = yes ; then
+			ol_with_readline=found
+			ol_link_readline=yes
+
+			READLINE_LIBS="-lreadline"
+		fi
+	fi
+fi
+
+if test $ol_link_readline = yes ; then
+	AC_DEFINE(HAVE_READLINE, 1, [define if you have -lreadline])
+fi
+
+dnl
 dnl Check for SSL/TLS
 dnl
 ol_link_tls=no
@@ -490,6 +517,9 @@ if test $ol_with_tls != no ; then
 				[define if you have SSLeay or OpenSSL])
 
 			if test $need_rsaref = yes; then
+				AC_DEFINE(HAVE_RSAREF, 1, 
+					[define if you have RSAref])
+
 				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
 			else
 				TLS_LIBS="-lssl -lcrypto"
@@ -1740,6 +1770,7 @@ AC_SUBST(SLAPD_PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
 
 AC_SUBST(KRB_LIBS)
+AC_SUBST(READLINE_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 
