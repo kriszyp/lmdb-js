@@ -6,6 +6,7 @@ OpenLDAP 2.1.22 Engineering
 	Fixed slappasswd usage help (ITS#2565)
 	Build Environment
 		Fixed back-ldap/meta conflict (ITS#2608)
+		Fixed slapd compilation bug (ITS#2605)
 
 OpenLDAP 2.1.21 Release
 	Fixed liblber ber_get_next trickle bug (ITS#2490)
