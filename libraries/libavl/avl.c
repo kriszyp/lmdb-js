@@ -664,6 +664,8 @@ avl_find_lin( Avlnode *root, void* data, AVL_CMP fcmp )
 		return( avl_find_lin( root->avl_right, data, fcmp ) );
 }
 
+/* NON-REENTRANT INTERFACE */
+
 static void*	*avl_list;
 static int	avl_maxlist;
 static int	avl_nextlist;
@@ -735,6 +737,9 @@ avl_getnext( void )
 
 	return( avl_list[ avl_nextlist++ ] );
 }
+
+/* end non-reentrant code */
+
 
 int
 avl_dup_error( void* left, void* right )

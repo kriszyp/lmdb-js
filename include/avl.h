@@ -70,14 +70,10 @@ avl_find LDAP_P((Avlnode *, void*, AVL_CMP));
 LDAP_F( void* )
 avl_find_lin LDAP_P((Avlnode *, void*, AVL_CMP));
 
+#ifdef AVL_NONREENTRANT
 LDAP_F( void* )
 avl_getfirst LDAP_P((Avlnode *));
 
-#ifdef AVL_REENTRANT
-/* ??? avl.c does not provide this version ??? */
-LDAP_F( void* )
-avl_getnext LDAP_P((Avlnode *, void* ));
-#else
 LDAP_F( void* )
 avl_getnext LDAP_P((void));
 #endif

@@ -7,6 +7,7 @@
 
 #include <ac/string.h>
 
+#define AVL_NONREENTRANT 
 #include "avl.h"
 
 static void ravl_print LDAP_P(( Avlnode *root, int depth ));
@@ -31,11 +32,16 @@ main( int argc, char **argv )
 			( void ) myprint( tree );
 			break;
 		case 't':	/* traverse with first, next */
+#ifdef AVL_NONREENTRANT
 			printf( "***\n" );
 			for ( p = (char * ) avl_getfirst( tree );
-			    p != NULL; p = (char *) avl_getnext( /* tree, p */ ) )
+			    p != NULL;
+				p = (char *) avl_getnext())
 				printf( "%s\n", p );
 			printf( "***\n" );
+#else
+			printf( "*** reentrant interface not implemented ***" );
+#endif
 			break;
 		case 'f':	/* find */
 			printf( "data? " );
