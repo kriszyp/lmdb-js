@@ -89,7 +89,7 @@ monitor_subsys_log_init(
 	struct monitorinfo	*mi;
 	Entry			*e;
 	int			i;
-	struct berval 		val, *bv[2] = { &val, NULL };
+	struct berval 		bv[2];
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
 
@@ -112,11 +112,13 @@ monitor_subsys_log_init(
 		return( -1 );
 	}
 
+	bv[1].bv_val = NULL;
+
 	/* initialize the debug level */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 		if ( int_2_level[ i ].i & ldap_syslog ) {
-			val.bv_val = ( char * )int_2_level[ i ].s;
-			val.bv_len = strlen( val.bv_val );
+			bv[0].bv_val = ( char * )int_2_level[ i ].s;
+			bv[0].bv_len = strlen( bv[0].bv_val );
 
 			attr_merge( e, monitor_ad_desc, bv );
 		}
@@ -271,21 +273,21 @@ check_constraints( Modification *mod, int *newlevel )
 {
 	int		i;
 
-	for ( i = 0; mod->sm_bvalues && mod->sm_bvalues[i] != NULL; i++ ) {
+	for ( i = 0; mod->sm_bvalues && mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 		int l;
 		const char *s;
 		ber_len_t len;
 		
-		l = loglevel2int( mod->sm_bvalues[i]->bv_val );
+		l = loglevel2int( mod->sm_bvalues[i].bv_val );
 		if ( !l ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
 		s = int2loglevel( l );
 		len = strlen( s );
-		assert( len == mod->sm_bvalues[i]->bv_len );
+		assert( len == mod->sm_bvalues[i].bv_len );
 		
-		AC_MEMCPY( mod->sm_bvalues[i]->bv_val, s, len );
+		AC_MEMCPY( mod->sm_bvalues[i].bv_val, s, len );
 
 		*newlevel |= l;
 	}
@@ -314,7 +316,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 			int rc;
 			int j;
 			const char *text = NULL;
@@ -322,7 +324,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 
 			rc = value_normalize( mod->sm_desc,
 					SLAP_MR_EQUALITY,
-					mod->sm_bvalues[i],
+					&mod->sm_bvalues[i],
 					&asserted,
 					&text );
 
@@ -330,11 +332,11 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 				return rc;
 			}
 
-			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_VALUE_SYNTAX_MATCH,
-						a->a_vals[j], &asserted, &text );
+						&a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -348,7 +350,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 
 	/* no - add them */
 	if ( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
-		/* this should return result return of attr_merge */
+		/* this should return result of attr_merge */
 		return LDAP_OTHER;
 	}
 
@@ -394,7 +396,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* find each value to delete */
-	for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 		int rc;
 		const char *text = NULL;
 
@@ -402,18 +404,18 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
-				mod->sm_bvalues[i],
+				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
 		found = 0;
-		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
-					a->a_vals[j], &asserted, &text );
+					&a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
@@ -423,11 +425,11 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 			found = 1;
 
 			/* delete it */
-			ber_bvfree( a->a_vals[j] );
-			for ( k = j + 1; a->a_vals[k] != NULL; k++ ) {
+			free( a->a_vals[j].bv_val );
+			for ( k = j + 1; a->a_vals[k].bv_val != NULL; k++ ) {
 				a->a_vals[k - 1] = a->a_vals[k];
 			}
-			a->a_vals[k - 1] = NULL;
+			a->a_vals[k - 1].bv_val = NULL;
 
 			break;
 		}
@@ -441,7 +443,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* if no values remain, delete the entire attribute */
-	if ( a->a_vals[0] == NULL ) {
+	if ( a->a_vals[0].bv_val == NULL ) {
 		/* should already be zero */
 		*newlevel = 0;
 		

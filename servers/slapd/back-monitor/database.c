@@ -51,7 +51,7 @@ monitor_subsys_database_init(
 	int			i;
 	struct monitorentrypriv	*mp;
 	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
-	struct berval 		val, *bv[2] = { &val, NULL };
+	struct berval 		bv[2];
 
 	assert( be != NULL );
 	assert( monitor_ad_desc != NULL );
@@ -116,12 +116,13 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		val.bv_val = be->bd_info->bi_type;
-		val.bv_len = strlen( val.bv_val );
+		bv[1].bv_val = NULL;
+		bv[0].bv_val = be->bd_info->bi_type;
+		bv[0].bv_len = strlen( bv[0].bv_val );
 		attr_merge( e, monitor_ad_desc, bv );
 		
 		for ( j = 0; be->be_suffix[j]; j++ ) {
-			val = *be->be_suffix[j];
+			bv[0] = *be->be_suffix[j];
 
 			attr_merge( e, ad_nc, bv );
 			attr_merge( e_database, ad_nc, bv );

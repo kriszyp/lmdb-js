@@ -51,7 +51,7 @@ monitor_subsys_thread_init(
 {
 	struct monitorinfo      *mi;
 	Entry                   *e;
-	struct berval           val, *bv[2] = { &val, NULL };
+	struct berval           bv[2];
 	static char		buf[1024];
 
 	mi = ( struct monitorinfo * )be->be_private;
@@ -75,8 +75,9 @@ monitor_subsys_thread_init(
 	/* initialize the thread number */
 	snprintf( buf, sizeof( buf ), "max=%d", connection_pool_max );
 
-	val.bv_val = buf;
-	val.bv_len = strlen( val.bv_val );
+	bv[1].bv_val = NULL;
+	bv[0].bv_val = buf;
+	bv[0].bv_len = strlen( bv[0].bv_val );
 
 	attr_merge( e, monitor_ad_desc, bv );
 
@@ -92,30 +93,29 @@ monitor_subsys_thread_update(
 )
 {
 	Attribute		*a;
-	struct berval           *bv[2], val, **b = NULL;
+	struct berval           bv[2], *b = NULL;
 	char 			buf[1024];
 
-	bv[0] = &val;
-	bv[1] = NULL;
+	bv[1].bv_val = NULL;
 
 	snprintf( buf, sizeof( buf ), "backload=%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
 
 	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
 
-		for ( b = a->a_vals; b[0] != NULL; b++ ) {
-			if ( strncmp( b[0]->bv_val, "backload=", 
+		for ( b = a->a_vals; b[0].bv_val != NULL; b++ ) {
+			if ( strncmp( b[0].bv_val, "backload=", 
 					sizeof( "backload=" ) - 1 ) == 0 ) {
-				ber_bvfree( b[0] );
-				b[0] = ber_bvstrdup( buf );
+				free( b[0].bv_val );
+				ber_str2bv( buf, 0, 1, &b[0] );
 				break;
 			}
 		}
 	}
 
-	if ( b == NULL || b[0] == NULL ) {
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+	if ( b == NULL || b[0].bv_val == NULL ) {
+		bv[0].bv_val = buf;
+		bv[0].bv_len = strlen( buf );
 		attr_merge( e, monitor_ad_desc, bv );
 	}
 

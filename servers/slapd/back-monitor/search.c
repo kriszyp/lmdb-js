@@ -149,7 +149,7 @@ monitor_back_search(
 	int		slimit,
 	int		tlimit,
 	Filter		*filter,
-	const char	*filterstr,
+	struct berval	*filterstr,
 	AttributeName	*attrs,
 	int		attrsonly 
 )

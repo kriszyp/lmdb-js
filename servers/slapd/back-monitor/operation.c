@@ -51,7 +51,7 @@ monitor_subsys_ops_init(
 	Entry			*e, *e_tmp, *e_op;
 	struct monitorentrypriv	*mp;
 	char			buf[1024];
-	struct berval		val, *bv[2] = { &val, NULL };
+	struct berval		bv[2];
 
 	assert( be != NULL );
 
@@ -108,8 +108,9 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 	
-	val.bv_val = "0";
-	val.bv_len = 1;
+	bv[1].bv_val = NULL;
+	bv[0].bv_val = "0";
+	bv[0].bv_len = 1;
 	attr_merge( e, monitor_ad_desc, bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
@@ -170,8 +171,8 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 
-	val.bv_val = "0";
-	val.bv_len = 1;
+	bv[0].bv_val = "0";
+	bv[0].bv_len = 1;
 	attr_merge( e, monitor_ad_desc, bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
@@ -242,8 +243,8 @@ monitor_subsys_ops_update(
 		}
 
 		snprintf( buf, sizeof( buf ), "%ld", n );
-		ber_bvfree( a->a_vals[ 0 ] );
-		a->a_vals[ 0 ] = ber_bvstrdup( buf );
+		free( a->a_vals[ 0 ].bv_val );
+		ber_str2bv( buf, 0, 1, a->a_vals );
 	}
 
 	return( 0 );

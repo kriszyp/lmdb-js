@@ -73,20 +73,16 @@ monitor_subsys_readw_update_internal(
 	int                     nconns, nwritewaiters, nreadwaiters;
 	
 	Attribute		*a;
-	struct berval           *bv[2], val, **b = NULL;
+	struct berval           bv[2], *b = NULL;
 	char 			buf[1024];
 	
 	char			*str = NULL;
 	int			num = 0;
 
-	bv[0] = &val;
-	bv[1] = NULL;
-
 	assert( mi != NULL );
 	assert( e != NULL );
 	
-	bv[0] = &val;
-	bv[1] = NULL;
+	bv[1].bv_val = NULL;
 	
 	nconns = nwritewaiters = nreadwaiters = 0;
 	for ( c = connection_first( &connindex );
@@ -114,18 +110,18 @@ monitor_subsys_readw_update_internal(
 	snprintf( buf, sizeof( buf ), "%s=%d", str, num );
 
 	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
-		for ( b = a->a_vals; b[0] != NULL; b++ ) {
-			if ( strncmp( b[0]->bv_val, str, strlen( str ) ) == 0 ) {
-				ber_bvfree( b[0] );
-				b[0] = ber_bvstrdup( buf );
+		for ( b = a->a_vals; b[0].bv_val != NULL; b++ ) {
+			if ( strncmp( b[0].bv_val, str, strlen( str ) ) == 0 ) {
+				free( b[0].bv_val );
+				ber_str2bv( buf, 0, 1, b );
 				break;
 			}
 		}
 	}
 
-	if ( b == NULL || b[0] == NULL ) {
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+	if ( b == NULL || b[0].bv_val == NULL ) {
+		bv[0].bv_val = buf;
+		bv[0].bv_len = strlen( buf );
 		attr_merge( e, monitor_ad_desc, bv );
 	}
 
