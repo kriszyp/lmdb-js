@@ -1870,45 +1870,9 @@ proxy_cache_open(
 		cm->db.be_pending_csn_list = (struct be_pcl *)
 							ch_calloc( 1, sizeof( struct be_pcl ));
 		LDAP_TAILQ_INIT( cm->db.be_pending_csn_list );
+		build_new_dn( &cm->db.be_context_csn, be->be_nsuffix,
+			(struct berval *)&slap_ldapsync_cn_bv, NULL );
 		rc = cm->db.bd_info->bi_db_open( &cm->db );
-	}
-
-	if ( rc != 0 ) {
-		return rc;
-	}
-
-	/* FIXME: this is a duplication of code that is present
-	 * in backend_startup(); however, backend_startup() can
-	 * be called only once, and it is already called by slapd
-	 * for all backends and databases, while the proxy cache
-	 * database does not exist until the overlay is started,
-	 * and back-bdb/back-hdb need the be_context_csn field.
-	 */
-#if 0
-	rc = backend_startup( &cm->db );
-#endif
-
-	/* startup a specific backend database */
-	cm->db.be_pending_csn_list = (struct be_pcl *)
-		ch_calloc( 1, sizeof( struct be_pcl ));
-	build_new_dn( &cm->db.be_context_csn, cm->db.be_nsuffix,
-		(struct berval *)&slap_ldapsync_cn_bv, NULL );
-
-	LDAP_TAILQ_INIT( cm->db.be_pending_csn_list );
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACKEND, DETAIL1, "proxy_cache_open:  starting \"%s\"\n",
-		cm->db.be_suffix ? cm->db.be_suffix[0].bv_val : "(unknown)",
-		0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE,
-		"proxy_cache_open: starting \"%s\"\n",
-		cm->db.be_suffix ? cm->db.be_suffix[0].bv_val : "(unknown)",
-		0, 0 );
-#endif
-
-	if ( rc != 0 ) {
-		return rc;
 	}
 
 	/* There is no runqueue in TOOL mode */
