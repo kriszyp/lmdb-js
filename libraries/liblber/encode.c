@@ -415,8 +415,8 @@ ber_put_boolean(
 	ber_tag_t tag )
 {
 	ber_len_t		taglen;
-	unsigned char	trueval = 0xFFU;
-	unsigned char	falseval = 0x00U;
+	unsigned char	trueval = (unsigned char) -1;
+	unsigned char	falseval = 0;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
