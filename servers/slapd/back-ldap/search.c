@@ -573,8 +573,8 @@ ldap_back_entry_get(
 	
 retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
-				at ? gattr : NULL, 0, ctrls, NULL, LDAP_NO_LIMIT,
-				LDAP_NO_LIMIT, &result );
+				at ? gattr : NULL, 0, ctrls, NULL,
+				LDAP_NO_LIMIT, LDAP_NO_LIMIT, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
