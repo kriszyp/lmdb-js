@@ -472,6 +472,11 @@ overlay_register_control( BackendDB *be, const char *oid )
 {
 	int		rc = 0;
 	int		gotit = 0;
+	int		cid;
+
+	if ( slap_find_control_id( oid, &cid ) == LDAP_CONTROL_NOT_FOUND ) {
+		return -1;
+	}
 
 	if ( SLAP_DBFLAGS( be ) & SLAP_DBFLAG_GLOBAL_OVERLAY ) {
 		int	i;
@@ -484,23 +489,13 @@ overlay_register_control( BackendDB *be, const char *oid )
 				gotit = 1;
 			}
 
-			if ( bd->be_controls == NULL ||
-				!ldap_charray_inlist( bd->be_controls, oid ) )
-			{
-				rc = ldap_charray_add( &bd->be_controls, oid );
-				if ( rc ) {
-					break;
-				}
-			}
+			bd->be_ctrls[ cid ] = 1;
 		}
 
 	}
 	
-	if ( rc == 0 && !gotit && !ldap_charray_inlist( be->be_controls, oid ) ) {
-		rc = ldap_charray_add( &be->be_controls, oid );
-		if ( rc ) {
-			return rc;
-		}
+	if ( rc == 0 && !gotit ) {
+		be->be_ctrls[ cid ] = 1;
 	}
 
 	return rc;

@@ -1527,6 +1527,10 @@ typedef struct syncinfo_s {
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
 
+#ifndef SLAP_MAX_CIDS
+#define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
+#endif
+
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
@@ -1568,7 +1572,12 @@ struct slap_backend_db {
 	/* NOTE: this stores a duplicate of the control OIDs as listed
 	 * in bd_info->bi_controls at database startup; later on,
 	 * controls may be added run-time, e.g. by overlays */
+#if 0
 	char		**be_controls;
+#endif
+	/* note: set to 0 if the database does not support the control;
+	 * be_ctrls[SLAP_MAX_CIDS] is set to 1 if initialized */
+	char		be_ctrls[SLAP_MAX_CIDS + 1];
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
@@ -2017,7 +2026,8 @@ struct slap_backend_info {
 #define SLAP_NOLASTMODCMD(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_NOLASTMODCMD)
 #define SLAP_LASTMODCMD(be)	(!SLAP_NOLASTMODCMD(be))
 
-	char **bi_controls;		/* supported controls */
+	char	**bi_controls;		/* supported controls */
+	char	bi_ctrls[SLAP_MAX_CIDS + 1];
 
 	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */
@@ -2102,10 +2112,6 @@ typedef struct slap_gacl {
 	ber_len_t ga_len;
 	char ga_ndn[1];
 } GroupAssertion;
-
-#ifndef SLAP_MAX_CIDS
-#define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
-#endif
 
 struct slap_control_ids {
 	int sc_assert;
