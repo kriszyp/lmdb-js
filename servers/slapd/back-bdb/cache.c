@@ -136,6 +136,9 @@ int
 bdb_cache_entry_db_lock
 ( DB_ENV *env, u_int32_t locker, Entry *e, int rw, u_int32_t flags, DB_LOCK *lock )
 {
+#ifdef NO_THREADS
+	return 0;
+#else
 	int       rc;
 	DBT       lockobj;
 	int       db_rw;
@@ -161,16 +164,21 @@ bdb_cache_entry_db_lock
 #endif
 	}
 	return rc;
+#endif /* NO_THREADS */
 }
 
 int
 bdb_cache_entry_db_unlock
 ( DB_ENV *env, DB_LOCK *lock )
 {
+#ifdef NO_THREADS
+	return 0;
+#else
 	int rc;
 
 	rc = LOCK_PUT ( env, lock );
 	return rc;
+#endif
 }
 
 /*
@@ -1123,29 +1131,17 @@ bdb_locker_id_free( void *key, void *data )
 }
 
 int
-bdb_locker_id( Operation *op, struct bdb_info *bdb, int *locker )
+bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 {
 	int i, rc, lockid;
 	void *data;
-	DB_ENV *env;
 
-	if ( !bdb || !op || !locker ) return -1;
+	if ( !env || !op || !locker ) return -1;
 
-	env = bdb->bi_dbenv;
-	if ( !env ) return -1;
-
-#ifdef NO_THREADS
-	if ( !bdb->bi_locker_id ) {
-		rc = XLOCK_ID( env, &bdb->bi_locker_id );
-		if (rc != 0) return rc;
-	}
-	*locker = bdb->bi_locker_id;
-	return 0;
-#else
-	/* Shouldn't happen */
+	/* Shouldn't happen unless we're single-threaded */
 	if ( !op->o_threadctx ) {
 		*locker = 0;
-		return -1;
+		return 0;
 	}
 
 	if ( ldap_pvt_thread_pool_getkey( op->o_threadctx, env, &data, NULL ) ) {
@@ -1175,6 +1171,5 @@ bdb_locker_id( Operation *op, struct bdb_info *bdb, int *locker )
 	}
 	*locker = lockid;
 	return 0;
-#endif /* NO_THREADS */
 }
 #endif

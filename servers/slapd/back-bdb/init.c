@@ -178,9 +178,7 @@ bdb_db_open( BackendDB *be )
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
-#ifndef NO_THREADS
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
-#endif
 
 #ifdef BDB_SUBDIRS
 	{
@@ -414,11 +412,6 @@ bdb_db_close( BackendDB *be )
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
-#if defined(NO_THREADS) && defined(BDB_REUSE_LOCKERS)
-	if ( bdb->bi_locker_id ) {
-		bdb_locker_id_free( bdb->bi_dbenv, bdb->bi_locker_id );
-	}
-#endif
 	return 0;
 }
 
