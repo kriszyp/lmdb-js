@@ -67,6 +67,9 @@ struct ldapoptions {
 	int		ldo_timelimit;
 	int		ldo_sizelimit;
 
+	char*	ldo_defhost;
+	int		ldo_defport;
+
 	int		ldo_cldaptries;	/* connectionless search retry count */
 	int		ldo_cldaptimeout;/* time between retries */
 	int		ldo_refhoplimit;	/* limit on referral nesting */
@@ -93,6 +96,8 @@ struct ldap {
 
 	int		ld_version;		/* version connected at */
 	char	*ld_host;
+	int		ld_port;
+
 	char	ld_lberoptions;
 
 	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
