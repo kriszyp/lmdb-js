@@ -41,17 +41,15 @@ static int quiet = 0;
 void
 usage( void )
 {
-	fprintf( stderr,
-"usage: %s [options] DN <attr:value|attr::b64value>\n"
-"where:\n"
-"  DN\tDistinguished Name\n"
-"  attr\tassertion attribute\n"
-"  value\tassertion value\n"
-"  b64value\tbase64 encoding of assertion value\n"
+	fprintf( stderr, _("usage: %s [options] DN <attr:value|attr::b64value>\n"), prog);
+	fprintf( stderr, _("where:\n"));
+	fprintf( stderr, _("  DN\tDistinguished Name\n"));
+	fprintf( stderr, _("  attr\tassertion attribute\n"));
+	fprintf( stderr, _("  value\tassertion value\n"));
+	fprintf( stderr, _("  b64value\tbase64 encoding of assertion value\n"));
 
-"Compare options:\n"
-"  -z         Quiet mode, don't print anything, use return values\n"
-	         , prog );
+	fprintf( stderr, _("Compare options:\n"));
+	fprintf( stderr, _("  -z         Quiet mode, don't print anything, use return values\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -78,7 +76,7 @@ handle_private_option( int i )
 		int		crit;
 	case 'E': /* compare controls */
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
@@ -98,7 +96,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, "Invalid compare control name: %s\n", control );
+		fprintf( stderr, _("Invalid compare control name: %s\n"), control );
 		usage();
 #endif
 
@@ -122,6 +120,7 @@ main( int argc, char **argv )
 	LDAP	*ld = NULL;
 	struct berval bvalue = { 0, NULL };
 
+	tool_init();
 	prog = lutil_progname( "ldapcompare", argc, argv );
 
 	tool_args( argc, argv );
@@ -153,7 +152,7 @@ main( int argc, char **argv )
 			bvalue.bv_val, strlen( &sep[1] ));
 
 		if (bvalue.bv_len == (ber_len_t)-1) {
-			fprintf(stderr, "base64 decode error\n");
+			fprintf(stderr, _("base64 decode error\n"));
 			exit(-1);
 		}
 	}
@@ -165,7 +164,7 @@ main( int argc, char **argv )
 			rc = lutil_get_filed_password( pw_file, &passwd );
 			if( rc ) return EXIT_FAILURE;
 		} else {
-			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 		}
 	}
@@ -176,7 +175,7 @@ main( int argc, char **argv )
 		tool_server_controls( ld, NULL, 0 );
 
 	if ( verbose ) {
-		fprintf( stderr, "DN:%s, attr:%s, value:%s\n",
+		fprintf( stderr, _("DN:%s, attr:%s, value:%s\n"),
 			compdn, attrs, sep );
 	}
 
@@ -217,10 +216,10 @@ static int docompare(
 	if ( !quiet ) {
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rc = 0;
-			printf("TRUE\n");
+			printf(_("TRUE\n"));
 		} else if ( rc == LDAP_COMPARE_FALSE ) {
 			rc = 0;
-			printf("FALSE\n");
+			printf(_("FALSE\n"));
 		} else {
 			ldap_perror( ld, "ldap_compare" );
 		}

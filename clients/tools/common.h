@@ -52,6 +52,7 @@ void usage LDAP_P(( void )) LDAP_GCCATTR((noreturn));
 int handle_private_option LDAP_P(( int i ));
 
 /* Defined in common.c */
+void tool_init LDAP_P(( void ));
 void tool_common_usage LDAP_P(( void ));
 void tool_args LDAP_P(( int, char ** ));
 LDAP *tool_conn_setup LDAP_P(( int dont, void (*private_setup)( LDAP * ) ));

@@ -49,16 +49,14 @@ static int domodrdn(
 void
 usage( void )
 {
-	fprintf( stderr,
-"Rename LDAP entries\n\n"
-"usage: %s [options] [dn rdn]\n"
-"	dn rdn: If given, rdn will replace the RDN of the entry specified by DN\n"
-"		If not given, the list of modifications is read from stdin or\n"
-"		from the file specified by \"-f file\" (see man page).\n"
-"Rename options:\n"
-"  -r         remove old RDN\n"
-"  -s newsup  new superior entry\n"
-	         , prog );
+	fprintf( stderr, _("Rename LDAP entries\n\n"));
+	fprintf( stderr, _("usage: %s [options] [dn rdn]\n"), prog);
+	fprintf( stderr, _("	dn rdn: If given, rdn will replace the RDN of the entry specified by DN\n"));
+	fprintf( stderr, _("		If not given, the list of modifications is read from stdin or\n"));
+	fprintf( stderr, _("		from the file specified by \"-f file\" (see man page).\n"));
+	fprintf( stderr, _("Rename options:\n"));
+	fprintf( stderr, _("  -r         remove old RDN\n"));
+	fprintf( stderr, _("  -s newsup  new superior entry\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -76,7 +74,7 @@ handle_private_option( int i )
 		char *control, *cvalue;
 	case 'E': /* modrdn controls */
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, version );
 			exit( EXIT_FAILURE );
 		}
@@ -96,7 +94,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, "Invalid modrdn control name: %s\n", control );
+		fprintf( stderr, _("Invalid modrdn control name: %s\n"), control );
 		usage();
 #endif
 
@@ -106,7 +104,7 @@ handle_private_option( int i )
 
 	case 's':	/* newSuperior */
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -X incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -X incompatible with LDAPv%d\n"),
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
@@ -129,6 +127,7 @@ main(int argc, char **argv)
     LDAP		*ld;
 	int		rc, retval, havedn;
 
+    tool_init();
     prog = lutil_progname( "ldapmodrdn", argc, argv );
 
 	tool_args( argc, argv );
@@ -145,8 +144,7 @@ main(int argc, char **argv)
         }
 	++havedn;
     } else if ( argc - optind != 0 ) {
-	fprintf( stderr, "%s: invalid number of arguments (%d), "
-		"only two allowed\n", prog, argc-optind );
+	fprintf( stderr, _("%s: invalid number of arguments (%d), only two allowed\n"), prog, argc-optind );
 	usage();
     }
 
@@ -166,7 +164,7 @@ main(int argc, char **argv)
 			rc = lutil_get_filed_password( pw_file, &passwd );
 			if( rc ) return EXIT_FAILURE;
 		} else {
-			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 		}
 	}
@@ -219,11 +217,11 @@ static int domodrdn(
 	LDAPMessage *res;
 
     if ( verbose ) {
-		printf( "Renaming \"%s\"\n", dn );
-		printf( "\tnew rdn=\"%s\" (%s old rdn)\n",
-			rdn, remove ? "delete" : "keep" );
+		printf( _("Renaming \"%s\"\n"), dn );
+		printf( _("\tnew rdn=\"%s\" (%s old rdn)\n"),
+			rdn, remove ? _("delete") : _("keep") );
 		if( newSuperior != NULL ) {
-			printf("\tnew parent=\"%s\"\n", newSuperior);
+			printf(_("\tnew parent=\"%s\"\n"), newSuperior);
 		}
 	}
 
@@ -255,21 +253,21 @@ static int domodrdn(
 	if( verbose || code != LDAP_SUCCESS ||
 		(matcheddn && *matcheddn) || (text && *text) || (refs && *refs) )
 	{
-		printf( "Rename Result: %s (%d)\n",
+		printf( _("Rename Result: %s (%d)\n"),
 			ldap_err2string( code ), code );
 
 		if( text && *text ) {
-			printf( "Additional info: %s\n", text );
+			printf( _("Additional info: %s\n"), text );
 		}
 
 		if( matcheddn && *matcheddn ) {
-			printf( "Matched DN: %s\n", matcheddn );
+			printf( _("Matched DN: %s\n"), matcheddn );
 		}
 
 		if( refs ) {
 			int i;
 			for( i=0; refs[i]; i++ ) {
-				printf("Referral: %s\n", refs[i] );
+				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
 	}

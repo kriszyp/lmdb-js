@@ -57,48 +57,56 @@ int   version = 0;
 char *prog = NULL;
 
 void
+tool_init( void )
+{
+    setlocale(LC_MESSAGES,"");
+    bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
+    textdomain(OPENLDAP_PACKAGE);
+}
+
+void
 tool_common_usage( void )
 {
 	static const char *const descriptions[] = {
-"  -c         continuous operation mode (do not stop on errors)\n",
-"  -C         chase referrals\n",
-"  -d level   set LDAP debugging level to `level'\n",
-"  -D binddn  bind DN\n",
-"  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
-"             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n"
-"             [!]manageDSAit       (alternate form, see -M)\n"
-"             [!]noop\n",
-"  -f file    read operations from `file'\n",
-"  -h host    LDAP server\n",
-"  -H URI     LDAP Uniform Resource Indentifier(s)\n",
-"  -I         use SASL Interactive mode\n",
-"  -k         use Kerberos authentication\n",
-"  -K         like -k, but do only step 1 of the Kerberos bind\n",
-"  -M         enable Manage DSA IT control (-MM to make critical)\n",
-"  -n         show what would be done but don't actually do it\n",
-"  -O props   SASL security properties\n",
-"  -p port    port on LDAP server\n",
-"  -P version procotol version (default: 3)\n",
-"  -Q         use SASL Quiet mode\n",
-"  -R realm   SASL realm\n",
-"  -U authcid SASL authentication identity\n",
-"  -v         run in verbose mode (diagnostics to standard output)\n",
-"  -V         print version info (-VV only)\n",
-"  -w passwd  bind password (for simple authentication)\n",
-"  -W         prompt for bind password\n",
-"  -x         Simple authentication\n",
-"  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n",
-"  -y file    Read password from file\n",
-"  -Y mech    SASL mechanism\n",
-"  -Z         Start TLS request (-ZZ to require successful response)\n",
+N_("  -c         continuous operation mode (do not stop on errors)\n"),
+N_("  -C         chase referrals\n"),
+N_("  -d level   set LDAP debugging level to `level'\n"),
+N_("  -D binddn  bind DN\n"),
+N_("  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n")
+N_("             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n")
+N_("             [!]manageDSAit       (alternate form, see -M)\n")
+N_("             [!]noop\n"),
+N_("  -f file    read operations from `file'\n"),
+N_("  -h host    LDAP server\n"),
+N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
+N_("  -I         use SASL Interactive mode\n"),
+N_("  -k         use Kerberos authentication\n"),
+N_("  -K         like -k, but do only step 1 of the Kerberos bind\n"),
+N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
+N_("  -n         show what would be done but don't actually do it\n"),
+N_("  -O props   SASL security properties\n"),
+N_("  -p port    port on LDAP server\n"),
+N_("  -P version procotol version (default: 3)\n"),
+N_("  -Q         use SASL Quiet mode\n"),
+N_("  -R realm   SASL realm\n"),
+N_("  -U authcid SASL authentication identity\n"),
+N_("  -v         run in verbose mode (diagnostics to standard output)\n"),
+N_("  -V         print version info (-VV only)\n"),
+N_("  -w passwd  bind password (for simple authentication)\n"),
+N_("  -W         prompt for bind password\n"),
+N_("  -x         Simple authentication\n"),
+N_("  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"),
+N_("  -y file    Read password from file\n"),
+N_("  -Y mech    SASL mechanism\n"),
+N_("  -Z         Start TLS request (-ZZ to require successful response)\n"),
 NULL
 	};
 	const char *const *cpp;
 
-	fputs( "Common options:\n", stderr );
+	fputs( _("Common options:\n"), stderr );
 	for( cpp = descriptions; *cpp != NULL; cpp++ ) {
 		if( strchr( options, (*cpp)[3] ) ) {
-			fputs( *cpp, stderr );
+			fputs( _(*cpp), stderr );
 		}
 	}
 }

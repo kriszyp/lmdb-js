@@ -36,18 +36,16 @@ static char *newpwfile = NULL;
 void
 usage( void )
 {
-	fprintf(stderr,
-"Change password of an LDAP user\n\n"
-"usage: %s [options] [user]\n"
-"  user: the autentication identity, commonly a DN\n"
-"Password change options:\n"
-"  -a secret  old password\n"
-"  -A         prompt for old password\n"
-"  -t file    read file for old password\n"
-"  -s secret  new password\n"
-"  -S         prompt for new password\n"
-"  -T file    read file for new password\n"
-	        , prog );
+	fprintf( stderr, _("Change password of an LDAP user\n\n"));
+	fprintf( stderr,_("usage: %s [options] [user]\n"), prog);
+	fprintf( stderr, _("  user: the autentication identity, commonly a DN\n"));
+	fprintf( stderr, _("Password change options:\n"));
+	fprintf( stderr, _("  -a secret  old password\n"));
+	fprintf( stderr, _("  -A         prompt for old password\n"));
+	fprintf( stderr, _("  -t file    read file for old password\n"));
+	fprintf( stderr, _("  -s secret  new password\n"));
+	fprintf( stderr, _("  -S         prompt for new password\n"));
+	fprintf( stderr, _("  -T file    read file for new password\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -65,7 +63,7 @@ handle_private_option( int i )
 		int		crit;
 		char	*control, *cvalue;
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 			         prog, protocol );
 			exit( EXIT_FAILURE );
 		}
@@ -85,8 +83,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-
-		fprintf( stderr, "Invalid passwd control name: %s\n", control );
+		fprintf( stderr, _("Invalid passwd control name: %s\n"), control );
 		usage();
 		}
 #endif
@@ -152,6 +149,7 @@ main( int argc, char *argv[] )
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
 
+    tool_init();
 	prog = lutil_progname( "ldappasswd", argc, argv );
 
 	/* LDAPv3 only */
@@ -175,13 +173,13 @@ main( int argc, char *argv[] )
 	if( want_oldpw && oldpw.bv_val == NULL ) {
 		/* prompt for old password */
 		char *ckoldpw;
-		oldpw.bv_val = strdup(getpassphrase("Old password: "));
-		ckoldpw = getpassphrase("Re-enter old password: ");
+		oldpw.bv_val = strdup(getpassphrase(_("Old password: ")));
+		ckoldpw = getpassphrase(_("Re-enter old password: "));
 
 		if( oldpw.bv_val == NULL || ckoldpw == NULL ||
 			strcmp( oldpw.bv_val, ckoldpw ))
 		{
-			fprintf( stderr, "passwords do not match\n" );
+			fprintf( stderr, _("passwords do not match\n") );
 			return EXIT_FAILURE;
 		}
 
@@ -196,13 +194,13 @@ main( int argc, char *argv[] )
 	if( want_newpw && newpw.bv_val == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
-		newpw.bv_val = strdup(getpassphrase("New password: "));
-		cknewpw = getpassphrase("Re-enter new password: ");
+		newpw.bv_val = strdup(getpassphrase(_("New password: ")));
+		cknewpw = getpassphrase(_("Re-enter new password: "));
 
 		if( newpw.bv_val == NULL || cknewpw == NULL ||
 			strcmp( newpw.bv_val, cknewpw ))
 		{
-			fprintf( stderr, "passwords do not match\n" );
+			fprintf( stderr, _("passwords do not match\n") );
 			return EXIT_FAILURE;
 		}
 
@@ -211,7 +209,7 @@ main( int argc, char *argv[] )
 
 	if( want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
-		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
+		passwd.bv_val = strdup( getpassphrase(_("Enter bind password: ")));
 		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
@@ -318,7 +316,7 @@ main( int argc, char *argv[] )
 		if( tag == LBER_ERROR ) {
 			perror( "ber_scanf" );
 		} else {
-			printf("New password: %s\n", s);
+			printf(_("New password: %s\n"), s);
 			free( s );
 		}
 
@@ -326,20 +324,20 @@ main( int argc, char *argv[] )
 	}
 
 	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
-		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
-			printf( "Additional info: %s\n", text );
+			printf( _("Additional info: %s\n"), text );
 		}
 
 		if( matcheddn && *matcheddn ) {
-			printf( "Matched DN: %s\n", matcheddn );
+			printf( _("Matched DN: %s\n"), matcheddn );
 		}
 
 		if( refs ) {
 			int i;
 			for( i=0; refs[i]; i++ ) {
-				printf("Referral: %s\n", refs[i] );
+				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
 	}

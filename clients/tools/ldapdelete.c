@@ -36,14 +36,12 @@ static int deletechildren LDAP_P((
 void
 usage( void )
 {
-	fprintf( stderr,
-"Delete entries from an LDAP server\n\n"
-"usage: %s [options] [dn]...\n"
-"	dn: list of DNs to delete. If not given, it will be readed from stdin\n"
-"	    or from the file specified with \"-f file\".\n"
-"Delete Options:\n"
-"  -r         delete recursively\n"
-			 , prog );
+	fprintf( stderr, _("Delete entries from an LDAP server\n\n"));
+	fprintf( stderr, _("usage: %s [options] [dn]...\n"), prog);
+	fprintf( stderr, _("	dn: list of DNs to delete. If not given, it will be readed from stdin\n"));
+	fprintf( stderr, _("	    or from the file specified with \"-f file\".\n"));
+	fprintf( stderr, _("Delete Options:\n"));
+	fprintf( stderr, _("  -r         delete recursively\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -61,7 +59,7 @@ handle_private_option( int i )
 		char *control, *cvalue;
 	case 'E': /* delete controls */
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
@@ -81,7 +79,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, "Invalid delete control name: %s\n", control );
+		fprintf( stderr, _("Invalid delete control name: %s\n"), control );
 		usage();
 #endif
 
@@ -115,6 +113,7 @@ main( int argc, char **argv )
 
     fp = NULL;
 
+	tool_init();
     prog = lutil_progname( "ldapdelete", argc, argv );
 
 	tool_args( argc, argv );
@@ -137,7 +136,7 @@ main( int argc, char **argv )
 			rc = lutil_get_filed_password( pw_file, &passwd );
 			if( rc ) return EXIT_FAILURE;
 		} else {
-			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 		}
 	}
@@ -187,7 +186,7 @@ static int dodelete(
 	LDAPMessage *res;
 
 	if ( verbose ) {
-		printf( "%sdeleting entry \"%s\"\n",
+		printf( _("%sdeleting entry \"%s\"\n"),
 			(not ? "!" : ""), dn );
 	}
 
@@ -224,20 +223,20 @@ static int dodelete(
 	if( verbose || code != LDAP_SUCCESS ||
 		(matcheddn && *matcheddn) || (text && *text) || (refs && *refs) )
 	{
-		printf( "Delete Result: %s (%d)\n", ldap_err2string( code ), code );
+		printf( _("Delete Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
-			printf( "Additional info: %s\n", text );
+			printf( _("Additional info: %s\n"), text );
 		}
 
 		if( matcheddn && *matcheddn ) {
-			printf( "Matched DN: %s\n", matcheddn );
+			printf( _("Matched DN: %s\n"), matcheddn );
 		}
 
 		if( refs ) {
 			int i;
 			for( i=0; refs[i]; i++ ) {
-				printf("Referral: %s\n", refs[i] );
+				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
 	}
@@ -262,7 +261,7 @@ static int deletechildren(
 	int rc;
 	static char *attrs[] = { "1.1", NULL };
 
-	if ( verbose ) printf ( "deleting children of: %s\n", dn );
+	if ( verbose ) printf ( _("deleting children of: %s\n"), dn );
 	/*
 	 * Do a one level search at dn for children.  For each, delete its children.
 	 */
@@ -299,7 +298,7 @@ static int deletechildren(
 			}
 
 			if ( verbose ) {
-				printf( "\tremoving %s\n", dn );
+				printf( _("\tremoving %s\n"), dn );
 			}
 
 			rc = ldap_delete_s( ld, dn );
@@ -311,7 +310,7 @@ static int deletechildren(
 			}
 			
 			if ( verbose ) {
-				printf( "\t%s removed\n", dn );
+				printf( _("\t%s removed\n"), dn );
 			}
 
 			ber_memfree( dn );

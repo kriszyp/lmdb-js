@@ -89,17 +89,15 @@ static char *read_one_record LDAP_P(( FILE *fp ));
 void
 usage( void )
 {
-    fprintf( stderr,
-"Add or modify entries from an LDAP server\n\n"
-"usage: %s [options]\n"
-"	The list of desired operations are read from stdin or from the file\n"
-"	specified by \"-f file\".\n"
-"Add or modify options:\n"
-"  -a         add values (default%s)\n"
-"  -F         force all changes records to be used\n"
-"  -S file    write skipped modifications to `file'\n"
-	         , prog, (ldapadd ? "" : " is to replace") );
-	tool_common_usage();
+    fprintf( stderr, _("Add or modify entries from an LDAP server\n\n"));
+    fprintf( stderr, _("usage: %s [options]\n"), prog);
+    fprintf( stderr, _("	The list of desired operations are read from stdin or from the file\n"));
+    fprintf( stderr, _("	specified by \"-f file\".\n"));
+    fprintf( stderr, _("Add or modify options:\n"));
+    fprintf( stderr, _("  -a         add values (default%s)\n"), (ldapadd ? "" : _(" is to replace")));
+    fprintf( stderr, _("  -F         force all changes records to be used\n"));
+    fprintf( stderr, _("  -S file    write skipped modifications to `file'\n"));
+    tool_common_usage();
     exit( EXIT_FAILURE );
 }
 
@@ -116,7 +114,7 @@ handle_private_option( int i )
 		int		crit;
 	case 'E': /* modify controls */
 		if( protocol == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
@@ -136,7 +134,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, "Invalid modify control name: %s\n", control );
+		fprintf( stderr, _("Invalid modify control name: %s\n"), control );
 		usage();
 #endif
 
@@ -153,7 +151,7 @@ handle_private_option( int i )
 
 	case 'S':	/* skipped modifications to file */
 		if( rejfile != NULL ) {
-			fprintf( stderr, "%s: -S previously specified\n", prog );
+			fprintf( stderr, _("%s: -S previously specified\n"), prog );
 			exit( EXIT_FAILURE );
 		}
 		rejfile = ber_strdup( optarg );
@@ -175,6 +173,7 @@ main( int argc, char **argv )
 	int		rc, retval;
 	int count, len;
 
+    tool_init();
     prog = lutil_progname( "ldapmodify", argc, argv );
 
 	/* strncmp instead of strcmp since NT binaries carry .exe extension */
@@ -217,7 +216,7 @@ main( int argc, char **argv )
 			rc = lutil_get_filed_password( pw_file, &passwd );
 			if( rc ) return EXIT_FAILURE;
 		} else {
-			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
 			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 		}
 	}
@@ -252,13 +251,13 @@ main( int argc, char **argv )
 	if ( rc )
 		retval = rc;
 	if ( rc && rejfp ) {
-		fprintf(rejfp, "# Error: %s (%d)", ldap_err2string(rc), rc);
+		fprintf(rejfp, _("# Error: %s (%d)"), ldap_err2string(rc), rc);
 
 		matched_msg = NULL;
 		ldap_get_option(ld, LDAP_OPT_MATCHED_DN, &matched_msg);
 		if ( matched_msg != NULL ) {
 			if ( *matched_msg != '\0' )
-				fprintf( rejfp, ", matched DN: %s", matched_msg );
+				fprintf( rejfp, _(", matched DN: %s"), matched_msg );
 			ldap_memfree( matched_msg );
 		}
 
@@ -266,7 +265,7 @@ main( int argc, char **argv )
 		ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
 		if ( error_msg != NULL ) {
 			if ( *error_msg != '\0' )
-				fprintf( rejfp, ", additional info: %s", error_msg );
+				fprintf( rejfp, _(", additional info: %s"), error_msg );
 			ldap_memfree( error_msg );
 		}
 		fprintf( rejfp, "\n%s\n", rejbuf );
@@ -324,7 +323,7 @@ process_ldif_rec( char *rbuf, int count )
 	}
 	
 	if ( ldif_parse_line( line, &type, &val.bv_val, &val.bv_len ) < 0 ) {
-	    fprintf( stderr, "%s: invalid format (line %d) entry: \"%s\"\n",
+	    fprintf( stderr, _("%s: invalid format (line %d) entry: \"%s\"\n"),
 		    prog, linenum, dn == NULL ? "" : dn );
 	    rc = LDAP_PARAM_ERROR;
 	    break;
@@ -347,7 +346,7 @@ process_ldif_rec( char *rbuf, int count )
 			strcasecmp( type, T_VERSION_STR ) == 0 )
 		{
 			if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
-		    	fprintf( stderr, "%s: invalid version %s, line %d (ignored)\n",
+		    	fprintf( stderr, _("%s: invalid version %s, line %d (ignored)\n"),
 			   	prog, val.bv_val, linenum );
 			}
 			version++;
@@ -369,7 +368,7 @@ process_ldif_rec( char *rbuf, int count )
             /* Parse and add it to the list of controls */
             rc = parse_ldif_control( line, &pctrls );
             if (rc != 0) {
-		    	fprintf( stderr, "%s: Error processing %s line, line %d: %s\n",
+		    	fprintf( stderr, _("%s: Error processing %s line, line %d: %s\n"),
 			   	prog, T_CONTROL_STR, linenum, ldap_err2string(rc) );
             }
             goto end_line;
@@ -377,9 +376,8 @@ process_ldif_rec( char *rbuf, int count )
         
 	    expect_ct = 0;
 	    if ( !use_record && saw_replica ) {
-		printf( "%s: skipping change record for entry: %s\n"
-			"\t(LDAP host/port does not match replica: lines)\n",
-			prog, dn );
+		printf(_("%s: skipping change record for entry: %s\n"), prog, dn);
+		printf(_("\t(LDAP host/port does not match replica: lines)\n"));
 		free( dn );
 		ber_memfree( type );
 		ber_memfree( val.bv_val );
@@ -398,7 +396,7 @@ process_ldif_rec( char *rbuf, int count )
 		}
 
 		if ( ++icnt != val.bv_len ) {
-		    fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+		    fprintf( stderr, _("%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n"),
 			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
 		    val.bv_val[icnt] = '\0';
 		}
@@ -418,7 +416,7 @@ process_ldif_rec( char *rbuf, int count )
 		    got_all = delete_entry = 1;
 		} else {
 		    fprintf( stderr,
-			    "%s:  unknown %s \"%s\" (line %d of entry \"%s\")\n",
+			    _("%s:  unknown %s \"%s\" (line %d of entry \"%s\")\n"),
 			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
 		    rc = LDAP_PARAM_ERROR;
 		}
@@ -443,7 +441,7 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 	    
 	    if ( ++icnt != val.bv_len ) {
-		fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+		fprintf( stderr, _("%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n"),
     			prog, type, val.bv_val, linenum, dn );
 		val.bv_val[icnt] = '\0';
 	    }
@@ -476,7 +474,7 @@ process_ldif_rec( char *rbuf, int count )
 		expect_deleteoldrdn = 1;
 		expect_newrdn = 0;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
+		fprintf( stderr, _("%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n"),
 			prog, T_NEWRDNSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
@@ -487,7 +485,7 @@ process_ldif_rec( char *rbuf, int count )
 		expect_newsup = 1;
 		got_all = 1;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
+		fprintf( stderr, _("%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n"),
 			prog, T_DELETEOLDRDNSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
@@ -499,13 +497,13 @@ process_ldif_rec( char *rbuf, int count )
 		}
 		expect_newsup = 0;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
+		fprintf( stderr, _("%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n"),
 			prog, T_NEWSUPSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
 	} else if ( got_all ) {
 	    fprintf( stderr,
-		    "%s: extra lines at end (line %d of entry \"%s\")\n",
+		    _("%s: extra lines at end (line %d of entry \"%s\")\n"),
 		    prog, linenum, dn );
 	    rc = LDAP_PARAM_ERROR;
 	} else {
@@ -811,7 +809,7 @@ domodify(
     struct berval	*bvp;
 
     if ( pmods == NULL ) {
-	fprintf( stderr, "%s: no attributes to change or add (entry=\"%s\")\n",
+	fprintf( stderr, _("%s: no attributes to change or add (entry=\"%s\")\n"),
 		prog, dn );
 	return( LDAP_PARAM_ERROR );
     } 
@@ -820,7 +818,7 @@ domodify(
 	op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
 	if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
 		fprintf( stderr,
-			"%s: attribute \"%s\" has no values (entry=\"%s\")\n",
+			_("%s: attribute \"%s\" has no values (entry=\"%s\")\n"),
 			prog, pmods[i]->mod_type, dn );
 		return LDAP_PARAM_ERROR;
 	}
@@ -830,8 +828,8 @@ domodify(
 	for ( i = 0; pmods[ i ] != NULL; ++i ) {
 	    op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
 	    printf( "%s %s:\n", op == LDAP_MOD_REPLACE ?
-		    "replace" : op == LDAP_MOD_ADD ?
-		    "add" : "delete", pmods[ i ]->mod_type );
+		    _("replace") : op == LDAP_MOD_ADD ?
+		    _("add") : _("delete"), pmods[ i ]->mod_type );
 	    if ( pmods[ i ]->mod_bvalues != NULL ) {
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
 		    bvp = pmods[ i ]->mod_bvalues[ j ];
@@ -843,7 +841,7 @@ domodify(
 			}
 		    }
 		    if ( notascii ) {
-			printf( "\tNOT ASCII (%ld bytes)\n", bvp->bv_len );
+			printf( _("\tNOT ASCII (%ld bytes)\n"), bvp->bv_len );
 		    } else {
 			printf( "\t%s\n", bvp->bv_val );
 		    }
@@ -866,10 +864,10 @@ domodify(
 	}
 	if ( i != LDAP_SUCCESS ) {
 		/* print error message about failed update including DN */
-		fprintf( stderr, "%s: update failed: %s\n", prog, dn );
+		fprintf( stderr, _("%s: update failed: %s\n"), prog, dn );
 		ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
 	} else if ( verbose ) {
-	    printf( "modify complete\n" );
+	    printf( _("modify complete\n") );
 	}
     } else {
 	i = LDAP_SUCCESS;
@@ -888,13 +886,13 @@ dodelete(
 {
     int	rc;
 
-    printf( "%sdeleting entry \"%s\"\n", not ? "!" : "", dn );
+    printf( _("%sdeleting entry \"%s\"\n"), not ? "!" : "", dn );
     if ( !not ) {
 	if (( rc = ldap_delete_ext_s( ld, dn, pctrls, NULL )) != LDAP_SUCCESS ) {
-		fprintf( stderr, "%s: delete failed: %s\n", prog, dn );
+		fprintf( stderr, _("%s: delete failed: %s\n"), prog, dn );
 		ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
-	    printf( "delete complete" );
+	    printf( _("delete complete") );
 	}
     } else {
 	rc = LDAP_SUCCESS;
@@ -917,18 +915,18 @@ dorename(
     int	rc;
 
 
-    printf( "%smodifying rdn of entry \"%s\"\n", not ? "!" : "", dn );
+    printf( _("%smodifying rdn of entry \"%s\"\n"), not ? "!" : "", dn );
     if ( verbose ) {
-	printf( "\tnew RDN: \"%s\" (%skeep existing values)\n",
-		newrdn, deleteoldrdn ? "do not " : "" );
+	printf( _("\tnew RDN: \"%s\" (%skeep existing values)\n"),
+		newrdn, deleteoldrdn ? _("do not ") : "" );
     }
     if ( !not ) {
 	if (( rc = ldap_rename_s( ld, dn, newrdn, newsup, deleteoldrdn, pctrls, NULL ))
 		!= LDAP_SUCCESS ) {
-		fprintf( stderr, "%s: rename failed: %s\n", prog, dn );
+		fprintf( stderr, _("%s: rename failed: %s\n"), prog, dn );
 		ldap_perror( ld, "ldap_modrdn" );
 	} else {
-	    printf( "modrdn completed\n" );
+	    printf( _("modrdn completed\n") );
 	}
     } else {
 	rc = LDAP_SUCCESS;
