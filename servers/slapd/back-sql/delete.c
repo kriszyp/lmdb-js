@@ -385,59 +385,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 	SQLFreeStmt( sth, SQL_DROP );
 
-	/* delete referrals, if any... */
-	rc = backsql_Prepare( dbh, &sth, bi->sql_delreferrals_stmt, 0 );
-	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_delete(): "
-			"error preparing ldap_referrals delete query\n", 
-			0, 0, 0 );
-		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		e = NULL;
-		goto done;
-	}
-
-	rc = backsql_BindParamID( sth, 1, SQL_PARAM_INPUT, &e_id.eid_id );
-	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_delete(): "
-			"error binding referrals entry ID parameter "
-			"for objectClass %s\n",
-			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->sql_db_env, dbh, 
-			sth, rc );
-		SQLFreeStmt( sth, SQL_DROP );
-
-		rs->sr_text = "SQL-backend error";
-		rs->sr_err = LDAP_OTHER;
-		e = NULL;
-		goto done;
-	}
-
-	rc = SQLExecute( sth );
-	switch ( rc ) {
-	case SQL_NO_DATA:
-		/* apparently there were no referrals
-		 * for this entry... */
-	case SQL_SUCCESS:
-		break;
-
-	default:
-		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
-			"failed to delete record from ldap_referrals\n", 
-			0, 0, 0 );
-		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-		SQLFreeStmt( sth, SQL_DROP );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		e = NULL;
-		goto done;
-	}
-	SQLFreeStmt( sth, SQL_DROP );
-
 	/* delete entry... */
 	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {

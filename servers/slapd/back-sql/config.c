@@ -321,21 +321,6 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"delobjclasses_stmt=%s\n", bi->sql_delobjclasses_stmt, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "delreferrals_stmt" ) ||
-			!strcasecmp( argv[ 0 ], "delreferrals_query" ) )
-	{
-		if ( argc < 2 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"<==backsql_db_config (%s line %d): "
-				"missing SQL statement "
-				"in \"delreferrals_stmt\" directive\n",
-				fname, lineno, 0 );
-			return 1;
-		}
-		bi->sql_delreferrals_stmt = ch_strdup( argv[ 1 ] );
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
-			"delreferrals_stmt=%s\n", bi->sql_delreferrals_stmt, 0, 0 );
-
 	} else if ( !strcasecmp( argv[ 0 ], "has_ldapinfo_dn_ru") ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,

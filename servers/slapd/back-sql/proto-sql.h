@@ -227,7 +227,6 @@ extern char
 	backsql_def_renentry_stmt[],
 	backsql_def_insentry_stmt[],
 	backsql_def_delobjclasses_stmt[],
-	backsql_def_delreferrals_stmt[],
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
 	backsql_id_query[],

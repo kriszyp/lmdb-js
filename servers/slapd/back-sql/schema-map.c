@@ -190,8 +190,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	struct berbuf		bb;
 	
 	sbv.bv_val = s;
-	snprintf( s, sizeof( s ), "%ld", oc_map->bom_id );
-	sbv.bv_len = strlen( s );
+	sbv.bv_len = snprintf( s, sizeof( s ), "%ld", oc_map->bom_id );
 
 	/* extra objectClasses */
 	at_map = (backsql_at_map_rec *)ch_calloc(1, 
@@ -284,81 +283,6 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				" AND ldap_entries.oc_map_id=", 
 			&sbv );
 	at_map->bam_join_where = bb.bb_val;
-
-	/* referral attribute */
-	at_map = (backsql_at_map_rec *)ch_calloc( 1, 
-			sizeof( backsql_at_map_rec ) );
-	at_map->bam_ad = slap_schema.si_ad_ref;
-	ber_str2bv( "ldap_referrals.url", 0, 1, &at_map->bam_sel_expr );
-	ber_str2bv( "ldap_referrals,ldap_entries", 0, 1, &at_map->bam_from_tbls );
-
-	bb.bb_len = at_map->bam_from_tbls.bv_len + 1;
-	bb.bb_val = at_map->bam_from_tbls;
-	backsql_merge_from_clause( &bb, &oc_map->bom_keytbl );
-	at_map->bam_from_tbls = bb.bb_val;
-
-	BER_BVZERO( &bb.bb_val );
-	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lbcblb",
-			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_referrals.entry_id AND ldap_entries.keyval=" ),
-				"ldap_entries.id=ldap_referrals.entry_id AND ldap_entries.keyval=",
-			&oc_map->bom_keytbl, 
-			'.', 
-			&oc_map->bom_keycol,
-			(ber_len_t)STRLENOF( " AND ldap_entries.oc_map_id=" ), 
-				" AND ldap_entries.oc_map_id=", 
-			&sbv );
-
-	at_map->bam_join_where = bb.bb_val;
-
-	at_map->bam_oc = NULL;
-
-	at_map->bam_add_proc = NULL;
-	{
-		char	tmp[] =
-			"INSERT INTO ldap_referrals "
-			"(entry_id,url) VALUES "
-			"((SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?),?)";
-		snprintf( tmp, sizeof(tmp), 
-			"INSERT INTO ldap_referrals "
-			"(entry_id,url) VALUES "
-			"((SELECT id FROM ldap_entries "
-			"WHERE oc_map_id=%lu "
-			"AND keyval=?),?)", oc_map->bom_id );
-		at_map->bam_add_proc = ch_strdup( tmp );
-	}
-
-	at_map->bam_delete_proc = NULL;
-	{
-		char	tmp[] =
-			"DELETE FROM ldap_referrals "
-			"WHERE entry_id=(SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?) and url=?";
-		snprintf( tmp, sizeof(tmp), 
-			"DELETE FROM ldap_referrals "
-			"WHERE entry_id=(SELECT id FROM ldap_entries "
-			"WHERE oc_map_id=%lu"
-			"AND keyval=?) and url=?",
-			oc_map->bom_id );
-		at_map->bam_delete_proc = ch_strdup( tmp );
-	}
-
-	at_map->bam_param_order = 0;
-	at_map->bam_expect_return = 0;
-	at_map->bam_next = NULL;
-
-	backsql_make_attr_query( oc_map, at_map );
-	if ( avl_insert( &oc_map->bom_attrs, at_map, backsql_cmp_attr, backsql_dup_attr ) == BACKSQL_DUPLICATE ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_add_sysmaps(): "
-				"duplicate attribute \"%s\" in objectClass \"%s\" map\n",
-				at_map->bam_ad->ad_cname.bv_val,
-				oc_map->bom_oc->soc_cname.bv_val, 0 );
-	}
 
 	return 1;
 }

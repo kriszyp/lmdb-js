@@ -77,6 +77,9 @@ values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (13,4,'ou','referrals.name','referrals',NULL,NULL,NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (14,4,'ref','referrals.url','referrals',NULL,NULL,NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -112,10 +115,4 @@ values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
 values (7,'extensibleObject');
-
--- referrals mapping: entries that should be treated as referrals are stored here
---	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
---	url		the URI of the referral
-insert into ldap_referrals (entry_id,url)
-values (7,'ldap://localhost:9010/');
 

@@ -53,6 +53,8 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (13,4,'ou','referrals.name','referrals',NULL,'UPDATE referrals SET name=? WHERE id=?',NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (14,4,'ref','referrals.url','referrals',NULL,'UPDATE referrals SET url=? WHERE id=?',NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -79,11 +81,6 @@ insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (7,'ou=Referral,
 insert into ldap_entry_objclasses (entry_id,oc_name) values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name) values (7,'extensibleObject');
-
--- referrals mapping: entries that should be treated as referrals are stored here
---	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
---	url		the URI of the referral
-insert into ldap_referrals (entry_id,url) values (7,'ldap://localhost:9010/');
 
 -- procedures
 -- these procedures are specific for this RDBMS and are used in mapping objectClass and attributeType creation/modify/deletion
@@ -138,7 +135,7 @@ as '
 create function create_referral () returns int
 as '
 	select setval (''referrals_id_seq'', (select case when max(id) is null then 1 else max(id) end from referrals));
-	insert into referrals (id,name,surname) 
+	insert into referrals (id,name,url) 
 		values ((select case when max(id) is null then 1 else nextval(''referrals_id_seq'') end from referrals),'''','''');
 	select max(id) from referrals
 ' language 'sql';

@@ -145,7 +145,6 @@ backsql_db_destroy(
 	free( bi->sql_delentry_stmt );
 	free( bi->sql_renentry_stmt );
 	free( bi->sql_delobjclasses_stmt );
-	free( bi->sql_delreferrals_stmt );
 
 	if ( bi->sql_anlist ) {
 		int	i;
@@ -402,17 +401,6 @@ backsql_db_open(
 			"setting \"%s\" by default\n",
 			backsql_def_delobjclasses_stmt, 0, 0 );
 		bi->sql_delobjclasses_stmt = ch_strdup( backsql_def_delobjclasses_stmt );
-	}
-
-	if ( bi->sql_delreferrals_stmt == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"referrals deletion SQL statement not specified "
-			"(use \"delreferrals_stmt\" directive in slapd.conf)\n",
-			0, 0, 0 );
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting \"%s\" by default\n",
-			backsql_def_delreferrals_stmt, 0, 0 );
-		bi->sql_delreferrals_stmt = ch_strdup( backsql_def_delreferrals_stmt );
 	}
 
 	op->o_hdr = (Opheader *)&op[ 1 ];
