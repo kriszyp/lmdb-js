@@ -77,6 +77,10 @@ done
 echo "Starting slurpd..."
 $SLURPD -f $MASTERCONF -d ${SLURPD_DEBUG-5} -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
+if test $WAIT != 0 ; then
+    echo SLURPPID $SLURPPID
+    read foo
+fi
 
 echo "Using ldapadd to populate the master directory..."
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
