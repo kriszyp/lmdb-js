@@ -134,8 +134,9 @@ ldap_back_exop_passwd(
 	}
 
 	rc = ldap_passwd(lc->ld, isproxy ? &mdn : NULL,
-		qpw->rs_old.bv_len ? &qpw->rs_old : NULL,
-		qpw->rs_new.bv_len ? &qpw->rs_new : NULL, op->o_ctrls, NULL, &msgid);
+		qpw->rs_old.bv_val ? &qpw->rs_old : NULL,
+		qpw->rs_new.bv_val ? &qpw->rs_new : NULL,
+		op->o_ctrls, NULL, &msgid);
 
 	if (mdn.bv_val != op->o_req_dn.bv_val) {
 		free(mdn.bv_val);

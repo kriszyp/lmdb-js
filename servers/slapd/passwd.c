@@ -59,9 +59,7 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	qpw->rs_old.bv_len = 0;
 	qpw->rs_old.bv_val = NULL;
-	qpw->rs_new.bv_len = 0;
 	qpw->rs_new.bv_val = NULL;
 	qpw->rs_mods = NULL;
 	qpw->rs_modtail = NULL;
