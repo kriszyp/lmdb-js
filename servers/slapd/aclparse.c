@@ -155,7 +155,13 @@ parse_acl(
 						|| strcasecmp( style, "regex" ) == 0 )
 					{
 						a->acl_dn_style = ACL_STYLE_REGEX;
-						if ( strcmp(right, "*") == 0 
+
+						if ( *right == '\0' ) {
+							/* empty regex should match empty DN */
+							a->acl_dn_style = ACL_STYLE_BASE;
+							ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
+						} else if ( strcmp(right, "*") == 0 
 							|| strcmp(right, ".*") == 0 
 							|| strcmp(right, ".*$") == 0 
 							|| strcmp(right, "^.*") == 0 
@@ -164,7 +170,7 @@ parse_acl(
 							|| strcmp(right, "^.*$$") == 0 )
 						{
 							a->acl_dn_pat.bv_val = ch_strdup( "*" );
-							a->acl_dn_pat.bv_len = 1;
+							a->acl_dn_pat.bv_len = sizeof("*")-1;
 
 						} else {
 							a->acl_dn_pat.bv_val = right;
@@ -218,28 +224,29 @@ parse_acl(
 				}
 			}
 
-			if ( a->acl_dn_pat.bv_len != 0 && strcmp(a->acl_dn_pat.bv_val, "*") == 0) {
+			if ( a->acl_dn_pat.bv_len != 0 &&
+				strcmp(a->acl_dn_pat.bv_val, "*") == 0)
+			{
 				free( a->acl_dn_pat.bv_val );
 				a->acl_dn_pat.bv_val = NULL;
 				a->acl_dn_pat.bv_len = 0;
 			}
 			
 			if( a->acl_dn_pat.bv_len != 0 ) {
-				if ( a->acl_dn_style != ACL_STYLE_REGEX )
-				{
+				if ( a->acl_dn_style != ACL_STYLE_REGEX ) {
 					struct berval bv;
 					dnNormalize2( NULL, &a->acl_dn_pat, &bv);
 					free( a->acl_dn_pat.bv_val );
 					a->acl_dn_pat = bv;
 				} else {
 					int e = regcomp( &a->acl_dn_re, a->acl_dn_pat.bv_val,
-					                 REG_EXTENDED | REG_ICASE );
+						REG_EXTENDED | REG_ICASE );
 					if ( e ) {
 						char buf[512];
 						regerror( e, &a->acl_dn_re, buf, sizeof(buf) );
-						fprintf( stderr,
-					"%s: line %d: regular expression \"%s\" bad because of %s\n",
-						         fname, lineno, right, buf );
+						fprintf( stderr, "%s: line %d: "
+							"regular expression \"%s\" bad because of %s\n",
+							fname, lineno, right, buf );
 						acl_usage();
 					}
 				}
@@ -1382,7 +1389,8 @@ print_access( Access *b )
 			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
 
 		} else {
-			fprintf( stderr, " dn.%s=%s", style_strings[b->a_dn_style], b->a_dn_pat.bv_val );
+			fprintf( stderr, " dn.%s=%s",
+				style_strings[b->a_dn_style], b->a_dn_pat.bv_val );
 		}
 	}
 
