@@ -16,7 +16,7 @@
 LIBRARY = liblunicode.a
 
 XXDIR = $(srcdir)/*/
-XXHEADERS = ucdata.h ure.h
+XXHEADERS = ucdata.h ure.h uctable.h
 
 XXSRCS	= ucdata.c ucgendat.c ure.c urestubs.c
 SRCS	= ucstr.c
@@ -24,23 +24,26 @@ OBJS	= ucdata.o ure.o urestubs.o ucstr.o
 
 XLIB = $(LIBRARY)
 XLIBS = $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
-PROGRAMS = ucgendat
+#PROGRAMS = ucgendat
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-ucgendat: $(XLIBS) ucgendat.o
-	$(LTLINK) -o $@ ucgendat.o $(LIBS)
+uctable.h: $(srcdir)/UnicodeData.txt $(srcdir)/CompositionExclusions.txt
+	$(MAKE) ucgendat
 	./ucgendat $(srcdir)/UnicodeData.txt -x $(srcdir)/CompositionExclusions.txt
 
-DATFILES = case.dat cmbcl.dat comp.dat ctype.dat decomp.dat num.dat kdecomp.dat
+ucgendat: $(XLIBS) ucgendat.o
+	$(LTLINK) -o $@ ucgendat.o $(LIBS)
 
-install-local: $(PROGRAMS) FORCE
-	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
-	@for i in $(DATFILES); do \
-		echo $(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
-	done
+#DATFILES = case.dat cmbcl.dat comp.dat ctype.dat decomp.dat num.dat kdecomp.dat
+
+#install-local: $(PROGRAMS) FORCE
+#	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
+#	@for i in $(DATFILES); do \
+#		echo $(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
+#		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
+#	done
 
 .links :
 	@for i in $(XXSRCS) $(XXHEADERS); do \
@@ -52,6 +55,6 @@ install-local: $(PROGRAMS) FORCE
 $(XXSRCS) : .links
 
 clean-local: FORCE
-	@$(RM) *.dat .links $(XXHEADERS)
+	@$(RM) *.dat .links $(XXHEADERS) ucgendat
 
 depend-common: .links
