@@ -463,10 +463,8 @@ test_ava_filter(
 		int		hasSubordinates;
 		struct berval	hs;
 
-		/*
-		 * No other match should be allowed ...
-		 */
-		assert( type == LDAP_FILTER_EQUALITY );
+		/* No other match is supported */
+		if( type != LDAP_FILTER_EQUALITY ) return LDAP_OTHER;
 		
 		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
 			LDAP_SUCCESS )
