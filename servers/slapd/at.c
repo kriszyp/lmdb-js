@@ -18,160 +18,6 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-char *
-at_canonical_name( const char * a_type )
-{
-	AttributeType	*atp;
-
-	atp=at_find(a_type);
-
-	if ( atp == NULL ) {
-		return (char *) a_type;
-
-	} else if ( atp->sat_names
-		&& atp->sat_names[0] && (*(atp->sat_names[0]) != '\0') )
-	{
-		return atp->sat_names[0];
-
-	} else if (atp->sat_oid && (*atp->sat_oid != '\0')) {
-		return atp->sat_oid;
-	}
-
-	return (char *) a_type;
-}
-
-#define DEFAULT_SYNTAX	SYNTAX_CIS
-
-/*
- * attr_syntax - return the syntax of attribute type
- */
-
-int
-attr_syntax( const char *type )
-{
-	AttributeType	*sat;
-
-	sat = at_find(type);
-	if ( sat ) {
-		return( sat->sat_syntax_compat );
-	}
-
-	return( DEFAULT_SYNTAX );
-}
-
-/*
- * attr_syntax_config - process an attribute syntax config line
- */
-
-void
-at_config(
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	char			*save;
-	LDAP_ATTRIBUTE_TYPE	*at;
-	int			lasti;
-	int			code;
-	const char		*err;
-
-	if ( argc < 2 ) {
-		Debug( LDAP_DEBUG_ANY,
-"%s: line %d: missing name in \"attribute <name>+ <syntax>\" (ignored)\n",
-		    fname, lineno, 0 );
-		return;
-	}
-
-	at = (LDAP_ATTRIBUTE_TYPE *)
-		ch_calloc( 1, sizeof(LDAP_ATTRIBUTE_TYPE) );
-
-#define SYNTAX_DS_OID	"1.3.6.1.4.1.1466.115.121.1.15"
-#define SYNTAX_DSCE_OID	"2.5.13.5"
-#define SYNTAX_IA5_OID	"1.3.6.1.4.1.1466.115.121.1.26"
-#define SYNTAX_IA5CE_OID	"1.3.6.1.4.1.1466.109.114.1"
-#define SYNTAX_DN_OID	"1.3.6.1.4.1.1466.115.121.1.12"
-#define SYNTAX_TEL_OID	"1.3.6.1.4.1.1466.115.121.1.50"
-#define SYNTAX_BIN_OID	"1.3.6.1.4.1.1466.115.121.1.40" /* octetString */
-
-	lasti = argc - 1;
-	if ( strcasecmp( argv[lasti], "caseignorestring" ) == 0 ||
-	    strcasecmp( argv[lasti], "cis" ) == 0 ) {
-		at->at_syntax_oid = SYNTAX_DS_OID;
-		at->at_equality_oid = "2.5.13.2";
-		at->at_ordering_oid = "2.5.13.3";
-		at->at_substr_oid = "2.5.13.4";
-
-	} else if ( strcasecmp( argv[lasti], "telephone" ) == 0 ||
-	    strcasecmp( argv[lasti], "tel" ) == 0 ) {
-		at->at_syntax_oid = SYNTAX_TEL_OID;
-		at->at_equality_oid = "2.5.13.20";
-		at->at_substr_oid = "2.5.13.21";
-
-	} else if ( strcasecmp( argv[lasti], "dn" ) == 0 ) {
-		at->at_syntax_oid = SYNTAX_DN_OID;
-		at->at_equality_oid = "2.5.13.1";
-
-	} else if ( strcasecmp( argv[lasti], "caseexactstring" ) == 0 ||
-	    strcasecmp( argv[lasti], "ces" ) == 0 ) {
-		at->at_syntax_oid = SYNTAX_DS_OID;
-		at->at_equality_oid = SYNTAX_DSCE_OID;
-		at->at_ordering_oid = "2.5.13.6";
-		at->at_substr_oid = "2.5.13.7";
-
-	} else if ( strcasecmp( argv[lasti], "binary" ) == 0 ||
-	    strcasecmp( argv[lasti], "bin" ) == 0 ) {
-		/* bin -> octetString, not binary! */
-		at->at_syntax_oid = SYNTAX_BIN_OID;
-		at->at_equality_oid = "2.5.13.17";
-
-	} else {
-		Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: unknown syntax \"%s\" in attribute line (ignored)\n",
-		    fname, lineno, argv[lasti] );
-		Debug( LDAP_DEBUG_ANY,
-    "possible syntaxes are \"cis\", \"ces\", \"tel\", \"dn\", or \"bin\"\n",
-		    0, 0, 0 );
-		free( (AttributeType *) at );
-		return;
-	}
-
-	save = argv[lasti];
-	argv[lasti] = NULL;
-	at->at_names = charray_dup( argv );
-	argv[lasti] = save;
-
-	code = at_add( at, &err );
-	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
-			 fname, lineno, scherr2str(code), err);
-		exit( EXIT_FAILURE );
-	}
-
-	ldap_memfree(at);
-}
-
-int
-at_fake_if_needed(
-    const char	*name
-)
-{
-	char *argv[3];
-
-	if ( at_find( name ) ) {
-		return 0;
-	} else {
-		argv[0] = (char*) name;
-		argv[1] = "cis";
-		argv[2] = NULL;
-		at_config( "implicit", 0, 2, argv );
-		return 0;
-	}
-}
-
-#endif
 
 int is_at_syntax(
 	AttributeType *at,
@@ -231,19 +77,6 @@ at_find(
 	struct aindexrec	*air;
 	char			*tmpname;
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	/*
-	 * The name may actually be an AttributeDescription, i.e. it may
-	 * contain options.
-	 */
-	/* Treat any attribute type with option as an unknown attribute type */
-	char *p = strchr( name, ';' );
-	if ( p ) {
-		tmpname = ch_malloc( p-name+1 );
-		strncpy( tmpname, name, p-name );
-		tmpname[p-name] = '\0';
-	} else
-#endif
 	{
 		tmpname = (char *)name;
 	}
@@ -427,9 +260,7 @@ at_add(
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
 	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	sat->sat_cname = cname;
-#endif
 
 	if ( at->at_sup_oid ) {
 		AttributeType *supsat = at_find(at->at_sup_oid);
@@ -454,9 +285,6 @@ at_add(
 	 */
 	if ( sat->sat_sup ) {
 		sat->sat_syntax = sat->sat_sup->sat_syntax;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		sat->sat_syntax_compat = sat->sat_sup->sat_syntax_compat;
-#endif
 		sat->sat_equality = sat->sat_sup->sat_equality;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
 		sat->sat_substr = sat->sat_sup->sat_substr;
@@ -470,38 +298,6 @@ at_add(
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		if ( !strcmp(at->at_syntax_oid, SYNTAX_DS_OID) ) {
-			if ( at->at_equality_oid && (
-				!strcmp(at->at_equality_oid, SYNTAX_DSCE_OID) ) )
-			{
-				sat->sat_syntax_compat = SYNTAX_CES;
-			} else {
-				sat->sat_syntax_compat = SYNTAX_CIS;
-			}
-
-		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_IA5_OID) ) {
-			if ( at->at_equality_oid && (
-				!strcmp(at->at_equality_oid, SYNTAX_IA5CE_OID) ) )
-			{
-				sat->sat_syntax_compat = SYNTAX_CES;
-			} else {
-				sat->sat_syntax_compat = SYNTAX_CIS;
-			}
-
-		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_DN_OID ) ) {
-			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_DN;
-
-		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_TEL_OID ) ) {
-			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
-
-		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_BIN_OID ) ) {
-			sat->sat_syntax_compat = SYNTAX_BIN;
-
-		} else {
-			sat->sat_syntax_compat = DEFAULT_SYNTAX;
-		}
-#endif
 
 	} else if ( sat->sat_syntax == NULL ) {
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
@@ -567,11 +363,7 @@ at_schema_info( Entry *e )
 	struct berval	*vals[2];
 	AttributeType	*at;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_attributeTypes = slap_schema.si_ad_attributeTypes;
-#else
-	char *ad_attributeTypes = "attributeTypes";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;

@@ -15,7 +15,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 static ID_BLOCK	*presence_candidates(
 	Backend *be,
 	AttributeDescription *desc );
@@ -30,15 +29,6 @@ static ID_BLOCK	*list_candidates(
 	Backend *be,
 	Filter *flist,
 	int ftype );
-#else
-static ID_BLOCK	*presence_candidates( Backend *be, char *type );
-static ID_BLOCK	*equality_candidates( Backend *be, Ava *ava );
-static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
-static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
-static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
-static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type,
-	struct berval *val, int prepost );
-#endif
 
 ID_BLOCK *
 filter_candidates(
@@ -69,20 +59,12 @@ filter_candidates(
 
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		result = equality_candidates( be, f->f_ava );
-#else
-		result = equality_candidates( be, &f->f_ava );
-#endif
 		break;
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		result = approx_candidates( be, f->f_ava );
-#else
-		result = approx_candidates( be, &f->f_ava );
-#endif
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -128,25 +110,18 @@ filter_candidates(
 static ID_BLOCK *
 presence_candidates(
     Backend	*be,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
-#else
-    char	*desc
-#endif
 )
 {
 	ID_BLOCK	*idl;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	DBCache	*db;
 	int rc;
 	char *dbname;
 	slap_index mask;
 	struct berval *prefix;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	idl = idl_allids( be );
 
 	rc = index_param( be, desc, LDAP_FILTER_PRESENT,
@@ -188,9 +163,6 @@ presence_candidates(
 
 	ldbm_cache_close( be, db );
 
-#else
-	idl = index_read( be, desc, SLAP_INDEX_PRESENT, NULL );
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -200,15 +172,10 @@ presence_candidates(
 static ID_BLOCK *
 equality_candidates(
     Backend	*be,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion *ava
-#else
-    Ava		*ava
-#endif
 )
 {
 	ID_BLOCK	*idl;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	DBCache	*db;
 	int i;
 	int rc;
@@ -217,11 +184,9 @@ equality_candidates(
 	struct berval *prefix;
 	struct berval **keys = NULL;
 	MatchingRule *mr;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> equality_candidates\n", 0, 0, 0 );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	idl = idl_allids( be );
 
 	rc = index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
@@ -300,10 +265,6 @@ equality_candidates(
 
 	ldbm_cache_close( be, db );
 
-#else
-	idl = index_read( be, ava->ava_type, SLAP_INDEX_EQUALITY,
-	    ava->ava_value.bv_val );
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "<= equality_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -313,15 +274,10 @@ equality_candidates(
 static ID_BLOCK *
 approx_candidates(
     Backend	*be,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion *ava
-#else
-    Ava		*ava
-#endif
 )
 {
 	ID_BLOCK *idl;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	DBCache	*db;
 	int i;
 	int rc;
@@ -330,14 +286,9 @@ approx_candidates(
 	struct berval *prefix;
 	struct berval **keys = NULL;
 	MatchingRule *mr;
-#else
-	char *w, *c;
-	ID_BLOCK *tmp;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	idl = idl_allids( be );
 
 	rc = index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
@@ -421,31 +372,6 @@ approx_candidates(
 
 	ldbm_cache_close( be, db );
 
-#else
-	idl = NULL;
-	for ( w = first_word( ava->ava_value.bv_val );
-		w != NULL;
-	    w = next_word( w ) )
-	{
-		c = phonetic( w );
-		if ( (tmp = index_read( be, ava->ava_type, SLAP_INDEX_APPROX, c ))
-		    == NULL ) {
-			free( c );
-			idl_free( idl );
-			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates NULL\n",
-			    0, 0, 0 );
-			return( NULL );
-		}
-		free( c );
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			idl = idl_intersection( be, idl, tmp );
-		}
-	}
-
-#endif
 	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
@@ -499,155 +425,12 @@ substring_candidates(
 )
 {
 	ID_BLOCK *idl;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	int	i;
-	ID_BLOCK *tmp, *tmp2;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> substring_candidates\n", 0, 0, 0 );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	idl = idl_allids( be );
-#else
-	idl = NULL;
-
-	/* initial */
-	if ( f->f_sub_initial != NULL ) {
-		if ( f->f_sub_initial->bv_len < SUBLEN - 1 ) {
-			idl = idl_allids( be );
-		} else if ( (idl = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_initial, '^' )) == NULL ) {
-			return( NULL );
-		}
-	}
-
-	/* final */
-	if ( f->f_sub_final != NULL ) {
-		if ( f->f_sub_final->bv_len < SUBLEN - 1 ) {
-			tmp = idl_allids( be );
-		} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_final, '$' )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
-		}
-	}
-
-	if( f->f_sub_any != NULL ) {
-		for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
-			if ( f->f_sub_any[i]->bv_len < SUBLEN ) {
-				tmp = idl_allids( be );
-			} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
-				f->f_sub_any[i], 0 )) == NULL ) {
-				idl_free( idl );
-				return( NULL );
-			}
-
-			if ( idl == NULL ) {
-				idl = tmp;
-			} else {
-				tmp2 = idl;
-				idl = idl_intersection( be, idl, tmp );
-				idl_free( tmp );
-				idl_free( tmp2 );
-			}
-		}
-	}
-#endif
 	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-static ID_BLOCK *
-substring_comp_candidates(
-    Backend	*be,
-    char	*type,
-    struct berval	*bv,
-    int		prepost
-)
-{
-	int	i, len;
-	ID_BLOCK	*idl, *tmp, *tmp2;
-	char	*p;
-	char	buf[SUBLEN + 1];
-	char	*val;
-
-	Debug( LDAP_DEBUG_TRACE, "=> substring_comp_candidates\n", 0, 0, 0 );
-
-	val = bv->bv_val;
-	len = bv->bv_len;
-	idl = NULL;
-
-	/* prepend ^ for initial substring */
-	if ( prepost == '^' ) {
-		buf[0] = '^';
-		for ( i = 0; i < SUBLEN - 1; i++ ) {
-			buf[i + 1] = val[i];
-		}
-		buf[SUBLEN] = '\0';
-
-		if ( (idl = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
-			return( NULL );
-		}
-	} else if ( prepost == '$' ) {
-		p = val + len - SUBLEN + 1;
-		for ( i = 0; i < SUBLEN - 1; i++ ) {
-			buf[i] = p[i];
-		}
-		buf[SUBLEN - 1] = '$';
-		buf[SUBLEN] = '\0';
-
-		if ( (idl = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
-			return( NULL );
-		}
-	}
-
-	for ( p = val; p < (val + len - SUBLEN + 1); p++ ) {
-		for ( i = 0; i < SUBLEN; i++ ) {
-			buf[i] = p[i];
-		}
-		buf[SUBLEN] = '\0';
-
-		if ( (tmp = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
-		}
-
-		/* break if no candidates */
-		if( idl == NULL ) {
-			break;
-		}
-
-		/* if we're down to two (or less) matches, stop searching */
-		if( ID_BLOCK_NIDS(idl) < 3 ) {
-			Debug( LDAP_DEBUG_TRACE, "substring_comp_candiates: "
-				"down to a %ld matches, stopped search\n",
-					(long) ID_BLOCK_NIDS(idl), 0, 0 );
-			break;
-		}
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %ld\n",
-	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
-	return( idl );
-}
-#endif

@@ -35,15 +35,9 @@ extern int	dnssrv_back_search LDAP_P(( BackendDB *bd,
 	Filter *filter, const char *filterstr,
 	char **attrs, int attrsonly ));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn, AttributeAssertion *ava ));
-#else
-extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, Ava *ava ));
-#endif
 
 extern int	dnssrv_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,

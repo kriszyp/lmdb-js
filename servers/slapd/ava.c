@@ -14,7 +14,6 @@
 
 #include "slap.h"
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 
 void
 ava_free(
@@ -78,39 +77,3 @@ get_ava(
 	return LDAP_SUCCESS;
 }
 
-#else
-
-void
-ava_free(
-    Ava	*ava,
-    int	freeit
-)
-{
-	ch_free( (char *) ava->ava_type );
-	ch_free( (char *) ava->ava_value.bv_val );
-	if ( freeit ) {
-		ch_free( (char *) ava );
-	}
-}
-
-int
-get_ava(
-    BerElement	*ber,
-    Ava		*ava,
-	const char **text
-)
-{
-	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )
-	    == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
-		*text = "Error decoding attribute value assertion";
-		return SLAPD_DISCONNECT;
-	}
-
-	attr_normalize( ava->ava_type );
-	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
-
-	return LDAP_SUCCESS;
-}
-
-#endif

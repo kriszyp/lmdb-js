@@ -18,9 +18,6 @@
 
 int	global_schemacheck = 1; /* schemacheck on is default */
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-static void		oc_usage_old(void) LDAP_GCCATTR((noreturn));
-#endif
 static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
@@ -50,105 +47,6 @@ scherr2str(int code)
 	}
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-void
-parse_oc_old(
-    Backend	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	int		i;
-	char		last;
-	LDAP_OBJECT_CLASS	*oc;
-	int		code;
-	const char	*err;
-	char		**namep;
-
-	oc = (LDAP_OBJECT_CLASS *) ch_calloc( 1, sizeof(LDAP_OBJECT_CLASS) );
-	oc->oc_names = ch_calloc( 2, sizeof(char *) );
-	oc->oc_names[0] = ch_strdup( argv[1] );
-	oc->oc_names[1] = NULL;
-
-	if ( strcasecmp( oc->oc_names[0], "top" ) ) {
-		/*
-		 * no way to distinguish "auxiliary" from "structural"
-		 * This may lead to future problems.
-		 */
-		oc->oc_kind = LDAP_SCHEMA_STRUCTURAL;
-	}
-	for ( i = 2; i < argc; i++ ) {
-		/* required attributes */
-		if ( strcasecmp( argv[i], "requires" ) == 0 ) {
-			do {
-				i++;
-				if ( i < argc ) {
-					char **s = str2charray( argv[i], "," );
-					last = argv[i][strlen( argv[i] ) - 1];
-					charray_merge( &oc->oc_at_oids_must, s );
-					charray_free( s );
-				}
-			} while ( i < argc && last == ',' );
-
-		/* optional attributes */
-		} else if ( strcasecmp( argv[i], "allows" ) == 0 ) {
-			do {
-				i++;
-				if ( i < argc ) {
-					char **s = str2charray( argv[i], "," );
-					last = argv[i][strlen( argv[i] ) - 1];
-					
-					charray_merge( &oc->oc_at_oids_may, s );
-					charray_free( s );
-				}
-			} while ( i < argc && last == ',' );
-
-		} else {
-			fprintf( stderr,
-	    "%s: line %d: expecting \"requires\" or \"allows\" got \"%s\"\n",
-			    fname, lineno, argv[i] );
-			oc_usage_old();
-		}
-	}
-
-	/*
-	 * There was no requirement in the old schema that all attributes
-	 * types were defined before use and they would just default to
-	 * SYNTAX_CIS.  To support this, we need to make attribute types
-	 * out of thin air.
-	 */
-	if ( oc->oc_at_oids_must ) {
-		for( namep = oc->oc_at_oids_must; *namep ; namep++ ) {
-			code = at_fake_if_needed( *namep );
-			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-					 fname, lineno, scherr2str(code), *namep);
-				exit( EXIT_FAILURE );
-			}
-		}
-	}
-	if ( oc->oc_at_oids_may ) {
-		for( namep = oc->oc_at_oids_may; *namep; namep++ ) {
-			code = at_fake_if_needed( *namep );
-			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-					 fname, lineno, scherr2str(code), *namep);
-				exit( EXIT_FAILURE );
-			}
-		}
-	}
-	
-	code = oc_add(oc,&err);
-	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-			 fname, lineno, scherr2str(code), err);
-		exit( EXIT_FAILURE );
-	}
-	ldap_memfree(oc);
-}
-#endif
 
 /* OID Macros */
 
@@ -322,16 +220,6 @@ oc_usage( void )
 	exit( EXIT_FAILURE );
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-static void
-oc_usage_old( void )
-{
-	fprintf( stderr, "<oc clause> ::= objectclass <ocname>\n" );
-	fprintf( stderr, "                [ requires <attrlist> ]\n" );
-	fprintf( stderr, "                [ allows <attrlist> ]\n" );
-	exit( EXIT_FAILURE );
-}
-#endif
 
 static void
 at_usage( void )

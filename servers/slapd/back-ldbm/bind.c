@@ -40,13 +40,8 @@ ldbm_back_bind(
 	AUTH_DAT	ad;
 #endif
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-#else
-	static const char *password = "userpassword";
-	static const char *entry = "entry";
-#endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 

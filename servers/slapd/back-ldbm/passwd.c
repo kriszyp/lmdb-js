@@ -40,11 +40,7 @@ ldbm_back_exop_passwd(
 
 	char *dn;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-#else
-	static const char *entry = "entry";
-#endif
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
@@ -126,11 +122,7 @@ ldbm_back_exop_passwd(
 		vals[0] = hash;
 		vals[1] = NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		ml.sml_desc = slap_schema.si_ad_userPassword;
-#else
-		ml.sml_type = ch_strdup("userPassword");
-#endif
 		ml.sml_bvalues = vals;
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
@@ -138,9 +130,6 @@ ldbm_back_exop_passwd(
 		rc = ldbm_modify_internal( be,
 			conn, op, op->o_ndn, &ml, e, text );
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		ch_free(ml.ml_type);
-#endif
 	}
 
 	if( rc == LDAP_SUCCESS ) {

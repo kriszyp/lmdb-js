@@ -51,41 +51,7 @@ value_add(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-int
-value_add_fast( 
-    struct berval	***vals,
-    struct berval	**addvals,
-    int			nvals,
-    int			naddvals,
-    int			*maxvals
-)
-{
-	int	need, i, j;
 
-	if ( *maxvals == 0 ) {
-		*maxvals = 1;
-	}
-	need = nvals + naddvals + 1;
-	while ( *maxvals < need ) {
-		*maxvals *= 2;
-		*vals = (struct berval **) ch_realloc( (char *) *vals,
-		    *maxvals * sizeof(struct berval *) );
-	}
-
-	for ( i = 0, j = 0; i < naddvals; i++ ) {
-		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
-			if( (*vals)[nvals + j] != NULL ) j++;
-		}
-	}
-	(*vals)[nvals + j] = NULL;
-
-	return( 0 );
-}
-#endif
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 int
 value_normalize(
 	AttributeDescription *ad,
@@ -153,36 +119,7 @@ value_normalize(
 	return LDAP_SUCCESS;
 }
 
-#else
-void
-value_normalize(
-    char	*s,
-    int		syntax
-)
-{
-	char	*d, *save;
 
-	if ( ! (syntax & SYNTAX_CIS) ) {
-		return;
-	}
-
-	if ( syntax & SYNTAX_DN ) {
-		(void) dn_normalize( s );
-		return;
-	}
-
-	save = s;
-	for ( d = s; *s; s++ ) {
-		if ( (syntax & SYNTAX_TEL) && (*s == ' ' || *s == '-') ) {
-			continue;
-		}
-		*d++ = TOUPPER( (unsigned char) *s );
-	}
-	*d = '\0';
-}
-#endif
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 int
 value_match(
 	int *match,
@@ -219,72 +156,13 @@ value_match(
 	return rc;
 }
 
-#else
-int
-value_cmp(
-    struct berval	*v1,
-    struct berval	*v2,
-    int			syntax,
-    int			normalize	/* 1 => arg 1; 2 => arg 2; 3 => both */
-)
-{
-	int		rc;
 
-	if ( normalize & 1 ) {
-		v1 = ber_bvdup( v1 );
-		value_normalize( v1->bv_val, syntax );
-	}
-	if ( normalize & 2 ) {
-		v2 = ber_bvdup( v2 );
-		value_normalize( v2->bv_val, syntax );
-	}
-
-	switch ( syntax ) {
-	case SYNTAX_CIS:
-	case (SYNTAX_CIS | SYNTAX_TEL):
-	case (SYNTAX_CIS | SYNTAX_DN):
-		rc = strcasecmp( v1->bv_val, v2->bv_val );
-		break;
-
-	case SYNTAX_CES:
-		rc = strcmp( v1->bv_val, v2->bv_val );
-		break;
-
-	default:        /* Unknown syntax */
-	case SYNTAX_BIN:
-		rc = (v1->bv_len == v2->bv_len
-		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )
-		      : v1->bv_len > v2->bv_len ? 1 : -1);
-		break;
-	}
-
-	if ( normalize & 1 ) {
-		ber_bvfree( v1 );
-	}
-	if ( normalize & 2 ) {
-		ber_bvfree( v2 );
-	}
-
-	return( rc );
-}
-#endif
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 int value_find(
 	AttributeDescription *ad,
 	struct berval **vals,
 	struct berval *val )
-#else
-int
-value_find(
-    struct berval	**vals,
-    struct berval	*v,
-    int			syntax,
-    int			normalize )
-#endif
 {
 	int	i;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
 	struct berval *nval = NULL;
 	MatchingRule *mr = ad->ad_type->sat_equality;
@@ -301,10 +179,8 @@ value_find(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
-#endif
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		int match;
 		const char *text;
 
@@ -312,9 +188,6 @@ value_find(
 			nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 )
-#else
-		if ( value_cmp( vals[i], v, syntax, normalize ) == 0 )
-#endif
 		{
 			return LDAP_SUCCESS;
 		}

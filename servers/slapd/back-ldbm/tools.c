@@ -194,35 +194,16 @@ ID ldbm_tool_entry_put(
 
 int ldbm_tool_index_attr(
 	BackendDB *be,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
-#else
-	char* type
-#endif
 )
 {
 	static DBCache *db = NULL;
 	slap_index indexmask;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	char *desc;
-#endif
 	char *at_cname;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	at_cname = desc->ad_cname->bv_val;
-#else
-	attr_normalize( type );
-	at_cname = desc = at_canonical_name( type );
-
-	if( desc == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"<= index_attr NULL (attribute type %s has no canonical name)\n",
-			type, 0, 0 );
-		return 0;
-	}
-#endif
 
 	assert( desc != NULL );
 	attr_mask( be->be_private, at_cname, &indexmask );
@@ -243,23 +224,14 @@ int ldbm_tool_index_attr(
 
 int ldbm_tool_index_change(
 	BackendDB *be,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-	char* desc,
-#endif
 	struct berval **bv,
 	ID id,
 	int op )
 {
 	assert( slapMode & SLAP_TOOL_MODE );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	index_values( be, desc, bv, id, op );
-#else
-	index_change_values( be,
-		desc, bv, id, op );
-#endif
 
 	return 0;
 }

@@ -19,22 +19,14 @@ static AccessControl * acl_get(
 	AccessControl *ac, int *count,
 	Backend *be, Operation *op,
 	Entry *e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-	const char *desc,
-#endif
 	int nmatches, regmatch_t *matches );
 
 static slap_control_t acl_mask(
 	AccessControl *ac, slap_access_mask_t *mask,
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-	const char *desc,
-#endif
 	struct berval *val,
 	regmatch_t *matches );
 
@@ -43,11 +35,7 @@ static int aci_mask(
 	Backend *be,
 	Operation *op,
 	Entry *e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-	const char *desc,
-#endif
 	struct berval *val,
 	struct berval *aci,
 	regmatch_t *matches,
@@ -83,11 +71,7 @@ access_allowed(
     Connection		*conn,
     Operation		*op,
     Entry		*e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription	*desc,
-#else
-    const char		*desc,
-#endif
     struct berval	*val,
     slap_access_t	access )
 {
@@ -99,11 +83,7 @@ access_allowed(
 	slap_access_mask_t mask;
 	slap_control_t control;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
-#else
-    const char *attr = desc;
-#endif
 
 	regmatch_t       matches[MAXREMATCHES];
 
@@ -130,11 +110,7 @@ access_allowed(
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
 	 */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( access >= ACL_WRITE && is_at_no_user_mod( desc->ad_type ) )
-#else
-	if ( access >= ACL_WRITE && oc_check_op_no_usermod_attr( attr ) )
-#endif
 	{
  		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
@@ -232,11 +208,7 @@ acl_get(
     Backend		*be,
     Operation	*op,
     Entry		*e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-    const char	*desc,
-#endif
     int			nmatch,
     regmatch_t	*matches )
 {
@@ -244,11 +216,7 @@ acl_get(
 	assert( e != NULL );
 	assert( count != NULL );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	attr = desc ? desc->ad_cname->bv_val : NULL;
-#else
-	attr = desc;
-#endif
 
 	if( a == NULL ) {
 		if( be == NULL ) {
@@ -322,11 +290,7 @@ acl_mask(
     Connection	*conn,
     Operation	*op,
     Entry		*e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-    const char	*desc,
-#endif
     struct berval	*val,
 	regmatch_t	*matches
 )
@@ -336,11 +300,7 @@ acl_mask(
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
-#else
-	const char *attr = desc;
-#endif
 
 	assert( a != NULL );
 	assert( mask != NULL );
@@ -449,13 +409,9 @@ acl_mask(
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
 			const char *text;
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
-#else
-			const char *desc = b->a_dn_at;
-#endif
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				b->a_dn_at, 0, 0);
@@ -464,7 +420,6 @@ acl_mask(
 			bv.bv_len = strlen( bv.bv_val );
 
 			/* see if asker is listed in dnattr */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			for( at = attrs_find( e->e_attrs, b->a_dn_at );
 				at == NULL;
 				at = attrs_find( e->e_attrs->a_next, b->a_dn_at ) )
@@ -493,24 +448,6 @@ acl_mask(
 			{
 				continue;
 			}
-#else
-			/* see if asker is listed in dnattr */
-			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL &&
-				value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
-			{
-				if ( b->a_dn_self && (val == NULL
-					|| value_cmp( &bv, val, at->a_syntax, 2 ) ) )
-				{
-					continue;
-				}
-
-			/* asker not listed in dnattr - check for self access */
-			} else if ( ! b->a_dn_self || val == NULL
-				|| value_cmp( &bv, val, at->a_syntax, 2 ) != 0 )
-			{
-				continue;
-			}
-#endif
 		}
 
 		if ( b->a_group_pat != NULL && op->o_ndn != NULL ) {
@@ -725,21 +662,12 @@ acl_check_modlist(
 		 * by ACL_WRITE checking as any found here are not provided
 		 * by the user
 		 */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( is_at_no_user_mod( mlist->sml_desc->ad_type ) ) {
  			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
 				mlist->sml_desc->ad_cname->bv_val, 0, 0 );
 			continue;
 		}
-#else
-		if ( oc_check_op_no_usermod_attr( mlist->sml_type ) ) {
- 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
-				" modify access granted\n",
-				mlist->sml_type, 0, 0 );
-			continue;
-		}
-#endif
 
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
@@ -1019,14 +947,9 @@ aci_group_member (
 	char *subjdn, *grpdn = NULL;
 	char *grpoc;
 	char *grpat;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ObjectClass *grp_oc = NULL;
 	AttributeDescription *grp_ad = NULL;
 	char *text;
-#else
-	char *grp_oc;
-	char *grp_ad;
-#endif
 	int rc;
 
 	/* format of string is "group/objectClassValue/groupAttrName" */
@@ -1051,15 +974,11 @@ aci_group_member (
 		grpat = aci_bvstrdup(&bv);
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	rc = slap_str2ad( grpat, &grp_ad, &text );
 	if( rc != LDAP_SUCCESS ) {
 		rc = 0;
 		goto done;
 	}
-#else
-	grp_ad = grpat;
-#endif
 	rc = 0;
 
 	grpdn = (char *)ch_malloc(1024);
@@ -1071,10 +990,8 @@ aci_group_member (
 		}
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 done:
 	if( grp_ad != NULL ) ad_free( grp_ad, 1 );
-#endif
 	ch_free(grpdn);
 	ch_free(grpat);
 	ch_free(grpoc);
@@ -1087,11 +1004,7 @@ aci_mask(
     Backend			*be,
     Operation		*op,
     Entry			*e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-    const char		*attr,
-#endif
     struct berval	*val,
     struct berval	*aci,
 	regmatch_t		*matches,
@@ -1102,9 +1015,7 @@ aci_mask(
     struct berval bv, perms, sdn;
     char *subjdn;
 	int rc, i;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char *attr;
-#endif
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
@@ -1163,7 +1074,6 @@ aci_mask(
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
 		char *dnattr = aci_bvstrdup(&sdn);
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		Attribute *at;
 		AttributeDescription *ad = NULL;
 		const char *text;
@@ -1193,19 +1103,6 @@ aci_mask(
 		ad_free( ad, 1 );
 		return rc;
 
-#else
-		Attribute *at;
-		at = attr_find( e->e_attrs, dnattr );
-		ch_free( dnattr );
-
-		if (at != NULL) {
-			bv.bv_val = op->o_ndn;
-			bv.bv_len = strlen( bv.bv_val );
-
-			if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
-				return(1);
-		}
-#endif
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
 		if (aci_group_member(&sdn, SLAPD_GROUP_CLASS, SLAPD_GROUP_ATTR, be, e, op, matches))

@@ -39,14 +39,8 @@ str2entry( char *s )
 	char		*type;
 	struct berval value;
 	struct berval	*vals[2];
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad;
 	const char *text;
-#else
-	int		nvals = 0;
-	int		maxvals = 0;
-	char	ptype[64];	/* fixed size buffer */
-#endif
 	char	*next;
 
 	/*
@@ -87,9 +81,6 @@ str2entry( char *s )
 	/* dn + attributes */
 	vals[0] = &value;
 	vals[1] = NULL;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	ptype[0] = '\0';
-#endif
 
 	next = s;
 	while ( (s = ldif_getline( &next )) != NULL ) {
@@ -103,15 +94,6 @@ str2entry( char *s )
 			continue;
 		}
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		if ( strcasecmp( type, ptype ) != 0 ) {
-			strncpy( ptype, type, sizeof(ptype) - 1 );
-			nvals = 0;
-			maxvals = 0;
-			a = NULL;
-		}
-
-#endif
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			free( type );
 
@@ -128,7 +110,6 @@ str2entry( char *s )
 			continue;
 		}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		ad = NULL;
 		rc = slap_str2ad( type, &ad, &text );
 
@@ -144,9 +125,6 @@ str2entry( char *s )
 		rc = attr_merge( e, ad, vals );
 
 		ad_free( ad, 1 );
-#else
-		rc = attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a );
-#endif
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -159,9 +137,6 @@ str2entry( char *s )
 
 		free( type );
 		free( value.bv_val );
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		nvals++;
-#endif
 	}
 
 	/* check to make sure there was a dn: line */
@@ -226,18 +201,10 @@ entry2str(
 		/* put "<type>:[:] <value>" line for each value */
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			bv = a->a_vals[i];
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			tmplen = a->a_desc->ad_cname->bv_len;
-#else
-			tmplen = strlen( a->a_type );
-#endif
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
 			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				a->a_desc->ad_cname->bv_val,
-#else
-				a->a_type,
-#endif
 			    bv->bv_val, bv->bv_len );
 		}
 	}

@@ -521,7 +521,6 @@ caseExactIA5Match(
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 static int
 caseExactIA5SubstringsMatch(
 	int *matchp,
@@ -638,7 +637,6 @@ done:
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
-#endif
 
 static int
 caseIgnoreIA5Match(
@@ -654,7 +652,6 @@ caseIgnoreIA5Match(
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 static char *strcasechr( const char *str, int c )
 {
 	char *lower = strchr( str, TOLOWER(c) );
@@ -783,7 +780,6 @@ done:
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
-#endif
 
 /* Index generation function */
 int caseIgnoreIA5Indexer(
@@ -1123,10 +1119,6 @@ struct mrule_defs_rec {
  * 2.5.13.44	attributeIntegrityMatch
  */
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-#define caseIgnoreIA5SubstringsMatch NULL
-#define caseExactIA5SubstringsMatch NULL
-#endif
 
 /* recycled matching functions */
 #define caseIgnoreMatch caseIgnoreIA5Match

@@ -27,9 +27,6 @@
 #include "slap.h"
 
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-static int add_modified_attrs( Operation *op, Modifications **modlist );
-#endif
 
 int
 do_modify(
@@ -133,9 +130,6 @@ do_modify(
 
 		(*modtail)->ml_op = mop;
 		
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		attr_normalize( (*modtail)->ml_type );
-#endif
 
 		modtail = &(*modtail)->ml_next;
 	}
@@ -217,7 +211,6 @@ do_modify(
 #endif
 		{
 			int update = be->be_update_ndn != NULL;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			const char *text;
 			rc = slap_modlist2mods( modlist, update, &mods, &text );
 
@@ -226,15 +219,10 @@ do_modify(
 					NULL, text, NULL, NULL );
 				goto cleanup;
 			}
-#else
-			mods = modlist;
-			modlist = NULL;
-#endif
 
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && !update )
 			{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				Modifications **modstail;
 				for( modstail = &mods;
 					*modstail != NULL;
@@ -243,10 +231,6 @@ do_modify(
 					/* empty */
 				}
 				rc = slap_mods_opattrs( op, modstail, &text );
-#else
-				char *text = "no-user-modification attribute type";
-				rc = add_modified_attrs( op, &mods );
-#endif
 
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
@@ -289,7 +273,6 @@ cleanup:
 	return rc;
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * convert a raw list of modifications to internal format
  * Do basic attribute type checking and syntax validation.
@@ -475,61 +458,6 @@ int slap_mods_opattrs(
 	return LDAP_SUCCESS;
 }
 
-#else
-static int
-add_modified_attrs( Operation *op, Modifications **modlist )
-{
-	char		buf[22];
-	struct berval	bv;
-	struct berval	*bvals[2];
-	Modifications		*m;
-	struct tm	*ltm;
-	time_t		currenttime;
-
-	bvals[0] = &bv;
-	bvals[1] = NULL;
-
-	/* remove any attempts by the user to modify these attrs */
-	for ( m = *modlist; m != NULL; m = m->ml_next ) {
-		if ( oc_check_op_no_usermod_attr( m->ml_type ) ) {
-			return LDAP_CONSTRAINT_VIOLATION;
-		}
-	}
-
-	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = SLAPD_ANONYMOUS;
-		bv.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
-	} else {
-		bv.bv_val = op->o_dn;
-		bv.bv_len = strlen( bv.bv_val );
-	}
-	m = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
-	m->ml_type = ch_strdup( "modifiersname" );
-	m->ml_op = LDAP_MOD_REPLACE;
-	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
-	m->ml_bvalues[0] = ber_bvdup( &bv );
-	m->ml_next = *modlist;
-	*modlist = m;
-
-	currenttime = slap_get_time();
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( &currenttime );
-	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	bv.bv_val = buf;
-	bv.bv_len = strlen( bv.bv_val );
-	m = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
-	m->ml_type = ch_strdup( "modifytimestamp" );
-	m->ml_op = LDAP_MOD_REPLACE;
-	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
-	m->ml_bvalues[0] = ber_bvdup( &bv );
-	m->ml_next = *modlist;
-	*modlist = m;
-
-	return LDAP_SUCCESS;
-}
-#endif
 
 void
 slap_mod_free(
@@ -537,13 +465,7 @@ slap_mod_free(
 	int				freeit
 )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ad_free( mod->sm_desc, 1 );
-#else
-	if (mod->sm_desc) {
-		free( mod->sm_desc );
-	}
-#endif
 
 	if ( mod->sm_bvalues != NULL )
 		ber_bvecfree( mod->sm_bvalues );

@@ -29,11 +29,7 @@ static void at_index_print( void );
 void
 attr_free( Attribute *a )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ad_free( a->a_desc, 1 );
-#else
-	free( a->a_type );
-#endif
 	ber_bvecfree( a->a_vals );
 	free( a );
 }
@@ -78,12 +74,7 @@ Attribute *attr_dup( Attribute *a )
 		tmp->a_vals = NULL;
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	tmp->a_desc = ad_dup( a->a_desc );
-#else
-	tmp->a_type = ch_strdup( a->a_type );
-	tmp->a_syntax = a->a_syntax;
-#endif
 	tmp->a_next = NULL;
 
 	return tmp;
@@ -107,58 +98,6 @@ Attribute *attrs_dup( Attribute *a )
 	return tmp;
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-/*
- * attr_normalize - normalize an attribute name (make it all lowercase)
- */
-
-char *
-attr_normalize( char *s )
-{
-	assert( s != NULL );
-
-	return( ldap_pvt_str2lower( s ) );
-}
-
-/*
- * attr_merge_fast - merge the given type and value with the list of
- * attributes in attrs. called from str2entry(), where we can make some
- * assumptions to make things faster.
- * returns	0	everything went ok
- *		-1	trouble
- */
-
-int
-attr_merge_fast(
-    Entry		*e,
-    const char		*type,
-    struct berval	**vals,
-    int			nvals,
-    int			naddvals,
-    int			*maxvals,
-    Attribute		***a
-)
-{
-	if ( *a == NULL ) {
-		for ( *a = &e->e_attrs; **a != NULL; *a = &(**a)->a_next ) {
-			if ( strcasecmp( (**a)->a_type, type ) == 0 ) {
-				break;
-			}
-		}
-	}
-
-	if ( **a == NULL ) {
-		**a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(**a)->a_vals = NULL;
-		(**a)->a_type = attr_normalize( ch_strdup( type ) );
-		(**a)->a_syntax = attr_syntax( type );
-		(**a)->a_next = NULL;
-	}
-
-	return( value_add_fast( &(**a)->a_vals, vals, nvals, naddvals,
-	    maxvals ) );
-}
-#endif
 
 
 /*
@@ -171,21 +110,13 @@ attr_merge_fast(
 int
 attr_merge(
     Entry		*e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
-#else
-    const char		*type,
-#endif
     struct berval	**vals )
 {
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
-#else
-		if ( strcasecmp( (*a)->a_type, type ) == 0 )
-#endif
 		{
 			break;
 		}
@@ -193,12 +124,7 @@ attr_merge(
 
 	if ( *a == NULL ) {
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		(*a)->a_desc = ad_dup( desc );
-#else
-		(*a)->a_type = attr_normalize( ch_strdup( type ) );
-		(*a)->a_syntax = attr_syntax( type );
-#endif
 		(*a)->a_vals = NULL;
 		(*a)->a_next = NULL;
 	}
@@ -206,7 +132,6 @@ attr_merge(
 	return( value_add( &(*a)->a_vals, vals ) );
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * attrs_find - find attribute(s) by AttributeDescription
  * returns next attribute which is subtype of provided description.
@@ -226,7 +151,6 @@ attrs_find(
 
 	return( NULL );
 }
-#endif
 
 /*
  * attr_find - find attribute by type
@@ -235,19 +159,11 @@ attrs_find(
 Attribute *
 attr_find(
     Attribute	*a,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
-#else
-	const char	*type
-#endif
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( ad_cmp( a->a_desc, desc ) == 0 )
-#else
-		if ( strcasecmp( a->a_type, type ) == 0 )
-#endif
 		{
 			return( a );
 		}
@@ -266,21 +182,13 @@ attr_find(
 int
 attr_delete(
     Attribute	**attrs,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
-#else
-    const char	*type
-#endif
 )
 {
 	Attribute	**a;
 
 	for ( a = attrs; *a != NULL; a = &(*a)->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
-#else
-		if ( strcasecmp( (*a)->a_type, type ) == 0 )
-#endif
 		{
 			Attribute	*save = *a;
 			*a = (*a)->a_next;

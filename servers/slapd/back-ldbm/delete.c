@@ -32,11 +32,7 @@ ldbm_back_delete(
 	int rootlock = 0;
 	int	rc = -1;
 	int		manageDSAit = get_manageDSAit( op );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *children = slap_schema.si_ad_children;
-#else
-	static const char *children = "children";
-#endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 

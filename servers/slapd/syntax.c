@@ -174,11 +174,7 @@ syn_schema_info( Entry *e )
 	struct berval	*vals[2];
 	Syntax		*syn;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_ldapSyntaxes = slap_schema.si_ad_ldapSyntaxes;
-#else
-	char *ad_ldapSyntaxes = "ldapSyntaxes";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;

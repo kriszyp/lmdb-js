@@ -23,11 +23,7 @@ ldbm_back_compare(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion *ava
-#else
-    Ava		*ava
-#endif
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -80,13 +76,8 @@ ldbm_back_compare(
 		goto return_results;
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( ! access_allowed( be, conn, op, e,
 		ava->aa_desc, ava->aa_value, ACL_COMPARE ) )
-#else
-	if ( ! access_allowed( be, conn, op, e,
-		ava->ava_type, &ava->ava_value, ACL_COMPARE ) )
-#endif
 	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
@@ -96,26 +87,16 @@ ldbm_back_compare(
 
 	rc = LDAP_NO_SUCH_ATTRIBUTE;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ))
-#else
-	if ((a = attr_find( e->e_attrs, ava->ava_type )) != NULL )
-#endif
 	{
 		rc = LDAP_COMPARE_FALSE;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 )
-#else
-		if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 )
-#endif
 		{
 			rc = LDAP_COMPARE_TRUE;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			break;
-#endif
 		}
 
 	}

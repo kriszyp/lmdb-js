@@ -133,7 +133,6 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
 /*
  * index.c
  */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int
 index_param LDAP_P((
 	Backend *be,
@@ -150,23 +149,11 @@ index_values LDAP_P((
 	struct berval **vals,
 	ID id,
 	int op ));
-#endif
 
 int index_entry LDAP_P(( Backend *be, int r, Entry *e, Attribute *ap ));
 #define index_entry_add(be,e,ap) index_entry((be),SLAP_INDEX_ADD_OP,(e),(ap))
 #define index_entry_del(be,e,ap) index_entry((be),SLAP_INDEX_DELETE_OP,(e),(ap))
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-int index_change_values LDAP_P((
-    Backend		*be,
-    char		*desc,
-    struct berval	**vals,
-    ID			id,
-    unsigned int	op
-));
-ID_BLOCK * index_read LDAP_P(( Backend *be,
-	char *desc, int indextype, char *val ));
-#endif
 
 /*
  * key.c

@@ -78,9 +78,6 @@ ldbm_back_initialize(
 	bi->bi_tool_entry_get = ldbm_tool_entry_get;
 	bi->bi_tool_entry_put = ldbm_tool_entry_put;
 	bi->bi_tool_index_attr = ldbm_tool_index_attr;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	bi->bi_tool_index_change = ldbm_tool_index_change;
-#endif
 	bi->bi_tool_sync = ldbm_tool_sync;
 
 #ifdef HAVE_CYRUS_SASL

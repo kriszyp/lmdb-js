@@ -16,11 +16,6 @@
 
 /* end of preamble */
 
-#if !defined( SLAPD_SCHEMA_COMPAT ) && !defined( SLAPD_SCHEMA_NOT_COMPAT )
-	/* use new schema codes */
-#define SLAPD_SCHEMA_NOT_COMPAT 1
-#endif
-
 /* comment this out if you don't have Cyrus SASL */
 #define HAVE_CYRUS_SASL 1
 

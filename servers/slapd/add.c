@@ -26,14 +26,10 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	const char **text );
-#else
-static int	add_created_attrs(Operation *op, Entry *e);
-#endif
 
 int
 do_add( Connection *conn, Operation *op )
@@ -44,11 +40,9 @@ do_add( Connection *conn, Operation *op )
 	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	LDAPModList	*modlist = NULL;
 	LDAPModList	**modtail = &modlist;
 	Modifications *mods = NULL;
-#endif
 	const char *text;
 	int			rc = LDAP_SUCCESS;
 
@@ -98,12 +92,7 @@ do_add( Connection *conn, Operation *op )
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		LDAPModList *mod = (LDAPModList *) ch_malloc( sizeof(LDAPModList) );
-#else
-		LDAPModList tmpmod;
-		LDAPModList *mod = &tmpmod;
-#endif
 		mod->ml_op = LDAP_MOD_ADD;
 		mod->ml_next = NULL;
 
@@ -114,9 +103,7 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			free( mod );
-#endif
 			goto done;
 		}
 
@@ -126,21 +113,12 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for attribute type", NULL, NULL );
 			free( mod->ml_type );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			free( mod );
-#endif
 			goto done;
 		}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*modtail = mod;
 		modtail = &mod->ml_next;
-#else
-		attr_merge( e, mod->ml_type, mod->ml_bvalues );
-
-		free( mod->ml_type );
-		ber_bvecfree( mod->ml_bvalues );
-#endif
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
@@ -156,11 +134,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	} 
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( modlist == NULL )
-#else
-	if ( e->e_attrs == NULL )
-#endif
 	{
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "no attributes provided", NULL, NULL );
@@ -218,7 +192,6 @@ do_add( Connection *conn, Operation *op )
 		{
 			int update = be->be_update_ndn != NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			rc = slap_modlist2mods( modlist, update, &mods, &text );
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
@@ -226,13 +199,11 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 			}
 
-#endif
 #ifndef SLAPD_MULTIMASTER
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && !update )
 #endif
 			{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				Modifications **modstail;
 				for( modstail = &mods;
 					*modstail != NULL;
@@ -242,10 +213,6 @@ do_add( Connection *conn, Operation *op )
 					assert( (*modstail)->sml_desc != NULL );
 				}
 				rc = slap_mods_opattrs( op, modstail, &text );
-#else
-				char *text = "no-user-modification attribute type";
-				rc = add_created_attrs( op, e );
-#endif
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
 						NULL, text, NULL, NULL );
@@ -253,14 +220,12 @@ do_add( Connection *conn, Operation *op )
 				}
 			}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			rc = slap_mods2entry( mods, &e, &text );
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
 				goto done;
 			}
-#endif
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
@@ -287,14 +252,12 @@ do_add( Connection *conn, Operation *op )
 	}
 
 done:
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if( modlist != NULL ) {
 		slap_modlist_free( modlist );
 	}
 	if( mods != NULL ) {
 		slap_mods_free( mods );
 	}
-#endif
 	if( e != NULL ) {
 		entry_free( e );
 	}
@@ -302,7 +265,6 @@ done:
 	return rc;
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
@@ -342,51 +304,3 @@ static int slap_mods2entry(
 	return LDAP_SUCCESS;
 }
 
-#else
-static int
-add_created_attrs( Operation *op, Entry *e )
-{
-	char		buf[22];
-	struct berval	bv;
-	struct berval	*bvals[2];
-	Attribute	*a;
-	struct tm	*ltm;
-	time_t		currenttime;
-
-	Debug( LDAP_DEBUG_TRACE, "add_created_attrs\n", 0, 0, 0 );
-
-	bvals[0] = &bv;
-	bvals[1] = NULL;
-
-	/* return error on any attempts by the user to add these attrs */
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		if ( oc_check_op_no_usermod_attr( a->a_type ) )	{
-			return LDAP_CONSTRAINT_VIOLATION;
-		}
-	}
-
-	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = SLAPD_ANONYMOUS;
-		bv.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
-;
-	} else {
-		bv.bv_val = op->o_dn;
-		bv.bv_len = strlen( bv.bv_val );
-	}
-	attr_merge( e, "creatorsname", bvals );
-	attr_merge( e, "modifiersname", bvals );
-
-	currenttime = slap_get_time();
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( &currenttime );
-	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	bv.bv_val = buf;
-	bv.bv_len = strlen( bv.bv_val );
-	attr_merge( e, "createtimestamp", bvals );
-	attr_merge( e, "modifytimestamp", bvals );
-
-	return LDAP_SUCCESS;
-}
-#endif

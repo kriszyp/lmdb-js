@@ -268,7 +268,6 @@ add_values(
 	int		i;
 	Attribute	*a;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* char *desc = mod->sm_desc->ad_cname->bv_val; */
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
@@ -276,16 +275,12 @@ add_values(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-#else
-	/* char *desc = mod->mod_type; */
-#endif
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
 
 	/* check if the values we're adding already exist */
 	if ( a != NULL ) {
 		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int rc;
 			int j;
 			const char *text = NULL;
@@ -311,12 +306,6 @@ add_values(
 			}
 
 			ber_bvfree( asserted );
-#else
-			if ( value_find( a->a_vals, mod->sm_bvalues[i],
-			    a->a_syntax, 3 ) == 0 ) {
-				return( LDAP_TYPE_OR_VALUE_EXISTS );
-			}
-#endif
 		}
 	}
 
@@ -338,16 +327,12 @@ delete_values(
 {
 	int		i, j, k, found;
 	Attribute	*a;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char *desc = mod->sm_desc->ad_cname->bv_val;
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
-#else
-	char *desc = mod->mod_type;
-#endif
 
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {
@@ -367,7 +352,6 @@ delete_values(
 
 	/* find each value to delete */
 	for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		int rc;
 		const char *text = NULL;
 
@@ -380,20 +364,14 @@ delete_values(
 			&text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
-#endif
 
 		found = 0;
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
 				a->a_vals[j], asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 )
-#else
-			if ( value_cmp( mod->mod_bvalues[i], a->a_vals[j],
-			    a->a_syntax, 3 ) != 0 )
-#endif
 			{
 				continue;
 			}
@@ -412,9 +390,7 @@ delete_values(
 					"removing entire attribute %s\n",
 					desc, 0, 0 );
 				if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					ber_bvfree( asserted );
-#endif
 					return LDAP_NO_SUCH_ATTRIBUTE;
 				}
 			}
@@ -422,9 +398,7 @@ delete_values(
 			break;
 		}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		ber_bvfree( asserted );
-#endif
 
 		/* looked through them all w/o finding it */
 		if ( ! found ) {

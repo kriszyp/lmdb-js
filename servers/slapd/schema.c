@@ -22,11 +22,7 @@
 int
 schema_info( Entry **entry, const char **text )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-#else
-	char *ad_objectClass = "objectClass";
-#endif
 
 	Entry		*e;
 	struct berval	val;
@@ -60,12 +56,8 @@ schema_info( Entry **entry, const char **text )
 	attr_merge( e, ad_objectClass, vals );
 
 	{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		int rc;
 		AttributeDescription *desc = NULL;
-#else
-		char *desc;
-#endif
 		char *rdn = ch_strdup( SLAPD_SCHEMA_DN );
 		val.bv_val = strchr( rdn, '=' );
 
@@ -78,7 +70,6 @@ schema_info( Entry **entry, const char **text )
 		*val.bv_val = '\0';
 		val.bv_len = strlen( ++val.bv_val );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		rc = slap_str2ad( rdn, &desc, text );
 
 		if( rc != LDAP_SUCCESS ) {
@@ -87,9 +78,6 @@ schema_info( Entry **entry, const char **text )
 			*text = "improperly configured subschema subentry";
 			return LDAP_OTHER;
 		}
-#else
-		desc = rdn;
-#endif
 
 		attr_merge( e, desc, vals );
 		free( rdn );

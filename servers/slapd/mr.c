@@ -198,11 +198,7 @@ int mr_schema_info( Entry *e )
 	struct berval	*vals[2];
 	MatchingRule	*mr;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_matchingRules = slap_schema.si_ad_matchingRules;
-#else
-	char *ad_matchingRules = "matchingRules";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;

@@ -138,10 +138,8 @@ attr_index_config(
 
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		AttrInfo	*a;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		AttributeDescription *ad;
 		const char *text;
-#endif
 
 		if( strcasecmp( attrs[i], "default" ) == 0 ) {
 			li->li_defaultmask = mask;
@@ -150,7 +148,6 @@ attr_index_config(
 
 		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		ad = NULL;
 		rc = slap_str2ad( attrs[i], &ad, &text );
 
@@ -212,9 +209,6 @@ attr_index_config(
 #else
 		a->ai_desc = ch_strdup( ad->ad_cname->bv_val );
 		ad_free( ad, 1 );
-#endif
-#else
-		a->ai_desc = ch_strdup( attrs[i] );
 #endif
 
 		a->ai_indexmask = mask;

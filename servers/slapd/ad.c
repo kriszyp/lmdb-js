@@ -18,7 +18,6 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 AttributeDescription *ad_dup(
 	AttributeDescription *desc )
 {
@@ -243,5 +242,4 @@ int ad_inlist(
 	return 0;
 }
 
-#endif
 

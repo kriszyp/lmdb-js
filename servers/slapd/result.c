@@ -125,11 +125,7 @@ struct berval **get_entry_referrals(
 	struct berval **refs;
 	unsigned i, j;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-#else
-	static const char *ad_ref = "ref";
-#endif
 
 	attr = attr_find( e->e_attrs, ad_ref );
 
@@ -648,11 +644,7 @@ send_search_entry(
 	int		userattrs;
 	int		opattrs;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
-#else
-	static const char *ad_entry = "entry";
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
@@ -695,32 +687,19 @@ send_search_entry(
 		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		AttributeDescription *desc = a->a_desc;
 		char *type = desc->ad_cname->bv_val;
-#else
-		char *desc = a->a_type;
-		char *type = a->a_type;
-#endif
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if( is_at_operational( desc->ad_type ) )
-#else
-			if( oc_check_op_attr( desc ) )
-#endif
 			{
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if ( is_at_operational( desc->ad_type ) )
-#else
-			if ( oc_check_op_attr( desc ) )
-#endif
 			{
 				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
@@ -782,30 +761,18 @@ send_search_entry(
 	aa = backend_operational( be, e );
 	
 	for (a = aa ; a == NULL; a = a->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		AttributeDescription *desc = a->a_desc;
-#else
-		char *desc = a->a_type;
-#endif
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if( is_at_operational( desc->ad_type ) )
-#else
-			if( oc_check_op_attr( desc ) )
-#endif
 			{
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if( is_at_operational( desc->ad_type ) )
-#else
-			if( oc_check_op_attr( desc ) )
-#endif
 			{
 				if( !opattrs && !ad_inlist( desc, attrs ) )
 				{
@@ -920,13 +887,8 @@ send_search_reference(
 	int rc;
 	int bytes;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
-#else
-	static const char *ad_ref = "ref";
-	static const char *ad_entry = "entry";
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_reference (%s)\n", e->e_dn, 0, 0 );
 

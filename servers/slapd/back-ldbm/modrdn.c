@@ -44,11 +44,7 @@ ldbm_back_modrdn(
     const char	*newSuperior
 )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *children = slap_schema.si_ad_children;
-#else
-	static const char *children = "children";
-#endif
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
@@ -357,7 +353,6 @@ ldbm_back_modrdn(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		{
 			int rc;
 
@@ -373,9 +368,6 @@ ldbm_back_modrdn(
 				goto return_results;		
 			}
 		}
-#else
-		mod[0].sml_type = new_rdn_type;	
-#endif
 		mod[0].sml_bvalues = add_bvals;
 		mod[0].sml_op = SLAP_MOD_SOFTADD;
 		mod[0].sml_next = NULL;
@@ -404,7 +396,6 @@ ldbm_back_modrdn(
 			del_bv.bv_val = old_rdn_val;
 			del_bv.bv_len = strlen(old_rdn_val);
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			{
 				int rc;
 
@@ -420,9 +411,6 @@ ldbm_back_modrdn(
 					goto return_results;		
 				}
 			}
-#else
-			mod[1].sml_type = old_rdn_type;	
-#endif
 			mod[0].sml_next = &mod[1];
 			mod[1].sml_bvalues = del_bvals;
 			mod[1].sml_op = LDAP_MOD_DELETE;

@@ -289,9 +289,7 @@ typedef struct slap_matching_rule {
 } MatchingRule;
 
 typedef struct slap_attribute_type {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char					*sat_cname;
-#endif
 	LDAP_ATTRIBUTE_TYPE		sat_atype;
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
@@ -300,10 +298,6 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	/* The next one is created to help in the transition */
-	int				sat_syntax_compat;
-#endif
 	struct slap_attribute_type	*sat_next;
 #define sat_oid			sat_atype.at_oid
 #define sat_names		sat_atype.at_names
@@ -344,7 +338,6 @@ typedef struct slap_object_class {
 } ObjectClass;
 
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * represents a recognized attribute description ( type + options )
  */
@@ -435,27 +428,6 @@ typedef struct slap_mr_assertion {
 	struct berval			*ma_value;	/* required */
 } MatchingRuleAssertion;
 
-#else
-
-/*
- * represents an attribute value assertion (i.e., attr;option=value)
- */
-typedef struct slap_ava {
-	char		*ava_type;	/* attribute description */
-	struct berval	ava_value;
-} Ava;
-
-/*
- * represents an matching rule assertion
- */
-typedef struct slap_mra {
-	char	*mra_rule;	/* optional */
-	char	*mra_type;	/* attribute description -- optional */
-	int		mra_dnattrs;
-	struct berval	*mra_value;
-} Mra;
-
-#endif
 
 /*
  * represents a search filter
@@ -472,7 +444,6 @@ typedef struct slap_filter {
 		/* precomputed result */
 		ber_int_t f_un_result;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		/* DN */
 		char *f_un_dn;
 
@@ -503,42 +474,6 @@ typedef struct slap_filter {
 #define f_mr_desc		f_un.f_un_mra->ma_desc
 #define f_mr_value		f_un.f_un_mra->ma_value
 #define	f_mr_dnaddrs	f_un.f_un_mra->ma_dnattrs
-#else
-		/* present */
-		char		*f_un_type;
-
-		/* equality, lessorequal, greaterorequal, approx */
-		Ava		f_un_ava;
-
-		/* extensible */
-		Mra		f_un_fra;	
-
-		/* substrings */
-		struct sub {
-			char	*f_un_sub_type;
-
-			struct berval	*f_un_sub_initial;
-			struct berval	**f_un_sub_any;
-			struct berval	*f_un_sub_final;
-		} f_un_sub;
-
-#define f_dn		f_un.f_un_type  /* used for DN indices */
-#define f_type		f_un.f_un_type
-#define f_desc		f_type
-#define f_ava		f_un.f_un_ava
-#define f_avtype	f_un.f_un_ava.ava_type
-#define f_avvalue	f_un.f_un_ava.ava_value
-#define f_mra		f_un.f_un_mra
-#define f_mrtype	f_un.f_un_mra.mra_type
-#define f_mrvalue	f_un.f_un_mra.mra_value
-#define	f_mrdnaddrs	f_un.f_un_mra.mra_dnattrs
-#define f_sub		f_un.f_un_sub
-#define f_sub_type	f_un.f_un_sub.f_un_sub_type
-#define f_sub_desc	f_sub_type
-#define f_sub_initial	f_un.f_un_sub.f_un_sub_initial
-#define f_sub_any	f_un.f_un_sub.f_un_sub_any
-#define f_sub_final	f_un.f_un_sub.f_un_sub_final
-#endif
 
 		/* and, or, not */
 		struct slap_filter *f_un_complex;
@@ -560,27 +495,11 @@ typedef struct slap_filter {
  * represents an attribute (description + values)
  */
 typedef struct slap_attr {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *a_desc;
-#else
-	char		*a_type;	/* description */
-	int		a_syntax;
-#endif
 	struct berval	**a_vals;
 	struct slap_attr	*a_next;
 } Attribute;
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-/*
- * the attr_syntax() routine returns one of these values
- * telling what kind of syntax an attribute supports.
- */
-#define SYNTAX_CIS	0x01	/* case insensitive string		*/
-#define SYNTAX_CES	0x02	/* case sensitive string		*/
-#define SYNTAX_BIN	0x04	/* binary data 				*/
-#define SYNTAX_TEL	0x08	/* telephone number string		*/
-#define SYNTAX_DN	0x10	/* dn string				*/
-#endif
 
 /*
  * the id used in the indexes to refer to an entry
@@ -610,31 +529,20 @@ typedef struct slap_entry {
 /*
  * A list of LDAPMods
  */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 typedef struct slap_mod {
 	int sm_op;
 	AttributeDescription *sm_desc;
 	struct berval **sm_bvalues;
 } Modification;
-#else
-#define Modification LDAPMod
-#define sm_op mod_op
-#define sm_desc	mod_type
-#define sm_bvalues mod_bvalues
-#endif
 
 typedef struct slap_mod_list {
 	Modification sml_mod;
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
 #define sml_bvalues	sml_mod.sm_bvalues
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-#define sml_type	sml_mod.sm_desc
-#endif
 	struct slap_mod_list *sml_next;
 } Modifications;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 typedef struct slap_ldap_modlist {
 	LDAPMod ml_mod;
 	struct slap_ldap_modlist *ml_next;
@@ -643,15 +551,6 @@ typedef struct slap_ldap_modlist {
 #define ml_values	ml_mod.mod_values
 #define ml_bvalues	ml_mod.mod_bvalues
 } LDAPModList;
-#else
-#define LDAPModList Modifications
-#define ml_mod		sml_mod
-#define ml_op		sml_mod.mod_op
-#define ml_type		sml_mod.mod_type
-#define ml_values	sml_mod.mod_values
-#define ml_bvalues	sml_mod.mod_bvalues
-#define ml_next		sml_next
-#endif
 
 /*
  * represents an access control list
@@ -740,11 +639,7 @@ typedef struct slap_access {
 	slap_access_mask_t	a_mask;
 
 	char		*a_dn_pat;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription	*a_dn_at;
-#else
-	char		*a_dn_at;
-#endif
 	int			a_dn_self;
 
 	char		*a_peername_pat;
@@ -754,22 +649,13 @@ typedef struct slap_access {
 	char		*a_sockurl_pat;
 
 #ifdef SLAPD_ACI_ENABLED
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription	*a_aci_at;
-#else
-	char		*a_aci_at;
-#endif
 #endif
 
 	/* ACL Groups */
 	char		*a_group_pat;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ObjectClass				*a_group_oc;
 	AttributeDescription	*a_group_at;
-#else
-	char		*a_group_oc;
-	char		*a_group_at;
-#endif
 
 	struct slap_access	*a_next;
 } Access;
@@ -981,17 +867,10 @@ struct slap_backend_info {
 		int slimit, int tlimit,
 		Filter *f, const char *filterstr,
 		char **attrs, int attrsonly));
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int	(*bi_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		const char *dn, const char *ndn,
 		AttributeAssertion *ava));
-#else
-	int	(*bi_op_compare)LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn,
-		Ava *ava));
-#endif
 	int	(*bi_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		const char *dn, const char *ndn, Modifications *m));
@@ -1016,17 +895,10 @@ struct slap_backend_info {
 	/* Auxilary Functions */
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
 		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
-#else
-	int	(*bi_acl_group)  LDAP_P((Backend *bd,
-		Entry *e, const char *bdn, const char *edn,
-		const char *group_oc,
-		const char *group_at ));
-#endif
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
@@ -1040,19 +912,11 @@ struct slap_backend_info {
 	ID (*bi_tool_entry_next) LDAP_P(( BackendDB *be ));
 	Entry* (*bi_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 	ID (*bi_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e ));
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
 		AttributeDescription *desc ));
 	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
 		AttributeDescription *desc,
 		struct berval **bv, ID id, int op ));
-#else
-	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
-		char* type ));
-	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
-		char* type,
-		struct berval **bv, ID id, int op ));
-#endif
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
 
 #ifdef HAVE_CYRUS_SASL

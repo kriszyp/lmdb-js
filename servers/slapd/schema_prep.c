@@ -18,7 +18,6 @@
 
 int schema_init_done = 0;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 struct slap_internal_schema slap_schema;
 
 static int
@@ -121,18 +120,14 @@ struct slap_schema_ad_map {
 	{ NULL, NULL, 0 }
 };
 
-#endif
 
 int
 schema_prep( void )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int i;
-#endif
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	for( i=0; oc_map[i].ssom_name; i++ ) {
 		ObjectClass ** ocp = (ObjectClass **)
 			&(((char *) &slap_schema)[oc_map[i].ssom_offset]);
@@ -170,7 +165,6 @@ schema_prep( void )
 			(*adp)->ad_type->sat_equality->smr_match = ad_map[i].ssam_match;
 		}
 	}
-#endif
 
 	++schema_init_done;
 	return LDAP_SUCCESS;

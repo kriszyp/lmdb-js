@@ -95,10 +95,8 @@ parse_acl(
 	char		*left, *right;
 	AccessControl	*a;
 	Access	*b;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
 	const char *text;
-#endif
 
 	a = NULL;
 	for ( i = 1; i < argc; i++ ) {
@@ -324,7 +322,6 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					rc = slap_str2ad( right, &b->a_dn_at, &text );
 
 					if( rc != LDAP_SUCCESS ) {
@@ -346,9 +343,6 @@ parse_acl(
 						acl_usage();
 					}
 
-#else
-					b->a_dn_at = ch_strdup( right );
-#endif
 					continue;
 				}
 
@@ -377,11 +371,7 @@ parse_acl(
 					b->a_group_pat = ch_strdup( right );
 
 					if (value && *value) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						b->a_group_oc = oc_find( value );
-#else
-						b->a_group_oc = ch_strdup(value);
-#endif
 						*--value = '/';
 
 						if( b->a_group_oc == NULL ) {
@@ -392,7 +382,6 @@ parse_acl(
 							acl_usage();
 						}
 					} else {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						b->a_group_oc = oc_find(SLAPD_GROUP_CLASS);
 
 						if( b->a_group_oc == NULL ) {
@@ -402,12 +391,8 @@ parse_acl(
 								fname, lineno, SLAPD_GROUP_CLASS );
 							acl_usage();
 						}
-#else
-						b->a_group_oc = ch_strdup(SLAPD_GROUP_CLASS);
-#endif
 					}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 #if 0
 					if( is_object_subclass( b->a_group_oc,
 						slap_schema.si_oc_referral ) )
@@ -429,10 +414,8 @@ parse_acl(
 						acl_usage();
 					}
 #endif
-#endif
 
 					if (name && *name) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						rc = slap_str2ad( right, &b->a_group_at, &text );
 
 						if( rc != LDAP_SUCCESS ) {
@@ -441,12 +424,8 @@ parse_acl(
 								fname, lineno, right, text );
 							acl_usage();
 						}
-#else
-						b->a_group_at = ch_strdup(name);
-#endif
 						*--name = '/';
 					} else {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						rc = slap_str2ad( SLAPD_GROUP_ATTR, &b->a_group_at, &text );
 
 						if( rc != LDAP_SUCCESS ) {
@@ -455,12 +434,8 @@ parse_acl(
 								fname, lineno, SLAPD_GROUP_ATTR, text );
 							acl_usage();
 						}
-#else
-						b->a_group_at = ch_strdup( SLAPD_GROUP_ATTR );
-#endif
 					}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if( !is_at_syntax( b->a_group_at->ad_type,
 						SLAPD_DN_SYNTAX ) )
 					{
@@ -494,7 +469,6 @@ parse_acl(
 							acl_usage();
 						}
 					}
-#endif
 					continue;
 				}
 
@@ -559,7 +533,6 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if ( right != NULL && *right != '\0' ) {
 						rc = slap_str2ad( right, &b->a_aci_at, &text );
 
@@ -591,13 +564,6 @@ parse_acl(
 						acl_usage();
 					}
 
-#else
-					if ( right != NULL && *right != '\0' ) {
-						b->a_aci_at = ch_strdup( right );
-					} else {
-						b->a_aci_at = ch_strdup( SLAPD_ACI_ATTR );
-					}
-#endif
 					continue;
 				}
 #endif /* SLAPD_ACI_ENABLED */
@@ -1012,11 +978,7 @@ print_access( Access *b )
 	}
 
 	if ( b->a_dn_at != NULL ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname->bv_val );
-#else
-		fprintf( stderr, " dnattr=%s", b->a_dn_at );
-#endif
 	}
 
 	if ( b->a_group_pat != NULL ) {
@@ -1026,11 +988,7 @@ print_access( Access *b )
 			fprintf( stderr, " objectClass: %s", b->a_group_oc );
 
 			if ( b->a_group_at ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname->bv_val );
-#else
-				fprintf( stderr, " attributeType: %s", b->a_group_at );
-#endif
 			}
 		}
     }
@@ -1053,11 +1011,7 @@ print_access( Access *b )
 
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname->bv_val );
-#else
-		fprintf( stderr, " aci=%s", b->a_aci_at );
-#endif
 	}
 #endif
 

@@ -51,11 +51,7 @@ passwd_back_search(
 	char *matched = NULL;
 	char *user = NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-#else
-	static char *ad_objectClass = "objectClass";
-#endif
 
 	tlimit = (tlimit > be->be_timelimit || tlimit < 1) ? be->be_timelimit
 	    : tlimit;
@@ -82,11 +78,7 @@ passwd_back_search(
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
 			char *type;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			AttributeDescription *desc = NULL;
-#else
-			char *desc;
-#endif
 
 			/* Create an entry corresponding to the base DN */
 			e = (Entry *) ch_calloc(1, sizeof(Entry));
@@ -109,7 +101,6 @@ passwd_back_search(
 
 			type = rdn_attr_type(rdn);
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			{
 				int rc;
 				const char *text;
@@ -121,15 +112,10 @@ passwd_back_search(
 					goto done;
 				}
 			}
-#else
-			desc = type;
-#endif
 
 			attr_merge( e, desc, vals );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			ad_free( desc, 1 );
-#endif
 
 			free(rdn);
 			rdn = NULL;
@@ -262,7 +248,6 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	struct berval	val;
 	struct berval	*vals[2];
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
 	const char *text;
 
@@ -284,13 +269,6 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	rc = slap_str2ad( "description", &ad_description, &text );
 	if(rc != LDAP_SUCCESS) return NULL;
 
-#else
-	static char *ad_objectClass = "objectClass";
-	static char *ad_cn = "cn";
-	static char *ad_sn = "sn";
-	static char *ad_uid = "uid";
-	static char *ad_description = "description";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;

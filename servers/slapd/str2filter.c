@@ -145,10 +145,8 @@ str2simple( const char *str )
 	Filter		*f;
 	char		*s;
 	char		*value, savechar;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int			rc;
 	const char		*text;
-#endif
 
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );
 
@@ -188,7 +186,6 @@ str2simple( const char *str )
 			f->f_choice = LDAP_FILTER_PRESENT;
 		} else {
 			f->f_choice = LDAP_FILTER_SUBSTRINGS;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
 			rc = slap_str2ad( str, &f->f_sub_desc, &text );
 			if( rc != LDAP_SUCCESS ) {
@@ -196,9 +193,6 @@ str2simple( const char *str )
 				*(value-1) = '=';
 				return NULL;
 			}
-#else
-			f->f_sub_type = ch_strdup( str );
-#endif
 			if ( str2subvals( value, f ) != 0 ) {
 				filter_free( f );
 				*(value-1) = '=';
@@ -211,18 +205,13 @@ str2simple( const char *str )
 	}
 
 	if ( f->f_choice == LDAP_FILTER_PRESENT ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		rc = slap_str2ad( str, &f->f_desc, &text );
 		if( rc != LDAP_SUCCESS ) {
 			filter_free( f );
 			*(value-1) = '=';
 			return NULL;
 		}
-#else
-		f->f_type = ch_strdup( str );
-#endif
 	} else {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		char *tmp;
 
 		f->f_ava = ch_calloc( 1, sizeof( AttributeAssertion ) );
@@ -237,12 +226,6 @@ str2simple( const char *str )
 		tmp = ch_strdup( value );
 		ldap_pvt_filter_value_unescape( tmp );
 		f->f_av_value = ber_bvstr( tmp );
-#else
-		f->f_avtype = ch_strdup( str );
-		f->f_avvalue.bv_val = ch_strdup( value );
-		ldap_pvt_filter_value_unescape( f->f_avvalue.bv_val );
-		f->f_avvalue.bv_len = strlen( value );
-#endif
 	}
 
 	*s = savechar;

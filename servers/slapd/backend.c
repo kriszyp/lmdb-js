@@ -635,13 +635,8 @@ backend_group(
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
-#else
-	const char	*group_oc,
-	const char	*group_at
-#endif
 )
 {
 	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
@@ -668,12 +663,7 @@ Attribute *backend_operational(
 	Entry *e )
 {
 	Attribute *a = ch_malloc( sizeof( Attribute ) );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	a->a_desc = ad_dup( slap_schema.si_ad_subschemaSubentry );
-#else
-	a->a_type = ch_strdup("subschemasubentry");
-	a->a_syntax = SYNTAX_DN | SYNTAX_CIS;
-#endif
 
 	/* Should be backend specific */
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );

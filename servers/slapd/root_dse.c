@@ -26,7 +26,6 @@ root_dse_info( Entry **entry, const char **text )
 	struct berval	*vals[2];
 	int		i, j;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_namingContexts = slap_schema.si_ad_namingContexts;
 	AttributeDescription *ad_supportedControl = slap_schema.si_ad_supportedControl;
@@ -34,15 +33,6 @@ root_dse_info( Entry **entry, const char **text )
 	AttributeDescription *ad_supportedLDAPVersion = slap_schema.si_ad_supportedLDAPVersion;
 	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-#else
-	char *ad_objectClass = "objectClass";
-	char *ad_namingContexts = "namingContexts";
-	char *ad_supportedControl = "supportedControl";
-	char *ad_supportedExtension = "supportedExtension";
-	char *ad_supportedLDAPVersion = "supportedLDAPVersion";
-	char *ad_supportedSASLMechanisms = "supportedSASLMechanisms";
-	char *ad_ref = "ref";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;

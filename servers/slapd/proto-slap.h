@@ -11,7 +11,6 @@
 LDAP_BEGIN_DECL
 
 LIBSLAPD_F( int ) schema_init_done;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F( struct slap_internal_schema ) slap_schema;
 
 LIBSLAPD_F (int) slap_str2ad LDAP_P((
@@ -41,25 +40,15 @@ LIBSLAPD_F (int) is_ad_subtype LDAP_P((
 LIBSLAPD_F (int) ad_inlist LDAP_P((
 	AttributeDescription *desc,
 	char **attrs ));
-#else
-#define ad_inlist(d,a) charray_inlist(a,d)
-#endif
 
 /*
  * acl.c
  */
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) access_allowed LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, AttributeDescription *desc, struct berval *val,
 	slap_access_t access ));
-#else
-LIBSLAPD_F (int) access_allowed LDAP_P((
-	Backend *be, Connection *conn, Operation *op,
-	Entry *e, const char *attr, struct berval *val,
-	slap_access_t access ));
-#endif
 LIBSLAPD_F (int) acl_check_modlist LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, Modifications *ml ));
@@ -93,7 +82,6 @@ LIBSLAPD_F (int) at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ))
 LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) is_at_subtype LDAP_P((
 	AttributeType *sub,
 	AttributeType *super ));
@@ -103,10 +91,6 @@ LIBSLAPD_F (int) is_at_syntax LDAP_P((
 	const char *oid ));
 
 #	define at_canonical_name(at) ((at)->sat_cname)	
-#else
-LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
-LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
-#endif
 
 
 /*
@@ -116,24 +100,12 @@ LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 LIBSLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LIBSLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	struct berval **vals ));
 LIBSLAPD_F (Attribute *) attrs_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, AttributeDescription *desc ));
-#else
-LIBSLAPD_F (char *) attr_normalize LDAP_P(( char *s ));
-LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e, const char *type,
-	struct berval **vals ));
-LIBSLAPD_F (int) attr_merge_fast LDAP_P(( Entry *e, const char *type,
-	struct berval **vals, int  nvals, int  naddvals, int  *maxvals,
-	Attribute ***a ));
-LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, const char *type ));
-LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, const char *type ));
-LIBSLAPD_F (int) attr_syntax LDAP_P(( const char *type ));
-#endif
 
 LIBSLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
 LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
@@ -142,7 +114,6 @@ LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
 /*
  * ava.c
  */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) get_ava LDAP_P((
 	BerElement *ber,
 	AttributeAssertion **ava,
@@ -151,13 +122,6 @@ LIBSLAPD_F (int) get_ava LDAP_P((
 LIBSLAPD_F (void) ava_free LDAP_P((
 	AttributeAssertion *ava,
 	int freeit ));
-#else
-LIBSLAPD_F (int) get_ava LDAP_P((
-	BerElement *ber,
-	Ava *ava,
-	const char **text ));
-LIBSLAPD_F (void) ava_free LDAP_P(( Ava *ava, int freeit ));
-#endif
 
 /*
  * backend.c
@@ -194,7 +158,6 @@ LIBSLAPD_F( int )	backend_check_controls LDAP_P((
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	Entry *target,
 	const char *gr_ndn,
@@ -202,15 +165,6 @@ LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
 ));
-#else
-LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
-	Entry *target,
-	const char *gr_ndn,
-	const char *op_ndn,
-	const char *group_oc,
-	const char *group_at
-));
-#endif
 
 LIBSLAPD_F (Attribute *) backend_operational( Backend *, Entry * );
 
@@ -413,7 +367,6 @@ LIBSLAPD_F( void ) slap_mod_free LDAP_P(( Modification *mod, int freeit ));
 LIBSLAPD_F( void ) slap_mods_free LDAP_P(( Modifications *mods ));
 LIBSLAPD_F( void ) slap_modlist_free LDAP_P(( LDAPModList *ml ));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F( int ) slap_modlist2mods(
 	LDAPModList *ml,
 	int update,
@@ -424,7 +377,6 @@ LIBSLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
 	Modifications **modlist,
 	const char **text );
-#endif
 
 /*
  * module.c
@@ -572,11 +524,6 @@ LIBSLAPD_F (int) syn_schema_info( Entry *e );
  * schema.c
  */
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-LIBSLAPD_F (int) oc_check_op_attr LDAP_P(( const char *type ));
-LIBSLAPD_F (int) oc_check_op_usermod_attr LDAP_P(( const char *type ));
-LIBSLAPD_F (int) oc_check_op_no_usermod_attr LDAP_P(( const char *type ));
-#endif
 LIBSLAPD_F (ObjectClass *) oc_find LDAP_P((
 	const char *ocname));
 
@@ -639,27 +586,18 @@ LIBSLAPD_F (int) register_matching_rule LDAP_P((
 
 LIBSLAPD_F (int) schema_info LDAP_P(( Entry **entry, const char **text ));
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, ObjectClass *oc ));
 #define is_entry_alias(e)		is_entry_objectclass((e), slap_schema.si_oc_alias)
 #define is_entry_referral(e)	is_entry_objectclass((e), slap_schema.si_oc_referral)
-#else
-LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
-	Entry *, const char* objectclass ));
-#define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
-#define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
-#endif
 
 
 /*
  * schema_check.c
  */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 int oc_check_allowed(
 	AttributeType *type,
 	struct berval **oclist );
-#endif
 LIBSLAPD_F (int) entry_schema_check LDAP_P((
 	Entry *e, Attribute *attrs,
 	const char** text ));
@@ -714,7 +652,6 @@ LIBSLAPD_F (char *) suffix_alias LDAP_P(( Backend *be, char *ndn ));
 /*
  * value.c
  */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) value_normalize LDAP_P((
 	AttributeDescription *ad,
 	unsigned usage,
@@ -732,12 +669,6 @@ LIBSLAPD_F (int) value_find LDAP_P((
 	AttributeDescription *ad,
 	struct berval **values,
 	struct berval *value ));
-#else
-LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));
-LIBSLAPD_F (void) value_normalize LDAP_P(( char *s, int syntax ));
-LIBSLAPD_F (int) value_cmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax, int normalize ));
-LIBSLAPD_F (int) value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax, int normalize ));
-#endif
 LIBSLAPD_F (int) value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 
 /*

@@ -22,11 +22,7 @@ dnssrv_back_compare(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion *ava
-#else
-    Ava		*ava
-#endif
 )
 {
 	return dnssrv_back_request( be, conn, op, dn, ndn,

@@ -20,12 +20,8 @@ int
 main( int argc, char **argv )
 {
 	char		*type;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc;
 	const char *text;
-#else
-	char *desc;
-#endif
 	ID id;
 	int rc = EXIT_SUCCESS;
 
@@ -44,7 +40,6 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	type = argv[argc - 1];
 
 	rc = slap_str2ad( type, &desc, &text );
@@ -54,9 +49,6 @@ main( int argc, char **argv )
 			progname, text );
 		exit( EXIT_FAILURE );
 	}
-#else
-	desc = type = attr_normalize( argv[argc - 1] );
-#endif
 
 	if ( !be->be_index_attr( be, desc ) ) {
 		fprintf( stderr, "attribute type \"%s\": no indices to generate\n",
@@ -89,43 +81,12 @@ main( int argc, char **argv )
 				id, e->e_dn );
 		}
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		if( strcasecmp( type, "dn" ) == 0 )
-		{
-			struct berval **values;
-			struct berval bv;
-			struct berval *bvals[2];
-
-			bv.bv_val = e->e_ndn;
-			bv.bv_len = strlen( bv.bv_val );
-			bvals[0] = &bv;
-			bvals[1] = NULL;
-
-			values = bvals;
-
-			if ( be->be_index_change( be,
-				desc, values, id, SLAP_INDEX_ADD_OP ) )
-			{
-				rc = EXIT_FAILURE;
-
-				if( !continuemode ) {
-					entry_free( e );
-					break;
-				}
-			}
-
-		} else
-#endif
 		{
 			Attribute *attr;
 			
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			for( attr = attrs_find( e->e_attrs, desc );
 				attr != NULL;
 				attr = attrs_find( attr->a_next, desc ) )
-#else
-			if (( attr = attr_find( e->e_attrs, type )) != NULL )
-#endif
 			{
 
 				if ( be->be_index_change( be,

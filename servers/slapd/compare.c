@@ -33,12 +33,8 @@ do_compare(
 	char	*dn = NULL, *ndn=NULL;
 	struct berval desc;
 	struct berval value;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	struct berval *nvalue;
 	AttributeAssertion ava;
-#else
-	Ava	ava;
-#endif
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;
@@ -97,7 +93,6 @@ do_compare(
 		goto cleanup;
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ava.aa_desc = NULL;
 	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
 	if( rc != LDAP_SUCCESS ) {
@@ -129,18 +124,6 @@ do_compare(
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname, 0 );
 
-#else
-	ava.ava_type = desc.bv_val;
-	ava.ava_value = value;
-	attr_normalize( ava.ava_type );
-	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
-
-	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    dn, ava.ava_type, ava.ava_value.bv_val );
-
-	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn, ava.ava_type, 0 );
-#endif
 
 
 	/*
@@ -179,11 +162,9 @@ cleanup:
 	free( ndn );
 	free( desc.bv_val );
 	free( value.bv_val );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if( ava.aa_desc != NULL ) {
 		ad_free( ava.aa_desc, 1 );
 	}
-#endif
 
 	return rc;
 }

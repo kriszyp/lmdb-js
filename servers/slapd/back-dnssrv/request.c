@@ -131,14 +131,9 @@ dnssrv_back_request(
 			struct berval	val;
 			struct berval	*vals[2];
 			Entry *e = ch_calloc( 1, sizeof(Entry) );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			AttributeDescription *ad_objectClass
 				= slap_schema.si_ad_objectClass;
 			AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-#else
-			const char ad_objectClass = "objectClass";
-			const char ad_ref = "ref";
-#endif
 			e->e_dn = strdup( dn );
 			e->e_ndn = strdup( ndn );
 
@@ -161,15 +156,10 @@ dnssrv_back_request(
 			attr_merge( e, ad_objectClass, vals );
 
 			{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				AttributeDescription *ad = NULL;
 				const char *text;
 
 				rc = slap_str2ad( "dc", &ad, &text );
-#else
-				rc = LDAP_SUCCESS;
-				const char *ad = "dc";
-#endif
 
 				if( rc == LDAP_SUCCESS ) {
 					char *p;
@@ -191,15 +181,10 @@ dnssrv_back_request(
 			}
 
 			{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				AttributeDescription *ad = NULL;
 				const char *text;
 
 				rc = slap_str2ad( "associatedDomain", &ad, &text );
-#else
-				rc = LDAP_SUCCESS;
-				const char *ad = "associatedDomain";
-#endif
 
 				if( rc == LDAP_SUCCESS ) {
 					val.bv_val = domain;

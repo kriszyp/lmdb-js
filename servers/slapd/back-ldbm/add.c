@@ -30,11 +30,7 @@ ldbm_back_add(
 	int			rootlock = 0;
 	int			rc; 
 	const char	*text = NULL;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *children = slap_schema.si_ad_children;
-#else
-	static const char *children = "children";
-#endif
 
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);

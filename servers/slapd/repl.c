@@ -59,11 +59,7 @@ replog(
 		ml = change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			type = ml->sml_desc->ad_cname->bv_val;
-#else
-			type = ml->sml_type;
-#endif
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
 				fprintf( fp, "add: %s\n", type );

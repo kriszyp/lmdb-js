@@ -147,9 +147,6 @@ do_search(
 
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[i] != NULL; i++ ) {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-			attr_normalize( attrs[i] );
-#endif
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 		}
 	}

@@ -41,28 +41,15 @@ int is_object_subclass(
 
 int is_entry_objectclass(
 	Entry*	e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	ObjectClass *oc
-#else
-	const char*	oc
-#endif
 )
 {
 	Attribute *attr;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int i;
 	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
 	assert(!( e == NULL || oc == NULL ));
-#else
-	struct berval bv;
-	static const char *objectClass = "objectclass";
-	assert(!( e == NULL || oc == NULL || *oc == '\0' ));
-#endif
 
 	if( e == NULL || oc == NULL
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		|| *oc == '\0'
-#endif
 	) {
 		return 0;
 	}
@@ -81,7 +68,6 @@ int is_entry_objectclass(
 		return 0;
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	for( i=0; attr->a_vals[i]; i++ ) {
 		ObjectClass *objectClass = oc_find( attr->a_vals[i]->bv_val );
 
@@ -92,125 +78,9 @@ int is_entry_objectclass(
 
 	return 0;
 
-#else
-	bv.bv_val = (char *) oc;
-	bv.bv_len = strlen( bv.bv_val );
-
-	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
-		/* entry is not of this objectclass */
-		return 0;
-	}
-
-	return 1;
-#endif
 }
 
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	/* these shouldn't be hardcoded */
-
-static char *oc_op_usermod_attrs[] = {
-	/*
-	 * these are operational attributes which are
-	 * not defined as NO-USER_MODIFICATION and
-	 * which slapd supports modification of.
-	 *
-	 * Currently none.
-	 * Likely candidate, "OpenLDAPaci"
-	 */
-	NULL
-};
-
-static char *oc_op_attrs[] = {
-	/*
-	 * these are operational attributes 
-	 * most could be user modifiable
-	 */
-	"objectClasses",
-	"attributeTypes",
-	"matchingRules",
-	"matchingRuleUse",
-	"dITStructureRules",
-	"dITContentRules",
-	"nameForms",
-	"ldapSyntaxes",
-	"namingContexts",
-	"supportedExtension",
-	"supportedControl",
-	"supportedSASLMechanisms",
-	"supportedLDAPversion",
-	"subschemaSubentry",		/* NO USER MOD */
-	NULL
-
-};
-
-/* this list should be extensible  */
-static char *oc_op_no_usermod_attrs[] = {
-	/*
-	 * Operational and 'no user modification' attributes
-	 * which are STORED in the directory server.
-	 */
-
-	/* RFC2252, 3.2.1 */
-	"creatorsName",
-	"createTimestamp",
-	"modifiersName",
-	"modifyTimestamp",
-
-	NULL
-};
-
-
-/*
- * check to see if attribute is 'operational' or not.
- */
-int
-oc_check_op_attr( const char *type )
-{
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	return charray_inlist( oc_op_attrs, type )
-		|| charray_inlist( oc_op_usermod_attrs, type )
-		|| charray_inlist( oc_op_no_usermod_attrs, type );
-#else
-	AttributeType *at = at_find( type );
-
-	if( at == NULL ) return 0;
-
-	return at->sat_usage != LDAP_SCHEMA_USER_APPLICATIONS;
-#endif
-}
-
-/*
- * check to see if attribute can be user modified or not.
- */
-int
-oc_check_op_usermod_attr( const char *type )
-{
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	return charray_inlist( oc_op_usermod_attrs, type );
-#else
-	/* not (yet) in schema */
-	return 0;
-#endif
-}
-
-/*
- * check to see if attribute is 'no user modification' or not.
- */
-int
-oc_check_op_no_usermod_attr( const char *type )
-{
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	return charray_inlist( oc_op_no_usermod_attrs, type );
-#else
-	AttributeType *at = at_find( type );
-
-	if( at == NULL ) return 0;
-
-	return at->sat_no_user_mod;
-#endif
-}
-#endif
 
 
 struct oindexrec {
@@ -519,11 +389,7 @@ oc_schema_info( Entry *e )
 	struct berval	*vals[2];
 	ObjectClass	*oc;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClasses = slap_schema.si_ad_objectClasses;
-#else
-	char *ad_objectClasses = "objectClasses";
-#endif
 
 	vals[0] = &val;
 	vals[1] = NULL;
