@@ -313,6 +313,37 @@ size allowed.  0 disables security layers.  The default is 65536.
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
 .TP
+.B security <factors>
+Specify a set of factors (separated by white space) to require.
+An integer value is associated with each factor and is roughly
+equivalent of the encryption key length to require.  A value
+of 112 is equivalent to 3DES, 128 to Blowfish, etc..
+The directive may be specified globally and/or per-database.
+.B ssf=<n>
+specifies the overall security strength factor.
+.B transport=<n>
+specifies the transport security strength factor.
+.B tls=<n>
+specifies the TLS security strength factor.
+.B sasl=<n>
+specifies the SASL security strength factor.
+.B update_ssf=<n>
+specifies the overall security strength factor to require for
+directory updates.
+.B update_transport=<n>
+specifies the transport security strength factor to require for
+directory updates.
+.B update_tls=<n>
+specifies the TLS security strength factor to require for
+directory updates.
+.B update_sasl=<n>
+specifies the SASL security strength factor to require for
+directory updates.
+Note that the
+.B transport
+factor is measure of security provided by the underlying transport,
+e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
+.TP
 .B sizelimit <integer>
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
