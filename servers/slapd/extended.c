@@ -242,35 +242,7 @@ do_extended(
 #endif
 
 #if defined(LDAP_SLAPI)
-	if (ext != NULL) { /* OpenLDAP extended operation */
-#endif /* defined(LDAP_SLAPI) */
-
-		if (reqdata.bv_val) op->ore_reqdata = &reqdata;
-		rs->sr_err = (ext->ext_main)( op, rs );
-
-		if( rs->sr_err != SLAPD_ABANDON ) {
-			if ( rs->sr_err == LDAP_REFERRAL && rs->sr_ref == NULL ) {
-				rs->sr_ref = referral_rewrite( default_referral,
-					NULL, NULL, LDAP_SCOPE_DEFAULT );
-			}
-
-			send_ldap_extended( op, rs );
-
-			ber_bvarray_free( rs->sr_ref );
-		}
-
-		if ( rs->sr_rspoid != NULL ) {
-			free( (char *)rs->sr_rspoid );
-		}
-
-		if ( rs->sr_rspdata != NULL ) {
-			ber_bvfree( rs->sr_rspdata );
-		}
-
-#if defined( LDAP_SLAPI )
-		goto done;  /* end of OpenLDAP extended operation */
-
-	} else { /* start of Netscape extended operation */
+	if ( funcAddr != NULL ) {
 		rs->sr_err = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_OID,
 				(void *)op->ore_reqoid.bv_val);
 		if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -329,9 +301,32 @@ done2:;
 		if ( rs->sr_rspdata != NULL ) {
 			ber_bvfree( rs->sr_rspdata );
 		}
-
-	} /* end of Netscape extended operation */
+	} else { /* start of OpenLDAP extended operation */
 #endif /* defined( LDAP_SLAPI ) */
+		if (reqdata.bv_val) op->ore_reqdata = &reqdata;
+		rs->sr_err = (ext->ext_main)( op, rs );
+
+		if( rs->sr_err != SLAPD_ABANDON ) {
+			if ( rs->sr_err == LDAP_REFERRAL && rs->sr_ref == NULL ) {
+				rs->sr_ref = referral_rewrite( default_referral,
+					NULL, NULL, LDAP_SCOPE_DEFAULT );
+			}
+
+			send_ldap_extended( op, rs );
+
+			ber_bvarray_free( rs->sr_ref );
+		}
+
+		if ( rs->sr_rspoid != NULL ) {
+			free( (char *)rs->sr_rspoid );
+		}
+
+		if ( rs->sr_rspdata != NULL ) {
+			ber_bvfree( rs->sr_rspdata );
+		}
+#ifdef LDAP_SLAPI
+	} /* end of OpenLDAP extended operation */
+#endif /* LDAP_SLAPI */
 
 done:
 	return rs->sr_err;

@@ -28,7 +28,7 @@
  * so it can be used in ACLs
  */
 static struct slap_listener slap_unknown_listener = {
-	BER_BVC("unknown"),	/* FIXME: use a URI form? */
+	BER_BVC("unknown"),	/* FIXME: use a URI form? (e.g. slapi://) */
 	BER_BVC("UNKNOWN")
 };
 
