@@ -908,10 +908,9 @@ int slap_sasl_init( void )
 		char version[sizeof("xxx.xxx.xxxxx")];
 		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
-		Debug( LDAP_DEBUG_ANY,
-		"slap_sasl_init: SASL library version mismatch:"
-		" expected " SASL_VERSION_STRING ","
-		" got %s\n", version, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "slap_sasl_init: SASL library version mismatch:"
+			" expected " SASL_VERSION_STRING ","
+			" got %s\n", version, 0, 0 );
 		return -1;
 	}
 #endif
@@ -934,14 +933,19 @@ int slap_sasl_init( void )
 #if SASL_VERSION_MAJOR >= 2
 	generic_filter.f_desc = slap_schema.si_ad_objectClass;
 
-	sasl_auxprop_add_plugin( "slapd", slap_auxprop_init );
+	rc = sasl_auxprop_add_plugin( "slapd", slap_auxprop_init );
+	if( rc != SASL_OK ) {
+		Debug( LDAP_DEBUG_ANY, "slap_sasl_init: auxprop add plugin failed\n",
+			0, 0, 0 );
+		return -1;
+	}
 #endif
 	/* should provide callbacks for logging */
 	/* server name should be configurable */
 	rc = sasl_server_init( server_callbacks, "slapd" );
 
 	if( rc != SASL_OK ) {
-		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
+		Debug( LDAP_DEBUG_ANY, "slap_sasl_init: server init failed\n",
 			0, 0, 0 );
 #if SASL_VERSION_MAJOR < 2
 		/* A no-op used to make sure we linked with Cyrus 1.5 */
