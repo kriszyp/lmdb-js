@@ -45,13 +45,13 @@ va_dcl
 #ifdef HAVE_STDARG
 	va_start( ap, fmt );
 #else
-	LD *ld
+	LDAP *ld;
 	int loglvl;
 	char *fmt;
 
 	va_start( ap );
 
-	errlvl = va_arg( ap, LD * );
+	ld = va_arg( ap, LDAP * );
 	loglvl = va_arg( ap, int );
 	fmt = va_arg( ap, char * );
 #endif
