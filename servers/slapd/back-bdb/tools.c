@@ -159,6 +159,9 @@ ID bdb_tool_entry_put(
 #if BDB_INDEX
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_put: index_entry_add failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		goto done;
 	}
 #endif
