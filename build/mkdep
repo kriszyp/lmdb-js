@@ -127,7 +127,7 @@ cat << _EOF_ >> $TMP
 
 #
 # files: $*
-# command: $CC -M $files
+# command: $CC $CC_MKDEP_FLAGS $files
 #
 
 _EOF_
