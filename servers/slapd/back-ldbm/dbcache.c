@@ -322,11 +322,7 @@ ldbm_cache_fetch(
     Datum		key
 )
 {
-	Datum	data;
-
 	return ldbm_fetch( db->dbc_db, key );
-
-	return( data );
 }
 
 int
