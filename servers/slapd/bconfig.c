@@ -578,7 +578,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcDatabase $ olcLastMod $ olcLimits $ "
+		"MAY ( olcDatabase $ olcAccess $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
@@ -2862,6 +2862,7 @@ config_back_db_open( BackendDB *be )
 				oprev = ce;
 			}
 		}
+#if 0
 		/* Set up ACLs */
 		if ( bptr->be_acl ) {
 			Entry *ae;
@@ -2880,6 +2881,7 @@ config_back_db_open( BackendDB *be )
 			}
 			opar->ce_kids = ce;
 		}
+#endif
 	}
 
 	return 0;
@@ -2908,6 +2910,9 @@ config_back_db_init( Backend *be )
 	ber_bvarray_add( &be->be_suffix, &dn );
 	ber_dupbv( &dn, &be->be_rootdn );
 	ber_bvarray_add( &be->be_nsuffix, &dn );
+
+	/* Hide from namingContexts */
+	SLAP_BFLAGS(be) |= SLAP_BFLAG_CONFIG;
 
 	return 0;
 }
