@@ -29,6 +29,7 @@ Large projects
 --------------
 Add SASL/TLS (SSL) support <bart@openldap.org>
 Redesign slapd threading (thread pooling)
+Redesign slapd caching
 Modify -lldap to be session-level multithreaded
 Port slapd (incl back-ldbm & tools) to NT <gwilliams@openldap.org>
 MajorLDAP - Design and implement an LDAP-enabled mailing list manager
