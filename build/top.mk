@@ -133,6 +133,7 @@ lint5-local:
 
 veryclean: FORCE
 	$(RM) Makefile
+	$(RM) -r .libs
 
 Makefile: Makefile.in $(top_srcdir)/build/top.mk
 

@@ -3,6 +3,7 @@
 ##
 PROGRAMS=slapd
 XPROGRAMS=sslapd libbackends.a .backend
+XSRCS=version.c
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
@@ -84,11 +85,27 @@ version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
 	-e "s|%VERSION%|$${v}|" \
 	< $(srcdir)/Version.c > $@)
 
+depend-local: FORCE
+	@for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
+			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+		fi; \
+	done
+
 clean-local: FORCE
-	@for i in back-* tools; do \
+	@for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+		fi; \
+	done
+
+veryclean-local: FORCE
+	@for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) veryclean"; \
+			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
 	done
 

@@ -4,7 +4,7 @@
 PROGRAMS= go500gw go500
 
 SRCS=	go500.c go500gw.c 
-XSRCS= gwversion.o goversion.o
+XSRCS= gwversion.c goversion.c
 GOOBJS =  go500.o
 GWOBJS =  go500gw.o
 

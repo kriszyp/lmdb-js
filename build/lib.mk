@@ -23,7 +23,7 @@ lint5: lint5-local FORCE
 
 clean-common: 	FORCE
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
-		*.o a.out core version.c *.lo .libs/*
+		*.o *.lo a.out core version.c .libs/*
 
 depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)

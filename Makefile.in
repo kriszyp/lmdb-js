@@ -3,7 +3,7 @@
 # COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 
 SUBDIRS= include libraries clients servers # contrib
-CLEANDIRS= tests
+CLEANDIRS= tests doc
 INSTALLDIRS= doc
 
 makefiles:	FORCE

@@ -24,6 +24,8 @@ PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry \
 SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
 	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c
 
+XSRCS = edb2-vers.c
+
 EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
 
@@ -103,8 +105,8 @@ ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2)
 	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c *.o a.out core \
-	.libs/*
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c \
+		*.o core .libs/*
 
 depend-local: FORCE
 	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ; \

@@ -1,3 +1,4 @@
+XSRCS	= version.c
 SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
 		modify.c modrdn.c compare.c abandon.c result.c
 OBJS	= init.o config.o fork.o search.o bind.o unbind.o add.o delete.o \
@@ -28,3 +29,4 @@ version.c: $(OBJS) $(LDAP_LIBDEPEND)
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
 	< $(srcdir)/Version.c > $@)
+

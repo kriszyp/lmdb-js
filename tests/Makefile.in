@@ -14,14 +14,6 @@ all-local:	FORCE
 clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
 
-veryclean-local:	clean
+veryclean-local: FORCE
+	$(RM) -r test-db test-repl
 
-depend-local:	FORCE
-
-install-local:	FORCE
-
-all-common:			all-local
-install-common:		install-local
-clean-common:		clean-local
-veryclean-common:	veryclean-local
-depend-common:		depend-local

@@ -5,6 +5,8 @@
 PROGRAMS = slurpd
 XPROGRAMS = sslurpd
 
+XSRCS	= version.c
+
 SRCS	=	admin.c args.c ch_malloc.c config.c \
 		fm.c globals.c ldap_op.c lock.c main.c re.c \
 		reject.c replica.c replog.c ri.c rq.c sanity.c st.c \

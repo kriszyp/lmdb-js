@@ -10,19 +10,8 @@ all-common: FORCE
 		echo "run configure with $(BUILD_OPT) to build $(PROGRAMS)"; \
 	fi
 
-clean-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) clean-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to clean $(PROGRAMS)"; \
-	fi
-
-veryclean-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) veryclean-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to very clean $(PROGRAMS)"; \
-	fi
+clean-common: clean-srv FORCE
+veryclean-common: veryclean-srv FORCE
 
 lint-common: FORCE
 	@if [ "$(BUILD_SRV)" = "yes" ]; then \
