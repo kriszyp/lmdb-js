@@ -109,6 +109,22 @@ LDAP_F( char * )
 ldap_charray2str LDAP_P((
 	char **array, const char* sep ));
 
+/* getdn.c */
+
+#ifdef LDAP_AVA_NULL	/* in ldap.h */
+LDAP_F( void ) ldap_rdnfree_x LDAP_P(( LDAPRDN rdn, void *ctx ));
+LDAP_F( void ) ldap_dnfree_x LDAP_P(( LDAPDN dn, void *ctx ));
+
+LDAP_F( int ) ldap_bv2dn_x LDAP_P(( 
+	struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx ));
+LDAP_F( int ) ldap_dn2bv_x LDAP_P(( 
+	LDAPDN dn, struct berval *bv, unsigned flags, void *ctx ));
+LDAP_F( int ) ldap_bv2rdn_x LDAP_P(( 
+	struct berval *, LDAPRDN *, char **, unsigned flags, void *ctx ));
+LDAP_F( int ) ldap_rdn2bv_x LDAP_P(( 
+	LDAPRDN rdn, struct berval *bv, unsigned flags, void *ctx ));
+#endif
+
 /* url.c */
 LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 
