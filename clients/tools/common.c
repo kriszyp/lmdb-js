@@ -1,9 +1,25 @@
-/* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
 /* common.c - common routines for the ldap client tools */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2003 Kurt D. Zeilenga.
+ * Portions Copyright 2003 IBM Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* This file was initially created by Hallvard B. Furuseth based (in
+ * part) upon argument parsing code for individual tools located in
+ * this directory.   Additional contributors include:
+ *   Kurt D. Zeilenga (additional common argument and control support)
+ */
 
 #include "portable.h"
 

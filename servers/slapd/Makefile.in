@@ -53,7 +53,7 @@ XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
 XLIBS = $(SLAPD_STATIC_DEPENDS) $(SLAPD_L)
-XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
+XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
@@ -83,7 +83,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # we want to export EVERY global symbol that it knows about (NOT including
 # symbols that are imported from other DLLs). The set of symbols to
 # export INCLUDES symbols from all static libraries that slapd gets
-# linked with, e.g. avl, ldbm, ldif, lunicode, lutil, etc. This list
+# linked with, e.g. avl, ldbm, lunicode, lutil, etc. This list
 # will also include liblber and libldap_r if they were built as static
 # libraries. ALSO included will be symbols from other STATIC libraries
 # outside the domain of the OpenLDAP source tree, e.g. regex, ltdl,

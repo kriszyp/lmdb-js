@@ -32,8 +32,7 @@ all-local-srv: 	$(PROGRAMS)
 
 # $(LTHREAD_LIBS) must be last!
 XLIBS = $(SLURPD_L)
-XXLIBS = $(SLURPD_LIBS) $(SECURITY_LIBS) \
-	$(LDIF_LIBS) $(LUTIL_LIBS)
+XXLIBS = $(SLURPD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 slurpd:	version.o
