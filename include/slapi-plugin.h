@@ -3,7 +3,7 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * (C) Copyright IBM Corp. 1997,2002
+ * Portions Copyright IBM Corp. 1997,2002,2003
  * Redistribution and use in source and binary forms are permitted
  * provided that this notice is preserved and that due credit is
  * given to IBM Corporation. This software is provided ``as is''
