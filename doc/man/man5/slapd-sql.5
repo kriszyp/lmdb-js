@@ -63,7 +63,9 @@ These three options are generally unneeded, because this information is already
 taken from the datasource.
 Use them if you need to override datasource settings.
 Also, several RDBMS' drivers tend to require explicit passing of user/password,
-even if those are given in datasource.
+even if those are given in datasource (Note:
+.B dbhost
+is currently ignored).
 .RE
 .TP
 .B subtree_cond <SQL expression>
@@ -92,18 +94,74 @@ adding and deleting entries to ldap_entries, etc.
 All these and subtree_cond should have the given default values.
 For the current value it is recommended to look at the sources,
 or in the log output when slapd starts with "-d 5" or greater.
+Note that the parameter number and order must not be changed.
 .TP
 .B upper_func <SQL function name>
 Specifies the name of a function that converts a given value to uppercase.
 This is used for CIS matching when the RDBMS is case sensitive.
 .TP
+.B upper_needs_cast { yes | no }
+Set this directive to 
+.B yes
+if 
+.B upper_func
+needs an explicit cast when applied to literal strings.  The form
+.B cast (<arg> as varchar(<max DN length>))
+is used, where
+.B <max DN length>
+is builtin.
+This is
+.B experimental 
+and may change in future releases.
+.TP
+.B concat_pattern <pattern>
+This statement defines the
+.B pattern 
+to be used to concatenate strings.  The
+.B pattern
+MUST contain two question marks, '?', that will be replaced 
+by the two strings that must be concatenated.  The default value is
+.BR "CONCAT(?,?)";
+a form that is known to be highly portable is 
+.BR "?||?",
+but an explicit cast may be required when operating on literal strings:
+.BR "cast(?||? as varchar(<length>))".
+On some RDBMSes the form
+.B "?+?"
+is known to work.
+Carefully check the documentation of your RDBMS or stay with the examples
+for supported ones.
+This is
+.B experimental 
+and may change in future releases.
+.TP
 .B strcast_func <SQL function name>
 Specifies the name of a function that converts a given value to a string
-for appropriate ordering.  This is used when selecting distinct data.
+for appropriate ordering.  This is used in "SELECT DISTINCT" statements
+for strongly typed RDBMSes with little implicit casting (like PostgreSQL),
+when a literal string is specified.
+This is
+.B experimental 
+and may change in future releases.
 .TP
 .B has_ldapinfo_dn_ru { yes | no }
-Explicitly inform the backend whether the SQL schema has dn_ru or not.
-Overrides automatic check (required by PostgreSQL).
+Explicitly inform the backend whether the SQL schema has dn_ru column
+(dn in reverse uppercased form) or not.
+Overrides automatic check (required by PostgreSQL/unixODBC).
+This is
+.B experimental 
+and may change in future releases.
+
+.TP
+.B fail_if_no_mapping { yes | no }
+When set to
+.B yes
+it forces write operations to fail if no appropriate mapping between LDAP
+attributes and SQL data is available.  The default behavior is to ignore
+those changes that cannot be mapped correctly.
+This is
+.B experimental 
+and may change in future releases.
 
 .SH METAINFORMATION USED
 .LP
@@ -217,7 +275,7 @@ Keytbl and keycol thus contain "persons" (name of the table), and "id"
   ldap_attr_mappings (some columns are not listed for clarity)
   -----------
   id=1
-  oc_id=1
+  oc_map_id=1
   name="cn"
   sel_expr="CONCAT(persons.first_name,' ',persons.last_name)"
   from_tbls="persons"
@@ -356,7 +414,7 @@ information on this matter - they are self-explanatory for those familiar
 with concept expressed above.
 .LP
 .SH common techniques (referrals, multiclassing etc.)
-First of all, lets remember that among other major differences to the
+First of all, let's remember that among other major differences to the
 complete LDAP data model, the concept above does not directly support
 such things as multiple objectclasses per entry, and referrals.
 Fortunately, they are easy to adopt in this scheme.
