@@ -60,6 +60,8 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		num_retries = 0;
 
+	LDAPControl **preread_ctrl = NULL;
+	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
@@ -72,6 +74,8 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int parent_is_glue = 0;
 	int parent_is_leaf = 0;
+
+	ctrls[num_ctrls] = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "==>bdb_modrdn(%s,%s,%s)\n", 
@@ -789,8 +793,12 @@ retry:	/* transaction retry */
 	}
 
 	if( op->o_preread ) {
+		if( preread_ctrl == NULL ) {
+			preread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
 		if( slap_read_controls( op, rs, e,
-			&slap_pre_read_bv, &ctrls[num_ctrls] ) )
+			&slap_pre_read_bv, preread_ctrl ) )
 		{
 #ifdef NEW_LOGGING                                   
 			LDAP_LOG ( OPERATION, DETAIL1,
@@ -801,9 +809,6 @@ retry:	/* transaction retry */
 #endif
 			goto return_results;
 		}                   
-		ctrls[++num_ctrls] = NULL;
-		op->o_preread = 0;  /* prevent redo on retry */
-		/* FIXME: should read entry on the last retry */
 	}
 
 	/* nested transaction */
@@ -992,8 +997,12 @@ retry:	/* transaction retry */
 	}
 
 	if( op->o_postread ) {
+		if( postread_ctrl == NULL ) {
+			postread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
 		if( slap_read_controls( op, rs, e,
-			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+			&slap_post_read_bv, postread_ctrl ) )
 		{
 #ifdef NEW_LOGGING                                   
 			LDAP_LOG ( OPERATION, DETAIL1,
@@ -1004,9 +1013,6 @@ retry:	/* transaction retry */
 #endif
 			goto return_results;
 		}                   
-		ctrls[++num_ctrls] = NULL;
-		op->o_postread = 0;  /* prevent redo on retry */
-		/* FIXME: should read entry on the last retry */
 	}
 
 	if( op->o_noop ) {
@@ -1155,5 +1161,13 @@ done:
 		op->o_private = NULL;
 	}
 
+	if( preread_ctrl != NULL ) {
+		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *preread_ctrl, &op->o_tmpmemctx );
+	}
+	if( postread_ctrl != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, &op->o_tmpmemctx );
+	}
 	return rs->sr_err;
 }

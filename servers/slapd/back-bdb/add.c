@@ -49,6 +49,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 
+	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
@@ -59,6 +60,8 @@ bdb_add(Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n",
 		op->oq_add.rs_e->e_name.bv_val, 0, 0);
 #endif
+
+	ctrls[num_ctrls] = 0;
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
@@ -447,8 +450,12 @@ retry:	/* transaction retry */
 
 	/* post-read */
 	if( op->o_postread ) {
+		if( postread_ctrl == NULL ) {
+			postread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
 		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
-			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+			&slap_post_read_bv, postread_ctrl ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
@@ -459,9 +466,6 @@ retry:	/* transaction retry */
 #endif
 			goto return_results;
 		}
-		ctrls[++num_ctrls] = NULL;
-		op->o_postread = 0;  /* prevent redo on retry */
-		/* FIXME: should read entry on the last retry */
 	}
 
 	if ( op->o_noop ) {
@@ -557,5 +561,9 @@ done:
 		op->o_private = NULL;
 	}
 
+	if( postread_ctrl != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, &op->o_tmpmemctx );
+	}
 	return rs->sr_err;
 }
