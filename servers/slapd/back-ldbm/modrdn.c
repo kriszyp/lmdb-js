@@ -336,8 +336,10 @@ ldbm_back_modrdn(
 	rc = 0;
 
 return_results:
-	if( new_dn != NULL ) free( new_dn );
-	if( new_ndn != NULL ) free( new_ndn );
+	/* NOTE:
+	 * new_dn and new_ndn are not deallocated because they are used by
+	 * the cache entry.
+	 */
 	if( p_dn != NULL ) free( p_dn );
 	if( p_ndn != NULL ) free( p_ndn );
 
