@@ -223,6 +223,47 @@ entry2str(
 	return( (char *) ebuf );
 }
 
+#if SLAPD_SLEEPY
+int entry_encode(
+	Entry *e,
+	struct berval **bv )
+{
+	int rc = -1;
+	Attribute *a;
+	BerElement *ber;
+	
+	ber = ber_alloc_t( LBER_USE_DER );
+	if( ber == NULL ) {
+		goto done;
+	}
+
+	rc = ber_printf( ber, "{s{" /*"}}"*/, e->e_dn );
+	if( rc < 0 ) {
+		goto done;
+	}
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		rc = ber_printf( ber, "{O{V}}",
+			a->a_desc->ad_cname,
+			a->a_vals );
+		if( rc < 0 ) {
+			goto done;
+		}
+	}
+
+	rc = ber_printf( ber, /*"{{"*/ "}}" );
+	if( rc < 0 ) {
+		goto done;
+	}
+
+	rc = ber_flatten( ber, bv );
+
+done:
+	ber_free( ber, 1 );
+	return rc;
+}
+#endif
+
 void
 entry_free( Entry *e )
 {
