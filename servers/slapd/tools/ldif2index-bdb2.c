@@ -83,7 +83,7 @@ main( int argc, char **argv )
 					    &vlen ) != 0 ) {
 						Debug( LDAP_DEBUG_PARSE,
 			    "bad line %d in entry ending at line %d ignored\n",
-						    elineno, elineno, 0 );
+						    elineno, lineno, 0 );
 						continue;
 					}
 
