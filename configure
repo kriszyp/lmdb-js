@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.320 2000/08/18 02:25:05 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.321 2000/08/25 15:50:10 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -13171,7 +13171,7 @@ have_odbc=no
 fi
 
 		if test $have_odbc = yes ; then
-			ol_link_sql="-liodbc"
+			ol_link_sql="-lodbc"
 		fi
 	fi
 

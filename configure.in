@@ -1781,7 +1781,7 @@ if test $ol_enable_sql != no ; then
 	else
 		AC_CHECK_LIB(odbc,SQLDriverConnect,[have_odbc=yes],[have_odbc=no])
 		if test $have_odbc = yes ; then
-			ol_link_sql="-liodbc"
+			ol_link_sql="-lodbc"
 		fi
 	fi
 
