@@ -38,28 +38,10 @@
 
 static struct berval bv_queryid_any = BER_BVC( "(queryid=*)" );
 
-static int
-merge_func (
-	Operation	*op,
-	SlapReply	*rs
-); 
-
-static void
-add_func (
-	Operation	*op,
-	SlapReply	*rs
-); 
-
 static Attribute* 
 add_attribute(AttributeDescription *ad,
 	Entry* e,
 	BerVarray value_array
-); 
-
-static int
-get_size_func (
-	Operation	*op,
-	SlapReply	*rs
 ); 
 
 static int
@@ -116,25 +98,6 @@ get_entry_size(
 	return size;
 }
 
-/* quick hack: call the right callback */
-static int
-add_merge_func( Operation *op, SlapReply *rs )
-{
-	switch ( rs->sr_type ) {
-	case REP_SEARCH:
-		merge_func( op, rs );
-		break;
-
-	case REP_RESULT:
-		add_func( op, rs );
-		break;
-
-	default:
-		assert( 0 );
-	}
-	return 0;
-}
-
 int
 merge_entry(
 	Operation		*op,
@@ -143,277 +106,101 @@ merge_entry(
 	struct exception*	result )
 {
 	struct entry_info info;
-	struct berval normdn;
-	struct berval prettydn;
+	int		rc;
+	Modifications* modlist = NULL;
+	const char* 	text = NULL;
+	BerVarray 		value_array; 
+	Attribute		*uuid_attr, *attr;
+	Entry			*e;
 
 	SlapReply sreply = {REP_RESULT};
 
 	Operation op_tmp = *op;
-	slap_callback cb = { add_merge_func, NULL };
+	slap_callback cb;
 
-	Filter* filter = str2filter( bv_queryid_any.bv_val );
 	sreply.sr_entry = NULL; 
 	sreply.sr_nentries = 0; 
 
-	dnPrettyNormal(0, &rs->sr_entry->e_name, &prettydn, &normdn,
-			op->o_tmpmemctx);
+	e = ( Entry * ) ch_calloc( 1, sizeof( Entry )); 
+	dnPrettyNormal(0, &rs->sr_entry->e_name, &e->e_name, &e->e_nname, op->o_tmpmemctx);
 
-	free(rs->sr_entry->e_name.bv_val);
-	rs->sr_entry->e_name = prettydn;
-	if (rs->sr_entry->e_nname.bv_val) free(rs->sr_entry->e_nname.bv_val);
-	rs->sr_entry->e_nname = normdn;
+	e->e_private = NULL;
+	e->e_attrs = NULL; 
+	e->e_bv.bv_val = NULL; 
 
-	info.entry = rs->sr_entry;
+	/* add queryid attribute */	
+	value_array = (struct berval *)malloc(2 * sizeof( struct berval) );
+	ber_dupbv(value_array, query_uuid);
+	value_array[1].bv_val = NULL;
+	value_array[1].bv_len = 0;
+
+	uuid_attr = add_attribute(slap_schema.si_ad_queryid, e, value_array); 
+
+	/* append the attribute list from the fetched entry */
+	uuid_attr->a_next = rs->sr_entry->e_attrs;
+	rs->sr_entry->e_attrs = NULL;
+
+	for ( attr = e->e_attrs; attr; attr = attr->a_next ) {
+		if ( normalize_values( attr ) ) {
+			info.err = MERGE_ERR; 
+			result->rc = info.err;
+			return 0;
+		}
+	}
+
+	info.entry = e;
 	info.uuid = query_uuid;
-	info.size_init = 0;
+	info.size_init = get_entry_size( rs->sr_entry, 0, 0 );
 	info.size_final = 0;
 	info.added = 0;
 	info.glue_be = op->o_bd;
 	info.err = SUCCESS;
 	cb.sc_private = &info;
+	cb.sc_response = null_response;
 
-	op_tmp.o_tag = LDAP_REQ_SEARCH;
+	op_tmp.o_tag = LDAP_REQ_ADD;
 	op_tmp.o_protocol = LDAP_VERSION3;
 	op_tmp.o_callback = &cb;
-	op_tmp.o_caching_on = 1;
+	op_tmp.o_caching_on = 0;
 	op_tmp.o_time = slap_get_time();
 	op_tmp.o_do_not_cache = 1;
 
-	op_tmp.o_req_dn = rs->sr_entry->e_name;
-	op_tmp.o_req_ndn = rs->sr_entry->e_nname;
-	op_tmp.ors_scope = LDAP_SCOPE_BASE;
-	op_tmp.ors_deref = LDAP_DEREF_NEVER;
-	op_tmp.ors_slimit = 1;
-	op_tmp.ors_tlimit = 0;
-	op_tmp.ors_filter = filter;
-	op_tmp.ors_filterstr = bv_queryid_any;
-	op_tmp.ors_attrs = NULL;
-	op_tmp.ors_attrsonly = 0;
+	op_tmp.ora_e = e;
+	op_tmp.o_req_dn = e->e_name;
+	op_tmp.o_req_ndn = e->e_nname;
+	rc = op->o_bd->be_add( &op_tmp, &sreply );
 
-	op->o_bd->be_search( &op_tmp, &sreply );
-	result->type = info.err; 
-	if ( result->type == SUCCESS )
-		result->rc = info.added; 
-	else 
-		result->rc = 0; 
+	if ( rc != LDAP_SUCCESS ) {
+		if ( rc == LDAP_ALREADY_EXISTS ) {
+			slap_entry2mods( e, &modlist, &text );
+			op_tmp.o_tag = LDAP_REQ_MODIFY;
+			op_tmp.orm_modlist = modlist;
+			op_tmp.o_req_dn = e->e_name;
+			op_tmp.o_req_ndn = e->e_nname;
+			rc = op->o_bd->be_modify( &op_tmp, &sreply );
+			result->rc = info.added;
+		} else if ( rc == LDAP_REFERRAL ||
+					rc == LDAP_NO_SUCH_OBJECT ) {
+			slap_entry2mods( e, &modlist, &text );
+			syncrepl_add_glue( NULL, NULL, &op_tmp, e, modlist, 0, NULL, NULL );
+			result->rc = info.added;
+		} else {
+			result->rc = 0;
+		}
+		if ( modlist != NULL ) slap_mods_free( modlist );
+	} else {
+		info.size_init = 0;
+		result->rc = info.added;
+		be_entry_release_w( &op_tmp, e );
+	}
+
+	if ( result->rc )
+		info.size_final = get_entry_size( e, info.size_init, result );
+	else
+		info.size_final = info.size_init;
+
 	return ( info.size_final - info.size_init );
 }
-
-static int
-merge_func (
-	Operation	*op,
-	SlapReply	*rs
-)
-{
-	Backend			*be;
-	char 			*new_attr_name;
-	Attribute		*a_new, *a;
-	int 			i = 0;
-	int 			rc = 0;
-    
-	int 			count;
-	struct timeval		time;	/* time */
-	long 			timediff; /* time */
-	struct entry_info	*info = op->o_callback->sc_private;
-	Filter			*filter = str2filter( bv_queryid_any.bv_val );
-	Entry			*entry = info->entry;
-	struct berval		*uuid = info->uuid;
-	Modifications		*modhead = NULL;
-	Modifications		*mod;
-	Modifications		**modtail = &modhead;
-	AttributeDescription	*a_new_desc;
-	const char		*text = NULL;
-	Operation		op_tmp = *op;
-	SlapReply		sreply = {REP_RESULT}; 
-	SlapReply		sreply1 = {REP_RESULT}; 
-
-	info->err = SUCCESS; 
-
-	be = select_backend(&entry->e_nname, 0, 0); 
-     
-	info->size_init = get_entry_size(rs->sr_entry, 0, 0);  
-	a_new = entry->e_attrs;
-
-	while (a_new != NULL) {
-		a_new_desc = a_new->a_desc; 
-		mod = (Modifications *) malloc( sizeof(Modifications) );
-		mod->sml_op = LDAP_MOD_REPLACE;
-		ber_dupbv(&mod->sml_type, &a_new_desc->ad_cname); 
-
-		for ( count = 0; a_new->a_vals[count].bv_val; count++ ) 
-			;
-
-		mod->sml_bvalues = (struct berval*) malloc(
-				(count+1) * sizeof( struct berval) );
-
-		mod->sml_nvalues = (struct berval*) malloc(
-				(count+1) * sizeof( struct berval) );
-
-		for ( i = 0; i < count; i++ ) {
-			ber_dupbv(mod->sml_bvalues+i, a_new->a_vals+i); 
-			if ( a_new->a_desc->ad_type->sat_equality &&
-				a_new->a_desc->ad_type->sat_equality->smr_normalize ) {
-				rc = a_new->a_desc->ad_type->sat_equality->smr_normalize(
-					0,
-					a_new->a_desc->ad_type->sat_syntax,
-					a_new->a_desc->ad_type->sat_equality,
-					a_new->a_vals+i, mod->sml_nvalues+i, NULL );
-				if (rc) {
-					info->err = MERGE_ERR; 
-					return 0; 
-			        } 
-			}
-			else {	
-				ber_dupbv( mod->sml_nvalues+i, a_new->a_vals+i ); 
-			} 
-		}
-
-		mod->sml_bvalues[count].bv_val = 0; 
-		mod->sml_bvalues[count].bv_len = 0; 
-
-		mod->sml_nvalues[count].bv_val = 0; 
-		mod->sml_nvalues[count].bv_len = 0; 
-
-		mod->sml_desc = NULL;
-		slap_bv2ad(&mod->sml_type, &mod->sml_desc, &text); 
-		mod->sml_next =NULL;
-		*modtail = mod;
-		modtail = &mod->sml_next;
-		a_new = a_new->a_next; 
-	} 
-
-	/* add query UUID to queryid attribute */
-	mod = (Modifications *) ch_malloc( sizeof(Modifications) );
-	mod->sml_op = LDAP_MOD_ADD;
-	mod->sml_desc = slap_schema.si_ad_queryid; 
-	ber_dupbv(&mod->sml_type, &mod->sml_desc->ad_cname); 
-
-	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( mod->sml_bvalues, uuid );
-	mod->sml_bvalues[1].bv_val = NULL;
-	mod->sml_bvalues[1].bv_len = 0;
-
-	mod->sml_nvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( mod->sml_nvalues, uuid );
-	mod->sml_nvalues[1].bv_val = NULL;
-	mod->sml_nvalues[1].bv_len = 0;
-
-	*modtail = mod;
-	mod->sml_next = NULL; 
-
-	/* Apply changes */
-	op_tmp.o_req_dn = entry->e_name;
-	op_tmp.o_req_ndn = entry->e_nname;
-	op_tmp.orm_modlist = modhead;
-
-	op_tmp.o_callback->sc_response = null_response; 
-	/* FIXME: &op_tmp ??? */
-	if (be->be_modify(&op_tmp, &sreply ) != 0 ) {
-		/* FIXME: cleanup ? */
-		info->err = MERGE_ERR;
-		goto cleanup; 
-	}
-
-	/* compute the size of the entry */
-	op_tmp.o_callback->sc_response = get_size_func; 
-
-	op_tmp.ors_scope = LDAP_SCOPE_BASE;
-	op_tmp.ors_deref = LDAP_DEREF_NEVER;
-	op_tmp.ors_slimit = 1;
-	op_tmp.ors_tlimit = 0;
-	op_tmp.ors_filter = filter;
-	op_tmp.ors_filterstr = bv_queryid_any;
-	op_tmp.ors_attrs = NULL;
-	op_tmp.ors_attrsonly = 0;
-   
-        sreply1.sr_entry = NULL; 
-	sreply1.sr_nentries = 0; 
-
-	if (be->be_search( &op_tmp, &sreply1 ) != 0) {
-		info->err = GET_SIZE_ERR;
-	}
-
-cleanup:;
-	if ( modhead != NULL) {
-		slap_mods_free( modhead );
-	}
-
-	return 0; 
-}
-
-static void
-add_func (
-	Operation	*op,
-	SlapReply	*rs
-)
-{
-	struct entry_info	*info = op->o_callback->sc_private; 
-	Entry			*entry = info->entry; 
-	struct berval		*uuid = info->uuid; 
-	Backend			*be; 
-	BerVarray 		value_array; 
-	Entry			*e; 
-	Attribute		*a, *attr; 
-	int 			i,j;
-	SlapReply 		sreply = {REP_RESULT}; 
-
-	struct timeval		time;	/* time */ 
-	long			timediff; /* time */ 
-
-	Operation		op_tmp = *op;
-
-	/* 
-	 * new entry, construct an entry with 
-	 * the projected attributes 
-	 */
-	if (rs->sr_nentries) {
-		return;
-	}
-	
-	op_tmp.o_callback->sc_response = null_response; 
-	be = select_backend(&entry->e_nname, 0, 0); 
-	e = (Entry*)malloc(sizeof(Entry)); 
-
-	ber_dupbv(&e->e_name,&entry->e_name); 
-	ber_dupbv(&e->e_nname,&entry->e_nname); 
-
-	e->e_private = 0;
-	e->e_attrs = 0; 
-	e->e_bv.bv_val = 0; 
-
-	/* add queryid attribute */	
-	value_array = (struct berval *)malloc(2 * sizeof( struct berval) );
-	ber_dupbv(value_array, uuid);
-	value_array[1].bv_val = NULL;
-	value_array[1].bv_len = 0;
-
-	a = add_attribute(slap_schema.si_ad_queryid, 
-			e, value_array); 
-
-	/* append the attribute list from the fetched entry */
-	a->a_next = entry->e_attrs;
-	entry->e_attrs = NULL;
-
-	for ( attr = e->e_attrs; attr; attr = attr->a_next ) {
-		if ( normalize_values( attr ) ) {
-			info->err = MERGE_ERR; 
-			return;
-		}
-	}
-
-	info->size_final = get_entry_size( e, 0, NULL ); 
-
-	op_tmp.o_bd = be;
-	op_tmp.ora_e = e;
-	
-	if ( be->be_add( &op_tmp, &sreply ) == 0 ) {
-		info->added = 1; 
-		be_entry_release_w( &op_tmp, e );
-	} else {
-		info->err = MERGE_ERR; 
-	}
-}
- 
 
 static Attribute* 
 add_attribute(AttributeDescription *ad,
@@ -443,25 +230,6 @@ add_attribute(AttributeDescription *ad,
 
 	return new_attr; 
 }
-
-static int
-get_size_func (
-	Operation	*op,
-	SlapReply	*rs
-)
-{
-	struct entry_info	*info = op->o_callback->sc_private; 
-	struct exception	result; 
-
-	if ( rs->sr_type == REP_SEARCH ) {
-		result.type = info->err;  
-		info->size_final = get_entry_size(rs->sr_entry,
-				info->size_init, &result); 
-	}
-
-	return 0; 
-}
-
 
 static int
 null_response (

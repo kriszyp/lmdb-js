@@ -274,8 +274,8 @@ meta_back_cache_search(
 	int 		num_entries = 0;
 	int		curr_limit;
 	int		fattr_cnt=0; 
+	int		oc_attr_absent = 1;
 
-   
 	struct exception result[1]; 
 
 	Filter* filter = str2filter(op->ors_filterstr.bv_val); 
@@ -284,10 +284,12 @@ meta_back_cache_search(
 	cb.sc_private = op->o_bd; 
 
 	if (op->ors_attrs) {
-		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ )
-			;
-		attrs = (AttributeName*)malloc( ( count + 1 ) *
-						sizeof(AttributeName));
+		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
+			if ( op->ors_attrs[count].an_desc == slap_schema.si_ad_objectClass )
+				oc_attr_absent = 0;
+		}
+		attrs = (AttributeName*)malloc( ( count + 1 + oc_attr_absent )
+								*sizeof(AttributeName));
 		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
 			ber_dupbv(&attrs[ count ].an_name,
 						&op->ors_attrs[ count ].an_name);
@@ -296,7 +298,6 @@ meta_back_cache_search(
 		attrs[ count ].an_name.bv_val = NULL;
 		attrs[ count ].an_name.bv_len = 0;
 	}
-
 
 	result->type = SUCCESS; 
 	result->rc = 0; 
@@ -364,6 +365,15 @@ meta_back_cache_search(
 		}
 	}
 
+	if ( attrs && oc_attr_absent ) {
+		for ( count = 0; attrs[count].an_name.bv_val; count++) ;
+		attrs[ count ].an_name.bv_val = "objectClass";
+		attrs[ count ].an_name.bv_len = strlen( "objectClass" );
+		attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
+		attrs[ count + 1 ].an_name.bv_val = NULL;
+		attrs[ count + 1 ].an_name.bv_len = 0;
+	}
+
 	if (answerable) {
 		Operation	op_tmp;
 
@@ -394,7 +404,7 @@ meta_back_cache_search(
 		op_tmp.o_req_dn = cachebase;
 		op_tmp.o_req_ndn = ncachebase;
 
-		op_tmp.o_caching_on = 1; 
+		op_tmp.o_caching_on = 0; 
 		op_tmp.o_callback = &cb; 
 
 		li->glue_be->be_search(&op_tmp, rs);
@@ -614,7 +624,7 @@ meta_back_cache_search(
 			 */
 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 						mapped_filter, mapped_attrs,
-						op->ors_attrsonly ); 
+						op->ors_attrsonly );
 
 			if ( msgid[ i ] == -1 ) {
 				result->type = CONN_ERR; 
@@ -660,8 +670,7 @@ meta_back_cache_search(
 			Debug( LDAP_DEBUG_ANY, "QUERY CACHEABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 			op_tmp.o_bd = li->glue_be;
-			uuid = cache_entries(&op_tmp, rs, entry_array,
-					cm, result); 
+			uuid = cache_entries(&op_tmp, rs, entry_array, cm, result); 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 					"Added query %s UUID %s ENTRIES %d\n",
@@ -681,6 +690,19 @@ meta_back_cache_search(
 				goto Catch; 
 			filter = 0; 
 			attrs = 0; 
+
+			/* FIXME : launch do_syncrepl() threads around here
+			 *
+			 * entryUUID and entryCSN need also to be requested by :
+			 */
+			/*
+ 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
+						mapped_filter, mapped_attrs, op->ors_attrsonly );
+			*/
+			/* Also, mbase, realscope, mapped_filter, mapped_attrs need
+			 * be managed as arrays. Each element needs to be retained by this point.
+			 */
+
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
@@ -824,11 +846,15 @@ meta_create_entry (
 	struct berval		a, mapped;
 	Entry* 			ent;
 	BerElement 		ber = *e->lm_ber;
-	Attribute 		*attr, **attrp;
-	struct berval 		dummy = { 0, NULL };
-	struct berval 		*bv, bdn;
+	Attribute 		*attr, *soc_attr, **attrp;
+	struct berval	dummy = { 0, NULL };
+	struct berval	*bv, bdn;
 	const char 		*text;
-        char* 			ename = NULL; 
+	char* 			ename = NULL; 
+	struct berval	sc;
+	char*			textbuf;
+	size_t			textlen;
+
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		result->type = CREATE_ENTRY_ERR;  	
 		return NULL; 
@@ -930,9 +956,13 @@ meta_create_entry (
 		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
 				|| attr->a_vals == NULL ) {
 			attr->a_vals = &dummy;
+#if 0
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass ||
 				attr->a_desc ==
 				slap_schema.si_ad_structuralObjectClass) {
+#else
+		} else if ( attr->a_desc == slap_schema.si_ad_objectClass ) {
+#endif
 			int i, last;
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last )
 				;
@@ -953,6 +983,22 @@ meta_create_entry (
 					ber_dupbv( bv, &mapped );
 				}
 			}
+
+			structural_class( attr->a_vals, &sc, NULL, &text, textbuf, textlen );
+			soc_attr = (Attribute*) ch_malloc( sizeof( Attribute ));
+			soc_attr->a_desc = slap_schema.si_ad_structuralObjectClass;
+			soc_attr->a_vals = (BerVarray) ch_malloc( 2* sizeof( BerValue ));
+			ber_dupbv( &soc_attr->a_vals[0], &sc );
+			soc_attr->a_vals[1].bv_len = 0;
+			soc_attr->a_vals[1].bv_val = NULL;
+			soc_attr->a_nvals = (BerVarray) ch_malloc( 2* sizeof( BerValue ));
+			ber_dupbv( &soc_attr->a_nvals[0], &sc );
+			soc_attr->a_nvals[1].bv_len = 0;
+			soc_attr->a_nvals[1].bv_val = NULL;
+
+			*attrp = soc_attr;
+			attrp = &soc_attr->a_next;
+
 		/*
 		 * It is necessary to try to rewrite attributes with
 		 * dn syntax because they might be used in ACLs as
@@ -1004,6 +1050,7 @@ meta_create_entry (
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
+
 	return ent; 
 }
 

@@ -2882,6 +2882,7 @@ BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
+BUILD_CACHE=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -23271,6 +23272,10 @@ EOF
 	BUILD_SLAPD=yes
 	BUILD_META=yes
 	BUILD_REWRITE=yes
+        if test $ol_enable_ldbm = yes -o \
+		$ol_enable_bdb = yes ; then 
+                BUILD_CACHE=yes
+        fi
 	if test "$ol_with_meta_module" != static ; then
 		cat >> confdefs.h <<\EOF
 #define SLAPD_META_DYNAMIC 1
@@ -23740,6 +23745,7 @@ s%@BUILD_LDAP@%$BUILD_LDAP%g
 s%@BUILD_LDBM@%$BUILD_LDBM%g
 s%@BUILD_META@%$BUILD_META%g
 s%@BUILD_MONITOR@%$BUILD_MONITOR%g
+s%@BUILD_CACHE@%$BUILD_CACHE%g
 s%@BUILD_NULL@%$BUILD_NULL%g
 s%@BUILD_PASSWD@%$BUILD_PASSWD%g
 s%@BUILD_PERL@%$BUILD_PERL%g
