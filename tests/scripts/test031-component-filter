@@ -18,7 +18,7 @@ echo "running defines.sh"
 
 ## If you use this script then
 ## Make sure that you turn on LDAP_COMP_MATCH in slapd source codes
-## To disable, set "WITH_COMP_MATHC=no" in source_root/openldap/tests/run.in
+## To disable, set "WITH_COMP_MATCH=no" in source_root/openldap/tests/run.in
 if test "$AC_WITH_COMP_MATCH" != "yes" ; then
         echo "test disabled "
         exit
