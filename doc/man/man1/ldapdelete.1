@@ -185,11 +185,10 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 The following command:
 .LP
 .nf
-    ldapdelete "cn=Delete Me, dc=example, dc=com"
+    ldapdelete "cn=Delete Me,dc=example,dc=com"
 .fi
 .LP
-will attempt to delete the entry named with commonName "Delete Me"
-directly below the "dc=example, dc=com" entry.
+will attempt to delete the entry named "cn=Delete Me,dc=example,dc=com".
 Of course it would probably be necessary to supply authentication
 credentials.
 .SH DIAGNOSTICS
@@ -203,8 +202,6 @@ status and a diagnostic message being written to standard error.
 .BR ldapsearch (1),
 .BR ldap (3),
 .BR ldap_delete (3)
-.SH BUGS
-There is no interactive mode, but there probably should be.
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS

@@ -274,7 +274,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Modify Me, dc=example, dc=com
+    dn: cn=Modify Me,dc=example,dc=com
     changetype: modify
     replace: mail
     mail: modme@OpenLDAP.org
@@ -311,7 +311,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, dc=example, dc=com
+    dn: cn=Barbara Jensen,dc=example,dc=com
     objectClass: person
     cn: Barbara Jensen
     cn: Babs Jensen
@@ -335,7 +335,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, dc=example, dc=com
+    dn: cn=Barbara Jensen,dc=example,dc=com
     changetype: delete
 .LP
 the command:
@@ -360,8 +360,6 @@ exit status and a diagnostic message being written to standard error.
 .BR ldap_modify (3),
 .BR ldap_modrdn (3),
 .BR slapd.replog (5)
-.SH BUGS
-There is no interactive mode, but there probably should be.
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS

@@ -277,7 +277,7 @@ output in LDAP Data Interchange Format or
 	version: 1
 
 	# bjensen, example, net
-	dn: uid=bjensen, dc=example, dc=net
+	dn: uid=bjensen,dc=example,dc=net
 	objectClass: person
 	objectClass: dcObject
 	uid: bjensen
@@ -305,7 +305,7 @@ standard output.
 The output might look something like this if two entries are found:
 .LP
 .nf
-    dn: uid=jts, dc=example, dc=com
+    dn: uid=jts,dc=example,dc=com
 	cn: John Smith
 	cn: John T. Smith
 	sn: Smith
@@ -313,7 +313,7 @@ The output might look something like this if two entries are found:
 	sn;lang-de: Schmidt
 	telephoneNumber: 1 555 123-4567
 
-	dn: uid=sss, dc=example, dc=com
+	dn: uid=sss,dc=example,dc=com
 	cn: Steve Smith
 	cn: Steve S. Smith
 	sn: Smith
@@ -336,7 +336,7 @@ output might look like this if one entry with one value for each of the
 requested attributes is found:
 .LP
 .nf
-    dn: uid=xyz, dc=example, dc=com
+    dn: uid=xyz,dc=example,dc=com
     ufn: xyz, example, com
     audio:< file::/tmp/ldapsearch-audio-a19924
     jpegPhoto:< file::=/tmp/ldapsearch-jpegPhoto-a19924
@@ -354,29 +354,29 @@ The organization name and description attribute values will be retrieved
 and printed to standard output, resulting in output similar to this:
 .LP
 .nf
-    dn: o=University of Alaska Fairbanks, c=US
+    dn: o=University of Alaska Fairbanks,c=US
     o: University of Alaska Fairbanks
     description: Preparing Alaska for a brave new yesterday
     description: leaf node only
 
-    dn: o=University of Colorado at Boulder, c=US
+    dn: o=University of Colorado at Boulder,c=US
     o: University of Colorado at Boulder
     description: No personnel information
     description: Institution of education and research
 
-    dn: o=University of Colorado at Denver, c=US
+    dn: o=University of Colorado at Denver,c=US
     o: University of Colorado at Denver
     o: UCD
     o: CU/Denver
     o: CU-Denver
     description: Institute for Higher Learning and Research
 
-    dn: o=University of Florida, c=US
+    dn: o=University of Florida,c=US
     o: University of Florida
     o: UFl
     description: Warper of young minds
 
-    etc....
+    ...
 .fi
 .SH DIAGNOSTICS
 Exit status is zero if no errors occur.
