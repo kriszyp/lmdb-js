@@ -123,6 +123,13 @@ read_config( const char *fname )
 
 			bi = backend_info( cargv[1] );
 
+			if( bi == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"backend %s initialization failed.n",
+				    cargv[1], 0, 0 );
+				return( 1 );
+			}
+
 		/* start of a new database definition */
 		} else if ( strcasecmp( cargv[0], "database" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -131,8 +138,16 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
+
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
+
+			if( be == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"database %s initialization failed.n",
+				    cargv[1], 0, 0 );
+				return( 1 );
+			}
 
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
