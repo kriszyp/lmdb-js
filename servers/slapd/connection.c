@@ -1426,7 +1426,7 @@ connection_input(
 	}
 #endif
 	if(tag == LDAP_REQ_BIND) {
-		/* immediately abandon all exiting operations upon BIND */
+		/* immediately abandon all existing operations upon BIND */
 		connection_abandon( conn );
 	}
 
