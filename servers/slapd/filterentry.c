@@ -233,10 +233,14 @@ static int test_mra_filter(
 		{
 			struct berval *bv;
 #ifdef SLAP_NVALUES
-			bv = a->a_nvals;
-#else
-			bv = a->a_vals;
+			/* If ma_rule is not the same as the attribute's
+			 * normal rule, then we can't use the a_nvals.
+			 */
+			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
+				bv = a->a_nvals;
+			else
 #endif
+				bv = a->a_vals;
 			for ( ; bv->bv_val != NULL; bv++ )
 			{
 				int ret;
@@ -292,10 +296,12 @@ static int test_mra_filter(
 
 			/* check match */
 #ifdef SLAP_NVALUES
-			for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
-#else
-			for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
+			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
+				bv = a->a_nvals;
+			else
 #endif
+				bv = a->a_vals;
+			for ( ; bv->bv_val != NULL; bv++ )
 			{
 				int ret;
 				int rc;
