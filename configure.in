@@ -526,6 +526,7 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS( \
 	stddef.h	\
 	fcntl.h		\
+	filio.h		\
 	limits.h	\
 	malloc.h	\
 	sgtty.h		\
@@ -556,7 +557,6 @@ AC_C_CONST
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
-AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_FUNC_WAIT3
@@ -564,17 +564,23 @@ AC_FUNC_WAIT3
 AC_CHECK_FUNCS(		\
 	gethostname		\
 	gettimeofday	\
+	getdtablesize	\
+	memcpy			\
 	mktime			\
 	select			\
+	setpwfile		\
+	setsid			\
+	signal			\
+	sigset			\
 	socket			\
 	strerror		\
 	strstr			\
 	strrchr			\
+	strsep			\
 	strtod			\
 	strtol			\
 	strtoul			\
-	strsep			\
-	memcpy			\
+	sysconf			\
 )
 
 AC_REPLACE_FUNCS(strdup)

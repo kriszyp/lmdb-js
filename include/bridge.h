@@ -28,13 +28,12 @@
 #if defined( hpux ) || defined( sunos5 ) || defined ( sgi ) || defined( SVR4 )
 #define SYSV
 #endif
-#endif
 
 
 /*
  * under System V, use sysconf() instead of getdtablesize
  */
-#if !defined( USE_SYSCONF ) && defined( SYSV )
+#if defined( HAVE_SYSCONF ) && !defined( HAVE_GETDTABLESIZE )
 #define USE_SYSCONF
 #endif
 
@@ -43,7 +42,7 @@
  * under System V, daemons should use setsid() instead of detaching from their
  * tty themselves
  */
-#if !defined( USE_SETSID ) && defined( SYSV )
+#if defined( HAVE_SETSID )
 #define USE_SETSID
 #endif
 
@@ -51,21 +50,21 @@
 /*
  * System V has socket options in filio.h
  */
-#if !defined( NEED_FILIO ) && defined( SYSV ) && !defined( hpux )
+#if defined( HAVE_FILIO_H )
 #define NEED_FILIO
 #endif
 
 /*
  * use lockf() under System V
  */
-#if !defined( USE_LOCKF ) && ( defined( SYSV ) || defined( aix ))
+#if !defined( HAVE_LOCKF ) && !defined( HAVE_FLOCK )
 #define USE_LOCKF
 #endif
 
 /*
  * on most systems, we should use waitpid() instead of waitN()
  */
-#if !defined( USE_WAITPID ) && !defined( nextstep )
+#if defined( HAVE_WAITPID ) && !defined( nextstep )
 #define USE_WAITPID
 #endif
 
@@ -73,7 +72,7 @@
 /*
  * define the wait status argument type
  */
-#if ( defined( SunOS ) && SunOS < 40 ) || defined( nextstep )
+#if !defined( HAVE_SYS_WAIT_H )
 #define WAITSTATUSTYPE	union wait
 #else
 #define WAITSTATUSTYPE	int
@@ -100,23 +99,16 @@
 
 
 /*
- * some systems don't have the BSD re_comp and re_exec routines
- */
-#ifndef NEED_BSDREGEX
-#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( freebsd ) || defined( linux )
-#define NEED_BSDREGEX
-#endif
-#endif
-
-/*
  * many systems do not have the setpwfile() library routine... we just
  * enable use for those systems we know have it.
  */
+#ifdef NOTDEF
 #ifndef HAVE_SETPWFILE
-#if defined( sunos4 ) || defined( ultrix ) || defined( __osf__ )
+if defined( sunos4 ) || defined( ultrix ) || defined( __osf__ )
 #define HAVE_SETPWFILE
 #endif
 #endif
+#endif NOTDEF
 
 /*
  * Are sys_errlist and sys_nerr declared in stdio.h?
@@ -172,7 +164,7 @@
  * call signal or sigset (signal does not block the signal while
  * in the handler on sys v and sigset does not exist on bsd)
  */
-#if defined(SYSV) && !defined(linux)
+#ifdef HAVE_SIGSET
 #define SIGNAL sigset
 #else
 #define SIGNAL signal
@@ -192,7 +184,7 @@
 /*
  * put a cover on the tty-related ioctl calls we need to use
  */
-#if defined( NeXT ) || (defined(SunOS) && SunOS < 40)
+#if !defined( HAVE_TERMIOS )
 #define TERMIO_TYPE struct sgttyb
 #define TERMFLAG_TYPE int
 #define GETATTR( fd, tiop )	ioctl((fd), TIOCGETP, (caddr_t)(tiop))

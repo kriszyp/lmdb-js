@@ -82,6 +82,9 @@
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 
+/* Define if you have the getdtablesize function.  */
+#undef HAVE_GETDTABLESIZE
+
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
@@ -102,6 +105,18 @@
 
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
+
+/* Define if you have the setpwfile function.  */
+#undef HAVE_SETPWFILE
+
+/* Define if you have the setsid function.  */
+#undef HAVE_SETSID
+
+/* Define if you have the signal function.  */
+#undef HAVE_SIGNAL
+
+/* Define if you have the sigset function.  */
+#undef HAVE_SIGSET
 
 /* Define if you have the socket function.  */
 #undef HAVE_SOCKET
@@ -130,6 +145,9 @@
 /* Define if you have the strtoul function.  */
 #undef HAVE_STRTOUL
 
+/* Define if you have the sysconf function.  */
+#undef HAVE_SYSCONF
+
 /* Define if you have the <db.h> header file.  */
 #undef HAVE_DB_H
 
@@ -141,6 +159,9 @@
 
 /* Define if you have the <fcntl.h> header file.  */
 #undef HAVE_FCNTL_H
+
+/* Define if you have the <filio.h> header file.  */
+#undef HAVE_FILIO_H
 
 /* Define if you have the <gdbm.h> header file.  */
 #undef HAVE_GDBM_H
