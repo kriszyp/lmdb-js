@@ -8,8 +8,8 @@ ol_package=OpenLDAP
 ol_major=2
 ol_minor=1
 ol_patch=0alpha
-ol_api_inc=20199
-ol_api_lib=2:99:0
+ol_api_inc=20100
+ol_api_lib=2:100:0
 
 if test $ol_patch != X ; then
 	ol_version=${ol_major}.${ol_minor}.${ol_patch}
