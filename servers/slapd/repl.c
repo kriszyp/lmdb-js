@@ -53,21 +53,24 @@ add_replica_suffix(
     const char  *suffix
 )
 {
-	char	*nsuffix = ch_strdup( suffix );
-	int 	rc = 0;
+	struct berval dn, *ndn = NULL;
+	int rc;
 
-	if ( dn_normalize( nsuffix ) != NULL ) {
-		if ( select_backend( nsuffix, 0, 0 ) == be ) {
-			charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
-		} else {
-			rc = 1;
-		}
-	} else {
-		rc = 2;
+	dn.bv_val = (char *) suffix;
+	dn.bv_len = strlen( dn.bv_val );
+
+	rc = dnNormalize( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+		return 2;
 	}
-	free( nsuffix );
 
-	return( rc );
+	if ( select_backend( ndn, 0, 0 ) != be ) {
+		ber_bvfree( ndn );
+		return 1;
+	}
+
+	ber_bvecadd( &be->be_replica[nr]->ri_nsuffix, ndn );
+	return 0;
 }
 
 void
@@ -108,7 +111,7 @@ replog(
 			int j;
 
 			for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
-				if ( dn_issuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
+				if ( dn_issuffix( ndn, be->be_replica[i]->ri_nsuffix[j]->bv_val ) ) {
 					break;
 				}
 			}

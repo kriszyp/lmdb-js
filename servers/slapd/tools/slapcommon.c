@@ -221,7 +221,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 
-		be = select_backend( nbase->bv_val, 0, 0 );
+		be = select_backend( nbase, 0, 0 );
 		ber_bvfree( nbase );
 
 		if( be == NULL ) {

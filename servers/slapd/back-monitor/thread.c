@@ -51,26 +51,22 @@ monitor_subsys_thread_init(
 {
 	struct monitorinfo      *mi;
 	Entry                   *e;
-	struct monitorentrypriv *mp;
 	struct berval           val, *bv[2] = { &val, NULL };
 	static char		buf[1024];
 
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi, 
-				monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn,
-				&e ) ) {
+		monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn, &e ) )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-					"monitor_subsys_thread_init: "
-					"unable to get entry '%s'\n",
-					monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn ));
+			"monitor_subsys_thread_init: unable to get entry '%s'\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn ));
 #else
 		Debug( LDAP_DEBUG_ANY,
-				"monitor_subsys_thread_init: "
-				"unable to get entry '%s'\n%s%s",
-				monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn,
-				"", "" );
+			"monitor_subsys_thread_init: unable to get entry '%s'\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn, 0, 0 );
 #endif
 		return( -1 );
 	}

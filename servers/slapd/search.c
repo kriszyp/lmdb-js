@@ -282,13 +282,14 @@ do_search(
 		}
 	}
 
-	if( nbase->bv_len == 0 && default_search_nbase != NULL ) {
+	if( !nbase->bv_len && default_search_nbase.bv_len ) {
 		ch_free( base.bv_val );
 		ch_free( nbase->bv_val );
-		base.bv_val = ch_strdup( default_search_base );
-		base.bv_len = strlen( default_search_nbase );
-		nbase->bv_val = ch_strdup( default_search_nbase );
-		nbase->bv_len = strlen( default_search_nbase );
+
+		base.bv_val = ch_strdup( default_search_base.bv_val );
+		base.bv_len = default_search_base.bv_len;
+		nbase->bv_val = ch_strdup( default_search_nbase.bv_val );
+		nbase->bv_len = default_search_nbase.bv_len;
 	}
 
 	/*
@@ -296,7 +297,7 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( nbase->bv_val, manageDSAit, 1 )) == NULL ) {
+	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, pbase->bv_val, scope );
 

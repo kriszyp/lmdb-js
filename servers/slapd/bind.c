@@ -456,7 +456,7 @@ do_bind(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( ndn->bv_val, 0, 0 )) == NULL ) {
+	if ( (be = select_backend( ndn, 0, 0 )) == NULL ) {
 		if ( default_referral ) {
 			struct berval **ref = referral_rewrite( default_referral,
 				NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );

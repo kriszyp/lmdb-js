@@ -239,7 +239,7 @@ do_compare(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn->bv_val, manageDSAit, 0 )) == NULL ) {
+	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
 

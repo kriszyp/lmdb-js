@@ -153,7 +153,7 @@ LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));
 LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type ));
 
 LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
-	const char * dn,
+	struct berval * dn,
 	int manageDSAit,
 	int noSubordinates ));
 
@@ -889,7 +889,7 @@ LDAP_SLAPD_F (int) slap_passwd_parse(
  * kerberos.c
  */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-LDAP_SLAPD_V (char)	*ldap_srvtab;
+LDAP_SLAPD_V (char *)	ldap_srvtab;
 LDAP_SLAPD_V (int)	krbv4_ldap_auth();
 #endif
 
@@ -925,14 +925,14 @@ LDAP_SLAPD_V (slap_access_t)	global_default_access;
 LDAP_SLAPD_V (int)		global_lastmod;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
-LDAP_SLAPD_V (char)		*global_host;
-LDAP_SLAPD_V (char)		*global_realm;
+LDAP_SLAPD_V (char *)	global_host;
+LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (int)		sasl_external_x509dn_convert;
-LDAP_SLAPD_V (char)		*default_passwd_hash;
+LDAP_SLAPD_V (char *)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
-LDAP_SLAPD_V (char *)	default_search_base;
-LDAP_SLAPD_V (char *)	default_search_nbase;
+LDAP_SLAPD_V (struct berval)	default_search_base;
+LDAP_SLAPD_V (struct berval)	default_search_nbase;
 
 LDAP_SLAPD_V (int)		nSaslRegexp;
 LDAP_SLAPD_V (SaslRegexp_t*) SaslRegexp;
@@ -949,7 +949,7 @@ LDAP_SLAPD_V (long)		num_ops_initiated;
 
 LDAP_SLAPD_V (char *)		slapd_pid_file;
 LDAP_SLAPD_V (char *)		slapd_args_file;
-LDAP_SLAPD_V (char)		**g_argv;
+LDAP_SLAPD_V (char **)		g_argv;
 LDAP_SLAPD_V (time_t)		starttime;
 
 /* use time(3) -- no mutex */

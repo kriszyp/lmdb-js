@@ -75,7 +75,7 @@ main( int argc, char **argv )
 		}
 
 		/* check backend */
-		if( select_backend( e->e_ndn, is_entry_referral(e), nosubs ) != be ) {
+		if( select_backend( &e->e_nname, is_entry_referral(e), nosubs ) != be ) {
 			fprintf( stderr, "%s: line %d: "
 				"database (%s) not configured to hold \"%s\"\n",
 				progname, lineno,

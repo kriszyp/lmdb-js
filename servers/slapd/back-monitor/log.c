@@ -89,7 +89,6 @@ monitor_subsys_log_init(
 	struct monitorinfo	*mi;
 	Entry			*e;
 	int			i;
-	struct monitorentrypriv	*mp;
 	struct berval 		val, *bv[2] = { &val, NULL };
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
@@ -292,8 +291,9 @@ check_constraints( Modification *mod, int *newlevel )
 	int		i;
 
 	for ( i = 0; mod->sm_bvalues && mod->sm_bvalues[i] != NULL; i++ ) {
-		int len, l;
+		int l;
 		const char *s;
+		ber_len_t len;
 		
 		l = loglevel2int( mod->sm_bvalues[i]->bv_val );
 		if ( !l ) {
@@ -476,7 +476,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 static int
 replace_values( Entry *e, Modification *mod, int *newlevel )
 {
-	int i, rc;
+	int rc;
 
 	*newlevel = 0;
 	rc = check_constraints( mod, newlevel );

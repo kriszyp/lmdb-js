@@ -46,8 +46,8 @@ char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash;
-char		*default_search_base = NULL;
-char		*default_search_nbase = NULL;
+struct berval default_search_base = { 0, NULL };
+struct berval default_search_nbase = { 0, NULL };
 int		num_subs = 0;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
@@ -335,8 +335,8 @@ read_config( const char *fname )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing dn in \"defaultSearchBase <dn\" "
-					   "line\n", fname, lineno ));
+					"%s: line %d: missing dn in \"defaultSearchBase <dn\" "
+					"line\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing dn in \"defaultSearchBase <dn>\" line\n",
@@ -348,24 +348,23 @@ read_config( const char *fname )
 			} else if ( cargc > 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: extra cruft after <dn> in "
-					   "\"defaultSearchBase %s\" line (ignored)\n",
-					   fname, lineno, cargv[1] ));
+					"%s: line %d: extra cruft after <dn> in "
+					"\"defaultSearchBase %s\" line (ignored)\n",
+					fname, lineno, cargv[1] ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"extra cruft after <dn> in \"defaultSearchBase %s\", "
 					"line (ignored)\n",
 					fname, lineno, cargv[1] );
 #endif
-
 			}
 
 			if ( bi != NULL || be != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: defaultSearchBase line must appear "
-					   "prior to any backend or database definitions\n",
-					   fname, lineno ));
+					"%s: line %d: defaultSearchBase line must appear "
+					"prior to any backend or database definitions\n",
+					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"defaultSearchBaase line must appear prior to "
@@ -376,42 +375,67 @@ read_config( const char *fname )
 				return 1;
 			}
 
-			if ( default_search_nbase != NULL ) {
+			if ( default_search_nbase.bv_len ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: default search base \"%s\" already defined "
-					   "(discarding old)\n", fname, lineno, default_search_base ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"default search base \"%s\" already defined "
+					"(discarding old)\n", fname, lineno,
+					default_search_base->bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"default search base \"%s\" already defined "
 					"(discarding old)\n",
-					fname, lineno, default_search_base );
+					fname, lineno, default_search_base.bv_val );
 #endif
 
-				free( default_search_base );
-				free( default_search_nbase );
+				free( default_search_base.bv_val );
+				free( default_search_nbase.bv_val );
 			}
 
-			default_search_base = ch_strdup( cargv[1] );
-			default_search_nbase = ch_strdup( cargv[1] );
+			if ( load_ucdata( NULL ) < 0 ) return 1;
 
-			if ( load_ucdata( NULL ) < 0 ) {
-				return( 1 );
-			}
-			if( dn_normalize( default_search_nbase ) == NULL ) {
+			{
+				struct berval dn, *pdn, *ndn;
+
+				dn.bv_val = cargv[1];
+				dn.bv_len = strlen( dn.bv_val );
+
+				rc = dnPretty( NULL, &dn, &pdn );
+				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s:  %d: invalid default search base \"%s\"\n",
-					   fname, lineno, default_search_base ));
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						"%s: line %d: defaultSearchBase DN is invalid.\n",
+						fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"invalid default search base \"%s\"\n",
-					fname, lineno, default_search_base );
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: defaultSearchBase DN is invalid\n",
+					   fname, lineno, 0 );
 #endif
+					return( 1 );
+				}
 
-				return 1;
+				rc = dnNormalize( NULL, &dn, &ndn );
+				if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						"%s: line %d: defaultSearchBase DN is invalid.\n",
+						fname, lineno ));
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: defaultSearchBase DN is invalid\n",
+					   fname, lineno, 0 );
+#endif
+					ber_bvfree( ndn );
+					return( 1 );
+				}
+
+				default_search_base = *pdn;
+				default_search_nbase = *ndn;
+
+				free( pdn );
+				free( ndn );
 			}
-	       
+
 		/* set maximum threads in thread pool */
 		} else if ( strcasecmp( cargv[0], "threads" ) == 0 ) {
 			int c;
@@ -829,12 +853,12 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "subordinate" ) == 0 ) {
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: subordinate keyword must appear inside a database "
-					   "definition (ignored).\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"subordinate keyword must appear inside a database "
+					"definition (ignored).\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffix line must appear inside a database definition (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
+					"must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 #endif
 			} else {
@@ -845,143 +869,159 @@ read_config( const char *fname )
 		/* set database suffix */
 		} else if ( strcasecmp( cargv[0], "suffix" ) == 0 ) {
 			Backend *tmp_be;
+			struct berval dn;
+			struct berval *pdn = NULL;
+			struct berval *ndn = NULL;
+
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing dn in \"suffix <dn>\" line.\n",
-					   fname, lineno ));
+					"%s: line %d: missing dn in \"suffix <dn>\" line.\n",
+					fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing dn in \"suffix <dn>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing dn in \"suffix <dn>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
 				return( 1 );
+
 			} else if ( cargc > 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: extra cruft after <dn> in \"suffix %s\""
-					   " line (ignored).\n", fname, lineno, cargv[1] ));
+					"%s: line %d: extra cruft after <dn> in \"suffix %s\""
+					" line (ignored).\n", fname, lineno, cargv[1] ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-    "%s: line %d: extra cruft after <dn> in \"suffix %s\" line (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: extra cruft "
+					"after <dn> in \"suffix %s\" line (ignored)\n",
 				    fname, lineno, cargv[1] );
 #endif
-
 			}
+
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffix line must appear inside a database "
-					   "definition (ignored).\n", fname, lineno ));
+					"%s: line %d: suffix line must appear inside a database "
+					"definition.\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffix line must appear inside a database definition (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
+					"must appear inside a database definition\n",
 				    fname, lineno, 0 );
 #endif
+				return( 1 );
 
 #if defined(SLAPD_MONITOR_DN)
 			/* "cn=Monitor" is reserved for monitoring slap */
 			} else if ( strcasecmp( cargv[1], SLAPD_MONITOR_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-"%s: line %d: \"%s\" is reserved for monitoring slapd\n", 
-					fname, lineno, SLAPD_MONITOR_DN ));
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: \""
+					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
+					fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: \"%s\" is reserved for monitoring slapd\n",
-					fname, lineno, SLAPD_MONITOR_DN );
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: \""
+					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
+					fname, lineno, 0 );
 #endif
 				return( 1 );
 #endif /* SLAPD_MONITOR_DN */
+			}
 
-			} else if ( ( tmp_be = select_backend( cargv[1], 0, 0 ) ) == be ) {
+			if ( load_ucdata( NULL ) < 0 ) return 1;
+
+			dn.bv_val = cargv[1];
+			dn.bv_len = strlen( cargv[1] );
+
+			rc = dnPretty( NULL, &dn, &pdn );
+			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffix already served by this backend "
-					   "(ignored)\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: suffix DN is invalid.\n",
+					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffix already served by this backend (ignored)\n",
+					"%s: line %d: suffix DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			rc = dnNormalize( NULL, &dn, &ndn );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: suffix DN is invalid.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: suffix DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				ber_bvfree( ndn );
+				return( 1 );
+			}
+
+			tmp_be = select_backend( ndn, 0, 0 );
+			if ( tmp_be == be ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					"%s: line %d: suffix already served by this backend "
+					"(ignored)\n", fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
+					"already served by this backend (ignored)\n",
 				    fname, lineno, 0 );
 #endif
+				ber_bvfree( pdn );
+				ber_bvfree( ndn );
 
 			} else if ( tmp_be  != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffix already served by a preceding "
-					   "backend \"%s\" (ignored)\n", fname, lineno,
-					   tmp_be->be_suffix[0] ));
+					"%s: line %d: suffix already served by a preceding "
+					"backend \"%s\"\n", fname, lineno,
+					tmp_be->be_suffix[0] ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffix already served by a preceeding backend \"%s\" (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
+					"already served by a preceeding backend \"%s\"\n",
 				    fname, lineno, tmp_be->be_suffix[0] );
 #endif
+				ber_bvfree( pdn );
+				ber_bvfree( ndn );
+				return( 1 );
 
-			} else {
-				char *dn;
-
-				if ( load_ucdata( NULL ) < 0 ) {
-					return( 1 );
-				}
-				dn = ch_strdup( cargv[1] );
-				if( dn_validate( dn ) == NULL ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: suffix DN invalid\"%s\"\n",
-						   fname, lineno, cargv[1] ));
-#else
-					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-						"suffix DN invalid \"%s\"\n",
-				    	fname, lineno, cargv[1] );
-#endif
-					free( dn );
-					return 1;
-
-				} else if( *dn == '\0' && default_search_nbase != NULL ) {
+			} else if( pdn->bv_len == 0 && default_search_nbase.bv_len ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-						   "%s: line %d: suffix DN empty and default search "
-						   "base provided \"%s\" (assuming okay).\n",
-						   fname, lineno, default_search_base ));
+						"%s: line %d: suffix DN empty and default search "
+						"base provided \"%s\" (assuming okay).\n",
+						fname, lineno, default_search_base.bv_val ));
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"suffix DN empty and default "
 						"search base provided \"%s\" (assuming okay)\n",
-			    		fname, lineno, default_search_base );
+			    		fname, lineno, default_search_base.bv_val );
 #endif
-
-				}
-				charray_add( &be->be_suffix, dn );
-				if ( dn_normalize( dn ) == NULL ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						"%s: line %d: "
-						"unable to normalize suffix "
-						"\"%s\"\n", fname, lineno, dn ));
-#else
-					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-						"unable to normalize suffix "
-						"\"%s\"\n", fname, lineno, dn );
-#endif
-					free( dn );
-					return 1;
-				}
-				ber_bvecadd( &be->be_nsuffix, ber_bvstr( dn ) );
 			}
+
+			charray_add( &be->be_suffix, pdn->bv_val );
+			ber_bvecadd( &be->be_nsuffix, ndn );
 
 		/* set database suffixAlias */
 		} else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
 			Backend *tmp_be;
+			struct berval alias, *palias, *nalias;
+			struct berval aliased, *paliased, *naliased;
+
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing alias and aliased_dn in "
-					   "\"suffixAlias <alias> <aliased_dn>\" line.\n",
-					   fname, lineno ));
+					"%s: line %d: missing alias and aliased_dn in "
+					"\"suffixAlias <alias> <aliased_dn>\" line.\n",
+					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: missing alias and aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
+					"%s: line %d: missing alias and aliased_dn in "
+					"\"suffixAlias <alias> <aliased_dn>\" line.\n",
 					fname, lineno, 0 );
 #endif
 
@@ -989,25 +1029,26 @@ read_config( const char *fname )
 			} else if ( cargc < 3 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing aliased_dn in "
-					   "\"suffixAlias <alias> <aliased_dn>\" line\n",
-					   fname, lineno ));
+					"%s: line %d: missing aliased_dn in "
+					"\"suffixAlias <alias> <aliased_dn>\" line\n",
+					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: missing aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
-				fname, lineno, 0 );
+					"%s: line %d: missing aliased_dn in "
+					"\"suffixAlias <alias> <aliased_dn>\" line\n",
+					fname, lineno, 0 );
 #endif
 
 				return( 1 );
 			} else if ( cargc > 3 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: extra cruft in suffixAlias line (ignored)\n",
-					   fname, lineno ));
+					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
+					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
-				fname, lineno, 0 );
+					fname, lineno, 0 );
 #endif
 
 			}
@@ -1015,61 +1056,123 @@ read_config( const char *fname )
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffixAlias line must appear inside a "
-					   "database definition (ignored).\n", fname, lineno ));
+					"%s: line %d: suffixAlias line must appear inside a "
+					"database definition (ignored).\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias line"
 					" must appear inside a database definition (ignored)\n",
 					fname, lineno, 0 );
 #endif
+			}
 
-			} else if ( (tmp_be = select_backend( cargv[1], 0, 0 )) != NULL ) {
+			if ( load_ucdata( NULL ) < 0 ) return 1;
+			
+			alias.bv_val = cargv[1];
+			alias.bv_len = strlen( cargv[1] );
+
+			rc = dnPretty( NULL, &alias, &palias );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: alias DN is invalid.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: alias DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			rc = dnNormalize( NULL, &alias, &nalias );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: alias DN is invalid.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: alias DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				ber_bvfree( palias );
+				return( 1 );
+			}
+
+			tmp_be = select_backend( nalias, 0, 0 );
+			ber_bvfree( nalias );
+			if ( tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffixAlias served by a preceeding "
-					   "backend \"%s\" (ignored).\n", fname, lineno,
-					   tmp_be->be_suffix[0] ));
+					"%s: line %d: suffixAlias served by a preceeding "
+					"backend \"%s\"\n",
+					fname, lineno, tmp_be->be_suffix[0] ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias served by"
-					"  a preceeding backend \"%s\" (ignored)\n",
+					"  a preceeding backend \"%s\"\n",
 					fname, lineno, tmp_be->be_suffix[0] );
 #endif
+				ber_bvfree( palias );
+				return -1;
+			}
 
+			aliased.bv_val = cargv[2];
+			aliased.bv_len = strlen( cargv[2] );
 
-			} else if ( (tmp_be = select_backend( cargv[2], 0, 0 )) != NULL ) {
+			rc = dnPretty( NULL, &aliased, &paliased );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: aliased DN is invalid.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: aliased DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				ber_bvfree( palias );
+				return( 1 );
+			}
+
+			rc = dnNormalize( NULL, &aliased, &naliased );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: aliased DN is invalid.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: aliased DN is invalid\n",
+				   fname, lineno, 0 );
+#endif
+				ber_bvfree( palias );
+				ber_bvfree( paliased );
+				return( 1 );
+			}
+
+			tmp_be = select_backend( naliased, 0, 0 );
+			ber_bvfree( naliased );
+			if ( tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: suffixAlias derefs to a different backend "
-					   "a preceeding backend \"%s\" (ignored)\n",
-					   fname, lineno, tmp_be->be_suffix[0] ));
+					"%s: line %d: suffixAlias derefs to a different backend "
+					"a preceeding backend \"%s\" (ignored)\n",
+					fname, lineno, tmp_be->be_suffix[0] ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias derefs to differnet backend"
 					"  a preceeding backend \"%s\" (ignored)\n",
 					fname, lineno, tmp_be->be_suffix[0] );
 #endif
-
-
-			} else {
-				char *alias, *aliased_dn;
-
-				if ( load_ucdata( NULL ) < 0 ) {
-					return( 1 );
-				}
-
-				alias = ch_strdup( cargv[1] );
-				(void) dn_normalize( alias );
-
-				aliased_dn = ch_strdup( cargv[2] );
-				(void) dn_normalize( aliased_dn );
-
-				ber_bvecadd( &be->be_suffixAlias, 
-					ber_bvstr( alias ) );
-				ber_bvecadd( &be->be_suffixAlias,
-					ber_bvstr( aliased_dn ) );
+				ber_bvfree( palias );
+				ber_bvfree( paliased );
+				return -1;
 			}
+
+			ber_bvecadd( &be->be_suffixAlias, palias ); 
+			ber_bvecadd( &be->be_suffixAlias, paliased );
 
                /* set max deref depth */
                } else if ( strcasecmp( cargv[0], "maxDerefDepth" ) == 0 ) {
@@ -1144,9 +1247,7 @@ read_config( const char *fname )
 			} else {
 				struct berval dn, *pdn = NULL, *ndn = NULL;
 				
-				if ( load_ucdata( NULL ) < 0 ) {
-					return( 1 );
-				}
+				if ( load_ucdata( NULL ) < 0 ) return 1;
 
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
@@ -1822,9 +1923,7 @@ read_config( const char *fname )
 			} else {
 				struct berval dn, *ndn = NULL;
 
-				if ( load_ucdata( NULL ) < 0 ) {
-					return( 1 );
-				}
+				if ( load_ucdata( NULL ) < 0 ) return 1;
 
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
@@ -2226,9 +2325,8 @@ read_config( const char *fname )
 		free( saveline );
 	}
 	fclose( fp );
-	if ( load_ucdata( NULL ) < 0 ) {
-		return( 1 );
-	}
+
+	if ( load_ucdata( NULL ) < 0 ) return 1;
 	return( 0 );
 }
 

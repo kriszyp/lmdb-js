@@ -862,8 +862,8 @@ LDAP_SLAPD_V (int) slapMode;
 #define SLAP_TRUNCATE_MODE	0x0100
 
 struct slap_replica_info {
-	char   *ri_host;	/* supersedes be_replica */
-	char  **ri_nsuffix;	/* array of suffixes this replica accepts */
+	char *ri_host;				/* supersedes be_replica */
+	struct berval **ri_nsuffix;	/* array of suffixes this replica accepts */
 };
 
 struct slap_limits_set {
@@ -1245,7 +1245,7 @@ typedef struct slap_gacl {
 	ObjectClass *oc;
 	AttributeDescription *at;
 	int res;
-	int len;
+	ber_len_t len;
 	char ndn[1];
 } GroupAssertion;
 

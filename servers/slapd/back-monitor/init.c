@@ -339,7 +339,7 @@ monitor_back_db_init(
 	 * creates the "cn=Monitor" entry 
 	 */
 	snprintf( buf, sizeof( buf ), 
-			"dn: %s\n"
+			"dn: " SLAPD_MONITOR_DN "\n"
 			"objectClass: top\n"
 			"objectClass: LDAPsubEntry\n"
 #ifdef SLAPD_MONITORSUBENTRY
@@ -347,9 +347,8 @@ monitor_back_db_init(
 #else /* !SLAPD_MONITORSUBENTRY */
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
-			"cn: Monitor",
-			SLAPD_MONITOR_DN
-			);
+			"cn: Monitor" );
+
 	e = str2entry( buf );
 	if ( e == NULL) {
 #ifdef NEW_LOGGING
@@ -415,22 +414,36 @@ monitor_back_open(
 {
 	BackendDB		*be;
 	struct monitorsubsys	*ms;
-	char			*ndn;
+	struct berval dn = { sizeof(SLAPD_MONITOR_DN)-1, SLAPD_MONITOR_DN };
+	struct berval *ndn = NULL;
+	int rc;
 
 	/*
 	 * adds the monitor backend
 	 */
-	ndn = ch_strdup( SLAPD_MONITOR_DN );
-	dn_normalize( ndn );
+	rc = dnNormalize( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" is invalid\n" ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" is invalid\n",
+			0, 0, 0 );
+#endif
+		return( -1 );
+	}
+
 	be = select_backend( ndn , 0, 0 );
-	ch_free( ndn );
+	ber_bvfree( ndn );
+
 	if ( be == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"unable to get monitor backend\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"unable to get monitor backend\n%s%s%s", "", "", "" );
+			"unable to get monitor backend\n", 0, 0, 0 );
 #endif
 		return( -1 );
 	}

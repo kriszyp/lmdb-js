@@ -521,14 +521,14 @@ be_db_close( void )
 
 Backend *
 select_backend(
-	const char * dn,
+	struct berval * dn,
 	int manageDSAit,
 	int noSubs )
 {
-	int	i, j, len, dnlen;
+	int	i, j;
+	ber_len_t len, dnlen = dn->bv_len;
 	Backend *be = NULL;
 
-	dnlen = strlen( dn );
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
 		    backends[i].be_nsuffix[j] != NULL; j++ )
@@ -543,15 +543,18 @@ select_backend(
 				/* suffix is longer than DN */
 				continue;
 			}
-
 			
-			if ( len && len < dnlen && ( !DN_SEPARATOR( dn[(dnlen-len)-1] ) || DN_ESCAPE( dn[(dnlen-len)-2] ) ) ) {
+			if ( len && len < dnlen &&
+				( !DN_SEPARATOR( dn->bv_val[(dnlen-len)-1] ) ||
+					DN_ESCAPE( dn->bv_val[(dnlen-len)-2] ) ) )
+			{
 				/* make sure we have a separator */
 				continue;
 			}
-		        
 
-			if ( strcmp( backends[i].be_nsuffix[j]->bv_val, &dn[dnlen-len] ) == 0 ) {
+			if ( strcmp( backends[i].be_nsuffix[j]->bv_val,
+				&dn->bv_val[dnlen-len] ) == 0 )
+			{
 				if( be == NULL ) {
 					be = &backends[i];
 
@@ -990,19 +993,21 @@ backend_group(
 )
 {
 	GroupAssertion *g;
-	int len = strlen(gr_ndn);
+	struct berval gr;
 	int i;
+
+	gr.bv_val = (char *) gr_ndn;
+	gr.bv_len = strlen(gr_ndn);
 
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	i = op->o_abandon;
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if (i)
-		return SLAPD_ABANDON;
+	if (i) return SLAPD_ABANDON;
 
 	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(gr_ndn, 0,
+		be = select_backend( &gr, 0,
 			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
@@ -1013,7 +1018,7 @@ backend_group(
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	for (g = conn->c_groups; g; g=g->next) {
 		if (g->be != be || g->oc != group_oc || g->at != group_at ||
-		    g->len != len)
+		    g->len != gr.bv_len)
 			continue;
 		if (strcmp( g->ndn, gr_ndn ) == 0)
 			break;
@@ -1028,12 +1033,12 @@ backend_group(
 			group_oc, group_at );
 		
 		if (op->o_tag != LDAP_REQ_BIND) {
-			g = ch_malloc(sizeof(GroupAssertion) + len);
+			g = ch_malloc(sizeof(GroupAssertion) + gr.bv_len);
 			g->be = be;
 			g->oc = group_oc;
 			g->at = group_at;
 			g->res = res;
-			g->len = len;
+			g->len = gr.bv_len;
 			strcpy(g->ndn, gr_ndn);
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			g->next = conn->c_groups;
@@ -1058,12 +1063,16 @@ backend_attribute(
 	struct berval ***vals
 )
 {
+	struct berval edn;
+	edn.bv_val = (char *) entry_ndn;
+	edn.bv_len = strlen( entry_ndn );
+
 	if( target == NULL ||
 		strcmp( target->e_ndn, entry_ndn ) != 0 )
 	{
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(entry_ndn, 0,
+		be = select_backend( &edn, 0,
 			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {

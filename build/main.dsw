@@ -69,6 +69,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "backmon"="..\servers\slapd\back-monitor\backmon.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "build"=.\build.dsp - Package Owner=<4>
 
 Package=<5>
@@ -527,6 +539,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name backbdb
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backmon
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -568,6 +583,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name backbdb
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backmon
     End Project Dependency
 }}}
 
@@ -614,6 +632,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name backbdb
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backmon
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -655,6 +676,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name backbdb
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backmon
     End Project Dependency
 }}}
 
