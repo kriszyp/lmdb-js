@@ -36,6 +36,7 @@ main( int argc, char **argv )
 
 	buf = NULL;
 	lmax = 0;
+	lineno = 0;
 
 	if( be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
