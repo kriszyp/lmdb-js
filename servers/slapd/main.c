@@ -628,7 +628,7 @@ wait4child( int sig )
     errno = save_errno;
 }
 
-#endif /* SIGCHLD || SIGCLD */
+#endif /* LDAP_SIGCHLD */
 
 
 #ifdef LOG_LOCAL4
