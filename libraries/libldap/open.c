@@ -353,6 +353,15 @@ ldap_int_open_connection(
 		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
 		LDAP_FREE( sasl_host );
 	}
+	/* sasl_ssf is set redundantly. Should probably remove it from
+	 * the ldap_int_sasl_open call since the TLS ssf isn't known
+	 * yet anyway.
+	 */
+	if( proto == LDAP_PROTO_IPC ) {
+		char authid[64];
+		sprintf( authid, "uid=%d+gid=%d", geteuid(), getegid() );
+		ldap_int_sasl_external( ld, conn, authid, sasl_ssf );
+	}
 #endif
 
 #ifdef HAVE_TLS
