@@ -67,7 +67,7 @@ do_bind(
 	/* log authorization identity demotion */
 	if ( conn->c_dn.bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu AUTHZ anonymous mech=implicit ssf=0",
+			"conn=%lu op=%lu BIND anonymous mech=implicit ssf=0",
 			op->o_connid, op->o_opid, 0, 0, 0 );
 	}
 
@@ -330,7 +330,7 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=%s ssf=%d\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
 				op->o_connid, op->o_opid,
 				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
 				conn->c_authmech.bv_val, ssf );
@@ -582,7 +582,7 @@ do_bind(
 			}
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
 				op->o_connid, op->o_opid,
 				conn->c_dn.bv_val, 0, 0 );
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -635,7 +635,7 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=simple ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple ssf=0\n",
 				op->o_connid, op->o_opid,
 				conn->c_dn.bv_val, conn->c_authmech.bv_val, 0 );
 
