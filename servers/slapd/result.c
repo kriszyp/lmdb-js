@@ -372,9 +372,8 @@ send_ldap_response(
 
 #ifdef LDAP_SLAPI
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, ( rs->sr_matched != NULL ) ? (void *)ch_strdup( rs->sr_matched ) : NULL );
-	/* RESULT_TEXT is dup'd by pblock_set */
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, rs->sr_text );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
 #endif /* LDAP_SLAPI */
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
@@ -487,6 +486,20 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_PARTIAL_RESULTS;
 		}
 	}
+
+#ifdef LDAP_SLAPI
+	/*
+	 * Call pre-result plugins. To avoid infinite recursion plugins
+	 * should just set SLAPI_RESULT_CODE rather than sending a
+	 * result if they wish to change the result.
+	 */
+	slapi_x_pblock_set_operation( op->o_pb, op );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+
+	(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
+#endif /* LDAP_SLAPI */
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		tmp = v2ref( rs->sr_ref, rs->sr_text );
