@@ -64,8 +64,6 @@ typedef struct ldap_apifeature_info {
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
 
-#define LDAP_SASL_SIMPLE			NULL
-
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
 #if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
@@ -193,6 +191,9 @@ typedef struct ldapcontrol {
 #define OLD_LDAP_RES_MODRDN		0x0dL
 #define OLD_LDAP_RES_MODDN		OLD_LDAP_RES_MODRDN
 #define OLD_LDAP_RES_COMPARE		0x0fL
+
+/* sasl methods */
+#define LDAP_SASL_SIMPLE			NULL
 
 /* authentication methods available */
 #define LDAP_AUTH_NONE		0x00L	/* no authentication		  */
@@ -471,6 +472,7 @@ LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
  */
 LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
 LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
+
   
 /*
  * in extended.c:
@@ -722,6 +724,12 @@ LDAP_F int ldap_count_messages LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F LDAPMessage *ldap_first_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F LDAPMessage *ldap_next_reference LDAP_P(( LDAP *ld, LDAPMessage *ref ));
 LDAP_F int ldap_count_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F int ldap_parse_reference LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*ref,
+	char			***referralsp,
+	LDAPControl		***serverctrls,
+	int				freeit));
 
 
 /*
@@ -730,6 +738,10 @@ LDAP_F int ldap_count_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F LDAPMessage *ldap_first_entry LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F LDAPMessage *ldap_next_entry LDAP_P(( LDAP *ld, LDAPMessage *entry ));
 LDAP_F int ldap_count_entries LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F int ldap_get_entry_controls LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*entry,
+	LDAPControl		***serverctrls));
 
 
 /*
