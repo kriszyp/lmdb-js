@@ -119,8 +119,8 @@ bdb_bt_compare(
 	const DBT *curkey
 )
 {
-	unsigned char x, *u, *c;
-	int i;
+	unsigned char *u, *c;
+	int i, x;
 
 	u = usrkey->data;
 	c = curkey->data;
