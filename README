@@ -9,7 +9,7 @@ OpenLDAP Devel README
 		guidelines for developers
 
 	Client developers seeking a stable development platform
-	should use -stable or the latest OpenLDAP release.
+	should use an OpenLDAP release.
 
 	The OpenLDAP Developer's FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=4
