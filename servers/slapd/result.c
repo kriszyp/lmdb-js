@@ -715,10 +715,10 @@ send_search_entry(
 	    if (rc != sizeof(struct sockaddr)) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, 
-				"send_search_entry: conn %lu  ber_printf failed\n",
+				"send_search_entry: conn %lu  ber_write failed\n",
 				conn ? conn->c_connid : 0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
 #endif
 			ber_free_buf( ber );
 			return( 1 );
