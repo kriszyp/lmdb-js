@@ -124,7 +124,7 @@ install-conf: FORCE
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i.default; \
-		$(RM) -f /tmp/slapd.$$ ; \
+		$(RM) -f $$tmpcf ; \
 	done
 
 install-tools: FORCE

@@ -156,6 +156,7 @@ char *derefDN ( Backend     *be,
 	  free (newDN);
 	  newDN = NULL;
 	  free (remainder);
+	  remainder = NULL;
 	  break; /*  no associated entry, dont deref */
 	}
 	else {
