@@ -274,7 +274,7 @@ nameUIDValidate(
 
 	rc = dnValidate( NULL, &dn );
 
-	ber_memfree( &dn );
+	ber_memfree( dn.bv_val );
 	return rc;
 }
 
