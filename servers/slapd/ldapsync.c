@@ -63,7 +63,8 @@ slap_build_sync_state_ctrl(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
 		if ( desc == slap_schema.si_ad_entryUUID ) {
-			ber_dupbv( &entryuuid_bv, &a->a_nvals[0] );
+			entryuuid_bv = a->a_nvals[0];
+			break;
 		}
 	}
 
@@ -75,11 +76,8 @@ slap_build_sync_state_ctrl(
 			entry_sync_state, &entryuuid_bv );
 	}
 
-	ch_free( entryuuid_bv.bv_val );
-	entryuuid_bv.bv_val = NULL;
-
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
 	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
 
 	ber_free_buf( ber );
@@ -124,7 +122,7 @@ slap_build_sync_done_ctrl(
 	ber_printf( ber, "N}" );	
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
 	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
 
 	ber_free_buf( ber );
@@ -167,7 +165,7 @@ slap_build_sync_state_ctrl_from_slog(
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
-	ber_dupbv( &entryuuid_bv, &slog_e->sl_uuid );
+	entryuuid_bv = slog_e->sl_uuid;
 
 	if ( send_cookie && cookie ) {
 		ber_printf( ber, "{eOON}",
@@ -177,11 +175,8 @@ slap_build_sync_state_ctrl_from_slog(
 			entry_sync_state, &entryuuid_bv );
 	}
 
-	ch_free( entryuuid_bv.bv_val );
-	entryuuid_bv.bv_val = NULL;
-
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
 	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
 
 	ber_free_buf( ber );
@@ -430,11 +425,9 @@ slap_init_sync_cookie_ctxcsn(
 	cookie->octet_str = NULL;
 	ber_bvarray_add( &cookie->octet_str, &slap_syncCookie );
 
-	ber_dupbv( &ctxcsn, &octet_str );
-	ctxcsn.bv_val += 4;
-	ctxcsn.bv_len -= 4;
+	ctxcsn.bv_val = octet_str.bv_val + 4;
+	ctxcsn.bv_len = octet_str.bv_len - 4;
 	ber_dupbv( &ctxcsn_dup, &ctxcsn );
-	ch_free( ctxcsn.bv_val );
 	ber_bvarray_add( &cookie->ctxcsn, &ctxcsn_dup );
 
 	return 0;
@@ -498,6 +491,7 @@ slap_build_syncUUID_set(
 		AttributeDescription *desc = a->a_desc;
 		if ( desc == slap_schema.si_ad_entryUUID ) {
 			ber_dupbv_x( &entryuuid_bv, &a->a_nvals[0], op->o_tmpmemctx );
+			break;
 		}
 	}
 

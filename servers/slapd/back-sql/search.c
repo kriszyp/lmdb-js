@@ -676,7 +676,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		 * TODO: introduce appropriate entryCSN filtering
 		 * to support syncrepl as producer...
 		 */
-		if ( bsi->bsi_op->o_sync_mode != SLAP_SYNC_REFRESH ) {
+		if ( bsi->bsi_op->o_sync_mode & SLAP_SYNC_PERSIST ) {
 			/* unsupported at present... */
 			bsi->bsi_status = LDAP_OTHER;
 			rc = -1;

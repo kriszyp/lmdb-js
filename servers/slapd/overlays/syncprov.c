@@ -146,7 +146,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	cb.sc_response = findbase_cb;
 	cb.sc_private = fc;
 
-	fop.o_sync_mode = 0;
+	fop.o_sync_mode &= SLAP_CONTROL_MASK;	/* turn off sync mode */
 	fop.o_callback = &cb;
 	fop.o_tag = LDAP_REQ_SEARCH;
 	fop.ors_scope = LDAP_SCOPE_BASE;
@@ -300,7 +300,7 @@ syncprov_findcsn( Operation *op, int mode )
 	}
 
 	fop = *op;
-	fop.o_sync_mode = 0;
+	fop.o_sync_mode &= SLAP_CONTROL_MASK;	/* turn off sync_mode */
 
 	fbuf.bv_val = buf;
 	if ( mode == FIND_CSN ) {
@@ -402,6 +402,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	a_uuid.a_nvals = &opc->suuid;
 	rs.sr_err = slap_build_sync_state_ctrl( &sop, &rs, &e_uuid,
 		mode, ctrls, 0, 1, &cookie );
+
 	rs.sr_entry = e;
 	rs.sr_ctrls = ctrls;
 	switch( mode ) {
@@ -710,7 +711,7 @@ syncprov_search_cleanup( Operation *op, SlapReply *rs )
 		op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
 	}
 	if ( ss->ss_done )
-		op->o_sync_mode = SLAP_SYNC_REFRESH_AND_PERSIST;
+		op->o_sync_mode |= SLAP_SYNC_REFRESH_AND_PERSIST;
 	return 0;
 }
 
@@ -783,7 +784,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	syncops *sop = NULL;
 	searchstate *ss;
 
-	if ( !op->o_sync_mode ) return SLAP_CB_CONTINUE;
+	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
 
 	if ( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "illegal value for derefAliases" );
@@ -791,7 +792,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	}
 
 	/* If this is a persistent search, set it up right away */
-	if ( op->o_sync_mode == SLAP_SYNC_REFRESH_AND_PERSIST ) {
+	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {
 		syncops so;
 		fbase_cookie fc;
 		opcookie opc;
@@ -844,7 +845,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			/* If just Refreshing and nothing has changed, shortcut it */
 			if ( bvmatch( op->o_sync_state.ctxcsn, &si->si_ctxcsn )) {
 				nochange = 1;
-				if ( op->o_sync_mode == SLAP_SYNC_REFRESH ) {
+				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
 
 					ctrls[0] = NULL;
@@ -922,7 +923,7 @@ shortcut:
 	 * doesn't get invoked. We can skip this after the back-bdb code is
 	 * removed, and also delete ss->ss_done.
 	 */
-	op->o_sync_mode = 0;
+	op->o_sync_mode &= SLAP_CONTROL_MASK;
 
 	/* If this is a persistent search and no changes were reported during
 	 * the refresh phase, just invoke the response callback to transition

@@ -2230,6 +2230,7 @@ typedef struct slap_op {
 #define	SLAP_CONTROL_MASK	3
 
 /* spare bits for simple flags */
+#define SLAP_CONTROL_SHIFT	4	/* shift to reach data bits */
 #define SLAP_CONTROL_DATA0	0x10
 #define SLAP_CONTROL_DATA1	0x20
 #define SLAP_CONTROL_DATA2	0x40
@@ -2295,12 +2296,13 @@ typedef struct slap_op {
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 
 #define	o_sync	o_ctrlflag[slap_cids.sc_LDAPsync]
+	/* o_sync_mode uses data bits of o_sync */
+#define	o_sync_mode	o_ctrlflag[slap_cids.sc_LDAPsync]
 
-	char o_sync_mode;
-#define SLAP_SYNC_NONE					LDAP_SYNC_NONE
-#define SLAP_SYNC_REFRESH				LDAP_SYNC_REFRESH_ONLY
-#define SLAP_SYNC_PERSIST				LDAP_SYNC_RESERVED
-#define SLAP_SYNC_REFRESH_AND_PERSIST	LDAP_SYNC_REFRESH_AND_PERSIST
+#define SLAP_SYNC_NONE					(LDAP_SYNC_NONE<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_PERSIST				(LDAP_SYNC_RESERVED<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
 	struct sync_cookie	o_sync_state;
 	int					o_sync_rhint;
 	struct berval		o_sync_cid;

@@ -262,7 +262,7 @@ bdb_get_commit_csn(
 	syncinfo_t	*si;
 	u_int32_t	ctxcsn_locker = 0;
 
-	if ( op->o_sync_mode != SLAP_SYNC_NONE &&
+	if ( (op->o_sync_mode & SLAP_SYNC_REFRESH) &&
 		 !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		char substr[67];
 		struct berval ctxcsn_ndn = BER_BVNULL;
@@ -332,7 +332,7 @@ consumer_ctxcsn_retry :
 				*search_context_csn = NULL;
 			}
 		}
-	} else if ( op->o_sync_mode != SLAP_SYNC_NONE &&
+	} else if ( (op->o_sync_mode & SLAP_SYNC_REFRESH) &&
 		 LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 
 provider_ctxcsn_retry :

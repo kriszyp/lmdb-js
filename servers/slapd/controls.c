@@ -1372,11 +1372,11 @@ static int parseLDAPsync (
 
 	(void) ber_free( ber, 1 );
 
-	op->o_sync_mode = (char) mode;
-
 	op->o_sync = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
+
+	op->o_sync_mode |= mode;	/* o_sync_mode shares o_sync */
 
 	return LDAP_SUCCESS;
 }
