@@ -76,10 +76,18 @@ int			cmd_quit(char **cmdargv, int cmdargc);
 int			cmd_search(char **cmdargv, int cmdargc);
 int			cmd_set(char **cmdargv, int cmdargc);
 int			cmd_show(char **cmdargv, int cmdargc);
+
+int		bind_user(void);
+void		display_search_results(LDAPMessage *result);
+int		do_command(char *cmd);
+void		do_commands(FILE *file);
+int		is_whitespace(register char *s);
 char		*make_dn(char *dn, int relative);
+void		show_syntax(int cmdnum);
 char		*skip_to_char(register char *s, register int c);
 char		*skip_to_whitespace(register char *s);
 char		*skip_whitespace(register char *s);
+int		table_lookup(char *word, char **table, int table_count);
 FILE		*user_tailor(void);
 
 static char	*binary_attrs[] = { "audio", "jpegPhoto", "personalSignature", "photo" };
@@ -424,7 +432,7 @@ int cmd_show(char **cmdargv, int cmdargc)
 	return 0;
 }
 
-display_search_results(LDAPMessage *result)
+void display_search_results(LDAPMessage *result)
 {
 	BerElement	*cookie;
 	int			i;
@@ -662,7 +670,7 @@ char *make_dn(char *dn, int relative)
 	return strcat(strcat(strcpy(dn_buf, dn), ", "), default_dn);
 }
 
-show_syntax(int cmdnum)
+void show_syntax(int cmdnum)
 {
 	printf("Syntax: %s %s\n", cmdtable[cmdnum].cmd, cmdtable[cmdnum].help_msg);
 }
