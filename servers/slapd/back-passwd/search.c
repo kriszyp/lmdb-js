@@ -107,7 +107,7 @@ passwd_back_search(
 	
 			if ( test_filter( be, conn, op, e, filter ) == 0 ) {
 				send_search_entry( be, conn, op,
-					e, attrs, attrsonly, 0, NULL );
+					e, attrs, attrsonly, NULL );
 				sent++;
 			}
 		}
@@ -145,7 +145,7 @@ passwd_back_search(
 					}
 
 					send_search_entry( be, conn, op,
-						e, attrs, attrsonly, 0, NULL );
+						e, attrs, attrsonly, NULL );
 					sent++;
 				}
 
@@ -196,7 +196,7 @@ passwd_back_search(
 
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
 			send_search_entry( be, conn, op,
-				e, attrs, attrsonly, 0, NULL );
+				e, attrs, attrsonly, NULL );
 			sent++;
 		}
 

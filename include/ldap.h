@@ -72,6 +72,7 @@ LDAP_BEGIN_DECL
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
+#define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+"
 
 /*
  * LDAP_OPTions defined by draft-ldapext-ldap-c-api-02

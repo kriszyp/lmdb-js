@@ -27,7 +27,11 @@
  */
 
 void
-config_info( Connection *conn, Operation *op )
+config_info(
+	Connection *conn,
+	Operation *op,
+	char **attrs,
+	int attrsonly )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];
@@ -46,6 +50,20 @@ config_info( Connection *conn, Operation *op )
 	(void) dn_normalize_case( e->e_ndn );
 	e->e_private = NULL;
 
+	{
+		char *rdn = ch_strdup( SLAPD_CONFIG_DN );
+		val.bv_val = strchr( rdn, '=' );
+
+		if( val.bv_val != NULL ) {
+			*val.bv_val = '\0';
+			val.bv_len = strlen( ++val.bv_val );
+
+			attr_merge( e, rdn, vals );
+		}
+
+		free( rdn );
+	}
+
 	for ( i = 0; i < nbackends; i++ ) {
 		strcpy( buf, backends[i].be_type );
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
@@ -57,8 +75,16 @@ config_info( Connection *conn, Operation *op )
 		attr_merge( e, "database", vals );
 	}
 
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "extenisbleObject";
+	val.bv_len = sizeof("extenisbleObject")-1;
+	attr_merge( e, "objectClass", vals );
+
 	send_search_entry( &backends[0], conn, op, e,
-		NULL, 0, 1, NULL );
+		attrs, attrsonly, NULL );
 	send_search_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL, 1 );
 

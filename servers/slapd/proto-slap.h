@@ -241,7 +241,11 @@ extern char *supportedExtensions[];
 extern char *supportedControls[];
 extern char *supportedSASLMechanisms[];
 
-void monitor_info LDAP_P(( Connection *conn, Operation *op ));
+void monitor_info LDAP_P((
+	Connection *conn,
+	Operation *op,
+	char ** attrs,
+	int attrsonly ));
 
 /*
  * operation.c
@@ -304,7 +308,7 @@ int send_search_reference LDAP_P((
 
 int send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, char **attrs, int attrsonly, int opattrs,
+	Entry *e, char **attrs, int attrsonly,
 	LDAPControl **ctrls ));
 
 int str2result LDAP_P(( char *s,
@@ -436,8 +440,17 @@ extern void slapd_remove LDAP_P((ber_socket_t s, int wake));
 extern void	slap_set_shutdown LDAP_P((int sig));
 extern void	slap_do_nothing   LDAP_P((int sig));
 
-extern void	config_info LDAP_P((Connection *conn, Operation *op));
-extern void	root_dse_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
+extern void	config_info LDAP_P((
+	Connection *conn,
+	Operation *op,
+	char ** attrs,
+	int attrsonly ));
+
+extern void	root_dse_info LDAP_P((
+	Connection *conn,
+	Operation *op,
+	char ** attrs,
+	int attrsonly ));
 
 extern int	do_abandon LDAP_P((Connection *conn, Operation *op));
 extern int	do_add LDAP_P((Connection *conn, Operation *op));

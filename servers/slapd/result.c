@@ -491,7 +491,6 @@ send_search_entry(
     Entry	*e,
     char	**attrs,
     int		attrsonly,
-	int		opattrs,
 	LDAPControl **ctrls
 )
 {
@@ -500,7 +499,8 @@ send_search_entry(
 	int		i, rc=-1, bytes;
 	AccessControl	*acl;
 	char            *edn;
-	int		allattrs;
+	int		userattrs;
+	int		opattrs;
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
@@ -534,9 +534,13 @@ send_search_entry(
 		goto error_return;
 	}
 
-	/* check for special all user attributes ("*") attribute */
-	allattrs = ( attrs == NULL ) ? 1
+	/* check for special all user attributes ("*") type */
+	userattrs = ( attrs == NULL ) ? 1
 		: charray_inlist( attrs, LDAP_ALL_USER_ATTRIBUTES );
+
+	/* check for special all operational attributes ("+") type */
+	opattrs = ( attrs == NULL ) ? 0
+		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		regmatch_t       matches[MAXREMATCHES];
@@ -549,18 +553,16 @@ send_search_entry(
 
 		} else {
 			/* specific addrs requested */
-			if ( allattrs ) {
-				/* user requested all user attributes */
-				/* if operational, make sure it's in list */
-
-				if( oc_check_operational_attr( a->a_type )
-					&& !charray_inlist( attrs, a->a_type ) )
+			if (  oc_check_operational_attr( a->a_type ) ) {
+				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
 				{
 					continue;
 				}
-
-			} else if ( !charray_inlist( attrs, a->a_type ) ) {
-				continue;
+			} else {
+				if (!userattrs && !charray_inlist( attrs, a->a_type ) )
+				{
+					continue;
+				}
 			}
 		}
 
@@ -611,6 +613,8 @@ send_search_entry(
 	}
 
 #ifdef SLAPD_SCHEMA_DN
+	/* eventually will loop through generated operational attributes */
+	/* only have subschemaSubentry implemented */
 	a = backend_subschemasubentry( be );
 	
 	do {
@@ -624,18 +628,16 @@ send_search_entry(
 
 		} else {
 			/* specific addrs requested */
-			if ( allattrs ) {
-				/* user requested all user attributes */
-				/* if operational, make sure it's in list */
-
-				if( oc_check_operational_attr( a->a_type )
-					&& !charray_inlist( attrs, a->a_type ) )
+			if (  oc_check_operational_attr( a->a_type ) ) {
+				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
 				{
 					continue;
 				}
-
-			} else if ( !charray_inlist( attrs, a->a_type ) ) {
-				continue;
+			} else {
+				if (!userattrs && !charray_inlist( attrs, a->a_type ) )
+				{
+					continue;
+				}
 			}
 		}
 
@@ -738,7 +740,7 @@ send_search_reference(
 	int rc;
 	int bytes;
 
-	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry (%s)\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> send_search_reference (%s)\n", e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
 		"entry", NULL, ACL_READ ) )
@@ -806,7 +808,7 @@ send_search_reference(
 	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld ENTRY dn=\"%s\"\n",
 	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
-	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 
 	return 0;
 }

@@ -98,8 +98,16 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		attr_merge( e, "ref", default_referral );
 	}
 
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "extenisbleObject";
+	val.bv_len = sizeof("extenisbleObject")-1;
+	attr_merge( e, "objectClass", vals );
+
 	send_search_entry( &backends[0], conn, op,
-		e, attrs, attrsonly, 0, NULL );
+		e, attrs, attrsonly, NULL );
 	send_search_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL, 1 );
 

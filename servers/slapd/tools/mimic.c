@@ -71,7 +71,6 @@ send_search_entry(
 	Entry	*e,
 	char	**attrs,
 	int		attrsonly,
-	int		opattrs,
 	LDAPControl **ctrls
 )        
 {
