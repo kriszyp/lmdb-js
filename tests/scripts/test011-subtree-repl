@@ -134,6 +134,10 @@ member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Univer
 add: member
 member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+-
+replace: description
+description: A very long description, that is very likely to cause line wrapping in a LDIF file
+-
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
@@ -224,7 +228,7 @@ SEARCHOUT=$SUBMASTEROUT
 LDIF=$SLAVEOUT
 
 echo "Filtering master ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT | egrep -iv ^description > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
 echo "Filtering slave ldapsearch results..."
 . $LDIFFILTER < $LDIF > $LDIFFLT
 
@@ -239,14 +243,14 @@ fi
 SEARCHOUT=$MASTEROUT
 
 echo "Filtering remaining data"
-. $LDIFFILTER < $SEARCHOUT | egrep -iv ^description > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
 
 echo "Stripping slave entries from master output..."
-$CMP $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
+$DIFF $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
 
 echo "Stripping subtree entries from master output..."
 . $SUBFILTER 'ou=Groups,[ ]?o=University of Michigan,[ ]?c=US' < $SEARCHOUT \
-	| $UNDIFFFILTER | egrep -iv ^description > $SUBFLT2
+	| $STRIPATTR "description" > $SUBFLT2
 
 echo "Comparing master minus subtree and master minus slave..."
 $CMP $SUBFLT $SUBFLT2 > $CMPOUT

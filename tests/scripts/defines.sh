@@ -35,6 +35,7 @@ LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 SUBFILTER=$SRCDIR/scripts/subfilter.sh
 UNDIFFFILTER=$SRCDIR/scripts/undiff.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
+STRIPATTR=$SRCDIR/scripts/stripattr.sh
 
 SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
