@@ -23,11 +23,11 @@ LDAP_BEGIN_DECL
 
 #define DEFAULT_MODE		0600
 
-#define DEFAULT_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-bdb"
+#define BDB_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-bdb"
 
-#define DEFAULT_DB_TMP_DIR	DEFAULT_DBENV_HOME LDAP_DIRSEP "tmp"
-#define DEFAULT_DB_LG_DIR	DEFAULT_DBENV_HOME LDAP_DIRSEP "log"
-#define DEFAULT_DB_DATA_DIR	DEFAULT_DBENV_HOME LDAP_DIRSEP "data"
+#define BDB_TMP_SUBDIR	LDAP_DIRSEP "tmp"
+#define BDB_LG_SUBDIR	LDAP_DIRSEP "log"
+#define BDB_DATA_SUBDIR	LDAP_DIRSEP "data"
 
 #define BDB_NEXTID	0
 #define BDB_ENTRIES	1
@@ -40,18 +40,11 @@ struct bdb_db_info {
 struct bdb_info {
 	DB_ENV		*bi_dbenv;
 
-	/* DB_env parameters */
+	/* DB_ENV parameters */
+	/* The DB_ENV can be tuned via DB_CONFIG */
 	char		*bi_dbenv_home;
 	u_int32_t	bi_dbenv_xflags; /* extra flags */
 	int			bi_dbenv_mode;
-
-	int			bi_tx_max;
-
-	char		*bi_db_tmp_dir;
-	char		*bi_db_lg_dir;
-	char		*bi_db_data_dir;
-
-	ID			*bi_lastid;
 
 	int			bi_ndatabases;
 	struct bdb_db_info **bdi_databases;

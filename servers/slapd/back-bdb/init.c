@@ -43,16 +43,9 @@ bi_back_db_init( Backend *be )
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
 
 	/* DBEnv parameters */
-	bdb->bi_dbenv_home = ch_strdup( DEFAULT_DBENV_HOME );
+	bdb->bi_dbenv_home = ch_strdup( BDB_DBENV_HOME );
 	bdb->bi_dbenv_xflags = 0;
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
-
-	/* default database directories */
-	bdb->bi_db_tmp_dir = ch_strdup( DEFAULT_DB_TMP_DIR );
-	bdb->bi_db_lg_dir = ch_strdup( DEFAULT_DB_LG_DIR );
-	bdb->bi_db_data_dir = ch_strdup( DEFAULT_DB_DATA_DIR );
-
-	bdb->bi_lastid = NOID;
 
 	be->be_private = bdb;
 	return 0;
@@ -64,7 +57,6 @@ bi_back_db_open( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	u_int32_t flags;
-
 	/* we should check existance of dbenv_home and db_directory */
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
@@ -87,42 +79,40 @@ bi_back_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 
-	if( bdb->bi_tx_max ) {
-		rc = bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv,
-			bdb->bi_tx_max );
+	{
+		char dir[MAXPATHLEN];
+		size_t len = strlen( bdb->bi_dbenv_home );
+
+		strcpy( dir, bdb->bi_dbenv_home );
+		strcat( &dir[len], BDB_TMP_SUBDIR );
+		
+		rc = bdb->bi_dbenv->set_tmp_dir( bdb->bi_dbenv, dir );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: set_tx_max(%d) failed: %s (%d)\n",
-				bdb->bi_tx_max, db_strerror(rc), rc );
+				"bi_back_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
+				dir, db_strerror(rc), rc );
 			return rc;
 		}
-	}
 
-	rc = bdb->bi_dbenv->set_tmp_dir( bdb->bi_dbenv,
-		bdb->bi_db_tmp_dir );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
-			bdb->bi_db_tmp_dir, db_strerror(rc), rc );
-		return rc;
-	}
+		strcat( &dir[len], BDB_LG_SUBDIR );
 
-	rc = bdb->bi_dbenv->set_lg_dir( bdb->bi_dbenv,
-		bdb->bi_db_lg_dir );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: set_lg_dir(%s) failed: %s (%d)\n",
-			bdb->bi_db_lg_dir, db_strerror(rc), rc );
-		return rc;
-	}
+		rc = bdb->bi_dbenv->set_lg_dir( bdb->bi_dbenv, dir );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bi_back_db_open: set_lg_dir(%s) failed: %s (%d)\n",
+				dir, db_strerror(rc), rc );
+			return rc;
+		}
 
-	rc = bdb->bi_dbenv->set_data_dir( bdb->bi_dbenv,
-		bdb->bi_db_data_dir );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: set_data_dir(%s) failed: %s (%d)\n",
-			bdb->bi_db_data_dir, db_strerror(rc), rc );
-		return rc;
+		strcat( &dir[len], BDB_DATA_SUBDIR );
+
+		rc = bdb->bi_dbenv->set_data_dir( bdb->bi_dbenv, dir );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bi_back_db_open: set_data_dir(%s) failed: %s (%d)\n",
+				dir, db_strerror(rc), rc );
+			return rc;
+		}
 	}
 
 	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
@@ -135,6 +125,8 @@ bi_back_db_open( BackendDB *be )
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
 		return rc;
 	}
+
+	/* we now need to open (and create) all database */
 
 	return 0;
 }
