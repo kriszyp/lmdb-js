@@ -197,7 +197,7 @@ access_allowed(
 		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
 		ACL_GRANT(mask, access) ? "granted" : "denied",
-		accessmask2str( mask, accessmaskbuf ) );
+		""/*accessmask2str( mask, accessmaskbuf )*/ );
 
 	return ACL_GRANT(mask, access);
 }
@@ -369,7 +369,7 @@ acl_mask(
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
 		val ? "value" : "all values",
 		op->o_ndn ?  op->o_ndn : "",
-		accessmask2str( *mask, accessmaskbuf ) );
+		""/*accessmask2str( *mask, accessmaskbuf )*/ );
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
 		slap_mask_t oldmask, modmask;
@@ -760,7 +760,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
-			i, accessmask2str( modmask, accessmaskbuf ), 
+			i, ""/*accessmask2str( modmask, accessmaskbuf )*/, 
 			b->a_type == ACL_CONTINUE
 				? "continue"
 				: b->a_type == ACL_BREAK
@@ -791,7 +791,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
-			i, accessmask2str(*mask, accessmaskbuf), 0 );
+			i, ""/*accessmask2str(*mask, accessmaskbuf)*/, 0 );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -806,7 +806,7 @@ acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		accessmask2str(*mask, accessmaskbuf), 0, 0 );
+		""/*accessmask2str(*mask, accessmaskbuf)*/, 0, 0 );
 	return ACL_STOP;
 }
 
@@ -1262,6 +1262,7 @@ aci_group_member (
 	const char *defgrpat,
     Backend		*be,
     Entry		*e,
+    Connection		*conn,
     Operation		*op,
 	regmatch_t	*matches
 )
@@ -1310,7 +1311,7 @@ aci_group_member (
 	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
 		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, e, grpdn, op->o_ndn, grp_oc, grp_ad) == 0);
+			rc = (backend_group(be, conn, op, e, grpdn, op->o_ndn, grp_oc, grp_ad) == 0);
 		}
 	}
 
@@ -1430,11 +1431,11 @@ aci_mask(
 
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
-		if (aci_group_member(&sdn, SLAPD_GROUP_CLASS, SLAPD_GROUP_ATTR, be, e, op, matches))
+		if (aci_group_member(&sdn, SLAPD_GROUP_CLASS, SLAPD_GROUP_ATTR, be, e, conn, op, matches))
 			return(1);
 
 	} else if (aci_strbvcmp( "role", &bv ) == 0) {
-		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, op, matches))
+		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, conn, op, matches))
 			return(1);
 
 	} else if (aci_strbvcmp( "set", &bv ) == 0) {
