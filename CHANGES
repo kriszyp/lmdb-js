@@ -2,10 +2,12 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.13 Engineering
 	Fixed back-bdb group ACL deadlock bug (ITS#2195)
+	Fixed back-bdb passwd hang bug (ITS#2122)
 	Fixed slapd RDN handling (ITS#2243)
 	Fixed slap tools argument handling (ITS#2266)
 	Fixed liblber PROTOS bugs (ITS#2275) (ITS#2280)
-	Fixed ber_flush debug level
+	Fixed liblber ber_flush debug level
+	Fixed libldap stream readahead bug
 	Fixed libldap SASL null cred bug (ITS#2267)
 	Fixed slapd SASL anon bugs (ITS#2268)
 	Fixed back-glue exceeded results bug (ITS#2299)
@@ -14,18 +16,14 @@ OpenLDAP 2.1.13 Engineering
 	Updated slapd bind stats logging
 	Updated slapd proxy authorization support
 	Updated libldap TLS certificate checking (ITS#2161)
-	Updated client tool argument handling
-	Updated liblutil detach handling
 	Updated back-ldap, back-meta, back-sql
 	Added slapd ACL caching
 	Added slapd attribute options enhancement
 	Added slapd ldapi// SASL EXTERNAL support
-	Added libldap ldap_whoami routines
-	Added liblber ber_flatten2 routine
 	Added liblutil passwd sanity checks (ITS#2159)
 	Build Environment
 		Check back-bdb requirement for BDB 4.1
-		Remove configure flags for deprecated features
+		Removed configure flags for deprecated features
 		Misc man page updates
 		Updated test suite
 
