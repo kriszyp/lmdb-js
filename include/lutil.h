@@ -120,6 +120,8 @@ lutil_strncopy LDAP_P(( char *dst, const char *src, size_t n ));
 
 struct tm;
 
+/* use this macro to statically allocate buffer for lutil_gentime */
+#define LDAP_LUTIL_GENTIME_BUFSIZE	22
 LDAP_LUTIL_F( size_t )
 lutil_gentime LDAP_P(( char *s, size_t max, const struct tm *tm ));
 
@@ -133,10 +135,14 @@ LDAP_LUTIL_F( int )
 lutil_pair( ber_socket_t sd[2] );
 
 /* uuid.c */
+/* use this macro to allocate buffer for lutil_uuidstr */
+#define LDAP_LUTIL_UUIDSTR_BUFSIZE	40
 LDAP_LUTIL_F( size_t )
 lutil_uuidstr( char *buf, size_t len );
 
 /* csn.c */
+/* use this macro to allocate buffer for lutil_csnstr */
+#define LDAP_LUTIL_CSNSTR_BUFSIZE	64
 LDAP_LUTIL_F( size_t )
 lutil_csnstr( char *buf, size_t len, unsigned int replica, unsigned int mod );
 
