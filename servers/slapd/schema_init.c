@@ -500,9 +500,7 @@ UTF8StringValidate(
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 1:
-				if( u[0] >= 0xFE ) {
-					return LDAP_INVALID_SYNTAX;
-				}
+				/* CHARLEN already validated it */
 				break;
 			default:
 				return LDAP_INVALID_SYNTAX;
