@@ -116,16 +116,6 @@ if test "$BUILD_SLAPD" != "yes" ; then
 	ldbm_prefer="none"
 fi
 
-AC_SUBST(BUILD_LDAPD)
-
-AC_SUBST(BUILD_SLAPD)
-  AC_SUBST(SLAPD_LDBM)
-  AC_SUBST(SLAPD_PASSWD)
-  AC_SUBST(SLAPD_SHELL)
-
-AC_SUBST(BUILD_SLURPD)
-
-
 dnl general LDAP arguments
 LDAP_DEFS=
 LDAP_LIBS=
@@ -149,6 +139,7 @@ fi
 LTHREAD_LIBS=
 if test "$opt_thread" = "no" ; then
 	LTHREAD_DEFS="-DNO_THREADS"
+	BUILD_SLURPD=no
 else
 	LTHREAD_DEFS="-DNO_THREADS"
 fi
@@ -165,16 +156,16 @@ if test "$SLAPD_PHONETIC" = "yes" ; then
 fi
 
 if test "$SLAPD_LDBM" = "yes" ; then
-	AC_DEFINE(SLAPD_LDBM,1)
-dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_LDBM"
+dnl	AC_DEFINE(SLAPD_LDBM,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_LDBM"
 fi
 if test "$SLAPD_PASSWD" = "yes" ; then
-	AC_DEFINE(SLAPD_PASSWD,1)
-dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_PASSWD"
+dnl	AC_DEFINE(SLAPD_PASSWD,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_PASSWD"
 fi
 if test "$SLAPD_SHELL" = "yes" ; then
-	AC_DEFINE(SLAPD_SHELL,1)
-dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_SHELL"
+dnl	AC_DEFINE(SLAPD_SHELL,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_SHELL"
 fi
 
 dnl slurpd arguments
@@ -330,6 +321,16 @@ AC_REPLACE_FUNCS(strdup)
 # Check Configuration
 CF_SYS_ERRLIST
 
+
+AC_SUBST(BUILD_LDAPD)
+
+AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(SLAPD_LDBM)
+  AC_SUBST(SLAPD_PASSWD)
+  AC_SUBST(SLAPD_SHELL)
+
+AC_SUBST(BUILD_SLURPD)
+
 AC_SUBST(LDAP_DEFS)
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDAPD_DEFS)
@@ -348,11 +349,6 @@ dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
 dnl servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
-dnl servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
-dnl servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
-dnl servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
-dnl servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
-dnl servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
@@ -376,6 +372,11 @@ libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:buil
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk \
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
+servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
+servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
+servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
+servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
+servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \

@@ -26,8 +26,9 @@ all-srv: FORCE
 	$(MAKE) $(MFLAGS) slapd
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
-XDEFS = @SLURPD_DEFS@ @LTHREAD_DEFS@
-XLIBS = @SLURPD_LIBS@ -lavl -llutil -llthread @LTHREAD_LIBS@
+XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@
+XLIBS = @SLAPD_LIBS@ libbackends.a \
+	-lavl -llutil -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@
 
 slapd: version.o
 	$(CC) $(LDFLGS) -o $@ $(OBJS) version.o $(LIBS)
@@ -94,7 +95,7 @@ install-slapd: FORCE
 
 install-conf: FORCE
 	@-$(MKDIR) -p $(sysconfdir)
-	$(SED) -e 's;%ETCDIR%;$(sysconfdir);' slapd.conf > /tmp/slapd.$$
+	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' slapd.conf > /tmp/slapd.$$
 	-$(MV) $(sysconfdir)/slapd.conf $(sysconfdir)/slapd.conf-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(sysconfdir)/slapd.conf
 	$(RM) -f /tmp/slapd.$$

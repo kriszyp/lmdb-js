@@ -1,0 +1,34 @@
+SRCS	= idl.c add.c search.c cache.c dbcache.c dn2id.c id2entry.c \
+		index.c id2children.c nextid.c abandon.c compare.c \
+		modify.c modrdn.c delete.c init.c config.c bind.c attr.c \
+		filterindex.c unbind.c kerberos.c close.c
+OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o id2entry.o \
+		index.o id2children.o nextid.o abandon.o compare.o \
+		modify.o modrdn.o delete.o init.o config.o bind.o attr.o \
+		filterindex.o unbind.o kerberos.o close.o
+
+BUILD_OPT = "--enable-ldbm"
+BUILD_SRV = @SLAPD_LDBM@
+
+XINCLUDEDIR = -I..
+XDEFS = @LDBM_DEFS@ @LTHREAD_DEFS@
+
+PROGRAMS = libback-ldbm.a
+
+all-srv: FORCE
+	$(MAKE) $(MFLAGS) libback-ldbm.a
+
+libback-ldbm.a:	version.o
+	$(AR) ruv $@ $(OBJS) version.o
+	@$(RANLIB) $@
+	@touch ../.backend
+
+version.c:	$(OBJS)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` \
+	 h=`$(HOSTNAME)` t=`$(DATE)`; \
+	 $(SED) -e "s|%WHEN%|$${t}|" \
+		-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+		-e "s|%VERSION%|$${v}|" \
+		< Version.c > $@)
+

@@ -1,0 +1,25 @@
+SRCS	= search.c config.c
+OBJS	= search.o config.o
+
+BUILD_OPT = "--enable-passwd"
+BUILD_SRV = @SLAPD_PASSWD@
+
+PROGRAMS= libback-passwd.a
+XINCLUDEDIR= -I..
+XDEFS = @LTHREAD_DEFS@
+
+all-srv: 	FORCE	
+	$(MAKE) $(MFLAGS) libback-passwd.a
+
+libback-passwd.a:	version.o
+	$(AR) ruv $@ $(OBJS) version.o
+	@$(RANLIB) $@
+	@touch ../.backend
+
+version.c: $(OBJS)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Version.c > $@)

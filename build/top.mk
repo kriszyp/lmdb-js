@@ -62,7 +62,7 @@ VERSIONFILE = $(top_srcdir)/build/version
 INCLUDEDIR = -I$(top_srcdir)/include $(XINCLUDEDIR)
 
 LDAP_LIBDIR = $(top_srcdir)/libraries
-LDAP_LIBS = -lldap -llber -lldif
+LDAP_LIBS = -lldif -lldap -llber
 LDAP_LIBDEPEND = $(LDAP_LIBDIR)/libldap.a
 
 # AutoConfig generated 
