@@ -608,6 +608,7 @@ avl_free( Avlnode *root, AVL_FREE dfree )
 
 	if ( dfree )
 		(*dfree)( root->avl_data );
+	free( root );
 
 	return( nleft + nright + 1 );
 }
