@@ -123,7 +123,7 @@ ldbm_back_group(
 	bv.bv_val = (char *) op_ndn;
 	bv.bv_len = strlen( op_ndn );         
 
-	if( value_find( group_at, attr->a_vals, &bv ) == 0 ) {
+	if( value_find( group_at, attr->a_vals, &bv ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: \"%s\" not in \"%s\": %s\n", 
 			op_ndn, gr_ndn, group_at_name ); 
