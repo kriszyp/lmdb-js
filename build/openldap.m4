@@ -412,7 +412,7 @@ AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_DEFINE(DECL_SYS_ERRLIST,1,
-		[define if sys_errlist is declared in stdio.h or errno.h])
+		[define if sys_errlist is not declared in stdio.h or errno.h])
 	AC_MSG_CHECKING([existence of sys_errlist])
 	AC_CACHE_VAL(ol_cv_have_sys_errlist,[
 		AC_TRY_LINK([#include <errno.h>],
@@ -424,6 +424,25 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 		AC_DEFINE(HAVE_SYS_ERRLIST,1,
 			[define if you actually have sys_errlist in your libs])
 	fi
+fi
+])dnl
+dnl
+dnl ====================================================================
+dnl Check to see if we should not declare strdup if we have it
+dnl
+AC_DEFUN([OL_DECL_STRDUP],
+[
+AC_MSG_CHECKING([strdup decleration])
+AC_CACHE_VAL(ol_cv_dcl_strdup,[
+	AC_TRY_COMPILE([
+#include <string.h> ],
+	[extern char *strdup()],
+	[ol_cv_dcl_strdup=yes],
+	[ol_cv_dcl_strdup=no])])
+AC_MSG_RESULT($ol_cv_dcl_strdup)
+if test $ol_cv_dcl_strdup = yes ; then
+	AC_DEFINE(DECL_STRDUP,1,
+		[define if you have strdup() but it's not declared])
 fi
 ])dnl
 
