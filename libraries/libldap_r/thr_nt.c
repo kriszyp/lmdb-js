@@ -65,6 +65,7 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
+	Sleep( 0 );
 	return 0;
 }
 

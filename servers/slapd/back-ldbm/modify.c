@@ -367,6 +367,17 @@ delete_values(
 				a->a_vals[k - 1] = a->a_vals[k];
 			}
 			a->a_vals[k - 1] = NULL;
+
+			/* delete the entire attribute, if no values remain */
+			if ( a->a_vals[0] == NULL) {
+				Debug( LDAP_DEBUG_ARGS,
+					"removing entire attribute %s\n",
+					mod->mod_type, 0, 0 );
+				if ( attr_delete( &e->e_attrs, mod->mod_type ) ) {
+					return LDAP_NO_SUCH_ATTRIBUTE;
+				}
+			}
+
 			break;
 		}
 
