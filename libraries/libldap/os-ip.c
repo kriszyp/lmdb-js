@@ -293,6 +293,8 @@ do_ldap_select( LDAP *ld, struct timeval *timeout )
 		tblsize = sysconf( _SC_OPEN_MAX );
 #elif defined( HAVE_GETDTABLESIZE )
 		tblsize = getdtablesize();
+#else
+		tblsize = FD_SETSIZE;
 #endif /* !USE_SYSCONF */
 
 #ifdef FD_SETSIZE
