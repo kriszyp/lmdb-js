@@ -21,6 +21,7 @@ typedef struct __backsql_entryID
 }backsql_entryID;
 
 backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID* id,SQLHDBC dbh,char *dn);
-backsql_entryID* backsql_free_entryID(backsql_entryID* id);//returns next
+backsql_entryID* backsql_free_entryID(backsql_entryID* id);/*returns next*/
 
 #endif
+

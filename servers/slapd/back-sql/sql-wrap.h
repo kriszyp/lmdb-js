@@ -26,3 +26,4 @@ SQLHDBC backsql_get_db_conn(Backend *be,Connection *ldapc);
 int backsql_free_db_conn(Backend *be,Connection *ldapc);
 
 #endif
+

@@ -22,8 +22,8 @@ typedef struct
  char *dbuser;
  char *dbpasswd;
  char *dbname;
- //SQL condition for subtree searches differs in syntax:
- //"LIKE CONCAT('%',?)" or "LIKE '%'+?" or smth else
+ /*SQL condition for subtree searches differs in syntax:
+ *"LIKE CONCAT('%',?)" or "LIKE '%'+?" or smth else */
  char *subtree_cond;
  char *oc_query,*at_query;
  char *insentry_query,*delentry_query;
@@ -36,8 +36,9 @@ typedef struct
  ldap_pvt_thread_mutex_t dbconn_mutex;
  ldap_pvt_thread_mutex_t schema_mutex;
  SQLHENV db_env;
- int   isTimesTen; // TimesTen
+ int   isTimesTen; /* TimesTen */
  int   has_ldapinfo_dn_ru;  /* Does ldapinfo.dn_ru exist in schema? */
 }backsql_info;
 
 #endif
+

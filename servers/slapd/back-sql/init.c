@@ -196,8 +196,7 @@ int backsql_db_open (BackendDB *bd)
  else
  {
     if (si->has_ldapinfo_dn_ru) {
-      si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn_ru=
-?",NULL);
+      si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn_ru=?",NULL);
     }
     else {
       if (si->isTimesTen) {

@@ -62,13 +62,14 @@ RETCODE backsql_Prepare(SQLHDBC dbh,SQLHSTMT *sth,char* query,int timeout)
  if (rc != SQL_SUCCESS)
   return rc;
  
- //Debug(LDAP_DEBUG_TRACE,"==>_SQLPrepare()\n", 0,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"==>_SQLPrepare()\n", 0,0,0);*/
  SQLGetInfo(dbh,SQL_DRIVER_NAME,drv_name,30,&len);
- //Debug(LDAP_DEBUG_TRACE,"_SQLPrepare(): driver name='%s'\n", drv_name,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"_SQLPrepare(): driver name='%s'\n", drv_name,0,0);*/
  if (!strncmp(ldap_pvt_str2upper(drv_name),"SQLSRV32.DLL",30))
   {
-   //stupid default result set in MS SQL Server does not support multiple active statements
-   //on the same connection -- so we are trying to make it not to use default result set...
+   /*stupid default result set in MS SQL Server does not support multiple active statements
+    *on the same connection -- so we are trying to make it not to use default result set...
+   */
    Debug(LDAP_DEBUG_TRACE,"_SQLprepare(): enabling MS SQL Server default result set workaround\n", 0,0,0);
    rc=SQLSetStmtOption(*sth,SQL_CONCURRENCY,SQL_CONCUR_ROWVER);
    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
@@ -86,7 +87,7 @@ RETCODE backsql_Prepare(SQLHDBC dbh,SQLHSTMT *sth,char* query,int timeout)
     }
   }
  
- //Debug(LDAP_DEBUG_TRACE,"<==_SQLPrepare() calling SQLPrepare()\n", 0,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"<==_SQLPrepare() calling SQLPrepare()\n", 0,0,0);*/
  return SQLPrepare(*sth,query,SQL_NTS);
 }
 
@@ -118,16 +119,16 @@ RETCODE backsql_BindRowAsStrings(SQLHSTMT sth,BACKSQL_ROW_NTS *row)
  if (row == NULL)
   return SQL_ERROR;
  
- //Debug(LDAP_DEBUG_TRACE,"==> backsql_BindRowAsStrings()\n",0,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"==> backsql_BindRowAsStrings()\n",0,0,0);*/
  rc=SQLNumResultCols(sth,&row->ncols);
  if (rc != SQL_SUCCESS)
  {
-  //Debug(LDAP_DEBUG_TRACE,"_SQLBindRowAsStrings(): SQLNumResultCols() failed:\n",0,0,0);
+  /*Debug(LDAP_DEBUG_TRACE,"_SQLBindRowAsStrings(): SQLNumResultCols() failed:\n",0,0,0);*/
   backsql_PrintErrors(SQL_NULL_HENV,SQL_NULL_HDBC,sth,rc);
  }
  else
  {
-  //Debug(LDAP_DEBUG_TRACE,"backsql_BindRowAsStrings: ncols=%d\n",(int)row->ncols,0,0);
+  /*Debug(LDAP_DEBUG_TRACE,"backsql_BindRowAsStrings: ncols=%d\n",(int)row->ncols,0,0);*/
   row->col_names=(char**)ch_calloc(row->ncols,sizeof(char*));
   row->cols=(char**)ch_calloc(row->ncols,sizeof(char*));
   row->col_prec=(UDWORD*)ch_calloc(row->ncols,sizeof(UDWORD));
@@ -137,15 +138,16 @@ RETCODE backsql_BindRowAsStrings(SQLHSTMT sth,BACKSQL_ROW_NTS *row)
    rc=SQLDescribeCol(sth,(SQLSMALLINT)i,&colname[0],(SQLUINTEGER)sizeof(colname)-1,&name_len,&col_type,
           (UDWORD*) &col_prec,&col_scale,&col_null);
    row->col_names[i-1]=ch_strdup(colname);
-   //Debug(LDAP_DEBUG_TRACE,"backsql_BindRowAsStrings: col_name=%s, col_prec[%d]=%d\n",colname,(int)i,(int)col_prec);
+   /*Debug(LDAP_DEBUG_TRACE,"backsql_BindRowAsStrings: col_name=%s, col_prec[%d]=%d\n",colname,(int)i,(int)col_prec);*/
    if (col_type == SQL_LONGVARCHAR || col_type== SQL_LONGVARBINARY)
    {
-	//row->cols[i-1]=NULL;
-    //row->col_prec[i-1]=-1;
-	//such fields must be handled in some other way since they return 2G 
-	//as their precision (at least it does so with MS SQL Server w/native driver)
-	//for now, we just set fixed precision for such fields - dirty hack, but...
-	//no time to deal with SQLGetData()
+	/*row->cols[i-1]=NULL;
+         *row->col_prec[i-1]=-1;
+	 *such fields must be handled in some other way since they return 2G 
+	 *as their precision (at least it does so with MS SQL Server w/native driver)
+	 *for now, we just set fixed precision for such fields - dirty hack, but...
+	 *no time to deal with SQLGetData()
+        */
 	col_prec=MAX_ATTR_LEN;
 	row->cols[i-1]=(char*)ch_calloc((col_prec+1),sizeof(char));
     row->col_prec[i-1]=col_prec;
@@ -161,7 +163,7 @@ RETCODE backsql_BindRowAsStrings(SQLHSTMT sth,BACKSQL_ROW_NTS *row)
    }
   }
  }
- //Debug(LDAP_DEBUG_TRACE,"<== backsql_BindRowAsStrings()\n",0,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"<== backsql_BindRowAsStrings()\n",0,0,0);*/
  return rc;
 }
 
@@ -195,7 +197,7 @@ int backsql_cmp_connid(backsql_db_conn *c1,backsql_db_conn *c2)
 int backsql_close_db_conn(backsql_db_conn *conn)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_close_db_conn()\n",0,0,0);
- SQLTransact(NULL, conn->dbh, SQL_COMMIT);  // TimesTen
+ SQLTransact(NULL, conn->dbh, SQL_COMMIT);  /* TimesTen */
  SQLDisconnect(conn->dbh);
  SQLFreeConnect(conn->dbh);
  Debug(LDAP_DEBUG_TRACE,"<==backsql_close_db_conn()\n",0,0,0);
@@ -218,17 +220,18 @@ int backsql_init_db_env(backsql_info *si)
 int backsql_free_db_env(backsql_info *si)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_free_db_env()\n",0,0,0);
- //Debug(LDAP_DEBUG_TRACE,"free_db_env(): delete AVL tree here!!!\n",0,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"free_db_env(): delete AVL tree here!!!\n",0,0,0);*/
  
- //stop, if frontend waits for all threads to shutdown before calling this --
- //then what we are going to delete?? everything is deleted already...
+ /*stop, if frontend waits for all threads to shutdown before calling this --
+  *then what we are going to delete?? everything is deleted already...
+*/
  Debug(LDAP_DEBUG_TRACE,"<==backsql_free_db_env()\n",0,0,0);
  return SQL_SUCCESS;
 }
 
 backsql_db_conn* backsql_open_db_conn(backsql_info *si,int ldap_cid)
 {
- char DBMSName[32]; // TimesTen
+ char DBMSName[32]; /* TimesTen*/
 
  backsql_db_conn *dbc=(backsql_db_conn*)ch_calloc(1,sizeof(backsql_db_conn));
  int rc;
@@ -276,7 +279,7 @@ backsql_db_conn* backsql_open_db_conn(backsql_info *si,int ldap_cid)
    Debug(LDAP_DEBUG_TRACE,"backsql_open_db_conn: SQLGetInfo() failed:\n",0,0,0);
    backsql_PrintErrors(si->db_env,dbc->dbh,SQL_NULL_HENV,rc);
  }  
- // end TimesTen
+ /* end TimesTen */
  
  Debug(LDAP_DEBUG_TRACE,"backsql_open_db_conn(): connected, adding to tree\n",0,0,0);
  ldap_pvt_thread_mutex_lock(&si->dbconn_mutex);
@@ -296,8 +299,9 @@ int backsql_free_db_conn(Backend *be,Connection *ldapc)
  ldap_pvt_thread_mutex_lock(&si->dbconn_mutex);
  conn=(backsql_db_conn*)avl_delete(&si->db_conns,&tmp,(AVL_CMP)backsql_cmp_connid);
  ldap_pvt_thread_mutex_unlock(&si->dbconn_mutex);
- //we have one thread per connection, as I understand -- so we can
- //get this out of critical section
+ /*we have one thread per connection, as I understand -- so we can
+  *get this out of critical section
+*/
  if (conn!=NULL)
   { 
    Debug(LDAP_DEBUG_TRACE,"backsql_free_db_conn(): closing db connection\n",0,0,0);
@@ -316,8 +320,9 @@ SQLHDBC backsql_get_db_conn(Backend *be,Connection *ldapc)
  Debug(LDAP_DEBUG_TRACE,"==>backsql_get_db_conn()\n",0,0,0);
  
  tmp.ldap_cid=ldapc->c_connid;
- //we have one thread per connection, as I understand -- so we do not need
- // locking here
+ /*we have one thread per connection, as I understand -- so we do not need
+  * locking here
+*/
  dbc=(backsql_db_conn*)avl_find(si->db_conns,&tmp,(AVL_CMP)backsql_cmp_connid);
  if (!dbc)
   dbc=backsql_open_db_conn(si,ldapc->c_connid);

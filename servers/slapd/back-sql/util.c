@@ -22,14 +22,13 @@
 
 
 char backsql_def_oc_query[]="SELECT id,name,keytbl,keycol,create_proc,delete_proc,expect_return FROM ldap_oc_mappings";
-char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,
-delete_proc,param_order,expect_return,sel_expr_u FROM ldap_attr_mappings WHERE oc_map_id=?";
+char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return,sel_expr_u FROM ldap_attr_mappings WHERE oc_map_id=?";
 char backsql_def_delentry_query[]="DELETE FROM ldap_entries WHERE id=?";
 char backsql_def_insentry_query[]="INSERT INTO ldap_entries (dn,oc_map_id,parent,keyval) VALUES (?,?,?,?)";
 char backsql_def_subtree_cond[]="ldap_entries.dn LIKE CONCAT('%',?)";
 char backsql_id_query[]="SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";
 
-// TimesTen
+/* TimesTen*/
 char backsql_check_dn_ru_query[] = "SELECT dn_ru from ldap_entries";
 
 char* backsql_strcat(char* dest,int *buflen, ...)
@@ -38,7 +37,7 @@ char* backsql_strcat(char* dest,int *buflen, ...)
  int cdlen,cslen,grow;
  char *cstr;
  
- //Debug(LDAP_DEBUG_TRACE,"==>my_strcat()\n");
+ /*Debug(LDAP_DEBUG_TRACE,"==>my_strcat()\n");*/
  va_start(strs,buflen);
  if (dest==NULL || *buflen<=0)
   {
@@ -52,21 +51,21 @@ char* backsql_strcat(char* dest,int *buflen, ...)
    grow=BACKSQL_MAX(BACKSQL_STR_GROW,cslen);
    if (*buflen-cdlen < cslen)
     {
-     //Debug(LDAP_DEBUG_TRACE,"my_strcat(): buflen=%d, cdlen=%d, cslen=%d -- reallocating dest\n",
-     //                     *buflen,cdlen,cslen);
+     /*Debug(LDAP_DEBUG_TRACE,"my_strcat(): buflen=%d, cdlen=%d, cslen=%d -- reallocating dest\n",
+                           *buflen,cdlen,cslen); */
      dest=(char*)ch_realloc(dest,(*buflen)+grow*sizeof(char));
      if (dest == NULL)
       {
        Debug(LDAP_DEBUG_ANY,"my_strcat(): could not reallocate string buffer.\n",0,0,0);
       }
      *buflen+=grow;
-     //Debug(LDAP_DEBUG_TRACE,"my_strcat(): new buflen=%d, dest=%p\n",*buflen,dest,0);
+     /*Debug(LDAP_DEBUG_TRACE,"my_strcat(): new buflen=%d, dest=%p\n",*buflen,dest,0);*/
     }
    strcat(dest,cstr);
    cdlen+=cslen;
   }
  va_end(strs);
- //Debug(LDAP_DEBUG_TRACE,"<==my_strcat() (dest='%s')\n",dest,0,0);
+ /*Debug(LDAP_DEBUG_TRACE,"<==my_strcat() (dest='%s')\n",dest,0,0);*/
  return dest;
 } 
 
@@ -119,7 +118,7 @@ char* backsql_get_table_spec(char **p)
 
 #define BACKSQL_NEXT_WORD  {while (*s && isspace(*s)) s++; if (!*s) return res; q=s; while (*q && !isspace(*q)) q++; if (*q) *q++='\0';}
  BACKSQL_NEXT_WORD;
- res=backsql_strcat(res,&res_len,s,NULL);//table name
+ res=backsql_strcat(res,&res_len,s,NULL);/*table name*/
  s=q;
 
  BACKSQL_NEXT_WORD;
@@ -128,9 +127,10 @@ char* backsql_get_table_spec(char **p)
   s=q;
   BACKSQL_NEXT_WORD;
  }
- //res=backsql_strcat(res,&res_len," AS ",s,NULL);//table alias
- //oracle doesn't understand AS :(
- res=backsql_strcat(res,&res_len," ",s,NULL);//table alias
+ /*res=backsql_strcat(res,&res_len," AS ",s,NULL);
+  *oracle doesn't understand AS :(
+  */
+ res=backsql_strcat(res,&res_len," ",s,NULL);/*table alias*/
  return res;
 }
 
@@ -138,14 +138,14 @@ int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from)
 {
  char *s,*p,*srcc,*pos,e;
 
- //Debug(LDAP_DEBUG_TRACE,"==>backsql_merge_from_clause(): dest_from='%s',src_from='%s'\n",
- //				dest_from,src_from,0);
+ /*Debug(LDAP_DEBUG_TRACE,"==>backsql_merge_from_clause(): dest_from='%s',src_from='%s'\n",
+ 				dest_from,src_from,0); */
  srcc=ch_strdup(src_from);
  p=srcc;
  while(*p)
  {
   s=backsql_get_table_spec(&p);
- // Debug(LDAP_DEBUG_TRACE,"backsql_merge_from_clause(): p='%s' s='%s'\n",p,s,0);  
+ /* Debug(LDAP_DEBUG_TRACE,"backsql_merge_from_clause(): p='%s' s='%s'\n",p,s,0);  */
   if (*dest_from==NULL)
    *dest_from=backsql_strcat(*dest_from,dest_len,s,NULL);
   else
@@ -156,7 +156,7 @@ int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from)
   if (s)
 	ch_free(s);
  }
-// Debug(LDAP_DEBUG_TRACE,"<==backsql_merge_from_clause()\n",0,0,0);
+/* Debug(LDAP_DEBUG_TRACE,"<==backsql_merge_from_clause()\n",0,0,0);*/
  free(srcc);
  return 1;
 }

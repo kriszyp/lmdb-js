@@ -34,16 +34,16 @@ backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID *id,SQLHDBC dbh,
 {
  SQLHSTMT sth; 
  BACKSQL_ROW_NTS row;
- //SQLINTEGER nrows=0;
+ /*SQLINTEGER nrows=0;*/
  RETCODE rc;
 
- // TimesTen
+ /* TimesTen */
  char upperdn[BACKSQL_MAX_DN_LEN+1];
  char* toBind;
  int i, j, k;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_dn2id(): dn='%s'\n",dn,0,0);
- // begin TimesTen
+ /* begin TimesTen */
  Debug(LDAP_DEBUG_TRACE, "id_query '%s'\n", bi->id_query, 0, 0);
  rc = backsql_Prepare(dbh,&sth,bi->id_query,0);
  if (rc != SQL_SUCCESS) {

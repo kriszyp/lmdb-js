@@ -119,7 +119,7 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
   return 0;
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",NULL);
- // TimesTen
+ /* TimesTen*/
  Debug(LDAP_DEBUG_TRACE,"expr: '%s' '%s'\n",at->sel_expr,
        at->sel_expr_u?at->sel_expr_u:"<NULL>",0);
  if (bsi->bi->upper_func)
@@ -155,7 +155,7 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
  if (f->f_sub_any!=NULL)
   for(i=0;f->f_sub_any[i]!=NULL;i++)
   {
-   //Debug(LDAP_DEBUG_TRACE,"==>backsql_process_sub_filter(): sub_any='%s'\n",f->f_sub_any[i]->bv_val,0,0);
+   /*Debug(LDAP_DEBUG_TRACE,"==>backsql_process_sub_filter(): sub_any='%s'\n",f->f_sub_any[i]->bv_val,0,0);*/
    if (bsi->bi->upper_func)
    {
     bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,ldap_pvt_str2upper(f->f_sub_any[i]->bv_val),"%",NULL);
@@ -183,7 +183,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  backsql_at_map_rec oc_attr={"objectClass","","",NULL,NULL,NULL,NULL};
  char *at_name=NULL;
  int done=0,len=0;
- int rc=0; // TimesTen
+ int rc=0; /* TimesTen */
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_process_filter()\n",0,0,0);
  if (f==NULL || f->f_choice==SLAPD_FILTER_COMPUTED)
@@ -237,22 +237,24 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  }
 			
  backsql_merge_from_clause(&bsi->from,&bsi->from_len,at->from_tbls);
- //need to add this attribute to list of attrs to load, so that we could do test_filter() later
+ /*need to add this attribute to list of attrs to load, so that we could do test_filter() later*/
  backsql_attrlist_add(bsi,at_name);
 
  if (at->join_where != NULL && strstr(bsi->join_where,at->join_where)==NULL)
   bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len," AND ",at->join_where,NULL);
 
- //if (at!=&oc_attr)
- // bsi->sel=backsql_strcat(bsi->sel,&bsi->sel_len,",",at->sel_expr," AS ",at->name,NULL);
+ /*if (at!=&oc_attr)
+  bsi->sel=backsql_strcat(bsi->sel,&bsi->sel_len,",",at->sel_expr," AS ",at->name,NULL);
+ */
 
  switch(f->f_choice)
  {
   case LDAP_FILTER_EQUALITY:
-			//maybe we should check type of at->sel_expr here somehow,
-			//to know whether upper_func is applicable, but for now
-			//upper_func stuff is made for Oracle, where UPPER is
-			//safely applicable to NUMBER etc.
+			/*maybe we should check type of at->sel_expr here somehow,
+			* to know whether upper_func is applicable, but for now
+			* upper_func stuff is made for Oracle, where UPPER is
+			* safely applicable to NUMBER etc.
+			*/
 			if (bsi->bi->upper_func) {
 				if (at->sel_expr_u)
 					bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
@@ -448,8 +450,7 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
     if ((rc=backsql_BindParamStr(sth,2,temp_base_dn,BACKSQL_MAX_DN_LEN)) !=
 SQL_SUCCESS)
     {
-         Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): error binding base
-_dn parameter (2)\n",0,0,0);
+         Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): error binding base_dn parameter (2)\n",0,0,0);
          backsql_PrintErrors(bsi->bi->db_env,bsi->dbh,sth,rc);
          return 1;
     }

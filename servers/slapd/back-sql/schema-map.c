@@ -119,12 +119,11 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 
  rc = backsql_Prepare(dbh, &oc_sth, backsql_check_dn_ru_query, 0);
  if (rc == SQL_SUCCESS) {
-   si->has_ldapinfo_dn_ru = 1;  // Yes, the field exists 
-   Debug(LDAP_DEBUG_TRACE, "ldapinfo.dn_ru field exists in the schema\n", 0, 0,
-0);
+   si->has_ldapinfo_dn_ru = 1;  /* Yes, the field exists */
+   Debug(LDAP_DEBUG_TRACE, "ldapinfo.dn_ru field exists in the schema\n", 0, 0,0);
  }
  else {
-   si->has_ldapinfo_dn_ru = 0;  // No such field exists 
+   si->has_ldapinfo_dn_ru = 0;  /* No such field exists */
  }
 
  SQLFreeStmt(oc_sth, SQL_DROP);

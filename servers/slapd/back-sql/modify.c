@@ -35,8 +35,8 @@ int backsql_modify(BackendDB *be,Connection *conn,Operation *op,
  backsql_at_map_rec *at=NULL;
  struct berval *at_val;
  int i;
- int pno,po;//first parameter no, parameter order
- int prc; //procedure return code
+ int pno,po;/*first parameter no, parameter order*/
+ int prc; /*procedure return code*/
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_modify(): changing entry '%s'\n",ndn,0,0);
  dbh=backsql_get_db_conn(be,conn);
@@ -128,7 +128,7 @@ del_all:
 			    pno=0;
 			   po=(at->param_order & BACKSQL_DEL)>0;
 			   SQLBindParameter(sth,(SQLUSMALLINT)(pno+1+po),SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&e_id.keyval,0,0);
-			   //check for syntax needed here - maybe need binary bind?
+			   /*check for syntax needed here - maybe need binary bind?*/
 			   SQLBindParameter(sth,(SQLUSMALLINT)(pno+2-po),SQL_PARAM_INPUT,SQL_C_CHAR,SQL_CHAR,0,0,row.cols[i],strlen(row.cols[i]),0);
 			 
 			   Debug(LDAP_DEBUG_TRACE,"backsql_modify(): executing '%s'\n",at->delete_proc,0,0);
@@ -143,7 +143,7 @@ del_all:
 			 backsql_FreeRow(&row);
              SQLFreeStmt(asth,SQL_DROP);
 			}
-			//PASSTHROUGH - to add new attributes -- do NOT add break
+			/*PASSTHROUGH - to add new attributes -- do NOT add break*/
   case LDAP_MOD_ADD:
 			if (at->add_proc==NULL)
 			{
@@ -167,7 +167,7 @@ del_all:
 			  pno=0;
 			 po=(at->param_order & BACKSQL_ADD)>0;
 			 SQLBindParameter(sth,(SQLUSMALLINT)(pno+1+po),SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&e_id.keyval,0,0);
-			 //check for syntax needed here - maybe need binary bind?
+			 /*check for syntax needed here - maybe need binary bind?*/
 			 SQLBindParameter(sth,(SQLUSMALLINT)(pno+2-po),SQL_PARAM_INPUT,SQL_C_CHAR,SQL_CHAR,0,0,at_val->bv_val,at_val->bv_len,0);
 			 
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): executing '%s'\n",at->add_proc,0,0);
@@ -202,7 +202,7 @@ del_all:
 			  pno=0;
 			 po=(at->param_order & BACKSQL_DEL)>0;
 			 SQLBindParameter(sth,(SQLUSMALLINT)(pno+1+po),SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&e_id.keyval,0,0);
-			 //check for syntax needed here - maybe need binary bind?
+			 /*check for syntax needed here - maybe need binary bind?*/
 			 SQLBindParameter(sth,(SQLUSMALLINT)(pno+2-po),SQL_PARAM_INPUT,SQL_C_CHAR,SQL_CHAR,0,0,at_val->bv_val,at_val->bv_len,0);
 			   
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): executing '%s'\n",at->delete_proc,0,0);
@@ -331,7 +331,7 @@ int backsql_modrdn(BackendDB *be,Connection *conn,Operation *op,
   goto modrdn_return;
  }
 
- //should process deleteoldrdn here...
+ /*should process deleteoldrdn here...*/
 
  send_ldap_result(conn,op,LDAP_SUCCESS,"",NULL,NULL,NULL);
 modrdn_return:
@@ -360,8 +360,8 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
  Attribute *at;
  struct berval *at_val;
  char *pdn;
- int pno,po;//first parameter no, parameter order
- int prc; //procedure return code
+ int pno,po;/*first parameter no, parameter order*/
+ int prc; /*procedure return code*/
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_add(): adding entry '%s'\n",e->e_dn,0,0);
  if (dn_validate(e->e_dn)==NULL)
@@ -370,7 +370,7 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
  }
  for(at=e->e_attrs;at!=NULL;at=at->a_next)
  {
-  //Debug(LDAP_DEBUG_TRACE,"backsql_add(): scanning entry -- %s\n",at->a_type,0,0);
+  /*Debug(LDAP_DEBUG_TRACE,"backsql_add(): scanning entry -- %s\n",at->a_type,0,0);*/
   if (!strcasecmp(at->a_desc->ad_cname->bv_val,"objectclass"))
   {
    oc=backsql_oc_with_name(bi,at->a_vals[0]->bv_val);
@@ -441,7 +441,7 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
 	 pno=0;
 	po=(at_rec->param_order & BACKSQL_ADD)>0;
 	SQLBindParameter(sth,(SQLUSMALLINT)(pno+1+po),SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&new_keyval,0,0);
-	//check for syntax needed here - maybe need binary bind?
+	/*check for syntax needed here - maybe need binary bind?*/
 	SQLBindParameter(sth,(SQLUSMALLINT)(pno+2-po),SQL_PARAM_INPUT,SQL_C_CHAR,SQL_CHAR,0,0,at_val->bv_val,at_val->bv_len,0);
    Debug(LDAP_DEBUG_TRACE,"backsql_add(): executing '%s'\n",at_rec->add_proc,0,0);
    rc=SQLExecDirect(sth,at_rec->add_proc,SQL_NTS);
@@ -472,7 +472,7 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_add(): could not insert ldap_entries record\n",0,0,0);
   backsql_PrintErrors(bi->db_env,dbh,sth,rc);
-  //execute delete_proc to delete data added !!!
+  /*execute delete_proc to delete data added !!!*/
   SQLFreeStmt(sth,SQL_DROP);
   send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
   return 1;
@@ -491,7 +491,7 @@ int backsql_delete(BackendDB *be,Connection *conn,Operation *op,
  RETCODE rc;
  backsql_oc_map_rec *oc=NULL;
  backsql_entryID e_id,*res;
- int pno;//first parameter no, parameter order
+ int pno;/*first parameter no, parameter order*/
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_delete(): deleting entry '%s'\n",ndn,0,0);
  dbh=backsql_get_db_conn(be,conn);
@@ -532,7 +532,7 @@ int backsql_delete(BackendDB *be,Connection *conn,Operation *op,
  else
   pno=0;
  SQLBindParameter(sth,(SQLUSMALLINT)(pno+1),SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&e_id.keyval,0,0);
- //SQLBindParameter(sth,2,SQL_PARAM_OUTPUT,SQL_C_SLONG,SQL_INTEGER,0,0,&retcode,0,0);
+ /*SQLBindParameter(sth,2,SQL_PARAM_OUTPUT,SQL_C_SLONG,SQL_INTEGER,0,0,&retcode,0,0);*/
 
  Debug(LDAP_DEBUG_TRACE,"backsql_delete(): executing '%s'\n",oc->delete_proc,0,0);
  rc=SQLExecDirect(sth,oc->delete_proc,SQL_NTS);

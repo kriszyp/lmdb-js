@@ -23,3 +23,4 @@ typedef struct
 }BACKSQL_ROW_NTS;
 
 #endif
+
