@@ -674,6 +674,7 @@ dn2entry_retry:
 
 ctxcsn_retry :
 		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei, 0, locker, &ctxcsn_lock );
+		ch_free( ctxcsn_ndn.bv_val );
 
 		switch(rs->sr_err) {
 		case 0:
@@ -1331,6 +1332,8 @@ done:
 	}
 
 	LOCK_ID_FREE (bdb->bi_dbenv, locker );
+
+	ber_bvfree( search_context_csn );
 
 	if( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );

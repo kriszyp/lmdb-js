@@ -80,6 +80,7 @@ bdb_csn_commit(
 		if ( !*ctxcsn_e ) {
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "context csn not present";
+			ber_bvfree( max_committed_csn );
 			return BDB_CSN_ABORT;
 		} else {
 			attr_delete( &(*ctxcsn_e)->e_attrs, slap_schema.si_ad_contextCSN );
@@ -138,6 +139,7 @@ bdb_csn_commit(
 		}
 
 		*ctxcsn_e = slap_create_context_csn_entry( op->o_bd, max_committed_csn );
+		ber_bvfree( max_committed_csn );
 		(*ctxcsn_e)->e_id = ctxcsn_id;
 		*ctxcsn_added = 1;
 		ret = bdb_dn2id_add( op, tid, *suffix_ei, *ctxcsn_e );

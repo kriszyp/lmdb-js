@@ -263,6 +263,11 @@ slap_create_context_csn_entry(
 #endif
 	}
 
+	for ( ml = modlist; ml != NULL; ml = mlnext ) {
+		mlnext = ml->sml_next;
+		free( ml );
+	}
+
 	return e;
 }
 
