@@ -423,13 +423,16 @@ do_syncrep2(
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
 				ldap_get_entry_controls( si->si_ld, msg, &rctrls );
-				if ( rctrls ) {
-					rctrlp = *rctrls;
-					ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
-					ber_scanf( ber, "{em", &syncstate, &syncUUID );
-					if ( ber_peek_tag( ber, &len ) == LDAP_SYNC_TAG_COOKIE ) {
-						ber_scanf( ber, "m}", &syncCookie );
-					}
+				/* we can't work without the control */
+				if ( !rctrls ) {
+					rc = -1;
+					goto done;
+				}
+				rctrlp = *rctrls;
+				ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
+				ber_scanf( ber, "{em", &syncstate, &syncUUID );
+				if ( ber_peek_tag( ber, &len ) == LDAP_SYNC_TAG_COOKIE ) {
+					ber_scanf( ber, "m}", &syncCookie );
 				}
 				entry = syncrepl_message_to_entry( si, op, msg,
 					&modlist, syncstate );
@@ -438,9 +441,7 @@ do_syncrep2(
 				if ( syncCookie.bv_len ) {
 					syncrepl_updateCookie( si, op, psub, &syncCookie );
 				}
-				if ( rctrls ) {
-					ldap_controls_free( rctrls );
-				}
+				ldap_controls_free( rctrls );
 				if ( modlist ) {
 					slap_mods_free( modlist );
 				}
