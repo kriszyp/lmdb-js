@@ -2,7 +2,7 @@
  * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/* $OpenLDAP$
+/* $OpenLDAP$ */
 
 #include "portable.h"
 
