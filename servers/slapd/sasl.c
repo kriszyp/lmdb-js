@@ -298,7 +298,7 @@ slap_sasl_log(
 #define	SET_DN	1
 #define	SET_U	2
 
-static struct berval ext_bv = { sizeof("EXTERNAL")-1, "EXTERNAL" };
+static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
 int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
@@ -341,8 +341,10 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	 */
 	if( flags & FLAG_GETDN_AUTHCID ) {
 #ifdef HAVE_TLS
-		if( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
-			&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) ) {
+		if( conn->c_is_tls &&
+			conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
+			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
+		{
 			/* X.509 DN is already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
