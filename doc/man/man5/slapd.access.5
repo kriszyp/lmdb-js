@@ -231,6 +231,7 @@ It can have the forms
 	anonymous
 	users
 	self
+	creator
 
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
@@ -287,6 +288,12 @@ The keyword
 .B self
 means access to an entry is allowed to the entry itself (e.g. the entry
 being accessed and the requesting entry must be the same).
+.LP
+The keyword
+.B creator
+means access to an entry is allowed to the identity set in the 
+.B creatorsName
+operational attribute, if present.
 .LP
 The statement
 .B dn=<DN>
@@ -672,6 +679,8 @@ for authentication.
 More than one of the above privileges can be added in one statement.
 .B 0
 indicates no privileges and is used only by itself (e.g., +0).
+If no access is given, it defaults to 
+.BR +0 .
 .SH THE <CONTROL> FIELD
 The optional field
 .B <control>
