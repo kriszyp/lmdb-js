@@ -5,19 +5,8 @@ SRCDIR="."
 if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
-BACKEND=bdb
-if test $# -ge 1 ; then
-	BACKEND=$1; shift
-fi
-MONITORDB=no
-if test $# -ge 1 ; then
-	MONITORDB=$1; shift
-fi
 
-WAIT=0
-if test $# -ge 1 ; then
-	WAIT=1; shift
-fi
+. $SRCDIR/scripts/args.sh
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
