@@ -27,7 +27,7 @@ CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS)
 all:	FORCE
 	-@echo "$(SLAPD_BACKENDS)" | grep LDAP_PASSWD 2>&1 > /dev/null; \
 	if [ $$? = 0 ]; then \
-            $(MAKE) $(MFLAGS) CC=$(CC) libback-passwd.a; \
+            $(MAKE) $(MFLAGS) CC="$(CC)" libback-passwd.a; \
 	else \
 	    echo "Include -DLDAP_PASSWD in SLAPD_BACKENDS in the"; \
 	    echo "Make-common file to build the passwd backend"; \
@@ -65,14 +65,4 @@ depend:	FORCE
 
 links:
 	@$(LN) .src/*.[ch] .
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-search.o: search.c ../../../include/portable.h ../slap.h ../../../include/avl.h
-search.o: ../../../include/lber.h ../../../include/ldap.h
-search.o: ../../../include/lthread.h ../../../include/ldif.h
-config.o: config.c ../../../include/portable.h ../slap.h ../../../include/avl.h
-config.o: ../../../include/lber.h ../../../include/ldap.h
-config.o: ../../../include/lthread.h ../../../include/ldif.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY
