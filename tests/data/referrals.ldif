@@ -5,7 +5,7 @@ objectclass: country
 dn: o=ABC,c=US
 o: ABC
 ref: ldap://hostA/o=abc,c=us HostA
-ref: ldap://hostB/o=abc,c=us HostB
+ref: ldap://hostB HostB
 objectclass: referral
 objectclass: extensibleObject
 

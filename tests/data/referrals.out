@@ -1,6 +1,7 @@
 # extended LDIF
 #
 # LDAPv3
+# base <c=US> with scope sub
 # filter: (objectClass=referral)
 # requesting: * ref 
 # with manageDSAit critical control
@@ -10,7 +11,7 @@
 dn: o=ABC,c=US
 o: ABC
 ref: ldap://hostA/o=abc,c=us HostA
-ref: ldap://hostB/o=abc,c=us HostB
+ref: ldap://hostB HostB
 objectClass: referral
 objectClass: extensibleObject
 
@@ -30,6 +31,7 @@ result: 0 Success
 # extended LDIF
 #
 # LDAPv3
+# base <o=abc,c=US> with scope sub
 # filter: (objectClass=referral)
 # requesting: * ref 
 # with manageDSAit critical control
@@ -39,7 +41,7 @@ result: 0 Success
 dn: o=ABC,c=US
 o: ABC
 ref: ldap://hostA/o=abc,c=us HostA
-ref: ldap://hostB/o=abc,c=us HostB
+ref: ldap://hostB HostB
 objectClass: referral
 objectClass: extensibleObject
 
@@ -52,6 +54,7 @@ result: 0 Success
 # extended LDIF
 #
 # LDAPv3
+# base <uid=xxx,o=abc,c=US> with scope sub
 # filter: (objectClass=referral)
 # requesting: * ref 
 # with manageDSAit critical control
@@ -62,12 +65,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/uid=xxx,o=abc,c=us??sub
-ref: ldap://hostB/uid=xxx,o=abc,c=us??sub
+ref: ldap://hostB/uid=xxx,o=abc,c=US??sub
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <c=US> with scope base
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -84,13 +88,14 @@ result: 0 Success
 # extended LDIF
 #
 # LDAPv3
+# base <c=US> with scope one
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
 
 # search reference
 ref: ldap://hostA/o=abc,c=us??base
-ref: ldap://hostB/o=abc,c=us??base
+ref: ldap://hostB/o=ABC,c=US??base
 
 # search reference
 ref: ldap://hostC/o=xyz,c=us??base
@@ -108,13 +113,14 @@ result: 0 Success
 # extended LDIF
 #
 # LDAPv3
+# base <c=US> with scope sub
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
 
 # search reference
 ref: ldap://hostA/o=abc,c=us??sub
-ref: ldap://hostB/o=abc,c=us??sub
+ref: ldap://hostB/o=ABC,c=US??sub
 
 # search reference
 ref: ldap://hostC/o=xyz,c=us??sub
@@ -138,6 +144,7 @@ result: 0 Success
 # extended LDIF
 #
 # LDAPv3
+# base <o=abc,c=US> with scope base
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -147,12 +154,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/o=abc,c=us??base
-ref: ldap://hostB/o=abc,c=us??base
+ref: ldap://hostB/o=abc,c=US??base
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <o=abc,c=US> with scope one
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -162,12 +170,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/o=abc,c=us??one
-ref: ldap://hostB/o=abc,c=us??one
+ref: ldap://hostB/o=abc,c=US??one
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <o=abc,c=US> with scope sub
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -177,12 +186,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/o=abc,c=us??sub
-ref: ldap://hostB/o=abc,c=us??sub
+ref: ldap://hostB/o=abc,c=US??sub
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <uid=xxx,o=abc,c=US> with scope base
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -192,12 +202,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/uid=xxx,o=abc,c=us??base
-ref: ldap://hostB/uid=xxx,o=abc,c=us??base
+ref: ldap://hostB/uid=xxx,o=abc,c=US??base
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <uid=xxx,o=abc,c=US> with scope one
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -207,12 +218,13 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/uid=xxx,o=abc,c=us??one
-ref: ldap://hostB/uid=xxx,o=abc,c=us??one
+ref: ldap://hostB/uid=xxx,o=abc,c=US??one
 
 # numResponses: 1
 # extended LDIF
 #
 # LDAPv3
+# base <uid=xxx,o=abc,c=US> with scope sub
 # filter: (objectclass=*)
 # requesting: 1.1 
 #
@@ -222,6 +234,6 @@ search: 2
 result: 10 Referral
 matchedDN: o=ABC,c=US
 ref: ldap://hostA/uid=xxx,o=abc,c=us??sub
-ref: ldap://hostB/uid=xxx,o=abc,c=us??sub
+ref: ldap://hostB/uid=xxx,o=abc,c=US??sub
 
 # numResponses: 1
