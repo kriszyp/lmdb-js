@@ -435,8 +435,21 @@ ldap_send_entry(
 		attr->a_next = 0;
 		attr->a_desc = NULL;
 		if (slap_str2ad(mapped, &attr->a_desc, &text) != LDAP_SUCCESS) {
-			ch_free(attr);
-			continue;
+			if (slap_str2undef_ad(mapped, &attr->a_desc, &text) 
+					!= LDAP_SUCCESS) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+						"slap_str2undef_ad(%s):	"
+						"%s\n", mapped, text ));
+#else /* !NEW_LOGGING */
+				Debug( LDAP_DEBUG_ANY, 
+						"slap_str2undef_ad(%s):	"
+ 						"%s\n%s", mapped, text, "" );
+#endif /* !NEW_LOGGING */
+				
+				ch_free(attr);
+				continue;
+			}
 		}
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals) {
