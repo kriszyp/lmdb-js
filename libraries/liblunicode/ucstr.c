@@ -173,7 +173,7 @@ char * UTF8normalize(
 		/* s[i] is non-ascii */
 		/* convert everything up to next ascii to ucs-4 */
 		while ( i < len ) {
-			clen = LDAP_UTF8_CHARLEN( s + i );
+			clen = LDAP_UTF8_CHARLEN2( s + i, clen );
 			if ( clen == 0 ) {
 				free( ucs );
 				free( out );

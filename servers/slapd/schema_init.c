@@ -471,28 +471,28 @@ UTF8StringValidate(
 
 	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
 		/* get the length indicated by the first byte */
-		len = LDAP_UTF8_CHARLEN( u );
+		len = LDAP_UTF8_CHARLEN2( u, len );
 
 		/* very basic checks */
 		switch( len ) {
 			case 6:
-				if( u[5] >= 0xFE ) {
+				if( (u[5] & 0xC0) != 0x80 ) {
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 5:
-				if( u[4] >= 0xFE ) {
+				if( (u[4] & 0xC0) != 0x80 ) {
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 4:
-				if( u[3] >= 0xFE ) {
+				if( (u[3] & 0xC0) != 0x80 ) {
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 3:
-				if( u[2] >= 0xFE ) {
+				if( (u[2] & 0xC0 )!= 0x80 ) {
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 2:
-				if( u[1] >= 0xFE ) {
+				if( (u[1] & 0xC0) != 0x80 ) {
 					return LDAP_INVALID_SYNTAX;
 				}
 			case 1:
