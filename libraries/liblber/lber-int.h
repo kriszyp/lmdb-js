@@ -71,8 +71,8 @@ struct sockbuf {
 #define	sb_options		sb_opts.lbo_options
 #define	sb_debug		sb_opts.lbo_debug
 	ber_socket_t		sb_fd;
-   	int		sb_trans_needs_read:1;
-   	int		sb_trans_needs_write:1;
+   	unsigned int		sb_trans_needs_read:1;
+   	unsigned int		sb_trans_needs_write:1;
 };
 
 #define SOCKBUF_VALID( sb )	( (sb)->sb_valid == LBER_VALID_SOCKBUF )
