@@ -3,16 +3,16 @@
 # OpenLDAP Core schema
 #
 # Includes LDAPv3 schema items from:
-#	RFC 2251-RFC2256 (LDAPv3)
+#	RFC 2252/2256 (LDAPv3)
 #
-# select standard track schema items:
-#	RFC 2587 (PKI)
-#	RFC 2079 (URI)
+# Select standard track schema items:
 #	RFC 1274 (uid/dc)
+#	RFC 2079 (URI)
 #	RFC 2247 (dc/dcObject)
+#	RFC 2587 (PKI)
 #	RFC 2589 (Dynamic Directory Services)
 #
-# select informational schema items:
+# Select informational schema items:
 #	RFC 2377 (uidObject)
 
 #
