@@ -256,7 +256,7 @@ do_syncrep1(
 
 		lutil_sasl_freedefs( defaults );
 
-		/* FIXME : different error behaviors according to
+		/* FIXME: different error behaviors according to
 		 *	1) return code
 		 *	2) on err policy : exit, retry, backoff ...
 		 */
@@ -270,6 +270,15 @@ do_syncrep1(
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
 #endif
+
+			/* FIXME (see above comment) */
+			/* if Kerberos credentials cache is not active, retry */
+			if ( strcmp( si->si_saslmech, "GSSAPI" ) == 0 &&
+				rc == LDAP_LOCAL_ERROR )
+			{
+				rc = LDAP_SERVER_DOWN;
+			}
+
 			goto done;
 		}
 #else /* HAVE_CYRUS_SASL */
@@ -279,7 +288,8 @@ do_syncrep1(
 		goto done;
 #endif
 	} else {
-		rc = ldap_bind_s( si->si_ld, si->si_binddn, si->si_passwd, si->si_bindmethod );
+		rc = ldap_bind_s( si->si_ld,
+			si->si_binddn, si->si_passwd, si->si_bindmethod );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, "do_syncrep1: "
