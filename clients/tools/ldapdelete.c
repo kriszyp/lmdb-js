@@ -120,10 +120,10 @@ main( int argc, char **argv )
     }
 
 	if ( debug ) {
-		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_ERROR ) {
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
 		}
-		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_ERROR ) {
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
 		}
 	}
@@ -147,7 +147,7 @@ main( int argc, char **argv )
 		passwd = getpass("Enter LDAP Password: ");
 
 	if (version != -1 &&
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == LDAP_OPT_ERROR)
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
