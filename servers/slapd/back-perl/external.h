@@ -4,56 +4,32 @@
 
 LDAP_BEGIN_DECL
 
-extern int	perl_back_initialize LDAP_P(( BackendInfo *bi ));
-extern int	perl_back_open LDAP_P(( BackendInfo *bi ));
-extern int	perl_back_close LDAP_P(( BackendInfo *bi ));
-extern int	perl_back_destroy LDAP_P(( BackendInfo *bi ));
+extern BI_init	perl_back_initialize;
+extern BI_open	perl_back_open;
+extern BI_close	perl_back_close:
+extern BI_destroy	perl_back_destroy;
 
-extern int	perl_back_db_init LDAP_P(( BackendDB *bd ));
-extern int	perl_back_db_destroy LDAP_P(( BackendDB *bd ));
+extern BI_db_init	perl_back_db_init;
+extern BI_db_destroy	perl_back_db_destroy;
 
-extern int	perl_back_db_config LDAP_P(( BackendDB *bd,
-	const char *fname, int lineno, int argc, char **argv ));
+extern BI_db_config	perl_back_db_config;
 
-extern int perl_back_bind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, int method,
-	struct berval *cred, char** edn ));
+extern BI_op_bind	perl_back_bind;
 
-extern int	perl_back_unbind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op ));
+extern BI_op_unbind	perl_back_unbind;
 
-extern int	perl_back_search LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *base, const char *nbase,
-	int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, const char *filterstr,
-	char **attrs, int attrsonly ));
+extern BI_op_search	perl_back_search;
 
-extern int	perl_back_compare LDAP_P((BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	Ava *ava ));
+extern BI_op_compare	perl_back_compare;
 
-extern int	perl_back_modify LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	Modifications *ml ));
+extern BI_op_modify	perl_back_modify;
 
-extern int	perl_back_modrdn LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	const char *newrdn, int deleteoldrdn,
-	const char *newSuperior ));
+extern BI_op_modrdn	perl_back_modrdn;
 
-extern int	perl_back_add LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, Entry *e ));
+extern BI_op_add	perl_back_add;
 
-extern int	perl_back_delete LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn ));
+extern BI_op_delete	perl_back_delete;
 
 LDAP_END_DECL
 
 #endif /* _PERL_EXTERNAL_H */
-

@@ -69,143 +69,28 @@
 
 LDAP_BEGIN_DECL
 
-extern int
-meta_back_initialize LDAP_P((
-		BackendInfo *bi
-));
-extern int
-meta_back_open LDAP_P((
-		BackendInfo *bi
-));
-extern int
-meta_back_close LDAP_P((
-		BackendInfo *bi
-));
-extern int
-meta_back_destroy LDAP_P((
-		BackendInfo *bi
-));
-extern int
-meta_back_db_init LDAP_P((
-		BackendDB *bd
-));
-extern int
-meta_back_db_destroy LDAP_P((
-		BackendDB *bd
-));
-extern int
-meta_back_db_config LDAP_P((
-		BackendDB *bd,
-		const char *fname,
-		int lineno,
-		int argc,
-		char **argv
-));
-extern int
-meta_back_bind LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *dn,
-		const char *ndn,
-		int method,
-		struct berval *cred,
-		char** edn
-));
-extern int
-meta_back_conn_destroy LDAP_P((
-		BackendDB *bd,
-		Connection *conn
-));
-extern int
-meta_back_search LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *base,
-		const char *nbase,
-		int scope,
-		int deref,
-		int sizelimit,
-		int timelimit,
-		Filter *filter,
-		const char *filterstr,
-		char **attrs,
-		int attrsonly
-));
-extern int
-meta_back_compare LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *dn,
-		const char *ndn,
-		AttributeAssertion *ava
-));
-extern int
-meta_back_modify LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *dn,
-		const char *ndn,
-		Modifications *ml
-));
-extern int
-meta_back_modrdn LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *dn,
-		const char *ndn,
-		const char *newrdn,
-		int deleteoldrdn,
-		const char *newSuperior
-));
-extern int
-meta_back_add LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		Entry *e
-));
-extern int
-meta_back_delete LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		const char *dn,
-		const char *ndn
-));
-extern int meta_back_abandon LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		int msgid
-));
-extern int meta_back_group LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		Entry *target,
-		const char* gr_ndn,
-		const char* op_ndn,
-		ObjectClass* group_oc,
-		AttributeDescription*
-		group_at
-));
-extern int
-meta_back_attribute LDAP_P((
-		BackendDB *bd,
-		Connection *conn,
-		Operation *op,
-		Entry *target,
-		const char* ndn,
-		AttributeDescription* entry_at,
-		struct berval ***vals
-));
+extern BI_init	meta_back_initialize;
+extern BI_open	meta_back_open;
+extern BI_close	meta_back_close;
+extern BI_destroy	meta_back_destroy;
+
+extern BI_db_init	meta_back_db_init;
+extern BI_db_destroy	meta_back_db_destroy;
+extern BI_db_config	meta_back_db_config;
+
+extern BI_op_bind	meta_back_bind;
+extern BI_connection_destroy	meta_back_conn_destroy;
+extern BI_op_search	meta_back_search;
+extern BI_op_compare	meta_back_compare;
+extern BI_op_modify	meta_back_modify;
+extern BI_op_modrdn	meta_back_modrdn;
+extern BI_op_add	meta_back_add;
+extern BI_op_delete	meta_back_delete;
+extern BI_op_abandon	meta_back_abandon;
+
+extern BI_acl_group	meta_back_group;
+extern BI_acl_attribute	meta_back_attribute;
 
 LDAP_END_DECL
 
 #endif /* META_EXTERNAL_H */
-

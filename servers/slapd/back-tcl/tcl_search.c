@@ -29,7 +29,7 @@ tcl_back_search (
 	int timelimit,
 	Filter * filter,
 	const char *filterstr,
-	char **attrs,
+	struct berval **attrs,
 	int attrsonly
 )
 {

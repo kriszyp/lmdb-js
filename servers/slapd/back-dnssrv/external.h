@@ -12,39 +12,24 @@
 
 LDAP_BEGIN_DECL
 
-extern int	dnssrv_back_initialize LDAP_P(( BackendInfo *bi ));
-extern int	dnssrv_back_open LDAP_P(( BackendInfo *bi ));
-extern int	dnssrv_back_close LDAP_P(( BackendInfo *bi ));
-extern int	dnssrv_back_destroy LDAP_P(( BackendInfo *bi ));
+extern BI_init	dnssrv_back_initialize;
+extern BI_open	dnssrv_back_open;
+extern BI_close	dnssrv_back_close;
+extern BI_destroy	dnssrv_back_destroy;
 
-extern int	dnssrv_back_db_init LDAP_P(( BackendDB *bd ));
-extern int	dnssrv_back_db_destroy LDAP_P(( BackendDB *bd ));
+extern BI_db_init	dnssrv_back_db_init;
+extern BI_db_destroy	dnssrv_back_db_destroy;
 
-extern int	dnssrv_back_db_config LDAP_P(( BackendDB *bd,
-	const char *fname, int lineno, int argc, char **argv ));
+extern BI_db_config	dnssrv_back_db_config;
 
-extern int dnssrv_back_bind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, int method,
-	struct berval *cred, char** edn ));
+extern BI_op_bind	dnssrv_back_bind;
 
-extern int	dnssrv_back_search LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *base, const char *nbase,
-	int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, const char *filterstr,
-	char **attrs, int attrsonly ));
+extern BI_op_search	dnssrv_back_search;
 
-extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, AttributeAssertion *ava ));
+extern BI_op_compare	dnssrv_back_compare;
 
-extern int	dnssrv_back_referrals LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	const char **text ));
+extern BI_chk_referrals	dnssrv_back_referrals;
 
 LDAP_END_DECL
 
 #endif /* _DNSSRV_EXTERNAL_H */
-

@@ -4,19 +4,12 @@
 
 LDAP_BEGIN_DECL
 
-extern int	passwd_back_initialize LDAP_P(( BackendInfo *bi ));
+extern BI_init	passwd_back_initialize;
 
-extern int  passwd_back_search LDAP_P(( BackendDB *be,
-	Connection *c, Operation *o,
-	const char *base, const char *nbase,
-	int scope, int deref, int slimit, int tlimit,
-	Filter *f, const char *filterstr,
-	char **attrs, int attrsonly));
+extern BI_op_search	passwd_back_search;
 
-extern int passwd_back_db_config LDAP_P((BackendDB *bd,
-	const char *fname, int lineno, int argc, char **argv ));
+extern BI_db_config	passwd_back_db_config;
 
 LDAP_END_DECL
 
 #endif /* _PASSWD_EXTERNAL_H */
-

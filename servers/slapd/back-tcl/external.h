@@ -5,59 +5,35 @@
 
 LDAP_BEGIN_DECL
 
-extern int tcl_back_initialize LDAP_P ((BackendInfo * bi));
-extern int tcl_back_open LDAP_P ((BackendInfo * bi));
-extern int tcl_back_close LDAP_P ((BackendInfo * bi));
-extern int tcl_back_destroy LDAP_P ((BackendInfo * bi));
+extern BI_init	tcl_back_initialize;
+extern BI_open	tcl_back_open;
+extern BI_close	tcl_back_close;
+extern BI_destroy	tcl_back_destroy;
 
-extern int tcl_back_db_init LDAP_P ((BackendDB * bd));
-extern int tcl_back_db_open LDAP_P ((BackendDB * bd));
-extern int tcl_back_db_close LDAP_P ((BackendDB * bd));
-extern int tcl_back_db_destroy LDAP_P ((BackendDB * bd));
+extern BI_db_init	tcl_back_db_init;
+extern BI_db_open	tcl_back_db_open;
+extern BI_db_close	tcl_back_db_close;
+extern BI_db_destroy	tcl_back_db_destroy;
 
-extern int tcl_back_db_config LDAP_P ((BackendDB * bd,
-		const char *fname, int lineno, int argc, char **argv));
+extern BI_db_config	tcl_back_db_config;
 
-extern int tcl_back_bind LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *dn, const char *ndn, int method,
-		struct berval * cred, char **edn));
+extern BI_op_bind	tcl_back_bind;
 
-extern int tcl_back_unbind LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op));
+extern BI_op_unbind	tcl_back_unbind;
 
-extern int tcl_back_search LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *base, const char *nbase,
-		int scope, int deref, int sizelimit, int timelimit,
-		Filter * filter, const char *filterstr,
-		char **attrs, int attrsonly));
+extern BI_op_search	tcl_back_search;
 
-extern int tcl_back_compare LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *dn, const char *ndn,
-		Ava * ava));
+extern BI_op_compare	tcl_back_compare;
 
-extern int tcl_back_modify LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *dn, const char *ndn,
-		Modifications * ml));
+extern BI_op_modify	tcl_back_modify;
 
-extern int tcl_back_modrdn LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *dn, const char *ndn,
-		const char *newrdn, int deleteoldrdn,
-		const char *newSuperior));
+extern BI_op_modrdn	tcl_back_modrdn;
 
-extern int tcl_back_add LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op, Entry * e));
+extern BI_op_add	tcl_back_add;
 
-extern int tcl_back_delete LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op,
-		const char *dn, const char *ndn));
+extern BI_op_delete	tcl_back_delete;
 
-extern int tcl_back_abandon LDAP_P ((BackendDB * bd,
-		Connection * conn, Operation * op, int msgid));
+extern BI_op_abandon	tcl_back_abandon;
 
 LDAP_END_DECL
 

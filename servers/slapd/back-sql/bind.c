@@ -19,10 +19,6 @@
 #include "util.h"
 #include "entry-id.h"
 
-void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int scope,
-		 int slimit,int tlimit,time_t stoptime,Filter *filter,
-		 SQLHDBC dbh,BackendDB *be,Connection *conn,Operation *op,char **attrs);
-
 int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
 	const char *dn,const char *ndn,int method,struct berval *cred,char** edn)
 {

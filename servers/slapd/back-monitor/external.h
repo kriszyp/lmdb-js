@@ -38,45 +38,21 @@
 
 LDAP_BEGIN_DECL
 
-extern int	monitor_back_initialize LDAP_P(( BackendInfo *bi ));
-extern int	monitor_back_db_init LDAP_P(( BackendDB *be ));
-extern int	monitor_back_open LDAP_P(( BackendInfo *bi ));
-extern int	monitor_back_config LDAP_P(( BackendInfo *bi,
-	const char *fname, int lineno, int argc, char **argv ));
-extern int	monitor_back_db_config LDAP_P(( Backend *be,
-	const char *fname, int lineno, int argc, char **argv ));
+extern BI_init	monitor_back_initialize;
+extern BI_db_init	monitor_back_db_init;
+extern BI_open	monitor_back_open;
+extern BI_config	monitor_back_config;
+extern BI_db_config	monitor_back_db_config;
 
-extern int	monitor_back_db_destroy LDAP_P(( BackendDB *be ));
+extern BI_db_destroy	monitor_back_db_destroy;
 
-extern int	monitor_back_search LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *base, const char *nbase,
-	int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, const char *filterstr,
-	char **attrs, int attrsonly ));
-
-extern int	monitor_back_compare LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	AttributeAssertion *ava ));
-
-extern int	monitor_back_abandon LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, ber_int_t msgid ));
-
-extern int	monitor_back_modify LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, Modifications *ml ));
-
-extern int	monitor_back_bind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, int method,
-	struct berval *cred, char** edn ));
-
-extern int	monitor_back_operational LDAP_P((BackendDB *bd,
-	Connection *conn, Operation *op,
-	Entry *e, char **attrs, int opattrs, Attribute **a ));
+extern BI_op_search	monitor_back_search;
+extern BI_op_compare	monitor_back_compare;
+extern BI_op_abandon	monitor_back_abandon;
+extern BI_op_modify	monitor_back_modify;
+extern BI_op_bind	monitor_back_bind;
+extern BI_operational	monitor_back_operational;
 
 LDAP_END_DECL
 
 #endif /* _MONITOR_EXTERNAL_H */
-

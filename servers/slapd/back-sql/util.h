@@ -49,7 +49,7 @@ typedef struct __backsql_srch_info
 int backsql_process_filter(backsql_srch_info *bsi,Filter *f);
 void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int scope,
 						 int slimit,int tlimit,time_t stoptime,Filter *filter,
-						 SQLHDBC dbh,Backend *be,Connection *conn,Operation *op,char **attrs);
+						 SQLHDBC dbh,Backend *be,Connection *conn,Operation *op,struct berval **attrs);
 Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* id);
 
 extern char backsql_def_oc_query[],backsql_def_at_query[],
