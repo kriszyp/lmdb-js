@@ -28,7 +28,11 @@
 #endif /* SLAPD_LMHASH */
 
 #ifdef SLAPD_SPASSWD
-#	include <sasl.h>
+#	ifdef HAVE_SASL_SASL_H
+#		include <sasl/sasl.h>
+#	else
+#		include <sasl.h>
+#	endif
 #endif
 
 #ifdef SLAPD_KPASSWD
@@ -659,14 +663,18 @@ static int chk_sasl(
 
 #ifdef HAVE_CYRUS_SASL
 	if( lutil_passwd_sasl_conn != NULL ) {
-		const char *errstr = NULL;
 		int sc;
-
+# if SASL_VERSION_MAJOR < 2
+		const char *errstr = NULL;
 		sc = sasl_checkpass( lutil_passwd_sasl_conn,
 			passwd->bv_val, passwd->bv_len,
 			cred->bv_val, cred->bv_len,
 			&errstr );
-
+# else
+		sc = sasl_checkpass( lutil_passwd_sasl_conn,
+			passwd->bv_val, passwd->bv_len,
+			cred->bv_val, cred->bv_len );
+# endif
 		rtn = ( sc != SASL_OK );
 	}
 #endif
