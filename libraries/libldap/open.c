@@ -358,6 +358,7 @@ ldap_int_open_connection(
 		that SASL EXTERNAL might be used */
 	if( sasl_host != NULL ) {
 		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+		LDAP_FREE( sasl_host );
 	}
 #endif
 
