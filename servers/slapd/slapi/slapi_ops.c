@@ -465,7 +465,7 @@ cleanup:
  * Description : Plugin functions call this routine to delete an entry 
  *               in the backend directly
  * Return values : LDAP_SUCCESS
- *                 LDAP_OPERAITONS_ERROR
+ *                 LDAP_PARAM_ERROR
  *                 LDAP_NO_MEMORY
  *                 LDAP_OTHER
  *                 LDAP_UNWILLING_TO_PERFORM
@@ -492,7 +492,7 @@ slapi_delete_internal(
 	int				isCritical;
 
 	if ( ldn == NULL ) {
-		rc = LDAP_OPERATIONS_ERROR; 
+		rc = LDAP_PARAM_ERROR; 
 		goto cleanup;
 	}
 
@@ -586,7 +586,7 @@ slapi_add_entry_internal(
 	int			rc = LDAP_SUCCESS;
 
 	if ( e == NULL ) {
-		rc = LDAP_OPERATIONS_ERROR;
+		rc = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
 	
@@ -670,7 +670,7 @@ slapi_add_internal(
 	int			i, rc=LDAP_SUCCESS;
 
 	if ( mods == NULL || *mods == NULL || dn == NULL || *dn == '\0' ) {
-		rc = LDAP_OPERATIONS_ERROR ;
+		rc = LDAP_PARAM_ERROR ;
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -709,7 +709,8 @@ slapi_add_internal(
  * Description : Plugin functions call this routine to modify the rdn 
  *				 of an entry in the backend directly
  * Return values : LDAP_SUCCESS
- *                 LDAP_OPERAITONS_ERROR
+ *                 LDAP_PARAM_ERROR
+ *                 LDAP_OPERATIONS_ERROR
  *                 LDAP_NO_MEMORY
  *                 LDAP_OTHER
  *                 LDAP_UNWILLING_TO_PERFORM
@@ -873,8 +874,9 @@ cleanup:
  * Description:	Plugin functions call this routine to modify an entry 
  *				in the backend directly
  * Return values : LDAP_SUCCESS
- *                 LDAP_OPERAITONS_ERROR
+ *                 LDAP_PARAM_ERROR
  *                 LDAP_NO_MEMORY
+ *                 LDAP_OPERATIONS_ERROR
  *                 LDAP_OTHER
  *                 LDAP_UNWILLING_TO_PERFORM
 */
@@ -908,7 +910,7 @@ slapi_modify_internal(
 	Modifications		tmp;
 
 	if ( mods == NULL || *mods == NULL || ldn == NULL ) {
-		rc = LDAP_OPERATIONS_ERROR ;
+		rc = LDAP_PARAM_ERROR ;
 		goto cleanup;
 	}
 
