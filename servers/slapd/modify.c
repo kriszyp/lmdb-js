@@ -394,7 +394,7 @@ do_modify(
 			size_t textlen = sizeof textbuf;
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen, op->o_tmpmemctx );
+				textbuf, textlen, NULL );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -459,8 +459,8 @@ do_modify(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	free( op->o_req_dn.bv_val );
-	free( op->o_req_ndn.bv_val );
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	if ( modlist != NULL ) slap_mods_free( modlist );
 #if defined( LDAP_SLAPI )
 	if ( modv != NULL ) slapi_x_free_ldapmods( modv );

@@ -176,7 +176,7 @@ done:
 	}
 
 	if( ndn.bv_val != NULL ) {
-		free( ndn.bv_val );
+		op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 	}
 
 	return rc;

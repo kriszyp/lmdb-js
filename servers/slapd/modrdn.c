@@ -390,14 +390,14 @@ do_modrdn(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	free( op->o_req_dn.bv_val );
-	free( op->o_req_ndn.bv_val );
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
-	free( op->orr_newrdn.bv_val );	
-	free( op->orr_nnewrdn.bv_val );	
+	op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );	
+	op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );	
 
-	if ( pnewSuperior.bv_val ) free( pnewSuperior.bv_val );
-	if ( nnewSuperior.bv_val ) free( nnewSuperior.bv_val );
+	if ( pnewSuperior.bv_val ) op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
+	if ( nnewSuperior.bv_val ) op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
 
 	return rs->sr_err;
 }

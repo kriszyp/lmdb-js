@@ -647,7 +647,11 @@ retry:	/* transaction retry */
 	/* Build target dn and make sure target entry doesn't exist already. */
 	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
 
-	if (!new_ndn.bv_val) dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
+	if (!new_ndn.bv_val) {
+		struct berval bv = {0, NULL};
+		dnNormalize2( NULL, &new_dn, &bv, op->o_tmpmemctx );
+		ber_dupbv( &new_ndn, &bv );
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
@@ -922,10 +926,10 @@ done:
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if ( new_rdn != NULL ) {
-		ldap_rdnfree( new_rdn );
+		ldap_rdnfree_x( new_rdn, op->o_tmpmemctx );
 	}
 	if ( old_rdn != NULL ) {
-		ldap_rdnfree( old_rdn );
+		ldap_rdnfree_x( old_rdn, op->o_tmpmemctx );
 	}
 	if( mod != NULL ) {
 		Modifications *tmp;

@@ -78,7 +78,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname, op->o_tmpmemctx );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -91,15 +91,15 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	ber_dupbv( &e->e_name, &op->o_req_dn );
+	ber_dupbv( &e->e_nname, &op->o_req_ndn );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
 		"do_add: conn %d  dn (%s)\n", op->o_connid, e->e_dn, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", e->e_dn, 0, 0 );
 #endif
-
-	op->o_req_dn = e->e_name;
-	op->o_req_ndn = e->e_nname;
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -242,7 +242,7 @@ do_add( Operation *op, SlapReply *rs )
 			size_t textlen = sizeof textbuf;
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen, op->o_tmpmemctx );
+				textbuf, textlen, NULL );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -353,6 +353,8 @@ done:
 	if( e != NULL ) {
 		entry_free( e );
 	}
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	return rs->sr_err;
 }

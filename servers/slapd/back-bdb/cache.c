@@ -156,8 +156,13 @@ bdb_cache_entry_db_lock
 	else
 		db_rw = DB_LOCK_READ;
 
+#if 0
 	lockobj.data = e->e_nname.bv_val;
 	lockobj.size = e->e_nname.bv_len;
+#else
+	lockobj.data = &e->e_private;
+	lockobj.size = sizeof(e->e_private);
+#endif
 	rc = LOCK_GET(env, locker, flags | DB_LOCK_NOWAIT,
 					&lockobj, db_rw, lock);
 	if (rc) {

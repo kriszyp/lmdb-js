@@ -235,6 +235,7 @@ int value_find_ex(
 		}
 	}
 
+	rc = LDAP_NO_SUCH_ATTRIBUTE;
 	for ( i = 0; vals[i].bv_val != NULL; i++ ) {
 		int match;
 		const char *text;
@@ -243,11 +244,10 @@ int value_find_ex(
 			&vals[i], nval.bv_val == NULL ? val : &nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
-			free( nval.bv_val );
-			return LDAP_SUCCESS;
+			break;
 		}
 	}
 
-	ber_memfree_x( nval.bv_val, ctx );
-	return LDAP_NO_SUCH_ATTRIBUTE;
+	sl_free( nval.bv_val, ctx );
+	return rc;
 }

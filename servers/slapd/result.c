@@ -238,7 +238,10 @@ send_ldap_response(
 		ber = op->o_res_ber;
 	else
 #endif
-	ber_init_w_nullc( ber, LBER_USE_DER );
+	{
+		ber_init_w_nullc( ber, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -1189,8 +1192,9 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 {
 	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement	*ber = (BerElement *)berbuf;
-	int rc;
+	int rc = 0;
 	int bytes;
+	void *mark;
 
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
@@ -1199,6 +1203,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	if (op->o_callback && op->o_callback->sc_response) {
 		return op->o_callback->sc_response( op, rs );
 	}
+
+	mark = sl_mark( op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -1223,8 +1229,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: access to entry not allowed\n",
 		    0, 0, 0 );
 #endif
-
-		return( 1 );
+		rc = 1;
+		goto rel;
 	}
 
 	if ( rs->sr_entry && ! access_allowed( op, rs->sr_entry,
@@ -1240,8 +1246,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"to reference not allowed\n",
 		    0, 0, 0 );
 #endif
-
-		return( 1 );
+		rc = 1;
+		goto rel;
 	}
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
@@ -1255,8 +1261,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: domainScope control in (%s)\n", 
 			rs->sr_entry->e_dn, 0, 0 );
 #endif
-
-		return( 0 );
+		rc = 0;
+		goto rel;
 	}
 #endif
 
@@ -1270,8 +1276,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: null ref in (%s)\n", 
 			rs->sr_entry ? rs->sr_entry->e_dn : "(null)", 0, 0 );
 #endif
-
-		return( 1 );
+		rc = 1;
+		goto rel;
 	}
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
@@ -1280,7 +1286,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			if( value_add( &rs->sr_v2ref, rs->sr_ref ) )
 				return LDAP_OTHER;
 		}
-		return 0;
+		rc = 0;
+		goto rel;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1288,7 +1295,10 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		ber = op->o_res_ber;
 	else
 #endif
-	ber_init_w_nullc( ber, LBER_USE_DER );
+	{
+		ber_init_w_nullc( ber, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+	}
 
 	rc = ber_printf( ber, "{it{W}" /*"}"*/ , op->o_msgid,
 		LDAP_RES_SEARCH_REFERENCE, rs->sr_ref );
@@ -1316,7 +1326,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 		ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode DN error" );
-		return -1;
+		goto rel;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1344,7 +1354,9 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 #endif
 
-	return 0;
+rel:
+	sl_release( mark, op->o_tmpmemctx );
+	return rc;
 }
 
 int

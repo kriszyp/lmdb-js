@@ -912,21 +912,21 @@ connection_operation( void *ctx, void *arg_v )
 		goto operations_error;
 	}
 
-	/* For all operations besides Add, we can use thread-local
-	 * storage for most mallocs.
+	/* We can use Thread-Local storage for most mallocs. We can
+	 * also use TL for ber parsing, but not on Add or Modify.
 	 */
 #define	SLAB_SIZE	1048576
-	memsiz = ber_len( op->o_ber ) * 32;
+#if 0
+	memsiz = ber_len( op->o_ber ) * 64;
 	if ( SLAB_SIZE > memsiz ) memsiz = SLAB_SIZE;
+#endif
+	memsiz = SLAB_SIZE;
 
-	if ( tag == LDAP_REQ_SEARCH || tag == LDAP_REQ_BIND ) {
-		memctx = sl_mem_create( memsiz, ctx );
+	memctx = sl_mem_create( memsiz, ctx );
+	op->o_tmpmemctx = memctx;
+	op->o_tmpmfuncs = &sl_mfuncs;
+	if ( tag != LDAP_REQ_ADD && tag != LDAP_REQ_MODIFY ) {
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
-		op->o_tmpmemctx = memctx;
-		op->o_tmpmfuncs = &sl_mfuncs;
-	} else {
-		op->o_tmpmemctx = NULL;
-		op->o_tmpmfuncs = &ch_mfuncs;
 	}
 
 	switch ( tag ) {

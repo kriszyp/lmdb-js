@@ -466,7 +466,7 @@ ldbm_back_modrdn(
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
 	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
-	dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
+	dnNormalize2( NULL, &new_dn, &new_ndn, NULL );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_back_modrdn: new ndn=%s\n", 

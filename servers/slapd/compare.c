@@ -299,9 +299,9 @@ do_compare(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	free( op->o_req_dn.bv_val );
-	free( op->o_req_ndn.bv_val );
-	if ( ava.aa_value.bv_val ) free( ava.aa_value.bv_val );
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( ava.aa_value.bv_val ) op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
 
 	return rs->sr_err;
 }
