@@ -158,21 +158,60 @@ feature.  The default is 0.
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
 .TP
-.B limits [dn[.{exact|regex|anonymous}]=]<pattern> <limit> [...]
-Specify time and size limits based on the distinguished name that
-initiated an operation.
+.B limits <who> <limit> [<limit> [...]]
+Specify time and size limits based on who initiated an operation.
 The argument
-.BR pattern
-contains the DN the limits are applied to.
-It is a distinguished name in case of
-.BR exact
-match, or an Extended Regex pattern in case of
+.B who
+can be any of
+.RS
+.RS
+.TP
+anonymous | users | [dn[.<style>]=]<pattern>
+
+.RE
+with
+.RS
+.TP
+<style> ::= exact | base | one | subtree | children | regex | anonymous
+
+.RE
+.B Anonymous
+is hit when a search is performed without prior binding;
+.B users
+is hit when a search is performed by a successfully bound user;
+otherwise a
+.B regex
+dn pattern is assumed unless otherwise specified by qualifying 
+the (optional) key string
+.B dn
+with 
+.B exact
+or
+.B base
+(which are synonims), to require an exact match; with
+.BR one, 
+to require exactly one level of depth match; with
+.BR subtree,
+to allow any level of depth match, including the exact match; with
+.BR children,
+to allow any level of depth match, not including the exact match;
 .BR regex
-match (the default). In the case of
-.BR anonymous
-the pattern is ignored and the limits will apply to anonymously
-bound operations.
-The currently supported limits are "size" and "time".
+explicitly requires the (default) match based on regular expression.
+Finally,
+.B anonymous
+matches unbound operations; the 
+.B pattern
+field is ignored.
+The same behavior is obtained by using the 
+.B anonymous
+form of the
+.B who
+clause.
+
+The currently supported limits are 
+.B size
+and 
+.BR time.
 
 The syntax for time limits is 
 .BR time[.{soft|hard}]=<integer> ,
@@ -239,6 +278,7 @@ and
 no limit is set on 
 .BR unchecked .
 This feature is currently exploited by the ldbm backend only.
+.RE
 .TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
