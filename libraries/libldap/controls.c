@@ -249,10 +249,10 @@ ldap_controls_free( LDAPControl **controls )
 	assert( controls != NULL );
 
 	if ( controls != NULL ) {
-		LDAPControl *c;
+		int i;
 
-		for(c = *controls; c != NULL; c++) {
-			ldap_control_free( c );
+		for( i=0; controls[i] != NULL; i++) {
+			ldap_control_free( controls[i] );
 		}
 
 		LDAP_FREE( controls );

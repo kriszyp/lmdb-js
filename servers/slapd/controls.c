@@ -52,6 +52,8 @@ int get_ctrls(
 		goto return_results;
 	}
 
+	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
+
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		rc = -1;
 		errmsg = "controls require LDAPv3";
@@ -80,6 +82,8 @@ int get_ctrls(
 		LDAPControl **tctrls;
 
 		tctrl = ch_calloc( 1, sizeof(LDAPControl) );
+		tctrl->ldctl_oid = NULL;
+		tctrl->ldctl_value.bv_val = NULL;
 
 		/* allocate pointer space for current controls (nctrls)
 		 * + this control + extra NULL
@@ -104,39 +108,56 @@ int get_ctrls(
 		}
 #endif
 
-
 		tctrls[nctrls++] = tctrl;
 		tctrls[nctrls] = NULL;
 
 		tag = ber_scanf( ber, "{a" /*}*/, &tctrl->ldctl_oid );
 
-		if( tag != LBER_ERROR ) {
-			tag = ber_peek_tag( ber, &len );
+		if( tag == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
+				0, 0, 0 );
+			*ctrls = NULL;
+			ldap_controls_free( tctrls );
+			rc = -1;
+			errmsg = "decoding controls error";
+			goto return_results;
 		}
+
+		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: %s\n",
+			tctrl->ldctl_oid, 0, 0 );
+
+		tag = ber_peek_tag( ber, &len );
 
 		if( tag == LBER_BOOLEAN ) {
 			ber_int_t crit;
 			tag = ber_scanf( ber, "b", &crit );
-			tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
-		}
 
-		if( tag != LBER_ERROR ) {
+			if( tag == LBER_ERROR ) {
+				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
+					0, 0, 0 );
+				*ctrls = NULL;
+				ldap_controls_free( tctrls );
+				rc = -1;
+				errmsg = "decoding controls error";
+				goto return_results;
+			}
+
+			tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
 			tag = ber_peek_tag( ber, &len );
 		}
 
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
 
-		} else {
-			tctrl->ldctl_value.bv_val = NULL;
-		}
-
-		if( tag == LBER_ERROR ) {
-			*ctrls = NULL;
-			ldap_controls_free( tctrls );
-			rc = -1;
-			errmsg = "decoding controls error";
-			goto return_results;
+			if( tag == LBER_ERROR ) {
+				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get value failed.\n",
+					0, 0, 0 );
+				*ctrls = NULL;
+				ldap_controls_free( tctrls );
+				rc = -1;
+				errmsg = "decoding controls error";
+				goto return_results;
+			}
 		}
 
 		if( tctrl->ldctl_iscritical &&
@@ -151,6 +172,9 @@ int get_ctrls(
 	}
 
 return_results:
+	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: %d %d %s\n",
+		nctrls, rc, errmsg ? errmsg : "");
+
 	if( sendres && rc != LDAP_SUCCESS ) {
 		if( rc == -1 ) {
 			send_ldap_disconnect( conn, op, rc, errmsg );
