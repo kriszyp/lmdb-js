@@ -33,9 +33,13 @@ Other database options are described in the
 manual page.
 .LP
 Note: It is strongly recommended to set
+.LP
 .RS
+.nf
 lastmod  off
+.fi
 .RE
+.LP
 for every
 .B ldap
 and
@@ -64,6 +68,32 @@ should have read access on the target server to attributes used on the
 proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
+.RS
+Note: the
+.B binddn 
+/
+.B bindpw
+values are also used to propagate user authorization by means of the 
+.B proxyAuthz 
+mechanism when operations performed by users bound to another backend 
+are propagated to back-ldap.
+This requires the entry with 
+.B binddn 
+DN on the remote server to have
+.B proxyAuthz
+privileges on a wide set of DNs, e.g.
+.BR saslAuthzTo=regex:.* ,
+and the remote server to have
+.B sasl-authz-policy
+set to 
+.B to
+or 
+.BR both .
+See 
+.BR slapd.conf (5)
+for details on these statements and for remarks and drawbacks about
+their usage.
+.RE
 .TP
 .B bindpw <password>
 Password used with the bind DN above.
