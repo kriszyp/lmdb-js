@@ -12,15 +12,11 @@
 #ifndef _AC_STDLIB_H
 #define _AC_STDLIB_H
 
-#ifdef STDC_HEADERS
 #	include <stdlib.h>
 
-#else
-
-#	ifdef HAVE_MALLOC_H
+	/* Not sure if !STDC_HEADERS is needed */
+#	if defined(HAVE_MALLOC_H) && !defined(STDC_HEADERS)
 #		include <malloc.h>
 #	endif
-
-#endif
 
 #endif /* _AC_STDLIB_H */
