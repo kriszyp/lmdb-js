@@ -478,7 +478,8 @@ typedef struct slap_ss_assertion {
 } SubstringsAssertion;
 
 typedef struct slap_mr_assertion {
-	char					*ma_rule;	/* optional */
+	MatchingRule				*ma_rule;	/* optional */
+	char					*ma_rule_text;  /* optional */
 	AttributeDescription	*ma_desc;	/* optional */
 	int						ma_dnattrs; /* boolean */
 	struct berval			*ma_value;	/* required */
@@ -526,6 +527,7 @@ typedef struct slap_filter {
 #define f_sub_final		f_un.f_un_ssa->sa_final
 #define f_mra			f_un.f_un_mra
 #define f_mr_rule		f_un.f_un_mra->ma_rule
+#define f_mr_rule_text		f_un.f_un_mra->ma_rule_text
 #define f_mr_desc		f_un.f_un_mra->ma_desc
 #define f_mr_value		f_un.f_un_mra->ma_value
 #define	f_mr_dnattrs	f_un.f_un_mra->ma_dnattrs

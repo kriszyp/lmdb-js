@@ -22,7 +22,7 @@ mra_free(
 )
 {
 	ad_free( mra->ma_desc, 1 );
-	ch_free( (char *) mra->ma_rule );
+	ch_free( mra->ma_rule_text );
 	ber_bvfree( mra->ma_value );
 	if ( freeit ) {
 		ch_free( (char *) mra );
@@ -43,6 +43,7 @@ get_mra(
 
 	ma = ch_malloc( sizeof( MatchingRuleAssertion ) );
 	ma->ma_rule = NULL;
+	ma->ma_rule_text = NULL;
 	ma->ma_desc = NULL;
 	ma->ma_dnattrs = 0;
 	ma->ma_value = NULL;
@@ -57,13 +58,14 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rc = ber_scanf( ber, "a", &ma->ma_rule );
+		rc = ber_scanf( ber, "a", &ma->ma_rule_text );
 		if ( rc == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for mr\n", 0, 0, 0 );
 			*text = "Error parsing matching rule in matching rule assertion";
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
+		ma->ma_rule = mr_find( ma->ma_rule_text );
 
 		rc = ber_scanf( ber, "t", &tag );
 
