@@ -43,7 +43,7 @@ ldapconfig.h:	ldapconfig.h.edit Makefile
 	$(CHMOD) 444 $@
 
 install: all FORCE
-		-$(MKDIR) -p $(INCLUDEDIR)
+		-$(MKDIR) -p $(LDAP_INCDIR)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(LDAP_INCDIR)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(LDAP_INCDIR)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-lber.h $(LDAP_INCDIR)
