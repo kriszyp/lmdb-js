@@ -2039,6 +2039,13 @@ typedef struct slap_op {
 #define get_domainScope(op)				(0)
 #endif
 
+#ifdef LDAP_CONTROL_X_TREE_DELETE
+	char o_tree_delete;
+#define get_treeDelete(op)				((int)(op)->o_tree_delete)
+#else
+#define get_treeDelete(op)				(0)
+#endif
+
 	char o_preread;
 	char o_postread;
 	AttributeName *o_preread_attrs;

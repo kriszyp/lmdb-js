@@ -35,6 +35,8 @@ static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 static SLAP_CTRL_PARSE_FN parsePermissiveModify;
 static SLAP_CTRL_PARSE_FN parseDomainScope;
+static SLAP_CTRL_PARSE_FN parseTreeDelete;
+static SLAP_CTRL_PARSE_FN parseSearchOptions;
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
@@ -101,6 +103,16 @@ static struct slap_control control_defs[] = {
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
 		SLAP_CTRL_MODIFY, NULL,
 		parsePermissiveModify, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
+#ifdef LDAP_CONTROL_X_TREE_DELETE
+	{ LDAP_CONTROL_X_TREE_DELETE,
+		SLAP_CTRL_DELETE, NULL,
+		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
+#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
+	{ LDAP_CONTORL_X_SEARCH_OPTIONS,
+		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
+		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
@@ -1210,6 +1222,78 @@ static int parseDomainScope (
 	op->o_domain_scope = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CONTROL_X_TREE_DELETE
+static int parseTreeDelete (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	if ( op->o_tree_delete != SLAP_NO_CONTROL ) {
+		rs->sr_text = "treeDelete control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		rs->sr_text = "treeDelete control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_tree_delete = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
+static int parseSearchOptions (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	BerElement *ber;
+	ber_int_t search_flags;
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "searchOptions control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &ctrl->ldctl_value );
+	if( ber == NULL ) {
+		rs->sr_text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if ( (tag = ber_scanf( ber, "{i}", &search_flags )) == LBER_ERROR ) {
+		rs->sr_text = "searchOptions control decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	(void) ber_free( ber, 1 );
+
+	if ( search_flags & LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE ) {
+		if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
+			rs->sr_text = "searchOptions control specified multiple times or with domainScope control";
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		op->o_domain_scope = ctrl->ldctl_iscritical
+			? SLAP_CRITICAL_CONTROL
+			: SLAP_NONCRITICAL_CONTROL;
+	}
+
+	if ( search_flags & ~(LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE) ) {
+		/* Other search flags not recognised so far */
+		rs->sr_text = "searchOptions contained invalid flag";
+		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+	}
 
 	return LDAP_SUCCESS;
 }
