@@ -1,5 +1,7 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.30 Engineering
+
 OpenLDAP 2.1.29 Release
 	Fixed slapd SASL invalid authcID crash (ITS#2961)
 	Fixed slapd sasl-regexp debug crash (ITS#3033)
