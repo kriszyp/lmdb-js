@@ -1306,7 +1306,7 @@ ldap_start_tls_s ( LDAP *ld,
 
 	/* XXYYZ: this initiates operation only on default connection! */
 
-	if ( ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+	if ( ld->ld_sb != NULL && ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
 		return LDAP_LOCAL_ERROR;
 	}
 
