@@ -356,7 +356,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $P1SLAVEPORT \
 RC=$?
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed at R1 slave ($RC)!"
+	echo "ldapsearch failed at P1 slave ($RC)!"
 	kill -HUP $PID $R1SLAVEPID $R2SLAVEPID $P1SLAVEPID $P2SLAVEPID $P3SLAVEPID
 	exit $RC
 fi
@@ -367,7 +367,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $P2SLAVEPORT \
 RC=$?
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed at R2 slave ($RC)!"
+	echo "ldapsearch failed at P2 slave ($RC)!"
 	kill -HUP $PID $R1SLAVEPID $R2SLAVEPID $P1SLAVEPID $P2SLAVEPID $P3SLAVEPID
 	exit $RC
 fi
@@ -378,7 +378,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $P3SLAVEPORT \
 RC=$?
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed at R2 slave ($RC)!"
+	echo "ldapsearch failed at P3 slave ($RC)!"
 	kill -HUP $PID $R1SLAVEPID $R2SLAVEPID $P1SLAVEPID $P2SLAVEPID $P3SLAVEPID
 	exit $RC
 fi
