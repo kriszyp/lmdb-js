@@ -494,7 +494,7 @@ int structural_class(
 
 		if( oc == NULL ) {
 			snprintf( textbuf, textlen,
-				"unrecongized objectClass '%s'",
+				"unrecognized objectClass '%s'",
 				ocs[i].bv_val );
 			*text = textbuf;
 			return LDAP_OBJECT_CLASS_VIOLATION;
@@ -515,7 +515,7 @@ int structural_class(
 
 					if( xc == NULL ) {
 						snprintf( textbuf, textlen,
-							"unrecongized objectClass '%s'",
+							"unrecognized objectClass '%s'",
 							ocs[i].bv_val );
 						*text = textbuf;
 						return LDAP_OBJECT_CLASS_VIOLATION;

@@ -256,7 +256,7 @@ int get_ctrls(
 
 		c = find_ctrl( tctrl->ldctl_oid );
 		if( c != NULL ) {
-			/* recongized control */
+			/* recognized control */
 			slap_mask_t tagmask;
 			switch( op->o_tag ) {
 			case LDAP_REQ_ADD:
@@ -319,9 +319,9 @@ int get_ctrls(
 			}
 
 		} else if( tctrl->ldctl_iscritical ) {
-			/* unrecongized CRITICAL control */
+			/* unrecognized CRITICAL control */
 			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-			errmsg = "critical extension is not recongized";
+			errmsg = "critical extension is not recognized";
 			goto return_results;
 		}
 
