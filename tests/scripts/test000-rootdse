@@ -41,7 +41,18 @@ cat $SEARCHOUT
 if test $RC != 0 ; then
 	echo ">>>>> Test failed"
 else
-	echo ">>>>> Test succeeded"
+	if grep PRNG $SEARCHOUT; then
+	    cat << EOF
+
+You need a pseudo random number generator, such as a /dev/urandom,
+/dev/urandom, or an entropy gathering daemon.  Alternatively, you
+can use openssl to generate a $HOME/.rnd file.
+See www.openssl.org for more details on how to do this.
+EOF
+	RC=-1
+	else
+	    echo ">>>>> Test succeeded"
+	fi
 fi
 
 
