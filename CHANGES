@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_2
 	Fixed ud cp == NULL bug (ITS#48)
 	Fixed ldbm Berkeley DB 2.4 mp_pool init problem (ITS#156)
 	Fixed slapd modrdn (ITS#78, #153)
