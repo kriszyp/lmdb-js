@@ -1296,6 +1296,9 @@ static int parseLDAPsync (
 	ber_int_t mode;
 	ber_len_t len;
 	struct slap_session_entry *se;
+	struct berval cookie = BER_BVNULL;
+	syncrepl_state *sr;
+	int rhint = 0;
 
 	if ( op->o_sync != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "Sync control specified multiple times";
@@ -1351,16 +1354,13 @@ static int parseLDAPsync (
 	tag = ber_peek_tag( ber, &len );
 
 	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
-		struct berval tmp_bv;	
-		if (( ber_scanf( ber, /*{*/ "o", &tmp_bv )) == LBER_ERROR ) {
+		if (( ber_scanf( ber, /*{*/ "o", &cookie )) == LBER_ERROR ) {
 			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
-		ber_bvarray_add( &op->o_sync_state.octet_str, &tmp_bv );
-		slap_parse_sync_cookie( &op->o_sync_state );
 	}
 	if ( tag == LDAP_TAG_RELOAD_HINT ) {
-		if (( ber_scanf( ber, /*{*/ "b", &op->o_sync_rhint )) == LBER_ERROR ) {
+		if (( ber_scanf( ber, /*{*/ "b", &rhint )) == LBER_ERROR ) {
 			rs->sr_text = "Sync control : rhint decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
@@ -1369,6 +1369,14 @@ static int parseLDAPsync (
 			rs->sr_text = "Sync control : decoding error";
 			return LDAP_PROTOCOL_ERROR;
 	}
+	sr = op->o_tmpcalloc( 1, sizeof(struct syncrepl_state), op->o_tmpmemctx );
+	sr->sr_rhint = rhint;
+	if (!BER_BVISNULL(&cookie)) {
+		ber_bvarray_add( &sr->sr_state.octet_str, &cookie );
+		slap_parse_sync_cookie( &sr->sr_state );
+	}
+
+	op->o_controls[slap_cids.sc_LDAPsync] = sr;
 
 	(void) ber_free( ber, 1 );
 

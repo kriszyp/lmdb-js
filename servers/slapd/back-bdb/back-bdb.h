@@ -23,6 +23,8 @@
 
 LDAP_BEGIN_DECL
 
+#undef BDB_PSEARCH
+
 #define DB_VERSION_FULL ((DB_VERSION_MAJOR << 24) | (DB_VERSION_MINOR << 16) | DB_VERSION_PATCH)
 
 #define BDB_SUBENTRIES 1
@@ -175,9 +177,11 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
+#ifdef BDB_PSEARCH
 	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
 	ldap_pvt_thread_rdwr_t bi_pslist_rwlock;
 	LDAP_LIST_HEAD(se, slap_session_entry) bi_session_list;
+#endif
 	int		bi_idl_cache_max_size;
 	int		bi_idl_cache_size;
 	Avlnode		*bi_idl_tree;

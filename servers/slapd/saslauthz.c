@@ -1018,7 +1018,6 @@ exact_match:
 	op.ors_tlimit = SLAP_NO_LIMIT;
 	op.ors_attrs = slap_anlist_no_attrs;
 	op.ors_attrsonly = 1;
-	op.o_sync_slog_size = -1;
 
 	op.o_bd->be_search( &op, &rs );
 
@@ -1184,7 +1183,6 @@ void slap_sasl2dn( Operation *opx,
 	op.ors_tlimit = SLAP_NO_LIMIT;
 	op.ors_attrs = slap_anlist_no_attrs;
 	op.ors_attrsonly = 1;
-	op.o_sync_slog_size = -1;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
 	if( !BER_BVISNULL( &base ) ) {
 		ch_free( base.bv_val );

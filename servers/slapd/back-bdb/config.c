@@ -194,6 +194,7 @@ bdb_db_config(
 		}
 		if ( !( slapMode & SLAP_TOOL_MODE ) )
 			bdb->bi_idl_cache_max_size = atoi( argv[1] );
+#ifdef BDB_PSEARCH
 	} else if ( strcasecmp( argv[0], "sessionlog" ) == 0 ) {
 		int se_id = 0, se_size = 0;
 		struct slap_session_entry *sent;
@@ -234,7 +235,7 @@ bdb_db_config(
 		sent->se_id = se_id;
 		sent->se_size = se_size;
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_session_list, sent, se_link );
-
+#endif /* BDB_PSEARCH */
 	/* anything else */
 	} else {
 		return SLAP_CONF_UNKNOWN;

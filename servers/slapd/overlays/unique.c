@@ -332,7 +332,6 @@ static int unique_search(
 	nop->ors_tlimit	= SLAP_NO_LIMIT;
 	nop->ors_attrs	= slap_anlist_no_attrs;
 	nop->ors_attrsonly = 1;
-	nop->o_sync_slog_size = -1;
 
 	nop->o_req_ndn	= ud->dn;
 	nop->o_ndn = op->o_bd->be_rootndn;

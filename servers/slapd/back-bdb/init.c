@@ -84,11 +84,13 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
+#ifdef BDB_PSEARCH
 	LDAP_LIST_INIT (&bdb->bi_psearch_list);
+	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
+#endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
-	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
@@ -455,7 +457,6 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
-	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 	if ( bdb->bi_idl_cache_max_size ) {
@@ -463,6 +464,8 @@ bdb_db_destroy( BackendDB *be )
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 	}
 
+#ifdef BDB_PSEARCH
+	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ps = LDAP_LIST_FIRST( &bdb->bi_psearch_list );
 
 	if ( ps ) {
@@ -521,6 +524,7 @@ bdb_db_destroy( BackendDB *be )
 			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
 		}
 	}
+#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;
@@ -626,8 +630,10 @@ bdb_back_initialize(
 
 	bi->bi_op_unbind = 0;
 
+#if 0
 	bi->bi_op_abandon = bdb_abandon;
 	bi->bi_op_cancel = bdb_cancel;
+#endif
 
 	bi->bi_extended = bdb_extended;
 

@@ -24,6 +24,7 @@ PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 RWM=${AC_rwm-rwmno}
 UNIQUE=${AC_unique-uniqueno}
+SYNCPROV=${AC_syncprov-syncprovno}
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}

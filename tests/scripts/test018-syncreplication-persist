@@ -21,6 +21,11 @@ fi
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $SYNCPROV = syncprovno; then 
+	echo "Syncrepl provider overlay not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1 $DBDIR4
 
 #

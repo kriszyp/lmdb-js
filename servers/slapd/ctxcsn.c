@@ -159,8 +159,10 @@ slap_get_csn(
 		pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
 		ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
+#if 0
 		if ( op->o_sync_csn.bv_val ) free( op->o_sync_csn.bv_val );
 		ber_dupbv( &op->o_sync_csn, csn );
+#endif
 		pending->ce_csn = ber_dupbv( NULL, csn );
 		pending->ce_connid = op->o_connid;
 		pending->ce_opid = op->o_opid;

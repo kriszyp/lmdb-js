@@ -22,6 +22,7 @@ SRCS = overlays.c \
 	ppolicy.c \
 	refint.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c \
+	syncprov.c \
 	unique.c
 OBJS = overlays.lo \
 	chain.lo \
@@ -32,6 +33,7 @@ OBJS = overlays.lo \
 	ppolicy.lo \
 	refint.lo \
 	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
+	syncprov.lo \
 	unique.lo
 
 LDAP_INCDIR= ../../../include       

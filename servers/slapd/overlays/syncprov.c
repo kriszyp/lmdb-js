@@ -37,6 +37,8 @@ typedef struct syncops {
 	int		s_flags;	/* search status */
 } syncops;
 
+static int	sync_cid;
+
 #define	PS_IS_REFRESHING	0x01
 
 /* Record of which searches matched at premodify step */
@@ -212,9 +214,10 @@ findcsn_cb( Operation *op, SlapReply *rs )
 		if ( sc->sc_private ) {
 			int i;
 			fcsn_cookie *fc = sc->sc_private;
+			syncrepl_state *srs = op->o_controls[sync_cid];
 			Attribute *a = attr_find(rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
-			i = ber_bvcmp( &a->a_vals[0], op->o_sync_state.ctxcsn );
+			i = ber_bvcmp( &a->a_vals[0], srs->sr_state.ctxcsn );
 			if ( i == 0 ) fc->gotmatch = 1;
 			i = ber_bvcmp( &a->a_vals[0], &fc->maxcsn );
 			if ( i > 0 ) {
@@ -294,8 +297,9 @@ syncprov_findcsn( Operation *op, int mode )
 	fcsn_cookie fcookie;
 	fpres_cookie pcookie;
 	int locked = 0;
+	syncrepl_state *srs = op->o_controls[sync_cid];
 
-	if ( op->o_sync_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
+	if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
 		return LDAP_OTHER;
 	}
 
@@ -318,7 +322,7 @@ syncprov_findcsn( Operation *op, int mode )
 			fcookie.maxcsn.bv_val = cbuf;
 			fcookie.maxcsn.bv_len = 0;
 			fcookie.gotmatch = 0;
-			fbuf.bv_len = sprintf( buf, "(entryCSN>=%s)", op->o_sync_state.ctxcsn->bv_val );
+			fbuf.bv_len = sprintf( buf, "(entryCSN>=%s)", srs->sr_state.ctxcsn->bv_val );
 		} else {
 			if ( locked ) {
 				ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
@@ -329,7 +333,7 @@ syncprov_findcsn( Operation *op, int mode )
 			fop.ors_attrs = slap_anlist_no_attrs;
 			fop.ors_slimit = 1;
 			cb.sc_private = NULL;
-			fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)", op->o_sync_state.ctxcsn->bv_val );
+			fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)", srs->sr_state.ctxcsn->bv_val );
 		}
 		cb.sc_response = findcsn_cb;
 
@@ -344,11 +348,11 @@ syncprov_findcsn( Operation *op, int mode )
 		cb.sc_response = findpres_cb;
 		pcookie.num = 0;
 		pcookie.uuids = NULL;
-		fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)", op->o_sync_state.ctxcsn->bv_val );
+		fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)", srs->sr_state.ctxcsn->bv_val );
 	}
 	cf.f_ava = &eq;
 	cf.f_av_desc = slap_schema.si_ad_entryCSN;
-	cf.f_av_value = *op->o_sync_state.ctxcsn;
+	cf.f_av_value = *srs->sr_state.ctxcsn;
 	cf.f_next = NULL;
 
 	fop.o_callback = &cb;
@@ -390,12 +394,13 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	Entry e_uuid = {0};
 	Attribute a_uuid = {0};
 	Operation sop = *so->s_op;
+	syncrepl_state *srs = sop.o_controls[sync_cid];
 
 	sop.o_tmpmemctx = op->o_tmpmemctx;
 
 	ctrls[1] = NULL;
 	slap_compose_sync_cookie( op, &cookie, &opc->sctxcsn,
-		sop.o_sync_state.sid, sop.o_sync_state.rid );
+		srs->sr_state.sid, srs->sr_state.rid );
 
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
@@ -721,14 +726,15 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
 	syncprov_info_t		*si = on->on_bi.bi_private;
+	syncrepl_state *srs = op->o_controls[sync_cid];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
-		if ( op->o_sync_state.ctxcsn ) {
+		if ( srs->sr_state.ctxcsn ) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
 			/* Don't send the ctx entry twice */
-			if ( bvmatch( &a->a_nvals[0], op->o_sync_state.ctxcsn ))
+			if ( bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ))
 				return LDAP_SUCCESS;
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
@@ -741,7 +747,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 		slap_compose_sync_cookie( op, &cookie,
 			&op->ors_filter->f_and->f_ava->aa_value,
-			op->o_sync_state.sid, op->o_sync_state.rid );
+			srs->sr_state.sid, srs->sr_state.rid );
 
 		/* Is this a regular refresh? */
 		if ( !ss->ss_so ) {
@@ -783,6 +789,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	Filter *fand, *fava;
 	syncops *sop = NULL;
 	searchstate *ss;
+	syncrepl_state *srs = op->o_controls[sync_cid];
 
 	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
 
@@ -825,9 +832,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 	/* If we have a cookie, handle the PRESENT lookups
 	 */
-	if ( op->o_sync_state.ctxcsn ) {
+	if ( srs->sr_state.ctxcsn ) {
 		/* Is the CSN in a valid format? */
-		if ( op->o_sync_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
+		if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
 			send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
 			return rs->sr_err;
 		}
@@ -843,7 +850,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		} else {
 			gotstate = 1;
 			/* If just Refreshing and nothing has changed, shortcut it */
-			if ( bvmatch( op->o_sync_state.ctxcsn, &si->si_ctxcsn )) {
+			if ( bvmatch( srs->sr_state.ctxcsn, &si->si_ctxcsn )) {
 				nochange = 1;
 				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
@@ -872,10 +879,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	if ( !gotstate && !si->si_gotcsn ) {
 		struct berval bv = BER_BVC("1"), *old;
 		
-		old = op->o_sync_state.ctxcsn;
-		op->o_sync_state.ctxcsn = &bv;
+		old = srs->sr_state.ctxcsn;
+		srs->sr_state.ctxcsn = &bv;
 		syncprov_findcsn( op, FIND_CSN );
-		op->o_sync_state.ctxcsn = old;
+		srs->sr_state.ctxcsn = old;
 	}
 
 	/* Append CSN range to search filter, save original filter
@@ -900,7 +907,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		fava->f_choice = LDAP_FILTER_GE;
 		fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 		fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
-		ber_dupbv_x( &fava->f_ava->aa_value, op->o_sync_state.ctxcsn, op->o_tmpmemctx );
+		ber_dupbv_x( &fava->f_ava->aa_value, srs->sr_state.ctxcsn, op->o_tmpmemctx );
 	}
 	fava->f_next = op->ors_filter;
 	op->ors_filter = fand;
@@ -986,6 +993,8 @@ syncprov_db_init(
 
 	uuid_anlist[0].an_desc = slap_schema.si_ad_entryUUID;
 	uuid_anlist[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
+
+	sync_cid = slap_cids.sc_LDAPsync;
 
 	return 0;
 }

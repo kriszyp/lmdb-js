@@ -929,13 +929,6 @@ do_syncrepl(
 	op.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op.o_bd = be = si->si_be;
 
-	op.o_sync_state.ctxcsn = NULL;
-	op.o_sync_state.sid = -1;
-	op.o_sync_state.octet_str = NULL;
-	op.o_sync_slog_size = -1;
-	LDAP_STAILQ_FIRST( &op.o_sync_slog_list ) = NULL;
-	op.o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST(&op.o_sync_slog_list);
-
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		first = 1;
@@ -1298,6 +1291,7 @@ syncrepl_entry(
 	if ( rs_search.sr_err == LDAP_SUCCESS &&
 		 !BER_BVISNULL( &si->si_syncUUID_ndn ))
 	{
+#if 0
 		char *subseq_ptr;
 
 		if ( syncstate != LDAP_SYNC_DELETE ) {
@@ -1310,6 +1304,7 @@ syncrepl_entry(
 			subseq_ptr += 4;
 			*subseq_ptr = '1';
 		}
+#endif
 		
 		op->o_req_dn = si->si_syncUUID_ndn;
 		op->o_req_ndn = si->si_syncUUID_ndn;
@@ -1350,7 +1345,9 @@ syncrepl_entry(
 		op->o_req_ndn = org_req_ndn;
 		op->o_delete_glue_parent = 0;
 
+#if 0
 		op->o_no_psearch = 0;
+#endif
 	}
 
 	switch ( syncstate ) {

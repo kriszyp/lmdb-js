@@ -419,6 +419,7 @@ retry:	/* transaction retry */
 			suffix_ei = BEI(e);
 		}
 
+#ifdef BDB_PSEARCH
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
@@ -441,6 +442,7 @@ retry:	/* transaction retry */
 			}
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
+#endif
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";

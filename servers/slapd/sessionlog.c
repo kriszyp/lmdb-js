@@ -26,6 +26,7 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
+#if 0
 int
 slap_send_session_log(
 	Operation *op,
@@ -131,3 +132,4 @@ slap_add_session_log(
 
 	return LDAP_SUCCESS;
 }
+#endif

@@ -47,6 +47,9 @@ extern int refint_init();
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 extern int rwm_init();
 #endif
+#if SLAPD_OVER_SYNCPROV == SLAPD_MOD_STATIC
+extern int syncprov_init();
+#endif
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
 extern int unique_init();
 #endif
@@ -78,6 +81,9 @@ static struct {
 #endif
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 	{ "Rewrite/Remap", rwm_init },
+#endif
+#if SLAPD_OVER_SYNCPROV == SLAPD_MOD_STATIC
+	{ "Syncrepl Provider", syncprov_init },
 #endif
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
 	{ "Attribute Uniqueness", unique_init },

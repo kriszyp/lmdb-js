@@ -377,6 +377,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef BDB_PSEARCH
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 	LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 		rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREDELETE );
@@ -390,6 +391,7 @@ retry:	/* transaction retry */
 		}
 	}
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
+#endif
 
 	/* delete from dn2id */
 	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
@@ -509,6 +511,7 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 
+#ifdef BDB_PSEARCH
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei,
@@ -543,6 +546,7 @@ retry:	/* transaction retry */
 			}
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
+#endif
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}

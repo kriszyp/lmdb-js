@@ -2045,7 +2045,6 @@ aci_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	op2.ors_tlimit = SLAP_NO_LIMIT;
 	op2.ors_attrs = anlistp;
 	op2.ors_attrsonly = 0;
-	op2.o_sync_slog_size = -1;
 
 	cb.sc_private = &p;
 

@@ -557,7 +557,6 @@ refint_response(
 	/* no attrs! */
 	nop.ors_attrs = slap_anlist_no_attrs;
 	nop.ors_attrsonly = 1;
-	nop.o_sync_slog_size = -1;
 
 	nop.o_req_ndn = id->dn;
 	nop.o_req_dn = id->dn;

@@ -701,7 +701,7 @@
 /* define if you have winsock2 */
 #undef HAVE_WINSOCK2
 
-/* define if you have epoll */
+/* define if your system supports epoll */
 #undef HAVE_EPOLL
 
 /* define if sys_errlist is not declared in stdio.h or errno.h */
@@ -1057,6 +1057,9 @@
 
 /* define for Rewrite/Remap overlay */
 #undef SLAPD_OVER_RWM
+
+/* define for Syncrepl Provider overlay */
+#undef SLAPD_OVER_SYNCPROV
 
 /* define for Attribute Uniqueness overlay */
 #undef SLAPD_OVER_UNIQUE

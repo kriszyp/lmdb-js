@@ -225,9 +225,11 @@ return_results:;
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
 		return rs->sr_err;
 	}
+#if 0
 	if ( ( op->o_sync_slog_size != -1 ) ) {
 		return rs->sr_err;
 	}
+#endif
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	}

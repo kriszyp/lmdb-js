@@ -307,6 +307,7 @@ retry:	/* transaction retry */
 		Debug(LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_modify) ": retrying...\n", 0, 0, 0);
 
+#ifdef BDB_PSEARCH
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -314,6 +315,7 @@ retry:	/* transaction retry */
 			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
 		}
+#endif
 
 		rs->sr_err = TXN_ABORT( ltid );
 		ltid = NULL;
@@ -445,6 +447,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef BDB_PSEARCH
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -461,6 +464,7 @@ retry:	/* transaction retry */
 		}
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 	}
+#endif
 
 	if( op->o_preread ) {
 		if( preread_ctrl == NULL ) {
@@ -575,6 +579,7 @@ retry:	/* transaction retry */
 		}
 		dummy.e_attrs = NULL;
 
+#ifdef BDB_PSEARCH
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
@@ -613,6 +618,7 @@ retry:	/* transaction retry */
 			}
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
+#endif
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
@@ -653,6 +659,7 @@ return_results:
 
 done:
 	if( ltid != NULL ) {
+#ifdef BDB_PSEARCH
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -660,6 +667,7 @@ done:
 			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
 		}
+#endif
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}

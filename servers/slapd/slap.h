@@ -1157,7 +1157,7 @@ typedef struct slap_authz_info {
 } AuthorizationInformation;
 
 
-#ifdef LDAP_DEVEL
+#if 0 /* LDAP_DEVEL */
 #define SLAP_DYNACL
 #endif /* LDAP_DEVEL */
 
@@ -2132,6 +2132,10 @@ struct slap_control_ids {
 	int sc_LDAPsync;
 };
 
+typedef struct syncrepl_state {
+	struct sync_cookie sr_state;
+	int sr_rhint;
+} syncrepl_state;
 /*
  * represents an operation pending from an ldap client
  */
@@ -2303,6 +2307,7 @@ typedef struct slap_op {
 #define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
 #define SLAP_SYNC_PERSIST				(LDAP_SYNC_RESERVED<<SLAP_CONTROL_SHIFT)
 #define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
+#ifdef BDB_PSEARCH
 	struct sync_cookie	o_sync_state;
 	int					o_sync_rhint;
 	struct berval		o_sync_cid;
@@ -2323,6 +2328,7 @@ typedef struct slap_op {
 	Avlnode *o_psearch_finished;
 	struct pc_entry *o_ps_send_wait;
 	ldap_pvt_thread_mutex_t	o_pcmutex;
+#endif
 
 	AuthorizationInformation o_authz;
 

@@ -13,13 +13,13 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
+
+if test $SYNCPROV = syncprovno; then 
+	echo "Syncrepl provider overlay not available, test skipped"
+	exit 0
+fi 
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 

@@ -89,8 +89,6 @@ slap_op_free( Operation *op )
 	}
 #endif
 
-	slap_sync_cookie_free( &op->o_sync_state, 0 );
-
 	{
 		GroupAssertion *g, *n;
 		for (g = op->o_groups; g; g=n) {
@@ -107,18 +105,22 @@ slap_op_free( Operation *op )
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-	if ( op->o_sync_csn.bv_val != NULL ) {
-		ch_free( op->o_sync_csn.bv_val );
-	}
 
 	controls = op->o_controls;
 	memset( controls, 0, sizeof(void *) * SLAP_MAX_CIDS );
 	memset( op, 0, sizeof(Operation) );
 	op->o_controls = controls;
 
+#if 0
+	slap_sync_cookie_free( &op->o_sync_state, 0 );
+	if ( op->o_sync_csn.bv_val != NULL ) {
+		ch_free( op->o_sync_csn.bv_val );
+	}
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
 	op->o_sync_state.rid = -1;
+#endif
+
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &slap_free_ops, op, o_next );
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
@@ -154,11 +156,13 @@ slap_op_alloc(
 	op->o_opid = id;
 	op->o_res_ber = NULL;
 
+#if 0
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
 	op->o_sync_state.rid = -1;
 	LDAP_STAILQ_FIRST( &op->o_sync_slog_list ) = NULL;
 	op->o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST( &op->o_sync_slog_list );
+#endif
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {
