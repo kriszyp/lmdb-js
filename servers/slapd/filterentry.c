@@ -154,6 +154,9 @@ static int test_mra_filter(
 	Attribute	*a;
 	void		*memctx;
 	BER_MEMFREE_FN	*memfree;
+#ifdef LDAP_COMP_MATCH
+	int i, num_attr_vals;
+#endif
 
 	if ( op == NULL ) {
 		memctx = NULL;
@@ -198,15 +201,23 @@ static int test_mra_filter(
 			if( mra->ma_cf &&
 				mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
 			{
-				int ret;
-				int rc;
-				const char *text;
 
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					(struct berval *)a,(void*) mra , &text );
-				if ( rc != LDAP_SUCCESS ) return rc;
-				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
-				else return LDAP_COMPARE_FALSE;
+				num_attr_vals = 0;
+				if ( !a->a_comp_data ) {
+					for ( ; a->a_vals[num_attr_vals].bv_val != NULL; num_attr_vals++ );
+					if ( num_attr_vals <= 0 )/* no attribute value */
+						return LDAP_INAPPROPRIATE_MATCHING;
+					num_attr_vals++;
+
+					/* following malloced will be freed by comp_tree_free () */
+					a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr_vals );
+
+					if ( !a->a_comp_data )
+						return LDAP_NO_MEMORY;
+					a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)((char*)a->a_comp_data + sizeof(ComponentData));
+					a->a_comp_data->cd_tree[ num_attr_vals - 1] = (ComponentSyntaxInfo*)NULL;
+					a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
+				}
 			}
 #endif
 
@@ -218,14 +229,31 @@ static int test_mra_filter(
 			} else {
 				bv = a->a_vals;
 			}
-
+#ifdef LDAP_COMP_MATCH
+			i = 0;
+#endif
 			for ( ; bv->bv_val != NULL; bv++ ) {
 				int ret;
 				int rc;
 				const char *text;
 	
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					bv, &mra->ma_value, &text );
+#ifdef LDAP_COMP_MATCH
+				if( mra->ma_cf &&
+					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+					/* Check if decoded component trees are already linked */
+					if ( num_attr_vals )
+						a->a_comp_data->cd_tree[i] = attr_converter (a, a->a_desc->ad_type->sat_syntax, bv);
+					/* decoding error */
+					if ( !a->a_comp_data->cd_tree[i] )
+						return LDAP_OPERATIONS_ERROR;
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						(struct berval*)a->a_comp_data->cd_tree[i++], (void*)mra, &text );
+				} else 
+#endif
+				{
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						bv, &mra->ma_value, &text );
+				}
 
 				if( rc != LDAP_SUCCESS ) return rc;
 				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
