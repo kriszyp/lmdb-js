@@ -18,7 +18,7 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $PASSWDCONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $PASSWDCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd searching..."
