@@ -51,6 +51,7 @@ int at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
 int at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
 int at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
 int at_fake_if_needed LDAP_P(( char *name ));
+int at_schema_info LDAP_P(( Entry *e ));
 
 /*
  * ava.c
@@ -237,6 +238,7 @@ void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
 int oc_schema_check LDAP_P(( Entry *e ));
 ObjectClass *oc_find LDAP_P((char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, char **err));
+void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
 
 
 /*
@@ -322,7 +324,6 @@ extern ldap_pvt_thread_mutex_t	crypt_mutex;
 extern ldap_pvt_thread_mutex_t	gmtime_mutex;
 
 extern struct acl		*global_acl;
-extern ObjectClass		*global_oc;
 
 extern int	slap_init LDAP_P((int mode, char* name));
 extern int	slap_startup LDAP_P((int dbnum));

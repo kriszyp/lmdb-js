@@ -122,7 +122,7 @@ do_search(
 #endif
 #if defined( SLAPD_SCHEMA_DN )
 		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
-			schema_info( conn, op );
+			schema_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif

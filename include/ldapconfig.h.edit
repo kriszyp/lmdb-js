@@ -226,6 +226,6 @@ Please try again later.\r\n"
 	/* dn of the special "config" entry */
 #define SLAPD_CONFIG_DN			"CN=CONFIG"
 	/* dn of the special "schema" entry */
-/* #define SLAPD_SCHEMA_DN			"CN=SCHEMA" */
+#define SLAPD_SCHEMA_DN			"CN=SCHEMA"
 
 #endif /* _LDAP_CONFIG_H */

@@ -46,7 +46,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 #if defined( SLAPD_SCHEMA_DN )
 	val.bv_val = ch_strdup( SLAPD_SCHEMA_DN );
-	val.bv_len = strlen( va.bv_val );
+	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "subschemaSubentry", vals );
 	ldap_memfree( val.bv_val );
 #endif

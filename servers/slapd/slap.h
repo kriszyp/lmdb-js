@@ -234,6 +234,20 @@ typedef struct slap_attribute_type {
 	int				sat_syntax_compat;
 	struct slap_attribute_type	*sat_next;
 } AttributeType;
+#define sat_oid			sat_atype.at_oid
+#define sat_names		sat_atype.at_names
+#define sat_desc		sat_atype.at_desc
+#define sat_obsolete		sat_atype.at_obsolete
+#define sat_sup_oid		sat_atype.at_sup_oid
+#define sat_equality_oid	sat_atype.at_equality_oid
+#define sat_ordering_oid	sat_atype.at_ordering_oid
+#define sat_substr_oid		sat_atype.at_substr_oid
+#define sat_syntax_oid		sat_atype.at_syntax_oid
+#define sat_syntax_len		sat_atype.at_syntax_len
+#define sat_single_value	sat_atype.at_single_value
+#define sat_collective		sat_atype.at_collective
+#define sat_no_user_mods	sat_atype.at_no_user_mods
+#define sat_usage		sat_atype.at_usage
 
 typedef struct slap_object_class {
 	LDAP_OBJECT_CLASS		soc_oclass;
@@ -242,6 +256,14 @@ typedef struct slap_object_class {
 	AttributeType			**soc_allowed;
 	struct slap_object_class	*soc_next;
 } ObjectClass;
+#define soc_oid			soc_oclass.oc_oid
+#define soc_names		soc_oclass.oc_names
+#define soc_desc		soc_oclass.oc_desc
+#define soc_obsolete		soc_oclass.oc_obsolete
+#define soc_sup_oids		soc_oclass.oc_sup_oids
+#define soc_kind		soc_oclass.oc_kind
+#define soc_at_oids_must	soc_oclass.oc_at_oids_must
+#define soc_at_oids_may		soc_oclass.oc_at_oids_may
 
 /*
  * Backend-info

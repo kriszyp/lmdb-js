@@ -7,6 +7,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "ldapconfig.h"
 #include "slap.h"
 
 static char *	oc_check_required(Entry *e, char *ocname);
@@ -88,11 +89,11 @@ oc_check_required( Entry *e, char *ocname )
 		at = oc->soc_required[i];
 		/* see if it's in the entry */
 		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			if ( at->sat_atype.at_oid &&
-			     strcmp( a->a_type, at->sat_atype.at_oid ) == 0 ) {
+			if ( at->sat_oid &&
+			     strcmp( a->a_type, at->sat_oid ) == 0 ) {
 				break;
 			}
-			pp = at->sat_atype.at_names;
+			pp = at->sat_names;
 			if ( pp  == NULL ) {
 				/* Empty name list => not found */
 				a = NULL;
@@ -110,11 +111,10 @@ oc_check_required( Entry *e, char *ocname )
 		}
 		/* not there => schema violation */
 		if ( a == NULL ) {
-			if ( at->sat_atype.at_names &&
-			     at->sat_atype.at_names[0] ) {
-				return at->sat_atype.at_names[0];
+			if ( at->sat_names && at->sat_names[0] ) {
+				return at->sat_names[0];
 			} else {
-				return at->sat_atype.at_oid;
+				return at->sat_oid;
 			}
 		}
 	}
@@ -164,11 +164,11 @@ oc_check_allowed( char *type, struct berval **ocl )
 			for ( j = 0; oc->soc_required != NULL && 
 				oc->soc_required[j] != NULL; j++ ) {
 				at = oc->soc_required[j];
-				if ( at->sat_atype.at_oid &&
-				     strcmp(at->sat_atype.at_oid, type ) == 0 ) {
+				if ( at->sat_oid &&
+				     strcmp(at->sat_oid, type ) == 0 ) {
 					return( 0 );
 				}
-				pp = at->sat_atype.at_names;
+				pp = at->sat_names;
 				if ( pp == NULL )
 					continue;
 				while ( *pp ) {
@@ -182,11 +182,11 @@ oc_check_allowed( char *type, struct berval **ocl )
 			for ( j = 0; oc->soc_allowed != NULL && 
 				oc->soc_allowed[j] != NULL; j++ ) {
 				at = oc->soc_allowed[j];
-				if ( at->sat_atype.at_oid &&
-				     strcmp(at->sat_atype.at_oid, type ) == 0 ) {
+				if ( at->sat_oid &&
+				     strcmp(at->sat_oid, type ) == 0 ) {
 					return( 0 );
 				}
-				pp = at->sat_atype.at_names;
+				pp = at->sat_names;
 				if ( pp == NULL )
 					continue;
 				while ( *pp ) {
@@ -215,7 +215,7 @@ struct oindexrec {
 };
 
 static Avlnode	*oc_index = NULL;
-static AttributeType *oc_list = NULL;
+static ObjectClass *oc_list = NULL;
 
 static int
 oc_index_cmp(
@@ -360,16 +360,15 @@ oc_add_sups(
 			if ( add_sups )
 				soc->soc_sups[nsups] = soc1;
 
-			code = oc_add_sups(soc,soc1->soc_oclass.oc_sup_oids,
-					   err);
+			code = oc_add_sups(soc,soc1->soc_sup_oids, err);
 			if ( code )
 				return code;
 			
 			if ( code = oc_create_required(soc,
-				soc1->soc_oclass.oc_at_oids_must,err) )
+				soc1->soc_at_oids_must,err) )
 				return code;
 			if ( code = oc_create_allowed(soc,
-				soc1->soc_oclass.oc_at_oids_may,err) )
+				soc1->soc_at_oids_may,err) )
 				return code;
 			nsups++;
 			sups1++;
@@ -388,28 +387,28 @@ oc_insert(
 	struct oindexrec	*oir;
 	char			**names;
 
-	ocp = &global_oc;
+	ocp = &oc_list;
 	while ( *ocp != NULL ) {
 		ocp = &(*ocp)->soc_next;
 	}
 	*ocp = soc;
 
-	if ( soc->soc_oclass.oc_oid ) {
+	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
 			ch_calloc( 1, sizeof(struct oindexrec) );
-		oir->oir_name = soc->soc_oclass.oc_oid;
+		oir->oir_name = soc->soc_oid;
 		oir->oir_oc = soc;
 		if ( avl_insert( &oc_index, (caddr_t) oir,
 				 (AVL_CMP) oc_index_cmp,
 				 (AVL_DUP) avl_dup_error ) ) {
-			*err = soc->soc_oclass.oc_oid;
+			*err = soc->soc_oid;
 			ldap_memfree(oir);
 			return SLAP_SCHERR_DUP_CLASS;
 		}
 		/* FIX: temporal consistency check */
 		oc_find(oir->oir_name);
 	}
-	if ( (names = soc->soc_oclass.oc_names) ) {
+	if ( (names = soc->soc_names) ) {
 		while ( *names ) {
 			oir = (struct oindexrec *)
 				ch_calloc( 1, sizeof(struct oindexrec) );
@@ -441,15 +440,87 @@ oc_add(
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS));
-	if ( code = oc_add_sups(soc,soc->soc_oclass.oc_sup_oids,err) )
+	if ( code = oc_add_sups(soc,soc->soc_sup_oids,err) )
 		return code;
-	if ( code = oc_create_required(soc,soc->soc_oclass.oc_at_oids_must,err) )
+	if ( code = oc_create_required(soc,soc->soc_at_oids_must,err) )
 		return code;
-	if ( code = oc_create_allowed(soc,soc->soc_oclass.oc_at_oids_may,err) )
+	if ( code = oc_create_allowed(soc,soc->soc_at_oids_may,err) )
 		return code;
 	code = oc_insert(soc,err);
 	return code;
 }
+
+#if defined( SLAPD_SCHEMA_DN )
+
+static int
+oc_schema_info( Entry *e )
+{
+	struct berval	val;
+	struct berval	*vals[2];
+	ObjectClass	*oc;
+
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	for ( oc = oc_list; oc; oc = oc->soc_next ) {
+		val.bv_val = ldap_objectclass2str( &oc->soc_oclass );
+		if ( val.bv_val ) {
+			val.bv_len = strlen( val.bv_val );
+			Debug( LDAP_DEBUG_TRACE, "Merging oc [%d] %s\n",
+			       val.bv_len, val.bv_val, 0 );
+			attr_merge( e, "objectclasses", vals );
+			ldap_memfree( val.bv_val );
+		} else {
+			return -1;
+		}
+	}
+	return 0;
+}
+
+void
+schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
+{
+	Entry		*e;
+	struct berval	val;
+	struct berval	*vals[2];
+
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+
+	e->e_attrs = NULL;
+	e->e_dn = ch_strdup( SLAPD_SCHEMA_DN );
+	e->e_ndn = dn_normalize_case( ch_strdup( SLAPD_SCHEMA_DN ));
+	e->e_private = NULL;
+
+	val.bv_val = ch_strdup( "top" );
+	val.bv_len = strlen( val.bv_val );
+	attr_merge( e, "objectclass", vals );
+	ldap_memfree( val.bv_val );
+
+	val.bv_val = ch_strdup( "subschema" );
+	val.bv_len = strlen( val.bv_val );
+	attr_merge( e, "objectclass", vals );
+	ldap_memfree( val.bv_val );
+
+	if ( at_schema_info( e ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		return;
+	}
+	if ( oc_schema_info( e ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		return;
+	}
+	
+	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
+	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
+
+	entry_free( e );
+}
+#endif
 
 #ifdef LDAP_DEBUG
 
@@ -458,10 +529,10 @@ oc_print( ObjectClass *oc )
 {
 	int	i;
 
-	if ( oc->soc_oclass.oc_names && oc->soc_oclass.oc_names[0] ) {
-		printf( "objectclass %s\n", oc->soc_oclass.oc_names[0] );
+	if ( oc->soc_names && oc->soc_names[0] ) {
+		printf( "objectclass %s\n", oc->soc_names[0] );
 	} else {
-		printf( "objectclass %s\n", oc->soc_oclass.oc_oid );
+		printf( "objectclass %s\n", oc->soc_oid );
 	}
 	if ( oc->soc_required != NULL ) {
 		printf( "\trequires %s", oc->soc_required[0] );

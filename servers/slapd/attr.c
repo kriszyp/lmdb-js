@@ -20,6 +20,7 @@
 
 #include <sys/stat.h>
 
+#include "ldapconfig.h"
 #include "slap.h"
 
 #ifdef LDAP_DEBUG
@@ -488,22 +489,22 @@ at_insert(
 	}
 	*atp = sat;
 
-	if ( sat->sat_atype.at_oid ) {
+	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
 			ch_calloc( 1, sizeof(struct aindexrec) );
-		air->air_name = sat->sat_atype.at_oid;
+		air->air_name = sat->sat_oid;
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
 				 (AVL_CMP) attr_index_cmp,
 				 (AVL_DUP) avl_dup_error ) ) {
-			*err = sat->sat_atype.at_oid;
+			*err = sat->sat_oid;
 			ldap_memfree(air);
 			return SLAP_SCHERR_DUP_ATTR;
 		}
 		/* FIX: temporal consistency check */
 		at_find(air->air_name);
 	}
-	if ( (names = sat->sat_atype.at_names) ) {
+	if ( (names = sat->sat_names) ) {
 		while ( *names ) {
 			air = (struct aindexrec *)
 				ch_calloc( 1, sizeof(struct aindexrec) );
@@ -577,6 +578,34 @@ at_add(
 	code = at_insert(sat,err);
 	return code;
 }
+
+#if defined( SLAPD_SCHEMA_DN )
+
+int
+at_schema_info( Entry *e )
+{
+	struct berval	val;
+	struct berval	*vals[2];
+	AttributeType	*at;
+
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	for ( at = attr_list; at; at = at->sat_next ) {
+		val.bv_val = ldap_attributetype2str( &at->sat_atype );
+		if ( val.bv_val ) {
+			val.bv_len = strlen( val.bv_val );
+			Debug( LDAP_DEBUG_TRACE, "Merging at [%d] %s\n",
+			       val.bv_len, val.bv_val, 0 );
+			attr_merge( e, "attributeTypes", vals );
+			ldap_memfree( val.bv_val );
+		} else {
+			return -1;
+		}
+	}
+	return 0;
+}
+#endif
 
 #ifdef LDAP_DEBUG
 

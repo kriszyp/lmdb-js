@@ -10,10 +10,8 @@
 #include "slap.h"
 #include "ldap_schema.h"
 
-ObjectClass 		*global_oc;
 static Avlnode		*object_classes = NULL;
 
-AttributeType		*global_at;
 int	global_schemacheck = 1; /* schemacheck on is default */
 
 static void		oc_usage_old(void);
