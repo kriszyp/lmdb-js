@@ -17,7 +17,7 @@ ldap_scherr2str \- Schema definition handling routines
 #include <ldap.h>
 .LP
 .ft B
-LDAP_SYNTAX * ldap_str2syntax(s, code, errp, flags)
+LDAPSyntax * ldap_str2syntax(s, code, errp, flags)
 .ft
 const char * s;
 int * code;
@@ -27,20 +27,20 @@ const int flags;
 .ft B
 char * ldap_syntax2str(syn)
 .ft
-const LDAP_SYNTAX * syn;
+const LDAPSyntax * syn;
 .LP
 .ft B
 const char * ldap_syntax2name(syn)
 .ft
-LDAP_SYNTAX * syn;
+LDAPSyntax * syn;
 .LP
 .ft B
 ldap_syntax_free(syn)
 .ft
-LDAP_SYNTAX * syn;
+LDAPSyntax * syn;
 .LP
 .ft B
-LDAP_MATCHING_RULE * ldap_str2matchingrule(s, code, errp, flags)
+LDAPMatchingRule * ldap_str2matchingrule(s, code, errp, flags)
 .ft
 const char * s;
 int * code;
@@ -50,20 +50,20 @@ const int flags;
 .ft B
 char * ldap_matchingrule2str(mr);
 .ft
-const LDAP_MATCHING_RULE * mr;
+const LDAPMatchingRule * mr;
 .LP
 .ft B
 const char * ldap_matchingrule2name(mr)
 .ft
-LDAP_MATCHING_RULE * mr;
+LDAPMatchingRule * mr;
 .LP
 .ft B
 ldap_matchingrule_free(mr)
 .ft
-LDAP_MATCHING_RULE * mr;
+LDAPMatchingRule * mr;
 .LP
 .ft B
-LDAP_ATTRIBUTE_TYPE * ldap_str2attributetype(s, code, errp, flags)
+LDAPAttributeType * ldap_str2attributetype(s, code, errp, flags)
 .ft
 const char * s;
 int * code;
@@ -73,20 +73,20 @@ const int flags;
 .ft B
 char * ldap_attributetype2str(at)
 .ft
-const LDAP_ATTRIBUTE_TYPE * at;
+const LDAPAttributeType * at;
 .LP
 .ft B
 const char * ldap_attributetype2name(at)
 .ft
-LDAP_ATTRIBUTE_TYPE * at;
+LDAPAttributeType * at;
 .LP
 .ft B
 ldap_attributetype_free(at)
 .ft
-LDAP_ATTRIBUTE_TYPE * at;
+LDAPAttributeType * at;
 .LP
 .ft B
-LDAP_OBJECT_CLASS * ldap_str2objectclass(s, code, errp, flags)
+LDAPObjectClass * ldap_str2objectclass(s, code, errp, flags)
 .ft
 const char * s;
 int * code;
@@ -96,17 +96,17 @@ const int flags;
 .ft B
 char * ldap_objectclass2str(oc)
 .ft
-const LDAP_OBJECT_CLASS * oc;
+const LDAPObjectClass * oc;
 .LP
 .ft B
 const char * ldap_objectclass2name(oc)
 .ft
-LDAP_OBJECT_CLASS * oc;
+LDAPObjectClass * oc;
 .LP
 .ft B
 ldap_objectclass_free(oc)
 .ft
-LDAP_OBJECT_CLASS * oc;
+LDAPObjectClass * oc;
 .LP
 .ft B
 char * ldap_scherr2str(code)
@@ -168,18 +168,18 @@ The structures returned are as follows:
 .RS
 .nf
 .ne 7
-.ta 8n 16n 32 n
+.ta 8n 16n 32n
 typedef struct ldap_schema_extension_item {
 	char *lsei_name;	/* Extension name */
 	char **lsei_values;	/* Extension values */
-} LDAP_SCHEMA_EXTENSION_ITEM;
+} LDAPSchemaExtensionItem;
 
 typedef struct ldap_syntax {
 	char *syn_oid;		/* OID */
 	char **syn_names;	/* Names */
 	char *syn_desc;		/* Description */
-	LDAP_SCHEMA_EXTENSION_ITEM **syn_extensions; /* Extension */
-} LDAP_SYNTAX;
+	LDAPSchemaExtensionItem **syn_extensions; /* Extension */
+} LDAPSyntax;
 
 typedef struct ldap_matchingrule {
 	char *mr_oid;		/* OID */
@@ -187,8 +187,8 @@ typedef struct ldap_matchingrule {
 	char *mr_desc;		/* Description */
 	int  mr_obsolete;	/* Is obsolete? */
 	char *mr_syntax_oid;	/* Syntax of asserted values */
-	LDAP_SCHEMA_EXTENSION_ITEM **mr_extensions; /* Extensions */
-} LDAP_MATCHING_RULE;
+	LDAPSchemaExtensionItem **mr_extensions; /* Extensions */
+} LDAPMatchingRule;
 
 typedef struct ldap_attributetype {
 	char *at_oid;		/* OID */
@@ -205,8 +205,8 @@ typedef struct ldap_attributetype {
 	int  at_collective;	/* Is collective? */
 	int  at_no_user_mod;	/* Are changes forbidden through LDAP? */
 	int  at_usage;		/* Usage, see below */
-	LDAP_SCHEMA_EXTENSION_ITEM **at_extensions; /* Extensions */
-} LDAP_ATTRIBUTE_TYPE;
+	LDAPSchemaExtensionItem **at_extensions; /* Extensions */
+} LDAPAttributeType;
 
 typedef struct ldap_objectclass {
 	char *oc_oid;		/* OID */
@@ -217,8 +217,8 @@ typedef struct ldap_objectclass {
 	int  oc_kind;		/* Kind, see below */
 	char **oc_at_oids_must;	/* OIDs of required attribute types */
 	char **oc_at_oids_may;	/* OIDs of optional attribute types */
-	LDAP_SCHEMA_EXTENSION_ITEM **oc_extensions; /* Extensions */
-} LDAP_OBJECT_CLASS;
+	LDAPSchemaExtensionItem **oc_extensions; /* Extensions */
+} LDAPObjectClass;
 .ta
 .fi
 .RE
