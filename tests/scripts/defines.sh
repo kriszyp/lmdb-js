@@ -40,7 +40,7 @@ SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 
 CMP="diff -i"
 CMPOUT=/dev/null
-SLAPD=../servers/slapd/slapd
+SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
