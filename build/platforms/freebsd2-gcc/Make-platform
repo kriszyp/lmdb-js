@@ -20,6 +20,8 @@ MANCOMPRESS=gzip
 MANCOMPRESSSUFFIX=.gz
 
 
+# Not sure what PTHREAD different versions of FreeBSD have, if any.
+# Use Make-common defaults (ie: NO_THREADS)
 #
 # LDAP has a problem with the idea of implicit vs. explicit yields
 # in call conversion threading packages, like the MIT pthreads
@@ -29,11 +31,12 @@ MANCOMPRESSSUFFIX=.gz
 # This means that the implicit-yield threading is topologically
 # equivalent to preemptive threading.
 #
-THREADS= -DTHREAD_MIT_PTHREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
-
+# This may work... but then again...
+#
+# THREADS= -DTHREAD_MIT_PTHREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
 # use special gcc flag to include libc_r.a
 # THREADSLIB= -pthread
-THREADSLIB= -lc_r
+# THREADSLIB= -lc_r
 
 # crypt(3) is in a separate library
 LDAP_CRYPT_LIB= -lcrypt
