@@ -35,7 +35,7 @@ static Slapi_PBlock *initSearchPlugin( Backend *be, Connection *conn, Operation 
 	int attrsonly, int managedsait );
 static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
 static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, struct berval *fstr );
-static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
+static void doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
 #endif /* LDAPI_SLAPI */
 
 int
@@ -525,7 +525,7 @@ static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, s
 	return LDAP_SUCCESS;
 }
 
-static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
+static void doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 {
 	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
@@ -536,8 +536,6 @@ static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 				"failed.\n", 0, 0, 0);
 #endif
 	}
-
-	return LDAP_SUCCESS;
 }
 
 void dummy(void)
