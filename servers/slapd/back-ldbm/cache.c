@@ -563,41 +563,11 @@ cache_update_entry(
 	return( 0 );
 }
 
-/*
- * cache_find_entry_dn2id - find an entry in the cache, given dn
- */
-
-ID
-cache_find_entry_dn2id(
-	Backend		*be,
-    Cache	*cache,
-    const char		*dn
-)
-{
-	int rc;
-	struct berval bv;
-	struct berval ndn;
-	ID id;
-
-	bv.bv_val = (char *)dn;
-	bv.bv_len = strlen( dn );
-
-	rc = dnNormalize2( NULL, &bv, &ndn );
-	if( rc != LDAP_SUCCESS ) {
-		return NOID;
-	}
-
-	id = cache_find_entry_ndn2id( be, cache, ndn.bv_val );
-
-	free( ndn.bv_val );
-	return ( id );
-}
-
 ID
 cache_find_entry_ndn2id(
 	Backend		*be,
     Cache	*cache,
-    const char		*ndn
+    struct berval	*ndn
 )
 {
 	Entry		e, *ep;
@@ -605,7 +575,7 @@ cache_find_entry_ndn2id(
 	int count = 0;
 
 	/* this function is always called with normalized DN */
-	e.e_ndn = (char *)ndn;
+	e.e_nname = *ndn;
 
 try_again:
 	/* set cache mutex */

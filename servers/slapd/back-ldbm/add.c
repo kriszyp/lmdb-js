@@ -25,7 +25,7 @@ ldbm_back_add(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*pdn;
+	struct berval	pdn;
 	Entry		*p = NULL;
 	int			rootlock = 0;
 	int			rc;
@@ -45,7 +45,7 @@ ldbm_back_add(
 	/* nobody else can add until we lock our parent */
 	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
 
-	if ( ( rc = dn2id( be, e->e_ndn, &id ) ) || id != NOID ) {
+	if ( ( rc = dn2id( be, &e->e_nname, &id ) ) || id != NOID ) {
 		/* if (rc) something bad happened to ldbm cache */
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 		send_ldap_result( conn, op, 
@@ -80,15 +80,17 @@ ldbm_back_add(
 	 * add the entry.
 	 */
 
-	pdn = dn_parent( be, e->e_ndn );
+	pdn.bv_val = dn_parent( be, e->e_ndn );
+	if (pdn.bv_val && pdn.bv_val[0])
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
+	else
+		pdn.bv_len = 0;
 
-	if( pdn != NULL && *pdn != '\0' ) {
+	if( pdn.bv_len ) {
 		Entry *matched = NULL;
 
-		assert( *pdn != '\0' );
-
 		/* get parent with writer lock */
-		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
+		if ( (p = dn2entry_w( be, &pdn, &matched )) == NULL ) {
 			char *matched_dn = NULL;
 			struct berval **refs;
 
@@ -198,8 +200,8 @@ ldbm_back_add(
 		}
 
 	} else {
-		if(pdn != NULL) {
-			assert( *pdn == '\0' );
+		if(pdn.bv_val != NULL) {
+			assert( *pdn.bv_val == '\0' );
 		}
 
 		/* no parent, must be adding entry to root */
@@ -239,11 +241,11 @@ ldbm_back_add(
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 					   "ldbm_back_add: %s add denied.\n",
-					   pdn == NULL ? "suffix" 
+					   pdn.bv_val == NULL ? "suffix" 
 					   : "entry at root" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
-						pdn == NULL ? "suffix" 
+						pdn.bv_val == NULL ? "suffix" 
 						: "entry at root", 0, 0 );
 #endif
 
@@ -340,7 +342,7 @@ ldbm_back_add(
 	}
 
 	/* dn2id index */
-	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
+	if ( dn2id_add( be, &e->e_nname, e->e_id ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 			   "ldbm_back_add: dn2id_add failed.\n" ));
@@ -367,7 +369,7 @@ ldbm_back_add(
 #endif
 
 		/* FIXME: delete attr indices? */
-		(void) dn2id_delete( be, e->e_ndn, e->e_id );
+		(void) dn2id_delete( be, &e->e_nname, e->e_id );
 		
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "entry store failed", NULL, NULL );

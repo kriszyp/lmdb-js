@@ -89,7 +89,7 @@ ldbm_back_modrdn(
 #endif
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, ndn->bv_val, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval** refs;
 
@@ -159,7 +159,7 @@ ldbm_back_modrdn(
 		 * children.
 		 */
 
-		if( (p = dn2entry_w( be, p_ndn.bv_val, NULL )) == NULL) {
+		if( (p = dn2entry_w( be, &p_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"ldbm_back_modrdn: parent of %s does not exist\n", e->e_ndn ));
@@ -314,7 +314,7 @@ ldbm_back_modrdn(
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 		if ( nnewSuperior->bv_len ) {
-			if( (np = dn2entry_w( be, np_ndn->bv_val, NULL )) == NULL) {
+			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 					"ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn->bv_val ));
@@ -475,7 +475,7 @@ ldbm_back_modrdn(
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if ( ( rc_id = dn2id ( be, new_ndn.bv_val, &id ) ) || id != NOID ) {
+	if ( ( rc_id = dn2id ( be, &new_ndn, &id ) ) || id != NOID ) {
 		/* if (rc_id) something bad happened to ldbm cache */
 		send_ldap_result( conn, op, 
 			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
@@ -712,7 +712,7 @@ ldbm_back_modrdn(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* delete old one */
-	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+	if ( dn2id_delete( be, &e->e_nname, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "DN index delete fail", NULL, NULL );
 		goto return_results;
@@ -731,7 +731,7 @@ ldbm_back_modrdn(
 	new_ndn.bv_val = NULL;
 
 	/* add new one */
-	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
+	if ( dn2id_add( be, &e->e_nname, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "DN index add failed", NULL, NULL );
 		goto return_results;
@@ -748,7 +748,7 @@ ldbm_back_modrdn(
 		}
 
 		/* here we may try to delete the newly added dn */
-		if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+		if ( dn2id_delete( be, &e->e_nname, e->e_id ) != 0 ) {
 			/* we already are in trouble ... */
 			;
 		}

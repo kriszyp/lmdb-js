@@ -27,7 +27,7 @@ ldbm_back_delete(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Entry	*matched;
-	char	*pdn = NULL;
+	struct berval	pdn;
 	Entry	*e, *p = NULL;
 	int rootlock = 0;
 	int	rc = -1;
@@ -42,7 +42,7 @@ ldbm_back_delete(
 #endif
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, ndn->bv_val, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs;
 
@@ -115,8 +115,9 @@ ldbm_back_delete(
 	}
 
 	/* delete from parent's id2children entry */
-	if( (pdn = dn_parent( be, e->e_ndn )) != NULL && pdn[ 0 ] != '\0' ) {
-		if( (p = dn2entry_w( be, pdn, NULL )) == NULL) {
+	if( (pdn.bv_val = dn_parent( be, e->e_ndn )) != NULL && pdn.bv_val[ 0 ] != '\0' ) {
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
+		if( (p = dn2entry_w( be, &pdn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 				"ldbm_back_delete: parent of (%s) does not exist\n", dn ));
@@ -201,7 +202,7 @@ ldbm_back_delete(
 	}
 
 	/* delete from dn2id mapping */
-	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+	if ( dn2id_delete( be, &e->e_nname, e->e_id ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 			"ldbm_back_delete: (%s) operations error\n",

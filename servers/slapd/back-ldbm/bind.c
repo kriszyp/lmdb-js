@@ -54,7 +54,7 @@ ldbm_back_bind(
 	dn = ndn;
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( be, dn->bv_val, &matched )) == NULL ) {
+	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 

@@ -19,7 +19,7 @@
 int
 dn2id_add(
     Backend	*be,
-    const char	*dn,
+    struct berval *dn,
     ID		id
 )
 {
@@ -30,9 +30,9 @@ dn2id_add(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "dn2id_add: (%s):%ld\n", dn, id ));
+		   "dn2id_add: (%s):%ld\n", dn->bv_val, id ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn->bv_val, id, 0 );
 #endif
 
 	assert( id != NOID );
@@ -51,12 +51,12 @@ dn2id_add(
 	}
 
 	ldbm_datum_init( key );
-	key.dsize = strlen( dn ) + 2;
+	key.dsize = dn->bv_len + 2;
 	buf = ch_malloc( key.dsize );
 	key.dptr = buf;
 	buf[0] = DN_BASE_PREFIX;
 	ptr = buf + 1;
-	strcpy( ptr, dn );
+	strcpy( ptr, dn->bv_val );
 
 	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
@@ -118,7 +118,7 @@ dn2id_add(
 int
 dn2id(
     Backend	*be,
-    const char	*dn,
+    struct berval *dn,
     ID          *idp
 )
 {
@@ -128,9 +128,9 @@ dn2id(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "dn2id: (%s)\n", dn ));
+		   "dn2id: (%s)\n", dn->bv_val ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 #endif
 
 	assert( idp );
@@ -167,9 +167,9 @@ dn2id(
 
 	ldbm_datum_init( key );
 
-	key.dsize = strlen( dn ) + 2;
+	key.dsize = dn->bv_len + 2;
 	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn->bv_val );
 
 	data = ldbm_cache_fetch( db, key );
 
@@ -264,7 +264,7 @@ dn2idl(
 int
 dn2id_delete(
     Backend	*be,
-    const char	*dn,
+    struct berval *dn,
 	ID id
 )
 {
@@ -275,9 +275,9 @@ dn2id_delete(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "dn2id_delete: (%s)%ld\n", dn, id ));
+		   "dn2id_delete: (%s)%ld\n", dn->bv_val, id ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn->bv_val, id, 0 );
 #endif
 
 
@@ -298,12 +298,12 @@ dn2id_delete(
 	}
 
 	ldbm_datum_init( key );
-	key.dsize = strlen( dn ) + 2;
+	key.dsize = dn->bv_len + 2;
 	buf = ch_malloc( key.dsize );
 	key.dptr = buf;
 	buf[0] = DN_BASE_PREFIX;
 	ptr = buf + 1;
-	strcpy( ptr, dn );
+	strcpy( ptr, dn->bv_val );
 
 	rc = ldbm_cache_delete( db, key );
 	
@@ -364,22 +364,22 @@ dn2id_delete(
 Entry *
 dn2entry_rw(
     Backend	*be,
-    const char	*dn,
+    struct berval *dn,
     Entry	**matched,
     int		rw
 )
 {
 	ID		id;
 	Entry		*e = NULL;
-	char		*pdn;
+	struct berval	pdn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "dn2entry_rw: %s entry %s\n", rw ? "w" : "r",
-		   dn ));
+		   dn->bv_val ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: \"%s\"\n",
-		rw ? "w" : "r", dn, 0);
+		rw ? "w" : "r", dn->bv_val, 0);
 #endif
 
 
@@ -401,11 +401,11 @@ dn2entry_rw(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 			   "dn2entry_rw: no entry for valid id (%ld), dn (%s)\n",
-			   id, dn ));
+			   id, dn->bv_val ));
 #else
 		Debug(LDAP_DEBUG_ANY,
 			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
-			rw ? "w" : "r", id, dn);
+			rw ? "w" : "r", id, dn->bv_val);
 #endif
 
 		/* must have been deleted from underneath us */
@@ -417,9 +417,10 @@ dn2entry_rw(
 
 	/* entry does not exist - see how much of the dn does exist */
 	/* dn_parent checks returns NULL if dn is suffix */
-	if ( (pdn = dn_parent( be, dn )) != NULL ) {
+	if ( (pdn.bv_val = dn_parent( be, dn->bv_val )) != NULL && *pdn.bv_val ) {
+		pdn.bv_len = dn->bv_len - (pdn.bv_val - dn->bv_val);
 		/* get entry with reader lock */
-		if ( (e = dn2entry_r( be, pdn, matched )) != NULL ) {
+		if ( (e = dn2entry_r( be, &pdn, matched )) != NULL ) {
 			*matched = e;
 		}
 	}

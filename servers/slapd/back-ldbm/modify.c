@@ -268,7 +268,7 @@ ldbm_back_modify(
 
 
 	/* acquire and lock entry */
-	if ( (e = dn2entry_w( be, ndn->bv_val, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval **refs;
 

@@ -84,7 +84,7 @@ ldbm_back_group(
 
 	} else {
 		/* can we find group entry with reader lock */
-		if ((e = dn2entry_r(be, gr_ndn->bv_val, NULL )) == NULL) {
+		if ((e = dn2entry_r(be, gr_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"ldbm_back_group: cannot find group (%s)\n",

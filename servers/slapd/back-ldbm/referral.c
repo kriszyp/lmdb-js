@@ -39,7 +39,7 @@ ldbm_back_referrals(
 	} 
 
 	/* get entry with reader lock */
-	e = dn2entry_r( be, ndn->bv_val, &matched );
+	e = dn2entry_r( be, ndn, &matched );
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;

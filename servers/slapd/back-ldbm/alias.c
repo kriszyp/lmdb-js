@@ -14,19 +14,21 @@
 #include "proto-back-ldbm.h"
 
 
-static char* get_alias_dn(
+static int get_alias_dn(
 	Entry *e,
+	struct berval *al,
 	int *err,
 	const char **errmsg );
 
-static char* new_superior(
-	const char *dn,
-	const char *oldSup,
-	const char *newSup );
+static void new_superior(
+	struct berval *dn,
+	struct berval *oldSup,
+	struct berval *newSup,
+	struct berval *res );
 
 static int dnlist_subordinate(
-	char** dnlist,
-	const char *dn );
+	BVarray dnlist,
+	struct berval *dn );
 
 Entry *deref_internal_r(
 	Backend*	be,
@@ -36,12 +38,12 @@ Entry *deref_internal_r(
 	Entry**		matched,
 	const char**		text )
 {
-	char *dn;
+	struct berval dn;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	Entry *entry;
 	Entry *sup;
 	unsigned depth;
-	char **dnlist;
+	BVarray dnlist;
 
 	assert( ( alias != NULL && dn_in == NULL )
 		|| ( alias == NULL && dn_in != NULL ) );
@@ -51,22 +53,22 @@ Entry *deref_internal_r(
 	*text = NULL;
 
 	if( alias == NULL ) {
-		dn = ch_strdup( dn_in->bv_val );
-		entry = dn2entry_r( be, dn, &sup );
+		ber_dupbv( &dn, dn_in );
+		entry = dn2entry_r( be, &dn, &sup );
 
 	} else {
-		dn = ch_strdup( alias->e_ndn );
+		ber_dupbv( &dn, &alias->e_nname );
 		entry = alias;
 		sup = NULL;
 	}
 
 	dnlist = NULL;
-	charray_add( &dnlist, dn );
+	bvarray_add( &dnlist, &dn );
 
 	for( depth=0 ; ; depth++ ) {
 		if( entry != NULL ) {
 			Entry *newe;
-			char *aliasDN;
+			struct berval aliasDN;
 
 			/* have entry, may be an alias */
 
@@ -85,17 +87,15 @@ Entry *deref_internal_r(
 			}
 
 			/* deref entry */
-			aliasDN = get_alias_dn( entry, err, text );
-
-			if( aliasDN == NULL ) {
+			if( get_alias_dn( entry, &aliasDN, err, text )) {
 				*matched = entry;
 				entry = NULL;
 				break;
 			}
 
 			/* check if aliasDN is a subordinate of any DN in our list */
-			if( dnlist_subordinate( dnlist, aliasDN ) ) {
-				ch_free( aliasDN );
+			if( dnlist_subordinate( dnlist, &aliasDN ) ) {
+				ch_free( aliasDN.bv_val );
 				*matched = entry;
 				entry = NULL;
 				*err = LDAP_ALIAS_PROBLEM;
@@ -105,15 +105,15 @@ Entry *deref_internal_r(
 
 			/* attempt to dereference alias */
 
-			newe = dn2entry_r( be, aliasDN, &sup );
-			ch_free( aliasDN );
+			newe = dn2entry_r( be, &aliasDN, &sup );
+			ch_free( aliasDN.bv_val );
 
 			if( newe != NULL ) {
-				free( dn );
+				free( dn.bv_val );
 				cache_return_entry_r(&li->li_cache, entry );
 				entry = newe;
-				dn = ch_strdup( entry->e_ndn );
-				charray_add( &dnlist, dn );
+				ber_dupbv( &dn, &entry->e_nname );
+				bvarray_add( &dnlist, &dn );
 				continue;
 			}
 			
@@ -130,8 +130,8 @@ Entry *deref_internal_r(
 			/* have superior, may be an alias */
 			Entry *newe;
 			Entry *newSup;
-			char *supDN;
-			char *aliasDN;
+			struct berval supDN;
+			struct berval aliasDN;
 
 			if( !is_entry_alias( sup ) ) {
 				/* entry is not an alias */
@@ -150,27 +150,17 @@ Entry *deref_internal_r(
 			}
 
 			/* deref entry */
-			supDN = get_alias_dn( sup, err, text );
-
-			if( supDN == NULL ) {
+			if( get_alias_dn( sup, &supDN, err, text )) {
 				*matched = sup;
 				break;
 			}
 
-			aliasDN = new_superior( dn, sup->e_ndn, supDN );
-			free(supDN);
-
-			if( aliasDN == NULL ) {
-				free(aliasDN);
-				*matched = sup;
-				*err = LDAP_ALIAS_PROBLEM;
-				*text = "superior alias problem";
-				break;
-			}
+			new_superior( &dn, &sup->e_nname, &supDN, &aliasDN );
+			free(supDN.bv_val);
 
 			/* check if aliasDN is a subordinate of any DN in our list */
-			if( dnlist_subordinate( dnlist, aliasDN ) ) {
-				free(aliasDN);
+			if( dnlist_subordinate( dnlist, &aliasDN ) ) {
+				free(aliasDN.bv_val);
 				*matched = entry;
 				entry = NULL;
 				*err = LDAP_ALIAS_PROBLEM;
@@ -179,24 +169,23 @@ Entry *deref_internal_r(
 			}
 
 			/* attempt to dereference alias */
-			newe = dn2entry_r( be, aliasDN, &newSup );
+			newe = dn2entry_r( be, &aliasDN, &newSup );
 
 			if( newe != NULL ) {
-				free(aliasDN);
-				free( dn );
+				free(aliasDN.bv_val);
+				free( dn.bv_val );
 				cache_return_entry_r(&li->li_cache, sup );
 				entry = newe;
-				dn = ch_strdup( entry->e_ndn );
-				charray_add( &dnlist, dn );
+				ber_dupbv( &dn, &entry->e_nname );
+				bvarray_add( &dnlist, &dn );
 				continue;
-
 			}
 			
 			if ( newSup != NULL ) {
-				free( dn );
+				free( dn.bv_val );
 				cache_return_entry_r(&li->li_cache, sup );
 				sup = newSup;
-				dn = aliasDN;
+				ber_dupbv( &dn, &aliasDN );
 				continue;
 			}
 
@@ -208,19 +197,19 @@ Entry *deref_internal_r(
 		}
 	}
 
-	free( dn );
-	charray_free( dnlist );
+	free( dn.bv_val );
+	bvarray_free( dnlist );
 	return entry;
 }
 
 
-static char* get_alias_dn(
+static int get_alias_dn(
 	Entry *e,
+	struct berval *ndn,
 	int *err,
 	const char **errmsg )
 {	
 	int rc;
-	struct berval ndn;
 	Attribute *a;
 	AttributeDescription *aliasedObjectName
 		= slap_schema.si_ad_aliasedObjectName;
@@ -233,7 +222,7 @@ static char* get_alias_dn(
 		 */
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias missing aliasedObjectName attribute";
-		return NULL;
+		return -1;
 	}
 
 	/* 
@@ -245,60 +234,58 @@ static char* get_alias_dn(
 		 */
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias missing aliasedObjectName value";
-		return NULL;
+		return -1;
 	}
 
 	if( a->a_vals[1] != NULL ) {
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias has multivalued aliasedObjectName";
-		return NULL;
+		return -1;
 	}
 
-	rc = dnNormalize2( NULL, a->a_vals[0], &ndn );
+	rc = dnNormalize2( NULL, a->a_vals[0], ndn );
 	if( rc != LDAP_SUCCESS ) {
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias aliasedObjectName value is invalid";
-		return NULL;
+		return -1;
 	}
 
-	return ndn.bv_val;
+	return 0;
 }
 
-static char* new_superior(
-	const char *dn,
-	const char *oldSup,
-	const char *newSup )
+static void new_superior(
+	struct berval *dn,
+	struct berval *oldSup,
+	struct berval *newSup,
+	struct berval *newDN )
 {
-	char *newDN;
 	size_t dnlen, olen, nlen;
-	assert( dn && oldSup && newSup );
+	assert( dn && oldSup && newSup && newDN );
 
-	dnlen = strlen( dn );
-	olen = strlen( oldSup );
-	nlen = strlen( newSup );
+	dnlen = dn->bv_len;
+	olen = oldSup->bv_len;
+	nlen = newSup->bv_len;
 
-	newDN = ch_malloc( dnlen - olen + nlen + 1 );
+	newDN->bv_val = ch_malloc( dnlen - olen + nlen + 1 );
 
-	AC_MEMCPY( newDN, dn, dnlen - olen );
-	AC_MEMCPY( &newDN[dnlen - olen], newSup, nlen );
-	newDN[dnlen - olen + nlen] = '\0';
+	AC_MEMCPY( newDN->bv_val, dn->bv_val, dnlen - olen );
+	AC_MEMCPY( &newDN->bv_val[dnlen - olen], newSup->bv_val, nlen );
+	newDN->bv_val[dnlen - olen + nlen] = '\0';
 
-	return newDN;
+	return;
 }
 
 static int dnlist_subordinate(
-	char** dnlist,
-	const char *dn )
+	BVarray dnlist,
+	struct berval *dn )
 {
-	int i;
 	assert( dnlist );
 
-	for( i = 0; dnlist[i] != NULL; i++ ) {
-		if( dn_issuffix( dnlist[i], dn ) ) {
+	for( ; dnlist->bv_val != NULL; dnlist++ ) {
+		if( dnIsSuffix( dnlist, dn ) ) {
 			return 1;
 		}
 	}
 
 	return 0;
 }
-

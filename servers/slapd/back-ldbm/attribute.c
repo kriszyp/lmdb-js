@@ -74,7 +74,7 @@ ldbm_back_attribute(
 
 	} else {
 		/* can we find entry with reader lock */
-		if ((e = dn2entry_r(be, entry_ndn->bv_val, NULL )) == NULL) {
+		if ((e = dn2entry_r(be, entry_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"ldbm_back_attribute: cannot find entry (%s)\n",

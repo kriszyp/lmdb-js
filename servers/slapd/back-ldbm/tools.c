@@ -190,7 +190,7 @@ ID ldbm_tool_entry_put(
 		e->e_id, e->e_dn, 0 );
 #endif
 
-	if ( dn2id( be, e->e_ndn, &id ) ) {
+	if ( dn2id( be, &e->e_nname, &id ) ) {
 		/* something bad happened to ldbm cache */
 		return NOID;
 	}
@@ -213,7 +213,7 @@ ID ldbm_tool_entry_put(
 		return NOID;
 	}
 
-	rc = dn2id_add( be, e->e_ndn, e->e_id );
+	rc = dn2id_add( be, &e->e_nname, e->e_id );
 	if( rc != 0 ) {
 		return NOID;
 	}
@@ -236,7 +236,7 @@ ID ldbm_tool_entry_put(
 	rc = ldbm_cache_store( id2entry, key, data, LDBM_REPLACE );
 
 	if( rc != 0 ) {
-		(void) dn2id_delete( be, e->e_ndn, e->e_id );
+		(void) dn2id_delete( be, &e->e_nname, e->e_id );
 		return NOID;
 	}
 
@@ -290,7 +290,7 @@ int ldbm_tool_entry_reindex(
 		id, e->e_dn, 0 );
 #endif
 
-	dn2id_add( be, e->e_ndn, e->e_id );
+	dn2id_add( be, &e->e_nname, e->e_id );
 	rc = index_entry_add( be, e, e->e_attrs );
 
 	entry_free( e );

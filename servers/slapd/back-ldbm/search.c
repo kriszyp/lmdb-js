@@ -85,7 +85,7 @@ ldbm_back_search(
 
 	} else {
 		/* get entry with reader lock */
-		e = dn2entry_r( be, nbase->bv_val, &matched );
+		e = dn2entry_r( be, nbase, &matched );
 		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		text = NULL;
 	}
