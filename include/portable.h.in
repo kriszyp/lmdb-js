@@ -127,6 +127,9 @@
 /* Define if you have the strtoul function.  */
 #undef HAVE_STRTOUL
 
+/* Define if you have the <db185.h> header file.  */
+#undef HAVE_DB185_H
+
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
@@ -171,9 +174,6 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
-
-/* Define if you have the compat library (-lcompat).  */
-#undef HAVE_LIBCOMPAT
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>

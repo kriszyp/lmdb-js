@@ -116,7 +116,7 @@ if test "$BUILD_SLAPD" != "yes" ; then
 	ldbm_prefer="none"
 fi
 
-dnl general LDAP arguments
+## general LDAP arguments
 LDAP_DEFS=
 LDAP_LIBS=
 
@@ -144,12 +144,13 @@ else
 	LTHREAD_DEFS="-DNO_THREADS"
 fi
 
-dnl ldapd arguments
+## ldapd arguments
 LDAPD_DEFS=
 LDAPD_LIBS=
 
-dnl slapd arguments
+## slapd arguments
 SLAPD_DEFS=
+SLAPD_LIBS=
 if test "$SLAPD_PHONETIC" = "yes" ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
 	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
@@ -170,6 +171,7 @@ fi
 
 dnl slurpd arguments
 SLURPD_DEFS=
+SLURPD_LIBS=
 
 dnl End Args
 
@@ -184,14 +186,12 @@ AC_PROG_MAKE_SET
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
-AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi,
-	$PATH:/usr/ucb)
-AC_PATH_PROG(FINGER, finger, /usr/ucb/finger,
-	$PATH:/usr/ucb)
+AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
+AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 ldbm_use="none"
-LDBM_LIB=""
-LDBM_DEFS=""
+LDBM_DEFS=
+LDBM_LIBS=
 
 if test "$SLAPD_LDBM" = "yes" ; then
 	if test $ldbm_prefer = any -o $ldbm_prefer = dbbtree \
@@ -202,17 +202,47 @@ if test "$SLAPD_LDBM" = "yes" ; then
 			AC_CHECK_LIB(db,dbopen,[
 				ldbm_use=$ldbm_prefer
 				ldbm_prefer=found
-				LDBM_LIB="-ldb"
+				LDBM_LIBS="$LDBM_LIBS -ldb"
 			]) 
 		])
 
 		if test $ldbm_prefer = found ; then
 			if test $ldbm_use = dbhash ; then
 dnl				AC_DEFINE(LDBM_USE_DBHASH,1)
-				LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_DBHASH"
+				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
 			else
 dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
-				LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_DBBTREE"
+				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
+			fi
+		fi
+
+		AC_MSG_CHECKING(for db2)
+		AC_CACHE_VAL(cf_cv_db2,[
+			AC_EGREP_CPP(__db_version_2,[
+#include <db.h>
+/* this check could be improved */
+#ifdef DB_VERSION_MAJOR
+#if DB_VERSION_MAJOR == 2
+	__db_version_2
+#endif
+#endif
+			], cf_cv_db2=yes, cf_cv_db2=no)])
+		AC_MSG_RESULT($cf_cv_db2)
+
+		if test $cf_cv_db2 = yes ; then
+			if test $opt_db2 = yes ; then
+				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
+			else
+				AC_CHECK_HEADERS(db185.h)
+				if test $cf_cv_header_db185 = no ; then
+					AC_MSG_ERROR([select --with-db2 or install db2 with 1.85 compatibility])
+				fi
+
+				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2_COMPAT185"
+			fi
+		else
+			if test $opt_db2 = yes ; then
+				AC_MSG_ERROR(could not local DB2)
 			fi
 		fi
 	fi
@@ -221,18 +251,18 @@ dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
 		AC_CHECK_LIB(gdbm, gdbm_open,[
 			ldbm_use=$ldbm_prefer
 			ldbm_prefer=found
-			LDBM_LIB="-lgdbm"
+			LDBM_LIBS="$LDBM_LIBS -lgdbm"
 dnl			AC_DEFINE(LDBM_USE_GDBM,1)
-			LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_GDBM"
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_GDBM"
 		]) 
 	fi
 	if test $ldbm_prefer = any -o $ldbm_prefer = ndbm ; then
 		AC_CHECK_LIB(dbm,dbm_open,[
 			ldbm_use=ndbm
 			ldbm_prefer=found
-			LDBM_LIB="-ldbm"
+			LDBM_LIBS="$LDBM_LIBS -ldbm"
 dnl			AC_DEFINE(LDBM_USE_NDBM,1)
-			LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_NDBM"
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_NDBM"
 		]) 
 	fi
 

@@ -1,5 +1,5 @@
 SRCS=	main.c
-XSRVS=	version.c
+XSRCS=	version.c
 OBJS=	main.o
 PROGRAMS= in.xfingerd
 
