@@ -565,6 +565,7 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	} else {
+		e->e_ocflags = dummy.e_ocflags;
 		rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
