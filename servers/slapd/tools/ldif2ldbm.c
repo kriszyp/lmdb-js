@@ -173,8 +173,6 @@ main( int argc, char **argv )
 	args[i++] = NULL;
 	fork_child( cmd, args );
 
-    maxkids = cmdkids;
-
 	/*
 	 * generate the dn2id and id2children indexes
 	 */
@@ -196,6 +194,8 @@ main( int argc, char **argv )
 	}
 	args[i++] = NULL;
 	fork_child( cmd, args );
+
+    maxkids = cmdkids;
 
 	/*
 	 * generate the attribute indexes
@@ -334,7 +334,7 @@ wait4kids( int nkidval )
     DWORD  wait_index;
     while( nkids >= nkidval )
     {
-        wait_index = WaitForMultipleObjects( nkids, processes, TRUE, INFINITE );
+        wait_index = WaitForMultipleObjects( nkids, processes, FALSE, INFINITE );
         /*
         *  processes[wait_index] completed.  Move any remaining indexes into its
         *  place in the array so it stays filled.
