@@ -154,7 +154,8 @@ main( int argc, char **argv )
     char		*infile, *rejfile, *rbuf, *start, *rejbuf = NULL;
     FILE		*fp, *rejfp;
 	char		*matched_msg = NULL, *error_msg = NULL;
-	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, noop, referrals;
+	int		rc, retval, i, authmethod, version, want_bindpw;
+	int		debug, manageDSAit, noop, referrals;
 	int count, len;
 	char	*pw_file = NULL;
 	char	*control, *cvalue;
@@ -832,6 +833,7 @@ main( int argc, char **argv )
 	}
 
 	count = 0;
+	retval = 0;
     while (( rc == 0 || contoper ) &&
 		( rbuf = read_one_record( fp )) != NULL ) {
 	count++;
@@ -849,6 +851,8 @@ main( int argc, char **argv )
 
     rc = process_ldif_rec( start, count );
 
+	if ( rc )
+		retval = rc;
 	if ( rc && rejfp ) {
 		fprintf(rejfp, "# Error: %s (%d)", ldap_err2string(rc), rc);
 
@@ -876,7 +880,7 @@ main( int argc, char **argv )
 	    fclose( rejfp );
     }
 
-	return( rc );
+    return( retval );
 }
 
 
