@@ -59,6 +59,19 @@ lutil_entropy LDAP_P((
 struct berval; /* avoid pulling in lber.h */
 
 LIBLUTIL_F( int )
+lutil_authpasswd LDAP_P((
+	const struct berval *passwd,	/* stored password */
+	const struct berval *cred,	/* user supplied value */
+	const char **methods ));
+
+LIBLUTIL_F( int )
+lutil_authpasswd_hash LDAP_P((
+	const struct berval *cred,
+	struct berval **passwd,	/* password to store */
+	struct berval **salt,	/* salt to store */
+	const char *method ));
+
+LIBLUTIL_F( int )
 lutil_passwd LDAP_P((
 	const struct berval *passwd,	/* stored password */
 	const struct berval *cred,	/* user supplied value */
