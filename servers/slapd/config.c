@@ -531,6 +531,9 @@ read_config( const char *fname )
 				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_V2;
 
+				} else if( strcasecmp( cargv[i], "bind_anon" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_ANON;
+
 				} else if( strcasecmp( cargv[i], "bind_anon_cred" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON_CRED;
 
