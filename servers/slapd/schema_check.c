@@ -56,7 +56,7 @@ entry_schema_check(
 
 		if( a->a_desc->ad_type->sat_check ) {
 			int rc = (a->a_desc->ad_type->sat_check)(
-				e, a, text, textbuf, textlen );
+				be, e, a, text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -209,7 +209,7 @@ entry_schema_check(
 		}
 
 		if ( oc->sco_check ) {
-			int rc = (oc->sco_check)( e, oc,
+			int rc = (oc->sco_check)( be, e, oc,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;

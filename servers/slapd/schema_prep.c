@@ -713,6 +713,7 @@ slap_schema_check( void )
 }
 
 static int rootDseObjectClass (
+	Backend *be,
 	Entry *e,
 	ObjectClass *oc,
 	const char** text,
@@ -732,6 +733,7 @@ static int rootDseObjectClass (
 }
 
 static int subentryObjectClass (
+	Backend *be,
 	Entry *e,
 	ObjectClass *oc,
 	const char** text,
@@ -747,6 +749,7 @@ static int subentryObjectClass (
 }
 
 static int rootDseAttribute (
+	Backend *be,
 	Entry *e,
 	Attribute *attr,
 	const char** text,
@@ -766,6 +769,7 @@ static int rootDseAttribute (
 }
 
 static int subentryAttribute (
+	Backend *be,
 	Entry *e,
 	Attribute *attr,
 	const char** text,
@@ -783,6 +787,7 @@ static int subentryAttribute (
 }
 
 static int referralAttribute (
+	Backend *be,
 	Entry *e,
 	Attribute *attr,
 	const char** text,

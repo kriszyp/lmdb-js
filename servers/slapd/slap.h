@@ -413,6 +413,7 @@ struct slap_entry;
 struct slap_attr;
 
 typedef int (AttributeTypeSchemaCheckFN)(
+	struct slap_backend_db *be,
 	struct slap_entry *e,
 	struct slap_attr *attr,
 	const char** text,
@@ -457,6 +458,7 @@ typedef struct slap_attribute_type {
 struct slap_object_class;
 
 typedef int (ObjectClassSchemaCheckFN)(
+	struct slap_backend_db *be,
 	struct slap_entry *e,
 	struct slap_object_class *oc,
 	const char** text,
