@@ -1050,9 +1050,6 @@ typedef signed int ssize_t;
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
 #endif
-#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
-#define LDAP_DEBUG
-#endif
 
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
