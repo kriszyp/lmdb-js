@@ -109,42 +109,67 @@ LIBSLAPD_F (int) slap_debug;
 #define SLAP_SCHERR_MR_INCOMPLETE	12
 
 typedef struct slap_oid_macro {
-	struct slap_oid_macro *next;
-	char *name;
-	char *oid;
-	int oidlen;
+	char *som_name;
+	char *som_oid;
+	int som_oidlen;
+	struct slap_oid_macro *som_next;
 } OidMacro;
 
+/* forward declarations */
+struct slap_syntax;
+struct slap_matching_rule;
+
+
 typedef int slap_syntax_validate_func LDAP_P((
+	struct slap_syntax *syntax,
 	struct berval * in));
 
-typedef int slap_syntax_normalize_func LDAP_P((
+typedef int slap_syntax_transform_func LDAP_P((
+	struct slap_syntax *syntax,
 	struct berval * in,
 	struct berval ** out));
 
 typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
+	int	ssyn_flags;
+
 	slap_syntax_validate_func	*ssyn_validate;
-	slap_syntax_normalize_func	*ssyn_normalize;
+
+	/* convert to and from binary */
+	slap_syntax_transform_func	*ssyn_ber2str;
+	slap_syntax_transform_func	*ssyn_str2ber;
+
 	struct slap_syntax		*ssyn_next;
 #define ssyn_oid			ssyn_syn.syn_oid
 #define ssyn_desc			ssyn_syn.syn_desc
 } Syntax;
 
+
+/* Normalizer */
+typedef int slap_mr_normalize_func LDAP_P((
+	struct slap_syntax *syntax, /* NULL if in is asserted value */
+	struct slap_matching_rule *mr,
+	struct berval * in,
+	struct berval ** out ));
+
+/* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
-	struct berval * atval,
-	struct berval * matchval));
+	struct slap_syntax *syntax,	/* syntax of stored value */
+	struct slap_matching_rule *mr,
+	struct berval * value,
+	struct berval * assertValue ));
 
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
+	slap_mr_normalize_func	*smr_normalize;
 	slap_mr_match_func		*smr_match;
-	Syntax				*smr_syntax;
+	Syntax					*smr_syntax;
 	struct slap_matching_rule	*smr_next;
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
 #define smr_desc			smr_mrule.mr_desc
-#define smr_obsolete			smr_mrule.mr_obsolete
-#define smr_syntax_oid			smr_mrule.mr_syntax_oid
+#define smr_obsolete		smr_mrule.mr_obsolete
+#define smr_syntax_oid		smr_mrule.mr_syntax_oid
 } MatchingRule;
 
 typedef struct slap_attribute_type {
@@ -200,18 +225,21 @@ struct replog_moddn {
 };
 
 /*
- * represents an attribute value assertion (i.e., attr=value)
+ * represents an attribute value assertion (i.e., attr;option=value)
  */
 typedef struct slap_ava {
 	char		*ava_type;	/* attribute description */
 	struct berval	ava_value;
 } Ava;
 
+/*
+ * represents an matching rule assertion
+ */
 typedef struct slap_mra {
 	char	*mra_rule;
 	char	*mra_type;	/* attribute description */
-	char	*mra_value;
 	int		mra_dnattrs;
+	struct berval	*mra_value;
 } Mra;
 
 /*
@@ -236,9 +264,10 @@ typedef struct slap_filter {
 		/* substrings */
 		struct sub {
 			char	*f_un_sub_type;
-			char	*f_un_sub_initial;
-			char	**f_un_sub_any;
-			char	*f_un_sub_final;
+
+			struct berval	*f_un_sub_initial;
+			struct berval	**f_un_sub_any;
+			struct berval	*f_un_sub_final;
 		} f_un_sub;
 	} f_un;
 

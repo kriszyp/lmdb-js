@@ -651,7 +651,8 @@ int
 syn_add(
     LDAP_SYNTAX		*syn,
     slap_syntax_validate_func	*validate,
-    slap_syntax_normalize_func	*normalize,
+    slap_syntax_transform_func	*ber2str,
+    slap_syntax_transform_func	*str2ber,
     const char		**err
 )
 {
@@ -660,8 +661,11 @@ syn_add(
 
 	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
 	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX));
+
 	ssyn->ssyn_validate = validate;
-	ssyn->ssyn_normalize = normalize;
+	ssyn->ssyn_ber2str = ber2str;
+	ssyn->ssyn_str2ber = str2ber;
+
 	code = syn_insert(ssyn,err);
 	return code;
 }
@@ -759,6 +763,7 @@ mr_insert(
 int
 mr_add(
     LDAP_MATCHING_RULE		*mr,
+	slap_mr_normalize_func *normalize,
     slap_mr_match_func	*match,
     const char		**err
 )
@@ -769,7 +774,10 @@ mr_add(
 
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
+
+	smr->smr_normalize = normalize;
 	smr->smr_match = match;
+
 	if ( smr->smr_syntax_oid ) {
 		if ( (syn = syn_find(smr->smr_syntax_oid)) ) {
 			smr->smr_syntax = syn;
@@ -786,20 +794,24 @@ mr_add(
 }
 
 static int
-octetStringValidate( struct berval *val )
+octetStringValidate(
+	Syntax *syntax,
+	struct berval *in )
 {
 	/* any value allowed */
 	return 0;
 }
 
 static int
-UTF8StringValidate( struct berval *val )
+UTF8StringValidate(
+	Syntax *syntax,
+	struct berval *in )
 {
 	ber_len_t count;
 	int len;
-	unsigned char *u = val->bv_val;
+	unsigned char *u = in->bv_val;
 
-	for( count = val->bv_len; count > 0; count+=len, u+=len ) {
+	for( count = in->bv_len; count > 0; count+=len, u+=len ) {
 		/* get the length indicated by the first byte */
 		len = LDAP_UTF8_CHARLEN( u );
 
@@ -818,9 +830,10 @@ UTF8StringValidate( struct berval *val )
 
 static int
 UTF8StringNormalize(
+	Syntax *syntax,
+	MatchingRule *mr,
 	struct berval *val,
-	struct berval **normalized
-)
+	struct berval **normalized )
 {
 	struct berval *newval;
 	char *p, *q, *s;
@@ -894,9 +907,11 @@ UTF8StringNormalize(
 }
 
 static int
-IA5StringValidate( struct berval *val )
+IA5StringValidate(
+	Syntax *syntax,
+	struct berval *val )
 {
-	int i;
+	ber_len_t i;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !isascii(val->bv_val[i]) ) return -1;
@@ -907,9 +922,10 @@ IA5StringValidate( struct berval *val )
 
 static int
 IA5StringNormalize(
+	Syntax *syntax,
+	MatchingRule *mr,
 	struct berval *val,
-	struct berval **normalized
-)
+	struct berval **normalized )
 {
 	struct berval *newval;
 	char *p, *q;
@@ -975,27 +991,30 @@ IA5StringNormalize(
 
 static int
 caseExactIA5Match(
-	struct berval *val1,
-	struct berval *val2
-)
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	struct berval *assertedValue )
 {
-	return strcmp( val1->bv_val, val2->bv_val );
+	return strcmp( value->bv_val, assertedValue->bv_val );
 }
 
 static int
 caseIgnoreIA5Match(
-	struct berval *val1,
-	struct berval *val2
-)
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	struct berval *assertedValue )
 {
-	return strcasecmp( val1->bv_val, val2->bv_val );
+	return strcasecmp( value->bv_val, assertedValue->bv_val );
 }
 
 int
 register_syntax(
 	char * desc,
 	slap_syntax_validate_func *validate,
-	slap_syntax_normalize_func *normalize )
+	slap_syntax_transform_func *ber2str,
+	slap_syntax_transform_func *str2ber )
 {
 	LDAP_SYNTAX	*syn;
 	int		code;
@@ -1007,18 +1026,21 @@ register_syntax(
 		    ldap_scherr2str(code), err, desc );
 		return( -1 );
 	}
-	code = syn_add( syn, validate, normalize, &err );
+
+	code = syn_add( syn, validate, ber2str, str2ber, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
 		return( -1 );
 	}
+
 	return( 0 );
 }
 
 int
 register_matching_rule(
 	char * desc,
+	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match )
 {
 	LDAP_MATCHING_RULE *mr;
@@ -1031,7 +1053,8 @@ register_matching_rule(
 		    ldap_scherr2str(code), err, desc );
 		return( -1 );
 	}
-	code = mr_add( mr, match, &err );
+
+	code = mr_add( mr, normalize, match, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );
@@ -1043,98 +1066,100 @@ register_matching_rule(
 struct syntax_defs_rec {
 	char *sd_desc;
 	slap_syntax_validate_func *sd_validate;
-	slap_syntax_normalize_func *sd_normalize;
+	slap_syntax_transform_func *sd_ber2str;
+	slap_syntax_transform_func *sd_str2ber;
 };
 
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'AttributeTypeDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'BitString' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'CertificateList' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'CertificatePair' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'DeliveryMethod' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'DirectoryString' )",
-		UTF8StringValidate, UTF8StringNormalize},
+		UTF8StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DITContentRuleDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DITStructureRuleDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'EnhancedGuide' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'FacsimileTelephoneNumber' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'GeneralizedTime' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5String' )",
-		IA5StringValidate, IA5StringNormalize},
+		IA5StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'MatchingRuleDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'MatchingRuleUseDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'MailPreference' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'NameAndOptionalUID' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'NameFormDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'NumericString' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'ObjectClassDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'OtherMailbox' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'OctetString' )",
-		octetStringValidate, NULL},
+		octetStringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'PostalAddress' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'ProtocolInformation' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'PresentationAddress' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'PrintableString' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'SupportedAlgorithm' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'TelephoneNumber' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'TeletexTerminalIdentifier' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'TelexNumber' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTCTime' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAPSyntaxDescription' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'SubstringAssertion' )",
-		NULL, NULL},
+		NULL, NULL, NULL},
 
 	{NULL, NULL, NULL}
 };
 
 struct mrule_defs_rec {
 	char *mrd_desc;
+	slap_mr_normalize_func *mrd_normalize;
 	slap_mr_match_func *mrd_match;
 };
 
@@ -1166,6 +1191,7 @@ struct mrule_defs_rec {
  */
 
 /* recycled matching functions */
+#define stringNormalize IA5StringNormalize
 #define caseIgnoreMatch caseIgnoreIA5Match
 #define caseExactMatch caseExactIA5Match
 
@@ -1196,110 +1222,110 @@ struct mrule_defs_rec {
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		objectIdentifierMatch},
+		NULL, objectIdentifierMatch},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
-		distinguishedNameMatch},
+		NULL, distinguishedNameMatch},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		caseIgnoreMatch},
+		stringNormalize, caseIgnoreMatch},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		caseIgnoreOrderingMatch},
+		stringNormalize, caseIgnoreOrderingMatch},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		caseIgnoreSubstringsMatch},
+		stringNormalize, caseIgnoreSubstringsMatch},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		caseExactMatch},
+		stringNormalize, caseExactMatch},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		caseExactOrderingMatch},
+		stringNormalize, caseExactOrderingMatch},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		caseExactSubstringsMatch},
+		stringNormalize, caseExactSubstringsMatch},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
-		numericStringMatch},
+		NULL, numericStringMatch},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		numericStringSubstringsMatch},
+		NULL, numericStringSubstringsMatch},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
-		caseIgnoreListMatch},
+		NULL, caseIgnoreListMatch},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		integerMatch},
+		NULL, integerMatch},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		bitStringMatch},
+		NULL, bitStringMatch},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		octetStringMatch},
+		NULL, octetStringMatch},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
-		telephoneNumberMatch},
+		NULL, telephoneNumberMatch},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		telephoneNumberSubstringsMatch},
+		NULL, telephoneNumberSubstringsMatch},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		presentationAddressMatch},
+		NULL, presentationAddressMatch},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		uniqueMemberMatch},
+		NULL, uniqueMemberMatch},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		protocolInformationMatch},
+		NULL, protocolInformationMatch},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		generalizedTimeMatch},
+		NULL, generalizedTimeMatch},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		generalizedTimeOrderingMatch},
+		NULL, generalizedTimeOrderingMatch},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		integerFirstComponentMatch},
+		NULL, integerFirstComponentMatch},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		objectIdentifierFirstComponentMatch},
+		NULL, objectIdentifierFirstComponentMatch},
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		caseExactIA5Match},
+		IA5StringNormalize, caseExactIA5Match},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		caseIgnoreIA5Match},
+		IA5StringNormalize, caseIgnoreIA5Match},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		caseIgnoreIA5SubstringsMatch},
+		IA5StringNormalize, caseIgnoreIA5SubstringsMatch},
 
-	{NULL, NULL}
+	{NULL, NULL, NULL}
 };
 
 int
@@ -1316,7 +1342,8 @@ schema_init( void )
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
 		res = register_syntax( syntax_defs[i].sd_desc,
 		    syntax_defs[i].sd_validate,
-		    syntax_defs[i].sd_normalize );
+		    syntax_defs[i].sd_ber2str,
+			syntax_defs[i].sd_str2ber );
 
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering syntax %s\n",
@@ -1327,6 +1354,7 @@ schema_init( void )
 
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
 		res = register_matching_rule( mrule_defs[i].mrd_desc,
+			mrule_defs[i].mrd_normalize,
 		    mrule_defs[i].mrd_match );
 
 		if ( res ) {

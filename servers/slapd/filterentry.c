@@ -358,38 +358,38 @@ test_substring_filter(
 		strcpy( p, "^" );
 		p = strchr( p, '\0' );
 		/* 2 * in case every char is special */
-		if ( p + 2 * strlen( f->f_sub_initial ) > end ) {
+		if ( p + 2 * f->f_sub_initial->bv_len > end ) {
 			Debug( LDAP_DEBUG_ANY, "not enough pattern space\n",
 			    0, 0, 0 );
 			return( -1 );
 		}
-		strcpy_regex( p, f->f_sub_initial );
+		strcpy_regex( p, f->f_sub_initial->bv_val );
 		p = strchr( p, '\0' );
 	}
 	if ( f->f_sub_any != NULL ) {
 		for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
 			/* ".*" + value */
-			if ( p + 2 * strlen( f->f_sub_any[i] ) + 2 > end ) {
+			if ( p + 2 * f->f_sub_any[i]->bv_len + 2 > end ) {
 				Debug( LDAP_DEBUG_ANY,
 				    "not enough pattern space\n", 0, 0, 0 );
 				return( -1 );
 			}
 			strcpy( p, ".*" );
 			p = strchr( p, '\0' );
-			strcpy_regex( p, f->f_sub_any[i] );
+			strcpy_regex( p, f->f_sub_any[i]->bv_val );
 			p = strchr( p, '\0' );
 		}
 	}
 	if ( f->f_sub_final != NULL ) {
 		/* ".*" + value */
-		if ( p + 2 * strlen( f->f_sub_final ) + 2 > end ) {
+		if ( p + 2 * f->f_sub_final->bv_len + 2 > end ) {
 			Debug( LDAP_DEBUG_ANY, "not enough pattern space\n",
 			    0, 0, 0 );
 			return( -1 );
 		}
 		strcpy( p, ".*" );
 		p = strchr( p, '\0' );
-		strcpy_regex( p, f->f_sub_final );
+		strcpy_regex( p, f->f_sub_final->bv_val );
 		p = strchr( p, '\0' );
 		strcpy( p, "$" );
 	}

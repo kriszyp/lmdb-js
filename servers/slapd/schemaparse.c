@@ -187,16 +187,16 @@ find_oidm(char *oid)
 	/* OID macros must start alpha */
 	if ( !isdigit( *oid ) )
 	{
-	    for (om = om_list; om; om=om->next)
+	    for (om = om_list; om; om=om->som_next)
 	    {
-		if ((pos = dscompare(om->name, oid, ':')))
+		if ((pos = dscompare(om->som_name, oid, ':')))
 		{
 			suflen = strlen(oid + pos);
-			new = ch_calloc(1, om->oidlen + suflen + 1);
-			strcpy(new, om->oid);
+			new = ch_calloc(1, om->som_oidlen + suflen + 1);
+			strcpy(new, om->som_oid);
 			if (suflen)
 			{
-				suflen = om->oidlen;
+				suflen = om->som_oidlen;
 				new[suflen++] = '.';
 				strcpy(new+suflen, oid+pos+1);
 			}
@@ -218,24 +218,27 @@ parse_oidm(
 {
 	OidMacro *om;
 
-	if (argc != 3)
-	{
-usage:		fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
+	if (argc != 3) {
+usage:	fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
 		exit( EXIT_FAILURE );
 	}
+
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
-	om->name = ch_strdup( argv[1] );
-	om->oid = find_oidm( argv[2] );
-	if (!om->oid)
-	{
+	om->som_name = ch_strdup( argv[1] );
+	om->som_oid = find_oidm( argv[2] );
+
+	if (!om->som_oid) {
 		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
 			fname, lineno, argv[2] );
 		goto usage;
 	}
-	if (om->oid == argv[2])
-		om->oid = ch_strdup( argv[2] );
-	om->oidlen = strlen( om->oid );
-	om->next = om_list;
+
+	if (om->som_oid == argv[2]) {
+		om->som_oid = ch_strdup( argv[2] );
+	}
+
+	om->som_oidlen = strlen( om->som_oid );
+	om->som_next = om_list;
 	om_list = om;
 }
 

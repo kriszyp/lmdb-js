@@ -211,19 +211,25 @@ str2subvals( char *val, Filter *f )
 
 	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", val, 0, 0 );
 
+	if( val == NULL ) return 0;
+
 	val = freeme = ch_strdup( val );
 	gotstar = 0;
-	while ( val != NULL && *val ) {
+
+	while ( *val ) {
 		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
 			*nextstar++ = '\0';
 
 		ldap_pvt_filter_value_unescape( val );
+
 		if ( gotstar == 0 ) {
-			f->f_sub_initial = ch_strdup( val );
+			f->f_sub_initial = ber_bvstrdup( val );
+
 		} else if ( nextstar == NULL ) {
-			f->f_sub_final = ch_strdup( val );
+			f->f_sub_final = ber_bvstrdup( val );
+
 		} else {
-			charray_add( &f->f_sub_any, val );
+			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
 		}
 
 		gotstar = 1;

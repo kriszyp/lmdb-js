@@ -20,7 +20,8 @@ static ID_BLOCK	*presence_candidates( Backend *be, char *type );
 static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
 static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
 static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
-static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
+static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type,
+	struct berval *val, int prepost );
 
 /*
  * test_filter - test a filter against a single entry.
@@ -247,7 +248,7 @@ substring_candidates(
 
 	/* initial */
 	if ( f->f_sub_initial != NULL ) {
-		if ( (int) strlen( f->f_sub_initial ) < SUBLEN - 1 ) {
+		if ( f->f_sub_initial->bv_len < SUBLEN - 1 ) {
 			idl = idl_allids( be );
 		} else if ( (idl = substring_comp_candidates( be, f->f_sub_type,
 		    f->f_sub_initial, '^' )) == NULL ) {
@@ -257,7 +258,7 @@ substring_candidates(
 
 	/* final */
 	if ( f->f_sub_final != NULL ) {
-		if ( (int) strlen( f->f_sub_final ) < SUBLEN - 1 ) {
+		if ( f->f_sub_final->bv_len < SUBLEN - 1 ) {
 			tmp = idl_allids( be );
 		} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
 		    f->f_sub_final, '$' )) == NULL ) {
@@ -275,22 +276,24 @@ substring_candidates(
 		}
 	}
 
-	for ( i = 0; f->f_sub_any != NULL && f->f_sub_any[i] != NULL; i++ ) {
-		if ( (int) strlen( f->f_sub_any[i] ) < SUBLEN ) {
-			tmp = idl_allids( be );
-		} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_any[i], 0 )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
+	if( f->f_sub_any != NULL ) {
+		for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
+			if ( f->f_sub_any[i]->bv_len < SUBLEN ) {
+				tmp = idl_allids( be );
+			} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
+				f->f_sub_any[i], 0 )) == NULL ) {
+				idl_free( idl );
+				return( NULL );
+			}
 
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
+			if ( idl == NULL ) {
+				idl = tmp;
+			} else {
+				tmp2 = idl;
+				idl = idl_intersection( be, idl, tmp );
+				idl_free( tmp );
+				idl_free( tmp2 );
+			}
 		}
 	}
 
@@ -303,7 +306,7 @@ static ID_BLOCK *
 substring_comp_candidates(
     Backend	*be,
     char	*type,
-    char	*val,
+    struct berval	*bv,
     int		prepost
 )
 {
@@ -311,10 +314,12 @@ substring_comp_candidates(
 	ID_BLOCK	*idl, *tmp, *tmp2;
 	char	*p;
 	char	buf[SUBLEN + 1];
+	char	*val;
 
 	Debug( LDAP_DEBUG_TRACE, "=> substring_comp_candidates\n", 0, 0, 0 );
 
-	len = strlen( val );
+	val = bv->bv_val;
+	len = bv->bv_len;
 	idl = NULL;
 
 	/* prepend ^ for initial substring */

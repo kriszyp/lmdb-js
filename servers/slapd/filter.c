@@ -229,7 +229,8 @@ get_substring_filter(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	ber_tag_t	rc;
-	char		*val, *last;
+	struct berval *val;
+	char		*last;
 	int		syntax;
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
@@ -237,73 +238,107 @@ get_substring_filter(
 	if ( ber_scanf( ber, "{a" /*}*/, &f->f_sub_type ) == LBER_ERROR ) {
 		return( -1 );
 	}
+
 	attr_normalize( f->f_sub_type );
+
+	/* should get real syntax and see if we have a substring matching rule */
 	syntax = attr_syntax( f->f_sub_type );
+
 	f->f_sub_initial = NULL;
 	f->f_sub_any = NULL;
 	f->f_sub_final = NULL;
 
-	*fstr = ch_malloc( strlen( f->f_sub_type ) + 3 );
-	sprintf( *fstr, "(%s=", f->f_sub_type );
+	if( fstr ) {
+		*fstr = ch_malloc( strlen( f->f_sub_type ) + 3 );
+		sprintf( *fstr, "(%s=", f->f_sub_type );
+	}
+
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
-		rc = ber_scanf( ber, "a", &val );
+		rc = ber_scanf( ber, "O", &val );
 		if ( rc == LBER_ERROR ) {
 			return( -1 );
 		}
-		if ( val == NULL || *val == '\0' ) {
-			if ( val != NULL ) {
-				free( val );
-			}
+		if ( val == NULL || val->bv_len == 0 ) {
+			ber_bvfree( val );
 			return( LDAP_INVALID_SYNTAX );
 		}
-		value_normalize( val, syntax );
+
+		/* we should call a substring syntax normalization routine */
+		value_normalize( val->bv_val, syntax );
+
+		/* this is bogus, value_normalize should take a berval */
+		val->bv_len = strlen( val->bv_val );
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
 			if ( f->f_sub_initial != NULL ) {
-				return( LDAP_PROTOCOL_ERROR );
+				ber_bvfree( val );
+				goto return_error;
 			}
 			f->f_sub_initial = val;
-			*fstr = ch_realloc( *fstr, strlen( *fstr ) +
-			    strlen( val ) + 1 );
-			strcat( *fstr, val );
+
+			if( fstr ) {
+				*fstr = ch_realloc( *fstr,
+					strlen( *fstr ) + val->bv_len + 1 );
+				strcat( *fstr, val->bv_val );
+			}
 			break;
 
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-			charray_add( &f->f_sub_any, val );
-			*fstr = ch_realloc( *fstr, strlen( *fstr ) +
-			    strlen( val ) + 2 );
-			strcat( *fstr, "*" );
-			strcat( *fstr, val );
+			charray_add( (char ***) &f->f_sub_any, (char *) val );
+
+			if( fstr ) {
+				*fstr = ch_realloc( *fstr,
+					strlen( *fstr ) + val->bv_len + 2 );
+				strcat( *fstr, "*" );
+				strcat( *fstr, val->bv_val );
+			}
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
 			if ( f->f_sub_final != NULL ) {
-				return( LDAP_PROTOCOL_ERROR );
+				ber_bvfree( val );
+				goto return_error;
 			}
 			f->f_sub_final = val;
-			*fstr = ch_realloc( *fstr, strlen( *fstr ) +
-			    strlen( val ) + 2 );
-			strcat( *fstr, "*" );
-			strcat( *fstr, val );
+
+			if( fstr ) {
+				*fstr = ch_realloc( *fstr,
+					strlen( *fstr ) + val->bv_len + 2 );
+				strcat( *fstr, "*" );
+				strcat( *fstr, val->bv_val );
+			}
 			break;
 
 		default:
 			Debug( LDAP_DEBUG_FILTER, "  unknown type\n", tag, 0,
 			    0 );
+return_error:
+			if( fstr ) {
+				free( *fstr );
+				*fstr = NULL;
+			}
+
+			ch_free( f->f_sub_type );
+			ber_bvfree( f->f_sub_initial );
+			ber_bvecfree( f->f_sub_any );
+			ber_bvfree( f->f_sub_final );
 			return( LDAP_PROTOCOL_ERROR );
 		}
 	}
-	*fstr = ch_realloc( *fstr, strlen( *fstr ) + 3 );
-	if ( f->f_sub_final == NULL ) {
-		strcat( *fstr, "*" );
+
+	if( fstr ) {
+		*fstr = ch_realloc( *fstr, strlen( *fstr ) + 3 );
+		if ( f->f_sub_final == NULL ) {
+			strcat( *fstr, "*" );
+		}
+		strcat( *fstr, ")" );
 	}
-	strcat( *fstr, ")" );
 
 	Debug( LDAP_DEBUG_FILTER, "end get_substring_filter\n", 0, 0, 0 );
 	return( LDAP_SUCCESS );
@@ -331,11 +366,11 @@ filter_free( Filter *f )
 			free( f->f_sub_type );
 		}
 		if ( f->f_sub_initial != NULL ) {
-			free( f->f_sub_initial );
+			ber_bvfree( f->f_sub_initial );
 		}
-		charray_free( f->f_sub_any );
+		ber_bvecfree( f->f_sub_any );
 		if ( f->f_sub_final != NULL ) {
-			free( f->f_sub_final );
+			ber_bvfree( f->f_sub_final );
 		}
 		break;
 
@@ -398,16 +433,15 @@ filter_print( Filter *f )
 	case LDAP_FILTER_SUBSTRINGS:
 		fprintf( stderr, "(%s=", f->f_sub_type );
 		if ( f->f_sub_initial != NULL ) {
-			fprintf( stderr, "%s", f->f_sub_initial );
+			fprintf( stderr, "%s", f->f_sub_initial->bv_val );
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
-				fprintf( stderr, "*%s", f->f_sub_any[i] );
+				fprintf( stderr, "*%s", f->f_sub_any[i]->bv_val );
 			}
 		}
-		charray_free( f->f_sub_any );
 		if ( f->f_sub_final != NULL ) {
-			fprintf( stderr, "*%s", f->f_sub_final );
+			fprintf( stderr, "*%s", f->f_sub_final->bv_val );
 		}
 		break;
 
