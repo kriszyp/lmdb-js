@@ -914,10 +914,10 @@ static int parseAssert (
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
-		"parseAssert: conn %d assert: %s\n", 
+		"parseAssert: conn %ld assert: %s\n", 
 		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "parseAssert: conn %d assert: %s\n",
+	Debug( LDAP_DEBUG_ARGS, "parseAssert: conn %ld assert: %s\n",
 		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
 #endif
 	op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
