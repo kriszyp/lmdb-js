@@ -54,8 +54,8 @@ modename="$progname"
 # Constants.
 PROGRAM=ltmain.sh
 PACKAGE=libtool
-VERSION=1.3.4-freebsd-ports
-TIMESTAMP=" (1.385.2.196 1999/12/07 21:47:57)"
+VERSION=1.3.5
+TIMESTAMP=" (1.385.2.206 2000/05/27 11:12:27)"
 
 default_mode=
 help="Try \`$progname --help' for more information."
@@ -952,11 +952,7 @@ compiler."
 	  continue
 	  ;;
 	release)
-	  if test "$release_suffix" = all; then
-	    release="$arg"
-	  elif test "$release_suffix" = yes; then
-	    release="-$arg"
-	  fi
+	  release="-$arg"
 	  prev=
 	  continue
 	  ;;
@@ -1009,7 +1005,6 @@ compiler."
 	;;
 
       -avoid-version)
-	build_old_libs=no
 	avoid_version=yes
 	continue
 	;;
@@ -1084,10 +1079,6 @@ compiler."
 	    # These systems don't actually have c library (as such)
 	    continue
 	    ;;
-          *-*-rhapsody* | *-*-darwin*)
-            # Darwin C library is in the System framework
-            deplibs="$deplibs -framework System"
-            ;;
 	  esac
 	elif test "$arg" = "-lm"; then
 	  case "$host" in
@@ -1095,16 +1086,8 @@ compiler."
 	    # These systems don't actually have math library (as such)
 	    continue
 	    ;;
-          *-*-rhapsody* | *-*-darwin*)
-            # Darwin math library is in the System framework
-            deplibs="$deplibs -framework System"
-            ;;
 	  esac
 	fi
-	deplibs="$deplibs $arg"
-	;;
-
-      -?thread)
 	deplibs="$deplibs $arg"
 	;;
 
@@ -1185,7 +1168,7 @@ compiler."
 
       *.o | *.obj | *.a | *.lib)
 	# A standard object.
-	libobjs="$libobjs $arg"
+	objs="$objs $arg"
 	;;
 
       *.lo)
@@ -1620,6 +1603,12 @@ compiler."
 	exit 1
       fi
 
+      # How the heck are we supposed to write a wrapper for a shared library?
+      if test -n "$link_against_libtool_libs"; then
+	 $echo "$modename: error: cannot link shared libraries into libtool libraries" 1>&2
+	 exit 1
+      fi
+
       if test -n "$dlfiles$dlprefiles" || test "$dlself" != no; then
 	$echo "$modename: warning: \`-dlopen' is ignored for libtool libraries" 1>&2
       fi
@@ -1806,8 +1795,9 @@ compiler."
 	*-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos*)
 	  # these systems don't actually have a c library (as such)!
 	  ;;
-	*-*-freebsd*)
-	  # FreeBSD doesn't need this...
+        *-*-rhapsody*)
+	  # rhapsody is a little odd...
+	  deplibs="$deplibs -framework System"
 	  ;;
 	*)
 	  # Add libc to deplibs on all other systems.
@@ -1815,94 +1805,6 @@ compiler."
 	  ;;
 	esac
       fi
-
-      if test -n "$rpath$xrpath"; then
-	# If the user specified any rpath flags, then add them.
-	for libdir in $rpath $xrpath; do
-	  # This is the magic to use -rpath.
-	  case "$compile_rpath " in
-	  *" $libdir "*) ;;
-	  *) compile_rpath="$compile_rpath $libdir" ;;
-	  esac
-	  case "$finalize_rpath " in
-	  *" $libdir "*) ;;
-	  *) finalize_rpath="$finalize_rpath $libdir" ;;
-	  esac
-	done
-      fi
-
-      # Now hardcode the library paths
-      rpath=
-      hardcode_libdirs=
-      for libdir in $compile_rpath; do
-	if test -n "$hardcode_libdir_flag_spec"; then
-	  if test -n "$hardcode_libdir_separator"; then
-	    if test -z "$hardcode_libdirs"; then
-	      hardcode_libdirs="$libdir"
-	    else
-	      # Just accumulate the unique libdirs.
-	      case "$hardcode_libdir_separator$hardcode_libdirs$hardcode_libdir_separator" in
-	      *"$hardcode_libdir_separator$libdir$hardcode_libdir_separator"*)
-		;;
-	      *)
-		hardcode_libdirs="$hardcode_libdirs$hardcode_libdir_separator$libdir"
-		;;
-	      esac
-	    fi
-	  else
-	    eval flag=\"$hardcode_libdir_flag_spec\"
-	    rpath="$rpath $flag"
-	  fi
-	elif test -n "$runpath_var"; then
-	  case "$perm_rpath " in
-	  *" $libdir "*) ;;
-	  *) perm_rpath="$perm_rpath $libdir" ;;
-	  esac
-	fi
-      done
-      # Substitute the hardcoded libdirs into the rpath.
-      if test -n "$hardcode_libdir_separator" &&
-	 test -n "$hardcode_libdirs"; then
-	libdir="$hardcode_libdirs"
-	eval rpath=\" $hardcode_libdir_flag_spec\"
-      fi
-      compile_rpath="$rpath"
-
-      rpath=
-      hardcode_libdirs=
-      for libdir in $finalize_rpath; do
-	if test -n "$hardcode_libdir_flag_spec"; then
-	  if test -n "$hardcode_libdir_separator"; then
-	    if test -z "$hardcode_libdirs"; then
-	      hardcode_libdirs="$libdir"
-	    else
-	      # Just accumulate the unique libdirs.
-	      case "$hardcode_libdir_separator$hardcode_libdirs$hardcode_libdir_separator" in
-	      *"$hardcode_libdir_separator$libdir$hardcode_libdir_separator"*)
-		;;
-	      *)
-		hardcode_libdirs="$hardcode_libdirs$hardcode_libdir_separator$libdir"
-		;;
-	      esac
-	    fi
-	  else
-	    eval flag=\"$hardcode_libdir_flag_spec\"
-	    rpath="$rpath $flag"
-	  fi
-	elif test -n "$runpath_var"; then
-	  case "$finalize_perm_rpath " in
-	  *" $libdir "*) ;;
-	  *) finalize_perm_rpath="$finalize_perm_rpath $libdir" ;;
-	  esac
-	fi
-      done
-      # Substitute the hardcoded libdirs into the rpath.
-      if test -n "$hardcode_libdir_separator" &&
-	 test -n "$hardcode_libdirs"; then
-	libdir="$hardcode_libdirs"
-	eval rpath=\" $hardcode_libdir_flag_spec\"
-      fi
-      finalize_rpath="$rpath"
 
       # Create the output directory, or remove our outputs if we need to.
       if test -d $output_objdir; then
@@ -1919,11 +1821,7 @@ compiler."
 
       # Now set the variables for building old libraries.
       if test "$build_old_libs" = yes && test "$build_libtool_libs" != convenience ; then
-	if test "$release_suffix" = all; then
-	 oldlibs="$oldlibs $output_objdir/$libname$release.$libext"
-	else
-	 oldlibs="$oldlibs $output_objdir/$libname.$libext"
-	fi
+	oldlibs="$oldlibs $output_objdir/$libname.$libext"
 
 	# Transform .lo files to .o files.
 	oldobjs="$objs "`$echo "X$libobjs" | $SP2NL | $Xsed -e '/\.'${libext}'$/d' -e "$lo2o" | $NL2SP`
@@ -2117,11 +2015,7 @@ EOF
 	      echo "*** \`nm' from GNU binutils and a full rebuild may help."
 	    fi
 	    if test "$build_old_libs" = no; then
-	      if test "$release_suffix" = all; then
-	        oldlibs="$output_objdir/$libname$release.$libext"
-	      else
-	        oldlibs="$output_objdir/$libname.$libext"
-	      fi
+	      oldlibs="$output_objdir/$libname.$libext"
 	      build_libtool_libs=module
 	      build_old_libs=yes
 	    else
@@ -3037,13 +2931,21 @@ else
       # Run the actual program with our arguments.
 "
 	case $host in
-	*-*-cygwin* | *-*-mingw | *-*-os2*)
 	  # win32 systems need to use the prog path for dll
 	  # lookup to work
+	*-*-cygwin*)
+	  $echo >> $output "\
+      exec \$progdir/\$program \${1+\"\$@\"}
+"
+	  ;;
+
+	# Backslashes separate directories on plain windows
+	*-*-mingw | *-*-os2*)
 	  $echo >> $output "\
       exec \$progdir\\\\\$program \${1+\"\$@\"}
 "
 	  ;;
+
 	*)
 	  $echo >> $output "\
       # Export the path to the program.
@@ -3169,11 +3071,7 @@ fi\
     case "$output" in
     *.la)
       old_library=
-      if test "$release_suffix" = all; then
-        test "$build_old_libs" = yes && old_library="$libname$release.$libext"
-      else
-        test "$build_old_libs" = yes && old_library="$libname.$libext"
-      fi
+      test "$build_old_libs" = yes && old_library="$libname.$libext"
       $show "creating $output"
 
       if test -n "$xrpath"; then
@@ -3462,12 +3360,10 @@ libdir='$install_libdir'\
 	fi
 
 	# Install the pseudo-library for information purposes.
-	if test "$install_ltlibs" = yes; then
-	  name=`$echo "X$file" | $Xsed -e 's%^.*/%%'`
-	  instname="$dir/$name"i
-	  $show "$install_prog $instname $destdir/$name"
-	  $run eval "$install_prog $instname $destdir/$name" || exit $?
-	fi
+	name=`$echo "X$file" | $Xsed -e 's%^.*/%%'`
+	instname="$dir/$name"i
+	$show "$install_prog $instname $destdir/$name"
+	$run eval "$install_prog $instname $destdir/$name" || exit $?
 
 	# Maybe install the static library, too.
 	test -n "$old_library" && staticlibs="$staticlibs $dir/$old_library"
@@ -3556,6 +3452,7 @@ libdir='$install_libdir'\
 	    fi
 	    libfile="$libdir/`$echo "X$lib" | $Xsed -e 's%^.*/%%g'`"
 	    if test -n "$libdir" && test ! -f "$libfile"; then
+	      $echo "$modename: warning: \`$lib' has not been installed in \`$libdir'" 1>&2
 	      finalize=no
 	    fi
 	  done
