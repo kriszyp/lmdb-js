@@ -116,6 +116,11 @@ dnValidate(
 		return( LDAP_SUCCESS );
 	}
 
+	/* FIXME: str2dn should take a bv and handle this */
+	if( strlen( val->bv_val ) != val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
 	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
 
 	/*
