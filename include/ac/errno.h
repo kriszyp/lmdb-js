@@ -5,10 +5,8 @@
 
 #if defined( HAVE_ERRNO_H )
 # include <errno.h>
-#else
-# if defined( HAVE_SYS_ERRNO_H )
-#  include <sys/errno.h>
-# endif
+#elif defined( HAVE_SYS_ERRNO_H )
+# include <sys/errno.h>
 #endif
 
 #ifdef DECL_SYS_ERRLIST 

@@ -8,10 +8,8 @@
 #else
 #	ifdef HAVE_STRING_H
 #		include <string.h>
-#	else
-#	  ifdef HAVE_STRINGS_H
+#	elif HAVE_STRINGS_H
 #		include <strings.h>
-#	  endif
 #	endif
 
 #	ifndef HAVE_STRCHR
@@ -43,17 +41,13 @@
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )
 #		define SAFEMEMCPY( d, s, n ) 	memmove((d), (s), (n))
-#	else
-#	  if defined( HAVE_BCOPY )
+#	elif defined( HAVE_BCOPY )
 #		define SAFEMEMCPY( d, s, n ) 	bcopy((s), (d), (n))
-#	  else
-#	    if defined( MACOS )
+#	elif defined( MACOS )
 #		define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
-#	    else
+#	else
 		/* nothing left but memcpy() */
 #		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))
-#	    endif
-#	  endif
 #	endif
 #endif
 

@@ -5,7 +5,7 @@
 
 #include "portable.h"
 
-#ifdef HAVE_PTHREADS
+#if defined( HAVE_PTHREADS )
 /**********************************
  *                                *
  * definitions for POSIX Threads  *
@@ -51,9 +51,7 @@ LDAP_F void pthread_kill LDAP_P(( pthread_t tid, int sig ));
 
 LDAP_END_DECL
 
-/* Do not use #elif.  K&R does not support it. */
-#else /* !HAVE_PTHREADS */
-#ifdef HAVE_MACH_CTHREADS
+#elif defined ( HAVE_MACH_CTHREADS )
 /**********************************
  *                                *
  * definitions for Mach CThreads  *
@@ -93,8 +91,7 @@ typedef struct condition pthread_cond_t;
 
 LDAP_END_DECL
 
-#else /* !HAVE_MACH_CTHREADS */
-#ifdef HAVE_THR
+#elif defined( HAVE_THR )
 /**************************************
  *                                    *
  * thread definitions for Solaris LWP *
@@ -139,8 +136,7 @@ typedef cond_t	pthread_cond_t;
 
 LDAP_END_DECL
 
-#else /* !HAVE_THR */
-#ifdef HAVE_LWP
+#elif defined( HAVE_LWP )
 /*************************************
  *                                   *
  * thread definitions for SunOS LWP  *
@@ -189,7 +185,8 @@ typedef struct lwpcv {
 
 LDAP_END_DECL
 
-#else /* !HAVE_LWP */
+#else
+
 /***********************************
  *                                 *
  * thread definitions for no       *
@@ -239,8 +236,5 @@ typedef int	pthread_cond_t;
 
 LDAP_END_DECL
 
-#endif /* HAVE_LWP */
-#endif /* HAVE_THR */
-#endif /* HAVE_MACH_CTHREADS */
-#endif /* HAVE_PTHREADS */
+#endif /* no threads support */
 #endif /* _LTHREAD_H */
