@@ -928,7 +928,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 		bind.ri_url = (char *)url;
 		err = ldap_send_server_request(
 					ld, ber, ld->ld_msgid, NULL,
-					ludp, NULL, &bind );
+					ludp->lud_host ? ludp : NULL, NULL, &bind );
 	}
 
 	ldap_free_urldesc( ludp );
