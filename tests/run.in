@@ -22,9 +22,9 @@ LN_S="@LN_S@"
 
 export SRCDIR TOPSRCDIR LN_S
 
-AC_BDB=@BUILD_BDB@
-AC_HDB=@BUILD_HDB@
-AC_LDBM=@BUILD_LDBM@
+AC_bdb=@BUILD_BDB@
+AC_hdb=@BUILD_HDB@
+AC_ldbm=@BUILD_LDBM@
 AC_MONITOR=@BUILD_MONITOR@
 AC_CACHE=@BUILD_CACHE@
 AC_WITH_TLS=@WITH_TLS@
@@ -36,12 +36,12 @@ if test ! -x ../servers/slapd/slapd ; then
 	exit 1
 fi
 
-if test $AC_BDB = yes ; then
+if test $AC_bdb != no ; then
 	BACKEND=bdb
-elif test $AC_LDBM = yes ; then
+elif test $AC_ldbm != no ; then
 	BACKEND=ldbm
-elif test $AC_HDB = yes ; then
-	BACKEND=hdbm
+elif test $AC_hdb != no ; then
+	BACKEND=hdb
 else
 	echo "Not configured with a suitable database backend"
 	exit 1
@@ -92,7 +92,8 @@ while test $# -gt 0 ; do
 	esac
 done
 
-export BACKEND WAIT KILLSERVERS PRESERVE USERDATA
+BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
+export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE USERDATA
 
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
