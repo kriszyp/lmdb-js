@@ -4,20 +4,14 @@
 CACHETTL=60
 CACHE_ENTRY_LIMIT=10
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-
-. $SRCDIR/scripts/args.sh $*
+. $SRCDIR/scripts/defines.sh
 
 if test $PROXYCACHE = no; then 
 	echo "Proxy caching requires back-meta AND (back-ldbm OR back-bdb)" 
 	exit 0
 fi 
 
-echo "running defines.sh"
-. $SRCDIR/scripts/defines.sh
+mkdir $DBDIR $CACHEDIR
 
 # Test proxy caching:
 # - start master
@@ -27,28 +21,6 @@ echo "running defines.sh"
 # - verify cacheability
 # - perform second set of searches at the proxy 
 # - verify answerability
-
-#if test ! -x $SLAPD ; then
-#	echo ">>>>> $SLAPD is not executable or does not exist."
-#	echo ">>>>> Test skipped."
-#	exit 0
-#fi
-
-if test ! -d $DBDIR
-then 
-	mkdir $DBDIR
-fi
-
-if test ! -d $CACHEDIR
-then 
-	mkdir $CACHEDIR
-fi
-
-echo "Cleaning up in $DBDIR..."
-rm -f $DBDIR/[!C]*
-echo "Cleaning up in $CACHEDIR..."
-rm -rf $CACHEDIR/[!C]*
-echo $DBDIR
 
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER < $CACHEMASTERCONF > $DBCONF
@@ -219,6 +191,7 @@ echo "Query 11: filter:(mail=*@example.com) cn sn title uid"
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'mail=jaj@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
+
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $CACHEPID
@@ -243,8 +216,10 @@ ANSWERED=`grep ANSWERABLE $SLAVELOG | awk '{
 				                 printf "1"
 					     } 
 					   }'`
-if test $ANSWERABILITY = $ANSWERED
-then
+
+kill -HUP $PID $CACHEPID
+
+if test $ANSWERABILITY = $ANSWERED ; then
 	echo "successfully verified answerability"
 else 
 	echo "error in verifying answerability"
@@ -252,5 +227,5 @@ else
 	exit 1
 fi
 
-echo "Proxy cache successfully tested" 
-kill -HUP $PID $CACHEPID
+echo ">>>>> Test succeeded"
+exit 0

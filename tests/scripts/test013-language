@@ -1,19 +1,10 @@
 #! /bin/sh
 # $OpenLDAP$
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-
-. $SRCDIR/scripts/args.sh $*
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "Cleaning up in $DBDIR..."
-
-rm -f $DBDIR/[!C]*
+mkdir $DBDIR
 
 echo "Starting slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
@@ -105,6 +96,4 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
-
 exit 0

@@ -1,15 +1,27 @@
 #!/bin/sh
 
-USAGE="$0 [-d <db>] <script>"
+USAGE="$0 [-b <backend>] <script>"
 
 # configure generated
-SRCDIR=@srcdir@
+SRCDIR="@srcdir@"
+TOPSRCDIR="@top_srcdir@"
+LN_S="@LN_S@"
+
+export SRCDIR TOPSRCDIR LN_S
+
 AC_BDB=@BUILD_BDB@
 AC_HDB=@BUILD_HDB@
 AC_LDBM=@BUILD_LDBM@
 AC_MONITOR=@BUILD_MONITOR@
 AC_CACHE=@BUILD_CACHE@
 AC_WITH_TLS=@WITH_TLS@
+
+export AC_MONITOR AC_CACHE AC_WITH_TLS
+
+if test ! -x ../servers/slapd/slapd ; then
+	echo "Could not locate slapd(8)"
+	exit 1
+fi
 
 if test $AC_BDB = yes ; then
 	BACKEND=bdb
@@ -22,11 +34,22 @@ else
 	exit 1
 fi
 
+CLEAN=no
+WAIT=0
+
 while test $# -gt 0 ; do
 	case "$1" in
-		-d | -database)
-			$BACKEND="$2"
+		-b | -backend)
+			BACKEND="$2"
 			shift; shift ;;
+
+		-c | -clean)
+			CLEAN=yes
+			shift; shift ;;
+
+		-w | -wait)
+			CLEAN=1
+			shift ;;
 
 		-)
 			shift
@@ -41,18 +64,44 @@ while test $# -gt 0 ; do
 	esac
 done
 
-if test $# != 1 ; then
+export BACKEND WAIT
+
+if test $# = 0 ; then
 	echo "$USAGE"; exit 1
 fi
 SCRIPT="${SRCDIR}/scripts/$1"
+shift
 
 if test ! -x "${SCRIPT}" ; then
 	echo "run: ${SCRIPT} not found (or not executable)"
 	exit 1;
 fi
 
-export BACKEND AC_MONITOR AC_CACHE AC_WITH_TLS
+if test ! -e testdata/test.ldif ; then
+	${LN_S} ${SRCDIR}/data testdata
+fi
+if test ! -e schema/core.schema ; then
+	${LN_S} ${TOPSRCDIR}/servers/slapd/schema schema
+fi
+if test ! -e ucdata/UnicodeData.txt ; then
+	${LN_S} ${TOPSRCDIR}/libraries/liblunicode ucdata
+fi
+
+echo "Cleaning up directories leftover from previous run."
+/bin/rm -rf test-db test-repl test-db2 test-repl2 test-db3 test-repl3
+
+# disable LDAP initialization
+LDAPNOINIT=true; export LDAPNOINIT
 
 echo "Running ${SCRIPT}..."
-$SCRIPT
-exit 0
+$SCRIPT $*
+RC=$?
+
+if test $CLEAN = yes ; then
+	echo "Cleaning up directories leftover from this run."
+	/bin/rm -rf test-db test-repl test-db2 test-repl2 test-db3 test-repl3
+	echo "Cleaning up symlinks."
+	/bin/rm -f testdata schema ucdata
+fi
+
+exit $RC

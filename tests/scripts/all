@@ -1,50 +1,19 @@
 #! /bin/sh
 # $OpenLDAP$
 
-# disable LDAP initialization
-LDAPNOINIT=true; export LDAPNOINIT
-
-echo ">>>>> Executing all LDAP tests..."
-
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
-	SRCDIR=$1; shift
-fi
-
-echo ">>>>> Test Directory: $SRCDIR"
-
-if test $# -eq 0 ; then
-	BACKEND=bdb
-else
-	BACKEND=$1; shift
-fi
-
-echo ">>>>> Backend: $BACKEND"
-
-MONITORDB=${MONITORDB-no}
-PROXYCACHE=${PROXYCACHE-no}
-WITHTLS=${WITHTLS-no}
-BACKENDTYPE=${BACKENDTYPE-yes}
-
-export MONITORDB PROXYCACHE WITHTLS BACKENDTYPE
-
-echo ">>>>> Backend Type: $BACKENDTYPE"
-
-if test $# -eq 0 ; then
-	SYNCREPL=no
-else
-	SYNCREPL=$1; shift
-fi
-
 SHTOOL="$SRCDIR/../build/shtool"
-
 TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
 
+echo ">>>>> Executing all LDAP tests for $BACKEND"
+
 for CMD in $SRCDIR/scripts/test*; do
+	# remove cruft from prior test
+	/bin/rm -rf test-db test-db1 test-db2
+	/bin/rm -rf test-repl test-repl1 test-repl2
+
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
-	$CMD $SRCDIR $BACKEND $SYNCREPL
+	$CMD
 	RC=$?
 	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed ${TB}OK${TN}."
@@ -52,6 +21,7 @@ for CMD in $SRCDIR/scripts/test*; do
 		echo ">>>>> $CMD ${TB}failed${TN} (exit $RC)"
 		exit $RC
 	fi
+
 	echo ">>>>> waiting 10 seconds for things to exit"
 	sleep 10
 	echo ""

@@ -4,17 +4,11 @@
 echo "Test disabled."
 exit 0
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-
-. $SRCDIR/scripts/args.sh $*
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-#
+mkdir $DBDIR $REPLDIR
+
 # Test replication:
 # - start master
 # - start slave
@@ -23,7 +17,6 @@ echo "running defines.sh"
 # - populate over ldap
 # - perform some modifies and deleted
 # - retrieve database over ldap and compare against expected results
-#
 
 if test ! -x $SLURPD ; then
 	echo ">>>>> $SLURPD is not executable or do not exist."
@@ -270,5 +263,4 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
 exit 0

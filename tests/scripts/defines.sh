@@ -1,16 +1,21 @@
 #! /bin/sh
 # $OpenLDAP$
 
-DATADIR=$SRCDIR/data
+DATADIR=./testdata
 PROGDIR=./progs
 DBDIR=./test-db
+CACHEDIR=./test-db2
 REPLDIR=./test-repl
-R1REPLDIR=$REPLDIR/r1
-R2REPLDIR=$REPLDIR/r2
-P1REPLDIR=$REPLDIR/p1
-P2REPLDIR=$REPLDIR/p2
-P3REPLDIR=$REPLDIR/p3
-CACHEDIR=./test-cache
+
+R1REPLDIR=${REPLDIR}/r1
+R2REPLDIR=${REPLDIR}/r2
+P1REPLDIR=${REPLDIR}/p1
+P2REPLDIR=${REPLDIR}/p2
+P3REPLDIR=${REPLDIR}/p3
+
+MONITORDB=${AC_MONITOR-no}
+PROXYCACHE=${AC_CACHE-no}
+WITHTLS=${AC_WITHTLS-yes}
 
 CONF=$DATADIR/slapd.conf
 MCONF=$DATADIR/slapd-master.conf
@@ -155,5 +160,6 @@ REPLOUTMASTER=$DATADIR/repl.out.master
 MODSRCHFILTERS=$DATADIR/modify.search.filters
 CERTIFICATETLS=$DATADIR/certificate.tls
 CERTIFICATEOUT=$DATADIR/certificate.out
+
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

@@ -1,13 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-
-. $SRCDIR/scripts/args.sh $*
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -15,11 +8,7 @@ echo "running defines.sh"
 # Test default referral
 #
 
-
-echo "Cleaning up in $DBDIR and $REPLDIR ..."
-
-rm -f $DBDIR/[!C]*
-rm -f $REPLDIR/[!C]*
+mkdir $DBDIR $REPLDIR
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
@@ -148,6 +137,4 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
-
 exit 0

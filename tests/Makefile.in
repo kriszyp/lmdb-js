@@ -3,79 +3,45 @@
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## tests Makefile.in for OpenLDAP
+RUN=./run
 SUBDIRS= progs
+
 BUILD_BDB=@BUILD_BDB@
 BUILD_HDB=@BUILD_HDB@
 BUILD_LDBM=@BUILD_LDBM@
-BUILD_MONITOR=@BUILD_MONITOR@
-BUILD_CACHE=@BUILD_CACHE@
-WITH_TLS=@WITH_TLS@
 
 test tests:
 	@$(MAKE) bdb
 	@$(MAKE) hdb
 	@$(MAKE) ldbm
 
-links:	data schema ucdata
-data:
-	@-$(LN_S) $(srcdir)/data .
-schema:
-	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
-ucdata:
-	@-$(LN_S) ../libraries/liblunicode ucdata
-
-dirs:	test-db test-repl
-test-db test-repl:
-	@$(MKDIR) $@
-
 bdb test-bdb:	bdb-$(BUILD_BDB)
 bdb-no:
 	@echo "run configure with --enable-bdb"
 
-bdb-yes bdb-mod:	links dirs FORCE
+bdb-yes bdb-mod: FORCE
 	@echo "Initiating LDAP tests for BDB..."
-	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) WITHTLS=$(WITH_TLS) BACKENDTYPE=$(BUILD_BDB) $(srcdir)/scripts/all $(srcdir) bdb bdb
+	@$(RUN) -b bdb all
 
 hdb test-hdb:	hdb-$(BUILD_HDB)
 hdb-no:
 	@echo "run configure with --enable-hdb"
 
-hdb-yes hdb-mod:	links dirs FORCE
+hdb-yes hdb-mod: FORCE
 	@echo "Initiating LDAP tests for HDB..."
-	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) WITHTLS=$(WITH_TLS) BACKENDTYPE=$(BUILD_HDB) $(srcdir)/scripts/all $(srcdir) hdb hdb
+	@$(RUN) -b hdb all
 
 ldbm test-ldbm:	ldbm-$(BUILD_LDBM)
 ldbm-no:
 	@echo "run configure with --enable-ldbm"
 
-ldbm-yes ldbm-mod:	links dirs FORCE
+ldbm-yes ldbm-mod:	FORCE
 	@echo "Initiating LDAP tests for LDBM..."
-	@MONITORDB=$(BUILD_MONITOR); PROXYCACHE=$(BUILD_CACHE); WITHTLS=$(WITH_TLS) \
-	BACKENDTYPE=$(BUILD_LDBM); \
-	export MONITORDB PROXYCACHE WITHTLS  BACKENDTYPE; \
-	if test "$(BUILD_BDB)" != "no"; then \
-			$(srcdir)/scripts/all $(srcdir) ldbm bdb ; \
-	else \
-		if test "$(BUILD_HDB)" != "no"; then \
-				$(srcdir)/scripts/all $(srcdir) ldbm hdb ; \
-		else \
-				$(srcdir)/scripts/all $(srcdir) ldbm no ; \
-		fi ; \
-	fi
-
-passwd test-passwd:	links dirs FORCE
-	@echo "Initiating LDAP tests..."
-	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
-
-test-nis-schema:        test-nis-schema-ldbm
-test-nis-schema-ldbm:	links dirs FORCE
-	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
-	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
+	@$(RUN) -b ldbm all
 
 clean-local:	FORCE
-	-$(RM) -r test-db/[!C]* test-repl/[!C]* test-cache/[!C]* *leak *gmon *core
+	-$(RM) -r test-db* test-repl* *leak *gmon *core
 
 veryclean-local: FORCE
 	@-$(RM) data schema ucdata
-	-$(RM) -r test-db test-repl test-cache
 

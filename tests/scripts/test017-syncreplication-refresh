@@ -1,15 +1,11 @@
 #! /bin/sh
 # $OpenLDAP$
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-
-. $SRCDIR/scripts/args.sh $*
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
+
+mkdir $DBDIR
+mkdir $REPLDIR $REPLDIR/r1
 
 #
 # Test replication:
@@ -20,20 +16,6 @@ echo "running defines.sh"
 # - retrieve database over ldap and compare against expected results
 #
 
-echo "Cleaning up in $DBDIR..."
-rm -f $DBDIR/[!C]*
-echo "Resetting $R1REPLDIR..."
-rm -rf $R1REPLDIR
-mkdir $R1REPLDIR
-
-SAVE=$BACKEND
-if test $BACKEND = ldbm; then
-	if test $SYNCREPL = no; then
-		echo "Sync replication requires back-bdb or back-hdb"
-		exit 0
-	fi
-	BACKEND=$SYNCREPL
-fi
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
@@ -42,7 +24,6 @@ if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
-BACKEND=$SAVE
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
@@ -95,7 +76,7 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
 
@@ -235,6 +216,4 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
-
 exit 0

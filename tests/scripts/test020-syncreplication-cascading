@@ -1,15 +1,13 @@
 #! /bin/sh
 # $OpenLDAP$
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
+echo "skipped"
+exit 0
 
-. $SRCDIR/scripts/args.sh $*
-
-echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
+
+mkdir $DBDIR
+mkdir $REPLDIR $REPLDIR/r1 $REPLDIR/r2 $REPLDIR/p1 $REPLDIR/p2 $REPLDIR/p3
 
 #
 # Test replication:
@@ -20,33 +18,6 @@ echo "running defines.sh"
 # - retrieve database over ldap and compare against expected results
 #
 
-echo "Cleaning up in $DBDIR..."
-rm -f $DBDIR/[!C]*
-echo "Resetting $R1REPLDIR..."
-rm -rf $R1REPLDIR
-mkdir $R1REPLDIR
-echo "Resetting $R2REPLDIR..."
-rm -rf $R2REPLDIR
-mkdir $R2REPLDIR
-echo "Resetting $P1REPLDIR..."
-rm -rf $P1REPLDIR
-mkdir $P1REPLDIR
-echo "Resetting $P2REPLDIR..."
-rm -rf $P2REPLDIR
-mkdir $P2REPLDIR
-echo "Resetting $P3REPLDIR..."
-rm -rf $P3REPLDIR
-mkdir $P3REPLDIR
-
-SAVE=$BACKEND
-if test $SYNCREPL = no; then
-	if test $BACKEND = ldbm; then
-		echo "Sync replication requires back-bdb or back-hdb"
-		exit 0
-	fi
-	SYNCREPL=$BACKEND
-fi
-BACKEND=$SYNCREPL
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
@@ -139,7 +110,6 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-BACKEND=$SYNCREPL
 echo "Starting P1 slave slapd on TCP/IP port $P1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $P1REPLCONF
 $SLAPD -f $P1REPLCONF -h $P1SLAVEURI -d $LVL $TIMING > $P1SLAVELOG 2>&1 &
@@ -446,6 +416,4 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
-
 exit 0
