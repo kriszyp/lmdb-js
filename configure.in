@@ -283,6 +283,20 @@ dnl AC_PROG_MAKE_SET
 AC_PROG_AWK
 AC_PROG_LN_S
 
+dnl Let's test for a way to hardlink (cp or ln)
+AC_MSG_CHECKING(if ln supports hardlinks)
+touch link_test.hard
+if ln link_test.hard link_test.linked > /dev/null 2>&1 ; then
+	LN_H="ln"
+	AC_MSG_RESULT(yes)
+	rm -f link_test.linked
+else
+	LN_H="cp"
+	AC_MSG_RESULT(no...using cp)
+fi
+rm -f link_test.hard
+AC_SUBST(LN_H)
+
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
@@ -317,6 +331,9 @@ dnl Checks for UNIX Variants
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
+
+dnl BeOS requires -lbe -lroot
+AC_CHECK_LIB(be, be_app,[LIBS="$LIBS -lbe -lroot"])
 
 dnl Checks for system services
 AC_CYGWIN
@@ -1546,7 +1563,7 @@ if test $am_cv_sys_posix_termios = yes ; then
 		[define if you have POSIX termios])
 fi
 
-AC_CHECK_HEADERS(	\
+AC_CHECK_HEADERS(		\
 	arpa/inet.h		\
 	arpa/nameser.h		\
 	crypt.h			\
@@ -1574,9 +1591,9 @@ AC_CHECK_HEADERS(	\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
-	sys/resource.h	\
-	sys/socket.h	\
-	sys/syslog.h	\
+	sys/resource.h		\
+	sys/socket.h		\
+	sys/syslog.h		\
 	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\
@@ -1627,11 +1644,11 @@ fi
 AC_CHECK_FUNCS(		\
 	bcopy			\
 	flock			\
-	getdtablesize	\
+	getdtablesize		\
 	gethostname		\
 	getpass			\
 	getpwuid		\
-	gettimeofday	\
+	gettimeofday		\
 	lockf			\
 	memcpy			\
 	memmove			\
