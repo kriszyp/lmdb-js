@@ -146,7 +146,10 @@ gen_pass (unsigned int len)
 	const unsigned char autogen[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.,";
 	int		i;
-	Salt		salt = {NULL, 0};
+	Salt		salt;
+
+	salt.salt = NULL;
+	salt.len = 0;
 
 	make_salt (&salt, len);
 	for (i = 0; i < len; i++)
