@@ -19,6 +19,8 @@
 
 #include "portable.h"
 
+#define	SLAPD_OVER_SYNCPROV	SLAPD_MOD_STATIC
+
 #ifdef SLAPD_OVER_SYNCPROV
 
 #include "slap.h"
@@ -44,19 +46,73 @@ typedef struct syncprov_info_t {
 	int		si_chktime;
 	int		si_numops;	/* number of ops since last checkpoint */
 	time_t	si_chklast;	/* time of last checkpoint */
-	ldap_pvt_thread_mutext_t si_e_mutex;
-	ldap_pvt_thread_mutext_t si_ops_mutex;
-	ldap_pvt_thread_mutext_t si_chk_mutex;
+	ldap_pvt_thread_mutex_t si_e_mutex;
+	ldap_pvt_thread_mutex_t si_ops_mutex;
+	ldap_pvt_thread_mutex_t si_chk_mutex;
 } syncprov_info_t;
 
 typedef struct opcookie {
 	slap_overinst *son;
 	syncmatches *smatches;
+	struct berval suuid;
 } opcookie;
 
-/* Refresh - find entries between cookie CSN and current CSN at start
- * of operation.
- */
+typedef struct findcookie {
+	ID fid;
+	struct berval fdn;
+} findcookie;
+
+static int
+findbase_cb( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+
+	if ( rs->sr_type == REP_SEARCH && rs->sr_err == LDAP_SUCCESS ) {
+		findcookie *fc = sc->sc_private;
+		fc->fid = rs->sr_entry->e_id;
+		ber_dupbv_x( &fc->fdn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
+	}
+	return LDAP_SUCCESS;
+}
+
+static int
+syncprov_findbase( Operation *op, syncops *ss, findcookie *fc )
+{
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	syncprov_info_t		*si = on->on_bi.bi_private;
+
+	slap_callback cb;
+	Operation fop;
+	SlapReply frs = { REP_RESULT };
+	int rc;
+
+	fop = *op;
+
+	cb.sc_response = findbase_cb;
+	cb.sc_private = fc;
+
+	fop.o_callback = &cb;
+	fop.o_tag = LDAP_REQ_SEARCH;
+	fop.ors_scope = LDAP_SCOPE_BASE;
+	fop.ors_deref = ss->s_op->ors_deref;
+	fop.ors_slimit = 1;
+	fop.ors_tlimit = SLAP_NO_LIMIT;
+	fop.ors_attrs = slap_anlist_no_attrs;
+	fop.ors_attrsonly = 1;
+	fop.ors_filter = ss->s_op->ors_filter;
+	fop.ors_filterstr = ss->s_op->ors_filterstr;
+
+	fop.o_req_ndn = ss->s_op->o_req_ndn;
+
+	rc = fop.o_bd->be_search( &fop, &frs );
+
+	if ( fc->fid == ss->s_eid ) return LDAP_SUCCESS;
+
+	/* If entryID has changed, then the base of this search has
+	 * changed. Invalidate the psearch.
+	 */
+	return LDAP_NO_SUCH_OBJECT;
+}
 
 static void
 syncprov_matchops( Operation *op, opcookie *opc )
@@ -64,19 +120,43 @@ syncprov_matchops( Operation *op, opcookie *opc )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
 
+	findcookie fc = { NOID };
 	syncops *ss;
+	Entry *e;
+	Attribute *a;
+	int rc;
 
+	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+	if ( rc ) return;
+
+	a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
+	if ( a )
+		ber_dupbv_x( &opc->suuid, &a->a_vals[0], op->o_tmpmemctx );
+
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 	for (ss = si->si_ops; ss; ss=ss->s_next)
 	{
 		/* validate base */
+		rc = syncprov_findbase( op, ss, &fc );
+		if ( rc != LDAP_SUCCESS ) continue;
+
 		/* check if current o_req_dn is in scope and matches filter */
+		if ( dnIsSuffix( &op->o_req_ndn, &fc.fdn ) && test_filter( op, e,
+			 ss->s_op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+			syncmatches *sm = op->o_tmpalloc( sizeof(syncmatches), op->o_tmpmemctx );
+			sm->sm_next = opc->smatches;
+			sm->sm_op = ss;
+			opc->smatches = sm;
+		}
 	}
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	be_entry_release_r( op, e );
 }
 
 static int
 syncprov_op_response( Operation *op, SlapReply *rs )
 {
-	slap_callback *sc = op->o_callback;
+	slap_callback *cb = op->o_callback;
 	opcookie *opc = (opcookie *)(cb+1);
 	slap_overinst *on = opc->son;
 	syncprov_info_t		*si = on->on_bi.bi_private;
@@ -131,7 +211,8 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 	if ( dn_match( &op->o_req_ndn, &si->si_e->e_nname ) )
 	{
-		
+		Attribute *a;
+
 		ldap_pvt_thread_mutex_lock( &si->si_e_mutex );
 
 		if ( get_assert( op ) &&
@@ -168,7 +249,7 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 return_results:;
 
-		ldap_pvt_thread_mutex_unlock( &si->si_entry_mutex );
+		ldap_pvt_thread_mutex_unlock( &si->si_e_mutex );
 
 		send_ldap_result( op, rs );
 
@@ -267,6 +348,11 @@ syncprov_op_modrdn( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static const struct berval * write_exop[] = {
+	&slap_EXOP_MODIFY_PASSWD,
+	NULL
+};
+
 static int
 syncprov_op_extended( Operation *op, SlapReply *rs )
 {
@@ -295,10 +381,17 @@ syncprov_op_extended( Operation *op, SlapReply *rs )
 			cb->sc_private = opc;
 			cb->sc_next = op->o_callback;
 			op->o_callback = cb;
+
+			syncprov_matchops( op, opc );
 		}
 	}
 
 	return SLAP_CB_CONTINUE;
+}
+
+static int
+syncprov_op_search( Operation *op, SlapReply *rs )
+{
 }
 
 static int
@@ -314,7 +407,19 @@ syncprov_response( Operation *op, SlapReply *rs )
 
 		switch ( op->o_tag ) {
 		case LDAP_REQ_EXTENDED:
+			{ int i, doit = 0;
+
 			/* if not PASSWD_MODIFY, break */
+			for ( i=0; write_exop[i]; i++ )
+			{
+				if ( !ber_bvcmp( write_exop[i], &op->oq_extended.rs_reqoid ))
+				{
+					doit = 1;
+					break;
+				}
+			}
+			if ( !doit ) break;
+			}
 			/* else fallthru */
 		case LDAP_REQ_ADD:
 		case LDAP_REQ_MODIFY:
