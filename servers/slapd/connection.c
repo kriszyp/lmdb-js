@@ -1218,13 +1218,13 @@ connection_input(
 	char 		*cdn = NULL;
 #endif
 
-	if ( conn->c_currentber == NULL && (conn->c_currentber = ber_alloc())
+	if ( conn->c_currentber == NULL && (conn->c_currentber = ber_alloc_t(0))
 	    == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  ber_alloc failed.\n", conn->c_connid ));
+			   "connection_input: conn %d  ber_alloc_t failed.\n", conn->c_connid ));
 #else
-		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "ber_alloc_t failed\n", 0, 0, 0 );
 #endif
 		return -1;
 	}

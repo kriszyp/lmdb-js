@@ -800,7 +800,7 @@ parse_whsp(const char **sp)
 char *
 parse_numericoid(const char **sp, int *code, const int flags)
 {
-	char * res;
+	char * res = NULL;
 	const char * start = *sp;
 	int len;
 	int quoted = 0;
@@ -831,21 +831,24 @@ parse_numericoid(const char **sp, int *code, const int flags)
 	}
 	/* Now *sp points at the char past the numericoid. Perfect. */
 	len = *sp - start;
-	res = LDAP_MALLOC(len+1);
-	if (!res) {
-		*code = LDAP_SCHERR_OUTOFMEM;
-		return(NULL);
-	}
-	strncpy(res,start,len);
-	res[len] = '\0';
 	if ( flags & LDAP_SCHEMA_ALLOW_QUOTED && quoted ) {
 		if ( **sp == '\'' ) {
 			(*sp)++;
 		} else {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
-			LDAP_FREE(res);
 			return NULL;
 		}
+	}
+	if (flags & LDAP_SCHEMA_SKIP) {
+		res = start;
+	} else {
+		res = LDAP_MALLOC(len+1);
+		if (!res) {
+			*code = LDAP_SCHERR_OUTOFMEM;
+			return(NULL);
+		}
+		strncpy(res,start,len);
+		res[len] = '\0';
 	}
 	return(res);
 }

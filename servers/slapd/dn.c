@@ -250,8 +250,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			/* 
 			 * Replace attr oid/name with the canonical name
 			 */
-			free( ava->la_attr.bv_val );
-			ber_dupbv( &ava->la_attr, &ad->ad_cname );
+			ava->la_attr = ad->ad_cname;
 
 			if( flags & SLAP_LDAPDN_PRETTY ) {
 				transf = ad->ad_type->sat_syntax->ssyn_pretty;

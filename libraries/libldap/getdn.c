@@ -20,6 +20,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+#include "ldap_schema.h"
 
 /* extension to UFN that turns trailing "dc=value" rdns in DNS style,
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
@@ -505,14 +506,18 @@ ldapava_new( const struct berval *attr, const struct berval *val,
 	assert( attr );
 	assert( val );
 
-	ava = LDAP_MALLOC( sizeof( LDAPAVA ) );
+	ava = LDAP_MALLOC( sizeof( LDAPAVA ) + attr->bv_len + 1 );
 	
 	/* should we test it? */
 	if ( ava == NULL ) {
 		return( NULL );
 	}
 
-	ava->la_attr = *attr;
+	ava->la_attr.bv_len = attr->bv_len;
+	ava->la_attr.bv_val = (char *)(ava+1);
+	AC_MEMCPY( ava->la_attr.bv_val, attr->bv_val, attr->bv_len );
+	ava->la_attr.bv_val[attr->bv_len] = '\0';
+
 	ava->la_value = *val;
 	ava->la_flags = flags;
 
@@ -533,7 +538,10 @@ ldap_avafree( LDAPAVA *ava )
 	assert( ava->la_private == NULL );
 #endif
 
+#if 0
+	/* la_attr is now contiguous with ava, not freed separately */
 	free( ava->la_attr.bv_val );
+#endif
 	free( ava->la_value.bv_val );
 
 	LDAP_FREE( ava );
@@ -702,7 +710,7 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 			} else {
 				int i;
 
-				newDN[0] = (LDAPRDN **)newDN+1;
+				newDN[0] = (LDAPRDN **)(newDN+1);
 
 				if ( LDAP_DN_DCE( flags ) ) {
 					/* add in reversed order */
@@ -878,23 +886,14 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 		
 		case B4OIDATTRTYPE: {
 			int 		err = LDAP_SUCCESS;
-			char		*type;
 			
-			type = parse_numericoid( &p, &err, 0 );
-			if ( type == NULL ) {
+			attrType.bv_val = parse_numericoid( &p, &err,
+				LDAP_SCHEMA_SKIP);
+
+			if ( err != LDAP_SUCCESS ) {
 				goto parsing_error;
 			}
-
-			if ( flags & LDAP_DN_SKIP ) {
-				/*
-				 * FIXME: hack for skipping a rdn; 
-				 * need a cleaner solution
-				 */
-				LDAP_FREE( type );
-
-			} else {
-				ber_str2bv( type, 0, 0, &attrType );
-			}
+			attrType.bv_len = p - attrType.bv_val;
 
 			attrTypeEncoding = LDAP_AVA_BINARY;
 
@@ -961,11 +960,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				break;
 			}
 
-			attrType.bv_val = LDAP_STRNDUP( startPos, len );
-			if ( attrType.bv_val == NULL ) {
-				rc = LDAP_NO_MEMORY;
-				goto parsing_error;
-			}
+			attrType.bv_val = (char *)startPos;
 			attrType.bv_len = len;
 
 			break;
@@ -1157,7 +1152,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 					} else {
 						int i;
 
-						newRDN[0] = (LDAPAVA**) newRDN+1;
+						newRDN[0] = (LDAPAVA**)(newRDN+1);
 
 						for (i=0; i<navas; i++)
 							newRDN[0][i] = tmpRDN[i];

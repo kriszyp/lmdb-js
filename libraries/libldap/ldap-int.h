@@ -61,7 +61,9 @@
 
 #undef Debug
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
-	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
+	do { if ( ldap_debug & level ) \
+	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) ); \
+	} while ( 0 )
 
 #define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 )\
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
