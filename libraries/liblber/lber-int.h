@@ -23,16 +23,22 @@
 
 LDAP_BEGIN_DECL
 
-#define LBER_ITEM_BERELEMENT 1
-#define LBER_ITEM_SOCKBUF 2
-
 extern int lber_int_debug;
 #define lber_log_printf lber_pvt_log_printf
 
+struct lber_options {
+	short		lbo_item_type;
+#define LBER_ITEM_BERELEMENT 1
+#define LBER_ITEM_SOCKBUF 2
+	short		lbo_options;
+	int			lbo_debug;
+};
+
 struct berelement {
-	short		ber_item_type; 	/* always LBER_ITEM_BERELEMENT */
-	short		ber_options;
-	int			ber_debug;
+	struct		lber_options ber_opts;
+#define ber_item_type	ber_opts.lbo_item_type
+#define ber_options		ber_opts.lbo_options
+#define ber_debug		ber_opts.lbo_debug
 
 	int			ber_usertag;
 
@@ -61,8 +67,7 @@ struct sockbuf_io {
 	int	(*sbi_close)( struct sockbuf *sb );
 };
 
-struct sockbuf_sec
-{
+struct sockbuf_sec {
 	int	(*sbs_setup)( struct sockbuf * sb, void *arg );
 	int	(*sbs_remove)( struct sockbuf *sb );
    
@@ -72,8 +77,7 @@ struct sockbuf_sec
 			       char *out0, long olen0, char *out1, long olen1 );
 };
 
-struct sockbuf_buf
-{
+struct sockbuf_buf {
 	long	buf_size;
 	long	buf_ptr;
 	long	buf_end;
@@ -97,10 +101,11 @@ typedef struct sockbuf_buf Sockbuf_Buf;
 #endif
 
 struct sockbuf {
-	short		sb_item_type; 	/* always LBER_ITEM_SOCKBUF */
-	short		sb_options;	/* to support copying ber elements */
+	struct lber_options sb_opts;
+#define	sb_item_type	sb_opts.lbo_item_type
+#define	sb_options		sb_opts.lbo_options
+#define	sb_debug		sb_opts.lbo_debug
 
-	int		sb_debug:1;
 	int		sb_non_block:1;	
 	int		sb_read_ahead:1;
    
