@@ -1,0 +1,413 @@
+
+
+Individual Submission to ldapext Working Group        Roger G. Harrison
+Internet Draft                                             Novell, Inc.
+Intended Category: Standards Track
+                                                       Kurt D. Zeilenga
+                                                    OpenLDAP Foundation
+
+                                                         March 30, 2001
+
+
+
+                       LDAP Intermediate Response
+             <draft-rharrison-ldap-intermediate-resp-00.txt>
+
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   This document is intended to be, after appropriate review and
+   revision, submitted to the RFC Editor as a Standard Track document.
+
+   Distribution of this memo is unlimited.  Technical discussion of
+   this document will take place on the IETF LDAP Extensions Working
+   Group (ldapext) mailing list <ietf-ldapext@netscape.com>.  Please
+   send editorial comments directly to the document editor
+   <roger_harrison@novell.com>.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that
+   other groups may also distribute working documents as Internet-
+   Drafts. Internet-Drafts are draft documents valid for a maximum of
+   six months and may be updated, replaced, or obsoleted by other
+   documents at any time. It is inappropriate to use Internet-Drafts as
+   reference material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+1. Abstract
+
+   This document extends LDAPv3 to provide a general mechanism for
+   defining single-request/multiple-response operations by defining and
+   describing the IntermediateResponse message.
+
+
+2. Background and Intended Usage
+
+   The Lightweight Directory Access Protocol, version 3 [LDAPv3] is an
+   extensible protocol. Extended operations ([LDAPv3] Section 4.12) are
+   defined to allow operations to be added to LDAP without requiring a
+   new revision of the protocol. Similarly, controls ([LDAPv3] section
+
+Harrison & Zeilenga        Expires September 30, 2001         [Page 1]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+   4.1.12) are defined to extend or modify the behavior of existing
+   LDAP operations.
+
+   LDAPv3 is a client-request/server-response based protocol. With the
+   exception of the search operation, the entire response to an
+   operation request is returned in a single protocol data unit (LDAP
+   message).  While this single-request/single-response paradigm is
+   sufficient for many operations (including almost all but one of
+   those currently defined by [LDAPv3]), both intuition and practical
+   experience validate the notion that it is insufficient for some
+   operations.
+
+   For example, the LDAPv3 delete operation could be extended via a
+   subtree control to mean that an entire subtree is to be deleted. A
+   subtree delete operation needs to return continuation references
+   based upon subordinate knowledge information contained in the server
+   so that the client can complete the operation. Returning references
+   as they are found instead of with the final result allows the client
+   to progress the operation more efficiently because it does not have
+   to wait for the final result to get this continuation reference
+   information.
+
+   Similarly, an engineer might choose to design the subtree delete
+   operation as an extended operation of its own rather than using a
+   subtree control in conjunction with the delete operation. Once
+   again, the same continuation reference information is needed by the
+   client to complete the operation, and sending the continuation
+   references as they are found would allow the client progress the
+   operation more efficiently.
+
+   Operations that complete in stages or that progress through various
+   states as they complete might want to send intermediate responses to
+   the client apprising it of the status of the operation. For example,
+   an LDAP implementation might define an extended operation to create
+   a new replica of an administrative area on a server, and the
+   operation completes in three stages: (1) begin creation of replica,
+   (2) send replica data to server, (3) replica creation complete.
+   Intermediate messages might be sent from the server to the client at
+   the beginning of stages (1) and (2) with the final response for the
+   extended operation being sent for stage (3).
+
+   As LDAPv3 is currently defined, there is no general LDAP message
+   type that can be used to return intermediate results.  A single,
+   reusable LDAP message for carrying intermediate response information
+   is desired to avoid repeated modification of the protocol.  Although
+   the ExtendedResponse message is defined in LDAPv3, it is defined to
+   be the one and only response message to an ExtendedRequest message
+   ([LDAPv3] Section 4.12, also see Section 6 below), for unsolicited
+   responses (LDAPv3 Section 4.4), and to return intermediate responses
+   for the search operation ([LDAPv3] Section 4.5.2). The adaptation of
+   ExpendedResponse as a general intermediate response mechanism would
+   be problematic.  In particular, existing APIs would likely have to
+   be redesigned.  It is believed (based upon operational experience)
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 2]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+   the addition of a new message to carry intermediate result
+   information is easier to implement.
+
+   This document defines the LDAPv3 IntermediateResponse message. This
+   message is intended to be used (1) in conjunction with
+   ExtendedRequest and ExtendedResponse to define new single-
+   request/multiple-response operations and (2) in conjunction with a
+   control when extending existing operations in a way that requires
+   them to return intermediate response information.
+
+   It is intended that the definitions and descriptions of extended
+   operations and controls that make use of the IntermediateResponse
+   message will define the circumstances when a IntermediateResponse
+   message can be sent by a server and the associated meaning of a
+   IntermediateResponse message sent in a particular circumstance.
+   Similarly, it is intended that clients will explicitly solicit
+   IntermediateResponse messages by issuing operations that
+   specifically call for their return.
+
+
+3. Conventions used in this document
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in
+   this document are to be interpreted as described in [ReqsKeywords].
+
+   The term "request control" is used to describe a control that is
+   included in an LDAPv3 request message sent from an LDAPv3 client to
+   an LDAPv3 server.
+
+
+4. The IntermediateResponse PDU
+
+   This document extends the protocolOp CHOICE of LDAPMessage ([LDAPv3]
+   Section 4.1.1) to include the field:
+
+           intermediateResponse  IntermediateResponse
+
+   where IntermediateResponse is defined as:
+
+           IntermediateResponse ::= [APPLICATION 25] SEQUENCE {
+                   responseName     [0] LDAPOID OPTIONAL,
+                   responseValue    [1] OCTET STRING OPTIONAL }
+
+   IntermediateResponse messages SHALL NOT be returned to the client
+   unless the client issues a request that specifically solicits their
+   return.  This document defines two forms of solicitation: extended
+   operation and request control.
+
+   Although the responseName and responseValue are optional in some
+   circumstances, generally speaking IntermediateResponse messages have
+   a predefined responseName and a responseValue. The value of the
+   responseName (if present), the syntax of the responseValue (if
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 3]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+   present) and the semantics associated with a particular
+   IntermediateResponse message MUST be specified in documents
+   describing the extended operation or request control that uses them.
+   Sections 4.1 and 4.2 describe additional requirements on the
+   inclusion of responseName and responseValue in IntermediateResponse
+   messages.
+
+
+4.1. Usage with LDAPv3 ExtendedRequest and ExtendedResponse
+
+   A single-request/multiple-response operation may be defined using a
+   single ExtendedRequest message to solicit zero or more
+   IntermediateResponse messages of one or more kinds followed by an
+   ExtendedResponse message.
+
+   An extended operation that defines the return of multiple kinds of
+   IntermediateResponse messages MUST provide and document a mechanism
+   for the client to distinguish the kind of IntermediateResponse
+   message being sent. This SHALL be accomplished by using different
+   responseName values for each type of IntermediateResponse message
+   associated with the extended operation or by including identifying
+   information in the responseValue of each type of
+   IntermediateResponse message associated with the extended operation.
+
+4.2. Usage with LDAPv3 Request Controls
+
+   Any LDAPv3 operation may be extended by the addition of one or more
+   controls. A control's semantics may include the return of zero or
+   more IntermediateResponse messages prior to returning the final
+   result code for the operation. One or more kinds of
+   IntermediateResponse messages may be sent in response to a request
+   control.
+
+   All IntermediateResponse messages associated with request controls
+   SHALL include a responseName. This requirement ensures that the
+   client can correctly identify the source of IntermediateResponse
+   messages when
+
+           (a) two or more controls using IntermediateResponse messages
+               are included in a request for any LDAPv3 operation or
+
+           (b) one or more controls using IntermediateResponse messages
+               are included in a request with an LDAPv3 extended
+               operation that uses IntermediateResponse messages.
+
+   A request control that defines the return of multiple kinds of
+   IntermediateResponse messages MUST provide and document a mechanism
+   for the client to distinguish the kind of IntermediateResponse
+   message being sent. This SHALL be accomplished by using different
+   responseName values for each type of IntermediateResponse message
+   associated with the request control or by including identifying
+   information in the responseValue of each type of
+   IntermediateResponse message associated with the request control.
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 4]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+
+5. Advertising Support for IntermediateResponse Messages
+
+   Because IntermediateResponse messages are associated with extended
+   operations or controls and LDAP provides a means for advertising the
+   extended operations and controls supported by a server (using the
+   supportedExtensions and supportedControls attributes of the root DSE
+   attributes), no separate means for advertising support for
+   IntermediateResponse messages is needed (or provided).
+
+6. Use of IntermediateResponse and ExtendedResponse with Search
+
+   It is noted that ExtendedResponse messages may be sent in response
+   to LDAPv3 search operations with controls ([LDAPv3] Section 4.5.1).
+   This use of ExtendedResponse messages SHOULD be viewed as deprecated
+   in favor of use of the IntermediateResponse messages.
+
+
+7. Security Considerations
+
+   This document describes an enhancement to LDAPv3.  All security
+   considerations of [LDAPv3] apply to this document, however it does
+   not introduce any new security considerations to the LDAPv3.
+
+8. References
+
+    [LDAPv3]
+        Wahl, M., Howes, T., and S. Kille, "Lightweight Directory
+        Access Protocol (v3)", RFC 2251, December 1997.
+
+   [ReqsKeywords]
+        Scott Bradner. "Key Words for use in RFCs to Indicate
+        Requirement Levels". RFC 2119.
+
+
+9. Acknowledgments
+
+   The authors would like to acknowledge the members of the IETF LDAP
+   Extensions (ldapext) working group mail list who responded to the
+   suggestion that a multiple-response paradigm might be useful for
+   LDAP extended requests.  Special thanks go to two individuals: David
+   Wilbur who first introduced the idea on the working group list, and
+   Thomas Salter, who succinctly summarized the group's discussion.
+
+10. Authors' Addresses
+
+   Roger Harrison
+   Novell, Inc.
+   1800 S. Novell Place
+   Provo, UT 84606
+   +1 801 861 2642
+   roger_harrison@novell.com
+
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 5]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+   Kurt D. Zeilenga
+   OpenLDAP Foundation
+   Kurt@OpenLDAP.org
+
+Appendix A - Document Revision History
+   Editors' Note: this non-normative appendix should be removed prior
+   to publication as an RFC.  It is provided as an aid to reviewers of
+   this "work in progress."
+
+A.1. draft-rharrison-ldap-extPartResp-00.txt
+
+   Initial revision of draft.
+
+A.2. draft-rharrison-ldap-extPartResp-01.txt
+
+   Changed responseName to be optional to align with [LDAPv3]
+   definition of ExtendedResponse.
+
+A.3. draft-rharrison-ldap-extPartResp-02.txt
+
+   Minor terminology corrections. Clarified use of
+   ExtendedPartialResponse with LDAPv3 extended operations and other
+   LDAPv3 operations with controls.
+
+A.4. draft-rharrison-ldap-intermediateResp-00.txt
+
+   - Changed name of ExtendedPartialResponse to IntermediateResponse.
+
+   - Retitled "Motivation" section to "Background and Intended Usage"
+     and expanded its contents.
+
+   - Added detail surrounding the use of the IntermediateResponse with
+     extended operations and request controls.
+
+   - Generalized the way that Intermediate response fits into the ASN.1
+     definition of LDAPv3.
+
+   - Added information on advertising IntermediateResponse.
+
+   - Added information on the use of IntermediateResponse with the
+     search operation.
+
+Full Copyright Statement
+
+   "Copyright (C) The Internet Society (date). All Rights Reserved.
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph
+   are included on all such copies and derivative works. However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 6]
+
+                     LDAPv3 Intermediate Response       March 30, 2001
+
+
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Harrison & Zeilenga         Expires September 30, 2001        [Page 7]
+
