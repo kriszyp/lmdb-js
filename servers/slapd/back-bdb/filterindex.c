@@ -231,10 +231,12 @@ list_candidates(
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_list_candidates 0x%x\n", ftype, 0, 0 );
 #endif
 
-	/* Copy so we can propagate pre-computed IDLs */
-	BDB_IDL_CPY( save, ids );
-
 	for ( f = flist; f != NULL; f = f->f_next ) {
+		/* Ignore undefined filters */
+		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
+		     f->f_result == SLAPD_COMPARE_UNDEFINED ) {
+		     	continue;
+		}
 		rc = bdb_filter_candidates( op, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
 
