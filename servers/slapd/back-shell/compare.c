@@ -20,8 +20,8 @@ shell_back_compare(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
+    struct berval *dn,
+    struct berval *ndn,
     AttributeAssertion *ava
 )
 {
@@ -50,7 +50,7 @@ shell_back_compare(
 	fprintf( wfp, "COMPARE\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
+	fprintf( wfp, "dn: %s\n", dn->bv_val );
 	fprintf( wfp, "%s: %s\n",
 		ava->aa_desc->ad_cname.bv_val,
 		ava->aa_value->bv_val /* could be binary! */ );

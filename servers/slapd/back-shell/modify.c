@@ -20,8 +20,8 @@ shell_back_modify(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
+    struct berval *dn,
+    struct berval *ndn,
     Modifications	*ml
 )
 {
@@ -47,7 +47,7 @@ shell_back_modify(
 	fprintf( wfp, "MODIFY\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
+	fprintf( wfp, "dn: %s\n", dn->bv_val );
 	for ( ; ml != NULL; ml = ml->sml_next ) {
 		mod = &ml->sml_mod;
 

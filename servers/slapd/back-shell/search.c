@@ -20,8 +20,8 @@ shell_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*base,
-    const char	*nbase,
+    struct berval *base,
+    struct berval *nbase,
     int		scope,
     int		deref,
     int		size,
@@ -53,7 +53,7 @@ shell_back_search(
 	fprintf( wfp, "SEARCH\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "base: %s\n", base );
+	fprintf( wfp, "base: %s\n", base->bv_val );
 	fprintf( wfp, "scope: %d\n", scope );
 	fprintf( wfp, "deref: %d\n", deref );
 	fprintf( wfp, "sizelimit: %d\n", size );

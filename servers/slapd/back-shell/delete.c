@@ -20,8 +20,8 @@ shell_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn
+    struct berval *dn,
+    struct berval *ndn
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
@@ -44,7 +44,7 @@ shell_back_delete(
 	fprintf( wfp, "DELETE\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
+	fprintf( wfp, "dn: %s\n", dn->bv_val );
 	fclose( wfp );
 
 	/* read in the results and send them along */

@@ -33,11 +33,13 @@ shell_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
-    const char	*newrdn,
+    struct berval *dn,
+    struct berval *ndn,
+    struct berval *newrdn,
+    struct berval *nnewrdn,
     int		deleteoldrdn,
-    const char	*newSuperior
+    struct berval *newSuperior,
+    struct berval *nnewSuperior
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
@@ -60,11 +62,11 @@ shell_back_modrdn(
 	fprintf( wfp, "MODRDN\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
-	fprintf( wfp, "newrdn: %s\n", newrdn );
+	fprintf( wfp, "dn: %s\n", dn->bv_val );
+	fprintf( wfp, "newrdn: %s\n", newrdn->bv_val );
 	fprintf( wfp, "deleteoldrdn: %d\n", deleteoldrdn ? 1 : 0 );
 	if (newSuperior != NULL) {
-		fprintf( wfp, "newSuperior: %s\n", newSuperior );
+		fprintf( wfp, "newSuperior: %s\n", newSuperior->bv_val );
 	}
 	fclose( wfp );
 
