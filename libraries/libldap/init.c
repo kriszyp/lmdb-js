@@ -26,6 +26,7 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_INT	2
 #define ATTR_KV		3
 #define ATTR_STRING	4
+#define ATTR_TLS	5
 
 struct ol_keyvalue {
 	const char *		key;
@@ -61,10 +62,16 @@ static const struct ol_attribute {
 	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{ATTR_BOOL,		"RESTART",	NULL,	LDAP_BOOL_RESTART},
 	{ATTR_BOOL,		"DNS",		NULL,	LDAP_BOOL_DNS},
+  	{ATTR_BOOL,		"TLS",		NULL,	LDAP_OPT_X_TLS},
+    	{ATTR_TLS,		"TLS_CERT",	NULL,	LDAP_OPT_X_TLS_CERTFILE},
+      	{ATTR_TLS,		"TLS_KEY",	NULL,	LDAP_OPT_X_TLS_KEYFILE},
+  	{ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
+  	{ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
+  	{ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
 	{ATTR_NONE,		NULL,		NULL,	0}
 };
 
-#define MAX_LDAP_ATTR_LEN  sizeof("SIZELIMIT")
+#define MAX_LDAP_ATTR_LEN  sizeof("TLS_CACERTDIR")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
 static void openldap_ldap_init_w_conf(const char *file)
@@ -167,6 +174,11 @@ static void openldap_ldap_init_w_conf(const char *file)
 				p = &((char *) &gopts)[attrs[i].offset];
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = LDAP_STRDUP(opt);
+				break;
+			case ATTR_TLS:
+#ifdef HAVE_TLS
+			   	ldap_pvt_tls_config( &gopts, attrs[i].offset, opt );
+#endif
 				break;
 			}
 		}
@@ -279,6 +291,11 @@ static void openldap_ldap_init_w_env(const char *prefix)
 				* (char**) p = LDAP_STRDUP(value);
 			}
 			break;
+		case ATTR_TLS:
+#ifdef HAVE_TLS
+		   	ldap_pvt_tls_config( attrs[i].offset, value );
+#endif			 	
+		   	break;
 		}
 	}
 }
@@ -290,6 +307,11 @@ void ldap_int_initialize( void )
 	}
 
 	ldap_int_utils_init();
+
+#ifdef HAVE_TLS
+   	ldap_pvt_tls_init();
+#endif
+
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
 
@@ -308,6 +330,10 @@ void ldap_int_initialize( void )
 	LDAP_BOOL_ZERO(&gopts);
 
 	LDAP_BOOL_SET(&gopts, LDAP_BOOL_REFERRALS);
+
+#ifdef HAVE_TLS
+   	gopts.ldo_tls_ctx = NULL;
+#endif
 
 	gopts.ldo_valid = LDAP_INITIALIZED;
 
