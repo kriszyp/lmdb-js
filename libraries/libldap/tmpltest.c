@@ -53,14 +53,14 @@ main( int argc, char **argv )
 
     if ( argc == 1 ) {
 	printf( "*** Display Templates:\n" );
-	for ( dtp = ldap_first_disptmpl( templates ); dtp != NULLDISPTMPL;
+	for ( dtp = ldap_first_disptmpl( templates ); dtp != NULL;
 		dtp = ldap_next_disptmpl( templates, dtp )) {
 	    dump_tmpl( dtp );
 	    printf( "\n\n" );
 	}
 
 	printf( "\n\n*** Search Objects:\n" );
-	for ( sop = ldap_first_searchobj( so ); sop != NULLSEARCHOBJ;
+	for ( sop = ldap_first_searchobj( so ); sop != NULL;
 		    sop = ldap_next_searchobj( so, sop )) {
 	    dump_srchpref( sop );
 	    printf( "\n\n" );
@@ -191,11 +191,11 @@ dump_tmpl( struct ldap_disptmpl *tmpl )
 
     printf( "\ntemplate items:\n" );
     rowcnt = 0;
-    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULLTMPLITEM;
+    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULL;
 	    rowp = ldap_next_tmplrow( tmpl, rowp )) {
 	++rowcnt;
 	colcnt = 0;
-	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 	    ++colcnt;
 	    printf( "  %2d-%d: %s (%s%s", rowcnt, colcnt,
