@@ -26,6 +26,7 @@ dn2id_add(
 	int		rc, flags;
 	DBCache	*db;
 	Datum		key, data;
+	char		*buf, *ptr, *pdn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -51,8 +52,11 @@ dn2id_add(
 
 	ldbm_datum_init( key );
 	key.dsize = strlen( dn ) + 2;
-	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
+	buf = ch_malloc( key.dsize );
+	key.dptr = buf;
+	buf[0] = DN_BASE_PREFIX;
+	ptr = buf + 1;
+	strcpy( ptr, dn );
 
 	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
@@ -61,46 +65,44 @@ dn2id_add(
 	flags = LDBM_INSERT;
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	free( key.dptr );
+	if ( rc != -1 && !be_issuffix( be, ptr )) {
+		buf[0] = DN_SUBTREE_PREFIX;
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		rc = idl_insert_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+	}
 
 	if ( rc != -1 ) {
-		char *pdn = dn_parent( be, dn );
+		pdn = dn_parent( be, ptr );
 
 		if( pdn != NULL ) {
-			ldbm_datum_init( key );
-			key.dsize = strlen( pdn ) + 2;
-			key.dptr = ch_malloc( key.dsize );
-			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+			pdn[-1] = DN_ONE_PREFIX;
+			key.dsize -= pdn - ptr;
+			key.dptr = pdn - 1;
 			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 			rc = idl_insert_key( be, db, key, id );
 			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-			free( key.dptr );
 		}
 	}
 
-	if ( rc != -1 ) {
-		char **subtree = dn_subtree( be, dn );
+	while ( rc != -1 && pdn != NULL ) {
+		if ( be_issuffix( be, pdn ))
+			break;
 
-		if( subtree != NULL ) {
-			int i;
-			for( i=0; subtree[i] != NULL; i++ ) {
-				ldbm_datum_init( key );
-				key.dsize = strlen( subtree[i] ) + 2;
-				key.dptr = ch_malloc( key.dsize );
-				sprintf( key.dptr, "%c%s",
-					DN_SUBTREE_PREFIX, subtree[i] );
-				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-				rc = idl_insert_key( be, db, key, id );
-				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-				free( key.dptr );
+		pdn[-1] = DN_SUBTREE_PREFIX;
 
-				if(rc == -1) break;
-			}
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		rc = idl_insert_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
-			charray_free( subtree );
-		}
+		if( rc != 0 ) break;
+		ptr = pdn;
+		pdn = dn_parent( be, pdn );
+		key.dsize -= pdn - ptr;
+		key.dptr = pdn - 1;
 	}
 
+	free( buf );
 	ldbm_cache_close( be, db );
 
 #ifdef NEW_LOGGING
@@ -269,6 +271,7 @@ dn2id_delete(
 	DBCache	*db;
 	Datum		key;
 	int		rc;
+	char		*buf, *ptr, *pdn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -294,56 +297,52 @@ dn2id_delete(
 		return( -1 );
 	}
 
-
-	{
-		char *pdn = dn_parent( be, dn );
-
-		if( pdn != NULL ) {
-			ldbm_datum_init( key );
-			key.dsize = strlen( pdn ) + 2;
-			key.dptr = ch_malloc( key.dsize );
-			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
-
-			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-			(void) idl_delete_key( be, db, key, id );
-			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-
-			free( key.dptr );
-		}
-	}
-
-	{
-		char **subtree = dn_subtree( be, dn );
-
-		if( subtree != NULL ) {
-			int i;
-			for( i=0; subtree[i] != NULL; i++ ) {
-				ldbm_datum_init( key );
-				key.dsize = strlen( subtree[i] ) + 2;
-				key.dptr = ch_malloc( key.dsize );
-				sprintf( key.dptr, "%c%s",
-					DN_SUBTREE_PREFIX, subtree[i] );
-
-				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-				(void) idl_delete_key( be, db, key, id );
-				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-
-				free( key.dptr );
-			}
-
-			charray_free( subtree );
-		}
-	}
-
 	ldbm_datum_init( key );
-
 	key.dsize = strlen( dn ) + 2;
-	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
+	buf = ch_malloc( key.dsize );
+	key.dptr = buf;
+	buf[0] = DN_BASE_PREFIX;
+	ptr = buf + 1;
+	strcpy( ptr, dn );
 
 	rc = ldbm_cache_delete( db, key );
+	
+	if( !be_issuffix( be, ptr )) {
+		buf[0] = DN_SUBTREE_PREFIX;
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		(void) idl_delete_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+	}
 
-	free( key.dptr );
+	pdn = dn_parent( be, ptr );
+
+	if( pdn != NULL ) {
+		pdn[-1] = DN_ONE_PREFIX;
+		key.dsize -= pdn - ptr;
+		key.dptr = pdn - 1;
+
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		(void) idl_delete_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+	}
+
+	while ( pdn != NULL ) {
+		if ( be_issuffix( be, pdn ))
+			break;
+
+		pdn[-1] = DN_SUBTREE_PREFIX;
+
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		(void) idl_delete_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+
+		ptr = pdn;
+		pdn = dn_parent( be, pdn );
+		key.dsize -= pdn - ptr;
+		key.dptr = pdn - 1;
+	}
+
+	free( buf );
 
 	ldbm_cache_close( be, db );
 

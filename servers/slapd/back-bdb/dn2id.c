@@ -77,24 +77,12 @@ bdb_dn2id_add(
 					pdn, rc, 0 );
 			goto done;
 		}
-
-		pdn[-1] = DN_SUBTREE_PREFIX;
-		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
-
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
-					pdn, rc, 0 );
-			goto done;
-		}
-		ptr = pdn;
-		pdn = dn_parent( be, pdn );
 	}
 
 	while( pdn != NULL ) {
+		if ( be_issuffix( be, pdn ))
+			break;
 		pdn[-1] = DN_SUBTREE_PREFIX;
-		key.size -= pdn - ptr;
-		key.data = pdn - 1;
 
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 
@@ -106,6 +94,8 @@ bdb_dn2id_add(
 		}
 		ptr = pdn;
 		pdn = dn_parent( be, pdn );
+		key.size -= pdn - ptr;
+		key.data = pdn - 1;
 	}
 
 done:
@@ -173,25 +163,13 @@ bdb_dn2id_delete(
 				pdn, rc, 0 );
 			goto done;
 		}
-
-		pdn[-1] = DN_SUBTREE_PREFIX;
-
-		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
-
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
-				pdn, rc, 0 );
-			goto done;
-		}
-		ptr = pdn;
-		pdn = dn_parent( be, pdn );
 	}
 
 	while( pdn != NULL ) {
+		if ( be_issuffix( be, pdn ))
+			break;
+
 		pdn[-1] = DN_SUBTREE_PREFIX;
-		key.size -= pdn - ptr;
-		key.data = pdn - 1;
 
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
@@ -202,6 +180,8 @@ bdb_dn2id_delete(
 		}
 		ptr = pdn;
 		pdn = dn_parent( be, pdn );
+		key.size -= pdn - ptr;
+		key.data = pdn - 1;
 	}
 
 done:
