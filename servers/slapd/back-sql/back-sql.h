@@ -18,7 +18,7 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
  * by OpenLDAP Software.  Additional significant contributors include
- * Pierangelo Mararati and Mark Adamson.
+ * Pierangelo Masarati and Mark Adamson.
  */
 /*
  * The following changes have been addressed:
@@ -71,7 +71,7 @@
  *     BACKSQL_REALLOC_STMT from modify.c (a more recent unixODBC lib?)
  */
 /*
- * Improvements submitted by (ITS#)
+ * Improvements submitted by (ITS#3432)
  *
  * 1. id_query.patch		applied (with changes)
  * 2. shortcut.patch		applied (reworked)
@@ -170,7 +170,17 @@ can be easily distinguished.
 #ifndef __BACKSQL_H__
 #define __BACKSQL_H__
 
-#include "sql-types.h"
+/* former sql-types.h */
+#include <sql.h>
+#include <sqlext.h>
+
+typedef struct {
+	SWORD		ncols;
+	BerVarray	col_names;
+	UDWORD		*col_prec;
+	char		**cols;
+	SQLINTEGER	*value_len;
+} BACKSQL_ROW_NTS;
 
 /*
  * Better use the standard length of 8192 (as of slap.h)?

@@ -16,7 +16,7 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
  * by OpenLDAP Software.  Additional significant contributors include
- *    Pierangelo Mararati
+ * Pierangelo Masarati
  */
 
 /*
@@ -74,7 +74,6 @@
 #define PROTO_SQL_H
 
 #include "back-sql.h"
-#include "sql-types.h"
 
 /*
  * add.c
