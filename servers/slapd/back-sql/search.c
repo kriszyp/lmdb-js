@@ -1720,16 +1720,11 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
 
-			switch ( sres ) {
-			case 0:
-				break;
-
-			default:
+			if ( sres == -1 ) {
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
 				 */
-			case -1:
 				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 					"connection lost\n", 0, 0, 0 );
 				goto end_of_search;

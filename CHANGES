@@ -7,6 +7,7 @@ OpenLDAP 2.2.21 Engineering
 	Fixed back-bdb entry e_ocflags reset on objectClass modify
 	Fixed back-bdb retcode on referral (ITS#3475)
 	Fixed back-bdb detecting deadlock in indexer (ITS#3481)
+	Fixed back-sql access checking on search (ITS#3488)
 	Build Environment
 		Misc fixes for dynamic modules (ITS#3401, #3428)
 	Documentation
