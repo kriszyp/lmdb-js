@@ -21,6 +21,9 @@
 
 #if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && defined(HAVE_SENDMSG)
 #define DO_SENDMSG
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
 #include <sys/stat.h>
 #endif
 

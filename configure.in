@@ -836,10 +836,12 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/select.h	\
 	sys/socket.h	\
+	sys/stat.h		\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
 	sys/ucred.h		\
+	sys/uio.h		\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
