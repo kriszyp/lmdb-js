@@ -749,7 +749,9 @@ exact_match:
 #endif
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
-	op.o_req_dn = op.o_req_ndn;
+	/* use req_ndn as req_dn instead of non-pretty base of uri */
+	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
+	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
 	op.o_sync_slog_size = -1;
@@ -763,8 +765,8 @@ exact_match:
 	}
 
 CONCLUDED:
-	if( op.o_req_dn.bv_val && op.o_req_dn.bv_val != op.o_req_ndn.bv_val ) ch_free( op.o_req_dn.bv_val );
-	if( op.o_req_ndn.bv_val ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_dn ) ) sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_ndn ) ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 	if( op.ors_filterstr.bv_val ) ch_free( op.ors_filterstr.bv_val );
 
@@ -944,7 +946,9 @@ void slap_sasl2dn( Operation *opx,
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
 	op.oq_search.rs_attrsonly = 1;
-	op.o_req_dn = op.o_req_ndn;
+	/* use req_ndn as req_dn instead of non-pretty base of uri */
+	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
+	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 
 	op.o_bd->be_search( &op, &rs );
 	
@@ -952,8 +956,8 @@ FINISHED:
 	if( sasldn->bv_len ) {
 		opx->o_conn->c_authz_backend = op.o_bd;
 	}
-	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
-	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_dn ) ) sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_ndn ) ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
 
