@@ -226,7 +226,6 @@ conn_free(
 		if ( lsc->bound_dn.bv_val ) {
 			ber_memfree( lsc->bound_dn.bv_val );
 		}
-		free( lsc );
 	}
 	free( lc->conns );
 	free( lc );
