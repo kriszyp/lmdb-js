@@ -476,18 +476,19 @@ retry:	/* transaction retry */
 
 		} else {
 			struct berval nrdn;
+			Entry *e = entry_dup( op->ora_e );
 
 			if (pdn.bv_len) {
-				nrdn.bv_val = op->ora_e->e_nname.bv_val;
-				nrdn.bv_len = pdn.bv_val - nrdn.bv_val - 1;
+				nrdn.bv_val = e->e_nname.bv_val;
+				nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
 			} else {
-				nrdn = op->ora_e->e_nname;
+				nrdn = e->e_nname;
 			}
 
-			bdb_cache_add( bdb, ei, op->oq_add.rs_e, &nrdn, locker );
+			bdb_cache_add( bdb, ei, e, &nrdn, locker );
 
 			if ( suffix_ei == NULL ) {
-				suffix_ei = op->oq_add.rs_e->e_private;
+				suffix_ei = e->e_private;
 			}
 
 			if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
