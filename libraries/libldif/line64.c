@@ -349,6 +349,11 @@ ldif_sput(
 	}
 #endif
 
+	if( vlen == 0 ) {
+		*(*out)++ = '\n';
+		return;
+	}
+
 	switch( type ) {
 	case LDIF_PUT_NOVALUE:
 		*(*out)++ = '\n';
@@ -395,16 +400,14 @@ ldif_sput(
 	*(*out)++ = ' ';
 	len++;
 
-	if( vlen == 0 ) {
-		*(*out)++ = '\n';
-		return;
-	}
-
 	stop = (const unsigned char *) (val + vlen);
 
 	if ( type == LDIF_PUT_VALUE
 		&& isgraph( val[0] ) && val[0] != ':' && val[0] != '<'
 		&& isgraph( val[vlen-1] )
+#ifndef LDAP_BINARY_DEBUG
+		&& strstr( name, ";binary" ) == NULL
+#endif
 #ifndef LDAP_PASSWD_DEBUG
 		&& strcasecmp( name, "userPassword" ) != 0	/* encode userPassword */
 		&& strcasecmp( name, "2.5.4.35" ) != 0		/* encode userPassword */
