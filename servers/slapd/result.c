@@ -91,6 +91,7 @@ send_ldap_result2(
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
 	    0 ) != 0 ) {
+		int err = errno;
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
@@ -99,10 +100,10 @@ send_ldap_result2(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno %d msg (%s)\n",
-		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno]
+		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
 		    : "unknown", 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			close_connection( conn, op->o_connid, op->o_opid );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
@@ -332,6 +333,7 @@ send_search_entry(
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
 	    0 ) != 0 ) {
+		int err = errno;
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
@@ -340,10 +342,10 @@ send_search_entry(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno %d msg (%s)\n",
-		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno]
+		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
 		    : "unknown", 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			close_connection( conn, op->o_connid, op->o_opid );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
@@ -459,10 +461,12 @@ close_connection( Connection *conn, int opconnid, int opid )
 {
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	if ( conn->c_sb.sb_sd != -1 && conn->c_connid == opconnid ) {
+		int err;
+		close( conn->c_sb.sb_sd );
+		err = errno;
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%d op=%d fd=%d closed errno=%d\n", conn->c_connid,
-		    opid, conn->c_sb.sb_sd, errno, 0 );
-		close( conn->c_sb.sb_sd );
+		    opid, conn->c_sb.sb_sd, err, 0 );
 		conn->c_sb.sb_sd = -1;
 		conn->c_version = 0;
 	}

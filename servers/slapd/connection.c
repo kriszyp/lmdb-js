@@ -133,15 +133,16 @@ connection_activity(
 	errno = 0;
 	if ( (tag = ber_get_next( &conn->c_sb, &len, conn->c_currentber ))
 	    != LDAP_TAG_MESSAGE ) {
+		int err = errno;
 		Debug( LDAP_DEBUG_TRACE,
 		    "ber_get_next on fd %d failed errno %d (%s)\n",
-		    conn->c_sb.sb_sd, errno, errno > -1 && errno < sys_nerr ?
-		    sys_errlist[errno] : "unknown" );
+		    conn->c_sb.sb_sd, err, err > -1 && err < sys_nerr ?
+		    sys_errlist[err] : "unknown" );
 		Debug( LDAP_DEBUG_TRACE, "*** got %ld of %lu so far\n",
 		    (long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
 		    conn->c_currentber->ber_len, 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
