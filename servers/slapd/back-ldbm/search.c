@@ -299,7 +299,7 @@ searchit:
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		if ( tlimit != -1 && (ID_BLOCK_NIDS(candidates) > 2) && slap_get_time() > stoptime ) {
+		if ( tlimit != -1 && slap_get_time() > stoptime ) {
 			send_search_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
 				NULL, NULL, v2refs, NULL, nentries );
 			rc = 0;
