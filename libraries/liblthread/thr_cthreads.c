@@ -47,7 +47,7 @@ int
 ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	void *status;
-	status = (void *) cthread_join ( tid );
+	status = (void *) cthread_join ( thread );
 	if (thread_return != NULL)
 		{
 		*thread_return = status;
