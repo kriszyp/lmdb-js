@@ -3921,7 +3921,9 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseIgnoreIA5Match, NULL, NULL,
+		caseIgnoreIA5Match,
+		caseIgnoreIA5Indexer,
+		caseIgnoreIA5Filter,
 		NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
