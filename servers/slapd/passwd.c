@@ -322,7 +322,12 @@ struct berval * slap_passwd_generate( void )
 struct berval * slap_passwd_hash(
 	struct berval * cred )
 {
-	char* hash = default_passwd_hash ? default_passwd_hash : "{SSHA}";
+#ifdef LUTIL_SHA1_BYTES
+	char* hash = default_passwd_hash ?  default_passwd_hash : "{SSHA}";
+#else
+	char* hash = default_passwd_hash ?  default_passwd_hash : "{SMD5}";
+#endif
+	
 
 	struct berval *new;
 
