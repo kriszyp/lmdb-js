@@ -2074,6 +2074,7 @@ typedef struct slap_op {
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
 	int o_nocaching;
+	int	o_delete_glue_parent;
 
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */
