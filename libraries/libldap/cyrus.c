@@ -13,6 +13,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/errno.h>
+#include <ac/ctype.h>
 
 #include "ldap-int.h"
 #ifdef LDAP_R_COMPILE
@@ -654,11 +655,11 @@ int ldap_pvt_sasl_secprops(
 	char **props = ldap_str2charray( in, "," );
 	unsigned sflags = 0;
 	int got_sflags = 0;
-	sasl_ssf_t max_ssf;
+	sasl_ssf_t max_ssf = 0;
 	int got_max_ssf = 0;
-	sasl_ssf_t min_ssf;
+	sasl_ssf_t min_ssf = 0;
 	int got_min_ssf = 0;
-	unsigned maxbufsize;
+	unsigned maxbufsize = 0;
 	int got_maxbufsize = 0;
 
 	if( props == NULL || secprops == NULL ) {
