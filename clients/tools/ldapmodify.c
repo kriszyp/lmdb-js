@@ -640,7 +640,7 @@ main( int argc, char **argv )
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = manageDSAit > 1;
 
-		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",

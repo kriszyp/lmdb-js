@@ -98,7 +98,7 @@ main( int argc, char **argv )
     authmethod = -1;
 	version = -1;
 
-    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : ++prog;
+    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
     while (( i = getopt( argc, argv, "cf:r" "Cd:D:h:IkKMnO:p:P:QRU:vw:WxX:Y:Z" )) != EOF ) {
 	switch( i ) {
@@ -570,7 +570,7 @@ main( int argc, char **argv )
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = manageDSAit > 1;
 
-		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
