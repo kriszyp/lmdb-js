@@ -315,9 +315,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			 * check for abandon 
 			 */
 			if (op->o_abandon) {
-				op->o_req_dn = dn;
-				op->o_req_ndn = ndn;
-				goto done;
+				goto end_of_loop;
 			}
 			op->o_bd = gi->n[i].be;
 
@@ -367,14 +365,15 @@ end_of_loop:;
 
 		break;
 	}
-	op->o_callback = cb.sc_next;
-	rs->sr_err = gs.err;
-	rs->sr_matched = gs.matched;
-	rs->sr_ref = gs.refs;
+	if ( !op->o_abandon ) {
+		op->o_callback = cb.sc_next;
+		rs->sr_err = gs.err;
+		rs->sr_matched = gs.matched;
+		rs->sr_ref = gs.refs;
 
-	send_ldap_result( op, rs );
+		send_ldap_result( op, rs );
+	}
 
-done:
 	op->o_bd = b0;
 	if (gs.matched)
 		free (gs.matched);
