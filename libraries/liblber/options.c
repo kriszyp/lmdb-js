@@ -73,9 +73,7 @@ lber_set_option(
 			return LBER_OPT_SUCCESS;
 
 		} else if(option == LBER_OPT_LOG_PRINT_FN) {
-			extern BER_LOG_PRINT_FN lber_log_print;
-
-			lber_log_print = (BER_LOG_PRINT_FN) invalue;
+			lber_pvt_log_print = (BER_LOG_PRINT_FN) invalue;
 			return LBER_OPT_SUCCESS;
 		}
 

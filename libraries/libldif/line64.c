@@ -12,8 +12,8 @@
 
 int ldif_debug = 0;
 
-#define ldap_debug	ldif_debug
 #include "ldap_log.h"
+#include "lber_pvt.h"
 #include "ldif.h"
 
 #define RIGHT2			0x03
@@ -70,7 +70,8 @@ ldif_parse_line(
 	for ( s = line; *s && *s != ':'; s++ )
 		;	/* NULL */
 	if ( *s == '\0' ) {
-		Debug( LDAP_DEBUG_PARSE, "parse_line missing ':'\n", 0, 0, 0 );
+		lber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
+			"ldif_parse_line missing ':'\n");
 		return( -1 );
 	}
 
@@ -97,7 +98,8 @@ ldif_parse_line(
 
 	/* if no value is present, error out */
 	if ( *s == '\0' ) {
-		Debug( LDAP_DEBUG_PARSE, "parse_line missing value\n", 0,0,0 );
+		lber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
+			"ldif_parse_line missing value\n");
 		return( -1 );
 	}
 
@@ -116,9 +118,9 @@ ldif_parse_line(
 			for ( i = 0; i < 4; i++ ) {
 				if ( p[i] != '=' && (p[i] & 0x80 ||
 				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
-					Debug( LDAP_DEBUG_ANY,
-				    "invalid base 64 encoding char (%c) 0x%x\n",
-					    p[i], p[i], 0 );
+					lber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+"ldif_parse_line: invalid base 64 encoding char (%c) 0x%x\n",
+					    p[i], p[i] );
 					return( -1 );
 				}
 			}
@@ -302,8 +304,12 @@ ldif_type_and_value( char *type, char *val, int vlen )
     int		tlen;
 
     tlen = strlen( type );
-    if (( buf = (char *)malloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 )) !=
-	    NULL ) {
+    if (( buf = (char *) malloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 ))
+		== NULL )
+	{
+		lber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+			"ldif_type_and_value: malloc failed!" );
+		return NULL;
     }
 
     p = buf;

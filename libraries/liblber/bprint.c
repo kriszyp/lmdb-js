@@ -23,7 +23,7 @@ lber_error_print( char *data )
 	fflush( stderr );
 }
 
-BER_LOG_PRINT_FN lber_log_print = lber_error_print;
+BER_LOG_PRINT_FN lber_pvt_log_print = lber_error_print;
 
 /*
  * lber log 
@@ -34,7 +34,7 @@ static int lber_log_check( int errlvl, int loglvl )
 	return errlvl & loglvl ? 1 : 0;
 }
 
-int lber_log_printf
+int lber_pvt_log_printf
 #ifdef HAVE_STDARG
 	(int errlvl, int loglvl, char *fmt, ...)
 #else
@@ -74,7 +74,7 @@ va_dcl
 
 	va_end(ap);
 
-	(*lber_log_print)( buf );
+	(*lber_pvt_log_print)( buf );
 	return 1;
 }
 
@@ -84,7 +84,7 @@ static int lber_log_puts(int errlvl, int loglvl, char *buf)
 		return 0;
 	}
 
-	(*lber_log_print)( buf );
+	(*lber_pvt_log_print)( buf );
 	return 1;
 }
 
@@ -116,7 +116,7 @@ ber_bprint(char *data, int len )
     for ( ;; ) {
 	if ( len < 1 ) {
 	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
-		(*lber_log_print)( buf );
+		(*lber_pvt_log_print)( buf );
 	    break;
 	}
 
@@ -138,7 +138,7 @@ ber_bprint(char *data, int len )
 	if ( i > BPLEN - 2 ) {
 		char data[128 + BPLEN];
 	    sprintf( data, "\t%s\n", out );
-		(*lber_log_print)(data);
+		(*lber_pvt_log_print)(data);
 	    memset( out, 0, BPLEN );
 	    i = 0;
 	    continue;
@@ -168,7 +168,7 @@ ber_dump( BerElement *ber, int inout )
 		(long) ber->ber_ptr,
 		(long) ber->ber_end );
 
-	(*lber_log_print)( buf );
+	(*lber_pvt_log_print)( buf );
 
 	if ( inout == 1 ) {
 		sprintf( buf, "          current len %ld, contents:\n",
@@ -199,22 +199,22 @@ ber_sos_dump( Seqorset *sos )
 {
 	char buf[132];
 
-	(*lber_log_print)( "*** sos dump ***\n" );
+	(*lber_pvt_log_print)( "*** sos dump ***\n" );
 
 	while ( sos != NULLSEQORSET ) {
 		sprintf( buf, "ber_sos_dump: clen %ld first 0x%lx ptr 0x%lx\n",
 		    (long) sos->sos_clen, (long) sos->sos_first, (long) sos->sos_ptr );
-		(*lber_log_print)( buf );
+		(*lber_pvt_log_print)( buf );
 
 		sprintf( buf, "              current len %ld contents:\n",
 		    (long) (sos->sos_ptr - sos->sos_first) );
-		(*lber_log_print)( buf );
+		(*lber_pvt_log_print)( buf );
 
 		ber_bprint( sos->sos_first, sos->sos_ptr - sos->sos_first );
 
 		sos = sos->sos_next;
 	}
 
-	(*lber_log_print)( "*** end dump ***\n" );
+	(*lber_pvt_log_print)( "*** end dump ***\n" );
 }
 

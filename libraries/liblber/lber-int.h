@@ -19,6 +19,7 @@
 
 #include "lber.h"
 #include "ldap_log.h"
+#include "lber_pvt.h"
 
 LDAP_BEGIN_DECL
 
@@ -26,6 +27,7 @@ LDAP_BEGIN_DECL
 #define LBER_ITEM_SOCKBUF 2
 
 extern int lber_int_debug;
+#define lber_log_printf lber_pvt_log_printf
 
 struct berelement {
 	short		ber_item_type; 	/* always LBER_ITEM_BERELEMENT */
@@ -85,12 +87,6 @@ struct seqorset {
 /*
  * bprint.c
  */
-LDAP_F int lber_log_printf LDAP_P((
-	int errlvl,
-	int loglvl,
-	char *fmt,
-	... ));
-
 LDAP_F int lber_log_bprint LDAP_P((
 	int errlvl,
 	int loglvl,

@@ -14,8 +14,6 @@
 
 #include "ldap-int.h"
 
-extern BER_LOG_PRINT_FN lber_log_print;
-
 /*
  * ldap log 
  */
@@ -74,7 +72,7 @@ va_dcl
 
 	va_end(ap);
 
-	(*lber_log_print)( buf );
+	(*lber_pvt_log_print)( buf );
 	return 1;
 }
 
@@ -84,6 +82,6 @@ static int lber_log_puts(int errlvl, int loglvl, char *buf)
 		return 0;
 	}
 
-	(*lber_log_print)( buf );
+	(*lber_pvt_log_print)( buf );
 	return 1;
 }
