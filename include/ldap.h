@@ -260,7 +260,8 @@ typedef struct ldapcontrol {
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OPERATIONAL_ATTRS "1.3.6.1.4.1.4203.1.5.1"  /* + */
-#define LDAP_FEATURE_OBJECTCLASS_ATTRS "1.3.6.1.4.1.4203.1.5.2"
+#define LDAP_FEATURE_OBJECTCLASS_ATTRS \
+	"1.3.6.1.4.1.4203.1.5.2" /*  @objectClass - new number to be assigned */
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"

@@ -531,13 +531,14 @@ int ad_inlist(
 		}
 
 		/*
-		 * EXTENSION: see if requested description is +objectClass
+		 * EXTENSION: see if requested description is @objectClass
 		 * if so, return attributes which the class requires/allows
 		 */
 		oc = attrs->an_oc;
 		if( oc == NULL && attrs->an_name.bv_val ) {
 			switch( attrs->an_name.bv_val[0] ) {
-			case '+': /* new way */
+			case '@': /* @objectClass */
+			case '+': /* +objectClass (deprecated) */
 			case '!': { /* exclude */
 					struct berval ocname;
 					ocname.bv_len = attrs->an_name.bv_len - 1;
@@ -728,16 +729,16 @@ an_find(
 }
 
 /*
- * Convert a delimited string into a list of AttributeNames; 
- * add on to an existing list if it was given.  If the string
- * is not a valid attribute name, if a '-' is prepended it is 
- * skipped and the remaining name is tried again; if a '+' is
- * prepended, an objectclass name is searched instead; if a
- * '!' is prepended, the objectclass name is negated.
+ * Convert a delimited string into a list of AttributeNames; add
+ * on to an existing list if it was given.  If the string is not
+ * a valid attribute name, if a '-' is prepended it is skipped
+ * and the remaining name is tried again; if a '@' (or '+') is
+ * prepended, an objectclass name is searched instead; if a '!'
+ * is prepended, the objectclass name is negated.
  * 
- * NOTE: currently, if a valid attribute name is not found,
- * the same string is also checked as valid objectclass name;
- * however, this behavior is deprecated.
+ * NOTE: currently, if a valid attribute name is not found, the
+ * same string is also checked as valid objectclass name; however,
+ * this behavior is deprecated.
  */
 AttributeName *
 str2anlist( AttributeName *an, char *in, const char *brkstr )
@@ -792,7 +793,8 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					}
 				} break;
 
-			case '+':
+			case '@':
+			case '+': /* (deprecated) */
 			case '!': {
 					struct berval ocname;
 					ocname.bv_len = anew->an_name.bv_len - 1;
