@@ -403,8 +403,7 @@ ber_put_boolean(
 	ber_tag_t tag )
 {
 	ber_len_t		taglen;
-	unsigned char	trueval = (unsigned char) -1;
-	unsigned char	falseval = 0;
+	unsigned char	c;
 
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
@@ -420,7 +419,9 @@ ber_put_boolean(
 		return -1;
 	}
 
-	if ( ber_write( ber, (char *)(boolval ? &trueval : &falseval), 1, 0 )
+	c = boolval ? (unsigned char) ~0U : (unsigned char) 0U;
+
+	if ( ber_write( ber, (char *) &c, 1, 0 )
 		!= 1 )
 	{
 		return -1;
