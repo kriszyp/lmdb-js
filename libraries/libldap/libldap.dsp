@@ -291,11 +291,19 @@ SOURCE=.\print.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\references.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\request.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\result.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sasl.c
 # End Source File
 # Begin Source File
 
