@@ -44,6 +44,7 @@
 
 #include "slap.h"
 #include "back-ldap.h"
+#include "lutil.h"
 
 int
 ldap_back_db_config(

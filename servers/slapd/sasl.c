@@ -34,10 +34,6 @@
 
 #include <ldap_pvt.h>
 
-#ifdef SLAPD_SPASSWD
-#include <lutil.h>
-#endif
-
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
 #define FLAG_GETDN_AUTHCID 2
 #define FLAG_GETDN_AUTHZID 4

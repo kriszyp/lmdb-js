@@ -18,6 +18,8 @@
 
 #include "slap.h"
 
+#include "lutil.h"
+
 const struct berval slap_empty_bv = { 0, "" };
 
 #define SLAP_LDAPDN_PRETTY 0x1

@@ -17,6 +17,7 @@
 
 #include "slap.h"
 #include "lber_pvt.h"
+#include "lutil.h"
 
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
