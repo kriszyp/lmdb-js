@@ -70,7 +70,7 @@ It can have the forms
 .LP
 .nf
 	*
-	[dn[.<dnstyle>]=<pattern>] 
+	[dn[.<dnstyle>]=<DN>] 
 	[filter=<ldapfilter>]
 	[attrs=<attrlist>]
 .fi
@@ -80,22 +80,11 @@ The wildcard
 stands for all the entries.
 .LP
 The statement
-.B dn=<pattern>
+.B dn=<DN>
 selects the entries based on their naming context.
-The optional style qualifier
-.B <dnstyle>
-can be 
-.B regex
-(the default) implies that
-.B pattern
-is a regular expression, as detailed in
-.BR regex (7),
-matching a normalized string representation of the entry's DN.
-The regex form of the pattern does not support UTF-8 yet.
-.LP
-For all other qualifiers, the pattern is a string representation of
-the entry's DN.
-.B base
+The pattern is a string representation of the entry's DN.
+.BR base ,
+the default,
 or
 .B exact 
 (an alias of 
@@ -108,10 +97,16 @@ indicates all the entries immediately below the
 indicates all entries in the subtree at the pattern,
 .B children
 indicates all the entries below (subordinate to) the pattern.
-Note that 
-.B dn=".*"
-is equivalent to
-.BR * .
+.LP
+If the
+.B <dnstyle>
+qualifier is
+.BR regex ,
+then the value is a regular expression pattern,
+as detailed in
+.BR regex (7),
+matching a normalized string representation of the entry's DN.
+The regex form of the pattern does not (yet) support UTF-8.
 .LP
 The statement
 .B filter=<ldapfilter>
@@ -148,14 +143,14 @@ It can have the forms
 	users
 	self
 
-	dn[.<dnstyle>[,<modifier>]]=<pattern>
+	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
 	group[/<objectclass>[/<attrname>]]
-		[.<style>]=<pattern>
-	peername[.<style>]=<pattern>
-	sockname[.<style>]=<pattern>
-	domain[.<domainstyle>[,<modifier>]]=<pattern>
-	sockurl[.<style>]=<pattern>
+		[.<style>]=<group>
+	peername[.<style>]=<peername>
+	sockname[.<style>]=<sockname>
+	domain[.<domainstyle>[,<modifier>]]=<domain>
+	sockurl[.<style>]=<sockurl>
 	set[.<style>]=<pattern>
 
 	ssf=<n>
@@ -192,7 +187,7 @@ means access to an entry is allowed to the entry itself (e.g. the entry
 being accessed and the requesting entry must be the same).
 .LP
 The statement
-.B dn=<pattern>
+.B dn=<DN>
 means that access is granted to the matching DN.
 The optional style qualifier
 .B dnstyle
@@ -200,9 +195,7 @@ allows the same choices of the dn form of the
 .B <what>
 field.  In addition, the
 .B regex
-form of
-.B pattern
-can exploit substring substitution of submatches in the
+style can exploit substring substitution of submatches in the
 .B <what>
 dn.regex clause by using the form
 .BR $<digit> ,
@@ -218,10 +211,10 @@ entry being accessed under the
 attribute.
 .LP
 The statement
-.B group=<pattern>
+.B group=<group>
 means that access is granted to requests whose DN is listed
 in the group entry whose DN is given by
-.BR pattern .
+.BR group .
 The optional parameters
 .B objectclass
 and
@@ -242,11 +235,11 @@ or
 which means that exact match will be used.
 .LP
 The statements
-.BR peername=<pattern> ,
-.BR sockname=<pattern> ,
-.BR domain=<pattern> ,
+.BR peername=<peername> ,
+.BR sockname=<sockname> ,
+.BR domain=<domain> ,
 and
-.BR sockurl=<pattern>
+.BR sockurl=<sockurl>
 mean that the contacting host IP for
 .BR peername ,
 the named pipe file name for
@@ -429,15 +422,14 @@ privileges to authenticated clients.
 It is strongly recommended to explicitly use the most appropriate
 DN 
 .BR style ,
-to avoid possible 
-incorrect specifications of the access rules as well
-as for performance (avoid unrequired regex matching when
-an exact match suffices) reasons.
+to avoid possible incorrect specifications of the access rules as well
+as for performance (avoid unrequired regex matching when an exact
+match suffices) reasons.
 .LP
 An adminisistrator might create a rule of the form:
 .LP
 .nf
-	access to dn="dc=example,dc=com"
+	access to dn.regex="dc=example,dc=com"
 		by ...
 .fi
 .LP
@@ -457,8 +449,8 @@ written:
 For performance reasons, it would be better to use the subtree style.
 .LP
 .nf
-access to dn.subtree="dc=example,dc=com"
-	by ...
+	access to dn.subtree="dc=example,dc=com"
+		by ...
 .fi
 .LP
 .SH FILES

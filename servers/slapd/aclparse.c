@@ -106,8 +106,8 @@ parse_acl(
 		/* to clause - select which entries are protected */
 		if ( strcasecmp( argv[i], "to" ) == 0 ) {
 			if ( a != NULL ) {
-				fprintf( stderr,
-		"%s: line %d: only one to clause allowed in access line\n",
+				fprintf( stderr, "%s: line %d: "
+					"only one to clause allowed in access line\n",
 				    fname, lineno );
 				acl_usage();
 			}
@@ -138,8 +138,8 @@ parse_acl(
 				split( left, '.', &left, &style );
 
 				if ( right == NULL ) {
-					fprintf( stderr,
-	"%s: line %d: missing \"=\" in \"%s\" in to clause\n",
+					fprintf( stderr, "%s: line %d: "
+						"missing \"=\" in \"%s\" in to clause\n",
 					    fname, lineno, left );
 					acl_usage();
 				}
@@ -155,9 +155,28 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( style == NULL || *style == '\0'
-						|| strcasecmp( style, "regex" ) == 0 )
+					if ( style == NULL || *style == '\0' ||
+						( strcasecmp( style, "base" ) == 0 ) ||
+						( strcasecmp( style, "exact" ) == 0 ))
 					{
+						a->acl_dn_style = ACL_STYLE_BASE;
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
+					} else if ( strcasecmp( style, "one" ) == 0 ) {
+						a->acl_dn_style = ACL_STYLE_ONE;
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
+					} else if ( strcasecmp( style, "subtree" ) == 0
+						|| strcasecmp( style, "sub" ) == 0 )
+					{
+						a->acl_dn_style = ACL_STYLE_SUBTREE;
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
+					} else if ( strcasecmp( style, "children" ) == 0 ) {
+						a->acl_dn_style = ACL_STYLE_CHILDREN;
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
+					} else if ( strcasecmp( style, "regex" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_REGEX;
 
 						if ( *right == '\0' ) {
@@ -179,21 +198,10 @@ parse_acl(
 						} else {
 							acl_regex_normalized_dn( right, &a->acl_dn_pat );
 						}
-					} else if ( strcasecmp( style, "base" ) == 0 ) {
-						a->acl_dn_style = ACL_STYLE_BASE;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
-					} else if ( strcasecmp( style, "one" ) == 0 ) {
-						a->acl_dn_style = ACL_STYLE_ONE;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
-					} else if ( strcasecmp( style, "subtree" ) == 0 || strcasecmp( style, "sub" ) == 0 ) {
-						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
-					} else if ( strcasecmp( style, "children" ) == 0 ) {
-						a->acl_dn_style = ACL_STYLE_CHILDREN;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+
 					} else {
-						fprintf( stderr,
-	"%s: line %d: unknown dn style \"%s\" in to clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"unknown dn style \"%s\" in to clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
@@ -218,6 +226,7 @@ parse_acl(
 						    fname, lineno, right );
 						acl_usage();
 					}
+
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
@@ -242,7 +251,7 @@ parse_acl(
 					rc = dnNormalize( 0, NULL, NULL, &a->acl_dn_pat, &bv, NULL);
 					if ( rc != LDAP_SUCCESS ) {
 						fprintf( stderr,
-							"%s: line %d: bad DN \"%s\"\n",
+							"%s: line %d: bad DN \"%s\" in to DN clause\n",
 							fname, lineno, a->acl_dn_pat.bv_val );
 						acl_usage();
 					}
@@ -265,8 +274,8 @@ parse_acl(
 		/* by clause - select who has what access to entries */
 		} else if ( strcasecmp( argv[i], "by" ) == 0 ) {
 			if ( a == NULL ) {
-				fprintf( stderr,
-					"%s: line %d: to clause required before by clause in access line\n",
+				fprintf( stderr, "%s: line %d: "
+					"to clause required before by clause in access line\n",
 				    fname, lineno );
 				acl_usage();
 			}
@@ -297,20 +306,27 @@ parse_acl(
 				if ( style ) {
 					split( style, ',', &style, &style_modifier);
 				}
-				if ( style == NULL || *style == '\0'
-					|| strcasecmp( style, "regex" ) == 0 )
+
+				if ( style == NULL || *style == '\0' ||
+					strcasecmp( style, "exact" ) == 0 ||
+					strcasecmp( style, "base" ) == 0 )
 				{
-					sty = ACL_STYLE_REGEX;
-				} else if ( strcasecmp( style, "exact" ) == 0 ) {
-					sty = ACL_STYLE_EXACT;
-				} else if ( strcasecmp( style, "base" ) == 0 ) {
 					sty = ACL_STYLE_BASE;
+
 				} else if ( strcasecmp( style, "one" ) == 0 ) {
 					sty = ACL_STYLE_ONE;
-				} else if ( strcasecmp( style, "subtree" ) == 0 || strcasecmp( style, "sub" ) == 0 ) {
+
+				} else if ( strcasecmp( style, "subtree" ) == 0 ||
+					strcasecmp( style, "sub" ) == 0 )
+				{
 					sty = ACL_STYLE_SUBTREE;
+
 				} else if ( strcasecmp( style, "children" ) == 0 ) {
 					sty = ACL_STYLE_CHILDREN;
+
+				} else if ( strcasecmp( style, "regex" ) == 0 ) {
+					sty = ACL_STYLE_REGEX;
+
 				} else {
 					fprintf( stderr,
 						"%s: line %d: unknown style \"%s\" in by clause\n",
@@ -318,28 +334,28 @@ parse_acl(
 					acl_usage();
 				}
 
-				if ( style_modifier && strcasecmp( style_modifier, "expand" ) == 0 ) {
+				if ( style_modifier &&
+					strcasecmp( style_modifier, "expand" ) == 0 )
+				{
 					expand = 1;
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
 					bv.bv_val = ch_strdup( "*" );
 					bv.bv_len = 1;
+					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
-					ber_str2bv("anonymous",
-						sizeof("anonymous")-1,
-						1, &bv);
+					ber_str2bv("anonymous", sizeof("anonymous")-1, 1, &bv);
+					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
-					ber_str2bv("self",
-						sizeof("self")-1,
-						1, &bv);
+					ber_str2bv("self", sizeof("self")-1, 1, &bv);
+					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
-					ber_str2bv("users",
-						sizeof("users")-1,
-						1, &bv);
+					ber_str2bv("users", sizeof("users")-1, 1, &bv);
+					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					if ( sty == ACL_STYLE_REGEX ) {
@@ -388,8 +404,9 @@ parse_acl(
 							}
 						}
 					} else if ( right == NULL || *right == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 						    fname, lineno, left );
 						acl_usage();
 
@@ -410,10 +427,11 @@ parse_acl(
 					}
 
 					if ( sty != ACL_STYLE_REGEX && expand == 0 ) {
-						rc = dnNormalize(0, NULL, NULL, &bv, &b->a_dn_pat, NULL);
+						rc = dnNormalize(0, NULL, NULL,
+							&bv, &b->a_dn_pat, NULL);
 						if ( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
-								"%s: line %d: bad DN \"%s\"\n",
+								"%s: line %d: bad DN \"%s\" in by DN clause\n",
 								fname, lineno, bv.bv_val );
 							acl_usage();
 						}
@@ -464,8 +482,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_dn_at->ad_type->sat_equality == NULL )
-					{
+					if( b->a_dn_at->ad_type->sat_equality == NULL ) {
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
 							"inappropriate matching (no EQUALITY)\n",
@@ -481,15 +498,16 @@ parse_acl(
 					char *value = NULL;
 
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
@@ -501,12 +519,11 @@ parse_acl(
 						acl_usage();
 					}
 
-					/* format of string is "group/objectClassValue/groupAttrName" */
+					/* format of string is
+						"group/objectClassValue/groupAttrName" */
 					if ((value = strchr(left, '/')) != NULL) {
 						*value++ = '\0';
-						if (*value
-							&& (name = strchr(value, '/')) != NULL)
-						{
+						if (*value && (name = strchr(value, '/')) != NULL) {
 							*name++ = '\0';
 						}
 					}
@@ -520,7 +537,8 @@ parse_acl(
 						b->a_group_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 0, &bv );
-						rc = dnNormalize( 0, NULL, NULL, &bv, &b->a_group_pat, NULL );
+						rc = dnNormalize( 0, NULL, NULL, &bv,
+							&b->a_group_pat, NULL );
 						if ( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
 								"%s: line %d: bad DN \"%s\"\n",
@@ -615,11 +633,12 @@ parse_acl(
 						vals[1].bv_val = NULL;
 
 
-						rc = oc_check_allowed( b->a_group_at->ad_type, vals, NULL );
+						rc = oc_check_allowed( b->a_group_at->ad_type,
+							vals, NULL );
 
 						if( rc != 0 ) {
-							fprintf( stderr,
-								"%s: line %d: group: \"%s\" not allowed by \"%s\"\n",
+							fprintf( stderr, "%s: line %d: "
+								"group: \"%s\" not allowed by \"%s\"\n",
 								fname, lineno,
 								b->a_group_at->ad_cname.bv_val,
 								b->a_group_oc->soc_oid );
@@ -631,22 +650,23 @@ parse_acl(
 
 				if ( strcasecmp( left, "peername" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
 
 					if( b->a_peername_pat.bv_len ) {
-						fprintf( stderr,
-							"%s: line %d: peername pattern already specified.\n",
+						fprintf( stderr, "%s: line %d: "
+							"peername pattern already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
@@ -666,22 +686,23 @@ parse_acl(
 
 				if ( strcasecmp( left, "sockname" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
 
 					if( b->a_sockname_pat.bv_len ) {
-						fprintf( stderr,
-							"%s: line %d: sockname pattern already specified.\n",
+						fprintf( stderr, "%s: line %d: "
+							"sockname pattern already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
@@ -1270,26 +1291,25 @@ acl_usage( void )
 	fprintf( stderr, "\n"
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
-		"<what> ::= * | [dn[.<dnstyle>]=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
+		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
-		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<regex> ]\n"
+		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
-			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<regex>]\n"
-			"\t[peername[.<style>]=<regex>] [sockname[.<style>]=<regex>]\n"
-			"\t[domain[.<style>]=<regex>] [sockurl[.<style>]=<regex>]\n"
+			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
+			"\t[peername[.<style>]=<peer>] [sockname[.<style>]=<name>]\n"
+			"\t[domain[.<style>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
-		"<dnstyle> ::= regex | base | exact (alias of base) | one | subtree | children\n"
-		"<style> ::= regex | base | exact (alias of base)\n"
-		"<groupflags> ::= R\n"
+		"<dnstyle> ::= base | exact | one | subtree | children | regex\n"
+		"<style> ::= regex | base | exact\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
 		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
-		);
+	);
 	exit( EXIT_FAILURE );
 }
 
@@ -1489,14 +1509,8 @@ str2access( const char *str )
 
 #ifdef LDAP_DEBUG
 
-static char *style_strings[5] = {
-			"regex",
-			"base",
-			"one",
-			"subtree",
-			"children"
-		};
-
+static char *style_strings[5] = { "regex",
+	"base", "one", "subtree", "children" };
 
 static void
 print_access( Access *b )
@@ -1531,7 +1545,8 @@ print_access( Access *b )
 				b->a_group_oc->soc_oclass.oc_oid );
 
 			if ( b->a_group_at ) {
-				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname.bv_val );
+				fprintf( stderr, " attributeType: %s",
+					b->a_group_at->ad_cname.bv_val );
 			}
 		}
     }

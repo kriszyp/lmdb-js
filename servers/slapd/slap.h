@@ -1045,9 +1045,6 @@ typedef enum slap_style_e {
 	ACL_STYLE_SUBTREE,
 	ACL_STYLE_CHILDREN,
 	ACL_STYLE_ATTROF,
-
-	/* alternate names */
-	ACL_STYLE_EXACT = ACL_STYLE_BASE
 } slap_style_t;
 
 typedef struct slap_authz_info {
