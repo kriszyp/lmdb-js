@@ -190,14 +190,14 @@ usage( char *name )
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
-		"\t-o <opt>[=val]\tGeneric means to specify options; details in slapd(8)\n"
+		"\t-o <opt>[=val]\tGeneric means to specify options; supported options:\n"
+#ifdef HAVE_SLP
+		"\t\t\t\tslp[={on|off}]\n"
+#endif
 #ifdef HAVE_CHROOT
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
 		"\t-s level\tSyslog level\n"
-#ifdef HAVE_SLP
-		"\t-S enable SLP registration\n"
-#endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
 #endif
@@ -423,14 +423,6 @@ int main( int argc, char **argv )
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
-			break;
-
-		case 'S':	/* enable SLP */
-#ifdef HAVE_SLP
-			slapd_register_slp++;
-#else
-			fputs( "slapd: SLP support is not available\n", stderr );
-#endif
 			break;
 
 #ifdef LOG_LOCAL4
