@@ -149,7 +149,7 @@ static int search_aliases(
 	ID cursora, ida, cursoro, ido, *subscop2;
 	Entry *matched, *a;
 	EntryInfo *ei;
-	struct berval bv_alias = { sizeof("alias")-1, "alias" };
+	struct berval bv_alias = BER_BVC( "alias" );
 	AttributeAssertion aa_alias;
 	Filter	af;
 	DB_LOCK locka, lockr;
@@ -215,9 +215,12 @@ static int search_aliases(
 			ida = bdb_idl_next(curscop, &cursora))
 		{
 			ei = NULL;
+retry1:
 			rs->sr_err = bdb_cache_find_id(op, NULL,
 				ida, &ei, 0, locker, &lockr );
 			if (rs->sr_err != LDAP_SUCCESS) {
+				if ( rs->sr_err == DB_LOCK_DEADLOCK ||
+					rs->sr_err == DB_LOCK_NOTGRANTED ) goto retry1;
 				continue;
 			}
 			a = ei->bei_e;
@@ -281,9 +284,15 @@ nextido:
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
 		ei = NULL;
+sameido:
 		rs->sr_err = bdb_cache_find_id(op, NULL, ido, &ei,
 			0, locker, &locka );
-		if ( rs->sr_err != LDAP_SUCCESS ) goto nextido;
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			if ( rs->sr_err == DB_LOCK_DEADLOCK ||
+				rs->sr_err == DB_LOCK_NOTGRANTED )
+				goto sameido;
+			goto nextido;
+		}
 		e = ei->bei_e;
 	}
 	return rs->sr_err;
@@ -495,8 +504,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	null_attr.an_desc = NULL;
 	null_attr.an_oc = NULL;
 	null_attr.an_oc_exclude = 0;
-	null_attr.an_name.bv_len = 0;
-	null_attr.an_name.bv_val = NULL;
+	BER_BVZERO( &null_attr.an_name );
 
 	for( num_ctrls = 0; num_ctrls < SLAP_MAX_RESPONSE_CONTROLS; num_ctrls++ ) {
 		ctrls[num_ctrls] = NULL;
@@ -508,8 +516,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		attrs[0].an_desc = NULL;
 		attrs[0].an_oc = NULL;
 		attrs[0].an_oc_exclude = 0;
-		attrs[0].an_name.bv_len = 0;
-		attrs[0].an_name.bv_val = NULL;
+		BER_BVZERO( &attrs[0].an_name );
 	}
 
 	manageDSAit = get_manageDSAit( sop );
@@ -546,8 +553,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		ei_root.bei_parent = &ei_root;
 		e_root.e_private = &ei_root;
 		e_root.e_id = 0;
-		e_root.e_nname.bv_val="";
-		e_root.e_name.bv_val="";
+		BER_BVSTR( &e_root.e_nname, "" );
+		BER_BVSTR( &e_root.e_name, "" );
 		ei = &ei_root;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
@@ -1641,7 +1648,7 @@ static int search_candidates(
 	{
 		if( !get_manageDSAit(op) && !get_domainScope(op) ) {
 			/* match referral objects */
-			struct berval bv_ref = { sizeof("referral")-1, "referral" };
+			struct berval bv_ref = BER_BVC( "referral" );
 			rf.f_choice = LDAP_FILTER_EQUALITY;
 			rf.f_ava = &aa_ref;
 			rf.f_av_desc = slap_schema.si_ad_objectClass;
@@ -1665,7 +1672,7 @@ static int search_candidates(
 
 #ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
-		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
+		struct berval bv_subentry = BER_BVC( "SUBENTRY" );
 		sf.f_choice = LDAP_FILTER_EQUALITY;
 		sf.f_ava = &aa_subentry;
 		sf.f_av_desc = slap_schema.si_ad_objectClass;
@@ -1748,7 +1755,7 @@ send_paged_response(
 		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #endif
 
-	ctrl.ldctl_value.bv_val = NULL;
+	BER_BVZERO( &ctrl.ldctl_value );
 	ctrls[0] = &ctrl;
 	ctrls[1] = NULL;
 
@@ -1761,8 +1768,7 @@ send_paged_response(
 
 	} else {
 		respcookie = ( PagedResultsCookie )0;
-		cookie.bv_val = "";
-		cookie.bv_len = 0;
+		BER_BVSTR( &cookie, "" );
 	}
 
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;

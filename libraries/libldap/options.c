@@ -529,7 +529,6 @@ ldap_set_option(
 
 			if(urls != NULL) {
 				rc = ldap_url_parselist(&ludlist, urls);
-
 			} else if(ld == NULL) {
 				/*
 				 * must want global default returned
@@ -546,6 +545,28 @@ ldap_set_option(
 					ldap_int_global_options.ldo_defludp);
 				if (ludlist == NULL)
 					rc = LDAP_NO_MEMORY;
+			}
+
+			switch (rc) {
+			case LDAP_URL_SUCCESS:		/* Success */
+				rc = LDAP_SUCCESS;
+				break;
+
+			case LDAP_URL_ERR_MEM:		/* can't allocate memory space */
+				rc = LDAP_NO_MEMORY;
+				break;
+
+			case LDAP_URL_ERR_PARAM:	/* parameter is bad */
+			case LDAP_URL_ERR_BADSCHEME:	/* URL doesn't begin with "ldap[si]://" */
+			case LDAP_URL_ERR_BADENCLOSURE:	/* URL is missing trailing ">" */
+			case LDAP_URL_ERR_BADURL:	/* URL is bad */
+			case LDAP_URL_ERR_BADHOST:	/* host port is bad */
+			case LDAP_URL_ERR_BADATTRS:	/* bad (or missing) attributes */
+			case LDAP_URL_ERR_BADSCOPE:	/* scope string is invalid (or missing) */
+			case LDAP_URL_ERR_BADFILTER:	/* bad or missing filter */
+			case LDAP_URL_ERR_BADEXTS:	/* bad or missing extensions */
+				rc = LDAP_PARAM_ERROR;
+				break;
 			}
 
 			if (rc == LDAP_OPT_SUCCESS) {

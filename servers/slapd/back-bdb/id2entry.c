@@ -202,6 +202,10 @@ int bdb_entry_release(
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
 	if ( slapMode == SLAP_SERVER_MODE ) {
+		/* If not in our cache, just free it */
+		if ( !e->e_private ) {
+			return bdb_entry_return( e );
+		}
 		/* free entry and reader or writer lock */
 		if ( o ) {
 			boi = (struct bdb_op_info *)o->o_private;

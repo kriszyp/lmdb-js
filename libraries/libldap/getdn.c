@@ -469,6 +469,26 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define LDAP_DN_ESCAPE(c)		( (c) == '\\' )
 #define LDAP_DN_VALUE_END(c) \
 	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
+
+/* NOTE: according to draft-ietf-ldapbis-dn, '=' can be escaped
+ * and treated as special, i.e. escaped both as "\<hexpair>" and
+ * as "\=", but it is treated as a regular char, i.e. it can also 
+ * appear as '='.
+ *
+ * As such, we currently choose to allow reading unescaped '=',
+ * but we always produce escaped '\3D'; this may change in the
+ * future, if compatibility issues do not arise */
+#ifdef LDAP_DEVEL
+#define LDAP_DN_NE(c) \
+	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
+	  || LDAP_DN_QUOTES(c) \
+	  || (c) == '<' || (c) == '>' )
+#define LDAP_DN_MAYESCAPE(c) \
+	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) \
+	  || LDAP_DN_AVA_EQUALS(c) \
+	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
+#define LDAP_DN_SHOULDESCAPE(c)		( LDAP_DN_AVA_EQUALS(c) )
+#else /* ! LDAP_DEVEL */
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
 	  || LDAP_DN_AVA_EQUALS(c) || LDAP_DN_QUOTES(c) \
@@ -476,6 +496,9 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define LDAP_DN_MAYESCAPE(c) \
 	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) \
 	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
+#define LDAP_DN_SHOULDESCAPE(c)		( 0 )
+#endif /* ! LDAP_DEVEL */
+	
 #define LDAP_DN_NEEDESCAPE(c) \
 	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) )
 #define LDAP_DN_NEEDESCAPE_LEAD(c) 	LDAP_DN_MAYESCAPE(c)
@@ -730,9 +753,9 @@ ldap_bv2dn_x( struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx )
 	assert( dn );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
+	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n", str, flags, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n", str, flags, 0 );
 #endif
 
 	*dn = NULL;
@@ -903,10 +926,11 @@ return_result:;
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_bv2dn(%s,%u)=%d\n", 
-		str, flags, rc );
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_bv2dn(%s)=%d %s\n", 
+		str, rc, ldap_err2string( rc ) );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s,%u)=%d\n", str, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s)=%d %s\n", str, rc,
+			ldap_err2string( rc ) );
 #endif
 	*dn = newDN;
 	
@@ -1497,7 +1521,7 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 			 */
 			return( 1 );
 
-		} else if (!LDAP_DN_ASCII_PRINTABLE( p[ 0 ] ) ) {
+		} else if ( !LDAP_DN_ASCII_PRINTABLE( p[ 0 ] ) ) {
 			if ( p[ 0 ] == '\0' ) {
 				return( 1 );
 			}
@@ -2082,6 +2106,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 			l += escaped_byte_len * cl;
 
 		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
+				|| LDAP_DN_SHOULDESCAPE( p[ 0 ] )
 				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
 				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 #ifdef PRETTY_ESCAPE
@@ -2172,6 +2197,7 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 #endif
 #else /* ! PRETTY_ESCAPE */
 				|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+				|| LDAP_DN_SHOULDESCAPE( val->bv_val[ s ] )
 				|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
 				|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
 
@@ -2192,6 +2218,7 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		} else {
 #ifdef PRETTY_ESCAPE
 			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+					|| LDAP_DN_SHOULDESCAPE( val->bv_val[ s ] )
 					|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
 					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) ) ) {
 				str[ d++ ] = '\\';
@@ -2238,6 +2265,7 @@ strval2IA5strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	} else {
 		for ( l = 0, p = val->bv_val; p[ 0 ]; p++ ) {
 			if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
+					|| LDAP_DN_SHOULDESCAPE( p[ 0 ] )
 					|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
 					|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 				l += 2;
@@ -2286,6 +2314,7 @@ strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 
 		for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
 			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+					|| LDAP_DN_SHOULDESCAPE( val->bv_val[ s ] )
 					|| ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
 					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) ) ) {
 				str[ d++ ] = '\\';
@@ -3013,10 +3042,9 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	bv->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "=> ldap_dn2bv(%u)\n%s%s", 
-		flags, "", "" );
+	LDAP_LOG ( OPERATION, ARGS, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n%s%s", flags, "", "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
 #endif
 
 	/* 
@@ -3327,11 +3355,11 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_dn2bv(%s,%u)=%d\n", 
-		bv->bv_val, flags, rc );
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_dn2bv(%s)=%d %s\n", 
+		bv->bv_val, rc, ldap_err2string( rc ) );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",
-		bv->bv_val, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s)=%d %s\n",
+		bv->bv_val, rc, ldap_err2string( rc ) );
 #endif
 
 return_results:;

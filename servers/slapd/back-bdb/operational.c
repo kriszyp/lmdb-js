@@ -39,7 +39,19 @@ bdb_hasSubordinates(
 	
 	assert( e );
 
+	/* NOTE: this should never happen, but it actually happens
+	 * when using back-relay; until we find a better way to
+	 * preserve entry's private information while rewriting it,
+	 * let's disable the hasSubordinate feature for back-relay.
+	 */
+	if ( BEI( e ) == NULL ) {
+		return LDAP_OTHER;
+	}
+
 retry:
+	/* FIXME: we can no longer assume the entry's e_private
+	 * field is correctly populated; so we need to reacquire
+	 * it with reader lock */
 	rc = bdb_cache_children( op, NULL, e );
 	
 	switch( rc ) {

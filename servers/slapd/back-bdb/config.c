@@ -172,7 +172,6 @@ bdb_db_config(
 			bdb->bi_search_stack_depth = MINIMUM_SEARCH_STACK_DEPTH;
 		}
 
-#ifdef SLAP_IDL_CACHE
 	/* size of the IDL cache in entries */
 	} else if ( strcasecmp( argv[0], "idlcachesize" ) == 0 ) {
 		if ( argc < 2 ) {
@@ -183,8 +182,6 @@ bdb_db_config(
 		}
 		if ( !( slapMode & SLAP_TOOL_MODE ) )
 			bdb->bi_idl_cache_max_size = atoi( argv[1] );
-#endif
-
 	} else if ( strcasecmp( argv[0], "sessionlog" ) == 0 ) {
 		int se_id = 0, se_size = 0;
 		struct slap_session_entry *sent;

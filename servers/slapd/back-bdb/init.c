@@ -71,8 +71,8 @@ bdb_db_init( BackendDB *be )
 	LDAP_LOG( BACK_BDB, ENTRY, "bdb_db_init", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_init: Initializing BDB database\n",
-		0, 0, 0 );
+		"bdb_db_init: Initializing %s database\n",
+		be->bd_info->bi_type, 0, 0 );
 #endif
 
 	/* allocate backend-database-specific stuff */
@@ -196,14 +196,15 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
-#ifdef SLAP_IDL_CACHE
+	/* One long-lived TXN per thread, two TXNs per write op */
+	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
+
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size = 0;
 	}
-#endif
 
 #ifdef BDB_SUBDIRS
 	{
@@ -447,7 +448,7 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	bdb->bi_dbenv->lock_id(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+	XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 
 	/* <insert> open (and create) index databases */
 	return 0;
@@ -459,9 +460,7 @@ bdb_db_close( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
-#ifdef SLAP_IDL_CACHE
 	bdb_idl_cache_entry_t *entry, *next_entry;
-#endif
 
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
@@ -476,7 +475,6 @@ bdb_db_close( BackendDB *be )
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_wlock ( &bdb->bi_idl_tree_rwlock );
 		avl_free( bdb->bi_idl_tree, NULL );
@@ -491,7 +489,8 @@ bdb_db_close( BackendDB *be )
 		}
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
-#endif
+
+	XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
 
 	return 0;
 }
@@ -542,12 +541,10 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 	}
-#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;

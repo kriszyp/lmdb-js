@@ -266,6 +266,10 @@ int bdb_modify_internal(
 	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );
+		/* clear the indexing flags */
+		for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
+			ap->a_flags = 0;
+		}
 		e->e_attrs = save_attrs;
 
 		if ( rc != LDAP_SUCCESS ) {
@@ -349,7 +353,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	size_t textlen = sizeof textbuf;
 	DB_TXN	*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
-	Entry		dummy;
+	Entry		dummy = {0};
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
@@ -380,6 +384,10 @@ bdb_modify( Operation *op, SlapReply *rs )
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if ( dummy.e_attrs ) {
+			attrs_free( dummy.e_attrs );
+			dummy.e_attrs = NULL;
+		}
 		if( e != NULL ) {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 			e = NULL;
@@ -615,11 +623,11 @@ retry:	/* transaction retry */
 		if ( (rs->sr_err == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
 			rs->sr_err = opinfo.boi_err;
 		}
+		/* Only free attrs if they were dup'd.  */
+		if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			attrs_free( dummy.e_attrs ); 
-			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		goto return_results;
@@ -639,8 +647,6 @@ retry:	/* transaction retry */
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			attrs_free( dummy.e_attrs ); 
-			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		rs->sr_text = "entry update failed";
@@ -660,8 +666,6 @@ retry:	/* transaction retry */
 		case BDB_CSN_ABORT :
 			goto return_results;
 		case BDB_CSN_RETRY :
-			attrs_free( dummy.e_attrs ); 
-			dummy.e_attrs = NULL;
 			goto retry;
 		}
 	}
@@ -671,7 +675,7 @@ retry:	/* transaction retry */
 			postread_ctrl = &ctrls[num_ctrls++];
 			ctrls[num_ctrls] = NULL;
 		}
-		if( slap_read_controls( op, rs, e,
+		if( slap_read_controls( op, rs, &dummy,
 			&slap_post_read_bv, postread_ctrl ) )
 		{
 #ifdef NEW_LOGGING
@@ -697,10 +701,9 @@ retry:	/* transaction retry */
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			attrs_free( dummy.e_attrs ); 
-			dummy.e_attrs = NULL;
 			goto retry;
 		}
+		dummy.e_attrs = NULL;
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
@@ -788,6 +791,9 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
+	if( dummy.e_attrs ) {
+		attrs_free( dummy.e_attrs );
+	}
 	send_ldap_result( op, rs );
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
