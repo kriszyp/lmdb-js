@@ -846,8 +846,8 @@ and your official OID will be sent to you usually within a few days.
 Your base OID will be something like {{EX:1.3.6.1.4.1.X}} were {{EX:X}}
 is an integer.
 
-Note: Don't let the "MIB/SNMP" statement confuse you.  OIDs
-obtained using this form may be used for any purpose including
+Note: Don't let the "MIB/SNMP" statement on the IANA page confuse you.
+OIDs obtained using this form may be used for any purpose including
 identifying LDAP schema elements.
 
 
