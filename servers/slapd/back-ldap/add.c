@@ -45,7 +45,7 @@ ldap_back_add(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	dncookie dc;
-	int update;
+	int isupdate;
 #ifdef LDAP_BACK_PROXY_AUTHZ 
 	LDAPControl **ctrls = NULL;
 	int rc = LDAP_SUCCESS;
@@ -90,9 +90,9 @@ ldap_back_add(
 	dc.ctx = "addDnAttr";
 #endif
 
-	update = op->o_bd->be_update_ndn.bv_len;
+	isupdate = be_isupdate( op->o_bd, &op->o_ndn );
 	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
-		if ( !update && a->a_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
