@@ -126,7 +126,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_CERTFILE		0x6004
 #define LDAP_OPT_X_TLS_KEYFILE		0x6005
 #define LDAP_OPT_X_TLS_REQUIRE_CERT	0x6006
-#define LDAP_OPT_X_TLS_PROTOCOL		0x6007
+/* #define LDAP_OPT_X_TLS_PROTOCOL		0x6007 */
 #define LDAP_OPT_X_TLS_CIPHER_SUITE	0x6008
 #define LDAP_OPT_X_TLS_RANDOM_FILE	0x6009
 
@@ -296,7 +296,7 @@ typedef struct ldapcontrol {
 /* authentication methods available */
 #define LDAP_AUTH_NONE		((ber_tag_t) 0x00U)	/* no authentication		  */
 #define LDAP_AUTH_SIMPLE	((ber_tag_t) 0x80U)	/* context specific + primitive   */
-#define LDAP_AUTH_SASL		((ber_tag_t) 0xa3U)	/* context specific + primitive   */
+#define LDAP_AUTH_SASL		((ber_tag_t) 0xa3U)	/* context specific + constructed */
 #define LDAP_AUTH_KRBV4		((ber_tag_t) 0xffU)	/* means do both of the following */
 #define LDAP_AUTH_KRBV41	((ber_tag_t) 0x81U)	/* context specific + primitive   */
 #define LDAP_AUTH_KRBV42	((ber_tag_t) 0x82U)	/* context specific + primitive   */

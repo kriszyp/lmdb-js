@@ -1130,13 +1130,6 @@ read_config( const char *fname )
 #endif /*SLAPD_MODULES*/
 
 #ifdef HAVE_TLS
-		} else if ( !strcasecmp( cargv[0], "TLSProtocol" ) ) {
-			rc = ldap_pvt_tls_set_option( NULL,
-						      LDAP_OPT_X_TLS_PROTOCOL,
-						      cargv[1] );
-			if ( rc )
-				return rc;
-
 		} else if ( !strcasecmp( cargv[0], "TLSRandFile" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_RANDOM_FILE,

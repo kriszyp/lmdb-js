@@ -2,7 +2,10 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.13 Engineering
 	Fixed slapd substring filter_free bug
+	Fixed slapd suffix check bug
 	Fixed ldapdelete -c handling (ITS#1071)
+	Fixed -lldbm BDB3.0 support (ITS#1306)
+	Added -lldap improved TLS certificate checking
 
 OpenLDAP 2.0.12 Release
 	Fixed slapd acl default clause bug (ITS#1187)
