@@ -176,6 +176,8 @@ void slapd_slp_reg() {
 void slapd_slp_dereg() {
 	int i;
 
+	if( slapd_srvurls == NULL ) return;
+
 	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
 		SLPDereg( slapd_hslp,
 			slapd_srvurls[i],
