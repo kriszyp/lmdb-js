@@ -468,32 +468,29 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 				}
 			}
 			
-		} else if ( c->be && c->be->be_cf_table ) {
-			rc = parse_config_table( c->be->be_cf_table, c );
+		} else if ( c->be ) {
+			if ( c->be->be_cf_table ) {
+				rc = parse_config_table( c->be->be_cf_table, c );
 
-			if ( rc ) {
-				switch(rc) {
-				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: "
-						"unknown directive <%s> inside backend database definition (ignored)\n",
-						c->log, *c->argv, 0);
-					continue;
-				default:
-					goto badline;
-				}
+				if ( !rc ) continue;
+
+				if ( rc != ARG_UNKNOWN ) goto badline;
 			}
 
-		} else if ( c->be && c->be->be_config ) {
-			rc = (*c->be->be_config)(c->be, c->fname, c->lineno, c->argc, c->argv);
-			if ( rc ) {
-				switch(rc) {
-				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: "
-						"unknown directive <%s> inside backend database definition (ignored)\n",
-						c->log, *c->argv, 0);
-					continue;
-				default:
-					goto badline;
+			if ( c->be->be_config ) {
+				rc = (*c->be->be_config)(c->be, c->fname, c->lineno,
+					c->argc, c->argv);
+				if ( rc ) {
+					switch(rc) {
+					case SLAP_CONF_UNKNOWN:
+						Debug( LDAP_DEBUG_CONFIG, "%s: "
+							"unknown directive <%s> inside backend database "
+							"definition (ignored)\n",
+							c->log, *c->argv, 0);
+						continue;
+					default:
+						goto badline;
+					}
 				}
 			}
 
