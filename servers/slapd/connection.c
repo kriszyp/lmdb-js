@@ -212,14 +212,14 @@ static Connection* connection_get( ber_socket_t s )
 		ber_socket_t i, sd;
 
 		for(i=0; i<dtblsize; i++) {
-			ber_sockbuf_ctrl( connections[i].c_sb,
-				LBER_SB_OPT_GET_FD, &sd );
-
 			if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
 				assert( connections[i].c_sb == 0 );
 				break;
 			}
+
+			ber_sockbuf_ctrl( connections[i].c_sb,
+				LBER_SB_OPT_GET_FD, &sd );
 
 			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
@@ -551,7 +551,7 @@ connection_destroy( Connection *c )
 		 */
 		if (strncmp(c->c_peer_name, "PATH=", 5) == 0) {
 			char *path = c->c_peer_name + 5;
-			if (path != '\0') {
+			if (path[0] != '\0') {
 				(void)unlink(path);
 			}
 		}
