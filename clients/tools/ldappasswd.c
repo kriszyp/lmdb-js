@@ -259,7 +259,7 @@ main( int argc, char *argv[] )
 
 		if( ber == NULL ) {
 			perror( "ber_alloc_t" );
-			ldap_unbind( ld );
+			ldap_unbind_ext( ld, NULL, NULL );
 			return EXIT_FAILURE;
 		}
 
@@ -289,7 +289,7 @@ main( int argc, char *argv[] )
 
 		if( rc < 0 ) {
 			perror( "ber_flatten2" );
-			ldap_unbind( ld );
+			ldap_unbind_ext( ld, NULL, NULL );
 			return EXIT_FAILURE;
 		}
 	}
@@ -307,7 +307,7 @@ main( int argc, char *argv[] )
 
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_extended_operation" );
-		ldap_unbind( ld );
+		ldap_unbind_ext( ld, NULL, NULL );
 		return EXIT_FAILURE;
 	}
 
@@ -339,7 +339,7 @@ main( int argc, char *argv[] )
 
 		if( ber == NULL ) {
 			perror( "ber_init" );
-			ldap_unbind( ld );
+			ldap_unbind_ext( ld, NULL, NULL );
 			return EXIT_FAILURE;
 		}
 
@@ -383,7 +383,7 @@ main( int argc, char *argv[] )
 
 skip:
 	/* disconnect from server */
-	ldap_unbind (ld);
+	ldap_unbind_ext( ld, NULL, NULL );
 
 	return code == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
 }
