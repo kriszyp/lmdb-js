@@ -137,7 +137,8 @@ ldap_pvt_tls_init_def_ctx( void )
 		tls_def_ctx = SSL_CTX_new( SSLv23_method() );
 		if ( tls_def_ctx == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			       "TLS: could not allocate default ctx.\n",0,0,0);
+		       "TLS: could not allocate default ctx (%d).\n",
+				ERR_peek_error(),0,0);
 			goto error_exit;
 		}
 		if ( tls_opt_ciphersuite &&
@@ -943,7 +944,7 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 
 	if ( strcasecmp(ld->ld_host, peer_cert_cn) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-			"common name in certificate (%s).", 
+			"common name in certificate (%s).\n", 
 			ld->ld_host, peer_cert_cn, 0 );
 		LDAP_FREE( peer_cert_cn );
 		return LDAP_CONNECT_ERROR;
