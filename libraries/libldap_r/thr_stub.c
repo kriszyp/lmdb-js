@@ -82,6 +82,12 @@ ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 }
 
 int 
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
+{
+	return 0;
+}
+
+int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 			  ldap_pvt_thread_mutex_t *mutex )
 {
