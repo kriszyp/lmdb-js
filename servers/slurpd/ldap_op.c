@@ -676,6 +676,24 @@ do_bind(
 	}
 	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
+	if( ri->ri_tls ) {
+		int err;
+		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
+
+		if( err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: ldap_start_tls failed: %s (%d)\n",
+				ri->ri_tls != TLS_CRITICAL ? "Warning" : "Error",
+				ldap_err2string( err ), err );
+
+			if( ri->ri_tls != TLS_CRITICAL ) {
+				ldap_unbind( ri->ri_ldp );
+				ri->ri_ldp = NULL;
+				return BIND_ERR_TLS_FAILED;
+			}
+		}
+	}
+
     switch ( ri->ri_bind_method ) {
     case AUTH_SIMPLE:
 	/*
@@ -701,8 +719,23 @@ do_bind(
 		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
 
 #ifdef HAVE_CYRUS_SASL
+	if( ri->ri_secprops != NULL ) {
+		int err;
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_X_SASL_SECPROPS,
+			ri->ri_secprops);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
+				ri->ri_hostname, ri->ri_secprops, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_SASL_FAILED;
+		}
+	}
+
 	defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
-	    NULL, ri->ri_authcId, NULL, NULL );
+	    ri->ri_realm, ri->ri_authcId, ri->ri_password, ri->ri_authzId );
 	ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
 	    ri->ri_saslmech, NULL, NULL,
 	    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
