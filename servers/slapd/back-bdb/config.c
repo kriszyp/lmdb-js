@@ -155,10 +155,6 @@ bdb_db_config(
 		}
 		bdb->bi_cache.c_maxsize = atoi( argv[1] );
 
-		/* default IDL cache to 10x entry cache */
-		if ( bdb->bi_idl_cache_max_size == 0 )
-			bdb->bi_idl_cache_max_size = 10 * bdb->bi_cache.c_maxsize;
-
 	/* depth of search stack cache in units of (IDL)s */
 	} else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
 		if ( argc < 2 ) {

@@ -208,6 +208,10 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
+	/* default IDL cache to 10x entry cache */
+	if ( bdb->bi_idl_cache_max_size == 0 )
+		bdb->bi_idl_cache_max_size = 10 * bdb->bi_cache.c_maxsize;
+
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
