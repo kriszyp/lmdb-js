@@ -761,7 +761,9 @@ static int parseProxyAuthz (
 
 		rc = slap_parse_user( &id, &user, &realm, &mech );
 		if ( rc == LDAP_SUCCESS ) {
-			if ( mech.bv_len ) {
+			struct berval authz = BER_BVC( "AUTHZ" );
+
+			if ( mech.bv_len && !bvmatch( &mech, &authz) ) {
 				rs->sr_text = "mech not allowed in authzId";
 				return LDAP_PROXY_AUTHZ_FAILURE;
 			}
