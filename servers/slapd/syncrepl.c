@@ -522,6 +522,7 @@ do_syncrep2(
 				}
 				if ( rc_efree && entry ) {
 					entry_free( entry );
+					entry = NULL;
 				}
 				break;
 
@@ -1263,7 +1264,7 @@ syncrepl_entry(
 
 	case LDAP_SYNC_DELETE :
 		/* Already deleted */
-		ret = 1;
+		ret = 0;
 		goto done;
 
 	default :
