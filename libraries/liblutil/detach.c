@@ -72,31 +72,31 @@ lutil_detach( int debug, int do_close )
 			break;
 		}
 
+		if ( (sd = open( "/dev/null", O_RDWR )) != -1 ) {
+			perror("/dev/null");
+		}
+
+		/* close stdin, stdout, stderr */
+		close( STDIN_FILENO );
+		close( STDOUT_FILENO );
+		close( STDERR_FILENO );
+
+		/* redirect stdin, stdout, stderr to /dev/null */
+		dup2( sd, STDIN_FILENO );
+		dup2( sd, STDOUT_FILENO );
+		dup2( sd, STDERR_FILENO );
+
+		close( sd );
+
 		if ( do_close ) {
-			if ( (sd = open( "/dev/null", O_RDWR )) != -1 ) {
-				perror("/dev/null");
-			}
-
+			/* close everything else */
 			for ( i = 0; i < nbits; i++ ) {
-				if( i == sd ) continue;
-
-				close( i );
-
-				if( i == STDIN_FILENO ||
-					i == STDOUT_FILENO ||
-					i == STDERR_FILENO )
+				if( i != STDIN_FILENO &&
+					i != STDOUT_FILENO && 
+					i != STDERR_FILENO )
 				{
-					/* attach /dev/null */
-					dup2( sd, i );
+					close( i );
 				}
-			}
-
-			if( sd != STDIN_FILENO &&
-				sd != STDOUT_FILENO && 
-				sd != STDERR_FILENO )
-			{
-				/* unless stdin, stdout, or stderr, close /dev/null */
-				close( sd );
 			}
 		}
 
