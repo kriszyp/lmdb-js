@@ -65,33 +65,14 @@ ldbm_back_bind(
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
 		if( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-
-			rs->sr_ref = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
-				: NULL;
-
 			cache_return_entry_r( &li->li_cache, matched );
-
-		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
-
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		/* allow noauth binds */
 		rc = 1;
-		if ( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		}
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		rs->sr_ref = NULL;
 		return rs->sr_err;
 	}
 
@@ -132,24 +113,14 @@ ldbm_back_bind(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
-		rs->sr_ref = get_entry_referrals( op, e );
-
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
-			   "ldbm_back_bind: entry(%s) is a referral.\n", e->e_dn, 0, 0 );
+			"ldbm_back_bind: entry(%s) is a referral.\n", e->e_dn, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-		    0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
 #endif
 
-		if( rs->sr_ref != NULL ) {
-			rc = LDAP_REFERRAL;
-			rs->sr_matched = ch_strdup( e->e_name.bv_val );
-			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-
-		} else {
-			rc = LDAP_INVALID_CREDENTIALS;
-		}
+		rc = LDAP_INVALID_CREDENTIALS;
 		goto return_results;
 	}
 

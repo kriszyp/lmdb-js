@@ -93,31 +93,13 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if( e != NULL ) {
-			rs->sr_ref = is_entry_referral( e )
-				? get_entry_referrals( op, e )
-				: NULL;
-			if (rs->sr_ref) {
-				rs->sr_matched = ch_strdup( e->e_name.bv_val );
-				rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-			}
-
 			bdb_cache_return_entry_r( bdb->bi_dbenv,
 				&bdb->bi_cache, e, &lock );
 			e = NULL;
-		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		if ( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-			rs->sr_ref = NULL;
-		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
-		}
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		send_ldap_result( op, rs );
 
 		LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
@@ -137,7 +119,6 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
 			0, 0 );
 #endif
-
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
@@ -164,9 +145,6 @@ dn2entry_retry:
 #endif
 
 	if ( is_entry_referral( e ) ) {
-		/* entry is a referral, don't allow bind */
-		rs->sr_ref = get_entry_referrals( op, e );
-
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_bind: entry is referral\n", 0, 0, 0 );
@@ -174,14 +152,7 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
 #endif
-
-		if( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_matched = ch_strdup( e->e_name.bv_val );
-			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		}
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
 
