@@ -53,11 +53,7 @@ lock_fopen(
 	}
 
 	/* acquire the lock */
-#ifdef HAVE_FLOCK
-	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) 
-#else
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 )
-#endif
+	while ( ldap_lockf( *lfp ) != 0 )
 	{
 		;	/* NULL */
 	}
@@ -66,11 +62,7 @@ lock_fopen(
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"Error: could not open \"%s\"\n", fname, 0, 0 );
-#ifdef HAVE_FLOCK
-		flock( fileno( *lfp ), LOCK_UN );
-#else
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#endif
+		ldap_unlockf( *lfp );
 		fclose( *lfp );
 		*lfp = NULL;
 		return( NULL );
@@ -88,11 +80,7 @@ lock_fclose(
 )
 {
 	/* unlock */
-#ifdef HAVE_FLOCK
-	flock( fileno( lfp ), LOCK_UN );
-#else
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#endif
+	ldap_unlockf( lfp );
 	fclose( lfp );
 
 	return( fclose( fp ) );
