@@ -142,7 +142,9 @@ int connections_destroy(void)
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
 #ifdef LDAP_SLAPI
-			slapi_x_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
+			if ( slapi_plugins_used ) {
+				slapi_x_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
+			}
 #endif
 		}
 	}
