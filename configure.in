@@ -686,6 +686,7 @@ AC_CHECK_HEADERS( \
 	errno.h		\
 	fcntl.h		\
 	filio.h		\
+	getopt.h	\
 	limits.h	\
 	malloc.h	\
 	regex.h		\
@@ -715,7 +716,7 @@ AC_STRUCT_ST_BLKSIZE
 AC_HEADER_TIME
 AC_STRUCT_TM
 
-dnl AC_C_BIGENDIAN
+AC_C_BIGENDIAN
 AC_C_CONST
 
 dnl AC_CHECK_SIZEOF(short) 
@@ -731,6 +732,7 @@ AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
+	getopt			\
 	flock			\
 	gethostname		\
 	gettimeofday	\
@@ -755,7 +757,7 @@ AC_CHECK_FUNCS(		\
 	sysconf			\
 )
 
-AC_REPLACE_FUNCS(strdup)
+AC_REPLACE_FUNCS(getopt strdup)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
