@@ -38,6 +38,7 @@ get_mra(
 	ber_len_t length;
 	struct berval type = { 0, NULL };
 	struct berval value = { 0, NULL };
+	struct berval tmp = { 0, NULL };
 	MatchingRuleAssertion ma;
 
 	memset( &ma, 0, sizeof ma);
@@ -57,7 +58,7 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rtag = ber_scanf( ber, "m", &ma.ma_rule_text );
+		rtag = ber_scanf( ber, "m", &tmp );
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
@@ -69,6 +70,7 @@ get_mra(
 			*text = "Error parsing matching rule in matching rule assertion";
 			return SLAPD_DISCONNECT;
 		}
+		ber_dupbv( &ma.ma_rule_text, &tmp );
 
 		rtag = ber_scanf( ber, "t", &tag );
 		if( rtag == LBER_ERROR ) {
@@ -226,13 +228,9 @@ get_mra(
 		ma.ma_rule,
 		SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 		&value, &ma.ma_value, text );
-	if ( rc == LDAP_SUCCESS ) {
-		ma.ma_value = value;
-	} else
-#else
-	if( rc != LDAP_SUCCESS )
 #endif
-	{
+
+	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
