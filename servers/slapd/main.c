@@ -494,10 +494,10 @@ wait4child( int sig )
 #ifdef WNOHANG
     errno = 0;
 #ifdef HAVE_WAITPID
-    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) >= 0 || errno == EINTR )
+    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) > 0 || errno == EINTR )
 	;	/* NULL */
 #else
-    while ( wait3( NULL, WNOHANG, NULL ) >= 0 || errno == EINTR )
+    while ( wait3( NULL, WNOHANG, NULL ) > 0 || errno == EINTR )
 	;	/* NULL */
 #endif
 #else
