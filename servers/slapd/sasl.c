@@ -19,6 +19,11 @@ char **supportedSASLMechanisms = NULL;
 char *sasl_host = NULL;
 
 #ifdef HAVE_CYRUS_SASL
+
+#ifdef SLAPD_SPASSWD
+#include <lutil.h>
+#endif
+
 static void *slap_sasl_mutex_new(void)
 {
 	ldap_pvt_thread_mutex_t *mutex;
@@ -158,13 +163,21 @@ int sasl_init( void )
 		mechs, 0, 0 );
 
 	supportedSASLMechanisms = str2charray( mechs, "," );
+
+#ifdef SLAPD_SPASSWD
+	lutil_passwd_sasl_conn = server;
+#else
 	sasl_dispose( &server );
+#endif
 
 	return 0;
 }
 
 int sasl_destroy( void )
 {
+#ifdef SLAPD_SPASSWD
+	sasl_dispose( &lutil_passwd_sasl_conn );
+#endif
 	charray_free( supportedSASLMechanisms );
 	return 0;
 }

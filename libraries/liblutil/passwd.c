@@ -22,6 +22,10 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
+#ifdef SLAPD_SPASSWD
+#	include <sasl.h>
+#endif
+
 #ifdef SLAPD_KPASSWD
 #	include <ac/krb.h>
 #	include <ac/krb5.h>
@@ -86,10 +90,19 @@ static int chk_sha1(
 	const struct berval *passwd,
 	const struct berval *cred );
 
+#ifdef SLAPD_SPASSWD
+static int chk_sasl(
+	const struct pw_scheme *scheme,
+	const struct berval *passwd,
+	const struct berval *cred );
+#endif
+
+#ifdef SLAPD_KPASSWD
 static int chk_kerberos(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
+#endif
 
 static int chk_crypt(
 	const struct pw_scheme *scheme,
@@ -131,6 +144,10 @@ static const struct pw_scheme pw_schemes[] =
 
 	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, hash_smd5 },
 	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, hash_md5 },
+
+#ifdef SLAPD_SPASSWD
+	{ {sizeof("{SASL}")-1, "{SASL}"}, chk_sasl, NULL },
+#endif
 
 #ifdef SLAPD_KPASSWD
 	{ {sizeof("{KERBEROS}")-1, "{KERBEROS}"}, chk_kerberos, NULL },
@@ -541,6 +558,59 @@ static int chk_md5(
 	ber_memfree(orig_pass);
 	return rc ? 1 : 0;
 }
+
+#ifdef SLAPD_SPASSWD
+#ifdef HAVE_CYRUS_SASL
+sasl_conn_t *lutil_passwd_sasl_conn = NULL;
+#endif
+
+static int chk_sasl(
+	const struct pw_scheme *sc,
+	const struct berval * passwd,
+	const struct berval * cred )
+{
+	int i;
+	int rtn;
+
+	for( i=0; i<cred->bv_len; i++) {
+		if(cred->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( cred->bv_val[i] != '\0' ) {
+		return 1;	/* cred must behave like a string */
+	}
+
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return 1;	/* passwd must behave like a string */
+	}
+
+	rtn = 1;
+
+#ifdef HAVE_CYRUS_SASL
+	if( lutil_passwd_sasl_conn != NULL ) {
+		const char *errstr = NULL;
+		int sc;
+
+		sc = sasl_checkpass( lutil_passwd_sasl_conn,
+			passwd->bv_val, passwd->bv_len,
+			cred->bv_val, cred->bv_len,
+			&errstr );
+
+		rtn = ( sc != SASL_OK );
+	}
+#endif
+
+	return rtn;
+}
+#endif
 
 #ifdef SLAPD_KPASSWD
 static int chk_kerberos(

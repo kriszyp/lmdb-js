@@ -135,6 +135,8 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
 OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	enable kerberos password verification], no)dnl
+OL_ARG_ENABLE(spasswd,[    --enable-spasswd	enable (Cyrus) SASL password verification], no)dnl
+OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
 OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
@@ -399,6 +401,13 @@ elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
 	else
 		ol_with_kerberos=no
 	fi
+fi
+
+if test $ol_enable_spasswd = yes ; then
+	if test $ol_with_cyrus_sasl = no ; then
+		AC_MSG_ERROR([options require --with-cyrus-sasl])
+	fi
+	ol_with_cyrus_sasl=yes
 fi
 
 AC_MSG_RESULT(done)
@@ -2207,6 +2216,9 @@ if test "$ol_enable_crypt" != no ; then
 fi
 if test "$ol_link_kpasswd" != no ; then
 	AC_DEFINE(SLAPD_KPASSWD,1,[define to support Kerberos passwords])
+fi
+if test "$ol_link_spasswd" != no ; then
+	AC_DEFINE(SLAPD_SPASSWD,1,[define to support SASL passwords])
 fi
 if test "$ol_enable_multimaster" != no ; then
 	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])

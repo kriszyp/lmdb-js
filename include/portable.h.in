@@ -874,6 +874,9 @@
 /* define to support Kerberos passwords */
 #undef SLAPD_KPASSWD
 
+/* define to support SASL passwords */
+#undef SLAPD_SPASSWD
+
 /* define to support multimaster replication */
 #undef SLAPD_MULTIMASTER
 
