@@ -91,6 +91,7 @@ bdb_dn2idl(
 	struct berval	*dn,
 	int prefix,
 	ID *ids,
+	ID *stack,
 	void *ctx );
 
 #ifdef BDB_HIER

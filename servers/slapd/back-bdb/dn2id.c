@@ -417,6 +417,7 @@ bdb_dn2idl(
 	struct berval	*dn,
 	int prefix,
 	ID *ids,
+	ID *stack,
 	void *ctx )
 {
 	int		rc;
@@ -871,7 +872,9 @@ struct dn2id_cookie {
 	ID id;
 	ID dbuf;
 	ID *ids;
+	void *ptr;
 	ID tmp[BDB_IDL_DB_SIZE];
+	ID *buf;
 	DBT key;
 	DBT data;
 	DBC *dbc;
@@ -900,15 +903,33 @@ bdb_dn2idl_internal(
 	if ( cx->rc ) return cx->rc;
 	BDB_IDL_ZERO( cx->tmp );
 
+	cx->data.data = &cx->dbuf;
+	cx->data.ulen = sizeof(ID);
+	cx->data.dlen = sizeof(ID);
+	cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+
 	/* The first item holds the parent ID. Ignore it. */
 	cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
 	if ( cx->rc == DB_NOTFOUND ) goto saveit;
 	if ( cx->rc ) return cx->rc;
 
+	cx->data.data = cx->buf;
+	cx->data.ulen = BDB_IDL_UM_SIZE * sizeof(ID);
+	cx->data.flags = DB_DBT_USERMEM;
+
 	/* Fetch the rest of the IDs in a loop... */
 	while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
-		DB_NEXT_DUP )) == 0 ) {
-		bdb_idl_insert( cx->tmp, cx->dbuf );
+		DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
+		u_int8_t *j;
+		size_t len;
+		DB_MULTIPLE_INIT( cx->ptr, &cx->data );
+		while (cx->ptr) {
+			DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
+			if (j) {
+				AC_MEMCPY( &cx->dbuf, j, sizeof(ID) );
+				bdb_idl_insert( cx->tmp, cx->dbuf );
+			}
+		}
 	}
 	cx->dbc->c_close( cx->dbc );
 
@@ -952,16 +973,26 @@ bdb_dn2idl(
 	struct berval	*dn,
 	int prefix,
 	ID *ids,
+	ID *stack,
 	void *ctx )
 {
 	struct dn2id_cookie cx;
+	EntryInfo *ei = (EntryInfo *)dn;
 
-	cx.id = *(ID *)dn;
+#ifndef BDB_MULTIPLE_SUFFIXES
+	if ( ei->bei_parent->bei_id == 0 ) {
+		struct bdb_info *bdb = (struct bdb_info *)be->be_private;
+		BDB_IDL_ALL( bdb, ids );
+		return 0;
+	}
+#endif
 
+	cx.id = ei->bei_id;
 	cx.bdb = (struct bdb_info *)be->be_private;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
 	cx.prefix = prefix;
 	cx.ids = ids;
+	cx.buf = stack;
 	cx.ctx = ctx;
 
 	BDB_IDL_ZERO( ids );
@@ -976,10 +1007,6 @@ bdb_dn2idl(
 	cx.key.flags = DB_DBT_USERMEM;
 
 	DBTzero(&cx.data);
-	cx.data.data = &cx.dbuf;
-	cx.data.ulen = sizeof(ID);
-	cx.data.dlen = sizeof(ID);
-	cx.data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
 	return bdb_dn2idl_internal(&cx);
 }
