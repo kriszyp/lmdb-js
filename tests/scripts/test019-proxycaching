@@ -75,7 +75,6 @@ echo "Starting proxy cache on TCP/IP port $SLAVEPORT..."
 . $CONFFILTER < $PROXYCACHECONF > $CACHECONF
 $SLAPD -f $CACHECONF -h $SLAVEURI -d $LVL > $SLAVELOG 2>&1 &
 CACHEPID=$!
-WAIT=1
 if test $WAIT != 0 ; then
 	echo CACHEPID $CACHEPID
 	read foo
