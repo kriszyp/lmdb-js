@@ -731,15 +731,21 @@ static int slap_open_listener(
 
 	psal = sal;
 	while ( *sal != NULL ) {
+		char *af;
 		switch( (*sal)->sa_family ) {
 		case AF_INET:
+			af = "IPv4";
+			break;
 #ifdef LDAP_PF_INET6
 		case AF_INET6:
+			af = "IPv6";
+			break;
 #endif
 #ifdef LDAP_PF_LOCAL
 		case AF_LOCAL:
-#endif
+			af = "Local";
 			break;
+#endif
 		default:
 			sal++;
 			continue;
@@ -752,12 +758,12 @@ static int slap_open_listener(
 			int err = sock_errno();
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, ERR, 
-				"slap_open_listener: socket() failed errno=%d (%s)\n",
-				err, sock_errstr(err), 0 );
+				"slap_open_listener: %s socket() failed errno=%d (%s)\n",
+				af, err, sock_errstr(err) );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: socket() failed errno=%d (%s)\n", err,
-				sock_errstr(err), 0 );
+				"daemon: %s socket() failed errno=%d (%s)\n",
+				af, err, sock_errstr(err) );
 #endif
 			sal++;
 			continue;
@@ -770,8 +776,8 @@ static int slap_open_listener(
 				"great %ld\n", (long)l.sl_sd, (long)dtblsize, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-			       "daemon: listener descriptor %ld is too great %ld\n",
-			       (long) l.sl_sd, (long) dtblsize, 0 );
+				"daemon: listener descriptor %ld is too great %ld\n",
+				(long) l.sl_sd, (long) dtblsize, 0 );
 #endif
 			tcp_close( l.sl_sd );
 			sal++;
@@ -788,7 +794,7 @@ static int slap_open_listener(
 			/* enable address reuse */
 			tmp = 1;
 			rc = setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
-					 (char *) &tmp, sizeof(tmp) );
+				(char *) &tmp, sizeof(tmp) );
 			if ( rc == AC_SOCKET_ERROR ) {
 				int err = sock_errno();
 #ifdef NEW_LOGGING
