@@ -387,7 +387,7 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 		return( -1 );
 	}
 
-	reqber.ber_valid = LBER_VALID_BERELEMENT
+	reqber.ber_valid = LBER_VALID_BERELEMENT;
 	reqber.ber_buf = reqber.ber_ptr = request->ber_buf;
 	reqber.ber_end = request->ber_ptr;
 
