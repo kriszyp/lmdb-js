@@ -38,7 +38,7 @@ test-nis-schema-ldbm:
 	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
 
 clean-local:	FORCE
-	-$(RM) test-db/[!C]* test-repl/[!C]* *leak *gmon *core
+	-$(RM) -r test-db/[!C]* test-repl/[!C]* *leak *gmon *core
 
 veryclean-local: FORCE
 	@-$(RM) data schema
