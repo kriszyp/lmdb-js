@@ -258,7 +258,6 @@ x_group( int action, char *name )
 	char **vp;
 	char *values[2], *group_name;
 	LDAPMod mod, *mods[2];
-	static char *actions[] = { "join", "resign from", NULL };
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
