@@ -755,6 +755,8 @@ int slap_sasl_open( Connection *conn )
 		iplocalport = ch_strdup( conn->c_sock_name.bv_val + 3 );
 		/* Convert IPv6 addresses to address;port syntax. */
 		p = strrchr( iplocalport, ' ' );
+		/* Convert IPv4 addresses to address;port syntax. */
+		if ( p != NULL ) p = strchr( iplocalport, ':' );
 		if ( p != NULL ) {
 			*p = ';';
 		}
@@ -766,6 +768,8 @@ int slap_sasl_open( Connection *conn )
 		ipremoteport = ch_strdup( conn->c_peer_name.bv_val + 3 );
 		/* Convert IPv6 addresses to address;port syntax. */
 		p = strrchr( ipremoteport, ' ' );
+		/* Convert IPv4 addresses to address;port syntax. */
+		if ( p != NULL ) p = strchr( ipremoteport, ':' );
 		if ( p != NULL ) {
 			*p = ';';
 		}
