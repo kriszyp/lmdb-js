@@ -196,21 +196,6 @@ ldap_pvt_tls_init_def_ctx( void )
 	char *certfile = tls_opt_certfile;
 	char *keyfile = tls_opt_keyfile;
 
-	static int ctx_initialized = 0;
-
-	if ( ctx_initialized++ ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
-			"TLS default ctx already initialized.\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-		   "TLS: default ctx already initialized.\n",
-			0, 0, 0);
-#endif
-		return 1;
-	}
-
 #ifdef HAVE_EBCDIC
 	/* This ASCII/EBCDIC handling is a real pain! */
 	if ( ciphersuite ) {
