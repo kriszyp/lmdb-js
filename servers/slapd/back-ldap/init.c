@@ -46,7 +46,7 @@ int init_module(int argc, char *argv[]) {
 
 #endif /* SLAPD_LDAP */
 
-static int
+int
 ldap_back_open(
 	BackendInfo *bi
 )
