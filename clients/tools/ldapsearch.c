@@ -203,7 +203,7 @@ static int pagePrompt = 1;
 static ber_int_t pageSize = 0;
 static ber_int_t entriesLeft = 0;
 static ber_int_t morePagedResults = 1;
-static struct berval cookie = { 0, NULL };
+static struct berval page_cookie = { 0, NULL };
 static int npagedresponses;
 static int npagedentries;
 static int npagedreferences;
@@ -758,9 +758,13 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			ber_printf( prber, "{iO}", pageSize, &cookie );
+			ber_printf( prber, "{iO}", pageSize, &page_cookie );
 			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == -1 ) {
 				return EXIT_FAILURE;
+			}
+			if ( page_cookie.bv_val != NULL ) {
+				ber_memfree( page_cookie.bv_val );
+				page_cookie.bv_val = NULL;
 			}
 			
 			c[i].ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
@@ -1048,7 +1052,7 @@ static int dosearch(
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 				if ( pageSize != 0 ) {
 					if ( rc == LDAP_SUCCESS ) {
-						rc = parse_page_control( ld, msg, &cookie );
+						rc = parse_page_control( ld, msg, &page_cookie );
 					} else {
 						morePagedResults = 0;
 					}
@@ -1531,7 +1535,6 @@ parse_page_control(
 	LDAPControl *ctrlp = NULL;
 	BerElement *ber;
 	ber_tag_t tag;
-	struct berval servercookie = { 0, NULL };
 
 	rc = ldap_parse_result( ld, result,
 		&err, NULL, NULL, NULL, &ctrl, 0 );
@@ -1560,8 +1563,7 @@ parse_page_control(
 			return EXIT_FAILURE;
 		}
 
-		tag = ber_scanf( ber, "{im}", &entriesLeft, &servercookie );
-		ber_dupbv( cookie, &servercookie );
+		tag = ber_scanf( ber, "{io}", &entriesLeft, cookie );
 		(void) ber_free( ber, 1 );
 
 		if( tag == LBER_ERROR ) {
@@ -1576,7 +1578,7 @@ parse_page_control(
 			return EXIT_FAILURE;
 		}
 
-		if ( servercookie.bv_len == 0 ) {
+		if ( cookie->bv_len == 0 ) {
 			morePagedResults = 0;
 		}
 
