@@ -9,9 +9,11 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed slapd acl group extended format parsing (ITS#123)
 	Fixed slurpd ldap_pvt_thread_create argument typo
 	Added modrdn test.
+	Updated slapd modify (and modrdn) attribute normalization bugs.
 	Build environment
 		Fixed 'make veryclean' failure (ITS#144)
 		Fixed <ac/string.h> strdup declaration issues (ITS#156)
+		Added BeOS Support
 
 Changes included in OpenLDAP 1.2.1
 	CVS Tag: OPENLDAP_REL_ENG_1_2_1
