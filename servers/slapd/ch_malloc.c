@@ -25,7 +25,8 @@ ch_malloc(
 	if ( (new = (void *) ber_memalloc( size )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ch_malloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
-		exit( EXIT_SUCCESS );
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
@@ -50,7 +51,8 @@ ch_realloc(
 	if ( (new = (void *) ber_memrealloc( block, size )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
-		exit( EXIT_SUCCESS );
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
 	return( new );
@@ -67,6 +69,7 @@ ch_calloc(
 	if ( (new = (void *) ber_memcalloc( nelem, size )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ch_calloc of %lu elems of %lu bytes failed\n",
 		  (long) nelem, (long) size, 0 );
+		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
 
@@ -82,6 +85,7 @@ ch_strdup(
 
 	if ( (new = ber_strdup( string )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ch_strdup(%s) failed\n", string, 0, 0 );
+		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
 
