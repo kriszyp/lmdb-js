@@ -182,6 +182,10 @@ main( int argc, char **argv )
 		}
 	}
 
+#ifdef SLAP_CLEANUP
+	ldbm_cache_close( be, db );
+#endif
+
 	slap_shutdown(dbnum);
 
 	id++;

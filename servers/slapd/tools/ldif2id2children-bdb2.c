@@ -301,6 +301,11 @@ main( int argc, char **argv )
 		}
 	}
 
+#ifdef SLAP_CLEANUP
+	bdb2i_cache_close( be, db2 );
+	bdb2i_cache_close( be, db );
+#endif
+
 	slap_shutdown(dbnum);
 	slap_destroy();
 

@@ -21,5 +21,9 @@ ldbm_back_db_close( Backend *be )
 	ldbm_cache_flush_all( be );
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend done syncing\n", 0, 0, 0 );
 
+#ifdef SLAP_CLEANUP
+	cache_release_all( &((struct ldbminfo *) be->be_private)->li_cache );
+#endif
+
 	return 0;
 }

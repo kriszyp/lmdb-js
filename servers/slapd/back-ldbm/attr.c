@@ -166,3 +166,22 @@ attr_index_config(
 	if ( argc > 1 )
 		charray_free( indexes );
 }
+
+
+#ifdef SLAP_CLEANUP
+
+static void
+ainfo_free( void *attr )
+{
+	struct attrinfo *ai = attr;
+	free( ai->ai_type );
+	free( ai );
+}
+
+void
+attr_index_destroy( Avlnode *tree )
+{
+	avl_free( tree, ainfo_free );
+}
+
+#endif /* SLAP_CLEANUP */

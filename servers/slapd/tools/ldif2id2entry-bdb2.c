@@ -185,6 +185,10 @@ main( int argc, char **argv )
 	id++;
 	bdb2i_put_nextid( be, id );
 
+#ifdef SLAP_CLEANUP
+	bdb2i_cache_close( be, db );
+#endif
+
 	slap_shutdown(dbnum);
 
 	slap_destroy();

@@ -640,6 +640,39 @@ cache_delete_entry_internal(
 	return( 0 );
 }
 
+#ifdef SLAP_CLEANUP
+
+void
+cache_release_all( struct cache *cache )
+{
+	Entry *e;
+	int rc;
+
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
+	Debug( LDAP_DEBUG_TRACE, "====> cache_release_all\n", 0, 0, 0 );
+
+	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {
+#ifdef LDAP_DEBUG
+		assert(!ldap_pvt_thread_rdwr_active(&LEI(e)->lei_rdwr));
+#endif
+		/* delete from cache and lru q */
+		/* XXX do we need rc ? */
+		rc = cache_delete_entry_internal( cache, e );
+		cache_entry_private_destroy( e );
+		entry_free( e );
+	}
+
+	if ( cache->c_cursize )
+		Debug( LDAP_DEBUG_TRACE, "Entry-cache could not be emptied\n", 0, 0, 0 );
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+}
+
+#endif /* SLAP_CLEANUP */
+
 #ifdef LDAP_DEBUG
 
 static void
