@@ -1658,6 +1658,9 @@ proxy_cache_config(
 		}
 		if ( cm->db.bd_info->bi_db_init( &cm->db ) ) return( 1 );
 
+		/* This type is in use, needs to be opened */
+		cm->db.bd_info->bi_nDB++;
+
 		cm->max_entries = atoi( argv[2] );
 
 		cm->numattrsets = atoi( argv[3] );
