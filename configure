@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.259 1999/09/20 18:55:55 kdz Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.261 1999/09/22 15:45:59 jsanchez Exp  
 
 # Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -14487,6 +14487,7 @@ fi
 
 
 
+
 trap '' 1 2 15
 
 trap 'rm -fr conftest* confdefs* core core.* *.core $ac_clean_files; exit 1' 1 2 15
@@ -14693,6 +14694,7 @@ s%@SLURPD_LIBS@%$SLURPD_LIBS%g
 s%@LDBM_LIBS@%$LDBM_LIBS%g
 s%@LTHREAD_LIBS@%$LTHREAD_LIBS%g
 s%@LUTIL_LIBS@%$LUTIL_LIBS%g
+s%@WRAP_LIBS@%$WRAP_LIBS%g
 s%@SLAPD_MODULES_CPPFLAGS@%$SLAPD_MODULES_CPPFLAGS%g
 s%@SLAPD_MODULES_LDFLAGS@%$SLAPD_MODULES_LDFLAGS%g
 s%@SLAPD_MODULES_LIST@%$SLAPD_MODULES_LIST%g
