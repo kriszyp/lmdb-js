@@ -30,6 +30,10 @@
 
 int ldap_int_tblsize = 0;
 
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+int ldap_int_inet4or6 = AF_UNSPEC;
+#endif
+
 /*
  * nonblock connect code
  * written by Lars Uffmann, <lars.uffmann@mediaway.net>.
@@ -340,7 +344,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		struct addrinfo hints, *res, *sai;
 
 		memset( &hints, '\0', sizeof(hints) );
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = ldap_int_inet4or6;
 		hints.ai_socktype = socktype;
 
 		snprintf(serv, sizeof serv, "%d", port );

@@ -598,6 +598,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_supportedLDAPVersion;
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 	AttributeDescription *si_ad_supportedFeatures;
+	AttributeDescription *si_ad_monitorContext;
 	AttributeDescription *si_ad_vendorName;
 	AttributeDescription *si_ad_vendorVersion;
 

@@ -364,6 +364,15 @@ static struct slap_schema_ad_map {
 			"USAGE dSAOperation )",
 		rootDseAttribute, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedFeatures) },
+	{ "monitorContext", "( 1.3.6.1.4.1.4203.666.1.10 "
+			"NAME 'monitorContext' "
+			"DESC 'monitor context' "
+			"EQUALITY objectIdentifierMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
+			"SINGLE-VALUE NO-USER-MODIFICATION "
+			"USAGE dSAOperation )",
+		rootDseAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_monitorContext) },
 	{ "vendorName", "( 1.3.6.1.1.4 NAME 'vendorName' "
 			"DESC 'RFC3045: name of implementation vendor' "
 			"EQUALITY 1.3.6.1.4.1.1466.109.114.1 "
