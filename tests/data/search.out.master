@@ -244,6 +244,16 @@ member: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Univ
 member: cn=John Doe,ou=Information Technology Division,ou=People,o=University 
  of Michigan,c=US
 
+dn: cn=Manager,o=University of Michigan,c=US
+objectClass: top
+objectClass: person
+cn: Manager
+cn: Directory Manager
+cn: Dir Man
+sn: Manager
+description: Manager of the directory
+userPassword:: c2VjcmV0
+
 dn: ou=People,o=University of Michigan,c=US
 objectclass: top
 objectclass: organizationalUnit
