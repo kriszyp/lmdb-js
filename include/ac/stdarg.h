@@ -21,4 +21,17 @@
 #	define HAVE_STDARG 1
 #endif
 
+/*
+ * These functions are not included amongst Mingw32 headers for some
+ * reason even though they are supported in the library
+ */
+
+#if defined(__MINGW32__) && defined(HAVE_SNPRINTF)
+int snprintf(char *, size_t, const char *, ...);
+#endif
+
+#if defined(__MINGW32__) && defined(HAVE_VSNPRINTF)
+int vsnprintf(char *, size_t, const char *, va_list);
+#endif
+
 #endif /* _AC_STDARG_H */
