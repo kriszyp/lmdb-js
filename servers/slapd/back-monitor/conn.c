@@ -369,6 +369,16 @@ monitor_subsys_conn_create(
 				c = connection_next( c, &connindex )) {
 			if ( conn_create( c, &e ) || e == NULL ) {
 				connection_done(c);
+				for ( ; e_tmp != NULL; ) {
+					mp = ( struct monitorentrypriv * )e_tmp->e_private;
+					e = mp->mp_next;
+
+					ch_free( mp );
+					e_tmp->e_private = NULL;
+					entry_free( e_tmp );
+
+					e_tmp = e;
+				}
 				return( -1 );
 			}
 			mp = ( struct monitorentrypriv * )e->e_private;

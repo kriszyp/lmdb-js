@@ -257,6 +257,7 @@ monitor_cache_release(
 		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
 		ch_free( mc );
 		
+		ldap_pvt_thread_mutex_unlock( &mp->mp_mutex );
 		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
 		ch_free( mp );
 		e->e_private = NULL;
