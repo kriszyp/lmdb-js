@@ -344,7 +344,7 @@ do_syncrep1(
 
 		/* read stored cookie if it exists */
 		backend_attribute( op, NULL, &op->o_req_ndn,
-			slap_schema.si_ad_syncreplCookie, &cookie );
+			slap_schema.si_ad_syncreplCookie, &cookie, ACL_READ );
 
 		if ( !cookie ) {
 			/* no stored cookie */
@@ -399,7 +399,7 @@ do_syncrep1(
 			struct berval cookie_bv;
 			/* try to read stored cookie */
 			backend_attribute( op, NULL, &op->o_req_ndn,
-				slap_schema.si_ad_syncreplCookie, &cookie );
+				slap_schema.si_ad_syncreplCookie, &cookie, ACL_READ );
 			if ( cookie ) {
 				ber_dupbv( &cookie_bv, &cookie[0] );
 				ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );

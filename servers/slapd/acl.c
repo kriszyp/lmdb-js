@@ -1431,7 +1431,7 @@ dn_match_cleanup:;
 				while ( parent_ndn.bv_val != old_parent_ndn.bv_val ){
 					old_parent_ndn = parent_ndn;
 					Debug(LDAP_DEBUG_ACL, "checking ACI of %s\n", parent_ndn.bv_val, 0, 0);
-					ret = backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals);
+					ret = backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals, ACL_AUTH);
 					switch(ret){
 					case LDAP_SUCCESS :
 						stop = 0;
@@ -1803,7 +1803,7 @@ aci_set_gather (SetCookie *cookie, struct berval *name, struct berval *attr)
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
 			backend_attribute(cp->op,
-				cp->e, &ndn, desc, &bvals);
+				cp->e, &ndn, desc, &bvals, ACL_NONE);
 		}
 		slap_sl_free(ndn.bv_val, cp->op->o_tmpmemctx);
 	}
@@ -1821,12 +1821,9 @@ aci_match_set (
 	struct berval	set = BER_BVNULL;
 	int		rc = 0;
 	AciSetCookie	cookie;
-	Operation	op2 = *op;
-
-	op2.o_conn = NULL;
 
 	if (setref == 0) {
-		ber_dupbv_x( &set, subj, op2.o_tmpmemctx );
+		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
@@ -1848,9 +1845,9 @@ aci_match_set (
 		 * as the length of the dn to be normalized
 		 */
 		if ( slap_bv2ad( &setat, &desc, &text ) == LDAP_SUCCESS ) {
-			if ( dnNormalize( 0, NULL, NULL, &subjdn, &ndn, op2.o_tmpmemctx ) == LDAP_SUCCESS )
+			if ( dnNormalize( 0, NULL, NULL, &subjdn, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS )
 			{
-				backend_attribute( &op2, e, &ndn, desc, &bvals );
+				backend_attribute( op, e, &ndn, desc, &bvals, ACL_NONE );
 				if ( bvals != NULL && !BER_BVISNULL( &bvals[0] ) ) {
 					int	i;
 
@@ -1861,18 +1858,18 @@ aci_match_set (
 					bvals[0].bv_val = bvals[i-1].bv_val;
 					BER_BVZERO( &bvals[i-1] );
 				}
-				ber_bvarray_free_x( bvals, op2.o_tmpmemctx );
-				slap_sl_free( ndn.bv_val, op2.o_tmpmemctx );
+				ber_bvarray_free_x( bvals, op->o_tmpmemctx );
+				slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 			}
 		}
 	}
 
 	if ( !BER_BVISNULL( &set ) ) {
-		cookie.op = &op2;
+		cookie.op = op;
 		cookie.e = e;
 		rc = ( slap_set_filter( aci_set_gather, (SetCookie *)&cookie, &set,
-			&op2.o_ndn, &e->e_nname, NULL ) > 0 );
-		slap_sl_free( set.bv_val, op2.o_tmpmemctx );
+			&op->o_ndn, &e->e_nname, NULL ) > 0 );
+		slap_sl_free( set.bv_val, op->o_tmpmemctx );
 	}
 
 	return(rc);

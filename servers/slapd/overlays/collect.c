@@ -72,7 +72,7 @@ collect_response( Operation *op, SlapReply *rs )
 			/* Extract the values of the desired attribute from
 			 * the ancestor entry
 			 */
-			rc = backend_attribute( op, NULL, &ci->ci_dn, ci->ci_ad, &vals );
+			rc = backend_attribute( op, NULL, &ci->ci_dn, ci->ci_ad, &vals, ACL_READ );
 
 			/* If there are any values, merge them into the
 			 * current entry

@@ -274,7 +274,8 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((
 	Entry *target,
 	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
-	BerVarray *vals
+	BerVarray *vals,
+	slap_access_t access
 ));
 
 LDAP_SLAPD_F (int) backend_operational LDAP_P((

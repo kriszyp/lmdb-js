@@ -1112,7 +1112,7 @@ slap_sasl_check_authz( Operation *op,
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( op, NULL, searchDN, ad, &vals );
+	rc = backend_attribute( op, NULL, searchDN, ad, &vals, ACL_AUTH );
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
 	/* Check if the *assertDN matches any *vals */
