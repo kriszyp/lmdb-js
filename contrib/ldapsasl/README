@@ -48,6 +48,17 @@ a client TLS certificate to be configured, so that SASL/EXTERNAL may
 be used between the SASL server and the LDAP server. This is the most
 optimal way to use this plugin when the servers are on separate machines.
 
+Note: this plugin is not for use with slapd itself. When OpenLDAP is
+built with SASL support, slapd uses its own internal auxprop module.
+By default, without configuring anything else, slapd will fail to load
+the ldapdb module when it's present. This is as it should be. If you
+don't like the "auxpropfunc: error -7" message that is sent to syslog
+by slapd, you can stop it by creating /usr/lib/sasl2/slapd.conf with:
+
+	auxprop_plugin: slapd
+
+which will force the SASL library to ignore all other auxprop modules.
+
 This plugin has been in use for over a year at many sites with good
 results. If you have questions or problems, please send feedback via
 the openldap-software mailing list.
