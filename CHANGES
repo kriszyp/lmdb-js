@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed slapd lint
+	Fixed -lldap templates y2k bug (ITS#294)
 
 Changes included in OpenLDAP 1.2.7
 	CVS Tag: OPENLDAP_REL_ENG_1_2_7
