@@ -4,6 +4,8 @@ OpenLDAP 2.2.15 Engineering
 	Fixed back-bdb DB_DEADLOCK memory leak bug (ITS#3213)
 	Fixed back-bdb dbcache locking bug (ITS#3201)
 	Fixed back-bdb ctxcsn locking bug
+	Fixed back-bdb leaking locks in tools (ITS#3245)
+	Fixed back-bdb leaking locks in overlays (ITS#3255)
 	Fixed back-hdb dn2id bug with unsigned chars
 	Fixed back-ldap shared connections failover (ITS#3217)
 	Fixed back-ldap validate/pretty values (ITS#3218)
@@ -32,6 +34,9 @@ OpenLDAP 2.2.15 Engineering
 		Added default ldapi:// SSF build setting
 		Fixed OPENLDAP_FD_SETSIZE macro handlling
 		Fixed slapd linking on MS Windows
+		Fixed backend module linking
+	Documentation
+		Misc. man page cleanup
 
 OpenLDAP 2.2.14 Release
 	Fixed back-bdb ignore deadlock bug (ITS#3188)
