@@ -91,12 +91,6 @@ The
 routines can be used to test a URL to see if it is an LDAP URL, to parse LDAP
 URLs into their component pieces, and to initiate searches directly using
 an LDAP URL.
-.SH CACHING
-The
-.BR ldap_cache (3)
-routines implement a local client caching scheme,
-providing a substantial performance increase for repeated queries.
-Caching is experiemental.
 .SH UTILITY ROUTINES
 Also provided are various utility routines.  The
 .BR ldap_sort (3)
@@ -161,27 +155,6 @@ equivalent to
 .TP
 .SM ldap_memfree(3)
 dispose of memory allocated by LDAP routines.
-.TP
-.SM ldap_enable_cache(3)
-enable LDAP client caching
-.TP
-.SM ldap_disable_cache(3)
-disable LDAP client caching
-.TP
-.SM ldap_destroy_cache(3)
-disable LDAP client caching and destroy cache contents
-.TP
-.SM ldap_flush_cache(3)
-flush LDAP client cache
-.TP
-.SM ldap_uncache_entry(3)
-uncache requests pertaining to an entry
-.TP
-.SM ldap_uncache_request(3)
-uncache a request
-.TP
-.SM ldap_set_cache_options(3)
-set cache options
 .TP
 .SM ldap_compare(3)
 asynchronously compare to a directory entry
