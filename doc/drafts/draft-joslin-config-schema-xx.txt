@@ -1,20 +1,19 @@
 
 
-
 Application Working Group                                      M. Ansari
-INTERNET-DRAFT                                    Sun Microsystems, Inc.
-Expires Febuary 2003                                           L. Howard
+INTERNET-DRAFT                                                  Infoblox
+Expires January 2005                                           L. Howard
                                                  PADL Software Pty. Ltd.
-                                                         B. Joslin [ed.]
+                                                    B. Neal-Joslin [ed.]
                                                  Hewlett-Packard Company
 
-                                                    September 15th, 2003
+                                                       August 17th, 2004
 Intended Category: Informational
 
 
                  A Configuration Schema for LDAP Based
                          Directory User Agents
-                  <draft-joslin-config-schema-07.txt>
+                  <draft-joslin-config-schema-08.txt>
 
 
 Status of this Memo
@@ -52,7 +51,7 @@ Abstract
 
 
 
-Joslin                                                         [Page 1]
+Neal-Joslin                                                    [Page 1]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -108,7 +107,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 2]
+Neal-Joslin                                                    [Page 2]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -164,7 +163,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 3]
+Neal-Joslin                                                    [Page 3]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -220,7 +219,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 4]
+Neal-Joslin                                                    [Page 4]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -276,7 +275,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 5]
+Neal-Joslin                                                    [Page 5]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -332,7 +331,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 6]
+Neal-Joslin                                                    [Page 6]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -388,7 +387,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 7]
+Neal-Joslin                                                    [Page 7]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -444,7 +443,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 8]
+Neal-Joslin                                                    [Page 8]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -500,7 +499,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                         [Page 9]
+Neal-Joslin                                                    [Page 9]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -556,7 +555,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 10]
+Neal-Joslin                                                   [Page 10]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -612,7 +611,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 11]
+Neal-Joslin                                                   [Page 11]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -668,7 +667,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 12]
+Neal-Joslin                                                   [Page 12]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -724,7 +723,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 13]
+Neal-Joslin                                                   [Page 13]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -780,7 +779,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 14]
+Neal-Joslin                                                   [Page 14]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -836,7 +835,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 15]
+Neal-Joslin                                                   [Page 15]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -892,7 +891,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 16]
+Neal-Joslin                                                   [Page 16]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -948,7 +947,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 17]
+Neal-Joslin                                                   [Page 17]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1004,7 +1003,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 18]
+Neal-Joslin                                                   [Page 18]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1060,7 +1059,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 19]
+Neal-Joslin                                                   [Page 19]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1116,7 +1115,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 20]
+Neal-Joslin                                                   [Page 20]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1172,7 +1171,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 21]
+Neal-Joslin                                                   [Page 21]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1228,7 +1227,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 22]
+Neal-Joslin                                                   [Page 22]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1284,7 +1283,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 23]
+Neal-Joslin                                                   [Page 23]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1340,7 +1339,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 24]
+Neal-Joslin                                                   [Page 24]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1396,7 +1395,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 25]
+Neal-Joslin                                                   [Page 25]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1452,7 +1451,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 26]
+Neal-Joslin                                                   [Page 26]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1508,7 +1507,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 27]
+Neal-Joslin                                                   [Page 27]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1564,7 +1563,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 28]
+Neal-Joslin                                                   [Page 28]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1599,7 +1598,7 @@ Internet-Draft          DUA Configuration Schema            October 2002
      EMail: lukeh@padl.com
 
 
-     Bob Joslin
+     Bob Neal-Joslin
      Hewlett-Packard Company
      19420 Homestead RD  MS43-LF
      Cupertino, CA 95014
@@ -1610,17 +1609,17 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
      Morteza Ansari
-     Sun Microsystems, Inc.
-     901 San Antonio RD  MS MPK17-203
-     Palo Alto, CA 94303
+     Infoblox
+     1313 Geneva Drive
+     Sunnyvale, CA 94089
      USA
 
-     Phone: +1 650 786-6178
-     EMail: morteza.ansari@sun.com
+     Phone: +1 408-716-4300
+     EMail: morteza@infoblox.com
 
 
 
-Joslin                                                        [Page 29]
+Neal-Joslin                                                   [Page 29]
 
 Internet-Draft          DUA Configuration Schema            October 2002
 
@@ -1676,5 +1675,4 @@ Internet-Draft          DUA Configuration Schema            October 2002
 
 
 
-Joslin                                                        [Page 30]
-
+Neal-Joslin                                                   [Page 30]
