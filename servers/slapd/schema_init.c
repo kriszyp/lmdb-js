@@ -32,7 +32,9 @@
 #define berValidate						blobValidate
 
 /* unimplemented pretters */
+#ifndef USE_LDAP_DN_PARSING
 #define dnPretty						NULL
+#endif /* !USE_LDAP_DN_PARSING */
 #define integerPretty					NULL
 
 /* recycled matching routines */
@@ -218,6 +220,143 @@ int octetStringFilter(
 	return LDAP_SUCCESS;
 }
 
+#ifdef USE_LDAP_DN_PARSING
+static int
+dnValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int		rc;
+	LDAPDN		*dn = NULL;
+
+	if ( in->bv_len == 0 ) {
+		return( LDAP_SUCCESS );
+	}
+
+	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	ldapava_free_dn( dn );
+	
+	if ( rc != LDAP_SUCCESS ) {
+		return( LDAP_INVALID_SYNTAX );
+	}
+
+	return( LDAP_SUCCESS );
+}
+
+int
+dnNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out = NULL;
+
+	if ( val->bv_len != 0 ) {
+		LDAPDN		*dn = NULL;
+		char		*dn_out = NULL;
+		int		rc;
+
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
+		if ( rc != LDAP_SUCCESS ) {
+			return( LDAP_INVALID_SYNTAX );
+		}
+
+		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
+		ldapava_free_dn( dn );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return( LDAP_INVALID_SYNTAX );
+		}
+
+		out = ber_bvstr( dn_out );
+
+	} else {
+		out = ber_bvdup( val );
+	}
+
+	*normalized = out;
+
+	return( LDAP_SUCCESS );
+}
+
+int
+dnPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized)
+{
+	struct berval *out = NULL;
+
+	if ( val->bv_len != 0 ) {
+		LDAPDN		*dn = NULL;
+		char		*dn_out = NULL;
+		unsigned	flags = LDAP_DN_FORMAT_LDAPV3;
+		int		rc;
+
+		rc = ldap_str2dn( val->bv_val, &dn, flags );
+		if ( rc != LDAP_SUCCESS ) {
+			return( LDAP_INVALID_SYNTAX );
+		}
+
+		flags |= LDAP_DN_PRETTY;
+
+		rc = ldap_dn2str( dn, &dn_out, flags );
+		ldapava_free_dn( dn );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return( LDAP_INVALID_SYNTAX );
+		}
+
+		out = ber_bvstr( dn_out );
+
+	} else {
+		out = ber_bvdup( val );
+	}
+
+	*normalized = out;
+
+	return( LDAP_SUCCESS );
+}
+
+int
+dnMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+	
+	match = value->bv_len - asserted->bv_len;
+
+	if ( match == 0 ) {
+#ifdef USE_DN_NORMALIZE
+		match = strcmp( value->bv_val, asserted->bv_val );
+		fprintf(stderr, "USE_DN_NORMALIZE :(\n");
+#else
+		match = strcasecmp( value->bv_val, asserted->bv_val );
+		fprintf(stderr, "!USE_DN_NORMALIZE :)\n");
+#endif
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		"dnMatch: %d\n    %s\n    %s\n", match,
+		value->bv_val, asserted->bv_val ));
+#else
+	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
+		match, value->bv_val, asserted->bv_val );
+#endif
+
+	*matchp = match;
+	return( LDAP_SUCCESS );
+}
+
+#else /* !USE_LDAP_DN_PARSING */
+
 static int
 dnValidate(
 	Syntax *syntax,
@@ -311,6 +450,8 @@ dnMatch(
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
+
+#endif /* !USE_LDAP_DN_PARSING */
 
 static int
 nameUIDValidate(

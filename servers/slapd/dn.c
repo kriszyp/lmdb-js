@@ -36,6 +36,37 @@
 char *
 dn_validate( char *dn_in )
 {
+#ifdef USE_LDAP_DN_PARSING
+	struct berval	val, *normalized;
+	int		rc;
+
+	fprintf(stderr, ">>> dn_validate: %s\n", dn_in);
+
+	if ( dn_in == NULL || dn_in[ 0 ] == '\0' ) {
+		return( dn_in );
+	}
+
+	val.bv_val = dn_in;
+	val.bv_len = strlen( dn_in );
+
+	rc = dnPretty( NULL, &val, &normalized );
+	if ( rc != LDAP_SUCCESS ) {
+		return( NULL );
+	}
+
+	if ( val.bv_len < normalized->bv_len ) {
+		ber_bvfree( normalized );
+		return( NULL );
+	}
+
+	AC_MEMCPY( dn_in, normalized->bv_val, normalized->bv_len + 1 );
+	ber_bvfree( normalized );
+
+	fprintf(stderr, "<<< dn_validate: %s\n", dn_in);
+
+	return( dn_in );
+	
+#else /* !USE_LDAP_DN_PARSING */
 	char	*d, *s;
 	int	state, gotesc;
 	char	*dn = dn_in;
@@ -191,6 +222,7 @@ dn_validate( char *dn_in )
 	}
 
 	return( dn );
+#endif /* !USE_LDAP_DN_PARSING */
 }
 
 /*
@@ -202,6 +234,39 @@ dn_validate( char *dn_in )
 char *
 dn_normalize( char *dn )
 {
+#ifdef USE_LDAP_DN_PARSING
+	struct berval	val, *normalized;
+	int		rc;
+
+	fprintf(stderr, ">>> dn_normalize: %s\n", dn);
+
+	if ( dn == NULL || dn[ 0 ] == '\0' ) {
+		return( dn );
+	}
+
+	val.bv_val = dn;
+	val.bv_len = strlen( dn );
+
+	rc = dnNormalize( NULL, &val, &normalized );
+	if ( rc != LDAP_SUCCESS ) {
+		return( NULL );
+	}
+
+	if ( val.bv_len < normalized->bv_len ) {
+		ber_bvfree( normalized );
+		return( NULL );
+	}
+
+	AC_MEMCPY( dn, normalized->bv_val, normalized->bv_len + 1 );
+	ber_bvfree( normalized );
+
+	( void )ldap_pvt_str2upper( dn );
+
+	fprintf(stderr, "<<< dn_normalize: %s\n", dn);
+
+	return( dn );
+	
+#else /* !USE_LDAP_DN_PARSING */
 	char *out;
 	struct berval *bvdn, *nbvdn;
 
@@ -219,6 +284,25 @@ dn_normalize( char *dn )
 	ber_bvfree( bvdn );
 
 	return( out );
+#endif /* !USE_LDAP_DN_PARSING */
+}
+
+int
+dn_match( const char *val, const char *asserted )
+{
+	struct berval	bval, basserted;
+
+	if ( val == NULL || asserted == NULL ) {
+		return 0;
+	}
+
+	bval.bv_val = ( char * )val;
+	bval.bv_len = strlen( val );
+
+	basserted.bv_val = ( char * )asserted;
+	basserted.bv_len = strlen( asserted);
+
+	return dnMatch( NULL, 0, NULL, NULL, &bval, &basserted);
 }
 
 /*

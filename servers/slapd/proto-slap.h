@@ -316,6 +316,7 @@ LDAP_SLAPD_F (void) connection_internal_close( Connection *conn );
 
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
+LDAP_SLAPD_F (int) dn_match LDAP_P(( const char *val, const char *asserted ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (char **) dn_subtree LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, const char *dn ));
@@ -722,6 +723,21 @@ LDAP_SLAPD_F (int) entry_schema_check LDAP_P((
 LDAP_SLAPD_F (int) schema_init LDAP_P((void));
 LDAP_SLAPD_F (int) schema_prep LDAP_P((void));
 
+LDAP_SLAPD_F (int) dnNormalize LDAP_P((
+	Syntax *syntax, 
+	struct berval *val, 
+	struct berval **normalized ));
+LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
+	Syntax *syntax, 
+	struct berval *val, 
+	struct berval **normalized ));
+LDAP_SLAPD_F (int) dnMatch LDAP_P(( 
+	int *matchp, 
+	slap_mask_t flags, 
+	Syntax *syntax, 
+	MatchingRule *mr,
+	struct berval *value, 
+	void *assertedValue ));
 
 /*
  * schemaparse.c

@@ -103,6 +103,8 @@ main( int argc, char *argv[] )
 					flags[ i ] |= LDAP_DN_FORMAT_UFN;
 				} else if ( !strcasecmp( s, "AD" ) ) {
 					flags[ i ] |= LDAP_DN_FORMAT_AD_CANONICAL;
+				} else if ( !strcasecmp( s, "PRETTY" ) ) {
+					flags[ i ] |= LDAP_DN_PRETTY;
 				} else if ( !strcasecmp( s, "PEDANTIC" ) ) {
 					flags[ i ] |= LDAP_DN_PEDANTIC;
 				} else if ( !strcasecmp( s, "NOSPACES" ) ) {
