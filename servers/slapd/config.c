@@ -903,6 +903,20 @@ read_config( const char *fname, int depth )
 			struct berval alias, palias, nalias;
 			struct berval aliased, paliased, naliased;
 
+			if( 1 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: suffixAlias is no longer supported.\n"
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: suffixAlias is no longer supported.\n"
+					fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
