@@ -1,9 +1,12 @@
-This file gives some helpful hints for building LDAP on various machines.
+This file gives some helpful hints for building Umich LDAP on various
+machines.  As OpenLDAP is significantly different, the status below
+may not reflex current build status.  The OpenLDAP team is working
+on updating this document.
 
-LDAP has been built and tested on the following platforms.  It will
-probably build fine under similar versions of the OS (e.g. it has
-been built and tested under SunOS 4.1.4, but probably builds fine
-under all SunOS 4.1.x systems).
+Umich LDAP has been built and tested on the following platforms.  It
+will probably build fine under similar versions of the OS (e.g. it has
+been built and tested under FreeBSD 2.2.5, but probably builds fine
+under all FreeBSD 2.2.x systems).
 
 If you port LDAP to a new platform, let us know so we can add it here.
 See the end of this file for some hints on doing a port.  The following
@@ -96,3 +99,5 @@ include/portable.h file and make any necessary adjustments.
 
 Please send changes via e-mail to:  ldap-support@umich.edu so they can be
 incorporated into future releases.
+
+OpenLDAP changes should be sent to: info@openldap.org.
