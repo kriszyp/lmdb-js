@@ -80,14 +80,16 @@ DOCUMENTATION
 		doc/devel   Developer Information
 		doc/drafts  LDAP-related IETF drafts
 		doc/install Installation and Integration
-		doc/man	 Raw man(1) pages
-		doc/rfcs	LDAP-related Request for Comments
+		doc/man     Raw man(1) pages
+		doc/rfcs    LDAP-related Request for Comments
 
-	There is an OpenLDAP homepage available that contains the latest
+	There is an OpenLDAP home page available that contains the latest
 	LDAP news, releases announcements, pointers to other LDAP resources,
-	etc. You can access it at this URL:
+	etc..  It is located at:
+		http://www.OpenLDAP.org/
 
-	http://www.OpenLDAP.org/
+	The OpenLDAP Software FAQ is available at:
+		http://www.openldap.org/faq/index.cgi?file=2
 
 
 FEEDBACK / PROBLEM REPORTS / DISCUSSIONS

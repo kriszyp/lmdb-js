@@ -1,3 +1,7 @@
+Linux Hints
+
+Latest: http://www.openldap.org/faq/index.cgi?file=18
+
 If Berkeley DB 2.x should be used with thread support activated, read the
 file build/db.2.x.README carefully. The Berkeley package must be build
 appropriately to support threaded applications as expected.
