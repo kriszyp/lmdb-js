@@ -986,28 +986,25 @@ backend_group(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*gr_ndn,
+	struct berval *gr_ndn,
 	struct berval *op_ndn,
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
 )
 {
 	GroupAssertion *g;
-	struct berval gr;
 	int i;
-
-	gr.bv_val = (char *) gr_ndn;
-	gr.bv_len = strlen(gr_ndn);
 
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	i = op->o_abandon;
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	if (i) return SLAPD_ABANDON;
 
-	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
+	if( target->e_nname.bv_len != gr_ndn->bv_len ||
+		strcmp( target->e_nname.bv_val, gr_ndn->bv_val ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend( &gr, 0,
+		be = select_backend( gr_ndn, 0,
 			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
@@ -1018,9 +1015,9 @@ backend_group(
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	for (g = conn->c_groups; g; g=g->next) {
 		if (g->be != be || g->oc != group_oc || g->at != group_at ||
-		    g->len != gr.bv_len)
+		    g->len != gr_ndn->bv_len)
 			continue;
-		if (strcmp( g->ndn, gr_ndn ) == 0)
+		if (strcmp( g->ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -1029,17 +1026,17 @@ backend_group(
 
 	if( be->be_group ) {
 		int res = be->be_group( be, conn, op,
-			target, gr_ndn, op_ndn->bv_val,
+			target, gr_ndn->bv_val, op_ndn->bv_val,
 			group_oc, group_at );
 		
 		if (op->o_tag != LDAP_REQ_BIND) {
-			g = ch_malloc(sizeof(GroupAssertion) + gr.bv_len);
+			g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
 			g->be = be;
 			g->oc = group_oc;
 			g->at = group_at;
 			g->res = res;
-			g->len = gr.bv_len;
-			strcpy(g->ndn, gr_ndn);
+			g->len = gr_ndn->bv_len;
+			strcpy(g->ndn, gr_ndn->bv_val);
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			g->next = conn->c_groups;
 			conn->c_groups = g;
@@ -1058,21 +1055,17 @@ backend_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*entry_ndn,
+	struct berval	*edn,
 	AttributeDescription *entry_at,
 	struct berval ***vals
 )
 {
-	struct berval edn;
-	edn.bv_val = (char *) entry_ndn;
-	edn.bv_len = strlen( entry_ndn );
-
-	if( target == NULL ||
-		strcmp( target->e_ndn, entry_ndn ) != 0 )
+	if( target == NULL || target->e_nname.bv_len != edn->bv_len ||
+		strcmp( target->e_ndn, edn->bv_val ) != 0 )
 	{
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend( &edn, 0,
+		be = select_backend( edn, 0,
 			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
@@ -1081,7 +1074,7 @@ backend_attribute(
 	} 
 
 	if( be->be_attribute ) {
-		return be->be_attribute( be, conn, op, target, entry_ndn,
+		return be->be_attribute( be, conn, op, target, edn->bv_val,
 			entry_at, vals );
 	}
 

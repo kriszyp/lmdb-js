@@ -9,7 +9,7 @@
  * also return the syntax or some "comparison cookie"
  * that is used by set_filter.
  */
-typedef char **(*SET_GATHER) (void *cookie, char *name, char *attr);
+typedef char **(*SET_GATHER) (void *cookie, char *name, struct berval *attr);
 
 LDAP_SLAPD_F (long) set_size (char **set);
 LDAP_SLAPD_F (void) set_dispose (char **set);

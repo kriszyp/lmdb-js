@@ -809,7 +809,7 @@ typedef struct slap_access {
 
 	/* ACL Groups */
 	slap_style_t a_group_style;
-	char		*a_group_pat;
+	struct berval	a_group_pat;
 	ObjectClass				*a_group_oc;
 	AttributeDescription	*a_group_at;
 

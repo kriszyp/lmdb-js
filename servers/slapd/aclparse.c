@@ -21,7 +21,7 @@ static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
 static void		acl_usage(void) LDAP_GCCATTR((noreturn));
 
-static char 		*acl_regex_normalized_dn(const char *pattern);
+static void 		acl_regex_normalized_dn(struct berval *pattern);
 
 #ifdef LDAP_DEBUG
 static void		print_acl(Backend *be, AccessControl *a);
@@ -95,6 +95,7 @@ parse_acl(
 {
 	int		i;
 	char		*left, *right, *style;
+	struct berval	bv;
 	AccessControl	*a;
 	Access	*b;
 	int rc;
@@ -166,8 +167,8 @@ parse_acl(
 							a->acl_dn_pat.bv_len = 1;
 
 						} else {
-							a->acl_dn_pat.bv_val = acl_regex_normalized_dn( right );
-							a->acl_dn_pat.bv_len = strlen( a->acl_dn_pat.bv_val );
+							a->acl_dn_pat.bv_val = right;
+							acl_regex_normalized_dn( &a->acl_dn_pat );
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
@@ -277,7 +278,6 @@ parse_acl(
 
 			/* get <who> */
 			for ( ; i < argc; i++ ) {
-				char *pat;
 				slap_style_t sty = ACL_STYLE_REGEX;
 
 				split( argv[i], '=', &left, &right );
@@ -304,32 +304,39 @@ parse_acl(
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
-					pat = ch_strdup( "*" );
+					bv.bv_val = ch_strdup( "*" );
+					bv.bv_len = 1;
 
 				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
-					pat = ch_strdup( "anonymous" );
+					bv.bv_val = ch_strdup( "anonymous" );
+					bv.bv_len = sizeof("anonymous")-1;
 
 				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
-					pat = ch_strdup( "self" );
+					bv.bv_val = ch_strdup( "self" );
+					bv.bv_len = sizeof("self")-1;
 
 				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
-					pat = ch_strdup( "users" );
+					bv.bv_val = ch_strdup( "users" );
+					bv.bv_len = sizeof("users")-1;
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					if ( sty == ACL_STYLE_REGEX ) {
 						b->a_dn_style = ACL_STYLE_REGEX;
 						if( right == NULL ) {
 							/* no '=' */
-							pat = ch_strdup( "users" );
+							bv.bv_val = ch_strdup( "users" );
+							bv.bv_len = sizeof("users")-1;
 
 						} else if (*right == '\0' ) {
 							/* dn="" */
-							pat = ch_strdup( "anonymous" );
+							bv.bv_val = ch_strdup( "anonymous" );
+							bv.bv_len = sizeof("anonymous")-1;
 
 						} else if ( strcmp( right, "*" ) == 0 ) {
 							/* dn=* */
 							/* any or users?  users for now */
-							pat = ch_strdup( "users" );
+							bv.bv_val = ch_strdup( "users" );
+							bv.bv_len = sizeof("users")-1;
 
 						} else if ( strcmp( right, ".+" ) == 0
 							|| strcmp( right, "^.+" ) == 0
@@ -338,7 +345,8 @@ parse_acl(
 							|| strcmp( right, ".+$$" ) == 0
 							|| strcmp( right, "^.+$$" ) == 0 )
 						{
-							pat = ch_strdup( "users" );
+							bv.bv_val = ch_strdup( "users" );
+							bv.bv_len = sizeof("users")-1;
 
 						} else if ( strcmp( right, ".*" ) == 0
 							|| strcmp( right, "^.*" ) == 0
@@ -347,11 +355,13 @@ parse_acl(
 							|| strcmp( right, ".*$$" ) == 0
 							|| strcmp( right, "^.*$$" ) == 0 )
 						{
-							pat = ch_strdup( "*" );
+							bv.bv_val = ch_strdup( "*" );
+							bv.bv_len = 1;
 
 						} else {
-							pat = acl_regex_normalized_dn( right );
-							regtest(fname, lineno, pat);
+							bv.bv_val = right;
+							acl_regex_normalized_dn( &bv );
+							regtest(fname, lineno, bv.bv_val);
 						}
 					} else if ( right == NULL || *right == '\0' ) {
 						fprintf( stderr,
@@ -360,14 +370,15 @@ parse_acl(
 						acl_usage();
 
 					} else {
-						pat = ch_strdup( right );
+						bv.bv_val = ch_strdup( right );
+						bv.bv_len = strlen( right );
 					}
 
 				} else {
-					pat = NULL;
+					bv.bv_val = NULL;
 				}
 
-				if( pat != NULL ) {
+				if( bv.bv_val != NULL ) {
 					if( b->a_dn_pat.bv_len != 0 ) {
 						fprintf( stderr,
 						    "%s: line %d: dn pattern already specified.\n",
@@ -375,11 +386,16 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_dn_pat.bv_val = pat;
-					b->a_dn_pat.bv_len = strlen( pat );
+					if ( sty != ACL_STYLE_REGEX ) {
+						struct berval *ndn = NULL;
+						dnNormalize(NULL, &bv, &ndn);
+						b->a_dn_pat = *ndn;
+						free(ndn);
+						free(bv.bv_val);
+					} else {
+						b->a_dn_pat = bv;
+					}
 					b->a_dn_style = sty;
-					if ( sty != ACL_STYLE_REGEX )
-						dn_normalize(pat);
 					continue;
 				}
 
@@ -442,7 +458,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_group_pat != NULL ) {
+					if( b->a_group_pat.bv_len ) {
 						fprintf( stderr,
 							"%s: line %d: group pattern already specified.\n",
 							fname, lineno );
@@ -461,12 +477,17 @@ parse_acl(
 
 					b->a_group_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						char *tmp = acl_regex_normalized_dn( right );
-						regtest(fname, lineno, tmp);
-						b->a_group_pat = tmp;
+						bv.bv_val = right;
+						acl_regex_normalized_dn( &bv );
+						regtest(fname, lineno, bv.bv_val);
+						b->a_group_pat = bv;
 					} else {
-						b->a_group_pat = ch_strdup( right );
-						dn_normalize(b->a_group_pat);
+						struct berval *ndn = NULL;
+						bv.bv_val = right;
+						bv.bv_len = strlen( right );
+						dnNormalize( NULL, &bv, &ndn );
+						b->a_group_pat = *ndn;
+						free(ndn);
 					}
 
 					if (value && *value) {
@@ -588,9 +609,10 @@ parse_acl(
 
 					b->a_peername_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						char *tmp = acl_regex_normalized_dn( right );
-						regtest(fname, lineno, tmp);
-						b->a_peername_pat = tmp;
+						bv.bv_val = right;
+						acl_regex_normalized_dn( &bv );
+						regtest(fname, lineno, bv.bv_val);
+						b->a_peername_pat = bv.bv_val;
 					} else {
 						b->a_peername_pat = ch_strdup( right );
 					}
@@ -614,9 +636,10 @@ parse_acl(
 
 					b->a_sockname_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						char *tmp = acl_regex_normalized_dn( right );
-						regtest(fname, lineno, tmp);
-						b->a_sockname_pat = tmp;
+						bv.bv_val = right;
+						acl_regex_normalized_dn( &bv );
+						regtest(fname, lineno, bv.bv_val);
+						b->a_sockname_pat = bv.bv_val;
 					} else {
 						b->a_sockname_pat = ch_strdup( right );
 					}
@@ -640,9 +663,10 @@ parse_acl(
 
 					b->a_domain_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						char *tmp = acl_regex_normalized_dn( right );
-						regtest(fname, lineno, tmp);
-						b->a_domain_pat = tmp;
+						bv.bv_val = right;
+						acl_regex_normalized_dn( &bv );
+						regtest(fname, lineno, bv.bv_val);
+						b->a_domain_pat = bv.bv_val;
 					} else {
 						b->a_domain_pat = ch_strdup( right );
 					}
@@ -666,9 +690,10 @@ parse_acl(
 
 					b->a_sockurl_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						char *tmp = acl_regex_normalized_dn( right );
-						regtest(fname, lineno, tmp);
-						b->a_sockurl_pat = tmp;
+						bv.bv_val = right;
+						acl_regex_normalized_dn( &bv );
+						regtest(fname, lineno, bv.bv_val);
+						b->a_sockurl_pat = bv.bv_val;
 					} else {
 						b->a_sockurl_pat = ch_strdup( right );
 					}
@@ -1158,21 +1183,20 @@ acl_usage( void )
  * At present it simply eats the (optional) space after 
  * a RDN separator (,)
  * Eventually will evolve in a more complete normalization
+ *
+ * Note that the input berval only needs bv_val, it ignores
+ * the input bv_len and sets it on return.
  */
-static char *
+static void
 acl_regex_normalized_dn(
-	const char *pattern
+	struct berval *pattern
 )
 {
 	char *str, *p;
 
-	str = ch_strdup( pattern );
+	str = ch_strdup( pattern->bv_val );
 
-	if ( str == NULL ) {
-		return( NULL );
-	}
-
-	for ( p = str; p[ 0 ]; p++ ) {
+	for ( p = str; p && p[ 0 ]; p++ ) {
 		/* escape */
 		if ( p[ 0 ] == '\\' ) {
 			p++;
@@ -1189,8 +1213,10 @@ acl_regex_normalized_dn(
 			}
 		}
 	}
+	pattern->bv_val = str;
+	pattern->bv_len = p-str;
 
-	return( str );
+	return;
 }
 
 static void
@@ -1240,8 +1266,8 @@ access_free( Access *a )
 		free ( a->a_sockurl_pat );
 	if ( a->a_set_pat.bv_len )
 		free ( a->a_set_pat.bv_val );
-	if ( a->a_group_pat )
-		free ( a->a_group_pat );
+	if ( a->a_group_pat.bv_len )
+		free ( a->a_group_pat.bv_val );
 	free( a );
 }
 
@@ -1366,8 +1392,8 @@ print_access( Access *b )
 		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname.bv_val );
 	}
 
-	if ( b->a_group_pat != NULL ) {
-		fprintf( stderr, " group=%s", b->a_group_pat );
+	if ( b->a_group_pat.bv_len ) {
+		fprintf( stderr, " group=%s", b->a_group_pat.bv_val );
 
 		if ( b->a_group_oc ) {
 			fprintf( stderr, " objectClass: %s",

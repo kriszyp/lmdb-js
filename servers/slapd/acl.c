@@ -48,10 +48,17 @@ static int aci_mask(
 static int	regex_matches(
 	char *pat, char *str, char *buf, regmatch_t *matches);
 static void	string_expand(
-	char *newbuf, int bufsiz, char *pattern,
+	struct berval *newbuf, char *pattern,
 	char *match, regmatch_t *matches);
 
-char **aci_set_gather (void *cookie, char *name, char *attr);
+typedef	struct AciSetCookie {
+	Backend *be;
+	Entry *e;
+	Connection *conn;
+	Operation *op;
+} AciSetCookie;
+
+char **aci_set_gather (void *cookie, char *name, struct berval *attr);
 static int aci_match_set ( struct berval *subj, Backend *be,
     Entry *e, Connection *conn, Operation *op, int setref );
 
@@ -745,8 +752,11 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_group_pat != NULL && op->o_ndn.bv_len != 0 ) {
+		if ( b->a_group_pat.bv_len && op->o_ndn.bv_len ) {
 			char buf[1024];
+			struct berval bv = {1024, buf };
+			struct berval *ndn = NULL;
+			int rc;
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
@@ -754,18 +764,21 @@ acl_mask(
 			 */
 			/* see if asker is listed in dnattr */
 			if ( b->a_group_style == ACL_STYLE_REGEX ) {
-				string_expand(buf, sizeof(buf), b->a_group_pat, e->e_ndn, matches);
-				if ( dn_normalize(buf) == NULL ) {
+				string_expand(&bv, b->a_group_pat.bv_val, e->e_ndn, matches);
+				if ( dnNormalize(NULL, &bv, &ndn) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
 				}
+				bv = *ndn;
 			} else {
-				strncpy( buf, b->a_group_pat, sizeof(buf) - 1 );
-				buf[sizeof(buf) - 1] = 0;
+				bv = b->a_group_pat;
 			}
 
-			if (backend_group(be, conn, op, e, buf, &op->o_ndn,
-				b->a_group_oc, b->a_group_at) != 0)
+			rc = backend_group(be, conn, op, e, &bv, &op->o_ndn,
+				b->a_group_oc, b->a_group_at);
+			if ( ndn )
+				ber_bvfree( ndn );
+			if ( rc != 0 )
 			{
 				continue;
 			}
@@ -1117,6 +1130,15 @@ acl_check_modlist(
 	return( 1 );
 }
 
+static void
+aci_bvdup( struct berval *dest, struct berval *src )
+{
+	dest->bv_val = ch_malloc( src->bv_len + 1);
+	AC_MEMCPY( dest->bv_val, src->bv_val, src->bv_len );
+	dest->bv_val[src->bv_len] = 0;
+	dest->bv_len = src->bv_len;
+}
+
 static char *
 aci_bvstrdup( struct berval *bv )
 {
@@ -1190,17 +1212,12 @@ aci_get_part(
 }
 
 char **
-aci_set_gather (void *cookie, char *name, char *attr)
+aci_set_gather (void *cookie, char *name, struct berval *attr)
 {
-	struct {
-	Backend *be;
-	Entry *e;
-	Connection *conn;
-	Operation *op;
-	} *cp = (void *)cookie;
+	AciSetCookie *cp = cookie;
 	struct berval **bvals = NULL;
 	char **vals = NULL;
-	char *ndn;
+	struct berval bv, *ndn = NULL;
 	int i;
 
 	/* this routine needs to return the bervals instead of
@@ -1208,27 +1225,27 @@ aci_set_gather (void *cookie, char *name, char *attr)
 	 * also return the syntax or some "comparison cookie".
 	 */
 
-	if ((ndn = ch_strdup(name)) != NULL) {
-		if (dn_normalize(ndn) != NULL) {
-			const char *text;
-			AttributeDescription *desc = NULL;
-			if (slap_str2ad(attr, &desc, &text) == LDAP_SUCCESS) {
-				backend_attribute(cp->be, NULL, NULL,
-					cp->e, ndn, desc, &bvals);
-				if (bvals != NULL) {
-					for (i = 0; bvals[i] != NULL; i++) { }
-					vals = ch_calloc(i + 1, sizeof(char *));
-					if (vals != NULL) {
-						while (--i >= 0) {
-							vals[i] = bvals[i]->bv_val;
-							bvals[i]->bv_val = NULL;
-						}
+	bv.bv_val = name;
+	bv.bv_len = strlen( name );
+	if (dnNormalize(NULL, &bv, &ndn) == LDAP_SUCCESS) {
+		const char *text;
+		AttributeDescription *desc = NULL;
+		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
+			backend_attribute(cp->be, NULL, NULL,
+				cp->e, ndn, desc, &bvals);
+			if (bvals != NULL) {
+				for (i = 0; bvals[i] != NULL; i++) { }
+				vals = ch_calloc(i + 1, sizeof(char *));
+				if (vals != NULL) {
+					while (--i >= 0) {
+						vals[i] = bvals[i]->bv_val;
+						bvals[i]->bv_val = NULL;
 					}
-					ber_bvecfree(bvals);
 				}
+				ber_bvecfree(bvals);
 			}
 		}
-		ch_free(ndn);
+		ber_bvfree(ndn);
 	}
 	return(vals);
 }
@@ -1245,53 +1262,42 @@ aci_match_set (
 {
 	char *set = NULL;
 	int rc = 0;
-	struct {
-	Backend *be;
-	Entry *e;
-	Connection *conn;
-	Operation *op;
-	} cookie;
+	AciSetCookie cookie;
 
 	if (setref == 0) {
 		set = aci_bvstrdup(subj);
 	} else {
-		struct berval bv;
-		char *subjdn;
-		char *setat;
+		struct berval subjdn, *ndn = NULL;
+		struct berval setat;
 		struct berval **bvals;
 		const char *text;
 		AttributeDescription *desc = NULL;
 
 		/* format of string is "entry/setAttrName" */
-		if (aci_get_part(subj, 0, '/', &bv) < 0) {
+		if (aci_get_part(subj, 0, '/', &subjdn) < 0) {
 			return(0);
 		}
 
-		subjdn = aci_bvstrdup(&bv);
-		if ( subjdn == NULL ) {
-			return(0);
+		if ( aci_get_part(subj, 1, '/', &setat) < 0 ) {
+			setat.bv_val = SLAPD_ACI_SET_ATTR;
+			setat.bv_len = sizeof(SLAPD_ACI_SET_ATTR)-1;
 		}
-
-		if ( aci_get_part(subj, 1, '/', &bv) < 0 ) {
-			setat = ch_strdup( SLAPD_ACI_SET_ATTR );
-		} else {
-			setat = aci_bvstrdup(&bv);
-		}
-		if ( setat != NULL ) {
-			if ( dn_normalize(subjdn) != NULL
-				&& slap_str2ad(setat, &desc, &text) == LDAP_SUCCESS )
+		if ( setat.bv_val != NULL ) {
+			if ( dnNormalize(NULL, &subjdn, &ndn) == LDAP_SUCCESS
+				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(be, NULL, NULL, e,
-					subjdn, desc, &bvals);
+					&subjdn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0] != NULL )
 						set = ch_strdup(bvals[0]->bv_val);
 					ber_bvecfree(bvals);
 				}
 			}
-			ch_free(setat);
+			if (ndn)
+				ber_bvfree(ndn);
 		}
-		ch_free(subjdn);
+		ch_free(subjdn.bv_val);
 	}
 
 	if (set != NULL) {
@@ -1463,8 +1469,8 @@ aci_list_get_rights(
 static int
 aci_group_member (
 	struct berval *subj,
-	const char *defgrpoc,
-	const char *defgrpat,
+	struct berval *defgrpoc,
+	struct berval *defgrpat,
     Backend		*be,
     Entry		*e,
     Connection		*conn,
@@ -1473,9 +1479,9 @@ aci_group_member (
 )
 {
 	struct berval bv;
-	char *subjdn, *grpdn = NULL;
-	char *grpoc;
-	char *grpat;
+	char *subjdn;
+	struct berval grpoc;
+	struct berval grpat;
 	ObjectClass *grp_oc = NULL;
 	AttributeDescription *grp_ad = NULL;
 	const char *text;
@@ -1491,42 +1497,48 @@ aci_group_member (
 		return(0);
 	}
 
-	if (aci_get_part(subj, 1, '/', &bv) < 0) {
-		grpoc = ch_strdup( defgrpoc );
-	} else {
-		grpoc = aci_bvstrdup(&bv);
+	if (aci_get_part(subj, 1, '/', &grpoc) < 0) {
+		grpoc = *defgrpoc;
 	}
 
-	if (aci_get_part(subj, 2, '/', &bv) < 0) {
-		grpat = ch_strdup( defgrpat );
-	} else {
-		grpat = aci_bvstrdup(&bv);
+	if (aci_get_part(subj, 2, '/', &grpat) < 0) {
+		grpat = *defgrpat;
 	}
 
-	rc = slap_str2ad( grpat, &grp_ad, &text );
+	rc = slap_bv2ad( &grpat, &grp_ad, &text );
 	if( rc != LDAP_SUCCESS ) {
 		rc = 0;
 		goto done;
 	}
 	rc = 0;
 
-	grp_oc = oc_find( grpoc );
-	grpdn = (char *)ch_malloc(1024);
+	grp_oc = oc_bvfind( &grpoc );
 
-	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
-		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
-		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, conn, op, e, grpdn, &op->o_ndn, grp_oc, grp_ad) == 0);
+	if (grp_oc != NULL && grp_ad != NULL ) {
+		struct berval *ndn = NULL;
+		bv.bv_val = (char *)ch_malloc(1024);
+		bv.bv_len = 1024;
+		string_expand(&bv, subjdn, e->e_ndn, matches);
+		if ( dnNormalize(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
+			rc = (backend_group(be, conn, op, e, &bv, &op->o_ndn, grp_oc, grp_ad) == 0);
+			ber_bvfree( ndn );
 		}
+		ch_free(bv.bv_val);
 	}
 
 done:
-	ch_free(grpdn);
-	ch_free(grpat);
-	ch_free(grpoc);
 	ch_free(subjdn);
 	return(rc);
 }
+
+static struct berval GroupClass = {
+	sizeof(SLAPD_GROUP_CLASS)-1, SLAPD_GROUP_CLASS };
+static struct berval GroupAttr = {
+	sizeof(SLAPD_GROUP_ATTR)-1, SLAPD_GROUP_ATTR };
+static struct berval RoleClass = {
+	sizeof(SLAPD_ROLE_CLASS)-1, SLAPD_ROLE_CLASS };
+static struct berval RoleAttr = {
+	sizeof(SLAPD_ROLE_ATTR)-1, SLAPD_ROLE_ATTR };
 
 static int
 aci_mask(
@@ -1543,7 +1555,6 @@ aci_mask(
 )
 {
     struct berval bv, perms, sdn;
-    char *subjdn;
 	int rc;
 	char *attr = desc->ad_cname.bv_val;
 
@@ -1589,14 +1600,13 @@ aci_mask(
 		return(0);
 
 	if (aci_strbvcmp( "access-id", &bv ) == 0) {
-		subjdn = aci_bvstrdup(&sdn);
-		if (subjdn == NULL)
-			return(0);
+		struct berval *ndn = NULL;
 		rc = 1;
-		if ( dn_normalize(subjdn) != NULL )
-			if (strcasecmp(op->o_ndn.bv_val, subjdn) != 0)
+		if ( dnNormalize(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
+			if (strcasecmp(op->o_ndn.bv_val, ndn->bv_val) != 0)
 				rc = 0;
-		ch_free(subjdn);
+			ber_bvfree(ndn);
+		}
 		return(rc);
 	}
 
@@ -1635,11 +1645,11 @@ aci_mask(
 
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
-		if (aci_group_member(&sdn, SLAPD_GROUP_CLASS, SLAPD_GROUP_ATTR, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &GroupClass, &GroupAttr, be, e, conn, op, matches))
 			return(1);
 
 	} else if (aci_strbvcmp( "role", &bv ) == 0) {
-		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &RoleClass, &RoleAttr, be, e, conn, op, matches))
 			return(1);
 
 	} else if (aci_strbvcmp( "set", &bv ) == 0) {
@@ -1659,8 +1669,7 @@ aci_mask(
 
 static void
 string_expand(
-	char *newbuf,
-	int bufsiz,
+	struct berval *bv,
 	char *pat,
 	char *match,
 	regmatch_t *matches)
@@ -1671,11 +1680,11 @@ string_expand(
 	int	flag;
 
 	size = 0;
-	newbuf[0] = '\0';
-	bufsiz--; /* leave space for lone $ */
+	bv->bv_val[0] = '\0';
+	bv->bv_len--; /* leave space for lone $ */
 
 	flag = 0;
-	for ( dp = newbuf, sp = pat; size < bufsiz && *sp ; sp++) {
+	for ( dp = bv->bv_val, sp = pat; size < bv->bv_len && *sp ; sp++) {
 		/* did we previously see a $ */
 		if (flag) {
 			if (*sp == '$') {
@@ -1690,7 +1699,7 @@ string_expand(
 				*dp = '\0';
 				i = matches[n].rm_so;
 				l = matches[n].rm_eo; 
-				for ( ; size < 512 && i < l; size++, i++ ) {
+				for ( ; size < bv->bv_len && i < l; size++, i++ ) {
 					*dp++ = match[i];
 					size++;
 				}
@@ -1714,15 +1723,16 @@ string_expand(
 	}
 
 	*dp = '\0';
+	bv->bv_len = size;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
 		   "string_expand:  pattern = %s\n", pat ));
 	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-		   "string_expand:  expanded = %s\n", newbuf ));
+		   "string_expand:  expanded = %s\n", bv->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %s\n", pat, 0, 0 );
-	Debug( LDAP_DEBUG_TRACE, "=> string_expand: expanded: %s\n", newbuf, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
 #endif
 }
 
@@ -1736,11 +1746,12 @@ regex_matches(
 {
 	regex_t re;
 	char newbuf[512];
+	struct berval bv = {sizeof(newbuf), newbuf};
 	int	rc;
 
 	if(str == NULL) str = "";
 
-	string_expand(newbuf, sizeof(newbuf), pat, buf, matches);
+	string_expand(&bv, pat, buf, matches);
 	if (( rc = regcomp(&re, newbuf, REG_EXTENDED|REG_ICASE))) {
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));

@@ -69,6 +69,19 @@ attr_index_name_cmp(
 	return (strcasecmp( type, air->air_name ));
 }
 
+/* Uses strncasecmp to allow the input type to be non-terminated */
+static int
+attr_index_bvname_cmp(
+    struct berval	*type,
+    struct aindexrec	*air
+)
+{
+	int rc = strncasecmp( type->bv_val, air->air_name, type->bv_len );
+	if (rc)
+		return rc;
+	return air->air_name[type->bv_len] ? -1 : 0;
+}
+
 AttributeType *
 at_find(
     const char		*name
@@ -78,6 +91,19 @@ at_find(
 
 	air = (struct aindexrec *) avl_find( attr_index, name,
             (AVL_CMP) attr_index_name_cmp );
+
+	return air != NULL ? air->air_at : NULL;
+}
+
+AttributeType *
+at_bvfind(
+    struct berval	*name
+)
+{
+	struct aindexrec *air;
+
+	air = (struct aindexrec *) avl_find( attr_index, name,
+            (AVL_CMP) attr_index_bvname_cmp );
 
 	return air != NULL ? air->air_at : NULL;
 }

@@ -125,6 +125,7 @@ set_chase (SET_GATHER gatherer,
 {
 	char **vals, **nset;
 	char attrstr[32];
+	struct berval bv = {attrlen, attrstr};
 	int i;
 
 	if (set == NULL)
@@ -146,7 +147,7 @@ set_chase (SET_GATHER gatherer,
 		return(NULL);
 	}
 	for (i = 0; set[i]; i++) {
-		vals = (gatherer)(cookie, set[i], attrstr);
+		vals = (gatherer)(cookie, set[i], &bv);
 		if (vals != NULL)
 			nset = set_join(nset, '|', vals);
 	}
@@ -154,7 +155,7 @@ set_chase (SET_GATHER gatherer,
 
 	if (closure) {
 		for (i = 0; nset[i]; i++) {
-			vals = (gatherer)(cookie, nset[i], attrstr);
+			vals = (gatherer)(cookie, nset[i], &bv);
 			if (vals != NULL) {
 				nset = set_join(nset, '|', vals);
 				if (nset == NULL)

@@ -93,6 +93,8 @@ LDAP_SLAPD_F (void) at_config LDAP_P((
 	int argc, char **argv ));
 LDAP_SLAPD_F (AttributeType *) at_find LDAP_P((
 	const char *name ));
+LDAP_SLAPD_F (AttributeType *) at_bvfind LDAP_P((
+	struct berval *name ));
 LDAP_SLAPD_F (int) at_find_in_list LDAP_P((
 	AttributeType *sat, AttributeType **list ));
 LDAP_SLAPD_F (int) at_append_to_list LDAP_P((
@@ -203,7 +205,7 @@ LDAP_SLAPD_F (int) backend_group LDAP_P((BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *gr_ndn,
+	struct berval *gr_ndn,
 	struct berval *op_ndn,
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
@@ -213,7 +215,7 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *entry_ndn,
+	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals
 ));
@@ -695,6 +697,8 @@ LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (ObjectClass *) oc_find LDAP_P((
 	const char *ocname));
+LDAP_SLAPD_F (ObjectClass *) oc_bvfind LDAP_P((
+	struct berval *ocname));
 
 LDAP_SLAPD_F (int) oc_add LDAP_P((
 	LDAPObjectClass *oc,

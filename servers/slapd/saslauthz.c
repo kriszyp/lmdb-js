@@ -541,6 +541,7 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	int i, rc;
 	struct berval **vals=NULL;
 	AttributeDescription *ad=NULL;
+	struct berval bv;
 
 
 #ifdef NEW_LOGGING
@@ -557,7 +558,9 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN+3, ad, &vals );
+	bv.bv_val = searchDN+3;
+	bv.bv_len = strlen(bv.bv_val);
+	rc = backend_attribute( NULL, NULL, NULL, NULL, &bv, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 

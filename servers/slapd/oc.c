@@ -116,6 +116,21 @@ oc_index_cmp(
 }
 
 static int
+oc_index_bvname_cmp(
+    struct berval	*name,
+    struct oindexrec	*oir )
+{
+	int rc;
+
+	assert( oir->oir_name );
+	assert( oir->oir_oc );
+
+	rc = strncasecmp( name->bv_val, oir->oir_name, name->bv_len );
+	if (rc) return rc;
+	return oir->oir_name[name->bv_len] ? -1 : 0;
+}
+
+static int
 oc_index_name_cmp(
     char 		*name,
     struct oindexrec	*oir )
@@ -133,6 +148,24 @@ oc_find( const char *ocname )
 
 	oir = (struct oindexrec *) avl_find( oc_index, ocname,
             (AVL_CMP) oc_index_name_cmp );
+
+	if ( oir != NULL ) {
+		assert( oir->oir_name );
+		assert( oir->oir_oc );
+
+		return( oir->oir_oc );
+	}
+
+	return( NULL );
+}
+
+ObjectClass *
+oc_bvfind( struct berval *ocname )
+{
+	struct oindexrec	*oir;
+
+	oir = (struct oindexrec *) avl_find( oc_index, ocname,
+            (AVL_CMP) oc_index_bvname_cmp );
 
 	if ( oir != NULL ) {
 		assert( oir->oir_name );

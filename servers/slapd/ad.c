@@ -100,20 +100,15 @@ int slap_bv2ad(
 	}
 
 	/* find valid base attribute type; parse in place */
+	desc.ad_cname = *bv;
 	name = bv->bv_val;
 	options = strchr(name, ';');
-	if (options != NULL) *options = '\0';
-	desc.ad_type = at_find( name );
-	if (options != NULL) *options = ';';
+	if (options != NULL)
+		desc.ad_cname.bv_len = options - name;
+	desc.ad_type = at_bvfind( &desc.ad_cname );
 	if( desc.ad_type == NULL ) {
 		*text = "attribute type undefined";
 		return rtn;
-	}
-
-	if (options != NULL) {
-		desc.ad_cname.bv_len = options - name;
-	} else {
-		desc.ad_cname.bv_len = bv->bv_len;
 	}
 
 	desc.ad_flags = SLAP_DESC_NONE;
