@@ -91,6 +91,18 @@ ldap_sort_entries(
 
 	count = ldap_count_entries( ld, *chain );
 
+
+	if ( count < 0 ) {
+		if( ld != NULL ) {
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		}
+		return -1;
+
+	} else if ( count < 2 ) {
+		/* zero or one entries -- already sorted! */
+		return 0;
+	}
+
 	if ( (et = (struct entrything *) malloc( count *
 	    sizeof(struct entrything) )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
