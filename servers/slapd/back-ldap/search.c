@@ -596,6 +596,9 @@ ldap_send_entry(
 
 next_attr:;
 
+#ifdef SLAP_NVALUES
+		attr->a_nvals = attr->a_vals;
+#endif
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
