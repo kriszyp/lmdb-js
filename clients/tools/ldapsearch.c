@@ -1047,6 +1047,14 @@ main( int argc, char **argv )
 			printf("\n# with manageDSAit %scontrol",
 				manageDSAit > 1 ? "critical " : "" );
 		}
+		if ( noop ) {
+			printf("\n# with noop %scontrol",
+				noop > 1 ? "critical " : "" );
+		}
+		if ( valuesReturnFilter ) {
+			printf("\n# with valuesReturnFilter %scontrol: %s",
+				valuesReturnFilter > 1 ? "critical " : "", vrFilter );
+		}
 
 		printf( "\n#\n\n" );
 	}
