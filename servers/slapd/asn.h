@@ -16,14 +16,12 @@
  */
 
 #ifdef LDAP_COMP_MATCH
-#include <asn-incl.h>
+#ifndef _H_ASN
+#define _H_ASN
 
-#define AsnId AsnOcts
 #define NUM_ENCODING_TYPE 2
 
-typedef enum { BER, GSER } EncRulesType;
 typedef enum { ASN_BASIC, ASN_COMPOSITE } AsnType;
-static EncRulesType rulesListG[NUM_ENCODING_TYPE] = { BER, GSER };
 
 typedef enum AsnTypeId {
 	BASICTYPE_BOOLEAN,	/* 1 */
@@ -64,4 +62,5 @@ typedef enum AsnTypeId {
 	/* ASN.1 Type End */
 	ASNTYPE_END
 } AsnTypeId;
+#endif
 #endif

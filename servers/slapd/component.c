@@ -781,8 +781,6 @@ test_comp_filter_item(
 	int rc = LDAP_COMPARE_TRUE;
 	int len;
 	ComponentSyntaxInfo* csi_attr, *csi_assert;
-	GenBuf* genBuf;
-	ExpBuf* buf;
 
 	if ( (ca->ca_ma_rule->smr_usage & SLAP_MR_COMPONENT) && ca->ca_cf ) {
 		/* componentFilterMatch inside of componentFilterMatch */

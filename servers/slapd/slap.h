@@ -2556,13 +2556,13 @@ typedef struct slap_component_assertion_value {
 #include "asn.h"
 
 typedef int encoder_func LDAP_P((
-	GenBuf* b,
+	void* b,
 	void* comp));
 
 struct slap_component_syntax_info;
 
 typedef int decoder_func LDAP_P((
-	GenBuf* b,
+	void* b,
 	struct slap_component_syntax_info** comp_syn_info,
 	unsigned int* len,
 	int mode));
