@@ -608,6 +608,40 @@ AC_DEFUN([OL_LINUX_THREADS], [
 ])dnl
 dnl
 dnl ====================================================================
+dnl Check for POSIX Regex
+AC_DEFUN([OL_POSIX_REGEX], [
+AC_MSG_CHECKING([for compatible POSIX regex])
+AC_CACHE_VAL(ol_cv_c_posix_regex,[
+	AC_TRY_RUN([
+#include <sys/types.h>
+#include <regex.h>
+static char *pattern, *string;
+main()
+{
+	int rc;
+	regex_t re;
+
+	pattern = "^A";
+
+	if(regcomp(&re, pattern, 0)) {
+		return -1;
+	}
+	
+	string = "ALL MATCH";
+	
+	rc = regexec(&re, string, 0, (void*)0, 0);
+
+	regfree(&re);
+
+	return rc;
+}],
+	[ol_cv_c_posix_regex=yes],
+	[ol_cv_c_posix_regex=no],
+	[ol_cv_c_posix_regex=cross])])
+AC_MSG_RESULT($ol_cv_c_posix_regex)
+])
+dnl
+dnl ====================================================================
 dnl Check if toupper() requires islower() to be called first
 AC_DEFUN([OL_C_UPPER_LOWER],
 [

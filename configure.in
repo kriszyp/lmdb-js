@@ -500,6 +500,11 @@ if test "$ac_cv_header_regex_h" != yes ; then
 fi
 AC_CHECK_FUNC(regfree, :, AC_MSG_ERROR([POSIX regex required.]))
 
+OL_POSIX_REGEX
+if test "$ol_cv_c_posix_regex" = no ; then
+	AC_MSG_ERROR([broken POSIX regex!])
+fi
+
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
 dnl Select arg types
