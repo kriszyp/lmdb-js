@@ -380,6 +380,9 @@ backend_db_init(
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
 
+ 	/* assign a default depth limit for alias deref */
+	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
+
 	be->be_realm = global_realm != NULL
 		? ch_strdup( global_realm ) : NULL;
 

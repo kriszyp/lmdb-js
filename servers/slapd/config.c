@@ -133,9 +133,6 @@ read_config( const char *fname )
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
 
- 		/* assign a default depth limit for alias deref */
-		be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
-
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
 			if ( cargc < 2 ) {
