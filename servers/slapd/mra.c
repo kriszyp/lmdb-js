@@ -112,7 +112,6 @@ get_mra(
 		ch_free( type.bv_val );
 
 		if( rc != LDAP_SUCCESS ) {
-			ch_free( value.bv_val );
 			mra_free( ma, 1 );
 			return rc;
 		}
