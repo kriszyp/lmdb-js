@@ -194,12 +194,12 @@ main( int argc, char **argv )
 		}
 	}
 
+	rc = 0;
     if ( fp == NULL ) {
 	for ( ; optind < argc; ++optind ) {
 	    rc = dodelete( ld, argv[ optind ] );
 	}
     } else {
-	rc = 0;
 	while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove trailing newline */
 	    if ( *buf != '\0' ) {
