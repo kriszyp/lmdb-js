@@ -40,6 +40,8 @@ LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
 SLAPD_MODULES=@SLAPD_MODULES_LIST@
+SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
+SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
@@ -225,23 +227,17 @@ slapd.exp: libslapd.a
 
 slapd: $(SLAPD_DEPENDS)
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) $(WRAP_LIBS)
-	@msg="building dynamic backends..."; \
-	for i in back-*; do \
-	    if test -d $$i -a -f $$i/Makefile ; then \
-		grep '^BUILD_MOD[ 	]*=[ 	]*mod[ 	]*$$' $$i/Makefile \
-							    > /dev/null 2>&1; \
-		if test $$? = 0; then \
-		    if test -n "$$msg"; then \
-			echo ""; echo "$$msg"; \
-			msg=""; \
-		    fi; \
-		    echo ""; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+	@if test -n "$(SLAPD_DYNAMIC_BACKENDS)"; then \
+	    echo "building dynamic backends..."; \
+	    for i in XX $(SLAPD_DYNAMIC_BACKENDS); do \
+	    	if test $$i != XX; then \
+		    echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
-		    if test $$? != 0 ; then exit 1; fi ; \
+		    if test $$? != 0; then exit 1; fi; \
 		fi; \
-	    fi; \
-	done; \
-	echo ""
+	    done; \
+	    echo " "; \
+	fi
 	cd tools; $(MAKE) $(MFLAGS) all
 
 sslapd: version.o
@@ -252,19 +248,17 @@ sslapd: version.o
 # reason, we only build static backends now and dynamic backends later.
 #
 .backend: FORCE
-	@echo ""; echo "building static backends..."; \
-	for i in back-*; do \
-	    if test -d $$i -a -f $$i/Makefile ; then \
-		grep '^BUILD_MOD[ 	]*=[ 	]*mod[ 	]*$$' $$i/Makefile \
-							    > /dev/null 2>&1; \
-		if test $$? != 0; then \
-		    echo ""; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+	@if test -n "$(SLAPD_STATIC_BACKENDS)"; then \
+	    echo "building static backends..."; \
+	    for i in XX $(SLAPD_STATIC_BACKENDS); do \
+	    	if test $$i != XX; then \
+		    echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
-		    if test $$? != 0 ; then exit 1; fi ; \
+		    if test $$? != 0; then exit 1; fi; \
 		fi; \
-	    fi; \
-	done; \
-	echo ""
+	    done; \
+	    echo " "; \
+	fi
 
 libbackends.a: .backend
 	@$(RM) -r tmp

@@ -513,6 +513,9 @@ SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
 SLAPD_MODULES_LIST=
 
+SLAPD_STATIC_BACKENDS=
+SLAPD_DYNAMIC_BACKENDS=
+
 SLAPD_PERL_LDFLAGS=
 MOD_PERL_LDFLAGS=
 PERL_CPPFLAGS=
@@ -2428,6 +2431,9 @@ if test "$ol_enable_bdb" != no ; then
 		BUILD_BDB=mod
 		BUILD_BDB_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb/back_bdb.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-bdb"
 	fi
 fi
 
@@ -2441,6 +2447,9 @@ if test "$ol_link_dnssrv" != no ; then
 		BUILD_DNSSRV=mod
 		BUILD_DNSSRV_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-dnssrv/back_dnssrv.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-dnssrv"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-dnssrv"
 	fi
 fi
 
@@ -2454,6 +2463,9 @@ if test "$ol_enable_ldap" != no ; then
 		BUILD_LDAP=mod
 		BUILD_LDAP_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldap"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldap"
 	fi
 fi
 
@@ -2468,6 +2480,9 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 		BUILD_LDBM=mod
 		BUILD_LDBM_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
 	fi
 fi
 
@@ -2487,6 +2502,9 @@ if test "$ol_enable_meta" != no ; then
 		BUILD_META=mod
 		BUILD_META_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-meta/back_meta.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-meta"
 	fi
 fi
 
@@ -2500,6 +2518,9 @@ if test "$ol_enable_monitor" != no ; then
 		BUILD_MONITOR=mod
 		BUILD_MONITOR_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-monitor/back_monitor.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
 	fi
 fi
 
@@ -2513,6 +2534,9 @@ if test "$ol_enable_passwd" != no ; then
 		BUILD_PASSWD=mod
 		BUILD_PASSWD_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-passwd"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-passwd"
 	fi
 fi
 
@@ -2526,6 +2550,9 @@ if test "$ol_link_perl" != no ; then
 		BUILD_PERL=mod
 		BUILD_PERL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-perl"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-perl"
 	fi
 fi
 
@@ -2539,6 +2566,9 @@ if test "$ol_enable_shell" != no ; then
 		BUILD_SHELL=mod
 		BUILD_SHELL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
 	fi
 fi
 
@@ -2552,6 +2582,9 @@ if test "$ol_enable_tcl" != no ; then
 		BUILD_TCL=mod
 		BUILD_TCL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-tcl/back_tcl.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-tcl"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-tcl"
 	fi
 fi
 
@@ -2565,6 +2598,9 @@ if test "$ol_link_sql" != no ; then
 		BUILD_SQL=mod
 		BUILD_SQL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-sql/back_sql.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-sql"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-sql"
 	fi
 fi
 
@@ -2638,6 +2674,9 @@ AC_SUBST(MOD_TCL_LIB)
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
 AC_SUBST(SLAPD_MODULES_LIST)
+
+AC_SUBST(SLAPD_STATIC_BACKENDS)
+AC_SUBST(SLAPD_DYNAMIC_BACKENDS)
 
 AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
