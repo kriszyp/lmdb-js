@@ -46,7 +46,7 @@ $SRCDIR/servers/slapd/slapd -f $CONF -h "ldap://:$PORT/" -d $DEBUG
 echo "Waiting 2 secs for everything to shut down ..."
 sleep 2
 
-exit
+#exit
 
 rm -rf $METADBDIR
 rm -f schema ucdata $CONF $LDAPCONF
