@@ -1,7 +1,7 @@
 OpenLDAP 1.x Change Log
 
-Changes included in OpenLDAP 1.2.13 Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.13
+	CVS Tag: OPENLDAP_REL_ENG_1_2_13
 	Fixed slurpd millionth second bug (ITS#1323)
 	Fixed libldap result error memory leak (ITS#1161)
 
