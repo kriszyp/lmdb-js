@@ -234,9 +234,6 @@
 /* Define if you have the recvfrom function.  */
 #undef HAVE_RECVFROM
 
-/* Define if you have the res_search function.  */
-#undef HAVE_RES_SEARCH
-
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
 
@@ -420,6 +417,9 @@
 /* Define if you have the <ndir.h> header file.  */
 #undef HAVE_NDIR_H
 
+/* Define if you have the <netinet/tcp.h> header file.  */
+#undef HAVE_NETINET_TCP_H
+
 /* Define if you have the <openssl/ssl.h> header file.  */
 #undef HAVE_OPENSSL_SSL_H
 
@@ -575,9 +575,6 @@
 
 /* defined to be the EXE extension */
 #undef EXEEXT
-
-/* define if you have res_search() */
-#undef HAVE_RES_SEARCH
 
 /* define if you have res_search() */
 #undef HAVE_RES_SEARCH
