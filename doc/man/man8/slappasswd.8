@@ -102,11 +102,16 @@ interoperability.  A new attribute type, authPassword, to hold
 hashed passwords has been defined (RFC 3112), but is not yet
 implemented in
 .BR slapd (8).
+.TP
+It should also be noted that the behavior of
+.BR crypt (3)
+is platform specific.
 .SH "SECURITY CONSIDERATIONS"
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections
-should be inplace before using LDAP simple bind.  The
-hashed password values should be protected as if they
+should be in\-place before using LDAP simple bind.
+.TP
+The hashed password values should be protected as if they
 were clear text passwords.
 .SH "SEE ALSO"
 .BR ldappasswd (1),
