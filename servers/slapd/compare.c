@@ -135,13 +135,13 @@ do_compare(
 	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
-		return rc;
+		goto cleanup;
 	}
 
 	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
-		return rc;
+		goto cleanup;
 	}
 
 	ava.aa_value = nvalue;
