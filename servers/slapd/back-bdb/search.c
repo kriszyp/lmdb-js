@@ -1718,12 +1718,12 @@ send_paged_response(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
-		"send_paged_response: lastid: (0x%08lx) "
-		"nentries: (0x%08x)\n", 
+		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
 		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #else
-	Debug(LDAP_DEBUG_ARGS, "send_paged_response: lastid: (0x%08lx) "
-		"nentries: (0x%081x)\n", lastid ? *lastid : 0, rs->sr_nentries, NULL );
+	Debug(LDAP_DEBUG_ARGS,
+		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
+		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #endif
 
 	ctrl.ldctl_value.bv_val = NULL;
