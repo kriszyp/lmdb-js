@@ -416,13 +416,13 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	BerVarray	syncUUID_set = NULL;
 	int			syncUUID_set_cnt = 0;
 
-	struct	bdb_op_info *opinfo = NULL;
+	struct	bdb_op_info	*opinfo = NULL;
+	DB_TXN			*ltid = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n",
-		0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n", 0, 0, 0);
 #endif
 	attrs = sop->oq_search.rs_attrs;
 
@@ -522,7 +522,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	}
 
 	if ( opinfo ) {
-		locker = TXN_ID( opinfo->boi_txn );
+		ltid = opinfo->boi_txn;
+		locker = TXN_ID( ltid );
 	} else {
 		rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
 
@@ -548,7 +549,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	} else {
 dn2entry_retry:
 		/* get entry with reader lock */
-		rs->sr_err = bdb_dn2entry( op, NULL, &sop->o_req_ndn, &ei,
+		rs->sr_err = bdb_dn2entry( op, ltid, &sop->o_req_ndn, &ei,
 			1, locker, &lock );
 	}
 
@@ -915,7 +916,7 @@ loop_begin:
 id2entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_id( op, NULL,
+			rs->sr_err = bdb_cache_find_id( op, ltid,
 				id, &ei, 0, locker, &lock );
 
 			if (rs->sr_err == LDAP_BUSY) {
