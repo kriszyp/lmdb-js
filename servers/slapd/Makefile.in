@@ -47,12 +47,14 @@ SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
+SLAPI_LIBS=@LIBSLAPI@ @SLAPI_LIBS@
+
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
 XLIBS = $(SLAPD_STATIC_DEPENDS) $(SLAPD_L)
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) @LIBSLAPI@ $(MODULES_LIBS)
+XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
@@ -228,13 +230,11 @@ slapd.exp: libslapd.a
 	dlltool --dllname slapd.exe --input-def slapd.def \
 		--base-file slapd.base --output-exp $@
 
-libslapi.a: .slapi
+slapi/libslapi.a: FORCE
 	(cd slapi; $(MAKE) $(MFLAGS) all)
-	cp slapi/.libs/libslapi.a .
 
-.slapi: FORCE
-	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
-	(cd slapi; $(MAKE) $(MFLAGS) all)
+libslapi.a: slapi/libslapi.a
+	cp slapi/.libs/libslapi.a .
 
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
