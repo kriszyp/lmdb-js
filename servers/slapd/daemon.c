@@ -13,12 +13,6 @@
 #include "ldapconfig.h"
 #include "slap.h"
 
-#ifdef HAVE_SYS_FILIO_H
-#include <sys/filio.h>
-#elif HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
-#endif
-
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 

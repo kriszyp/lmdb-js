@@ -66,6 +66,7 @@
 #ifdef HAVE_WINSOCK
 #	define tcp_close( s )		closesocket( s );
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
+#	define ioctl_t				u_long
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
 #elif DOS
@@ -78,6 +79,10 @@
 #else
 #	define tcp_close( s )		close( s )
 #endif /* MACOS */
+
+#ifndef ioctl_t
+#	define ioctl_t				int
+#endif
 
 #if !defined(__alpha) || defined(VMS)
 #define AC_HTONL( l ) htonl( l )

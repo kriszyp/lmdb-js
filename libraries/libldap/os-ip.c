@@ -49,7 +49,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	struct hostent		*hp = NULL;
 #ifdef notyet
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	int			status;	/* for ioctl call */
+	ioctl_t			status;	/* for ioctl call */
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
    
