@@ -43,7 +43,7 @@ echo "Waiting 5 seconds to wait for master to start..."
 sleep 5
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRSLAVECONF > $REPLCONF
+. $CONFFILTER $BACKEND $MONITORDB < $SRREFSLAVECONF > $REPLCONF
 $SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then

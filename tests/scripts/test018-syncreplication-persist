@@ -1,0 +1,219 @@
+#! /bin/sh
+# $OpenLDAP$
+
+SRCDIR="."
+if test $# -ge 1 ; then
+	SRCDIR=$1; shift
+fi
+
+. $SRCDIR/scripts/args.sh
+
+if test "$BACKEND" != "bdb"; then
+	echo "Test only valid for back-bdb"
+	exit 0
+fi
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+#
+# Test replication:
+# - start master
+# - start slave
+# - populate over ldap
+# - perform some modifies and deleted
+# - retrieve database over ldap and compare against expected results
+#
+
+echo "Cleaning up in $DBDIR..."
+rm -f $DBDIR/[!C]*
+echo "Cleaning up in $REPLDIR..."
+rm -rf $REPLDIR/[!C]*
+
+echo "Starting master slapd on TCP/IP port $PORT..."
+. $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+
+echo "Waiting 5 seconds to wait for master to start..."
+sleep 5
+
+echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
+. $CONFFILTER $BACKEND $MONITORDB < $SRPERSLAVECONF > $REPLCONF
+$SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+SLAVEPID=$!
+if test $WAIT != 0 ; then
+    echo SLAVEPID $SLAVEPID
+    read foo
+fi
+
+echo "Using ldapsearch to check that master slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+echo "Using ldapsearch to check that slave slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+echo "Using ldapadd to populate the master directory..."
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
+	$LDIFORDERED > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed ($RC)!"
+	kill -HUP $PID $SLAVEPID
+	kill -HUP $SLURPPID
+	exit $RC
+fi
+
+echo "Waiting 10 seconds for syncrepl to receive changes..."
+sleep 10
+
+echo "Using ldapmodify to modify master directory..."
+
+#
+# Do some modifications
+#
+
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+changetype: modify
+add: drink
+drink: Orange Juice
+-
+delete: sn
+sn: Jones
+-
+add: sn
+sn: Jones
+
+dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: modify
+replace: drink
+drink: Iced Tea
+drink: Mad Dog 20/20
+
+dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+changetype: modify
+delete: member
+member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+-
+add: member
+member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+
+dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+changetype: modify
+delete: description
+
+dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: add
+objectclass: OpenLDAPperson
+cn: Gern Jensen
+sn: Jensen
+uid: gjensen
+title: Chief Investigator, ITD
+postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
+seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+drink: Coffee
+homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
+description: Very odd
+facsimiletelephonenumber: +1 313 555 7557
+telephonenumber: +1 313 555 8343
+mail: gjensen@mailgw.example.com
+homephone: +1 313 555 8844
+
+dn: ou=Retired, ou=People, o=University of Michigan, c=US
+changetype: add
+objectclass: organizationalUnit
+ou: Retired
+
+dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: add
+objectclass: OpenLDAPperson
+cn: Rosco P. Coltrane
+sn: Coltrane
+uid: rosco
+
+dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: modrdn
+newrdn: cn=Rosco P. Coltrane
+deleteoldrdn: 1
+newsuperior: ou=Retired, ou=People, o=University of Michigan, c=US
+
+dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: delete
+
+EOMODS
+
+echo "Waiting 10 seconds for syncrepl to receive changes..."
+sleep 10
+
+echo "Using ldapsearch to read all the entries from the master..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+	'objectclass=*' > $MASTEROUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at master ($RC)!"
+	kill -HUP $PID $SLAVEPID
+	kill -HUP $SLURPPID
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from the slave..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
+	'objectclass=*' > $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed at slave ($RC)!"
+	kill -HUP $PID $SLAVEPID
+	kill -HUP $SLURPPID
+	exit $RC
+fi
+
+kill -HUP $PID $SLAVEPID
+
+SEARCHOUT=$MASTEROUT
+LDIF=$SLAVEOUT
+
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $LDIFFILTER < $LDIF > $LDIFFLT
+
+echo "Comparing retrieved entries from master and slave..."
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - master and slave databases differ"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+
+exit 0
