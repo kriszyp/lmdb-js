@@ -728,7 +728,13 @@ be_isroot_dn( Backend *be, struct berval *ndn )
 }
 
 int
-be_isupdate( Backend *be, struct berval *ndn )
+be_isupdate( Operation *op )
+{
+	return be_isupdate_dn( op->o_bd, &op->o_ndn );
+}
+
+int
+be_isupdate_dn( Backend *be, struct berval *ndn )
 {
 	if ( !ndn->bv_len ) {
 		return( 0 );

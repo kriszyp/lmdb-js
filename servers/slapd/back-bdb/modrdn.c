@@ -393,7 +393,7 @@ retry:	/* transaction retry */
 		isroot = be_isroot( op );
 		if ( ! isroot ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_isupdate( op->o_bd, &op->o_ndn ) ) {
+				|| be_isupdate( op ) ) {
 
 				p = (Entry *)&slap_entry_root;
 
@@ -608,7 +608,7 @@ retry:	/* transaction retry */
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
 				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-					|| be_isupdate( op->o_bd, &op->o_ndn ) ) {
+					|| be_isupdate( op ) ) {
 					np = (Entry *)&slap_entry_root;
 
 					/* check parent for "children" acl */

@@ -1235,17 +1235,19 @@ ppolicy_add(
 static int
 ppolicy_modify( Operation *op, SlapReply *rs )
 {
-	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
-	int				i, rc, mod_pw_only, pwmod, pwmop, deladd, hsize = 0;
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	int			i, rc, mod_pw_only, pwmod, pwmop, deladd,
+				hsize = 0;
 	PassPolicy		pp;
-	Modifications	*mods = NULL, *modtail, *ml, *delmod, *addmod;
+	Modifications		*mods = NULL, *modtail, *ml, *delmod, *addmod;
 	Attribute		*pa, *ha, *ra, at;
-	int				repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+	int			repl_user = be_isupdate( op );
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
-	int				zapReset, send_ctrl = 0;
+	int			zapReset, send_ctrl = 0;
 	Entry			*e;
-	struct berval	newpw = { 0, NULL }, oldpw = { 0, NULL }, *bv, cr[2];
+	struct berval		newpw = { 0, NULL }, oldpw = { 0, NULL },
+				*bv, cr[2];
 	LDAPPasswordPolicyError pErr = PP_noError;
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;

@@ -362,7 +362,7 @@ do_modrdn(
 	 */
 	if ( op->o_bd->be_modrdn ) {
 		/* do the update here */
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #else
@@ -483,7 +483,7 @@ slap_modrdn2mods(
 	assert( new_rdn != NULL );
 	assert( !op->orr_deleteoldrdn || old_rdn != NULL );
 
-	repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+	repl_user = be_isupdate( op );
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[a_cnt]; a_cnt++ ) {

@@ -205,7 +205,7 @@ do_delete(
 	 */
 	if ( op->o_bd->be_delete ) {
 		/* do the update here */
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #else

@@ -110,7 +110,7 @@ int passwd_extop(
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	if(!( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op->o_bd, &op->o_ndn ))) {
+	if(!( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op ))) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = op->o_bd->be_update_refs
 			? op->o_bd->be_update_refs : default_referral; 

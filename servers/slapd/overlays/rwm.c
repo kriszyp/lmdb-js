@@ -100,7 +100,7 @@ rwm_add( Operation *op, SlapReply *rs )
 	}
 
 	/* Count number of attributes in entry */ 
-	isupdate = be_isupdate( op->o_bd, &op->o_ndn );
+	isupdate = be_isupdate( op );
 	for ( i = 0, ap = &op->oq_add.rs_e->e_attrs; *ap; ) {
 		struct berval	mapped;
 		Attribute	*a;
