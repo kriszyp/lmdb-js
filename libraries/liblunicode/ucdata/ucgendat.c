@@ -30,6 +30,7 @@
 #include "ldap_config.h"
 
 #include <stdio.h>
+#include <ac/bytes.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -1216,7 +1217,8 @@ static void
 write_cdata(char *opath)
 {
     FILE *out;
-    unsigned long i, idx, bytes, nprops;
+	ac_uint4 bytes;
+    unsigned long i, idx, nprops;
     unsigned short casecnt[2];
     char path[BUFSIZ];
 
@@ -1268,7 +1270,7 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint4), 2, out);
 
     /*
      * Write the byte count.

@@ -45,8 +45,8 @@
  **************************************************************************/
 
 typedef struct {
-    ac_uint4 bom;
-    ac_uint4 cnt;
+    ac_uint2 bom;
+    ac_uint2 cnt;
     union {
         ac_uint4 bytes;
         ac_uint2 len[2]; 
