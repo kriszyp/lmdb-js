@@ -183,7 +183,12 @@ get_filter(
 		err = slap_bv2ad( &type, &f->f_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
+			/* unrecognized attribute description or other error */
+			f->f_choice = SLAPD_FILTER_COMPUTED;
+			f->f_result = LDAP_COMPARE_FALSE;
+			*fstr = ch_strdup( "(unrecogized=*)" );
 			ch_free( type.bv_val );
+			err = LDAP_SUCCESS;
 			break;
 		}
 
