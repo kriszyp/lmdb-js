@@ -59,7 +59,7 @@ ldif_fetch_url(
 
 #else
 	*valuep = NULL;
-	*vlenp = NULL;
+	*vlenp = 0;
 	return -1;
 #endif
 }

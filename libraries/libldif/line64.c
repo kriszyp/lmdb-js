@@ -66,7 +66,7 @@ ldif_parse_line(
 
 	*typep = NULL;
 	*valuep = NULL;
-	*vlenp = NULL;
+	*vlenp = 0;
 
 	/* skip any leading space */
 	while ( isspace( (unsigned char) *line ) ) {
