@@ -1145,6 +1145,7 @@ send_pagerequest_response(
 		NULL, NULL, NULL, ctrls, nentries );
 
 done:
+	(void) ber_free( ber, 1 );
 	if ( ctrls[0]->ldctl_value.bv_val ) {
 		ch_free( ctrls[0]->ldctl_value.bv_val );
 	}
