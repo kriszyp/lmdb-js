@@ -643,12 +643,14 @@ backend_group(
 	return LDAP_UNWILLING_TO_PERFORM;
 }
 
-#ifdef SLAPD_SCHEMA_DN
 Attribute *backend_operational(
 	Backend *be,
 	Entry *e )
 {
-	Attribute *a = ch_malloc( sizeof( Attribute ) );
+	Attribute *a = NULL;
+
+#ifdef SLAPD_SCHEMA_DN
+	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = ad_dup( slap_schema.si_ad_subschemaSubentry );
 
 	/* Should be backend specific */
@@ -657,7 +659,7 @@ Attribute *backend_operational(
 	a->a_vals[1] = NULL;
 
 	a->a_next = NULL;
+#endif
 
 	return a;
 }
-#endif

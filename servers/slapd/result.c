@@ -760,20 +760,18 @@ send_search_entry(
 	/* only have subschemaSubentry implemented */
 	aa = backend_operational( be, e );
 	
-	for (a = aa ; a == NULL; a = a->a_next ) {
+	for (a = aa ; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( is_at_operational( desc->ad_type ) )
-			{
+			if( is_at_operational( desc->ad_type ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if( is_at_operational( desc->ad_type ) )
-			{
+			if( is_at_operational( desc->ad_type ) ) {
 				if( !opattrs && !ad_inlist( desc, attrs ) )
 				{
 					continue;
@@ -792,7 +790,8 @@ send_search_entry(
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
+		rc = ber_printf( ber, "{s[" /*]}*/ , desc->ad_cname->bv_val );
+		if ( rc == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
