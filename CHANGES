@@ -3,6 +3,8 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Updated README to require BerkeleyDB 2.7.5
+	Added #define _SGI_MP_SOURCE to enable per-thread errno in
+		IRIX
 	Build environment
 		Added sys/select.h detection.
 
