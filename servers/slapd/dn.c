@@ -313,11 +313,11 @@ dn_match( const char *val, const char *asserted )
 }
 
 /*
- * dn_parent - return a copy of the dn of dn's parent
+ * dn_parent1 - return the dn's parent, in-place
  */
 
 char *
-dn_parent(
+dn_parent1(
 	Backend	*be,
 	const char	*dn )
 {
@@ -361,12 +361,28 @@ dn_parent(
 			if ( *s == '"' ) {
 				inquote = 1;
 			} else if ( DN_SEPARATOR( *s ) ) {
-				return ch_strdup( &s[1] );
+				return (char *)s + 1;
 			}
 		}
 	}
 
-	return ch_strdup( "" );
+	return "";
+}
+
+/*
+ * dn_parent - return a copy of the dn of dn's parent
+ */
+
+char *
+dn_parent(
+	Backend	*be,
+	const char	*dn
+)
+{
+	dn = dn_parent1( be, dn );
+	if( dn != NULL )
+		dn = ch_strdup( dn );
+	return (char *)dn;
 }
 
 char * dn_rdn(
@@ -428,20 +444,14 @@ char **dn_subtree(
 	Backend	*be,
 	const char	*dn )
 {
-	char *child, *parent;
 	char **subtree = NULL;
 	
-	child = ch_strdup( dn );
-
 	do {
-		charray_add( &subtree, child );
+		charray_add( &subtree, dn );
 
-		parent = dn_parent( be, child );
+		dn = dn_parent1( be, dn );
 
-		free( child );
-
-		child = parent;
-	} while ( child != NULL );
+	} while ( dn != NULL );
 
 	return subtree;
 }
