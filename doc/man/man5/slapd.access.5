@@ -123,7 +123,21 @@ indicating access to the entry's children. ObjectClass names may also
 be specified in this list, which will affect all the attributes that
 are required and/or allowed by that objectClass.
 .LP
-The last three statements are additive; they can be used in sequence 
+Using the form
+.B attrs=<attr> val[.<style>]=<value>
+specifies access to a particular value of a single attribute.
+In this case, only a single attribute type may be given. A value
+.B <style>
+of
+.B exact
+(the default) uses the attribute's equality matching rule to compare the
+value. If the
+.B <style>
+is
+.BR regex ,
+the provided value is used as a regular expression pattern.
+.LP
+The dn, filter, and attrs statements are additive; they can be used in sequence 
 to select entities the access rule applies to based on naming context,
 value and attribute type simultaneously.
 .LP
