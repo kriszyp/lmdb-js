@@ -1245,6 +1245,11 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 	int i, rc;
 	void *ctx, *data = NULL;
 
+	if ( slapMode & SLAP_TOOL_MODE ) {
+		*txn = NULL;
+		return 0;
+	}
+
 	/* If no op was provided, try to find the ctx anyway... */
 	if ( op ) {
 		ctx = op->o_threadctx;
