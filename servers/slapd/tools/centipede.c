@@ -73,7 +73,7 @@ static void usage( char *name )
 
 main( int argc, char **argv )
 {
-	char		*ldapfilter, *ldapref;
+	char		*ldapfilter;
 	char		*ldapsrcurl, *ldapdesturl;
 	LDAP		*ld;
 	LDAPMod		**mods;
@@ -166,8 +166,7 @@ main( int argc, char **argv )
 				srcldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
 				exit( 1 );
 			}
 			break;
@@ -179,8 +178,7 @@ main( int argc, char **argv )
 				destldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
 				exit( 1 );
 			}
 			break;
@@ -358,9 +356,11 @@ start_ldap_search(
 	char	*s, *s2;
 	int		i;
 
-	if ( strncmp( ldapsrcurl, "ldap://", 7 ) == 0 ) {
-		s = ldapsrcurl + 7;
+	if ( strncmp( ldapsrcurl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapsrcurl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {
@@ -923,10 +923,13 @@ bind_to_destination_ldap(
 	/* first, pick out the destination ldap server info */
 	if ( ldapbase != NULL ) {
 		free( ldapbase );
+		ldapbase = NULL;
 	}
-	if ( strncmp( ldapdesturl, "ldap://", 7 ) == 0 ) {
-		s = ldapdesturl + 7;
+	if ( strncmp( ldapdesturl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapdesturl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {
