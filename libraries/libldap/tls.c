@@ -30,6 +30,7 @@
 #include <ssl.h>
 #endif
 
+static int  tls_opt_trace = 1;
 static char *tls_opt_certfile = NULL;
 static char *tls_opt_keyfile = NULL;
 static char *tls_opt_cacertfile = NULL;
@@ -55,7 +56,11 @@ static Sockbuf_IO tls_io=
    tls_close
 };
 
+static void tls_info_cb( SSL *ssl, int where, int ret );
 static int tls_verify_cb( int ok, X509_STORE_CTX *ctx );
+static RSA * tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
+static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
+static STACK_OF(X509_NAME) * get_ca_list( char * bundle, char * dir );
 
 static SSL_CTX *tls_def_ctx = NULL;
 
@@ -109,6 +114,8 @@ ldap_pvt_tls_init( void )
 #endif
 	SSL_load_error_strings();
 	SSLeay_add_ssl_algorithms();
+	/* FIXME: mod_ssl does this */
+	X509V3_add_standard_extensions();
 	return 0;
 }
 
@@ -118,7 +125,7 @@ ldap_pvt_tls_init( void )
 int
 ldap_pvt_tls_init_def_ctx( void )
 {
-	STACK_OF(X509_NAME) *cacert;
+	STACK_OF(X509_NAME) *calist;
 
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
@@ -149,16 +156,15 @@ ldap_pvt_tls_init_def_ctx( void )
 			tls_report_error();
 			goto error_exit;
 		}
-		/* FIXME: Load from tls_opt_cacertdir too */
-		cacert = SSL_load_client_CA_file( tls_opt_cacertfile );
-		if ( !cacert ) {
+		calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
+		if ( !calist ) {
 			Debug( LDAP_DEBUG_ANY,
-	 	"TLS: could not load CA certificate file `%s'.\n",
-			       tls_opt_cacertfile,0,0);
+	 	"TLS: could not load client CA list (file:`%s',dir:`%s').\n",
+			       tls_opt_cacertfile,tls_opt_cacertdir,0);
 			tls_report_error();
 			goto error_exit;
 		}
-		SSL_CTX_set_client_CA_list( tls_def_ctx, cacert );
+		SSL_CTX_set_client_CA_list( tls_def_ctx, calist );
 		if ( tls_opt_keyfile &&
 		     !SSL_CTX_use_PrivateKey_file( tls_def_ctx,
 						   tls_opt_keyfile,
@@ -187,9 +193,14 @@ ldap_pvt_tls_init_def_ctx( void )
 			tls_report_error();
 			goto error_exit;
 		}
+		if ( tls_opt_trace ) {
+			SSL_CTX_set_info_callback( tls_def_ctx, tls_info_cb );
+		}
 		SSL_CTX_set_verify( tls_def_ctx, (tls_opt_require_cert) ?
 			(SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT) :
 			SSL_VERIFY_PEER, tls_verify_cb );
+		SSL_CTX_set_tmp_rsa_callback( tls_def_ctx, tls_tmp_rsa_cb );
+		/* SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb ); */
 	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
@@ -200,6 +211,21 @@ error_exit:
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif
 	return -1;
+}
+
+static STACK_OF(X509_NAME) *
+get_ca_list( char * bundle, char * dir )
+{
+	STACK_OF(X509_NAME) *ca_list = NULL;
+
+	if ( bundle ) {
+		ca_list = SSL_load_client_CA_file( bundle );
+	}
+	/*
+	 * FIXME: We have now to go over all files in dir, load them
+	 * and add every certificate there to ca_list.
+	 */
+	return ca_list;
 }
 
 static SSL *
@@ -223,6 +249,9 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 		return NULL;
 	}
 
+	if ( tls_opt_trace ) {
+		SSL_set_info_callback( ssl, tls_info_cb );
+	}
 	sb->sb_iodata = ssl;
 	SSL_set_fd( ssl, ber_pvt_sb_get_desc( sb ) );
 	return ssl;
@@ -503,6 +532,46 @@ tls_close( Sockbuf *sb )
 	return 0;
 }
 
+/* Derived from openssl/apps/s_cb.c */
+static void
+tls_info_cb( SSL *ssl, int where, int ret )
+{
+	int w;
+	char *op;
+
+	w = where & ~SSL_ST_MASK;
+	if ( w & SSL_ST_CONNECT ) {
+		op = "SSL_connect";
+	} else if ( w & SSL_ST_ACCEPT ) {
+		op = "SSL_accept";
+	} else {
+		op = "undefined";
+	}
+
+        if ( where & SSL_CB_LOOP ) {
+		Debug( LDAP_DEBUG_TRACE,
+		       "TLS trace: %s:%s\n",
+		       op, SSL_state_string_long( ssl ), 0 );
+	} else if ( where & SSL_CB_ALERT ) {
+                op = ( where & SSL_CB_READ ) ? "read" : "write";
+		Debug( LDAP_DEBUG_TRACE,
+		       "TLS trace: SSL3 alert %s:%s:%s\n",
+		       op,
+		       SSL_alert_type_string_long( ret ),
+		       SSL_alert_desc_string_long( ret) );
+	} else if ( where & SSL_CB_EXIT ) {
+                if ( ret == 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			       "TLS trace: %s:failed in %s\n",
+			       op, SSL_state_string_long( ssl ), 0 );
+                } else if ( ret < 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			       "TLS trace: %s:error in %s\n",
+			       op, SSL_state_string_long( ssl ), 0 );
+		}
+	}
+}
+
 static int
 tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 {
@@ -553,6 +622,29 @@ tls_report_error( void )
 			Debug( LDAP_DEBUG_ANY, "TLS: %s %s:%d\n",
 			       ERR_error_string( l, buf ), file, line );
         }
+}
+
+static RSA *
+tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
+{
+	RSA *tmp_rsa;
+
+	/* FIXME:  Pregenerate the key on startup */
+	/* FIXME:  Who frees the key? */
+	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
+
+	if ( !tmp_rsa ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: Failed to generate temporary %d-bit %s RSA key\n",
+		       key_length, is_export ? "export" : "domestic", 0 );
+		return NULL;
+	}
+	return tmp_rsa;
+}
+
+static DH *
+tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
+{
+	return NULL;
 }
 
 #else
