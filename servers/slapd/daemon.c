@@ -329,6 +329,7 @@ slapd_daemon_task(
 	while ( !slapd_shutdown ) {
 		ber_socket_t i;
 		int ns;
+		int at;
 		ber_socket_t nfds;
 #define SLAPD_EBADF_LIMIT 10
 		int ebadf = 0;
@@ -391,21 +392,31 @@ slapd_daemon_task(
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
 		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
+		at = active_threads;
+		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+
 #if defined( HAVE_YIELDING_SELECT ) || defined( NO_THREADS )
 		tvp = NULL;
 #else
-		tvp = active_threads ? &zero : NULL;
+		tvp = at ? &zero : NULL;
 #endif
 
 		Debug( LDAP_DEBUG_CONNS,
 			"daemon: select: tcps=%d active_threads=%d tvp=%s\n",
-		    tcps, active_threads,
+		    tcps, at,
 			tvp == NULL ? "NULL" : "zero" );
 	   
 
-		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-		switch(ns = select( nfds, &readfds, &writefds, 0, tvp )) {
+		switch(ns = select( nfds, &readfds,
+#ifdef HAVE_WINSOCK
+			/* don't pass empty fd_set */
+			( writefds.fd_count > 0 ? &writefds : NULL ),
+#else
+			&writefds,
+#endif
+			NULL, tvp ))
+		{
 		case -1: {	/* failure - try again */
 #ifdef HAVE_WINSOCK
 				int err = WSAGetLastError();
@@ -561,10 +572,12 @@ slapd_daemon_task(
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < readfds.fd_count; i++ ) {
-			Debug( LDAP_DEBUG_CONNS, " %d%s", readfds.fd_array[i], "r" );
+			Debug( LDAP_DEBUG_CONNS, " %d%s",
+				readfds.fd_array[i], "r", 0 );
 		}
 		for ( i = 0; i < writefds.fd_count; i++ ) {
-			Debug( LDAP_DEBUG_CONNS, " %d%s", writefds.fd_array[i], "w" );
+			Debug( LDAP_DEBUG_CONNS, " %d%s",
+				writefds.fd_array[i], "w", 0 );
 		}
 #else
 		for ( i = 0; i < nfds; i++ ) {
@@ -784,7 +797,8 @@ void hit_socket()
 
 	if ( connect( s, (struct sockaddr *)&bind_addr, sizeof( struct sockaddr_in )) == SOCKET_ERROR ) {
 		Debug( LDAP_DEBUG_ANY,
-			"hit_socket: error on connect: %d\n", WSAGetLastError(), 0 );
+			"hit_socket: error on connect: %d\n",
+			WSAGetLastError(), 0, 0 );
 		/* we can probably expect some error to occur here, mostly WSAEWOULDBLOCK */
 	}
 
@@ -815,7 +829,7 @@ slap_set_shutdown( int sig )
 		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	}
 #else
-	Debug( LDAP_DEBUG_TRACE, "Shutdown %d ordered", sig, 0 );
+	Debug( LDAP_DEBUG_TRACE, "Shutdown %d ordered", sig, 0, 0 );
 	/* trying to "hit" the socket seems to always get a */
 	/* EWOULDBLOCK error, so just close the listen socket to */
 	/* break out of the select since we're shutting down anyway */
