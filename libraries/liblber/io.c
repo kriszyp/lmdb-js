@@ -519,7 +519,10 @@ ber_get_next(
 		}
 		/* Are there leftover data bytes inside ber->ber_len? */
 		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
-			i = (char *)&ber->ber_usertag - ber->ber_ptr;
+			if (ber->ber_rwptr < (char *)&ber->ber_usertag)
+				i = ber->ber_rwptr - ber->ber_ptr;
+			else
+				i = (char *)&ber->ber_usertag - ber->ber_ptr;
 			AC_MEMCPY(buf, ber->ber_ptr, i);
 			ber->ber_ptr += i;
 		} else {
