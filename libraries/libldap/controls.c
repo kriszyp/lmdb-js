@@ -422,7 +422,7 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+	if ( ber_flatten( ber, &bvalp ) == -1 ) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}

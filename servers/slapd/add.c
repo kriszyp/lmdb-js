@@ -109,10 +109,11 @@ do_add( Connection *conn, Operation *op )
 	    tag = ber_next_element( ber, &len, last ) )
 	{
 		Modifications *mod;
+		ber_tag_t rtag;
 
-		rc = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_bvalues );
+		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_bvalues );
 
-		if ( rc == LBER_ERROR ) {
+		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "do_add: conn %d	 decoding error \n", conn->c_connid ));

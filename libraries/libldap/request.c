@@ -1081,6 +1081,7 @@ re_encode_request( LDAP *ld,
 	 */
 	ber_int_t	along;
 	ber_tag_t	tag;
+	ber_tag_t	rtag;
 	ber_int_t	ver;
 	ber_int_t	scope;
 	int		rc;
@@ -1108,9 +1109,9 @@ re_encode_request( LDAP *ld,
 	 * tagged with the operation code.  For delete, the provided DN
 	 * is not wrapped by a sequence.
 	 */
-	rc = ber_scanf( &tmpber, "{it", /*}*/ &along, &tag );
+	rtag = ber_scanf( &tmpber, "{it", /*}*/ &along, &tag );
 
-	if ( rc == LBER_ERROR ) {
+	if ( rtag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -1118,11 +1119,11 @@ re_encode_request( LDAP *ld,
 	assert( tag != 0);
 	if ( tag == LDAP_REQ_BIND ) {
 		/* bind requests have a version number before the DN & other stuff */
-		rc = ber_scanf( &tmpber, "{ia" /*}*/, &ver, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{ia" /*}*/, &ver, &orig_dn );
 
 	} else if ( tag == LDAP_REQ_DELETE ) {
 		/* delete requests don't have a DN wrapping sequence */
-		rc = ber_scanf( &tmpber, "a", &orig_dn );
+		rtag = ber_scanf( &tmpber, "a", &orig_dn );
 
 	} else if ( tag == LDAP_REQ_SEARCH ) {
 		/* search requests need to be re-scope-ed */
@@ -1141,10 +1142,10 @@ re_encode_request( LDAP *ld,
 		}
 
 	} else {
-		rc = ber_scanf( &tmpber, "{a" /*}*/, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{a" /*}*/, &orig_dn );
 	}
 
-	if( rc == LBER_ERROR ) {
+	if( rtag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return NULL;
 	}

@@ -36,12 +36,13 @@ get_ava(
 )
 {
 	int rc;
+	ber_tag_t rtag;
 	struct berval type, value;
 	AttributeAssertion *aa;
 
-	rc = ber_scanf( ber, "{mm}", &type, &value );
+	rtag = ber_scanf( ber, "{mm}", &type, &value );
 
-	if( rc == LBER_ERROR ) {
+	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
 			   "get_ava:  ber_scanf failure\n" ));

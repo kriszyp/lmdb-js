@@ -34,7 +34,8 @@ get_mra(
 	const char **text
 )
 {
-	int rc, tag;
+	int rc;
+	ber_tag_t tag, rtag;
 	ber_len_t length;
 	struct berval type = { 0, NULL }, value;
 	MatchingRuleAssertion *ma;
@@ -48,9 +49,9 @@ get_mra(
 	ma->ma_value.bv_len = 0;
 	ma->ma_value.bv_val = NULL;
 
-	rc = ber_scanf( ber, "{t", &tag );
+	rtag = ber_scanf( ber, "{t", &tag );
 
-	if( rc == LBER_ERROR ) {
+	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "get_mra: ber_scanf (\"{t\") failure\n" ));
@@ -64,8 +65,8 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rc = ber_scanf( ber, "m", &ma->ma_rule_text );
-		if ( rc == LBER_ERROR ) {
+		rtag = ber_scanf( ber, "m", &ma->ma_rule_text );
+		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "get_mra: ber_scanf(\"o\") failure.\n" ));
@@ -78,8 +79,8 @@ get_mra(
 			return SLAPD_DISCONNECT;
 		}
 
-		rc = ber_scanf( ber, "t", &tag );
-		if( rc == LBER_ERROR ) {
+		rtag = ber_scanf( ber, "t", &tag );
+		if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "get_mra: ber_scanf (\"t\") failure\n" ));
@@ -94,8 +95,8 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_TYPE ) {
-		rc = ber_scanf( ber, "m", &type );
-		if ( rc == LBER_ERROR ) {
+		rtag = ber_scanf( ber, "m", &type );
+		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "get_mra: ber_scanf (\"o\") failure.\n" ));
@@ -107,8 +108,8 @@ get_mra(
 			return SLAPD_DISCONNECT;
 		}
 
-		rc = ber_scanf( ber, "t", &tag );
-		if( rc == LBER_ERROR ) {
+		rtag = ber_scanf( ber, "t", &tag );
+		if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "get_mra: ber_scanf (\"t\") failure.\n" ));
@@ -135,9 +136,9 @@ get_mra(
 		return SLAPD_DISCONNECT;
 	}
 
-	rc = ber_scanf( ber, "m", &value );
+	rtag = ber_scanf( ber, "m", &value );
 
-	if( rc == LBER_ERROR ) {
+	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "get_mra: ber_scanf (\"o\") failure.\n" ));
@@ -153,12 +154,12 @@ get_mra(
 	tag = ber_peek_tag( ber, &length );
 
 	if ( tag == LDAP_FILTER_EXT_DNATTRS ) {
-		rc = ber_scanf( ber, "b}", &ma->ma_dnattrs );
+		rtag = ber_scanf( ber, "b}", &ma->ma_dnattrs );
 	} else {
-		rc = ber_scanf( ber, "}" );
+		rtag = ber_scanf( ber, "}" );
 	}
 
-	if( rc == LBER_ERROR ) {
+	if( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "get_mra: ber_scanf failure\n"));
