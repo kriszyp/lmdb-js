@@ -289,11 +289,15 @@ monitor_back_db_init(
 		{ NULL, NULL, -1 }
 	}, mat[] = {
 #ifdef MONITOR_DEVEL
-		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14"
+		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14 "
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
-			"SUP name "
-			"NO-USER-MODIFICATION )",
+			/* "SUP name " */
+			"EQUALITY caseIgnoreMatch "
+			"SUBSTR caseIgnoreSubstringsMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitoredInfo) },
 		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.15 "
 			"NAME 'managedInfo' "
@@ -306,39 +310,53 @@ monitor_back_db_init(
 			"EQUALITY integerMatch "
 			"ORDERING integerOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
-			"NO-USER-MODIFICATION )",
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitorCounter) },
 		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.17 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
-			"SUP monitorCounter )",
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitorOpCompleted) },
 		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.18 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
-			"SUP monitorCounter )",
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitorOpInitiated) },
 		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.19 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
-			"SUP monitorCounter )",
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionNumber) },
 		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.20 "
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
-			"SUP distinguishedName "
-			"NO-USER-MODIFICATION )",
+			/* "SUP distinguishedName " */
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionAuthzDN) },
 		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.21 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
-			"SUP monitoredInfo )",
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo,
 				monitor_ad_monitorConnectionLocalAddress) },
 		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.22 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
-			"SUP monitoredInfo )",
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo,
 				monitor_ad_monitorConnectionPeerAddress) },
 #endif /* MONITOR_DEVEL */
@@ -466,13 +484,44 @@ monitor_back_db_init(
 
 		at = ldap_str2attributetype( mat[i].schema, &code,
 				&err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at || at->at_oid == NULL ) {
-			return 1;
+		if ( !at ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
+				"in AttributeType '%s' %s before %s\n",
+				mat[i].name, ldap_scherr2str(code), err );
+#else
+			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
+				"in AttributeType '%s' %s before %s\n",
+				mat[i].name, ldap_scherr2str(code), err );
+#endif
+			return -1;
+		}
+
+		if ( at->at_oid == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
+				"null OID for attributeType '%s'\n",
+				mat[i].name, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
+				"null OID for attributeType '%s'\n",
+				mat[i].name, 0, 0 );
+#endif
+			return -1;
 		}
 
 		code = at_add(at,&err);
 		if ( code ) {
-			return 1;
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
+				"%s in attributeType '%s'\n",
+				scherr2str(code), mat[i].name, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
+				"%s in attributeType '%s'\n",
+				scherr2str(code), mat[i].name, 0 );
+#endif
+			return -1;
 		}
 		ldap_memfree(at);
 

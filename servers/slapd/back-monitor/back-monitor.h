@@ -41,6 +41,8 @@
 
 LDAP_BEGIN_DECL
 
+#define MONITOR_DEVEL
+
 /*
  * The cache maps DNs to Entries.
  * Each entry, on turn, holds the list of its children in the e_private field.
