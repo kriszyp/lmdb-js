@@ -1,3 +1,4 @@
+/* schemaparse.c - routines to parse config file objectclass definitions */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -272,8 +273,9 @@ parse_at(
  	 */
 	for (; argv[3]; argv++)
 	{
-		if (!strcasecmp(argv[3], "syntax") &&
-		    !OID_LEADCHAR(*argv[4]))
+		/* Allow numeric OIDs to be wrapped in single quotes */
+		if (!strcasecmp(argv[3], "syntax") && argv[4] != NULL &&
+		    !OID_LEADCHAR(argv[4][argv[4][0] == '\'' ? 1 : 0]))
 		{
 			int slen;
 			Syntax *syn;
