@@ -33,6 +33,7 @@ XLIBS = $(LIBRARY)
 XXLIBS = 
 NT_LINK_LIBS = $(AC_LIBS)
 
+XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 
 UNIX_LINK_LIBS = ./libtmpslapd.a ../libbackends.a ../../../libraries/libavl/libavl.a ../../../libraries/liblber/.libs/liblber.a ../../../libraries/libldbm/libldbm.a ../../../libraries/libldif/libldif.a ../../../libraries/liblutil/liblutil.a ../../../libraries/liblunicode/liblunicode.a ../../../libraries/libldap_r/.libs/libldap_r.a ./libtmpslapd.a

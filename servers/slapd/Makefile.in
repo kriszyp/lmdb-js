@@ -35,7 +35,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o cr.o \
 		limits.o backglue.o operational.o matchedValues.o cancel.o \
 		$(@PLAT@_OBJS)
 
-LDAP_INCDIR= ../../include -Islapi
+LDAP_INCDIR= ../../include -I$(srcdir)/slapi
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
