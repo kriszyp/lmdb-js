@@ -57,11 +57,10 @@ static void *do_put(void *ptr)
 	Entry *e;
 	int lineno;
 
+	ldap_pvt_thread_mutex_lock( &put_mutex );
 	do {
-		ldap_pvt_thread_mutex_lock( &put_mutex );
 		ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
 		if ( put_rc ) {
-			ldap_pvt_thread_mutex_unlock( &put_mutex );
 			break;
 		}
 
@@ -77,7 +76,6 @@ static void *do_put(void *ptr)
 				entry_free( e );
 				if ( continuemode ) continue;
 				put_rc = EXIT_FAILURE;
-				ldap_pvt_thread_mutex_unlock( &put_mutex );
 				break;
 			}
 		}
@@ -93,9 +91,9 @@ static void *do_put(void *ptr)
 		}
 
 		entry_free( e );
-		ldap_pvt_thread_mutex_unlock( &put_mutex );
 
 	} while (1);
+	ldap_pvt_thread_mutex_unlock( &put_mutex );
 }
 
 int
@@ -401,10 +399,12 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( use_thread ) {
-		put_rc = EXIT_FAILURE;
-		ldap_pvt_thread_mutex_lock( &put_mutex );
-		ldap_pvt_thread_cond_signal( &put_cond );
-		ldap_pvt_thread_mutex_unlock( &put_mutex );
+		if ( !put_rc ) {
+			put_rc = EXIT_FAILURE;
+			ldap_pvt_thread_mutex_lock( &put_mutex );
+			ldap_pvt_thread_cond_signal( &put_cond );
+			ldap_pvt_thread_mutex_unlock( &put_mutex );
+		}
 		ldap_pvt_thread_join( put_tid, NULL );
 	}
 
@@ -412,7 +412,7 @@ slapadd( int argc, char **argv )
 	bvtext.bv_val = textbuf;
 	bvtext.bv_val[0] = '\0';
 
-	if ( update_ctxcsn && !dryrun && maxcsn.bv_len ) {
+	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && maxcsn.bv_len ) {
 		ctxcsn_id = be->be_dn2id_get( be, be->be_nsuffix );
 		if ( ctxcsn_id == NOID ) {
 			fprintf( stderr, "%s: context entry is missing\n", progname );
