@@ -232,8 +232,8 @@ presence_candidates(
 	rc = bdb_key_read( be, db, NULL, &prefix, ids );
 
 	if( rc == DB_NOTFOUND ) {
+		BDB_IDL_ZERO( ids );
 		rc = 0;
-
 	} else if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presense_candidates: key read failed (%d)\n",
@@ -319,7 +319,10 @@ equality_candidates(
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
-		if( rc != LDAP_SUCCESS ) {
+		if( rc == DB_NOTFOUND ) {
+			BDB_IDL_ZERO( ids );
+			rc = 0;
+		} else if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_equality_candidates key read failed (%d)\n",
 				rc, 0, 0 );
@@ -424,7 +427,11 @@ approx_candidates(
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
-		if( rc != LDAP_SUCCESS ) {
+		if( rc == DB_NOTFOUND ) {
+			BDB_IDL_ZERO( ids );
+			rc = 0;
+			break;
+		} else if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates key read failed (%d)\n",
 				rc, 0, 0 );
 			break;
@@ -523,7 +530,11 @@ substring_candidates(
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
-		if( rc != LDAP_SUCCESS ) {
+		if( rc == DB_NOTFOUND ) {
+			BDB_IDL_ZERO( ids );
+			rc = 0;
+			break;
+		} else if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates key read failed (%d)\n",
 				rc, 0, 0 );
 			break;
