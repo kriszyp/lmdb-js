@@ -850,7 +850,7 @@ acl_mask(
 			 * to first check b->a_access_mask, the ACL's access level.
 			 */
 
-			if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+			if( op->o_ndn.bv_len == 0 ) {
 				continue;
 			}
 
@@ -1521,7 +1521,7 @@ aci_group_member (
 	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
 		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, conn, op, e, grpdn, op->o_ndn, grp_oc, grp_ad) == 0);
+			rc = (backend_group(be, conn, op, e, grpdn, op->o_ndn.bv_val, grp_oc, grp_ad) == 0);
 		}
 	}
 
@@ -1599,14 +1599,14 @@ aci_mask(
 			return(0);
 		rc = 1;
 		if ( dn_normalize(subjdn) != NULL )
-			if (strcasecmp(op->o_ndn, subjdn) != 0)
+			if (strcasecmp(op->o_ndn.bv_val, subjdn) != 0)
 				rc = 0;
 		ch_free(subjdn);
 		return(rc);
 	}
 
 	if (aci_strbvcmp( "self", &bv ) == 0) {
-		if (strcasecmp(op->o_ndn, e->e_ndn) == 0)
+		if (strcmp(op->o_ndn.bv_val, e->e_ndn) == 0)
 			return(1);
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
@@ -1624,8 +1624,7 @@ aci_mask(
 
 		rc = 0;
 
-		bv.bv_val = op->o_ndn;
-		bv.bv_len = strlen( bv.bv_val );
+		bv = op->o_ndn;
 
 		for(at = attrs_find( e->e_attrs, ad );
 			at != NULL;
