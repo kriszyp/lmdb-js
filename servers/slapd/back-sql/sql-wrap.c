@@ -253,8 +253,9 @@ backsql_FreeRow( BACKSQL_ROW_NTS *row )
 }
 
 static int
-backsql_cmp_connid( backsql_db_conn *c1, backsql_db_conn *c2 )
+backsql_cmp_connid( const void *v_c1, const void *v_c2 )
 {
+	const backsql_db_conn *c1 = v_c1, *c2 = v_c2;
 	if ( c1->ldap_cid > c2->ldap_cid ) {
 		return 1;
 	}
@@ -390,7 +391,7 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(): "
 		"connected, adding to tree\n", 0, 0, 0 );
 	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	avl_insert( &si->db_conns, dbc, (AVL_CMP)backsql_cmp_connid, NULL );
+	avl_insert( &si->db_conns, dbc, backsql_cmp_connid, NULL );
 	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn()\n", 0, 0, 0 );
 
@@ -408,8 +409,7 @@ backsql_free_db_conn( Backend *be, Connection *ldapc )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
 	tmp.ldap_cid = ldapc->c_connid;
 	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	conn = (backsql_db_conn *)avl_delete( &si->db_conns, &tmp,
-			(AVL_CMP)backsql_cmp_connid );
+	conn = avl_delete( &si->db_conns, &tmp, backsql_cmp_connid );
 	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
 
 	/*
@@ -444,8 +444,7 @@ backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 	 * we have one thread per connection, as I understand -- 
 	 * so we do not need locking here
 	 */
-	dbc = (backsql_db_conn *)avl_find( si->db_conns, &tmp,
-			(AVL_CMP)backsql_cmp_connid );
+	dbc = avl_find( si->db_conns, &tmp, backsql_cmp_connid );
 	if ( !dbc ) {
 		rc = backsql_open_db_conn( si, ldapc->c_connid, &dbc );
 		if ( rc != LDAP_SUCCESS) {

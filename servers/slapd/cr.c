@@ -28,9 +28,11 @@ static ContentRule *cr_list = NULL;
 
 static int
 cr_index_cmp(
-    struct cindexrec	*cir1,
-    struct cindexrec	*cir2 )
+    const void	*v_cir1,
+    const void	*v_cir2 )
 {
+	const struct cindexrec	*cir1 = v_cir1;
+	const struct cindexrec	*cir2 = v_cir2;
 	int i = cir1->cir_name.bv_len - cir2->cir_name.bv_len;
 	if (i)
 		return i;
@@ -39,9 +41,11 @@ cr_index_cmp(
 
 static int
 cr_index_name_cmp(
-    struct berval	*name,
-    struct cindexrec	*cir )
+    const void	*v_name,
+    const void	*v_cir )
 {
+	const struct berval    *name = v_name;
+	const struct cindexrec *cir  = v_cir;
 	int i = name->bv_len - cir->cir_name.bv_len;
 	if (i)
 		return i;
@@ -64,8 +68,7 @@ cr_bvfind( struct berval *crname )
 {
 	struct cindexrec	*cir;
 
-	cir = (struct cindexrec *) avl_find( cr_index, crname,
-            (AVL_CMP) cr_index_name_cmp );
+	cir = avl_find( cr_index, crname, cr_index_name_cmp );
 
 	if ( cir != NULL ) {
 		return( cir->cir_cr );
@@ -118,8 +121,7 @@ cr_insert(
 		assert( cir->cir_cr );
 
 		if ( avl_insert( &cr_index, (caddr_t) cir,
-				 (AVL_CMP) cr_index_cmp,
-				 (AVL_DUP) avl_dup_error ) )
+		                 cr_index_cmp, avl_dup_error ) )
 		{
 			*err = scr->scr_oid;
 			ldap_memfree(cir);
@@ -142,8 +144,7 @@ cr_insert(
 			assert( cir->cir_cr );
 
 			if ( avl_insert( &cr_index, (caddr_t) cir,
-					 (AVL_CMP) cr_index_cmp,
-					 (AVL_DUP) avl_dup_error ) )
+			                 cr_index_cmp, avl_dup_error ) )
 			{
 				*err = *names;
 				ldap_memfree(cir);

@@ -53,10 +53,12 @@ static AttributeType *attr_list = NULL;
 
 static int
 attr_index_cmp(
-    struct aindexrec	*air1,
-    struct aindexrec	*air2
+    const void	*v_air1,
+    const void	*v_air2
 )
 {
+	const struct aindexrec	*air1 = v_air1;
+	const struct aindexrec	*air2 = v_air2;
 	int i = air1->air_name.bv_len - air2->air_name.bv_len;
 	if (i)
 		return i;
@@ -65,10 +67,12 @@ attr_index_cmp(
 
 static int
 attr_index_name_cmp(
-    struct berval	*type,
-    struct aindexrec	*air
+    const void	*v_type,
+    const void	*v_air
 )
 {
+    const struct berval    *type = v_type;
+    const struct aindexrec *air  = v_air;
 	int i = type->bv_len - air->air_name.bv_len;
 	if (i)
 		return i;
@@ -96,8 +100,7 @@ at_bvfind(
 {
 	struct aindexrec *air;
 
-	air = (struct aindexrec *) avl_find( attr_index, name,
-            (AVL_CMP) attr_index_name_cmp );
+	air = avl_find( attr_index, name, attr_index_name_cmp );
 
 	return air != NULL ? air->air_at : NULL;
 }
@@ -267,8 +270,7 @@ at_insert(
 		air->air_name.bv_len = strlen(sat->sat_oid);
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
-				 (AVL_CMP) attr_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+		                 attr_index_cmp, avl_dup_error ) ) {
 			*err = sat->sat_oid;
 			ldap_memfree(air);
 			return SLAP_SCHERR_ATTR_DUP;
@@ -285,8 +287,7 @@ at_insert(
 			air->air_name.bv_len = strlen(*names);
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
-					 (AVL_CMP) attr_index_cmp,
-					 (AVL_DUP) avl_dup_error ) ) {
+			                 attr_index_cmp, avl_dup_error ) ) {
 				*err = *names;
 				ldap_memfree(air);
 				return SLAP_SCHERR_ATTR_DUP;
@@ -567,9 +568,9 @@ at_add(
 
 #ifdef LDAP_DEBUG
 static int
-at_index_printnode( struct aindexrec *air )
+at_index_printnode( void *v_air, void *ignore )
 {
-
+	struct aindexrec *air = v_air;
 	printf("%s = %s\n",
 		air->air_name.bv_val,
 		ldap_attributetype2str(&air->air_at->sat_atype) );
@@ -580,8 +581,7 @@ static void
 at_index_print( void )
 {
 	printf("Printing attribute type index:\n");
-	(void) avl_apply( attr_index, (AVL_APPLY) at_index_printnode,
-		0, -1, AVL_INORDER );
+	(void) avl_apply( attr_index, at_index_printnode, 0, -1, AVL_INORDER );
 }
 #endif
 

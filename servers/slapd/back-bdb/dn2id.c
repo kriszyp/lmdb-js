@@ -622,28 +622,32 @@ node_find_cmp(
 
 static int
 node_frdn_cmp(
-	struct berval *nrdn,
-	idNode *n
+	const void *v_nrdn,
+	const void *v_n
 )
 {
+	const struct berval *nrdn = v_nrdn;
+	const idNode *n = v_n;
 	return ber_bvcmp(nrdn, &n->i_rdn->nrdn);
 }
 
 static int
 node_add_cmp(
-	idNode *a,
-	idNode *b
+	const void *v_a,
+	const void *v_b
 )
 {
+	const idNode *a = v_a, *b = v_b;
 	return a->i_id - b->i_id;
 }
 
 static int
 node_rdn_cmp(
-	idNode *a,
-	idNode *b
+	const void *v_a,
+	const void *v_b
 )
 {
+	const idNode *a = v_a, *b = v_b;
 	/* should be slightly better without ordering drawbacks */
 	return ber_bvcmp(&a->i_rdn->nrdn, &b->i_rdn->nrdn);
 }
@@ -661,15 +665,17 @@ idNode * bdb_find_rdn_node(
 	Avlnode *tree
 )
 {
-	return avl_find(tree, (const void *)nrdn, (AVL_CMP)node_frdn_cmp);
+	return avl_find(tree, nrdn, node_frdn_cmp);
 }
 
 /* This function links a node into its parent's i_kids tree. */
-int bdb_insert_kid(
-	idNode *a,
-	Avlnode *tree
+static int bdb_insert_kid(
+	void *v_a,
+	void *v_tree
 )
 {
+	idNode *a = v_a;
+	Avlnode *tree = v_tree;
 	int rc;
 
 	if (a->i_rdn->parent == 0)
@@ -679,7 +685,7 @@ int bdb_insert_kid(
 		return -1;
 	ldap_pvt_thread_rdwr_wlock(&a->i_parent->i_kids_rdwr);
 	rc = avl_insert( &a->i_parent->i_kids, (caddr_t) a,
-		(AVL_CMP)node_rdn_cmp, (AVL_DUP) avl_dup_error );
+	                 node_rdn_cmp, avl_dup_error );
 	ldap_pvt_thread_rdwr_wunlock(&a->i_parent->i_kids_rdwr);
 	return rc;
 }
@@ -701,8 +707,7 @@ idNode *bdb_add_node(
 	node->i_rdn->rdn.bv_val += (long)d;
 	node->i_rdn->nrdn.bv_val += (long)d;
 	ldap_pvt_thread_rdwr_init(&node->i_kids_rdwr);
-	avl_insert( &bdb->bi_tree, (caddr_t) node,
-			(AVL_CMP)node_add_cmp, (AVL_DUP) avl_dup_error );
+	avl_insert( &bdb->bi_tree, (caddr_t) node, node_add_cmp, avl_dup_error );
 	if (id == 1)
 		bdb->bi_troot = node;
 	return node;
@@ -741,7 +746,7 @@ int bdb_build_tree(
 	}
 	cursor->c_close( cursor );
 
-	rc = avl_apply(bdb->bi_tree, (AVL_APPLY)bdb_insert_kid, bdb->bi_tree,
+	rc = avl_apply(bdb->bi_tree, bdb_insert_kid, bdb->bi_tree,
 		-1, AVL_INORDER );
 
 	return rc;
@@ -880,8 +885,7 @@ bdb_dn2id_delete(
 	if (n) {
 		if (n->i_parent) {
 			ldap_pvt_thread_rdwr_wlock(&n->i_parent->i_kids_rdwr);
-			avl_delete(&n->i_parent->i_kids, &n->i_rdn->nrdn,
-				(AVL_CMP)node_frdn_cmp);
+			avl_delete(&n->i_parent->i_kids, &n->i_rdn->nrdn, node_frdn_cmp);
 			ldap_pvt_thread_rdwr_wunlock(&n->i_parent->i_kids_rdwr);
 		}
 		free(n->i_rdn);
@@ -986,26 +990,29 @@ bdb_dn2id_children(
  */
 static int
 insert_one(
-	idNode *n,
-	ID *ids
+	void *v_n,
+	void *v_ids
 )
 {
+	idNode *n = v_n;
+	ID *ids = v_ids;
 	return bdb_idl_insert(ids, n->i_id);
 }
 
 static int
 insert_sub(
-	idNode *n,
-	ID *ids
+	void *v_n,
+	void *v_ids
 )
 {
+	idNode *n = v_n;
+	ID *ids = v_ids;
 	int rc;
 
 	rc = bdb_idl_insert(ids, n->i_id);
 	if (rc == 0) {
 		ldap_pvt_thread_rdwr_rlock(&n->i_kids_rdwr);
-		rc = avl_apply(n->i_kids, (AVL_APPLY)insert_sub, ids, -1,
-			AVL_INORDER);
+		rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
 		ldap_pvt_thread_rdwr_runlock(&n->i_kids_rdwr);
 	}
 	return rc;
@@ -1038,11 +1045,9 @@ bdb_dn2idl(
 	ids[0] = 0;
 	ldap_pvt_thread_rdwr_rlock(&n->i_kids_rdwr);
 	if (prefix == DN_ONE_PREFIX) {
-		rc = avl_apply(n->i_kids, (AVL_APPLY)insert_one, ids, -1,
-			AVL_INORDER);
+		rc = avl_apply(n->i_kids, insert_one, ids, -1, AVL_INORDER);
 	} else {
-		rc = avl_apply(n->i_kids, (AVL_APPLY)insert_sub, ids, -1,
-			AVL_INORDER);
+		rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
 	}
 	ldap_pvt_thread_rdwr_runlock(&n->i_kids_rdwr);
 	return rc;

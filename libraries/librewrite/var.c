@@ -173,9 +173,10 @@ rewrite_var_set(
  */
 static void 
 rewrite_var_free(
-                struct rewrite_var *var
+		void *v_var
 )
 {
+	struct rewrite_var *var = v_var;
 	assert( var != NULL );
 
 	assert( var->lv_name != NULL );
@@ -193,7 +194,7 @@ rewrite_var_delete(
 		Avlnode *tree
 )
 {
-	avl_free( tree, ( AVL_FREE )rewrite_var_free );
+	avl_free( tree, rewrite_var_free );
 	return REWRITE_SUCCESS;
 }
 

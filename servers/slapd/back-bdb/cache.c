@@ -491,7 +491,7 @@ bdb_cache_add_entry_rw(
 	}
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
-		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
+	                 entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		/* free cache write lock */
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
@@ -513,7 +513,7 @@ bdb_cache_add_entry_rw(
 
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
@@ -527,7 +527,7 @@ bdb_cache_add_entry_rw(
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-			(AVL_CMP) entry_dn_cmp ) == NULL )
+		                 entry_dn_cmp ) == NULL )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( CACHE, INFO, 
@@ -554,7 +554,7 @@ bdb_cache_add_entry_rw(
 	case DB_LOCK_NOTGRANTED :
 		/* undo avl changes immediately */
 		if ( avl_delete( &cache->c_idtree, (caddr_t) e,
-			(AVL_CMP) entry_id_cmp ) == NULL ) {
+		                 entry_id_cmp ) == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CACHE, INFO, 
 				"bdb_cache_add_entry: can't delete (%s) from cache.\n", 
@@ -564,7 +564,7 @@ bdb_cache_add_entry_rw(
 #endif
 		}
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-				(AVL_CMP) entry_dn_cmp ) == NULL ) {
+		                 entry_dn_cmp ) == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CACHE, INFO, 
 				"bdb_cache_add_entry: can't delete (%s) from cache.\n", 
@@ -653,7 +653,7 @@ bdb_cache_update_entry(
 	assert( e->e_private );
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
-		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
+	                 entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
@@ -672,7 +672,7 @@ bdb_cache_update_entry(
 
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
@@ -686,7 +686,7 @@ bdb_cache_update_entry(
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-			(AVL_CMP) entry_dn_cmp ) == NULL )
+		                 entry_dn_cmp ) == NULL )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( CACHE, INFO, 
@@ -774,7 +774,7 @@ try_again:
 	ldap_pvt_thread_rdwr_rlock( &cache->c_rwlock );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
-		(AVL_CMP) entry_dn_cmp )) != NULL )
+	                               entry_dn_cmp )) != NULL )
 	{
 		int state;
 		count++;
@@ -874,7 +874,7 @@ try_again:
 	ldap_pvt_thread_rdwr_rlock( &cache->c_rwlock );
 
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
-		(AVL_CMP) entry_id_cmp )) != NULL )
+	                               entry_id_cmp )) != NULL )
 	{
 		int state;
 		ID	ep_id;
@@ -1029,15 +1029,13 @@ bdb_cache_delete_entry_internal(
 	int rc = 0;	/* return code */
 
 	/* dn tree */
-	if ( avl_delete( &cache->c_dntree, (caddr_t) e, (AVL_CMP) entry_dn_cmp )
-		== NULL )
+	if ( avl_delete( &cache->c_dntree, (caddr_t) e, entry_dn_cmp ) == NULL )
 	{
 		rc = -1;
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, (caddr_t) e, (AVL_CMP) entry_id_cmp )
-		== NULL )
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
 	{
 		rc = -1;
 	}

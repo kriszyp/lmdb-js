@@ -45,8 +45,9 @@
 } while ( 0 )
 
 static int
-bdb_idl_entry_cmp( bdb_idl_cache_entry_t* idl1, bdb_idl_cache_entry_t* idl2 )
+bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
 {
+	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;
 	int rc;
 
 	if ((rc = idl1->db - idl2->db )) return rc;
@@ -333,7 +334,8 @@ bdb_idl_fetch_key(
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
-		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
 			BDB_IDL_CPY( ids, matched_idl_entry->idl );
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
@@ -469,7 +471,8 @@ bdb_idl_fetch_key(
 		BDB_IDL_CPY( ee->idl, ids );
 		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
-		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp, avl_dup_error )) {
+		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
+		                 bdb_idl_entry_cmp, avl_dup_error )) {
 			free( ee->kstr.bv_val );
 			free( ee->idl );
 			free( ee );
@@ -479,7 +482,8 @@ bdb_idl_fetch_key(
 				int i = 0;
 				while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
 					ee = bdb->bi_idl_lru_tail;
-					avl_delete( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp );
+					avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
+					            bdb_idl_entry_cmp );
 					IDL_LRU_DELETE( bdb, ee );
 					i++;
 					--bdb->bi_idl_cache_size;
@@ -533,9 +537,11 @@ bdb_idl_insert_key(
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
-		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
-			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry, (AVL_CMP) bdb_idl_entry_cmp );
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+			            bdb_idl_entry_cmp );
 			--bdb->bi_idl_cache_size;
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			free( matched_idl_entry->kstr.bv_val );
@@ -743,9 +749,11 @@ bdb_idl_delete_key(
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
-		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp, (AVL_CMP) bdb_idl_entry_cmp );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
-			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry, (AVL_CMP) bdb_idl_entry_cmp );
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+			            bdb_idl_entry_cmp );
 			--bdb->bi_idl_cache_size;
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			free( matched_idl_entry->kstr.bv_val );

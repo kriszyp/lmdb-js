@@ -131,9 +131,10 @@ ldap_back_db_init(
 
 static void
 conn_free( 
-	struct ldapconn *lc
+	void *v_lc
 )
 {
+	struct ldapconn *lc = v_lc;
 	ldap_unbind( lc->ld );
 	if ( lc->bound_dn.bv_val ) {
 		ch_free( lc->bound_dn.bv_val );
@@ -145,8 +146,9 @@ conn_free(
 }
 
 void
-mapping_free ( struct ldapmapping *mapping )
+mapping_free( void *v_mapping )
 {
+	struct ldapmapping *mapping = v_mapping;
 	ch_free( mapping->src.bv_val );
 	ch_free( mapping->dst.bv_val );
 	ch_free( mapping );
@@ -177,7 +179,7 @@ ldap_back_db_destroy(
 			li->bindpw = NULL;
 		}
                 if (li->conntree) {
-			avl_free( li->conntree, (AVL_FREE) conn_free );
+			avl_free( li->conntree, conn_free );
 		}
 #ifdef ENABLE_REWRITE
 		if (li->rwinfo) {
@@ -190,9 +192,9 @@ ldap_back_db_destroy(
 #endif /* !ENABLE_REWRITE */
 
 		avl_free( li->oc_map.remap, NULL );
-		avl_free( li->oc_map.map, (AVL_FREE) mapping_free );
+		avl_free( li->oc_map.map, mapping_free );
 		avl_free( li->at_map.remap, NULL );
-		avl_free( li->at_map.map, (AVL_FREE) mapping_free );
+		avl_free( li->at_map.map, mapping_free );
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );

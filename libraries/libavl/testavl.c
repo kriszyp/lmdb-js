@@ -18,6 +18,7 @@
 
 static void ravl_print LDAP_P(( Avlnode *root, int depth ));
 static void myprint LDAP_P(( Avlnode *root ));
+static int avl_strcmp LDAP_P(( const void *s, const void *t ));
 
 int
 main( int argc, char **argv )
@@ -54,7 +55,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( (p = (char *) avl_find( tree, name, (AVL_CMP) strcmp ))
+			if ( (p = (char *) avl_find( tree, name, avl_strcmp ))
 			    == NULL )
 				printf( "Not found.\n\n" );
 			else
@@ -65,7 +66,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( avl_insert( &tree, strdup( name ), (AVL_CMP) strcmp, 
+			if ( avl_insert( &tree, strdup( name ), avl_strcmp, 
 			    avl_dup_error ) != 0 )
 				printf( "\nNot inserted!\n" );
 			break;
@@ -74,7 +75,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( avl_delete( &tree, name, (AVL_CMP) strcmp ) == NULL )
+			if ( avl_delete( &tree, name, avl_strcmp ) == NULL )
 				printf( "\nNot found!\n" );
 			break;
 		case 'q':	/* quit */
@@ -118,4 +119,9 @@ static void myprint( Avlnode *root )
 		ravl_print( root, 0 );
 
 	printf( "********\n" );
+}
+
+static int avl_strcmp( const void *s, const void *t )
+{
+	return strcmp( s, t );
 }

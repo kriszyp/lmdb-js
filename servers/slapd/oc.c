@@ -119,9 +119,10 @@ static ObjectClass *oc_list = NULL;
 
 static int
 oc_index_cmp(
-    struct oindexrec	*oir1,
-    struct oindexrec	*oir2 )
+	const void *v_oir1,
+	const void *v_oir2 )
 {
+	const struct oindexrec *oir1 = v_oir1, *oir2 = v_oir2;
 	int i = oir1->oir_name.bv_len - oir2->oir_name.bv_len;
 	if (i)
 		return i;
@@ -130,9 +131,11 @@ oc_index_cmp(
 
 static int
 oc_index_name_cmp(
-    struct berval	*name,
-    struct oindexrec	*oir )
+	const void *v_name,
+	const void *v_oir )
 {
+	const struct berval    *name = v_name;
+	const struct oindexrec *oir  = v_oir;
 	int i = name->bv_len - oir->oir_name.bv_len;
 	if (i)
 		return i;
@@ -155,8 +158,7 @@ oc_bvfind( struct berval *ocname )
 {
 	struct oindexrec	*oir;
 
-	oir = (struct oindexrec *) avl_find( oc_index, ocname,
-            (AVL_CMP) oc_index_name_cmp );
+	oir = avl_find( oc_index, ocname, oc_index_name_cmp );
 
 	if ( oir != NULL ) {
 		return( oir->oir_oc );
@@ -360,8 +362,7 @@ oc_insert(
 		assert( oir->oir_oc );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
-				 (AVL_CMP) oc_index_cmp,
-				 (AVL_DUP) avl_dup_error ) )
+		                 oc_index_cmp, avl_dup_error ) )
 		{
 			*err = soc->soc_oid;
 			ldap_memfree(oir);
@@ -384,8 +385,7 @@ oc_insert(
 			assert( oir->oir_oc );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
-					 (AVL_CMP) oc_index_cmp,
-					 (AVL_DUP) avl_dup_error ) )
+			                 oc_index_cmp, avl_dup_error ) )
 			{
 				*err = *names;
 				ldap_memfree(oir);

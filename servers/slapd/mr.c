@@ -27,10 +27,12 @@ static MatchingRuleUse *mru_list = NULL;
 
 static int
 mr_index_cmp(
-    struct mindexrec	*mir1,
-    struct mindexrec	*mir2
+    const void	*v_mir1,
+    const void	*v_mir2
 )
 {
+	const struct mindexrec	*mir1 = v_mir1;
+	const struct mindexrec	*mir2 = v_mir2;
 	int i = mir1->mir_name.bv_len - mir2->mir_name.bv_len;
 	if (i) return i;
 	return (strcmp( mir1->mir_name.bv_val, mir2->mir_name.bv_val ));
@@ -38,10 +40,12 @@ mr_index_cmp(
 
 static int
 mr_index_name_cmp(
-    struct berval	*name,
-    struct mindexrec	*mir
+    const void	*v_name,
+    const void	*v_mir
 )
 {
+	const struct berval    *name = v_name;
+	const struct mindexrec *mir  = v_mir;
 	int i = name->bv_len - mir->mir_name.bv_len;
 	if (i) return i;
 	return (strncmp( name->bv_val, mir->mir_name.bv_val, name->bv_len ));
@@ -62,8 +66,7 @@ mr_bvfind( struct berval *mrname )
 {
 	struct mindexrec	*mir = NULL;
 
-	if ( (mir = (struct mindexrec *) avl_find( mr_index, mrname,
-	    (AVL_CMP) mr_index_name_cmp )) != NULL ) {
+	if ( (mir = avl_find( mr_index, mrname, mr_index_name_cmp )) != NULL ) {
 		return( mir->mir_mr );
 	}
 	return( NULL );
@@ -105,8 +108,7 @@ mr_insert(
 		mir->mir_name.bv_len = strlen( smr->smr_oid );
 		mir->mir_mr = smr;
 		if ( avl_insert( &mr_index, (caddr_t) mir,
-				 (AVL_CMP) mr_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+		                 mr_index_cmp, avl_dup_error ) ) {
 			*err = smr->smr_oid;
 			ldap_memfree(mir);
 			return SLAP_SCHERR_MR_DUP;
@@ -122,8 +124,7 @@ mr_insert(
 			mir->mir_name.bv_len = strlen( *names );
 			mir->mir_mr = smr;
 			if ( avl_insert( &mr_index, (caddr_t) mir,
-					 (AVL_CMP) mr_index_cmp,
-					 (AVL_DUP) avl_dup_error ) ) {
+			                 mr_index_cmp, avl_dup_error ) ) {
 				*err = *names;
 				ldap_memfree(mir);
 				return SLAP_SCHERR_MR_DUP;

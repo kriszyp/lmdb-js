@@ -388,17 +388,19 @@ entry_cmp( Entry *e1, Entry *e2 )
 }
 
 int
-entry_dn_cmp( Entry *e1, Entry *e2 )
+entry_dn_cmp( const void *v_e1, const void *v_e2 )
 {
 	/* compare their normalized UPPERCASED dn's */
+	const Entry *e1 = v_e1, *e2 = v_e2;
 	int rc = e1->e_nname.bv_len - e2->e_nname.bv_len;
 	if (rc) return rc;
 	return( strcmp( e1->e_ndn, e2->e_ndn ) );
 }
 
 int
-entry_id_cmp( Entry *e1, Entry *e2 )
+entry_id_cmp( const void *v_e1, const void *v_e2 )
 {
+	const Entry *e1 = v_e1, *e2 = v_e2;
 	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
 }
 

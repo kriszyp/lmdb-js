@@ -26,20 +26,21 @@ static Syntax *syn_list = NULL;
 
 static int
 syn_index_cmp(
-    struct sindexrec	*sir1,
-    struct sindexrec	*sir2
+	const void *v_sir1,
+	const void *v_sir2
 )
 {
+	const struct sindexrec *sir1 = v_sir1, *sir2 = v_sir2;
 	return (strcmp( sir1->sir_name, sir2->sir_name ));
 }
 
 static int
 syn_index_name_cmp(
-    const char		*name,
-    struct sindexrec	*sir
+	const void *name,
+	const void *sir
 )
 {
-	return (strcmp( name, sir->sir_name ));
+	return (strcmp( name, ((const struct sindexrec *)sir)->sir_name ));
 }
 
 Syntax *
@@ -47,8 +48,7 @@ syn_find( const char *synname )
 {
 	struct sindexrec	*sir = NULL;
 
-	if ( (sir = (struct sindexrec *) avl_find( syn_index, synname,
-	    (AVL_CMP) syn_index_name_cmp )) != NULL ) {
+	if ( (sir = avl_find( syn_index, synname, syn_index_name_cmp )) != NULL ) {
 		return( sir->sir_syn );
 	}
 	return( NULL );
@@ -107,8 +107,7 @@ syn_insert(
 		sir->sir_name = ssyn->ssyn_oid;
 		sir->sir_syn = ssyn;
 		if ( avl_insert( &syn_index, (caddr_t) sir,
-				 (AVL_CMP) syn_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+		                 syn_index_cmp, avl_dup_error ) ) {
 			*err = ssyn->ssyn_oid;
 			ldap_memfree(sir);
 			return SLAP_SCHERR_SYN_DUP;

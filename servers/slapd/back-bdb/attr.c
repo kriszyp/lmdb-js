@@ -23,19 +23,22 @@ typedef struct bdb_attrinfo {
 
 static int
 ainfo_type_cmp(
-	AttributeDescription *desc,
-	AttrInfo	*a
+	const void *v_desc,
+	const void *v_a
 )
 {
+	const AttributeDescription *desc = v_desc;
+	const AttrInfo	*a = v_a;
 	return desc - a->ai_desc;
 }
 
 static int
 ainfo_cmp(
-	AttrInfo	*a,
-	AttrInfo	*b
+	const void	*v_a,
+	const void	*v_b
 )
 {
+	const AttrInfo *a = v_a, *b = v_b;
 	return a->ai_desc - b->ai_desc;
 }
 
@@ -47,8 +50,7 @@ bdb_attr_mask(
 {
 	AttrInfo	*a;
 
-	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc,
-		(AVL_CMP) ainfo_type_cmp );
+	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
 	
 	*indexmask = a != NULL ? a->ai_indexmask : 0;
 }
@@ -194,7 +196,7 @@ bdb_attr_index_config(
 		a->ai_indexmask = mask;
 
 		rc = avl_insert( &bdb->bi_attrs, (caddr_t) a,
-			(AVL_CMP) ainfo_cmp, (AVL_DUP) avl_dup_error );
+		                 ainfo_cmp, avl_dup_error );
 
 		if( rc ) {
 			fprintf( stderr, "%s: line %d: duplicate index definition "

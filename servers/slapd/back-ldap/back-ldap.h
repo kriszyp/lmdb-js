@@ -120,7 +120,7 @@ ldap_back_map_attrs(
 		int remap
 );
 
-extern void mapping_free ( struct ldapmapping *mapping );
+extern void mapping_free ( void *mapping );
 
 #ifdef ENABLE_REWRITE
 extern int suffix_massage_config( struct rewrite_info *info,
