@@ -19,24 +19,35 @@ LDAP_RUNDIR=/var/run
 MANCOMPRESS=gzip
 MANCOMPRESSSUFFIX=.gz
 
-
-# Not sure what PTHREAD different versions of FreeBSD have, if any.
-# Use Make-common defaults (ie: NO_THREADS)
+# On most (if not all) 2.X versions of FreeBSD, Pthread(3) is not
+# installed by default.  As such, -DNO_THREADS is used by default
+# on FreeBSD 2.X.
 #
+# FreeBSD 2.2.5 comes with a Chris Provenzano Pthreads
+# package, # but it must be manually built.  See pthread(3) for details.
+# OpenLDAP is compatible with this version, uncomment the following
+# options:
+#
+#THREADS= -DPOSIX_THREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
+#THREADSLIB= -lc_r
+#
+# Some versions of FreeBSD support the gcc option "-pthread" to
+# link with -lc_r.  On those systems, uncomment the following:
+#THREADSLIB= -pthread
+#
+#
+# If the only thread package available is only Draft 4 compliant,
+# you can try the following:
+#THREADS= -DTHREAD_MIT_PTHREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
+#
+# Note:
 # LDAP has a problem with the idea of implicit vs. explicit yields
 # in call conversion threading packages, like the MIT pthreads
-# package.  Rather than resolve this globally, I have marked the
-# threading as "preeemptive", even though it is technically not.
-#
+# package.  Rather than resolve this globally, I (Terry Lambert) have
+# marked the threading as "preeemptive", even though it is
+# technically not.
 # This means that the implicit-yield threading is topologically
 # equivalent to preemptive threading.
-#
-# This may work... but then again...
-#
-# THREADS= -DTHREAD_MIT_PTHREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
-# use special gcc flag to include libc_r.a
-# THREADSLIB= -pthread
-# THREADSLIB= -lc_r
 
 # crypt(3) is in a separate library
 LDAP_CRYPT_LIB= -lcrypt
