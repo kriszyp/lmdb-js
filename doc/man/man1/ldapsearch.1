@@ -1,4 +1,4 @@
-.TH LDAPSEARCH 1 "20 August 2000" "OpenLDAP LDVERSION"
+.TH LDAPSEARCH 1 "3 October 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -81,17 +81,16 @@ library call.
 .LP
 .B ldapsearch
 opens a connection to an LDAP server, binds, and performs a search
-using the filter \fIfilter\fP.  The \fIfilter\fP should conform to
+using specified parameters.   The \fIfilter\fP should conform to
 the string representation for search filters as defined in RFC 2254.
+If not provided, the default filter, (objectClass=*), is used.
 .LP
 If
-.B ldapsearch
-finds one or more entries, the attributes specified by
-\fIattrs\fP are retrieved and the entries and values are printed to
-standard output.  If no \fIattrs\fP are listed, all attributes are
-returned.  If * is listed, all user attributes are returned.
-If + is listed, all operational attributes are returned.
-If only 1.1 is listed, no attributes are listed.
+.B ldapsearch finds one or more entries, the attributes specified by
+\fIattrs\fP are returned.  If * is listed, all user attributes are
+returned.  If + is listed, all operational attributes are returned.
+If no \fIattrs\fP are listed, all attributes are returned.  If only
+1.1 is listed, no attributes will be returned.
 .SH OPTIONS
 .TP
 .B \-n
