@@ -29,7 +29,7 @@ ldbm_back_add(
 	Entry		*p = NULL;
 	int			rootlock = 0;
 	int			rc; 
-
+	char	*text;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	static AttributeDescription *children = NULL;
 #else
@@ -50,15 +50,17 @@ ldbm_back_add(
 		return( -1 );
 	}
 
-	if ( schema_check_entry( e ) != 0 ) {
+	rc = entry_schema_check( e, NULL, &text );
+
+	if ( rc != LDAP_SUCCESS ) {
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
-		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
-			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
+			text, 0, 0 );
 
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
 		return( -1 );
 	}
 
@@ -121,10 +123,10 @@ ldbm_back_add(
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
 
-			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
+			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "no write access to parent", NULL, NULL );
 
 
 			entry_free( e );
@@ -141,7 +143,7 @@ ldbm_back_add(
 			    0, 0 );
 
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "parent is an alias", NULL, NULL );
 
 			entry_free( e );
 			return -1;
@@ -223,8 +225,8 @@ ldbm_back_add(
 		entry_free( e );
 
 		send_ldap_result( conn, op,
-			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER,
+			NULL, rc > 0 ? NULL : "cache add failed", NULL, NULL );
 
 		return( -1 );
 	}
@@ -240,8 +242,8 @@ ldbm_back_add(
 	if ( index_add_entry( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "index_add_entry failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "index generation failed", NULL, NULL );
 
 		goto return_results;
 	}
@@ -250,8 +252,8 @@ ldbm_back_add(
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "DN index generation failed", NULL, NULL );
 
 		goto return_results;
 	}
@@ -261,8 +263,8 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_TRACE, "id2entry_add failed\n", 0,
 		    0, 0 );
 		(void) dn2id_delete( be, e->e_ndn, e->e_id );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "entry store failed", NULL, NULL );
 
 		goto return_results;
 	}

@@ -36,7 +36,8 @@ int ldbm_modify_internal(
     Entry	*e 
 )
 {
-	int err;
+	int rc, err;
+	char *text;
 	Modification	*mod;
 	Modifications	*ml;
 	Attribute	*save_attrs;
@@ -105,11 +106,13 @@ int ldbm_modify_internal(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* check that the entry still obeys the schema */
-	if ( schema_check_entry( e ) != 0 ) {
+	rc = entry_schema_check( e, save_attrs, &text );
+	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
-		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
+			text, 0, 0 );
+		return rc;
 	}
 
 	/* check for abandon */
@@ -397,7 +400,7 @@ delete_values(
 			Debug( LDAP_DEBUG_ARGS,
 			    "could not find value for attr %s\n",
 			    mod->mod_type, 0, 0 );
-			return( LDAP_NO_SUCH_ATTRIBUTE );
+			return LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	}
 #endif

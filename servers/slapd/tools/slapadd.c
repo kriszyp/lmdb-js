@@ -69,9 +69,10 @@ main( int argc, char **argv )
 
 		if( !noschemacheck ) {
 			/* check schema */
-			if ( schema_check_entry( e ) != 0 ) {
-				fprintf( stderr, "%s: schema violation in entry dn=\"%s\" (line=%d)\n",
-					progname, e->e_dn, lineno );
+			char *text;
+			if ( entry_schema_check( e, NULL, &text ) != LDAP_SUCCESS ) {
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno, text );
 				rc = EXIT_FAILURE;
 				entry_free( e );
 				if( continuemode ) continue;
