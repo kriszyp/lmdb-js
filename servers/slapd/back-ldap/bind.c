@@ -199,7 +199,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		err = avl_insert( &li->conntree, (caddr_t)lc,
 			conn_cmp, conn_dup );
 
-#if 1
+#if 0
 		myprint( li->conntree );
 #endif
 		

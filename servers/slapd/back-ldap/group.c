@@ -43,8 +43,8 @@ ldap_back_group(
 	LDAP *ld;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-	const char *group_oc_name = NULL;
-	const char *group_at_name = group_at->ad_cname->bv_val;
+	char *group_oc_name = NULL;
+	char *group_at_name = group_at->ad_cname->bv_val;
 
 	if( group_oc->soc_names && group_oc->soc_names[0] ) {
 		group_oc_name = group_oc->soc_names[0];
@@ -54,6 +54,7 @@ ldap_back_group(
 
 	if (target != NULL && strcmp(target->e_ndn, gr_ndn) == 0) {
 		/* we already have a copy of the entry */
+		/* attribute and objectclass mapping has already been done */
 		e = target;
 
 		if( is_entry_objectclass( e, group_oc ) ) {
@@ -69,6 +70,13 @@ ldap_back_group(
 			return(1);
 
 	} else {
+		group_oc_name = ldap_back_map(&li->oc_map, group_oc_name, 0);
+		if (group_oc_name == NULL)
+			return(1);
+		group_at_name = ldap_back_map(&li->at_map, group_at_name, 0);
+		if (group_at_name == NULL)
+			return(1);
+
 		filter = ch_malloc(sizeof("(&(objectclass=)(=))")
 							+ strlen(group_oc_name)
 							+ strlen(group_at_name)

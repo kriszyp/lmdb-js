@@ -103,9 +103,23 @@ ldap_back_db_init(
 )
 {
 	struct ldapinfo	*li;
+	struct ldapmapping *mapping;
 
 	li = (struct ldapinfo *) ch_calloc( 1, sizeof(struct ldapinfo) );
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
+
+	mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
+	if ( mapping != NULL ) {
+		mapping->src = ch_strdup("objectclass");
+		mapping->dst = ch_strdup("objectclass");
+		mapping[1].src = mapping->src;
+		mapping[1].dst = mapping->dst;
+
+		avl_insert( &li->at_map.map, (caddr_t)mapping,
+					mapping_cmp, mapping_dup );
+		avl_insert( &li->at_map.remap, (caddr_t)&mapping[1],
+					mapping_cmp, mapping_dup );
+	}
 
 	be->be_private = li;
 
@@ -120,6 +134,14 @@ conn_free(
 	ldap_unbind(lc->ld);
 	if ( lc->bound_dn) free( lc->bound_dn );
 	free( lc );
+}
+
+static void
+mapping_free ( struct ldapmapping *mapping )
+{
+	ch_free( mapping->src );
+	ch_free( mapping->dst );
+	ch_free( mapping );
 }
 
 int
@@ -153,6 +175,11 @@ ldap_back_db_destroy(
                 if (li->conntree) {
 			avl_free( li->conntree, (AVL_FREE) conn_free );
 		}
+
+		avl_free( li->oc_map.remap, NULL );
+		avl_free( li->oc_map.map, (AVL_FREE) mapping_free );
+		avl_free( li->at_map.remap, NULL );
+		avl_free( li->at_map.map, (AVL_FREE) mapping_free );
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );

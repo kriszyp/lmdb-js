@@ -141,7 +141,7 @@ ldap_back_db_config(
                         return( 1 );
 		}
 		
-                dn = ch_strdup( argv[1] );
+		dn = ch_strdup( argv[1] );
 		charray_add( &li->suffix_massage, dn );
 		(void) dn_normalize( dn );
 		charray_add( &li->suffix_massage, dn );
@@ -154,6 +154,92 @@ ldap_back_db_config(
 		free( dn );
 		free( massaged_dn );
 
+	/* objectclass/attribute mapping */
+	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {
+		struct ldapmap *map;
+		struct ldapmapping *mapping;
+		char *src, *dst;
+
+		if ( argc < 3 || argc > 4 ) {
+			fprintf( stderr,
+	"%s: line %d: syntax is \"map {objectclass | attribute} {<source> | *} [<dest> | *]\"\n",
+				fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[1], "objectclass" ) == 0 ) {
+			map = &li->oc_map;
+		} else if ( strcasecmp( argv[1], "attribute" ) == 0 ) {
+			map = &li->at_map;
+		} else {
+			fprintf( stderr,
+	"%s: line %d: syntax is \"map {objectclass | attribute} {<source> | *} [<dest> | *]\"\n",
+				fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[2], "*" ) != 0 ) {
+			src = argv[2];
+			if ( argc < 4 )
+				dst = "";
+			else if ( strcasecmp( argv[3], "*" ) == 0 )
+				dst = src;
+			else
+				dst = argv[3];
+		} else {
+			if ( argc < 4 ) {
+				map->drop_missing = 1;
+				return 0;
+			}
+			if ( strcasecmp( argv[3], "*" ) == 0 ) {
+				map->drop_missing = 0;
+				return 0;
+			}
+
+			src = argv[3];
+			dst = src;
+		}
+
+		if ( ( map == &li->at_map )
+			&& ( strcasecmp( src, "objectclass" ) == 0
+				|| strcasecmp( dst, "objectclass" ) == 0 ) )
+		{
+			fprintf( stderr,
+				"%s: line %d: objectclass attribute cannot be mapped\n",
+				fname, lineno );
+		}
+
+		mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
+		if ( mapping == NULL ) {
+			fprintf( stderr,
+				"%s: line %d: out of memory\n",
+				fname, lineno );
+			return( 1 );
+		}
+		mapping->src = ch_strdup(src);
+		mapping->dst = ch_strdup(dst);
+		if ( *dst != 0 ) {
+			mapping[1].src = mapping->dst;
+			mapping[1].dst = mapping->src;
+		} else {
+			mapping[1].src = mapping->src;
+			mapping[1].dst = mapping->dst;
+		}
+
+		if ( avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL
+			|| avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
+		{
+			fprintf( stderr,
+				"%s: line %d: duplicate mapping found (ignored)\n",
+				fname, lineno );
+			return 0;
+		}
+
+		avl_insert( &map->map, (caddr_t)mapping,
+					mapping_cmp, mapping_dup );
+		avl_insert( &map->remap, (caddr_t)&mapping[1],
+					mapping_cmp, mapping_dup );
+
 	/* anything else */
 	} else {
 		fprintf( stderr,
@@ -162,3 +248,160 @@ ldap_back_db_config(
 	}
 	return 0;
 }
+
+int
+mapping_cmp ( const void *c1, const void *c2 )
+{
+	struct ldapmapping *map1 = (struct ldapmapping *)c1;
+	struct ldapmapping *map2 = (struct ldapmapping *)c2;
+
+	return ( strcasecmp(map1->src, map2->src) );
+}
+
+int
+mapping_dup ( void *c1, void *c2 )
+{
+	struct ldapmapping *map1 = (struct ldapmapping *)c1;
+	struct ldapmapping *map2 = (struct ldapmapping *)c2;
+
+	return( ( strcasecmp(map1->src, map2->src) == 0 ) ? -1 : 0 );
+}
+
+char *
+ldap_back_map ( struct ldapmap *map, char *s, int remap )
+{
+	Avlnode *tree;
+	struct ldapmapping *mapping, fmapping;
+
+	if (remap)
+		tree = map->remap;
+	else
+		tree = map->map;
+
+	fmapping.src = s;
+	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
+	if (mapping != NULL) {
+		if ( *mapping->dst == 0 )
+			return(NULL);
+		return(mapping->dst);
+	}
+
+	if (map->drop_missing)
+		return(NULL);
+
+	return(s);
+}
+
+char *
+ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap )
+{
+	char *nf, *m, *p, *q, *s, c;
+	int len, extra, plen, in_quote;
+
+	if (f == NULL)
+		return(NULL);
+
+	len = strlen(f);
+	extra = len;
+	len *= 2;
+	nf = ch_malloc( len + 1 );
+	if (nf == NULL)
+		return(NULL);
+
+	/* this loop assumes the filter ends with one
+	 * of the delimiter chars -- probably ')'.
+	 */
+
+	s = nf;
+	q = NULL;
+	in_quote = 0;
+	for (p = f; c = *p; p++) {
+		if (c == '"') {
+			in_quote = !in_quote;
+			if (q != NULL) {
+				plen = p - q;
+				memcpy(s, q, plen);
+				s += plen;
+				q = NULL;
+			}
+			*s++ = c;
+		} else if (in_quote) {
+			/* ignore everything in quotes --
+			 * what about attrs in DNs?
+			 */
+			*s++ = c;
+		} else if (c != '(' && c != ')'
+			&& c != '=' && c != '>' && c != '<'
+			&& c != '|' && c != '&')
+		{
+			if (q == NULL)
+				q = p;
+		} else {
+			if (q != NULL) {
+				*p = 0;
+				m = ldap_back_map(&li->at_map, q, remap);
+				if (m == NULL)
+					m = ldap_back_map(&li->oc_map, q, remap);
+				if (m == NULL) {
+					m = q;
+				}
+				extra += p - q;
+				plen = strlen(m);
+				extra -= plen;
+				if (extra < 0) {
+					while (extra < 0) {
+						extra += len;
+						len *= 2;
+					}
+					s -= (long)nf;
+					nf = ch_realloc(nf, len + 1);
+					if (nf == NULL) {
+						free(nf);
+						return(NULL);
+					}
+					s += (long)nf;
+				}
+				memcpy(s, m, plen);
+				s += plen;
+				*p = c;
+				q = NULL;
+			}
+			*s++ = c;
+		}
+	}
+	*s = 0;
+	return(nf);
+}
+
+char **
+ldap_back_map_attrs ( struct ldapinfo *li, char **a, int remap )
+{
+	int i, j, count;
+	char **na, *mapped;
+
+	if (a == NULL)
+		return(NULL);
+
+	for (count = 0; a[count] != NULL; count++) {
+		/*  */
+	}
+
+	na = (char **)ch_calloc( count + 1, sizeof(char *) );
+	if (na == NULL)
+		return(NULL);
+
+	for (i = 0, j = 0; i < count; i++) {
+		mapped = ldap_back_map(&li->at_map, a[i], remap);
+		if (mapped != NULL) {
+			mapped = ch_strdup(mapped);
+			if (mapped == NULL) {
+				charray_free(na);
+				return(NULL);
+			}
+			na[j] = mapped;
+			j++;
+		}
+	}
+	return(na);
+}
+

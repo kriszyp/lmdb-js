@@ -61,8 +61,7 @@ ldap_back_modify(
 	LDAPMod *mods;
 	Modifications *ml;
 	int i;
-
-	char *mdn;
+	char *mdn, *mapped;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, op ) ) {
@@ -86,16 +85,17 @@ ldap_back_modify(
 		return( -1 );
 	}
 
-	modv[i] = 0;
-
-	for (i=0, ml=modlist; ml; i++, ml=ml->sml_next) {
-		modv[i] = &mods[i];
-		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
-		mods[i].mod_type = ml->sml_desc->ad_cname->bv_val;
-		mods[i].mod_bvalues = ml->sml_bvalues;
+	for (i=0, ml=modlist; ml; ml=ml->sml_next) {
+		mapped = ldap_back_map(&li->at_map, ml->sml_desc->ad_cname->bv_val, 0);
+		if (mapped != NULL) {
+			modv[i] = &mods[i];
+			mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
+			mods[i].mod_type = mapped;
+			mods[i].mod_bvalues = ml->sml_bvalues;
+			i++;
+		}
 	}
-
-	
+	modv[i] = 0;
 
 	ldap_modify_s( lc->ld, mdn, modv );
 	free( mdn );

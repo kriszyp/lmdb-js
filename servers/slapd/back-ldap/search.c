@@ -70,10 +70,9 @@ ldap_back_search(
 	struct ldapconn *lc;
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
-	int			i, rc, msgid, sres = LDAP_SUCCESS; 
+	int	count, rc, msgid, sres = LDAP_SUCCESS; 
 	char *match = NULL, *err = NULL;
-
-	char *mbase;
+	char *mbase, *mapped_filter, **mapped_attrs;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc ) {
@@ -96,17 +95,41 @@ ldap_back_search(
 		return -1;
 	}
 
-	if ((msgid = ldap_search(lc->ld, mbase, scope, filterstr, attrs,
+	mapped_filter = ldap_back_map_filter(li, (char *)filterstr, 0);
+	if ( mapped_filter == NULL ) {
+		mapped_filter = (char *)filterstr;
+	}
+
+	mapped_attrs = ldap_back_map_attrs(li, attrs, 0);
+	if ( mapped_attrs == NULL ) {
+		mapped_attrs = attrs;
+	}
+
+	if ((msgid = ldap_search(lc->ld, mbase, scope, mapped_filter, mapped_attrs,
 		attrsonly)) == -1)
-fail:		return( ldap_back_op_result(lc, op) );
+	{
+fail:
+		if (match)
+			free(match);
+		if (err)
+			free(err);
+		if (mapped_attrs != attrs)
+			charray_free(mapped_attrs);
+		if (mapped_filter != filterstr)
+			free(mapped_filter);
+		free(mbase);
+		return( ldap_back_op_result(lc, op) );
+	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
 	 * let send_search_entry stuff it back into ber format. Slow & ugly,
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 	
-	for (i=0, rc=0; rc != -1;
-		rc = ldap_result(lc->ld, LDAP_RES_ANY, 0, &tv, &res)) {
+	for (	count=0, rc=0;
+			rc != -1;
+			rc = ldap_result(lc->ld, LDAP_RES_ANY, 0, &tv, &res))
+	{
 		int ab;
 
 		/* check for abandon */
@@ -116,15 +139,16 @@ fail:		return( ldap_back_op_result(lc, op) );
 
 		if (ab) {
 			ldap_abandon(lc->ld, msgid);
-		} else if (rc == 0) {
+			goto finish;
+		}
+		if (rc == 0) {
 			tv.tv_sec = 0;
 			tv.tv_usec = 100000;
 			ldap_pvt_thread_yield();
-			continue;
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			e = ldap_first_entry(lc->ld,res);
-			ldap_send_entry(be, op, lc, e, attrs, attrsonly);
-			i++;
+			ldap_send_entry(be, op, lc, e, mapped_attrs, attrsonly);
+			count++;
 			ldap_msgfree(res);
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
@@ -132,24 +156,26 @@ fail:		return( ldap_back_op_result(lc, op) );
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &err);
 			ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 			rc = 0;
-		}
-		if (ab)
-			return (0);
-		else if (rc == 0)
 			break;
+		}
 	}
 
 	if (rc == -1)
 		goto fail;
 
 	send_search_result( conn, op, sres,
-		match, err, NULL, NULL, i );
+		match, err, NULL, NULL, count );
+
+finish:
 	if (match)
 		free(match);
 	if (err)
 		free(err);
-	if (mbase) 
-		free(mbase);
+	if (mapped_attrs != attrs)
+		charray_free(mapped_attrs);
+	if (mapped_filter != filterstr)
+		free(mapped_filter);
+	free(mbase);
 	return( 0 );
 }
 
@@ -164,11 +190,12 @@ ldap_send_entry(
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;
-	char *a;
+	char *a, *mapped;
 	Entry ent;
 	BerElement *ber = NULL;
 	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
+	struct berval *bv;
 	const char *text;
 
 	ent.e_dn = ldap_back_dn_restore( li, ldap_get_dn(lc->ld, e), 0 );
@@ -183,21 +210,47 @@ ldap_send_entry(
 			a != NULL;
 			a = ldap_next_attribute(lc->ld, e, ber))
 	{
+		mapped = ldap_back_map(&li->at_map, a, 1);
+		if (mapped == NULL)
+			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
 		if (attr == NULL)
 			continue;
 		attr->a_next = 0;
 		attr->a_desc = NULL;
-		slap_str2ad(a, &attr->a_desc, &text);
+		if (slap_str2ad(mapped, &attr->a_desc, &text) != LDAP_SUCCESS) {
+			ch_free(attr);
+			continue;
+		}
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
-		if (!attr->a_vals)
+		if (!attr->a_vals) {
 			attr->a_vals = &dummy;
+		} else if ( strcasecmp( mapped, "objectclass" ) == 0 ) {
+			int i, last;
+			for ( last = 0; attr->a_vals[last]; last++ ) ;
+			for ( i = 0; bv = attr->a_vals[i]; i++ ) {
+				mapped = ldap_back_map(&li->oc_map, bv->bv_val, 1);
+				if (mapped == NULL) {
+					ber_bvfree(attr->a_vals[i]);
+					attr->a_vals[i] = NULL;
+					if (--last < 0)
+						break;
+					attr->a_vals[i] = attr->a_vals[last];
+					attr->a_vals[last] = NULL;
+					i--;
+				} else if ( mapped != bv->bv_val ) {
+					ch_free(bv->bv_val);
+					bv->bv_val = ch_strdup( mapped );
+					bv->bv_len = strlen( mapped );
+				}
+			}
+		}
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
 	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, NULL );
-	for (;ent.e_attrs;) {
-		attr=ent.e_attrs;
+	while (ent.e_attrs) {
+		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
 		ad_free(attr->a_desc, 1);
 		if (attr->a_vals != &dummy)

@@ -58,8 +58,7 @@ ldap_back_add(
 	int i;
 	Attribute *a;
 	LDAPMod **attrs;
-
-	char *mdn;
+	char *mdn, *mapped;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, op ) ) {
@@ -77,14 +76,20 @@ ldap_back_add(
 	
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
-	attrs[i-1] = 0;
 
-	for (i=0, a=e->e_attrs; a; i++, a=a->a_next) {
-		attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
-		attrs[i]->mod_op = LDAP_MOD_BVALUES;
-		attrs[i]->mod_type = a->a_desc->ad_cname->bv_val;
-		attrs[i]->mod_vals.modv_bvals = a->a_vals;
+	for (i=0, a=e->e_attrs; a; a=a->a_next) {
+		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname->bv_val, 0);
+		if (mapped != NULL) {
+			attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
+			if (attrs[i] != NULL) {
+				attrs[i]->mod_op = LDAP_MOD_BVALUES;
+				attrs[i]->mod_type = mapped;
+				attrs[i]->mod_vals.modv_bvals = a->a_vals;
+				i++;
+			}
+		}
 	}
+	attrs[i] = NULL;
 
 	ldap_add_s(lc->ld, mdn, attrs);
 	for (--i; i>= 0; --i)

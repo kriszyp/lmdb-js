@@ -52,6 +52,18 @@ struct ldapconn {
 	int		bound;
 };
 
+struct ldapmap {
+	int drop_missing;
+
+	Avlnode *map;
+	Avlnode *remap;
+};
+
+struct ldapmapping {
+	char *src;
+	char *dst;
+};
+
 struct ldapinfo {
 	char *url;
 #if 0 /* unused! */
@@ -62,6 +74,9 @@ struct ldapinfo {
 	char *bindpw;
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	Avlnode *conntree;
+
+	struct ldapmap oc_map;
+	struct ldapmap at_map;
 };
 
 struct ldapconn *ldap_back_getconn(struct ldapinfo *li, struct slap_conn *conn,
@@ -76,7 +91,14 @@ char *ldap_back_dn_restore(struct ldapinfo *li, char *dn, int normalized);
 
 int conn_cmp(const void *, const void *);
 int conn_dup(void *, void *);
-			
+
+int mapping_cmp (const void *, const void *);
+int mapping_dup (void *, void *);
+
+char *ldap_back_map ( struct ldapmap *map, char *s, int remap );
+char *ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap );
+char **ldap_back_map_attrs ( struct ldapinfo *li, char **a, int remap );
+
 LDAP_END_DECL
 
 #endif
