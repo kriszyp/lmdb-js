@@ -112,7 +112,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	if( flags & FLAG_GETDN_AUTHCID ) {
 		if( sasl_external_x509dn_convert && conn->c_sasl_bind_mech
 			&& ( strcasecmp( "EXTERNAL", conn->c_sasl_bind_mech ) == 0 ) 
-			&& len && dn[0] == '/' && dn[len-1]== '/' )
+			&& len && id[0] == '/' /* && id[len-1]== '/' */)
 		{
 			/* check SASL external for X.509 style DN and */
 			/* convert to dn:<dn> form */
@@ -611,7 +611,7 @@ int slap_sasl_bind(
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = conn->c_sasl_context;
 	struct berval response;
-	unsigned reslen;
+	unsigned reslen = 0;
 	const char *errstr;
 	int sc;
 
