@@ -3308,12 +3308,12 @@ else
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef PTHREAD_ONCE_INIT
-			final
+			pthread_version_final
 #		endif
 	
 EOF
 if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  egrep "final" >/dev/null 2>&1; then
+  egrep "pthread_version_final" >/dev/null 2>&1; then
   rm -rf conftest*
   ol_pthread_final=yes
 else
@@ -3330,12 +3330,12 @@ rm -f conftest*
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef pthread_once_init
-			draft4
+			pthread_version_draft4
 #		endif
 	
 EOF
 if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  egrep "draft4" >/dev/null 2>&1; then
+  egrep "pthread_version_draft4" >/dev/null 2>&1; then
   rm -rf conftest*
   ol_pthread_draft4=yes
 else

@@ -295,19 +295,19 @@ dnl		should be tested separately.
 dnl
 AC_DEFUN([OL_POSIX_THREAD_VERSION],
 [AC_CACHE_CHECK([POSIX thread version],[ol_cv_pthread_version],[
-	AC_EGREP_CPP(final,[
+	AC_EGREP_CPP(pthread_version_final,[
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef PTHREAD_ONCE_INIT
-			final
+			pthread_version_final
 #		endif
 	], ol_pthread_final=yes, ol_pthread_final=no)
 
-	AC_EGREP_CPP(draft4,[
+	AC_EGREP_CPP(pthread_version_draft4,[
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef pthread_once_init
-			draft4
+			pthread_version_draft4
 #		endif
 	], ol_pthread_draft4=yes, ol_pthread_draft4=no)
 
