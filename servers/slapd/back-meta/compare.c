@@ -153,8 +153,7 @@ meta_back_compare(
 		/*
 		 * if attr is objectClass, try to remap the value
 		 */
-		if ( ava->aa_desc->ad_type->sat_oid 
-			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
+		if ( ava->aa_desc == slap_schema.si_ad_objectClass ) {
 			ldap_back_map( &li->targets[ i ]->oc_map,
 					&ava->aa_value, &mapped_value,
 					BACKLDAP_MAP );

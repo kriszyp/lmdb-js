@@ -100,8 +100,7 @@ ldap_back_compare(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	if ( ava->aa_desc->ad_type->sat_oid 
-			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
+	if ( ava->aa_desc == slap_schema.si_ad_objectClass ) {
 		ldap_back_map(&li->oc_map, &ava->aa_desc->ad_cname, &mapped_oc,
 				BACKLDAP_MAP);
 		if (mapped_oc.bv_val == NULL || mapped_oc.bv_val[0] == '\0') {
