@@ -6,6 +6,7 @@ OpenLDAP 2.2.5 Engineering
 	Fixed librewrite non-portable comments (ITS#2908)
 	Honour access denied return value from ACL plugins
 	Fixed back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
+	Fixed slapcat backglue crash (ITS#2924)
 	Build environment
 		Fixed libldap/dnssrv.c building on MacOS X
 		Fixed CYGWIN/MINGWIN configure and threading issues 
