@@ -27,9 +27,6 @@
 #define DC_IN_UFN
 /* #define PRETTY_ESCAPE */
 
-/* from libraries/libldap/schema.c */
-extern char * parse_numericoid(const char **sp, int *code, const int flags);
-
 /* parsing/printing routines */
 static int str2strval( const char *str, struct berval *val, 
 		const char **next, unsigned flags, unsigned *retFlags );
@@ -882,7 +879,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 		case B4OIDATTRTYPE: {
 			int 		err = LDAP_SUCCESS;
 			
-			attrType.bv_val = parse_numericoid( &p, &err,
+			attrType.bv_val = ldap_int_parse_numericoid( &p, &err,
 				LDAP_SCHEMA_SKIP);
 
 			if ( err != LDAP_SUCCESS ) {

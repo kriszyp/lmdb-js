@@ -798,7 +798,7 @@ parse_whsp(const char **sp)
 
 /* Parse a sequence of dot-separated decimal strings */
 char *
-parse_numericoid(const char **sp, int *code, const int flags)
+ldap_int_parse_numericoid(const char **sp, int *code, const int flags)
 {
 	char * res = NULL;
 	const char * start = *sp;
@@ -953,7 +953,7 @@ parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 		quoted = 1;
 		(*sp)++;
 	}
-	sval = parse_numericoid(sp, code, 0);
+	sval = ldap_int_parse_numericoid(sp, code, 0);
 	if ( !sval ) {
 		return NULL;
 	}
@@ -1183,7 +1183,7 @@ ldap_str2syntax( LDAP_CONST char * s,
 	}
 
 	parse_whsp(&ss);
-	syn->syn_oid = parse_numericoid(&ss,code,0);
+	syn->syn_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !syn->syn_oid ) {
 		*errp = ss;
 		ldap_syntax_free(syn);
@@ -1329,7 +1329,7 @@ ldap_str2matchingrule( LDAP_CONST char * s,
 
 	parse_whsp(&ss);
 	savepos = ss;
-	mr->mr_oid = parse_numericoid(&ss,code,flags);
+	mr->mr_oid = ldap_int_parse_numericoid(&ss,code,flags);
 	if ( !mr->mr_oid ) {
 		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
 			/* Backtracking */
@@ -1430,7 +1430,7 @@ ldap_str2matchingrule( LDAP_CONST char * s,
 				seen_syntax = 1;
 				parse_whsp(&ss);
 				mr->mr_syntax_oid =
-					parse_numericoid(&ss,code,flags);
+					ldap_int_parse_numericoid(&ss,code,flags);
 				if ( !mr->mr_syntax_oid ) {
 					*errp = ss;
 					ldap_matchingrule_free(mr);
@@ -1523,7 +1523,7 @@ ldap_str2matchingruleuse( LDAP_CONST char * s,
 
 	parse_whsp(&ss);
 	savepos = ss;
-	mru->mru_oid = parse_numericoid(&ss,code,flags);
+	mru->mru_oid = ldap_int_parse_numericoid(&ss,code,flags);
 	if ( !mru->mru_oid ) {
 		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
 			/* Backtracking */
@@ -1732,7 +1732,7 @@ ldap_str2attributetype( LDAP_CONST char * s,
 	 */
 	parse_whsp(&ss);
 	savepos = ss;
-	at->at_oid = parse_numericoid(&ss,code,0);
+	at->at_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !at->at_oid ) {
 		if ( ( flags & ( LDAP_SCHEMA_ALLOW_NO_OID
 				| LDAP_SCHEMA_ALLOW_OID_MACRO ) )
@@ -2109,7 +2109,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 	 */
 	parse_whsp(&ss);
 	savepos = ss;
-	oc->oc_oid = parse_numericoid(&ss,code,0);
+	oc->oc_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !oc->oc_oid ) {
 		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
 			/* Backtracking */

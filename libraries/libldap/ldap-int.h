@@ -576,6 +576,11 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	LDAP_SASL_INTERACT_PROC *interact,
 	void *defaults ));
 
+/* in schema.c */
+LDAP_F (char *) ldap_int_parse_numericoid LDAP_P((
+	const char **sp,
+	int *code,
+	const int flags ));
 
 /*
  * in tls.c
