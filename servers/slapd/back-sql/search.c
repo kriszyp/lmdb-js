@@ -399,7 +399,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		 */
 		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "l",
 				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
-		if ( ad != NULL ) {
+		if ( ad == slap_schema.si_ad_hasSubordinates ) {
 			/*
 			 * We use this flag since we need to parse
 			 * the filter anyway; we should have used
@@ -407,6 +407,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			 * filter_has_subordinates()
 			 */
 			bsi->bsi_flags |= BSQL_SF_FILTER_HASSUBORDINATE;
+
 		} else {
 			/*
 			 * clear attributes to fetch, to require ALL

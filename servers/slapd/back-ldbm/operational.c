@@ -16,9 +16,30 @@
 #include "proto-back-ldbm.h"
 
 /*
+ * sets *hasSubordinates to LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE
+ * if the entry has children or not.
+ */
+int
+ldbm_back_hasSubordinates(
+	BackendDB	*be,
+	Connection	*conn, 
+	Operation	*op,
+	Entry		*e,
+	int		*hasSubordinates )
+{
+	if ( has_children( be, e ) ) {
+		*hasSubordinates = LDAP_COMPARE_TRUE;
+
+	} else {
+		*hasSubordinates = LDAP_COMPARE_FALSE;
+	}
+
+	return 0;
+}
+
+/*
  * sets the supported operational attributes (if required)
  */
-
 int
 ldbm_back_operational(
 	BackendDB	*be,

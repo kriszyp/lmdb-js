@@ -67,10 +67,6 @@ bdb_search(
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-	int		filter_hasSubordinates = 0;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
-
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
@@ -342,14 +338,6 @@ dn2entry_retry:
 		}
 	}
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-	/*
-	 * is hasSubordinates used in the filter ?
-	 * FIXME: we may compute this directly when parsing the filter
-	 */
-	filter_hasSubordinates = filter_has_subordinates( filter );
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
-
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 		lcupf.f_choice = LDAP_FILTER_AND;
@@ -382,9 +370,6 @@ dn2entry_retry:
 		id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-		Attribute	*hasSubordinates = NULL;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -548,31 +533,6 @@ id2entry_retry:
 			goto loop_continue;
 		}
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-		/*
-		 * if hasSubordinates is used in the filter,
-		 * append it to the entry's attributes
-		 */
-		if ( filter_hasSubordinates ) {
-			int	hs;
-
-			rc = bdb_hasSubordinates( be, conn, op, e, &hs);
-			if ( rc != LDAP_SUCCESS ) {
-				goto loop_continue;
-			}
-
-			hasSubordinates = slap_operational_hasSubordinate(
-				hs == LDAP_COMPARE_TRUE );
-
-			if ( hasSubordinates == NULL ) {
-				goto loop_continue;
-			}
-
-			hasSubordinates->a_next = e->e_attrs;
-			e->e_attrs = hasSubordinates;
-		}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
-
 		/* if it matches the filter and scope, send it */
 #ifdef LDAP_CLIENT_UPDATE
 		if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
@@ -582,21 +542,6 @@ id2entry_retry:
 		{
 			rc = test_filter( be, conn, op, e, filter );
 		}
-
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-		if ( hasSubordinates ) {
-			/*
-			 * FIXME: this is fairly inefficient, because 
-			 * if hasSubordinates is among the required
-			 * attrs, it will be added again later;
-			 * maybe we should leave it and check
-			 * check later if it's already present,
-			 * if required
-			 */
-			e->e_attrs = e->e_attrs->a_next;
-			attr_free( hasSubordinates );
-		}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			struct berval	dn;

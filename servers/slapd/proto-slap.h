@@ -485,6 +485,8 @@ LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *f
 
 /*
  * define to honor hasSubordinates operational attribute in search filters
+ * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
+ * is fixed).
  */
 #undef SLAP_X_FILTER_HASSUBORDINATES
 

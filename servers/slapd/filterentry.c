@@ -460,6 +460,41 @@ test_ava_filter(
 		}
 	}
 
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
+			&& be && be->be_has_subordinates ) {
+		int		hasSubordinates;
+		struct berval	hs;
+
+		/*
+		 * No other match should be allowed ...
+		 */
+		assert( type == LDAP_FILTER_EQUALITY );
+		
+		if ( (*be->be_has_subordinates)( be, conn, op, e, &hasSubordinates ) ) {
+			return LDAP_OTHER;
+		}
+
+		if ( hasSubordinates == LDAP_COMPARE_TRUE ) {
+			hs.bv_val = "TRUE";
+			hs.bv_len = sizeof( "TRUE" ) - 1;
+
+		} else if ( hasSubordinates == LDAP_COMPARE_FALSE ) {
+			hs.bv_val = "FALSE";
+			hs.bv_len = sizeof( "FALSE" ) - 1;
+
+		} else {
+			return LDAP_OTHER;
+		}
+
+		if ( bvmatch( &ava->aa_value, &hs ) ) {
+			return LDAP_COMPARE_TRUE;
+		}
+
+		return LDAP_COMPARE_FALSE;
+	}
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
 	return( LDAP_COMPARE_FALSE );
 }
 
@@ -473,13 +508,33 @@ test_presence_filter(
 	AttributeDescription *desc
 )
 {
+	Attribute	*a;
+
 	if ( !access_allowed( be, conn, op, e, desc, NULL, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	return attrs_find( e->e_attrs, desc ) != NULL
-		? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
+	a = attrs_find( e->e_attrs, desc );
+
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+	if ( a == NULL && desc == slap_schema.si_ad_hasSubordinates ) {
+
+		/*
+		 * XXX: fairly optimistic: if the function is defined,
+		 * then PRESENCE must succeed, because hasSubordinate
+		 * is boolean-valued; I think we may live with this 
+		 * simplification by now
+		 */
+		if ( be && be->be_has_subordinates ) {
+			return LDAP_COMPARE_TRUE;
+		}
+
+		return LDAP_COMPARE_FALSE;
+	}
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
+	return a != NULL ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }
 
 
