@@ -94,9 +94,5 @@ SOURCE=.\line64.c
 
 SOURCE=..\..\include\portable.h
 # End Source File
-# Begin Source File
-
-SOURCE=..\libldap\print.c
-# End Source File
 # End Target
 # End Project

@@ -29,6 +29,8 @@
 #define strcasecmp	stricmp
 #define strncasecmp	strnicmp
 #define strdup		_strdup
+#define vsnprintf	_vsnprintf
+#define vsprintf	_vsprintf
 
 /* define type for caddr_t */
 typedef char * caddr_t;
@@ -132,7 +134,7 @@ typedef char * caddr_t;
 /* #undef REENTRANT */
 #endif
 #ifndef _REENTRANT
-#undef _REENTRANT
+/* #undef _REENTRANT */
 #endif
 
 /* define this if needed to get threadsafe functions */
@@ -146,11 +148,11 @@ typedef char * caddr_t;
 /* #undef THREAD_SAFE */
 #endif
 #ifndef _THREAD_SAFE
-/* #undef _THREAD_SAFE *
+/* #undef _THREAD_SAFE */
 #endif
 
 /* define this if toupper() requires tolower() */
-#define C_UPPER_LOWER
+#define C_UPPER_LOWER 1
 
 /* define this to the number of arguments ctime_r() expects */
 /* #undef CTIME_R_NARGS */
@@ -186,7 +188,7 @@ typedef char * caddr_t;
 #endif
 
 /* define if you have setproctitle() */
-#undef HAVE_SETPROCTITLE
+/* #undef HAVE_SETPROCTITLE */
 
 /* define this for connectionless LDAP support */
 /* #undef LDAP_CONNECTIONLESS */
@@ -381,10 +383,10 @@ typedef char * caddr_t;
 /* #undef HAVE_THR_YIELD */
 
 /* Define if you have the vsnprintf function.  */
-/* #undef HAVE_VSNPRINTF */
+#define HAVE_VSNPRINTF 1
 
 /* Define if you have the vsprintf function.  */
-/* #undef HAVE_VSPRINTF */
+#define HAVE_VSPRINTF 1
 
 /* Define if you have the waitpid function.  */
 #define HAVE_WAITPID 1
@@ -657,7 +659,6 @@ typedef char * caddr_t;
 /* #undef CROSS_COMPILING */
 
 /* begin of postamble */
-
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
 #endif

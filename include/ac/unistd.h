@@ -27,6 +27,10 @@
 	extern char *crypt();
 #endif
 
+#ifndef HAVE_GETPASS
+extern char* getpass LDAP_P((const char* prompt));
+#endif
+
 /* getopt() defines may be in separate include file */
 #if HAVE_GETOPT_H
 #	include <getopt.h>

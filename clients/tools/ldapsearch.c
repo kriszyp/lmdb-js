@@ -331,6 +331,8 @@ char	**argv;
 
     ldap_unbind( ld );
     exit( rc );
+
+	return rc; /* not reached */
 }
 
 
