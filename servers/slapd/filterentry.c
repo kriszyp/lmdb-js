@@ -237,7 +237,10 @@ static int test_mra_filter(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	if( mra->ma_rule == NULL ) {
+	if( mra->ma_rule == NULL && 
+		mra->ma_desc->ad_type->sat_equality &&
+		mra->ma_desc->ad_type->sat_equality->smr_usage & SLAP_MR_EXT )
+	{
 		mra->ma_rule = mra->ma_desc->ad_type->sat_equality;
 	}
 
@@ -245,6 +248,10 @@ static int test_mra_filter(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
+	/* check to see if the matching rule is appropriate for
+	   the syntax of the attribute.  This check will need
+	   to be extended to support other kinds of extensible
+	   matching rules */
 	if( strcmp(mra->ma_rule->smr_syntax->ssyn_oid,
 		mra->ma_desc->ad_type->sat_syntax->ssyn_oid) != 0)
 	{
