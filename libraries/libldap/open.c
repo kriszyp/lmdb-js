@@ -235,7 +235,6 @@ ldap_int_open_connection(
 	int rc = -1;
 #ifdef HAVE_CYRUS_SASL
 	char *sasl_host = NULL;
-	int sasl_ssf = 0;
 #endif
 	char *host;
 	int port, proto;
@@ -326,7 +325,6 @@ ldap_int_open_connection(
 
 #ifdef HAVE_CYRUS_SASL
 			sasl_host = ldap_host_connected_to( conn->lconn_sb );
-			sasl_ssf = LDAP_PVT_SASL_LOCAL_SSF;
 #endif
 			break;
 #endif /* LDAP_PF_LOCAL */
@@ -352,20 +350,16 @@ ldap_int_open_connection(
 	/* establish Cyrus SASL context prior to starting TLS so
 		that SASL EXTERNAL might be used */
 	if( sasl_host != NULL ) {
-		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+		ldap_int_sasl_open( ld, conn, sasl_host );
 		LDAP_FREE( sasl_host );
 	}
-	/* sasl_ssf is set redundantly. Should probably remove it from
-	 * the ldap_int_sasl_open call since the TLS ssf isn't known
-	 * yet anyway.
-	 */
 	if( proto == LDAP_PROTO_IPC ) {
 		char authid[sizeof("uidNumber=4294967295,gidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
 		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
 			geteuid(), getegid() );
-		ldap_int_sasl_external( ld, conn, authid, sasl_ssf );
+		ldap_int_sasl_external( ld, conn, authid, LDAP_PVT_SASL_LOCAL_SSF);
 	}
 #endif
 
