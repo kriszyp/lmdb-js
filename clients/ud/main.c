@@ -681,18 +681,13 @@ initialize_client( void )
 #ifndef NO_TERMCAP
 	{
 	char *term;
-	struct winsize win;			/* for tty set-up */
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
 	else {
 #ifdef TIOCGWINSZ
-		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) < 0) {
-			lpp = tgetnum("li");
-			col_size = tgetnum("co");
-		} else
-#endif
-		{
+		struct winsize win;		/* for tty set-up */
+		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) >= 0) {
 			if ((lpp = win.ws_row) == 0)
 				lpp = tgetnum("li");
 			if ((col_size = win.ws_col) == 0)
@@ -701,10 +696,14 @@ initialize_client( void )
 				lpp = DEFAULT_TTY_HEIGHT;
 			if ((col_size <= 0) || tgetflag("hc"))
 				col_size = DEFAULT_TTY_WIDTH;
+			(void) SIGNAL (SIGWINCH, chwinsz);
+		} else
+#endif
+		{
+			lpp = tgetnum("li");
+			col_size = tgetnum("co");
 		}
 	}
-	(void) SIGNAL (SIGWINCH, chwinsz);
-
 	}
 #endif
 }
