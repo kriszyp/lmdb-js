@@ -1,0 +1,94 @@
+.TH SLAPD.PLUGIN 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapd.plugin \- plugin configuration for slapd, the stand-alone LDAP daemon
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The 
+.BR slapd.conf (5)
+file contains configuration information for the
+.BR slapd (8)
+daemon. This configuration file is also used by the
+.BR slurpd (8)
+replication daemon and by the SLAPD tools
+.BR slapadd (8),
+.BR slapcat (8),
+and
+.BR slapindex (8).
+.LP
+The
+.B slapd.conf
+file consists of a series of global configuration options that apply to
+.B slapd
+as a whole (including all backends), followed by zero or more database
+backend definitions that contain information specific to a backend
+instance.
+.LP
+The general format of
+.B slapd.conf
+is as follows:
+.LP
+.nf
+    # comment - these options apply to every database
+    <global configuration options>
+    # first database definition & configuration options
+    database    <backend 1 type>
+    <configuration options specific to backend 1>
+    # subsequent database definitions & configuration options
+    ...
+.fi
+.LP
+If slapd is compiled with \fI--enable-slapi\fP, support for plugins
+according to \fINetscape's Directory Server Plug-Ins\fP.
+Version 4.0 of the API is currently implemented.
+.LP
+Database specific data may contain plugin information.
+.LP
+Arguments that should be replaced by actual text are shown in brackets <>.
+The structure of the plugin directives is
+.TP
+.B plugin "<type> <lib_path> <init_function> [<arguments>]"
+Load a plugin of the specified type for the current database.
+.LP
+The 
+.BR <type>
+can be one of
+.BR preoperation ,
+that is executed before processing the operation for the specified
+database, 
+.BR postoperation ,
+that is execured after the operation for the specified database
+has been processed, or
+.BR extendedop .
+The latter is used when executing an extended operation [FIXME].
+.LP
+The
+.BR <libpath>
+argument specifies the path to the plugin loadable object; if a relative
+path is given, the object is looked for according to the underlying
+dynamic loading package (libtool's ltdl is used).
+.LP
+The 
+.BR <init_function>
+argument specifies what symbol must be called when the plugin is first
+loaded.
+This function should register the functions provided by the plugin
+for the desired operations.
+The optional
+.BR <arguments>
+list is passed to the init function.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd (8),
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.
