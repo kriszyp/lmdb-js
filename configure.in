@@ -395,7 +395,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_rlookups=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
-	ol_enable_dynamic=no
 
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
