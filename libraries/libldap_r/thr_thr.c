@@ -57,9 +57,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void *),
 	void *arg)
 {
-	return( thr_create( NULL, 0, start_routine, arg,
-		detach ? THR_DETACHED : 0,
-		thread ) );
+	return( thr_create( NULL, LDAP_PVT_THREAD_STACK_SIZE, start_routine,
+		arg, detach ? THR_DETACHED : 0, thread ) );
 }
 
 void 
