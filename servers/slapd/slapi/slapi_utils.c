@@ -1710,13 +1710,17 @@ slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 	 */
 	*type = f->f_sub_desc->ad_cname.bv_val;
 	*initial = f->f_sub_initial.bv_val ? slapi_ch_strdup(f->f_sub_initial.bv_val) : NULL;
-	for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ )
-		;
-	*any = (char **)slapi_ch_malloc( (i + 1) * sizeof(char *) );
-	for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
-		(*any)[i] = slapi_ch_strdup(f->f_sub_any[i].bv_val);
+	if ( f->f_sub_any != NULL ) {
+		for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ )
+			;
+		*any = (char **)slapi_ch_malloc( (i + 1) * sizeof(char *) );
+		for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
+			(*any)[i] = slapi_ch_strdup(f->f_sub_any[i].bv_val);
+		}
+		(*any)[i] = NULL;
+	} else {
+		*any = NULL;
 	}
-	(*any)[i] = NULL;
 	*final = f->f_sub_final.bv_val ? slapi_ch_strdup(f->f_sub_final.bv_val) : NULL;
 
 	return 0;
