@@ -19,13 +19,17 @@ ldbm_back_init(
 	char		*argv[ 4 ];
 	int		i;
 
+	/* initialize the underlying database system */
+	ldbm_initialize();
+
 	/* allocate backend-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
 	/* arrange to read nextid later (on first request for it) */
 	li->li_nextid = NOID;
-#if	SLAPD_NEXTID_CHUNCK > 1
-	li->li_nextid_wrote = NOID
+
+#if SLAPD_NEXTID_CHUNK > 1
+	li->li_nextid_wrote = NOID;
 #endif
 
 	/* default cache size */

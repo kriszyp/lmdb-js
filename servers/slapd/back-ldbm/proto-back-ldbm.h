@@ -122,14 +122,6 @@ int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID 
 #endif
 
 /*
- * startup.c
- */
-
-void ldbm_back_startup  LDAP_P(( Backend *be ));
-void ldbm_back_shutdown LDAP_P(( Backend *be ));
-void ldbm_db_errcall LDAP_P(( const char *prefix, char *message ));
-
-/*
  * nextid.c
  */
 

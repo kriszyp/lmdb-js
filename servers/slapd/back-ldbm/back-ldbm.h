@@ -88,10 +88,6 @@ struct dbcache {
 	long	dbc_blksize;
 	char	*dbc_name;
 	LDBM	dbc_db;
-
-#ifdef HAVE_BERKELEY_DB2
-	struct dbcache *dbc_next;
-#endif
 };
 
 /* for the cache of attribute information (which are indexed, etc.) */
@@ -138,11 +134,6 @@ struct ldbminfo {
 	struct dbcache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
-
-#ifdef HAVE_BERKELEY_DB2
-	/* Berkeley DB2 Environment */
-	DB_ENV li_db_env;
-#endif
 };
 
 #include "proto-back-ldbm.h"

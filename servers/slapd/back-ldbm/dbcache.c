@@ -34,7 +34,7 @@ ldbm_cache_open(
 	LDBM		db;
 	struct stat	st;
 
-	sprintf( buf, "%s%s%s%s", li->li_directory, DEFAULT_DIRSEP, name, suffix );
+	sprintf( buf, "%s/%s%s", li->li_directory, name, suffix );
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
@@ -91,13 +91,8 @@ ldbm_cache_open(
 		li->li_dbcache[i].dbc_name = NULL;
 	}
 
-#ifdef HAVE_BERKELEY_DB2
-	if ( (li->li_dbcache[i].dbc_db = ldbm_open_env( buf, flags, li->li_mode,
-	    li->li_dbcachesize, &li->li_db_env )) == NULL ) {
-#else
 	if ( (li->li_dbcache[i].dbc_db = ldbm_open( buf, flags, li->li_mode,
 	    li->li_dbcachesize )) == NULL ) {
-#endif
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= ldbm_cache_open NULL \"%s\" errno %d reason \"%s\")\n",
 		    buf, errno, errno > -1 && errno < sys_nerr ?
