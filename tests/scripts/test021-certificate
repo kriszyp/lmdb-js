@@ -231,6 +231,19 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+SNAI='3$EMAIL=ca@example.com,CN=Example CA,O=Openldap Example\5C, Ltd.,ST=California,C=US'
+
+echo 'Using ldapsearch to retrieve (userCertificate:certificateExactMatch:=serialNumberAndIssuer) ...'
+echo "# (userCertificate:certificateExactMatch:=$SNAI)" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+    "(userCertificate:certificateExactMatch:=$SNAI)" >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
 kill -HUP $PID
 
 if test "$WITHTLS" = no ; then 
