@@ -126,6 +126,7 @@ int ldbm_modify_internal(
 
 	if( save_attrs != NULL ) {
 		for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
+			mod = &ml->ml_mod;
 			if( ( mod->mod_op & ~LDAP_MOD_BVALUES )
 				== LDAP_MOD_REPLACE )
 			{
