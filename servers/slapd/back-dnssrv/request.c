@@ -24,6 +24,7 @@ dnssrv_back_request(
     const char *ndn )
 {
 	int i;
+	int rc;
 	char *domain = NULL;
 	char *hostlist = NULL;
 	char **hosts = NULL;
@@ -40,8 +41,9 @@ dnssrv_back_request(
 		domain == NULL ? "" : domain,
 		0 );
 	
-	if( ldap_domain2hostlist( dn, &domain ) ) {
-		Debug( LDAP_DEBUG_TRACE, "DNSSRV: no such object\n", 0, 0, 0 );
+	if( rc = ldap_domain2hostlist( domain, &hostlist ) ) {
+		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
+			rc, 0, 0 );
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 			NULL, "could not locate DNS SRV records", NULL, NULL );
 		goto done;
@@ -72,6 +74,14 @@ dnssrv_back_request(
 			goto done;
 		}
 	}
+
+	Statslog( LDAP_DEBUG_STATS,
+	    "conn=%ld op=%d DNSSRV dn=\"%s\" domain=%d url=\"%s\"\n",
+	    op->o_connid, op->o_opid, dn, domain, urls[0]->bv_val );
+
+	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> url=\"%s\"\n",
+		dn == NULL ? "" : dn,
+		urls[0]->bv_val, 0 );
 
 	send_ldap_result( conn, op, LDAP_REFERRAL,
 		NULL, NULL, urls, NULL );
