@@ -467,6 +467,25 @@ case $RC in
 	;;
 esac
 
+echo -n "Testing compare on hasSubordinates (should be TRUE)... "
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BASEDN" \
+	 "hasSubordinates:TRUE" >> $TESTOUT 2>&1
+
+RC=$?
+case $RC in
+6)
+	echo "TRUE"
+	;;
+5)	echo "FALSE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+*)	echo "failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
