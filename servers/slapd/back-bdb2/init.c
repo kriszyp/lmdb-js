@@ -16,6 +16,7 @@
 G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
+   memset( &bi, 0, sizeof(bi) );
    bi.bi_type = "bdb2";
    bi.bi_init = bdb2_back_initialize;
 

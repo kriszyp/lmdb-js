@@ -1,6 +1,6 @@
 /* tcl_init.c - tcl backend initialization
  *
- * $Id: tcl_init.c,v 1.8 1999/06/24 15:06:42 bastiaan Exp $
+ * $Id: tcl_init.c,v 1.9 1999/07/05 04:26:30 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -27,6 +27,7 @@ ldap_pvt_thread_mutex_t tcl_interpreter_mutex;
 G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
+   memset( &bi, 0, sizeof(bi) );
    bi.bi_type = "tcl";
    bi.bi_init = tcl_back_initialize;
 
