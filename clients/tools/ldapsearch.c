@@ -1448,7 +1448,7 @@ done:
 	return( rc );
 }
 
-#if 0
+#if 1
 /* This is the original version, the old way of doing things. */
 static void
 print_entry(
@@ -1607,7 +1607,8 @@ print_entry(
 
 	if ( attrsonly ) bvp = NULL;
 
-	for ( rc = ldap_get_attribute_ber( ld, entry, ber, &bv, bvp ); rc == LDAP_SUCCESS;
+	for ( rc = ldap_get_attribute_ber( ld, entry, ber, &bv, bvp );
+		rc == LDAP_SUCCESS;
 		rc = ldap_get_attribute_ber( ld, entry, ber, &bv, bvp ) )
 	{
 		if (bv.bv_val == NULL) break;

@@ -720,7 +720,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-#if 1
+#if 0
 	rc = ldap_whoami_s( ld, &retdata, NULL, NULL ); 
 
 #else
