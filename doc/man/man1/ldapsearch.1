@@ -124,11 +124,12 @@ see if an attribute is present in an entry and are not interested in the
 specific values.
 .TP
 .B \-L
-Display search results in LDAP Data Interchange Format detailed in
+Search results are display in LDAP Data Interchange Format detailed in
 .BR ldif (5).
-A second -L disables comments. A third -L disables
-printing of the LDIF version.
-The default is -L.
+A single -L restricts the output to LDIFv1.
+A second -L disables comments.
+A third -L disables printing of the LDIF version.
+The default is to use an extended version of LDIF.
 .TP
 .B \-M[M]
 Enable manage DSA IT control.
@@ -268,6 +269,9 @@ output in LDAP Data Interchange Format or
 .BR ldif (5):
 .LP
 .nf
+	version: 1
+
+	# bjensen, example, net
 	dn: uid=bjensen, dc=example, dc=net
 	objectClass: person
 	objectClass: dcObject
@@ -277,7 +281,6 @@ output in LDAP Data Interchange Format or
     ...
 .fi
 .LP
-Multiple entries are separated with a single blank line.  
 If the -t option is used, the URI of a temporary file
 is used in place of the actual value.  If the -A option
 is given, only the "attributename" part is written.
@@ -371,8 +374,9 @@ and printed to standard output, resulting in output similar to this:
     etc....
 .fi
 .SH DIAGNOSTICS
-Exit status is 0 if no errors occur.  Errors result in a non-zero exit
-status and a diagnostic message being written to standard error.
+Exit status is zero if no errors occur.
+Errors result in a non-zero exit status and
+a diagnostic message being written to standard error.
 .SH "SEE ALSO"
 .BR ldapadd (1),
 .BR ldapdelete (1),
