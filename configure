@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.376 2001/11/28 01:05:19 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.377 2001/11/28 01:32:49 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -2624,7 +2624,7 @@ fi
 if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	if test $ol_with_kerberos = no ; then
 		{ echo "configure: error: options require --with-kerberos" 1>&2; exit 1; }
-	elif $ol_with_kerberos = auto ; then
+	elif test $ol_with_kerberos = auto ; then
 		ol_with_kerberos=yes
 	fi
 

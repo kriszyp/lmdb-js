@@ -446,7 +446,7 @@ fi
 if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	if test $ol_with_kerberos = no ; then
 		AC_MSG_ERROR([options require --with-kerberos])
-	elif $ol_with_kerberos = auto ; then
+	elif test $ol_with_kerberos = auto ; then
 		ol_with_kerberos=yes
 	fi
 
