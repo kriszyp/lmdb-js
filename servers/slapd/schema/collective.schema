@@ -1,0 +1,210 @@
+#INTERNET-DRAFT                           Editor:  Kurt D. Zeilenga
+#Intended Category: Standard Track                 OpenLDAP Foundation
+#Expires: 20 June 2002                             20 December 2001
+#
+#
+#                      Collective Attributes in LDAP
+#                 <draft-zeilenga-ldap-collective-04.txt>
+
+# [ portions trimmed ]
+
+#Abstract
+#
+#  X.500 collective attributes allow common characteristics to be shared
+#  between collections of entries.  This document summarizes the X.500
+#  information model for collective attributes and describes use of
+#  collective attributes in LDAP (Lightweight Directory Access Protocol).
+#  This document provides schema definitions for collective attributes
+#  for use in LDAP.
+
+#2.1. collectiveAttributes
+#
+#  Subentries of this object class are used to administer collective
+#  attributes and are referred to as collective attribute subentries.
+#
+objectClass ( 2.5.20.2 NAME 'collectiveAttributes' AUXILIARY )
+
+#  A collective attribute subentry SHOULD contain at least one collective
+#  attribute.  The collective attributes contained within a collective
+#  attribute subentry are available for finding, searching, and
+#  comparison at every entry within the scope of the subentry. The
+#  collective attributes, however, are administered (e.g. modified) via
+#  the subentry.
+#
+#
+#2.2. collectiveAttributeSubentry
+#
+#  The collectiveAttributeSubentry operational attribute identifies all
+#  collective attribute subentries that affect the entry.
+#
+objectClass ( 2.5.18.12 NAME 'collectiveAttributeSubentry'
+	EQUALITY distinguishedNameMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+	USAGE directoryOperation NO-USER-MODIFICATION )
+
+#2.3. collectiveExclusions
+#
+#  The collectiveExclusions operational attribute allows particular
+#  collective attributes to be excluded from an entry.  It MAY appear in
+#  any entry and MAY have multiple values.
+#
+objectClass ( 2.5.18.7 NAME 'collectiveExclusions'
+	EQUALITY objectIdentifierMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
+	USAGE directoryOperation )
+
+#  The name excludedAllCollectiveAttributes is associated with the OID
+#  2.5.18.0.  When this name or OID is present as a value of the
+#  collectiveExclusions attribute, all collective attributes are excluded
+#  from an entry.
+#
+#
+#
+#Zeilenga            draft-zeilenga-ldap-collective-04           [Page 3]
+#
+#INTERNET-DRAFT         LDAP Collective Attributes       20 December 2001
+#
+#
+#3. Collective Attribute Types
+#
+#  A userApplications attribute type can be defined to be COLLECTIVE
+#  [RFC2252].  This indicates that the same attribute values will appear
+#  in the entries of an entry collection subject to the use of the
+#  collectiveExclusions attribute and other administrative controls.
+#
+#  Collective attribute types are commonly defined as subtypes of non-
+#  collective attribute types.  By convention, collective attributes are
+#  named by prefixing the name of their non-collective supertype with
+#  "c-".  For example, the collective telephone attribute is named
+#  c-TelephoneNumber after its non-collective supertype telephoneNumber.
+#
+#  Non-collective attributes types SHALL NOT subtype collective
+#  attributes.
+#
+#  Collective attributes SHALL NOT be SINGLE-VALUED.  Collective
+#  attribute types SHALL NOT appear in the attribute types of an object
+#  class definition.
+#
+#  Operational attributes SHALL NOT be defined to be collective.
+#
+#  The remainder of section provides a summary of collective attributes
+#  derived from those defined in [X.520].  Implementations of this
+#  specification SHOULD support the following collective attributes and
+#  MAY support additional collective attributes.
+#
+#
+#3.1. Collective Locality Name
+#
+#  The c-l attribute type specifies a locality name for a collection of
+#  entries.
+#
+objectClass      ( 2.5.4.7.1 NAME 'c-l'
+	SUP l COLLECTIVE )
+#
+#
+#3.2. Collective State or Province Name
+#
+#  The c-st attribute type specifies a state or province name for a
+#  collection of entries.
+#
+objectClass      ( 2.5.4.8.1 NAME 'c-st'
+	SUP st COLLECTIVE )
+#
+#
+#3.3. Collective Street Address
+#
+#  The c-street attribute type specifies a street address for a
+#  collection of entries.
+#
+objectClass      ( 2.5.4.9.1 NAME 'c-street'
+	SUP street COLLECTIVE )
+#
+#
+#3.4. Collective Organization Name
+#
+#  The c-o attribute type specifies an organization name for a collection
+#  of entries.
+#
+objectClass      ( 2.5.4.10.1 NAME 'c-o'
+	SUP o COLLECTIVE )
+#
+#
+#3.5. Collective Organizational Unit Name
+#
+#  The c-ou attribute type specifies an organizational unit name for a
+#  collection of entries.
+#
+objectClass      ( 2.5.4.11.1 NAME 'c-ou'
+	SUP ou COLLECTIVE )
+#
+#
+#3.6. Collective Postal Address
+#
+#  The c-PostalAddress attribute type specifies a postal address for a
+#  collection of entries.
+#
+objectClass      ( 2.5.4.16.1 NAME 'c-PostalAddress'
+	SUP postalAddress COLLECTIVE )
+#
+#
+#3.7. Collective Postal Code
+#
+#  The c-PostalCode attribute type specifies a postal code for a
+#  collection of entries.
+#
+objectClass      ( 2.5.4.17.1 NAME 'c-PostalCode'
+	SUP postalCode COLLECTIVE )
+#
+#
+#3.8. Collective Post Office Box
+#
+#  The c-PostOfficeBox attribute type specifies a post office box for a
+#  collection of entries.
+#
+objectClass ( 2.5.4.18.1 NAME 'c-PostOfficeBox'
+	SUP postOfficeBox COLLECTIVE )
+#
+#
+#3.9. Collective Physical Delivery Office Name
+#
+#  The c-PhysicalDeliveryOfficeName attribute type specifies a physical
+#  delivery office name for a collection of entries.
+#
+objectClass ( 2.5.4.19.1 NAME 'c-PhysicalDeliveryOfficeName'
+	SUP physicalDeliveryOfficeName COLLECTIVE )
+#
+#
+#3.10. Collective Telephone Number
+#
+#  The c-TelephoneNumber attribute type specifies a telephone number for
+#  a collection of entries.
+#
+objectClass ( 2.5.4.20.1 NAME 'c-TelephoneNumber'
+	SUP telephoneNumber COLLECTIVE )
+#
+#
+#3.11. Collective Telex Number
+#
+#  The c-TelexNumber attribute type specifies a telex number for a
+#  collection of entries.
+#
+objectClass ( 2.5.4.19.1 NAME 'c-TelexNumber'
+	SUP telexNumber COLLECTIVE )
+#
+#
+#3.13. Collective Facsimile Telephone Number
+#
+#  The c-FacsimileTelephoneNumber attribute type specifies a facsimile
+#  telephone number for a collection of entries.
+#
+objectClass ( 2.5.4.23.1 NAME 'c-FacsimileTelephoneNumber'
+	SUP facsimileTelephoneNumber COLLECTIVE )
+#
+#
+#3.14. Collective International ISDN Number
+#
+#  The c-InternationalISDNNumber attribute type specifies an
+#  international ISDN number for a collection of entries.
+#
+objectClass ( 2.5.4.25.1 NAME 'c-InternationalISDNNumber'
+	SUP internationalISDNNumber COLLECTIVE )
