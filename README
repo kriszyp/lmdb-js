@@ -1,11 +1,12 @@
 OpenLDAP 2.1 BETA README
-	
-	For a description of what this distribution contains, see the
-	ANNOUNCEMENT file in this directory.
 
-	This is a 2.1 beta release.
-	It is NOT intended for general use.
+    For a description of what this distribution contains, see the
+    ANNOUNCEMENT file in this directory.  For a description of
+    changes from previous releases, see the CHANGES file in this
+    directory.
 
+    This is 2.1 release.  2.1 releases includes significant changes
+    from prior releases.
 
 REQUIRED SOFTWARE
 	Build OpenLDAP requires a number of software packages to be

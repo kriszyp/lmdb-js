@@ -1,90 +1,101 @@
-			A N N O U N C E M E N T
+    A N N O U N C E M E N T -- OpenLDAP 2.1
 
-			       LDAP 3.3
+    The OpenLDAP Project is pleased to announce the availability
+    of OpenLDAP 2.1, a suite of the Lightweight Directory Access
+    Protocol servers, clients, utilities, and development tools.
 
-    The University of Michigan is pleased to announce release 3.3 of
-    UM-LDAP, an implementation of the Lightweight Directory Access
-    Protocol. LDAP is a draft Internet standard directory service
-    protocol that runs over TCP/IP. It can be used to provide a
-    stand-alone directory service, or to provide lightweight access to
-    the X.500 directory.  LDAP is defined by RFC 1777 and RFC 1778.
+    This release contains the following major enhancements:
 
-    This release includes the following components:
+        * Transaction oriented backend
+        * Improved Unicode handlng
+        * Improved DN handlng
+        * Improved Referral handlng
+        * SASL authentication/authorization mapping
+        * SASL in-directory storage of authentication secrets
+        * Enhanced administrative limits/access controls
+        * LDAP backend (experimental)
+        * Meta backend (experimental)
+        * Monitor backend (experimental)
+        * Virtual "glue" backend (experimental)
+        * LDAP C++ API
+        * Updated LDAP C and TCL APIs
+        * LDAPv3 extensions, including:
+            - Enhanced Language Tag/Range Support
+            - LDAP 'Who am i?' Extended Operation
+            - LDAP 'no-op' Control
 
-	- slapd - a stand-alone LDAP directory server
-	- slurpd - a stand-alone LDAP replication server
-	- ldapd - an LDAP-to-X.500 gateway server
-	- centipede - an LDAP centroid generation and maintenance program
-	- libldap - an LDAP client library
-	- liblber - a lightweight BER/DER encoding/decoding library
-	- ldif tools - data conversion tools for use with slapd
-	- in.xfingerd - a finger-to-LDAP gateway server
-	- go500 - a gopher-to-LDAP gateway server for searching
-	- go500gw - a gopher-to-LDAP gateway server for searching and browsing
-	- rcpt500 - an email-to-LDAP query responder
-	- mail500 - an LDAP-capable mailer
-	- fax500 - an LDAP-capable mailer that supports remote printing
-	- LDAP tools - A collection of shell-based LDAP utility programs
+    This release includes the following major components:
+
+        * slapd - a stand-alone LDAP directory server
+        * slurpd - a stand-alone LDAP replication server
+        * -lldap - a LDAP client library
+        * -llber - a lightweight BER/DER encoding/decoding library
+        * LDIF tools - data conversion tools for use with slapd
+        * LDAP tools - A collection of command line LDAP utility programs
 
     In addition, there are some contributed components:
 
-	- web500 - an HTTP-to-LDAP gateway
-	- whois++d - a WHOIS++-to-LDAP gateway
-	- saucer - a simple command-line oriented client program
+        * LDAPC++ - a LDAP C++ SDK
+        * ldapTCL - a LDAP TCL SDK 
 
-CHANGES
+    This release contains a number of major code changes.  It
+    might be a bit rough around the edges.  Use with appropriate
+    caution.
 
-    Changes since release 3.2 of LDAP include
 
-	- slurpd has been rewritten as a single process threaded daemon
-	- ldaptools (ldapsearch, etc) now support the LDIF format
-	- support for LDAP URLs added to libldap
-	- improved support for LDAP referrals in libldap
-	- preliminary test scripts included
-	- support for additional platforms
-	- various bug fixes and build fixes
+ACKNOWLEDGEMENTS
 
-    See the CHANGES file in the distribution for more details.
+    OpenLDAP is developed by a team of volunteers whose use
+    the Internet to coordinate their activities.   The project is
+    managed by the OpenLDAP Foundation.
+
+    OpenLDAP LDAP implementation is derived from University of
+    Michigan LDAP release 3.3.
+
 
 AVAILABILITY
 
-    This software is freely available to anyone for any lawful purpose,
-    subject to the U-M copyright notice and disclaimer.  The software is
-    available for anonymous ftp from the following location:
+    This software is available under the OpenLDAP Public License,
+    an unrestrictive, "free," OSS-approved open source license.
+    For download information is available at:
 
-	ftp://terminator.rs.itd.umich.edu/ldap/ldap-3.3.tar.Z
+        http://www.OpenLDAP.org/software/download/
+
 
 SUPPORT
 
-    The software is provided as is without any express or implied
-    warranty, but there is a bug reporting mail address which is
-    responded to on a best-effort basis:
+    OpenLDAP software is user supported:
 
-	ldap-support@umich.edu
+        http://www.openldap.org/support/
 
-    In addition, there is a discussion list for issues relating to this
-    implementation of ldap:
+    The OpenLDAP Administrator's Guide, which includes quick
+    start instructions, is available at:
 
-	ldap@umich.edu			-- discussion list
-	ldap-request@umich.edu		-- to join the list
+        http://www.openldap.org/doc/admin/
 
-    Comments or questions about the LDAP protocol in general should be
-    sent to the IETF ASID discussion group:
+    The project maintains a FAQ which you may find useful:
 
-	ietf-asid@umich.edu		-- discussion list
-	ietf-asid-request@umich.edu	-- to join the list
+        http://www.openldap.org/faq/
 
-    An LDAP home page containing lots of interesting information and
-    online documentation is available at this URL:
+    In addition, there are also a number of discussion lists
+    related OpenLDAP.  A list of mailing lists is available at:
 
-        http://www.umich.edu/~rsug/ldap/
+        http://www.OpenLDAP.org/lists/
+
+    To report bugs, please use project's Issue Tracking System:
+
+        http://www.openldap.org/its/
+
+    The OpenLDAP home page containing lots of interesting information
+    and online documentation is available at this URL:
+
+        http://www.OpenLDAP.org/
+
 
 SUPPORTED PLATFORMS
 
-    This release has been ported to many UNIX platforms, including
-    SunOS 4.1.x, Solaris 2.x, Ultrix 4.3, HP-UX 9.05, AIX 3.2.5,
-    SCO, FreeBSD, NetBSD, LINUX, IRIX, Digital Unix (OSF/1), and
-    NeXTSTEP 3.2.  This release has also been ported to VMS.
+    This release has been ported to many UNIX (and UNIX-like) platforms
+    including FreeBSD, Linux, NetBSD, OpenBSD and most commercial UNIX
+    systems.  The release has also been ported (in part or in whole) to
+    other platforms including Apple's MacOS and Microsoft's Windows 2000.
 
-    The client libraries and some clients have also been ported to
-    MacOS 7.x, MSDOS (some TCP stacks), and MS Windows 3.1/95/NT.
