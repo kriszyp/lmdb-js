@@ -1937,9 +1937,10 @@ ldap_passwd_s LDAP_P((
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 /*
  * LDAP Password Policy controls
- *	in ppcontrol.c
+ *	in ppolicy.c
  */
 #define LDAP_API_FEATURE_PASSWORD_POLICY 1000
 
@@ -1971,6 +1972,8 @@ ldap_parse_passwordpolicy_control LDAP_P((
 
 LDAP_F( const char * )
 ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
+
+#endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
