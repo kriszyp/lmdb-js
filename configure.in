@@ -292,8 +292,17 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 		fi
 
 		if test $ol_link_threads != no ; then
-			dnl All POSIX Thread (final) implementations should have sched_yield
-			AC_CHECK_FUNC(sched_yield)
+			dnl All POSIX Thread (final) implementations should have
+			dnl sched_yield instead of pthread yield.
+			dnl check for both
+			AC_CHECK_FUNCS(sched_yield pthread_yield)
+
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
+
+				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
+				AC_MSG_ERROR([POSIX Threads are not usable])
+			fi
 		else
 			AC_MSG_ERROR([could not link with POSIX Threads])
 		fi
@@ -311,7 +320,7 @@ if test $ol_with_threads = manual ; then
 	AC_MSG_WARN([thread defines and link options must be set manually])
 
 	AC_CHECK_HEADERS(pthread.h sched.h)
-	AC_CHECK_FUNC(sched_yield)
+	AC_CHECK_FUNCS(sched_yield pthread_yield)
 	OL_LINUX_THREADS
 fi
 
