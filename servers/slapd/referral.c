@@ -30,10 +30,11 @@ static char * referral_dn_muck(
 	const char * baseDN,
 	const char * targetDN )
 {
-	char *tmp;
-	char *nrefDN = NULL;
-	char *nbaseDN = NULL;
-	char *ntargetDN = NULL;
+	int rc;
+	struct berval bvin;
+	struct berval nrefDN = { 0, NULL };
+	struct berval nbaseDN = { 0, NULL };
+	struct berval ntargetDN = { 0, NULL };
 
 	if( !baseDN ) {
 		/* no base, return target */
@@ -41,10 +42,12 @@ static char * referral_dn_muck(
 	}
 
 	if( refDN ) {
-		nrefDN = dn_validate( tmp = ch_strdup( refDN ) );
-		if( !nrefDN ) {
+		bvin.bv_val = (char *)refDN;
+		bvin.bv_len = strlen( refDN );
+
+		rc = dnPretty2( NULL, &bvin, &nrefDN );
+		if( rc != LDAP_SUCCESS ) {
 			/* Invalid refDN */
-			ch_free( tmp );
 			return NULL;
 		}
 	}
@@ -54,71 +57,74 @@ static char * referral_dn_muck(
 		 *	if refDN present return refDN
 		 *  else return baseDN
 		 */
-		return nrefDN ? nrefDN : ch_strdup( baseDN );
+		return nrefDN.bv_len ? nrefDN.bv_val : ch_strdup( baseDN );
 	}
 
-	ntargetDN = dn_validate( tmp = ch_strdup( targetDN ) );
-	if( !ntargetDN ) {
-		ch_free( tmp );
-		ch_free( nrefDN );
+	bvin.bv_val = (char *)targetDN;
+	bvin.bv_len = strlen( targetDN );
+
+	rc = dnPretty2( NULL, &bvin, &ntargetDN );
+	if( rc != LDAP_SUCCESS ) {
+		/* Invalid targetDN */
+		ch_free( nrefDN.bv_val );
 		return NULL;
 	}
 
-	if( nrefDN ) {
-		nbaseDN = dn_validate( tmp = ch_strdup( baseDN ) );
-		if( !nbaseDN ) {
+	if( nrefDN.bv_len ) {
+		bvin.bv_val = (char *)baseDN;
+		bvin.bv_len = strlen( baseDN );
+
+		rc = dnPretty2( NULL, &bvin, &nbaseDN );
+		if( rc != LDAP_SUCCESS ) {
 			/* Invalid baseDN */
-			ch_free( ntargetDN );
-			ch_free( nrefDN );
-			ch_free( tmp );
+			ch_free( nrefDN.bv_val );
+			ch_free( ntargetDN.bv_val );
 			return NULL;
 		}
 
-		if( strcasecmp( nbaseDN, nrefDN ) == 0 ) {
-			ch_free( nrefDN );
-			ch_free( nbaseDN );
-			return ntargetDN;
+		if( dn_match( &nbaseDN, &nrefDN ) == 0 ) {
+			ch_free( nrefDN.bv_val );
+			ch_free( nbaseDN.bv_val );
+			return ntargetDN.bv_val;
 		}
 
 		{
-			/*
-			 * FIXME: string based mucking
-			 */
-			char *muck;
-			size_t reflen, baselen, targetlen, mucklen;
+			struct berval muck;
 
-			reflen = strlen( nrefDN );
-			baselen = strlen( nbaseDN );
-			targetlen = strlen( ntargetDN );
-
-			if( targetlen < baselen ) {
-				ch_free( nrefDN );
-				ch_free( nbaseDN );
-				return ntargetDN;
+			if( ntargetDN.bv_len < nbaseDN.bv_len ) {
+				ch_free( nrefDN.bv_val );
+				ch_free( nbaseDN.bv_val );
+				return ntargetDN.bv_val;
 			}
 
-			if( strcasecmp( &ntargetDN[targetlen-baselen], nbaseDN ) ) {
+			rc = strcasecmp(
+				&ntargetDN.bv_val[ntargetDN.bv_len-nbaseDN.bv_len],
+				nbaseDN.bv_val );
+			if( rc ) {
 				/* target not subordinate to base */
-				ch_free( nrefDN );
-				ch_free( nbaseDN );
-				return ntargetDN;
+				ch_free( nrefDN.bv_val );
+				ch_free( nbaseDN.bv_val );
+				return ntargetDN.bv_val;
 			}
 
-			mucklen = targetlen + reflen - baselen;
-			muck = ch_malloc( 1 + mucklen );
+			muck.bv_len = ntargetDN.bv_len + nrefDN.bv_len - nbaseDN.bv_len;
+			muck.bv_val = ch_malloc( muck.bv_len + 1 );
 
-			strncpy( muck, ntargetDN, targetlen-baselen );
-			strcpy( &muck[targetlen-baselen], nrefDN );
+			strncpy( muck.bv_val, ntargetDN.bv_val,
+				ntargetDN.bv_len-nbaseDN.bv_len );
+			strcpy( &muck.bv_val[ntargetDN.bv_len-nbaseDN.bv_len],
+				nrefDN.bv_val );
 
-			ch_free( nrefDN );
-			ch_free( nbaseDN );
-			ch_free( ntargetDN );
+			ch_free( nrefDN.bv_val );
+			ch_free( nbaseDN.bv_val );
+			ch_free( ntargetDN.bv_val );
 
-			return muck;
+			return muck.bv_val;
 		}
 	}
 
-	return ntargetDN;
+	ch_free( nrefDN.bv_val );
+	return ntargetDN.bv_val;
 }
 
 

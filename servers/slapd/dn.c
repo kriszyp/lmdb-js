@@ -556,48 +556,12 @@ dnMatch(
 #ifdef SLAP_DN_MIGRATION
 /*
  * these routines are provided for migration purposes only!
- *	dn_validate is deprecated in favor of dnValidate
  *	dn_normalize is deprecated in favor of dnNormalize
  *	strcmp/strcasecmp for DNs is deprecated in favor of dnMatch
  *
  * other routines are likewise deprecated but may not yet have
  * replacement functions.
  */
-
-/*
- * dn_validate - validate and compress dn.  the dn is
- * compressed in place are returned if valid.
- * Deprecated in favor of dnValidate()
- */
-char *
-dn_validate( char *dn )
-{
-	struct berval val;
-	struct berval *pretty = NULL;
-	int		rc;
-
-	if ( dn == NULL || dn[0] == '\0' ) {
-		return dn;
-	}
-
-	val.bv_val = dn;
-	val.bv_len = strlen( dn );
-
-	rc = dnPretty( NULL, &val, &pretty );
-	if ( rc != LDAP_SUCCESS ) {
-		return NULL;
-	}
-
-	if ( val.bv_len < pretty->bv_len ) {
-		ber_bvfree( pretty );
-		return NULL;
-	}
-
-	AC_MEMCPY( dn, pretty->bv_val, pretty->bv_len + 1 );
-	ber_bvfree( pretty );
-
-	return dn;
-}
 
 /*
  * dn_normalize - put dn into a canonical form suitable for storing
@@ -703,6 +667,8 @@ dn_parent(
 	
 	return ( char * )pdn;
 }
+#endif /* SLAP_DN_MIGRATION */
+
 
 int
 dnExtractRdn( 
@@ -860,7 +826,6 @@ build_new_dn( struct berval * new_dn,
 	strcpy( ptr, parent_dn->bv_val );
 }
 
-#endif /* SLAP_DN_MIGRATION */
 
 /*
  * dnIsSuffix - tells whether suffix is a suffix of dn.
