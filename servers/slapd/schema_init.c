@@ -19,8 +19,6 @@
 
 /* recycled validatation routines */
 #define berValidate						blobValidate
-#define nisNetgroupTripleValidate		printableStringValidate
-#define bootParameterValidate			printableStringValidate
 
 /* unimplemented validators */
 #define bitStringValidate				NULL
@@ -2162,6 +2160,112 @@ generalizedTimeNormalize(
 				parts[4], parts[5], parts[6] );
 	out->bv_len = 15;
 	*normalized = out;
+
+	return LDAP_SUCCESS;
+}
+
+static int
+nisNetgroupTripleValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	char *p, *e;
+	int commas = 0;
+
+	if ( val->bv_len == 0 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	p = (char *)val->bv_val;
+	e = p + val->bv_len;
+
+#if 0
+	/* syntax does not allow leading white space */
+	/* Ignore initial whitespace */
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
+		p++;
+	}
+#endif
+
+	if ( *p != '(' /*')'*/ ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	for ( p++; ( p < e ) && ( *p != ')' ); p++ ) {
+		if ( *p == ',' ) {
+			commas++;
+			if ( commas > 2 ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+		} else if ( !ATTR_CHAR( *p ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	if ( ( commas != 2 ) || ( *p != /*'('*/ ')' ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	p++;
+
+#if 0
+	/* syntax does not allow trailing white space */
+	/* Ignore trailing whitespace */
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
+		p++;
+	}
+#endif
+
+	if (p != e) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+bootParameterValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	char *p, *e;
+
+	if ( val->bv_len == 0 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	p = (char *)val->bv_val;
+	e = p + val->bv_len;
+
+	/* key */
+	for (; ( p < e ) && ( *p != '=' ); p++ ) {
+		if ( !ATTR_CHAR( *p ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	if ( *p != '=' ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* server */
+	for ( p++; ( p < e ) && ( *p != ':' ); p++ ) {
+		if ( !ATTR_CHAR( *p ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	if ( *p != ':' ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* path */
+	for ( p++; p < e; p++ ) {
+		if ( !ATTR_CHAR( *p ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
 
 	return LDAP_SUCCESS;
 }
