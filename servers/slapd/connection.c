@@ -142,7 +142,11 @@ static Connection* connection_get( int s )
 {
 	/* connections_mutex should be locked by caller */
 
-	Connection *c = NULL;
+	Connection *c;
+
+	Debug( LDAP_DEBUG_ARGS,
+		"connection_get(%d)\n",
+		s, 0, 0 );
 
 	assert( connections != NULL );
 
@@ -151,12 +155,17 @@ static Connection* connection_get( int s )
 	}
 
 #ifndef HAVE_WINSOCK
-	assert( connections[s].c_struct_state == SLAP_C_USED );
-	assert( connections[s].c_conn_state != SLAP_C_INVALID );
-	assert( ber_pvt_sb_in_use( connections[s].c_sb ) );
-
 	c = &connections[s];
+
+	assert( c->c_struct_state == SLAP_C_USED );
+
+	ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
+	assert( c->c_conn_state != SLAP_C_INVALID );
+	assert( ber_pvt_sb_in_use( c->c_sb ) );
+
 #else
+	c = NULL;
 	{
 		int i;
 
@@ -179,6 +188,7 @@ static Connection* connection_get( int s )
 
 			if( ber_pvt_sb_get_desc( connections[i].c_sb ) == s ) {
 				c = &connections[i];
+				ldap_pvt_thread_mutex_lock( &c->c_mutex );
 				break;
 			}
 		}
@@ -186,12 +196,10 @@ static Connection* connection_get( int s )
 #endif
 
 	if( c != NULL ) {
-		/* we do this BEFORE locking to aid in debugging */
+		/* we do this AFTER locking to aid in debugging */
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_get(%d): got connid=%ld\n",
 			s, c->c_connid, 0 );
-
-		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	}
 	return c;
 }
