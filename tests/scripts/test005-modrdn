@@ -91,7 +91,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"

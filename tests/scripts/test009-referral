@@ -31,11 +31,11 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -n master -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $REFSLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+$SLAPD -n slave -f $REFSLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Testing for master slapd..."
@@ -113,7 +113,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "Comparison failed"
