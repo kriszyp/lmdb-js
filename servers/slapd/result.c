@@ -41,6 +41,11 @@
 #include "slapi.h"
 #endif
 
+int slap_null_cb( Operation *op, SlapReply *rs )
+{
+	return 0;
+}
+
 static char *v2ref( BerVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;

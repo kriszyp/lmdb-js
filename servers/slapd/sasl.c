@@ -323,7 +323,7 @@ typedef struct lookup_info {
 	sasl_server_params_t *sparams;
 } lookup_info;
 
-static slap_response sasl_ap_lookup, sasl_ap_store, sasl_cb_checkpass;
+static slap_response sasl_ap_lookup, sasl_cb_checkpass;
 
 static int
 sasl_ap_lookup( Operation *op, SlapReply *rs )
@@ -474,12 +474,6 @@ slap_auxprop_lookup(
 
 #if SASL_VERSION_FULL >= 0x020110
 static int
-sasl_ap_store( Operation *op, SlapReply *rs )
-{
-	return 0;
-}
-
-static int
 slap_auxprop_store(
 	void *glob_context,
 	sasl_server_params_t *sparams,
@@ -493,7 +487,7 @@ slap_auxprop_store(
 	Connection *conn = NULL;
 	const struct propval *pr;
 	Modifications *modlist = NULL, **modtail = &modlist, *mod;
-	slap_callback cb = { sasl_ap_store, NULL };
+	slap_callback cb = { slap_null_cb, NULL };
 	char textbuf[SLAP_TEXT_BUFLEN];
 	const char *text;
 	size_t textlen = sizeof(textbuf);
