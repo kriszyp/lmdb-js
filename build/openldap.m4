@@ -443,6 +443,18 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
     AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs)
   fi
 ])dnl
+dnl --------------------------------------------------------------------
+dnl check return type of ctime_r()
+AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
+ [AC_CACHE_CHECK(return type of ctime_r, ol_cv_func_ctime_r_type,
+   [AC_TRY_COMPILE([#include <time.h>],
+		[int ctime_r();],
+			ol_cv_func_ctime_r_type="int", ol_cv_func_ctime_r_type="charp")
+	])
+  if test $ol_cv_func_ctime_r_type = "int" ; then
+	AC_DEFINE_UNQUOTED(CTIME_R_RETURNS_INT, 1)
+  fi
+])dnl
 dnl ====================================================================
 dnl check no of arguments for gethostbyname_r
 AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,

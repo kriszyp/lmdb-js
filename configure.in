@@ -1547,8 +1547,9 @@ AC_CHECK_FUNCS(		\
 
 if test "$ac_cv_func_ctime_r" = yes ; then
 	OL_FUNC_CTIME_R_NARGS
+	OL_FUNC_CTIME_R_TYPE
 else
-	ol_cv_func_ctime_r=0
+	ol_cv_func_ctime_r_nargs=0
 fi
 
 if test "$ac_cv_func_gethostbyname_r" = yes ; then
