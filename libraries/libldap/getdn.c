@@ -813,7 +813,9 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 	assert( rdn || flags & LDAP_DN_SKIP );
 	assert( n );
 
+#if 0
 	Debug( LDAP_DEBUG_TRACE, "=> ldap_str2rdn(%s,%u)\n%s", str, flags, "" );
+#endif
 
 	if ( rdn ) {
 		*rdn = NULL;
@@ -1273,8 +1275,10 @@ return_result:;
 		LDAP_FREE( tmpRDN );
 	}
 
+#if 0
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2rdn(%*s)=%d\n", 
 			p - str, str, rc );
+#endif
 
 	if ( rdn ) {
 		*rdn = newRDN;
