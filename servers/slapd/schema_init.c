@@ -1222,10 +1222,17 @@ int caseExactFilter(
 	mlen = strlen( mr->smr_oid );
 
 #if UTF8MATCH
-        value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val, UTF8_NOCASEFOLD ) );
+	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val,
+		UTF8_NOCASEFOLD ) );
+	/* This usually happens if filter contains bad UTF8 */
+	if( value == NULL ) {
+		keys = ch_malloc( sizeof( struct berval * ) );
+		keys[0] = NULL;
+		return LDAP_SUCCESS;
+	}
 #else
 	value = (struct berval *) assertValue;
-#endif	
+#endif
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -1326,7 +1333,8 @@ int caseExactSubstringsIndexer(
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
 #if UTF8MATCH
-                value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_NOCASEFOLD ) );
+		value = ber_bvstr( UTF8normalize( values[i]->bv_val,
+			UTF8_NOCASEFOLD ) );
 #else
 		value = values[i];
 #endif
@@ -1410,7 +1418,6 @@ int caseExactSubstringsIndexer(
 #if UTF8MATCH
 		ber_bvfree( value );
 #endif
-
 	}
 
 	if( nkeys > 0 ) {
@@ -1485,7 +1492,8 @@ int caseExactSubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 #if UTF8MATCH
-                value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, UTF8_NOCASEFOLD ) );
+		value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val,
+			UTF8_NOCASEFOLD ) );
 #else
 		value = sa->sa_initial;
 #endif
@@ -1525,7 +1533,8 @@ int caseExactSubstringsFilter(
 			}
 
 #if UTF8MATCH
-                        value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, UTF8_NOCASEFOLD ) );
+    		value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val,
+				UTF8_NOCASEFOLD ) );
 #else
 			value = sa->sa_any[i];
 #endif
@@ -1563,7 +1572,8 @@ int caseExactSubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 #if UTF8MATCH
-                value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, UTF8_NOCASEFOLD ) );
+		value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val,
+			UTF8_NOCASEFOLD ) );
 #else
 		value = sa->sa_final;
 #endif
@@ -1614,8 +1624,8 @@ caseIgnoreMatch(
 {
 #if UTF8MATCH
 	*matchp = UTF8normcmp( value->bv_val,
-			       ((struct berval *) assertedValue)->bv_val,
-			       UTF8_CASEFOLD );
+		((struct berval *) assertedValue)->bv_val,
+		UTF8_CASEFOLD );
 #else
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
@@ -1666,7 +1676,7 @@ caseIgnoreSubstringsMatch(
 
 #if UTF8MATCH
 		match = UTF8oncasecmp( sub->sa_initial, &left,
-				     sub->sa_initial->bv_len, 0 );
+			sub->sa_initial->bv_len, 0 );
 #else		
 		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
@@ -1689,8 +1699,8 @@ caseIgnoreSubstringsMatch(
 
 #if UTF8MATCH
 		match = UTF8oncasecmp( sub->sa_final, &left,
-				       sub->sa_final->bv_len,
-				       left.bv_len - sub->sa_final->bv_len );
+			sub->sa_final->bv_len,
+			left.bv_len - sub->sa_final->bv_len );
 #else		
 		match = strncasecmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
@@ -1751,7 +1761,7 @@ retry:
 
 #if UTF8MATCH
 			match = UTF8oncasecmp( &left, sub->sa_any[i],
-					       sub->sa_any[i]->bv_len, 0 );
+				sub->sa_any[i]->bv_len, 0 );
 
 			if( match != 0 ) {
 				int len = LDAP_UTF8_CHARLEN( left.bv_val );
@@ -1868,7 +1878,8 @@ int caseIgnoreFilter(
 	mlen = strlen( mr->smr_oid );
 
 #if UTF8MATCH
-	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val, UTF8_CASEFOLD ) );
+	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val,
+		UTF8_CASEFOLD ) );
 	/* This usually happens if filter contains bad UTF8 */
 	if( value == NULL ) {
 		keys = ch_malloc( sizeof( struct berval * ) );
