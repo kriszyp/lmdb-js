@@ -1313,7 +1313,7 @@ print_entry(
 	{
 		if (bv.bv_val == NULL) break;
 
-		if ( attrsonly ) {
+		if ( attrsonly || !bvals ) {
 			write_ldif( LDIF_PUT_NOVALUE, bv.bv_val, NULL, 0 );
 
 		} else {
