@@ -3250,7 +3250,7 @@ else
 fi
 done
 
-	if test $ac_cv_header_lwp_lwp_h = yes ; then
+	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
 		echo $ac_n "checking for thr_create in -lthread""... $ac_c" 1>&6
 echo "configure:3256: checking for thr_create in -lthread" >&5
 ac_lib_var=`echo thread'_'thr_create | sed 'y%./+-%__p_%'`
@@ -3346,7 +3346,7 @@ else
 fi
 done
 
-	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
+	if test $ac_cv_header_lwp_lwp_h = yes ; then
 		echo $ac_n "checking for lwp_create in -llwp""... $ac_c" 1>&6
 echo "configure:3352: checking for lwp_create in -llwp" >&5
 ac_lib_var=`echo lwp'_'lwp_create | sed 'y%./+-%__p_%'`
