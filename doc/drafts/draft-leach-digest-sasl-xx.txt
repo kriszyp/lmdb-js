@@ -1,19 +1,19 @@
-                           Digest SASL Mechanism          September, 1999 
+                         Digest SASL Mechanism          September, 1999 
 
 
 
 
 Network Working Group               Paul J. Leach, Microsoft 
 INTERNET-DRAFT                        Chris Newman, Innosoft 
-draft-leach-digest-sasl-04.txt 
+draft-leach-digest-sasl-05.txt 
 Category: Standards Track 
-Expires March 27, 2000                    September 27, 1999 
+Expires April 21, 2000                      October 21, 1999 
                                      
 
 
             Using Digest Authentication as a SASL Mechanism 
 
-                           Author's draft: 15 
+                           Author's draft: 16 
 
  
 
@@ -80,13 +80,13 @@ Table of Contents
 
   2.1.3 Step Three...................................................12 
 
- 2.2 SUBSEQUENT AUTHENTICATION........................................12 
+ 2.2 SUBSEQUENT AUTHENTICATION........................................13 
 
   2.2.1 Step one.....................................................13 
 
   2.2.2 Step Two.....................................................13 
 
- 2.3 INTEGRITY PROTECTION.............................................13 
+ 2.3 INTEGRITY PROTECTION.............................................14 
 
  2.4 CONFIDENTIALITY PROTECTION.......................................14 
 
@@ -101,7 +101,7 @@ Table of Contents
 
  3.5 OFFLINE DICTIONARY ATTACKS.......................................16 
 
- 3.6 MAN IN THE MIDDLE................................................16 
+ 3.6 MAN IN THE MIDDLE................................................17 
 
  3.7 CHOSEN PLAINTEXT ATTACKS.........................................17 
 
@@ -126,18 +126,18 @@ Leach, Newman         Standards Track              [Page 2]
 
 4 EXAMPLE............................................................18 
 
-5 REFERENCES.........................................................19 
+5 REFERENCES.........................................................20 
 
-6 AUTHORS' ADDRESSES.................................................20 
+6 AUTHORS' ADDRESSES.................................................21 
 
 7 ABNF...............................................................21 
- 7.1 AUGMENTED BNF....................................................21 
+ 7.1 AUGMENTED BNF....................................................22 
 
- 7.2 BASIC RULES......................................................22 
+ 7.2 BASIC RULES......................................................23 
 
-8 SAMPLE CODE........................................................24 
+8 SAMPLE CODE........................................................25 
 
-9 FULL COPYRIGHT STATEMENT...........................................25 
+9 FULL COPYRIGHT STATEMENT...........................................26 
  
 
 
@@ -284,13 +284,13 @@ nonce
   digest-challenge is sent as part of initial authentication.  It is 
   recommended that this string be base64 or hexadecimal data. Note that 
   since the string is passed as a quoted string, the double-quote 
-  character is not allowed. The contents of the nonce are 
-  implementation dependent. The security of the implementation depends 
-  on a good choice. It is RECOMMENDED that it contain at least 64 bits 
-  of entropy. The nonce is opaque to the client. This directive is 
-  required and MUST appear exactly once; if not present, or if multiple 
-  instances are present, the client should abort the authentication 
-  exchange.  
+  character is not allowed unless escaped (see section 7.2). The 
+  contents of the nonce are implementation dependent. The security of 
+  the implementation depends on a good choice. It is RECOMMENDED that 
+  it contain at least 64 bits of entropy. The nonce is opaque to the 
+  client. This directive is required and MUST appear exactly once; if 
+  not present, or if multiple instances are present, the client should 
+  abort the authentication exchange.  
 
 
 
@@ -314,7 +314,9 @@ qop-options
 
 stale 
   The "stale" directive is not used in initial authentication. See the 
-  next section for its use in subsequent authentications. 
+  next section for its use in subsequent authentications. This 
+  directive may appear at most once; if multiple instances are present, 
+  the client should abort the authentication exchange. 
 
 maxbuf 
   A number indicating the size of the largest buffer the server is able 
@@ -346,9 +348,7 @@ cipher-opts
   implement. The client MUST ignore unrecognized options; if the client 
   recognizes no option, it should abort the authentication exchange. 
 
-  des 
-     the Data Encryption Standard (DES) cipher [FIPS] in cipher block 
-     chaining (CBC) mode with a 56 bit key. 
+
 
 
 
@@ -360,6 +360,10 @@ Leach, Newman         Standards Track              [Page 6]
 
 
 
+
+  des 
+     the Data Encryption Standard (DES) cipher [FIPS] in cipher block 
+     chaining (CBC) mode with a 56 bit key. 
 
   3des 
      the "triple DES" cipher in CBC mode with EDE with the same key for 
@@ -402,14 +406,10 @@ digest-response  = 1#( username | realm | nonce | cnonce |
     nonce-count      = "nc" "=" nc-value 
     nc-value         = 8LHEX 
     qop              = "qop" "=" qop-value 
-    digest-uri       = "digest-uri" "=" digest-uri-value 
+    digest-uri       = "digest-uri" "=" <"> digest-uri-value <"> 
     digest-uri-value  = serv-type "/" host [ "/" serv-name ] 
     serv-type        = 1*ALPHA 
     host             = 1*( ALPHA | DIGIT | "-" | "." ) 
-    serv-name        = host 
-    response         = "response" "=" <"> response-value <"> 
-    response-value   = 32LHEX 
-    LHEX             = "0" | "1" | "2" | "3" | 
 
 
 
@@ -421,19 +421,23 @@ Leach, Newman         Standards Track              [Page 7]
 
 
 
+    serv-name        = host 
+    response         = "response" "=" response-value 
+    response-value   = 32LHEX 
+    LHEX             = "0" | "1" | "2" | "3" | 
                        "4" | "5" | "6" | "7" | 
                        "8" | "9" | "a" | "b" | 
                        "c" | "d" | "e" | "f" 
     cipher           = "cipher" "=" cipher-value 
-    authzid          = "authzid" "=" authzid-value 
+    authzid          = "authzid" "=" <"> authzid-value <"> 
     authzid-value    = qdstr-val 
  
  
 
 username 
-  The user's name in the specified realm, encoded as UTF-8. This 
-  directive is required and MUST be present exactly once; otherwise, 
-  authentication fails. 
+  The user's name in the specified realm, encoded according to the 
+  value of the "charset" directive. This directive is required and MUST 
+  be present exactly once; otherwise, authentication fails. 
 
 realm 
   The realm containing the user's account. This directive is required 
@@ -465,10 +469,6 @@ nonce-count
   The purpose of this directive is to allow the server to detect 
   request replays by maintaining its own copy of this count - if the 
   same nc-value is seen twice, then the request is a replay.   See the 
-  description below of the construction of the response value.  
-
-qop 
-  Indicates what "quality of protection" the client accepted. If 
 
 
 
@@ -480,6 +480,12 @@ Leach, Newman         Standards Track              [Page 8]
 
 
 
+  description below of the construction of the response value. This 
+  directive may appear at most once; if multiple instances are present, 
+  the client should abort the authentication exchange. 
+
+qop 
+  Indicates what "quality of protection" the client accepted. If 
   present, it may appear exactly once and  its value MUST be one of the 
   alternatives in qop-options. If not present, it defaults to "auth". 
   These values affect the computation of the response. Note that this 
@@ -522,12 +528,6 @@ digest-uri
   example above would have a "digest-uri" value of 
   "smtp/mail3.example.com/example.com". 
 
-   Servers SHOULD check that the supplied value is correct. This will 
-  detect accidental connection to the incorrect server. It is also so 
-  that clients will be trained to provide values that will work with 
-  implementations that use a shared back-end authentication service 
-  that can provide server authentication. 
-
 
 
 
@@ -539,6 +539,12 @@ Leach, Newman         Standards Track              [Page 9]
 
 
 
+   Servers SHOULD check that the supplied value is correct. This will 
+  detect accidental connection to the incorrect server. It is also so 
+  that clients will be trained to provide values that will work with 
+  implementations that use a shared back-end authentication service 
+  that can provide server authentication. 
+
   The serv-type component should match the service being offered. The 
   host component should match one of the host names of the host on 
   which the service is running, or it's IP address. Servers SHOULD NOT 
@@ -546,6 +552,9 @@ Leach, Newman         Standards Track              [Page 9]
   by IP address is not very useful; they should only do so if the DNS 
   is unavailable or unreliable. The serv-name component should match 
   one of the service's configured service names.  
+
+  This directive may appear at most once; if multiple instances are 
+  present, the client should abort the authentication exchange. 
 
   Note: In the HTTP use of Digest authentication, the digest-uri is the 
   URI (usually a URL) of the resource requested -- hence the name of 
@@ -579,15 +588,6 @@ cipher
   once if "auth-conf" is negotiated; if required and not present, 
   authentication fails. 
 
-authzid 
-  The "authorization ID" as per RFC 2222, encoded in UTF-8. This 
-  directive is optional. If present, and the authenticating user has 
-  sufficient privilege, and the server supports it, then after 
-  authentication the server will use this identity for making all 
-  accesses and access checks. If the client specifies it, and the 
-  server does not support it, then the response-value will be 
-  incorrect, and authentication will fail. 
-
 
 
 Leach, Newman         Standards Track             [Page 10] 
@@ -597,6 +597,15 @@ Leach, Newman         Standards Track             [Page 10]
 
 
 
+
+authzid 
+  The "authorization ID" as per RFC 2222, encoded in UTF-8. This 
+  directive is optional. If present, and the authenticating user has 
+  sufficient privilege, and the server supports it, then after 
+  authentication the server will use this identity for making all 
+  accesses and access checks. If the client specifies it, and the 
+  server does not support it, then the response-value will be 
+  incorrect, and authentication will fail. 
 
 The size of a digest-response MUST be less than 4096 bytes. 
 
@@ -608,9 +617,8 @@ how the value is computed.
 
    response-value  =  
       HEX( KD ( HEX(H(A1)), 
-               { nonce-value, ":" nc-value, ":",  
-                 cnonce-value, ":", qop-value, ":", HEX(H(A2)) 
-})) 
+              { nonce-value, ":" nc-value, ":",  
+                cnonce-value, ":", qop-value, ":", HEX(H(A2)) })) 
   
 If authzid is specified, then A1 is 
 
@@ -639,14 +647,6 @@ implementation of this conversion is in section 8.
 
 If the "qop" directive's value is "auth", then A2 is: 
 
-   A2       = { "AUTHENTICATE:", digest-uri-value } 
- 
-If the "qop" value is "auth-int" or "auth-conf" then A2 is: 
-
-   A2       = { "AUTHENTICATE:", digest-uri-value,  
-            ":00000000000000000000000000000000" } 
- 
-
 
 
 
@@ -658,6 +658,13 @@ Leach, Newman         Standards Track             [Page 11]
 
 
 
+   A2       = { "AUTHENTICATE:", digest-uri-value } 
+ 
+If the "qop" value is "auth-int" or "auth-conf" then A2 is: 
+
+   A2       = { "AUTHENTICATE:", digest-uri-value,  
+            ":00000000000000000000000000000000" } 
+ 
 Note that "AUTHENTICATE:" must be in upper case, and the second string 
 constant is a string with a colon followed by 32 zeros. 
 
@@ -687,26 +694,19 @@ the nonce-count. It sends a message formatted as follows:
 where response-value is calculated as above, using the values sent in 
 step two, except that if qop is "auth", then A2 is 
 
-    A2 = { ":",  digest-uri-value } 
+    A2 = { ":", digest-uri-value } 
      
 And if qop is "auth-int" or "auth-conf" then A2 is 
 
-    A2 = { ":",  digest-uri-value,  ":00000000000000000000000000000000" 
-    } 
+    A2 = { ":", digest-uri-value, ":00000000000000000000000000000000" } 
      
 Compared to its use in HTTP, the following Digest directives in the 
 "digest-response" are unused: 
 
-    nextnonce 
-    qop 
-    cnonce 
-    nonce-count 
-     
-2.2   Subsequent Authentication 
 
-If the client has previously authenticated to the server, and remembers 
-the values of username, realm, nonce, nonce-count, cnonce, and qop that 
-it used in that authentication, and the SASL profile for a protocol 
+
+
+
 
 
 
@@ -719,6 +719,16 @@ Leach, Newman         Standards Track             [Page 12]
 
 
 
+    nextnonce 
+    qop 
+    cnonce 
+    nonce-count 
+     
+2.2   Subsequent Authentication 
+
+If the client has previously authenticated to the server, and remembers 
+the values of username, realm, nonce, nonce-count, cnonce, and qop that 
+it used in that authentication, and the SASL profile for a protocol 
 permits an initial client response, then it MAY perform "subsequent 
 authentication", as defined in this section. 
 
@@ -758,6 +768,18 @@ previous response; otherwise, the client must solicit the password anew
 from the user. This permits the server to make sure that the user has 
 presented their password recently. (The directive name refers to the 
 previous nonce being stale, not to the last use of the password.) Except 
+
+
+
+
+Leach, Newman         Standards Track             [Page 13] 
+
+
+                         Digest SASL Mechanism          September, 1999 
+
+
+
+
 for the handling of "stale", after sending the "digest-challenge" 
 authentication proceeds as in the case of initial authentication. 
 
@@ -769,16 +791,6 @@ subsequent authentication, between the client and the server MUST be
 integrity protected. Using as a base session key the value of H(A1) as 
 defined above the client and server calculate a pair of message 
 integrity keys as follows. 
-
-
-
-Leach, Newman         Standards Track             [Page 13] 
-
-
-                         Digest SASL Mechanism          September, 1999 
-
-
-
 
 The key for integrity protecting messages from client to server is: 
 
@@ -818,18 +830,6 @@ The key for confidentiality protecting messages from client to server
 is: 
 
 Kcc = MD5({H(A1)[0..n], 
-"Digest H(A1) to client-to-server sealing key magic constant"}) 
- 
-The key for confidentiality protecting messages from server to client 
-is: 
-
-Kcs = MD5({H(A1)[0..n], 
-"Digest H(A1) to server-to-client sealing key magic constant"}) 
- 
-where MD5 is as specified in [RFC 1321]. For cipher "rc4-40" n is 5; for 
-"rc4-56" n is 7; for the rest n is 16. The key for the "rc-*" ciphers is 
-all 16 bytes of Kcc or Kcs; the key for "des" is the first 7 bytes; the 
-
 
 
 
@@ -841,6 +841,17 @@ Leach, Newman         Standards Track             [Page 14]
 
 
 
+"Digest H(A1) to client-to-server sealing key magic constant"}) 
+ 
+The key for confidentiality protecting messages from server to client 
+is: 
+
+Kcs = MD5({H(A1)[0..n], 
+"Digest H(A1) to server-to-client sealing key magic constant"}) 
+ 
+where MD5 is as specified in [RFC 1321]. For cipher "rc4-40" n is 5; for 
+"rc4-56" n is 7; for the rest n is 16. The key for the "rc-*" ciphers is 
+all 16 bytes of Kcc or Kcs; the key for "des" is the first 7 bytes; the 
 key for "3des" is the first 14 bytes. The IV for "des" and "3des" is the 
 last 8 bytes of Kcc or Kcs. 
 
@@ -859,7 +870,7 @@ along with the message.
 
 SEAL(Ki, Kc, SeqNum, msg) =  
       {CIPHER(Kc, {msg, pad, HMAC(Ki, {SeqNum, msg})[0..9])}), 0x0001, 
-      SeqNum} 
+       SeqNum} 
  
 where CIPHER is the chosen cipher, Ki and Kc are Kic and Kcc for 
 messages sent by the client and Kis and Kcs for those sent by the 
@@ -880,17 +891,6 @@ mechanism, when compared to public key based mechanisms, for example.
 However, since it prevents chosen plaintext attacks, it is stronger than 
 (e.g.) CRAM-MD5, which has been proposed for use with LDAP [10], POP and 
 IMAP (see RFC 2195 [9]).   It is intended to replace the much weaker and 
-even more dangerous use of plaintext passwords; however, since it is 
-still a password based mechanism it avoids some of the potential 
-deployabilty issues with public-key, OTP or similar mechanisms. 
-
-Digest Authentication offers no confidentiality protection beyond 
-protecting the actual password. All of the rest of the challenge 
-and response are available to an eavesdropper, including the 
-user's name and authentication realm. 
-
-
-
 
 
 
@@ -901,6 +901,15 @@ Leach, Newman         Standards Track             [Page 15]
 
 
 
+
+even more dangerous use of plaintext passwords; however, since it is 
+still a password based mechanism it avoids some of the potential 
+deployabilty issues with public-key, OTP or similar mechanisms. 
+
+Digest Authentication offers no confidentiality protection beyond 
+protecting the actual password. All of the rest of the challenge 
+and response are available to an eavesdropper, including the 
+user's name and authentication realm. 
 
 3.2   Comparison of Digest with Plaintext Passwords 
 
@@ -941,17 +950,8 @@ list is paid just once.
 Offline dictionary attacks are defeated if the client chooses a fresh 
 nonce for each authentication, as this specification requires. 
 
-3.6   Man in the Middle 
 
-Digest authentication is vulnerable to "man in the middle" (MITM) 
-attacks. Clearly, a MITM would present all the problems of 
-eavesdropping. But it also offers some additional opportunities to the 
-attacker. 
 
-A possible man-in-the-middle attack would be to substitute a weaker qop 
-scheme for the one(s) sent by the server; the server will not be able to 
-detect this attack. For this reason, the client should always use the 
-strongest scheme that it understands from the choices offered, and 
 
 
 
@@ -963,6 +963,17 @@ Leach, Newman         Standards Track             [Page 16]
 
 
 
+3.6   Man in the Middle 
+
+Digest authentication is vulnerable to "man in the middle" (MITM) 
+attacks. Clearly, a MITM would present all the problems of 
+eavesdropping. But it also offers some additional opportunities to the 
+attacker. 
+
+A possible man-in-the-middle attack would be to substitute a weaker qop 
+scheme for the one(s) sent by the server; the server will not be able to 
+detect this attack. For this reason, the client should always use the 
+strongest scheme that it understands from the choices offered, and 
 should never choose a scheme that does not meet its minimum 
 requirements. 
 
@@ -1002,17 +1013,6 @@ server realm associated with this file. On the other hand, decryption,
 or more likely a brute force attack, would be necessary to obtain the 
 user's password. This is the reason that the realm is part of the 
 digested data stored in the password file. It means that if one Digest 
-authentication password file is compromised, it does not automatically 
-compromise others with the same username and password (though it does 
-expose them to brute force attack). 
-
-There are two important security consequences of this. First the 
-password file must be protected as if it contained plaintext passwords, 
-because for the purpose of accessing documents in its realm, it 
-effectively does. 
-
-A second consequence of this is that the realm string should be unique 
-among all realms that any single user is likely to use. In particular a 
 
 
 
@@ -1024,6 +1024,17 @@ Leach, Newman         Standards Track             [Page 17]
 
 
 
+authentication password file is compromised, it does not automatically 
+compromise others with the same username and password (though it does 
+expose them to brute force attack). 
+
+There are two important security consequences of this. First the 
+password file must be protected as if it contained plaintext passwords, 
+because for the purpose of accessing documents in its realm, it 
+effectively does. 
+
+A second consequence of this is that the realm string should be unique 
+among all realms that any single user is likely to use. In particular a 
 realm string should include the name of the host doing the 
 authentication.  
 
@@ -1045,25 +1056,14 @@ strength may vary depending on the implementation.
 4  Example 
 
 This example shows the use of the Digest SASL mechanism with the IMAP4 
-AUTHENTICATE command [RFC 2060].  The base64 encoding of the challenges 
-and responses is part of the IMAP4 AUTHENTICATE command, not part of the 
-Digest specification itself. (Note: linebreaks added for editorial 
-clarity are not part of the mechanism): 
+AUTHENTICATE command [RFC 2060]. 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+In this example, "C:" and "S:" represent a line sent by the client or 
+server respectively including a CRLF at the end.  Linebreaks and 
+indentation within a "C:" or "S:" are editorial and not part of the 
+protocol. The password in this example was "secret".  Note that the 
+base64 encoding of the challenges and responses is part of the IMAP4 
+AUTHENTICATE command, not part of the Digest specification itself. 
 
 
 
@@ -1085,35 +1085,82 @@ Leach, Newman         Standards Track             [Page 18]
 
 
 
-    * OK elwood.innosoft.com IMAP4 Server PMDF5.3-1 at Mon, 28 Sep 1998 
-    09:16:30 -0700 (PDT) 
-    c CAPABILITY 
-    * CAPABILITY IMAP4 IMAP4REV1 NAMESPACE STARTTLS AUTH=CRAM-MD5 
-    AUTH=DIGEST-MD5 AUTH=LOGIN AUTH=PLAIN 
-    c OK CAPABILITY completed 
-    a AUTHENTICATE DIGEST-MD5 
-    + cmVhbG09ImVsd29vZC5pbm5vc29mdC5jb20iLG5vbmNlPSJENlBpNXVvT2xp 
-      RzI4WFZidVRYQ0l3Iixxb3A9ImF1dGgi 
-    dXNlcm5hbWU9ImNocmlzIixyZWFsbT0iZWx3b29kLmlubm9zb2Z0LmNvbSIsbm 
-    9uY2U9IkQ2UGk1dW9PbGlHMjhYVmJ1VFhDSXciLG5jPTAwMDAwMDAxLGNub25j 
-    ZT0iZS9nWG5wRW94ODNzVzNERXU3b1FoZyIscmVzcG9uc2U9IjRmNjA2NTBhYW 
-    FmNDQxNzkyOWViNjg3Zjc2NmNlOTMyIixxb3A9ImF1dGgi 
-    a OK AUTHENTICATE completed 
+    S: * OK elwood.innosoft.com PMDF IMAP4rev1 V6.0-9 
+    C: c CAPABILITY 
+    S: * CAPABILITY IMAP4 IMAP4rev1 ACL LITERAL+ NAMESPACE QUOTA 
+                UIDPLUS AUTH=CRAM-MD5 AUTH=DIGEST-MD5 AUTH=PLAIN 
+    S: c OK Completed 
+    C: a AUTHENTICATE DIGEST-MD5 
+    S: + cmVhbG09ImVsd29vZC5pbm5vc29mdC5jb20iLG5vbmNlPSJPQTZNRzl0 
+         RVFHbTJoaCIscW9wPSJhdXRoIixhbGdvcml0aG09bWQ1LXNlc3MsY2hh 
+         cnNldD11dGYtOA== 
+    C: Y2hhcnNldD11dGYtOCx1c2VybmFtZT0iY2hyaXMiLHJlYWxtPSJlbHdvb2 
+       QuaW5ub3NvZnQuY29tIixub25jZT0iT0E2TUc5dEVRR20yaGgiLG5jPTAw 
+       MDAwMDAxLGNub25jZT0iT0E2TUhYaDZWcVRyUmsiLGRpZ2VzdC11cmk9Im 
+       ltYXAvZWx3b29kLmlubm9zb2Z0LmNvbSIscmVzcG9uc2U9ZDM4OGRhZDkw 
+       ZDRiYmQ3NjBhMTUyMzIxZjIxNDNhZjcscW9wPWF1dGg= 
+    S: + cnNwYXV0aD00YjJiYjM3ZjA0OTEwNTA1Nzc3YzJmNjM4YzkyMjcyNQ== 
+    C: 
+    S: a OK User logged in 
     --- 
      
-    Decoding the base64, gets: 
+    The base64-decoded version of the SASL exchange is: 
      
-    realm="elwood.innosoft.com",nonce="D6Pi5uoOliG28XVbuTXCIw",qop="auth
-    " 
+    S: realm="elwood.innosoft.com",nonce="OA6MG9tEQGm2hh",qop="auth", 
+       algorithm=md5-sess,charset=utf-8 
+    C: charset=utf-8,username="chris",realm="elwood.innosoft.com", 
+       nonce="OA6MG9tEQGm2hh",nc=00000001,cnonce="OA6MHXh6VqTrRk", 
+       digest-uri="imap/elwood.innosoft.com", 
+       response=d388dad90d4bbd760a152321f2143af7,qop=auth 
+    S: rspauth=4b2bb37f04910505777c2f638c922725 
      
-    and 
+    The password in this example was "secret". 
      
-    username="chris",realm="elwood.innosoft.com",nonce="D6Pi5uoOliG28XVb
-    uTXCIw", 
-    nc=00000001,cnonce="e/gXnpEox83sW3DEu7oQhg", 
-    response="4f60650aaaf4417929eb687f766ce932",qop=auth 
-     
-    The password was "secret". 
+This example shows the use of the Digest SASL mechanism with the ACAP, 
+using the same notational conventions and password as in the previous 
+example. Note that ACAP does not base64 encode and uses fewer round 
+trips that IMAP4. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Leach, Newman         Standards Track             [Page 19] 
+
+
+                         Digest SASL Mechanism          September, 1999 
+
+
+
+
+    S: * ACAP (IMPLEMENTATION "Test ACAP server") (SASL "CRAM-MD5" 
+               "DIGEST-MD5" "PLAIN") 
+    C: a AUTHENTICATE "DIGEST-MD5" 
+    S: + {94} 
+    S: realm="elwood.innosoft.com",nonce="OA9BSXrbuRhWay",qop="auth", 
+       algorithm=md5-sess,charset=utf-8 
+    C: {206} 
+    C: charset=utf-8,username="chris",realm="elwood.innosoft.com", 
+       nonce="OA9BSXrbuRhWay",nc=00000001,cnonce="OA9BSuZWMSpW8m", 
+       digest-uri="acap/elwood.innosoft.com", 
+       response=6084c6db3fede7352c551284490fd0fc,qop=auth 
+    S: a OK (SASL {40} 
+    S: rspauth=d84489141f9d86605c6a77b95cb5365a) "AUTHENTICATE 
+    Completed" 
+    --- 
  
 The server uses the values of all the directives, plus knowledge of the 
 users password (or the hash of the user's name, server's realm and the 
@@ -1134,17 +1181,6 @@ the user has authenticated.
   Part 3: Latin alphabet No. 3, ISO-8859-3, 1988. 
   Part 4: Latin alphabet No. 4, ISO-8859-4, 1988. 
   Part 5: Latin/Cyrillic alphabet, ISO-8859-5, 1988. 
-
-
-
-Leach, Newman         Standards Track             [Page 19] 
-
-
-                         Digest SASL Mechanism          September, 1999 
-
-
-
-
   Part 6: Latin/Arabic alphabet, ISO-8859-6, 1987. 
   Part 7: Latin/Greek alphabet, ISO-8859-7, 1987. 
   Part 8: Latin/Hebrew alphabet, ISO-8859-8, 1988. 
@@ -1155,6 +1191,19 @@ Leach, Newman         Standards Track             [Page 19]
 
 [RFC 1321] R. Rivest, "The MD5 Message-Digest Algorithm", RFC 1321, 
   April 1992 
+
+
+
+
+
+
+Leach, Newman         Standards Track             [Page 20] 
+
+
+                         Digest SASL Mechanism          September, 1999 
+
+
+
 
 [RFC 2047] Moore, K., "MIME (Multipurpose Internet Mail Extensions) Part 
   Three: Message Header Extensions for Non-ASCII Text", RFC 2047, 
@@ -1194,15 +1243,6 @@ West Covina, CA 91790 USA
 chris.newman@innosoft.com 
 
 
-
-Leach, Newman         Standards Track             [Page 20] 
-
-
-                         Digest SASL Mechanism          September, 1999 
-
-
-
-
 7  ABNF 
 
 What follows is the definition of the notation as is used in the 
@@ -1212,6 +1252,18 @@ Since it is intended that a single Digest implementation can support
 both HTTP and SASL-based protocols, the same notation is used in both to 
 facilitate comparison and prevention of unwanted differences. Since it 
 is cut-and-paste from the HTTP specifications, not all productions may 
+
+
+
+
+Leach, Newman         Standards Track             [Page 21] 
+
+
+                         Digest SASL Mechanism          September, 1999 
+
+
+
+
 be used in this specification. It is also not quite legal ABNF; again, 
 the errors were copied from the HTTP specifications. 
 
@@ -1251,17 +1303,6 @@ rule1 | rule2
   The character "*" preceding an element indicates repetition. The full 
   form is "<n>*<m>element" indicating at least <n> and at most <m> 
   occurrences of element. Default values are 0 and infinity so that 
-
-
-
-Leach, Newman         Standards Track             [Page 21] 
-
-
-                         Digest SASL Mechanism          September, 1999 
-
-
-
-
   "*(element)" allows any number, including zero; "1*element" requires 
   at least one; and "1*2element" allows one or two. 
 
@@ -1271,6 +1312,17 @@ Leach, Newman         Standards Track             [Page 21]
 
 N rule  
   Specific repetition: "<n>(element)" is equivalent to 
+
+
+
+Leach, Newman         Standards Track             [Page 22] 
+
+
+                         Digest SASL Mechanism          September, 1999 
+
+
+
+
   "<n>*<n>(element)"; that is, exactly <n> occurrences of (element). 
   Thus 2DIGIT is a 2-digit number, and 3ALPHA is a string of three 
   alphabetic characters. 
@@ -1297,12 +1349,17 @@ N rule
   a comment that continues to the end of line. This is a simple way of 
   including useful notes in parallel with the specifications. 
 
-implied *LWS 
-  Except where noted otherwise, linear white space ("LWS") can be 
-  included between any adjacent "token", "quoted-string", or 
-  "separators" constructs, as these are defined in the basic rules 
-  below; such LWS is ignored.  
+ 
+   implied *LWS  
+   The grammar described by this specification is word-based. Except 
+  where noted otherwise, linear white space (LWS) can be included 
+  between any two adjacent words (token or quoted-string), and between 
+  adjacent words and separators, without changing the interpretation of 
+  a field. At least one delimiter (LWS and/or separators) MUST exist 
+  between any two tokens (for the definition of "token" below), since 
+  they would otherwise be interpreted as a single token. 
 
+ 
 7.2   Basic Rules  
 
 The following rules are used throughout this specification to describe 
@@ -1310,10 +1367,15 @@ basic parsing constructs. The US-ASCII coded character set is defined by
 ANSI X3.4-1986 [USASCII]. 
 
        OCTET          = <any 8-bit sequence of data> 
+       CHAR           = <any US-ASCII character (octets 0 - 127)> 
+       UPALPHA        = <any US-ASCII uppercase letter "A".."Z"> 
+       LOALPHA        = <any US-ASCII lowercase letter "a".."z"> 
+       ALPHA          = UPALPHA | LOALPHA 
+       DIGIT          = <any US-ASCII digit "0".."9"> 
 
 
 
-Leach, Newman         Standards Track             [Page 22] 
+Leach, Newman         Standards Track             [Page 23] 
 
 
                          Digest SASL Mechanism          September, 1999 
@@ -1321,11 +1383,6 @@ Leach, Newman         Standards Track             [Page 22]
 
 
 
-       CHAR           = <any US-ASCII character (octets 0 - 127)> 
-       UPALPHA        = <any US-ASCII uppercase letter "A".."Z"> 
-       LOALPHA        = <any US-ASCII lowercase letter "a".."z"> 
-       ALPHA          = UPALPHA | LOALPHA 
-       DIGIT          = <any US-ASCII digit "0".."9"> 
        CTL            = <any US-ASCII control character 
                         (octets 0 - 31) and DEL (127)> 
        CR             = <US-ASCII CR, carriage return (13)> 
@@ -1333,6 +1390,7 @@ Leach, Newman         Standards Track             [Page 22]
        SP             = <US-ASCII SP, space (32)> 
        HT             = <US-ASCII HT, horizontal-tab (9)> 
        <">            = <US-ASCII double-quote mark (34)> 
+       CRLF           = CR LF 
  
 All linear white space, including folding, has the same semantics as SP. 
 A recipient MAY replace any linear white space with a single SP before 
@@ -1343,7 +1401,7 @@ interpreting the field value or forwarding the message downstream.
 The TEXT rule is only used for descriptive field contents and values 
 that are not intended to be interpreted by the message parser. Words of 
 *TEXT MAY contain characters from character sets other than ISO-8859-1 
-[ISO 8859]only when encoded according to the rules of RFC 2047 [RFC 
+[ISO 8859] only when encoded according to the rules of RFC 2047 [RFC 
 2047]. 
 
        TEXT           = <any OCTET except CTLs, 
@@ -1371,10 +1429,14 @@ to be used within a parameter value.
 A string of text is parsed as a single word if it is quoted using 
 double-quote marks. 
 
+      quoted-string  = ( <"> qdstr-val <"> ) 
+      qdstr-val      = *( qdtext | quoted-pair ) 
+      qdtext         = <any TEXT except <">> 
+ 
 
 
 
-Leach, Newman         Standards Track             [Page 23] 
+Leach, Newman         Standards Track             [Page 24] 
 
 
                          Digest SASL Mechanism          September, 1999 
@@ -1382,11 +1444,12 @@ Leach, Newman         Standards Track             [Page 23]
 
 
 
-      quoted-string  = ( <"> qdstr-val <"> ) 
-      qdstr-val      = *( qdtext | quoted-pair ) 
-      qdtext         = <any TEXT except <">> 
- 
-The backslash character ("\") MAY be used as a single-character quoting 
+Note that LWS is NOT implicit between the double-quote marks (<">) 
+surrounding a qdstr-val and the qdstr-val; any LWS will be considered 
+part of the qdstr-val.  This is also the case for quotation marks 
+surrounding any other construct. 
+
+ The backslash character ("\") MAY be used as a single-character quoting 
 mechanism only within qdstr-val and comment constructs. 
 
        quoted-pair    = "\" CHAR 
@@ -1434,8 +1497,7 @@ necessary.
 
 
 
-
-Leach, Newman         Standards Track             [Page 24] 
+Leach, Newman         Standards Track             [Page 25] 
 
 
                          Digest SASL Mechanism          September, 1999 
@@ -1446,8 +1508,8 @@ Leach, Newman         Standards Track             [Page 24]
     /* if the string is entirely in the 8859-1 subset of UTF-8, then 
      * translate to 8859-1 prior to MD5 
      */ 
-    void MD5_UTF8_8859_1(MD5_CTX *ctx, const unsigned char *base, int 
-    len) 
+    void MD5_UTF8_8859_1(MD5_CTX *ctx, const unsigned char *base, 
+        int len) 
     { 
         const unsigned char *scan, *end; 
         unsigned char cbuf; 
@@ -1457,7 +1519,7 @@ Leach, Newman         Standards Track             [Page 24]
             if (*scan > 0xC3) break; /* abort if outside 8859-1 */ 
             if (*scan >= 0xC0 && *scan <= 0xC3) { 
                 if (++scan == end || *scan < 0x80 || *scan > 0xBF) 
-    break; 
+                    break; 
             } 
         } 
         /* if we found a character outside 8859-1, don't alter string 
@@ -1487,7 +1549,7 @@ Copyright (C) The Internet Society (1998). All Rights Reserved.
 
 This document and translations of it may be copied and furnished to 
 others, and derivative works that comment on or otherwise explain it or 
-assist in its implmentation may be prepared, copied, published and 
+assist in its implementation may be prepared, copied, published and 
 distributed, in whole or in part, without restriction of any kind, 
 provided that the above copyright notice and this paragraph are included 
 on all such copies and derivative works. However, this document itself 
@@ -1496,7 +1558,7 @@ or references to the Internet Society or other Internet organizations,
 
 
 
-Leach, Newman         Standards Track             [Page 25] 
+Leach, Newman         Standards Track             [Page 26] 
 
 
                          Digest SASL Mechanism          September, 1999 
@@ -1557,4 +1619,4 @@ FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
-Leach, Newman         Standards Track             [Page 26] 
+Leach, Newman         Standards Track             [Page 27] 
