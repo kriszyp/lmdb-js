@@ -297,7 +297,7 @@ do_syncrepl(
 				si->binddn,
 				si->saslmech,
 				NULL, NULL,
-				LDAP_SASL_AUTOMATIC,
+				LDAP_SASL_QUIET,
 				lutil_sasl_interact,
 				defaults );
 
