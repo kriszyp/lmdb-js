@@ -9,6 +9,7 @@ BUILD_HDB=@BUILD_HDB@
 BUILD_LDBM=@BUILD_LDBM@
 BUILD_MONITOR=@BUILD_MONITOR@
 BUILD_CACHE=@BUILD_CACHE@
+WITH_TLS=@WITH_TLS@
 
 test tests:
 	@$(MAKE) bdb
@@ -33,7 +34,7 @@ bdb-no:
 
 bdb-yes bdb-mod:	links dirs FORCE
 	@echo "Initiating LDAP tests for BDB..."
-	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) BACKENDTYPE=$(BUILD_BDB) $(srcdir)/scripts/all $(srcdir) bdb bdb
+	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) WITHTLS=$(WITH_TLS) BACKENDTYPE=$(BUILD_BDB) $(srcdir)/scripts/all $(srcdir) bdb bdb
 
 hdb test-hdb:	hdb-$(BUILD_HDB)
 hdb-no:
@@ -41,7 +42,7 @@ hdb-no:
 
 hdb-yes hdb-mod:	links dirs FORCE
 	@echo "Initiating LDAP tests for HDB..."
-	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) BACKENDTYPE=$(BUILD_HDB) $(srcdir)/scripts/all $(srcdir) hdb hdb
+	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) WITHTLS=$(WITH_TLS) BACKENDTYPE=$(BUILD_HDB) $(srcdir)/scripts/all $(srcdir) hdb hdb
 
 ldbm test-ldbm:	ldbm-$(BUILD_LDBM)
 ldbm-no:
@@ -49,8 +50,9 @@ ldbm-no:
 
 ldbm-yes ldbm-mod:	links dirs FORCE
 	@echo "Initiating LDAP tests for LDBM..."
-	@MONITORDB=$(BUILD_MONITOR); PROXYCACHE=$(BUILD_CACHE); \
-	BACKENDTYPE=$(BUILD_LDBM); export MONITORDB PROXYCACHE BACKENDTYPE; \
+	@MONITORDB=$(BUILD_MONITOR); PROXYCACHE=$(BUILD_CACHE); WITHTLS=$(WITH_TLS) \
+	BACKENDTYPE=$(BUILD_LDBM); \
+	export MONITORDB PROXYCACHE WITHTLS  BACKENDTYPE; \
 	if test "$(BUILD_BDB)" != "no"; then \
 			$(srcdir)/scripts/all $(srcdir) ldbm bdb ; \
 	else \

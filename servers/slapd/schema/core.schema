@@ -202,13 +202,17 @@ attributetype ( 2.5.4.34 NAME 'seeAlso'
 #	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
 
 # Must be transferred using ;binary
+# with certificateExactMatch rule (per X.509)
 attributetype ( 2.5.4.36 NAME 'userCertificate'
 	DESC 'RFC2256: X.509 user certificate, use ;binary'
+	EQUALITY certificateExactMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # Must be transferred using ;binary
+# with certificateExactMatch rule (per X.509)
 attributetype ( 2.5.4.37 NAME 'cACertificate'
 	DESC 'RFC2256: X.509 CA certificate, use ;binary'
+	EQUALITY certificateExactMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # Must be transferred using ;binary

@@ -21,6 +21,18 @@
 
 #include "ldap_utf8.h"
 
+#ifdef HAVE_TLS
+#include <openssl/x509.h>
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/crypto.h>
+#include <openssl/pem.h>
+#include <openssl/bio.h>
+#include <openssl/asn1.h>
+#include <openssl/x509v3.h>
+#include <openssl/ssl.h>
+#endif
+
 #include "lutil_hash.h"
 #define HASH_BYTES				LUTIL_HASH_BYTES
 #define HASH_CONTEXT			lutil_HASH_CTX
@@ -59,6 +71,33 @@ blobValidate(
 }
 
 #define berValidate blobValidate
+
+static int
+sequenceValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	if ( in->bv_len < 2 ) return LDAP_INVALID_SYNTAX;
+	if ( in->bv_val[0] != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+
+	return LDAP_SUCCESS;
+}
+
+
+#ifdef HAVE_TLS
+static int certificateValidate( Syntax *syntax, struct berval *in )
+{
+	X509 *xcert=NULL;
+	unsigned char *p = in->bv_val;
+ 
+	xcert = d2i_X509(NULL, &p, in->bv_len);
+	if ( !xcert ) return LDAP_INVALID_SYNTAX;
+	X509_free(xcert);
+	return LDAP_SUCCESS;
+}
+#else
+#define certificateValidate sequenceValidate
+#endif
 
 static int
 octetStringMatch(
@@ -1864,211 +1903,202 @@ serialNumberAndIssuerValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
-	int rc = LDAP_INVALID_SYNTAX;
-	struct berval serialNumber, issuer;
+	int rc;
+	int state;
+	ber_len_t n;
+	struct berval sn, i;
+	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	serialNumber.bv_val = in->bv_val;
-	for( serialNumber.bv_len = 0;
-		serialNumber.bv_len < in->bv_len;
-		serialNumber.bv_len++ )
-	{
-		if ( serialNumber.bv_val[serialNumber.bv_len] == '$' ) {
-			issuer.bv_val = &serialNumber.bv_val[serialNumber.bv_len+1];
-			issuer.bv_len = in->bv_len - (serialNumber.bv_len+1);
+	i.bv_val = strchr( in->bv_val, '$' );
+	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
 
-			if( serialNumber.bv_len == 0 || issuer.bv_len == 0 ) break;
+	sn.bv_val = in->bv_val;
+	sn.bv_len = i.bv_val - in->bv_val;
 
-			rc = integerValidate( NULL, &serialNumber );
-			if( rc ) break;
+	i.bv_val++;
+	i.bv_len = in->bv_len - (sn.bv_len + 1);
 
-			rc = dnValidate( NULL, &issuer );
-			break;
+	/* validate serial number (strict for now) */
+	for( n=0; n < sn.bv_len; n++ ) {
+		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
+			return LDAP_INVALID_SYNTAX;
 		}
 	}
 
-	return rc;
+	/* validate DN */
+	rc = dnValidate( NULL, &i );
+	if( rc ) return LDAP_INVALID_SYNTAX;
+
+	return LDAP_SUCCESS;
 }
 
+int
+serialNumberAndIssuerPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	int rc;
+	int state;
+	ber_len_t n;
+	struct berval sn, i, newi;
+
+	assert( val );
+	assert( out );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, ">>> serialNumberAndIssuerPretty: <%s>\n",
+		val->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerPretty: <%s>\n",
+		val->bv_val, 0, 0 );
+#endif
+
+	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
+
+	i.bv_val = strchr( val->bv_val, '$' );
+	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
+
+	sn.bv_val = val->bv_val;
+	sn.bv_len = i.bv_val - val->bv_val;
+
+	i.bv_val++;
+	i.bv_len = val->bv_len - (sn.bv_len + 1);
+
+	/* eat leading zeros */
+	for( n=0; n < (sn.bv_len-1); n++ ) {
+		if( sn.bv_val[n] != '0' ) break;
+	}
+	sn.bv_val += n;
+	sn.bv_len -= n;
+
+	for( n=0; n < sn.bv_len; n++ ) {
+		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	/* pretty DN */
+	rc = dnPretty( syntax, &i, &newi, ctx );
+	if( rc ) return LDAP_INVALID_SYNTAX;
+
+	/* make room from sn + "$" */
+	out->bv_len = sn.bv_len + newi.bv_len + 1;
+	out->bv_val = sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+
+	if( out->bv_val == NULL ) {
+		sl_free( newi.bv_val, ctx );
+		return LDAP_OTHER;
+	}
+
+	/* push issuer over */
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	/* insert sn and "$" */
+	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
+	out->bv_val[sn.bv_len] = '$';
+	/* terminate */
+	out->bv_val[out->bv_len] = '\0';
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, "<<< serialNumberAndIssuerPretty: <%s>\n",
+		out->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerPretty: <%s>\n",
+		out->bv_val, 0, 0 );
+#endif
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * This routine is called by certificateExactNormalize when
+ * certificateExactNormalize receives a search string instead of
+ * a certificate. This routine checks if the search value is valid
+ * and then returns the normalized value
+ */
 static int
 serialNumberAndIssuerNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
-	struct berval *normalized,
+	struct berval *out,
 	void *ctx )
 {
-	int rc = LDAP_INVALID_SYNTAX;
-	struct berval serialNumber, issuer, nissuer;
+	int rc;
+	int state;
+	ber_len_t n;
+	struct berval sn, i, newi;
 
-	serialNumber.bv_val = val->bv_val;
-	for( serialNumber.bv_len = 0;
-		serialNumber.bv_len < val->bv_len;
-		serialNumber.bv_len++ )
-	{
-		if ( serialNumber.bv_val[serialNumber.bv_len] == '$' ) {
-			issuer.bv_val = &serialNumber.bv_val[serialNumber.bv_len+1];
-			issuer.bv_len = val->bv_len - (serialNumber.bv_len+1);
+	assert( val );
+	assert( out );
 
-			if( serialNumber.bv_len == 0 || issuer.bv_len == 0 ) break;
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, ">>> serialNumberAndIssuerNormalize: <%s>\n",
+		val->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerNormalize: <%s>\n",
+		val->bv_val, 0, 0 );
+#endif
 
-			rc = dnNormalize( usage, syntax, mr, &issuer, &nissuer, ctx );
-			if( rc ) break;
+	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-			normalized->bv_len = serialNumber.bv_len + 1 + nissuer.bv_len;
-			normalized->bv_val = ch_malloc( normalized->bv_len + 1);
+	i.bv_val = strchr( val->bv_val, '$' );
+	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
 
-			AC_MEMCPY( normalized->bv_val,
-				serialNumber.bv_val, serialNumber.bv_len );
-			normalized->bv_val[serialNumber.bv_len] = '$';
-			AC_MEMCPY( &normalized->bv_val[serialNumber.bv_len+1],
-				nissuer.bv_val, nissuer.bv_len );
-			normalized->bv_val[normalized->bv_len] = '\0';
-			break;
+	sn.bv_val = val->bv_val;
+	sn.bv_len = i.bv_val - val->bv_val;
+
+	i.bv_val++;
+	i.bv_len = val->bv_len - (sn.bv_len + 1);
+
+	/* eat leading zeros */
+	for( n=0; n < (sn.bv_len-1); n++ ) {
+		if( sn.bv_val[n] != '0' ) break;
+	}
+	sn.bv_val += n;
+	sn.bv_len -= n;
+
+	for( n=0; n < sn.bv_len; n++ ) {
+		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
+			return LDAP_INVALID_SYNTAX;
 		}
 	}
+
+	/* pretty DN */
+	rc = dnNormalize( usage, syntax, mr, &i, &newi, ctx );
+	if( rc ) return LDAP_INVALID_SYNTAX;
+
+	/* make room from sn + "$" */
+	out->bv_len = sn.bv_len + newi.bv_len + 1;
+	out->bv_val = sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+
+	if( out->bv_val == NULL ) {
+		sl_free( newi.bv_val, ctx );
+		return LDAP_OTHER;
+	}
+
+	/* push issuer over */
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	/* insert sn and "$" */
+	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
+	out->bv_val[sn.bv_len] = '$';
+	/* terminate */
+	out->bv_val[out->bv_len] = '\0';
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, "<<< serialNumberAndIssuerNormalize: <%s>\n",
+		out->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerNormalize: <%s>\n",
+		out->bv_val, 0, 0 );
+#endif
 
 	return rc;
 }
 
 #ifdef HAVE_TLS
-#include <openssl/x509.h>
-#include <openssl/err.h>
-
-/*
- * Next function returns a string representation of a ASN1_INTEGER.
- * It works for unlimited lengths.
- */
-
-static struct berval *
-asn1_integer2str(ASN1_INTEGER *a, struct berval *bv)
-{
-	char buf[256];
-	char *p;
-	static char digit[] = "0123456789";
-  
-	/* We work backwards, make it fill from the end of buf */
-	p = buf + sizeof(buf) - 1;
-	*p = '\0';
-
-	if ( a == NULL || a->length == 0 ) {
-		*--p = '0';
-	} else {
-		int i;
-		int n = a->length;
-		int base = 0;
-		unsigned int *copy;
-
-		/* We want to preserve the original */
-		copy = ch_malloc(n*sizeof(unsigned int));
-		for (i = 0; i<n; i++) {
-			copy[i] = a->data[i];
-		}
-
-		/* 
-		 * base indicates the index of the most significant
-		 * byte that might be nonzero.  When it goes off the
-		 * end, we now there is nothing left to do.
-		 */
-		while (base < n) {
-			unsigned int carry;
-
-			carry = 0;
-			for (i = base; i<n; i++ ) {
-				copy[i] += carry*256;
-				carry = copy[i] % 10;
-				copy[i] /= 10;
-			}
-			if (p <= buf+1) {
-				/*
-				 * Way too large, we need to leave
-				 * room for sign if negative
-				 */
-				free(copy);
-				return NULL;
-			}
-			*--p = digit[carry];
-
-			if (copy[base] == 0) base++;
-		}
-		free(copy);
-	}
-
-	if ( a->type == V_ASN1_NEG_INTEGER ) {
-		*--p = '-';
-	}
-
-	return ber_str2bv( p, 0, 1, bv );
-}
-
-/*
- * Given a certificate in DER format, extract the corresponding
- * assertion value for certificateExactMatch
- */
-static int
-certificateExactConvert(
-	struct berval * in,
-	struct berval * out )
-{
-	int rc;
-	X509 *xcert;
-	unsigned char *p = in->bv_val;
-	struct berval serial;
-	struct berval issuer_dn;
-
-	xcert = d2i_X509(NULL, &p, in->bv_len);
-	if ( !xcert ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ENTRY, 
-			"certificateExactConvert: error parsing cert: %s\n",
-			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: "
-			"error parsing cert: %s\n",
-			ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
-#endif
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	if ( !asn1_integer2str(xcert->cert_info->serialNumber, &serial) ) {
-		X509_free(xcert);
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	rc = dnX509normalize( X509_get_issuer_name(xcert), &issuer_dn );
-	if( rc != LDAP_SUCCESS ) {
-		X509_free(xcert);
-		ber_memfree(serial.bv_val);
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	X509_free(xcert);
-
-	out->bv_len = serial.bv_len + issuer_dn.bv_len + sizeof(" $ ");
-	out->bv_val = ch_malloc(out->bv_len);
-	p = out->bv_val;
-	AC_MEMCPY(p, serial.bv_val, serial.bv_len);
-	p += serial.bv_len;
-	AC_MEMCPY(p, " $ ", sizeof(" $ ")-1);
-	p += 3;
-	AC_MEMCPY(p, issuer_dn.bv_val, issuer_dn.bv_len);
-	p += issuer_dn.bv_len;
-	*p++ = '\0';
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ARGS, "certificateExactConvert: %s\n",
-		out->bv_val, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: %s\n",
-		out->bv_val, NULL, NULL );
-#endif
-
-	ber_memfree(serial.bv_val);
-	ber_memfree(issuer_dn.bv_val);
-
-	return LDAP_SUCCESS;
-}
-
 static int
 certificateExactNormalize(
 	slap_mask_t usage,
@@ -2078,15 +2108,58 @@ certificateExactNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	int rc;
+	int rc = LDAP_INVALID_SYNTAX;
+	unsigned char *p;
+	char *serial = NULL;
+	ber_len_t seriallen;
+	struct berval issuer_dn = { 0, NULL };
+	X509_NAME *name = NULL;
+	ASN1_INTEGER *sn = NULL;
+	X509 *xcert = NULL;
 
-	if( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) ) {
-		rc = serialNumberAndIssuerNormalize( usage, syntax, mr,
-			val, normalized, ctx );
+	if( val->bv_len == 0 ) goto done;
 
-	} else {
-		rc = certificateExactConvert( val, normalized );
+	if( val->bv_val[0] != LBER_SEQUENCE ) {
+		/* assume serialNumberAndIssuer */
+		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,NULL);
 	}
+
+	p = val->bv_val;
+	xcert = d2i_X509( NULL, &p, val->bv_len);
+	if( xcert == NULL ) goto done;
+
+	sn=X509_get_serialNumber(xcert);
+	if ( sn == NULL ) goto done;
+	serial=i2s_ASN1_INTEGER(0, sn );
+	if( serial == NULL ) goto done;
+	seriallen=strlen(serial);
+
+	name=X509_get_issuer_name(xcert);
+	if( name == NULL ) goto done;
+	rc = dnX509normalize( name, &issuer_dn );
+	if( rc != LDAP_SUCCESS ) goto done;
+
+	normalized->bv_len = seriallen + issuer_dn.bv_len + 1;
+	p = normalized->bv_val = ch_malloc(normalized->bv_len+1);
+	AC_MEMCPY(p, serial, seriallen);
+	p += seriallen;
+	*p++ = '$';
+	AC_MEMCPY(p, issuer_dn.bv_val, issuer_dn.bv_len);
+	p += issuer_dn.bv_len;
+	*p = '\0';
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( CONFIG, ARGS, "certificateExactNormalize: %s\n",
+		normalized->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "certificateExactNormalize: %s\n",
+		normalized->bv_val, NULL, NULL );
+#endif
+
+done:
+	if (xcert) X509_free(xcert);
+	if (serial) ch_free(serial);
+	if (issuer_dn.bv_val) ber_memfree(issuer_dn.bv_val);
 
 	return rc;
 }
@@ -2553,13 +2626,13 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		0, booleanValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, certificateValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, sequenceValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, sequenceValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, countryStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
@@ -2659,16 +2732,14 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
 		0, bootParameterValidate, NULL},
 
-	/* From PKIX */
-	/* These OIDs are not published yet, but will be in the next
-	 * I-D for PKIX LDAPv3 schema as have been advanced by David
-	 * Chadwick in private mail.
-	 */
-	{"( 1.2.826.0.1.3344810.7.1 DESC 'Serial Number and Issuer' )",
-		0, serialNumberAndIssuerValidate, NULL},
+	/* From PKIX *//* This OID is not published yet. */
+	{"( 1.2.826.0.1.3344810.7.1 DESC 'Certificate Serial Number and Issuer' )",
+		SLAP_SYNTAX_HIDE,
+		serialNumberAndIssuerValidate,
+		serialNumberAndIssuerPretty},
 
-	/* OpenLDAP Experimental Syntaxes */
 #ifdef SLAPD_ACI_ENABLED
+	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		SLAP_SYNTAX_HIDE,
 		UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
@@ -2687,12 +2758,10 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{NULL, 0, NULL, NULL}
 };
 
-#ifdef HAVE_TLS
 char *certificateExactMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.8" /* certificate */,
 	NULL
 };
-#endif
 char *directoryStringSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.44" /* printableString */,
 	NULL
@@ -2949,14 +3018,16 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
-#ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
+#ifdef HAVE_TLS
 		NULL, certificateExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
-		NULL },
+#else
+		NULL, NULL, NULL, NULL, NULL,
 #endif
+		NULL },
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",

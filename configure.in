@@ -1311,8 +1311,10 @@ else
 	AC_WARN([TLS data protection not supported!])
 fi
 
+WITH_TLS=no
 if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
+	WITH_TLS=yes
 
 elif test $ol_with_tls = auto ; then
 	AC_WARN([Could not locate TLS/SSL package])
@@ -2831,6 +2833,7 @@ fi
 
 AC_SUBST(LIBSRCS)
 AC_SUBST(PLAT)
+AC_SUBST(WITH_TLS)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
