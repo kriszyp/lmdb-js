@@ -78,7 +78,7 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	mapping = (struct ldapmapping *)ch_calloc( 2, 
 			sizeof( struct ldapmapping ) );
 	if ( mapping == NULL ) {
-		return;
+		return LDAP_NO_MEMORY;
 	}
 
 	rc = slap_str2ad( "objectClass", &mapping->m_src_ad, &text );

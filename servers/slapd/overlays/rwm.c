@@ -667,11 +667,13 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 		 * - attributes that are requested
 		 * - no values if attrsonly is set
 		 */
+
 		e = entry_dup( e );
 		if ( e == NULL ) {
 			rc = LDAP_NO_MEMORY;
 			goto fail;
 		}
+
 		rs->sr_flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	}
 
@@ -1013,12 +1015,12 @@ rwm_config(
 	int		rc = 0;
 	char		*argv0 = NULL;
 
-	if ( strncasecmp( argv[ 0 ], "rwm-", sizeof( "rwm-" ) - 1 ) == 0 ) {
+	if ( strncasecmp( argv[ 0 ], "rwm-", STRLENOF( "rwm-" ) ) == 0 ) {
 		argv0 = argv[ 0 ];
-		argv[ 0 ] = &argv0[ sizeof( "rwm-" ) - 1 ];
+		argv[ 0 ] = &argv0[ STRLENOF( "rwm-" ) ];
 	}
 
-	if ( strncasecmp( argv[0], "rewrite", sizeof("rewrite") - 1 ) == 0 ) {
+	if ( strncasecmp( argv[0], "rewrite", STRLENOF("rewrite") ) == 0 ) {
 		rc = rwm_rw_config( be, fname, lineno, argc, argv );
 
 	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {

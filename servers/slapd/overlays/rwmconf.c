@@ -270,13 +270,13 @@ rwm_suffix_massage_patternize( const char *s )
 
 	len = strlen( s );
 
-	res = ch_calloc( sizeof( char ), len + sizeof( "%1" ) );
+	res = ch_calloc( sizeof( char ), len + STRLENOF( "%1" ) + 1 );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
 	strcpy( res, "%1" );
-	strcpy( res + sizeof( "%1" ) - 1, s );
+	strcpy( res + STRLENOF( "%1" ), s );
 
 	return res;
 }
