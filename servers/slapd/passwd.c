@@ -27,6 +27,7 @@
 
 #include <lber_pvt.h>
 #include <lutil.h>
+#include <lutil_sha1.h>
 
 static const char *defhash[] = {
 #ifdef LUTIL_SHA1_BYTES
