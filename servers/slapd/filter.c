@@ -696,7 +696,7 @@ int escape_value(
 	assert( in );
 	assert( out );
 
-	out->bv_val = (char *) ch_malloc( in->bv_len * 3 ) + 1;
+	out->bv_val = (char *) ch_malloc( ( in->bv_len * 3 ) + 1 );
 	out->bv_len = 0;
 
 #undef NIBBLE
