@@ -232,6 +232,7 @@ list_candidates(
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_list_candidates 0x%x\n", ftype, 0, 0 );
 #endif
 	for ( f = flist; f != NULL; f = f->f_next ) {
+		BDB_IDL_ZERO( save );
 		rc = bdb_filter_candidates( be, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
 
