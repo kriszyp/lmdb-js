@@ -599,7 +599,7 @@ ldap_int_sasl_bind(
 			(unsigned long) *ssf );
 
 #ifdef LDAP_SASL_SECURITY_LAYER
-		if( ssf && *ssf > 1 ) {
+		if( ssf && *ssf ) {
 			fprintf( stderr, "SASL installing layers\n" );
 			ldap_pvt_sasl_install( ld->ld_sb, ctx );
 		}
