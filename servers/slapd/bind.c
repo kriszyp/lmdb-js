@@ -684,8 +684,11 @@ do_bind(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	if ( rs->sr_err == LDAP_SUCCESS && method != LDAP_AUTH_SASL ) {
-		ber_dupbv( &op->o_conn->c_authmech, &mech );
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		if ( method != LDAP_AUTH_SASL ) {
+			ber_dupbv( &op->o_conn->c_authmech, &mech );
+		}
+		op->o_conn->c_authtype = method;
 	}
 
 	op->o_conn->c_sasl_bindop = NULL;
