@@ -29,7 +29,7 @@ modify_check_duplicates(
 {
 	int		i, j, numvals = 0, nummods,
 			rc = LDAP_SUCCESS;
-	BerVarray	nvals = NULL, nmods;
+	BerVarray	nvals = NULL, nmods = NULL;
 
 	/*
 	 * FIXME: better do the following
@@ -109,7 +109,7 @@ modify_check_duplicates(
 	 * then to other already normalized values
 	 */
 	nmods = SLAP_CALLOC( nummods + 1, sizeof( struct berval ) );
-	if( nmods == NULL ) {
+	if ( nmods == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
 			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
@@ -117,7 +117,7 @@ modify_check_duplicates(
 		Debug( LDAP_DEBUG_ANY, 
 			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
 #endif
-				goto return_results;
+		goto return_results;
 	}
 
 	for ( i = 0; mods[ i ].bv_val != NULL; i++ ) {
