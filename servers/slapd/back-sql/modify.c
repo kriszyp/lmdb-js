@@ -955,7 +955,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
-	if ( prc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
@@ -1531,8 +1531,10 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLTransact( SQL_NULL_HENV, dbh, 
 			op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 
+	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );
+
 	return op->o_noop;
 }
 
