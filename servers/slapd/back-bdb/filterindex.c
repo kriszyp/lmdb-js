@@ -65,6 +65,10 @@ bdb_filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 #endif
 		rc = bdb_dn2idl( be, f->f_dn, DN_ONE_PREFIX, ids );
+		if( rc == DB_NOTFOUND ) {
+			BDB_IDL_ZERO( ids );
+			rc = 0;
+		}
 		break;
 
 	case SLAPD_FILTER_DN_SUBTREE:
