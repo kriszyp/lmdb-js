@@ -62,7 +62,7 @@ config_info(
 		strcpy( buf, default_referral );
 		val.bv_val = buf;
 		val.bv_len = strlen( buf );
-		attr_merge( e, "database", vals );
+		attr_merge( e, "ref", vals );
 	}
 
 	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
