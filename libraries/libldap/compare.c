@@ -54,7 +54,11 @@ ldap_compare_ext(
 	int rc;
 	BerElement	*ber;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "compare", LDAP_LEVEL_ENTRY, "ldap_compare\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
