@@ -1515,10 +1515,12 @@ slapd_daemon_task(
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			} else {
 				char addr[INET6_ADDRSTRLEN];
+
+				peeraddr = (char *) inet_ntop( AF_INET6,
+						      &from.sa_in6_addr.sin6_addr,
+						      addr, sizeof addr );
 				sprintf( peername, "IP=%s %d",
-					 inet_ntop( AF_INET6,
-						    &from.sa_in6_addr.sin6_addr,
-						    addr, sizeof addr) ? addr : "unknown",
+					 peeraddr != NULL ? peeraddr : "unknown",
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			}
 			break;
