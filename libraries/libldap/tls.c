@@ -1278,7 +1278,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 * set SASL properties to TLS ssf and authid
 	 */
 	{
-		struct berval authid;
+		struct berval authid = { 0, NULL };
 		ber_len_t ssf;
 
 		/* we need to let SASL know */
