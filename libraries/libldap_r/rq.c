@@ -47,7 +47,7 @@ ldap_pvt_runqueue_insert(
 	entry->next_sched.tv_usec = 0;
 	entry->routine = routine;
 	entry->arg = arg;
-	LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
+	LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
 }
 
 void
@@ -98,7 +98,7 @@ ldap_pvt_runqueue_runtask(
 	struct re_s* entry
 )
 {
-	LDAP_STAILQ_INSERT_HEAD( &rq->run_list, entry, rnext );
+	LDAP_STAILQ_INSERT_TAIL( &rq->run_list, entry, rnext );
 }
 
 void
@@ -164,17 +164,18 @@ ldap_pvt_runqueue_resched(
 				} else {
 					LDAP_STAILQ_INSERT_AFTER( &rq->task_list, prev, entry, tnext );
 				}
-				break;
+				return;
 			} else if ( e->next_sched.tv_sec > entry->next_sched.tv_sec ) {
 				if ( prev == NULL ) {
 					LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
 				} else {
 					LDAP_STAILQ_INSERT_AFTER( &rq->task_list, prev, entry, tnext );
 				}
-				break;
+				return;
 			}
 			prev = e;
 		}
+		LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
 	}
 }
 

@@ -193,6 +193,9 @@ do_syncrep1(
 	struct berval syncrepl_cn_bv;
 	struct sync_cookie	*sc = NULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
+	struct berval	*psub;
+
+	psub = &si->si_be->be_nsuffix[0];
 
 	/* Init connection to master */
 
@@ -311,8 +314,7 @@ do_syncrep1(
 	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	syncrepl_cn_bv.bv_len = snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf),
 		CN_STR "syncrepl%d", si->si_id );
-	build_new_dn( &op->o_req_ndn, &si->si_base, &syncrepl_cn_bv,
-		op->o_tmpmemctx );
+	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
 	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
@@ -347,9 +349,12 @@ do_syncrep1(
 			sc = NULL;
 		} else {
 			/* stored cookie */
+			struct berval newcookie = { 0, NULL };
 			ber_dupbv( &cookie_bv, &cookie[0] );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
 			slap_parse_sync_cookie( &si->si_syncCookie );
+			ber_bvarray_free( si->si_syncCookie.octet_str );
+			si->si_syncCookie.octet_str = NULL;
 			ber_bvarray_free_x( cookie, op->o_tmpmemctx );
 			if ( sc->sid != -1 ) {
 				/* command line cookie wins */
@@ -370,6 +375,10 @@ do_syncrep1(
 			}
 			slap_sync_cookie_free( sc, 1 );
 			sc = NULL;
+			slap_compose_sync_cookie( NULL, &newcookie,
+					&si->si_syncCookie.ctxcsn[0],
+					si->si_syncCookie.sid, si->si_syncCookie.rid );
+			ber_bvarray_add( &si->si_syncCookie.octet_str, &newcookie );
 		}
 	} else {
 		/* no command line cookie is specified */

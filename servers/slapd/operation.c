@@ -94,6 +94,7 @@ slap_op_free( Operation *op )
 
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
+	op->o_sync_state.rid = -1;
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &slap_free_ops, op, o_next );
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
@@ -130,6 +131,7 @@ slap_op_alloc(
 
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
+	op->o_sync_state.rid = -1;
 	LDAP_STAILQ_FIRST( &op->o_sync_slog_list ) = NULL;
 	op->o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST( &op->o_sync_slog_list );
 
