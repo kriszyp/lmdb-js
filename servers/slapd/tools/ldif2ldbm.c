@@ -63,7 +63,7 @@ main( int argc, char **argv )
 {
 	int		i, stop, status;
 	char		*linep, *buf, *sbindir;
-	char		*args[10];
+	char		*args[MAXARGS];
 	char		buf2[20], buf3[20];
 	char		line[BUFSIZ];
 	char		cmd[MAXPATHLEN];
