@@ -137,12 +137,7 @@ mr_insert(
 int
 mr_add(
     LDAPMatchingRule		*mr,
-	unsigned usage,
-	slap_mr_convert_func *convert,
-	slap_mr_normalize_func *normalize,
-    slap_mr_match_func	*match,
-	slap_mr_indexer_func *indexer,
-    slap_mr_filter_func	*filter,
+    slap_mrule_defs_rec	*def,
 	MatchingRule	*amr,
     const char		**err
 )
@@ -155,12 +150,12 @@ mr_add(
 	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
 
 	smr->smr_oidlen = strlen( mr->mr_oid );
-	smr->smr_usage = usage;
-	smr->smr_convert = convert;
-	smr->smr_normalize = normalize;
-	smr->smr_match = match;
-	smr->smr_indexer = indexer;
-	smr->smr_filter = filter;
+	smr->smr_usage = def->mrd_usage;
+	smr->smr_convert = def->mrd_convert;
+	smr->smr_normalize = def->mrd_normalize;
+	smr->smr_match = def->mrd_match;
+	smr->smr_indexer = def->mrd_indexer;
+	smr->smr_filter = def->mrd_filter;
 	smr->smr_associated = amr;
 
 	if ( smr->smr_syntax_oid ) {
@@ -181,34 +176,27 @@ mr_add(
 
 int
 register_matching_rule(
-	const char * desc,
-	unsigned usage,
-	slap_mr_convert_func *convert,
-	slap_mr_normalize_func *normalize,
-	slap_mr_match_func *match,
-	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter,
-	const char* associated )
+	slap_mrule_defs_rec *def )
 {
 	LDAPMatchingRule *mr;
 	MatchingRule *amr = NULL;
 	int		code;
 	const char	*err;
 
-	if( usage == SLAP_MR_NONE ) {
+	if( def->mrd_usage == SLAP_MR_NONE ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"register_matching_rule: %s not usable\n", desc, 0, 0 );
+			"register_matching_rule: %s not usable\n", def->mrd_desc, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
-		    desc, 0, 0 );
+		    def->mrd_desc, 0, 0 );
 #endif
 
 		return -1;
 	}
 
-	if( associated != NULL ) {
-		amr = mr_find( associated );
+	if( def->mrd_associated != NULL ) {
+		amr = mr_find( def->mrd_associated );
 
 #if 0
 		/* ignore for now */
@@ -217,11 +205,11 @@ register_matching_rule(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
 			   "register_matching_rule: could not locate associated "
-			   "matching rule %s for %s\n",  associated, desc, 0 );
+			   "matching rule %s for %s\n",  def->mrd_associated, def->mrd_desc, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
 				"associated matching rule %s for %s\n",
-				associated, desc, 0 );
+				def->mrd_associated, def->mrd_desc, 0 );
 #endif
 
 			return -1;
@@ -230,23 +218,21 @@ register_matching_rule(
 
 	}
 
-	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
+	mr = ldap_str2matchingrule( def->mrd_desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !mr ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"register_matching_rule: %s before %s in %s.\n",
-			ldap_scherr2str(code), err, desc );
+			ldap_scherr2str(code), err, def->mrd_desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
-		    ldap_scherr2str(code), err, desc );
+		    ldap_scherr2str(code), err, def->mrd_desc );
 #endif
 
 		return( -1 );
 	}
 
-	code = mr_add( mr, usage,
-		convert, normalize, match, indexer, filter, amr,
-		&err );
+	code = mr_add( mr, def, amr, &err );
 
 	ldap_memfree( mr );
 
@@ -254,10 +240,10 @@ register_matching_rule(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"register_matching_rule: %s for %s in %s.\n",
-			scherr2str(code), err, desc );
+			scherr2str(code), err, def->mrd_desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s for %s in %s\n",
-		    scherr2str(code), err, desc );
+		    scherr2str(code), err, def->mrd_desc );
 #endif
 
 		return( -1 );

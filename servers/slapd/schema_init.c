@@ -4266,19 +4266,10 @@ bootParameterValidate(
 	return LDAP_SUCCESS;
 }
 
-static struct syntax_defs_rec {
-	char *sd_desc;
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
-	int sd_flags;
-	slap_syntax_validate_func *sd_validate;
-	slap_syntax_transform_func *sd_normalize;
-	slap_syntax_transform_func *sd_pretty;
-#ifdef SLAPD_BINARY_CONVERSION
-	slap_syntax_transform_func *sd_ber2str;
-	slap_syntax_transform_func *sd_str2ber;
-#endif
-} syntax_defs[] = {
+
+static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
@@ -4456,17 +4447,7 @@ static struct syntax_defs_rec {
  * 2.5.13.43	readerAndKeyIDMatch
  * 2.5.13.44	attributeIntegrityMatch
  */
-static struct mrule_defs_rec {
-	char *						mrd_desc;
-	slap_mask_t					mrd_usage;
-	slap_mr_convert_func *		mrd_convert;
-	slap_mr_normalize_func *	mrd_normalize;
-	slap_mr_match_func *		mrd_match;
-	slap_mr_indexer_func *		mrd_indexer;
-	slap_mr_filter_func *		mrd_filter;
-
-	char *						mrd_associated;
-} mrule_defs[] = {
+static slap_mrule_defs_rec mrule_defs[] = {
 	/*
 	 * EQUALITY matching rules must be listed after associated APPROX
 	 * matching rules.  So, we list all APPROX matching rules first.
@@ -4775,17 +4756,7 @@ slap_schema_init( void )
 	assert( schema_init_done == 0 );
 
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
-		res = register_syntax( syntax_defs[i].sd_desc,
-			syntax_defs[i].sd_flags,
-			syntax_defs[i].sd_validate,
-			syntax_defs[i].sd_normalize,
-			syntax_defs[i].sd_pretty
-#ifdef SLAPD_BINARY_CONVERSION
-			,
-			syntax_defs[i].sd_ber2str,
-			syntax_defs[i].sd_str2ber
-#endif
-		);
+		res = register_syntax( &syntax_defs[i] );
 
 		if ( res ) {
 			fprintf( stderr, "slap_schema_init: Error registering syntax %s\n",
@@ -4802,15 +4773,7 @@ slap_schema_init( void )
 			continue;
 		}
 
-		res = register_matching_rule(
-			mrule_defs[i].mrd_desc,
-			mrule_defs[i].mrd_usage,
-			mrule_defs[i].mrd_convert,
-			mrule_defs[i].mrd_normalize,
-			mrule_defs[i].mrd_match,
-			mrule_defs[i].mrd_indexer,
-			mrule_defs[i].mrd_filter,
-			mrule_defs[i].mrd_associated );
+		res = register_matching_rule( &mrule_defs[i] );
 
 		if ( res ) {
 			fprintf( stderr,
