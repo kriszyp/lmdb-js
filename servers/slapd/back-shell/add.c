@@ -24,6 +24,7 @@ shell_back_add(
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	FILE			*rfp, *wfp;
 	int			len;
 
@@ -31,6 +32,14 @@ shell_back_add(
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "add not implemented", NULL, NULL );
 		return( -1 );
+	}
+
+	if ( ! access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL ) )
+	{
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, NULL, NULL, NULL );
+		return -1;
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_add, &rfp, &wfp )) == (void *) -1 ) {

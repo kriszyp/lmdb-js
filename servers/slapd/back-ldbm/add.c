@@ -31,6 +31,7 @@ ldbm_back_add(
 	ID               id = NOID;
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 
@@ -40,23 +41,8 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 #endif
 
-	/* grab giant lock for writing */
-	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
-
-	if ( ( rc = dn2id( be, &e->e_nname, &id ) ) || id != NOID ) {
-		/* if (rc) something bad happened to ldbm cache */
-		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-		send_ldap_result( conn, op, 
-			rc ? LDAP_OTHER : LDAP_ALREADY_EXISTS,
-			NULL, NULL, NULL, NULL );
-		return( -1 );
-	}
-
 	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
-
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR, 
 			"ldbm_back_add: entry (%s) failed schema check.\n", e->e_dn, 0, 0 );
@@ -67,6 +53,36 @@ ldbm_back_add(
 
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		return( -1 );
+	}
+
+	if ( ! access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL ) )
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_LDBM, ERR, 
+			"ldbm_back_add: No write access to entry (%s).\n", 
+			e->e_dn, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "no write access to entry\n", 0,
+		    0, 0 );
+#endif
+
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+		    NULL, "no write access to entry", NULL, NULL );
+
+		return -1;
+	}
+
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
+
+	if ( ( rc = dn2id( be, &e->e_nname, &id ) ) || id != NOID ) {
+		/* if (rc) something bad happened to ldbm cache */
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+		send_ldap_result( conn, op, 
+			rc ? LDAP_OTHER : LDAP_ALREADY_EXISTS,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
 

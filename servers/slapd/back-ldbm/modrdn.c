@@ -47,6 +47,7 @@ ldbm_back_modrdn(
 )
 {
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
@@ -113,6 +114,26 @@ ldbm_back_modrdn(
 		free( matched_dn );
 
 		return( -1 );
+	}
+
+	/* check entry for "entry" acl */
+	if ( ! access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL ) )
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_LDBM, ERR, 
+			"ldbm_back_modrdn: no write access to entry of (%s)\n", 
+			dn->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- ldbm_back_modrdn: no write access to entry\n", 0,
+			0, 0 );
+#endif
+
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, "no write access to entry", NULL, NULL );
+
+		goto return_results;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {

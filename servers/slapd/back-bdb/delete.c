@@ -166,13 +166,14 @@ retry:	/* transaction retry */
 		if ( !rc  ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
-				"<=- bdb_delete: no access to parent\n", 0, 0, 0 );
+				"<=- bdb_delete: no write access to parent\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_delete: no access to parent\n",
+				"<=- bdb_delete: no write access to parent\n",
 				0, 0, 0 );
 #endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
+			text = "no write access to parent";
 			goto return_results;
 		}
 
@@ -205,6 +206,7 @@ retry:	/* transaction retry */
 						"to parent\n", 0, 0, 0 );
 #endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
+					text = "no write access to parent";
 					goto return_results;
 				}
 
@@ -300,13 +302,14 @@ retry:	/* transaction retry */
 	if ( !rc  ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
-			"<=- bdb_delete: no access to entry\n", 0, 0, 0 );
+			"<=- bdb_delete: no write access to entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"<=- bdb_delete: no access to entry\n",
+			"<=- bdb_delete: no write access to entry\n",
 			0, 0, 0 );
 #endif
 		rc = LDAP_INSUFFICIENT_ACCESS;
+		text = "no write access to entry";
 		goto return_results;
 	}
 
