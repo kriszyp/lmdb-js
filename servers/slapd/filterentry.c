@@ -288,7 +288,6 @@ strcpy_special( char *d, char *s )
 		case '[':
 		case ']':
 		case '*':
-		case '+':
 		case '^':
 		case '$':
 			*d++ = '\\';
@@ -386,7 +385,7 @@ test_substring_filter(
 	/* compile the regex */
 	Debug( LDAP_DEBUG_FILTER, "test_substring_filter: regcomp pat: %s\n",
 		pat, 0, 0 );
-	if ((rc = regcomp(&re, pat, 0))) {
+	if ((rc = regcomp(&re, pat, REG_NOSUB))) {
 		char error[512];
 
 		regerror(rc, &re, error, sizeof(error));

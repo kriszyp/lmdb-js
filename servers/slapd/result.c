@@ -79,6 +79,7 @@ send_ldap_result2(
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+		ber_free( ber, 1 );
 		return;
 	}
 
@@ -89,7 +90,7 @@ send_ldap_result2(
 	bytes = ber->ber_ptr - ber->ber_buf;
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
-	    1 ) != 0 ) {
+	    0 ) != 0 ) {
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
@@ -105,6 +106,7 @@ send_ldap_result2(
 			close_connection( conn, op->o_connid, op->o_opid );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+			ber_free( ber, 1 );
 			return;
 		}
 
@@ -127,6 +129,8 @@ send_ldap_result2(
 	}
 	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+
+	ber_free( ber, 1 );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
@@ -327,7 +331,7 @@ send_search_entry(
 	bytes = ber->ber_ptr - ber->ber_buf;
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
-	    1 ) != 0 ) {
+	    0 ) != 0 ) {
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
@@ -343,6 +347,7 @@ send_search_entry(
 			close_connection( conn, op->o_connid, op->o_opid );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+			ber_free( ber, 1 );
 			return( -1 );
 		}
 
@@ -363,6 +368,8 @@ send_search_entry(
 	}
 	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+
+	ber_free( ber, 1 );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;

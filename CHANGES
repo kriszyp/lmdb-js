@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed slapd memory leaks (ITS#249 ITS#250)
 	Fixed test005-modrdn to properly report failure in delete rdn case 
 	Fixed ldapsearch (%s) bug (ITS#274)
+	Fixed slapd (cn=*=+=*) regex bug (ITS#272)
 	Build environment
 		Disable config.cache to ensure consistent detection
 	Documentation
