@@ -330,19 +330,19 @@ ldap_set_option(
 		break;
 
 	case LDAP_OPT_DEREF:
-		lo->ldo_deref = * (int *) invalue;
+		lo->ldo_deref = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SIZELIMIT:
-		lo->ldo_sizelimit = * (int *) invalue;
+		lo->ldo_sizelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMELIMIT:
-		lo->ldo_timelimit = * (int *) invalue;
+		lo->ldo_timelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
-			int vers = * (int *) invalue;
+			int vers = * (const int *) invalue;
 			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
 				/* not supported */
 				break;
@@ -351,7 +351,8 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SERVER_CONTROLS: {
-			LDAPControl **controls = (LDAPControl **) invalue;
+			LDAPControl *const *controls =
+				(LDAPControl *const *) invalue;
 
 			ldap_controls_free( lo->ldo_sctrls );
 
@@ -360,8 +361,7 @@ ldap_set_option(
 				return LDAP_OPT_SUCCESS;
 			}
 				
-			lo->ldo_sctrls =
-				ldap_controls_dup( (LDAPControl **) invalue );
+			lo->ldo_sctrls = ldap_controls_dup( controls );
 
 			if(lo->ldo_sctrls == NULL) {
 				/* memory allocation error ? */
@@ -370,7 +370,8 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_CLIENT_CONTROLS: {
-			LDAPControl **controls = (LDAPControl **) invalue;
+			LDAPControl *const *controls =
+				(LDAPControl *const *) invalue;
 
 			ldap_controls_free( lo->ldo_cctrls );
 
@@ -379,8 +380,7 @@ ldap_set_option(
 				return LDAP_OPT_SUCCESS;
 			}
 				
-			lo->ldo_cctrls =
-				ldap_controls_dup( (LDAPControl **) invalue );
+			lo->ldo_cctrls = ldap_controls_dup( controls );
 
 			if(lo->ldo_cctrls == NULL) {
 				/* memory allocation error ? */
@@ -389,7 +389,7 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME: {
-			char* host = (char *) invalue;
+			const char *host = (const char *) invalue;
 
 			if(lo->ldo_defhost != NULL) {
 				LDAP_FREE(lo->ldo_defhost);
@@ -419,7 +419,7 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER: {
-			int err = * (int *) invalue;
+			int err = * (const int *) invalue;
 
 			if(ld == NULL) {
 				/* need a struct ldap */
@@ -430,7 +430,7 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_STRING: {
-			char* err = (char *) invalue;
+			const char *err = (const char *) invalue;
 
 			if(ld == NULL) {
 				/* need a struct ldap */
@@ -445,7 +445,7 @@ ldap_set_option(
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_MATCHED_DN: {
-			char* err = (char *) invalue;
+			const char *err = (const char *) invalue;
 
 			if(ld == NULL) {
 				/* need a struct ldap */
@@ -464,7 +464,7 @@ ldap_set_option(
 		break;
 
 	case LDAP_OPT_DEBUG_LEVEL:
-		lo->ldo_debug = * (int *) invalue;
+		lo->ldo_debug = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	default:

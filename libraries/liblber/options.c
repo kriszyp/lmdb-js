@@ -76,7 +76,8 @@ ber_set_option(
 		&& ( option == LBER_OPT_MEMORY_FNS )
 		&& ( invalue != NULL ))
 	{
-		BerMemoryFunctions *f = (BerMemoryFunctions *) invalue;
+		const BerMemoryFunctions *f =
+			(const BerMemoryFunctions *) invalue;
 
 		/* make sure all functions are provided */
 		if(!( f->bmf_malloc && f->bmf_calloc
@@ -107,7 +108,7 @@ ber_set_option(
 
 	if(item == NULL) {
 		if(option == LBER_OPT_BER_DEBUG) {
-			ber_int_debug = * (int *) invalue;
+			ber_int_debug = * (const int *) invalue;
 			return LBER_OPT_SUCCESS;
 
 		} else if(option == LBER_OPT_LOG_PRINT_FN) {
@@ -124,12 +125,12 @@ ber_set_option(
 	switch(option) {
 	case LBER_OPT_BER_OPTIONS:
 		assert( BER_VALID( ber ) );
-		ber->ber_options = * (int *) invalue;
+		ber->ber_options = * (const int *) invalue;
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_DEBUG:
 		assert( BER_VALID( ber ) );
-		ber->ber_debug = * (int *) invalue;
+		ber->ber_debug = * (const int *) invalue;
 		return LBER_OPT_SUCCESS;
 
 	default:
