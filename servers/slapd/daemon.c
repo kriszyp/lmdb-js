@@ -1304,3 +1304,8 @@ slap_sig_wake( int sig )
 	/* reinstall self */
 	(void) SIGNAL_REINSTALL( sig, slap_sig_wake );
 }
+
+
+void slapd_add_internal(ber_socket_t s) {
+	slapd_add(s);
+}

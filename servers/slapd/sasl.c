@@ -74,6 +74,8 @@ slap_sasl_authorize(
 	const char **user,
 	const char **errstr)
 {
+	char *cuser;
+	int rc;
 	Connection *conn = context;
 
 	*user = NULL;
@@ -97,7 +99,6 @@ slap_sasl_authorize(
 	if ( authzid == NULL || *authzid == '\0' ||
 		strcmp( authcid, authzid ) == 0 )
 	{
-		char* cuser;
 		size_t len = sizeof("u:") + strlen( authcid );
 
 		cuser = ch_malloc( len );
@@ -114,13 +115,18 @@ slap_sasl_authorize(
 		return SASL_OK;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-		"\"%s\" as \"%s\" disallowed. No policy.\n", 
-		(long) (conn ? conn->c_connid : -1),
-		authcid, authzid );
+	rc = slap_sasl_authorized( conn, authcid, authzid );
+	Debug( LDAP_DEBUG_TRACE, "SASL Authorization returned %d\n", rc,0,0);
+	if( rc ) {
+		*errstr = "not authorized";
+		return SASL_NOAUTHZ;
+	}
 
-	*errstr = "no proxy policy";
-    return SASL_NOAUTHZ;
+	cuser = ch_strdup( authzid );
+	dn_normalize( cuser );
+	*errstr = NULL;
+	*user = cuser;
+	return SASL_OK;
 }
 
 
@@ -373,7 +379,6 @@ int slap_sasl_bind(
     Operation           *op,  
     const char          *dn,  
     const char          *ndn,
-    const char          *mech,
     struct berval       *cred,
 	char				**edn,
 	slap_ssf_t			*ssfp )
@@ -388,8 +393,9 @@ int slap_sasl_bind(
 	int sc;
 
 	Debug(LDAP_DEBUG_ARGS,
-		"==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n",
-		dn, mech ? mech : "<continuing>", cred ? cred->bv_len : 0 );
+	  "==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n", dn,
+	  conn->c_sasl_bind_in_progress ? "<continuing>":conn->c_sasl_bind_mech,
+	  cred ? cred->bv_len : 0 );
 
 	if( ctx == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNAVAILABLE,
@@ -397,9 +403,9 @@ int slap_sasl_bind(
 		return rc;
 	}
 
-	if ( mech != NULL ) {
+	if ( !conn->c_sasl_bind_in_progress ) {
 		sc = sasl_server_start( ctx,
-			mech,
+			conn->c_sasl_bind_mech,
 			cred->bv_val, cred->bv_len,
 			(char **)&response.bv_val, &reslen, &errstr );
 
@@ -480,11 +486,6 @@ int slap_sasl_bind(
 				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: authzdn: \"%s\"\n",
 					*edn, 0, 0);
 
-			} else {
-				rc = LDAP_INAPPROPRIATE_AUTH;
-				errstr = "authorization disallowed";
-				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: %s\n",
-					errstr, 0, 0);
 			}
 
 			if( rc == LDAP_SUCCESS ) {

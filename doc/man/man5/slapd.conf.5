@@ -335,6 +335,63 @@ The
 property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
+.B saslregexp <match> <replace>
+Used by the SASL authorization mechanism to convert a SASL authenticated 
+username to an LDAP DN. When an authorization request is received, the SASL 
+.B USERNAME, REALM, 
+and
+.B MECHANISM
+are taken, when available, and combined into a SASL name of the 
+form
+.RS
+.RS
+.TP
+.B uid=<UID>[+realm=<REALM>][,cn=<MECH>],cn=AUTHZ
+
+.RE
+This SASL name is then compared against the
+.B match
+regular expression, and if the match is successful, the SASL name is
+replaced with the
+.B replace
+string. If there are wildcard strings in the 
+.B match
+regular expression that are enclosed in parenthesis, e.g. 
+.RS
+.RS
+.TP
+.B uid=(.*)+realm=.*
+
+.RE
+.RE
+then the portion of the SASL name that matched the wildcard will be stored
+in the numbered placeholder variable $1. If there are other wildcard strings
+in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
+placeholders can then be used in the 
+.B replace
+string, e.g. 
+.RS
+.RS
+.TP
+.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
+
+.RE
+.RE
+The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
+server will use the URI to search its own database, and if the search returns 
+exactly one entry, the SASL name is replaced by the DN of that entry.
+Multiple 
+.B saslregexp 
+options can be given in the configuration file to allow for multiple matching 
+and replacement patterns. The matching patterns are checked in the order they 
+appear in the file, stopping at the first successful match.
+.LP
+.B Caution:
+Because the plus sign + is a character recognized by the regular expression engine,
+and it will appear in SASL names that include a REALM, be careful to escape the
+plus sign with a double backslash \\\\+ to remove the character's special meaning.
+.RE
+.TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
 .TP

@@ -1176,6 +1176,20 @@ typedef struct slap_conn {
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
 
+
+#define SASLREGEX_REPLACE 10
+#define SASL_AUTHZ_SOURCE_ATTR "saslAuthzTo"
+#define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
+
+typedef struct sasl_regexp {
+  char *match;                            /* regexp match pattern */
+  char *replace;                          /* regexp replace pattern */
+  regex_t workspace;                      /* workspace for regexp engine */
+  regmatch_t strings[SASLREGEX_REPLACE];  /* strings matching $1,$2 ... */
+  int offset[SASLREGEX_REPLACE+2];        /* offsets of $1,$2... in *replace */
+} SaslRegexp_t;
+
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

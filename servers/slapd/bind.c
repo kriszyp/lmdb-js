@@ -37,7 +37,6 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
-	char		*saslmech;
 	char		*dn;
 	char *ndn;
 	ber_tag_t	tag;
@@ -204,49 +203,42 @@ do_bind(
 		}
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
-		if ( conn->c_sasl_bind_mech != NULL ) {
-			/* SASL bind is in progress */
-			saslmech = NULL;
-
+		if ( conn->c_sasl_bind_in_progress ) {
 			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
-				/* mechanism changed */
+				/* mechanism changed between bind steps */
 				slap_sasl_reset(conn);
 			}
-
-			free( conn->c_sasl_bind_mech );
-			conn->c_sasl_bind_mech = NULL;
-
-#ifdef LDAP_DEBUG
 		} else {
-			/* SASL bind is NOT in progress */
-			saslmech = mech;
-			assert( conn->c_sasl_bind_mech == NULL );
-#endif
+			conn->c_sasl_bind_mech = mech;
+			mech = NULL;
 		}
-
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		edn = NULL;
-		rc = slap_sasl_bind( conn, op, dn, ndn, saslmech, &cred,
-			&edn, &ssf );
+		rc = slap_sasl_bind( conn, op, dn, ndn, &cred, &edn, &ssf );
 
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if( rc == LDAP_SUCCESS ) {
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			conn->c_dn = edn;
-			conn->c_authmech = mech;
+			conn->c_authmech = conn->c_sasl_bind_mech;
+			conn->c_sasl_bind_mech = NULL;
+			conn->c_sasl_bind_in_progress = 0;
 			if( ssf ) conn->c_sasl_layers++;
 			conn->c_sasl_ssf = ssf;
 			if( ssf > conn->c_ssf ) {
 				conn->c_ssf = ssf;
 			}
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
-			conn->c_sasl_bind_mech = mech;
-		}
+			conn->c_sasl_bind_in_progress = 1;
 
-		mech = NULL;
+		} else {
+			if ( conn->c_sasl_bind_mech ) {
+				free( conn->c_sasl_bind_mech );
+				conn->c_sasl_bind_mech = NULL;
+			}
+			conn->c_sasl_bind_in_progress = 0;
+		}
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		goto cleanup;
 
@@ -255,14 +247,10 @@ do_bind(
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( conn->c_sasl_bind_mech != NULL ) {
-			assert( conn->c_sasl_bind_in_progress );
-
 			free(conn->c_sasl_bind_mech);
 			conn->c_sasl_bind_mech = NULL;
-
-		} else {
-			assert( !conn->c_sasl_bind_in_progress );
 		}
+		conn->c_sasl_bind_in_progress = 0;
 
 		slap_sasl_reset( conn );
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -416,16 +404,6 @@ do_bind(
 	}
 
 cleanup:
-	if( rc != LDAP_SASL_BIND_IN_PROGRESS ) {
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
-		/* dispose of mech */
-		free( conn->c_sasl_bind_mech );
-		conn->c_sasl_bind_mech = NULL;
-
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-	}
-
 	if( dn != NULL ) {
 		free( dn );
 	}

@@ -16,7 +16,7 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
 		repl.c lock.c controls.c extended.c kerberos.c passwd.c \
 		schema.c schema_check.c schema_init.c schema_prep.c \
-		schemaparse.c ad.c at.c mr.c syntax.c oc.c \
+		schemaparse.c ad.c at.c mr.c syntax.c oc.c saslauthz.c \
 		monitor.c configinfo.c starttls.c index.c sets.c\
 		root_dse.c sasl.c module.c suffixalias.c $(@PLAT@_SRCS)
 
@@ -27,7 +27,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
 		repl.o lock.o controls.o extended.o kerberos.o passwd.o \
 		schema.o schema_check.o schema_init.o schema_prep.o \
-		schemaparse.o ad.o at.o mr.o syntax.o oc.o \
+		schemaparse.o ad.o at.o mr.o syntax.o oc.o saslauthz.o \
 		monitor.o configinfo.o starttls.o index.o sets.o\
 		root_dse.o sasl.o module.o suffixalias.o $(@PLAT@_OBJS)
 

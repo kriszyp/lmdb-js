@@ -152,7 +152,15 @@ char * slap_sasl_secprops( const char *in )
 	return NULL;
 }
 
+
+int slap_sasl_regexp_config( const char *match, const char *replace )
+{
+  return(0);
+}
+
+
 void connection2anonymous( Connection *c )
 {
 	assert(0);
 }
+

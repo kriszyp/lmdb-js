@@ -44,6 +44,9 @@ char		*default_search_nbase = NULL;
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
 
+int nSaslRegexp = 0;
+SaslRegexp_t *SaslRegexp = NULL;
+
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
 static int	fp_parse_line(char *line, int *argcp, char **argv);
@@ -1107,6 +1110,17 @@ read_config( const char *fname )
 				return rc;
 
 #endif
+
+		} else if ( !strcasecmp( cargv[0], "saslregexp" ) ) {
+			if ( cargc != 3 ) {
+				Debug( LDAP_DEBUG_ANY, 
+				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
+			if ( rc )
+				return rc;
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {

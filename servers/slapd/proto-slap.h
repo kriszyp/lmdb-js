@@ -542,7 +542,7 @@ LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
 	const char *dn, const char *ndn,
-	const char *mech, struct berval *cred,
+	struct berval *cred,
 	char **edn, slap_ssf_t *ssf ));
 
 /* oc.c */
