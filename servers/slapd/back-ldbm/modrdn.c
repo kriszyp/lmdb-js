@@ -57,37 +57,19 @@ ldbm_back_modrdn(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
-#ifndef MULTIATTRVAL_RDN
-	char		*new_rdn_val = NULL;	/* Val of new rdn */
-	char		*new_rdn_type = NULL;	/* Type of new rdn */
-#else /* MULTIATTRVAL_RDN */
 	char            **new_rdn_vals = NULL;  /* Vals of new rdn */
 	char		**new_rdn_types = NULL;	/* Types of new rdn */
 	int             a_cnt, d_cnt;
-#endif /* MULTIATTRVAL_RDN */
 	char		*old_rdn = NULL;	/* Old rdn's attr type & val */
-#ifndef MULTIATTRVAL_RDN
-	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
-	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
-#else /* MULTIATTRVAL_RDN */
 	char		**old_rdn_types = NULL;	/* Types of old rdn attrs. */
 	char		**old_rdn_vals = NULL;	/* Old rdn attribute values */
-#endif /* MULTIATTRVAL_RDN */
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
 	char		*np_dn = NULL;	/* newSuperior dn */
 	char		*np_ndn = NULL; /* newSuperior ndn */
 	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 	/* Used to interface with ldbm_modify_internal() */
-#ifndef MULTIATTRVAL_RDN
-	struct berval	add_bv;			/* Stores new rdn att */
-	struct berval	*add_bvals[2];		/* Stores new rdn att */
-	struct berval	del_bv;			/* Stores old rdn att */
-	struct berval	*del_bvals[2];		/* Stores old rdn att */
-	Modifications	mod[2];			/* Used to delete old rdn */
-#else /* MULTIATTRVAL_RDN */
 	Modifications	*mod = NULL;		/* Used to delete old/add new rdn */
-#endif /* MULTIATTRVAL_RDN */
 	int		manageDSAit = get_manageDSAit( op );
 
 #ifdef NEW_LOGGING
@@ -413,208 +395,6 @@ ldbm_back_modrdn(
 	       new_ndn, 0, 0 );
 #endif
 
-#ifndef MULTIATTRVAL_RDN /* Ando 2001/07/06 */
-
-	/* Get attribute type and attribute value of our new rdn, we will
-	 * need to add that to our new entry
-	 */
-	if ( (new_rdn_type = rdn_attr_type( newrdn )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: can't figure out type of newrdn\n" ));
-#else
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: can't figure out type of newrdn\n",
-		       0, 0, 0 );
-#endif
-
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, "unknown type used in RDN", NULL, NULL );
-		goto return_results;		
-	}
-
-	if ( (new_rdn_val = rdn_attr_value( newrdn )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: can't figure out val of newrdn\n"));
-#else
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: can't figure out val of newrdn\n",
-		       0, 0, 0 );
-#endif
-
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, "could not parse RDN value", NULL, NULL );
-		goto return_results;		
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		   "ldbm_back_modrdn: new_rdn_val=\"%s\", new_rdn_type=\"%s\"\n",
-		   new_rdn_val, new_rdn_type ));
-#else
-	Debug( LDAP_DEBUG_TRACE,
-	       "ldbm_back_modrdn: new_rdn_val=\"%s\", new_rdn_type=\"%s\"\n",
-	       new_rdn_val, new_rdn_type, 0 );
-#endif
-
-	/* Retrieve the old rdn from the entry's dn */
-	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: can't figure out old_rdn from dn (%s)\n",
-			   dn ));
-#else
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
-		       0, 0, 0 );
-#endif
-
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "could not parse old DN", NULL, NULL );
-		goto return_results;		
-	}
-
-	if ( (old_rdn_type = rdn_attr_type( old_rdn )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: can't figure out the old_rdn type.\n" ));
-#else
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
-		       0, 0, 0 );
-#endif
-
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "could not parse RDN from old DN", NULL, NULL );
-		goto return_results;		
-	}
-	
-	if ( newSuperior == NULL
-		&& strcasecmp( old_rdn_type, new_rdn_type ) != 0 )
-	{
-	    /* Not a big deal but we may say something */
-#ifdef NEW_LOGGING
-	    LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-		       "ldbm_back_modrdn: old_rdn_type=%s new_rdn_type=%s\n",
-		       old_rdn_type, new_rdn_type ));
-#else
-	    Debug( LDAP_DEBUG_TRACE,
-		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",
-		   old_rdn_type, new_rdn_type, 0 );
-#endif
-	}		
-
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		   "ldbm_back_modrdn:  DN_X500\n" ));
-#else
-		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
-		       0, 0, 0 );
-#endif
-		
-		/* Add new attribute value to the entry.
-		 */
-
-		add_bvals[0] = &add_bv;		/* Array of bervals */
-		add_bvals[1] = NULL;
-
-		add_bv.bv_val = new_rdn_val;
-		add_bv.bv_len = strlen(new_rdn_val);
-		
-		{
-			int rc;
-
-			mod[0].sml_desc = NULL;
-			rc = slap_str2ad( new_rdn_type, &mod[0].sml_desc, &text );
-
-			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-					   "ldbm_back_modrdn: slap_str2ad error: %s (%s)\n",
-					   text, new_rdn_type ));
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_back_modrdn: %s: %s (new)\n",
-					text, new_rdn_type, 0 );
-#endif
-
-				send_ldap_result( conn, op, rc,
-					NULL, text, NULL, NULL );
-				goto return_results;		
-			}
-		}
-
-		mod[0].sml_bvalues = add_bvals;
-		mod[0].sml_op = SLAP_MOD_SOFTADD;
-		mod[0].sml_next = NULL;
-
-		/* Remove old rdn value if required */
-		if (deleteoldrdn) {
-			/* Get value of old rdn */
-	
-			if ((old_rdn_val = rdn_attr_value( old_rdn )) == NULL) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-					   "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n" ));
-#else
-				Debug( LDAP_DEBUG_TRACE,
-				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
-				       0, 0, 0 );
-#endif
-
-				send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, "could not parse value from old RDN", NULL, NULL );
-				goto return_results;		
-			}
-
-			del_bvals[0] = &del_bv;		/* Array of bervals */
-			del_bvals[1] = NULL;
-
-			/* Remove old value of rdn as an attribute. */
-		    
-			del_bv.bv_val = old_rdn_val;
-			del_bv.bv_len = strlen(old_rdn_val);
-
-			{
-				int rc;
-
-				mod[1].sml_desc = NULL;
-				rc = slap_str2ad( old_rdn_type, &mod[1].sml_desc, &text );
-
-				if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-						   "ldbm_back_modrdn: %s: %s (old)\n",
-						   text, old_rdn_type ));
-#else
-					Debug( LDAP_DEBUG_TRACE,
-						"ldbm_back_modrdn: %s: %s (old)\n",
-						text, old_rdn_type, 0 );
-#endif
-
-					send_ldap_result( conn, op, rc,
-						NULL, text, NULL, NULL );
-					goto return_results;		
-				}
-			}
-
-			mod[0].sml_next = &mod[1];
-			mod[1].sml_bvalues = del_bvals;
-			mod[1].sml_op = LDAP_MOD_DELETE;
-			mod[1].sml_next = NULL;
-
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_back_modrdn: removing old_rdn_val=%s\n", old_rdn_val ));
-#else
-			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",
-			       old_rdn_val, 0, 0 );
-#endif
-		}
-
-#else /* MULTIATTRVAL_RDN */
 
 	/* Get attribute types and values of our new rdn, we will
 	 * need to add that to our new entry
@@ -800,7 +580,6 @@ ldbm_back_modrdn(
 		}
 	}
 
-#endif /* MULTIATTRVAL_RDN */
 	
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
@@ -875,27 +654,15 @@ return_results:
 	if( p_ndn != NULL ) free( p_ndn );
 
 	/* LDAP v2 supporting correct attribute handling. */
-#ifndef MULTIATTRVAL_RDN
-	if( new_rdn_type != NULL ) free(new_rdn_type);
-	if( new_rdn_val != NULL ) free(new_rdn_val);
-#else /* MULTIATTRVAL_RDN */
 	if( new_rdn_types != NULL ) charray_free( new_rdn_types );
 	if( new_rdn_vals != NULL ) charray_free( new_rdn_vals );
-#endif /* MULTIATTRVAL_RDN */
 	if( old_rdn != NULL ) free(old_rdn);
-#ifndef MULTIATTRVAL_RDN
-	if( old_rdn_type != NULL ) free(old_rdn_type);
-	if( old_rdn_val != NULL ) free(old_rdn_val);
-#else /* MULTIATTRVAL_RDN */
 	if( old_rdn_types != NULL ) charray_free( old_rdn_types );
 	if( old_rdn_vals != NULL ) charray_free( old_rdn_vals );
-#endif /* MULTIATTRVAL_RDN */
 
-#ifdef MULTIATTRVAL_RDN
 	if ( mod != NULL ) {
 		slap_mods_free( mod );
 	}
-#endif /* MULTIATTRVAL_RDN */
 
 	/* LDAP v3 Support */
 	if ( np_dn != NULL ) free( np_dn );
