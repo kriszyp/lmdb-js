@@ -19,9 +19,21 @@
 # other slapd items
 #
 attributetype ( 1.3.6.1.4.1.4203.666.1.3 NAME 'entry'
+	DESC 'OpenLDAP ACL entry psuedo attribute'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.4203.666.1.4 NAME 'children'
+	DESC 'OpenLDAP ACL children psuedo attribute'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
+
+#
+# From U-Mich
+#
+attributetype ( 1.3.6.1.4.1.250.1.32
+	NAME ( 'krbName' 'kerberosName' )
+	DESC 'Kerberos Name'
+	EQUALITY caseIgnoreIA5String
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+	SINGLE-VALUE )
