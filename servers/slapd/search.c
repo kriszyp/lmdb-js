@@ -43,6 +43,7 @@ do_search(
 	struct berval base = { 0, NULL };
 	ber_len_t	siz, off, i;
 	int			manageDSAit;
+	int			be_manageDSAit;
 #ifdef LDAP_SLAPI
 	char		**attrs = NULL;
 #endif
@@ -330,7 +331,28 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 )) == NULL ) {
+
+	/* Sync / LCUP controls override manageDSAit */
+
+	if ( manageDSAit != SLAP_NO_CONTROL ) {
+#ifdef LDAP_CLIENT_UPDATE
+		if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+			be_manageDSAit = SLAP_NO_CONTROL;
+		} else
+#endif
+#ifdef LDAP_SYNC
+		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
+			be_manageDSAit = SLAP_NO_CONTROL;
+		} else
+#endif
+		{
+			be_manageDSAit = manageDSAit;
+		}
+	} else {
+		be_manageDSAit = manageDSAit;
+	}
+
+	if ( (op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 )) == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, op->ors_scope );
 
