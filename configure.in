@@ -971,7 +971,6 @@ dnl ----------------------------------------------------------------
 dnl TLS/SSL
 ol_link_tls=no
 if test $ol_with_tls != no ; then
-	
 	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
 	
 	if test $ac_cv_header_openssl_ssl_h = yes -o $ac_cv_header_ssl_h = yes ; then
@@ -1012,11 +1011,21 @@ if test $ol_with_tls != no ; then
 			fi
 		fi
 	fi
+
+else
+	AC_WARN([TLS privacy protection not supported!])
 fi
 
 if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
-fi	
+
+elif test $ol_with_tls = auto ; then
+	AC_WARN([Could not locate TLS/SSL package])
+	AC_WARN([TLS privacy protection not supported!])
+
+elif test $ol_with_tls != no ; then
+	AC_ERROR([Could not locate TLS/SSL package])
+fi
 
 dnl ----------------------------------------------------------------
 dnl Tests for reentrant functions necessary to build a
@@ -1839,8 +1848,21 @@ if test $ol_with_cyrus_sasl != no ; then
 		fi
 	fi
 
-	if test $ol_link_sasl = no -a $ol_with_cyrus_sasl = yes ; then
-		AC_MSG_ERROR(no suitable API for --with-cyrus-sasl=$ol_with_cyrus_sasl)
+	if test $ol_link_sasl = no ; then
+		if test $ol_with_cyrus_sasl != auto ; then
+			AC_MSG_ERROR([Could not locate Cyrus SASL])
+		else
+			AC_MSG_WARN([Could not locate Cyrus SASL])
+			AC_MSG_WARN([SASL authentication not supported!])
+			if test $ol_link_tls = no ; then
+				AC_MSG_WARN([Strong authentication not supported!])
+			fi
+		fi
+	fi
+else
+	AC_MSG_WARN([SASL authentication not supported!])
+	if test $ol_link_tls = no ; then
+		AC_MSG_WARN([Strong authentication not supported!])
 	fi
 fi
 
