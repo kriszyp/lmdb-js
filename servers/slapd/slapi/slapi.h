@@ -37,6 +37,17 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 /*
+ * Attribute flags returned by slapi_attr_get_flags()
+ */
+#define SLAPI_ATTR_FLAG_SINGLE		0x0001
+#define SLAPI_ATTR_FLAG_OPATTR		0x0002
+#define SLAPI_ATTR_FLAG_READONLY	0x0004
+#define SLAPI_ATTR_FLAG_STD_ATTR	SLAPI_ATTR_FLAG_READONLY
+#define SLAPI_ATTR_FLAG_OBSOLETE	0x0040
+#define SLAPI_ATTR_FLAG_COLLECTIVE	0x0080
+#define SLAPI_ATTR_FLAG_NOUSERMOD	0x0100
+
+/*
  * Plugin types universally supported by SLAPI
  * implementations
  */

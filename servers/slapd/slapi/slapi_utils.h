@@ -54,6 +54,8 @@ Slapi_Entry *slapi_entry_dup( Slapi_Entry *e );
 Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
 int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
+int slapi_attr_get_flags( Slapi_Attr *attr, unsigned long *flags );
+int slapi_attr_flag_is_set( Slapi_Attr *attr, unsigned long flag );
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );

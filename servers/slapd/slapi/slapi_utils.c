@@ -1329,3 +1329,45 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 	return -1;
 #endif /* defined(LDAP_SLAPI) */
 }
+
+int slapi_attr_get_flags( Slapi_Attr *attr, unsigned long *flags )
+{
+#if defined( LDAP_SLAPI )
+	AttributeType *at;
+
+	if ( attr == NULL )
+		return LDAP_PARAM_ERROR;
+
+	at = attr->a_desc->ad_type;
+
+	*flags = SLAPI_ATTR_FLAG_STD_ATTR;
+
+	if ( is_at_single_value( at ) )
+		*flags |= SLAPI_ATTR_FLAG_SINGLE;
+	if ( is_at_operational( at ) )
+		*flags |= SLAPI_ATTR_FLAG_OPATTR;
+	if ( is_at_obsolete( at ) )
+		*flags |= SLAPI_ATTR_FLAG_OBSOLETE;
+	if ( is_at_collective( at ) )
+		*flags |= SLAPI_ATTR_FLAG_COLLECTIVE;
+	if ( is_at_no_user_mod( at ) )
+		*flags |= SLAPI_ATTR_FLAG_NOUSERMOD;
+
+	return LDAP_SUCCESS;
+#else
+	return -1;
+#endif /* defined(LDAP_SLAPI) */
+}
+
+int slapi_attr_flag_is_set( Slapi_Attr *attr, unsigned long flag )
+{
+#if defined( LDAP_SLAPI )
+	unsigned long flags;
+
+	if ( slapi_attr_get_flags( attr, &flags ) != 0 )
+		return 0;
+	return (flags & flag) ? 1 : 0;
+#else
+	return 0;
+#endif /* defined(LDAP_SLAPI) */
+}
