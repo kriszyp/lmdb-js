@@ -771,7 +771,7 @@ syncrepl_message_to_entry(
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
 		mod->sml_bvalues = tmp.sml_bvalues;
-		mod->sml_nvalues = tmp.sml_bvalues;
+		mod->sml_nvalues = NULL;
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -1381,7 +1381,7 @@ syncrepl_updateCookie(
 	mod->sml_desc = NULL;
 	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = ocbva;
-	mod->sml_nvalues = ocbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1397,7 +1397,7 @@ syncrepl_updateCookie(
 	mod->sml_desc = NULL;
 	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
 	mod->sml_bvalues = cnbva;
-	mod->sml_nvalues = cnbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1411,7 +1411,7 @@ syncrepl_updateCookie(
 	ber_str2bv( "syncreplCookie", strlen("syncreplCookie"),
 						1, &mod->sml_type );
 	mod->sml_bvalues = scbva;
-	mod->sml_nvalues = scbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1425,7 +1425,7 @@ syncrepl_updateCookie(
 	ber_str2bv( "subtreeSpecification",
 			strlen("subtreeSpecification"), 1, &mod->sml_type );
 	mod->sml_bvalues = ssbva;
-	mod->sml_nvalues = ssbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 

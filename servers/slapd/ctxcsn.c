@@ -166,7 +166,7 @@ slap_create_context_csn_entry(
 	mod->sml_desc = NULL;
 	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = ocbva;
-	mod->sml_nvalues = ocbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -181,7 +181,7 @@ slap_create_context_csn_entry(
 	mod->sml_desc = NULL;
 	ber_str2bv( "structuralObjectClass", strlen("structuralObjectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = socbva;
-	mod->sml_nvalues = socbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -197,7 +197,7 @@ slap_create_context_csn_entry(
 	mod->sml_desc = NULL;
 	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
 	mod->sml_bvalues = cnbva;
-	mod->sml_nvalues = cnbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -211,7 +211,7 @@ slap_create_context_csn_entry(
 		mod->sml_desc = NULL;
 		ber_str2bv( "contextCSN", strlen("contextCSN"), 1, &mod->sml_type );
 		mod->sml_bvalues = scbva;
-		mod->sml_nvalues = scbva;
+		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
@@ -226,7 +226,7 @@ slap_create_context_csn_entry(
 	ber_str2bv( "subtreeSpecification",
 			strlen("subtreeSpecification"), 1, &mod->sml_type );
 	mod->sml_bvalues = ssbva;
-	mod->sml_nvalues = ssbva;
+	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
