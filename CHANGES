@@ -5,6 +5,7 @@ Changes included in OpenLDAP 1.2.12 Engineering
 	Fixed ldapmodify ldaphost NULL bug
 	Fixed ldapsearch uninitialized fp bug
 	Fixed Pth initialization bug
+	Fixed libldap/add mod_bvalues typo
 	Build Environment
 		Ignore make clean rm failure
 

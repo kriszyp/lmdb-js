@@ -75,7 +75,7 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		if ( ( attrs[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
 			rc = ber_printf( ber, "{s[V]}", attrs[i]->mod_type,
-			    attrs[i]->mod_values );
+			    attrs[i]->mod_bvalues );
 		} else {
 			rc = ber_printf( ber, "{s[v]}", attrs[i]->mod_type,
 			    attrs[i]->mod_values );
