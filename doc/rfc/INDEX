@@ -46,6 +46,7 @@ rfc3771.txt LDAP: Intermediate Response Message (PS)
 rfc3829.txt LDAP Authorization Identity Controls (I)
 rfc3866.txt Language Tag and Ranges in LDAP (PS)
 rfc3876.txt Returning Matched Values with LDAP (PS)
+rfc3909.txt LDAP Cancel Operation (PS)
 
 Legend:
 STD	Standard
