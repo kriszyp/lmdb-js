@@ -750,6 +750,7 @@ do_bind(
 )
 {
     int		ldrc;
+    int		do_tls = ri->ri_tls;
 
     *lderr = 0;
 
@@ -872,7 +873,7 @@ retry:
 	}
 	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
-	if( ri->ri_tls ) {
+	if( do_tls ) {
 		int err;
 		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
 
@@ -894,7 +895,7 @@ retry:
 				ri->ri_ldp = NULL;
 				return BIND_ERR_TLS_FAILED;
 			}
-			ri->ri_tls = TLS_OFF;
+			do_tls = TLS_OFF;
 			goto retry;
 		}
 	}
