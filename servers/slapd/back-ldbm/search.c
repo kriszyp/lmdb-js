@@ -38,8 +38,7 @@ ldbm_back_search(
     Filter	*filter,
     const char	*filterstr,
     char	**attrs,
-    int		attrsonly
-)
+    int		attrsonly )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc, err;
@@ -339,8 +338,7 @@ done:
 static ID_BLOCK *
 base_candidate(
     Backend	*be,
-	Entry	*e
-)
+	Entry	*e )
 {
 	ID_BLOCK		*idl;
 
@@ -360,11 +358,51 @@ search_candidates(
     Filter	*filter,
     int		scope,
 	int		deref,
-	int		manageDSAit
-)
+	int		manageDSAit )
 {
 	ID_BLOCK		*candidates;
-	candidates = filter_candidates( be, filter );
+	Filter		f, fand, rf, af, xf;
+    AttributeAssertion aa_ref, aa_alias;
+	static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+	static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+
+	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
+		e->e_ndn, scope, deref );
+
+	xf.f_or = filter;
+	xf.f_choice = LDAP_FILTER_OR;
+	xf.f_next = NULL;
+
+	if( !manageDSAit ) {
+		/* match referrals */
+		rf.f_choice = LDAP_FILTER_EQUALITY;
+		rf.f_ava = &aa_ref;
+		rf.f_av_desc = slap_schema.si_ad_objectClass;
+		rf.f_av_value = &bv_ref;
+		rf.f_next = xf.f_or;
+		xf.f_or = &rf;
+	}
+
+	if( deref & LDAP_DEREF_SEARCHING ) {
+		/* match aliases */
+		af.f_choice = LDAP_FILTER_EQUALITY;
+		af.f_ava = &aa_alias;
+		af.f_av_desc = slap_schema.si_ad_objectClass;
+		af.f_av_value = &bv_alias;
+		af.f_next = xf.f_or;
+		xf.f_or = &af;
+	}
+
+	f.f_next = NULL;
+	f.f_choice = LDAP_FILTER_AND;
+	f.f_and = &fand;
+	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
+		? SLAPD_FILTER_DN_SUBTREE
+		: SLAPD_FILTER_DN_ONE;
+	fand.f_dn = e->e_ndn;
+	fand.f_next = xf.f_or == filter ? filter : &xf ;
+
+	candidates = filter_candidates( be, &f );
 
 	return( candidates );
 }
