@@ -53,8 +53,8 @@ struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
 #ifdef SLAPD_SCHEMA_DN
-struct berval global_schemadn;
-struct berval global_schemandn;
+struct berval global_schemadn = { 0, NULL };
+struct berval global_schemandn = { 0, NULL };
 #endif
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;

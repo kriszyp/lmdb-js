@@ -202,12 +202,14 @@ do_modrdn(
 		goto cleanup;
 
 #ifdef SLAPD_SCHEMA_DN
-	} else if ( bvmatch( &ndn, &global_schemandn ) == 0 ) {
+	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
-			"do_modrdn: attempt to modify subschema subentry\n", 0, 0, 0 );
+			"do_modrdn: attempt to modify subschema subentry: %s (%ld)\n",
+			global_schemandn.bv_val, (long) global_schemandn.bv_len, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry!\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry: %s (%ld)\n",
+			global_schemandn.bv_val, (long) global_schemandn.bv_len, 0 );
 #endif
 
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
