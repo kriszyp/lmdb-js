@@ -210,11 +210,25 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
-AC_CHECK_FUNC(socket, :,  
-[	AC_CHECK_LIB(nsl, gethostname)
-	AC_CHECK_LIB(socket, socket)
+dnl Find socket()
+dnl Likely combinations:
+dnl		-lsocket [ -lnsl_s | -lnsl ]
+dnl		-linet
+
+AC_CHECK_FUNC(socket, :, [	
+dnl
+dnl hopefully we won't include too many libraries
+dnl
+	AC_CHECK_LIB(socket, main)
+	AC_CHECK_LIB(net, main)
+	AC_CHECK_LIB(nsl_s, main)
+	AC_CHECK_LIB(nsl, main)
 	AC_CHECK_LIB(inet, socket)
+	AC_CHECK_LIB(gen, main)
 ])
+
+dnl HP-UX requires -lV3
+AC_CHECK_LIB(V3, sigset)
 
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)

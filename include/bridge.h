@@ -12,8 +12,8 @@
 
 /* This file SHOULD go away !!! */
 
-#ifndef _LDAP_BRIDGE_H
-#define _LDAP_BRIDGE_H
+#ifndef LDAP_BRIDGE
+#define LDAP_BRIDGE
 
 /*
  * portable.h for LDAP -- this is where we define common stuff to make
@@ -204,4 +204,4 @@
 extern char *strdup();
 #endif /* ultrix || nextstep */
 
-#endif /* _LDAP_BRIDGE_H */
+#endif /* LDAP_BRIDGE */

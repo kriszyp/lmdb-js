@@ -66,7 +66,7 @@ crypted_value_find(
 #ifdef LDAP_MD5
 		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{MD5}",
 			vals[i]->bv_val, (sizeof("{MD5}") - 1 ) ) == 0 ) {
-				MD5_CTX MD5context;
+				ldap_MD5_CTX MD5context;
 				unsigned char MD5digest[20];
 				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
 
@@ -89,7 +89,7 @@ crypted_value_find(
 #ifdef LDAP_SHA1
 		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{SHA}",
 			vals[i]->bv_val, (sizeof("{SHA}") - 1 ) ) == 0 ) {
-				SHA1_CTX SHA1context;
+				ldap_SHA1_CTX SHA1context;
 				unsigned char SHA1digest[20];
 				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
 

@@ -238,11 +238,23 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the V3 library (-lV3).  */
+#undef HAVE_LIBV3
+
+/* Define if you have the gen library (-lgen).  */
+#undef HAVE_LIBGEN
+
 /* Define if you have the inet library (-linet).  */
 #undef HAVE_LIBINET
 
+/* Define if you have the net library (-lnet).  */
+#undef HAVE_LIBNET
+
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL
+
+/* Define if you have the nsl_s library (-lnsl_s).  */
+#undef HAVE_LIBNSL_S
 
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET

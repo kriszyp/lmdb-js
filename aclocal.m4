@@ -231,6 +231,10 @@ dnl		AC_CHECK_FUNC(dbm_open)
 dnl		AC_CHECK_LIB(ndbm,dbm_open)
 dnl		AC_CHECK_LIB(dbm,dbm_open)
 dnl
+dnl restrictions:
+dnl		should also check SVR4 case: dbm_open() in -lucb but that
+dnl		would requiring dealing with -L/usr/ucblib
+dnl
 AC_DEFUN([OL_LIB_NDBM],
 [AC_CACHE_CHECK(for NDBM library, [ol_cv_lib_ndbm],
 [	ol_LIBS="$LIBS"
@@ -252,6 +256,9 @@ dnl
 dnl uses:
 dnl		OL_LIB_NDBM
 dnl		AC_CHECK_HEADERS(ndbm.h)
+dnl
+dnl restrictions:
+dnl		Doesn't handle SVR4 case (see above)
 dnl
 AC_DEFUN([OL_NDBM],
 [AC_REQUIRE([OL_LIB_NDBM])
