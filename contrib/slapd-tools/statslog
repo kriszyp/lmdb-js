@@ -81,7 +81,7 @@ BEGIN {
 usage() unless $getopt_ok;
 usage("--trace is incompatible with --join.\n") if $trace && $join_files;
 
-$join_files = 1 if $sort_files && !defined($join_files);
+$join_files = 1 if !defined($join_files) && $sort_files && !$trace;
 use constant BRIEF => !!$brief;
 use constant LOOSE => defined($no_loose) && ($no_loose eq ".^" ? 2 : 1);
 
