@@ -484,15 +484,13 @@ ldbm_back_modrdn(
 
 	mod = NULL;
 	for ( a_cnt = 0; new_rdn_types[a_cnt]; a_cnt++ ) {
-		int rc;
-		Modifications *mod_tmp;
-		struct berval val;
+		int 			rc;
+		AttributeDescription	*desc = NULL;
+		Modifications 		*mod_tmp;
+		struct berval 		val;
 
-		mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
 
-		mod_tmp->sml_desc = NULL;
-		rc = slap_str2ad( new_rdn_types[a_cnt], 
-				&mod_tmp->sml_desc, &text );
+		rc = slap_str2ad( new_rdn_types[a_cnt], &desc, &text );
 
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -514,7 +512,7 @@ ldbm_back_modrdn(
 		val.bv_val = new_rdn_vals[a_cnt];
 		val.bv_len = strlen( val.bv_val );
 		if ( ! access_allowed( be, conn, op, p, 
-				mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+				desc, &val, ACL_WRITE ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				   "ldbm_back_modrdn: access "
@@ -526,6 +524,7 @@ ldbm_back_modrdn(
 				"to attr \"%s\"\n%s%s",
 				new_rdn_types[a_cnt], "", "" );
 #endif
+			ad_free( desc, 1 );
 			send_ldap_result( conn, op, 
 				LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -533,6 +532,8 @@ ldbm_back_modrdn(
 			goto return_results;
 		}
 
+		mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
+		mod_tmp->sml_desc = desc;
 		mod_tmp->sml_bvalues = (struct berval **)ch_malloc( 2 * sizeof(struct berval *) );
 		mod_tmp->sml_bvalues[0] = ber_bvstrdup( new_rdn_vals[a_cnt] );
 		mod_tmp->sml_bvalues[1] = NULL;
@@ -560,15 +561,13 @@ ldbm_back_modrdn(
 		}
 
 		for ( d_cnt = 0; old_rdn_types[d_cnt]; d_cnt++ ) {    
-			int rc;
-			Modifications *mod_tmp;
-			struct berval val;
+			int 			rc;
+			AttributeDescription	*desc = NULL;
+			Modifications 		*mod_tmp;
+			struct berval 		val;
 
-			mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
 
-			mod_tmp->sml_desc = NULL;
-			rc = slap_str2ad( old_rdn_types[d_cnt], 
-					&mod_tmp->sml_desc, &text );
+			rc = slap_str2ad( old_rdn_types[d_cnt], &desc, &text );
 
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -590,7 +589,7 @@ ldbm_back_modrdn(
 			val.bv_val = old_rdn_vals[d_cnt];
 			val.bv_len = strlen( val.bv_val );
 			if ( ! access_allowed( be, conn, op, p, 
-					mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+					desc, &val, ACL_WRITE ) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 					   "ldbm_back_modrdn: access "
@@ -602,6 +601,7 @@ ldbm_back_modrdn(
 					"to attr \"%s\"\n%s%s",
 					old_rdn_types[d_cnt], "", "" );
 #endif
+				ad_free( desc, 1 );
 				send_ldap_result( conn, op, 
 					LDAP_INSUFFICIENT_ACCESS,
 					NULL, NULL, NULL, NULL );
@@ -610,6 +610,8 @@ ldbm_back_modrdn(
 			}
 
 			/* Remove old value of rdn as an attribute. */
+			mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
+			mod_tmp->sml_desc = desc;
 			mod_tmp->sml_bvalues = (struct berval **)ch_malloc( 2 * sizeof(struct berval *) );
 			mod_tmp->sml_bvalues[0] = ber_bvstrdup( old_rdn_vals[d_cnt] );
 			mod_tmp->sml_bvalues[1] = NULL;
