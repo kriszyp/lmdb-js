@@ -191,6 +191,10 @@ struct bdb_info {
 	ldap_pvt_thread_rdwr_t bi_idl_tree_rwlock;
 	ldap_pvt_thread_mutex_t bi_idl_tree_lrulock;
 	alock_info_t	bi_alock_info;
+	char		*bi_db_config_path;
+	BerVarray	bi_db_config;
+	int		bi_db_is_open;
+	int		bi_db_has_config;
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

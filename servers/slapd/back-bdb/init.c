@@ -381,6 +381,29 @@ bdb_db_open( BackendDB *be )
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
 
+	if ( slapMode & SLAP_SERVER_MODE && bdb->bi_db_has_config ) {
+		char	buf[SLAP_TEXT_BUFLEN];
+		FILE *f = fopen( bdb->bi_db_config_path, "r" );
+		struct berval bv;
+
+		if ( f ) {
+			while ( fgets( buf, sizeof(buf), f )) {
+				ber_str2bv( buf, 0, 1, &bv );
+				if ( bv.bv_val[bv.bv_len-1] == '\n' ) {
+					bv.bv_len--;
+					bv.bv_val[bv.bv_len] = '\0';
+				}
+				ber_bvarray_add( &bdb->bi_db_config, &bv );
+			}
+			fclose( f );
+		} else {
+			/* Eh? It disappeared between config and open?? */
+			bdb->bi_db_has_config = 0;
+		}
+
+	}
+	bdb->bi_db_is_open = 1;
+
 	return 0;
 }
 
@@ -391,6 +414,10 @@ bdb_db_close( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
+
+	bdb->bi_db_is_open = 0;
+
+	ber_bvarray_free( bdb->bi_db_config );
 
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
@@ -463,6 +490,7 @@ bdb_db_destroy( BackendDB *be )
 	}
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
+	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
