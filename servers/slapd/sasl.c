@@ -440,10 +440,10 @@ slap_auxprop_lookup(
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 			op.o_conn = conn;
 			op.o_connid = conn->c_connid;
-			op.oq_search.rs_scope = LDAP_SCOPE_BASE;
-			op.oq_search.rs_deref = LDAP_DEREF_NEVER;
-			op.oq_search.rs_slimit = 1;
-			op.oq_search.rs_filter = generic_filter;
+			op.ors_scope = LDAP_SCOPE_BASE;
+			op.ors_deref = LDAP_DEREF_NEVER;
+			op.ors_slimit = 1;
+			op.ors_filter = generic_filter;
 
 			op.o_bd->be_search( &op, &rs );
 		}
@@ -563,10 +563,10 @@ slap_sasl_checkpass(
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 		op.o_conn = conn;
 		op.o_connid = conn->c_connid;
-		op.oq_search.rs_scope = LDAP_SCOPE_BASE;
-		op.oq_search.rs_deref = LDAP_DEREF_NEVER;
-		op.oq_search.rs_slimit = 1;
-		op.oq_search.rs_filter = generic_filter;
+		op.ors_scope = LDAP_SCOPE_BASE;
+		op.ors_deref = LDAP_DEREF_NEVER;
+		op.ors_slimit = 1;
+		op.ors_filter = generic_filter;
 
 		op.o_bd->be_search( &op, &rs );
 	}
@@ -1431,7 +1431,7 @@ slap_sasl_setpass( Operation *op, SlapReply *rs )
 	struct berval new = { 0, NULL };
 	struct berval old = { 0, NULL };
 
-	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	rs->sr_err = sasl_getprop( op->o_conn->c_sasl_context, SASL_USERNAME,
 		(SASL_CONST void **)&id.bv_val );
@@ -1451,7 +1451,7 @@ slap_sasl_setpass( Operation *op, SlapReply *rs )
 		id.bv_val ? id.bv_val : "", 0, 0 );
 #endif
 
-	rs->sr_err = slap_passwd_parse( op->oq_extended.rs_reqdata,
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata,
 		NULL, &old, &new, &rs->sr_text );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
