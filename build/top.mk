@@ -56,7 +56,7 @@ MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
 LIBTOOL = @LIBTOOL@
-LIBVERSION = 2:10:0
+LIBVERSION = 2:11:0
 LTVERSION = -version-info $(LIBVERSION)
 #We don't use our own shared libraries (yet)
 #LTLINK  = $(LIBTOOL) --mode=link $(CC) -rpath $(libdir) \
