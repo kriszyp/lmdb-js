@@ -927,9 +927,10 @@ connection_input(
 			ber_pvt_sb_get_desc( conn->c_sb ), err, STRERROR(err) );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",
-			conn->c_currentber->ber_buf ?
-			(long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf) : 0,
-			conn->c_currentber->ber_len, 0 );
+			(long) ( conn->c_currentber->ber_buf
+				?  conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf
+				: 0 ),
+			(long) conn->c_currentber->ber_len, 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
