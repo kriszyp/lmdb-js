@@ -136,8 +136,6 @@ dn2entry_retry:
 #endif
 
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		send_ldap_result( op, rs );
-
 		goto done;
 	}
 #endif
@@ -152,8 +150,8 @@ dn2entry_retry:
 			0, 0 );
 #endif
 
-		send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM, "entry is alias");
-
+		rs->sr_err = LDAP_ALIAS_PROBLEM;
+		rs->sr_text = "entry is alias";
 		goto done;
 	}
 #endif
@@ -172,16 +170,9 @@ dn2entry_retry:
 
 		if( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_matched = e->e_name.bv_val;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-			rs->sr_ref = NULL;
-			rs->sr_matched = NULL;
 		} else {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
 		}
-
 		goto done;
 	}
 
@@ -191,19 +182,16 @@ dn2entry_retry:
 			password, NULL, ACL_AUTH, NULL );
 		if ( ! rs->sr_err ) {
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-			send_ldap_result( op, rs );
 			goto done;
 		}
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
-			send_ldap_result( op, rs );
 			goto done;
 		}
 
 		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
 			goto done;
 		}
 
@@ -214,7 +202,6 @@ dn2entry_retry:
 	case LDAP_AUTH_KRBV41:
 		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad ) != LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS,
-			send_ldap_result( op );
 			goto done;
 		}
 
@@ -222,7 +209,6 @@ dn2entry_retry:
 			krbattr, NULL, ACL_AUTH, NULL );
 		if ( ! rs->sr_err ) {
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS,
-			send_ldap_result( op );
 			goto done;
 		}
 
@@ -238,7 +224,6 @@ dn2entry_retry:
 				break;
 			}
 			rs->sr_err = LDAP_INAPPROPRIATE_AUTH,
-			send_ldap_result( op );
 			goto done;
 
 		} else {	/* look for krbname match */
@@ -246,7 +231,6 @@ dn2entry_retry:
 
 			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
 				rs->sr_err = LDAP_INVALID_CREDENTIALS;
-				send_ldap_result( op );
 				goto done;
 			}
 		}
@@ -254,15 +238,14 @@ dn2entry_retry:
 		break;
 
 	case LDAP_AUTH_KRBV42:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"Kerberos bind step 2 not supported" );
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Kerberos bind step 2 not supported";
 		goto done;
 #endif
 
 	default:
-		send_ldap_error( op, rs, LDAP_STRONG_AUTH_NOT_SUPPORTED,
-			"authentication method not supported" );
-		goto done;
+		rs->sr_err = LDAP_STRONG_AUTH_NOT_SUPPORTED;
+		rs->sr_text = "authentication method not supported";
 	}
 
 done:
@@ -273,6 +256,13 @@ done:
 
 	LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
+	if ( rs->sr_err ) {
+		send_ldap_result( op, rs );
+		if ( rs->sr_ref ) {
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+		}
+	}
 	/* front end will send result on success (rs->sr_err==0) */
 	return rs->sr_err;
 }
