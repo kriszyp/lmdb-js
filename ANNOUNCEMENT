@@ -44,6 +44,10 @@
         * saucer - a simple command-line oriented client program
         * whois++d - a WHOIS++-to-LDAP gateway
 
+    This release contains a number of major code changes.  It
+    might be a bit rough around the edges.  Use with appropriate
+    caution.
+
 
 ACKNOWLEDGEMENTS
 

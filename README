@@ -5,8 +5,10 @@ OpenLDAP 2.0 README
 	changes from previous releases, see the CHANGES file in this
 	directory.
 
-    This is the first release of 2.0 and may not be as stable as
-	prior 1.2 releases.
+	This is the first release of 2.0 and includes significant
+	changes from prior releases.  The software may be a little
+	rough around the edges, use with appropriate care.  Those
+	seeking stable LDAP servers may want to use 1.2.
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
