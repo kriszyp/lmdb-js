@@ -71,9 +71,15 @@ ldap_back_conn_destroy(
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	if (lc) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+			"ldap_back_conn_destroy: destroying conn %ld\n",
+			conn->c_connid ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld\n",
 			lc->conn->c_connid, 0, 0 );
+#endif
 
 #ifdef ENABLE_REWRITE
 		/*
