@@ -662,9 +662,15 @@ ldap_int_sasl_external(
 	ber_len_t ssf )
 {
 	int sc;
-	sasl_conn_t *ctx = ld->ld_defconn->lconn_sasl_ctx;
+	sasl_conn_t *ctx;
 	sasl_external_properties_t extprops;
-    
+
+	if( ld->ld_defconn == NULL ) {
+		return LDAP_LOCAL_ERROR;
+	}
+
+	ctx = ld->ld_defconn->lconn_sasl_ctx;
+
 	if ( ctx == NULL ) {
 		return LDAP_LOCAL_ERROR;
 	}
