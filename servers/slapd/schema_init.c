@@ -810,9 +810,9 @@ nameUIDPretty(
 			&& val->bv_val[val->bv_len-2] == '\'' )
 		{
 			uidval.bv_val = strrchr( val->bv_val, '#' );
-			if( uidval.bv_val == NULL
-					|| uidval.bv_val < val->bv_val
-					|| ( uidval.bv_val > val->bv_val && uidval.bv_val[-1] == '\\' ) )
+			if( uidval.bv_val == NULL ||
+				uidval.bv_val < val->bv_val ||
+				( uidval.bv_val > val->bv_val && uidval.bv_val[-1] == '\\' ) )
 			{
 				return LDAP_INVALID_SYNTAX;
 			}
@@ -840,7 +840,8 @@ nameUIDPretty(
 			int	i, c, got1;
 			char	*tmp;
 
-			tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
+			tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2,
+				ctx );
 			if( tmp == NULL ) {
 				ber_memfree_x( out->bv_val, ctx );
 				return LDAP_OTHER;
@@ -982,9 +983,10 @@ uniqueMemberMatch(
 			/* assume presence of optional UID */
 			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
 
-			if( assertedUID.bv_val == NULL
-					|| assertedUID.bv_val < assertedDN.bv_val
-					|| ( assertedUID.bv_val > assertedDN.bv_val && assertedUID.bv_val[-1] == '\\' ) )
+			if( assertedUID.bv_val == NULL ||
+				assertedUID.bv_val < assertedDN.bv_val ||
+				( assertedUID.bv_val > assertedDN.bv_val &&
+					assertedUID.bv_val[-1] == '\\' ))
 			{
 				return LDAP_INVALID_SYNTAX;
 			}
@@ -1008,9 +1010,10 @@ uniqueMemberMatch(
 			/* assume presence of optional UID */
 			valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
 
-			if( valueUID.bv_val == NULL
-					|| valueUID.bv_val < valueDN.bv_val
-					|| ( valueUID.bv_val > valueDN.bv_val && valueUID.bv_val[-1] == '\\' ) )
+			if( valueUID.bv_val == NULL ||
+				valueUID.bv_val < valueDN.bv_val ||
+				( valueUID.bv_val > valueDN.bv_val &&
+					valueUID.bv_val[-1] == '\\' ) )
 			{
 				return LDAP_INVALID_SYNTAX;
 			}
@@ -1975,7 +1978,8 @@ numericStringNormalize(
  * Integer conversion macros that will use the largest available
  * type.
  */
-#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) && defined(LLONG_MIN) && defined(HAVE_LONG_LONG)
+#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) \
+	&& defined(LLONG_MIN) && defined(HAVE_LONG_LONG)
 # define SLAP_STRTOL(n,e,b)  strtoll(n,e,b) 
 # define SLAP_LONG_MAX       LLONG_MAX
 # define SLAP_LONG_MIN       LLONG_MIN
@@ -2000,13 +2004,16 @@ integerBitAndMatch(
 
 	/* safe to assume integers are NUL terminated? */
 	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
-	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX) && errno == ERANGE ) {
+	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX) &&
+		errno == ERANGE )
+	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val, NULL, 10);
-	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX )
-		&& errno == ERANGE )
+	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val,
+		NULL, 10);
+	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX ) &&
+		errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
@@ -2036,8 +2043,8 @@ integerBitOrMatch(
 
 	lAssertedValue = SLAP_STRTOL( ((struct berval *)assertedValue)->bv_val,
 		NULL, 10);
-	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX )
-		&& errno == ERANGE )
+	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX ) &&
+		errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
@@ -2068,9 +2075,7 @@ serialNumberAndIssuerValidate(
 
 	/* validate serial number (strict for now) */
 	for( n=0; n < sn.bv_len; n++ ) {
-		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
-			return LDAP_INVALID_SYNTAX;
-		}
+		if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
 	}
 
 	/* validate DN */
@@ -2122,9 +2127,7 @@ serialNumberAndIssuerPretty(
 	sn.bv_len -= n;
 
 	for( n=0; n < sn.bv_len; n++ ) {
-		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
-			return LDAP_INVALID_SYNTAX;
-		}
+		if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
 	}
 
 	/* pretty DN */
