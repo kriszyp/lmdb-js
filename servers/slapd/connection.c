@@ -353,6 +353,7 @@ long connection_init(
     assert( c != NULL );
 
     if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
+		c->c_authmech = NULL;
         c->c_dn = NULL;
         c->c_cdn = NULL;
 
@@ -363,12 +364,11 @@ long connection_init(
 
         c->c_ops = NULL;
         c->c_pending_ops = NULL;
-		c->c_authmech = NULL;
-		c->c_authstate = NULL;
 
+		c->c_sasl_bind_mech = NULL;
 #ifdef HAVE_CYRUS_SASL
-		c->c_sasl_context = NULL;
-#endif /* HAVE_CYRUS_SASL */
+		c->c_sasl_bind_context = NULL;
+#endif
 
         c->c_sb = ber_sockbuf_alloc( );
 		c->c_currentber = NULL;
@@ -384,6 +384,7 @@ long connection_init(
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
     assert( c->c_struct_state == SLAP_C_UNUSED );
+	assert( c->c_authmech == NULL );
     assert(	c->c_dn == NULL );
     assert(	c->c_cdn == NULL );
     assert( c->c_listener_url == NULL );
@@ -392,10 +393,9 @@ long connection_init(
     assert( c->c_sock_name == NULL );
     assert( c->c_ops == NULL );
     assert( c->c_pending_ops == NULL );
-	assert( c->c_authmech == NULL );
-	assert( c->c_authstate == NULL );
+	assert( c->c_sasl_bind_mech == NULL );
 #ifdef HAVE_CYRUS_SASL
-	assert( c->c_sasl_context == NULL );
+	assert( c->c_sasl_bind_context == NULL );
 #endif
 	assert( c->c_currentber == NULL );
 
@@ -468,6 +468,10 @@ connection_destroy( Connection *c )
 
     c->c_activitytime = c->c_starttime = 0;
 
+	if(c->c_authmech != NULL ) {
+		free(c->c_authmech);
+		c->c_authmech = NULL;
+	}
     if(c->c_dn != NULL) {
         free(c->c_dn);
         c->c_dn = NULL;
@@ -505,23 +509,18 @@ connection_destroy( Connection *c )
 		free(c->c_sock_name);
 		c->c_sock_name = NULL;
 	}
-	if(c->c_authmech != NULL ) {
-		free(c->c_authmech);
-		c->c_authmech = NULL;
-	}
-	if(c->c_authstate != NULL ) {
-		free(c->c_authstate);
-		c->c_authstate = NULL;
-	}
 
+	c->c_sasl_bind_in_progress = 0;
+	if(c->c_sasl_bind_mech != NULL) {
+		free(c->c_sasl_bind_mech);
+		c->c_sasl_bind_mech = NULL;
+	}
 #ifdef HAVE_CYRUS_SASL
-	if(c->c_sasl_context != NULL ) {
-		sasl_dispose( &c->c_sasl_context );
-		c->c_sasl_context = NULL;
+	if(c->c_sasl_bind_context != NULL ) {
+		sasl_dispose( &c->c_sasl_bind_context );
+		c->c_sasl_bind_context = NULL;
 	}
-#endif /* HAVE_CYRUS_SASL */
-
-	c->c_bind_in_progress = 0;
+#endif
 
 	if ( c->c_currentber != NULL ) {
 		ber_free( c->c_currentber, 1 );
@@ -730,7 +729,7 @@ connection_operation( void *arg_v )
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
-	if( conn->c_bind_in_progress && tag != LDAP_REQ_BIND ) {
+	if( conn->c_sasl_bind_in_progress && tag != LDAP_REQ_BIND ) {
 		Debug( LDAP_DEBUG_ANY, "connection_operation: "
 			"error: SASL bind in progress (tag=%ld).\n",
 			(long) tag, 0, 0 );
@@ -826,7 +825,7 @@ operations_error:
 		 * the backend to set this.
 		 */
 		if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
-			conn->c_bind_in_progress = 1;
+			conn->c_sasl_bind_in_progress = 1;
 		}
 	}
 

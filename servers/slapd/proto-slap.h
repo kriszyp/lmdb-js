@@ -537,7 +537,7 @@ LIBSLAPD_F (int) sasl_init(void);
 LIBSLAPD_F (int) sasl_destroy(void);
 #ifdef HAVE_CYRUS_SASL
 LIBSLAPD_F (int) sasl_errldap LDAP_P(( int ));
-LIBSLAPD_F (int) sasl_bind LDAP_P((Backend *, 
+LIBSLAPD_F (int) sasl_bind LDAP_P((
 	Connection *, Operation *, 
 	char *, char *, char *, struct berval *, char **));
 #endif

@@ -146,7 +146,6 @@ int sasl_destroy(void) {
 
 #ifdef HAVE_CYRUS_SASL
 int sasl_bind(
-    Backend             *be,
     Connection          *conn,
     Operation           *op,
     char                *dn,

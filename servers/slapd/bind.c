@@ -213,25 +213,27 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-		if ( conn->c_authmech != NULL ) {
-			assert( conn->c_bind_in_progress );
+		if ( conn->c_sasl_bind_mech != NULL ) {
+			assert( conn->c_sasl_bind_in_progress );
 
-			if((strcmp(conn->c_authmech, mech) != 0)) {
+			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
 				/* mechanism changed, cancel in progress bind */
-				conn->c_bind_in_progress = 0;
-				if( conn->c_authstate != NULL ) {
-					free(conn->c_authstate);
-					conn->c_authstate = NULL;
-				}
-				free(conn->c_authmech);
-				conn->c_authmech = NULL;
+				conn->c_sasl_bind_in_progress = 0;
+				free( conn->c_sasl_bind_mech );
+				conn->c_sasl_bind_mech = NULL;
+#ifdef HAVE_CYRUS_SASL
+				sasl_dispose(&conn->c_sasl_bind_context);
+				conn->c_sasl_bind_context = NULL;
+#endif
 			}
 
 #ifdef LDAP_DEBUG
 		} else {
-			assert( !conn->c_bind_in_progress );
-			assert( conn->c_authmech == NULL );
-			assert( conn->c_authstate == NULL );
+			assert( !conn->c_sasl_bind_in_progress );
+			assert( conn->c_sasl_bind_mech == NULL );
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context == NULL );
+#endif
 #endif
 		}
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -240,19 +242,19 @@ do_bind(
 		/* Not SASL, cancel any in-progress bind */
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-		if ( conn->c_authmech != NULL ) {
-			assert( conn->c_bind_in_progress );
+		if ( conn->c_sasl_bind_mech != NULL ) {
+			assert( conn->c_sasl_bind_in_progress );
 
 			/* cancel in progress bind */
-			conn->c_bind_in_progress = 0;
+			conn->c_sasl_bind_in_progress = 0;
 
-			if( conn->c_authstate != NULL ) {
-				free(conn->c_authstate);
-				conn->c_authstate = NULL;
-			}
+			free(conn->c_sasl_bind_mech);
+			conn->c_sasl_bind_mech = NULL;
 
-			free(conn->c_authmech);
-			conn->c_authmech = NULL;
+#ifdef HAVE_CYRUS_SASL
+			sasl_dispose(&conn->c_sasl_bind_context);
+			conn->c_sasl_bind_context = NULL;
+#endif
 		}
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );

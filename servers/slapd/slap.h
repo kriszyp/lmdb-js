@@ -1015,11 +1015,11 @@ typedef struct slap_conn {
 	char		*c_sock_name;	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
-	int		c_bind_in_progress;	/* multi-op bind in progress */
+	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
+	char	*c_sasl_bind_mech;			/* mech in progress */
 #ifdef HAVE_CYRUS_SASL
-	sasl_conn_t	*c_sasl_context;
+	sasl_conn_t	*c_sasl_bind_context;	/* Cyrus SASL state data */
 #endif
-	void	*c_authstate;	/* SASL state data */
 
 	/* authentication backend */
 	Backend *c_authc_backend;

@@ -16,6 +16,7 @@
 #include <ldap_log.h>
 
 char **supportedSASLMechanisms = NULL;
+char *sasl_host = NULL;
 
 #ifdef HAVE_CYRUS_SASL
 static void *sasl_pvt_mutex_new(void)
@@ -64,7 +65,16 @@ int sasl_init( void )
 		return -1;
 	}
 
-	rc = sasl_server_new( "ldap", NULL, NULL, NULL,
+	if( sasl_host == NULL ) {
+		char hostname[MAXHOSTNAMELEN+1];
+
+		if( gethostname( hostname, MAXHOSTNAMELEN ) == 0 ) {
+			hostname[MAXHOSTNAMELEN] = '\0';
+			sasl_host = hostname;
+		}
+	}
+
+	rc = sasl_server_new( "ldap", sasl_host, NULL, NULL,
 		SASL_SECURITY_LAYER, 
 		&server );
 
@@ -118,7 +128,6 @@ int sasl_destroy( void )
 
 #ifdef HAVE_CYRUS_SASL
 int sasl_bind(
-    Backend             *be,
     Connection          *conn,
     Operation           *op,  
     char                *dn,  
@@ -135,10 +144,11 @@ int sasl_bind(
 	Debug(LDAP_DEBUG_ARGS, "==> sasl_bind: dn=%s, mech=%s, cred->bv_len=%d\n",
 		dn, mech, cred ? cred->bv_len : 0 );
 
-	if ( conn->c_sasl_context == NULL ) {
+	if ( conn->c_sasl_bind_context ) {
 		sasl_callback_t callbacks[4];
 		int cbnum = 0;
 
+#if 0
 		if (be->be_sasl_authorize) {
 			callbacks[cbnum].id = SASL_CB_PROXY_POLICY;
 			callbacks[cbnum].proc = be->be_sasl_authorize;
@@ -159,18 +169,22 @@ int sasl_bind(
 			callbacks[cbnum].context = be;
 			++cbnum;
 		}
+#endif
+
 		callbacks[cbnum].id = SASL_CB_LIST_END;
 		callbacks[cbnum].proc = NULL;
 		callbacks[cbnum].context = NULL;
 
 		/* create new SASL context */
-		if ( sasl_server_new( "ldap", NULL, be->be_realm,
-			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_context ) != SASL_OK ) {
+		sc = sasl_server_new( "ldap", sasl_host, global_realm,
+			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_bind_context );
+
+		if( sc != SASL_OK ) {
 			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, NULL, NULL, NULL );
 		} else {
 			conn->c_authmech = ch_strdup( mech );
-			sc = sasl_server_start( conn->c_sasl_context, conn->c_authmech,
+			sc = sasl_server_start( conn->c_sasl_bind_context, conn->c_authmech,
 				cred->bv_val, cred->bv_len, (char **)&response.bv_val,
 				(unsigned *)&response.bv_len, &errstr );
 			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
@@ -179,7 +193,7 @@ int sasl_bind(
 			}
 		}
 	} else {
-		sc = sasl_server_step( conn->c_sasl_context, cred->bv_val, cred->bv_len,
+		sc = sasl_server_step( conn->c_sasl_bind_context, cred->bv_val, cred->bv_len,
 			(char **)&response.bv_val, (unsigned *)&response.bv_len, &errstr );
 		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
 			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
@@ -190,7 +204,7 @@ int sasl_bind(
 	if ( sc == SASL_OK ) {
 		char *authzid;
 
-		if ( ( sc = sasl_getprop( conn->c_sasl_context, SASL_USERNAME,
+		if ( ( sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
 			(void **)&authzid ) ) != SASL_OK ) {
 			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
 				NULL, NULL, NULL, NULL );
@@ -210,11 +224,11 @@ int sasl_bind(
 		}
 	} else if ( sc == SASL_CONTINUE ) {
 		/*
-		 * We set c_bind_in_progress because it doesn't appear
+		 * We set c_sasl_bind_in_progress because it doesn't appear
 		 * that connection.c sets this (unless do_bind() itself
 		 * returns LDAP_SASL_BIND_IN_PROGRESS).
 		 */
-		conn->c_bind_in_progress = 1;
+		conn->c_sasl_bind_in_progress = 1;
 		send_ldap_sasl( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
 			NULL, NULL, NULL, NULL,  &response );
 	} 
