@@ -17,6 +17,10 @@
 #ifndef _LBER_TYPES_H
 #define _LBER_TYPES_H
 
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
 /*
  * NT types:
  *
@@ -62,5 +66,7 @@ typedef unsigned LBER_LEN_T ber_len_t;
 
 /* signed lengths */
 typedef signed LBER_LEN_T ber_slen_t;
+
+LDAP_END_DECL
 
 #endif /* _LBER_TYPES_H */

@@ -9,14 +9,14 @@
  * in file LICENSE in the top-level directory of the distribution.
  */
 
-#include <ldap_cdefs.h>
-
 /*
  * LBER types
  */
 
 #ifndef _LBER_TYPES_H
 #define _LBER_TYPES_H
+
+#include <ldap_cdefs.h>
 
 LDAP_BEGIN_DECL
 
