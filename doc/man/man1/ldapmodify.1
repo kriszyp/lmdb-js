@@ -269,13 +269,13 @@ absence of any "replica:" lines.
 .LP
 If no "changetype:" line is present, the default is "add" if the -a
 flag is set (or if the program was invoked as
-.I ldapmodify)
+.I ldapadd)
 and "modify" otherwise.
 .LP
 If changetype is "modify" and no "add:", "replace:", or "delete:" lines
-appear, the default is "replace" for and "add"
+appear, the default is "replace" for
 .BR ldapmodify (1)
-for
+and "add" for
 .BR ldapadd (1).
 .LP
 Note that the above exceptions to the
