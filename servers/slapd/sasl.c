@@ -398,7 +398,17 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 
 		/* Build the new dn */
 		c1 = dn->bv_val;
-		dn->bv_val = ch_malloc( len+1 );
+		dn->bv_val = SLAP_MALLOC( len+1 );
+		if( dn->bv_val == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( TRANSPORT, ERR, 
+				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, 
+				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+			return LDAP_OTHER;
+		}
 		p = lutil_strcopy( dn->bv_val, "uid=" );
 		p = lutil_strncopy( p, c1, dn->bv_len );
 
@@ -1209,10 +1219,20 @@ int slap_sasl_open( Connection *conn )
 
 	session_callbacks =
 #if SASL_VERSION_MAJOR >= 2
-		ch_calloc( 5, sizeof(sasl_callback_t));
+		SLAP_CALLOC( 5, sizeof(sasl_callback_t));
 #else
-		ch_calloc( 3, sizeof(sasl_callback_t));
+		SLAP_CALLOC( 3, sizeof(sasl_callback_t));
 #endif
+	if( session_callbacks == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( TRANSPORT, ERR, 
+				"slap_sasl_open: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, 
+				"slap_sasl_open: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+			return -1;
+	}
 	conn->c_sasl_extra = session_callbacks;
 
 	session_callbacks[cb=0].id = SASL_CB_LOG;

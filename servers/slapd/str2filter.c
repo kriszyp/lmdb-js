@@ -16,7 +16,9 @@
 #include "slap.h"
 #include <ldap_pvt.h>
 
+#if 0 /* unused */
 static char	*find_matching_paren( const char *s );
+#endif /* unused */
 static Filter	*str2list( const char *str, long unsigned int ftype);
 static Filter	*str2simple( const char *str);
 static int	str2subvals( const char *val, Filter *f);

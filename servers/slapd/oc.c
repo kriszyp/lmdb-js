@@ -67,7 +67,7 @@ int is_entry_objectclass(
 	}
 
 	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
-		return (e->e_ocflags & oc->soc_flags) ? 1 : 0;
+		return (e->e_ocflags & oc->soc_flags) == oc->soc_flags;
 	}
 
 	/*
@@ -105,7 +105,7 @@ int is_entry_objectclass(
 	}
 	e->e_ocflags |= SLAP_OC__END;	/* We've finished this */
 
-	return (e->e_ocflags & oc->soc_flags);
+	return (e->e_ocflags & oc->soc_flags) == oc->soc_flags;
 }
 
 

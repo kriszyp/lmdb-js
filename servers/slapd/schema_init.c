@@ -706,7 +706,7 @@ UTF8SubstringsassertionNormalize(
 	SubstringsAssertion *nsa;
 	int i;
 
-	nsa = (SubstringsAssertion *)ch_calloc( 1, sizeof(SubstringsAssertion) );
+	nsa = (SubstringsAssertion *)SLAP_CALLOC( 1, sizeof(SubstringsAssertion) );
 	if( nsa == NULL ) {
 		return NULL;
 	}
@@ -723,7 +723,10 @@ UTF8SubstringsassertionNormalize(
 			/* empty */
 		}
 		nsa->sa_any = (struct berval *)
-			ch_malloc( (i + 1) * sizeof(struct berval) );
+			SLAP_MALLOC( (i + 1) * sizeof(struct berval) );
+		if( nsa->sa_any == NULL ) {
+				goto err;
+		}
 
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
 			UTF8bvnormalize( &sa->sa_any[i], &nsa->sa_any[i], 

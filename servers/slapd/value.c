@@ -324,6 +324,8 @@ value_match(
 	struct berval nv1 = { 0, NULL };
 	struct berval nv2 = { 0, NULL };
 
+	assert( mr != NULL );
+
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
