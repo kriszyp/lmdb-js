@@ -198,10 +198,10 @@ bdb2_back_db_init(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_db_init_internal( be );
-	bdb2i_stop_timing( be->be_private, time1, "DB-INIT", NULL, NULL );
+	bdb2i_stop_timing( be->bd_info, time1, "DB-INIT", NULL, NULL );
 
 	return( ret );
 }

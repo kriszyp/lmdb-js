@@ -76,7 +76,7 @@ bdb2_back_compare(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
@@ -87,7 +87,7 @@ bdb2_back_compare(
 
 	ret = bdb2i_back_compare_internal( be, conn, op, dn, ava );
 	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
-	bdb2i_stop_timing( be->be_private, time1, "CMP", conn, op );
+	bdb2i_stop_timing( be->bd_info, time1, "CMP", conn, op );
 
 	return( ret );
 }

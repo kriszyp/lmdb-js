@@ -34,11 +34,11 @@ bdb2_back_abandon(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_abandon_internal( be, conn, op, msgid );
 
-	bdb2i_stop_timing( be->be_private, time1, "ABND", conn, op );
+	bdb2i_stop_timing( be->bd_info, time1, "ABND", conn, op );
 
 	return( ret );
 }

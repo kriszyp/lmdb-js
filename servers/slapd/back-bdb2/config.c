@@ -189,11 +189,11 @@ bdb2_back_db_config(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_db_config_internal( be, fname, lineno, argc, argv );
 
-	bdb2i_stop_timing( be->be_private, time1, "DB-CONFIG", NULL, NULL );
+	bdb2i_stop_timing( be->bd_info, time1, "DB-CONFIG", NULL, NULL );
 
 	return( ret );
 }

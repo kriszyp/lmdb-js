@@ -32,11 +32,11 @@ bdb2_back_db_close( BackendDB *be )
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_db_close_internal( be );
 
-	bdb2i_stop_timing( be->be_private, time1, "CLOSE", NULL, NULL );
+	bdb2i_stop_timing( be->bd_info, time1, "CLOSE", NULL, NULL );
 
 	return( ret );
 }

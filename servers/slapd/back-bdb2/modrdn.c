@@ -206,7 +206,7 @@ bdb2_back_modrdn(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
 
@@ -219,7 +219,7 @@ bdb2_back_modrdn(
 					newrdn, deleteoldrdn );
 
 	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
-	bdb2i_stop_timing( be->be_private, time1, "MODRDN", conn, op );
+	bdb2i_stop_timing( be->bd_info, time1, "MODRDN", conn, op );
 
 	return( ret );
 }

@@ -29,10 +29,10 @@ bdb2_back_unbind(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_unbind_internal( be, conn, op );
-	bdb2i_stop_timing( be->be_private, time1, "UNBIND", conn, op );
+	bdb2i_stop_timing( be->bd_info, time1, "UNBIND", conn, op );
 
 	return( ret );
 }

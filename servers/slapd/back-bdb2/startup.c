@@ -191,10 +191,10 @@ bdb2_back_db_startup(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_db_startup_internal( be );
-	bdb2i_stop_timing( be->be_private, time1, "DB-START", NULL, NULL );
+	bdb2i_stop_timing( be->bd_info, time1, "DB-START", NULL, NULL );
 
 	return( ret );
 }
@@ -208,10 +208,10 @@ bdb2_back_db_shutdown(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	ret = bdb2i_back_db_shutdown_internal( be );
-	bdb2i_stop_timing( be->be_private, time1, "DB-SHUTDOWN", NULL, NULL );
+	bdb2i_stop_timing( be->bd_info, time1, "DB-SHUTDOWN", NULL, NULL );
 
 	return( ret );
 }

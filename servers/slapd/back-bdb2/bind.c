@@ -231,7 +231,7 @@ bdb2_back_bind(
 	struct timeval  time1;
 	int             ret;
 
-	bdb2i_start_timing( be->be_private, &time1 );
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
@@ -244,7 +244,7 @@ bdb2_back_bind(
 
 	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
-	bdb2i_stop_timing( be->be_private, time1, "BIND", conn, op );
+	bdb2i_stop_timing( be->bd_info, time1, "BIND", conn, op );
 
 	return( ret );
 }

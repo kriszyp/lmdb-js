@@ -17,6 +17,7 @@ if test "$BACKEND" = "bdb2" ; then
 	ACLCONF=$DATADIR/slapd-bdb2-acl.conf
 	MASTERCONF=$DATADIR/slapd-bdb2-repl-master.conf
 	SLAVECONF=$DATADIR/slapd-bdb2-repl-slave.conf
+	TIMING="-t"
 else
 	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm
 	CONF=$DATADIR/slapd-master.conf
