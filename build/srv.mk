@@ -41,22 +41,29 @@ install-common: FORCE
 		echo "run configure with $(BUILD_OPT) to install $(PROGRAMS)"; \
 	fi
 
-all-srv: FORCE
+all-local-srv:
+all-srv: all-local-srv FORCE
 
-install-srv: FORCE
+install-local-srv:
+install-srv: install-local-srv FORCE
 
-lint-srv: FORCE
+lint-local-srv:
+lint-srv: lint-local-srv FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-5lint-srv: FORCE
+5lint-local-srv:
+5lint-srv: 5lint-local-srv FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-clean-srv: 	FORCE
+clean-local-srv:
+clean-srv: 	clean-local-srv FORCE
 	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/*
 
-depend-srv: FORCE
+depend-local-srv:
+depend-srv: depend-local-srv FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
-veryclean-srv: 	clean-srv
+veryclean-local-srv:
+veryclean-srv: 	clean-srv veryclean-local-srv
 
 Makefile: $(top_srcdir)/build/srv.mk

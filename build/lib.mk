@@ -22,7 +22,8 @@ lint5: lint5-local FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
 clean-common: 	FORCE
-	$(RM) $(LIBRARY) ../$(LIBRARY) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
+	$(RM) $(LIBRARY) ../$(LIBRARY) $(XLIBRARY) \
+		$(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
 		*.o *.lo a.out core version.c .libs/*
 
 depend-common: FORCE

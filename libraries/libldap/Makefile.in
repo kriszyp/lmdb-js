@@ -2,6 +2,7 @@
 ## Makefile.in for LDAP -lldap
 ##
 LIBRARY = libldap.la
+XLIBRARY = ../libldap.a
 PROGRAMS = ltest ttest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \

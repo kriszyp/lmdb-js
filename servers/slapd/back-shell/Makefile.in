@@ -14,7 +14,7 @@ PROGRAMS =		libback-shell.a
 
 XINCPATH = -I.. -I$(srcdir)/..
 
-all-local:	FORCE
+all-local-srv:	FORCE
 	$(MAKE) $(MFLAGS) libback-shell.a
 
 libback-shell.a:	version.o
