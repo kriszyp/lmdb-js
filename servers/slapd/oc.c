@@ -17,8 +17,8 @@
 #include "ldap_pvt.h"
 
 int is_object_subclass(
-	ObjectClass *sub,
-	ObjectClass *sup )
+	ObjectClass *sup,
+	ObjectClass *sub )
 {
 	int i;
 
@@ -26,19 +26,19 @@ int is_object_subclass(
 
 #if 1
 	Debug( LDAP_DEBUG_TRACE, "is_object_subclass(%s,%s) %d\n",
-		sub->soc_oid, sup->soc_oid, sup == sub );
+		sup->soc_oid, sub->soc_oid, sup == sub );
 #endif
 
 	if( sup == sub ) {
 		return 1;
 	}
 
-	if( sup->soc_sups == NULL ) {
+	if( sub->soc_sups == NULL ) {
 		return 0;
 	}
 
-	for( i=0; sup->soc_sups[i] != NULL; i++ ) {
-		if( is_object_subclass( sub, sup->soc_sups[i] ) ) {
+	for( i=0; sub->soc_sups[i] != NULL; i++ ) {
+		if( is_object_subclass( sup, sub->soc_sups[i] ) ) {
 			return 1;
 		}
 	}

@@ -509,8 +509,8 @@ parse_acl(
 						}
 					}
 
-					if( is_object_subclass( b->a_group_oc,
-						slap_schema.si_oc_referral ) )
+					if( is_object_subclass( slap_schema.si_oc_referral,
+						b->a_group_oc ))
 					{
 						fprintf( stderr,
 							"%s: line %d: group objectclass \"%s\" "
@@ -519,8 +519,8 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( is_object_subclass( b->a_group_oc,
-						slap_schema.si_oc_alias ) )
+					if( is_object_subclass( slap_schema.si_oc_alias,
+						b->a_group_oc ))
 					{
 						fprintf( stderr,
 							"%s: line %d: group objectclass \"%s\" "

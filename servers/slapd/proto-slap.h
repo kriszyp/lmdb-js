@@ -619,8 +619,8 @@ LDAP_SLAPD_F (ObjectClass *) oc_find LDAP_P((
 LDAP_SLAPD_F (ObjectClass *) oc_bvfind LDAP_P((
 	struct berval *ocname));
 LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
-	ObjectClass *sub,
-	ObjectClass *sup ));
+	ObjectClass *sup,
+	ObjectClass *sub ));
 
 LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, ObjectClass *oc, int set_flags ));
