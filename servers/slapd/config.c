@@ -1007,7 +1007,7 @@ config_disallows(ConfigArgs *c) {
 	slap_mask_t disallows = 0;
 	int i;
 	struct verb_mask_list disallowable_ops[] = {
-		{ "bind_v2",		SLAP_DISALLOW_BIND_ANON },
+		{ "bind_anon",		SLAP_DISALLOW_BIND_ANON },
 		{ "bind_simple",	SLAP_DISALLOW_BIND_SIMPLE },
 		{ "bind_krb4",		SLAP_DISALLOW_BIND_KRBV4 },
 		{ "tls_2_anon",		SLAP_DISALLOW_TLS_2_ANON },
