@@ -123,6 +123,7 @@ meta_back_search(
 		
 	int i, last = 0, candidates = 0, nbaselen, op_type;
 	struct slap_limits_set *limit = NULL;
+	int isroot = 0;
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 		op_type = META_OP_REQUIRE_SINGLE;
@@ -145,15 +146,16 @@ meta_back_search(
 	
 	nbaselen = strlen( nbase );
 
-	/* limits */
-	( void ) get_limits( be, op->o_ndn, &limit );
+	/* if not root, get appropriate limits */
+	if ( be_isroot( be, op->o_ndn ) ) {
+		isroot = 1;
+	} else {
+		( void ) get_limits( be, op->o_ndn, &limit );
+	}
 
-	/* if no time limit requested, use soft limit */
-	if ( tlimit <= 0 ) {
-		tlimit = limit->lms_t_soft;
-	
+	/* if no time limit requested, rely on remote server limits */
 	/* if requested limit higher than hard limit, abort */
-	} else if ( tlimit > limit->lms_t_hard ) {
+	if ( !isroot && tlimit > limit->lms_t_hard ) {
 		/* no hard limit means use soft instead */
 		if ( limit->lms_t_hard == 0 ) {
 			tlimit = limit->lms_t_soft;
@@ -169,12 +171,9 @@ meta_back_search(
 		/* negative hard limit means no limit */
 	}
 	
-	/* if no size limit requested, use soft limit (unless root!) */
-	if ( slimit == 0 ) {
-		slimit = limit->lms_s_soft;
-		
+	/* if no size limit requested, rely on remote server limits */
 	/* if requested limit higher than hard limit, abort */
-	} else if ( slimit > limit->lms_s_hard ) {
+	if ( !isroot && slimit > limit->lms_s_hard ) {
 		/* no hard limit means use soft instead */
 		if ( limit->lms_s_hard == 0 ) {
 			slimit = limit->lms_s_soft;
