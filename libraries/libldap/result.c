@@ -63,6 +63,7 @@ static ber_tag_t try_read1msg LDAP_P(( LDAP *ld, ber_int_t msgid,
 	int all, Sockbuf *sb, LDAPConn *lc, LDAPMessage **result ));
 static ber_tag_t build_result_ber LDAP_P(( LDAP *ld, BerElement **bp, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
+static LDAPMessage * chkResponseList LDAP_P(( LDAP *ld, int msgid, int all));
 
 
 /*
@@ -89,12 +90,12 @@ ldap_result(
 	struct timeval *timeout,
 	LDAPMessage **result )
 {
-	LDAPMessage	*lm, *lastlm, *nextlm;
+	LDAPMessage	*lm;
 
 	assert( ld != NULL );
 	assert( result != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_result\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_result msgid %d\n", msgid, 0, 0 );
 
 	if( ld == NULL ) {
 		return -1;
@@ -105,14 +106,30 @@ ldap_result(
 		return -1;
 	}
 
-	/*
-	 * First, look through the list of responses we have received on
+    lm = chkResponseList(ld, msgid, all);
+
+	if ( lm == NULL ) {
+		return( wait4msg( ld, msgid, all, timeout, result ) );
+	}
+
+	*result = lm;
+	ld->ld_errno = LDAP_SUCCESS;
+	return( lm->lm_msgtype );
+}
+
+static LDAPMessage *
+chkResponseList( LDAP *ld,
+	             int msgid,
+	             int all)
+{
+	LDAPMessage	*lm, *lastlm, *nextlm;
+    /*
+	 * Look through the list of responses we have received on
 	 * this association and see if the response we're interested in
 	 * is there.  If it is, return it.  If not, call wait4msg() to
 	 * wait until it arrives or timeout occurs.
 	 */
 
-	*result = NULL;
 	lastlm = NULL;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
@@ -154,29 +171,23 @@ ldap_result(
 		}
 		lastlm = lm;
 	}
-	if ( lm == NULL ) {
-		return( wait4msg( ld, msgid, all, timeout, result ) );
-	}
-
-	if ( lastlm == NULL ) {
-		ld->ld_responses = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
-		    ? lm->lm_chain : lm->lm_next);
-	} else {
-		lastlm->lm_next = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
-		    ? lm->lm_chain : lm->lm_next);
-	}
-	if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL )
-	{
-		lm->lm_chain->lm_next = lm->lm_next;
-		lm->lm_chain = NULL;
-	}
-	lm->lm_next = NULL;
-
-	*result = lm;
-	ld->ld_errno = LDAP_SUCCESS;
-	return( lm->lm_msgtype );
+    if ( lm != NULL ) {
+	    if ( lastlm == NULL ) {
+		    ld->ld_responses = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
+		        ? lm->lm_chain : lm->lm_next);
+	    } else {
+		    lastlm->lm_next = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
+		        ? lm->lm_chain : lm->lm_next);
+	    }
+	    if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL )
+	    {
+		    lm->lm_chain->lm_next = lm->lm_next;
+		    lm->lm_chain = NULL;
+	    }
+	    lm->lm_next = NULL;
+    }
+    return lm;
 }
-
 static int
 wait4msg(
 	LDAP *ld,
@@ -196,11 +207,11 @@ wait4msg(
 
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "wait4msg (infinite timeout)\n",
-		    0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "wait4msg (infinite timeout), msgid %d\n",
+		    msgid, 0, 0 );
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec)\n",
-		       (long) timeout->tv_sec, (long) timeout->tv_usec, 0 );
+		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec), msgid %d\n",
+		       (long) timeout->tv_sec, (long) timeout->tv_usec, msgid );
 	}
 #endif /* LDAP_DEBUG */
 
@@ -223,9 +234,13 @@ wait4msg(
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 			if ( ber_sockbuf_ctrl( lc->lconn_sb,
 					LBER_SB_OPT_DATA_READY, NULL ) ) {
-				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
-				    lc, result );
-				break;
+                if( (*result = chkResponseList(ld, msgid, all)) == NULL ) {
+				    rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
+				        lc, result );
+                } else {
+                    rc = (*result)->lm_msgtype;
+                }
+			    break;
 			}
 		}
 
@@ -314,7 +329,7 @@ try_read1msg(
 	assert( ld != NULL );
 	assert( lc != NULL );
 	
-	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 
     if ( lc->lconn_ber == NULL ) {
 		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
