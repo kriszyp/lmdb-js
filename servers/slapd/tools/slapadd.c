@@ -57,17 +57,17 @@ main( int argc, char **argv )
 			break;
 		}
 
-		if( !noschemacheck ) {
-			/* make sure the DN is valid */
-			if( dn_normalize( e->e_ndn ) == NULL ) {
-				fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
-					progname, e->e_dn, lineno );
-				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
-			}
+		/* make sure the DN is valid */
+		if( dn_normalize( e->e_ndn ) == NULL ) {
+			fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
+				progname, e->e_dn, lineno );
+			rc = EXIT_FAILURE;
+			entry_free( e );
+			if( continuemode ) continue;
+			break;
+		}
 
+		if( !noschemacheck ) {
 			/* check schema */
 			if ( schema_check_entry( e ) != 0 ) {
 				fprintf( stderr, "%s: schema violation in entry dn=\"%s\" (line=%d)\n",
