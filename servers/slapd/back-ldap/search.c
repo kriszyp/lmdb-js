@@ -99,7 +99,7 @@ ldap_back_search(
 	/* if requested limit higher than hard limit, abort */
 	if ( !isroot && tlimit > limit->lms_t_hard ) {
 		/* no hard limit means use soft instead */
-		if ( limit->lms_t_hard == 0 ) {
+		if ( limit->lms_t_hard == 0 && tlimit > limit->lms_t_soft ) {
 			tlimit = limit->lms_t_soft;
 			
 		/* positive hard limit means abort */
@@ -117,7 +117,7 @@ ldap_back_search(
 	/* if requested limit higher than hard limit, abort */
 	if ( !isroot && slimit > limit->lms_s_hard ) {
 		/* no hard limit means use soft instead */
-		if ( limit->lms_s_hard == 0 ) {
+		if ( limit->lms_s_hard == 0 && slimit > limit->lms_s_soft ) {
 			slimit = limit->lms_s_soft;
 			
 		/* positive hard limit means abort */
