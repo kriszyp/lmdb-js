@@ -19,7 +19,7 @@ struct shellinfo {
 	char	**si_abandon;	/* cmd + args to exec for abandon */
 };
 
-struct backend_db;
+struct slap_backend_db;
 struct slap_conn;
 struct slap_op;
 
@@ -30,10 +30,10 @@ extern pid_t forkandexec LDAP_P((
 
 extern void print_suffixes LDAP_P((
 	FILE *fp,
-	struct backend_db *bd));
+	struct slap_backend_db *bd));
 
 extern int read_and_send_results LDAP_P((
-	struct backend_db *bd,
+	struct slap_backend_db *bd,
 	struct slap_conn *conn,
 	struct slap_op *op,
 	FILE *fp,
