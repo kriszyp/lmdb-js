@@ -39,7 +39,7 @@ void attr_mask LDAP_P(( struct ldbminfo *li,
 
 int attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
-	int argc, char **argv, int init ));
+	int argc, char **argv ));
 void attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
