@@ -305,7 +305,7 @@ struct ldap {
 
 #ifdef HAVE_RES_QUERY
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
-#endif /* HAVE_RES_QUERY */
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
