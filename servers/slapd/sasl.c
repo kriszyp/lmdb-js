@@ -1873,7 +1873,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 
 	/* Run thru regexp */
 	slap_sasl2dn( op, dn, &dn2, flags );
-	if( dn2.bv_val ) {
+	if( !BER_BVISNULL( &dn2 ) ) {
 		sl_free( dn->bv_val, op->o_tmpmemctx );
 		*dn = dn2;
 #ifdef NEW_LOGGING
