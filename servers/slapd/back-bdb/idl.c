@@ -65,11 +65,7 @@ static void idl_dump( ID *ids )
 
 unsigned bdb_idl_search( ID *ids, ID id )
 {
-#if IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-#undef IDL_BINARY_SEARCH
+#define IDL_BINARY_SEARCH 1
 #ifdef IDL_BINARY_SEARCH
 	/*
 	 * binary search of id in ids
@@ -80,6 +76,10 @@ unsigned bdb_idl_search( ID *ids, ID id )
 	unsigned cursor = 0;
 	int val;
 	unsigned n = ids[0];
+
+#if IDL_DEBUG > 0
+	idl_check( ids );
+#endif
 
 	while( 0 < n ) {
 		int pivot = n >> 1;
@@ -106,17 +106,19 @@ unsigned bdb_idl_search( ID *ids, ID id )
 
 #else
 	/* (reverse) linear search */
-	{
-		int i;
+	int i;
 
-		for( i=ids[0]; i; i-- ) {
-			if( id > ids[i] ) {
-				break;
-			}
+#if IDL_DEBUG > 0
+	idl_check( ids );
+#endif
+
+	for( i=ids[0]; i; i-- ) {
+		if( id > ids[i] ) {
+			break;
 		}
-
-		return i+1;
 	}
+
+	return i+1;
 #endif
 }
 
