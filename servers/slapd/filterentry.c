@@ -378,7 +378,7 @@ test_ava_filter(
 			type != LDAP_FILTER_APPROX )
 		{
 			/* No other match is allowed */
-			return LDAP_OTHER;
+			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 		
 		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
@@ -410,7 +410,7 @@ test_ava_filter(
 			type != LDAP_FILTER_APPROX )
 		{
 			/* No other match is allowed */
-			return LDAP_OTHER;
+			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
 		mr = slap_schema.si_ad_entryDN->ad_type->sat_equality;
@@ -461,7 +461,7 @@ test_ava_filter(
 		}
 
 		if( mr == NULL ) {
-			rc = LDAP_OTHER;
+			rc = LDAP_INAPPROPRIATE_MATCHING;
 			continue;
 		}
 
@@ -475,7 +475,7 @@ test_ava_filter(
 
 			if( tmprc != LDAP_SUCCESS ) {
 				rc = tmprc;
-				continue;
+				break;
 			}
 
 			switch ( type ) {
@@ -506,6 +506,7 @@ test_presence_filter(
 	AttributeDescription *desc )
 {
 	Attribute	*a;
+	int rc;
 
 	if ( !access_allowed( op, e, desc, NULL, ACL_SEARCH, NULL ) ) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -532,8 +533,24 @@ test_presence_filter(
 		return LDAP_COMPARE_TRUE;
 	}
 
-	a = attrs_find( e->e_attrs, desc );
-	return a != NULL ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
+	rc = LDAP_COMPARE_FALSE;
+
+	for(a = attrs_find( e->e_attrs, desc );
+		a != NULL;
+		a = attrs_find( a->a_next, desc ) )
+	{
+		if (( desc != a->a_desc ) && !access_allowed( op,
+			e, a->a_desc, NULL, ACL_SEARCH, NULL ))
+		{
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			continue;
+		}
+
+		rc = LDAP_COMPARE_TRUE;
+		break;
+	}
+
+	return rc;
 }
 
 
@@ -606,6 +623,7 @@ test_substrings_filter(
 	Filter	*f )
 {
 	Attribute	*a;
+	int rc;
 
 	Debug( LDAP_DEBUG_FILTER, "begin test_substrings_filter\n", 0, 0, 0 );
 
@@ -615,29 +633,45 @@ test_substrings_filter(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
+	rc = LDAP_COMPARE_FALSE;
+
 	for(a = attrs_find( e->e_attrs, f->f_sub_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, f->f_sub_desc ) )
 	{
-		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
+		MatchingRule *mr;
 		struct berval *bv;
 
-		if( mr == NULL ) continue;
+		if (( f->f_sub_desc != a->a_desc ) && !access_allowed( op,
+			e, a->a_desc, NULL, ACL_SEARCH, NULL ))
+		{
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			continue;
+		}
+
+		mr = a->a_desc->ad_type->sat_substr;
+		if( mr == NULL ) {
+			rc = LDAP_INAPPROPRIATE_MATCHING;
+			continue;
+		}
 
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
 			int ret;
-			int rc;
+			int tmprc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr, 0,
+			tmprc = value_match( &ret, a->a_desc, mr, 0,
 				bv, f->f_sub, &text );
 
-			if( rc != LDAP_SUCCESS ) return rc;
+			if( tmprc != LDAP_SUCCESS ) {
+				rc = tmprc;
+				break;
+			}
 			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 		}
 	}
 
-	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter 1\n",
-		0, 0, 0 );
-	return LDAP_COMPARE_FALSE;
+	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter %d\n",
+		rc, 0, 0 );
+	return rc;
 }
