@@ -63,9 +63,9 @@ void be_close LDAP_P(());
  * ch_malloc.c
  */
 
-char * ch_malloc LDAP_P(( unsigned long size ));
-char * ch_realloc LDAP_P(( char *block, unsigned long size ));
-char * ch_calloc LDAP_P(( unsigned long nelem, unsigned long size ));
+void * ch_malloc LDAP_P(( unsigned long size ));
+void * ch_realloc LDAP_P(( void *block, unsigned long size ));
+void * ch_calloc LDAP_P(( unsigned long nelem, unsigned long size ));
 
 /*
  * charray.c

@@ -18,7 +18,6 @@ extern char		*replogfile;
 
 extern FILE	*lock_fopen();
 extern int	lock_fclose();
-extern char	*ch_malloc();
 extern char	*entry2str();
 
 void
@@ -81,7 +80,7 @@ replog(
 				len = strlen( mods->mod_type );
 				len = LDIF_SIZE_NEEDED( len,
 				    mods->mod_bvalues[i]->bv_len ) + 1;
-				buf = ch_malloc( len );
+				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
 				put_type_and_value( &bufp, mods->mod_type,

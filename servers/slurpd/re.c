@@ -33,7 +33,6 @@
 
 /* externs */
 extern char *str_getline LDAP_P(( char **next ));
-extern void ch_free LDAP_P(( char *p ));
 
 /* Forward references */
 static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));

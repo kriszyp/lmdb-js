@@ -47,9 +47,6 @@ static int do_bind LDAP_P(( Ri *, int * ));
 static int do_unbind LDAP_P(( Ri * ));
 
 
-/* External references */
-extern char *ch_malloc LDAP_P(( unsigned long ));
-
 static char *kattrs[] = {"kerberosName", NULL };
 static struct timeval kst = {30L, 0L};
 

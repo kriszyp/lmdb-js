@@ -36,7 +36,6 @@
  * Externs
  */
 extern FILE *lock_fopen LDAP_P(( char *, char *, FILE ** ));
-extern char *ch_malloc LDAP_P(( unsigned long ));
 
 /*
  * Forward declarations

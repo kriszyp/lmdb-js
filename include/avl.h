@@ -58,6 +58,9 @@ LDAP_F caddr_t
 avl_find LDAP_P((Avlnode *, caddr_t, IFP));
 
 LDAP_F caddr_t
+avl_find_lin LDAP_P((Avlnode *, caddr_t, IFP));
+
+LDAP_F caddr_t
 avl_getfirst LDAP_P((Avlnode *));
 
 #ifdef AVL_REENTRANT

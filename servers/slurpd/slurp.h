@@ -333,6 +333,13 @@ typedef struct tsl {
 } tsl_t;
 #endif /* HAVE_LWP */
 
+/* Public functions */
+
+/* In ch_malloc.c */
+void *	ch_malloc	LDAP_P(( unsigned long size ));
+void *	ch_realloc	LDAP_P(( void *block, unsigned long size ));
+void *	ch_calloc	LDAP_P(( unsigned long nelem, unsigned long size ));
+void	ch_free		LDAP_P(( void *p ));
     
 
 /* 
@@ -345,4 +352,3 @@ extern int Re_init LDAP_P(( Re **re ));
 LDAP_END_DECL
 
 #endif /* _SLURPD_H_ */
-

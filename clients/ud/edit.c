@@ -26,6 +26,7 @@
 #include <ldap.h>
 #include <ldapconfig.h>
 #include "ud.h"
+extern void *Malloc();
 
 extern struct entry Entry; 
 extern int verbose;

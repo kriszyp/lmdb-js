@@ -22,7 +22,6 @@
 #include "slap.h"
 
 extern char	**charray_dup();
-extern char	*ch_malloc();
 extern int	errno;
 
 void

@@ -13,8 +13,6 @@ static int	get_filter_list();
 static int	get_substring_filter();
 
 extern int	get_ava();
-extern char	*ch_malloc();
-extern char	*ch_realloc();
 
 int
 get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
