@@ -23,6 +23,18 @@
 #define EXEEXT ".exe"
 #define LDAP_DIRSEP "\\"
 
+/* don't suck in all of the win32 api */
+#define WIN32_LEAN_AND_MEAN
+
+#ifdef _WINNT
+/* WindowsNT specific features */
+#define HAVE_NT_SERVICE_MANAGER 1
+#define HAVE_NT_EVENT_LOG 1
+
+#elif _WIN95
+/* Windows95 specific features */
+#endif
+
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
 /* #define LDAP_MEMORY_DEBUG 1 */
 #define LDAP_DEBUG 1
