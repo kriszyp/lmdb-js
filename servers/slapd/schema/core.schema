@@ -546,7 +546,7 @@ objectclass ( 2.16.840.1.113719.2.142.6.1.1 NAME 'LDAPsubEntry'
 #
 # OpenLDAProotDSE
 #	likely to change!
-objectclass ( 1.3.6.1.4.1.4203.666.3.2
+objectclass ( 1.3.6.1.4.1.4203.1.4.1
 	NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' )
 	DESC 'OpenLDAP Root DSE object'
 	SUP top STRUCTURAL MAY cn )
