@@ -1550,18 +1550,15 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	 * is already normalized, so copy it and skip normalization.
 	 */
 	if( flags & SLAP_GETDN_AUTHCID ) {
-#ifdef HAVE_TLS
-		if( conn->c_is_tls &&
-			conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
+		if( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
 			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
 		{
-			/* X.509 DN is already normalized */
+			/* EXTERNAL DNs are already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
 			ber_str2bv( id, len, 1, dn );
 
 		} else
-#endif
 		{
 			/* convert to u:<username> form */
 			is_dn = SET_U;
