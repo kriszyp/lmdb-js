@@ -13,7 +13,10 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+
+#ifdef LDAP_SLAPI
 #include "slapi.h"
+#endif
 
 
 void

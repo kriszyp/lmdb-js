@@ -22,7 +22,9 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#ifdef LDAP_SLAPI
 #include "slapi.h"
+#endif
 
 static int compare_entry(
 	Connection *conn,

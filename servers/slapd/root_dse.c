@@ -17,9 +17,12 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "slapi.h"
 #include <ldif.h>
 #include "lber_pvt.h"
+
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 
 static struct berval supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* all Operational Attributes ("+") */

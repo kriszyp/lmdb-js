@@ -25,9 +25,9 @@
 #include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
-#include "slapi.h"
 
 #ifdef LDAP_SLAPI
+#include "slapi.h"
 static char **anlist2charray( AttributeName *an );
 static Slapi_PBlock *initSearchPlugin( Backend *be, Connection *conn, Operation *op,
 	struct berval *base, int scope, int deref, int sizelimit, int timelimit,

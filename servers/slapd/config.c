@@ -18,7 +18,9 @@
 #include "lutil.h"
 #include "ldap_pvt.h"
 #include "slap.h"
+#ifdef LDAP_SLAPI
 #include "slapi.h"
+#endif
 
 #define ARGS_STEP	512
 

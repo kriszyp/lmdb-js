@@ -17,7 +17,10 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+
+#ifdef LDAP_SLAPI
 #include "slapi.h"
+#endif
 
 static char *v2ref( BerVarray ref, const char *text )
 {

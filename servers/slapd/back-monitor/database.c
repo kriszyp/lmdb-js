@@ -36,10 +36,10 @@
 #include <stdio.h>
 
 #include "slap.h"
-#include "slapi.h"
 #include "back-monitor.h"
 
 #if defined(LDAP_SLAPI)
+#include "slapi.h"
 static int monitor_back_add_plugin( Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 

@@ -17,9 +17,12 @@
 #include "ldap_pvt.h"
 
 #include "slap.h"
-#include "slapi.h"
 #include "lutil.h"
 #include "ldif.h"
+
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );

@@ -24,9 +24,9 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
-#include "slapi.h"
 
 #ifdef LDAP_SLAPI
+#include "slapi.h"
 static Slapi_PBlock *initAddPlugin( Backend *be, Connection *conn, Operation *op,
 	struct berval *dn, Entry *e, int manageDSAit );
 static int doPreAddPluginFNs( Backend *be, Slapi_PBlock *pb );
