@@ -245,7 +245,7 @@ static Listener * open_listener( const char* url )
 	hints.ai_socktype = SOCK_STREAM;
 
 #  ifdef LDAP_PF_UNIX
-	if (lud->lud_protocol == LDAP_PROTO_LOCAL) {
+	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
 			err = getaddrinfo(NULL, "/tmp/.ldap-sock", &hints, &res);
 			if (!err)
@@ -288,7 +288,7 @@ static Listener * open_listener( const char* url )
 		if ( sai->ai_family != AF_UNIX ) {
 #else
 
-	if ( ldap_pvt_url_scheme2proto(url) == LDAP_PROTO_IPC ) {
+	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 #ifdef LDAP_PF_UNIX
 		port = 0;
 		(void) memset( (void *)&l.sl_sa.sa_un_addr, '\0', sizeof(l.sl_sa.sa_un_addr) );

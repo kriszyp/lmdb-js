@@ -42,8 +42,7 @@ int * ber_errno_addr(void)
 /*
  * Print stuff
  */
-static void
-ber_error_print( const char *data )
+void ber_error_print( LDAP_CONST char *data )
 {
 	assert( data != NULL );
 

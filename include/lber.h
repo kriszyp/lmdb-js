@@ -103,7 +103,7 @@ LDAP_BEGIN_DECL
 
 typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 
-typedef void (*BER_LOG_PRINT_FN) LDAP_P(( char *buf ));
+typedef void (*BER_LOG_PRINT_FN) LDAP_P(( LDAP_CONST char *buf ));
 
 typedef void* (*BER_MEMALLOC_FN)	LDAP_P(( ber_len_t size ));
 typedef void* (*BER_MEMCALLOC_FN)	LDAP_P(( ber_len_t n, ber_len_t size ));
