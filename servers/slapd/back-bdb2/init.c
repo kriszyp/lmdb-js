@@ -184,7 +184,6 @@ bdb2i_back_db_init_internal(
 	argv[ 2 ] = NULL;
 	bdb2i_attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
 	    1 );
-	free( argv[ 1 ] );
 
 	/*  initialize the cache mutex */
 	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
