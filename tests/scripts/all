@@ -22,27 +22,13 @@ fi
 
 echo ">>>>> Backend: $BACKEND"
 
-if test $# -eq 0 ; then
-	BACKENDTYPE=yes
-else
-	BACKENDTYPE=$1; shift
-fi
+MONITORDB=${MONITORDB-no}
+PROXYCACHE=${PROXYCACHE-no}
+BACKENDTYPE=${BACKENDTYPE-yes}
+
+export MONITORDB PROXYCACHE BACKENDTYPE
 
 echo ">>>>> Backend Type: $BACKENDTYPE"
-
-if test $# -eq 0 ; then
-	MONITOR=no
-else
-	MONITOR=$1; shift
-fi
-
-SHTOOL="$SRCDIR/../build/shtool"
-
-if test $# -eq 0 ; then
-	PROXYCACHE=no
-else
-	PROXYCACHE=$1; shift
-fi
 
 if test $# -eq 0 ; then
 	SYNCREPL=no
@@ -50,12 +36,14 @@ else
 	SYNCREPL=$1; shift
 fi
 
+SHTOOL="$SRCDIR/../build/shtool"
+
 TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
 
 for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
-	$CMD $SRCDIR $BACKEND $BACKENDTYPE $MONITOR $PROXYCACHE $SYNCREPL
+	$CMD $SRCDIR $BACKEND $SYNCREPL
 	RC=$?
 	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed ${TB}OK${TN}."
