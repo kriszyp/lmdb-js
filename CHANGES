@@ -7,7 +7,7 @@ OpenLDAP 2.0.13 Release
 	Fixed slapd substring filter_free bug
 	Fixed slapd suffix check bug
 	Fixed ldapdelete -c handling (ITS#1071)
-	Fixed ldapsearch -S handling
+	Fixed ldapsearch -S handling (ITS#1180)
 	Fixed ldbm BerkeleyDB 3.0 support (ITS#1306)
 	Fixed ldbm dbhandle cache bug (ITS#1164)
 	Fixed shell fgets handling
