@@ -57,8 +57,14 @@ static slap_mask_t index_mask(
 
 		bdb_attr_mask( be->be_private, at->sat_ad, &mask );
 
-		if ( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
+		if ( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
 			*atname = desc->ad_type->sat_cname;
+			*dbname = at->sat_cname.bv_val;
+			return mask;
+		}
+
+		if ( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
+			*atname = at->sat_cname;
 			*dbname = at->sat_cname.bv_val;
 			return mask;
 		}
@@ -291,8 +297,9 @@ static int index_at_values(
 
 	if( mask ) {
 		*dbnamep = type->sat_cname.bv_val;
-	} else if ( tmpmask ^ SLAP_INDEX_NOSUBTYPES ) {
+	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
 		mask = tmpmask;
+		*maskp = mask;
 	}
 
 	if( mask ) {
@@ -302,7 +309,6 @@ static int index_at_values(
 			mask );
 
 		if( rc ) return rc;
-		*maskp = mask;
 	}
 
 	if( lang->bv_len ) {
