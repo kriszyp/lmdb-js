@@ -177,8 +177,6 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	char		**values = NULL;
 	const char 	*p;
 	int		iAVA;
-	unsigned 	flag = 
-		notypes ? LDAP_DN_FORMAT_UFN : LDAP_DN_FORMAT_LDAPV3;
 	
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
 
@@ -1714,9 +1712,10 @@ hexstr2bin( const char *str, char *c )
 		*c = c1 - '0';
 
 	} else {
-		c1 = tolower( c1 );
-
-		if ( LDAP_DN_ASCII_LCASE_HEXALPHA( c1 ) ) {
+		if ( LDAP_DN_ASCII_UCASE_HEXALPHA( c1 ) ) {
+			*c = c1 - 'A' + 10;
+		} else {
+			assert( LDAP_DN_ASCII_LCASE_HEXALPHA( c1 ) );
 			*c = c1 - 'a' + 10;
 		}
 	}
@@ -1727,9 +1726,10 @@ hexstr2bin( const char *str, char *c )
 		*c += c2 - '0';
 		
 	} else {
-		c2 = tolower( c2 );
-
-		if ( LDAP_DN_ASCII_LCASE_HEXALPHA( c2 ) ) {
+		if ( LDAP_DN_ASCII_UCASE_HEXALPHA( c2 ) ) {
+			*c += c2 - 'A' + 10;
+		} else {
+			assert( LDAP_DN_ASCII_LCASE_HEXALPHA( c2 ) );
 			*c += c2 - 'a' + 10;
 		}
 	}
@@ -1900,7 +1900,9 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	ber_len_t	l, cl = 1;
 	char		*p;
 	int		escaped_byte_len = LDAP_DN_IS_PRETTY( flags ) ? 1 : 3;
+#ifdef PRETTY_ESCAPE
 	int		escaped_ascii_len = LDAP_DN_IS_PRETTY( flags ) ? 2 : 3;
+#endif /* PRETTY_ESCAPE */
 	
 	assert( val );
 	assert( len );
@@ -2291,7 +2293,7 @@ strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 
 /*
  * If the DN is terminated by single-AVA RDNs with attribute type of "dc",
- * the forst part of the AD representation of the DN is written in DNS
+ * the first part of the AD representation of the DN is written in DNS
  * form, i.e. dot separated domain name components (as suggested 
  * by Luke Howard, http://www.padl.com/~lukeh)
  */
@@ -2308,7 +2310,7 @@ dn2domain( LDAPDN *dn, char *str, int *iRDN )
 	assert( dn );
 	assert( str );
 	assert( iRDN );
-	assert( *iRDN > 0 );
+	assert( *iRDN >= 0 );
 
 	for ( i = *iRDN; i >= 0; i-- ) {
 		LDAPRDN		*rdn;
