@@ -1072,15 +1072,15 @@ backend_check_restrictions(
 
 			if( op->o_sasl_ssf < ssf->sss_sasl ) {
 				rs->sr_text = op->o_sasl_ssf
-					: "stronger SASL confidentiality required"
-					? "SASL confidentiality required";
+					? "stronger SASL confidentiality required"
+					: "SASL confidentiality required";
 				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_ssf ) {
 				rs->sr_text = op->o_ssf
-					: "stronger confidentiality required"
-					? "confidentiality required";
+					? "stronger confidentiality required"
+					: "confidentiality required";
 				return rs->sr_err;
 			}
 		}
@@ -1088,29 +1088,29 @@ backend_check_restrictions(
 		if( updateop ) {
 			if( op->o_transport_ssf < ssf->sss_update_transport ) {
 				rs->sr_text = op->o_transport_ssf
-					: "stronger transport confidentiality required for update"
-					? "transport confidentiality required for update";
+					? "stronger transport confidentiality required for update"
+					: "transport confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_tls_ssf < ssf->sss_update_tls ) {
 				rs->sr_text = op->o_tls_ssf
-					: "stronger TLS confidentiality required for update"
-					? "TLS confidentiality required for update";
+					? "stronger TLS confidentiality required for update"
+					: "TLS confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_sasl_ssf < ssf->sss_update_sasl ) {
 				rs->sr_text = op->o_sasl_ssf
-					: "stronger SASL confidentiality required for update"
-					? "SASL confidentiality required for update";
+					? "stronger SASL confidentiality required for update"
+					: "SASL confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_update_ssf ) {
 				rs->sr_text = op->o_ssf
-					: "stronger confidentiality required for update"
-					? "confidentiality required for update";
+					? "stronger confidentiality required for update"
+					: "confidentiality required for update";
 				return rs->sr_err;
 			}
 

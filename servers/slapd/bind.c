@@ -369,9 +369,11 @@ do_bind(
 			slapi_int_pblock_set_operation( pb, op );
 			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
-			slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
+			slapi_pblock_set( pb,
+				SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 			slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
-			(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
+			(void) slapi_int_call_plugins( op->o_bd,
+				SLAPI_PLUGIN_POST_BIND_FN, pb );
 		}
 #endif /* LDAP_SLAPI */
 
@@ -620,7 +622,8 @@ do_bind(
 				Statslog( LDAP_DEBUG_STATS,
 					"conn=%lu op=%lu BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
 					op->o_connid, op->o_opid,
-					op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
+					op->o_conn->c_dn.bv_val
+						? op->o_conn->c_dn.bv_val : "<empty>",
 					mech.bv_val, 0 );
 				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			}

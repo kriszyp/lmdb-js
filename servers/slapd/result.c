@@ -1346,6 +1346,7 @@ error_return:;
 	 * should set it back so that the cleanup functions know
 	 * what they're doing.
 	 */
+	/* FIXME2: I'm thinking this should FOLLOW cleanup callbacks */
 	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
 		&& rs->sr_entry 
 		&& (rs->sr_flags & REP_ENTRY_MUSTBEFREED) ) 
