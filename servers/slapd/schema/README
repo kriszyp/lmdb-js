@@ -15,7 +15,6 @@ misc.schema             misc. schema
 nadf.schema             North America Directory Forum schema
 nis.schema              Network Information Service schema
 openldap.schema         OpenLDAP Project schema
-pilot.schema            old Pilot schema
 
 Additional schema definitions can be submitted using the OpenLDAP
 Issue Tracking System <http://www.openldap.org/its/>.
