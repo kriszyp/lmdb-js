@@ -118,7 +118,7 @@ monitor_subsys_overlay_init(
 				continue;
 			}
 
-			on2 = ((slap_overinfo *)be->bd_info)->oi_list;
+			on2 = ((slap_overinfo *)be->bd_info->bi_private)->oi_list;
 			for ( ; on2; on2 = on2->on_next ) {
 				if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
 					break;
