@@ -28,6 +28,7 @@ dn2id_add(
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
+	assert( id != NOID );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -141,6 +142,8 @@ dn2id(
 
 	(void) memcpy( (char *) &id, data.dptr, sizeof(ID) );
 
+	assert( id != NOID );
+
 	ldbm_datum_free( db->dbc_db, data );
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
@@ -196,6 +199,8 @@ dn2id_delete(
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
 
+	assert( id != NOID );
+
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -213,7 +218,9 @@ dn2id_delete(
 			key.dsize = strlen( pdn ) + 2;
 			key.dptr = ch_malloc( key.dsize );
 			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+
 			(void) idl_delete_key( be, db, key, id );
+
 			free( key.dptr );
 			free( pdn );
 		}

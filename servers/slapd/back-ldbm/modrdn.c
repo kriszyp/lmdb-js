@@ -261,6 +261,14 @@ ldbm_back_modrdn(
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		goto return_results;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	if (dn2id ( be, new_ndn ) != NOID) {
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
