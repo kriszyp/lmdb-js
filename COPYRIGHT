@@ -8,9 +8,15 @@ in file LICENSE in the top-level directory of the distribution.
 
 This work is derived from the University of Michigan LDAP v3.3
 distribution.  Information concerning is available at
-	http://www.umich.edu/~dirsvcs/ldap/ldap.html.
+    http://www.umich.edu/~dirsvcs/ldap/ldap.html.
 
 This work also contains materials derived from public sources.
+
+Additional Information about OpenLDAP can be obtained at:
+    http://www.openldap.org/
+
+or by sending e-mail to:
+	info@OpenLDAP.org
 
 ---
 
