@@ -502,11 +502,11 @@ retry:	/* transaction retry */
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"==>bdb_modrdn: wr to new parent OK np=%p, id=%ld\n", 
-				np, (long) np->e_id, 0 );
+				(void *) np, (long) np->e_id, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: wr to new parent OK np=%p, id=%ld\n",
-				np, (long) np->e_id, 0 );
+				(void *) np, (long) np->e_id, 0 );
 #endif
 
 			/* check newSuperior for "children" acl */

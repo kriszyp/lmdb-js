@@ -2967,7 +2967,8 @@ parse_syncrepl_line(
 				si->interval = atoi( val );
 			if ( si->interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
-								 "invalid interval \"%d\"\n", si->interval);
+								 "invalid interval \"%ld\"\n",
+								 (long) si->interval);
 				return 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],

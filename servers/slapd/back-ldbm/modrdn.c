@@ -341,11 +341,11 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, DETAIL1,
 				"ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-				np, np->e_id, 0 );
+				(void *) np, np->e_id, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-				np, np->e_id, 0 );
+				(void *) np, np->e_id, 0 );
 #endif
 
 			/* check newSuperior for "children" acl */
