@@ -7,12 +7,11 @@
 #if defined( HAVE_PTHREADS )
 
 #ifndef HAVE_PTHREAD_KILL
-/***********************************************************************
- *                                                                     *
- * pthreads package with DCE - no mapping to do (except to create a    *
- * pthread_kill() routine)                                             *
- *                                                                     *
- ***********************************************************************/
+/*
+ * Some pthreads packages (ie: DCE) don't have pthread_kill()
+ * pthread_kill() routine)
+ *
+ */
 
 /* ARGSUSED */
 void
@@ -21,6 +20,19 @@ pthread_kill( pthread_t tid, int sig )
 	kill( getpid(), sig );
 }
 #endif /* HAVE_PTHREAD_KILL */
+
+#if !defined(HAVE_SCHED_YIELD) && !defined(HAVE_PTHREAD_YIELD)
+/*
+ * Some pthreads packages don't have sched_yield() nor
+ * the draft4 pthread_kill() routine, assume it's not
+ * needed.
+ */
+void
+pthread_yield( void )
+{
+	/* assume pthread implementation is preemptive */
+}
+#endif /* missing sched_yield() */
 
 #elif defined( HAVE_MACH_CTHREADS )
 

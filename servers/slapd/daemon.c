@@ -36,6 +36,7 @@ int deny_severity = LOG_NOTICE;
 int		dtblsize;
 Connection	*c;
 
+static int slapd_shutdown = 0;
 static void	set_shutdown(int sig);
 static void	do_nothing  (int sig);
 
@@ -369,14 +370,13 @@ slapd_daemon(
 	}
 
 	close( tcps );
+
 	pthread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutting down - waiting for %d threads to terminate\n",
 	    active_threads, 0, 0 );
 	while ( active_threads > 0 ) {
-		pthread_mutex_unlock( &active_threads_mutex );
-		pthread_yield();
-		pthread_mutex_lock( &active_threads_mutex );
+		pthread_cond_wait(&active_threads_cond, &active_threads_mutex);
 	}
 	pthread_mutex_unlock( &active_threads_mutex );
 

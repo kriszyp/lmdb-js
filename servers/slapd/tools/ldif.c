@@ -11,10 +11,6 @@
 #include "ldap.h"
 #include "ldif.h"
 
-int	ldap_syslog;
-int	ldap_syslog_level;
-
-
 static void
 usage( char *name )
 {
