@@ -873,9 +873,9 @@ backend_check_controls(
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
 			int cid;
-			if( slap_find_control_id( (*ctrls)->ldctl_oid, &cid ) ==
-				LDAP_CONTROL_NOT_FOUND )
-			{
+
+			switch ( slap_global_control( op, (*ctrls)->ldctl_oid, &cid ) ) {
+			case LDAP_CONTROL_NOT_FOUND:
 				/* unrecognized control */ 
 				if ( (*ctrls)->ldctl_iscritical ) {
 					/* should not be reachable */ 
@@ -884,26 +884,39 @@ backend_check_controls(
 						(*ctrls)->ldctl_oid, 0, 0 );
 					assert( 0 );
 				}
-
-			} else if ( !slap_global_control( op, (*ctrls)->ldctl_oid ) &&
-				!op->o_bd->be_ctrls[ cid ] )
-			{
-				/* Per RFC 2251 (and LDAPBIS discussions), if the control
-				 * is recognized and appropriate for the operation (which
-				 * we've already verified), then the server should make
-				 * use of the control when performing the operation.
-				 * 
-				 * Here we find that operation extended by the control
-				 * is not unavailable in a particular context, hence the
-				 * return of unwillingToPerform.
-				 */
-				rs->sr_text = "control unavailable in context";
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				break;
+
+			case LDAP_COMPARE_FALSE:
+				if ( !op->o_bd->be_ctrls[ cid ] )
+				{
+					/* Per RFC 2251 (and LDAPBIS discussions), if the control
+					 * is recognized and appropriate for the operation (which
+					 * we've already verified), then the server should make
+					 * use of the control when performing the operation.
+					 * 
+					 * Here we find that operation extended by the control
+					 * is not unavailable in a particular context, hence the
+					 * return of unwillingToPerform.
+					 */
+					rs->sr_text = "control unavailable in context";
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					goto done;
+				}
+				break;
+
+			case LDAP_COMPARE_TRUE:
+				break;
+
+			default:
+				/* unreachable */
+				rs->sr_err = "unable to check control";
+				rs->sr_err = LDAP_OTHER;
+				goto done;
 			}
 		}
 	}
 
+done:;
 	return rs->sr_err;
 }
 
