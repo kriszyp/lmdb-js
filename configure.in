@@ -829,7 +829,7 @@ else
 
 	if test $ol_cv_inet6_addrslen = yes ; then
 		ol_link_ipv6=yes
-	else if $ol_enable_ipv6 = yes ; then
+	elif $ol_enable_ipv6 = yes ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
 	fi
 fi
