@@ -1801,7 +1801,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		 *    mostly doing strncpy's so we know how much
 		 *    memory to copy ...
 		 */
-		if( ( realm = strchr( dn->bv_val, '@') ) ) {
+		if( ( realm = strrchr( dn->bv_val, '@') ) ) {
 			*realm++ = '\0';
 			len += sizeof(",cn=")-2;
 		} else if( user_realm && *user_realm ) {
