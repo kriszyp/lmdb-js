@@ -62,26 +62,29 @@ slap_zn_mem_destroy(
 	} while (pad_shift >>= 1);
 
 	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
-	for (i = 0; i <= zh->zh_zoneorder - order_start; i++) {
+	for (i = 0; i < zh->zh_zoneorder - order_start + 1; i++) {
 		zo = LDAP_LIST_FIRST(&zh->zh_free[i]);
 		while (zo) {
 			struct zone_object *zo_tmp = zo;
 			zo = LDAP_LIST_NEXT(zo, zo_link);
+			LDAP_LIST_REMOVE(zo_tmp, zo_link);
 			LDAP_LIST_INSERT_HEAD(&zh->zh_zopool, zo_tmp, zo_link);
 		}
 	}
 	ch_free(zh->zh_free);
 
 	for (i = 0; i < zh->zh_numzones; i++) {
-		for (j = 0; j < zh->zh_zoneorder - order_start; j++) {
+		for (j = 0; j < zh->zh_zoneorder - order_start + 1; j++) {
 			ch_free(zh->zh_maps[i][j]);
 		}
 		ch_free(zh->zh_maps[i]);
 		munmap(zh->zh_zones[i], zh->zh_zonesize);
+		ldap_pvt_thread_rdwr_destroy(&zh->zh_znlock[i]);
 	}
 	ch_free(zh->zh_maps);
 	ch_free(zh->zh_zones);
 	ch_free(zh->zh_seqno);
+	ch_free(zh->zh_znlock);
 
 	avl_free(zh->zh_zonetree, slap_zo_release);
 
@@ -99,8 +102,9 @@ slap_zn_mem_destroy(
 		zo = LDAP_LIST_NEXT(zo, zo_link);
 		ch_free(zo_tmp);
 	}
-	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
-	ldap_pvt_thread_mutex_destroy( &zh->zh_mutex );
+	ldap_pvt_thread_mutex_unlock(&zh->zh_mutex);
+	ldap_pvt_thread_rdwr_destroy(&zh->zh_lock);
+	ldap_pvt_thread_mutex_destroy(&zh->zh_mutex);
 	ch_free(zh);
 }
 
@@ -165,6 +169,8 @@ slap_zn_mem_create(
 	order = order_end - order_start + 1;
 
 	zh->zh_zones = (void **)ch_malloc(zh->zh_maxzones * sizeof(void*));
+	zh->zh_znlock = (ldap_pvt_thread_rdwr_t *)ch_malloc(
+						zh->zh_maxzones * sizeof(ldap_pvt_thread_rdwr_t *));
 	zh->zh_maps = (unsigned char ***)ch_malloc(
 					zh->zh_maxzones * sizeof(unsigned char**));
 
@@ -187,7 +193,7 @@ slap_zn_mem_create(
 			int shiftamt = order_start + 1 + j;
 			int nummaps = zh->zh_zonesize >> shiftamt;
 			assert(nummaps);
-			nummaps /= 8;
+			nummaps >>= 3;
 			if (!nummaps) nummaps = 1;
 			zh->zh_maps[i][j] = (unsigned char *)ch_malloc(nummaps);
 			memset(zh->zh_maps[i][j], 0, nummaps);
@@ -211,9 +217,11 @@ slap_zn_mem_create(
 		zo->zo_siz = zh->zh_zonesize;
 		zo->zo_idx = i;
 		avl_insert(&zh->zh_zonetree, zo, slap_zone_cmp, avl_dup_error);
+		ldap_pvt_thread_rdwr_init(&zh->zh_znlock[i]);
 	}
 
 	ldap_pvt_thread_mutex_init(&zh->zh_mutex);
+	ldap_pvt_thread_rdwr_init(&zh->zh_lock);
 
 	return zh;
 }
@@ -337,7 +345,7 @@ retry:
 				int shiftamt = order_start + 1 + j;
 				int nummaps = zh->zh_zonesize >> shiftamt;
 				assert(nummaps);
-				nummaps /= 8;
+				nummaps >>= 3;
 				if (!nummaps) nummaps = 1;
 				zh->zh_maps[i][j] = (unsigned char *)ch_malloc(nummaps);
 				memset(zh->zh_maps[i][j], 0, nummaps);
@@ -362,6 +370,7 @@ retry:
 			zo->zo_siz = zh->zh_zonesize;
 			zo->zo_idx = i;
 			avl_insert(&zh->zh_zonetree, zo, slap_zone_cmp, avl_dup_error);
+			ldap_pvt_thread_rdwr_init(&zh->zh_znlock[i]);
 		}
 		zh->zh_numzones += zh->zh_deltazones;
 		ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
@@ -520,6 +529,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo = LDAP_LIST_FIRST(&zh->zh_zopool);
 						LDAP_LIST_REMOVE(zo, zo_link);
 						zo->zo_ptr = tmpp;
+						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
 							zo->zo_ptr, 0, 0);
@@ -541,6 +551,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo = LDAP_LIST_FIRST(&zh->zh_zopool);
 						LDAP_LIST_REMOVE(zo, zo_link);
 						zo->zo_ptr = tmpp;
+						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
 							zo->zo_ptr, 0, 0);
@@ -580,6 +591,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo = LDAP_LIST_FIRST(&zh->zh_zopool);
 						LDAP_LIST_REMOVE(zo, zo_link);
 						zo->zo_ptr = tmpp;
+						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
 							zo->zo_ptr, 0, 0);
@@ -601,6 +613,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo = LDAP_LIST_FIRST(&zh->zh_zopool);
 						LDAP_LIST_REMOVE(zo, zo_link);
 						zo->zo_ptr = tmpp;
+						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
 							zo->zo_ptr, 0, 0);
@@ -656,4 +669,227 @@ slap_replenish_zopool(
 
 	return zo_block;
 }
+
+int
+slap_zn_invalidate(
+	void *ctx,
+	void *ptr
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int seqno = *((ber_len_t*)ptr - 2);
+	int idx = -1, rc = 0;
+	int pad = 2*sizeof(int)-1, pad_shift;
+	int order_start = -1, i;
+	struct zone_object *zo;
+
+	pad_shift = pad - 1;
+	do {
+		order_start++;
+	} while (pad_shift >>= 1);
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		madvise(zh->zh_zones[idx], zh->zh_zonesize, MADV_DONTNEED);
+		for (i = 0; i < zh->zh_zoneorder - order_start + 1; i++) {
+			int shiftamt = order_start + 1 + i;
+			int nummaps = zh->zh_zonesize >> shiftamt;
+			assert(nummaps);
+			nummaps >>= 3;
+			if (!nummaps) nummaps = 1;
+			memset(zh->zh_maps[idx][i], 0, nummaps);
+			zo = LDAP_LIST_FIRST(&zh->zh_free[i]);
+			while (zo) {
+				struct zone_object *zo_tmp = zo;
+				zo = LDAP_LIST_NEXT(zo, zo_link);
+				if (zo_tmp && zo_tmp->zo_idx == idx) {
+					LDAP_LIST_REMOVE(zo_tmp, zo_link);
+					LDAP_LIST_INSERT_HEAD(&zh->zh_zopool, zo_tmp, zo_link);
+				}
+			}
+		}
+		if (LDAP_LIST_EMPTY(&zh->zh_zopool)) {
+			slap_replenish_zopool(zh);
+		}
+		zo = LDAP_LIST_FIRST(&zh->zh_zopool);
+		LDAP_LIST_REMOVE(zo, zo_link);
+		zo->zo_ptr = zh->zh_zones[idx];
+		zo->zo_idx = idx;
+		LDAP_LIST_INSERT_HEAD(&zh->zh_free[zh->zh_zoneorder-order_start],
+								zo, zo_link);
+		zh->zh_seqno[idx]++;
+	} else {
+		Debug(LDAP_DEBUG_NONE, "zone not found for (ctx=0x%x, ptr=0x%x) !\n",
+				ctx, ptr, 0);
+	}
+
+	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
+	Debug(LDAP_DEBUG_NONE, "zone %d invalidate\n", idx, 0, 0);
+	return rc;
+}
+
+int
+slap_zn_validate(
+	void *ctx,
+	void *ptr,
+	int seqno
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int idx, rc = 0;
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		assert(seqno <= zh->zh_seqno[idx]);
+		rc = (seqno == zh->zh_seqno[idx]);
+	}
+
+	return rc;
+}
+
+int slap_zh_rlock(
+	void *ctx
+)
+{
+	struct zone_heap* zh = ctx;
+	ldap_pvt_thread_rdwr_rlock(&zh->zh_lock);
+}
+
+int slap_zh_runlock(
+	void *ctx
+)
+{
+	struct zone_heap* zh = ctx;
+	ldap_pvt_thread_rdwr_runlock(&zh->zh_lock);
+}
+
+int slap_zh_wlock(
+	void *ctx
+)
+{
+	struct zone_heap* zh = ctx;
+	ldap_pvt_thread_rdwr_wlock(&zh->zh_lock);
+}
+
+int slap_zh_wunlock(
+	void *ctx
+)
+{
+	struct zone_heap* zh = ctx;
+	ldap_pvt_thread_rdwr_wunlock(&zh->zh_lock);
+}
+
+int slap_zn_rlock(
+	void *ctx,
+	void *ptr
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int idx;
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		ldap_pvt_thread_rdwr_rlock(&zh->zh_znlock[idx]);
+	}
+}
+
+int slap_zn_runlock(
+	void *ctx,
+	void *ptr
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int idx;
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		ldap_pvt_thread_rdwr_runlock(&zh->zh_znlock[idx]);
+	}
+}
+
+int slap_zn_wlock(
+	void *ctx,
+	void *ptr
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int idx;
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		ldap_pvt_thread_rdwr_wlock(&zh->zh_znlock[idx]);
+	}
+}
+
+int slap_zn_wunlock(
+	void *ctx,
+	void *ptr
+)
+{
+	struct zone_heap* zh = ctx;
+	struct zone_object zoi, *zoo;
+	struct zone_heap *zone = NULL;
+	int idx;
+
+	zoi.zo_ptr = ptr;
+	zoi.zo_idx = -1;
+
+	ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
+	zoo = avl_find(zh->zh_zonetree, &zoi, slap_zone_cmp);
+	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
+
+	if (zoo) {
+		idx = zoo->zo_idx;
+		assert(idx != -1);
+		ldap_pvt_thread_rdwr_wunlock(&zh->zh_znlock[idx]);
+	}
+}
+
 #endif /* SLAP_ZONE_ALLOC */

@@ -2879,12 +2879,14 @@ struct zone_heap {
 	int zh_maxzones;
 	int zh_deltazones;
 	void **zh_zones;
+	ldap_pvt_thread_rdwr_t *zh_znlock;
 	Avlnode *zh_zonetree;
 	unsigned char ***zh_maps;
-	unsigned long *zh_seqno;
+	int *zh_seqno;
 	LDAP_LIST_HEAD( zh_freelist, zone_object ) *zh_free;
 	LDAP_LIST_HEAD( zh_so, zone_object ) zh_zopool;
 	ldap_pvt_thread_mutex_t zh_mutex;
+	ldap_pvt_thread_rdwr_t zh_lock;
 };
 #endif
 
