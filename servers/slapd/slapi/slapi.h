@@ -15,24 +15,22 @@
 
 #include <ibm_pblock_params.h> 
 
-#define slapi_entry	slap_entry
-#define slapi_attr	slap_attr
-#define slapi_filter	slap_filter
-#include <slapi-plugin.h>
-
 LDAP_BEGIN_DECL
 
 /*
- * Generic typedefs
+ * Quick 'n' dirty to make struct slapi_* in slapi-plugin.h opaque
  */
-#if 0
-typedef struct	slapi_pblock	Slapi_PBlock;
-typedef struct	slap_entry	Slapi_Entry;
-typedef struct	slap_attr	Slapi_Attr;
-typedef struct	berval		Slapi_Value;
-typedef BerVarray		Slapi_ValueSet;
-typedef Filter			Slapi_Filter;
-#endif
+#define slapi_entry	slap_entry
+#define slapi_attr	slap_attr
+#define slapi_value	berval
+#define slapi_valueset	berval*
+#define slapi_filter	slap_filter
+
+LDAP_END_DECL
+
+#include <slapi-plugin.h>
+
+LDAP_BEGIN_DECL
 
 /*
  * Was: slapi_common.h
@@ -47,8 +45,7 @@ typedef Filter			Slapi_Filter;
 #define FALSE 0
 #endif
 
-#if 0
-
+#if 0	/* unused (yet?) */
 #define dn_normalize_case	dn_normalize
 #define SLAPD_NO_MEMORY    	7
 #define ANYBODY_STRING 		"CN=ANYBODY"
@@ -62,7 +59,6 @@ typedef struct strlist {
 	char *string;
 	struct strlist *next;
 } StrList;
-
 #endif
 
 
@@ -77,7 +73,7 @@ typedef struct _Audit_record Audit_record;
 
 typedef int (*SLAPI_FUNC)( Slapi_PBlock *pb );
 
-#if 0
+#if 0	/* unused (yet?) */
 #define DOMAIN "Domain"
 #define TCPIPPATH "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
 #endif
@@ -118,9 +114,9 @@ struct _computed_attr_context {
  * Was: slapi_pblock.h
  */
 
-#ifndef NO_PBLOCK_CLASS
+#ifndef NO_PBLOCK_CLASS		/* where's this test from? */
 
-#if 0
+#if 0	/* unused (yet?) */
 #define CMP_EQUAL			0
 #define CMP_GREATER			1
 #define CMP_LOWER			(-1)
@@ -145,15 +141,50 @@ struct slapi_pblock {
 
 #define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_POST_RESULT_FN)
 
+/*
+ * Was: slapi_cl.h
+ */
+
 #if 0
-#include <slapi_utils.h.h>
-#include <slapi_pblock.h>
-#include <plugin.h>
-#include <slapi_ops.h>
-#if 0 /* unused (yet?) */
-#include <slapi_cl.h>
-#endif /* 0 */
+#define TIME_SIZE 20
+#define OBJECTCLASS "objectclass"
+#define TOP "top"
+#define CHANGE_TIME "changetime"
+#define CHANGE_TYPE "changetype"
+#define CHANGE_TARGETDN "targetdn"
+#define CHANGES	"changes"
+#define CHANGE_NUMBER "changenumber"
+/*
+ * FIXME: I get complaints like "ADD" being redefined - first definition
+ * being in "/usr/include/arpa/nameser.h:552"
+ */
+#undef ADD
+#define ADD "add: "
+#define ADDLEN 5
+#define DEL "delete: "
+#define DELLEN 8
+#define REPLACE "replace: "
+#define REPLEN 9
+#define MOD "modify"
+#define MODRDN "modrdn"
+#define CHANGE_LOGENTRY "changelogentry"
+#define IBM_CHANGE_LOGENTRY "ibm-changelog"
+#define CL_NEWRDN "newrdn"
+#define CL_DELRDN "deleteoldrdn"
+#define CHANGE_INITIATOR "ibm-changeInitiatorsName" 
+
+void slapi_register_changelog_suffix(char *suffix);
+char **slapi_get_changelog_suffixes();
+void slapi_update_changelog_counters(long curNum, long numEntries);
+char *slapi_get_cl_firstNum();
+char *slapi_get_cl_lastNum();
+int slapi_add_to_changelog(Slapi_Entry *ent, char *suffix, char *chNum, Operation* op);	
+int slapi_delete_changelog(char *dn, char *suffix, char *chNum, Operation* op);	
+int slapi_modify_changelog(char *dn,LDAPMod	*mods,char *suffix, char *chNum, Operation* op); 
+int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn, char *suffix, char *chNum, Operation* op);
+Backend * slapi_cl_get_be(char *dn);
 #endif
+
 
 /*
  * Attribute flags returned by slapi_attr_get_flags()
