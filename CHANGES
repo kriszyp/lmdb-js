@@ -1,11 +1,12 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.16 Engineering
-	Fixed ldapsearch paged results size 0 bug 
 	Fixed libldap getaddrinfo hints portability bug (ITS#3279)
 	Fixed libldap find_connection bug (ITS#3280)
 	Fixed libldap SASL host connected to bug (ITS#3298)
 	Fixed libldap SASL proper sockbuf bug
+	Fixed libldap results lc bug (ITS#3250)
+	Fixed ldapsearch paged results size 0 bug 
 	Fixed slapd syncrepl SSF propagation bug (ITS#3131)
 	Fixed slapd ACL sets bug (ITS#3140)
 	Fixed slapd bind referral bug (ITS#3264)
@@ -13,13 +14,14 @@ OpenLDAP 2.2.16 Engineering
 	Fixed slapd overlays CSN CTX bug (ITS#3288)
 	Fixed slapd sun_path portability bug
 	Fixed slapd permissive modify bug
+	Fixed slapd hang bug (ITS#3309)
 	Fixed back-bdb CSN CTX bug (ITS#3301)
 	Fixed back-bdb id2entry bug
 	Fixed back-bdb syncrepl psearch delete bug (ITS#3309)
 	Fixed back-ldap/meta known controls bugs (ITS#3291)
 	Fixed back-monitor syncrepl bug (ITS#3265)
 	Fixed slurpd replog error message bug (ITS#3275)
-	Added slapd syncrepl exattrs
+	Added slapd syncrepl exattrs (ITS#3289)
 	Updated LDAP C++ library
 	Documentation
 		Updated provided RFCs and I-Ds
