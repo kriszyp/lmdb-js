@@ -861,6 +861,16 @@ syncprov_drop_psearch( syncops *so, int lock )
 }
 
 static int
+syncprov_ab_cleanup( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+	op->o_callback = sc->sc_next;
+	syncprov_drop_psearch( op->o_callback->sc_private, 0 );
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+	return 0;
+}
+
+static int
 syncprov_op_abandon( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
@@ -884,8 +894,13 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 			so->s_op->o_cancel = SLAP_CANCEL_ACK;
 			rs->sr_err = LDAP_CANCELLED;
 			send_ldap_result( so->s_op, rs );
-			while ( so->s_op->o_cancel != SLAP_CANCEL_DONE ) {
-				ldap_pvt_thread_yield();
+			if ( so->s_flags & PS_IS_DETACHED ) {
+				slap_callback *cb;
+				cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+				cb->sc_cleanup = syncprov_ab_cleanup;
+				cb->sc_next = op->o_callback;
+				cb->sc_private = so;
+				return SLAP_CB_CONTINUE;
 			}
 		}
 		syncprov_drop_psearch( so, 0 );
