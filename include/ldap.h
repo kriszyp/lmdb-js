@@ -43,11 +43,12 @@ LDAP_BEGIN_DECL
 #define LDAP_VERSION_MAX	LDAP_VERSION3
 
 /*
- * We'll use 2000+draft revision for our API version number
- * As such, the number will be above the old RFC but below
- * whatever number does finally get assigned
+ * We use 3000+n here because it is above 1823 (for RFC 1823),
+ * above 2000+rev of IETF LDAPEXT draft (now quite dated),
+ * yet below allocations for new RFCs (just in case there is
+ * someday an RFC produced).
  */
-#define LDAP_API_VERSION	2005
+#define LDAP_API_VERSION	3001
 #define LDAP_VENDOR_NAME	"OpenLDAP"
 
 /* OpenLDAP API Features */
