@@ -11,6 +11,7 @@
 
 #include "lber.h"
 #include "ldap.h"
+#include "ldap_log.h"
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
