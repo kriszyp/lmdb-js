@@ -3126,12 +3126,18 @@ check_time_syntax (struct berval *val,
 	int *parts)
 {
 	static int ceiling[9] = { 99, 99, 11, 30, 23, 59, 59, 12, 59 };
-	static int mdays[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	static int mdays[2][12] = {
+		/* non-leap years */
+		{ 30, 27, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30 },
+		/* leap years */
+		{ 30, 28, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30 }
+	};
 	char *p, *e;
-	int part, c, neg = 0;
+	int part, c, tzoffset, leapyear = 0 ;
 
-	if( val->bv_len == 0 )
+	if( val->bv_len == 0 ) {
 		return LDAP_INVALID_SYNTAX;
+	}
 
 	p = (char *)val->bv_val;
 	e = p + val->bv_len;
@@ -3141,80 +3147,94 @@ check_time_syntax (struct berval *val,
 		p++;
 	}
 
-	if (e - p < 13 - (2 * start))
+	if (e - p < 13 - (2 * start)) {
 		return LDAP_INVALID_SYNTAX;
+	}
 
-	for (part = 0; part < 9; part++)
+	for (part = 0; part < 9; part++) {
 		parts[part] = 0;
+	}
 
 	for (part = start; part < 7; part++) {
 		c = *p;
-		if ((part == 6)
-			&& (c == 'Z'
-				|| c == '+'
-				|| c == '-'))
-		{
+		if ((part == 6) && (c == 'Z' || c == '+' || c == '-')) {
 			part++;
 			break;
 		}
 		p++;
 		c -= '0';
-		if (p == e)
+		if (p == e) {
 			return LDAP_INVALID_SYNTAX;
-		if (c < 0 || c > 9)
+		}
+		if (c < 0 || c > 9) {
 			return LDAP_INVALID_SYNTAX;
+		}
 		parts[part] = c;
 
 		c = *p++ - '0';
-		if (p == e)
+		if (p == e) {
 			return LDAP_INVALID_SYNTAX;
-		if (c < 0 || c > 9)
+		}
+		if (c < 0 || c > 9) {
 			return LDAP_INVALID_SYNTAX;
+		}
 		parts[part] *= 10;
 		parts[part] += c;
 
-		if (part == 2 || part == 3)
+		if (part == 2 || part == 3) {
 			parts[part]--;
-		if (parts[part] < 0)
+		}
+		if (parts[part] < 0) {
 			return LDAP_INVALID_SYNTAX;
-		if (parts[part] > ceiling[part])
+		}
+		if (parts[part] > ceiling[part]) {
 			return LDAP_INVALID_SYNTAX;
-	}
-	if (parts[2] == 1) {
-		if (parts[3] > mdays[parts[2]])
-			return LDAP_INVALID_SYNTAX;
-		if (parts[1] & 0x03) {
-			/* FIXME:  This is an incomplete leap-year
-			 * check that fails in 2100, 2200, 2300,
-			 * 2500, 2600, 2700, ...
-			 */
-			if (parts[3] > mdays[parts[2]] - 1)
-				return LDAP_INVALID_SYNTAX;
 		}
 	}
+
+	/* leapyear check for the Gregorian calendar (year>1581) */
+	if (((parts[1] % 4 == 0) && (parts[1] != 0)) ||
+		((parts[0] % 4 == 0) && (parts[1] == 0)))
+	{
+		leapyear = 1;
+	}
+
+	if (parts[3] > mdays[leapyear][parts[2]]) {
+		return LDAP_INVALID_SYNTAX;
+	}
+	
 	c = *p++;
 	if (c == 'Z') {
-		/* all done */
+		tzoffset = 0; /* UTC */
 	} else if (c != '+' && c != '-') {
 		return LDAP_INVALID_SYNTAX;
 	} else {
-		if (c == '-')
-			neg = 1;
-		if (p > e - 4)
+		if (c == '-') {
+			tzoffset = -1;
+		} else /* c == '+' */ {
+			tzoffset = 1;
+		}
+
+		if (p > e - 4) {
 			return LDAP_INVALID_SYNTAX;
+		}
+
 		for (part = 7; part < 9; part++) {
 			c = *p++ - '0';
-			if (c < 0 || c > 9)
+			if (c < 0 || c > 9) {
 				return LDAP_INVALID_SYNTAX;
+			}
 			parts[part] = c;
 
 			c = *p++ - '0';
-			if (c < 0 || c > 9)
+			if (c < 0 || c > 9) {
 				return LDAP_INVALID_SYNTAX;
+			}
 			parts[part] *= 10;
 			parts[part] += c;
-			if (parts[part] < 0 || parts[part] > ceiling[part])
+			if (parts[part] < 0 || parts[part] > ceiling[part]) {
 				return LDAP_INVALID_SYNTAX;
+			}
 		}
 	}
 
@@ -3222,49 +3242,44 @@ check_time_syntax (struct berval *val,
 	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
 		p++;
 	}
-	if (p != e)
+	if (p != e) {
 		return LDAP_INVALID_SYNTAX;
+	}
 
-	if (neg == 0) {
+	switch ( tzoffset ) {
+	case -1: /* negativ offset to UTC, ie west of Greenwich  */
 		parts[4] += parts[7];
 		parts[5] += parts[8];
-		for (part = 7; --part > 0; ) {
-			if (part != 3)
+		for (part = 6; --part > 0; ) { /* offset is just hhmm, no seconds */
+			if (part != 3) {
 				c = ceiling[part];
-			else {
-				/* FIXME:  This is an incomplete leap-year
-				 * check that fails in 2100, 2200, 2300,
-				 * 2500, 2600, 2700, ...
-				 */
-				c = mdays[parts[2]];
-				if (parts[2] == 1)
-					c--;
+			} else {
+				c = mdays[leapyear][parts[2]];
 			}
 			if (parts[part] > c) {
 				parts[part] -= c + 1;
 				parts[part - 1]++;
 			}
 		}
-	} else {
+		break;
+	case 1: /* positive offset to UTC, ie east of Greenwich */
 		parts[4] -= parts[7];
 		parts[5] -= parts[8];
-		for (part = 7; --part > 0; ) {
-			if (part != 3)
+		for (part = 6; --part > 0; ) {
+			if (part != 3) {
 				c = ceiling[part];
-			else {
-				/* FIXME:  This is an incomplete leap-year
-				 * check that fails in 2100, 2200, 2300,
-				 * 2500, 2600, 2700, ...
-				 */
-				c = mdays[(parts[2] - 1) % 12];
-				if (parts[2] == 2)
-					c--;
+			} else {
+				/* first arg to % needs to be non negativ */
+				c = mdays[leapyear][(parts[2] - 1 + 12) % 12];
 			}
 			if (parts[part] < 0) {
 				parts[part] += c + 1;
 				parts[part - 1]--;
 			}
 		}
+		break;
+	case 0: /* already UTC */
+		break;
 	}
 
 	return LDAP_SUCCESS;
@@ -3286,8 +3301,9 @@ utcTimeNormalize(
 
 	*normalized = NULL;
 	out = ch_malloc( sizeof(struct berval) );
-	if( out == NULL )
+	if( out == NULL ) {
 		return LBER_ERROR_MEMORY;
+	}
 
 	out->bv_val = ch_malloc( 14 );
 	if ( out->bv_val == NULL ) {
@@ -3296,8 +3312,8 @@ utcTimeNormalize(
 	}
 
 	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ldZ",
-				parts[1], parts[2] + 1, parts[3] + 1,
-				parts[4], parts[5], parts[6] );
+		parts[1], parts[2] + 1, parts[3] + 1,
+		parts[4], parts[5], parts[6] );
 	out->bv_len = 13;
 	*normalized = out;
 
@@ -3340,8 +3356,9 @@ generalizedTimeNormalize(
 
 	*normalized = NULL;
 	out = ch_malloc( sizeof(struct berval) );
-	if( out == NULL )
+	if( out == NULL ) {
 		return LBER_ERROR_MEMORY;
+	}
 
 	out->bv_val = ch_malloc( 16 );
 	if ( out->bv_val == NULL ) {
@@ -3350,8 +3367,8 @@ generalizedTimeNormalize(
 	}
 
 	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ld%02ldZ",
-				parts[0], parts[1], parts[2] + 1, parts[3] + 1,
-				parts[4], parts[5], parts[6] );
+		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
+		parts[4], parts[5], parts[6] );
 	out->bv_len = 15;
 	*normalized = out;
 
