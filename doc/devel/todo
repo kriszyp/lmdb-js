@@ -24,9 +24,11 @@ OpenLDAP 2.0 Projects
 		schema parsing <jsanchez@openldap.org>
 		extended search filters
 		client controls
-	SASL/TLS (SSL) support <bart@openldap.org>
+	clients
+		rewrite to use ldap_*_ext routines
+	SASL/TLS (SSL) support <kurt@openldap.org>
+		DIGEST-MD5
 	SLAPD
-		server controls
 		RootDSE/cn=schema support <jsanchez@openldap.org>
 	SLAPD/SLURD Admin Guide <willb@openldap.org>
 
