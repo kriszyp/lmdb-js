@@ -10,7 +10,7 @@ OpenLDAP 2.1.5 Engineering
 	Fixed slapd one-level search with subordinates
 	Fixed libldap DNS SRV buffer size bug
 	Fixed liblber write bugs (ITS#1983)
-	Fixed liblutil b64 decode len bug (ITS#2055)
+	Fixed liblutil b64 length bugs (ITS#2055)
 	Added slapadd lastmod attribute support
 	Added ldap tools passfile (-y) support (ITS#2031)
 	Added ldapmodify LDIFv1 control: support (ITS#2060)
