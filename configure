@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.408.2.10 2002/08/22 00:38:21 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.408.2.11 2002/08/29 02:10:40 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -22949,11 +22949,17 @@ else
 	PLAT=UNIX
 fi
 
+if test -z "$SLAPD_STATIC_BACKENDS"; then
+	SLAPD_NO_STATIC='#'
+else
+	SLAPD_NO_STATIC=
+fi
 
 
 
 
 
+
   
   
   
@@ -22976,6 +22982,7 @@ fi
   
   
   
+
 
 
 
@@ -23237,6 +23244,7 @@ s%@LUTIL_LIBS@%$LUTIL_LIBS%g
 s%@WRAP_LIBS@%$WRAP_LIBS%g
 s%@SLAPD_MODULES_CPPFLAGS@%$SLAPD_MODULES_CPPFLAGS%g
 s%@SLAPD_MODULES_LDFLAGS@%$SLAPD_MODULES_LDFLAGS%g
+s%@SLAPD_NO_STATIC@%$SLAPD_NO_STATIC%g
 s%@SLAPD_STATIC_BACKENDS@%$SLAPD_STATIC_BACKENDS%g
 s%@SLAPD_DYNAMIC_BACKENDS@%$SLAPD_DYNAMIC_BACKENDS%g
 s%@PERL_CPPFLAGS@%$PERL_CPPFLAGS%g
