@@ -687,9 +687,9 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 #endif
 							(*eip)->bei_e = ep;
 						}
-						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
-							*eip, 0, 0, lock );
 					}
+					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+						*eip, 0, 0, lock );
 #ifdef BDB_HIER
 				} else {
 					/* Check for subtree renames
