@@ -253,7 +253,7 @@ install-schema: FORCE
 	@-$(MKDIR) $(DESTDIR)$(schemadir)
 	for i in $(srcdir)/schema/*.schema ; do \
 		SF=`basename $$i` ; \
-		SD="$(DISTDIR)$(schemadir)/$$SF" ; \
+		SD="$(DESTDIR)$(schemadir)/$$SF" ; \
 		if test ! -f $$SD ; then \
 			echo "installing $$SF in $(schemadir)" ; \
 			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
