@@ -472,6 +472,9 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	    ber_bvfree( bv );
 	    bv = NULL;
 		
+#ifdef notyet
+	} else if ( tag == LDAP_RES_SEARCH_REFERENCE ) {
+#endif
 	} else {
 	    Debug( LDAP_DEBUG_TRACE, "cldap_parsemsg got unknown tag %lu\n",
 		    tag, 0, 0 );

@@ -271,6 +271,7 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 	}
 
 	if ( result->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
+	    result->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
 	    result->lm_msgtype != LDAP_RES_SEARCH_RESULT &&
 	    result->lm_msgtype != LDAP_RES_COMPARE ) {
 		/*

@@ -35,7 +35,11 @@ ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 		return NULLMSG;
 	}
 
-	for ( ; ref != NULLMSG; ref = ref->lm_chain ) {
+	for (
+		ref = ref->lm_chain;
+		ref != NULLMSG;
+		ref = ref->lm_chain )
+	{
 		if( ref->lm_msgtype == LDAP_RES_SEARCH_REFERENCE ) {
 			return( ref );
 		}

@@ -94,6 +94,7 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 
 			if ( all == 0
 			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
+			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) )
 				break;
 
