@@ -37,7 +37,7 @@
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
-/* define this to the number of arguments ctime_r() expects
+/* define this to the number of arguments ctime_r() expects */
 #undef CTIME_R_NARGS
 
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
