@@ -15,7 +15,7 @@
 #            Creation date:                Z   D  D   V   V                *
 #            August 16 1995               Z    D   D   V V                 *
 #            Last modification:          Z     D  D    V V                 *
-#            September 9 1999           ZZZZ   DDD      V                  *
+#            September 13 1999          ZZZZ   DDD      V                  *
 #                                                                          *
 #/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
 #-----------------------------------------------------------------------------
@@ -35,10 +35,11 @@
 #########################################################################
 
 # where is your LDAP client library located
-LDAP_RUNTIME=/LDAP
-LDAP_SOURCE =/LDAP/ldap-3.3
+# WE NEED portable.h AND ldap_log.h, SO POINT TO THE SOURCE TREE
+LDAP_RUNTIME=../..
+LDAP_SOURCE =../..
 
-LIBDIR= $(LDAP_RUNTIME)/lib
+LIBDIR= $(LDAP_RUNTIME)/libraries
 INCDIR= $(LDAP_RUNTIME)/include
 
 # where is some version information for your LDAP client library
