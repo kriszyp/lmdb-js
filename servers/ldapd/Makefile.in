@@ -23,7 +23,7 @@ BUILD_SRV = @BUILD_LDAPD@
 all-local-srv: 	ldapd
 
 XLIBS= -llber -llutil
-XXLIBS= $(LDAPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
+XXLIBS= $(LDAPD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 ldapd:	version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)

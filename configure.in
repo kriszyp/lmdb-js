@@ -372,6 +372,7 @@ SLAPD_PERL_CPPFLAGS=
 
 KRB_LIBS=
 READLINE_LIBS=
+SASL_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
 
@@ -1679,7 +1680,7 @@ if test $ol_with_cyrus_sasl != no ; then
 			[have_cyrus_sasl=yes], [have_cyrus_sasl=no])
 
 		if test $have_cyrus_sasl != no ; then
-			LUTIL_LIBS="$LUTIL_LIBS -lsasl"
+			SASL_LIBS="-lsasl"
 			AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
 			ol_link_sasl=yes
 		fi
@@ -2069,6 +2070,7 @@ AC_SUBST(SLAPD_PERL_LDFLAGS)
 
 AC_SUBST(KRB_LIBS)
 AC_SUBST(READLINE_LIBS)
+AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 

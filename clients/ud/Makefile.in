@@ -10,7 +10,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS =  -lldif -lldap -llber -llutil
-XXLIBS	= $(TERMCAP_LIBS) $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(TERMCAP_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 ud : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)

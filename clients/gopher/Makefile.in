@@ -12,7 +12,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS =  -lldap -llber -llutil
-XXLIBS	= $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 go500 : goversion.o
 	$(LTLINK) -o $@ $(GOOBJS) goversion.o $(LIBS)

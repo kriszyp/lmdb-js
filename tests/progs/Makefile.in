@@ -10,7 +10,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS    = -lldap -llber
-XXLIBS	= $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 # build-tools: FORCE
 # $(MAKE) $(MFLAGS) load-tools
