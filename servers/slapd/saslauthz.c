@@ -211,34 +211,35 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 			bv.bv_val++;
 
 			if ( !strncasecmp( bv.bv_val, "exact:", sizeof( "exact:" ) - 1 ) ) {
-				bv.bv_val += sizeof( "exact" ) - 1;
+				bv.bv_val += sizeof( "exact:" ) - 1;
 				*scope = LDAP_X_SCOPE_EXACT;
 
 			} else if ( !strncasecmp( bv.bv_val, "regex:", sizeof( "regex:" ) - 1 ) ) {
-				bv.bv_val += sizeof( "regex" ) - 1;
+				bv.bv_val += sizeof( "regex:" ) - 1;
 				*scope = LDAP_X_SCOPE_REGEX;
 
 			} else if ( !strncasecmp( bv.bv_val, "children:", sizeof( "chldren:" ) - 1 ) ) {
-				bv.bv_val += sizeof( "children" ) - 1;
+				bv.bv_val += sizeof( "children:" ) - 1;
 				*scope = LDAP_X_SCOPE_CHILDREN;
 
 			} else if ( !strncasecmp( bv.bv_val, "subtree:", sizeof( "subtree:" ) - 1 ) ) {
-				bv.bv_val += sizeof( "subtree" ) - 1;
+				bv.bv_val += sizeof( "subtree:" ) - 1;
 				*scope = LDAP_X_SCOPE_SUBTREE;
 
 			} else if ( !strncasecmp( bv.bv_val, "onelevel:", sizeof( "onelevel:" ) - 1 ) ) {
-				bv.bv_val += sizeof( "onelevel" ) - 1;
+				bv.bv_val += sizeof( "onelevel:" ) - 1;
 				*scope = LDAP_X_SCOPE_ONELEVEL;
 
 			} else {
 				return LDAP_PROTOCOL_ERROR;
 			}
+		} else {
+			if ( bv.bv_val[ 0 ] != ':' ) {
+				return LDAP_PROTOCOL_ERROR;
+			}
+			*scope = LDAP_X_SCOPE_EXACT;
+			bv.bv_val++;
 		}
-
-		if ( bv.bv_val[ 0 ] != ':' ) {
-			return LDAP_PROTOCOL_ERROR;
-		}
-		bv.bv_val++;
 
 		bv.bv_val += strspn( bv.bv_val, " " );
 		/* jump here in case no type specification was present

@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.12 Engineering
+	Fixed slapd parsing of auth{cz} "dn:<pat>" rules
 	Fixed slapd set acl recursion (ITS#3140)
 	Fixed slapd first component bug (ITS#3118)
 	Fixed slapd TOLOWER macro use bug (ITS#3115)
