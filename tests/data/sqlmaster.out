@@ -1,18 +1,22 @@
-# refldap://localhost/o=example,c=ru??sub
+# Testing search...
+# refldap://localhost/o=Example,c=RU??sub
 
 dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
 objectClass: inetOrgPerson
 cn: Torvlobnor Puzdoy
 telephoneNumber: 545-4563
-sn: Torvlobnor Puzdoy
+givenName: Torvlobnor
+sn: Puzdoy
 documentIdentifier: documentTitle=book1,o=Example,c=RU
 
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
+objectClass: posixAccount
 cn: Mitya Kovalev
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-sn: Mitya Kovalev
+givenName: Mitya
+sn: Kovalev
 documentIdentifier: documentTitle=book1,o=Example,c=RU
 documentIdentifier: documentTitle=book2,o=Example,c=RU
 
@@ -32,4 +36,127 @@ documentAuthor: cn=Torvlobnor Puzdoy,o=Example,c=RU
 dn: o=Example,c=RU
 objectClass: organization
 o: Example
+
+# Testing exact search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing substrings initial search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing substrings any search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing substrings final search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing approx search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing attribute inheritance in filter...
+dn: o=Example,c=RU
+objectClass: organization
+o: Example
+
+# Testing objectClass inheritance in filter...
+# refldap://localhost/o=Example,c=RU??sub
+
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+telephoneNumber: 545-4563
+givenName: Torvlobnor
+sn: Puzdoy
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing "auxiliary" objectClass in filter...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+givenName: Mitya
+sn: Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing attribute inheritance in requested attributes...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+cn: Mitya Kovalev
+givenName: Mitya
+sn: Kovalev
+
+# Testing objectClass in requested attributes...
+Additional information: bad_referral object
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
+
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+
+dn: documentTitle=book2,o=Example,c=RU
+objectClass: document
+
+dn: documentTitle=book1,o=Example,c=RU
+objectClass: document
+
+dn: o=Example,c=RU
+objectClass: organization
 
