@@ -235,7 +235,6 @@ do_bind(
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			conn->c_dn = edn;
 			conn->c_authmech = mech;
-			if( ssf ) conn->c_sasl_layers++;
 			conn->c_sasl_ssf = ssf;
 			if( ssf > conn->c_ssf ) {
 				conn->c_ssf = ssf;

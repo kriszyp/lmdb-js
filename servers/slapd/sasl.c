@@ -95,8 +95,16 @@ slap_sasl_authorize(
 		authzid ? authzid : "<empty>" );
 
 	if ( authzid == NULL || *authzid == '\0' ||
+		( authzid[0] == 'u' && authzid[1] == ':' &&
+			strcmp( authcid, &authzid[2] ) == 0 ) ||
 		strcmp( authcid, authzid ) == 0 )
 	{
+		/* authzid is:
+		 *		empty
+		 *		u:authcid
+		 *		authcid
+		 */
+
 		char* cuser;
 		size_t len = sizeof("u:") + strlen( authcid );
 
@@ -485,6 +493,12 @@ int slap_sasl_bind(
 			}
 
 			if( rc == LDAP_SUCCESS ) {
+				if( ssf ) {
+					ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+					conn->c_sasl_layers++;
+					ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+				}
+
 				send_ldap_sasl( conn, op, rc,
 					NULL, NULL, NULL, NULL,
 					response.bv_len ? &response : NULL );
