@@ -521,7 +521,7 @@ slap_sasl_check_authz( Connection *conn,
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 COMPLETE:
-	if( vals ) ber_bvarray_free( vals );
+	if( vals ) ber_bvarray_free_x( vals, conn->c_sasl_bindop->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
