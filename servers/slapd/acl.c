@@ -224,12 +224,13 @@ access_allowed(
 			"access_allowed: backend default %s access %s to \"%s\"\n",
 		    access2str( access ),
 		    be->be_dfltaccess >= access ? "granted" : "denied", 
-			op->o_dn.bv_val );
+			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( access ),
-			be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val );
+			be->be_dfltaccess >= access ? "granted" : "denied",
+			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
 #endif
 		ret = be->be_dfltaccess >= access;
 		goto done;
