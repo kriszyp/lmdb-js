@@ -1401,6 +1401,8 @@ slapi_filter_dup( Slapi_Filter *filter )
 		      pFilter = pFilter->f_next, ppF = &f->f_next )
 		{
 			*ppF = slapi_filter_dup( pFilter );
+			if ( *ppF == NULL )
+				break;
 		}
 		break;
 	}
