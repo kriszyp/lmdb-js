@@ -576,9 +576,19 @@ fill_buffer:
 	/* now fill the buffer. */
 
 	/* make sure length is reasonable */
-	if ( ber->ber_len == 0 ||
-		( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ))
-	{
+	if ( ber->ber_len == 0 ) {
+		errno = ERANGE;
+		return LBER_DEFAULT;
+	} else if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "liblber", LDAP_LEVEL_ERR, 
+			"ber_get_next: sockbuf_max_incoming limit hit "
+			"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming ));
+#else
+		ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
+			"ber_get_next: sockbuf_max_incoming limit hit "
+			"(%ld > %ld)\n", ber->ber_len, sb->sb_max_incoming );
+#endif
 		errno = ERANGE;
 		return LBER_DEFAULT;
 	}
