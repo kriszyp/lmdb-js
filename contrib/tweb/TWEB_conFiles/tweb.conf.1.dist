@@ -1,0 +1,208 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# tweb.conf.1                                                              *
+#                                                                          *
+# Function:..Configuration-File for TWEB-SOFTWARE                          *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+#            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            July 26 1995                 Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            December 18 1998           ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#==========================================================================
+# $Id: tweb.conf.1.dist,v 1.6 1999/09/10 15:01:21 zrnsk01 Exp $
+
+#  FOR DESCRIPTION OF THE PARAMETERS SEE THE CONFIG FILE tweb.conf.0(.dist)
+
+
+###
+###  the description, how to display an object upon read
+###
+
+DISPLAY-OBJECT  person
+# main page
+FIRST-PAGE      cn                          Name             DEFAULT
+                personalTitle               Title            DEFAULT
+                organizationalStatus        Status           DEFAULT
+                description                 Working-Area     DEFAULT
+                telephoneNumber             Telephone        DEFAULT
+                facsimileTelephoneNumber    Fax              DEFAULT
+                mail                        E-Mail-Address   MAILTO
+                textEncodedORaddress        X400-Address     DEFAULT
+                postalAddress               "Postal address" MULTILINE
+                roomNumber                  Room             DEFAULT
+                labeledURI                  URL              URI
+# additional page
+SECOND-PAGE     sn                          Surname          DEFAULT
+                roleOccupant                Role-Occupant    HREF
+                memberOfGroup               Group-Member     DEFAULT
+                homepostalAddress           Home-Address     MULTILINE
+                homePhone                   Home-Phone       DEFAULT
+                pager                       Pager            DEFAULT
+                lastModifiedTime            "Last modified Time" DATE
+                lastModifiedBy              "Last modified by" DEFAULT
+
+DISPLAY-OBJECT  organization
+# main page
+FIRST-PAGE      o                           Name             DEFAULT
+                ou                          Name             DEFAULT
+                l                           Locality         DEFAULT
+                description                 Description      DEFAULT
+                postalAddress               "Postal address" MULTILINE
+                telephoneNumber             Telephone        DEFAULT
+                facsimileTelephoneNumber    Fax              DEFAULT
+                labeledURI                  URL              URI
+# additional page
+SECOND-PAGE     st                          State            DEFAULT
+                seeAlso                     "More Information" MOVETO
+                lastModifiedTime            "Last modified Time" DATE
+                lastModifiedBy              "Last modified by" DEFAULT
+
+DISPLAY-OBJECT  rfc822MailList
+# main page
+FIRST-PAGE      description                 Description      DEFAULT
+                joinable                    Joinable         BOOLEAN
+                associatedDomain            E-Mail-Domain    DEFAULT
+                rfc822RequestsTo            "Requests to"    MAILTO
+                requestsTo                  "Requests to"    HREF
+                owner                       Owner            HREF
+# additional page
+SECOND-PAGE     lastModifiedTime            "Last modified Time" DATE
+                lastModifiedBy              "Last modified by" DEFAULT
+
+DISPLAY-OBJECT  country
+# main page
+FIRST-PAGE      friendlyCountryName         Country-Name     DEFAULT
+                associatedDomain            Domain           DEFAULT
+                manager                     Manager          HREF
+                labeledURI                  URL              URI
+# additional page
+SECOND-PAGE     masterDSA                   Master-DSA       HREF
+                slaveDSA                    Slave-DSA        HREF
+                lastModifiedTime            "Last modified Time" DATE
+                lastModifiedBy              "Last modified by" DEFAULT
+                lastUpdateTime              "Last update Time" DATE
+
+DISPLAY-OBJECT  default
+# main page
+FIRST-PAGE      jpegPhoto                   Photo            JPEG
+                photo                       Photo            BMP
+                cn                          Name             DEFAULT
+                sn                          Surname          DEFAULT
+                textEncodedMtaName          MTA-Name         DEFAULT
+                relatedMHSdomain            MHS-Domain       DEFAULT
+                description                 Description      DEFAULT
+                multiLineDescription        Description      MULTILINE
+                info                        "More Information" DEFAULT
+                productName                 Productname      DEFAULT
+                mail                        Mail-Address     MAILTO
+                telephoneNumber             Telephone        DEFAULT
+                facsimileTelephoneNumber    Fax              DEFAULT
+                labeledURL                  URL              URL
+                memberOfGroup               "Member of Group" DEFAULT
+                member                      Member           HREF
+                owner                       Owner            HREF
+                requestsTo                  "Requests to"    HREF
+                errorsTo                    "Errors to"      HREF
+                krbName                     Kerberos-Name    DEFAULT
+                postalAddress               Postal-Address   MULTILINE
+                l                           Locality         DEFAULT
+                textEncodedPSAP             "Network address" DEFAULT
+                presentationAddress         "Network address" DEFAULT
+                supportedApplicationContext Application      DEFAULT
+                publicAccess                Access           DEFAULT
+                availability                Availability     DEFAULT
+                knowledgeInformation        Contact          DEFAULT
+                seeAlso                     "See also"       HREF
+                roleOccupant                Role-Occupant    HREF
+                manager                     Manager          HREF
+                administrator               Manager          HREF
+                secretary                   Secretary        HREF
+                associatedName              "Associated Name" HREF
+                responsiblePerson           "Responsible person" HREF
+                domainComponent             Domain           DEFAULT
+                labeledURI                  URL              URI
+# 2.Page (see more)
+SECOND-PAGE     source                      Source           DEFAULT
+                homePostalAddress           Home-Address     MULTILINE
+                masterDSA                   Master-DSA       HREF
+                slaveDSA                    Slave-DSA        HREF
+                lastModifiedTime            "Last modified Time" DATE
+                lastModifiedBy              "Last modified by" DEFAULT
+                lastUpdateTime              "Last update Time" DATE
+
+
+
+###
+###  sorting and display of groups of entries
+###
+
+SORT     dNSDomain               Domain                  8
+         domain                  Fax                     9
+         rfc822MailList          X.500-E-Mail-List      10 rfc822MailList
+         organizationalPerson    Staff                   1 person registeredAddress
+         residentialPerson       Residentials            2 person registeredAddress
+         person                  Persons                 3 person registeredAddress
+         locality                Localities              7 organization
+         organization            Organizations           5 organization
+         organizationalUnit      "Organizational Units"  6 organization 
+         alias                   Aliases                11
+         country                 Countries               4 country
+
+
+###
+###  the position of certain language-specific support-files
+###
+
+HELPFILE       tweb.help.1
+
+FRIENDLYFILE   ldapfriendly.1
+
+HEADER         tweb.header.1
+FOOTER         tweb.footer.1
+
+ALLOW-MSG      allow.msg.1
+
+
+###
+###  some more settings for (language-specific) gateway-switches (see tweb.rc)
+###
+
+# GW-SWITCH   "ROOT"              http://<my-world-relay.my-domain>:<port1>/M
+#             "c=<my-country-ID>"  http://<my-country-relay.my-domain>:<port1>/
+
+
+###
+###  where to prevent listing and provide for searching only
+###
+
+# SEARCH-ONLY "ou=<some-ou>, o=<my-organization>, c=<my-country-ID>"  search-only.head.1 search-only.foot.1
+
+
+###
+###  modifying entries via TWEB
+###
+
+# MODIFY          person
+# MODATTR         personalTitle        Title              1
+#                 organizationalStatus Status             1
+#                 description          Description        2
+#                 telephoneNumber      Telephone          2
+#                 facsimileTelephoneNumber  Fax           2
+#                 mail                 "E-Mail address"   2
+#                 roomNumber           Room               1
+#                 memberOfGroup        Group-Member      10
+#                 homePostalAddress    "Home address"     1
+#                 homePhone            "Home phone"       2
+#                 pager                Pager              2
+#                 info                 Information        2
+
+

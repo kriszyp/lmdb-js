@@ -1,0 +1,136 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# tweb.lang.1                                                              *
+#                                                                          *
+# Function:..Language-File for TWEB-SOFTWARE                               *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+#            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            February 14 1996             Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            February 20 1997           ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#
+# $Id: tweb.lang.1.dist,v 1.6 1999/09/10 15:01:22 zrnsk01 Exp $
+
+0  en
+1  [not used]
+2  [not used]
+3  [not used]
+4  [not used]
+5  Command not implemented!
+6  Not found
+7  Last-Modified
+8  Modify results:
+9  Modify results for
+10 Changes:
+11 Error during modify operation:
+12 DELETE old value
+13 from attribute
+14 The error code was
+15 change
+16 successfully done
+17 Read this modified entry
+18 userPassword
+19 Modify this entry again
+20 The query you specified was not specific enough, causing a size limit to be exceeded and the first several matches found to be returned.<br>If you did not find the match you were looking for, try issuing a more specific query, for example one that contains both first and last name.<br>
+21 Not all entries could be returned because a size limit was exceeded.<br>There is no way to defeat this feature, but if you know who you are looking for, try choosing the <STRONG>Search</STRONG> option listed above and specifying the name of the entry you want.<br>
+22 Error
+23 X.500 - WWW Error:
+24 An error occurred searching X.500
+25 The error code was
+26 No additional information is available.
+27 Move upwards to
+28 current location:
+29 About
+30 search:
+31 We don't have the access right to do a global search here. If you know who you are looking for, try choosing the <STRONG>Search</STRONG> option listed above and specifying the name of the entry you want.<br>
+32 Didn't find anything below this entry! You can read the entry itself or try a search ...
+33 (restricted list
+34 see below
+35 search in
+36 No search results:
+37 Didn't find anything...
+38 for
+39 Search results:
+40 Search results for
+41 <H2>X.500 - WWW Error:</H2><P>An error occurred showing X.500 entry. <P>No known object-class for this entry.<P>
+42 See more attributes
+43 Beware, this is still <B>EXPERIMENTAL</B>!!!
+44 Enter the password of this entry
+45 if you want to
+46 submit
+47 MODIFY
+48 it
+49 Missing Password!
+50 Unknown argument
+51 Modify
+52 oldPassword
+53 Beware, this is still EXPERIMENTAL!!!
+54 Error in query: No value
+55 for
+56 Error in query: No oldvalue
+57 <B>Error during modify operation:</B><P><P>ADD new value
+58 to attribute
+59 The error code was
+60 <B>Fatal Error:</B><BR>Couldn't reset the old value
+61 to attribute
+62 Reset the old  value
+63 to attribute
+64 mailto:
+65 Due to Legal Rights no extended lists of persons will be displayed.
+	If the requested person is not in the list shown, please use the 
+	<STRONG>Search</STRONG>-option with a more significant personal name.
+	<BR>
+66 Onelevel search
+67 search below for...
+68 SEARCH
+69 DELETE INPUT
+70 entry
+71 entries
+72 RESET Values
+73 s
+74 deleted
+75 replaced
+76 added
+77 The World
+78 Yes
+79 No
+80 <B>Fatal Error:</B><BR>Couldn't modify the value
+81 at attribute
+82 http://ambix.uni-tuebingen.de/cgi-bin/selbst
+83 http://ambix.uni-tuebingen.de/selbstinfo.html
+84 <FORM METHOD=POST ACTION=%s>Self-subscription:
+85      <INPUT type=hidden name="aloc" value="%s">
+	<INPUT TYPE="submit" name="worker" VALUE="Staff">
+86      <INPUT type=hidden name="sloc" value="%s">
+	<INPUT TYPE="submit" name="studie" VALUE="Students">
+87 </FORM>
+88 Bad request
+89 <EM>Missing filter!</EM>
+90 <EM>Missing scope!</EM>
+91 [not used]
+92 <EM>Missing search value!</EM> <P>Please specify a search value.
+93 <EM>Missing DN!</EM>
+94 <EM>Missing password!</EM>
+95 <EM>Unknown query!</EM>
+96 <H1>ACCESS DENIED</H1>
+	The requested data are not delivered via this server!<br>
+	Please use the following URL:
+97 <H1>ACCESS DENIED</H1>
+98 ...read it
+99 %s<H6>Data composed by %s <br>
+	&copy; TWEB: Zentrum fuer Datenverarbeitung,
+	Universitaet Tuebingen, GERMANY</H6>
+100 BODY BGCOLOR=#ffffe0 TEXT=#000000 LINK=#0000a0 VLINK=#00a000
+101 <HR>
+102 <BR><H1>The name of your host is not available. Therefore you don't see the whole database!</H1><BR>
+103 [not used]
+104 If you want to see more data, please inactivate your proxy-server !

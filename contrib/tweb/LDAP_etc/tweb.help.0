@@ -1,0 +1,46 @@
+<TITLE>TWEB HILFE</TITLE>
+<BODY>
+<H2> Das TWEB WWW2X.500-Gateway </H2>
+
+Im X.500 sind weltweit viele Personen und Organisationen mit EMail- Adresse,
+Postanschrift, FAX, Telefonnummer, Aufgabenbereich, etc. zu finden.
+Zum einfachen Zugriff per WorldWideWeb dient <strong>TWEB</strong> WWW2X.500-Gateway.<P>
+
+<strong>TWEB</strong> erm&ouml;glicht das einfache Browsen, die Suche 
+und die Modifikation des eigenen Eintrages im X.500.<P>
+Das Gateway enth&auml;lt folgende Features
+<ul>
+
+<li>F&uuml;r den Administrator bietet <strong>TWEB</strong> umfangreiche M&ouml;glichkeiten
+der Konfiguration mittels Konfigurations-Dateien, ohne &Auml;nderungen im 
+Code und ohne erneutes &Uuml;bersetzen. 
+<li>Zus&auml;tzlich sind Datenschutzmechanismen aktivierbar.
+<li>Andere Sprachen sind durch Ersetzen/Hinzuf&uuml;gen 
+von Sprach-Dateien leicht realisierbar.
+
+<li>Wie Sie es vom WWW her gewohnt sind, brauchen Sie nur den gew&uuml;nschten
+unterstrichenen Eintrag anklicken, und Sie sehen, was darunter angesiedelt ist.
+
+<li>Mit "Weitere Informationen" wird eine zweite Info-Seite gezeigt.
+
+<li>Mit Hilfe der SUCH-Box k&ouml;nnen Sie nach Namen und Teilstrings suchen.
+
+<li>Ihren eigenen Eintrag k&ouml;nnen Sie mit Ihrem Passwort in Verbindung
+mit dem entsprechenden Button &auml;ndern.
+</ul>
+
+
+<hr>
+
+<strong>TWEB</strong> ist eine Weiterentwicklung vom Web500gw von Frank Richter, Technische
+Universitaet Chemnitz-Zwickau, basierend auf go500gw von Tim Howes,
+University of Michigan.
+
+<hr>
+
+Bei Fragen, Anregungen, Bug-Reports Mail an:
+
+<ADDRESS><A HREF="mailto:web500gw-support@mail500.uni-tuebingen.de"> web500gw-support@mail500.uni-tuebingen.de</A> - Stand: 16. Februar 1996</ADDRESS>
+
+<hr>
+

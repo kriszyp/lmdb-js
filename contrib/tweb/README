@@ -1,0 +1,91 @@
+/*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+*                                                                          *
+* README                                                                   *
+*                                                                          *
+* Function:..Introduction to the WWW-X.500 gateway TWEB                    *
+*                                                                          *
+*                                                                          *
+*                                                                          *
+* Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+*            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+*            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+*                                                                          *
+*                                       ZZZZZ  DDD    V   V                *
+*            Creation date:                Z   D  D   V   V                *
+*            September 14 1995            Z    D   D   V V                 *
+*            Last modification:          Z     D  D    V V                 *
+*            January 19 1999            ZZZZ   DDD      V                  *
+*                                                                          *
+_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+
+
+IMPORTANT HINT FOR UPGRADING TO VERSION 2.3.x:
+
+    the config-syntax of ALLOW-STRING DENY-STRING GRANT REFUSE has changed:
+    now regular expressions are used enabling shorter config strings.
+
+    the language-files have been extended. Please use the newly provided
+    language-files or update your old ones.
+
+
+
+INTRODUCTION
+
+   TWEB is based on the Web500gw implementation by Frank Richter, 
+   Technische Universitaet Chemnitz-Zwickau, which is based on the 
+   go500gw implementation by Tim Howes, University of Michigan.
+
+   TWEB was compiled and tested on LINUX with cc, HPUX 9.05 with the
+   HP-ANSI C compiler, as well as SunOS 4.1.2 with the SUN C compiler.
+   TWEB was also compiled with gcc on all platforms.
+
+   The UMICH LDAP client library version 3.0 or 3.3
+   ( URL:ftp://terminator.rs.itd.umich.edu/ldap/ldap-3.3.tar.Z )
+   must be installed on the machine (library path and include file 
+   path is configured in Makefile). With QUIPU ICR-2.x the ISODE-
+   provided LDAP libraries should be used. As such, TWEB only supports
+   LDAP version 2 with the University of Michigan type C API. TWEB is
+   also adapted for the OpenLDAP LDAP library, release version 1.1.2
+   (http://www.openldap.org).
+
+   An upgrade to LDAP version 3 and a C API standadized by the IETF
+   is planned for a not so far away future, most probably in step 
+   with the OpenLDAP package.
+
+   TWEB, as provided here is a fully functional core gateway, which
+   is extended at the author's site by some local features. These
+   extensions are included into the same code base, so that some
+   "#ifdef TUE_TEL" or "#ifdef AMBIX" pre-processor statements can
+   be found throughout the code. 
+
+   Have a look at the doc sub-directory to get some further documentation.
+
+
+INSTALLATION
+
+   The installation and configuration of TWEB is described in the
+   GETTING-STARTED file. After making and testing the basic TWEB
+   you should have a look to file FEATURE-LIST to learn about the 
+   several configuration parameters TWEB provides for runtime
+   configuration of the program.
+
+
+SUPPORT
+
+   Bug reports and flames (but also critical comments) please send to 
+
+       tweb-support@mail500.uni-tuebingen.de. 
+    
+   For general discussion (e.g., about interesting new features,
+   which should be supported), there is a discussion list at
+
+       tweb-l@mail500.uni-tuebingen.de.
+
+   Send requests for subscription to
+
+       tweb-l-request@mail500.uni-tuebingen.de.
+
+
+TWEB development team, Tuebingen, September, 9th, 1999
+
+

@@ -1,0 +1,101 @@
+Copyright (c) 1994 - 1999 University of Tuebingen, Germany.
+Written by Kurt Spanier and Bernhard Winkler. All rights reserved.
+
+This software is not subject to any license of the University of
+Tuebingen, Germany.
+
+Permission is granted to anyone to use this software for any purpose
+on any computer system, and to alter it and redistribute it, subject
+to the following restrictions:
+
+1. The author is not responsible for the consequences of use of this
+   software, no matter how awful, even if they arise from flaws in it.
+
+2. The origin of this software must not be misrepresented, either by
+   explicit claim or by omission.  Since few users ever read sources,
+   credits should appear in the documentation.
+
+3. Altered versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.  Since few users
+   ever read sources, credits should appear in the documentation.
+
+4. This notice may not be removed or altered.
+
+
+
+This work is derived from the Technical University of Chemnitz web500gw
+by Frank Richter.  Information concerning is available at
+    http://www.tu-chemnitz.de/~fri/web500gw.
+
+web500gw is itself derived from the University of Michigan go500gw
+by Tim Howes.  Information concerning is available at
+    http://www.umich.edu/~dirsvcs/ldap/ldap.html
+
+This work also contains materials derived from public sources:
+
+    ch_malloc.c, charray.c, dn.c from the University of Michigan LDAPv3.3,
+      with some minor bug fixes.
+
+    regular.c from the University of Toronto regexp by Henry Spencer,
+      with renaming of functions for not colliding with putative
+      build-in regexp functions in the underlying LDAP libraries,
+      as well as minor modifications.
+      The original software can be obtained from
+          ftp://ftp.cs.toronto.edu/pub/regexp.README, and
+          ftp://ftp.cs.toronto.edu/pub/regexp.shar.Z
+
+
+Additional Information can be obtained by sending e-mail to:
+    tweb-support@mail500.uni-tuebingen.de
+
+
+---
+
+Portions Copyright (c) 1994-1998 Chemnitz University of Technology.
+All rights reserved.
+ 
+              A LDAP based WWW - X.500 gateway
+ 
+  written by: Frank Richter, Frank.Richter@hrz.tu-chemnitz.de
+              Chemnitz University of Technology, Germany, 1994-1998
+ 
+  Redistribution and use in source and binary forms are permitted
+  provided that this notice is preserved and that due credit is given
+  to the Technical University of Chemnitz. The name of the University
+  may not be used to endorse or promote products derived from this
+  software without specific prior written permission. This software
+  is provided ``as is'' without express or implied warranty.
+
+
+---
+
+Portions Copyright (c) 1992-1996 Regents of the University of Michigan.
+All rights reserved.
+
+  Redistribution and use in source and binary forms are permitted
+  provided that this notice is preserved and that due credit is given
+  to the University of Michigan at Ann Arbor. The name of the University
+  may not be used to endorse or promote products derived from this
+  software without specific prior written permission. This software
+  is provided ``as is'' without express or implied warranty.
+
+
+---
+
+Portions Copyright (c) 1986 by University of Toronto.
+  Written by Henry Spencer.  Not derived from licensed software.
+ 
+  Permission is granted to anyone to use this software for any
+  purpose on any computer system, and to redistribute it freely,
+  subject to the following restrictions:
+ 
+  1. The author is not responsible for the consequences of use of
+     this software, no matter how awful, even if they arise
+     from defects in it.
+ 
+  2. The origin of this software must not be misrepresented, either
+     by explicit claim or by omission.
+ 
+  3. Altered versions must be plainly marked as such, and must not
+     be misrepresented as being the original software.
+
