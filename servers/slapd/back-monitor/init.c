@@ -290,7 +290,8 @@ monitor_back_db_init(
 		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
-			"SUP name )",
+			"SUP name "
+			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitoredInfo) },
 		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'managedInfo' "
@@ -301,7 +302,8 @@ monitor_back_db_init(
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter' "
 			"EQUALITY integerMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitorCounter) },
 		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'monitorOpCompleted' "
@@ -321,7 +323,8 @@ monitor_back_db_init(
 		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
-			"SUP distinguishedName)",
+			"SUP distinguishedName "
+			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionAuthzDN) },
 		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'monitorConnectionLocalAddress' "
