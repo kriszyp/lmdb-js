@@ -1,0 +1,16 @@
+LDAP VMS README
+
+The lber and ldap client libraries and the ldap server ldapd have been
+ported to VMS.   While we at the University of Michigan have no way to
+test under VMS, the necessary code changes have been incorporated.
+
+Please see the file ldap/build/platforms/vms/make.com for some very basic
+build instructions.
+
+
+BUG REPORTING
+
+    Bug reports should be sent to bug-ldap@umich.edu.  They will be
+    passed on to those who did the LDAP VMS port.
+
+README Last updated 15 December 1994 Mark Smith

@@ -1,0 +1,132 @@
+.TH LDAPMODRDN 1 "13 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldapmodrdn \- ldap modify entry RDN tool
+.SH SYNOPSIS
+.B ldapmodrdn
+.B [\-r]
+.B [\-n]
+.B [\-v]
+.B [\-k]
+.B [\-K]
+.B [\-c]
+.B [\-d debuglevel]
+.B [\-D binddn]
+.B [\-w passwd]
+.B [\-h ldaphost]
+.B [\-p ldapport]
+.B [\-f file] [dn rdn]
+.SH DESCRIPTION
+.B ldapmodrdn
+is a shell-accessible interface to the
+.BR ldap_modrdn2 (3)
+library call.
+.LP
+.B ldapmodrdn
+opens a connection to an LDAP server, binds, and modifies the RDN of entries.
+The entry information is read from standard input, from \fIfile\fP through
+the use of the
+.RI \- f
+option, or from the command-line pair \fIdn\fP and
+\fIrdn\fP.
+.SH OPTIONS
+.TP
+.B \-r
+Remove old RDN values from the entry.  Default is to keep old values.
+.TP
+.B \-n
+Show what would be done, but don't actually change entries.  Useful for
+debugging in conjunction with -v.
+.TP
+.B \-v
+Use verbose mode, with many diagnostics written to standard output.
+.TP
+.B \-k
+Use Kerberos authentication instead of simple authentication.  It is
+assumed that you already have a valid ticket granting ticket.
+.B ldapmodrdn
+must be compiled with KERBEROS defined for this option to have effect.
+.TP
+.B \-K
+Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+when connecting to a slapd and there is no x500dsa.hostname principal
+registered with your kerberos servers.
+.TP
+.B \-c
+Continuous operation mode.  Errors  are  reported,  but ldapmodify
+will  continue  with  modifications.   The default is to exit after
+reporting an error.
+.TP
+.B \-d debuglevel
+Set the LDAP debugging level to \fIdebuglevel\fP.
+.B ldapmodrdn
+must be
+compiled with LDAP_DEBUG defined for this option to have any effect.
+.TP
+.B \-f file
+Read the entry modification information from \fIfile\fP instead of from
+standard input or the command-line.
+.TP
+.B \-D binddn
+Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+a string-represented DN as defined in RFC 1779.
+.TP
+.B \-w passwd
+Use \fIpasswd\fP as the password for simple authentication.
+.TP
+.B \-h ldaphost
+Specify an alternate host on which the ldap server is running.
+.TP
+.B \-p ldapport
+Specify an alternate TCP port where the ldap server is listening.
+.SH INPUT FORMAT
+If the command-line arguments \fIdn\fP and \fIrdn\fP are given, \fIrdn\fP
+will replace the RDN of the entry specified by the DN, \fIdn\fP.
+.LP
+Otherwise, the contents of \fIfile\fP (or standard input if
+no
+.RI \- f
+flag is given) should consist of one or more entries.
+.LP
+.nf
+    Distinguished Name (DN)
+    Relative Distinguished Name (RDN)
+.fi
+.LP
+One or more blank lines may be used to separate each DN/RDN pair.
+.SH EXAMPLE
+Assuming that the file
+.B /tmp/entrymods
+exists and has the contents:
+.LP
+.nf
+    cn=Modify Me, o=University of Michigan, c=US
+    cn=The New Me
+.fi
+.LP
+the command:
+.LP
+.nf
+    ldapmodify -r -f /tmp/entrymods
+.fi
+.LP
+will change the RDN of the "Modify Me" entry from "Modify Me" to
+"The New Me" and the old cn, "Modify Me" will be removed.
+.LP
+.SH DIAGNOSTICS
+Exit status is 0 if no errors occur.  Errors result in a non-zero exit
+status and a diagnostic message being written to standard error.
+.SH "SEE ALSO"
+.BR ldapadd (1),
+.BR ldapdelete (1),
+.BR ldapmodify (1),
+.BR ldapsearch (1),
+.BR ldap (3),
+.BR ldap_modrdn2 (3)
+.LP
+Kille, S.,
+.IR "A String Representation of Distinguished Names",
+.SM RFC
+1779,
+ISODE Consortium, March 1995.
+.SH BUGS
+There is no interactive mode, but there probably should be.

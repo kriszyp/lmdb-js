@@ -1,0 +1,68 @@
+#
+# You should NOT need to edit this file at all:  if you just type make
+# in this directory, LDAP will be built for this platform using this
+# compiler.  If you type   make links  a build area will be created for
+# you under ./obj.  You should # cd in there and edit the Make-common file
+# before building.  See the LDAP INSTALL file for more information.
+#
+#-----------------------------------------------------------------------------
+# Copyright (c) 1994 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#       LDAP lightweight X.500 Directory access platform setup makefile
+#
+#-----------------------------------------------------------------------------
+#
+############################################################################
+#                                                                          #
+# You should not have to edit anything in this file                        #
+#                                                                          #
+############################################################################
+LN=ln -s
+RM=rm -f
+SED=sed
+PWD=pwd
+
+LDAPSRC= ../../..
+
+all:	platform
+	( cd $(LDAPSRC); $(MAKE) $(MFLAGS) )
+
+install: platform
+	( cd $(LDAPSRC); $(MAKE) $(MFLAGS) install )
+
+platform:	FORCE
+	@PWD=`$(PWD)`; \
+	PLATFORMCC=`basename $$PWD`; \
+	PLATFORM=`echo $$PLATFORMCC | $(SED) 's/-.*$$//'`; \
+	CC=`echo $$PLATFORMCC | $(SED) 's/^.*-//'`; \
+	echo "** Setting platform to $$PLATFORM and compiler $$CC"; \
+	( cd $(LDAPSRC); \
+	  $(RM) .make-platform; \
+  	  $(LN) build/platforms/$$PLATFORMCC/Make-platform .make-platform )
+
+links:	FORCE
+	@PWD=`$(PWD)`; \
+	PLATFORMCC=`basename $$PWD`; \
+	DEST=./obj-$$PLATFORMCC; \
+	PLATFORM=`echo $$PLATFORMCC | $(SED) 's/-.*$$//'`; \
+	CC=`echo $$PLATFORMCC | $(SED) 's/^.*-//'`; \
+	echo "** Setting platform to $$PLATFORM and compiler $$CC"; \
+	( cd $(LDAPSRC); $(MAKE) $(MFLAGS) DEST=$$DEST links; \
+	  cd $$DEST; \
+	  $(LN) .src/build/platforms/$$PLATFORMCC/Make-platform .make-platform ); \
+	$(LN) $(LDAPSRC)/$$DEST .
+
+clean:	FORCE
+
+veryclean:
+	-$(RM) -r ./obj-*
+
+FORCE:	

@@ -1,0 +1,275 @@
+.TH LDAPTEMPLATES.CONF 5  "13 December 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldaptemplates.conf \- configuration file for LDAP display template routines
+.SH SYNOPSIS
+ETCDIR/ldaptemplates.conf
+.SH DESCRIPTION
+.LP
+The file ETCDIR/ldaptemplates.conf contains information used by
+the LDAP display templates routines (see ldap-disptmpl(3)).  Blank lines
+and lines that have a first character of `#' are treated as comments and
+ignored.  Non-comment lines contain one or more tokens.  Tokens are
+separated by white space, and double quotes `"' can be used to include
+white space inside a token.
+.LP
+The first non-commment line specifies the version of the template
+information and must contain the token
+.I Version
+followed by an integer version number.  E.g.,
+.nf
+.ft B
+    Version 1
+.ft
+.fi
+The current version is
+.I 1,
+so the above example is always the correct opening line.
+.LP
+The remainder of the file consists of one or more display templates.
+The first two lines of the display template should each contain a single
+token that specifies singular and plural names for the template that are
+suitable for human consumption.  These names are stored in the
+.I dt_name
+and
+.I dt_pluralname
+members of the
+.I ldap_disptmpl
+structure.
+E.g.,
+.nf
+.ft B
+    "Person"
+    "People"
+.ft
+.fi
+specifies appropriate names for a template designed to display X.500
+person information.
+.LP
+The next line specifies the name of the icon or similar element that is
+associated with this template.  E.g.,
+.nf
+.ft B
+    "person icon"
+.ft
+.fi
+.LP
+The next line is a blank-separated list of template options.  "" can be
+used if no options are desired.  Available options are:  "addable" (it
+is appropriate to allow entries of this type to be added), "modrdn" (it
+is appropriate to offer the "modify rdn" operation), "altview" (this
+template is merely an alternate view of another template, typically
+used for templates pointed to be a linkaction item).  E.g.,
+.nf
+.ft B
+    "addable" "modrdn"
+.ft
+.fi
+.LP
+The next portion of the template is a list of X.500 object classes that
+is used to determine whether the template should be used to display a
+given entry.  The object class information consists of one or more lines,
+followed by a terminating line that contains the single token
+.I END.
+Each line contains one or more object class names, all of which must be
+present in an X.500 entry for the
+.I ldap_oc2template(3)
+routine to return a pointer to this template.
+The object class information is stored in the
+.I dt_oclist
+member of the
+.I ldap_disptmpl
+structure.  Multiple lines can be used to associate more than one set
+of object classes with a given template.  E.g.,
+.nf
+.ft B
+    umichPerson
+    lblPerson
+    END
+.ft
+.fi
+means that the template is appropriate for display of umichPerson entries or
+lblPerson entries.
+.LP
+Next next line after the object class list is the name of the attribute
+to authenticate as to make changes (use "" if it is appropriate to
+authenticate as the entry itself).  E.g.,
+.nf
+.ft B
+    "owner"
+.ft
+.fi
+.LP
+The next line is the default attribute to use when naming a new entry.
+E.g.,
+.nf
+.ft B
+    "cn"
+.ft
+.fi
+.LP
+The next line is the default location under which new entries are created.
+It should be a string-represented Distringuished Name. E.g.,
+.nf
+.ft B
+    "o=University of Michigan, c=US"
+.ft
+.fi
+.LP
+The next section is a list of rules used to assign default values to new
+entries.  The list should be terminated with a line that contains the
+single token
+.I END.
+Each line in this section should either begin with the token
+.I constant
+and be followed by the name of the attribute and a constant value to
+assign, or the line should begin with
+.I addersdn
+followed by the name of an attribute whose value will be the DN of the
+person who has authenticated to add the entry.
+E.g.,
+.nf
+.ft B
+    constant	associatedDomain	umich.edu
+    addersdn	seeAlso
+    END
+.ft
+.fi
+.LP
+The last portion of the template is a list of items to display.  It
+consists of one or more lines, followed by a terminating line that
+contains the single token
+.I END.
+Each line is must begin with the token
+.I samerow
+or the token
+.I item
+.LP
+It is assumed that each item appears on a row by itself unless it was
+preceded by a
+.I samerow
+line (in which case it should be displayed on the same line as the
+previous item, if possible).  Lines that begin with
+.I samerow
+should not have any other tokens on them.
+.LP
+Lines that begin with
+.I item
+must have at least three more tokens on them:  an item type, a label,
+and an attribute name.  Any extra tokens are taken as extra arguments
+and are stored in the
+.I ti_args
+member of the
+.I ldap_tmplitem
+structure.
+.LP
+The item type token must be one of the following strings:
+.I cis
+(for case ignore string attributes),
+.I mls
+(for multiline string attributes),
+.I mail
+(for RFC-822 conformant mail address attributes),
+.I dn
+(for distinguished name pointer attributes),
+.I bool
+(for Boolean attributes),
+.I jpeg
+(for JPEG photo attributes),
+.I jpegbtn
+(for a button that will retrieve and show a JPEG photo attribute),
+.I fax
+(for FAX T.4 format image attributes),
+.I faxbtn
+(for a button that will retrieve and show a FAX photo attribute),
+.I audiobtn
+(for audio attributes),
+.I time
+(for UTC time attributes),
+.I date
+(for UTC time attributes where only the date portion should be shown),
+.I url
+(for labeled Uniform Resource Locator attributes),
+.I searchact
+(to define an action that will do a directory search for other entries),
+.I linkact
+(to define an action which is a link to another display template).  See
+the ACTIONS section below for more information on search and link actions.
+.LP
+An example of an item line for the drink attribute (displayed with
+label "Favorite Beverage"):
+.nf
+.ft B
+    item cis	"Favorite Beverage"	drink
+.ft
+.fi
+.SH ACTIONS
+This section has not been written yet.  Sorry!
+.SH EXAMPLE
+The following template configuration file contains two templates, one
+for display of people entries and one for display of contries.
+.nf
+.ft B
+    #
+    # LDAP display templates
+    #
+    # Version must be 1 for now
+    #
+    Version 1
+
+    #
+    # Person template
+    "Person"
+    "People"
+
+    # name of the icon that is associated with this template
+    "person icon"
+
+    # blank-separated list of template options ("" for none)
+    "addable"
+
+    #
+    # objectclass list
+    person
+    END
+
+    #
+    # name of attribute to authenticate as ("" means auth as this entry)
+    ""
+
+    #
+    # default attribute name to use when forming RDN of a new entry
+    #
+    cn
+
+    #
+    # default location when adding new entries (DN; "" means no default)
+    "o=University of Michigan, c=US"
+
+    #
+    # rules used to define default values for new entries
+    END
+
+    #
+    # list of items for display
+    item jpegbtn	"View Photo"		jpegPhoto	"Next Photo"
+    item audiobtn	"Play Sound"		audio
+    item cis	"Also Known As"		cn
+    item cis	"Title"			title
+    item mls	"Work Address"		postalAddress
+    item cis	"Work Phone"		telephoneNumber
+    item cis	"Fax Number"		facsimileTelephoneNumber
+    item mls	"Home Address"		homePostalAddress
+    item cis	"Home Phone"		homePhone
+    item cis	"User ID"		uid
+    item mail	"E-Mail Address"	mail
+    item cis	"Description"		description
+    item cis	"Favorite Beverage"	drink
+    item dn		"See Also"		seeAlso
+    END
+.ft
+.fi
+.SH FILES
+ETCDIR/ldaptemplates.conf
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldap_disptmpl (3)

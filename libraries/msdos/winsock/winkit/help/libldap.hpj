@@ -1,0 +1,14 @@
+
+[OPTIONS]
+ERRORLOG=$LIBLDAP.ERR
+COMPRESS=HIGH
+OLDKEYPHRASE=YES
+CONTENTS=Contents
+TITLE=Ldap API for Windows
+COPYRIGHT=Copyright ¸ Regents of University of Michigan
+CITATION=X.500 Project
+[WINDOWS]
+main=,,0,,,0
+
+[FILES]
+$LIBLDAP.RTF

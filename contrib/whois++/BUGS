@@ -1,0 +1,37 @@
+This is not really a bugs list (would I admit to having bugs? :-) but a
+limitations list.
+
+This implementation attempts to implement most of the proposed whois++
+interface but those sections that conflict with the underlying X.500 service
+are not implemented. This includes such things as the indexing service. While
+it would be possible to provide this functionality it is likely that a
+production X.500 Directory will have restrictions on access to the Directory
+in order to prevent "trawling" of data. It is unlikely that such a site
+would wish to allow an indexing server carte blanche access to it's data in
+order to index it.
+
+The current version also doesn't support multiple languages, this is not
+because I don't think it's a good idea (I do), but rather due to my wish to
+get this thing out of the door! As a result of this attributes are returned
+using their X.500 attribute names rather than using "whois++" names. Once
+the code to do multi-lingual support has been integrated these attributes
+will be returned in the natural language specified by the client.
+
+Some responses are returned as system messages, and some are returned as
+normal messages (with or without a leading space). At present there is no
+real consistancy, which is a result of me coding whatever I thought was best
+at the time. The current draft lacks adequate direction (except for search
+results) as to the format of responses but once this has been fixed I will
+correct the code.
+
+I am using a beta version of the LDAP beta code (possibly not the latest
+version) to develop this code but you should be able to use any of the
+University of Michigan releases, although the patches to the main Makefile
+may need some tweaking.
+
+This program has only really been tested with Ultrix although John Farrell
+of the ISODE Consortium threw it at SunOS for me so it may work with other
+Unix variants but there are no guarantees.
+
+Mark Prior
+26 April 93

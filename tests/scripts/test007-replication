@@ -1,0 +1,161 @@
+#!/bin/sh
+
+#
+# Test replication:
+# - start master
+# - start slave
+# - start slurpd
+# - populate over ldap
+# - perform some modifies and deleted
+# - retrieve database over ldap and compare against expected results
+#
+
+. scripts/defines.sh
+
+echo "Cleaning up in $DBDIR..."
+rm -f $DBDIR/*
+echo "Cleaning up in $REPLDIR..."
+rm -f $REPLDIR/*
+
+echo "Starting master slapd on TCP/IP port $PORT..."
+$SLAPD -f $MASTERCONF -p $PORT -d 1 > /dev/null 2>&1 &
+PID=$!
+
+echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
+$SLAPD -f $SLAVECONF -p $SLAVEPORT -d 1 > /dev/null 2>&1 &
+SLAVEPID=$!
+
+echo "Using ldapsearch to check that master slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $PORT \
+		'cn=Monitor' > /dev/null 2>&1
+	RC=$?
+	if [ $RC = 1 ]; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+echo "Using ldapsearch to check that slave slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $SLAVEPORT \
+		'cn=Monitor' > /dev/null 2>&1
+	RC=$?
+	if [ $RC = 1 ]; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+echo "Starting slurpd..."
+$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > /dev/null 2>&1 &
+SLURPPID=$!
+
+echo "Using ldapmodify to populate the database..."
+$LDAPMODIFY -a -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
+	$LDIFORDERED > /dev/null 2>&1
+RC=$?
+if [ $RC != 0 ]; then
+	echo "ldapmodify failed!"
+	kill -HUP $PID $SLAVEPID $SLURPPID
+	exit $RC
+fi
+
+echo "Using ldapmodify to modify the database..."
+#
+# Do some modifications
+#
+
+$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
+	/dev/null 2>&1 << EOMODS
+dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+changetype: modify
+add: drink
+drink: Orange Juice
+
+dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: modify
+replace: multilinedescription
+multilinedescription: The replaced multiLineDescription $ Blah Woof.
+-
+replace: drink
+drink: Iced Tea
+drink: Mad Dog 20/20
+
+dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+delete: member
+member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+-
+add: member
+member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+
+dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+changetype: modify
+delete: member
+
+dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: add
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: newPilotPerson
+objectclass: umichPerson
+cn: Gern Jensen
+title: Chief Investigator, ITD
+postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
+seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+uid: gjensen
+krbname: gjensen@umich.edu
+nobatchupdates: TRUE
+onvacation: FALSE
+drink: Coffee
+homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
+multilinedescription: Very odd
+facsimiletelephonenumber: +1 313 555 7557
+telephonenumber: +1 313 555 8343
+mail: gjensen@mailgw.umich.edu
+homephone: +1 313 555 8844
+
+dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+changetype: delete
+
+EOMODS
+
+echo "Waiting 10 seconds for slurpd to send changes..."
+sleep 10
+
+echo "Using ldapsearch to read all the entries from the master..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	'objectclass=*' > $MASTEROUT 2>&1
+
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID $SLAVEPID $SLURPPID
+	exit $RC
+fi
+
+echo "Using ldapsearch to read all the entries from the slave..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+	'objectclass=*' > $SLAVEOUT 2>&1
+
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID $SLAVEPID $SLURPPID
+	exit $RC
+fi
+
+kill -HUP $PID $SLAVEPID $SLURPPID
+
+echo "Comparing retrieved entries from master and slave..."
+cmp $MASTEROUT $SLAVEOUT
+if [ $? != 0 ]; then
+	echo "test failed - master and slave databases differ"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+
+exit 0

@@ -1,0 +1,246 @@
+.TH LDAPSEARCHPREFS.CONF 5  "1 December 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldapsearchprefs.conf \- configuration file for LDAP search preference routines
+.SH SYNOPSIS
+ETCDIR/ldapsearchprefs.conf
+.SH DESCRIPTION
+.LP
+The file ETCDIR/ldapsearchprefs.conf contains information used by
+the LDAP search preference routines (see ldap-searchpref(3)).  Blank lines
+and lines that have a first character of `#' are treated as comments and
+ignored.  Non-comment lines contain one or more tokens.  Tokens are
+separated by white space, and double quotes `"' can be used to include
+white space inside a token.
+.LP
+Search preferences are typically used by LDAP-based client programs to
+specify what a user may search for, which attributes are searched, and
+which options are available to the user.
+.LP
+The first non-commment line specifies the version of the template
+information and must contain the token
+.I Version
+followed by an integer version number.  E.g.,
+.nf
+.ft B
+    Version 1
+.ft
+.fi
+The current version is
+.I 1,
+so the above example is always the correct opening line.
+.LP
+The remainder of the file consists of one or more search preference
+configurations.
+The first line of a search preference is a human-readable name for the
+type of object being searched for, e.g. "People" or "Organizations".
+This name is stored in the
+.I so_objtypeprompt
+member of the
+.I ldap_searchobj
+structure.
+E.g.,
+.nf
+.ft B
+    "People"
+.ft
+.fi
+specifies a label for a search preference designed to find X.500 
+entries for People.
+.LP
+The next line specifies a list of options for this search object.  The
+only option currently allowed is "internal" which means that this search
+object should not be presented directly to a user.  Options are placed in the
+.I so_options
+member of the
+.I ldap_searchobj
+structure and can be tested using the LDAP_IS_SEARCHOBJ_OPTION_SET() macro.
+Use "" if no special options are desired.
+.LP
+The next line specifes a label
+to use for "Fewer Choices" (for lack of a better term) searches.  "Fewer
+Choices" searches are those where the user's input is fed to the
+ldap_filter routines to determine an appropriate filter to use.  This
+contrasts with explicitly-constructed LDAP filters, or "More Choices"
+searches, where the user can explicitly construct an LDAP filter.  The
+"Fewer" and "More Choices" terms derive from the maX.500, waX.500 and
+xax500 directory user agents, which offer two configurations of their
+"Find Entry" dialogs - one where the user types a search string, and the
+client code attempts to find reasonable filter(s) to use in searching
+("Fewer Choices"), and one where the user can select from several pop-up
+menus which allow complete specification of the search to be performed
+("More Choices").
+.LP
+For example:
+.nf
+.ft B
+    "Search For:"
+.ft
+.fi
+can be used by LDAP client programs to label the field into which the
+user can type a "Fewer Choices" search.  This information is stored in
+the
+.I so_prompt
+member of the
+.I ldap_searchobj
+structure.
+
+.LP
+The next line specifies an LDAP filter prefix to append to all "More Choices"
+searched.  This is typically used to limit the types of entries returned
+to those containing a specific object class.  For example:
+.nf
+.ft B
+    "(&(objectClass=person)"
+.ft
+.fi
+would cause only entries containing the object class "person" to be
+returned by a search.  Note that parentheses may be unbalanced here, since
+this is a filter prefix, not an entire filter.  This information is
+stored in the
+.I so_filterprefix
+member of the 
+.I ldap_searchobj
+structure.
+
+.LP
+The next line is an LDAP filter tag (see ldap-filter(3)) which specifies
+the set of LDAP filters to be applied for "Fewer Choices" searching.
+The line
+.nf
+.ft B
+    "xax500-People"
+.ft
+.fi
+would tell the client program to use the set of LDAP filters from the
+ldap filter configuration file tagged "xax500-People".  This information is
+stored in the
+.I so_filtertag
+member of the
+.I ldap_searchobj
+structure.
+
+.LP
+The next line specifies an LDAP attribute to retrieve to help the user
+choose when several entries match the search terms specified.  For example:
+.nf
+.ft B
+    "title"
+.ft
+.fi
+specifies that if more than one entry matches the search criteria, the
+client program should retrieve the "title" attribute that and present
+that to the user to allow them to select the appropriate entry.
+The next line specifies a label for the above attribute, e.g.
+.nf
+.ft B
+    "Title:"
+.ft
+.fi
+The above information is stored in the
+.I so_defaultselectattr
+and
+.I so_defaultselecttext
+members of the
+.I ldap_searchobj
+structure.  Note that these are defaults, and are intended to be overridden
+by the sa_selectattr and sa_selecttext fields of the ldap_searchattr
+data structure (see below).
+
+.LP
+The next line specifies the scope of the LDAP search to be performed.
+Acceptable values are subtree, onelevel, and base.  See ldap(3) for
+more information.
+
+.LP
+The next section is a list of "More Choices" search options, terminated by
+a line containing only the string "END".  Example:
+.nf
+.ft B
+  "Common Name"	cn	11111	""	""
+  "Surname"	sn	11111	""	""
+  "Business Phone"	"telephoneNumber"	11101	""	""
+  END
+.ft
+.fi
+
+Each line represents one method of searching.  In this example, there
+are three ways of searching - by Common Name, by Surname, and by
+Business Phone number.  The first field is the text which should be
+displayed to user.  The second field is the attribute which will be
+searched.  The third field is a bitmap which specifies which of the
+match types (discussed below) are permitted for this search type.  A
+"1" value in a given bit position indicates that a particular
+match type is valid, and a "0" indicates that is it not valid.  The
+fourth and fifth fields are, respectively, the select attribute name
+(corresponding to the sa_selectattr field of the ldap_searchattr data
+structure) and on-screen name for the select attribute (corresponding
+to the sa_selecttext field).  These values are intended to override
+the so_defaultselectattr and so_defaultselecttext values, described
+above.  If blank, the client software should use the default values above.
+
+.LP
+The next section is a list of search match options, terminated by a
+a line containing only the string "END".  Example:
+.nf
+.ft B
+  "exactly matches"	"(%a=%v))"
+  "approximately matches"	"(%a~=%v))"
+  "starts with"	"(%a=%v*))"
+  "ends with"	"(%a=*%v))"
+  "contains"	"(%a=*%v*))"
+  END
+.ft
+.fi
+In this example, there are five ways of refining the search.  For each method,
+there is an LDAP filter suffix which is appended to the ldap filter thus
+far constructed.  The routine ldap_build_filter() may be used to construct
+the whole filter.  It substitutes the appropriate attribute for "%a" in the
+filter, and a value (generally, something the user types) for "%v".
+
+.SH EXAMPLE
+The following example illustrates one possible configuration of search
+preferences for "people".
+.LP
+.nf
+# Version number
+Version 1
+# Name for this search object
+People
+# Label to place before text box user types in
+"Search For:"
+# Filter prefix to append to all "More Choices" searches
+"(&(objectClass=person)"
+# Tag to use for "Fewer Choices" searches - from ldapfilter.conf file
+"xax500-People"
+# If a search results in > 1 match, retrieve this attribute to help
+# user disambiguate the entries...
+multilineDescription
+# ...and label it with this string:
+"Description"
+# Search scope to use when searching
+subtree
+# Follows a list of "More Choices" search options.  Format is:
+# Label, attribute, select-bitmap, extra attr display name, extra attr ldap name
+# If last two are null, "Fewer Choices" name/attributes used
+"Common Name"                   cn                 11111  ""  ""
+"Surname"                       sn                 11111  ""  ""
+"Business Phone"                "telephoneNumber"  11101  ""  ""
+"E-Mail Address"                "mail"             11111  ""  ""
+"Uniqname"                      "uid"              11111  ""  ""
+END
+# Match types
+"exactly matches"               "(%a=%v))"
+"approximately matches"         "(%a~=%v))"
+"starts with"                   "(%a=%v*))"
+"ends with"                     "(%a=*%v))"
+"contains"                      "(%a=*%v*))"
+END
+.fi
+.LP
+In this example, the user may search for People.  For "fewer choices" searching,
+the tag for the ldap filter config file is "xax500-People".
+.SH FILES
+ETCDIR/ldapsearchprefs.conf
+.SH SEE ALSO
+.BR ldap (3).
+.BR ldap-searchprefs (3)

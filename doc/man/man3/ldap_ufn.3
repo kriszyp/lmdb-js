@@ -1,0 +1,130 @@
+.TH LDAP_UFN 3  "23 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_ufn_search_s, ldap_ufn_search_c, ldap_ufn_search_ct, ldap_ufn_setfilter, ldap_ufn_setfilter, ldap_ufn_setprefix, ldap_ufn_timeout \- Perform an LDAP user friendly search operation
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+int ldap_ufn_search_c(ld, ufn, attrs, attrsonly, res, cancelproc,
+			cancelparm)
+.ft
+LDAP *ld;
+char *ufn;
+char **attrs;
+int attrsonly;
+LDAPMessage **res;
+int (*cancelproc)();
+void *cancelparm;
+.LP
+.ft B
+int ldap_ufn_search_ct(ld, ufn, attrs, attrsonly, res, cancelproc,
+			cancelparm, tag1, tag2, tag3)
+.ft
+LDAP *ld;
+char *ufn;
+char **attrs;
+int attrsonly;
+LDAPMessage **res;
+int (*cancelproc)();
+void *cancelparm;
+char *tag1, *tag2, *tag3;
+.LP
+.ft B
+int ldap_ufn_search_s(ld, ufn, attrs, attrsonly, res)
+.ft
+LDAP *ld;
+char *ufn;
+char **attrs;
+int attrsonly;
+LDAPMessage **res;
+.LP
+.ft B
+LDAPFiltDesc *ldap_ufn_setfilter(ld, fname)
+.ft
+LDAP *ld;
+char *fname;
+.LP
+.ft B
+void ldap_ufn_setprefix(ld, prefix)
+.ft
+LDAP *ld;
+char *prefix;
+.LP
+.ft B
+int ldap_ufn_timeout(tvparam)
+.ft
+void *tvparam;
+.SH DESCRIPTION
+These routines are used to perform LDAP user friendly search operations.
+.B ldap_ufn_search_s()
+is the simplest form.  It does the search
+synchronously.  It takes \fIld\fP to identify the the LDAP connection.
+The \fIufn\fP parameter is the user friendly name for which to search.
+The \fIattrs\fP, \fIattrsonly\fP and \fIres\fP parameters are the
+same as for
+.BR ldap_search (3).
+.LP
+The
+.B ldap_ufn_search_c()
+routine functions the same as
+.BR ldap_ufn_search_s() ,
+except that it takes \fIcancelproc\fP, a function to call periodicly
+during the search.  It should be a function taking a single void *
+argument, given by \fIcalcelparm\fP.  If \fIcancelproc\fP returns a
+non-zero result, the search will be abandoned and no results returned.
+The purpose of this routine is to provide a way for the search to be
+cancelled, for example, by a user or because some other condition
+occurs.
+.LP
+The
+.B ldap_ufn_search_ct()
+routine is like
+.BR ldap_ufn_search_c() ,
+except that it takes three extra parameters.  \fItag1\fP is passed to the
+.BR ldap_init_getfilter (3)
+routine when resolving the first component of
+the UFN.  \fItag2\fP is used when resolving intermediate components.
+\fItag3\fP is used when resolving the last component.  By default,
+the tags used by the other UFN search routines during these three
+phases of the search are "ufn first", "ufn intermediate", and "ufn last".
+.LP
+The
+.B ldap_ufn_setfilter()
+routine is used to set the
+.BR ldapfilter.conf (5)
+file for use with the
+.BR ldap_init_getfilter (3)
+routine to \fIfname\fP.
+.LP
+The
+.B ldap_ufn_setprefix()
+routine is used to set the default prefix
+(actually, it's a suffix) appended to UFNs before searhing.  UFNs
+with fewer than three components have the prefix appended first,
+before searching.  If that fails, the UFN is tried with progressively
+shorter versions of the prefix, stripping off components.  If the UFN
+has three or more components, it is tried by itself first.  If that
+fails, a similar process is applied with the prefix appended.
+.LP
+The
+.B ldap_ufn_timeout()
+routine is used to set the timeout associated
+with
+.B ldap_ufn_search_s()
+searches.  The \fItimeout\fP parameter
+should actually be a pointer to a struct timeval (this is so
+.B ldap_ufn_timeout()
+can be used as a cancelproc in the above routines).
+.SH NOTES
+These routines may malloc memory.  Return values are contained
+in <ldap.h>.
+.SH SEE ALSO
+.BR gettimeofday (2),
+.BR ldap (3),
+.BR ldap_search (3),
+.BR ldap_getfilter (3),
+.BR ldapfilter.conf (5),
+.BR ldap_error (3)

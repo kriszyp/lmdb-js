@@ -1,0 +1,107 @@
+.TH LDIF 5  "13 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldif \- LDAP Data Interchange Format
+.SH DESCRIPTION
+The LDAP Data Interchange Format (LDIF) is used to represent LDAP
+entries in text form. The
+.BR ldif2ldbm (8)
+tools can be used to convert from LDIF format to the LDBM format
+used by
+.BR slapd (8).
+The
+.BR ldbmcat (8)
+tool can be used to do the reverse conversion. See "The SLAPD and
+SLURPD Administrator's Guide" for more information on this format and
+the conversion tools.
+.LP
+The basic form of an LDIF entry is:
+.LP
+.nf
+.ft tt
+	[<id>]
+	dn: <distinguished name>
+	<attrtype>: <attrvalue>
+	<attrtype>: <attrvalue>
+	...
+.ft
+.fi
+.LP
+where <id> is the optional entry ID (a positive decimal number).
+Normally, you would not supply the <id>, allowing the database creation
+tools to do that for you. The
+.BR ldbmcat (8)
+program, however, produces an LDIF format that includes <id> so that
+new indexes created will be consistent with the existing database.  A
+line may be continued by starting the next line with a single space or
+tab character, e.g.,
+.LP
+.nf
+.ft tt
+	dn: cn=Barbara J Jensen, o=University of Michi
+	 gan, c=US
+.ft
+.fi
+.LP
+Multiple attribute values are specified on separate lines, e.g.,
+.LP
+.nf
+.ft tt
+	cn: Barbara J Jensen
+	cn: Babs Jensen
+.ft
+.fi
+.LP
+If an <attrvalue> contains a non-printing character, or begins with a
+space or a colon ':', the <attrtype> is followed by a double colon and
+the value is encoded in base 64 notation. e.g., the value " begins with
+a space" would be encoded like this:
+.LP
+.nf
+.ft tt
+	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+.ft
+.fi
+.LP
+Multiple entries within the same LDIF file are separated by blank
+lines.
+.SH EXAMPLE
+Here is an example of an LDIF file containing three entries.
+.LP
+.nf
+.ft tt
+	dn: cn=Barbara J Jensen, o=University of Michi
+	 gan, c=US
+	cn: Barbara J Jensen
+	cn: Babs Jensen
+	objectclass: person
+	sn: Jensen
+
+	dn: cn=Bjorn J Jensen, o=University of Michi
+	 gan, c=US
+	cn: Bjorn J Jensen
+	cn: Bjorn Jensen
+	objectclass: person
+	sn: Jensen
+
+	dn: cn=Jennifer J Jensen, o=University of Michi
+	 gan, c=US
+	cn: Jennifer J Jensen
+	cn: Jennifer Jensen
+	objectclass: person
+	sn: Jensen
+	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
+	 A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+	 ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+	...
+.ft
+.fi
+.LP
+Notice that the jpegPhoto in Jennifer Jensen's entry is encoded using
+base 64.
+.SH SEE ALSO
+.BR ldap (3),
+.BR slapd (8),
+.BR ldif2ldbm (8),
+.BR ldbmcat (8)
+.LP
+"The SLAPD and SLURPD Administrator's Guide"

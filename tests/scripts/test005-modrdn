@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "modrdn test not yet written"
+
+exit 0

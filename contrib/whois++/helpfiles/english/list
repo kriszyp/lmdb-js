@@ -1,0 +1,3 @@
+The list command returns a list of the whois++ template types that may be
+returned as a result of a query. You can use the show command to return
+further information about these templates.

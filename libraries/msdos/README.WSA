@@ -1,0 +1,228 @@
+LDAP MSWindows with WinSock API README
+
+The lber and ldap client libraries have been ported to Microsoft Windows
+in the form of a Windows Dynamic Link library called LIBLDAP.DLL and
+Ldap32.dll (16 and 32 bit versions respectively).
+
+A Windows Socket API version 1.1 conformant TCP/IP WINSOCK.DLL is
+required for the LIBLDAP.DLL to run.  Some patches have been
+incorporated that should make it possible to build the LIBLDAP.DLL under
+Borland C++ 3.1.  Brief instructions are included later in this file. 
+(There are no changes to the Borland support in this release.)
+
+This release also include 16 and 32 bit versions of the ltest (&
+ltest32) API test programs.  Instructions for building it are in the
+second half of this document.  None of the other clients included in the
+distribution have been tested under Windows.  The synchronous LDAP
+interface is also untested, although it does build okay.
+
+At the very end of this document are some hints for writing applications
+that use the LIBLDAP.DLL.
+
+We have also made a windows "kit" available at:
+
+   ftp://terminator.rs.itd.umich.edu/ldap/windows/winldap.zip
+
+Our hope is that with this kit, you won't have to compile all this 
+yourself (unless you want to).  The kit includes:
+        16 and 32bit dlls
+        debug and release builds
+        the LTest utility program
+        man pages in the form of HLP files (new and old formats)
+        include files
+        sample config files
+
+MAKING THE DISTRIBUTION
+
+Build testing was done on Windows NT workstation 3.51 (service patch 2)
+(on NTFS which supports long filenames) using Microsoft Visual C++ 1.52c
+(16 bit) and Visual C++ 4.0 (32 bit).
+
+To build the LIBLDAP.DLL library under Microsoft Visual C++ 1.52c
+(16bit) or Visual C++ 4.0 (32bit):  (search forward in this file for
+"Borland" if you are using Borland C++)
+
+	1) Untar the ldap distribution somewhere on MSDOS.  You will
+           need at least the include and libraries subdirectories.
+           A version of tar that works under MSDOS is a big help for
+           this step
+
+		tar xf ldap.tar
+
+	   This will create a directory called ldap or similar that
+	   contains the ldap source distribution.  We will refer to
+	   that directory simply as "\ldap" from now on, but it could
+	   be anywhere and have any name on your system
+
+           Note that a lot of empty include files are on this distribution. 
+	   This is because some compilers are not smart enough to properly
+           generate dependencies (i.e. they ignore #ifdefs) so the file needs
+	   to be present, even if not used.
+
+	2) cd to the LDAP directory (root of your LDAP area on MSDOS) and
+	   execute the setupwsa batch file.  This will copy a bunch of
+	   files from the ldap\libraries\msdos and
+	   ldap\libraries\msdos\winsock directories to the ldap\include
+	   and ldap\libraries\libldap directories:
+		cd \ldap
+		libraries\msdos\winsock\setupwsa.bat
+           Note that a lot of empty include files are copied over... this
+           is because some compilers are not smart enough to properly
+           generate dependencies.
+
+	3) Create a WINSOCK.LIB import library from the WINSOCK.DEF file.
+	   You can also obtain a pre-built .LIB from ftp.microdyne.com in
+	   /pub/winsock/winsock-1.1/winsock.lib.  To build an import
+	   library using Microsoft's IMPLIB utility:
+		cd \ldap\libraries\libldap
+		implib winsock.lib winsock.def
+
+	4) Now fire up MS Windows and start the Visual C++ Workbench.  Open
+	   the project \ldap\libraries\libldap\libldap.mak or 
+	   \ldap\libraries\libldap\ldap32.mak with the appropriate compiler.
+
+	   Change the project "Include" directory to list the ldap
+	   include directory as well as the standard include directories
+	   (change by using the command found under the
+	   Options...Directories menu in the 16 bit compiler and
+	   Build/Settings in the 32bit compiler).
+
+	   The preprocessor symbols I have defined are:
+	      WINSOCK, DOS, NEEDPROTOS, NO_USERINTERFACE, KERBEROS I ran
+	   into buffer length limitations when I tried to define more
+	   preprocessor symbols this way.  So all the rest are defined
+	   in msdos.h.  This makes the order of inclusion critical for
+	   msdos.h.
+
+
+	 Note: If you are using something other than Visual C++ you will
+	   need to create a makefile or other project file.  It should
+	   include all of the .c files in the liblber and libldap
+	   directories, plus the libraries\libldap\libldap.def (or
+	   libraries\libldap\ldap32.def) module definition file.  It
+	   will need to link in winsock.lib.  You should use the large
+	   memory model.
+
+	5) Select Build LIBLDAP.DLL (or Rebuild All) from the Project
+	   menu to build the DLL.  You will see many warnings,
+	   especially from the liblber code.  Our experience is that it
+	   is safe to ignore them.
+
+	6) If you want to change what symbols are defined (for example
+	   WSHELPER, or LDAP_DEBUG), change them in msdos.h and
+	   recompile.  LDAP_DEBUG now works in the windows environment.
+	   The comments in msdos.h explain what the various options are.
+
+You should now have a functional LIBLDAP (or ldap32) dynamic link
+library.  If you wish to build a version of ltest for MSWindows to test
+it, follow these next steps.
+
+	1) Copy the libldap test.c and LIBLDAP.DLL import library files
+	   to the Windows ltest directory.  Under DOS:
+	      cd \ldap
+	      copy libraries\libldap\test.c libraries\msdos\winsock\ltest
+	      copy libraries\libldap\libldap.lib libraries\msdos\winsock\ltest
+
+	2) Open the project \ldap\libraries\msdos\winsock\ltest\ltest.mak
+	   (or ltest32.mdp) under the Microsoft Visual C++ Workbench.
+	   Change the project include directory to list the
+	   \ldap\include directory as well as the standard include
+	   directories.
+
+	3) Edit the string resource IDS_LDAP_HOST_NAME in ltest.rc (or
+	   ltest32.rc) and change the string "truelies" to the name of
+	   the LDAP server host you would like to test against.  
+	   
+	   Since this is a string resource, it may also be edited in the
+	   DLL with AppStudio.  So you can change it without having to
+	   recompile.
+
+	4) Build the project.  If you are not using Visual C++, you will
+	   need to create a makefile or other project file, and then
+	   build.  The project should include all of the .c files in
+	   the ldap\libraries\msdos\winsock\ltest directory and the
+	   ltest.def module definition file.  You will need to link in
+	   libldap.lib and winsock.lib (import libraries).
+
+You should now have a functional ltest application.  It is ugly, but it
+is useful for testing purposes.  It doesn't try very hard to be a pretty
+MS Windows application.
+
+
+To build the LIBLDAP.DLL library under Borland C++ 3.1:
+
+	Note: No changes have been made wrt Borland compiler in this release.
+
+	1) Untar the ldap distribution somewhere on MSDOS.  You will
+           need at least the include and libaries subdirectories.
+           A version of tar that works under MSDOS is a big help for
+           this step:
+		tar xf ldap.tar
+
+	   This will create a directory called ldap or similar that
+	   contains the ldap source distribution.  We will refer to
+	   that directory simply as "\ldap" from now on, but it could
+	   be anywhere and have any name on your system
+
+	2) cd to the LDAP directory (root of your LDAP area on MSDOS) and
+           execute the setupwsa batch file.  This will copy a bunch of
+	   files from the ldap\libraries\msdos and ldap\libraries\msdos\winsock
+	   directories to the ldap\include and ldap\libraries\libldap
+	   directories:
+		cd \ldap
+		libraries\msdos\winsock\setupwsa.bat
+
+	3) Start Borland C++ and create a new project here named
+	    libraries\libldap\libldap.prj and add all .c files in
+            the libraries\liblber and libraries/libldap directories
+	    except open.c and test.c.  Also add libldap.def and
+	    the winsock.lib.
+
+	4) Configure the project:
+	    Set include directories to have ..\..\include in them
+	    Set these #defines: NO_USERINTERFACE;DOS;NEEDPROTOS;WIN31;BC31
+	    Switch case-sensitive link/exports off
+	    Include the runtime library statically, and 'none' of the others
+
+	5) Do Build All
+
+
+WRITING APPLICATIONS THAT USE LIBLDAP.DLL
+
+    All of the normal LDAP and LBER calls documented in the man pages
+    (contained in the ldap\doc\man directory) should work, except for
+    ldap_perror (this is not supported under Windows since you will
+    want to use an application-defined dialog; you can use ldap_err2string
+    to obtain an error string to display in a message box or dialog).
+    The LIBLDAP.DEF file has a complete list of available routines.
+
+    Any memory that you obtain as the result of a call to an LIBLDAP.DLL
+    routine should NOT be freed by calling the free() routine in your
+    C library.  Instead, use the the new utility routine ldap_memfree.
+    This is so the malloc/calloc and free routines all come from the same
+    library (the one in libldap) rather than using libldap's malloc/calloc
+    and the calling program's free.  The 32bit compiler (in debug mode) 
+    FORCED me to be compulsive about this for the application I used to test.
+
+    To be friendly under Windows, you should use the asynchronous LDAP
+    calls whenever possible.
+
+    One limitation of the current LIBLDAP.DLL is that each X.500 LDAP
+    result message has to be smaller than 64K bytes.  Ldap32.dll does
+    NOT have this limitation.
+
+    To compile the dlls we define the following preprocessor variables.
+
+        WINSOCK, DOS, NEEDPROTOS, NO_USERINTERFACE, KERBEROS
+    
+    Presumably you don't need KERBEROS.  You may need some/all the
+    others to take the right path through the include files.  Also note
+    that a few more preprocessor variables are defined in msdos.h.  This
+    means that msdos.h must be included before ldap.h or lber.h.
+
+
+BUG REPORTING
+
+    Bug reports should be sent to bug-ldap@umich.edu.
+
+README Last updated 13 January 1996 by Steve Rothwell

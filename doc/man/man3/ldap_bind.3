@@ -1,0 +1,196 @@
+.TH LDAP_BIND 3  "28 March 1996" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_kerberos_bind_s, ldap_kerberos_bind1, ldap_kerberos_bind1_s, ldap_kerberos_bind2, ldap_kerberos_bind2_s, ldap_unbind, ldap_unbind_s, ldap_set_rebind_proc \- LDAP bind routines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+int ldap_bind(ld, who, cred, method)
+.ft
+LDAP *ld;
+char *who, *cred;
+int method;
+.LP
+.ft B
+int ldap_bind_s(ld, who, cred, method)
+.ft
+LDAP *ld;
+char *who, *cred;
+int method;
+.LP
+.ft B
+int ldap_simple_bind(ld, who, passwd)
+.ft
+LDAP *ld;
+char *who, *passwd;
+.LP
+.ft B
+int ldap_simple_bind_s(ld, who, passwd)
+.ft
+LDAP *ld;
+char *who, *passwd;
+.LP
+.ft B
+int ldap_kerberos_bind_s(ld, who)
+.ft
+LDAP *ld;
+char *who;
+.LP
+.ft B
+int ldap_kerberos_bind1(ld, who)
+.ft
+LDAP *ld;
+char *who;
+.LP
+.ft B
+int ldap_kerberos_bind1_s(ld, who)
+.ft
+LDAP *ld;
+char *who;
+.LP
+.ft B
+int ldap_kerberos_bind2(ld, who)
+.ft
+LDAP *ld;
+char *who;
+.LP
+.ft B
+int ldap_kerberos_bind2_s(ld, who)
+.ft
+LDAP *ld;
+char *who;
+.LP
+.ft B
+int ldap_unbind(ld)
+.ft
+LDAP *ld;
+.LP
+.ft B
+int ldap_unbind_s(ld)
+.ft
+LDAP *ld;
+.LP
+.ft B
+void ldap_set_rebind_proc( ld, rebindproc )
+.ft
+LDAP *ld;
+int (*rebindproc)();
+.SH DESCRIPTION
+.LP
+These routines provide various interfaces to the LDAP bind operation.
+After a connection is made to an LDAP server using
+.BR ldap_open (3),
+an LDAP bind operation must be performed before other operations can
+be attempted over the conection.  Both synchronous and asynchronous
+versions of each variant of the bind call are provided.  There are
+three types of calls, providing simple authentication, kerberos
+authentication, and general routines to do either one.  All routines
+take \fIld\fP as their first parameter, as returned from
+.BR ldap_open (3).
+.SH SIMPLE AUTHENTICATION
+The simplest form of the bind call is
+.BR ldap_simple_bind_s() .
+It takes the DN to bind as in \fIwho\fP, and the userPassword associated
+with the entry in \fIpasswd\fP.  It returns an LDAP error indication
+(see
+.BR ldap_error (3)).
+The
+.B ldap_simple_bind()
+call is asynchronous,
+taking the same parameters but only initiating the bind operation and
+returning the message id of the request it sent.  The result of the
+operation can be obtained by a subsequent call to
+.BR ldap_result (3).
+.SH KERBEROS AUTHENTICATION
+If the LDAP library and LDAP server being contacted have been
+compiled with the KERBEROS option defined,
+Kerberos version 4 authentication can be accomplished by calling
+the
+.BR ldap_kerberos_bind_s()
+routine.  It assumes the user already
+has obtained a ticket granting ticket.  It takes \fIwho\fP, the DN
+of the entry to bind as.  This routine does both steps of the
+kerberos binding process synchronously.  The
+.B ldap_kerberos_bind1_s()
+and
+.B ldap_kerberos_bind2_s()
+routines allow synchronous access to the
+individual steps, authenticating to the LDAP server and DSA, respectively.
+The
+.B ldap_kerberos_bind1()
+and
+.B ldap_kerberos_bind2()
+routines provide equivalent asynchronous access.
+.SH GENERAL AUTHENTICATION
+The
+.B ldap_bind()
+and
+.B ldap_bind_s()
+routines can be used when the
+authentication method to use needs to be selected at runtime.  They
+both take an extra \fImethod\fP parameter selecting the authentication
+method to use.  It should be set to one of LDAP_AUTH_SIMPLE,
+LDAP_AUTH_KRBV41, or LDAP_AUTH_KRBV42, to select simple authentication,
+kerberos authentication to the LDAP server, or kerberos authentication
+to the DSA, respectively.
+.B ldap_bind()
+returns the message id of the request it initiates.
+.B ldap_bind_s()
+returns an LDAP error indication.
+.SH UNBINDING
+The
+.B ldap_unbind()
+call is used to unbind from the directory,
+terminate the current association, and free the resources contained
+in the \fIld\fP structure.  Once it is called, the connection to
+the LDAP server is closed, and the \fIld\fP structure is invalid.
+The
+.B ldap_unbind_s()
+call is just another name for
+.BR ldap_unbind() ;
+both of these calls are synchronous in nature.
+.SH RE-BINDING WHILE FOLLOWING REFERRALS
+The
+.B ldap_set_rebind_proc()
+call is used to set a routine that will be called back to obtain bind
+credentials used when a new server is contacted during the following of
+an LDAP referral.  Note that this function is only available when the
+LDAP libraries are compiled with LDAP_REFERRALS defined and is only
+used when the ld_options field in the LDAP structure has
+LDAP_OPT_REFERRALS set (this is the default).  If
+.B ldap_set_rebind_proc()
+is never called, or if it is called with a NULL \fIrebindproc\fP
+parameter, an unauthenticated simple LDAP bind will always be done
+when chasing referrals.
+.LP
+\fIrebindproc\fP should be a function that is declared like this:
+.LP
+.nf
+int rebindproc( LDAP *ld, char **whop, char **credp,
+    int *methodp, int freeit );
+.fi
+.LP
+The LDAP library will first call the rebindproc to obtain the
+referral bind credentials, and the \fIfreeit\fP parameter will be
+zero.  The \fIwhop\fP, \fIcredp\fP, and \fImethodp\fP should be
+set as appropriate.  If the rebindproc returns LDAP_SUCCESS, referral
+processing continues, and the rebindproc will be called a second
+time with \fIfreeit\fP non-zero to give your application a chance to
+free any memory allocated in the previous call.
+.LP
+If anything but LDAP_SUCCESS is returned by the first call to
+the rebindproc, then referral processing is stopped and that error code
+is returned for the original LDAP operation.
+.SH ERRORS
+Asynchronous routines will return -1 in case of error, setting the
+\fIld_errno\fP parameter of the \fIld\fP structure.  Synchronous
+routines return whatever \fIld_errno\fP is set to.  See
+.BR ldap_error (3)
+for more information.
+.SH SEE ALSO
+.BR ldap(3),
+.BR ldap_error(3),
+.BR ldap_open(3)

@@ -1,0 +1,23 @@
+This is a DUA interface, using LDAP, that conforms to the latest (not yet)
+Internet Draft for the Whois++ Architecture. It does NOT support the indexing
+service also proposed under Whois++.
+
+It is a gateway to X.500 (similar to the finger and gopher gateways) which
+allows the user to access the directory via a mechanism that they are
+comfortable with and/or have access to. The real Directory Service (and the
+only practical large scale distributed directory service) is provided by the
+underlying X.500 service. This implementation is not an endorsement of Whois++
+but I recognise that there are users whose only interface to a directory
+service is via a whois client. It therefore attempts to service these users,
+much like the other two gateways.
+
+Comments on the Whois++ specification should be sent to the IETF Whois and
+Network Information Lookup Service (WNILS) Working Group. The e-mail address
+of the group is ietf-wnils@ucdavis.edu, to be added to the mailing list send
+a request to ietf-wnils-request@ucdavis.edu. Comments about this program
+should be directed to the discussion list ldap-whois++@itd.adelaide.edu.au,
+(send a message to ldap-whois++-request@itd.adelaide.edu.au to join). I will
+post bug fix announcements to this list.
+
+Mark Prior
+6 May 93

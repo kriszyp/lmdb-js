@@ -1,0 +1,22 @@
+#include <windows.h>
+#include "console.h"
+
+
+CONSOLE MENU
+  BEGIN
+    POPUP  "&File"
+      BEGIN
+	MENUITEM "&Open LDAP", IDM_F_OPENLDAP
+	MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+F4", IDM_F_EXIT
+      END
+ END
+
+               
+CONSOLE ACCELERATORS
+  BEGIN
+    VK_F12, IDM_F_OPENLDAP, VIRTKEY, CONTROL
+    VK_F4, IDM_F_EXIT, ALT, VIRTKEY
+  END
+
+#include "inpdlg.dlg"

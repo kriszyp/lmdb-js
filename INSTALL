@@ -1,0 +1,136 @@
+Making and Installing the U-M LDAP Distribution
+
+** It is recommended that you read or at least skim through ALL of the
+** instructions in this file before attempting to build the software.
+
+If you want to build binaries for more than one platform from a single
+source tree, skip ahead to the "Building LDAP For More Than One Platform"
+section near the end of this file. If you are planning to run slapd,
+you should read the "SLAPD and SLURPD Administrator's Guide", found in
+the doc/guides/ directory within the distribution.
+
+If you simply want to build LDAP for a single machine platform, follow
+these steps:
+
+ 1. untar the distribution and cd to the top:
+
+	% zcat ldap-3.3.tar.Z | tar xf -
+	% cd ldap-3.3
+
+    If you are reading this file, you probably have already done this!
+
+
+ 2. edit the files Make-common and include/ldapconfig.h.edit to configure
+    the software for your site (the files are well-commented):
+
+	% vi Make-common
+	% vi include/ldapconfig.h.edit
+
+    Note that you should NOT need to edit the Makefile located at the
+    top of the distribution.
+
+    If you just want to see if things will build, you can leave the
+    configuration alone and change it later.
+
+    If you have the ISODE package built and want to build the
+    LDAP-to-X.500 server (ldapd), be sure to uncomment the appropriate
+    lines near the end of the Make-common file.  By default only the
+    stand-alone server, LDAP libraries and client software are built.
+
+ 3. make the software:
+
+	% make
+
+    If all goes well, then make will figure out what platform you are on,
+    pick a compiler to use, construct Makefiles, and build everything.
+    If you see a message like "unknown platform..." LDAP has probably not
+    been set up to build on your machine.  See the file build/PORTS for
+    hints on what to do in that case.
+
+    Note that if your make does not use the Bourne (sh) shell by
+    default when executing internal scripts (reportedly the case on SGI
+    machines at least), you will need to run the make explicitly from
+    within a Bourne shell.  If you a syntax error such as "Missing ]"
+    when you do the make under your usual shell, try this:
+
+	% sh
+	$ make
+
+    If you don't like the some of the platform-specific options chosen
+    by the automatic build process (such as the compiler to use, etc),
+    you can intervene and edit them before anything is actually compiled
+    by explicitly doing a "make platform" step, editing the .make-platform
+    file (actually a link to the file to be edited), and then doing a
+    regular make:
+
+	% make platform
+	% vi .make-platform
+	% make
+
+    If you want to choose the build platform yourself from among those that
+    the distribution supports, cd to the appropriate directory underneath
+    build/platforms and make from there.  For example, if you are on a
+    machine running SunOS 4.1.4 and you want to force the use of the cc
+    compiler, you would do this:
+
+	% cd build/platforms/sunos4-cc
+	% make
+
+    If you want to run some simple tests after the build is complete, you
+    can do this:
+
+	% make test
+
+ 4. install the binaries and man pages.  You may need to be superuser to
+    do this (depending on where you are installing things):
+
+	% su
+	# make install
+
+    That's it!  See the man pages for the individual clients for information
+    on configuring and using them.  Eventually you will probably want to
+    edit the configuration files used by the various clients (installed in
+    the LDAP etc directory).  The files are:
+
+	ldapfilter.conf      - search filter configuration
+	ldapfriendly         - mapping of X.500 names to human-friendly names
+	ldapsearchprefs.conf - search object definitions
+	ldaptemplates.conf   - display template definitions
+
+    There are section 5 man pages for all of these files.
+
+
+Building LDAP For More Than One Platform
+
+It is now possible to build LDAP for more than one platform from the same
+source tree.  This is accomplished by some rules in the Makefiles that
+create a shadow (linked) directory tree where the binaries are placed.
+
+Follow these steps for each different platform:
+
+ 1. move to the directory that matches the platform and compiler you
+    want to build for and type make.  The directories are all located
+    underneath the build/platforms directory.  If your platform is not
+    there, you may need to do a port - see the build/PORTS file for
+    more information.  For a Sun running SunOS 4.1.4, you might do
+    this:
+
+	% cd build/platforms/sunos4-cc
+	% make links
+
+    This will create a linked source area.
+
+
+ 2. move to the new directory and make as for a single platform.  Follow steps
+    1-4 above to accomplish this.  For example:
+
+	% cd obj-sunos4-cc
+	% make
+
+    That's all there is to it.  You can also create the linked source area(s)
+    by just typing "make links" at the top of the distribution, in which case
+    the Makefile will try to automatically determine the platform and
+    compiler.
+
+
+End of LDAP INSTALL file.

@@ -1,0 +1,158 @@
+*** ./hash/hash.h.bak	Fri May 12 11:00:42 1995
+--- ./hash/hash.h	Fri May 12 11:01:07 1995
+***************
+*** 103,109 ****
+  	BUFHEAD 	*cpage;		/* Current page */
+  	int		cbucket;	/* Current bucket */
+  	int		cndx;		/* Index of next item on cpage */
+! 	int		errno;		/* Error Number -- for DBM 
+  					 * compatability */
+  	int		new_file;	/* Indicates if fd is backing store 
+  					 * or no */
+--- 103,109 ----
+  	BUFHEAD 	*cpage;		/* Current page */
+  	int		cbucket;	/* Current bucket */
+  	int		cndx;		/* Index of next item on cpage */
+! 	int		h_errno;	/* Error Number -- for DBM 
+  					 * compatability */
+  	int		new_file;	/* Indicates if fd is backing store 
+  					 * or no */
+*** ./hash/hash.c.bak	Fri May 12 11:02:03 1995
+--- ./hash/hash.c	Fri May 12 11:02:42 1995
+***************
+*** 505,511 ****
+  	else
+  		if (wsize != sizeof(HASHHDR)) {
+  			errno = EFTYPE;
+! 			hashp->errno = errno;
+  			return (-1);
+  		}
+  	for (i = 0; i < NCACHED; i++)
+--- 505,511 ----
+  	else
+  		if (wsize != sizeof(HASHHDR)) {
+  			errno = EFTYPE;
+! 			hashp->h_errno = errno;
+  			return (-1);
+  		}
+  	for (i = 0; i < NCACHED; i++)
+***************
+*** 536,542 ****
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag) {
+! 		hashp->errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, HASH_GET, (DBT *)key, data));
+--- 536,542 ----
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag) {
+! 		hashp->h_errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, HASH_GET, (DBT *)key, data));
+***************
+*** 553,563 ****
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_NOOVERWRITE) {
+! 		hashp->errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
+! 		hashp->errno = errno = EPERM;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, flag == R_NOOVERWRITE ?
+--- 553,563 ----
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_NOOVERWRITE) {
+! 		hashp->h_errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
+! 		hashp->h_errno = errno = EPERM;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, flag == R_NOOVERWRITE ?
+***************
+*** 574,584 ****
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_CURSOR) {
+! 		hashp->errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
+! 		hashp->errno = errno = EPERM;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, HASH_DELETE, (DBT *)key, NULL));
+--- 574,584 ----
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_CURSOR) {
+! 		hashp->h_errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
+! 		hashp->h_errno = errno = EPERM;
+  		return (ERROR);
+  	}
+  	return (hash_access(hashp, HASH_DELETE, (DBT *)key, NULL));
+***************
+*** 729,735 ****
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_FIRST && flag != R_NEXT) {
+! 		hashp->errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  #ifdef HASH_STATISTICS
+--- 729,735 ----
+  
+  	hashp = (HTAB *)dbp->internal;
+  	if (flag && flag != R_FIRST && flag != R_NEXT) {
+! 		hashp->h_errno = errno = EINVAL;
+  		return (ERROR);
+  	}
+  #ifdef HASH_STATISTICS
+*** ./hash/ndbm.c.bak	Fri May 12 11:02:06 1995
+--- ./hash/ndbm.c	Fri May 12 11:02:54 1995
+***************
+*** 180,186 ****
+  	HTAB *hp;
+  
+  	hp = (HTAB *)db->internal;
+! 	return (hp->errno);
+  }
+  
+  extern int
+--- 180,186 ----
+  	HTAB *hp;
+  
+  	hp = (HTAB *)db->internal;
+! 	return (hp->h_errno);
+  }
+  
+  extern int
+***************
+*** 190,196 ****
+  	HTAB *hp;
+  
+  	hp = (HTAB *)db->internal;
+! 	hp->errno = 0;
+  	return (0);
+  }
+  
+--- 190,196 ----
+  	HTAB *hp;
+  
+  	hp = (HTAB *)db->internal;
+! 	hp->h_errno = 0;
+  	return (0);
+  }
+  

@@ -1,0 +1,160 @@
+@(#) README 1.6 93/06/18 22:29:34
+
+unproto - Compile ANSI C with traditional UNIX C compiler
+
+Description:
+------------
+
+This is a filter that sits in between the UNIX C preprocessor and the
+next UNIX C compiler stage, on the fly transforming ANSI C syntax to
+old C syntax.  Line number information is preserved so that compiler
+diagnostics still make sense.  It runs at roughly the same speed as
+/lib/cpp, so it has negligible impact on compilation time.
+
+Typically, the program is invoked by the native UNIX C compiler as an
+alternate preprocessor. The unprototyper in turn invokes the native C
+preprocessor and massages its output.  Similar tricks can be used with
+the lint(1) command. Details are given below.
+
+The filter rewrites ANSI-style function headings, function pointer
+types and type casts, function prototypes, and combinations thereof.
+Unlike some other unprototypers, this one is fully recursive and does
+not depend on source file layout (see the example.c file).
+
+Besides the rewriting of argument lists, the program does the following
+transformations:  string concatenation, conversion of \a and \x escape
+sequences to their octal equivalents, translation of the __TIME__ and
+__DATE__ macros, optional mapping of `void *' to `char *', and optional
+mapping of plain `void' to `int'. 
+
+The unprototyper provides hooks for compilers that require special
+tricks for variadic functions (fortunately, many don't). <stdarg.h>
+support is provided for sparc, mips, mc68k, 80x86, vax, and others.
+
+The program has been tested with SunOS 4.1.1 (sparc), Ultrix 4.0 and
+4.2 (mips), and Microport System V Release 2 (80286). It should work
+with almost every PCC-based UNIX C compiler.
+
+Restrictions:
+-------------
+
+A description of restrictions and workarounds can be found in the
+unproto.1 manual page.
+
+Problems fixed with this release:
+---------------------------------
+
+Prototypes and definitions of functions returning pointer to function
+were not rewritten to old style.
+
+Operation:
+----------
+
+This package implements a non-default C preprocessor (the output from
+the default C preprocessor being piped through the unprototyper).  How
+one tells the C compiler to use a non-default preprocessor program is
+somewhat compiler-dependent:
+
+    SunOS 4.x:  cc -Qpath directory_with_alternate_cpp ...
+
+    Ultrix 4.x: cc -tp -hdirectory_with_alternate_cpp -B ...
+
+    System V.2: cc -Bdirectory_with_alternate_cpp/ -tp ...
+
+Examples of these, and others, can be found in the acc.sh shell script
+that emulates an ANSI C compiler.  Your C compiler manual page should
+provide the necessary information.
+
+A more portable, but less efficient, approach relies on the observation
+that almost every UNIX C compiler supports the -E (write preprocessor
+output to stdout) and -P options (preprocess file.c into file.i). Just
+add the following lines to your Makefiles:
+
+    .c.o:
+	    $(CC) $(CFLAGS) -E $*.c | unproto >$*.i # simulate -P option
+	    $(CC) $(CFLAGS) -c $*.i
+	    rm -f $*.i
+
+On some systems the lint(1) command is just a shell script, and writing
+a version that uses the unprototyper should not be too hard. With SunOS
+4.x, /usr/bin/lint is not a shell script, but it does accept the same
+syntax as the cc(1) command for the specification of a non-default
+compiler pass. 
+
+You may have to do some research on the lint command provided with your
+own machine.
+
+Configuration:
+--------------
+
+Check the contents of the `stdarg.h' file provided with this package.
+This file serves a dual purpose: (1) on systems that do not provide a
+stdarg.h file, it should be included by C source files that implements
+ANSI-style variadic functions; (2) it is also used to configure the
+unprototyper so that it emits the proper magic when it sees `...'.
+
+The `stdarg.h' file has support for sparc, mips, and for compilers that
+pass arguments via the stack (typical for 80*86, mc68k and vax). It
+gives general hints for other compilers.
+
+The other sample header files (stddef.h and stdlib.h) are not required
+to build the unprototyper.
+
+The `varargs.c' file provided with this package can be used to verify
+that the `stdarg.h' file has been set up correctly.
+
+If your C compiler has no hooks for an alternate preprocessor (the
+unprototyper will be used as: `cc cflags -E file.c | unproto >file.i'),
+build the `unproto' executable without the `PIPE_THROUGH_CPP' feature.
+Details are given in the Makefile.
+
+Otherwise, the `cpp.sh' shell script can be used to set up the pipe
+between the native C preprocessor and the unprototyper command.  The
+script assumes that the unprototyper binary is called `unproto', and
+that it was compiled without the `PIPE_THROUGH_CPP' feature.  See the
+Makefile and the `cpp.sh' script for details and for a description of
+possible problems with this approach.
+
+The overhead and problems of shell-script interpretation can be avoided
+by letting the unprototyper itself pipe its standard input through the
+C preprocessor.  For this mode of operation, the unprototyper binary
+should be called `cpp', and the `unproto.c' source file should be
+compiled with the `PIPE_THROUGH_CPP' macro defined as the absolute
+pathname of the native C preprocessor (usually `/lib/cpp').  See the
+Makefile for details.
+
+Installation:
+-------------
+
+Install the `unproto.1' manual page in a suitable place. If your system
+does not provide a `stdarg.h' file, find a suitable place for the one
+provided with the unprototyper and install it there. The same goes for
+the sample stddef.h and stdlib.h files; make sure that the definitions
+in there apply to your environment. Most or all of the latter files are
+already part of Ultrix 4.x and SunOS 4.1.1.
+
+The ANSI float.h and limits.h files can be generated with the config
+program by Steve Pemberton (comp.sources.misc volume 10, issue 62,
+available from ftp.uu.net as comp.sources.misc/volume10/config42.Z).
+
+If you run the unprototyper with "cc -E" just install the `unproto'
+binary; the `cpp' and `acc' shell scripts will not be needed.
+
+If you use the `cpp' shell script to pipe the preprocessor output
+through the unprototyper program, install the `unproto' binary in a
+place where the `cpp' shell script can find it, and install the `cpp'
+shell script in a suitable place. Edit the `acc' shell script and
+install it in a suitable place. From now on, type `acc' instead of
+`cc'.
+
+If the unprototyper itself opens the pipe to the C preprocessor (i.e.
+the unprototyper was built with the `PIPE_THROUGH_CPP' macro defined),
+install the `cpp' unprototyper binary in a suitable place. Edit the
+`acc' shell script and install it in a suitable place. From now on,
+type `acc' instead of `cc'.
+
+	Wietse Venema
+	wietse@wzv.win.tue.nl
+	Mathematics and Computing Science
+	Eindhoven University of Technology
+	The Netherlands

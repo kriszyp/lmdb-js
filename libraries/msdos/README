@@ -1,0 +1,12 @@
+LDAP MSDOS Overview README
+
+The lber and ldap client libraries have been ported to MSDOS, running
+over various flavors of TCP/IP.  A list of ports and README files to
+see for further instruction follows:
+
+MSDOS over NCSA Telnet TCP/IP		README.CSA
+MSDOS over PCNFS			README.NFS
+MSWindows over WinSock API		README.WSA
+
+
+README Last updated 26 July 1993 Mark Smith

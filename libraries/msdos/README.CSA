@@ -1,0 +1,100 @@
+LDAP MSDOS with NCSA Telnet TCP/IP stack README
+
+The lber and ldap client libraries, and the ud client (called BUD on
+DOS) have been ported to MSDOS, running over the NCSA Telnet TCP/IP
+code (available from ftp.ncsa.uiuc.edu).  Build testing was done with
+Microsoft C 5.00 and MSDOS 5.0.  We plan to get Microsoft C 7.0 and
+join the 1990s soon....
+
+This port was just completed as this is being written (4 September 1992),
+so it goes without saying that the code is largely untested under DOS.
+Be sure to report and bugs to us (see the end of this file for where to
+report bugs).
+
+None of the other clients included in the distribution have been tested
+on the PC.  The synchronous LDAP interface is also untested, although it
+does build okay.
+
+MAKING THE DISTRIBUTION
+To build the ldap and lber libraries:
+
+	1) obtain the NCSA source and build it.  The remainder of this
+	   README will assume the root of the NCSA source is a directory
+	   called "NCSA".
+
+	2) Create an NCSA\LDAP directory, and the following three
+	   directories underneath it: h, liblber, libldap.  You should
+	   have a structure that looks like this:
+		NCSA\
+			LDAP\
+				H\
+				LIBLBER\
+				LIBLDAP\
+
+			(lots of other NCSA directories)
+
+	3) Populate them from the distribution (files from the h/, liblber/,
+	   and libldap/ distribution directories get copied to H\,
+	   LIBLBER\, and LIBLDAP\ respectively).
+
+	4) Copy additional files for MSDOS to proper places:
+	   distribution file			PC file
+	     msdos/makefile.msc			  LDAP\MAKEFILE.MSC
+	     msdos/msdos.h			  LDAP\H\MSDOS.H
+	     msdos/lp.c				  LDAP\LIBLBER\LP.C
+	     msdos/makelber.msc			  LDAP\LIBLBER\MAKELBER.MSC
+	     msdos/msdos.c			  LDAP\LIBLBER\MSDOS.C
+	     msdos/makeldap.msc			  LDAP\LIBLDAP\MAKELDAP.MSC
+	     msdos/opendos.c			  LDAP\LIBLDAP\OPENDOS.C
+
+	5) If you wish to change any compiler or linker switches, you
+	   should be able to do so just by editing the top-level
+	   MAKEFILE.MSC make file.  There seems to be a problem if you
+           add -DLDAP_DEBUG: the linker is unable to resolve the
+	   lber_debug variable (defined in liblber/decode.c, used there
+           and in liblber/io.c).  If anyone can figure out how to get it
+	   to work, let us know.
+
+	6) Build the library (this will also build the LDAP test program):
+	     cd NCSA\LDAP
+             make makefile.msc
+	   If your DOS C compiler is as picky as ours, you will get many
+	   screen fulls of warnings that can safely be ignored.
+	   Note that if you try to make while sitting in the lower
+           directories (LIBLDAP or LIBLBER), it will fail.  This will
+	   hopefully be cleaned up in a later release.
+
+	7) Test the library using LTEST.EXE:
+	     cd to somewhere where there is a proper NCSA CONFIG.TEL file
+	     execute "LTEST <LDAP server host>" from there, and test away.
+
+To build the ud client "BUD":
+	1) Build the ldap and lber libraries (see above).
+
+	2) Create a directory called UD underneath your LDAP directory,
+	   and populate it with all the files from the ud/ directory
+	   from the distribution.  Also add the following files:
+	     msdos/makeud.msc
+	     msdos/protoud.h
+	     macintosh/getopt.c (yes, put this in the LDAP\UD directory)
+
+	3) Change any desired options in UD.H or in the LDAP\MAKEFILE.MSC
+	   make file.  You will probably want to set up your own
+	   site-specific values for DEFAULT_BASE and DEFAULT_SERVER (in
+	   UD.H).
+
+	4) Uncomment out the lines near the end of LDAP\MAKEFILE.MSC
+	   that define the rules to make ud.
+
+	5) Build bud.exe:
+	     cd NCSA\LDAP
+	     make makefile.msc
+	   You should now have a working bud.exe.  Make sure you test
+	   it while in a directory that has a proper NCSA CONFIG.TEL file
+	   in it.
+
+BUG REPORTING
+
+    Bug reports should be sent to bug-ldap@terminator.cc.umich.edu.
+
+README Last updated 4 September 1992 Mark Smith

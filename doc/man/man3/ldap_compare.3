@@ -1,0 +1,51 @@
+.TH LDAP_COMPARE 3  "15 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_compare, ldap_compare_s \- Perform an LDAP compare operation
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+int ldap_compare_s(ld, dn, attr, value)
+.ft
+LDAP *ld;
+char *dn, *attr, *value;
+.LP
+.ft B
+int ldap_compare(ld, dn, attr, value)
+.ft
+LDAP *ld;
+char *dn, *attr, *value;
+.SH DESCRIPTION
+The
+.B ldap_compare_s()
+routine is used to perform an LDAP compare operation
+synchronously.  It takes \fIdn\fP, the DN of the entry upon which to perform
+the compare, and \fIattr\fP and \fIvalue\fP, the attribute type and value to
+compare to those found in the entry.  It returns an LDAP error code, which
+will be LDAP_COMPARE_TRUE if the entry contains the attribute value and
+LDAP_COMPARE_FALSE if it does not.  Otherwise, some error code is returned.
+.LP
+The
+.B ldap_compare()
+routine is used to perform an LDAP compare operation
+asynchronously.  It takes the same parameters as
+.BR ldap_compare_s() ,
+but returns the message id of the request it initiated.  The result of
+the compare can be obtained by a subsequent call to
+.BR ldap_result (3).
+.SH ERRORS
+.B ldap_compare_s()
+returns an LDAP error code which can be interpreted
+by calling one of
+.BR ldap_perror (3)
+and friends.  ldap_compare() returns
+-1 if something went wrong initiating the request.  It returns the
+non-negative message id of the request if things went ok.
+.SH BUGS
+There is no way to compare binary values, but there should be.
+.SH SEE ALSO
+.BR ldap(3),
+.BR ldap_error(3)

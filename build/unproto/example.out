@@ -1,0 +1,271 @@
+# 1 "example.c" 
+ 
+
+
+
+
+
+typedef char *charstar;
+
+ 
+
+
+
+
+x(
+
+
+
+baz)
+# 14 "example.c"
+struct {
+    struct {
+	int (*(*foo)())();
+    } foo;
+} baz;
+# 18 "example.c"
+{/*1*/
+    /* end dcls */return (0);
+}/*1*/
+
+ 
+
+int (*(*bar0)())();
+
+ 
+
+baz0(bar)
+int (*(*bar)())();
+{/*1*/}/*1*/
+
+ 
+
+
+
+
+
+foo(bar)
+# 38 "example.c"
+int (*(*bar)())();
+{/*1*/
+    int     (*baz)()= (int (*)()) 0,
+	    y = (y * (*baz)(y)),
+	    *(*z)()= (int *(*)()) 0;
+
+    struct {/*2*/ int (*foo)(); }/*2*/ *(*s)()= 
+	(struct { int (*foo)(); } *(*)()) 0;
+
+    /* end dcls */{/*2*/
+	y /* end dcls */= (y * (*baz)(y));
+    }/*2*/
+    {/*2*/
+	z /* end dcls */= (int *(*)()) 0;
+    }/*2*/
+    {/*2*/
+	s /* end dcls */= (struct { int (*foo)(); } *(*)()) 0;
+    }/*2*/
+
+    return (0);
+}/*1*/
+
+
+
+test1()
+{/*1*/
+	int foo2,*(*(*bar)())(),*baz();
+}/*1*/
+
+
+
+test2(y)
+# 69 "example.c"
+charstar y;
+{/*1*/
+	int foo = 5,atoi();
+
+	foo /* end dcls */= 5,atoi(y);
+}/*1*/
+
+
+
+test3,test4();
+
+test5(y)
+# 80 "example.c"
+int y;
+{/*1*/
+	/* end dcls */{/*2*/
+		test3/* end dcls */;
+	}/*2*/
+	{/*2*/
+		test4/* end dcls */(y);
+	}/*2*/
+}/*1*/
+
+test6[1],test7();
+
+test7(x)
+# 92 "example.c"
+int x;
+{/*1*/
+	/* end dcls */{/*2*/
+		test6/* end dcls */[1];
+	}/*2*/
+	{/*2*/
+		test7/* end dcls */(x);
+	}/*2*/
+}/*1*/
+
+
+
+struct {/*1*/
+    struct {/*2*/
+	int (*f)(), o;
+    }/*2*/ bar;
+}/*1*/ (*baz2)()= (struct { struct { int (*f)(), o; } bar; } (*)()) 0;
+
+
+
+test8(x)
+{/*1*/
+    /* end dcls */{/*2*/
+	struct {/*3*/
+	    int     foo;
+	}/*3*/ bar();
+    }/*2*/
+    {/*2*/
+	/* end dcls */do {/*3*/
+	    int     foo;
+	}/*3*/ while (x);
+    }/*2*/
+}/*1*/
+
+
+
+test9(bar)
+# 128 "example.c"
+char *bar;
+{/*1*/
+    foo/* end dcls */(*bar);
+}/*1*/
+
+
+
+test10(x)
+# 135 "example.c"
+int x;
+{/*1*/
+    /* end dcls */{/*2*/
+	int test10();
+	/* end dcls */do  test10(x);
+	while (x);
+    }/*2*/
+    {/*2*/
+	/* end dcls */return test10(x);
+    }/*2*/
+}/*1*/
+
+test11(x)
+# 147 "example.c"
+int *x;
+{/*1*/
+	/* end dcls */while (*x)
+	    (putchar(*x++));
+}/*1*/
+
+test11a(x)
+# 153 "example.c"
+int *x;
+{/*1*/
+	/* end dcls */for (*x;;)
+	    (putchar(*x++));
+}/*1*/
+
+
+
+test12()
+{/*1*/
+	char *x = 
+# 1 "/dev/null" 1
+# 165 "example.c" 2
+# 163 "example.c"
+"\017\0002\002\002\002\007bar" 
+
+		;
+
+	printf/* end dcls */("foobarbaz"    );
+
+	*x = '\007';
+	*x = '\377';
+}/*1*/
+
+int test13();
+
+
+
+test14();
+
+charstar test15 = "foobar";
+
+char test16 = "foo\007bar";
+
+
+
+
+test17(foo)
+# 186 "example.c"
+charstar foo[bar];
+# 186 "example.c"
+{/*1*/}/*1*/
+
+int (*(*test18[bar])())()= 	(int (*(*[bar])())()) 0;
+
+
+
+
+int (*(*test19())())();
+
+
+
+void test20(test21)
+# 197 "example.c"
+int test21();
+# 197 "example.c"
+{/*1*/}/*1*/
+
+void test22(test23)
+# 199 "example.c"
+struct { int foo; } test23();
+# 199 "example.c"
+{/*1*/}/*1*/
+
+
+
+void    test23()
+{/*1*/
+    int     (*test24())(),
+            y = (*test24(2)) (3),
+            z = ((*test24(2))(3));
+}/*1*/
+
+
+
+int (*(*test25(foo))())()
+# 212 "example.c"
+long foo;
+# 212 "example.c"
+{/*1*/  }/*1*/
+
+int (*(*test26(foo))())()
+long foo;
+{/*1*/  }/*1*/
+
+
+
+void functie(cmdlin,c1)
+# 220 "example.c"
+struct {int l; char c[1];} *cmdlin;
+# 220 "example.c"
+struct {int l; char c[1];} *c1;
+{/*1*/
+}/*1*/

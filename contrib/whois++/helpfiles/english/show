@@ -1,0 +1,2 @@
+The show command returns a list of attributes that can be returned if a
+record of that template type is returned as a result of a query.

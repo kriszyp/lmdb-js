@@ -1,0 +1,30 @@
+This is an experimental implementation of a whois++ service being proposed
+by the IETF's WNILS (Whois and Network Information Lookup Service) Working
+Group. It uses a (Quipu 8.0 based) X.500 Directory Service as it's
+information source.
+
+The whois++ server communicates with the Directory via LDAP (Lightweight
+Directory Access Protocol), using the libraries developed by the University
+of Michigan. All user search queries are transformed into LDAP queries that
+are passed to the X.500 Directory service for resolution.
+
+For "normal" whois style queries we make a number of assumptions on the
+attributes of interest depending on the format of the query. If you only
+supply a single token it is assumed that you wish to search for a family
+name or userid. Multiple tokens imply a search on a full name (commonName
+in X.500-speak). We also support e-mail lookups as described in the
+original whois RFC (RFC954) however wildcard style searches may be
+constrained by the X.500 Directory service.
+
+Example queries 
+a. ng =>
+	(|(sn=ng)(userid=ng)(l=ng)(ou=ng)(&(cn=ng)(!(objectClass=person))))
+b. zhongyi li =>
+	(|(l=zhongyi li)(ou=zhongyi li)(preferredName=zhongyi li)\
+		(cn=*zhongyi * li))
+c. mrp@ =>
+	(|(mail=mrp@*)(userid=mrp))
+
+You can also use structured whois++ queries that specify the attribute to
+search as well as value. Searching using uncommon attributes attributes may
+be restricted by the X.500 Directory system.

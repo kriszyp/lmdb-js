@@ -1,0 +1,97 @@
+#-----------------------------------------------------------------------------
+# Copyright (c) 1992 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#       LDAP lightweight X.500 Directory access top level makefile for MSC
+#
+#-----------------------------------------------------------------------------
+
+SRCS	= bind.c opendos.c result.c error.c compare.c search.c parse.c \
+	modify.c add.c modrdn.c delete.c abandon.c synchron.c \
+	kerberos.c cache.c ufn.c
+OBJS	= bind.obj opendos.obj result.obj error.obj compare.obj search.obj \
+	parse.obj modify.obj add.obj modrdn.obj delete.obj abandon.obj \
+	synchron.obj kerberos.obj cache.obj ufn.obj
+
+NOLOGO	= /nologo
+CC	= cl $(NOLOGO)
+MAKE	= nmake $(NOLOGO)
+LD	= link $(NOLOGO)
+
+default:
+	cd ..
+	$(MAKE) ldap-lib
+
+all:	libldap.lib ltest
+
+bind.obj:	bind.c
+	$(CC) $(CFLAGS) bind.c
+
+opendos.obj:	opendos.c
+	$(CC) $(CFLAGS) opendos.c
+
+result.obj:	result.c
+	$(CC) $(CFLAGS) result.c
+
+error.obj:	error.c
+	$(CC) $(CFLAGS) error.c
+
+compare.obj:	compare.c
+	$(CC) $(CFLAGS) compare.c
+
+search.obj:	search.c
+	$(CC) $(CFLAGS) search.c
+
+parse.obj:	parse.c
+	$(CC) $(CFLAGS) parse.c
+
+modify.obj:	modify.c
+	$(CC) $(CFLAGS) modify.c
+
+add.obj:	add.c
+	$(CC) $(CFLAGS) add.c
+
+modrdn.obj:	modrdn.c
+	$(CC) $(CFLAGS) modrdn.c
+
+delete.obj:	delete.c
+	$(CC) $(CFLAGS) delete.c
+
+abandon.obj:	abandon.c
+	$(CC) $(CFLAGS) abandon.c
+
+synchron.obj:	synchron.c
+	$(CC) $(CFLAGS) synchron.c
+
+kerberos.obj:	kerberos.c
+	$(CC) $(CFLAGS) kerberos.c
+
+cache.obj:	cache.c
+	$(CC) $(CFLAGS) cache.c
+
+ufn.obj:	ufn.c
+	$(CC) $(CFLAGS) ufn.c
+
+libldap.lib:	$(OBJS)
+	del libldap.lib
+	lib $(NOLOGO) libldap.lib +bind.obj+opendos.obj+result.obj+error.obj+compare.obj;
+	lib $(NOLOGO) libldap.lib +search.obj+parse.obj+modify.obj+add.obj+modrdn.obj;
+	lib $(NOLOGO) libldap.lib +delete.obj+abandon.obj+synchron.obj+kerberos.obj+cache.obj+ufn.obj;
+
+test.obj:	test.c
+	$(CC) $(CFLAGS) test.c
+
+ltest:	libldap.lib test.obj ..\liblber\liblber.lib
+	$(LD) $(LDFLAGS) test,ltest,nul,libldap+..\liblber\liblber+ltklib ;
+
+clean:
+	del *.obj
+	del *.lib
+	del *.exe

@@ -1,0 +1,92 @@
+#-----------------------------------------------------------------------------
+# Copyright (c) 1992 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#       LDAP library makefile for MicroSoft C
+#
+#-----------------------------------------------------------------------------
+
+SRCS	= bind.c opendos.c result.c error.c compare.c search.c parse.c \
+	modify.c add.c modrdn.c delete.c abandon.c synchronous.c \
+	kerberos.c
+OBJS	= bind.obj opendos.obj result.obj error.obj compare.obj search.obj \
+	parse.obj modify.obj add.obj modrdn.obj delete.obj abandon.obj \
+	synchronous.obj kerberos.obj
+
+CFLAGS	= $(ACFLAGS) -I../h $(KRBINCLUDEDIR)
+NCFLAGS	= -I../../include
+CC	= echo "cd up a level first"
+
+#default:
+#	(cd ../; make ldap-library)
+
+all:	libldap.lib ltest
+
+bind.obj:	bind.c
+	$(CC) $(CFLAGS) $(NCFLAGS) bind.c
+
+opendos.obj:	opendos.c
+	$(CC) $(CFLAGS) $(NCFLAGS) opendos.c
+
+result.obj:	result.c
+	$(CC) $(CFLAGS) $(NCFLAGS) result.c
+
+error.obj:	error.c
+	$(CC) $(CFLAGS) error.c
+
+compare.obj:	compare.c
+	$(CC) $(CFLAGS) compare.c
+
+search.obj:	search.c
+	$(CC) $(CFLAGS) search.c
+
+parse.obj:	parse.c
+	$(CC) $(CFLAGS) parse.c
+
+modify.obj:	modify.c
+	$(CC) $(CFLAGS) modify.c
+
+add.obj:	add.c
+	$(CC) $(CFLAGS) add.c
+
+modrdn.obj:	modrdn.c
+	$(CC) $(CFLAGS) modrdn.c
+
+delete.obj:	delete.c
+	$(CC) $(CFLAGS) delete.c
+
+abandon.obj:	abandon.c
+	$(CC) $(CFLAGS) abandon.c
+
+synchronous.obj:	synchronous.c
+	$(CC) $(CFLAGS) synchronous.c
+
+kerberos.obj:	kerberos.c
+	$(CC) $(CFLAGS) kerberos.c
+
+libldap.lib:	$(OBJS)
+	del libldap.lib
+	lib libldap.lib +bind.obj+opendos.obj+result.obj+error.obj+compare.obj;
+	lib libldap.lib +search.obj+parse.obj+modify.obj+add.obj+modrdn.obj;
+	lib libldap.lib +delete.obj+abandon.obj+synchronous.obj+kerberos.obj;
+
+test.obj:	test.c
+	$(CC) $(CFLAGS) test.c
+
+ltest:	libldap.lib test.obj ..\liblber\liblber.lib
+	copy libldap.lib ..\..\lib
+	copy ..\liblber\liblber.lib ..\..\lib
+	cd ..\..\lib
+	$(LD) $(LDFLAGS) ..\ldap\libldap\test+memdebug+ncsaio,ltest,nul,libldap+liblber.lib+tcp+sess+enet+common
+	copy ltest.exe ..\ldap\libldap\ltest.exe
+	del libldap.lib
+	del liblber.lib
+	del ltest.exe
+	cd ..\ldap\libldap

@@ -1,0 +1,9 @@
+NAME		CONSOLE
+EXETYPE         WINDOWS
+STUB            'C:\windows\WINSTUB.EXE'
+CODE            PRELOAD MOVEABLE
+DATA            PRELOAD MOVEABLE MULTIPLE
+HEAPSIZE	32768
+EXPORTS 	WndProc			@1
+		TEditWndProc		@2
+		GetLineDlgProc		@3

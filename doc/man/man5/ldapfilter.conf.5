@@ -1,0 +1,198 @@
+.TH LDAPFILTER.CONF 5  "21 September 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldapfilter.conf \- configuration file for LDAP get filter routines
+.SH SYNOPSIS
+ETCDIR/ldapfilter.conf
+.SH DESCRIPTION
+.LP
+The file
+.B ETCDIR/ldapfilter.conf
+contains information used by
+the LDAP get filter routines (see
+.BR ldap-getfilter (3)).
+Blank lines and
+lines that have a first character of `#' are treated as comments and
+ignored.  The configuration information consists of lines that contain
+one, two, three, four, or five tokens.  Tokens are separated
+by white space, and double quotes `"' can be used to include white space
+inside a token.
+.LP
+The file consists of a sequence of one or more filter sets.  A filter
+set begins with a line containing a single token called a
+.I tag.
+The
+.I tag
+is used in the
+.BR ldap_getfirstfilter (3)
+call to select the filter set.
+.LP
+The filter set consists of a sequence of one or more filter lists.  The
+first line in a filter list must contain four or five tokens: the
+.I value pattern,
+the
+.I delimiter list,
+a
+.I filter template,
+a
+.I match description,
+and an optional
+.I search scope.
+The
+.I value pattern
+is a regular expression that is matched against the
+.B value
+passed to the
+.BR ldap_getfirstfilter (3)
+call to select the filter list.
+.LP
+The
+.I delimiter list
+is a list of characters (in the form of a single string) that are used to
+break the
+.B value
+into distinct words. 
+.LP
+The
+.I filter template
+is used to construct an LDAP filter (it is described further below)
+.LP
+The
+.I match description
+is returned to the called along with a filter as a piece of text that can
+be used to describe the sort of LDAP search that took place.  It should
+correctly compete both of the following phrases:
+"One
+.I match description
+match was found for..."
+and
+"Three
+.I match description
+matches were found for...."
+.LP
+The
+.I search scope
+is optional, and should be one of "base", "onelevel", or "subtree".  If
+.I search scope
+is not provided, the default is "subtree".
+.LP
+The remaining lines of the filter list should contain two or three tokens,
+a
+.I filter template,
+a
+.I match description
+and an optional
+.I search scope
+(as described above).
+.LP
+The
+.I filter template
+is similar in concept to a printf(3) style format
+string.  Everything is taken literally except for the character
+sequences:
+.nf
+.ft I
+    %v
+    %v$
+    %vN
+    %vM-N
+    %vN-
+.ft
+.fi
+A plain
+.I %v
+means to substitute the entire
+.B value
+string in place of the
+.I %v.
+.I %v$
+means substitute the last word in this spot.
+A
+.I %vN,
+where N is a single digit 1-9, means substitute word N in this spot.
+Words are number from left to right within the value starting at 1.
+A
+.I %vM-N,
+where M and N are both single digits 1-9, means substitute the indicated
+sequence of words.
+A
+.I %vN-,
+where N is again a single digit 1-9, means substitute word N through the
+last word in
+.B value.
+.SH EXAMPLE
+The following ldap filter configuration file contains two filter sets
+.RB ( finger
+and
+.B go500gw
+.BR onelevel ),
+each of which contains four filter lists.
+.LP
+.nf
+  # ldap filter file
+  #
+  finger
+    "="                " "     "%v"                    "arbitrary filter"
+
+    "[0-9][0-9\-]*"    " "     "(telephoneNumber=*%v)" "phone number"
+
+    "@"                " "     "(mail=%v)"             "email address"
+
+    "^.[. _].*"       ". _"   "(cn=%v1* %v2-)"        "first initial"
+
+    ".*[. _].$"        ". _"   "(cn=%v1-*)"            "last initial"
+
+    "[. _]"            ". _"   "(|(sn=%v1-)(cn=%v1-))"        "exact"
+                               "(|(sn~=%v1-)(cn~=%v1-))"      "approximate"
+
+    ".*"               ". "    "(|(cn=%v1)(sn=%v1)(uid=%v1))" "exact"
+                               "(|(cn~=%v1)(sn~=%v1))"        "approximate"
+
+  "go500gw onelevel"
+    "^..$"  " "   "(|(o=%v)(c=%v)(l=%v)(co=%v))"       "exact" "onelevel"
+                  "(|(o~=%v)(c~=%v)(l~=%v)(co~=%v))"   "approximate" "onelevel"
+
+    " "     " "   "(|(o=%v)(l=%v)(co=%v)"       "exact"        "onelevel"
+                  "(|(o~=%v)(l~=%v)(co~=%v)"    "approximate"  "onelevel"
+
+    "\."    " "   "(associatedDomain=%v)"       "exact"        "onelevel"
+
+    ".*"    " "   "(|(o=%v)(l=%v)(co=%v)"       "exact"        "onelevel"
+                  "(|(o~=%v)(l~=%v)(co~=%v)"    "approximate"  "onelevel"
+.fi
+.LP
+The call
+.ft B
+ldap_getfirstfilter( lfdp, "finger", "m.smith" );
+.ft
+will return an LDAPFiltInfo structure with the
+.B lfi_filter
+member containing the string
+.I (cn=m* smith)
+with the
+.B lfi_desc
+member containing the string
+.I first initial,
+and
+.B lfi_scope
+containing the value LDAP_SCOPE_SUBTREE.
+.LP
+The call
+.ft B
+ldap_getfirstfilter( lfdp, "go500gw onelevel", "umich" );
+.ft
+will return an LDAPFiltInfo structure with the
+.B lfi_filter
+member containing the string
+.I (|(o=umich)(l=umich)(co=umich)
+with the
+.B lfi_desc
+member containing the string
+.I exact,
+and
+.B lfi_scope
+containing the value LDAP_SCOPE_ONELEVEL.
+.SH FILES
+ETCDIR/ldapfilter.conf
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldap_getfilter (3)

@@ -1,0 +1,5 @@
+ldap_init_searchprefs.3
+ldap_init_searchprefs_buf.3
+ldap_free_searchprefs.3
+ldap_first_searchobj.3
+ldap_next_searchobj.3

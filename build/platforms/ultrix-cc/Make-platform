@@ -1,0 +1,16 @@
+#
+# LDAP Ultrix standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+
+PLATFORMCFLAGS=	-Dultrix -YSYSTEM_FIVE
+PLATFORMLDFLAGS= -YSYSTEM_FIVE

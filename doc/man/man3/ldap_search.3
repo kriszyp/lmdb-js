@@ -1,0 +1,116 @@
+.TH LDAP_SEARCH 3  "23 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_search, ldap_search_s, ldap_search_st \- Perform an LDAP search operation
+.SH SYNOPSIS
+.nf
+.ft B
+#include <sys/time.h> /* for struct timeval definition */
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+int ldap_search(ld, base, scope, filter, attrs, attrsonly)
+.ft
+LDAP *ld;
+char *base;
+int scope;
+char *filter, *attrs[];
+int attrsonly;
+.LP
+.ft B
+int ldap_search_s(ld, base, scope, filter, attrs, attrsonly, res)
+.ft
+LDAP *ld;
+char *base;
+int scope;
+char *filter, *attrs[]
+int attrsonly;
+LDAPMessage **res;
+.LP
+.ft B
+int ldap_search_st(ld, base, scope, filter, attrs, attrsonly, timeout, res)
+.ft
+LDAP *ld;
+char *base;
+int scope;
+char *filter, *attrs[]
+int attrsonly;
+struct timeval *timeout;
+LDAPMessage **res;
+.SH DESCRIPTION
+These routines are used to perform LDAP search operations.
+.B ldap_search_s()
+does the search synchronously (i.e., not
+returning until the operation completes).
+.B ldap_search_st()
+does
+the same, but allows a \fItimeout\fP to be specified.
+.B ldap_search()
+is the asynchronous version, initiating the search and returning
+the message id of the operation it initiated.
+\fIBase\fP is the DN of the entry at which to start the search.
+\fIScope\fP is the scope of the search and should be one of LDAP_SCOPE_BASE,
+to search the object itself,
+LDAP_SCOPE_ONELEVEL, to search the object's immediate children,
+or LDAP_SCOPE_SUBTREE, to search the object and all its descendents.
+.LP
+\fIFilter\fP is a string
+representation of the filter to apply in the search.  Simple filters
+can be specified as \fIattributetype=attributevalue\fP.  More complex
+filters are specified using a prefix notation according to the following
+BNF:
+.LP
+.nf
+        <filter> ::= '(' <filtercomp> ')'
+        <filtercomp> ::= <and> | <or> | <not> | <simple>
+        <and> ::= '&' <filterlist>
+        <or> ::= '|' <filterlist>
+        <not> ::= '!' <filter>
+        <filterlist> ::= <filter> | <filter> <filterlist>
+        <simple> ::= <attributetype> <filtertype> <attributevalue>
+        <filtertype> ::= '=' | '~=' | '<=' | '>='
+.fi
+.LP
+The '~=' construct is used to specify approximate matching.  The
+representation for <attributetype> and <attributevalue> are as
+described in RFC 1778.  In addition, <attributevalue> can be a single *
+to achieve an attribute existence test, or can contain text and *'s
+interspersed to achieve substring matching.
+.LP
+For example, the filter "mail=*" will find any entries that have a mail
+attribute.  The filter "mail=*@terminator.rs.itd.umich.edu" will find
+any entries that have a mail attribute ending in the specified string.
+To put parentheses in a filter, escape them with a backslash '\\'
+character.  See RFC 1588 for a more complete description of allowable
+filters.  See
+.BR ldap_getfilter (3)
+for routines to help in constructing search filters automatically.
+.LP
+\fIAttrs\fP is a null-terminated array of attribute types to return
+from entries that match \fIfilter\fP.  If NULL is specified, all
+attributes will be returned.  \fIAttrsonly\fP should be set to 1 if
+only attribute types are wanted.  It should be set to 0 if both
+attributes types and attribute values are wanted.
+.SH ERRORS
+.B ldap_search_s()
+and
+.B ldap_search_st()
+will return the LDAP error code resulting from the search operation.
+See
+.BR ldap_error (3)
+for details.
+.B ldap_search()
+returns -1 in case of trouble.
+.SH NOTES
+Note that both read
+and list functionality are subsumed by these routines,
+by using a filter like "objectclass=*" and a scope of LDAP_SCOPE_BASE (to
+emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
+.LP
+These routines may malloc memory.  Return values are contained
+in <ldap.h>.
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldap_result (3),
+.BR ldap_getfilter (3),
+.BR ldap_error (3)

@@ -1,0 +1,29 @@
+#
+# LDAP IRIX standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+# ranlib not needed under IRIX
+RANLIB	= ""
+
+# be explicit about which CC to use
+CC=cc
+
+# give full path to hostname since it may not be in user's path
+HOSTNAME=/usr/bsd/hostname
+
+# don't count on a BSD install being present or first in path
+INSTALL=$(LDAPSRC)/build/install.sh
+
+PLATFORMCFLAGS=-DUSE_WAITPID
+PLATFORMLIBS=
+THREADS=
+THREADSLIB=

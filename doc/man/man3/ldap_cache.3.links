@@ -1,0 +1,7 @@
+ldap_enable_cache.3
+ldap_disable_cache.3
+ldap_destroy_cache.3
+ldap_flush_cache.3
+ldap_uncache_entry.3
+ldap_uncache_request.3
+ldap_set_cache_options.3

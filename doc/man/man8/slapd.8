@@ -1,0 +1,104 @@
+.TH SLAPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+slapd \- Stand-alone LDAP Daemon
+.SH SYNOPSIS
+.B ETCDIR/slapd [\-d debug\-level]
+.B [\-f slapd\-config\-file] [\-p port\-number]
+.B [\-s syslog\-level] [\-i]
+.B 
+.SH DESCRIPTION
+.LP
+.B Slapd
+is the stand-alone LDAP daemon. It listens for LDAP connections on
+port 389, responding
+to the LDAP operations it receives over these connections.
+.B slapd
+is typically invoked at boot time, usually out of
+.BR  /etc/rc.local .
+Upon startup,
+.B slapd
+normally forks and disassociates itself from the invoking tty.
+If the
+.B \-d
+flag is given and debugging is set to some non-zero
+value,
+.B slapd
+will not fork and disassociate from the invoking tty.
+.LP
+.B Slapd
+can be configured to provide replicated service for a database with
+the help of
+.BR slurpd ,
+the standalone LDAP update replication daemon.
+See
+.BR slurpd (8)
+for details.
+.LP
+See "The SLAPD and SLURPD Administrator's Guide" for more details on
+.BR slapd .
+.SH OPTIONS
+.TP
+.BI \-d " debug\-level"
+Turn on debugging as defined by
+.I debug\-level.
+If this option is specified,
+.B slapd
+will not fork or disassociate from the invoking terminal.  Some general
+operation and status messages are printed for any value of \fIdebug\-level\fP.
+\fIdebug\-level\fP is taken as a bit string, with each bit corresponding to a
+different kind of debugging information.  See <ldap.h> for details.
+.TP
+.BI \-s " syslog\-level"
+This option tells
+.B slapd
+at what level debugging statements should be logged to the
+.BR syslog (8)
+facility.
+.TP
+.BI \-f " slapd\-config\-file"
+Specifies the slapd configuration file. The default is
+.BR ETCDIR/slapd.conf .
+.TP
+.BI \-p " port\-number"
+.B slapd
+will listen on the default LDAP port (389) unless this option is given
+to override the default.
+.TP
+.B \-i
+This option tells
+.B slapd
+that it is being run from
+.BR inetd(8) ,
+the Internet protocol daemon.
+.SH EXAMPLES
+To start 
+.I slapd
+and have it fork and detach from the terminal and start serving
+the LDAP databases defined in the default config file, just type:
+.LP
+.nf
+.ft tt
+	ETCDIR/slapd
+.ft
+.fi
+.LP
+To start 
+.B slapd
+with an alternate configuration file, and turn
+on voluminous debugging which will be printed on standard error, type:
+.LP
+.nf
+.ft tt
+	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+.ft
+.fi
+.LP
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR slapd.conf (5),
+.BR slurpd (8)
+.LP
+"The SLAPD and SLURPD Administrator's Guide"
+.SH BUGS
+When using the LDBM database backend, the Modify RDN operation does not
+update the attribute values in the entry that are affected by the change.

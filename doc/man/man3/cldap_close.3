@@ -1,0 +1,30 @@
+.TH CLDAP_CLOSE 3  "18 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+cldap_close \- Dispose of Connectionless LDAP Pointer
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+void cldap_close( ld )
+.ft
+LDAP *ld;
+.SH DESCRIPTION
+.LP
+The
+.B cldap_close()
+routine disposes of memory allocated by
+.BR cldap_open (3).
+It should be called when all CLDAP communication is complete.
+.LP
+.B cldap_close()
+takes a single parameter \fIld\fP, the LDAP pointer
+returned by a previous call to
+.BR cldap_open (3).
+.SH SEE ALSO
+.BR ldap (3),
+.BR cldap_open (3),
+.BR cldap_search_s (3),
+.BR cldap_setretryinfo (3)

@@ -1,0 +1,90 @@
+			A N N O U N C E M E N T
+
+			       LDAP 3.3
+
+    The University of Michigan is pleased to announce release 3.3 of
+    UM-LDAP, an implementation of the Lightweight Directory Access
+    Protocol. LDAP is a draft Internet standard directory service
+    protocol that runs over TCP/IP. It can be used to provide a
+    stand-alone directory service, or to provide lightweight access to
+    the X.500 directory.  LDAP is defined by RFC 1777 and RFC 1778.
+
+    This release includes the following components:
+
+	- slapd - a stand-alone LDAP directory server
+	- slurpd - a stand-alone LDAP replication server
+	- ldapd - an LDAP-to-X.500 gateway server
+	- centipede - an LDAP centroid generation and maintenance program
+	- libldap - an LDAP client library
+	- liblber - a lightweight BER/DER encoding/decoding library
+	- ldif tools - data conversion tools for use with slapd
+	- in.xfingerd - a finger-to-LDAP gateway server
+	- go500 - a gopher-to-LDAP gateway server for searching
+	- go500gw - a gopher-to-LDAP gateway server for searching and browsing
+	- rcpt500 - an email-to-LDAP query responder
+	- mail500 - an LDAP-capable mailer
+	- fax500 - an LDAP-capable mailer that supports remote printing
+	- LDAP tools - A collection of shell-based LDAP utility programs
+
+    In addition, there are some contributed components:
+
+	- web500 - an HTTP-to-LDAP gateway
+	- whois++d - a WHOIS++-to-LDAP gateway
+	- saucer - a simple command-line oriented client program
+
+CHANGES
+
+    Changes since release 3.2 of LDAP include
+
+	- slurpd has been rewritten as a single process threaded daemon
+	- ldaptools (ldapsearch, etc) now support the LDIF format
+	- support for LDAP URLs added to libldap
+	- improved support for LDAP referrals in libldap
+	- preliminary test scripts included
+	- support for additional platforms
+	- various bug fixes and build fixes
+
+    See the CHANGES file in the distribution for more details.
+
+AVAILABILITY
+
+    This software is freely available to anyone for any lawful purpose,
+    subject to the U-M copyright notice and disclaimer.  The software is
+    available for anonymous ftp from the following location:
+
+	ftp://terminator.rs.itd.umich.edu/ldap/ldap-3.3.tar.Z
+
+SUPPORT
+
+    The software is provided as is without any express or implied
+    warranty, but there is a bug reporting mail address which is
+    responded to on a best-effort basis:
+
+	ldap-support@umich.edu
+
+    In addition, there is a discussion list for issues relating to this
+    implementation of ldap:
+
+	ldap@umich.edu			-- discussion list
+	ldap-request@umich.edu		-- to join the list
+
+    Comments or questions about the LDAP protocol in general should be
+    sent to the IETF ASID discussion group:
+
+	ietf-asid@umich.edu		-- discussion list
+	ietf-asid-request@umich.edu	-- to join the list
+
+    An LDAP home page containing lots of interesting information and
+    online documentation is available at this URL:
+
+        http://www.umich.edu/~rsug/ldap/
+
+SUPPORTED PLATFORMS
+
+    This release has been ported to many UNIX platforms, including
+    SunOS 4.1.x, Solaris 2.x, Ultrix 4.3, HP-UX 9.05, AIX 3.2.5,
+    SCO, FreeBSD, NetBSD, LINUX, IRIX, Digital Unix (OSF/1), and
+    NeXTSTEP 3.2.  This release has also been ported to VMS.
+
+    The client libraries and some clients have also been ported to
+    MacOS 7.x, MSDOS (some TCP stacks), and MS Windows 3.1/95/NT.

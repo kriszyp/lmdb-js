@@ -1,0 +1,55 @@
+LDAP MSDOS with SUN PC-NFS README
+
+The lber and ldap client libraries have been ported to MSDOS, running over
+SUN PC-NFS.  Build testing was done with Microsoft C 7.00, SUN PC-NFS
+Programmer's Toolkit version 4.0 and MSDOS 5.0.
+
+This port is relatively untested so please be sure to report any bugs to
+us (see the end of this file for where to report bugs).
+
+None of the clients included in the distribution have been tested
+on the PC over PC-NFS although UD has been tested over the NCSA TCP/IP port.
+
+MAKING THE DISTRIBUTION
+To build the ldap and lber libraries on the PC:
+
+1) Create a directory somewhere for your LDAP source files and then create
+   the following three directories in it: h, liblber and libldap.  You
+   should have a structure something like
+
+	LDAP\H
+	LDAP\LIBLDAP
+	LDAP\LIBLBER
+
+2) Populate them from the distribution (files from the h/, liblber/,
+   and libldap/ distribution directories get copied to H\,
+   LIBLBER\, and LIBLDAP\ respectively).
+
+3) Copy additional files for MSDOS PC-NFS to proper places:
+	distribution file		PC file
+	msdos/makefile.nfs		LDAP\MAKEFILE
+	msdos/msdos.h			LDAP\H\MSDOS.H
+	msdos/lp.c			LDAP\LIBLBER\LP.C
+	msdos/makelber.nfs		LDAP\LIBLBER\MAKEFILE
+	msdos/msdos.c			LDAP\LIBLBER\MSDOS.C
+	msdos/makeldap.nfs		LDAP\LIBLDAP\MAKEFILE
+	msdos/opendos.c			LDAP\LIBLDAP\OPENDOS.C
+
+4) If you wish to change any compiler or linker switches, you
+   should be able to do so just by editing the top-level
+   MAKEFILE.
+
+5) Build the library (this will also build the LDAP test program):
+
+	CD LDAP
+        NMAKE
+
+   You will get many screen fulls of warnings that can safely be ignored.
+
+6) Test the library using LTEST.EXE.
+
+BUG REPORTING
+
+    Bug reports should be sent to bug-ldap@terminator.cc.umich.edu.
+
+README.NFS Last updated January 1993 Andy Powell (University of Bath)

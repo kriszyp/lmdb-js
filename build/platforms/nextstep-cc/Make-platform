@@ -1,0 +1,15 @@
+#
+# LDAP NeXTSTEP cc Make-platform file
+#
+
+
+#
+# add any platform-specific overrides below here
+#
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+PLATFORMCFLAGS=	-Dnextstep
+PLATFORMLDFLAGS= -all_load

@@ -1,0 +1,170 @@
+.TH GO500GW 8C "27 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+go500gw \- General Gopher to X.500 gateway for browsing and searching
+.SH SYNOPSIS
+.B ETCDIR/go500gw [\-a] [\-d level] [\-f filterfile]
+.B [\-t templatefile] [\-c rdncount]
+.B [\-h helpfile] [\-l] [\-p listenport]
+.B [\-P ldapport] [\-x ldaphost] [\-I]
+.SH DESCRIPTION
+.B go500gw
+is the general gopher to X.500 browsing and search gateway daemon.
+It speaks gopher on one side and X.500 (via LDAP)
+on the other.  It presents the X.500 DIT as a tree of menus,
+search items, and documents in gopher space, supporting both
+browsing and searching of X.500 via a gopher client.  By default,
+it listens on port 7777 for connections from gopher clients.
+.LP
+The
+.B go500gw
+server can be run either from
+.BR inetd (8)
+or as stand-alone server.
+.SH STAND-ALONE OPERATION
+To start
+.B go500gw
+as a stand-alone server, simply start it with no arguments
+.LP
+.nf
+.ft tt
+	ETCDIR/go500gw
+.ft
+.fi
+.LP
+If you would like to start it at boot time add some lines like this to
+the
+.BR /etc/rc.local (5)
+or equivalent file:
+.LP
+.nf
+.ft tt
+	if [ -f ETCDIR/go500gw ]; then
+		ETCDIR/go500gw; echo ' go500gw'
+	fi
+.ft
+.fi
+.SH OPERATION WITH INETD
+To arrange to have
+.B go500gw
+started from
+.BR inetd (8), the Internet protocol
+daemon, add a line like the following to your
+.BR /etc/services (5)
+file, or the equivalent:
+.LP
+.nf
+.ft tt
+    go500gw           7777/tcp        go500gw
+.ft
+.fi
+.LP
+Next, add a line like this to your
+.BR /etc/inetd.conf (5)
+file, or the equivalent:
+.LP
+.nf
+.ft tt
+    go500gw  stream  tcp  nowait  nobody  ETCDIR/go500gw    go500gw -I
+.ft
+.fi
+.LP
+For these changes to take effect with inetd, you will probably have
+to send it it a HUP signal.  See
+.BR inetd (8)
+for more details.
+.SH GOPHER CONFIGURATION
+The next step is to configure your local gopher server to have an
+entry for
+.BR go500gw .
+With the standard unix gopher server, this
+can be done with a
+.B .link
+file.  A sample
+.B .link
+file is given below, with the things you should change given in <>'s:
+.LP
+.nf
+.ft tt
+	Name=<Label of your choice>
+	Type=1
+	Port=7777
+	Path=1<optional RFC 1779-format DN at which to start browsing>
+	Host=<host.running.go500gw.here>
+.ft
+.fi
+.LP
+You may also have to restart your gopher daemon, or remove the
+.B .cache
+file.
+.SH OPTIONS
+.TP
+.B \-a
+Search aliases when doing LDAP searches.  The default is not to
+search aliases.
+.TP
+.BI \-d " level"
+Turn on debugging as defined by
+.I level.
+If this option is specified,
+.B go500gw
+will not fork or disassociate from the invoking terminal.  Some general
+operation and status messages are printed for any value of \fIlevel\fP.
+\fIlevel\fP is taken as a bit string, with each bit corresponding to a
+different kind of debugging information.
+.TP
+.BI \-f " filterfile"
+Specify an alternate filter configuration file for use with the
+.BR ldap_getfilter (3)
+facility, used by
+.BR go500gw .
+.TP
+.BI \-h " helpfile"
+Specify an alternate help file.  The help file is what is displayed
+in the "About the Gopher to X.500 Gateway" menu item.
+.TP
+.B \-l
+Enable logging of various status and errors to the LOG_LOCAL3 facility via
+.BR syslog (8).
+.TP
+.BI \-p " listenport"
+Specify an alternate port on which to listen for connections.
+.TP
+.BI \-P " ldapport"
+Specify an alternate port on which to contact the LDAP server.
+.TP
+.BI \-t " templatefile"
+Specify an alternate template  configuration  file  for
+use  with  the
+.BI ldap_init_templates (3)
+facility, used by
+.B go500gw .
+.TP
+.BI \-c " rdncount"
+Specify the number of DN components to show for the names and DN attributes
+within entries matching the search.
+.TP
+.BI \-x " hostname"
+Specify an alternate host on which the ldap server is running.
+.TP
+.B \-I
+Run from
+.BR inetd (8).
+.SH NOTES
+Some implementations of inetd have a small limit on the number of arguments
+that can be specified in the
+.BR /etc/inetd.conf (5)
+file.  This can cause
+problems if you are using
+.B go500gw
+with a lot of arguments.
+.LP
+The default values for most of the things you can specify with
+options are configured at compile time in the
+.B include/ldapconfig.h.edit
+include file.
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR ldap_getfilter (3),
+.BR inetd (8),
+.BR gopherd (8),
+.BR go500 (8)

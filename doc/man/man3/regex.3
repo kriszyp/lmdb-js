@@ -1,0 +1,326 @@
+.TH regex 3 local
+.DA Jun 19 1986
+.SH NAME
+re_comp, re_exec, re_subs, re_modw, re_fail  \- regular expression handling
+.SH ORIGIN
+Dept. of Computer Science
+.br
+York University
+.SH SYNOPSIS
+.B char *re_comp(pat)
+.br
+.B char *pat;
+.PP
+.B re_exec(str)
+.br
+.B char *str;
+.PP
+.B re_subs(src, dst)
+.br
+.B char *src;
+.br
+.B char *dst;
+.PP
+.B void re_fail(msg, op)
+.br
+.B char *msg;
+.br
+.B char op;
+.PP
+.B void re_modw(str)
+.br
+.B char *str;
+
+.SH DESCRIPTION
+.PP
+These functions implement
+.IR ed (1)-style
+partial regular expressions and supporting facilities.
+.PP
+.I Re_comp
+compiles a pattern string into an internal form (a deterministic finite-state
+automaton) to be executed by
+.I re_exec
+for pattern matching.
+.I Re_comp
+returns 0 if the pattern is compiled successfully, otherwise it returns an
+error message string. If
+.I re_comp
+is called with a 0 or a \fInull\fR string, it returns without changing the
+currently compiled regular expression.
+.sp
+.I Re_comp
+supports the same limited set of
+.I regular expressions
+found in
+.I ed
+and Berkeley
+.IR regex (3)
+routines:
+.sp
+.if n .in +1.6i
+.if t .in +1i
+.de Ti
+.if n .ti -1.6i
+.if t .ti -1i
+.. 
+.if n .ta 0.8i +0.8i +0.8i
+.if t .ta 0.5i +0.5i +0.5i
+.Ti 
+[1]	\fIchar\fR	Matches itself, unless it is a special
+character (meta-character): \fB. \\ [ ] * + ^ $\fR
+
+.Ti 
+[2]	\fB.\fR	Matches \fIany\fR character.
+
+.Ti 
+[3]	\fB\\\fR	Matches the character following it, except
+when followed by a digit 1 to 9, \fB(\fR, fB)\fR, \fB<\fR or \fB>\fR.
+(see [7], [8] and [9]) It is used as an escape character for all 
+other meta-characters, and itself. When used
+in a set ([4]), it is treated as an ordinary
+character.
+
+.Ti
+[4]	\fB[\fIset\fB]\fR	Matches one of the characters in the set.
+If the first character in the set is \fB^\fR,
+it matches a character NOT in the set. A
+shorthand 
+.IR S - E
+is used to specify a set of
+characters 
+.I S 
+up to 
+.IR E , 
+inclusive. The special
+characters \fB]\fR and \fB-\fR have no special
+meaning if they appear as the first chars
+in the set.
+.nf
+	examples:	match:
+	[a-z]		any lowercase alpha
+	[^]-]		any char except ] and -
+	[^A-Z]		any char except 
+			uppercase alpha
+	[a-zA-Z0-9]	any alphanumeric
+.fi
+
+.Ti 
+[5]	\fB*\fR	Any regular expression form [1] to [4], followed by
+closure char (*) matches zero or more matches of
+that form.
+
+.Ti 
+[6]	\fB+\fR	Same as [5], except it matches one or more.
+
+.Ti 
+[7]		A regular expression in the form [1] to [10], enclosed
+as \\(\fIform\fR\\) matches what form matches. The enclosure
+creates a set of tags, used for [8] and for
+pattern substitution in
+.I re_subs. 
+The tagged forms are numbered
+starting from 1.
+
+.Ti 
+[8]		A \\ followed by a digit 1 to 9 matches whatever a
+previously tagged regular expression ([7]) matched.
+
+.Ti
+[9]	\fB\\<\fR	Matches the beginning of a \fIword\fR,
+that is, an empty string followed by a
+letter, digit, or _ and not preceded by
+a letter, digit, or _ .
+.Ti
+	\fB\\>\fR	Matches the end of a \fIword\fR,
+that is, an empty string preceded
+by a letter, digit, or _ , and not
+followed by a letter, digit, or _ .
+
+.Ti 
+[10]		A composite regular expression 
+\fIxy\fR where \fIx\fR and \fIy\fR
+are in the form of [1] to [10] matches the longest
+match of \fIx\fR followed by a match for \fIy\fR.
+
+.Ti 
+[11]	\fB^ $\fR	a regular expression starting with a \fB^\fR character
+and/or ending with a \fB$\fR character, restricts the
+pattern matching to the beginning of the line,
+and/or the end of line [anchors]. Elsewhere in the
+pattern, \fB^\fR and \fB$\fR are treated as ordinary characters.
+.if n .in -1.6i
+.if t .in -1i
+
+.PP
+.I Re_exec
+executes the internal form produced by
+.I re_comp
+and searches the argument string for the regular expression described
+by the internal
+form. 
+.I Re_exec
+returns 1 if the last regular expression pattern is matched within the string,
+0 if no match is found. In case of an internal error (corrupted internal
+form), 
+.I re_exec 
+calls the user-supplied
+.I re_fail
+and returns 0.
+.PP
+The strings passed to both
+.I re_comp
+and
+.I re_exec
+may have trailing or embedded newline characters. The strings 
+must be terminated by nulls.
+.PP
+.I Re_subs
+does
+.IR ed -style
+pattern substitution, after a successful match is found by
+.I re_exec.
+The source string parameter to
+.I re_subs
+is copied to the destination string with the following interpretation;
+.sp
+.if n .in +1.6i
+.if t .in +1i
+.Ti
+[1]	&	Substitute the entire matched string in the destination.
+
+.Ti
+[2]	\\\fIn\fR	Substitute the substring matched by a tagged subpattern
+numbered \fIn\fR, where \fIn\fR is between 1 to 9, inclusive.
+
+.Ti
+[3]	\\\fIchar\fR	Treat the next character literally,
+unless the character is a digit ([2]).
+.if n .in -1.6i
+.if t .in -1i
+
+.PP
+If the copy operation with the substitutions is successful,
+.I re_subs
+returns 1.
+If the source string is corrupted, or the last call to
+.I re_exec
+fails, it returns 0.
+
+.I Re_modw
+is used to 
+add new characters into an internal table to
+change the re_exec's understanding of what
+a \fIword\fR should look like, when matching with \fB\\<\fR and \fB\\>\fR
+constructs. If the string parameter is 0 or null string,
+the table is reset back to the default, which contains \fBA-Z a-z 0-9 _\fR .
+
+.I Re_fail
+is a user-supplied routine to handle internal errors.
+.I re_exec
+calls
+.I re_fail
+with an error message string, and the opcode character that caused the error.
+The default
+.I re_fail
+routine simply prints the message and the opcode character to
+.I stderr
+and invokes
+.IR exit (2).
+.SH EXAMPLES
+In the examples below, the
+.I nfaform
+describes the internal form after the pattern is compiled. For additional
+details, refer to the sources.
+.PP
+.ta 0.5i +0.5i +0.5i
+.nf
+foo*.*
+	nfaform:	CHR f CHR o CLO CHR o END CLO ANY END END
+	matches:	\fIfo foo fooo foobar fobar foxx ...\fR
+
+fo[ob]a[rz]
+	nfaform:	CHR f CHR o CCL 2 o b CHR a CCL 2 r z END
+	matches:	\fIfobar fooar fobaz fooaz\fR
+
+foo\\\\+
+	nfaform:	CHR f CHR o CHR o CHR \\ CLO CHR \\ END END
+	matches:	\fIfoo\\ foo\\\\ foo\\\\\\  ...\fR
+
+\\(foo\\)[1-3]\\1	(same as foo[1-3]foo, but takes less internal space)
+	nfaform:	BOT 1 CHR f CHR o CHR o EOT 1 CCL 3 1 2 3 REF 1 END
+	matches:	\fIfoo1foo foo2foo foo3foo\fR
+
+\\(fo.*\\)-\\1
+	nfaform:	BOT 1 CHR f CHR o CLO ANY END EOT 1 CHR - REF 1 END
+	matches:	\fIfoo-foo fo-fo fob-fob foobar-foobar ...\fR
+.SH DIAGNOSTICS
+.I Re_comp
+returns one of the following strings if an error occurs:
+.PP
+.nf
+.in +0.5i
+\fINo previous regular expression,
+Empty closure,
+Illegal closure,
+Cyclical reference,
+Undetermined reference,
+Unmatched \e(,
+Missing ],
+Null pattern inside \e(\e),
+Null pattern inside \e<\e>,
+Too many \e(\e) pairs,
+Unmatched \e)\fP.
+.in -0.5i
+.fi
+.SH REFERENCES
+.if n .ta 3i
+.if t .ta 1.8i
+.nf
+\fISoftware tools\fR	Kernighan & Plauger
+\fISoftware tools in Pascal\fR	Kernighan & Plauger
+\fIGrep sources\fR [rsx-11 C dist]	David Conroy
+\fIEd - text editor\fR	Unix Programmer's Manual
+\fIAdvanced editing on Unix\fR	B. W. Kernighan
+\fIRegExp sources\fR	Henry Spencer
+.fi
+.SH "HISTORY AND NOTES"
+These routines are derived from various implementations
+found in 
+.I "Software Tools"
+books, and David Conroy's 
+.I grep. 
+They are NOT derived from licensed/restricted software.
+For more interesting/academic/complicated implementations,
+see Henry Spencer's 
+.I regexp 
+routines (V8), or 
+.I "GNU Emacs"
+pattern
+matching module.
+.PP
+The
+.I re_comp
+and
+.I re_exec
+routines perform
+.I almost
+as well as their licensed counterparts, sometimes better. 
+In very few instances, they
+are about 10% to 15% slower.
+.SH AUTHOR
+Ozan S. Yigit (oz)
+.br
+usenet: utzoo!yetti!oz
+.br
+bitnet: oz@yusol || oz@yuyetti
+.SH "SEE ALSO"
+ed(1), ex(1), egrep(1), fgrep(1), grep(1), regex(3)
+.SH BUGS
+These routines are \fIPublic Domain\fR. You can get them
+in source.
+.br
+The internal storage for the \fInfa form\fR is not checked for
+overflows. Currently, it is 1024 bytes.
+.br
+Others, no doubt.

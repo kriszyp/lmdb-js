@@ -1,0 +1,76 @@
+#-----------------------------------------------------------------------------
+# Copyright (c) 1992 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#	ud makefile for Microsoft C
+#
+#	Use -DUOFM for University of Michigan specifics like:
+#		if ud should know about noBatchUpdates
+#	Use -DDOS if building for a DOS machine
+#	Use -DNOTERMCAP if there is no termcap library
+#		also need to redefine/undefine the Makefile TERMLIB variable
+#-----------------------------------------------------------------------------
+SRCS=	find.c mod.c print.c auth.c util.c help.c getopt.c versio.c
+OBJS=	find.obj mod.obj print.obj auth.obj util.obj help.obj \
+		getopt.obj version.obj
+HDRS=	ud.h protoud.h
+
+CFLAGS	= $(ACFLAGS) -I../h
+NCFLAGS	= -I../../include
+CC	= echo "cd up a level first"
+
+#default:
+#	(cd ../; make ud)
+
+all:	ud
+
+main.obj:	main.c
+	$(CC) $(CFLAGS) main.c
+
+find.obj:	find.c
+	$(CC) $(CFLAGS) find.c
+
+mod.obj:	mod.c
+	$(CC) $(CFLAGS) mod.c
+
+print.obj:	print.c
+	$(CC) $(CFLAGS) print.c
+
+auth.obj:	auth.c
+	$(CC) $(CFLAGS) auth.c
+
+util.obj:	util.c
+	$(CC) $(CFLAGS) util.c
+
+help.obj:	help.c
+	$(CC) $(CFLAGS) help.c
+
+getopt.obj:	getopt.c
+	$(CC) $(CFLAGS) getopt.c
+
+version.obj:	version.c
+	$(CC) $(CFLAGS) version.c
+
+libud.lib:	$(OBJS)
+	del libud.lib
+	lib libud.lib find.obj+mod.obj+print.obj+auth.obj+util.obj+help.obj+getopt+version;
+
+bud:	libud.lib ../libldap/libldap.lib ../liblber/liblber.lib
+	copy libud.lib ..\..\lib
+	copy ..\libldap\libldap.lib ..\..\lib
+	copy ..\liblber\liblber.lib ..\..\lib
+	cd ..\..\lib
+	$(LD) $(LDFLAGS) ..\ldap\ud\main+memdebug+ncsaio,bud,nul,libud+libldap+liblber+tcp+sess+enet+common
+	copy bud.exe ..\ldap\ud\bud.exe
+	del libldap.lib
+	del liblber.lib
+	del bud.exe
+	cd ..\ldap\ud
+

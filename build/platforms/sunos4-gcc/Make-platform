@@ -1,0 +1,19 @@
+#
+# LDAP SunOS GNU C Make-platform file
+#
+
+
+#
+# add any platform-specific overrides below here
+#
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+CC	= gcc
+5LINT	= /usr/5bin/lint
+
+PLATFORMCFLAGS=	-Dsunos4
+THREADS= -DTHREAD_SUNOS4_LWP
+THREADSLIB=-llwp

@@ -1,0 +1,116 @@
+.TH LDAP_GET_DN 3  "16 June 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_get_dn, ldap_explode_dn, ldap_dn2ufn, ldap_is_dns_dn, ldap_explode_dns \- LDAP DN handling routines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+char *ldap_get_dn(ld, entry)
+.ft
+LDAP *ld;
+LDAPMessage *entry;
+.LP
+.ft B
+char **ldap_explode_dn(dn, notypes)
+.ft
+char *dn;
+int notypes;
+.LP
+.ft B
+char *ldap_dn2ufn(dn)
+.ft
+char *dn;
+.LP
+.ft B
+int ldap_is_dns_dn(dn)
+.ft
+char *dn;
+.LP
+.ft B
+char **ldap_explode_dns(dn)
+.ft
+char *dn;
+.SH DESCRIPTION
+These routines allow LDAP entry names (Distinguished Names, or DNs)
+to be obtained, parsed, converted to a user-friendly form, and tested.
+A DN has the form described in RFC 1779 "A String Representation of
+Distinguished Names", unless it is an experimental DNS-style DN
+which takes the form of an RFC 822 mail address.
+.LP
+The
+.B ldap_get_dn()
+routine takes an \fIentry\fP as returned by
+.BR ldap_first_entry (3)
+or
+.BR ldap_next_entry (3)
+and returns a copy of
+the entry's DN.  Space for the DN will have been obtained via
+.BR malloc (3),
+and should be freed by the caller by a call to
+.BR free (3).
+.LP
+The
+.B ldap_explode_dn()
+routine takes a DN as returned by
+.B ldap_get_dn()
+and breaks it up into its component parts.  Each part is known as a
+Relative Distinguished Name, or RDN.
+.B ldap_explode_dn()
+returns a
+NULL-terminated array, each component of which contains an RDN from the
+DN.  The \fInotypes\fP parameter is used to request that only the RDN
+values be returned, not their types.  For example, the DN "cn=Bob,
+c=US" would return as either { "cn=Bob", "c=US", NULL } or { "Bob",
+"US", NULL }, depending on whether notypes was 0 or 1, respectively.
+The result can be freed by calling
+.BR ldap_value_free (3).
+.LP
+.B ldap_dn2ufn()
+is used to turn a DN as returned by
+.B ldap_get_dn()
+into a more user-friendly form, stripping off type names.  See
+RFC 1781 "Using the Directory to Achieve User Friendly Naming"
+for more details on the UFN format.  The space for the UFN returned
+is obtained by a call to
+.BR malloc (3),
+and the user is responsible for freeing it via a call to
+.BR free (3).
+.LP
+.B ldap_is_dns_dn()
+returns non-zero if the dn string is an experimental
+DNS-style DN (generally in the form of an RFC 822 e-mail address).  It
+returns zero if the dn appears to be an RFC 1779 format DN.
+.LP
+.B ldap_explode_dns()
+takes a DNS-style DN and breaks it up into its
+component parts.
+.B ldap_explode_dns()
+returns a NULL-terminated array.
+For example, the DN "mcs.umich.edu" will return { "mcs", "umich", "edu",
+NULL }.  The result can be freed by calling
+.BR ldap_value_free (3).
+.SH ERRORS
+If an error occurs in
+.BR ldap_get_dn() ,
+NULL is returned and the
+.B ld_errno
+field in the \fIld\fP parameter is set to indicate the error.  See
+.BR ldap_error (3)
+for a description of possible error codes.
+.BR ldap_explode_dn() ,
+.B ldap_explode_dns()
+and
+.B ldap_dn2ufn()
+will return NULL with
+.BR errno (3)
+set appropriately in case of trouble.
+.SH NOTES
+These routines malloc memory that the caller must free.
+.SH SEE ALSO
+.BR ldap(3),
+.BR ldap_first_entry(3),
+.BR ldap_error(3),
+.BR ldap_value_free(3)

@@ -1,0 +1,65 @@
+I assume that you have already obtained the LDAP libraries and installed
+them in the appropriate place. This kit should fit into the directory
+structure created by LDAP. You should use the root.Makefile.diffs file to
+patch the LDAP Makefile so that it knows how to build whois++. This may fail
+depending on what version of LDAP you have but the rejections should be
+trival to fix (hopefully UMich will release a new version RSN).
+
+This program makes use of a number of definitions defined in the main LDAP
+Makefile but it also has a number of it's own definitions that you will
+have to modify (all definitions are located in the Makefile).
+
+CONFIG_DIRECTORY	At present the configuration directory only contains
+	the template directory. The files in this directory contain the
+	attribute fields to return when a template is returned. The objectClass
+	of an object determines the whois++ template.
+
+HELP_DIRECTORY		The server has a number of help files that it may
+	display when queried by a client. These files are stored under the
+	specific language.
+
+LDAPHOST		Which host is running a ldap server. This program
+	communicates to the X.500 Directory via LDAP so you must be able to
+	identify a host that is able to provide this communication.
+
+FACILITY		Some error diagnostics are reported via syslog, as is
+	normal queries if logging is enabled. This variable specifies which
+	facility to use. I use local3 so I can create a separate log file just
+	for whois++ but you may wish to log under daemon.
+
+SYSLIBS			Any additional libraries required. Ultrix requires -li
+	to get the Internationalisation support. I also use -lsyslog in order
+	to link with a 4.3BSD style syslog rather than the ancient syslog that
+	DEC normally ship with Ultrix.
+
+INTERNATIONAL		Define this is you have POSIX international support.
+	At present this is only used for displaying dates so it's not really
+	important but I intend to use this facility to support the language
+	constraint in a future release.
+	Available under Ultrix but not SunOS.
+
+Once you have modified these variable you should be able to just type "make",
+if you are in the whois++ directory, or "make ldap-whois++" from the main
+LDAP directory. All going well there should be no problems so "make install",
+or "make inst-whois++".
+
+You should now copy the tailor file (whois++dtailor) to the ETCDIR and modify
+the base statement to indicate to whois++ where in the DIT whois++ should base
+its searches. You may also wish to define a user and password if you need to
+authenticate the server.
+
+Modify /etc/inetd.conf to include the new whois++ service with a line such as
+	whois stream tcp nowait ETCDIR/whois++d whois++d
+where ETCDIR is the value of your ETCDIR variable.
+You might like to add the -l flag (if you want to log queries) and -i if you
+have an info attribute in the base entry (this will be displayed as a system
+message).
+
+Now send a HUP (or kill and restart) /etc/inetd.
+
+Note that if you turn on RFC931 lookups you will need the rfc931.c
+module from Wietse Venema's log_tcp package (archie should be able to find
+you a copy).
+
+Mark Prior
+mrp@itd.adelaide.edu.au

@@ -1,0 +1,21 @@
+; This file is maintained by HCW. Do not modify this file directly.
+
+
+[OPTIONS]
+HCW=0
+COMPRESS=12 Hall Zeck
+ERRORLOG=LDAP32.ERR
+LCID=0x409 0x0 0x0 ;U.S. English
+REPORT=Yes
+FTS=1d
+CONTENTS=Contents
+TITLE=Ldap Client API for Windows
+COPYRIGHT=Copyright ¸ Regents of University of Michigan
+CITATION=X.500 Project
+HLP=.\Ldap32.hlp
+
+[FILES]
+.\libldap.RTF
+
+[WINDOWS]
+main="",,60416

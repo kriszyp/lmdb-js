@@ -1,0 +1,23 @@
+#
+# LDAP SCO standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+# ranlib not needed under SCO
+RANLIB  = ""
+
+# be explicit about which CC to use
+CC=/bin/cc
+
+# don't count on /usr/ucb/install being present or first in path
+INSTALL=$(LDAPSRC)/build/install.sh
+
+PLATFORMCFLAGS= -DSCO -DNEED_BSDREGEX -DSYSV -DNOTERMCAP
+PLATFORMLIBS= -lsocket -lnsl_s

@@ -1,0 +1,109 @@
+.TH LDAPDELETE 1 "13 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldapdelete \- ldap delete entry tool
+.SH SYNOPSIS
+.B ldapdelete
+.B [\-n]
+.B [\-v]
+.B [\-k]
+.B [\-K]
+.B [\-c]
+.B [\-d debuglevel]
+.B [\-f file]
+.B [\-D binddn]
+.B [\-w passwd]
+.B [\-h ldaphost]
+.B [\-p ldapport]
+.B [dn]...
+.SH DESCRIPTION
+.I ldapdelete
+is a shell-accessible interface to the
+.BR ldap_delete (3)
+library call.
+.LP
+.B ldapdelete
+opens a connection to an LDAP server, binds, and deletes one or more
+entries.  If one or more \fIdn\fP arguments are provided, entries with
+those Distinguished Names are deleted.  Each \fIdn\fP should be a
+string-represented DN as defined in RFC 1779.  If no \fIdn\fP arguments
+are provided, a list of DNs is read from standard input (or from
+\fIfile\fP if the -f flag is used).
+.SH OPTIONS
+.TP
+.B \-n
+Show what would be done, but don't actually delete entries.  Useful for
+debugging in conjunction with -v.
+.TP
+.B \-v
+Use verbose mode, with many diagnostics written to standard output.
+.TP
+.B \-k
+Use Kerberos authentication instead of simple authentication.  It is
+assumed that you already have a valid ticket granting ticket. This option
+only has effect if
+. B ldapdelete
+is compiled with KERBEROS defined.
+.TP
+.B \-K
+Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+when connecting to a slapd and there is no x500dsa.hostname principal
+registered with your kerberos servers.
+.TP
+.B \-c
+Continuous operation mode.  Errors  are  reported,  but
+.B ldapdelete
+will  continue  with  deletions.   The default is to exit after
+reporting an error.
+.TP
+.B \-d debuglevel
+Set the LDAP debugging level to \fIdebuglevel\fP.
+.B ldapdelete
+must be compiled with LDAP_DEBUG defined for this option to have any effect.
+.TP
+.B \-f file
+Read a series of lines from \fIfile\fP, performing one LDAP search for
+each line.  In this case, the \fIfilter\fP given on the command line
+is treated as a pattern where the first occurrence of \fB%s\fP is
+replaced with a line from \fIfile\fP.
+.TP
+.B \-D binddn
+Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+a string-represented DN as defined in RFC 1779.
+.TP
+.B \-w passwd
+Use \fIpasswd\fP as the password for simple authentication.
+.TP
+.B \-h ldaphost
+Specify an alternate host on which the ldap server is running.
+.TP
+.B \-p ldapport
+Specify an alternate TCP port where the ldap server is listening.
+.SH EXAMPLE
+The following command:
+.LP
+.nf
+    ldapdelete "cn=Delete Me, o=University of Michigan, c=US"
+.fi
+.LP
+will attempt to delete the entry named with commonName "Delete Me"
+directly below the University of Michigan organizational entry.  Of
+course it would probably be necessary to supply a \fIbinddn\fP and
+\fIpasswd\fP for deletion to be allowed (see the -D and -w options).
+.SH DIAGNOSTICS
+Exit status is 0 if no errors occur.  Errors result in a non-zero exit
+status and a diagnostic message being written to standard error.
+.SH "SEE ALSO"
+.BR ldapadd (1),
+.BR ldapmodify (1),
+.BR ldapmodrdn (1),
+.BR ldapsearch (1),
+.BR ldap (3),
+.BR ldap_delete (3)
+.LP
+Kille, S.,
+.IR "A String Representation of Distinguished Names",
+.SM RFC
+1779,
+ISODE Consortium, March 1995.
+.SH BUGS
+There is no interactive mode, but there probably should be.

@@ -1,0 +1,24 @@
+#
+# LDAP OSF1 standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+
+# Even though prototypes are supported by the compiler, OSF's CC doesn't
+# seem to define __STDC__ so we explicitly defined NEEDPROTOS here.
+PLATFORMCFLAGS=	-Dosf1 -DNEEDPROTOS
+PLATFORMLDFLAGS=
+
+THREADS= -DTHREAD_DCE_PTHREADS
+THREADSLIB= -lpthreads
+
+# the BSD-like install under OSF/1 is called installbsd
+INSTALL=installbsd

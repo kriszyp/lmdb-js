@@ -1,0 +1,26 @@
+.TH LDAPFRIENDLY 5  "24 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldapfriendly \- configuration file for LDAP friendly routines
+.SH SYNOPSIS
+ETCDIR/ldapfriendly
+.SH DESCRIPTION
+.LP
+The file ETCDIR/ldapfriendly contains simple mapping information
+used by the
+.BR ldap_friendly_name (3)
+routine.  Blank lines and
+lines that have a first character of `#' are treated as comments and
+ignored.  The configuration information consists of lines that contain
+an "unfriendly" name, a tab, and a "friendly" name.
+.LP
+Other friendly mapping files can be created and used by
+.BR ldap_friendly_name (3).
+Just use the same format as that described
+above and include the file name in the
+.B ldap_friendly_name()
+call.
+.SH FILES
+ETCDIR/ldapfriendly
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldap_friendly_name (3)

@@ -1,0 +1,11 @@
+At the time of this release, the web500gw World Wide Web/HTTP to
+X.500/LDAP gateway is between major releases.  Rather than include
+outdated sources, we have included pointers to sites maintained by the
+author so that you can obtain the latest web500gw sources yourself:
+
+    home page URL:  http://www.tu-chemnitz.de/~fri/web500gw/
+     ftp site URL:  ftp://isode.tu-chemnitz.de/pub/other-src/
+
+Any comments of questions should be directed to:
+
+    Frank.Richter@hrz.tu-chemnitz.de

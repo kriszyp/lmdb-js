@@ -1,0 +1,193 @@
+.TH LDAP_GETFILTER 3  "28 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_init_getfilter, ldap_init_getfilter_buf, ldap_getfilter_free,
+ldap_getfirstfilter, ldap_getnextfilter, ldap_build_filter \- LDAP filter generating routines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.ft
+.fi
+.LP
+.nf
+.ft B
+#define LDAP_FILT_MAXSIZ	1024
+
+typedef struct ldap_filt_info {
+        char                    *lfi_filter;
+        char                    *lfi_desc;
+        int                     lfi_scope;
+        int                     lfi_isexact;
+        struct ldap_filt_info   *lfi_next;
+} LDAPFiltInfo;
+
+typedef struct ldap_filt_list {
+    char                        *lfl_tag;
+    char                        *lfl_pattern;
+    char                        *lfl_delims;
+    LDAPFiltInfo                *lfl_ilist;
+    struct ldap_filt_list       *lfl_next;
+} LDAPFiltList;
+
+typedef struct ldap_filt_desc {
+        LDAPFiltList            *lfd_filtlist;
+        LDAPFiltInfo            *lfd_curfip;
+        LDAPFiltInfo            lfd_retfi;
+        char                    lfd_filter[ LDAP_FILT_MAXSIZ ];
+        char                    *lfd_curval;
+        char                    *lfd_curvalcopy;
+        char                    **lfd_curvalwords;
+        char                    *lfd_filtprefix;
+        char                    *lfd_filtsuffix;
+} LDAPFiltDesc;
+.ft
+.fi
+.LP
+.ft B
+LDAPFiltDesc *ldap_init_getfilter( file )
+.ft
+char *file;
+.LP
+.nf
+.ft B
+LDAPFiltDesc *ldap_init_getfilter_buf( buf, buflen )
+.ft
+char *buf;
+long buflen;
+.LP
+.ft B
+ldap_getfilter_free( lfdp )
+.ft
+LDAPFiltDesc *lfdp;
+.LP
+.nf
+.ft B
+LDAPFiltInfo *ldap_getfirstfilter(lfdp, tagpat, value)
+.ft
+LDAPFiltDesc *lfdp;
+char *tagpat;
+char *value;
+.LP
+.nf
+.ft B
+LDAPFiltInfo *ldap_getnextfilter(lfdp)
+.ft
+LDAPFiltDesc *lfdp;
+.LP
+.ft B
+void ldap_setfilteraffixes(lfdp, prefix, suffix)
+.ft
+LDAPFiltDesc *lfdp;
+char *prefix;
+char *suffix;
+.LP
+.ft B
+void ldap_build_filter( buf, buflen, pattern, prefix, suffix,
+	attr, value, valwords )
+.ft
+char *buf;
+unsigned long buflen;
+char *pattern;
+char *prefix;
+char *suffix;
+char *attr;
+char *value;
+char **valwords;
+.SH DESCRIPTION
+.LP
+These routines are used to generate filters to be used in
+ldap_search(3) or ldap_search_s(3).  Either ldap_init_getfilter or
+ldap_init_getfilter_buf must be called prior to calling any of
+the other routines except ldap_build_filter.
+.LP
+ldap_init_getfilter()
+takes a file name as its only argument.  The contents of the file must
+be a valid LDAP filter configuration file (see ldapfilter.conf(5)).  If
+the file is successfully read, a pointer to an LDAPFiltDesc is
+returned.  This is an opaque object that is passed in subsequent get
+filter calls.
+.LP
+ldap_init_getfilter_buf()
+reads from
+.I buf
+(whose length is
+.I buflen)
+the LDAP filter configuration information.
+.I buf
+must point to the contents of a valid LDAP filter configuration file
+(see ldapfilter.conf(5)).  If the filter configuration information is
+successfully read, a pointer to an LDAPFiltDesc is returned.  This is
+an opaque object that is passed in subsequent get filter calls.
+.LP
+ldap_getfilter_free()
+deallocates the memory consumed by ldap_init_getfilter.  Once it is
+called, the LDAPFiltDesc is no longer valid and cannot be used again.
+.LP
+ldap_getfirstfilter()
+retrieves the first filter that is appropriate for
+.I value.
+Only filter sets that have tags that match the regular expession
+.I tagpat
+are considered.  ldap_getfirstfilter returns a pointer to an
+LDAPFiltInfo structure, which contains a filter with
+.I value
+inserted as appropriate in lfi_filter, a text match description in
+lfi_desc, lfi_scope set to indicate the search scope, and lfi_isexact
+set to indicate the type of filter.  NULL is returned
+if no matching filters are found.  lfi_scope will be one of
+.B LDAP_SCOPE_BASE,
+.B LDAP_SCOPE_ONELEVEL,
+or
+.B LDAP_SCOPE_SUBTREE.
+lfi_isexact
+will be zero if the filter has any '~' or '*' characters in it and
+non-zero otherwise.
+.LP
+ldap_getnextfilter()
+retrieves the next appropriate filter in the filter set that was
+determined when ldap_getfirstfilter was called.  It returns NULL when
+the list has been exhausted.
+.LP
+ldap_setfilteraffixes()
+sets a
+.I prefix
+to be prepended and a
+.I suffix
+to be appended to all filters returned in the future.
+.LP
+ldap_build_filter()
+constructs an LDAP search filter in
+.I buf.
+.I buflen
+is the size, in bytes, of the largest filter
+.I buf
+can hold.  A pattern for the desired filter is passed in
+.I pattern.
+Where the string %a appears in the pattern it is replaced with
+.I attr.
+.I prefix
+is pre-pended to the resulting filter, and
+.I suffix
+is appended.  Either can be NULL (in which case they are not used).
+.I value
+and
+.I valwords
+are used when the string %v appears in
+.I pattern.
+See ldapfilter.conf(5) for a description of how %v is handled.
+.LP
+.SH ERRORS
+NULL is returned by ldap_init_getfilter if there is an error reading
+.I file.
+NULL is returned by ldap_getfirstfilter and ldap_getnextfilter when there
+are no more appropriate filters to return.
+.SH NOTES
+.LP
+The return values for all of these functions are declared in the
+<ldap.h> header file.  Some routines may malloc memory.
+.SH FILES
+ETCDIR/ldapfilter.conf
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldapfilter.conf (5)

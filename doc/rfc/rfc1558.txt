@@ -1,0 +1,171 @@
+
+
+
+
+
+
+Network Working Group                                           T. Howes
+Request for Comments: 1558                        University of Michigan
+Category: Informational                                    December 1993
+
+
+             A String Representation of LDAP Search Filters
+
+Status of this Memo
+
+   This memo provides information for the Internet community.  This memo
+   does not specify an Internet standard of any kind.  Distribution of
+   this memo is unlimited.
+
+Abstract
+
+   The Lightweight Directory Access Protocol (LDAP) [1] defines a
+   network representation of a search filter transmitted to an LDAP
+   server.  Some applications may find it useful to have a common way of
+   representing these search filters in a human-readable form.  This
+   document defines a human-readable string format for representing LDAP
+   search filters.
+
+1.  LDAP Search Filter Definition
+
+   An LDAP search filter is defined in [1] as follows:
+
+     Filter ::= CHOICE {
+             and                [0] SET OF Filter,
+             or                 [1] SET OF Filter,
+             not                [2] Filter,
+             equalityMatch      [3] AttributeValueAssertion,
+             substrings         [4] SubstringFilter,
+             greaterOrEqual     [5] AttributeValueAssertion,
+             lessOrEqual        [6] AttributeValueAssertion,
+             present            [7] AttributeType,
+             approxMatch        [8] AttributeValueAssertion
+     }
+
+     SubstringFilter ::= SEQUENCE {
+             type    AttributeType,
+             SEQUENCE OF CHOICE {
+                     initial        [0] LDAPString,
+                     any            [1] LDAPString,
+                     final          [2] LDAPString
+             }
+     }
+
+
+
+
+
+Howes                                                           [Page 1]
+
+RFC 1558             Representation of LDAP Filters        December 1993
+
+
+     AttributeValueAssertion ::= SEQUENCE
+             attributeType   AttributeType,
+             attributeValue  AttributeValue
+     }
+
+     AttributeType ::= LDAPString
+
+     AttributeValue ::= OCTET STRING
+
+     LDAPString ::= OCTET STRING
+
+   where the LDAPString above is limited to the IA5 character set.  The
+   AttributeType is a string representation of the attribute object
+   identifier in dotted OID format (e.g., "2.5.4.10"), or the shorter
+   string name of the attribute (e.g., "organizationName", or "o").  The
+   AttributeValue OCTET STRING has the form defined in [2].  The Filter
+   is encoded for transmission over a network using the Basic Encoding
+   Rules defined in [3], with simplifications described in [1].
+
+2.  String Search Filter Definition
+
+   The string representation of an LDAP search filter is defined by the
+   following BNF.  It uses a prefix format.
+
+     <filter> ::= '(' <filtercomp> ')'
+     <filtercomp> ::= <and> | <or> | <not> | <item>
+     <and> ::= '&' <filterlist>
+     <or> ::= '|' <filterlist>
+     <not> ::= '!' <filter>
+     <filterlist> ::= <filter> | <filter> <filterlist>
+     <item> ::= <simple> | <present> | <substring>
+     <simple> ::= <attr> <filtertype> <value>
+     <filtertype> ::= <equal> | <approx> | <greater> | <less>
+     <equal> ::= '='
+     <approx> ::= '~='
+     <greater> ::= '>='
+     <less> ::= '<='
+     <present> ::= <attr> '=*'
+     <substring> ::= <attr> '=' <initial> <any> <final>
+     <initial> ::= NULL | <value>
+     <any> ::= '*' <starval>
+     <starval> ::= NULL | <value> '*' <starval>
+     <final> ::= NULL | <value>
+
+   <attr> is a string representing an AttributeType, and has the format
+   defined in [1].  <value> is a string representing an AttributeValue,
+   or part of one, and has the form defined in [2].  If a <value> must
+   contain one of the characters '*' or '(' or ')', these characters
+
+
+
+Howes                                                           [Page 2]
+
+RFC 1558             Representation of LDAP Filters        December 1993
+
+
+   should be escaped by preceding them with the backslash '\' character.
+
+3.  Examples
+
+   This section gives a few examples of search filters written using
+   this notation.
+
+     (cn=Babs Jensen)
+     (!(cn=Tim Howes))
+     (&(objectClass=Person)(|(sn=Jensen)(cn=Babs J*)))
+     (o=univ*of*mich*)
+
+4.  Security Considerations
+
+   Security issues are not discussed in this memo.
+
+5.  References
+
+   [1] Yeong, W., Howes, T., and S. Kille, "Lightweight Directory Access
+       Protocol", RFC 1487, Performance Systems International,
+       University of Michigan, ISODE Consortium, July 1993.
+
+   [2] Howes, T., Kille, S., Yeong, W., and C. Robbins, "The String
+       Representation of Standard Attribute Syntaxes", RFC 1488,
+       University of Michigan, ISODE Consortium, Performance Systems
+       International, NeXor Ltd., July 1993.
+
+   [3] "Specification of Basic Encoding Rules for Abstract Syntax
+       Notation One (ASN.1)", CCITT Recommendation X.209, 1988.
+
+6.  Author's Address
+
+       Tim Howes
+       University of Michigan
+       ITD Research Systems
+       535 W William St.
+       Ann Arbor, MI 48103-4943
+       USA
+
+       Phone: +1 313 747-4454
+       EMail: tim@umich.edu
+
+
+
+
+
+
+
+
+
+
+Howes                                                           [Page 3]
+

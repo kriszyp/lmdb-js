@@ -1,0 +1,33 @@
+There are 4 different search styles possible when using a whois++ server.
+
+The first of these styles is the familiar whois style query, where your
+client supplies a number of tokens and these tokens are converted into a
+LDAP search query for processing by the X.500 Directory system.
+
+Example queries 
+a. ng =>
+	(|(sn=ng)(userid=ng)(l=ng)(ou=ng)(&(cn=ng)(!(objectClass=person))))
+
+b. Snoke, Robert Lee =>
+	(&(sn=Snoke)(|(l=Robert Lee Snoke)(ou=Robert Lee Snoke)\
+		(preferredName=Robert Lee Snoke)(cn=*Robert * Lee * Snoke)))
+
+c. mrp@ =>
+	(|(mail=mrp@*)(userid=mrp))
+
+As you can see no attribute information was supplied by the client and so
+the server must "guess" what information is required. X.500 uses the
+attribute cn (commonName) fairly generically to name entries so this is used
+in constructing queries. It is assumed that most queries will relate to a
+search for a person so the query is composed in such a way to emphasise this
+assumption. If only one token is supplied this is assumed to be a family
+name whereas if more than one token is supplied this assumed to be the full
+name, in order to distinguish the family name you may use the "," syntax as
+per example (b).
+
+E-mail lookups as described in the original whois RFC (RFC954) are also
+supported however wildcard style searches may be constrained by the X.500
+Directory service.
+
+The other search styles involve the use of attributes, where the client
+specifies the type of the data that it wishes to search for.

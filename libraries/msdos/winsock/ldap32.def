@@ -1,0 +1,166 @@
+LIBRARY         LDAP32
+DESCRIPTION     'Lightweight Directory Access Protocol Client API'
+CODE            PRELOAD MOVEABLE DISCARDABLE
+DATA            PRELOAD MOVEABLE SINGLE
+VERSION			3.2
+HEAPSIZE        4096
+
+EXPORTS
+; we need to manually assign ordinal numbers so we can add new routines
+; and not disturb the ordinals and thus not require callers to relink.
+	ldap_abandon				@10
+	ldap_add				@11
+	ldap_unbind				@13
+	ldap_enable_cache			@14
+	ldap_disable_cache			@15
+ 	ldap_destroy_cache			@16
+	ldap_flush_cache			@17
+	ldap_uncache_entry			@18
+	ldap_compare				@19
+	ldap_delete				@20
+	ldap_result2error			@21
+	ldap_err2string			@22
+	ldap_modify				@23
+	ldap_modrdn				@24
+	ldap_open					@25
+	ldap_first_entry			@26
+	ldap_next_entry			@27
+	ldap_delete_result_entry	@28
+	ldap_add_result_entry		@29
+	ldap_get_dn				@30
+	ldap_dn2ufn				@31
+	ldap_first_attribute		@32
+	ldap_next_attribute		@33
+	ldap_get_values			@34
+	ldap_get_values_len		@35
+	ldap_count_entries			@36
+	ldap_count_values			@37
+	ldap_value_free			@38
+	ldap_explode_dn			@39
+	ldap_result				@40
+	ldap_msgfree				@41
+	ldap_msgdelete				@42
+	ldap_search				@43
+	ldap_add_s					@44
+	ldap_bind_s				@45
+	ldap_unbind_s				@46
+	ldap_delete_s				@47
+	ldap_modify_s				@48
+	ldap_modrdn_s				@49
+	ldap_search_s				@50
+	ldap_search_st				@51
+	ldap_compare_s				@52
+	ldap_ufn_search_c			@53
+	ldap_ufn_search_s			@54
+	ldap_init_getfilter		@55
+	ldap_getfilter_free		@56
+	ldap_getfirstfilter		@57
+	ldap_getnextfilter			@58
+	ldap_simple_bind			@59
+	ldap_simple_bind_s			@60
+	ldap_bind					@61
+	ldap_friendly_name			@62
+	ldap_free_friendlymap		@63
+	ldap_ufn_search_ct			@64
+	ldap_set_cache_options		@65
+	ldap_uncache_request		@66
+	ldap_modrdn2				@67
+	ldap_modrdn2_s				@68
+	ldap_ufn_setfilter			@69
+	ldap_ufn_setprefix			@70
+	ldap_ufn_timeout			@71
+	ldap_init_getfilter_buf	@72
+	ldap_setfilteraffixes		@73
+	ldap_sort_entries			@74
+	ldap_sort_values			@75
+	ldap_sort_strcasecmp		@76
+	ldap_count_values_len		@77
+	ldap_name2template		@78
+	ldap_value_free_len		@79
+
+; manually comment and uncomment these five as necessary
+;	ldap_kerberos_bind1		@80
+;	ldap_kerberos_bind2		@81
+;	ldap_kerberos_bind_s		@82
+;	ldap_kerberos_bind1_s		@83
+;	ldap_kerberos_bind2_s		@84
+
+	ldap_init			@85
+	ldap_is_dns_dn			@86
+	ldap_explode_dns		@87
+	ldap_mods_free			@88
+
+    	ldap_is_ldap_url		@89
+    	ldap_free_urldesc		@90
+    	ldap_url_parse			@91
+    	ldap_url_search			@92
+    	ldap_url_search_s		@93
+    	ldap_url_search_st		@94
+	ldap_set_rebind_proc		@95
+
+	ber_skip_tag				@100
+	ber_peek_tag				@101
+	ber_get_int				@102
+	ber_get_stringb			@103
+	ber_get_stringa			@104
+	ber_get_stringal			@105
+	ber_get_bitstringa			@106
+	ber_get_null				@107
+	ber_get_boolean			@108
+	ber_first_element			@109
+	ber_next_element			@110
+	ber_scanf					@111
+	ber_bvfree					@112
+	ber_bvecfree				@113
+	ber_put_int				@114
+	ber_put_ostring			@115
+	ber_put_string				@116
+	ber_put_bitstring			@117
+	ber_put_null				@118
+	ber_put_boolean			@119
+	ber_start_seq				@120
+	ber_start_set				@121
+	ber_put_seq				@122
+	ber_put_set				@123
+	ber_printf					@124
+	ber_read					@125
+	ber_write					@126
+	ber_free					@127
+	ber_flush					@128
+	ber_alloc					@129
+	ber_dup					@130
+	ber_get_next				@131
+	ber_get_tag				@132
+	ber_put_enum				@133
+	der_alloc					@134
+	ber_alloc_t				@135
+	ber_bvdup				@136
+	ber_init				@137
+	ber_reset				@138
+
+	ldap_memfree				@200
+
+	ldap_init_searchprefs		@300
+	ldap_init_searchprefs_buf	@301
+	ldap_free_searchprefs		@302
+	ldap_first_searchobj		@303
+	ldap_next_searchobj		@304
+	ldap_build_filter			@305
+
+	ldap_init_templates		@400
+	ldap_init_templates_buf	@401
+	ldap_free_templates		@402
+	ldap_first_disptmpl		@403
+	ldap_next_disptmpl			@404
+	ldap_oc2template			@405
+	ldap_tmplattrs				@406
+	ldap_first_tmplrow			@407
+	ldap_next_tmplrow			@408
+	ldap_first_tmplcol			@409
+	ldap_next_tmplcol			@410
+	ldap_entry2text_search		@411
+	ldap_entry2text			@412
+	ldap_vals2text				@413
+	ldap_entry2html			@414
+	ldap_entry2html_search			@415
+	ldap_vals2html				@416

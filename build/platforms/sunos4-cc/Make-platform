@@ -1,0 +1,25 @@
+#
+# LDAP SunOS standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+5LINT	= /usr/5bin/lint
+
+PLATFORMCFLAGS= -Dsunos4
+THREADS= -DTHREAD_SUNOS4_LWP
+THREADSLIB=-llwp
+
+#
+# the SunOS 4 cc compiler doesn't understand function prototypes, so we
+# need the unproto preprocessor
+#
+NEEDUNPROTO=yes
+UNPROTOCFLAGS=-Qpath $(LDAPSRC)/build/unproto

@@ -1,0 +1,501 @@
+.TH LDAP 3  "13 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldap - Lightweight Directory Access Protocol package
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.ft
+.fi
+.SH DESCRIPTION
+.LP
+The Lightweight Directory Access Protocol provides TCP/IP access to
+the X.500 Directory or to a stand-alone LDAP server.
+The University of Michigan LDAP package includes a stand-alone server in
+.BR slapd (8),
+an LDAP to X.500 gateway in
+.BR ldapd (8),
+various LDAP clients, and an LDAP client library used to provide
+programmatic access to the LDAP protocol. This man page gives an
+overview of the LDAP library routines.
+.LP
+Both synchronous and asynchronous APIs are provided.  Also included are
+various routines to parse the results returned from these routines.
+These routines are found in the libldap.a library.
+.LP
+The basic interaction is as follows.  A connection is made to an LDAP
+server by calling
+.BR ldap_open (3).
+An LDAP bind operation is performed by calling
+one of
+.BR ldap_bind (3)
+and friends.  Next, other operations are performed
+by calling one of the synchronous or asynchronous routines (e.g.,
+.BR ldap_search_s (3)
+or
+.BR ldap_search (3)
+followed by
+.BR ldap_result (3)).
+Results returned from these routines are interpreted by calling the
+LDAP parsing routines.  The LDAP association is terminated by calling
+.BR ldap_unbind (3).
+Errors can be interpreted by calling
+.BR ldap_perror (3).
+The
+.BR ldap_set_rebind_proc (3)
+routine can be used to set a routine to be called back when an LDAP bind
+operation needs to occur when handling a client referral.
+.SH SEARCH FILTERS
+Search filters to be passed to the ldap search routines can be
+constructed by hand, or by calling the
+.BR ldap_getfilter (3)
+routines, which use the
+.BR ldapgetfilter.conf (5)
+file to turn a string (presumably that a user has typed) into a series
+of search filters.
+.SH DISPLAYING RESULTS
+Results obtained from the ldap search routines can be output by hand,
+by calling
+.BR ldap_first_entry (3)
+and
+.BR ldap_next_entry (3)
+to step through
+the entries returned,
+.BR ldap_first_attribute (3)
+and
+.BR ldap_next_attribute (3)
+to step through an entry's attributes, and
+.BR ldap_get_values (3)
+to retrieve a given attribute's value, and then calling
+.BR printf (3)
+or whatever to display the values.
+.LP
+Alternatively, the entry can be output automatically by calling
+the
+.BR ldap_entry2text (3),
+.BR ldap_entry2text_search (3),
+.BR ldap_entry2html (3),
+or
+.BR ldap_entry2html_search (3)
+routines.  These routines look up the object
+class of the entry they are passed in the
+.BR ldaptemplates.conf (5)
+file to decide which attributes to display and how to display them.
+Output is handled via a routine passed in as a parameter.
+.SH UNIFORM RESOURCE LOCATORS (URLS)
+The
+.BR ldap_url (3)
+routines can be used test a URL to see if it is an LDAP URL, to parse LDAP
+URLs into their component pieces, and to initiate searches directly using
+an LDAP URL.
+.SH USER FRIENDLY NAMING
+The
+.BR ldap_ufn (3)
+routines implement a user friendly naming
+scheme via LDAP.  This scheme allows you to look up entries
+using fuzzy, untyped names like "mark smith, umich, us".
+.SH CACHING
+The
+.BR ldap_cache (3)
+routines implement a local client caching scheme,
+providing a substantial performance increase for repeated queries.
+.SH UTILITY ROUTINES
+Also provided are various utility routines.  The
+.BR ldap_sort (3)
+routines are used to sort the entries and values returned via
+the ldap search routines.  The
+.BR ldap_friendly (3)
+routines are
+used to map from short two letter country codes (or other strings)
+to longer "friendlier" names.  The
+.BR ldap_charset (3)
+routines can be used to translate to and from the T.61 character
+set used for many character strings in the LDAP protocol.
+.SH CONNECTIONLESS ACCESS
+The
+.BR cldap_search_s (3)
+routine allows you to access the directory
+via Connectionless LDAP (CLDAP), which is similar to LDAP but
+operates over UDP, obviating the need to set up and tear down
+a connection by calling
+.BR ldap_open (3),
+.BR ldap_bind (3),
+and
+.BR ldap_unbind (3).
+.BR cldap_open (3)
+should be called before using
+.BR cldap_search_s (3).
+All the same getfilter, parsing, and display that can be used
+with regular LDAP routines can be used with the CLDAP routines.
+.SH BER LIBRARY
+Also included in the distribution is a set of lightweight Basic
+Encoding Rules routines.  These routines are used by the LDAP library
+routines to encode and decode LDAP protocol elements using the
+(slightly simplified) Basic Encoding Rules defined by LDAP.  They are
+not normally used directly by an LDAP application program.  The
+routines provide a printf and scanf-like interface, as well as
+lower-level access.  These routines are found in the liblber.a
+library.
+.SH INDEX
+.TP 20
+.SM ldap_open(3)
+open a connection to an LDAP server
+.TP
+.SM ldap_init(3)
+initialize the LDAP library without opening a connection to a server
+.TP
+.SM ldap_result(3)
+wait for the result from an asynchronous operation
+.TP
+.SM ldap_abandon(3)
+abandon (abort) an asynchronous operation
+.TP
+.SM ldap_add(3)
+asynchronously add an entry
+.TP
+.SM ldap_add_s(3)
+synchronously add an entry
+.TP
+.SM ldap_bind(3)
+asynchronously bind to the directory
+.TP
+.SM ldap_bind_s(3)
+synchronously bind to the directory
+.TP
+.SM ldap_simple_bind(3)
+asynchronously bind to the directory using simple authentication
+.TP
+.SM ldap_simple_bind_s(3)
+synchronously bind to the directory using simple authentication
+.TP
+.SM ldap_kerberos_bind_s(3)
+synchronously bind to the directory using kerberos authentication
+.TP
+.SM ldap_kerberos_bind1(3)
+asynchronously bind to the LDAP server using kerberos authentication
+.TP
+.SM ldap_kerberos_bind1_s(3)
+synchronously bind to the LDAP server using kerberos authentication
+.TP
+.SM ldap_kerberos_bind2(3)
+asynchronously bind to the DSA using kerberos authentication
+.TP
+.SM ldap_kerberos_bind2_s(3)
+synchronously bind to the DSA using kerberos authentication
+.TP
+.SM ldap_unbind(3)
+synchronously unbind from the LDAP server and close the connection
+.TP
+.SM ldap_unbind_s(3)
+equivalent to
+.BR ldap_unbind (3)
+.TP
+.SM ldap_memfree (3)
+dispose of memory allocated by LDAP routines (this is only used on the
+Microsoft Windows platforms; use
+.BR free (3)
+on all other platforms).
+.TP
+.SM ldap_enable_cache(3)
+enable LDAP client caching
+.TP
+.SM ldap_disable_cache(3)
+disable LDAP client caching
+.TP
+.SM ldap_destroy_cache(3)
+disable LDAP client caching and destroy cache contents
+.TP
+.SM ldap_flush_cache(3)
+flush LDAP client cache
+.TP
+.SM ldap_uncache_entry(3)
+uncache requests pertaining to an entry
+.TP
+.SM ldap_uncache_request(3)
+uncache a request
+.TP
+.SM ldap_set_cache_options(3)
+set cache options
+.TP
+.SM ldap_compare(3)
+asynchronous compare to a directory entry
+.TP
+.SM ldap_compare_s(3)
+synchronous compare to a directory entry
+.TP
+.SM ldap_delete(3)
+asynchronously delete an entry
+.TP
+.SM ldap_delete_s(3)
+synchronously delete an entry
+.TP
+.SM ldap_init_templates(3)
+initialize display template routines from a file
+.TP
+.SM ldap_init_templates_buf(3)
+initialize display template routines from a buffer
+.TP
+.SM ldap_free_templates(3)
+free display template routine memory
+.TP
+.SM ldap_first_disptmpl(3)
+get first display template
+.TP
+.SM ldap_next_disptmpl(3)
+get next display template
+.TP
+.SM ldap_oc2template(3)
+return template appropriate for objectclass
+.TP
+.SM ldap_name2template(3)
+return named template
+.TP
+.SM ldap_tmplattrs(3)
+return attributes needed by template
+.TP
+.SM ldap_first_tmplrow(3)
+return first row of displayable items in a template
+.TP
+.SM ldap_next_tmplrow(3)
+return next row of displayable items in a template
+.TP
+.SM ldap_first_tmplcol(3)
+return first column of displayable items in a template
+.TP
+.SM ldap_next_tmplcol(3)
+return next column of displayable items in a template
+.TP
+.SM ldap_entry2text(3)
+display an entry as text using a display template
+.TP
+.SM ldap_entry2text_search(3)
+search for and display an entry as text using a display template
+.TP
+.SM ldap_vals2text(3)
+display values as text
+.TP
+.SM ldap_entry2html(3)
+display an entry as HTML (HyperText Markup Language) using a display template
+.TP
+.SM ldap_entry2html_search(3)
+search for and display an entry as HTML using a display template
+.TP
+.SM ldap_vals2html(3)
+display values as HTML
+.TP
+.SM ldap_perror(3)
+print an LDAP error indication to standard error
+.TP
+.SM ld_errno(3)
+LDAP error indication
+.TP
+.SM ldap_result2error(3)
+extract LDAP error indication from LDAP result
+.TP
+.SM ldap_errlist(3)
+list of ldap errors and their meanings
+.TP
+.SM ldap_err2string(3)
+convert LDAP error indication to a string
+.TP
+.SM ldap_first_attribute(3)
+return first attribute name in an entry
+.TP
+.SM ldap_next_attribute(3)
+return next attribute name in an entry
+.TP
+.SM ldap_first_entry(3)
+return first entry in a chain of search results
+.TP
+.SM ldap_next_entry(3)
+return next entry in a chain of search results
+.TP
+.SM ldap_count_entries(3)
+return number of entries in a search result
+.TP
+.SM ldap_friendly_name(3)
+map from unfriendly to friendly names
+.TP
+.SM ldap_free_friendlymap(3)
+free resources used by ldap_friendly(3)
+.TP
+.SM ldap_get_dn(3)
+extract the DN from an entry
+.TP
+.SM ldap_explode_dn(3)
+convert a DN into its component parts
+.TP
+.SM ldap_explode_dns(3)
+convert a DNS-style DN into its component parts (experimental)
+.TP
+.SM ldap_is_dns_dn(3)
+check to see if a DN is a DNS-style DN (experimental)
+.TP
+.SM ldap_dn2ufn(3)
+convert a DN into user friendly form
+.TP
+.SM ldap_get_values(3)
+return an attribute's values
+.TP
+.SM ldap_get_values_len(3)
+return an attribute values with lengths
+.TP
+.SM ldap_value_free(3)
+free memory allocated by ldap_get_values(3)
+.TP
+.SM ldap_value_free_len(3)
+free memory allocated by ldap_get_values_len(3)
+.TP
+.SM ldap_count_values(3)
+return number of values
+.TP
+.SM ldap_count_values_len(3)
+return number of values
+.TP
+.SM ldap_init_getfilter(3)
+initialize getfilter routines from a file
+.TP
+.SM ldap_init_getfilter_buf(3)
+initialize getfilter routines from a buffer
+.TP
+.SM ldap_getfilter_free(3)
+free resources allocated by ldap_init_getfilter(3)
+.TP
+.SM ldap_getfirstfilter(3)
+return first search filter
+.TP
+.SM ldap_getnextfilter(3)
+return next search filter
+.TP
+.SM ldap_build_filter(3)
+construct an LDAP search filter from a pattern
+.TP
+.SM ldap_setfilteraffixes(3)
+set prefix and suffix for search filters
+.TP
+.SM ldap_modify(3)
+asynchronously modify an entry
+.TP
+.SM ldap_modify_s(3)
+synchronously modify an entry
+.TP
+.SM ldap_mods_free(3)
+free array of pointers to mod structures used by ldap_modify(3)
+.TP
+.SM ldap_modrdn2(3)
+asynchronously modify the RDN of an entry
+.TP
+.SM ldap_modrdn2_s(3)
+synchronously modify the RDN of an entry
+.TP
+.SM ldap_modrdn(3)
+depreciated - use ldap_modrdn2(3)
+.TP
+.SM ldap_modrdn_s(3)
+depreciated - use ldap_modrdn2_s(3)
+.TP
+.SM ldap_msgfree(3)
+free results allocated by ldap_result(3)
+.TP
+.SM ldap_search(3)
+asynchronously search the directory
+.TP
+.SM ldap_search_s(3)
+synchronously search the directory
+.TP
+.SM ldap_search_st(3)
+synchronously search the directory with timeout
+.TP
+.SM ldap_ufn_search_s(3)
+user friendly search the directory
+.TP
+.SM ldap_ufn_search_c(3)
+user friendly search the directory with cancel
+.TP
+.SM ldap_ufn_search_ct(3)
+user friendly search the directory with cancel and timeout
+.TP
+.SM ldap_ufn_setfilter(3)
+set filter file used by ldap_ufn(3) routines
+.TP
+.SM ldap_ufn_setprefix(3)
+set prefix used by ldap_ufn(3) routines
+.TP
+.SM ldap_ufn_timeout(3)
+set timeout used by ldap_ufn(3) routines
+.TP
+.SM ldap_is_ldap_url(3)
+check a URL string to see if it is an LDAP URL
+.TP
+.SM ldap_url_parse(3)
+break up an LDAP URL string into its components
+.TP
+.SM ldap_url_search(3)
+asynchronously search using an LDAP URL
+.TP
+.SM ldap_url_search_s(3)
+synchronously search using an LDAP URL
+.TP
+.SM ldap_url_search_st(3)
+synchronously search using an LDAP URL and a timeout
+.TP
+.SM ldap_init_searchprefs(3)
+initialize searchprefs routines from a file
+.TP
+.SM ldap_init_searchprefs_buf(3)
+initialize searchprefs routines from a buffer
+.TP
+.SM ldap_free_searchprefs(3)
+free memory allocated by searchprefs routines
+.TP
+.SM ldap_first_searchobj(3)
+return first searchpref object
+.TP
+.SM ldap_next_searchobj(3)
+return next searchpref object
+.TP
+.SM ldap_sort_entries(3)
+sort a list of search results
+.TP
+.SM ldap_sort_values(3)
+sort a list of attribute values
+.TP
+.SM ldap_sort_strcasecmp(3)
+case insensitive string comparison
+.TP
+.SM ldap_set_string_translators(3)
+set character set translation routines used by LDAP library
+.TP
+.SM ldap_t61_to_8859(3)
+translate from ISO-8859 characters to the T.61 characters
+.TP
+.SM ldap_8859_to_t61(3)
+translate from T.61 characters to the ISO-8859 characters
+.TP
+.SM ldap_translate_from_t61(3)
+translate from the T.61 character set to another character set
+.TP
+.SM ldap_translate_to_t61(3)
+translate to the T.61 character set from another character set
+.TP
+.SM ldap_enable_translation(3)
+enable or disable character translation for an LDAP entry result
+.TP
+.SM cldap_open(3)
+open a connectionless LDAP (CLDAP) session
+.TP
+.SM cldap_search_s(3)
+perform a search using connectionless LDAP
+.TP
+.SM cldap_setretryinfo(3)
+set retry and timeout information using connectionless LDAP
+.TP
+.SM cldap_close(3)
+terminate a connectionless LDAP session
+.SH SEE ALSO
+.BR ldapd (8),
+.BR slapd (8)
+.SH AUTHORS
+Tim Howes, Mark Smith, Gordon Good, Lance Sloan, and Steve Rothwell from
+the University of Michigan, along with help from lots of others.

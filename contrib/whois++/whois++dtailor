@@ -1,0 +1,5 @@
+base		"o=The University of Adelaide, c=AU"
+template	user		person
+template	service		applicationEntity
+template	department	organizationalUnit
+template	role		organizationalRole

@@ -1,0 +1,83 @@
+*** Makefile-dist	Fri Apr 23 15:29:24 1993
+--- Makefile	Fri Apr 23 15:33:04 1993
+***************
+*** 86,92 ****
+  
+  LDIRS	= libldap liblber			 # library directories
+  SDIRS	= ldapd					 # server directories
+! CDIRS	= finger gopher ud rcpt500 whois mail500 # client directories
+  ALLDIRS	= $(CDIRS) $(SDIRS) $(LDIRS)
+  
+  VERSION	= 2.0	# set this to be the same as what's in ./version
+--- 86,92 ----
+  
+  LDIRS	= libldap liblber			 # library directories
+  SDIRS	= ldapd					 # server directories
+! CDIRS	= finger gopher ud rcpt500 whois mail500 whois++ # client directories
+  ALLDIRS	= $(CDIRS) $(SDIRS) $(LDIRS)
+  
+  VERSION	= 2.0	# set this to be the same as what's in ./version
+***************
+*** 99,105 ****
+  
+  lib-only: lber-library ldap-library
+  
+! others: ldap-finger ldap-gopher ldap-ud ldap-rcpt500 ldap-whois ldap-mail500
+  
+  lber-library:
+  	@echo "cd liblber; $(MAKE) all"
+--- 99,106 ----
+  
+  lib-only: lber-library ldap-library
+  
+! others: ldap-finger ldap-gopher ldap-ud ldap-rcpt500 ldap-whois ldap-mail500 \
+! 	ldap-whois++
+  
+  lber-library:
+  	@echo "cd liblber; $(MAKE) all"
+***************
+*** 181,186 ****
+--- 182,194 ----
+  		ETCDIR=$(ETCDIR) CC=$(CC) \
+  		all)
+  
++ ldap-whois++:
++ 	@echo "cd whois++; $(MAKE) all"
++ 	@(cd whois++; $(MAKE) ACFLAGS="$(ACFLAGS)" ALDFLAGS="$(ALDFLAGS)" \
++ 		KRBLIBFLAG=$(KRBLIBFLAG) KRBLIBS="$(KRBLIBS)" \
++ 		ETCDIR=$(ETCDIR) CC=$(CC) \
++ 		all)
++ 
+  #
+  # rules to install the software
+  #
+***************
+*** 188,194 ****
+  install: inst-include inst-server inst-lberlib inst-ldaplib inst-man
+  
+  inst-others: inst-finger inst-gopher inst-ud inst-rcpt500 inst-whois \
+! 		inst-mail500
+  
+  inst-lib: inst-lberlib inst-ldaplib
+  
+--- 196,202 ----
+  install: inst-include inst-server inst-lberlib inst-ldaplib inst-man
+  
+  inst-others: inst-finger inst-gopher inst-ud inst-rcpt500 inst-whois \
+! 		inst-mail500 inst-whois++
+  
+  inst-lib: inst-lberlib inst-ldaplib
+  
+***************
+*** 231,236 ****
+--- 239,248 ----
+  inst-whois:
+  	@echo "cd whois; $(MAKE) install"
+  	@( cd whois; $(MAKE) ETCDIR=$(ETCDIR) install )
++ 
++ inst-whois++:
++ 	@echo "cd whois++; $(MAKE) inst-whois++"
++ 	@( cd whois++; $(MAKE) ETCDIR=$(ETCDIR) inst-whois++ )
+  
+  inst-mail500:
+  	@echo "cd mail500; $(MAKE) install"

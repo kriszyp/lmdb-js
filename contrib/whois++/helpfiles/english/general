@@ -1,0 +1,7 @@
+You have connected to a server that implements the new WHOIS++ specification.
+
+This service is provided via an underlying X.500 Directory Service and so
+this server is really only a read-only DUA interface to the X.500 Directory.
+
+A "technical" description of this service may be obtained by using the
+"describe" command, this will also list a contact for this service.

@@ -1,0 +1,3 @@
+The version command provides version number information and should be quoted
+when reporting any problems with the server. The information returned will
+include the version of the protocol as well as the program's revision number.

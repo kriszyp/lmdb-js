@@ -1,0 +1,450 @@
+.TH LDAP_DISPTMPL 3  "13 December 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_init_templates, ldap_init_templates_buf, ldap_free_templates, ldap_first_disptmpl, ldap_next_disptmpl, ldap_oc2template, ldap_tmplattrs, ldap_first_tmplrow, ldap_next_tmplrow, ldap_first_tmplcol, ldap_next_tmplcol, \- LDAP display template routines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <disptmpl.h>
+.ft
+.LP
+.ft B
+int ldap_init_templates( file, tmpllistp )
+.ft
+char			*file;
+struct ldap_disptmpl	**tmpllistp;
+.LP
+.ft B
+int ldap_init_templates_buf( buf, buflen, tmpllistp )
+.ft
+char			*buf;
+unsigned long		len;
+struct ldap_disptmpl	**tmpllistp;
+.LP
+.ft B
+void ldap_free_templates( tmpllist )
+.ft
+struct ldap_disptmpl	*tmpllist;
+.LP
+.ft B
+struct ldap_disptmpl *ldap_first_disptmpl( tmpllist )
+.ft
+struct ldap_disptmpl	*tmpllist;
+.LP
+.ft B
+struct ldap_disptmpl *ldap_next_disptmpl( tmpllist, tmpl )
+.ft
+struct ldap_disptmpl	*tmpllist;
+struct ldap_disptmpl	*tmpl;
+.LP
+.ft B
+struct ldap_disptmpl *ldap_oc2template( oclist, tmpllist )
+.ft
+char			**oclist;
+struct ldap_disptmpl	*tmpllist;
+.LP
+.ft B
+struct ldap_disptmpl *ldap_name2template( name, tmpllist )
+.ft
+char			*name;
+struct ldap_disptmpl	*tmpllist;
+.LP
+.ft B
+char **ldap_tmplattrs( tmpl, includeattrs, exclude, syntaxmask )
+.ft
+struct ldap_disptmpl	*tmpl;
+char			**includeattrs;
+int			exclude;
+unsigned long		syntaxmask;
+.LP
+.ft B
+struct ldap_tmplitem *ldap_first_tmplrow( tmpl )
+.ft
+struct ldap_disptmpl	*tmpl;
+.LP
+.ft B
+struct ldap_tmplitem *ldap_next_tmplrow( tmpl, row )
+.ft
+struct ldap_disptmpl	*tmpl;
+struct ldap_tmplitem	*row;
+.LP
+.ft B
+struct ldap_tmplitem *ldap_first_tmplcol( tmpl, row )
+.ft
+struct ldap_disptmpl	*tmpl;
+struct ldap_tmplitem	*row;
+.LP
+.ft B
+struct ldap_tmplitem *ldap_next_tmplcol( tmpl, row, col )
+.ft
+struct ldap_disptmpl	*tmpl;
+struct ldap_tmplitem	*row;
+struct ldap_tmplitem	*col;
+.fi
+.SH DESCRIPTION
+These functions provide a standard way to access LDAP entry display
+templates.  Entry display templates provide a standard way for LDAP
+applications to display directory entries.  The general idea is that it
+is possible to map the list of object class values present in an entry
+to an appropriate display template.  Display templates are defined in a
+configuration file (see ldaptemplates.conf(5)).  Each display template
+contains a pre-determined list of items, where each item generally
+corresponds to an attribute to be displayed.  The items contain
+information and flags that the caller can use to display the attribute and
+values in a reasonable fashion.  Each item has a syntaxid, which are
+described in the SYNTAX IDS section below.  The ldap_entry2text(3)
+routines use the display template functions and produce text output.
+.LP
+ldap_init_templates() reads a sequence of templates from a valid LDAP
+template configuration file (see ldaptemplates.conf(5))
+.I Zero
+is returned upon success, and
+.I tmpllistp
+is set to point to a list of templates.  Each member of the list is an
+ldap_disptmpl structure (defined below in the DISPTMPL STRUCTURE ELEMENTS
+section).
+.LP
+.LP
+ldap_init_templates_buf() reads a sequence of templates from
+.I buf
+(whose size is
+.I buflen).
+.I buf
+should point to the data in the format defined for an LDAP template
+configuration file (see ldaptemplates.conf(5))
+.I Zero
+is returned upon success, and
+.I tmpllistp
+is set to point to a list of templates.
+.LP
+The
+.B LDAP_SET_DISPTMPL_APPDATA()
+macro is used to set the value of the dt_appdata field in an ldap_disptmpl
+structure.  This field is reserved for the calling application to use; it
+is not used internally.
+.LP
+The
+.B LDAP_GET_DISPTMPL_APPDATA()
+macro is used to retrieve the value in the dt_appdata field.
+.LP
+The
+.B LDAP_IS_DISPTMPL_OPTION_SET()
+macro is used to test a ldap_disptmpl structure for the existence of a
+template option.  The options currently defined are:
+.B LDAP_DTMPL_OPT_ADDABLE
+(it is appropriate to allow entries of this type to be added),
+.B LDAP_DTMPL_OPT_ALLOWMODRDN
+(it is appropriate to offer the "modify rdn" operation),
+.B LDAP_DTMPL_OPT_ALTVIEW
+(this template is merely an alternate view of another template, typically
+used for templates pointed to be an LDAP_SYN_LINKACTION item).
+.LP
+ldap_free_templates() disposes of the templates allocated by
+ldap_init_templates().
+.LP
+ldap_first_disptmpl() returns the first template in the list
+.I tmpllist.
+The
+.I tmpllist
+is typically obtained by calling ldap_init_templates().
+.LP
+ldap_next_disptmpl() returns the template after
+.I tmpl
+in the template list
+.I tmpllist.  A
+.SM NULL
+pointer is returned if
+.I tmpl
+is the last template in the list.
+.LP
+ldap_oc2template() searches
+.I tmpllist
+for the best template to use to display an entry that has a specific
+set of objectClass values.
+.I oclist
+should be a null-terminated array of strings that contains the values
+of the objectClass attribute of the entry.  A pointer to the first
+template where all of the object classes listed in one of the
+template's dt_oclist elements are contained in
+.I oclist
+is returned.  A
+.B NULL
+pointer is returned if no appropriate template is found.
+.LP
+ldap_tmplattrs() returns a null-terminated array that contains the
+names of attributes that need to be retrieved if the template
+.I tmpl
+is to be used to display an entry.  The attribute list should be freed
+using ldap_value_free().  The
+.I includeattrs
+parameter contains a null-terminated array of attributes that should
+always be included (it may be
+.B NULL
+if no extra attributes are required).  If
+.I syntaxmask
+is non-zero, it is used to restrict the attribute set returned.  If
+.I exclude
+is zero, only attributes where the logical AND of the template item
+syntax id and the
+.I syntaxmask
+is non-zero are included.  If
+.I exclude
+is non-zero, attributes where the logical AND of the template item
+syntax id and the
+.I  syntaxmask
+is non-zero are excluded.
+.LP
+ldap_first_tmplrow() returns a pointer to the first row of items in
+template
+.I tmpl.
+.LP
+ldap_next_tmplrow() returns a pointer to the row that follows
+.I row
+in template
+.I tmpl.
+.LP
+ldap_first_tmplcol() returns a pointer to the first item (in the first
+column) of row
+.I row
+within template
+.I tmpl.  A pointer to an ldap_tmplitem structure (defined below
+in the TMPLITEM STRUCTURE ELEMENTS section) is returned.
+.LP
+The
+.B LDAP_SET_TMPLITEM_APPDATA()
+macro is used to set the value of the ti_appdata field in a ldap_tmplitem
+structure.  This field is reserved for the calling application to use; it
+is not used internally.
+.LP
+The
+.B LDAP_GET_TMPLITEM_APPDATA()
+macro is used to retrieve the value of the ti_appdata field.
+.LP
+The
+.B LDAP_IS_TMPLITEM_OPTION_SET()
+macro is used to test a ldap_tmplitem structure for the existence of an
+item option.  The options currently defined are:
+.B LDAP_DITEM_OPT_READONLY
+(this attribute should not be modified),
+.B LDAP_DITEM_OPT_SORTVALUES
+(it makes sense to sort the values),
+.B LDAP_DITEM_OPT_SINGLEVALUED
+(this attribute can only hold a single value),
+.B LDAP_DITEM_OPT_VALUEREQUIRED
+(this attribute must contain at least one value),
+.B LDAP_DITEM_OPT_HIDEIFEMPTY
+(do not show this item if there are no values), and
+.B LDAP_DITEM_OPT_HIDEIFFALSE
+(for boolean attributes only:  hide this item if the value is FALSE).
+.LP
+ldap_next_tmplcol() returns a pointer to the item (column) that follows column
+.I col
+within row
+.I row
+of template
+.I tmpl.
+.SH DISPTMPL STRUCTURE ELEMENTS
+The ldap_disptmpl structure is defined as:
+.nf
+.ft B
+struct ldap_disptmpl {
+	char                    *dt_name;
+	char			*dt_pluralname;
+	char                    *dt_iconname;
+	unsigned long           dt_options;
+	char                    *dt_authattrname;
+	char                    *dt_defrdnattrname;
+	char                    *dt_defaddlocation;
+	struct ldap_oclist	*dt_oclist;
+	struct ldap_adddeflist	*dt_adddeflist;
+	struct ldap_tmplitem	*dt_items;
+	void			*dt_appdata;
+	struct ldap_disptmpl	*dt_next;
+};
+.ft
+.fi
+The dt_name member is the singular name of the template.  The dt_pluralname
+is the plural name.  The dt_iconname member will contain the name of an
+icon or other graphical element that can be used to depict entries that
+correspond to this display template.  The dt_options contains options which
+may be tested using the LDAP_IS_TMPLITEM_OPTION_SET() macro.
+.LP
+The dt_authattrname contains the name of the DN-syntax attribute whose
+value(s) should be used to authenticate to make changes to an entry.  If
+dt_authattrname is NULL, then authenticating as the entry itself is
+appropriate.  The dt_defrdnattrname is the name of the attribute that
+is normally used to name entries of this type, e.g., "cn" for person
+entries.  The dt_defaddlocation is the distinguished name of an entry
+below which new entries of this type are typically created (its value is
+site-dependent).
+.LP
+dt_oclist is a pointer to a linked list of object class arrays, defined as:
+.nf
+.ft B
+struct ldap_oclist {
+	char			**oc_objclasses;
+	struct ldap_oclist	*oc_next;
+};
+.ft
+.fi
+These are used by the ldap_oc2template() routine.
+.LP
+dt_adddeflist is a pointer to a linked list of rules for defaulting the
+values of attributes when new entries are created.  The ldap_adddeflist
+structure is defined as:
+.nf
+.ft B
+struct ldap_adddeflist {
+	int			ad_source;
+	char			*ad_attrname;
+	char			*ad_value;
+	struct ldap_adddeflist	*ad_next;
+};
+.ft
+.fi
+The ad_attrname member contains the name of the attribute whose value this
+rule sets.  If ad_source is 
+.B LDAP_ADSRC_CONSTANTVALUE
+then the ad_value member contains the (constant) value to use.
+If  ad_source is
+.B LDAP_ADSRC_ADDERSDN
+then ad_value is ignored and the distinguished name of the person who
+is adding the new entry is used as the default value for ad_attrname. 
+.SH TMPLITEM STRUCTURE ELEMENTS
+The ldap_tmplitem structure is defined as:
+.nf
+.ft B
+struct ldap_tmplitem {
+	unsigned long		ti_syntaxid;
+	unsigned long		ti_options;
+	char			*ti_attrname;
+	char			*ti_label;
+	char			**ti_args;
+	struct ldap_tmplitem	*ti_next_in_row;
+	struct ldap_tmplitem	*ti_next_in_col;
+	void			*ti_appdata;
+};
+.ft
+.fi
+.SH SYNTAX IDS
+Syntax ids are found in the ldap_tmplitem structure element ti_syntaxid,
+and they can be used to determine how to display the values for the
+attribute associated with an item.  The LDAP_GET_SYN_TYPE() macro can
+be used to return a general type from a syntax id.  The five general types
+currently defined are:
+.B LDAP_SYN_TYPE_TEXT
+(for attributes that are most appropriately shown as text),
+.B LDAP_SYN_TYPE_IMAGE
+(for JPEG or FAX format images),
+.B LDAP_SYN_TYPE_BOOLEAN
+(for boolean attributes),
+.B LDAP_SYN_TYPE_BUTTON
+(for attributes whose values are to be retrieved and display only upon 
+request, e.g., in response to the press of a button, a JPEG image is
+retrieved, decoded, and displayed), and
+.B LDAP_SYN_TYPE_ACTION
+(for special purpose actions such as "search for the entries where this
+entry is listed in the seeAlso attribute").
+.LP
+The
+.B LDAP_GET_SYN_OPTIONS
+macro can be used to retrieve an unsigned long bitmap that defines
+options.  The only currently defined option is
+.B LDAP_SYN_OPT_DEFER,
+which (if set) implies that the values for the attribute should not
+be retrieved until requested.
+.LP
+There are sixteen distinct syntax ids currently defined.  These generally
+correspond to one or more X.500 syntaxes.
+.LP
+.B LDAP_SYN_CASEIGNORESTR
+is used for text attributes which are simple strings whose case is ignored
+for comparison purposes.
+.LP
+.B LDAP_SYN_MULTILINESTR
+is used for text attributes which consist of multiple lines,
+e.g., postalAddress, homePostalAddress, multilineDescription, or any
+attributes of syntax caseIgnoreList.
+.LP
+.B LDAP_SYN_RFC822ADDR
+is used for case ignore string attributes that are RFC-822 conformant
+mail addresses, e.g., mail.
+.LP
+.B LDAP_SYN_DN
+is used for attributes with a Distinguished Name syntax, e.g., seeAlso.
+.LP
+.B LDAP_SYN_BOOLEAN
+is used for attributes with a boolean syntax.
+.LP
+.B LDAP_SYN_JPEGIMAGE
+is used for attributes with a jpeg syntax, e.g., jpegPhoto.
+.LP
+.B LDAP_SYN_JPEGBUTTON
+is used to provide a button (or equivalent interface element) that can be
+used to retrieve, decode, and display an attribute of jpeg syntax.
+.LP
+.B LDAP_SYN_FAXIMAGE
+is used for attributes with a photo syntax, e.g., Photo.  These are
+actually Group 3 Fax (T.4) format images.
+.LP
+.B LDAP_SYN_FAXBUTTON
+is used to provide a button (or equivalent interface element) that can be
+used to retrieve, decode, and display an attribute of photo syntax.
+.LP
+.B LDAP_SYN_AUDIOBUTTON
+is used to provide a button (or equivalent interface element) that can be
+used to retrieve and play an attribute of audio syntax.  Audio values are
+in the "mu law" format, also known as "au" format.
+.LP
+.B LDAP_SYN_TIME
+is used for attributes with the UTCTime syntax, e.g., lastModifiedTime.
+The value(s) should be displayed in complete date and time fashion.
+.LP
+.B LDAP_SYN_DATE
+is used for attributes with the UTCTime syntax, e.g., lastModifiedTime.
+Only the date portion of the value(s) should be displayed.
+.LP
+.B LDAP_SYN_LABELEDURL
+is used for labeledURL attributes.
+.LP
+.B LDAP_SYN_SEARCHACTION
+is used to define a search that is used to retrieve related information.
+If ti_attrname is not NULL, it is assumed to be a boolean attribute which
+will cause no search to be performed if its value is FALSE.  The ti_args
+structure member will have four strings in it:  ti_args[ 0 ] should be
+the name of an attribute whose values are used to help construct a search
+filter or "-dn" is the distinguished name of the entry being displayed
+should be used, ti_args[ 1 ] should be a filter pattern where any occurrences
+of "%v" are replaced with the value derived from ti_args[ 0 ], ti_args[ 2 ]
+should be the name of an additional attribute to retrieve when performing
+the search, and ti_args[ 3 ] should be a human-consumable name for that
+attribute.  The ti_args[ 2 ] attribute is typically displayed along with
+a list of distinguished names when multiple entries are returned by the
+search.
+.LP
+.B LDAP_SYN_LINKACTION
+is used to define a link to another template by name.  ti_args[ 0 ] will
+contain the name of the display template to use.  The ldap_name2template()
+routine can be used to obtain a pointer to the correct ldap_disptmpl structure.
+.LP
+.B LDAP_SYN_ADDDNACTION
+and
+.B LDAP_SYN_VERIFYDNACTION
+are reserved as actions but currently undefined.
+.SH ERRORS
+The init template functions return
+.B LDAP_TMPL_ERR_VERSION
+if buf points to data that is newer than can be handled,
+.B LDAP_TMPL_ERR_MEM
+if there is a memory allocation problem,
+.B LDAP_TMPL_ERR_SYNTAX
+if there is a problem with the format of the templates buffer or file.
+.B LDAP_TMPL_ERR_FILE
+is returned by
+.B ldap_init_templates
+if the file cannot be read.   Other routines generally return
+.B NULL
+upon error.
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldap_entry2text (3),
+.BR ldaptemplates.conf (5)

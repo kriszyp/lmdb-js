@@ -1,0 +1,118 @@
+#!/bin/sh
+
+. scripts/defines.sh
+
+echo "Cleaning up in $DBDIR..."
+
+rm -f $DBDIR/*
+
+echo "Running ldif2ldbm to build slapd database..."
+$LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
+RC=$?
+if [ $RC != 0 ]; then
+	echo "ldif2ldbm failed!"
+	exit $RC
+fi
+
+echo "Starting slapd on TCP/IP port $PORT..."
+$SLAPD -f $ACLCONF -p $PORT -d 1 > /dev/null 2>&1 &
+PID=$!
+
+echo "Testing slapd access control..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+		'cn=Monitor' > /dev/null 2>&1
+	RC=$?
+	if [ $RC = 1 ]; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+cat /dev/null > $SEARCHOUT
+
+#
+# Try to read an entry inside the Alumni Association container.  It should
+# give us nothing if we're not bound, and should return all attributes
+# if we're bound as anyone under UM.
+#
+$LDAPSEARCH -L -b "$JAJDN" -h localhost -p $PORT "objectclass=*" \
+	>> $SEARCHOUT 2>&1
+
+$LDAPSEARCH -L -b "$JAJDN" -h localhost -p $PORT \
+	-D "$BABSDN" -w bjensen "objectclass=*"  >> $SEARCHOUT 2>&1
+
+
+#
+# Try to add a "member" attribute to the "All Staff" group.  It should
+# fail when we add some DN other than our own, and should succeed when
+# we add our own DN.
+# bjensen
+$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
+	/dev/null 2>&1 << EOMODS1
+dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+changetype: modify
+add: member
+member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+
+EOMODS1
+
+$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
+	/dev/null 2>&1 << EOMODS2
+dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+changetype: modify
+add: member
+member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+
+EOMODS2
+
+#
+# Try to modify the "All Staff" group.  Two attempts are made:
+# 1) bound as "James A Jones 1" - should fail
+# 2) bound as "Barbara Jensen" - should succeed
+#
+$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
+	/dev/null 2>&1 << EOMODS3
+dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+changetype: modify
+delete: member
+
+EOMODS3
+
+$LDAPMODIFY -D "$BJORNSDN" -h localhost -p $PORT -w bjorn > \
+	/dev/null 2>&1 << EOMODS4
+dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+changetype: modify
+add: telephonenumber
+telephonenumber: +1 810 555 1212
+
+EOMODS4
+
+echo "Using ldapsearch to retrieve all the entries..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'objectClass=*' | egrep -iv '^modifytimestamp|^modifiersname' \
+	    >> $SEARCHOUT 2>&1
+RC=$?
+kill -HUP $PID
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	exit $RC
+fi
+
+echo "Comparing database to reference file"
+cmp $SEARCHOUT $ACLOUTMASTER
+if [ $? != 0 ]; then
+	echo "comparison failed - modify operations did not complete correctly"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+
+exit 0

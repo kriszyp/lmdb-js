@@ -1,0 +1,44 @@
+How to use the University of Michigan X.500 Email Query Service
+
+By sending electronic mail to the address:
+
+        x500-query@umich.edu
+
+you can access the campus X.500 Directory.  The Directory contains
+information about all faculty, staff, and students of the University,
+including phone numbers, mailing addresses, job titles, email
+addresses, and more.
+
+To query the service, send a piece of email to this address with a
+command similar to:
+
+	find <name>
+
+	e.g. find robert jones
+
+somewhere in the Subject: field or anywhere in the body (text) of the
+message.  You will receive a reply that contains information about the
+target of your query (in the above example, you would get information
+on all "robert jones" who are at the University).  The <name> can be
+a person's full name, last name, or uniqname.  An search for exact
+matches is first tried; if there are no exact matches, an approximate
+search (using soundex rules) is done.
+
+If your query matches exactly one person, you will receive detailed
+information about that person.  If more than one is matched, a list will
+be returned that should hopefully provide you with enough information
+to be able to determine which individual you really want.  Another
+query can then be made to obtain the detailed information.
+
+This service understands a number of synonyms for the "find" command,
+including: "whois", "search", "look up", "show."  You can also send
+a message with the word "help" in it to get this text returned to you.
+
+Note that this service is entirely automated -- no humans will respond
+to requests or other email sent here.  If you have questions or
+comments on the X.500 Directory service in general, or about this
+service in particular, please send electronic mail to:
+
+        x500@umich.edu
+
+This is the end of the help text.

@@ -1,0 +1,50 @@
+#-----------------------------------------------------------------------------
+# Copyright (c) 1992 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#       LDAP lightweight X.500 Directory access top level makefile for MSC
+#
+#-----------------------------------------------------------------------------
+
+SRCS	= decode.c encode.c io.c msdos.c lp.c
+OBJS	= decode.obj encode.obj io.obj msdos.obj lp.obj
+
+NOLOGO	= /nologo
+CC	= cl $(NOLOGO)
+MAKE	= nmake $(NOLOGO)
+
+default:
+	cd ..
+	$(MAKE) lber-lib
+
+all:	$(OBJS) liblber.lib
+
+decode.obj:	decode.c
+	$(CC) $(CFLAGS) decode.c
+
+encode.obj:	encode.c
+	$(CC) $(CFLAGS) encode.c
+
+io.obj:	io.c
+	$(CC) $(CFLAGS) io.c
+
+msdos.obj:	msdos.c
+	$(CC) $(CFLAGS) msdos.c
+
+lp.obj:	lp.c
+	$(CC) $(CFLAGS) lp.c
+
+liblber.lib:	$(OBJS)
+	del liblber.lib
+	lib $(NOLOGO) liblber.lib +decode.obj+encode.obj+io.obj+msdos.obj+lp.obj;
+
+clean:
+	del *.obj
+	del *.lib

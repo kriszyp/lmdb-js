@@ -1,0 +1,39 @@
+Constraints are a mechanism for modifying the behaviour of the query and are
+divided into two classes (local or global) depending on the scope of the 
+modification. Local contraints may appear attached to each term in a query,
+whereas global contraints apply to the entire query and so are listed after
+the actual query (separated from the query by a colon).
+
+This implementation supports the following constraints -
+1. Local constraints
+   a. match=(exact|fuzzy)
+      The directory is either searched for an exact match of the value
+      specified or soundex style matching is attempted.
+      If you wish to attempt substring matching you should include a "*" in
+      your search string.
+      Default=exact
+
+2. Global constraints
+   a. format=(full|abridged|handle|summary)
+      This specifies the format of the response returned by the query.
+      Normally the format used is controlled by the number of matches but this
+      constraint may be used to override the default.
+   b. hold
+      The connection is held open for a maximum of 60 seconds for further
+      queries, normally the connection is closed after each query.
+   c. language=<string>
+      Return any diagnostics in the natural language specified.
+      Default=english
+   d. linelength=<value>
+      This constraint allows you to indicate the maximum length of lines you
+      can display via your client.
+      Default=80
+   e. maxhits=<value>
+      The intent of this constraint is to limit the number of hits returned.
+      Unfortunately in the context of the server communicating with an X.500
+      server this is generally not possible as the DSA will define the
+      maximum number of entries it wishes to return. It is still of some use
+      if you wish to constrain the value to less than the value that the
+      X.500 directory would normally return.
+      The default value is dependant on the value configured by the Directory
+      Administrator into the DSA.

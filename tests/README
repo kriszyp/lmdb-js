@@ -1,0 +1,3 @@
+This directory contains a series of test scripts which are used to
+verify basic functionality of the LDAP libraries, slapd, and slurpd.
+To run the tests, type "make" in the ./tests directory.

@@ -1,0 +1,34 @@
+#
+# LDAP SVR4 standard cc Make-platform file
+#
+# Uses the std SVR4 stuff whenever possible.  
+# Some references to the BSD compatibility required.
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+# compiler to use, e.g. CC=cc or CC=gcc
+CC = cc
+
+# flags added to every compile
+# Use the BSD include files but only after the SVR4 files.
+PLATFORMCFLAGS=	-DSYSV -DSVR4 -I/usr/include -I/usr/ucbinclude 
+
+# flags added to every link
+PLATFORMLDFLAGS = 
+
+# extra libraries needed (added to the end of all link commands)
+PLATFORMLIBS =  -lnsl -lnet -lsocket
+
+# ndbm library, needed if not in libc (e.g. LDBMLIB=-lndbm)
+LDBMLIB = -L/usr/ucblib -lucb
+
+# BSD-like install command; if necessary, you can use a script
+INSTALL = /usr/ucb/install
+
+# command to convert libraries for efficient random access;
+RANLIB = ""
+
+# other commands  - see the file build/Make-append for a list

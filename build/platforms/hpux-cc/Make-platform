@@ -1,0 +1,33 @@
+#
+# LDAP HP-UX standard cc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+# ranlib not needed under HP-UX
+RANLIB	= ""
+
+# install under HP-UX is not like on BSD systems, so we use our own script
+INSTALL=$(LDAPSRC)/build/install.sh
+
+# we need to link a separate library to get ndbm routines under HP/UX 
+LDBMLIB=-lndbm
+
+PLATFORMCFLAGS= -Dhpux
+
+# we need to link in the V3 library to get sigset()
+PLATFORMLIBS= -lV3
+
+#
+# the HP-UX cc compiler doesn't understand function prototypes, so we
+# need the unproto preprocessor
+#
+NEEDUNPROTO=yes
+UNPROTOCFLAGS=-tp,$(LDAPSRC)/build/unproto/cpp

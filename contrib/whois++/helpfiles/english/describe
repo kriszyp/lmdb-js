@@ -1,0 +1,5 @@
+The describe command returns information about this service, formatted
+according to the IAFA Services template. This information will include a
+description of the service, access policy, and a contract for the person
+who manages the Directory.
+

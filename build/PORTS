@@ -1,0 +1,98 @@
+This file gives some helpful hints for building LDAP on various machines.
+
+LDAP has been built and tested on the following platforms.  It will
+probably build fine under similar versions of the OS (e.g. it has
+been built and tested under SunOS 4.1.4, but probably builds fine
+under all SunOS 4.1.x systems).
+
+If you port LDAP to a new platform, let us know so we can add it here.
+See the end of this file for some hints on doing a port.  The following
+tables give some indication of the level of support there is for various
+platforms where the LDAP release has been built.  Key:
+
+    X - all pieces are known to build and work
+    B - all pieces build and are believed to work
+    S - some pieces build and work
+    O - an older LDAP release has been ported here; current status unknown
+    ? - unknown
+    - - does not build and/or work at all
+
+** Unix and Unix-like platforms:
+
+ OS Version     libraries   clients    ldapd    slapd    slurpd
+ ----------     ---------   -------    -----    -----    ------
+ AIX 3.2.5          X          X         B        B        -(1)
+
+ HP-UX 9.05         X          X         ?        B        -(1)
+
+ Linux 1.3.76       X          X         O        X        -(1)
+
+ FreeBSD 2.0.5      X          X         ?        B        ?
+
+ NETBSD 0.9a        O          O         ?        ?        ?
+
+ NeXTSTEP 3.2       O          O         ?        ?        ?
+
+ SunOS 4.1.4        X          X         X        X        X
+
+ SunOS 5.5          X          X         B        X        X
+ (Solaris 2.5)
+
+ Ultrix 4.3         X          X         B        B        ?
+
+ OSF/1 3.2          X          X         X        X        ?
+
+ IRIX 5.x/6.x       B          B         ?        B        ?
+
+ NCR MP-RAS 2.3     X          X         ?        ?        ?
+
+(1) - required threads support not provided by vendor
+
+** Non-Unix Platforms:
+
+ OS Version     libraries   clients    ldapd    slapd    slurpd
+ ----------     ---------   -------    -----    -----    ------
+ MacOS 7.5          X          -         -        -        -
+     (see the file libraries/macintosh/README for build instructions)
+
+ MSDOS              O          S         -        -        -
+     (see the file libraries/msdos/README for build instructions)
+
+ MS-Windows 3.x     O          -         -        -        -
+     (see the file libraries/msdos/README.WSA for build instructions)
+
+ MS-Win NT & 95     O          ?         ?        ?        ?
+
+ VMS                X          S         X        X        ?
+     (see the file libraries/vms/README.VMS for build instructions)
+
+
+** Hints on Porting LDAP to a New Platform
+
+If your platform is not listed here, you will need to do a port.  The
+place to start for Unix systems is by creating a new directory under
+the LDAP build/platforms directory and creating an appropriate
+Make-platform file.  It is probably easiest to start by duplicating a
+directory there that is for a platform similar to yours.
+
+Variables commonly set in the Make-platform files include:
+
+CC              - compiler to use, e.g. CC=cc or CC=gcc
+PLATFORMCFLAGS  - flags added to every compile
+PLATFORMLDFLAGS - flags added to every link
+PLATFORMLIBS    - extra libraries needed (added to the end of all link commands)
+LDBMLIB         - ndbm library, needed if not in libc (e.g. LDBMLIB=-lndbm)
+NEEDUNPROTO=yes - set if your compiler doesn't understand prototypes; see the
+                      sunos4-cc and hpux-cc files for example usage
+INSTALL         - BSD-like install command; if necessary, you can use a script
+                      we provide:  INSTALL=$(LDAPSRC)/build/install.sh
+RANLIB          - command to convert libraries for efficient random access;
+                      if your system has no ranlib, use RANLIB = ""
+other commands  - see the file build/Make-append for a list
+
+You will also need to modify the top-level LDAP Makefile .make-platform
+rule to know about your platform.  Finally, you should look through the
+include/portable.h file and make any necessary adjustments.
+
+Please send changes via e-mail to:  ldap-support@umich.edu so they can be
+incorporated into future releases.

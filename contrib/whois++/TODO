@@ -1,0 +1,9 @@
+		Things to do list (well the start of one anyway :-)
+
+. Test on something other than Ultrix
+. Finish the multilingual support.
+. Make the parser for the query "language" more error resistant
+. Do a real parser for the config file
+. More help files
+. Think about multi charset, although this is probably an issue for LDAP
+. Kerberos authentication

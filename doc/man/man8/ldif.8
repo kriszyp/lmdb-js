@@ -1,0 +1,48 @@
+.TH LDIF 8C "15 November 1995" "U-M LDAP LDVERSION"
+.SH NAME
+ldif \- convert arbitrary data to LDIF format
+.SH SYNOPSIS
+.B ETCDIR/ldif [\-b] attr\-name
+.LP
+.SH DESCRIPTION
+.LP
+This program is used to convert arbitrary data to the
+LDAP Directory Interchange Format (LDIF) described in
+.BR ldif (5).
+.B ldif
+reads data from standard input, converts it,
+and writes the corresponding LDIF output to standard output.
+The output is suitable for use as a line in an
+.BR ldif (5)
+file.
+.LP
+Without the
+.B \-b
+flag,
+.B ldif
+considers its input a sequence of values to be
+converted, one per line. With the
+.B \-b
+flag, 
+.B ldif
+considers its input as a single raw binary value to be
+converted. This can be useful when converting binary data
+such as a photo or audio attribute.
+.LP
+See "The SLAPD and SLURPD Administrator's Guide" for more details on
+using this program.
+.SH OPTIONS
+.TP
+.B \-b
+This option specifies that
+.B ldif
+should interpret its input as a single binary value for conversion.
+Otherwise, it interprets it as a sequence of lines, with each line
+containing a single value.
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR ldif (5),
+.BR ldif2ldbm (8),
+.BR slapd (8)
+.LP
+"The SLAPD and SLURPD Administrator's Guide"

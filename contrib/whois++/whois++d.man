@@ -1,0 +1,162 @@
+.\" Copyright (c) 1993 The University of Adelaide.
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms are permitted
+.\" provided that the above copyright notice and this paragraph are
+.\" duplicated in all such forms and that any documentation,
+.\" advertising materials, and other materials related to such
+.\" distribution and use acknowledge that the software was developed
+.\" by the University of Adelaide. The name of the University may not
+.\" be used to endorse or promote products derived from this software
+.\" without specific prior written permission.
+.\" THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+.\" IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+.\" WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+.\"
+.\"	@(#)whois++d.man	1.5
+.\"
+.TH WHOIS++D 8 "26 April 1993"
+.SH NAME
+whois++d \- Whois++ white pages server
+.SH SYNOPSIS
+.B whois++d
+[
+.B \-b
+.I basename
+] [
+.B \-d
+.I debuglevel
+] [
+.B \-h
+.I ldaphost
+] [
+.B \-i
+] [
+.B \-l
+] [
+.B \-s
+.I maxhits
+] [
+.B \-t
+.I timelimit
+] [
+.B \-T
+.I tailorfile
+] [
+.B \-u
+.I user
+] [
+.B \-v
+] [
+.B \-?
+]
+.SH DESCRIPTION
+.I Whois++d
+is an implementation of the new whois++ white pages server. The server is in
+reality a DUA interface that uses the lightweight directory access protocol
+[RFC????] to communicate with an X.500 Directory System Agent (DSA) via a
+.MS ldapd 8
+server. The whois++ architecture (and command format) is described in an
+Internet Draft of the IETF's WNILS Working Group.
+
+By default
+.I whois++d
+reads it's configuration information from a tailor file (whois++dtailor)
+located in the
+.IR ETCDIR
+but this may be supplemented by command line options, including the
+specification of a secondary tailor file.
+.PP
+Options are:
+.TP
+.B \-b
+Specify the base for all queries, this must be specified either via the 
+commandline or (more normally) via the tailor file.
+.TP
+.B \-d
+Print debugging information.
+A number after the ``d'' determines the level of messages printed.
+.TP
+.B \-h
+Specify the host running the 
+.MS ldapd 8
+server.
+.TP
+.B \-i
+If the entry for the ``base'' of the searches has an info attribute then
+print it as part of the welcome banner.
+.TP
+.B \-l
+Enable logging of queries via syslog.
+.TP
+.B \-s
+Specify the maximum number of entries you wish returned as a result of a
+search. This is normally controlled by the DSA but if this is not possible
+then it can be restricted via this option.
+.TP
+.B \-t
+Specify a timelimit for queries to the DSA. Note this is
+.B not
+the timeout limit between queries when using the
+.I hold
+constraint.
+.TP
+.B \-T
+Specify an additional tailor file. Useful if you only have a binary and the
+default location is not what you consider to be a ``normal'' place.
+.TP
+.B \-u
+Specify the user's DN to use when binding to the directory.
+.TP
+.B \-v
+Return the version number of this server and then exit.
+.TP
+.B \-?
+Print a list of valid commandline options and then exit.
+.SH "CONFIGURATION FILE"
+When started 
+.B whois++d
+reads it's configuration file before processing any command line options.
+The configuration commands that may be included in this tailor file are
+.IP banner
+Specify a file to display as a welcome message.
+.IP base
+This specifies the entry within the DIT where searches will commence. This is
+normally set to the organisation's entry.
+.IP configdir
+Identifies where the configuration files may be found, currently only used
+for the template descriptions.
+.IP contact
+This is the distinguished name of the person responsible for this service, and
+whose entry will be displayed if the client uses the `describe' query. If this
+is not defined in the configuration file it defaults to the DSA manager.
+.IP helpdir
+This directory contains the multi-lingual help files. There should be a
+subdirectory for each language supported and within these subdirectories
+are helpfiles that are displayed by the server. At a minimum there should be
+an english directory containing a `general' helpfile (which contains
+introductory information).
+.IP hostname
+Used when the server is queried using the `describe' command. If not specified
+it will default to the local hostname.
+.IP language
+Specify the default language to be used when producing diagnostic messages.
+.IP ldaphost
+This specifies the host running a ldap server which can be used to communicate
+with the X.500 DSA.
+.IP password
+The password to use then binding to the X.500 DSA.
+.IP template
+The whois++ template name is not always the same as the X.500 object class
+so this option allows the two values to be associated with each other. The
+two values are template-name and objectclass-name.
+.IP user
+The LDAP distinguished name of the user to use when binding to the directory.
+This is optional but the DSA may restrict the information available to the
+whois++ server unless it authenticates itself.
+.NT
+Multi-lingual support is not available yet.
+.SH FILES
+ETCDIR/whois++dtailor	whois++ server tailor file
+.SH "SEE ALSO"
+ldapd(8)

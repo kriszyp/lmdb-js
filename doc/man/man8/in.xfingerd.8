@@ -1,0 +1,79 @@
+.TH IN.XFINGERD 8C "27 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+in.xfingerd \- Finger to LDAP/X.500 gateway daemon
+.SH SYNOPSIS
+.B ETCDIR/in.xfingerd [\-f filterfile] [\-i]
+.B [\-l] [\-t templatefile] [\-c rdncount] [\-x hostname]
+.B [\-p port]
+.SH DESCRIPTION
+.B in.xfingerd
+is the LDAP/X.500 finger daemon.  It runs from
+.BR inetd (8)
+and translates
+finger queries into LDAP queries or X.500 queries via LDAP.
+It also understands
+UFN-style names, so fingering something like "tim howes,umich,us@hostname"
+will do a UFN search.
+.LP
+To arrange to have in.xfingerd started from inetd
+add a line like this to your
+.BR /etc/inetd.conf (5)
+file, or the equivalent:
+.LP
+.nf
+.ft tt
+    finger stream tcp nowait nobody ETCDIR/in.xfingerd in.xfingerd
+.ft
+.fi
+.LP
+For these changes to take effect with inetd, you will probably have
+to send it it a HUP signal.  See
+.BR inetd (8)
+for more details.
+.SH OPTIONS
+.TP
+.BI \-f " filterfile"
+Specify an alternate filter configuration file for use with the
+.BR ldap_getfilter (3)
+facility, used by
+.BR in.xfingerd .
+.TP
+.B \-i
+Run in interactive mode.  With this flag in.xfingerd can be
+run from a terminal in "one shot" mode, reading the finger
+request from standard input.  This is useful for debugging.
+.TP
+.B \-l
+Disable logging of various status and errors to the LOG_LOCAL4 facility via
+.BR syslog (8).
+Note that this flag turns OFF logging.  The default is on.
+.TP
+.BI \-t " templatefile"
+Specify an alternate template configuration file for use with the
+.BR ldap_init_templates (3)
+facility, used by
+BR in.xfingerd .
+.TP
+.BI \-c " rdncount"
+Specify the number of DN components to show for the names and DN attributes
+within entries matching the search.
+.TP
+.BI \-x " hostname"
+Specify an alternate host on which the ldap server is running.
+.TP
+.BI \-p " port"
+Specify an alternate port on which the ldap server is listening.
+.SH NOTES
+The default values for most of the things you can specify with
+options are configured at compile time in the
+.B include/ldapconfig.h.edit
+include file.  Also included there are various messages displayed
+by the finger daemon when finding no matches, encountering errors, etc.
+You should configure
+.B ldapconfig.h.edit
+for your site.
+.SH "SEE ALSO"
+.BR finger (1)
+.BR ldap (3),
+.BR ldap_getfilter (3),
+.BR inetd (8),

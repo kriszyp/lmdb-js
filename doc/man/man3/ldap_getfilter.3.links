@@ -1,0 +1,7 @@
+ldap_init_getfilter.3
+ldap_init_getfilter_buf.3
+ldap_getfilter_free.3
+ldap_getfirstfilter.3
+ldap_getnextfilter.3
+ldap_setfilteraffixes.3
+ldap_build_filter.3

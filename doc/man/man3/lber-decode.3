@@ -1,0 +1,358 @@
+.TH LBER-DECODE 3  "18 November 1994"
+.SH NAME
+ber_get_next, ber_skiptag, ber_peek_tag, ber_scanf, ber_get_int, ber_get_stringb, ber_get_stringa, ber_get_null, ber_get_boolean, ber_get_bitstring, ber_first_element, ber_next_element \- LBER simplified Basic Encoding Rules library routines for decoding
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+.ft
+.fi
+.LP
+.nf
+.ft B
+typedef struct berelement {
+    char *ber_buf;
+    char *ber_ptr;
+    char *ber_end;
+    struct seqorset *ber_sos;
+    int ber_tag;
+    int ber_usertag;
+} BerElement;
+.ft
+.fi
+.LP
+.nf
+.ft B
+typedef struct sockbuf {
+    int sb_sd;
+    BerElement sb_ber;
+} Sockbuf;
+.ft
+.fi
+.LP
+.nf
+.ft B
+typedef struct berval {
+    unsigned long bv_len;
+    char *bv_val;
+};
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_next(sb, len, ber)
+Sockbuf *sb;
+unsigned long \(**len;
+BerElement \(**ber;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_skip_tag(ber, len)
+BerElement \(**ber;
+unsigned long \(**len;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_peek_tag(ber, len)
+BerElement \(**ber;
+unsigned long \(**len;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_int(ber, num)
+BerElement \(**ber;
+long \(**num;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_stringb(ber, buf, len)
+BerElement \(**ber;
+char \(**buf;
+unsigned long \(**len;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_stringa(ber, buf)
+BerElement \(**ber;
+char \(***buf;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_stringal(ber, bv)
+BerElement \(**ber;
+struct berval \(***bv;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_null(ber)
+BerElement \(**ber;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_boolean(ber, bool)
+BerElement \(**ber;
+int \(**bool;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_get_bitstringa(ber, buf, blen)
+BerElement \(**ber;
+char \(***buf;
+unsigned long \(**blen;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_first_element(ber, len, cookie)
+BerElement \(**ber;
+unsigned long \(**len;
+char \(***cookie;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_next_element(ber, len, cookie)
+BerElement \(**ber;
+unsigned long \(**len;
+char \(**cookie;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_scanf(ber, fmt [, arg...] )
+BerElement \(**ber;
+char \(**fmt;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_bvfree(bv)
+struct berval \(**bv;
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_bvecfree(bvec)
+struct berval \(***bvec;
+.SH DESCRIPTION
+.LP
+These routines provide a subroutine interface to a simplified
+implementation of the Basic Encoding Rules of ASN.1.  The version
+of BER these routines support is the one defined for the LDAP
+protocol.  The encoding rules are the same as BER, except that 
+only definite form lengths are used, and bitstrings and octet strings
+are always encoded in primitive form.  In addition, these lightweight
+BER routines restrict tags and class to fit in a single octet (this
+means the actual tag must be less than 31).  When a "tag" is specified
+in the descriptions below, it refers to the tag, class, and primitive
+or constructed bit in the first octet of the encoding.  This man page
+describes the decoding routines in the lber library.  See lber-encode(3)
+for details on the corresponding encoding routines.
+.LP
+Normally, the only routines that need be called by an application
+are ber_get_next() to get the next BER element and ber_scanf()
+to do the actual decoding.  In some cases, ber_peek_tag() may also
+need to be called in normal usage.  The other routines are provided for those
+applications that need more control than ber_scanf() provides.  In
+general, these routines return the tag of the element decoded, or
+-1 if an error occurred.
+.LP
+The ber_get_next() routine is used to read the next BER element from
+the given Sockbuf, \fIsb\fP.  A Sockbuf consists of the descriptor
+(usually socket, but a file descriptor works just as well) from which
+to read, and a BerElement structure used
+to maintain a buffer.  On the first call, the \fIsb_ber\fP struct should
+be zeroed.  It strips off and returns the
+leading tag byte, strips off and returns the length of the
+entire element in \fIlen\fP,
+and sets up \fIber\fP for subsequent calls to ber_scanf() et al to decode
+the element.
+.LP
+The ber_scanf() routine is used to decode a BER element in much the
+same way that scanf(3) works.  It reads from \fIber\fP, a pointer to a
+BerElement such as returned by ber_get_next(), interprets the
+bytes according to the format string \fIfmt\fP, and stores the
+results in its additional arguments.  The format string contains
+conversion specifications which are used to direct the interpretation
+of the BER element.  The format string can contain the following
+characters.
+.RS
+.LP
+.TP 3
+.SM a
+Octet string.  A char ** should be supplied.  Memory is allocated,
+filled with the contents of the octet string, null-terminated, and
+returned in the parameter.
+.TP
+.SM s
+Octet string.  A char * buffer should be supplied, followed by a pointer
+to an integer initialized to the size of the buffer.  Upon return, the
+null-terminated octet string is put into the buffer, and the integer is
+set to the actual size of the octet string.
+.TP
+.SM O
+Octet string.  A struct ber_val ** should be supplied, which upon return
+points to a malloced struct berval containing the octet string and its
+length.  ber_bvfree() can be called to free the malloced memory.
+.TP
+.SM b
+Boolean.  A pointer to an integer should be supplied.
+.TP
+.SM i
+Integer.  A pointer to an integer should be supplied.
+.TP
+.SM B
+Bitstring.  A char ** should be supplied which will point to the malloced
+bits, followed by an unsigned long *, which will point to the length
+(in bits) of the bitstring returned.
+.TP
+.SM n
+Null.  No parameter is required.  The element is simply skipped if
+it is recognized.
+.TP
+.SM v
+Sequence of octet strings.  A char *** should be supplied, which upon
+return points to a malloced null-terminated array of char *'s
+containing the octet strings.  NULL is returned if the sequence is empty.
+.TP
+.SM V
+Sequence of octet strings with lengths.
+A struct berval *** should be supplied, which upon
+return points to a malloced null-terminated array of struct berval *'s
+containing the octet strings and their lengths.
+NULL is returned if the sequence is empty.  ber_bvecfree() can be called
+to free the malloced memory.
+.TP
+.SM x
+Skip element.  The next element is skipped.
+.TP
+.SM {
+Begin sequence.  No parameter is required.  The initial sequence tag
+and length are skipped.
+.TP
+.SM }
+End sequence.  No parameter is required and no action is taken.
+.TP
+.SM [
+Begin set.  No parameter is required.  The initial set tag
+and length are skipped.
+.TP
+.SM ]
+End set.  No parameter is required and no action is taken.
+.RE
+.LP
+The ber_get_int() routine tries to interpret the next element as an integer,
+returning the result in \fInum\fP.  The tag of whatever it finds is returned
+on success, -1 on failure.
+.LP
+The ber_get_stringb() routine is used to read an octet string into a
+preallocated buffer.  The \fIlen\fP parameter should be initialized to
+the size of the buffer, and will contain the length of the octet string
+read upon return.  The buffer should be big enough to take the octet
+string value plus a terminating NULL byte.
+.LP
+The ber_get_stringa() routine is used to malloc space into which an octet
+string is read.
+.LP
+The ber_get_stringal() routine is used to malloc space into which an octet
+string and its length are read.  It takes a struct berval **, and returns
+the result in this parameter.
+.LP
+The ber_get_null() routine is used to read a NULL element.  It returns
+the tag of the element it skips over.
+.LP
+The ber_get_boolean() routine is used to read a boolean value.  It is called
+the same way that ber_get_int() is called.
+.LP
+The ber_get_bitstringa() routine is used to read a bitstring value.  It
+takes a char ** which will hold the malloced bits, followed by an
+unsigned long *, which will point to the length (in bits) of the
+bitstring returned.
+.LP
+The ber_first_element() routine is used to return the tag and length
+of the first element in a set or sequence.  It also returns in \fIcookie\fP
+a magic cookie parameter that should be passed to subsequent calls to
+ber_next_element(), which returns similar information.
+.SH EXAMPLES
+Assume the variable \fIber\fP contains a lightweight BER encoding of
+the following ASN.1 object:
+.LP
+.nf
+      AlmostASearchRequest := SEQUENCE {
+          baseObject      DistinguishedName,
+          scope           ENUMERATED {
+              baseObject    (0),
+              singleLevel   (1),
+              wholeSubtree  (2)
+          },
+          derefAliases    ENUMERATED {
+              neverDerefaliases   (0),
+              derefInSearching    (1),
+              derefFindingBaseObj (2),
+              alwaysDerefAliases  (3)
+          },
+          sizelimit       INTEGER (0 .. 65535),
+          timelimit       INTEGER (0 .. 65535),
+          attrsOnly       BOOLEAN,
+          attributes      SEQUENCE OF AttributeType
+      }
+.fi
+.LP
+The element can be decoded using ber_scanf() as follows.
+.LP
+.nf
+      int    scope, ali, size, time, attrsonly;
+      char   *dn, **attrs;
+
+      if ( ber_scanf( ber, "{aiiiib{v}}", &dn, &scope, &ali,
+          &size, &time, &attrsonly, &attrs ) == -1 )
+              /* error */
+      else
+              /* success */
+.fi
+.SH ERRORS
+If an error occurs during decoding, generally these routines return -1.
+.LP
+.SH NOTES
+.LP
+The return values for all of these functions are declared in the
+<lber.h> header file.  Some routines may malloc memory.
+.SH SEE ALSO
+.BR lber-encode (3)
+.BR ldap-parse (3)
+.BR ldap-sync (3)
+.BR ldap-async (3)
+.LP
+Yeong, W., Howes, T., and Hardcastle-Kille, S., "Lightweight Directory Access
+Protocol", OSI-DS-26, April 1992.
+.LP
+Information Processing - Open Systems Interconnection - Model and Notation -
+Service Definition - Specification of Basic Encoding Rules for Abstract
+Syntax Notation One, International Organization for Standardization,
+International Standard 8825.
+.SH AUTHOR
+Tim Howes, University of Michigan

@@ -1,0 +1,219 @@
+.TH LDAP_ERROR 3  "15 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_perror, ld_errno, ldap_result2error, ldap_errlist, ldap_err2string \- LDAP protocol error handling routines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+#include <ldap.h>
+.LP
+.ft B
+struct ldaperror {
+    int e_code;
+    char *e_reason;
+};
+.LP
+.ft B
+struct ldaperror ldap_errlist[];
+.LP
+.ft B
+char *ldap_err2string(err)
+.ft
+int err;
+.LP
+.ft B
+void ldap_perror(ld, s)
+.ft
+LDAP *ld;
+char *s;
+.LP
+.ft B
+int ldap_result2error(ld, res, freeit)
+.ft
+LDAP *ld;
+LDAPMessage *res;
+int freeit;
+.SH DESCRIPTION
+These routines provide interpretation of the various error codes
+returned by the LDAP protocol and LDAP library routines, and assigned
+to the
+.I ld_errno
+field in the \fIld\fP structure.
+.LP
+The
+.B ldap_result2error()
+routine takes \fIres\fP, a result as produced by
+.BR ldap_result (3)
+or
+.BR ldap_search_s (3),
+and returns
+the corresponding error code.  Possible error codes are listed
+below.  If the \fIfreeit\fP parameter is non zero it indicates that the
+\fIres\fP parameter should be freed by a call to
+.BR ldap_msgfree (3)
+after the error code has been extracted.  The
+.B ld_errno
+field in \fIld\fP is set and returned.
+.LP
+The returned value can be passed to
+.B ldap_err2string()
+or looked up in
+.B ldap_errlist[]
+to get a text description of the message.  The string
+returned from
+.B ldap_err2string()
+is a pointer to a static area that
+should not be modified.  The last element in the
+.B ldap_errlist[]
+array is signaled by an error code of -1.
+.LP
+The
+.B ldap_perror()
+routine can be called to print an indication of
+the error on standard error, similar to the way
+.BR perror (3)
+works.
+.SH ERRORS
+The possible values for an ldap error code are:
+.LP
+.TP 20
+.SM LDAP_SUCCESS
+The request was successful.
+.TP
+.SM LDAP_OPERATIONS_ERROR
+An operations error occurred.
+.TP
+.SM LDAP_PROTOCOL_ERROR
+A protocol violation was detected.
+.TP
+.SM LDAP_TIMELIMIT_EXCEEDED
+An LDAP time limit was exceeded.
+.TP
+.SM LDAP_SIZELIMIT_EXCEEDED
+An LDAP size limit was exceeded.
+.TP
+.SM LDAP_COMPARE_FALSE
+A compare operation returned false.
+.TP
+.SM LDAP_COMPARE_TRUE
+A compare operation returned true.
+.TP
+.SM LDAP_STRONG_AUTH_NOT_SUPPORTED
+The LDAP server does not support strong authentication.
+.TP
+.SM LDAP_STRONG_AUTH_REQUIRED
+Strong authentication is required for the operation.
+.TP
+.SM LDAP_PARTIAL_RESULTS
+Partial results only returned.
+.TP
+.SM LDAP_NO_SUCH_ATTRIBUTE
+The attribute type specified does not exist in the entry.
+.TP
+.SM LDAP_UNDEFINED_TYPE
+The attribute type specified is invalid.
+.TP
+.SM LDAP_INAPPROPRIATE_MATCHING
+Filter type not supported for the specified attribute.
+.TP
+.SM LDAP_CONSTRAINT_VIOLATION
+An attribute value specified violates some constraint (e.g., a postalAddress
+has too many lines, or a line that is too long).
+.TP
+.SM LDAP_TYPE_OR_VALUE_EXISTS
+An attribute type or attribute value specified already exists in the entry.
+.TP
+.SM LDAP_INVALID_SYNTAX
+An invalid attribute value was specified.
+.TP
+.SM LDAP_NO_SUCH_OBJECT
+The specified object does not exist in The Directory.
+.TP
+.SM LDAP_ALIAS_PROBLEM
+An alias in The Directory points to a nonexistent entry.
+.TP
+.SM LDAP_INVALID_DN_SYNTAX
+A syntactically invalid DN was specified.
+.TP
+.SM LDAP_IS_LEAF
+The object specified is a leaf.
+.TP
+.SM LDAP_ALIAS_DEREF_PROBLEM
+A problem was encountered when dereferencing an alias.
+.TP
+.SM LDAP_INAPPROPRIATE_AUTH
+Inappropriate authentication was specified (e.g., LDAP_AUTH_SIMPLE was
+specified and the entry does not have a userPassword attribute).
+.TP
+.SM LDAP_INVALID_CREDENTIALS
+Invalid credentials were presented (e.g., the wrong password).
+.TP
+.SM LDAP_INSUFFICIENT_ACCESS
+The user has insufficient access to perform the operation.
+.TP
+.SM LDAP_BUSY
+The DSA is busy.
+.TP
+.SM LDAP_UNAVAILABLE
+The DSA is unavailable.
+.TP
+.SM LDAP_UNWILLING_TO_PERFORM
+The DSA is unwilling to perform the operation.
+.TP
+.SM LDAP_LOOP_DETECT
+A loop was detected.
+.TP
+.SM LDAP_NAMING_VIOLATION
+A naming violation occurred.
+.TP
+.SM LDAP_OBJECT_CLASS_VIOLATION
+An object class violation occurred (e.g., a "must" attribute was missing
+from the entry).
+.TP
+.SM LDAP_NOT_ALLOWED_ON_NONLEAF
+The operation is not allowed on a nonleaf object.
+.TP
+.SM LDAP_NOT_ALLOWED_ON_RDN
+The operation is not allowed on an RDN.
+.TP
+.SM LDAP_ALREADY_EXISTS
+The entry already exists.
+.TP
+.SM LDAP_NO_OBJECT_CLASS_MODS
+Object class modifications are not allowed.
+.TP
+.SM LDAP_OTHER
+An unknown error occurred.
+.TP
+.SM LDAP_SERVER_DOWN
+The LDAP library can't contact the LDAP server.
+.TP
+.SM LDAP_LOCAL_ERROR
+Some local error occurred.  This is usually a failed malloc.
+.TP
+.SM LDAP_ENCODING_ERROR
+An error was encountered encoding parameters to send to the LDAP server.
+.TP
+.SM LDAP_DECODING_ERROR
+An error was encountered decoding a result from the LDAP server.
+.TP
+.SM LDAP_TIMEOUT
+A timelimit was exceeded while waiting for a result.
+.TP
+.SM LDAP_AUTH_UNKNOWN
+The authentication method specified to ldap_bind() is not known.
+.TP
+.SM LDAP_FILTER_ERROR
+An invalid filter was supplied to ldap_search() (e.g., unbalanced
+parentheses).
+.TP
+.SM LDAP_PARAM_ERROR
+An ldap routine was called with a bad parameter (e.g., a NULL ld
+pointer, etc.).
+.TP
+.SM LDAP_NO_MEMORY
+An memory allocation (e.g., malloc(3)) call failed in an ldap
+library routine.
+.SH SEE ALSO
+.BR ldap(3),
+.BR perror(3)

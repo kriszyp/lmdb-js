@@ -1,0 +1,9 @@
+The whois++ query langauge contains a number of mandatory commands which all
+servers should support but there are also a number of optional commands. In
+order that a client can find out what commands are supported by a server
+there is a mandatory command called "command" that should provide a list of 
+all commands supported by the server. If you wish to use a command that is
+optional you may wish to use the "command" command to find out if the server
+supports it.
+
+This server only supports the mandatory commands.

@@ -1,0 +1,115 @@
+LDAP rcpt500 mail query server README
+
+OVERVIEW
+This is a mail-query server that answers X.500 white pages queries.
+It is designed to be run out of your mail systems alias file, or the
+equivalent.  It expects to be fed the entire contents (including
+headers) of an RFC822 message via standard input.  It parses the
+message, looking in the Subject: field or the body of the message
+for a command that it recognizes.
+
+The commands currently recognized are listed in the file cmd.c.  They
+all map into two actual operations the server performs: an X.500 query
+or a help command.  If no recognizable command is found in the
+Subject:  or body of the message, help is assumed.  An appropriate
+reply is sent to the sender of the message in response to the command.
+
+The help command returns the contents of the file rcpt500.help.  You
+can modify the contents as appropriate for your local site.
+
+The query command performs a series of X.500 searches to try to find
+a person that matches the object of the query.  If more than one
+X.500 entry matches, a list is returned.  If exactly one is matched,
+detailed information is returned. Here is an example message and rcpt500
+generated reply:
+
+Query message:
+	Mail x500-query@umich.edu
+	Subject: find tim howes
+	.
+
+Reply from rcpt500:
+    Received: from totalrecall.rs.itd.umich.edu by terminator.cc.umich.edu
+	    id AA26151; Wed, 16 Sep 92 11:26:18 -0400
+    Received: by umich.edu (5.65/2.2)
+	    id AA12041; Wed, 16 Sep 92 11:26:17 -0400
+    Message-Id: <9209161526.AA12041@umich.edu>
+    Date: Wed, 16 Sep 92 11:26:17 -0400
+    From: "X.500 Query Program" <X500-Query@umich.edu>
+    Subject: Re: find tim howes
+    In-Reply-To: Your message of "Wed, 16 Sep 92 11:26:12 -0400"
+		 <9209161526.AA26144@terminator.cc.umich.edu>
+    To: "Mark Smith" <mcs@terminator.cc.umich.edu>
+
+    One exact match was found for 'tim howes':
+    "Timothy A Howes, Information Technology Division, Faculty and Staff"
+      Also known as:   
+			Timothy Howes
+			Timothy A Howes 1
+			Timothy A Howes
+			Tim Howes
+      E-mail address:  
+			tim@terminator.cc.umich.edu
+      Fax number:      
+			+1 313 764 5140 (argus building)
+      Business phone:  
+			+1 313 747-4454
+      Business address:
+			ITD Research Systems 
+			535 W William St. 
+			Ann Arbor, MI 48103-4943
+      Title:           
+			Systems Research Programmer II, Research Systems
+      Uniqname:        
+			tim
+
+If you want to try out rcpt500 yourself before installing it at your site,
+send a message to x500-query@umich.edu (we have a server running
+there that serves University of Michigan white pages information).
+
+
+CONFIGURING AND RUNNING rcpt500 AT YOUR LOCAL SITE
+You will probably need to make changes to the file ldapconfig.h.edit to
+configure rcpt500 for your local site.  There are comments in the file
+describing each variable you might need to change.  Then type make in
+the rcpt500 directory to make sure things are up to date.  You will
+need to install the rcpt500 binary and help files (make install).  This
+all assumes you have built the LDAP libraries already.  If in doubt,
+just do a make from the top of the LDAP distribution.
+
+You will then need to set up an alias that your users can send mail
+to that will feed the messages to rcpt500.  At our site, we run sendmail
+so the alias is in /usr/lib/aliases and looks like:
+
+	x500-query:     "|/usr/local/etc/rcpt500 -l"
+
+The available command line options for rcpt500 are:
+    -l			enable logging of requests via the syslog
+			  LOG_DAEMON facility
+    -h ldaphost		specify LDAP server host to connect to
+    -b searchbase	specify starting point of X.500 searches
+    -a			don't deference aliases during searches
+    -s stripcount	remove "stripcount" DN components from user
+			  friendly form names that are displayed
+    -z sizelimit	return at most "sizelimit" entries
+    -u dapuser		DN to bind to X.500 as when searching
+
+The search and display behavior is defined in the ldapfilter.conf and
+ldaptemplates.conf files.
+
+
+SUPPORT
+
+    The software is provided as is without any express or implied
+    warranty, but there is a bug reporting mail address which is
+    responded to on a best-effort basis:
+
+	    ldap-support@terminator.cc.umich.edu
+
+
+BUG REPORTING
+
+    Bug reports should be sent to bug-ldap@terminator.cc.umich.edu.
+
+
+README Last updated 10 November 1994 Mark Smith

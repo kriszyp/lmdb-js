@@ -1,0 +1,18 @@
+#
+# LDAP AIX standard cc Make-platform file
+#
+
+
+#
+# add any platform-specific overrides below here
+#
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+
+# install with BSD semantics
+INSTALL=/usr/ucb/install
+
+PLATFORMCFLAGS=	-Daix

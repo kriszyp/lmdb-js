@@ -1,0 +1,158 @@
+.TH SEARCHPREFS 3  "13 June 1994" "U-M LDAP LDVERSION"
+.SH NAME
+ldap_init_searchprefs, ldap_init_searchprefs_buf, ldap_free_searchprefs, ldap_first_searchobj, ldap_next_searchobj \- LDAP search preference configuration routeines
+.SH SYNOPSIS
+.nf
+.ft B
+#include <srchpref.h>
+.ft
+.fi
+.LP
+.nf
+.ft B
+struct ldap_searchattr {
+	char				*sa_attrlabel;
+	char				*sa_attr;
+					/* max 32 matchtypes for now */
+	u_long				sa_matchtypebitmap;
+	char				*sa_selectattr;
+	char				*sa_selecttext;
+	struct ldap_searchattr		*sa_next;
+};
+
+struct ldap_searchmatch {
+	char				*sm_matchprompt;
+	char				*sm_filter;
+	struct ldap_searchmatch		*sm_next;
+};
+
+struct ldap_searchobj {
+	char				*so_objtypeprompt;
+	unsigned long			so_options;
+	char				*so_prompt;
+	short				so_defaultscope;
+	char				*so_filterprefix;
+	char				*so_filtertag;
+	char				*so_defaultselectattr;
+	char				*so_defaultselecttext;
+	struct ldap_searchattr		*so_salist;
+	struct ldap_searchmatch		*so_smlist;
+	struct ldap_searchobj		*so_next;
+};
+.ft
+.fi
+.LP
+.nf
+.ft B
+int ldap_init_searchprefs( file, solistp )
+	char		\(**file;
+	struct ldap_searchobj	\(***solistp;
+.ft
+.fi
+.LP
+.nf
+.ft B
+int ldap_init_searchprefs_buf( buf, buflen, solistp )
+	char		\(**buf;
+	unsigned long	len;
+	struct ldap_searchobj	\(***solistp;
+.ft
+.fi
+.LP
+.nf
+.ft B
+struct ldap_searchobj \(**ldap_free_searchprefs( solist )
+	struct ldap_searchobj	\(**solist;
+.ft
+.fi
+.LP
+.nf
+.ft B
+struct ldap_searchobj \(**ldap_first_searchobj( solist )
+	struct ldap_seachobj	\(**solist;
+.ft
+.fi
+.LP
+.nf
+.ft B
+struct ldap_searchobj \(**ldap_next_searchobj( solist, so )
+	struct ldap_searchobj	\(**solist;
+	struct ldap_searchobj	\(**so;
+
+.SH DESCRIPTION
+These functions provide a standard way to access LDAP search preference
+configuration data.  LDAP search preference configurations are typically
+used by LDAP client programs to specify which attributes a user may
+search by, labels for the attributes, and LDAP filters and scopes
+associated with those searches.  Client software presents these choices
+to a user, who can then specify the type of search to be performed.
+.LP
+.B ldap_init_searchprefs(\|)
+reads a sequence of search preference configurations from a valid LDAP 
+searchpref configuration file
+(see ldapsearchprefs.conf(5))
+.I Zero
+is returned upon success, and 
+.I solistp
+is set to point to a list of search preference data structures.
+.LP
+.B ldap_init_searchprefs_buf(\|)
+reads a sequence of search preference configurations from
+.I buf
+(whose size is
+.I buflen).
+.I buf
+should point to the data in the format defined for an LDAP search preference 
+configuration file (see ldapsearchprefs.conf(5))
+.I Zero
+is returned upon success, and 
+.I solistp
+is set to point to a list of search preference data structures.
+
+.LP
+.B ldap_free_searchprefs(\|)
+disposes of the data structures allocated by
+.B ldap_init_searchprefs(\|).
+.LP
+.B ldap_first_searchpref(\|)
+returns the first search preference data structure in the list
+.I solist.
+The
+.I solist
+is typically obtained by calling
+.B ldap_init_searchprefs(\|).
+.LP
+.B ldap_next_searchpref(\|)
+returns the search preference after
+.I so
+in the template list
+.I solist.  A
+.SM NULL
+pointer is returned if
+.I so
+is the last entry in the list.
+.LP
+.SH ERRORS
+The init preferences functions return
+.B LDAP_SEARCHPREF_ERR_VERSION
+if buf points to data that is newer than can be handled, and
+.B LDAP_SEARCHPREF_ERR_MEM
+if there is a memory allocation problem.
+.SH NOTES
+.SH SEE ALSO
+.BR ldap (3),
+.BR ldapsearchprefs.conf (5),
+.BR ldapd (8)
+.LP
+Yeong, W., Howes, T., and Hardcastle-Kille, S., "Lightweight Directory Access
+Protocol", OSI-DS-26, April 1992.
+.LP
+Howes, T., Hardcastle-Kille, S., Yeong, W., and Robbins, C., "Lightweight
+Directory Access Protocol", OSI-DS-26, April 1992.
+.LP
+Hardcastle-Kille, S., "A String Representation of Distinguished Names",
+OSI-DS-23, April 1992.
+.LP
+Information Processing - Open Systems Interconnection - The Directory,
+International Organization for Standardization.  International Standard
+9594, (1988).

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo ">>>>> Executing all LDAP tests..."
+
+if [ $# -eq 0 ]; then
+	SCRIPTDIR="."
+else
+	SCRIPTDIR=$1; shift
+fi
+
+for i in $SCRIPTDIR/test*; do
+	CMD=$i $*
+	echo ">>>>> Starting $CMD ..."
+	$CMD
+	RC=$?
+	if [ $RC -eq 0 ]; then
+		echo ">>>>> $CMD completed OK."
+	else
+		echo ">>>>> $CMD failed (exit $RC)"
+		exit $RC
+	fi
+	echo
+done

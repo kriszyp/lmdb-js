@@ -1,0 +1,89 @@
+#!/bin/sh
+
+. scripts/defines.sh
+
+echo "Cleaning up in $DBDIR..."
+
+rm -f $DBDIR/*
+
+echo "Running ldif2ldbm to build slapd database..."
+$LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
+RC=$?
+if [ $RC != 0 ]; then
+	echo "ldif2ldbm failed!"
+	exit $RC
+fi
+
+echo "Starting slapd on TCP/IP port $PORT..."
+$SLAPD -f $CONF -p $PORT -d 1 > /dev/null 2>&1 &
+PID=$!
+
+echo "Testing slapd searching..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+		'cn=Manager' > /dev/null 2>&1
+	RC=$?
+	if [ $RC = 1 ]; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+cat /dev/null > $TESTOUT
+
+echo "Testing exact searching..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	'sn=jensen' >> $TESTOUT 2>&1
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing OR searching..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	'(|(objectclass=rfc822mailgroup)(sn=jones))' >> $TESTOUT 2>&1
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing AND matching and ends-with searching..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	'(&(objectclass=rfc822mailgroup)(cn=A*))' >> $TESTOUT 2>&1
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing NOT searching..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	'(!(objectclass=person))' | grep -v "^modifytimestamp:" \
+	>> $TESTOUT 2>&1
+if [ $RC != 0 ]; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+kill -HUP $PID
+
+echo "Comparing results"
+cmp $TESTOUT $SEARCHOUTMASTER
+if [ $? != 0 ]; then
+	echo "Comparison failed"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+
+exit 0

@@ -1,0 +1,86 @@
+.TH RCPT500 8C "16 December 1994" "U-M LDAP LDVERSION"
+.SH NAME
+rcpt500 \- mail to X.500 gateway program
+.SH SYNOPSIS
+.B ETCDIR/rcpt500 [\-l] [\-h ldaphost] [\-p ldapport]
+.B [\-b searchbase] [\-a] [\-U] [\-z sizelimit] [\-u dapuser]
+.B [\-f filterfile] [\-t templatefile] [\-c rdncount]
+.SH DESCRIPTION
+.B rcpt500
+is a mail-query server that answers X.500 white pages queries.  It is
+designed to be run out of your mail system alias file (or the equivalent).
+.B rcpt500
+accepts the entire contents (including headers) of an RFC 822
+message on standard input.  The message is parsed, and a search or help
+command found in the Subject: header of message body is recognized and
+a reply is sent to the sender.
+.LP
+If you are using
+.BR sendmail (8),
+you could add the following line to the
+.BR aliases (5)
+file
+.RB ( /etc/aliases )
+to have
+.B rcpt500
+invoked whenever mail is sent to the address \fInamelookup\fP on your host:
+.nf
+.fi
+.ft tt
+    namelookup:	"|ETCDIR/rcpt500 -l"
+.ft
+.fi
+.SH OPTIONS
+.TP
+.B \-l
+Enable logging of requests to the LOG_DAEMON facility.
+.TP
+.BI \-h " ldaphost"
+Specify an alternate host on which the ldap server is running.
+.TP
+.BI \-p " ldapport"
+Specify and alternate TCP port where the ldap server is running.
+.TP
+.BI \-b " searchbase"
+Specify an alternate base for searches.  \fIsearchbase\fP should be
+a string-represented LDAP Distinguished Name.
+.TP
+.B \-a
+Turn off dereferencing of aliases for the LDAP search.
+.TP
+.B \-U
+Use Connectionless LDAP (over UDP).  This option is only available when
+.B rcpt500
+is compiled with -DCLDAP.
+.TP
+.BI \-z " sizelimit"
+Limit the maximum number of entries returned to \fIsizelimit\fP
+entries.
+.TP
+.BI \-t " templatefile"
+Specify an alternate template configuration file for use with the
+.BR ldap_init_templates (3)
+facility, used by rcpt500.
+.TP
+.BI \-c " rdncount"
+Specify the number of DN components to show for the names and DN attributes
+within entries matching the search.
+.SH NOTES
+The default values for most of the things you can specify with options
+are configured at compile time in the
+.B include/ldapconfig.h.edit
+include
+file.  Also included there are the pathname of the help file, the name
+of the command used to send replies, etc.  You should configure
+.B ldapconfig.h.edit
+for your site.
+.SH FILES
+.PD 0
+.TP 20
+.B ETCDIR/rcpt500.help
+help file
+.PD
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR aliases (5),
+.BR sendmail (8)

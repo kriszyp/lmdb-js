@@ -1,0 +1,31 @@
+Users
+-----
+For users, see the man page on ud.
+
+Installers
+----------
+For installers, see the header file.  Anything that is configurable is
+listed in there as a #define, and the file is pretty well commented.
+
+Kerberos users
+--------------
+If you're going to use Kerberos, be sure that you have a Kerberos config file
+in /etc/krb.conf of the form:
+
+	<realm>
+	<realm> <server-for-realm> [ admin server ]
+
+This should be the realm in which users are going to authenticate, which
+is not necessarily your realm.
+
+You can certainly have other entries in this file, but you'll need at least
+these two.
+
+Also be sure that you have the necessary entries in /etc/services so that
+your client knows on which port to find a Kerberos authentication server.
+An pair of entries like this:
+
+  kerberos        750/udp         kdc             # Kerberos authentication
+  kerberos        750/tcp         kdc             # Kerberos authentication
+
+is fairly typical.

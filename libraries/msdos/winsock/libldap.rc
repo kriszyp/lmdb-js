@@ -1,0 +1,40 @@
+#ifdef APSTUDIO_INVOKED
+	#error:  this file is not editable by App Studio; use an editor
+#endif //APSTUDIO_INVOKED
+
+#include "ver.h"
+
+VS_VERSION_INFO	VERSIONINFO
+	FILEVERSION		3,3,0,0		// LIBLDAP version 3.3
+	PRODUCTVERSION  3,3,0,0
+	FILEFLAGSMASK	VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+	FILEFLAGS		(VS_FF_DEBUG|VS_FF_PRIVATEBUILD|VS_FF_PRERELEASE)
+#else
+	FILEFLAGS		VS_FF_PRERELEASE	// beta version
+//	FILEFLAGS		0			// final version
+#endif
+	FILEOS			VOS_DOS_WINDOWS16
+	FILETYPE		VFT_APP
+	FILESUBTYPE		0
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904E4"	// lang=US English, Charset=Windows Multilingual
+		BEGIN
+			VALUE	"CompanyName",		"University of Michigan\0"
+			VALUE	"FileDescription",	"Lightweight Directory Access Protocol Library\0"
+			VALUE	"FileVersion",		"3.3b1\0"
+			VALUE	"InternalName",		"LIBLDAP\0"
+			VALUE	"LegalCopyright",	"Copyright (c) 1996 The Regents of The University of Michigan\0"
+			VALUE	"LegalTrademarks",	"None\0"
+			VALUE	"OriginalFileName",	"LIBLDAP.DLL\0"
+			VALUE	"ProductName",		"LIBLDAP\0"
+			VALUE	"ProductVersion",	"3.3b1\0"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE	"Translation",	0x409, 1252	// English + Windows ANSI codepage
+	END
+END

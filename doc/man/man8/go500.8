@@ -1,0 +1,170 @@
+.TH GO500 8C "27 November 1994" "U-M LDAP LDVERSION"
+.SH NAME
+go500 \- Local Gopher index search to X.500 search gateway
+.SH SYNOPSIS
+.B ETCDIR/go500 [\-b searchbase] [\-d level] [\-l]
+.B [\-x hostname] [\-c rdncount] [\-f filterfile]
+.B [\-t templatefile]
+.B [\-p port] [\-I]
+.SH DESCRIPTION
+.I go500
+is the local gopher index search to X.500 search daemon.
+It looks like a gopher index server to a gopher
+client, translating the search criteria it is given into a
+search of a pre-configured portion of the X.500 directory.
+It uses LDAP to talk to X.500.  By default, it listens on
+port 5555 for connections from gopher clients.
+.LP
+The
+.B go500
+server can be run either from
+.BR inetd (8)
+or as stand-alone server.
+.SH STAND-ALONE OPERATION
+To start
+.B go500
+as a stand-alone server, simply start it with no arguments
+.LP
+.nf
+.ft tt
+	ETCDIR/go500
+.ft
+.fi
+.LP
+If you would like to start it at boot time add some lines like this to
+the
+.B etc/rc.local
+or equivalent file:
+.LP
+.nf
+.ft tt
+	if [ -f ETCDIR/go500 ]; then
+		ETCDIR/go500; echo ' go500'
+	fi
+.ft
+.fi
+.SH OPERATION WITH INETD
+To arrange to have
+.B go500
+started from
+.BR inetd (8),
+the Internet protocol
+daemon, add a line like the following to your
+.B /etc/services
+file, or the equivalent:
+.LP
+.nf
+.ft tt
+    go500           5555/tcp        go500
+.ft
+.fi
+.LP
+Next, add a line like this to your
+.B /etc/inetd.conf
+file, or the equivalent:
+.LP
+.nf
+.ft tt
+    go500   stream  tcp     nowait  nobody  ETCDIR/go500    go500 -I
+.ft
+.fi
+.LP
+For these changes to take effect with inetd, you will probably have
+to send it it a HUP signal.  See
+.BR inetd (8)
+for more details.
+.SH GOPHER CONFIGURATION
+The next step is to configure your local gopher server to have an
+entry for
+.BR go500 .
+With the standard unix gopher server, this
+can be done with a
+.B .link
+file.
+A sample
+.B .link
+file is given below, with the things you should
+change given in <>'s:
+.LP
+.nf
+.ft tt
+	Name=<Label of your choice>
+	Type=7
+	Port=5555
+	Path=
+	Host=<host.running.go500.here>
+.ft
+.fi
+.LP
+You may also have to restart your gopher daemon, or remove the
+.B .cache
+file.
+See
+.BR gopherd (8)
+for more details.
+.SH OPTIONS
+.TP
+.BI \-b " searchbase"
+Specify an alternate starting point for searches.  The argument should
+be a Distinguished Name in the form defined by RFC 1485.  For example,
+the DN "o=University of Michigan, c=US" could be given to search the
+University of Michigan portion of the X.500 tree.
+.TP
+.BI \-d " level"
+Turn on debugging as defined by
+.I level.
+If this option is specified,
+.B go500
+will not fork or disassociate from the invoking terminal.  Some general
+operation and status messages are printed for any value of \fIlevel\fP.
+\fIlevel\fP is taken as a bit string, with each bit corresponding to a
+different kind of debugging information.
+.TP
+.BI \-f " filterfile"
+Specify an alternate filter configuration file for use with the
+.BR ldap_getfilter (3)
+facility, used by
+.BR go500 .
+.TP
+.B \-l
+Enable logging of various status and errors to the LOG_LOCAL3 facility via
+syslog(8).
+.TP
+.BI \-p " port"
+Specify an alternate port on which to listen for connections.
+.TP
+.BI \-t " templatefile"
+Specify an alternate template  configuration  file  for
+use  with  the
+.BR ldap_init_templates (3)
+facility, used by
+.BR go500 .
+.TP
+.BI \-c " rdncount"
+Specify the number of DN components to show for the names and DN attributes
+within entries matching the search.
+.TP
+.BI \-x " hostname"
+Specify an alternate host on which the ldap server is running.
+.TP
+.B \-I
+Run from
+.BR inetd (8).
+.SH NOTES
+Some implementations of inetd have a small limit on the number of arguments
+that can be specified in the
+.BR /etc/inetd.conf (5)
+file.  This can cause
+problems if you are using
+.B go500
+with a lot of arguments.
+.LP
+The default values for most of the things you can specify with
+options are configured at compile time in the
+.B include/ldapconfig.h.edit
+include file.
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR inetd (8),
+.BR gopherd (8),
+.BR go500gw (8)

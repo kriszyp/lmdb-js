@@ -1,0 +1,152 @@
+.TH UNPROTO 1 
+.ad
+.fi
+.SH NAME
+unproto
+\-
+compile ANSI C with traditional UNIX C compiler
+.SH PACKAGE
+.na
+.nf
+unproto
+.SH SYNOPSIS
+.na
+.nf
+/somewhere/cpp ...
+
+cc cflags -E file.c | unproto >file.i; cc cflags -c file.i
+.SH DESCRIPTION
+.ad
+.fi
+This document describes a filter that sits in between the UNIX
+C preprocessor and the next UNIX C compiler stage, on the fly rewriting
+ANSI-style syntax to old-style syntax. Typically, the program is
+invoked by the native UNIX C compiler as an alternate preprocessor.
+The unprototyper in turn invokes the native C preprocessor and
+massages its output. Similar tricks can be used with the lint(1)
+command.
+
+Language constructs that are always rewritten:
+.TP
+function headings, prototypes, pointer types
+ANSI-C style function headings, function prototypes, function
+pointer types and type casts are rewritten to old style.
+<stdarg.h> support is provided for functions with variable-length
+argument lists.
+.TP
+character and string constants
+The \\a and \\x escape sequences are rewritten to their (three-digit)
+octal equivalents.
+
+Multiple string tokens are concatenated; an arbitrary number of
+whitespace or comment tokens may appear between successive
+string tokens.
+
+Within string constants, octal escape sequences are rewritten to the
+three-digit \\ddd form, so that string concatenation produces correct
+results.
+.TP
+date and time
+The __DATE__ and __TIME__ tokens are replaced by string constants
+of the form "Mmm dd yyyy" and "hh:mm:ss", respectively. The result
+is subjected to string concatenation, just like any other string
+constant.
+.PP
+Language constructs that are rewritten only if the program has been
+configured to do so:
+.TP
+void types
+The unprototyper can be configured to rewrite "void *" to "char *",
+and even to rewrite plain "void" to "int".
+These features are configurable because many traditional UNIX C
+compilers do not need them.
+
+Note: (void) argument lists are always replaced by empty ones.
+.PP
+ANSI C constructs that are not rewritten because the traditional
+UNIX C preprocessor provides suitable workarounds:
+.TP
+const and volatile
+Use the "-Dconst=" and/or "-Dvolatile=" preprocessor directives to
+get rid of unimplemented keywords.
+.TP
+token pasting and stringizing
+The traditional UNIX C preprocessor provides excellent alternatives.
+For example:
+
+.nf
+.ne 2
+#define string(bar)     "bar"           /* instead of: # x */
+#define paste(x,y)      x/**\/y         /* instead of: x##y */
+.fi
+
+There is a good reason why the # and ## operators are not implemented
+in the unprototyper.
+After program text has gone through a non-ANSI C preprocessor, all
+information about the grouping of the operands of # and ## is lost.
+Thus, if the unprototyper were to perform these operations, it would
+produce correct results only in the most trivial cases. Operands
+with embedded blanks, operands that expand to null tokens, and nested
+use of # and/or ## would cause all kinds of obscure problems.
+.PP
+Unsupported ANSI features:
+.TP
+trigraphs and #pragmas
+Trigraphs are useful only for systems with broken character sets.
+If the local compiler chokes on #pragma, insert a blank before the
+"#" character, and enclose the offending directive between #ifdef
+and #endif.
+.SH SEE ALSO
+.na
+.nf
+.ad
+.fi
+cc(1), how to specify a non-default C preprocessor.
+Some versions of the lint(1) command are implemented as a shell
+script. It should require only minor modification for integration
+with the unprototyper. Other versions of the lint(1) command accept
+the same command syntax as the C compiler for the specification of a
+non-default preprocessor. Some research may be needed.
+.SH FILES
+.na
+.nf
+/wherever/stdarg.h, provided with the unproto filter.
+.SH DIAGNOSTICS
+.ad
+.fi
+Problems are reported on the standard error stream.
+A non-zero exit status means that there was a problem.
+.SH BUGS
+.ad
+.fi
+The unprototyper should be run on preprocessed source only:
+unexpanded macros may confuse the program.
+
+Declarations of (object) are misunderstood and will result in
+syntax errors: the objects between parentheses disappear.
+
+Sometimes does not preserve whitespace after parentheses and commas.
+This is a purely aesthetical matter, and the compiler should not care.
+Whitespace within string constants is, of course, left intact.
+
+Does not generate explicit type casts for function-argument
+expressions.  The lack of explicit conversions between integral
+and/or pointer argument types should not be a problem in environments
+where sizeof(int) == sizeof(long) == sizeof(pointer).  A more serious
+problem is the lack of automatic type conversions between integral and
+floating-point argument types.  Let lint(1) be your friend.
+.SH AUTHOR(S)
+.na
+.nf
+Wietse Venema (wietse@wzv.win.tue.nl)
+Eindhoven University of Technology
+Department of Mathematics and Computer Science
+Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
+.SH LAST MODIFICATION
+.na
+.nf
+93/06/18 22:29:37
+.SH VERSION/RELEASE
+.na
+.nf
+1.6
