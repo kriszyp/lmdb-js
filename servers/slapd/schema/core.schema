@@ -127,9 +127,9 @@ attributetype ( 2.5.4.13 NAME 'description'
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )
 
-# Obsoleted by enhancedSearchGuide
+# Deprecated by enhancedSearchGuide
 attributetype ( 2.5.4.14 NAME 'searchGuide'
-	DESC 'RFC2256: search guide, obsoleted by enhancedSearchGuide'
+	DESC 'RFC2256: search guide, deprecated by enhancedSearchGuide'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.25 )
 
 attributetype ( 2.5.4.15 NAME 'businessCategory'
