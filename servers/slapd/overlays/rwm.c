@@ -21,6 +21,8 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
+
 #include "slap.h"
 #include "rwm.h"
 
@@ -637,6 +639,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	Entry		*e = NULL;
+	int		flags;
 	struct berval	dn = BER_BVNULL,
 			ndn = BER_BVNULL;
 	dncookie	dc;
@@ -660,6 +663,8 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif
 
+	flags = rs->sr_flags;
+
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		/* FIXME: all we need to duplicate are:
 		 * - dn
@@ -674,7 +679,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			goto fail;
 		}
 
-		rs->sr_flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	}
 
 	/*
@@ -825,6 +830,7 @@ next_attr:;
 
 
 	rs->sr_entry = e;
+	rs->sr_flags = flags;
 
 	return SLAP_CB_CONTINUE;
 
