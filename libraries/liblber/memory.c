@@ -401,7 +401,7 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-	if( bvec == NULL ) {
+	if( *bvec == NULL ) {
 		if( bv == NULL ) {
 			/* nothing to add */
 			return 0;
@@ -422,7 +422,7 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 	BER_MEM_VALID( bvec );
 
 	/* count entries */
-	for ( i = 0; bvec[i] != NULL; i++ ) {
+	for ( i = 0; (*bvec)[i] != NULL; i++ ) {
 		/* EMPTY */;
 	}
 
