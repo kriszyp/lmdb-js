@@ -407,7 +407,7 @@ SYNTAX of corresponding LDAP schema attribute, we translate the filter
 into the most relaxed SQL condition to filter candidates), and send it to
 the user.
 .LP
-ADD, DELETE, MODIFY operations are also performed on per-attribute
+ADD, DELETE, MODIFY and MODRDN operations are also performed on per-attribute
 metainformation (add_proc etc.).
 In those fields one can specify an SQL statement or stored procedure
 call which can add, or delete given values of a given attribute, using
@@ -421,7 +421,7 @@ Please see samples to find out what are the parameters passed, and other
 information on this matter - they are self-explanatory for those familiar
 with concept expressed above.
 .LP
-.SH common techniques (referrals, multiclassing etc.)
+.SH Common techniques (referrals, multiclassing etc.)
 First of all, let's remember that among other major differences to the
 complete LDAP data model, the concept above does not directly support
 such things as multiple objectclasses per entry, and referrals.
@@ -445,6 +445,26 @@ So, if you add objectclass "referral" to this entry, and make one or
 more tuples in ldap_referrals for this entry (they will be seen as
 values of "ref" attribute), you will have slapd return a referral, as
 described in the Administrators Guide.
+.LP
+.SH Caveats
+As previously stated, this backend should not be considered
+a replacement of other data storage backends, but rather a gateway
+to existing RDBMS storages that need to be published in LDAP form.
+.LP
+The hasSubordintes operational attribute is honored by back-sql
+in search results and in compare operations; it is partially honored
+also in filtering.  Owing to design limitations, a (braindead) filter
+of the form
+\fB(!(hasSubordinates=TRUE))\fP
+will give no results instead of returning all the leaf entries.
+If you need to find all the leaf entries, please use
+\fB(hasSubordinates=FALSE)\fP
+instead.
+.LP
+\fBAttribute\fP and \fBObjectClass\fP inheritance is honored neither
+in filters nor in search results.
+So you may search for \fB(givenName=Mitya)\fP in the examples, 
+but not for \fB(name=Mitya)\fP.
 .LP
 .SH EXAMPLES
 There are example SQL modules in the slapd/back-sql/rdbms_depend/
