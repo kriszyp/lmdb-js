@@ -56,7 +56,8 @@
 /* define type for caddr_t */
 typedef char * caddr_t;
 
-#define ssize_t signed int
+/* define type for ssize_t */
+typedef signed int ssize_t;
 
 /* we have NT threads */
 #ifdef _MT
