@@ -481,19 +481,38 @@ typedef struct slap_mod {
 #endif
 
 typedef struct slap_mod_list {
-	Modification ml_mod;
+	Modification sml_mod;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-#define ml_op		ml_mod.sm_op
-#define ml_desc		ml_mod.sm_desc
-#define ml_bvalues	ml_mod.sm_bvalues
+#define sml_op		sml_mod.sm_op
+#define sml_desc	sml_mod.sm_desc
+#define sml_bvalues	sml_mod.sm_bvalues
 #else
+#define sml_op		sml_mod.mod_op
+#define sml_type	sml_mod.mod_type
+#define sml_values	sml_mod.mod_values
+#define sml_bvalues	sml_mod.mod_bvalues
+#endif
+	struct slap_mod_list *sml_next;
+} Modifications;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+typedef struct slap_ldap_modlist {
+	LDAPMod ml_mod;
+	struct slap_ldap_modlist *ml_next;
 #define ml_op		ml_mod.mod_op
 #define ml_type		ml_mod.mod_type
 #define ml_values	ml_mod.mod_values
 #define ml_bvalues	ml_mod.mod_bvalues
+} LDAPModList;
+#else
+#define LDAPModList Modifications
+#define ml_mod		sml_mod
+#define ml_op		sml_mod.mod_op
+#define ml_type		sml_mod.mod_type
+#define ml_values	sml_mod.mod_values
+#define ml_bvalues	sml_mod.mod_bvalues
+#define ml_next		sml_next
 #endif
-	struct slap_mod_list *ml_next;
-} Modifications;
 
 /*
  * represents an access control list

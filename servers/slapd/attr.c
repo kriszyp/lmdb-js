@@ -217,7 +217,11 @@ attr_merge(
 Attribute *
 attr_find(
     Attribute	*a,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc
+#else
 	const char	*type
+#endif
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
@@ -243,7 +247,11 @@ attr_find(
 int
 attr_delete(
     Attribute	**attrs,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc
+#else
     const char	*type
+#endif
 )
 {
 	Attribute	**a;

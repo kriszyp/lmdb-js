@@ -20,7 +20,7 @@ static AccessControl * acl_get(
 	Backend *be, Operation *op,
 	Entry *e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *type,
+	AttributeDescription *desc,
 #else
 	const char *attr,
 #endif
@@ -31,7 +31,7 @@ static slap_control_t acl_mask(
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *type,
+	AttributeDescription *desc,
 #else
 	const char *attr,
 #endif
@@ -44,7 +44,7 @@ static int aci_mask(
 	Operation *op,
 	Entry *e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *type,
+	AttributeDescription *desc,
 #else
 	const char *attr,
 #endif
@@ -87,7 +87,7 @@ access_allowed(
     Operation		*op,
     Entry		*e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType	*attr,
+	AttributeDescription	*attr,
 #else
     const char		*attr,
 #endif
@@ -128,7 +128,7 @@ access_allowed(
 	 * by the user
 	 */
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( access >= ACL_WRITE && is_at_no_user_mod( attr ) )
+	if ( access >= ACL_WRITE && is_at_no_user_mod( attr->ad_type ) )
 #else
 	if ( access >= ACL_WRITE && oc_check_op_no_usermod_attr( attr ) )
 #endif
@@ -230,13 +230,14 @@ acl_get(
     Operation	*op,
     Entry		*e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *attr,
+	AttributeDescription *desc,
 #else
-    const char	*attr,
+    const char	*desc,
 #endif
     int			nmatch,
     regmatch_t	*matches )
 {
+	const char *attr;
 	assert( e != NULL );
 	assert( count != NULL );
 
@@ -252,6 +253,12 @@ acl_get(
 	} else {
 		a = a->acl_next;
 	}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	attr = desc->ad_cname->bv_val;
+#else
+	attr = desc;
+#endif
 
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
@@ -280,7 +287,7 @@ acl_get(
 			*count, attr, 0);
 
 		if ( attr == NULL || a->acl_attrs == NULL ||
-			charray_inlist( a->acl_attrs, attr ) )
+			ad_inlist( desc, a->acl_attrs ) )
 		{
 			Debug( LDAP_DEBUG_ACL,
 				"<= acl_get: [%d] acl %s attr: %s\n",
@@ -313,7 +320,7 @@ acl_mask(
     Operation	*op,
     Entry		*e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *attr,
+	AttributeDescription *attr,
 #else
     const char	*attr,
 #endif
@@ -681,7 +688,7 @@ acl_check_modlist(
 #endif
 	}
 
-	for ( ; mlist != NULL; mlist = mlist->ml_next ) {
+	for ( ; mlist != NULL; mlist = mlist->sml_next ) {
 		/*
 		 * no-user-modification operational attributes are ignored
 		 * by ACL_WRITE checking as any found here are not provided
@@ -690,23 +697,28 @@ acl_check_modlist(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		/* not yet implemented */
 #else
-		if ( oc_check_op_no_usermod_attr( mlist->ml_type ) ) {
+		if ( oc_check_op_no_usermod_attr( mlist->sml_type ) ) {
  			Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 				" modify access granted\n",
-				mlist->ml_type, 0, 0 );
+				mlist->sml_type, 0, 0 );
 			continue;
 		}
+#endif
 
-		switch ( mlist->ml_op ) {
+		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
 		case LDAP_MOD_ADD:
-			if ( mlist->ml_bvalues == NULL ) {
+			if ( mlist->sml_bvalues == NULL ) {
 				break;
 			}
-			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->ml_type, mlist->ml_bvalues[i],
-					ACL_WRITE ) )
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					&mlist->sml_desc,
+#else
+					mlist->sml_type,
+#endif
+					mlist->sml_bvalues[i], ACL_WRITE ) )
 				{
 					return( 0 );
 				}
@@ -714,26 +726,33 @@ acl_check_modlist(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( mlist->ml_bvalues == NULL ) {
+			if ( mlist->sml_bvalues == NULL ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->ml_type, NULL, 
-					ACL_WRITE ) )
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					&mlist->sml_desc,
+#else
+					mlist->sml_type,
+#endif
+					NULL,  ACL_WRITE ) )
 				{
 					return( 0 );
 				}
 				break;
 			}
-			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->ml_type, mlist->ml_bvalues[i],
-					ACL_WRITE ) )
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					&mlist->sml_desc,
+#else
+					mlist->sml_type,
+#endif
+					mlist->sml_bvalues[i], ACL_WRITE ) )
 				{
 					return( 0 );
 				}
 			}
 			break;
 		}
-#endif
 	}
 
 	return( 1 );
@@ -1017,7 +1036,11 @@ aci_mask(
     Backend			*be,
     Operation		*op,
     Entry			*e,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc,
+#else
     const char		*attr,
+#endif
     struct berval	*val,
     struct berval	*aci,
 	regmatch_t		*matches,
@@ -1092,9 +1115,7 @@ aci_mask(
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
 		Attribute *at;
-		char *attrname;
-
-		attrname = aci_bvstrdup(&sdn);
+		char *attrname = aci_bvstrdup(&sdn);
 		at = attr_find(e->e_attrs, attrname);
 		ch_free(attrname);
 

@@ -86,8 +86,8 @@ index_add_mods(
 {
 	int	rc;
 
-	for ( ; ml != NULL; ml = ml->ml_next ) {
-		Modification *mod = &ml->ml_mod;
+	for ( ; ml != NULL; ml = ml->sml_next ) {
+		Modification *mod = &ml->sml_mod;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		/* not yet implemented */

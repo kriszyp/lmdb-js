@@ -57,38 +57,38 @@ replog(
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
-		for ( ; ml != NULL; ml = ml->ml_next ) {
+		for ( ; ml != NULL; ml = ml->sml_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			/* not yet implemented */
 #else
-			switch ( ml->ml_op ) {
+			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", ml->ml_type );
+				fprintf( fp, "add: %s\n", ml->sml_type );
 				break;
 
 			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", ml->ml_type );
+				fprintf( fp, "delete: %s\n", ml->sml_type );
 				break;
 
 			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", ml->ml_type );
+				fprintf( fp, "replace: %s\n", ml->sml_type );
 				break;
 			}
 
-			for ( i = 0; ml->ml_bvalues != NULL &&
-			    ml->ml_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; ml->sml_bvalues != NULL &&
+			    ml->sml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( ml->ml_type );
+				len = strlen( ml->sml_type );
 				len = LDIF_SIZE_NEEDED( len,
-				    ml->ml_bvalues[i]->bv_len ) + 1;
+				    ml->sml_bvalues[i]->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
 				ldif_sput( &bufp, LDIF_PUT_VALUE,
-					ml->ml_type,
-				    ml->ml_bvalues[i]->bv_val,
-				    ml->ml_bvalues[i]->bv_len );
+					ml->sml_type,
+				    ml->sml_bvalues[i]->bv_val,
+				    ml->sml_bvalues[i]->bv_len );
 				*bufp = '\0';
 
 				fputs( buf, fp );

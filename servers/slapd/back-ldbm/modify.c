@@ -48,8 +48,8 @@ int ldbm_modify_internal(
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
 
-	for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
-		mod = &ml->ml_mod;
+	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		mod = &ml->sml_mod;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		switch ( mod->sm_op )
@@ -129,8 +129,8 @@ int ldbm_modify_internal(
 
 	/* remove old indices */
 	if( save_attrs != NULL ) {
-		for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
-			mod = &ml->ml_mod;
+		for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+			mod = &ml->sml_mod;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if ( mod->sm_op == LDAP_MOD_REPLACE )
 #else

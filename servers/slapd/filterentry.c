@@ -197,7 +197,7 @@ test_ava_filter(
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
-		ava->aa_desc->ad_type->sat_cname, ava->aa_value, ACL_SEARCH ) )
+		ava->aa_desc, ava->aa_value, ACL_SEARCH ) )
 #else
 
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
@@ -208,7 +208,7 @@ test_ava_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( (a = attr_find( e->e_attrs, ava->aa_desc->ad_cname->bv_val )) == NULL )
+	if ( (a = attr_find( e->e_attrs, ava->aa_desc )) == NULL )
 #else
 	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL )
 #endif
@@ -286,7 +286,7 @@ test_presence_filter(
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
-		desc->ad_type->sat_cname, NULL, ACL_SEARCH ) )
+		desc, NULL, ACL_SEARCH ) )
 #else
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		type, NULL, ACL_SEARCH ) )
@@ -296,7 +296,7 @@ test_presence_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	return attr_find( e->e_attrs, desc->ad_cname->bv_val ) != NULL
+	return attr_find( e->e_attrs, desc ) != NULL
 #else
 	return attr_find( e->e_attrs, type ) != NULL
 #endif

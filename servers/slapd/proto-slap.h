@@ -39,7 +39,7 @@ LIBSLAPD_F (int) ad_inlist LDAP_P((
 #if SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) access_allowed LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, AttributeDescription *type, struct berval *val,
+	Entry *e, AttributeDescription *desc, struct berval *val,
 	slap_access_t access ));
 #else
 LIBSLAPD_F (int) access_allowed LDAP_P((

@@ -26,7 +26,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-static void	modlist_free(Modifications *ml);
+static void	modlist_free(LDAPModList *ml);
 
 static int add_modified_attrs( Operation *op, Modifications **modlist );
 
@@ -40,8 +40,9 @@ do_modify(
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	Modifications	*modlist = NULL;
-	Modifications	**modtail = &modlist;
+	LDAPModList	*modlist = NULL;
+	LDAPModList	**modtail = &modlist;
+	Modifications *mods = NULL;
 #ifdef LDAP_DEBUG
 	Modifications *tmp;
 #endif
@@ -103,11 +104,8 @@ do_modify(
 	{
 		ber_int_t mop;
 
-		(*modtail) = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
+		(*modtail) = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-#else
 		if ( ber_scanf( op->o_ber, "{i{a[V]}}", &mop,
 		    &(*modtail)->ml_type, &(*modtail)->ml_bvalues )
 		    == LBER_ERROR )
@@ -117,7 +115,6 @@ do_modify(
 			rc = -1;
 			goto cleanup;
 		}
-#endif
 
 		(*modtail)->ml_op = mop;
 		
@@ -156,24 +153,33 @@ do_modify(
 	}
 	*modtail = NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
-#ifdef LDAP_DEBUG
-	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
-	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
-		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
-			tmp->ml_op == LDAP_MOD_ADD
-				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
-					? "delete" : "replace"), tmp->ml_type, 0 );
-	}
-#endif
-#endif
-
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
-	} 
+	}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
+	mods = modlist;
+#endif
+
+#ifdef LDAP_DEBUG
+	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
+	for ( tmp = mods; tmp != NULL; tmp = tmp->sml_next ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		char *type = tmp->sml_desc.ad_cname->bv_val;
+#else
+		char *type = tmp->sml_type;
+#endif
+		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
+			tmp->sml_op == LDAP_MOD_ADD
+				? "add" : (tmp->sml_op == LDAP_MOD_DELETE
+					? "delete" : "replace"), type, 0 );
+	}
+#endif
+
+
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
@@ -228,7 +234,7 @@ do_modify(
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && be->be_update_ndn == NULL )
 			{
-				rc = add_modified_attrs( op, &modlist );
+				rc = add_modified_attrs( op, &mods );
 
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
@@ -238,14 +244,14 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, dn, ndn, modlist ) == 0 
+			if ( (*be->be_modify)( be, conn, op, dn, ndn, mods ) == 0 
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL ||
 					strcmp( be->be_update_ndn, op->o_ndn ) != 0 )
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, dn, modlist );
+				replog( be, op, dn, mods );
 			}
 
 #ifndef SLAPD_MULTIMASTER
@@ -293,7 +299,7 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 	}
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "NULLDN";
+		bv.bv_val = "<anonymous>";
 		bv.bv_len = strlen( bv.bv_val );
 	} else {
 		bv.bv_val = op->o_dn;
@@ -329,14 +335,11 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 
 static void
 modlist_free(
-    Modifications	*ml
+    LDAPModList	*ml
 )
 {
-	Modifications *next;
+	LDAPModList *next;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->ml_next;
 
@@ -348,5 +351,4 @@ modlist_free(
 
 		free( ml );
 	}
-#endif
 }

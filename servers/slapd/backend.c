@@ -619,7 +619,7 @@ backend_group(
 	const char	*op_ndn,
 	const char	*objectclassValue,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType *group_at
+	AttributeDescription *group_at
 #else
 	const char	*group_at
 #endif
