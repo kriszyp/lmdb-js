@@ -323,6 +323,7 @@ monitor_back_db_open(
 				"$ seeAlso "
 				"$ monitoredInfo "
 				"$ managedInfo "
+				"$ monitorOverlay "
 			") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitor) },
 		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
@@ -440,6 +441,13 @@ monitor_back_db_open(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorTimestamp) },
+		{ "monitorOverlay", "( 1.3.6.1.4.1.4203.666.1.27 "
+			"NAME 'monitorOverlay' "
+			"DESC 'name of overlays defined for a give database' "
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(struct monitorinfo, mi_ad_monitorOverlay) },
 #ifdef INTEGRATE_CORE_SCHEMA
 		{ NULL, NULL, 0, -1 },	/* description */
 		{ NULL, NULL, 0, -1 },	/* seeAlso */

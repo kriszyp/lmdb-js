@@ -66,10 +66,17 @@ monitor_subsys_database_init(
 
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
-		char buf[ BACKMONITOR_BUFSIZE ];
-		int j;
+		char		buf[ BACKMONITOR_BUFSIZE ];
+		int		j;
+		slap_overinfo	*oi = NULL;
 
 		be = &backendDB[i];
+
+		if ( strcmp( be->bd_info->bi_type, "over" ) == 0 ) {
+			oi = (slap_overinfo *)be->bd_info;
+
+			be = &oi->oi_bd;
+		}
 
 		/* Subordinates are not exposed as their own naming context */
 		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
@@ -123,6 +130,19 @@ monitor_subsys_database_init(
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
 					be->be_suffix, be->be_nsuffix );
+		}
+
+		if ( oi != NULL ) {
+			slap_overinst *on = oi->oi_list;
+
+			for ( ; on; on = on->on_next ) {
+				struct berval		bv;
+				
+				bv.bv_val = on->on_bi.bi_type;
+				bv.bv_len = strlen( bv.bv_val );
+				attr_merge_normalize_one( e, mi->mi_ad_monitorOverlay,
+						&bv, NULL );
+			}
 		}
 
 		for ( j = nBackendInfo; j--; ) {

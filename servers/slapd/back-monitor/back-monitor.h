@@ -94,6 +94,7 @@ struct monitorinfo {
 	AttributeDescription *mi_ad_monitorConnectionLocalAddress;
 	AttributeDescription *mi_ad_monitorConnectionPeerAddress;
 	AttributeDescription *mi_ad_monitorTimestamp;
+	AttributeDescription *mi_ad_monitorOverlay;
 
 	/*
 	 * Generic description attribute
