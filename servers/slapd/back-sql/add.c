@@ -128,6 +128,7 @@ backsql_modify_delete_all_values(
 		
 		for ( i = 0; i < row.ncols; i++ ) {
 			SQLHSTMT	sth;
+			ber_len_t	col_len;
 			
 			rc = backsql_Prepare( dbh, &sth, at->bam_delete_proc, 0 );
 			if ( rc != SQL_SUCCESS ) {
@@ -163,7 +164,8 @@ backsql_modify_delete_all_values(
 				0, 0, e_id->eid_keyval.bv_val, 
 				0, 0 );
 			Debug( LDAP_DEBUG_TRACE,
-				"   backsql_modify_delete_all_values() arg%d=%s\n",
+				"   backsql_modify_delete_all_values() "
+				"arg%d=%s\n",
 				pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 			SQLBindParameter( sth, pno + 1 + po,
@@ -171,7 +173,8 @@ backsql_modify_delete_all_values(
 				SQL_C_ULONG, SQL_INTEGER,
 				0, 0, &e_id->eid_keyval, 0, 0 );
 			Debug( LDAP_DEBUG_TRACE,
-				"   backsql_modify_delete_all_values() arg%d=%lu\n",
+				"   backsql_modify_delete_all_values() "
+				"arg%d=%lu\n",
 				pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
@@ -179,11 +182,12 @@ backsql_modify_delete_all_values(
 			 * check for syntax needed here 
 			 * maybe need binary bind?
 			 */
+			col_len = strlen( row.cols[ i ] );
 			SQLBindParameter( sth, pno + 2 - po,
 				SQL_PARAM_INPUT,
 				SQL_C_CHAR, SQL_CHAR,
-				0, 0, row.cols[ i ],
-				strlen( row.cols[ i ] ), 0 );
+				col_len, 0, row.cols[ i ],
+				col_len, 0 );
 	 
 			Debug( LDAP_DEBUG_TRACE, 
 				"   backsql_modify_delete_all_values(): "
@@ -402,11 +406,19 @@ add_only:;
 					SQL_PARAM_INPUT, 
 					SQL_C_CHAR, SQL_VARCHAR,
 					0, 0, e_id->eid_keyval.bv_val, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_internal(): "
+					"arg%d=\"%s\"\n", 
+					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 				SQLBindParameter( sth, pno + 1 + po,
 					SQL_PARAM_INPUT, 
 					SQL_C_ULONG, SQL_INTEGER,
 					0, 0, &e_id->eid_keyval, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_internal(): "
+					"arg%d=\"%lu\"\n", 
+					pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 				/*
@@ -416,13 +428,14 @@ add_only:;
 				SQLBindParameter( sth, pno + 2 - po,
 					SQL_PARAM_INPUT,
 					SQL_C_CHAR, SQL_CHAR,
-					0, 0, at_val->bv_val, 
+					at_val->bv_len, 0, at_val->bv_val, 
 					at_val->bv_len, 0 );
-
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"executing \"%s\"\n", 
-					at->bam_add_proc, 0, 0 );
+					"arg%d=\"%s\"; executing \"%s\"\n", 
+					pno + 2 - po, at_val->bv_val,
+					at->bam_add_proc );
+
 				rc = SQLExecute( sth );
 				if ( rc != SQL_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
@@ -520,7 +533,7 @@ add_only:;
 				 */
 				SQLBindParameter( sth, pno + 2 - po,
 					SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR,
-					0, 0, at_val->bv_val, 
+					at_val->bv_len, 0, at_val->bv_val, 
 					at_val->bv_len, 0 );
 
 				Debug( LDAP_DEBUG_TRACE,
