@@ -22,7 +22,6 @@ properly install OpenLDAP Software.  This includes:
 !block table; align=Center; coltags="N,URL"; \
 	title="Table 4.1: Other OpenLDAP resources"
 Resource			URL
-Documentation Catalog		http://www.OpenLDAP.org/doc/
 Frequently Asked Questions	http://www.OpenLDAP.org/faq/
 Issue Tracking System		http://www.OpenLDAP.org/its/
 Mailing Lists			http://www.OpenLDAP.org/lists/
@@ -53,21 +52,23 @@ OpenSSL is available from {{URL: http://www.openssl.org/}}.
 OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
 {{EX:configure}} detects a usable OpenSSL installation.
 
+
 H3: Kerberos Authentication Services
 
-OpenLDAP clients and servers support Kerberos based authentication
+OpenLDAP clients and servers support Kerberos-based authentication
 services.
-In particular, OpenLDAP supports {{TERM:SASL}}/{{TERM:GSSAPI}} based
-authentication using either {{PRD:Heimdal}} or {{PRD:MIT Kerberos}}
-V packages.
-If you desire to use Kerberos based authentication, you should
-install either Heimdal or MIT Kerberos V.
+In particular, OpenLDAP supports {{TERM:SASL}}/{{TERM:GSSAPI}}
+authentication mechanism using either {{PRD:Heimdal}} or
+{{PRD:MIT Kerberos}} V packages.
+If you desire to use Kerberos-based SASL/GSSAPI authentication,
+you should install either Heimdal or MIT Kerberos V.
 
 Heimdal Kerberos is available from {{URL:http://www.pdc.kth.se/heimdal/}}.
 MIT Kerberos is available from {{URL:http://web.mit.edu/kerberos/www/}}.
 
 Use of strong authentication services, such as those provided by
 Kerberos, is highly recommended.
+
 
 H3: {{TERM[expand]SASL}}
 
@@ -83,6 +84,7 @@ if preinstalled.
 
 OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
 configure detects a usable Cyrus SASL installation.
+
 
 H3: Database software
 
@@ -106,6 +108,7 @@ the latest release, version 3.1, is recommended.
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
 At the time of this writing, version 1.8 is the latest release.
 
+
 H3: Threads
 
 OpenLDAP is designed to take advantage of threads.  OpenLDAP
@@ -114,6 +117,7 @@ other varieties.  {{EX:configure}} will complain if it cannot
 find a suitable thread subsystem.   If this occurs, please
 consult the {{F:Software|Installation|Platform Hints}} section
 of the OpenLDAP FAQ {{URL: http://www.openldap.org/faq/}}.
+
 
 H3: TCP Wrappers
 
@@ -191,6 +195,7 @@ The {{EX:configure}} script will normally auto-detect appropriate settings.
 If you have problems at this stage, consult any platform specific
 hints and check your {{EX:configure}} options if any.
 
+
 H2: Building the Software
 
 Once you have run the {{EX:configure}} script the last line of output
@@ -210,6 +215,7 @@ You should examine the output of this command carefully to make sure
 everything is built correctly. Note that this command builds the LDAP
 libraries and associated clients as well as {{slapd}}(8) and {{slurpd}}(8).
 
+
 H2: Testing the Software
 
 Once the software has been properly configured and successfully
@@ -218,6 +224,7 @@ made, you should run the test suite to verify the build.
 >	make test
 
 The test will run a number of tests.
+
 
 H2: Installing the Software
 

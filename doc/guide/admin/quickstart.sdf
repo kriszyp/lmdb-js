@@ -83,7 +83,7 @@ what's best:
 proceed with building the software.  If {{EX:configure}} did
 complain, well, you'll likely need to go to the FAQ Installation
 Section ({{URL:http://www.openldap.org/faq/}} and/or actually
-read the {SECT:Building and Installing OpenLDAP Software}}
+read the {{SECT:Building and Installing OpenLDAP Software}}
 chapter of this document.
 
 
