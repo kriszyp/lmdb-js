@@ -331,7 +331,7 @@ get_filter(
 		break;
 
 	default:
-		(void) ber_skip_tag( ber, &len );
+		(void) ber_scanf( ber, "x" ); /* skip the element */
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
 			   "get_filter: conn %d unknown filter type=%lu\n",
