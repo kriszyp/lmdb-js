@@ -174,10 +174,11 @@ static int indexer(
 			ad->ad_type->sat_equality,
 			&prefix, vals, &keys );
 
-		if( rc == LDAP_SUCCESS ) {
-			for( i= 0; keys[i] != NULL; i++ ) {
+		if( rc == LDAP_SUCCESS && keys != NULL ) {
+			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
  			}
+			ber_bvecfree( keys );
 		}
 	}
 
@@ -188,10 +189,11 @@ static int indexer(
 			ad->ad_type->sat_approx,
 			&prefix, vals, &keys );
 
-		if( rc == LDAP_SUCCESS ) {
-			for( i= 0; keys[i] != NULL; i++ ) {
+		if( rc == LDAP_SUCCESS && keys != NULL ) {
+			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
  			}
+			ber_bvecfree( keys );
 		}
 	}
 
@@ -202,10 +204,11 @@ static int indexer(
 			ad->ad_type->sat_substr,
 			&prefix, vals, &keys );
 
-		if( rc == LDAP_SUCCESS ) {
-			for( i= 0; keys[i] != NULL; i++ ) {
+		if( rc == LDAP_SUCCESS && keys != NULL ) {
+			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
  			}
+			ber_bvecfree( keys );
 		}
 	}
 
