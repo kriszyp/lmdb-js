@@ -56,7 +56,7 @@
 #endif /* HAVE_PCNFS */
 
 #ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
+#define INADDR_LOOPBACK	(0x7f000001UL)
 #endif
 
 #ifndef MAXHOSTNAMELEN

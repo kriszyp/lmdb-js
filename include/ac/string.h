@@ -42,9 +42,12 @@
 #endif
 
 /* use ldap_pvt_strtok instead of strtok or strtok_r! */
-extern char *ldap_pvt_strtok( char *str, const char *delim, char **pos );
+LDAP_F(char *) ldap_pvt_strtok LDAP_P((
+	char *str, const char *delim, char **pos ));
 
-extern char *ldap_pvt_strdup( const char * s );
+LDAP_F(char *) ldap_pvt_strdup LDAP_P((
+	const char * s ));
+
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
 #	undef strdup

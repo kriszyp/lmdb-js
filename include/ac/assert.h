@@ -27,7 +27,9 @@
  * create a replacement and hope it works
  */
 
-void	ber_pvt_assert(char* file, int line, char* test);
+LDAP_F(void) ber_pvt_assert LDAP_F((
+	char* file, int line, char* test));
+
 #define assert(test) \
 	((test) \
 		? (void)0 \

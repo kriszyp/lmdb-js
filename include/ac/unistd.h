@@ -28,7 +28,9 @@
 #endif
 
 #ifndef HAVE_GETPASS
-extern char* (getpass) LDAP_P((const char *getpass));
+LDAP_F(char*)(getpass) LDAP_P((const char *getpass));
+#else
+LDAP_F(char*)(getpass)();
 #endif
 
 /* getopt() defines may be in separate include file */
@@ -46,10 +48,12 @@ extern char* (getpass) LDAP_P((const char *getpass));
 #endif
 
 #ifndef HAVE_TEMPNAM
-	extern char *(tempnam)(const char *tmpdir, const char *prefix);
+	LDAP_F(char *)(tempnam) LDAP_P((
+		const char *tmpdir,
+		const char *prefix));
 #endif
 #ifndef HAVE_MKTEMP
-	extern char *(mktemp)(char *);
+	LDAP_F(char *)(mktemp) LDAP_P((char *));
 #endif
 
 /* use lutil file locking */

@@ -18,7 +18,7 @@
 # include <sys/wait.h>
 #endif
 
-#define LDAP_HI(s)	(((s) >> 8) & 0x377)
+#define LDAP_HI(s)	(((s) >> 8) & 0377)
 #define LDAP_LO(s)	((s) & 0377)
 
 /* These should work on non-POSIX UNIX platforms,
