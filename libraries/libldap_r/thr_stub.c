@@ -181,13 +181,13 @@ ldap_pvt_thread_pool_destroy (
 }
 
 int ldap_pvt_thread_pool_getkey (
-	void *ctx, void *key, void **data, void **kfree )
+	void *ctx, void *key, void **data, ldap_pvt_thread_pool_keyfree_t **kfree )
 {
 	return(0);
 }
 
 int ldap_pvt_thread_pool_setkey (
-	void *ctx, void *key, void *data, void *kfree )
+	void *ctx, void *key, void *data, ldap_pvt_thread_pool_keyfree_t *kfree )
 {
 	return(0);
 }
