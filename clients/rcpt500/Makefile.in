@@ -8,7 +8,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS =  -lldap -llber -llutil
-XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
 
 rcpt500 : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
