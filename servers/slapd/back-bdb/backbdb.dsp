@@ -131,6 +131,10 @@ SOURCE=".\back-bdb.h"
 # End Source File
 # Begin Source File
 
+SOURCE=.\error.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\external.h
 # End Source File
 # Begin Source File
@@ -139,7 +143,11 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
-SOURCE=".\proto-back-bdb.h"
+SOURCE=".\proto-bdb.h"
+# End Source File
+# Begin Source File
+
+SOURCE=.\tools.c
 # End Source File
 # End Target
 # End Project

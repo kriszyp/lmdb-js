@@ -11,7 +11,15 @@
 #include <portable.h>
 #include <db.h>
 
+#include "slap.h"
+
 LDAP_BEGIN_DECL
+
+#define DBTzero(t)			(memset((t), 0, sizeof(DBT)))
+#define DBT2bv(t,bv)		((bv)->bv_val = (t)->data, \
+								(bv)->bv_len = (t)->size)
+#define bv2DBT(bv,t)		((t)->data = (bv)->bv_val, \
+								(t)->size = (bv)->bv_len )
 
 #define DEFAULT_MODE		0600
 
@@ -21,18 +29,36 @@ LDAP_BEGIN_DECL
 #define DEFAULT_DB_LG_DIR	DEFAULT_DBENV_HOME LDAP_DIRSEP "log"
 #define DEFAULT_DB_DATA_DIR	DEFAULT_DBENV_HOME LDAP_DIRSEP "data"
 
-struct bdb_dbinfo {
-	DB_ENV		*bdi_dbenv;
+#define BDB_ID		0
+#define BDB_ENTRIES	1
+#define BDB_DNS		2
 
-	/* DBenv parameters */
-	char		*bdi_dbenv_home;
-	u_int32_t	bdi_dbenv_xflags; /* extra flags */
-	int			bdi_dbenv_mode;
-
-	char		*bdi_db_tmp_dir;
-	char		*bdi_db_lg_dir;
-	char		*bdi_db_data_dir;
+struct bdb_db_info {
+	DB			*bdi_db;
 };
+
+struct bdb_info {
+	DB_ENV		*bi_dbenv;
+
+	/* DB_env parameters */
+	char		*bi_dbenv_home;
+	u_int32_t	bi_dbenv_xflags; /* extra flags */
+	int			bi_dbenv_mode;
+
+	int			bi_tx_max;
+
+	char		*bi_db_tmp_dir;
+	char		*bi_db_lg_dir;
+	char		*bi_db_data_dir;
+
+	ID			*bi_lastid;
+
+	int			bi_ndatabases;
+	struct bdb_db_info **bdi_databases;
+};
+#define bi_id		bdi_databases[BDB_ID]
+#define bi_entries	bdi_databases[BDB_ENTRIES]
+#define bi_dns		bdi_databases[BDB_DNS]
 
 LDAP_END_DECL
 
