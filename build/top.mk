@@ -34,18 +34,13 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@/$(ldap_subdir)
 
+EXEEXT = @EXEEXT@
+OBJEXT = @OBJEXT@
+
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
-
-MV = mv
-LN = ln
-LN_S = @LN_S@
-RM = rm -f
-MAKEINFO = @MAKEINFO@
-RANLIB = @RANLIB@
-AR = ar
 
 LINT = lint
 5LINT = 5lint
@@ -56,15 +51,23 @@ LIBVERSION = 0:0:0
 LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
-# Misc UNIX commands used in makefiles
-SED = sed
+# Misc UNIX commands used in build environment
+AR = ar
+AWK = @AWK@
+BASENAME = basename
+CAT = cat
+CHMOD = chmod
 DATE = date
 HOSTNAME = uname -n
-BASENAME = basename
-PWD = pwd
-CAT = cat
+LN = ln
+LN_S = @LN_S@
+MAKEINFO = @MAKEINFO@
 MKDIR = mkdir -p
-CHMOD = chmod
+MV = mv
+PWD = pwd
+RANLIB = @RANLIB@
+RM = rm -f
+SED = sed
 
 # Misc UNIX commands used in programs
 EDITOR = @EDITOR@
