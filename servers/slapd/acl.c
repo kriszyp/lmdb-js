@@ -246,6 +246,7 @@ access_allowed(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
 		   "access_allowed: conn %d  %s access %s by %s\n",
+		   conn->c_connid,
 		   access2str( access ),
 		   ACL_GRANT( mask, access ) ? "granted" : "denied",
 		   accessmask2str( mask, accessmaskbuf ) ));
