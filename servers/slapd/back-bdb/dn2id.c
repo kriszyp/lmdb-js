@@ -682,7 +682,11 @@ bdb_dn2id_add(
 	idNode *n;
 
 	nrlen = dn_rdnlen( be, e->e_ndn );
-	rlen = dn_rdnlen( be, e->e_dn );
+	if (nrlen) {
+		rlen = dn_rdnlen( be, e->e_dn );
+	} else {
+		rlen = 0;
+	}
 
 	d = ch_malloc(sizeof(diskNode) + rlen + nrlen + 2);
 	d->rdn.bv_len = rlen;
