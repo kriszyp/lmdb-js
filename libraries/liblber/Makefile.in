@@ -7,8 +7,10 @@
 LIBRARY = liblber.la
 XLIBRARY = ../liblber.a
 
-SRCS= assert.c decode.c encode.c io.c bprint.c options.c sockbuf.c
-OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo options.lo sockbuf.lo
+SRCS= assert.c decode.c encode.c io.c bprint.c \
+	memory.c options.c sockbuf.c
+OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo \
+	memory.lo options.lo sockbuf.lo
 XSRCS= version.c
 
 PROGRAMS= dtest etest idtest
