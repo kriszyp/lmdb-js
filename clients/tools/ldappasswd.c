@@ -33,8 +33,8 @@
 #include "ldapconfig.h"
 
 /* local macros */
-#define CEILING(x)	((double)x > (int)x ? (int)x + 1 : (int)x)
-#define STRDUP(x)	(x ? strcpy(malloc(strlen(x) + 1), x) : NULL)
+#define CEILING(x)	((double)(x) > (int)(x) ? (int)(x) + 1 : (int)(x))
+#define STRDUP(x)	((x) ? strcpy(malloc(strlen(x) + 1), x) : NULL)
 
 #define LDAP_PASSWD_ATTRIB "userPassword"
 #define LDAP_PASSWD_CONF   DEFAULT_SYSCONFDIR"/passwd.conf"
