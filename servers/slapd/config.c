@@ -11,6 +11,7 @@
 
 #include <ac/string.h>
 #include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/errno.h>
 
@@ -40,6 +41,7 @@ slap_mask_t		global_disallows = 0;
 slap_mask_t		global_requires = 0;
 slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
+int		global_gentlehup = 0;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
@@ -2037,6 +2039,22 @@ read_config( const char *fname )
 					lastmod = 0;
 				}
 			}
+
+#ifdef SIGHUP
+		/* turn on/off gentle SIGHUP handling */
+		} else if ( strcasecmp( cargv[0], "gentlehup" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: missing on|off in \"gentlehup <on|off>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			if ( strcasecmp( cargv[1], "off" ) == 0 ) {
+				global_gentlehup = 0;
+			} else {
+				global_gentlehup = 1;
+			}
+#endif
 
 		/* set idle timeout value */
 		} else if ( strcasecmp( cargv[0], "idletimeout" ) == 0 ) {

@@ -204,6 +204,22 @@ disables Start TLS from forcing session to anonymous status (see also
 disables StartTLS if authenticated (see also
 .BR tls_2_anon ).
 .TP
+.B gentlehup { on | off }
+A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
+.B Slapd
+will stop listening for new connections, but will not close the
+connections to the current clients.  It terminates when all clients
+have closed their connections (if they ever do), or \- as before \-
+if it receives a SIGTERM signal.  This can be useful if you wish to
+terminate the server and start a new
+.B slapd
+server
+.B with another database,
+without disrupting the currently active clients.
+The default is off.  You may wish to use
+.B idletimeout
+along with this option.
+.TP
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing
 an idle client connection.  A idletimeout of 0 disables this
