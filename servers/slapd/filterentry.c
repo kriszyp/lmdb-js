@@ -467,12 +467,10 @@ test_ava_filter(
 		}
 
 		if ( hasSubordinates == LDAP_COMPARE_TRUE ) {
-			hs.bv_val = "TRUE";
-			hs.bv_len = sizeof( "TRUE" ) - 1;
+			hs = slap_true_bv;
 
 		} else if ( hasSubordinates == LDAP_COMPARE_FALSE ) {
-			hs.bv_val = "FALSE";
-			hs.bv_len = sizeof( "FALSE" ) - 1;
+			hs = slap_false_bv;
 
 		} else {
 			return LDAP_OTHER;

@@ -43,24 +43,20 @@ Attribute *
 slap_operational_hasSubordinate( int hs )
 {
 	Attribute	*a;
-	char		*val;
-	ber_len_t	len;
+	struct berval	val;
 
 	if ( hs ) {
-		val = "TRUE";
-		len = sizeof( "TRUE" ) - 1;
+		val = slap_true_bv;
 
 	} else {
-		val = "FALSE";
-		len = sizeof( "FALSE" ) - 1;
-
+		val = slap_false_bv;
 	}
 
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_hasSubordinates;
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 
-	ber_str2bv( val, len, 1, a->a_vals );
+	ber_dupbv( &a->a_vals[0], &val );
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_nvals = a->a_vals;

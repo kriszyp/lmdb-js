@@ -510,6 +510,8 @@ LDAP_SLAPD_F (int) test_filter LDAP_P(( Operation *op, Entry *e, Filter *f ));
 
 LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
+LDAP_SLAPD_V( const struct berval ) slap_true_bv;
+LDAP_SLAPD_V( const struct berval ) slap_false_bv;
 
 /*
  * index.c

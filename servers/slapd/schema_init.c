@@ -822,11 +822,11 @@ booleanValidate(
 	 */
 
 	if( in->bv_len == 4 ) {
-		if( !memcmp( in->bv_val, "TRUE", 4 ) ) {
+		if( bvmatch( in, &slap_true_bv ) ) {
 			return LDAP_SUCCESS;
 		}
 	} else if( in->bv_len == 5 ) {
-		if( !memcmp( in->bv_val, "FALSE", 5 ) ) {
+		if( bvmatch( in, &slap_false_bv ) ) {
 			return LDAP_SUCCESS;
 		}
 	}
