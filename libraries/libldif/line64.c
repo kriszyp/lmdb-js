@@ -280,14 +280,10 @@ ldif_getline( char **next )
 			}
 #endif
 
-			if ( (*next)[1] == '\r' ) {
-				if( (*next)[2] == '\n' ) {
+			if ( (*next)[1] != ' ' ) {
+				if ( (*next)[1] == '\r' && (*next)[2] == '\n' ) {
 					*(*next)++ = '\0';
 				}
-				*(*next)++ = '\0';
-				break;
-				
-			} else if ( (*next)[1] != ' ' ) {
 				*(*next)++ = '\0';
 				break;
 			}
