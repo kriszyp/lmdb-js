@@ -170,7 +170,7 @@
  * call signal or sigset (signal does not block the signal while
  * in the handler on sys v and sigset does not exist on bsd)
  */
-#ifdef SYSV
+#if defined(SYSV) && !defined(linux)
 #define SIGNAL sigset
 #else
 #define SIGNAL signal
