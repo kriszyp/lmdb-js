@@ -57,9 +57,9 @@ ldap_back_dn_massage(
 
 	assert( res );
 
+	res->bv_val = NULL;
+	res->bv_len = 0;
         if ( dn == NULL ) {
-		res->bv_val = NULL;
-		res->bv_len = 0;
 		return;
 	}
         if ( li == NULL || li->suffix_massage == NULL ) {
@@ -93,7 +93,7 @@ ldap_back_dn_massage(
                         /* XXX or an escaped separator... oh well */
                 }
 
-                if ( !strcmp( li->suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
+                if ( !strcasecmp( li->suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
 			res->bv_len = diff + li->suffix_massage[i+dst].bv_len;
                         res->bv_val = ch_malloc( res->bv_len + 1 );
                         strncpy( res->bv_val, dn->bv_val, diff );

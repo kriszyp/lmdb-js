@@ -7,6 +7,7 @@ OpenLDAP 2.1.26 Engineering
 	Updated lutil_passwd (ITS#2835, ITS#2869)
 	Updated librewrite (ITS#2787)
 	Updated slurpd (misc bug fixes)
+	Fixed back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
 
 OpenLDAP 2.1.25 Engineering
 	Build Environment
