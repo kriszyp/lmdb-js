@@ -104,6 +104,9 @@ LDAP_BEGIN_DECL
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
 #define SLAPD_ACI_ATTR			"OpenLDAPaci"
 
+/* change this to "OpenLDAPset" */
+#define SLAPD_ACI_SET_ATTR		"template"
+
 #define SLAPD_TOP_OID			"2.5.6.0"
 
 LDAP_SLAPD_F (int) slap_debug;
@@ -593,7 +596,11 @@ typedef enum slap_style_e {
 	ACL_STYLE_BASE,
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
-	ACL_STYLE_CHILDREN
+	ACL_STYLE_CHILDREN,
+	ACL_STYLE_ATTROF,
+
+	/* alternate names */
+	ACL_STYLE_EXACT = ACL_STYLE_BASE
 } slap_style_t;
 
 typedef unsigned long slap_access_mask_t;
@@ -675,6 +682,8 @@ typedef struct slap_access {
 	char		*a_domain_pat;
 	slap_style_t a_sockurl_style;
 	char		*a_sockurl_pat;
+	slap_style_t a_set_style;
+	char		*a_set_pat;
 
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription	*a_aci_at;
