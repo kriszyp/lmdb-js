@@ -43,17 +43,21 @@ ldbm_back_add(
 #endif
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
+	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n",
+		op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
+		op->o_req_dn.bv_val, 0, 0);
 #endif
 	
-	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
+	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL,
+		&rs->sr_text, textbuf, textlen );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_add: entry (%s) failed schema check.\n", op->o_req_dn.bv_val, 0, 0 );
+		LDAP_LOG( BACK_LDBM, ERR,
+			"ldbm_back_add: entry (%s) failed schema check.\n",
+			op->o_req_dn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			rs->sr_text, 0, 0 );
@@ -88,7 +92,8 @@ ldbm_back_add(
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
-	if ( ( rs->sr_err = dn2id( op->o_bd, &op->o_req_ndn, &id ) ) || id != NOID ) {
+	rs->sr_err = dn2id( op->o_bd, &op->o_req_ndn, &id );
+	if ( rs->sr_err || id != NOID )	{
 		/* if (rs->sr_err) something bad happened to ldbm cache */
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
@@ -136,7 +141,8 @@ ldbm_back_add(
 				0, 0, 0 );
 #endif
 
-			rs->sr_text = rs->sr_ref ? "parent is referral" : "parent does not exist";
+			rs->sr_text = rs->sr_ref
+				? "parent is referral" : "parent does not exist";
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
@@ -147,9 +153,7 @@ ldbm_back_add(
 			return rs->sr_err;
 		}
 
-		if ( ! access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL ) )
-		{
+		if ( ! access_allowed( op, p, children, NULL, ACL_WRITE, NULL ) ) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -218,7 +222,7 @@ ldbm_back_add(
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, ERR,
-				   "ldbm_back_add: Parent is referral.\n", 0, 0, 0 );
+			   "ldbm_back_add: Parent is referral.\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
 			    0, 0 );
@@ -287,7 +291,8 @@ ldbm_back_add(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
-	rs->sr_err = cache_add_entry_rw(&li->li_cache, op->oq_add.rs_e, CACHE_WRITE_LOCK);
+	rs->sr_err = cache_add_entry_rw( &li->li_cache, op->oq_add.rs_e,
+		CACHE_WRITE_LOCK );
 
 	if ( rs->sr_err != 0 ) {
 		if( p != NULL) {
@@ -331,7 +336,9 @@ ldbm_back_add(
 	}
 
 	/* dn2id index */
-	if ( dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname, op->oq_add.rs_e->e_id ) != 0 ) {
+	if ( dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname,
+		op->oq_add.rs_e->e_id ) != 0 )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR,
 			"ldbm_back_add: dn2id_add failed.\n", 0, 0, 0 );
@@ -358,7 +365,8 @@ ldbm_back_add(
 #endif
 
 		/* FIXME: delete attr indices? */
-		(void) dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname, op->oq_add.rs_e->e_id );
+		(void) dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname,
+			op->oq_add.rs_e->e_id );
 		
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"entry store failed" );
