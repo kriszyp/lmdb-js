@@ -84,6 +84,7 @@ IPSEC	Internet Protocol Security
 ITS	Issue Tracking System
 LBER	Lightweight BER
 LDAP	Lightweight Directory Access Protocol
+LDIF	LDAP Directory Interchange Format
 LDBM	LDAP Database Manager
 OSI	OSI
 PS	Proposed Standard

@@ -11,20 +11,22 @@ you can create the database on-line using LDAP. With this
 method, you simply start up slapd and add entries using the
 LDAP client of your choice. This method is fine for relatively
 small databases (a few hundred or thousand entries,
-depending on your requirements).
+depending on your requirements).  This method works for database
+types which support updates.
 
-The second method of database creation is to do it off-line,
-using the index generation tools. This method is best if you
-have many thousands of entries to create, which would take
-an unacceptably long time using the LDAP method, or if you
-want to ensure the database is not accessed while it is
-being created.
+The second method of database creation is to do it off-line
+using special utilities provided with slapd. This method is
+best if you have many thousands of entries to create, which
+would take an unacceptably long time using the LDAP method,
+or if you want to ensure the database is not accessed while
+it is being created.  Note that not all database types support
+these utilitites.
 
 
 H2: Creating a database over LDAP
 
 With this method, you use the LDAP client of your choice
-(e.g., the ldapadd(1) tool) to add entries, just like you would
+(e.g., the ldapadd(1)) to add entries, just like you would
 once the database is created. You should be sure to set the
 following configuration options before starting slapd:
 
@@ -35,7 +37,7 @@ entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E: 	suffix "dc=OpenLDAP, dc=org"
+E: 	suffix "dc=example, dc=com"
 
 You should be sure to specify a directory where the index
 files should be created:
@@ -44,18 +46,28 @@ E:	directory <directory>
 
 For example:
 
-E:	directory /usr/local/openldap/slapd
+E:	directory /usr/local/var/openldap-ldbm
 
-You need to make it so you can connect to slapd as
-somebody with permission to add entries. This is done
-through the following two options in the database definition:
+You need to create this directory with appropriate permissions
+such that slapd can write to it.
+
+You need to make it so you can connect to slapd as directory user
+with permission to add entries.  You can configure the directory
+to support a special {{super-user}} or {{root}} user just for
+this purpose.   This is done through the following two options
+in the database definition:
 
 E:	rootdn <dn>
 E:	rootpw <passwd>
 
+For example:
+
+E:	rootdn "cn=Manager, dc=example, dc=com"
+E:	rootpw secret
+
 These options specify a DN and password that can be used
-to authenticate as the "superuser" entry of the database (i.e.,
-the entry allowed to do anything). The DN and password
+to authenticate as the {{super-user}} entry of the database (i.e.,
+the entry allowed to do anything).  The DN and password
 specified here will always work, regardless of whether the
 entry named actually exists or has the password given. This
 solves the chicken-and-egg problem of how to authenticate
@@ -72,53 +84,49 @@ used.
 
 E:	index cn,sn,uid
 E:	index objectclass pres,eq
-E:	index default none
 
 See Section 4 on the configuration file for more details on
 this option. Once you have configured things to your liking,
 start up slapd, connect with your LDAP client, and start
 adding entries. For example, to add a the organizational entry
 followed by a Postmaster entry using the {{I:ldapadd}} tool, you
-could create a file called {{EX:/tmp/newentry}} with the contents:
+could create an {{TERM:LDIF}} file called {{EX:entries.ldif}} with the
+contents:
 
-
-E: dc=OpenLDAP, dc=org
+E: dc=example, dc=com
 E: objectClass=dcObject
 E: objectClass=organization
-E: dc=OpenLDAP
-E: o=OpenLDAP
-E: o=OpenLDAP Project
-E: o=OpenLDAP Foundation
-E: description=The OpenLDAP Foundation
-E: description=The OpenLDAP Project
+E: dc=example
+E: o=Example Corporation
+E: description=The Example Corporation
 E:
-E: cn=Postmaster, dc=OpenLDAP, dc=org
+E: cn=Postmaster, dc=example, dc=com
 E: objectClass=organizationalRole
 E: cn=Postmaster
-E: description=OpenLDAP Postmaster <Postmaster@OpenLDAP.org>
+E: description=OpenLDAP Postmaster <Postmaster@example.com>
 
 and then use a command like this to actually create the
 entry:
 
-E: ldapadd -f /tmp/newentry -D "cn=Manager, dc=OpenLDAP, dc=org" -w secret
+E: ldapadd -f entries.ldif -x -D "cn=Manager, dc=example, dc=com" -w secret
 
-The above command assumes that you have set {{EX: rootdn}} to
-"cn=Manager, dc=OpenLDAP, dc=org" and {{EX: rootpw}}
-to "secret".
+The above command assumes settings provided in the above
+examples.
 
 
 H2: Creating a database off-line
 
 The second method of database creation is to do it off-line,
-using the index generation tools described below. This
-method is best if you have many thousands of entries to
-create, which would take an unacceptably long time using
+using the slapd database tools described below. This method is
+best if you have many thousands of entries to create, which
+would take an unacceptably long time using
 the LDAP method described above. These tools read the
 slapd configuration file and an input file containing a text
-representation of the entries to add. They produce the LDBM
-index files directly. There are several important configuration
-options you will want to be sure and set in the config file
-database definition first:
+representation of the entries to add.  For database types which
+support the tools, they produce the database files directly (otherwise
+you must use the on-line method above). There are several important
+configuration options you will want to be sure and set in the config
+file database definition first:
 
 E:	suffix <dn>
 
@@ -127,7 +135,7 @@ entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E:	suffix "dc=OpenLDAP, dc=org"
+E:	suffix "dc=example, dc=com"
 
 You should be sure to specify a directory where the index
 files should be created:
@@ -136,28 +144,7 @@ E:	directory <directory>
 
 For example:
 
-E:	directory /usr/local/var/openldap
-
-Next, you probably want to increase the size of the in-core
-cache used by each open index file. For best performance
-during index creation, the entire index should fit in memory. If
-your data is too big for this, or your memory too small, you
-can still make it pretty big and let the paging system do the
-work. This size is set with the following option:
-
-E:	dbcachesize <integer>
-
-For example:
-
-E:	dbcachesize 50000000
-
-This would create a cache 50 MB big, which is pretty big (at
-U-M, our database has about 125K entries, and our biggest
-index file is about 45 MB). Experiment with this number a bit,
-and the degree of parallelism (explained below), to see what
-works best for your system. Remember to turn this number
-back down once your index files are created and before you
-run slapd.
+E:	directory /usr/local/var/openldap-ldbm
 
 Finally, you need to specify which indexes you want to build.
 This is done by one or more index options.
@@ -167,25 +154,25 @@ E:	index {<attrlist> | default} [pres,eq,approx,sub,none]
 For example:
 
 E:	index cn,sn,uid pres,eq,approx
-E:	index default none
+E:	index objectClass eq
 
 This would create presence, equality and approximate
-indexes for the cn, sn, and uid attributes, and no indexes for
-any other attributes. See the configuration file section for
-more information on this option.
+indexes for the cn, sn, and uid attributes and an equality
+index for the objectClass attribute.  See the configuration
+file section for more information on this option.
 
-H3: The {{EX: ldif2ldbm}} program
+H3: The {{EX: slapadd}} program
 
 Once you've configured things to your liking, you create the
-indexes by running the ldif2ldbm program:
+primary database and associated indexes by running the
+{{slapadd}}(8) program:
 
-E:	ldif2ldbm -i <inputfile> -f <slapdconfigfile>
-E:		[-d <debuglevel>] [-j <integer>]
-E:		[-n <databasenumber>] [-e <etcdir>]
+E:	slapadd -l <inputfile> -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-n <integer>|-b <suffix>]
 
 The arguments have the following meanings:
 
-E:	-i <inputfile>
+E:	-l <inputfile>
 
 Specifies the LDIF input file containing the entries to add in
 text form (described below in Section 8.3).
@@ -200,80 +187,50 @@ E:	-d <debuglevel>
 Turn on debugging, as specified by {{EX: <debuglevel>}}. The
 debug levels are the same as for slapd (see Section 6.1).
 
-E:	-j <integer>
-
-An optional argument that specifies that at most {{EX: <integer>}}
-processes should be started in parallel when building the
-indexes. The default is 1. If set to a value greater than one,
-{{I: ldif2ldbm}} will create at most that many subprocesses at a
-time when building the indexes. A separate subprocess is
-created to build each attribute index. Running these
-processes in parallel can speed things up greatly, but
-beware of creating too many processes, all competing for
-memory and disk resources.
-
 E: 	-n <databasenumber>
 
 An optional argument that specifies the configuration file
-database for which to build indices. The first database listed
+database for which to build. The first database listed
 is "1", the second "2", etc. By default, the first ldbm database
-in the configuration file is used.
+in the configuration file is used.  Should not be used in
+conjunction with {{EX:-b}}.
 
-E:	-e <etcdir>
+E: -b <suffix>
 
-An optional argument that specifies the directory where
-{{EX: ldif2ldbm}} can find the other database conversion tools it
-needs to execute ({{EX: ldif2index}} and friends). The default is the
-installation {{EX: ETCDIR}}.
-
-The next sections describe the programs invoked by
-{{I: ldif2ldbm}} when it is building indexes. Normally, these
-programs are invoked for you, but occasionally you may
-want to invoke them yourself.
-
+An optional argument that specifies the configuration file
+database for which to build.  The provided suffix is matched
+against database {{EX:suffix}} to determine the database
+number.  Should not be used in conjunction with {{EX:-n}}.
 
 
 H3: The {{EX: ldif2index}} program
 
-Sometimes it may be necessary to create a new attribute
-index file without disturbing the rest of the database. This is
-possible using the {{EX: ldif2index}} program. {{EX: ldif2index}} is invoked
+Sometimes it may be necessary to regenerate indices (such
+as after modifying {{slapd.conf}}(5)).  This is possible using
+the {{slapindex}}(8) program. {{EX: slapindex}} is invoked
 like this
 
-E: 	ldif2index -i <inputfile> -f <slapdconfigfile>
-E:		[-d <debuglevel>] [-n <databasenumber>] <attr>
+E: 	slapindex -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
 
-Where the -i, -f, -d, and -n options are the same as for the
-{{I: ldif2ldbm}} program. {{EX: <attr>}} is the attribute to build an index for.
-Which indexes are built (e.g., equality, substring, etc.) is
-controlled by the corresponding index line in the slapd
-configuration file.
-
-You can use the ldbmcat program to create a suitable LDIF
-input file from an existing LDBM database.
+Where the -f, -d, -n and -b options are the same as for the
+{{slapadd}}(1) program.  slapindex rebuilds all indices based
+upon the current database contents.
 
 
-H3: The {{EX: ldbmcat}} program
+H3: The {{EX: slapcat}} program
 
-The {{EX: ldbmcat}} program is used to convert an {{EX: id2entry}} index
-back into its LDIF text format. This can be useful when you
-want to make a human-readable backup of your database,
-or as an intermediate step in creating a new index using the
-{{EX: ldif2index}} program. The program is invoked like this:
+The {{EX: slapcat}} program is dump the database to a {{TERM:LDIF}}
+file.  This can be useful when you want to make a human-readable
+backup of your database or for editing your database off-line.
+The program is invoked like this:
 
-E: 	ldbmcat [-n] <filename>
+E: 	slapcat -l <filename> -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
 
-where {{EX: <filename>}} is the name of the {{EX: id2entry}} index file. The
-corresponding LDIF output is written to standard output.
-
-The -n option can be used to prevent the printing of entry
-IDs in the LDIF format. If you are creating an LDIF format for
-use as input to {{EX: ldif2index}} or anything by {{EX: ldif2ldbm}}, you
-should not use the -n option (because the entry IDs must
-match those already in the id2entry file). If you are just
-making a backup of your data, you can use the -n option to
-save space.
-
+where -n or -b is used to select the database in the slapd.conf(5)
+specified using -f.  The corresponding LDIF output is written to
+standard output or to the file specified using the -l option.
 
 
 H3: The {{EX: ldif}} program
@@ -320,7 +277,7 @@ program, however, produces an LDIF format that includes
 A line may be continued by starting the next line with a
 single space or tab character. e.g.,
 
-E:	dn: cn=Barbara J Jensen, dc=OpenLDAP, dc=org
+E:	dn: cn=Barbara J Jensen, dc=example, dc=com
 
 Multiple attribute values are specified on separate lines. e.g.,
 
@@ -339,19 +296,19 @@ Multiple entries within the same LDIF file are separated by
 blank lines. Here's an example of an LDIF file containing
 three entries.
 
-E:	dn: cn=Barbara J Jensen, dc=OpenLDAP, dc=org
+E:	dn: cn=Barbara J Jensen, dc=example, dc=com
 E:	cn: Barbara J Jensen
 E:	cn: Babs Jensen
 E:	objectclass: person
 E:	sn: Jensen
 E:
-E:	dn: cn=Bjorn J Jensen, dc=OpenLDAP, dc=org
+E:	dn: cn=Bjorn J Jensen, dc=example, dc=com
 E:	cn: Bjorn J Jensen
 E:	cn: Bjorn Jensen
 E:	objectclass: person
 E:	sn: Jensen
 E:
-E:	dn: cn=Jennifer J Jensen, dc=OpenLDAP, dc=org
+E:	dn: cn=Jennifer J Jensen, dc=example, dc=com
 E:	cn: Jennifer J Jensen
 E:	cn: Jennifer Jensen
 E:	objectclass: person
@@ -369,99 +326,4 @@ Section 8.2.6) can be used to produce the LDIF format.
 Note: Trailing spaces are not trimmed from values in an
 LDIF file. Nor are multiple internal spaces compressed. If
 you don't want them in your data, don't put them there.
-
-
-
-H2: The LDBM database format
-
-In normal operation, it is not necessary for you to know much
-about the LDBM database format. If you are going to use the
-ldbmtest program to look at or alter the database, or if you
-want a deeper understanding of how indexes are maintained,
-some knowledge of how it works could be useful. This
-section gives an overview of the database format and how
-slapd makes use of it.
-
-
-
-H3: Overview
-
-The LDBM database works by assigning a compact
-four-byte unique identifier to each entry in the database. It
-uses this identifier to refer to entries in indexes. The
-database consists of one main index file, called id2entry,
-which maps from an entry's unique identifier (EID) to a text
-representation of the entry itself. Other index files are
-maintained, for each indexed attribute for example, that map
-values people are likely to search on to lists of EIDs.
-
-Using this simple scheme, many LDAP queries can be
-answered efficiently. For example, to answer a search for
-entries with a surname of "Jensen", slapd would first consult
-the surname attribute index, look up the value "Jensen" and
-retrieve the corresponding list of EIDs. Next, slapd would
-look up each EID in the id2entry index, retrieve the
-corresponding entry, convert it from text to LDAP format, and
-return it to the client.
-
-The following sections give a very brief overview of each
-type of index and what it contains. For more detailed
-information see the paper "An X.500 and LDAP Database:
-Design and Implementation," available in postscript format
-from
-{{URL:ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps}}
-
-
-H3: Attribute index format
-
-The LDBM backend will maintain one index file for each
-attribute it is asked to index. Several sets of keys must
-coexist in this file (e.g., keys for equality and approximate
-equality), so the keys are prefixed with a character to ensure
-uniqueness. The prefixes are given in the table below
-
-E:	= equality keys
-E:	~ approximate equality keys
-E:	* substring equality keys
-E:	\ continuation keys
-
-Key values are also normalized (e.g., converted to upper
-case for case ignore attributes). So, for example, to look up
-the surname equality value in the example above using the
-ldbmtest program, you would look up the value "{{EX: =JENSEN}}".
-
-Substring indexes are maintained by generating all possible
-N-character substrings for a value (N is 3 by default). These
-substrings are then stored in the attribute index, prefixed by
-"*". Additional anchors of "^" and "$" are added at the
-beginning and end of words. So, for example the surname of
-Jensen would cause the following keys to be entered in the
-index: {{EX: ^JE, JEN, ENS, NSE, SEN, EN$}}.
-
-Approximate values are handled in a similar way, with
-phonetic codes being generated for each word in a value
-and then stored in the index, prefixed by "~".
-
-Large blocks in the index are split into smaller ones. The
-smaller blocks are accessed through a level of indirection
-provided by the original block. They are stored in the index
-using the continuation key prefix of "\".
-
-
-
-H3: Other indexes
-
-In addition to the {{EX: id2entry}} and attribute indexes, LDBM
-maintains a number of other indexes, including the {{EX: dn2id}}
-index and the {{EX: id2children}} index. These indexes provide the
-mapping between a DN and the corresponding EID, and the
-mapping between an EID and the EIDs of the corresponding
-entry's children, respectively.
-
-The {{EX: dn2id}} index stores normalized DNs as keys. The data
-stored is the corresponding EID.
-
-The {{EX: id2children}} index stores EIDs as keys. The data stored
-is a list of EIDs, just as for the attribute indexes.
-
 

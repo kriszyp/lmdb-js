@@ -43,7 +43,7 @@ object would be added to {{a.example.net}}:
 E:	dn: dc=subtree, dc=example, dc=net
 E:	objectClass: referral
 E:	objectClass: extensibleObject
-E:	dc: sub
+E:	dc: subtree
 E:	ref: ldap://b.example.net/dc=subtree,dc=example,dc=net/
 
 The server uses this information to generate referrals and
