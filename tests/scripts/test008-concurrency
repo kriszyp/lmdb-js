@@ -20,7 +20,7 @@ mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFORDERED
+$SLAPADD -f $CONF1 -l $LDIFORDERED -d -1 2> /tmp/slapadd.log
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"

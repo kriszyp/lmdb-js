@@ -13,10 +13,11 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel slapd-modrdn
+PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel slapd-modrdn \
+		slapd-modify
 
 SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c \
-		slapd-modrdn.c
+		slapd-modrdn.c slapd-modify.c
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
@@ -44,3 +45,5 @@ slapd-addel: slapd-addel.o $(XLIBS)
 slapd-modrdn: slapd-modrdn.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-modrdn.o $(LIBS)
 
+slapd-modify: slapd-modify.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-modify.o $(LIBS)

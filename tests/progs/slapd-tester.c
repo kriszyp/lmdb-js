@@ -39,6 +39,7 @@
 #define READCMD			"slapd-read"
 #define ADDCMD			"slapd-addel"
 #define MODRDNCMD		"slapd-modrdn"
+#define MODIFYCMD		"slapd-modify"
 #define MAXARGS      	100
 #define MAXREQS			20
 #define LOOPS			"100"
@@ -47,6 +48,7 @@
 #define TREADFILE		"do_read.0"
 #define TADDFILE		"do_add."
 #define TMODRDNFILE		"do_modrdn.0"
+#define TMODIFYFILE		"do_modify.0"
 
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[], char *bases[] );
@@ -110,6 +112,13 @@ main( int argc, char **argv )
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
+	char		*modargs[MAXARGS];
+	int		modanum;
+	char		modcmd[MAXPATHLEN];
+	char		*modfile = NULL;
+	char		*modreqs[MAXREQS];
+	char		*moddn[MAXREQS];
+	int		modnum = 0;
 
 	while ( (i = getopt( argc, argv, "H:h:p:D:w:b:d:j:l:P:" )) != EOF ) {
 		switch( i ) {
@@ -183,6 +192,9 @@ main( int argc, char **argv )
 		} else if ( !strcasecmp( file->d_name, TMODRDNFILE )) {
 			mfile = get_file_name( dirname, file->d_name );
 			continue;
+		} else if ( !strcasecmp( file->d_name, TMODIFYFILE )) {
+			modfile = get_file_name( dirname, file->d_name );
+			continue;
 		} else if ( !strncasecmp( file->d_name, TADDFILE, strlen( TADDFILE ))
 			&& ( anum < MAXREQS )) {
 			afiles[anum++] = get_file_name( dirname, file->d_name );
@@ -205,6 +217,10 @@ main( int argc, char **argv )
 	/* look for modrdn requests */
 	if ( mfile ) {
 		mnum = get_read_entries( mfile, mreqs );
+	}
+	/* look for modify requests */
+	if ( modfile ) {
+		modnum = get_search_filters( modfile, modreqs, moddn );
 	}
 
 	/*
@@ -281,6 +297,35 @@ main( int argc, char **argv )
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
+	
+	/*
+	 * generate the modify clients
+	 */
+
+	modanum = 0;
+	snprintf( modcmd, sizeof modcmd, "%s" LDAP_DIRSEP MODIFYCMD,
+		progdir );
+	modargs[modanum++] = modcmd;
+	if ( uri ) {
+		modargs[modanum++] = "-H";
+		modargs[modanum++] = uri;
+	} else {
+		modargs[modanum++] = "-h";
+		modargs[modanum++] = host;
+		modargs[modanum++] = "-p";
+		modargs[modanum++] = port;
+	}
+	modargs[modanum++] = "-D";
+	modargs[modanum++] = manager;
+	modargs[modanum++] = "-w";
+	modargs[modanum++] = passwd;
+	modargs[modanum++] = "-l";
+	modargs[modanum++] = loops;
+	modargs[modanum++] = "-e";
+	modargs[modanum++] = NULL;		/* will hold the modify entry */
+	modargs[modanum++] = "-a";;
+	modargs[modanum++] = NULL;		/* will hold the ava */
+	modargs[modanum++] = NULL;
 
 	/*
 	 * generate the add/delete clients
@@ -330,6 +375,13 @@ main( int argc, char **argv )
 
 			margs[manum - 2] = mreqs[j];
 			fork_child( mcmd, margs );
+
+		}
+		if ( j < modnum ) {
+
+			modargs[modanum - 4] = moddn[j];
+			modargs[modanum - 2] = modreqs[j];
+			fork_child( modcmd, modargs );
 
 		}
 
