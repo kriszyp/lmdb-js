@@ -169,6 +169,7 @@ extern void slapi_register_supported_control(char *controloid,
 extern int slapi_get_supported_controls(char ***ctrloidsp, unsigned long **ctrlopsp);
 extern int slapi_control_present( LDAPControl **controls, char *oid, 
 				struct berval **val, int *iscritical);
+extern LDAPControl *slapi_dup_control(LDAPControl *control);
 extern void slapi_register_supported_saslmechanism(char *mechanism);
 extern char **slapi_get_supported_saslmechanisms();
 extern char **slapi_get_supported_extended_ops(void);

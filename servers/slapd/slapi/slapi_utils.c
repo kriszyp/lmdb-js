@@ -1210,6 +1210,23 @@ error_return:
 #endif /* LDAP_SLAPI */
 }
 
+LDAPControl *
+slapi_dup_control( LDAPControl *ctrl )
+{
+#ifdef LDAP_SLAPI
+	LDAPControl *ret;
+
+	ret = (LDAPControl *)slapi_ch_malloc( sizeof(*ret) );
+	ret->ldctl_oid = slapi_ch_strdup( ctrl->ldctl_oid );
+	ber_dupbv( &ret->ldctl_value, &ctrl->ldctl_value );
+	ret->ldctl_iscritical = ctrl->ldctl_iscritical;
+
+	return ret;
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
 void 
 slapi_register_supported_saslmechanism( char *mechanism )
 {
