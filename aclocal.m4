@@ -10,7 +10,6 @@ dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
 dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
-dnl $OpenLDAP$
 dnl
 dnl Copyright 1998-2001 The OpenLDAP Foundation,  All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
