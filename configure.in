@@ -370,7 +370,7 @@ AC_ISC_POSIX
 AC_MINIX
 
 dnl BeOS requires -lbe -lroot -lnet
-AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
+AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot"], :, [-lroot])
 
 dnl Checks for system services
 AC_CYGWIN
@@ -399,6 +399,7 @@ dnl hopefully we won't include too many libraries
 dnl
 	AC_CHECK_LIB(socket, main)
 	AC_CHECK_LIB(net, main)
+	AC_CHECK_LIB(net, socket)
 	AC_CHECK_LIB(nsl_s, main)
 	AC_CHECK_LIB(nsl, main)
 	AC_CHECK_LIB(inet, socket)
@@ -1295,6 +1296,10 @@ if test $ol_enable_wrappers != no ; then
 	if test $have_wrappers = yes ; then
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
 		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
+
+		dnl We add another check for -lnsl since some libwrap's
+		dnl need it, but it isn't always included from above
+		AC_CHECK_LIB(nsl, main)
 	else
 		AC_MSG_WARN(could not find -lwrap)
 		if test $ol_enable_wrappers = yes ; then
