@@ -52,7 +52,7 @@ bdb2i_back_modrdn_internal(
 	struct berval	*add_bvals[2];		/* Stores new rdn att */
 	struct berval	del_bv;			/* Stores old rdn att */
 	struct berval	*del_bvals[2];		/* Stores old rdn att */
-	LDAPMod		mod[2];			/* Used to delete old rdn */
+	LDAPModList	mod[2];			/* Used to delete old rdn */
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
 	char		*np_dn = NULL;  /* newSuperior dn */
@@ -295,10 +295,10 @@ bdb2i_back_modrdn_internal(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
-		mod[0].mod_type = new_rdn_type;	
-		mod[0].mod_bvalues = add_bvals;
-		mod[0].mod_op = LDAP_MOD_SOFTADD;
-		mod[0].mod_next = NULL;
+		mod[0].ml_type = new_rdn_type;	
+		mod[0].ml_bvalues = add_bvals;
+		mod[0].ml_op = LDAP_MOD_SOFTADD;
+		mod[0].ml_next = NULL;
 		
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: adding new rdn attr val =%s\n",
@@ -331,11 +331,11 @@ bdb2i_back_modrdn_internal(
 			del_bv.bv_val = old_rdn_val;
 			del_bv.bv_len = strlen(old_rdn_val);
 			
-			mod[0].mod_next = &mod[1];
-			mod[1].mod_type = old_rdn_type;	
-			mod[1].mod_bvalues = del_bvals;
-			mod[1].mod_op = LDAP_MOD_DELETE;
-			mod[1].mod_next = NULL;
+			mod[0].ml_next = &mod[1];
+			mod[1].ml_type = old_rdn_type;	
+			mod[1].ml_bvalues = del_bvals;
+			mod[1].ml_op = LDAP_MOD_DELETE;
+			mod[1].ml_next = NULL;
 
 
 			Debug( LDAP_DEBUG_TRACE,
