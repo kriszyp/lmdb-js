@@ -316,7 +316,7 @@ ldap_parse_result(
 	}
 
 	if ( tag == LBER_ERROR ) {
-		errcode = LDAP_DECODING_ERROR;
+		ld->ld_errno = errcode = LDAP_DECODING_ERROR;
 	}
 
 	if( ber != NULL ) {
