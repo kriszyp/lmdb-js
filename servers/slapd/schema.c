@@ -79,7 +79,7 @@ schema_info( Entry **entry, char **text )
 		val.bv_len = strlen( ++val.bv_val );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		rc = slap_str2ad( rdn, &desc, &text );
+		rc = slap_str2ad( rdn, &desc, text );
 
 		if( rc != LDAP_SUCCESS ) {
 			free( rdn );

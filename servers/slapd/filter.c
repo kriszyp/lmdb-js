@@ -185,19 +185,15 @@ get_filter(
 		}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		{
-			char *text;
-			int rc;
-			f->f_desc = NULL;
-			err = slap_bv2ad( &type, &f->f_desc, &text );
+		f->f_desc = NULL;
+		err = slap_bv2ad( &type, &f->f_desc, text );
 
-			if( err != LDAP_SUCCESS ) {
-				ch_free( type.bv_val );
-				break;
-			}
-
+		if( err != LDAP_SUCCESS ) {
 			ch_free( type.bv_val );
+			break;
 		}
+
+		ch_free( type.bv_val );
 
 		*fstr = ch_malloc( sizeof("(=*)")
 			+ f->f_desc->ad_cname->bv_len );
