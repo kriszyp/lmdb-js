@@ -118,7 +118,8 @@ LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
 	int repl_user, int dup, const char **text, char *textbuf, size_t textlen ));
 
 LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
-						Modifications **mods, const char **text ));
+						Modifications **mods, const char **text,
+						char *textbuf, size_t textlen ));
 
 /*
  * at.c

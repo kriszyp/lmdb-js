@@ -588,7 +588,8 @@ int
 slap_entry2mods(
 	Entry *e,
 	Modifications **mods,
-	const char **text
+	const char **text,
+	char *textbuf, size_t textlen )
 )
 {
 	Modifications	*modhead = NULL;
@@ -596,7 +597,9 @@ slap_entry2mods(
 	Modifications	**modtail = &modhead;
 	Attribute		*a_new;
 	AttributeDescription	*a_new_desc;
-	int				i, count, rc;
+	int				i, count;
+
+	*text = textbuf;
 
 	a_new = e->e_attrs;
 

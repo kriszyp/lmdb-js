@@ -280,7 +280,8 @@ int root_dse_info( Connection *conn, Entry **entry, const char **text )
 	return -1;
 }
 
-int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
+int slap_entry2mods( Entry *e, Modifications **mods, const char **text,
+					 char *textbuf, size_t textlen )
 {
 	return -1;
 }

@@ -112,6 +112,8 @@ merge_entry(
 	BerVarray 		value_array; 
 	Attribute		*uuid_attr, *attr;
 	Entry			*e;
+	char			textbuf[SLAP_TEXT_BUFLEN];
+	size_t			textlen = sizeof(textbuf);
 
 	SlapReply sreply = {REP_RESULT};
 
@@ -176,7 +178,7 @@ merge_entry(
 
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_ALREADY_EXISTS ) {
-			slap_entry2mods( e, &modlist, &text );
+			slap_entry2mods( e, &modlist, &text, textbuf, textlen );
 			op_tmp.o_tag = LDAP_REQ_MODIFY;
 			op_tmp.orm_modlist = modlist;
 			op_tmp.o_req_dn = e->e_name;
