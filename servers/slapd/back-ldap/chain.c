@@ -314,7 +314,13 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			char		textbuf[ SLAP_TEXT_BUFLEN ];
 			size_t		textlen = sizeof( textbuf );
 
+#if 0
+			/* FIXME: op->o_bd is still set to the BackendDB 
+			 * structure of the database that tried to handle
+			 * the operation and actually returned a referral
+			 * ... */
 			assert( SLAP_DBFLAGS( op->o_bd ) & SLAP_DBFLAG_GLOBAL_OVERLAY );
+#endif
 
 			/* global overlay: create entry */
 			/* NOTE: this is a hack to use the chain overlay
