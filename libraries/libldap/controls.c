@@ -361,3 +361,81 @@ ldap_control_dup( const LDAPControl *c )
 	new->ldctl_iscritical = c->ldctl_iscritical;
 	return new;
 }
+
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Adapted for inclusion into OpenLDAP by Kurt D. Zeilenga */
+/*---
+ * This notice applies to changes, created by or for Novell, Inc.,
+ * to preexisting works for which notices appear elsewhere in this file.
+ *
+ * Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
+ *
+ * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND TREATIES.
+ * USE, MODIFICATION, AND REDISTRIBUTION OF THIS WORK IS SUBJECT TO VERSION
+ * 2.0.1 OF THE OPENLDAP PUBLIC LICENSE, A COPY OF WHICH IS AVAILABLE AT
+ * HTTP://WWW.OPENLDAP.ORG/LICENSE.HTML OR IN THE FILE "LICENSE" IN THE
+ * TOP-LEVEL DIRECTORY OF THE DISTRIBUTION. ANY USE OR EXPLOITATION OF THIS
+ * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
+ * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
+ * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
+ *---
+ * Modification to OpenLDAP source by Novell, Inc.
+ * June 2000 sfs  Added control utilities
+ */
+/*---
+   ldap_int_create_control
+   
+   Internal function to create an LDAP control from the encoded BerElement.
+
+   requestOID  (IN) The OID to use in creating the control.
+   
+   ber         (IN) The encoded BerElement to use in creating the control.
+   
+   iscritical  (IN) 0 - Indicates the control is not critical to the operation.
+					non-zero - The control is critical to the operation.
+				  
+   ctrlp      (OUT) Returns a pointer to the LDAPControl created.  This control
+					SHOULD be freed by calling ldap_control_free() when done.
+---*/
+
+LIBLDAP_F( int )
+ldap_int_create_control(
+	const char *requestOID,
+	BerElement *ber,
+	int iscritical,
+	LDAPControl **ctrlp )
+{
+	LDAPControl *ctrl;
+	struct berval *bvalp;
+
+	if ( requestOID == NULL || ber == NULL || ctrlp == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	ctrl = (LDAPControl *) LBER_MALLOC( sizeof(LDAPControl) );
+	if ( ctrl == NULL ) {
+		ber_bvfree( bvalp );
+		return LDAP_NO_MEMORY;
+	}
+
+	ctrl->ldctl_value = *bvalp;
+	LDAP_FREE( bvalp );
+
+	ctrl->ldctl_oid = LDAP_STRDUP( requestOID );
+	ctrl->ldctl_iscritical = iscritical;
+
+	if ( ctrl->ldctl_oid == NULL ) {
+		LBER_FREE( ctrl );
+		return LDAP_NO_MEMORY;
+	}
+
+	*ctrlp = ctrl;
+	return LDAP_SUCCESS;
+}

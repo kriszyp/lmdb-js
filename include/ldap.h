@@ -174,6 +174,11 @@ typedef struct ldapcontrol {
 
 /* Experimental Controls */
 
+#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
+#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
+#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
+#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
+
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
@@ -1554,5 +1559,76 @@ ldap_url_search_st LDAP_P((
 	LDAPMessage **res ));
 
 LDAP_END_DECL
+
+/* 
+ * in sortctrl.c  
+ */
+/*
+ * structure for a sort-key 
+ */
+typedef struct ldapsortkey {
+	char *  attributeType;
+	char *  orderingRule;
+	int     reverseOrder;
+} LDAPSortKey;
+
+LIBLDAP_F( int )
+ldap_create_sort_keylist LDAP_P(( 
+      LDAPSortKey ***sortKeyList,
+	   char        *keyString));
+
+
+LIBLDAP_F( void )
+ldap_free_sort_keylist LDAP_P((
+	   LDAPSortKey **sortkeylist));
+
+
+LIBLDAP_F( int )
+ldap_create_sort_control LDAP_P(( 	
+     LDAP *ld, 
+     LDAPSortKey **keyList,
+     int ctl_iscritical,
+     LDAPControl **ctrlp));
+
+LIBLDAP_F( int )
+ldap_parse_sort_control LDAP_P((  
+      LDAP           *ld, 
+      LDAPControl    **ctrlp,  
+      unsigned long  *result,
+      char           **attribute));
+
+
+/* 
+ * in vlvctrl.c  
+ */
+
+/*
+ * structure for virtul list.
+ */
+typedef struct ldapvlvinfo {
+	 int             ldvlv_version;
+    unsigned long   ldvlv_before_count;      
+    unsigned long   ldvlv_after_count;                     
+    unsigned long   ldvlv_offset;              
+    unsigned long   ldvlv_count;
+    struct berval  *ldvlv_attrvalue;
+    struct berval  *ldvlv_context;
+    void           *ldvlv_extradata;
+} LDAPVLVInfo;
+
+LIBLDAP_F( int ) 
+ldap_create_vlv_control LDAP_P(( 
+      LDAP *ld, 
+      LDAPVLVInfo *ldvlistp,
+      LDAPControl **ctrlp));
+
+LIBLDAP_F( int )
+ldap_parse_vlv_control LDAP_P(( 
+      LDAP          *ld, 
+      LDAPControl   **ctrls,
+      unsigned long *target_posp, 
+      unsigned long *list_countp, 
+      struct berval  **contextp,
+      int           *errcodep));
 
 #endif /* _LDAP_H */

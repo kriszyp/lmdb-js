@@ -16,7 +16,7 @@ XXSRCS	= apitest.c test.c tmpltest.c extended.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c friendly.c cldap.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
-	request.c os-ip.c url.c \
+	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
 	charray.c tls.c dn.c os-local.c dnssrv.c \
 	utf-8.c
@@ -28,7 +28,7 @@ OBJS	= extended.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo os-ip.lo url.lo \
+	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
 	thr_pth.lo thr_sleep.lo thr_stub.lo rdwr.lo threads.lo \

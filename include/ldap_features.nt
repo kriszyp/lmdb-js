@@ -50,4 +50,12 @@
 /* LDAP v2 Referrals */
 #define LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS LDAP_VENDOR_VERSION
 
+/* LDAP Server Side Sort. */
+#define LDAP_API_FEATURE_SERVER_SIDE_SORT 1000
+
+/* LDAP Virtual List View. Version = 1000 + draft revision.
+ * VLV requires Server Side Sort control.
+ */
+#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 1000
+
 #endif /* LDAP_FEATURES */
