@@ -263,14 +263,22 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 		mapped_at = op->orc_ava->aa_desc->ad_cname;
 
 	} else {
-		rwm_map( &rwmap->rwm_at, &op->orc_ava->aa_desc->ad_cname,
-				&mapped_at, RWM_MAP );
-		if ( BER_BVISNULL( &mapped_at ) || BER_BVISEMPTY( &mapped_at ) )
-		{
-			op->o_bd->bd_info = (BackendInfo *)on->on_info;
-			send_ldap_error( op, rs, LDAP_OTHER, "compare attributeType map error" );
-			return -1;
+		struct ldapmapping	*mapping = NULL;
+		AttributeDescription	*ad = op->orc_ava->aa_desc;
+
+		( void )rwm_mapping( &rwmap->rwm_at, &op->orc_ava->aa_desc->ad_cname,
+				&mapping, RWM_MAP );
+		if ( mapping == NULL ) {
+			if ( rwmap->rwm_at.drop_missing ) {
+				op->o_bd->bd_info = (BackendInfo *)on->on_info;
+				send_ldap_error( op, rs, LDAP_OTHER, "compare attributeType map error" );
+				return -1;
+			}
+
+		} else {
+			ad = mapping->m_dst_ad;
 		}
+
 		if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
 		{
 			struct berval	*mapped_valsp[2];
@@ -295,6 +303,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 
 			op->orc_ava->aa_value = mapped_vals[0];
 		}
+		op->orc_ava->aa_desc = ad;
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -515,7 +524,8 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	/* TODO: rewrite attribute types, values of DN-valued attributes ... */
+	/* TODO: rewrite newRDN, attribute types, 
+	 * values of DN-valued attributes ... */
 	return SLAP_CB_CONTINUE;
 }
 

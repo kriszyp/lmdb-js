@@ -15,6 +15,7 @@
 
 MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
+BACKMETA=${AC_meta-metano}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}
@@ -76,7 +77,6 @@ LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
 LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
 LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
 RWMCONF=$DATADIR/slapd-relay.conf
-PROXYMASSAGECONF=$DATADIR/slapd-proxymassage.conf
 SQLCONF=$DATADIR/slapd-sql.conf
 
 CONF1=$TESTDIR/slapd.1.conf
@@ -230,7 +230,6 @@ IDASSERTOUT=$DATADIR/idassert.out
 LDAPGLUEOUT=$DATADIR/ldapglue.out
 LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 RELAYOUT=$DATADIR/relay.out
-PROXYMASSAGEOUT=$DATADIR/proxymassage.out
 SQLREAD=$DATADIR/sql-read.out
 SQLWRITE=$DATADIR/sql-write.out
 

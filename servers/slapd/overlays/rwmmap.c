@@ -136,7 +136,7 @@ rwm_map( struct ldapmap *map, struct berval *s, struct berval *bv, int remap )
 	struct ldapmapping *mapping;
 
 	BER_BVZERO( bv );
-	rwm_mapping( map, s, &mapping, remap );
+	( void )rwm_mapping( map, s, &mapping, remap );
 	if ( mapping != NULL ) {
 		if ( !BER_BVISNULL( &mapping->m_dst ) ) {
 			*bv = mapping->m_dst;
@@ -702,7 +702,8 @@ rwm_filter_map_rewrite(
 
 	switch ( rewrite_session( fdc.rwmap->rwm_rw, fdc.ctx, 
 				( !BER_BVISEMPTY( &ftmp ) ? ftmp.bv_val : "" ), 
-				fdc.conn, &fstr->bv_val )) {
+				fdc.conn, &fstr->bv_val ) )
+	{
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
@@ -714,7 +715,7 @@ rwm_filter_map_rewrite(
 
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, ftmp.bv_val, fstr->bv_val );		
+			fdc.ctx, ftmp.bv_val, fstr->bv_val );		
 		rc = LDAP_SUCCESS;
 		break;
  		
@@ -1031,12 +1032,13 @@ rwm_referral_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			ch_free( &a_vals[i].bv_val );
+			ch_free( a_vals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}
 			BER_BVZERO( &a_vals[last] );
 			last--;
+			i--;
 			break;
 
 		default:
@@ -1089,7 +1091,7 @@ rwm_dnattr_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			ch_free( &a_vals[i].bv_val );
+			ch_free( a_vals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.559 2004/11/30 22:25:26 slim Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.560 2004/12/04 18:48:48 hyc Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -8464,7 +8464,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:8468: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:8468: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -9549,7 +9549,7 @@ int main(int argc, char *argv)
 	exit (epfd == -1 ? 1 : 0);
 }
 EOF
-if { (eval echo configure:9553: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:9553: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   echo "$ac_t""yes" 1>&6
 cat >> confdefs.h <<\EOF
@@ -9762,7 +9762,7 @@ else
 			}
 			
 EOF
-if { (eval echo configure:9766: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:9766: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_nonposix_strerror_r=yes
 else
@@ -10010,7 +10010,7 @@ main()
 	return rc;
 }
 EOF
-if { (eval echo configure:10014: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:10014: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_c_posix_regex=yes
 else
@@ -12190,7 +12190,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12194: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:12194: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_create=yes
 else
@@ -12377,7 +12377,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12381: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:12381: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_kthread=yes
 else
@@ -12569,7 +12569,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12573: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:12573: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_pthread=yes
 else
@@ -12761,7 +12761,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12765: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:12765: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_pthreads=yes
 else
@@ -12953,7 +12953,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12957: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:12957: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_mthreads=yes
 else
@@ -13145,7 +13145,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13149: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:13149: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_thread=yes
 else
@@ -13338,7 +13338,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13342: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:13342: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread_lmach_lexc_lc_r=yes
 else
@@ -13530,7 +13530,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13534: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:13534: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread_lmach_lexc=yes
 else
@@ -13723,7 +13723,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13727: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:13727: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lib_lpthread_woff=yes
 else
@@ -13916,7 +13916,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13920: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:13920: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread=yes
 else
@@ -14108,7 +14108,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14112: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:14112: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lc_r=yes
 else
@@ -14301,7 +14301,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14305: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:14305: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_threads=yes
 else
@@ -14494,7 +14494,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14498: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:14498: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lmach_lexc_lc_r=yes
 else
@@ -14686,7 +14686,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14690: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:14690: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lmach_lexc=yes
 else
@@ -14878,7 +14878,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14882: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:14882: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lexc=yes
 else
@@ -15071,7 +15071,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:15075: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:15075: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lib_lpthreads=yes
 else
@@ -15557,7 +15557,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:15561: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:15561: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_create_works=yes
 else
@@ -15665,7 +15665,7 @@ int main(argc, argv)
 	exit(2);
 }
 EOF
-if { (eval echo configure:15669: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:15669: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_select_yields=no
 else
@@ -20732,7 +20732,7 @@ main()
 	return 0;
 }
 EOF
-if { (eval echo configure:20736: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:20736: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_berkeley_db_version=yes
 else
@@ -20838,7 +20838,7 @@ main()
 	return rc;
 }
 EOF
-if { (eval echo configure:20842: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:20842: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_berkeley_db_thread=yes
 else
@@ -22896,7 +22896,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:22900: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:22900: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -23523,7 +23523,7 @@ main()
 		exit(1);
 }
 EOF
-if { (eval echo configure:23527: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:23527: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_c_upper_lower=no
 else
@@ -23732,7 +23732,7 @@ main () {
   exit (u.c[sizeof (long) - 1] == 1);
 }
 EOF
-if { (eval echo configure:23736: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:23736: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_c_bigendian=no
 else
@@ -23964,7 +23964,7 @@ main()
 }
 
 EOF
-if { (eval echo configure:23968: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
+if { (eval echo configure:23968: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_func_memcmp_clean=yes
 else

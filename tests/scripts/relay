@@ -13,23 +13,11 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-echo "running defines.sh"
-. $SRCDIR/scripts/defines.sh
-
-if test $RWM = rwmno ; then 
-	echo "Rewrite/remap overlay not available, test skipped"
-	exit 0
-fi 
-
-if test $BACKLDAP = "ldapno" ; then 
-	echo "LDAP backend not available, test skipped"
-	exit 0
-fi 
-
-mkdir -p $TESTDIR $DBDIR1
+echo "Testing virtual naming context mapping with $RELAY backend..."
+echo ""
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $PROXYMASSAGECONF > $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $RWMCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -118,7 +106,7 @@ fi
 BASEDN="o=Beispiel,c=DE"
 echo "modifying database \"$BASEDN\"..."
 $LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
-	-e manageDSAit >> $TESTOUT 2>&1 << EOMODS
+	-M >> $TESTOUT 2>&1 << EOMODS
 dn: cn=Added User,ou=Alumni Association,ou=People,$BASEDN
 changetype: add
 objectClass: OpenLDAPperson
@@ -172,13 +160,14 @@ description: Just added as ldap://localhost.localdomain:389/ou=Referrals,$BASEDN
 dn: ou=Referrals,$BASEDN
 changetype: modify
 replace: ref
-ref: ldap://ldap.example.com:389/ou=Referrals,${BASEDN}
+ref: ldap://ldap.example.com:389/ou=Referrals,$BASEDN
 -
 add: description
-description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,${BASEDN}
+description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,$BASEDN
 -
 EOMODS
 
+RC=$?
 if test $RC != 0 ; then
 	echo "Modify failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -186,7 +175,7 @@ if test $RC != 0 ; then
 fi
 
 echo "searching base=\"$BASEDN\"..."
-echo "# searching base=\"$BASEDN\"..."  >> $SEARCHOUT
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -197,7 +186,7 @@ fi
 
 BASEDN="o=Esempio,c=IT"
 echo "searching base=\"$BASEDN\"..."
-echo "# searching base=\"$BASEDN\"..."  >> $SEARCHOUT
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -215,8 +204,8 @@ echo "# 	attrs=\"'*' ref\"" >> $SEARCHOUT
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -227,8 +216,8 @@ fi
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -239,8 +228,8 @@ fi
 BASEDN="o=Esempio,c=IT"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
-	-e manageDSAit >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -268,12 +257,12 @@ fi
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $PROXYMASSAGEOUT > $LDIFFLT
+. $LDIFFILTER < $RELAYOUT > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
 if test $? != 0 ; then
-	echo "comparison failed - back-ldap search/modification didn't succeed"
+	echo "comparison failed - relay search/modification didn't succeed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
@@ -281,8 +270,8 @@ fi
 BASEDN="o=Example,c=US"
 echo "changing password to database \"$BASEDN\"..."
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 -D "cn=Manager,$BASEDN" -w $PASSWD \
-	"cn=Added User,ou=Alumni Association,ou=People,$BASEDN" \
-	-s $PASSWD >> $TESTOUT 2>&1
+	-s $PASSWD "cn=Added User,ou=Alumni Association,ou=People,$BASEDN" \
+	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Passwd ExOp failed ($RC)!"
@@ -315,7 +304,4 @@ if test $RC != 6 ; then
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
-
-echo ">>>>> Test succeeded"
-exit 0
 

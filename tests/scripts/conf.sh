@@ -34,8 +34,11 @@ else
 fi
 sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
+	-e "s/@RELAY@/${RELAY}/"			\
+	-e "s/^#${RELAY}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"				\
+	-e "s/^#${AC_meta}#//"				\
 	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_sql}#//"				\
 		-e "s/^#${RDBMS}#//"			\

@@ -380,11 +380,6 @@ new_candidate:;
 				char		**references = NULL;
 				int		cnt;
 
-				/*
-				 * FIXME: should we collect references
-				 * and send them alltogether at the end?
-				 */
-
 				rc = ldap_parse_reference( lsc->ld, res,
 						&references, &rs->sr_ctrls, 1 );
 				res = NULL;
@@ -397,24 +392,35 @@ new_candidate:;
 					continue;
 				}
 
+#ifdef ENABLE_REWRITE
+				dc.ctx = "referralDN";
+#else /* ! ENABLE_REWRITE */
+				dc.tofrom = 0;
+				dc.normalized = 0;
+#endif /* ! ENABLE_REWRITE */
 				for ( cnt = 0; references[ cnt ]; cnt++ )
-					/* NO OP */ ;
-				
-				rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
+					;
+
+				rs->sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					rs->sr_ref[ cnt ].bv_val = references[ cnt ];
-					rs->sr_ref[ cnt ].bv_len = strlen( references[ cnt ] );
+					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
 				}
+				BER_BVZERO( &rs->sr_ref[ cnt ] );
 
-				/* ignore return value by now */
-				( void )send_search_reference( op, rs );
+				( void )ldap_back_referral_result_rewrite( &dc, rs->sr_ref );
+
+				if ( rs->sr_ref != NULL && !BER_BVISNULL( &rs->sr_ref[ 0 ] ) ) {
+					/* ignore return value by now */
+					( void )send_search_reference( op, rs );
+
+					ber_bvarray_free( rs->sr_ref );
+					rs->sr_ref = NULL;
+				}
 
 				/* cleanup */
 				if ( references ) {
 					ldap_value_free( references );
-					ch_free( rs->sr_ref );
-					rs->sr_ref = NULL;
 				}
 
 				if ( rs->sr_ctrls ) {
@@ -677,6 +683,9 @@ meta_send_entry(
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
+
+		} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
+			ldap_back_referral_result_rewrite( &dc, attr->a_vals );
 		}
 
 		if ( last && attr->a_desc->ad_type->sat_equality &&

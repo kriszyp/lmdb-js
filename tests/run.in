@@ -27,6 +27,7 @@ AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
 AC_ldap=ldap@BUILD_LDAP@
 AC_ldbm=@BUILD_LDBM@
+AC_meta=meta@BUILD_META@
 AC_monitor=@BUILD_MONITOR@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
@@ -45,7 +46,7 @@ AC_WITH_SASL=@WITH_SASL@
 AC_WITH_TLS=@WITH_TLS@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 
-export AC_bdb AC_hdb AC_ldap AC_ldbm AC_monitor AC_relay AC_sql 
+export AC_bdb AC_hdb AC_ldap AC_ldbm AC_meta AC_monitor AC_relay AC_sql 
 export AC_glue AC_pcache AC_ppolicy AC_refint AC_unique AC_rwm AC_syncprov
 export AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED
 
