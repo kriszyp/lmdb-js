@@ -415,10 +415,32 @@ each database.  The default is
 .BR LOCALSTATEDIR/openldap-ldbm .
 .TP
 .B
-index { <attrlist> | default } [ pres,eq,approx,sub,none ]
+index {<attrlist>|default} [pres,eq,approx,sub,<special>]
 Specify the indexes to maintain for the given attribute. If only 
 an <attr> is given, the indices specified for \fBdefault\fR
-are maintained.
+are maintained.  A number of special index parameters may be
+specified.
+The index type
+.B sub
+can be decomposed into
+.BR subinitial ,
+.BR subany ,\ and
+.B subfinal
+indices.
+The special type
+.B lang
+may be specified to allow use of this index by language subtypes.
+The special type
+.B autolang
+may be specified to automatically maintain separate indices for each
+language subtypes.
+The special type
+.B subtypes
+may be specified to allow use of this index by named subtypes.
+The special type
+.B autosubtypes
+may be specified to automatically maintain separate indices for each
+other subtypes.
 .TP
 .B mode <integer>
 Specify the file protection mode that newly created database 
