@@ -200,8 +200,13 @@ ldbm_back_db_open(
 
 		if ( rc != 0 )
 		{
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "init", LDAP_LEVEL_ERR, "ldbm_back_db_open: sync "
+			"ldap_pvt_thread_create failed (%d)\n", rc ));
+#else	
 			Debug(	LDAP_DEBUG_ANY,
 				"sync ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+#endif
 			return 1;
 		}
 	}
