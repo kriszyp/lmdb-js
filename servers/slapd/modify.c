@@ -634,6 +634,8 @@ int slap_mods_check(
 						return rc;
 					}
 				}
+				ml->sml_nvalues[nvals].bv_val = NULL;
+				ml->sml_nvalues[nvals].bv_len = 0;
 			}
 #endif
 
