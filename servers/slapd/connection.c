@@ -424,7 +424,7 @@ long connection_init(
 		c->c_sb = ber_sockbuf_alloc( );
 
 		{
-			ber_len_t max = SLAP_MAX_INCOMING;
+			ber_len_t max = sockbuf_max_incoming;
 			ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 		}
 
@@ -635,7 +635,7 @@ connection_destroy( Connection *c )
 	c->c_sb = ber_sockbuf_alloc( );
 
 	{
-		ber_len_t max = SLAP_MAX_INCOMING;
+		ber_len_t max = sockbuf_max_incoming;
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
