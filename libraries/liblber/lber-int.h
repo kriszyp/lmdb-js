@@ -25,7 +25,7 @@
 LDAP_BEGIN_DECL
 
 typedef void (*BER_LOG_FN)(FILE *file,
-	const char *subsys, int level, const char *fmt, va_list vl );
+	const char *subsys, int level, const char *fmt, ... );
 
 LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 
