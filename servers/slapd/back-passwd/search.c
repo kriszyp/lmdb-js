@@ -242,23 +242,21 @@ done:
 static Entry *
 pw2entry( Backend *be, struct passwd *pw, char *rdn )
 {
+	size_t pwlen;
 	Entry		*e;
-	char		buf[256];
 	struct berval	val;
 	struct berval	*vals[2];
+	struct berval	*bv = NULL;
 
 	int rc;
 	const char *text;
 
-	AttributeDescription *ad_objectClass = NULL;
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_cn = NULL;
 	AttributeDescription *ad_sn = NULL;
 	AttributeDescription *ad_uid = NULL;
 	AttributeDescription *ad_description = NULL;
 
-	rc = slap_str2ad( "objectClass", &ad_objectClass, &text );
-
-	if(rc != LDAP_SUCCESS) return NULL;
 	rc = slap_str2ad( "cn", &ad_cn, &text );
 	if(rc != LDAP_SUCCESS) return NULL;
 	rc = slap_str2ad( "sn", &ad_sn, &text );
@@ -268,19 +266,36 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	rc = slap_str2ad( "description", &ad_description, &text );
 	if(rc != LDAP_SUCCESS) return NULL;
 
-
-	vals[0] = &val;
-	vals[1] = NULL;
-
 	/*
 	 * from pw we get pw_name and make it cn
 	 * give it an objectclass of person.
 	 */
 
+	pwlen = strlen( pw->pw_name );
+	val.bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0]->bv_len );
+	val.bv_val = ch_malloc( val.bv_len + 1 );
+
+	/* rdn attribute type should be a configuratable item */
+	sprintf( val.bv_val, "uid=%s,%s",
+		pw->pw_name, be->be_suffix[0]->bv_val );
+
+	rc = dnNormalize( NULL, &val, &bv );
+	if( rc != LDAP_SUCCESS ) {
+		free( val.bv_val );
+		return NULL;
+	}
+
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e->e_name = val;
+	e->e_nname = *bv;
+	free( bv );
+
 	e->e_attrs = NULL;
 
-	/* objectclasses should be configuratable items */
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	/* objectclasses should be configurable items */
 	val.bv_val = "top";
 	val.bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
@@ -293,18 +308,8 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	val.bv_len = sizeof("uidObject")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	/* rdn attribute type should be a configuratable item */
-	sprintf( buf, "uid=%s,%s", pw->pw_name, be->be_suffix[0]->bv_val );
-	e->e_name.bv_val = ch_strdup( buf );
-	e->e_name.bv_len = strlen( e->e_name.bv_val );
-
-	/* FIXME: use dnNormalize() !! */
-	e->e_nname.bv_val = ch_strdup( buf );
-	(void) dn_normalize( e->e_nname.bv_val );
-	e->e_nname.bv_len = strlen( e->e_name.bv_val );
-
 	val.bv_val = pw->pw_name;
-	val.bv_len = strlen( pw->pw_name );
+	val.bv_len = pwlen;
 	attr_merge( e, ad_uid, vals );	/* required by uidObject */
 	attr_merge( e, ad_cn, vals );	/* required by person */
 	attr_merge( e, ad_sn, vals );	/* required by person */
