@@ -278,6 +278,7 @@ get_filter(
 
 	if( err != LDAP_SUCCESS && err != SLAPD_DISCONNECT ) {
 		/* ignore error */
+		*text = NULL;
 		f.f_choice = SLAPD_FILTER_COMPUTED;
 		f.f_result = SLAPD_COMPARE_UNDEFINED;
 		err = LDAP_SUCCESS;
@@ -372,7 +373,13 @@ get_ssa(
 	rc = slap_bv2ad( &desc, &ssa.sa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		return LDAP_SUCCESS;
+		/* skip over the rest of this filter */
+		for ( tag = ber_first_element( ber, &len, &last );
+			tag != LBER_DEFAULT;
+			tag = ber_next_element( ber, &len, last ) ) {
+			ber_scanf( ber, "x" );
+		}
+		return rc;
 	}
 
 	rc = LDAP_PROTOCOL_ERROR;
