@@ -10,6 +10,8 @@
 
 #include "portable.h"
 
+#include <stdlib.h>
+
 #include <ac/string.h>
 #include <ac/unistd.h>
 
@@ -69,6 +71,66 @@ lutil_passwd(
 		}
 
 		return( strcmp(p, base64digest) );
+
+	} else if (strncasecmp(passwd, "{SSHA}", sizeof("{SSHA}") - 1) == 0) {
+		lutil_SHA1_CTX SHA1context;
+		unsigned char SHA1digest[20];
+		const char *p = passwd + (sizeof("{SSHA}") - 1);
+		int pw_len = strlen(p);
+		int rc;
+		unsigned char *orig_pass = NULL;
+ 
+		/* base64 un-encode password */
+		orig_pass = (unsigned char *)malloc(pw_len * 0.75 + 1);
+		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
+		{
+			free(orig_pass);
+			return ( 1 );
+		}
+ 
+		/* hash credentials with salt */
+		lutil_SHA1Init(&SHA1context);
+		lutil_SHA1Update(&SHA1context,
+				(const unsigned char *) cred, strlen(cred));
+		lutil_SHA1Update(&SHA1context,
+				(const unsigned char *) orig_pass + sizeof(SHA1digest),
+				rc - sizeof(SHA1digest));
+		lutil_SHA1Final(SHA1digest, &SHA1context);
+ 
+		/* compare */
+		rc = strncmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
+		free(orig_pass);
+		return(rc);
+
+	} else if (strncasecmp(passwd, "{SMD5}", sizeof("{SMD5}") - 1) == 0) {
+		lutil_MD5_CTX MD5context;
+		unsigned char MD5digest[16];
+		const char *p = passwd + (sizeof("{SMD5}") - 1);
+		int pw_len = strlen(p);
+		int rc;
+		unsigned char *orig_pass = NULL;
+
+		/* base64 un-encode password */
+		orig_pass = (unsigned char *)malloc(pw_len * 0.75 + 1);
+		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
+		{
+			free(orig_pass);
+			return ( 1 );
+		}
+
+		/* hash credentials with salt */
+		lutil_MD5Init(&MD5context);
+		lutil_MD5Update(&MD5context,
+				(const unsigned char *) cred, strlen(cred));
+		lutil_MD5Update(&MD5context,
+				(const unsigned char *) orig_pass + sizeof(MD5digest),
+				rc - sizeof(MD5digest));
+		lutil_MD5Final(MD5digest, &MD5context);
+
+		/* compare */
+		rc = strncmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
+		free(orig_pass);
+		return ( rc );
 
 #ifdef SLAPD_CRYPT
 	} else if (strncasecmp(passwd, "{CRYPT}", sizeof("{CRYPT}") - 1) == 0 ) {
