@@ -244,9 +244,9 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
-	if ( si->si_authzId ) {
+	if ( si->si_bindconf.sb_authzId ) {
 		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		ber_str2bv( si->si_authzId, 0, 0, &c[1].ldctl_value );
+		ber_str2bv( si->si_bindconf.sb_authzId, 0, 0, &c[1].ldctl_value );
 		c[1].ldctl_iscritical = 1;
 		ctrls[1] = &c[1];
 		ctrls[2] = NULL;
@@ -295,18 +295,18 @@ do_syncrep1(
 
 	/* Bind to master */
 
-	if ( si->si_tls ) {
+	if ( si->si_bindconf.sb_tls ) {
 		rc = ldap_start_tls_s( si->si_ld, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_start_tls failed (%d)\n",
-				si->si_tls == SYNCINFO_TLS_CRITICAL ? "Error" : "Warning",
+				si->si_bindconf.sb_tls == SB_TLS_CRITICAL ? "Error" : "Warning",
 				rc, 0 );
-			if( si->si_tls == SYNCINFO_TLS_CRITICAL ) goto done;
+			if( si->si_bindconf.sb_tls == SB_TLS_CRITICAL ) goto done;
 		}
 	}
 
-	if ( si->si_bindmethod == LDAP_AUTH_SASL ) {
+	if ( si->si_bindconf.sb_method == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
 		void *defaults;
 
@@ -364,7 +364,7 @@ do_syncrep1(
 
 	} else {
 		rc = ldap_bind_s( si->si_ld,
-			si->si_binddn, si->si_passwd, si->si_bindmethod );
+			si->si_bindconf.sb_binddn, si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
@@ -2087,27 +2087,9 @@ syncinfo_free( syncinfo_t *sie )
 	if ( !BER_BVISNULL( &sie->si_provideruri ) ) {
 		ch_free( sie->si_provideruri.bv_val );
 	}
-	if ( sie->si_binddn ) {
-		ch_free( sie->si_binddn );
-	}
-	if ( sie->si_passwd ) {
-		ch_free( sie->si_passwd );
-	}
-	if ( sie->si_saslmech ) {
-		ch_free( sie->si_saslmech );
-	}
-	if ( sie->si_secprops ) {
-		ch_free( sie->si_secprops );
-	}
-	if ( sie->si_realm ) {
-		ch_free( sie->si_realm );
-	}
-	if ( sie->si_authcId ) {
-		ch_free( sie->si_authcId );
-	}
-	if ( sie->si_authzId ) {
-		ch_free( sie->si_authzId );
-	}
+
+	bindconf_free( &sie->si_bindconf );
+
 	if ( sie->si_filterstr.bv_val ) {
 		ch_free( sie->si_filterstr.bv_val );
 	}

@@ -480,7 +480,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "TLSCACertificateFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CA_FILE|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CA_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -488,7 +488,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCACertificatePath", NULL,	0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CA_PATH|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CA_PATH|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -496,7 +496,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCertificateFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CERT_FILE|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CERT_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -504,7 +504,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCertificateKeyFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CERT_KEY|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CERT_KEY|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -512,7 +512,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCipherSuite",	NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CIPHER|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CIPHER|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -520,7 +520,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCRLCheck", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CRLCHECK|ARG_MAGIC, &config_tls_config,
+		CFG_TLS_CRLCHECK|ARG_STRING|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -528,7 +528,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSRandFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_RAND|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_RAND|ARG_STRING|ARG_MAGIC, &config_tls_option,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -536,7 +536,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSVerifyClient", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_VERIFY|ARG_MAGIC, &config_tls_config,
+		CFG_TLS_VERIFY|ARG_STRING|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -1917,13 +1917,194 @@ config_security(ConfigArgs *c) {
 	return(0);
 }
 
+static struct verb_mask_list tlskey[] = {
+	{ "no",		SB_TLS_OFF },
+	{ "yes",		SB_TLS_ON },
+	{ "critical",	SB_TLS_CRITICAL }
+};
+
+static struct verb_mask_list methkey[] = {
+	{ "simple",	LDAP_AUTH_SIMPLE },
+#ifdef HAVE_CYRUS_SASL
+	{ "sasl",	LDAP_AUTH_SASL },
+#endif
+	{ NULL, 0 }
+};
+
+typedef struct cf_aux_table {
+	struct berval key;
+	int off;
+	int quote;
+	struct verb_mask_list *aux;
+} cf_aux_table;
+
+static cf_aux_table bindkey[] = {
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 0, tlskey },
+	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 0, methkey },
+	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 1, NULL },
+	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 1, NULL },
+	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 0, NULL },
+	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 0, NULL },
+	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 0, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 0, NULL },
+	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 1, NULL },
+	{ BER_BVNULL, 0, NULL }
+};
+
+int bindconf_parse( char *word, slap_bindconf *bc ) {
+	int i, rc = 0;
+	char **cptr;
+	cf_aux_table *tab;
+
+	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
+			cptr = (char **)((char *)bc + tab->off);
+			if ( tab->aux ) {
+				int j;
+				rc = 1;
+				for (j=0; tab->aux[j].word; j++) {
+					if (!strcasecmp(word+tab->key.bv_len, tab->aux[j].word)) {
+						int *ptr = (int *)cptr;
+						*ptr = tab->aux[j].mask;
+						rc = 0;
+					}
+				}
+				if (rc ) {
+					Debug(LDAP_DEBUG_ANY, "invalid bind config value %s\n",
+						word, 0, 0 );
+				}
+				return rc;
+			}
+			*cptr = ch_strdup(word+tab->key.bv_len);
+			return 0;
+		}
+	}
+	return rc;
+}
+
+int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
+	char buf[BUFSIZ], *ptr;
+	cf_aux_table *tab;
+	char **cptr;
+	struct berval tmp;
+
+	ptr = buf;
+	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+		cptr = (char **)((char *)bc + tab->off);
+		if ( tab->aux ) {
+			int *ip = (int *)cptr, i;
+			for ( i=0; tab->aux[i].word; i++ ) {
+				if ( *ip == tab->aux[i].mask ) {
+					*ptr++ = ' ';
+					ptr = lutil_strcopy( ptr, tab->key.bv_val );
+					ptr = lutil_strcopy( ptr, tab->aux[i].word );
+					break;
+				}
+			}
+		} else if ( *cptr ) {
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			if ( tab->quote ) *ptr++ = '"';
+			ptr = lutil_strcopy( ptr, *cptr );
+			if ( tab->quote ) *ptr++ = '"';
+		}
+	}
+	tmp.bv_val = buf;
+	tmp.bv_len = ptr - buf;
+	ber_dupbv( bv, &tmp );
+	return 0;
+}
+
+void bindconf_free( slap_bindconf *bc ) {
+	if ( bc->sb_binddn ) {
+		ch_free( bc->sb_binddn );
+	}
+	if ( bc->sb_cred ) {
+		ch_free( bc->sb_cred );
+	}
+	if ( bc->sb_saslmech ) {
+		ch_free( bc->sb_saslmech );
+	}
+	if ( bc->sb_secprops ) {
+		ch_free( bc->sb_secprops );
+	}
+	if ( bc->sb_realm ) {
+		ch_free( bc->sb_realm );
+	}
+	if ( bc->sb_authcId ) {
+		ch_free( bc->sb_authcId );
+	}
+	if ( bc->sb_authzId ) {
+		ch_free( bc->sb_authzId );
+	}
+}
+
+static void
+replica_unparse( struct slap_replica_info *ri, struct berval *bv )
+{
+	int len;
+	int i;
+	char *ptr;
+	struct berval bc = {0};
+
+	len = strlen( ri->ri_uri ) + STRLENOF("replica uri=");
+	if ( ri->ri_nsuffix ) {
+		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
+			len += ri->ri_nsuffix[i].bv_len + STRLENOF(" suffix=\"\"");
+		}
+	}
+	if ( ri->ri_attrs ) {
+		len += STRLENOF("attr");
+		if ( ri->ri_exclude ) len++;
+		for (i=0; !BER_BVISNULL( &ri->ri_attrs[i].an_name ); i++) {
+			len += 1 + ri->ri_attrs[i].an_name.bv_len;
+		}
+	}
+	bindconf_unparse( &ri->ri_bindconf, &bc );
+	len += bc.bv_len;
+
+	bv->bv_val = ch_malloc(len + 1);
+	bv->bv_len = len;
+
+	ptr = lutil_strcopy( bv->bv_val, "replica uri=" );
+	ptr = lutil_strcopy( ptr, ri->ri_uri );
+
+	if ( ri->ri_nsuffix ) {
+		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
+			ptr = lutil_strcopy( ptr, " suffix=\"" );
+			ptr = lutil_strcopy( ptr, ri->ri_nsuffix[i].bv_val );
+			*ptr++ = '"';
+		}
+	}
+	if ( ri->ri_attrs ) {
+		int comma = 0;
+		ptr = lutil_strcopy( ptr, "attr" );
+		if ( ri->ri_exclude ) *ptr++ = '!';
+		*ptr++ = '=';
+		for (i=0; !BER_BVISNULL( &ri->ri_attrs[i].an_name ); i++) {
+			if ( comma ) *ptr++ = ',';
+			ptr = lutil_strcopy( ptr, ri->ri_attrs[i].an_name.bv_val );
+		}
+	}
+	if ( bc.bv_val )
+		strcpy( ptr, bc.bv_val );
+}
+
 static int
 config_replica(ConfigArgs *c) {
-	int i, nr = -1;
-	char *replicahost, *replicalog = NULL;
+	int i, nr = -1, len;
+	char *replicahost, *replicauri;
 	LDAPURLDesc *ludp;
 
 	if (c->emit) {
+		if (c->be->be_replica) {
+			struct berval bv;
+			for (i=0;c->be->be_replica[i]; i++) {
+				replica_unparse( c->be->be_replica[i], &bv );
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			return 0;
+		}
 		return 1;
 	}
 	if(SLAP_MONITOR(c->be)) {
@@ -1935,8 +2116,12 @@ config_replica(ConfigArgs *c) {
 
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
-			replicalog = c->argv[i] + STRLENOF("host=");
-			nr = add_replica_info(c->be, c->argv[i] + STRLENOF("host="));
+			replicahost = c->argv[i] + STRLENOF("host=");
+			len = strlen( replicahost );
+			replicauri = ch_malloc( len + STRLENOF("ldap://") + 1 );
+			sprintf( replicauri, "ldap://%s", replicahost );
+			replicahost = replicauri + STRLENOF( "ldap://");
+			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
 			if(ldap_url_parse(c->argv[i] + STRLENOF("uri="), &ludp) != LDAP_SUCCESS) {
@@ -1952,18 +2137,12 @@ config_replica(ConfigArgs *c) {
 					c->log, 0, 0);
 				return(1);
 			}
-			replicahost = ch_malloc(strlen(c->argv[i]));
-			if(!replicahost) {
-				Debug(LDAP_DEBUG_ANY,
-					"out of memory in read_config\n", 0, 0, 0);
-				ldap_free_urldesc(ludp);
-				exit(EXIT_FAILURE);
-			}
-			sprintf(replicahost, "%s:%d", ludp->lud_host, ludp->lud_port);
-			replicalog = c->argv[i] + STRLENOF("uri=");
-			nr = add_replica_info(c->be, replicahost);
 			ldap_free_urldesc(ludp);
-			ch_free(replicahost);
+			replicauri = c->argv[i] + STRLENOF("uri=");
+			replicauri = ch_strdup( replicauri );
+			replicahost = strchr( replicauri, '/' );
+			replicahost += 2;
+			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		}
 	}
@@ -1975,7 +2154,7 @@ config_replica(ConfigArgs *c) {
 	} else if(nr == -1) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unable to add replica \"%s\"\n",
-			c->log, replicalog, 0);
+			c->log, replicauri, 0);
 		return(1);
 	} else {
 		for(i = 1; i < c->argc; i++) {
@@ -2009,6 +2188,9 @@ config_replica(ConfigArgs *c) {
 						c->log, arg + 1, 0);
 					return(1);
 				}
+			} else if ( bindconf_parse( c->argv[i],
+					&c->be->be_replica[nr]->ri_bindconf ) ) {
+				return(1);
 			}
 		}
 	}
@@ -2062,7 +2244,7 @@ config_updateref(ConfigArgs *c) {
 	}
 	if(!SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
-			"updateref line must after syncrepl or updatedn.\n",
+			"updateref line must come after syncrepl or updatedn.\n",
 			c->log, 0, 0);
 		return(1);
 	}
@@ -2078,8 +2260,6 @@ config_updateref(ConfigArgs *c) {
 	if(value_add(&c->be->be_update_refs, vals)) return(LDAP_OTHER);
 	return(0);
 }
-
-/* XXX meaningless in ldif */
 
 static int
 config_include(ConfigArgs *c) {
@@ -2116,33 +2296,61 @@ config_tls_option(ConfigArgs *c) {
 	int flag;
 	switch(c->type) {
 	case CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
-	case CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
+	case CFG_TLS_CIPHER:	flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
 	case CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
 	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
-		default:		Debug(LDAP_DEBUG_ANY, "%s: "
-						"unknown tls_option <%x>\n",
-						c->log, c->type, 0);
+	default:		Debug(LDAP_DEBUG_ANY, "%s: "
+					"unknown tls_option <%x>\n",
+					c->log, c->type, 0);
 	}
 	if (c->emit) {
-		return 1;
+		return ldap_pvt_tls_get_option( NULL, flag, &c->value_string );
 	}
+	ch_free(c->value_string);
 	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
 }
 
+/* FIXME: this ought to be provided by libldap */
 static int
 config_tls_config(ConfigArgs *c) {
 	int i, flag;
-	if (c->emit) {
-		return 1;
-	}
+	struct verb_mask_list crlkeys[] = {
+		{ "none",	LDAP_OPT_X_TLS_CRL_NONE },
+		{ "peer",	LDAP_OPT_X_TLS_CRL_PEER },
+		{ "all",	LDAP_OPT_X_TLS_CRL_ALL },
+		{ NULL, 0 }
+	};
+	struct verb_mask_list vfykeys[] = {
+		{ "never",	LDAP_OPT_X_TLS_NEVER },
+		{ "demand",	LDAP_OPT_X_TLS_DEMAND },
+		{ "try",	LDAP_OPT_X_TLS_TRY },
+		{ "hard",	LDAP_OPT_X_TLS_HARD }
+		{ NULL, 0 }
+	}, *keys;
 	switch(c->type) {
 #ifdef HAVE_OPENSSL_CRL
-	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
+	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
+		break;
 #endif
-	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT;	break;
+	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT; keys = vfykeys;
+		break;
+	default:		Debug(LDAP_DEBUG_ANY, "%s: "
+					"unknown tls_option <%x>\n",
+					c->log, c->type, 0);
 	}
+	if (c->emit) {
+		ldap_pvt_tls_get_option( NULL, flag, &c->value_int );
+		for (i=0; keys[i].word; i++) {
+			if (keys[i].mask == c->value_int) {
+				c->value_string = ch_strdup( keys[i].word );
+				rc = 0;
+			}
+		}
+		return 1;
+	}
+	ch_free( c->value_string );
 	if(isdigit((unsigned char)c->argv[1][0])) {
 		i = atoi(c->argv[1]);
 		return(ldap_pvt_tls_set_option(NULL, flag, &i));
@@ -2351,8 +2559,8 @@ add_syncrepl(
 		return 1;
 	}
 
-	si->si_tls = SYNCINFO_TLS_OFF;
-	si->si_bindmethod = LDAP_AUTH_SIMPLE;
+	si->si_bindconf.sb_tls = SB_TLS_OFF;
+	si->si_bindconf.sb_method = LDAP_AUTH_SIMPLE;
 	si->si_schemachecking = 0;
 	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 1,
 		&si->si_filterstr );
@@ -2411,21 +2619,9 @@ add_syncrepl(
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
 #define SCHEMASTR		"schemachecking"
-#define BINDMETHSTR		"bindmethod"
-#define SIMPLESTR			"simple"
-#define SASLSTR				"sasl"
-#define BINDDNSTR		"binddn"
-#define SASLMECHSTR		"saslmech"
-#define AUTHCSTR		"authcID"
-#define AUTHZSTR		"authzID"
-#define CREDSTR			"credentials"
-#define REALMSTR		"realm"
-#define SECPROPSSTR		"secprops"
 
 /* FIXME: undocumented */
 #define OLDAUTHCSTR		"bindprincipal"
-#define STARTTLSSTR		"starttls"
-#define CRITICALSTR			"critical"
 #define EXATTRSSTR		"exattrs"
 #define MANAGEDSAITSTR		"manageDSAit"
 #define RETRYSTR		"retry"
@@ -2442,10 +2638,9 @@ add_syncrepl(
 /* mandatory */
 #define GOT_ID			0x0001
 #define GOT_PROVIDER		0x0002
-#define GOT_METHOD		0x0004
 
 /* check */
-#define GOT_ALL			(GOT_ID|GOT_PROVIDER|GOT_METHOD)
+#define GOT_ALL			(GOT_ID|GOT_PROVIDER)
 
 static int
 parse_syncrepl_line(
@@ -2479,79 +2674,6 @@ parse_syncrepl_line(
 			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
 			ber_str2bv( val, 0, 1, &si->si_provideruri );
 			gots |= GOT_PROVIDER;
-		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR "=",
-					STRLENOF(STARTTLSSTR "=") ) )
-		{
-			val = cargv[ i ] + STRLENOF( STARTTLSSTR "=" );
-			if( !strcasecmp( val, CRITICALSTR ) ) {
-				si->si_tls = SYNCINFO_TLS_CRITICAL;
-			} else {
-				si->si_tls = SYNCINFO_TLS_ON;
-			}
-		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR "=",
-				STRLENOF( BINDMETHSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( BINDMETHSTR "=" );
-			if ( !strcasecmp( val, SIMPLESTR )) {
-				si->si_bindmethod = LDAP_AUTH_SIMPLE;
-				gots |= GOT_METHOD;
-			} else if ( !strcasecmp( val, SASLSTR )) {
-#ifdef HAVE_CYRUS_SASL
-				si->si_bindmethod = LDAP_AUTH_SASL;
-				gots |= GOT_METHOD;
-#else /* HAVE_CYRUS_SASL */
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"not compiled with SASL support\n" );
-				return -1;
-#endif /* HAVE_CYRUS_SASL */
-			} else {
-				si->si_bindmethod = -1;
-			}
-		} else if ( !strncasecmp( cargv[ i ], BINDDNSTR "=",
-					STRLENOF( BINDDNSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( BINDDNSTR "=" );
-			si->si_binddn = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], CREDSTR "=",
-					STRLENOF( CREDSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( CREDSTR "=" );
-			si->si_passwd = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], SASLMECHSTR "=",
-					STRLENOF( SASLMECHSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( SASLMECHSTR "=" );
-			si->si_saslmech = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], SECPROPSSTR "=",
-					STRLENOF( SECPROPSSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( SECPROPSSTR "=" );
-			si->si_secprops = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], REALMSTR "=",
-					STRLENOF( REALMSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( REALMSTR "=" );
-			si->si_realm = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], AUTHCSTR "=",
-					STRLENOF( AUTHCSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( AUTHCSTR "=" );
-			if ( si->si_authcId )
-				ch_free( si->si_authcId );
-			si->si_authcId = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], OLDAUTHCSTR "=",
-					STRLENOF( OLDAUTHCSTR "=" ) ) ) 
-		{
-			/* Old authcID is provided for some backwards compatibility */
-			val = cargv[ i ] + STRLENOF( OLDAUTHCSTR "=" );
-			if ( si->si_authcId )
-				ch_free( si->si_authcId );
-			si->si_authcId = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], AUTHZSTR "=",
-					STRLENOF( AUTHZSTR "=" ) ) )
-		{
-			val = cargv[ i ] + STRLENOF( AUTHZSTR "=" );
-			si->si_authzId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ], SCHEMASTR "=",
 					STRLENOF( SCHEMASTR "=" ) ) )
 		{
@@ -2799,7 +2921,7 @@ parse_syncrepl_line(
 		{
 			val = cargv[ i ] + STRLENOF( TLIMITSTR "=" );
 			si->si_tlimit = atoi( val );
-		} else {
+		} else if ( bindconf_parse( cargv[i], &si->si_bindconf )) {
 			fprintf( stderr, "Error: parse_syncrepl_line: "
 				"unknown keyword \"%s\"\n", cargv[ i ] );
 			return -1;

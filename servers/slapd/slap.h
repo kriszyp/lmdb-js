@@ -1392,11 +1392,29 @@ LDAP_SLAPD_V (int) slapMode;
 #define	SLAP_TOOL_READONLY	0x0400
 #define	SLAP_TOOL_QUICK		0x0800
 
+#define SB_TLS_OFF		0
+#define SB_TLS_ON		1
+#define SB_TLS_CRITICAL	2
+
+typedef struct slap_bindconf {
+	int sb_tls;
+	int sb_method;
+	char *sb_binddn;
+	char *sb_cred;
+	char *sb_saslmech;
+	char *sb_secprops;
+	char *sb_realm;
+	char *sb_authcId;
+	char *sb_authzId;
+} slap_bindconf;
+
 struct slap_replica_info {
-	char *ri_host;				/* supersedes be_replica */
+	char *ri_uri;				/* supersedes be_replica */
+	char *ri_host;				/* points to host part of uri */
 	BerVarray ri_nsuffix;	/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
 	int ri_exclude;			/* 1 => exclude ri_attrs */
+	slap_bindconf ri_bindconf;	/* for back-config */
 };
 
 struct slap_limits_set {
@@ -1487,18 +1505,7 @@ typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         long				si_rid;
         struct berval			si_provideruri;
-#define SYNCINFO_TLS_OFF		0
-#define SYNCINFO_TLS_ON			1
-#define SYNCINFO_TLS_CRITICAL	2
-        int					si_tls;
-        int					si_bindmethod;
-        char				*si_binddn;
-        char				*si_passwd;
-        char				*si_saslmech;
-        char				*si_secprops;
-        char				*si_realm;
-        char				*si_authcId;
-        char				*si_authzId;
+		slap_bindconf		si_bindconf;
 		int					si_schemachecking;
         struct berval		si_filterstr;
         struct berval		si_base;
@@ -1702,7 +1709,6 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
 	syncinfo_t								*be_syncinfo; /* For syncrepl */
 
-	char	*be_realm;
 	void    *be_pb;         /* Netscape plugin */
 	struct ConfigTable *be_cf_table;
 
