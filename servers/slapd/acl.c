@@ -627,11 +627,11 @@ aci_list_has_right (struct berval *list, int access, int action)
 	return(!action);
 #else
 		if (action != 0) {
-			// check granted
+			/* check granted */
 			if (ACL_GRANT(right, access))
 				return(1);
 		} else {
-			// check denied
+			/* check denied */
 			if (right <= access)
 				return(1);
 		}
