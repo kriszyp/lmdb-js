@@ -18,13 +18,13 @@ bdb_add(Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval	pdn;
-	Entry		*p = NULL;
-	const char	*text;
+	Entry		*p;
+	EntryInfo	*ei;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-	DB_TXN		*ltid = NULL;
+	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
 #ifdef BDB_SUBENTRIES
 	int subentry;
@@ -137,42 +137,37 @@ retry:	/* transaction retry */
 		dnParent( &op->oq_add.rs_e->e_nname, &pdn );
 	}
 
-	if( pdn.bv_len != 0 ) {
-		Entry *matched = NULL;
+	/* get entry or parent */
+	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->ora_e->e_nname, &ei,
+		1, locker, &lock, op->o_tmpmemctx );
+	switch( rs->sr_err ) {
+	case 0:
+		rs->sr_err = LDAP_ALREADY_EXISTS;
+		goto return_results;
+	case DB_NOTFOUND:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	case LDAP_BUSY:
+		rs->sr_text = "ldap server busy";
+		goto return_results;
+	default:
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
 
-		/* get parent */
-		rs->sr_err = bdb_dn2entry_r( op->o_bd, ltid, &pdn, &p, &matched, 0, locker, &lock );
-
-		switch( rs->sr_err ) {
-		case 0:
-		case DB_NOTFOUND:
-			break;
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		case LDAP_BUSY:
-			rs->sr_text = "ldap server busy";
-			goto return_results;
-		default:
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "internal error";
-			goto return_results;
-		}
-
-		if ( p == NULL ) {
-			if ( matched != NULL ) {
-				rs->sr_matched = ch_strdup( matched->e_dn );
-				rs->sr_ref = is_entry_referral( matched )
-					? get_entry_referrals( op, matched )
-					: NULL;
-				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched );
-				matched = NULL;
-
-			} else {
-				rs->sr_ref = referral_rewrite( default_referral,
-					NULL, &op->oq_add.rs_e->e_name, LDAP_SCOPE_DEFAULT );
-			}
-
+	p = ei->bei_e;
+	if ( p ) {
+		if ( !bvmatch( &pdn, &p->e_nname ) ) {
+			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
+				op->o_tmpmemctx );
+			rs->sr_ref = is_entry_referral( p )
+				? get_entry_referrals( op, p )
+				: NULL;
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			p = NULL;
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_add: parent does not exist\n", 0, 0, 0 );
@@ -185,7 +180,7 @@ retry:	/* transaction retry */
 			send_ldap_result( op, rs );
 
 			ber_bvarray_free( rs->sr_ref );
-			ch_free( (char *)rs->sr_matched );
+			op->o_tmpfree( (char *)rs->sr_matched, op->o_tmpmemctx );
 			rs->sr_ref = NULL;
 			rs->sr_matched = NULL;
 
@@ -370,8 +365,26 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
+	/* nested transaction */
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
+		bdb->bi_db_opflags );
+	rs->sr_text = NULL;
+	if( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_add: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_add: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+
 	/* dn2id index */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, ltid, &pdn, op->oq_add.rs_e );
+	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, &pdn, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -395,7 +408,7 @@ retry:	/* transaction retry */
 	}
 
 	/* id2entry index */
-	rs->sr_err = bdb_id2entry_add( op->o_bd, ltid, op->oq_add.rs_e );
+	rs->sr_err = bdb_id2entry_add( op->o_bd, lt2, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, "bdb_add: id2entry_add failed\n", 0, 0, 0 );
@@ -415,7 +428,7 @@ retry:	/* transaction retry */
 	}
 
 	/* attribute indexes */
-	rs->sr_err = bdb_index_entry_add( op, ltid, op->oq_add.rs_e );
+	rs->sr_err = bdb_index_entry_add( op, lt2, op->oq_add.rs_e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -434,7 +447,11 @@ retry:	/* transaction retry */
 		rs->sr_text = "index generation failed";
 		goto return_results;
 	}
-
+	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "txn_commit(2) failed";
+		goto return_results;
+	}
 
 	if( op->o_noop ) {
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
@@ -454,32 +471,21 @@ retry:	/* transaction retry */
 			rs->sr_text = "txn_prepare failed";
 
 		} else {
-			int ret = bdb_cache_add_entry_rw(bdb->bi_dbenv,
-					&bdb->bi_cache, op->oq_add.rs_e, CACHE_WRITE_LOCK,
-					locker, &lock);
-			switch ( ret ) {
-			case 0:
-				break;
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto retry;
-			default:
-				ret = LDAP_OTHER;
+			struct berval nrdn;
+
+			if (pdn.bv_len) {
+				nrdn.bv_val = op->ora_e->e_nname.bv_val;
+				nrdn.bv_len = pdn.bv_val - nrdn.bv_val - 1;
+			} else {
+				nrdn = op->ora_e->e_nname;
 			}
 
-			if ( ret ) {
-				if(( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
-					rs->sr_text = "cache add & txn_abort failed";
-				} else {
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = "cache add failed";
-				}
+			bdb_cache_add(bdb, ei, op->oq_add.rs_e, &nrdn, locker );
+
+			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
+				rs->sr_text = "txn_commit failed";
 			} else {
-				if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
-					rs->sr_text = "txn_commit failed";
-				} else {
-					rs->sr_err = LDAP_SUCCESS;
-				}
+				rs->sr_err = LDAP_SUCCESS;
 			}
 		}
 	}
@@ -497,9 +503,6 @@ retry:	/* transaction retry */
 			op->o_noop ? " (no-op)" : "", op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
 #endif
 		rs->sr_text = NULL;
-		if ( !noop ) {
-			bdb_cache_entry_commit( op->oq_add.rs_e );
-		}
 	}
 	else {
 #ifdef NEW_LOGGING

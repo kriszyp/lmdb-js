@@ -15,48 +15,60 @@
 
 /*
  * dn2entry - look up dn in the cache/indexes and return the corresponding
- * entry.
+ * entry. If the requested DN is not found and matched is TRUE, return info
+ * for the closest ancestor of the DN. Otherwise e is NULL.
  */
 
 int
-bdb_dn2entry_rw(
+bdb_dn2entry(
 	BackendDB	*be,
 	DB_TXN *tid,
 	struct berval *dn,
-	Entry **e,
-	Entry **matched,
-	int flags,
-	int rw,
+	EntryInfo **e,
+	int matched,
 	u_int32_t locker,
-	DB_LOCK *lock )
+	DB_LOCK *lock,
+	void *ctx )
 {
+	EntryInfo *ei = NULL;
 	int rc;
-	ID		id, id2 = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( CACHE, ARGS, "bdb_dn2entry_rw(\"%s\")\n", dn->bv_val, 0, 0 );
+	LDAP_LOG ( CACHE, ARGS, "bdb_dn2entry(\"%s\")\n", dn->bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry_rw(\"%s\")\n",
+	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
 		dn->bv_val, 0, 0 );
 #endif
 
 	*e = NULL;
 
-	if( matched != NULL ) {
-		*matched = NULL;
-		rc = bdb_dn2id_matched( be, tid, dn, &id, &id2, flags );
+	rc = bdb_cache_find_entry_ndn2id( be, tid, dn, &ei, locker, ctx );
+	if ( rc ) {
+		if ( matched && rc == DB_NOTFOUND ) {
+			/* Set the return value, whether we have its entry
+			 * or not.
+			 */
+			*e = ei;
+			if ( ei && ei->bei_id )
+				bdb_cache_find_entry_id( be, tid, ei->bei_id,
+					&ei, 1, locker, lock, ctx );
+			else if ( ei )
+				bdb_cache_entryinfo_unlock( ei );
+		} else if ( ei ) {
+			bdb_cache_entryinfo_unlock( ei );
+		}
 	} else {
-		rc = bdb_dn2id( be, tid, dn, &id, flags );
-	}
-
-	if( rc != 0 ) {
-		return rc;
-	}
-
-	if( id2 == 0 ) {
-		rc = bdb_id2entry_rw( be, tid, id, e, rw, locker, lock );
-	} else {
-		rc = bdb_id2entry_r( be, tid, id2, matched, locker, lock );
+		rc = bdb_cache_find_entry_id( be, tid, ei->bei_id, &ei, 1,
+			locker, lock, ctx );
+		if ( rc == 0 ) {
+			*e = ei;
+		} else if ( matched && rc == DB_NOTFOUND ) {
+			/* always return EntryInfo */
+			ei = ei->bei_parent;
+			bdb_cache_find_entry_id( be, tid, ei->bei_id, &ei, 1,
+				locker, lock, ctx );
+			*e = ei;
+		}
 	}
 
 	return rc;

@@ -17,7 +17,7 @@ bdb_referrals( Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry *e = NULL;
-	Entry *matched = NULL;
+	EntryInfo *ei;
 	int rc = LDAP_SUCCESS;
 
 	u_int32_t	locker;
@@ -43,20 +43,15 @@ bdb_referrals( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry_r( op->o_bd, NULL, &op->o_req_ndn, &e, &matched, 0, locker, &lock );
+	rc = bdb_dn2entry( op->o_bd, NULL, &op->o_req_ndn, &ei, 1, locker,
+		&lock, op->o_tmpmemctx );
 
+	e = ei->bei_e;
 	switch(rc) {
 	case DB_NOTFOUND:
-		rc = 0;
 	case 0:
 		break;
 	case LDAP_BUSY:
-		if (e != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
-		}
-		if (matched != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
-		}
 		send_ldap_error( op, rs, LDAP_BUSY, "ldap server busy" );
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
@@ -73,20 +68,15 @@ dn2entry_retry:
 			"bdb_referrals: dn2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 ); 
 #endif
-		if (e != NULL) {
-                        bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
-		}
-                if (matched != NULL) {
-                        bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
-		}
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		return rs->sr_err;
 	}
 
-	if ( e == NULL ) {
-		if ( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_name.bv_val );
+	if ( rc == DB_NOTFOUND ) {
+		rc = 0;
+		if ( e != NULL ) {
+			rs->sr_matched = ch_strdup( e->e_name.bv_val );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
@@ -98,13 +88,13 @@ dn2entry_retry:
 				(long) op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
 #endif
 
-			if( is_entry_referral( matched ) ) {
+			if( is_entry_referral( e ) ) {
 				rc = LDAP_OTHER;
-				rs->sr_ref = get_entry_referrals( op, matched );
+				rs->sr_ref = get_entry_referrals( op, e );
 			}
 
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
-			matched = NULL;
+			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			e = NULL;
 		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
 			rs->sr_ref = referral_rewrite( default_referral,

@@ -502,8 +502,6 @@ bdb_db_destroy( BackendDB *be )
 #endif
 		}
 
-		bdb_cache_release_all (&bdb->bi_cache);
-
 		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
 		bdb->bi_dbenv = NULL;
 		if( rc != 0 ) {

@@ -17,8 +17,8 @@ int
 bdb_compare( Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	Entry		*matched;
 	Entry		*e;
+	EntryInfo	*ei;
 	Attribute	*a;
 	int		manageDSAit = get_manageDSAit( op );
 
@@ -36,7 +36,7 @@ bdb_compare( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rs->sr_err = bdb_dn2entry_r( op->o_bd, NULL, &op->o_req_ndn, &e, &matched, 0, locker, &lock );
+	rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &op->o_req_ndn, &ei, 1, locker, &lock, op->o_tmpmemctx );
 
 	switch( rs->sr_err ) {
 	case DB_NOTFOUND:
@@ -54,14 +54,15 @@ dn2entry_retry:
 		goto return_results;
 	}
 
-	if ( e == NULL ) {
-		if ( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			rs->sr_ref = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
+	e = ei->bei_e;
+	if ( rs->sr_err == DB_NOTFOUND ) {
+		if ( e != NULL ) {
+			rs->sr_matched = ch_strdup( e->e_dn );
+			rs->sr_ref = is_entry_referral( e )
+				? get_entry_referrals( op, e )
 				: NULL;
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
-			matched = NULL;
+			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+			e = NULL;
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral,

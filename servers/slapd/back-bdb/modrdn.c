@@ -24,14 +24,15 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	int		isroot = -1;
 	Entry		*e = NULL;
 	Entry		*p = NULL;
-	Entry		*matched;
+	EntryInfo	*ei = NULL, *eip = NULL, *nei = NULL, *neip = NULL;
 	/* LDAP v2 supporting correct attribute handling. */
 	LDAPRDN		new_rdn = NULL;
 	LDAPRDN		old_rdn = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
-	DB_TXN *	ltid = NULL;
+	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
+	Entry dummy, *save;
 
 	ID			id;
 
@@ -46,7 +47,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	int		manageDSAit = get_manageDSAit( op );
 
 	u_int32_t	locker = 0;
-	DB_LOCK		lock;
+	DB_LOCK		lock, plock, nplock;
 
 	int		noop = 0;
 
@@ -68,7 +69,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	if( 0 ) {
 retry:	/* transaction retry */
 		if (e != NULL) {
-			bdb_cache_delete_entry(&bdb->bi_cache, e);
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 			e = NULL;
 		}
@@ -137,7 +137,8 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rs->sr_err = bdb_dn2entry_w( op->o_bd, ltid, &op->o_req_ndn, &e, &matched, DB_RMW, locker, &lock );
+	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->o_req_ndn, &ei, 1,
+		locker, &lock, op->o_tmpmemctx );
 
 	switch( rs->sr_err ) {
 	case 0:
@@ -155,14 +156,15 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if ( e == NULL ) {
-		if( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			rs->sr_ref = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
+	e = ei->bei_e;
+	if ( rs->sr_err == DB_NOTFOUND ) {
+		if( e != NULL ) {
+			rs->sr_matched = ch_strdup( e->e_dn );
+			rs->sr_ref = is_entry_referral( e )
+				? get_entry_referrals( op, e )
 				: NULL;
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched);
-			matched = NULL;
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, e);
+			e = NULL;
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral,
@@ -203,7 +205,8 @@ retry:	/* transaction retry */
 	}
 
 #ifndef BDB_HIER
-	rs->sr_err = bdb_dn2id_children( op->o_bd, ltid, &e->e_nname, 0 );
+	rs->sr_err = ei->bei_kids ? 0 : bdb_dn2id_children( op->o_bd, ltid,
+		&e->e_nname, 0 );
 	if ( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -269,7 +272,9 @@ retry:	/* transaction retry */
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
-		rs->sr_err = bdb_dn2entry_r( op->o_bd, ltid, &p_ndn, &p, NULL, 0, locker, &lock );
+		eip = ei->bei_parent;
+		rs->sr_err = bdb_cache_find_entry_id( op->o_bd, ltid,
+			eip->bei_id, &eip, 0, locker, &plock, op->o_tmpmemctx );
 
 		switch( rs->sr_err ) {
 		case 0:
@@ -287,6 +292,7 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 
+		p = eip->bei_e;
 		if( p == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
@@ -459,11 +465,11 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rs->sr_err = bdb_dn2entry_r( op->o_bd,
-				ltid, np_ndn, &np, NULL, 0, locker, &lock );
+			rs->sr_err = bdb_dn2entry( op->o_bd, ltid, np_ndn,
+				&neip, 0, locker, &nplock, op->o_tmpmemctx );
 
 			switch( rs->sr_err ) {
-			case 0:
+			case 0: np = neip->bei_e;
 			case DB_NOTFOUND:
 				break;
 			case DB_LOCK_DEADLOCK:
@@ -661,7 +667,11 @@ retry:	/* transaction retry */
 		new_ndn.bv_val, 0, 0 );
 #endif
 
-	rs->sr_err = bdb_dn2id ( op->o_bd, ltid, &new_ndn, &id, 0 );
+	/* Shortcut the search */
+	nei = neip ? neip : eip;
+	rs->sr_err = bdb_cache_find_entry_ndn2id ( op->o_bd, ltid, &new_ndn,
+		&nei, locker, op->o_tmpmemctx );
+	if ( nei ) bdb_cache_entryinfo_unlock( nei );
 	switch( rs->sr_err ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -741,9 +751,31 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	}
-	
+
+	/* nested transaction */
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
+		bdb->bi_db_opflags );
+	rs->sr_text = NULL;
+	if( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+
+	dummy = *e;
+	save = e;
+	e = &dummy;
+
 	/* delete old one */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, ltid, p_ndn.bv_val, e );
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, p_ndn.bv_val, e );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -755,14 +787,12 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	(void) bdb_cache_delete_entry(&bdb->bi_cache, e);
-
 	/* Binary format uses a single contiguous block, cannot
 	 * free individual fields. But if a previous modrdn has
-	 * already happened, must free the names.
+	 * already happened, must free the names. The frees are
+	 * done in bdb_cache_modrdn().
 	 */
 #ifdef BDB_HIER
-	ch_free(e->e_name.bv_val);
 	e->e_name.bv_val = ch_malloc(new_dn.bv_len + new_ndn.bv_len + 2);
 	e->e_name.bv_len = new_dn.bv_len;
 	e->e_nname.bv_val = e->e_name.bv_val + new_dn.bv_len + 1;
@@ -772,8 +802,6 @@ retry:	/* transaction retry */
 #else
 	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
 		e->e_bv.bv_val + e->e_bv.bv_len ) {
-		ch_free(e->e_name.bv_val);
-		ch_free(e->e_nname.bv_val);
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
 	}
@@ -783,7 +811,7 @@ retry:	/* transaction retry */
 	new_ndn.bv_val = NULL;
 #endif
 	/* add new one */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, ltid, np_ndn, e );
+	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, np_ndn, e );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -804,7 +832,7 @@ retry:	/* transaction retry */
 #endif
 
 	/* modify entry */
-	rs->sr_err = bdb_modify_internal( op, ltid, &mod[0], e,
+	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], e,
 		&rs->sr_text, textbuf, textlen );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
@@ -820,7 +848,7 @@ retry:	/* transaction retry */
 	}
 	
 	/* id2entry index */
-	rs->sr_err = bdb_id2entry_update( op->o_bd, ltid, e );
+	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, e );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -829,6 +857,11 @@ retry:	/* transaction retry */
 		}
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "entry update failed";
+		goto return_results;
+	}
+	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "txn_commit(2) failed";
 		goto return_results;
 	}
 
@@ -849,21 +882,12 @@ retry:	/* transaction retry */
 		if(( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
 			rs->sr_text = "txn_prepare failed";
 		} else {
-			if( bdb_cache_update_entry(&bdb->bi_cache, e) == -1 ) {
-				if(( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
-					rs->sr_text ="cache update & txn_abort failed";
-				} else {
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = "cache update failed";
-				}
-
+			bdb_cache_modrdn( save, &op->orr_newrdn, e, neip,
+				bdb->bi_dbenv, locker, &lock );
+			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
+				rs->sr_text = "txn_commit failed";
 			} else {
-				bdb_cache_entry_commit( e );
-				if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
-					rs->sr_text = "txn_commit failed";
-				} else {
-					rs->sr_err = LDAP_SUCCESS;
-				}
+				rs->sr_err = LDAP_SUCCESS;
 			}
 		}
 	}

@@ -299,7 +299,7 @@ bdb_dn2id(
 	DB_TXN *txn,
 	struct berval	*dn,
 	ID *id,
-	int flags )
+	void *ctx )
 {
 	int		rc;
 	DBT		key, data;
@@ -314,14 +314,9 @@ bdb_dn2id(
 
 	assert (id);
  
-	*id = bdb_cache_find_entry_ndn2id(be, &bdb->bi_cache, dn);
-	if (*id != NOID) {
-		return 0;
-	}
-
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
-	key.data = ch_malloc( key.size );
+	key.data = sl_malloc( key.size, ctx );
 	((char *)key.data)[0] = DN_BASE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
@@ -332,7 +327,7 @@ bdb_dn2id(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags | flags);
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -352,134 +347,7 @@ bdb_dn2id(
 #endif
 	}
 
-	ch_free( key.data );
-	return rc;
-}
-
-int
-bdb_dn2id_matched(
-	BackendDB	*be,
-	DB_TXN *txn,
-	struct berval	*in,
-	ID *id,
-	ID *id2,
-	int flags )
-{
-	int		rc;
-	DBT		key, data;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB *db = bdb->bi_dn2id->bdi_db;
-	char 		*buf;
-	struct	berval dn;
-	ID		cached_id;
-
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
-#endif
-
-	DBTzero( &key );
-	key.size = in->bv_len + 2;
-	buf = ch_malloc( key.size );
-	key.data = buf;
-	dn.bv_val = buf+1;
-	dn.bv_len = key.size - 2;
-	AC_MEMCPY( dn.bv_val, in->bv_val, key.size - 1 );
-
-	/* store the ID */
-	DBTzero( &data );
-	data.data = id;
-	data.ulen = sizeof(ID);
-	data.flags = DB_DBT_USERMEM;
-
-	while(1) {
-		dn.bv_val[-1] = DN_BASE_PREFIX;
-
-		*id = NOID;
-
-		/* lookup cache */
-		cached_id = bdb_cache_find_entry_ndn2id(be, &bdb->bi_cache, &dn);
- 
-		if (cached_id != NOID) {
-			rc = 0;
-			*id = cached_id;
-			if ( dn.bv_val != buf+1 ) {
-				*id2 = *id;
-			}
-			break;
-		} else {
-			/* fetch it */
-			rc = db->get(db, txn, &key, &data, bdb->bi_db_opflags | flags );
-		}
-
-		if( rc == DB_NOTFOUND ) {
-			struct berval 	pdn;
-
-			if ( ! be_issuffix( be, &dn ) ) {
-				dnParent( &dn, &pdn );
-			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( INDEX, DETAIL1, 
-					"<= bdb_dn2id_matched: no match\n", 0, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"<= bdb_dn2id_matched: no match\n",
-					0, 0, 0 );
-#endif
-				break;
-			}
-
-			key.size = pdn.bv_len + 2;
-			dn = pdn;
-			key.data = pdn.bv_val - 1;
-
-		} else if ( rc == 0 ) {
-			if( data.size != sizeof( ID ) ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( INDEX, DETAIL1, 
-					"<= bdb_dn2id_matched: get size mismatch:"
-					"expected %ld, got %ld\n",
-					(long) sizeof(ID), (long) data.size, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"<= bdb_dn2id_matched: get size mismatch: "
-					"expected %ld, got %ld\n",
-					(long) sizeof(ID), (long) data.size, 0 );
-#endif
-			}
-
-			if( dn.bv_val != buf+1 ) {
-				*id2 = *id;
-			}
-
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, DETAIL1, 
-				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
-				(long) *id, *id2 == 0 ? "entry" : "matched", dn.bv_val );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
-				(long) *id, *id2 == 0 ? "entry" : "matched", dn.bv_val );
-#endif
-			break;
-
-		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-#endif
-			break;
-		}
-	}
-
-	ch_free( buf );
+	sl_free( key.data, ctx );
 	return rc;
 }
 
@@ -523,11 +391,11 @@ bdb_dn2id_children(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, DETAIL1, 
-		"<= bdb_dn2id_children( %s ): %schildren (%d)\n", 
+		"<= bdb_dn2id_children( %s ): %s (%d)\n", 
 		dn->bv_val, rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 		db_strerror(rc)), rc );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
 		dn->bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );

@@ -20,8 +20,9 @@ bdb_exop_passwd( Operation *op, SlapReply *rs )
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc;
 	Entry *e = NULL;
+	EntryInfo *ei;
 	struct berval hash = { 0, NULL };
-	DB_TXN *ltid = NULL;
+	DB_TXN *ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -101,7 +102,6 @@ bdb_exop_passwd( Operation *op, SlapReply *rs )
 	if( 0 ) {
 retry:	/* transaction retry */
 		if ( e != NULL ) {
-			bdb_cache_delete_entry(&bdb->bi_cache, e);
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
@@ -150,7 +150,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( op->o_bd, ltid, &ndn, &e, NULL, 0 , locker, &lock);
+	rc = bdb_dn2entry( op->o_bd, ltid, &ndn, &ei, 0 , locker, &lock, op->o_tmpmemctx );
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:
@@ -167,6 +167,8 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto done;
 	}
+
+	if ( ei ) e = ei->bei_e;
 
 	if( e == NULL ) {
 		rs->sr_text = "could not locate authorization entry";
@@ -198,9 +200,31 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+	/* nested transaction */
+	rc = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
+		bdb->bi_db_opflags );
+	rs->sr_text = NULL;
+	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
+		rc = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto done;
+	}
 	{
 		Modifications ml;
 		struct berval vals[2];
+		Entry dummy, *save;
+
+		save = e;
+		dummy = *e;
+		e = &dummy;
 
 		vals[0] = hash;
 		vals[1].bv_val = NULL;
@@ -211,7 +235,7 @@ retry:	/* transaction retry */
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
 
-		rc = bdb_modify_internal( op, ltid,
+		rc = bdb_modify_internal( op, lt2,
 			&ml, e, &rs->sr_text, textbuf, textlen );
 
 		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
@@ -232,7 +256,7 @@ retry:	/* transaction retry */
 		}
 
 		/* change the entry itself */
-		rc = bdb_id2entry_update( op->o_bd, ltid, e );
+		rc = bdb_id2entry_update( op->o_bd, lt2, e );
 		if( rc != 0 ) {
 			switch(rc) {
 			case DB_LOCK_DEADLOCK:
@@ -242,11 +266,17 @@ retry:	/* transaction retry */
 			rs->sr_text = "entry update failed";
 			rc = LDAP_OTHER;
 		}
+		if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
+			rc = LDAP_OTHER;
+			rs->sr_text = "txn_commit(2) failed";
+		}
 
 		if( rc == 0 ) {
 			if( op->o_noop ) {
 				rc = TXN_ABORT( ltid );
 			} else {
+				bdb_cache_modify( save, e->e_attrs,
+					bdb->bi_dbenv, locker, &lock );
 				rc = TXN_COMMIT( ltid, 0 );
 			}
 			ltid = NULL;

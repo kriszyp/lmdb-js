@@ -35,7 +35,7 @@ static void send_pagerequest_response(
  * dereferenced entry on success, NULL on any failure.
  */
 static Entry * deref_base (
-	BackendDB *be,
+	Operation *op,
 	SlapReply *rs,
 	Entry *e,
 	Entry **matched,
@@ -44,14 +44,15 @@ static Entry * deref_base (
 	ID	*tmp,
 	ID	*visited )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval ndn;
+	EntryInfo *ei;
 	DB_LOCK lockr;
 
 	rs->sr_err = LDAP_ALIAS_DEREF_PROBLEM;
 	rs->sr_text = "maximum deref depth exceeded";
 
-	while (BDB_IDL_N(tmp) < be->be_max_deref_depth) {
+	while (BDB_IDL_N(tmp) < op->o_bd->be_max_deref_depth) {
 
 		/* Remember the last entry we looked at, so we can
 		 * report broken links
@@ -84,8 +85,9 @@ static Entry * deref_base (
 			break;
 		}
 
-		rs->sr_err = bdb_dn2entry_r( be, NULL, &ndn, &e,
-			NULL, 0, locker, &lockr );
+		rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &ndn, &ei,
+			0, locker, &lockr, op->o_tmpmemctx );
+		if ( ei ) e = ei->bei_e;
 		if (!e) {
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "aliasedObject not found";
@@ -129,6 +131,7 @@ static int search_aliases(
 	ID *aliases, *curscop, *subscop, *visited, *newsubs, *oldsubs, *tmp;
 	ID cursora, ida, cursoro, ido, *subscop2;
 	Entry *matched, *a;
+	EntryInfo *ei;
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
 	AttributeAssertion aa_alias;
 	Filter	af;
@@ -194,11 +197,13 @@ static int search_aliases(
 		for (ida = bdb_idl_first(curscop, &cursora); ida != NOID;
 			ida = bdb_idl_next(curscop, &cursora))
 		{
-			rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ida, &a,
-				locker, &lockr);
+			ei = NULL;
+			rs->sr_err = bdb_cache_find_entry_id(op->o_bd, NULL,
+				ida, &ei, 0, locker, &lockr, op->o_tmpmemctx );
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
 			}
+			a = ei->bei_e;
 
 			/* This should only happen if the curscop IDL has maxed out and
 			 * turned into a range that spans IDs indiscriminately
@@ -211,7 +216,7 @@ static int search_aliases(
 
 			/* Actually dereference the alias */
 			BDB_IDL_ZERO(tmp);
-			a = deref_base( op->o_bd, rs, a, &matched, locker, &lockr,
+			a = deref_base( op, rs, a, &matched, locker, &lockr,
 				tmp, visited );
 			if (a) {
 				/* If the target was not already in our current candidates,
@@ -257,8 +262,11 @@ nextido:
 		 * we should never see the ID of an entry that doesn't exist.
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
-		rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ido, &e, locker, &locka);
+		ei = NULL;
+		rs->sr_err = bdb_cache_find_entry_id(op->o_bd, NULL, ido, &ei,
+			0, locker, &locka, op->o_tmpmemctx );
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
+		e = ei->bei_e;
 		sf->f_dn = &e->e_nname;
 	}
 	return rs->sr_err;
@@ -338,8 +346,9 @@ int bdb_search( Operation *op, SlapReply *rs )
 	time_t		stoptime;
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
-	Entry		*e = NULL;
+	Entry		*e = NULL, dummy;
 	Entry	*matched = NULL;
+	EntryInfo	*ei;
 	struct berval	realbase = { 0, NULL };
 	int		manageDSAit;
 	int		tentries = 0;
@@ -451,22 +460,16 @@ int bdb_search( Operation *op, SlapReply *rs )
 	} else {
 dn2entry_retry:
 		/* get entry with reader lock */
-		rs->sr_err = bdb_dn2entry_r( op->o_bd, NULL, &sop->o_req_ndn, &e,
-			&matched, 0, locker, &lock );
+		rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &sop->o_req_ndn, &ei,
+			1, locker, &lock, op->o_tmpmemctx );
 	}
 
 	switch(rs->sr_err) {
 	case DB_NOTFOUND:
+		matched = ei->bei_e; break;
 	case 0:
-		break;
+		e = ei->bei_e; break;
 	case LDAP_BUSY:
-		if (e != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
-		}
-		if (matched != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache,
-				matched, &lock);
-		}
 		send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
 		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
@@ -474,13 +477,6 @@ dn2entry_retry:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
-		if (e != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
-		}
-		if (matched != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache,
-				matched, &lock);
-		}
 		send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
 		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return rs->sr_err;
@@ -488,7 +484,7 @@ dn2entry_retry:
 
 	if ( e && (op->ors_deref & LDAP_DEREF_FINDING) && is_entry_alias(e) ) {
 		BDB_IDL_ZERO(candidates);
-		e = deref_base( op->o_bd, rs, e, &matched, locker, &lock,
+		e = deref_base( op, rs, e, &matched, locker, &lock,
 			candidates, NULL );
 	}
 
@@ -648,13 +644,24 @@ dn2entry_retry:
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + sop->oq_search.rs_tlimit;
 
+	/* need normalized dn below */
+	ber_dupbv( &realbase, &e->e_nname );
+
+	dummy.e_nname = realbase;
+	dummy.e_id = e->e_id;
+
+	if ( e != &slap_entry_root ) {
+		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+	}
+	e = NULL;
+
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
-		rs->sr_err = base_candidate( op->o_bd, e, candidates );
+		rs->sr_err = base_candidate( op->o_bd, &dummy, candidates );
 
 	} else {
 		BDB_IDL_ALL( bdb, candidates );
-		rs->sr_err = search_candidates( op, sop, rs, e, locker, candidates );
+		rs->sr_err = search_candidates( op, sop, rs, &dummy, locker, candidates );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -679,14 +686,6 @@ dn2entry_retry:
 		candidates[1] = ps_e->e_id;
 	}
 #endif
-
-	/* need normalized dn below */
-	ber_dupbv( &realbase, &e->e_nname );
-
-	if ( e != &slap_entry_root ) {
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
-	}
-	e = NULL;
 
 	if ( candidates[0] == 0 ) {
 #ifdef NEW_LOGGING
@@ -849,8 +848,9 @@ loop_begin:
 #endif
 id2entry_retry:
 			/* get the entry with reader lock */
-			rs->sr_err = bdb_id2entry_r( op->o_bd, NULL, id,
-				&e, locker, &lock );
+			ei = NULL;
+			rs->sr_err = bdb_cache_find_entry_id( op->o_bd, NULL,
+				id, &ei, 0, locker, &lock, op->o_tmpmemctx );
 
 			if (rs->sr_err == LDAP_BUSY) {
 				rs->sr_text = "ldap server busy";
@@ -861,6 +861,12 @@ id2entry_retry:
 				|| rs->sr_err == DB_LOCK_NOTGRANTED )
 			{
 				goto id2entry_retry;	
+			}
+
+			if ( ei && rs->sr_err == 0 ) {
+				e = ei->bei_e;
+			} else {
+				e = NULL;
 			}
 
 			if ( e == NULL ) {

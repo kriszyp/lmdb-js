@@ -133,21 +133,24 @@ int bdb_tool_next_id(
 	DB_TXN *tid,
 	Entry *e,
 	struct berval *text,
-	int hole )
+	int hole,
+	u_int32_t locker )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval dn = e->e_nname;
 	struct berval pdn;
+	EntryInfo *ei = NULL;
 	int rc;
 
-	rc = bdb_dn2id( be, tid, &dn, &e->e_id, 0 );
+	rc = bdb_cache_find_entry_ndn2id( be, tid, &dn, &ei, locker, NULL );
+	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( be_issuffix( be, &dn ) ) {
 			pdn = slap_empty_bv;
 		} else {
 			dnParent( &dn, &pdn );
 			e->e_nname = pdn;
-			rc = bdb_tool_next_id( be, tid, e, text, 1 );
+			rc = bdb_tool_next_id( be, tid, e, text, 1, locker );
 			if ( rc ) {
 				return rc;
 			}
@@ -221,6 +224,7 @@ ID bdb_tool_entry_put(
 	DB_TXN *tid = NULL;
 	struct berval pdn;
 	Operation op = {0};
+	u_int32_t locker;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -253,8 +257,9 @@ ID bdb_tool_entry_put(
 		return NOID;
 	}
 
+	locker = TXN_ID( tid );
 	/* add dn2id indices */
-	rc = bdb_tool_next_id( be, tid, e, text, 0 );
+	rc = bdb_tool_next_id( be, tid, e, text, 0, locker );
 	if( rc != 0 ) {
 		goto done;
 	}

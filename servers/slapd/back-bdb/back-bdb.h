@@ -82,16 +82,39 @@ typedef struct bdb_idl_cache_entry_s {
 } bdb_idl_cache_entry_t;
 #endif
 
+/* BDB backend specific entry info */
+typedef struct bdb_entry_info {
+	struct bdb_entry_info *bei_parent;
+	ID bei_id;
+
+	int bei_state;
+#define	CACHE_ENTRY_DELETED	1
+
+	/*
+	 * remaining fields require backend cache lock to access
+	 */
+	struct berval bei_nrdn;
+	struct berval bei_rdn;
+	Entry	*bei_e;
+	Avlnode	*bei_kids;
+	ldap_pvt_thread_mutex_t	bei_kids_mutex;
+	
+	struct bdb_entry_info	*bei_lrunext;	/* for cache lru list */
+	struct bdb_entry_info	*bei_lruprev;
+} EntryInfo;
+#undef BEI
+#define BEI(e)	((EntryInfo *) ((e)->e_private))
+
 /* for the in-core cache of entries */
 typedef struct bdb_cache {
-        int             c_maxsize;
-        int             c_cursize;
-        Avlnode         *c_dntree;
-        Avlnode         *c_idtree;
-        Entry           *c_lruhead;     /* lru - add accessed entries here */
-        Entry           *c_lrutail;     /* lru - rem lru entries from here */
-        ldap_pvt_thread_rdwr_t c_rwlock;
-        ldap_pvt_thread_mutex_t lru_mutex;
+	int             c_maxsize;
+	int             c_cursize;
+	EntryInfo	c_dntree;
+	Avlnode         *c_idtree;
+	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
+	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
+	ldap_pvt_thread_rdwr_t c_rwlock;
+	ldap_pvt_thread_mutex_t lru_mutex;
 } Cache;
  
 #define CACHE_READ_LOCK                0

@@ -52,13 +52,9 @@ bdb_db_cache(
 /*
  * dn2entry.c
  */
-int bdb_dn2entry_rw LDAP_P(( BackendDB *be, DB_TXN *tid,
-	struct berval *dn, Entry **e, Entry **matched, int flags, int rw,
-	u_int32_t locker, DB_LOCK *lock));
-#define bdb_dn2entry_r(be, tid, dn, e, m, f, locker, lock) \
-	bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 0, locker, lock)
-#define bdb_dn2entry_w(be, tid, dn, e, m, f, locker, lock) \
-	bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 1, locker, lock)
+int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
+	struct berval *dn, EntryInfo **e, int matched,
+	u_int32_t locker, DB_LOCK *lock, void *ctx));
 
 /*
  * dn2id.c
@@ -68,15 +64,7 @@ int bdb_dn2id(
 	DB_TXN *tid,
 	struct berval *dn,
 	ID *id,
-	int flags );
-
-int bdb_dn2id_matched(
-	BackendDB *be,
-	DB_TXN *tid,
-	struct berval *dn,
-	ID *id,
-	ID *id2,
-	int flags );
+	void *ctx );
 
 int bdb_dn2id_add(
 	BackendDB *be,
@@ -143,18 +131,11 @@ int bdb_id2entry_delete(
 	DB_TXN *tid,
 	Entry *e);
 
-int bdb_id2entry_rw(
+int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
 	ID id,
-	Entry **e,
-	int rw,
-	u_int32_t locker,
-	DB_LOCK *lock );
-#define bdb_id2entry_r(be, tid, id, e, locker, lock) \
-	bdb_id2entry_rw((be), (tid), (id), (e), 0, locker, lock)
-#define bdb_id2entry_w(be, tid, id, e, locker, lock) \
-	bdb_id2entry_rw((be), (tid), (id), (e), 1, locker, lock)
+	Entry **e);
 
 void bdb_entry_free ( Entry *e );
 
@@ -303,46 +284,84 @@ BI_op_extended bdb_exop_passwd;
  * cache.c
  */
 
-void bdb_cache_entry_commit( Entry *e );
+#define	bdb_cache_entryinfo_lock(e) \
+	ldap_pvt_thread_mutex_lock( &(e)->bei_kids_mutex )
+#define	bdb_cache_entryinfo_unlock(e) \
+	ldap_pvt_thread_mutex_unlock( &(e)->bei_kids_mutex )
+
+#if 0
 void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
 	int rw, DB_LOCK *lock );
+#else
+#define bdb_cache_return_entry_rw( env, cache, e, rw, lock ) \
+	bdb_cache_entry_db_unlock( env, lock )
+#define	bdb_cache_return_entry( env, lock ) \
+	bdb_cache_entry_db_unlock( env, lock )
+#endif
 #define bdb_cache_return_entry_r(env, c, e, l) \
 	bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
 #define bdb_cache_return_entry_w(env, c, e, l) \
 	bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
+#if 0
 void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
+#else
+#define	bdb_unlocked_cache_return_entry_rw( a, b, c )
+#endif
 #define bdb_unlocked_cache_return_entry_r( c, e ) \
 	bdb_unlocked_cache_return_entry_rw((c), (e), 0)
 #define bdb_unlocked_cache_return_entry_w( c, e ) \
 	bdb_unlocked_cache_return_entry_rw((c), (e), 1)
-int bdb_cache_add_entry_rw(
-	DB_ENV	*env,
-	Cache   *cache,
+int bdb_cache_add(
+	struct bdb_info *bdb,
+	EntryInfo *pei,
 	Entry   *e,
-	int     rw,
+	struct berval *nrdn,
+	u_int32_t locker
+);
+int bdb_cache_modrdn(
+	Entry	*e,
+	struct berval *nrdn,
+	Entry	*new,
+	EntryInfo *ein,
+	DB_ENV *env,
 	u_int32_t locker,
-	DB_LOCK	*lock
+	DB_LOCK *lock
+);
+int bdb_cache_modify(
+	Entry *e,
+	Attribute *newAttrs,
+	DB_ENV *env,
+	u_int32_t locker,
+	DB_LOCK *lock
 );
 int bdb_cache_update_entry(
        Cache   *cache,
        Entry   *e
 );
-ID bdb_cache_find_entry_ndn2id(
-       Backend *be,
-       Cache   *cache,
-       struct berval   *ndn
-);
-Entry* bdb_cache_find_entry_id(
-	DB_ENV		*env,
-	Cache		*cache,
-	ID		id,
-	int		rw,
+int bdb_cache_find_entry_ndn2id(
+	Backend *be,
+	DB_TXN	*txn,
+	struct berval   *ndn,
+	EntryInfo	**res,
 	u_int32_t	locker,
-	DB_LOCK		*lock
+	void	*ctx
+);
+int bdb_cache_find_entry_id(
+	Backend *be,
+	DB_TXN	*tid,
+	ID		id,
+	EntryInfo **eip,
+	int	islocked,
+	u_int32_t	locker,
+	DB_LOCK		*lock,
+	void	*ctx
 );
 int bdb_cache_delete_entry(
-       Cache   *cache,
-       Entry   *e
+	Cache	*cache,
+	Entry	*e,
+	DB_ENV	*env,
+	u_int32_t locker,
+	DB_LOCK	*lock
 );
 void bdb_cache_release_all( Cache *cache );
 

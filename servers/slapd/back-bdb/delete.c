@@ -21,14 +21,15 @@ bdb_delete( Operation *op, SlapReply *rs )
 	struct berval	pdn = {0, NULL};
 	Entry	*e = NULL;
 	Entry	*p = NULL;
+	EntryInfo	*ei = NULL, *eip = NULL;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-	DB_TXN		*ltid = NULL;
+	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
 
 	u_int32_t	locker = 0;
-	DB_LOCK		lock;
+	DB_LOCK		lock, plock;
 
 	int		noop = 0;
 
@@ -47,6 +48,7 @@ bdb_delete( Operation *op, SlapReply *rs )
 retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
+			e = NULL;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
@@ -99,27 +101,38 @@ retry:	/* transaction retry */
 		dnParent( &op->o_req_ndn, &pdn );
 	}
 
-	if( pdn.bv_len != 0 ) {
-		/* get parent */
-		rs->sr_err = bdb_dn2entry_r( op->o_bd, ltid, &pdn, &p, NULL, 0, locker, &lock );
+	/* get entry */
+	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->o_req_ndn, &ei, 1,
+		locker, &lock, op->o_tmpmemctx );
 
-		switch( rs->sr_err ) {
-		case 0:
-		case DB_NOTFOUND:
-			break;
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		case LDAP_BUSY:
-			rs->sr_text = "ldap server busy";
-			goto return_results;
-		default:
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "internal error";
-			goto return_results;
-		}
+	switch( rs->sr_err ) {
+	case 0:
+	case DB_NOTFOUND:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	case LDAP_BUSY:
+		rs->sr_text = "ldap server busy";
+		goto return_results;
+	default:
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
 
-		if( p == NULL) {
+	if ( rs->sr_err == 0 ) {
+		e = ei->bei_e;
+		eip = ei->bei_parent;
+		bdb_cache_find_entry_id( op->o_bd, ltid, eip->bei_id, &eip,
+			0, locker, &plock, op->o_tmpmemctx );
+	}
+	if ( eip ) {
+		p = eip->bei_e;
+	}
+
+	if ( pdn.bv_len != 0 ) {
+		if( p == NULL || !bvmatch( &pdn, &p->e_nname )) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"<=- bdb_delete: parent does not exist\n", 0, 0, 0 );
@@ -208,25 +221,6 @@ retry:	/* transaction retry */
 		}
 	}
 
-	/* get entry for read/modify/write */
-	rs->sr_err = bdb_dn2entry_w( op->o_bd, ltid, &op->o_req_ndn, &e, &matched, DB_RMW, locker, &lock );
-
-	switch( rs->sr_err ) {
-	case 0:
-	case DB_NOTFOUND:
-		break;
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	case LDAP_BUSY:
-		rs->sr_text = "ldap server busy";
-		goto return_results;
-	default:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "internal error";
-		goto return_results;
-	}
-
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ARGS, 
@@ -310,7 +304,27 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	rs->sr_err = bdb_dn2id_children( op->o_bd, ltid, &e->e_nname, 0 );
+	/* nested transaction */
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
+		bdb->bi_db_opflags );
+	rs->sr_text = NULL;
+	if( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_delete: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_delete: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
+
+	/* Can't do it if we have kids */
+	rs->sr_err = ei->bei_kids ? 0 : bdb_dn2id_children( op->o_bd, lt2,
+		&e->e_nname, 0 );
 	if( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -345,7 +359,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, ltid, pdn.bv_val, e );
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, pdn.bv_val, e );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -366,7 +380,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from id2entry */
-	rs->sr_err = bdb_id2entry_delete( op->o_bd, ltid, e );
+	rs->sr_err = bdb_id2entry_delete( op->o_bd, lt2, e );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -388,7 +402,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete indices for old attributes */
-	rs->sr_err = bdb_index_entry_del( op, ltid, e );
+	rs->sr_err = bdb_index_entry_del( op, lt2, e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -404,6 +418,11 @@ retry:	/* transaction retry */
 #endif
 		rs->sr_text = "entry index delete failed";
 		rs->sr_err = LDAP_OTHER;
+		goto return_results;
+	}
+	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "txn_commit(2) failed";
 		goto return_results;
 	}
 
@@ -423,6 +442,8 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
+		bdb_cache_delete_entry( &bdb->bi_cache, e, bdb->bi_dbenv,
+			locker, &lock );
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
 	ltid = NULL;
@@ -477,7 +498,11 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			bdb_entry_return( e );
+		} else {
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
+		}
 	}
 
 	if( ltid != NULL ) {
