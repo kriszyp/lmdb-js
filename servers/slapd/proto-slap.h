@@ -235,6 +235,13 @@ int entry_dn_cmp LDAP_P(( Entry *a, Entry *b ));
 int entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
 
 /*
+ * extended.c
+ */
+
+int load_extension LDAP_P((const void *module, const char *file_name));
+char *get_supported_extension LDAP_P((int index));
+
+/*
  * filter.c
  */
 
@@ -273,7 +280,6 @@ void *module_resolve LDAP_P((const void *module, const char *name));
 /*
  * monitor.c
  */
-extern char *supportedExtensions[];
 extern char *supportedControls[];
 
 void monitor_info LDAP_P((
@@ -523,8 +529,6 @@ extern int	do_modrdn LDAP_P((Connection *conn, Operation *op));
 extern int	do_search LDAP_P((Connection *conn, Operation *op));
 extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int	do_extended LDAP_P((Connection *conn, Operation *op));
-
-int load_extension LDAP_P((const void *module, const char *file_name));
 
 
 extern ber_socket_t dtblsize;
