@@ -457,7 +457,8 @@ LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg,
  * lock.c
  */
 
-LDAP_SLAPD_F (FILE *) lock_fopen LDAP_P(( const char *fname, const char *type, FILE **lfp ));
+LDAP_SLAPD_F (FILE *) lock_fopen LDAP_P(( const char *fname,
+	const char *type, FILE **lfp ));
 LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
 
 
@@ -545,9 +546,12 @@ LDAP_SLAPD_F (char *) phonetic LDAP_P(( char *s ));
 /*
  * repl.c
  */
-LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be, const char *host ));
-LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be, int nr, const char *suffix ));
-LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op, char *dn, char *ndn, void *change ));
+LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be,
+	const char *host ));
+LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be,
+	int nr, const char *suffix ));
+LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
+	struct berval *dn, struct berval *ndn, void *change ));
 
 /*
  * referral.c

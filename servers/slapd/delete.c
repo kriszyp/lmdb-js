@@ -189,7 +189,7 @@ do_delete(
 				if ( !be->be_update_ndn.bv_len || !repl_user )
 #endif
 				{
-					replog( be, op, pdn->bv_val, ndn->bv_val, NULL );
+					replog( be, op, pdn, ndn, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER

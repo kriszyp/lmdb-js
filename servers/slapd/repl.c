@@ -77,8 +77,8 @@ void
 replog(
     Backend	*be,
     Operation *op,
-    char	*dn,
-    char	*ndn,
+    struct berval *dn,
+    struct berval *ndn,
     void	*change
 )
 {
@@ -104,14 +104,13 @@ replog(
 		return;
 	}
 
-	for ( i = 0; be->be_replica != NULL && be->be_replica[i] != NULL;
-	    i++ ) {
+	for ( i = 0; be->be_replica != NULL && be->be_replica[i] != NULL; i++ ) {
 		/* check if dn's suffix matches legal suffixes, if any */
 		if ( be->be_replica[i]->ri_nsuffix != NULL ) {
 			int j;
 
 			for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
-				if ( dn_issuffix( ndn, be->be_replica[i]->ri_nsuffix[j]->bv_val ) ) {
+				if ( dnIsSuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
 					break;
 				}
 			}
@@ -140,7 +139,7 @@ replog(
 #endif
 
 	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
-	fprintf( fp, "dn: %s\n", dn );
+	fprintf( fp, "dn: %s\n", dn->bv_val );
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_EXTENDED:
@@ -169,7 +168,8 @@ replog(
 			}
 
 			for ( i = 0; ml->sml_bvalues != NULL &&
-			    ml->sml_bvalues[i] != NULL; i++ ) {
+			    ml->sml_bvalues[i] != NULL; i++ )
+			{
 				char	*buf, *bufp;
 
 				len = ml->sml_desc->ad_cname.bv_len;
@@ -178,8 +178,7 @@ replog(
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
-				ldif_sput( &bufp, LDIF_PUT_VALUE,
-					type,
+				ldif_sput( &bufp, LDIF_PUT_VALUE, type,
 				    ml->sml_bvalues[i]->bv_val,
 				    ml->sml_bvalues[i]->bv_len );
 				*bufp = '\0';

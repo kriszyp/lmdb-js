@@ -385,7 +385,8 @@ do_modrdn(
 #endif
 		{
 			if ( (*be->be_modrdn)( be, conn, op, pdn->bv_val, ndn->bv_val,
-				pnewrdn->bv_val, deloldrdn, pnewSuperior ? pnewSuperior->bv_val : NULL ) == 0
+				pnewrdn->bv_val, deloldrdn,
+				pnewSuperior ? pnewSuperior->bv_val : NULL ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( !be->be_update_ndn.bv_len || !repl_user )
 #endif
@@ -395,7 +396,7 @@ do_modrdn(
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = pnewSuperior;
 
-				replog( be, op, pdn->bv_val, ndn->bv_val, &moddn );
+				replog( be, op, pdn, ndn, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {

@@ -382,7 +382,7 @@ do_modify(
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, pdn->bv_val, ndn->bv_val, mods );
+				replog( be, op, pdn, ndn, mods );
 			}
 
 #ifndef SLAPD_MULTIMASTER
