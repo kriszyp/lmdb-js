@@ -1,6 +1,6 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
+dnl Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted only as authorized by the OpenLDAP
@@ -16,7 +16,7 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
-# Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
+# Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted only as authorized by the OpenLDAP
@@ -24,7 +24,7 @@ define([AC_INIT_BINSH],
 # http://www.OpenLDAP.org/license.html or in file LICENSE in the
 # top-level directory of the distribution.
 
-echo "Copyright 1998-2002 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copyright 1998-2003 The OpenLDAP Foundation,  All Rights Reserved."
 echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
