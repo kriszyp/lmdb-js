@@ -48,8 +48,6 @@
 #define DEFAULT_RDNCOUNT	2
 	/* default config file locations */
 #define FILTERFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapfilter.conf"
-#define TEMPLATEFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldaptemplates.conf"
-#define SEARCHFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapsearchprefs.conf"
 
 /*
  * FINGER DEFINITIONS
@@ -88,75 +86,6 @@ Please try again later.\r\n"
 #define FINGER_RDNCOUNT		DEFAULT_RDNCOUNT
 
 /*
- * GO500 GOPHER GATEWAY DEFINITIONS
- */
-	/* port on which to listen */
-#define GO500_PORT	5555
-	/* how to handle aliases */
-#define GO500_DEREF	LDAP_DEREF_FINDING
-	/* attribute to use when sorting results */
-#define GO500_SORT_ATTR	SORT_ATTR
-	/* timeout for searches */
-#define GO500_TIMEOUT	180
-#ifdef LDAP_UFN
-	/* enable ufn support */
-#define GO500_UFN
-#endif
-	/*
-	 * only set and uncomment this if your hostname() does not return
-	 * a fully qualified hostname
-	 */
-/* #define GO500_HOSTNAME	"fully.qualified.hostname.here" */
-	/* number of DN components to show in entry displays */
-#define GO500_RDNCOUNT		DEFAULT_RDNCOUNT
-
-/*
- * GO500GW GOPHER GATEWAY DEFINITIONS
- */
-	/* where the helpfile lives */
-#define GO500GW_HELPFILE	LDAP_DATADIR LDAP_DIRSEP "go500gw.help"
-	/* port on which to listen */
-#define GO500GW_PORT		7777
-	/* timeout on all searches */
-#define GO500GW_TIMEOUT		180
-#ifdef LDAP_UFN
-	/* enable ufn support */
-#define GO500GW_UFN
-#endif
-	/* attribute to use when sorting results */
-#define GO500GW_SORT_ATTR	SORT_ATTR
-	/*
-	 * only set and uncomment this if your hostname() does not return
-	 * a fully qualified hostname
-	 */
-/* #define GO500GW_HOSTNAME	"fully.qualified.hostname.here" */
-	/* number of DN components to show in entry displays */
-#define GO500GW_RDNCOUNT	DEFAULT_RDNCOUNT
-
-/*
- * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
- */
-	/* where the helpfile lives */
-#define RCPT500_HELPFILE	LDAP_DATADIR LDAP_DIRSEP "rcpt500.help"
-	/* maximum number of matches returned */
-#define RCPT500_SIZELIMIT	50
-	/* address replies will appear to come from */
-#define RCPT500_FROM		"\"Directory Query Program\" <Dir-Query>"
-	/* command that will accept an RFC822 message text on standard
-	   input, and send it.  sendmail -t does this nicely. */
-#define RCPT500_PIPEMAILCMD	LDAP_SENDMAIL " -t"
-	/* attribute to use when sorting results */
-#define RCPT500_SORT_ATTR	SORT_ATTR
-	/* max number of hits displayed in full before a list is presented */
-#define RCPT500_LISTLIMIT	1
-#ifdef LDAP_UFN
-	/* enable ufn support */
-#define RCPT500_UFN
-#endif
-	/* number of DN components to show in entry displays */
-#define RCPT500_RDNCOUNT	DEFAULT_RDNCOUNT
-
-/*
  * MAIL500 MAILER DEFINITIONS
  */
 	/* max number of ambiguous matches reported */
@@ -183,24 +112,6 @@ Please try again later.\r\n"
 #define UD_WHERE_ALL_GROUPS_LIVE	""
 
 /*
- * FAX500 DEFINITIONS
- */
-	/* how long to wait for searches */
-#define FAX_TIMEOUT		180
-	/* maximum number of ambiguous matches reported */
-#define FAX_MAXAMBIGUOUS	10
-	/* maximum number of members allowed */
-#define FAX_MAXMEMBERS		LDAP_NO_LIMIT
-	/* program to send mail */
-#define FAX_SENDMAIL		LDAP_SENDMAIL
-
-/*
- * RP500 DEFINITIONS
- */
-	/* prefix to add to non-fully-qualified numbers */
-#define RP_PHONEPREFIX	""
-
-/*
  * SLAPD DEFINITIONS
  */
 	/* location of the default slapd config file */
@@ -220,9 +131,5 @@ Please try again later.\r\n"
 #define SLAPD_SCHEMA_DN			"cn=Subschema"
 	/* dn of the default "monitor" subentry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
-#if 0
-	/* dn of the default "config" subentry */
-#define SLAPD_CONFIG_DN			"cn=Config"
-#endif
 
 #endif /* _LDAP_CONFIG_H */
