@@ -513,10 +513,12 @@ select_backend(
 				continue;
 			}
 
-			if ( len < dnlen && DN_SEPARATOR( dn[(dnlen-len)-1] ) ) {
+			
+			if ( (len < dnlen) && !(DN_SEPARATOR( dn[(dnlen-len)-1] )) ) {
 				/* make sure we have a separator */
 				continue;
 			}
+		        
 
 			if ( strcmp( backends[i].be_nsuffix[j], &dn[dnlen-len] ) == 0 ) {
 				if( be == NULL ) {
