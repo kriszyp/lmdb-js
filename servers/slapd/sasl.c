@@ -172,7 +172,6 @@ int slap_sasl_init( void )
 {
 #ifdef HAVE_CYRUS_SASL
 	int rc;
-	sasl_conn_t *server = NULL;
 	static sasl_callback_t server_callbacks[] = {
 		{ SASL_CB_LOG, &slap_sasl_log, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
@@ -208,10 +207,8 @@ int slap_sasl_init( void )
     sasl_secprops.max_ssf = INT_MAX;
     sasl_secprops.maxbufsize = 65536;
     sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
-
-	sasl_dispose( &server );
-
 #endif
+
 	return 0;
 }
 
