@@ -171,17 +171,16 @@ bdb2i_back_db_init_internal(
 		attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
 	}
 	argv[ 0 ] = "dn";
-	argv[ 1 ] = "sub";
-	argv[ 2 ] = "eq";
-	argv[ 3 ] = NULL;
-	bdb2i_attr_index_config( li, "ldbm dn initialization", 0, 3, argv, 1 );
+	argv[ 1 ] = "eq,sub";
+	argv[ 2 ] = NULL;
+	bdb2i_attr_index_config( li, "ldbm dn initialization", 0, 2, argv, 1 );
 	argv[ 0 ] = "id2children";
 	argv[ 1 ] = "eq";
 	argv[ 2 ] = NULL;
 	bdb2i_attr_index_config( li, "ldbm id2children initialization", 0, 2, argv,
 	    1 );
 	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = ch_strdup( "pres,eq" );
+	argv[ 1 ] = "pres,eq";
 	argv[ 2 ] = NULL;
 	bdb2i_attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
 	    1 );
