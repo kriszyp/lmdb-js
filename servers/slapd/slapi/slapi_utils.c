@@ -3769,7 +3769,7 @@ int slapi_x_access_allowed( Operation *op,
 		break;
         }
 
-	rc = getAllPluginFuncs( NULL, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
+	rc = getAllPluginFuncs( op->o_bd, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* nothing to do; allowed access */
 		return 1;
