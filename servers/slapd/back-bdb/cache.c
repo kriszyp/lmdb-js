@@ -239,6 +239,11 @@ bdb_entryinfo_add_internal(
 			 */
 			if ( bdb_cache_entry_db_lock( env, locker, elru, 1, 1,
 				&lock ) == 0 ) {
+				if ( !elru->bei_e ) {
+					bdb_cache_entryinfo_unlock( elru->bei_parent );
+					bdb_cache_entry_db_unlock( env, &lock );
+					continue;
+				}
 				/* Need to lock parent to delete child */
 				if ( ldap_pvt_thread_mutex_trylock(
 					&elru->bei_parent->bei_kids_mutex )) {
@@ -564,7 +569,7 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	if ( *eip && rc == 0 ) {
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
-		} else if (!(*eip)->bei_e ) {
+		} else if ( !(*eip)->bei_e ) {
 			if (!ep) {
 				rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 			}
