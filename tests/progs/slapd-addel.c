@@ -24,7 +24,7 @@ static char *
 get_add_entry( char *filename, LDAPMod ***mods );
 
 static void
-do_addel( char *host, int port, char *manager, char *passwd,
+do_addel( char *uri, char *host, int port, char *manager, char *passwd,
 	char *dn, LDAPMod **attrs, int maxloop );
 
 static void
@@ -40,6 +40,7 @@ main( int argc, char **argv )
 {
 	int		i;
 	char        *host = "localhost";
+	char		*uri = NULL;
 	int			port = -1;
 	char		*manager = NULL;
 	char		*passwd = NULL;
@@ -48,8 +49,11 @@ main( int argc, char **argv )
 	int			loops = LOOPS;
 	LDAPMod     **attrs = NULL;
 
-	while ( (i = getopt( argc, argv, "h:p:D:w:f:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:" )) != EOF ) {
 		switch( i ) {
+			case 'H':		/* the server's URI */
+				uri = strdup( optarg );
+			break;
 			case 'h':		/* the servers host */
 				host = strdup( optarg );
 			break;
@@ -80,7 +84,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	if (( filename == NULL ) || ( port == -1 ) ||
+	if (( filename == NULL ) || ( port == -1 && uri == NULL ) ||
 				( manager == NULL ) || ( passwd == NULL ))
 		usage( argv[0] );
 
@@ -101,7 +105,7 @@ main( int argc, char **argv )
 
 	}
 
-	do_addel( host, port, manager, passwd, entry, attrs, loops );
+	do_addel( uri, host, port, manager, passwd, entry, attrs, loops );
 
 	exit( EXIT_SUCCESS );
 }
@@ -223,6 +227,7 @@ get_add_entry( char *filename, LDAPMod ***mods )
 
 static void
 do_addel(
+	char *uri,
 	char *host,
 	int port,
 	char *manager,
@@ -232,11 +237,16 @@ do_addel(
 	int maxloop
 )
 {
-	LDAP	*ld;
+	LDAP	*ld = NULL;
 	int  	i;
 	pid_t	pid = getpid();
 
-	if (( ld = ldap_init( host, port )) == NULL ) {
+	if ( uri ) {
+		ldap_initialize( &ld, uri );
+	} else {
+		ld = ldap_init( host, port );
+	}
+	if ( ld == NULL ) {
 		perror( "ldap_init" );
 		exit( EXIT_FAILURE );
 	}
@@ -268,7 +278,7 @@ do_addel(
 		}
 
 		/* wait a second for the add to really complete */
-		sleep( 1 );
+		/* sleep( 1 ); */
 
 		/* now delete the entry again */
 		if ( ldap_delete_s( ld, entry ) != LDAP_SUCCESS ) {

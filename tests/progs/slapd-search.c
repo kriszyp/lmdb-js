@@ -22,7 +22,7 @@
 #define LOOPS	100
 
 static void
-do_search( char *host, int port, char *sbase, char *filter, int maxloop );
+do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxloop );
 
 static void
 usage( char *name )
@@ -36,14 +36,18 @@ int
 main( int argc, char **argv )
 {
 	int		i;
+	char		*uri = NULL;
 	char        *host = "localhost";
 	int			port = -1;
 	char        *sbase = NULL;
 	char		*filter  = NULL;
 	int			loops = LOOPS;
 
-	while ( (i = getopt( argc, argv, "h:p:b:f:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:b:f:l:" )) != EOF ) {
 		switch( i ) {
+			case 'H':		/* the server uri */
+				uri = strdup( optarg );
+			break;
 			case 'h':		/* the servers host */
 				host = strdup( optarg );
 			break;
@@ -70,7 +74,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	if (( sbase == NULL ) || ( filter == NULL ) || ( port == -1 ))
+	if (( sbase == NULL ) || ( filter == NULL ) || ( port == -1 && uri == NULL ))
 		usage( argv[0] );
 
 	if ( *filter == '\0' ) {
@@ -81,20 +85,25 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( host, port, sbase, filter, ( 10 * loops ));
+	do_search( uri, host, port, sbase, filter, ( 10 * loops ));
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_search( char *host, int port, char *sbase, char *filter, int maxloop )
+do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxloop )
 {
-	LDAP	*ld;
+	LDAP	*ld = NULL;
 	int  	i;
 	char	*attrs[] = { "cn", "sn", NULL };
 	pid_t	pid = getpid();
 
-	if (( ld = ldap_init( host, port )) == NULL ) {
+	if ( uri ) {
+		ldap_initialize( &ld, uri );
+	} else {
+		ld = ldap_init( host, port );
+	}
+	if ( ld == NULL ) {
 		perror( "ldap_init" );
 		exit( EXIT_FAILURE );
 	}
