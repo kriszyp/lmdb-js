@@ -780,7 +780,7 @@ nameUIDPretty(
 				ber_memfree_x( out->bv_val, ctx );
 				return LDAP_OTHER;
 			}
-
+			out->bv_val = tmp;
 			out->bv_val[out->bv_len++] = '#';
 
 			got1 = uidval.bv_len < sizeof("'0'B"); 
