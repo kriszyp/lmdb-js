@@ -36,19 +36,12 @@
 
 #define SASLREGEX_REPLACE 10
 
-typedef struct sasl_uri {
-  struct berval dn;
-  struct berval filter;
-  int scope;
-} SaslUri_t;
-
 typedef struct sasl_regexp {
   char *sr_match;							/* regexp match pattern */
-  SaslUri_t sr_replace; 						/* regexp replace pattern */
+  char *sr_replace; 						/* regexp replace pattern */
   regex_t sr_workspace;						/* workspace for regexp engine */
   regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
-  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
 static int nSaslRegexp = 0;
@@ -81,8 +74,7 @@ int slap_sasl_setpolicy( const char *arg )
 /* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
 static int slap_parseURI( struct berval *uri,
-	struct berval *searchbase, int *scope, Filter **filter,
-	struct berval *fstr )
+	struct berval *searchbase, int *scope, Filter **filter )
 {
 	struct berval bv;
 	int rc;
@@ -93,11 +85,6 @@ static int slap_parseURI( struct berval *uri,
 	searchbase->bv_len = 0;
 	*scope = -1;
 	*filter = NULL;
-
-	if ( fstr ) {
-		fstr->bv_val = NULL;
-		fstr->bv_len = 0;
-	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -112,8 +99,9 @@ static int slap_parseURI( struct berval *uri,
 		bv.bv_val += strspn( bv.bv_val, " " );
 
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+
 		rc = dnNormalize2( NULL, &bv, searchbase );
-		if (rc == LDAP_SUCCESS) {
+		if( rc == LDAP_SUCCESS ) {
 			*scope = LDAP_SCOPE_BASE;
 		}
 		return( rc );
@@ -126,12 +114,15 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	}
 
 	if ( rc != LDAP_URL_SUCCESS ) {
-		return( LDAP_PROTOCOL_ERROR );
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ludp->lud_host && *ludp->lud_host ) {
+	if (( ludp->lud_host && *ludp->lud_host )
+		|| ludp->lud_attrs || ludp->lud_exts )
+	{
 		/* host part should be empty */
-		return( LDAP_PROTOCOL_ERROR );
+		/* attrs and extensions parts should be empty */
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 	/* Grab the scope */
@@ -140,21 +131,23 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	/* Grab the filter */
 	if ( ludp->lud_filter ) {
 		*filter = str2filter( ludp->lud_filter );
-		if ( *filter == NULL )
+		if ( *filter == NULL ) {
 			rc = LDAP_PROTOCOL_ERROR;
-		else if ( fstr )
-			ber_str2bv( ludp->lud_filter, 0, 1, fstr );
+			goto done;
+		}
 	}
 
 	/* Grab the searchbase */
-	if ( rc == LDAP_URL_SUCCESS ) {
-		bv.bv_val = ludp->lud_dn;
-		bv.bv_len = strlen( bv.bv_val );
-		rc = dnNormalize2( NULL, &bv, searchbase );
+	bv.bv_val = ludp->lud_dn;
+	bv.bv_len = strlen( bv.bv_val );
+	rc = dnNormalize2( NULL, &bv, searchbase );
+
+done:
+	if( rc != LDAP_SUCCESS ) {
+		if( *filter ) filter_free( *filter );
 	}
 
 	ldap_free_urldesc( ludp );
-
 	return( rc );
 }
 
@@ -200,34 +193,16 @@ static int slap_sasl_rx_off(char *rep, int *off)
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-	const char *c;
-	int rc, n;
+	int rc;
 	SaslRegexp_t *reg;
-	struct berval bv;
-	Filter *filter;
 
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
-	reg = &( SaslRegexp[nSaslRegexp] );
-	ber_str2bv( match, 0, 0, &bv );
-	reg->sr_match = bv.bv_val;
 
-	ber_str2bv( replace, 0, 0, &bv );
-	rc = slap_parseURI( &bv, &reg->sr_replace.dn, &reg->sr_replace.scope,
-		&filter, &reg->sr_replace.filter );
-	if ( filter ) filter_free( filter );
-	if ( rc ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( TRANSPORT, ERR, 
-			"slap_sasl_regexp_config: \"%s\" could not be parsed.\n",
-			replace, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-		"SASL replace pattern %s could not be parsed.\n",
-		replace, 0, 0 );
-#endif
-		return( rc );
-	}
+	reg = &SaslRegexp[nSaslRegexp];
+
+	reg->sr_match = ch_strdup( match );
+	reg->sr_replace = ch_strdup( replace );
 
 	/* Precompile matching pattern */
 	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
@@ -245,13 +220,8 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 		return( LDAP_OTHER );
 	}
 
-	rc = slap_sasl_rx_off( reg->sr_replace.dn.bv_val, reg->sr_dn_offset );
+	rc = slap_sasl_rx_off( reg->sr_replace, reg->sr_offset );
 	if ( rc != LDAP_SUCCESS ) return rc;
-
-	if (reg->sr_replace.filter.bv_val ) {
-		rc = slap_sasl_rx_off( reg->sr_replace.filter.bv_val, reg->sr_fi_offset );
-		if ( rc != LDAP_SUCCESS ) return rc;
-	}
 
 	nSaslRegexp++;
 	return( LDAP_SUCCESS );
@@ -259,8 +229,12 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 
 /* Perform replacement on regexp matches */
-static void slap_sasl_rx_exp( char *rep, int *off, regmatch_t *str,
-	char *saslname, struct berval *out )
+static void slap_sasl_rx_exp(
+	const char *rep,
+	const int *off,
+	regmatch_t *str,
+	const char *saslname,
+	struct berval *out )
 {
 	int i, n, len, insert;
 
@@ -309,10 +283,9 @@ static void slap_sasl_rx_exp( char *rep, int *off, regmatch_t *str,
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
 
-static int slap_sasl_regexp( struct berval *in, SaslUri_t *out )
+static int slap_sasl_regexp( struct berval *in, struct berval *out )
 {
 	char *saslname = in->bv_val;
-	char *scope[] = { "base", "one", "sub" };
 	SaslRegexp_t *reg;
 	int i;
 
@@ -344,25 +317,17 @@ static int slap_sasl_regexp( struct berval *in, SaslUri_t *out )
 	 * replace pattern of the form "x$1y$2z". The returned string needs
 	 * to replace the $1,$2 with the strings that matched (b.*) and (d.*)
 	 */
-	slap_sasl_rx_exp( reg->sr_replace.dn.bv_val, reg->sr_dn_offset,
-		reg->sr_strings, saslname, &out->dn );
-
-	if ( reg->sr_replace.filter.bv_val )
-		slap_sasl_rx_exp( reg->sr_replace.filter.bv_val,
-			reg->sr_fi_offset, reg->sr_strings, saslname, &out->filter );
-	
-	out->scope = reg->sr_replace.scope;
+	slap_sasl_rx_exp( reg->sr_replace, reg->sr_offset,
+		reg->sr_strings, saslname, out );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
-		out->dn.bv_val, scope[out->scope], out->filter.bv_val ?
-		out->filter.bv_val : ""  );
+		"slap_sasl_regexp: converted SASL name to %s\n",
+		out->bv_len ? out->bv_val : "", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
-		out->dn.bv_val, scope[out->scope], out->filter.bv_val ?
-		out->filter.bv_val : "" );
+		out->bv_len ? out->bv_val : "", 0, 0 );
 #endif
 
 	return( 1 );
@@ -416,60 +381,67 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
  * entry, return the DN of that one entry.
  */
 
-void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn )
+void slap_sasl2dn( Connection *conn,
+	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
-	Backend *be;
-	Filter *filter=NULL;
+	Backend *be = NULL;
+	struct berval dn = { 0, NULL };
+	int scope = LDAP_SCOPE_BASE;
+	Filter *filter = NULL;
 	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, NULL};
 	Operation op = {0};
-	SaslUri_t uri;
+	struct berval regout = { 0, NULL };
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname->bv_val, 0, 0 );
+		"slap_sasl2dn: converting SASL name %s to DN.\n",
+		saslname->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
-		"converting SASL name %s to a DN\n", saslname->bv_val, 0,0 );
+		"converting SASL name %s to a DN\n",
+		saslname->bv_val, 0,0 );
 #endif
 
-	dn->bv_val = NULL;
-	dn->bv_len = 0;
-	cb.sc_private = dn;
+	sasldn->bv_val = NULL;
+	sasldn->bv_len = 0;
+	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &uri ) )
+	if( !slap_sasl_regexp( saslname, &regout ) ) {
 		goto FINISHED;
+	}
 
-	if ( uri.filter.bv_val )
-		filter = str2filter( uri.filter.bv_val );
+	rc = slap_parseURI( &regout, &dn, &scope, &filter );
+	if( rc != LDAP_SUCCESS ) {
+		goto FINISHED;
+	}
 
 	/* Must do an internal search */
-
-	be = select_backend( &uri.dn, 0, 1 );
+	be = select_backend( &dn, 0, 1 );
 
 	/* Massive shortcut: search scope == base */
-	if( uri.scope == LDAP_SCOPE_BASE ) {
-		*dn = uri.dn;
-		uri.dn.bv_len = 0;
-		uri.dn.bv_val = NULL;
+	if( scope == LDAP_SCOPE_BASE ) {
+		*sasldn = dn;
+		dn.bv_len = 0;
+		dn.bv_val = NULL;
 		goto FINISHED;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		uri.dn.bv_val, uri.scope, 0 );
+		dn.bv_val, scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-	   uri.dn.bv_val, uri.scope, 0 );
+		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
+		dn.bv_val, scope, 0 );
 #endif
 
 	if(( be == NULL ) || ( be->be_search == NULL)) {
 		goto FINISHED;
 	}
-	suffix_alias( be, &uri.dn );
+	suffix_alias( be, &dn );
 
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
@@ -478,25 +450,24 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 
-	(*be->be_search)( be, conn, &op, NULL, &uri.dn,
-		uri.scope, LDAP_DEREF_NEVER, 1, 0,
+	(*be->be_search)( be, conn, &op, NULL, &dn,
+		scope, LDAP_DEREF_NEVER, 1, 0,
 		filter, NULL, NULL, 1 );
 	
 FINISHED:
-	if( dn->bv_len ) {
+	if( sasldn->bv_len ) {
 		conn->c_authz_backend = be;
 	}
-	if( uri.dn.bv_len ) ch_free( uri.dn.bv_val );
-	if( uri.filter.bv_len ) ch_free( uri.filter.bv_val );
+	if( dn.bv_len ) ch_free( dn.bv_val );
 	if( filter ) filter_free( filter );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl2dn: Converted SASL name to %s\n",
-		dn->bv_len ? dn->bv_val : "<nothing>", 0, 0 );
+		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
-		dn->bv_len ? dn->bv_val : "<nothing>", 0, 0 );
+		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
 #endif
 
 	return;
@@ -550,7 +521,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( rule, &searchbase, &scope, &filter, NULL );
+	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
