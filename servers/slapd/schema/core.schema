@@ -707,8 +707,27 @@ objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
 	SUP top STRUCTURAL MUST ref )
 
 #
+# LDAP/X.500 subentry schema
+#	draft-zeilenga-ldap-subentry-xx.txt
+#
+attributetype ( 2.5.18.5 NAME 'administrativeRole'
+	EQUALITY objectIdentifierMatch
+	USAGE directoryOperation
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
+
+attributetype ( 2.5.18.6 NAME 'subtreeSpecification'
+	SINGLE-VALUE
+	USAGE directoryOperation
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.45 )
+
+objectclass ( 2.5.20.0 NAME 'subentry'
+	SUP top STRUCTURAL
+	MUST ( cn $ subtreeSpecification ) )   
+
+
+#
 # LDAPsubEntry
-#	likely to change!
+#	deprecated!
 objectclass ( 2.16.840.1.113719.2.142.6.1.1
 	NAME 'LDAPsubEntry'
 	DESC 'LDAP Subentry'
