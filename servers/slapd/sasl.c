@@ -1792,48 +1792,61 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 
 	/* Username strings */
 	if( is_dn == SET_U ) {
-		char		*p;
-		struct berval	realm = BER_BVNULL, c1 = *dn;
-
-		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
-
-		if( user_realm && *user_realm ) {
-			realm.bv_val = user_realm;
-			realm.bv_len = strlen( user_realm );
- 			len += realm.bv_len + sizeof(",cn=") - 1;
-		}
-
-		if( mech->bv_len ) {
-			len += mech->bv_len + sizeof(",cn=")-1;
-		}
-
-		/* Build the new dn */
-		dn->bv_val = sl_malloc( len+1, op->o_tmpmemctx );
-		if( dn->bv_val == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( TRANSPORT, ERR, 
-				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, 
-				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
-#endif
-			return LDAP_OTHER;
-		}
-		p = lutil_strcopy( dn->bv_val, "uid=" );
-		p = lutil_strncopy( p, c1.bv_val, c1.bv_len );
-
-		if( realm.bv_len ) {
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strncopy( p, realm.bv_val, realm.bv_len );
-		}
-
-		if( mech->bv_len ) {
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, mech->bv_val );
-		}
-		p = lutil_strcopy( p, ",cn=auth" );
-		dn->bv_len = p - dn->bv_val;
-
+ 		/* ITS#3419: values may need escape */
+ 		LDAPRDN		DN[ 5 ];
+ 		LDAPAVA 	*RDNs[ 4 ][ 2 ];
+ 		LDAPAVA 	AVAs[ 4 ];
+ 		int		irdn;
+ 
+ 		irdn = 0;
+ 		DN[ irdn ] = RDNs[ irdn ];
+ 		RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
+ 		BER_BVSTR( &AVAs[ irdn ].la_attr, "uid" );
+ 		AVAs[ irdn ].la_value = *dn;
+ 		AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
+ 		AVAs[ irdn ].la_private = NULL;
+ 		RDNs[ irdn ][ 1 ] = NULL;
+ 
+ 		if ( user_realm && *user_realm ) {
+ 			irdn++;
+ 			DN[ irdn ] = RDNs[ irdn ];
+ 			RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
+ 			BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+ 			ber_str2bv( user_realm, 0, 0, &AVAs[ irdn ].la_value );
+ 			AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
+ 			AVAs[ irdn ].la_private = NULL;
+ 			RDNs[ irdn ][ 1 ] = NULL;
+ 		}
+ 
+ 		if ( !BER_BVISNULL( mech ) ) {
+ 			irdn++;
+ 			DN[ irdn ] = RDNs[ irdn ];
+ 			RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
+ 			BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+ 			AVAs[ irdn ].la_value = *mech;
+ 			AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
+ 			AVAs[ irdn ].la_private = NULL;
+ 			RDNs[ irdn ][ 1 ] = NULL;
+ 		}
+ 
+ 		irdn++;
+ 		DN[ irdn ] = RDNs[ irdn ];
+ 		RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
+ 		BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+ 		BER_BVSTR( &AVAs[ irdn ].la_value, "auth" );
+ 		AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
+ 		AVAs[ irdn ].la_private = NULL;
+ 		RDNs[ irdn ][ 1 ] = NULL;
+  
+ 		irdn++;
+ 		DN[ irdn ] = NULL;
+  
+ 		rc = ldap_dn2bv_x( DN, dn, LDAP_DN_FORMAT_LDAPV3, op->o_tmpmemctx );
+ 		if ( rc != LDAP_SUCCESS ) {
+ 			BER_BVZERO( dn );
+ 			return rc;
+ 		}
+  
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, ENTRY, 
 			"slap_sasl_getdn: u:id converted to %s.\n", dn->bv_val, 0, 0 );
