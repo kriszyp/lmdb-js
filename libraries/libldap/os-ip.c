@@ -46,7 +46,7 @@ int ldap_int_tblsize = 0;
 
 #define osip_debug(ld,fmt,arg1,arg2,arg3) \
 do { \
-	ldap_log_printf(ld, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
+	ldap_log_printf(NULL, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
 } while(0)
 
 static void
@@ -132,10 +132,10 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 #undef TRACE
 #define TRACE do { \
 	osip_debug(ld, \
-		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
+		"ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
-		strerror(errno) ); \
+		sock_errstr(errno) ); \
 } while( 0 )
 
 /*
@@ -187,6 +187,9 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 {
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
+#ifdef HAVE_WINSOCK
+	fd_set		efds;
+#endif
 
 	if ( (opt_tv = ld->ld_options.ldo_tm_net) != NULL ) {
 		tv.tv_usec = opt_tv->tv_usec;
@@ -221,9 +224,30 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
-	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
+#ifdef HAVE_WINSOCK
+	FD_ZERO(&efds);
+	FD_SET(s, &efds );
+#endif
+
+	if ( select(ldap_int_tblsize, z, &wfds,
+#ifdef HAVE_WINSOCK
+		    &efds,
+#else
+		    z,
+#endif
+		    opt_tv ? &tv : NULL) == -1)
 		return ( -1 );
 
+#ifdef HAVE_WINSOCK
+	/* This means the connection failed */
+	if (FD_ISSET(s, &efds))
+	{
+	    ldap_pvt_set_errno(WSAECONNREFUSED);
+	    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
+		       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
+	    return -1;
+	}
+#endif
 	if ( FD_ISSET(s, &wfds) ) {
 		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
 			return ( -1 );
