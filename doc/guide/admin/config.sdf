@@ -55,9 +55,10 @@ H2: Distributed Local Directory Service
 
 In this configuration, the local service is partitioned into smaller
 services, each which may be replicated, and {{glued}} together with
-{{superior}} and {{subordinate}} referrals.  An example of this
-configuration is shown in Figure 3.4.
+{{superior}} and {{subordinate}} referrals.
+!if 0
+An example of this configuration is shown in Figure 3.4.
 
 !import "config_dist.gif"; align="center"; title="Distributed Local Directory Services"
 FT[align="Center"] Figure 3.4: Distributed Local Directory Services
-
+!endif

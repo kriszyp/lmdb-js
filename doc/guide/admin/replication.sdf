@@ -102,9 +102,13 @@ printed and slapd exits, regardless of any other options
 you give it. Current debugging levels (a subset of slapd's
 debugging levels) are
 
->	    4 heavy trace debugging
->	   64 configuration file processing
->	65535 enable all debugging
+!block table; colaligns="RL"; align=Center; \
+	title="Table 10.1: Debugging Levels"
+Level	Description
+4	heavy trace debugging
+64	configuration file processing
+65535	enable all debugging
+!endblock
 
 Debugging levels are additive. That is, if you want heavy
 trace debugging and want to watch the config file being
@@ -223,9 +227,13 @@ files located in the database {{EX:directory}} specified in
 suffix depending on the underlying database package used.
 The current possibilities are
 
-* {{EX: dbb}} Berkeley DB B-tree backend
-* {{EX: dbh}} Berkeley DB hash backend
-* {{EX: gdbm}} GNU DBM backend
+!block table; align=Center; \
+	title="Table 10.2: Database File Suffixes"
+Suffix		Database
+{{EX:dbb}}	Berkeley DB B-tree backend
+{{EX:dbh}}	Berkeley DB hash backend
+{{EX:gdbm}}	GNU DBM backend
+!endblock
 
 In general, you should copy all files found in the database
 {{EX: directory}} unless you know it not used by {{slapd}}(8).
@@ -353,7 +361,7 @@ the X.500 DSA:
 
 !import "replication.gif"; align="center"; \
 	title="Replication from slapd to an X.500 DSA"
-FT: Figure 6: Replication from slapd to an X.500 DSA
+FT: Figure 10.1: Replication from slapd to an X.500 DSA
 
 Note that the X.500 DSA must be a read-only copy. Since
 the replication is one-way, updates from {{TERM:DAP}} clients
@@ -371,7 +379,7 @@ DSA may expect these attributes to be named
 
 A solution to this attribute naming problem is to have the
 ldapd read oidtables that map {{EX:modifiersName}} to the
-objectID (OID) for the {{EX:lastModifiedBy}} attribute and
+Object Identifier ({{TERM:OID}}) for the {{EX:lastModifiedBy}} attribute and
 {{EX:modifyTimeStamp}} to the OID for the {{EX:lastModifiedTime}}
 attribute. Since attribute names are carried as OIDs over
 DAP, this should perform the appropriate translation of

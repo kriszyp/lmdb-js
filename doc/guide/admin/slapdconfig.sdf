@@ -5,9 +5,10 @@
 H1: The slapd Configuration File
 
 Once the software has been built and installed, you are ready
-to configure it for use at your site. The slapd runtime configuration
-is primarily accomplished through the {{I:slapd.conf}}(5) file,
-normally installed in the {{EX:/usr/local/etc/openldap}} directory.
+to configure {{slapd}}(8) for use at your site. The slapd
+runtime configuration is primarily accomplished through the
+{{I:slapd.conf}}(5) file, normally installed in the
+{{EX:/usr/local/etc/openldap}} directory.
 
 An alternate configuration file can be specified via a
 command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
@@ -103,7 +104,6 @@ This directive defines an attribute type.
 Please see the {{SECT:Schema Specification}} chapter
 for information regarding how to use this directive.
 
-
 H4: defaultaccess { none | compare | search | read | write }
 
 This directive specifies the default access to grant requesters
@@ -121,6 +121,13 @@ directive.
 E: defaultaccess read
 
 
+H4: idletimeout <integer>
+
+Specify the number of seconds to wait before forcibly closing
+an idle client connections.  A idletimeout of 0, the default,
+disables this feature.
+
+
 H4: include <filename>
 
 This directive specifies that slapd should read additional
@@ -132,7 +139,6 @@ used to include files containing schema specifications.
 Note: You should be careful when using this directive - there is
 no small limit on the number of nested include directives, and no
 loop detection is done.
-
 
 H4: loglevel <integer>
 
@@ -373,6 +379,17 @@ SASL-based Example:
 See the {{SECT:Replication}} chapter for more information on how to
 use this directive.
 
+H4: updateref <URL>
+
+This directive is only applicable in a slave slapd. It
+specifies the URL to return to clients which submit update
+requests upon the replica.
+If specified multiple times, each {{TERM:URL}} is provided.
+
+\Example:
+
+>	update	ldap://master.example.net
+
 
 H3: LDBM Backend-Specific Directives
 
@@ -402,6 +419,20 @@ modifies or when building indexes.
 \Default:
 
 >	dbcachesize 100000
+
+
+H4: dbnolocking
+
+This option, if present, disables database locking.
+Enabling this option may improve performance at the expense
+of data security.
+
+
+H4: dbnosync
+
+This option causes on-disk database contents not be immediately
+synchronized with in memory changes upon change.  Enabling this option
+may improve performance at the expense of data security.
 
 
 H4: directory <directory>
@@ -444,88 +475,19 @@ created database index files should have.
 
 
 
-H3: Shell Backend-Specific Directives
+H3: Other Backend and Databases
 
->	bind <pathname>
->	unbind <pathname>
->	search <pathname>
->	compare <pathname>
->	modify <pathname>
->	modrdn <pathname>
->	add <pathname>
->	delete <pathname>
->	abandon <pathname>
+{{slapd}}(8) supports a number of other backend database types.
 
-These directives specify the pathname of the command to
-execute in response to the given LDAP operation. The
-command given should understand and follow the input/output
-conventions described in Appendix B.
+!block table; align=Center; \
+	title="Table 5.2: Backend Database Types"
+Types	Description
+passwd	Provides read-only access to {{F:/etc/passwd}}
+shell	Shell (extern program) backend
+sql	SQL Programmable backend
+!endblock
 
-\Example:
-
->	search /usr/local/bin/search.sh
-
-Note that you need only supply those commands you want the
-backend to handle. Operations for which a command is not
-supplied will be refused with an "unwilling to perform" error.
-
-
-
-H3: Password Backend-Specific Directives
-
-Directives in this category only apply to the PASSWD backend
-database. That is, they must follow a "database passwd" line
-and come before any other "database" line.
-
-H4: file <filename>
-
-This directive specifies an alternate passwd file to use.
-
-\Default:
-
->	file /etc/passwd
-
-
-
-H3: TCL Backend-Specific Directives
-
-H4: scriptpath <pathname>
-
-This is the full path to a file containing the TCL command(s) to handle
-the LDAP operations.
-
-H4: Proc specifiers
-
->	bind <proc>
->	unbind <proc>
->	search <proc>
->	compare <proc>
->	modify <proc>
->	modrdn <proc>
->	add <proc>
->	delete <proc>
->	abandon <proc>
-
-These directives specify the name of the proc (function) in the
-TCL script specified in {{EX:scriptpath}} to execute in response to
-the given LDAP operation.
-
-\Example:
-
->	search proc_search
-
-Note that you need only supply those commands you want the
-TCL backend to handle. Operations for which a command is not
-supplied will be refused with an "unwilling to perform" error.
-
-H4: tclrealm <name>
-
-This is one of the biggest pluses of using the TCL backend.
-The realm let's you group several databases to the same interpretor.
-This basically means they share the same global variables and proc
-space. So global variables, as well as all the procs are callable
-between databases. If no {{EX:tclrealm}} is specified, it is put into the
-"default" realm.
+See {{slapd.conf}}(5) for details.
 
 
 
@@ -615,7 +577,7 @@ access. Note that access is granted to "entities" not "entries."
 The follow table summaries entity specifiers:
 
 !block table; align=Center; \
-	title="Table 5.2: Access Entity Specifiers"
+	title="Table 5.3: Access Entity Specifiers"
 Specifier	Entities
 *		All, including anonymous and authenticated users
 anonymous	Anonymous (non-authenticated) users
@@ -658,7 +620,7 @@ The kind of <access> granted can be one of the following:
 
 
 !block table; colaligns="LRL"; align=Center; \
-	title="Table 5.3: Access Levels"
+	title="Table 5.4: Access Levels"
 Level	Privledges	Description
 none			no access
 auth	=x		needed to bind
