@@ -3497,6 +3497,7 @@ asn1_integer2str(ASN1_INTEGER *a)
 	return ber_bvstrdup(p);
 }
 
+/* Get a DN in RFC2253 format from a X509_NAME internal struct */
 static struct berval *
 dn_openssl2ldap(X509_NAME *name)
 {
@@ -3515,6 +3516,61 @@ dn_openssl2ldap(X509_NAME *name)
 
 	BIO_free(bio);
 	return ber_bvstrdup(issuer_dn);
+}
+
+/*
+ * Given a certificate in DER format, extract the corresponding
+ * assertion value for certificateExactMatch
+ */
+static int
+certificateExactConvert(
+	struct berval * in,
+	struct berval ** out )
+{
+	X509 *xcert;
+	unsigned char *p = in->bv_val;
+	struct berval *serial;
+	struct berval *issuer_dn;
+	struct berval *bv_tmp;
+	int ret;
+
+	xcert = d2i_X509(NULL, &p, in->bv_len);
+	if ( !xcert ) {
+		ERR_error_string(ERR_get_error(),NULL);
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	serial = asn1_integer2str(xcert->cert_info->serialNumber);
+	issuer_dn = dn_openssl2ldap(X509_get_issuer_name(xcert));
+
+	X509_free(xcert);
+
+	*out = ch_malloc(sizeof(struct berval));
+	(*out)->bv_len = serial->bv_len + 3 + issuer_dn->bv_len + 1;
+	(*out)->bv_val = ch_malloc((*out)->bv_len);
+	p = (*out)->bv_val;
+	AC_MEMCPY(p, serial->bv_val, serial->bv_len);
+	p += serial->bv_len;
+	AC_MEMCPY(p, " $ ", 3);
+	p += 3;
+	AC_MEMCPY(p, issuer_dn->bv_val, issuer_dn->bv_len);
+	p += issuer_dn->bv_len;
+	*p++ = '\0';
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "certificateExactConvert: \n	%s\n",
+		   (*out)->bv_val));
+#else
+	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert "
+		"\n\t\"%s\"\n",
+		(*out)->bv_val, NULL, NULL );
+#endif
+
+	ber_bvfree(serial);
+	ber_bvfree(issuer_dn);
+
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -3538,11 +3594,11 @@ serial_and_issuer_parse(
 
 	/* p now points at the $ sign, now use begin and end to delimit the
 	   serial number */
-	while (ASCII_SPACE(*begin++))
-		;
-	end = p;
-	while (ASCII_SPACE(*end--))
-		;
+	while (ASCII_SPACE(*begin))
+		begin++;
+	end = p-1;
+	while (ASCII_SPACE(*end))
+		end--;
 
 	q = ch_malloc( (end-begin+1)+1 );
 	AC_MEMCPY( q, begin, end-begin+1 );
@@ -3552,8 +3608,8 @@ serial_and_issuer_parse(
 	/* now extract the issuer, remember p was at the dollar sign */
 	begin = p+1;
 	end = assertion->bv_val+assertion->bv_len-1;
-	while (ASCII_SPACE(*begin++))
-		;
+	while (ASCII_SPACE(*begin))
+		begin++;
 	/* should we trim spaces at the end too? is it safe always? */
 
 	q = ch_malloc( (end-begin+1)+1 );
@@ -3584,6 +3640,7 @@ certificateExactMatch(
 	xcert = d2i_X509(NULL, &p, value->bv_len);
 	if ( !xcert ) {
 		ERR_error_string(ERR_get_error(),NULL);
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	serial = asn1_integer2str(xcert->cert_info->serialNumber);
@@ -3604,6 +3661,7 @@ certificateExactMatch(
 		asserted_serial);
 	if ( ret == LDAP_SUCCESS ) {
 		if ( *matchp == 0 ) {
+			/* We need to normalize everything for dnMatch */
 			ret = dnMatch(
 				matchp,
 				flags,
@@ -3613,6 +3671,20 @@ certificateExactMatch(
 				asserted_issuer_dn);
 		}
 	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "certificateExactMatch: %d\n	 %s $ %s\n	 %s $	%s\n",
+		   *matchp, serial->bv_val, issuer_dn->bv_val,
+		   asserted->serial->bv_val, asserted_issuer_dn->bv_val));
+#else
+	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
+		"%d\n\t\"%s $ %s\"\n",
+		*matchp, serial->bv_val, issuer_dn->bv_val );
+	Debug( LDAP_DEBUG_ARGS, "\t\"%s $ %s\"\n",
+		asserted_serial->bv_val, asserted_issuer_dn->bv_val,
+		NULL );
+#endif
 
 	ber_bvfree(serial);
 	ber_bvfree(issuer_dn);
@@ -4378,7 +4450,7 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL,
+		certificateExactConvert, NULL,
 		certificateExactMatch, NULL, NULL,
 		NULL},
 #endif
