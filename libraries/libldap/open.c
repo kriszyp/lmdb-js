@@ -218,7 +218,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 				curhost = hostname;
 			    }
 			    *r++ = '\0';
-			    port = htons( (short)atoi( r ));
+			    port = htons( (short) atoi( r ) );
 			} else {
 			    port = defport;   
 			}
