@@ -14,15 +14,21 @@
 
 /* IDL sizes - likely should be even bigger
  *   limiting factors: sizeof(ID), thread stack size
+ *
+ * Note: the -2 stuff is intended to reduce the size
+ * just enough to avoiding internal (to malloc) allocation
+ * of overly large blocks to provide the requested size. 
+ * The stuff needs to be thought out better, doesn't deal
+ * well with mixed stack/malloc allocation of IDLs.
  */
-#define BDB_IDL_DB_SIZE		(1<<16) /* 32K IDL on disk */
-#define BDB_IDL_UM_SIZE		(1<<17) /* 64K IDL in memory */
+#define BDB_IDL_DB_SIZE		((1<<16)-2) /* 32K IDL on disk */
+#define BDB_IDL_UM_SIZE		((1<<17)-2) /* 64K IDL in memory */
 #define BDB_IDL_UM_SIZEOF	(BDB_IDL_UM_SIZE * sizeof(ID))
 
-#define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-32)
+#define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-2)
 /* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
 
-#define BDB_IDL_UM_MAX			(BDB_IDL_UM_SIZE-32)
+#define BDB_IDL_UM_MAX			(BDB_IDL_UM_SIZE-2)
 /* #define BDB_IDL_UM_ALLOC	(BDB_IDL_UM_SIZE * sizeof(ID)) */
 
 #define BDB_IDL_IS_RANGE(ids)	((ids)[0] == NOID)
