@@ -88,7 +88,7 @@ ldbm_back_exop_passwd(
 
 	if( e == NULL ) {
 		*text = "could not locate authorization entry";
-		rc = LDAP_OPERATIONS_ERROR;
+		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
 	}
 
