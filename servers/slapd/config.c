@@ -601,6 +601,20 @@ read_config( char *fname )
 #endif /*SLAPD_MODULES*/
 
 #ifdef HAVE_TLS
+		} else if ( !strcasecmp( cargv[0], "SSLProtocol" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_PROTOCOL,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
+		} else if ( !strcasecmp( cargv[0], "SSLCipherSuite" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_CIPHER_SUITE,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
 		} else if ( !strcasecmp( cargv[0], "SSLCertificateFile" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CERTFILE,
@@ -614,6 +628,21 @@ read_config( char *fname )
 						      cargv[1] );
 			if ( rc )
 				return rc;
+
+		} else if ( !strcasecmp( cargv[0], "SSLCACertificatePath" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_CACERTDIR,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
+		} else if ( !strcasecmp( cargv[0], "SSLCACertificateFile" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_CACERTFILE,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
 #endif
 
 		/* pass anything else to the current backend info/db config routine */
