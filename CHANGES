@@ -6,6 +6,7 @@ OpenLDAP 2.1.10 Engineering
 	Fixed ldapsearch empty baseObject bug
 	Fixed slapd acl/group value_find_ex() bug (ITS#2227)
 	Fixed slapd NameAndOptionalUID bug
+	Update ldapdelete/ldapmodrdn continue error handling
 
 OpenLDAP 2.1.9 Release
 	Fixed back-bdb moddn newSuperior bug
