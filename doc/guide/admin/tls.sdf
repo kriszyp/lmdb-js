@@ -189,7 +189,7 @@ H4: TLS_KEY <filename>
 This directive specifies the file that contains the private key
 that matches the certificate stored in the {{EX:TLS_CERT}}
 file. The same constraints mentioned for {{EX:TLSCertificateKeyFile}}
-apply here. This is also user-only directive.
+apply here. This is also a user-only directive.
 
 H4: TLS_RANDFILE <filename>
 
