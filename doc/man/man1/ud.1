@@ -4,13 +4,15 @@
 ud \- interactive LDAP Directory Server query program
 .SH SYNOPSIS
 .B ud
-[-Dv] [-s 
+[\c
+.BR -Dv ]
+.RB [ -s 
 .IR server ]
-[-d
+.RB [ -d
 .IR debug-mask ]
-[-l
+.RB [ -l
 .IR ldap-debug-mask ]
-[-f
+.RB [ -f
 .IR file ]
 .SH DESCRIPTION
 .IR ud
@@ -18,7 +20,7 @@ is used to interogate a directory server via the Lightweight Directory
 Access Protocol (LDAP).
 .SH OPTIONS
 .TP 1i
-.B \-s
+.BI \-s \ server
 Used to specify the name of an LDAP server to which
 .B ud
 should connect.  If this
@@ -34,7 +36,7 @@ the name
 can be resolved (presumably through the use of a CNAME or A record in the DNS
 and the appropriate search path specified in the resolver config file).
 .TP 1i
-.B \-d
+.BI \-d \ debug-mask
 Sets the
 .B ud
 debug mask to the value specified.  
@@ -42,10 +44,10 @@ Values for the mask can be dumped by using the
 .IR \-D
 flag.
 .TP 1i
-.B \-f
+.BI \-f \ file
 Sets the configuration file to the name specified.
 .TP 1i
-.B \-l
+.BI \-l \ ldap-debug-mask
 Sets the LDAP debug mask to the value specified.  
 .TP 1i
 .B \-v
