@@ -49,6 +49,7 @@ static BerElement *
 re_encode_request( LDAP *ld,
 	BerElement *origber,
 	ber_int_t msgid,
+	int sref,
 	LDAPURLDesc *srv,
 	int *type );
 
@@ -626,7 +627,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	/* parse out & follow referrals */
 	for( i=0; refarray[i] != NULL; i++) {
 		/* Parse the referral URL */
-		if (( rc = ldap_url_parse( refarray[i], &srv)) != LDAP_SUCCESS) {
+		if (( rc = ldap_url_parse_ext( refarray[i], &srv)) != LDAP_SUCCESS) {
 			ld->ld_errno = rc;
 			rc = -1;
 			goto done;
@@ -655,7 +656,8 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				 * if two search references come in one behind the other
 				 * for the same server with different contexts.
 				 */
-				Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referrals: queue referral \"%s\"\n",
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_chase_v3referrals: queue referral \"%s\"\n",
 					refarray[i], 0, 0);
 				if( lc->lconn_rebind_queue == NULL ) {
 					/* Create a referral list */
@@ -700,14 +702,17 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			srv->lud_dn = LDAP_STRDUP( "" );
 		}
 
-		if (( ber = re_encode_request( ld, origreq->lr_ber,
-			    ++ld->ld_msgid, srv, &rinfo.ri_request )) == NULL ) {
+		ber = re_encode_request( ld, origreq->lr_ber, ++ld->ld_msgid,
+			sref, srv, &rinfo.ri_request );
+
+		if( ber == NULL ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			rc = -1;
 			goto done;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referral: msgid %d, url \"%s\"\n",
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_chase_v3referral: msgid %d, url \"%s\"\n",
 			lr->lr_msgid, refarray[i], 0);
 
 		/* Send the new request to the server - may require a bind */
@@ -781,7 +786,11 @@ done:
  * XXX merging of errors in this routine needs to be improved
  */
 int
-ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
+ldap_chase_referrals( LDAP *ld,
+	LDAPRequest *lr,
+	char **errstrp,
+	int sref,
+	int *hadrefp )
 {
 	int		rc, count, len;
 	char		*p, *ref, *unfollowed;
@@ -858,7 +867,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		*hadrefp = 1;
 
 		ber = re_encode_request( ld, origreq->lr_ber,
-		    ++ld->ld_msgid, srv, &rinfo.ri_request );
+		    ++ld->ld_msgid, sref, srv, &rinfo.ri_request );
 
 		if( ber == NULL ) {
 			return -1 ;
@@ -929,6 +938,7 @@ static BerElement *
 re_encode_request( LDAP *ld,
 	BerElement *origber,
 	ber_int_t msgid,
+	int sref,
 	LDAPURLDesc *srv,
 	int *type )
 {
@@ -981,7 +991,7 @@ re_encode_request( LDAP *ld,
 			/* use the scope provided in reference */
 			scope = srv->lud_scope;
 
-		} else if ( scope != LDAP_SCOPE_SUBTREE ) {
+		} else if ( sref && scope != LDAP_SCOPE_SUBTREE ) {
 			/* use scope implied by previous operation */
 			/*   base -> base */
 			/*   one -> base */
