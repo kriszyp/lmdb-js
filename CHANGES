@@ -13,6 +13,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Added ac/time.h to slap.h for IRIX (ITS#223)
 		Added sys/select.h detection
 		Fix xrpcomp $libexecdir sed
+		Move LDAP_LIBPATH to LDFLAGS
 
 Changes included in OpenLDAP 1.2.3
 	CVS Tag: OPENLDAP_REL_ENG_1_2_3
