@@ -104,7 +104,6 @@ struct bdb_info {
 	void		*bi_troot;
 	int		bi_nrdns;
 	int		bi_sufflen;
-	int		bi_nsufflen;
 #endif
 
 	int		bi_txn;
