@@ -73,7 +73,8 @@ by <who>).
 See the "OpenLDAP's Administrator's Guide" for details.
 .TP
 .B allow <features>
-Specify a set of features (separated by white space) to allow.
+Specify a set of features (separated by white space) to
+allow (default none).
 .B tls_2_anon
 allows Start TLS to force session to anonymous status (see also
 .B disallow
@@ -133,16 +134,21 @@ directives be used instead.
 .RE
 .TP
 .B disallow <features>
-Specify a set of features (separated by white space) to disallow.
+Specify a set of features (separated by white space) to
+disallow (default none).
 .B bind_v2
 disables acceptance of LDAPv2 bind requests.
 .B bind_anon
 disables acceptance of anonymous bind requests.
 .B bind_anon_cred
-disables anonymous bind creditials are not empty (e.g. when
-DN is empty).
+disables anonymous bind creditials are not empty (e.g.
+when DN is empty).
 .B bind_anon_dn
 disables anonymous bind when DN is not empty.
+.B bind_simple
+disables simple (bind) authentication.
+.B bind_krbv4
+disables Kerberos V4 (bind) authentication.
 .B tls_authc
 disables StartTLS if authenticated (see also
 .B allow
@@ -253,7 +259,8 @@ cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
 .TP
 .B require <conditions>
-Specify a set of conditions (separated by white space) to require.
+Specify a set of conditions (separated by white space) to
+require (default none).
 The directive may be specified globally and/or per-database.
 .B bind
 requires bind operation prior to directory operations.
@@ -489,7 +496,9 @@ for more information.
 Specify the distinguished name that is not subject to access control 
 or administrative limit restrictions for operations on this database.
 This DN may or may not be associated with an entry.  An empty root
-DN, the default, specifies no root access is to be granted.
+DN (the default) specifies no root access is to be granted.  It is
+recommended that the rootdn only be specified when needed (such as
+when initially populating a database).
 .TP
 .B rootpw <password>
 Specify a password (or hash of the password) for the rootdn.
@@ -499,8 +508,8 @@ the server (see
 desription) as well as cleartext.
 .BR slappasswd (8) 
 may be used to generate a hash of a password.  Cleartext
-and \fB{CRYPT}\fP passwords are not recommended.  The default
-is empty imply authentication of the root DN is by other means
+and \fB{CRYPT}\fP passwords are not recommended.  If empty
+(the default), authentication of the root DN is by other means
 (e.g. SASL).  Use of SASL is encouraged.
 .TP
 .B suffix <dn suffix>

@@ -264,38 +264,78 @@ do_bind(
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}
 
-	/* accept "anonymous" binds */
-	if ( cred.bv_len == 0 || ndn == NULL || *ndn == '\0' ) {
-		rc = LDAP_SUCCESS;
-		text = NULL;
+	if ( method == LDAP_AUTH_SIMPLE ) {
+		/* accept "anonymous" binds */
+		if ( cred.bv_len == 0 || ndn == NULL || *ndn == '\0' ) {
+			rc = LDAP_SUCCESS;
+			text = NULL;
 
-		if( cred.bv_len &&
-			( global_disallows & SLAP_DISALLOW_BIND_ANON_CRED ))
-		{
-			/* cred is not empty, disallow */
-			rc = LDAP_INVALID_CREDENTIALS;
+			if( cred.bv_len &&
+				( global_disallows & SLAP_DISALLOW_BIND_ANON_CRED ))
+			{
+				/* cred is not empty, disallow */
+				rc = LDAP_INVALID_CREDENTIALS;
 
-		} else if ( ndn != NULL && *ndn != '\0' &&
-			( global_disallows & SLAP_DISALLOW_BIND_ANON_DN ))
-		{
-			/* DN is not empty, disallow */
+			} else if ( ndn != NULL && *ndn != '\0' &&
+				( global_disallows & SLAP_DISALLOW_BIND_ANON_DN ))
+			{
+				/* DN is not empty, disallow */
+				rc = LDAP_UNWILLING_TO_PERFORM;
+				text = "unwilling to allow anonymous bind with non-empty DN";
+
+			} else if ( global_disallows & SLAP_DISALLOW_BIND_ANON ) {
+				/* disallow */
+				rc = LDAP_INAPPROPRIATE_AUTH;
+				text = "anonymous bind disallowed";
+			}
+
+			/*
+			 * we already forced connection to "anonymous",
+			 * just need to send success
+			 */
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
+		   		version, 0, 0 );
+			goto cleanup;
+
+		} else if ( global_disallows & SLAP_DISALLOW_BIND_SIMPLE ) {
+			/* disallow simple authentication */
 			rc = LDAP_UNWILLING_TO_PERFORM;
-			text = "unwilling to allow anonymous bind with non-empty DN";
+			text = "unwilling to perform simple authentication";
 
-		} else if ( global_disallows & SLAP_DISALLOW_BIND_ANON ) {
-			/* disallow */
-			rc = LDAP_UNWILLING_TO_PERFORM;
-			text = "anonymous bind disallowed";
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			Debug( LDAP_DEBUG_TRACE,
+				"do_bind: v%d simple bind(%s) disallowed\n",
+		   		version, ndn, 0 );
+			goto cleanup;
 		}
 
-		/*
-		 * we already forced connection to "anonymous",
-		 * just need to send success
-		 */
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	} else if ( method == LDAP_AUTH_KRBV41 || method == LDAP_AUTH_KRBV42 ) {
+		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
+			/* disallow simple authentication */
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			text = "unwilling to perform Kerberos V4 bind";
+
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d Kerberos V4 bind\n",
+				version, 0, 0 );
+			goto cleanup;
+		}
+#endif
+
+	} else {
+		rc = LDAP_AUTH_UNKNOWN;
+		text = "unknown authentication method";
+
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
-		Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
-	   		version, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"do_bind: v%d unknown authentication method (%d)\n",
+			version, method, 0 );
 		goto cleanup;
 	}
 

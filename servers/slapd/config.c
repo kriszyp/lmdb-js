@@ -576,6 +576,12 @@ read_config( const char *fname )
 				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON_DN;
 
+				} else if( strcasecmp( cargv[i], "bind_simple" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_SIMPLE;
+
+				} else if( strcasecmp( cargv[i], "bind_krbv4" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_KRBV4;
+
 				} else if( strcasecmp( cargv[i], "tls_authc" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_TLS_AUTHC;
 

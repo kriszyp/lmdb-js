@@ -864,7 +864,7 @@ struct slap_backend_db {
 								0x0008U /* dn should be empty */
 
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0010U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_KERBEROS	0x0020U /* Kerberos authentication */
+#define SLAP_DISALLOW_BIND_KRBV4	0x0020U /* Kerberos V4 authentication */
 
 #define SLAP_DISALLOW_TLS_AUTHC	0x0100U	/* TLS while authenticated */
 
