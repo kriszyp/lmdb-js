@@ -1694,8 +1694,7 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%ld fd=%ld ACCEPT from %s "
-				"(%s)\n",
+				"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
 				id, (long) s,
 				peername,
 				slap_listeners[l]->sl_name.bv_val,
