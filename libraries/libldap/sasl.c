@@ -407,7 +407,7 @@ int ldap_pvt_sasl_init( void )
 	static int sasl_initialized = 0;
 
 	if ( sasl_initialized ) {
-		return -1;
+		return 0;
 	}
 #ifndef CSRIMALLOC
 	sasl_set_alloc( ber_memalloc, ber_memcalloc, ber_memrealloc, ber_memfree );
