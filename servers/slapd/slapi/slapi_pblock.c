@@ -3,12 +3,11 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- *  Copyright IBM Corp. 1997,2002
- *  Use of this source code is subject to the terms of The OpenLDAP Public 
- *  License (version 2.7 or later).
- *  No trademarks of the IBM Corporation are to be used to identify, endorse 
- *  or promote  any products derived from this code without the prior 
- *  written consent of IBM 
+ * Portions Copyright IBM Corp. 1997,2002,2003
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is 
+ * given to IBM Corporation. This software is provided ``as is'' 
+ * without express or implied warranty.
  */
 
 #include "portable.h"

@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * (C) Copyright PADL Software Pty Ltd. 2003
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that this notice is preserved
