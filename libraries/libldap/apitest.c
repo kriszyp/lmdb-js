@@ -2,14 +2,19 @@
  * OpenLDAP API Test
  *	Written by: Kurt Zeilenga
  *
- * This program is designed to test libldap API for conformance
- * to draft-api-ldapext-ldap-c-api-01.txt.
+ * This program is designed to test API features of libldap.
+ *
+ * The API specification can be found in:
+ *
+ *	 draft-api-ldapext-ldap-c-api-01.txt 
+ *
+ * and discussions on ietf-ldapext mailing list.
+ *
  */
 #include "portable.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
