@@ -458,6 +458,9 @@ acl_mask(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
 			const char *text;
+			const char *desc = b->a_dn_at->ad_cname->bv_val;
+#else
+			const char *desc = b->a_dn_at;
 #endif
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
@@ -482,7 +485,7 @@ acl_mask(
 			if( match ) {
 				if ( b->a_dn_self && (val == NULL
 					|| value_match( &match, b->a_dn_at,
-						b->a_dn_at->ad_type->sat_equality, &bv, val, &text ) )
+						b->a_dn_at->ad_type->sat_equality, val, &bv, &text ) )
 						!= LDAP_SUCCESS
 					|| match )
 				{
@@ -490,7 +493,7 @@ acl_mask(
 				}
 			} else if ( ! b->a_dn_self || val == NULL
 				|| value_match( &match, b->a_dn_at,
-					b->a_dn_at->ad_type->sat_equality, &bv, val, &text )
+					b->a_dn_at->ad_type->sat_equality, val, &bv, &text )
 					!= LDAP_SUCCESS
 				|| match )
 			{
