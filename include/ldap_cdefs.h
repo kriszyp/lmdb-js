@@ -7,24 +7,30 @@
 #	define LDAP_BEGIN_DECL	extern "C" {
 #	define LDAP_END_DECL	}
 #else
-#	define LDAP_BEGIN_DECL
-#	define LDAP_END_DECL	
+#	define LDAP_BEGIN_DECL	/* empty */
+#	define LDAP_END_DECL	/* empty */
 #endif
 
-#if defined(__STDC__) || defined(__cplusplus) || \
-	(defined(_WIN32) && !defined(NOPROTOTYPES))
+#if !defined(__NO_PROTOTYPES) && ( \
+	defined(__STDC__) || defined(__cplusplus) || \
+	defined(__NEED_PROTOTYPES) )
+
 	/* ANSI C or C++ */
 #	define LDAP_P(protos)	protos
 #	define LDAP_CONCAT1(x,y)	x ## y
 #	define LDAP_CONCAT(x,y)	LDAP_CONCAT1(x,y)
 #	define LDAP_STRING(x)	#x /* stringify without expanding x */
 #	define LDAP_XSTRING(x)	LDAP_STRING(x) /* expand x, then stringify */
-#else /* ! __STDC__ && ! __cplusplus */
+
+#else /* no prototypes */
+
 	/* traditional C */
 #	define LDAP_P(protos)	()
 #	define LDAP_CONCAT(x,y)	x/**/y
 #	define LDAP_STRING(x)	"x"
-#endif /* __STDC__ || __cplusplus */
+
+#endif /* no prototypes */
+
 
 #ifndef LDAP_F
 #	ifdef _WIN32
