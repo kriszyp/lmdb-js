@@ -182,7 +182,8 @@ all-cffiles: slapd
 
 install-schema: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)/schema
-	@for i in schema/*.schema schema/*.conf ; do \
+	@cd $(srcdir) ; \
+	for i in schema/*.schema schema/*.conf ; do \
 		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
 			echo $(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i; \
