@@ -333,10 +333,12 @@ bdb_idl_insert_key(
 	ID ids[BDB_IDL_DB_SIZE];
 #endif
 
+#if 0
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_idl_insert_key: %s %ld\n",
 		(char *)key->data, (long) id, 0 );
+#endif
 
 	assert( id != NOID );
 
@@ -539,10 +541,12 @@ bdb_idl_delete_key(
 	ID ids[BDB_IDL_DB_SIZE];
 #endif
 
+#if 0
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_idl_delete_key: %s %ld\n",
 		(char *)key->data, (long) id, 0 );
+#endif
 
 	assert( id != NOID );
 
