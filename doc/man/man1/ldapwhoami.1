@@ -1,23 +1,17 @@
-.TH LDAPCOMPARE 1 "RELEASEDATE" "OpenLDAP LDVERSION"
+.TH LDAPWHOAMI 1 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldapcompare \- LDAP compare tool
+ldapwhoami \- LDAP who am i? tool
 .SH SYNOPSIS
-.B ldapcompare
+.B ldapwhoami
 [\c
 .BR \-n ]
 [\c
 .BR \-v ]
 [\c
 .BR \-z ]
-[\c
-.BR \-k ]
-[\c
-.BR \-K ]
-[\c
-.BR \-M[M] ]
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
@@ -35,8 +29,6 @@ ldapcompare \- LDAP compare tool
 [\c
 .BI \-p \ ldapport\fR]
 [\c
-.BI \-P \ 2\fR\||\|\fI3\fR]
-[\c
 .BR \-O \ security-properties ]
 [\c
 .BR \-I ]
@@ -52,51 +44,22 @@ ldapcompare \- LDAP compare tool
 .BI \-Y \ mech\fR]
 [\c
 .BR \-Z[Z] ]
-.IR DN \ <
-.BR attr:value \ |
-.BR attr::b64value \ >
 .SH DESCRIPTION
-.I ldapcompare
-is a shell-accessible interface to the
-.BR ldap_compare (3)
-library call.
+.I ldapwhoami
+implements the LDAP "Who Am I?" extended operation.
 .LP
-.B ldapcompare
-opens a connection to an LDAP server, binds, and performs a compare
-using specified parameters.   The \fIDN\fP should be a distinguished
-name in the directory.  \fIAttr\fP should be a known attribute.  If
-followed by one colon, the assertion \fIvalue\fP should be provided
-as a string.  If followed by two colons, the base64 encoding of the
-value is provided.
-.LP
+.B ldapwhoami
+opens a connection to an LDAP server, binds, and performs a whoami
+operation.  
 .SH OPTIONS
 .TP
 .B \-n
-Show what would be done, but don't actually perform the compare.  Useful for
+Show what would be done, but don't actually perform the whoami operation.
+Useful for
 debugging in conjunction with -v.
 .TP
 .B \-v
 Run in verbose mode, with many diagnostics written to standard output.
-.TP
-.B \-z
-Run in quiet mode, no output is written.  You must check the return
-status.  Useful in shell scripts.
-.TP
-.B \-k
-Use Kerberos IV authentication instead of simple authentication.  It is
-assumed that you already have a valid ticket granting ticket.
-.B ldapcompare
-must be compiled with Kerberos support for this option to have any effect.
-.TP
-.B \-K
-Same as \-k, but only does step 1 of the Kerberos IV bind.  This is useful
-when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your Kerberos Domain Controller(s).
-.TP
-.B \-M[M]
-Enable manage DSA IT control.
-.B \-MM
-makes control critical.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
@@ -149,7 +112,7 @@ Specify the authentication ID for SASL bind. The form of the ID
 depends on the actual SASL mechanism used.
 .TP
 .BI \-X \ authzid
-Specify the proxy authorization ID for SASL bind.
+Specify the requested authorization ID for SASL bind.
 .I authzid
 must be one of the following formats:
 .B dn:\c
@@ -168,26 +131,12 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 , the command will require the operation to be successful.
 .SH EXAMPLE
 .nf
-    ldapcompare "uid=babs,dc=example,dc=com"  sn Jensen
-    ldapcompare "uid=babs,dc=example,dc=com"  sn:Jensen
-    ldapcompare "uid=babs,dc=example,dc=com"  sn::SmVuc2Vu
+    ldapwhoami -x -D "cn=Manager,dc=example,dc=com" -W
 .fi
-are all equivalent.
-.SH DIAGNOSTICS
-When -z is used, exit status is either 5 if the compare is false, or 6
-when the compare is true.  Errors result in other non-zero values.
-.br
-When -z is not used, exit status is zero if no errors occur.
-Errors result in a non-zero exit status and
-a diagnostic message being written to standard error.
-.SH BUGS
-Should have a way to specify a url for options or for large binary
-file compares.
 .SH "SEE ALSO"
 .BR ldap.conf (5),
-.BR ldif (5),
 .BR ldap (3),
-.BR ldap_compare (3)
+.BR ldap_extended_s (3)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
