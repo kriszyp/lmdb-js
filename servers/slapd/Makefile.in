@@ -259,7 +259,7 @@ slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 		$(WRAP_LIBS)
 	rm -f $(SLAPTOOLS)
 	for i in $(SLAPTOOLS); do \
-		$(LN_S) slapd $$i; done
+		$(LN_S) slapd$(EXEEXT) $$i$(EXEEXT); done
 
 
 sslapd: version.o

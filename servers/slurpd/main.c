@@ -47,6 +47,10 @@
 
 #include <ldap_pvt.h>
 
+#ifdef HAVE_WINSOCK
+#define mkdir(a,b)	mkdir(a)
+#endif
+
 #ifdef HAVE_NT_SERVICE_MANAGER
 #define	MAIN_RETURN(x)	return
 #define SERVICE_EXIT( e, n )	do { \
