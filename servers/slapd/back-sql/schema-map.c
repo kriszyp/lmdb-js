@@ -340,7 +340,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 }
 
 struct backsql_attr_schema_info {
-	backsql_info	*bas_si;
+	backsql_info	*bas_bi;
 	SQLHDBC		bas_dbh;
 	SQLHSTMT	bas_sth;
 	unsigned long	*bas_oc_id;
@@ -364,7 +364,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		"    \"%s\"\n"
 		"    for objectClass \"%s\"\n"
 		"    with param oc_id=\"%lu\"\n",
-		bas->bas_si->at_query,
+		bas->bas_bi->sql_at_query,
 		BACKSQL_OC_NAME( oc_map ),
 		*bas->bas_oc_id );
 
@@ -375,10 +375,11 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 			"    \"%s\"\n"
 			"    for objectClass \"%s\"\n"
 			"    with param oc_id=\"%lu\"\n",
-			bas->bas_si->at_query,
+			bas->bas_bi->sql_at_query,
 			BACKSQL_OC_NAME( oc_map ),
 			*bas->bas_oc_id );
-		backsql_PrintErrors( SQL_NULL_HENV, bas->bas_dbh, bas->bas_sth, rc );
+		backsql_PrintErrors( bas->bas_bi->sql_db_env,
+				bas->bas_dbh, bas->bas_sth, rc );
 		bas->bas_rc = LDAP_OTHER;
 		return BACKSQL_AVL_STOP;
 	}
@@ -463,13 +464,13 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 					oc_map->bom_oc->soc_cname.bv_val, 0 );
 		}
 
-		if ( !BER_BVISNULL( &bas->bas_si->upper_func ) &&
+		if ( !BER_BVISNULL( &bas->bas_bi->sql_upper_func ) &&
 				BER_BVISNULL( &at_map->bam_sel_expr_u ) )
 		{
 			struct berbuf	bb = BB_NULL;
 
 			backsql_strfcat( &bb, "bcbc",
-					&bas->bas_si->upper_func,
+					&bas->bas_bi->sql_upper_func,
 					'(' /* ) */ ,
 					&at_map->bam_sel_expr,
 					/* ( */ ')' );
@@ -490,7 +491,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 
 
 int
-backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
+backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 {
 	SQLHSTMT 			sth;
 	RETCODE				rc;
@@ -504,31 +505,31 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 	/* 
 	 * TimesTen : See if the ldap_entries.dn_ru field exists in the schema
 	 */
-	if ( !BACKSQL_DONTCHECK_LDAPINFO_DN_RU( si ) ) {
+	if ( !BACKSQL_DONTCHECK_LDAPINFO_DN_RU( bi ) ) {
 		rc = backsql_Prepare( dbh, &sth, 
 				backsql_check_dn_ru_query, 0 );
 		if ( rc == SQL_SUCCESS ) {
 			/* Yes, the field exists */
-			si->bsql_flags |= BSQLF_HAS_LDAPINFO_DN_RU;
+			bi->sql_flags |= BSQLF_HAS_LDAPINFO_DN_RU;
    			Debug( LDAP_DEBUG_TRACE, "ldapinfo.dn_ru field exists "
 				"in the schema\n", 0, 0, 0 );
 		} else {
 			/* No such field exists */
-			si->bsql_flags &= ~BSQLF_HAS_LDAPINFO_DN_RU;
+			bi->sql_flags &= ~BSQLF_HAS_LDAPINFO_DN_RU;
 		}
 
 		SQLFreeStmt( sth, SQL_DROP );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): oc_query \"%s\"\n", 
-			si->oc_query, 0, 0 );
+			bi->sql_oc_query, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, si->oc_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_oc_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 			"error preparing oc_query: \"%s\"\n", 
-			si->oc_query, 0, 0 );
-		backsql_PrintErrors( si->db_env, dbh, sth, rc );
+			bi->sql_oc_query, 0, 0 );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		return LDAP_OTHER;
 	}
 
@@ -536,7 +537,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 			"error executing oc_query: \n", 0, 0, 0 );
-		backsql_PrintErrors( si->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		return LDAP_OTHER;
 	}
 
@@ -564,7 +565,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 			: ch_strdup( oc_row.cols[ 4 ] );
 
 		colnum = 5;
-		if ( BACKSQL_CREATE_NEEDS_SELECT( si ) ) {
+		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
 			colnum = 6;
 			oc_map->bom_create_keyval = ( oc_row.value_len[ 5 ] < 0 ) 
 				? NULL : ch_strdup( oc_row.cols[ 5 ] );
@@ -580,13 +581,13 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		 */
 
 		oc_map->bom_attrs = NULL;
-		if ( avl_insert( &si->oc_by_oc, oc_map, backsql_cmp_oc, avl_dup_error ) == -1 ) {
+		if ( avl_insert( &bi->sql_oc_by_oc, oc_map, backsql_cmp_oc, avl_dup_error ) == -1 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 					"duplicate objectClass \"%s\" in objectClass map\n",
 					oc_map->bom_oc->soc_cname.bv_val, 0, 0 );
 			return LDAP_OTHER;
 		}
-		if ( avl_insert( &si->oc_by_id, oc_map, backsql_cmp_oc_id, avl_dup_error ) == -1 ) {
+		if ( avl_insert( &bi->sql_oc_by_id, oc_map, backsql_cmp_oc_id, avl_dup_error ) == -1 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 					"duplicate objectClass \"%s\" in objectClass by ID map\n",
 					oc_map->bom_oc->soc_cname.bv_val, 0, 0 );
@@ -620,14 +621,14 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 
 	/* prepare for attribute fetching */
 	Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): at_query \"%s\"\n", 
-			si->at_query, 0, 0 );
+			bi->sql_at_query, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, si->at_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_at_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 			"error preparing at_query: \"%s\"\n", 
-			si->at_query, 0, 0 );
-		backsql_PrintErrors( si->db_env, dbh, sth, rc );
+			bi->sql_at_query, 0, 0 );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		return LDAP_OTHER;
 	}
 
@@ -635,23 +636,23 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 			"error binding param \"oc_id\" for at_query\n", 0, 0, 0 );
-		backsql_PrintErrors( si->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
 
-	bas.bas_si = si;
+	bas.bas_bi = bi;
 	bas.bas_dbh = dbh;
 	bas.bas_sth = sth;
 	bas.bas_oc_id = &oc_id;
 	bas.bas_rc = LDAP_SUCCESS;
 
-	(void)avl_apply( si->oc_by_oc, backsql_oc_get_attr_mapping,
+	(void)avl_apply( bi->sql_oc_by_oc, backsql_oc_get_attr_mapping,
 			&bas, BACKSQL_AVL_STOP, AVL_INORDER );
 
 	SQLFreeStmt( sth, SQL_DROP );
 
-	si->bsql_flags |= BSQLF_SCHEMA_LOADED;
+	bi->sql_flags |= BSQLF_SCHEMA_LOADED;
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_load_schema_map()\n", 0, 0, 0 );
 
@@ -659,7 +660,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 }
 
 backsql_oc_map_rec *
-backsql_oc2oc( backsql_info *si, ObjectClass *oc )
+backsql_oc2oc( backsql_info *bi, ObjectClass *oc )
 {
 	backsql_oc_map_rec	tmp, *res;
 
@@ -670,7 +671,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 #endif /* BACKSQL_TRACE */
 
 	tmp.bom_oc = oc;
-	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp, backsql_cmp_oc );
+	res = (backsql_oc_map_rec *)avl_find( bi->sql_oc_by_oc, &tmp, backsql_cmp_oc );
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
@@ -686,7 +687,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 }
 
 backsql_oc_map_rec *
-backsql_name2oc( backsql_info *si, struct berval *oc_name )
+backsql_name2oc( backsql_info *bi, struct berval *oc_name )
 {
 	backsql_oc_map_rec	tmp, *res;
 
@@ -701,7 +702,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 		return NULL;
 	}
 
-	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp, backsql_cmp_oc );
+	res = (backsql_oc_map_rec *)avl_find( bi->sql_oc_by_oc, &tmp, backsql_cmp_oc );
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
@@ -717,7 +718,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 }
 
 backsql_oc_map_rec *
-backsql_id2oc( backsql_info *si, unsigned long id )
+backsql_id2oc( backsql_info *bi, unsigned long id )
 {
 	backsql_oc_map_rec	tmp, *res;
  
@@ -727,7 +728,7 @@ backsql_id2oc( backsql_info *si, unsigned long id )
 #endif /* BACKSQL_TRACE */
 
 	tmp.bom_id = id;
-	res = (backsql_oc_map_rec *)avl_find( si->oc_by_id, &tmp,
+	res = (backsql_oc_map_rec *)avl_find( bi->sql_oc_by_id, &tmp,
 			backsql_cmp_oc_id );
 
 #ifdef BACKSQL_TRACE
@@ -918,11 +919,11 @@ backsql_free_oc( void *v_oc )
 }
 
 int
-backsql_destroy_schema_map( backsql_info *si )
+backsql_destroy_schema_map( backsql_info *bi )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>destroy_schema_map()\n", 0, 0, 0 );
-	avl_free( si->oc_by_oc, 0 );
-	avl_free( si->oc_by_id, backsql_free_oc );
+	avl_free( bi->sql_oc_by_oc, 0 );
+	avl_free( bi->sql_oc_by_id, backsql_free_oc );
 	Debug( LDAP_DEBUG_TRACE, "<==destroy_schema_map()\n", 0, 0, 0 );
 	return 0;
 }

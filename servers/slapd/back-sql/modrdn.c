@@ -233,12 +233,12 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug(	LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"executing delentry_query\n", 0, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, bi->delentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn(): "
 			"error preparing delentry_query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 
 		rs->sr_text = "SQL-backend error";
@@ -253,7 +253,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			"error binding entry ID parameter "
 			"for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -267,7 +267,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"failed to delete record from ldap_entries\n",
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -280,12 +280,12 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"executing insentry_query\n", 0, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, bi->insentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn(): "
 			"error preparing insentry_query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 
 		rs->sr_text = "SQL-backend error";
@@ -299,7 +299,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding DN parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -314,7 +314,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding objectClass ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -329,7 +329,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding parent ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -344,7 +344,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding entry ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -357,7 +357,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not insert ldap_entries record\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";

@@ -252,14 +252,14 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	/* always uppercase strings by now */
 #ifdef BACKSQL_UPPERCASE_FILTER
 	if ( SLAP_MR_ASSOCIATED( f->f_sub_desc->ad_type->sat_substr,
-			bi->bi_caseIgnoreMatch ) )
+			bi->sql_caseIgnoreMatch ) )
 #endif /* BACKSQL_UPPERCASE_FILTER */
 	{
 		casefold = 1;
 	}
 
 	if ( SLAP_MR_ASSOCIATED( f->f_sub_desc->ad_type->sat_substr,
-			bi->bi_telephoneNumberMatch ) )
+			bi->sql_telephoneNumberMatch ) )
 	{
 
 		struct berval	bv;
@@ -853,14 +853,14 @@ equality_match:;
 		/* always uppercase strings by now */
 #ifdef BACKSQL_UPPERCASE_FILTER
 		if ( SLAP_MR_ASSOCIATED( matching_rule,
-					bi->bi_caseIgnoreMatch ) )
+					bi->sql_caseIgnoreMatch ) )
 #endif /* BACKSQL_UPPERCASE_FILTER */
 		{
 			casefold = 1;
 		}
 
 		if ( SLAP_MR_ASSOCIATED( matching_rule,
-					bi->bi_telephoneNumberMatch ) )
+					bi->sql_telephoneNumberMatch ) )
 		{
 			struct berval	bv;
 			ber_len_t	i;
@@ -924,7 +924,7 @@ equality_match:;
 		/* always uppercase strings by now */
 #ifdef BACKSQL_UPPERCASE_FILTER
 		if ( SLAP_MR_ASSOCIATED( at->bam_ad->ad_type->sat_ordering,
-				bi->bi_caseIgnoreMatch ) )
+				bi->sql_caseIgnoreMatch ) )
 #endif /* BACKSQL_UPPERCASE_FILTER */
 		{
 			casefold = 1;
@@ -1031,9 +1031,9 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 			&bsi->bsi_oc->bom_keycol, 
 			',' );
 
-	if ( !BER_BVISNULL( &bi->strcast_func ) ) {
+	if ( !BER_BVISNULL( &bi->sql_strcast_func ) ) {
 		backsql_strfcat( &bsi->bsi_sel, "blbl",
-				&bi->strcast_func, 
+				&bi->sql_strcast_func, 
 				(ber_len_t)STRLENOF( "('" /* ') */ ),
 					"('" /* ') */ ,
 				&bsi->bsi_oc->bom_oc->soc_cname,
@@ -1078,7 +1078,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	case LDAP_SCOPE_BASE:
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
-					&bi->upper_func,
+					&bi->sql_upper_func,
 					(ber_len_t)STRLENOF( "(ldap_entries.dn)=?" ),
 						"(ldap_entries.dn)=?" );
 		} else {
@@ -1091,7 +1091,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	case BACKSQL_SCOPE_BASE_LIKE:
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
-					&bi->upper_func,
+					&bi->sql_upper_func,
 					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?" );
 		} else {
@@ -1110,7 +1110,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	case LDAP_SCOPE_SUBTREE:
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
-					&bi->upper_func,
+					&bi->sql_upper_func,
 					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?"  );
 		} else {
@@ -1246,7 +1246,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error preparing query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		bsi->bsi_status = LDAP_OTHER;
 		return BACKSQL_AVL_CONTINUE;
 	}
@@ -1291,7 +1291,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		if ( rc != SQL_SUCCESS ) {
          		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base_dn parameter\n", 0, 0, 0 );
-			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
+			backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
 			return BACKSQL_AVL_CONTINUE;
@@ -1351,7 +1351,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base_dn parameter (2)\n",
 				0, 0, 0 );
-			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
+			backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
 			return BACKSQL_AVL_CONTINUE;
@@ -1384,7 +1384,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	if ( !BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error executing query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		bsi->bsi_status = LDAP_OTHER;
 		return BACKSQL_AVL_CONTINUE;
@@ -1535,7 +1535,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		( op->ors_limit == NULL	/* isroot == FALSE */ ? -2 : 
 		( op->ors_limit->lms_s_unchecked == -1 ? -2 :
 		( op->ors_limit->lms_s_unchecked ) ) );
-	avl_apply( bi->oc_by_oc, backsql_oc_get_candidates,
+	avl_apply( bi->sql_oc_by_oc, backsql_oc_get_candidates,
 			&srch_info, BACKSQL_AVL_STOP, AVL_INORDER );
 	if ( op->ors_limit != NULL	/* isroot == TRUE */
 			&& op->ors_limit->lms_s_unchecked != -1

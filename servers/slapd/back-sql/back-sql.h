@@ -78,12 +78,9 @@
 #include "sql-types.h"
 
 /*
- * PostgreSQL 7.0 doesn't work without :(
- */
-#define	BACKSQL_REALLOC_STMT
-
-/*
  * Better use the standard length of 8192 (as of slap.h)?
+ *
+ * NOTE: must be consistent with definition in ldap_entries table
  */
 /* #define BACKSQL_MAX_DN_LEN	SLAP_LDAPDN_MAXLEN */
 #define BACKSQL_MAX_DN_LEN	255
@@ -96,23 +93,37 @@
 
 /*
  * define to enable varchars as unique keys in user tables
+ *
+ * by default integers are used (and recommended)
+ * for performances.  Integers are used anyway in back-sql
+ * related tables.
  */
 #undef BACKSQL_ARBITRARY_KEY
 
 /*
  * define to the appropriate aliasing string
+ *
+ * some RDBMSes tolerate (or require) that " AS " is not used
+ * when aliasing tables/columns
  */
 #define BACKSQL_ALIASING	"AS "
 /* #define	BACKSQL_ALIASING	"" */
 
 /*
  * define to the appropriate quoting char
+ *
+ * some RDBMSes tolerate/require that the aliases be enclosed
+ * in quotes.  This is especially true for those that do not
+ * allow keywords used as aliases.
  */
 /* #define BACKSQL_ALIASING_QUOTE	'"' */
 /* #define BACKSQL_ALIASING_QUOTE	'\'' */
 
 /*
  * API
+ *
+ * a simple mechanism to allow DN mucking between the LDAP
+ * and the stored string representation.
  */
 typedef struct backsql_api {
 	char			*ba_name;
@@ -286,35 +297,39 @@ typedef struct backsql_srch_info {
  * Backend private data structure
  */
 typedef struct {
-	char		*dbhost;
-	int		dbport;
-	char		*dbuser;
-	char		*dbpasswd;
-	char		*dbname;
+	char		*sql_dbhost;
+	int		sql_dbport;
+	char		*sql_dbuser;
+	char		*sql_dbpasswd;
+	char		*sql_dbname;
+
  	/*
 	 * SQL condition for subtree searches differs in syntax:
 	 * "LIKE CONCAT('%',?)" or "LIKE '%'+?" or "LIKE '%'||?"
-	 * or smth else 
+	 * or smtg else 
 	 */
-	struct berval	subtree_cond;
-	struct berval	children_cond;
-	char		*oc_query, *at_query;
-	char		*insentry_query,
-			*delentry_query,
-			*delobjclasses_query,
-			*delreferrals_query;
-	char		*id_query;
-	char		*has_children_query;
+	struct berval	sql_subtree_cond;
+	struct berval	sql_children_cond;
+	char		*sql_oc_query,
+			*sql_at_query;
+	char		*sql_insentry_query,
+			*sql_delentry_query,
+			*sql_delobjclasses_query,
+			*sql_delreferrals_query;
+	char		*sql_id_query;
+	char		*sql_has_children_query;
 
-	MatchingRule	*bi_caseIgnoreMatch;
-	MatchingRule	*bi_telephoneNumberMatch;
+	MatchingRule	*sql_caseIgnoreMatch;
+	MatchingRule	*sql_telephoneNumberMatch;
 
-	struct berval	upper_func;
-	struct berval	upper_func_open;
-	struct berval	upper_func_close;
-	BerVarray	concat_func;
+	struct berval	sql_upper_func;
+	struct berval	sql_upper_func_open;
+	struct berval	sql_upper_func_close;
+	BerVarray	sql_concat_func;
 
-	unsigned int	bsql_flags;
+	struct berval	sql_strcast_func;
+
+	unsigned int	sql_flags;
 #define	BSQLF_SCHEMA_LOADED		0x0001
 #define	BSQLF_UPPER_NEEDS_CAST		0x0002
 #define	BSQLF_CREATE_NEEDS_SELECT	0x0004
@@ -325,33 +340,32 @@ typedef struct {
 #define BSQLF_ALLOW_ORPHANS		0x0080
 
 #define	BACKSQL_SCHEMA_LOADED(si) \
-	((si)->bsql_flags & BSQLF_SCHEMA_LOADED)
+	((si)->sql_flags & BSQLF_SCHEMA_LOADED)
 #define BACKSQL_UPPER_NEEDS_CAST(si) \
-	((si)->bsql_flags & BSQLF_UPPER_NEEDS_CAST)
+	((si)->sql_flags & BSQLF_UPPER_NEEDS_CAST)
 #define BACKSQL_CREATE_NEEDS_SELECT(si) \
-	((si)->bsql_flags & BSQLF_CREATE_NEEDS_SELECT)
+	((si)->sql_flags & BSQLF_CREATE_NEEDS_SELECT)
 #define BACKSQL_FAIL_IF_NO_MAPPING(si) \
-	((si)->bsql_flags & BSQLF_FAIL_IF_NO_MAPPING)
+	((si)->sql_flags & BSQLF_FAIL_IF_NO_MAPPING)
 #define BACKSQL_HAS_LDAPINFO_DN_RU(si) \
-	((si)->bsql_flags & BSQLF_HAS_LDAPINFO_DN_RU)
+	((si)->sql_flags & BSQLF_HAS_LDAPINFO_DN_RU)
 #define BACKSQL_DONTCHECK_LDAPINFO_DN_RU(si) \
-	((si)->bsql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
+	((si)->sql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
 #define BACKSQL_USE_REVERSE_DN(si) \
-	((si)->bsql_flags & BSQLF_USE_REVERSE_DN)
+	((si)->sql_flags & BSQLF_USE_REVERSE_DN)
 #define BACKSQL_CANUPPERCASE(si) \
-	((si)->upper_func.bv_val)
+	(!BER_BVISNULL( &(si)->sql_upper_func ))
 #define BACKSQL_ALLOW_ORPHANS(si) \
-	((si)->bsql_flags & BSQLF_ALLOW_ORPHANS)
+	((si)->sql_flags & BSQLF_ALLOW_ORPHANS)
 	
-	struct berval	strcast_func;
-	Avlnode		*db_conns;
-	Avlnode		*oc_by_oc;
-	Avlnode		*oc_by_id;
-	ldap_pvt_thread_mutex_t		dbconn_mutex;
-	ldap_pvt_thread_mutex_t		schema_mutex;
- 	SQLHENV		db_env;
+	Avlnode		*sql_db_conns;
+	Avlnode		*sql_oc_by_oc;
+	Avlnode		*sql_oc_by_id;
+	ldap_pvt_thread_mutex_t		sql_dbconn_mutex;
+	ldap_pvt_thread_mutex_t		sql_schema_mutex;
+ 	SQLHENV		sql_db_env;
 
-	backsql_api	*si_api;
+	backsql_api	*sql_api;
 } backsql_info;
 
 #define BACKSQL_SUCCESS( rc ) \

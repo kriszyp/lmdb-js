@@ -98,6 +98,8 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 				"SQL_CONCUR_ROWVER) failed:\n", 
 				0, 0, 0 );
 			backsql_PrintErrors( SQL_NULL_HENV, dbh, *sth, rc );
+			SQLFreeStmt( *sth, SQL_DROP );
+			return rc;
 		}
 	}
 
@@ -108,6 +110,8 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 		rc = SQLSetStmtOption( *sth, SQL_QUERY_TIMEOUT, timeout );
 		if ( rc != SQL_SUCCESS ) {
 			backsql_PrintErrors( SQL_NULL_HENV, dbh, *sth, rc );
+			SQLFreeStmt( *sth, SQL_DROP );
+			return rc;
 		}
 	}
 
@@ -267,13 +271,13 @@ backsql_close_db_conn( backsql_db_conn *conn )
 }
 
 int
-backsql_init_db_env( backsql_info *si )
+backsql_init_db_env( backsql_info *bi )
 {
 	RETCODE		rc;
 	int		ret = SQL_SUCCESS;
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_init_db_env()\n", 0, 0, 0 );
-	rc = SQLAllocEnv( &si->db_env );
+	rc = SQLAllocEnv( &bi->sql_db_env );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "init_db_env: SQLAllocEnv failed:\n",
 				0, 0, 0 );
@@ -286,7 +290,7 @@ backsql_init_db_env( backsql_info *si )
 }
 
 int
-backsql_free_db_env( backsql_info *si )
+backsql_free_db_env( backsql_info *bi )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_env()\n", 0, 0, 0 );
 
@@ -305,7 +309,7 @@ backsql_free_db_env( backsql_info *si )
 }
 
 static int
-backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn **pdbc )
+backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn **pdbc )
 {
 	/* TimesTen */
 	char			DBMSName[ 32 ];
@@ -318,26 +322,26 @@ backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn()\n", 0, 0, 0 );
 	dbc = (backsql_db_conn *)ch_calloc( 1, sizeof( backsql_db_conn ) );
 	dbc->ldap_cid = ldap_cid;
-	rc = SQLAllocConnect( si->db_env, &dbc->dbh );
+	rc = SQLAllocConnect( bi->sql_db_env, &dbc->dbh );
 	if ( !BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLAllocConnect() failed:\n", 0, 0, 0 );
-		backsql_PrintErrors( si->db_env, SQL_NULL_HDBC,
+		backsql_PrintErrors( bi->sql_db_env, SQL_NULL_HDBC,
 				SQL_NULL_HENV, rc );
 		return LDAP_UNAVAILABLE;
 	}
 
 	rc = SQLConnect( dbc->dbh,
-			(SQLCHAR*)si->dbname, SQL_NTS,
-			(SQLCHAR*)si->dbuser, SQL_NTS,
-			(SQLCHAR*)si->dbpasswd, SQL_NTS );
+			(SQLCHAR*)bi->sql_dbname, SQL_NTS,
+			(SQLCHAR*)bi->sql_dbuser, SQL_NTS,
+			(SQLCHAR*)bi->sql_dbpasswd, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLConnect() to database \"%s\" as user \"%s\" "
-			"%s:\n", si->dbname, si->dbuser,
+			"%s:\n", bi->sql_dbname, bi->sql_dbuser,
 			rc == SQL_SUCCESS_WITH_INFO ?
 			"succeeded with info" : "failed" );
-		backsql_PrintErrors( si->db_env, dbc->dbh, SQL_NULL_HENV, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
 		if ( rc != SQL_SUCCESS_WITH_INFO ) {
 			return LDAP_UNAVAILABLE;
 		}
@@ -354,7 +358,7 @@ backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn 
 	 * remember that fact for later use.
 	 */
 	/* Assume until proven otherwise */
-	si->bsql_flags &= ~BSQLF_USE_REVERSE_DN;
+	bi->sql_flags &= ~BSQLF_USE_REVERSE_DN;
 	DBMSName[ 0 ] = '\0';
 	rc = SQLGetInfo( dbc->dbh, SQL_DBMS_NAME, (PTR)&DBMSName,
 			sizeof( DBMSName ), NULL );
@@ -363,25 +367,25 @@ backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn 
 				strcmp( DBMSName, "Front-Tier" ) == 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 				"TimesTen database!\n", 0, 0, 0 );
-			si->bsql_flags |= BSQLF_USE_REVERSE_DN;
+			bi->sql_flags |= BSQLF_USE_REVERSE_DN;
 		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLGetInfo() failed:\n", 0, 0, 0 );
-		backsql_PrintErrors( si->db_env, dbc->dbh, SQL_NULL_HENV, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
 		return rc;
 	}
 	/* end TimesTen */
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(): "
 		"connected, adding to tree\n", 0, 0, 0 );
-	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	if ( avl_insert( &si->db_conns, dbc, backsql_cmp_connid, avl_dup_error ) ) {
+	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
+	if ( avl_insert( &bi->sql_db_conns, dbc, backsql_cmp_connid, avl_dup_error ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"duplicate connection ID\n", 0, 0, 0 );
 		return LDAP_OTHER;
 	}
-	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
+	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn()\n", 0, 0, 0 );
 
 	*pdbc = dbc;
@@ -392,15 +396,15 @@ backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn 
 int
 backsql_free_db_conn( Operation *op )
 {
-	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
+	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	backsql_db_conn		tmp = { 0 },
 				*conn;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
 	tmp.ldap_cid = op->o_connid;
-	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	conn = avl_delete( &si->db_conns, &tmp, backsql_cmp_connid );
-	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
+	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
+	conn = avl_delete( &bi->sql_db_conns, &tmp, backsql_cmp_connid );
+	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
 
 	/*
 	 * we have one thread per connection, as I understand -- so we can
@@ -418,7 +422,7 @@ backsql_free_db_conn( Operation *op )
 int
 backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 {
-	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
+	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	backsql_db_conn		*dbc,
 				tmp = { 0 };
 	int			rc = LDAP_SUCCESS;
@@ -434,9 +438,9 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 	 * we have one thread per connection, as I understand -- 
 	 * so we do not need locking here
 	 */
-	dbc = avl_find( si->db_conns, &tmp, backsql_cmp_connid );
+	dbc = avl_find( bi->sql_db_conns, &tmp, backsql_cmp_connid );
 	if ( !dbc ) {
-		rc = backsql_open_db_conn( si, op->o_connid, &dbc );
+		rc = backsql_open_db_conn( bi, op->o_connid, &dbc );
 		if ( rc != LDAP_SUCCESS) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
 				"could not get connection handle "
@@ -445,18 +449,18 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 		}
 	}
 
-	ldap_pvt_thread_mutex_lock( &si->schema_mutex );
-	if ( !BACKSQL_SCHEMA_LOADED( si ) ) {
+	ldap_pvt_thread_mutex_lock( &bi->sql_schema_mutex );
+	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
 			"first call -- reading schema map\n", 0, 0, 0 );
-		rc = backsql_load_schema_map( si, dbc->dbh );
+		rc = backsql_load_schema_map( bi, dbc->dbh );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
+			ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
 			backsql_free_db_conn( op );
 			return rc;
 		}
 	}
-	ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
+	ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
 
 	*dbh = dbc->dbh;
 

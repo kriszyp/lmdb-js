@@ -31,11 +31,11 @@
 static backsql_api *backsqlapi;
 
 int
-backsql_api_config( backsql_info *si, const char *name )
+backsql_api_config( backsql_info *bi, const char *name )
 {
 	backsql_api	*ba;
 
-	assert( si );
+	assert( bi );
 	assert( name );
 
 	for ( ba = backsqlapi; ba; ba = ba->ba_next ) {
@@ -44,8 +44,8 @@ backsql_api_config( backsql_info *si, const char *name )
 
 			ba2 = ch_malloc( sizeof( backsql_api ) );
 			*ba2 = *ba;
-			ba2->ba_next = si->si_api;
-			si->si_api = ba2;
+			ba2->ba_next = bi->sql_api;
+			bi->sql_api = ba2;
 			return 0;
 		}
 	}
@@ -81,12 +81,12 @@ backsql_api_register( backsql_api *ba )
 int
 backsql_api_dn2odbc( Operation *op, SlapReply *rs, struct berval *dn )
 {
-	backsql_info	*si = (backsql_info *)op->o_bd->be_private;
+	backsql_info	*bi = (backsql_info *)op->o_bd->be_private;
 	backsql_api	*ba;
 	int		rc;
 	struct berval	bv;
 
-	ba = si->si_api;
+	ba = bi->sql_api;
 
 	if ( ba == NULL ) {
 		return 0;
@@ -112,12 +112,12 @@ backsql_api_dn2odbc( Operation *op, SlapReply *rs, struct berval *dn )
 int
 backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn )
 {
-	backsql_info	*si = (backsql_info *)op->o_bd->be_private;
+	backsql_info	*bi = (backsql_info *)op->o_bd->be_private;
 	backsql_api	*ba;
 	int		rc;
 	struct berval	bv;
 
-	ba = si->si_api;
+	ba = bi->sql_api;
 
 	if ( ba == NULL ) {
 		return 0;

@@ -175,7 +175,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"   backsql_delete(): "
 			"error preparing delete query\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -190,7 +190,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 				"   backsql_delete(): "
 				"error binding output parameter for objectClass %s\n",
 				oc->bom_oc->soc_cname.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, 
+			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
@@ -209,7 +209,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"   backsql_delete(): "
 			"error binding keyval parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -222,7 +222,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"delete_proc execution failed\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -231,13 +231,13 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete "auxiliary" objectClasses, if any... */
-	rc = backsql_Prepare( dbh, &sth, bi->delobjclasses_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delobjclasses_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "
 			"error preparing ldap_entry_objclasses delete query\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -251,7 +251,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"error binding auxiliary objectClasses "
 			"entry ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -272,7 +272,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"failed to delete record from ldap_entry_objclasses\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -281,13 +281,13 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete referrals, if any... */
-	rc = backsql_Prepare( dbh, &sth, bi->delreferrals_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delreferrals_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "
 			"error preparing ldap_referrals delete query\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -301,7 +301,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"error binding referrals entry ID parameter "
 			"for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -322,7 +322,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"failed to delete record from ldap_referrals\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -331,13 +331,13 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete entry... */
-	rc = backsql_Prepare( dbh, &sth, bi->delentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "
 			"error preparing ldap_entries delete query\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -351,7 +351,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"error binding entry ID parameter "
 			"for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -365,7 +365,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"failed to delete record from ldap_entries\n", 
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";

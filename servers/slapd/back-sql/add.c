@@ -62,7 +62,7 @@ backsql_modify_delete_all_values(
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
 			"error preparing query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
 
 		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -78,7 +78,7 @@ backsql_modify_delete_all_values(
 			"   backsql_modify_delete_all_values(): "
 			"error binding key value parameter\n",
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
 		SQLFreeStmt( asth, SQL_DROP );
 
@@ -96,7 +96,7 @@ backsql_modify_delete_all_values(
 			"   backsql_modify_delete_all_values(): "
 			"error executing attribute query\n",
 			0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
 		SQLFreeStmt( asth, SQL_DROP );
 
@@ -129,7 +129,7 @@ backsql_modify_delete_all_values(
 					"   backsql_modify_delete_all_values(): "
 					"error preparing query %s\n",
 					at->bam_delete_proc, 0, 0 );
-				backsql_PrintErrors( bi->db_env, dbh, 
+				backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -149,7 +149,7 @@ backsql_modify_delete_all_values(
 						"   backsql_modify_delete_all_values(): "
 						"error binding output parameter for %s[%d]\n",
 						at->bam_ad->ad_cname.bv_val, i, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, 
+					backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
@@ -172,7 +172,7 @@ backsql_modify_delete_all_values(
 					"   backsql_modify_delete_all_values(): "
 					"error binding keyval parameter for %s[%d]\n",
 					at->bam_ad->ad_cname.bv_val, i, 0 );
-				backsql_PrintErrors( bi->db_env, dbh, 
+				backsql_PrintErrors( bi->sql_db_env, dbh, 
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
@@ -207,7 +207,7 @@ backsql_modify_delete_all_values(
 					"   backsql_modify_delete_all_values(): "
 					"error binding value parameter for %s[%d]\n",
 					at->bam_ad->ad_cname.bv_val, i, 0 );
-				backsql_PrintErrors( bi->db_env, dbh, 
+				backsql_PrintErrors( bi->sql_db_env, dbh, 
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
@@ -231,7 +231,7 @@ backsql_modify_delete_all_values(
 					"delete_proc "
 					"execution failed\n",
 					0, 0, 0 );
-				backsql_PrintErrors( bi->db_env,
+				backsql_PrintErrors( bi->sql_db_env,
 						dbh, sth, rc );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -414,7 +414,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error preparing add query\n", 
 						0, 0, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+					backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 					rs->sr_err = LDAP_OTHER;
 					rs->sr_text = "SQL-backend error";
@@ -430,7 +430,7 @@ add_only:;
 							"   backsql_modify_internal(): "
 							"error binding output parameter for %s[%d]\n",
 							at->bam_ad->ad_cname.bv_val, i, 0 );
-						backsql_PrintErrors( bi->db_env, dbh, 
+						backsql_PrintErrors( bi->sql_db_env, dbh, 
 							sth, rc );
 						SQLFreeStmt( sth, SQL_DROP );
 
@@ -450,7 +450,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error binding keyval parameter for %s[%d]\n",
 						at->bam_ad->ad_cname.bv_val, i, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, 
+					backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
@@ -481,7 +481,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error binding value parameter for %s[%d]\n",
 						at->bam_ad->ad_cname.bv_val, i, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, 
+					backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
@@ -501,7 +501,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"add_proc execution failed\n",
 						0, 0, 0 );
-					backsql_PrintErrors( bi->db_env,
+					backsql_PrintErrors( bi->sql_db_env,
 							dbh, sth, rc );
 
 					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -557,7 +557,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error preparing delete query\n", 
 						0, 0, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+					backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 					rs->sr_err = LDAP_OTHER;
 					rs->sr_text = "SQL-backend error";
@@ -573,7 +573,7 @@ add_only:;
 							"   backsql_modify_internal(): "
 							"error binding output parameter for %s[%d]\n",
 							at->bam_ad->ad_cname.bv_val, i, 0 );
-						backsql_PrintErrors( bi->db_env, dbh, 
+						backsql_PrintErrors( bi->sql_db_env, dbh, 
 							sth, rc );
 						SQLFreeStmt( sth, SQL_DROP );
 
@@ -593,7 +593,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error binding keyval parameter for %s[%d]\n",
 						at->bam_ad->ad_cname.bv_val, i, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, 
+					backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
@@ -624,7 +624,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"error binding value parameter for %s[%d]\n",
 						at->bam_ad->ad_cname.bv_val, i, 0 );
-					backsql_PrintErrors( bi->db_env, dbh, 
+					backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
@@ -645,7 +645,7 @@ add_only:;
 						"   backsql_modify_internal(): "
 						"delete_proc execution "
 						"failed\n", 0, 0, 0 );
-					backsql_PrintErrors( bi->db_env,
+					backsql_PrintErrors( bi->sql_db_env,
 							dbh, sth, rc );
 
 					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -777,7 +777,7 @@ backsql_add_attr(
 					"   backsql_add_attr(): "
 					"error binding output parameter for %s[%d]\n",
 					at_rec->bam_ad->ad_cname.bv_val, i, 0 );
-				backsql_PrintErrors( bi->db_env, dbh, 
+				backsql_PrintErrors( bi->sql_db_env, dbh, 
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
@@ -802,7 +802,7 @@ backsql_add_attr(
 				"   backsql_add_attr(): "
 				"error binding keyval parameter for %s[%d]\n",
 				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, 
+			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
@@ -827,7 +827,7 @@ backsql_add_attr(
 				"   backsql_add_attr(): "
 				"error binding value parameter for %s[%d]\n",
 				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, 
+			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
@@ -853,7 +853,7 @@ backsql_add_attr(
 				"   backsql_add_attr(\"%s\"): "
 				"add_proc execution failed\n", 
 				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 				SQLFreeStmt( sth, SQL_DROP );
@@ -1110,7 +1110,7 @@ backsql_add( Operation *op, SlapReply *rs )
 				"   backsql_add_attr(): "
 				"error binding keyval parameter for objectClass %s\n",
 				oc->bom_oc->soc_cname.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, 
+			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
@@ -1127,7 +1127,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"create_proc execution failed\n",
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc);
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -1168,7 +1168,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result evaluation failed\n",
 				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
+			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
@@ -1178,7 +1178,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result is bogus (ncols=%d)\n",
 				op->oq_add.rs_e->e_name.bv_val, ncols, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
+			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
@@ -1214,7 +1214,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result is empty?\n",
 				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->db_env, dbh, sth, rc);
+			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
@@ -1255,7 +1255,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 	}
 
-	rc = backsql_Prepare( dbh, &sth, bi->insentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -1268,7 +1268,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding DN parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -1283,7 +1283,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding objectClass ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -1298,7 +1298,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding parent ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -1313,7 +1313,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"   backsql_add_attr(): "
 			"error binding entry ID parameter for objectClass %s\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
+		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 
@@ -1323,7 +1323,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
-			bi->insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );
+			bi->sql_insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
 			"parent_id=%s, keyval=%ld\n",
@@ -1338,7 +1338,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not insert ldap_entries record\n",
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		
 		/*
 		 * execute delete_proc to delete data added !!!

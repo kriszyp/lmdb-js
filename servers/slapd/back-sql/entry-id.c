@@ -95,14 +95,14 @@ backsql_dn2id(
 	}
 	
 	/* begin TimesTen */
-	Debug(LDAP_DEBUG_TRACE, "id_query \"%s\"\n", bi->id_query, 0, 0);
-	assert( bi->id_query );
- 	rc = backsql_Prepare( dbh, &sth, bi->id_query, 0 );
+	Debug(LDAP_DEBUG_TRACE, "id_query \"%s\"\n", bi->sql_id_query, 0, 0);
+	assert( bi->sql_id_query );
+ 	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"backsql_dn2id(): error preparing SQL:\n%s", 
-			bi->id_query, 0, 0);
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+			bi->sql_id_query, 0, 0);
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -143,7 +143,7 @@ backsql_dn2id(
 		Debug( LDAP_DEBUG_TRACE, "backsql_dn2id(): "
 			"error binding dn=\"%s\" parameter:\n", 
 			toBind.bv_val, 0, 0 );
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -152,8 +152,8 @@ backsql_dn2id(
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_dn2id(): "
 			"error executing query (\"%s\", \"%s\"):\n", 
-			bi->id_query, toBind.bv_val, 0 );
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+			bi->sql_id_query, toBind.bv_val, 0 );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -215,14 +215,14 @@ backsql_count_children(
 	
 	/* begin TimesTen */
 	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
-			bi->has_children_query, 0, 0);
-	assert( bi->has_children_query );
- 	rc = backsql_Prepare( dbh, &sth, bi->has_children_query, 0 );
+			bi->sql_has_children_query, 0, 0);
+	assert( bi->sql_has_children_query );
+ 	rc = backsql_Prepare( dbh, &sth, bi->sql_has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"backsql_count_children(): error preparing SQL:\n%s", 
-			bi->has_children_query, 0, 0);
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+			bi->sql_has_children_query, 0, 0);
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -233,7 +233,7 @@ backsql_count_children(
 		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error binding dn=\"%s\" parameter:\n", 
 			dn->bv_val, 0, 0 );
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -242,8 +242,8 @@ backsql_count_children(
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error executing query (\"%s\", \"%s\"):\n", 
-			bi->has_children_query, dn->bv_val, 0 );
-		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
+			bi->sql_has_children_query, dn->bv_val, 0 );
+		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
@@ -323,7 +323,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error preparing query: %s\n", at->bam_query, 0, 0 );
-		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		return 1;
 	}
 
@@ -352,7 +352,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error executing attribute query \"%s\"\n",
 			at->bam_query, 0, 0 );
-		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
+		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
 	}
