@@ -1744,6 +1744,11 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sop->s_sid = srs->sr_state.sid;
 		sop->s_rid = srs->sr_state.rid;
 		sop->s_inuse = 1;
+
+		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		sop->s_next = si->si_ops;
+		si->si_ops = sop;
+		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
 
 	/* snapshot the ctxcsn */
@@ -1777,11 +1782,11 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			if ( validate( ad->ad_type->sat_syntax, &timestamp ))
 				break;
 			valid = 1;
+			break;
 		}
+		/* Skip any present searches, there's nothing to compare */
 		if ( !valid ) {
-			if ( sop ) ch_free( sop );
-			send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
-			return rs->sr_err;
+			goto shortcut;
 		}
 		/* If just Refreshing and nothing has changed, shortcut it */
 		if ( bvmatch( srs->sr_state.ctxcsn, &ctxcsn )) {
@@ -1840,12 +1845,6 @@ shortcut:
 	 */
 	if ( sop ) {
 		sop->s_filterstr= op->ors_filterstr;
-
-		/* insert record of psearch now */
-		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-		sop->s_next = si->si_ops;
-		si->si_ops = sop;
-		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
 
 	fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
