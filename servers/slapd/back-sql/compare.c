@@ -67,7 +67,9 @@ backsql_compare( Operation *op, SlapReply *rs )
 		anlistp = anlist;
 	}
 
-
+	/*
+	 * FIXME: deal with matchedDN/referral?
+	 */
 	rc = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
@@ -79,19 +81,6 @@ backsql_compare( Operation *op, SlapReply *rs )
 			0, 0, 0 );
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		goto return_results;
-
-	} else {
-		Entry	e = { 0 };
-
-		e.e_name = bsi.bsi_base_id.eid_dn;
-		e.e_nname = bsi.bsi_base_id.eid_ndn;
-
-		/* FIXME: need the whole entry (ITS#3480) */
-		if ( ! access_allowed( op, &e, slap_schema.si_ad_entry, NULL,
-					ACL_DISCLOSE, NULL ) ) {
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-			goto return_results;
-		}
 	}
 
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
@@ -126,11 +115,18 @@ backsql_compare( Operation *op, SlapReply *rs )
 	}
 	e = &user_entry;
 
-	/* FIXME: need the whole entry (ITS#3480) */
 	if ( ! access_allowed( op, e, op->oq_compare.rs_ava->aa_desc, 
 				&op->oq_compare.rs_ava->aa_value,
 				ACL_COMPARE, NULL ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+		if ( ! access_allowed( op, &e, slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) ) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+		{
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 		goto return_results;
 	}
 

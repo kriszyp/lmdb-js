@@ -277,9 +277,15 @@ backsql_init_search(
 
 	bsi->bsi_status = rc;
 
-	if ( rc != LDAP_SUCCESS ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+	case LDAP_REFERRAL:
+		break;
+
+	default:
 		bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
 				bsi->bsi_op->o_tmpmemctx );
+		break;
 	}
 
 	return rc;
