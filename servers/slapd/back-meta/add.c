@@ -40,7 +40,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	int i, candidate = -1;
 	Attribute *a;
 	LDAPMod **attrs;
-	struct berval mdn = { 0, NULL }, mapped;
+	struct berval mdn = BER_BVNULL, mapped;
 	dncookie dc;
 
 #ifdef NEW_LOGGING

@@ -50,8 +50,8 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	struct metaconn		*lc;
 	int			rc = 0;
 	int			candidate = -1;
-	struct berval		mdn = { 0, NULL },
-				mnewSuperior = { 0, NULL };
+	struct berval		mdn = BER_BVNULL,
+				mnewSuperior = BER_BVNULL;
 	dncookie		dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,

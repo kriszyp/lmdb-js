@@ -37,7 +37,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 	int candidate = -1;
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 	dncookie dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,

@@ -191,7 +191,7 @@ meta_back_do_single_bind(
 )
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct berval	mdn = { 0, NULL };
+	struct berval	mdn = BER_BVNULL;
 	ber_int_t	msgid;
 	dncookie	dc;
 	struct metasingleconn	*lsc = &lc->conns[ candidate ];

@@ -38,7 +38,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	struct metaconn *lc;
 	struct metasingleconn *lsc;
 	char *match = NULL, *err = NULL;
-	struct berval mmatch = { 0, NULL };
+	struct berval mmatch = BER_BVNULL;
 	int candidates = 0, last = 0, i, count = 0, rc;
        	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
 	int *msgid;
@@ -70,7 +70,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.ctx = "compareDN";
 
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		struct berval mdn = { 0, NULL };
+		struct berval mdn = BER_BVNULL;
 		struct berval mapped_attr = op->oq_compare.rs_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->oq_compare.rs_ava->aa_value;
 
