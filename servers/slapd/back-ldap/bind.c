@@ -122,8 +122,10 @@ ldap_back_bind(
 	}
 
 	if ( li->savecred ) {
-		if ( lc->cred.bv_val )
+		if ( lc->cred.bv_val ) {
+			memset( lc->cred.bv_val, 0, lc->cred.bv_len );
 			ch_free( lc->cred.bv_val );
+		}
 		ber_dupbv( &lc->cred, cred );
 		ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
 	}
@@ -154,7 +156,7 @@ ldap_back_conn_cmp(
 	const struct ldapconn *lc1 = (const struct ldapconn *)c1;
 	const struct ldapconn *lc2 = (const struct ldapconn *)c2;
 	
-	return ( ( lc1->conn < lc2->conn ) ? -1 : ( ( lc1->conn > lc2-> conn ) ? 1 : 0 ) );
+	return SLAP_PTRCMP(lc1->conn, lc2->conn);
 }
 
 /*

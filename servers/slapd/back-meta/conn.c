@@ -97,8 +97,7 @@ meta_back_conn_cmp(
 	struct metaconn *lc1 = ( struct metaconn * )c1;
         struct metaconn *lc2 = ( struct metaconn * )c2;
 	
-	return ( ( lc1->conn < lc2->conn ) ? -1 :
-			( ( lc1->conn > lc2-> conn ) ? 1 : 0 ) );
+	return SLAP_PTRCMP( lc1->conn, lc2->conn );
 }
 
 /*
