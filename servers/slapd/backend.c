@@ -751,7 +751,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 #if defined( LDAP_SLAPI )
 		if ( op->o_pb ) {
 			int rc;
-			if ( i == 0 ) slapi_x_pblock_set_operation( op->o_pb, op );
+			if ( i == 0 ) slapi_int_pblock_set_operation( op->o_pb, op );
 			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
 			rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
 					(Slapi_PBlock *)op->o_pb );

@@ -392,10 +392,10 @@ do_modify(
 #if defined( LDAP_SLAPI )
 #define pb	op->o_pb
 	if ( pb ) {
-		slapi_x_pblock_set_operation( pb, op );
+		slapi_int_pblock_set_operation( pb, op );
 		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-		modv = slapi_x_modifications2ldapmods( &modlist );
+		modv = slapi_int_modifications2ldapmods( &modlist );
 		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
 		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
@@ -415,7 +415,7 @@ do_modify(
 				 rs->sr_err == LDAP_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 			}
-			slapi_x_free_ldapmods( modv );
+			slapi_int_free_ldapmods( modv );
 			modv = NULL;
 			goto cleanup;
 		}
@@ -425,11 +425,11 @@ do_modify(
 		 * modification array, so we need to convert it back to
 		 * a Modification list.
 		 *
-		 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
+		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
 		 * we don't need to free it.
 		 */
 		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-		modlist = slapi_x_ldapmods2modifications( modv );
+		modlist = slapi_int_ldapmods2modifications( modv );
 	}
 
 	/*
@@ -437,7 +437,7 @@ do_modify(
 	 * (for example, a plugin might store some attributes elsewhere
 	 * and remove them from the modification list; if only those
 	 * attribute types were included in the modification request,
-	 * then slapi_x_ldapmods2modifications() above will return
+	 * then slapi_int_ldapmods2modifications() above will return
 	 * NULL).
 	 *
 	 * However, the post-operation plugin should still be 
@@ -566,7 +566,7 @@ cleanup:
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	if ( modlist != NULL ) slap_mods_free( modlist );
 #if defined( LDAP_SLAPI )
-	if ( modv != NULL ) slapi_x_free_ldapmods( modv );
+	if ( modv != NULL ) slapi_int_free_ldapmods( modv );
 #endif
 	return rs->sr_err;
 }

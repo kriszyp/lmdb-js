@@ -222,20 +222,20 @@ extern int slapi_audit_init_header( Connection *conn, Operation *op,
 extern int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn, 
 						Operation *op, int rc);
 
-extern int slapi_x_pblock_set_operation( Slapi_PBlock *pb, Operation *op );
+extern int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op );
 
-extern LDAPMod **slapi_x_modifications2ldapmods(Modifications **);
-extern Modifications *slapi_x_ldapmods2modifications(LDAPMod **);
-extern void slapi_x_free_ldapmods(LDAPMod **);
+extern LDAPMod **slapi_int_modifications2ldapmods(Modifications **);
+extern Modifications *slapi_int_ldapmods2modifications(LDAPMod **);
+extern void slapi_int_free_ldapmods(LDAPMod **);
 
 extern int slapi_compute_add_evaluator(slapi_compute_callback_t function);
 extern int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function);
 extern int compute_rewrite_search_filter(Slapi_PBlock *pb);
 extern int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
-extern int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
+extern int slapi_int_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
 extern int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
-extern int slapi_x_access_allowed(Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state);
+extern int slapi_int_access_allowed(Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state);
 
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
@@ -259,8 +259,8 @@ extern void slapi_pblock_clear( Slapi_PBlock *pb );
 /*
  * OpenLDAP extensions
  */
-extern int slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb );
-extern int slapi_x_pblock_get_next( Slapi_PBlock **pb );
+extern int slapi_int_pblock_get_first( Backend *be, Slapi_PBlock **pb );
+extern int slapi_int_pblock_get_next( Slapi_PBlock **pb );
 
 
 /*
@@ -328,10 +328,10 @@ extern int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn,
 		char *suffix, char *chNum, Operation* op);
 extern Backend * slapi_cl_get_be(char *dn);
 
-int slapi_x_init_object_extensions(void);
-int slapi_x_free_object_extensions(int objecttype, void *object);
-int slapi_x_create_object_extensions(int objecttype, void *object);
-int slapi_x_clear_object_extensions(int objecttype, void *object);
+int slapi_int_init_object_extensions(void);
+int slapi_int_free_object_extensions(int objecttype, void *object);
+int slapi_int_create_object_extensions(int objecttype, void *object);
+int slapi_int_clear_object_extensions(int objecttype, void *object);
 
 LDAP_END_DECL
 

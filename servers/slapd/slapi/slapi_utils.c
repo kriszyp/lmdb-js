@@ -2430,7 +2430,7 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 /*
  * Internal API to prime a Slapi_PBlock with an Operation.
  */
-int slapi_x_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
+int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 {
 #ifdef LDAP_SLAPI
 	int isRoot = 0;
@@ -3308,7 +3308,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		return LDAP_PARAM_ERROR;
 	}
 
-	ml = slapi_x_ldapmods2modifications( mods );
+	ml = slapi_int_ldapmods2modifications( mods );
 	if ( ml == NULL ) {
 		return LDAP_OTHER;
 	}
@@ -3347,7 +3347,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
  * 
  * This function must also be called before slap_mods_check().
  */
-LDAPMod **slapi_x_modifications2ldapmods(Modifications **pmodlist)
+LDAPMod **slapi_int_modifications2ldapmods(Modifications **pmodlist)
 {
 #ifdef LDAP_SLAPI
 	Modifications *ml, *modlist;
@@ -3407,9 +3407,9 @@ LDAPMod **slapi_x_modifications2ldapmods(Modifications **pmodlist)
  * 
  * The returned Modification list contains pointers into the
  * LDAPMods array; the latter MUST be freed with
- * slapi_x_free_ldapmods() (see below).
+ * slapi_int_free_ldapmods() (see below).
  */
-Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
+Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 {
 #ifdef LDAP_SLAPI
 	Modifications *modlist = NULL, **modtail;
@@ -3472,10 +3472,10 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 /*
  * This function only frees the parts of the mods array that
  * are not shared with the Modification list that was created
- * by slapi_x_ldapmods2modifications(). 
+ * by slapi_int_ldapmods2modifications(). 
  *
  */
-void slapi_x_free_ldapmods (LDAPMod **mods)
+void slapi_int_free_ldapmods (LDAPMod **mods)
 {
 #ifdef LDAP_SLAPI
 	int i, j;
@@ -3515,7 +3515,7 @@ void slapi_x_free_ldapmods (LDAPMod **mods)
  * op->o_callback->sc_sendentry, if you wish to make computed
  * attributes available to it.
  */
-int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
+int slapi_int_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
 {
 #ifdef LDAP_SLAPI
 	Operation *op = NULL;
@@ -3563,7 +3563,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if ( !access_allowed( op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
-		slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
+		slapi_log_error( SLAPI_LOG_ACL, "slapi_int_compute_output_ber",
 			"acl: access to attribute %s not allowed\n",
 			desc->ad_cname.bv_val );
 		return 0;
@@ -3571,7 +3571,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 
 	rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
 	if (rc == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
 			"ber_printf failed\n");
 		return 1;
 	}
@@ -3580,7 +3580,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 			if ( !access_allowed( op, e,
 				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
-				slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
+				slapi_log_error( SLAPI_LOG_ACL, "slapi_int_compute_output_ber",
 					"conn %lu "
 					"acl: access to %s, value %d not allowed\n",
 					op->o_connid, desc->ad_cname.bv_val, i  );
@@ -3588,7 +3588,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 			}
 	
 			if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
-				slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
+				slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
 					"ber_printf failed\n");
 				return 1;
 			}
@@ -3596,7 +3596,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
 			"ber_printf failed\n" );
 		return 1;
 	}
@@ -3883,7 +3883,7 @@ int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all )
 #endif
 }
 
-int slapi_x_access_allowed( Operation *op,
+int slapi_int_access_allowed( Operation *op,
 	Entry *entry,
 	AttributeDescription *desc,
 	struct berval *val,
@@ -3922,7 +3922,7 @@ int slapi_x_access_allowed( Operation *op,
 		return 1;
 	}
 
-	slapi_x_pblock_set_operation( op->o_pb, op );
+	slapi_int_pblock_set_operation( op->o_pb, op );
 
 	rc = 1; /* default allow policy */
 

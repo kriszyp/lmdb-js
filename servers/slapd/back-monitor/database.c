@@ -190,7 +190,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 	int			i, rc = LDAP_SUCCESS;
 	struct monitorinfo	*mi = ( struct monitorinfo * )be->be_private;
 
-	if ( slapi_x_pblock_get_first( be, &pCurrentPB ) != LDAP_SUCCESS ) {
+	if ( slapi_int_pblock_get_first( be, &pCurrentPB ) != LDAP_SUCCESS ) {
 		/*
 		 * LDAP_OTHER is returned if no plugins are installed
 		 */
@@ -228,7 +228,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 
 		i++;
 
-	} while ( ( slapi_x_pblock_get_next( &pCurrentPB ) == LDAP_SUCCESS )
+	} while ( ( slapi_int_pblock_get_next( &pCurrentPB ) == LDAP_SUCCESS )
 			&& ( pCurrentPB != NULL ) );
 
 done:

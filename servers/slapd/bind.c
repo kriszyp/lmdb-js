@@ -368,7 +368,7 @@ do_bind(
 		 * SASL bind.
 		 */
 		if ( pb ) {
-			slapi_x_pblock_set_operation( pb, op );
+			slapi_int_pblock_set_operation( pb, op );
 			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 			slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
@@ -531,7 +531,7 @@ do_bind(
 #if defined( LDAP_SLAPI )
 	if ( pb ) {
 		int rc;
-		slapi_x_pblock_set_operation( pb, op );
+		slapi_int_pblock_set_operation( pb, op );
 		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );

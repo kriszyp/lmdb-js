@@ -655,7 +655,7 @@ slap_entry2mods(
 static void initAddPlugin( Operation *op,
 	struct berval *dn, Entry *e, int manageDSAit )
 {
-	slapi_x_pblock_set_operation( op->o_pb, op );
+	slapi_int_pblock_set_operation( op->o_pb, op );
 	slapi_pblock_set( op->o_pb, SLAPI_ADD_TARGET, (void *)dn->bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_ADD_ENTRY, (void *)e );
 	slapi_pblock_set( op->o_pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );

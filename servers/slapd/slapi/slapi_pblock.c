@@ -516,7 +516,7 @@ slapi_pblock_check_params( Slapi_PBlock *pb, int flag )
  * OpenLDAP extension
  */
 int
-slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb )
+slapi_int_pblock_get_first( Backend *be, Slapi_PBlock **pb )
 {
 #if defined(LDAP_SLAPI)
 	assert( pb );
@@ -531,7 +531,7 @@ slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb )
  * OpenLDAP extension
  */
 int
-slapi_x_pblock_get_next( Slapi_PBlock **pb )
+slapi_int_pblock_get_next( Slapi_PBlock **pb )
 {
 #if defined(LDAP_SLAPI)
 	assert( pb );

@@ -585,7 +585,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	 * result if they wish to change the result.
 	 */
 	if ( op->o_pb ) {
-		slapi_x_pblock_set_operation( op->o_pb, op );
+		slapi_int_pblock_set_operation( op->o_pb, op );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
@@ -1181,7 +1181,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		if ( rs->sr_attrs != NULL ) {
 			for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
 				rc = compute_evaluator( &ctx, anp->an_name.bv_val,
-					rs->sr_entry, slapi_x_compute_output_ber );
+					rs->sr_entry, slapi_int_compute_output_ber );
 				if ( rc == 1 ) {
 					break;
 				}
@@ -1193,7 +1193,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			 * plugin decide whether to be naughty or not.
 			 */
 			rc = compute_evaluator( &ctx, "*",
-				rs->sr_entry, slapi_x_compute_output_ber );
+				rs->sr_entry, slapi_int_compute_output_ber );
 		}
 		if ( rc == 1 ) {
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
