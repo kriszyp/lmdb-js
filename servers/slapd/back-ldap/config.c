@@ -420,15 +420,12 @@ ldap_back_exop_whoami(
 	if ( op->oq_extended.rs_reqdata != NULL ) {
 		/* no request data should be provided */
 		rs->sr_text = "no request data expected";
-		return LDAP_PROTOCOL_ERROR;
+		return rs->sr_err = LDAP_PROTOCOL_ERROR;
 	}
 
-	{
-		rs->sr_err = backend_check_restrictions( op, rs, 
+	rs->sr_err = backend_check_restrictions( op, rs, 
 			(struct berval *)&slap_EXOP_WHOAMI );
-
-		if( rs->sr_err != LDAP_SUCCESS ) return rs->sr_err;
-	}
+	if( rs->sr_err != LDAP_SUCCESS ) return rs->sr_err;
 
 	/* if auth'd by back-ldap and request is proxied, forward it */
 	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
