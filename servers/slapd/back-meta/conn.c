@@ -224,11 +224,10 @@ init_one_conn(
 		Connection *conn, 
 		Operation *op, 
 		struct metatarget *lt, 
-		int vers,
 		struct metasingleconn *lsc
 		)
 {
-	int err;
+	int err, vers;
 
 	/*
 	 * Already init'ed
@@ -244,11 +243,12 @@ init_one_conn(
 	if ( err != LDAP_SUCCESS ) {
 		return ldap_back_map_result( err );
 	}
-	
+
 	/*
 	 * Set LDAP version. This will always succeed: If the client
 	 * bound with a particular version, then so can we.
 	 */
+	vers = conn->c_protocol;
 	ldap_set_option( lsc->ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
 
 	/*
@@ -335,7 +335,7 @@ meta_back_getconn(
 		int 		*candidate )
 {
 	struct metaconn *lc, lc_curr;
-	int vers, cached = -1, i = -1, err = LDAP_SUCCESS;
+	int cached = -1, i = -1, err = LDAP_SUCCESS;
 	int new_conn = 0;
 
 	/* Searches for a metaconn in the avl tree */
@@ -351,8 +351,6 @@ meta_back_getconn(
 		lc->conn = conn;
 		new_conn = 1;
 	}
-
-	vers = conn->c_protocol;
 
 	/*
 	 * looks in cache, if any
@@ -406,7 +404,7 @@ meta_back_getconn(
 		 * sends the appropriate result.
 		 */
 		err = init_one_conn( conn, op, li->targets[ i ],
-				vers, &lc->conns[ i ] );
+				&lc->conns[ i ] );
 		if ( err != LDAP_SUCCESS ) {
 		
 			/*
@@ -436,7 +434,7 @@ meta_back_getconn(
 			 * also init'd
 			 */
 			int lerr = init_one_conn( conn, op, li->targets[ i ],
-					vers, &lc->conns[ i ] );
+					&lc->conns[ i ] );
 			if ( lerr != LDAP_SUCCESS ) {
 				
 				/*
@@ -464,7 +462,7 @@ meta_back_getconn(
 				 */
 				int lerr = init_one_conn( conn, op,
 						li->targets[ i ],
-						vers, &lc->conns[ i ] );
+						&lc->conns[ i ] );
 				if ( lerr != LDAP_SUCCESS ) {
 				
 					/*
