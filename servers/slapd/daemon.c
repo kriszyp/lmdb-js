@@ -1613,7 +1613,7 @@ slapd_daemon_task(
 #ifdef SLAPD_RLOOKUPS
 				if ( use_reverse_lookup ) {
 					char *herr;
-					if (ldap_pvt_get_hname( &from, len, hbuf,
+					if (ldap_pvt_get_hname( (const struct sockaddr *)&from, len, hbuf,
 						sizeof(hbuf), &herr ) == 0) {
 						ldap_pvt_str2lower( hbuf );
 						dnsname = hbuf;
