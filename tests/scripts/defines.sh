@@ -6,8 +6,6 @@ LDAPMODIFY=../clients/tools/ldapmodify
 LDAPADD=../clients/tools/ldapadd
 PORT=9009
 SLAVEPORT=9010
-MASTERLOG=./test-db/slapd.log
-SLAVELOG=./test-repl/slapd.log
 DBDIR=./test-db
 REPLDIR=./test-repl
 CONF=./data/slapd-master.conf
@@ -22,6 +20,8 @@ PASSWD=secret
 BABSDN="cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
 BJORNSDN="cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
 JAJDN="cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US"
+MASTERLOG=$DBDIR/master.log
+SLAVELOG=$DBDIR/slave.log
 SEARCHOUT=$DBDIR/ldapsearch.out
 MASTEROUT=$DBDIR/master.out
 SLAVEOUT=$DBDIR/slave.out
