@@ -37,7 +37,7 @@
 #include "../../../libraries/libldap/ldap-int.h"
 
 int
-mapping_cmp ( const void *c1, const void *c2 )
+rwm_mapping_cmp ( const void *c1, const void *c2 )
 {
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
@@ -47,7 +47,7 @@ mapping_cmp ( const void *c1, const void *c2 )
 }
 
 int
-mapping_dup ( void *c1, void *c2 )
+rwm_mapping_dup ( void *c1, void *c2 )
 {
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
@@ -76,9 +76,9 @@ rwm_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 	mapping[1].dst = mapping->dst;
 
 	avl_insert( &lm->map, (caddr_t)mapping, 
-			mapping_cmp, mapping_dup );
+			rwm_mapping_cmp, rwm_mapping_dup );
 	avl_insert( &lm->remap, (caddr_t)&mapping[1], 
-			mapping_cmp, mapping_dup );
+			rwm_mapping_cmp, rwm_mapping_dup );
 	*m = mapping;
 }
 
@@ -97,7 +97,7 @@ rwm_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 	fmapping.src = *s;
-	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
+	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, rwm_mapping_cmp );
 	if (mapping != NULL) {
 		if ( mapping->dst.bv_val )
 			*bv = mapping->dst;
@@ -150,7 +150,7 @@ rwm_map_attrs(
 	return LDAP_SUCCESS;
 }
 
-int
+static int
 map_attr_value(
 		dncookie		*dc,
 		AttributeDescription 	*ad,
@@ -554,7 +554,7 @@ rwm_dnattr_result_rewrite(
 }
 
 void
-mapping_free( void *v_mapping )
+rwm_mapping_free( void *v_mapping )
 {
 	struct ldapmapping *mapping = v_mapping;
 	ch_free( mapping->src.bv_val );

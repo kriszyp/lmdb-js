@@ -573,9 +573,9 @@ rwm_destroy(
 #endif /* !ENABLE_REWRITE */
 
 		avl_free( rwmap->rwm_oc.remap, NULL );
-		avl_free( rwmap->rwm_oc.map, mapping_free );
+		avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
 		avl_free( rwmap->rwm_at.remap, NULL );
-		avl_free( rwmap->rwm_at.map, mapping_free );
+		avl_free( rwmap->rwm_at.map, rwm_mapping_free );
 	}
 
 	return rc;

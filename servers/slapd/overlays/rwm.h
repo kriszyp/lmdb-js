@@ -79,8 +79,8 @@ typedef struct dncookie {
 int rwm_dn_massage(dncookie *dc, struct berval *dn, struct berval *res);
 
 /* attributeType/objectClass mapping */
-int mapping_cmp (const void *, const void *);
-int mapping_dup (void *, void *);
+int rwm_mapping_cmp (const void *, const void *);
+int rwm_mapping_dup (void *, void *);
 
 void rwm_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void rwm_map ( struct ldapmap *map, struct berval *s, struct berval *m,
@@ -103,7 +103,7 @@ rwm_map_attrs(
 		char ***mapped_attrs
 );
 
-extern void mapping_free ( void *mapping );
+extern void rwm_mapping_free ( void *mapping );
 
 extern int rwm_map_config(
 		struct ldapmap	*oc_map,
