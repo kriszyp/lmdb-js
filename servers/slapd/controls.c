@@ -211,9 +211,10 @@ return_results:
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: %d %d %s\n",
 		nctrls, rc, errmsg ? errmsg : "");
 #endif
+
 	if( sendres && rc != LDAP_SUCCESS ) {
 		if( rc == SLAPD_DISCONNECT ) {
-			send_ldap_disconnect( conn, op, rc, errmsg );
+			send_ldap_disconnect( conn, op, LDAP_PROTOCOL_ERROR, errmsg );
 		} else {
 			send_ldap_result( conn, op, rc,
 				NULL, errmsg, NULL, NULL );
