@@ -1314,47 +1314,6 @@ if test $ol_enable_lmpasswd != no; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl Tests for reentrant functions necessary to build a
-dnl thread_safe -lldap.
-AC_CHECK_FUNCS(		\
-	ctime_r			\
-	gethostbyname_r	gethostbyaddr_r \
-)
-
-if test "$ac_cv_func_ctime_r" = no ; then
-	ol_cv_func_ctime_r_nargs=0
-else
-	OL_FUNC_CTIME_R_NARGS
-dnl	OL_FUNC_CTIME_R_TYPE
-fi
-
-if test "$ac_cv_func_gethostbyname_r" = yes ; then
- 	OL_FUNC_GETHOSTBYNAME_R_NARGS
-else
- 	ol_cv_func_gethostbyname_r_nargs=0
-fi
- 
-if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
- 	OL_FUNC_GETHOSTBYADDR_R_NARGS
-else
- 	ol_cv_func_gethostbyaddr_r_nargs=0
-fi
-
-if test "$ac_cv_func_ctime_r" = yes \
-	-a "$ol_cv_func_ctime_r_nargs" -ge 2 \
-	-a "$ol_cv_func_ctime_r_nargs" -le 3 \
-	-a "$ac_cv_func_gethostbyname_r" = yes \
-	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 \
-	-a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
- 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
- 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 \
-	-a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
- 	; then
- 
- 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1)
-fi
-
-dnl ----------------------------------------------------------------
 dnl Threads?
 ol_link_threads=no
 
@@ -1854,8 +1813,7 @@ if test $ol_link_threads != no -a $ol_link_threads != nt ; then
 	fi
 
 dnl When in thread environment, use 
-dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) \ 
-dnl			|| defined( HAVE_FUNC_R )
+dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) || defined( HAVE_FUNC_R )
 dnl			func_r(...);
 dnl		#else
 dnl		#	if defined( HAVE_THREADS ) 
@@ -1872,14 +1830,14 @@ dnl		_POSIX_REENTRANT_FUNCTIONS
 dnl		_POSIX_THREAD_SAFE_FUNCTIONS
 dnl		_POSIX_THREADSAFE_FUNCTIONS
 dnl
-dnl		and is currently defined in lthread.h
+dnl		and is currently defined in <ldap_pvt_thread.h>
 dnl
-dnl HAVE_THREADS is defined by lthread.h iff -UNO_THREADS
+dnl HAVE_THREADS is defined by <ldap_pvt_thread.h> iff -UNO_THREADS
 dnl 
-dnl libldap/*.c should only include <lthread.h> iff
+dnl libldap/*.c should only include <ldap_pvt_thread.h> iff
 dnl LDAP_R_COMPILE is defined.  ie:
 dnl		#ifdef LDAP_R_COMPILE
-dnl		#	include LDAP_R_COMPILE
+dnl		#	include <ldap_pvt_thread.h>
 dnl		#endif
 dnl
 dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
@@ -1922,6 +1880,32 @@ fi
 
 if test $ol_link_threads != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
+dnl Tests for reentrant functions necessary to build -lldap_r
+AC_CHECK_FUNCS(		\
+	ctime_r			\
+	gethostbyname_r	gethostbyaddr_r \
+)
+
+if test "$ac_cv_func_ctime_r" = no ; then
+	ol_cv_func_ctime_r_nargs=0
+else
+	OL_FUNC_CTIME_R_NARGS
+dnl	OL_FUNC_CTIME_R_TYPE
+fi
+
+if test "$ac_cv_func_gethostbyname_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYNAME_R_NARGS
+else
+ 	ol_cv_func_gethostbyname_r_nargs=0
+fi
+ 
+if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYADDR_R_NARGS
+else
+ 	ol_cv_func_gethostbyaddr_r_nargs=0
 fi
 
 dnl ----------------------------------------------------------------

@@ -698,15 +698,6 @@
 /* define to support LAN Manager passwords */
 #undef SLAPD_LMHASH
 
-/* set to the number of arguments ctime_r() expects */
-#undef CTIME_R_NARGS
-
-/* set to the number of arguments gethostbyname_r() expects */
-#undef GETHOSTBYNAME_R_NARGS
-
-/* set to the number of arguments gethostbyaddr_r() expects */
-#undef GETHOSTBYADDR_R_NARGS
-
 /* if you have NT Threads */
 #undef HAVE_NT_THREADS
 
@@ -748,6 +739,15 @@
 
 /* define if you have (or want) no threads */
 #undef NO_THREADS
+
+/* set to the number of arguments ctime_r() expects */
+#undef CTIME_R_NARGS
+
+/* set to the number of arguments gethostbyname_r() expects */
+#undef GETHOSTBYNAME_R_NARGS
+
+/* set to the number of arguments gethostbyaddr_r() expects */
+#undef GETHOSTBYADDR_R_NARGS
 
 /* define if Berkeley DB has DB_THREAD support */
 #undef HAVE_BERKELEY_DB_THREAD
