@@ -41,7 +41,10 @@ backsql_cmp_oc( const void *v_m1, const void *v_m2 )
 {
 	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
 
+#if 0
 	return SLAP_PTRCMP( m1->bom_oc, m2->bom_oc );
+#endif
+	return ber_bvcmp( &m1->bom_oc->soc_cname, &m2->bom_oc->soc_cname );
 }
 
 static int
@@ -60,7 +63,10 @@ backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 {
 	const backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
 
+#if 0
 	return SLAP_PTRCMP( m1->bam_ad, m2->bam_ad );
+#endif
+	return ber_bvcmp( &m1->bam_ad->ad_cname, &m2->bam_ad->ad_cname );
 }
 
 int

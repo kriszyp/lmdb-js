@@ -76,7 +76,7 @@ backsql_modify_internal(
 		SQLUSMALLINT		pno, po;
 		/* procedure return code */
 		int			prc;
-
+		
 #ifdef BACKSQL_REALLOC_STMT
 		SQLAllocStmt( dbh, &sth );
 #endif /* BACKSQL_REALLOC_STMT */
@@ -321,6 +321,20 @@ add_only:;
 			for ( i = 0, at_val = c_mod->sm_values;
 					at_val->bv_val != NULL; 
 					i++, at_val++ ) {
+
+				rc = backsql_Prepare( dbh, &sth, at->bam_add_proc, 0 );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_internal(): "
+						"error preparing add query\n", 
+						0, 0, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = "SQL-backend error";
+					goto done;
+				}
+
 				if ( BACKSQL_IS_ADD( at->bam_expect_return ) ) {
 					pno = 1;
 	      				SQLBindParameter( sth, 1,
@@ -357,8 +371,7 @@ add_only:;
 					"   backsql_modify_internal(): "
 					"executing \"%s\"\n", 
 					at->bam_add_proc, 0, 0 );
-				rc = SQLExecDirect( sth, at->bam_add_proc, 
-						SQL_NTS );
+				rc = SQLExecute( sth );
 				if ( rc != SQL_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"   backsql_modify_internal(): "
@@ -516,7 +529,8 @@ backsql_add( Operation *op, SlapReply *rs )
 	SQLUSMALLINT		pno, po;
 	/* procedure return code */
 	int			prc;
-	struct berval		realdn, realpdn;
+	struct berval		realdn = BER_BVNULL,
+				realpdn = BER_BVNULL;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
@@ -616,9 +630,14 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	/*
-	 * Check if parent exists
+	 * Get the parent dn and see if the corresponding entry exists.
 	 */
-	dnParent( &op->oq_add.rs_e->e_name, &pdn );
+	if ( be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname ) ) {
+		pdn = slap_empty_bv;
+	} else {
+		dnParent( &op->oq_add.rs_e->e_nname, &pdn );
+	}
+
 	realpdn = pdn;
 	if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
@@ -640,60 +659,73 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 
 		/*
-		 * Look for matched
+		 * no parent!
+		 *  if not attempting to add entry at suffix or with parent ""
 		 */
-		while ( 1 ) {
-			struct berval	dn;
-			char		*matched = NULL;
-
-			if ( realpdn.bv_val != pdn.bv_val ) {
-				ch_free( realpdn.bv_val );
-			}
-
-			dn = pdn;
-			dnParent( &dn, &pdn );
-
+		if ( ( ( !be_isroot( op ) && !be_shadow_update( op ) )
+			|| pdn.bv_len > 0 ) && !is_entry_glue( op->oq_add.rs_e ) )
+		{
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add: %s denied\n",
+				pdn.bv_len == 0 ? "suffix" : "entry at root",
+				0, 0 );
 			/*
-			 * Empty DN ("") defaults to LDAP_SUCCESS
+			 * Look for matched
 			 */
-			realpdn = pdn;
-			if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
-				Debug( LDAP_DEBUG_TRACE,
-					"   backsql_add(\"%s\"): "
-					"backsql_api_dn2odbc failed\n", 
-					op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "SQL-backend error";
-				goto done;
-			}
-
-			rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realpdn );
-			switch ( rs->sr_err ) {
-			case LDAP_NO_SUCH_OBJECT:
-				if ( pdn.bv_len > 0 ) {
-					break;
+			while ( 1 ) {
+				struct berval	dn;
+				char		*matched = NULL;
+	
+				if ( realpdn.bv_val != pdn.bv_val ) {
+					ch_free( realpdn.bv_val );
 				}
-				/* fail over to next case */
-				
-			case LDAP_SUCCESS:
-				matched = pdn.bv_val;
-				/* fail over to next case */
+	
+				dn = pdn;
+				dnParent( &dn, &pdn );
+	
+				/*
+				 * Empty DN ("") defaults to LDAP_SUCCESS
+				 */
+				realpdn = pdn;
+				if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_add(\"%s\"): "
+						"backsql_api_dn2odbc failed\n", 
+						op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = "SQL-backend error";
+					goto done;
+				}
+	
+				rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realpdn );
+				switch ( rs->sr_err ) {
+				case LDAP_NO_SUCH_OBJECT:
+					if ( pdn.bv_len > 0 ) {
+						break;
+					}
+					/* fail over to next case */
+					
+				case LDAP_SUCCESS:
+					matched = pdn.bv_val;
+					/* fail over to next case */
+	
+				default:
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
+					rs->sr_matched = matched;
+					goto done;
+				} 
+			}
+		} else {
 
-			default:
-				rs->sr_err = LDAP_NO_SUCH_OBJECT;
-				rs->sr_matched = matched;
-				goto done;
-			} 
+#ifdef BACKSQL_ARBITRARY_KEY
+			ber_str2bv( "SUFFIX", 0, 1, &parent_id.eid_id );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+			parent_id.eid_id = 0;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+			rs->sr_err = LDAP_SUCCESS;
 		}
 	}
 
-	/*
-	 * create_proc is executed; if expect_return is set, then
-	 * an output parameter is bound, which should contain 
-	 * the id of the added row; otherwise the procedure
-	 * is expected to return the id as the first column of a select
-	 */
-
+	/* check "children" pseudo-attribute access to parent */
 	p.e_attrs = NULL;
 	p.e_name = pdn;
 	dnParent( &op->oq_add.rs_e->e_nname, &p.e_nname );
@@ -702,6 +734,13 @@ backsql_add( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto done;
 	}
+
+	/*
+	 * create_proc is executed; if expect_return is set, then
+	 * an output parameter is bound, which should contain 
+	 * the id of the added row; otherwise the procedure
+	 * is expected to return the id as the first column of a select
+	 */
 
 	rc = SQLAllocStmt( dbh, &sth );
 	if ( rc != SQL_SUCCESS ) {
@@ -887,40 +926,41 @@ backsql_add( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-#ifdef BACKSQL_REALLOC_STMT
-		rc = backsql_Prepare( dbh, &sth, at_rec->bam_add_proc, 0 );
-		if ( rc != SQL_SUCCESS ) {
-
-			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "SQL-backend error";
-				goto done;
-			}
-
-			continue;
-		}
-#endif /* BACKSQL_REALLOC_STMT */
-
-		if ( BACKSQL_IS_ADD( at_rec->bam_expect_return ) ) {
-			pno = 1;
-			SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT,
-					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &prc, 0, 0 );
-		} else {
-			pno = 0;
-		}
-
-		po = ( BACKSQL_IS_ADD( at_rec->bam_param_order ) ) > 0;
-		currpos = pno + 1 + po;
-		SQLBindParameter( sth, currpos,
-				SQL_PARAM_INPUT, SQL_C_ULONG,
-				SQL_INTEGER, 0, 0, &new_keyval, 0, 0 );
-		currpos = pno + 2 - po;
-
 		for ( i = 0, at_val = &at->a_vals[ i ];
 			       	at_val->bv_val != NULL;
-				i++, at_val = &at->a_vals[ i ] ) {
+				i++, at_val = &at->a_vals[ i ] )
+		{
 			char logbuf[] = "val[18446744073709551615UL], id=18446744073709551615UL";
+			
+#ifdef BACKSQL_REALLOC_STMT
+			rc = backsql_Prepare( dbh, &sth, at_rec->bam_add_proc, 0 );
+			if ( rc != SQL_SUCCESS ) {
+
+				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = "SQL-backend error";
+					goto done;
+				}
+
+				goto next_attr;
+			}
+#endif /* BACKSQL_REALLOC_STMT */
+
+			if ( BACKSQL_IS_ADD( at_rec->bam_expect_return ) ) {
+				pno = 1;
+				SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT,
+						SQL_C_ULONG, SQL_INTEGER,
+						0, 0, &prc, 0, 0 );
+			} else {
+				pno = 0;
+			}
+
+			po = ( BACKSQL_IS_ADD( at_rec->bam_param_order ) ) > 0;
+			currpos = pno + 1 + po;
+			SQLBindParameter( sth, currpos,
+					SQL_PARAM_INPUT, SQL_C_ULONG,
+					SQL_INTEGER, 0, 0, &new_keyval, 0, 0 );
+			currpos = pno + 2 - po;
 
 			/*
 			 * Do not deal with the objectClass that is used
@@ -966,12 +1006,14 @@ backsql_add( Operation *op, SlapReply *rs )
 					goto done;
 				}
 			}
-		}
 #ifndef BACKSQL_REALLOC_STMT
-		SQLFreeStmt( sth, SQL_RESET_PARAMS ); 
+			SQLFreeStmt( sth, SQL_RESET_PARAMS ); 
 #else /* BACKSQL_REALLOC_STMT */
-		SQLFreeStmt( sth, SQL_DROP );
+			SQLFreeStmt( sth, SQL_DROP );
 #endif /* BACKSQL_REALLOC_STMT */
+		}
+
+next_attr:;
 	}
 
 #ifdef BACKSQL_REALLOC_STMT
@@ -983,8 +1025,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 #endif /* BACKSQL_REALLOC_STMT */
 	
-	backsql_BindParamStr( sth, 1, op->oq_add.rs_e->e_name.bv_val,
-			BACKSQL_MAX_DN_LEN );
+	backsql_BindParamStr( sth, 1, realdn.bv_val, BACKSQL_MAX_DN_LEN );
 	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &oc->bom_id, 0, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -1050,13 +1091,15 @@ backsql_add( Operation *op, SlapReply *rs )
 done:;
 	send_ldap_result( op, rs );
 
-	if ( realdn.bv_val != op->oq_add.rs_e->e_name.bv_val ) {
+	if ( !BER_BVISNULL( &realdn )
+			&& realdn.bv_val != op->oq_add.rs_e->e_name.bv_val )
+	{
 		ch_free( realdn.bv_val );
 	}
-	if ( realpdn.bv_val != pdn.bv_val ) {
+	if ( !BER_BVISNULL( &realpdn ) && realpdn.bv_val != pdn.bv_val ) {
 		ch_free( realpdn.bv_val );
 	}
-	if ( parent_id.eid_dn.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &parent_id.eid_dn ) ) {
 		backsql_free_entryID( &parent_id, 0 );
 	}
 

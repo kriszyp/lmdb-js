@@ -126,6 +126,8 @@ backsql_init_search(
 		bsi->bsi_attrs = NULL;
 
 	} else {
+		int	is_oc = 0;
+
 		bsi->bsi_attrs = (AttributeName *)ch_calloc( 1, 
 				sizeof( AttributeName ) );
 		BER_BVZERO( &bsi->bsi_attrs[ 0 ].an_name );
@@ -140,14 +142,25 @@ backsql_init_search(
 
 			} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
 				continue;
+			} else if ( p->an_desc == slap_schema.si_ad_objectClass ) {
+				is_oc = 1;
 			}
 
 			backsql_attrlist_add( bsi, p->an_desc );
+		}
+
+		if ( is_oc == 0 ) {
+			/* add objectClass if not present,
+			 * because it is required to understand
+			 * if an entry is a referral, an alias 
+			 * or so... */
+			backsql_attrlist_add( bsi, slap_schema.si_ad_objectClass );
 		}
 	}
 
 	bsi->bsi_abandon = 0;
 	bsi->bsi_id_list = NULL;
+	bsi->bsi_id_listtail = &bsi->bsi_id_list;
 	bsi->bsi_n_candidates = 0;
 	bsi->bsi_stoptime = stoptime;
 	BER_BVZERO( &bsi->bsi_sel.bb_val );
@@ -1315,9 +1328,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			c_id->eid_dn = dn;
 		}
 
-		c_id->eid_next = bsi->bsi_id_list;
-		bsi->bsi_id_list = c_id;
-		bsi->bsi_n_candidates--;
+		/* append at end of list ... */
+		c_id->eid_next = NULL;
+		*bsi->bsi_id_listtail = c_id;
+		bsi->bsi_id_listtail = &c_id->eid_next;
 
 #ifdef BACKSQL_ARBITRARY_KEY
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -1330,6 +1344,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			c_id->eid_id, c_id->eid_keyval, row.cols[ 3 ] );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
+		/* count candidates, for unchecked limit */
+		bsi->bsi_n_candidates--;
 		if ( bsi->bsi_n_candidates == -1 ) {
 			break;
 		}
@@ -1495,6 +1511,28 @@ backsql_search( Operation *op, SlapReply *rs )
 
 			ber_dupbv( &matched_dn, &user_entry.e_name );
 			refs = get_entry_referrals( op, &user_entry );
+			if ( !refs ) {
+				backsql_srch_info	srch_info2 = { 0 };
+				Entry			user_entry2 = { 0 };
+
+				/* retry with the full entry... */
+				backsql_init_search( &srch_info2,
+						&user_entry.e_name,
+						LDAP_SCOPE_BASE, 
+						-1, -1, -1, NULL,
+						dbh, op, rs, NULL );
+				srch_info2.bsi_e = &user_entry2;
+				rc = backsql_id2entry( &srch_info2, eid );
+				if ( rc == LDAP_SUCCESS ) {
+					if ( is_entry_referral( &user_entry2 ) )
+					{
+						refs = get_entry_referrals( op,
+								&user_entry2 );
+					} /* else: FIXME: inconsistency! */
+					entry_clean( &user_entry2 );
+				}
+			}
+
 			if ( refs ) {
 				rs->sr_ref = referral_rewrite( refs,
 						&matched_dn, &op->o_req_dn,
@@ -1515,7 +1553,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			ber_memfree( matched_dn.bv_val );
 			rs->sr_matched = NULL;
 
-			continue;
+			goto next_entry;
 		}
 
 		/*
@@ -1546,11 +1584,7 @@ backsql_search( Operation *op, SlapReply *rs )
 					"has_children failed( %d)\n", 
 					rc, 0, 0 );
 				rc = 1;
-				break;
-			}
-
-			if ( rc ) {
-				continue;
+				goto next_entry;
 			}
 		}
 
@@ -1563,39 +1597,32 @@ backsql_search( Operation *op, SlapReply *rs )
 				hasSubordinate = NULL;
 			}
 
-#if 0	/* noop is masked SLAP_CTRL_UPDATE */
-			if ( op->o_noop ) {
-				sres = 0;
-			} else
-#endif
-			{
-				rs->sr_attrs = op->ors_attrs;
-				rs->sr_operational_attrs = NULL;
-				rs->sr_entry = &user_entry;
-				rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				sres = send_search_entry( op, rs );
-				rs->sr_entry = NULL;
-				rs->sr_attrs = NULL;
-				rs->sr_operational_attrs = NULL;
-			}
+			rs->sr_attrs = op->ors_attrs;
+			rs->sr_operational_attrs = NULL;
+			rs->sr_entry = &user_entry;
+			rs->sr_flags = REP_ENTRY_MODIFIABLE;
+			sres = send_search_entry( op, rs );
+			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
+			rs->sr_operational_attrs = NULL;
 
 			switch ( sres ) {
 			case 0:
 				break;
-
-			case -1:
-				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-					"connection lost\n", 0, 0, 0 );
-				goto end_of_search;
 
 			default:
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
 				 */
-				break;
+			case -1:
+				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+					"connection lost\n", 0, 0, 0 );
+				goto end_of_search;
 			}
 		}
+
+next_entry:;
 		entry_clean( &user_entry );
 
 		if ( op->ors_slimit != SLAP_NO_LIMIT

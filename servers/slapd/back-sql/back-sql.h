@@ -250,6 +250,7 @@ typedef struct backsql_srch_info {
 	time_t			bsi_stoptime;
 
 	backsql_entryID		*bsi_id_list,
+				**bsi_id_listtail,
 				*bsi_c_eid;
 	int			bsi_n_candidates;
 	int			bsi_abandon;
