@@ -128,7 +128,7 @@ ldbm_back_search(
 		    be->be_sizelimit : slimit;
 	}
 
-	if ( scope == LDAP_SCOPE_BASE) {
+	if ( scope == LDAP_SCOPE_BASE ) {
 		candidates = base_candidate( be, e );
 
 	} else {

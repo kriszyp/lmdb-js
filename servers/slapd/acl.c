@@ -195,7 +195,6 @@ acl_get(
     regmatch_t	*matches
 )
 {
-	AccessControl	*next;
 	assert( e != NULL );
 	assert( count != NULL );
 
@@ -592,8 +591,6 @@ acl_check_modlist(
 	}
 
 	for ( ; mlist != NULL; mlist = mlist->ml_next ) {
-		regmatch_t       matches[MAXREMATCHES];
-
 		/* the lastmod attributes are ignored by ACL checking */
 		if ( oc_check_no_usermod_attr( mlist->ml_type ) ) {
 			Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
