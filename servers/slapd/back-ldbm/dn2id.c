@@ -226,7 +226,6 @@ dn2id_delete(
 		}
 	}
 
-#if 0
 	{
 		char **subtree = dn_subtree( NULL, dn );
 
@@ -247,7 +246,6 @@ dn2id_delete(
 			charray_free( subtree );
 		}
 	}
-#endif
 
 	ldbm_datum_init( key );
 
