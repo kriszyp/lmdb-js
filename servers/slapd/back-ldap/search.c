@@ -272,8 +272,7 @@ fail:;
 	 * let send_search_entry stuff it back into ber format. Slow & ugly,
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
-	
-	tv.tv_sec = 0; tv.tv_usec = 100000;
+
 	for (	count=0, rc=0;
 			rc != -1;
 			rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
