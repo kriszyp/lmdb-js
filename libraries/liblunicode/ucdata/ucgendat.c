@@ -46,6 +46,10 @@
 
 #include <lutil.h>
 
+#ifndef HARDCODE_DATA
+#define	HARDCODE_DATA	1
+#endif
+
 #undef ishdigit
 #define ishdigit(cc) (((cc) >= '0' && (cc) <= '9') ||\
                       ((cc) >= 'A' && (cc) <= 'F') ||\
@@ -1253,6 +1257,24 @@ create_comps(void)
     qsort(comps, comps_used, sizeof(_comp_t), cmpcomps);
 }
 
+#if HARDCODE_DATA
+static void
+write_case(FILE *out, _case_t *tab, int num, int first)
+{
+    int i;
+
+    for (i=0; i<num; i++) {
+	if (first) first = 0;
+	else fprintf(out, ",");
+	fprintf(out, "\n\t0x%08x, 0x%08x, 0x%08x",
+		tab[i].key, tab[i].other1, tab[i].other2);
+    }
+}
+
+#define PREF "static const "
+
+#endif
+
 static void
 write_cdata(char *opath)
 {
@@ -1261,6 +1283,8 @@ write_cdata(char *opath)
     ac_uint4 i, idx, nprops;
     ac_uint2 casecnt[2];
     char path[BUFSIZ];
+#if HARDCODE_DATA
+    int j, k;
 
     /*****************************************************************
      *
@@ -1269,11 +1293,19 @@ write_cdata(char *opath)
      *****************************************************************/
 
     /*
+     * Open the output file.
+     */
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "uctable.h", opath);
+    if ((out = fopen(path, "w")) == 0)
+      return;
+#else
+    /*
      * Open the ctype.dat file.
      */
     snprintf(path, sizeof path, "%s" LDAP_DIRSEP "ctype.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
+#endif
 
     /*
      * Collect the offsets for the properties.  The offsets array is
@@ -1306,7 +1338,36 @@ write_cdata(char *opath)
       bytes += 4 - (bytes & 3);
     nprops = bytes / sizeof(ac_uint2);
     bytes += sizeof(ac_uint4) * idx;
-        
+
+#if HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _ucprop_size = %d;\n\n", NUMPROPS);
+
+    fprintf(out, PREF "ac_uint2 _ucprop_offsets[] = {");
+
+    for (i = 0; i<nprops; i++) {
+       if (i) fprintf(out, ",");
+       if (!(i&7)) fprintf(out, "\n\t");
+       else fprintf(out, " ");
+       fprintf(out, "0x%04x", propcnt[i]);
+    }
+    fprintf(out, "\n};\n\n");
+
+    fprintf(out, PREF "ac_uint4 _ucprop_ranges[] = {");
+
+    k = 0;
+    for (i = 0; i < NUMPROPS; i++) {
+	if (proptbl[i].used > 0) {
+	  for (j=0; j<proptbl[i].used; j++) {
+	    if (k) fprintf(out, ",");
+	    if (!(k&3)) fprintf(out,"\n\t");
+	    else fprintf(out, " ");
+	    k++;
+	    fprintf(out, "0x%08x", proptbl[i].ranges[j]);
+	  }
+	}
+    }
+    fprintf(out, "\n};\n\n");
+#else
     /*
      * Write the header.
      */
@@ -1332,6 +1393,7 @@ write_cdata(char *opath)
     }
 
     fclose(out);
+#endif
 
     /*****************************************************************
      *
@@ -1339,6 +1401,37 @@ write_cdata(char *opath)
      *
      *****************************************************************/
 
+#if HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _uccase_size = %d;\n\n",
+	upper_used + lower_used + title_used);
+
+    fprintf(out, PREF "ac_uint2 _uccase_len[2] = {%d, %d};\n\n",
+	upper_used, lower_used);
+    fprintf(out, PREF "ac_uint4 _uccase_map[] = {");
+
+    if (upper_used > 0)
+      /*
+       * Write the upper case table.
+       */
+      write_case(out, upper, upper_used, 1);
+
+    if (lower_used > 0)
+      /*
+       * Write the lower case table.
+       */
+      write_case(out, lower, lower_used, !upper_used);
+
+    if (title_used > 0)
+      /*
+       * Write the title case table.
+       */
+      write_case(out, title, title_used, !(upper_used||lower_used));
+
+    if (!(upper_used || lower_used || title_used))
+	fprintf(out, "\t0");
+
+    fprintf(out, "\n};\n\n");
+#else
     /*
      * Open the case.dat file.
      */
@@ -1382,6 +1475,7 @@ write_cdata(char *opath)
       fwrite((char *) title, sizeof(_case_t), title_used, out);
 
     fclose(out);
+#endif
 
     /*****************************************************************
      *
@@ -1394,6 +1488,26 @@ write_cdata(char *opath)
      */
     create_comps();
     
+#if HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _uccomp_size = %d;\n\n",
+	comps_used * 4);
+
+    fprintf(out, PREF "ac_uint4 _uccomp_data[] = {");
+
+     /*
+      * Now, if comps exist, write them out.
+      */
+    if (comps_used > 0) {
+	for (i=0; i<comps_used; i++) {
+	    if (i) fprintf(out, ",");
+	    fprintf(out, "\n\t0x%08x, 0x%08x, 0x%08x, 0x%08x",
+		comps[i].comp, comps[i].count, comps[i].code1, comps[i].code2);
+	}
+    } else {
+	fprintf(out, "\t0");
+    }
+    fprintf(out, "\n};\n\n");
+#else
     /*
      * Open the comp.dat file.
      */
@@ -1420,6 +1534,7 @@ write_cdata(char *opath)
         fwrite((char *) comps, sizeof(_comp_t), comps_used, out);
     
     fclose(out);
+#endif
     
     /*****************************************************************
      *
@@ -1432,6 +1547,42 @@ write_cdata(char *opath)
      */
     expand_decomp();
 
+#if HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _ucdcmp_size = %d;\n\n",
+	decomps_used * 2);
+
+    fprintf(out, PREF "ac_uint4 _ucdcmp_nodes[] = {");
+
+    if (decomps_used) {
+	/*
+	 * Write the list of decomp nodes.
+	 */
+	for (i = idx = 0; i < decomps_used; i++) {
+	    fprintf(out, "\n\t0x%08x, 0x%08x,", decomps[i].code, idx);
+	    idx += decomps[i].used;
+	}
+
+	/*
+	 * Write the sentinel index as the last decomp node.
+	 */
+	fprintf(out, "\n\t0x%08x\n};\n\n", idx);
+
+	fprintf(out, PREF "ac_uint4 _ucdcmp_decomp[] = {");
+	/*
+	 * Write the decompositions themselves.
+	 */
+	k = 0;
+	for (i = 0; i < decomps_used; i++)
+	  for (j=0; j<decomps[i].used; j++) {
+	    if (k) fprintf(out, ",");
+	    if (!(k&3)) fprintf(out,"\n\t");
+	    else fprintf(out, " ");
+	    k++;
+	    fprintf(out, "0x%08x", decomps[i].decomp[j]);
+	  }
+	fprintf(out, "\n};\n\n");
+    }
+#else
     /*
      * Open the decomp.dat file.
      */
@@ -1485,7 +1636,45 @@ write_cdata(char *opath)
 
         fclose(out);
     }
+#endif
 
+#ifdef HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _uckdcmp_size = %d;\n\n",
+	kdecomps_used * 2);
+
+    fprintf(out, PREF "ac_uint4 _uckdcmp_nodes[] = {");
+
+    if (kdecomps_used) {
+	/*
+	 * Write the list of kdecomp nodes.
+	 */
+	for (i = idx = 0; i < kdecomps_used; i++) {
+	    fprintf(out, "\n\t0x%08x, 0x%08x,", kdecomps[i].code, idx);
+	    idx += kdecomps[i].used;
+	}
+
+	/*
+	 * Write the sentinel index as the last decomp node.
+	 */
+	fprintf(out, "\n\t0x%08x\n};\n\n", idx);
+
+	fprintf(out, PREF "ac_uint4 _uckdcmp_decomp[] = {");
+
+	/*
+	 * Write the decompositions themselves.
+	 */
+	k = 0;
+	for (i = 0; i < kdecomps_used; i++)
+	  for (j=0; j<kdecomps[i].used; j++) {
+	    if (k) fprintf(out, ",");
+	    if (!(k&3)) fprintf(out,"\n\t");
+	    else fprintf(out, " ");
+	    k++;
+	    fprintf(out, "0x%08x", kdecomps[i].decomp[j]);
+	  }
+	fprintf(out, "\n};\n\n");
+    }
+#else
     /*
      * Open the kdecomp.dat file.
      */
@@ -1539,13 +1728,33 @@ write_cdata(char *opath)
 
         fclose(out);
     }
+#endif
 
     /*****************************************************************
      *
      * Generate the combining class data.
      *
      *****************************************************************/
+#ifdef HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _uccmcl_size = %d;\n\n", ccl_used);
 
+    fprintf(out, PREF "ac_uint4 _uccmcl_nodes[] = {");
+
+    if (ccl_used > 0) {
+	/*
+	 * Write the combining class ranges out.
+	 */
+	for (i = 0; i<ccl_used; i++) {
+	    if (i) fprintf(out, ",");
+	    if (!(i&3)) fprintf(out, "\n\t");
+	    else fprintf(out, " ");
+	    fprintf(out, "0x%08x", ccl[i]);
+	}
+    } else {
+	fprintf(out, "\t0");
+    }
+    fprintf(out, "\n};\n\n");
+#else
     /*
      * Open the cmbcl.dat file.
      */
@@ -1577,6 +1786,7 @@ write_cdata(char *opath)
       fwrite((char *) ccl, sizeof(ac_uint4), ccl_used, out);
 
     fclose(out);
+#endif
 
     /*****************************************************************
      *
@@ -1584,6 +1794,39 @@ write_cdata(char *opath)
      *
      *****************************************************************/
 
+#if HARDCODE_DATA
+    fprintf(out, PREF "ac_uint4 _ucnum_size = %d;\n\n", ncodes_used<<1);
+
+    fprintf(out, PREF "ac_uint4 _ucnum_nodes[] = {");
+
+    /*
+     * Now, if number mappings exist, write them out.
+     */
+    if (ncodes_used > 0) {
+	for (i = 0; i<ncodes_used; i++) {
+	    if (i) fprintf(out, ",");
+	    if (!(i&3)) fprintf(out, "\n\t");
+	    else fprintf(out, " ");
+	    fprintf(out, "0x%08x", ncodes[i]);
+	}
+	fprintf(out, "\n};\n\n");
+
+	fprintf(out, PREF "short _ucnum_vals[] = {");
+	for (i = 0; i<nums_used; i++) {
+	    if (i) fprintf(out, ",");
+	    if (!(i&3)) fprintf(out, "\n\t");
+	    else fprintf(out, " ");
+	    if (nums[i].numerator < 0) {
+		fprintf(out, "%6d, 0x%04x",
+		  nums[i].numerator, nums[i].denominator);
+	    } else {
+		fprintf(out, "0x%04x, 0x%04x",
+		  nums[i].numerator, nums[i].denominator);
+	    }
+	}
+	fprintf(out, "\n};\n\n");
+    }
+#else
     /*
      * Open the num.dat file.
      */
@@ -1615,6 +1858,7 @@ write_cdata(char *opath)
         fwrite((char *) ncodes, sizeof(_codeidx_t), ncodes_used, out);
         fwrite((char *) nums, sizeof(_num_t), nums_used, out);
     }
+#endif
 
     fclose(out);
 }
