@@ -116,7 +116,7 @@ AC_DEFUN([OL_BERKELEY_DB2],
 	fi
 ])
  if test $ol_cv_berkeley_db2 = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB2,1)
+	AC_DEFINE(HAVE_BERKELEY_DB2,1, [define if Berkeley DBv2 is available])
  fi
 ])dnl
 dnl
@@ -182,7 +182,7 @@ AC_DEFUN([OL_BERKELEY_DB],
 	fi
 ])
  if test $ol_cv_berkeley_db = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB,1)
+	AC_DEFINE(HAVE_BERKELEY_DB,1, [define if Berkeley DB is available])
  fi
 ])dnl
 dnl
@@ -227,7 +227,7 @@ AC_DEFUN([OL_GDBM],
 	fi
 ])
  if test $ol_cv_gdbm = yes ; then
-	AC_DEFINE(HAVE_GDBM,1)
+	AC_DEFINE(HAVE_GDBM,1, [define if GNU DBM is available])
  fi
 ])dnl
 dnl
@@ -283,7 +283,7 @@ AC_DEFUN([OL_NDBM],
 	fi
 ])
  if test $ol_cv_ndbm = yes ; then
-	AC_DEFINE(HAVE_NDBM,1)
+	AC_DEFINE(HAVE_NDBM,1, [define if NDBM is available])
  fi
 ])dnl
 dnl
@@ -363,7 +363,7 @@ main()
 	[ol_cv_c_upper_lower=safe])])
 AC_MSG_RESULT($ol_cv_c_upper_lower)
 if test $ol_cv_c_upper_lower != no ; then
-	AC_DEFINE(C_UPPER_LOWER,1)
+	AC_DEFINE(C_UPPER_LOWER,1, [define if toupper() requires islower()])
 fi
 ])
 
@@ -386,7 +386,8 @@ AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
 
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
-	AC_DEFINE(DECL_SYS_ERRLIST,1)
+	AC_DEFINE(DECL_SYS_ERRLIST,1,
+		[define if sys_errlist is declared in stdio.h or errno.h])
 	AC_MSG_CHECKING([existence of sys_errlist])
 	AC_CACHE_VAL(ol_cv_have_sys_errlist,[
 		AC_TRY_LINK([#include <errno.h>],
@@ -410,7 +411,7 @@ AC_DEFUN(OL_C_VOLATILE,
   if test $ol_cv_c_volatile = yes; then
     : 
   else
-    AC_DEFINE(volatile, )
+    AC_DEFINE(volatile,)
   fi
  ])dnl
 
@@ -440,7 +441,8 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
 		fi
 	])
   if test $ol_cv_func_ctime_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs)
+    AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
+		[set to the number of arguments ctime_r() expects])
   fi
 ])dnl
 dnl --------------------------------------------------------------------
@@ -452,7 +454,7 @@ AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
 			ol_cv_func_ctime_r_type="int", ol_cv_func_ctime_r_type="charp")
 	])
   if test $ol_cv_func_ctime_r_type = "int" ; then
-	AC_DEFINE_UNQUOTED(CTIME_R_RETURNS_INT, 1)
+	AC_DEFINE(CTIME_R_RETURNS_INT,1, [define if ctime_r() returns int])
   fi
 ])dnl
 dnl ====================================================================
@@ -484,7 +486,9 @@ AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
 		fi
 	])
   if test $ol_cv_func_gethostbyname_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS, $ol_cv_func_gethostbyname_r_nargs)
+    AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS,
+		$ol_cv_func_gethostbyname_r_nargs,
+		[set to the number of arguments gethostbyname_r() expects])
   fi
 ])dnl
 dnl check no of arguments for gethostbyaddr_r
@@ -523,7 +527,9 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
 		fi
 	])
   if test $ol_cv_func_gethostbyaddr_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS, $ol_cv_func_gethostbyaddr_r_nargs)
+    AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS,
+		$ol_cv_func_gethostbyaddr_r_nargs,
+		[set to the number of arguments gethostbyaddr_r() expects])
   fi
 ])dnl
 

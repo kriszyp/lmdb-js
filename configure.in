@@ -463,28 +463,37 @@ if test $ol_with_tls != no ; then
 	AC_CHECK_HEADERS(ssl.h)
 	
 	if test $ac_cv_header_ssl_h = yes ; then
-		AC_CHECK_LIB( ssl, SSLeay_add_ssl_algorithms, 
-			[have_ssleay=yes], [have_ssleay=no], [-lcrypto])
+		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
+			[have_ssleay=yes
+			need_rsaref=no],
+			[have_ssleay=no],
+			[-lcrypto])
 			
 		if test $have_ssleay = no ; then
-			AC_CHECK_LIB( ssl, ssl3_accept, 
-				[have_ssleay=yes], [have_ssleay=no], [-lcrypto -lRSAglue -lrsaref])
+			AC_CHECK_LIB(ssl, ssl3_accept, 
+				[have_ssleay=yes
+				need_rsaref=yes], [have_ssleay=no],
+				[-lcrypto -lRSAglue -lrsaref])
 		fi
 
 		if test $have_ssleay = yes ; then
 			ol_with_tls=found
 			ol_link_tls=yes
 
-			AC_DEFINE( HAVE_SSLEAY, 1, 
-				[define if you have SSLeay] )
+			AC_DEFINE(HAVE_SSLEAY, 1, 
+				[define if you have SSLeay or OpenSSL])
 
-			TLS_LIBS="-lssl -lcrypto"
+			if test $need_rsaref = yes; then
+				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
+			else
+				TLS_LIBS="-lssl -lcrypto"
+			fi
 		fi
 	fi
 fi
 
 if test $ol_link_tls = yes ; then
-	AC_DEFINE( HAVE_TLS, 1, [define if you have TLS] )
+	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
 fi	
 
 ol_link_threads=no
