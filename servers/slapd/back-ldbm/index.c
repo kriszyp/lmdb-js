@@ -10,7 +10,18 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static int	add_value(Backend *be, struct dbcache *db, char *type, int indextype, char *val, ID id);
+static int	add_value(Backend *be,
+			  struct dbcache *db,
+			  char *type,
+			  int indextype,
+			  char *val,
+			  ID id);
+static int	delete_value(Backend *be,
+			     struct dbcache *db,
+			     char *type,
+			     int indextype,
+			     char *val,
+			     ID id);
 static int	index2prefix(int indextype);
 
 int
@@ -169,6 +180,23 @@ index_read(
 	return( idl );
 }
 
+/* Remove values from index files */
+
+static int
+delete_value(
+    Backend		*be,
+    struct dbcache	*db,
+    char		*type,
+    int			indextype,
+    char		*val,
+    ID			id
+)
+{
+
+	return 0;
+
+}/* static int delete_value() */
+
 static int
 add_value(
     Backend		*be,
@@ -236,6 +264,187 @@ index_delete_values(
     ID			id
 )
 {
+	int		indexmask, syntax;
+	char		*at_cn;	/* Attribute canonical name */
+	struct dbcache	*db;
+	char		*val, *p, *code, *w;
+	unsigned	i, j, len;
+	char		buf[SUBLEN + 1];
+	char		vbuf[BUFSIZ];
+	char		*bigbuf;
+
+
+	Debug( LDAP_DEBUG_TRACE,
+	       "=> index_delete_values( \"%s\", %ld )\n", 
+	       (type ? type : "(NULL)"),
+	       id,
+	       0 );
+	       
+	attr_normalize(type);
+	attr_masks( be->be_private, type, &indexmask, &syntax );
+	
+	if ( indexmask == 0 ) {
+		return( 0 );
+	}
+
+	at_cn = at_canonical_name( type );
+
+	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_WRITER ))
+	     == NULL ) {
+
+		Debug( LDAP_DEBUG_ANY,
+		       "<= index_delete_values -1 (could not open(wr) %s%s)\n",
+		       at_cn,
+		       LDBM_SUFFIX,
+		       0 );
+		return( -1 );
+
+	}
+
+	/* Remove each value from index file */
+	
+	for ( i = 0; vals[i] != NULL; i++ ) {
+
+		/*
+		 * Presence index entry
+		 */
+
+		if ( indexmask & INDEX_PRESENCE ) {
+			delete_value( be, db, at_cn, INDEX_PRESENCE, "*", id );
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+		       "*** index_add_values syntax 0x%x syntax bin 0x%x\n",
+		       syntax, SYNTAX_BIN, 0 );
+
+		if ( syntax & SYNTAX_BIN ) {
+			ldbm_cache_close( be, db );
+			return( 0 );
+		}
+
+		bigbuf = NULL;
+		len = vals[i]->bv_len;
+
+		/* value + null */
+		if ( len + 2 > sizeof(vbuf) ) {
+
+			bigbuf = (char *) ch_malloc( len + 1 );
+			val = bigbuf;
+
+		} else {
+
+			val = vbuf;
+
+		}
+
+		(void) memcpy( val, vals[i]->bv_val, len );
+		val[len] = '\0';
+
+		value_normalize( val, syntax );
+
+		/* value_normalize could change the length of val */
+
+		len = strlen( val );
+
+		/*
+		 * equality index entry
+		 */
+
+		if ( indexmask & INDEX_EQUALITY ) {
+		    
+			delete_value( be, db, at_cn, INDEX_EQUALITY, val, id );
+
+		}
+
+		/*
+		 * approximate index entry
+		 */
+		if ( indexmask & INDEX_APPROX ) {
+		    
+			for ( w = first_word( val );
+			      w != NULL;
+			      w = next_word( w ) ) {
+			    
+				if ( (code = phonetic( w )) != NULL ) {
+
+					delete_value( be,
+						      db,
+						      at_cn,
+						      INDEX_APPROX,
+						      code,
+						      id );
+					free( code );
+				}
+			}
+
+		}
+
+		/*
+		 * substrings index entry
+		 */
+
+		if ( indexmask & INDEX_SUB ) {
+
+			/* leading and trailing */
+			if ( len > SUBLEN - 2 ) {
+
+				buf[0] = '^';
+				for ( j = 0; j < SUBLEN - 1; j++ ) {
+					buf[j + 1] = val[j];
+				}
+				buf[SUBLEN] = '\0';
+
+				delete_value( be,
+					      db,
+					      at_cn,
+					      INDEX_SUB,
+					      buf,
+					      id );
+
+				p = val + len - SUBLEN + 1;
+				for ( j = 0; j < SUBLEN - 1; j++ ) {
+					buf[j] = p[j];
+				}
+				buf[SUBLEN - 1] = '$';
+				buf[SUBLEN] = '\0';
+
+				delete_value( be,
+					      db,
+					      at_cn,
+					      INDEX_SUB,
+					      buf,
+					      id );
+
+			}
+
+			/* any */
+
+			for (p = val; p < (val + len - SUBLEN + 1); p++) {
+
+				for ( j = 0; j < SUBLEN; j++ ) {
+					buf[j] = p[j];
+				}
+				buf[SUBLEN] = '\0';
+
+				delete_value( be,
+					      db,
+					      at_cn,
+					      INDEX_SUB,
+					      buf,
+					      id );
+			}/* for (p = val; p < (val + len - SUBLEN + 1); p++) */
+
+		}/* if ( indexmask & INDEX_SUB ) */
+
+		if ( bigbuf != NULL ) {
+
+			free( bigbuf );
+
+		}
+
+	}/* for ( i = 0; vals[i] != NULL; i++ ) */
+
+	ldbm_cache_close( be, db );
 
 	return 0;
 
