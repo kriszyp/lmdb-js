@@ -1,4 +1,6 @@
+#LEAD COMMENT
 dn: o=University of Michigan,c=US
+#EMBEDDED COMMENT
 objectclass: organization
 objectclass: domainRelatedObject
 l: Ann Arbor, Michigan
