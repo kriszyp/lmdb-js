@@ -25,6 +25,9 @@ dnssrv_back_compare(
 	AttributeAssertion *ava
 )
 {
-	return dnssrv_back_request( be, conn, op, dn, ndn,
-		0, NULL, NULL, 0 );
+	assert( get_manageDSAit( op ) );
+
+	/* not implemented */
+
+	return LDAP_OTHER;
 }

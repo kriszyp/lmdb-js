@@ -55,7 +55,7 @@ dnssrv_back_initialize(
 	bi->bi_op_bind = dnssrv_back_bind;
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = dnssrv_back_search;
-	bi->bi_op_compare = dnssrv_back_compare;
+	bi->bi_op_compare = 0 /* dnssrv_back_compare */;
 	bi->bi_op_modify = 0;
 	bi->bi_op_modrdn = 0;
 	bi->bi_op_add = 0;
