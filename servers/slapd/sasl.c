@@ -68,29 +68,47 @@ sasl_cb_log(
 }
 
 static int
-slap_sasl_proxy_policy(
+slap_sasl_authorize(
 	void *context,
 	const char *authcid,
 	const char *authzid,
 	const char **user,
 	const char **errstr)
 {
+	Connection *conn = context;
 	char *canon = NULL;
 
-	if ( !authcid || *authcid ) {
+	if ( authcid == NULL || *authcid == '\0' ) {
 		*errstr = "empty authentication identity";
+
+		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+			"empty authentication identity\n",
+			(long) (conn ? conn->c_connid : -1),
+			0, 0 );
 		return SASL_BADAUTH;
 	}
 
-	if ( !authzid || *authzid ) {
+	if ( authzid == NULL || *authzid == '\0' ||
+		strcmp( authcid, authzid ) == 0 )
+	{
 		size_t len = sizeof("u:") + strlen( authcid );
 		canon = ch_malloc( len );
 		strcpy( canon, "u:" );
 		strcpy( &canon[sizeof("u:")-1], authcid );
 
 		*user = canon;
+
+		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+			"\"%s\" as \"%s\"\n", 
+			(long) (conn ? conn->c_connid : -1),
+			authcid, canon );
 		return SASL_OK;
 	}
+
+	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+		"\"%s\" as \"%s\" disallowed. No policy.\n", 
+		(long) (conn ? conn->c_connid : -1),
+		authcid, authzid );
 
 	*errstr = "no proxy policy";
     return SASL_BADAUTH;
@@ -140,7 +158,7 @@ int slap_sasl_init( void )
 #ifdef HAVE_CYRUS_SASL
 	int rc;
 	sasl_conn_t *server = NULL;
-	sasl_callback_t server_callbacks[] = {
+	static sasl_callback_t server_callbacks[] = {
 		{ SASL_CB_LOG, &sasl_cb_log, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
@@ -213,11 +231,20 @@ int slap_sasl_open( Connection *conn )
 
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = NULL;
-	sasl_callback_t session_callbacks[] = {
-		{ SASL_CB_LOG, &sasl_cb_log, conn },
-		{ SASL_CB_PROXY_POLICY, &slap_sasl_proxy_policy, conn },
-		{ SASL_CB_LIST_END, NULL, NULL }
-	};
+	sasl_callback_t *session_callbacks =
+		ch_calloc( 3, sizeof(sasl_callback_t));
+
+	session_callbacks[0].id = SASL_CB_LOG;
+	session_callbacks[0].proc = &sasl_cb_log;
+	session_callbacks[0].context = conn;
+
+	session_callbacks[1].id = SASL_CB_PROXY_POLICY;
+	session_callbacks[1].proc = &slap_sasl_authorize;
+	session_callbacks[1].context = conn;
+
+	session_callbacks[2].id = SASL_CB_LIST_END;
+	session_callbacks[2].proc = NULL;
+	session_callbacks[2].context = NULL;
 
 	/* create new SASL context */
 	sc = sasl_server_new( "ldap", sasl_host, global_realm,

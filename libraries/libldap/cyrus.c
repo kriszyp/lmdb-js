@@ -34,7 +34,7 @@ int ldap_int_sasl_init( void )
 	/* XXX not threadsafe */
 	static int sasl_initialized = 0;
 
-	sasl_callback_t client_callbacks[] = {
+	static sasl_callback_t client_callbacks[] = {
 #ifdef SASL_CB_GETREALM
 		{ SASL_CB_GETREALM, NULL, NULL },
 #endif
@@ -381,17 +381,18 @@ ldap_int_sasl_open(
 	int rc;
 	sasl_conn_t *ctx;
 
-	sasl_callback_t session_callbacks[] = {
-#ifdef SASL_CB_GETREALM
-		{ SASL_CB_GETREALM, NULL, NULL },
-#endif
-		{ SASL_CB_USER, NULL, NULL },
-		{ SASL_CB_AUTHNAME, NULL, NULL },
-		{ SASL_CB_PASS, NULL, NULL },
-		{ SASL_CB_ECHOPROMPT, NULL, NULL },
-		{ SASL_CB_NOECHOPROMPT, NULL, NULL },
-		{ SASL_CB_LIST_END, NULL, NULL }
-	};
+	sasl_callback_t *session_callbacks =
+		ber_memcalloc( 2, sizeof( sasl_callback_t ) );
+
+	if( session_callbacks == NULL ) return LDAP_NO_MEMORY;
+
+	session_callbacks[0].id = SASL_CB_USER;
+	session_callbacks[0].proc = NULL;
+	session_callbacks[0].context = ld;
+
+	session_callbacks[1].id = SASL_CB_LIST_END;
+	session_callbacks[1].proc = NULL;
+	session_callbacks[1].context = NULL;
 
 	assert( lc->lconn_sasl_ctx == NULL );
 
