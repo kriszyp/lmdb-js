@@ -36,6 +36,9 @@ static int	get_simple_vrFilter(
 	ValuesReturnFilter **f,
 	const char **text );
 
+#ifdef SLAP_NVALUES
+#define XXX 1
+#endif
 
 int
 get_filter(
@@ -210,7 +213,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-#if XXX
+#ifdef XXX
 		assert( f->f_and != NULL );
 #endif
 		break;
@@ -226,9 +229,6 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-#if XXX
-		assert( f->f_or != NULL );
-#endif
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -243,9 +243,6 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-#if XXX
-		assert( f->f_not != NULL );
-#endif
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -261,7 +258,7 @@ get_filter(
 			break;
 		}
 
-#if nothosed
+#ifdef XXX
 		assert( f->f_mra != NULL );
 #endif
 		break;
@@ -324,7 +321,8 @@ get_filter_list( Connection *conn, BerElement *ber,
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 #endif
 	new = f;
-	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
+	for ( tag = ber_first_element( ber, &len, &last );
+		tag != LBER_DEFAULT;
 		tag = ber_next_element( ber, &len, last ) )
 	{
 		err = get_filter( conn, ber, new, text );
