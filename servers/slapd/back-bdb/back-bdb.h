@@ -20,6 +20,7 @@
 #include <portable.h>
 #include "slap.h"
 #include <db.h>
+#include "alock.h"
 
 LDAP_BEGIN_DECL
 
@@ -189,6 +190,7 @@ struct bdb_info {
 	bdb_idl_cache_entry_t	*bi_idl_lru_tail;
 	ldap_pvt_thread_rdwr_t bi_idl_tree_rwlock;
 	ldap_pvt_thread_mutex_t bi_idl_tree_lrulock;
+	alock_info_t	bi_alock_info;
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

@@ -24,6 +24,7 @@
 #include "back-bdb.h"
 #include <lutil.h>
 #include <ldap_rq.h>
+#include "alock.h"
 
 static const struct bdbi_database {
 	char *file;
@@ -121,13 +122,21 @@ bdb_db_open( BackendDB *be )
 	if ( !( slapMode & SLAP_TOOL_QUICK ))
 		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
 	
-#if 0
-	/* Never do automatic recovery, must perform it manually.
-	 * Otherwise restarting with gentlehup will corrupt the
-	 * database.
-	 */
-	if( !(slapMode & SLAP_TOOL_MODE) ) flags |= DB_RECOVER;
-#endif
+	rc = alock_open( &bdb->bi_alock_info, "slapd", bdb->bi_dbenv_home,
+		slapMode & SLAP_TOOL_READONLY ?  ALOCK_LOCKED : ALOCK_UNIQUE );
+	if( rc == ALOCK_RECOVER ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: alock_open: recovery required\n", 0, 0, 0 );
+		flags |= DB_RECOVER;
+	} else if( rc == ALOCK_BUSY ) {
+		Debug( LDAP_DEBUG_ANY,
+		   "bdb_db_open: alock_open: database in use\n", 0, 0, 0 );
+		return -1;
+	} else if( rc != ALOCK_CLEAN ) {
+		Debug( LDAP_DEBUG_ANY,
+		   "bdb_db_open: alock_open: database unstable\n", 0, 0, 0 );
+		return -1;
+	}
 
 	/* If a key was set, use shared memory for the BDB environment */
 	if ( bdb->bi_shm_key ) {
@@ -249,6 +258,14 @@ bdb_db_open( BackendDB *be )
 			"bdb_db_open: dbenv_open failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
+	}
+	if( flags & DB_RECOVER ) {
+		rc = alock_recover (&bdb->bi_alock_info);
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			   "bdb_db_open: unable to alock_recover\n", 0, 0, 0 );
+			return -1;
+		}
 	}
 
 	flags = DB_THREAD | bdb->bi_db_opflags;
@@ -436,6 +453,13 @@ bdb_db_destroy( BackendDB *be )
 				db_strerror(rc), rc, 0 );
 			return rc;
 		}
+	}
+
+	rc = alock_close( &bdb->bi_alock_info );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_destroy: alock_close failed\n", 0, 0, 0 );
+		return -1;
 	}
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
