@@ -374,7 +374,7 @@ static int test_mra_vrFilter(
 				return rc;
 			}
 
-			if ( ret ) {
+			if ( ret == 0 ) {
 				(*e_flags)[i][j] = 1;
 			}
 		}
