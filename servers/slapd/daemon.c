@@ -334,27 +334,53 @@ static int get_url_perms(
 		}
 
 		if ( strncasecmp( type, LDAPI_MOD_URLEXT "=", sizeof(LDAPI_MOD_URLEXT "=") - 1 ) == 0 ) {
-			char 	*value = type + sizeof(LDAPI_MOD_URLEXT "=") - 1;
+			char 	*value = type
+				+ ( sizeof(LDAPI_MOD_URLEXT "=") - 1 );
 			mode_t	p = 0;
 			int 	j;
 
-			if ( strlen(value) != 3 ) {
-				return LDAP_OTHER;
-			} 
-
-			for ( j = 0; j < 3; j++ ) {
-				static mode_t	m[ 3 ] 
-					= { S_IRWXU, S_IRWXG, S_IRWXO };
-
-				switch ( value[ j ] ) {
-				case 'w':
-					p |= m[ j ];
-					break;
-				case '-':
-					break;
-				default:
+			switch (strlen(value)) {
+			case 4:
+				/* skip leading '0' */
+				if ( value[ 0 ] != '0' ) {
 					return LDAP_OTHER;
 				}
+				value++;
+
+			case 3:
+				for ( j = 0; j < 3; j++) {
+					int	v;
+
+					v = value[ j ] - '0';
+
+					if ( v < 0 || v > 7 ) {
+						return LDAP_OTHER;
+					}
+
+					p |= v << 3*(2-j);
+				}
+				break;
+
+			case 10:
+				for ( j = 1; j < 10; j++ ) {
+					static mode_t	m[] = { 0, 
+						S_IRUSR, S_IWUSR, S_IXUSR,
+						S_IRGRP, S_IWGRP, S_IXGRP,
+						S_IROTH, S_IWOTH, S_IXOTH
+					};
+					static char	c[] = "-rwxrwxrwx"; 
+
+					if ( value[ j ] == c[ j ] ) {
+						p |= m[ j ];
+	
+					} else if ( value[ j ] != '-' ) {
+						return LDAP_OTHER;
+					}
+				}
+				break;
+
+			default:
+				return LDAP_OTHER;
 			} 
 
 			*crit = c;
@@ -1342,7 +1368,7 @@ slapd_daemon_task(
 			char *authid = NULL;
 
 			char	*dnsname = NULL;
-			char	*peeraddr;
+			char	*peeraddr = NULL;
 #ifdef LDAP_PF_LOCAL
 			char	peername[MAXPATHLEN + sizeof("PATH=")];
 #elif defined(LDAP_PF_INET6)
