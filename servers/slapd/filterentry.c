@@ -186,7 +186,7 @@ static int test_mra_filter(
 			const char *text;
 
 			rc = value_match( &ret, slap_schema.si_ad_entryDN, mra->ma_rule,
-				0, &e->e_nname, &mra->ma_value, &text );
+				SLAP_MR_EXT, &e->e_nname, &mra->ma_value, &text );
 	
 	
 			if( rc != LDAP_SUCCESS ) return rc;
@@ -264,7 +264,8 @@ static int test_mra_filter(
 					if ( !a->a_comp_data->cd_tree[i] ) {
 						return LDAP_OPERATIONS_ERROR;
 					}
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					rc = value_match( &ret, a->a_desc, mra->ma_rule,
+						SLAP_MR_COMPONENT,
 						(struct berval*)a->a_comp_data->cd_tree[i++],
 						(void*)mra, &text );
 				} else 
@@ -308,8 +309,8 @@ static int test_mra_filter(
 						nbv = *bv;
 					}
 
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						&nbv, &mra->ma_value, &text );
+					rc = value_match( &ret, a->a_desc, mra->ma_rule,
+						SLAP_MR_EXT, &nbv, &mra->ma_value, &text );
 
 					if ( nbv.bv_val != bv->bv_val ) {
 						memfree( nbv.bv_val, memctx );
@@ -356,7 +357,8 @@ static int test_mra_filter(
 			{
 				int ret;
 
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+				rc = value_match( &ret, a->a_desc, mra->ma_rule,
+					SLAP_MR_COMPONENT,
 					(struct berval*)a, (void*)mra, &text );
 				if ( rc != LDAP_SUCCESS ) break;
 	
@@ -397,8 +399,8 @@ static int test_mra_filter(
 					nbv = *bv;
 				}
 
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					&nbv, &value, &text );
+				rc = value_match( &ret, a->a_desc, mra->ma_rule,
+					SLAP_MR_EXT, &nbv, &value, &text );
 
 				if ( nbv.bv_val != bv->bv_val ) {
 					memfree( nbv.bv_val, memctx );
@@ -494,7 +496,7 @@ static int test_mra_filter(
 				}
 
 				/* check match */
-				rc = value_match( &ret, ad, mra->ma_rule, 0,
+				rc = value_match( &ret, ad, mra->ma_rule, SLAP_MR_EXT,
 					&nbv, &value, &text );
 
 cleanup:;
@@ -588,8 +590,8 @@ test_ava_filter(
 		mr = slap_schema.si_ad_entryDN->ad_type->sat_equality;
 		assert( mr );
 
-		rc = value_match( &match, slap_schema.si_ad_entryDN, mr, 0,
-			&e->e_nname, &ava->aa_value, &text );
+		rc = value_match( &match, slap_schema.si_ad_entryDN, mr,
+			SLAP_MR_EXT, &e->e_nname, &ava->aa_value, &text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 		if( match == 0 ) return LDAP_COMPARE_TRUE;
@@ -613,6 +615,7 @@ test_ava_filter(
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ) )
 	{
+		int use;
 		MatchingRule *mr;
 		struct berval *bv;
 
@@ -623,19 +626,24 @@ test_ava_filter(
 			continue;
 		}
 
+		use = SLAP_MR_EQUALITY;
+
 		switch ( type ) {
 		case LDAP_FILTER_APPROX:
+			use = SLAP_MR_EQUALITY_APPROX;
 			mr = a->a_desc->ad_type->sat_approx;
 			if( mr != NULL ) break;
 
-			/* use EQUALITY matching rule if no APPROX rule */
+			/* fallthru: use EQUALITY matching rule if no APPROX rule */
 
 		case LDAP_FILTER_EQUALITY:
+			/* use variable set above so fall thru use is not clobbered */
 			mr = a->a_desc->ad_type->sat_equality;
 			break;
 
 		case LDAP_FILTER_GE:
 		case LDAP_FILTER_LE:
+			use = SLAP_MR_ORDERING;
 			mr = a->a_desc->ad_type->sat_ordering;
 			break;
 
@@ -700,8 +708,10 @@ test_ava_filter(
 					return LDAP_OPERATIONS_ERROR;
 				}
 
-				ret = value_match( &match, a->a_desc, cf_mr, 0,
-					(struct berval*)a->a_comp_data->cd_tree[i++], (void*)&mra, &text );
+				ret = value_match( &match, a->a_desc, cf_mr,
+					SLAP_MR_COMPONENT,
+					(struct berval*)a->a_comp_data->cd_tree[i++],
+					(void*)&mra, &text );
 				if ( ret == LDAP_INAPPROPRIATE_MATCHING ) {
 					/* cached component tree is broken, just remove it */
 					free_ComponentData ( a );
@@ -709,12 +719,11 @@ test_ava_filter(
 				}
 				if ( a_alias )
 					ava->aa_desc = a_alias->aa_aliasing_ad;
-			}
-			else 
+
+			} else 
 #endif
 			{
-
-				ret = value_match( &match, a->a_desc, mr, 0,
+				ret = value_match( &match, a->a_desc, mr, use,
 					bv, &ava->aa_value, &text );
 			}
 
@@ -909,7 +918,7 @@ test_substrings_filter(
 			int ret, match;
 			const char *text;
 
-			ret = value_match( &match, a->a_desc, mr, 0,
+			ret = value_match( &match, a->a_desc, mr, SLAP_MR_SUBSTR,
 				bv, f->f_sub, &text );
 
 			if( ret != LDAP_SUCCESS ) {

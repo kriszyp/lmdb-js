@@ -1060,6 +1060,7 @@ uniqueMemberMatch(
 	struct berval assertedUID = BER_BVNULL;
 	struct berval valueDN = BER_BVNULL;
 	struct berval valueUID = BER_BVNULL;
+	int approx = ((flags & SLAP_MR_EQUALITY_APPROX) == SLAP_MR_EQUALITY_APPROX);
 
 	if ( !BER_BVISEMPTY( asserted ) ) {
 		assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
@@ -1107,10 +1108,108 @@ uniqueMemberMatch(
 			*matchp = match;
 			return LDAP_SUCCESS;
 		}
+
+	} else if ( !approx && valueUID.bv_len ) {
+		match = -1;
+		*matchp = match;
+		return LDAP_SUCCESS;
+
+	} else if ( !approx && assertedUID.bv_len ) {
+		match = 1;
+		*matchp = match;
+		return LDAP_SUCCESS;
 	}
 
 	return dnMatch( matchp, flags, syntax, mr, &valueDN, &assertedDN );
 }
+
+static int 
+uniqueMemberIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	BerVarray values,
+	BerVarray *keysp,
+	void *ctx )
+{
+	BerVarray dnvalues;
+	int rc;
+	int i;
+	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
+		/* just count them */                 
+	}
+	assert( i > 0 );
+
+	dnvalues = slap_sl_malloc( sizeof( struct berval ) * (i+1), ctx );
+
+	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
+		struct berval assertedDN = values[i];
+		struct berval assertedUID = BER_BVNULL;
+
+		if ( !BER_BVISEMPTY( &assertedDN ) ) {
+			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
+			if ( !BER_BVISNULL( &assertedUID ) ) {
+				assertedUID.bv_val++;
+				assertedUID.bv_len = assertedDN.bv_len
+					- ( assertedUID.bv_val - assertedDN.bv_val );
+	
+				if ( bitStringValidate( NULL, &assertedUID ) == LDAP_SUCCESS ) {
+					assertedDN.bv_len -= assertedUID.bv_len + 1;
+
+				} else {
+					BER_BVZERO( &assertedUID );
+				}
+			}
+		}
+
+		dnvalues[i] = assertedDN;
+	}
+	BER_BVZERO( &dnvalues[i] );
+
+	rc = octetStringIndexer( use, flags, syntax, mr, prefix,
+		dnvalues, keysp, ctx );
+
+	slap_sl_free( dnvalues, ctx );
+	return rc;
+}
+
+static int 
+uniqueMemberFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertedValue,
+	BerVarray *keysp,
+	void *ctx )
+{
+	struct berval *asserted = (struct berval *) assertedValue;
+	struct berval assertedDN = *asserted;
+	struct berval assertedUID = BER_BVNULL;
+
+	if ( !BER_BVISEMPTY( asserted ) ) {
+		assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
+		if ( !BER_BVISNULL( &assertedUID ) ) {
+			assertedUID.bv_val++;
+			assertedUID.bv_len = assertedDN.bv_len
+				- ( assertedUID.bv_val - assertedDN.bv_val );
+
+			if ( bitStringValidate( NULL, &assertedUID ) == LDAP_SUCCESS ) {
+				assertedDN.bv_len -= assertedUID.bv_len + 1;
+
+			} else {
+				BER_BVZERO( &assertedUID );
+			}
+		}
+	}
+
+	return octetStringFilter( use, flags, syntax, mr, prefix,
+		&assertedDN, keysp, ctx );
+}
+
 
 /*
  * Handling boolean syntax and matching is quite rigid.
@@ -3638,7 +3737,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, uniqueMemberNormalize, uniqueMemberMatch,
-		NULL, NULL,
+		uniqueMemberIndexer, uniqueMemberFilter,
 		NULL },
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
