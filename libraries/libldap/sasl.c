@@ -103,7 +103,7 @@ ldap_sasl_bind(
 			ld->ld_version, dn, LDAP_AUTH_SIMPLE,
 			cred );
 		
-	} else if ( cred == NULL ) {
+	} else if ( cred == NULL || !cred->bv_len ) {
 		/* SASL bind w/o creditials */
 		rc = ber_printf( ber, "{it{ist{sN}N}" /*}*/,
 			++ld->ld_msgid, LDAP_REQ_BIND,
