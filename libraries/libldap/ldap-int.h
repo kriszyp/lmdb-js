@@ -88,6 +88,79 @@ struct ldapoptions {
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
 
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+/*
+ * structure for tracking LDAP server host, ports, DNs, etc.
+ */
+typedef struct ldap_server {
+	char			*lsrv_host;
+	char			*lsrv_dn;	/* if NULL, use default */
+	int			lsrv_port;
+	struct ldap_server	*lsrv_next;
+} LDAPServer;
+
+
+/*
+ * structure for representing an LDAP server connection
+ */
+typedef struct ldap_conn {
+	Sockbuf			*lconn_sb;
+	int			lconn_refcnt;
+	time_t		lconn_lastused;	/* time */
+	int			lconn_status;
+#define LDAP_CONNST_NEEDSOCKET		1
+#define LDAP_CONNST_CONNECTING		2
+#define LDAP_CONNST_CONNECTED		3
+	LDAPServer		*lconn_server;
+	char			*lconn_krbinstance;
+	struct ldap_conn	*lconn_next;
+} LDAPConn;
+
+
+/*
+ * structure used to track outstanding requests
+ */
+typedef struct ldapreq {
+	int		lr_msgid;	/* the message id */
+	int		lr_status;	/* status of request */
+#define LDAP_REQST_INPROGRESS	1
+#define LDAP_REQST_CHASINGREFS	2
+#define LDAP_REQST_NOTCONNECTED	3
+#define LDAP_REQST_WRITING	4
+	int		lr_outrefcnt;	/* count of outstanding referrals */
+	int		lr_origid;	/* original request's message id */
+	int		lr_parentcnt;	/* count of parent requests */
+	int		lr_res_msgtype;	/* result message type */
+	int		lr_res_errno;	/* result LDAP errno */
+	char		*lr_res_error;	/* result error string */
+	char		*lr_res_matched;/* result matched DN string */
+	BerElement	*lr_ber;	/* ber encoded request contents */
+	LDAPConn	*lr_conn;	/* connection used to send request */
+	struct ldapreq	*lr_parent;	/* request that spawned this referral */
+	struct ldapreq	*lr_refnext;	/* next referral spawned */
+	struct ldapreq	*lr_prev;	/* previous request */
+	struct ldapreq	*lr_next;	/* next request */
+} LDAPRequest;
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
+
+/*
+ * structure for client cache
+ */
+#define LDAP_CACHE_BUCKETS	31	/* cache hash table size */
+typedef struct ldapcache {
+	LDAPMessage	*lc_buckets[LDAP_CACHE_BUCKETS];/* hash table */
+	LDAPMessage	*lc_requests;			/* unfulfilled reqs */
+	long		lc_timeout;			/* request timeout */
+	long		lc_maxmem;			/* memory to use */
+	long		lc_memused;			/* memory in use */
+	int		lc_enabled;			/* enabled? */
+	unsigned long	lc_options;			/* options */
+#define LDAP_CACHE_OPT_CACHENOERRS	0x00000001
+#define LDAP_CACHE_OPT_CACHEALLERRS	0x00000002
+}  LDAPCache;
+#define NULLLDCACHE ((LDAPCache *)NULL)
+
+
 /*
  * structure representing an ldap connection
  */
