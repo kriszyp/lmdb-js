@@ -136,7 +136,6 @@ meta_back_db_init(
 {
 	struct metainfo	*li;
 
-#ifdef LDAP_CACHING
 	struct rewrite_info	*rwinfo;
 	cache_manager		*cm;
 	query_manager		*qm;
@@ -187,7 +186,6 @@ meta_back_db_init(
 	ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
 	ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
 	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
-#endif /* LDAP_CACHING */
 
 	li = ch_calloc( 1, sizeof( struct metainfo ) );
 	if ( li == NULL ) {
@@ -199,11 +197,9 @@ meta_back_db_init(
 	 * this may change
 	 */
 	li->defaulttarget = META_DEFAULT_TARGET_NONE;
-#ifdef LDAP_CACHING
 	li->cm = cm; 
 	li->rwinfo = rwinfo;
 	/* FIXME: what about qm ? */
-#endif /* LDAP_CACHING */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 	ldap_pvt_thread_mutex_init( &li->cache.mutex );

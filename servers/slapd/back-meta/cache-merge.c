@@ -34,8 +34,6 @@
 #include "../../../libraries/libldap/ldap-int.h"
 #include <sys/time.h>
 
-#ifdef LDAP_CACHING
-
 static struct berval bv_queryid_any = BER_BVC( "(queryid=*)" );
 
 static Attribute* 
@@ -286,5 +284,3 @@ normalize_values( Attribute* attr )
 
 	return LDAP_SUCCESS;
 }
-
-#endif /* LDAP_CACHING */

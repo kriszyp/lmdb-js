@@ -26,7 +26,6 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-#ifdef LDAP_CACHING 
 static void 	add_query_on_top (query_manager*, CachedQuery*);
 static int 	base_scope_compare(struct berval* dn_stored, 
 		           	   struct berval* dn_incoming, int scope_stored,
@@ -465,4 +464,3 @@ remove_from_template (CachedQuery* qc, QueryTemplate* template)
 
 	template->no_of_queries--;  
 }    
-#endif

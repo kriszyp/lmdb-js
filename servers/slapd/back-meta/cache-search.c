@@ -104,7 +104,6 @@
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
 
-#ifdef LDAP_CACHING 
 static Entry* 
 meta_create_entry(
 	Backend 	*be,
@@ -1840,4 +1839,3 @@ cache_back_sentry(
 		return 0; 
 	}
 }
-#endif

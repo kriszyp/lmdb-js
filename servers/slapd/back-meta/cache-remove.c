@@ -34,7 +34,6 @@
 #include "../../../libraries/libldap/ldap-int.h"
 #include <sys/time.h>
 
-#ifdef LDAP_CACHING 
 static int
 remove_func (
 	Operation	*op,
@@ -188,5 +187,3 @@ remove_func (
 
 	return 0;
 }
-
-#endif /* LDAP_CACHING */

@@ -27,7 +27,6 @@ EVEN
 #define META_CACHE_H
 #include "slap.h"
 
-#ifdef LDAP_CACHING
 /* cache specific errors */
 enum type_of_result 
 { 
@@ -214,5 +213,4 @@ remove_query_data (
 		   struct berval* query_uuid, 
 		   struct exception* result
 );
-#endif
 #endif

@@ -27,7 +27,6 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-#ifdef LDAP_CACHING 
 #define MAX_ATTR_SETS 500 
 static void find_supersets( struct attr_set* attr_sets, int numsets ); 
 static int compare_sets( struct attr_set* setA, int, int );
@@ -329,4 +328,3 @@ compare_sets(struct attr_set* set, int i, int j)
 
 	return result; 
 }
-#endif

@@ -406,7 +406,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
 
-#ifdef LDAP_CACHING 
 	/* LDAP cache specific operational attribute */
 	{ "queryid", "( 1.3.6.1.4.1.4203.666.1.12 NAME 'queryid' "
 			"DESC 'list of queries the entry belongs to' "
@@ -417,7 +416,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL, 
 		offsetof(struct slap_internal_schema, si_ad_queryid) },
-#endif /* LDAP_CACHING */
 
 	{ "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
 			"NAME 'syncreplCookie' "
