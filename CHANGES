@@ -11,6 +11,7 @@ Changes included in OpenLDAP 1.2.11 Release Engineering
 	Fixed slapd_shutdown extern reference bug (ITS#527)
 	Fixed ACL groups member matching
 	Raise MAXDBCACHE to 128 (ITS#512)
+	Fixed slapd client_addr crash (ITS#579)
 	Build Environment
 		Detect and use getpassphrase() and getpass()
 		Change GNU Pth to enable soft syscalls
