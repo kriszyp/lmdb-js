@@ -39,6 +39,7 @@ bdb_referrals(
 		return rc;
 	} 
 
+	/* XXYYZ: need to check return value */
 	LOCK_ID ( bdb->bi_dbenv, &locker );
 
 dn2entry_retry:

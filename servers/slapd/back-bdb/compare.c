@@ -34,6 +34,7 @@ bdb_compare(
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
+	/* XXYYZ: need to check return value */
 	LOCK_ID ( bdb->bi_dbenv, &locker );
 
 dn2entry_retry:

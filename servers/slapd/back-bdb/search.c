@@ -71,6 +71,7 @@ bdb_search(
 
 	manageDSAit = get_manageDSAit( op );
 
+	/* XXYYZ: need to check return value */
 	LOCK_ID (bdb->bi_dbenv, &locker );
 
 	if ( nbase->bv_len == 0 ) {

@@ -67,10 +67,12 @@ bdb_attribute(
 		txn = boi->boi_txn;
 	}
 
-	if ( txn != NULL )
+	if ( txn != NULL ) {
 		locker = TXN_ID ( txn );
-	else
+	} else {
+		/* XXYYZ: need to check return value */
 		LOCK_ID ( bdb->bi_dbenv, &locker );
+	}
 
 	if (target != NULL && dn_match(&target->e_nname, entry_ndn)) {
 		/* we already have a LOCKED copy of the entry */

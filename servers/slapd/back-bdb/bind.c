@@ -49,6 +49,7 @@ bdb_bind(
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
 
+	/* XXYYZ: need to check return value */
 	LOCK_ID(bdb->bi_dbenv, &locker);
 
 dn2entry_retry:
