@@ -659,6 +659,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			*refdn++ = '\0';
 			newdn = refdn[0] != '?' && refdn[0] != '\0';
 
+			if( !newdn ) refdn = NULL;
 		} else {
 			newdn = 0;
 		}
