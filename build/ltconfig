@@ -1078,8 +1078,11 @@ hardcode_libdir_flag_spec=
 hardcode_libdir_separator=
 hardcode_direct=no
 hardcode_minus_L=no
+hardcode_default_flag=
 hardcode_shlibpath_var=unsupported
 runpath_var=
+link_export=
+link_export_all=
 always_export_symbols=no
 export_symbols_cmds='$NM $libobjs $convenience | $global_symbol_pipe | sed '\''s/.* //'\'' | sort | uniq > $export_symbols'
 # include_expsyms should be a list of space-separated symbols to be *always*
@@ -1161,27 +1164,64 @@ EOF
     allow_undefined_flag=unsupported
     always_export_symbols=yes
 
+    # HACK - this is actually determined at configure time in newer versions
+    # of libtool
+    lt_cv_need_dllmain=yes
+    lt_cv_cc_dll_switch="-Wl,--dll -nostartfiles"
+
+    # cygwin and mingw dlls have different entry points and sets of symbols
+    # to exclude.
+    # FIXME: what about values for MSVC?
+    dll_entry=__cygwin_dll_entry@12
+    case "$host_os" in
+    mingw*)
+      # mingw values
+      dll_entry=_DllMainCRTStartup@12
+      lt_cv_need_dllmain=no
+      lt_cv_cc_dll_switch=-mdll
+      ;;
+    esac
+
+    # mingw and cygwin differ, and it's simplest to just exclude the union
+    # of the two symbol sets.
+    dll_exclude_symbols=DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12,DllMainCRTStartup@12,DllEntryPoint@12
+
+    # recent cygwin and mingw systems supply a stub DllMain which the user
+    # can override, but on older systems we have to supply one (in ltdll.c)
+    if test "x$lt_cv_need_dllmain" = "xyes"; then
+      ltdll_obj='$objdir/$soname-ltdll.'"$objext "
+      ltdll_cmds='test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
+        test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~'
+    else
+      ltdll_obj=
+      ltdll_cmds=
+    fi
+
     # Extract the symbol export list from an `--export-all' def file,
     # then regenerate the def file from the symbol export list, so that
     # the compiled dll only exports the symbol export list.
-    export_symbols_cmds='test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
-      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~
-      $DLLTOOL --export-all --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --output-def $objdir/$soname-def  $objdir/$soname-ltdll.$objext $libobjs $convenience~
-      sed -e "1,/EXPORTS/d" -e "s/ @ [0-9]* ; *//" < $objdir/$soname-def > $export_symbols'
+    # Be careful not to strip the DATA tag left be newer dlltools.
+    export_symbols_cmds="$ltdll_cmds"'
+      $DLLTOOL --export-all --exclude-symbols '$dll_exclude_symbols' --output-def $objdir/$soname-def '$ltdll_obj'$libobjs $convenience~
+      sed -e "1,/EXPORTS/d" -e "s/ @ [0-9]*//" -e "s/ *;.*$//" < $objdir/$soname-def > $export_symbols'
 
+    # If DATA tags from a recent dlltool are present, honour them!
     archive_expsym_cmds='echo EXPORTS > $objdir/$soname-def~
       _lt_hint=1;
-      for symbol in `cat $export_symbols`; do
-	echo "	\$symbol @ \$_lt_hint ; " >> $objdir/$soname-def;
+      cat $export_symbols | while read symbol; do
+        set dummy \$symbol;
+        case \$# in
+          2) echo "     \$2 @ \$_lt_hint ; " >> $objdir/$soname-def;;
+          *) echo "     \$2 @ \$_lt_hint \$3 ; " >> $objdir/$soname-def;;
+        esac;
 	_lt_hint=`expr 1 + \$_lt_hint`;
       done~
-      test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
-      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~
-      $CC -Wl,--base-file,$objdir/$soname-base -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
-      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
-      $CC -Wl,--base-file,$objdir/$soname-base $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
-      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
-      $CC $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts'
+      '"$ltdll_cmds"'
+      $CC -Wl,--base-file,$objdir/$soname-base '$lt_cv_cc_dll_switch' -Wl,-e,'$dll_entry' -o $lib '$ltdll_obj'$libobjs $deplibs $linkopts~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols '$dll_exclude_symbols' --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC -Wl,--base-file,$objdir/$soname-base $objdir/$soname-exp '$lt_cv_cc_dll_switch' -Wl,-e,'$dll_entry' -o $lib '$ltdll_obj'$libobjs $deplibs $linkopts~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols '$dll_exclude_symbols' --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC $objdir/$soname-exp '$lt_cv_cc_dll_switch' -Wl,-e,'$dll_entry' -o $lib '$ltdll_obj'$libobjs $deplibs $linkopts'
 
       old_archive_from_new_cmds='$DLLTOOL --as=$AS --dllname $soname --def $objdir/$soname-def --output-lib $objdir/$libname.a' 
     ;;
@@ -1254,6 +1294,7 @@ else
   aix3*)
     allow_undefined_flag=unsupported
     always_export_symbols=yes
+    link_export=' -bE:$export_symbols'
     archive_expsym_cmds='$LD -o $objdir/$soname $libobjs $deplibs $linkopts -bE:$export_symbols -T512 -H512 -bM:SRE~$AR cru $lib $objdir/$soname'
     # Note: this linker hardcodes the directories in LIBPATH if there
     # are no directories specified by -L.
@@ -1266,7 +1307,7 @@ else
     ;;
 
   aix4*)
-    hardcode_libdir_flag_spec='${wl}-b ${wl}nolibpath ${wl}-b ${wl}libpath:$libdir:/usr/lib:/lib'
+    hardcode_libdir_flag_spec='${wl}-b ${wl}libpath:$libdir:/usr/lib:/lib'
     hardcode_libdir_separator=':'
     if test "$with_gcc" = yes; then
       collect2name=`${CC} -print-prog-name=collect2`
@@ -1289,14 +1330,14 @@ else
     else
       shared_flag='${wl}-bM:SRE'
       hardcode_direct=yes
+      hardcode_minus_L=yes
+      hardcode_default_flag='${wl}-b nolibpath'
     fi
     allow_undefined_flag=' ${wl}-berok'
-    archive_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bexpall ${wl}-bnoentry${allow_undefined_flag}'
     archive_expsym_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bE:$export_symbols ${wl}-bnoentry${allow_undefined_flag}'
-    case "$host_os" in aix4.[01]|aix4.[01].*)
-      # According to Greg Wooledge, -bexpall is only supported from AIX 4.2 on
-      always_export_symbols=yes ;;
-    esac
+    link_export=' ${wl}-bE:$export_symbols'
+    link_export_all=' ${wl}-bexpall'
+    always_export_symbols=yes
    ;;
 
   amigaos*)
@@ -1755,6 +1796,8 @@ aix3*)
 
   # AIX has no versioning support, so we append a major version to the name.
   soname_spec='${libname}${release}.so$major'
+  lt_cv_dlopen_self=yes
+  need_lib_prefix=no
   ;;
 
 aix4*)
@@ -1767,6 +1810,8 @@ aix4*)
   library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.a'
   shlibpath_var=LIBPATH
   deplibs_check_method=pass_all
+  lt_cv_dlopen_self=yes
+  need_lib_prefix=no
   ;;
 
 amigaos*)
@@ -2900,6 +2945,9 @@ hardcode_direct=$hardcode_direct
 # resulting binary.
 hardcode_minus_L=$hardcode_minus_L
 
+# Flag to force default rpath, to bypass effect of -L
+hardcode_default_flag='$hardcode_default_flag'
+
 # Set to yes if using SHLIBPATH_VAR=DIR during linking hardcodes DIR into
 # the resulting binary.
 hardcode_shlibpath_var=$hardcode_shlibpath_var
@@ -2915,6 +2963,10 @@ fix_srcfile_path="$fix_srcfile_path"
 
 # Set to yes if exported symbols are required.
 always_export_symbols=$always_export_symbols
+
+# Set to use export list when linking programs.
+link_export='$link_export'
+link_export_all='$link_export_all'
 
 # The commands to list exported symbols.
 export_symbols_cmds=$export_symbols_cmds

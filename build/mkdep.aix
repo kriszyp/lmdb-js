@@ -1,0 +1,4 @@
+#! /bin/sh
+cc_r -ME $* > /dev/null
+cat *.u
+rm *.u
