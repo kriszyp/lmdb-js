@@ -143,7 +143,8 @@ ldap_pvt_tls_init_def_ctx( void )
 		}
 		if ( tls_opt_ciphersuite &&
 		     !SSL_CTX_set_cipher_list( tls_def_ctx,
-			tls_opt_ciphersuite ) ) {
+			tls_opt_ciphersuite ) )
+		{
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not set cipher list %s.\n",
 			       tls_opt_ciphersuite, 0, 0 );
@@ -156,17 +157,21 @@ ldap_pvt_tls_init_def_ctx( void )
 							     tls_opt_cacertdir )
 			     || !SSL_CTX_set_default_verify_paths( tls_def_ctx ) )
 			{
-				Debug( LDAP_DEBUG_ANY,
-		 	"TLS: could not load verify locations (file:`%s',dir:`%s').\n",
-				       tls_opt_cacertfile,tls_opt_cacertdir,0);
+				Debug( LDAP_DEBUG_ANY, "TLS: "
+					"could not load verify locations (file:`%s',dir:`%s').\n",
+					tls_opt_cacertfile ? tls_opt_cacertfile : "",
+					tls_opt_cacertdir ? tls_opt_cacertdir : "",
+					0 );
 				tls_report_error();
 				goto error_exit;
 			}
 			calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
 			if ( !calist ) {
-				Debug( LDAP_DEBUG_ANY,
-		 	"TLS: could not load client CA list (file:`%s',dir:`%s').\n",
-				       tls_opt_cacertfile,tls_opt_cacertdir,0);
+				Debug( LDAP_DEBUG_ANY, "TLS: "
+					"could not load client CA list (file:`%s',dir:`%s').\n",
+					tls_opt_cacertfile ? tls_opt_cacertfile : "",
+					tls_opt_cacertdir ? tls_opt_cacertdir : "",
+					0 );
 				tls_report_error();
 				goto error_exit;
 			}
@@ -175,7 +180,8 @@ ldap_pvt_tls_init_def_ctx( void )
 		if ( tls_opt_keyfile &&
 		     !SSL_CTX_use_PrivateKey_file( tls_def_ctx,
 						   tls_opt_keyfile,
-						   SSL_FILETYPE_PEM ) ) {
+						   SSL_FILETYPE_PEM ) )
+		{
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not use key file `%s'.\n",
 			       tls_opt_keyfile,0,0);
@@ -185,7 +191,8 @@ ldap_pvt_tls_init_def_ctx( void )
 		if ( tls_opt_certfile &&
 		     !SSL_CTX_use_certificate_file( tls_def_ctx,
 						    tls_opt_certfile,
-						    SSL_FILETYPE_PEM ) ) {
+						    SSL_FILETYPE_PEM ) )
+		{
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not use certificate `%s'.\n",
 			       tls_opt_certfile,0,0);
@@ -193,7 +200,8 @@ ldap_pvt_tls_init_def_ctx( void )
 			goto error_exit;
 		}
 		if ( ( tls_opt_certfile || tls_opt_keyfile ) &&
-		     !SSL_CTX_check_private_key( tls_def_ctx ) ) {
+		     !SSL_CTX_check_private_key( tls_def_ctx ) )
+		{
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: private key mismatch.\n",
 			       0,0,0);
