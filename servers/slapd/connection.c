@@ -975,9 +975,9 @@ connection_input(
 	}
 
 	errno = 0;
-	if ( (tag = ber_get_next( conn->c_sb, &len, conn->c_currentber ))
-	    != LDAP_TAG_MESSAGE )
-	{
+
+	tag = ber_get_next( conn->c_sb, &len, conn->c_currentber );
+	if ( tag != LDAP_TAG_MESSAGE ) {
 		int err = errno;
 		ber_socket_t	sd;
 
