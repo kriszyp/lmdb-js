@@ -1541,7 +1541,7 @@ string_expand(
 				*dp = '\0';
 				i = matches[n].rm_so;
 				l = matches[n].rm_eo; 
-				for ( ; size < 512 && i < l; size++, i++ ) {
+				for ( ; size < bufsiz && i < l; size++, i++ ) {
 					*dp++ = match[i];
 					size++;
 				}
