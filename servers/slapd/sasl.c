@@ -735,7 +735,7 @@ slap_sasl_authorize(
 		"slap_sasl_authorize: conn %d authcid=\"%s\" authzid=\"%s\"\n",
 		conn ? conn->c_connid : -1, auth_identity, requested_user);
 #else
-	Debug( LDAP_DEBUG_ARGS, "SASL Authorize [conn=%ld]: "
+	Debug( LDAP_DEBUG_ARGS, "SASL proxy authorize [conn=%ld]: "
 		"authcid=\"%s\" authzid=\"%s\"\n",
 		conn ? conn->c_connid : -1, auth_identity, requested_user );
 #endif
@@ -763,11 +763,12 @@ slap_sasl_authorize(
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, INFO, 
-			"slap_sasl_authorize: conn %ld  authorization disallowed (%d)\n",
+			"slap_sasl_authorize: conn %ld "
+			"proxy authorization disallowed (%d)\n",
 			(long)(conn ? conn->c_connid : -1), rc, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-			" authorization disallowed (%d)\n",
+		Debug( LDAP_DEBUG_TRACE, "SASL Proxy Authorize [conn=%ld]: "
+			"proxy authorization disallowed (%d)\n",
 			(long) (conn ? conn->c_connid : -1), rc, 0 );
 #endif
 
@@ -787,11 +788,11 @@ ok:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_authorize: conn %d authorization allowed\n",
+		"slap_sasl_authorize: conn %d proxy authorization allowed\n",
 		(long)(conn ? conn->c_connid : -1), 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-		" authorization allowed\n",
+		" proxy authorization allowed\n",
 		(long) (conn ? conn->c_connid : -1), 0, 0 );
 #endif
 	return SASL_OK;
@@ -878,11 +879,12 @@ slap_sasl_authorize(
 	if( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, INFO, 
-			"slap_sasl_authorize: conn %ld  authorization disallowed (%d)\n",
+			"slap_sasl_authorize: conn %ld "
+			"proxy authorization disallowed (%d)\n",
 			(long)(conn ? conn->c_connid : -1), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-			" authorization disallowed (%d)\n",
+			"proxy authorization disallowed (%d)\n",
 			(long) (conn ? conn->c_connid : -1), rc, 0 );
 #endif
 
@@ -895,7 +897,7 @@ slap_sasl_authorize(
 ok:
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
-		"slap_sasl_authorize: conn %d authorization allowed\n",
+		"slap_sasl_authorize: conn %d proxy authorization allowed\n",
 	   (long)(conn ? conn->c_connid : -1 ), 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
