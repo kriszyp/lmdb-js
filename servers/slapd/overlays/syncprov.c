@@ -51,6 +51,7 @@ typedef struct syncprov_info_t {
 	int		si_gotcsn;	/* is our ctxcsn up to date? */
 	ldap_pvt_thread_mutex_t	si_csn_mutex;
 	ldap_pvt_thread_mutex_t	si_ops_mutex;
+	char		si_ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 } syncprov_info_t;
 
 typedef struct opcookie {
@@ -568,17 +569,16 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		void *memctx = op->o_tmpmemctx;
 
 		cbuf[0] = '\0';
 		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
-		op->o_tmpmemctx = NULL;
 		slap_get_commit_csn( op, &maxcsn );
-		op->o_tmpmemctx = memctx;
 		if ( maxcsn.bv_val ) {
 			strcpy( cbuf, maxcsn.bv_val );
-			free( si->si_ctxcsn.bv_val );
-			si->si_ctxcsn = maxcsn;
+			if ( ber_bvcmp( &maxcsn, &si->si_ctxcsn ) > 0 ) {
+				strcpy( si->si_ctxcsnbuf, cbuf );
+				si->si_ctxcsn.bv_len = maxcsn.bv_len;
+			}
 			si->si_gotcsn = 1;
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
@@ -731,18 +731,24 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
+		struct berval cookie;
+
+		Attribute *a = attr_find( rs->sr_entry->e_attrs,
+			slap_schema.si_ad_entryCSN );
+
 		if ( srs->sr_state.ctxcsn ) {
-			Attribute *a = attr_find( rs->sr_entry->e_attrs,
-				slap_schema.si_ad_entryCSN );
 			/* Don't send the ctx entry twice */
 			if ( bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ))
 				return LDAP_SUCCESS;
 		}
+		slap_compose_sync_cookie( op, &cookie, a->a_nvals,
+			srs->sr_state.sid, srs->sr_state.rid );
+
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
 		rs->sr_ctrls[1] = NULL;
 		rs->sr_err = slap_build_sync_state_ctrl( op, rs, rs->sr_entry,
-			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
+			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
@@ -862,6 +868,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					ctrls[1] = NULL;
 					slap_build_sync_done_ctrl( op, rs, ctrls, 0, 0,
 						NULL, LDAP_SYNC_REFRESH_DELETES );
+					rs->sr_ctrls = ctrls;
 					rs->sr_err = LDAP_SUCCESS;
 					send_ldap_result( op, rs );
 					return rs->sr_err;
@@ -990,6 +997,7 @@ syncprov_db_init(
 	on->on_bi.bi_private = si;
 	ldap_pvt_thread_mutex_init( &si->si_csn_mutex );
 	ldap_pvt_thread_mutex_init( &si->si_ops_mutex );
+	si->si_ctxcsn.bv_val = si->si_ctxcsnbuf;
 
 	csn_anlist[0].an_desc = slap_schema.si_ad_entryCSN;
 	csn_anlist[0].an_name = slap_schema.si_ad_entryCSN->ad_cname;

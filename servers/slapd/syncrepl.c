@@ -613,7 +613,7 @@ do_syncrep2(
 				if ( syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate ) == LDAP_SUCCESS ) {
 					rc_efree = syncrepl_entry( si, op, entry, modlist,
-						syncstate, &syncUUID, &syncCookie_req );
+						syncstate, &syncUUID, &syncCookie_req, syncCookie.ctxcsn );
 					if ( syncCookie.octet_str &&
 						!BER_BVISNULL( &syncCookie.octet_str[0] ) )
 					{
@@ -1162,7 +1162,8 @@ syncrepl_entry(
 	Modifications* modlist,
 	int syncstate,
 	struct berval* syncUUID,
-	struct sync_cookie* syncCookie_req )
+	struct sync_cookie* syncCookie_req,
+	struct berval* syncCSN )
 {
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL };
@@ -1447,7 +1448,6 @@ syncrepl_entry(
 	}
 
 done :
-
 	if ( !BER_BVISNULL( &syncUUID_strrep ) ) {
 		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &syncUUID_strrep );
@@ -1885,6 +1885,8 @@ syncrepl_updateCookie(
 	op->o_req_dn = e->e_name;
 	op->o_req_ndn = e->e_nname;
 
+	slap_queue_csn( op, syncCookie->ctxcsn );
+
 	/* update persistent cookie */
 update_cookie_retry:
 	op->o_tag = LDAP_REQ_MODIFY;
@@ -1919,6 +1921,7 @@ update_cookie_retry:
 				"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 		}
 	}
+	slap_graduate_commit_csn( op );
 
 	if ( e != NULL ) {
 		entry_free( e );

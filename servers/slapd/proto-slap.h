@@ -486,6 +486,7 @@ LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
 LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, char *, int, struct berval *, int ));
+LDAP_SLAPD_F (void) slap_queue_csn LDAP_P(( Operation *, struct berval * ));
 
 /*
  * daemon.c
@@ -1265,7 +1266,8 @@ LDAP_SLAPD_F (int) syncrepl_message_to_entry LDAP_P((
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
 					syncinfo_t *, Operation*, Entry*,
 					Modifications*,int, struct berval*,
-					struct sync_cookie * ));
+					struct sync_cookie *,
+					struct berval * ));
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
 					syncinfo_t *, Operation *, struct berval *,
 					struct sync_cookie * ));
