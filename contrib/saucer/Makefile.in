@@ -1,0 +1,17 @@
+PROGRAMS= saucer
+
+SRCS=	main.c
+OBJS=	main.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
+
+saucer:	${OBJS} $(LDAP_LIBDEPEND)
+	$(LTLINK) -o $@ $(OBJS) $(LIBS)
+
+install-local: $(PROGRAMS) FORCE
+	-$(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 saucer $(libexecdir)

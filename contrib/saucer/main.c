@@ -15,13 +15,18 @@
  * Author: Eric Rosenquist, 1994.
  */
 
-#include <ctype.h>
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+#include <stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
+#include <ldap_log.h>
 
 #define DN_MAXLEN	4096
 
@@ -548,6 +553,7 @@ int is_whitespace(register char *s)
 int main(int argc, char **argv)
 {
 	int		error_flag = 0;
+	int		tmp;
 	FILE	*rc;
 
 	progname = argv[0];
@@ -558,8 +564,9 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 #ifdef LDAP_DEBUG
-			lber_debug = atoi(optarg);
-			ldap_debug = atoi(optarg);
+			tmp = atoi(optarg);
+			lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &tmp);
+			ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &tmp);
 #endif
 			break;
 		case 'h':

@@ -10327,6 +10327,7 @@ servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
+contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
  include/portable.h include/ldap_features.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
@@ -10495,6 +10496,7 @@ servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
+contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
