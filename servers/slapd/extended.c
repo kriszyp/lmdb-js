@@ -59,12 +59,14 @@ static struct {
 	struct berval oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
+	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
+	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
+#ifdef LDAP_EXOP_X_CANCEL
+	{ BVC(LDAP_EXOP_X_CANCEL), cancel_extop },
+#endif
 #ifdef HAVE_TLS
 	{ BVC(LDAP_EXOP_START_TLS), starttls_extop },
 #endif
-	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
-	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
-	{ BVC(LDAP_EXOP_X_CANCEL), cancel_extop },
 	{ {0,NULL}, NULL }
 };
 
@@ -149,14 +151,16 @@ do_extended(
 		goto done;
 	}
 
-#if !defined(LDAP_SLAPI)
-	if( !(ext = find_extop(supp_ext_list, &reqoid)) ) {
-#else /* defined(LDAP_SLAPI) */
-	/* Netscape extended operation */
-	getPluginFunc( &reqoid, &funcAddr );
+	if( !(ext = find_extop(supp_ext_list, &reqoid))
+#ifdef LDAP_SLAPI
+		&& !(funcAddr)
+#endif
+	) {
+#ifdef LDAP_SLAPI
+		/* Netscape extended operation */
+		getPluginFunc( &reqoid, &funcAddr );
+#endif
 
-	if( !(ext = find_extop(supp_ext_list, &reqoid)) && !(funcAddr) ) {
-#endif /* defined(LDAP_SLAPI) */
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_extended: conn %d  unsupported operation \"%s\"\n",

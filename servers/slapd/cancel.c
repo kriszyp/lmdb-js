@@ -16,6 +16,8 @@
 
 #include "slap.h"
 
+#ifdef LDAP_EXOP_X_CANCEL
+
 #include <lber_pvt.h>
 #include <lutil.h>
 
@@ -129,3 +131,4 @@ int cancel_extop(
 	return rc;
 }
 
+#endif /* LDAP_EXOP_X_CANCEL */

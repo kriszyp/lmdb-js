@@ -394,6 +394,7 @@ free_and_return:
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_RES_INTERMEDIATE_RESP
 /* Parse an intermediate response result */
 int
 ldap_parse_intermediate_resp_result (
@@ -508,3 +509,4 @@ ldap_parse_intermediate_resp_result (
 
 	return LDAP_SUCCESS;
 }
+#endif

@@ -61,7 +61,6 @@ bdb_search(
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit;
-	int		pagedresults;
 	int		tentries = 0;
 	ID		lastid = NOID;
 
@@ -125,7 +124,6 @@ bdb_search(
 
 
 	manageDSAit = get_manageDSAit( op );
-	pagedresults = get_pagedresults( op );
 
 	rc = LOCK_ID (bdb->bi_dbenv, &locker );
 
@@ -312,7 +310,7 @@ dn2entry_retry:
 		
 		/* if no limit is required, use soft limit */
 		if ( slimit <= 0 ) {
-			if ( pagedresults && limit->lms_s_pr != 0 ) {
+			if ( get_pagedresults(op) && limit->lms_s_pr != 0 ) {
 				slimit = limit->lms_s_pr;
 			} else {
 				slimit = limit->lms_s_soft;
@@ -396,7 +394,8 @@ dn2entry_retry:
 		tentries = BDB_IDL_N(candidates);
 	}
 
-	if ( pagedresults ) {
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( get_pagedresults(op) ) {
 		if ( op->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
 		} else {
@@ -427,6 +426,7 @@ dn2entry_retry:
 		}
 		goto loop_begin;
 	}
+#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
@@ -498,6 +498,7 @@ loop_begin:
 			goto done;
 		}
 
+#ifdef LDAP_EXOP_X_CANCEL
 		if ( op->o_cancel ) {
 			assert( op->o_cancel == LDAP_CANCEL_REQ );
 			rc = 0;
@@ -506,6 +507,7 @@ loop_begin:
 			op->o_cancel = LDAP_CANCEL_ACK;
 			goto done;
 		}
+#endif
 
 		/* check time limit */
 		if ( tlimit != -1 && slap_get_time() > stoptime ) {
@@ -717,13 +719,16 @@ id2entry_retry:
 					goto done;
 				}
 
-				if ( pagedresults ) {
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+				if ( get_pagedresults(op) ) {
 					if ( nentries >= op->o_pagedresults_size ) {
-						send_pagerequest_response( conn, op, lastid, nentries, tentries );
+						send_pagerequest_response( conn, op,
+							lastid, nentries, tentries );
 						goto done;
 					}
 					lastid = id;
 				}
+#endif
 
 				if (e) {
 					int result;
@@ -1133,6 +1138,7 @@ static int search_candidates(
 	return rc;
 }
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 static void
 send_pagerequest_response( 
 	Connection	*conn,
@@ -1188,6 +1194,7 @@ send_pagerequest_response(
 done:
 	(void) ber_free_buf( ber );
 }			
+#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 int

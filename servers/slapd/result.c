@@ -480,9 +480,11 @@ slap_send_ldap_result(
 	assert( err != LDAP_PARTIAL_RESULTS );
 
 	if ( err == LDAP_REFERRAL ) {
+#ifdef LDAP_CONTROL_NOREFERRALS
 		if( op->o_noreferrals ) {
 			ref = NULL;
 		}
+#endif
 		if( ref == NULL ) {
 			err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
@@ -582,6 +584,7 @@ slap_send_ldap_extended(
 		rspoid, rspdata, NULL, ctrls );
 }
 
+#ifdef LDAP_RES_INTERMEDIATE_RESP
 void
 slap_send_ldap_intermediate_resp(
 	Connection  *conn,
@@ -614,6 +617,7 @@ slap_send_ldap_intermediate_resp(
 		err, matched, text, refs,
 		rspoid, rspdata, NULL, ctrls );
 }
+#endif
 
 void
 slap_send_search_result(
@@ -1379,6 +1383,7 @@ slap_send_search_reference(
 		return( 1 );
 	}
 
+#ifdef LDAP_CONTROL_NOREFERRALS
 	if( op->o_noreferrals ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
@@ -1392,6 +1397,7 @@ slap_send_search_reference(
 
 		return( 0 );
 	}
+#endif
 
 	if( refs == NULL ) {
 #ifdef NEW_LOGGING

@@ -21,8 +21,6 @@
 #include <ldif.h>
 #include "lber_pvt.h"
 
-struct berval *ns_get_supported_extop (int);
-
 static struct berval supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* all Operational Attributes ("+") */
 	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS), /* OCs in Attributes List */
@@ -138,13 +136,13 @@ root_dse_info(
 			return LDAP_OTHER;
 	}
 
-#if defined( LDAP_SLAPI )
+#ifdef LDAP_SLAPI
 	/* netscape supportedExtension */
 	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
 		vals[0] = *bv;
 		attr_merge( e, ad_supportedExtension, vals );
 	}
-#endif /* defined( LDAP_SLAPI ) */
+#endif /* LDAP_SLAPI */
 
 	/* supportedFeatures */
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures ) )

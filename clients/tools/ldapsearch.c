@@ -65,7 +65,9 @@ usage( void )
 "  -b basedn  base dn for search\n"
 "  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"
 "             [!]mv=<filter>              (matched values filter)\n"
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 "             [!]pr=<size>                (paged results)\n"
+#endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 "             [!]subentries[=true|false]  (subentries)\n"
 #endif
@@ -167,6 +169,7 @@ static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
 #endif
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int pagedResults = 0;
 static ber_int_t pageSize = 0;
 static ber_int_t entriesLeft = 0;
@@ -182,6 +185,7 @@ static int parse_page_control(
 	LDAP *ld,
 	LDAPMessage *result,
 	struct berval *cookie );
+#endif
 
 static void
 urlize(char *url)
@@ -266,6 +270,7 @@ handle_private_option( int i )
 			vrFilter = cvalue;
 			protocol = LDAP_VERSION3;
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 		} else if ( strcasecmp( control, "pr" ) == 0 ) {
 			int num, tmp;
 			/* PagedResults control */
@@ -283,6 +288,7 @@ handle_private_option( int i )
 			pageSize = (ber_int_t) tmp;
 			pagedResults = 1 + crit;
 
+#endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
 			if( subentries ) {
@@ -508,8 +514,10 @@ main( int argc, char **argv )
 	struct berval   *syncbvalp = NULL;
 #endif
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	npagedresponses = npagedentries = npagedreferences =
 		npagedextended = npagedpartial = 0;
+#endif
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
 
@@ -600,8 +608,10 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
-	if ( manageDSAit || noop || subentries
-			|| valuesReturnFilter || pageSize
+	if ( manageDSAit || noop || subentries || valuesReturnFilter
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			|| pageSize
+#endif
 #ifdef LDAP_CLIENT_UPDATE
 			|| lcup
 #endif
@@ -716,6 +726,7 @@ getNextPage:
 			i++;
 		}
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 		if ( pagedResults ) {
 			if (( prber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -730,6 +741,7 @@ getNextPage:
 			c[i].ldctl_iscritical = pagedResults > 1;
 			i++;
 		}
+#endif
 
 		tool_server_controls( ld, c, i );
 
@@ -796,11 +808,13 @@ getNextPage:
 			printf("\n# with valuesReturnFilter %scontrol: %s",
 				valuesReturnFilter > 1 ? "critical " : "", vrFilter );
 		}
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 		if ( pageSize ) {
 			printf("\n# with pagedResults %scontrol: size=%d",
 				(pagedResults > 1) ? "critical " : "", 
 				pageSize );
 		}
+#endif
 
 		printf( "\n#\n\n" );
 	}
@@ -827,7 +841,8 @@ getNextPage:
 		}
 	}
 
-	if ( ( pageSize != 0 ) && ( morePagedResults != 0 ) ) { 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( ( pageSize != 0 ) && ( morePagedResults != 0 ) ) {
 		char	buf[6];
 		int	i, moreEntries, tmpSize;
 
@@ -862,6 +877,7 @@ getNextPage:
 
 		goto getNextPage;	
 	}
+#endif
 
 	ldap_unbind( ld );
 	return( rc );
@@ -996,9 +1012,11 @@ static int dosearch(
 
 			case LDAP_RES_SEARCH_RESULT:
 				rc = print_result( ld, msg, 1 );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 				if ( pageSize != 0 ) { 
 					rc = parse_page_control( ld, msg, &cookie );
 				}
+#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 				if ( lcup == LDAP_CUP_PERSIST_ONLY ||
@@ -1067,6 +1085,7 @@ static int dosearch(
 	}
 
 done:
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( pageSize != 0 ) { 
 		npagedresponses = npagedresponses + nresponses;
 		npagedentries = npagedentries + nentries;
@@ -1080,7 +1099,9 @@ done:
 			if( npartial ) printf( "# numPartial: %d\n", npagedpartial );
 			if( nreferences ) printf( "# numReferences: %d\n", npagedreferences );
 		}
-	} else if ( ldif < 2 ) {
+	} else
+#endif
+	if ( ldif < 2 ) {
 		printf( "\n# numResponses: %d\n", nresponses );
 		if( nentries ) printf( "# numEntries: %d\n", nentries );
 		if( nextended ) printf( "# numExtended: %d\n", nextended );
@@ -1583,6 +1604,7 @@ write_ldif( int type, char *name, char *value, ber_len_t vallen )
 }
 
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int 
 parse_page_control(
 	LDAP *ld,
@@ -1596,7 +1618,6 @@ parse_page_control(
 	BerElement *ber;
 	ber_tag_t tag;
 	struct berval servercookie = { 0, NULL };
-
 
 	rc = ldap_parse_result( ld, result,
 		&err, NULL, NULL, NULL, &ctrl, 0 );
@@ -1616,6 +1637,7 @@ parse_page_control(
 		 *		size	INTEGER (0..maxInt),
 		 *				-- result set size estimate from server - unused
 		 *		cookie	OCTET STRING
+		 * }
 		 */
 		ctrlp = *ctrl;
 		ber = ber_init( &ctrlp->ldctl_value );
@@ -1629,20 +1651,23 @@ parse_page_control(
 		(void) ber_free( ber, 1 );
 
 		if( tag == LBER_ERROR ) {
-			fprintf( stderr, "Paged results response control could not be decoded.\n" );
+			fprintf( stderr,
+				"Paged results response control could not be decoded.\n" );
 			return EXIT_FAILURE;
 		}
 
 		if( entriesLeft < 0 ) {
-			fprintf( stderr, "Invalid entries estimate in paged results response.\n" );
+			fprintf( stderr,
+				"Invalid entries estimate in paged results response.\n" );
 			return EXIT_FAILURE;
 		}
 
-
 		ldap_controls_free( ctrl );
+
 	} else {
 		morePagedResults = 0;
 	}
 
 	return err;
 }
+#endif

@@ -56,7 +56,8 @@ int bdb_modify_internal(
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: add\n", 0, 0, 0);
 #endif
-			err = modify_add_values( e, mod, op->o_permitmodify, text, textbuf, textlen );
+			err = modify_add_values( e, mod, get_permitmodify(op),
+				text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, 
@@ -75,7 +76,8 @@ int bdb_modify_internal(
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: delete\n", 0, 0, 0);
 #endif
-			err = modify_delete_values( e, mod, op->o_permitmodify, text, textbuf, textlen );
+			err = modify_delete_values( e, mod, get_permitmodify(op),
+				text, textbuf, textlen );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -95,7 +97,8 @@ int bdb_modify_internal(
 #else
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: replace\n", 0, 0, 0);
 #endif
-			err = modify_replace_values( e, mod, op->o_permitmodify, text, textbuf, textlen );
+			err = modify_replace_values( e, mod, get_permitmodify(op),
+				text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, 
@@ -119,7 +122,8 @@ int bdb_modify_internal(
  			 */
  			mod->sm_op = LDAP_MOD_ADD;
 
-			err = modify_add_values( e, mod, op->o_permitmodify, text, textbuf, textlen );
+			err = modify_add_values( e, mod, get_permitmodify(op),
+				text, textbuf, textlen );
  			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
  			}

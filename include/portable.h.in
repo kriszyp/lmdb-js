@@ -1039,11 +1039,16 @@
 #	include <stddef.h>
 #endif
 
+#ifndef LDAP_REL_ENG
+#if (LDAP_VENDOR_VERSION == 000000) && !defined(LDAP_DEVEL)
+#define LDAP_DEVEL
+#endif
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
 #endif
 #if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
 #define LDAP_DEBUG
+#endif
 #endif
 
 #ifdef HAVE_EBCDIC 

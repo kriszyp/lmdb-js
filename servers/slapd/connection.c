@@ -416,7 +416,9 @@ long connection_init(
 		c->c_send_search_result = slap_send_search_result;
 		c->c_send_search_reference = slap_send_search_reference;
 		c->c_send_ldap_extended = slap_send_ldap_extended;
+#ifdef LDAP_RES_INTERMEDIATE_RESP
 		c->c_send_ldap_intermediate_resp = slap_send_ldap_intermediate_resp;
+#endif
 
 		c->c_authmech.bv_val = NULL;
 		c->c_authmech.bv_len = 0;
@@ -1025,13 +1027,17 @@ operations_error:
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
-	if ( arg->co_op->o_cancel == LDAP_CANCEL_REQ )
+#ifdef LDAP_EXOP_X_CANCEL
+	if ( arg->co_op->o_cancel == LDAP_CANCEL_REQ ) {
 		arg->co_op->o_cancel = LDAP_TOO_LATE;
+	}
 
 	while ( arg->co_op->o_cancel != LDAP_CANCEL_NONE &&
-		arg->co_op->o_cancel != LDAP_CANCEL_DONE ) {
-			ldap_pvt_thread_yield();
+		arg->co_op->o_cancel != LDAP_CANCEL_DONE )
+	{
+		ldap_pvt_thread_yield();
 	}
+#endif
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -1429,7 +1435,9 @@ connection_input(
 
 	op->o_conn = conn;
 	op->vrFilter = NULL;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
+#endif
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn ) {

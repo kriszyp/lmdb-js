@@ -165,7 +165,6 @@ typedef struct slap_ssf_set {
 	slap_ssf_t sss_simple_bind;
 } slap_ssf_set_t;
 
-
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
 #define SLAP_GETDN_AUTHCID 2
 #define SLAP_GETDN_AUTHZID 4
@@ -1672,17 +1671,37 @@ typedef struct slap_op {
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2
 	char o_managedsait;
+#define get_manageDSAit(op)				((int)(op)->o_managedsait)
+
 	char o_noop;
 	char o_proxy_authz;
+
 	char o_subentries;
+#define get_subentries(op)				((int)(op)->o_subentries)
 	char o_subentries_visibility;
+#define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
+
 	char o_valuesreturnfilter;
 
+#ifdef LDAP_CONTROL_PERMITMODIFY
 	char o_permitmodify;
+#define get_permitmodify(op)			((int)(op)->o_permitmodify)
+#else
+#define get_permitmodify(op)			(0)
+#endif
+
+#ifdef LDAP_CONTROL_NOREFERRALS
 	char o_noreferrals;
+#endif
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	char o_pagedresults;
+#define get_pagedresults(op)			((int)(op)->o_pagedresults)
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
+#else
+#define get_pagedresults(op)			(0)
+#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 	char o_clientupdate;
@@ -1729,16 +1748,10 @@ typedef struct slap_op {
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
 
-	void    *o_pb;                  /* Netscape plugin */
-
+#ifdef LDAP_SLAPI
+	void    *o_pb;                  /* NS-SLAPI plugin */
+#endif
 } Operation;
-
-#define get_manageDSAit(op)				((int)(op)->o_managedsait)
-#define get_subentries(op)				((int)(op)->o_subentries)
-#define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
-#define get_pagedresults(op)			((int)(op)->o_pagedresults)
-
-
 
 typedef void (*SEND_LDAP_RESULT)(
 				struct slap_conn *conn,
@@ -1922,7 +1935,9 @@ typedef struct slap_conn {
 	SEND_SEARCH_RESULT c_send_search_result;
 	SEND_SEARCH_REFERENCE c_send_search_reference;
 	SEND_LDAP_EXTENDED c_send_ldap_extended;
+#ifdef LDAP_RES_INTERMEDIATE_RESP
 	SEND_LDAP_INTERMEDIATE_RESP c_send_ldap_intermediate_resp;
+#endif
 	
 } Connection;
 

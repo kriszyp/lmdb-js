@@ -70,6 +70,39 @@ static char *proxy_authz_extops[] = {
 	NULL
 };
 
+/*
+ * all known request control OIDs should be added to this list
+ */
+char *slap_known_controls[] = {
+	LDAP_CONTROL_MANAGEDSAIT,
+	LDAP_CONTROL_PROXY_AUTHZ,
+
+#ifdef LDAP_CONTROL_SUBENTRIES
+	LDAP_CONTROL_SUBENTRIES,
+#endif /* LDAP_CONTROL_SUBENTRIES */
+
+	LDAP_CONTROL_NOOP,
+
+#ifdef LDAP_CONTROL_DUPENT_REQUEST
+	LDAP_CONTROL_DUPENT_REQUEST,
+#endif /* LDAP_CONTROL_DUPENT_REQUEST */
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	LDAP_CONTROL_PAGEDRESULTS,
+#endif
+
+#ifdef LDAP_CONTROL_SORTREQUEST
+	LDAP_CONTROL_SORTREQUEST,
+#endif /* LDAP_CONTROL_SORTREQUEST */
+
+#ifdef LDAP_CONTROL_VLVREQUEST
+	LDAP_CONTROL_VLVREQUEST,
+#endif /* LDAP_CONTROL_VLVREQUEST */
+
+	LDAP_CONTROL_VALUESRETURNFILTER,
+	NULL
+};
+
 static struct slap_control {
 	char *sc_oid;
 	slap_mask_t sc_mask;
@@ -77,18 +110,6 @@ static struct slap_control {
 	SLAP_CTRL_PARSE_FN *sc_parse;
 
 } supportedControls[] = {
-	{ LDAP_CONTROL_PROXY_AUTHZ,
-		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
-		parseProxyAuthz },
-	{ LDAP_CONTROL_MANAGEDSAIT,
-		SLAP_CTRL_ACCESS, NULL,
-		parseManageDSAit },
-	{ LDAP_CONTROL_NOOP,
-		SLAP_CTRL_ACCESS, NULL,
-		parseNoOp },
-	{ LDAP_CONTROL_PAGEDRESULTS,
-		SLAP_CTRL_SEARCH, NULL,
-		parsePagedResults },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter },
@@ -97,6 +118,20 @@ static struct slap_control {
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries },
 #endif
+	{ LDAP_CONTROL_NOOP,
+		SLAP_CTRL_ACCESS, NULL,
+		parseNoOp },
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	{ LDAP_CONTROL_PAGEDRESULTS,
+		SLAP_CTRL_SEARCH, NULL,
+		parsePagedResults },
+#endif
+	{ LDAP_CONTROL_MANAGEDSAIT,
+		SLAP_CTRL_ACCESS, NULL,
+		parseManageDSAit },
+	{ LDAP_CONTROL_PROXY_AUTHZ,
+		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
+		parseProxyAuthz },
 #ifdef LDAP_CONTROL_PERMITMODIFY
 	{ LDAP_CONTROL_PERMITMODIFY,
 		SLAP_CTRL_UPDATE, NULL,
@@ -602,6 +637,7 @@ static int parseNoOp (
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int parsePagedResults (
 	Connection *conn,
 	Operation *op,
@@ -629,6 +665,7 @@ static int parsePagedResults (
 	 *				-- requested page size from client
 	 *				-- result set size estimate from server
 	 *		cookie	OCTET STRING
+	 * }
 	 */
 	ber = ber_init( &ctrl->ldctl_value );
 	if( ber == NULL ) {
@@ -682,6 +719,7 @@ static int parsePagedResults (
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 int parseValuesReturnFilter (
 	Connection *conn,
