@@ -4,15 +4,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/string.h>
-
-#if defined( HAVE_STDARG_H ) && __STDC__
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
 
 #include <ac/setproctitle.h>
+#include <ac/string.h>
+#include <ac/stdarg.h>
 
 /*
  * Copyright (c) 1990,1991 Regents of the University of Michigan.
@@ -36,7 +31,7 @@ int	Argc;		/* original argc */
 
 /* VARARGS */
 void setproctitle
-#if defined( HAVE_STDARG_H ) && __STDC__
+#if defined( HAVE_STDARG )
 	( const char *fmt, ... )
 #else
 	( fmt, va_alist )
@@ -50,7 +45,7 @@ va_dcl
 	char	buf[ 1024 ];
 	va_list	ap;
 
-#if defined( HAVE_STDARG_H ) && __STDC__
+#if defined( HAVE_STDARG )
 	va_start(ap, fmt);
 #else
 	va_start(ap);
