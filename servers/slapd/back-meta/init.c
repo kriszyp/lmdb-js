@@ -42,7 +42,7 @@ init_module( int argc, char *argv[] ) {
 
 #endif /* SLAPD_META */
 
-static int
+int
 meta_back_open(
 	BackendInfo *bi
 )
