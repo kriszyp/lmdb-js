@@ -25,7 +25,7 @@ main( int argc, char **argv )
 	while ( fgets( command, sizeof( command ), stdin ) != NULL ) {
 		switch( *command ) {
 		case 'n':	/* new tree */
-			( void ) avl_free( tree, (IFP) free );
+			( void ) avl_free( tree, (AVL_FREE) free );
 			tree = NULLAVL;
 			break;
 		case 'p':	/* print */
@@ -43,7 +43,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( 0 );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( (p = (char *) avl_find( tree, name, strcmp ))
+			if ( (p = (char *) avl_find( tree, name, (AVL_CMP) strcmp ))
 			    == NULL )
 				printf( "Not found.\n\n" );
 			else
@@ -54,7 +54,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( 0 );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( avl_insert( &tree, strdup( name ), strcmp, 
+			if ( avl_insert( &tree, strdup( name ), (AVL_CMP) strcmp, 
 			    avl_dup_error ) != 0 )
 				printf( "\nNot inserted!\n" );
 			break;
@@ -63,7 +63,7 @@ main( int argc, char **argv )
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
 				exit( 0 );
 			name[ strlen( name ) - 1 ] = '\0';
-			if ( avl_delete( &tree, name, strcmp ) == NULL )
+			if ( avl_delete( &tree, name, (AVL_CMP) strcmp ) == NULL )
 				printf( "\nNot found!\n" );
 			break;
 		case 'q':	/* quit */

@@ -168,7 +168,7 @@ bdb2i_cache_add_entry_rw(
 	}
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
-		entry_dn_cmp, avl_dup_error ) != 0 )
+		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 		"====> bdb2i_cache_add_entry( %ld ): \"%s\": already in dn cache\n",
@@ -183,7 +183,7 @@ bdb2i_cache_add_entry_rw(
 
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-		entry_id_cmp, avl_dup_error ) != 0 )
+		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 		"====> bdb2i_cache_add_entry( %ld ): \"%s\": already in id cache\n",
@@ -191,7 +191,7 @@ bdb2i_cache_add_entry_rw(
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-			entry_dn_cmp ) == NULL )
+			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -274,7 +274,7 @@ bdb2i_cache_update_entry(
 #endif
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
-		entry_dn_cmp, avl_dup_error ) != 0 )
+		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 		"====> bdb2i_cache_add_entry( %ld ): \"%s\": already in dn cache\n",
@@ -287,7 +287,7 @@ bdb2i_cache_update_entry(
 
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-		entry_id_cmp, avl_dup_error ) != 0 )
+		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 		"====> bdb2i_cache_update_entry( %ld ): \"%s\": already in id cache\n",
@@ -295,7 +295,7 @@ bdb2i_cache_update_entry(
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-			entry_dn_cmp ) == NULL )
+			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -374,7 +374,7 @@ bdb2i_cache_find_entry_dn2id(
 	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
-		entry_dn_cmp )) != NULL )
+		(AVL_CMP) entry_dn_cmp )) != NULL )
 	{
 		/*
 		 * ep now points to an unlocked entry
@@ -449,7 +449,7 @@ try_again:
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
-		entry_id_cmp )) != NULL )
+		(AVL_CMP) entry_id_cmp )) != NULL )
 	{
 #ifdef LDAP_DEBUG
 		assert( ep->e_private );
@@ -538,14 +538,14 @@ cache_delete_entry_internal(
 	int rc = 0; 	/* return code */
 
 	/* dn tree */
-	if ( avl_delete( &cache->c_dntree, (caddr_t) e, entry_dn_cmp )
+	if ( avl_delete( &cache->c_dntree, (caddr_t) e, (AVL_CMP) entry_dn_cmp )
 		== NULL )
 	{
 		rc = -1;
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp )
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, (AVL_CMP) entry_id_cmp )
 		== NULL )
 	{
 		rc = -1;

@@ -67,9 +67,9 @@ bdb2i_attr_masks(
 	*indexmask = 0;
 	*syntaxmask = 0;
 	if ( (a = (struct attrinfo *) avl_find( li->li_attrs, type,
-	    ainfo_type_cmp )) == NULL ) {
+	    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
 		if ( (a = (struct attrinfo *) avl_find( li->li_attrs, "default",
-		    ainfo_type_cmp )) == NULL ) {
+		    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
 			return;
 		}
 	}
@@ -147,7 +147,9 @@ bdb2i_attr_index_config(
 				bdb2i_txn_attr_config( li, a->ai_type, 0 );
 		}
 
-		switch (avl_insert( &li->li_attrs, (caddr_t) a, ainfo_cmp, ainfo_dup )) {
+		switch (avl_insert( &li->li_attrs, (caddr_t) a,
+			(AVL_CMP) ainfo_cmp, (AVL_DUP) ainfo_dup ))
+		{
 		case 1:		/* duplicate - updating init version */
 			free( a->ai_type );
 			free( (char *) a );

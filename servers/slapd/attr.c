@@ -239,9 +239,9 @@ attr_syntax( char *type )
 	struct asyntaxinfo	*asi = NULL;
 
 	if ( (asi = (struct asyntaxinfo *) avl_find( attr_syntaxes, type,
-            attr_syntax_name_cmp )) != NULL || (asi = (struct asyntaxinfo *)
-	    avl_find_lin( attr_syntaxes, type, attr_syntax_names_cmp ))
-	    != NULL )
+            (AVL_CMP) attr_syntax_name_cmp )) != NULL ||
+		(asi = (struct asyntaxinfo *) avl_find_lin( attr_syntaxes, type,
+			(AVL_CMP) attr_syntax_names_cmp )) != NULL )
 	{
 		return( asi->asi_syntax );
 	}
@@ -304,8 +304,9 @@ attr_syntax_config(
 	a->asi_names = charray_dup( argv );
 	argv[lasti] = save;
 
-	switch ( avl_insert( &attr_syntaxes, (caddr_t) a, attr_syntax_cmp,
-	    attr_syntax_dup ) ) {
+	switch ( avl_insert( &attr_syntaxes, (caddr_t) a,
+		(AVL_CMP) attr_syntax_cmp,
+	    (AVL_DUP) attr_syntax_dup ) ) {
 	case -1:	/* duplicate - different syntaxes */
 		Debug( LDAP_DEBUG_ARGS, "%s: line %d: duplicate attribute\n",
 		    fname, lineno, 0 );
@@ -338,8 +339,8 @@ attr_syntax_printnode( struct asyntaxinfo *a )
 static void
 attr_syntax_print( void )
 {
-	(void) avl_apply( attr_syntaxes, attr_syntax_printnode, 0, -1,
-	    AVL_INORDER );
+	(void) avl_apply( attr_syntaxes, (AVL_APPLY) attr_syntax_printnode,
+		0, -1, AVL_INORDER );
 }
 
 #endif

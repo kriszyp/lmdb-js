@@ -33,7 +33,7 @@
 LDAP_BEGIN_DECL
 
 typedef struct avlnode {
-	caddr_t		avl_data;
+	void*		avl_data;
 	signed char		avl_bf;
 	struct avlnode	*avl_left;
 	struct avlnode	*avl_right;
@@ -50,48 +50,49 @@ typedef struct avlnode {
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
 #define avl_onenode(x)	((x) == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
 
-/* looks like this function pointer is not used consistently */
-/* typedef int	(*IFP)LDAP_P((caddr_t, caddr_t)); */
-typedef int	(*IFP)();
+typedef int		(*AVL_APPLY) LDAP_P((void *, void*));
+typedef int		(*AVL_CMP) LDAP_P((void*, void*));
+typedef int		(*AVL_DUP) LDAP_P((void*, void*));
+typedef void	(*AVL_FREE) LDAP_P((void*));
 
 LDAP_F int
-avl_free LDAP_P(( Avlnode *root, IFP dfree ));
+avl_free LDAP_P(( Avlnode *root, AVL_FREE dfree ));
 
 LDAP_F int
-avl_insert LDAP_P((Avlnode **, caddr_t, IFP, IFP));
+avl_insert LDAP_P((Avlnode **, void*, AVL_CMP, AVL_DUP));
 
-LDAP_F caddr_t
-avl_delete LDAP_P((Avlnode **, caddr_t, IFP));
+LDAP_F void*
+avl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
 
-LDAP_F caddr_t
-avl_find LDAP_P((Avlnode *, caddr_t, IFP));
+LDAP_F void*
+avl_find LDAP_P((Avlnode *, void*, AVL_CMP));
 
-LDAP_F caddr_t
-avl_find_lin LDAP_P((Avlnode *, caddr_t, IFP));
+LDAP_F void*
+avl_find_lin LDAP_P((Avlnode *, void*, AVL_CMP));
 
-LDAP_F caddr_t
+LDAP_F void*
 avl_getfirst LDAP_P((Avlnode *));
 
 #ifdef AVL_REENTRANT
 /* ??? avl.c does not provide this version ??? */
-LDAP_F caddr_t
-avl_getnext LDAP_P((Avlnode *, caddr_t ));
+LDAP_F void*
+avl_getnext LDAP_P((Avlnode *, void* ));
 #else
-LDAP_F caddr_t
+LDAP_F void*
 avl_getnext LDAP_P((void));
 #endif
 
 LDAP_F int
-avl_dup_error LDAP_P((void));
+avl_dup_error LDAP_P((void*, void*));
 
 LDAP_F int
-avl_dup_ok LDAP_P((void));
+avl_dup_ok LDAP_P((void*, void*));
 
 LDAP_F int
-avl_apply LDAP_P((Avlnode *, IFP, caddr_t, int, int));
+avl_apply LDAP_P((Avlnode *, AVL_APPLY, void*, int, int));
 
 LDAP_F int
-avl_prefixapply LDAP_P((Avlnode *, caddr_t, IFP, caddr_t, IFP, caddr_t, int));
+avl_prefixapply LDAP_P((Avlnode *, void*, AVL_CMP, void*, AVL_CMP, void*, int));
 
 /* apply traversal types */
 #define AVL_PREORDER	1
