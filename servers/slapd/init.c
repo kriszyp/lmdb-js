@@ -17,6 +17,7 @@ init( void )
 	pthread_mutex_init( &active_threads_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &new_conn_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &currenttime_mutex, pthread_mutexattr_default );
+	pthread_mutex_init( &strtok_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &entry2str_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &replog_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &ops_mutex, pthread_mutexattr_default );

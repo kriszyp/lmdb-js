@@ -128,10 +128,16 @@ str2charray( char *str, char *brkstr )
 
 	res = (char **) ch_malloc( (i + 1) * sizeof(char *) );
 	i = 0;
+
+	pthread_mutex_lock(&strtok_mutex);
+
 	for ( s = strtok( str, brkstr ); s != NULL; s = strtok( NULL,
 	    brkstr ) ) {
 		res[i++] = ch_strdup( s );
 	}
+
+	pthread_mutex_unlock(&strtok_mutex);
+
 	res[i] = NULL;
 
 	free( str );

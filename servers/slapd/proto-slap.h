@@ -243,6 +243,7 @@ extern long		ops_completed;
 extern long		ops_initiated;
 extern pthread_mutex_t	active_threads_mutex;
 extern pthread_mutex_t	currenttime_mutex;
+extern pthread_mutex_t	strtok_mutex;
 extern pthread_mutex_t	entry2str_mutex;
 extern pthread_mutex_t	new_conn_mutex;
 extern pthread_mutex_t	num_sent_mutex;

@@ -37,6 +37,7 @@ char		**g_argv;
  */
 time_t		currenttime;
 pthread_mutex_t	currenttime_mutex;
+pthread_mutex_t	strtok_mutex;
 int		active_threads;
 pthread_mutex_t	active_threads_mutex;
 pthread_mutex_t	new_conn_mutex;
