@@ -27,13 +27,16 @@
 
 /* URI format:	ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]]   */
 
-int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
+int slap_parseURI( char *uri, struct berval *searchbase, int *scope, Filter **filter )
 {
 	char *start, *end;
+	struct berval bv, *nbase = NULL;
+	int rc;
 
 
 	assert( uri != NULL );
-	*searchbase = NULL;
+	searchbase->bv_val = NULL;
+	searchbase->bv_len = 0;
 	*scope = -1;
 	*filter = NULL;
 
@@ -49,16 +52,22 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 	if( !strncasecmp( uri, "dn:", 3 ) ) {
 		uri += 3;
 		uri += strspn( uri, " " );
-		*searchbase = ch_strdup( uri );
-		dn_normalize( *searchbase );
-		*scope = LDAP_SCOPE_BASE;
-		return( LDAP_SUCCESS );
+		bv.bv_val = uri;
+		/* FIXME: if dnNormalize actually uses input bv_len we
+		 * will have to make this right.
+		 */
+is_dn:		bv.bv_len = 1;
+		rc = dnNormalize( NULL, &bv, &nbase );
+		if (rc == LDAP_SUCCESS) {
+			*scope = LDAP_SCOPE_BASE;
+			*searchbase = *nbase;
+			free( nbase );
+		}
+		return( rc );
 	}
 	if( strncasecmp( uri, "ldap://", 7 ) ) {
-		*searchbase = ch_strdup( uri );
-		dn_normalize( *searchbase );
-		*scope = LDAP_SCOPE_BASE;
-		return( LDAP_SUCCESS );
+		bv.bv_val = uri;
+		goto is_dn;
 	}
 
 	end = strchr( uri + 7, '/' );
@@ -70,15 +79,24 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 	/* Grab the searchbase */
 	start = end+1;
 	end = strchr( start, '?' );
+	bv.bv_val = start;
 	if( end == NULL ) {
-		*searchbase = ch_strdup( start );
-		dn_normalize( *searchbase );
-		return( LDAP_SUCCESS );
+		bv.bv_len = 1;
+		rc = dnNormalize( NULL, &bv, &nbase );
+		if (rc == LDAP_SUCCESS) {
+			*searchbase = *nbase;
+			free( nbase );
+		}
+		return( rc );
 	}
 	*end = '\0';
-	*searchbase = ch_strdup( start );
+	bv.bv_len = end - start;
+	rc = dnNormalize( NULL, &bv, &nbase );
 	*end = '?';
-	dn_normalize( *searchbase );
+	if (rc != LDAP_SUCCESS)
+		return( rc );
+	*searchbase = *nbase;
+	free( nbase );
 
 	/* Skip the attrs */
 	start = end+1;
@@ -102,8 +120,8 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 		start += 4;
 	}
 	else {
-		ch_free( *searchbase );
-		*searchbase = NULL;
+		free( searchbase->bv_val );
+		searchbase->bv_val = NULL;
 		return( LDAP_PROTOCOL_ERROR );
 	}
 
@@ -320,14 +338,15 @@ char *slap_sasl2dn( char *saslname )
 	if( uri == NULL )
 		goto FINISHED;
 
-	rc = slap_parseURI( uri, &searchbase.bv_val, &scope, &filter );
+	rc = slap_parseURI( uri, &searchbase, &scope, &filter );
 	if( rc )
 		goto FINISHED;
 
-	searchbase.bv_len = strlen( searchbase.bv_val );
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		DN = ch_strdup( searchbase.bv_val );
+		DN = searchbase.bv_val;
+		searchbase.bv_len = 0;
+		searchbase.bv_val = NULL;
 		goto FINISHED;
 	}
 
@@ -378,6 +397,7 @@ char *slap_sasl2dn( char *saslname )
 
 	msg = ldap_first_entry( client, res );
 	DN = ldap_get_dn( client, msg );
+	if( DN ) dn_normalize( DN );
 
 FINISHED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
@@ -386,7 +406,6 @@ FINISHED:
 	if( conn ) connection_internal_close( conn );
 	if( res ) ldap_msgfree( res );
 	if( client  ) ldap_unbind( client );
-	if( DN ) dn_normalize( DN );
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl2dn: Converted SASL name to %s\n", DN ? DN : "<nothing>" ));
@@ -434,14 +453,12 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 #endif
 
 
-	rc = slap_parseURI( rule, &searchbase.bv_val, &scope, &filter );
+	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
-	searchbase.bv_len = strlen( searchbase.bv_val );
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		dn_normalize( searchbase.bv_val );
 		rc = regcomp(&reg, searchbase.bv_val, REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
 			rc = regexec(&reg, assertDN, 0, NULL, 0);
