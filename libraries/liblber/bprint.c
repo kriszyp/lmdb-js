@@ -46,16 +46,14 @@ void ber_error_print( LDAP_CONST char *data )
 {
 	assert( data != NULL );
 
-	if (!ber_pvt_err_file)
-	    ber_pvt_err_file = stderr;
+	if (!ber_pvt_err_file) ber_pvt_err_file = stderr;
 
 	fputs( data, ber_pvt_err_file );
 
 	/* Print to both streams */
-	if (ber_pvt_err_file != stderr)
-	{
-	fputs( data, stderr );
-	fflush( stderr );
+	if (ber_pvt_err_file != stderr) {
+		fputs( data, stderr );
+		fflush( stderr );
 	}
 
 	fflush( ber_pvt_err_file );
