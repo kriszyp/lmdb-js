@@ -79,6 +79,14 @@ slapcat( int argc, char **argv )
 			continue;
 		}
 
+		if( filter != NULL ) {
+			int rc = test_filter( NULL, e, filter );
+			if( rc != LDAP_COMPARE_TRUE ) {
+				be_entry_release_r( &op, e );
+				continue;
+			}
+		}
+
 		if ( retrieve_ctxcsn == 0 ) {
 			if ( is_entry_syncProviderSubentry( e ) ) {
 				be_entry_release_r( &op, e );

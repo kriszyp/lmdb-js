@@ -13,6 +13,7 @@ slapcat \- SLAPD database to LDIF utility
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
+.B [\-a filter]
 .B [\-s subtree-dn]
 .B [\-f slapd.conf]
 .B [\-l ldif-file]
@@ -71,6 +72,9 @@ configuration file.  The
 cannot be used in conjunction with the
 .B \-b
 option.
+.TP
+.BI \-a " filter"
+Only dump entries matching the asserted filter.  
 .TP
 .BI \-s " subtree-dn"
 Only dump entries in the subtree specified by this DN.

@@ -59,7 +59,8 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPCAT:
-		options = "\t[-n databasenumber | -b suffix] [-l ldiffile] [-m] [-k]\n";
+		options = "\t[-n databasenumber | -b suffix]"
+			" [-l ldiffile] [-a filter] [-m] [-k]\n";
 		break;
 
 	case SLAPDN:
@@ -75,7 +76,8 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPACL:
-		options = "\t[-U authcID | -D authcDN] -b DN attr[/level][:value] [...]\n";
+		options = "\t[-U authcID | -D authcDN]"
+			" -b DN attr[/level][:value] [...]\n";
 		break;
 	}
 
@@ -103,6 +105,7 @@ slap_tool_init(
 	char *options;
 	char *conffile = SLAPD_DEFAULT_CONFIGFILE;
 	struct berval base = BER_BVNULL;
+	char *filterstr = NULL;
 	char *subtree = NULL;
 	char *ldiffile	= NULL;
 	int rc, i, dbnum;
@@ -124,7 +127,7 @@ slap_tool_init(
 		break;
 
 	case SLAPCAT:
-		options = "b:cd:f:kl:mn:s:v";
+		options = "a:b:cd:f:kl:mn:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -150,14 +153,17 @@ slap_tool_init(
 		break;
 
 	default:
-		fprintf( stderr, "%s: unknown tool mode (%d)\n",
-		         progname, tool );
+		fprintf( stderr, "%s: unknown tool mode (%d)\n", progname, tool );
 		exit( EXIT_FAILURE );
 	}
 
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, options )) != EOF ) {
 		switch ( i ) {
+		case 'a':
+			filterstr = strdup( optarg );
+			break;
+
 		case 'b':
 			ber_str2bv( optarg, 0, 1, &base );
 			break;
@@ -319,7 +325,7 @@ slap_tool_init(
 	if ( ldiffile == NULL ) {
 		ldiffp = tool == SLAPCAT ? stdout : stdin;
 
-	} else if( (ldiffp = fopen( ldiffile, tool == SLAPCAT ? "w" : "r" ))
+	} else if ((ldiffp = fopen( ldiffile, tool == SLAPCAT ? "w" : "r" ))
 		== NULL )
 	{
 		perror( ldiffile );
@@ -410,19 +416,29 @@ slap_tool_init(
 		break;
 	}
 
+	if( filterstr ) {
+		filter = str2filter( filterstr );
+
+		if( filter == NULL ) {
+			fprintf( stderr, "Invalid filter '%s'\n", filterstr );
+			exit( EXIT_FAILURE );
+		}
+	}
+
 	if( subtree ) {
 		struct berval val;
 		ber_str2bv( subtree, 0, 0, &val );
 		rc = dnNormalize( 0, NULL, NULL, &val, &sub_ndn, NULL );
 		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "Invalid subtree DN '%s'\n", optarg );
+			fprintf( stderr, "Invalid subtree DN '%s'\n", subtree );
 			exit( EXIT_FAILURE );
 		}
 
-		if ( BER_BVISNULL( &base ) && dbnum == -1 )
+		if ( BER_BVISNULL( &base ) && dbnum == -1 ) {
 			base = val;
-		else
+		} else {
 			free( subtree );
+		}
 	}
 
 	if( base.bv_val != NULL ) {
@@ -485,7 +501,8 @@ slap_tool_init(
 		
 		if ( nosubordinates == 0 && dbnum > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-"The first database does not allow %s; using the first available one (%d)\n",
+				"The first database does not allow %s;"
+				" using the first available one (%d)\n",
 				progname, dbnum + 1, 0 );
 		}
 
@@ -493,7 +510,7 @@ slap_tool_init(
 		fprintf( stderr,
 			"Database number selected via -n is out of range\n"
 			"Must be in the range 1 to %d"
-				" (number of databases in the config file)\n",
+			" (number of databases in the config file)\n",
 			nbackends );
 		exit( EXIT_FAILURE );
 
