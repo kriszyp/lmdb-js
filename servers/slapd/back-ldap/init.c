@@ -111,6 +111,11 @@ ldap_back_db_init(
  		return -1;
  	}
 
+	li->binddn.bv_val = NULL;
+	li->binddn.bv_len = 0;
+	li->bindpw.bv_val = NULL;
+	li->bindpw.bv_len = 0;
+
 #ifdef ENABLE_REWRITE
  	li->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( li->rwinfo == NULL ) {
@@ -174,13 +179,13 @@ ldap_back_db_destroy(
 			ch_free(li->url);
 			li->url = NULL;
 		}
-		if (li->binddn) {
-			ch_free(li->binddn);
-			li->binddn = NULL;
+		if (li->binddn.bv_val) {
+			ch_free(li->binddn.bv_val);
+			li->binddn.bv_val = NULL;
 		}
-		if (li->bindpw) {
-			ch_free(li->bindpw);
-			li->bindpw = NULL;
+		if (li->bindpw.bv_val) {
+			ch_free(li->bindpw.bv_val);
+			li->bindpw.bv_val = NULL;
 		}
                 if (li->conntree) {
 			avl_free( li->conntree, ldap_back_conn_free );

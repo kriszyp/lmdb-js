@@ -102,7 +102,7 @@ ldap_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->binddn = ch_strdup(argv[1]);
+		ber_str2bv( argv[1], 0, 1, &li->binddn );
 
 	/* password to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "bindpw" ) == 0 ) {
@@ -112,7 +112,7 @@ ldap_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->bindpw = ch_strdup(argv[1]);
+		ber_str2bv( argv[1], 0, 1, &li->bindpw );
 	
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {

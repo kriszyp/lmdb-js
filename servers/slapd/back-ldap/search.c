@@ -61,14 +61,13 @@ ldap_back_search(
 	struct ldapconn *lc;
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
-	int	count, rc = 0, msgid, sres = LDAP_SUCCESS; 
+	int	count, rc = 0, msgid; 
 	char *match = NULL;
 	char **mapped_attrs = NULL;
 	struct berval mbase;
 	struct berval mfilter = { 0, NULL };
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
-	BerVarray v2refs = NULL;
 
 	lc = ldap_back_getconn(li, op, rs);
 	if ( !lc ) {
@@ -233,7 +232,7 @@ fail:;
 			Entry ent;
 			struct berval bdn;
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_build_entry(op->o_bd, op->o_conn, e, &ent, &bdn, 1) == LDAP_SUCCESS ) {
+			if ( ldap_build_entry(op, e, &ent, &bdn, 1) == LDAP_SUCCESS ) {
 				Attribute *a;
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->oq_search.rs_attrs;
@@ -376,15 +375,14 @@ finish:;
 
 int
 ldap_build_entry(
-	Backend *be,
-	Connection *conn,
+	Operation *op,
 	LDAPMessage *e,
 	Entry *ent,
 	struct berval *bdn,
 	int private
 )
 {
-	struct ldapinfo *li = (struct ldapinfo *) be->be_private;
+	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;
 	struct berval a, mapped;
 	BerElement ber = *e->lm_ber;
 	Attribute *attr, **attrp;
@@ -400,7 +398,8 @@ ldap_build_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->rwinfo, "searchResult",
-				bdn->bv_val, conn, &ent->e_name.bv_val ) ) {
+				bdn->bv_val, op->o_conn,
+				&ent->e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( ent->e_name.bv_val == NULL ) {
 			ent->e_name = *bdn;
@@ -539,7 +538,7 @@ ldap_build_entry(
 				switch ( rewrite_session( li->rwinfo,
 							"searchResult",
 							bv->bv_val,
-							conn, 
+							op->o_conn, 
 							&newval.bv_val )) {
 				case REWRITE_REGEXEC_OK:
 					/* left as is */
@@ -678,7 +677,7 @@ ldap_back_entry_get(
 
 	*ent = ch_malloc(sizeof(Entry));
 
-	rc = ldap_build_entry(op->o_bd, op->o_conn, e, *ent, &bdn, 0);
+	rc = ldap_build_entry(op, e, *ent, &bdn, 0);
 
 	if (rc != LDAP_SUCCESS) {
 		ch_free(*ent);

@@ -76,8 +76,8 @@ struct ldapmapping {
 struct ldapinfo {
 	struct slap_backend_db	*be;
 	char *url;
-	char *binddn;
-	char *bindpw;
+	struct berval binddn;
+	struct berval bindpw;
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	int savecred;
 	Avlnode *conntree;
@@ -158,7 +158,7 @@ extern int suffix_massage_config( struct rewrite_info *info,
 extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BerVarray a_vals, void *cookie );
 #endif /* ENABLE_REWRITE */
 
-int ldap_build_entry( Backend *be, Connection *c, LDAPMessage *e, Entry *ent,
+int ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 	 struct berval *bdn, int private );
 
 LDAP_END_DECL
