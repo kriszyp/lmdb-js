@@ -657,6 +657,7 @@ ber_get_next(
 				AC_MEMCPY(ber->ber_buf + sblen, ber->ber_ptr, l);
 				sblen += l;
 			}
+			*ber->ber_end = '\0';
 			ber->ber_ptr = ber->ber_buf;
 			ber->ber_usertag = 0;
 			if ((ber_len_t)sblen == ber->ber_len) {
