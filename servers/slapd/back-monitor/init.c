@@ -261,12 +261,12 @@ monitor_back_db_init(
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
-			"unable to normalize monitor DN \"" SLAPD_MONITOR_DN
-			"\"\n" , 0, 0, 0 );
+			"unable to normalize monitor DN \"%s\"\n",
+			SLAPD_MONITOR_DN, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"unable to normalize monitor DN \"" SLAPD_MONITOR_DN
-			"\"\n", 0, 0, 0 );
+			"unable to normalize monitor DN \"%s\"\n",
+			SLAPD_MONITOR_DN, 0, 0 );
 #endif
 		return -1;
 	}
@@ -768,7 +768,7 @@ monitor_back_db_open(
 	 * creates the "cn=Monitor" entry 
 	 */
 	snprintf( buf, sizeof( buf ), 
-		"dn: " SLAPD_MONITOR_DN "\n"
+		"dn: %s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Monitor\n"
@@ -780,6 +780,7 @@ monitor_back_db_open(
 #endif
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
+		SLAPD_MONITOR_DN,
 		mi->mi_oc_monitorServer->soc_cname.bv_val,
 		mi->mi_oc_monitorServer->soc_cname.bv_val,
 		mi->mi_ad_description->ad_cname.bv_val,

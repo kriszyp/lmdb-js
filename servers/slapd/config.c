@@ -968,12 +968,12 @@ read_config( const char *fname, int depth )
 			} else if ( strcasecmp( cargv[1], SLAPD_MONITOR_DN ) == 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, "%s: line %d: \""
-					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
-					fname, lineno, 0 );
+					"%s\" is reserved for monitoring slapd\n", 
+					fname, lineno, SLAPD_MONITOR_DN );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: \""
-					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
-					fname, lineno, 0 );
+					"%s\" is reserved for monitoring slapd\n", 
+					fname, lineno, SLAPD_MONITOR_DN );
 #endif
 				return( 1 );
 #endif /* SLAPD_MONITOR_DN */
