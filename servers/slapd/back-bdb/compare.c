@@ -36,6 +36,7 @@ bdb_compare(
 
 	switch( rc ) {
 	case DB_NOTFOUND:
+	case 0:
 		break;
 	default:
 		rc = LDAP_OTHER;
