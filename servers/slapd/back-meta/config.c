@@ -143,7 +143,7 @@ meta_back_db_config(
 #endif /* uncomment if uri MUST be a branch of suffix */
 		LDAPURLDesc 	*ludp;
 		char 		*last;
-		struct berval	dn, *pdn = NULL, *ndn = NULL;
+		struct berval	dn;
 		int		rc;
 		
 		if ( argc != 2 ) {
@@ -319,7 +319,7 @@ meta_back_db_config(
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "binddn" ) == 0 ) {
 		int 		i = li->ntargets-1;
-		struct berval	dn, *ndn = NULL;
+		struct berval	dn;
 
 		if ( i < 0 ) {
 			fprintf( stderr,
@@ -359,12 +359,12 @@ meta_back_db_config(
 			    fname, lineno );
 			return 1;
 		}
-		li->targets[ i ]->bindpw = ber_bvstrdup( argv[ 1 ] );
+		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->bindpw );
 		
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
 		int 		i = li->ntargets-1;
-		struct berval	dn, *ndn = NULL;
+		struct berval	dn;
 
 		if ( i < 0 ) {
 			fprintf( stderr,
@@ -404,7 +404,7 @@ meta_back_db_config(
 			    fname, lineno );
 			return 1;
 		}
-		li->targets[ i ]->pseudorootpw = ber_bvstrdup( argv[ 1 ] );
+		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->pseudorootpw );
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {

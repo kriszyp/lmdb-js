@@ -164,12 +164,12 @@ access_allowed(
 		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 		       "access_allowed: conn %d backend default %s access %s to \"%s\"\n",
 		       conn->c_connid, access2str( access ),
-		       be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn ));
+		       be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( access ),
-			be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn );
+			be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
 		return be->be_dfltaccess >= access;
 
@@ -181,12 +181,12 @@ access_allowed(
 		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 		       "access_allowed: conn %d global default %s access %s to \"%s\"\n",
 		       conn->c_connid, access2str( access ),
-		       global_default_access >= access ? "granted" : "denied", op->o_dn ));
+		       global_default_access >= access ? "granted" : "denied", op->o_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
 			access2str( access ),
-			global_default_access >= access ? "granted" : "denied", op->o_dn );
+			global_default_access >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
 		return global_default_access >= access;
 #endif
@@ -477,7 +477,7 @@ acl_mask(
 	LDAP_LOG(( "acl", LDAP_LEVEL_ARGS,
 		   " to %s by \"%s\", (%s) \n",
 		   val ? "value" : "all values",
-		   op->o_ndn ? op->o_ndn : "",
+		   op->o_ndn.bv_val ? op->o_ndn.bv_val : "",
 		   accessmask2str( *mask, accessmaskbuf ) ));
 #else
 	Debug( LDAP_DEBUG_ACL,
@@ -754,8 +754,8 @@ acl_mask(
 
 		if ( b->a_group_pat.bv_len && op->o_ndn.bv_len ) {
 			char buf[1024];
-			struct berval bv = {1024, buf };
-			struct berval ndn = {0, NULL };
+			struct berval bv = { sizeof(buf) - 1, buf };
+			struct berval ndn = { 0, NULL };
 			int rc;
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 

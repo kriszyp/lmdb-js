@@ -1056,8 +1056,11 @@ accessmask2str( slap_mask_t mask, char *buf )
 	}
 
 	if ( ACL_IS_LEVEL( mask ) ) {
-		*ptr = ')';
-	} 
+		*ptr++ = ')';
+	}
+
+	*ptr = '\0';
+
 	return buf;
 }
 

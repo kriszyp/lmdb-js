@@ -187,17 +187,17 @@ target_free(
 	if ( lt->suffix.bv_val ) {
 		free( lt->suffix.bv_val );
 	}
-	if ( lt->binddn ) {
-		ber_bvfree( lt->binddn );
+	if ( lt->binddn.bv_val ) {
+		free( lt->binddn.bv_val );
 	}
-	if ( lt->bindpw ) {
-		ber_bvfree( lt->bindpw );
+	if ( lt->bindpw.bv_val ) {
+		free( lt->bindpw.bv_val );
 	}
-	if ( lt->pseudorootdn ) {
-		ber_bvfree( lt->pseudorootdn );
+	if ( lt->pseudorootdn.bv_val ) {
+		free( lt->pseudorootdn.bv_val );
 	}
-	if ( lt->pseudorootpw ) {
-		ber_bvfree( lt->pseudorootpw );
+	if ( lt->pseudorootpw.bv_val ) {
+		free( lt->pseudorootpw.bv_val );
 	}
 	if ( lt->rwinfo ) {
 		rewrite_info_delete( lt->rwinfo );
