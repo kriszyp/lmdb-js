@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.9 Engineering
+	Fixed back-meta compare return code (ITS#3042)
 	Build Environment
 		Fixed slapd dynamic backend build (ITS#3044)
 
