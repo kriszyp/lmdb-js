@@ -12,7 +12,7 @@
 #ifndef _LDAP_PVT_THREAD_H
 #define _LDAP_PVT_THREAD_H
 
-#include "portable.h"
+#include "ldap_cdefs.h"
 
 #if defined( HAVE_PTHREADS )
 /**********************************
@@ -133,6 +133,8 @@ LDAP_END_DECL
 #include <windows.h>
 #include <process.h>
 
+LDAP_BEGIN_DECL
+
 typedef HANDLE			ldap_pvt_thread_t;
 typedef int			ldap_pvt_thread_attr_t;
 typedef HANDLE			ldap_pvt_thread_mutex_t;
@@ -142,6 +144,8 @@ typedef int			ldap_pvt_thread_condattr_t;
 
 #define LDAP_PVT_THREAD_CREATE_DETACHED 0
 #define LDAP_PVT_THREAD_CREATE_JOINABLE 0
+
+LDAP_END_DECL
 
 #else
 
@@ -175,6 +179,8 @@ LDAP_END_DECL
 #ifndef NO_THREADS
 #	define HAVE_THREADS 1
 #endif
+
+LDAP_BEGIN_DECL
 
 LDAP_F int 
 ldap_pvt_thread_create LDAP_P(( ldap_pvt_thread_t * thread, 
@@ -231,8 +237,6 @@ ldap_pvt_thread_mutex_lock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F int 
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
-
-#include <ldap_cdefs.h>
 
 typedef struct ldap_pvt_thread_rdwr_var {
 	int readers_reading;
