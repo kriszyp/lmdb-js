@@ -1356,8 +1356,6 @@ read_config( const char *fname, int depth )
 							STRLENOF( "extended" ) ) == 0 ) {
 					char	*e = cargv[ i ] + STRLENOF( "extended" );
 
-					restrict |= SLAP_RESTRICT_OP_EXTENDED;
-
 					if ( e[0] == '=' ) {
 						int	j;
 
@@ -1373,8 +1371,11 @@ read_config( const char *fname, int depth )
 							goto restrict_unknown;
 						}
 
+						restrict &= ~SLAP_RESTRICT_OP_EXTENDED;
+
 					} else if ( e[0] == '\0' ) {
-						restrict = SLAP_RESTRICT_EXOP_MASK;
+						restrict &= ~SLAP_RESTRICT_EXOP_MASK;
+						restrict |= SLAP_RESTRICT_OP_EXTENDED;
 						
 					} else {
 						goto restrict_unknown;
