@@ -184,7 +184,7 @@ parse_acl(
 
 			/* get <who> */
 			for ( ; i < argc; i++ ) {
-				char* pat;
+				char *pat;
 				split( argv[i], '=', &left, &right );
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
@@ -196,6 +196,8 @@ parse_acl(
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					regtest(fname, lineno, right);
 					pat = ch_strdup( right );
+				} else {
+					pat = NULL;
 				}
 
 				if( pat != NULL ) {
@@ -430,10 +432,11 @@ acl_usage( void )
 		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
-		"<who> ::= * | anonymous | self | dn=<regex>\n"
-			"\t| dnattr=<attrname> | group[/<objectclass>[/<attrname>]]=<regex>\n"
-			"\t| peername=<regex> | sockname=<regex>\n"
-			"\t| domain=<regex> | sockurl=<regex>\n"
+		"<who> ::= [ * | anonymous | self | dn=<regex> ]\n"
+			"\t[dnattr=<attrname>]\t"
+			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
+			"\t[peername=<regex>] [sockname=<regex>]\n"
+			"\t[domain=<regex>] [sockurl=<regex>]\n"
 		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
 		);
 	exit( 1 );
