@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  *	Copyright 1998, David E. Storey, All rights reserved.
  *	This software is not subject to any license of The Murphy Group, Inc.
  *	or George Mason University.
