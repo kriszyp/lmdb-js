@@ -889,6 +889,7 @@ connection_operation( void *ctx, void *arg_v )
 #endif /* SLAPD_MONITOR */
 	Connection *conn = op->o_conn;
 	void *memctx;
+	ber_len_t memsiz;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_initiated++;
@@ -915,8 +916,11 @@ connection_operation( void *ctx, void *arg_v )
 	 * storage for most mallocs.
 	 */
 #define	SLAB_SIZE	1048576
+	memsiz = ber_len( op->o_ber ) * 32;
+	if ( SLAB_SIZE > memsiz ) memsiz = SLAB_SIZE;
+
 	if ( tag == LDAP_REQ_SEARCH ) {
-		memctx = sl_mem_create( SLAB_SIZE, ctx );
+		memctx = sl_mem_create( memsiz, ctx );
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
 		op->o_tmpmemctx = memctx;
 		op->o_tmpmfuncs = &sl_mfuncs;
@@ -1072,6 +1076,7 @@ operations_error:
 
 co_op_free:
 
+	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, NULL );
 	slap_op_free( op );
 
 no_co_op_free:

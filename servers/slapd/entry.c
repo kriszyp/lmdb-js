@@ -442,8 +442,6 @@ entry_id_cmp( const void *v_e1, const void *v_e2 )
 	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
 }
 
-#ifdef SLAPD_BDB
-
 /* This is like a ber_len */
 static ber_len_t
 entry_lenlen(ber_len_t len)
@@ -495,6 +493,52 @@ entry_getlen(unsigned char **buf)
 	return len;
 }
 
+/* Add up the size of the entry for a flattened buffer */
+void entry_flatsize(Entry *e, ber_len_t *psiz, ber_len_t *plen, int norm)
+{
+	ber_len_t siz = sizeof(Entry);
+	ber_len_t len, dnlen, ndnlen;
+	int i;
+	Attribute *a;
+
+	dnlen = e->e_name.bv_len;
+	len = dnlen + 1;	/* trailing NUL byte */
+	len += entry_lenlen(dnlen);
+	if (norm) {
+		ndnlen = e->e_nname.bv_len;
+		len += ndnlen + 1;
+		len += entry_lenlen(ndnlen);
+	}
+	for (a=e->e_attrs; a; a=a->a_next) {
+		/* For AttributeDesc, we only store the attr name */
+		siz += sizeof(Attribute);
+		len += a->a_desc->ad_cname.bv_len+1;
+		len += entry_lenlen(a->a_desc->ad_cname.bv_len);
+		for (i=0; a->a_vals[i].bv_val; i++) {
+			siz += sizeof(struct berval);
+			len += a->a_vals[i].bv_len + 1;
+			len += entry_lenlen(a->a_vals[i].bv_len);
+		}
+		len += entry_lenlen(i);
+		siz += sizeof(struct berval);	/* empty berval at end */
+		if (norm && a->a_nvals != a->a_vals) {
+			for (i=0; a->a_nvals[i].bv_val; i++) {
+				siz += sizeof(struct berval);
+				len += a->a_nvals[i].bv_len + 1;
+				len += entry_lenlen(a->a_nvals[i].bv_len);
+			}
+			len += entry_lenlen(i);	/* i nvals */
+			siz += sizeof(struct berval);
+		} else {
+			len += entry_lenlen(0);	/* 0 nvals */
+		}
+	}
+	len += 1;	/* NUL byte at end */
+	len += entry_lenlen(siz);
+	*psiz = siz;
+	*plen = len;
+}
+
 /* Flatten an Entry into a buffer. The buffer is filled with just the
  * strings/bervals of all the entry components. Each field is preceded
  * by its length, encoded the way ber_put_len works. Every field is NUL
@@ -519,35 +563,9 @@ int entry_encode(Entry *e, struct berval *bv)
 #endif
 	dnlen = e->e_name.bv_len;
 	ndnlen = e->e_nname.bv_len;
-	len = dnlen + ndnlen + 2;	/* two trailing NUL bytes */
-	len += entry_lenlen(dnlen);
-	len += entry_lenlen(ndnlen);
-	for (a=e->e_attrs; a; a=a->a_next) {
-		/* For AttributeDesc, we only store the attr name */
-		siz += sizeof(Attribute);
-		len += a->a_desc->ad_cname.bv_len+1;
-		len += entry_lenlen(a->a_desc->ad_cname.bv_len);
-		for (i=0; a->a_vals[i].bv_val; i++) {
-			siz += sizeof(struct berval);
-			len += a->a_vals[i].bv_len + 1;
-			len += entry_lenlen(a->a_vals[i].bv_len);
-		}
-		len += entry_lenlen(i);
-		siz += sizeof(struct berval);	/* empty berval at end */
-		if (a->a_nvals != a->a_vals) {
-			for (i=0; a->a_nvals[i].bv_val; i++) {
-				siz += sizeof(struct berval);
-				len += a->a_nvals[i].bv_len + 1;
-				len += entry_lenlen(a->a_nvals[i].bv_len);
-			}
-			len += entry_lenlen(i);	/* i nvals */
-			siz += sizeof(struct berval);
-		} else {
-			len += entry_lenlen(0);	/* 0 nvals */
-		}
-	}
-	len += 1;	/* NUL byte at end */
-	len += entry_lenlen(siz);
+
+	entry_flatsize( e, &siz, &len, 1 );
+
 	bv->bv_len = len;
 	bv->bv_val = ch_malloc(len);
 	ptr = (unsigned char *)bv->bv_val;
@@ -724,4 +742,3 @@ int entry_decode(struct berval *bv, Entry **e)
 	*e = x;
 	return 0;
 }
-#endif

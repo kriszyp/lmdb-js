@@ -1195,8 +1195,6 @@ vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr )
 	ValuesReturnFilter	*p;
 	struct berval tmp;
 	ber_len_t len;
-	BER_MEMREALLOC_FN *reallo = op->o_tmpmemctx ? sl_realloc :
-		(BER_MEMREALLOC_FN *)ch_realloc;
 
 	if ( vrf == NULL ) {
 		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
@@ -1214,7 +1212,7 @@ vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr )
 		simple_vrFilter2bv( op, p, &tmp );
 			
 		fstr->bv_len += tmp.bv_len;
-		fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
+		fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( &fstr->bv_val[len-1], tmp.bv_len + 2, 
 			/*"("*/ "%s)", tmp.bv_val );
@@ -1228,8 +1226,6 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 {
 	struct berval tmp;
 	ber_len_t len;
-	BER_MEMREALLOC_FN *reallo = op->o_tmpmemctx ? sl_realloc :
-		(BER_MEMREALLOC_FN *) ch_realloc;
 
 	if ( vrf == NULL ) {
 		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
@@ -1306,7 +1302,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 			filter_escape_value_x( &vrf->vrf_sub_initial, &tmp, op->o_tmpmemctx );
 
 			fstr->bv_len += tmp.bv_len;
-			fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-2], tmp.bv_len+3,
 				/* "(attr=" */ "%s*)",
@@ -1322,7 +1318,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 				filter_escape_value_x( &vrf->vrf_sub_any[i], &tmp, op->o_tmpmemctx );
 
 				fstr->bv_len += tmp.bv_len + 1;
-				fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
+				fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 				snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
@@ -1337,7 +1333,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 			filter_escape_value_x( &vrf->vrf_sub_final, &tmp, op->o_tmpmemctx );
 
 			fstr->bv_len += tmp.bv_len;
-			fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 				/* "(attr=[init*][any*]" */ "%s)",

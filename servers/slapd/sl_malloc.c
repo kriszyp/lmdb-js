@@ -91,14 +91,13 @@ sl_malloc(
 
 	if (sh->h_last + size >= sh->h_end ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "sl_malloc: allocation of %lu bytes failed\n", (long)size, 0,0 );
+		LDAP_LOG( OPERATION, INFO, 
+			   "sl_malloc of %lu bytes failed, using ch_malloc\n", (long)size, 0,0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "sl_malloc of %lu bytes failed\n",
-			(long) size, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE,
+			   "sl_malloc of %lu bytes failed, using ch_malloc\n", (long)size, 0,0 );
 #endif
-		assert( 0 );
-		exit( EXIT_FAILURE );
+		return ch_malloc( size );
 	}
 	new = sh->h_last;
 	*new++ = size - sizeof(ber_len_t);
@@ -129,16 +128,9 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 
 	if ( ptr == NULL ) return sl_malloc( size, ctx );
 
+	/* Not our memory? */
 	if ( ptr < sh->h_base || ptr >= sh->h_end ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "sl_free: not mine: 0x%lx\n", (long)ptr, 0,0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			   "sl_free: not mine: 0x%lx\n", (long)ptr, 0,0 );
-#endif
-		assert( 0 );
-		exit( EXIT_FAILURE );
+		return ch_realloc( ptr, size );
 	}
 
 	if ( size == 0 ) return NULL;
@@ -147,9 +139,8 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 	size += pad + sizeof( ber_len_t );
 	size &= ~pad;
 
-	/* We always alloc a new block */
+	/* Never shrink blocks, always alloc if growth needed */
 	if (size <= p[-1]) {
-		p[-1] = size;
 		new = p;
 	} else {
 		new = sl_malloc( size, ctx );
@@ -164,14 +155,24 @@ sl_free( void *ptr, void *ctx )
 	struct slab_heap *sh = ctx;
 
 	if ( ptr < sh->h_base || ptr >= sh->h_end ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "sl_free: not mine: 0x%lx\n", (long)ptr, 0,0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			   "sl_free: not mine: 0x%lx\n", (long)ptr, 0,0 );
-#endif
-		assert( 0 );
-		exit( EXIT_FAILURE );
+		ch_free( ptr );
 	}
+}
+
+void
+sl_release( void *ptr, void *ctx )
+{
+	struct slab_heap *sh = ctx;
+
+	if ( ptr >= sh->h_base && ptr <= sh->h_end ) {
+		sh->h_last = ptr;
+	}
+}
+
+void *
+sl_mark( void *ctx )
+{
+	struct slab_heap *sh = ctx;
+
+	return sh->h_last;
 }

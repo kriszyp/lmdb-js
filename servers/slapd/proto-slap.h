@@ -440,6 +440,8 @@ LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
 LDAP_SLAPD_F (char *) entry2str LDAP_P(( Entry *e, int *len ));
 
+LDAP_SLAPD_F (void) entry_flatsize LDAP_P((
+	Entry *e, ber_len_t *siz, ber_len_t *len, int norm ));
 LDAP_SLAPD_F (int) entry_decode LDAP_P(( struct berval *bv, Entry **e ));
 LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval *bv ));
 
@@ -968,6 +970,8 @@ LDAP_SLAPD_F (void *) sl_realloc LDAP_P(( void *block, ber_len_t size, void *ctx
 LDAP_SLAPD_F (void *) sl_calloc LDAP_P(( ber_len_t nelem, ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void) sl_free LDAP_P(( void *, void *ctx ));
 LDAP_SLAPD_F (void *) sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void *) sl_mark LDAP_P(( void *ctx ));
+LDAP_SLAPD_F (void) sl_release LDAP_P(( void *, void *ctx ));
 
 /*
  * starttls.c

@@ -587,6 +587,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	computed_attr_context	 ctx;
 	AttributeName	*anp;
 #endif
+	void		*mark = NULL;
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
@@ -611,6 +612,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		rs->sr_entry->e_name.bv_val, op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
 
+	mark = sl_mark( op->o_tmpmemctx );
+
 	if ( ! access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
@@ -623,6 +626,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		    0, 0, 0 );
 #endif
 
+		sl_release( mark, op->o_tmpmemctx );
 		return( 1 );
 	}
 
@@ -633,7 +637,17 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	    ber = op->o_res_ber;
 	else
 #endif
-	ber_init_w_nullc( ber, LBER_USE_DER );
+	{
+		ber_len_t	siz, len;
+		struct berval	bv;
+
+		entry_flatsize( rs->sr_entry, &siz, &len, 0 );
+		bv.bv_len = siz + len;
+		bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
+
+		ber_init2( ber, &bv, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+	}
 
 #ifdef LDAP_CONNECTIONLESS
 	if (op->o_conn && op->o_conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
@@ -686,15 +700,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		size = i * sizeof(char *) + k;
 		if ( size > 0 ) {
 			char	*a_flags;
-			e_flags = SLAP_CALLOC ( 1, i * sizeof(char *) + k );
+			e_flags = sl_calloc ( 1, i * sizeof(char *) + k, op->o_tmpmemctx );
 			if( e_flags == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"send_search_entry: conn %lu SLAP_CALLOC failed\n",
+					"send_search_entry: conn %lu sl_calloc failed\n",
 					op->o_connid : 0, 0, 0 );
 #else
 		    	Debug( LDAP_DEBUG_ANY, 
-					"send_search_entry: SLAP_CALLOC failed\n", 0, 0, 0 );
+					"send_search_entry: sl_calloc failed\n", 0, 0, 0 );
 #endif
 				ber_free( ber, 1 );
 	
@@ -866,7 +880,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			 * Reuse previous memory - we likely need less space
 			 * for operational attributes
 			 */
-			tmp = SLAP_REALLOC ( e_flags, i * sizeof(char *) + k );
+			tmp = sl_realloc( e_flags, i * sizeof(char *) + k, op->o_tmpmemctx );
 			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
@@ -1082,7 +1096,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	/* free e_flags */
 	if ( e_flags ) {
-		free( e_flags );
+		sl_free( e_flags, op->o_tmpmemctx );
 		e_flags = NULL;
 	}
 
@@ -1116,6 +1130,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 		ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
+		sl_release( mark, op->o_tmpmemctx );
 		return( 1 );
 	}
 
@@ -1136,6 +1151,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			0, 0, 0 );
 #endif
 
+		sl_release( mark, op->o_tmpmemctx );
 		return -1;
 	}
 	rs->sr_nentries++;
@@ -1163,7 +1179,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
-	if ( e_flags ) free( e_flags );
+	sl_release( mark, op->o_tmpmemctx );
+	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
 	return( rc );
 }
 
