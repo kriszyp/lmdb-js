@@ -109,7 +109,7 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
 OL_ARG_WITH(fetch,[  --with-fetch		with fetch URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
-	auto, [auto k5 k4 afs yes no])
+	auto, [auto k5 kth k4 afs yes no])
 OL_ARG_WITH(readline,[  --with-readline	with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
@@ -831,8 +831,10 @@ des_debug = 1;
 	fi
 fi
 
-if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
-	AC_CHECK_HEADERS(krb.h des.h)
+if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
+	-o $ol_with_kerberos = kth ; then
+
+	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
 
 	if test $ac_cv_header_krb_h = yes ; then
 		AC_CHECK_LIB(krb, main, [have_k4=yes], [have_k4=no], [-ldes])
@@ -842,12 +844,20 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 			ol_link_kerberos=yes
 
 			KRB_LIBS="-lkrb -ldes"
+
+			if test $ac_cv_header_krb_archaeology_h = yes ; then
+				AC_DEFINE(HAVE_KTH_KERBEROS, 1,
+					[define if you have Kth Kerberos])
+			fi
 		fi
 	fi
 fi
 
 if test $ol_link_kerberos = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
+
+else if test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
+	AC_ERROR([Kerberos detection failed.])
 fi
 
 dnl ----------------------------------------------------------------

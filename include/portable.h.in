@@ -387,6 +387,9 @@
 /* Define if you have the <kerberosIV/krb.h> header file.  */
 #undef HAVE_KERBEROSIV_KRB_H
 
+/* Define if you have the <krb-archaeology.h> header file.  */
+#undef HAVE_KRB_ARCHAEOLOGY_H
+
 /* Define if you have the <krb.h> header file.  */
 #undef HAVE_KRB_H
 
@@ -617,6 +620,9 @@
 
 /* define if you have Kerberos des_debug */
 #undef HAVE_DES_DEBUG
+
+/* define if you have Kth Kerberos */
+#undef HAVE_KTH_KERBEROS
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS

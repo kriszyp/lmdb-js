@@ -334,6 +334,8 @@ valid_tgt( char **names )
 
 static char *kauth_name;
 
+#ifndef HAVE_KTH_KERBEROS
+
 /*ARGSUSED*/
 int
 krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
@@ -365,6 +367,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 
 	return( 0 );
 }
+#endif /* HAVE_KTH_KERBEROS */
 
 static int
 kinit( char *kname )
@@ -382,14 +385,18 @@ kinit( char *kname )
 	}
 
 #ifdef HAVE_AFS_KERBEROS
-	/*
-	 * realm must be uppercase for krb_ routines
-	 */
+	/* realm must be uppercase for AFS krb_ routines */
 	ldap_pvt_str2upper( realm );
 #endif /* HAVE_AFS_KERBEROS */
 
+#ifdef HAVE_KTH_KERBEROS
+	/* Kth kerberos knows how to do both string to keys */
+	rc = krb_get_pw_in_tkt( name, inst, realm, TGT, realm,
+		DEFAULT_TKT_LIFE, 0 );
+#else
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
+#endif
 
 	if ( rc != KSUCCESS ) {
 		switch ( rc ) {
