@@ -183,25 +183,7 @@ int passwd_extop(
 	ml->sml_op = qpw->rs_old.bv_val ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 	ml->sml_next = qpw->rs_mods;
 	qpw->rs_mods = ml;
-	if ( qpw->rs_old.bv_val ) {
-		ml = ch_malloc( sizeof(Modifications) );
-		ml->sml_values = ch_malloc( (nhash+1)*sizeof(struct berval) );
-		for ( i=0; hashes[i]; i++ ) {
-			slap_passwd_hash_type( &qpw->rs_old, &hash, hashes[i], &rs->sr_text );
-			if ( hash.bv_len == 0 ) {
-				if ( !rs->sr_text ) {
-					rs->sr_text = "password hash failed";
-				}
-				break;
-			}
-			ml->sml_values[i] = hash;
-		}
-		ml->sml_values[i].bv_val = NULL;
-		ml->sml_desc = slap_schema.si_ad_userPassword;
-		ml->sml_op = LDAP_MOD_DELETE;
-		ml->sml_next = qpw->rs_mods;
-		qpw->rs_mods = ml;
-	}
+
 	if ( hashes[i] ) {
 		rs->sr_err = LDAP_OTHER;
 	} else {
