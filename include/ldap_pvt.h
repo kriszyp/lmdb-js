@@ -17,7 +17,6 @@
 
 struct hostent;	/* avoid pulling in <netdb.h> */
 
-extern char *ldap_pvt_strtok( char *str, const char *delim, char **pos );
 extern char *ldap_pvt_ctime( const time_t *tp, char *buf );
 extern int ldap_pvt_gethostbyname_a(
 	const char *name, 

@@ -42,10 +42,15 @@
 #	endif
 #endif
 
+extern char *ldap_pvt_strtok( char *str, const char *delim, char **pos );
+#ifndef HAVE_STRTOK_R
+#	define strtok_r(s, d, p) ldap_pvt_strtok((s),(d),(p))
+#endif
+
+extern char *ldap_pvt_strdup( const char * s );
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
-	extern char *ldap_pvt_strdup( const char * s );
-#	define strdup ldap_pvt_strdup
+#	define strdup(s) ldap_pvt_strdup(s)
 #else
 	/* some systems fail to declare strdup */
 	extern char *strdup();

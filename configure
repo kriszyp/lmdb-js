@@ -3593,8 +3593,8 @@ fi
 
 
 		if test $ol_link_threads = no ; then
-						echo $ac_n "checking for pthread_create with -pthread""... $ac_c" 1>&6
-echo "configure:3598: checking for pthread_create with -pthread" >&5
+						echo $ac_n "checking for pthread_create with -kthread""... $ac_c" 1>&6
+echo "configure:3598: checking for pthread_create with -kthread" >&5
 if eval "test \"`echo '$''{'ol_cv_kthread_flag'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8419,6 +8419,7 @@ for ac_func in \
 	sigset			\
 	snprintf		\
 	socket			\
+	strdup			\
 	strerror		\
 	strpbrk			\
 	strrchr			\
@@ -8433,12 +8434,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:8437: checking for $ac_func" >&5
+echo "configure:8438: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8442 "configure"
+#line 8443 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -8461,7 +8462,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:8465: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8466: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -8495,12 +8496,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:8499: checking for $ac_func" >&5
+echo "configure:8500: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8504 "configure"
+#line 8505 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -8523,7 +8524,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:8527: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8528: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -8548,20 +8549,21 @@ fi
 done
 
 
-echo $ac_n "checking number of arguments of ctime_r""... $ac_c" 1>&6
-echo "configure:8553: checking number of arguments of ctime_r" >&5
+if test "$ac_cv_func_ctime_r" = yes ; then
+	echo $ac_n "checking number of arguments of ctime_r""... $ac_c" 1>&6
+echo "configure:8555: checking number of arguments of ctime_r" >&5
 if eval "test \"`echo '$''{'ol_cv_func_ctime_r_nargs'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8558 "configure"
+#line 8560 "configure"
 #include "confdefs.h"
 #include <time.h>
 int main() {
 time_t ti; char *buffer; ctime_r(&ti,buffer,32);
 ; return 0; }
 EOF
-if { (eval echo configure:8565: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:8567: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_func_ctime_r_nargs=3
 else
@@ -8573,7 +8575,7 @@ fi
 rm -f conftest*
 		if test $ol_cv_func_ctime_r_nargs = 0 ; then
 			cat > conftest.$ac_ext <<EOF
-#line 8577 "configure"
+#line 8579 "configure"
 #include "confdefs.h"
 #include <time.h>
 int main() {
@@ -8581,7 +8583,7 @@ time_t ti; char *buffer;
 					ctime_r(&ti,buffer);
 ; return 0; }
 EOF
-if { (eval echo configure:8585: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:8587: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_func_ctime_r_nargs=2
 else
@@ -8603,12 +8605,15 @@ EOF
 
   fi
 
+else
+	ol_cv_func_ctime_r=0
+fi
 
-if test $ac_cv_func_strtok_r = yes \
-	-a $ac_cv_func_ctime_r = yes \
-	-a $ol_cv_func_ctime_r_nargs -ge 2 -a $ol_cv_func_ctime_r_nargs -le 3 \
-	-a $ac_cv_func_gethostbyaddr_r = yes \
-	-a $ac_cv_func_gethostbyname_r = yes \
+if test "$ac_cv_func_strtok_r" = yes \
+	-a "$ac_cv_func_ctime_r" = yes \
+	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
+	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+	-a "$ac_cv_func_gethostbyname_r" = yes \
 	; then
 
 	cat >> confdefs.h <<\EOF
@@ -8624,15 +8629,15 @@ EOF
 
 fi
 
-for ac_func in getopt strdup tempnam
+for ac_func in getopt tempnam
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:8631: checking for $ac_func" >&5
+echo "configure:8636: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8636 "configure"
+#line 8641 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -8655,7 +8660,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:8659: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8664: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -8685,13 +8690,13 @@ done
 # Check Configuration
 
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:8689: checking declaration of sys_errlist" >&5
+echo "configure:8694: checking declaration of sys_errlist" >&5
 if eval "test \"`echo '$''{'ol_cv_dcl_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 8695 "configure"
+#line 8700 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -8701,7 +8706,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:8705: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:8710: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 else
@@ -8722,20 +8727,20 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 EOF
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:8726: checking existence of sys_errlist" >&5
+echo "configure:8731: checking existence of sys_errlist" >&5
 	if eval "test \"`echo '$''{'ol_cv_have_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 8732 "configure"
+#line 8737 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:8739: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8744: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else

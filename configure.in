@@ -1298,6 +1298,7 @@ AC_CHECK_FUNCS(		\
 	sigset			\
 	snprintf		\
 	socket			\
+	strdup			\
 	strerror		\
 	strpbrk			\
 	strrchr			\
@@ -1319,13 +1320,17 @@ AC_CHECK_FUNCS(		\
 	gethostbyname_r	\
 )
 
-OL_FUNC_CTIME_R_NARGS
+if test "$ac_cv_func_ctime_r" = yes ; then
+	OL_FUNC_CTIME_R_NARGS
+else
+	ol_cv_func_ctime_r=0
+fi
 
-if test $ac_cv_func_strtok_r = yes \
-	-a $ac_cv_func_ctime_r = yes \
-	-a $ol_cv_func_ctime_r_nargs -ge 2 -a $ol_cv_func_ctime_r_nargs -le 3 \
-	-a $ac_cv_func_gethostbyaddr_r = yes \
-	-a $ac_cv_func_gethostbyname_r = yes \
+if test "$ac_cv_func_strtok_r" = yes \
+	-a "$ac_cv_func_ctime_r" = yes \
+	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
+	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+	-a "$ac_cv_func_gethostbyname_r" = yes \
 	; then
 
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT, 1)
@@ -1336,7 +1341,7 @@ if test $ol_link_threads != no ; then
 fi
 
 dnl We actually may need to replace more than this.
-AC_REPLACE_FUNCS(getopt strdup tempnam)
+AC_REPLACE_FUNCS(getopt tempnam)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
