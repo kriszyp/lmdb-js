@@ -1,30 +1,40 @@
 
+
 Network Working Group                                 M. Smith, Editor
 Request for Comments: DRAFT                        Pearl Crescent, LLC
 Obsoletes: RFC 2254                                           T. Howes
-Expires: 13 August 2004                                  Opsware, Inc.
-                                                      13 February 2004
+Expires: 24 April 2005                                   Opsware, Inc.
+                                                       24 October 2004
 
 
              LDAP: String Representation of Search Filters
-                   <draft-ietf-ldapbis-filter-06.txt>
+                   <draft-ietf-ldapbis-filter-08.txt>
 
 
 
-1.  Status of this Memo
+Status of this Memo
 
-   This document is an Internet-Draft and is subject to all provisions
-   of Section 10 of RFC2026.
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she become
+   aware will be disclosed, in accordance with RFC 3668.
+
+   This document is intended to be published as a Standards Track RFC,
+   replacing RFC 2254.  Distribution of this memo is unlimited.
+   Technical discussion of this document will take place on the IETF
+   LDAP (v3) Revision (ldapbis) Working Group mailing list
+   <ietf-ldapbis@openldap.org>.  Please send editorial comments directly
+   to the editor <mcs@pearlcrescent.com>.
 
    Internet-Drafts are working documents of the Internet Engineering
    Task Force (IETF), its areas, and its working groups.  Note that
-   other groups may also distribute working documents as Internet-
-   Drafts.
+   other groups may also distribute working documents as
+   Internet-Drafts.
 
    Internet-Drafts are draft documents valid for a maximum of six months
    and may be updated, replaced, or obsoleted by other documents at any
-   time.  It is inappropriate to use Internet- Drafts as reference
-   material or to cite them other than as "work in progress."
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than a "work in progress."
 
    The list of current Internet-Drafts can be accessed at
    http://www.ietf.org/1id-abstracts.html
@@ -32,19 +42,10 @@ Expires: 13 August 2004                                  Opsware, Inc.
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html
 
-   Discussion of this document should take place on the LDAP (v3)
-   Revision (ldapbis) Working Group mailing list <ietf-
-   ldapbis@openldap.org>.
-
    Copyright (C) The Internet Society (2004).  All Rights Reserved.
+   Please see the Full Copyright section near the end of this document
+   for more information.
 
-2.  Abstract
-
-   LDAP search filters are transmitted in the LDAP protocol using a
-   binary representation that is appropriate for use on the network.
-   This document defines a human-readable string representation of LDAP
-   search filters that is appropriate for use in LDAP URLs and in other
-   applications.
 
 
 
@@ -52,33 +53,41 @@ Expires: 13 August 2004                                  Opsware, Inc.
 
 Smith & Howes      Intended Category: Standards Track           [Page 1]
 
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
 
 
-3.  Table of Contents
+Abstract
 
-1.     Status of this Memo............................................1
-2.     Abstract.......................................................1
-3.     Table of Contents..............................................2
-4.     Introduction...................................................2
-5.     LDAP Search Filter Definition..................................2
-6.     String Search Filter Definition................................4
-7.     Examples.......................................................5
-8.     Security Considerations........................................7
-9.     Normative References...........................................7
-10.    Informative References.........................................8
-11.    Intellectual Property Rights...................................8
-12.    Acknowledgments................................................8
-13.    Authors' Addresses.............................................9
-14.    Full Copyright Statement.......................................9
-15.    Appendix A: Changes Since RFC 2254.............................10
-15.1.     Technical Changes...........................................10
-15.2.     Editorial Changes...........................................10
-16.    Appendix B: Changes Since Previous Document Revision...........11
-16.1.     Technical Changes...........................................12
-16.2.     Editorial Changes...........................................12
+   LDAP search filters are transmitted in the LDAP protocol using a
+   binary representation that is appropriate for use on the network.
+   This document defines a human-readable string representation of LDAP
+   search filters that is appropriate for use in LDAP URLs and in other
+   applications.
 
-4.  Introduction
+Table of Contents
+
+       Status of this Memo............................................1
+       Abstract.......................................................2
+       Table of Contents..............................................2
+1.     Introduction...................................................2
+2.     LDAP Search Filter Definition..................................3
+3.     String Search Filter Definition................................4
+4.     Examples.......................................................6
+5.     Security Considerations........................................7
+6.     IANA Considerations............................................7
+7.     Normative References...........................................7
+8.     Informative References.........................................8
+9.     Acknowledgments................................................8
+10.    Authors' Addresses.............................................8
+11.    Appendix A: Changes Since RFC 2254.............................9
+11.1.     Technical Changes...........................................9
+11.2.     Editorial Changes...........................................10
+12.    Appendix B: Changes Since Previous Document Revision...........11
+12.1.     Editorial Changes...........................................11
+13.    Intellectual Property Rights...................................11
+14.    Full Copyright.................................................12
+
+1.  Introduction
 
    The Lightweight Directory Access Protocol (LDAP) [Protocol] defines a
    network representation of a search filter transmitted to an LDAP
@@ -89,61 +98,62 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    possible LDAP version 3 search filters, including extended match
    filters.
 
-    This document is an integral part of the LDAP Technical
-   Specification [Roadmap].
+   This document is an integral part of the LDAP Technical Specification
+   [Roadmap].
 
    This document replaces RFC 2254.  Changes to RFC 2254 are summarized
    in Appendix A.
 
-   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
-   document are to be interpreted as described in BCP 14 [RFC2119].
-
-5.  LDAP Search Filter Definition
-
-   An LDAPv3 search filter is defined in Section 4.5.1 of [Protocol] as
-   follows:
 
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 2]
 
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
 
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in BCP 14 [RFC2119].
+
+2.  LDAP Search Filter Definition
+
+   An LDAPv3 search filter is defined in Section 4.5.1 of [Protocol] as
+   follows:
 
         Filter ::= CHOICE {
-                and                [0] SET SIZE (1..MAX) OF filter Filter,
-                or                 [1] SET SIZE (1..MAX) OF filter Filter,
-                not                [2] Filter,
-                equalityMatch      [3] AttributeValueAssertion,
-                substrings         [4] SubstringFilter,
-                greaterOrEqual     [5] AttributeValueAssertion,
-                lessOrEqual        [6] AttributeValueAssertion,
-                present            [7] AttributeDescription,
-                approxMatch        [8] AttributeValueAssertion,
-                extensibleMatch    [9] MatchingRuleAssertion }
+            and                [0] SET SIZE (1..MAX) OF filter Filter,
+            or                 [1] SET SIZE (1..MAX) OF filter Filter,
+            not                [2] Filter,
+            equalityMatch      [3] AttributeValueAssertion,
+            substrings         [4] SubstringFilter,
+            greaterOrEqual     [5] AttributeValueAssertion,
+            lessOrEqual        [6] AttributeValueAssertion,
+            present            [7] AttributeDescription,
+            approxMatch        [8] AttributeValueAssertion,
+            extensibleMatch    [9] MatchingRuleAssertion }
 
         SubstringFilter ::= SEQUENCE {
-                type    AttributeDescription,
-                -- initial and final can occur at most once
-                substrings    SEQUENCE SIZE (1..MAX) OF substring CHOICE {
-                        initial        [0] AssertionValue,
-                        any            [1] AssertionValue,
-                        final          [2] AssertionValue } }
+            type    AttributeDescription,
+            -- initial and final can occur at most once
+            substrings    SEQUENCE SIZE (1..MAX) OF substring CHOICE {
+             initial        [0] AssertionValue,
+             any            [1] AssertionValue,
+             final          [2] AssertionValue } }
 
         AttributeValueAssertion ::= SEQUENCE {
-                attributeDesc   AttributeDescription,
-                assertionValue  AssertionValue }
+            attributeDesc   AttributeDescription,
+            assertionValue  AssertionValue }
 
         MatchingRuleAssertion ::= SEQUENCE {
-                matchingRule    [1] MatchingRuleId OPTIONAL,
-                type            [2] AttributeDescription OPTIONAL,
-                matchValue      [3] AssertionValue,
-                dnAttributes    [4] BOOLEAN DEFAULT FALSE }
+            matchingRule    [1] MatchingRuleId OPTIONAL,
+            type            [2] AttributeDescription OPTIONAL,
+            matchValue      [3] AssertionValue,
+            dnAttributes    [4] BOOLEAN DEFAULT FALSE }
 
         AttributeDescription ::= LDAPString
-                                 -- Constrained to <attributedescription>
-                                 -- [Models]
+                        -- Constrained to <attributedescription>
+                        -- [Models]
 
         AttributeValue ::= OCTET STRING
 
@@ -151,32 +161,31 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
 
         AssertionValue ::= OCTET STRING
 
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 3]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
         LDAPString ::= OCTET STRING -- UTF-8 encoded,
-                                    -- [ISO10646] characters
+                                    -- [Unicode] characters
 
    The AttributeDescription is a string representation of the attribute
    description and is defined in [Protocol].  The AttributeValue and
    AssertionValue OCTET STRING have the form defined in [Syntaxes].  The
    Filter is encoded for transmission over a network using the Basic
-   Encoding Rules defined in [X.690], with simplifications described in
+   Encoding Rules (BER) defined in [X.690], with simplifications
+   described in [Protocol].
 
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 3]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
-   [Protocol].
-
-6.  String Search Filter Definition
+3.  String Search Filter Definition
 
    The string representation of an LDAP search filter is a string of
-   UTF-8[RFC3629] encoded ISO 10646-1 characters that is defined by the
-   following grammar, following the ABNF notation defined in [RFC2234].
-   The productions used that are not defined here are defined in section
-   1.4 (Common ABNF Productions) of [Models] unless otherwise noted.
-   The filter format uses a prefix notation.
+   UTF-8 [RFC3629] encoded Unicode characters [Unicode] that is defined
+   by the following grammar, following the ABNF notation defined in
+   [RFC2234].  The productions used that are not defined here are
+   defined in section 1.4 (Common ABNF Productions) of [Models] unless
+   otherwise noted.  The filter format uses a prefix notation.
 
       filter         = LPAREN filtercomp RPAREN
       filtercomp     = and / or / not / item
@@ -186,13 +195,15 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
       filterlist     = 1*filter
       item           = simple / present / substring / extensible
       simple         = attr filtertype assertionvalue
-      filtertype     = equal / approx / greater / less
+      filtertype     = equal / approx / greaterorequal / lessorequal
       equal          = EQUALS
       approx         = TILDE EQUALS
-      greater        = RANGLE EQUALS
-      less           = LANGLE EQUALS
-      extensible     = attr [dnattrs] [matchingrule] COLON EQUALS assertionvalue
-                       / [dnattrs] matchingrule COLON EQUALS assertionvalue
+      greaterorequal = RANGLE EQUALS
+      lessorequal    = LANGLE EQUALS
+      extensible     = attr [dnattrs]
+                             [matchingrule] COLON EQUALS assertionvalue
+                       / [dnattrs]
+                              matchingrule COLON EQUALS assertionvalue
                        / COLON EQUALS assertionvalue
       present        = attr EQUALS ASTERISK
       substring      = attr EQUALS [initial] any [final]
@@ -205,8 +216,16 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
       dnattrs        = COLON "dn"
       matchingrule   = COLON oid
       assertionvalue = valueencoding
-                         ; The <valueencoding> rule is used to encode an
-                         ; <AssertionValue> from Section 4.1.6 of [Protocol].
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 4]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
+      ; The <valueencoding> rule is used to encode an <AssertionValue>
+      ; from Section 4.1.6 of [Protocol].
       valueencoding  = 0*(normal / escaped)
       normal         = UTF1SUBSET / UTFMB
       escaped        = ESC HEX HEX
@@ -215,14 +234,6 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
                           ; RPAREN, ASTERISK, and ESC.
       EXCLAMATION    = %x21 ; exclamation mark ("!")
       AMPERSAND      = %x26 ; ampersand (or AND symbol) ("&")
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 4]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
       ASTERISK       = %x2A ; asterisk ("*")
       COLON          = %x3A ; colon (":")
       VERTBAR        = %x7C ; vertical bar (or pipe) ("|")
@@ -261,9 +272,17 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    are not valid UTF-8 strings. This is necessary because RFC 2254 did
    not clearly define the term "string representation" (and in
    particular did not mention that the string representation of an LDAP
-   search filter is a string of UTF-8 encoded ISO 10646-1 characters).
 
-7.  Examples
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 5]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
+   search filter is a string of UTF-8 encoded Unicode characters).
+
+4.  Examples
 
    This section gives a few examples of search filters written using
    this notation.
@@ -271,14 +290,6 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
         (cn=Babs Jensen)
         (!(cn=Tim Howes))
         (&(objectClass=Person)(|(sn=Jensen)(cn=Babs J*)))
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 5]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
         (o=univ*of*mich*)
         (seeAlso=)
 
@@ -317,6 +328,14 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    The following examples illustrate the use of the escaping mechanism.
 
         (o=Parens R Us \28for all your parenthetical needs\29)
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 6]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
         (cn=*\2A*)
         (filename=C:\5cMyFile)
         (bin=\00\00\00\04)
@@ -327,14 +346,6 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    represent parenthesis characters. The second shows how to represent a
    "*" in an assertion value, preventing it from being interpreted as a
    substring indicator. The third illustrates the escaping of the
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 6]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
    backslash character.
 
    The fourth example shows a filter searching for the four-byte value
@@ -347,7 +358,7 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    The sixth and final example demonstrates assertion of a BER encoded
    value.
 
-8.  Security Considerations
+5.  Security Considerations
 
    This memo describes a string representation of LDAP search filters.
    While the representation itself has no known security implications,
@@ -358,20 +369,28 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    Please refer to the Security Considerations sections of [Protocol]
    and [AuthMeth] for more information.
 
-9.  Normative References
+6.  IANA Considerations
+
+   This document has no actions for IANA.
+
+7.  Normative References
 
 [AuthMeth]  Harrison, R. (editor), "LDAP: Authentication Methods and
-            Connection Level Security Mechanisms", draft-ietf-ldapbis-
-            authmeth-xx.txt, a work in progress.
-
-[ISO10646]  Universal Multiple-Octet Coded Character Set (UCS) -
-            Architecture and Basic Multilingual Plane, ISO/IEC 10646-1,
-            1993.
+            Connection Level Security Mechanisms",
+            draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.
 
 [Models]    Zeilenga, K. (editor), "LDAP: Directory Information Models",
             draft-ietf-ldapbis-models-xx.txt, a work in progress.
 
 [Protocol]  draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 7]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
 
 [RFC2119]   S. Bradner, "Key words for use in RFCs to Indicate
             Requirement Levels", BCP 14 (also RFC 2119), March 1997.
@@ -382,52 +401,28 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
 [RFC3629]   Yergeau, F., "UTF-8, a transformation format of ISO 10646",
             RFC 3629, November 2003.
 
-
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 7]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
 [Roadmap]   Zeilenga, K. (editor), "LDAP: Technical Specification Road
             Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in progress.
 
-[Syntaxes]  Dally, K. (editor), "LDAP: Syntaxes", draft-ietf-ldapbis-
-            syntaxes-xx.txt, a work in progress.
+[Syntaxes]  Dally, K. (editor), "LDAP: Syntaxes",
+            draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
+
+[Unicode]   The Unicode Consortium, "The Unicode Standard, Version
+            3.2.0" is defined by "The Unicode Standard, Version 3.0"
+            (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5), as
+            amended by the "Unicode Standard Annex #27: Unicode 3.1"
+            (http://www.unicode.org/reports/tr27/) and by the "Unicode
+            Standard Annex #28: Unicode 3.2."
 
 [X.690]     Specification of ASN.1 encoding rules: Basic, Canonical, and
             Distinguished Encoding Rules, ITU-T Recommendation X.690,
             1994.
 
-10.  Informative References
+8.  Informative References
 
    None.
 
-11.  Intellectual Property Rights
-
-   The IETF takes no position regarding the validity or scope of any
-   intellectual property or other rights that might be claimed to
-   pertain to the implementation or use of the technology described in
-   this document or the extent to which any license under such rights
-   might or might not be available; neither does it represent that it
-   has made any effort to identify any such rights.  Information on the
-   IETF's procedures with respect to rights in standards-track and
-   standards-related documentation can be found in BCP-11.  Copies of
-   claims of rights made available for publication and any assurances of
-   licenses to be made available, or the result of an attempt made to
-   obtain a general license or permission for the use of such
-   proprietary rights by implementors or users of this specification can
-   be obtained from the IETF Secretariat.
-
-   The IETF invites any interested party to bring to its attention any
-   copyrights, patents or patent applications, or other proprietary
-   rights which may cover technology that may be required to practice
-   this standard.  Please address the information to the IETF Executive
-   Director.
-
-12.  Acknowledgments
+9.  Acknowledgments
 
    This document replaces RFC 2254 by Tim Howes.  Changes included in
    this revised specification are based upon discussions among the
@@ -437,17 +432,7 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    acknowledged.
 
 
-
-
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 8]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
-13.  Authors' Addresses
+10.  Authors' Addresses
 
    Mark Smith, Editor
    Pearl Crescent, LLC
@@ -455,7 +440,16 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    Saline, MI 48176
    USA
    +1 734 944-2856
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 8]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
    mcs@pearlcrescent.com
+
 
    Tim Howes
    Opsware, Inc.
@@ -465,53 +459,17 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    +1 408 744-7509
    howes@opsware.com
 
-14.  Full Copyright Statement
+11.  Appendix A: Changes Since RFC 2254
 
-   Copyright (C) The Internet Society (2004). All Rights Reserved.
+11.1.  Technical Changes
 
-   This document and translations of it may be copied and furnished to
-   others, and derivative works that comment on or otherwise explain it
-   or assist in its implementation may be prepared, copied, published
-   and distributed, in whole or in part, without restriction of any
-   kind, provided that the above copyright notice and this paragraph are
-   included on all such copies and derivative works.  However, this
-   document itself may not be modified in any way, such as by removing
-   the copyright notice or references to the Internet Society or other
-   Internet organizations, except as needed for the purpose of
-   developing Internet standards in which case the procedures for
-   copyrights defined in the Internet Standards process must be
-   followed, or as required to translate it into languages other than
-   English.
-
-   The limited permissions granted above are perpetual and will not be
-   revoked by the Internet Society or its successors or assigns.
-
-   This document and the information contained herein is provided on an
-   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
-   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
-   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
-   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
-   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 9]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
-
-15.  Appendix A: Changes Since RFC 2254
-
-15.1.  Technical Changes
+   Replaced [ISO 10646] reference with [Unicode].
 
    The following technical changes were made to the contents of the
    "String Search Filter Definition" section:
 
    Added statement that the string representation is a string of UTF-8
-   encoded ISO 10646-1 characters.
+   encoded Unicode characters.
 
    Revised all of the ABNF to use common productions from [Models].
 
@@ -522,6 +480,9 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    Revised the "attr", "matchingrule", and "assertionvalue" ABNF to more
    precisely reference productions from the [Models] and [Protocol]
    documents.
+
+   "String Search Filter Definition" section: replaced "greater" and
+   "less" with "greaterorequal" and "lessorequal" to avoid confusion.
 
    Introduced the "valueencoding" and associated "normal" and "escaped"
    rules to reduce the dependence on descriptive text. The "normal"
@@ -534,7 +495,16 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    of a clear definition of "string representation."
 
 
-15.2.  Editorial Changes
+
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 9]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
+
+11.2.  Editorial Changes
 
    Changed document title to include "LDAP:" prefix.
 
@@ -544,20 +514,12 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    Header and "Authors' Addresses" sections: added Mark Smith as the
    document editor and updated affiliation and contact information.
 
-   "Table of Contents" and "Intellectual Property Rights" sections:
-   added.
+   "Table of Contents", "IANA Considerations", and "Intellectual
+   Property Rights" sections: added.
 
    Copyright: updated per latest IETF guidelines.
 
    "Abstract" section: separated from introductory material.
-
-
-
-
-Smith & Howes      Intended Category: Standards Track          [Page 10]
-
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
-
 
    "Introduction" section: new section; separated from the Abstract.
    Updated second paragraph to indicate that RFC 2254 is replaced by
@@ -585,9 +547,18 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
 
    "Normative References" section: renamed from "References" per new RFC
    guidelines. Changed from [1] style to [Protocol] style throughout the
-   document.  Added entries for [ISO10646], [RFC2119], [AuthMeth],
+   document.  Added entries for [Unicode], [RFC2119], [AuthMeth],
    [Models], and [Roadmap] and updated the UTF-8 reference.  Replaced
    RFC 822 reference with a reference to RFC 2234.
+
+
+
+
+
+Smith & Howes      Intended Category: Standards Track          [Page 10]
+
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
+
 
    "Informative References" section: added for clarity.
 
@@ -599,54 +570,84 @@ INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
    added.
 
 
-16.  Appendix B: Changes Since Previous Document Revision
+12.  Appendix B: Changes Since Previous Document Revision
 
    This appendix lists all changes relative to the previously published
-   revision, draft-ietf-ldapbis-filter-05.txt.  Note that when
+   revision, draft-ietf-ldapbis-filter-07.txt.  Note that when
    appropriate these changes are also included in Appendix A, but are
    also included here for the benefit of the people who have already
-   reviewed draft-ietf-ldapbis-filter-05.txt.  This section will be
+   reviewed draft-ietf-ldapbis-filter-07.txt.  This section will be
    removed before this document is published as an RFC.
+
+
+12.1.  Editorial Changes
+
+   "Status of this Memo" section: replaced RFC 3668 (IPR) boilerplate
+   paragraph with the version that says "each author" instead of "I."
+
+   "Status of this Memo" section: added 2 paragraphs that were
+   accidently removed from the -07 revision (one begins with "The list
+   of current Internet-Drafts..." and the other begins with "The list of
+   Internet-Draft Shadow Directories...."
+
+
+13.  Intellectual Property Rights
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
 
 
 
 Smith & Howes      Intended Category: Standards Track          [Page 11]
 
-INTERNET-DRAFT   LDAP: String Repres. of Search Filters 13 February 2004
+INTERNET-DRAFT   LDAP: String Repres. of Search Filters  24 October 2004
 
 
-16.1.  Technical Changes
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
 
-   None.
+14.  Full Copyright
 
+   Copyright (C) The Internet Society (2004).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
 
-16.2.  Editorial Changes
-
-   "LDAP Search Filter Definition" section: changed the LDAPv3 search
-   filter ABNF so it matches that used in the latest revision of
-   [Protocol] and removed the following redundant descriptive text:
-   "where the LDAPString above is limited to the UTF-8 encoding [UTF-8]
-   of the ISO 10646 character set [ISO10646]."
-
-   "String Search Filter Definition" section: Corrected section
-   reference to [Models] and replaced this sentence: "Implementations
-   SHOULD accept as input a string that includes invalid UTF-8 octet
-   sequences." with the following: "Implementations SHOULD accept as
-   input strings that are not valid UTF-8 strings."
-
-   "Examples" section: Corrected the description of this example:
-   (sn:dn:2.4.6.8.10:=Barney Rubble).
-
-   "Normative References" section: changed UTF-8 reference to point to
-   RFC 3629, replaced [ASN.1] with [X.690] for consistency, and indented
-   the reference descriptions to enhance readability.
-
-   Authors' Addresses section: New contact information for Mark Smith.
-
-   Updated the copyright year to 2004.
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-This Internet Draft expires on 13 August 2004.
+This Internet Draft expires on 24 April 2005.
+
+
+
+
+
+
+
+
+
+
 
 
 

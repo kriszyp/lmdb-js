@@ -1,0 +1,278 @@
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Experimental                  OpenLDAP Foundation
+Expires in six months                                17 October 2004
+
+
+                     LDAP Modify-Increment Extension
+                    <draft-zeilenga-ldap-incr-00.txt>
+
+
+Status of this Memo
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as an Experimental document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extensions mailing list
+  <ldapext@ietf.org>.  Please send editorial comments directly to the
+  author <Kurt@OpenLDAP.org>.
+
+  By submitting this Internet-Draft, I accept the provisions of Section
+  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
+  applicable patent or other IPR claims of which I am aware have been
+  disclosed, or will be disclosed, and any of which I become aware will
+  be disclosed, in accordance with RFC 3668.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups. Note that other
+  groups may also distribute working documents as Internet-Drafts.
+
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>.  The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
+
+  Please see the Full Copyright section near the end of this document
+  for more information.
+
+
+Abstract
+
+  This document describes an extension to the Lightweight Directory
+  Access Protocol (LDAP) Modify operation to support an increment
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 1]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+
+
+  capability.  This extension is useful in provisioning applications,
+  especially when combined with the assertion control and/or the
+  pre-read or post-read control extension.
+
+
+1.  Background and Intended Use
+
+  The Lightwieght Directory Access Protocol [Roadmap] does not currently
+  provide an operation to increment values of an attribute.  A client
+  must read the values of the attribute, then modify those values to
+  increment them by the desired amount.  As the values may be updated by
+  other clients between this add and modify, the client must be careful
+  to construct the modify request so that it fails in this case, and
+  upon failure, re-read the values and construct a new modify request.
+
+  This document extends the LDAP Modify Operation [Protocol] to support
+  an increment values capability.  This feature is intended to be used
+  with either the LDAP pre-read or post-read control extension
+  [READENTRY].  This feature may be used with the LDAP assertion control
+  [ASSERT] to provide test-and-increment functionality.
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
+
+
+2.  The Modify-Increment Extension
+
+  This document extends the LDAP Modify request to support a increment
+  values capability.  Implementations of this extension SHALL support an
+  additional ModifyRequest operation enumeration value increment (3) as
+  described herein.  Implementations not supporting this extension will
+  treat this value as they would an unlisted value, e.g., as a protocol
+  error.
+
+  The increment (3) operation value specifies that an increment values
+  modification is requested.   All existing values of the modification
+  attribute are to be incremented by the listed value.  The modification
+  attribute must be appropriate for request, e.g., must have INTEGER or
+  other incrementable values, and the modification must provide one and
+  only value.
+
+  Servers supporting this feature SHOULD publish the object identifier
+  (OID) OID-TBD as a value of the 'supportedFeatures' [RFC3674]
+  attribute in the root DSE.  Clients supporting this feature SHOULD NOT
+  use the feature unless they have knowledge the server supports it.
+
+
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 2]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+
+
+  3. LDIF Support
+
+  To represent Modify-Increment requests in LDAP Data Interchange Format
+  [RFC2849], the ABNF [RFC2234] production <mod-spec> is extended as
+  follows:
+
+      mod-spec /= "increment:" FILL AttributeDescription SEP
+           attrval-spec "-" SEP
+
+  For example,
+
+      # Increment uidNumber
+      dn: cn=max-assigned uidNumber,dc=example,dc=com
+      changetype: modify
+      increment: uidNumber
+      uidNumber: 1
+      -
+
+  This LDIF fragment represents a Modify request to increment the
+  value(s) of uidNumber by 1.
+
+
+4.  Security Considerations
+
+  General LDAP security considerations [Roadmap], as well as those
+  specific to the LDAP Modify [Protocol], apply to this Modify-Increment
+  extension.  Beyond these considerations, it is noted that introduction
+  of this extension should reduce application complexity (by provide one
+  operation what presently requires multiple operation) and, hence, may
+  aide in the production of correct and secure implementations.
+
+
+5.  IANA Considerations
+
+  Registration of the LDAP Protocol Mechanism [BCP64bis] defined in
+  document is requested.
+
+      Subject: Request for LDAP Protocol Mechanism Registration
+      Object Identifier: OID-TBD
+      Description: Modify-Increment
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@openldap.org>
+      Usage: Feature
+      Specification: RFC XXXX
+      Author/Change Controller: Kurt Zeilenga <kurt@openldap.org>
+      Comments: none
+
+
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+
+
+6.  Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+
+7. Normative References
+
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+  [RFC2234]     Crocker, D. and P. Overell, "Augmented BNF for Syntax
+                Specifications: ABNF", RFC 2234, November 1997.
+
+  [RFC2849]     Good, G., "The LDAP Data Interchange Format (LDIF) -
+                Technical Specification", RFC 2849, June 2000.
+
+  [Features]    Zeilenga, K., "Feature Discovery in LDAP", RFC 3674,
+                December 2003.
+
+  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
+                progress.
+
+  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
+                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+
+
+8. Informative References
+
+  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
+                draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
+
+  [READENTRY]   Zeilenga, K., "LDAP Read Entry Controls",
+                draft-zeilenga-ldap-readentry-xx.txt, a work in
+                progress.
+
+  [ASSERT]      Zeilenga, K., "LDAP Assertion Control",
+                draft-zeilenga-ldap-assert-xx.txt, a work in progress.
+
+  [ASSIGN]      OpenLDAP Foundation, "OpenLDAP OID Delegations",
+                http://www.openldap.org/foundation/oid-delegate.txt.
+
+  [PRIVATE]     IANA, "Private Enterprise Numbers",
+                http://www.iana.org/assignments/enterprise-numbers.
+
+
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 4]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+
+
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights that may cover technology that may be required to implement
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2004).  This document is subject
+  to the rights, licenses and restrictions contained in BCP 78, and
+  except as set forth therein, the authors retain all their rights.
+
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 5]
+
+
