@@ -94,15 +94,9 @@ struct ldapauth {
 	struct berval	la_sasl_mech;
 	struct berval	la_sasl_realm;
 	
-/* FIXME: required until I find a nice way to determine
- * whether a SASL mechanism is able to authz natively */
-#define LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
-
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 #define LDAP_BACK_AUTH_NONE		0x00
 #define	LDAP_BACK_AUTH_NATIVE_AUTHZ	0x01
 	int		la_flags;
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 };
 
 struct ldapinfo {

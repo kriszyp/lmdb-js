@@ -389,7 +389,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * otherwise we cannot do symmetric pools of servers;
 		 * we have to live with the fact that a user can
 		 * authorize itself as any ID that is allowed
-		 * by the saslAuthzTo directive of the "proxyauthzdn".
+		 * by the authzTo directive of the "proxyauthzdn".
 		 */
 		/*
 		 * NOTE: current Proxy Authorization specification
@@ -403,14 +403,15 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * control to every operation with the dn bound 
 		 * to the connection as control value.
 		 */
-		if ( op->o_conn != NULL
-				&& ( BER_BVISNULL( &lc->bound_dn ) || BER_BVISEMPTY( &lc->bound_dn ) ) ) {
+		if ( op->o_conn != NULL && ( ( BER_BVISNULL( &lc->bound_dn ) || BER_BVISEMPTY( &lc->bound_dn ) ) ) )
+		{
 			struct berval	binddn = slap_empty_bv;
 			struct berval	bindcred = slap_empty_bv;
 			int		dobind = 0;
 
-			/* bind as proxyauthzdn only if no idassert mode is requested,
-			 * or if the client's identity is authorized */
+			/* bind as proxyauthzdn only if no idassert mode
+			 * is requested, or if the client's identity
+			 * is authorized */
 			switch ( li->idassert_mode ) {
 			case LDAP_BACK_IDASSERT_LEGACY:
 				if ( !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
@@ -448,10 +449,8 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 				struct berval	authzID = BER_BVNULL;
 				int		freeauthz = 0;
 
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 				/* if SASL supports native authz, prepare for it */
 				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 					switch ( li->idassert_mode ) {
 					case LDAP_BACK_IDASSERT_OTHERID:
 					case LDAP_BACK_IDASSERT_OTHERDN:
@@ -463,6 +462,12 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 						break;
 
 					case LDAP_BACK_IDASSERT_SELF:
+						if ( BER_BVISNULL( &op->o_conn->c_dn ) ) {
+							/* connection is not authc'd, so don't idassert */
+							/* FIXME: cyrus-sasl doesn't honor empty authzID!
+							 * i.e. NULL is equivalent to ""! */
+							break;
+						}
 						authzID.bv_len = STRLENOF( "dn:" ) + op->o_conn->c_dn.bv_len;
 						authzID.bv_val = slap_sl_malloc( authzID.bv_len + 1, op->o_tmpmemctx );
 						AC_MEMCPY( authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
@@ -474,9 +479,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 					default:
 						break;
 					}
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 				}
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 #if 0	/* will deal with this later... */
 				if ( sasl_secprops != NULL ) {
@@ -760,8 +763,8 @@ ldap_back_proxy_authz_ctrl(
 			 * be performed with "proxyauthzdn" privileges.
 			 *
 			 * This might actually be too strict, since
-			 * the "proxyauthzdn" saslAuthzTo, and each entry's
-			 * saslAuthzFrom attributes may be crafted
+			 * the "proxyauthzdn" authzTo, and each entry's
+			 * authzFrom attributes may be crafted
 			 * to avoid unwanted proxyAuthz to take place.
 			 */
 #if 0
@@ -784,14 +787,12 @@ ldap_back_proxy_authz_ctrl(
 		}
 
 	} else if ( li->idassert_authmethod == LDAP_AUTH_SASL ) {
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
-		if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
+		if ( ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ )
+				&& !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn ) )
+		{
 			/* already asserted in SASL via native authz */
 			goto done;
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 		}
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 	} else if ( li->idassert_authz ) {
 		int		rc;
@@ -807,12 +808,37 @@ ldap_back_proxy_authz_ctrl(
 		}
 	}
 
+	if ( op->o_proxy_authz ) {
+		/*
+		 * FIXME: we can:
+		 * 1) ignore the already set proxyAuthz control
+		 * 2) leave it in place, and don't set ours
+		 * 3) add both
+		 * 4) reject the operation
+		 *
+		 * option (4) is very drastic
+		 * option (3) will make the remote server reject
+		 * the operation, thus being equivalent to (4)
+		 * option (2) will likely break the idassert
+		 * assumptions, so we cannot accept it;
+		 * option (1) means that we are contradicting
+		 * the client's reques.
+		 *
+		 * I think (4) is the only correct choice.
+		 */
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "proxyAuthz not allowed within namingContext";
+	}
+
 	switch ( li->idassert_mode ) {
 	case LDAP_BACK_IDASSERT_LEGACY:
 	case LDAP_BACK_IDASSERT_SELF:
 		/* original behavior:
 		 * assert the client's identity */
-		assertedID = op->o_conn->c_dn;
+		/* FIXME: we may get here if binding anonymously,
+		 * because cyrus sasl doesn't honor empty (i.e. "")
+		 * authzID */
+		assertedID = BER_BVISNULL( &op->o_conn->c_dn ) ? slap_empty_bv : op->o_conn->c_dn;
 		break;
 
 	case LDAP_BACK_IDASSERT_ANONYMOUS:

@@ -118,9 +118,8 @@ ldap_back_db_init(
 
 	li->idassert_ppolicy = 0;
 
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+	/* by default, use proxyAuthz control on each operation */
 	li->idassert_flags = LDAP_BACK_AUTH_NONE;
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef ENABLE_REWRITE

@@ -735,9 +735,13 @@ parse_idassert(
 
 	/* name to use for proxyAuthz propagation */
 	} else if ( strcasecmp( argv[0], "idassert-authcdn" ) == 0
-			|| strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
+			|| strcasecmp( argv[0], "proxyauthzdn" ) == 0 )
+	{
 		struct berval	dn;
 		int		rc;
+
+		/* FIXME: "proxyauthzdn" is no longer documented, and
+		 * temporarily supported for backwards compatibility */
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
@@ -770,7 +774,11 @@ parse_idassert(
 
 	/* password to use for proxyAuthz propagation */
 	} else if ( strcasecmp( argv[0], "idassert-passwd" ) == 0
-			|| strcasecmp( argv[0], "proxyauthzpw" ) == 0 ) {
+			|| strcasecmp( argv[0], "proxyauthzpw" ) == 0 )
+	{
+		/* FIXME: "proxyauthzpw" is no longer documented, and
+		 * temporarily supported for backwards compatibility */
+
 		if ( argc != 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing password in \"%s <password>\" line\n",
@@ -788,7 +796,7 @@ parse_idassert(
 		ber_str2bv( argv[1], 0, 1, &li->idassert_passwd );
 
 	/* rules to accept identity assertion... */
-	} else if ( strcasecmp( argv[0], "idassert-authz" ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "idassert-authzFrom" ) == 0 ) {
 		struct berval	rule;
 
 		ber_str2bv( argv[1], 0, 1, &rule );
@@ -837,13 +845,6 @@ parse_idassert(
 						ch_free( li->idassert_sasl_mech.bv_val );
 					}
 					ber_str2bv( val, 0, 1, &li->idassert_sasl_mech );
-
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
-					/* mechs that are known to support native authz... */
-					if ( strcasecmp( li->idassert_sasl_mech.bv_val, "DIGEST-MD5" ) == 0 ) {
-						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
-					}
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
 					char	*val = argv[arg] + STRLENOF( "realm=" );
@@ -911,20 +912,21 @@ parse_idassert(
 					}
 					ber_str2bv( val, 0, 1, &li->idassert_passwd );
 
-#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
 				} else if ( strncasecmp( argv[arg], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
 					char	*val = argv[arg] + STRLENOF( "authz=" );
 
-					if ( strcasecmp( val, "native" ) == 0 ) {
+					if ( strcasecmp( val, "proxyauthz" ) == 0 ) {
+						li->idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+					} else if ( strcasecmp( val, "native" ) == 0 ) {
 						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
 
 					} else {
 						fprintf( stderr, "%s: line %s: "
-							"unknown SASL flag \"%s\"\n",
+							"unknown authz mode \"%s\"\n",
 							fname, lineno, val );
 						return 1;
 					}
-#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
 
 				} else {
 					fprintf( stderr, "%s: line %d: "
