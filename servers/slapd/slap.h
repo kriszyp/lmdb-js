@@ -903,6 +903,9 @@ struct slap_internal_schema {
 typedef struct slap_attr_assertion {
 	AttributeDescription	*aa_desc;
 	struct berval aa_value;
+#ifdef LDAP_COMP_MATCH
+	struct slap_component_filter *aa_cf;/* for attribute aliasing */
+#endif
 } AttributeAssertion;
 
 typedef struct slap_ss_assertion {

@@ -21,6 +21,9 @@
 
 #include "back-bdb.h"
 #include "idl.h"
+#ifdef LDAP_COMP_MATCH
+#include <component.h>
+#endif
 
 static int presence_candidates(
 	Operation *op,
@@ -74,6 +77,15 @@ comp_candidates (
 	ID *ids,
 	ID *tmp,
 	ID *stack);
+
+static int
+ava_comp_candidates (
+		Operation *op,
+		AttributeAssertion *ava,
+		AttributeAliasing *aa,
+		ID *ids,
+		ID *tmp,
+		ID *stack);
 #endif
 
 int
@@ -85,6 +97,9 @@ bdb_filter_candidates(
 	ID *stack )
 {
 	int rc = 0;
+#ifdef LDAP_COMP_MATCH
+	AttributeAliasing *aa;
+#endif
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_filter_candidates\n", 0, 0, 0 );
 
 	switch ( f->f_choice ) {
@@ -114,7 +129,15 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
-		rc = equality_candidates( op, f->f_ava, ids, tmp );
+#ifdef LDAP_COMP_MATCH
+		if ( is_aliased_attribute && ( aa = is_aliased_attribute ( f->f_ava->aa_desc ) ) ) {
+			rc = ava_comp_candidates ( op, f->f_ava, aa, ids, tmp, stack );
+		}
+		else
+#endif
+		{
+			rc = equality_candidates( op, f->f_ava, ids, tmp );
+		}
 		break;
 
 	case LDAP_FILTER_APPROX:
@@ -359,6 +382,29 @@ comp_equality_candidates (
                 (long) BDB_IDL_FIRST(ids),
                 (long) BDB_IDL_LAST(ids) );
         return( rc );
+}
+
+static int
+ava_comp_candidates (
+	Operation *op,
+	AttributeAssertion *ava,
+	AttributeAliasing *aa,
+	ID *ids,
+	ID *tmp,
+	ID *stack )
+{
+	MatchingRuleAssertion mra;
+	
+	mra.ma_rule = ava->aa_desc->ad_type->sat_equality;
+	if ( !mra.ma_rule ) {
+		struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+		BDB_IDL_ALL( bdb, ids );
+		return 0;
+	}
+	mra.ma_desc = aa->aa_aliased_ad;
+	mra.ma_rule = ava->aa_desc->ad_type->sat_equality;
+	
+	return comp_candidates ( op, &mra, ava->aa_cf, ids, tmp, stack );
 }
 
 static int

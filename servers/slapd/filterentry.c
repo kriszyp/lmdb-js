@@ -31,8 +31,11 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
-
 #include "slap.h"
+
+#ifdef LDAP_COMP_MATCH
+#include "component.h"
+#endif
 
 static int	test_filter_and( Operation *op, Entry *e, Filter *flist );
 static int	test_filter_or( Operation *op, Entry *e, Filter *flist );
@@ -500,6 +503,10 @@ test_ava_filter(
 {
 	int rc;
 	Attribute	*a;
+#ifdef LDAP_COMP_MATCH
+	int i, num_attr_vals;
+	AttributeAliasing *a_alias = NULL;
+#endif
 
 	if ( !access_allowed( op, e,
 		ava->aa_desc, &ava->aa_value, ACL_SEARCH, NULL ) )
@@ -565,6 +572,17 @@ test_ava_filter(
 
 	rc = LDAP_COMPARE_FALSE;
 
+#ifdef LDAP_COMP_MATCH
+	if ( is_aliased_attribute && ava->aa_cf )
+	{
+		a_alias = is_aliased_attribute ( ava->aa_desc );
+		if ( a_alias )
+			ava->aa_desc = a_alias->aa_aliased_ad;
+		else
+			ava->aa_cf = NULL;
+	}
+#endif
+
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ) )
@@ -604,12 +622,76 @@ test_ava_filter(
 			continue;
 		}
 
+#ifdef LDAP_COMP_MATCH
+		if ( nibble_mem_allocator && ava->aa_cf && !a->a_comp_data ) {
+			/* Component Matching */
+			for ( num_attr_vals = 0; a->a_vals[num_attr_vals].bv_val != NULL; num_attr_vals++ );
+			if ( num_attr_vals <= 0 )/* no attribute value */
+				return LDAP_INAPPROPRIATE_MATCHING;
+			num_attr_vals++;/* for NULL termination */
+
+			/* following malloced will be freed by comp_tree_free () */
+			a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr_vals );
+
+			if ( !a->a_comp_data ) {
+				return LDAP_NO_MEMORY;
+			}
+
+			a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)((char*)a->a_comp_data + sizeof(ComponentData));
+			i = num_attr_vals;
+			for ( ; i ; i-- ) {
+				a->a_comp_data->cd_tree[ i-1 ] = (ComponentSyntaxInfo*)NULL;
+			}
+
+			a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*10*(num_attr_vals-1), 1024 );
+			if ( a->a_comp_data->cd_mem_op == NULL ) {
+				fprintf(stderr,"nibble mem allocation error\n");
+				free ( a->a_comp_data );
+				a->a_comp_data = NULL;
+				return LDAP_OPERATIONS_ERROR;
+			}
+		}
+
+		i = 0;
+#endif
+
 		for ( bv = a->a_nvals; !BER_BVISNULL( bv ); bv++ ) {
 			int ret, match;
 			const char *text;
 
-			ret = value_match( &match, a->a_desc, mr, 0,
-				bv, &ava->aa_value, &text );
+#ifdef LDAP_COMP_MATCH
+			if( attr_converter && ava->aa_cf && a->a_comp_data ) {
+				/* Check if decoded component trees are already linked */
+				struct berval cf_bv = { 20, "componentFilterMatch" };
+				MatchingRule* cf_mr = mr_bvfind( &cf_bv );
+				MatchingRuleAssertion mra;
+				mra.ma_cf = ava->aa_cf;
+
+				if ( a->a_comp_data->cd_tree[i] == NULL )
+					a->a_comp_data->cd_tree[i] = attr_converter (a, a->a_desc->ad_type->sat_syntax, (a->a_vals + i));
+				/* decoding error */
+				if ( !a->a_comp_data->cd_tree[i] ) {
+					free_ComponentData ( a );
+					return LDAP_OPERATIONS_ERROR;
+				}
+
+				ret = value_match( &match, a->a_desc, cf_mr, 0,
+					(struct berval*)a->a_comp_data->cd_tree[i++], (void*)&mra, &text );
+				if ( ret == LDAP_INAPPROPRIATE_MATCHING ) {
+					/* cached component tree is broken, just remove it */
+					free_ComponentData ( a );
+					return ret;
+				}
+				if ( a_alias )
+					ava->aa_desc = a_alias->aa_aliasing_ad;
+			}
+			else 
+#endif
+			{
+
+				ret = value_match( &match, a->a_desc, mr, 0,
+					bv, &ava->aa_value, &text );
+			}
 
 			if( ret != LDAP_SUCCESS ) {
 				rc = ret;
@@ -632,6 +714,11 @@ test_ava_filter(
 			}
 		}
 	}
+
+#ifdef LDAP_COMP_MATCH
+	if ( a_alias )
+		ava->aa_desc = a_alias->aa_aliasing_ad;
+#endif
 
 	return rc;
 }
