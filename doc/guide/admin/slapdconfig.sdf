@@ -810,16 +810,22 @@ database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
-E: 1.	# example config file - global configuration section
-E: 2.	include /usr/local/etc/schema/core.schema
-E: 3.	referral ldap://root.openldap.org
-
+E:  1.	# example config file - global configuration section
+E:  2.	include /usr/local/etc/schema/core.schema
+E:  3.	referral ldap://root.openldap.org
+E:  4.	access to * by * read
+ 
 Line 1 is a comment. Lines 2 include another config file
 which containing {{core}} schema definitions.
 The {{EX:referral}} directive on line 3
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
 standard port (389) at the host {{EX:root.openldap.org}}.
+
+Line 4 is a global access control.  It is applied after any
+applicable database access control.  Note that requests to
+read objects which are not held by any backend (such as
+the Root DSE) are only controlled by global directives.
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
@@ -829,59 +835,59 @@ truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E:  4.	# ldbm definition for the example.com
-E:  5.	database ldbm
-E:  6.	suffix "dc=example, dc=com"
-E:  7.	directory /usr/local/var/openldap
-E:  8.	rootdn "cn=Manager, dc=example, dc=com"
-E:  9.	rootpw secret
-E: 10.	# replication directives
-E: 11.	replogfile /usr/local/var/openldap/slapd.replog
-E: 12.	replica host=slave1.example.com:389
-E: 13.		binddn="cn=Replicator, dc=example, dc=com"
-E: 14.		bindmethod=simple credentials=secret
-E: 15.	replica host=slave2.example.com
-E: 16.		binddn="cn=Replicator, dc=example, dc=com"
-E: 17.		bindmethod=simple credentials=secret
-E: 18.	# indexed attribute definitions
-E: 19.	index uid pres,eq
-E: 20.	index cn,sn,uid pres,eq,approx,sub
-E: 21.	index objectClass eq
-E: 22.	# ldbm access control definitions
-E: 23.	access to attr=userPassword
-E: 24.		by self write
-E: 25.		by anonymous auth
-E: 26.		by dn="cn=Admin,dc=example,dc=com" write
-E: 27.		by * none
-E: 28.	access to *
-E: 29.		by self write
-E: 30.		by anonymous auth
-E: 31.		by dn="cn=Admin,dc=example,dc=com" write
-E: 32.		by * read
+E:  5.	# ldbm definition for the example.com
+E:  6.	database ldbm
+E:  7.	suffix "dc=example, dc=com"
+E:  8.	directory /usr/local/var/openldap
+E:  9.	rootdn "cn=Manager, dc=example, dc=com"
+E: 10.	rootpw secret
+E: 11.	# replication directives
+E: 12.	replogfile /usr/local/var/openldap/slapd.replog
+E: 13.	replica host=slave1.example.com:389
+E: 14.		binddn="cn=Replicator, dc=example, dc=com"
+E: 15.		bindmethod=simple credentials=secret
+E: 16.	replica host=slave2.example.com
+E: 17.		binddn="cn=Replicator, dc=example, dc=com"
+E: 18.		bindmethod=simple credentials=secret
+E: 19.	# indexed attribute definitions
+E: 20.	index uid pres,eq
+E: 21.	index cn,sn,uid pres,eq,approx,sub
+E: 22.	index objectClass eq
+E: 23.	# ldbm access control definitions
+E: 24.	access to attr=userPassword
+E: 25.		by self write
+E: 26.		by anonymous auth
+E: 27.		by dn="cn=Admin,dc=example,dc=com" write
+E: 28.		by * none
+E: 29.	access to *
+E: 30.		by self write
+E: 31.		by anonymous auth
+E: 32.		by dn="cn=Admin,dc=example,dc=com" write
+E: 33.		by * read
 
-Line 4 is a comment. The start of the database definition is
-marked by the database keyword on line 5. Line 6 specifies
-the DN suffix for queries to pass to this database. Line 7
+Line 5 is a comment. The start of the database definition is
+marked by the database keyword on line 6. Line 7 specifies
+the DN suffix for queries to pass to this database. Line 8
 specifies the directory in which the database files will live
 
-Lines 8 and 9 identify the database "super user" entry and
+Lines 9 and 10 identify the database "super user" entry and
 associated password. This entry is not subject to access
 control or size or time limit restrictions.
 
-Lines 10 through 17 are for replication. Line 10 specifies the
+Lines 11 through 18 are for replication. Line 11 specifies the
 replication log file (where changes to the database are logged
-\- this file is written by slapd and read by slurpd). Lines 11 
-through 13 specify the hostname and port for a replicated
+\- this file is written by slapd and read by slurpd). Lines 12 
+through 14 specify the hostname and port for a replicated
 host, the DN to bind as when performing updates, the bind
 method (simple) and the credentials (password) for the
-binddn. Lines 14 through 17 specify a second replication site.
+binddn. Lines 15 through 18 specify a second replication site.
 See the {{SECT:Replication with slurpd}} chapter for more
 information on these directives.
 
-Lines 19 through 21 indicate the indexes to maintain for
+Lines 20 through 22 indicate the indexes to maintain for
 various attributes.
 
-Lines 23 through 32 specify access control for entries in the
+Lines 24 through 33 specify access control for entries in the
 database. For all entries, the {{EX:userPassword}} attribute is
 writable by the entry and the "admin" entry, may be used for
 authentication/authorization purposes, but is otherwise not
