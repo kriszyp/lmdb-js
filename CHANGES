@@ -5,7 +5,9 @@ OpenLDAP 2.0.X Engineering
 	Fixed -lldap abandon unsent op bug (ITS#837)
 	Fixed -lldap URL search w/o host bug (ITS#843)
 	Fixed -lldap referral handling bugs (ITS#799 ITS#817)
+	Fixed -lldap UTF-8 bug (ITS#860)
 	Fixed ldappasswd old passwd encoding bug
+	Fixed slapd DN whitespace compression (ITS#852)
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layering bug
@@ -16,6 +18,9 @@ OpenLDAP 2.0.X Engineering
 	Updated slapadd error reporting
 	Updated slapd chroot handling (ITS#810)
 	Updated slapd subschema subentry
+	Updated slapd manageDSAit support
+	Updated slapd root DIT support
+	Updated getaddrinfo error handling (ITS#845 ITS#845 ITS#863)
 	Added slapd numericString indexing
 	Removed lint
 	Build Environment
