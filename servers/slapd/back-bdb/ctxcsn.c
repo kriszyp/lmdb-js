@@ -171,7 +171,7 @@ bdb_csn_commit(
 			goto rewind;
 		case DB_KEYEXIST :
 			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "context csn exists before contex prefix does";
+			rs->sr_text = "context csn exists before context prefix does";
 			return BDB_CSN_ABORT;
 		default :
 			rs->sr_err = LDAP_OTHER;
