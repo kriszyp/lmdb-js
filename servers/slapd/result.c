@@ -471,11 +471,23 @@ send_ldap_response(
 	num_pdu_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
-cleanup:
+cleanup:;
 	/* Tell caller that we did this for real, as opposed to being
 	 * overridden by a callback
 	 */
 	rc = SLAP_CB_CONTINUE;
+
+clean2:;
+	if ( op->o_callback ) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				(void)op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
+
 
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 		free( (char *)rs->sr_matched );
@@ -485,17 +497,6 @@ cleanup:
 	if ( rs->sr_ref && rs->sr_flags & REP_REF_MUSTBEFREED ) {
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
-	}
-
-clean2:
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
-			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
-			}
-		}
-		op->o_callback = sc;
 	}
 
 	return rc;
@@ -1340,6 +1341,20 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
+	if ( e_flags ) {
+		slap_sl_free( e_flags, op->o_tmpmemctx );
+	}
+
+	if ( op->o_callback ) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				(void)op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
+
 	/* FIXME: I think rs->sr_type should be explicitly set to
 	 * REP_SEARCH here. That's what it was when we entered this
 	 * function. send_ldap_error may have changed it, but we
@@ -1348,24 +1363,13 @@ error_return:;
 	 */
 	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
 		&& rs->sr_entry 
-		&& (rs->sr_flags & REP_ENTRY_MUSTBEFREED) ) 
+		&& ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) ) 
 	{
 		entry_free( rs->sr_entry );
 		rs->sr_entry = NULL;
 		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
 	}
 
-	if ( e_flags ) slap_sl_free( e_flags, op->o_tmpmemctx );
-
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
-			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
-			}
-		}
-		op->o_callback = sc;
-	}
 	return( rc );
 }
 
@@ -1545,15 +1549,16 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 
 rel:
-	if (op->o_callback) {
+	if ( op->o_callback ) {
 		slap_callback *sc = op->o_callback;
 		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
 			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
+				(void)op->o_callback->sc_cleanup( op, rs );
 			}
 		}
 		op->o_callback = sc;
 	}
+
 	return rc;
 }
 
