@@ -434,26 +434,38 @@ int ad_inlist(
 		int rc;
 		
 		if ( attrs->an_desc ) {
-			if ( is_ad_subtype( desc, attrs->an_desc ))
+			if ( desc == attrs->an_desc ) {
 				return 1;
+			}
+
+			/*
+			 * EXTENSION: if requested description is preceeded by an
+			 * a '-' character, do not match on subtypes.
+			 */
+			if ( attrs->an_name.bv_val[0] != '-' &&
+				is_ad_subtype( desc, attrs->an_desc ))
+			{
+				return 1;
+			}
+
 			continue;
 		}
 
 		/*
-		 * EXTENSION: see if requested description is an object class
+		 * EXTENSION: see if requested description is +objectClass
 		 * if so, return attributes which the class requires/allows
 		 */
 		oc = attrs->an_oc;
 		if( oc == NULL && attrs->an_name.bv_val ) {
 			switch( attrs->an_name.bv_val[0] ) {
-				case '+': { /* new way */
+			case '+': { /* new way */
 					struct berval ocname;
 					ocname.bv_len = attrs->an_name.bv_len - 1;
 					ocname.bv_val = &attrs->an_name.bv_val[1];
 					oc = oc_bvfind( &ocname );
 				} break;
-				default: /* old (deprecated) way */
-					oc = oc_bvfind( &attrs->an_name );
+			default: /* old (deprecated) way */
+				oc = oc_bvfind( &attrs->an_name );
 			}
 			attrs->an_oc = oc;
 		}
@@ -627,18 +639,46 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
 		if ( !anew->an_desc ) {
-			anew->an_oc = oc_bvfind( &anew->an_name );
-			if ( !anew->an_oc ) {
-				free( an );
-				/* overwrites input string on error! */
-				strcpy( in, s );
-				return NULL;
+			switch( anew->an_name.bv_val[0] ) {
+			case '-': {
+					struct berval adname;
+					adname.bv_len = anew->an_name.bv_len - 1;
+					adname.bv_val = &anew->an_name.bv_val[1];
+					slap_bv2ad(&adname, &anew->an_desc, &text);
+					if ( !anew->an_desc ) {
+						free( an );
+						/* overwrites input string on error! */
+						strcpy( in, s );
+						return NULL;
+					}
+				} break;
+			case '+': {
+					struct berval ocname;
+					ocname.bv_len = anew->an_name.bv_len - 1;
+					ocname.bv_val = &anew->an_name.bv_val[1];
+					anew->an_oc = oc_bvfind( &ocname );
+					if ( !anew->an_oc ) {
+						free( an );
+						/* overwrites input string on error! */
+						strcpy( in, s );
+						return NULL;
+					}
+				} break;
+			default:
+				/* old (deprecated) way */
+				anew->an_oc = oc_bvfind( &anew->an_name );
+				if ( !anew->an_oc ) {
+					free( an );
+					/* overwrites input string on error! */
+					strcpy( in, s );
+					return NULL;
+				}
 			}
 		}
 		anew++;
 	}
-	anew->an_name.bv_val = NULL;
 
+	anew->an_name.bv_val = NULL;
 	free( str );
 	return( an );
 }
