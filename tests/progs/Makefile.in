@@ -4,9 +4,10 @@
 ##
 ## tests Makefile.in for OpenLDAP
 
-PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel
+PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel slapd-modrdn
 
-SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
+SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c \
+		slapd-modrdn.c
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
@@ -31,4 +32,6 @@ slapd-read: slapd-read.o $(XLIBS)
 slapd-addel: slapd-addel.o $(XLIBS)
 	$(LTLINK) -o $@ slapd-addel.o $(LIBS)
 
+slapd-modrdn: slapd-modrdn.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-modrdn.o $(LIBS)
 

@@ -24,6 +24,7 @@
 #define SEARCHCMD		"slapd-search"
 #define READCMD			"slapd-read"
 #define ADDCMD			"slapd-addel"
+#define MODRDNCMD		"slapd-modrdn"
 #define MAXARGS      	100
 #define MAXREQS			20
 #define LOOPS			"100"
@@ -31,6 +32,7 @@
 #define TSEARCHFILE		"do_search.0"
 #define TREADFILE		"do_read.0"
 #define TADDFILE		"do_add."
+#define TMODRDNFILE		"do_modrdn.0"
 
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[] );
@@ -79,6 +81,9 @@ main( int argc, char **argv )
 	int         rnum = 0;
 	char		*afiles[MAXREQS];
 	int         anum = 0;
+	char		*mfile = NULL;
+	char		*mreqs[MAXREQS];
+	int		mnum = 0;
 	char		*sargs[MAXARGS];
 	int			sanum;
 	char		scmd[MAXPATHLEN];
@@ -88,6 +93,9 @@ main( int argc, char **argv )
 	char		*aargs[MAXARGS];
 	int			aanum;
 	char		acmd[MAXPATHLEN];
+	char		*margs[MAXARGS];
+	int		manum;
+	char		mcmd[MAXPATHLEN];
 
 	while ( (i = getopt( argc, argv, "H:h:p:D:w:b:d:j:l:P:" )) != EOF ) {
 		switch( i ) {
@@ -153,7 +161,7 @@ main( int argc, char **argv )
 
 	}
 
-	/*  look for search, read, and add/delete files */
+	/*  look for search, read, modrdn, and add/delete files */
 	for ( file = readdir( datadir ); file; file = readdir( datadir )) {
 
 		if ( !strcasecmp( file->d_name, TSEARCHFILE )) {
@@ -161,6 +169,9 @@ main( int argc, char **argv )
 			continue;
 		} else if ( !strcasecmp( file->d_name, TREADFILE )) {
 			rfile = get_file_name( dirname, file->d_name );
+			continue;
+		} else if ( !strcasecmp( file->d_name, TMODRDNFILE )) {
+			mfile = get_file_name( dirname, file->d_name );
 			continue;
 		} else if ( !strncasecmp( file->d_name, TADDFILE, strlen( TADDFILE ))
 			&& ( anum < MAXREQS )) {
@@ -179,6 +190,11 @@ main( int argc, char **argv )
 	/* look for read requests */
 	if ( rfile ) {
 		rnum = get_read_entries( rfile, rreqs );
+	}
+
+	/* look for modrdn requests */
+	if ( mfile ) {
+		mnum = get_read_entries( mfile, mreqs );
 	}
 
 	/*
@@ -230,6 +246,33 @@ main( int argc, char **argv )
 	rargs[ranum++] = NULL;
 
 	/*
+	 * generate the modrdn clients
+	 */
+
+	manum = 0;
+	snprintf( mcmd, sizeof mcmd, "%s" LDAP_DIRSEP MODRDNCMD,
+		progdir );
+	margs[manum++] = mcmd;
+	if ( uri ) {
+		margs[manum++] = "-H";
+		margs[manum++] = uri;
+	} else {
+		margs[manum++] = "-h";
+		margs[manum++] = host;
+		margs[manum++] = "-p";
+		margs[manum++] = port;
+	}
+	margs[manum++] = "-D";
+	margs[manum++] = manager;
+	margs[manum++] = "-w";
+	margs[manum++] = passwd;
+	margs[manum++] = "-l";
+	margs[manum++] = loops;
+	margs[manum++] = "-e";
+	margs[manum++] = NULL;		/* will hold the modrdn entry */
+	margs[manum++] = NULL;
+
+	/*
 	 * generate the add/delete clients
 	 */
 
@@ -269,6 +312,13 @@ main( int argc, char **argv )
 
 			rargs[ranum - 2] = rreqs[j];
 			fork_child( rcmd, rargs );
+
+		}
+
+		if ( j < mnum ) {
+
+			margs[manum - 2] = mreqs[j];
+			fork_child( mcmd, margs );
 
 		}
 
