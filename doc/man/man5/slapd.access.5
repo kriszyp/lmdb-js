@@ -216,6 +216,16 @@ dn.regex clause by using the form
 with 
 .B digit
 ranging from 1 to 9.
+The style qualifier
+allows an optional
+.BR modifier .
+At present, the only type allowed is 
+.BR expand ,
+which causes substring substitution of submatches to take place
+even if 
+.B dnstyle
+is not 
+.BR regex .
 .LP
 The statement
 .B dnattr=<attrname>
@@ -299,6 +309,22 @@ of the contacting host is determined by performing a DNS reverse lookup.
 As this lookup can easily be spoofed, use of the
 .B domain
 statement is strongly discouraged.  By default, reverse lookups are disabled.
+The optional
+.B domainstyle
+qualifier of the
+.B domain
+clause allows a
+.B modifier
+option; the only value currently supported is
+.BR expand ,
+which causes substring substitution of submatches to take place even if
+the 
+.B domainstyle
+is not 
+.BR regex ,
+much like the analogous usage in 
+.B dn
+clause.
 .LP
 The statement
 .B set=<pattern>
