@@ -73,6 +73,27 @@ file.
 .TP
 .BI \-l " ldif-file"
 Read LDIF from the specified file instead of standard input.
+.TP
+.BI \-p
+If the LDIF input represents a syncrepl consumer replica,
+promote it to the syncrepl provider replica after adding
+the entries.
+.TP
+.BI	\-r
+If the LDIF input represents a syncrepl provider replica,
+demote it to the syncrepl consumer replica after adding
+the entries.
+.TP
+.BI \-w
+When used with \-p or \-r, rebuild a new syncrepl
+information from the contents of the added entries.
+The syncrepl information contained in the LDIF input
+file is ignored.
+.TP
+.BI \-i " rid1,rid2,...*"
+Specify the replication ids for one or more syncrepl consumer
+replicas contained in the LDIF input. If omitted, 0 is used
+as the replication id.
 .SH LIMITATIONS
 Your
 .BR slapd (8)
