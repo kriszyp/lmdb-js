@@ -165,7 +165,7 @@ static struct slap_schema_oc_map {
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
-		subentryObjectClass,
+		subentryObjectClass, 0,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 NAME 'monitor' "
 		"DESC 'OpenLDAP system monitoring' "
