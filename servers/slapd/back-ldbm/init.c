@@ -15,9 +15,8 @@
 #include "back-ldbm.h"
 
 #ifdef SLAPD_LDBM_DYNAMIC
-#include <gmodule.h>
 
-G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+void back_ldbm_LTX_init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
    memset( &bi, 0, sizeof(bi) );

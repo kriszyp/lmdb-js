@@ -29,9 +29,8 @@ PerlInterpreter *perl_interpreter = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 #ifdef SLAPD_PERL_DYNAMIC
-#include <gmodule.h>
 
-G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+void back_perl_LTX_init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
    memset( &bi, 0, sizeof(bi) );

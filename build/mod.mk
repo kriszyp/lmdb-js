@@ -8,15 +8,12 @@
 
 LIBRARY = $(LIBBASE).la
 LIBSTAT = lib$(LIBBASE).a
+LTFLAGS = --only-$(LINKAGE)
 
-all-common: FORCE
-	@if test "$(BUILD_MOD)" = "yes"; then \
-		$(MAKE) $(MFLAGS) LTFLAGS=--only-shared all-mod; \
-	elif test "$(BUILD_LIB)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) LTFLAGS=--only-static all-lib; \
-	else \
-		echo "run configure with $(BUILD_OPT) to build $(LIBBASE)"; \
-	fi
+all-no lint-no 5lint-no depend-no install-no:
+	@echo "run configure with $(BUILD_OPT) to make $(LIBBASE)"
+
+all-common: all-$(BUILD_MOD)
 
 version.c: $(OBJS)
 	$(RM) $@
@@ -26,69 +23,49 @@ $(LIBRARY): version.lo
 	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo
 
 $(LIBSTAT): version.lo
-	$(AR) ruv $@ `echo $(OBJS) | sed s/\.lo/.o/g` version.o
+	$(AR) ruv $@ `echo $(OBJS) | sed 's/\.lo/.o/g'` version.o
 	@$(RANLIB) $@
 
 clean-common: clean-lib FORCE
 veryclean-common: veryclean-lib FORCE
 
-lint-common: FORCE
-	@if test "$(BUILD_LIB)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) lint-lib; \
-	else \
-		echo "run configure with $(BUILD_OPT) to lint $(LIBBASE)"; \
-	fi
 
-5lint-common: FORCE
-	@if test "$(BUILD_LIB)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) 5lint-lib; \
-	else \
-		echo "run configure with $(BUILD_OPT) to 5lint $(LIBBASE)"; \
-	fi
+lint-common: lint-$(BUILD_MOD)
 
-depend-common: FORCE
-	@if test "$(BUILD_LIB)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) depend-lib; \
-	else \
-		echo "run configure with $(BUILD_OPT) to depend $(LIBBASE)"; \
-	fi
+5lint-common: 5lint-$(BUILD_MOD)
 
-install-common: FORCE
-	@if test "$(BUILD_MOD)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) install-mod; \
-	elif test "$(BUILD_LIB)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) install-lib; \
-	else \
-		echo "run configure with $(BUILD_OPT) to install $(LIBBASE)"; \
-	fi
+depend-common: depend-$(BUILD_MOD)
+
+install-common: install-$(BUILD_MOD)
 
 all-local-mod:
 all-mod: $(LIBRARY) all-local-mod FORCE
 
 all-local-lib:
-all-lib: $(LIBSTAT) all-local-lib FORCE
+all-yes: $(LIBSTAT) all-local-lib FORCE
 
 install-mod: $(LIBRARY)
 	@-$(MKDIR) $(moduledir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 $(LIBRARY) $(moduledir)
 
 install-local-lib:
-install-lib: install-local-lib FORCE
+install-yes: install-local-lib FORCE
 
 lint-local-lib:
-lint-lib: lint-local-lib FORCE
+lint-yes lint-mod: lint-local-lib FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
 
 5lint-local-lib:
-5lint-lib: 5lint-local-lib FORCE
+5lint-yes 5lint-mod: 5lint-local-lib FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
 clean-local-lib:
 clean-lib: 	clean-local-lib FORCE
-	$(RM) $(LIBRARY) $(LIBSTAT) $(MODULE) *.o *.lo a.out core .libs/*
+	$(RM) $(LIBRARY) $(LIBSTAT) version.c *.o *.lo a.out core .libs/*
 
 depend-local-lib:
-depend-lib: depend-local-lib FORCE
+depend-yes depend-mod: depend-local-lib FORCE
+	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
 COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) -c
 MKDEPFLAG = -l

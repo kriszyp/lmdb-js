@@ -7,17 +7,12 @@ LDAP_INCDIR= ../../../include
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-ldap"
-BUILD_LIB = @BUILD_LDAP@
-BUILD_MOD = @BUILD_LDAP_DYNAMIC@
+BUILD_MOD = @BUILD_LDAP@
+LINKAGE = @BUILD_LDAP_DYNAMIC@
 
 LIBBASE = back_ldap
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
-
-all-lib-local: ../.backend
-
-../.backend: $(LIBSTAT)
-	@touch ../.backend
 

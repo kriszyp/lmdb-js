@@ -8,33 +8,22 @@
 #    in file LICENSE in the top-level directory of the distribution.
 # 
 ##########################################################################
-XSRCS	= version.c
 
 SRCS	= init.c search.c close.c config.c bind.c unbind.c compare.c \
 		modify.c add.c modrdn.c delete.c
-OBJS	= init.o search.o close.o config.o bind.o unbind.o compare.o \
-		modify.o add.o modrdn.o delete.o
+OBJS	= init.lo search.lo close.lo config.lo bind.lo unbind.lo compare.lo \
+		modify.lo add.lo modrdn.lo delete.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-perl"
-BUILD_SRV = @BUILD_PERL@
+BUILD_MOD = @BUILD_PERL@
+LINKAGE = @BUILD_PERL_DYNAMIC@
 
-PROGRAMS =		libback-perl.a
+LIBBASE = back_perl
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(PERL_CPPFLAGS) $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
-all-local-srv:	FORCE
-	$(MAKE) $(MFLAGS) libback-perl.a
-
-libback-perl.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
-	@touch ../.backend
-
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-perl > $@

@@ -2237,13 +2237,13 @@ BUILD_SHELL=no
 BUILD_TCL=no
 BUILD_THREAD=no
 
-BUILD_BDB2_DYNAMIC=no
-BUILD_LDAP_DYNAMIC=no
-BUILD_LDBM_DYNAMIC=no
-BUILD_PASSWD_DYNAMIC=no
-BUILD_PERL_DYNAMIC=no
-BUILD_SHELL_DYNAMIC=no
-BUILD_TCL_DYNAMIC=no
+BUILD_BDB2_DYNAMIC=static
+BUILD_LDAP_DYNAMIC=static
+BUILD_LDBM_DYNAMIC=static
+BUILD_PASSWD_DYNAMIC=static
+BUILD_PERL_DYNAMIC=static
+BUILD_SHELL_DYNAMIC=static
+BUILD_TCL_DYNAMIC=static
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
@@ -12640,7 +12640,8 @@ EOF
 #define SLAPD_BDB2_DYNAMIC 1
 EOF
 
-		BUILD_BDB2_DYNAMIC=yes
+		BUILD_BDB2=mod
+		BUILD_BDB2_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb2/back_bdb2.la"
 	fi
 fi
@@ -12657,7 +12658,8 @@ EOF
 #define SLAPD_LDAP_DYNAMIC 1
 EOF
 
-		BUILD_LDAP_DYNAMIC=yes
+		BUILD_LDAP=mod
+		BUILD_LDAP_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
 	fi
 fi
@@ -12674,7 +12676,8 @@ EOF
 #define SLAPD_LDBM_DYNAMIC 1
 EOF
 
-		BUILD_LDBM_DYNAMIC=yes
+		BUILD_LDBM=mod
+		BUILD_LDBM_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
 	fi
 fi
@@ -12691,7 +12694,8 @@ EOF
 #define SLAPD_PASSWD_DYNAMIC 1
 EOF
 
-		BUILD_PASSWD_DYNAMIC=yes
+		BUILD_PASSWD=mod
+		BUILD_PASSWD_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
 	fi
 fi
@@ -12708,7 +12712,8 @@ EOF
 #define SLAPD_PERL_DYNAMIC 1
 EOF
 
-		BUILD_PERL_DYNAMIC=yes
+		BUILD_PERL=mod
+		BUILD_PERL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
 	fi
 fi
@@ -12725,7 +12730,8 @@ EOF
 #define SLAPD_SHELL_DYNAMIC 1
 EOF
 
-		BUILD_SHELL_DYNAMIC=yes
+		BUILD_SHELL=mod
+		BUILD_SHELL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
 	fi
 fi
@@ -12742,7 +12748,8 @@ EOF
 #define SLAPD_TCL_DYNAMIC 1
 EOF
 
-		BUILD_TCL_DYNAMIC=yes
+		BUILD_TCL=mod
+		BUILD_TCL_DYNAMIC=shared
 		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-tcl/back_tcl.la"
 	fi
 fi
@@ -12883,13 +12890,13 @@ libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/li
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
-servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/srv.mk \
+servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
-servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
-servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
-servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \
-servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
-servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/srv.mk \
+servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
+servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
+servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
+servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
+servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
@@ -13086,13 +13093,13 @@ libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/li
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
-servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/srv.mk \
+servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
-servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
-servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
-servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \
-servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
-servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/srv.mk \
+servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
+servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
+servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
+servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
+servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \

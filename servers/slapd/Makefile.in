@@ -2,7 +2,7 @@
 ## Makefile.in for slapd
 ##
 PROGRAMS=slapd
-XPROGRAMS=sslapd libbackends.a .backend
+XPROGRAMS=sslapd libbackends.a
 XSRCS=version.c
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
@@ -39,29 +39,26 @@ XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
-all-local-srv: FORCE
-	$(MAKE) $(MFLAGS) backendslib
-	$(MAKE) $(MFLAGS) slapd
-	(cd tools; $(MAKE) $(MFLAGS) all)
-	$(MAKE) $(MFLAGS) all-cffiles
+all-local-srv: all-cffiles
 
-slapd: version.o
+slapd: libbackends.a version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+	(cd tools; $(MAKE) $(MFLAGS) all)
 
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-backendslib:	FORCE
+# dummy equivalent of FORCE when wildcard fails
+back-*/libback*.a:
+
+libbackends.a: back-*/libback*.a
 	@for i in back-*; do \
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 			( cd $$i; $(MAKE) $(MFLAGS) all ); \
 		fi; \
 	done; \
-	echo " "; \
-	$(MAKE) $(MFLAGS) libbackends.a
-
-libbackends.a: .backend
+	echo " "
 	@$(RM) -r tmp
 	@$(MKDIR) tmp
 	@-for i in back-*/*.a; do \
@@ -131,7 +128,7 @@ install-slapd: FORCE
 
 CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
 
-all-cffiles:
+all-cffiles: slapd
 	@for i in $(CFFILES); do \
 		tmpcf=$$i.tmp; \
 		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
@@ -162,15 +159,4 @@ install-conf: FORCE
 install-tools: FORCE
 	@-$(MKDIR) $(sbindir)
 	(cd tools; $(MAKE) $(MFLAGS) install)
-
-
-
-
-
-
-
-
-
-
-
 

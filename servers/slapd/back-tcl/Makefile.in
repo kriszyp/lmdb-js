@@ -8,36 +8,24 @@
 # in file LICENSE in the top-level directory of the distribution.
 # 
 ##########################################################################
-XSRCS	= version.c
 
 SRCS	= tcl_init.c tcl_search.c tcl_close.c tcl_config.c tcl_bind.c \
 	tcl_unbind.c tcl_compare.c tcl_modify.c tcl_add.c tcl_modrdn.c \
 	tcl_delete.c tcl_abandon.c tcl_util.c
-OBJS	= tcl_init.o tcl_search.o tcl_close.o tcl_config.o tcl_bind.o \
-	tcl_unbind.o tcl_compare.o tcl_modify.o tcl_add.o tcl_modrdn.o \
-	tcl_delete.o tcl_abandon.o tcl_util.o
+OBJS	= tcl_init.lo tcl_search.lo tcl_close.lo tcl_config.lo tcl_bind.lo \
+	tcl_unbind.lo tcl_compare.lo tcl_modify.lo tcl_add.lo tcl_modrdn.lo \
+	tcl_delete.lo tcl_abandon.lo tcl_util.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-tcl"
-BUILD_SRV = @BUILD_TCL@
+BUILD_MOD = @BUILD_TCL@
+LINKAGE = @BUILD_TCL_DYNAMIC@
 
-PROGRAMS =		libback-tcl.a
+LIBBASE = back_tcl
 
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 XINCPATH = -I.. -I$(srcdir)/..
-
-all-local-srv:	FORCE
-	$(MAKE) $(MFLAGS) libback-tcl.a
-
-libback-tcl.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
-	@touch ../.backend
-
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-tcl > $@
 

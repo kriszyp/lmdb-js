@@ -11,9 +11,8 @@
 #include "back-bdb2.h"
 
 #ifdef SLAPD_BDB2_DYNAMIC
-#include <gmodule.h>
 
-G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+void back_bdb2_LTX_init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
    memset( &bi, 0, sizeof(bi) );

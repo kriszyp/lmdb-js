@@ -1,28 +1,16 @@
-XSRCS	= version.c
 SRCS	= search.c config.c init.c
-OBJS	= search.o config.o init.o
+OBJS	= search.lo config.lo init.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-passwd"
-BUILD_SRV = @BUILD_PASSWD@
+BUILD_MOD = @BUILD_PASSWD@
+LINKAGE = @BUILD_PASSWD_DYNAMIC@
 
-PROGRAMS= libback-passwd.a
+LIBBASE = back_passwd
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
-
-all-local-srv: 	FORCE	
-	$(MAKE) $(MFLAGS) libback-passwd.a
-
-libback-passwd.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
-	@touch ../.backend
-
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-passwd > $@
 

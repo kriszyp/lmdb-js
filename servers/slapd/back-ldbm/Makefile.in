@@ -1,33 +1,22 @@
-XSRCS = version.c
 SRCS	= idl.c add.c search.c cache.c dbcache.c dn2id.c entry.c id2entry.c \
 		index.c id2children.c nextid.c abandon.c compare.c group.c \
 		modify.c modrdn.c delete.c init.c config.c bind.c attr.c \
 		filterindex.c unbind.c kerberos.c close.c alias.c
-OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o entry.o id2entry.o \
-		index.o id2children.o nextid.o abandon.o compare.o group.o \
-		modify.o modrdn.o delete.o init.o config.o bind.o attr.o \
-		filterindex.o unbind.o kerberos.o close.o alias.o
+OBJS	= idl.lo add.lo search.lo cache.lo dbcache.lo dn2id.lo entry.lo id2entry.lo \
+		index.lo id2children.lo nextid.lo abandon.lo compare.lo group.lo \
+		modify.lo modrdn.lo delete.lo init.lo config.lo bind.lo attr.lo \
+		filterindex.lo unbind.lo kerberos.lo close.lo alias.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-ldbm"
-BUILD_SRV = @BUILD_LDBM@
+BUILD_MOD = @BUILD_LDBM@
+LINKAGE = @BUILD_LDBM_DYNAMIC@
+
+LIBBASE = back_ldbm
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
-PROGRAMS = libback-ldbm.a
-
-all-local-srv: FORCE
-	$(MAKE) $(MFLAGS) libback-ldbm.a
-
-libback-ldbm.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
-	@touch ../.backend
-
-version.c:	$(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-ldbm > $@

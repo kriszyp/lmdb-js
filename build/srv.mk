@@ -6,56 +6,33 @@
 ## Makefile Template for Servers
 ##
 
-all-common: FORCE
-	@if test "$(BUILD_SRV)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) all-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to build $(PROGRAMS)"; \
-	fi
+all-common: all-$(BUILD_SRV)
+all-no lint-no 5lint-no depend-no install-no:
+	@echo "run configure with $(BUILD_OPT) to make $(PROGRAMS)"
 
 clean-common: clean-srv FORCE
 veryclean-common: veryclean-srv FORCE
 
-lint-common: FORCE
-	@if test "$(BUILD_SRV)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) lint-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to lint $(PROGRAMS)"; \
-	fi
+lint-common: lint-$(BUILD_SRV)
 
-5lint-common: FORCE
-	@if test "$(BUILD_SRV)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) 5lint-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to 5lint $(PROGRAMS)"; \
-	fi
+5lint-common: 5lint-$(BUILD_SRV)
 
-depend-common: FORCE
-	@if test "$(BUILD_SRV)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) depend-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to depend $(PROGRAMS)"; \
-	fi
+depend-common: depend-$(BUILD_SRV)
 
-install-common: FORCE
-	@if test "$(BUILD_SRV)" = "yes" ; then \
-		$(MAKE) $(MFLAGS) install-srv; \
-	else \
-		echo "run configure with $(BUILD_OPT) to install $(PROGRAMS)"; \
-	fi
+install-common: install-$(BUILD_SRV)
 
 all-local-srv:
-all-srv: all-local-srv FORCE
+all-yes: all-local-srv FORCE
 
 install-local-srv:
-install-srv: install-local-srv FORCE
+install-yes: install-local-srv FORCE
 
 lint-local-srv:
-lint-srv: lint-local-srv FORCE
+lint-yes: lint-local-srv FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
 
 5lint-local-srv:
-5lint-srv: 5lint-local-srv FORCE
+5lint-yes: 5lint-local-srv FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
 clean-local-srv:
@@ -63,7 +40,7 @@ clean-srv: 	clean-local-srv FORCE
 	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/*
 
 depend-local-srv:
-depend-srv: depend-local-srv FORCE
+depend-yes: depend-local-srv FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
 veryclean-local-srv:

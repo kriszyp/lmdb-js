@@ -12,7 +12,7 @@
 #       Stand alone LDAP server tools makefile
 #
 #-----------------------------------------------------------------------------
-HAVE_QUIPU = @HAVE_QUIPU@
+HAVE_QUIPU = @BUILD_QUIPU@
 BUILD_LDBM = @BUILD_LDBM@
 BUILD_BDB2 = @BUILD_BDB2@
 
@@ -58,30 +58,22 @@ OBJS2	= $(OBJS1) ldif2common.o
 
 all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
 
-build-ldbm: FORCE
-	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) ldbm-tools; \
-	else \
-		echo "run configure with --with-ldbm to build LDBM tools"; \
-	fi
+build-ldbm: ldbm-tools-$(BUILD_LDBM)
+ldbm-tools-no:
+	@echo "run configure with --enable-ldbm to build LDBM tools"
 
-build-bdb2: FORCE
-	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) bdb2-tools; \
-	else \
-		echo "run configure with --enable-bdb2 to build BDB2 tools"; \
-	fi
+build-bdb2: bdb2-tools-$(BUILD_BDB2)
+bdb2-tools-no:
+	@echo "run configure with --enable-bdb2 to build BDB2 tools"
 
-ldbm-tools: $(PROGRAMS)
+ldbm-tools-yes ldbm-tools-mod: $(PROGRAMS)
 
-bdb2-tools: $(PROGRAMS2)
+bdb2-tools-yes bdb2-tools-mod: $(PROGRAMS2)
 
-build-edb2ldif:	FORCE
-	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) edb2ldif; \
-	else \
-		echo "run configure with --enable-quipu to build edb2ldif"; \
-	fi
+build-edb2ldif:	edb-$(HAVE_QUIPU)
+edb-no:
+	@echo "run configure with --enable-quipu to build edb2ldif"
+edb-yes: edb2ldif
 
 edb2ldif:	edb2-vers.o
 	$(CC) $(LDFLAGS) -o $@ $(EDB2LDIFOBJS) edb2-vers.o $(LIBS)
@@ -90,12 +82,10 @@ edb2-vers.c: $(EDB2LDIFOBJS)
 	@-$(RM) $@
 	$(MKVERSION) ebd2ldif > $@
 
-build-chlog2replog: FORCE
-	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
-		$(MAKE) $(MFLAGS) chlog2replog; \
-	else \
-		echo "run configure with --enable-quipu to build chlog2replog"; \
-	fi
+build-chlog2replog: chlog-$(HAVE_QUIPU)
+chlog-no:
+	@echo "run configure with --enable-quipu to build chlog2replog"
+chlog-yes: chlog2replog
 
 chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
@@ -149,15 +139,15 @@ clean-local: FORCE
 
 depend-local: FORCE
 	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
-	if [ "$(BUILD_LDBM)" = "yes" ]; then \
+	if [ "$(BUILD_LDBM)" != "no" ]; then \
 		DEPEND_LDBM="$(SRCS)"; \
 		DEPEND=yes ; \
 	fi; \
-	if [ "$(BUILD_BDB2)" = "yes" ]; then \
+	if [ "$(BUILD_BDB2)" != "no" ]; then \
 		DEPEND_BDB2="$(SRCS2)"; \
 		DEPEND=yes ; \
 	fi; \
-	if [ "$(HAVE_QUIPU)" = "yes" ]; then \
+	if [ "$(HAVE_QUIPU)" != "no" ]; then \
 		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
 		DEPEND=yes ; \
 	fi; \
@@ -168,40 +158,31 @@ depend-local: FORCE
 		echo "slapd-tools: no dependencies to make"; \
 	fi
 
-install-local: install-ldbm install-bdb2 install-quipu FORCE
+install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
+	 install-quipu-$(HAVE_QUIPU)
 
-install-ldbm: FORCE
+install-ldbm-no install-bdb2-no install-quipu-no:
+
+install-ldbm-yes install-ldbm-mod: FORCE
 	@-$(MKDIR) $(sbindir) 
-	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
-	else \
-		exit 0 ; \
-	fi
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)
 
-install-bdb2: FORCE
+install-bdb2-yes install-bdb2-mod: FORCE
 	@-$(MKDIR) $(sbindir) 
-	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm-bdb2 $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index-bdb2 $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry-bdb2 $(sbindir)	; \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children-bdb2 $(sbindir) ; \
-	else \
-		exit 0 ; \
-	fi
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm-bdb2 $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index-bdb2 $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry-bdb2 $(sbindir) ; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children-bdb2 $(sbindir)
 
-install-quipu: FORCE
+install-quipu-yes: FORCE
 	@-$(MKDIR) $(sbindir)
-	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
-	else \
-		exit 0 ; \
-	fi
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir)
 

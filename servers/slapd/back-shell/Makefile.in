@@ -1,30 +1,18 @@
-XSRCS	= version.c
 SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
 		modify.c modrdn.c compare.c abandon.c result.c
-OBJS	= init.o config.o fork.o search.o bind.o unbind.o add.o delete.o \
-		modify.o modrdn.o compare.o abandon.o result.o
+OBJS	= init.lo config.lo fork.lo search.lo bind.lo unbind.lo add.lo delete.lo \
+		modify.lo modrdn.lo compare.lo abandon.lo result.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-shell"
-BUILD_SRV = @BUILD_SHELL@
+BUILD_MOD = @BUILD_SHELL@
+LINKAGE = @BUILD_SHELL_DYNAMIC@
 
-PROGRAMS =		libback-shell.a
+LIBBASE = back_shell
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
-
-all-local-srv:	FORCE
-	$(MAKE) $(MFLAGS) libback-shell.a
-
-libback-shell.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
-	@touch ../.backend
-
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-shell > $@
 
