@@ -360,6 +360,9 @@ void ldap_int_initialize( void )
 	gopts.ldo_tm_api = (struct timeval *)NULL;
 	gopts.ldo_tm_net = (struct timeval *)NULL;
 
+	/* ldo_defludp is leaked, we should have an at_exit() handler
+	 * to free this and whatever else needs to cleaned up. 
+	 */
 	ldap_url_parselist(&gopts.ldo_defludp, "ldap://localhost/");
 	gopts.ldo_defport = LDAP_PORT;
 
