@@ -12,13 +12,12 @@
 
 #include <lber.h>
 
-#define	malloc(x)	ber_memalloc(x)
-#define	realloc(x,y)	ber_memrealloc(x,y)
-#define	free(x)		ber_memfree(x)
-
 #include <ldap_utf8.h>
 #include <ldap_pvt_uc.h>
 
+#define	malloc(x)	ber_memalloc(x)
+#define	realloc(x,y)	ber_memrealloc(x,y)
+#define	free(x)		ber_memfree(x)
 
 int ucstrncmp(
 	const ldap_unicode_t *u1,
