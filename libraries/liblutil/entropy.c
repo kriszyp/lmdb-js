@@ -44,12 +44,13 @@ int lutil_entropy( char *buf, int nbytes )
 		 * but implementation 100% OpenLDAP.  So don't blame Phil. */
 		/* worse case is this is a MD5 hash of a counter, if
 		 *	MD5 is a strong cryptographic hash, this should
-		 *	be fairly resisant to attack
+		 *	be fairly resistant to attack
 		 */
-		static int initialized = 0;
+		static int counter = 0;
 		int n;
 
 		struct {
+			int counter;
 			pid_t	pid;
 
 #ifdef HAVE_GETTIMEOFDAY
@@ -60,11 +61,7 @@ int lutil_entropy( char *buf, int nbytes )
 			unsigned long	junk;
 		} rdata;
 
-		if( !initialized ) {
-			initialized++;
-
-			rdata.pid = getpid();
-		}
+		rdata.pid = getpid();
 		
 		for( n = 0; n < nbytes; n += 16 ) {
 			struct lutil_MD5Context ctx;
@@ -76,6 +73,7 @@ int lutil_entropy( char *buf, int nbytes )
 			(void) time( &rdata.time );
 #endif
 
+			rdata.counter = ++counter;
 			rdata.pid++;
 			rdata.junk++;
 
