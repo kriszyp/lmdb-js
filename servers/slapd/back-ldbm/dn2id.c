@@ -203,16 +203,16 @@ dn2id(
 	return( 0 );
 }
 
-ID_BLOCK *
+int
 dn2idl(
     Backend	*be,
     const char	*dn,
-	int		prefix
+    int		prefix,
+    ID_BLOCK    **idlp
 )
 {
 	DBCache	*db;
 	Datum		key;
-	ID_BLOCK	*idl;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -221,6 +221,8 @@ dn2idl(
 	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
 #endif
 
+	assert( idlp != NULL );
+	*idlp = NULL;
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
@@ -232,7 +234,7 @@ dn2idl(
 			LDBM_SUFFIX, 0, 0 );
 #endif
 
-		return NULL;
+		return -1;
 	}
 
 	ldbm_datum_init( key );
@@ -241,13 +243,13 @@ dn2idl(
 	key.dptr = ch_malloc( key.dsize );
 	sprintf( key.dptr, "%c%s", prefix, dn );
 
-	idl = idl_fetch( be, db, key );
+	*idlp = idl_fetch( be, db, key );
 
 	ldbm_cache_close( be, db );
 
 	free( key.dptr );
 
-	return( idl );
+	return( 0 );
 }
 
 

@@ -78,7 +78,7 @@ void *ldbm_cache_sync_daemon LDAP_P(( void *));
 
 int dn2id_add LDAP_P(( Backend *be, const char *dn, ID id ));
 int dn2id LDAP_P(( Backend *be, const char *dn, ID *idp ));
-ID_BLOCK *dn2idl LDAP_P(( Backend *be, const char *dn, int prefix ));
+int dn2idl LDAP_P(( Backend *be, const char *dn, int prefix, ID_BLOCK **idlp ));
 int dn2id_delete LDAP_P(( Backend *be, const char *dn, ID id ));
 
 Entry * dn2entry_rw LDAP_P(( Backend *be, const char *dn, Entry **matched, int rw ));
