@@ -881,7 +881,7 @@ entry_naming_check(
 
 		if( desc->ad_type->sat_obsolete ) {
 			snprintf( textbuf, textlen, 
-				"naming attribute '%s' is collective",
+				"naming attribute '%s' is obsolete",
 				ava->la_attr.bv_val );
 			rc = LDAP_NAMING_VIOLATION;
 			break;
