@@ -613,14 +613,18 @@ int get_ctrls(
 				}
 
 				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
-					/* kludge to disable backend_control() check */
+					/* KLUDGE: disable backend_control() check */
 					c->ldctl_iscritical = 0;
 
 				} else if ( tagmask == SLAP_CTRL_SEARCH &&
 					sc->sc_mask & SLAP_CTRL_FRONTEND_SEARCH )
 				{
-					/* kludge to disable backend_control() check */
+					/* KLUDGE: disable backend_control() check */
 					c->ldctl_iscritical = 0;
+
+				} else {
+					/* KLUDGE: enable backend_control() check */
+					c->ldctl_iscritical = 1;
 				}
 
 			} else if( c->ldctl_iscritical ) {
