@@ -50,7 +50,8 @@ int passwd_extop(
 	}
 
 	{
-		rc = backend_check_restrictions( be, conn, op, &slap_EXOP_MODIFY_PASSWD, text );
+		rc = backend_check_restrictions( be, conn, op,
+			(struct berval *)&slap_EXOP_MODIFY_PASSWD, text );
 	}
 
 	if( rc != LDAP_SUCCESS ) {
