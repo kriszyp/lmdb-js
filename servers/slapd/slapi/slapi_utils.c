@@ -1397,7 +1397,7 @@ slapiControlOp2SlapControlMask(unsigned long slapi_mask,
 	if ( slapi_mask & SLAPI_OPERATION_ABANDON )
 		*slap_mask |= SLAP_CTRL_ABANDON;
 
-	*slap_mask |= SLAP_CTRL_FRONTEND;
+	*slap_mask |= SLAP_CTRL_GLOBAL;
 }
 
 static int

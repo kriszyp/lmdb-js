@@ -425,8 +425,12 @@ LDAP_SLAPD_F (int) register_supported_control LDAP_P((
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
-LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask_t **ctrlmasks ));
-LDAP_SLAPD_F (int) slap_find_control_id LDAP_P (( const char *oid, int *cid ));
+LDAP_SLAPD_F (int) get_supported_controls LDAP_P ((
+	char ***ctrloidsp, slap_mask_t **ctrlmasks ));
+LDAP_SLAPD_F (int) slap_find_control_id LDAP_P ((
+	const char *oid, int *cid ));
+LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
+	Operation *op, const char *oid ));
 
 /*
  * config.c
@@ -434,9 +438,7 @@ LDAP_SLAPD_F (int) slap_find_control_id LDAP_P (( const char *oid, int *cid ));
 LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
-						char ***,
-						char *,
-						const char * ));
+	char ***, char *, const char * ));
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;
 #endif

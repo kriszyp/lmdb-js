@@ -74,7 +74,7 @@ int backend_init(void)
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
 		Debug( LDAP_DEBUG_ANY,
-			"backend_init: already initialized.\n", 0, 0, 0 );
+			"backend_init: already initialized\n", 0, 0, 0 );
 		return -1;
 	}
 
@@ -846,14 +846,29 @@ backend_check_controls(
 
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
-			if(
+			int cid;
+			if( slap_find_control_id( (*ctrls)->ldctl_oid, &cid ) ==
+				LDAP_CONTROL_NOT_FOUND )
+			{
+				/* unrecognized control */ 
+				if ( (*ctrls)->ldctl_iscritical ) {
+					/* should not be reachable */ 
+					Debug( LDAP_DEBUG_ANY,
+						"backend_check_controls: unrecognized control: %s\n",
+						(*ctrls)->ldctl_oid, 0, 0 );
+					assert( 0 );
+				}
+
+			} else if (
 #ifdef SLAP_CONTROL_AVAILABILITY_KLUDGE
 				/* KLUDGE: ldctl_iscritical munged by controls.c:get_ctrls()
 				 * to ensure this check is enabled/disabled appropriately.
 				 */
 				(*ctrls)->ldctl_iscritical &&
+#else
+				!slap_global_control( op, (*ctrls)->ldctl_oid )
 #endif
-				!ldap_charray_inlist( op->o_bd->be_controls,
+				&& !ldap_charray_inlist( op->o_bd->be_controls,
 				(*ctrls)->ldctl_oid ) )
 			{
 				/* Per RFC 2251 (and LDAPBIS discussions), if the control

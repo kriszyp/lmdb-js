@@ -115,7 +115,7 @@ static struct slap_control control_defs[] = {
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
  		(int)offsetof(struct slap_control_ids, sc_domainScope),
-		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
@@ -133,7 +133,7 @@ static struct slap_control control_defs[] = {
 #ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
 	{ LDAP_CONTORL_X_SEARCH_OPTIONS,
  		(int)offsetof(struct slap_control_ids, sc_searchOptions),
-		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
@@ -158,7 +158,7 @@ static struct slap_control control_defs[] = {
 		parseManageDSAit, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PROXY_AUTHZ,
  		(int)offsetof(struct slap_control_ids, sc_proxyAuthz),
-		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS, proxy_authz_extops,
 		parseProxyAuthz, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ NULL, 0, 0, NULL, 0, LDAP_SLIST_ENTRY_INITIALIZER(next) }
 };
@@ -378,6 +378,34 @@ slap_find_control_id(
 		return LDAP_SUCCESS;
 	}
 	return LDAP_CONTROL_NOT_FOUND;
+}
+
+int
+slap_global_control( Operation *op, const char *oid )
+{
+	struct slap_control *ctrl = find_ctrl( oid );
+
+	if ( ctrl == NULL ) {
+		/* should not be reachable */
+		Debug( LDAP_DEBUG_ANY,
+			"slap_global_control: unrecognized control: %s\n",      
+			oid, 0, 0 );
+		assert( 0 );
+		return 0;
+	}
+
+	if ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) return 1;
+
+	if (( op->o_tag & LDAP_REQ_SEARCH ) &&
+		( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ))
+	{
+		return 1;
+	}
+
+	Debug( LDAP_DEBUG_ANY,
+		"slap_global_control: unavailable control: %s\n",      
+		oid, 0, 0 );
+	return 0;
 }
 
 void slap_free_ctrls(
@@ -613,12 +641,13 @@ int get_ctrls(
 				}
 
 #ifdef SLAP_CONTROL_AVAILABILITY_KLUDGE
-				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
+				/* backend_check_controls() kludge */
+				if ( sc->sc_mask & SLAP_CTRL_GLOBAL ) {
 					/* KLUDGE: disable backend_control() check */
 					c->ldctl_iscritical = 0;
 
 				} else if ( tagmask == SLAP_CTRL_SEARCH &&
-					sc->sc_mask & SLAP_CTRL_FRONTEND_SEARCH )
+					sc->sc_mask & SLAP_CTRL_GLOBAL_SEARCH )
 				{
 					/* KLUDGE: disable backend_control() check */
 					c->ldctl_iscritical = 0;
