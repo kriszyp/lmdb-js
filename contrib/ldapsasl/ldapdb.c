@@ -41,16 +41,11 @@ typedef struct ldapctx {
 	int use_tls;		/* Issue StartTLS request? */
 } ldapctx;
 
-typedef struct gluectx {
-	ldapctx *lc;
-	sasl_server_params_t *lp;
-} gluectx;
-
 static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 	void *def, void *inter)
 {
 	sasl_interact_t *in = inter;
-	gluectx *gc = def;
+	ldapctx *ctx = def;
 	struct berval p;
 
 	for (;in->id != SASL_CB_LIST_END;in++)
@@ -63,10 +58,10 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 				if (p.bv_val) p.bv_len = strlen(p.bv_val);
 				break;		
 			case SASL_CB_AUTHNAME:
-				p = gc->lc->id;
+				p = ctx->id;
 				break;
 			case SASL_CB_PASS:
-				p = gc->lc->pw;
+				p = ctx->pw;
 				break;
 		}
 		if (p.bv_val)
@@ -89,7 +84,6 @@ static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
 	const char *user, unsigned ulen, connparm *cp)
 {
     int i;
-    gluectx gc;
     char *authzid;
 
     if((i=ldap_initialize(&cp->ld, ctx->uri))) {
@@ -117,10 +111,8 @@ static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
 	return i;
     }
 
-    gc.lc = ctx;
-    gc.lp = sparams;
     i = ldap_sasl_interactive_bind_s(cp->ld, NULL, ctx->mech.bv_val, NULL,
-    	NULL, LDAP_SASL_QUIET, ldapdb_interact, &gc);
+    	NULL, LDAP_SASL_QUIET, ldapdb_interact, ctx);
     if (i != LDAP_SUCCESS) {
     	sparams->utils->free(authzid);
 	return i;
