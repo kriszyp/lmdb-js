@@ -260,10 +260,9 @@ over_op_func(
 	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
 
-	if ( op->o_bd == NULL ) {
-		/* FIXME: happens for instance during abandon... */
-		return 0;
-	}
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
 
 	oi = op->o_bd->bd_info->bi_private;
 	on = oi->oi_list;

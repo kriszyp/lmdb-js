@@ -722,6 +722,7 @@ static void connection_abandon( Connection *c )
 		next = LDAP_STAILQ_NEXT( o, o_next );
 		op.orn_msgid = o->o_msgid;
 		o->o_abandon = 1;
+		op.o_bd = frontendDB;
 		frontendDB->be_abandon( &op, &rs );
 	}
 
