@@ -158,8 +158,11 @@ list_candidates(
 		rc = bdb_filter_candidates( be, f, save, tmp );
 
 		if ( rc != 0 ) {
-			/* Error: treat as undefined */
-			continue;
+			if ( ftype == LDAP_FILTER_AND ) {
+				rc = 0;
+				continue;
+			}
+			break;
 		}
 		
 		if ( ftype == LDAP_FILTER_AND ) {
@@ -171,16 +174,25 @@ list_candidates(
 			BDB_IDL_ALL( bdb, save );
 		}
 	}
+
 #if !defined(LDAP_PVT_THREAD_STACK_SIZE) || (LDAP_PVT_THREAD_STACK_SIZE == 0)
 	free(save);
 #endif
 
-	Debug( LDAP_DEBUG_FILTER,
-		"<= bdb_list_candidates: id=%ld first=%ld last=%ld\n",
-		(long) ids[0],
-		(long) BDB_IDL_FIRST(ids),
-		(long) BDB_IDL_LAST(ids) );
-	return 0;
+	if( rc ) {
+		Debug( LDAP_DEBUG_FILTER,
+			"<= bdb_list_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0],
+			(long) BDB_IDL_FIRST(ids),
+			(long) BDB_IDL_LAST(ids) );
+
+	} else {
+		Debug( LDAP_DEBUG_FILTER,
+			"<= bdb_list_candidates: undefined rc=%d\n",
+			rc, 0, 0 );
+	}
+
+	return rc;
 }
 
 static int

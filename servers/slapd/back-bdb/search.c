@@ -247,7 +247,9 @@ bdb_search(
 	ber_dupbv( &realbase, &e->e_nname );
 
 	/* start cursor at base entry's id 
-	 * FIXME: hack to make "" base work */
+	 * FIXME: hack to make "" base work
+	 * FIXME: moddn needs to assign new ID for this to work
+	 */
 	cursor = e->e_id == NOID ? 1 : e->e_id;
 
 	if ( e != &slap_entry_root ) {
@@ -627,11 +629,18 @@ static int search_candidates(
 
 	rc = bdb_filter_candidates( be, &f, ids, tmp );
 
-	Debug(LDAP_DEBUG_TRACE,
-		"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
-		(long) ids[0],
-		(long) BDB_IDL_FIRST(ids),
-		(long) BDB_IDL_LAST(ids) );
+	if( rc ) {
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_search_candidates: failed (rc=%d)\n",
+			rc, NULL, NULL );
+
+	} else {
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0],
+			(long) BDB_IDL_FIRST(ids),
+			(long) BDB_IDL_LAST(ids) );
+	}
 
 	return rc;
 }
