@@ -942,13 +942,14 @@ retry:
 	}
 
 	{
-		char *passwd = ri->ri_password ? ber_strdup( ri->ri_password ) : NULL;
 		void *defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
-		    ri->ri_realm, ri->ri_authcId, passwd, ri->ri_authzId );
+		    ri->ri_realm, ri->ri_authcId, ri->ri_password, ri->ri_authzId );
 
 		ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
 		    ri->ri_saslmech, NULL, NULL,
 		    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
+
+		lutil_sasl_freedefs( defaults );
 		if ( ldrc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, "do_bind: "
@@ -963,9 +964,6 @@ retry:
 			ri->ri_ldp = NULL;
 			return( BIND_ERR_SASL_FAILED );
 		}
-
-		ber_memfree( passwd );
-		ber_memfree( defaults );
 	}
 	break;
 #else
