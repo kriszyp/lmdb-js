@@ -28,8 +28,8 @@ shell_back_compare(
 		return( -1 );
 	}
 
-	if ( (op->o_private = forkandexec( si->si_compare, &rfp, &wfp ))
-	    == -1 ) {
+	if ( (op->o_private = (void *) forkandexec( si->si_compare, &rfp, &wfp ))
+	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
 		return( -1 );

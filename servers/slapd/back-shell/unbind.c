@@ -26,8 +26,8 @@ shell_back_unbind(
 		return;
 	}
 
-	if ( (op->o_private = forkandexec( si->si_unbind, &rfp, &wfp ))
-	    == -1 ) {
+	if ( (op->o_private = (void *) forkandexec( si->si_unbind, &rfp, &wfp ))
+	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
 		return;

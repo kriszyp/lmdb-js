@@ -307,7 +307,7 @@ typedef struct slap_op {
 	int		o_abandon;	/* signals op has been abandoned  */
 	pthread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */
 
-	int		o_private;	/* anything the backend needs	  */
+	void	*o_private;	/* anything the backend needs	  */
 } Operation;
 
 /*

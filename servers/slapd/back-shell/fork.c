@@ -11,7 +11,7 @@
 #include "slap.h"
 #include "shell.h"
 
-int
+pid_t
 forkandexec(
     char	**args,
     FILE	**rfp,
@@ -19,7 +19,7 @@ forkandexec(
 )
 {
 	int	p2c[2], c2p[2];
-	int	pid;
+	pid_t	pid;
 
 	if ( pipe( p2c ) != 0 || pipe( c2p ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pipe failed\n", 0, 0, 0 );

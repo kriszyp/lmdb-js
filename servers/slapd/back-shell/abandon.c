@@ -21,7 +21,7 @@ shell_back_abandon(
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
-	int			pid;
+	pid_t			pid;
 	Operation		*o;
 
 	/* no abandon command defined - just kill the process handling it */
@@ -30,7 +30,7 @@ shell_back_abandon(
 		pid = -1;
 		for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
 			if ( o->o_msgid == msgid ) {
-				pid = o->o_private;
+				pid = (pid_t) o->o_private;
 				break;
 			}
 		}
