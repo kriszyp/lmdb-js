@@ -274,15 +274,20 @@ ldif_getline( char **next )
 		line = *next;
 
 		while ( (*next = strchr( *next, '\n' )) != NULL ) {
-			unsigned char c = (*next)[1];
-
 #if CONTINUED_LINE_MARKER != '\r'
 			if ( (*next)[-1] == '\r' ) {
 				(*next)[-1] = CONTINUED_LINE_MARKER;
 			}
 #endif
 
-			if ( !isspace( c ) || c == '\n' ) {
+			if ( (*next)[1] == '\r' ) {
+				if( (*next)[2] == '\n' ) {
+					*(*next)++ = '\0';
+				}
+				*(*next)++ = '\0';
+				break;
+				
+			} else if ( (*next)[1] != ' ' ) {
 				*(*next)++ = '\0';
 				break;
 			}
