@@ -89,13 +89,14 @@ main( int argc, char **argv )
 {
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
-    int			rc, i, first, scope, kerberos, deref, attrsonly;
+    int			rc, i, first, scope, deref, attrsonly;
     int			ldap_options, timelimit, sizelimit, authmethod;
     LDAP		*ld;
 
     infile = NULL;
-    verbose = allow_binary = not = kerberos = vals2tmp =
+    verbose = allow_binary = not = vals2tmp =
 	    attrsonly = ldif = 0;
+
 #ifdef LDAP_REFERRALS
     ldap_options = LDAP_OPT_REFERRALS;
 #else /* LDAP_REFERRALS */
@@ -104,14 +105,9 @@ main( int argc, char **argv )
 
     deref = sizelimit = timelimit = -1;
 	scope = LDAP_SCOPE_SUBTREE;
+    authmethod = LDAP_AUTH_SIMPLE;
 
-    while (( i = getopt( argc, argv,
-#ifdef HAVE_KERBEROS
-	    "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
-#else
-	    "nuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
-#endif
-	    )) != EOF ) {
+    while (( i = getopt( argc, argv, "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:")) != EOF ) {
 	switch( i ) {
 	case 'n':	/* do Not do any searches */
 	    ++not;
@@ -126,14 +122,20 @@ main( int argc, char **argv )
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
 	    break;
-#ifdef HAVE_KERBEROS
 	case 'k':	/* use kerberos bind */
-	    kerberos = 2;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
 	case 'K':	/* use kerberos bind, 1st part only */
-	    kerberos = 1;
-	    break;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
 #endif
+	    break;
 	case 'u':	/* include UFN */
 	    ++includeufn;
 	    break;
@@ -272,13 +274,6 @@ main( int argc, char **argv )
 	}
     ld->ld_options = ldap_options;
 
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod =  LDAP_AUTH_KRBV4;
-    }
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
 	exit( 1 );
