@@ -23,7 +23,8 @@ ldbm_back_modrdn(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*matched = NULL;
-	char		*pdn = NULL, *newdn = NULL;
+	char		*p_dn = NULL, *p_ndn = NULL;
+	char		*new_dn = NULL, *new_ndn = NULL;
 	char		sep[2];
 	Entry		*e, *p = NULL;
 	int			rootlock = 0;
@@ -51,9 +52,9 @@ ldbm_back_modrdn(
 	}
 #endif
 
-	if ( (pdn = dn_parent( be, dn )) != NULL ) {
+	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) {
 		/* parent + rdn + separator(s) + null */
-		if( (p = dn2entry_w( be, pdn, &matched )) == NULL) {
+		if( (p = dn2entry_w( be, p_ndn, &matched )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -74,26 +75,28 @@ ldbm_back_modrdn(
 		}
 #endif
 
-		newdn = (char *) ch_malloc( strlen( pdn ) + strlen( newrdn )
+		p_dn = dn_parent( be, e->e_dn );
+		new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn )
 		    + 3 );
-		if ( dn_type( dn ) == DN_X500 ) {
-			strcpy( newdn, newrdn );
-			strcat( newdn, ", " );
-			strcat( newdn, pdn );
+		if ( dn_type( e->e_dn ) == DN_X500 ) {
+			strcpy( new_dn, newrdn );
+			strcat( new_dn, ", " );
+			strcat( new_dn, p_dn );
 		} else {
 			char *s;
-			strcpy( newdn, newrdn );
+			strcpy( new_dn, newrdn );
 			s = strchr( newrdn, '\0' );
 			s--;
 			if ( *s != '.' && *s != '@' ) {
 				if ( (s = strpbrk( dn, ".@" )) != NULL ) {
 					sep[0] = *s;
 					sep[1] = '\0';
-					strcat( newdn, sep );
+					strcat( new_dn, sep );
 				}
 			}
-			strcat( newdn, pdn );
+			strcat( new_dn, p_dn );
 		}
+
 	} else {
 		/* no parent, modrdn entry directly under root */
 		if( ! be_isroot( be, op->o_ndn ) ) {
@@ -107,12 +110,12 @@ ldbm_back_modrdn(
 		pthread_mutex_lock(&li->li_root_mutex);
 		rootlock = 1;
 
-		newdn = ch_strdup( newrdn );
+		new_dn = ch_strdup( newrdn );
 	}
 
-	(void) dn_normalize( newdn );
+	new_ndn = dn_normalize( ch_strdup( new_dn ) );
 
-	if ( (dn2id ( be, newdn ) ) != NOID ) {
+	if ( (dn2id ( be, new_ndn ) ) != NOID ) {
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
 		goto return_results;
 	}
@@ -126,20 +129,22 @@ ldbm_back_modrdn(
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
 	/* add new one */
-	if ( dn2id_add( be, newdn, e->e_id ) != 0 ) {
+	if ( dn2id_add( be, new_ndn, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
 		goto return_results;
 	}
 
 	/* delete old one */
-	if ( dn2id_delete( be, dn ) != 0 ) {
+	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
 		goto return_results;
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
 	free( e->e_dn );
-	e->e_dn = newdn;
+	free( e->e_ndn );
+	e->e_dn = new_dn;
+	e->e_ndn = new_ndn;
 
 	/* XXX
 	 * At some point here we need to update the attribute values in
@@ -161,8 +166,11 @@ ldbm_back_modrdn(
 	rc = 0;
 
 return_results:
-	if( newdn != NULL ) free( newdn );
-	if( pdn != NULL ) free( pdn );
+	if( new_dn != NULL ) free( new_dn );
+	if( new_ndn != NULL ) free( new_ndn );
+	if( p_dn != NULL ) free( p_dn );
+	if( p_ndn != NULL ) free( p_ndn );
+
 	if( matched != NULL ) free( matched );
 
 	if( p != NULL ) {
