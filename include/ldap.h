@@ -709,6 +709,22 @@ LDAP_F LDAP *ldap_init LDAP_P(( char *host, int port ));
 
 
 /*
+ * in messages.c:
+ */
+LDAP_F LDAPMessage *ldap_first_message LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F LDAPMessage *ldap_next_message LDAP_P(( LDAP *ld, LDAPMessage *msg ));
+LDAP_F int ldap_count_messages LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+
+
+/*
+ * in references.c:
+ */
+LDAP_F LDAPMessage *ldap_first_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F LDAPMessage *ldap_next_reference LDAP_P(( LDAP *ld, LDAPMessage *ref ));
+LDAP_F int ldap_count_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+
+
+/*
  * in getentry.c:
  */
 LDAP_F LDAPMessage *ldap_first_entry LDAP_P(( LDAP *ld, LDAPMessage *chain ));
