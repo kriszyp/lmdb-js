@@ -125,10 +125,11 @@ int ldbm_initialize( const char* home )
 #ifdef DB_PRIVATE
 	envFlags |= DB_PRIVATE;
 #endif
+
 #ifdef HAVE_BERKELEY_DB_THREAD
-	envFlags |= DB_THREAD;
-#if DB_VERSION_MAJOR == 2
-	envFlags |= DB_INIT_CDB | DB_INIT_MPOOL;
+	envFlags |= DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
+#ifdef DB_MPOOL_PRIVATE
+	envFlags |= DB_MPOOL_PRIVATE;
 #endif
 #endif
 

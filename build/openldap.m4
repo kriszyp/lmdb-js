@@ -317,6 +317,13 @@ main()
 	int rc;
 	u_int32_t flags = DB_CREATE | DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
 
+#ifdef DB_PRIVATE
+	flags |= DB_PRIVATE;
+#endif
+#ifdef DB_MPOOL_PRIVATE
+	flags |= DB_MPOOL_PRIVATE;
+#endif
+
 #if DB_VERSION_MAJOR > 2
 	DB_ENV *env = NULL;
 
