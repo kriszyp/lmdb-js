@@ -126,7 +126,7 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # berkeley db btree package
 LDBMBACKEND=-DLDBM_USE_DBBTREE
 LDBMINCLUDE=-I/usr/include
-#LDBMLIB=-ldb
+LDBMLIB=-ldb
 # berkeley db hash package
 #LDBMBACKEND=-DLDBM_USE_DBHASH
 #LDBMINCLUDE=-I/usr/local/db/include
