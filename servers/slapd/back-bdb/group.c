@@ -107,7 +107,7 @@ bdb_group(
 	} else {
 dn2entry_retry:
 		/* can we find group entry */
-		rc = bdb_dn2entry_r( be, NULL, gr_ndn, &e, NULL, 0, locker, &lock ); 
+		rc = bdb_dn2entry_r( be, txn, gr_ndn, &e, NULL, 0, locker, &lock ); 
 		if( rc ) {
 			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED )
 				goto dn2entry_retry;

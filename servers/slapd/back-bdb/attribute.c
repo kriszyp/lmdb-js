@@ -97,7 +97,7 @@ bdb_attribute(
 	} else {
 dn2entry_retry:
 		/* can we find entry */
-		rc = bdb_dn2entry_r( be, NULL, entry_ndn, &e, NULL, 0, locker, &lock );
+		rc = bdb_dn2entry_r( be, txn, entry_ndn, &e, NULL, 0, locker, &lock );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
