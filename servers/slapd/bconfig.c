@@ -432,7 +432,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "rootpw", "password", 2, 2, 0, ARG_BERVAL|ARG_DB|ARG_MAGIC,
 		&config_rootpw, "( OLcfgAt:52 NAME 'olcRootPW' "
-			"SYNTAX OMsOctetString SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
 		&config_generic, NULL, NULL, NULL },
 	{ "sasl-host", "host", 2, 2, 0,
@@ -879,6 +879,19 @@ config_generic(ConfigArgs *c) {
 	}
 
  	p = strchr(c->line,'(' /*')'*/);
+	if ( c->op == LDAP_MOD_DELETE ) {
+		int rc = 0;
+		switch(c->type) {
+		case CFG_BACKEND:
+		case CFG_DATABASE:
+			rc = 1;
+			break;
+		case CFG_CONCUR:
+			ldap_pvt_thread_set_concurrency(c);
+			break;
+
+		}
+	}
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
@@ -2621,10 +2634,10 @@ config_find_base( CfEntryInfo *root, struct berval *dn, CfEntryInfo **last )
 	while(root) {
 		*last = root;
 		for (--c;c>dn->bv_val && *c != ',';c--);
-		if ( *c == ',' )
-			c++;
 		cdn.bv_val = c;
-		cdn.bv_len = dn->bv_len - (c-dn->bv_val);
+		if ( *c == ',' )
+			cdn.bv_val++;
+		cdn.bv_len = dn->bv_len - (cdn.bv_val - dn->bv_val);
 
 		root = root->ce_kids;
 
@@ -2880,6 +2893,7 @@ sort_vals( Attribute *a )
 		struct berval tmp, ntmp;
 		char *ptr;
 
+#if 0
 		/* Strip index from normalized values */
 		if ( !a->a_nvals || a->a_vals == a->a_nvals ) {
 			a->a_nvals = ch_malloc( (vals+1)*sizeof(struct berval));
@@ -2898,6 +2912,7 @@ sort_vals( Attribute *a )
 				strcpy(a->a_nvals[i].bv_val, ptr);
 			}
 		}
+#endif
 				
 		indexes = ch_malloc( vals * sizeof(int) );
 		for ( i=0; i<vals; i++)
@@ -2926,15 +2941,17 @@ sort_vals( Attribute *a )
 static int
 check_attr( ConfigTable *ct, ConfigArgs *ca, Attribute *a )
 {
-	int i, rc = 0;
+	int i, rc = 0, sort = 0;
 
 	if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+		sort = 1;
 		rc = sort_vals( a );
 		if ( rc )
 			return rc;
 	}
 	for ( i=0; a->a_nvals[i].bv_val; i++ ) {
 		ca->line = a->a_nvals[i].bv_val;
+		if ( sort ) ca->line = strchr( ca->line, '}' ) + 1;
 		rc = config_parse_vals( ct, ca, i );
 		if ( rc )
 			break;
@@ -3000,7 +3017,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			rval.bv_val = strchr(rdn.bv_val, '=' ) + 1;
 			rval.bv_len = rdn.bv_len - (rval.bv_val - rdn.bv_val);
 			rtype.bv_val = rdn.bv_val;
-			rtype.bv_len = rval.bv_val - rtype.bv_val - 2;
+			rtype.bv_len = rval.bv_val - rtype.bv_val - 1;
 
 			/* Find attr */
 			slap_bv2ad( &rtype, &ad, &text );
@@ -3265,9 +3282,14 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 
 	/* Basic syntax checks are OK. Do the actual settings. */
 	if ( type_ct ) {
-		ca.line = type_attr->a_nvals[0].bv_val;
+		ca.line = type_attr->a_vals[0].bv_val;
+		if ( type_ad->ad_type->sat_flags & SLAP_AT_ORDERED )
+			ca.line = strchr( ca.line, '}' ) + 1;
 		rc = config_parse_add( type_ct, &ca, 0 );
-		if ( rc ) goto leave;
+		if ( rc ) {
+			rc = LDAP_OTHER;
+			goto leave;
+		}
 	}
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == type_attr || a == oc_at ) continue;
@@ -3277,10 +3299,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			if ( ct ) break;
 		}
 		if ( !ct ) continue;	/* user data? */
-		for (i=0; a->a_nvals[i].bv_val; i++) {
-			ca.line = a->a_nvals[i].bv_val;
+		for (i=0; a->a_vals[i].bv_val; i++) {
+			ca.line = a->a_vals[i].bv_val;
+			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED )
+				ca.line = strchr( ca.line, '}' ) + 1;
 			rc = config_parse_add( ct, &ca, i );
-			if ( rc ) goto leave;
+			if ( rc ) {
+				rc = LDAP_OTHER;
+				goto leave;
+			}
 		}
 	}
 ok:
@@ -3382,6 +3409,42 @@ config_back_modify( Operation *op, SlapReply *rs )
 	 * 3) perform the individual config operations.
 	 * 4) store Modified entry in underlying LDIF backend.
 	 */
+	ldap_pvt_thread_pool_resume( &connection_pool );
+out:
+	send_ldap_result( op, rs );
+	return rs->sr_err;
+}
+
+static int
+config_back_modrdn( Operation *op, SlapReply *rs )
+{
+	CfBackInfo *cfb;
+	CfEntryInfo *ce, *last;
+
+	if ( !be_isroot( op ) ) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		send_ldap_result( op, rs );
+	}
+
+	cfb = (CfBackInfo *)op->o_bd->be_private;
+
+	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
+	if ( !ce ) {
+		if ( last )
+			rs->sr_matched = last->ce_entry->e_name.bv_val;
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto out;
+	}
+
+	/* We don't allow moving objects to new parents.
+	 * Generally we only allow reordering a set of ordered entries.
+	 */
+	if ( op->orr_newSup ) {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		goto out;
+	}
+	ldap_pvt_thread_pool_pause( &connection_pool );
+
 	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
@@ -3942,7 +4005,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_op_search = config_back_search;
 	bi->bi_op_compare = 0;
 	bi->bi_op_modify = config_back_modify;
-	bi->bi_op_modrdn = 0;
+	bi->bi_op_modrdn = config_back_modrdn;
 	bi->bi_op_add = config_back_add;
 	bi->bi_op_delete = 0;
 	bi->bi_op_abandon = 0;
