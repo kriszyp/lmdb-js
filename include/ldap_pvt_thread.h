@@ -14,167 +14,14 @@
 #define _LDAP_PVT_THREAD_H
 
 #include "ldap_cdefs.h"
-
-#if defined( HAVE_PTHREADS )
-/**********************************
- *                                *
- * definitions for POSIX Threads  *
- *                                *
- **********************************/
-
-#include <pthread.h>
-#ifdef HAVE_SCHED_H
-#include <sched.h>
-#endif
+#include "ldap_int_thread.h"
 
 LDAP_BEGIN_DECL
 
-typedef pthread_t		ldap_pvt_thread_t;
-typedef pthread_mutex_t		ldap_pvt_thread_mutex_t;
-typedef pthread_cond_t		ldap_pvt_thread_cond_t;
+typedef ldap_int_thread_t ldap_pvt_thread_t;
+typedef ldap_int_thread_mutex_t ldap_pvt_thread_mutex_t;
+typedef ldap_int_thread_cond_t ldap_pvt_thread_cond_t;
 
-#if defined( _POSIX_REENTRANT_FUNCTIONS ) || \
-	defined( _POSIX_THREAD_SAFE_FUNCTIONS ) || \
-	defined( _POSIX_THREADSAFE_FUNCTIONS )
-#define HAVE_REENTRANT_FUNCTIONS 1
-#endif
-
-#if defined( HAVE_PTHREAD_GETCONCURRENCY ) || \
-	defined( HAVE_THR_GETCONCURRENCY )
-#define HAVE_GETCONCURRENCY 1
-#endif
-
-#if defined( HAVE_PTHREAD_SETCONCURRENCY ) || \
-	defined( HAVE_THR_SETCONCURRENCY )
-#define HAVE_SETCONCURRENCY 1
-#endif
-
-LDAP_END_DECL
-
-#elif defined ( HAVE_MACH_CTHREADS )
-/**********************************
- *                                *
- * definitions for Mach CThreads  *
- *                                *
- **********************************/
-
-#include <mach/cthreads.h>
-
-LDAP_BEGIN_DECL
-
-typedef cthread_t		ldap_pvt_thread_t;
-typedef struct mutex		ldap_pvt_thread_mutex_t;
-typedef struct condition	ldap_pvt_thread_cond_t;
-
-LDAP_END_DECL
-
-#elif defined( HAVE_GNU_PTH )
-/***********************************
- *                                 *
- * thread definitions for GNU Pth  *
- *                                 *
- ***********************************/
-
-#define PTH_SYSCALL_SOFT 1
-#include <pth.h>
-
-LDAP_BEGIN_DECL
-
-typedef pth_t		ldap_pvt_thread_t;
-typedef pth_mutex_t	ldap_pvt_thread_mutex_t;
-typedef pth_cond_t	ldap_pvt_thread_cond_t;
-
-LDAP_END_DECL
-
-
-#elif defined( HAVE_THR )
-/********************************************
- *                                          *
- * thread definitions for Solaris LWP (THR) *
- *                                          *
- ********************************************/
-
-#include <thread.h>
-#include <synch.h>
-
-LDAP_BEGIN_DECL
-
-typedef thread_t		ldap_pvt_thread_t;
-typedef mutex_t			ldap_pvt_thread_mutex_t;
-typedef cond_t			ldap_pvt_thread_cond_t;
-
-#define HAVE_REENTRANT_FUNCTIONS 1
-
-#ifdef HAVE_THR_GETCONCURRENCY
-#define HAVE_GETCONCURRENCY 1
-#endif
-#ifdef HAVE_THR_SETCONCURRENCY
-#define HAVE_SETCONCURRENCY 1
-#endif
-
-LDAP_END_DECL
-
-#elif defined( HAVE_LWP )
-/*************************************
- *                                   *
- * thread definitions for SunOS LWP  *
- *                                   *
- *************************************/
-
-#include <lwp/lwp.h>
-#include <lwp/stackdep.h>
-
-LDAP_BEGIN_DECL
-
-typedef thread_t		ldap_pvt_thread_t;
-typedef mon_t			ldap_pvt_thread_mutex_t;
-struct ldap_pvt_thread_lwp_cv {
-	int		lcv_created;
-	cv_t		lcv_cv;
-};
-typedef struct ldap_pvt_thread_lwp_cv ldap_pvt_thread_cond_t;
-
-#define HAVE_REENTRANT_FUNCTIONS 1
-
-LDAP_END_DECL
-
-#elif defined(HAVE_NT_THREADS)
-
-LDAP_BEGIN_DECL
-
-#include <process.h>
-#include <windows.h>
-
-typedef unsigned long	ldap_pvt_thread_t;
-typedef HANDLE	ldap_pvt_thread_mutex_t;
-typedef HANDLE	ldap_pvt_thread_cond_t;
-
-LDAP_END_DECL
-
-#else
-
-/***********************************
- *                                 *
- * thread definitions for no       *
- * underlying library support      *
- *                                 *
- ***********************************/
-
-LDAP_BEGIN_DECL
-
-#ifndef NO_THREADS
-#define NO_THREADS 1
-#endif
-
-typedef int			ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_cond_t;
-
-LDAP_END_DECL
-
-#endif /* no threads support */
-
-LDAP_BEGIN_DECL
 
 LIBLDAP_F( int )
 ldap_pvt_thread_initialize LDAP_P(( void ));
@@ -185,19 +32,15 @@ ldap_pvt_thread_destroy LDAP_P(( void ));
 LIBLDAP_F( unsigned int )
 ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));
 
-#ifdef HAVE_GETCONCURRENCY
 LIBLDAP_F( int )
 ldap_pvt_thread_get_concurrency LDAP_P(( void ));
-#endif
 
-#ifdef HAVE_SETCONCURRENCY
-#	ifndef LDAP_THREAD_CONCURRENCY
+#ifndef LDAP_THREAD_CONCURRENCY
 	/* three concurrent threads should be enough */
-#	define LDAP_THREAD_CONCURRENCY	3
-#	endif
+#define LDAP_THREAD_CONCURRENCY	3
+#endif
 LIBLDAP_F( int )
 ldap_pvt_thread_set_concurrency LDAP_P(( int ));
-#endif
 
 #define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 #define LDAP_PVT_THREAD_CREATE_DETACHED 1
