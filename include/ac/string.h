@@ -89,6 +89,11 @@ int (strncasecmp)();
 		else AC_MEMCPY( (d), (s), (n) ); \
 	} while(0)
 
+#ifdef NEED_MEMCMP_REPLACEMENT
+	int (lutil_memcmp)(const void *b1, const void *b2, size_t len);
+#define memcmp lutil_memcmp
+#endif
+
 #define STRLENOF(s)	(sizeof(s)-1)
 
 #if defined( HAVE_NONPOSIX_STRERROR_R )

@@ -2422,6 +2422,12 @@ AC_DEFINE(LBER_TAG_T,long)
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
+
+if test $ac_cv_func_memcmp_clean = no ; then
+	AC_DEFINE(NEED_MEMCMP_REPLACEMENT,1,
+		[define if memcmp is not 8-bit clean or is otherwise broken])
+fi
+
 dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
