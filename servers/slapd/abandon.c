@@ -101,7 +101,8 @@ do_abandon( Operation *op, SlapReply *rs )
 
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == id ) {
-			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, slap_op, o_next );
+			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops,
+				o, slap_op, o_next );
 			op->o_conn->c_n_ops_pending--;
 			slap_op_free( o );
 			goto done;
@@ -109,11 +110,9 @@ do_abandon( Operation *op, SlapReply *rs )
 	}
 
 done:
-
 	op->orn_msgid = id;
 	for ( i = 0; i < nbackends; i++ ) {
 		op->o_bd = &backends[i];
-
 		if( op->o_bd->be_abandon ) op->o_bd->be_abandon( op, rs );
 	}
 

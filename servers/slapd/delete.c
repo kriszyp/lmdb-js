@@ -42,8 +42,7 @@
 int
 do_delete(
     Operation	*op,
-    SlapReply	*rs
-)
+    SlapReply	*rs )
 {
 	struct berval dn = BER_BVNULL;
 	struct berval pdn = BER_BVNULL;
@@ -88,7 +87,8 @@ do_delete(
 		goto cleanup;
 	} 
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
+		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
@@ -175,21 +175,24 @@ do_delete(
 		slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd,
+			SLAPI_PLUGIN_PRE_DELETE_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_delete: delete preoperation plugin "
-					"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_delete: "
+				"delete preoperation plugin failed\n", 0, 0, 0 );
 #else
-			Debug (LDAP_DEBUG_TRACE, "do_delete: delete preoperation plugin failed.\n",
-					0, 0, 0);
+			Debug (LDAP_DEBUG_TRACE, "do_delete: "
+				"delete preoperation plugin failed.\n", 0, 0, 0);
 #endif
-			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-				 rs->sr_err == LDAP_SUCCESS ) {
+			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE,
+				(void *)&rs->sr_err ) != 0 ) ||
+				rs->sr_err == LDAP_SUCCESS )
+			{
 				rs->sr_err = LDAP_OTHER;
 			}
 			goto cleanup;
@@ -289,19 +292,22 @@ do_delete(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
+		SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0)
+	{
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_delete: delete postoperation plugins "
-				"failed\n", 0, 0, 0 );
+		LDAP_LOG( OPERATION, INFO,
+			"do_delete: delete postoperation plugins failed\n",
+			0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_delete: delete postoperation plugins "
-				"failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_delete: delete postoperation plugins failed\n",
+			0, 0, 0 );
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-
 	slap_graduate_commit_csn( op );
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );

@@ -125,7 +125,7 @@ do_add( Operation *op, SlapReply *rs )
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, 
-				   "do_add: conn %d	 decoding error \n", op->o_connid, 0, 0 );
+				"do_add: conn %d decoding error \n", op->o_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
 #endif
@@ -383,7 +383,6 @@ do_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 done:
-
 	slap_graduate_commit_csn( op );
 
 	if( modlist != NULL ) {

@@ -43,8 +43,7 @@ static int compare_entry(
 int
 do_compare(
     Operation	*op,
-    SlapReply	*rs
-)
+    SlapReply	*rs )
 {
 	Entry *entry = NULL;
 	struct berval dn = BER_BVNULL;
@@ -115,7 +114,8 @@ do_compare(
 		goto cleanup;
 	} 
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
+		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
@@ -148,10 +148,13 @@ do_compare(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"do_compare: dn (%s) attr(%s) value (%s)\n",
-			op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+			op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #else
-		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+		Debug( LDAP_DEBUG_ARGS,
+			"do_compare: dn (%s) attr (%s) value (%s)\n",
+			op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
@@ -174,11 +177,12 @@ do_compare(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"do_compare: dn (%s) attr(%s) value (%s)\n",
-			op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val,
-			ava.aa_value.bv_val );
+			op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+			op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
@@ -206,8 +210,10 @@ do_compare(
 
 		send_ldap_result( op, rs );
 
-		if( rs->sr_err == LDAP_COMPARE_TRUE || rs->sr_err == LDAP_COMPARE_FALSE ) {
-			rs->sr_err = 0;
+		if( rs->sr_err == LDAP_COMPARE_TRUE ||
+			rs->sr_err == LDAP_COMPARE_FALSE )
+		{
+			rs->sr_err = LDAP_SUCCESS;
 		}
 
 		goto cleanup;
@@ -220,7 +226,8 @@ do_compare(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 )) == NULL ) {
+	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
@@ -247,10 +254,12 @@ do_compare(
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
 		"do_compare: dn (%s) attr(%s) value (%s)\n",
-		op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+		op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    op->o_req_dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+	    op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
@@ -266,21 +275,25 @@ do_compare(
 		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
 		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
 
-		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd,
+			SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_compare: compare preoperation plugin "
-					"failed\n", 0, 0, 0);
+			LDAP_LOG( OPERATION, INFO,
+				"do_compare: compare preoperation plugin failed\n",
+				0, 0, 0);
 #else
-			Debug(LDAP_DEBUG_TRACE, "do_compare: compare preoperation plugin "
-					"failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE,
+				"do_compare: compare preoperation plugin failed\n",
+				0, 0, 0);
 #endif
-			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-				 rs->sr_err == LDAP_SUCCESS ) {
+			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
+				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
+			{
 				rs->sr_err = LDAP_OTHER;
 			}
 			goto cleanup;
@@ -297,13 +310,15 @@ do_compare(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
+		SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 )
+	{
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_compare: compare postoperation plugins "
-				"failed\n", 0, 0, 0 );
+		LDAP_LOG( OPERATION, INFO,
+			"do_compare: compare postoperation plugins failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_compare: compare postoperation plugins "
-				"failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_compare: compare postoperation plugins failed\n", 0, 0, 0 );
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -311,8 +326,9 @@ do_compare(
 cleanup:
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( ava.aa_value.bv_val ) op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
-
+	if ( ava.aa_value.bv_val ) {
+		op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
+	}
 	return rs->sr_err;
 }
 
