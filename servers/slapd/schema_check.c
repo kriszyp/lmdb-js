@@ -131,6 +131,35 @@ entry_schema_check(
 
 			break;
 		}
+
+
+		/* there should be at least one value */
+		assert( a->a_vals );
+		assert( a->a_vals[0] != NULL ); 
+
+		/* if single value type, check for multiple values */
+		if( is_at_single_value( a->a_desc->ad_type ) &&
+			a->a_vals[1] != NULL )
+		{
+			char *type = a->a_desc->ad_cname->bv_val;
+
+			snprintf( textbuf, textlen, 
+				"attribute '%s' cannot have multiple values",
+				type );
+
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
+				"entry_schema_check: dn=\"%s\" %s\n",
+				e->e_dn, textbuf ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+			    "Entry (%s), %s\n",
+			    e->e_dn, textbuf, 0 );
+#endif
+
+			ret = LDAP_CONSTRAINT_VIOLATION;
+			break;
+		}
 	}
 
 	return( ret );
