@@ -17,17 +17,17 @@
 
 int
 dnssrv_back_compare(
-    Backend	*be,
-    Connection	*conn,
-    Operation	*op,
-    const char	*dn,
-    const char	*ndn,
-	AttributeAssertion *ava
+	Operation	*op,
+	SlapReply	*rs
 )
 {
+#if 0
 	assert( get_manageDSAit( op ) );
+#endif
+	send_ldap_error( op, rs, LDAP_OTHER,
+			"Operation not supported within naming context" );
 
 	/* not implemented */
 
-	return LDAP_OTHER;
+	return 1;
 }

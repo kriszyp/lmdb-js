@@ -30,13 +30,25 @@ dnssrv_back_search(
 	char *refdn;
 	struct berval nrefdn = { 0, NULL };
 	BerVarray urls = NULL;
+	int manageDSAit;
 
-	assert( get_manageDSAit( op ) );
+	rs->sr_ref = NULL;
+
+	manageDSAit = get_manageDSAit( op );
+	/*
+	 * FIXME: we may return a referral if manageDSAit is not set
+	 */
+	if ( ! manageDSAit ) {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"manageDSAit must be set" );
+		goto done;
+	}
 
 	if( ldap_dn2domain( op->o_req_dn.bv_val, &domain ) || domain == NULL ) {
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_ref = default_referral;
 		send_ldap_result( op, rs );
+		rs->sr_ref = NULL;
 		goto done;
 	}
 
@@ -120,6 +132,7 @@ dnssrv_back_search(
 		rs->sr_matched = refdn;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		send_ldap_result( op, rs );
+		rs->sr_matched = NULL;
 
 	} else if ( op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
 		send_ldap_error( op, rs, LDAP_SUCCESS, NULL );
@@ -196,6 +209,8 @@ dnssrv_back_search(
 			rs->sr_entry = e;
 			rs->sr_attrs = op->oq_search.rs_attrs;
 			send_search_entry( op, rs );
+			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
 		}
 
 		entry_free( e );
@@ -214,3 +229,4 @@ done:
 	if( urls != NULL ) ber_bvarray_free( urls );
 	return 0;
 }
+
