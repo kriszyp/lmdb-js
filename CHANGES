@@ -8,6 +8,7 @@ OpenLDAP 2.2.7 Engineering
 	Fixed undefined attribute name request in back-sql search (ITS#3005)
 	Added ACL set logging (ITS#2949)
 	Fixed erroneous illegal filter handling (ITS#2977)
+	Fixed monitor backend crash when used with overlays (ITS#3023)
 	Documentation
 		Fixed ldapmodrdn(1) manpage (ITS#3003)
 
