@@ -2264,6 +2264,8 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 			return rc;
 	}
 
+	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SSF, (void *)conn->c_ssf);
+
 	return rc;
 }
 #endif /* LDAP_SLAPI */
