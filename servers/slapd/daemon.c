@@ -717,6 +717,7 @@ slapd_daemon_task(
 		ber_socket_t nfds;
 #define SLAPD_EBADF_LIMIT 16
 		int ebadf = 0;
+		int emfile = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 		time_t	now = slap_get_time();
@@ -727,14 +728,14 @@ slapd_daemon_task(
 		Sockaddr		from;
 
 #if defined(SLAPD_RLOOKUPS)
-	struct hostent		*hp;
+		struct hostent		*hp;
 #endif
 		struct timeval		zero;
 		struct timeval		*tvp;
 
-		if( global_idletimeout > 0 && difftime(
+		if( emfile || ( global_idletimeout > 0 && difftime(
 			last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
-			now ) < 0 )
+			now ) < 0 ))
 		{
 			connections_timeout_idle(now);
 		}
@@ -881,13 +882,39 @@ slapd_daemon_task(
 				(struct sockaddr *) &from, &len );
 			if ( s == AC_SOCKET_INVALID ) {
 				int err = sock_errno();
-				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%ld) failed errno=%d (%s)\n",
-				    (long) slap_listeners[l]->sl_sd, err,
-				    sock_errstr(err) );
+
+#ifdef EMFILE
+				if( err == EMFILE ) {
+					emfile++;
+				} else
+#endif
+#ifdef ENFILE
+				if( err == ENFILE ) {
+					emfile++;
+				} else 
+#endif
+				{
+					emfile=0;
+				}
+
+				if( emfile < 3 ) {
+					Debug( LDAP_DEBUG_ANY,
+					    "daemon: accept(%ld) failed errno=%d (%s)\n",
+					    (long) slap_listeners[l]->sl_sd, err,
+					    sock_errstr(err) );
+				} else {
+					/* prevent busy loop */
+#  ifdef HAVE_USLEEP
+					if( emfile % 4 == 3 ) usleep( 250 );
+#  else
+					if( emfile % 8 == 7 ) sleep( 1 );
+#  endif
+				}
+
 				ldap_pvt_thread_yield();
 				continue;
 			}
+			emfile = 0;
 
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
@@ -895,6 +922,7 @@ slapd_daemon_task(
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %ld beyond descriptor table size %ld\n",
 					(long) s, (long) dtblsize, 0 );
+
 				slapd_close(s);
 				ldap_pvt_thread_yield();
 				continue;
