@@ -57,7 +57,9 @@ rewrite_subst_compile(
 		 */
 		if ( p[ 0 ] != REWRITE_SUBMATCH_ESCAPE ) {
 			continue;
-		} else if ( p[ 1 ] == REWRITE_SUBMATCH_ESCAPE ) {
+		} 
+		if ( p[ 1 ] == REWRITE_SUBMATCH_ESCAPE ) {
+			memmove(p, p + 1, strlen( p ) );
 			continue;
 		}
 
