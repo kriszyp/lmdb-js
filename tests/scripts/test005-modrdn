@@ -74,8 +74,7 @@ fi
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones III)..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'cn=James A Jones III' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    > $SEARCHOUT 2>&1
+	    'cn=James A Jones III' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
@@ -102,8 +101,7 @@ fi
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones II)..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'cn=James A Jones II' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    >  $SEARCHOUT 2>&1
+	    'cn=James A Jones II' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
@@ -132,13 +130,18 @@ fi
 
 echo "Using ldapsearch to retrieve entries using removed rdn (cn=James A Jones 2)..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'cn=James A Jones 2' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    > /dev/null 2>&1
+	    'cn=James A Jones 2' > $SEARCHOUT 2>&1
 RC=$?
-if test $RC = 0 ; then
+if test $RC != 0 ; then
+	kill -HUP $PID
+	echo "ldapsearch failed!"
+	exit $RC
+fi
+cmp $SEARCHOUT /dev/null
+if test $? != 0 ; then
 	echo "failure: ldapsearch found attribute that was to be removed!"
 	kill -HUP $PID
-	exit $RC
+	exit 1
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
@@ -183,8 +186,7 @@ fi
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones 1)..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'cn=James A Jones 1' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    >  $SEARCHOUT 2>&1
+	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
