@@ -205,7 +205,7 @@ int get_ctrls(
 return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_RESULTS,
-		   "get_ctrls: conn %s	%d %d %s\n",
+		   "get_ctrls: conn %d	%d %d %s\n",
 		   conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: %d %d %s\n",
