@@ -31,7 +31,7 @@ ldbm_back_exop_passwd(
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-	int rc, locked=0;
+	int rc;
 	Entry *e = NULL;
 	struct berval hash = { 0, NULL };
 

@@ -24,7 +24,6 @@ dnssrv_back_db_config(
     char	**argv )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-	char *port;
 
 	if ( li == NULL ) {
 		fprintf( stderr, "%s: line %d: DNSSRV backend info is null!\n",

@@ -38,6 +38,7 @@ ldbm_back_attribute(
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 	struct berval *iv, *jv;
 	AccessControlState acl_state = ACL_STATE_INIT;
+	int nvals = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -179,6 +180,8 @@ ldbm_back_attribute(
 		if( jv->bv_val != NULL ) jv++;
 	}
 
+	nvals = jv - v;
+
 	if( jv == v ) {
 		ch_free( v );
 		*vals = NULL;
@@ -198,11 +201,11 @@ return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "ldbm_back_attribute: rc=%d nvals=%d.\n",
-		   rc, jv - v ));
+		   rc, nvals ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldbm_back_attribute: rc=%d nvals=%d\n",
-		rc, jv - v, 0 ); 
+		rc, nvals, 0 ); 
 #endif
 
 	return(rc);

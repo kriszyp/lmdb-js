@@ -223,7 +223,7 @@ op_ldap_modify(
     int		state;	/* This code is a simple-minded state machine */
     int		nvals;	/* Number of values we're modifying */
     int		nops;	/* Number of LDAPMod structs in ldmarr */
-    LDAPMod	*ldm, **ldmarr;
+    LDAPMod	*ldm = NULL, **ldmarr;
     int		i, len;
     char	*type, *value;
     int		rc = 0;
@@ -288,6 +288,8 @@ op_ldap_modify(
 			type, 0, 0 );
 		continue;
 	    }
+
+	    assert( ldm );
 
 	    /*
 	     * We should have an attribute: value pair here.
@@ -369,7 +371,7 @@ op_ldap_modrdn(
 	int		lderr = 0;
     int		state = 0;
     int		drdnflag = -1;
-    char	*newrdn;
+    char	*newrdn = NULL;
 	char	*newsup = NULL;
 
     if ( re->re_mods == NULL ) {
@@ -461,6 +463,8 @@ op_ldap_modrdn(
 	free( buf2 );
     }
 #endif /* LDAP_DEBUG */
+
+    assert( newrdn );
 
     /* Do the modrdn */
     rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );

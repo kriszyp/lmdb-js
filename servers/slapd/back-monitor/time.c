@@ -41,8 +41,10 @@
 #include "proto-slap.h"
 #include "back-monitor.h"
 
+#ifdef HACK_LOCAL_TIME
 static int
 local_time( const struct tm *ztm, long delta, char *buf, size_t len );
+#endif /* HACK_LOCAL_TIME */
 
 int
 monitor_subsys_time_init(
@@ -236,11 +238,13 @@ monitor_subsys_time_update(
 #ifdef HACK_LOCAL_TIME
 	char		ltmbuf[20];
 	struct tm	*
-#endif
+#endif /* HACK_LOCAL_TIME */
 	time_t		currenttime;
 	Attribute	*a;
+#ifdef HACK_LOCAL_TIME
 	static AttributeDescription	*ad_local = NULL;
 	const char	*text = NULL;
+#endif /* HACK_LOCAL_TIME */
 	ber_len_t	len;
 
 	static int	init_start = 0;
@@ -304,6 +308,7 @@ monitor_subsys_time_update(
 	return( 0 );
 }
 
+#ifdef HACK_LOCAL_TIME
 /*
  * assumes gmtime_mutex is locked
  */
@@ -331,4 +336,5 @@ local_time( const struct tm *ltm, long delta, char *buf, size_t len )
 	
 	return 0;
 }
+#endif /* HACK_LOCAL_TIME */
 

@@ -55,11 +55,11 @@ get_limits(
 				break;
 			}
 
-			d = ndn->bv_len - lm[0]->lm_dn_pat.bv_len;
 			/* ndn shorter than dn_pat */
-			if ( d < 0 ) {
+			if ( ndn->bv_len < lm[0]->lm_dn_pat.bv_len ) {
 				break;
 			}
+			d = ndn->bv_len - lm[0]->lm_dn_pat.bv_len;
 
 			/* allow exact match for SUBTREE only */
 			if ( d == 0 ) {

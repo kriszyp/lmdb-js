@@ -37,8 +37,8 @@ rewrite_var_cmp(
 {
 	const struct rewrite_var *v1, *v2;
 
-	v1 = ( struct rewrite_var * )c1;
-	v2 = ( struct rewrite_var * )c2;
+	v1 = ( const struct rewrite_var * )c1;
+	v2 = ( const struct rewrite_var * )c2;
 	
 	assert( v1 != NULL );
 	assert( v2 != NULL );

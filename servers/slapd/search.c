@@ -212,7 +212,7 @@ do_search(
 #endif
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
+	    "conn=%lu op=%lu SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, pbase.bv_val, scope, fstr.bv_val );
 
 	manageDSAit = get_manageDSAit( op );

@@ -99,7 +99,7 @@ monitor_subsys_backend_init(
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "
-				"unable to create entry 'Backend cn=%d,%s'\n%s",
+				"unable to create entry 'cn=Backend %d,%s'\n%s",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val,
 				"" );

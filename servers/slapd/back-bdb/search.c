@@ -600,7 +600,6 @@ static int search_candidates(
 	Filter	af;
 	AttributeAssertion aa_alias;
 #endif
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/*
 	 * This routine takes as input a filter (user-filter)

@@ -28,7 +28,6 @@ tcl_back_db_config (
 )
 {
 	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
-	int script_loaded = 0;
 
 	if (ti == NULL) {
 		fprintf (stderr,
@@ -48,7 +47,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->script_path = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_script_path );
 
 		/* use local interpreter */
 	} else if (strcasecmp (argv[0], "tclrealm") == 0) {
@@ -90,7 +89,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_bind = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_bind );
 
 		/* proc for unbinds */
 	} else if (strcasecmp (argv[0], "unbind") == 0) {
@@ -100,7 +99,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_unbind = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_unbind );
 
 		/* proc for search */
 	} else if (strcasecmp (argv[0], "search") == 0) {
@@ -110,7 +109,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_search = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_search );
 
 		/* proc for compares */
 	} else if (strcasecmp (argv[0], "compare") == 0) {
@@ -120,7 +119,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_compare = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_compare );
 
 		/* proc for modify */
 	} else if (strcasecmp (argv[0], "modify") == 0) {
@@ -130,7 +129,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_modify = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_modify );
 
 		/* proc for modrdn */
 	} else if (strcasecmp (argv[0], "modrdn") == 0) {
@@ -140,7 +139,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_modrdn = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_modrdn );
 
 		/* proc for add */
 	} else if (strcasecmp (argv[0], "add") == 0) {
@@ -150,7 +149,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_add = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_add );
 
 		/* proc for delete */
 	} else if (strcasecmp (argv[0], "delete") == 0) {
@@ -160,7 +159,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_delete = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_delete );
 
 		/* proc for abandon */
 	} else if (strcasecmp (argv[0], "abandon") == 0) {
@@ -170,7 +169,7 @@ tcl_back_db_config (
 				fname, lineno, 0);
 			return (1);
 		}
-		ti->ti_search = (char *) ch_strdup (argv[1]);
+		ber_str2bv( argv[1], 0, 1, &ti->ti_abandon );
 
 	} else {
 		Debug (LDAP_DEBUG_CONFIG,

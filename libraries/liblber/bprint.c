@@ -210,7 +210,7 @@ ber_bprint(
 		
 		off = BP_GRAPH + n + ((n >= 8)?1:0);
 
-		if ( isprint( data[i] )) {
+		if ( isprint( (unsigned char) data[i] )) {
 			line[ BP_GRAPH + n ] = data[i];
 		} else {
 			line[ BP_GRAPH + n ] = '.';

@@ -33,7 +33,7 @@ dnssrv_back_bind(
 		
 	if( method == LDAP_AUTH_SIMPLE && cred != NULL && cred->bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,
-		   	"conn=%ld op=%d DNSSRV BIND dn=\"%s\" provided passwd\n",
+		   	"conn=%lu op=%lu DNSSRV BIND dn=\"%s\" provided passwd\n",
 	   		 op->o_connid, op->o_opid,
 			dn->bv_val == NULL ? "" : dn->bv_val , 0, 0 );
 

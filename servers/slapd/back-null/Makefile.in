@@ -1,0 +1,26 @@
+SRCS = null.c
+OBJS = null.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-null"
+BUILD_MOD = @BUILD_NULL@
+BUILD_MOD_DYNAMIC = @BUILD_NULL_DYNAMIC@
+
+mod_DEFS = -DSLAPD_IMPORT
+MOD_DEFS = $(@BUILD_NULL@_DEFS)
+
+shared_LDAP_LIBS = $(LDAP_LIBPATH) -lldap_r -llber
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+
+LIBBASE = back_null
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

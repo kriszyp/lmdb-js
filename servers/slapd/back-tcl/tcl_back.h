@@ -29,21 +29,22 @@ struct i_info {
 extern struct i_info *global_i;
 
 struct tclinfo {
-	char *script_path;
+	struct berval ti_script_path;
 	struct i_info *ti_ii;
-	char *ti_bind;
-	char *ti_unbind;
-	char *ti_search;
-	char *ti_compare;
-	char *ti_modify;
-	char *ti_modrdn;
-	char *ti_add;
-	char *ti_delete;
-	char *ti_abandon;
+	struct berval ti_bind;
+	struct berval ti_unbind;
+	struct berval ti_search;
+	struct berval ti_compare;
+	struct berval ti_modify;
+	struct berval ti_modrdn;
+	struct berval ti_add;
+	struct berval ti_delete;
+	struct berval ti_abandon;
 };
 
 void readtclscript (char *script, Tcl_Interp * my_tcl);
 char *tcl_clean_entry (Entry * e);
+struct berval *tcl_merge_bvlist (struct berval **bvlist, struct berval *out);
 
 int tcl_ldap_debug (
 	ClientData clientData,

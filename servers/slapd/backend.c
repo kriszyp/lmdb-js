@@ -44,6 +44,9 @@
 #if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
 #include "back-monitor/external.h"
 #endif
+#if defined(SLAPD_NULL) && !defined(SLAPD_NULL_DYNAMIC)
+#include "back-null/external.h"
+#endif
 #if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 #include "back-passwd/external.h"
 #endif
@@ -81,6 +84,9 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
 	{"monitor",	monitor_back_initialize},
+#endif
+#if defined(SLAPD_NULL) && !defined(SLAPD_NULL_DYNAMIC)
+	{"null",	null_back_initialize},
 #endif
 #if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 	{"passwd",	passwd_back_initialize},

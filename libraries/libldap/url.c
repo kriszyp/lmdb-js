@@ -891,7 +891,7 @@ ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 	if (url == NULL)
 		return LDAP_PARAM_ERROR;
 
-	urls = ldap_str2charray((char *)url, ", ");
+	urls = ldap_str2charray(url, ", ");
 	if (urls == NULL)
 		return LDAP_NO_MEMORY;
 
@@ -928,7 +928,7 @@ ldap_url_parsehosts(
 	if (hosts == NULL)
 		return LDAP_PARAM_ERROR;
 
-	specs = ldap_str2charray((char *)hosts, ", ");
+	specs = ldap_str2charray(hosts, ", ");
 	if (specs == NULL)
 		return LDAP_NO_MEMORY;
 

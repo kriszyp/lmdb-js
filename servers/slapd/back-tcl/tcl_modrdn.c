@@ -34,39 +34,48 @@ tcl_back_modrdn (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	const char *dn,
-	const char *ndn,
-	const char *newrdn,
+	struct berval *dn,
+	struct berval *ndn,
+	struct berval *newrdn,
+	struct berval *nnewrdn,
 	int deleteoldrdn,
-	const char *newSuperior
+	struct berval *newSuperior,
+	struct berval *nnewSuperior
 )
 {
-	char *command, *suf_tcl, *results;
-	int i, code, err = 0;
+	char *command, *results;
+	struct berval suf_tcl;
+	int code, err = 0;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
-	if (ti->ti_modrdn == NULL) {
+	if (ti->ti_modrdn.bv_len == 0) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"modrdn not implemented", NULL, NULL );
 		return (-1);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+			NULL, NULL, NULL );
+		return (-1);
+	}
 
-	command = (char *) ch_malloc (strlen (ti->ti_modrdn) + strlen (suf_tcl)
-		+ strlen (dn) + strlen (newrdn)
-		+ (newSuperior ? strlen(newSuperior) : 0) + 64);
+	command = (char *) ch_malloc (ti->ti_modrdn.bv_len + suf_tcl.bv_len
+		+ dn->bv_len + newrdn->bv_len
+		+ (newSuperior ? newSuperior->bv_len : 0) + 64);
 	if ( newSuperior ) {
 		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d {%s}",
-			 ti->ti_add, op->o_msgid, suf_tcl, dn, newrdn,
-			 deleteoldrdn ? 1 : 0, newSuperior );
+			 ti->ti_modrdn.bv_val, (long) op->o_msgid, 
+			 suf_tcl.bv_val, dn->bv_val,
+			 newrdn->bv_val, deleteoldrdn ? 1 : 0, 
+			 newSuperior->bv_val );
 	} else {
 		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d",
-			 ti->ti_add, op->o_msgid, suf_tcl, dn, newrdn,
-			 deleteoldrdn ? 1 : 0 );
+			 ti->ti_modrdn.bv_val, (long) op->o_msgid, 
+			 suf_tcl.bv_val, dn->bv_val,
+			 newrdn->bv_val, deleteoldrdn ? 1 : 0 );
 	}	
-	Tcl_Free (suf_tcl);
+	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);

@@ -38,7 +38,6 @@ main( int argc, char *argv[] )
 {
 	int c;
 	int debug=0;
-	char *filter=NULL;
 
     while( (c = getopt( argc, argv, "d:" )) != EOF ) {
 		switch ( c ) {

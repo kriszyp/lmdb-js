@@ -101,7 +101,7 @@ rewrite_subst_compile(
 		/*
 		 * Substitution pattern
 		 */
-		if ( isdigit( p[ 1 ] ) ) {
+		if ( isdigit( (unsigned char) p[ 1 ] ) ) {
 			int d = p[ 1 ] - '0';
 			struct rewrite_submatch **tmpsm;
 

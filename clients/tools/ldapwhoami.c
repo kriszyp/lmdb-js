@@ -93,7 +93,6 @@ main( int argc, char *argv[] )
 	int		use_tls = 0;
 	int		referrals = 0;
 	LDAP	       *ld = NULL;
-	struct berval *bv = NULL;
 
 	int id, code = LDAP_OTHER;
 	LDAPMessage *res;

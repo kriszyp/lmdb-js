@@ -16,32 +16,38 @@
 #include "slap.h"
 #include "tcl_back.h"
 
+int
 tcl_back_delete (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	const char *dn,
-	const char *ndn
+	struct berval *dn,
+	struct berval *ndn
 )
 {
-	char *command, *suf_tcl, *results;
-	int i, code, err = 0;
+	char *command, *results;
+	struct berval suf_tcl;
+	int code, err = 0;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
-	if (ti->ti_delete == NULL) {
+	if (ti->ti_delete.bv_len == 0) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"delete not implemented", NULL, NULL );
 		return (-1);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+			NULL, NULL, NULL );
+		return (-1);
+	}
 
-	command = (char *) ch_malloc (strlen (ti->ti_delete) + strlen (suf_tcl)
-		+ strlen (dn) + 64);
+	command = (char *) ch_malloc (ti->ti_delete.bv_len + suf_tcl.bv_len
+		+ dn->bv_len + 64);
 	sprintf (command, "%s DELETE {%ld} {%s} {%s}",
-		ti->ti_delete, op->o_msgid, suf_tcl, dn);
-	Tcl_Free (suf_tcl);
+		ti->ti_delete.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
+		dn->bv_val);
+	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);

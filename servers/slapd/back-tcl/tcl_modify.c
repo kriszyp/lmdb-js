@@ -21,77 +21,88 @@ tcl_back_modify (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	const char *dn,
-	const char *ndn,
-	LDAPModList * modlist
+	struct berval *dn,
+	struct berval *ndn,
+	Modifications * modlist
 )
 {
-	char *command, *suf_tcl, *bp, *tcl_mods, *results;
+	char *command, *bp, *tcl_mods, *results;
+	struct berval suf_tcl;
 	int i, code, err = 0, len, bsize;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
-	if (ti->ti_modify == NULL) {
+	if (ti->ti_modify.bv_len == 0) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"modify not implemented", NULL, NULL );
 		return (-1);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+			NULL, NULL, NULL );
+		return (-1);
+	}
 
 	tcl_mods = (char *) ch_malloc (BUFSIZ);
 	tcl_mods[0] = '\0';
 	bsize = BUFSIZ;
 	bp = tcl_mods;
 
-	for (; modlist != NULL; modlist = modlist->ml_next) {
-		LDAPMod *mods = &modlist->ml_mod;
-		char *op = NULL;
+	for (; modlist != NULL; modlist = modlist->sml_next) {
+		Modification *mods = &modlist->sml_mod;
+		const struct berval 
+			op_add = { sizeof("add") - 1, "add" },
+			op_delete = { sizeof("delete") - 1, "delete" },
+			op_replace = { sizeof("replace") - 1, "replace" },
+			*op = NULL;
 
-		switch (mods->mod_op & ~LDAP_MOD_BVALUES) {
+		switch (mods->sm_op & ~LDAP_MOD_BVALUES) {
 		case LDAP_MOD_ADD:
-			op = "add";
+			op = &op_add;
 			break;
 		case LDAP_MOD_DELETE:
-			op = "delete";
+			op = &op_delete;
 			break;
 		case LDAP_MOD_REPLACE:
-			op = "replace";
+			op = &op_replace;
 			break;
+		default:
+			assert(0);
 		}
 
-		len = strlen (mods->mod_type) + strlen (op) + 7;
+		len = mods->sm_type.bv_len + op->bv_len + 7;
 		while (bp + len - tcl_mods > bsize) {
 			bsize += BUFSIZ;
 			tcl_mods = (char *) ch_realloc (tcl_mods, bsize);
 		}
-		sprintf (bp, "{ {%s: %s} ", op, mods->mod_type);
+		sprintf (bp, "{ {%s: %s} ", op->bv_val, mods->sm_type.bv_val);
 		bp += len;
 		for (i = 0;
-			mods->mod_bvalues != NULL && mods->mod_bvalues[i]
+			mods->sm_bvalues != NULL && mods->sm_bvalues[i].bv_val
 			!= NULL;
 			i++) {
-			len = strlen (mods->mod_type) + strlen (
-				mods->mod_bvalues[i]->bv_val) + 5 +
-				(mods->mod_bvalues[i + 1] == NULL ? 2 : 0);
+			len = mods->sm_type.bv_len +
+				mods->sm_bvalues[i].bv_len + 5 +
+				(mods->sm_bvalues[i + 1].bv_val == NULL ? 2 : 0);
 			while (bp + len - tcl_mods > bsize) {
 				bsize += BUFSIZ;
 				tcl_mods = (char *) ch_realloc (tcl_mods, bsize);
 			}
-			sprintf (bp, "{%s: %s} %s", mods->mod_type,
-				mods->mod_bvalues[i]->bv_val,
-				mods->mod_bvalues[i + 1] ==
+			sprintf (bp, "{%s: %s} %s", mods->sm_type.bv_val,
+				mods->sm_bvalues[i].bv_val,
+				mods->sm_bvalues[i + 1].bv_val ==
 				NULL ? "} " : "");
 			bp += len;
 		}
 	}
 
-	command = (char *) ch_malloc (strlen (ti->ti_modify) + strlen (suf_tcl)
-		+ strlen (dn) + strlen (tcl_mods) + 64);
+	command = (char *) ch_malloc (ti->ti_modify.bv_len + suf_tcl.bv_len
+		+ dn->bv_len + strlen (tcl_mods) + 64);
 	/* This space is simply for aesthetics--\  */
 	sprintf (command, "%s MODIFY {%ld} {%s} {%s} { %s}",
-		ti->ti_modify, op->o_msgid, suf_tcl, dn, tcl_mods);
-	Tcl_Free (suf_tcl);
+		ti->ti_modify.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
+		dn->bv_val, tcl_mods);
+	Tcl_Free (suf_tcl.bv_val);
 	free (tcl_mods);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

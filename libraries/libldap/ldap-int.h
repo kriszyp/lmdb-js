@@ -128,6 +128,7 @@ struct ldapoptions {
 #define LDAP_UNINITIALIZED	0x0
 #define LDAP_INITIALIZED	0x1
 #define LDAP_VALID_SESSION	0x2
+	int   ldo_debug;
 #ifdef LDAP_CONNECTIONLESS
 #define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
 	void*			ldo_peer;	/* struct sockaddr* */
@@ -135,7 +136,6 @@ struct ldapoptions {
 	int			ldo_is_udp;
 #endif
 
-	int		ldo_debug;
 	/* per API call timeout */
 	struct timeval		*ldo_tm_api;
 	struct timeval		*ldo_tm_net;

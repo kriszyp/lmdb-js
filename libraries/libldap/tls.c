@@ -906,7 +906,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 	alt = X509V3_EXT_d2i(ex);
 	if (alt)
 	{
-	    int n, len1, len2;
+	    int n, len1, len2 = 0;
 	    char *domain;
 	    GENERAL_NAME *gn;
 	    X509V3_EXT_METHOD *method;

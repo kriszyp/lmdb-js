@@ -253,7 +253,7 @@ rewrite_map_parse(
 			 * '\' followed by a digit may mark the beginning
 			 * of an old map
 			 */
-			} else if ( isdigit( p[ 1 ] ) && p[ 2 ] == '{' ) {
+			} else if ( isdigit( (unsigned char) p[ 1 ] ) && p[ 2 ] == '{' ) {
 				cnt++;
 				p++;
 			}
@@ -329,12 +329,12 @@ rewrite_map_parse(
 	/*
 	 * Check the syntax of the variable name
 	 */
-	if ( !isalpha( p[ 0 ] ) ) {
+	if ( !isalpha( (unsigned char) p[ 0 ] ) ) {
 		free( s );
 		return NULL;
 	}
 	for ( p++; p[ 0 ] != '\0'; p++ ) {
-		if ( !isalnum( p[ 0 ] ) ) {
+		if ( !isalnum( (unsigned char) p[ 0 ] ) ) {
 			free( s );
 			return NULL;
 		}

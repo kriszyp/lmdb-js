@@ -155,7 +155,7 @@ do_compare(
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
 			op->o_connid, op->o_opid, pdn.bv_val,
 			ava.aa_desc->ad_cname.bv_val, 0 );
 
@@ -183,7 +183,7 @@ do_compare(
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
 			op->o_connid, op->o_opid, pdn.bv_val,
 			ava.aa_desc->ad_cname.bv_val, 0 );
 
@@ -258,7 +258,7 @@ do_compare(
 	    pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, pdn.bv_val,
 		ava.aa_desc->ad_cname.bv_val, 0 );
 

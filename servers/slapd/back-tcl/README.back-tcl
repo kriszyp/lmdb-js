@@ -11,7 +11,7 @@ suffix          o=Suffix
 # The full path to the tcl script used for this database
 scriptpath      /usr/lib/ldap/database.tcl
 
-# The procs for each ldap function. This similar to how
+# The procs for each ldap function. This is similar to how
 # the shell backend setup works, but these refer to
 # the tcl procs in the 'scriptpath' script that handle them
 search          <proc>
@@ -25,12 +25,12 @@ compare		<proc>
 abandon		<proc>
 
 # This is one of the biggest pluses of using the tcl backend.
-# The realm let's you group several databases to the same interpretor.
+# The realm let's you group several databases to the same interpreter.
 # This basically means they share the same global variables and proc
-# space. So global variables, as well as all the procs are callable
+# space. So global variables, as well as all the procs, are callable
 # between databases. If no tclrealm is specified, it is put into the
 # "default" realm.
-tclrealm        <interpretor name>
+tclrealm        <interpreter name>
 
 
 -----------------------------------------
@@ -42,14 +42,14 @@ abandon { action msgid suffix }
 	action - Always equal to ABANDON
 	msgid  - The msgid of this ldap session
 	suffix - List of suffix(es) associated with the call. Each one is
-		 and entry in a tcl formatted list (surrounded by {}'s)
+		 an entry in a tcl formatted list (surrounded by {}'s)
 
 add { action msgid suffix entry }
 
 	action - Always equal to ADD
 	msgid  - The msgid of this ldap session
 	suffix - List of suffix(es) associated with the call. Each one is
-		 and entry in a tcl formatted list (surrounded by {}'s)
+		 an entry in a tcl formatted list (surrounded by {}'s)
 	entry  - Full entry to add. Each "type: val" is an element in a
 		 tcl formatted list.
 
@@ -58,7 +58,7 @@ bind { action msgid suffix dn method cred_len cred }
 	action   - Always equal to BIND
 	msgid    - The msgid of this ldap session
 	suffix   - List of suffix(es) associated with the call. Each one
-		   is and entry in a tcl formatted list (surrounded by {}'s)
+		   is an entry in a tcl formatted list (surrounded by {}'s)
 	dn       - DN being bound to
 	method   - One of the ldap authentication methods
 	cred_len - Length of cred
@@ -156,25 +156,25 @@ This is best accomplished with this type of tcl code
   lappend ret_val ""
   return $ret_val
 
-The final empty string (item in list) is neccesary to point to the end of
-list. The 'code', 'matched', and 'info' values are not neccesary, and
+The final empty string (item in list) is necessary to point to the end of
+list. The 'code', 'matched', and 'info' values are not necessary, and
 default values are given if not specified. The 'code' value is usually an
 LDAP error in decimal notation from ldap.h. The 'info', may be sent back
 to the client, depending on the function. LDAP uses the value of 'code' to
 indicate whether or not the authentication is acceptible in the bind proc.
 
 The other type of return is for searches. It is similar format to the
-shell backend return (as is most of the syntax here). It's format follows:
+shell backend return (as is most of the syntax here). Its format follows:
 
     {dn: o=Company, c=US} {attr: val} {objectclass: val} {}
     {dn: o=CompanyB, c=US} {attr: val} {objectclass: val} {}
 
 Again, newlines are for visual purposes here. Also note the {} marking the
-end of the entry (same affect as a newline in ldif format). Here is some
+end of the entry (same effect as a newline in ldif format). Here is some
 example code again, showing a full search proc example.
 
-# Note that 'args' let's you lump all possible args into one var, used
-# here for simplicity of exmaple
+# Note that 'args' lets you lump all possible args into one var, used
+# here for simplicity of example
 proc ldap:search { args } {
   # perform some operations
 
@@ -191,7 +191,7 @@ proc ldap:search { args } {
   return $ret_val
 }
 
-NOTE: Newlines in the return value is acceptible in search entries (ie.
+NOTE: Newlines in the return value is acceptable in search entries (i.e.
 when returning base64 encoded binary entries).
 
 
@@ -201,6 +201,6 @@ Synopsis of Builtin Commands and Vars
 
 ldap:debug <msg>
 
-  Allows you to send debug messages through OpenLDAP's native debuging
+  Allows you to send debug messages through OpenLDAP's native debugging
   system, this is sent as a LDAP_DEBUG_ANY and will be logged. Useful for
   debugging scripts or logging bind failures.

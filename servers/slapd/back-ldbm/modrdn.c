@@ -53,7 +53,6 @@ ldbm_back_modrdn(
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int		isroot = -1;
-	int		rootlock = 0;
 #define CAN_ROLLBACK	-1
 #define MUST_DESTROY	1
 	int		rc = CAN_ROLLBACK;

@@ -115,7 +115,8 @@ main( int argc, char **argv )
 			if( sc == NULL ) {
 				struct berval vals[2];
 
-				int ret = structural_class( oc->a_vals, vals,
+				/* int ret = */ 
+					structural_class( oc->a_vals, vals,
 					NULL, &text, textbuf, textlen );
 
 				if( vals[0].bv_len == 0 ) {

@@ -1844,11 +1844,12 @@ integerNormalize(
 	}
 	else {
 		normalized->bv_len = len+negative;
-		normalized->bv_val = ch_malloc( normalized->bv_len );
+		normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
 		if( negative ) {
 			normalized->bv_val[0] = '-';
 		}
 		AC_MEMCPY( normalized->bv_val + negative, p, len );
+		normalized->bv_val[len+negative] = '\0';
 	}
 
 	return LDAP_SUCCESS;
@@ -1865,19 +1866,45 @@ static int integerIndexer(
 	BerVarray *keysp )
 {
 	int i;
+	size_t slen, mlen;
 	BerVarray keys;
-
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0].bv_val != NULL );
+	HASH_CONTEXT   HASHcontext;
+	unsigned char	HASHdigest[HASH_BYTES];
+	struct berval digest;
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		/* empty -- just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
+
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		integerNormalize( syntax, &values[i], &keys[i] );
+		struct berval norm;
+		integerNormalize( syntax, &values[i], &norm );
+
+		HASH_Init( &HASHcontext );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			HASH_Update( &HASHcontext,
+				prefix->bv_val, prefix->bv_len );
+		}
+		HASH_Update( &HASHcontext,
+			syntax->ssyn_oid, slen );
+		HASH_Update( &HASHcontext,
+			mr->smr_oid, mlen );
+		HASH_Update( &HASHcontext,
+			norm.bv_val, norm.bv_len );
+		HASH_Final( HASHdigest, &HASHcontext );
+
+		ber_dupbv( &keys[i], &digest );
+		ch_free( norm.bv_val );
 	}
 
 	keys[i].bv_val = NULL;
@@ -1895,13 +1922,40 @@ static int integerFilter(
 	void * assertValue,
 	BerVarray *keysp )
 {
+	size_t slen, mlen;
 	BerVarray keys;
+	HASH_CONTEXT   HASHcontext;
+	unsigned char	HASHdigest[HASH_BYTES];
+	struct berval norm;
+	struct berval digest;
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
+
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
+
+	integerNormalize( syntax, assertValue, &norm );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
-	integerNormalize( syntax, assertValue, &keys[0] );
-	keys[1].bv_val = NULL;
-	*keysp = keys;
 
+	HASH_Init( &HASHcontext );
+	if( prefix != NULL && prefix->bv_len > 0 ) {
+		HASH_Update( &HASHcontext,
+			prefix->bv_val, prefix->bv_len );
+	}
+	HASH_Update( &HASHcontext,
+		syntax->ssyn_oid, slen );
+	HASH_Update( &HASHcontext,
+		mr->smr_oid, mlen );
+	HASH_Update( &HASHcontext,
+		norm.bv_val, norm.bv_len );
+	HASH_Final( HASHdigest, &HASHcontext );
+
+	ber_dupbv( &keys[0], &digest );
+	keys[1].bv_val = NULL;
+	ch_free( norm.bv_val );
+
+	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 

@@ -36,10 +36,10 @@ rewrite_context_cmp(
 		const void *c2
 )
 {
-	struct rewrite_context *lc1, *lc2;
+	const struct rewrite_context *lc1, *lc2;
 	
-	lc1 = (struct rewrite_context *)c1;
-	lc2 = (struct rewrite_context *)c2;
+	lc1 = (const struct rewrite_context *)c1;
+	lc2 = (const struct rewrite_context *)c2;
 	
 	assert( c1 != NULL );
 	assert( c2 != NULL );

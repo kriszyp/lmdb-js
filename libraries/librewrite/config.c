@@ -273,8 +273,8 @@ rewrite_builtin_map_cmp(
 {
 	const struct rewrite_builtin_map *m1, *m2;
 
-        m1 = ( struct rewrite_builtin_map * )c1;
-        m2 = ( struct rewrite_builtin_map * )c2;
+        m1 = ( const struct rewrite_builtin_map * )c1;
+        m2 = ( const struct rewrite_builtin_map * )c2;
 
         assert( m1 != NULL );
         assert( m2 != NULL );

@@ -277,7 +277,6 @@ and
 .BR timelimit ;
 no limit is set on 
 .BR unchecked .
-This feature is currently exploited by the ldbm backend only.
 .RE
 .TP
 .B loglevel <integer>
@@ -417,6 +416,11 @@ conditions are currently same.
 .B none
 may be used to require no conditions (useful for clearly globally
 set conditions within a particular database).
+.TP
+.B reverse-lookup on | off
+Enable/disable client name reverse lookup (default is 
+.BR on 
+if compiled with --enable-rlookups).
 .TP
 .B rootDSE <file>
 Specify the name of an LDIF(5) file containing user defined attributes
@@ -682,10 +686,19 @@ type of backend.
 .B backend <databasetype>
 Mark the beginning of a backend definition. <databasetype>
 should be one of
+.B bdb,
+.B dnssrv,
+.B ldap,
 .B ldbm,
+.B meta,
+.B monitor,
+.B null,
+.B passwd,
+.B perl,
 .B shell,
+.B sql,
 or
-.B passwd
+.B tcl,
 depending on which backend will serve the database.
 
 .SH GENERAL DATABASE OPTIONS
@@ -697,10 +710,18 @@ type of backend.
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
 .B bdb,
+.B dnssrv,
+.B ldap,
 .B ldbm,
+.B meta,
+.B monitor,
+.B null,
+.B passwd,
+.B perl,
 .B shell,
+.B sql,
 or
-.B passwd
+.B tcl,
 depending on which backend will serve the database.
 .TP
 .B lastmod on | off
@@ -806,7 +827,7 @@ required for each database definition.
 .B subordinate
 Specify that the current backend database is a subordinate of another
 backend database. A subordinate database may have only one suffix. This
-option may bse used to glue multiple databases into a single namingContext.
+option may be used to glue multiple databases into a single namingContext.
 If the suffix of the current database is within the namingContext of a
 superior database, searches against the superior database will be
 propagated to the subordinate as well. All of the databases
@@ -969,6 +990,10 @@ file.
 .B file <filename>
 Specifies an alternate passwd file to use.  The default is
 .B /etc/passwd.
+.SH OTHER DATABASE-SPECIFIC OPTIONS
+Other databases may allow specific configuration options; they will be
+documented separately since most of these databases are very specific
+or experimental.
 .SH EXAMPLE
 "OpenLDAP Administrator's Guide" contains an annotated
 example of a configuration file.

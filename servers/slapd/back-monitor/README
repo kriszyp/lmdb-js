@@ -91,13 +91,16 @@ The subsystems are:
 	Read Waiters
 	Write Waiters
 	Log
+	Operations
+	Statistics
+	Time
 
 
 
 LISTENER SUBSYSTEM
 
-Currently empty, it will presumably contain the description of the
-devices the server is currently listening on
+It contains the description of the devices the server is currently 
+listening on
 
 
 
@@ -143,6 +146,8 @@ The main entry is empty; it should contain some statistics on the number
 of connections.
 Dynamic subentries are created for each open connection, with stats on
 the activity on that connection (the format will be detailed later).
+There are two special subentries that show the number of total and
+current connections respectively.
 
 
 
@@ -181,6 +186,33 @@ be in the list of admittable log switches:
 
 These values can be added, replaced or deleted; they affect what 
 messages are sent to the syslog device.
+
+
+
+OPERATIONS SUBSYSTEM
+
+It shows some statistics on the operations performed by the server:
+
+	Initiated
+	Completed
+
+
+
+SENT SUBSYSTEM
+
+It shows some statistics on the data sent by the server:
+
+	Bytes
+	PDU
+	Referrals
+	Entries
+
+
+
+TIME SUBSISTEM
+
+It contains two subentries with the start time and the current time 
+of the server.
 
 
 

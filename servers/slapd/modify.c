@@ -278,7 +278,7 @@ do_modify(
 	}
 #endif
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );

@@ -55,7 +55,7 @@ dnssrv_back_search(
 		domain == NULL ? "" : domain,
 		0 );
 
-	if( rc = ldap_domain2hostlist( domain, &hostlist ) ) {
+	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
 			rc, 0, 0 );
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
@@ -91,7 +91,7 @@ dnssrv_back_search(
 	}
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
+	    "conn=%lu op=%lu DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol,
 		dn->bv_len ? dn->bv_val : "", urls[0].bv_val );
 

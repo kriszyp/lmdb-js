@@ -188,3 +188,42 @@ readtclscript (
 		return;
 	}
 }
+
+
+struct berval *
+tcl_merge_bvlist(
+	struct berval **bvlist, struct berval *out)
+{
+	struct berval *ret = NULL;
+	int i;
+
+	if (bvlist == NULL)
+		return NULL;
+
+	if (out == NULL) {
+		ret = (struct berval *)ch_malloc(sizeof(struct berval));
+		if (ret == NULL) {
+			return NULL;
+		}
+	} else {
+		ret = out;
+	}
+
+	ret->bv_len = 0;
+	ret->bv_val = NULL;
+
+	for (i = 0; bvlist[i] != NULL; i++);
+
+	if (i) {
+		char *strlist[i + 1];
+		for (i = 0; bvlist[i] != NULL; i++) {
+			strlist[i] = bvlist[i]->bv_val;
+		}
+		strlist[i] = NULL;
+		ret->bv_val = Tcl_Merge(i, strlist);
+		ret->bv_len = ret->bv_val ? strlen(ret->bv_val) : 0;
+	}
+
+	return ret;
+}
+

@@ -130,8 +130,8 @@ ldap_back_conn_cmp(
 	const void *c2
 	)
 {
-	struct ldapconn *lc1 = (struct ldapconn *)c1;
-        struct ldapconn *lc2 = (struct ldapconn *)c2;
+	const struct ldapconn *lc1 = (const struct ldapconn *)c1;
+	const struct ldapconn *lc2 = (const struct ldapconn *)c2;
 	
 	return ( ( lc1->conn < lc2->conn ) ? -1 : ( ( lc1->conn > lc2-> conn ) ? 1 : 0 ) );
 }

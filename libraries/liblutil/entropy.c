@@ -48,7 +48,7 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 		close(fd);
 
 		/* should return nbytes */
-		if( rc < nbytes ) return -1;
+		if( rc != nbytes ) return -1;
 
 		return 0;
 	}

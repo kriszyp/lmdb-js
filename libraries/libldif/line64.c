@@ -411,8 +411,8 @@ ldif_sput(
 	stop = (const unsigned char *) (val + vlen);
 
 	if ( type == LDIF_PUT_VALUE
-		&& isgraph( val[0] ) && val[0] != ':' && val[0] != '<'
-		&& isgraph( val[vlen-1] )
+		&& isgraph( (unsigned char) val[0] ) && val[0] != ':' && val[0] != '<'
+		&& isgraph( (unsigned char) val[vlen-1] )
 #ifndef LDAP_BINARY_DEBUG
 		&& strstr( name, ";binary" ) == NULL
 #endif
@@ -542,8 +542,8 @@ int ldif_is_not_printable(
 		return -1;
 	}
 
-	if( isgraph( val[0] ) && val[0] != ':' && val[0] != '<' &&
-		isgraph( val[vlen-1] ) )
+	if( isgraph( (unsigned char) val[0] ) && val[0] != ':' && val[0] != '<' &&
+		isgraph( (unsigned char) val[vlen-1] ) )
 	{
 		ber_len_t i;
 

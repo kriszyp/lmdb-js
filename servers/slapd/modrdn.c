@@ -270,7 +270,7 @@ do_modrdn(
 		}
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, pdn.bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );

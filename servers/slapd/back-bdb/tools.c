@@ -30,8 +30,6 @@ int bdb_tool_entry_open(
 int bdb_tool_entry_close(
 	BackendDB *be )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-
 	assert( be != NULL );
 
 	if( key.data ) {

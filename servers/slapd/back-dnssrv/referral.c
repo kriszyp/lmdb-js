@@ -56,7 +56,7 @@ dnssrv_back_referrals(
 		domain == NULL ? "" : domain,
 		0 );
 
-	if( rc = ldap_domain2hostlist( domain, &hostlist ) ) {
+	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"DNSSRV: domain2hostlist(%s) returned %d\n",
 			domain, rc, 0 );
@@ -90,7 +90,7 @@ dnssrv_back_referrals(
 	}
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
+	    "conn=%lu op=%lu DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol,
 		dn->bv_val, urls[0].bv_val );
 

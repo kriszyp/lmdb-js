@@ -21,26 +21,25 @@ tcl_back_search (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	const char *base,
-	const char *nbase,
+	struct berval *base,
+	struct berval *nbase,
 	int scope,
 	int deref,
 	int sizelimit,
 	int timelimit,
 	Filter * filter,
-	const char *filterstr,
+	struct berval *filterstr,
 	AttributeName *attrs,
 	int attrsonly
 )
 {
-	char *attrs_tcl = NULL, *suf_tcl, *results, *command;
+	char *attrs_tcl = NULL, *results, *command;
+	struct berval suf_tcl;
 	int i, err = 0, code;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
-	char **sattrs = NULL;
-	Entry *e;
 	AttributeName *an;
 
-	if (ti->ti_search == NULL) {
+	if (ti->ti_search.bv_len == 0) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"search not implemented", NULL, NULL );
 		return (-1);
@@ -48,29 +47,32 @@ tcl_back_search (
 
 	for (i = 0, an = attrs; an && an->an_name.bv_val; an++, i++);
 	if (i > 0) {
-		sattrs = ch_malloc( (i+1) * sizeof(char *));
+		char *sattrs[i+1];
+
 		for (i = 0, an = attrs; an->an_name.bv_val; an++, i++)
 			sattrs[i] = an->an_name.bv_val;
 		sattrs[i] = NULL;
 		attrs_tcl = Tcl_Merge (i, sattrs);
-		free(sattrs);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+		Tcl_Free (attrs_tcl);
+		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+			NULL, NULL, NULL );
+		return (-1);
+	}
 
-	command = (char *) ch_malloc (strlen (ti->ti_search) + strlen (suf_tcl)
-		+ strlen (base) + 40 + strlen (filterstr) + (attrs_tcl ==
-			NULL ? 5
-			: strlen (attrs_tcl)) + 72);
+	command = (char *) ch_malloc (ti->ti_search.bv_len + suf_tcl.bv_len
+		+ base->bv_len + 40 + filterstr->bv_len + 
+		(attrs_tcl == NULL ? 5 : strlen (attrs_tcl)) + 72);
 	sprintf (command,
 		"%s SEARCH {%ld} {%s} {%s} {%d} {%d} {%d} {%d} {%s} {%d} {%s}",
-		ti->ti_search, op->o_msgid, suf_tcl, base, scope, deref,
-		sizelimit, timelimit, filterstr, attrsonly ? 1 : 0,
-		attrs_tcl ==
-		NULL ? "{all}" : attrs_tcl);
+		ti->ti_search.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
+		base->bv_val, scope, deref,
+		sizelimit, timelimit, filterstr->bv_val, attrsonly ? 1 : 0,
+		attrs_tcl == NULL ? "{all}" : attrs_tcl);
 	Tcl_Free (attrs_tcl);
-	Tcl_Free (suf_tcl);
+	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);

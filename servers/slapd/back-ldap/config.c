@@ -303,10 +303,11 @@ ldap_back_db_config(
 static char *
 suffix_massage_regexize( const char *s )
 {
-	char *res, *p, *r, *ptr;
+	char *res, *ptr;
+	const char *p, *r;
 	int i;
 
-	for ( i = 0, p = ( char * )s; 
+	for ( i = 0, p = s; 
 			( r = strchr( p, ',' ) ) != NULL; 
 			p = r + 1, i++ )
 		;
@@ -314,7 +315,7 @@ suffix_massage_regexize( const char *s )
 	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
 
 	ptr = slap_strcopy( res, "(.*)" );
-	for ( i = 0, p = ( char * )s;
+	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
 		ptr = slap_strncopy( ptr, p, r - p + 1 );

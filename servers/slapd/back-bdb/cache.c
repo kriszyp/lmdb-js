@@ -42,7 +42,7 @@ typedef struct bdb_entry_info {
 
 static int	bdb_cache_delete_entry_internal(Cache *cache, Entry *e);
 #ifdef LDAP_DEBUG
-static void	lru_print(Cache *cache);
+static void	bdb_lru_print(Cache *cache);
 #endif
 
 static int

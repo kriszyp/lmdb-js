@@ -35,10 +35,10 @@ rewrite_cookie_cmp(
                 const void *c2
 )
 {
-	struct rewrite_session *s1, *s2;
+	const struct rewrite_session *s1, *s2;
 
-	s1 = ( struct rewrite_session * )c1;
-	s2 = ( struct rewrite_session * )c2;
+	s1 = ( const struct rewrite_session * )c1;
+	s2 = ( const struct rewrite_session * )c2;
 
 	assert( s1 != NULL );
 	assert( s2 != NULL );

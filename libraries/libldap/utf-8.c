@@ -86,7 +86,7 @@ int ldap_utf8_charlen( const char * p )
 	if (!(*p & 0x80))
 		return 1;
 
-	return ldap_utf8_lentab[*(unsigned char *)p ^ 0x80];
+	return ldap_utf8_lentab[*(const unsigned char *)p ^ 0x80];
 }
 
 /*

@@ -24,27 +24,31 @@ tcl_back_add (
 	Entry * e
 )
 {
-	char *command, *suf_tcl, *entrystr, *results;
-	int i, code, err = 0;
+	char *command, *entrystr, *results;
+	struct berval suf_tcl;
+	int code, err = 0;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
-	if (ti->ti_add == NULL) {
+	if (ti->ti_add.bv_len == 0) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 			"add not implemented", NULL, NULL );
 		return (-1);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_result (conn, op, LDAP_OPERATIONS_ERROR, NULL,
+			NULL, NULL, NULL );
+		return (-1);
+	}
 
-	entrystr = tcl_clean_entry (e);
+	entrystr = tcl_clean_entry(e);
 
-	command = (char *) ch_malloc (strlen (ti->ti_add) + strlen
-		(suf_tcl) +
-		strlen (entrystr) + 32);
+	command = (char *) ch_malloc (ti->ti_add.bv_len + suf_tcl.bv_len +
+		strlen(entrystr) + 32);
 	sprintf (command, "%s ADD {%ld} {%s} {%s}",
-		ti->ti_add, op->o_msgid, suf_tcl, entrystr);
-	Tcl_Free (suf_tcl);
+		ti->ti_add.bv_val, (long) op->o_msgid, 
+		suf_tcl.bv_val, entrystr);
+	Tcl_Free (suf_tcl.bv_val);
 	free (entrystr);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

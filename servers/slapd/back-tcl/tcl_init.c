@@ -111,19 +111,39 @@ tcl_back_db_init (
 
 	ti = (struct tclinfo *) ch_calloc (1, sizeof (struct tclinfo));
 
+	ti->ti_script_path.bv_len = 0;
+	ti->ti_script_path.bv_val = NULL;
+
 	/*
 	 * For some reason this causes problems
 	 * specifically set to NULL
 	 */
-	ti->ti_bind = NULL;
-	ti->ti_unbind = NULL;
-	ti->ti_search = NULL;
-	ti->ti_compare = NULL;
-	ti->ti_modify = NULL;
-	ti->ti_modrdn = NULL;
-	ti->ti_add = NULL;
-	ti->ti_delete = NULL;
-	ti->ti_abandon = NULL;
+	ti->ti_bind.bv_len = 0;
+	ti->ti_bind.bv_val = NULL;
+
+	ti->ti_unbind.bv_len = 0;
+	ti->ti_unbind.bv_val = NULL;
+
+	ti->ti_search.bv_len = 0;
+	ti->ti_search.bv_val = NULL;
+
+	ti->ti_compare.bv_len = 0;
+	ti->ti_compare.bv_val = NULL;
+
+	ti->ti_modify.bv_len = 0;
+	ti->ti_modify.bv_val = NULL;
+
+	ti->ti_modrdn.bv_len = 0;
+	ti->ti_modrdn.bv_val = NULL;
+
+	ti->ti_add.bv_len = 0;
+	ti->ti_add.bv_val = NULL;
+
+	ti->ti_delete.bv_len = 0;
+	ti->ti_delete.bv_val = NULL;
+
+	ti->ti_abandon.bv_len = 0;
+	ti->ti_abandon.bv_val = NULL;
 
 	be->be_private = ti;
 
@@ -146,9 +166,9 @@ tcl_back_db_open (
 	ti->ti_ii->count++;
 
 	/* now let's (try to) load the script */
-	readtclscript (ti->script_path, ti->ti_ii->interp);
+	readtclscript (ti->ti_script_path.bv_val, ti->ti_ii->interp);
 
-	/* Intall the debug command */
+	/* install the debug command */
 	Tcl_CreateCommand (ti->ti_ii->interp, "ldap:debug", &tcl_ldap_debug,
 		NULL, NULL);
 

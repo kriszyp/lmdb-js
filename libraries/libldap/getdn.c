@@ -1753,7 +1753,7 @@ quotedIA52strval( const char *str, struct berval *val, const char **next, unsign
 	}
 
 	len = endPos - startPos - escapes;
-	assert( len >= 0 );
+	assert( endPos >= startPos + escapes );
 	val->bv_len = len;
 	if ( escapes == 0 ) {
 		val->bv_val = LDAP_STRNDUP( startPos, len );

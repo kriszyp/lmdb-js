@@ -24,22 +24,24 @@ tcl_back_abandon (
 	int msgid
 )
 {
-	char *suf_tcl, *results, *command;
-	int i, code, err = 0;
+	char *results, *command;
+	struct berval suf_tcl;
+	int code, err = 0;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
-	if (ti->ti_abandon == NULL) {
+	if (ti->ti_abandon.bv_len == 0) {
 		return (-1);
 	}
 
-	for (i = 0; be->be_suffix[i] != NULL; i++);
-	suf_tcl = Tcl_Merge (i, be->be_suffix);
+	if (tcl_merge_bvlist(be->be_suffix, &suf_tcl) == NULL) {
+		return (-1);
+	}
 
-	command = (char *) ch_malloc (strlen (ti->ti_abandon) + strlen (suf_tcl)
+	command = (char *) ch_malloc (ti->ti_abandon.bv_len + suf_tcl.bv_len
 		+ 20);
 	sprintf (command, "%s ABANDON {%ld} {%s}",
-		ti->ti_abandon, op->o_msgid, suf_tcl);
-	Tcl_Free (suf_tcl);
+		ti->ti_abandon.bv_val, (long) op->o_msgid, suf_tcl.bv_val);
+	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);

@@ -139,13 +139,13 @@ It can have the forms
 	users
 	self
 
-	dn[.<dnstyle>]=<pattern>
+	dn[.<dnstyle>[,<modifier>]]=<pattern>
 	dnattr=<attrname>
 	group[/<objectclass>[/<attrname>]]
 		[.<style>]=<pattern>
 	peername[.<style>]=<pattern>
 	sockname[.<style>]=<pattern>
-	domain[.<style>]=<pattern>
+	domain[.<domainstyle>[,<modifier>]]=<pattern>
 	sockurl[.<style>]=<pattern>
 	set[.<style>]=<pattern>
 
@@ -254,7 +254,18 @@ The same
 .B style
 rules for pattern match described for the
 .B group
-case apply.
+case apply. 
+The
+.BR domain 
+clause also allows the
+.B subtree
+style, which succeeds when a fully qualified name exactly matches the
+.BR domain
+pattern, or its trailing part, after a 
+.BR dot ,
+exactly matches the 
+.BR domain
+pattern.
 .LP
 The statement
 .B set=<pattern>
