@@ -542,7 +542,7 @@ ConfigTable config_back_cf_table[] = {
 		"( OLcfgAt:72 NAME 'olcTLSCipherSuite' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCRLCheck", NULL, 0, 0, 0,
-#ifdef HAVE_TLS
+#if defined(HAVE_TLS) && defined(HAVE_OPENSSL_CRL)
 		CFG_TLS_CRLCHECK|ARG_STRING|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,
@@ -2040,7 +2040,7 @@ static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
 	switch(c->type) {
-	case CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
+	case CFG_TLS_RAND:	flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
 	case CFG_TLS_CIPHER:	flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
 	case CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
@@ -2075,18 +2075,8 @@ config_tls_config(ConfigArgs *c) {
 		{ BER_BVNULL, 0 }
 	}, *keys;
 	switch(c->type) {
-	case CFG_TLS_CRLCHECK:
-#ifdef HAVE_OPENSSL_CRL
-		flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
-#else
-		Debug(LDAP_DEBUG_ANY, "%s: "
-				"disabled tls_option \"TLSCRLCheck\" <0x%x>\n",
-				c->log, c->type, 0);
-#endif
-		break;
-	case CFG_TLS_VERIFY:
-		flag = LDAP_OPT_X_TLS_REQUIRE_CERT; keys = vfykeys;
-		break;
+	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		keys = crlkeys;	break;
+	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT;	keys = vfykeys;	break;
 	default:
 		Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown tls_option <0x%x>\n",
