@@ -2416,10 +2416,17 @@ aci_mask(
 		oid # scope # action;rights;attr;rights;attr 
 			$ action;rights;attr;rights;attr # type # subject
 
+	   [NOTE: the following comment is very outdated,
+	   as the draft version it refers to (Ando, 2004-11-20)].
+
 	   See draft-ietf-ldapext-aci-model-04.txt section 9.1 for
 	   a full description of the format for this attribute.
 	   Differences: "this" in the draft is "self" here, and
 	   "self" and "public" is in the position of type.
+
+	   <scope> = {entry|children|subtree}
+	   <type> = {public|users|access-id|subtree|onelevel|children|
+	             self|dnattr|group|role|set|set-ref}
 
 	   This routine now supports scope={ENTRY,CHILDREN}
 	   with the semantics:
@@ -2491,6 +2498,11 @@ aci_mask(
 		return 0;
 	}
 
+	/* see if we have a users access */
+	if ( ber_bvstrcasecmp( &aci_bv_users, &type ) == 0 ) {
+		return 1;
+	}
+	
 	/* NOTE: this may fail if a DN contains a valid '#' (unescaped);
 	 * just grab all the berval up to its end (ITS#3303).
 	 * NOTE: the problem could be solved by providing the DN with
