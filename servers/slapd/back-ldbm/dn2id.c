@@ -62,6 +62,7 @@ dn2id_add(
 			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
 			rc = idl_insert_key( be, db, key, id );
 			free( key.dptr );
+			free( pdn );
 		}
 	}
 
