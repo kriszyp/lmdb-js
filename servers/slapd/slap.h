@@ -1314,6 +1314,7 @@ struct slap_limits_set {
 
 /* Note: this is different from LDAP_NO_LIMIT (0); slapd internal use only */
 #define SLAP_NO_LIMIT			-1
+#define SLAP_MAX_LIMIT			2147483647
 
 struct slap_limits {
 	unsigned		lm_flags;	/* type of pattern */

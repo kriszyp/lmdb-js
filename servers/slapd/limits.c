@@ -1027,7 +1027,10 @@ limits_check( Operation *op, SlapReply *rs )
 				}
 
 			} else if ( op->ors_limit->lms_t_hard > 0 ) {
-				if ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+				if ( op->ors_tlimit == SLAP_MAX_LIMIT ) {
+					op->ors_tlimit = op->ors_limit->lms_t_hard;
+
+				} else if ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_hard ) {
 					/* error if exceeding hard limit */
 					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
@@ -1084,7 +1087,9 @@ limits_check( Operation *op, SlapReply *rs )
 			if ( pr_total == -1 ) {
 				slimit = -1;
 
-			} else if ( pr_total > 0 && ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) ) {
+			} else if ( pr_total > 0 && op->ors_slimit != SLAP_MAX_LIMIT
+					&& ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) )
+			{
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( op, rs );
 				rs->sr_err = LDAP_SUCCESS;
@@ -1097,8 +1102,11 @@ limits_check( Operation *op, SlapReply *rs )
 
 				/* first round of pagedResults: set count to any appropriate limit */
 
-				/* if the limit is set, check that it does not violate any limit */
-				if ( op->ors_slimit > 0 ) {
+				/* if the limit is set, check that it does not violate any server-side limit */
+				if ( op->ors_slimit == SLAP_MAX_LIMIT ) {
+					slimit2 = op->ors_slimit = pr_total;
+
+				} else if ( op->ors_slimit > 0 ) {
 					slimit2 = op->ors_slimit;
 
 				} else if ( op->ors_slimit == 0 ) {
@@ -1173,7 +1181,10 @@ limits_check( Operation *op, SlapReply *rs )
 
 			/* explicit hard limit: error if violated */
 			} else if ( op->ors_limit->lms_s_hard > 0 ) {
-				if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+				if ( op->ors_slimit == SLAP_MAX_LIMIT ) {
+					op->ors_slimit = op->ors_limit->lms_s_hard;
+
+				} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
 					/* if limit exceeds hard, error */
 					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
