@@ -172,6 +172,9 @@ main( argc, argv )
     ldap_unbind( ld );
 
     exit( rc );
+
+	/* UNREACHABLE */
+	return(0);
 }
 
 static int domodrdn(

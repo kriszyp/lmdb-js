@@ -1,6 +1,13 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>
@@ -14,7 +21,7 @@ extern int ldap_debug, lber_debug;
 #endif /* LDAP_DEBUG */
 
 
-usage( s )
+static void usage( s )
 char	*s;
 {
     fprintf( stderr, "usage: %s [options] filter [attributes...]\nwhere:\n", s );
@@ -43,7 +50,7 @@ char	*s;
     fprintf( stderr, "    -z size lim\tsize limit (in entries) for search\n" );
     fprintf( stderr, "    -D binddn\tbind dn\n" );
     fprintf( stderr, "    -w passwd\tbind passwd (for simple authentication)\n" );
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     fprintf( stderr, "    -k\t\tuse Kerberos instead of Simple Password authentication\n" );
 #endif
     fprintf( stderr, "    -h host\tldap server\n" );
@@ -51,8 +58,27 @@ char	*s;
     exit( 1 );
 }
 
+static void print_entry LDAP_P((
+    LDAP	*ld,
+    LDAPMessage	*entry,
+    int		attrsonly));
+
+static int write_ldif_value LDAP_P((
+	char *type,
+	char *value,
+	unsigned long vallen ));
+
+static int dosearch LDAP_P((
+	LDAP	*ld,
+    char	*base,
+    int		scope,
+    char	**attrs,
+    int		attrsonly,
+    char	*filtpatt,
+    char	*value));
+
 static char	*binddn = LDAPSEARCH_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPSEARCH_BIND_CRED;
 static char	*base = LDAPSEARCH_BASE;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
@@ -85,7 +111,7 @@ char	**argv;
     scope = LDAP_SCOPE_SUBTREE;
 
     while (( i = getopt( argc, argv,
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	    "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
 #else
 	    "nuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
@@ -105,7 +131,7 @@ char	**argv;
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
 	    break;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case 'k':	/* use kerberos bind */
 	    kerberos = 2;
 	    break;
@@ -291,19 +317,22 @@ char	**argv;
 
     ldap_unbind( ld );
     exit( rc );
+
+	/* UNREACHABLE */
+	return(0);
 }
 
 
-dosearch( ld, base, scope, attrs, attrsonly, filtpatt, value )
-    LDAP	*ld;
-    char	*base;
-    int		scope;
-    char	**attrs;
-    int		attrsonly;
-    char	*filtpatt;
-    char	*value;
+static int dosearch(
+	LDAP	*ld,
+    char	*base,
+    int		scope,
+    char	**attrs,
+    int		attrsonly,
+    char	*filtpatt,
+    char	*value)
 {
-    char		filter[ BUFSIZ ], **val;
+    char		filter[ BUFSIZ ];
     int			rc, first, matches;
     LDAPMessage		*res, *e;
 
@@ -371,10 +400,10 @@ dosearch( ld, base, scope, attrs, attrsonly, filtpatt, value )
 }
 
 
-print_entry( ld, entry, attrsonly )
-    LDAP	*ld;
-    LDAPMessage	*entry;
-    int		attrsonly;
+void print_entry(
+    LDAP	*ld,
+    LDAPMessage	*entry,
+    int		attrsonly)
 {
     char		*a, *dn, *ufn, tmpfname[ 64 ];
     int			i, j, notascii;
@@ -436,7 +465,7 @@ print_entry( ld, entry, attrsonly )
 		} else {
 		    notascii = 0;
 		    if ( !allow_binary ) {
-			for ( j = 0; j < bvals[ i ]->bv_len; ++j ) {
+			for ( j = 0; (unsigned long) j < bvals[ i ]->bv_len; ++j ) {
 			    if ( !isascii( bvals[ i ]->bv_val[ j ] )) {
 				notascii = 1;
 				break;

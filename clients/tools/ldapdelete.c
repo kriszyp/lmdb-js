@@ -1,17 +1,22 @@
 /* ldapdelete.c - simple program to delete an entry using LDAP */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
 
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPDELETE_BINDDN;
+static char	*passwd = LDAPDELETE_BIND_CRED;
 static char	*base = LDAPDELETE_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;
@@ -24,15 +29,18 @@ extern int ldap_debug, lber_debug;
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
+static int dodelete LDAP_P((
+    LDAP	*ld,
+    char	*dn));
 
 main( argc, argv )
     int		argc;
     char	**argv;
 {
     char		*usage = "usage: %s [-n] [-v] [-k] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
-    char		*p, buf[ 4096 ];
+    char		buf[ 4096 ];
     FILE		*fp;
-    int			i, rc, kerberos, linenum, authmethod;
+    int			i, rc, kerberos, authmethod;
 
     extern char	*optarg;
     extern int	optind;
@@ -130,12 +138,15 @@ main( argc, argv )
     ldap_unbind( ld );
 
     exit( rc );
+
+	/* UNREACHABLE */
+	return(0);
 }
 
 
-dodelete( ld, dn )
-    LDAP	*ld;
-    char	*dn;
+static int dodelete(
+    LDAP	*ld,
+    char	*dn)
 {
     int	rc;
 
