@@ -235,13 +235,6 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
-.B pidfile <filename>
-The ( absolute ) name of a file that will hold the 
-.B slapd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
-.TP
 .B password-hash <hash>
 The <hash> to use for userPassword generation.  One of
 .BR {SSHA} ,
@@ -255,6 +248,13 @@ and
 .BR {UNIX} .
 The default is
 .BR {SSHA} .
+.TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
 .TP
 .B referral <url>
 Specify the referral to pass back when
@@ -288,15 +288,72 @@ set conditions within a particular database).
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
-.B sasl-realm <string>
-Used to specify Cyrus SASL realm.
+.B sasl-realm <realm>
+Specify SASL realm.  Default is empty.
+.TP
+.B sasl-regexp <match> <replace>
+Used by the SASL authorization mechanism to convert a SASL authenticated 
+username to an LDAP DN. When an authorization request is received, the SASL 
+.B USERNAME, REALM, 
+and
+.B MECHANISM
+are taken, when available, and combined into a SASL name of the 
+form
+.RS
+.RS
+.TP
+.B uid=<UID>[+realm=<REALM>][,cn=<MECH>],cn=AUTHZ
+
+.RE
+This SASL name is then compared against the
+.B match
+regular expression, and if the match is successful, the SASL name is
+replaced with the
+.B replace
+string. If there are wildcard strings in the 
+.B match
+regular expression that are enclosed in parenthesis, e.g. 
+.RS
+.RS
+.TP
+.B uid=(.*)\\\\+realm=.*
+
+.RE
+.RE
+then the portion of the SASL name that matched the wildcard will be stored
+in the numbered placeholder variable $1. If there are other wildcard strings
+in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
+placeholders can then be used in the 
+.B replace
+string, e.g. 
+.RS
+.RS
+.TP
+.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
+
+.RE
+.RE
+The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
+server will use the URI to search its own database, and if the search returns 
+exactly one entry, the SASL name is replaced by the DN of that entry.
+Multiple 
+.B sasl-regexp 
+options can be given in the configuration file to allow for multiple matching 
+and replacement patterns. The matching patterns are checked in the order they 
+appear in the file, stopping at the first successful match.
+.LP
+.B Caution:
+Because the plus sign + is a character recognized by the regular expression engine,
+and it will appear in SASL names that include a REALM, be careful to escape the
+plus sign with a double backslash \\\\+ to remove the character's special meaning.
+.RE
 .TP
 .B sasl-secprops <properties>
 Used to specify Cyrus SASL security properties.
 The
 .B none
 flag (without any other properities) causes the flag properites
-defaults ("noanonymous,noplain") to be cleared.
+default, "noanonymous,noplain", to be cleared.
 The
 .B noplain
 flag disables mechanisms susceptible to simple passive attacks.
@@ -334,63 +391,6 @@ The
 .B maxbufsize=<factor> 
 property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
-.TP
-.B saslregexp <match> <replace>
-Used by the SASL authorization mechanism to convert a SASL authenticated 
-username to an LDAP DN. When an authorization request is received, the SASL 
-.B USERNAME, REALM, 
-and
-.B MECHANISM
-are taken, when available, and combined into a SASL name of the 
-form
-.RS
-.RS
-.TP
-.B uid=<UID>[+realm=<REALM>][,cn=<MECH>],cn=AUTHZ
-
-.RE
-This SASL name is then compared against the
-.B match
-regular expression, and if the match is successful, the SASL name is
-replaced with the
-.B replace
-string. If there are wildcard strings in the 
-.B match
-regular expression that are enclosed in parenthesis, e.g. 
-.RS
-.RS
-.TP
-.B uid=(.*)+realm=.*
-
-.RE
-.RE
-then the portion of the SASL name that matched the wildcard will be stored
-in the numbered placeholder variable $1. If there are other wildcard strings
-in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
-placeholders can then be used in the 
-.B replace
-string, e.g. 
-.RS
-.RS
-.TP
-.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
-
-.RE
-.RE
-The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
-server will use the URI to search its own database, and if the search returns 
-exactly one entry, the SASL name is replaced by the DN of that entry.
-Multiple 
-.B saslregexp 
-options can be given in the configuration file to allow for multiple matching 
-and replacement patterns. The matching patterns are checked in the order they 
-appear in the file, stopping at the first successful match.
-.LP
-.B Caution:
-Because the plus sign + is a character recognized by the regular expression engine,
-and it will appear in SASL names that include a REALM, be careful to escape the
-plus sign with a double backslash \\\\+ to remove the character's special meaning.
-.RE
 .TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
@@ -445,12 +445,6 @@ Turn schema checking on or off. The default is on.
 .B sizelimit <integer>
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
-.TP
-.B sasl-realm <realm>
-Specify SASL realm.  Default is empty.
-.TP
-.B sasl-secprops <props>
-Cyrus SASL security properties.  Default is "noanonymous,noplain".
 .TP
 .B srvtab <filename>
 Specify the srvtab file in which the kerberos keys necessary for

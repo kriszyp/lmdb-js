@@ -313,7 +313,9 @@ read_config( const char *fname )
 				global_realm = ch_strdup( cargv[1] );
 			}
 
-		} else if ( !strcasecmp( cargv[0], "saslregexp" ) ) {
+		} else if ( !strcasecmp( cargv[0], "sasl-regexp" ) 
+			|| !strcasecmp( cargv[0], "saslregexp" ) )
+		{
 			int rc;
 			if ( cargc != 3 ) {
 				Debug( LDAP_DEBUG_ANY, 
