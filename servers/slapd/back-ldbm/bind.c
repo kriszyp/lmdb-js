@@ -43,7 +43,13 @@ ldbm_back_bind(
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_back_bind: dn: %s.\n", dn ));
+#else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
+#endif
+
 
 	*edn = NULL;
 	dn = ndn;
@@ -103,8 +109,14 @@ ldbm_back_bind(
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_bind: entry (%s) is an alias.\n", e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
 		    0, 0 );
+#endif
+
 
 		send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
 		    NULL, "entry is alias", NULL, NULL );
@@ -118,8 +130,14 @@ ldbm_back_bind(
 		struct berval **refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_bind: entry(%s) is a referral.\n", e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
+#endif
+
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,

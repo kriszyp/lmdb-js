@@ -78,9 +78,15 @@ void
 idl_free( ID_BLOCK *idl )
 {
 	if ( idl == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+			   "idl_freee: called with NULL pointer\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"idl_free: called with NULL pointer\n",
 			0, 0, 0 );
+#endif
+
 		return;
 	}
 
@@ -117,9 +123,9 @@ idl_fetch_one(
 
 /* Fetch a set of ID_BLOCKs from the cache
  *	if not INDIRECT
- * 		if block return is an ALLIDS block,
+ *		if block return is an ALLIDS block,
  *			return an new ALLIDS block
- * 		otherwise
+ *		otherwise
  *			return block
  *	construct super block from all blocks referenced by INDIRECT block
  *	return super block
@@ -174,8 +180,14 @@ idl_fetch(
 		cont_id( &data, ID_BLOCK_ID(idl, i) );
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "idl_fetch: idl_fetch_one returned NULL\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			    "idl_fetch: one returned NULL\n", 0, 0, 0 );
+#endif
+
 			continue;
 		}
 
@@ -206,8 +218,15 @@ idl_fetch(
 	}
 	free( (char *) tmp );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "idl_fetch: %ld ids (%ld max)\n",
+		   ID_BLOCK_NIDS(idl), ID_BLOCK_NMAX(idl) ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %ld ids (%ld max)\n",
 	       ID_BLOCK_NIDS(idl), ID_BLOCK_NMAX(idl), 0 );
+#endif
+
 	return( idl );
 }
 
@@ -302,10 +321,10 @@ idl_change_first(
     Backend		*be,
     DBCache	*db,
     Datum		hkey,		/* header block key	*/
-    ID_BLOCK		*h,		/* header block 	*/
+    ID_BLOCK		*h,		/* header block		*/
     int			pos,		/* pos in h to update	*/
     Datum		bkey,		/* data block key	*/
-    ID_BLOCK		*b		/* data block 		*/
+    ID_BLOCK		*b		/* data block		*/
 )
 {
 	int	rc;
@@ -314,9 +333,15 @@ idl_change_first(
 
 	/* delete old key block */
 	if ( (rc = ldbm_cache_delete( db, bkey )) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+			   "idl_change_first: ldbm_cache_delete returned %d\n", rc ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "idl_change_first: ldbm_cache_delete returned %d\n",
 			rc, 0, 0 );
+#endif
+
 		return( rc );
 	}
 
@@ -324,16 +349,28 @@ idl_change_first(
 	cont_id( &bkey, ID_BLOCK_ID(b, 0) );
 
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+			   "idl_change_first: idl_store returned %d\n", rc ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
+#endif
+
 		return( rc );
 	}
 
 	/* update + write indirect header block */
 	ID_BLOCK_ID(h, pos) = ID_BLOCK_ID(b, 0);
 	if ( (rc = idl_store( be, db, hkey, h )) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+			   "idl_change_first: idl_store returned %s\n", rc ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
+#endif
+
 		return( rc );
 	}
 
@@ -446,8 +483,14 @@ idl_insert_key(
 	cont_id( &k2, ID_BLOCK_ID(idl, i) );
 
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+			   "idl_insert_key: nonexistent continuation block\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "idl_insert_key: nonexistent continuation block\n",
 		    0, 0, 0 );
+#endif
+
 		cont_free( &k2 );
 		idl_free( idl );
 		return( -1 );
@@ -457,8 +500,14 @@ idl_insert_key(
 	switch ( idl_insert( &tmp, id, db->dbc_maxids ) ) {
 	case 0:		/* id inserted ok */
 		if ( (rc = idl_store( be, db, k2, tmp )) != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+				   "ids_insert_key: idl_store returned %d\n", rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
+#endif
+
 		}
 		break;
 
@@ -490,9 +539,15 @@ idl_insert_key(
 			cont_alloc( &k2, &key );
 			cont_id( &k2, ID_BLOCK_ID(idl, i) );
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+					   "idl_insert_key: idl_fetch_one returned NULL\n"));
+#else
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_insert_key: idl_fetch_one returned NULL\n",
 				    0, 0, 0 );
+#endif
+
 				/* split the original block */
 				cont_free( &k2 );
 				goto split;
@@ -519,8 +574,14 @@ idl_insert_key(
 				k3.dsize = k2.dsize;
 				AC_MEMCPY(k3.dptr, k2.dptr, k3.dsize);
 			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+					       "idl_insert_key: idl_store returned %d\n", rc ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
+#endif
+
 			    }
 
 				free( k3.dptr );
@@ -546,9 +607,16 @@ idl_insert_key(
 					 * will always be called.
 					 */
 				if ( rc == 2 ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+						   "idl_insert_key: id %ld is already in next block\n", 
+						   id ));
+#else
 					Debug( LDAP_DEBUG_ANY,
 					    "idl_insert_key: id %ld already in next block\n",
 					    id, 0, 0 );
+#endif
+
 				}
 
 				idl_free( tmp );
@@ -581,7 +649,7 @@ split:
 			/*
 			 * we've passed the all-id threshold, meaning
 			 * that this set of blocks should be replaced
-			 * by a single "all-id" block.  our job: delete
+			 * by a single "all-id" block.	our job: delete
 			 * all the indirect blocks, and replace the header
 			 * block by an all-id block.
 			 */
@@ -651,7 +719,7 @@ split:
  * idl_insert - insert an id into an id list.
  *
  *	returns
- * 		0	id inserted
+ *		0	id inserted
  *		1	id inserted, first id in block has changed
  *		2	id not inserted, already there
  *		3	id not inserted, block must be split
@@ -690,7 +758,7 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 
 	/* make a slot for the new id */
 	AC_MEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
-	            (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
+		    (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
@@ -705,10 +773,10 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 
 int
 idl_delete_key (
-	Backend         *be,
-	DBCache  *db,
-	Datum           key,
-	ID              id
+	Backend		*be,
+	DBCache	 *db,
+	Datum		key,
+	ID		id
 )
 {
 	Datum  data;
@@ -767,8 +835,14 @@ idl_delete_key (
 		cont_id( &data, ID_BLOCK_ID(idl, j) );
 
 		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "idl_delete_key: idl_fetch_one returned NULL\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			    "idl_delete_key: idl_fetch of returned NULL\n", 0, 0, 0 );
+#endif
+
 			continue;
 		}
 		/*
@@ -962,8 +1036,8 @@ idl_union(
 ID_BLOCK *
 idl_notin(
     Backend	*be,
-    ID_BLOCK 	*a,
-    ID_BLOCK 	*b
+    ID_BLOCK	*a,
+    ID_BLOCK	*b
 )
 {
 	unsigned int	ni, ai, bi;
@@ -1039,7 +1113,7 @@ idl_notin(
  *	otherwise return first ID
  *
  *	cursor is set to 1
- */         
+ */	    
 ID
 idl_firstid( ID_BLOCK *idl, ID *cursor )
 {

@@ -34,15 +34,27 @@ ldbm_back_delete(
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_back_delete: %s\n", dn ));
+#else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
+#endif
+
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_delete: no such object %s\n", dn ));
+#else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: no such object %s\n",
 			dn, 0, 0);
+#endif
+
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -71,8 +83,15 @@ ldbm_back_delete(
 		struct berval **refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_delete: entry (%s) is a referral.\n",
+			   e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
+#endif
+
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    e->e_dn, NULL, refs, NULL );
@@ -85,8 +104,14 @@ ldbm_back_delete(
 
 
 	if ( has_children( be, e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+			   "ldbm_back_delete: (%s) is a non-leaf node.\n", dn ));
+#else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
 			dn, 0, 0);
+#endif
+
 		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
 			NULL, "subtree delete not supported", NULL, NULL );
 		goto return_results;
@@ -95,9 +120,15 @@ ldbm_back_delete(
 	/* delete from parent's id2children entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
 		if( (p = dn2entry_w( be, pdn, NULL )) == NULL) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+				   "ldbm_back_delete: parent of (%s) does not exist\n", dn ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
+#endif
+
 			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "could not locate parent of entry", NULL, NULL );
 			goto return_results;
@@ -107,9 +138,15 @@ ldbm_back_delete(
 		if ( ! access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE ) )
 		{
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+				   "ldbm_back_delete: no access to parent of (%s)\n", dn ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no access to parent\n", 0,
 				0, 0 );
+#endif
+
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
@@ -118,9 +155,16 @@ ldbm_back_delete(
 	} else {
 		/* no parent, must be root to delete */
 		if( ! be_isroot( be, op->o_ndn ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+				   "ldbm_back_delete: (%s) has no parent & not a root.\n",
+				   dn ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no parent & not root\n",
 				0, 0, 0);
+#endif
+
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
@@ -132,9 +176,15 @@ ldbm_back_delete(
 
 	/* delete from dn2id mapping */
 	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+			   "ldbm_back_delete: (%s) operations error\n", dn ));
+#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
+#endif
+
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "DN index delete failed", NULL, NULL );
 		goto return_results;
@@ -142,9 +192,16 @@ ldbm_back_delete(
 
 	/* delete from disk and cache */
 	if ( id2entry_delete( be, e ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+			   "ldbm_back_delete: (%s) operations error\n",
+			   dn ));
+#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
+#endif
+
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "entry delete failed", NULL, NULL );
 		goto return_results;

@@ -42,7 +42,13 @@ int ldbm_modify_internal(
 	Modifications	*ml;
 	Attribute	*save_attrs;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_modify_internal: %s\n", dn ));
+#else
 	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal:\n", 0, 0, 0);
+#endif
+
 
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -56,64 +62,123 @@ int ldbm_modify_internal(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_modify_internal: add\n" ));
+#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
+#endif
+
 			err = add_values( e, mod, op->o_ndn );
 
 			if( err != LDAP_SUCCESS ) {
+				*text = "modify: add values failed";
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_modify_internal: failed %d (%s)\n",
+					   err, *text ));
+#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
-				*text = "modify: add values failed";
+#endif
 			}
 			break;
 
 		case LDAP_MOD_DELETE:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_modify_internal: delete\n" ));
+#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
+#endif
+
 			err = delete_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
+				*text = "modify: delete values failed";
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_modify_internal: failed %d (%s)\n", err, *text ));
+#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
-				*text = "modify: delete values failed";
+#endif
 			}
 			break;
 
 		case LDAP_MOD_REPLACE:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_modify_internal:  replace\n" ));
+#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
+#endif
+
 			err = replace_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
+				*text = "modify: replace values failed";
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_modify_internal: failed %d (%s)\n", err, *text ));
+#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
-				*text = "modify: replace values failed";
+#endif
+
 			}
 			break;
 
 		case SLAP_MOD_SOFTADD:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_modify_internal: softadd\n" ));
+#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: softadd\n", 0, 0, 0);
- 			/* Avoid problems in index_add_mods()
- 			 * We need to add index if necessary.
- 			 */
- 			mod->sm_op = LDAP_MOD_ADD;
+#endif
+
+			/* Avoid problems in index_add_mods()
+			 * We need to add index if necessary.
+			 */
+			mod->sm_op = LDAP_MOD_ADD;
 			err = add_values( e, mod, op->o_ndn );
 
- 			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
- 				err = LDAP_SUCCESS;
- 			}
+			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
+				err = LDAP_SUCCESS;
+			}
 
 			if( err != LDAP_SUCCESS ) {
+				*text = "modify: (soft)add values failed";
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_modify_internal: failed %d (%s)\n", err, *text ));
+#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
-				*text = "modify: (soft)add values failed";
+#endif
+
 			}
- 			break;
+			break;
 
 		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+				   "ldbm_modify_internal: invalid op %d\n", mod->sm_op ));
+#else
 			Debug(LDAP_DEBUG_ANY, "ldbm_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);
-			*text = "Invalid modify operation";
+#endif
+
 			err = LDAP_OTHER;
+			*text = "Invalid modify operation";
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				   "ldbm_modify_internal: %d (%s)\n", err, *text ));
+#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 				err, *text, 0);
+#endif
+
 		}
 
 		if ( err != LDAP_SUCCESS ) {
@@ -139,8 +204,15 @@ int ldbm_modify_internal(
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+			   "ldbm_modify_internal: entry failed schema check: %s\n",
+			   *text ));
+#else
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
 			*text, 0, 0 );
+#endif
+
 		return rc;
 	}
 
@@ -183,7 +255,13 @@ ldbm_back_modify(
 	int		manageDSAit = get_manageDSAit( op );
 	const char *text = NULL;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_back_modify: enter\n" ));
+#else
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
+#endif
+
 
 	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
@@ -217,8 +295,14 @@ ldbm_back_modify(
 		struct berval **refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_modify: entry (%s) is referral\n", ndn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
+#endif
+
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    e->e_dn, NULL, refs, NULL );
@@ -234,7 +318,7 @@ ldbm_back_modify(
 	if( rc != LDAP_SUCCESS ) {
 		if( rc != SLAPD_ABANDON ) {
 			send_ldap_result( conn, op, rc,
-		   		NULL, text, NULL, NULL );
+				NULL, text, NULL, NULL );
 		}
 
 		goto error_return;
@@ -334,8 +418,14 @@ delete_values(
 
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+			   "delete_values: removing entire attribute %s\n", desc ));
+#else
 		Debug( LDAP_DEBUG_ARGS, "removing entire attribute %s\n",
 		    desc, 0, 0 );
+#endif
+
 		return( attr_delete( &e->e_attrs, mod->sm_desc ) ?
 		    LDAP_NO_SUCH_ATTRIBUTE : LDAP_SUCCESS );
 	}
@@ -348,9 +438,15 @@ delete_values(
 
 	/* delete specific values - find the attribute first */
 	if ( (a = attr_find( e->e_attrs, mod->sm_desc )) == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldap_modify_delete: Could not find attribute %s\n", desc ));
+#else
 		Debug( LDAP_DEBUG_ARGS, "ldap_modify_delete: "
 			"could not find attribute %s\n",
 		    desc, 0, 0 );
+#endif
+
 		return( LDAP_NO_SUCH_ATTRIBUTE );
 	}
 
@@ -397,18 +493,30 @@ delete_values(
 
 		/* looked through them all w/o finding it */
 		if ( ! found ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
+				   "delete_values: could not find value for attr %s\n", desc )); 
+#else
 			Debug( LDAP_DEBUG_ARGS,
 			    "ldbm_modify_delete: could not find value for attr %s\n",
 			    desc, 0, 0 );
+#endif
+
 			return LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	}
 
 	/* if no values remain, delete the entire attribute */
 	if ( a->a_vals[0] == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+			   "delete_values: removing entire attribute %s\n", desc ));
+#else
 		Debug( LDAP_DEBUG_ARGS,
 			"removing entire attribute %s\n",
 			desc, 0, 0 );
+#endif
+
 		if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
 			return LDAP_NO_SUCH_ATTRIBUTE;
 		}

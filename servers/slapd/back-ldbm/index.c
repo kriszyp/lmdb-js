@@ -156,9 +156,16 @@ static int indexer(
 	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "index", LDAP_LEVEL_ERR,
+			   "index_read: Could not open db %s%s\n",
+			   dbname, LDBM_SUFFIX ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_read NULL (could not open %s%s)\n",
 			dbname, LDBM_SUFFIX, 0 );
+#endif
+
 		ad_free( ad, 1 );
 		return LDAP_OTHER;
 	}
@@ -178,7 +185,7 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
- 			}
+			}
 			ber_bvecfree( keys );
 		}
 	}
@@ -194,7 +201,7 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
- 			}
+			}
 			ber_bvecfree( keys );
 		}
 	}
@@ -210,7 +217,7 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				key_change( be, db, keys[i], id, op );
- 			}
+			}
 			ber_bvecfree( keys );
 		}
 	}
@@ -318,18 +325,32 @@ index_entry(
 	Attribute *ap
 )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+		   "index_entry: %s (%s)%ld\n",
+		   op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		   e->e_dn, e->e_id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_id, e->e_dn );
+#endif
+
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
 		index_values( be, ap->a_desc, ap->a_vals, e->e_id, op );
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+		   "index_entry: success\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
 	    op == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_id, e->e_dn );
+#endif
+
 
 	return LDAP_SUCCESS;
 }

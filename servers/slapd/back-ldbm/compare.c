@@ -64,8 +64,14 @@ ldbm_back_compare(
 		struct berval **refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_compare: entry (%s) is a referral.\n", e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
+#endif
+
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    e->e_dn, NULL, refs, NULL );

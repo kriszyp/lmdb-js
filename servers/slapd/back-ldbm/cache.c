@@ -47,8 +47,15 @@ static void	lru_print(Cache *cache);
 static int
 cache_entry_rdwr_lock(Entry *e, int rw)
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_entry_rdwr_lock: %s lock on ID %ld\n",
+		   rw ? "w" : "r", e->e_id ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
+#endif
+
 
 	if (rw)
 		return ldap_pvt_thread_rdwr_wlock(&LEI(e)->lei_rdwr);
@@ -59,8 +66,15 @@ cache_entry_rdwr_lock(Entry *e, int rw)
 static int
 cache_entry_rdwr_trylock(Entry *e, int rw)
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_entry_rdwr_trylock: try %s lock on ID: %ld.\n",
+		   rw ? "w" : "r", e->e_id ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%strylock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
+#endif
+
 
 	if (rw)
 		return ldap_pvt_thread_rdwr_wtrylock(&LEI(e)->lei_rdwr);
@@ -71,8 +85,15 @@ cache_entry_rdwr_trylock(Entry *e, int rw)
 static int
 cache_entry_rdwr_unlock(Entry *e, int rw)
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_entry_rdwr_unlock: remove %s lock on ID %ld.\n",
+		   rw ? "w" : "r", e->e_id ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
+#endif
+
 
 	if (rw)
 		return ldap_pvt_thread_rdwr_wunlock(&LEI(e)->lei_rdwr);
@@ -147,18 +168,32 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_return_entry_rw: return (%ld):%s, refcnt=%d\n",
+			   id, rw ? "w" : "r", refcnt ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_return_entry_%s( %ld ): created (%d)\n",
 			rw ? "w" : "r", id, refcnt );
+#endif
+
 
 	} else if ( LEI(e)->lei_state == CACHE_ENTRY_DELETED ) {
 		if( refcnt > 0 ) {
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+				   "cache_return_entry_rw: %ld, delete pending (%d).\n",
+				   id, refcnt ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> cache_return_entry_%s( %ld ): delete pending (%d)\n",
 				rw ? "w" : "r", id, refcnt );
+#endif
+
 
 		} else {
 			cache_entry_private_destroy( e );
@@ -167,18 +202,32 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+				   "cache_return_entry_rw: (%ld): deleted (%d)\n",
+				   id, refcnt ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> cache_return_entry_%s( %ld ): deleted (%d)\n",
 				rw ? "w" : "r", id, refcnt );
+#endif
+
 		}
 
 	} else {
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_return_entry_rw: ID %ld:%s returned (%d)\n",
+			   id, rw ? "w": "r", refcnt ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", id, refcnt);
+#endif
+
 	}
 }
 
@@ -223,6 +272,11 @@ cache_add_entry_rw(
 	int	i, rc;
 	Entry	*ee;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_add_entry_rw: add (%s):%s to cache\n",
+		   e->e_dn, rw ? "w" : "r" ));
+#endif
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
@@ -232,9 +286,16 @@ cache_add_entry_rw(
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+			   "cache_add_entry_rw: add (%s):%ld private init failed!\n",
+			   e->e_dn, e->e_id ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": private init failed!\n",
 		    e->e_id, e->e_dn, 0 );
+#endif
+
 
 		return( -1 );
 	}
@@ -245,9 +306,16 @@ cache_add_entry_rw(
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_add_entry: (%s):%ld already in cache.\n",
+			   e->e_dn, e->e_id ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_add_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
+#endif
+
 
 		cache_entry_private_destroy(e);
 
@@ -258,17 +326,31 @@ cache_add_entry_rw(
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
 		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_add_entry: (%s):%ls already in cache.\n",
+			   e->e_dn, e->e_id ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
+#endif
+
 
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "cache_add_entry: can't delete (%s) from cache.\n",
+				   e->e_dn ));
+#else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
+#endif
+
 		}
 
 		cache_entry_private_destroy(e);
@@ -351,9 +433,16 @@ cache_update_entry(
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
 		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
 	{
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_update_entry: (%s):%ld already in dn cache\n",
+			   e->e_dn, e->e_id ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_update_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
+#endif
+
 
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
@@ -364,16 +453,30 @@ cache_update_entry(
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
 		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_update_entry: (%s)%ld already in id cache\n",
+			   e->e_dn, e->e_id ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_update_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
+#endif
+
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "cache_update_entry: can't delete (%s)%ld from dn cache.\n",
+				   e->e_dn, e->e_id ));
+#else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
+#endif
+
 		}
 
 		/* free cache mutex */
@@ -479,9 +582,16 @@ try_again:
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "cache_find_entry_dn2id: (%s)%ld not ready: %d\n",
+				   dn, id, state ));
+#else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
 				dn, id, state);
+#endif
+
 
 			ldap_pvt_thread_yield();
 			goto try_again;
@@ -490,13 +600,20 @@ try_again:
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
-                
+		
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_find_entry_dn2id: (%s)%ld %d tries\n",
+			   dn, id, count ));
+#else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id(\"%s\"): %ld (%d tries)\n",
 			dn, id, count);
+#endif
+
 
 	} else {
 		/* free cache mutex */
@@ -554,9 +671,17 @@ try_again:
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "caceh", LDAP_LEVEL_INFO,
+				   "cache_find_entry_id: (%ld)->%ld not ready (%d).\n",
+				   id, ep_id, state ));
+				   
+#else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_id( %ld ): %ld (not ready) %d\n",
 				id, ep_id, state);
+#endif
+
 
 			ldap_pvt_thread_yield();
 			goto try_again;
@@ -572,9 +697,16 @@ try_again:
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+				   "cache_find_entry_id: %ld -> %ld (busy) %d.\n",
+				   id, ep_id, state ));
+#else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_id( %ld ): %ld (busy) %d\n",
 				id, ep_id, state);
+#endif
+
 
 			ldap_pvt_thread_yield();
 			goto try_again;
@@ -583,15 +715,22 @@ try_again:
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
-                
+		
 		LEI(ep)->lei_refcnt++;
 
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			   "cache_find_entry_id: %ld -> %s  found %d tries.\n",
+			   ep_id, ep->e_dn, count ));
+#else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_id( %ld ) \"%s\" (found) (%d tries)\n",
 			ep_id, ep->e_dn, count);
+#endif
+
 
 		return( ep );
 	}
@@ -626,8 +765,14 @@ cache_delete_entry(
 
 	assert( e->e_private );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_delete_entry: delete %ld.\n", e->e_id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );
+#endif
+
 
 	rc = cache_delete_entry_internal( cache, e );
 
@@ -642,7 +787,7 @@ cache_delete_entry_internal(
     Entry		*e
 )
 {
-	int rc = 0; 	/* return code */
+	int rc = 0;	/* return code */
 
 	/* dn tree */
 	if ( avl_delete( &cache->c_dntree, (caddr_t) e, (AVL_CMP) entry_dn_cmp )
@@ -683,7 +828,13 @@ cache_release_all( Cache *cache )
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "cache_release_all: enter\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "====> cache_release_all\n", 0, 0, 0 );
+#endif
+
 
 	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {
 #ifdef LDAP_RDWR_DEBUG
@@ -698,7 +849,13 @@ cache_release_all( Cache *cache )
 	}
 
 	if ( cache->c_cursize ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+			   "cache_release_all: Entry cache could not be emptied.\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "Entry-cache could not be emptied\n", 0, 0, 0 );
+#endif
+
 	}
 
 	/* free cache mutex */

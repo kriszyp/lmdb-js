@@ -46,8 +46,15 @@ ldbm_back_exop_passwd(
 	rc = slap_passwd_parse( reqdata,
 		&id, NULL, &new, text );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_back_exop_passwd: \"%s\"\n",
+		   id ? id->bv_val : "" ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
 		id ? id->bv_val : "", 0, 0 );
+#endif
+
 
 	if( rc != LDAP_SUCCESS ) {
 		goto done;
@@ -75,8 +82,15 @@ ldbm_back_exop_passwd(
 
 	dn = id ? id->bv_val : op->o_dn;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+		   "ldbm_back_exop_passwd: \"%s\"%s\n",
+		   dn, id ? " (proxy)" : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
 		dn, id ? " (proxy)" : "", 0 );
+#endif
+
 
 	if( dn == NULL || dn[0] == '\0' ) {
 		*text = "No password is associated with the Root DSE";

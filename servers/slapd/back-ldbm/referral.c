@@ -47,9 +47,16 @@ ldbm_back_referrals(
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_back_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+				   op->o_tag, dn, matched_dn ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				op->o_tag, dn, matched_dn );
+#endif
+
 
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
@@ -77,13 +84,20 @@ ldbm_back_referrals(
 		struct berval **refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+			   "ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+			   op->o_tag, dn, e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			op->o_tag, dn, e->e_dn );
+#endif
+
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-		    	e->e_dn, NULL, refs, NULL );
+			e->e_dn, NULL, refs, NULL );
 		}
 
 		ber_bvecfree( refs );

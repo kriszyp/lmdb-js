@@ -49,8 +49,14 @@ ldbm_cache_open(
 		flags |= LDBM_NOSYNC;
 	}
 	
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
+		   "ldbm_cache_open: \"%s\", %d, %o\n", buf, flags, li->li_mode ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
+#endif
+
 
 	curtime = slap_get_time();
 	empty = MAXDBCACHE;
@@ -74,7 +80,7 @@ ldbm_cache_open(
 				{
 					/* we don't want to use an open cache with different
 					 * permissions (esp. if we need write but the open
-					 * cache is read-only).  So close this one if
+					 * cache is read-only).	 So close this one if
 					 * possible, and re-open below.
 					 *
 					 * FIXME:  what about the case where the refcount
@@ -91,8 +97,14 @@ ldbm_cache_open(
 					break;
 				}
 				li->li_dbcache[i].dbc_refcnt++;
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+					   "ldbm_cache_open: cache %d\n", i ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 				    "<= ldbm_cache_open (cache %d)\n", i, 0, 0 );
+#endif
+
 				ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 				return( &li->li_dbcache[i] );
 			}
@@ -115,9 +127,15 @@ ldbm_cache_open(
 				free( li->li_dbcache[i].dbc_name );
 				li->li_dbcache[i].dbc_name = NULL;
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+					   "ldbm_cache_open: no unused db to close - waiting\n" ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 				    "ldbm_cache_open no unused db to close - waiting\n",
 				    0, 0, 0 );
+#endif
+
 				ldap_pvt_thread_cond_wait( &li->li_dbcache_cv,
 					    &li->li_dbcache_mutex );
 				/* after waiting for a free slot, go back to square
@@ -132,10 +150,18 @@ ldbm_cache_open(
 	    li->li_dbcachesize )) == NULL )
 	{
 		int err = errno;
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
+			   "ldbm_cache_open: \"%s\" failed, errono=%d, reason=%s\n",
+			   buf, err, err > -1 && err < sys_nerr ? sys_errlist[err] :
+			   "unknown" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= ldbm_cache_open NULL \"%s\" errno=%d reason=\"%s\")\n",
 		    buf, err, err > -1 && err < sys_nerr ?
 		    sys_errlist[err] : "unknown" );
+#endif
+
 		ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 		return( NULL );
 	}
@@ -159,11 +185,25 @@ ldbm_cache_open(
 
 	assert( li->li_dbcache[i].dbc_maxindirect < 256 );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_ARGS,
+		   "ldbm_cache_open: blksize:%ld  maxids:%d  maxindirect:%d\n",
+		   li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
+		   li->li_dbcache[i].dbc_maxindirect ));
+#else
 	Debug( LDAP_DEBUG_ARGS,
 	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
 	    li->li_dbcache[i].dbc_maxindirect );
+#endif
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+		   "ldbm_cache_open: opened %d\n", i ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
+#endif
+
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 	return( &li->li_dbcache[i] );
 }
@@ -211,19 +251,40 @@ ldbm_cache_flush_all( Backend *be )
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+				   "ldbm_cache_flush_all: flushing db (%s)\n",
+				   li->li_dbcache[i].dbc_name ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
+#endif
+
 			ldbm_sync( li->li_dbcache[i].dbc_db );
 			li->li_dbcache[i].dbc_dirty = 0;
 			if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
+					   "ldbm_cache_flush_all: couldn't close db (%s), refcnt=%d\n",
+					   li->li_dbcache[i].dbc_name, li->li_dbcache[i].dbc_refcnt ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 				       "refcnt = %d, couldn't close db (%s)\n",
 				       li->li_dbcache[i].dbc_refcnt,
 				       li->li_dbcache[i].dbc_name, 0 );
+#endif
+
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+					   "ldbm_cache_flush_all: ldbm closing db (%s)\n",
+					   li->li_dbcache[i].dbc_name ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 				       "ldbm closing db (%s)\n",
 				       li->li_dbcache[i].dbc_name, 0, 0 );
+#endif
+
 				ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
 				ldbm_close( li->li_dbcache[i].dbc_db );
 				free( li->li_dbcache[i].dbc_name );

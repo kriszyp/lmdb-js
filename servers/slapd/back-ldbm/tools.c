@@ -46,8 +46,14 @@ int ldbm_tool_entry_open(
 
 	if ( (id2entry = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, flags ))
 	    == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
+			   "Could not open/create id2entry%s\n", LDBM_SUFFIX ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry" LDBM_SUFFIX "\n",
 		    0, 0, 0 );
+#endif
+
 		return( -1 );
 	}
 
@@ -161,8 +167,14 @@ ID ldbm_tool_entry_put(
 
 	e->e_id = li->li_nextid++;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_tool_entry_put: (%s)%ld\n", e->e_dn, e->e_id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
+#endif
+
 
 	rc = index_entry_add( be, e, e->e_attrs );
 
@@ -203,15 +215,28 @@ int ldbm_tool_entry_reindex(
 	int rc;
 	Entry *e;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_tool_entry_reindex: ID=%ld\n", (long)id ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
+#endif
+
 
 	e = ldbm_tool_entry_get( be, id );
 
 	if( e == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_tool_entry_reindex: could not locate id %ld\n", 
+			   (long)id ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"ldbm_tool_entry_reindex:: could not locate id=%ld\n",
 			(long) id, 0, 0 );
+#endif
+
 		return -1;
 	}
 
@@ -222,8 +247,14 @@ int ldbm_tool_entry_reindex(
 	 *
 	 */
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		   "ldbm_tool_entry_reindex: (%s) %ld\n", e->e_dn, id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
 		id, e->e_dn, 0 );
+#endif
+
 
 	rc = index_entry_add( be, e, e->e_attrs );
 
