@@ -264,7 +264,6 @@ objectclass: organization
 objectclass: domainRelatedObject
 l: Ann Arbor, Michigan
 st: Michigan
-streetaddress: 535 West William St.
 o: University of Michigan
 o: UMICH
 o: UM
