@@ -850,12 +850,14 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
 					"subordinate keyword must appear inside a database "
-					"definition (ignored).\n", fname, lineno ));
+					"definition.\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
-					"must appear inside a database definition (ignored)\n",
+					"must appear inside a database definition.\n",
 				    fname, lineno, 0 );
 #endif
+				return 1;
+
 			} else {
 				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
@@ -1016,8 +1018,8 @@ read_config( const char *fname )
 					"\"suffixAlias <alias> <aliased_dn>\" line\n",
 					fname, lineno, 0 );
 #endif
-
 				return( 1 );
+
 			} else if ( cargc > 3 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1028,20 +1030,20 @@ read_config( const char *fname )
 					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
 					fname, lineno, 0 );
 #endif
-
 			}
 
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias line must appear inside a "
-					"database definition (ignored).\n", fname, lineno ));
+					"database definition.\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias line"
-					" must appear inside a database definition (ignored)\n",
+					" must appear inside a database definition.\n",
 					fname, lineno, 0 );
 #endif
+				return 1;
 			}
 
 			if ( load_ucdata( NULL ) < 0 ) return 1;
@@ -1141,23 +1143,25 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 			       LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					  "%s: line %d: depth line must appear inside a database "
-					  "definition (ignored)\n", fname, lineno ));
+					  "definition.\n", fname, lineno ));
 #else
                                Debug( LDAP_DEBUG_ANY,
-"%s: line %d: depth line must appear inside a database definition (ignored)\n",
+"%s: line %d: depth line must appear inside a database definition.\n",
                                    fname, lineno, 0 );
 #endif
+							return 1;
 
                        } else if ((i = atoi(cargv[1])) < 0) {
 #ifdef NEW_LOGGING
 			       LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					  "%s: line %d: depth must be positive (ignored).\n",
+					  "%s: line %d: depth must be positive.\n",
 					  fname, lineno ));
 #else
                                Debug( LDAP_DEBUG_ANY,
-"%s: line %d: depth must be positive (ignored)\n",
+"%s: line %d: depth must be positive.\n",
                                    fname, lineno, 0 );
 #endif
+							return 1;
 
 
                        } else {
@@ -1180,16 +1184,18 @@ read_config( const char *fname )
 
 				return( 1 );
 			}
+
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: rootdn line must appear inside a database "
-					   "definition (ignored).\n", fname, lineno ));
+					   "definition.\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: rootdn line must appear inside a database definition (ignored)\n",
+"%s: line %d: rootdn line must appear inside a database definition.\n",
 				    fname, lineno, 0 );
 #endif
+				return 1;
 
 			} else {
 				struct berval dn;
@@ -1222,28 +1228,47 @@ read_config( const char *fname )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing passwd in \"rootpw <passwd>\""
-					   " line\n", fname, lineno ));
+					"%s: line %d: missing passwd in \"rootpw <passwd>\""
+					" line\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing passwd in \"rootpw <passwd>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing passwd in \"rootpw <passwd>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
 				return( 1 );
 			}
+
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: rootpw line must appear inside a database "
-					   "definition (ignored)\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"rootpw line must appear inside a database "
+					"definition.\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"rootpw line must appear inside a database "
+					"definition.\n",
 				    fname, lineno, 0 );
 #endif
+				return 1;
 
 			} else {
+				Backend *tmp_be = select_backend( &be->be_rootndn, 0, 0 );
+
+				if( tmp_be != be ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+						"%s: line %d: "
+						"rootpw can only be set when rootdn is under suffix\n"
+						fname, lineno ));
+#else
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"rootpw can only be set when rootdn is under suffix\n",
+				    	fname, lineno, 0 );
+#endif
+					return 1;
+				}
+
 				be->be_rootpw.bv_val = ch_strdup( cargv[1] );
 				be->be_rootpw.bv_len = strlen( be->be_rootpw.bv_val );
 			}
@@ -1754,12 +1779,13 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: replica line must appear inside "
-					   "a database definition (ignored).\n", fname, lineno ));
+					   "a database definition.\n", fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: replica line must appear inside a database definition (ignored)\n",
+"%s: line %d: replica line must appear inside a database definition\n",
 				    fname, lineno, 0 );
 #endif
+				return 1;
 
 			} else {
 				int nr = -1;
@@ -1775,27 +1801,28 @@ read_config( const char *fname )
 				if ( i == cargc ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-						   "%s: line %d: missing host in \"replica\" "
-						   "line (ignored)\n", fname, lineno ));
+						"%s: line %d: missing host in \"replica\" line\n",
+						fname, lineno ));
 #else
 					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing host in \"replica\" line (ignored)\n",
+		    "%s: line %d: missing host in \"replica\" line\n",
 					    fname, lineno, 0 );
 #endif
+					return 1;
 
 				} else if ( nr == -1 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 						   "%s: line %d: unable to add"
-				 		   " replica \"%s\""
-						   " (ignored)\n",
+				 		   " replica \"%s\"\n",
 						   fname, lineno, 
 						   cargv[i] + 5 ));
 #else
 					Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: unable to add replica \"%s\" (ignored)\n",
+		"%s: line %d: unable to add replica \"%s\"\n",
 						fname, lineno, cargv[i] + 5 );
 #endif
+					return 1;
 				} else {
 					for ( i = 1; i < cargc; i++ ) {
 						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
@@ -1875,13 +1902,14 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: updatedn line must appear inside "
-					   "a database definition (ignored)\n",
+					   "a database definition\n",
 					   fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: updatedn line must appear inside a database definition (ignored)\n",
+"%s: line %d: updatedn line must appear inside a database definition\n",
 				    fname, lineno, 0 );
 #endif
+				return 1;
 
 			} else {
 				struct berval dn;
