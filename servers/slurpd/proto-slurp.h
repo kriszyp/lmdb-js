@@ -60,7 +60,7 @@ int sanity	LDAP_P((void));
 int St_init	LDAP_P((St **st));
 
 /* tsleep.c */
-void tsleep	LDAP_P((time_t interval));
+int tsleep	LDAP_P((time_t interval));
 #if defined( HAVE_LWP )
 void start_lwp_scheduler LDAP_P(( void ));
 #endif

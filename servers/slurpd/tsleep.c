@@ -147,11 +147,12 @@ start_lwp_scheduler( void )
  * Here we assume we have fully preemptive threads, and that sleep()
  * does the right thing.
  */
-void
+int
 tsleep(
     time_t	interval
 )
 {
     sleep( interval );
+    return 0;
 }
 #endif /* !HAVE_LWP */
