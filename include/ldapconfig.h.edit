@@ -31,6 +31,9 @@
  * SHARED DEFINITIONS
  * These are shared with Makefile and should not change via configure
  */
+#ifndef DIRSEP
+#define DIRSEP		"/"
+#endif
 #define DEFAULT_BINDIR		"%BINDIR%"
 #define DEFAULT_SBINDIR		"%SBINDIR%"
 #define DEFAULT_DATADIR		"%DATADIR%"
