@@ -1943,13 +1943,13 @@ if test $ol_with_ldbm_api = ndbm ; then
 fi
 
 if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
-	AC_MSG_WARN([could not find suitable LDBM backend])
-	if test $ol_enable_ldbm = yes ; then
-		AC_MSG_ERROR([select appropriate LDBM options or disable])
-	fi
+	AC_MSG_ERROR([could not find suitable LDBM backend])
+fi
 
-	AC_MSG_WARN(disabling LDBM)
-	ol_enable_ldbm=no
+if test $ol_enable_bdb = yes -o \
+	$ol_enable_hdb = yes -o \
+	$ol_enable_ldbm = yes ; then
+	SLAPD_LIBS="$SLAPD_LIBS \$(LDBM_LIBS)"
 fi
 
 dnl ----------------------------------------------------------------
