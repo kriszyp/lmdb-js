@@ -106,11 +106,13 @@ do_extended(
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
 
-	Slapi_PBlock    *pb = op->o_pb;
-	SLAPI_FUNC      funcAddr = NULL;
-	int             extop_rc;
-	int             msg_sent=FALSE;
-	char            *result_msg="";
+#if defined(LDAP_SLAPI) 
+ 	Slapi_PBlock    *pb = op->o_pb;
+ 	SLAPI_FUNC      funcAddr = NULL;
+ 	int             extop_rc;
+ 	int             msg_sent=FALSE;
+ 	char            *result_msg="";
+ #endif /* defined(LDAP_SLAPI) */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_extended: conn %d\n", conn->c_connid, 0, 0 );
@@ -146,10 +148,14 @@ do_extended(
 		goto done;
 	}
 
+#if !defined(LDAP_SLAPI)
+	if( !(ext = find_extop(supp_ext_list, &reqoid)) ) {
+#else /* defined(LDAP_SLAPI) */
 	/* Netscape extended operation */
 	getPluginFunc( &reqoid, &funcAddr );
 
 	if( !(ext = find_extop(supp_ext_list, &reqoid)) && !(funcAddr) ) {
+#endif /* defined(LDAP_SLAPI) */
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_extended: conn %d  unsupported operation \"%s\"\n",
@@ -215,7 +221,10 @@ do_extended(
 	text = NULL;
 	refs = NULL;
 
+#if defined(LDAP_SLAPI)
 	if (ext != NULL) { /* OpenLDAP extended operation */
+#endif /* defined(LDAP_SLAPI) */
+
 		rc = (ext->ext_main)( conn, op,
 			  reqoid.bv_val, reqdata.bv_val ? &reqdata : NULL,
 			  &rspoid, &rspdata, &rspctrls, &text, &refs );
@@ -239,9 +248,8 @@ do_extended(
 		if ( rspdata != NULL ) {
 			ber_bvfree( rspdata );
 		}
-#if !defined( LDAP_SLAPI )
-	}
-#else /* defined( LDAP_SLAPI ) */
+
+#if defined( LDAP_SLAPI )
 		goto done;  /* end of OpenLDAP extended operation */
 
 	} else { /* start of Netscape extended operation */

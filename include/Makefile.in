@@ -11,7 +11,7 @@ install-local: FORCE
 	for header in $(srcdir)/lber.h lber_types.h \
 		$(srcdir)/ldap.h $(srcdir)/ldap_cdefs.h \
 		$(srcdir)/ldap_schema.h $(srcdir)/ldap_utf8.h \
-		ldap_features.h; \
+		$(srcdir)/slapi-plugin.h ldap_features.h; \
 	do \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$header $(DESTDIR)$(includedir); \
 	done

@@ -233,7 +233,6 @@ libslapi.a: .slapi
 
 slapd: $(SLAPD_DEPENDS)
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
-		libslapi.a slapi/libtmpslapd.a \
 		$(WRAP_LIBS)
 
 sslapd: version.o
