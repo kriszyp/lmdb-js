@@ -93,12 +93,6 @@ ldap_ld_free(
 		ldap_msgfree( lm );
 	}
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		ldap_destroy_cache( ld );
-		ld->ld_cache = NULL;
-	}
-#endif /* !LDAP_NOCACHE */
 
 	if ( ld->ld_error != NULL ) {
 		LDAP_FREE( ld->ld_error );

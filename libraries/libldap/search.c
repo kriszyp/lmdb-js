@@ -98,17 +98,6 @@ ldap_search_ext(
 		return ld->ld_errno;
 	}
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
-			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_SUCCESS;
-			*msgidp = ld->ld_msgid;
-			return ld->ld_errno;
-		}
-		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
-	}
-#endif /* LDAP_NOCACHE */
 
 	/* send the message */
 	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber );
@@ -199,16 +188,6 @@ ldap_search(
 		return( -1 );
 	}
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
-			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_SUCCESS;
-			return( ld->ld_msgid );
-		}
-		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
-	}
-#endif /* LDAP_NOCACHE */
 
 	/* send the message */
 	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));

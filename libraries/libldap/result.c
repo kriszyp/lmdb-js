@@ -811,11 +811,6 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	new->lm_msgtype = tag;
 	new->lm_ber = ber;
 
-#ifndef LDAP_NOCACHE
-		if ( ld->ld_cache != NULL ) {
-			ldap_add_result_to_cache( ld, new );
-		}
-#endif /* LDAP_NOCACHE */
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
@@ -883,18 +878,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 			prev->lm_next = l->lm_next;
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
-#ifdef LDAP_WORLD_P16
-		/*
-		 * XXX questionable fix; see text for [P16] on
-		 * http://www.critical-angle.com/ldapworld/patch/
-		 *
-		 * inclusion of this patch causes searchs to hang on
-		 * multiple platforms
-		 */
-		return( l->lm_msgtype );
-#else	/* LDAP_WORLD_P16 */
 		return( tag );
-#endif	/* !LDAP_WORLD_P16 */
 	}
 
 leave:

@@ -97,17 +97,6 @@ ldap_compare_ext(
 		return( ld->ld_errno );
 	}
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		if ( ldap_check_cache( ld, LDAP_REQ_COMPARE, ber ) == 0 ) {
-			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_SUCCESS;
-			*msgidp = ld->ld_msgid;
-			return( ld->ld_errno );
-		}
-		ldap_add_request_to_cache( ld, LDAP_REQ_COMPARE, ber );
-	}
-#endif /* LDAP_NOCACHE */
 
 	/* send the message */
 	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber );

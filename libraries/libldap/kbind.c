@@ -101,11 +101,6 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 
 	LDAP_FREE( cred );
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		ldap_flush_cache( ld );
-	}
-#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
 	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));

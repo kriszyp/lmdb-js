@@ -905,9 +905,6 @@
 /* define this to add syslog code */
 #undef LDAP_SYSLOG
 
-/* define this to remove -lldap cache support */
-#undef LDAP_NOCACHE
-
 /* define this for LDAP process title support */
 #undef LDAP_PROCTITLE
 

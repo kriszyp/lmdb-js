@@ -133,8 +133,6 @@ dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
-dnl OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching (experimental)], no)dnl
-ol_enable_cache=${ol_enable_cache-no}
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
 dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
@@ -2543,10 +2541,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
-fi
-if test "$ol_enable_cache" = no ; then
-	AC_DEFINE(LDAP_NOCACHE,1,
-		[define this to remove -lldap cache support])
 fi
 if test "$ol_link_kbind" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)

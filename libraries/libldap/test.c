@@ -47,8 +47,6 @@ static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm,
 static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
 static void free_list LDAP_P(( char **list ));
 
-#define NOCACHEERRMSG	"don't compile with -DLDAP_NOCACHE if you desire local caching"
-
 static char *dnsuffix;
 
 #ifndef HAVE_GETLINE
@@ -646,39 +644,6 @@ main( int argc, char **argv )
 			strcpy( dnsuffix, line );
 			break;
 
-		case 'e':	/* enable cache */
-#ifdef LDAP_NOCACHE
-			printf( NOCACHEERRMSG );
-#else /* LDAP_NOCACHE */
-			getline( line, sizeof(line), stdin, "Cache timeout (secs)? " );
-			i = atoi( line );
-			getline( line, sizeof(line), stdin, "Maximum memory to use (bytes)? " );
-			if ( ldap_enable_cache( ld, i, atoi( line )) == 0 ) {
-				printf( "local cache is on\n" ); 
-			} else {
-				printf( "ldap_enable_cache failed\n" ); 
-			}
-#endif /* LDAP_NOCACHE */
-			break;
-
-		case 'x':	/* uncache entry */
-#ifdef LDAP_NOCACHE
-			printf( NOCACHEERRMSG );
-#else /* LDAP_NOCACHE */
-			getline( line, sizeof(line), stdin, "DN? " );
-			ldap_uncache_entry( ld, line );
-#endif /* LDAP_NOCACHE */
-			break;
-
-		case 'X':	/* uncache request */
-#ifdef LDAP_NOCACHE
-			printf( NOCACHEERRMSG );
-#else /* LDAP_NOCACHE */
-			getline( line, sizeof(line), stdin, "request msgid? " );
-			ldap_uncache_request( ld, atoi( line ));
-#endif /* LDAP_NOCACHE */
-			break;
-
 		case 'o':	/* set ldap options */
 			getline( line, sizeof(line), stdin, "alias deref (0=never, 1=searching, 2=finding, 3=always)?" );
 			ld->ld_deref = atoi( line );
@@ -701,39 +666,16 @@ main( int argc, char **argv )
 			}
 			break;
 
-		case 'O':	/* set cache options */
-#ifdef LDAP_NOCACHE
-			printf( NOCACHEERRMSG );
-#else /* LDAP_NOCACHE */
-			getline( line, sizeof(line), stdin, "cache errors (0=smart, 1=never, 2=always)?" );
-			switch( atoi( line )) {
-			case 0:
-				ldap_set_cache_options( ld, 0 );
-				break;
-			case 1:
-				ldap_set_cache_options( ld,
-					LDAP_CACHE_OPT_CACHENOERRS );
-				break;
-			case 2:
-				ldap_set_cache_options( ld,
-					LDAP_CACHE_OPT_CACHEALLERRS );
-				break;
-			default:
-				printf( "not a valid cache option\n" );
-			}
-#endif /* LDAP_NOCACHE */
-			break;
-
 		case '?':	/* help */
-    printf( "Commands: [ad]d         [ab]andon         [b]ind\n" );
-    printf( "          [B]ind async  [c]ompare\n" );
-    printf( "          [modi]fy      [modr]dn          [rem]ove\n" );
-    printf( "          [res]ult      [s]earch          [q]uit/unbind\n\n" );
-    printf( "          [d]ebug       [e]nable cache    set ms[g]id\n" );
-    printf( "          d[n]suffix    [t]imeout         [v]ersion\n" );
-    printf( "          [?]help       [o]ptions         [O]cache options\n" );
-    printf( "          [E]xplode dn  [p]arse LDAP URL\n" );
-    printf( "          [x]uncache entry  [X]uncache request\n" );
+			printf(
+"Commands: [ad]d         [ab]andon         [b]ind\n"
+"          [B]ind async  [c]ompare\n"
+"          [modi]fy      [modr]dn          [rem]ove\n"
+"          [res]ult      [s]earch          [q]uit/unbind\n\n"
+"          [d]ebug       set ms[g]id\n"
+"          d[n]suffix    [t]imeout         [v]ersion\n"
+"          [?]help       [o]ptions"
+"          [E]xplode dn  [p]arse LDAP URL\n" );
 			break;
 
 		default:

@@ -888,31 +888,6 @@ ldap_kerberos_bind2_s LDAP_P((	/* deprecated */
 	LDAP *ld,
 	LDAP_CONST char *who ));
 
-/*
- * in cache.c
- * (deprecated)
- */
-LDAP_F( int )
-ldap_enable_cache LDAP_P(( LDAP *ld, long timeout, ber_len_t maxmem ));
-
-LDAP_F( void )
-ldap_disable_cache LDAP_P(( LDAP *ld ));
-
-LDAP_F( void )
-ldap_set_cache_options LDAP_P(( LDAP *ld, unsigned long opts ));
-
-LDAP_F( void )
-ldap_destroy_cache LDAP_P(( LDAP *ld ));
-
-LDAP_F( void )
-ldap_flush_cache LDAP_P(( LDAP *ld ));
-
-LDAP_F( void )
-ldap_uncache_entry LDAP_P(( LDAP *ld, LDAP_CONST char *dn ));
-
-LDAP_F( void )
-ldap_uncache_request LDAP_P(( LDAP *ld, int msgid ));
-
 
 /*
  * LDAP Cancel Extended Operation <draft-zeilenga-ldap-cancel-xx.txt>
