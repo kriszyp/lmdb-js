@@ -1376,7 +1376,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		const char *txt;
 		
 		bv = oldpw.bv_val ? &oldpw : delmod->sml_values;
-		rc = slap_passwd_check( op->o_conn, pa, bv, &txt );
+		/* FIXME: no access checking? */
+		rc = slap_passwd_check( op, NULL, pa, bv, &txt );
 		if (rc != LDAP_SUCCESS) {
 			Debug( LDAP_DEBUG_TRACE,
 				"old password check failed: %s\n", txt, 0, 0 );
@@ -1420,7 +1421,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		/*
 		 * Last check - the password history.
 		 */
-		if (slap_passwd_check( op->o_conn, pa, bv, &txt ) == LDAP_SUCCESS) {
+		/* FIXME: no access checking? */
+		if (slap_passwd_check( op, NULL, pa, bv, &txt ) == LDAP_SUCCESS) {
 			/*
 			 * This is bad - it means that the user is attempting
 			 * to set the password to the same as the old one.
@@ -1442,7 +1444,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		cr[1].bv_val = NULL;
 		for(p=tl; p; p=p->next) {
 			cr[0] = p->pw;
-			rc = slap_passwd_check( op->o_conn, &at, bv, &txt );
+			/* FIXME: no access checking? */
+			rc = slap_passwd_check( op, NULL, &at, bv, &txt );
 			
 			if (rc != LDAP_SUCCESS) continue;
 			
