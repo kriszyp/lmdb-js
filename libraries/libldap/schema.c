@@ -27,25 +27,25 @@ choose_name( char *names[], LDAP_CONST char *fallback )
 }
 
 LDAP_CONST char *
-ldap_syntax2name( LDAP_SYNTAX * syn )
+ldap_syntax2name( LDAPSyntax * syn )
 {
 	return( syn->syn_oid );
 }
 
 LDAP_CONST char *
-ldap_matchingrule2name( LDAP_MATCHING_RULE * mr )
+ldap_matchingrule2name( LDAPMatchingRule * mr )
 {
 	return( choose_name( mr->mr_names, mr->mr_oid ) );
 }
 
 LDAP_CONST char *
-ldap_attributetype2name( LDAP_ATTRIBUTE_TYPE * at )
+ldap_attributetype2name( LDAPAttributeType * at )
 {
 	return( choose_name( at->at_names, at->at_oid ) );
 }
 
 LDAP_CONST char *
-ldap_objectclass2name( LDAP_OBJECT_CLASS * oc )
+ldap_objectclass2name( LDAPObjectClass * oc )
 {
 	return( choose_name( oc->oc_names, oc->oc_oid ) );
 }
@@ -267,9 +267,9 @@ print_noidlen(safe_string *ss, char *s, int l)
 }
 
 static int
-print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+print_extensions(safe_string *ss, LDAPSchemaExtensionItem **extensions)
 {
-	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+	LDAPSchemaExtensionItem **ext;
 
 	if ( extensions ) {
 		print_whsp(ss);
@@ -286,7 +286,7 @@ print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
 }
 
 char *
-ldap_syntax2str( const LDAP_SYNTAX * syn )
+ldap_syntax2str( const LDAPSyntax * syn )
 {
 	safe_string * ss;
 	char * retstring;
@@ -318,7 +318,7 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 }
 
 char *
-ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
+ldap_matchingrule2str( const LDAPMatchingRule * mr )
 {
 	safe_string * ss;
 	char * retstring;
@@ -367,7 +367,7 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 }
 
 char *
-ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
+ldap_objectclass2str( const LDAPObjectClass * oc )
 {
 	safe_string * ss;
 	char * retstring;
@@ -446,7 +446,7 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 }
 
 char *
-ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
+ldap_attributetype2str( const LDAPAttributeType * at )
 {
 	safe_string * ss;
 	char * retstring;
@@ -966,13 +966,13 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 }
 
 static int
-add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
+add_extension(LDAPSchemaExtensionItem ***extensions,
 	      char * name, char ** values)
 {
 	int n;
-	LDAP_SCHEMA_EXTENSION_ITEM **tmp, *ext;
+	LDAPSchemaExtensionItem **tmp, *ext;
 
-	ext = LDAP_CALLOC(1, sizeof(LDAP_SCHEMA_EXTENSION_ITEM));
+	ext = LDAP_CALLOC(1, sizeof(LDAPSchemaExtensionItem));
 	if ( !ext )
 		return 1;
 	ext->lsei_name = name;
@@ -980,7 +980,7 @@ add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
 
 	if ( !*extensions ) {
 		*extensions =
-		  LDAP_CALLOC(2, sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+		  LDAP_CALLOC(2, sizeof(LDAPSchemaExtensionItem *));
 		if ( !*extensions )
 		  return 1;
 		n = 0;
@@ -988,7 +988,7 @@ add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
 		for ( n=0; (*extensions)[n] != NULL; n++ )
 	  		;
 		tmp = LDAP_REALLOC(*extensions,
-				   (n+2)*sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+				   (n+2)*sizeof(LDAPSchemaExtensionItem *));
 		if ( !tmp )
 			return 1;
 		*extensions = tmp;
@@ -999,9 +999,9 @@ add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
 }
 
 static void
-free_extensions(LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+free_extensions(LDAPSchemaExtensionItem **extensions)
 {
-	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+	LDAPSchemaExtensionItem **ext;
 
 	if ( extensions ) {
 		for ( ext = extensions; *ext != NULL; ext++ ) {
@@ -1014,7 +1014,7 @@ free_extensions(LDAP_SCHEMA_EXTENSION_ITEM **extensions)
 }
 
 void
-ldap_syntax_free( LDAP_SYNTAX * syn )
+ldap_syntax_free( LDAPSyntax * syn )
 {
 	LDAP_FREE(syn->syn_oid);
 	LDAP_VFREE(syn->syn_names);
@@ -1023,7 +1023,7 @@ ldap_syntax_free( LDAP_SYNTAX * syn )
 	LDAP_FREE(syn);
 }
 
-LDAP_SYNTAX *
+LDAPSyntax *
 ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
@@ -1031,7 +1031,7 @@ ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags
 	char * sval;
 	int seen_name = 0;
 	int seen_desc = 0;
-	LDAP_SYNTAX * syn;
+	LDAPSyntax * syn;
 	char ** ext_vals;
 
 	if ( !s ) {
@@ -1041,7 +1041,7 @@ ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags
 	}
 
 	*errp = s;
-	syn = LDAP_CALLOC(1,sizeof(LDAP_SYNTAX));
+	syn = LDAP_CALLOC(1,sizeof(LDAPSyntax));
 
 	if ( !syn ) {
 		*code = LDAP_SCHERR_OUTOFMEM;
@@ -1152,7 +1152,7 @@ ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags
 }
 
 void
-ldap_matchingrule_free( LDAP_MATCHING_RULE * mr )
+ldap_matchingrule_free( LDAPMatchingRule * mr )
 {
 	LDAP_FREE(mr->mr_oid);
 	LDAP_VFREE(mr->mr_names);
@@ -1162,7 +1162,7 @@ ldap_matchingrule_free( LDAP_MATCHING_RULE * mr )
 	LDAP_FREE(mr);
 }
 
-LDAP_MATCHING_RULE *
+LDAPMatchingRule *
 ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
@@ -1172,7 +1172,7 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int
 	int seen_desc = 0;
 	int seen_obsolete = 0;
 	int seen_syntax = 0;
-	LDAP_MATCHING_RULE * mr;
+	LDAPMatchingRule * mr;
 	char ** ext_vals;
 	const char * savepos;
 
@@ -1183,7 +1183,7 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int
 	}
 
 	*errp = s;
-	mr = LDAP_CALLOC(1,sizeof(LDAP_MATCHING_RULE));
+	mr = LDAP_CALLOC(1,sizeof(LDAPMatchingRule));
 
 	if ( !mr ) {
 		*code = LDAP_SCHERR_OUTOFMEM;
@@ -1343,7 +1343,7 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int
 }
 
 void
-ldap_attributetype_free(LDAP_ATTRIBUTE_TYPE * at)
+ldap_attributetype_free(LDAPAttributeType * at)
 {
 	LDAP_FREE(at->at_oid);
 	LDAP_VFREE(at->at_names);
@@ -1357,7 +1357,7 @@ ldap_attributetype_free(LDAP_ATTRIBUTE_TYPE * at)
 	LDAP_FREE(at);
 }
 
-LDAP_ATTRIBUTE_TYPE *
+LDAPAttributeType *
 ldap_str2attributetype( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
@@ -1372,7 +1372,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 	int seen_substr = 0;
 	int seen_syntax = 0;
 	int seen_usage = 0;
-	LDAP_ATTRIBUTE_TYPE * at;
+	LDAPAttributeType * at;
 	char ** ext_vals;
 	const char * savepos;
 
@@ -1383,7 +1383,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 	}
 
 	*errp = s;
-	at = LDAP_CALLOC(1,sizeof(LDAP_ATTRIBUTE_TYPE));
+	at = LDAP_CALLOC(1,sizeof(LDAPAttributeType));
 
 	if ( !at ) {
 		*code = LDAP_SCHERR_OUTOFMEM;
@@ -1690,7 +1690,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 }
 
 void
-ldap_objectclass_free(LDAP_OBJECT_CLASS * oc)
+ldap_objectclass_free(LDAPObjectClass * oc)
 {
 	LDAP_FREE(oc->oc_oid);
 	LDAP_VFREE(oc->oc_names);
@@ -1702,7 +1702,7 @@ ldap_objectclass_free(LDAP_OBJECT_CLASS * oc)
 	LDAP_FREE(oc);
 }
 
-LDAP_OBJECT_CLASS *
+LDAPObjectClass *
 ldap_str2objectclass( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
@@ -1715,7 +1715,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 	int seen_kind = 0;
 	int seen_must = 0;
 	int seen_may = 0;
-	LDAP_OBJECT_CLASS * oc;
+	LDAPObjectClass * oc;
 	char ** ext_vals;
 	const char * savepos;
 
@@ -1726,7 +1726,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 	}
 
 	*errp = s;
-	oc = LDAP_CALLOC(1,sizeof(LDAP_OBJECT_CLASS));
+	oc = LDAP_CALLOC(1,sizeof(LDAPObjectClass));
 
 	if ( !oc ) {
 		*code = LDAP_SCHERR_OUTOFMEM;

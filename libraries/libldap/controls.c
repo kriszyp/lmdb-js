@@ -386,7 +386,7 @@ ldap_control_dup( const LDAPControl *c )
  * June 2000 sfs  Added control utilities
  */
 /*---
-   ldap_int_create_control
+   ldap_create_control
    
    Internal function to create an LDAP control from the encoded BerElement.
 
@@ -402,8 +402,8 @@ ldap_control_dup( const LDAPControl *c )
 ---*/
 
 int
-ldap_int_create_control(
-	const char *requestOID,
+ldap_create_control(
+	LDAP_CONST char *requestOID,
 	BerElement *ber,
 	int iscritical,
 	LDAPControl **ctrlp )
@@ -415,24 +415,24 @@ ldap_int_create_control(
 		return LDAP_PARAM_ERROR;
 	}
 
-	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+	ctrl = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
+	if ( ctrl == NULL ) {
 		return LDAP_NO_MEMORY;
 	}
 
-	ctrl = (LDAPControl *) LBER_MALLOC( sizeof(LDAPControl) );
-	if ( ctrl == NULL ) {
-		ber_bvfree( bvalp );
+	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
 
 	ctrl->ldctl_value = *bvalp;
-	LDAP_FREE( bvalp );
+	ber_memfree( bvalp );
 
 	ctrl->ldctl_oid = LDAP_STRDUP( requestOID );
 	ctrl->ldctl_iscritical = iscritical;
 
-	if ( ctrl->ldctl_oid == NULL ) {
-		LBER_FREE( ctrl );
+	if ( requestOID != NULL && ctrl->ldctl_oid == NULL ) {
+		ldap_control_free( ctrl );
 		return LDAP_NO_MEMORY;
 	}
 
