@@ -52,7 +52,7 @@ name of the release.
 .{{S: }}
 +{{B: Review the release documents}}
 
-. You should review the {{F:COPYRIGHT}}, {{F:LICENSE}}, {{F:README}}
+. You should now review the {{F:COPYRIGHT}}, {{F:LICENSE}}, {{F:README}}
 and {{F:INSTALL}} documents provided with the distribution.
 The {{F:COPYRIGHT}} and {{F:LICENSE}} provide information on
 acceptable use, copying, and limitation of warranty of OpenLDAP

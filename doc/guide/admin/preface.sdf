@@ -21,6 +21,22 @@ on {{TERM:UNIX}} (and UNIX-like) systems.  The document is aimed at
 experienced system administrators but who may not have prior experience
 operating {{TERM:LDAP}}-based directory software.
 
+This document is meant to be used in conjunction with other OpenLDAP
+information resources provided with the software package and on
+the project's extensive site ({{URL:http://www.OpenLDAP.org/}}) on
+the World Wide Web.  The site makes available a number of resources.
+
+!block table; align=Center; coltags="N,URL"; \
+	title="OpenLDAP Resources"
+Resource|URL
+Document Catalog|http://www.OpenLDAP.org/doc/
+Frequently Asked Questions|http://www.OpenLDAP.org/faq/
+Issue Tracking System|http://www.OpenLDAP.org/its/
+Mailing Lists|http://www.OpenLDAP.org/lists/
+Software Pages|http://www.OpenLDAP.org/software/
+Support Pages|http://www.OpenLDAP.org/support/
+!endblock
+ 
 
 P2[notoc] Acknowledgments
 
