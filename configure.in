@@ -320,19 +320,19 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl CFLAGS=${CFLAGS-""}
 
 dnl
-dnl AIX Thread requires we use cc_r or x1c_r.
+dnl AIX Thread requires we use cc_r or xlc_r.
 dnl But only do this IF AIX and CC is zero (initially),
 dnl and cc exists and threads are auto|yes|posix.
 dnl
-dnl If we find cc_r|x1c_r, force pthreads and assume
+dnl If we find cc_r|xlc_r, force pthreads and assume
 dnl		pthread_create is in $LIBS (ie: don't bring in
 dnl		any additional thread libraries)
-dnl If we do not find cc_r|x1c_r, disable threads
+dnl If we do not find cc_r|xlc_r, disable threads
 dnl
 AC_CANONICAL_HOST
 
 case "$host" in
-	*-*-aix*) $ol_host_os=aix ;;
+	*-*-aix*) ol_host_os=aix ;;
 esac
 
 ol_aix_threads=no
@@ -343,7 +343,8 @@ if test -z "$save_CC" -a "$CC" = cc -a "$ol_host_os" = aix ; then
 fi
 
 if test ol_aix_threads = yes ; then
-	AC_CHECK_PROGS(CC,cc_r x1c_r)
+	CC=
+	AC_CHECK_PROGS(CC,cc_r xlc_r)
 
 	if test "$CC" ; then
 		if test $ol_with_threads != auto ; then
