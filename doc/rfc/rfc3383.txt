@@ -1,0 +1,1291 @@
+
+
+
+
+
+
+Network Working Group                                        K. Zeilenga
+Request for Comments: 3383                           OpenLDAP Foundation
+BCP: 64                                                   September 2002
+Category: Best Current Practice
+
+
+       Internet Assigned Numbers Authority (IANA) Considerations
+          for the Lightweight Directory Access Protocol (LDAP)
+
+Status of this Memo
+
+   This document specifies an Internet Best Current Practices for the
+   Internet Community, and requests discussion and suggestions for
+   improvements.  Distribution of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2002).  All Rights Reserved.
+
+Abstract
+
+   This document provides procedures for registering extensible elements
+   of the Lightweight Directory Access Protocol (LDAP).  This document
+   also provides guidelines to the Internet Assigned Numbers Authority
+   (IANA) describing conditions under which new values can be assigned.
+
+1. Introduction
+
+   The Lightweight Directory Access Protocol (LDAP) [RFC3377] is an
+   extensible protocol.  LDAP supports:
+
+   - addition of new operations,
+   - extension of existing operations, and
+   - extensible schema.
+
+   This document details procedures for registering values of used to
+   unambiguously identify extensible elements of the protocol including:
+
+   - LDAP message types;
+   - LDAP extended operations and controls;
+   - LDAP result codes;
+   - LDAP authentication methods;
+   - LDAP attribute description options; and
+   - Object Identifier descriptors.
+
+   These registries are maintained by the Internet Assigned Numbers
+   Authority (IANA).
+
+
+
+
+Zeilenga                 Best Current Practice                  [Page 1]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+   In addition, this document provides guidelines to IANA describing the
+   conditions under which new values can be assigned.
+
+2. Terminology and Conventions
+
+   This section details terms and conventions used in this document.
+
+2.1. Policy Terminology
+
+   The terms "IESG Approval", "Standards Action", "IETF Consensus",
+   "Specification Required", "First Come First Served", "Expert Review",
+   and "Private Use" are used as defined in BCP 26 [RFC2434].
+
+2.2. Requirement Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in BCP 14 [RFC2119].  In
+   this case, "the specification" as used by BCP 14 refers to the
+   processing of protocols being submitted to the IETF standards
+   process.
+
+2.3. Common ABNF Productions
+
+   A number of syntaxes in this document are described using ABNF
+   [RFC2234].  These syntaxes rely on the following common productions:
+
+      ALPHA = %x41-5A / %x61-7A    ; A-Z / a-z
+
+      LDIGIT = %x31-39             ; 1-9
+
+      DIGIT = %x30 / LDIGIT        ; 0-9
+
+      HYPHEN = %x2D                ; "-"
+
+      DOT = %x2E                   ; "."
+
+      number = DIGIT / ( LDIGIT 1*DIGIT )
+
+      keychar = ALPHA / DIGIT / HYPHEN
+
+      leadkeychar = ALPHA
+
+      keystring = leadkeychar *keychar
+
+   A keyword is a case-insensitive string of UTF-8 [RFC2279] encoded
+   characters from the Universal Character Set (UCS) [ISO10646]
+   restricted to the <keystring> production.
+
+
+
+Zeilenga                 Best Current Practice                  [Page 2]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+3. IANA Considerations for LDAP
+
+   This section details each kind of protocol value which can be
+   registered and provides IANA guidelines on how to assign new values.
+
+   IANA may reject obviously bogus registration requests.
+
+3.1. Object Identifiers
+
+   Numerous LDAP schema and protocol elements are identified by Object
+   Identifiers.  Specifications which assign OIDs to elements SHOULD
+   state who delegated the OIDs for its use.
+
+   For IETF developed elements, specifications SHOULD use OIDs under
+   "Internet Directory Numbers" (1.3.6.1.1.x).  Numbers under this OID
+   arc will be assigned upon Expert Review with Specification Required.
+   Only one OID per specification will be assigned.  The specification
+   MAY then assign any number of OIDs within this arc without further
+   coordination with IANA.
+
+   For elements developed by others, any properly delegated OID can
+   be used, including those under "Internet Private Enterprise
+   Numbers" (1.3.6.1.4.1.x) assigned by IANA
+   <http://www.iana.org/cgi-bin/enterprise.pl>.
+
+   To avoid interoperability problems between early implementations of
+   "works in progress" and implementations of the published
+   specification (e.g., the RFC), experimental OIDs SHOULD be used in
+   "works in progress" and early implementations.  OIDs under the
+   Internet Experimental OID arc (1.3.6.1.3.x) may be used for this
+   purpose.
+
+   Experimental OIDs are not to used in published specifications (e.g.,
+   RFCs).
+
+   Practices for IANA assignment of Internet Enterprise and Experimental
+   OIDs are detailed in STD 16 [RFC1155].
+
+3.2 Protocol Mechanisms
+
+   LDAP provides a number of Root DSE attributes for discovery of
+   protocol mechanisms identified by OIDs, including:
+
+   - supportedControl [RFC2252] and
+   - supportedExtension [RFC2252].
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                  [Page 3]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+   A registry of OIDs used for discover of protocol mechanisms is
+   provided to allow implementors and others to locate the technical
+   specification for these protocol mechanisms.  Future specifications
+   of additional Root DSE attributes holding values identifying protocol
+   mechanisms MAY extend this registry for their values.
+
+   OIDs associated with discoverable protocol mechanisms SHOULD be
+   registered.  These are be considered on a First Come First Served
+   with Specification Required basis.
+
+   OIDs associated with Standard Track mechanisms MUST be registered and
+   require Standards Action.
+
+3.3. Object Identifier Descriptors
+
+   LDAP allows short descriptive names (or descriptors) to be used
+   instead of a numeric Object Identifier to identify protocol
+   extensions [RFC2251], schema elements [RFC2252], LDAP URL [RFC2255]
+   extensions, and other objects.  Descriptors are restricted to strings
+   of UTF-8 encoded UCS characters restricted by the following ABNF:
+
+      name = keystring
+
+   Descriptors are case-insensitive.
+
+   Multiple names may be assigned to a given OID.  For purposes of
+   registration, an OID is to be represented in numeric OID form
+   conforming to the ABNF:
+
+      numericoid = number *( DOT number ) ; e.g., 1.1.0.23.40
+
+   While the protocol places no maximum length restriction upon
+   descriptors, they should be short.  Descriptors longer than 48
+   characters may be viewed as too long to register.
+
+   A values ending with a hyphen ("-") reserve all descriptors which
+   start with the value.  For example, the registration of the option
+   "descrFamily-" reserves all options which start with "descrFamily-"
+   for some related purpose.
+
+   Descriptors beginning with "x-" are for Private Use and cannot be
+   registered.
+
+   Descriptors beginning with "e-" are reserved for experiments and will
+   be registered on a First Come First Served basis.
+
+   All other descriptors require Expert Review to be registered.
+
+
+
+
+Zeilenga                 Best Current Practice                  [Page 4]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+   The registrant need not "own" the OID being named.
+
+   The OID namespace is managed by The ISO/IEC Joint Technical Committee
+   1 - Subcommittee 6.
+
+3.4. AttributeDescription Options
+
+   An AttributeDescription [RFC2251, Section 4.1.5] can contain zero or
+   more options specifying additional semantics.  An option SHALL be
+   restricted to a string UTF-8 encoded UCS characters limited by the
+   following ABNF:
+
+      option = keystring
+
+   Options are case-insensitive.
+
+   While the protocol places no maximum length restriction upon option
+   strings, they should be short.  Options longer than 24 characters may
+   be viewed as too long to register.
+
+   Values ending with a hyphen ("-") reserve all option names which
+   start with the name.  For example, the registration of the option
+   "optionFamily-" reserves all options which start with "optionFamily-"
+   for some related purpose.
+
+   Options beginning with "x-" are for Private Use and cannot be
+   registered.
+
+   Options beginning with "e-" are reserved for experiments and will be
+   registered on a First Come First Served basis.
+
+   All other options require Standards Action or Expert Review with
+   Specification Required to be registered.
+
+3.5. LDAP Message Types
+
+   Each protocol message is encapsulated in an LDAPMessage envelope
+   [RFC2251, Section 4.1.1].  The protocolOp CHOICE indicates the type
+   of message encapsulated.  Each message type consists of a keyword and
+   a non-negative choice number is combined with the class (APPLICATION)
+   and data type (CONSTRUCTED or PRIMITIVE) to construct the BER tag in
+   the message's encoding.  The choice numbers for existing protocol
+   messages are implicit in the protocol's ASN.1 defined in [RFC2251].
+
+   New values will be registered upon Standards Action.
+
+   Note:  LDAP provides extensible messages which reduces, but does not
+          eliminate, the need to add new message types.
+
+
+
+Zeilenga                 Best Current Practice                  [Page 5]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+3.6. LDAP Result Codes
+
+   LDAP result messages carry an resultCode enumerated value to indicate
+   the outcome of the operation [RFC2251, Section 4.1.10].  Each result
+   code consists of a keyword and a non-negative integer.
+
+   New resultCodes integers in the range 0-1023 require Standards Action
+   to be registered.  New resultCode integers in the range 1024-4095
+   require Expert Review with Specification Required.  New resultCode
+   integers in the range 4096-16383 will be registered on a First Come
+   First Served basis.  Keywords associated with integers in the range
+   0-4095 SHALL NOT start with "e-" or "x-".  Keywords associated with
+   integers in the range 4096-16383 SHALL start with "e-".  Values
+   greater than or equal to 16384 and keywords starting with "x-" are
+   for Private Use and cannot be registered.
+
+3.7. LDAP Authentication Method
+
+   The LDAP Bind operation supports multiple authentication methods
+   [RFC2251, Section 4.2].  Each authentication choice consists of a
+   keyword and a non-negative integer.
+
+   The registrant SHALL classify the authentication method usage using
+   one of the following terms:
+
+      COMMON      - method is appropriate for common use on the
+                    Internet,
+      LIMITED USE - method is appropriate for limited use,
+      OBSOLETE    - method has been deprecated or otherwise found to be
+                    inappropriate for any use.
+
+   Methods without publicly available specifications SHALL NOT be
+   classified as COMMON.  New registrations of class OBSOLETE cannot be
+   registered.
+
+   New authentication method integers in the range 0-1023 require
+   Standards Action to be registered.  New authentication method
+   integers in the range 1024-4095 require Expert Review with
+   Specification Required.  New authentication method integers in the
+   range 4096-16383 will be registered on a First Come First Served
+   basis.  Keywords associated with integers in the range 0-4095 SHALL
+   NOT start with "e-" or "x-".  Keywords associated with integers in
+   the range 4096-16383 SHALL start with "e-".  Values greater than or
+   equal to 16384 and keywords starting with "x-" are for Private Use
+   and cannot be registered.
+
+   Note:  LDAP supports SASL [RFC2222] as an Authentication CHOICE.
+          SASL is an extensible LDAP authentication method.
+
+
+
+Zeilenga                 Best Current Practice                  [Page 6]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+3.8. Directory Systems Names
+
+   The IANA-maintained "Directory Systems Names" registry [IANADSN] of
+   valid keywords for well known attributes used in the LDAPv2 string
+   representation of a distinguished name [RFC1779].  RFC 1779 was
+   obsoleted by RFC 2253.
+
+   Directory systems names are not known to be used in any other
+   context.  LDAPv3 uses Object Identifier Descriptors [Section 3.2]
+   (which have a different syntax than directory system names).
+
+   New Directory System Names will no longer be accepted.  For
+   historical purposes, the current list of registered names should
+   remain publicly available.
+
+4. Registration Procedure
+
+   The procedure given here MUST be used by anyone who wishes to use a
+   new value of a type described in Section 3 of this document.
+
+   The first step is for the requester to fill out the appropriate form.
+   Templates are provided in Appendix A.
+
+   If the policy is Standards Action, the completed form SHOULD be
+   provided to the IESG with the request for Standards Action.  Upon
+   approval of the Standards Action, the IESG SHALL forward the request
+   (possibly revised) to IANA.  The IESG SHALL be viewed as the owner of
+   all values requiring Standards Action.
+
+   If the policy is Expert Review, the requester SHALL post the
+   completed form to the <directory@apps.ietf.org> mailing list for
+   public review.  The review period is two (2) weeks.  If a revised
+   form is later submitted, the review period is restarted.  Anyone
+   may subscribe to this list by sending a request to
+   <directory-request@apps.ietf.org>.  During the review, objections
+   may be raised by anyone (including the Expert) on the list.  After
+   completion of the review, the Expert, based upon public comments,
+   SHALL either approve the request and forward it to the IESG OR deny
+   the request.  In either case, the Expert SHALL promptly notify the
+   requester of the action.  Actions of the Expert may be appealed
+   [RFC2026].  The Expert is appointed by Applications Area Director(s).
+   The requester is viewed as the owner of values registered under
+   Expert Review.
+
+   If the policy is First Come First Served, the requester SHALL submit
+   the completed form directly to the IANA: <iana@iana.org>.  The
+   requester is viewed as the owner of values registered under First
+   Come First Served.
+
+
+
+Zeilenga                 Best Current Practice                  [Page 7]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+   Neither the Expert nor IANA will take position on the claims of
+   copyright or trademarks issues regarding completed forms.
+
+   Prior to submission of the Internet Draft (I-D) to the RFC Editor but
+   after IESG review and tentative approval, the document editor SHOULD
+   revise the I-D to use registered values.
+
+5. Registration Maintenance
+
+   This section discusses maintenance of registrations.
+
+5.1. Lists of Registered Values
+
+   IANA makes lists of registered values readily available to the
+   Internet community on their web site: <http://www.iana.org/>.
+
+5.2. Change Control
+
+   The registration owner MAY update the registration subject to the
+   same constraints and review as with new registrations.  In cases
+   where the owner is not unable or unwilling to make necessary updates,
+   the IESG MAY assert ownership in order to update the registration.
+
+5.3. Comments
+
+   For cases where others (anyone other than the owner) have significant
+   objections to the claims in a registration and the owner does not
+   agree to change the registration, comments MAY be attached to a
+   registration upon Expert Review.  For registrations owned by the
+   IESG, the objections SHOULD be addressed by initiating a request for
+   Expert Review.
+
+   The form of these requests is ad hoc, but MUST include the specific
+   objections to be reviewed and SHOULD contain (directly or by
+   reference) materials supporting the objections.
+
+6. Security Considerations
+
+   The security considerations detailed in [RFC2434] are generally
+   applicable to this document.  Additional security considerations
+   specific to each namespace are discussed in Section 3 where
+   appropriate.
+
+   Security considerations for LDAP are discussed in documents
+   comprising the technical specification [RFC3377].
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                  [Page 8]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+7. Acknowledgment
+
+   This document is a product of the IETF LDAP Revision (LDAPbis)
+   Working Group.  Some text was borrowed from "Guidelines for Writing
+   an IANA Considerations Section in RFCs" [RFC2434] by Thomas Narten
+   and Harald Alvestrand.
+
+8. Normative References
+
+   [RFC1155]  Rose, M. and K. McCloghrie, "Structure and Identification
+              of Management Information for TCP/IP-based Internets", STD
+              16, RFC 1155, May 1990.
+
+   [RFC2026]  Bradner, S., "The Internet Standards Process -- Revision
+              3", BCP 9, RFC 2026, October 1996.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [RFC2234]  Crocker, D. and P. Overell, "Augmented BNF for Syntax
+              Specifications: ABNF", RFC 2234, November 1997.
+
+   [RFC2251]  Wahl, M., Howes, T. and S. Kille, "Lightweight Directory
+              Access Protocol (v3)", RFC 2251, December 1997.
+
+   [RFC2252]  Wahl, M., Coulbeck, A., Howes, T. and S. Kille,
+              "Lightweight Directory Access Protocol (v3):  Attribute
+              Syntax Definitions", RFC 2252, December 1997.
+
+   [RFC2255]  Howes, T. and M. Smith, "The LDAP URL Format", RFC 2255,
+              December, 1997.
+
+   [RFC2256]  Wahl, M., "A Summary of the X.500(96) User Schema for use
+              with LDAPv3", RFC 2256, December 1997.
+
+   [RFC2279]  Yergeau, F., "UTF-8, a transformation format of ISO
+              10646", RFC 2279, January 1998.
+
+   [RFC2434]  Narten, T. and H. Alvestrand, "Guidelines for Writing an
+              IANA Considerations Section in RFCs", BCP 26, RFC 2434,
+              October 1998.
+
+   [RFC3377]  Hodges, J. and R. Morgan, "Lightweight Directory Access
+              Protocol (v3): Technical Specification", RFC 3377,
+              September 2002.
+
+   [IANADSN]  IANA, "Directory Systems Names",
+              http://www.iana.org/assignments/directory-system-names
+
+
+
+Zeilenga                 Best Current Practice                  [Page 9]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+   [ISO10646] Universal Multiple-Octet Coded Character Set (UCS) -
+              Architecture and Basic Multilingual Plane, ISO/IEC
+              10646-1: 1993.
+
+10. Informative References
+
+   [RFC1779]  Kille, S., "A String Representation of Distinguished
+              Names", RFC 1779, March 1995.
+
+   [RFC2222]  Myers, J., "Simple Authentication and Security Layer
+              (SASL)", RFC 2222, October 1997.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 10]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+Appendix A.  Registration Templates
+
+   This appendix provides registration templates for registering new
+   LDAP values.
+
+A.1. LDAP Object Identifier Registration Template
+
+   Subject: Request for LDAP OID Registration
+
+   Person & email address to contact for further information:
+
+   Specification: (I-D)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+A.2. LDAP Protocol Mechanism Registration Template
+
+   Subject: Request for LDAP Protocol Mechanism Registration
+
+   Object Identifier:
+
+   Description:
+
+   Person & email address to contact for further information:
+
+   Usage: (One of Control or Extension)
+
+   Specification: (I-D)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 11]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+A.3. LDAP Descriptor Registration Template
+
+   Subject: Request for LDAP Descriptor Registration
+
+   Descriptor (short name):
+
+   Object Identifier:
+
+   Person & email address to contact for further information:
+
+   Usage: (One of attribute type, URL extension,
+             object class, or other)
+
+   Specification: (RFC, I-D, URI)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+A.4. LDAP Attribute Description Option Registration Template
+
+   Subject: Request for LDAP Attribute Description Option Registration
+
+   Option Name:
+
+   Family of Options: (YES or NO)
+
+   Person & email address to contact for further information:
+
+   Specification: (RFC, I-D, URI)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 12]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+A.5. LDAP Message Type Registration Template
+
+   Subject: Request for LDAP Message Type Registration
+
+   LDAP Message Name:
+
+   Person & email address to contact for further information:
+
+   Specification: (Approved I-D)
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+A.6. LDAP Result Code Registration Template
+
+   Subject: Request for LDAP Result Code Registration
+
+   Result Code Name:
+
+   Person & email address to contact for further information:
+
+   Specification: (RFC, I-D, URI)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+A.7. LDAP Authentication Method Registration Template
+
+   Subject: Request for LDAP Authentication Method Registration
+
+   Authentication Method Name:
+
+   Person & email address to contact for further information:
+
+   Specification: (RFC, I-D, URI)
+
+   Intended Usage: (One of COMMON, LIMITED-USE, OBSOLETE)
+
+   Author/Change Controller:
+
+   Comments:
+
+   (Any comments that the requester deems relevant to the request)
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 13]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+Appendix B. Assigned Values
+
+   The following values are currently assigned.
+
+B.1. Object Identifiers
+
+   Currently registered "Internet Private Enterprise Numbers" can be
+   found at <http://www.iana.org/assignments/enterprise-numbers>.
+
+   Currently registered "Internet Directory Numbers" can be found at
+   <http://www.iana.org/assignments/smi-numbers>.
+
+B.2. Protocol Mechanisms
+
+Object Identifier           Type Description     Reference
+--------------------------  ---- --------------  ---------
+1.2.840.113556.1.4.473      C    Sort Request     [RFC2891]
+1.2.840.113556.1.4.474      C    Sort Response    [RFC2891]
+1.3.6.1.4.1.1466.101.119.1  E    Dynamic Refresh  [RFC2589]
+1.3.6.1.4.1.1466.20037      E    Start TLS        [RFC2830]
+1.3.6.1.4.1.4203.1.11.1     E    Modify Password  [RFC3062]
+2.16.840.1.113730.3.4.2     C    ManageDsaIT      [RFC3296]
+
+Legend
+------------------------
+C => supportedControl
+E => supportedExtension
+
+B.3. Object Identifier Descriptors
+
+NAME                         Type OID [REF]
+------------------------     ---- -----------------
+account                         O 0.9.2342.19200300.100.4.5 [RFC1274]
+alias                           O 2.5.6.1 [RFC2256]
+aliasedEntryName                A 2.5.4.1 [X.501]
+aliasedObjectName               A 2.5.4.1 [RFC2256]
+altServer                       A 1.3.6.1.4.1.1466.101.120.6 [RFC2252]
+applicationEntity               O 2.5.6.12 [RFC2256]
+applicationProcess              O 2.5.6.11 [RFC2256]
+aRecord                         A 0.9.2342.19200300.100.1.26 [RFC1274]
+associatedDomain                A 0.9.2342.19200300.100.1.37 [RFC1274]
+associatedInternetGateway       A 1.3.6.1.4.1.453.7.2.8 [RFC2164]
+associatedName                  A 0.9.2342.19200300.100.1.38 [RFC1274]
+associatedORAddress             A 1.3.6.1.4.1.453.7.2.6 [RFC2164]
+associatedX400Gateway           A 1.3.6.1.4.1.453.7.2.3 [RFC2164]
+attributeTypes                  A 2.5.21.5 [RFC2252]
+audio                           A 0.9.2342.19200300.100.1.55 [RFC1274]
+authorityRevocationList         A 2.5.4.38 [RFC2256]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 14]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+bitStringMatch                  M 2.5.13.16 [RFC2252]
+buildingName                    A 0.9.2342.19200300.100.1.48 [RFC1274]
+businessCategory                A 2.5.4.15 [RFC2256]
+C                               A 2.5.4.6 [RFC2256]
+cACertificate                   A 2.5.4.37 [RFC2256]
+calCalAdrURI                    A 1.2.840.113556.1.4.481 [RFC2739]
+calCalURI                       A 1.2.840.113556.1.4.478 [RFC2739]
+calCAPURI                       A 1.2.840.113556.1.4.480 [RFC2739]
+calEntry                        O 1.2.840.113556.1.5.87 [RFC2739]
+calFBURL                        A 1.2.840.113556.1.4.479 [RFC2739]
+calOtherCalAdrURIs              A 1.2.840.113556.1.4.485 [RFC2739]
+calOtherCalURIs                 A 1.2.840.113556.1.4.482 [RFC2739]
+calOtherCAPURIs                 A 1.2.840.113556.1.4.484 [RFC2739]
+calOtherFBURLs                  A 1.2.840.113556.1.4.483 [RFC2739]
+caseExactIA5Match               M 1.3.6.1.4.1.1466.109.114.1 [RFC2252]
+caseIgnoreIA5Match              M 1.3.6.1.4.1.1466.109.114.2 [RFC2252]
+caseIgnoreListMatch             M 2.5.13.11 [RFC2252]
+caseIgnoreMatch                 M 2.5.13.2 [RFC2252]
+caseIgnoreOrderingMatch         M 2.5.13.3 [RFC2252]
+caseIgnoreSubstringsMatch       M 2.5.13.4 [RFC2252]
+certificateRevocationList       A 2.5.4.39 [RFC2256]
+certificationAuthority          O 2.5.6.16 [RFC2256]
+certificationAuthority-V2       O 2.5.6.16.2 [RFC2256]
+CN                              A 2.5.4.3 [RFC2256]
+cNAMERecord                     A 0.9.2342.19200300.100.1.31 [RFC1274]
+co                              A 0.9.2342.19200300.100.1.43 [RFC1274]
+commonName                      A 2.5.4.3 [RFC2256]
+country                         O 2.5.6.2 [RFC2256]
+countryName                     A 2.5.4.6 [RFC2256]
+createTimestamp                 A 2.5.18.1 [RFC2252]
+creatorsName                    A 2.5.18.3 [RFC2252]
+cRLDistributionPoint            O 2.5.6.19 [RFC2256]
+crossCertificatePair            A 2.5.4.40 [RFC2256]
+DC                              A 0.9.2342.19200300.100.1.25 [RFC2247]
+dcObject                        O 1.3.6.1.4.1.1466.344 [RFC2247]
+deltaCRL                        O 2.5.6.23 [RFC2587]
+deltaRevocationList             A 2.5.4.53 [RFC2256]
+description                     A 2.5.4.13 [RFC2256]
+destinationIndicator            A 2.5.4.27 [RFC2256]
+device                          O 2.5.6.14 [RFC2256]
+distinguishedName               A 2.5.4.49 [RFC2256]
+distinguishedNameMatch          M 2.5.13.1 [RFC2252]
+distinguishedNameTableEntry     O 1.3.6.1.4.1.453.7.1.5 [RFC2293]
+distinguishedNameTableKey       A 1.3.6.1.4.1.453.7.2.3 [RFC2293]
+dITContentRules                 A 2.5.21.2 [RFC2252]
+dITRedirect                     A 0.9.2342.19200300.100.1.54 [RFC1274]
+dITStructureRules               A 2.5.21.1 [RFC2252]
+dmd                             O 2.5.6.20 [RFC2256]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 15]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+dmdName                         A 2.5.4.54 [RFC2256]
+dnQualifier                     A 2.5.4.46 [RFC2256]
+dNSDomain                       O 0.9.2342.19200300.100.4.15 [RFC1274]
+document                        O 0.9.2342.19200300.100.4.6 [RFC1274]
+documentAuthor                  A 0.9.2342.19200300.100.1.14 [RFC1274]
+documentIdentifier              A 0.9.2342.19200300.100.1.11 [RFC1274]
+documentLocation                A 0.9.2342.19200300.100.1.15 [RFC1274]
+documentPublisher               A 0.9.2342.19200300.100.1.56 [RFC1274]
+documentSeries                  O 0.9.2342.19200300.100.4.8 [RFC1274]
+documentTitle                   A 0.9.2342.19200300.100.1.12 [RFC1274]
+documentVersion                 A 0.9.2342.19200300.100.1.13 [RFC1274]
+domain                          O 0.9.2342.19200300.100.4.13 [RFC2247]
+domainComponent                 A 0.9.2342.19200300.100.1.25 [RFC2247]
+domainNameForm                  N 1.3.6.1.4.1.1466.345 [RFC2247]
+domainRelatedObject             O 0.9.2342.19200300.100.4.17 [RFC1274]
+drink                           A 0.9.2342.19200300.100.1.5 [RFC1274]
+dSA                             O 2.5.6.13 [RFC2256]
+dSAQuality                      A 0.9.2342.19200300.100.1.49 [RFC1274]
+dynamicObject                   O 1.3.6.1.4.1.1466.101.119.2 [RFC2589]
+dynamicSubtrees                 A 1.3.6.1.4.1.1466.101.119.4 [RFC2589]
+enhancedSearchGuide             A 2.5.4.47 [RFC2256]
+entryTtl                        A 1.3.6.1.4.1.1466.101.119.3 [RFC2589]
+extensibleObject                O 1.3.6.1.4.1.1466.101.120.111 [RFC2252]
+facsimileTelephoneNumber        A 2.5.4.23 [RFC2256]
+favouriteDrink                  A 0.9.2342.19200300.100.1.5 [RFC1274]
+friendlyCountry                 O 0.9.2342.19200300.100.4.18 [RFC1274]
+friendlyCountryName             A 0.9.2342.19200300.100.1.43 [RFC1274]
+generalizedTimeMatch            M 2.5.13.27 [RFC2252]
+generalizedTimeOrderingMatch    M 2.5.13.28 [RFC2252]
+generationQualifier             A 2.5.4.44 [RFC2256]
+givenName                       A 2.5.4.42 [RFC2256]
+GN                              A 2.5.4.42 [RFC2256]
+groupOfNames                    O 2.5.6.9 [RFC2256]
+groupOfUniqueNames              O 2.5.6.17 [RFC2256]
+homePhone                       A 0.9.2342.19200300.100.1.20 [RFC1274]
+homePostalAddress               A 0.9.2342.19200300.100.1.39 [RFC1274]
+homeTelephone                   A 0.9.2342.19200300.100.1.20 [RFC1274]
+host                            A 0.9.2342.19200300.100.1.9 [RFC1274]
+houseIdentifier                 A 2.5.4.51 [RFC2256]
+info                            A 0.9.2342.19200300.100.1.4 [RFC1274]
+initials                        A 2.5.4.43 [RFC2256]
+integerFirstComponentMatch      M 2.5.13.29 [RFC2252]
+integerMatch                    M 2.5.13.14 [RFC2252]
+internationaliSDNNumber         A 2.5.4.25 [RFC2256]
+janetMailbox                    A 0.9.2342.19200300.100.1.46 [RFC1274]
+jpegPhoto                       A 0.9.2342.19200300.100.1.60 [RFC1488]
+knowledgeInformation            A 2.5.4.2 [RFC2256]
+L                               A 2.5.4.7 [RFC2256]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 16]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+labeledURI                      A 1.3.6.1.4.1.250.1.57 [RFC2079]
+labeledURIObject                A 1.3.6.1.4.1.250.3.15 [RFC2079]
+lastModifiedBy                  A 0.9.2342.19200300.100.1.24 [RFC1274]
+lastModifiedTime                A 0.9.2342.19200300.100.1.23 [RFC1274]
+ldapSyntaxes                    A 1.3.6.1.4.1.1466.101.120.16 [RFC2252]
+locality                        O 2.5.6.3 [RFC2256]
+localityName                    A 2.5.4.7 [RFC2256]
+mail                            A 0.9.2342.19200300.100.1.3 [RFC2798]
+mailPreferenceOption            A 0.9.2342.19200300.100.1.47 [RFC1274]
+manager                         A 0.9.2342.19200300.100.1.10 [RFC1274]
+matchingRules                   A 2.5.21.4 [RFC2252]
+matchingRuleUse                 A 2.5.21.8 [RFC2252]
+mcgamTables                     A 1.3.6.1.4.1.453.7.2.9 [RFC2164]
+mDRecord                        A 0.9.2342.19200300.100.1.27 [RFC1274]
+member                          A 2.5.4.31 [RFC2256]
+mixerGateway                    O 1.3.6.1.4.1.453.7.1.4 [RFC2164]
+mobile                          A 0.9.2342.19200300.100.1.41 [RFC1274]
+mobileTelephoneNumber           A 0.9.2342.19200300.100.1.41 [RFC1274]
+modifiersName                   A 2.5.18.4 [RFC2252]
+modifyTimestamp                 A 2.5.18.2 [RFC2252]
+mXRecord                        A 0.9.2342.19200300.100.1.28 [RFC1274]
+name                            A 2.5.4.41 [RFC2256]
+nameForms                       A 2.5.21.7 [RFC2252]
+namingContexts                  A 1.3.6.1.4.1.1466.101.120.5 [RFC2252]
+nSRecord                        A 0.9.2342.19200300.100.1.29 [RFC1274]
+numericStringMatch              M 2.5.13.8 [RFC2252]
+numericStringSubstringsMatch    M 2.5.13.10 [RFC2252]
+O                               A 2.5.4.10 [RFC2256]
+objectClass                     A 2.5.4.0 [RFC2256]
+objectClasses                   A 2.5.21.6 [RFC2252]
+objectIdentifierFirstComponentMatch M 2.5.13.30 [RFC2252]
+objectIdentifiersMatch          M 2.5.13.0 [RFC2252]
+octetStringMatch                M 2.5.13.17 [RFC2252]
+omittedORAddressComponent       O 1.3.6.1.4.1.453.7.1.3 [RFC2164]
+oRAddressComponentType          A 1.3.6.1.4.1.453.7.2.7 [RFC2164]
+organization                    O 2.5.6.4 [RFC2256]
+organizationalPerson            O 2.5.6.7 [RFC2256]
+organizationalRole              O 2.5.6.8 [RFC2256]
+organizationalStatus            A 0.9.2342.19200300.100.1.45 [RFC1274]
+organizationalUnit              O 2.5.6.5 [RFC2256]
+organizationalUnitName          A 2.5.4.11 [RFC2256]
+organizationName                A 2.5.4.10 [RFC2256]
+otherMailbox                    A 0.9.2342.19200300.100.1.22 [RFC1274]
+OU                              A 2.5.4.11 [RFC2256]
+owner                           A 2.5.4.32 [RFC2256]
+pager                           A 0.9.2342.19200300.100.1.42 [RFC1274]
+pagerTelephoneNumber            A 0.9.2342.19200300.100.1.42 [RFC1274]
+person                          O 2.5.6.6 [RFC2256]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 17]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+personalSignature               A 0.9.2342.19200300.100.1.53 [RFC1274]
+personalTitle                   A 0.9.2342.19200300.100.1.40 [RFC1274]
+photo                           A 0.9.2342.19200300.100.1.7 [RFC1274]
+physicalDeliveryOfficeName      A 2.5.4.19 [RFC2256]
+pilotDSA                        O 0.9.2342.19200300.100.4.21 [RFC1274]
+pilotObject                     O 0.9.2342.19200300.100.4.3 [RFC1274]
+pilotOrganization               O 0.9.2342.19200300.100.4.20 [RFC1274]
+pilotPerson                     O 0.9.2342.19200300.100.4.4 [RFC1274]
+pkiCA                           O 2.5.6.22 [RFC2587]
+pkiUser                         O 2.5.6.21 [RFC2587]
+postalAddress                   A 2.5.4.16 [RFC2256]
+postalCode                      A 2.5.4.17 [RFC2256]
+postOfficeBox                   A 2.5.4.18 [RFC2256]
+preferredDeliveryMethod         A 2.5.4.28 [RFC2256]
+presentationAddress             A 2.5.4.29 [RFC2256]
+presentationAddressMatch        M 2.5.13.22 [RFC2252]
+protocolInformation             A 2.5.4.48 [RFC2256]
+protocolInformationMatch        M 2.5.13.24 [RFC2252]
+qualityLabelledData             O 0.9.2342.19200300.100.4.22 [RFC1274]
+ref                             A 2.16.840.1.113730.3.1.34 [RFC3296]
+referral                        0 2.16.840.1.113730.3.2.6 [RFC3296]
+registeredAddress               A 2.5.4.26 [RFC2256]
+residentialPerson               O 2.5.6.10 [RFC2256]
+RFC822LocalPart                 O 0.9.2342.19200300.100.4.14 [RFC1274]
+RFC822Mailbox                   A 0.9.2342.19200300.100.1.3 [RFC1274]
+rFC822ToX400Mapping             O 1.3.6.1.4.1.453.7.1.1 [RFC2164]
+roleOccupant                    A 2.5.4.33 [RFC2256]
+room                            O 0.9.2342.19200300.100.4.7 [RFC1274]
+roomNumber                      A 0.9.2342.19200300.100.1.6 [RFC1274]
+searchGuide                     A 2.5.4.14 [RFC2256]
+secretary                       A 0.9.2342.19200300.100.1.21 [RFC1274]
+seeAlso                         A 2.5.4.34 [RFC2256]
+serialNumber                    A 2.5.4.5 [RFC2256]
+simpleSecurityObject            O 0.9.2342.19200300.100.4.19 [RFC1274]
+singleLevelQuality              A 0.9.2342.19200300.100.1.50 [RFC1274]
+SN                              A 2.5.4.4 [RFC2256]
+sOARecord                       A 0.9.2342.19200300.100.1.30 [RFC1274]
+ST                              A 2.5.4.8 [RFC2256]
+stateOrProvinceName             A 2.5.4.8 [RFC2256]
+street                          A 2.5.4.9 [RFC2256]
+streetAddress                   A 2.5.4.9 [RFC2256]
+strongAuthenticationUser        O 2.5.6.15 [RFC2256]
+subschema                       O 2.5.20.1 [RFC2252]
+subschemaSubentry               A 2.5.18.10 [RFC2252]
+subtree                         O 1.3.6.1.4.1.453.7.1.1 [RFC2293]
+subtreeMaximumQuality           A 0.9.2342.19200300.100.1.52 [RFC1274]
+subtreeMinimumQuality           A 0.9.2342.19200300.100.1.51 [RFC1274]
+supportedAlgorithms             A 2.5.4.52 [RFC2256]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 18]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+supportedApplicationContext     A 2.5.4.30 [RFC2256]
+supportedControl                A 1.3.6.1.4.1.1466.101.120.13 [RFC2252]
+supportedExtension              A 1.3.6.1.4.1.1466.101.120.7 [RFC2252]
+supportedLDAPVersion            A 1.3.6.1.4.1.1466.101.120.15 [RFC2252]
+supportedSASLMechanisms         A 1.3.6.1.4.1.1466.101.120.14 [RFC2252]
+surname                         A 2.5.4.4 [RFC2256]
+table                           O 1.3.6.1.4.1.453.7.1.2 [RFC2293]
+tableEntry                      O 1.3.6.1.4.1.453.7.1.3 [RFC2293]
+telephoneNumber                 A 2.5.4.20 [RFC2256]
+telephoneNumberMatch            M 2.5.13.20 [RFC2252]
+telephoneNumberSubstringsMatch  M 2.5.13.21 [RFC2252]
+teletexTerminalIdentifier       A 2.5.4.22 [RFC2256]
+telexNumber                     A 2.5.4.21 [RFC2256]
+textEncodedORAddress            A 0.9.2342.19200300.100.1.2 [RFC1274]
+textTableEntry                  O 1.3.6.1.4.1.453.7.1.4 [RFC2293]
+textTableKey                    A 1.3.6.1.4.1.453.7.2.1 [RFC2293]
+textTableValue                  A 1.3.6.1.4.1.453.7.2.2 [RFC2293]
+title                           A 2.5.4.12 [RFC2256]
+top                             O 2.5.6.0 [RFC2256]
+uid                             A 0.9.2342.19200300.100.1.1 [RFC2253]
+uniqueIdentifier                A 0.9.2342.19200300.100.1.44 [RFC1274]
+uniqueMember                    A 2.5.4.50 [RFC2256]
+uniqueMemberMatch               M 2.5.13.23 [RFC2252]
+userCertificate                 A 2.5.4.36 [RFC2256]
+userClass                       A 0.9.2342.19200300.100.1.8 [RFC1274]
+userId                          A 0.9.2342.19200300.100.1.1 [RFC1274]
+userPassword                    A 2.5.4.35 [RFC2256]
+userSecurityInformation         O 2.5.6.18 [RFC2256]
+x121Address                     A 2.5.4.24 [RFC2256]
+x400ToRFC822Mapping             O 1.3.6.1.4.1.453.7.1.2 [RFC2164]
+x500UniqueIdentifier            A 2.5.4.45 [RFC2256]
+
+Legend
+------------------------
+A => Attribute Type
+C => DIT Content Rule
+E => LDAP URL Extension
+M => Matching Rule
+N => Name Form
+O => Object Class
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 19]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+B.4. Attribute Description Options
+
+Option            Owner  Reference
+----------------  -----  ---------
+binary            IESG   [RFC2251]
+lang-*            IESG   [RFC2596]
+
+* family of options
+
+B.5. LDAPMessage types
+
+Name                         Code Owner  Reference
+---------------------------  ---- -----  ---------
+bindRequest                     0  IESG  [RFC2251]
+bindResponse                    1  IESG  [RFC2251]
+unbindRequest                   2  IESG  [RFC2251]
+searchRequest                   3  IESG  [RFC2251]
+searchResEntry                  4  IESG  [RFC2251]
+searchResDone                   5  IESG  [RFC2251]
+modifyRequest                   6  IESG  [RFC2251]
+modifyResponse                  7  IESG  [RFC2251]
+addRequest                      8  IESG  [RFC2251]
+addResponse                     9  IESG  [RFC2251]
+delRequest                     10  IESG  [RFC2251]
+delResponse                    11  IESG  [RFC2251]
+modDNRequest                   12  IESG  [RFC2251]
+modDNResponse                  13  IESG  [RFC2251]
+compareRequest                 14  IESG  [RFC2251]
+compareResponse                15  IESG  [RFC2251]
+abandonRequest                 16  IESG  [RFC2251]
+reserved                    17-18  IESG
+searchResRef                   19  IESG  [RFC2251]
+reserved                    20-22  IESG
+extendedReq                    23  IESG  [RFC2251]
+extendedResp                   24  IESG  [RFC2251]
+
+B.6. resultCode values
+
+Name                         Code Owner  Reference
+---------------------------  ---- -----  ---------
+success                         0  IESG  [RFC2251]
+operationsError                 1  IESG  [RFC2251]
+protocolError                   2  IESG  [RFC2251]
+timeLimitExceeded               3  IESG  [RFC2251]
+sizeLimitExceeded               4  IESG  [RFC2251]
+compareFalse                    5  IESG  [RFC2251]
+compareTrue                     6  IESG  [RFC2251]
+authMethodNotSupported          7  IESG  [RFC2251]
+
+
+
+Zeilenga                 Best Current Practice                 [Page 20]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+strongAuthRequired              8  IESG  [RFC2251]
+reserved (partialResults)       9  IESG  [RFC2251]
+referral                       10  IESG  [RFC2251]
+adminLimitExceeded             11  IESG  [RFC2251]
+unavailableCriticalExtension   12  IESG  [RFC2251]
+confidentialityRequired        13  IESG  [RFC2251]
+saslBindInProgress             14  IESG  [RFC2251]
+noSuchAttribute                16  IESG  [RFC2251]
+undefinedAttributeType         17  IESG  [RFC2251]
+inappropriateMatching          18  IESG  [RFC2251]
+constraintViolation            19  IESG  [RFC2251]
+attributeOrValueExists         20  IESG  [RFC2251]
+invalidAttributeSyntax         21  IESG  [RFC2251]
+noSuchObject                   32  IESG  [RFC2251]
+aliasProblem                   33  IESG  [RFC2251]
+invalidDNSyntax                34  IESG  [RFC2251]
+reserved (isLeaf)              35  IESG  [RFC2251]
+aliasDereferencingProblem      36  IESG  [RFC2251]
+reserved                    37-47  IESG
+inappropriateAuthentication    48  IESG  [RFC2251]
+invalidCredentials             49  IESG  [RFC2251]
+insufficientAccessRights       50  IESG  [RFC2251]
+busy                           51  IESG  [RFC2251]
+unavailable                    52  IESG  [RFC2251]
+unwillingToPerform             53  IESG  [RFC2251]
+loopDetect                     54  IESG  [RFC2251]
+reserved                    55-63  IESG
+namingViolation                64  IESG  [RFC2251]
+objectClassViolation           65  IESG  [RFC2251]
+notAllowedOnNonLeaf            66  IESG  [RFC2251]
+notAllowedOnRDN                67  IESG  [RFC2251]
+entryAlreadyExists             68  IESG  [RFC2251]
+objectClassModsProhibited      69  IESG  [RFC2251]
+reserved (resultsTooLarge)     70  IESG  [RFC2251]
+reserved                    71-79  IESG
+other                          80  IESG  [RFC2251]
+reserved (APIs)             81-90  IESG  [RFC2251]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 21]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+B.7. Bind Authentication Method
+
+Method      Value  Owner  Usage        Reference
+------      -----  -----  -----------  -----------------
+simple          0  IESG   LIMITED USE  [RFC2251,RFC2829]
+krbv42LDAP      1  IESG   OBSOLETE*    [RFC1777]
+krbv42DSA       2  IESG   OBSOLETE*    [RFC1777]
+sasl            3  IESG   COMMON       [RFC2251,RFC2829]
+
+* These LDAPv2-only mechanisms were deprecated in favor of the
+LDAPv3 SASL authentication method, specifically the GSSAPI mechanism.
+
+Author's Address
+
+   Kurt D. Zeilenga
+   OpenLDAP Foundation
+
+   EMail: Kurt@OpenLDAP.org
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 22]
+
+RFC 3383              IANA Considerations for LDAP        September 2002
+
+
+Full Copyright Statement
+
+   Copyright (C) The Internet Society (2002).  All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+Acknowledgement
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                 Best Current Practice                 [Page 23]
+
