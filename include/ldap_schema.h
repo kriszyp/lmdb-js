@@ -196,23 +196,23 @@ ldap_str2matchingruleuse LDAP_P((
 
 LDAP_F( char * )
 ldap_objectclass2str LDAP_P((
-	LDAP_CONST LDAPObjectClass * oc ));
+	LDAPObjectClass * oc ));
 
 LDAP_F( char * )
 ldap_attributetype2str LDAP_P((
-	LDAP_CONST LDAPAttributeType * at ));
+	LDAPAttributeType * at ));
 
 LDAP_F( char * )
 ldap_syntax2str LDAP_P((
-	LDAP_CONST LDAPSyntax * syn ));
+	LDAPSyntax * syn ));
 
 LDAP_F( char * )
 ldap_matchingrule2str LDAP_P((
-	LDAP_CONST LDAPMatchingRule * mr ));
+	LDAPMatchingRule * mr ));
 
 LDAP_F( char * )
 ldap_matchingruleuse2str LDAP_P((
-	LDAP_CONST LDAPMatchingRuleUse * mru ));
+	LDAPMatchingRuleUse * mru ));
 
 LDAP_F( char * )
 ldap_scherr2str LDAP_P((
