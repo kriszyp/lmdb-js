@@ -42,16 +42,10 @@ monitor_back_operational(
 		assert( mp );
 
 		hs = MONITOR_HAS_CHILDREN( mp );
-
-		*aa = ch_malloc( sizeof( Attribute ) );
-		(*aa)->a_desc = slap_schema.si_ad_hasSubordinates;
-
-		(*aa)->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
-		(*aa)->a_vals[0] = ber_bvstrdup( hs ? "TRUE" : "FALSE" );
-		(*aa)->a_vals[1] = NULL;
-
-		(*aa)->a_next = NULL;
-		aa = &(*aa)->a_next;
+		*aa = slap_operational_hasSubordinate( hs );
+		if ( *aa != NULL ) {
+			aa = &(*aa)->a_next;
+		}
 	}
 	
 	return 0;

@@ -1094,16 +1094,8 @@ Attribute *backend_operational(
 	Attribute *a = NULL, **ap = &a;
 
 #ifdef SLAPD_SCHEMA_DN
-	a = ch_malloc( sizeof( Attribute ) );
-	a->a_desc = slap_schema.si_ad_subschemaSubentry;
-
-	/* Should be backend specific */
-	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
-	a->a_vals[0] = ber_bvstrdup( SLAPD_SCHEMA_DN );
-	a->a_vals[1] = NULL;
-
-	a->a_next = NULL;
-	ap = &a->a_next;
+	*ap = slap_operational_subschemaSubentry();
+	ap = &(*ap)->a_next;
 #endif
 
 	/*
@@ -1111,7 +1103,7 @@ Attribute *backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( ( opattrs || attrs ) && be->be_operational != NULL ) {
+	if ( ( opattrs || attrs ) && be && be->be_operational != NULL ) {
 		( void )be->be_operational( be, conn, op, e, 
 					    attrs, opattrs, ap );
 	}

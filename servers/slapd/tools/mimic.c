@@ -220,3 +220,16 @@ int read_root_dse_file ( const char *file )
 {
 	return 0;
 }
+
+Attribute *
+slap_operational_subschemaSubentry( void )
+{
+	return NULL;
+}
+
+Attribute *
+slap_operational_hasSubordinate( int hs )
+{
+	return NULL;
+}
+

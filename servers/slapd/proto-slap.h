@@ -887,6 +887,12 @@ LDAP_SLAPD_V (int)	krbv4_ldap_auth();
 #endif
 
 /*
+ * operational.c
+ */
+LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( void );
+LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
+
+/*
  * Other...
  */
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
