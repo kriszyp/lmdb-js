@@ -1,21 +1,30 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.7 Engineering
-	Added total operation count in back-monitor (ITS#2983)
-	Fixed search abandon handling in backglue (ITS#2999)
-	Fixed massaged base free in back-ldap (ITS#2999)
-	Fixed (undocumented) AD canonical DN (ITS#3000)
-	Fixed undefined attribute name request in back-sql search (ITS#3005)
-	Added ACL set logging (ITS#2949)
-	Fixed erroneous illegal filter handling (ITS#2977)
-	Fixed monitor backend crash when used with overlays (ITS#3023)
-	Fixed oracle-related issues in back-sql (ITS#2641)
-	Fixed '=' escape in DN (ITS#3009)
+	Fixed slapd IDL avl_delete failure bug (ITS#3004)
+	Fixed slapd erroneous illegal filter handling (ITS#2977)
+	Fixed slapd syncrepl bugs (multiple)
+	Fixed slapd value regex ACL bug (ITS#3008)
+	Fixed slapcat tools bug (ITS#2974)
+	Fixed back-monitor crash when used with overlays (ITS#3023)
+	Fixed back-ldap massaged base free (ITS#2999)
+	Fixed back-meta memory leak issues (ITS#2986)
+	Fixed back-glue search abandon handling (ITS#2999)
+	Fixed back-sql undefined attribute name request bug (ITS#3005)
+	Fixed back-sql oracle-related issues (ITS#2641)
+	Fixed back-bdb empty suffix/contextCSN bug (ITS#2970)
+	Fixed libldap/slapd '=' escape in DN (ITS#3009)
 	Updated ldapsearch paged results handling
+	Added total operation count in back-monitor (ITS#2983)
+	Added slapd ACL peername/expand styles (ITS#2907, ITS#3010)
+	Added slapd ACL set logging (ITS#2949)
 	Build Environment
-		Fixed libldap T_SRV portability bug
+		Fixed overlay module build issue (ITS#2978)
+		Fixed libldap T_SRV portability bug (ITS#2990)
+		Fixed AIX portability issues (ITS#2997,2998)
 		Fixed shared library soname versioning
-        	Requires changes in linking practices of dependent applications
+		  Requires changes in link practices of dependent apps
+		Updated MS win32 port (ITS#2992)
 	Documentation
 		Fixed ldapmodrdn(1) manpage (ITS#3003)
 		Updated release documents
