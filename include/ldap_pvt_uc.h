@@ -79,6 +79,7 @@ LDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 LDAP_V (const char) ldap_utf8_lentab[128];
 
 #define LDAP_UTF8_ISASCII(p) ( *(unsigned char *)(p) ^ 0x80 )
+#define LDAP_UTF8_ISSPACE(p) ( *(p) == ' ' || (*(p) >= '\t' && *(p) <= '\r') )
 #define LDAP_UTF8_CHARLEN(p) ( LDAP_UTF8_ISASCII(p) \
 	? 1 : ldap_utf8_lentab[*(unsigned char *)(p) ^ 0x80] )
 #define LDAP_UTF8_OFFSET(p) ( LDAP_UTF8_ISASCII(p) \
