@@ -308,6 +308,15 @@ connection_destroy( Connection *c )
    	lber_pvt_sb_destroy( &c->c_sb );
 }
 
+int connection_state_closing( Connection *c )
+{
+	assert( c != NULL );
+	assert( c->c_struct_state == SLAP_C_USED );
+	assert( c->c_conn_state != SLAP_C_INVALID );
+
+	return c->c_conn_state == SLAP_C_CLOSING;
+}
+
 void connection_closing( Connection *c )
 {
 	assert( connections != NULL );
@@ -316,9 +325,35 @@ void connection_closing( Connection *c )
 	assert( c->c_conn_state != SLAP_C_INVALID );
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
+		Operation *o;
+
+		Debug( LDAP_DEBUG_TRACE,
+			"connection_closing: readying conn=%ld sd=%d for close.\n",
+			c->c_connid, c->c_sb.sb_sd, 0 );
+
 		/* don't listen on this port anymore */
 		slapd_clr_read( c->c_sb.sb_sd, 1 );
 		c->c_conn_state = SLAP_C_CLOSING;
+
+		/* shutdown I/O -- not yet implemented */
+
+		/* abandon active operations */
+		for( o = c->c_ops; o != NULL; o = o->o_next ) {
+			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
+			o->o_abandon = 1;
+			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
+		}
+
+		/* remove pending operations */
+		for( o = slap_op_pop( &c->c_pending_ops );
+			o != NULL;
+			o = slap_op_pop( &c->c_pending_ops ) )
+		{
+			slap_op_free( o );
+		}
+
+		/* wake write blocked operations */
+		ldap_pvt_thread_cond_signal( &c->c_write_cv );
 	}
 }
 
@@ -708,6 +743,9 @@ connection_resched( Connection *conn )
 		op != NULL;
 		op = slap_op_pop( &conn->c_pending_ops ) )
 	{
+		/* pending operations should not be marked for abandonment */
+		assert(!op->o_abandon);
+
 		connection_op_activate( conn, op );
 
 		if ( conn->c_conn_state == SLAP_C_BINDING ) {

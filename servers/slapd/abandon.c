@@ -27,6 +27,7 @@ do_abandon(
 {
 	int		id;
 	Operation	*o;
+	Operation	**oo;
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
 
@@ -52,25 +53,32 @@ do_abandon(
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
-		if ( o->o_msgid == id )
-			goto found_op;
-	}
-	for ( o = conn->c_pending_ops; o != NULL; o = o->o_next ) {
-		if ( o->o_msgid == id )
-			break;
-	}
+		if ( o->o_msgid == id ) {
+			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
+			o->o_abandon = 1;
+			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 
-found_op:
-
-	if ( o != NULL ) {
-		ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
-		o->o_abandon = 1;
-		ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
-
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "do_abandon: op not found\n", 0, 0,
-		    0 );
+			goto found_it;
+		}
 	}
 
+	for ( oo = &conn->c_pending_ops;
+		(*oo != NULL) && ((*oo)->o_msgid != id);
+		oo = &(*oo)->o_next )
+	{
+		/* EMPTY */ ;
+	}
+
+	if( *oo != NULL ) {
+		o = *oo;
+		*oo = (*oo)->o_next;
+		slap_op_free( o );
+
+		goto found_it;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "do_abandon: op not found\n", 0, 0, 0 );
+
+found_it:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 }

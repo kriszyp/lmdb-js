@@ -97,8 +97,21 @@ send_ldap_result2(
 	/* write the pdu */
 	bytes = ber->ber_ptr - ber->ber_buf;
 
-	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
-		int err = errno;
+	while ( 1 ) {
+		int err;
+
+		if ( connection_state_closing( conn ) ) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+			return;
+		}
+
+		if ( ber_flush( &conn->c_sb, ber, 1 ) == 0 ) {
+			break;
+		}
+
+		err = errno;
+
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -326,8 +339,21 @@ send_search_entry(
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	/* write the pdu */
-	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
-		int err = errno;
+	while( 1 ) {
+		int err;
+
+		if ( connection_state_closing( conn ) ) {
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+			return;
+		}
+
+		if ( ber_flush( &conn->c_sb, ber, 1 ) == 0 ) {
+			break;
+		}
+
+		err = errno;
+
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
