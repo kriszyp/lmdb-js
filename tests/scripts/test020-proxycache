@@ -18,8 +18,8 @@ CACHE_ENTRY_LIMIT=10
 
 . $SRCDIR/scripts/defines.sh
 
-if test $PROXYCACHE = no; then 
-	echo "Proxy caching requires back-meta AND (back-ldbm OR back-bdb)" 
+if test $PROXYCACHE = pcacheno; then 
+	echo "Proxy cache overlay not available, test skipped"
 	exit 0
 fi 
 

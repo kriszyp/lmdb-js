@@ -14,7 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_MONITOR-no}
-PROXYCACHE=${AC_CACHE-no}
+PROXYCACHE=${AC_pcache-pcacheno}
 WITHTLS=${AC_WITHTLS-yes}
 
 DATADIR=./testdata
