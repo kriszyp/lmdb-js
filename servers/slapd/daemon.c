@@ -1167,7 +1167,7 @@ slapd_daemon_task(
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
 			if ( s >= dtblsize ) {
-#ifdef NEW_LGGING
+#ifdef NEW_LOGGING
 				LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
 					   "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
 					   (long)s, (long)dtblsize ));
