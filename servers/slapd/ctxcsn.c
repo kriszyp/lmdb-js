@@ -39,7 +39,7 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 	csn->bv_val = NULL;
 	csn->bv_len = 0;
 
-	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
@@ -54,7 +54,7 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 	}
 
 	if ( committed_csne ) ber_dupbv_x( csn, committed_csne->ce_csn, op->o_tmpmemctx );
-	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
 }
 
 void
@@ -62,7 +62,7 @@ slap_rewind_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne;
 
-	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
@@ -71,7 +71,7 @@ slap_rewind_commit_csn( Operation *op )
 		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
 }
 
 void
@@ -82,7 +82,7 @@ slap_graduate_commit_csn( Operation *op )
 	if ( op == NULL ) return;
 	if ( op->o_bd == NULL ) return;
 
-	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
@@ -95,7 +95,7 @@ slap_graduate_commit_csn( Operation *op )
 		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
 
 	return;
 }
@@ -160,7 +160,7 @@ slap_get_csn(
 	if ( manage_ctxcsn ) {
 		pending = (struct slap_csn_entry *) ch_calloc( 1,
 			sizeof( struct slap_csn_entry ));
-		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+		ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 		ber_dupbv( &op->o_sync_csn, csn );
 		pending->ce_csn = ber_dupbv( NULL, csn );
 		pending->ce_connid = op->o_connid;
@@ -168,7 +168,7 @@ slap_get_csn(
 		pending->ce_state = SLAP_CSN_PENDING;
 		LDAP_TAILQ_INSERT_TAIL( op->o_bd->be_pending_csn_list,
 			pending, ce_csn_link );
-		ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+		ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
 	}
 
 	return LDAP_SUCCESS;
