@@ -66,7 +66,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, &op->o_req_ndn, &e_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup entry id (%d)\n",
@@ -116,6 +116,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	e.e_attrs = NULL;
 	e.e_name = p_dn;
 	e.e_nname = p_ndn;
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !access_allowed( op, &e, slap_schema.si_ad_children, 
 				NULL, ACL_WRITE, NULL ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   no access to parent\n", 0, 0, 0 );
@@ -145,6 +146,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * Check for children access to new parent
 		 */
+		/* FIXME: need the whole entry (ITS#3480) */
 		if ( !access_allowed( op, &e, slap_schema.si_ad_children, 
 					NULL, ACL_WRITE, NULL ) ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -192,7 +194,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): new entry dn is \"%s\"\n",
 			new_dn.bv_val, 0, 0 );
 
-	rs->sr_err = backsql_dn2id( op, rs, &pe_id, dbh, &p_ndn, 1 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, &p_ndn, &pe_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup old parent entry id\n", 0, 0, 0 );
@@ -212,7 +214,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	(void)backsql_free_entryID( &pe_id, 0 );
 
-	rs->sr_err = backsql_dn2id( op, rs, &new_pe_id, dbh, new_npdn, 1 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, new_npdn, &new_pe_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup new parent entry id\n", 0, 0, 0 );
@@ -420,6 +422,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !acl_check_modlist( op, &e, mod )) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto modrdn_return;

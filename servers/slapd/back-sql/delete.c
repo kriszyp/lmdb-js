@@ -101,6 +101,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	e.e_attrs = NULL;
 
 	/* check parent for "children" acl */
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !access_allowed( op, &e, slap_schema.si_ad_children, 
 			NULL, ACL_WRITE, NULL ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
@@ -121,7 +122,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 	
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, &op->o_req_ndn, &e_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"could not lookup entry id\n", 0, 0, 0 );

@@ -111,8 +111,9 @@ extern struct berval	backsql_baseObject_bv;
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 /* stores in *id the ID in table ldap_entries corresponding to DN, if any */
-int backsql_dn2id( Operation *op, SlapReply *rs, backsql_entryID *id,
-		SQLHDBC dbh, struct berval *dn, int muck );
+int backsql_dn2id( Operation *op, SlapReply *rs, SQLHDBC dbh,
+		struct berval *ndn, backsql_entryID *id,
+		int matched, int muck );
 
 /* stores in *nchildren the count of children for an entry */
 int backsql_count_children( backsql_info *bi, SQLHDBC dbh,
@@ -163,6 +164,11 @@ int backsql_destroy_schema_map( backsql_info *si );
 
 /* the function must collect the entry associated to nbase */
 #define BACKSQL_ISF_GET_ID	0x1U
+#define BACKSQL_ISF_MATCHED	0x2U
+#define BACKSQL_IS_GET_ID(f) \
+	( ( (f) & BACKSQL_ISF_GET_ID ) == BACKSQL_ISF_GET_ID )
+#define BACKSQL_IS_MATCHED(f) \
+	( ( (f) & BACKSQL_ISF_MATCHED ) == BACKSQL_ISF_MATCHED )
 int backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,

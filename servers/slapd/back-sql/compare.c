@@ -36,12 +36,11 @@ backsql_compare( Operation *op, SlapReply *rs )
 	Attribute		*a = NULL;
 	backsql_srch_info	bsi;
 	int			rc;
-	AttributeName		anlist[2];
+	AttributeName		anlist[2],
+				*anlistp = NULL;
 
-	user_entry.e_name.bv_val = NULL;
-	user_entry.e_name.bv_len = 0;
-	user_entry.e_nname.bv_val = NULL;
-	user_entry.e_nname.bv_len = 0;
+	BER_BVZERO( &user_entry.e_name );
+	BER_BVZERO( &user_entry.e_nname );
 	user_entry.e_attrs = NULL;
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare()\n", 0, 0, 0 );
@@ -64,12 +63,43 @@ backsql_compare( Operation *op, SlapReply *rs )
 	/*
 	 * Try to get attr as dynamic operational
 	 */
+	if ( !is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
+		anlistp = anlist;
+	}
+
+
+	rc = backsql_init_search( &bsi, &op->o_req_ndn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+			(time_t)(-1), NULL, dbh, op, rs, anlistp,
+			BACKSQL_ISF_GET_ID );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
+			"could not retrieve compareDN ID - no such entry\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto return_results;
+
+	} else {
+		Entry	e = { 0 };
+
+		e.e_name = bsi.bsi_base_id.eid_dn;
+		e.e_nname = bsi.bsi_base_id.eid_ndn;
+
+		/* FIXME: need the whole entry (ITS#3480) */
+		if ( ! access_allowed( op, &e, slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) ) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			goto return_results;
+		}
+	}
+
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
 		SlapReply	nrs = { 0 };
 
 		user_entry.e_attrs = NULL;
-		user_entry.e_name = op->o_req_dn;
-		user_entry.e_nname = op->o_req_ndn;
+		user_entry.e_name = bsi.bsi_base_id.eid_dn;
+		user_entry.e_nname = bsi.bsi_base_id.eid_ndn;
 
 		nrs.sr_attrs = anlist;
 		nrs.sr_entry = &user_entry;
@@ -84,19 +114,6 @@ backsql_compare( Operation *op, SlapReply *rs )
 		user_entry.e_attrs = nrs.sr_operational_attrs;
 
 	} else {
-		rc = backsql_init_search( &bsi, &op->o_req_ndn,
-				LDAP_SCOPE_BASE, 
-				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
-				(time_t)(-1), NULL, dbh, op, rs, anlist,
-				BACKSQL_ISF_GET_ID );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
-				"could not retrieve compareDN ID - no such entry\n", 
-				0, 0, 0 );
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-			goto return_results;
-		}
-
 		bsi.bsi_e = &user_entry;
 		rc = backsql_id2entry( &bsi, &bsi.bsi_base_id );
 		if ( rc != LDAP_SUCCESS ) {
@@ -109,12 +126,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	}
 	e = &user_entry;
 
-	if ( ! access_allowed( op, e, slap_schema.si_ad_entry, NULL,
-				ACL_DISCLOSE, NULL ) ) {
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		goto return_results;
-	}
-
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( ! access_allowed( op, e, op->oq_compare.rs_ava->aa_desc, 
 				&op->oq_compare.rs_ava->aa_value,
 				ACL_COMPARE, NULL ) ) {
@@ -125,7 +137,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 	for ( a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
 			a != NULL;
-			a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ))
+			a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ) )
 	{
 		rs->sr_err = LDAP_COMPARE_FALSE;
 		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,

@@ -1068,7 +1068,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realdn, 0 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, &realdn, NULL, 0, 0 );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"entry exists\n",
@@ -1087,7 +1087,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		dnParent( &op->oq_add.rs_e->e_nname, &pdn );
 	}
 
-	rs->sr_err = backsql_dn2id( op, rs, &parent_id, dbh, &pdn, 1 );
+	rs->sr_err = backsql_dn2id( op, rs, dbh, &pdn, &parent_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not lookup parent entry for new record \"%s\"\n",
@@ -1121,7 +1121,7 @@ backsql_add( Operation *op, SlapReply *rs )
 				/*
 				 * Empty DN ("") defaults to LDAP_SUCCESS
 				 */
-				rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &pdn, 1 );
+				rs->sr_err = backsql_dn2id( op, rs, dbh, &pdn, NULL, 0, 1 );
 				switch ( rs->sr_err ) {
 				case LDAP_NO_SUCH_OBJECT:
 					if ( !BER_BVISEMPTY( &pdn ) ) {
@@ -1154,6 +1154,8 @@ backsql_add( Operation *op, SlapReply *rs )
 	p.e_attrs = NULL;
 	p.e_name = pdn;
 	dnParent( &op->oq_add.rs_e->e_nname, &p.e_nname );
+
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !access_allowed( op, &p, slap_schema.si_ad_children,
 				NULL, ACL_WRITE, NULL ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;

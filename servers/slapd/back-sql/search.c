@@ -195,10 +195,11 @@ backsql_init_search(
 	bsi->bsi_flt_where.bb_len = 0;
 	bsi->bsi_filter_oc = NULL;
 
-	if ( flags & BACKSQL_ISF_GET_ID ) {
+	if ( BACKSQL_IS_GET_ID( flags ) ) {
 		assert( op->o_bd->be_private );
 
-		rc = backsql_dn2id( op, rs, &bsi->bsi_base_id, dbh, nbase, 1 );
+		rc = backsql_dn2id( op, rs, dbh, nbase, &bsi->bsi_base_id,
+				BACKSQL_IS_MATCHED( flags ), 1 );
 	}
 
 	return ( bsi->bsi_status = rc );
@@ -686,8 +687,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 #ifdef BACKSQL_SYNCPROV
 	} else if ( ad == slap_schema.si_ad_entryCSN ) {
 		/*
-		 * TODO: introduce appropriate entryCSN filtering
-		 * to support syncrepl as producer...
+		 * support for syncrepl as producer...
 		 */
 		if ( !bsi->bsi_op->o_sync ) {
 			/* unsupported at present... */
@@ -1716,13 +1716,20 @@ backsql_search( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto done;
-	}
 
-	if ( ! access_allowed( op, bsi.bsi_e, slap_schema.si_ad_entry, NULL,
-				ACL_DISCLOSE, NULL ) ) {
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		send_ldap_result( op, rs );
-		goto done;
+	} else {
+		Entry	e = { 0 };
+
+		e.e_name = bsi.bsi_base_id.eid_dn;
+		e.e_nname = bsi.bsi_base_id.eid_ndn;
+		/* FIXME: need the whole entry (ITS#3480) */
+		if ( ! access_allowed( op, &e, slap_schema.si_ad_entry,
+				NULL, ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			send_ldap_result( op, rs );
+			goto done;
+		}
 	}
 
 	bsi.bsi_n_candidates =
@@ -1911,7 +1918,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 
 			if ( !rs->sr_ref ) {
-				rs->sr_text = "bad_referral object";
+				rs->sr_text = "bad referral object";
 			}
 
 			rs->sr_entry = e;
@@ -1995,6 +2002,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			if ( e == &user_entry ) {
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			}
+			/* FIXME: need the whole entry (ITS#3480) */
 			sres = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;

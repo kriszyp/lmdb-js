@@ -113,6 +113,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !acl_check_modlist( op, &e, op->oq_modify.rs_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 
