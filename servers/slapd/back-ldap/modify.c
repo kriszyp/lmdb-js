@@ -68,7 +68,7 @@ ldap_back_modify(
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mdn ) ) {
 		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -182,7 +182,7 @@ cleanup:;
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
-	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
+	if ( mdn.bv_val != op->o_req_ndn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	for (i=0; modv[i]; i++) {
