@@ -15,10 +15,11 @@ void attr_index_config( struct ldbminfo *li, char *fname, int lineno,
  */
 
 void cache_set_state( struct cache *cache, Entry *e, int state );
-void cache_return_entry( struct cache *cache, Entry *e );
+void cache_return_entry_r( struct cache *cache, Entry *e );
+void cache_return_entry_w( struct cache *cache, Entry *e );
 int cache_add_entry_lock( struct cache *cache, Entry *e, int state );
-Entry * cache_find_entry_dn( struct cache *cache, char *dn );
-Entry * cache_find_entry_id( struct cache *cache, ID id );
+ID cache_find_entry_dn2id( Backend *be, struct cache *cache, char *dn );
+Entry * cache_find_entry_id( struct cache *cache, ID id, int rw );
 int cache_delete_entry( struct cache *cache, Entry *e );
 
 /*
@@ -40,7 +41,9 @@ int ldbm_cache_delete( struct dbcache *db, Datum key );
 int dn2id_add( Backend *be, char *dn, ID id );
 ID dn2id( Backend *be, char *dn );
 int dn2id_delete( Backend *be, char *dn );
-Entry * dn2entry( Backend *be, char *dn, char **matched );
+/*Entry * dn2entry( Backend *be, char *dn, char **matched );*/
+Entry * dn2entry_r( Backend *be, char *dn, char **matched );
+Entry * dn2entry_w( Backend *be, char *dn, char **matched );
 
 /*
  * filterindex.c
@@ -61,7 +64,9 @@ int has_children( Backend *be, Entry *p );
 
 int id2entry_add( Backend *be, Entry *e );
 int id2entry_delete( Backend *be, Entry *e );
-Entry * id2entry( Backend *be, ID id );
+Entry * id2entry( Backend *be, ID id, int rw ); 
+Entry * id2entry_r( Backend *be, ID id );
+Entry * id2entry_w( Backend *be, ID id );
 
 /*
  * idl.c

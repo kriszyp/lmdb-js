@@ -4,8 +4,8 @@
 
 LIBRARY	= liblthread.a
 XSRCS	= version.c
-SRCS	= thread.c stack.c
-OBJS	= thread.o stack.o
+SRCS	= rdwr.c thread.c stack.c
+OBJS	= rdwr.o thread.o stack.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

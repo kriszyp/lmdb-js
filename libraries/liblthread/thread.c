@@ -504,6 +504,7 @@ void pthread_yield( void )
 {
 	sched_yield();
 }
+
 #endif /* HAVE_SCHED_YIELD */
 
 #endif /* posix threads */

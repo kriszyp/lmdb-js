@@ -6,8 +6,8 @@
 #include <sys/socket.h>
 #include "slap.h"
 #include "back-ldbm.h"
+#include "proto-back-ldbm.h"
 
-extern Entry	*dn2entry();
 extern char	*dn_parent();
 
 int
@@ -24,10 +24,12 @@ ldbm_back_modrdn(
 	char		*matched;
 	char		*pdn, *newdn, *p;
 	char		sep[2];
-	Entry		*e, *e2;
+	Entry		*e;
 
 	matched = NULL;
-	if ( (e = dn2entry( be, dn, &matched )) == NULL ) {
+
+	/* get entry with writer lock */
+	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, "" );
 		if ( matched != NULL ) {
 			free( matched );
@@ -61,17 +63,12 @@ ldbm_back_modrdn(
 	}
 	(void) dn_normalize( newdn );
 
-	matched = NULL;
-	if ( (e2 = dn2entry( be, newdn, &matched )) != NULL ) {
+	/* get entry with writer lock */
+	if ( (dn2id ( be, newdn ) ) != NOID ) {
 		free( newdn );
 		free( pdn );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
-		cache_return_entry( &li->li_cache, e2 );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
-	}
-	if ( matched != NULL ) {
-		free( matched );
+		goto error_return;
 	}
 
 	/* check for abandon */
@@ -80,9 +77,7 @@ ldbm_back_modrdn(
 		pthread_mutex_unlock( &op->o_abandonmutex );
 		free( newdn );
 		free( pdn );
-		cache_return_entry( &li->li_cache, e2 );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
@@ -91,8 +86,7 @@ ldbm_back_modrdn(
 		free( newdn );
 		free( pdn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 
 	/* delete old one */
@@ -100,8 +94,7 @@ ldbm_back_modrdn(
 		free( newdn );
 		free( pdn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
@@ -120,13 +113,19 @@ ldbm_back_modrdn(
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
-
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		return( -1 );
+		goto error_return;
 	}
 	free( pdn );
-	cache_return_entry( &li->li_cache, e );
+
+	/* free entry and writer lock */
+	cache_return_entry_w( &li->li_cache, e );
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 
 	return( 0 );
+
+error_return:
+	/* free entry and writer lock */
+	cache_return_entry_w( &li->li_cache, e );
+	return( -1 );
 }

@@ -1,7 +1,7 @@
-#ifdef KERBEROS
+#if defined(KERBEROS) && !defined(openbsd)
 /*
- * $Source: /usr/local/src/ldap/clients/ud/RCS/string_to_key.c,v $
- * $Author: lsloan $
+ * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
+ * $Author: kurt $
  *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
@@ -24,18 +24,24 @@
  *	spm	8/85	MIT project athena
  */
 
-#ifndef	lint
-static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.5 1995/11/09 20:29:55 lsloan Exp $";
-#endif
-
+#ifdef KERBEROS_V
+#include <kerberosIV/mit-copyright.h>
+#include <kerberosIV/des.h>
+#else
 #include <mit-copyright.h>
-#include <stdio.h>
 #include <des.h>
+#endif /* KERBEROS_V */
+
+#include <stdio.h>
+
 /* #include "des_internal.h" */
 #if 1
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
-#endif
+#endif /* KERBEROS_V */
+#endif /* 1 */
 
 extern int des_debug;
 extern int des_debug_print();
@@ -46,6 +52,7 @@ extern void des_fixup_key_parity();
 #endif
 
 #if defined(WORLDPEACEINOURTIME) /* Use original, not ifs version */
+#ifndef KERBEROS_V
 /*
  * convert an arbitrary length string to a DES key
  */
@@ -132,6 +139,7 @@ des_string_to_key(str,key)
 		*((unsigned long *) key+1));
 }
 
+#endif /* KERBEROS_V */
 #else /* Use ifs version */
 
 #if 0

@@ -12,7 +12,7 @@ these steps:
 
  1. untar the distribution and cd to the top:
 
-	% tar xfz ldap-stable.tgz
+	% tar xfz openldap-VERSION.tgz
 	% cd ldap
 
     If you are reading this file, you probably have already done this!

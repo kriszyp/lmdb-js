@@ -7,10 +7,13 @@
 
 int access_allowed( Backend *be, Connection *conn, Operation *op, Entry *e,
 	char *attr, struct berval *val, char *dn, int  access );
+
 struct acl * acl_get_applicable( Backend *be, Operation *op, Entry *e,
-	char *attr );
+	char *attr, char *edn, int nmatches, regmatch_t *matches );
 int acl_access_allowed( struct acl *a, Backend *be, Connection *conn, Entry *e,
-	struct berval *val, Operation *op, int  access );
+	struct berval *val, Operation *op, int  access, char *edn,
+	regmatch_t *matches );
+
 int acl_check_mods( Backend *be, Connection *conn, Operation *op, Entry *e,
 	LDAPMod *mods );
 
@@ -103,6 +106,14 @@ char * dn_upcase( char *dn );
 Entry * str2entry( char	*s );
 char * entry2str( Entry *e, int *len, int printid );
 void entry_free( Entry *e );
+
+int entry_rdwr_lock( Entry *e, int rw );
+int entry_rdwr_rlock( Entry *e );
+int entry_rdwr_wlock( Entry *e );
+int entry_rdwr_unlock( Entry *e, int rw );
+int entry_rdwr_runlock( Entry *e );
+int entry_rdwr_wunlock( Entry *e );
+int entry_rdwr_init( Entry *e );
 
 /*
  * filter.c

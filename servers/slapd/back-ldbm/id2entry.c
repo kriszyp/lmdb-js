@@ -10,7 +10,6 @@ extern struct dbcache	*ldbm_cache_open();
 extern Datum		ldbm_cache_fetch();
 extern char		*dn_parent();
 extern Entry		*str2entry();
-extern Entry		*cache_find_entry_id();
 extern char		*entry2str();
 extern pthread_mutex_t	entry2str_mutex;
 
@@ -20,7 +19,12 @@ id2entry_add( Backend *be, Entry *e )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
 	Datum		key, data;
-	int		len, rc;
+	int		len, rc, flags;
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %d, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
@@ -39,8 +43,10 @@ id2entry_add( Backend *be, Entry *e )
 	data.dptr = entry2str( e, &len, 1 );
 	data.dsize = len + 1;
 
-	/* store it - LDBM_SYNC ensures id2entry is always consistent */
-	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE|LDBM_SYNC );
+	/* store it */
+	flags = LDBM_REPLACE;
+	if ( li->li_flush_wrt ) flags != LDBM_SYNC;
+	rc = ldbm_cache_store( db, key, data, flags );
 
 	pthread_mutex_unlock( &entry2str_mutex );
 
@@ -48,6 +54,8 @@ id2entry_add( Backend *be, Entry *e )
 	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
+
+	/* XXX should entries be born locked, i.e. apply writer lock here? */
 	return( rc );
 }
 
@@ -62,8 +70,20 @@ id2entry_delete( Backend *be, Entry *e )
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_delete( %d, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
+	/* XXX - check for writer lock - should also check no reader pending */
+	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
+	/* XXX - check for writer lock - should also check no reader pending */
+	Debug (LDAP_DEBUG_TRACE,
+		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
+		e->e_rdwr.readers_reading, e->e_rdwr.writer_writing, 0);
+ 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
-	    == NULL ) {
+		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
 		    LDBM_SUFFIX, 0, 0 );
 		return( -1 );
@@ -85,24 +105,31 @@ id2entry_delete( Backend *be, Entry *e )
 	return( rc );
 }
 
+/* XXX returns entry with reader/writer lock */
 Entry *
-id2entry( Backend *be, ID id )
+id2entry( Backend *be, ID id, int rw )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
 	Datum		key, data;
 	Entry		*e;
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2entry( %ld )\n", id, 0, 0 );
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
-	if ( (e = cache_find_entry_id( &li->li_cache, id )) != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry 0x%x (cache)\n", e, 0,
-		    0 );
+	Debug( LDAP_DEBUG_TRACE, "=> id2entry_%s( %ld )\n",
+		rw ? "w" : "r", id, 0 );
+
+	if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s 0x%x (cache)\n",
+			rw ? "w" : "r", e, 0 );
 		return( e );
 	}
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
-	    == NULL ) {
+		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open id2entry%s\n",
 		    LDBM_SUFFIX, 0, 0 );
 		return( NULL );
@@ -114,20 +141,47 @@ id2entry( Backend *be, ID id )
 	data = ldbm_cache_fetch( db, key );
 
 	if ( data.dptr == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry( %ld ) not found\n", id,
-		    0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) not found\n",
+			rw ? "w" : "r", id, 0 );
 		ldbm_cache_close( be, db );
 		return( NULL );
 	}
 
-	if ( (e = str2entry( data.dptr )) != NULL ) {
-		e->e_id = id;
-		(void) cache_add_entry_lock( &li->li_cache, e, 0 );
-	}
+	e = str2entry( data.dptr );
 
 	ldbm_datum_free( db->dbc_db, data );
 	ldbm_cache_close( be, db );
 
-	Debug( LDAP_DEBUG_TRACE, "<= id2entry( %ld ) 0x%x (disk)\n", id, e, 0 );
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld )  (failed)\n",
+			rw ? "w" : "r", id, 0 );
+		return( NULL );
+	}
+
+	/* acquire required reader/writer lock */
+	if (entry_rdwr_lock(e, rw)) {
+		/* XXX set DELETE flag?? */
+		entry_free(e);
+		return(NULL);
+	}
+
+	e->e_id = id;
+	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
+
+	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (disk)\n",
+		rw ? "w" : "r", id, 0 );
 	return( e );
 }
+
+Entry *
+id2entry_r( Backend *be, ID id )
+{
+	return( id2entry( be, id, 0 ) );
+}
+
+Entry *
+id2entry_2( Backend *be, ID id )
+{
+	return( id2entry( be, id, 1 ) );
+}
+

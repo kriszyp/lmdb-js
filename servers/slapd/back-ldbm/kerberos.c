@@ -8,12 +8,15 @@
 #include "back-ldbm.h"
 
 #ifdef KERBEROS
-#include "krb.h"
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
+#include <krb.h>
+#endif /* KERBEROS_V */
 
 #define LDAP_KRB_PRINCIPAL	"ldapserver"
 
 extern char		*ldap_srvtab;
-extern Entry		*dn2entry();
 extern Attribute	*attr_find();
 
 krbv4_ldap_auth(
