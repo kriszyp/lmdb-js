@@ -646,8 +646,12 @@ static int chk_ns_mta_md5(
 {
 	lutil_MD5_CTX MD5context;
 	unsigned char MD5digest[LUTIL_MD5_BYTES], c;
-	char buffer[LUTIL_MD5_BYTES + LUTIL_MD5_BYTES + 1];
+	char buffer[LUTIL_MD5_BYTES*2];
 	int i;
+
+	if( passwd.bv_len != LUTIL_MD5_BYTES*2 ) {
+		return 1;
+	}
 
 	/* hash credentials with salt */
 	lutil_MD5Init(&MD5context);
@@ -681,8 +685,8 @@ static int chk_ns_mta_md5(
 	}
 
 	/* compare */
-	return memcmp((char *)passwd->bv_val, (char *)buffer, sizeof(buffer))
-		? 1 : 0;
+	return memcmp((char *)passwd->bv_val,
+		(char *)buffer, sizeof(buffer)) ? 1 : 0;
 }
 #endif
 
