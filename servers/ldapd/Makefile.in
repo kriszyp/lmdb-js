@@ -4,6 +4,8 @@
 PROGRAMS=ldapd
 XPROGRAMS=sldapd
 
+XSRCS	= version.c
+
 SRCS	= main.c request.c bind.c result.c error.c \
 	search.c util.c compare.c message.c add.c delete.c modrdn.c modify.c \
 	abandon.c syntax.c association.c kerberos.c certificate.c
@@ -18,14 +20,16 @@ LDAP_LIBDIR= ../../libraries
 BUILD_OPT = "--enable-ldapd"
 BUILD_SRV = @BUILD_LDAPD@
 
+all-local-srv: 	ldapd
+
 XLIBS= -llber -llutil
 XXLIBS= $(LDAPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 
 ldapd:	version.o
-	$(LDLINK) -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
 
 sldapd:	version.o
-	$(LDLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
 version.c: $(OBJS) $(LDAP_LIBLBER_DEPEND)
 	$(RM) $@
@@ -47,5 +51,5 @@ LDAP_tables.c:	ldap.py
 LDAP-types.h: LDAP_tables.c
 
 install-local-srv: FORCE
-	@$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(LDAP_LIBEXECDIR)
+	@-$(MKDIR) $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(libexecdir)
