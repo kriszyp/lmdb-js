@@ -133,7 +133,8 @@ slap_sasl_log(
 
 static struct berval ext_bv = { sizeof("EXTERNAL")-1, "EXTERNAL" };
 
-int slap_sasl_getdn( Connection *conn, char *id, char *user_realm, struct berval *dn, int flags )
+int slap_sasl_getdn( Connection *conn, char *id,
+	char *user_realm, struct berval *dn, int flags )
 {
 	char *c1;
 	int rc, len, is_dn = 0;
@@ -310,7 +311,8 @@ slap_sasl_checkpass(
 	}
 
 	if ( dn.bv_len == 0 ) {
-		sasl_seterror( sconn, 0, "No password is associated with the Root DSE" );
+		sasl_seterror( sconn, 0,
+			"No password is associated with the Root DSE" );
 		if ( dn.bv_val != NULL ) {
 			ch_free( dn.bv_val );
 		}
@@ -689,7 +691,7 @@ int slap_sasl_destroy( void )
 
 int slap_sasl_open( Connection *conn )
 {
-	int sc = LDAP_SUCCESS;
+	int cb, sc = LDAP_SUCCESS;
 #if SASL_VERSION_MAJOR >= 2
 	char *ipremoteport = NULL, *iplocalport = NULL;
 #endif
@@ -711,31 +713,28 @@ int slap_sasl_open( Connection *conn )
 #endif
 	conn->c_sasl_extra = session_callbacks;
 
-	session_callbacks[0].id = SASL_CB_LOG;
-	session_callbacks[0].proc = &slap_sasl_log;
-	session_callbacks[0].context = conn;
+	session_callbacks[cb=0].id = SASL_CB_LOG;
+	session_callbacks[cb].proc = &slap_sasl_log;
+	session_callbacks[cb++].context = conn;
 
-	session_callbacks[1].id = SASL_CB_PROXY_POLICY;
-	session_callbacks[1].proc = &slap_sasl_authorize;
-	session_callbacks[1].context = conn;
+	session_callbacks[cb].id = SASL_CB_PROXY_POLICY;
+	session_callbacks[cb].proc = &slap_sasl_authorize;
+	session_callbacks[cb++].context = conn;
 
 #if SASL_VERSION_MAJOR >= 2
-	session_callbacks[2].id = SASL_CB_CANON_USER;
-	session_callbacks[2].proc = &slap_sasl_canonicalize;
-	session_callbacks[2].context = conn;
+	session_callbacks[cb].id = SASL_CB_CANON_USER;
+	session_callbacks[cb].proc = &slap_sasl_canonicalize;
+	session_callbacks[cb++].context = conn;
 
-	session_callbacks[3].id = SASL_CB_SERVER_USERDB_CHECKPASS;
-	session_callbacks[3].proc = &slap_sasl_checkpass;
-	session_callbacks[3].context = conn;
-
-	session_callbacks[4].id = SASL_CB_LIST_END;
-	session_callbacks[4].proc = NULL;
-	session_callbacks[4].context = NULL;
-#else
-	session_callbacks[2].id = SASL_CB_LIST_END;
-	session_callbacks[2].proc = NULL;
-	session_callbacks[2].context = NULL;
+	/* XXXX: this should be conditional */
+	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
+	session_callbacks[cb].proc = &slap_sasl_checkpass;
+	session_callbacks[cb++].context = conn;
 #endif
+
+	session_callbacks[cb].id = SASL_CB_LIST_END;
+	session_callbacks[cb].proc = NULL;
+	session_callbacks[cb++].context = NULL;
 
 	if( global_host == NULL ) {
 		global_host = ldap_pvt_get_fqdn( NULL );
@@ -839,6 +838,7 @@ int slap_sasl_external(
 	if ( sc != SASL_OK ) {
 		return LDAP_OTHER;
 	}
+
 #elif defined(HAVE_CYRUS_SASL)
 	int sc;
 	sasl_conn_t *ctx = conn->c_sasl_context;
