@@ -26,7 +26,7 @@ ldap_pvt_runqueue_insert(
 {
 	struct re_s* entry;
 
-	entry = (struct re_s *) ch_calloc( 1, sizeof( struct re_s ));
+	entry = (struct re_s *) LDAP_CALLOC( 1, sizeof( struct re_s ));
 	entry->interval.tv_sec = interval;
 	entry->interval.tv_usec = 0;
 	entry->next_sched.tv_sec = time( NULL );
@@ -53,7 +53,7 @@ ldap_pvt_runqueue_remove(
 
 	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
 
-	ch_free( entry );
+	LDAP_FREE( entry );
 
 }
 
