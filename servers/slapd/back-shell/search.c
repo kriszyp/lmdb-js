@@ -36,7 +36,7 @@ shell_back_search(
 	FILE			*rfp, *wfp;
 	AttributeName		*an;
 
-	if ( IS_NULLCMD( si->si_search ) ) {
+	if ( si->si_search == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "search not implemented", NULL, NULL );
 		return( -1 );

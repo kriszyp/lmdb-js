@@ -29,7 +29,7 @@ shell_back_abandon(
 	Operation		*o;
 
 	/* no abandon command defined - just kill the process handling it */
-	if ( IS_NULLCMD( si->si_abandon ) ) {
+	if ( si->si_abandon == NULL ) {
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		pid = -1;
 		LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {

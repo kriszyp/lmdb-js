@@ -47,7 +47,7 @@ shell_back_modrdn(
 	Entry e;
 	FILE			*rfp, *wfp;
 
-	if ( IS_NULLCMD( si->si_modrdn ) ) {
+	if ( si->si_modrdn == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "modrdn not implemented", NULL, NULL );
 		return( -1 );
