@@ -1,4 +1,5 @@
 #include "portable.h"
+//#include "portable_err.h"
 
 #include <stdio.h>
 
@@ -22,18 +23,22 @@ int deny_severity = LOG_NOTICE;
 
 /* globals */
 int dtblsize;
+static int tcps;
 
 #ifdef HAVE_WINSOCK2
+// in nt_main.c
+extern ldap_pvt_thread_cond_t			started_event;
 /* forward reference */
 void hit_socket();
 /* In wsa_err.c */
 char *WSAGetLastErrorString();
+static ldap_pvt_thread_t hit_tid;
 
 #define WAKE_LISTENER(w) \
 do {\
     if( w ) {\
         ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
-        hit_socket();\
+        hit_socket(); \
     }\
 } while(0)
 #else
@@ -45,9 +50,13 @@ do {\
 } while(0)
 #endif
 
+#ifndef HAVE_WINSOCK
+static 
+#endif
+volatile sig_atomic_t slapd_shutdown = 0;
+
 static int daemon_initialized = 0;
 static ldap_pvt_thread_t	listener_tid;
-static volatile sig_atomic_t slapd_shutdown = 0;
 static volatile sig_atomic_t slapd_listener = 0;
 void sockinit();
 
@@ -119,17 +128,24 @@ void slapd_clr_write(int s, int wake) {
 	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
 }
 
 void slapd_set_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
     WAKE_LISTENER(wake);
 
-
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
 }
 
 void slapd_clr_read(int s, int wake) {
@@ -141,6 +157,9 @@ void slapd_clr_read(int s, int wake) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
 }
 
 void slapd_set_read(int s, int wake) {
@@ -151,12 +170,18 @@ void slapd_set_read(int s, int wake) {
 	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
 }
 
 static void slapd_close(int s) {
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %d\n", s, 0, 0 );
 	tcp_close(s);
 }
+
+
 
 int
 set_socket( struct sockaddr_in *addr )
@@ -252,10 +277,14 @@ slapd_daemon_task(
 	void *ptr
 )
 {
-	int inetd = ((int *)ptr) [0];
-	int tcps  = ((int *)ptr) [1];
+	int inetd;
+	struct slapd_args *args = (struct slapd_args *) ptr;
+	struct sockaddr_in *slapd_addr = args->addr;
+
+	tcps  = args->tcps;
 	free( ptr );
 
+	inetd = ( slapd_addr == NULL);
     if ( !daemon_initialized ) sockinit();
 
 	slapd_listener=1;
@@ -289,6 +318,11 @@ slapd_daemon_task(
 		slapd_add( 0 );
 	}
 
+#ifdef HAVE_WINSOCK
+	if ( started_event != NULL )
+		ldap_pvt_thread_cond_signal( &started_event );
+#endif
+	// initialization complete. Here comes the loop.
 	while ( !slapd_shutdown ) {
 		unsigned int i;
 		int ns, nfds;
@@ -302,7 +336,7 @@ slapd_daemon_task(
 #if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
         struct hostent		*hp;
 #endif
-        struct timeval		zero;
+		struct timeval		zero;
 		struct timeval		*tvp;
 
 		char	*client_name;
@@ -357,7 +391,11 @@ slapd_daemon_task(
 
 		switch(ns = select( nfds, &readfds, &writefds, 0, tvp )) {
 		case -1: {	/* failure - try again */
+#ifdef HAVE_WINSOCK
+				int err = WSAGetLastError();
+#else
 				int err = errno;
+#endif
 
 				if( err == EBADF && ++ebadf < SLAPD_EBADF_LIMIT) {
 					continue;
@@ -371,7 +409,8 @@ slapd_daemon_task(
 							? sys_errlist[err] : "unknown",
 						0 );
 
-					slapd_shutdown = -1;
+
+				slapd_shutdown = -1;
 				}
 			}
 			continue;
@@ -481,7 +520,6 @@ slapd_daemon_task(
 			}
 #endif /* HAVE_TCPD */
 
-
 			if( (id = connection_init(s, client_name, client_addr)) < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%d, %s, %s) failed.\n",
@@ -548,7 +586,6 @@ slapd_daemon_task(
 			if ( wd == tcps ) {
 				continue;
 			}
-
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
@@ -590,7 +627,6 @@ slapd_daemon_task(
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
 
-
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -607,13 +643,13 @@ slapd_daemon_task(
 
 	if( slapd_shutdown > 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: shutdown requested (%d) and initiated.\n",
-			(int) slapd_shutdown, 0, 0 );
+			"daemon: shutdown requested and initiated.\n",
+			0, 0, 0 );
 
 	} else if ( slapd_shutdown < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: abnormal condition (%d), shutdown initiated.\n",
-			(int) slapd_shutdown, 0, 0 );
+			"daemon: abnormal condition, shutdown initiated.\n",
+			0, 0, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: no active streams, shutdown initiated.\n",
@@ -624,9 +660,6 @@ slapd_daemon_task(
 		slapd_close( tcps );
 	}
 
-	/* we only implement "quick" shutdown */
-	connections_shutdown();
-
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
@@ -636,16 +669,13 @@ slapd_daemon_task(
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-	slapd_listener = 0;
 	return NULL;
 }
 
-int slapd_daemon( int inetd, int tcps )
+
+int slapd_daemon( struct slapd_args *args )
 {
 	int rc;
-	int *args = ch_malloc( sizeof( int[2] ) );
-	args[0] = inetd;
-	args[1] = tcps;
 
     if ( !daemon_initialized ) sockinit();
 
@@ -717,25 +747,27 @@ void sockinit()
     daemon_initialized = 1;
 }	/* The WinSock DLL is acceptable. Proceed. */
 
-void hit_socket( void )
+void hit_socket()
 {
 	int s, on = 1;
 	extern struct sockaddr_in	bind_addr;
 
 	/* throw something at the socket to terminate the select() in the daemon thread. */
 	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == INVALID_SOCKET )
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			"slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n",
 			WSAGetLastError(), WSAGetLastErrorString(), 0 );
 
 	if ( ioctlsocket( s, FIONBIO, &on ) == -1 ) 
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			"slap_set_shutdown:FIONBIO ioctl on %d faled\n\tWSAGetLastError=%d (%s)\n",
 			s, WSAGetLastError(), WSAGetLastError() );
-
+	
 	bind_addr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
 
 	if ( connect( s, (struct sockaddr *)&bind_addr, sizeof( struct sockaddr_in )) == SOCKET_ERROR ) {
+		Debug( LDAP_DEBUG_ANY,
+			"hit_socket: error on connect: %d\n", WSAGetLastError(), 0 );
 		/* we can probably expect some error to occur here, mostly WSAEWOULDBLOCK */
 	}
 
@@ -767,7 +799,11 @@ slap_set_shutdown( int sig )
 		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	}
 #else
-	hit_socket();
+	Debug( LDAP_DEBUG_TRACE, "Shutdown %d ordered", sig, 0 );
+	// trying to "hit" the socket seems to always get a
+	// EWOULDBLOCK error, so just close the listen socket to
+	// break out of the select since we're shutting down anyway
+	tcp_close( tcps );
 #endif
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
