@@ -27,7 +27,7 @@ CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS)
 all:	FORCE
 	-@echo "$(SLAPD_BACKENDS)" | grep LDAP_PASSWD 2>&1 > /dev/null; \
 	if [ $$? = 0 ]; then \
-            $(MAKE) $(MFLAGS) CC=$(CC) libback-passwd.a; \
+            $(MAKE) $(MFLAGS) CC="$(CC)" libback-passwd.a; \
 	else \
 	    echo "Include -DLDAP_PASSWD in SLAPD_BACKENDS in the"; \
 	    echo "Make-common file to build the passwd backend"; \

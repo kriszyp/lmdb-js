@@ -321,7 +321,7 @@ makeconfig:	.makefiles buildtools
 		;; \
 	    esac; \
 	fi; \
-	CC=$(CC); \
+	CC="$(CC)"; \
 	OLDIFS="$$IFS"; \
 	IFS=":"; \
 	for dir in $$PATH; do \
