@@ -267,7 +267,7 @@ do_add( Connection *conn, Operation *op )
 					assert( (*modstail)->sml_desc != NULL );
 				}
 				rc = slap_mods_opattrs( op, mods, modstail, &text,
-					&textbuf, textlen );
+					textbuf, textlen );
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
 						NULL, text, NULL, NULL );
