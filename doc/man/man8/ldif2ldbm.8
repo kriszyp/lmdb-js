@@ -5,20 +5,20 @@ ldif2ldbm, ldif2index, ldif2id2entry, ldif2id2children \- LDIF to LDBM database 
 .B SBINDIR/ldif2ldbm
 .B \-i ldif\-input\-file
 .B [\-d debug\-level] [\-f slapd\-config\-file]
-.B [\-j number\-of\-jobs]
+.B [\-j number\-of\-jobs] [\-n database#] [\-s sbindir]
 .LP
 .B SBINDIR/ldif2index
 .B \-i ldif\-input\-file
-.B [\-d debug\-level] [\-f slapd\-config\-file]
+.B [\-d debug\-level] [\-f slapd\-config\-file] [\-n database#]
 .B attribute\-name
 .LP
 .B SBINDIR/ldif2id2entry
 .B \-i ldif\-input\-file
-.B [\-d debug\-level] [\-f slapd\-config\-file]
+.B [\-d debug\-level] [\-f slapd\-config\-file] [\-n database#]
 .LP
 .B SBINDIR/ldif2id2children
 .B \-i ldif\-input\-file
-.B [\-d debug\-level] [\-f slapd\-config\-file]
+.B [\-d debug\-level] [\-f slapd\-config\-file] [\-n database#]
 .LP
 .SH DESCRIPTION
 .LP
@@ -57,11 +57,19 @@ each bit corresponding to a different kind of debugging information.
 See <ldap.h> for details.
 .TP
 .BI \-f " slapd\-config\-file"
-This option
-Specifies the
+This option specifies the
 .B slapd
 configuration file. The default is
 .BR ETCDIR/slapd.conf .
+.TP
+.BI \-n " database#"
+This option specifies the database number within
+.B slapd
+configuration file to build. The default is the 1, the first.
+.TP
+.BI \-s " sbindir"
+This option specifies the location of dependent tools.  The
+default is SBINDIR.
 .TP
 .BI \-j " number\-of\-jobs"
 This option only applies to the
@@ -94,12 +102,14 @@ give the command:
 .ft
 .fi
 .LP
-To do the same, but running two conversion sub-processes at a time,
+To build the second database listed in 
+.BR ETCDIR/slapd.conf , 
+and to use three conversion sub-processes at a time,
 give this command:
 .LP
 .nf
 .ft tt
-	SBINDIR/ldif2index -i ldif.input -f ETCDIR/slapd.conf -j 2
+	SBINDIR/ldif2index -i ldif.input -f ETCDIR/slapd.conf -n 2 -j 3 
 .ft
 .fi
 .LP
