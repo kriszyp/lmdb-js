@@ -456,7 +456,7 @@ int ad_inlist(
 				int i;
    				for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
 					rc = is_at_subtype( desc->ad_type,
-						oc->soc_allowed[i] );
+						oc->soc_required[i] );
 					if( rc ) return 1;
 				}
 			}
