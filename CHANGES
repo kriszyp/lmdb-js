@@ -9,6 +9,7 @@ Changes included in OpenLDAP 1.2.9
 	Build Environment
 		Rebuild configure
 		Added support for db1 vs db2 with glibc 2.1
+		Removed TCPD and RLOOKUP interdependecy (ITS#419)
 
 Changes included in OpenLDAP 1.2.8
 	CVS Tag: OPENLDAP_REL_ENG_1_2_8

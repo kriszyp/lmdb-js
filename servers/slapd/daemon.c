@@ -269,7 +269,7 @@ slapd_daemon(
 				char *s;
 				client_addr = inet_ntoa( from.sin_addr );
 
-#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
+#ifdef SLAPD_RLOOKUPS
 				hp = gethostbyaddr( (char *)
 				    &(from.sin_addr),
 				    sizeof(from.sin_addr), AF_INET );
