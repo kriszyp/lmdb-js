@@ -281,6 +281,46 @@ int backend_add(BackendInfo *aBackendInfo)
    }	    
 }
 
+/* startup a specific backend database */
+int backend_startup_one(Backend *be)
+{
+	int rc = 0;
+
+	assert(be);
+
+	be->be_pending_csn_list = (struct be_pcl *)
+		ch_calloc( 1, sizeof( struct be_pcl ));
+	build_new_dn( &be->be_context_csn, be->be_nsuffix,
+		(struct berval *)&slap_ldapsync_cn_bv, NULL );
+
+	LDAP_TAILQ_INIT( be->be_pending_csn_list );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
+		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+		0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"backend_startup: starting \"%s\"\n",
+		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+		0, 0 );
+#endif
+	if ( be->bd_info->bi_db_open ) {
+		rc = be->bd_info->bi_db_open( be );
+		if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, CRIT, 
+				"backend_startup: bi_db_open failed! (%d)\n", rc, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_db_open failed! (%d)\n",
+				rc, 0, 0 );
+#endif
+		}
+	}
+	return rc;
+}
+
 int backend_startup(Backend *be)
 {
 	int i;
@@ -300,23 +340,6 @@ int backend_startup(Backend *be)
 	}
 
 	if(be != NULL) {
-		/* startup a specific backend database */
-
-		be->be_pending_csn_list = (struct be_pcl *)
-								ch_calloc( 1, sizeof( struct be_pcl ));
-		LDAP_TAILQ_INIT( be->be_pending_csn_list );
-
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
-			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
-			0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"backend_startup: starting \"%s\"\n",
-			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
-			0, 0 );
-#endif
-
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );
 			if ( rc != 0 ) {
@@ -332,22 +355,7 @@ int backend_startup(Backend *be)
 			}
 		}
 
-		if ( be->bd_info->bi_db_open ) {
-			rc = be->bd_info->bi_db_open( be );
-			if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT, 
-					"backend_startup: bi_db_open failed! (%d)\n", rc, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"backend_startup: bi_db_open failed! (%d)\n",
-					rc, 0, 0 );
-#endif
-				return rc;
-			}
-		}
-
-		return rc;
+		return backend_startup_one( be );
 	}
 
 	/* open each backend type */
@@ -380,13 +388,6 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-		/* append global access controls */
-		acl_append( &backendDB[i].be_acl, global_acl );
-
-		backendDB[i].be_pending_csn_list = (struct be_pcl *)
-								ch_calloc( 1, sizeof( struct be_pcl ));
-		LDAP_TAILQ_INIT( backendDB[i].be_pending_csn_list );
-
 		if ( backendDB[i].be_suffix == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, CRIT, 
@@ -400,22 +401,12 @@ int backend_startup(Backend *be)
 				i, backendDB[i].bd_info->bi_type, 0 );
 #endif
 		}
+		/* append global access controls */
+		acl_append( &backendDB[i].be_acl, global_acl );
 
-		if ( backendDB[i].bd_info->bi_db_open ) {
-			rc = backendDB[i].bd_info->bi_db_open(
-				&backendDB[i] );
-			if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT, 
-					"backend_startup: bi_db_open(%d) failed! (%d)\n", i, rc, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"backend_startup: bi_db_open(%d) failed! (%d)\n",
-					i, rc, 0 );
-#endif
-				return rc;
-			}
-		}
+		rc = backend_startup_one( &backendDB[i] );
+
+		if ( rc ) return rc;
 
 		if ( !LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo )) {
 			syncinfo_t *si;
@@ -537,6 +528,7 @@ int backend_destroy(void)
 		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
 		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
 		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		if ( bd->be_context_csn.bv_val ) free( bd->be_context_csn.bv_val );
 		acl_destroy( bd->be_acl, global_acl );
 	}
 	free( backendDB );
