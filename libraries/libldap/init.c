@@ -158,6 +158,8 @@ static void openldap_ldap_init_w_conf(const char *file)
 			}
 		}
 	}
+
+	fclose( fp );
 }
 
 static void openldap_ldap_init_w_userconf(const char *file)
