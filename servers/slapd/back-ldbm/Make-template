@@ -72,77 +72,59 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-idl.o: idl.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-idl.o: ../../../include/ldap.h ../../../include/lthread.h
-idl.o: ../../../include/ldif.h ../../../include/ldapconfig.h back-ldbm.h
-idl.o: ../../../include/ldbm.h
-add.o: add.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-add.o: ../../../include/ldap.h ../../../include/lthread.h
-add.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-search.o: search.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-search.o: ../../../include/ldap.h ../../../include/lthread.h
-search.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-cache.o: cache.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-cache.o: ../../../include/ldap.h ../../../include/lthread.h
-cache.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-dbcache.o: dbcache.c ../../../include/portable.h ../slap.h
-dbcache.o: ../../../include/avl.h ../../../include/lber.h
-dbcache.o: ../../../include/ldap.h ../../../include/lthread.h
-dbcache.o: ../../../include/ldif.h ../../../include/ldapconfig.h back-ldbm.h
-dbcache.o: ../../../include/ldbm.h
-dn2id.o: dn2id.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-dn2id.o: ../../../include/ldap.h ../../../include/lthread.h
-dn2id.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-id2entry.o: id2entry.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-id2entry.o: ../../../include/ldap.h ../../../include/lthread.h
-id2entry.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-index.o: index.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-index.o: ../../../include/ldap.h ../../../include/lthread.h
-index.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-id2children.o: id2children.c ../slap.h ../../../include/avl.h
-id2children.o: ../../../include/lber.h ../../../include/ldap.h
-id2children.o: ../../../include/lthread.h ../../../include/ldif.h back-ldbm.h
+idl.o: idl.c ../../../include/avl.h ../../../include/proto-lber.h
+idl.o: ../../../include/proto-ldap.h ../../../include/ldif.h back-ldbm.h
+add.o: add.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+add.o: ../../../include/ldif.h ../../../include/ldbm.h
+search.o: search.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+search.o: ../../../include/ldif.h ../../../include/ldbm.h
+cache.o: cache.c ../../../include/avl.h ../../../include/proto-lber.h
+cache.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+cache.o: ../../../include/ldbm.h
+dbcache.o: dbcache.c ../../../include/portable.h ../../../include/avl.h
+dbcache.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+dbcache.o: ../../../include/ldif.h back-ldbm.h
+dn2id.o: dn2id.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+dn2id.o: ../../../include/ldif.h ../../../include/ldbm.h
+id2entry.o: id2entry.c ../../../include/avl.h ../../../include/proto-lber.h
+id2entry.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+id2entry.o: ../../../include/ldbm.h
+index.o: index.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+index.o: ../../../include/ldif.h ../../../include/ldbm.h
+id2children.o: id2children.c ../../../include/proto-lber.h
+id2children.o: ../../../include/proto-ldap.h ../../../include/ldif.h
 id2children.o: ../../../include/ldbm.h
-nextid.o: nextid.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-nextid.o: ../../../include/ldap.h ../../../include/lthread.h
-nextid.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
+nextid.o: nextid.c ../../../include/avl.h ../../../include/proto-lber.h
+nextid.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+nextid.o: ../../../include/ldbm.h
 abandon.o: abandon.c
-compare.o: compare.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-compare.o: ../../../include/ldap.h ../../../include/lthread.h
-compare.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-modify.o: modify.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-modify.o: ../../../include/ldap.h ../../../include/lthread.h
-modify.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-modrdn.o: modrdn.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-modrdn.o: ../../../include/ldap.h ../../../include/lthread.h
-modrdn.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-delete.o: delete.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-delete.o: ../../../include/ldap.h ../../../include/lthread.h
-delete.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-init.o: init.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-init.o: ../../../include/ldap.h ../../../include/lthread.h
-init.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-config.o: config.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-config.o: ../../../include/ldap.h ../../../include/lthread.h
-config.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-bind.o: bind.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-bind.o: ../../../include/ldap.h ../../../include/lthread.h
-bind.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-attr.o: attr.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-attr.o: ../../../include/ldap.h ../../../include/lthread.h
-attr.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-filterindex.o: filterindex.c ../slap.h ../../../include/avl.h
-filterindex.o: ../../../include/lber.h ../../../include/ldap.h
-filterindex.o: ../../../include/lthread.h ../../../include/ldif.h back-ldbm.h
-filterindex.o: ../../../include/ldbm.h
-unbind.o: unbind.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-unbind.o: ../../../include/ldap.h ../../../include/lthread.h
-unbind.o: ../../../include/ldif.h
-kerberos.o: kerberos.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-kerberos.o: ../../../include/ldap.h ../../../include/lthread.h
-kerberos.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
-close.o: close.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-close.o: ../../../include/ldap.h ../../../include/lthread.h
-close.o: ../../../include/ldif.h back-ldbm.h ../../../include/ldbm.h
+compare.o: compare.c ../../../include/proto-lber.h
+compare.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+compare.o: ../../../include/ldbm.h
+modify.o: modify.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+modify.o: ../../../include/ldif.h ../../../include/ldbm.h
+modrdn.o: modrdn.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+modrdn.o: ../../../include/ldif.h ../../../include/ldbm.h
+delete.o: delete.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+delete.o: ../../../include/ldif.h ../../../include/ldbm.h
+init.o: init.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+init.o: ../../../include/ldif.h ../../../include/ldbm.h
+config.o: config.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+config.o: ../../../include/ldif.h ../../../include/ldbm.h
+bind.o: bind.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+bind.o: ../../../include/ldif.h ../../../include/ldbm.h
+attr.o: attr.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+attr.o: ../../../include/ldif.h ../../../include/ldbm.h
+filterindex.o: filterindex.c ../../../include/avl.h
+filterindex.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+filterindex.o: ../../../include/ldif.h ../../../include/ldbm.h
+unbind.o: unbind.c ../../../include/avl.h ../../../include/proto-lber.h
+unbind.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+kerberos.o: kerberos.c ../../../include/proto-lber.h
+kerberos.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+kerberos.o: ../../../include/ldbm.h
+close.o: close.c ../../../include/avl.h ../../../include/proto-lber.h
+close.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+close.o: ../../../include/ldbm.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

@@ -80,12 +80,11 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-go500.o: go500.c ../../include/portable.h ../../include/ldapconfig.h
-go500.o: ../../include/lber.h ../../include/ldap.h ../../include/disptmpl.h
-go500gw.o: go500gw.c ../../include/lber.h ../../include/ldap.h
-go500gw.o: ../../include/disptmpl.h ../../include/portable.h
+go500.o: go500.c ../../include/ldapconfig.h ../../include/proto-lber.h
+go500.o: ../../include/proto-ldap.h
+go500gw.o: go500gw.c ../../include/ldap.h ../../include/proto-ldap.h
 go500gw.o: ../../include/ldapconfig.h
-detach.o: detach.c ../../include/portable.h
+detach.o: detach.c
 setproctitle.o: setproctitle.c
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

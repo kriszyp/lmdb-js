@@ -61,11 +61,10 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-main.o: main.c ../../include/portable.h ../../include/ldapconfig.h rcpt500.h
-cmds.o: cmds.c rcpt500.h
-help.o: help.c ../../include/portable.h ../../include/ldapconfig.h rcpt500.h
-query.o: query.c ../../include/lber.h ../../include/ldap.h
-query.o: ../../include/portable.h ../../include/ldapconfig.h
-query.o: ../../include/disptmpl.h rcpt500.h
+main.o: main.c ../../include/portable.h
+cmds.o: cmds.c
+help.o: help.c ../../include/portable.h
+query.o: query.c ../../include/proto-lber.h ../../include/proto-ldap.h
+query.o: ../../include/ldapconfig.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

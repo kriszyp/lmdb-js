@@ -106,13 +106,13 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-ldapsearch.o: ldapsearch.c ../../include/lber.h ../../include/ldap.h
-ldapsearch.o: ../../include/ldif.h ../../include/ldapconfig.h
-ldapmodify.o: ldapmodify.c ../../include/lber.h ../../include/ldap.h
-ldapmodify.o: ../../include/ldif.h ../../include/ldapconfig.h
-ldapdelete.o: ldapdelete.c ../../include/lber.h ../../include/ldap.h
-ldapdelete.o: ../../include/ldapconfig.h
-ldapmodrdn.o: ldapmodrdn.c ../../include/lber.h ../../include/ldap.h
-ldapmodrdn.o: ../../include/ldapconfig.h
+ldapsearch.o: ldapsearch.c ../../include/lber.h ../../include/proto-ldap.h
+ldapsearch.o: ../../include/ldapconfig.h
+ldapmodify.o: ldapmodify.c ../../include/lber.h ../../include/proto-ldap.h
+ldapmodify.o: ../../include/ldapconfig.h
+ldapdelete.o: ldapdelete.c ../../include/proto-lber.h
+ldapdelete.o: ../../include/proto-ldap.h
+ldapmodrdn.o: ldapmodrdn.c ../../include/proto-lber.h
+ldapmodrdn.o: ../../include/proto-ldap.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

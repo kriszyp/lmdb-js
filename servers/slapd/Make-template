@@ -168,99 +168,79 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-main.o: main.c ../../include/portable.h slap.h ../../include/avl.h
-main.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-main.o: ../../include/ldif.h ../../include/ldapconfig.h
-daemon.o: daemon.c slap.h ../../include/avl.h ../../include/lber.h
-daemon.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-daemon.o: ../../include/portable.h ../../include/ldapconfig.h
-connection.o: connection.c ../../include/portable.h slap.h ../../include/avl.h
-connection.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-connection.o: ../../include/ldif.h
-search.o: search.c slap.h ../../include/avl.h ../../include/lber.h
-search.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-search.o: ../../include/ldapconfig.h
-filter.o: filter.c slap.h ../../include/avl.h ../../include/lber.h
-filter.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-add.o: add.c slap.h ../../include/avl.h ../../include/lber.h
-add.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-charray.o: charray.c slap.h ../../include/avl.h ../../include/lber.h
-charray.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-attr.o: attr.c ../../include/portable.h slap.h ../../include/avl.h
-attr.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
+main.o: main.c ../../include/portable.h ../../include/avl.h
+main.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldapconfig.h
+daemon.o: daemon.c ../../include/avl.h ../../include/ldap.h
+daemon.o: ../../include/lthread.h ../../include/portable.h
+connection.o: connection.c ../../include/portable.h ../../include/avl.h
+connection.o: ../../include/ldap.h ../../include/lthread.h
+search.o: search.c ../../include/proto-lber.h ../../include/proto-ldap.h
+search.o: ../../include/ldif.h
+filter.o: filter.c ../../include/proto-lber.h ../../include/proto-ldap.h
+filter.o: ../../include/ldif.h
+add.o: add.c ../../include/avl.h ../../include/ldap.h
+add.o: ../../include/proto-ldap.h ../../include/ldif.h
+charray.o: charray.c ../../include/proto-lber.h ../../include/proto-ldap.h
+charray.o: ../../include/ldif.h
+attr.o: attr.c ../../include/proto-lber.h ../../include/proto-ldap.h
 attr.o: ../../include/ldif.h
-entry.o: entry.c slap.h ../../include/avl.h ../../include/lber.h
-entry.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-config.o: config.c slap.h ../../include/avl.h ../../include/lber.h
-config.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-config.o: ../../include/ldapconfig.h
-backend.o: backend.c slap.h ../../include/avl.h ../../include/lber.h
-backend.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-result.o: result.c ../../include/portable.h slap.h ../../include/avl.h
-result.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-result.o: ../../include/ldif.h
-operation.o: operation.c slap.h ../../include/avl.h ../../include/lber.h
-operation.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-dn.o: dn.c ../../include/portable.h slap.h ../../include/avl.h
-dn.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-dn.o: ../../include/ldif.h
-compare.o: compare.c slap.h ../../include/avl.h ../../include/lber.h
-compare.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-modify.o: modify.c slap.h ../../include/avl.h ../../include/lber.h
-modify.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-delete.o: delete.c slap.h ../../include/avl.h ../../include/lber.h
-delete.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-modrdn.o: modrdn.c slap.h ../../include/avl.h ../../include/lber.h
-modrdn.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-ch_malloc.o: ch_malloc.c slap.h ../../include/avl.h ../../include/lber.h
-ch_malloc.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-value.o: value.c ../../include/portable.h slap.h ../../include/avl.h
-value.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-value.o: ../../include/ldif.h
-ava.o: ava.c slap.h ../../include/avl.h ../../include/lber.h
-ava.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-bind.o: bind.c slap.h ../../include/avl.h ../../include/lber.h
-bind.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-unbind.o: unbind.c slap.h ../../include/avl.h ../../include/lber.h
-unbind.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-abandon.o: abandon.c slap.h ../../include/avl.h ../../include/lber.h
-abandon.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-filterentry.o: filterentry.c ../../include/regex.h slap.h ../../include/avl.h
-filterentry.o: ../../include/lber.h ../../include/ldap.h
-filterentry.o: ../../include/lthread.h ../../include/ldif.h
-phonetic.o: phonetic.c ../../include/portable.h slap.h ../../include/avl.h
-phonetic.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-phonetic.o: ../../include/ldif.h
-regex.o: regex.c ../../include/portable.h
-acl.o: acl.c ../../include/regex.h slap.h ../../include/avl.h
-acl.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
+entry.o: entry.c ../../include/avl.h ../../include/ldap.h
+entry.o: ../../include/lthread.h
+config.o: config.c ../../include/proto-lber.h ../../include/proto-ldap.h
+config.o: ../../include/ldif.h
+backend.o: backend.c ../../include/avl.h ../../include/ldap.h
+backend.o: ../../include/lthread.h
+result.o: result.c ../../include/portable.h ../../include/avl.h
+result.o: ../../include/ldap.h ../../include/lthread.h
+operation.o: operation.c ../../include/proto-lber.h ../../include/proto-ldap.h
+operation.o: ../../include/ldif.h
+dn.o: dn.c ../../include/portable.h ../../include/avl.h ../../include/ldap.h
+dn.o: ../../include/lthread.h
+compare.o: compare.c ../../include/avl.h ../../include/ldap.h
+compare.o: ../../include/lthread.h
+modify.o: modify.c ../../include/avl.h ../../include/ldap.h
+modify.o: ../../include/proto-ldap.h ../../include/ldif.h
+delete.o: delete.c ../../include/proto-lber.h ../../include/proto-ldap.h
+delete.o: ../../include/ldif.h
+modrdn.o: modrdn.c ../../include/proto-lber.h ../../include/proto-ldap.h
+modrdn.o: ../../include/ldif.h
+ch_malloc.o: ch_malloc.c ../../include/avl.h ../../include/ldap.h
+ch_malloc.o: ../../include/lthread.h
+value.o: value.c ../../include/portable.h ../../include/avl.h
+value.o: ../../include/ldap.h ../../include/lthread.h
+ava.o: ava.c ../../include/proto-lber.h ../../include/proto-ldap.h
+ava.o: ../../include/ldif.h
+bind.o: bind.c ../../include/proto-lber.h ../../include/proto-ldap.h
+bind.o: ../../include/ldif.h
+unbind.o: unbind.c ../../include/avl.h ../../include/ldap.h
+unbind.o: ../../include/lthread.h
+abandon.o: abandon.c ../../include/avl.h ../../include/ldap.h
+abandon.o: ../../include/lthread.h
+filterentry.o: filterentry.c ../../include/proto-lber.h
+filterentry.o: ../../include/proto-ldap.h ../../include/ldif.h
+phonetic.o: phonetic.c ../../include/portable.h ../../include/avl.h
+phonetic.o: ../../include/ldap.h ../../include/lthread.h
+regex.o: regex.c
+acl.o: acl.c slap.h ../../include/proto-lber.h ../../include/proto-ldap.h
 acl.o: ../../include/ldif.h
-str2filter.o: str2filter.c slap.h ../../include/avl.h ../../include/lber.h
-str2filter.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-aclparse.o: aclparse.c ../../include/regex.h slap.h ../../include/avl.h
-aclparse.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-aclparse.o: ../../include/ldif.h ../../include/portable.h
-init.o: init.c ../../include/portable.h slap.h ../../include/avl.h
-init.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-init.o: ../../include/ldif.h
-detach.o: detach.c ../../include/portable.h
+str2filter.o: str2filter.c ../../include/avl.h ../../include/ldap.h
+str2filter.o: ../../include/lthread.h
+aclparse.o: aclparse.c slap.h ../../include/proto-lber.h
+aclparse.o: ../../include/proto-ldap.h ../../include/ldif.h
+init.o: init.c ../../include/portable.h ../../include/avl.h
+init.o: ../../include/ldap.h ../../include/lthread.h
+detach.o: detach.c
 strdup.o: strdup.c
 tempnam.o: tempnam.c
-repl.o: repl.c slap.h ../../include/avl.h ../../include/lber.h
-repl.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-lock.o: lock.c ../../include/portable.h slap.h ../../include/avl.h
-lock.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-lock.o: ../../include/ldif.h
-schema.o: schema.c slap.h ../../include/avl.h ../../include/lber.h
-schema.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-schemaparse.o: schemaparse.c slap.h ../../include/avl.h ../../include/lber.h
-schemaparse.o: ../../include/ldap.h ../../include/lthread.h
-schemaparse.o: ../../include/ldif.h
-monitor.o: monitor.c slap.h ../../include/avl.h ../../include/lber.h
-monitor.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-monitor.o: ../../include/ldapconfig.h
-configinfo.o: configinfo.c slap.h ../../include/avl.h ../../include/lber.h
-configinfo.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-configinfo.o: ../../include/ldapconfig.h
+repl.o: repl.c ../../include/proto-lber.h ../../include/lthread.h
+lock.o: lock.c ../../include/avl.h ../../include/ldap.h ../../include/lthread.h
+schema.o: schema.c ../../include/proto-lber.h ../../include/proto-ldap.h
+schema.o: ../../include/ldif.h
+schemaparse.o: schemaparse.c ../../include/avl.h ../../include/ldap.h
+schemaparse.o: ../../include/lthread.h
+monitor.o: monitor.c ../../include/avl.h ../../include/ldap.h
+monitor.o: ../../include/proto-ldap.h ../../include/ldif.h
+configinfo.o: configinfo.c ../../include/avl.h ../../include/ldap.h
+configinfo.o: ../../include/lthread.h ../../include/ldapconfig.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY
