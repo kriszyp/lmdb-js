@@ -50,7 +50,6 @@ static int put_lineno;
 static int put_rc;
 
 static int use_thread = 0;	/*FIXME need a new switch for this */
-static int put_wait;
 
 static void *do_put(void *ptr)
 {
@@ -58,10 +57,13 @@ static void *do_put(void *ptr)
 	Entry *e;
 	int lineno;
 
-
 	do {
+		ldap_pvt_thread_mutex_lock( &put_mutex );
 		ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
-		if ( put_rc ) break;
+		if ( put_rc ) {
+			ldap_pvt_thread_mutex_unlock( &put_mutex );
+			break;
+		}
 
 		e = put_e;
 		lineno = put_lineno;
@@ -75,6 +77,7 @@ static void *do_put(void *ptr)
 				entry_free( e );
 				if ( continuemode ) continue;
 				put_rc = EXIT_FAILURE;
+				ldap_pvt_thread_mutex_unlock( &put_mutex );
 				break;
 			}
 		}
@@ -90,7 +93,7 @@ static void *do_put(void *ptr)
 		}
 
 		entry_free( e );
-		ldap_pvt_thread_cond_signal( &put_cond );
+		ldap_pvt_thread_mutex_unlock( &put_mutex );
 
 	} while (1);
 }
@@ -359,17 +362,15 @@ slapadd( int argc, char **argv )
 		}
 
 		if ( use_thread ) {
-			if ( put_wait ) {
-				ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
-				if (put_rc) {
-					rc = put_rc;
-					break;
-				}
+			ldap_pvt_thread_mutex_lock( &put_mutex );
+			if (put_rc) {
+				rc = put_rc;
+				break;
 			}
 			put_e = e;
 			put_lineno = lineno;
-			put_wait = 1;
 			ldap_pvt_thread_cond_signal( &put_cond );
+			ldap_pvt_thread_mutex_unlock( &put_mutex );
 			continue;
 		}
 
@@ -401,7 +402,9 @@ slapadd( int argc, char **argv )
 
 	if ( use_thread ) {
 		put_rc = EXIT_FAILURE;
+		ldap_pvt_thread_mutex_lock( &put_mutex );
 		ldap_pvt_thread_cond_signal( &put_cond );
+		ldap_pvt_thread_mutex_unlock( &put_mutex );
 		ldap_pvt_thread_join( put_tid, NULL );
 	}
 
