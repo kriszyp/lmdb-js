@@ -1066,8 +1066,10 @@ slapi_search_internal_bind(
 	ptr = (Slapi_PBlock *)op->o_pb;
 	op->o_ctrls = controls;
 
-	dn.bv_val = slapi_ch_strdup(ldn);
-	dn.bv_len = strlen(ldn);
+	if ( ldn != NULL ) {
+		dn.bv_val = slapi_ch_strdup(ldn);
+		dn.bv_len = strlen(ldn);
+	}
 
 	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, NULL );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
