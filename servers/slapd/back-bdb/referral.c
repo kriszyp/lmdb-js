@@ -80,11 +80,11 @@ dn2entry_retry:
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
+			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				(long) op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
+				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #endif
 
 			if( is_entry_referral( e ) ) {
@@ -133,11 +133,11 @@ dn2entry_retry:
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, e->e_dn );
+			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, e->e_dn );
+			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #endif
 
 		rs->sr_matched = e->e_name.bv_val;
