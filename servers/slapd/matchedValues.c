@@ -70,7 +70,7 @@ filter_matched_values(
 	char		***e_flags
 )
 {
-	ValuesReturnFilter *f;
+	ValuesReturnFilter *vrf;
 	int		rc = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
@@ -79,22 +79,22 @@ filter_matched_values(
 	Debug( LDAP_DEBUG_FILTER, "=> filter_matched_values\n", 0, 0, 0 );
 #endif
 
-	for ( f = op->vrFilter; f != NULL; f = f->f_next ) {
-		switch ( f->f_choice ) {
+	for ( vrf = op->vrFilter; vrf != NULL; vrf = vrf->vrf_next ) {
+		switch ( vrf->vrf_choice ) {
 		case SLAPD_FILTER_COMPUTED:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, DETAIL1, 
 				"test_vrFilter: COMPUTED %s (%d)\n",
-				f->f_result == LDAP_COMPARE_FALSE ? "false" :
-				f->f_result == LDAP_COMPARE_TRUE	 ? "true"  :
-				f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
-				"error", f->f_result, 0 );
+				vrf->vrf_result == LDAP_COMPARE_FALSE ? "false" :
+				vrf->vrf_result == LDAP_COMPARE_TRUE	 ? "true"  :
+				vrf->vrf_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
+				"error", vrf->vrf_result, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	COMPUTED %s (%d)\n",
-				f->f_result == LDAP_COMPARE_FALSE ? "false" :
-				f->f_result == LDAP_COMPARE_TRUE ? "true" :
-				f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" : "error",
-				f->f_result, 0 );
+				vrf->vrf_result == LDAP_COMPARE_FALSE ? "false" :
+				vrf->vrf_result == LDAP_COMPARE_TRUE ? "true" :
+				vrf->vrf_result == SLAPD_COMPARE_UNDEFINED ? "undefined" : "error",
+				vrf->vrf_result, 0 );
 #endif
 			/*This type of filter does not affect the result */
 			rc = LDAP_SUCCESS;
@@ -106,7 +106,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EQUALITY\n", 0, 0, 0 );
 #endif
-			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
 				LDAP_FILTER_EQUALITY, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -121,7 +121,7 @@ filter_matched_values(
 #endif
 
 			rc = test_substrings_vrFilter( be, conn, op, a,
-				f, e_flags );
+				vrf, e_flags );
 			if( rc == -1 ) {
 				return rc;
 			}
@@ -134,14 +134,14 @@ filter_matched_values(
 			Debug( LDAP_DEBUG_FILTER, "	PRESENT\n", 0, 0, 0 );
 #endif
 			rc = test_presence_vrFilter( be, conn, op, a,
-				f->f_desc, e_flags );
+				vrf->vrf_desc, e_flags );
 			if( rc == -1 ) {
 				return rc;
 			}
 			break;
 
 		case LDAP_FILTER_GE:
-			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
 				LDAP_FILTER_GE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -149,7 +149,7 @@ filter_matched_values(
 			break;
 
 		case LDAP_FILTER_LE:
-			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
 				LDAP_FILTER_LE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -163,7 +163,7 @@ filter_matched_values(
 			Debug( LDAP_DEBUG_FILTER, "	EXT\n", 0, 0, 0 );
 #endif
 			rc = test_mra_vrFilter( be, conn, op, a,
-				f->f_mra, e_flags );
+				vrf->vrf_mra, e_flags );
 			if( rc == -1 ) {
 				return rc;
 			}
@@ -172,10 +172,10 @@ filter_matched_values(
 		default:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, INFO, 
-				"test_vrFilter:  unknown filter type %lu\n", f->f_choice, 0, 0 );
+				"test_vrFilter:  unknown filter type %lu\n", vrf->vrf_choice, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "	unknown filter type %lu\n",
-				f->f_choice, 0, 0 );
+				vrf->vrf_choice, 0, 0 );
 #endif
 			rc = LDAP_PROTOCOL_ERROR;
 		} 
@@ -303,7 +303,7 @@ test_substrings_vrFilter(
 	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
-	ValuesReturnFilter *f,
+	ValuesReturnFilter *vrf,
 	char		***e_flags
 )
 {
@@ -313,7 +313,7 @@ test_substrings_vrFilter(
 		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
 		struct berval *bv;
 
-		if ( !is_ad_subtype( a->a_desc, f->f_sub_desc ) ) {
+		if ( !is_ad_subtype( a->a_desc, vrf->vrf_sub_desc ) ) {
 			continue;
 		}
 
@@ -328,7 +328,7 @@ test_substrings_vrFilter(
 
 			rc = value_match( &ret, a->a_desc, mr,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				bv, f->f_sub, &text );
+				bv, vrf->vrf_sub, &text );
 
 			if( rc != LDAP_SUCCESS ) {
 				return rc;

@@ -22,7 +22,8 @@ struct sindexrec {
 };
 
 static Avlnode	*syn_index = NULL;
-static Syntax *syn_list = NULL;
+static LDAP_SLIST_HEAD(SyntaxList, slap_syntax) syn_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&syn_list);
 
 static int
 syn_index_cmp(
@@ -59,20 +60,23 @@ syn_find_desc( const char *syndesc, int *len )
 {
 	Syntax		*synp;
 
-	for (synp = syn_list; synp; synp = synp->ssyn_next)
-		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
+	LDAP_SLIST_FOREACH(synp, &syn_list, ssyn_next) {
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{' /*'}'*/ ))) {
 			return synp;
+		}
+	}
 	return( NULL );
 }
 
 void
 syn_destroy( void )
 {
-	Syntax *s, *n;
+	Syntax *s;
 
 	avl_free(syn_index, ldap_memfree);
-	for (s=syn_list; s; s=n) {
-		n = s->ssyn_next;
+	while( !LDAP_SLIST_EMPTY(&syn_list) ) {
+		s = LDAP_SLIST_FIRST(&syn_list);
+		LDAP_SLIST_REMOVE_HEAD(&syn_list, ssyn_next);
 		ldap_syntax_free((LDAPSyntax *)s);
 	}
 }
@@ -83,15 +87,10 @@ syn_insert(
     const char		**err
 )
 {
-	Syntax		**synp;
 	struct sindexrec	*sir;
 
-	synp = &syn_list;
-	while ( *synp != NULL ) {
-		synp = &(*synp)->ssyn_next;
-	}
-	*synp = ssyn;
-
+	LDAP_SLIST_INSERT_HEAD( &syn_list, ssyn, ssyn_next );
+ 
 	if ( ssyn->ssyn_oid ) {
 		sir = (struct sindexrec *)
 			SLAP_CALLOC( 1, sizeof(struct sindexrec) );
@@ -141,7 +140,7 @@ syn_add(
 
 	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
 
-	ssyn->ssyn_next = NULL;
+	LDAP_SLIST_NEXT(ssyn,ssyn_next) = NULL;
 
 	/*
 	 * note: ssyn_bvoid uses the same memory of ssyn_syn.syn_oid;
@@ -215,7 +214,7 @@ syn_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( syn = syn_list; syn; syn = syn->ssyn_next ) {
+	LDAP_SLIST_FOREACH(syn, &syn_list, ssyn_next ) {
 		if ( ! syn->ssyn_validate ) {
 			/* skip syntaxes without validators */
 			continue;

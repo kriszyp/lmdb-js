@@ -17,7 +17,6 @@
 
 #include "ldap_pvt.h"
 
-
 #include "slap.h"
 #include "slapi.h"
 #include "lutil.h"
@@ -159,7 +158,6 @@ int main( int argc, char **argv )
 		leakfile = stderr;
 	}
 #endif
-
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
@@ -327,7 +325,6 @@ int main( int argc, char **argv )
 #else
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 #endif
-
 
 	if( serverName == NULL ) {
 		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {

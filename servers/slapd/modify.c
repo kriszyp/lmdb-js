@@ -464,10 +464,10 @@ do_modify(
 cleanup:
 	free( pdn.bv_val );
 	free( ndn.bv_val );
-	if ( modlist != NULL )
-		slap_mods_free( modlist );
-	if ( modv != NULL )
-		FreeLDAPMods( modv );
+	if ( modlist != NULL ) slap_mods_free( modlist );
+#ifdef LDAP_SLAPI
+	if ( modv != NULL ) FreeLDAPMods( modv );
+#endif
 	return rc;
 }
 

@@ -15,7 +15,8 @@
 
 #include "slap.h"
 
-static OidMacro *om_list = NULL;
+static LDAP_SLIST_HEAD(OidMacroList, slap_oid_macro) om_list
+	= LDAP_SLIST_HEAD_INITIALIZER(om_list);
 
 /* Replace an OID Macro invocation with its full numeric OID.
  * If the macro is used with "macroname:suffix" append ".suffix"
@@ -31,7 +32,7 @@ oidm_find(char *oid)
 		return oid;
 	}
 
-    for (om = om_list; om; om=om->som_next) {
+	LDAP_SLIST_FOREACH( om, &om_list, som_next ) {
 		char **names = om->som_names;
 
 		if( names == NULL ) {
@@ -71,13 +72,16 @@ oidm_find(char *oid)
 void
 oidm_destroy()
 {
-	OidMacro *om, *n;
+	OidMacro *om;
 
-	for (om = om_list; om; om = n) {
-		n = om->som_next;
+	while( !LDAP_SLIST_EMPTY( &om_list )) {
+		om = LDAP_SLIST_FIRST( &om_list );
+
 		ldap_charray_free(om->som_names);
 		free(om->som_oid.bv_val);
 		free(om);
+		
+		LDAP_SLIST_REMOVE_HEAD( &om_list, som_next );
 	}
 }
 
@@ -133,8 +137,8 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 	}
 
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
-	om->som_next = om_list;
-	om_list = om;
+
+	LDAP_SLIST_INSERT_HEAD( &om_list, om, som_next );
 
 	return 0;
 }

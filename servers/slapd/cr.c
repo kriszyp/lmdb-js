@@ -24,7 +24,8 @@ struct cindexrec {
 };
 
 static Avlnode	*cr_index = NULL;
-static ContentRule *cr_list = NULL;
+static LDAP_SLIST_HEAD(CRList, slap_content_rule) cr_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&cr_list);
 
 static int
 cr_index_cmp(
@@ -80,12 +81,14 @@ cr_bvfind( struct berval *crname )
 void
 cr_destroy( void )
 {
-	ContentRule *c, *n;
+	ContentRule *c;
 
 	avl_free(cr_index, ldap_memfree);
-	for (c=cr_list; c; c=n)
-	{
-		n = c->scr_next;
+
+	while( !LDAP_SLIST_EMPTY(&cr_list) ) {
+		c = LDAP_SLIST_FIRST(&cr_list);
+		LDAP_SLIST_REMOVE_HEAD(&cr_list, scr_next);
+
 		if (c->scr_auxiliaries) ldap_memfree(c->scr_auxiliaries);
 		if (c->scr_required) ldap_memfree(c->scr_required);
 		if (c->scr_allowed) ldap_memfree(c->scr_allowed);
@@ -100,15 +103,10 @@ cr_insert(
     const char		**err
 )
 {
-	ContentRule	**crp;
 	struct cindexrec	*cir;
 	char			**names;
 
-	crp = &cr_list;
-	while ( *crp != NULL ) {
-		crp = &(*crp)->scr_next;
-	}
-	*crp = scr;
+	LDAP_SLIST_INSERT_HEAD(&cr_list, scr, scr_next);
 
 	if ( scr->scr_oid ) {
 		cir = (struct cindexrec *)
@@ -397,7 +395,7 @@ cr_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( cr = cr_list; cr; cr = cr->scr_next ) {
+	LDAP_SLIST_FOREACH(cr, &cr_list, scr_next) {
 		if ( ldap_contentrule2bv( &cr->scr_crule, vals ) == NULL ) {
 			return -1;
 		}

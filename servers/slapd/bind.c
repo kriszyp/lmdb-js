@@ -29,6 +29,7 @@
 #include "slap.h"
 #include "slapi.h"
 
+
 int
 do_bind(
     Connection	*conn,

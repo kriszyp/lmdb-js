@@ -64,11 +64,9 @@ LDAP_BEGIN_DECL
 #define SLAPD_ANONYMOUS "cn=anonymous"
 
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
- *
  * This is a value used internally by the backends. It is needed to allow
  * adding values that already exist without getting an error as required by
  * modrdn when the new rdn was already an attribute value itself.
- * JCG 05/1999 (gomez@engr.sgi.com)
  */
 #define SLAP_MOD_SOFTADD	0x1000
 
@@ -142,8 +140,6 @@ LDAP_BEGIN_DECL
 #ifdef SLAPD_ACI_ENABLED
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
 #endif
-
-#define SLAPD_OCTETSTRING_SYNTAX "1.3.6.1.4.1.1466.115.121.1.40"
 
 /* change this to "OpenLDAPset" */
 #define SLAPD_ACI_SET_ATTR		"template"
@@ -277,7 +273,7 @@ extern int slap_inet4or6;
 typedef struct slap_oid_macro {
 	struct berval som_oid;
 	char **som_names;
-	struct slap_oid_macro *som_next;
+	LDAP_SLIST_ENTRY(slap_oid_macro) som_next;
 } OidMacro;
 
 /* forward declarations */
@@ -327,7 +323,7 @@ typedef struct slap_syntax {
 	slap_syntax_transform_func	*ssyn_str2ber;
 #endif
 
-	struct slap_syntax		*ssyn_next;
+	LDAP_SLIST_ENTRY(slap_syntax) ssyn_next;
 } Syntax;
 
 #define slap_syntax_is_flag(s,flag) ((int)((s)->ssyn_flags & (flag)) ? 1 : 0)
@@ -399,7 +395,7 @@ typedef struct slap_matching_rule {
 	struct berval			smr_str;
 	/*
 	 * Note: the former
-	ber_len_t	smr_oidlen;
+	 *			ber_len_t	smr_oidlen;
 	 * has been replaced by a struct berval that uses the value
 	 * provided by smr_mrule.mr_oid; a macro that expands to
 	 * the bv_len field of the berval is provided for backward
@@ -461,14 +457,14 @@ typedef struct slap_matching_rule {
 	slap_mr_filter_func		*smr_filter;
 
 	/*
-	 * null terminated list of syntaxes compatible with this syntax
+	 * null terminated array of syntaxes compatible with this syntax
 	 * note: when MS_EXT is set, this MUST NOT contain the assertion
 	 * syntax of the rule.  When MS_EXT is not set, it MAY.
 	 */
 	Syntax					**smr_compat_syntaxes;
 
 	struct slap_matching_rule	*smr_associated;
-	struct slap_matching_rule	*smr_next;
+	LDAP_SLIST_ENTRY(slap_matching_rule)smr_next;
 
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
@@ -484,7 +480,7 @@ struct slap_matching_rule_use {
 	/* RFC2252 string representation */
 	struct berval			smru_str;
 
-	struct slap_matching_rule_use	*smru_next;
+	LDAP_SLIST_ENTRY(slap_matching_rule_use) smru_next;
 
 #define smru_oid			smru_mruleuse.mru_oid
 #define smru_names			smru_mruleuse.mru_names
@@ -538,7 +534,7 @@ typedef struct slap_attribute_type {
 #define SLAP_AT_HIDE		0x8000U /* hide attribute */
 	slap_mask_t					sat_flags;
 
-	struct slap_attribute_type	*sat_next;
+	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;
 
 #define sat_oid				sat_atype.at_oid
 #define sat_names			sat_atype.at_names
@@ -592,7 +588,7 @@ typedef struct slap_object_class {
 #define soc_at_oids_may		soc_oclass.oc_at_oids_may
 #define soc_extensions		soc_oclass.oc_extensions
 
-	struct slap_object_class	*soc_next;
+	LDAP_SLIST_ENTRY(slap_object_class) soc_next;
 } ObjectClass;
 
 #define	SLAP_OC_ALIAS		0x0001
@@ -624,7 +620,7 @@ typedef struct slap_content_rule {
 #define scr_at_oids_may		scr_crule.cr_at_oids_may
 #define scr_at_oids_not		scr_crule.cr_at_oids_not
 
-	struct slap_content_rule *scr_next;
+	LDAP_SLIST_ENTRY( slap_content_rule ) scr_next;
 } ContentRule;
 
 /* Represents a recognized attribute description ( type + options ). */
@@ -834,29 +830,50 @@ typedef struct slap_filter {
 #define SLAPD_COMPARE_UNDEFINED	((ber_int_t) -1)
 
 typedef struct slap_valuesreturnfilter {
-	ber_tag_t	f_choice;
+	ber_tag_t	vrf_choice;
 
 	union vrf_un_u {
 		/* precomputed result */
-		ber_int_t f_un_result;
+		ber_int_t vrf_un_result;
 
 		/* DN */
-		char *f_un_dn;
+		char *vrf_un_dn;
 
 		/* present */
-		AttributeDescription *f_un_desc;
+		AttributeDescription *vrf_un_desc;
 
 		/* simple value assertion */
-		AttributeAssertion *f_un_ava;
+		AttributeAssertion *vrf_un_ava;
 
 		/* substring assertion */
-		SubstringsAssertion *f_un_ssa;
+		SubstringsAssertion *vrf_un_ssa;
 
 		/* matching rule assertion */
-		MatchingRuleAssertion *f_un_mra;
-	} f_un;
+		MatchingRuleAssertion *vrf_un_mra;
 
-	struct slap_valuesreturnfilter	*f_next;
+#define vrf_result		vrf_un.vrf_un_result
+#define vrf_dn			vrf_un.vrf_un_dn
+#define vrf_desc		vrf_un.vrf_un_desc
+#define vrf_ava			vrf_un.vrf_un_ava
+#define vrf_av_desc		vrf_un.vrf_un_ava->aa_desc
+#define vrf_av_value	vrf_un.vrf_un_ava->aa_value
+#define vrf_ssa			vrf_un.vrf_un_ssa
+#define vrf_sub			vrf_un.vrf_un_ssa
+#define vrf_sub_desc	vrf_un.vrf_un_ssa->sa_desc
+#define vrf_sub_initial	vrf_un.vrf_un_ssa->sa_initial
+#define vrf_sub_any		vrf_un.vrf_un_ssa->sa_any
+#define vrf_sub_final	vrf_un.vrf_un_ssa->sa_final
+#define vrf_mra			vrf_un.vrf_un_mra
+#define vrf_mr_rule		vrf_un.vrf_un_mra->ma_rule
+#define vrf_mr_rule_text	vrf_un.vrf_un_mra->ma_rule_text
+#define vrf_mr_desc		vrf_un.vrf_un_mra->ma_desc
+#define vrf_mr_value		vrf_un.vrf_un_mra->ma_value
+#define	vrf_mr_dnattrs	vrf_un.vrf_un_mra->ma_dnattrs
+
+
+	} vrf_un;
+
+	struct slap_valuesreturnfilter	*vrf_next;
 } ValuesReturnFilter;
 
 /*
@@ -1112,7 +1129,8 @@ typedef struct slap_acl_state {
 	int as_result;
 	AttributeDescription *as_vd_ad;
 } AccessControlState;
-#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, { { 0, 0 } }, 0, NULL, 0, 0, NULL }
+#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, \
+	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
 
 /*
  * replog moddn param structure
@@ -1221,7 +1239,6 @@ struct slap_backend_db {
  * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
  * is fixed).
  */
-
 #define		be_has_subordinates bd_info->bi_has_subordinates
 
 #define		be_controls	bd_info->bi_controls

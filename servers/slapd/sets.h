@@ -19,11 +19,11 @@ LDAP_BEGIN_DECL
 typedef BerVarray (SLAP_SET_GATHER)(
 	void *cookie, struct berval *name, struct berval *attr);
 
-LDAP_SLAPD_F (long) slap_set_size (BerVarray set);
-LDAP_SLAPD_F (void) slap_set_dispose (BerVarray set);
+LDAP_SLAPD_F (long) slap_set_size(BerVarray set);
+LDAP_SLAPD_F (void) slap_set_dispose(BerVarray set);
 
-LDAP_SLAPD_F (int)
-slap_set_filter (SLAP_SET_GATHER gatherer,
+LDAP_SLAPD_F (int) slap_set_filter(
+	SLAP_SET_GATHER gatherer,
 	void *cookie, struct berval *filter,
 	struct berval *user, struct berval *this, BerVarray *results);
 

@@ -49,7 +49,8 @@ struct aindexrec {
 };
 
 static Avlnode	*attr_index = NULL;
-static AttributeType *attr_list = NULL;
+static LDAP_SLIST_HEAD(ATList, slap_attribute_type) attr_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&attr_list);
 
 static int
 attr_index_cmp(
@@ -197,18 +198,22 @@ at_find_in_list(
 void
 at_destroy( void )
 {
-	AttributeType *a, *n;
+	AttributeType *a;
 	avl_free(attr_index, ldap_memfree);
 
-	for (a=attr_list; a; a=n) {
-		n = a->sat_next;
+	while( !LDAP_SLIST_EMPTY(&attr_list) ) {
+		a = LDAP_SLIST_FIRST(&attr_list);
+		LDAP_SLIST_REMOVE_HEAD(&attr_list, sat_next);
+
 		if (a->sat_subtypes) ldap_memfree(a->sat_subtypes);
 		ad_destroy(a->sat_ad);
 		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);
 	}
-	if ( slap_schema.si_at_undefined )
+
+	if ( slap_schema.si_at_undefined ) {
 		ad_destroy(slap_schema.si_at_undefined->sat_ad);
+	}
 }
 
 int
@@ -216,7 +221,7 @@ at_start( AttributeType **at )
 {
 	assert( at );
 
-	*at = attr_list;
+	*at = LDAP_SLIST_FIRST(&attr_list);
 
 	return (*at != NULL);
 }
@@ -228,9 +233,9 @@ at_next( AttributeType **at )
 
 #if 1	/* pedantic check */
 	{
-		AttributeType *tmp;
+		AttributeType *tmp = NULL;
 
-		for ( tmp = attr_list; tmp; tmp = tmp->sat_next ) {
+		LDAP_SLIST_FOREACH(tmp,&attr_list,sat_next) {
 			if ( tmp == *at ) {
 				break;
 			}
@@ -240,7 +245,7 @@ at_next( AttributeType **at )
 	}
 #endif
 
-	*at = (*at)->sat_next;
+	*at = LDAP_SLIST_NEXT(*at,sat_next);
 
 	return (*at != NULL);
 }
@@ -253,15 +258,10 @@ at_insert(
     const char		**err
 )
 {
-	AttributeType		**atp;
 	struct aindexrec	*air;
 	char			**names;
 
-	atp = &attr_list;
-	while ( *atp != NULL ) {
-		atp = &(*atp)->sat_next;
-	}
-	*atp = sat;
+	LDAP_SLIST_INSERT_HEAD( &attr_list, sat, sat_next );
 
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
@@ -595,7 +595,7 @@ at_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( at = attr_list; at; at = at->sat_next ) {
+	LDAP_SLIST_FOREACH(at,&attr_list,sat_next) {
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {

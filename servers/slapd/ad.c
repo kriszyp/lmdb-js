@@ -775,7 +775,7 @@ ad_define_option( const char *name, const char *fname, int lineno )
 	} while ( name[++optlen] );
 
 	options = ch_realloc( options,
-			      (option_count+1) * sizeof(Attr_option) );
+		(option_count+1) * sizeof(Attr_option) );
 
 	if ( strcasecmp( name, "binary" ) == 0
 	     || ad_find_option_definition( name, optlen ) ) {

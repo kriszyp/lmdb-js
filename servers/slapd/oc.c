@@ -124,7 +124,8 @@ struct oindexrec {
 };
 
 static Avlnode	*oc_index = NULL;
-static ObjectClass *oc_list = NULL;
+static LDAP_SLIST_HEAD(OCList, slap_object_class) oc_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&oc_list);
 
 static int
 oc_index_cmp(
@@ -331,12 +332,13 @@ oc_add_sups(
 void
 oc_destroy( void )
 {
-	ObjectClass *o, *n;
+	ObjectClass *o;
 
 	avl_free(oc_index, ldap_memfree);
-	for (o=oc_list; o; o=n)
-	{
-		n = o->soc_next;
+	while( !LDAP_SLIST_EMPTY(&oc_list) ) {
+		o = LDAP_SLIST_FIRST(&oc_list);
+		LDAP_SLIST_REMOVE_HEAD(&oc_list, soc_next);
+
 		if (o->soc_sups) ldap_memfree(o->soc_sups);
 		if (o->soc_required) ldap_memfree(o->soc_required);
 		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
@@ -350,15 +352,10 @@ oc_insert(
     const char		**err
 )
 {
-	ObjectClass	**ocp;
 	struct oindexrec	*oir;
 	char			**names;
 
-	ocp = &oc_list;
-	while ( *ocp != NULL ) {
-		ocp = &(*ocp)->soc_next;
-	}
-	*ocp = soc;
+	LDAP_SLIST_INSERT_HEAD( &oc_list, soc, soc_next );
 
 	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
@@ -489,7 +486,7 @@ oc_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( oc = oc_list; oc; oc = oc->soc_next ) {
+	LDAP_SLIST_FOREACH( oc, &oc_list, soc_next ) {
 		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
 
 		if ( ldap_objectclass2bv( &oc->soc_oclass, vals ) == NULL ) {
