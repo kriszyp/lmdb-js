@@ -298,7 +298,9 @@ slapd_daemon(
 			}
 
 #ifdef HAVE_TCPD
-			if(!hosts_ctl("slapd", client_name, client_addr,
+			if(!hosts_ctl("slapd",
+				client_name != NULL ? client_name : STRING_UNKNOWN,
+				client_addr != NULL ? client_addr : STRING_UNKNOWN,
 				STRING_UNKNOWN))
 			{
 				/* DENY ACCESS */
