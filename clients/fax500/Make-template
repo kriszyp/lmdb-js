@@ -53,7 +53,7 @@ fax5version.c:	main.o faxtotpc.o $(LDIR)/libldap.a
 	< Version.c > $@ )
 
 install:	rp500 xrpcomp fax500 FORCE
-		-$(MKDIR) -p $(LDAP_ETCDIR) $(LDAP_BINDIR)
+		-$(MKDIR) -p $(LDAP_ETCDIR) $(LDAP_BINDIR) $(LDAP_LIBEXECDIR)
 		$(INSTALL) $(INSTALLFLAGS) -m 755 rp500 $(LDAP_LIBEXECDIR)
 		$(SED) -e 's%ETCDIR%$(LDAP_LIBEXECDIR)%' xrpcomp > /tmp/xrpcomp.tmp
 		$(INSTALL) $(INSTALLFLAGS) -m 755 /tmp/xrpcomp.tmp $(LDAP_BINDIR)/xrpcomp
