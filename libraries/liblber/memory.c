@@ -42,7 +42,7 @@ void
 ber_int_memfree( void **p )
 {
 	assert( p != NULL );
-	BER_MEM_VALID( *p )
+	BER_MEM_VALID( *p );
 
 	ber_memfree( p );
 
@@ -59,7 +59,7 @@ ber_memfree( void *p )
 		return;
 	}
 
-	BER_MEM_VALID( p )
+	BER_MEM_VALID( p );
 
 	if( ber_int_memory_fns == NULL ) {
 #ifdef LDAP_MEMORY_DEBUG
@@ -93,7 +93,7 @@ ber_memvfree( void **vec )
 		return;
 	}
 
-	BER_MEM_VALID( vec )
+	BER_MEM_VALID( vec );
 
 	for ( i = 0; vec[i] != NULL; i++ ) {
 		LBER_FREE( vec[i] );
@@ -124,7 +124,7 @@ ber_memalloc( size_t s )
 
 		mh->bm_junk = BER_MEM_JUNK;
 
-		BER_MEM_VALID( &mh[1] )
+		BER_MEM_VALID( &mh[1] );
 		return &mh[1];
 #else
 		return malloc( s );
@@ -157,7 +157,7 @@ ber_memcalloc( size_t n, size_t s )
 
 		mh->bm_junk = BER_MEM_JUNK;
 
-		BER_MEM_VALID( &mh[1] )
+		BER_MEM_VALID( &mh[1] );
 		return &mh[1];
 #else
 		return calloc( n, s );
@@ -186,7 +186,7 @@ ber_memrealloc( void* p, size_t s )
 		return NULL;
 	}
 
-	BER_MEM_VALID( p )
+	BER_MEM_VALID( p );
 
 	if( ber_int_memory_fns == NULL ) {
 #ifdef LDAP_MEMORY_DEBUG
@@ -202,7 +202,7 @@ ber_memrealloc( void* p, size_t s )
 
 		assert( mh->bm_junk == BER_MEM_JUNK );
 
-		BER_MEM_VALID( &mh[1] )
+		BER_MEM_VALID( &mh[1] );
 		return &mh[1];
 #else
 		return realloc( p, s );
@@ -224,7 +224,7 @@ ber_bvfree( struct berval *bv )
 		return;
 	}
 
-	BER_MEM_VALID( bv )
+	BER_MEM_VALID( bv );
 
 	if ( bv->bv_val != NULL )
 		LBER_FREE( bv->bv_val );
@@ -244,7 +244,7 @@ ber_bvecfree( struct berval **bv )
 		return;
 	}
 
-	BER_MEM_VALID( bv )
+	BER_MEM_VALID( bv );
 
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
