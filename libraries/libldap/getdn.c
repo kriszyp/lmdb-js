@@ -21,6 +21,8 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 
 #include "ldap-int.h"
 
+static char **explode_name( char *name, int notypes, int is_dn );
+
 char *
 ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 {
@@ -147,17 +149,28 @@ ldap_explode_dns( char *dn )
 char **
 ldap_explode_dn( char *dn, int notypes )
 {
-	char	*p, *q, *rdnstart, **rdns = NULL;
-	int	state, count = 0, endquote, len;
-
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 
 	if ( ldap_is_dns_dn( dn ) ) {
 		return( ldap_explode_dns( dn ) );
 	}
+	return explode_name( dn, notypes, 1 );
+}
 
-	rdnstart = dn;
-	p = dn-1;
+char **
+ldap_explode_rdn( char *rdn, int notypes )
+{
+	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
+	return explode_name( rdn, notypes, 0 );
+}
+
+static char **
+explode_name( char *name, int notypes, int is_dn )
+{
+	char	*p, *q, **parts = NULL;
+	int	state, count = 0, endquote, len;
+
+	p = name-1;
 	state = OUTQUOTE;
 
 	do {
@@ -174,33 +187,41 @@ ldap_explode_dn( char *dn, int notypes )
 			else
 				state = INQUOTE;
 			break;
+		case '+':
+			if (!is_dn)
+				goto end_part;
+			break;
 		case ';':
 		case ',':
+			if (!is_dn)
+				break;
+			goto end_part;
 		case '\0':
+		end_part:
 			if ( state == OUTQUOTE ) {
 				++count;
-				if ( rdns == NULL ) {
-					if (( rdns = (char **)malloc( 8
+				if ( parts == NULL ) {
+					if (( parts = (char **)malloc( 8
 						 * sizeof( char *))) == NULL )
 						return( NULL );
 				} else if ( count >= 8 ) {
-					if (( rdns = (char **)realloc( rdns,
+					if (( parts = (char **)realloc( parts,
 						(count+1) * sizeof( char *)))
 						== NULL )
 						return( NULL );
 				}
-				rdns[ count ] = NULL;
+				parts[ count ] = NULL;
 				endquote = 0;
 				if ( notypes ) {
-					for ( q = rdnstart;
+					for ( q = name;
 					    q < p && *q != '='; ++q ) {
 						;
 					}
 					if ( q < p ) {
-						rdnstart = ++q;
+						name = ++q;
 					}
-					if ( *rdnstart == '"' ) {
-						++rdnstart;
+					if ( *name == '"' ) {
+						++name;
 					}
 					
 					if ( *(p-1) == '"' ) {
@@ -209,12 +230,12 @@ ldap_explode_dn( char *dn, int notypes )
 					}
 				}
 
-				len = p - rdnstart;
-				if (( rdns[ count-1 ] = (char *)calloc( 1,
+				len = p - name;
+				if (( parts[ count-1 ] = (char *)calloc( 1,
 				    len + 1 )) != NULL ) {
-				    	SAFEMEMCPY( rdns[ count-1 ], rdnstart,
+				    	SAFEMEMCPY( parts[ count-1 ], name,
 					    len );
-					rdns[ count-1 ][ len ] = '\0';
+					parts[ count-1 ][ len ] = '\0';
 				}
 
 				/*
@@ -225,15 +246,15 @@ ldap_explode_dn( char *dn, int notypes )
 				if ( endquote == 1 )
 					p++;
 
-				rdnstart = *p ? p + 1 : p;
-				while ( isspace( *rdnstart ))
-					++rdnstart;
+				name = *p ? p + 1 : p;
+				while ( isascii( *name ) && isspace( *name ) )
+					++name;
 			}
 			break;
 		}
 	} while ( *p );
 
-	return( rdns );
+	return( parts );
 }
 
 

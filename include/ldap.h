@@ -580,6 +580,7 @@ LDAP_F void ldap_add_result_entry LDAP_P(( LDAPMessage **list, LDAPMessage *e ))
 LDAP_F char *ldap_get_dn LDAP_P(( LDAP *ld, LDAPMessage *entry ));
 LDAP_F char *ldap_dn2ufn LDAP_P(( char *dn ));
 LDAP_F char **ldap_explode_dn LDAP_P(( char *dn, int notypes ));
+LDAP_F char **ldap_explode_rdn LDAP_P(( char *rdn, int notypes ));
 LDAP_F char **ldap_explode_dns LDAP_P(( char *dn ));
 LDAP_F int ldap_is_dns_dn LDAP_P(( char *dn ));
 
