@@ -377,11 +377,6 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		LDAP_FREE(ctx);
 	}
 
-	while ((ctx = LDAP_SLIST_FIRST(&pool->ltp_active_list)) != NULL)
-	{
-		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_active_list, ltc_next.al);
-	}
-
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	LDAP_FREE(pool);
