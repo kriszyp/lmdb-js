@@ -17,6 +17,8 @@
 
 #include "portable.h"
 
+#include <ac/stdlib.h>
+
 #include <stdio.h>
 
 #include "slurp.h"

@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/unistd.h>
