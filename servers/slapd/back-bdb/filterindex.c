@@ -490,6 +490,7 @@ equality_candidates(
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
 			rc = 0;
+			break;
 		} else if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( INDEX, RESULTS, 
