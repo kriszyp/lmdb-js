@@ -43,7 +43,7 @@ entry_schema_check(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 #else
-	static const char *ac_objectClass = "objectclass";
+	static const char *ad_objectClass = "objectclass";
 #endif
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
