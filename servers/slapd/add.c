@@ -234,19 +234,20 @@ do_add( Connection *conn, Operation *op )
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_ADD_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
+	if ( rc != 0 ) {
 		/*
-		 * either there is no preOp (add) plugins
-		 * or a plugin failed. Just log it
-		 * 
-		 * FIXME: is this correct?
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: add preOps failed\n",
+		LDAP_LOG( OPERATION, INFO, "do_add: add preoperation plugin failed\n",
 				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add preOps failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
 				0, 0, 0);
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
+			rc = LDAP_OPERATIONS_ERROR;
+		goto done;
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -338,19 +339,16 @@ do_add( Connection *conn, Operation *op )
 	}
 
 #if defined( LDAP_SLAPI )
-	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_ADD_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
-		/*
-		 * either there is no postOp (Add) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
-		 */
+	/*
+	 * Postoperation errors are silently ignored; the work has
+	 * been done.
+	 */
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_ADD_FN, pb ) != 0) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: Add postOps failed\n",
+		LDAP_LOG( OPERATION, INFO, "do_add: Add postoperation plugins failed\n",
 				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: Add postOps failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_add: Add postoperation plugins failed.\n",
 				0, 0, 0);
 #endif
 	}

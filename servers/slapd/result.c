@@ -240,7 +240,7 @@ send_ldap_response(
 			text, ref, resoid, resdata, sasldata, ctrls );
 		return;
 	}
-		
+
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
 #ifdef NEW_LOGGING

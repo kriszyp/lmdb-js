@@ -367,6 +367,18 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 		ch_free( str );
 	}
 
+	get( pb, SLAPI_RESULT_TEXT, (void **)&str );
+	if ( str != NULL ) {
+		ch_free( str );
+		str = NULL;
+	}
+
+	get( pb, SLAPI_RESULT_MATCHED, (void **)&str );
+	if ( str != NULL ) {
+		ch_free( str );
+		str = NULL;
+	}
+
 	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
 
 	ch_free( pb ); 

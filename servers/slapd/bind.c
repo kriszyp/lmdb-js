@@ -545,20 +545,22 @@ do_bind(
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
+	if ( rc != SLAPI_BIND_SUCCESS ) {
+		/* XXX: we should support SLAPI_BIND_ANONYMOUS being returned */
 		/*
-		 * either there is no preOp (bind) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preOps failed\n",
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin failed\n",
 				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preOps failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin failed.\n",
 				0, 0, 0);
 #endif
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
+			rc = LDAP_OPERATIONS_ERROR;
+		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -629,19 +631,12 @@ do_bind(
 	}
 
 #if defined( LDAP_SLAPI )
-	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_BIND_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
-		/*
-		 * either there is no pretOp (bind) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
-		 */
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_BIND_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_bind: Bind postOps failed\n",
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind postoperation plugins failed\n",
 				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind postOps failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind postoperation plugins failed.\n",
 				0, 0, 0);
 #endif
 	}

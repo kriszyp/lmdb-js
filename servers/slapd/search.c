@@ -354,21 +354,22 @@ do_search(
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_SEARCH_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
+	if ( rc != 0 ) {
 		/*
-		 * either there is no preOp (search) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_search: search preOps "
+		LDAP_LOG( OPERATION, INFO, "do_search: search preoperation plugin "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_search: search preOps "
+		Debug(LDAP_DEBUG_TRACE, "do_search: search preoperation plugin "
 				"failed.\n", 0, 0, 0);
 #endif
-    }
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
+			rc = LDAP_OPERATIONS_ERROR;
+		return rc;
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 	/* actually do the search and send the result(s) */
@@ -383,22 +384,15 @@ do_search(
 	}
 
 #if defined( LDAP_SLAPI )
-	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
-		/*
-		 * either there is no postOp (search) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
-		 */
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_search: search postOps "
+		LDAP_LOG( OPERATION, INFO, "do_search: search postoperation plugins "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_search: search postOps "
+		Debug(LDAP_DEBUG_TRACE, "do_search: search postoperation plugins "
 				"failed.\n", 0, 0, 0);
 #endif
-    }
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 return_results:;

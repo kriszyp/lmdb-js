@@ -348,20 +348,21 @@ do_modify(
 	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
+	if ( rc != 0 ) {
 		/*
-		 * either there is no preOp (modify) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify preOps "
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preOps failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
 				0, 0, 0);
 #endif
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
+			rc = LDAP_OPERATIONS_ERROR;
+		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -443,19 +444,12 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_MODIFY_FN, pb );
-	if ( rc != 0 && rc != LDAP_OTHER ) {
-		/*
-		 * either there is no postOp (modify) plugins
-		 * or a plugin failed. Just log it
-		 *
-		 * FIXME: is this correct?
-		 */
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify postOps "
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postOps "
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postoperation plugins "
 				"failed.\n", 0, 0, 0);
 #endif
 	}

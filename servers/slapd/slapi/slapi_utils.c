@@ -705,6 +705,10 @@ slapi_send_ldap_result(
 		return;
 	}
 
+	slapi_pblock_set( pb, SLAPI_RESULT_CODE, (void *)err);
+	slapi_pblock_set( pb, SLAPI_RESULT_MATCHED, ( matched != NULL ) ? (void *)ch_strdup( matched ) : NULL );
+	slapi_pblock_set( pb, SLAPI_RESULT_TEXT, ( text != NULL ) ? (void *)ch_strdup( text ) : NULL );
+
 	send_ldap_result( conn, op, err, matched, text, NULL, NULL );
 #endif /* defined(LDAP_SLAPI) */
 }
