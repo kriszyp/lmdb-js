@@ -6,6 +6,9 @@
 # add any platform-specific overrides below here
 #
 
+# crypt(3) is in -lcrypt
+LDAP_CRYPT_LIB= -lcrypt
+
 
 #
 # -------------------------------------------------------------------------
