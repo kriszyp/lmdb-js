@@ -80,7 +80,7 @@ ldap_back_add(
 		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
 			mdn.bv_len = strlen( mdn.bv_val );
 		} else {
-			mdn = op->o_req_ndn;
+			mdn = op->o_req_dn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
@@ -102,7 +102,7 @@ ldap_back_add(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_ndn, &mdn, 0, 1 );
+	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	/* Count number of attributes in entry */
