@@ -34,10 +34,10 @@
 #ifndef _BACK_MONITOR_H_
 #define _BACK_MONITOR_H_
 
-#include <slap.h>
-#include <avl.h>
 #include <ldap_pvt.h>
 #include <ldap_pvt_thread.h>
+#include <avl.h>
+#include <slap.h>
 
 LDAP_BEGIN_DECL
 
