@@ -263,8 +263,8 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 	if ( krbinstancep != NULL ) {
-		char *c;
 #ifdef HAVE_KERBEROS
+		char *c;
 		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( c = strchr( *krbinstancep, '.' )) != NULL ) {
 			*c = '\0';

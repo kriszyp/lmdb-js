@@ -502,7 +502,7 @@ ber_put_seqorset( BerElement *ber )
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
 				? (unsigned char) len
-				: 0x80UL + (lenlen - 1);
+				: (unsigned char) (0x80UL + (lenlen - 1));
 		}
 
 		/* one byte of length length */
