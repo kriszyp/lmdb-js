@@ -119,7 +119,9 @@ Ports, if specfied, must be numeric.  The default ldap:// port is 389
 and the default ldaps:// port is 636.
 .TP
 .BI \-r " directory"
-Specifies a run-time directory.  slapd will
+Specifies a chroot "jail" directory.  slapd will
+.BR chdir (2)
+then
 .BR chroot (2)
 to this directory after opening listeners but before any reading
 any configuration file or initializing any backend.

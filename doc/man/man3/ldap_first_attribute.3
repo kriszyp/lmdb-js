@@ -1,4 +1,4 @@
-.TH LDAP_FIRST_ATTRIBUTE 3 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAP_FIRST_ATTRIBUTE 3 "4 October 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -34,11 +34,10 @@ takes an \fIentry\fP as returned by
 .BR ldap_first_entry (3)
 or
 .BR ldap_next_entry (3)
-and returns a pointer to a per-connection buffer
-containing the first attribute type in the entry.  The return value
-should be treated as if it is a pointer to a static area (i.e.,
-.BR strdup (3)
-it if you want to save it).
+and returns a pointer to character string
+containing the first attribute description in the entry.
+.B ldap_next_attribute()
+returns the next attribute description in the entry.
 .LP
 It also returns, in \fIberptr\fP, a pointer to a BerElement it has
 allocated to keep track of its current position.  This pointer should
@@ -66,7 +65,7 @@ for a description of possible error codes.
 The
 .B ldap_first_attribute()
 routine dyanamically allocated memory that must be freed by the caller via
-.BR ber_free (3).   
+.BR ldap_memfree (3).   
 .SH SEE ALSO
 .BR ldap(3),
 .BR ldap_first_entry(3),

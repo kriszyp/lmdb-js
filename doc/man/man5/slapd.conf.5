@@ -235,13 +235,6 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
-.B pidfile <filename>
-The ( absolute ) name of a file that will hold the 
-.B slapd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
-.TP
 .B password-hash <hash>
 The <hash> to use for userPassword generation.  One of
 .BR {SSHA} ,
@@ -255,6 +248,13 @@ and
 .BR {UNIX} .
 The default is
 .BR {SSHA} .
+.TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
 .TP
 .B referral <url>
 Specify the referral to pass back when
@@ -288,15 +288,15 @@ set conditions within a particular database).
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
-.B sasl-realm <string>
-Used to specify Cyrus SASL realm.
+.B sasl-realm <realm>
+Specify SASL realm.  Default is empty.
 .TP
 .B sasl-secprops <properties>
 Used to specify Cyrus SASL security properties.
 The
 .B none
 flag (without any other properities) causes the flag properites
-defaults ("noanonymous,noplain") to be cleared.
+default, "noanonymous,noplain", to be cleared.
 The
 .B noplain
 flag disables mechanisms susceptible to simple passive attacks.
@@ -331,7 +331,7 @@ property specifies the maximum acceptable
 .I security strength factor
 as an integer (see minssf description).  The default is INT_MAX.
 The
-.B maxbufsize=<factor> 
+.B maxbufsize=<size> 
 property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
@@ -388,12 +388,6 @@ Turn schema checking on or off. The default is on.
 .B sizelimit <integer>
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
-.TP
-.B sasl-realm <realm>
-Specify SASL realm.  Default is empty.
-.TP
-.B sasl-secprops <props>
-Cyrus SASL security properties.  Default is "noanonymous,noplain".
 .TP
 .B srvtab <filename>
 Specify the srvtab file in which the kerberos keys necessary for
@@ -503,10 +497,16 @@ or administrative limit restrictions for operations on this database.
 This DN may or may not be associated with an entry.  An empty root
 DN (the default) specifies no root access is to be granted.  It is
 recommended that the rootdn only be specified when needed (such as
-when initially populating a database).
+when initially populating a database).  If the rootdn is within
+a namingContext (suffix) of the database, a simple bind password
+may also be provided using the
+.B rootpw
+directive.
 .TP
 .B rootpw <password>
-Specify a password (or hash of the password) for the rootdn.
+Specify a password (or hash of the password) for the rootdn.  If
+the rootdn is not within the namingContext of the database, the
+provided password is ignored.
 This option accepts all RFC 2307 userPassword formats known to
 the server (see 
 .B password-hash
