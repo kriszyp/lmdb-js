@@ -417,7 +417,7 @@ ldap_free_urldesc( LDAPURLDesc *ludp )
 	}
 	
 	if ( ludp->lud_host != NULL ) {
-		LDAP_FREE( ludp->lud_dn );
+		LDAP_FREE( ludp->lud_host );
 	}
 
 	if ( ludp->lud_dn != NULL ) {
