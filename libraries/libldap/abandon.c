@@ -85,7 +85,7 @@ do_abandon(
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
-	unsigned long *old_abandon;
+	unsigned int *old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
