@@ -177,7 +177,7 @@ ldbm_back_db_config(
 
 #else
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "config",LDAP_LEVEL_ERR, "ldbm_back_db_config: "\"dbsync\""
+		LDAP_LOG (( "config", LDAP_LEVEL_ERR, "ldbm_back_db_config: \"dbsync\""
 			" policies not supported in non-threaded environments\n" ));
 #else	
 		Debug( LDAP_DEBUG_ANY,
