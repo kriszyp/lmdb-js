@@ -52,7 +52,7 @@ mr_find( const char *mrname )
 {
 	struct berval bv;
 
-	bv.bv_val = mrname;
+	bv.bv_val = (char *)mrname;
 	bv.bv_len = strlen( mrname );
 	return mr_bvfind( &bv );
 }
