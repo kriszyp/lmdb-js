@@ -40,11 +40,12 @@ QUIPUPROGRAMS=chlog2replog edb2ldif
 NT_DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
 
-SRCS = ldif.c mimic.c slapcommon.c
+SRCS = ldif.c mimic.c slapcommon.c slapadd.c slapcat.c slapindex.c
 
 XSRCS = edb2-vers.c
 
-LDBMSRCS = centipede.c sizecount.c
+# LDBMSRCS = centipede.c sizecount.c
+LDBMSRCS =
 
 QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
@@ -99,7 +100,7 @@ slappasswd:		slappasswd.o $(SLAPD_LIBDEPEND)
 
 #
 # LDBM Specific Tools
-#
+#	(deprecated)
 centipede:	centipede.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ centipede.o $(LIBS)
 
