@@ -24,11 +24,12 @@ modify_check_duplicates(
 	MatchingRule		*mr,
 	BerVarray		vals,
 	BerVarray		mods,
+	int			permissive,
 	const char	**text,
 	char *textbuf, size_t textlen )
 {
 	int		i, j, numvals = 0, nummods,
-			rc = LDAP_SUCCESS;
+			rc = LDAP_SUCCESS, matched;
 	BerVarray	nvals = NULL, nmods = NULL;
 
 	/*
@@ -130,7 +131,7 @@ modify_check_duplicates(
 		}
 
 		if ( numvals > 0 && numvals < nummods ) {
-			for ( j = 0; nvals[ j ].bv_val; j++ ) {
+			for ( matched = 0, j = 0; nvals[ j ].bv_val; j++ ) {
 				int match;
 
 				rc = (*mr->smr_match)( &match,
@@ -145,8 +146,12 @@ modify_check_duplicates(
 						ad->ad_cname.bv_val );
 					goto return_results;
 				}
-	
+
 				if ( match == 0 ) {
+					if ( permissive ) {
+						matched++;
+						continue;
+					}
 					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
@@ -156,9 +161,15 @@ modify_check_duplicates(
 					goto return_results;
 				}
 			}
+
+			if ( permissive && matched == j ) {
+				nmods[ i + 1 ].bv_val = NULL;
+				rc = LDAP_TYPE_OR_VALUE_EXISTS;
+				goto return_results;
+			}
 		}
 	
-		for ( j = 0; j < i; j++ ) {
+		for ( matched = 0, j = 0; j < i; j++ ) {
 			int match;
 
 			rc = (*mr->smr_match)( &match,
@@ -175,6 +186,10 @@ modify_check_duplicates(
 			}
 
 			if ( match == 0 ) {
+				if ( permissive ) {
+					matched++;
+					continue;
+				}
 				*text = textbuf;
 				snprintf( textbuf, textlen,
 					"%s: value #%d provided more than once",
@@ -183,6 +198,12 @@ modify_check_duplicates(
 				nmods[ i + 1 ].bv_val = NULL;
 				goto return_results;
 			}
+		}
+
+		if ( permissive && matched == j ) {
+			nmods[ i + 1 ].bv_val = NULL;
+			rc = LDAP_TYPE_OR_VALUE_EXISTS;
+			goto return_results;
 		}
 	}
 	nmods[ i ].bv_val = NULL;
@@ -205,7 +226,7 @@ modify_check_duplicates(
 				goto return_results;
 			}
 
-			for ( i = 0; nmods[ i ].bv_val; i++ ) {
+			for ( matched = 0, i = 0; nmods[ i ].bv_val; i++ ) {
 				int match;
 
 				rc = (*mr->smr_match)( &match,
@@ -221,6 +242,10 @@ modify_check_duplicates(
 				}
 
 				if ( match == 0 ) {
+					if ( permissive ) {
+						matched++;
+						continue;
+					}
 					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
@@ -230,6 +255,10 @@ modify_check_duplicates(
 				}
 			}
 
+			if ( permissive && matched == i ) {
+				rc = LDAP_TYPE_OR_VALUE_EXISTS;
+				goto return_results;
+			}
 		}
 	}
 
@@ -248,11 +277,13 @@ int
 modify_add_values(
 	Entry	*e,
 	Modification	*mod,
+	int	permissive,
 	const char	**text,
 	char *textbuf, size_t textlen
 )
 {
 	int		i, j;
+	int		matched;
 	Attribute	*a;
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 	const char *op;
@@ -271,6 +302,12 @@ modify_add_values(
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
 
+	/*
+	 * With permissive set, as long as the attribute being added
+	 * has the same value(s?) as the existing attribute, then the
+	 * modify will succeed.
+	 */
+
 	/* check if the values we're adding already exist */
 	if( mr == NULL || !mr->smr_match ) {
 		if ( a != NULL ) {
@@ -286,10 +323,13 @@ modify_add_values(
 		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 			/* test asserted values against existing values */
 			if( a ) {
-				for( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+				for( matched = 0, j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 					if ( bvmatch( &mod->sm_bvalues[i],
 						&a->a_vals[j] ) ) {
-
+						if ( permissive ) {
+							matched++;
+							continue;
+						}
 						/* value exists already */
 						*text = textbuf;
 						snprintf( textbuf, textlen,
@@ -297,6 +337,10 @@ modify_add_values(
 							op, mod->sm_desc->ad_cname.bv_val, j );
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
+				}
+				if ( permissive && matched == j ) {
+					/* values already exist; do nothing */
+					return LDAP_SUCCESS;
 				}
 			}
 
@@ -357,7 +401,7 @@ modify_add_values(
 					return rc;
 				}
 
-				for ( i = 0; a->a_vals[ i ].bv_val; i++ ) {
+				for ( matched = 0, i = 0; a->a_vals[ i ].bv_val; i++ ) {
 					int	match;
 
 					rc = value_match( &match, mod->sm_desc, mr,
@@ -365,6 +409,10 @@ modify_add_values(
 						&a->a_vals[ i ], &asserted, text );
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
+						if ( permissive ) {
+							matched++;
+							continue;
+						}
 						free( asserted.bv_val );
 						*text = textbuf;
 						snprintf( textbuf, textlen,
@@ -373,13 +421,22 @@ modify_add_values(
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
+				if ( permissive && matched == i ) {
+					/* values already exist; do nothing */
+					return LDAP_SUCCESS;
+				}
 			}
 
 		} else {
 			rc = modify_check_duplicates( mod->sm_desc, mr,
 					a ? a->a_vals : NULL, mod->sm_bvalues,
+					permissive,
 					text, textbuf, textlen );
-	
+
+			if ( permissive && rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+				return LDAP_SUCCESS;
+			}
+
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -403,6 +460,7 @@ int
 modify_delete_values(
 	Entry	*e,
 	Modification	*mod,
+	int	permissive,
 	const char	**text,
 	char *textbuf, size_t textlen
 )
@@ -413,11 +471,18 @@ modify_delete_values(
 	BerVarray	nvals = NULL;
 	char		dummy = '\0';
 
+	/*
+	 * If permissive is set, then the non-existence of an 
+	 * attribute is not treated as an error.
+	 */
+
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {
 		rc = attr_delete( &e->e_attrs, mod->sm_desc );
 
-		if( rc != LDAP_SUCCESS ) {
+		if( permissive ) {
+			rc = LDAP_SUCCESS;
+		} else if( rc != LDAP_SUCCESS ) {
 			*text = textbuf;
 			snprintf( textbuf, textlen,
 				"modify/delete: %s: no such attribute",
@@ -439,6 +504,9 @@ modify_delete_values(
 
 	/* delete specific values - find the attribute first */
 	if ( (a = attr_find( e->e_attrs, mod->sm_desc )) == NULL ) {
+		if( permissive ) {
+			return LDAP_SUCCESS;
+		}
 		*text = textbuf;
 		snprintf( textbuf, textlen,
 			"modify/delete: %s: no such attribute",
@@ -581,6 +649,7 @@ int
 modify_replace_values(
 	Entry	*e,
 	Modification	*mod,
+	int		permissive,
 	const char	**text,
 	char *textbuf, size_t textlen
 )
@@ -588,7 +657,7 @@ modify_replace_values(
 	(void) attr_delete( &e->e_attrs, mod->sm_desc );
 
 	if ( mod->sm_bvalues ) {
-		return modify_add_values( e, mod, text, textbuf, textlen );
+		return modify_add_values( e, mod, permissive, text, textbuf, textlen );
 	}
 
 	return LDAP_SUCCESS;

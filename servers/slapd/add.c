@@ -454,7 +454,7 @@ slap_mods2entry(
 				char		textbuf[ SLAP_TEXT_BUFLEN ]  = { '\0' };
 				
 				rc = modify_check_duplicates( mods->sml_desc, mr,
-						NULL, mods->sml_bvalues,
+						NULL, mods->sml_bvalues, 0,
 						&text, textbuf, sizeof( textbuf ) );
 
 				if ( rc != LDAP_SUCCESS ) {
