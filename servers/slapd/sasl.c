@@ -1716,7 +1716,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 {
 	char *c1;
 	int rc, is_dn = SET_NONE, do_norm = 1;
-	struct berval dn2;
+	struct berval dn2, *mech;
 
 	assert( conn );
 
@@ -1748,14 +1748,20 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		len = 0;
 	}
 
+	if ( conn->c_sasl_bind_mech.bv_len ) {
+		mech = &conn->c_sasl_bind_mech;
+	} else {
+		mech = &conn->c_authmech;
+	}
+
 	/* An authcID needs to be converted to authzID form. Set the
 	 * values directly into *dn; they will be normalized later. (and
 	 * normalizing always makes a new copy.) An ID from a TLS certificate
 	 * is already normalized, so copy it and skip normalization.
 	 */
 	if( flags & SLAP_GETDN_AUTHCID ) {
-		if( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
-			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
+		if( mech->bv_len == ext_bv.bv_len &&
+			strcasecmp( ext_bv.bv_val, mech->bv_val ) == 0 )
 		{
 			/* EXTERNAL DNs are already normalized */
 			do_norm = 0;
@@ -1808,8 +1814,8 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
  			len += strlen( user_realm ) + sizeof(",cn=")-1;
 		}
 
-		if( conn->c_sasl_bind_mech.bv_len ) {
-			len += conn->c_sasl_bind_mech.bv_len + sizeof(",cn=")-1;
+		if( mech->bv_len ) {
+			len += mech->bv_len + sizeof(",cn=")-1;
 		}
 
 		/* Build the new dn */
@@ -1838,9 +1844,9 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 			p = lutil_strcopy( p, user_realm );
 		}
 
-		if( conn->c_sasl_bind_mech.bv_len ) {
+		if( mech->bv_len ) {
 			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, conn->c_sasl_bind_mech.bv_val );
+			p = lutil_strcopy( p, mech->bv_val );
 		}
 		p = lutil_strcopy( p, ",cn=auth" );
 		dn->bv_len = p - dn->bv_val;
