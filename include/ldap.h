@@ -664,6 +664,11 @@ ldap_create_control LDAP_P((
 	int iscritical,
 	LDAPControl **ctrlp ));
 
+LDAP_F( LDAPControl * )
+ldap_find_control LDAP_P((
+	LDAP_CONST char *oid,
+	LDAPControl **ctrls ));
+
 LDAP_F( void )
 ldap_control_free LDAP_P((
 	LDAPControl *ctrl ));
@@ -727,6 +732,110 @@ ldap_parse_intermediate LDAP_P((
 	char			**retoidp,
 	struct berval	**retdatap,
 	LDAPControl		***serverctrls,
+	int				freeit ));
+
+/*
+ * in groupings.c:
+ */
+
+LDAP_F( int )
+ldap_grouping_create_operation LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_grouping_create_operation_s LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap ));
+
+LDAP_F( int )
+ldap_parse_grouping_create_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap,
+	LDAPControl		***serverctrls,
+	int				freeit ));
+
+LDAP_F( int )
+ldap_grouping_end_operation LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_grouping_end_operation_s LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	struct berval	**retgrpdatap ));
+
+LDAP_F( int )
+ldap_parse_grouping_end_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**retgrpdatap,
+	LDAPControl		***serverctrls,
+	int				freeit ));
+
+LDAP_F( int )
+ldap_grouping_action_operation LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_grouping_action_operation_s LDAP_P((
+	LDAP			*ld,
+	LDAP_CONST char	*grpoid,
+	struct berval	*grpdata,
+	LDAPControl		**serverctrls,
+	LDAPControl		**clientctrls,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap ));
+
+LDAP_F( int )
+ldap_parse_grouping_action_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap,
+	LDAPControl		***serverctrls,
+	int				freeit ));
+
+LDAP_F( int )
+ldap_parse_grouping_end_notice LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**retdatap,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap,
+	int				freeit ));
+
+LDAP_F( int )
+ldap_parse_grouping_info_notice LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**retdatap,
+	struct berval	**retgrpcookiep,
+	struct berval	**retgrpdatap,
 	int				freeit ));
 
 /*
