@@ -128,7 +128,7 @@ be skipped.
 ..{{EX:su root -c 'make install'}}
 
 . Everything should now be installed under {{F:/usr/local}} (or
-whatever installation prefix was used by {{EX:configure}}.
+whatever installation prefix was used by {{EX:configure}}).
 
 
 .{{S: }}
@@ -215,8 +215,8 @@ in the {{slapd}}(8) manual page and the
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
 
-. Be sure to replace <MY-DOMAIN> and <COM> with the appropriate domain
-components of your domain name.  <MY ORGANIZATION> should be replaced
+. Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with the appropriate domain
+components of your domain name.  {{EX:<MY ORGANIZATION>}} should be replaced
 with the name of your organization.  If you cut and paste, be sure
 to trim any leading and trailing whitespace from the example.
 
