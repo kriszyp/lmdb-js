@@ -302,6 +302,11 @@ struct ldap {
 	LDAPRequest	*ld_requests;	/* list of outstanding requests */
 	LDAPMessage	*ld_responses;	/* list of outstanding responses */
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ld_req_mutex;
+	ldap_pvt_thread_mutex_t	ld_res_mutex;
+#endif
+
 	ber_int_t		*ld_abandoned;	/* array of abandoned requests */
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */

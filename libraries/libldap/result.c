@@ -141,6 +141,9 @@ chkResponseList(
 	    msgid, all, 0 );
 #endif
 	lastlm = NULL;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
 
@@ -207,6 +210,9 @@ chkResponseList(
 	    }
 	    lm->lm_next = NULL;
     }
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 
 #ifdef LDAP_DEBUG
 	if( lm == NULL) {
@@ -308,7 +314,13 @@ wait4msg(
 	        }
 
 		    if ( lc == NULL ) {
+#ifdef LDAP_R_COMPILE
+			    ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 			    rc = ldap_int_select( ld, tvp );
+#ifdef LDAP_R_COMPILE
+			    ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 
 
 #ifdef LDAP_DEBUG
@@ -338,12 +350,18 @@ wait4msg(
 				    rc = -2;	/* select interrupted: loop */
 			    } else {
 				    rc = -2;
+#ifdef LDAP_R_COMPILE
+				    ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 				    if ( ld->ld_requests &&
 						ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
 						ldap_is_write_ready( ld,
 							ld->ld_requests->lr_conn->lconn_sb ) ) {
 						ldap_int_flush_request( ld, ld->ld_requests );
 					}
+#ifdef LDAP_R_COMPILE
+				    ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 				    for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
 				        lc = nextlc ) {
 					    nextlc = lc->lconn_next;
@@ -417,18 +435,23 @@ try_read1msg(
 #endif
 
 retry:
-    if ( lc->lconn_ber == NULL ) {
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
+	if ( lc->lconn_ber == NULL ) {
 		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
 
 		if( lc->lconn_ber == NULL ) {
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 			return -1;
 		}
-    }
+	}
 
 	ber = lc->lconn_ber;
 	assert( LBER_VALID (ber) );
 
-retry2:
 	/* get the next message */
 	errno = 0;
 #ifdef LDAP_CONNECTIONLESS
@@ -437,8 +460,18 @@ retry2:
 		ber_int_sb_read(sb, &from, sizeof(struct sockaddr));
 	}
 #endif
-	if ( (tag = ber_get_next( sb, &len, ber ))
-	    != LDAP_TAG_MESSAGE ) {
+	tag = ber_get_next( sb, &len, ber );
+	if ( tag == LDAP_TAG_MESSAGE ) {
+		/*
+	 	 * We read a complete message.
+	 	 * The connection should no longer need this ber.
+	 	 */
+		lc->lconn_ber = NULL;
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
+	if ( tag != LDAP_TAG_MESSAGE ) {
 		if ( tag == LBER_DEFAULT) {
 #ifdef LDAP_DEBUG		   
 #ifdef NEW_LOGGING
@@ -462,12 +495,6 @@ retry2:
 		return -1;
 	}
 
-	/*
-     * We read a complete message.
-	 * The connection should no longer need this ber.
-	 */
-    lc->lconn_ber = NULL;
-
 	/* message id */
 	if ( ber_get_int( ber, &id ) == LBER_ERROR ) {
 		ber_free( ber, 1 );
@@ -483,12 +510,10 @@ retry2:
 		Debug( LDAP_DEBUG_ANY, "abandoned\n", 0, 0, 0);
 #endif
 retry_ber:
-		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
-			ber_free_buf( ber );
-			ber_init2( ber, NULL, ld->ld_lberoptions );
-			goto retry2;
-		}
 		ber_free( ber, 1 );
+		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
+			goto retry;
+		}
 		return( -2 );	/* continue looking */
 	}
 
@@ -832,6 +857,9 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	 * search response.
 	 */
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	prev = NULL;
 	for ( l = ld->ld_responses; l != NULL; l = l->lm_next ) {
 		if ( l->lm_msgid == new->lm_msgid )
@@ -843,8 +871,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	if ( l == NULL ) {
 		if ( foundit ) {
 			*result = new;
-			ld->ld_errno = LDAP_SUCCESS;
-			return( tag );
+			goto leave;
 		}
 
 		new->lm_next = ld->ld_responses;
@@ -877,11 +904,16 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		else
 			prev->lm_next = l->lm_next;
 		*result = l;
-		ld->ld_errno = LDAP_SUCCESS;
-		return( tag );
 	}
 
 leave:
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
+	if ( foundit ) {
+		ld->ld_errno = LDAP_SUCCESS;
+		return( tag );
+	}
 	if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
 		goto retry;
 	}
@@ -1056,6 +1088,7 @@ int
 ldap_msgdelete( LDAP *ld, int msgid )
 {
 	LDAPMessage	*lm, *prev;
+	int rc = 0;
 
 	assert( ld != NULL );
 
@@ -1066,24 +1099,30 @@ ldap_msgdelete( LDAP *ld, int msgid )
 #endif
 
 	prev = NULL;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	for ( lm = ld->ld_responses; lm != NULL; lm = lm->lm_next ) {
 		if ( lm->lm_msgid == msgid )
 			break;
 		prev = lm;
 	}
 
-	if ( lm == NULL )
-		return( -1 );
+	if ( lm == NULL ) {
+		rc = -1;
+	} else {
+		if ( prev == NULL )
+			ld->ld_responses = lm->lm_next;
+		else
+			prev->lm_next = lm->lm_next;
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
+	if ( lm && ldap_msgfree( lm ) == LDAP_RES_SEARCH_ENTRY )
+		rc = -1;
 
-	if ( prev == NULL )
-		ld->ld_responses = lm->lm_next;
-	else
-		prev->lm_next = lm->lm_next;
-
-	if ( ldap_msgfree( lm ) == LDAP_RES_SEARCH_ENTRY )
-		return( -1 );
-
-	return( 0 );
+	return( rc );
 }
 
 

@@ -160,6 +160,10 @@ ldap_create( LDAP **ldp )
 		return LDAP_NO_MEMORY;
 	}
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_init( &ld->ld_req_mutex );
+	ldap_pvt_thread_mutex_init( &ld->ld_res_mutex );
+#endif
 	*ldp = ld;
 	return LDAP_SUCCESS;
 }
@@ -419,6 +423,7 @@ int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 	lr->lr_msgid = 0;
 	lr->lr_status = LDAP_REQST_INPROGRESS;
 	lr->lr_res_errno = LDAP_SUCCESS;
+	/* no mutex lock needed, we just created this ld here */
 	(*ldp)->ld_requests = lr;
 
 	/* Attach the passed socket as the *LDAP's connection */

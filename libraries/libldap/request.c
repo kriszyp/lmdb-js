@@ -186,7 +186,7 @@ ldap_send_server_request(
 	LDAPreqinfo *bind )
 {
 	LDAPRequest	*lr;
-	int incparent;
+	int incparent, rc;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_send_server_request\n", 0, 0, 0 );
@@ -232,11 +232,19 @@ ldap_send_server_request(
 	 * LDAP_BUSY and let the caller retry later. We only allow a single
 	 * request to be in WRITING state.
 	 */
+	rc = 0;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	if ( ld->ld_requests &&
 		ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
 		ldap_int_flush_request( ld, ld->ld_requests ) < 0 ) {
-		return -1;
+		rc = -1;
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	if ( rc ) return rc;
 
 	if (( lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ))) ==
 	    NULL ) {
@@ -268,17 +276,23 @@ ldap_send_server_request(
 		lr->lr_origid = lr->lr_msgid;
 	}
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	if (( lr->lr_next = ld->ld_requests ) != NULL ) {
 		lr->lr_next->lr_prev = lr;
 	}
 	ld->ld_requests = lr;
 	lr->lr_prev = NULL;
 
-	if ( ldap_int_flush_request( ld, lr ) == -1 ) {
-		return -1;
-	}
-
 	ld->ld_errno = LDAP_SUCCESS;
+	if ( ldap_int_flush_request( ld, lr ) == -1 ) {
+		msgid = -1;
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+
 	return( msgid );
 }
 
@@ -572,6 +586,9 @@ ldap_dump_requests_and_responses( LDAP *ld )
 	LDAPRequest	*lr;
 	LDAPMessage	*lm, *l;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	fprintf( stderr, "** Outstanding Requests:\n" );
 	if (( lr = ld->ld_requests ) == NULL ) {
 		fprintf( stderr, "   Empty\n" );
@@ -587,7 +604,10 @@ ldap_dump_requests_and_responses( LDAP *ld )
 	    fprintf( stderr, "   outstanding referrals %d, parent count %d\n",
 		    lr->lr_outrefcnt, lr->lr_parentcnt );
 	}
-
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	fprintf( stderr, "** Response Queue:\n" );
 	if (( lm = ld->ld_responses ) == NULL ) {
 		fprintf( stderr, "   Empty\n" );
@@ -605,6 +625,9 @@ ldap_dump_requests_and_responses( LDAP *ld )
 			}
 		}
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 }
 #endif /* LDAP_DEBUG */
 
@@ -1241,6 +1264,9 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 {
 	LDAPRequest	*lr;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
 		if( lr->lr_status == LDAP_REQST_COMPLETED ) {
 			continue;	/* Skip completed requests */
@@ -1249,6 +1275,9 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 			break;
 		}
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 
 	return( lr );
 }

@@ -79,20 +79,31 @@ ldap_ld_free(
 	int		err = LDAP_SUCCESS;
 
 	/* free LDAP structure and outstanding requests/responses */
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	while ( ld->ld_requests != NULL ) {
 		ldap_free_request( ld, ld->ld_requests );
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 
 	/* free and unbind from all open connections */
 	while ( ld->ld_conns != NULL ) {
 		ldap_free_connection( ld, ld->ld_conns, 1, close );
 	}
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
 		next = lm->lm_next;
 		ldap_msgfree( lm );
 	}
-
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 
 	if ( ld->ld_error != NULL ) {
 		LDAP_FREE( ld->ld_error );
@@ -158,6 +169,10 @@ ldap_ld_free(
 
 	ber_sockbuf_free( ld->ld_sb );   
    
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_destroy( &ld->ld_req_mutex );
+	ldap_pvt_thread_mutex_destroy( &ld->ld_res_mutex );
+#endif
 	LDAP_FREE( (char *) ld );
    
 	return( err );
@@ -214,12 +229,18 @@ ldap_send_unbind(
 		return( ld->ld_errno );
 	}
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+	ld->ld_errno = LDAP_SUCCESS;
 	/* send the message */
 	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		ber_free( ber, 1 );
-		return( ld->ld_errno );
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 
-	return( LDAP_SUCCESS );
+	return( ld->ld_errno );
 }
