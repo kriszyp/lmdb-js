@@ -38,8 +38,6 @@ typedef struct modtarget {
 	ldap_pvt_thread_mutex_t mt_mutex;
 } modtarget;
 
-	
-
 /* A queued result of a persistent search */
 typedef struct syncres {
 	struct syncres *s_next;
@@ -92,6 +90,7 @@ typedef struct syncmatches {
 	syncops *sm_op;
 } syncmatches;
 
+/* The main state for this overlay */
 typedef struct syncprov_info_t {
 	syncops		*si_ops;
 	struct berval	si_ctxcsn;	/* ldapsync context */
@@ -123,6 +122,7 @@ typedef struct fbase_cookie {
 static AttributeName csn_anlist[2];
 static AttributeName uuid_anlist[2];
 
+/* Build a LDAPsync intermediate state control */
 static int
 syncprov_state_ctrl(
 	Operation	*op,
@@ -182,6 +182,7 @@ syncprov_state_ctrl(
 	return LDAP_SUCCESS;
 }
 
+/* Build a LDAPsync final state control */
 static int
 syncprov_done_ctrl(
 	Operation	*op,
@@ -227,7 +228,8 @@ syncprov_done_ctrl(
 	return LDAP_SUCCESS;
 }
 
-
+#if 0
+/* Generate state based on session log - not implemented yet */
 static int
 syncprov_state_ctrl_from_slog(
 	Operation	*op,
@@ -280,6 +282,7 @@ syncprov_state_ctrl_from_slog(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 syncprov_sendinfo(
@@ -345,6 +348,7 @@ syncprov_sendinfo(
 		return ret;
 	}
 
+	rs->sr_rspoid = LDAP_SYNC_INFO;
 	rs->sr_rspdata = &rspdata;
 	send_ldap_intermediate( op, rs );
 	rs->sr_rspdata = NULL;
@@ -353,6 +357,7 @@ syncprov_sendinfo(
 	return LDAP_SUCCESS;
 }
 
+/* Find a modtarget in an AVL tree */
 static int
 sp_avl_cmp( const void *c1, const void *c2 )
 {
@@ -545,7 +550,6 @@ findpres_cb( Operation *op, SlapReply *rs )
 			pc->num++;
 			ret = LDAP_SUCCESS;
 			if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
-				rs->sr_rspoid = LDAP_SYNC_INFO;
 				ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 					0, pc->uuids, 0 );
 				ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
@@ -558,7 +562,6 @@ findpres_cb( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT ) {
 		ret = rs->sr_err;
 		if ( pc->num ) {
-			rs->sr_rspoid = LDAP_SYNC_INFO;
 			ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 				0, pc->uuids, 0 );
 			ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
@@ -777,6 +780,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	return rs.sr_err;
 }
 
+/* Find which persistent searches are affected by this operation */
 static void
 syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 {
@@ -950,6 +954,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		struct berval maxcsn;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 
+		/* Update our context CSN */
 		cbuf[0] = '\0';
 		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
 		slap_get_commit_csn( op, &maxcsn );
@@ -966,6 +971,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		opc->sctxcsn.bv_len = maxcsn.bv_len;
 		opc->sctxcsn.bv_val = cbuf;
 
+		/* Handle any persistent searches */
 		if ( si->si_ops ) {
 			switch(op->o_tag) {
 			case LDAP_REQ_ADD:
@@ -1028,6 +1034,10 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 }
 
 #if 0
+/* We don't use a subentry to store the context CSN any more. But
+ * we ought to expose the current context CSN as an operational attribute
+ * somewhere, like on the suffix entry.
+ */
 static int
 syncprov_op_compare( Operation *op, SlapReply *rs )
 {
@@ -1272,7 +1282,6 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		} else {
 			int locked = 0;
 		/* It's RefreshAndPersist, transition to Persist phase */
-			rs->sr_rspoid = LDAP_SYNC_INFO;
 			syncprov_sendinfo( op, rs, rs->sr_nentries ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
