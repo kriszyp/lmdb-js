@@ -373,7 +373,7 @@ add_values(
 			int rc;
 			int j;
 			const char *text = NULL;
-			struct berval *asserted;
+			struct berval *asserted = NULL;
 
 			rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
@@ -448,7 +448,7 @@ delete_values(
 		int rc;
 		const char *text = NULL;
 
-		struct berval *asserted;
+		struct berval *asserted = NULL;
 
 		rc = value_normalize( mod->sm_desc,
 			SLAP_MR_EQUALITY,
