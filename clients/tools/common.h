@@ -44,6 +44,7 @@ extern int   version;
 
 /* Defined in common.c, set in main() */
 extern char *prog;
+extern const char __Version[];
 
 /* Defined in main program */
 extern const char options[];

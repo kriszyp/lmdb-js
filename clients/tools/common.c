@@ -55,8 +55,6 @@ int   version = 0;
 
 /* Set in main() */
 char *prog = NULL;
-char *version_string = NULL;
-
 
 void
 tool_common_usage( void )
@@ -458,8 +456,7 @@ tool_args( int argc, char **argv )
     }
 
 	if (version) {
-		fprintf( stderr, "%s: %s\n", prog,
-			version_string ? version_string : "version unknown" );
+		fprintf( stderr, "%s: %s", prog, __Version );
 		if (version > 1) exit( EXIT_SUCCESS );
 	}
 

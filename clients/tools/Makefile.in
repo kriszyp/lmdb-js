@@ -10,6 +10,8 @@ OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+MKVOPTS = -s
+
 XLIBS =  $(LDAP_LIBLDIF_A) $(LDAP_L)
 XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 
@@ -48,31 +50,31 @@ ldapadd:	ldapmodify
 
 ldsversion.c: ldapsearch.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapsearch > $@
+	$(MKVERSION) $(MKVOPTS) ldapsearch > $@
 
 ldmversion.c: ldapmodify.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapmodify > $@
+	$(MKVERSION) $(MKVOPTS) ldapmodify > $@
 
 lddversion.c: ldapdelete.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapdelete > $@
+	$(MKVERSION) $(MKVOPTS) ldapdelete > $@
 
 ldpversion.c: ldappasswd.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldappasswd > $@
+	$(MKVERSION) $(MKVOPTS) ldappasswd > $@
 
 ldrversion.c: ldapmodrdn.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapmodrdn > $@
+	$(MKVERSION) $(MKVOPTS) ldapmodrdn > $@
 
 ldwversion.c: ldapwhoami.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapwhoami > $@
+	$(MKVERSION) $(MKVOPTS) ldapwhoami > $@
 
 ldcversion.c: ldapcompare.o common.o $(XLIBS)
 	@-$(RM) $@
-	$(MKVERSION) ldapcompare > $@
+	$(MKVERSION) $(MKVOPTS) ldapcompare > $@
 
 
 install-local:	FORCE
