@@ -11,12 +11,6 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* (C) Copyright PADL Software Pty Ltd. 2003-2004
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that this notice is preserved
- * and that due credit is given to PADL Software Pty Ltd. This software
- * is provided ``as is'' without express or implied warranty.
- */
 
 #include <string.h>
 #include <unistd.h>
