@@ -154,6 +154,7 @@ LDIFIDASSERT2=$DATADIR/test-idassert2.ldif
 LDIFLDAPGLUE1=$DATADIR/test-ldapglue.ldif
 LDIFLDAPGLUE2=$DATADIR/test-ldapgluepeople.ldif
 LDIFLDAPGLUE3=$DATADIR/test-ldapgluegroups.ldif
+LDIFCOMPMATCH=$DATADIR/test-compmatch.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
@@ -204,6 +205,7 @@ PROXYCACHEOUT=$DATADIR/proxycache.out
 REFERRALOUT=$DATADIR/referrals.out
 SEARCHOUTMASTER=$DATADIR/search.out.master
 SEARCHOUTX=$DATADIR/search.out.xsearch
+COMPSEARCHOUT=$DATADIR/compsearch.out
 MODIFYOUTMASTER=$DATADIR/modify.out.master
 ADDDELOUTMASTER=$DATADIR/adddel.out.master
 MODRDNOUTMASTER0=$DATADIR/modrdn.out.master.0

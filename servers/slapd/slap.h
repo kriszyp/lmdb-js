@@ -56,6 +56,7 @@
 #include "ldap_queue.h"
 
 LDAP_BEGIN_DECL
+
 /*
  * SLAPD Memory allocation macros
  *
@@ -330,6 +331,11 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval * out,
 	void *memctx));
 
+#ifdef LDAP_COMP_MATCH
+typedef void* slap_component_transform_func LDAP_P((
+	struct berval * in ));
+struct ComponentDesc;
+#endif
 typedef struct slap_syntax {
 	LDAPSyntax			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
@@ -365,6 +371,10 @@ typedef struct slap_syntax {
 	/* convert to and from binary */
 	slap_syntax_transform_func	*ssyn_ber2str;
 	slap_syntax_transform_func	*ssyn_str2ber;
+#endif
+#ifdef LDAP_COMP_MATCH
+	slap_component_transform_func *ssyn_attr2comp;
+	struct ComponentDesc* comp_syntax;
 #endif
 
 	LDAP_SLIST_ENTRY(slap_syntax) ssyn_next;
@@ -468,6 +478,9 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_ORDERING		0x0200U
 #define SLAP_MR_SUBSTR			0x0400U
 #define SLAP_MR_EXT				0x0800U /* implicitly extensible */
+#ifdef LDAP_COMP_MATCH
+#define SLAP_MR_COMPONENT		0x1000U
+#endif
 
 #define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
 
@@ -886,12 +899,19 @@ typedef struct slap_ss_assertion {
 	struct berval		sa_final;
 } SubstringsAssertion;
 
+#ifdef LDAP_COMP_MATCH
+struct slap_component_filter;
+#endif
+
 typedef struct slap_mr_assertion {
 	MatchingRule		*ma_rule;	/* optional */
 	struct berval		ma_rule_text;  /* optional */
 	AttributeDescription	*ma_desc;	/* optional */
 	int						ma_dnattrs; /* boolean */
 	struct berval		ma_value;	/* required */
+#ifdef LDAP_COMP_MATCH
+	struct slap_component_filter* cf;
+#endif
 } MatchingRuleAssertion;
 
 /*
@@ -1016,6 +1036,9 @@ typedef struct slap_attr {
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
 #define SLAP_ATTR_IXDEL		0x2U
+#ifdef LDAP_COMP_MATCH
+	void* component_values;
+#endif
 } Attribute;
 
 
@@ -2436,6 +2459,156 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 #define SLAP_AUTH_REWRITE	1
 #endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
+#ifdef LDAP_COMP_MATCH
+/*
+ * Extensible Filter Definition
+ *
+ * MatchingRuleAssertion := SEQUENCE {
+ *	matchingRule	[1] MatchingRuleId OPTIONAL,
+ *	type		[2] AttributeDescription OPTIONAL,
+ *	matchValue	[3] AssertionValue,
+ *	dnAttributes	[4] BOOLEAN DEFAULT FALSE }
+ *
+ * Following ComponentFilter is contained in matchValue
+ *
+ * ComponentAssertion ::= SEQUENCE {
+ *	component		ComponentReference (SIZE(1..MAX)) OPTIONAL
+ *	useDefaultValues	BOOLEAN DEFAULT TRUE,
+ *	rule			MATCHING-RULE.&id,
+ *	value			MATCHING-RULE.&AssertionType }
+ *
+ * ComponentFilter ::= CHOICE {
+ *	item	[0] ComponentAssertion,
+ *	and	[1] SEQUENCE OF ComponentFilter,
+ *	or	[2] SEQUENCE OF ComponentFilter,
+ *	not	[3] ComponentFilter }
+ */
+
+#define LDAP_COMPREF_IDENTIFIER		((ber_tag_t) 0x80U)
+#define LDAP_COMPREF_FROM_BEGINNING	((ber_tag_t) 0x81U)
+#define LDAP_COMPREF_COUNT		((ber_tag_t) 0x82U)
+#define LDAP_COMPREF_FROM_END		((ber_tag_t) 0x83U)
+#define LDAP_COMPREF_CONTENT		((ber_tag_t) 0x84U)
+#define LDAP_COMPREF_SELECT		((ber_tag_t) 0x85U)
+#define LDAP_COMPREF_ALL		((ber_tag_t) 0x86U)
+#define LDAP_COMPREF_DEFINED		((ber_tag_t) 0x87U)
+#define LDAP_COMPREF_UNDEFINED		((ber_tag_t) 0x88U)
+
+#define LDAP_COMP_FILTER_AND		((ber_tag_t) 0xa0U)
+#define LDAP_COMP_FILTER_OR		((ber_tag_t) 0xa1U)
+#define LDAP_COMP_FILTER_NOT		((ber_tag_t) 0xa2U)
+#define LDAP_COMP_FILTER_ITEM		((ber_tag_t) 0xa3U)
+#define LDAP_COMP_FILTER_UNDEFINED	((ber_tag_t) 0xa4U)
+
+typedef struct slap_component_id{
+	int	ci_type;
+	struct slap_component_id *ci_next;
+
+	union comp_id_value{
+		BerValue	ci_identifier;
+		ber_int_t	ci_from_beginning;
+		ber_int_t	ci_count;
+		ber_int_t	ci_from_end;
+		BerValue	ci_select_value;
+		char		ci_all;
+	} ci_val;
+} ComponentId;
+
+typedef struct slap_component_reference {
+	ComponentId	*cr_list;
+	ComponentId	*cr_curr;
+	struct berval	cr_string;
+	int cr_len;
+} ComponentReference;
+
+typedef struct slap_component_assertion {
+	ComponentReference	*ca_comp_ref;
+	ber_int_t		ca_use_def;
+	MatchingRule		*ca_ma_rule;
+	struct berval		ca_ma_value;
+	struct slap_component_filter	*ca_cf;
+	MatchingRuleAssertion   *ca_mra;
+} ComponentAssertion;
+
+typedef struct slap_component_filter {
+	ber_tag_t cf_choice;
+	union cf_un_u {
+		ber_int_t cf_un_result;
+		ComponentAssertion *cf_un_ca;
+		struct slap_component_filter *cf_un_complex;
+	} cf_un;
+
+#define cf_ca		cf_un.cf_un_ca
+#define cf_result	cf_un.cf_un_result
+#define cf_and		cf_un.cf_un_complex
+#define cf_or		cf_un.cf_un_complex
+#define cf_not		cf_un.cf_un_complex
+	
+	struct slap_component_filter *cf_next;
+} ComponentFilter;
+
+typedef struct slap_component_assertion_value {
+	char* cav_buf;
+	char* cav_ptr;
+	char* cav_end;
+} ComponentAssertionValue;
+
+#include "asn.h"
+
+typedef int encoder_func LDAP_P((
+	GenBuf* b,
+	void* comp));
+
+struct slap_component_syntax_info;
+
+typedef int decoder_func LDAP_P((
+	GenBuf* b,
+	struct slap_component_syntax_info** comp_syn_info,
+	unsigned int* len,
+	int mode));
+
+typedef void* extract_component_from_tag_func LDAP_P((
+	int *tag));
+
+typedef void* extract_component_from_id_func LDAP_P((
+	ComponentReference* cr,
+	void* comp ));
+
+typedef int allcomponent_matching_func LDAP_P((
+	char* oid,
+	void* component1,
+	void* component2 ));
+
+typedef struct slap_component_desc{
+	int		cd_tag;
+	ComponentId*	cd_identifier;
+	encoder_func	*cd_encoder;
+	decoder_func	*cd_decoder;
+	extract_component_from_tag_func* cd_extract_t;
+	extract_component_from_id_func*  cd_extract_i;
+	AsnType		cd_type;
+	AsnTypeId	cd_type_id;
+	allcomponent_matching_func*	cd_all_match;
+} ComponentDesc;
+
+typedef struct slap_component_syntax_info {
+	Syntax* csi_syntax;
+	ComponentDesc* csi_comp_desc;
+} ComponentSyntaxInfo;
+
+typedef struct asntype_to_matchingrule {
+	AsnTypeId	atmr_typeId;
+	char*		atmr_mr_name;
+	MatchingRule	*atmr_mr;
+} AsnTypetoMatchingRule;
+
+typedef struct asntype_to_matchingrule_table {
+	char* atmr_oid;
+	struct asntype_to_matchingrule atmr_table[ASNTYPE_END];
+	struct asntype_to_matchingrule_table* atmr_table_next;
+} AsnTypetoMatchingRuleTable;
+
+#endif
 LDAP_END_DECL
 
 #include "proto-slap.h"

@@ -41,10 +41,11 @@ AC_rwm=rwm@BUILD_RWM@
 # misc
 AC_WITH_SASL=@WITH_SASL@
 AC_WITH_TLS=@WITH_TLS@
+AC_WITH_COMP_MATCH=yes
 
 export AC_bdb AC_hdb AC_ldap AC_ldbm AC_monitor AC_relay AC_sql 
 export AC_pcache AC_ppolicy AC_refint AC_unique AC_rwm
-export AC_WITH_SASL AC_WITH_TLS
+export AC_WITH_SASL AC_WITH_TLS AC_WITH_COMP_MATCH
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"

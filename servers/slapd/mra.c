@@ -223,6 +223,13 @@ get_mra(
 		return rc;
 	}
 
+#ifdef LDAP_COMP_MATCH
+	/* Matching Rule for Component Matching */
+	Debug( LDAP_DEBUG_FILTER, "matchingrule %s\n",ma.ma_rule->smr_mrule.mr_oid,0,0);
+	if( ma.ma_rule && ma.ma_rule->smr_usage & SLAP_MR_COMPONENT )
+		rc = get_comp_filter( op, &ma.ma_value, &ma.cf, text );
+		if ( rc != LDAP_SUCCESS ) return rc;
+#endif
 	length = sizeof(ma);
 	/* Append rule_text to end of struct */
 	if (rule_text.bv_val) length += rule_text.bv_len + 1;

@@ -1992,5 +1992,9 @@ ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
 
+#ifdef LDAP_DEVEL
+#define LDAP_COMP_MATCH 1
+#endif
+
 LDAP_END_DECL
 #endif /* _LDAP_H */

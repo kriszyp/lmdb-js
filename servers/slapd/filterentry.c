@@ -214,6 +214,13 @@ static int test_mra_filter(
 		memfree = op->o_tmpfree;
 	}
 
+#ifdef LDAP_COMP_MATCH
+	/* Component Matching */
+	if( mra->cf &&
+		mra->ma_rule->smr_usage & (SLAP_MR_COMPONENT) ){
+		return test_comp_filter_entry( op, e, mra );
+	}
+#endif
 	if ( mra->ma_desc ) {
 		/*
 		 * if ma_desc is available, then we're filtering for

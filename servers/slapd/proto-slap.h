@@ -314,6 +314,34 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
 #endif
 
 /*
+ * component.c
+ */
+#ifdef LDAP_COMP_MATCH
+LDAP_SLAPD_F (int) test_comp_filter_entry LDAP_P((
+	Operation* op,
+	Entry* e,
+	MatchingRuleAssertion* mr));
+
+LDAP_SLAPD_F (int) get_comp_filter LDAP_P((
+	Operation* op,
+	BerValue* bv,
+	ComponentFilter** filt,
+	const char **text ));
+
+LDAP_SLAPD_F (int) componentFilterMatch LDAP_P(( 
+	int *matchp, 
+	slap_mask_t flags, 
+	Syntax *syntax, 
+	MatchingRule *mr,
+	struct berval *value, 
+	void *assertedValue ));
+
+LDAP_SLAPD_F (int) componentFilterValidate LDAP_P(( 
+	Syntax *syntax,
+	struct berval* bv ));
+#endif
+
+/*
  * controls.c
  */
 LDAP_SLAPD_F (void) slap_free_ctrls LDAP_P((
@@ -485,6 +513,7 @@ LDAP_SLAPD_F (int) rdnMatch LDAP_P((
 	MatchingRule *mr,
 	struct berval *value, 
 	void *assertedValue ));
+
 
 LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
