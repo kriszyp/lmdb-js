@@ -27,8 +27,8 @@ bdb_group(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*gr_ndn,
-	const char	*op_ndn,
+	struct berval	*gr_ndn,
+	struct berval	*op_ndn,
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
 )
@@ -37,7 +37,6 @@ bdb_group(
 	Entry *e;
 	int	rc = 1;
 	Attribute *attr;
-	struct berval bv;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	const char *group_oc_name = NULL;
@@ -52,15 +51,15 @@ bdb_group(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		"bdb_group: check (%s) member of (%s), oc %s\n",
-		op_ndn, gr_ndn, group_oc_name ));
+		op_ndn->bv_val, gr_ndn->bv_val, group_oc_name ));
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_group: gr dn: \"%s\"\n",
-		gr_ndn, 0, 0 ); 
+		gr_ndn->bv_val, 0, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_group: op dn: \"%s\"\n",
-		op_ndn, 0, 0 ); 
+		op_ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_group: oc: \"%s\" at: \"%s\"\n", 
 		group_oc_name, group_at_name, 0 ); 
@@ -70,16 +69,16 @@ bdb_group(
 		target->e_ndn, 0, 0 ); 
 #endif
 
-	if (strcmp(target->e_ndn, gr_ndn) == 0) {
+	if (strcmp(target->e_ndn, gr_ndn->bv_val) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"bdb_group: target is group (%s)\n", gr_ndn ));
+			"bdb_group: target is group (%s)\n", gr_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> bdb_group: target is group: \"%s\"\n",
-			gr_ndn, 0, 0 );
+			gr_ndn->bv_val, 0, 0 );
 #endif
 	} else {
 		/* can we find group entry */
@@ -91,21 +90,21 @@ bdb_group(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"bdb_group: cannot find group (%s)\n",
-				gr_ndn ));
+				gr_ndn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> bdb_group: cannot find group: \"%s\"\n",
-					gr_ndn, 0, 0 ); 
+					gr_ndn->bv_val, 0, 0 ); 
 #endif
 			return( 1 );
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"bdb_group: found group (%s)\n", gr_ndn ));
+			"bdb_group: found group (%s)\n", gr_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_group: found group: \"%s\"\n",
-			gr_ndn, 0, 0 ); 
+			gr_ndn->bv_val, 0, 0 ); 
 #endif
 	}
 
@@ -118,7 +117,7 @@ bdb_group(
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"bdb_group: group (%s) is an alias\n", gr_ndn ));
+			"bdb_group: group (%s) is an alias\n", gr_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_group: group is an alias\n", 0, 0, 0 );
@@ -129,7 +128,7 @@ bdb_group(
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"bdb_group: group (%s) is a referral.\n", gr_ndn ));
+			"bdb_group: group (%s) is a referral.\n", gr_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_group: group is a referral\n", 0, 0, 0 );
@@ -172,18 +171,15 @@ bdb_group(
 		group_oc_name, group_at_name, 0 ); 
 #endif
 
-	bv.bv_val = (char *) op_ndn;
-	bv.bv_len = strlen( op_ndn );
-
-	if( value_find( group_at, attr->a_vals, &bv ) != LDAP_SUCCESS ) {
+	if( value_find( group_at, attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			"bdb_group: \"%s\" not in \"%s\": %s\n",
-			op_ndn, gr_ndn, group_at_name ));
+			op_ndn->bv_val, gr_ndn->bv_val, group_at_name ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_group: \"%s\" not in \"%s\": %s\n", 
-			op_ndn, gr_ndn, group_at_name ); 
+			op_ndn->bv_val, gr_ndn->bv_val, group_at_name ); 
 #endif
 		goto return_results;
 	}
@@ -191,11 +187,11 @@ bdb_group(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 		"bdb_group: %s is in %s: %s\n",
-		op_ndn, gr_ndn, group_at_name ));
+		op_ndn->bv_val, gr_ndn->bv_val, group_at_name ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"<= bdb_group: \"%s\" is in \"%s\": %s\n", 
-		op_ndn, gr_ndn, group_at_name ); 
+		op_ndn->bv_val, gr_ndn->bv_val, group_at_name ); 
 #endif
 
 	rc = 0;
