@@ -238,7 +238,7 @@ lutil_uuidstr( char *buf, size_t len )
 
 	t1 = tl & 0xffffffff;					/* time_low */
 	t2 = ( tl >> 32 ) & 0xffff;				/* time_mid */
-	t3 = ( tl >> 48 ) & 0x0fff | 0x1000;	/* time_hi_and_version */
+	t3 = ( ( tl >> 48 ) & 0x0fff ) | 0x1000;	/* time_hi_and_version */
 	s1 = ( ++seq & 0x1fff ) | 0x8000;		/* clock_seq_and_reserved */
 
 	t1 = snprintf( buf, len,
