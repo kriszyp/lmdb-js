@@ -74,10 +74,10 @@ by <who>).
 See Developer's FAQ (http://www.openldap.org/faq/) for details.
 .TP
 .B
-attributetype ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
-[SUP <oid>] [EQUALITY <oid>] [ORDERING <oid>] [SUBSTR <oid>] \
-[SYNTAX <oidlen>] [SINGLE-VALUE] [COLLECTIVE] [NO-USER-MODIFICATION] \
-[USAGE <attributeUsage>] )
+attributetype ( <oid> [NAME <name>] [DESC <description>] \
+[OBSOLETE] [SUP <oid>] [EQUALITY <oid>] [ORDERING <oid>] \
+[SUBSTR <oid>] [SYNTAX <oidlen>] [SINGLE\-VALUE] [COLLECTIVE] \
+[NO\-USER\-MODIFICATION] [USAGE <attributeUsage>] )
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
