@@ -1294,7 +1294,7 @@ int slap_sasl_open( Connection *conn )
 		}
 	}
 	sc = sasl_server_new( "ldap", global_host, global_realm,
-		iplocalport, ipremoteport, session_callbacks, 0, &ctx );
+		iplocalport, ipremoteport, session_callbacks, SASL_SUCCESS_DATA, &ctx );
 	if ( iplocalport != NULL ) {
 		ch_free( iplocalport );
 	}
