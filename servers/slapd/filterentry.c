@@ -419,10 +419,10 @@ test_ava_filter(
 			return LDAP_OTHER;
 		}
 
-		mr = a->a_desc->ad_type->sat_equality;
+		mr = slap_schema.si_ad_entryDN->ad_type->sat_equality;
 		assert( mr );
 
-		rc = value_match( &ret, a->a_desc, mr, 0,
+		rc = value_match( &ret, slap_schema.si_ad_entryDN, mr, 0,
 			&e->e_nname, &ava->aa_value, &text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
