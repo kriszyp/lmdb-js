@@ -52,6 +52,11 @@ bdb_csn_commit(
 	DB_LOCK			suffix_lock;
 	int				rc, ret;
 	ID				ctxcsn_id;
+	Entry			*e;
+
+	if ( ei ) {
+		e = ei->bei_e;
+	}
 
 	ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
 	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
@@ -108,7 +113,10 @@ bdb_csn_commit(
 		}
 		break;
 	case DB_NOTFOUND:
-		if ( !be_issuffix( op->o_bd, &op->ora_e->e_nname ) ) {
+		if ( op->o_tag == LDAP_REQ_ADD && !be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname )) {
+			rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
+									0, locker, &suffix_lock );
+		} else if ( op->o_tag != LDAP_REQ_ADD && !be_issuffix( op->o_bd, &e->e_nname )) {
 			rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
 									0, locker, &suffix_lock );
 		} else {
