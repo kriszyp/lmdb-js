@@ -346,7 +346,7 @@ do_modify(
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0) {
 			rs->sr_err = LDAP_OTHER;
 		}
-		ldap_mods_free( modv, 1 );
+		slapi_x_free_ldapmods( modv, 1 );
 		modv = NULL;
 		goto cleanup;
 	}
