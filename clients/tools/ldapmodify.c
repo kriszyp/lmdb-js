@@ -1109,7 +1109,9 @@ domodify(
 	    i = ldap_modify_s( ld, dn, pmods );
 	}
 	if ( i != LDAP_SUCCESS ) {
-	    ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
+		/* print error message about failed update including DN */
+		fprintf( stderr, "%s: update failed: %s\n", prog, dn );
+		ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
 	} else if ( verbose ) {
 	    printf( "modify complete\n" );
 	}
@@ -1132,7 +1134,8 @@ dodelete(
     printf( "%sdeleting entry \"%s\"\n", not ? "!" : "", dn );
     if ( !not ) {
 	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_delete" );
+		fprintf( stderr, "%s: delete failed: %s\n", prog, dn );
+		ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
 	    printf( "delete complete" );
 	}
@@ -1163,8 +1166,10 @@ dorename(
     }
     if ( !not ) {
 	if (( rc = ldap_rename2_s( ld, dn, newrdn, newsup, deleteoldrdn ))
-		!= LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_modrdn" );
+		!= LDAP_SUCCESS )
+	{
+		fprintf( stderr, "%s: rename failed: %s\n", prog, dn );
+		ldap_perror( ld, "ldap_modrdn" );
 	} else {
 	    printf( "modrdn completed\n" );
 	}
