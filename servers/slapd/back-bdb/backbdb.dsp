@@ -171,11 +171,19 @@ SOURCE=.\external.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\filterindex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\id2entry.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\idl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\idl.h
 # End Source File
 # Begin Source File
 

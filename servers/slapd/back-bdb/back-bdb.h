@@ -15,16 +15,6 @@
 
 LDAP_BEGIN_DECL
 
-#define BDB_IDL_DB_SIZE		(1<<16) /* 64K IDL on disk */
-#define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-32)
-/* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
-
-#define BDB_IDL_SIZE		(1<<17) /* 128K IDL in memory */
-#define BDB_IDL_MAX			(BDB_IDL_DB_SIZE-32)
-/* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
-
-#define BDB_IDL_RANGE_SIZE	(3 * sizeof(ID))
-#define BDB_IDL_IS_RANGE(ids)	((ids)[0] == NOID)
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -79,7 +69,10 @@ struct bdb_info {
 	int			bi_lock_detect_seconds;
 	ldap_pvt_thread_t	bi_lock_detect_tid;
 #endif
+
+	ID			bi_lastid;
 };
+
 #define bi_nextid	bi_databases[BDB_NEXTID]
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]

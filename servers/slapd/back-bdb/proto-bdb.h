@@ -64,6 +64,13 @@ int bdb_dn2id_children(
 	DB_TXN *tid,
 	const char *dn );
 
+int
+bdb_dn2idl(
+	BackendDB	*be,
+	const char	*dn,
+	int prefix,
+	ID *ids );
+
 /*
  * entry.c
  */
@@ -73,6 +80,15 @@ int bdb_entry_return( BackendDB *be, Entry *e );
  * error.c
  */
 void bdb_errcall( const char *pfx, char * msg );
+
+/*
+ * filterentry.c
+ */
+int bdb_filter_candidates(
+	Backend	*be,
+	ID *range,
+	Filter	*f,
+	ID *ids );
 
 /*
  * id2entry
@@ -117,6 +133,50 @@ int bdb_idl_delete_key(
 	DBT *key,
 	ID id );
 
+int
+bdb_idl_notin(
+    ID 	*a,
+    ID 	*b,
+	ID	*ids );
+
+int
+bdb_idl_intersection(
+	ID *a,
+	ID *b,
+	ID *ids );
+
+int
+bdb_idl_union(
+	ID *a,
+	ID *b,
+	ID *ids );
+
+ID bdb_idl_first( ID *ids, ID *cursor );
+ID bdb_idl_next( ID *ids, ID *cursor );
+
+
+/*
+ * index.c
+ */
+extern int
+bdb_index_param(
+	Backend *be,
+	AttributeDescription *desc,
+	int ftype,
+	DB **db,
+	slap_mask_t *mask,
+	struct berval **prefix );
+	
+/*
+ * key.c
+ */
+extern int
+bdb_key_read(
+    Backend	*be,
+	DB *db,
+    struct berval *k,
+	ID *ids );
+	
 /*
  * nextid.c
  */
@@ -132,7 +192,9 @@ int bdb_modify_internal(
 	DB_TXN *tid,
 	Modifications *modlist,
 	Entry *e,
-	const char **text );
+	const char **text,
+	char *textbuf,
+	size_t textlen );
 
 /*
  * passwd.c

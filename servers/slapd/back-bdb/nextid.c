@@ -100,6 +100,9 @@ retry:	if( tid != NULL ) {
 
 	case 0:
 		*out = id;
+
+		bdb->bi_lastid = id;
+
 		rc = txn_commit( ltid, 0 );
 
 		if( rc != 0 ) {

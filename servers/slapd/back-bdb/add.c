@@ -25,6 +25,8 @@ bdb_add(
 	Entry		*p = NULL;
 	int			rc; 
 	const char	*text;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
@@ -32,7 +34,7 @@ bdb_add(
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
 
 	/* check entry's schema */
-	rc = entry_schema_check( e, NULL, &text );
+	rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: entry failed schema check: %s (%d)\n",

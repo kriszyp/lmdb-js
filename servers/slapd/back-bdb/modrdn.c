@@ -33,6 +33,8 @@ bdb_modrdn(
 	Entry		*matched;
 	int			rc;
 	const char *text;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 	DB_TXN *	ltid;
 	struct bdb_op_info opinfo;
 
@@ -472,7 +474,8 @@ retry:	/* transaction retry */
 	}
 
 	/* modify entry */
-	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e, &text );
+	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e,
+		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
 		switch( rc ) {

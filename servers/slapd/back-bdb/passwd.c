@@ -32,6 +32,8 @@ bdb_exop_passwd(
 	struct berval *hash = NULL;
 	DB_TXN *ltid = NULL;
 	struct bdb_op_info opinfo;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 
 	struct berval *id = NULL;
 	struct berval *new = NULL;
@@ -162,11 +164,12 @@ retry:	/* transaction retry */
 		ml.sml_next = NULL;
 
 		rc = bdb_modify_internal( be, conn, op, ltid,
-			&ml, e, text );
+			&ml, e, text, textbuf, textlen );
 
 		switch(rc) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			*text = NULL;
 			bdb_entry_return( be, e );
 			e = NULL;
 			goto retry;

@@ -11,6 +11,10 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "idl.h"
+
+#define IDL_MAX(x,y)	( x > y ? x : y )
+#define IDL_MIN(x,y)	( x < y ? x : y )
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
@@ -340,3 +344,224 @@ bdb_idl_delete_key(
 
 	return rc;
 }
+
+
+/*
+ * idl_intersection - return a intersection b
+ */
+int
+bdb_idl_intersection(
+	ID *a,
+	ID *b,
+	ID *ids )
+{
+	ID ida, idb;
+	ID cursora, cursorb;
+
+	if ( BDB_IDL_IS_ZERO( a ) || BDB_IDL_IS_ZERO( b ) ) {
+		ids[0] = 0;
+		return 0;
+	}
+
+	if ( BDB_IDL_IS_RANGE( a ) && BDB_IDL_IS_RANGE(b) ) {
+		ids[0] = NOID;
+		ids[1] = IDL_MAX( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
+		ids[2] = IDL_MIN( BDB_IDL_LAST(a), BDB_IDL_FIRST(b) );
+
+		if ( ids[1] == ids[2] ) {
+			ids[0] = 1;
+		} else if( ids[1] > ids[2] ) {
+			ids[0] = 0;
+		}
+		return 0;
+	}
+
+	if( BDB_IDL_IS_RANGE( a ) ) {
+		ID *tmp = a;
+		a = b;
+		b = tmp;
+	}
+
+	ida = bdb_idl_first( a, &cursora ),
+	idb = bdb_idl_first( b, &cursorb );
+
+	ids[0] = 0;
+
+	while( ida != NOID && idb != NOID ) {
+		if( ida == idb ) {
+			ids[++ids[0]] = ida;
+			ida = bdb_idl_next( a, &cursora );
+			idb = bdb_idl_next( b, &cursorb );
+			if( BDB_IDL_IS_RANGE( b ) && idb < ida ) {
+				if( ida > BDB_IDL_LAST( b ) ) {
+					idb = NOID;
+				} else {
+					idb = ida;
+					cursorb = ida;
+				}
+			}
+		} else if ( ida < idb ) {
+			ida = bdb_idl_next( a, &cursora );
+		} else {
+			idb = bdb_idl_next( b, &cursorb );
+		}
+	}
+
+	return 0;
+}
+
+
+/*
+ * idl_union - return a union b
+ */
+int
+bdb_idl_union(
+	ID	*a,
+	ID	*b,
+	ID *ids )
+{
+	ID ida, idb;
+	ID cursora, cursorb;
+
+	if ( BDB_IDL_IS_ZERO( a ) ) {
+		BDB_IDL_CPY( ids, b );
+		return 0;
+	}
+
+	if ( BDB_IDL_IS_ZERO( b ) ) {
+		BDB_IDL_CPY( ids, a );
+		return 0;
+	}
+
+	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ) {
+		ids[0] = NOID;
+		ids[1] = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
+		ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_FIRST(b) );
+		return 0;
+	}
+
+	ida = bdb_idl_first( a, &cursora ),
+	idb = bdb_idl_first( b, &cursorb );
+
+	ids[0] = 0;
+
+	while( ida != NOID && idb != NOID ) {
+		if( ++ids[0] > BDB_IDL_MAX ) {
+			ids[0] = NOID;
+			ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
+			break;
+		}
+
+		if ( ida < idb ) {
+			ids[ids[0]] = ida;
+			ida = bdb_idl_next( a, &cursora );
+
+		} else if ( ida > idb ) {
+			ids[ids[0]] = idb;
+			idb = bdb_idl_next( b, &cursorb );
+
+		} else {
+			ids[ids[0]] = ida;
+			ida = bdb_idl_next( a, &cursora );
+			idb = bdb_idl_next( b, &cursorb );
+		}
+	}
+
+	return 0;
+}
+
+
+/*
+ * bdb_idl_notin - return a intersection ~b (or a minus b)
+ */
+int
+bdb_idl_notin(
+	ID	*a,
+	ID	*b,
+	ID *ids )
+{
+	ID ida, idb;
+	ID cursora, cursorb;
+
+	if( BDB_IDL_IS_ZERO( a ) ||
+		BDB_IDL_IS_ZERO( b ) ||
+		BDB_IDL_IS_RANGE( b ) )
+	{
+		BDB_IDL_CPY( ids, a );
+		return 0;
+	}
+
+	if( BDB_IDL_IS_RANGE( a ) ) {
+		BDB_IDL_CPY( ids, a );
+		return 0;
+	}
+
+	ida = bdb_idl_first( a, &cursora ),
+	idb = bdb_idl_first( b, &cursorb );
+
+	ids[0] = 0;
+
+	while( ida != NOID ) {
+		if ( idb == NOID ) {
+			/* we could shortcut this */
+			ids[++ids[0]] = ida;
+			ida = bdb_idl_next( a, &cursora );
+
+		} else if ( ida < idb ) {
+			ids[++ids[0]] = ida;
+			ida = bdb_idl_next( a, &cursora );
+
+		} else if ( ida > idb ) {
+			idb = bdb_idl_next( b, &cursorb );
+
+		} else {
+			ida = bdb_idl_next( a, &cursora );
+			idb = bdb_idl_next( b, &cursorb );
+		}
+	}
+
+	return 0;
+}
+
+ID bdb_idl_first( ID *ids, ID *cursor )
+{
+	ID pos;
+
+	if ( ids[0] == 0 ) {
+		*cursor = NOID;
+		return NOID;
+	}
+
+	if ( BDB_IDL_IS_RANGE( ids ) ) {
+		if( *cursor < ids[1] ) {
+			*cursor = ids[1];
+		}
+		return *cursor;
+	}
+
+	pos = bdb_idl_search( ids, *cursor );
+
+	if( pos > ids[0] ) {
+		return NOID;
+	}
+
+	*cursor = pos;
+	return ids[pos];
+}
+
+ID bdb_idl_next( ID *ids, ID *cursor )
+{
+	if ( BDB_IDL_IS_RANGE( ids ) ) {
+		if( ids[2] < ++(*cursor) ) {
+			return NOID;
+		}
+		return *cursor;
+	}
+
+	if ( *cursor < ids[0] ) {
+		return ids[(*cursor)++];
+	}
+
+	return NOID;
+}
+

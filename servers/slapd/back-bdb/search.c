@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "idl.h"
 #include "external.h"
 
 static int base_candidate(
@@ -25,9 +26,6 @@ static int search_candidates(
 	int deref,
 	int manageDSAit,
 	ID	*ids );
-
-static ID idl_first( ID *ids, ID *cursor );
-static ID idl_next( ID *ids, ID *cursor );
 
 int
 bdb_search(
@@ -178,9 +176,9 @@ bdb_search(
 		goto done;
 	}
 
-	for ( id = idl_first( candidates, &cursor );
+	for ( id = bdb_idl_first( candidates, &cursor );
 		id != NOID;
-		id = idl_next( candidates, &cursor ) )
+		id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
 
@@ -386,8 +384,13 @@ static int search_candidates(
 	ID	*ids )
 {
 	int rc;
-	Filter		f, fand, rf, af, xf;
-	AttributeAssertion aa_ref, aa_alias;
+	Filter		f, fand, rf, xf;
+	AttributeAssertion aa_ref;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+#ifdef BDB_ALIASES
+	Filter	af;
+	AttributeAssertion aa_alias;
+#endif
 
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
@@ -430,13 +433,15 @@ static int search_candidates(
 	fand.f_dn = e->e_ndn;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
-#if 0
-	rc = bdb_filter_candidates( be, &f, ids );
+
+#ifdef BDB_FILTER_INDICES
+	{
+		ID range[3];
+		BDB_IDL_ID( bdb, range, e->e_id );
+		rc = bdb_filter_candidates( be, range, &f, ids );
+	}
 #else
-	/* a quick hack */
-	ids[0] = NOID;
-	ids[1] = e->e_id;
-	ids[2] = e->e_id+128;
+	BDB_IDL_ID( bdb, ids, e->e_id );
 	rc = 0;
 #endif
 
@@ -447,46 +452,3 @@ static int search_candidates(
 
 	return rc;
 }
-
-static ID idl_first( ID *ids, ID *cursor )
-{
-	ID pos;
-
-	if ( ids[0] == 0 ) {
-		*cursor = NOID;
-		return NOID;
-	}
-
-	if ( BDB_IDL_IS_RANGE( ids ) ) {
-		if( *cursor < ids[1] ) {
-			*cursor = ids[1];
-		}
-		return *cursor;
-	}
-
-	pos = bdb_idl_search( ids, *cursor );
-
-	if( pos > ids[0] ) {
-		return NOID;
-	}
-
-	*cursor = pos;
-	return ids[pos];
-}
-
-static ID idl_next( ID *ids, ID *cursor )
-{
-	if ( BDB_IDL_IS_RANGE( ids ) ) {
-		if( ids[2] < ++(*cursor) ) {
-			return NOID;
-		}
-		return *cursor;
-	}
-
-	if ( *cursor < ids[0] ) {
-		return ids[(*cursor)++];
-	}
-
-	return NOID;
-}
-

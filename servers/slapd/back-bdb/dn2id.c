@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "idl.h"
 
 int
 bdb_dn2id_add(
@@ -347,3 +348,47 @@ bdb_dn2id_children(
 
 	return rc;
 }
+
+int
+bdb_dn2idl(
+	BackendDB	*be,
+	const char	*dn,
+	int prefix,
+	ID *ids )
+{
+	int		rc;
+	DBT		key, data;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn, 0, 0 );
+
+	DBTzero( &key );
+	key.size = strlen( dn ) + 2;
+	key.data = ch_malloc( key.size );
+	((char *)key.data)[0] = prefix;
+	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+
+	/* store the ID */
+	DBTzero( &data );
+	data.data = ids;
+	data.ulen = sizeof(ID);
+	data.flags = DB_DBT_USERMEM;
+
+	/* fetch it */
+	rc = db->get( db, NULL, &key, &data, 0 );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb_dn2idl: get failed: %s (%d)\n",
+			db_strerror( rc ), rc, 0 );
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb_dn2idl: id=%ld first=%ld last=%ld\n",
+			ids[0], BDB_IDL_FIRST( ids ), BDB_IDL_LAST( ids ) );
+	}
+
+	ch_free( key.data );
+	return rc;
+}
+

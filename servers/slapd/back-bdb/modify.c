@@ -25,7 +25,9 @@ int bdb_modify_internal(
 	DB_TXN *tid,
 	Modifications *modlist,
 	Entry *e,
-	const char **text )
+	const char **text,
+	char *textbuf,
+	size_t textlen )
 {
 	int rc, err;
 	Modification	*mod;
@@ -116,7 +118,7 @@ int bdb_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( e, save_attrs, text );
+	rc = entry_schema_check( e, save_attrs, text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
@@ -154,6 +156,8 @@ bdb_modify(
 	Entry		*e;
 	int		manageDSAit = get_manageDSAit( op );
 	const char *text = NULL;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 	DB_TXN	*ltid;
 	struct bdb_op_info opinfo;
 
@@ -256,7 +260,8 @@ retry:	/* transaction retry */
 	}
 	
 	/* Modify the entry */
-	rc = bdb_modify_internal( be, conn, op, ltid, modlist, e, &text );
+	rc = bdb_modify_internal( be, conn, op, ltid, modlist, e,
+		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
