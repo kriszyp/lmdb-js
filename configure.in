@@ -235,6 +235,9 @@ AC_PROG_INSTALL
 AM_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
 
+AC_PROG_AWK
+AC_PROG_LN_S
+
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
@@ -251,7 +254,7 @@ if test $ol_enable_perl = yes ; then
 	SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e perl_inc`"
 fi
 
-dnl Checks the compiler and UNIX Variants
+AC_PROG_CPP
 
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
 	AC_MSG_WARN([cross compiling....  some functionality will be removed.])
@@ -265,11 +268,16 @@ elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
 	AC_MSG_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
-AC_PROG_CPP
-
+dnl Checks for UNIX Variants
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
+
+dnl Checks for system services
+AC_CYGWIN
+AC_MINGW32
+AC_EXEEXT
+AC_OBJEXT
 
 dnl OpenLDAP requires STDC features
 AM_PROG_CC_STDC
