@@ -186,6 +186,7 @@ Re_parse(
 	case T_DN:
 	    re->re_dn = ch_malloc( len + 1 );
 		memcpy( re->re_dn, value, len );
+		re->re_dn[ len ]='\0';
 	    state |= GOT_DN;
 	    break;
 	default:
@@ -227,6 +228,7 @@ Re_parse(
 	if ( value != NULL ) {
 	    re->re_mods[ nml ].mi_val = ch_malloc( len + 1 );
 		memcpy( re->re_mods[ nml ].mi_val, value, len );
+		re->re_mods[ nml ].mi_val[ len ] = '\0';
 	    re->re_mods[ nml ].mi_len = len;
 	} else {
 	    re->re_mods[ nml ].mi_val = NULL;
