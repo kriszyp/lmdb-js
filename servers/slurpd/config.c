@@ -173,11 +173,11 @@ strtok_quote(
 	    } else {
 		inquote = 1;
 	    }
-	    strcpy( next, next + 1 );
+	    SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 	    break;
 
 	case '\\':
-	    strcpy( next, next + 1 );
+	    SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 	    break;
 
 	default:

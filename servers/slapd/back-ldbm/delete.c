@@ -67,6 +67,7 @@ ldbm_back_delete(
 	/* XXX delete from parent's id2children entry XXX */
 	pdn = dn_parent( be, dn );
 	p = dn2entry_r( be, pdn, &matched );
+	free( pdn );
 	if ( id2children_remove( be, p, e ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "","" );
                 goto error_return;

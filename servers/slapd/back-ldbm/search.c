@@ -237,6 +237,10 @@ ldbm_back_search(
 							nrefs > 0 ? rbuf : NULL, nentries );
 						idl_free( candidates );
 						free( rbuf );
+
+						if( realBase != NULL) {
+							free( realBase );
+						}
 						return( 0 );
 					}
 
@@ -266,6 +270,10 @@ ldbm_back_search(
 						cache_return_entry_r( &li->li_cache, e );
 						idl_free( candidates );
 						free( rbuf );
+
+						if( realBase != NULL) {
+							free( realBase );
+						}
 						return( 0 );
 					}
 				}
@@ -414,7 +422,7 @@ subtree_candidates(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	Filter		*f;
+	Filter		*f, **filterarg_ptr;
 	IDList		*candidates;
 
 	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: %s\n",
@@ -454,7 +462,8 @@ subtree_candidates(
 		/* Patch to use normalized uppercase */
 		f->f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
 		f->f_or->f_avvalue.bv_len = strlen( "REFERRAL" );
-		f->f_or->f_next = filter;
+		filterarg_ptr = &f->f_or->f_next;
+		*filterarg_ptr = filter;
 		filter = f;
 
 		if ( ! be_issuffix( be, base ) ) {
@@ -477,7 +486,7 @@ subtree_candidates(
 
 	/* free up just the parts we allocated above */
 	if ( f != NULL ) {
-		f->f_and->f_next = NULL;
+		*filterarg_ptr = NULL;
 		filter_free( f );
 	}
 

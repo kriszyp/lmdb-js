@@ -10,9 +10,13 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
@@ -311,7 +315,7 @@ de_crypt( char *s )
     char *p;
 
     if ( strncmp( s, "{CRYPT}", 7 ) == 0 ) {
-	strcpy( s, s + 7 );			/* strip off "{CRYPT}" */
+	SAFEMEMCPY( s, s + 7, strlen( s + 7 ) + 1 ); /* strip off "{CRYPT}" */
 
 	for ( p = s; *p != '\0'; ++p) {		/* "decrypt" each byte */
 	    if ( *p != CRYPT_MASK ) {

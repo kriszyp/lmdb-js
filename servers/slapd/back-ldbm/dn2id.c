@@ -189,6 +189,9 @@ dn2entry(
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
 		/* get entry with reader lock */
 		if ( (e = dn2entry_r( be, pdn, matched )) != NULL ) {
+			if(*matched != NULL) {
+				free(*matched);
+			}
 			*matched = pdn;
 			/* free entry with reader lock */
 			cache_return_entry_r( &li->li_cache, e );

@@ -71,6 +71,7 @@ do_add( Connection *conn, Operation *op )
 		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "decoding error" );
+			free( dn );
 			entry_free( e );
 			return;
 		}
@@ -80,6 +81,8 @@ do_add( Connection *conn, Operation *op )
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    NULL );
+			free( type );
+			free( dn );
 			entry_free( e );
 			return;
 		}
@@ -98,7 +101,9 @@ do_add( Connection *conn, Operation *op )
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( dn )) == NULL ) {
+	be = select_backend( dn );
+	free( dn );
+	if ( be == NULL ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );

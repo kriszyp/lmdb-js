@@ -268,6 +268,7 @@ main( int argc, char **argv )
 				/* log and send error */
 				Debug( LDAP_DEBUG_ANY,
 				   "ber_get_int returns 0x%lx\n", tag, 0, 0 );
+				ber_free( &ber, 1 );
 				return 1;
 			}
 

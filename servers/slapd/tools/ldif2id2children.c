@@ -214,6 +214,8 @@ main( int argc, char **argv )
 			line[0] = '\0';
 		}
 	}
+	if ( buf )
+		free( buf );
 
 	/*
 	 * next, make the id2children index
