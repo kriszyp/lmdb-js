@@ -218,7 +218,7 @@ static Listener * open_listener( const char* url )
 	}
 
 #ifndef HAVE_TLS
-	if( ldap_is_ldaps_url( lud ) ) {
+	if( ldap_is_ldaps_url( url ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: TLS not supported (%s)\n",
 			url, 0, 0 );
@@ -231,7 +231,7 @@ static Listener * open_listener( const char* url )
 	}
 
 #else
-	l.sl_is_tls = ldap_is_ldaps_url( lud );
+	l.sl_is_tls = ldap_is_ldaps_url( url );
 
 	if(! lud->lud_port ) {
 		lud->lud_port = l.sl_is_tls ? LDAPS_PORT : LDAP_PORT;
