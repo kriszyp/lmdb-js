@@ -48,6 +48,15 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@URI1@;${URI1};"	\
 	-e "s;@URI2@;${URI2};"	\
 	-e "s;@URI3@;${URI3};"	\
+	-e "s;@URI4@;${URI4};"	\
+	-e "s;@URI5@;${URI5};"	\
+	-e "s;@URI6@;${URI6};"	\
+	-e "s;@PORT1@;${PORT1};"	\
+	-e "s;@PORT2@;${PORT2};"	\
+	-e "s;@PORT3@;${PORT3};"	\
+	-e "s;@PORT4@;${PORT4};"	\
+	-e "s;@PORT5@;${PORT5};"	\
+	-e "s;@PORT6@;${PORT6};"	\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"	\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   

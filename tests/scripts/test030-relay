@@ -156,16 +156,16 @@ changetype: add
 objectclass: referral
 objectclass: extensibleObject
 ou: Referrals
-ref: ${URI1}ou=Referrals,$BASEDN
-description: Just added as ${URI1}ou=Referrals,$BASEDN
+ref: ldap://localhost.localdomain/ou=Referrals,$BASEDN
+description: Just added as ldap://localhost.localdomain/ou=Referrals,$BASEDN
 
 dn: ou=Referrals,$BASEDN
 changetype: modify
 replace: ref
-ref: ${URI2}ou=Referrals,$BASEDN
+ref: ldap://ldap.example.com/ou=Referrals,$BASEDN
 -
 add: description
-description: ...and modified as ${URI2}ou=Referrals,$BASEDN
+description: ...and modified as ldap://ldap.example.com/ou=Referrals,$BASEDN
 -
 EOMODS
 
@@ -187,7 +187,7 @@ fi
 
 FILTER="(objectClass=referral)"
 echo "searching filter=\"$FILTER\""
-echo "	attrs=\"'*' ref\"..."
+echo "	attrs=\"'*' ref\""
 
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."
@@ -225,8 +225,8 @@ fi
 BASEDN="o=Example,c=US"
 FILTER="(seeAlso=cn=all staff,ou=Groups,$BASEDN)"
 echo "searching filter=\"$FILTER\""
-echo "	attrs=\"seeAlso\"..."
-echo "	base=\"$BASEDN\""
+echo "	attrs=\"seeAlso\""
+echo "	base=\"$BASEDN\"..."
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" seeAlso \
 	>> $SEARCHOUT 2>&1
 RC=$?

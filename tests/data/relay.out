@@ -2051,28 +2051,31 @@ dn: ou=Referrals,dc=example,dc=com
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
-description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
- c=DE
-ref: ldap://localhost:9012/ou=Referrals,dc=example,dc=com??base
+description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
+ l,c=DE
+description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
+ l,c=DE
+ref: ldap://ldap.example.com:389/ou=Referrals,dc=example,dc=com??base
 
 dn: ou=Referrals,o=Example,c=US
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
-description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
- c=DE
-ref: ldap://localhost:9012/ou=Referrals,o=Example,c=US??base
+description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
+ l,c=DE
+description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
+ l,c=DE
+ref: ldap://ldap.example.com:389/ou=Referrals,o=Example,c=US??base
 
 dn: ou=Referrals,o=Esempio,c=IT
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
-description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
- c=DE
-ref: ldap://localhost:9012/ou=Referrals,o=Esempio,c=IT??base
+description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
+ l,c=DE
+description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
+ l,c=DE
+ref: ldap://ldap.example.com:389/ou=Referrals,o=Esempio,c=IT??base
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Example,c
  =US
