@@ -195,6 +195,12 @@ print_an_entry( void )
 	if (debug & D_TRACE)
 		printf("->print_an_entry()\n");
 #endif
+
+	if( Entry.name == NULL ) {
+		printf(" No Entry\n");
+		return;
+	}
+
 	printf(" \"%s\"\n", Entry.name);
 	
 	/*
