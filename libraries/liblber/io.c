@@ -500,16 +500,14 @@ ber_get_next(
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
 		(char *)(&ber->ber_usertag + 1)) {
-		ber_slen_t i;
+		ber_slen_t sblen;
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
-		if ((i=ber_int_sb_read( sb, ber->ber_rwptr,
-			(char *)(&ber->ber_usertag+1)-ber->ber_rwptr))<=0) {
-			return LBER_DEFAULT;
-		}
-
-		ber->ber_rwptr += i;
+		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
+			(char *)(&ber->ber_usertag+1)-ber->ber_rwptr);
+		if (sblen<=0) return LBER_DEFAULT;
+		ber->ber_rwptr += sblen;
 
 		/* We got at least one byte, try to parse the tag. */
 		if (ber->ber_ptr == (char *)&ber->ber_len-1) {
@@ -517,6 +515,7 @@ ber_get_next(
 			unsigned char *p = (unsigned char *)ber->ber_ptr;
 			tag = *p++;
 			if ((tag & LBER_BIG_TAG_MASK) == LBER_BIG_TAG_MASK) {
+				ber_len_t i;
 				for (i=1; (char *)p<ber->ber_rwptr; i++,p++) {
 					tag <<= 8;
 					tag |= *p;
@@ -537,11 +536,12 @@ ber_get_next(
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
 
-			if (i == 1) continue;
+			if (sblen == 1) continue;
 		}
 
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
+			ber_len_t i;
 			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
 			if (llen > (int)sizeof(ber_len_t)) {
 				errno = ERANGE;
@@ -551,23 +551,27 @@ ber_get_next(
 			if (ber->ber_rwptr - ber->ber_ptr < llen) {
 				return LBER_DEFAULT;
 			}
-			for (i=0; i<llen && ber->ber_ptr<ber->ber_rwptr; i++,ber->ber_ptr++) {
+			for (i=0;
+				i<llen && ber->ber_ptr<ber->ber_rwptr;
+				i++,ber->ber_ptr++)
+			{
 				tlen <<=8;
 				tlen |= *(unsigned char *)ber->ber_ptr;
 			}
 		} else {
 			tlen = *(unsigned char *)ber->ber_ptr++;
 		}
+
 		/* Are there leftover data bytes inside ber->ber_len? */
 		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
 			if (ber->ber_rwptr < (char *)&ber->ber_usertag)
-				i = ber->ber_rwptr - ber->ber_ptr;
+				sblen = ber->ber_rwptr - ber->ber_ptr;
 			else
-				i = (char *)&ber->ber_usertag - ber->ber_ptr;
-			AC_MEMCPY(buf, ber->ber_ptr, i);
-			ber->ber_ptr += i;
+				sblen = (char *)&ber->ber_usertag - ber->ber_ptr;
+			AC_MEMCPY(buf, ber->ber_ptr, sblen);
+			ber->ber_ptr += sblen;
 		} else {
-			i = 0;
+			sblen = 0;
 		}
 		ber->ber_len = tlen;
 
@@ -577,7 +581,9 @@ ber_get_next(
 		if ( ber->ber_len == 0 ) {
 			errno = ERANGE;
 			return LBER_DEFAULT;
-		} else if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
+		}
+
+		if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BER, ERR, 
 				"ber_get_next: sockbuf_max_incoming limit hit "
@@ -597,7 +603,7 @@ ber_get_next(
 			 * make sure ber->ber_len agrees with what we've
 			 * already read.
 			 */
-			if ( ber->ber_len < i + l ) {
+			if ( ber->ber_len < sblen + l ) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
@@ -606,19 +612,19 @@ ber_get_next(
 				return LBER_DEFAULT;
 			}
 			ber->ber_end = ber->ber_buf + ber->ber_len;
-			if (i) {
-				AC_MEMCPY(ber->ber_buf, buf, i);
+			if (sblen) {
+				AC_MEMCPY(ber->ber_buf, buf, sblen);
 			}
 			if (l > 0) {
-				AC_MEMCPY(ber->ber_buf + i, ber->ber_ptr, l);
-				i += l;
+				AC_MEMCPY(ber->ber_buf + sblen, ber->ber_ptr, l);
+				sblen += l;
 			}
 			ber->ber_ptr = ber->ber_buf;
 			ber->ber_usertag = 0;
-			if ((ber_len_t)i == ber->ber_len) {
+			if ((ber_len_t)sblen == ber->ber_len) {
 				goto done;
 			}
-			ber->ber_rwptr = ber->ber_buf + i;
+			ber->ber_rwptr = ber->ber_buf + sblen;
 		}
 	}
 
@@ -630,8 +636,7 @@ ber_get_next(
 		assert( to_go > 0 );
 		
 		res = ber_int_sb_read( sb, ber->ber_rwptr, to_go );
-		if (res<=0)
-			return LBER_DEFAULT;
+		if (res<=0) return LBER_DEFAULT;
 		ber->ber_rwptr+=res;
 		
 		if (res<to_go) {
