@@ -55,7 +55,7 @@ starttls_extop (
 		|| ctx == NULL)
 	{
 		if (default_referral != NULL) {
-			/* caller will put the referral into the result */
+			/* caller will put the referral in the result */
 			rc = LDAP_REFERRAL;
 			goto done;
 		}
