@@ -729,25 +729,38 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ( manageDSAit ) {
-		int err;
-		LDAPControl c;
-		LDAPControl *ctrls[2];
-		ctrls[0] = &c;
-		ctrls[1] = NULL;
+	if ( manageDSAit || noop ) {
+		int err, i = 0;
+		LDAPControl c1, c2;
+		LDAPControl *ctrls[3];
 
-		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-		c.ldctl_value.bv_val = NULL;
-		c.ldctl_value.bv_len = 0;
-		c.ldctl_iscritical = manageDSAit > 1;
+		if ( manageDSAit ) {
+			ctrls[i++] = &c1;
+			ctrls[i] = NULL;
+			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c1.ldctl_value.bv_val = NULL;
+			c1.ldctl_value.bv_len = 0;
+			c1.ldctl_iscritical = manageDSAit > 1;
+		}
 
+		if ( noop ) {
+			ctrls[i++] = &c2;
+			ctrls[i] = NULL;
+
+			c2.ldctl_oid = LDAP_CONTROL_NOOP;
+			c2.ldctl_value.bv_val = NULL;
+			c2.ldctl_value.bv_len = 0;
+			c2.ldctl_iscritical = noop > 1;
+		}
+	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
-				c.ldctl_iscritical ? "critical " : "" );
-			if( c.ldctl_iscritical ) {
-				exit( EXIT_FAILURE );
+			fprintf( stderr, "Could not set %scontrols\n",
+				(c1.ldctl_iscritical || c2.ldctl_iscritical)
+				? "critical " : "" );
+			if ( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				return EXIT_FAILURE;
 			}
 		}
 	}

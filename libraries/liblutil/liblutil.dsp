@@ -204,6 +204,10 @@ SOURCE=.\ntservice.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\passfile.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
