@@ -384,10 +384,12 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
 	  || LDAP_DN_QUOTES(c) || (c) == '<' || (c) == '>' )
+#define LDAP_DN_MAYESCAPE(c) \
+	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) \
+	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
 #define LDAP_DN_NEEDESCAPE(c) \
 	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) )
-#define LDAP_DN_NEEDESCAPE_LEAD(c) \
-	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) || LDAP_DN_NE(c) )
+#define LDAP_DN_NEEDESCAPE_LEAD(c) 	LDAP_DN_MAYESCAPE(c)
 #define LDAP_DN_NEEDESCAPE_TRAIL(c) \
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
 #define LDAP_DN_WILLESCAPE_CHAR(c) \
@@ -1242,9 +1244,7 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 			if ( p[ 0 ] == '\0' ) {
 				return( 1 );
 			}
-			if ( ( p == startPos + 1 && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
-					|| ( LDAP_DN_VALUE_END( p[ 1 ] ) && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
-					|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+			if ( LDAP_DN_MAYESCAPE( p[ 0 ] ) ) {
 				escapes++;
 				continue;
 			}
@@ -1340,9 +1340,7 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 		for ( s = 0, d = 0; d < len; ) {
 			if ( LDAP_DN_ESCAPE( startPos[ s ] ) ) {
 				s++;
-				if ( ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( startPos[ s ] ) )
-						|| ( s == len - 1 && LDAP_DN_NEEDESCAPE_TRAIL( startPos[ s ] ) )
-						|| LDAP_DN_NEEDESCAPE( startPos[ s ] ) ) {
+				if ( LDAP_DN_MAYESCAPE( startPos[ s ] ) ) {
 					val->bv_val[ d++ ] = 
 						startPos[ s++ ];
 					
