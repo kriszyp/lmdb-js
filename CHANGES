@@ -1,29 +1,33 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.9 Engineering
-	Fixed slapd syncrepl replication bugs
+	Fixed slapd syncrepl replication bugs (ITS#3055,3056,3069)
 	Fixed slapd slurpd update bugs
 	Fixed slapd inappropriate bind error disclosure bugs
 	Fixed slapd sun_path portability bug
 	Fixed slapd passwd referral memory leak
 	Fixed slapd sasl userdb checkpass bug (ITS#3048)
-	Fixed slapd duplicate value detection
-	Fixed slapd permissive modify control
+	Fixed slapd duplicate value detection (ITS#3066)
+	Fixed slapd permissive modify control (ITS#3068)
+	Fixed slapd updateref handling
+	Fixed back-bdb "" suffix bug (ITS#3063)
+	Fixed back-bdb/hdb/ldbm approx w/o index bug (ITS#3062)
 	Fixed back-meta compare return code (ITS#3042)
 	Fixed back-ldbm IDL delete bug (ITS#3046)
 	Fixed back-ldbm modrdn indexing bug (ITS#3059)
 	Fixed libldap parse_oid core dump bug (ITS#3065)
 	Fixed ldapmodify missing error information bug (ITS#3057)
 	Fixed ldapsearch paged results error handling
+	Updated slapd limits
+	Updated slapd overlay framework
 	Added slapd Delivery Method syntax validation (ITS#3052)
 	Added libldap ditContentRule oidMacro support (ITS#2920)
-	Updated slapd overlay framework
 	Build Environment
+		Fixed slapd dynamic backend build (ITS#3044)
+		Fixed slaptools DESTDIR handling (ITS#3070)
+		Removed deprecated configure options
 		Updated configure backend/overlay options
 		  Requires changes in module configuration practices
-		Fixed slaptools DESTDIR handling
-		Fixed slapd dynamic backend build (ITS#3044)
-		Removed deprecated configure options
 
 OpenLDAP 2.2.8 Release
 	Fixed slapd/slapadd syncrepl bugs (ITS#2948,2995)
