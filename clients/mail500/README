@@ -38,6 +38,8 @@ R$+%$+<@umich.edu>                 $>10$1%$2<@>
 R$+!$+<@umich.edu>                 $>10$1!$2<@>
 
 See the sample sendmail.cf in this directory for more details.
+For sendmail 8.9 (and later) users can use MAILER(mail500) if
+mail500.m4 is placed within sendmail's cf/mailer directory.
 
 The mail500 mailer should be defined similar to this in the
 sendmail.cf file:
