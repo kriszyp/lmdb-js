@@ -1858,8 +1858,8 @@ certificateExactConvert(
 			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: "
-		       "error parsing cert: %s\n",
-		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
+			"error parsing cert: %s\n",
+			ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
 #endif
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -1869,7 +1869,7 @@ certificateExactConvert(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	rc = dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn );
+	rc = dnX509normalize( X509_get_issuer_name(xcert), &issuer_dn );
 	if( rc != LDAP_SUCCESS ) {
 		X509_free(xcert);
 		ber_memfree(serial.bv_val);
@@ -1890,11 +1890,10 @@ certificateExactConvert(
 	*p++ = '\0';
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ARGS, 
-		"certificateExactConvert: \n	%s\n", out->bv_val, 0, 0 );
+	LDAP_LOG( CONFIG, ARGS, "certificateExactConvert: %s\n",
+		out->bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert "
-		"\n\t\"%s\"\n",
+	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: %s\n",
 		out->bv_val, NULL, NULL );
 #endif
 
