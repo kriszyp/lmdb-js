@@ -33,6 +33,7 @@
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 #include "ldap_log.h"
+#include "ldap_pvt.h"
 
 #include "common.h"
 
@@ -356,7 +357,8 @@ handle_private_option( int i )
                                 cvalue = cookiep;
                                 slimitp = strchr( cvalue, '/' );
                                 *slimitp++ = '\0';
-                                while ( isspace( *cookiep ) ) cookiep++;
+                                while ( isspace( (unsigned char) *cookiep ) )
+                                    cookiep++;
                                 ber_str2bv( cookiep, 0, 0, &lcup_cookie );
                                 lcup_slimit = atoi( slimitp );
 /*
