@@ -523,6 +523,8 @@ int get_ctrls(
 
 			c->ldctl_iscritical = (crit != 0);
 			tag = ber_peek_tag( ber, &len );
+		} else {
+			c->ldctl_iscritical = 0;
 		}
 
 		if( tag == LBER_OCTETSTRING ) {
@@ -539,6 +541,8 @@ int get_ctrls(
 				rs->sr_text = "decoding controls error";
 				goto return_results;
 			}
+		} else {
+			BER_BVZERO( &c->ldctl_value );
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
