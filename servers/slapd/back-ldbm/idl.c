@@ -913,6 +913,9 @@ idl_intersection(
 	if ( ID_BLOCK_ALLIDS( b ) ) {
 		return( idl_dup( a ) );
 	}
+	if ( ID_BLOCK_NIDS(a) == 0 || ID_BLOCK_NIDS(b) == 0 ) {
+		return( NULL );
+	}
 
 	n = idl_dup( idl_min( a, b ) );
 
@@ -921,24 +924,21 @@ idl_intersection(
 	idl_check(b);
 #endif
 
-	for ( ni = 0, ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a); ai++ ) {
-		if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
-			continue;
-		}
-		for ( ;
-			bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai);
-			bi++ )
-		{
-			;	/* NULL */
-		}
-
-		if ( bi == ID_BLOCK_NIDS(b) ) {
-			break;
-		}
-
+	for ( ni = 0, ai = 0, bi = 0; ; ) {
 		if ( ID_BLOCK_ID(b, bi) == ID_BLOCK_ID(a, ai) ) {
 			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
 			bi++;
+			ai++;
+			if ( ai >= ID_BLOCK_NIDS(a) || bi >= ID_BLOCK_NIDS(b) )
+				break;
+		} else if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
+			ai++;
+			if ( ai >= ID_BLOCK_NIDS(a) )
+				break;
+		} else {
+			bi++;
+			if ( bi >= ID_BLOCK_NIDS(b) )
+				break;
 		}
 	}
 
