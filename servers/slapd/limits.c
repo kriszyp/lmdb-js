@@ -1048,7 +1048,7 @@ limits_check( Operation *op, SlapReply *rs )
 		}
 
 		/* if paged results is requested */	
-		if ( get_pagedresults( op ) ) {
+		if ( get_pagedresults( op ) > SLAP_NO_CONTROL ) {
 			int	slimit = -2;
 			int	pr_total;
 

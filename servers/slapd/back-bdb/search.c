@@ -754,7 +754,7 @@ dn2entry_retry:
 		tentries = BDB_IDL_N(candidates);
 	}
 
-	if ( get_pagedresults(sop) ) {
+	if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
 		if ( (ID)( sop->o_pagedresults_state.ps_cookie ) == 0 ) {
 			id = bdb_idl_first( candidates, &cursor );
 
@@ -1133,7 +1133,7 @@ id2entry_retry:
 				goto done;
 			}
 
-			if ( get_pagedresults(sop) ) {
+			if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
 					send_paged_response( sop, rs, &lastid, tentries );
 					goto done;
@@ -1456,7 +1456,7 @@ nochange:
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
 			rs->sr_rspoid = NULL;
-			if ( get_pagedresults(sop) ) {
+			if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
 				send_paged_response( sop, rs, NULL, 0 );
 			} else {
 				send_ldap_result( sop, rs );
