@@ -136,11 +136,58 @@ presence_candidates(
 )
 {
 	ID_BLOCK	*idl;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	DBCache	*db;
+	int rc;
+	char *dbname;
+	slap_index mask;
+	struct berval *prefix;
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	idl = idl_allids( be );
+
+	rc = index_param( be, desc, LDAP_FILTER_PRESENT,
+		&dbname, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	if( dbname == NULL ) {
+		/* not indexed */
+		return idl;
+	}
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= presense_candidates db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		return idl;
+	}
+
+	if( prefix != NULL ) {
+		idl_free( idl );
+		idl = NULL;
+
+		rc = key_read( be, db, prefix, &idl );
+
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates key read failed (%d)\n",
+			    rc, 0, 0 );
+
+		} else if( idl == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates NULL\n",
+			    0, 0, 0 );
+		}
+	}
+
+	ldbm_cache_close( be, db );
+
 #else
 	idl = index_read( be, desc, SLAP_INDEX_PRESENT, NULL );
 #endif
@@ -217,12 +264,6 @@ equality_candidates(
 		Debug( LDAP_DEBUG_ANY,
 		    "<= equality_candidates db open failed (%s%s)\n",
 			dbname, LDBM_SUFFIX, 0 );
-		return idl;
-	}
-
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "<= equality_candidates open failed (%d)\n",
-		    rc, 0, 0 );
 		return idl;
 	}
 
@@ -344,12 +385,6 @@ approx_candidates(
 		Debug( LDAP_DEBUG_ANY,
 		    "<= approx_candidates db open failed (%s%s)\n",
 			dbname, LDBM_SUFFIX, 0 );
-		return idl;
-	}
-
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "<= approx_candidates open failed (%d)\n",
-		    rc, 0, 0 );
 		return idl;
 	}
 
