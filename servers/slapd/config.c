@@ -118,7 +118,6 @@ read_config( const char *fname, int depth )
 	struct berval vals[2];
 	char *replicahost;
 	LDAPURLDesc *ludp;
-	static int lastmod = 1;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
 
@@ -2311,18 +2310,36 @@ restrict_unknown:;
 
 				return( 1 );
 			}
+
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: lastmod"
+					" line must appear inside a database definition\n",
+					fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: lastmod"
+					" line must appear inside a database definition\n",
+					fname, lineno, 0 );
+#endif
+				return 1;
+
+			} else if ( SLAP_NOLASTMODCMD(be) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: lastmod"
+					" not available for %s database\n",
+					fname, lineno , be->bd_info->bi_type );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: lastmod"
+					" not available for %s databases\n",
+					fname, lineno, be->bd_info->bi_type );
+#endif
+				return 1;
+			}
+
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
-				if ( be ) {
-					SLAP_DBFLAGS(be) &= ~SLAP_DBFLAG_NOLASTMOD;
-				} else {
-					lastmod = 1;
-				}
+				SLAP_DBFLAGS(be) &= ~SLAP_DBFLAG_NOLASTMOD;
 			} else {
-				if ( be ) {
-					SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
-				} else {
-					lastmod = 0;
-				}
+				SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 			}
 
 #ifdef SIGHUP

@@ -1860,6 +1860,7 @@ struct slap_backend_info {
 
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
 #define SLAP_BFLAG_REFERRALS		0x2000U
@@ -1873,6 +1874,8 @@ struct slap_backend_info {
 #define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
 #define SLAP_SUBENTRIES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_SUBENTRIES)
 #define SLAP_DYNAMIC(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_DYNAMIC)
+#define SLAP_NOLASTMODCMD(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_NOLASTMODCMD)
+#define SLAP_LASTMODCMD(be)	(!SLAP_NOLASTMODCMD(be))
 
 	char **bi_controls;		/* supported controls */
 
@@ -2376,8 +2379,7 @@ enum {
 #endif
 
 #define SLAP_CTRL_FRONTEND			0x00800000U
-#define SLAP_CTRL_FRONTEND_SEARCH		0x00010000U	/* for NOOP */
-#define SLAP_CTRL_IGNORE			0x00020000U
+#define SLAP_CTRL_FRONTEND_SEARCH	0x00010000U	/* for NOOP */
 
 #define SLAP_CTRL_OPFLAGS			0x0000FFFFU
 #define SLAP_CTRL_ABANDON			0x00000001U
