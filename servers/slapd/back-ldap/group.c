@@ -176,12 +176,12 @@ ldap_back_group(
 		goto cleanup;
 	}
 
-	ptr = slap_strcopy(filter, "(&(objectclass=");
-	ptr = slap_strcopy(ptr, group_oc_name.bv_val);
-	ptr = slap_strcopy(ptr, ")(");
-	ptr = slap_strcopy(ptr, group_at_name.bv_val);
-	ptr = slap_strcopy(ptr, "=");
-	ptr = slap_strcopy(ptr, mop_ndn.bv_val);
+	ptr = lutil_strcopy(filter, "(&(objectclass=");
+	ptr = lutil_strcopy(ptr, group_oc_name.bv_val);
+	ptr = lutil_strcopy(ptr, ")(");
+	ptr = lutil_strcopy(ptr, group_at_name.bv_val);
+	ptr = lutil_strcopy(ptr, "=");
+	ptr = lutil_strcopy(ptr, mop_ndn.bv_val);
 	strcpy(ptr, "))");
 
 	gattr[0] = "objectclass";

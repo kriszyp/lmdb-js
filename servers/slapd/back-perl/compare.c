@@ -48,7 +48,7 @@ perl_back_compare(
 	avastr = ch_malloc( ava->aa_desc->ad_cname.bv_len + 1 +
 		ava->aa_value.bv_len + 1 );
 	
-	slap_strcopy( slap_strcopy( slap_strcopy( avastr,
+	lutil_strcopy( lutil_strcopy( lutil_strcopy( avastr,
 		ava->aa_desc->ad_cname.bv_val ), "=" ),
 		ava->aa_value.bv_val );
 

@@ -211,38 +211,3 @@ charray_strcasecmp( const char **a1, const char **a2 )
 
 	return 0;
 }
-
-/* strcopy is like strcpy except it returns a pointer to the trailing NUL of
- * the result string. This allows fast construction of catenated strings
- * without the overhead of strlen/strcat.
- */
-char *
-slap_strcopy(
-	char *a,
-	const char *b
-)
-{
-	if (!a || !b)
-		return a;
-	
-	while ((*a++ = *b++)) ;
-	return a-1;
-}
-
-/* strncopy is like strcpy except it returns a pointer to the trailing NUL of
- * the result string. This allows fast construction of catenated strings
- * without the overhead of strlen/strcat.
- */
-char *
-slap_strncopy(
-	char *a,
-	const char *b,
-	size_t n
-)
-{
-	if (!a || !b || n == 0)
-		return a;
-	
-	while ((*a++ = *b++) && n-- > 0) ;
-	return a-1;
-}

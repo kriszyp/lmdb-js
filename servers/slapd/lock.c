@@ -27,7 +27,7 @@ lock_fopen( const char *fname, const char *type, FILE **lfp )
 	char	buf[MAXPATHLEN];
 
 	/* open the lock file */
-	strcpy(slap_strcopy( buf, fname ), ".lock" );
+	strcpy(lutil_strcopy( buf, fname ), ".lock" );
 	if ( (*lfp = fopen( buf, "w" )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 

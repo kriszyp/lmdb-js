@@ -400,24 +400,24 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		/* Build the new dn */
 		c1 = dn->bv_val;
 		dn->bv_val = ch_malloc( len+1 );
-		p = slap_strcopy( dn->bv_val, "uid=" );
-		p = slap_strncopy( p, c1, dn->bv_len );
+		p = lutil_strcopy( dn->bv_val, "uid=" );
+		p = lutil_strncopy( p, c1, dn->bv_len );
 
 		if( realm ) {
 			int rlen = dn->bv_len - ( realm - c1 );
-			p = slap_strcopy( p, ",cn=" );
-			p = slap_strncopy( p, realm, rlen );
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strncopy( p, realm, rlen );
 			realm[-1] = '@';
 		} else if( user_realm && *user_realm ) {
-			p = slap_strcopy( p, ",cn=" );
-			p = slap_strcopy( p, user_realm );
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strcopy( p, user_realm );
 		}
 
 		if( conn->c_sasl_bind_mech.bv_len ) {
-			p = slap_strcopy( p, ",cn=" );
-			p = slap_strcopy( p, conn->c_sasl_bind_mech.bv_val );
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strcopy( p, conn->c_sasl_bind_mech.bv_val );
 		}
-		p = slap_strcopy( p, ",cn=auth" );
+		p = lutil_strcopy( p, ",cn=auth" );
 		dn->bv_len = p - dn->bv_val;
 
 #ifdef NEW_LOGGING

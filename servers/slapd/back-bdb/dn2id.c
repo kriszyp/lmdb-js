@@ -793,9 +793,9 @@ int bdb_fix_dn(
 	ptr = e->e_name.bv_val;
 	nptr = e->e_nname.bv_val;
 	for (n = o; n && n->i_parent; n=n->i_parent) {
-		ptr = slap_strcopy(ptr, n->i_rdn->rdn.bv_val);
+		ptr = lutil_strcopy(ptr, n->i_rdn->rdn.bv_val);
 		*ptr++ = ',';
-		nptr = slap_strcopy(nptr, n->i_rdn->nrdn.bv_val);
+		nptr = lutil_strcopy(nptr, n->i_rdn->nrdn.bv_val);
 		*nptr++ = ',';
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);

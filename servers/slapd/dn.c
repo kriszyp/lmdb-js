@@ -799,7 +799,7 @@ build_new_dn( struct berval * new_dn,
 	new_dn->bv_len = parent_dn->bv_len + newrdn->bv_len + 1;
 	new_dn->bv_val = (char *) ch_malloc( new_dn->bv_len + 1 );
 
-	ptr = slap_strcopy( new_dn->bv_val, newrdn->bv_val );
+	ptr = lutil_strcopy( new_dn->bv_val, newrdn->bv_val );
 	*ptr++ = ',';
 	strcpy( ptr, parent_dn->bv_val );
 }
