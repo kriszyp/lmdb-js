@@ -360,7 +360,7 @@ ldap_int_open_connection(
 	 * yet anyway.
 	 */
 	if( proto == LDAP_PROTO_IPC ) {
-		char authid[sizeof("uidNumber=XXXXXX,gidNumber=XXXXXX,"
+		char authid[sizeof("uidNumber=4294967295,gidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
 		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
