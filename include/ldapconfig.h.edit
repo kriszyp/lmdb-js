@@ -23,9 +23,11 @@
 #define _LDAP_CONFIG_H
 
 /*
- * config.h for LDAP -- edit this file to customize LDAP client behavior.
- * NO platform-specific definitions should be placed in this file.
- * Note that this IS USED by the LDAP or LBER libraries.
+ * config.h for LDAP -- modify this file to tune OpenLDAP behavior.
+ *
+ * Most settings are set via configure and shouldn't be modified
+ * through this file.
+ *
  */
 
 /*

@@ -47,13 +47,7 @@ these steps:
 	See the 'USING ENVIRONMENT VARIABLES' section for information
 	on how to use the variables. 
 
- 3. review the file include/ldapconfig.h.edit to tune
-    the software for your site.  You will likely not have to
-	modify the file.
-
-	% more include/ldapconfig.h.edit
-
- 4. Configure the build system
+ 3. Configure the build system
 
 	% [env settings] ./configure [options]
 
@@ -61,11 +55,11 @@ these steps:
 	appropriate settings.  Use configure enable/with options and/or
 	environment variables to obtain desired results.
 
- 5. Build dependencies
+ 4. Build dependencies
 
 	% make depend
 
- 6. Build the system
+ 5. Build the system
 
 	% make
 
@@ -75,7 +69,7 @@ these steps:
 	You may want to consult the doc/install/hints file for your
 	platform.
 
- 7. Test the standalone system
+ 6. Test the standalone system
 
 	This step requires the standalone LDAP server (slapd) with
 	LDBM support.
@@ -89,7 +83,7 @@ these steps:
 	You may want to consult the doc/install/hints file for your
 	platform.
 
- 8. install the binaries and man pages.  You may need to be superuser to
+ 7. install the binaries and man pages.  You may need to be superuser to
     do this (depending on where you are installing things):
 
 	% su
