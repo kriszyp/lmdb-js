@@ -4,8 +4,8 @@ SRCDIR="../../../.."
 METADBDIR="./meta-db"
 SLAPADD="$SRCDIR/servers/slapd/tools/slapadd -v"
 
-ADDCONF="./slapd-meta-plain.conf"
-#ADDCONF="./slapd-meta-rewrite.conf"
+#ADDCONF="./slapd-meta-plain.conf"
+ADDCONF="./slapd-meta-rewrite.conf"
 #ADDCONF="./slapd-ldap-rewrite.conf"
 
 LDAPADDCONF="./slapd-ldap-raw.conf"
@@ -17,16 +17,18 @@ DEBUG=0
 
 rm -rf $METADBDIR
 rm -f schema ucdata
+
+sed "s/@PORT@/$PORT/" $ADDCONF > $CONF
+sed "s/@PORT@/$PORT/" $LDAPADDCONF > $LDAPCONF
+
 ln -s "$SRCDIR/servers/slapd/schema" .
 ln -s "$SRCDIR/libraries/liblunicode" ucdata
+
 for i in 1 2 3 ; do
 	echo "Feeding directory $i"
 	mkdir -p "$METADBDIR/$i"
 	$SLAPADD -f $ADDCONF -n $i -l meta-$i.ldif
 done
-
-sed "s/@PORT@/$PORT/" $ADDCONF > $CONF
-sed "s/@PORT@/$PORT/" $LDAPADDCONF > $LDAPCONF
 
 echo ""
 echo "After slapd started, try"

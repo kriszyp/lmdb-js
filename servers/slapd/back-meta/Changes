@@ -63,6 +63,5 @@ Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
 - checked attribute mapping stuff
 
 * Fri May 11 2001 Pierangelo Masarati <ando@sys-net.it>
-- reworked compare to spawn the request on candidate targets (need to check
-  at most one matches!)
+- reworked compare to spawn the request on candidate targets
 
