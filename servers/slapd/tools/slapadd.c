@@ -59,7 +59,7 @@ main( int argc, char **argv )
 
 		/* make sure the DN is valid */
 		if( dn_normalize( e->e_ndn ) == NULL ) {
-			fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
+			fprintf( stderr, "%s: invalid dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
 			entry_free( e );
@@ -67,7 +67,7 @@ main( int argc, char **argv )
 			break;
 		}
 
-		/* make sure the DN is valid */
+		/* make sure the DN is not empty */
 		if( e->e_ndn == '\0' ) {
 			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
@@ -77,7 +77,18 @@ main( int argc, char **argv )
 			break;
 		}
 
-		if( !noschemacheck ) {
+		/* check backend */
+		if( select_backend( e->e_ndn ) != be ) {
+			fprintf( stderr, "%s: database not configured to "
+				"hold dn=\"%s\" (line=%d)\n",
+				progname, e->e_dn, lineno );
+			rc = EXIT_FAILURE;
+			entry_free( e );
+			if( continuemode ) continue;
+			break;
+		}
+
+		if( global_schemacheck ) {
 			/* check schema */
 			const char *text;
 			if ( entry_schema_check( e, NULL, &text ) != LDAP_SUCCESS ) {
@@ -88,20 +99,9 @@ main( int argc, char **argv )
 				if( continuemode ) continue;
 				break;
 			}
-
-			/* check backend */
-			if( select_backend( e->e_ndn ) != be ) {
-				fprintf( stderr, "%s: database not configured to hold dn=\"%s\" (line=%d)\n",
-					progname, e->e_dn, lineno );
-				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
-			}
 		}
 
 		id = be->be_entry_put( be, e );
-
 		if( id == NOID ) {
 			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
@@ -110,7 +110,9 @@ main( int argc, char **argv )
 			if( continuemode ) continue;
 			break;
 
-		} else if ( verbose ) {
+		}
+		
+		if ( verbose ) {
 			fprintf( stderr, "added: \"%s\" (%08lx)\n",
 				e->e_dn, (long) id );
 		}
