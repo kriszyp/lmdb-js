@@ -1542,7 +1542,7 @@ dnl ----------------------------------------------------------------
 dnl Checks for header files.
 OL_HEADER_STDC
 
-if test $ac_cv_header_stdc != yes; then
+if test $ol_cv_header_stdc != yes; then
 	AC_MSG_WARN([could not Standard C compliant headers])
 fi
 
@@ -1669,7 +1669,6 @@ AC_REPLACE_FUNCS(getopt tempnam)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
-OL_SYS_EBCDIC
 OL_SYS_ERRLIST
 
 dnl ----------------------------------------------------------------

@@ -80,10 +80,29 @@ AC_SUBST(LN_H)dnl
 ])dnl
 dnl
 dnl ====================================================================
-dnl OpenLDAP version of STDC header check
+dnl Check if system uses EBCDIC instead of ASCII
+AC_DEFUN([OL_CPP_EBCDIC], [# test for EBCDIC
+AC_MSG_CHECKING([for EBCDIC])
+AC_CACHE_VAL(ol_cv_cpp_ebcdic,[
+	AC_TRY_CPP([
+#if !('M' == 0xd4)
+#include <__ASCII__/generate_error.h>
+#endif
+],
+	[ol_cv_cpp_ebcdic=yes],
+	[ol_cv_cpp_ebcdic=no])])
+AC_MSG_RESULT($ol_cv_cpp_ebcdic)
+if test $ol_cv_cpp_ebcdic != no ; then
+	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
+fi
+])
+dnl
+dnl --------------------------------------------------------------------
+dnl OpenLDAP version of STDC header check w/ EBCDIC support
 AC_DEFUN(OL_HEADER_STDC,
 [AC_REQUIRE_CPP()dnl
-AC_CACHE_CHECK(for ANSI C header files, ol_cv_header_stdc,
+AC_REQUIRE([OL_CPP_EBCDIC])
+AC_CACHE_CHECK([for ANSI C header files], ol_cv_header_stdc,
 [AC_TRY_CPP([#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -102,7 +121,7 @@ fi
 if test $ol_cv_header_stdc = yes; then
   # /bin/cc in Irix-4.0.5 gets non-ANSI ctype macros unless using -ansi.
 AC_TRY_RUN([#include <ctype.h>
-#ifndef EBCDIC
+#ifndef HAVE_EBCDIC
 #	define ISLOWER(c) ('a' <= (c) && (c) <= 'z')
 #	define TOUPPER(c) (ISLOWER(c) ? 'A' + ((c) - 'a') : (c))
 #else
@@ -120,7 +139,6 @@ fi])
 if test $ol_cv_header_stdc = yes; then
   AC_DEFINE(STDC_HEADERS)
 fi
-# disable autoconf test
 ac_cv_header_stdc=disable
 ])
 dnl
@@ -434,28 +452,6 @@ main()
 AC_MSG_RESULT($ol_cv_c_upper_lower)
 if test $ol_cv_c_upper_lower != no ; then
 	AC_DEFINE(C_UPPER_LOWER,1, [define if toupper() requires islower()])
-fi
-])
-dnl
-dnl ====================================================================
-dnl Check if system uses EBCDIC instead of ASCII
-AC_DEFUN([OL_SYS_EBCDIC],
-[
-AC_MSG_CHECKING([for EBCDIC])
-AC_CACHE_VAL(ol_cv_sys_ebcdic,[
-	AC_TRY_RUN([
-main()
-{
-	if ('M' == 0xd4)
-		exit(1);
-	else
-		exit(0);
-}],
-	[ol_cv_sys_ebcdic=no],
-	[ol_cv_sys_ebcdic=yes])])
-AC_MSG_RESULT($ol_cv_sys_ebcdic)
-if test $ol_cv_sys_ebcdic != no ; then
-	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
 fi
 ])
 dnl
