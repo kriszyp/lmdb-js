@@ -56,6 +56,7 @@ main( int argc, char *argv[] )
 		switch (i) {
 		case 'h':	/* scheme */
 			scheme = strdup (optarg);
+			break;
 
 		case 's':	/* new password (secret) */
 			newpw = strdup (optarg);
@@ -63,7 +64,7 @@ main( int argc, char *argv[] )
 			{
 				char* p;
 
-				for( p = optarg; *p == '\0'; p++ ) {
+				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
 				}
 			}

@@ -113,7 +113,7 @@ main(int argc, char **argv)
     infile = NULL;
     not = contoper = verbose = remove = want_bindpw =
 		debug = manageDSAit = referrals = 0;
-    authmethod = LDAP_AUTH_SIMPLE;
+    authmethod = -1;
 	version = -1;
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
@@ -398,7 +398,7 @@ main(int argc, char **argv)
 		{
 			char* p;
 
-			for( p = optarg; *p == '\0'; p++ ) {
+			for( p = optarg; *p != '\0'; p++ ) {
 				*p = '\0';
 			}
 		}
