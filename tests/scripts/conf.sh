@@ -22,7 +22,6 @@ if [ x"$MONITORDB" = x"yes" -o x"$MONITORDB" = xmod ] ; then
 else
 	MON=nomonitor
 fi
-USE_SASL=${SLAPD_USE_SASL+yes}
 if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" = x"yes" ] ; then
 	SASL="sasl"
 else

@@ -22,7 +22,12 @@ if test $BACKLDAP = "ldapno" ; then
 fi 
 
 if test $WITH_SASL = "yes" ; then
-	echo "Using SASL authc/authz..."
+	if test $USE_SASL = "yes" ; then
+		echo "Using SASL authc/authz..."
+	else
+		echo "Using proxyAuthz with simple authc"
+		echo "set SLAPD_USE_SASL=yes to enable SASL authc/authz..."
+	fi
 else
 	echo "SASL not available; using proxyAuthz with simple authc..."
 fi

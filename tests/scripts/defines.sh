@@ -20,6 +20,7 @@ PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 UNIQUE=${AC_unique-uniqueno}
 WITH_SASL=${AC_WITH_SASL-no}
+USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
 
 DATADIR=./testdata
