@@ -809,10 +809,10 @@ id2entry_retry:
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS,
-				"bdb_search: %ld does match filter\n", (long) id, 0, 0);
+				"bdb_search: %ld does not match filter\n", (long) id, 0, 0);
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld does match filter\n",
+				"bdb_search: %ld does not match filter\n",
 				(long) id, 0, 0 );
 #endif
 		}
