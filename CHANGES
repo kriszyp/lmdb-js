@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.10 Engineering
+OpenLDAP 2.1.10 Release
 	Fixed slapd acl/group value_find_ex() bug (ITS#2227)
 	Fixed slapd empty values return filter control bug (ITS#2219)
 	Fixed slapd empty oid control bug
@@ -14,6 +14,8 @@ OpenLDAP 2.1.10 Engineering
 	Updated ldapdelete/ldapmodrdn continue error handling
 	Added back-bdb IDL slab cache  (ITS#2183)
 	Removed lint, etc.
+	Build Environment
+		Update to libtool 1.4.3
 
 OpenLDAP 2.1.9 Release
 	Fixed back-bdb moddn newSuperior bug
