@@ -4,6 +4,7 @@ OpenLDAP 2.0.x Engineering
 	Fixed clients printf/usage bugs (ITS#749)
 	Fixed -lldap SASL interoperability bug
 	Fixed -lldap PF_LOCAL declaration/call bugs
+	Fixed slapd SASL log error (ITS#759)
 	Fixed slapd spasswd support (ITS#751)
 	Updated slurpd SASL support
 	Added slurpd TLS support
