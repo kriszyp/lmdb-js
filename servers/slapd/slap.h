@@ -530,8 +530,8 @@ typedef struct slap_matching_rule {
 	 */
 	struct slap_matching_rule	*smr_associated;
 
-#define SLAP_MR_ASSOCIATED(mr,amr)	(((mr) == (amr)) || \
-	((mr)->smr_associated == (amr)))
+#define SLAP_MR_ASSOCIATED(mr,amr)	\
+	(((mr) == (amr)) || ((mr)->smr_associated == (amr)))
 
 	LDAP_SLIST_ENTRY(slap_matching_rule)smr_next;
 
@@ -1687,18 +1687,23 @@ typedef int (BI_op_add) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_extended) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_chk_referrals) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_entry_release_rw) LDAP_P(( struct slap_op *op, Entry *e, int rw ));
+typedef int (BI_op_extended) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_chk_referrals) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_entry_release_rw)
+	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e ));
-typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs, int opattrs, Attribute **ap ));
-typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op, Entry *e, int *hasSubs ));
+typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs,
+	int opattrs, Attribute **ap ));
+typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
+	Entry *e, int *hasSubs ));
 
-typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
-		struct slap_conn *c));
-typedef int (BI_connection_destroy) LDAP_P((BackendDB *bd,
-		struct slap_conn *c));
+typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
+	struct slap_conn *c ));
+typedef int (BI_connection_destroy) LDAP_P(( BackendDB *bd,
+	struct slap_conn *c ));
 
 typedef int (BI_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
 typedef int (BI_tool_entry_close) LDAP_P(( BackendDB *be ));
@@ -1706,13 +1711,13 @@ typedef ID (BI_tool_entry_first) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_entry_next) LDAP_P(( BackendDB *be ));
 typedef Entry* (BI_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e, 
-			struct berval *text ));
+	struct berval *text ));
 typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
-			struct berval *text ));
+	struct berval *text ));
 
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
@@ -1889,7 +1894,6 @@ typedef struct slap_paged_state {
 	ID ps_id;
 } PagedResultsState;
 
-
 #define LDAP_PSEARCH_BY_ADD			0x01
 #define LDAP_PSEARCH_BY_DELETE		0x02
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
@@ -1917,13 +1921,13 @@ struct slap_session_entry {
 };
 
 struct slap_csn_entry {
-	struct berval *csn;
-	unsigned long opid;
-	unsigned long connid;
+	struct berval *ce_csn;
+	unsigned long ce_opid;
+	unsigned long ce_connid;
 #define SLAP_CSN_PENDING	1
 #define SLAP_CSN_COMMIT		2
-	long state;
-	LDAP_TAILQ_ENTRY (slap_csn_entry) csn_link;
+	long ce_state;
+	LDAP_TAILQ_ENTRY (slap_csn_entry) ce_csn_link;
 };
 
 /*
