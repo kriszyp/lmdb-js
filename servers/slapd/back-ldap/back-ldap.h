@@ -112,7 +112,7 @@ ldap_back_map_filter(
 char **
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
-		char **a,
+		struct berval **a,
 		int remap
 );
 

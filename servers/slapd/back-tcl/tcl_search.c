@@ -45,11 +45,14 @@ tcl_back_search (
 		return (-1);
 	}
 
-	for (i = 0; attrs != NULL && attrs[i] != NULL; i++)
-		charray_add(&sattrs, attrs[i]->bv_val);
+	for (i = 0; attrs != NULL && attrs[i] != NULL; i++);
 	if (i > 0) {
+		sattrs = ch_malloc( (i+1) * sizeof(char *));
+		for (i = 0; attrs[i]; i++)
+			sattrs[i] = attrs[i]->bv_val;
+		sattrs[i] = NULL;
 		attrs_tcl = Tcl_Merge (i, sattrs);
-		charray_free(sattrs);
+		free(sattrs);
 	}
 
 	for (i = 0; be->be_suffix[i] != NULL; i++);

@@ -117,6 +117,7 @@ ldap_back_db_config(
 		char *dn, *massaged_dn;
 #endif /* ENABLE_REWRITE */
 		BackendDB *tmp_be;
+		struct berval bdn, *ndn = NULL;
 		
 		/*
 		 * syntax:
@@ -137,7 +138,16 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		
-		tmp_be = select_backend( argv[1], 0, 0 );
+		bdn.bv_val = argv[1];
+		bdn.bv_len = strlen(bdn.bv_val);
+		if ( dnNormalize( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
+				fname, lineno, bdn.bv_val );
+			return( 1 );
+		}
+		tmp_be = select_backend( ndn, 0, 0 );
+		ber_bvfree( ndn );
+		ndn = NULL;
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
@@ -147,7 +157,15 @@ ldap_back_db_config(
 			return( 1 );						
 		}
 
-		tmp_be = select_backend( argv[2], 0, 0 );
+		bdn.bv_val = argv[2];
+		bdn.bv_len = strlen(bdn.bv_val);
+		if ( dnNormalize( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
+				fname, lineno, bdn.bv_val );
+			return( 1 );
+		}
+		tmp_be = select_backend( ndn, 0, 0 );
+		ber_bvfree( ndn );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr, "%s: line %d: massaged suffix"
 				       " already in use by another backend in" 
@@ -413,12 +431,12 @@ ldap_back_map_filter(
 char **
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
-		char **a,
+		struct berval **a,
 		int remap
 )
 {
 	int i, j, count;
-	char **na, *mapped;
+	char *mapped, **na;
 
 	if (a == NULL)
 		return(NULL);
@@ -432,13 +450,8 @@ ldap_back_map_attrs(
 		return(NULL);
 
 	for (i = 0, j = 0; i < count; i++) {
-		mapped = ldap_back_map(at_map, a[i], remap);
+		mapped = ldap_back_map(at_map, a[i]->bv_val, remap);
 		if (mapped != NULL) {
-			mapped = ch_strdup(mapped);
-			if (mapped == NULL) {
-				charray_free(na);
-				return(NULL);
-			}
 			na[j] = mapped;
 			j++;
 		}

@@ -221,8 +221,13 @@ ldap_back_search(
 	}
 
 	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
-	if ( mapped_attrs == NULL ) {
-		mapped_attrs = attrs;
+	if ( mapped_attrs == NULL && attrs) {
+		for (count=0; attrs[count]; count++);
+		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
+		for (count=0; attrs[count]; count++) {
+			mapped_attrs[count] = attrs[count]->bv_val;
+		}
+		mapped_attrs[count] = NULL;
 	}
 
 	if ((msgid = ldap_search(lc->ld, mbase, scope, mapped_filter, mapped_attrs,
@@ -330,8 +335,8 @@ finish:;
 	if ( err ) {
 		free( err );
 	}
-	if ( mapped_attrs != attrs ) {
-		charray_free( mapped_attrs );
+	if ( mapped_attrs ) {
+		free( mapped_attrs );
 	}
 #ifdef ENABLE_REWRITE
 	if ( mapped_filter != mfilter ) {
