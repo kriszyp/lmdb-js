@@ -394,7 +394,7 @@ if test $ol_enable_spasswd = yes ; then
 	if test $ol_with_cyrus_sasl = no ; then
 		AC_MSG_ERROR([options require --with-cyrus-sasl])
 	fi
-	ol_link_spasswd=yes
+	ol_with_cyrus_sasl=yes
 fi
 
 AC_MSG_RESULT(done)
@@ -1911,7 +1911,11 @@ if test $ol_with_cyrus_sasl != no ; then
 				AC_MSG_WARN([Strong authentication not supported!])
 			fi
 		fi
+
+	elif test $ol_enable_spasswd != no ; then
+		ol_link_spasswd=yes
 	fi
+
 else
 	AC_MSG_WARN([SASL authentication not supported!])
 	if test $ol_link_tls = no ; then
