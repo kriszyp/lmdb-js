@@ -272,6 +272,10 @@ SOURCE=.\str2filter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\suffixalias.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\unbind.c
 # End Source File
 # Begin Source File
