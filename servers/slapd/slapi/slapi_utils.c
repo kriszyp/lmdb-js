@@ -4097,10 +4097,8 @@ int slapi_entry_rdn_values_present( const Slapi_Entry *e )
 	LDAPDN dn;
 	int rc;
 	int i = 0, match = 0;
-	char *dn_str;
 
-	dn_str = slapi_entry_get_dn( (Slapi_Entry *) e );
-	rc = ldap_str2dn( dn_str, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	rc = ldap_bv2dn( &((Entry *)e)->e_name, &dn, LDAP_DN_FORMAT_LDAPV3 );
 	if ( rc != LDAP_SUCCESS ) {
 		return 0;
 	}
@@ -4131,10 +4129,8 @@ int slapi_entry_add_rdn_values( Slapi_Entry *e )
 #ifdef LDAP_SLAPI
 	LDAPDN dn;
 	int i, rc;
-	char *dn_str;
 
-	dn_str = slapi_entry_get_dn( e );
-	rc = ldap_str2dn( dn_str, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	rc = ldap_bv2dn( &e->e_name, &dn, LDAP_DN_FORMAT_LDAPV3 );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
