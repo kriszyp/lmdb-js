@@ -215,24 +215,44 @@ ldap_back_db_config(
 
 	/* name to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
-			|| strcasecmp( argv[0], "binddn" ) == 0 ) {
+			|| strcasecmp( argv[0], "binddn" ) == 0 )
+	{
 		if ( argc != 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing name in \"%s <name>\" line\n",
 					fname, lineno, argv[0] );
 			return( 1 );
 		}
+
+		if ( strcasecmp( argv[0], "binddn" ) == 0 ) {
+			fprintf( stderr, "%s: line %d: "
+				"\"binddn\" statement is deprecated; "
+				"use \"acl-authcDN\" instead\n",
+				fname, lineno );
+			/* FIXME: some day we'll need to throw an error */
+		}
+
 		ber_str2bv( argv[1], 0, 1, &li->acl_authcDN );
 
 	/* password to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "acl-passwd" ) == 0
-			|| strcasecmp( argv[0], "bindpw" ) == 0 ) {
+			|| strcasecmp( argv[0], "bindpw" ) == 0 )
+	{
 		if ( argc != 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing password in \"%s <password>\" line\n",
 					fname, lineno, argv[0] );
 			return( 1 );
 		}
+
+		if ( strcasecmp( argv[0], "bindpw" ) == 0 ) {
+			fprintf( stderr, "%s: line %d: "
+				"\"bindpw\" statement is deprecated; "
+				"use \"acl-passwd\" instead\n",
+				fname, lineno );
+			/* FIXME: some day we'll need to throw an error */
+		}
+
 		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
 
 	/* identity assertion stuff... */

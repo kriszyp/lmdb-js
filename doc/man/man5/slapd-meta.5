@@ -134,17 +134,20 @@ The optional number marks target <target> as the default one, starting
 from 1.
 Target <target> must be defined.
 .TP
-.B binddn "<administrative DN for access control purposes>"
-This directive, as in the LDAP backend, allows to define the DN that is
-used to query the target server for acl checking; it should have read
-access on the target server to attributes used on the proxy for acl
-checking.
+.B acl-authcDN "<administrative DN for access control purposes>"
+DN which is used to query the target server for acl checking,
+as in the LDAP backend; it is supposed to have read access 
+on the target server to attributes used on the proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
+.B The acl-authcDN identity is by no means implicitly used by the proxy 
+.B when the client connects anonymously.
 .TP
-.B bindpw <password for access control purposes>
-This directive sets the password for acl checking in conjunction
-with the above mentioned "binddn" directive.
+.B acl-passwd <password>
+Password used with the
+.B 
+acl-authcDN
+above.
 .TP
 .B rebind-as-user
 If this option is given, the client's bind credentials are remembered
