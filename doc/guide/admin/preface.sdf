@@ -22,7 +22,7 @@ in Appendix B and C, respectively.
 
 P2[notoc] Scope of this Document
 
-This document provides a guide for installing OpenLDAP 2.1 Software
+This document provides a guide for installing [[DOC_NAME]]
 ({{URL:http://www.openldap.org/software/}})
 on {{TERM:UNIX}} (and UNIX-like) systems.  The document is aimed at
 experienced system administrators but who may not have prior experience

@@ -96,7 +96,7 @@ V4 as an example mechanism. The steps necessary for your site's
 authentication mechanism will be similar, but a guide to every
 mechanism available under SASL is beyond the scope of this chapter.
 The second step is described in the section 
-{{SECT:Mapping Authentication identities to LDAP entries}}.
+{{SECT:Mapping Authentication Identities}}.
 
 
 H3: GSSAPI
@@ -121,8 +121,9 @@ you need to create a service key with the principal:
 >	ldap/directory.example.com@EXAMPLE.COM
 
 When {{slapd}}(8) runs, it must have access to this key.  This is
-generally done by placing the key into a keytab, such as
-{{FILE:/etc/krb5.keytab}}.
+generally done by placing the key into a keytab file,
+{{FILE:/etc/krb5.keytab}}.  See your Kerberos and Cyrus SASL
+documentation for information regarding keytab location settings.
 
 To use the GSSAPI mechanism to authenticate to the directory, the
 user obtains a Ticket Granting Ticket (TGT) prior to running the
@@ -131,7 +132,7 @@ use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
 command option.
 
 For the purposes of authentication and authorization, {{slapd}}(8)
-associates a non-mapped authentication request DN of the form:
+associates an authentication request DN of the form:
 
 >	uid=<primary[/instance]>,cn=<realm>,cn=gssapi,cn=auth
 
@@ -144,6 +145,13 @@ and the principal {{EX:ursula/admin@FOREIGN.REALM}} would have the
 associated DN:
 
 >	uid=ursula/admin,cn=foreign.realm,cn=gssapi,cn=auth
+
+
+The authentication request DN can be used directly ACLs and
+{{EX:groupOfNames}} "member" attributes, since it is of legitimate
+LDAP DN format.  Or alternatively, the authentication DN could be
+mapped before use.  See the section {{SECT:Mapping Authentication
+Identities}} for details.
 
 
 H3: KERBEROS_V4
@@ -198,18 +206,9 @@ authentication request DN would be:
 
 >	uid=adamsom,cn=example.com,cn=kerberos_v4,cn=auth
 
-This authentication request DN by itself could be placed into ACL's
-and {{EX:groupOfNames}} "member" attributes, since it is of legitimate
-LDAP DN format. The section
-{{SECT:Mapping Authentication identities to LDAP entries}},
-however, tells how to map that
-DN into the DN of a person's own LDAP entry.
-
-Also note that this example, being for Kerberos, shows the <realm>
-portion of the DN being filled in with the Kerberos realm of the
-company. Several other authentication mechanisms do not employ the
-concept of a realm, so the ",cn=<realm>" portion of the authentication
-request DN would not appear.
+This authentication request DN can be used directly ACLs or,
+alternatively, mapped prior to use.  See the section {{SECT:Mapping
+Authentication Identities}} for details.
 
 
 H3: DIGEST-MD5
@@ -269,8 +268,8 @@ the ID, giving:
 
 >	uid=<username>,cn=digest-md5,cn=auth
 
-See {{SECT: Mapping Authentication identities to LDAP entries}} below
-for information on mapping such IDs to DNs.
+See {{SECT: Mapping Authentication Identities}} below for information
+on optional mapping of identities.
 
 With suitable mappings in place, users can specify SASL IDs when
 performing LDAP operations, and the password stored in {{sasldb}} or in
@@ -305,15 +304,15 @@ be specified.  The server will infer an authorization identity from
 authentication identity (as described below).
 
 
-H3: Mapping Authentication identities to LDAP entries
+H3: Mapping Authentication Identities
 
 The authentication mechanism in the slapd server will use SASL
 library calls to obtain the authenticated user's "username", based
 on whatever underlying authentication mechanism was used.  This
 username is in the namespace of the authentication mechanism, and
-not in the LDAP namespace. As stated in the sections above, that
-username is reformatted into an authentication request DN of the
-form
+not in the normal LDAP namespace. As stated in the sections above,
+that username is reformatted into an authentication request DN of
+the form
 
 >	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
@@ -326,8 +325,8 @@ depending on whether or not <mechanism> employs the concept of
 realm was used in the authentication.
 
 It is not intended that you should add LDAP entries of the above
-form to your LDAP database. Chances are you have an LDAP entry for
-each of the people that will be authenticating to LDAP, laid out
+form to your LDAP database.  Chances are you have an LDAP entry for
+each of the persons that will be authenticating to LDAP, laid out
 in your directory tree, and the tree does not start at cn=auth.
 But if your site has a clear mapping between the "username" and an
 LDAP entry for the person, you will be able to configure your LDAP
@@ -352,52 +351,60 @@ and if it matches, it is rewritten as the replacement pattern. If
 there are multiple {{EX:sasl-regexp}} directives, only the first
 whose search pattern matches the authentication identity is used.
 The string that is output from the replacement pattern should be
-the authentication DN of the user, in a legitimate LDAP DN format.
-It can also be an LDAP URL, which is discussed below.
+the authentication DN of the user or an LDAP URL.  If replacement
+string produces a DN, the entry named by this DN need not be held
+by this server.  If the replace string produces an LDAP URL, that
+LDAP URL must evaluate to one and only one entry held by this server.
 
 The search pattern can contain any of the regular expression
 characters listed in {{regexec}}(3C). The main characters of note
 are dot ".", asterisk "*", and the open and close parenthesis "("
 and ")".  Essentially, the dot matches any character, the asterisk
-allows zero or more repeats of the immediately preceding character or
-pattern, and terms in parenthesis are
-remembered for the replacement pattern.
+allows zero or more repeats of the immediately preceding character
+or pattern, and terms in parenthesis are remembered for the replacement
+pattern.
 
-The replacement pattern will produce the final authentication DN
-of the user.  Anything from the authentication request DN that
+The replacement pattern will produce either a DN or URL refering
+to the user.  Anything from the authentication request DN that
 matched a string in parenthesis in the search pattern is stored in
 the variable "$1". That variable "$1" can appear in the replacement
 pattern, and will be replaced by the string from the authentication
 request DN. If there were multiple sets of parentheses in the search
 pattern, the variables $2, $3, etc are used.
 
-For example, suppose the user's authentication identity is written
-as the DN string
+H3: Direct Mapping
 
->	uid=adamson,cn=example.com,cn=kerberos_v4,cn=auth
+Where possible, direct mapping of the authentication request DN to
+the user's DN is generally recommended.  Aside from avoiding the
+expense of searching for the user's DN, it allows mapping to
+DNs which refer to entries not held by this server. 
 
-and the user's actual LDAP entry is
+Suppose the authentication request DN is written as:
 
->	uid=adamson,ou=person,dc=example,dc=com
+>	uid=adamson,cn=example.com,cn=gssapi,cn=auth
 
-The {{EX:sasl-regexp}} directive in {{slapd.conf}}(5) could be
-written
+and the user's actual LDAP entry is:
+
+>	uid=adamson,ou=people,dc=example,dc=com
+
+then the following {{EX:sasl-regexp}} directive in {{slapd.conf}}(5)
+would provide for direct mapping.
 
 >	sasl-regexp 
->	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth
->	  uid=$1,ou=person,dc=example,dc=com
+>	  uid=([^,]*),cn=example.com,cn=gssapi,cn=auth
+>	  uid=$1,ou=people,dc=example,dc=com
 
 An even more lenient rule could be written as
 
 >	sasl-regexp
->	  uid=(.*),cn=.*,cn=auth 
->	  uid=$1,ou=person,dc=example,dc=com
+>	  uid=([^,]*),cn=[^,]*,cn=auth 
+>	  uid=$1,ou=people,dc=example,dc=com
 
 Be careful about setting the search pattern too leniently, however,
-since it may mistakenly allow people to become authenticated as a
-DN to which they should not have access. It is better to write
+since it may mistakenly allow persons to become authenticated as a
+DN to which they should not have access.  It is better to write
 several strict directives than one lenient directive which has
-security holes. If there is only one authentication mechanism in
+security holes.  If there is only one authentication mechanism in
 place at your site, and zero or one realms in use, you might be
 able to map between authentication identities and LDAP DN's with a
 single {{EX:sasl-regexp}} directive.
@@ -407,32 +414,28 @@ well as the case with an explicitly specified realm. This may well
 require a separate {{EX:sasl-regexp}} directive for each case, with
 the explicit-realm entry being listed first.
 
-Some sites may have people's DN's spread to multiple areas of the
-LDAP tree, such as if there were an {{EX:ou=accounting}} tree and
-an {{EX:ou=engineering}} tree, with people interspersed between
-them. Or there may not be enough information in the authentication
-identity to isolate the DN, such as if the above person's LDAP entry
-looked like
+H3: Search-based mappings
 
->	dn: cn=mark adamson,ou=person,dc=example,dc=com
->	objectclass: Person
->	cn: mark adamson
+There are a number of cases where mapping to a LDAP URL may be
+appropriate.  For instance, some sites may have person objects
+located in multiple areas of the LDAP tree, such as if there were
+an {{EX:ou=accounting}} tree and an {{EX:ou=engineering}} tree,
+with persons interspersed between them.  Or, maybe the desired
+mapping must be based upon information in the user's information.
+Consider the need to map the above authentication request DN to
+user whose entry is as follows:
+
+>	dn: cn=Mark Adamson,ou=People,dc=Example,dc=COM
+>	objectclass: person
+>	cn: Mark Adamson
 >	uid: adamson
 
-In this case, the information in the authentication identity can
-only be used to search for the user's DN, not derive it directly.
-For both of these situations, and others, the replacement pattern
-in the {{EX:sasl-regexp}} directives will need to produce an LDAP
-URL, described in the next section.
-
-
-H3: Performing searches for a person's DN
-
-When there is not enough information in the authentication identity
-to derive a person's authentication DN directly, the {{EX:sasl-regexp}}
-directives in the {{slapd.conf}}(5) file will need to produce an
-LDAP URL.  This URL will then be used to perform an internal search
-of the LDAP database to find the person's authentication DN.
+The information in the authentication request DN is insufficient
+to allow the user's DN to be directly derived, instead the user's
+DN must be searched for.  For these situations, a replacement pattern
+which produces a LDAP URL can be used in the {{EX:sasl-regexp}}
+directives.  This URL will then be used to perform an internal
+search of the LDAP database to find the person's authentication DN.
 
 An LDAP URL, similar to other URL's, is of the form
 
@@ -454,8 +457,8 @@ kept in the attribute "uid" in their LDAP entry. The {{EX:sasl-regexp}}
 directive might be written as
 
 >	sasl-regexp 
->	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth  
->	  ldap:///ou=person,dc=example,dc=com??sub?(uid=$1)
+>	  uid=([^,]*),cn=example.com,cn=gssapi,cn=auth  
+>	  ldap:///ou=people,dc=example,dc=com??one?(uid=$1)
 
 This will initiate an internal search of the LDAP database inside
 the slapd server. If the search returns exactly one entry, it is
@@ -464,40 +467,33 @@ entries returned, or if there are zero entries returned, the
 authentication fails and the user's connection is left bound as the
 authentication request DN.
 
-Note that if the search scope <scope> in the URL is "base", then
-the only LDAP entry that will be returned is the searchbase DN
-<base>, so the actual search of the database is skipped. This is
-equivalent to setting the replacement pattern in the directive to
-a DN directly, as in the section above.
-
 The attributes that are used in the search filter <filter> in the
 URL should be indexed to allow faster searching. If they are not,
 the authentication step alone can take uncomfortably long periods,
 and users may assume the server is down.
 
 A more complex site might have several realms in use, each mapping
-to a different sub-tree in the directory. These can be handled with
+to a different subtree in the directory.  These can be handled with
 statements of the form:
 
 >	# Match Engineering realm
->       sasl-regexp
->	   uid=(.*),cn=engineering.example.com,cn=digest-md5,cn=auth
->	   ldap:///dc=eng,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+>	sasl-regexp
+>	   uid=([^,]*),cn=engineering.example.com,cn=digest-md5,cn=auth
+>	   ldap:///dc=eng,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 >
 >	# Match Accounting realm
->       sasl-regexp
->	   uid=(.*),cn=accounting.example.com,cn=digest-md5,cn=auth
->	   ldap:///dc=accounting,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+>	sasl-regexp
+>	   uid=([^,].*),cn=accounting.example.com,cn=digest-md5,cn=auth
+>	   ldap:///dc=accounting,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 >
 >	# Default realm is customers.example.com
->       sasl-regexp
->	   uid=(.*),cn=digest-md5,cn=auth
->	   ldap:///dc=customers,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
+>	sasl-regexp
+>	   uid=([^,]*),cn=digest-md5,cn=auth
+>	   ldap:///dc=customers,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 
 Note that the explicitly-named realms are handled first, to avoid
-the realm name becoming part of the UID. Note also the limitation
-of matches to those entries with {{EX:(objectClass=person)}} to
-avoid matching other entries that happen to refer to the UID.
+the realm name becoming part of the UID.  Also note the use of scope
+and filters to limit matching to desirable entries.
 
 See {{slapd.conf}}(5) for more detailed information.
 
@@ -643,7 +639,7 @@ and the authenticated user can become ANY DN returned by the search.
 If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
->	saslAuthzTo: ldap:///dc=example,dc=com??sub?(objectclass=Person)
+>	saslAuthzTo: ldap:///dc=example,dc=com??sub?(objectclass=person)
 
 then any user who authenticated as {{EX:cn=WebUpdate,dc=example,dc=com}}
 could authorize to any other LDAP entry under the search base
@@ -663,7 +659,7 @@ To help produce more sweeping rules for {{EX:saslAuthzFrom}} and
 be DNs with regular expression characters in them. This means a
 source rule like
 
->	saslAuthzTo: uid=.*,dc=example,dc=com
+>	saslAuthzTo: uid=[^,]*,dc=example,dc=com
 
 would allow that authenticated user to authorize to any DN that
 matches the regular expression pattern given. This regular expression

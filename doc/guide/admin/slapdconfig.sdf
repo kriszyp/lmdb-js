@@ -927,9 +927,10 @@ help make this clear.
 
 H3: Access Control Examples
 
-The access control facility described above is quite powerful.
-This section shows some examples of its use. First, some
-simple examples:
+The access control facility described above is quite powerful.  This
+section shows some examples of its use for descriptive purposes.
+
+A simple example:
 
 >	access to * by * read
 
@@ -963,9 +964,9 @@ when 64 or better security protections have been established.  If
 client has not establish sufficient security protections, the
 implicit {{EX:by * none}} clause would be applied.
 
-The following example shows the use of a style specifiers
-to select the entries by DN in two access directives where
-ordering is significant.
+The following example shows the use of a style specifiers to select
+the entries by DN in two access directives where ordering is
+significant.
 
 >	access to dn.children="dc=example,dc=com"
 > 		by * search
@@ -994,7 +995,7 @@ attribute and various {{EX:<who>}} selectors.
 >	access to dn.subtree="dc=example,dc=com" attr=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
->		by peername=IP:10\..+ read
+>		by peername.regex=IP:10\..+ read
 >	access to dn.subtree="dc=example,dc=com"
 >		by self write
 >		by dn.children="dc=example,dc=com" search

@@ -4,7 +4,7 @@
 
 H1: A Quick-Start Guide
 
-The following is a quick start guide to OpenLDAP 2.1 software,
+The following is a quick start guide to [[DOC_NAME]],
 including the stand-alone LDAP daemon, {{slapd}}(8).
 
 It is meant to walk you through the basic steps needed to install
