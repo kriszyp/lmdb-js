@@ -92,7 +92,14 @@ meta_back_bind(
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
 	struct metaconn *lc;
 
-	int rc = -1, i, gotit = 0, ndnlen, err = LDAP_SUCCESS;
+	int rc = -1, i, gotit = 0, ndnlen, isroot = 0;
+	int op_type = META_OP_ALLOW_MULTIPLE;
+	int err = LDAP_SUCCESS;
+
+	char *realdn = (char *)dn;
+	char *realndn = (char *)ndn;
+	char *realcred = cred->bv_val;
+	int realmethod = method;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -103,8 +110,13 @@ meta_back_bind(
 
 	*edn = NULL;
 
-	lc = meta_back_getconn( li, conn, op, META_OP_ALLOW_MULTIPLE,
-			ndn, NULL );
+	if ( method == LDAP_AUTH_SIMPLE 
+			&& be_isroot_pw( be, conn, ndn, cred ) ) {
+		isroot = 1;
+		*edn = ch_strdup( be_root_dn( be ) );
+		op_type = META_OP_REQUIRE_ALL;
+	}
+	lc = meta_back_getconn( li, conn, op, op_type, ndn, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
@@ -121,7 +133,7 @@ meta_back_bind(
 	/*
 	 * Each target is scanned ...
 	 */
-	lc->bound_target = -1;
+	lc->bound_target = META_BOUND_NONE;
 	ndnlen = strlen( ndn );
 	for ( i = 0; i < li->ntargets; i++ ) {
 		int lerr;
@@ -154,15 +166,25 @@ meta_back_bind(
 #endif /* !NEW_LOGGING */
 		}
 
-
-		lerr = meta_back_do_single_bind( li, lc, dn, ndn, cred,
-				method, i );
+		if ( isroot && li->targets[ i ]->pseudorootdn != NULL ) {
+			realdn = li->targets[ i ]->pseudorootdn;
+			realndn = li->targets[ i ]->pseudorootdn;
+			realcred = li->targets[ i ]->pseudorootpw;
+			realmethod = LDAP_AUTH_SIMPLE;
+		}
+		
+		lerr = meta_back_do_single_bind( li, lc,
+				realdn, realndn, realcred, realmethod, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			err = lerr;
 			( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
 		} else {
 			rc = LDAP_SUCCESS;
 		}
+	}
+
+	if ( isroot ) {
+		lc->bound_target = META_BOUND_ALL;
 	}
 
 	/*
@@ -177,6 +199,7 @@ meta_back_bind(
 		 */
 		err = ldap_back_map_result( err );
 		send_ldap_result( conn, op, err, NULL, "", NULL, NULL );
+		return -1;
 	}
 
 	return 0;
@@ -193,7 +216,7 @@ meta_back_do_single_bind(
 		struct metaconn		*lc,
 		const char		*dn,
 		const char		*ndn,
-		struct berval		*cred,
+		const char		*cred,
 		int			method,
 		int			candidate
 )
@@ -227,8 +250,7 @@ meta_back_do_single_bind(
 		return LDAP_OPERATIONS_ERROR;
 	}
 
-	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn,
-			cred->bv_val, method );
+	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn, cred, method );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
@@ -258,6 +280,13 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 {
 	struct metasingleconn **lsc;
 	int bound = 0, i;
+
+	/*
+	 * all the targets are bound as pseudoroot
+	 */
+	if ( lc->bound_target == META_BOUND_ALL ) {
+		return 1;
+	}
 
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		int rc;

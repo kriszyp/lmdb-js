@@ -349,6 +349,42 @@ meta_back_db_config(
 			return 1;
 		}
 		li->targets[ i ]->bindpw = ch_strdup( argv[ 1 ] );
+		
+	/* name to use as pseudo-root dn */
+	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
+		int i = li->ntargets-1;
+
+		if ( i < 0 ) {
+			fprintf( stderr,
+	"%s: line %d: need \"uri\" directive first\n",
+				fname, lineno );
+		}
+		
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"pseudorootdn <name>\" line\n",
+				fname, lineno );
+			return 1;
+		}
+		li->targets[ i ]->pseudorootdn = ch_strdup( argv[ 1 ] );
+
+	/* password to use as pseudo-root */
+	} else if ( strcasecmp( argv[ 0 ], "pseudorootpw" ) == 0 ) {
+		int i = li->ntargets-1;
+
+		if ( i < 0 ) {
+			fprintf( stderr,
+	"%s: line %d: need \"uri\" directive first\n",
+				fname, lineno );
+		}
+		
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"pseudorootpw <password>\" line\n",
+			    fname, lineno );
+			return 1;
+		}
+		li->targets[ i ]->pseudorootpw = ch_strdup( argv[ 1 ] );
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {

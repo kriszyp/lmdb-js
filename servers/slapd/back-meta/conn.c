@@ -199,7 +199,7 @@ metaconn_alloc( int ntargets )
 		}
 	}
 
-	lc->bound_target = -1;
+	lc->bound_target = META_BOUND_NONE;
 
 	return lc;
 }
@@ -436,6 +436,31 @@ meta_back_getconn(
 
 		if ( candidate ) {
 			*candidate = i;
+		}
+
+	/*
+	 * require all connections ...
+	 */
+	} else if (op_type == META_OP_REQUIRE_ALL) {
+		for ( i = 0; i < li->ntargets; i++ ) {
+
+			/*
+			 * The target is activated; if needed, it is
+			 * also init'd
+			 */
+			int lerr = init_one_conn( conn, op, li->targets[ i ],
+					vers, lc->conns[ i ] );
+			if ( lerr != LDAP_SUCCESS ) {
+				
+				/*
+				 * FIXME: in case one target cannot
+				 * be init'd, should the other ones
+				 * be tried?
+				 */
+				( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
+				err = lerr;
+				continue;
+			}
 		}
 
 	/*

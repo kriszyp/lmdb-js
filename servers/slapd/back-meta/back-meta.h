@@ -105,6 +105,8 @@ struct metaconn {
 	 * of course only one target actually is ...
 	 */
 	int             bound_target;
+#define META_BOUND_NONE		-1
+#define META_BOUND_ALL		-2
 	/* supersedes the connection stuff */
 	struct metasingleconn **conns;
 };
@@ -114,6 +116,9 @@ struct metatarget {
 	char			*suffix;/* normalized suffix */
 	char			*binddn;
 	char			*bindpw;
+
+	char                    *pseudorootdn;
+	char                    *pseudorootpw;
 
 	struct rewrite_info	*rwinfo;
 
@@ -148,7 +153,7 @@ meta_back_do_single_bind(
 		struct metaconn         *lc,
 		const char              *dn,
 		const char		*ndn,
-		struct berval		*cred,
+		const char		*cred,
 		int			method,
 		int                     candidate
 );
@@ -156,6 +161,7 @@ meta_back_do_single_bind(
 
 #define META_OP_ALLOW_MULTIPLE		0x00
 #define META_OP_REQUIRE_SINGLE		0x01
+#define META_OP_REQUIRE_ALL		0x02
 extern struct metaconn *
 meta_back_getconn(
 		struct			metainfo *li,

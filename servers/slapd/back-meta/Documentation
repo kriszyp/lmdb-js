@@ -119,10 +119,23 @@ read access on the target server to attributes used on the proxy
 for acl checking.  There is no risk of giving away such values;
 they are only used to check permissions.
 
-	bindpw		<plaintext password for ac purposes>
+	bindpw		<password for ac purposes>
 
 This directive sets the password for acl checking in conjunction
 with the above mentioned "binddn" directive.
+
+	pseudorootdn	<substitute dn in case of rootdn bind>
+
+This directive, if present, sets the dn that will be substituted
+to the bind dn if a bind with the backend's "rootdn" succeeds.  The true
+"rootdn" of the target server ought not be used; an arbitrary administrative
+dn should used instead.
+
+	pseudorootpw	<substitute password in case of rootdn bind>
+
+This directive sets the credential that will be used in case a bind
+with the backend's "rootdn" succeeds, and the bind is propagated to
+the target using the "pseudorootdn" dn.
 
 	rewrite*	...
 

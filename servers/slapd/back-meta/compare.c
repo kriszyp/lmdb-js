@@ -89,7 +89,8 @@ meta_back_compare(
 	struct metaconn *lc;
 	struct metasingleconn **lsc;
 	char *match = NULL, *err = NULL, *mmatch = NULL;
-	int candidates = 0, last = 0, i, count, rc, cres, rres;
+	int candidates = 0, last = 0, i, count, rc;
+       	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
 	int *msgid;
 
 	lc = meta_back_getconn( li, conn, op, META_OP_ALLOW_MULTIPLE,
