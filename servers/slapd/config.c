@@ -219,7 +219,7 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 		rc = (*((ConfigDriver*)Conf->arg_item))(c);
 		if(c->be == frontendDB) c->be = NULL;
 		if(rc) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!",
+			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!\n",
 				c->log, Conf->name, rc);
 			return(ARG_BAD_CONF);
 		}
@@ -231,7 +231,7 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 		else if (c->bi)
 			ptr = c->bi->bi_private;
 		else {
-			Debug(LDAP_DEBUG_CONFIG, "%s: offset for <%s> missing base pointer!",
+			Debug(LDAP_DEBUG_CONFIG, "%s: offset for <%s> missing base pointer!\n",
 				c->log, Conf->name, 0);
 			return(ARG_BAD_CONF);
 		}
