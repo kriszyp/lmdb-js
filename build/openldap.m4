@@ -111,8 +111,8 @@ else
 	OL_MKDEP="${MKDEP}"
 	OL_MKDEP_FLAGS="${MKDEP_FLAGS}"
 fi
-dnl AC_SUBST(OL_MKDEP)
-dnl AC_SUBST(OL_MKDEP_FLAGS)
+AC_SUBST(OL_MKDEP)
+AC_SUBST(OL_MKDEP_FLAGS)
 ])
 dnl
 dnl ====================================================================

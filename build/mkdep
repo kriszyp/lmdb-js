@@ -34,6 +34,10 @@ SED=cat
 
 : ${CC=cc}					# use cc by default
 
+# We generally set these via the command line options
+: ${MKDEP_CC=$CC}			# select default compiler to generate dependencies
+: ${MKDEP_CFLAGS="-M"}	# cc -M usually produces dependencies
+
 while :
 	do case "$1" in
 		# the -s flag removes dependencies to files that begin with /
@@ -51,21 +55,15 @@ while :
 			SRCDIR=$2
 			shift; shift ;;
 
-		# -c allows you to override the default compiler.
+		# -c allows you to override the compiler used to generate dependencies
 		-c)
-			CC=$2
-			shift; shift ;;
-
-		# -m allows you to override the compiler used to generate
-		# dependencies.
-		-m)
-			CC_MKDEP=$2
+			MKDEP_CC=$2
 			shift; shift ;;
 
 		# -m allows you to override the compiler flags used to generate
 		# dependencies.
-		-x)
-			CC_MKDEP_FLAGS=$2
+		-m)
+			MKDEP_CFLAGS=$2
 			shift; shift ;;
 
 		# the -p flag produces "program: program.c" style dependencies
@@ -73,7 +71,6 @@ while :
 		-p)
 			SED='sed -e s;\.o;;'
 			shift ;;
-
 
 		# the -l flag produces libtool compatible dependencies
 		-l)
@@ -87,11 +84,8 @@ while :
 	esac
 done
 
-: ${CC_MKDEP=$CC}			# select default compiler to generate dependencies
-: ${CC_MKDEP_FLAGS="-M"}	# cc -M usually produces dependencies
-
 if test $# = 0 ; then
-	echo 'usage: mkdep [-p] [-s] [-c cc] [-m cc] [-x flags] [-f makefile] [-d srcdir] [cppflags] file ...'
+	echo 'usage: mkdep [-p] [-s] [-c cc] [-m flags] [-f makefile] [-d srcdir] [cppflags] file ...'
 	exit 1
 fi
 
@@ -136,19 +130,19 @@ else
 		fi
 	done
 
-	CC_MKDEP_FLAGS="$CC_MKDEP_FLAGS -I$SRCDIR"
+	MKDEP_CFLAGS="$MKDEP_CFLAGS -I$SRCDIR"
 fi
 
 cat << _EOF_ >> $TMP
 
 #
 # files: $*
-# command: $CC_MKDEP $CC_MKDEP_FLAGS $files
+# command: $MKDEP_CC $MKDEP_CFLAGS $files
 #
 
 _EOF_
 
-$CC_MKDEP $CC_MKDEP_FLAGS $files | \
+$MKDEP_CC $MKDEP_CFLAGS $files | \
 	sed -e 's; \./; ;g' | \
 	$SED > $TMP.sed
 # dont pipe to awk.  SGI awk wants a filename as argument.

@@ -43,7 +43,12 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 
 LINT = lint
 5LINT = 5lint
-MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -d "$(srcdir)" -c "$(CC)"
+
+MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) \
+	-d "$(srcdir)" -c "$(MKDEP_CC)" -m "$(MKDEP_CFLAGS)"
+MKDEP_CC	= @OL_MKDEP@
+MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
+
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
 LIBTOOL = @LIBTOOL@
