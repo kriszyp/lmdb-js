@@ -9,5 +9,5 @@ static const char copyright[] =
 "COPYING RESTRICTIONS APPLY\n";
 
 _OLV_STATIC const char __Version[] =
-"@(#) $" _OLV_PKG ": " _OLV_APP " " _OLV_VER " (" _OLV_DATE " " _OLV_TIME ") $\n\t" _OLV_WHO ":" _OLV_CWD "\n";
+"@(#) $" OPENLDAP_PACKAGE ": " _OLV_APP " " OPENLDAP_VERSION " (" _OLV_DATE " " _OLV_TIME ") $\n\t" _OLV_WHO ":" _OLV_CWD "\n";
 
