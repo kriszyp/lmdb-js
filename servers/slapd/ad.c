@@ -171,7 +171,7 @@ int slap_bv2ad(
 
 			if( !slap_syntax_is_binary( desc.ad_type->sat_syntax )) {
 				/* not stored in binary, disallow option */
-				*text = "option \"binary\" with type not supported";
+				*text = "option \"binary\" not supported with type";
 				return rtn;
 			}
 
@@ -531,8 +531,8 @@ int slap_bv2undef_ad(
 	}
 	
 	if( !desc ) {
-		desc = ch_malloc(sizeof(AttributeDescription) +
-			bv->bv_len + 1);
+		desc = ch_malloc(sizeof(AttributeDescription) + 1 +
+			bv->bv_len);
 		
 		desc->ad_flags = SLAP_DESC_NONE;
 		desc->ad_lang.bv_val = NULL;
