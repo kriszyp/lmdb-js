@@ -16,7 +16,7 @@
 SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth slapacl
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
-XSRCS=version.c
+XSRCS=version.c backends.c
 
 SUBDIRS=back-* shell-backends slapi overlays
 
@@ -80,10 +80,10 @@ BUILD_SRV = @BUILD_SLAPD@
 all-local-srv: all-cffiles
 
 NT_SLAPD_DEPENDS = slapd.exp
-NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) version.o
+NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) backends.o version.o
 
-UNIX_SLAPD_DEPENDS = $(SLAPD_STATIC_DEPENDS) version.o $(SLAPD_L)
-UNIX_SLAPD_OBJECTS = $(OBJS) version.o
+UNIX_SLAPD_DEPENDS = $(SLAPD_STATIC_DEPENDS) backends.o version.o $(SLAPD_L)
+UNIX_SLAPD_OBJECTS = $(OBJS) backends.o version.o
 
 SLAPD_DEPENDS = liboverlays.a $(@PLAT@_SLAPD_DEPENDS)
 SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
@@ -312,8 +312,6 @@ libbackends.a: .backend
 
 liboverlays.a: FORCE
 	@cd overlays; $(MAKE) $(MFLAGS) all
-
-backend.c: backend.h
 
 version.c: Makefile
 	@-$(RM) $@

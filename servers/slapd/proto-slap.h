@@ -296,6 +296,8 @@ LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	SlapReply *rs 
 ));
 
+LDAP_SLAPD_V(BackendInfo) slap_binfo[]; 
+
 /*
  * backglue.c
  */
