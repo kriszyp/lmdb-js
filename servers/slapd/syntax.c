@@ -183,6 +183,15 @@ syn_schema_info( Entry *e )
 	vals[1] = NULL;
 
 	for ( syn = syn_list; syn; syn = syn->ssyn_next ) {
+		if ( ! syn->ssyn_validate ) {
+			/* skip syntaxes without validators */
+			continue;
+		}
+		if ( syn->ssyn_flags & SLAP_SYNTAX_HIDE ) {
+			/* hide syntaxes */
+			continue;
+		}
+
 		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
 		if ( val.bv_val == NULL ) {
 			return -1;

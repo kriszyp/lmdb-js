@@ -10,6 +10,7 @@ OpenLDAP 2.0.X Engineering
 	Updated -llber large element handling
 	Updated slapadd error reporting
 	Updated slapd chroot handling (ITS#810)
+	Updated slapd subschema subentry
 	Added slapd numericString indexing
 	Removed lint
 	Build Environment
