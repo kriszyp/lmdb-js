@@ -72,6 +72,10 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl  with Cyrus SASL support],
+	auto, [auto yes no] )
+OL_ARG_WITH(fetch,[  --with-fetch  with fetch URL support],
+	auto, [auto yes no] )
 OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(readline,[  --with-readline  with readline support],
@@ -1636,6 +1640,46 @@ if test $ol_link_termcap = no ; then
 fi
 
 dnl
+dnl Check for fetch URL support
+dnl		should be extended to support other fetch URL APIs
+dnl
+ol_link_sasl=no
+if test $ol_with_cyrus_sasl != no ; then
+	AC_CHECK_HEADER(sasl.h)
+
+	if test $ac_cv_header_sasl_h = yes ; then
+		AC_CHECK_LIB(sasl, sasl_client_init,
+			[have_cyrus_sasl=yes], [have_cyrus_sasl=no])
+
+		if test $have_cyrus_sasl != no ; then
+			LUTIL_LIBS="$LUTIL_LIBS -lsasl"
+			ol_link_sasl=yes
+		fi
+	fi
+
+	if test $ol_link_sasl = no -a $ol_with_cyrus_sasl = yes ; then
+		AC_MSG_ERROR(no suitable API for --with-cyrus-sasl=$ol_with_cyrus_sasl)
+	fi
+fi
+
+dnl
+dnl Check for fetch URL support
+dnl		should be extended to support other fetch URL APIs
+dnl
+ol_link_fetch=no
+if test $ol_with_fetch != no ; then
+	OL_LIB_FETCH
+
+	if test $ol_cv_lib_fetch != no ; then
+		LDIF_LIBS="$LDIF_LIBS $ol_link_fetch"
+		ol_link_fetch=freebsd
+
+	elif test $ol_with_fetch != auto ; then
+		AC_MSG_ERROR(no suitable API for --with-fetch=$ol_with_fetch)
+	fi 
+fi
+
+dnl
 dnl Check for GNU readline
 dnl
 ol_link_readline=no
@@ -1696,12 +1740,6 @@ if test $ol_enable_proctitle != no ; then
 			[define if setproctitle(3) is available])
 	fi
 fi
-
-OL_LIB_FETCH
-
-if test $ol_cv_lib_fetch != no ; then
-	LDIF_LIBS="$LDIF_LIBS $ol_link_fetch"
-fi 
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
