@@ -414,8 +414,8 @@ dn: o=Example,c=US
 objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
-objectClass: dcObject
-dc: example
+objectClass: uidObject
+uid: example
 l: Anytown, Michigan
 st: Michigan
 o: Example, Inc.
@@ -680,14 +680,14 @@ dn: cn=ITD Staff,ou=Groups,o=Example,c=US
 owner: cn=Manager,o=Example,c=US
 description: All ITD Staff
 cn: ITD Staff
-objectClass: groupOfUniqueNames
-uniqueMember: cn=Manager,dc=example,dc=com
-uniqueMember: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=
- example,dc=com
-uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=People,
- dc=example,dc=com
-uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
- ple,dc=com
+objectClass: groupOfNames
+member: cn=Manager,o=Example,c=US
+member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Example
+ ,c=US
+member: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Exam
+ ple,c=US
+member: cn=John Doe,ou=Information Technology Division,ou=People,o=Example,c=U
+ S
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
@@ -1642,13 +1642,13 @@ pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
 
-# searching base="o=Beispiel,c=DE"...
-dn: o=Beispiel,c=DE
+# searching base="o=Example,c=US"...
+dn: o=Example,c=US
 objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
-objectClass: dcObject
-dc: example
+objectClass: uidObject
+uid: example
 l: Anytown, Michigan
 st: Michigan
 o: Example, Inc.
@@ -1659,22 +1659,22 @@ postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
 
-dn: ou=People,o=Beispiel,c=DE
+dn: ou=People,o=Example,c=US
 objectClass: organizationalUnit
 objectClass: extensibleObject
 ou: People
 uidNumber: 0
 gidNumber: 0
 
-dn: ou=Groups,o=Beispiel,c=DE
+dn: ou=Groups,o=Example,c=US
 objectClass: organizationalUnit
 ou: Groups
 
-dn: ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: organizationalUnit
 ou: Alumni Association
 
-dn: ou=Information Technology Division,ou=People,o=Beispiel,c=DE
+dn: ou=Information Technology Division,ou=People,o=Example,c=US
 objectClass: organizationalUnit
 ou: Information Technology Division
 description:: aMODwoPDgsKCw4PCgsOCwotFVlZQw4PCg8OCwoPDg8KCw4LCv0zDg8KDw4LCgsOD
@@ -1817,42 +1817,42 @@ description:: UF7Dg8KDw4LCg8ODwoLDgsKCw4PCg8OCwoPDg8KCw4LCjMODwoPDgsKDw4PCgsOC
  8ODwoLDgsKow4PCg8OCwoPDg8KCw4LCl8ODwoPDgsKDw4PCgsOCwrtWw4PCg8OCwoLDg8KCw4LCi8
  ODwoPDgsKDw4PCgsOCwo3Dg8KDw4LCg8ODwoLDgsKow4PCg8OCwoLDg8KCw4LCnw==
 
-dn: cn=All Staff,ou=Groups,o=Beispiel,c=DE
-member: cn=Manager,o=Beispiel,c=DE
-member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Beisp
- iel,c=DE
-member: cn=Jane Doe,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=John Doe,ou=Information Technology Division,ou=People,o=Beispiel,c=
- DE
-member: cn=Mark Elliot,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Beis
- piel,c=DE
-member: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Beispie
- l,c=DE
-owner: cn=Manager,o=Beispiel,c=DE
+dn: cn=All Staff,ou=Groups,o=Example,c=US
+member: cn=Manager,o=Example,c=US
+member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Examp
+ le,c=US
+member: cn=Jane Doe,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=John Doe,ou=Information Technology Division,ou=People,o=Example,c=U
+ S
+member: cn=Mark Elliot,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Exam
+ ple,c=US
+member: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Example
+ ,c=US
+owner: cn=Manager,o=Example,c=US
 cn: All Staff
 description: Everyone in the sample data
 objectClass: groupOfNames
 
-dn: cn=Alumni Assoc Staff,ou=Groups,o=Beispiel,c=DE
-member: cn=Manager,o=Beispiel,c=DE
-member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Jane Doe,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Mark Elliot,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-member: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Beispiel,c=DE
-owner: cn=Manager,o=Beispiel,c=DE
+dn: cn=Alumni Assoc Staff,ou=Groups,o=Example,c=US
+member: cn=Manager,o=Example,c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Jane Doe,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Mark Elliot,ou=Alumni Association,ou=People,o=Example,c=US
+member: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
+owner: cn=Manager,o=Example,c=US
 description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
 objectClass: groupOfNames
 
-dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Beispiel,
- c=DE
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Example,c
+ =US
 objectClass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
@@ -1861,7 +1861,7 @@ uid: bjensen
 title: Mythical Manager, Research Systems
 postalAddress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Anyt
  own, MI 48103-4943
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 userPassword:: YmplbnNlbg==
 mail: bjensen@mailgw.example.com
 homePostalAddress: 123 Wesley $ Anytown, MI 48103
@@ -1872,14 +1872,14 @@ pager: +1 313 555 3233
 facsimileTelephoneNumber: +1 313 555 2274
 telephoneNumber: +1 313 555 9022
 
-dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Beispiel,c=
- DE
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Example,c=U
+ S
 objectClass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
 uid: bjorn
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 userPassword:: Ympvcm4=
 homePostalAddress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
 drink: Iced Tea
@@ -1892,7 +1892,7 @@ pager: +1 313 555 4474
 facsimileTelephoneNumber: +1 313 555 2177
 telephoneNumber: +1 313 555 0355
 
-dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Dorothy Stevens
 cn: Dot Stevens
@@ -1900,7 +1900,7 @@ sn: Stevens
 uid: dots
 title: Secretary, UM Alumni Association
 postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 drink: Lemonade
 homePostalAddress: 377 White St. Apt. 3 $ Anytown, MI 48104
 description: Very tall
@@ -1909,20 +1909,20 @@ telephoneNumber: +1 313 555 3664
 mail: dots@mail.alumni.example.com
 homePhone: +1 313 555 0454
 
-dn: cn=ITD Staff,ou=Groups,o=Beispiel,c=DE
-owner: cn=Manager,o=Beispiel,c=DE
+dn: cn=ITD Staff,ou=Groups,o=Example,c=US
+owner: cn=Manager,o=Example,c=US
 description: All ITD Staff
 cn: ITD Staff
-objectClass: groupOfUniqueNames
-uniqueMember: cn=Manager,dc=example,dc=com
-uniqueMember: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=
- example,dc=com
-uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=People,
- dc=example,dc=com
-uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
- ple,dc=com
+objectClass: groupOfNames
+member: cn=Manager,o=Example,c=US
+member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Example
+ ,c=US
+member: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Exam
+ ple,c=US
+member: cn=John Doe,ou=Information Technology Division,ou=People,o=Example,c=U
+ S
 
-dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
@@ -1930,7 +1930,7 @@ cn: Jim Jones
 sn: Jones
 uid: jaj
 postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 userPassword:: amFq
 homePostalAddress: 3882 Beverly Rd. $ Anytown, MI 48105
 homePhone: +1 313 555 4772
@@ -1941,15 +1941,15 @@ mail: jaj@mail.alumni.example.com
 facsimileTelephoneNumber: +1 313 555 4332
 telephoneNumber: +1 313 555 0895
 
-dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Beispiel
- ,c=DE
+dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Example,
+ c=US
 objectClass: OpenLDAPperson
 cn: James A Jones 2
 cn: James Jones
 cn: Jim Jones
 sn: Doe
 uid: jjones
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 homePostalAddress: 933 Brooks $ Anytown, MI 48104
 homePhone: +1 313 555 8838
 title: Senior Manager, Information Technology Division
@@ -1960,8 +1960,7 @@ pager: +1 313 555 2833
 facsimileTelephoneNumber: +1 313 555 8688
 telephoneNumber: +1 313 555 7334
 
-dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,o=Beispiel,c=D
- E
+dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Jane Alverson
 cn: Jane Q. Doe
@@ -1970,7 +1969,7 @@ sn: Doe
 uid: jdoe
 title: Programmer Analyst, UM Alumni Association
 postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 homePostalAddress: 123 Anystreet $ Anytown, MI 48104
 drink: diet coke
 description: Enthusiastic
@@ -1980,14 +1979,14 @@ pager: +1 313 555 1220
 facsimileTelephoneNumber: +1 313 555 2311
 telephoneNumber: +1 313 555 4774
 
-dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
 uid: jen
 postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 drink: Sam Adams
 homePostalAddress: 1000 Maple #44 $ Anytown, MI 48103
 title: Telemarketer, UM Alumni Association
@@ -1997,15 +1996,14 @@ pager: +1 313 555 6442
 facsimileTelephoneNumber: +1 313 555 2756
 telephoneNumber: +1 313 555 8232
 
-dn: cn=John P. Doe,ou=Information Technology Division,ou=People,o=Beispiel,c=D
- E
+dn: cn=John P. Doe,ou=Information Technology Division,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Jonathon Doe
 cn: John P. Doe
 sn: Doe
 uid: johnd
 postalAddress: ITD $ 535 W. William $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 homePostalAddress: 912 East Bllvd $ Anytown, MI 48104
 title: System Administrator, Information Technology Division
 description: overworked!
@@ -2015,7 +2013,7 @@ pager: +1 313 555 6573
 facsimileTelephoneNumber: +1 313 555 4544
 telephoneNumber: +1 313 555 9394
 
-dn: cn=Manager,o=Beispiel,c=DE
+dn: cn=Manager,o=Example,c=US
 objectClass: person
 cn: Manager
 cn: Directory Manager
@@ -2024,15 +2022,15 @@ sn: Manager
 description: Manager of the directory
 userPassword:: c2VjcmV0
 
-dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Ursula Hampster
 sn: Hampster
 uid: uham
 title: Secretary, UM Alumni Association
 postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
-seeAlso: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+seeAlso: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
 homePostalAddress: 123 Anystreet $ Anytown, MI 48104
 mail: uham@mail.alumni.example.com
 homePhone: +1 313 555 8421
@@ -2042,12 +2040,12 @@ telephoneNumber: +1 313 555 5331
 description: Just added self to seeAlso in o=Beispiel,c=DE virtual naming cont
  ext
 
-dn: cn=Added User,ou=Alumni Association,ou=People,o=Beispiel,c=DE
+dn: cn=Added User,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Added User
 sn: User
 uid: auser
-seeAlso: cn=All Staff,ou=Groups,o=Beispiel,c=DE
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 homePhone: +49 1234567890
 drink: Beer
 mail: auser@mail.alumni.example.com
@@ -2055,6 +2053,19 @@ telephoneNumber: +49 1234-567-890
 description: Just added in o=Beispiel,c=DE naming context
 
 # refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
+
+dn: cn=Added Group,ou=Groups,o=Example,c=US
+objectClass: groupOfNames
+cn: Added Group
+member: cn=Added Group,ou=Groups,o=Example,c=US
+
+dn: cn=Another Added Group,ou=Groups,o=Example,c=US
+objectClass: groupOfNames
+objectClass: uidObject
+cn: Another Added Group
+member: cn=Added Group,ou=Groups,o=Example,c=US
+member: cn=Another Added Group,ou=Groups,o=Example,c=US
+uid: added
 
 # searching base="o=Esempio,c=IT"...
 dn: o=Esempio,c=IT
@@ -2468,6 +2479,19 @@ description: Just added in o=Beispiel,c=DE naming context
 
 # refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
 
+dn: cn=Added Group,ou=Groups,o=Esempio,c=IT
+objectClass: groupOfUniqueNames
+cn: Added Group
+uniqueMember: cn=Added Group,ou=Groups,dc=example,dc=com
+
+dn: cn=Another Added Group,ou=Groups,o=Esempio,c=IT
+objectClass: groupOfUniqueNames
+objectClass: dcObject
+cn: Another Added Group
+uniqueMember: cn=Added Group,ou=Groups,dc=example,dc=com
+uniqueMember: cn=Another Added Group,ou=Groups,dc=example,dc=com
+dc: added
+
 # searching filter="(objectClass=referral)"
 # 	attrs="'*' ref"
 # 	base="dc=example,dc=com"...
@@ -2541,4 +2565,13 @@ dn: cn=Added User,ou=Alumni Association,ou=People,o=Example,c=US
 seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 
 # refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
+
+# searching filter="(member=cn=Another Added Group,ou=Groups,o=Example,c=US)"
+# 	attrs="seeAlso"
+# 	base="o=Example,c=US"...
+# refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
+
+dn: cn=Another Added Group,ou=Groups,o=Example,c=US
+member: cn=Added Group,ou=Groups,o=Example,c=US
+member: cn=Another Added Group,ou=Groups,o=Example,c=US
 
