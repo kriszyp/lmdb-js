@@ -213,7 +213,7 @@ dnl Checks the compiler and UNIX Variants
 AC_PROG_CC
 
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
-	AC_WARN([cross compiling....  go for it])
+	AC_WARN([cross compiling....  some functionality will be removed.])
 
 elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
 	AC_WARN([programs compiled here do run here...])
@@ -321,7 +321,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 		fi
 	fi
 fi
-
 
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
@@ -903,10 +902,7 @@ fi
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(	\
-	stdarg.h		\
-	stddef.h		\
-	string.h		\
-	strings.h		\
+	crypt.h			\
 	errno.h			\
 	fcntl.h			\
 	filio.h			\
@@ -914,9 +910,14 @@ AC_CHECK_HEADERS(	\
 	libutil.h		\
 	limits.h		\
 	malloc.h		\
+	memory.h		\
 	regex.h			\
 	pwd.h			\
 	sgtty.h			\
+	stdarg.h		\
+	stddef.h		\
+	string.h		\
+	strings.h		\
 	sys/file.h		\
 	sys/filio.h		\
 	sys/errno.h		\
@@ -948,9 +949,14 @@ AC_STRUCT_TM
 OL_C_UPPER_LOWER
 AC_C_CONST
 
-dnl AC_CHECK_SIZEOF(short) 
-dnl AC_CHECK_SIZEOF(int) 
-dnl AC_CHECK_SIZEOF(long)
+if test $cross_compiling = yes ; then
+	AC_DEFINE(CROSS_COMPILING, 1)
+else
+	AC_C_BIGENDIAN
+	AC_CHECK_SIZEOF(short) 
+	AC_CHECK_SIZEOF(int) 
+	AC_CHECK_SIZEOF(long)
+fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
@@ -967,12 +973,11 @@ AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
-	getopt			\
 	flock			\
-	gethostname		\
-	gettimeofday	\
 	getdtablesize	\
+	gethostname		\
 	getpwuid		\
+	gettimeofday	\
 	lockf			\
 	memcpy			\
 	memmove			\
@@ -987,17 +992,19 @@ AC_CHECK_FUNCS(		\
 	snprintf		\
 	socket			\
 	strerror		\
-	strstr			\
+	strpbrk			\
 	strrchr			\
 	strsep			\
+	strstr			\
 	strtod			\
+	strtok			\
 	strtol			\
 	strtoul			\
 	sysconf			\
-	tempnam			\
 	waitpid			\
 )
 
+dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt strdup tempnam)
 
 dnl ----------------------------------------------------------------

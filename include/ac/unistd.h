@@ -4,18 +4,16 @@
 #define _AC_UNISTD_H
 
 #if HAVE_SYS_TYPES_H
-# include <sys/types.h>
+#	include <sys/types.h>
 #endif
 
 #if HAVE_UNISTD_H
-# include <unistd.h>
-#else
-	/* we really should test for these */
-	char *crypt();
-	char *gethostname();
-	char *getenv();
-	long *random();
-	int flock();
+#	include <unistd.h>
+#endif
+
+/* crypt() may be defined in a separate include file */
+#if HAVE_CRYPT_H
+#	include <crypt.h>
 #endif
 
 /* getopt() defines may be in separate include file */

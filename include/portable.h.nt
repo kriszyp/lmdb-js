@@ -46,6 +46,9 @@ is provided ``as is'' without express or implied warranty.
 /* define type for caddr_t */
 typedef char * caddr_t;
 
+/* we have spawnlp instead of fork/execlp */
+#define HAVE_SPAWNLP 1
+
 /* we have winsock2 */
 #define HAVE_WINSOCK2 1
 
@@ -133,10 +136,13 @@ typedef char * caddr_t;
 #define uid_t long
 
 /* define this if needed to get reentrant functions */
-#undef _REENTRANT
+/* #undef _REENTRANT */
 
 /* define this if needed to get threadsafe functions */
-#undef _THREAD_SAFE
+/* #undef _THREAD_SAFE */
+
+/* define this if needed to get threadsafe functions */
+/* #undef _THREADSAFE */
 
 /* define this if toupper() requires tolower() */
 #define C_UPPER_LOWER
@@ -152,9 +158,6 @@ typedef char * caddr_t;
 
 /* define if you have crypt */
 /* #undef HAVE_CRYPT */
-
-/* define if you have DCE */
-/* #undef HAVE_DCE */
 
 /* define if you have DSAP */
 /* #undef HAVE_DSAP */
@@ -297,6 +300,9 @@ typedef char * caddr_t;
 /* define if you have the getopt function */
 /* #undef HAVE_GETOPT */
 
+/* define if you have the getpwuid function */
+/* #undef HAVE_GETPWUID */
+
 /* Define if you have the gettimeofday function.  */
 /* #undef HAVE_GETTIMEOFDAY */
 
@@ -314,6 +320,24 @@ typedef char * caddr_t;
 
 /* Define if you have the mktime function.  */
 #define HAVE_MKTIME 1
+
+/* Define if you have the pthread_attr_create function.  */
+/* #undef HAVE_PTHREAD_ATTR_CREATE */
+
+/* Define if you have the pthread_attr_delete function.  */
+/* #undef HAVE_PTHREAD_ATTR_DELETE */
+
+/* Define if you have the pthread_attr_destroy function.  */
+/* #undef HAVE_PTHREAD_ATTR_DESTROY */
+
+/* Define if you have the pthread_attr_init function.  */
+/* #undef HAVE_PTHREAD_ATTR_INIT */
+
+/* Define if you have the pthread_attr_setdetach_np function.  */
+/* #undef HAVE_PTHREAD_ATTR_SETDETACH_NP */
+
+/* Define if you have the pthread_attr_setdetachstate function.  */
+/* #undef HAVE_PTHREAD_ATTR_SETDETACHSTATE */
 
 /* Define if you have the pthread_kill function.  */
 /* #undef HAVE_PTHREAD_KILL */
@@ -357,6 +381,9 @@ typedef char * caddr_t;
 /* Define if you have the strerror function.  */
 #define HAVE_STRERROR 1
 
+/* Define if you have the strpbrk function.  */
+#define HAVE_STRPBRK 1
+
 /* Define if you have the strrchr function.  */
 #define HAVE_STRRCHR 1
 
@@ -368,6 +395,9 @@ typedef char * caddr_t;
 
 /* Define if you have the strtod function.  */
 #define HAVE_STRTOD 1
+
+/* Define if you have the strtok function.  */
+#define HAVE_STRTOK 1
 
 /* Define if you have the strtol function.  */
 #define HAVE_STRTOL 1
@@ -389,6 +419,9 @@ typedef char * caddr_t;
 
 /* Define if you have the waitpid function.  */
 #define HAVE_WAITPID 1
+
+/* Define if you have the <crypt.h> header file.  */
+/* #undef HAVE_CRYPT_H */
 
 /* Define if you have the <db.h> header file.  */
 /* #undef HAVE_DB_H */
@@ -441,6 +474,9 @@ typedef char * caddr_t;
 /* Define if you have the <malloc.h> header file.  */
 #define HAVE_MALLOC_H 1
 
+/* Define if you have the <memory.h> header file.  */
+/* #undef HAVE_MEMORY_H */
+
 /* Define if you have the <ncurses.h> header file.  */
 /* #undef HAVE_NCURSES_H */
 
@@ -452,6 +488,9 @@ typedef char * caddr_t;
 
 /* Define if you have the <pthread.h> header file.  */
 /* #undef HAVE_PTHREAD_H */
+
+/* Define if you have the <pwd.h> header file.  */
+/* #undef HAVE_PWD_H */
 
 /* Define if you have the <regex.h> header file.  */
 /* #undef HAVE_REGEX_H */
@@ -467,6 +506,12 @@ typedef char * caddr_t;
 
 /* Define if you have the <stddef.h> header file.  */
 #define HAVE_STDDEF_H 1
+
+/* Define if you have the <string.h> header file.  */
+#define HAVE_STRING_H 1
+
+/* Define if you have the <strings.h> header file.  */
+/* #undef HAVE_STRINGS_H */
 
 /* Define if you have the <synch.h> header file.  */
 /* #undef HAVE_SYNCH_H */
@@ -491,6 +536,9 @@ typedef char * caddr_t;
 
 /* Define if you have the <sys/param.h> header file.  */
 /* #undef HAVE_SYS_PARAM_H */
+
+/* Define if you have the <sys/resource.h> header file.  */
+/* #undef HAVE_SYS_RESOURCE_H */
 
 /* Define if you have the <sys/socket.h> header file.  */
 /* #undef HAVE_SYS_SOCKET_H */

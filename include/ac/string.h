@@ -5,11 +5,20 @@
 
 #ifdef STDC_HEADERS
 #	include <string.h>
+
 #else
 #	ifdef HAVE_STRING_H
 #		include <string.h>
 #	elif HAVE_STRINGS_H
 #		include <strings.h>
+#	endif
+
+#	ifdef HAVE_MEMORY_H
+#		include <memory.h>
+#	endif
+
+#	ifdef HAVE_MALLOC_H
+#		include <malloc.h>
 #	endif
 
 #	ifndef HAVE_STRCHR
@@ -21,21 +30,14 @@
 #		define memcpy(d, s, n)			bcopy ((s), (d), (n))
 #		define memmove(d, s, n)			bcopy ((s), (d), (n))
 #	endif
+#endif
 
-#	if !defined(HAVE_STRING_H) && !defined(HAVE_STRINGS_H)
-	/* define prototypes for string functions */
-	/* this could cause problems on some odd ball systems */
-	char	*strchr(), *strrchr();
-	char	*strcpy(), *strncpy();
-	char	*strcat (), *strncat ();
-	int		strcmp(), strncmp();
-	int		strcasecmp(), strncasecmp();
-	char	*strdup();
-	char	*strtok();
-	char	*strpbrk();
-	int		memcmp();
-#	endif
-
+/*
+ * provide prototypes for missing functions that we replace.
+ * replacements can be found in -llutil
+ */
+#ifndef HAVE_STRDUP
+	char *strdup( const char *s );
 #endif
 
 #ifndef SAFEMEMCPY
@@ -43,8 +45,6 @@
 #		define SAFEMEMCPY( d, s, n ) 	memmove((d), (s), (n))
 #	elif defined( HAVE_BCOPY )
 #		define SAFEMEMCPY( d, s, n ) 	bcopy((s), (d), (n))
-#	elif defined( MACOS )
-#		define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
 #	else
 		/* nothing left but memcpy() */
 #		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))

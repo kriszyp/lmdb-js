@@ -15,6 +15,9 @@
 /* define this if needed to get thread safe functions */
 #undef _THREADSAFE
 
+/* define this if cross compiling */
+#undef CROSS_COMPILING
+
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
