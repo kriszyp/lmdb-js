@@ -220,7 +220,7 @@ Please try again later." );
 		exit( 1 );
 	}
 	entry = ldap_first_entry( ld, result );
-	organisation = strdup( ldap_dn2ufn( ldap_get_dn( ld, entry ) ) );
+	organisation = ldap_dn2ufn( ldap_get_dn( ld, entry ) );
 	category = ldap_get_values( ld, entry, "businessCategory" );
 
 	printFormatted( lineLength, FALSE, stdout,

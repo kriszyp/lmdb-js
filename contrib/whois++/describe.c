@@ -183,12 +183,12 @@ according to the IAFA services template." );
 	} else {
 #endif
 		value = ldap_dn2ufn( ptr = ldap_get_dn( ld, result ) );
-		free( ptr );
+		ldap_memfree( ptr );
 		if ( (ptr = index( value, ',' )) != NULL )
 			*ptr = '\0';
 		printFormatted( lineLength, FALSE, stdout, "%-19s %s",
 			"Contact:", value );
-		free( value );
+		ldap_memfree( value );
 #if defined(UOFA)
 	}
 #endif

@@ -48,17 +48,17 @@ LDAPMessage	*entry;
 	int		i;
 
 	template = NULL;
-	dn = strdup( ldap_get_dn( ld, entry ) );
+	dn = ldap_get_dn( ld, entry );
 	ldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectclass=*", objectClass,
 		0, &result );
 	if ( ld->ld_errno != LDAP_SUCCESS ) {
 		printFormatted( lineLength, TRUE, stdout,
 			"Read on object \"%s\" failed, %s",
 			dn, ldap_err2string( ld->ld_errno ) );
-		free( dn );
+		ldap_memfree( dn );
 		return;
 	} else
-		free( dn );
+		ldap_memfree( dn );
 	if ( ( val = ldap_get_values( ld, result, "objectClass" ) ) == NULL )
 		return;
 	for ( i = 0 ; val[i] != NULL ; i++ )
@@ -256,7 +256,7 @@ char	*dn, *attributes[];
 	printFormatted( lineLength, FALSE, stdout, " %-19s \"%s\"",
 		"Handle", dn );
 
-	free( ufn );
+	ldap_memfree( ufn );
 }
 
 char *attributeLabel( attribute )
