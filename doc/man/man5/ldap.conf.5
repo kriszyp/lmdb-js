@@ -65,6 +65,9 @@ library should connect.  Each server's name can be specified as a
 domain-style name or an IP address and optionally followed by a ':' and
 the port number the ldap server is listening on.  A space separated
 list of hosts may be provided.
+.B HOST
+is deprecated in favor of
+.BR URI .
 .TP
 .B PORT <port>
 Specifies the default port used when connecting to LDAP servers(s).
@@ -208,7 +211,14 @@ If OpenLDAP is built with support for Transport Layer Security, there
 are more options you can specify.
 .TP
 .B TLS <level>
-Specifies whether client connections should use TLS by default. The
+Specifies whether client connections should use ldaps:// by default.
+This option is deprecated in favor of the
+.B URI
+option.  Using the
+.B TLS
+option may break some applications.
+.LP
+The
 .B <level>
 can be specified as one of the following keywords:
 .RS

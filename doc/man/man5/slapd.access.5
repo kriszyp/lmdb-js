@@ -424,7 +424,43 @@ or the (even more silly) example
 .fi
 .LP
 which grants everybody search and compare privileges, and adds read
-privileges to authenticated users.
+privileges to authenticated clients.
+.SH CAVEATS
+It is strongly recommended to explicitly use the most appropriate
+DN 
+.BR style ,
+to avoid possible 
+incorrect specifications of the access rules as well
+as for performance (avoid unrequired regex matching when
+an exact match suffices) reasons.
+.LP
+An adminisistrator might create a rule of the form:
+.LP
+.nf
+	access to dn="dc=example,dc=com"
+		by ...
+.fi
+.LP
+expecting it to match all entries in the subtree "dc=example,dc=com".
+However, this rule actually matches any DN which contains anywhere
+the substring "dc=example,dc=com".  That is, the rule matches both
+"uid=joe,dc=example,dc=com" and "dc=example,dc=com,uid=joe".
+.LP
+To match the desired subtree, the rule would be more precisely
+written:
+.LP
+.nf
+	access to dn.regex="^(.+,)?dc=example,dc=com$$"
+		by ...
+.fi
+.LP
+For performance reasons, it would be better to use the subtree style.
+.LP
+.nf
+access to dn.subtree="dc=example,dc=com"
+	by ...
+.fi
+.LP
 .SH FILES
 .TP
 ETCDIR/slapd.conf
