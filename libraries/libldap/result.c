@@ -671,15 +671,18 @@ Debug( LDAP_DEBUG_TRACE,
 			/* Check if all requests are finished, lr is now parent */
 			tmplr = lr;
 			if (tmplr->lr_status == LDAP_REQST_COMPLETED) {
-				for(tmplr=lr->lr_child; tmplr != NULL; tmplr=tmplr->lr_refnext) {
-				if( tmplr->lr_status != LDAP_REQST_COMPLETED) {
-					break;
-					}
+				for ( tmplr=lr->lr_child;
+					tmplr != NULL;
+					tmplr=tmplr->lr_refnext)
+				{
+					if( tmplr->lr_status != LDAP_REQST_COMPLETED) break;
 				}
 			}
 
 			/* This is the parent request if the request has referrals */
-			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL && tmplr == NULL ) {
+			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL &&
+				tmplr == NULL )
+			{
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 				Debug( LDAP_DEBUG_ANY, "request %ld done\n",
