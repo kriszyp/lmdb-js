@@ -145,6 +145,9 @@
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
 
+/* Define if you have the <ncurses.h> header file.  */
+#undef HAVE_NCURSES_H
+
 /* Define if you have the <ndbm.h> header file.  */
 #undef HAVE_NDBM_H
 
@@ -180,6 +183,9 @@
 
 /* Define if you have the <syslog.h> header file.  */
 #undef HAVE_SYSLOG_H
+
+/* Define if you have the <termcap.h> header file.  */
+#undef HAVE_TERMCAP_H
 
 /* Define if you have the <termio.h> header file.  */
 #undef HAVE_TERMIO_H

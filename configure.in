@@ -452,8 +452,36 @@ dnl		AC_DEFINE(HAVE_TCPD)
 fi
 
 # ud needs termcap (should insert check here)
-LIBTERMCAP="-ltermcap"
-AC_SUBST(LIBTERMCAP)
+ol_link_termcap=no
+
+TERMCAP_DEFS=
+TERMCAP_LIBS=
+
+AC_CHECK_HEADERS(termcap.h ncurses.h)
+
+if test $ol_link_termcap = no ; then
+	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
+	if test $have_termcap = yes ; then
+		ol_link_termcap=yes
+		TERMCAP_LIBS=-ltermcap
+	fi
+fi
+
+if test $ol_link_termcap = no ; then
+	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
+	if test $have_ncurses = yes ; then
+		ol_link_termcap=yes
+		TERMCAP_LIBS=-lncurses
+	fi
+fi
+
+if test $ol_link_termcap = no ; then
+	TERMCAP_DEFS="-DNOTERMCAP"
+	TERMCAP_LIBS=
+fi
+
+AC_SUBST(TERMCAP_DEFS)
+AC_SUBST(TERMCAP_LIBS)
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
