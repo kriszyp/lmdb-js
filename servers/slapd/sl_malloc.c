@@ -376,7 +376,8 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 			new = p;
 	
 		/* If reallocing the last block, we can grow it */
-		} else if ((char *)ptr + p[-1] == sh->sh_last) {
+		} else if ((char *)ptr + p[-1] == sh->sh_last &&
+			(char *)ptr + size < (char *)sh->sh_end ) {
 			new = p;
 			sh->sh_last = (char *)sh->sh_last + size - p[-1];
 			p[-1] = size;
