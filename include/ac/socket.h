@@ -217,4 +217,10 @@ LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 #define	NI_MAXHOST	256
 #endif
 
+#ifdef HAVE_POLL_H
+# ifndef INFTIM
+#  define INFTIM (-1)
+# endif
+#endif
+
 #endif /* _AC_SOCKET_H_ */
