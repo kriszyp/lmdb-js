@@ -703,14 +703,14 @@ static int parseClientUpdate (
 
 	/* TODO : Cookie Scheme Validation */
 #if 0
-	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
-		*text = "Invalid LCUP cookie";
-		return LCUP_INVALID_COOKIE;
-	}
-
 	if ( lcup_cookie_scheme_validate(scheme) != LDAP_SUCCESS ) {
 		*text = "Unsupported LCUP cookie scheme";
 		return LCUP_UNSUPPORTED_SCHEME;
+	}
+
+	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
+		*text = "Invalid LCUP cookie";
+		return LCUP_INVALID_COOKIE;
 	}
 #endif
 
