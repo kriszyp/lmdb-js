@@ -1,3 +1,3 @@
 #! /bin/sh
 # $OpenLDAP$
-sed -e s/@BACKEND@/$BACKEND/i -e s/^#$BACKEND#//i
+sed -e s/@BACKEND@/$BACKEND/ -e s/^#$BACKEND#//
