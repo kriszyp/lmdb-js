@@ -377,8 +377,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_STRING: {
 				char *cc = *((char**)Conf[i].arg_item);
 				if(cc) ch_free(cc);	/* potential memory leak */
-				cc = c->value_string;
-				/* memcpy(Conf[i].arg_item, &c->value_string, sizeof(void *)); */
+				*(char **)Conf[i].arg_item = c->value_string;
 				break;
 				}
 	}
