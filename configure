@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.326 2000/09/12 23:40:17 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.327 2000/09/14 05:22:10 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -67,7 +67,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-crypt	  enable crypt(3) passwords (auto)"
 ac_help="$ac_help
-    --enable-kpasswd	  enable kerberos password verification (no)"
+    --enable-kpasswd	  enable Kerberos password verification (no)"
 ac_help="$ac_help
     --enable-spasswd	  enable (Cyrus) SASL password verification (no)"
 ac_help="$ac_help
@@ -6075,7 +6075,7 @@ fi
 
 		else
 			have_425=no
-			echo "configure: warning: Unrecongized Kerberos5 Implementation" 1>&2
+			echo "configure: warning: Unrecongized Kerberos V Implementation" 1>&2
 		fi
 
 		if test $have_k425 = yes ; then
