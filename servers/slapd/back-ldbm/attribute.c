@@ -28,8 +28,7 @@ ldbm_back_attribute(
 	Entry	*target,
 	const char	*e_ndn,
 	AttributeDescription *entry_at,
-	struct berval ***vals
-)
+	struct berval ***vals )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
 	Entry        *e;

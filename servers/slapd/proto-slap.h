@@ -154,21 +154,22 @@ LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be, const char *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be,
 	Connection *conn, const char *ndn, struct berval *cred ));
 LDAP_SLAPD_F (char *) be_root_dn LDAP_P(( Backend *be ));
-LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
-#define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )
-#define be_entry_release_w( be, e ) be_entry_release_rw( be, e, 1 )
+LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P((
+	BackendDB *be, Connection *c, Operation *o, Entry *e, int rw ));
+#define be_entry_release_r( be, c, o, e ) be_entry_release_rw( be, c, o, e, 0 )
+#define be_entry_release_w( be, c, o, e ) be_entry_release_rw( be, c, o, e, 1 )
 
 LDAP_SLAPD_F (int) backend_unbind LDAP_P((Connection *conn, Operation *op));
 
 LDAP_SLAPD_F( int )	backend_check_restrictions LDAP_P((
-	Backend *be,
+	BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	const char *extoid,
 	const char **text ));
 
 LDAP_SLAPD_F( int )	backend_check_referrals LDAP_P((
-	Backend *be,
+	BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	const char *dn,
@@ -177,7 +178,9 @@ LDAP_SLAPD_F( int )	backend_check_referrals LDAP_P((
 LDAP_SLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LDAP_SLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
 
-LDAP_SLAPD_F (int) backend_group LDAP_P((Backend *be,
+LDAP_SLAPD_F (int) backend_group LDAP_P((BackendDB *be,
+	Connection *conn,
+	Operation *op,
 	Entry *target,
 	const char *gr_ndn,
 	const char *op_ndn,
@@ -185,7 +188,7 @@ LDAP_SLAPD_F (int) backend_group LDAP_P((Backend *be,
 	AttributeDescription *group_at
 ));
 
-LDAP_SLAPD_F (int) backend_attribute LDAP_P((Backend *be,
+LDAP_SLAPD_F (int) backend_attribute LDAP_P((BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	Entry *target,
@@ -194,7 +197,11 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((Backend *be,
 	struct berval ***vals
 ));
 
-LDAP_SLAPD_F (Attribute *) backend_operational( Backend *, Entry * );
+LDAP_SLAPD_F (Attribute *) backend_operational(
+	BackendDB *,
+	Connection *conn,
+	Operation *op,
+	Entry * );
 
 
 

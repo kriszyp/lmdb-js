@@ -74,6 +74,7 @@ extern int	ldbm_back_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, ber_int_t msgid ));
 
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
 	Entry *target,
 	const char* gr_ndn,
 	const char* op_ndn,

@@ -237,7 +237,7 @@ do_add( Connection *conn, Operation *op )
 				{
 					replog( be, op, e->e_dn, e );
 				}
-				be_entry_release_w( be, e );
+				be_entry_release_w( be, conn, op, e );
 				e = NULL;
 			}
 

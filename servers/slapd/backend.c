@@ -539,11 +539,16 @@ be_isroot_pw( Backend *be,
 }
 
 int
-be_entry_release_rw( Backend *be, Entry *e, int rw )
+be_entry_release_rw(
+	BackendDB *be,
+	Connection *conn,
+	Operation *op,
+	Entry *e,
+	int rw )
 {
 	if ( be->be_release ) {
 		/* free and release entry from backend */
-		return be->be_release( be, e, rw );
+		return be->be_release( be, conn, op, e, rw );
 	} else {
 		/* free entry */
 		entry_free( e );
@@ -831,6 +836,8 @@ int backend_check_referrals(
 int 
 backend_group(
 	Backend	*be,
+	Connection *conn,
+	Operation *op,
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
@@ -849,7 +856,8 @@ backend_group(
 	} 
 
 	if( be->be_group ) {
-		return be->be_group( be, target, gr_ndn, op_ndn,
+		return be->be_group( be, conn, op,
+			target, gr_ndn, op_ndn,
 			group_oc, group_at );
 	}
 
@@ -887,6 +895,8 @@ backend_attribute(
 
 Attribute *backend_operational(
 	Backend *be,
+	Connection *conn,
+	Operation *op,
 	Entry *e )
 {
 	Attribute *a = NULL;

@@ -619,7 +619,7 @@ acl_mask(
 				buf[sizeof(buf) - 1] = 0;
 			}
 
-			if (backend_group(be, e, buf, op->o_ndn,
+			if (backend_group(be, conn, op, e, buf, op->o_ndn,
 				b->a_group_oc, b->a_group_at) != 0)
 			{
 				continue;

@@ -906,7 +906,7 @@ struct slap_op;
 
 typedef int (*SLAP_EXTENDED_FN) LDAP_P((
     BackendDB		*be,
-    struct slap_conn		*conn,
+    struct slap_conn	*conn,
     struct slap_op		*op,
 	const char		*reqoid,
     struct berval * reqdata,
@@ -1014,7 +1014,9 @@ struct slap_backend_info {
 	SLAP_EXTENDED_FN bi_extended;
 
 	/* Auxilary Functions */
-	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
+	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd,
+		struct slap_conn *c, struct slap_op *o,
+		Entry *e, int rw));
 
 	int	(*bi_chk_referrals) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1022,6 +1024,7 @@ struct slap_backend_info {
 		const char **text ));
 
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
+		struct slap_conn *c, struct slap_op *o,
 		Entry *e, const char *bdn, const char *edn,
 		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
