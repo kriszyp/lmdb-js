@@ -69,6 +69,13 @@ usage( void )
 #ifdef LDAP_CONTROL_SUBENTRIES
 "             [!]subentries[=true|false]  (subentries)\n"
 #endif
+#ifdef LDAP_CLIENT_UPDATE
+"             [!]lcup= p/<cint>/<cookie>/<slimit>  (client update)\n"
+/*
+ * "                      s/<cint>/<cookie>  (client update)\n"
+ * "                     sp/<cint>/<cookie>/<slimit>\n"
+ * */
+#endif
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
@@ -139,6 +146,13 @@ static int  includeufn, vals2tmp = 0, ldif = 0;
 
 static int subentries = 0, valuesReturnFilter = 0;
 static char	*vrFilter = NULL;
+
+#ifdef LDAP_CLIENT_UPDATE
+static int lcup = 0;
+static int lcup_cint = 0;
+static struct berval lcup_cookie = { 0, NULL };
+static int lcup_slimit = 0;
+#endif
 
 static int pagedResults = 0;
 static ber_int_t pageSize = 0;
@@ -275,6 +289,59 @@ handle_private_option( int i )
 			if( crit ) subentries *= -1;
 #endif
 
+#ifdef LDAP_CLIENT_UPDATE
+		} else if ( strcasecmp( control, "lcup" ) == 0 ) {
+			char *cookiep;
+			char *slimitp;
+			if ( lcup ) {
+				fprintf( stderr, "client update control previously specified\n");
+				exit( EXIT_FAILURE );
+			}
+			if ( cvalue == NULL ) {
+				fprintf( stderr,
+					"missing specification of client update control\n");
+				exit( EXIT_FAILURE );
+			}
+			if ( strncasecmp( cvalue, "p", 1 ) == 0 ) {
+				lcup = LDAP_CUP_PERSIST_ONLY;
+				cvalue += 2;
+				cookiep = strchr( cvalue, '/' );
+				*cookiep++ = '\0';
+				lcup_cint = atoi( cvalue );
+				cvalue = cookiep;
+				slimitp = strchr( cvalue, '/' );
+				*slimitp++ = '\0';
+				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
+				lcup_slimit = atoi( slimitp );
+/*
+			} else if ( strncasecmp( cvalue, "s", 1 ) == 0 ) {
+				lcup = LDAP_CUP_SYNC_ONLY;
+				cvalue += 2;
+				cookiep = strchr( cvalue, '/' );
+				*cookiep++ = '\0';
+				lcup_cint = atoi( cvalue );
+				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
+			} else if ( strncasecmp( cvalue, "sp", 2 ) == 0 ) {
+				lcup = LDAP_CUP_SYNC_AND_PERSIST;
+				cvalue += 3;
+				cookiep = strchr( cvalue, '/' );
+				*cookiep++ = '\0';
+				lcup_cint = atoi( cvalue );
+				cvalue = cookiep;
+				slimitp = strchr( cvalue, '/' );
+				*slimitp++ = '\0';
+				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
+				lcup_slimit = atoi( slimitp );
+*/
+			} else {
+				fprintf( stderr,
+					"client update control value \"%s\" invalid\n",
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
+			if ( crit ) lcup *= -1;
+#endif
+
 		} else {
 			fprintf( stderr, "Invalid control name: %s\n", control );
 			usage();
@@ -362,6 +429,10 @@ main( int argc, char **argv )
 	int			rc, i, first;
 	LDAP		*ld = NULL;
 	BerElement	*seber = NULL, *vrber = NULL, *prber = NULL;
+#ifdef LDAP_CLIENT_UPDATE
+	BerElement	*cuber = NULL;
+        struct berval   *cubvalp = NULL;
+#endif
 
 	npagedresponses = npagedentries = npagedreferences =
 		npagedextended = npagedpartial = 0;
@@ -455,8 +526,13 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
+#ifndef LDAP_CLIENT_UPDATE
 	if ( manageDSAit || noop || subentries
 		|| valuesReturnFilter || pageSize )
+#else
+	if ( manageDSAit || noop || subentries
+		|| valuesReturnFilter || pageSize || lcup )
+#endif
 	{
 		int err;
 		int i=0;
@@ -481,6 +557,30 @@ getNextPage:
 
 			c[i].ldctl_oid = LDAP_CONTROL_SUBENTRIES;
 			c[i].ldctl_iscritical = subentries < 1;
+			i++;
+		}
+#endif
+
+#ifdef LDAP_CLIENT_UPDATE
+		if ( lcup ) {
+			if (( cuber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+				return EXIT_FAILURE;
+			}
+			err = ber_printf( cuber, "{ei{sO}}", abs(lcup), lcup_cint,
+					LDAP_CLIENT_UPDATE_COOKIE, &lcup_cookie);
+			if ( err == LBER_ERROR ) {
+				ber_free( cuber, 1 );
+				fprintf( stderr, "client update control encoding error!\n" );
+				return EXIT_FAILURE;
+			}
+
+			if ( ber_flatten( cuber, &cubvalp ) == LBER_ERROR ) {
+				return EXIT_FAILURE;
+			}
+
+			c[i].ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE;
+			c[i].ldctl_value=(*cubvalp);
+			c[i].ldctl_iscritical = lcup < 0;
 			i++;
 		}
 #endif
@@ -770,6 +870,13 @@ static int dosearch(
 				}
 				goto done;
 			}
+#ifdef LDAP_CLIENT_UPDATE
+			if ( nresponses >= lcup_slimit ) {
+				ldap_abandon (ld, ldap_msgid(msg));
+				goto done;
+			}
+#endif
+
 		}
 
 		ldap_msgfree( res );
