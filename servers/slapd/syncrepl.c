@@ -865,11 +865,13 @@ syncrepl_entry(
 		}
 	}
 
-	op->ors_filterstr.bv_len = strlen("entryUUID=") + syncUUID->bv_len;
-	op->ors_filterstr.bv_val = (char *) sl_malloc( op->ors_filterstr.bv_len + 1,
-									op->o_tmpmemctx ); 
-	strcpy( op->ors_filterstr.bv_val, "entryUUID=" );
-	strcat( op->ors_filterstr.bv_val, syncUUID->bv_val );
+	op->ors_filterstr.bv_len = (sizeof("entryUUID=")-1) + syncUUID->bv_len;
+	op->ors_filterstr.bv_val = (char *) sl_malloc(
+		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
+	AC_MEMCPY( op->ors_filterstr.bv_val, "entryUUID=", sizeof("entryUUID=")-1 );
+	AC_MEMCPY( &op->ors_filterstr.bv_val[sizeof("entryUUID=")-1],
+		syncUUID->bv_val, syncUUID->bv_len );
+	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
 	si->e = e;
 	si->syncUUID_ndn = NULL;
