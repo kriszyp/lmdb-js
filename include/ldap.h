@@ -394,6 +394,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0x61) /* 81-97 */
 
+/* reserved for APIs */
 #define LDAP_SERVER_DOWN		0x51
 #define LDAP_LOCAL_ERROR		0x52
 #define LDAP_ENCODING_ERROR		0x53
@@ -405,7 +406,7 @@ typedef struct ldapcontrol {
 #define LDAP_PARAM_ERROR		0x59
 #define LDAP_NO_MEMORY			0x5a
 
-/* not technically reserved for APIs */
+/* used but not reserved for APIs */
 #define LDAP_CONNECT_ERROR				0x5b	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_NOT_SUPPORTED				0x5c	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_CONTROL_NOT_FOUND			0x5d	/* draft-ietf-ldap-c-api-xx */
