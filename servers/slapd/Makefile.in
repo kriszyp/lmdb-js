@@ -37,7 +37,7 @@ SRCS	= main.c globals.c config.c daemon.c \
 		backglue.c operational.c matchedValues.c cancel.c syncrepl.c \
 		backover.c ctxcsn.c ldapsync.c sessionlog.c frontend.c \
 		slapadd.c slapcat.c slapcommon.c slapdn.c slapindex.c \
-		slappasswd.c slaptest.c slapauth.c slapacl.c component.c\
+		slappasswd.c slaptest.c slapauth.c slapacl.c component.c \
 		$(@PLAT@_SRCS)
 
 OBJS	= main.o globals.o config.o daemon.o \
@@ -54,7 +54,7 @@ OBJS	= main.o globals.o config.o daemon.o \
 		backglue.o operational.o matchedValues.o cancel.o syncrepl.o \
 		backover.o ctxcsn.o ldapsync.o sessionlog.o frontend.o \
 		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
-		slappasswd.o slaptest.o slapauth.o slapacl.o component.o\
+		slappasswd.o slaptest.o slapauth.o slapacl.o component.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir)/slapi
