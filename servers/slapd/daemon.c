@@ -1115,7 +1115,7 @@ slapd_daemon_task(
 		ber_socket_t i;
 		int ns;
 		int at;
-		ber_socket_t nfds;
+		ber_socket_t nfds, nrfds, nwfds;
 #define SLAPD_EBADF_LIMIT 16
 		int ebadf = 0;
 
@@ -1307,6 +1307,7 @@ slapd_daemon_task(
 #if defined(NO_THREADS) || defined(HAVE_GNU_PTH)
 			waking = 0;
 #endif
+			ns--;
 			continue;
 		}
 
@@ -1333,12 +1334,16 @@ slapd_daemon_task(
 
 			peername[0] = '\0';
 
+			if ( ns <= 0 ) break;
+
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
 
 			if ( !FD_ISSET( slap_listeners[l]->sl_sd, &readfds ) )
 				continue;
 			
+			ns--;
+
 #ifdef LDAP_CONNECTIONLESS
 			if ( slap_listeners[l]->sl_is_udp ) {
 				/* The first time we receive a query, we set this
@@ -1592,9 +1597,17 @@ slapd_daemon_task(
 			continue;
 		}
 
+		/* bypass the following tests if no descriptors left */
+		if ( ns <= 0 ) {
+			ldap_pvt_thread_yield();
+			continue;
+		}
+
 #ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 #ifdef HAVE_WINSOCK
+		nrfds = readfds.fd_count;
+		nwfds = writefds.fd_count;
 		for ( i = 0; i < readfds.fd_count; i++ ) {
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				readfds.fd_array[i], "r", 0 );
@@ -1605,6 +1618,8 @@ slapd_daemon_task(
 		}
 
 #else
+		nrfds = 0;
+		nwfds = 0;
 		for ( i = 0; i < nfds; i++ ) {
 			int	r, w;
 
@@ -1613,7 +1628,16 @@ slapd_daemon_task(
 			if ( r || w ) {
 				Debug( LDAP_DEBUG_CONNS, " %d%s%s", i,
 				    r ? "r" : "", w ? "w" : "" );
+				if ( r ) {
+					nrfds++;
+					ns--;
+				}
+				if ( w ) {
+					nwfds++;
+					ns--;
+				}
 			}
+			if ( ns <= 0 ) break;
 		}
 #endif
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
@@ -1621,11 +1645,7 @@ slapd_daemon_task(
 #endif
 
 		/* loop through the writers */
-#ifdef HAVE_WINSOCK
-		for ( i = 0; i < writefds.fd_count; i++ )
-#else
-		for ( i = 0; i < nfds; i++ )
-#endif
+		for ( i = 0; nwfds > 0; i++ )
 		{
 			ber_socket_t wd;
 #ifdef HAVE_WINSOCK
@@ -1636,6 +1656,7 @@ slapd_daemon_task(
 			}
 			wd = i;
 #endif
+			nwfds--;
 
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
@@ -1653,11 +1674,7 @@ slapd_daemon_task(
 			}
 		}
 
-#ifdef HAVE_WINSOCK
-		for ( i = 0; i < readfds.fd_count; i++ )
-#else
-		for ( i = 0; i < nfds; i++ )
-#endif
+		for ( i = 0; nrfds > 0; i++ )
 		{
 			ber_socket_t rd;
 #ifdef HAVE_WINSOCK
@@ -1668,6 +1685,7 @@ slapd_daemon_task(
 			}
 			rd = i;
 #endif
+			nrfds--;
 
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
