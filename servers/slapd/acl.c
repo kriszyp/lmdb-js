@@ -768,7 +768,7 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_dn_at != NULL && op->o_ndn.bv_len != 0 ) {
+		if ( b->a_dn_at != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
 			int rc, match = 0;
@@ -776,6 +776,10 @@ acl_mask(
 			const char *attr = b->a_dn_at->ad_cname.bv_val;
 
 			assert( attr != NULL );
+
+			if ( op->o_ndn.bv_len == 0 ) {
+				continue;
+			}
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
@@ -843,11 +847,15 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_group_pat.bv_len && op->o_ndn.bv_len ) {
+		if ( b->a_group_pat.bv_len ) {
 			char buf[1024];
 			struct berval bv;
 			struct berval ndn = { 0, NULL };
 			int rc;
+
+			if ( op->o_ndn.bv_len == 0 ) {
+				continue;
+			}
 
 			bv.bv_len = sizeof(buf) - 1;
 			bv.bv_val = buf; 
