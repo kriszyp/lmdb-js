@@ -30,7 +30,7 @@ filter_candidates(
     Filter	*f
 )
 {
-	IDList	*result;
+	IDList	*result, *tmp1, *tmp2;
 
 	Debug( LDAP_DEBUG_TRACE, "=> filter_candidates\n", 0, 0, 0 );
 
@@ -78,8 +78,11 @@ filter_candidates(
 
 	case LDAP_FILTER_NOT:
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
-		result = idl_notin( be, idl_allids( be ), filter_candidates( be,
-		    f->f_not ) );
+		tmp1 = idl_allids( be );
+		tmp2 = filter_candidates( be, f->f_not );
+		result = idl_notin( be, tmp1, tmp2 );
+		idl_free( tmp2 );
+		idl_free( tmp1 );
 		break;
 	}
 

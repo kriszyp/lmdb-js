@@ -47,8 +47,6 @@ str2entry( char	*s )
 		s ? s : "NULL", 0, 0 );
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	/* initialize reader/writer lock */
-	entry_rdwr_init(e);
 
 	/* check to see if there's an id included */
 	next = s;
@@ -58,9 +56,13 @@ str2entry( char	*s )
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (missing newline after id)\n",
 			    0, 0, 0 );
+			free( e );
 			return( NULL );
 		}
 	}
+
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
 
 	/* dn + attributes */
 	e->e_attrs = NULL;
@@ -101,6 +103,7 @@ str2entry( char	*s )
 		    != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+			entry_free( e );
 			return( NULL );
 		}
 		nvals++;
