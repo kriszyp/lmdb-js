@@ -53,7 +53,7 @@ UTF8StringValidate(
 
 static int
 UTF8StringNormalize(
-	int use,
+	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
@@ -169,7 +169,7 @@ IA5StringConvert(
 
 static int
 IA5StringNormalize(
-	int use,
+	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *val,
@@ -239,7 +239,7 @@ IA5StringNormalize(
 
 static int
 caseExactIA5Match(
-	int use,
+	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -251,7 +251,7 @@ caseExactIA5Match(
 
 static int
 caseIgnoreIA5Match(
-	int use,
+	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
