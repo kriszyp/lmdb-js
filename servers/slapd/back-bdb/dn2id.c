@@ -35,6 +35,7 @@ bdb_dn2id_add(
 	DB *db = bdb->bi_dn2id->bdi_db;
 	int		rc;
 	DBT		key, data;
+	ID		nid;
 	char		*buf;
 	struct berval	ptr, pdn;
 
@@ -55,8 +56,9 @@ bdb_dn2id_add(
 	ptr.bv_val[ptr.bv_len] = '\0';
 
 	DBTzero( &data );
-	data.data = (char *) &e->e_id;
-	data.size = sizeof( e->e_id );
+	data.data = &nid;
+	data.size = sizeof( nid );
+	BDB_ID2DISK( e->e_id, &nid );
 
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
@@ -246,10 +248,11 @@ bdb_dn2id(
 	struct berval	*dn,
 	EntryInfo *ei )
 {
-	int		rc;
-	DBT		key, data;
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	int		rc;
+	DBT		key, data;
+	ID		nid;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id(\"%s\")\n", dn->bv_val, 0, 0 );
 	DBTzero( &key );
@@ -260,7 +263,7 @@ bdb_dn2id(
 
 	/* store the ID */
 	DBTzero( &data );
-	data.data = &ei->bei_id;
+	data.data = &nid;
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
@@ -274,6 +277,7 @@ bdb_dn2id(
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
 			ei->bei_id, 0, 0 );
 	}
+	BDB_DISK2ID( &nid, &ei->bei_id );
 
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;

@@ -35,15 +35,16 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 int bdb_last_id( BackendDB *be, DB_TXN *tid )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
+	int i, rc;
 	ID id = 0;
+	unsigned char idbuf[sizeof(ID)];
 	DBT key, data;
 	DBC *cursor;
 
 	DBTzero( &key );
 	key.flags = DB_DBT_USERMEM;
-	key.data = (char *) &id;
-	key.ulen = sizeof( id );
+	key.data = (char *) idbuf;
+	key.ulen = sizeof( idbuf );
 
 	DBTzero( &data );
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
@@ -59,10 +60,10 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid )
 
 	switch(rc) {
 	case DB_NOTFOUND:
-		id = 0;
 		rc = 0;
-		/* FALLTHROUGH */
+		break;
 	case 0:
+		BDB_DISK2ID( idbuf, &id );
 		break;
 
 	default:

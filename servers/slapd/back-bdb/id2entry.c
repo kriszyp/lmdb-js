@@ -32,6 +32,7 @@ static int bdb_id2entry_put(
 	DBT key, data;
 	struct berval bv;
 	int rc;
+	ID nid;
 #ifdef BDB_HIER
 	struct berval odn, ondn;
 
@@ -43,8 +44,11 @@ static int bdb_id2entry_put(
 	e->e_nname = slap_empty_bv;
 #endif
 	DBTzero( &key );
-	key.data = (char *) &e->e_id;
+
+	/* Store ID in BigEndian format */
+	key.data = &nid;
 	key.size = sizeof(ID);
+	BDB_ID2DISK( e->e_id, &nid );
 
 	rc = entry_encode( e, &bv );
 #ifdef BDB_HIER
@@ -96,12 +100,14 @@ int bdb_id2entry(
 	DBT key, data;
 	struct berval bv;
 	int rc = 0, ret = 0;
+	ID nid;
 
 	*e = NULL;
 
 	DBTzero( &key );
-	key.data = (char *) &id;
+	key.data = &nid;
 	key.size = sizeof(ID);
+	BDB_ID2DISK( id, &nid );
 
 	DBTzero( &data );
 	data.flags = DB_DBT_MALLOC;
@@ -138,10 +144,12 @@ int bdb_id2entry_delete(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key;
 	int rc;
+	ID nid;
 
 	DBTzero( &key );
-	key.data = (char *) &e->e_id;
+	key.data = &nid;
 	key.size = sizeof(ID);
+	BDB_ID2DISK( e->e_id, &nid );
 
 	/* delete from database */
 	rc = db->del( db, tid, &key, 0 );

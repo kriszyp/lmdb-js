@@ -129,7 +129,7 @@ ID bdb_tool_entry_next(
 		return NOID;
 	}
 
-	AC_MEMCPY( &id, key.data, key.size );
+	BDB_DISK2ID( key.data, &id );
 	return id;
 }
 

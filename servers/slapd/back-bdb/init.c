@@ -311,8 +311,10 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
+#if 0
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
+#endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -324,8 +326,10 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
+#if 0
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_bt_compare );
+#endif
 			if ( slapMode & SLAP_TOOL_READONLY ) {
 				flags |= DB_RDONLY;
 			} else {

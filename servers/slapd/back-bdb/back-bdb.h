@@ -252,6 +252,24 @@ struct bdb_op_info {
 #define BDB_CSN_ABORT	1
 #define BDB_CSN_RETRY	2
 
+/* Copy an ID "src" to pointer "dst" in big-endian byte order */
+#define BDB_ID2DISK( src, dst )	\
+	do { int i0; ID tmp; char *ptr;	\
+		tmp = (src); ptr = (char *)(dst);	\
+		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
+			ptr[i0] = tmp & 0xff; tmp >>= 8;	\
+		} \
+	} while(0);
+
+/* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
+#define BDB_DISK2ID( src, dst ) \
+	do { int i0; ID tmp = 0; unsigned char *ptr;	\
+		ptr = (unsigned char *)(src);	\
+		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
+			tmp <<= 8; tmp |= *ptr++;	\
+		} *(dst) = tmp; \
+	} while (0);
+
 LDAP_END_DECL
 
 #include "proto-bdb.h"

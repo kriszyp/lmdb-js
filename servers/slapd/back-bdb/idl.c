@@ -527,7 +527,7 @@ bdb_idl_fetch_key(
 				DB_MULTIPLE_NEXT(ptr, &data, j, len);
 				if (j) {
 					++i;
-					AC_MEMCPY( i, j, sizeof(ID) );
+					BDB_DISK2ID( j, i );
 				}
 			}
 			rc = cursor->c_get( cursor, key, &data, flags | DB_NEXT_DUP );
@@ -605,7 +605,7 @@ bdb_idl_insert_key(
 	int	rc;
 	DBT data;
 	DBC *cursor;
-	ID lo, hi, tmp;
+	ID lo, hi, tmp, nlo, nhi, nid;
 	char *err;
 
 	{
@@ -626,20 +626,22 @@ bdb_idl_insert_key(
 	data.ulen = data.size;
 	data.flags = DB_DBT_USERMEM;
 
+	BDB_ID2DISK( id, &nid );
+
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
 			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 		return rc;
 	}
-	data.data = &tmp;
+	data.data = &nlo;
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
 	rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
 	err = "c_get";
 	if ( rc == 0 ) {
-		if ( tmp != 0 ) {
+		if ( nlo != 0 ) {
 			/* not a range, count the number of items */
 			db_recno_t count;
 			rc = cursor->c_count( cursor, &count, 0 );
@@ -654,8 +656,9 @@ bdb_idl_insert_key(
 				key2.dlen = key2.ulen;
 				key2.flags |= DB_DBT_PARTIAL;
 
-				lo = tmp;
-				data.data = &hi;
+				BDB_DISK2ID( &nlo, &lo );
+				data.data = &nhi;
+
 				rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_NODUP );
 				if ( rc != 0 && rc != DB_NOTFOUND ) {
 					err = "c_get next_nodup";
@@ -674,29 +677,33 @@ bdb_idl_insert_key(
 						goto fail;
 					}
 				}
-				if ( id < lo )
+				BDB_DISK2ID( &nhi, &hi );
+				if ( id < lo ) {
 					lo = id;
-				else if ( id > hi )
+					nlo = nid;
+				} else if ( id > hi ) {
 					hi = id;
+					nhi = nid;
+				}
 				rc = db->del( db, tid, key, 0 );
 				if ( rc != 0 ) {
 					err = "del";
 					goto fail;
 				}
-				data.data = &id;
-				id = 0;
+				data.data = &nid;
+				nid = 0;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 				if ( rc != 0 ) {
 					err = "c_put 0";
 					goto fail;
 				}
-				id = lo;
+				nid = nlo;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
 				if ( rc != 0 ) {
 					err = "c_put lo";
 					goto fail;
 				}
-				id = hi;
+				nid = nhi;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
 				if ( rc != 0 ) {
 					err = "c_put hi";
@@ -711,19 +718,21 @@ bdb_idl_insert_key(
 			 * the boundaries
 			 */
 			hi = id;
-			data.data = &lo;
+			data.data = &nlo;
 			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 			if ( rc != 0 ) {
 				err = "c_get lo";
 				goto fail;
 			}
+			BDB_DISK2ID( &nlo, &lo );
 			if ( id > lo ) {
-				data.data = &hi;
+				data.data = &nhi;
 				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 				if ( rc != 0 ) {
 					err = "c_get hi";
 					goto fail;
 				}
+				BDB_DISK2ID( &nhi, &hi );
 			}
 			if ( id < lo || id > hi ) {
 				/* Delete the current lo/hi */
@@ -732,7 +741,7 @@ bdb_idl_insert_key(
 					err = "c_del";
 					goto fail;
 				}
-				data.data = &id;
+				data.data = &nid;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 				if ( rc != 0 ) {
 					err = "c_put lo/hi";
@@ -741,7 +750,7 @@ bdb_idl_insert_key(
 			}
 		}
 	} else if ( rc == DB_NOTFOUND ) {
-put1:		data.data = &id;
+put1:		data.data = &nid;
 		rc = cursor->c_put( cursor, key, &data, DB_NODUPDATA );
 		/* Don't worry if it's already there */
 		if ( rc != 0 && rc != DB_KEYEXIST ) {
@@ -777,7 +786,7 @@ bdb_idl_delete_key(
 	int	rc;
 	DBT data;
 	DBC *cursor;
-	ID lo, hi, tmp;
+	ID lo, hi, tmp, nid, nlo, nhi;
 	char *err;
 
 	{
@@ -791,6 +800,8 @@ bdb_idl_delete_key(
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb_idl_cache_del( bdb, db, key );
 	}
+
+	BDB_ID2DISK( id, &nid );
 
 	DBTzero( &data );
 	data.data = &tmp;
@@ -812,9 +823,9 @@ bdb_idl_delete_key(
 	if ( rc == 0 ) {
 		if ( tmp != 0 ) {
 			/* Not a range, just delete it */
-			if (tmp != id) {
+			if (tmp != nid) {
 				/* position to correct item */
-				tmp = id;
+				tmp = nid;
 				rc = cursor->c_get( cursor, key, &data, 
 					DB_GET_BOTH | DB_RMW  );
 				if ( rc != 0 ) {
@@ -831,18 +842,20 @@ bdb_idl_delete_key(
 			/* It's a range, see if we need to rewrite
 			 * the boundaries
 			 */
-			data.data = &lo;
+			data.data = &nlo;
 			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 			if ( rc != 0 ) {
 				err = "c_get lo";
 				goto fail;
 			}
-			data.data = &hi;
+			BDB_DISK2ID( &nlo, &lo );
+			data.data = &nhi;
 			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 			if ( rc != 0 ) {
 				err = "c_get hi";
 				goto fail;
 			}
+			BDB_DISK2ID( &nhi, &hi );
 			if ( id == lo || id == hi ) {
 				if ( id == lo ) {
 					id++;
@@ -861,9 +874,8 @@ bdb_idl_delete_key(
 				} else {
 					if ( id == lo ) {
 						/* reposition on lo slot */
-						data.data = &lo;
+						data.data = &nlo;
 						cursor->c_get( cursor, key, &data, DB_PREV );
-						lo = id;
 					}
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {
@@ -872,7 +884,8 @@ bdb_idl_delete_key(
 					}
 				}
 				if ( lo <= hi ) {
-					data.data = &id;
+					BDB_ID2DISK( id, &nid );
+					data.data = &nid;
 					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 					if ( rc != 0 ) {
 						err = "c_put lo/hi";
