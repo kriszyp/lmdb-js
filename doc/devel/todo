@@ -47,6 +47,7 @@ Perform a security audit (and fix any hole found)
 Medium projects
 ---------------
 Design and Implement a LDAP C++ API
+Redesign and Implement a LDAP C API
 Modify -lldap to be reentrant/threadsafe
 	implement LDAP concurrency draft
 Modify libraries to use application specified logging routines
@@ -69,5 +70,6 @@ Update any manual page
 
 For additional TODO items, see:
   http://www.openldap.org/its/index.cgi/Software%20Enhancements
+
 
 $OpenLDAP$
