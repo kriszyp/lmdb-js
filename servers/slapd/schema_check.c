@@ -42,10 +42,8 @@ entry_schema_check(
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
-		*text = "no objectclass attribute";
-		return oldattrs != NULL
-			? LDAP_OBJECT_CLASS_VIOLATION
-			: LDAP_NO_OBJECT_CLASS_MODS;
+		*text = "no objectClass attribute";
+		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
 	ret = LDAP_SUCCESS;
@@ -54,8 +52,10 @@ entry_schema_check(
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): objectclass \"%s\" not defined\n",
+				"entry_check_schema(%s): objectclass \"%s\" not recognized\n",
 				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
+			*text = "unrecognized object class";
+			return LDAP_OBJECT_CLASS_VIOLATION;
 
 		} else {
 			char *s = oc_check_required( e, aoc->a_vals[i] );
@@ -65,20 +65,14 @@ entry_schema_check(
 					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
 					e->e_dn, aoc->a_vals[i]->bv_val, s );
 				*text = "missing required attribute";
-				ret = LDAP_OBJECT_CLASS_VIOLATION;
-				break;
+				return LDAP_OBJECT_CLASS_VIOLATION;
 			}
 
-			if( oc == slap_schema.si_oc_extensibleObject )
-			{
+			if( oc == slap_schema.si_oc_extensibleObject ) {
 				extensible=1;
 			}
 
 		}
-	}
-
-	if ( ret != LDAP_SUCCESS ) {
-	    return ret;
 	}
 
 	if( extensible ) {
