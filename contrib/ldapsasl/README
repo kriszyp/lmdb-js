@@ -5,10 +5,12 @@ This software is licensed under the terms of the OpenLDAP license.
 
 The file ldapdb.c was written for Cyrus SASL 2.1.3 and OpenLDAP 2.1.3.
 Due to various bugs in the Cyrus source you should use Cyrus SASL 2.1.15
-or newer. The version of ldapdb bundled with OpenLDAP 2.1.22 and older
-will work with all OpenLDAP releases 2.1.3 and up. The ldapdb in
-OpenLDAP 2.1.23 uses a different LDAP request and requires the server
-to be 2.1.23 or newer.
+or newer. You need at least Cyrus SASL 2.1.16 to use the auxprop-store
+functionality.
+
+The version of ldapdb bundled with OpenLDAP 2.1.22 and older will work
+with all OpenLDAP releases 2.1.3 and up. The ldapdb in OpenLDAP 2.1.23
+uses a different LDAP request and requires the server to be 2.1.23 or newer.
 
 It can be compiled by copying into the Cyrus SASL source tree, in the
 plugins subdirectory. No configuration or build script is provided.
