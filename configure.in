@@ -24,9 +24,6 @@ define([AC_INIT_BINSH],
 
 echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
 echo "Copying restrictions apply, see COPYRIGHT file."
-
-# clear CDPATH
-CDPATH=:
 ])dnl
 dnl ----------------------------------------------------------------
 dnl Disable config.cache!
@@ -35,6 +32,16 @@ define([AC_CACHE_SAVE], )dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
+
+# set unset (borrowed from autoconf 2.14a)
+if (unset FOO) >/dev/null 2>&1; then
+  ol_unset=unset
+else
+  ol_unset=false
+fi
+# unset CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
+
 AC_CONFIG_AUX_DIR(build)dnl
 
 OL_VERSION=`cat $ac_aux_dir/version`
