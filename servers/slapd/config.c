@@ -1504,7 +1504,19 @@ read_config( const char *fname, int depth )
 
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
-			if ( *cargv[1] == '('  /*')'*/) {
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: illegal objectclass format.\n",
+					fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+				       "%s: line %d: illegal objectclass format.\n",
+				       fname, lineno, 0 );
+#endif
+				return( 1 );
+
+			} else if ( *cargv[1] == '('  /*')'*/) {
 				char * p;
 				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_oc( fname, lineno, p, cargv );
@@ -1534,7 +1546,19 @@ read_config( const char *fname, int depth )
 		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
 			|| ( strcasecmp( cargv[0], "attribute" ) == 0 ))
 		{
-			if ( *cargv[1] == '(' /*')'*/) {
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
+					"illegal attribute type format.\n",
+					fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"illegal attribute type format.\n",
+					fname, lineno, 0 );
+#endif
+				return( 1 );
+
+			} else if ( *cargv[1] == '(' /*')'*/) {
 				char * p;
 				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_at( fname, lineno, p, cargv );
