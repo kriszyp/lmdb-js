@@ -157,7 +157,6 @@ access_allowed(
 	const char *attr;
 	regmatch_t matches[MAXREMATCHES];
 	int        st_same_attr = 0;
-	int        st_initialized = 0;
 	static AccessControlState state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
@@ -174,21 +173,24 @@ access_allowed(
 		access = ACL_AUTH;
 	}
 
-	if( state && state->as_recorded && state->as_vd_ad==desc) { 
-		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
-			val == NULL )
-		{
-			return state->as_result;
-
-		} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
-			val != NULL && state->as_vd_acl == NULL )
-		{
-			return state->as_result;
-		}
-		st_same_attr = 1;
-	}
-
 	if( state ) {
+		if ( state->as_vd_ad==desc) {
+			if ( state->as_recorded ) {
+				if( state->as_recorded & ACL_STATE_RECORDED_NV &&
+					val == NULL )
+				{
+					return state->as_result;
+				} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
+					val != NULL && state->as_vd_acl == NULL )
+				{
+					return state->as_result;
+				}
+			}
+			st_same_attr = 1;
+		} else {
+			*state = state_init;
+		}
+
 		state->as_vd_ad=desc;
 	}
 
@@ -353,11 +355,8 @@ access_allowed(
 				Debug( LDAP_DEBUG_ACL, "access_allowed: result from state (%s)\n", attr, 0, 0 );
 				ret = state->as_result;
 				goto done;
-			} else if (!st_initialized) {
+			} else {
 				Debug( LDAP_DEBUG_ACL, "access_allowed: no res from state (%s)\n", attr, 0, 0);
-			    *state = state_init;
-				state->as_vd_ad=desc;
-				st_initialized=1;
 			}
 		}
 
@@ -445,6 +444,7 @@ acl_get(
 {
 	const char *attr;
 	int dnlen, patlen;
+	AccessControl *prev;
 
 	assert( e != NULL );
 	assert( count != NULL );
@@ -460,10 +460,12 @@ acl_get(
 		} else {
 			a = op->o_bd->be_acl;
 		}
+		prev = NULL;
 
 		assert( a != NULL );
 
 	} else {
+		prev = a;
 		a = a->acl_next;
 	}
 
@@ -553,7 +555,7 @@ acl_get(
 
 			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
-				state->as_vd_acl = a;
+				state->as_vd_acl = prev;
 				state->as_vd_acl_count = *count;
 				state->as_vd_access = a->acl_access;
 				state->as_vd_access_count = 1;
