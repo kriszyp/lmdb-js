@@ -32,6 +32,7 @@ ldbm_back_modify(
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
+	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
 		    NULL );
@@ -40,10 +41,6 @@ ldbm_back_modify(
 		}
 		return( -1 );
 	}
-
-	/* check for deleted */
-
-	/* lock entry */
 
 	if ( (err = acl_check_modlist( be, conn, op, e, modlist )) != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, err, NULL, NULL );

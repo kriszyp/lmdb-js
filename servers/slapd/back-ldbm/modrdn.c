@@ -176,8 +176,9 @@ return_results:
 	if( p != NULL ) {
 		/* free parent and writer lock */
 		cache_return_entry_w( &li->li_cache, p );
+	}
 
-	} else if ( rootlock ) {
+	if ( rootlock ) {
 		/* release root writer lock */
 		pthread_mutex_unlock(&li->li_root_mutex);
 	}
