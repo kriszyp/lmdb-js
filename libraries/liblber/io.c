@@ -105,7 +105,7 @@ ber_realloc( BerElement *ber, ber_len_t len )
 
 	total = ber_pvt_ber_total( ber );
 
-#define LBER_EXBUFSIZ	1000 /* a few words less than 2^N for binary buddy */
+#define LBER_EXBUFSIZ	4060 /* a few words less than 2^N for binary buddy */
 #if defined( LBER_EXBUFSIZ ) && LBER_EXBUFSIZ > 0
 # ifndef notdef
 	/* don't realloc by small amounts */
