@@ -182,6 +182,12 @@
 /* define if you have ptrdiff_t */
 #undef HAVE_PTRDIFF_T
 
+/* define if you have res_search() */
+#ifdef __notdef__
+/* see second res_search define */
+#undef HAVE_RES_SEARCH
+#endif
+
 /* define if you have sched_yield() */
 #ifdef __notdef__
 /* see second sched_yield define */

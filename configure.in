@@ -274,8 +274,18 @@ dnl
 ])
 
 dnl Check for resolver routines
-AC_CHECK_LIB(bind, res_search)
-AC_CHECK_LIB(resolv, res_search)
+AC_CHECK_FUNCS(res_search)
+if test $ac_cv_func_res_search = "no" ; then 
+	AC_CHECK_LIB(bind, res_search)
+	if test $ac_cv_libac_cv_lib_bind_res_search = "yes" ; then
+		AC_DEFINE(HAVE_RES_SEARCH,1)
+	else
+		AC_CHECK_LIB(resolv, res_search)
+		if test $ac_cv_libac_cv_lib_resolv_res_search = "yes" ; then
+			AC_DEFINE(HAVE_RES_SEARCH,1)
+		fi
+	fi
+fi
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
@@ -1207,7 +1217,6 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
-	res_search		\
 	select			\
 	setpwfile		\
 	setsid			\
