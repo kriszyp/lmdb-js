@@ -617,10 +617,6 @@ do_bind(
 )
 {
     int		ldrc;
-#ifdef HAVE_CYRUS_SASL
-	void *defaults;
-#endif
-
 
     *lderr = 0;
 
@@ -691,10 +687,10 @@ do_bind(
 		if( err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_start_tls failed: %s (%d)\n",
-				ri->ri_tls != TLS_CRITICAL ? "Warning" : "Error",
+				ri->ri_tls == TLS_CRITICAL ? "Error" : "Warning",
 				ldap_err2string( err ), err );
 
-			if( ri->ri_tls != TLS_CRITICAL ) {
+			if( ri->ri_tls == TLS_CRITICAL ) {
 				ldap_unbind( ri->ri_ldp );
 				ri->ri_ldp = NULL;
 				return BIND_ERR_TLS_FAILED;
@@ -742,18 +738,25 @@ do_bind(
 		}
 	}
 
-	defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
-	    ri->ri_realm, ri->ri_authcId, ri->ri_password, ri->ri_authzId );
-	ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
-	    ri->ri_saslmech, NULL, NULL,
-	    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
-	if ( ldrc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
-		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
-		*lderr = ldrc;
-		ldap_unbind( ri->ri_ldp );
-		ri->ri_ldp = NULL;
-		return( BIND_ERR_SASL_FAILED );
+	{
+		char *passwd = ri->ri_password ? ber_strdup( ri->ri_password ) : NULL;
+		void *defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
+		    ri->ri_realm, ri->ri_authcId, passwd, ri->ri_authzId );
+
+		ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
+		    ri->ri_saslmech, NULL, NULL,
+		    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
+		if ( ldrc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
+			    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
+			*lderr = ldrc;
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return( BIND_ERR_SASL_FAILED );
+		}
+
+		ber_memfree( passwd );
+		ber_memfree( defaults );
 	}
 	break;
 #else
