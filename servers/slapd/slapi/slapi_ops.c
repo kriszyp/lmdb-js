@@ -1119,7 +1119,7 @@ slapi_search_internal_bind(
 	}
 
 	if (i > 0) {
-		an = (AttributeName *)slapi_ch_calloc(1, sizeof(AttributeName));
+		an = (AttributeName *)slapi_ch_calloc( (i + 1), sizeof(AttributeName) );
 		for (i = 0; attrs[i] != 0; i++) {
 			an[i].an_desc = NULL;
 			an[i].an_oc = NULL;
@@ -1127,6 +1127,7 @@ slapi_search_internal_bind(
 			an[i].an_name.bv_len = slapi_strlen(attrs[i]);
 			slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text );
 		}
+		an[i].an_name.bv_val = NULL;
 	}
 
 	if ( scope == LDAP_SCOPE_BASE ) {
