@@ -442,6 +442,11 @@ fi
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
+AC_CHECK_HEADERS( regex.h )
+if test "$ac_cv_header_regex_h" != yes ; then
+	AC_MSG_ERROR([POSIX REGEX required.])
+fi
+
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
 dnl Select arg types
@@ -1497,7 +1502,6 @@ AC_CHECK_HEADERS(	\
 	locale.h		\
 	malloc.h		\
 	memory.h		\
-	regex.h			\
 	psap.h			\
 	pwd.h			\
 	resolv.h		\
