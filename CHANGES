@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.21 Engineering
+	Fixed slapd group limits
 
 OpenLDAP 2.2.20 Release
 	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
