@@ -252,7 +252,7 @@ GLOB_STRUCT *glob;
         char            *cPtr, *ptype;
     char            *tattr;
 
-    if ( (rc = ldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+    if ( (rc = ldap_search_s( ld, dn, LDAP_SCOPE_BASE, NULL,
         NULL, 0, &res )) != LDAP_SUCCESS ) {
         do_error(fp, rc, NOT_FOUND, glob);
         return;
@@ -342,7 +342,7 @@ GLOB_STRUCT *glob;
 
     timeout.tv_sec = glob->timeout;
     timeout.tv_usec = 0;
-    if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+    if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
         NULL, 0, &timeout, &res )) != LDAP_SUCCESS ) {
         do_error(fp, rc, NOT_FOUND, glob);
         return;
