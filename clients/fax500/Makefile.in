@@ -38,6 +38,6 @@ install-local: $(PROGRAMS) xrpcomp FORCE
 	-$(MKDIR) $(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rp500 $(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 fax500 $(libexecdir)
-	$(SED) -e 's%LIBEXECDIR%$(libexecdir)%' $(srcdir)/xrpcomp > /tmp/xrpcomp.tmp
+	$(SED) -e 's|%LIBEXECDIR%|$(libexecdir)|' $(srcdir)/xrpcomp > /tmp/xrpcomp.tmp
 	$(INSTALL) $(INSTALLFLAGS) -m 755 /tmp/xrpcomp.tmp $(libexecdir)/xrpcomp
 	$(RM) /tmp/xrpcomp.tmp
