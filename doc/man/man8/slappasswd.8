@@ -7,8 +7,9 @@ slappasswd \- OpenLDAP password utility
 .SH SYNOPSIS
 .B SBINDIR/slappasswd
 .B [\-v]
+.B [\-u]
 .B [\-s secret]
-.B [\-u hash]
+.B [\-h hash]
 .B 
 .LP
 .SH DESCRIPTION
@@ -25,12 +26,16 @@ coniguration directive.
 .TP
 .B \-v
 enable verbose mode.
+.B \-u
+generate RFC2307 userPassword values (the default).  Future
+versions of this program may generate alternative syntaxes
+by default.  This option is provided for forward compatibility.
 .TP
 .BI \-s " secret"
 The secret to hash.  If not provided, the user will be prompted
 for the secret to hash.
 .TP
-If -u is specified, one of the following RFC2307 schemes may
+If -h is specified, one of the following RFC2307 schemes may
 be specified:
 .IR {CRYPT} ,
 .IR {MD5} ,
@@ -43,7 +48,8 @@ The default is
 .SH LIMITATIONS
 The practice storing hashed passwords in userPassword violates
 Standard Track (RFC2256) schema specifications and may hinder
-interoperability.  
+interoperability.  A new attribute type to hold hashed
+passwords is needed.
 .SH "SECURITY CONSIDERATIONS"
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections

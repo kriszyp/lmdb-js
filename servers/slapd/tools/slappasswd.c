@@ -29,8 +29,9 @@ usage(const char *s)
 {
 	fprintf(stderr,
 		"Usage: %s [options]\n"
-		"  -u hash\tpassword scheme\n"
+		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
+		"  -u\t\tgenerate RFC2307 values\n"
 		"  -v\t\tincrease verbosity\n"
 		, s );
 
@@ -50,10 +51,10 @@ main( int argc, char *argv[] )
 	struct berval *hash = NULL;
 
 	while( (i = getopt( argc, argv,
-		"d:u:s:v" )) != EOF )
+		"d:h:s:vu" )) != EOF )
 	{
 		switch (i) {
-		case 'u':	/* scheme */
+		case 'h':	/* scheme */
 			scheme = strdup (optarg);
 
 		case 's':	/* new password (secret) */
@@ -66,6 +67,9 @@ main( int argc, char *argv[] )
 					*p = '\0';
 				}
 			}
+			break;
+
+		case 'u':	/* RFC2307 userPassword */
 			break;
 
 		case 'v':	/* verbose */
