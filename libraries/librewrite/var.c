@@ -162,7 +162,7 @@ rewrite_var_set(
 		assert( var->lv_value.bv_val != NULL );
 
 		free( var->lv_value.bv_val );
-		var->lv_value.bv_val = ( char * )value;
+		var->lv_value.bv_val = strdup( value );
 		var->lv_value.bv_len = strlen( value );
 	}
 
