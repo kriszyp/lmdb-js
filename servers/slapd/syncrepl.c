@@ -1232,7 +1232,7 @@ syncrepl_entry(
 		{
 			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
 			attr_merge_one( e, slap_schema.si_ad_entryUUID,
-				syncUUID, &ava.aa_value );
+				&syncUUID_strrep, syncUUID );
 
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
