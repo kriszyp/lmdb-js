@@ -542,15 +542,11 @@ done:;
 	if ( vat ) {
 		ch_free( vat );
 	}
-	if ( rc == 1 ) {
-		Debug( LDAP_DEBUG_TRACE,
-				"<==backsql_process_filter() succeeded\n",
-				0, 0, 0 );
-	} else {
-		Debug( LDAP_DEBUG_TRACE,
-				"<==backsql_process_filter() failed\n",
-				0, 0, 0 );
-	}
+
+	Debug( LDAP_DEBUG_TRACE,
+			"<==backsql_process_filter() %s\n",
+			rc == 1 ? "succeeded" : "failed", 0, 0);
+
 	return rc;
 }
 
