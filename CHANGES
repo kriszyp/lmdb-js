@@ -4,10 +4,11 @@ Changes included in OpenLDAP Stable
 	CVS Tag: OPENLDAP_STABLE 
 
 Changes included in OpenLDAP 1.0.2 
-CVS Tag: OPENLDAP_STABLE_980915 
+CVS Tag: OPENLDAP_STABLE_980929 
 	Updated README, INSTALL files 
 	Updated Linux platform defaults
 	Updated FreeBSD 2 & 3 platform defaults
+	Updated PORTS doc to clarify content
 	Added SCHED_YIELD_MISSING flag
 	Added LDAP_ALLOW_NULL_SEARCH_BASE flag
 	Added core removal to tests/Make-template
