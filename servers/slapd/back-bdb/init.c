@@ -201,6 +201,7 @@ bdb_db_open( BackendDB *be )
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
+		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size = 0;
 	}
 #endif
