@@ -24,7 +24,7 @@
 #define DIRSEP "\\"
 
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
-#define LDAP_MEMORY_DEBUG 1
+/* #define LDAP_MEMORY_DEBUG 1 */
 #define LDAP_DEBUG 1
 #endif
 

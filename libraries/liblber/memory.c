@@ -194,7 +194,7 @@ ber_memrealloc( void* p, size_t s )
 			((char *)p - sizeof(struct ber_mem_hdr));
 		assert( mh->bm_junk == BER_MEM_JUNK );
 
-		p = realloc( mh, s );
+		p = realloc( mh, s + sizeof(struct ber_mem_hdr) );
 
 		if( p == NULL ) return NULL;
 
