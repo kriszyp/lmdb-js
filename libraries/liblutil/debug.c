@@ -49,7 +49,7 @@ static char *lutil_levels[] = {"emergency", "alert", "critical",
 			   "results", "detail1", "detail2",
 			   NULL};
 
-int lutil_mnem2level( char *level )
+int lutil_mnem2level( const char *level )
 {
     int i;
     for( i = 0; lutil_levels[i] != NULL; i++ )
@@ -97,7 +97,7 @@ static void addSubsys( const char *subsys, int level )
 	return;
 }
 
-void lutil_set_debug_level( char* subsys, int level )
+void lutil_set_debug_level( const char* subsys, int level )
 {
     addSubsys( subsys, level );
 }
@@ -112,7 +112,7 @@ int lutil_debug_file( FILE *file )
 
 void lutil_log_int(
 	FILE* file,
-	char *subsys, int level,
+	const char *subsys, int level,
 	const char *fmt, va_list vl )
 {
 	time_t now;
@@ -199,7 +199,7 @@ void lutil_log_int(
  * level of the log output and the format and data.  Send this on to the
  * internal routine with the print file, if any.
  */
-void lutil_log( char *subsys, int level, const char *fmt, ... )
+void lutil_log( const char *subsys, int level, const char *fmt, ... )
 {
 	FILE* outfile = NULL;
 	va_list vl;

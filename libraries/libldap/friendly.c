@@ -25,7 +25,7 @@
 char *
 ldap_friendly_name(
 	LDAP_CONST char *filename,
-	/* LDAP_CONST */ char *uname,
+	LDAP_CONST char *uname,
 	LDAPFriendlyMap **map )
 {
 	int	i, entries;
@@ -35,12 +35,12 @@ ldap_friendly_name(
 
 	if ( map == NULL ) {
 		errno = EINVAL;
-		return( uname );
+		return (char *) uname;
 	}
 
 	if ( *map == NULL ) {
 		if ( (fp = fopen( filename, "r" )) == NULL )
-			return( uname );
+			return (char *) uname;
 
 		entries = 0;
 		while ( fgets( buf, sizeof(buf), fp ) != NULL ) {
@@ -52,7 +52,7 @@ ldap_friendly_name(
 		if ( (*map = (LDAPFriendlyMap *) LDAP_MALLOC( (entries + 1) *
 		    sizeof(LDAPFriendlyMap) )) == NULL ) {
 			fclose( fp );
-			return( uname );
+			return (char *) uname;
 		}
 
 		i = 0;
@@ -99,7 +99,7 @@ ldap_friendly_name(
 		if ( strcasecmp( uname, (*map)[i].lf_unfriendly ) == 0 )
 			return( (*map)[i].lf_friendly );
 	}
-	return( uname );
+	return (char *) uname;
 }
 
 

@@ -1441,7 +1441,7 @@ ldap_mods_free LDAP_P((
 LDAP_F( char * )
 ldap_friendly_name LDAP_P(( /* deprecated */
 	LDAP_CONST char *filename,
-	/* LDAP_CONST */ char *uname,
+	LDAP_CONST char *uname,
 	LDAPFriendlyMap **map ));
 
 LDAP_F( void )

@@ -135,10 +135,13 @@ LDAP_BEGIN_DECL
 #endif /* LDAP_DEBUG */
 
 
-LDAP_LUTIL_F(int) lutil_mnem2level LDAP_P(( char *level ));
-LDAP_LUTIL_F(void) lutil_log_initialize(int argc, char **argv);
-LDAP_LUTIL_F(void) lutil_set_debug_level LDAP_P(( char *subsys, int level ));
-LDAP_LUTIL_F(void) lutil_log LDAP_P(( char *subsys, int level, const char *fmt, ... ));
+LDAP_LUTIL_F(int) lutil_mnem2level LDAP_P(( const char *level ));
+LDAP_LUTIL_F(void) lutil_log_initialize LDAP_P((
+	int argc, char **argv ));
+LDAP_LUTIL_F(void) lutil_set_debug_level LDAP_P((
+	const char *subsys, int level ));
+LDAP_LUTIL_F(void) lutil_log LDAP_P((
+	const char *subsys, int level, const char *fmt, ... ));
 
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));
 
