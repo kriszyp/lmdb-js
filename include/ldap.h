@@ -474,20 +474,17 @@ typedef struct ldapcontrol {
 
 #define LDAP_OTHER				0x50
 
-/* Expermental result codes */
+/* Experimental result codes */
 #define LDAP_X_ERROR(n)		LDAP_RANGE((n),0x1000,0x3FFF) /* experimental */
 #define LDAP_PVT_ERROR(n)	LDAP_RANGE((n),0x4000,0xFFFF) /* private use */
 
-#define LDAP_SYNC_RESOURCES_EXHAUSTED	0x4100
-#define LDAP_SYNC_SECURITY_VIOLATION	0x4101
-#define LDAP_SYNC_INVALID_COOKIE		0x4102
-#define LDAP_SYNC_UNSUPPORTED_SCHEME	0x4103
-#define LDAP_SYNC_CLIENT_DISCONNECT		0x4104
-#define LDAP_SYNC_RELOAD_REQUIRED		0x4105
+/* for the LDAP Sync operation */
+#define LDAP_SYNC_REFRESH_REQUIRED		0x4100
 
+/* for the Assertion control */
 #define LDAP_ASSERTION_FAILED			0x410f
 
-/* resultCode for Cancel Response */
+/* for the Cancel operation */
 #define LDAP_CANCELLED					0x4110
 #define LDAP_NO_SUCH_OPERATION			0x4111
 #define LDAP_TOO_LATE					0x4112
