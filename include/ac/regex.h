@@ -24,6 +24,7 @@
 
 	For NT: http://people.delphi.com/gjc/hs_regex.html
 */
+#error "No POSIX REGEX available."
 #else
 	/* have regex.h, assume it's POSIX compliant */
 #	include <regex.h>
