@@ -354,6 +354,55 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define SLAPI_PLUGIN_POST_REFERRAL_FN		511
 #define SLAPI_PLUGIN_POST_RESULT_FN		512
 
+#define SLAPI_OPERATION_TYPE			590
+
+#define SLAPI_PLUGIN_MR_FILTER_CREATE_FN	600
+#define SLAPI_PLUGIN_MR_INDEXER_CREATE_FN	601
+#define SLAPI_PLUGIN_MR_FILTER_MATCH_FN		602
+#define SLAPI_PLUGIN_MR_FILTER_INDEX_FN		603
+#define SLAPI_PLUGIN_MR_FILTER_RESET_FN		604
+#define SLAPI_PLUGIN_MR_INDEX_FN		605
+#define SLAPI_PLUGIN_MR_OID			610
+#define SLAPI_PLUGIN_MR_TYPE			611
+#define SLAPI_PLUGIN_MR_VALUE			612
+#define SLAPI_PLUGIN_MR_VALUES			613
+#define SLAPI_PLUGIN_MR_KEYS			614
+#define SLAPI_PLUGIN_MR_FILTER_REUSABLE		615
+#define SLAPI_PLUGIN_MR_QUERY_OPERATOR		616
+#define SLAPI_PLUGIN_MR_USAGE			617
+
+#define SLAPI_OP_LESS					1
+#define SLAPI_OP_LESS_OR_EQUAL				2
+#define SLAPI_OP_EQUAL					3
+#define SLAPI_OP_GREATER_OR_EQUAL			4
+#define SLAPI_OP_GREATER				5
+#define SLAPI_OP_SUBSTRING				6
+
+#define SLAPI_PLUGIN_MR_USAGE_INDEX		0
+#define SLAPI_PLUGIN_MR_USAGE_SORT		1
+
+#define SLAPI_PLUGIN_SYNTAX_FILTER_AVA		700
+#define SLAPI_PLUGIN_SYNTAX_FILTER_SUB		701
+#define SLAPI_PLUGIN_SYNTAX_VALUES2KEYS		702
+#define SLAPI_PLUGIN_SYNTAX_ASSERTION2KEYS_AVA	703
+#define SLAPI_PLUGIN_SYNTAX_ASSERTION2KEYS_SUB	704
+#define SLAPI_PLUGIN_SYNTAX_NAMES		705
+#define SLAPI_PLUGIN_SYNTAX_OID			706
+#define SLAPI_PLUGIN_SYNTAX_FLAGS		707
+#define SLAPI_PLUGIN_SYNTAX_COMPARE		708
+
+#define SLAPI_PLUGIN_SYNTAX_FLAG_ORKEYS			1
+#define SLAPI_PLUGIN_SYNTAX_FLAG_ORDERING		2
+
+#define SLAPI_OPERATION_AUTHTYPE                741
+#define SLAPI_OPERATION_ID                      742
+#define SLAPI_CONN_CERT                         743
+#define SLAPI_CONN_AUTHMETHOD                   746
+
+#define SLAPI_RESULT_CODE                       881
+#define SLAPI_RESULT_TEXT                       882
+#define SLAPI_RESULT_MATCHED                    883
+
 /* audit plugin defines */
 #define SLAPI_PLUGIN_AUDIT_DATA                1100
 #define SLAPI_PLUGIN_AUDIT_FN                  1101
@@ -437,15 +486,6 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define	SLAPI_SEARCH_RESULT_ENTRY		194
 #define	SLAPI_NENTRIES				195
 #define SLAPI_SEARCH_REFERRALS			196
-
-#define SLAPI_OPERATION_AUTHTYPE                741
-#define SLAPI_OPERATION_ID                      742
-#define SLAPI_CONN_CERT                         743
-#define SLAPI_CONN_AUTHMETHOD                   746
-
-#define SLAPI_RESULT_CODE                       881
-#define SLAPI_RESULT_TEXT                       882
-#define SLAPI_RESULT_MATCHED                    883
 
 /* filter types */
 #ifndef LDAP_FILTER_AND
