@@ -1072,7 +1072,7 @@ cache_entries(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
 	int		i;
-	int		return_val;
+	int		return_val = 0;
 	Entry		*e;
 	struct berval	crp_uuid;
 	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
