@@ -70,7 +70,8 @@ struct monitorinfo {
 	 * Config parameters
 	 */
 	struct berval		mi_l;
-	struct berval		mi_startTime;	/* don't free it */
+	struct berval		mi_startTime;		/* don't free it! */
+	struct berval		mi_creatorsName;	/* don't free it! */
 
 	/*
 	 * Specific schema entities

@@ -712,6 +712,12 @@ monitor_back_db_open(
 	mi->mi_startTime.bv_val = tmbuf;
 	mi->mi_startTime.bv_len = strlen( tmbuf );
 
+	if ( BER_BVISEMPTY( &be->be_rootdn ) ) {
+		BER_BVSTR( &mi->mi_creatorsName, SLAPD_ANONYMOUS );
+	} else {
+		mi->mi_creatorsName = be->be_rootdn;
+	}
+
 	/*	
 	 * Create all the subsystem specific entries
 	 */
@@ -765,12 +771,16 @@ monitor_back_db_open(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: %s\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				monitor_subsys[ i ].mss_dn.bv_val,
 				mi->mi_oc_monitorContainer->soc_cname.bv_val,
 				mi->mi_oc_monitorContainer->soc_cname.bv_val,
 				monitor_subsys[ i ].mss_name,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		
@@ -826,6 +836,8 @@ monitor_back_db_open(
 		"%s: createTimestamp reflects the time this server instance was created.\n"
 		"%s: modifyTimestamp reflects the time this server instance was last accessed.\n"
 #endif
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		SLAPD_MONITOR_DN,
@@ -837,6 +849,8 @@ monitor_back_db_open(
 		mi->mi_ad_description->ad_cname.bv_val,
 		mi->mi_ad_description->ad_cname.bv_val,
 #endif
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 

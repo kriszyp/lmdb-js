@@ -157,6 +157,8 @@ monitor_subsys_database_init(
 				"cn: Database %d\n"
 				"description: This object contains the type of the database.\n"
 				"%s: %s\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
@@ -166,6 +168,8 @@ monitor_subsys_database_init(
 				i,
 				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
 				bi->bi_type,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		

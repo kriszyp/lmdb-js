@@ -70,11 +70,15 @@ monitor_subsys_sent_init(
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: Entries\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -133,11 +137,15 @@ monitor_subsys_sent_init(
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: Referrals\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -196,11 +204,15 @@ monitor_subsys_sent_init(
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: PDU\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -259,11 +271,15 @@ monitor_subsys_sent_init(
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: Bytes\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 

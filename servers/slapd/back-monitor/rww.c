@@ -71,11 +71,15 @@ monitor_subsys_rww_init(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Read\n"
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 	
@@ -128,17 +132,21 @@ monitor_subsys_rww_init(
 	 * Current conns
 	 */
 	snprintf( buf, sizeof( buf ),
-		"dn: cn=Write,%s\n"
-		"objectClass: %s\n"
-		"structuralObjectClass: %s\n"
-		"cn: Write\n"
-		"createTimestamp: %s\n"
-		"modifyTimestamp: %s\n",
-		monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
-		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-		mi->mi_startTime.bv_val,
-		mi->mi_startTime.bv_val );
+			"dn: cn=Write,%s\n"
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
+			"cn: Write\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
+			monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {

@@ -75,6 +75,8 @@ monitor_subsys_backend_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Backend %d\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
@@ -82,6 +84,8 @@ monitor_subsys_backend_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		

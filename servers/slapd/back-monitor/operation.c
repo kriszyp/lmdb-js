@@ -94,6 +94,8 @@ monitor_subsys_ops_init(
 				"cn: %s\n"
 				"%s: 0\n"
 				"%s: 0\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				bv_op[ i ].bv_val,
@@ -103,6 +105,8 @@ monitor_subsys_ops_init(
 				bv_op[ i ].bv_val,
 				mi->mi_ad_monitorOpInitiated->ad_cname.bv_val,
 				mi->mi_ad_monitorOpCompleted->ad_cname.bv_val,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 

@@ -71,6 +71,8 @@ monitor_subsys_time_init(
 			"structuralObjectClass: %s\n"
 			"cn: Start\n"
 			"%s: %s\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n", 
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
@@ -78,6 +80,8 @@ monitor_subsys_time_init(
 			mi->mi_oc_monitoredObject->soc_cname.bv_val,
 			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
 			mi->mi_startTime.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -133,6 +137,8 @@ monitor_subsys_time_init(
 			"structuralObjectClass: %s\n"
 			"cn: Current\n"
 			"%s: %s\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
@@ -140,6 +146,8 @@ monitor_subsys_time_init(
 			mi->mi_oc_monitoredObject->soc_cname.bv_val,
 			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
 			mi->mi_startTime.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 

@@ -73,11 +73,15 @@ monitor_subsys_conn_init(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Total\n"
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 	
@@ -137,11 +141,15 @@ monitor_subsys_conn_init(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Current\n"
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 	
@@ -312,13 +320,18 @@ conn_create(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: " CONN_CN_PREFIX " %ld\n"
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid,
-		ctmbuf, mtmbuf );
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
+		ctmbuf,
+		mtmbuf );
 		
 	e = str2entry( buf );
 

@@ -84,6 +84,8 @@ monitor_subsys_listener_init(
 				"cn: Listener %d\n"
 				"%s: %s\n"
 				"labeledURI: %s\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
@@ -94,6 +96,8 @@ monitor_subsys_listener_init(
 				mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
 				l[i]->sl_name.bv_val,
 				l[i]->sl_url.bv_val,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		

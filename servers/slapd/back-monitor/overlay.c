@@ -72,6 +72,8 @@ monitor_subsys_overlay_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Overlay %d\n"
+				"creatorsName: %s\n"
+				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
@@ -79,6 +81,8 @@ monitor_subsys_overlay_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->mi_creatorsName.bv_val,
+				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		
