@@ -67,6 +67,9 @@ depend-local-lib:
 depend-yes depend-mod: depend-local-lib FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
+veryclean-local-lib:
+veryclean-lib: 	clean-lib veryclean-local-lib
+
 COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) -c
 MKDEPFLAG = -l
 
