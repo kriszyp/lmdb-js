@@ -14,7 +14,7 @@
 
 int
 bdb_db_config(
-    Backend	*be,
+    BackendDB	*be,
     const char	*fname,
     int		lineno,
     int		argc,

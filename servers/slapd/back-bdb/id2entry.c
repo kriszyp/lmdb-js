@@ -13,7 +13,7 @@
 #include "back-bdb.h"
 
 int bdb_id2entry_add(
-	Backend *be,
+	BackendDB *be,
 	DB_TXN *tid,
 	Entry *e )
 {
@@ -42,7 +42,7 @@ int bdb_id2entry_add(
 }
 
 int bdb_id2entry(
-	Backend *be,
+	BackendDB *be,
 	DB_TXN *tid,
 	ID id,
 	Entry **e )
@@ -78,7 +78,7 @@ int bdb_id2entry(
 }
 
 int bdb_id2entry_delete(
-	Backend *be,
+	BackendDB *be,
 	DB_TXN *tid,
 	ID id )
 {
@@ -99,7 +99,7 @@ int bdb_id2entry_delete(
 }
 
 int bdb_entry_return(
-	Backend *be,
+	BackendDB *be,
 	Entry *e )
 {
 	entry_free( e );

@@ -15,7 +15,7 @@
 
 int
 bdb_add(
-	Backend	*be,
+	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
 	Entry	*e )

@@ -19,11 +19,12 @@ static struct bdbi_database {
 	int type;
 	int flags;
 } bdbi_databases[BDB_INDICES] = {
-	{ "nextid", "nextid", DB_BTREE, 0 },
-	{ "dn2entry", "dn2entry", DB_BTREE, 0 },
-	{ "id2entry", "id2entry", DB_BTREE, 0 },
+	{ "nextid" BDB_SUFFIX, "nextid", DB_BTREE, 0 },
+	{ "dn2entry" BDB_SUFFIX, "dn2entry", DB_BTREE, 0 },
+	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
 };
 
+#if 0
 static int
 bdb_destroy( BackendInfo *bi )
 {
@@ -46,9 +47,10 @@ bdb_close( BackendInfo *bi )
 	/* terminate the underlying database system */
 	return 0;
 }
+#endif
 
 static int
-bdb_db_init( Backend *be )
+bdb_db_init( BackendDB *be )
 {
 	struct bdb_info	*bdb;
 
@@ -75,8 +77,8 @@ bdb_db_open( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	u_int32_t flags;
 
-	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_open: opening database for %s\n",
+	Debug( LDAP_DEBUG_ARGS,
+		"bdb_db_open: %s\n",
 		be->be_suffix[0], 0, 0 );
 
 	/* we should check existance of dbenv_home and db_directory */
@@ -278,15 +280,15 @@ bdb_initialize(
 	db_env_set_func_malloc( ch_malloc );
 	db_env_set_func_realloc( ch_realloc );
 	db_env_set_func_free( ch_free );
-	db_env_set_func_yield( ldap_pvt_thread_yield );
 #endif
+	db_env_set_func_yield( ldap_pvt_thread_yield );
 
 	bi->bi_controls = controls;
 
-	bi->bi_open = bdb_open;
-	bi->bi_close = bdb_close;
+	bi->bi_open = 0;
+	bi->bi_close = 0;
 	bi->bi_config = 0;
-	bi->bi_destroy = bdb_destroy;
+	bi->bi_destroy = 0;
 
 	bi->bi_db_init = bdb_db_init;
 	bi->bi_db_config = bdb_db_config;
@@ -295,12 +297,12 @@ bdb_initialize(
 	bi->bi_db_destroy = bdb_db_destroy;
 
 	bi->bi_op_add = bdb_add;
+	bi->bi_op_bind = bdb_bind;
 	bi->bi_op_compare = bdb_compare;
 	bi->bi_op_delete = bdb_delete;
 	bi->bi_op_search = bdb_search;
 
 #if 0
-	bi->bi_op_bind = bdb_bind;
 	bi->bi_op_unbind = bdb_unbind;
 	bi->bi_op_modify = bdb_modify;
 	bi->bi_op_modrdn = bdb_modrdn;

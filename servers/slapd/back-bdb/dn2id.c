@@ -14,7 +14,7 @@
 
 int
 bdb_dn2id_add(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *txn,
     const char	*dn,
     ID		id
@@ -92,7 +92,7 @@ done:
 
 int
 bdb_dn2id_delete(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *txn,
     const char	*dn,
     ID		id )
@@ -164,7 +164,7 @@ done:
 
 int
 bdb_dn2id(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *txn,
     const char	*dn,
 	ID *id )
@@ -200,7 +200,7 @@ bdb_dn2id(
 
 int
 bdb_dn2id_matched(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *txn,
     const char	*in,
 	ID *id,
@@ -269,7 +269,7 @@ bdb_dn2id_matched(
 
 int
 bdb_dn2id_children(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *txn,
     const char *dn )
 {

@@ -15,7 +15,7 @@
 
 int
 bdb_delete(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     const char	*dn,

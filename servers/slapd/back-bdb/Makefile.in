@@ -1,10 +1,10 @@
 # $OpenLDAP$
 
 SRCS = init.c tools.c config.c \
-	add.c compare.c delete.c search.c \
+	add.c bind.c compare.c delete.c search.c \
 	dn2entry.lo dn2id.c error.c id2entry.c idl.c nextid.c
 OBJS = init.lo tools.lo config.lo \
-	add.lo compare.lo delete.lo search.lo \
+	add.lo bind.lo compare.lo delete.lo search.lo \
 	dn2entry.lo dn2id.lo error.lo id2entry.lo idl.lo nextid.lo
 
 LDAP_INCDIR= ../../../include       

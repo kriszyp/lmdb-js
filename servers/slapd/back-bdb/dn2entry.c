@@ -19,7 +19,7 @@
 
 int
 bdb_dn2entry(
-    Backend	*be,
+    BackendDB	*be,
 	DB_TXN *tid,
     const char *dn,
 	Entry **e,

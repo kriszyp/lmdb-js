@@ -13,11 +13,11 @@
 #include "back-bdb.h"
 
 static int base_candidate(
-    Backend	*be,
+    BackendDB	*be,
 	Entry	*e,
 	ID		*ids );
 static int search_candidates(
-	Backend *be,
+	BackendDB *be,
 	Entry *e,
 	Filter *filter,
     int scope,
@@ -30,7 +30,7 @@ static ID idl_next( ID *ids, ID *cursor );
 
 int
 bdb_search(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     const char	*base,
@@ -353,7 +353,7 @@ done:
 
 
 static int base_candidate(
-    Backend	*be,
+    BackendDB	*be,
 	Entry	*e,
 	ID		*ids )
 {
@@ -366,7 +366,7 @@ static int base_candidate(
 }
 
 static int search_candidates(
-	Backend *be,
+	BackendDB *be,
 	Entry *e,
 	Filter *filter,
     int scope,
