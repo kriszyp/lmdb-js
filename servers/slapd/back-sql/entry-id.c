@@ -510,7 +510,14 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 		return rc;
 	}
 
-	if ( bsi->bsi_attrs != NULL ) {
+	if ( bsi->bsi_attrs == NULL || ( bsi->bsi_flags & BSQL_SF_ALL_USER ) )
+	{
+		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
+			"retrieving all attributes\n", 0, 0, 0 );
+		avl_apply( bsi->bsi_oc->bom_attrs, backsql_get_attr_vals,
+				bsi, 0, AVL_INORDER );
+
+	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"custom attribute list\n", 0, 0, 0 );
 		for ( i = 0; bsi->bsi_attrs[ i ].an_name.bv_val; i++ ) {
@@ -555,12 +562,6 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 
 next:;
 		}
-
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
-			"retrieving all attributes\n", 0, 0, 0 );
-		avl_apply( bsi->bsi_oc->bom_attrs, backsql_get_attr_vals,
-				bsi, 0, AVL_INORDER );
 	}
 
 	if ( bsi->bsi_flags & BSQL_SF_RETURN_ENTRYUUID ) {
@@ -600,7 +601,9 @@ next:;
 		}
 
 		if ( ( bsi->bsi_flags & BSQL_SF_ALL_OPER )
-				|| an_find( bsi->bsi_attrs, &AllOper ) ) {
+				|| an_find( bsi->bsi_attrs, &AllOper )
+				|| an_find( bsi->bsi_attrs, &slap_schema.si_ad_structuralObjectClass->ad_cname ) )
+		{
 			rc = attr_merge_normalize_one( bsi->bsi_e,
 					slap_schema.si_ad_structuralObjectClass,
 					&soc, bsi->bsi_op->o_tmpmemctx );

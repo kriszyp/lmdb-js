@@ -132,8 +132,10 @@ backsql_init_search(
 	/*
 	 * handle "*"
 	 */
-	if ( attrs == NULL || an_find( attrs, &AllUser ) ) {
+	if ( attrs == NULL ) {
+		/* also add request for all operational */
 		bsi->bsi_attrs = NULL;
+		bsi->bsi_flags |= BSQL_SF_ALL_USER;
 
 	} else {
 		int	got_oc = 0;
@@ -146,7 +148,11 @@ backsql_init_search(
 			/*
 			 * ignore "1.1"; handle "+"
 			 */
-			if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+			if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
+				bsi->bsi_flags |= BSQL_SF_ALL_USER;
+				continue;
+
+			} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
 				bsi->bsi_flags |= BSQL_SF_ALL_OPER;
 				continue;
 
