@@ -212,6 +212,11 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
     }
     attributeNameObj = Tcl_NewObj();
     Tcl_IncrRefCount (attributeNameObj);
+
+    /* Note that attributeName below is allocated for OL2+ libldap, so it
+       must be freed with ldap_memfree().  Test below is admittedly a hack.
+    */
+
     for (attributeName = ldap_first_attribute (ldap, entry, &ber); 
       attributeName != NULL;
       attributeName = ldap_next_attribute(ldap, entry, ber)) {
@@ -227,6 +232,9 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 	    */
 	    attributeDataObj = Tcl_NewObj();
 	    Tcl_SetStringObj(attributeNameObj, attributeName, -1);
+#if LDAP_API_VERSION >= 2004
+	    ldap_memfree(attributeName);	/* free if newer API */
+#endif
 	    for (i = 0; bvals[i] != NULL; i++) {
 		Tcl_Obj *singleAttributeValueObj;
 
