@@ -49,7 +49,7 @@ ldbm_back_modrdn(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct berval	p_dn, p_ndn;
-	struct berval	new_dn = { 0, NULL}, *new_ndn = NULL;
+	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int		isroot = -1;
@@ -462,14 +462,14 @@ ldbm_back_modrdn(
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
 	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
-	dnNormalize( NULL, &new_dn, &new_ndn );
+	dnNormalize2( NULL, &new_dn, &new_ndn );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		"ldbm_back_modrdn: new ndn=%s\n", new_ndn->bv_val ));
+		"ldbm_back_modrdn: new ndn=%s\n", new_ndn.bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
-	    new_ndn->bv_val, 0, 0 );
+	    new_ndn.bv_val, 0, 0 );
 #endif
 
 	/* check for abandon */
@@ -480,7 +480,7 @@ ldbm_back_modrdn(
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if ( ( rc_id = dn2id ( be, new_ndn->bv_val, &id ) ) || id != NOID ) {
+	if ( ( rc_id = dn2id ( be, new_ndn.bv_val, &id ) ) || id != NOID ) {
 		/* if (rc_id) something bad happened to ldbm cache */
 		send_ldap_result( conn, op, 
 			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
@@ -490,11 +490,11 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-		"ldbm_back_modrdn: new ndn (%s) does not exist\n", new_ndn ));
+		"ldbm_back_modrdn: new ndn (%s) does not exist\n", new_ndn.bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	    "ldbm_back_modrdn: new ndn=%s does not exist\n",
-	    new_ndn, 0, 0 );
+	    new_ndn.bv_val, 0, 0 );
 #endif
 
 
@@ -751,9 +751,9 @@ ldbm_back_modrdn(
 	free( e->e_dn );
 	free( e->e_ndn );
 	e->e_name = new_dn;
-	e->e_nname = *new_ndn;
+	e->e_nname = new_ndn;
 	new_dn.bv_val = NULL;
-	new_ndn = NULL;
+	new_ndn.bv_val = NULL;
 
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
@@ -801,7 +801,7 @@ ldbm_back_modrdn(
 
 return_results:
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
-	if( new_ndn != NULL ) ber_bvfree( new_ndn );
+	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free( new_rdn_types );

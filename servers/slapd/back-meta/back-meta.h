@@ -113,13 +113,13 @@ struct metaconn {
 
 struct metatarget {
 	char			*uri;
-	struct berval		*psuffix;	/* pretty suffix */
-	struct berval		*suffix;	/* normalized suffix */
-	struct berval		*binddn;
-	struct berval		*bindpw;
+	struct berval		psuffix;	/* pretty suffix */
+	struct berval		suffix;		/* normalized suffix */
+	struct berval		binddn;
+	struct berval		bindpw;
 
-	struct berval           *pseudorootdn;
-	struct berval           *pseudorootpw;
+	struct berval           pseudorootdn;
+	struct berval           pseudorootpw;
 
 	struct rewrite_info	*rwinfo;
 

@@ -202,25 +202,14 @@ meta_back_db_config(
 		dn.bv_val = ludp->lud_dn;
 		dn.bv_len = strlen( ludp->lud_dn );
 
-		rc = dnPretty( NULL, &dn, &pdn );
+		rc = dnPrettyNormal( NULL, &dn, &li->targets[ i ]->psuffix,
+			&li->targets[ i ]->suffix );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"target '%s' DN is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
-
-		rc = dnNormalize( NULL, &dn, &ndn );
-		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-					"target '%s' DN is invalid\n",
-					fname, lineno, argv[ 1 ] );
-			ber_bvfree( ndn );
-			return( 1 );
-		}
-
-		li->targets[ i ]->psuffix = pdn;
-		li->targets[ i ]->suffix = ndn;
 
 		li->targets[ i ]->uri = ch_strdup( argv[ 1 ] );
 		last = strstr( li->targets[ i ]->uri, ludp->lud_dn );
@@ -231,7 +220,7 @@ meta_back_db_config(
 		 * uri MUST be a branch of suffix!
 		 */
 #if 0 /* too strict a constraint */
-		if ( select_backend( li->targets[ i ]->suffix, 0, 0 ) != be ) {
+		if ( select_backend( &li->targets[ i ]->suffix, 0, 0 ) != be ) {
 			fprintf( stderr,
 	"%s: line %d: <naming context> of URI does not refer to current backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -242,7 +231,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of a suffix!
 		 */
-		if ( select_backend( li->targets[ i ]->suffix, 0, 0 ) == NULL ) {
+		if ( select_backend( &li->targets[ i ]->suffix, 0, 0 ) == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: <naming context> of URI does not resolve to a backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -259,8 +248,8 @@ meta_back_db_config(
 		 * or worked out, at least, in some manner
 		 */
 		for ( j = 0; j < i-1; j++ ) {
-			if ( strcmp( li->targets[ i ]->suffix->bv_val,
-					li->targets[ j ]->suffix->bv_val ) == 0 ) {
+			if ( strcmp( li->targets[ i ]->suffix.bv_val,
+					li->targets[ j ]->suffix.bv_val ) == 0 ) {
 				fprintf( stderr,
 	"%s: line %d: naming context \"%s\" already used"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -274,7 +263,7 @@ meta_back_db_config(
 
 		fprintf(stderr, "%s: line %d: URI \"%s\", suffix \"%s\"\n",
 			fname, lineno, li->targets[ i ]->uri, 
-			li->targets[ i ]->psuffix->bv_val );
+			li->targets[ i ]->psuffix.bv_val );
 		
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {
@@ -347,14 +336,12 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->binddn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"bind DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
-
-		li->targets[ i ]->binddn = ndn;
 
 	/* password to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "bindpw" ) == 0 ) {
@@ -394,14 +381,12 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->pseudorootdn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"pseudoroot DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
-
-		li->targets[ i ]->pseudorootdn = ndn;
 
 	/* password to use as pseudo-root */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootpw" ) == 0 ) {
@@ -425,7 +410,7 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
 		BackendDB 	*tmp_be;
 		int 		i = li->ntargets-1;
-		struct berval	dn, *ndn = NULL;
+		struct berval	dn, ndn;
 
 		if ( i < 0 ) {
 			fprintf( stderr,
@@ -454,15 +439,15 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"suffix '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 		
-		tmp_be = select_backend( ndn, 0, 0 );
-		ber_bvfree( ndn );
+		tmp_be = select_backend( &ndn, 0, 0 );
+		free( ndn.bv_val );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, 
 	"%s: line %d: suffix already in use by another backend in"
@@ -473,16 +458,15 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 2 ];
 		dn.bv_len = strlen( argv[ 2 ] );
-		ndn = NULL;
-		if ( dnNormalize( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"massaged suffix '%s' is invalid\n",
 					fname, lineno, argv[ 2 ] );
 			return 1;
 		}
 		
-		tmp_be = select_backend( ndn, 0, 0 );
-		ber_bvfree( ndn );
+		tmp_be = select_backend( &ndn, 0, 0 );
+		free( ndn.bv_val );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr,
 	"%s: line %d: massaged suffix already in use by another backend in" 

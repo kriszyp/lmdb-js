@@ -357,10 +357,20 @@ LDAP_SLAPD_F (int) dnNormalize LDAP_P((
 	struct berval *val, 
 	struct berval **normalized ));
 
+LDAP_SLAPD_F (int) dnNormalize2 LDAP_P((
+	Syntax *syntax, 
+	struct berval *val, 
+	struct berval *normalized ));
+
 LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
 	Syntax *syntax, 
 	struct berval *val, 
 	struct berval **pretty ));
+
+LDAP_SLAPD_F (int) dnPretty2 LDAP_P(( 
+	Syntax *syntax, 
+	struct berval *val, 
+	struct berval *pretty ));
 
 LDAP_SLAPD_F (int) dnPrettyNormal LDAP_P(( 
 	Syntax *syntax, 

@@ -895,7 +895,7 @@ struct slap_limits {
 	 * normalized DN for EXACT, BASE, ONE, SUBTREE, CHILDREN;
 	 * pattern for REGEX; NULL for ANONYMOUS, USERS
 	 */
-	struct berval *lm_dn_pat;
+	struct berval lm_dn_pat;
 
 	struct slap_limits_set	lm_limits;
 };

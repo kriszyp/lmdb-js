@@ -30,7 +30,7 @@ bdb_modrdn(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	struct berval	p_dn, p_ndn;
-	struct berval	new_dn = {0, NULL}, *new_ndn = NULL;
+	struct berval	new_dn = {0, NULL}, new_ndn = {0, NULL};
 	int		isroot = -1;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
@@ -393,12 +393,12 @@ retry:	/* transaction retry */
 	/* Build target dn and make sure target entry doesn't exist already. */
 	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
 
-	dnNormalize( NULL, &new_dn, &new_ndn );
+	dnNormalize2( NULL, &new_dn, &new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
-		new_ndn, 0, 0 );
+		new_ndn.bv_val, 0, 0 );
 
-	rc = bdb_dn2id ( be, ltid, new_ndn, &id );
+	rc = bdb_dn2id ( be, ltid, &new_ndn, &id );
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -416,7 +416,7 @@ retry:	/* transaction retry */
 
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new ndn=%s does not exist\n",
-		new_ndn, 0, 0 );
+		new_ndn.bv_val, 0, 0 );
 
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
@@ -574,7 +574,7 @@ retry:	/* transaction retry */
 	 * they can be individually freed later.
 	 */
 	e->e_name = new_dn;
-	e->e_nname = *new_ndn;
+	e->e_nname = new_ndn;
 
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
@@ -647,7 +647,7 @@ return_results:
 
 done:
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
-	if( new_ndn != NULL ) ber_bvfree( new_ndn );
+	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free(new_rdn_types);

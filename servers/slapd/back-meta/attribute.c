@@ -147,8 +147,8 @@ meta_back_attribute(
 		return 1;
 	}
 
-	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn->bv_val,
-			li->targets[ candidate ]->bindpw->bv_val, LDAP_AUTH_SIMPLE );
+	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn.bv_val,
+			li->targets[ candidate ]->bindpw.bv_val, LDAP_AUTH_SIMPLE );
 	if ( rc != LDAP_SUCCESS) {
 		return 1;
 	}

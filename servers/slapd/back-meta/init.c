@@ -181,11 +181,11 @@ target_free(
 	if ( lt->uri ) {
 		free( lt->uri );
 	}
-	if ( lt->psuffix ) {
-		ber_bvfree( lt->psuffix );
+	if ( lt->psuffix.bv_val ) {
+		free( lt->psuffix.bv_val );
 	}
-	if ( lt->suffix ) {
-		ber_bvfree( lt->suffix );
+	if ( lt->suffix.bv_val ) {
+		free( lt->suffix.bv_val );
 	}
 	if ( lt->binddn ) {
 		ber_bvfree( lt->binddn );

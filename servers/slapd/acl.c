@@ -755,7 +755,7 @@ acl_mask(
 		if ( b->a_group_pat.bv_len && op->o_ndn.bv_len ) {
 			char buf[1024];
 			struct berval bv = {1024, buf };
-			struct berval *ndn = NULL;
+			struct berval ndn = {0, NULL };
 			int rc;
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
@@ -765,19 +765,19 @@ acl_mask(
 			/* see if asker is listed in dnattr */
 			if ( b->a_group_style == ACL_STYLE_REGEX ) {
 				string_expand(&bv, b->a_group_pat.bv_val, e->e_ndn, matches);
-				if ( dnNormalize(NULL, &bv, &ndn) != LDAP_SUCCESS ) {
+				if ( dnNormalize2(NULL, &bv, &ndn) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
 				}
-				bv = *ndn;
+				bv = ndn;
 			} else {
 				bv = b->a_group_pat;
 			}
 
 			rc = backend_group(be, conn, op, e, &bv, &op->o_ndn,
 				b->a_group_oc, b->a_group_at);
-			if ( ndn )
-				ber_bvfree( ndn );
+			if ( ndn.bv_val )
+				free( ndn.bv_val );
 			if ( rc != 0 )
 			{
 				continue;
@@ -1208,7 +1208,7 @@ aci_set_gather (void *cookie, char *name, struct berval *attr)
 	AciSetCookie *cp = cookie;
 	struct berval **bvals = NULL;
 	char **vals = NULL;
-	struct berval bv, *ndn = NULL;
+	struct berval bv, ndn;
 	int i;
 
 	/* this routine needs to return the bervals instead of
@@ -1218,12 +1218,12 @@ aci_set_gather (void *cookie, char *name, struct berval *attr)
 
 	bv.bv_val = name;
 	bv.bv_len = strlen( name );
-	if (dnNormalize(NULL, &bv, &ndn) == LDAP_SUCCESS) {
+	if (dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS) {
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
 			backend_attribute(cp->be, NULL, NULL,
-				cp->e, ndn, desc, &bvals);
+				cp->e, &ndn, desc, &bvals);
 			if (bvals != NULL) {
 				for (i = 0; bvals[i] != NULL; i++) { }
 				vals = ch_calloc(i + 1, sizeof(char *));
@@ -1236,7 +1236,7 @@ aci_set_gather (void *cookie, char *name, struct berval *attr)
 				ber_bvecfree(bvals);
 			}
 		}
-		ber_bvfree(ndn);
+		free(ndn.bv_val);
 	}
 	return(vals);
 }
@@ -1258,7 +1258,7 @@ aci_match_set (
 	if (setref == 0) {
 		set = aci_bvstrdup(subj);
 	} else {
-		struct berval subjdn, *ndn = NULL;
+		struct berval subjdn, ndn = { 0, NULL };
 		struct berval setat;
 		struct berval **bvals;
 		const char *text;
@@ -1283,19 +1283,19 @@ aci_match_set (
 			setat.bv_len = sizeof(SLAPD_ACI_SET_ATTR)-1;
 		}
 		if ( setat.bv_val != NULL ) {
-			if ( dnNormalize(NULL, &subjdn, &ndn) == LDAP_SUCCESS
+			if ( dnNormalize2(NULL, &subjdn, &ndn) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(be, NULL, NULL, e,
-					ndn, desc, &bvals);
+					&ndn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0] != NULL )
 						set = ch_strdup(bvals[0]->bv_val);
 					ber_bvecfree(bvals);
 				}
 			}
-			if (ndn)
-				ber_bvfree(ndn);
+			if (ndn.bv_val)
+				free(ndn.bv_val);
 		}
 		ch_free(subjdn.bv_val);
 	}
@@ -1515,13 +1515,13 @@ aci_group_member (
 	grp_oc = oc_bvfind( &grpoc );
 
 	if (grp_oc != NULL && grp_ad != NULL ) {
-		struct berval *ndn = NULL;
+		struct berval ndn;
 		bv.bv_val = (char *)ch_malloc(1024);
 		bv.bv_len = 1024;
 		string_expand(&bv, subjdn, e->e_ndn, matches);
-		if ( dnNormalize(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
-			rc = (backend_group(be, conn, op, e, &bv, &op->o_ndn, grp_oc, grp_ad) == 0);
-			ber_bvfree( ndn );
+		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
+			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
+			free( ndn.bv_val );
 		}
 		ch_free(bv.bv_val);
 	}
@@ -1600,12 +1600,12 @@ aci_mask(
 		return(0);
 
 	if (aci_strbvcmp( "access-id", &bv ) == 0) {
-		struct berval *ndn = NULL;
+		struct berval ndn;
 		rc = 1;
-		if ( dnNormalize(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
-			if (strcasecmp(op->o_ndn.bv_val, ndn->bv_val) != 0)
+		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
+			if (strcasecmp(op->o_ndn.bv_val, ndn.bv_val) != 0)
 				rc = 0;
-			ber_bvfree(ndn);
+			free(ndn.bv_val);
 		}
 		return(rc);
 	}

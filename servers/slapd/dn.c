@@ -303,14 +303,30 @@ dnNormalize(
 	struct berval *val,
 	struct berval **normalized )
 {
-	struct berval *out = NULL;
+	struct berval *out;
+	int rc;
+
+	assert( normalized && *normalized == NULL );
+
+	out = ch_malloc( sizeof( struct berval ) );
+	rc = dnNormalize2( syntax, val, out );
+	if ( rc != LDAP_SUCCESS )
+		free( out );
+	else
+		*normalized = out;
+	return rc;
+}
+
+int
+dnNormalize2(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out )
+{
+	assert( val );
+	assert( out );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
-
-	assert( val );
-	assert( normalized );
-
-	assert( *normalized == NULL );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -335,23 +351,19 @@ dnNormalize(
 		/*
 		 * Back to string representation
 		 */
-		out = ch_malloc( sizeof(struct berval));
-
 		rc = ldap_dn2bv( dn, out, LDAP_DN_FORMAT_LDAPV3 );
 
 		ldap_dnfree( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
-			free( out );
 			return LDAP_INVALID_SYNTAX;
 		}
 	} else {
-		out = ber_bvdup( val );
+		ber_dupbv( out, val );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: <%s>\n", out->bv_val, 0, 0 );
 
-	*normalized = out;
 	return LDAP_SUCCESS;
 }
 
@@ -364,13 +376,30 @@ dnPretty(
 	struct berval *val,
 	struct berval **pretty)
 {
-	struct berval *out = NULL;
+	struct berval *out;
+	int rc;
+
+	assert( pretty && *pretty == NULL );
+
+	out = ch_malloc( sizeof( struct berval ) );
+	rc = dnPretty2( syntax, val, out );
+	if ( rc != LDAP_SUCCESS )
+		free( out );
+	else
+		*pretty = out;
+	return rc;
+}
+
+int
+dnPretty2(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out)
+{
+	assert( val );
+	assert( out );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
-
-	assert( val );
-	assert( pretty );
-	assert( *pretty == NULL );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -394,25 +423,19 @@ dnPretty(
 		/* RE: the default is the form that is used as
 		 * an internal representation; the pretty form
 		 * is a variant */
-
-		out = ch_malloc( sizeof(struct berval));
-
 		rc = ldap_dn2bv( dn, out,
 			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
 		ldap_dnfree( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
-			free( out );
 			return LDAP_INVALID_SYNTAX;
 		}
 	} else {
-		out = ber_bvdup( val );
+		ber_dupbv( out, val );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
-
-	*pretty = out;
 
 	return LDAP_SUCCESS;
 }

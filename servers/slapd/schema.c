@@ -28,7 +28,7 @@ schema_info( Entry **entry, const char **text )
 		= slap_schema.si_ad_objectClass;
 
 	Entry		*e;
-	struct berval	val, *ndn = NULL;
+	struct berval	val;
 	struct berval	*vals[2];
 
 	vals[0] = &val;
@@ -38,9 +38,7 @@ schema_info( Entry **entry, const char **text )
 
 	e->e_attrs = NULL;
 	ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1, &e->e_name);
-	(void) dnNormalize( NULL, &e->e_name, &ndn );
-	e->e_nname = *ndn;
-	free( ndn );
+	(void) dnNormalize2( NULL, &e->e_name, &e->e_nname );
 	e->e_private = NULL;
 
 	val.bv_val = "LDAPsubentry";

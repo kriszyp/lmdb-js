@@ -418,9 +418,7 @@ ldap_send_entry(
 	ldap_back_dn_massage( li, &bdn, &ent.e_name, 0, 0 );
 #endif /* !ENABLE_REWRITE */
 
-	bv = NULL;
-	dnNormalize( NULL, &ent.e_name, &bv );
-	ent.e_nname = *bv;
+	dnNormalize2( NULL, &ent.e_name, &ent.e_nname );
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;

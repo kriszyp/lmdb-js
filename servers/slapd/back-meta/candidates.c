@@ -139,7 +139,7 @@ meta_back_count_candidates(
 	assert( li->ntargets != 0 );
 
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
+		if ( meta_back_is_candidate( &li->targets[ i ]->suffix, ndn ) ) {
 			++cnt;
 		}
 	}
@@ -187,7 +187,7 @@ meta_back_select_unique_candidate(
 	}
 
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
+		if ( meta_back_is_candidate( &li->targets[ i ]->suffix, ndn ) ) {
 			return i;
 		}
 	}

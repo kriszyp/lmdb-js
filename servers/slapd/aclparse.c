@@ -221,11 +221,10 @@ parse_acl(
 			if( a->acl_dn_pat.bv_len != 0 ) {
 				if ( a->acl_dn_style != ACL_STYLE_REGEX )
 				{
-					struct berval *bv = NULL;
-					dnNormalize( NULL, &a->acl_dn_pat, &bv);
+					struct berval bv;
+					dnNormalize2( NULL, &a->acl_dn_pat, &bv);
 					free( a->acl_dn_pat.bv_val );
-					a->acl_dn_pat = *bv;
-					free( bv );
+					a->acl_dn_pat = bv;
 				} else {
 					int e = regcomp( &a->acl_dn_re, a->acl_dn_pat.bv_val,
 					                 REG_EXTENDED | REG_ICASE );
@@ -378,10 +377,7 @@ parse_acl(
 					}
 
 					if ( sty != ACL_STYLE_REGEX ) {
-						struct berval *ndn = NULL;
-						dnNormalize(NULL, &bv, &ndn);
-						b->a_dn_pat = *ndn;
-						free(ndn);
+						dnNormalize2(NULL, &bv, &b->a_dn_pat);
 						free(bv.bv_val);
 					} else {
 						b->a_dn_pat = bv;
@@ -473,11 +469,8 @@ parse_acl(
 						regtest(fname, lineno, bv.bv_val);
 						b->a_group_pat = bv;
 					} else {
-						struct berval *ndn = NULL;
 						ber_str2bv( right, 0, 0, &bv );
-						dnNormalize( NULL, &bv, &ndn );
-						b->a_group_pat = *ndn;
-						free(ndn);
+						dnNormalize2( NULL, &bv, &b->a_group_pat );
 					}
 
 					if (value && *value) {

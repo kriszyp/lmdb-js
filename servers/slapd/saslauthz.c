@@ -30,7 +30,7 @@
 int slap_parseURI( char *uri, struct berval *searchbase, int *scope, Filter **filter )
 {
 	char *start, *end;
-	struct berval bv, *nbase = NULL;
+	struct berval bv;
 	int rc;
 
 
@@ -57,11 +57,9 @@ int slap_parseURI( char *uri, struct berval *searchbase, int *scope, Filter **fi
 		 * will have to make this right.
 		 */
 is_dn:		bv.bv_len = 1;
-		rc = dnNormalize( NULL, &bv, &nbase );
+		rc = dnNormalize2( NULL, &bv, searchbase );
 		if (rc == LDAP_SUCCESS) {
 			*scope = LDAP_SCOPE_BASE;
-			*searchbase = *nbase;
-			free( nbase );
 		}
 		return( rc );
 	}
@@ -82,21 +80,14 @@ is_dn:		bv.bv_len = 1;
 	bv.bv_val = start;
 	if( end == NULL ) {
 		bv.bv_len = 1;
-		rc = dnNormalize( NULL, &bv, &nbase );
-		if (rc == LDAP_SUCCESS) {
-			*searchbase = *nbase;
-			free( nbase );
-		}
-		return( rc );
+		return dnNormalize2( NULL, &bv, searchbase );
 	}
 	*end = '\0';
 	bv.bv_len = end - start;
-	rc = dnNormalize( NULL, &bv, &nbase );
+	rc = dnNormalize2( NULL, &bv, searchbase );
 	*end = '?';
 	if (rc != LDAP_SUCCESS)
 		return( rc );
-	*searchbase = *nbase;
-	free( nbase );
 
 	/* Skip the attrs */
 	start = end+1;
@@ -314,7 +305,7 @@ char *slap_sasl2dn( char *saslname )
 	char *uri=NULL;
 	struct berval searchbase = {0, NULL};
 	struct berval dn = {0, NULL};
-	struct berval *ndn = NULL;
+	struct berval ndn;
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
@@ -397,15 +388,14 @@ char *slap_sasl2dn( char *saslname )
 	dn.bv_val = ldap_get_dn( client, msg );
 	dn.bv_len = dn.bv_val ? strlen( dn.bv_val ) : 0;
 	if( dn.bv_val ) {
-		rc = dnNormalize( NULL, &dn, &ndn );
+		rc = dnNormalize2( NULL, &dn, &ndn );
 		ldap_memfree( dn.bv_val );
 		if( rc != LDAP_SUCCESS ) {
 			dn.bv_val = NULL;
 			dn.bv_len = 0;
 			goto FINISHED;
 		}
-		dn = *ndn;
-		free( ndn );
+		dn = ndn;
 	}
 
 FINISHED:
@@ -519,15 +509,15 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 		dn.bv_val = ldap_get_dn( client, msg );
 
 		if( dn.bv_val ) {
-			struct berval *ndn = NULL;
+			struct berval ndn;
 			dn.bv_len = strlen( dn.bv_val );
-			rc = dnNormalize( NULL, &dn, &ndn );
+			rc = dnNormalize2( NULL, &dn, &ndn );
 			ldap_memfree( dn.bv_val );
 			if( rc != LDAP_SUCCESS ) {
 				goto CONCLUDED;
 			}
-			rc = strcmp( ndn->bv_val, assertDN );
-			ber_bvfree( ndn );
+			rc = strcmp( ndn.bv_val, assertDN );
+			free( ndn.bv_val );
 			if( rc == 0 ) {
 				rc = LDAP_SUCCESS;
 				goto CONCLUDED;

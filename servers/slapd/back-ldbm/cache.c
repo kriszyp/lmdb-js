@@ -576,20 +576,20 @@ cache_find_entry_dn2id(
 {
 	int rc;
 	struct berval bv;
-	struct berval *ndn = NULL;
+	struct berval ndn;
 	ID id;
 
 	bv.bv_val = dn;
 	bv.bv_len = strlen( dn );
 
-	rc = dnNormalize( NULL, &bv, &ndn );
+	rc = dnNormalize2( NULL, &bv, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 		return NOID;
 	}
 
-	id = cache_find_entry_ndn2id( be, cache, ndn->bv_val );
+	id = cache_find_entry_ndn2id( be, cache, ndn.bv_val );
 
-	ber_bvfree( ndn );
+	free( ndn.bv_val );
 	return ( id );
 }
 

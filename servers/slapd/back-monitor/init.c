@@ -283,15 +283,15 @@ monitor_back_db_init(
 	e_tmp = NULL;
 	for ( i = 0; monitor_subsys[ i ].mss_name != NULL; i++ ) {
 		int 		len = strlen( monitor_subsys[ i ].mss_name );
-		struct berval	dn, *pdn;
+		struct berval	dn;
 		int		rc;
 
 		dn.bv_len = len + sizeof( "cn=" ) - 1;
 		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
 		strcpy( dn.bv_val, "cn=" );
 		strcat( dn.bv_val, monitor_subsys[ i ].mss_name );
-		pdn = NULL;
-		rc = dnPretty( NULL, &dn, &pdn );
+		rc = dnPretty2( NULL, &dn, &monitor_subsys[ i ].mss_rdn );
+		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
@@ -302,50 +302,28 @@ monitor_back_db_init(
 				"monitor RDN \"%s\" is invalid\n", 
 				dn.bv_val, 0, 0 );
 #endif
-			free( dn.bv_val );
 			return( -1 );
 		}
-		free( dn.bv_val );
-		monitor_subsys[ i ].mss_rdn = pdn;
 
 		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
 		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
 		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn->bv_val );
 		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
-		pdn = NULL;
-		rc = dnPretty( NULL, &dn, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val, 0, 0 );
-#endif
-			free( dn.bv_val );
-			return( -1 );
-		}
-		monitor_subsys[ i ].mss_dn = pdn;
-
-		pdn = NULL;
-		dnNormalize( NULL, &dn, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val, 0, 0 );
-#endif
-			free( dn.bv_val );
-			return( -1 );
-		}
+		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ].mss_dn,
+			&monitor_subsys[ i ].mss_ndn );
 		free( dn.bv_val );
-		monitor_subsys[ i ].mss_ndn = pdn;
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val, 0, 0 );
+#endif
+			return( -1 );
+		}
 
 		snprintf( buf, sizeof( buf ),
 				"dn: %s\n"
@@ -478,13 +456,13 @@ monitor_back_open(
 	BackendDB		*be;
 	struct monitorsubsys	*ms;
 	struct berval dn = { sizeof(SLAPD_MONITOR_DN)-1, SLAPD_MONITOR_DN };
-	struct berval *ndn = NULL;
+	struct berval ndn;
 	int rc;
 
 	/*
 	 * adds the monitor backend
 	 */
-	rc = dnNormalize( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
@@ -497,8 +475,8 @@ monitor_back_open(
 		return( -1 );
 	}
 
-	be = select_backend( ndn , 0, 0 );
-	ber_bvfree( ndn );
+	be = select_backend( &ndn , 0, 0 );
+	free( ndn.bv_val );
 
 	if ( be == NULL ) {
 #ifdef NEW_LOGGING

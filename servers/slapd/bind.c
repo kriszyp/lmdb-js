@@ -284,11 +284,8 @@ do_bind(
 		if( rc == LDAP_SUCCESS ) {
 			conn->c_dn.bv_val = edn;
 			if( edn != NULL ) {
-				struct berval *cndn;
 				conn->c_dn.bv_len = strlen( edn );
-				dnNormalize( NULL, &conn->c_dn, &cndn );
-				conn->c_ndn = *cndn;
-				free( cndn );
+				dnNormalize2( NULL, &conn->c_dn, &conn->c_ndn );
 			}
 			conn->c_authmech = conn->c_sasl_bind_mech;
 			conn->c_sasl_bind_mech = NULL;

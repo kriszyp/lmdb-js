@@ -217,7 +217,7 @@ meta_back_search(
 		/*
 		 * modifies the base according to the scope, if required
 		 */
-		suffixlen = li->targets[ i ]->suffix->bv_len;
+		suffixlen = li->targets[ i ]->suffix.bv_len;
 		if ( suffixlen > nbase->bv_len ) {
 			switch ( scope ) {
 			case LDAP_SCOPE_SUBTREE:
@@ -227,9 +227,9 @@ meta_back_search(
 				 * illegal bases may be turned into 
 				 * the suffix of the target.
 				 */
-				if ( dnIsSuffix( li->targets[ i ]->suffix,
+				if ( dnIsSuffix( &li->targets[ i ]->suffix,
 						nbase ) ) {
-					realbase = li->targets[ i ]->suffix->bv_val;
+					realbase = li->targets[ i ]->suffix.bv_val;
 				} else {
 					/*
 					 * this target is no longer candidate
@@ -240,15 +240,15 @@ meta_back_search(
 				break;
 
 			case LDAP_SCOPE_ONELEVEL:
-				if ( is_one_level_rdn( li->targets[ i ]->suffix->bv_val,
+				if ( is_one_level_rdn( li->targets[ i ]->suffix.bv_val,
 						suffixlen - nbase->bv_len - 1 ) 
-			&& dnIsSuffix( li->targets[ i ]->suffix, nbase ) ) {
+			&& dnIsSuffix( &li->targets[ i ]->suffix, nbase ) ) {
 					/*
 					 * if there is exactly one level,
 					 * make the target suffix the new
 					 * base, and make scope "base"
 					 */
-					realbase = li->targets[ i ]->suffix->bv_val;
+					realbase = li->targets[ i ]->suffix.bv_val;
 					realscope = LDAP_SCOPE_BASE;
 					break;
 				} /* else continue with the next case */
@@ -585,7 +585,7 @@ meta_send_entry(
 	struct berval 		*bv;
 	const char 		*text;
 	char 			*dn, *edn = NULL;
-	struct berval		tdn, *pdn = NULL, *ndn = NULL;
+	struct berval		tdn;
 
 	struct metasingleconn *lsc = lc->conns[ target ];
 
@@ -626,18 +626,8 @@ meta_send_entry(
 
 	tdn.bv_val = edn;
 	tdn.bv_len = strlen( edn );
-	if ( dnPretty( NULL, &tdn, &pdn ) != LDAP_SUCCESS ) {
 
-	}
-
-	if ( dnNormalize( NULL, &tdn, &ndn ) != LDAP_SUCCESS ) {
-
-	}
-
-	ent.e_name = *pdn;
-	free( pdn );
-	ent.e_nname = *ndn;
-	free( ndn );
+	dnPrettyNormal( NULL, &tdn, &ent.e_name, &ent.e_nname );
 
 	/*
 	 * cache dn

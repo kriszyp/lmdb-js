@@ -40,7 +40,7 @@ get_limits(
 			if ( ndn->bv_len == 0 ) {
 				break;
 			}
-			if ( strcmp( lm[0]->lm_dn_pat->bv_val, ndn->bv_val ) == 0 ) {
+			if ( strcmp( lm[0]->lm_dn_pat.bv_val, ndn->bv_val ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -55,7 +55,7 @@ get_limits(
 				break;
 			}
 
-			d = ndn->bv_len - lm[0]->lm_dn_pat->bv_len;
+			d = ndn->bv_len - lm[0]->lm_dn_pat.bv_len;
 			/* ndn shorter than dn_pat */
 			if ( d < 0 ) {
 				break;
@@ -76,7 +76,7 @@ get_limits(
 			}
 
 			/* in case of (sub)match ... */
-			if ( strcmp( lm[0]->lm_dn_pat->bv_val, &ndn->bv_val[d] ) == 0 ) {
+			if ( strcmp( lm[0]->lm_dn_pat.bv_val, &ndn->bv_val[d] ) == 0 ) {
 				/* check for exactly one rdn in case of ONE */
 				if ( lm[0]->lm_type == SLAP_LIMITS_ONE ) {
 					/*
@@ -157,9 +157,8 @@ add_limits(
 			struct berval bv;
 			bv.bv_val = (char *) pattern;
 			bv.bv_len = strlen( pattern );
-			lm->lm_dn_pat = NULL;
 
-			rc = dnNormalize( NULL, &bv, &lm->lm_dn_pat );
+			rc = dnNormalize2( NULL, &bv, &lm->lm_dn_pat );
 			if ( rc != LDAP_SUCCESS ) {
 				ch_free( lm );
 				return( -1 );
@@ -170,10 +169,10 @@ add_limits(
 	case SLAP_LIMITS_REGEX:
 	case SLAP_LIMITS_UNDEFINED:
 		lm->lm_type = SLAP_LIMITS_REGEX;
-		lm->lm_dn_pat = ber_bvstrdup( pattern );
-		if ( regcomp( &lm->lm_dn_regex, lm->lm_dn_pat->bv_val, 
+		ber_str2bv( pattern, 0, 1, &lm->lm_dn_pat );
+		if ( regcomp( &lm->lm_dn_regex, lm->lm_dn_pat.bv_val, 
 					REG_EXTENDED | REG_ICASE ) ) {
-			ber_bvfree( lm->lm_dn_pat );
+			free( lm->lm_dn_pat.bv_val );
 			ch_free( lm );
 			return( -1 );
 		}
@@ -182,7 +181,8 @@ add_limits(
 	case SLAP_LIMITS_ANONYMOUS:
 	case SLAP_LIMITS_USERS:
 		lm->lm_type = type;
-		lm->lm_dn_pat = NULL;
+		lm->lm_dn_pat.bv_val = NULL;
+		lm->lm_dn_pat.bv_len = 0;
 		break;
 	}
 

@@ -166,10 +166,10 @@ meta_back_bind(
 #endif /* !NEW_LOGGING */
 		}
 
-		if ( isroot && li->targets[ i ]->pseudorootdn != NULL ) {
-			realdn = li->targets[ i ]->pseudorootdn;
-			realndn = li->targets[ i ]->pseudorootdn;
-			realcred = li->targets[ i ]->pseudorootpw;
+		if ( isroot && li->targets[ i ]->pseudorootdn.bv_val != NULL ) {
+			realdn = &li->targets[ i ]->pseudorootdn;
+			realndn = &li->targets[ i ]->pseudorootdn;
+			realcred = &li->targets[ i ]->pseudorootpw;
 			realmethod = LDAP_AUTH_SIMPLE;
 		}
 		

@@ -39,7 +39,7 @@ ldbm_back_exop_passwd(
 	struct berval *new = NULL;
 
 	struct berval dn;
-	struct berval *ndn = NULL;
+	struct berval ndn;
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
@@ -102,13 +102,13 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	rc = dnNormalize( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 		*text = "Invalid DN";
 		goto done;
 	}
 
-	e = dn2entry_w( be, ndn->bv_val, NULL );
+	e = dn2entry_w( be, ndn.bv_val, NULL );
 	if( e == NULL ) {
 		*text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
@@ -187,8 +187,8 @@ done:
 		ber_bvfree( hash );
 	}
 
-	if( ndn != NULL ) {
-		ber_bvfree( ndn );
+	if( ndn.bv_val != NULL ) {
+		free( ndn.bv_val );
 	}
 
 	return rc;

@@ -477,7 +477,7 @@ meta_back_getconn(
 	} else {
 		for ( i = 0; i < li->ntargets; i++ ) {
 			if ( i == cached 
-		|| meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
+		|| meta_back_is_candidate( &li->targets[ i ]->suffix, ndn ) ) {
 
 				/*
 				 * The target is activated; if needed, it is

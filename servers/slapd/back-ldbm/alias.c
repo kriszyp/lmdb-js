@@ -220,8 +220,7 @@ static char* get_alias_dn(
 	const char **errmsg )
 {	
 	int rc;
-	char *dn;
-	struct berval *ndn = NULL;
+	struct berval ndn;
 	Attribute *a;
 	AttributeDescription *aliasedObjectName
 		= slap_schema.si_ad_aliasedObjectName;
@@ -255,16 +254,14 @@ static char* get_alias_dn(
 		return NULL;
 	}
 
-	rc = dnNormalize( NULL, a->a_vals[0], &ndn );
+	rc = dnNormalize2( NULL, a->a_vals[0], &ndn );
 	if( rc != LDAP_SUCCESS ) {
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias aliasedObjectName value is invalid";
 		return NULL;
 	}
 
-	dn = ndn->bv_val;
-	free( ndn );
-	return dn;
+	return ndn.bv_val;
 }
 
 static char* new_superior(

@@ -114,10 +114,10 @@ ldap_back_db_config(
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 #ifndef ENABLE_REWRITE
-		struct berval *bd2;
+		struct berval *bd2, *nd2;
 #endif /* ENABLE_REWRITE */
 		BackendDB *tmp_be;
-		struct berval bdn, *ndn = NULL;
+		struct berval bdn, ndn;
 		
 		/*
 		 * syntax:
@@ -140,14 +140,13 @@ ldap_back_db_config(
 		
 		bdn.bv_val = argv[1];
 		bdn.bv_len = strlen(bdn.bv_val);
-		if ( dnNormalize( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, bdn.bv_val );
 			return( 1 );
 		}
-		tmp_be = select_backend( ndn, 0, 0 );
-		ber_bvfree( ndn );
-		ndn = NULL;
+		tmp_be = select_backend( &ndn, 0, 0 );
+		free( ndn.bv_val );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
@@ -159,13 +158,13 @@ ldap_back_db_config(
 
 		bdn.bv_val = argv[2];
 		bdn.bv_len = strlen(bdn.bv_val);
-		if ( dnNormalize( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, bdn.bv_val );
 			return( 1 );
 		}
-		tmp_be = select_backend( ndn, 0, 0 );
-		ber_bvfree( ndn );
+		tmp_be = select_backend( &ndn, 0, 0 );
+		free( ndn.bv_val );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr, "%s: line %d: massaged suffix"
 				       " already in use by another backend in" 
@@ -186,15 +185,15 @@ ldap_back_db_config(
 #else /* !ENABLE_REWRITE */
 		bd2 = ber_bvstrdup( argv[1] );
 		ber_bvecadd( &li->suffix_massage, bd2 );
-		ndn = NULL;
-		dnNormalize( NULL, bd2, &ndn );
-		ber_bvecadd( &li->suffix_massage, ndn );
+		nd2 = NULL;
+		dnNormalize( NULL, bd2, &nd2 );
+		ber_bvecadd( &li->suffix_massage, nd2 );
 		
 		bd2 = ber_bvstrdup( argv[2] );
 		ber_bvecadd( &li->suffix_massage, bd2 );
-		ndn = NULL;
-		dnNormalize( NULL, bd2, &ndn );
-		ber_bvecadd( &li->suffix_massage, ndn );
+		nd2 = NULL;
+		dnNormalize( NULL, bd2, &nd2 );
+		ber_bvecadd( &li->suffix_massage, nd2 );
 #endif /* !ENABLE_REWRITE */
 
 #ifdef ENABLE_REWRITE

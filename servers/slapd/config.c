@@ -1843,14 +1843,14 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				struct berval dn, *ndn = NULL;
+				struct berval dn;
 
 				if ( load_ucdata( NULL ) < 0 ) return 1;
 
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
 
-				rc = dnNormalize( NULL, &dn, &ndn );
+				rc = dnNormalize2( NULL, &dn, &be->be_update_ndn );
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1863,9 +1863,6 @@ read_config( const char *fname )
 #endif
 					return 1;
 				}
-
-				be->be_update_ndn = *ndn;
-				free( ndn );
 			}
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {

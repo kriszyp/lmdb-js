@@ -238,8 +238,8 @@ meta_back_group(
 		goto cleanup;
 	}
 
-	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn->bv_val,
-			li->targets[ candidate ]->bindpw->bv_val, 
+	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn.bv_val,
+			li->targets[ candidate ]->bindpw.bv_val, 
 			LDAP_AUTH_SIMPLE );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;

@@ -246,7 +246,7 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	Entry		*e;
 	struct berval	val;
 	struct berval	*vals[2];
-	struct berval	*bv = NULL;
+	struct berval	bv;
 
 	int rc;
 	const char *text;
@@ -279,7 +279,7 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	sprintf( val.bv_val, "uid=%s,%s",
 		pw->pw_name, be->be_suffix[0]->bv_val );
 
-	rc = dnNormalize( NULL, &val, &bv );
+	rc = dnNormalize2( NULL, &val, &bv );
 	if( rc != LDAP_SUCCESS ) {
 		free( val.bv_val );
 		return NULL;
@@ -287,8 +287,7 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 	e->e_name = val;
-	e->e_nname = *bv;
-	free( bv );
+	e->e_nname = bv;
 
 	e->e_attrs = NULL;
 
