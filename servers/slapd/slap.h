@@ -2228,6 +2228,8 @@ typedef struct slap_op {
 #define SLAP_CONTROL_NONCRITICAL 2
 #define SLAP_CONTROL_CRITICAL	3
 #define	SLAP_CONTROL_MASK	3
+
+/* spare bits for simple flags */
 #define SLAP_CONTROL_DATA0	0x10
 #define SLAP_CONTROL_DATA1	0x20
 #define SLAP_CONTROL_DATA2	0x40
@@ -2250,7 +2252,7 @@ typedef struct slap_op {
 #define	o_subentries_visibility	o_ctrlflag[slap_cids.sc_subentries]
 
 #define set_subentries_visibility(op)	((op)->o_subentries |= SLAP_CONTROL_DATA0)
-#define get_subentries_visibility(op)	((op)->o_subentries & SLAP_CONTROL_DATA0)
+#define get_subentries_visibility(op)	(((op)->o_subentries & SLAP_CONTROL_DATA0) != 0)
 
 #define o_assert	o_ctrlflag[slap_cids.sc_assert]
 #define get_assert(op)					((int)(op)->o_assert)
