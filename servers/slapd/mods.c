@@ -291,7 +291,7 @@ modify_delete_values(
 				snprintf( textbuf, textlen,
 					"%s: matching rule failed",
 					mod->sm_desc->ad_cname.bv_val );
-				goto return_results;
+				break;
 			}
 
 			if ( match != 0 ) {
@@ -317,7 +317,11 @@ modify_delete_values(
 				"modify/delete: %s: no such value",
 				mod->sm_desc->ad_cname.bv_val );
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
-			goto return_results;
+			if ( i > 0 ) {
+				break;
+			} else {
+				goto return_results;
+			}
 		}
 	}
 
