@@ -74,7 +74,6 @@
 #ifndef __BACKSQL_H__
 #define __BACKSQL_H__
 
-#include "external.h"
 #include "sql-types.h"
 
 /*

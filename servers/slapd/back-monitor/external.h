@@ -23,19 +23,7 @@
 
 LDAP_BEGIN_DECL
 
-extern BI_init	monitor_back_initialize;
-extern BI_db_init	monitor_back_db_init;
-extern BI_db_open	monitor_back_db_open;
-extern BI_config	monitor_back_config;
-extern BI_db_config	monitor_back_db_config;
-
-extern BI_db_destroy	monitor_back_db_destroy;
-
-extern BI_op_search	monitor_back_search;
-extern BI_op_compare	monitor_back_compare;
-extern BI_op_modify	monitor_back_modify;
-extern BI_op_bind	monitor_back_bind;
-extern BI_operational	monitor_back_operational;
+extern BI_init			monitor_back_initialize;
 
 LDAP_END_DECL
 

@@ -35,7 +35,9 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+
 #include "shell.h"
+#include "external.h"
 
 #if SLAPD_SHELL == SLAPD_MOD_DYNAMIC
 

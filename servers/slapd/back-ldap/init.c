@@ -30,6 +30,7 @@
 
 #include "slap.h"
 #include "back-ldap.h"
+#include "external.h"
 
 #if SLAPD_LDAP == SLAPD_MOD_DYNAMIC
 

@@ -31,7 +31,7 @@
 #ifndef SLAPD_SHELL_H
 #define SLAPD_SHELL_H
 
-#include "external.h"
+#include "proto-shell.h"
 
 LDAP_BEGIN_DECL
 

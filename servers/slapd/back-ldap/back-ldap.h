@@ -24,7 +24,7 @@
 #ifndef SLAPD_LDAP_H
 #define SLAPD_LDAP_H
 
-#include "external.h"
+#include "proto-ldap.h"
 
 /* String rewrite library */
 #ifdef ENABLE_REWRITE

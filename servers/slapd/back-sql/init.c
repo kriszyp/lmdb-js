@@ -28,6 +28,7 @@
 
 #include "slap.h"
 #include "proto-sql.h"
+#include "external.h"
 
 #if SLAPD_SQL == SLAPD_MOD_DYNAMIC
 
@@ -40,7 +41,7 @@ init_module(
 
 	memset( &bi, '\0', sizeof( bi ) );
 	bi.bi_type = "sql";
-	bi.bi_init = backsql_initialize;
+	bi.bi_init = sql_back_initialize;
 
 	backend_add( &bi );
 	return 0;
@@ -49,7 +50,7 @@ init_module(
 #endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
 
 int
-backsql_initialize(
+sql_back_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
@@ -66,7 +67,7 @@ backsql_initialize(
 
 	bi->bi_controls = controls;
 
-	Debug( LDAP_DEBUG_TRACE,"==>backsql_initialize()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,"==>sql_back_initialize()\n", 0, 0, 0 );
 	
 	bi->bi_open = 0;
 	bi->bi_config = 0;
@@ -95,7 +96,7 @@ backsql_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = backsql_connection_destroy;
 
-	Debug( LDAP_DEBUG_TRACE,"<==backsql_initialize()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,"<==sql_back_initialize()\n", 0, 0, 0 );
 	return 0;
 }
 

@@ -23,6 +23,7 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
+#include "external.h"
 
 #if SLAPD_LDBM == SLAPD_MOD_DYNAMIC
 

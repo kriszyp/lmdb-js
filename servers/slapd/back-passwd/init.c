@@ -22,6 +22,7 @@
 
 #include "slap.h"
 #include "back-passwd.h"
+#include "external.h"
 
 ldap_pvt_thread_mutex_t passwd_mutex;
 

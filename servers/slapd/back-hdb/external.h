@@ -25,7 +25,7 @@
 #define BDB_HIER
 #endif
 
-extern BI_init	hdb_initialize;
+extern BI_init	hdb_back_initialize;
 
 #include "../back-bdb/external.h"
 

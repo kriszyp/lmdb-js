@@ -27,7 +27,7 @@
 #ifndef SLAPD_META_H
 #define SLAPD_META_H
 
-#include "external.h"
+#include "proto-meta.h"
 
 /* String rewrite library */
 #include "rewrite.h"

@@ -22,9 +22,33 @@
 
 #include <ldap_cdefs.h>
 
-#include "external.h"
-
 LDAP_BEGIN_DECL
+
+extern BI_db_init		relay_back_db_init;
+extern BI_db_config		relay_back_db_config;
+extern BI_db_open		relay_back_db_open;
+extern BI_db_close		relay_back_db_close;
+extern BI_db_destroy		relay_back_db_destroy;
+
+extern BI_op_bind		relay_back_op_bind;
+extern BI_op_unbind		relay_back_op_unbind;
+extern BI_op_search		relay_back_op_search;
+extern BI_op_compare		relay_back_op_compare;
+extern BI_op_modify		relay_back_op_modify;
+extern BI_op_modrdn		relay_back_op_modrdn;
+extern BI_op_add		relay_back_op_add;
+extern BI_op_delete		relay_back_op_delete;
+extern BI_op_abandon		relay_back_op_abandon;
+extern BI_op_cancel		relay_back_op_cancel;
+extern BI_op_extended		relay_back_op_extended;
+extern BI_entry_release_rw	relay_back_entry_release_rw;
+extern BI_entry_get_rw		relay_back_entry_get_rw;
+extern BI_chk_referrals		relay_back_chk_referrals;
+extern BI_operational		relay_back_operational;
+extern BI_has_subordinates	relay_back_has_subordinates;
+
+extern BI_connection_init	relay_back_connection_init;
+extern BI_connection_destroy	relay_back_connection_destroy;
 
 LDAP_END_DECL
 

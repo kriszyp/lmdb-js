@@ -25,6 +25,7 @@
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
+#include "external.h"
 
 #if SLAPD_META == SLAPD_MOD_DYNAMIC
 

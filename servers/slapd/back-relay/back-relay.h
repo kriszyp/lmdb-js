@@ -21,7 +21,7 @@
 #ifndef SLAPD_RELAY_H
 #define SLAPD_RELAY_H
 
-#include "external.h"
+#include "proto-back-relay.h"
 
 /* String rewrite library */
 

@@ -37,7 +37,7 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#include "external.h"
+#include "back-passwd.h"
 
 int
 passwd_back_db_config(

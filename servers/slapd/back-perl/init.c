@@ -16,7 +16,7 @@
  */
 
 #include "perl_back.h"
-
+#include "external.h"
 
 static void perl_back_xs_init LDAP_P((PERL_BACK_XS_INIT_PARAMS));
 EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));

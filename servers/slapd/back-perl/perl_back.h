@@ -70,6 +70,6 @@ typedef struct perl_backend_instance {
 
 LDAP_END_DECL
 
-#include "external.h"
+#include "proto-perl.h"
 
-#endif
+#endif /* PERL_BACK_H */

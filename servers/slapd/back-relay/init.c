@@ -24,6 +24,7 @@
 
 #include "slap.h"
 #include "back-relay.h"
+#include "external.h"
 
 #if SLAPD_RELAY == SLAPD_MOD_DYNAMIC
 
