@@ -216,14 +216,14 @@ example syncrepl specification at the consumer replica :
 >		interval=01:00:00
 
 In this example, the consumer will connect to the provider slapd
-at the port 389 of ldap://provider.example.com to perform a polling
+at port 389 of ldap://provider.example.com to perform a polling
 (refreshOnly) mode of synchronization once a day. It will bind as
 "cn=syncuser,dc=example,dc=com" using simple authentication with
-password "secret". Note that the DN specified by the binddn= directive
-must be existent in the slave slapd's database or be the rootdn.
-Also note that the access control privilege of the DN should be set
-properly to synchronized the desired replica content. It will write
-to the consumer database as "cn=replica,dc=example,dc=com". It
+password "secret". Note that the access control privilege of the DN
+specified by the binddn= directive should be set properly to
+synchronize the desired replica content. The consumer will write to
+its database with the privilege of the "cn=replica,dc=example,dc=com" 
+entry as specified by the updatedn= directive. The updatedn entry
 should have write permission to the database.
 
 The synchronization search in the example will search for entries
