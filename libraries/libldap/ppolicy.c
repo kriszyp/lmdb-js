@@ -22,6 +22,8 @@
 
 #include "ldap-int.h"
 
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+
 #define PPOLICY_WARNING 0xa0L
 #define PPOLICY_ERROR 0xa1L
 
@@ -203,3 +205,5 @@ ldap_passwordpolicy_err2txt( LDAPPasswordPolicyError err )
 		default: return "Unknown error code";
 	}
 }
+
+#endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
