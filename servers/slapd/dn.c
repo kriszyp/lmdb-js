@@ -184,12 +184,12 @@ dn_validate( char *dn )
 char *
 dn_normalize( char *dn )
 {
+	/* upper case it */
 	ldap_pvt_str2upper( dn );
 
 	/* validate and compress dn */
 	dn = dn_validate( dn );
 
-	/* and upper case it */
 	return( dn );
 }
 
