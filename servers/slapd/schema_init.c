@@ -618,31 +618,69 @@ schema_init( void )
 }
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-AttributeDescription *slap_ad_entry = NULL;
-AttributeDescription *slap_ad_children = NULL;
+struct slap_internal_schema slap_schema;
+
+struct slap_schema_ad_map {
+	char *ssm_type;
+	size_t ssm_offset;
+} ad_map[]  = {
+	{ "objectClass",
+		offsetof(struct slap_internal_schema, si_ad_objectClass) },
+
+	{ "creatorsName",
+		offsetof(struct slap_internal_schema, si_ad_creatorsName) },
+	{ "createTimestamp",
+		offsetof(struct slap_internal_schema, si_ad_createTimestamp) },
+	{ "modifiersName",
+		offsetof(struct slap_internal_schema, si_ad_modifiersName) },
+	{ "modifyTimestamp",
+		offsetof(struct slap_internal_schema, si_ad_modifyTimestamp) },
+	{ "namingContexts",
+		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
+	{ "supportedControl",
+		offsetof(struct slap_internal_schema, si_ad_supportedControl) },
+	{ "supportedExtension",
+		offsetof(struct slap_internal_schema, si_ad_supportedExtension) },
+	{ "supportedLDAPVersion",
+		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
+	{ "supportedSASLMechanisms",
+		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
+
+	{ "ref",
+		offsetof(struct slap_internal_schema, si_ad_ref) },
+
+	{ "entry",
+		offsetof(struct slap_internal_schema, si_ad_entry) },
+	{ "children",
+		offsetof(struct slap_internal_schema, si_ad_children) },
+	{ NULL, NULL }
+};
+
 #endif
 
 int
 schema_prep( void )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	int rc;
+	int i;
 	char *text;
 #endif
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	rc = slap_str2ad( "entry", &slap_ad_entry, &text);
-	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "No attribute \"entry\" defined in schema\n" );
-		return rc;
-	}
+	for( i=0; ad_map[i].ssm_type; i++ ) {
+		int rc = slap_str2ad( ad_map[i].ssm_type,
+			(AttributeDescription **)
+				&(((char *) &slap_schema)[ad_map[i].ssm_offset]),
+			&text);
 
-	rc = slap_str2ad( "children", &slap_ad_children, &text);
-	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "No attribute \"children\" defined in schema\n" );
-		return rc;
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr,
+				"No attribute \"%s\" defined in schema\n",
+				ad_map[i].ssm_type );
+			return rc;
+		}
 	}
 #endif
 

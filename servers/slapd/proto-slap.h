@@ -11,8 +11,7 @@
 LDAP_BEGIN_DECL
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-LIBSLAPD_F( AttributeDescription * ) slap_ad_entry;
-LIBSLAPD_F( AttributeDescription * ) slap_ad_children;
+LIBSLAPD_F( struct slap_internal_schema ) slap_schema;
 
 LIBSLAPD_F (int) slap_str2ad LDAP_P((
 	const char *,
@@ -117,14 +116,17 @@ LIBSLAPD_F (char *) attr_normalize LDAP_P(( char *s ));
 LIBSLAPD_F (int) attr_merge_fast LDAP_P(( Entry *e, const char *type,
 	struct berval **vals, int  nvals, int  naddvals, int  *maxvals,
 	Attribute ***a ));
-LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e, const char *type,
-	struct berval **vals ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	struct berval **vals ));
 LIBSLAPD_F (Attribute *) attrs_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, AttributeDescription *desc ));
 #else
+LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e, const char *type,
+	struct berval **vals ));
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, const char *type ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, const char *type ));
 LIBSLAPD_F (int) attr_syntax LDAP_P(( const char *type ));

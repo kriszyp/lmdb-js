@@ -629,7 +629,7 @@ send_search_entry(
 	int		opattrs;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *entry = slap_ad_entry;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 #else
 	static const char *entry = "entry";
 #endif

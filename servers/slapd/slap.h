@@ -291,6 +291,46 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_BINARY	0x1U
 } AttributeDescription;
 
+/*
+ * pointers to schema elements used internally
+ */
+struct slap_internal_schema {
+	/* objectClass attribute */
+	AttributeDescription *si_ad_objectClass;
+
+	/* operational attributes */
+	AttributeDescription *si_ad_creatorsName;
+	AttributeDescription *si_ad_createTimestamp;
+	AttributeDescription *si_ad_modifiersName;
+	AttributeDescription *si_ad_modifyTimestamp;
+	AttributeDescription *si_ad_subschemaSubentry;
+
+	/* root DSE attributes */
+	AttributeDescription *si_ad_namingContexts;
+	AttributeDescription *si_ad_supportedControl;
+	AttributeDescription *si_ad_supportedExtension;
+	AttributeDescription *si_ad_supportedLDAPVersion;
+	AttributeDescription *si_ad_supportedSASLMechanisms;
+
+	/* subschema subentry attributes */
+	AttributeDescription *si_ad_objectClasses;
+	AttributeDescription *si_ad_attributeTypes;
+	AttributeDescription *si_ad_ldapSyntaxes;
+	AttributeDescription *si_ad_matchingRules;
+	AttributeDescription *si_ad_matchingRulesUse;
+
+	/* Aliases & Referrals */
+	AttributeDescription *si_ad_aliasedObjectName;
+	AttributeDescription *si_ad_ref;
+
+	/* ACL Internals */
+	AttributeDescription *si_ad_entry;
+	AttributeDescription *si_ad_children;
+
+	/* Other */
+	AttributeDescription *si_ad_userPassword;
+};
+
 typedef struct slap_attr_assertion {
 	AttributeDescription	*aa_desc;
 	struct berval *aa_value;

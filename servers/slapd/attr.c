@@ -178,7 +178,11 @@ attr_merge_fast(
 int
 attr_merge(
     Entry		*e,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc,
+#else
     const char		*type,
+#endif
     struct berval	**vals )
 {
 	Attribute	**a;

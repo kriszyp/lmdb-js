@@ -41,7 +41,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
 			val.bv_val = backends[i].be_suffix[j];
 			val.bv_len = strlen( val.bv_val );
-			attr_merge( e, "namingContexts", vals );
+			attr_merge( e, slap_schema.si_ad_namingContexts, vals );
 		}
 	}
 
@@ -51,13 +51,13 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	for ( i=0; supportedControls[i] != NULL; i++ ) {
 		val.bv_val = supportedControls[i];
 		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedControl", vals );
+		attr_merge( e, slap_schema.si_ad_supportedControl, vals );
 	}
 
 	/* supportedExtension */
 	for ( i=0; (val.bv_val = get_supported_extop(i)) != NULL; i++ ) {
 		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedExtension", vals );
+		attr_merge( e, slap_schema.si_ad_supportedExtension, vals );
 	}
 
 	/* supportedLDAPVersion */
@@ -65,7 +65,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		sprintf(buf,"%d",i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedLDAPVersion", vals );
+		attr_merge( e, slap_schema.si_ad_supportedLDAPVersion, vals );
 	}
 
 	/* supportedSASLMechanism */
@@ -73,7 +73,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 			val.bv_val = supportedSASLMechanisms[i];
 			val.bv_len = strlen( val.bv_val );
-			attr_merge( e, "supportedSASLMechanisms", vals );
+			attr_merge( e, slap_schema.si_ad_supportedSASLMechanisms, vals );
 		}
 	}
 
@@ -81,21 +81,21 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	/* supportedACIMechanisms */
 	for ( i=0; (val.bv_val = get_supported_acimech(i)) != NULL; i++ ) {
 		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedACIMechanisms", vals );
+		attr_merge( e, slap_schema.si_ad_supportedSASLMechanisms, vals );
 	}
 #endif
 
 	if ( default_referral != NULL ) {
-		attr_merge( e, "ref", default_referral );
+		attr_merge( e, slap_schema.si_ad_ref, default_referral );
 	}
 
 	val.bv_val = "top";
 	val.bv_len = sizeof("top")-1;
-	attr_merge( e, "objectClass", vals );
+	attr_merge( e, slap_schema.si_ad_objectClass, vals );
 
 	val.bv_val = "LDAProotDSE";
 	val.bv_len = sizeof("LDAProotDSE")-1;
-	attr_merge( e, "objectClass", vals );
+	attr_merge( e, slap_schema.si_ad_objectClass, vals );
 
 	send_search_entry( &backends[0], conn, op,
 		e, attrs, attrsonly, NULL );
