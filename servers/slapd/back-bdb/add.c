@@ -504,8 +504,18 @@ retry:	/* transaction retry */
 			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 			assert( BEI(e) );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, e,
-					LDAP_PSEARCH_BY_ADD );
+				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_ADD );
+				if ( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, ERR, 
+						"bdb_add: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_add: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#endif
+				}
 			}
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
