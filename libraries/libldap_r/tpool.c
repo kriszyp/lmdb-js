@@ -60,8 +60,7 @@ static LDAP_STAILQ_HEAD(tpq, ldap_int_thread_pool_s)
 
 static ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
 
-static void *ldap_int_thread_pool_wrapper(
-	struct ldap_int_thread_pool_s *pool );
+static void *ldap_int_thread_pool_wrapper( void *pool );
 
 int
 ldap_int_thread_pool_startup ( void )
@@ -130,8 +129,7 @@ ldap_pvt_thread_pool_init (
 	pool->ltp_open_count++;
 
 	ldap_pvt_thread_t thr;
-	rc = ldap_pvt_thread_create( &thr, 1,
-		(void *) ldap_int_thread_pool_wrapper, pool );
+	rc = ldap_pvt_thread_create( &thr, 1, ldap_int_thread_pool_wrapper, pool );
 
 	if( rc != 0) {
 		/* couldn't start one?  then don't start any */
@@ -208,7 +206,7 @@ ldap_pvt_thread_pool_submit (
 
 	if (need_thread) {
 		int rc = ldap_pvt_thread_create( &thr, 1,
-			(void *)ldap_int_thread_pool_wrapper, pool );
+			ldap_int_thread_pool_wrapper, pool );
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 		if (rc == 0) {
 			pool->ltp_starting--;
@@ -353,8 +351,9 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 
 static void *
 ldap_int_thread_pool_wrapper ( 
-	struct ldap_int_thread_pool_s *pool )
+	void *xpool )
 {
+	struct ldap_int_thread_pool_s *pool = xpool;
 	ldap_int_thread_ctx_t *ctx;
 
 	if (pool == NULL)
