@@ -916,7 +916,9 @@ getNextPage:
 #endif
 
 	ldap_unbind( ld );
+#ifdef HAVE_CYRUS_SASL
 	sasl_done();
+#endif
 	ldap_pvt_tls_destroy();
 	return( rc );
 }
