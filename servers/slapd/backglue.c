@@ -194,7 +194,7 @@ glue_back_response ( Operation *op, SlapReply *rs )
 
 	switch(rs->sr_type) {
 	case REP_SEARCH:
-		if ( gs->slimit && rs->sr_nentries >= gs->slimit ) {
+		if ( gs->slimit != -1 && rs->sr_nentries >= gs->slimit ) {
 			rs->sr_err = gs->err = LDAP_SIZELIMIT_EXCEEDED;
 			return -1;
 		}
@@ -264,9 +264,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 
 	cb.sc_next = op->o_callback;
 
-	if (op->ors_tlimit) {
-		stoptime = slap_get_time () + op->ors_tlimit;
-	}
+	stoptime = slap_get_time () + op->ors_tlimit;
 
 	switch (op->ors_scope) {
 	case LDAP_SCOPE_BASE:
@@ -312,14 +310,14 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		for (i = gi->nodes-1; i >= 0; i--) {
 			if (!gi->n[i].be || !gi->n[i].be->be_search)
 				continue;
-			if (tlimit0) {
+			if (tlimit0 != -1) {
 				op->ors_tlimit = stoptime - slap_get_time ();
 				if (op->ors_tlimit <= 0) {
 					rs->sr_err = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
 				}
 			}
-			if (slimit0) {
+			if (slimit0 != -1) {
 				op->ors_slimit = slimit0 - rs->sr_nentries;
 				if (op->ors_slimit < 0) {
 					rs->sr_err = gs.err = LDAP_SIZELIMIT_EXCEEDED;
