@@ -129,7 +129,7 @@ backsql_make_attr_query(
 	backsql_strfcat( &bb, "lbl", 
 			(ber_len_t)STRLENOF( " ORDER BY " BACKSQL_ALIASING_QUOTE ),
 				" ORDER BY " BACKSQL_ALIASING_QUOTE,
-			&at_map->bam_sel_expr,
+			&at_map->bam_ad->ad_cname,
 			(ber_len_t)STRLENOF( BACKSQL_ALIASING_QUOTE ),
 				BACKSQL_ALIASING_QUOTE );
 
