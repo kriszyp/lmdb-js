@@ -2,16 +2,16 @@ OpenLDAP To Do List
 -------------------
 
 This is a list of projects that need getting done.  They are defined
-by scale of the effort as opposed to priority.  Contribute to projects
-based upon your personal priorities.
+by scale of the effort as opposed to priority.  Contribute to
+projects based upon your personal priorities.
 
-If you would like to work on any of these projects, please
-coordinate with the listed individual.   If no one is
-listed, post to OpenLDAP Developer's List (you must be subscribed
-to post). http://www.openldap.org/lists
+If you would like to work on any of these projects, please coordinate
+with the listed individual.   If no one is listed, post to OpenLDAP
+Developer's List (you must be subscribed to post).
+  http://www.openldap.org/lists
 
-If you have a project you'd like added to the list, talk it up
-on Developer's list or just do it.
+If you have a project you'd like added to the list, talk it up on
+Developer's list or just do it.
 
 Please read:
 	http://www.OpenLDAP.org/devel/programming.html
@@ -21,15 +21,12 @@ Please read:
 OpenLDAP 2.x Projects
 ---------------------
 	SLAPD
-		Update back-perl
-		Update back-tcl
 		Complete Unicode Support
 	SLURPD v3 update
 	client API update
 		Implement LDAP errno draft (deferred)
 		Implement per referral callback
 	clients
-		use _ext API, avoid deprecated routines
 		referral chasing options/rebind proc
 	Update manual pages
 
@@ -61,6 +58,7 @@ Add user configurable attributes to RootDSE
 Create ldapcompare (from ldapsearch) to support compare operations
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Update saucer(1) to support LDAPv3 features (and bring into clients)
+Update ud(1) to include contributed changes
 Update ud(1) to support LDAPv3 features
 Update any manual page
 
