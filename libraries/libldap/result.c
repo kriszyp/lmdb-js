@@ -268,6 +268,7 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 #endif
 
 	/* get the next message */
+	errno = 0;
 	if ( (tag = ber_get_next( sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
 		if ( tag == LBER_DEFAULT) {
