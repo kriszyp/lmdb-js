@@ -663,13 +663,13 @@ int slap_bv2undef_ad(
 	assert( ad != NULL );
 
 	if( bv == NULL || bv->bv_len == 0 ) {
-		*text = "empty attribute description";
+		*text = "empty AttributeDescription";
 		return LDAP_UNDEFINED_TYPE;
 	}
 
 	/* make sure description is IA5 */
 	if( ad_keystring( bv ) ) {
-		*text = "attribute description contains inappropriate characters";
+		*text = "AttributeDescription contains inappropriate characters";
 		return LDAP_UNDEFINED_TYPE;
 	}
 
