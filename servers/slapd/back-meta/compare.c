@@ -113,6 +113,7 @@ meta_back_compare(
 		struct berval mapped_value = ava->aa_value;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
+			msgid[ i ] = -1;
 			continue;
 		}
 
@@ -158,7 +159,6 @@ meta_back_compare(
 					&ava->aa_value, &mapped_value, 0 );
 
 			if ( mapped_value.bv_val == NULL ) {
-				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
 		/*
@@ -168,7 +168,6 @@ meta_back_compare(
 			ldap_back_map( &li->targets[ i ]->at_map,
 				&ava->aa_desc->ad_cname, &mapped_attr, 0 );
 			if ( mapped_attr.bv_val == NULL ) {
-				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
 		}
@@ -180,11 +179,6 @@ meta_back_compare(
 		 */
 		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn,
 				mapped_attr.bv_val, mapped_value.bv_val );
-		if ( msgid[ i ] == -1 ) {
-			lsc->candidate = META_NOT_CANDIDATE;
-			continue;
-		}
-
 		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
@@ -193,6 +187,10 @@ meta_back_compare(
 		}
 		if ( mapped_value.bv_val != ava->aa_value.bv_val ) {
 			free( mapped_value.bv_val );
+		}
+
+		if ( msgid[ i ] == -1 ) {
+			continue;
 		}
 
 		++candidates;
@@ -210,7 +208,7 @@ meta_back_compare(
 			int lrc;
 			LDAPMessage *res = NULL;
 
-			if ( lsc->candidate != META_CANDIDATE ) {
+			if ( msgid[ i ] == -1 ) {
 				continue;
 			}
 
@@ -267,10 +265,11 @@ meta_back_compare(
 					last = i;
 					break;
 				}
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				--candidates;
+
 			} else {
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				--candidates;
 				if ( res ) {
 					ldap_msgfree( res );

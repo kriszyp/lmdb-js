@@ -213,6 +213,7 @@ meta_back_search(
 		char	*mapped_filter, **mapped_attrs;
 		
 		if ( lsc->candidate != META_CANDIDATE ) {
+			msgid[ i ] = -1;
 			continue;
 		}
 
@@ -250,7 +251,7 @@ meta_back_search(
 					/*
 					 * this target is no longer candidate
 					 */
-					lsc->candidate = META_NOT_CANDIDATE;
+					msgid[ i ] = -1;
 					continue;
 				}
 				break;
@@ -273,7 +274,7 @@ meta_back_search(
 				/*
 				 * this target is no longer candidate
 				 */
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				continue;
 			}
 
@@ -386,11 +387,6 @@ meta_back_search(
 		 */
 		msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 				mapped_filter, mapped_attrs, attrsonly ); 
-		if ( msgid[ i ] == -1 ) {
-			lsc->candidate = META_NOT_CANDIDATE;
-			continue;
-		}
-
 		if ( mapped_attrs ) {
 			free( mapped_attrs );
 			mapped_attrs = NULL;
@@ -402,6 +398,10 @@ meta_back_search(
 		if ( mbase != realbase ) {
 			free( mbase );
 			mbase = NULL;
+		}
+
+		if ( msgid[ i ] == -1 ) {
+			continue;
 		}
 
 		++candidates;
@@ -426,7 +426,7 @@ meta_back_search(
 		ab = op->o_abandon;
 
 		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); lsc++, i++ ) {
-			if ( lsc->candidate != META_CANDIDATE ) {
+			if ( msgid[ i ] == -1 ) {
 				continue;
 			}
 			
@@ -557,7 +557,7 @@ meta_back_search(
 				 * When no candidates are left,
 				 * the outer cycle finishes
 				 */
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				--candidates;
 			}
 		}
