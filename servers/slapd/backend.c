@@ -1686,7 +1686,6 @@ static void init_group_pblock( Operation *op, Entry *target,
 	Entry *e, struct berval *op_ndn, AttributeDescription *group_at )
 {
 	slapi_int_pblock_set_operation( op->o_pb, op );
-	slapi_pblock_set( op->o_pb, SLAPI_TARGET_DN, (void *)target->e_nname.bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ENTRY, (void *)e );
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
