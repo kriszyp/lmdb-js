@@ -18,8 +18,8 @@
 
 int	global_schemacheck = 1; /* schemacheck on is default */
 
-static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
-static void		at_usage(void)     LDAP_GCCATTR((noreturn));
+static void		oc_usage(void); 
+static void		at_usage(void);
 
 static char *const err2text[] = {
 	"Success",
@@ -36,7 +36,8 @@ static char *const err2text[] = {
 	"SYNTAX or SUPerior required",
 	"MatchingRule not found",
 	"Syntax not found",
-	"Syntax required"
+	"Syntax required",
+	"Qualifier not supported"
 };
 
 char *
@@ -112,7 +113,7 @@ find_oidm(char *oid)
 	return NULL;
 }
 
-void
+int
 parse_oidm(
     const char	*fname,
     int		lineno,
@@ -127,7 +128,7 @@ parse_oidm(
 		fprintf( stderr, "%s: line %d: too many arguments\n",
 			fname, lineno );
 usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
-		exit( EXIT_FAILURE );
+		return 1;
 	}
 
 	oid = find_oidm( argv[1] );
@@ -136,7 +137,7 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 			"%s: line %d: "
 			"ObjectIdentifier \"%s\" previously defined \"%s\"",
 			fname, lineno, argv[1], oid );
-		exit( EXIT_FAILURE );
+		return 1;
 	}
 
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
@@ -158,9 +159,11 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
 	om->som_next = om_list;
 	om_list = om;
+
+	return 0;
 }
 
-void
+int
 parse_oc(
     const char	*fname,
     int		lineno,
@@ -178,7 +181,9 @@ parse_oc(
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		oc_usage();
+		return 1;
 	}
+
 	if ( oc->oc_oid ) {
 		if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
 			/* Expand OID macros */
@@ -187,7 +192,7 @@ parse_oc(
 				fprintf(stderr,
 					"%s: line %d: OID %s not recognized\n",
 					fname, lineno, oc->oc_oid);
-				exit( EXIT_FAILURE );
+				return 1;
 			}
 			if ( oid != oc->oc_oid ) {
 				ldap_memfree( oc->oc_oid );
@@ -195,14 +200,17 @@ parse_oc(
 			}
 		}
 	}
+
 	/* oc->oc_oid == NULL will be an error someday */
 	code = oc_add(oc,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( EXIT_FAILURE );
+		return 1;
 	}
+
 	ldap_memfree(oc);
+	return 0;
 }
 
 static void
@@ -220,7 +228,6 @@ oc_usage( void )
 		"  [ \"MUST\" oids ]               ; AttributeTypes\n"
 		"  [ \"MAY\" oids ]                ; AttributeTypes\n"
 		"  whsp \")\"\n" );
-	exit( EXIT_FAILURE );
 }
 
 
@@ -248,10 +255,9 @@ at_usage( void )
 		"                                   ; distributedOperation\n"
 		"                                   ; dSAOperation\n"
 		"  whsp \")\"\n");
-	exit( EXIT_FAILURE );
 }
 
-void
+int
 parse_at(
     const char	*fname,
     int		lineno,
@@ -284,7 +290,7 @@ parse_at(
 			{
 			    fprintf(stderr, "%s: line %d: OID %s not found\n",
 				fname, lineno, argv[4]);
-			    exit( EXIT_FAILURE );
+				return 1;
 			}
 			memset(strstr(line, argv[4]), '0', slen);
 			soid = ch_strdup(syn->ssyn_syn.syn_oid );
@@ -296,6 +302,7 @@ parse_at(
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		at_usage();
+		return 1;
 	}
 	if ( at->at_oid ) {
 		if ( !OID_LEADCHAR( at->at_oid[0] )) {
@@ -305,7 +312,7 @@ parse_at(
 				fprintf(stderr,
 					"%s: line %d: OID %s not recognized\n",
 					fname, lineno, at->at_oid);
-				exit( EXIT_FAILURE );
+				return 1;
 			}
 			if ( oid != at->at_oid ) {
 				ldap_memfree( at->at_oid );
@@ -322,7 +329,8 @@ parse_at(
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( EXIT_FAILURE );
+		return 1;
 	}
 	ldap_memfree(at);
+	return 0;
 }

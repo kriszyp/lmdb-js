@@ -246,6 +246,11 @@ at_add(
 		cname = "";
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
+
+	if ( at->at_collective ) {
+		return SLAP_SCHERR_NOT_SUPPORTED;
+	}
+
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
 	AC_MEMCPY( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
@@ -323,7 +328,6 @@ at_add(
 	}
 
 	code = at_insert(sat,err);
-	return code;
 }
 
 #ifdef LDAP_DEBUG

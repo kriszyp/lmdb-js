@@ -216,6 +216,7 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_MR_NOT_FOUND	12
 #define SLAP_SCHERR_SYN_NOT_FOUND	13
 #define SLAP_SCHERR_MR_INCOMPLETE	14
+#define SLAP_SCHERR_NOT_SUPPORTED	15
 
 typedef struct slap_oid_macro {
 	struct berval som_oid;
@@ -382,6 +383,7 @@ typedef struct slap_attribute_type {
 #define is_at_operational(at)	((at)->sat_usage)
 #define is_at_single_value(at)	((at)->sat_single_value)
 #define is_at_collective(at)	((at)->sat_collective)
+#define is_at_obsolete(at)		((at)->sat_obsolete)
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
 
 typedef struct slap_object_class {

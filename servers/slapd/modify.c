@@ -414,6 +414,21 @@ int slap_modlist2mods(
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
+		if ( is_at_obsolete( ad->ad_type ) &&
+			( mod->sml_op == LDAP_MOD_ADD || ml->ml_bvalues != NULL ) )
+		{
+			/*
+			 * attribute is obsolete,
+			 * only allow replace/delete with no values
+			 */
+			slap_mods_free( mod );
+			snprintf( textbuf, textlen,
+				"%s: attribute is obsolete",
+				ml->ml_type );
+			*text = textbuf;
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+
 		/*
 		 * check values
 		 */
@@ -423,16 +438,6 @@ int slap_modlist2mods(
 				ad->ad_type->sat_syntax->ssyn_validate;
 
 			if( !validate ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					"modlist2mods: %s: no validator for syntax %s\n",
-					ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid ));
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"modlist2mods: %s: no validator for syntax %s\n",
-					ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid, 0 );
-#endif
-
 				slap_mods_free( mod );
 				*text = "no validator for syntax";
 				snprintf( textbuf, textlen,

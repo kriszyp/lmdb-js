@@ -685,12 +685,17 @@ LDAP_SLAPD_F (int) schema_prep LDAP_P((void));
  * schemaparse.c
  */
 
-LDAP_SLAPD_F (void) parse_oc_old LDAP_P(( Backend *be, const char *fname, int lineno, int argc, char **argv ));
-LDAP_SLAPD_F (void) parse_oc LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
-LDAP_SLAPD_F (void) parse_at LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
-LDAP_SLAPD_F (void) parse_oidm LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
+LDAP_SLAPD_F (int) parse_oc_old LDAP_P((
+	Backend *be, const char *fname, int lineno, int argc, char **argv ));
+LDAP_SLAPD_F (int) parse_oc LDAP_P((
+	const char *fname, int lineno, char *line, char **argv ));
+LDAP_SLAPD_F (int) parse_at LDAP_P((
+	const char *fname, int lineno, char *line, char **argv ));
+LDAP_SLAPD_F (int) parse_oidm LDAP_P((
+	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
-LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char delim ));
+LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
+	char delim ));
 
 
 /*
