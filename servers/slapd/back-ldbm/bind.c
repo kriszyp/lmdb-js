@@ -128,6 +128,7 @@ ldbm_back_bind(
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			if ( be_isroot_pw( be, dn, cred ) ) {
 				/* front end will send result */
+				if( *edn != NULL ) free( *edn );
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0;
 				goto return_results;
@@ -142,6 +143,7 @@ ldbm_back_bind(
 		{
 			if ( be_isroot_pw( be, dn, cred ) ) {
 				/* front end will send result */
+				if( *edn != NULL ) free( *edn );
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0;
 				goto return_results;
