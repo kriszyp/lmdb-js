@@ -45,10 +45,10 @@ extern struct globals *init_globals	LDAP_P((void));
 int do_ldap	LDAP_P((Ri *ri, Re *re, char **errmsg));
 
 /* lock.c */
-FILE *lock_fopen	LDAP_P((char *fname, char *type, FILE **lfp));
+FILE *lock_fopen	LDAP_P((const char *fname, const char *type, FILE **lfp));
 int lock_fclose	LDAP_P((FILE *fp, FILE *lfp));
-int acquire_lock	LDAP_P((char *file, FILE **rfp, FILE **lfp));
-int relinquish_lock	LDAP_P((char *file, FILE *rfp, FILE *lfp));
+int acquire_lock	LDAP_P((const char *file, FILE **rfp, FILE **lfp));
+int relinquish_lock	LDAP_P((const char *file, FILE *rfp, FILE *lfp));
 
 /* reject.c */
 void write_reject	LDAP_P((Ri *ri, Re *re, int lderr, char *errmsg));

@@ -35,8 +35,8 @@
 
 FILE *
 lock_fopen(
-    char	*fname,
-    char	*type,
+    const char	*fname,
+    const char	*type,
     FILE	**lfp
 )
 {
@@ -90,7 +90,7 @@ lock_fclose(
  */
 int
 acquire_lock(
-    char	*file,
+    const char	*file,
     FILE	**rfp,
     FILE	**lfp
 )
@@ -112,7 +112,7 @@ acquire_lock(
  */
 int
 relinquish_lock(
-    char	*file,
+    const char	*file,
     FILE	*rfp,
     FILE	*lfp
 )
