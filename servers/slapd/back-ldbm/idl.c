@@ -107,18 +107,11 @@ idl_fetch(
 	char	*kstr;
 	int	i, nids;
 
-	ldbm_datum_init( data );
+	idl = idl_fetch_one( be, db, key );
 
-	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch\n", 0, 0, 0 ); */
-
-	data = ldbm_cache_fetch( db, key );
-
-	if ( data.dptr == NULL ) {
-		return( NULL );
+	if ( idl == NULL ) {
+		return NULL;
 	}
-
-	idl = idl_dup( (ID_BLOCK *) data.dptr );
-	ldbm_datum_free( db->dbc_db, data);
 
 	if ( ID_BLOCK_ALLIDS(idl) ) {
 		/* all ids block */
