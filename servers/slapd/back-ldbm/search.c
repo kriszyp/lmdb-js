@@ -135,7 +135,11 @@ ldbm_back_search(
 
 		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
+#ifdef LDAP_SYNCREPL
+		return LDAP_REFERRAL;
+#else
 		return 1;
+#endif
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -179,7 +183,11 @@ ldbm_back_search(
 		}
 
 		ber_memfree( matched_dn.bv_val );
+#ifdef LDAP_SYNCREPL
+		return LDAP_OTHER;
+#else
 		return 1;
+#endif
 	}
 
 	if ( is_entry_alias( e ) ) {
@@ -223,12 +231,16 @@ searchit:
 		send_ldap_result( op, rs );
 
 #ifdef LDAP_CACHING
-                if ( op->o_caching_on ) {
+		if ( op->o_caching_on ) {
 			ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 		}
 #endif /* LDAP_CACHING */
 
+#ifdef LDAP_SYNCREPL
+		rc = LDAP_OTHER;
+#else
 		rc = 1;
+#endif
 		goto done;
 	}
 
@@ -359,6 +371,26 @@ searchit:
 		}
 
 		rs->sr_entry = e;
+
+#ifdef LDBM_SUBENTRIES
+	if ( is_entry_subentry( e ) ) {
+		if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+			if(!get_subentries_visibility( op )) {
+				/* only subentries are visible */
+				goto loop_continue;
+			}
+		} else if ( get_subentries( op ) &&
+			!get_subentries_visibility( op ))
+		{
+			/* only subentries are visible */
+			goto loop_continue;
+		}
+	} else if ( get_subentries_visibility( op )) {
+		/* only subentries are visible */
+		goto loop_continue;
+	}
+#endif
+
 #ifdef LDAP_CACHING
                 if ( !op->o_caching_on ) {
 #endif /* LDAP_CACHING */
@@ -464,6 +496,12 @@ searchit:
 #ifdef LDAP_CACHING
 		}
 #endif /* LDAP_CACHING */
+
+#ifdef LDAP_SYNCREPL
+		if ( !manageDSAit && is_entry_glue( e )) {
+			goto loop_continue;
+		}
+#endif
 
 		/* if it matches the filter and scope, send it */
 		result = test_filter( op, e, op->oq_search.rs_filter );
@@ -618,6 +656,10 @@ search_candidates(
     AttributeAssertion aa_ref, aa_alias;
 	struct berval bv_ref = { sizeof("referral")-1, "referral" };
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
+#ifdef LDBM_SUBENTRIES
+	Filter  sf;
+	AttributeAssertion aa_subentry;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1,
@@ -662,6 +704,18 @@ search_candidates(
 		: SLAPD_FILTER_DN_ONE;
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
+
+#ifdef LDBM_SUBENTRIES
+	if ( get_subentries_visibility( op )) {
+		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
+		sf.f_choice = LDAP_FILTER_EQUALITY;
+		sf.f_ava = &aa_subentry;
+		sf.f_av_desc = slap_schema.si_ad_objectClass;
+		sf.f_av_value = bv_subentry;
+		sf.f_next = fand.f_next;
+		fand.f_next = &sf;
+	}
+#endif
 
 	candidates = filter_candidates( op, &f );
 

@@ -129,6 +129,9 @@ ldbm_back_db_init(
 
 	/* indicate system schema supported */
 	be->be_flags |= 
+#ifdef LDBM_SUBENTRIES
+		SLAP_BFLAG_SUBENTRIES |
+#endif
 		SLAP_BFLAG_ALIASES |
 		SLAP_BFLAG_REFERRALS;
 

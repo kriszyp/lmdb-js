@@ -102,12 +102,27 @@ ldbm_back_exop_passwd(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	e = dn2entry_w( op->o_bd, &ndn, NULL );
+
+#ifdef LDAP_SYNCREPL
+	if ( e == NULL || is_entry_glue( e )) {
+			/* FIXME : dn2entry() should return non-glue entry */
+#else
 	if( e == NULL ) {
+#endif
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
 	}
+
+#ifdef LDBM_SUBENTRIES
+	if( is_entry_subentry( e ) ) {
+		/* entry is a subentry, don't allow operation */
+		rs->sr_text = "authorization entry is subentry";
+		rc = LDAP_OTHER;
+		goto done;
+	}
+#endif
 
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */

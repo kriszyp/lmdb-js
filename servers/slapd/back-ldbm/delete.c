@@ -40,7 +40,13 @@ ldbm_back_delete(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
+	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+
+#ifdef LDAP_SYNCREPL /* FIXME : dn2entry() should return non-glue entry */
+	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
+#else
+	if ( e == NULL ) {
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -57,8 +63,13 @@ ldbm_back_delete(
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+#ifdef LDAP_SYNCREPL
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->provideruri_bv : default_referral;
+#else
+			BerVarray deref = default_referral;
+#endif
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

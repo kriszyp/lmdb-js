@@ -419,7 +419,8 @@ dn2entry_rw(
 	/* entry does not exist - see how much of the dn does exist */
 	if ( !be_issuffix( be, dn ) && (dnParent( dn, &pdn ), pdn.bv_len) ) {
 		/* get entry with reader lock */
-		if ( (e = dn2entry_r( be, &pdn, matched )) != NULL ) {
+		if ((e = dn2entry_r( be, &pdn, matched )) != NULL )
+		{
 			*matched = e;
 		}
 	}

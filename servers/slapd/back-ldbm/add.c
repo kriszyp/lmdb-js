@@ -29,6 +29,9 @@ ldbm_back_add(
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
+#ifdef LDBM_SUBENTRIES
+	int subentry;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -56,8 +59,16 @@ ldbm_back_add(
 #endif
 
 		send_ldap_result( op, rs );
+#ifdef LDAP_SYNCREPL
+		return rs->sr_err;
+#else
 		return( -1 );
+#endif
 	}
+
+#ifdef LDBM_SUBENTRIES
+	subentry = is_entry_subentry( op->oq_add.rs_e );
+#endif
 
 #ifdef LDAP_CACHING
 	if ( !op->o_caching_on ) {
@@ -77,7 +88,11 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 		    "no write access to entry" );
 
+#ifdef LDAP_SYNCREPL
+		return LDAP_INSUFFICIENT_ACCESS;
+#else
 		return -1;
+#endif
 	}
 #ifdef LDAP_CACHING
 	}
@@ -91,7 +106,11 @@ ldbm_back_add(
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
 		send_ldap_result( op, rs );
+#ifdef LDAP_SYNCREPL
+		return rs->sr_err;
+#else
 		return( -1 );
+#endif
 	}
 
 	/*
@@ -146,7 +165,11 @@ ldbm_back_add(
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
 
+#ifdef LDAP_SYNCREPL
+			return rs->sr_err;
+#else
 			return -1;
+#endif
 		}
 
 		if ( ! access_allowed( op, p,
@@ -168,8 +191,27 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			    "no write access to parent" );
 
+#ifdef LDAP_SYNCREPL
+			return LDAP_INSUFFICIENT_ACCESS;
+#else
 			return -1;
+#endif
 		}
+
+#ifdef LDBM_SUBENTRIES
+		if ( is_entry_subentry( p )) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, DETAIL1,
+				"bdb_add: parent is subentry\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
+				0, 0, 0 );
+#endif
+			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			rs->sr_text = "parent is a subentry";
+			goto return_results;
+		}
+#endif
 
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
@@ -190,7 +232,11 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 			    "parent is an alias" );
 
+#ifdef LDAP_SYNCREPL
+			return LDAP_ALIAS_PROBLEM;
+#else
 			return -1;
+#endif
 		}
 
 		if ( is_entry_referral( p ) ) {
@@ -216,8 +262,19 @@ ldbm_back_add(
 
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
+#ifdef LDAP_SYNCREPL
+			return rs->sr_err;
+#else
 			return -1;
+#endif
 		}
+
+#ifdef LDBM_SUBENTRIES
+		if ( subentry ) {
+			/* FIXME: */
+			/* parent must be an administrative point of the required kind */
+		}
+#endif
 
 	} else {
 #ifndef LDAP_CACHING
@@ -260,10 +317,17 @@ ldbm_back_add(
 						LDAP_INSUFFICIENT_ACCESS,
 						"no write access to parent" );
 
+#ifdef LDAP_SYNCREPL
+					return LDAP_INSUFFICIENT_ACCESS;
+#else
 					return -1;
+#endif
 				}
-
+#ifdef LDAP_SYNCREPL
+			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
+#else
 			} else {
+#endif
 				ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
@@ -278,11 +342,31 @@ ldbm_back_add(
 #endif
 
 				send_ldap_error( op, rs,
-						LDAP_INSUFFICIENT_ACCESS, NULL );
+						LDAP_NO_SUCH_OBJECT, NULL );
 
-				return -1;
+#ifdef LDAP_SYNCREPL
+					return LDAP_NO_SUCH_OBJECT;
+#else
+					return -1;
+#endif
 			}
 		}
+
+#ifdef LDBM_SUBENTRIES
+		        if( subentry ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, DETAIL1,
+						"bdb_add: no parent, cannot add subentry\n", 0, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_add: no parent, cannot add subentry\n", 0, 0, 0 );
+#endif
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
+					rs->sr_text = "no parent, cannot add subentry";
+					goto return_results;
+				}
+#endif
+
 	}
 
 	if ( next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
@@ -304,7 +388,11 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"next_id add failed" );
 
+#ifdef LDAP_SYNCREPL
+		return LDAP_OTHER;
+#else
 		return( -1 );
+#endif
 	}
 
 	/*
@@ -332,7 +420,11 @@ ldbm_back_add(
 		rs->sr_err = rs->sr_err > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER;
 		send_ldap_result( op, rs );
 
+#ifdef LDAP_SYNCREPL
+		return rs->sr_err;
+#else
 		return( -1 );
+#endif
 	}
 
 	rs->sr_err = -1;
