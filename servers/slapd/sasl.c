@@ -561,14 +561,12 @@ slap_sasl_canonicalize(
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		"slap_sasl_canonicalize: conn %d %s=\"%s\"\n",
 			conn ? conn->c_connid : -1,
-			(flags & SASL_CU_AUTHID) ? "authcDN" : "authzDN",
-			dn.bv_val ));
+			names[0]+1, dn.bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: "
 		"%s=\"%s\"\n",
 			conn ? conn->c_connid : -1,
-			(flags & SASL_CU_AUTHID) ? "authcDN" : "authzDN",
-			dn.bv_val );
+			names[0]+1, dn.bv_val );
 #endif
 done:	AC_MEMCPY( out, in, inlen );
 	out[inlen] = '\0';
