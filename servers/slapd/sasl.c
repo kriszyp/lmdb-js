@@ -239,11 +239,12 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		c1 = dn->bv_val;
 		dn->bv_val = ch_malloc( len+1 );
 		p = slap_strcopy( dn->bv_val, "uid=" );
-		p = slap_strcopy( p, c1 );
+		p = slap_strncopy( p, c1, dn->bv_len );
 
 		if( realm ) {
+			int rlen = dn->bv_len - ( realm - c1 );
 			p = slap_strcopy( p, ",cn=" );
-			p = slap_strcopy( p, realm );
+			p = slap_strncopy( p, realm, rlen );
 			realm[-1] = '@';
 		} else if( user_realm && *user_realm ) {
 			p = slap_strcopy( p, ",cn=" );
@@ -328,9 +329,11 @@ slap_auxprop_lookup(
 				break;
 			}
 			if ( !strcmp( cur->name, slap_propnames[0] ) ) {
-				AC_MEMCPY( &dn, cur->values[0], sizeof( dn ) );
-				if ( !(flags & SASL_AUXPROP_AUTHZID) )
-					break;
+				if ( cur->values && cur->values[0] ) {
+					AC_MEMCPY( &dn, cur->values[0], sizeof( dn ) );
+					if ( !(flags & SASL_AUXPROP_AUTHZID) )
+						break;
+				}
 			}
 		}
 	}
@@ -486,6 +489,7 @@ slap_sasl_canonicalize(
 {
 	Connection *conn = (Connection *)context;
 	struct propctx *props = sasl_auxprop_getctx( sconn );
+	struct propval auxvals[3];
 	struct berval dn;
 	int rc;
 	const char *names[2];
@@ -534,13 +538,17 @@ slap_sasl_canonicalize(
 
 	*out_len = inlen;
 
+	/* See if we need to add request, can only do it once */
+	prop_getnames( props, slap_propnames, auxvals );
+	if ( !auxvals[0].name )
+		sasl_auxprop_request( sconn, slap_propnames );
+
 	if ( flags & SASL_CU_AUTHID )
 		names[0] = slap_propnames[0];
 	else
 		names[0] = slap_propnames[1];
 	names[1] = NULL;
 
-	sasl_auxprop_request( sconn, names );
 	prop_set( props, names[0], (char *)&dn, sizeof( dn ) );
 		
 #ifdef NEW_LOGGING
@@ -590,7 +598,7 @@ slap_sasl_authorize(
 	prop_getnames( props, slap_propnames, auxvals );
 	
 	/* Nothing to do if no authzID was given */
-	if ( !auxvals[1].name )
+	if ( !auxvals[1].name || !auxvals[1].values )
 		return SASL_OK;
 	
 	AC_MEMCPY( &authcDN, auxvals[0].values[0], sizeof(authcDN) );
@@ -1161,7 +1169,7 @@ int slap_sasl_bind(
 		prop_getnames( props, slap_propnames, vals );
 
 		AC_MEMCPY( edn, vals[0].values[0], sizeof(*edn) );
-		if ( vals[1].name ) {
+		if ( vals[1].name && vals[1].values ) {
 			ch_free( edn->bv_val );
 			AC_MEMCPY( edn, vals[1].values[0], sizeof(*edn) );
 		}
