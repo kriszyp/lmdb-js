@@ -9,6 +9,7 @@ Changes included in OpenLDAP 1.2
 	Added slapd logging option
 	Added slapd nextid chunking
 	Added LDBM DB2 debugging support
+	Added build support for FreeBSD 4.x
 	Fixed client SIGPIPE handling
 	Fixed configure wait3 handling
 	Fixed lber leaking ber_scanf
