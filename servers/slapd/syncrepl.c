@@ -26,7 +26,6 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-#include <db.h>
 
 #include "ldap_pvt.h"
 #include "lutil.h"
