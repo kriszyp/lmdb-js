@@ -261,7 +261,7 @@ install-schema: FORCE
 		else \
 			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(schemadir)/$$i"; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(schemadir)/$$i.default ; \
+		$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i.default ; \
 	done
 
 install-conf: FORCE
