@@ -35,7 +35,7 @@ struct berval backsql_baseObject_bv = BER_BVC( BACKSQL_BASEOBJECT_IDSTR );
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 backsql_entryID *
-backsql_free_entryID( backsql_entryID *id, int freeit )
+backsql_free_entryID( Operation *op, backsql_entryID *id, int freeit )
 {
 	backsql_entryID 	*next;
 
@@ -47,28 +47,28 @@ backsql_free_entryID( backsql_entryID *id, int freeit )
 		if ( !BER_BVISNULL( &id->eid_dn )
 				&& id->eid_dn.bv_val != id->eid_ndn.bv_val )
 		{
-			free( id->eid_dn.bv_val );
+			op->o_tmpfree( id->eid_dn.bv_val, op->o_tmpmemctx );
 			BER_BVZERO( &id->eid_dn );
 		}
 
-		free( id->eid_ndn.bv_val );
+		op->o_tmpfree( id->eid_ndn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &id->eid_ndn );
 	}
 
 #ifdef BACKSQL_ARBITRARY_KEY
-	if ( id->eid_id.bv_val ) {
-		free( id->eid_id.bv_val );
+	if ( !BER_BVISNULL( &id->eid_id ) ) {
+		op->o_tmpfree( id->eid_id.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &id->eid_id );
 	}
 
-	if ( id->eid_keyval.bv_val ) {
-		free( id->eid_keyval.bv_val );
+	if ( !BER_BVISNULL( &id->eid_keyval ) ) {
+		op->o_tmpfree( id->eid_keyval.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &id->eid_keyval );
 	}
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 	if ( freeit ) {
-		free( id );
+		op->o_tmpfree( id, op->o_tmpmemctx );
 	}
 
 	return next;
@@ -110,6 +110,11 @@ backsql_dn2id(
 			ndn->bv_val, id == NULL ? " (no ID expected)" : "",
 			matched ? " matched expected" : "" );
 
+	if ( id ) {
+		/* NOTE: trap inconsistencies */
+		assert( BER_BVISNULL( &id->eid_ndn ) );
+	}
+
 	if ( ndn->bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"   backsql_dn2id(\"%s\"): DN length=%ld "
@@ -125,16 +130,20 @@ backsql_dn2id(
 	{
 		if ( id != NULL ) {
 #ifdef BACKSQL_ARBITRARY_KEY
-			ber_dupbv( &id->eid_id, &backsql_baseObject_bv );
-			ber_dupbv( &id->eid_keyval, &backsql_baseObject_bv );
+			ber_dupbv_x( &id->eid_id, &backsql_baseObject_bv,
+					op->o_tmpmemctx );
+			ber_dupbv_x( &id->eid_keyval, &backsql_baseObject_bv,
+					op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 			id->eid_id = BACKSQL_BASEOBJECT_ID;
 			id->eid_keyval = BACKSQL_BASEOBJECT_KEYVAL;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 			id->eid_oc_id = BACKSQL_BASEOBJECT_OC;
 
-			ber_dupbv( &id->eid_ndn, &bi->sql_baseObject->e_nname );
-			ber_dupbv( &id->eid_dn, &bi->sql_baseObject->e_name );
+			ber_dupbv_x( &id->eid_ndn, &bi->sql_baseObject->e_nname,
+					op->o_tmpmemctx );
+			ber_dupbv_x( &id->eid_dn, &bi->sql_baseObject->e_name,
+					op->o_tmpmemctx );
 
 			id->eid_next = NULL;
 		}
@@ -242,8 +251,10 @@ backsql_dn2id(
 			struct berval	dn;
 
 #ifdef BACKSQL_ARBITRARY_KEY
-			ber_str2bv( row.cols[ 0 ], 0, 1, &id->eid_id );
-			ber_str2bv( row.cols[ 1 ], 0, 1, &id->eid_keyval );
+			ber_str2bv_x( row.cols[ 0 ], 0, 1, &id->eid_id,
+					op->o_tmpmemctx );
+			ber_str2bv_x( row.cols[ 1 ], 0, 1, &id->eid_keyval,
+					op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 			id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
 			id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
@@ -256,7 +267,9 @@ backsql_dn2id(
 				res = LDAP_OTHER;
 
 			} else {
-				res = dnPrettyNormal( NULL, &dn, &id->eid_dn, &id->eid_ndn, NULL );
+				res = dnPrettyNormal( NULL, &dn,
+						&id->eid_dn, &id->eid_ndn,
+						op->o_tmpmemctx );
 				if ( res != LDAP_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"   backsql_dn2id(\"%s\"): "
@@ -265,7 +278,7 @@ backsql_dn2id(
 						ldap_err2string( res ) );
 
 					/* cleanup... */
-					(void)backsql_free_entryID( id, 0 );
+					(void)backsql_free_entryID( op, id, 0 );
 				}
 
 				if ( dn.bv_val != row.cols[ 3 ] ) {
@@ -278,6 +291,40 @@ backsql_dn2id(
 
 	} else {
 		res = LDAP_NO_SUCH_OBJECT;
+		if ( matched ) {
+			struct berval	pdn = *ndn;
+
+			/*
+			 * Look for matched
+			 */
+			rs->sr_matched = NULL;
+			while ( !be_issuffix( op->o_bd, &pdn ) ) {
+				struct berval	dn;
+				char		*matchedDN = NULL;
+	
+				dn = pdn;
+				dnParent( &dn, &pdn );
+	
+				/*
+				 * Empty DN ("") defaults to LDAP_SUCCESS
+				 */
+				rs->sr_err = backsql_dn2id( op, rs, dbh, &pdn, id, 0, 1 );
+				switch ( rs->sr_err ) {
+				case LDAP_NO_SUCH_OBJECT:
+					/* try another one */
+					break;
+					
+				case LDAP_SUCCESS:
+					matchedDN = pdn.bv_val;
+					/* fail over to next case */
+	
+				default:
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
+					rs->sr_matched = matchedDN;
+					goto done;
+				} 
+			}
+		}
 	}
 	backsql_FreeRow( &row );
 
@@ -511,7 +558,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 int
 backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 {
-	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
+	Operation		*op = bsi->bsi_op;
+	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	int			i;
 	int			rc;
 
@@ -534,8 +582,8 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 		goto done;
 	}
 
-	ber_dupbv( &bsi->bsi_e->e_name, &eid->eid_dn );
-	ber_dupbv( &bsi->bsi_e->e_nname, &eid->eid_ndn );
+	ber_dupbv_x( &bsi->bsi_e->e_name, &eid->eid_dn, op->o_tmpmemctx );
+	ber_dupbv_x( &bsi->bsi_e->e_nname, &eid->eid_ndn, op->o_tmpmemctx );
 
 	bsi->bsi_e->e_attrs = NULL;
 	bsi->bsi_e->e_private = NULL;
@@ -545,6 +593,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	bsi->bsi_c_eid = eid;
 
 #ifndef BACKSQL_ARBITRARY_KEY	
+	/* FIXME: unused */
 	bsi->bsi_e->e_id = eid->eid_id;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
  
@@ -567,7 +616,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"custom attribute list\n", 0, 0, 0 );
-		for ( i = 0; bsi->bsi_attrs[ i ].an_name.bv_val; i++ ) {
+		for ( i = 0; !BER_BVISNULL( &bsi->bsi_attrs[ i ].an_name ); i++ ) {
 			backsql_at_map_rec	**vat;
 			AttributeName		*an = &bsi->bsi_attrs[ i ];
 			int			j;
@@ -577,7 +626,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 			 * because subtypes are already dealt with
 			 * by backsql_supad2at()
 			 */
-			for ( j = 0; bsi->bsi_attrs[ j ].an_name.bv_val; j++ ) {
+			for ( j = 0; !BER_BVISNULL( &bsi->bsi_attrs[ j ].an_name ); j++ ) {
 				/* skip self */
 				if ( j == i ) {
 					continue;

@@ -60,27 +60,19 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	/* FIXME: using all attributes because of access control later ... */
+	bsi.bsi_e = &e;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
-			BACKSQL_ISF_GET_ID );
+			BACKSQL_ISF_GET_ENTRY );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
 			"could not retrieve modifyDN ID - no such entry\n", 
 			0, 0, 0 );
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		goto done;
-	}
-
-	bsi.bsi_e = &e;
-	rs->sr_err = backsql_id2entry( &bsi, &bsi.bsi_base_id );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
-			"error %d in backsql_id2entry()\n",
-			rs->sr_err, 0, 0 );
+		/* FIXME: we keep the error code
+		 * set by backsql_init_search() */
 		goto done;
 	}
 
@@ -134,9 +126,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 done:;
 	send_ldap_result( op, rs );
 
-	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
-	}
+	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 
 	if ( bsi.bsi_e != NULL ) {
 		entry_clean( bsi.bsi_e );

@@ -223,7 +223,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		"old parent entry id is %ld\n", pe_id.eid_id, 0, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
-	(void)backsql_free_entryID( &pe_id, 0 );
+	(void)backsql_free_entryID( op, &pe_id, 0 );
 
 	rs->sr_err = backsql_dn2id( op, rs, dbh, new_npdn, &new_pe_id, 0, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -481,9 +481,7 @@ modrdn_return:;
 		}
 	}
 
-	if ( !BER_BVISNULL( &new_pe_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( &new_pe_id, 0 );
-	}
+	(void)backsql_free_entryID( op, &new_pe_id, 0 );
 
 	send_ldap_result( op, rs );
 

@@ -87,8 +87,11 @@ backsql_delete( Operation *op, SlapReply *rs )
 	RETCODE			rc;
 	int			prc = LDAP_SUCCESS;
 	backsql_oc_map_rec	*oc = NULL;
-	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT;
-	Entry			e;
+	backsql_srch_info	bsi;
+	backsql_entryID		e_id = { 0 };
+	Entry			d = { 0 }, p = { 0 }, *e = NULL;
+	struct berval		pdn = BER_BVNULL;
+	int			manageDSAit = get_manageDSAit( op );
 	/* first parameter no */
 	SQLUSMALLINT		pno;
 	SQLUSMALLINT		CompletionType = SQL_ROLLBACK;
@@ -96,22 +99,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_delete(): deleting entry \"%s\"\n",
 			op->o_req_ndn.bv_val, 0, 0 );
 
-	dnParent( &op->o_req_dn, &e.e_name );
-	dnParent( &op->o_req_ndn, &e.e_nname );
-	e.e_attrs = NULL;
-
-	/* check parent for "children" acl */
-	/* FIXME: need the whole entry (ITS#3480) */
-	if ( !access_allowed( op, &e, slap_schema.si_ad_children, 
-			NULL, ACL_WRITE, NULL ) ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
-			"no write access to parent\n", 
-			0, 0, 0 );
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto done;
-
-	}
-	
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
@@ -119,13 +106,55 @@ backsql_delete( Operation *op, SlapReply *rs )
 			0, 0, 0 );
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
+		e = NULL;
 		goto done;
 	}
 	
-	rs->sr_err = backsql_dn2id( op, rs, dbh, &op->o_req_ndn, &e_id, 0, 1 );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+	/*
+	 * Get the entry
+	 */
+	bsi.bsi_e = &d;
+	rc = backsql_init_search( &bsi, &op->o_req_ndn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_REFERRAL:
+		if ( !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname )
+				&& manageDSAit )
+		{
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+			break;
+		}
+		e = &d;
+		/* fallthru */
+
+	default:
+		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
+			"could not retrieve deleteDN ID - no such entry\n", 
+			0, 0, 0 );
+		goto done;
+	}
+
+	if ( !access_allowed( op, &d, slap_schema.si_ad_entry, 
+			NULL, ACL_WRITE, NULL ) )
+	{
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
-			"could not lookup entry id\n", 0, 0, 0 );
+			"no write access to entry\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		e = &d;
 		goto done;
 	}
 
@@ -144,16 +173,18 @@ backsql_delete( Operation *op, SlapReply *rs )
 		/* fallthru */
 
 	default:
+		e = &d;
 		goto done;
 	}
 
-	oc = backsql_id2oc( bi, e_id.eid_oc_id );
+	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"cannot determine objectclass of entry -- aborting\n",
 			0, 0, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
+		e = NULL;
  		goto done;
 	}
 
@@ -163,12 +194,48 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"for this objectclass - aborting\n", 0, 0, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
+		e = NULL;
 		goto done;
+	}
+
+	/*
+	 * Get the parent
+	 */
+	dnParent( &op->o_req_ndn, &pdn );
+	bsi.bsi_e = &p;
+	e_id = bsi.bsi_base_id;
+	rc = backsql_init_search( &bsi, &pdn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
+			BACKSQL_ISF_GET_ENTRY );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
+			"could not retrieve deleteDN ID - no such entry\n", 
+			0, 0, 0 );
+		e = &p;
+		goto done;
+	}
+
+	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+
+	/* check parent for "children" acl */
+	if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
+			NULL, ACL_WRITE, NULL ) )
+	{
+		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
+			"no write access to parent\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		e = &p;
+		goto done;
+
 	}
 
 	/* avl_apply ... */
 	rs->sr_err = backsql_delete_all_attrs( op, rs, dbh, &e_id, oc );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		e = &d;
 		goto done;
 	}
 
@@ -182,6 +249,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -199,6 +267,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 			rs->sr_text = "SQL-backend error";
 			rs->sr_err = LDAP_OTHER;
+			e = NULL;
 			goto done;
 		}
 
@@ -218,6 +287,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -242,6 +312,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_OTHER;
 		}
 		SQLFreeStmt( sth, SQL_DROP );
+		e = &d;
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
@@ -257,6 +328,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -273,6 +345,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -292,6 +365,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
@@ -307,6 +381,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -323,6 +398,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -342,6 +418,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
@@ -357,6 +434,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -373,6 +451,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -385,6 +464,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
@@ -407,10 +487,39 @@ done:;
 	}
 	SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	if ( e != NULL ) {
+		if ( !access_allowed( op, e, slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+		}
+	}
+
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+
 	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );
 
-	return ( ( rs->sr_err == LDAP_SUCCESS ) ? op->o_noop : 1 );
+	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &e_id, 0 );
+	}
+
+	if ( !BER_BVISNULL( &d.e_nname ) ) {
+		entry_clean( &d );
+	}
+
+	if ( !BER_BVISNULL( &p.e_nname ) ) {
+		entry_clean( &p );
+	}
+
+	return rs->sr_err;
 }
 

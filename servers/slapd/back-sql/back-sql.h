@@ -375,6 +375,16 @@ typedef struct berbuf {
 
 #define BB_NULL		{ BER_BVNULL, 0 }
 
+/* the function must collect the entry associated to nbase */
+#define BACKSQL_ISF_GET_ID	0x1U
+#define BACKSQL_ISF_GET_ENTRY	( 0x2U | BACKSQL_ISF_GET_ID )
+#define BACKSQL_ISF_MATCHED	0x4U
+#define BACKSQL_IS_GET_ID(f) \
+	( ( (f) & BACKSQL_ISF_GET_ID ) == BACKSQL_ISF_GET_ID )
+#define BACKSQL_IS_GET_ENTRY(f) \
+	( ( (f) & BACKSQL_ISF_GET_ENTRY ) == BACKSQL_ISF_GET_ENTRY )
+#define BACKSQL_IS_MATCHED(f) \
+	( ( (f) & BACKSQL_ISF_MATCHED ) == BACKSQL_ISF_MATCHED )
 typedef struct backsql_srch_info {
 	Operation		*bsi_op;
 	SlapReply		*bsi_rs;

@@ -269,10 +269,50 @@ backsql_init_search(
 	bsi->bsi_filter_oc = NULL;
 
 	if ( BACKSQL_IS_GET_ID( flags ) ) {
+		int	matched = BACKSQL_IS_MATCHED( flags );
+		int	getentry = BACKSQL_IS_GET_ENTRY( flags );
+
 		assert( op->o_bd->be_private );
 
 		rc = backsql_dn2id( op, rs, dbh, nbase, &bsi->bsi_base_id,
-				BACKSQL_IS_MATCHED( flags ), 1 );
+				matched, 1 );
+		
+		if ( ( rc == LDAP_NO_SUCH_OBJECT && matched ) || getentry ) {
+			if ( !BER_BVISNULL( &bsi->bsi_base_id.eid_ndn ) ) {
+				assert( bsi->bsi_e != NULL );
+
+				/*
+				 * let's see if it is a referral and, in case, get it
+				 */
+				backsql_attrlist_add( bsi, slap_schema.si_ad_ref );
+				rc = backsql_id2entry( bsi, &bsi->bsi_base_id );
+				if ( rc == LDAP_SUCCESS && is_entry_referral( bsi->bsi_e ) )
+				{
+					BerVarray erefs = get_entry_referrals( op, bsi->bsi_e );
+					if ( erefs ) {
+						rc = rs->sr_err = LDAP_REFERRAL;
+						rs->sr_ref = referral_rewrite( erefs,
+								&bsi->bsi_e->e_nname,
+								&op->o_req_dn,
+								scope );
+						ber_bvarray_free( erefs );
+
+					} else {
+						rc = rs->sr_err = LDAP_OTHER;
+						rs->sr_text = "bad referral object";
+					}
+
+				} else {
+					rc = rs->sr_err = getentry ?
+						LDAP_SUCCESS : LDAP_NO_SUCH_OBJECT;
+				}
+
+			} else {
+				rs->sr_ref = referral_rewrite( default_referral,
+						NULL, &op->o_req_dn, scope );
+				rc = rs->sr_err = LDAP_REFERRAL;
+			}
+		}
 	}
 
 	bsi->bsi_status = rc;
@@ -1397,6 +1437,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 {
 	backsql_oc_map_rec	*oc = v_oc;
 	backsql_srch_info	*bsi = v_bsi;
+	Operation		*op = bsi->bsi_op;
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	struct berval		query;
 	SQLHSTMT		sth = SQL_NULL_HSTMT;
@@ -1666,7 +1707,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			continue;
 		}
 
-		ret = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
+		ret = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
 		if ( dn.bv_val != row.cols[ 3 ] ) {
 			free( dn.bv_val );
 		}
@@ -1676,16 +1717,18 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 
 		if ( bi->sql_baseObject && dn_match( &ndn, &bi->sql_baseObject->e_nname ) ) {
-			free( pdn.bv_val );
-			free( ndn.bv_val );
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
 			continue;
 		}
 
 		c_id = (backsql_entryID *)ch_calloc( 1, 
 				sizeof( backsql_entryID ) );
 #ifdef BACKSQL_ARBITRARY_KEY
-		ber_str2bv( row.cols[ 0 ], 0, 1, &c_id->eid_id );
-		ber_str2bv( row.cols[ 1 ], 0, 1, &c_id->eid_keyval );
+		ber_str2bv_x( row.cols[ 0 ], 0, 1, &c_id->eid_id,
+				op->o_tmpmemctx );
+		ber_str2bv_x( row.cols[ 1 ], 0, 1, &c_id->eid_keyval,
+				op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 		c_id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
 		c_id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
@@ -1732,7 +1775,8 @@ backsql_search( Operation *op, SlapReply *rs )
 	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	SQLHDBC			dbh = SQL_NULL_HDBC;
 	int			sres;
-	Entry			user_entry = { 0 };
+	Entry			user_entry = { 0 },
+				base_entry = { 0 };
 	int			manageDSAit;
 	time_t			stoptime = 0;
 	backsql_srch_info	bsi;
@@ -1793,30 +1837,57 @@ backsql_search( Operation *op, SlapReply *rs )
 	}
 
 	/* init search */
+	bsi.bsi_e = &base_entry;
 	rs->sr_err = backsql_init_search( &bsi, &realndn,
 			op->ors_scope,
 			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
 			dbh, op, rs, op->ors_attrs,
-			BACKSQL_ISF_GET_ID );
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+		if ( !BER_BVISNULL( &base_entry.e_nname )
+				&& ! access_allowed( op, &base_entry,
+					slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+			}
+			rs->sr_matched = NULL;
+			rs->sr_text = NULL;
+		}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		send_ldap_result( op, rs );
 		goto done;
 
-	} else {
-		Entry	e = { 0 };
+	}
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	/* NOTE: __NEW__ "search" access is required
+	 * on searchBase object */
+	else {
+		slap_mask_t	mask;
 
-		e.e_name = bsi.bsi_base_id.eid_dn;
-		e.e_nname = bsi.bsi_base_id.eid_ndn;
 		/* FIXME: need the whole entry (ITS#3480) */
-		if ( ! access_allowed( op, &e, slap_schema.si_ad_entry,
-				NULL, ACL_DISCLOSE, NULL ) )
+		if ( ! access_allowed_mask( op, &base_entry,
+					slap_schema.si_ad_entry,
+					NULL, ACL_SEARCH, NULL, &mask ) )
 		{
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			if ( !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+				rs->sr_text = NULL;
+
+			} else {
+				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			}
 			send_ldap_result( op, rs );
 			goto done;
 		}
 	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+
+	bsi.bsi_e = NULL;
 
 	bsi.bsi_n_candidates =
 		( op->ors_limit == NULL	/* isroot == TRUE */ ? -2 : 
@@ -1872,7 +1943,8 @@ backsql_search( Operation *op, SlapReply *rs )
 	 */
 	for ( eid = bsi.bsi_id_list;
 			eid != NULL; 
-			eid = backsql_free_entryID( eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
+			eid = backsql_free_entryID( op,
+				eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
 	{
 		int		rc;
 		Attribute	*a_hasSubordinate = NULL,
@@ -1942,14 +2014,19 @@ backsql_search( Operation *op, SlapReply *rs )
 		case LDAP_SCOPE_SUBTREE:
 			/* FIXME: this should never fail... */
 			if ( !dnIsSuffix( &eid->eid_ndn, &op->o_req_ndn ) ) {
+				assert( 0 );
 				goto next_entry2;
 			}
 			break;
 		}
 
-		/* don't recollect baseObject ... */
 		if ( BACKSQL_IS_BASEOBJECT_ID( &eid->eid_id ) ) {
+			/* don't recollect baseObject... */
 			e = bi->sql_baseObject;
+
+		} else if ( eid == &bsi.bsi_base_id ) {
+			/* don't recollect searchBase object... */
+			e = &base_entry;
 
 		} else {
 			bsi.bsi_e = &user_entry;
@@ -1960,7 +2037,6 @@ backsql_search( Operation *op, SlapReply *rs )
 					"- skipping\n", rc, 0, 0 );
 				continue;
 			}
-
 			e = &user_entry;
 		}
 
@@ -1977,20 +2053,22 @@ backsql_search( Operation *op, SlapReply *rs )
 				Entry			user_entry2 = { 0 };
 
 				/* retry with the full entry... */
-				(void)backsql_init_search( &bsi2,
+				bsi2.bsi_e = &user_entry2;
+				rc = backsql_init_search( &bsi2,
 						&e->e_nname,
 						LDAP_SCOPE_BASE, 
 						SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 						(time_t)(-1), NULL,
-						dbh, op, rs, NULL, 0 );
-				bsi2.bsi_e = &user_entry2;
-				rc = backsql_id2entry( &bsi2, eid );
+						dbh, op, rs, NULL,
+						BACKSQL_ISF_GET_ENTRY );
 				if ( rc == LDAP_SUCCESS ) {
 					if ( is_entry_referral( &user_entry2 ) )
 					{
 						refs = get_entry_referrals( op,
 								&user_entry2 );
-					} /* else: FIXME: inconsistency! */
+					} else {
+						rs->sr_err = LDAP_OTHER;
+					}
 					entry_clean( &user_entry2 );
 				}
 				if ( bsi2.bsi_attrs != NULL ) {
@@ -2007,12 +2085,14 @@ backsql_search( Operation *op, SlapReply *rs )
 				ber_bvarray_free( refs );
 			}
 
-			if ( !rs->sr_ref ) {
+			if ( rs->sr_ref ) {
+				rs->sr_err = LDAP_REFERRAL;
+
+			} else {
 				rs->sr_text = "bad referral object";
 			}
 
 			rs->sr_entry = e;
-			rs->sr_err = LDAP_REFERRAL;
 			rs->sr_matched = user_entry.e_name.bv_val;
 			send_search_reference( op, rs );
 
@@ -2098,16 +2178,11 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_attrs = NULL;
 			rs->sr_operational_attrs = NULL;
 
-			switch ( sres ) {
-			case 0:
-				break;
-
-			default:
+			if ( sres == -1 ) {
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
 				 */
-			case -1:
 				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 					"connection lost\n", 0, 0, 0 );
 				goto end_of_search;
@@ -2115,7 +2190,9 @@ backsql_search( Operation *op, SlapReply *rs )
 		}
 
 next_entry:;
-		entry_clean( &user_entry );
+		if ( e == &user_entry ) {
+			entry_clean( &user_entry );
+		}
 
 next_entry2:;
 		if ( op->ors_slimit != SLAP_NO_LIMIT
@@ -2128,6 +2205,8 @@ next_entry2:;
 	}
 
 end_of_search:;
+	entry_clean( &base_entry );
+
 	/* in case we got here accidentally */
 	entry_clean( &user_entry );
 
@@ -2172,9 +2251,7 @@ done:;
 		ch_free( realndn.bv_val );
 	}
 
-	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
-	}
+	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 
 	if ( bsi.bsi_attrs != NULL ) {
 		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
@@ -2213,6 +2290,8 @@ backsql_entry_get(
 	SlapReply		rs = { 0 };
 	AttributeName		anlist[ 2 ];
 
+	*ent = NULL;
+
 	rc = backsql_get_db_conn( op, &dbh );
 	if ( !dbh ) {
 		return LDAP_OTHER;
@@ -2224,23 +2303,16 @@ backsql_entry_get(
 		BER_BVZERO( &anlist[ 1 ].an_name );
 	}
 
+	bsi.bsi_e = ch_malloc( sizeof( Entry ) );
 	rc = backsql_init_search( &bsi,
 			ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL,
 			dbh, op, &rs, at ? anlist : NULL,
-			BACKSQL_ISF_GET_ID );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+			BACKSQL_ISF_GET_ENTRY );
 
-	bsi.bsi_e = ch_malloc( sizeof( Entry ) );
-	rc = backsql_id2entry( &bsi, &bsi.bsi_base_id );
-
-	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
-	}
+	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 
 	if ( rc == LDAP_SUCCESS ) {
 

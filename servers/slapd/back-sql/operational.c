@@ -196,7 +196,7 @@ backsql_operational(
 
 		*ap = backsql_operational_entryUUID( bi, &bsi.bsi_base_id );
 
-		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 		if ( bsi.bsi_attrs != NULL ) {
 			op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
 		}

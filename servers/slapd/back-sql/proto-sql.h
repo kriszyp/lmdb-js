@@ -124,7 +124,8 @@ int backsql_count_children( backsql_info *bi, SQLHDBC dbh,
 int backsql_has_children( backsql_info *bi, SQLHDBC dbh, struct berval *dn );
 
 /* frees *id and returns next in list */
-backsql_entryID *backsql_free_entryID( backsql_entryID *id, int freeit );
+backsql_entryID *backsql_free_entryID( Operation *op, backsql_entryID *id,
+		int freeit );
 
 /* turns an ID into an entry */
 int backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *id );
@@ -162,13 +163,6 @@ int backsql_destroy_schema_map( backsql_info *si );
  * search.c
  */
 
-/* the function must collect the entry associated to nbase */
-#define BACKSQL_ISF_GET_ID	0x1U
-#define BACKSQL_ISF_MATCHED	0x2U
-#define BACKSQL_IS_GET_ID(f) \
-	( ( (f) & BACKSQL_ISF_GET_ID ) == BACKSQL_ISF_GET_ID )
-#define BACKSQL_IS_MATCHED(f) \
-	( ( (f) & BACKSQL_ISF_MATCHED ) == BACKSQL_ISF_MATCHED )
 int backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,

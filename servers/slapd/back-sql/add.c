@@ -265,7 +265,7 @@ backsql_modify_delete_all_values(
 					/* SQL procedure executed fine 
 					 * but returned an error */
 					rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
-					rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+					rs->sr_text = op->ora_e->e_name.bv_val;
 					SQLFreeStmt( sth, SQL_DROP );
 					return rs->sr_err;
 
@@ -275,7 +275,7 @@ backsql_modify_delete_all_values(
 					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) 
 					{
 						rs->sr_err = LDAP_OTHER;
-						rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+						rs->sr_text = op->ora_e->e_name.bv_val;
 						SQLFreeStmt( sth, SQL_DROP );
 						return rs->sr_err;
 					}
@@ -767,7 +767,7 @@ backsql_add_attr(
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add_attr(\"%s\"): "
 			"attribute \"%s\" is not registered "
 			"in objectclass \"%s\"\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at->a_desc->ad_cname.bv_val,
 			BACKSQL_OC_NAME( oc ) );
 
@@ -785,7 +785,7 @@ backsql_add_attr(
 			"add procedure is not defined "
 			"for attribute \"%s\" "
 			"of structuralObjectClass \"%s\"\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at->a_desc->ad_cname.bv_val,
 			BACKSQL_OC_NAME( oc ) );
 
@@ -905,7 +905,7 @@ backsql_add_attr(
 				i, new_keyval );
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add_attr(\"%s\"): "
 			"executing \"%s\" %s\n", 
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at_rec->bam_add_proc, logbuf );
 #endif
 		rc = SQLExecute( sth );
@@ -916,12 +916,12 @@ backsql_add_attr(
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_add_attr(\"%s\"): "
 				"add_proc execution failed (rc=%d, prc=%d)\n", 
-				op->oq_add.rs_e->e_name.bv_val, rc, prc );
+				op->ora_e->e_name.bv_val, rc, prc );
 			if ( prc != LDAP_SUCCESS ) {
 				/* SQL procedure executed fine
 				 * but returned an error */
 				rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
-				rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+				rs->sr_text = op->ora_e->e_name.bv_val;
 				SQLFreeStmt( sth, SQL_DROP );
 				return rs->sr_err;
 
@@ -930,7 +930,7 @@ backsql_add_attr(
 						sth, rc );
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+					rs->sr_text = op->ora_e->e_name.bv_val;
 					SQLFreeStmt( sth, SQL_DROP );
 					return rs->sr_err;
 				}
@@ -951,13 +951,15 @@ backsql_add( Operation *op, SlapReply *rs )
 	unsigned long		new_keyval = 0;
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
+	backsql_srch_info	bsi;
 	backsql_entryID		parent_id = BACKSQL_ENTRYID_INIT;
-	Entry			p;
+	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;
 	struct berval		pdn;
 	struct berval		realdn = BER_BVNULL;
 	int			colnum;
+	slap_mask_t		mask;
 
 #ifdef BACKSQL_SYNCPROV
 	/*
@@ -979,25 +981,26 @@ backsql_add( Operation *op, SlapReply *rs )
 #endif /* BACKSQL_SYNCPROV */
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
-			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val, 0, 0 );
 
 	/* check schema */
 	if ( global_schemacheck ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
+		rs->sr_err = entry_schema_check( op->o_bd, op->ora_e,
 				NULL,
 				&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"entry failed schema check -- aborting\n",
-				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+				op->ora_e->e_name.bv_val, 0, 0 );
+			e = NULL;
 			goto done;
 		}
 	}
 
 	/* search structural objectClass */
-	for ( at = op->oq_add.rs_e->e_attrs; at != NULL; at = at->a_next ) {
+	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
 		if ( at->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			break;
 		}
@@ -1012,10 +1015,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"cannot map structuralObjectClass \"%s\" -- aborting\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at->a_vals[0].bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
+		e = NULL;
 		goto done;
 	}
 
@@ -1023,10 +1027,11 @@ backsql_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"create procedure is not defined "
 			"for structuralObjectClass \"%s\" - aborting\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at->a_vals[0].bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
+		e = NULL;
 		goto done;
 
 	} else if ( BACKSQL_CREATE_NEEDS_SELECT( bi )
@@ -1035,10 +1040,11 @@ backsql_add( Operation *op, SlapReply *rs )
 			"create procedure needs select procedure, "
 			"but none is defined for structuralObjectClass \"%s\" "
 			"- aborting\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			at->a_vals[0].bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
+		e = NULL;
 		goto done;
 	}
 
@@ -1046,9 +1052,10 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not get connection handle - exiting\n", 
-			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val, 0, 0 );
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			?  "SQL-backend error" : NULL;
+		e = NULL;
 		goto done;
 	}
 
@@ -1058,13 +1065,14 @@ backsql_add( Operation *op, SlapReply *rs )
 	 * NOTE: backsql_api_dn2odbc() is called explicitly because
 	 * we need the mucked DN to pass it to the create procedure.
 	 */
-	realdn = op->oq_add.rs_e->e_name;
+	realdn = op->ora_e->e_name;
 	if ( backsql_api_dn2odbc( op, rs, &realdn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"backsql_api_dn2odbc(\"%s\") failed\n", 
-			op->oq_add.rs_e->e_name.bv_val, realdn.bv_val, 0 );
+			op->ora_e->e_name.bv_val, realdn.bv_val, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -1072,93 +1080,57 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"entry exists\n",
-			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val, 0, 0 );
 		rs->sr_err = LDAP_ALREADY_EXISTS;
+		e = op->ora_e;
 		goto done;
 	}
 
 	/*
 	 * Get the parent dn and see if the corresponding entry exists.
 	 */
-	if ( be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname ) ) {
+	if ( be_issuffix( op->o_bd, &op->ora_e->e_nname ) ) {
 		pdn = slap_empty_bv;
 
 	} else {
-		dnParent( &op->oq_add.rs_e->e_nname, &pdn );
+		dnParent( &op->ora_e->e_nname, &pdn );
 	}
 
-	rs->sr_err = backsql_dn2id( op, rs, dbh, &pdn, &parent_id, 0, 1 );
+	/*
+	 * Get the parent
+	 */
+	bsi.bsi_e = &p;
+	rs->sr_err = backsql_init_search( &bsi, &pdn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
-			"could not lookup parent entry for new record \"%s\"\n",
-			op->oq_add.rs_e->e_name.bv_val, pdn.bv_val, 0 );
-
-		if ( rs->sr_err != LDAP_NO_SUCH_OBJECT ) {
-			goto done;
-		}
-
-		/*
-		 * no parent!
-		 *  if not attempting to add entry at suffix or with parent ""
-		 */
-		if ( ( ( !be_isroot( op ) && !be_shadow_update( op ) )
-			|| !BER_BVISEMPTY( &pdn ) ) && !is_entry_glue( op->oq_add.rs_e )
-			&& !BACKSQL_ALLOW_ORPHANS( bi ) )
-		{
-			Debug( LDAP_DEBUG_TRACE, "   backsql_add: %s denied\n",
-				BER_BVISEMPTY( &pdn ) ? "suffix" : "entry at root",
-				0, 0 );
-			/*
-			 * Look for matched
-			 */
-			while ( 1 ) {
-				struct berval	dn;
-				char		*matched = NULL;
-	
-				dn = pdn;
-				dnParent( &dn, &pdn );
-	
-				/*
-				 * Empty DN ("") defaults to LDAP_SUCCESS
-				 */
-				rs->sr_err = backsql_dn2id( op, rs, dbh, &pdn, NULL, 0, 1 );
-				switch ( rs->sr_err ) {
-				case LDAP_NO_SUCH_OBJECT:
-					if ( !BER_BVISEMPTY( &pdn ) ) {
-						break;
-					}
-					/* fail over to next case */
-					
-				case LDAP_SUCCESS:
-					matched = pdn.bv_val;
-					/* fail over to next case */
-	
-				default:
-					rs->sr_err = LDAP_NO_SUCH_OBJECT;
-					rs->sr_matched = matched;
-					goto done;
-				} 
-			}
-		} else {
-
-#ifdef BACKSQL_ARBITRARY_KEY
-			ber_str2bv( "SUFFIX", 0, 1, &parent_id.eid_id );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-			parent_id.eid_id = 0;
-#endif /* ! BACKSQL_ARBITRARY_KEY */
-			rs->sr_err = LDAP_SUCCESS;
-		}
+		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+			"could not retrieve addDN parent "
+			"\"%s\" ID - %s matched=\"%s\"\n", 
+			pdn.bv_val,
+			rs->sr_err == LDAP_REFERRAL ? "referral" : "no such entry",
+			rs->sr_matched ? rs->sr_matched : "(null)" );
+		e = &p;
+		goto done;
 	}
 
 	/* check "children" pseudo-attribute access to parent */
-	p.e_attrs = NULL;
-	p.e_name = pdn;
-	dnParent( &op->oq_add.rs_e->e_nname, &p.e_nname );
-
-	/* FIXME: need the whole entry (ITS#3480) */
 	if ( !access_allowed( op, &p, slap_schema.si_ad_children,
-				NULL, ACL_WRITE, NULL ) ) {
+				NULL, ACL_WRITE, NULL ) )
+	{
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		e = &p;
+		goto done;
+	}
+
+	if ( !access_allowed_mask( op, op->ora_e,
+				slap_schema.si_ad_entry,
+				NULL, ACL_WRITE, NULL, &mask ) )
+	{
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		e = op->ora_e;
 		goto done;
 	}
 
@@ -1168,11 +1140,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	 * the id of the added row; otherwise the procedure
 	 * is expected to return the id as the first column of a select
 	 */
-
 	rc = SQLAllocStmt( dbh, &sth );
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -1190,13 +1162,14 @@ backsql_add( Operation *op, SlapReply *rs )
 
 			rs->sr_text = "SQL-backend error";
 			rs->sr_err = LDAP_OTHER;
+			e = NULL;
 			goto done;
 		}
 		colnum++;
 	}
 
 	if ( oc->bom_create_hint ) {
-		at = attr_find( op->oq_add.rs_e->e_attrs, oc->bom_create_hint );
+		at = attr_find( op->ora_e->e_attrs, oc->bom_create_hint );
 		if ( at && at->a_vals ) {
 			backsql_BindParamStr( sth, colnum, SQL_PARAM_INPUT,
 					at->a_vals[0].bv_val,
@@ -1216,16 +1189,17 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): executing \"%s\"\n",
-		op->oq_add.rs_e->e_name.bv_val, oc->bom_create_proc, 0 );
+		op->ora_e->e_name.bv_val, oc->bom_create_proc, 0 );
 	rc = SQLExecDirect( sth, oc->bom_create_proc, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"create_proc execution failed\n",
-			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -1243,6 +1217,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			if ( rc != SQL_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "SQL-backend error";
+				e = NULL;
 				goto done;
 			}
 
@@ -1250,6 +1225,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			if ( rc != SQL_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "SQL-backend error";
+				e = NULL;
 				goto done;
 			}
 		}
@@ -1262,21 +1238,23 @@ backsql_add( Operation *op, SlapReply *rs )
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result evaluation failed\n",
-				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+				op->ora_e->e_name.bv_val, 0, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
+			e = NULL;
 			goto done;
 
 		} else if ( ncols != 1 ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result is bogus (ncols=%d)\n",
-				op->oq_add.rs_e->e_name.bv_val, ncols, 0 );
+				op->ora_e->e_name.bv_val, ncols, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
+			e = NULL;
 			goto done;
 		}
 
@@ -1308,11 +1286,12 @@ backsql_add( Operation *op, SlapReply *rs )
 		if ( value_len <= 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"create_proc result is empty?\n",
-				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+				op->ora_e->e_name.bv_val, 0, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc);
 			SQLFreeStmt( sth, SQL_DROP );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "SQL-backend error";
+			e = NULL;
 			goto done;
 		}
 	}
@@ -1321,9 +1300,9 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 		"create_proc returned keyval=%ld\n",
-		op->oq_add.rs_e->e_name.bv_val, new_keyval, 0 );
+		op->ora_e->e_name.bv_val, new_keyval, 0 );
 
-	for ( at = op->oq_add.rs_e->e_attrs; at != NULL; at = at->a_next ) {
+	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): "
 			"adding attribute \"%s\"\n", 
 			at->a_desc->ad_cname.bv_val, 0, 0 );
@@ -1346,6 +1325,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		rs->sr_err = backsql_add_attr( op, rs, dbh, oc, at, new_keyval );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
+			e = op->ora_e;
 			goto done;
 		}
 	}
@@ -1354,6 +1334,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 	
@@ -1369,6 +1350,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -1384,6 +1366,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -1399,6 +1382,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
@@ -1414,11 +1398,12 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		rs->sr_text = "SQL-backend error";
 		rs->sr_err = LDAP_OTHER;
+		e = NULL;
 		goto done;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
-			bi->sql_insentry_stmt, op->oq_add.rs_e->e_name.bv_val, 0 );
+			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
 			"parent_id=%s, keyval=%ld\n",
@@ -1432,7 +1417,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not insert ldap_entries record\n",
-			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		
 		/*
@@ -1441,6 +1426,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		SQLFreeStmt( sth, SQL_DROP );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
@@ -1448,6 +1434,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( at_objectClass ) {
 		rs->sr_err = backsql_add_attr( op, rs, dbh, oc, at_objectClass, new_keyval );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
+			e = op->ora_e;
 			goto done;
 		}
 	}
@@ -1476,22 +1463,58 @@ done:;
 	 * in deleting that row.
 	 */
 
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	if ( e != NULL ) {
+		int	disclose = 1;
+
+		if ( e == op->ora_e && !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
+			/* mask already collected */
+			disclose = 0;
+
+		} else if ( e == &p && !access_allowed( op, &p,
+					slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) )
+		{
+			disclose = 0;
+		}
+
+		if ( disclose == 0 ) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+		}
+	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+
 	send_ldap_result( op, rs );
 
 	if ( !BER_BVISNULL( &realdn )
-			&& realdn.bv_val != op->oq_add.rs_e->e_name.bv_val )
+			&& realdn.bv_val != op->ora_e->e_name.bv_val )
 	{
 		ch_free( realdn.bv_val );
 	}
-	if ( !BER_BVISNULL( &parent_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( &parent_id, 0 );
+	(void)backsql_free_entryID( op, &parent_id, 0 );
+
+	if ( !BER_BVISNULL( &p.e_nname ) ) {
+		entry_clean( &p );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_add(\"%s\"): %d \"%s\"\n",
-			op->oq_add.rs_e->e_name.bv_val,
+			op->ora_e->e_name.bv_val,
 			rs->sr_err,
 			rs->sr_text ? rs->sr_text : "" );
 
-	return ( ( rs->sr_err == LDAP_SUCCESS ) ? op->o_noop : 1 );
+	rs->sr_text = NULL;
+	rs->sr_matched = NULL;
+	if ( rs->sr_ref ) {
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+	}
+
+	return rs->sr_err;
 }
 
