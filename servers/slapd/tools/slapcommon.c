@@ -211,4 +211,12 @@ slap_tool_init(
 	} else {
 		be = &backends[dbnum];
 	}
+
+	slap_startup( be );
+}
+
+void slap_tool_destroy( void )
+{
+	slap_shutdown( be );
+	slap_destroy();
 }

@@ -24,7 +24,6 @@ main( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 
 	slap_tool_init( "slapadd", SLAPADD, argc, argv );
-	slap_startup( be );
 
 	if( !be->be_entry_open &&
 		!be->be_entry_close &&
@@ -112,8 +111,6 @@ main( int argc, char **argv )
 		be->be_sync( be );
 	}
 
-	slap_shutdown( be );
-	slap_destroy();
-
+	slap_tool_destroy();
 	return rc;
 }

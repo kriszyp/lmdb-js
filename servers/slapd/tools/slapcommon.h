@@ -35,4 +35,6 @@ void slap_tool_init LDAP_P((
 	int tool,
 	int argc, char **argv ));
 
+void slap_tool_destroy LDAP_P((void));
+
 #endif /* SLAPCOMMON_H_ */

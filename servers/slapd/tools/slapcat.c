@@ -21,8 +21,6 @@ main( int argc, char **argv )
 
 	slap_tool_init( "slapcat", SLAPCAT, argc, argv );
 
-	slap_startup( be );
-
 	if( !be->be_entry_open &&
 		!be->be_entry_close &&
 		!be->be_entry_first &&
@@ -75,8 +73,6 @@ main( int argc, char **argv )
 
 	be->be_entry_close( be );
 
-	slap_shutdown( be );
-	slap_destroy();
-
+	slap_tool_destroy();
 	return rc;
 }
