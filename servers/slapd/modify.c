@@ -367,7 +367,7 @@ do_modify(
 			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"referral missing" );
+				"no global superior knowledge" );
 		}
 		goto cleanup;
 	}
@@ -398,21 +398,25 @@ do_modify(
 		modv = slapi_int_modifications2ldapmods( &modlist );
 		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd,
+			SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
-					"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO,
+				"do_modify: modify preoperation plugin failed\n",
+				0, 0, 0 );
 #else
-			Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
-					0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE,
+				"do_modify: modify preoperation plugin failed.\n",
+				0, 0, 0);
 #endif
-			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-				 rs->sr_err == LDAP_SUCCESS ) {
+			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
+				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
+			{
 				rs->sr_err = LDAP_OTHER;
 			}
 			slapi_int_free_ldapmods( modv );
@@ -463,8 +467,7 @@ do_modify(
 		 * because it accepts each modify request
 		 */
 #ifndef SLAPD_MULTIMASTER
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ) &&
-			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #else
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
@@ -512,18 +515,8 @@ do_modify(
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
-			BerVarray defref = NULL;
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &defref, &tmpbv );
-				}
-			} else {
-				defref = op->o_bd->be_update_refs
-						? op->o_bd->be_update_refs : default_referral;
-			}
+			BerVarray defref = op->o_bd->be_update_refs
+				? op->o_bd->be_update_refs : default_referral;
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &op->o_req_dn,
@@ -535,9 +528,8 @@ do_modify(
 					ber_bvarray_free( rs->sr_ref );
 				}
 			} else {
-				send_ldap_error( op, rs,
-						LDAP_UNWILLING_TO_PERFORM,
-		    				"referral missing" );
+				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+					"shadow context; no update referral" );
 			}
 #endif
 		}

@@ -351,7 +351,7 @@ send_ldap_response(
 	if (op->o_conn && op->o_conn->c_is_udp &&
 		op->o_protocol == LDAP_VERSION2 )
 	{
-		rc = ber_printf( ber, "t{ess" /*"}}"*/,
+		rc = ber_printf( ber, "t{ess" /*"}"*/,
 			rs->sr_tag, rs->sr_err,
 		rs->sr_matched == NULL ? "" : rs->sr_matched,
 		rs->sr_text == NULL ? "" : rs->sr_text );
@@ -409,7 +409,9 @@ send_ldap_response(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if( op->o_conn && op->o_conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1 ) {
+	if( op->o_conn && op->o_conn->c_is_udp && op->o_protocol == LDAP_VERSION2
+		&& rc != -1 )
+	{
 		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
 #endif
@@ -426,7 +428,9 @@ send_ldap_response(
 #ifdef LDAP_CONNECTIONLESS
 		if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-		ber_free_buf( ber );
+		{
+			ber_free_buf( ber );
+		}
 		goto cleanup;
 	}
 
@@ -435,7 +439,9 @@ send_ldap_response(
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-	ber_free_buf( ber );
+	{
+		ber_free_buf( ber );
+	}
 
 	if ( bytes < 0 ) {
 #ifdef NEW_LOGGING
@@ -454,7 +460,8 @@ send_ldap_response(
 #ifdef LDAP_SLAPI
 	if ( op->o_pb ) {
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED,
+			(void *)rs->sr_matched );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
 	}
 #endif /* LDAP_SLAPI */
@@ -473,6 +480,11 @@ cleanup:
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
+	}
+
+	if ( rs->sr_ref && rs->sr_flags & REP_REF_MUSTBEFREED ) {
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
 	}
 
 clean2:

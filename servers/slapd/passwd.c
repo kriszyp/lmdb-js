@@ -110,23 +110,25 @@ int passwd_extop(
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	if( op->o_bd->be_update_ndn.bv_len ||
-		!LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+	if(!( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op->o_bd, &op->o_ndn ))) {
 		/* we SHOULD return a referral in this case */
-		BerVarray defref = NULL;
-		if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-			syncinfo_t *si;
-			LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-				struct berval tmpbv;
-				ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-				ber_bvarray_add( &defref, &tmpbv );
-			}
-		} else {
-			defref = referral_rewrite( op->o_bd->be_update_refs,
+		BerVarray defref = op->o_bd->be_update_refs
+			? op->o_bd->be_update_refs : default_referral; 
+
+		if( defref != NULL ) {
+			rs->sr_ref = referral_rewrite( op->o_bd->be_update_refs,
 				NULL, NULL, LDAP_SCOPE_DEFAULT );
+			if(rs->sr_ref) {
+				rs->sr_flags |= REP_REF_MUSTBEFREED;
+			} else {
+				rs->sr_ref = defref;
+			}
+			return LDAP_REFERRAL;
+
 		}
-		rs->sr_ref = defref;
-		return LDAP_REFERRAL;
+
+		rs->sr_text = "shadow context; no update referral";
+		return LDAP_UNWILLING_TO_PERFORM;
 	}
 #endif /* !SLAPD_MULTIMASTER */
 

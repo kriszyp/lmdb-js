@@ -138,7 +138,8 @@ do_delete(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 )) == NULL ) {
+	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
@@ -151,7 +152,7 @@ do_delete(
 			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-					"referral missing" );
+				"no global superior knowledge" );
 		}
 		goto cleanup;
 	}
@@ -206,8 +207,7 @@ do_delete(
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ) &&
-			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #else
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
@@ -240,7 +240,8 @@ do_delete(
 			op->o_managedsait = 1;
 
 			while ( rs->sr_err == LDAP_SUCCESS &&
-					op->o_delete_glue_parent ) {
+				op->o_delete_glue_parent )
+			{
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( op->o_bd, &op->o_req_ndn )) {
 					slap_callback cb = { NULL };
@@ -264,18 +265,9 @@ do_delete(
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			BerVarray defref = NULL;
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &defref, &tmpbv );
-				}
-			} else {
-				defref = op->o_bd->be_update_refs
-					? op->o_bd->be_update_refs : default_referral;
-			}
+			BerVarray defref = op->o_bd->be_update_refs
+				? op->o_bd->be_update_refs : default_referral;
+
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -284,10 +276,11 @@ do_delete(
 				send_ldap_result( op, rs );
 
 				if (rs->sr_ref != defref) ber_bvarray_free( rs->sr_ref );
+
 			} else {
 				send_ldap_error( op, rs,
-						LDAP_UNWILLING_TO_PERFORM,
-						"referral missing" );
+					LDAP_UNWILLING_TO_PERFORM,
+					"shadow context; no update referral" );
 			}
 #endif
 		}

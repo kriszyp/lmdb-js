@@ -212,8 +212,8 @@ do_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
-		if (!rs->sr_ref) rs->sr_ref = default_referral;
-		if ( rs->sr_ref != NULL ) {
+		if ( !rs->sr_ref ) rs->sr_ref = default_referral;
+		if ( rs->sr_ref ) {
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
@@ -222,7 +222,7 @@ do_add( Operation *op, SlapReply *rs )
 			}
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-					"referral missing" );
+				"no global superior knowledge" );
 		}
 		goto done;
 	}
@@ -252,8 +252,7 @@ do_add( Operation *op, SlapReply *rs )
 		/* do the update here */
 		int repl_user = be_isupdate(op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ) &&
-			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #else
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
@@ -264,7 +263,7 @@ do_add( Operation *op, SlapReply *rs )
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-										  textbuf, textlen, NULL );
+				  textbuf, textlen, NULL );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -288,7 +287,7 @@ do_add( Operation *op, SlapReply *rs )
 			}
 
 			rs->sr_err = slap_mods2entry( modlist, &e, repl_user, 0,
-									&rs->sr_text, textbuf, textlen );
+				&rs->sr_text, textbuf, textlen );
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
 				goto done;
@@ -338,17 +337,8 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &defref, &tmpbv );
-				}
-			} else {
-				defref = op->o_bd->be_update_refs
-					? op->o_bd->be_update_refs : default_referral;
-			}
+			defref = op->o_bd->be_update_refs
+				? op->o_bd->be_update_refs : default_referral;
 
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
@@ -358,11 +348,13 @@ do_add( Operation *op, SlapReply *rs )
 				if (!rs->sr_ref) rs->sr_ref = default_referral;
 				send_ldap_result( op, rs );
 
-				if ( rs->sr_ref != default_referral ) ber_bvarray_free( rs->sr_ref );
+				if ( rs->sr_ref != default_referral ) {
+					ber_bvarray_free( rs->sr_ref );
+				}
 			} else {
 				send_ldap_error( op, rs,
-						LDAP_UNWILLING_TO_PERFORM,
-						"referral missing" );
+					LDAP_UNWILLING_TO_PERFORM,
+					"shadow context; no update referral" );
 			}
 #endif /* SLAPD_MULTIMASTER */
 		}
