@@ -19,7 +19,11 @@
 
 /* directory separator */
 #ifndef LDAP_DIRSEP
+#ifndef _WIN32
 #define LDAP_DIRSEP "/"
+#else
+#define LDAP_DIRSEP "\\"
+#endif
 #endif
 
 /* directories */
