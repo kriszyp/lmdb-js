@@ -115,21 +115,6 @@ static struct ldaperror ldap_builtin_errlist[] = {
 static struct ldaperror *ldap_errlist = ldap_builtin_errlist; 
 
 void ldap_int_error_init( void ) {
-#ifdef LDAP_LOCALIZE
-	int	i;
-	char *reason;
-
-	for ( i=0; ldap_errlist[i].e_reason != NULL; i++ ) {
-		reason = gettext( ldap_errlist[i].e_reason );
-		if( reason != NULL && reason != ldap_errlist[i].e_reason ) {
-			reason = LDAP_STRDUP( gettext( reason ) );
-
-			if( msg != NULL ) {
-				ldap_errlist[i].e_reason = reason;
-			}
-		}
-	}
-#endif
 }
 
 static const struct ldaperror *
@@ -137,6 +122,7 @@ ldap_int_error( int err )
 {
 	int	i;
 
+	/* XXYYZ: O(n) search instead of O(1) lookup */
 	for ( i=0; ldap_errlist[i].e_reason != NULL; i++ ) {
 		if ( err == ldap_errlist[i].e_code ) {
 			return &ldap_errlist[i];
@@ -159,7 +145,7 @@ ldap_err2string( int err )
 
 	e = ldap_int_error( err );
 
-	return e ? e->e_reason : _("Unknown error");
+	return e ? _(e->e_reason) : _("Unknown error");
 }
 
 /* deprecated */
@@ -182,7 +168,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 
 	fprintf( stderr, "%s: %s (%d)\n",
 		str ? str : "ldap_perror",
-		e ? e->e_reason : _("unknown LDAP result code"),
+		e ? _(e->e_reason) : _("unknown LDAP result code"),
 		ld->ld_errno );
 
 	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
