@@ -188,7 +188,7 @@ main( int argc, char **argv )
 #endif
 
 	init();
-	read_config_env( configfile, &be, fp, 1 );
+	read_config( configfile, &be, fp );
 
 	if ( ! inetd ) {
 		int		status;

@@ -399,7 +399,7 @@ slapd_daemon(
 	Debug( LDAP_DEBUG_TRACE,
 	    "slapd shutdown: shutdown backends.\n",
 	    0, 0, 0 );
-	be_shutdown();
+	/* be_shutdown(); */
 	Debug( LDAP_DEBUG_ANY, "slapd: stopped\n", 0, 0, 0 );
 
 	return NULL;
