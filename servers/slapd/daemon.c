@@ -642,7 +642,6 @@ slapd_daemon_task(
 	void *ptr
 )
 {
-	int rc, tmp;
 	int l;
 	time_t	last_idle_check = slap_get_time();
 	time( &starttime );
@@ -858,27 +857,38 @@ slapd_daemon_task(
 			}
 #endif
 
+#if defined( SO_KEEPALIVE ) || defined( TCP_NODELAY )
+#ifdef LDAP_PF_LOCAL
+			/* for IPv4 and IPv6 sockets only */
+			if ( from.sa_addr.sa_family != AF_LOCAL )
+#endif /* LDAP_PF_LOCAL */
+			{
+				int rc;
+				int tmp;
 #ifdef SO_KEEPALIVE
-			/* enable keep alives */
-			rc = setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
-				(char *) &tmp, sizeof(tmp) );
-			if ( rc == AC_SOCKET_ERROR ) {
-				int err = sock_errno();
-				Debug( LDAP_DEBUG_ANY,
-					"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
-					"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
-			}
+				/* enable keep alives */
+				tmp = 1;
+				rc = setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
+					(char *) &tmp, sizeof(tmp) );
+				if ( rc == AC_SOCKET_ERROR ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
+						"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
+				}
 #endif
 #ifdef TCP_NODELAY
-			/* enable no delay */
-			tmp = 1;
-			rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
-				(char *)&tmp, sizeof(tmp) );
-			if ( rc == AC_SOCKET_ERROR ) {
-				int err = sock_errno();
-				Debug( LDAP_DEBUG_ANY,
-					"slapd(%ld): setsockopt(TCP_NODELAY) failed "
-					"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
+				/* enable no delay */
+				tmp = 1;
+				rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+					(char *)&tmp, sizeof(tmp) );
+				if ( rc == AC_SOCKET_ERROR ) {
+					int err = sock_errno();
+					Debug( LDAP_DEBUG_ANY,
+						"slapd(%ld): setsockopt(TCP_NODELAY) failed "
+						"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
+				}
+#endif
 			}
 #endif
 
