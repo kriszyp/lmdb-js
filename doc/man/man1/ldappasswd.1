@@ -8,29 +8,39 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-b \ searchbase\fR]
 [\c
-.BI \-c \ none\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsha\fR]
-[\c
 .BI \-D \ binddn\fR]
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
+.BR \-E ]
+[\c
+.BI \-e \ passwd\fR] 
+[\c
+.BI \-g \ pwlen\fR]
+[\c
+.BI \-H \ none\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha]
+[\c
 .BI \-h \ ldaphost\fR]
+[\c
+.BR \-K ]
+[\c
+.BR \-k ]
 [\c
 .BI \-l \ searchtime\fR]
 [\c
-.B \-n\fR]
+.BR \-n ]
 [\c
 .BI \-p \ ldapport\fR]
 [\c
 .BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
 [\c
-.BR \-t \ [\fItargetdn\fR]\ ]
+.BI \-t \ targetdn\fR]
 [\c
-.B \-v\fR]
+.BR \-v ]
 [\c
-.BI \-W \ newpasswd\fR]
+.BR \-W ]
 [\c
-.BR \-w \ [\fIpasswd\fR] ]
+.BI \-w \ passwd\fR]
 [\c
 .BI \-z \ searchsize\fR]
 [\fIfilter\fR]
@@ -66,7 +76,7 @@ Specify the LDAP attribute to change. The default is "userPassword".
 Use \fIsearchbase\fP as the starting point for the search instead of
 the default.
 .TP
-.B \-c \fInone\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsha\fR
+.B \-c \fInone\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha
 Specify the hashing algorithm used to store the password. The default is
 .IR crypt .
 .TP
@@ -79,8 +89,23 @@ Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldappasswd
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
+.BI \-g \ pwlen
+Auto-generate passwords of length \fIpwlen\fR.
+Passwords will be displayed when using verbose,
+.BR -vvv .
+.TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
+.TP
+.B \-K
+Same as -k, but only does step 1 of the kerberos bind.
+This is useful when connecting to a slapd and there is no x500dsa.hostname principal registered with your kerberos servers.
+.TP
+.B \-k
+Use Kerberos authentication instead of simple authentication.
+It is assumed that you already have a valid ticket granting ticket.
+.B ldappasswd
+must be compiled with KERBEROS defined for this option to have any effect.
 .TP
 .BI \-l \ searchtime
 Specify a maximum query time in seconds.
@@ -104,13 +129,12 @@ If an argument is not given, the target dn will be the binddn.
 .B \-v
 The more v's the more verbose.
 .TP
-.BI \-W \ newpasswd
-Specify the new password.
-If this argument is not given, the user will be prompted to enter the new password.
+.BI \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
 .TP
-.BR \-w \ [\fIpasswd\fR]
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
-If \fIpasswd\fR is not supplied, the user will be prompted to enter one.
 .TP
 .BI \-z \ searchsize
 Specify a maximum query size.
