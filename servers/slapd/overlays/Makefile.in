@@ -48,3 +48,12 @@ install-local:	$(PROGRAMS)
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$i $(DESTDIR)$(moduledir);\
 	done
 
+MKDEPFLAG = -l
+
+.SUFFIXES: .c .o .lo
+
+.c.lo:
+	$(LTCOMPILE_LIB) $<
+
+$(LIBRARY): version.lo
+	$(LTLINK_LIB) -o $@ $(OBJS) version.lo
