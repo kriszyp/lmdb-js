@@ -1271,7 +1271,8 @@ slapi_search_internal(
 #if defined(LDAP_SLAPI)
 	return slapi_search_internal_bind( NULL, base, scope, filStr,
 			controls, attrs, attrsonly );
-#endif
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 

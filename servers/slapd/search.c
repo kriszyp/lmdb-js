@@ -489,10 +489,10 @@ static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 		 */
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "doPreSearchPluginFNs: search preoperation plugin "
-				"failed\n", 0, 0, 0 );
+				"returned %d\n", rc, 0, 0 );
 #else
 		Debug(LDAP_DEBUG_TRACE, "doPreSearchPluginFNs: search preoperation plugin "
-				"failed.\n", 0, 0, 0);
+				"returned %d.\n", rc, 0, 0);
 #endif
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
 			rc = LDAP_OTHER;
@@ -539,6 +539,16 @@ static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 	}
 
 	return LDAP_SUCCESS;
+}
+
+void dummy(void)
+{
+	/*
+	 * XXX slapi_search_internal() was no getting pulled
+	 * in; all manner of linker flags failed to link it.
+	 * FIXME
+	 */
+	slapi_search_internal( NULL, 0, NULL, NULL, NULL, 0 );
 }
 #endif /* LDAP_SLAPI */
 
