@@ -3,5 +3,5 @@
 # Generic Autoconf INSTALL
 #
 
-H1: General Configure Instructions
+H1: Generic configure Instructions
 !include "../release/autoconf-install.txt" ; verbatim
