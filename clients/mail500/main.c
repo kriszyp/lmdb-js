@@ -104,20 +104,20 @@ typedef struct baseinfo {
 				/* (up to three of them) */
 } Base;
 
-Base	base[] = {
-	{"ou=People, dc=OpenLDAP, dc=org",
+Base	base[] = 
+	{ "ou=People, o=University of Michigan, c=US",
 		0, USER,
-		{"uid=%s", "cn=%s", NULL}},
-	{"ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org",
+		"uid=%s", "cn=%s", NULL,
+	  "ou=System Groups, ou=Groups, o=University of Michigan, c=US",
 		1, 0xff,
-		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
-	{"ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org",
+		"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
+	  "ou=User Groups, ou=Groups, o=University of Michigan, c=US",
 		1, 0xff,
-		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
-	NULL
-};
+		"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
+	  NULL
+	};
 
-char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrLDAP", "-odi", "-oi", "-f", NULL, NULL };
+char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrX.500", "-odi", "-oi", "-f", NULL, NULL };
 
 static char	*attrs[] = { "objectClass", "title", "postaladdress",
 			"telephoneNumber", "mail", "description", "owner",
