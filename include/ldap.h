@@ -201,7 +201,7 @@ typedef struct ldapcontrol {
 /* LDAP Extended Operations */
 #define LDAP_EXOP_START_TLS "1.3.6.1.4.1.1466.20037"
 
-#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.6.1"
+#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.1.11.1"
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD	((ber_tag_t) 0x81U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
