@@ -59,6 +59,7 @@ ldap_back_search(
 	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
 	int freeconn = 0;
+	int do_retry = 1;
 	dncookie dc;
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	LDAPControl **ctrls = NULL;
@@ -143,7 +144,8 @@ ldap_back_search(
 		goto finish;
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
-	
+
+retry:
 	rs->sr_err = ldap_search_ext( lc->ld, mbase.bv_val,
 			op->ors_scope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
@@ -189,6 +191,8 @@ fail:;
 			Entry ent = {0};
 			struct berval bdn;
 			int abort = 0;
+			do_retry = 0;
+
 			e = ldap_first_entry( lc->ld, res );
 			rc = ldap_build_entry( op, e, &ent, &bdn,
 					LDAP_BUILD_ENTRY_PRIVATE );
@@ -229,6 +233,7 @@ fail:;
 			char		**references = NULL;
 			int		cnt;
 
+			do_retry = 0;
 			rc = ldap_parse_reference( lc->ld, res,
 					&references, &rs->sr_ctrls, 1 );
 
@@ -279,6 +284,11 @@ fail:;
 	}
 
 	if ( rc == -1 ) {
+		if ( do_retry ) {
+			do_retry = 0;
+			if ( ldap_back_retry( lc, op, rs ))
+				goto retry;
+		}
 		/* FIXME: invalidate the connection? */
 		rs->sr_err = LDAP_SERVER_DOWN;
 		freeconn = 1;
@@ -609,6 +619,7 @@ ldap_back_entry_get(
 	Connection *oconn;
 	SlapReply rs;
 	dncookie dc;
+	int do_retry = 1;
 
 	/* Tell getconn this is a privileged op */
 	is_oc = op->o_do_not_cache;
@@ -646,17 +657,17 @@ ldap_back_entry_get(
 			rc = 1;
 			goto cleanup;
 		}
+		is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
+		if (oc && !is_oc) {
+			gattr[0] = "objectclass";
+			gattr[1] = mapped.bv_val;
+			gattr[2] = NULL;
+		} else {
+			gattr[0] = mapped.bv_val;
+			gattr[1] = NULL;
+		}
 	}
 
-	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
-	if (oc && !is_oc) {
-		gattr[0] = "objectclass";
-		gattr[1] = mapped.bv_val;
-		gattr[2] = NULL;
-	} else {
-		gattr[0] = mapped.bv_val;
-		gattr[1] = NULL;
-	}
 	if (oc) {
 		char *ptr;
 		ldap_back_map(&li->rwmap.rwm_oc, &oc->soc_cname, &mapped,
@@ -668,10 +679,16 @@ ldap_back_entry_get(
 		*ptr++ = '\0';
 	}
 
-	if (ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
+retry:
+	rc = ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
-				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)
-	{
+				LDAP_NO_LIMIT, &result);
+	if ( rc != LDAP_SUCCESS ) {
+		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
+			do_retry = 0;
+			if ( ldap_back_retry( lc, op, &rs ))
+				goto retry;
+		}
 		goto cleanup;
 	}
 

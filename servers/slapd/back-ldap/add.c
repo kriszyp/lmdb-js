@@ -46,9 +46,10 @@ ldap_back_add(
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;
+	int do_retry = 1;
+	int rc = LDAP_SUCCESS;
 #ifdef LDAP_BACK_PROXY_AUTHZ 
 	LDAPControl **ctrls = NULL;
-	int rc = LDAP_SUCCESS;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef NEW_LOGGING
@@ -131,10 +132,13 @@ ldap_back_add(
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		rc = -1;
 		goto cleanup;
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
+retry:
 	rs->sr_err = ldap_add_ext(lc->ld, mdn.bv_val, attrs,
 #ifdef LDAP_BACK_PROXY_AUTHZ
 			ctrls,
@@ -142,7 +146,11 @@ ldap_back_add(
 			op->o_ctrls,
 #endif /* ! LDAP_BACK_PROXY_AUTHZ */
 			NULL, &msgid);
-
+	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( ldap_back_retry( lc, op, rs )) goto retry;
+	}
 #ifdef LDAP_BACK_PROXY_AUTHZ
 cleanup:
 	if ( ctrls && ctrls != op->o_ctrls ) {
@@ -159,12 +167,6 @@ cleanup:
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
-#ifdef LDAP_BACK_PROXY_AUTHZ
-	if ( rc != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		return -1;
-	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
-	return ldap_back_op_result( lc, op, rs, msgid, 1 ) != LDAP_SUCCESS;
+	return rc;
 }
 
