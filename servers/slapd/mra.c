@@ -16,18 +16,21 @@
 
 void
 mra_free(
+	Operation *op,
 	MatchingRuleAssertion *mra,
 	int	freeit
 )
 {
+	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );
 	if ( freeit ) {
-		ch_free( (char *) mra );
+		op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
 	}
 }
 
 int
 get_mra(
+	Operation *op,
 	BerElement	*ber,
 	MatchingRuleAssertion	**mra,
 	const char **text
@@ -218,7 +221,7 @@ get_mra(
 	length = sizeof(ma);
 	/* Append rule_text to end of struct */
 	if (rule_text.bv_val) length += rule_text.bv_len + 1;
-	*mra = ch_malloc( length );
+	*mra = op->o_tmpalloc( length, op->o_tmpmemctx );
 	**mra = ma;
 	if (rule_text.bv_val) {
 		(*mra)->ma_rule_text.bv_len = rule_text.bv_len;

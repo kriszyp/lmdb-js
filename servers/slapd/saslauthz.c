@@ -67,7 +67,7 @@ int slap_sasl_setpolicy( const char *arg )
 
 /* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
-static int slap_parseURI( struct berval *uri,
+static int slap_parseURI( Operation *op, struct berval *uri,
 	struct berval *searchbase, int *scope, Filter **filter )
 {
 	struct berval bv;
@@ -124,7 +124,7 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 	/* Grab the filter */
 	if ( ludp->lud_filter ) {
-		*filter = str2filter( ludp->lud_filter );
+		*filter = str2filter_x( op, ludp->lud_filter );
 		if ( *filter == NULL ) {
 			rc = LDAP_PROTOCOL_ERROR;
 			goto done;
@@ -138,7 +138,7 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 done:
 	if( rc != LDAP_SUCCESS ) {
-		if( *filter ) filter_free( *filter );
+		if( *filter ) filter_free_x( op, *filter );
 	}
 
 	ldap_free_urldesc( ludp );
@@ -383,7 +383,7 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
  */
 
 static
-int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assertDN, struct berval *authc )
+int slap_sasl_match(Operation *opx, struct berval *rule, struct berval *assertDN, struct berval *authc )
 {
 	int rc; 
 	regex_t reg;
@@ -402,7 +402,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( rule, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, rule, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
@@ -450,9 +450,12 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
-	op.o_conn = conn;
-	op.o_connid = conn->c_connid;
+	op.o_threadctx = opx->o_threadctx;
+	op.o_tmpmemctx = opx->o_tmpmemctx;
+	op.o_tmpalloc = opx->o_tmpalloc;
+	op.o_tmpfree = opx->o_tmpfree;
+	op.o_conn = opx->o_conn;
+	op.o_connid = opx->o_connid;
 
 	op.o_bd->be_search( &op, &rs );
 
@@ -464,7 +467,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 
 CONCLUDED:
 	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
-	if( op.oq_search.rs_filter ) filter_free( op.oq_search.rs_filter );
+	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -512,7 +515,7 @@ slap_sasl_check_authz( Connection *conn,
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( conn, &vals[i], assertDN, authc );
+		rc = slap_sasl_match( conn->c_sasl_bindop, &vals[i], assertDN, authc );
 		if ( rc == LDAP_SUCCESS ) goto COMPLETE;
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;
@@ -541,7 +544,7 @@ COMPLETE:
  * an internal search must be done, and if that search returns exactly one
  * entry, return the DN of that one entry.
  */
-void slap_sasl2dn( Connection *conn,
+void slap_sasl2dn( Operation *opx,
 	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
@@ -569,7 +572,7 @@ void slap_sasl2dn( Connection *conn,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( &regout, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, &regout, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( regout.bv_val ) ch_free( regout.bv_val );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
@@ -600,17 +603,19 @@ void slap_sasl2dn( Connection *conn,
 		goto FINISHED;
 	}
 
-	op.o_conn = conn;
-	op.o_connid = conn->c_connid;
+	op.o_conn = opx->o_conn;
+	op.o_connid = opx->o_connid;
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn = conn->c_ndn;
+	op.o_ndn = opx->o_conn->c_ndn;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx:
-		ldap_pvt_thread_pool_context( &connection_pool );
+	op.o_threadctx = opx->o_threadctx;
+	op.o_tmpmemctx = opx->o_tmpmemctx;
+	op.o_tmpalloc = opx->o_tmpalloc;
+	op.o_tmpfree = opx->o_tmpfree;
 	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_attrsonly = 1;
@@ -619,10 +624,10 @@ void slap_sasl2dn( Connection *conn,
 	
 FINISHED:
 	if( sasldn->bv_len ) {
-		conn->c_authz_backend = op.o_bd;
+		opx->o_conn->c_authz_backend = op.o_bd;
 	}
 	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
-	if( op.oq_search.rs_filter ) filter_free( op.oq_search.rs_filter );
+	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 

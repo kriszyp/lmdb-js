@@ -326,6 +326,19 @@ find_ctrl( const char *oid )
 	return NULL;
 }
 
+void slap_free_ctrls(
+	Operation *op,
+	LDAPControl **ctrls
+)
+{
+	int i;
+
+	for (i=0; ctrls[i]; i++) {
+		op->o_tmpfree(ctrls[i], op->o_tmpmemctx );
+	}
+	op->o_tmpfree( ctrls, op->o_tmpmemctx );
+}
+
 int get_ctrls(
 	Operation *op,
 	SlapReply *rs,
@@ -337,6 +350,10 @@ int get_ctrls(
 	char *opaque;
 	BerElement *ber = op->o_ber;
 	struct slap_control *sc;
+	struct berval bv;
+	BER_MEMREALLOC_FN *reallo;
+
+	reallo = op->o_tmpmemctx ? sl_realloc : (BER_MEMREALLOC_FN *)ch_realloc;
 
 	len = ber_pvt_ber_remaining(ber);
 
@@ -370,7 +387,7 @@ int get_ctrls(
 	}
 
 	/* one for first control, one for termination */
-	op->o_ctrls = ch_malloc( 2 * sizeof(LDAPControl *) );
+	op->o_ctrls = op->o_tmpalloc( 2 * sizeof(LDAPControl *), op->o_tmpmemctx );
 
 #if 0
 	if( op->ctrls == NULL ) {
@@ -390,24 +407,14 @@ int get_ctrls(
 		LDAPControl *c;
 		LDAPControl **tctrls;
 
-		c = ch_calloc( 1, sizeof(LDAPControl) );
-
-#if 0
-		if( c == NULL ) {
-			ldap_controls_free(op->o_ctrls);
-			op->o_ctrls = NULL;
-
-			rs->sr_err = LDAP_NO_MEMORY;
-			rs->sr_text = "no memory";
-			goto return_results;
-		}
-#endif
+		c = op->o_tmpalloc( sizeof(LDAPControl), op->o_tmpmemctx );
+		memset(c, 0, sizeof(LDAPControl));
 
 		/* allocate pointer space for current controls (nctrls)
 		 * + this control + extra NULL
 		 */
-		tctrls = ch_realloc( op->o_ctrls,
-			(nctrls+2) * sizeof(LDAPControl *));
+		tctrls = reallo( op->o_ctrls,
+			(nctrls+2) * sizeof(LDAPControl *), op->o_tmpmemctx );
 
 #if 0
 		if( tctrls == NULL ) {
@@ -425,7 +432,8 @@ int get_ctrls(
 		op->o_ctrls[nctrls++] = c;
 		op->o_ctrls[nctrls] = NULL;
 
-		tag = ber_scanf( ber, "{a" /*}*/, &c->ldctl_oid );
+		tag = ber_scanf( ber, "{m" /*}*/, &bv );
+		c->ldctl_oid = bv.bv_val;
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -436,7 +444,7 @@ int get_ctrls(
 				0, 0, 0 );
 #endif
 
-			ldap_controls_free( op->o_ctrls );
+			slap_free_ctrls( op, op->o_ctrls );
 			op->o_ctrls = NULL;
 			rs->sr_err = SLAPD_DISCONNECT;
 			rs->sr_text = "decoding controls error";
@@ -453,7 +461,7 @@ int get_ctrls(
 				op->o_connid, 0, 0 );
 #endif
 
-			ldap_controls_free( op->o_ctrls );
+			slap_free_ctrls( op, op->o_ctrls );
 			op->o_ctrls = NULL;
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			rs->sr_text = "OID field is empty";
@@ -475,7 +483,7 @@ int get_ctrls(
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
 #endif
-				ldap_controls_free( op->o_ctrls );
+				slap_free_ctrls( op, op->o_ctrls );
 				op->o_ctrls = NULL;
 				rs->sr_err = SLAPD_DISCONNECT;
 				rs->sr_text = "decoding controls error";
@@ -487,7 +495,7 @@ int get_ctrls(
 		}
 
 		if( tag == LBER_OCTETSTRING ) {
-			tag = ber_scanf( ber, "o", &c->ldctl_value );
+			tag = ber_scanf( ber, "m", &c->ldctl_value );
 
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -501,7 +509,7 @@ int get_ctrls(
 					op->o_connid, c->ldctl_oid,
 					c->ldctl_iscritical ? "" : "non" );
 #endif
-				ldap_controls_free( op->o_ctrls );
+				slap_free_ctrls( op, op->o_ctrls );
 				op->o_ctrls = NULL;
 				rs->sr_err = SLAPD_DISCONNECT;
 				rs->sr_text = "decoding controls error";
@@ -711,7 +719,7 @@ static int parseProxyAuthz (
 		return LDAP_SUCCESS;
 	}
 
-	rc = slap_sasl_getdn( op->o_conn,
+	rc = slap_sasl_getdn( op->o_conn, op,
 		ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
 		NULL, &dn, SLAP_GETDN_AUTHZID );
 
@@ -888,7 +896,7 @@ int parseValuesReturnFilter (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_vrFilter( op->o_conn, ber, &(op->vrFilter), &rs->sr_text);
+	rs->sr_err = get_vrFilter( op, ber, &(op->vrFilter), &rs->sr_text);
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -898,11 +906,12 @@ int parseValuesReturnFilter (
 		} else {
 			send_ldap_result( op, rs );
 		}
-		if( fstr.bv_val != NULL) free( fstr.bv_val );
-		if( op->vrFilter != NULL) vrFilter_free( op->vrFilter ); 
+		if( op->vrFilter != NULL) vrFilter_free( op, op->vrFilter ); 
 
-	} else {
-		vrFilter2bv( op->vrFilter, &fstr );
+	}
+#ifdef LDAP_DEBUG
+	else {
+		vrFilter2bv( op, op->vrFilter, &fstr );
 	}
 
 #ifdef NEW_LOGGING
@@ -912,6 +921,8 @@ int parseValuesReturnFilter (
 #else
 	Debug( LDAP_DEBUG_ARGS, "	vrFilter: %s\n",
 		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
+#endif
+	op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
 #endif
 
 	op->o_valuesreturnfilter = ctrl->ldctl_iscritical

@@ -57,7 +57,7 @@ slap_op_free( Operation *op )
 		free( op->o_authmech.bv_val );
 	}
 	if ( op->o_ctrls != NULL ) {
-		ldap_controls_free( op->o_ctrls );
+		slap_free_ctrls( op, op->o_ctrls );
 	}
 
 #ifdef LDAP_CONNECTIONLESS

@@ -17,20 +17,23 @@
 
 void
 ava_free(
-    AttributeAssertion *ava,
-    int	freeit
+	Operation *op,
+	AttributeAssertion *ava,
+	int	freeit
 )
 {
-	free( ava->aa_value.bv_val );
+	/* op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx ); */
+	ch_free( ava->aa_value.bv_val );
 	if ( freeit ) {
-		ch_free( (char *) ava );
+		op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
 	}
 }
 
 int
 get_ava(
-    BerElement	*ber,
-    AttributeAssertion	**ava,
+	Operation *op,
+	BerElement	*ber,
+	AttributeAssertion	**ava,
 	unsigned usage,
 	const char **text
 )
@@ -52,14 +55,14 @@ get_ava(
 		return SLAPD_DISCONNECT;
 	}
 
-	aa = ch_malloc( sizeof( AttributeAssertion ) );
+	aa = op->o_tmpalloc( sizeof( AttributeAssertion ), op->o_tmpmemctx );
 	aa->aa_desc = NULL;
 	aa->aa_value.bv_val = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( aa );
+		op->o_tmpfree( aa, op->o_tmpmemctx );
 		return rc;
 	}
 
@@ -68,7 +71,7 @@ get_ava(
 		usage, &value, &aa->aa_value, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( aa );
+		op->o_tmpfree( aa, op->o_tmpmemctx );
 		return rc;
 	}
 

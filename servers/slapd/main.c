@@ -151,6 +151,8 @@ int main( int argc, char **argv )
 	}
 #endif
 
+	sl_mem_init();
+
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
 		int *i;

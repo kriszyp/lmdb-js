@@ -910,6 +910,21 @@ connection_operation( void *ctx, void *arg_v )
 		goto operations_error;
 	}
 
+	/* For all operations besides Add, we can use thread-local
+	 * storage for most mallocs.
+	 */
+	if ( tag == LDAP_REQ_SEARCH ) {
+		sl_mem_create( ber_len( op->o_ber ) * 16, ctx );
+		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, ctx );
+		op->o_tmpmemctx = ctx;
+		op->o_tmpalloc = sl_malloc;
+		op->o_tmpfree = sl_free;
+	} else {
+		op->o_tmpmemctx = NULL;
+		op->o_tmpalloc = (BER_MEMALLOC_FN *)ch_malloc;
+		op->o_tmpfree = (BER_MEMFREE_FN *)ch_free;
+	}
+
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
 		INCR_OP(num_ops_initiated_, SLAP_OP_BIND);

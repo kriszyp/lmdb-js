@@ -167,11 +167,13 @@ LDAP_SLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
  * ava.c
  */
 LDAP_SLAPD_F (int) get_ava LDAP_P((
+	Operation *op,
 	BerElement *ber,
 	AttributeAssertion **ava,
 	unsigned usage,
 	const char **text ));
 LDAP_SLAPD_F (void) ava_free LDAP_P((
+	Operation *op,
 	AttributeAssertion *ava,
 	int freeit ));
 
@@ -488,20 +490,22 @@ LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) cancel_extop;
  * filter.c
  */
 LDAP_SLAPD_F (int) get_filter LDAP_P((
-	Connection *conn,
+	Operation *op,
 	BerElement *ber,
 	Filter **filt,
 	const char **text ));
 
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
+LDAP_SLAPD_F (void) filter_free_x LDAP_P(( Operation *op, Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
+LDAP_SLAPD_F (void) filter2bv_x LDAP_P(( Filter *f, struct berval *bv, void *ctx ));
 
-LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Connection *conn, BerElement *ber,
+LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Operation *op, BerElement *ber,
 	ValuesReturnFilter **f,
 	const char **text ));
 
-LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
-LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
+LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( Operation *op, ValuesReturnFilter *f ));
+LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( Operation *op, ValuesReturnFilter *f, struct berval *fstr ));
 
 LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
 LDAP_SLAPD_F (int) filter_escape_value LDAP_P(( struct berval *in, 
@@ -669,10 +673,12 @@ LDAP_SLAPD_F (int) mr_usable_with_at( MatchingRule *mr,
  * mra.c
  */
 LDAP_SLAPD_F (int) get_mra LDAP_P((
+	Operation *op,
 	BerElement *ber,
 	MatchingRuleAssertion **mra,
 	const char **text ));
 LDAP_SLAPD_F (void) mra_free LDAP_P((
+	Operation *op,
 	MatchingRuleAssertion *mra,
 	int freeit ));
 
@@ -863,7 +869,7 @@ LDAP_SLAPD_F (int) slap_sasl_config(
 	const char *fname,
 	int lineno );
 
-LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn,
+LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
 	char *id, int len,
 	char *user_realm, struct berval *dn, int flags );
 
@@ -871,7 +877,7 @@ LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn,
  * saslauthz.c
  */
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
-	Connection *conn,
+	Operation *op,
 	struct berval *saslname,
 	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
@@ -962,6 +968,14 @@ LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 	char delim ));
 
 /*
+ * sl_malloc.c
+ */
+LDAP_SLAPD_F (void *) sl_malloc LDAP_P(( ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void *) sl_realloc LDAP_P(( void *block, ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void *) sl_calloc LDAP_P(( ber_len_t nelem, ber_len_t size, void *ctx ));
+LDAP_SLAPD_F (void) sl_free LDAP_P(( void *, void *ctx ));
+
+/*
  * starttls.c
  */
 LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) starttls_extop;
@@ -970,6 +984,7 @@ LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) starttls_extop;
  * str2filter.c
  */
 LDAP_SLAPD_F (Filter *) str2filter LDAP_P(( const char *str ));
+LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 
 /* syntax.c */
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((

@@ -438,6 +438,9 @@ slap_auxprop_lookup(
 			op.o_do_not_cache = 1;
 			op.o_is_auth_check = 1;
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+			op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
+			op.o_tmpalloc = conn->c_sasl_bindop->o_tmpalloc;
+			op.o_tmpfree = conn->c_sasl_bindop->o_tmpfree;
 			op.o_conn = conn;
 			op.o_connid = conn->c_connid;
 			op.ors_scope = LDAP_SCOPE_BASE;
@@ -528,7 +531,7 @@ slap_sasl_checkpass(
 	 * find an answer here.
 	 */
 
-	rc = slap_sasl_getdn( conn, (char *)username, 0, NULL, &op.o_req_ndn,
+	rc = slap_sasl_getdn( conn, NULL, (char *)username, 0, NULL, &op.o_req_ndn,
 		SLAP_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
@@ -561,6 +564,9 @@ slap_sasl_checkpass(
 		op.o_do_not_cache = 1;
 		op.o_is_auth_check = 1;
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
+		op.o_tmpalloc = conn->c_sasl_bindop->o_tmpalloc;
+		op.o_tmpfree = conn->c_sasl_bindop->o_tmpfree;
 		op.o_conn = conn;
 		op.o_connid = conn->c_connid;
 		op.ors_scope = LDAP_SCOPE_BASE;
@@ -671,7 +677,7 @@ slap_sasl_canonicalize(
 		if ( !rc ) goto done;
 	}
 
-	rc = slap_sasl_getdn( conn, (char *)in, inlen, (char *)user_realm, &dn,
+	rc = slap_sasl_getdn( conn, NULL, (char *)in, inlen, (char *)user_realm, &dn,
 		(flags & SASL_CU_AUTHID) ? SLAP_GETDN_AUTHCID : SLAP_GETDN_AUTHZID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
@@ -836,7 +842,7 @@ slap_sasl_authorize(
 
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
-	rc = slap_sasl_getdn( conn, (char *)authcid, 0, realm,
+	rc = slap_sasl_getdn( conn, NULL, (char *)authcid, 0, realm,
 		&authcDN, SLAP_GETDN_AUTHCID );
 	if( rc != LDAP_SUCCESS ) {
 		*errstr = ldap_err2string( rc );
@@ -855,7 +861,7 @@ slap_sasl_authorize(
 		conn->c_sasl_dn = authcDN;
 		goto ok;
 	}
-	rc = slap_sasl_getdn( conn, (char *)authzid, 0, realm,
+	rc = slap_sasl_getdn( conn, NULL, (char *)authzid, 0, realm,
 		&authzDN, SLAP_GETDN_AUTHZID );
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( authcDN.bv_val );
@@ -1512,7 +1518,7 @@ done:
 
 static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
-int slap_sasl_getdn( Connection *conn, char *id, int len,
+int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
 	char *c1;
@@ -1663,8 +1669,12 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		*dn = dn2;
 	}
 
+	if ( !op ) {
+		op = conn->c_sasl_bindop;
+	}
+
 	/* Run thru regexp */
-	slap_sasl2dn( conn, dn, &dn2 );
+	slap_sasl2dn( op, dn, &dn2 );
 	if( dn2.bv_val ) {
 		ch_free( dn->bv_val );
 		*dn = dn2;

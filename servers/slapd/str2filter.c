@@ -24,13 +24,12 @@ static Filter	*str2simple( const char *str);
 static int	str2subvals( const char *val, Filter *f);
 
 Filter *
-str2filter( const char *str )
+str2filter_x( Operation *op, const char *str )
 {
 	int rc;
 	Filter	*f = NULL;
-	char berbuf[256];
+	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement *ber = (BerElement *)berbuf;
-	Connection conn;
 	const char *text = NULL;
 
 #ifdef NEW_LOGGING
@@ -44,6 +43,9 @@ str2filter( const char *str )
 	}
 
 	ber_init2( ber, NULL, LBER_USE_DER );
+	if ( op->o_tmpmemctx ) {
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+	}
 
 	rc = ldap_pvt_put_filter( ber, str );
 	if( rc < 0 ) {
@@ -52,12 +54,22 @@ str2filter( const char *str )
 
 	ber_reset( ber, 1 );
 
-	conn.c_connid = 0;
-
-	rc = get_filter( &conn, ber, &f, &text );
+	rc = get_filter( op, ber, &f, &text );
 
 done:
 	ber_free_buf( ber );
 
 	return f;
+}
+
+Filter *
+str2filter( const char *str )
+{
+	Operation op = {0};
+
+	op.o_tmpmemctx = NULL;
+	op.o_tmpalloc = ch_malloc;
+	op.o_tmpfree = ch_free;
+
+	return str2filter_x( &op, str );
 }

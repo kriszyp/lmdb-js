@@ -1839,6 +1839,9 @@ typedef struct slap_op {
 	LDAPControl	**o_ctrls;	 /* controls */
 
 	void	*o_threadctx;		/* thread pool thread context */
+	void	*o_tmpmemctx;		/* slab malloc context */
+	BER_MEMALLOC_FN *o_tmpalloc;
+	BER_MEMFREE_FN *o_tmpfree;
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */

@@ -28,7 +28,7 @@
 
 #ifdef LDAP_SLAPI
 #include "slapi.h"
-static char **anlist2charray( AttributeName *an );
+static char **anlist2charray( Operation *op, AttributeName *an );
 static void initSearchPlugin( Operation *op, char **attrs, int managedsait );
 static int doPreSearchPluginFNs( Operation *op );
 static int doSearchRewriteFNs( Operation *op );
@@ -135,7 +135,7 @@ do_search(
 #endif
 
 	/* filter - returns a "normalized" version */
-	rs->sr_err = get_filter( op->o_conn, op->o_ber, &op->ors_filter, &rs->sr_text );
+	rs->sr_err = get_filter( op, op->o_ber, &op->ors_filter, &rs->sr_text );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
@@ -145,7 +145,7 @@ do_search(
 		}
 		goto return_results;
 	}
-	filter2bv( op->ors_filter, &op->ors_filterstr );
+	filter2bv_x( op->ors_filter, &op->ors_filterstr, op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
@@ -259,7 +259,7 @@ do_search(
 			}
 
 #ifdef LDAP_SLAPI
-			attrs = anlist2charray( op->ors_attrs );
+			attrs = anlist2charray( op, op->ors_attrs );
 			initSearchPlugin( op, attrs, manageDSAit );
 			rs->sr_err = doPreSearchPluginFNs( op );
 			if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -278,7 +278,7 @@ do_search(
 			}
 
 #ifdef LDAP_SLAPI
-			attrs = anlist2charray( op->ors_attrs );
+			attrs = anlist2charray( op, op->ors_attrs );
 			initSearchPlugin( op, attrs, manageDSAit );
 			rs->sr_err = doPreSearchPluginFNs( op );
 			if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -356,7 +356,7 @@ do_search(
 	}
 
 #ifdef LDAP_SLAPI
-	attrs = anlist2charray( op->ors_attrs );
+	attrs = anlist2charray( op, op->ors_attrs );
 	initSearchPlugin( op, attrs, manageDSAit );
 	rs->sr_err = doPreSearchPluginFNs( op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -395,11 +395,11 @@ return_results:;
 	if( op->o_req_dn.bv_val != NULL) free( op->o_req_dn.bv_val );
 	if( op->o_req_ndn.bv_val != NULL) free( op->o_req_ndn.bv_val );
 
-	if( op->ors_filterstr.bv_val != NULL) free( op->ors_filterstr.bv_val );
-	if( op->ors_filter != NULL) filter_free( op->ors_filter );
-	if( op->ors_attrs != NULL ) free( op->ors_attrs );
+	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
+	if( op->ors_attrs != NULL ) op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
 #ifdef LDAP_SLAPI
-	if( attrs != NULL) ch_free( attrs );
+	if( attrs != NULL) op->o_tmpfree( attrs, op->o_tmpmemctx );
 #endif /* LDAP_SLAPI */
 
 	return rs->sr_err;
@@ -407,7 +407,7 @@ return_results:;
 
 #ifdef LDAP_SLAPI
 
-static char **anlist2charray( AttributeName *an )
+static char **anlist2charray( Operation *op, AttributeName *an )
 {
 	char **attrs;
 	int i;
@@ -415,7 +415,7 @@ static char **anlist2charray( AttributeName *an )
 	if ( an != NULL ) {
 		for ( i = 0; an[i].an_name.bv_val != NULL; i++ )
 			;
-		attrs = (char **)ch_malloc( (i + 1) * sizeof(char *) );
+		attrs = (char **)op->o_tmpalloc( (i + 1) * sizeof(char *), op->o_tmpmemctx );
 		for ( i = 0; an[i].an_name.bv_val != NULL; i++ ) {
 			attrs[i] = an[i].an_name.bv_val;
 		}
@@ -477,8 +477,8 @@ static int doSearchRewriteFNs( Operation *op )
 		 * SLAPI_SEARCH_STRFILER is not normative.
 		 */
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&op->ors_filter);
-		ch_free( op->ors_filterstr.bv_val );
-		filter2bv( op->ors_filter, &op->ors_filterstr );
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		filter2bv_x( op->ors_filter, &op->ors_filterstr, op->o_tmpmemctx );
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
