@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 if [ $# -eq 0 ]; then
 	SRCDIR="."
 else
