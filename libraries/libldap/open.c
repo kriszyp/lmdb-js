@@ -72,38 +72,6 @@ ldap_open( LDAP_CONST char *host, int port )
 }
 
 
-/*
- * ldap_init - initialize the LDAP library.  A magic cookie to be used for
- * future communication is returned on success, NULL on failure.
- * "host" may be a space-separated list of hosts or IP addresses
- *
- * Example:
- *	LDAP	*ld;
- *	ld = ldap_open( host, port );
- */
-LDAP *
-ldap_init( LDAP_CONST char *defhost, int defport )
-{
-	LDAP *ld;
-	int rc;
-
-	rc = ldap_create(&ld);
-	if ( rc != LDAP_SUCCESS )
-		return NULL;
-
-	if (defport != 0)
-		ld->ld_options.ldo_defport = defport;
-
-	if (defhost != NULL) {
-		rc = ldap_set_option(ld, LDAP_OPT_HOST_NAME, defhost);
-		if ( rc != LDAP_SUCCESS ) {
-			ldap_ld_free(ld, 1, NULL, NULL);
-			return NULL;
-		}
-	}
-
-	return( ld );
-}
 
 int
 ldap_create( LDAP **ldp )
@@ -201,6 +169,40 @@ ldap_create( LDAP **ldp )
 	*ldp = ld;
 	return LDAP_SUCCESS;
 }
+
+/*
+ * ldap_init - initialize the LDAP library.  A magic cookie to be used for
+ * future communication is returned on success, NULL on failure.
+ * "host" may be a space-separated list of hosts or IP addresses
+ *
+ * Example:
+ *	LDAP	*ld;
+ *	ld = ldap_open( host, port );
+ */
+LDAP *
+ldap_init( LDAP_CONST char *defhost, int defport )
+{
+	LDAP *ld;
+	int rc;
+
+	rc = ldap_create(&ld);
+	if ( rc != LDAP_SUCCESS )
+		return NULL;
+
+	if (defport != 0)
+		ld->ld_options.ldo_defport = defport;
+
+	if (defhost != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_HOST_NAME, defhost);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return NULL;
+		}
+	}
+
+	return( ld );
+}
+
 
 int
 ldap_initialize( LDAP **ldp, LDAP_CONST char *url )

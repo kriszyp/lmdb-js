@@ -24,6 +24,7 @@ LDAP_BEGIN_DECL
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>
  */
+#define LUTIL_SHA1_BYTES 20
 
 /* This code assumes char are 8-bits and uint32 are 32-bits */
 typedef ac_uint4 uint32;

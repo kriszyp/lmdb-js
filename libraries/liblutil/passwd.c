@@ -15,6 +15,7 @@
 
 #include "portable.h"
 
+#include <stdio.h>
 #include <ac/stdlib.h>
 
 #include <ac/string.h>
@@ -251,7 +252,7 @@ static char * pw_string64(
 	const unsigned char *salt, size_t saltlen )
 {
 	int rc;
-	char *string = NULL;
+	char *string;
 	size_t b64len;
 	size_t len = hashlen + saltlen;
 	char *b64;
@@ -301,17 +302,19 @@ static int chk_ssha1(
 	const char* cred )
 {
 	lutil_SHA1_CTX SHA1context;
-	unsigned char SHA1digest[20];
+	unsigned char SHA1digest[LUTIL_SHA1_BYTES];
 	int pw_len = strlen(passwd);
 	int rc;
 	unsigned char *orig_pass = NULL;
  
 	/* base64 un-encode password */
-	orig_pass = (unsigned char *) malloc( (size_t) (
+	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(pw_len) + 1) );
 
+	if( orig_pass == NULL ) return -1;
+
 	if ((rc = lutil_b64_pton(passwd, orig_pass, pw_len)) < 0) {
-		free(orig_pass);
+		ber_memfree(orig_pass);
 		return 1;
 	}
  
@@ -326,7 +329,7 @@ static int chk_ssha1(
  
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
-	free(orig_pass);
+	ber_memfree(orig_pass);
 	return rc;
 }
 
@@ -336,7 +339,7 @@ static int chk_sha1(
 	const char* cred )
 {
 	lutil_SHA1_CTX SHA1context;
-	unsigned char SHA1digest[20];
+	unsigned char SHA1digest[LUTIL_SHA1_BYTES];
 	char base64digest[LUTIL_BASE64_ENCODE_LEN(sizeof(SHA1digest))+1]; 
 
 	lutil_SHA1Init(&SHA1context);
@@ -359,17 +362,19 @@ static int chk_smd5(
 	const char* cred )
 {
 	lutil_MD5_CTX MD5context;
-	unsigned char MD5digest[16];
+	unsigned char MD5digest[LUTIL_MD5_BYTES];
 	int pw_len = strlen(passwd);
 	int rc;
 	unsigned char *orig_pass = NULL;
 
 	/* base64 un-encode password */
-	orig_pass = (unsigned char *) malloc( (size_t) (
+	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(pw_len) + 1) );
 
+	if( orig_pass == NULL ) return -1;
+
 	if ((rc = lutil_b64_pton(passwd, orig_pass, pw_len)) < 0) {
-		free(orig_pass);
+		ber_memfree(orig_pass);
 		return 1;
 	}
 
@@ -384,7 +389,7 @@ static int chk_smd5(
 
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
-	free(orig_pass);
+	ber_memfree(orig_pass);
 	return rc;
 }
 
@@ -394,7 +399,7 @@ static int chk_md5(
 	const char* cred )
 {
 	lutil_MD5_CTX MD5context;
-	unsigned char MD5digest[16];
+	unsigned char MD5digest[LUTIL_MD5_BYTES];
 	char base64digest[LUTIL_BASE64_ENCODE_LEN(sizeof(MD5digest))+1]; 
 
 	lutil_MD5Init(&MD5context);
@@ -454,7 +459,7 @@ static char *gen_ssha1(
 	const char *passwd )
 {
 	lutil_SHA1_CTX  SHA1context;
-	unsigned char   SHA1digest[20];
+	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
 	unsigned char   salt[4];
 
 	if( lutil_entropy( salt, sizeof(salt)) < 0 ) {
@@ -505,10 +510,8 @@ static char *gen_smd5(
 	lutil_MD5Init( &MD5context );
 	lutil_MD5Update( &MD5context,
 		(const unsigned char *) passwd, strlen(passwd) );
-
 	lutil_MD5Update( &MD5context,
 		(const unsigned char *) salt, sizeof(salt) );
-
 	lutil_MD5Final( MD5digest, &MD5context );
 
 	return pw_string64( scheme,

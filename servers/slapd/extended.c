@@ -160,7 +160,6 @@ load_extop(
 	SLAP_EXTOP_MAIN_FN ext_main )
 {
 	extop_list_t *ext;
-	int rc;
 
 	if( ext_oid == NULL || *ext_oid == '\0' ) return -1; 
 	if(!ext_main) return -1; 

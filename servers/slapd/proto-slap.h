@@ -485,7 +485,7 @@ LIBSLAPD_F (int) slap_passwd_check(
 	struct berval		*cred );
 LIBSLAPD_F (struct berval *) slap_passwd_generate(
 	struct berval		*cred );
-
+LIBSLAPD_F (int) slap_passwd_init( void );
 /*
  * kerberos.c
  */

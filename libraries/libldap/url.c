@@ -580,7 +580,7 @@ char *
 ldap_url_list2hosts (LDAPURLDesc *ludlist)
 {
 	LDAPURLDesc *ludp;
-	int size, len;
+	int size;
 	char *s, *p, buf[32];	/* big enough to hold a long decimal # (overkill) */
 
 	if (ludlist == NULL)
@@ -615,7 +615,7 @@ char *
 ldap_url_list2urls (LDAPURLDesc *ludlist)
 {
 	LDAPURLDesc *ludp;
-	int size, len;
+	int size;
 	char *s, *p, buf[32];	/* big enough to hold a long decimal # (overkill) */
 
 	if (ludlist == NULL)

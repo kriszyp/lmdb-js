@@ -51,13 +51,12 @@ main( int argc, char *argv[] )
 	char	*ldaphost = NULL;
 	char	*newpw = NULL;
 	int		noupdates = 0;
-	int		i, j;
+	int		i;
 	int		ldapport = 0;
 	int		debug = 0;
 	int		version = -1;
 	int		want_bindpw = 0;
 	LDAP	       *ld;
-	struct berval cred;
 	struct berval *bv = NULL;
 	BerElement *ber;
 

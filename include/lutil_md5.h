@@ -24,6 +24,8 @@ LDAP_BEGIN_DECL
    important.  ANSI guarantees that "unsigned long" will be big enough,
    and always using it seems to have few disadvantages.  */
 
+#define LUTIL_MD5_BYTES 16
+
 struct lutil_MD5Context {
 	ber_uint_t buf[4];
 	ber_uint_t bits[2];

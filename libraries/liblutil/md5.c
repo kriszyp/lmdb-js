@@ -297,7 +297,7 @@ int
 main (int  argc, char **argv )
 {
 	struct lutil_MD5Context context;
-	unsigned char checksum[16];
+	unsigned char checksum[LUTIL_MD5_BYTES];
 	int i;
 	int j;
 
@@ -312,7 +312,7 @@ main (int  argc, char **argv )
 		lutil_MD5Init (&context);
 		lutil_MD5Update (&context, argv[j], strlen (argv[j]));
 		lutil_MD5Final (checksum, &context);
-		for (i = 0; i < 16; i++)
+		for (i = 0; i < LUTIL_MD5_BYTES; i++)
 		{
 			printf ("%02x", (unsigned int) checksum[i]);
 		}

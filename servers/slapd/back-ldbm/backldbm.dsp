@@ -180,6 +180,10 @@ SOURCE=.\entry.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\extended.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\external.h
 # End Source File
 # Begin Source File
@@ -221,6 +225,10 @@ SOURCE=.\modrdn.c
 # Begin Source File
 
 SOURCE=.\nextid.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
 
