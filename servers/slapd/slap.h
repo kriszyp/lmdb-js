@@ -814,6 +814,17 @@ struct slap_replica_info {
 	char  **ri_nsuffix;	/* array of suffixes this replica accepts */
 };
 
+struct slap_limits {
+	int     lm_type;	/* type of pattern */
+#define SLAP_LIMITS_UNDEFINED	0x0000
+#define SLAP_LIMITS_EXACT	0x0001
+#define SLAP_LIMITS_REGEX	0x0002
+	regex_t	lm_dn_regex;	/* regex-based size and time limits */
+	char   *lm_dn_pat;	/* ndn for EXACT; pattern for REGEX */
+	int     lm_timelimit;
+	int     lm_sizelimit;
+};
+
 /* temporary aliases */
 typedef BackendDB Backend;
 #define nbackends nBackendDB
@@ -911,6 +922,7 @@ struct slap_backend_db {
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
+	struct slap_limits **be_limits; /* regex-based size and time limits */
 	AccessControl *be_acl;	/* access control list for this backend	   */
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/

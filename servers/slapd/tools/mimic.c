@@ -203,4 +203,14 @@ int add_replica_info( Backend *be, const char *host )
 {
 	return 0;
 }
-	
+
+int parse_limits( Backend *be, const char *fname, int lineno, int argc, char **argv )
+{
+	return 0;
+}
+
+int get_limits( Backend *be, const char *ndn, int *timelimit, int *sizelimit )
+{
+	return 0;
+}
+

@@ -727,6 +727,25 @@ read_config( const char *fname )
 				be->be_timelimit = atoi( cargv[1] );
 			}
 
+		/* set regex-based limits */
+		} else if ( strcasecmp( cargv[0], "limits" ) == 0 ) {
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_WARNING,
+					   "%s: line %d \"limits\" allowed only in database environment.\n",
+					   fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+	"%s: line %d \"limits\" allowed only in database environment.\n%s",
+					fname, lineno, "" );
+#endif
+				return( 1 );
+			}
+
+			if ( parse_limits( be, fname, lineno, cargc, cargv ) ) {
+				return( 1 );
+			}
+
 		/* set database suffix */
 		} else if ( strcasecmp( cargv[0], "suffix" ) == 0 ) {
 			Backend *tmp_be;

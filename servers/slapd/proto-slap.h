@@ -397,6 +397,17 @@ LDAP_SLAPD_F (int) test_filter LDAP_P((
 	Backend *be, Connection *conn, Operation *op, Entry *e, Filter	*f ));
 
 /*
+ * limits.c
+ */
+LDAP_SLAPD_F (int) get_limits LDAP_P((
+	Backend *be, const char *ndn, int *timelimit, int *sizelimit ));
+LDAP_SLAPD_F (int) add_limits LDAP_P((
+	Backend *be, int type, const char *pattern, 
+	int timelimit, int sizelimit ));
+LDAP_SLAPD_F (int) parse_limits LDAP_P((
+        Backend *be, const char *fname, int lineno, int argc, char **argv ));
+
+/*
  * lock.c
  */
 
