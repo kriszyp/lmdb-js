@@ -288,7 +288,7 @@ ber_pvt_sb_copy_out( Sockbuf_Buf *sbb, char *buf, ber_len_t len )
 ber_slen_t
 ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 {
-	ber_len_t		to_go;
+	ber_len_t	to_go, done = 0;
 	ber_slen_t ret;
 
 	assert( sbiod != NULL );
@@ -300,24 +300,32 @@ ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 	for(;;) {
 		ret = LBER_SBIOD_WRITE_NEXT( sbiod, buf_out->buf_base +
 			buf_out->buf_ptr, to_go );
+		if ( ret < 0 ) {
+			if (errno==EAGAIN
 #ifdef EINTR
-		if ((ret<0) && (errno==EINTR)) continue;
+				|| errno==EINTR
 #endif
-		break;
-	}
+				) continue;
 
-	if ( ret <= 0 ) return ret;
+			return ret;
+		}
+
+		if ( ret == 0 ) return ret;
    
-	buf_out->buf_ptr += ret;
-	if (buf_out->buf_ptr == buf_out->buf_end) {
-		buf_out->buf_end = buf_out->buf_ptr = 0;
-	}
+		buf_out->buf_ptr += ret;
+		done += ret;
 
-	if ( (ber_len_t)ret < to_go ) {
-		/* not enough data, so pretend no data was sent. */
-		return -1;
+		if (buf_out->buf_ptr == buf_out->buf_end) {
+			buf_out->buf_end = buf_out->buf_ptr = 0;
+			ret = done;
+			break;
+		} else if (buf_out->buf_ptr > buf_out->buf_end) {
+			/* impossible */
+			return -1;
+		} else {
+			to_go -= ret;
+		}
 	}
-
 	return ret;
 }
 
