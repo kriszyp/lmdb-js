@@ -97,7 +97,7 @@ LDAP_LIBLDAP_DEPEND = $(LDAP_LIBDIR)/libldap/libldap.la
 LDAP_LIBLDIF_DEPEND = $(LDAP_LIBDIR)/libldif/libldif.a
 LDAP_LIBLUTIL_DEPEND = $(LDAP_LIBDIR)/liblutil/liblutil.a
 
-LDAP_LIBAVL_DEPEND = $(LDAP_LIBDIR)/libldbm/libavl.a
+LDAP_LIBAVL_DEPEND = $(LDAP_LIBDIR)/libavl/libavl.a
 LDAP_LIBLDBM_DEPEND = $(LDAP_LIBDIR)/libldbm/libldbm.a
 LDAP_LIBLTHREAD_DEPEND = $(LDAP_LIBDIR)/libldap_r/libldap_r.la
 
