@@ -161,7 +161,6 @@ merge_entry(
 	op_tmp.o_tag = LDAP_REQ_ADD;
 	op_tmp.o_protocol = LDAP_VERSION3;
 	op_tmp.o_callback = &cb;
-	op_tmp.o_caching_on = 0;
 	op_tmp.o_time = slap_get_time();
 	op_tmp.o_do_not_cache = 1;
 

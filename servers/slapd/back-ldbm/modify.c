@@ -209,16 +209,7 @@ int ldbm_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-#ifndef LDAP_CACHING
 	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
-#else /* LDAP_CACHING */
-	if ( !op->o_caching_on ) {
-		rc = entry_schema_check( op->o_bd, e, save_attrs,
-				text, textbuf, textlen );
-	} else {
-		rc = LDAP_SUCCESS; 
-	}
-#endif /* LDAP_CACHING */
 
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -358,11 +349,7 @@ ldbm_back_modify(
 #endif
 	}
 
-#ifndef LDAP_CACHING
 	if ( !manageDSAit && is_entry_referral( e ) )
-#else /* LDAP_CACHING */
-	if ( !op->o_caching_on && !manageDSAit && is_entry_referral( e ) )
-#endif /* LDAP_CACHING */
 	{
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */

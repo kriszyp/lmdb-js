@@ -1977,10 +1977,6 @@ typedef struct slap_op {
 	syncinfo_t*	o_si;
 #endif
 
-#ifdef LDAP_CACHING 
- 	char		o_caching_on; 
-#endif /*LDAP_CACHING */ 
-
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */
 	void	*o_extensions;		/* NS-SLAPI plugin */

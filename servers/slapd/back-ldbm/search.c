@@ -57,32 +57,12 @@ ldbm_back_search(
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
-#ifndef LDAP_CACHING
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
 
 		/* need normalized dn below */
 		ber_dupbv( &realbase, &e->e_nname );
-
-#else /* LDAP_CACHING */
-	if ( op->o_caching_on || op->o_req_ndn.bv_len == 0 ) {
-		if (op->o_req_ndn.bv_len == 0) {
-		    e = (Entry *) &slap_entry_root;
-		    /* need normalized dn below */
-		    ber_dupbv( &realbase, &e->e_nname );
-		} else {
-			if ((op->oq_search.rs_scope == LDAP_SCOPE_BASE) 
-    					&& (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )))
-    			{
-				candidates = base_candidate(op->o_bd, e);
-				cache_return_entry_r( &li->li_cache, e );
-				goto searchit;
-    			}
-    			cache_base_entry.e_nname = op->o_req_ndn;
-    			e = &cache_base_entry;
-		}
-#endif /* LDAP_CACHING */
 
 		candidates = search_candidates( op, e, op->oq_search.rs_filter,
 	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
@@ -221,20 +201,9 @@ searchit:
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
 #endif
-#ifdef LDAP_CACHING
-                if ( op->o_caching_on ) {
-			ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-		}
-#endif /* LDAP_CACHING */
 
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
-
-#ifdef LDAP_CACHING
-		if ( op->o_caching_on ) {
-			ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
-		}
-#endif /* LDAP_CACHING */
 
 #ifdef LDAP_SYNCREPL
 		rc = LDAP_OTHER;
@@ -245,11 +214,7 @@ searchit:
 	}
 
 	/* if not root, get appropriate limits */
-#ifndef LDAP_CACHING
 	if ( be_isroot( op->o_bd, &op->o_ndn ) )
-#else /* LDAP_CACHING */
- 	if ( op->o_caching_on || be_isroot( op->o_bd, &op->o_ndn ) )
-#endif /* LDAP_CACHING */
 	{
 		/*
 		 * FIXME: I'd consider this dangerous if someone
@@ -391,10 +356,6 @@ searchit:
 	}
 #endif
 
-#ifdef LDAP_CACHING
-                if ( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
-
 		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
@@ -493,10 +454,6 @@ searchit:
 			goto loop_continue;
 		}
 
-#ifdef LDAP_CACHING
-		}
-#endif /* LDAP_CACHING */
-
 #ifdef LDAP_SYNCREPL
 		if ( !manageDSAit && is_entry_glue( e )) {
 			goto loop_continue;
@@ -537,21 +494,7 @@ searchit:
 
 				if (e) {
 
-#ifdef LDAP_CACHING
- 					if ( op->o_caching_on ) {
- 						ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
- 						cache_return_entry_r( &li->li_cache, e );
- 					}
-#endif /* LDAP_CACHING */
-
 					result = send_search_entry( op, rs );
-
-#ifdef LDAP_CACHING
-					if ( op->o_caching_on ) {
-						ldap_pvt_thread_rdwr_rlock( &li->li_giant_rwlock );
-					}
-#endif /* LDAP_CACHING */
-
 
 					switch (result) {
 					case 0:		/* entry sent ok */
@@ -591,13 +534,7 @@ searchit:
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-#ifndef LDAP_CACHING
 			cache_return_entry_r( &li->li_cache, e );
-#else /* LDAP_CACHING */
- 			if ( !op->o_caching_on ) {
-				cache_return_entry_r( &li->li_cache, e );
-			}
-#endif /* LDAP_CACHING */
 		}
 
 		ldap_pvt_thread_yield();

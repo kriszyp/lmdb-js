@@ -404,7 +404,6 @@ meta_back_cache_search(
 		op_tmp.o_req_dn = cachebase;
 		op_tmp.o_req_ndn = ncachebase;
 
-		op_tmp.o_caching_on = 0; 
 		op_tmp.o_callback = &cb; 
 
 		li->glue_be->be_search(&op_tmp, rs);

@@ -84,9 +84,6 @@ ldbm_back_delete(
 	}
 
 	/* check entry for "entry" acl */
-#ifdef LDAP_CACHING
-	if( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
 	if ( ! access_allowed( op, e,
 		entry, NULL, ACL_WRITE, NULL ) )
 	{
@@ -226,9 +223,6 @@ ldbm_back_delete(
 			}
 		}
 	}
-#ifdef LDAP_CACHING
-	}
-#endif /* LDAP_CACHING */
 
 	/* delete from dn2id mapping */
 	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {

@@ -80,7 +80,6 @@ remove_query_data (
 	op_tmp.o_callback = &cb;
 	op_tmp.o_time = slap_get_time();
 	op_tmp.o_do_not_cache = 1;
-	op_tmp.o_caching_on = 0; 
 
 	op_tmp.o_req_dn = op->o_bd->be_suffix[0];
 	op_tmp.o_req_ndn = op->o_bd->be_nsuffix[0];

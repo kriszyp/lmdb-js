@@ -39,15 +39,7 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif
 	
-#ifndef LDAP_CACHING
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
-#else /* LDAP_CACHING */
-        if ( !op->o_caching_on ) {
-		rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
-	} else {
-		rs->sr_err = LDAP_SUCCESS;
-	}
-#endif /* LDAP_CACHING */
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -70,9 +62,6 @@ ldbm_back_add(
 	subentry = is_entry_subentry( op->oq_add.rs_e );
 #endif
 
-#ifdef LDAP_CACHING
-	if ( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
 	if ( !access_allowed( op, op->oq_add.rs_e,
 				entry, NULL, ACL_WRITE, NULL ) )
 	{
@@ -94,9 +83,6 @@ ldbm_back_add(
 		return -1;
 #endif
 	}
-#ifdef LDAP_CACHING
-	}
-#endif /* LDAP_CACHING */
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -125,11 +111,7 @@ ldbm_back_add(
 		dnParent( &op->o_req_ndn, &pdn );
 	}
 
-#ifndef LDAP_CACHING
 	if( pdn.bv_len )
-#else /* LDAP_CACHING */
-	if( pdn.bv_len && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 	{
 		Entry *matched = NULL;
 
@@ -277,21 +259,13 @@ ldbm_back_add(
 #endif
 
 	} else {
-#ifndef LDAP_CACHING
 		if( pdn.bv_val != NULL )
-#else /* LDAP_CACHING */
-	        if( pdn.bv_val != NULL && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 		{
 			assert( *pdn.bv_val == '\0' );
 		}
 
 		/* no parent, must be adding entry to root */
-#ifndef LDAP_CACHING
 		if ( !be_isroot( op->o_bd, &op->o_ndn ) )
-#else /* LDAP_CACHING */
-		if ( !be_isroot( op->o_bd, &op->o_ndn ) && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 		{
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
