@@ -500,10 +500,10 @@ ber_get_next(
 	 */
 
 	if (ber->ber_rwptr == NULL) {
-		/* XXYYZ
-		 * dtest does like this assert.
-		 */
-		/* assert( ber->ber_buf == NULL ); */
+#if 0
+		/* XXYYZ - dtest does like this assert.  */
+		assert( ber->ber_buf == NULL );
+#endif
 		ber->ber_rwptr = (char *) &ber->ber_len-1;
 		ber->ber_ptr = ber->ber_rwptr;
 		ber->ber_tag = 0;
