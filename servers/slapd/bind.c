@@ -397,6 +397,7 @@ do_bind(
 	}
 
 	if ( method == LDAP_AUTH_SIMPLE ) {
+		ber_str2bv( "SIMPLE", sizeof("SIMPLE")-1, 0, &mech );
 		/* accept "anonymous" binds */
 		if ( op->orb_cred.bv_len == 0 || op->o_req_ndn.bv_len == 0 ) {
 			rs->sr_err = LDAP_SUCCESS;
@@ -475,6 +476,7 @@ do_bind(
 #endif
 			goto cleanup;
 		}
+		ber_str2bv( "KRBV4", sizeof("KRBV4")-1, 0, &mech );
 #endif
 
 	} else {
@@ -599,10 +601,10 @@ do_bind(
 				}
 				/* log authorization identity */
 				Statslog( LDAP_DEBUG_STATS,
-					"conn=%lu op=%lu BIND dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
+					"conn=%lu op=%lu BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
 					op->o_connid, op->o_opid,
 					op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-					0, 0 );
+					mech.bv_val, 0 );
 				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			}
 			goto cleanup;
@@ -639,9 +641,9 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=0\n",
 				op->o_connid, op->o_opid,
-				op->o_conn->c_dn.bv_val, 0, 0 );
+				op->o_conn->c_dn.bv_val, mech.bv_val, 0 );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
@@ -682,6 +684,9 @@ do_bind(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
+	if ( rs->sr_err == LDAP_SUCCESS && method != LDAP_AUTH_SASL ) {
+		ber_dupbv( &op->o_conn->c_authmech, &mech );
+	}
 
 	op->o_conn->c_sasl_bindop = NULL;
 
