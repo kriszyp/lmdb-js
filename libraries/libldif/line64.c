@@ -1,10 +1,14 @@
 /* line64.c - routines for dealing with the slapd line format */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldif.h"
@@ -272,12 +276,12 @@ put_type_and_value( char **out, char *t, char *val, int vlen )
 					len = 1;
 				}
 
-				/* get b64 digit from low order 6 bits */
-				*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
-			}
-
-			for ( ; pad > 0; pad-- ) {
-				*(*out - pad) = '=';
+				if( i + pad < 4 ) {
+					/* get b64 digit from low order 6 bits */
+					*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
+				} else {
+					*(*out)++ = '=';
+				}
 			}
 		}
 	}
