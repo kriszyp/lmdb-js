@@ -315,7 +315,7 @@ done:;
 		d2 = ch_malloc(sizeof(AttributeDescription) + dlen + 1);
 		d2->ad_type = desc.ad_type;
 		d2->ad_flags = desc.ad_flags;
-		d2->ad_cname.bv_len = desc.ad_cname.bv_len;
+		d2->ad_cname.bv_len = desc.ad_type->sat_cname.bv_len;
 		d2->ad_lang.bv_len = desc.ad_lang.bv_len;
 
 		if (dlen == 0) {
