@@ -321,9 +321,7 @@ destroy:
 
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
 
-#ifdef SLAP_CLEANUP
 	closelog();
-#endif
 
 	return rc;
 }
