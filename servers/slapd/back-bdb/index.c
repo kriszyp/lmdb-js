@@ -144,6 +144,7 @@ done:
 static int indexer(
 	Operation *op,
 	DB_TXN *txn,
+	AttributeDescription *ad,
 	struct berval *atname,
 	BerVarray vals,
 	ID id,
@@ -153,7 +154,6 @@ static int indexer(
 	int rc, i;
 	const char *text;
 	DB *db;
-	AttributeDescription *ad = NULL;
 	struct berval *keys;
 	void *mark;
 
@@ -173,9 +173,6 @@ static int indexer(
 #endif
 		return LDAP_OTHER;
 	}
-
-	rc = slap_bv2ad( atname, &ad, &text );
-	if( rc != LDAP_SUCCESS ) return rc;
 
 	mark = sl_mark(op->o_tmpmemctx);
 
@@ -259,6 +256,7 @@ done:
 static int index_at_values(
 	Operation *op,
 	DB_TXN *txn,
+	AttributeDescription *ad,
 	AttributeType *type,
 	struct berval *tags,
 	BerVarray vals,
@@ -270,7 +268,7 @@ static int index_at_values(
 
 	if( type->sat_sup ) {
 		/* recurse */
-		rc = index_at_values( op, txn,
+		rc = index_at_values( op, txn, NULL,
 			type->sat_sup, tags,
 			vals, id, opid );
 
@@ -280,10 +278,11 @@ static int index_at_values(
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
 		bdb_attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
+		ad = type->sat_ad;
 	}
 
 	if( mask ) {
-		rc = indexer( op, txn, &type->sat_cname,
+		rc = indexer( op, txn, ad, &type->sat_cname,
 			vals, id, opid,
 			mask );
 
@@ -301,7 +300,7 @@ static int index_at_values(
 		}
 
 		if( mask ) {
-			rc = indexer( op, txn, &desc->ad_cname,
+			rc = indexer( op, txn, desc, &desc->ad_cname,
 				vals, id, opid,
 				mask );
 
@@ -324,7 +323,7 @@ int bdb_index_values(
 {
 	int rc;
 
-	rc = index_at_values( op, txn,
+	rc = index_at_values( op, txn, desc,
 		desc->ad_type, &desc->ad_tags,
 		vals, id, opid );
 
