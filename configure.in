@@ -284,6 +284,10 @@ AC_PROG_AWK
 OL_PROG_LN_H
 AC_PROG_LN_S
 
+if test "$LN_H" = "cp" -a "$LN_S" = "ln"; then
+	LN_S="$LN_H"
+fi
+
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
