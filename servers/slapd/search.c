@@ -401,8 +401,12 @@ do_search(
 #endif /* LDAP_SLAPI */
 
 	/* actually do the search and send the result(s) */
-	if ( op->o_bd->be_search && limits_check( op, rs ) == 0 ) {
-		(op->o_bd->be_search)( op, rs );
+	if ( op->o_bd->be_search ) {
+		if ( limits_check( op, rs ) == 0 ) {
+			(op->o_bd->be_search)( op, rs );
+		}
+		/* else limits_check() sends error */
+
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
