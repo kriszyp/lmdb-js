@@ -129,6 +129,7 @@ over_back_response ( Operation *op, SlapReply *rs )
 	slap_overinst *on = oi->oi_list;
 	int rc = 0;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
+	slap_callback *sc = op->o_callback->sc_private;
 
 	op->o_bd = &db;
 	for (; on; on=on->on_next ) {
@@ -137,6 +138,10 @@ over_back_response ( Operation *op, SlapReply *rs )
 			rc = on->on_response( op, rs );
 			if ( rc ) break;
 		}
+	}
+	op->o_callback = sc;
+	if ( rc == 0 && sc ) {
+		rc = sc->sc_response( op, rs );
 	}
 	op->o_bd = be;
 	return rc;
@@ -155,12 +160,15 @@ over_op_func(
 {
 	slap_overinfo *oi = (slap_overinfo *) op->o_bd->bd_info;
 	slap_overinst *on = oi->oi_list;
-	int rc = 0;
-	BackendDB *be = op->o_bd, db = *op->o_bd;
 	BI_op_bind **func;
+	BackendDB *be = op->o_bd, db = *op->o_bd;
 	slap_callback cb = {over_back_response, NULL};
+	int rc = 0;
 
 	op->o_bd = &db;
+	cb.sc_private = op->o_callback;
+	op->o_callback = &cb;
+
 	for (; on; on=on->on_next ) {
 		func = &on->on_bi.bi_op_bind;
 		if ( func[which] ) {
@@ -169,6 +177,7 @@ over_op_func(
 			if ( rc ) break;
 		}
 	}
+
 	func = &oi->oi_bi.bi_op_bind;
 	if ( func[which] ) {
 		rc = func[which]( op, rs );
