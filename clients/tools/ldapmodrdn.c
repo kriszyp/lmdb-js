@@ -1,4 +1,16 @@
-/* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP */
+/* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP.
+ *
+ * Support for MODIFYDN REQUEST V3 (newSuperior) by:
+ * 
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
 
 #include "portable.h"
 
@@ -28,15 +40,17 @@ static int domodrdn LDAP_P((
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove));	/* flag: remove old RDN */
+    int		remove,		/* flag: remove old RDN */
+    char	*newSuperior));
 
 int
 main(int argc, char **argv)
 {
-	char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
+	char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ] [-s newSuperior]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
 	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug;
+    char	*newSuperior=NULL;
 
     infile = NULL;
     not = contoper = verbose = remove = want_bindpw = debug = 0;
@@ -45,7 +59,7 @@ main(int argc, char **argv)
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "WkKcnvrh:P:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WkKcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -69,6 +83,10 @@ main(int argc, char **argv)
 	    break;
 	case 'D':	/* bind DN */
 	    binddn = strdup( optarg );
+	    break;
+	case 's':	/* newSuperior */
+	    newSuperior = strdup( optarg );
+	    version = LDAP_VERSION3;	/* This option => force V3 */
 	    break;
 	case 'w':	/* password */
 	    passwd = strdup( optarg );
@@ -111,6 +129,15 @@ main(int argc, char **argv)
 	}
     }
 
+    if ((newSuperior != NULL) && (version != LDAP_VERSION3))
+    {
+	fprintf( stderr,\
+		 "%s: version conflict!, -s newSuperior requires LDAP v3\n",\
+		 myname);
+	fprintf( stderr, usage, argv[0] );
+	exit( 1 );
+    }
+    
     havedn = 0;
     if (argc - optind == 2) {
 	if (( rdn = strdup( argv[argc - 1] )) == NULL ) {
@@ -171,7 +198,7 @@ main(int argc, char **argv)
 
     rc = 0;
     if (havedn)
-	rc = domodrdn(ld, entrydn, rdn, remove);
+	rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	if ( *buf != '\0' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
@@ -181,7 +208,7 @@ main(int argc, char **argv)
                     perror( "strdup" );
                     exit( 1 );
 		}
-		rc = domodrdn(ld, entrydn, rdn, remove);
+		rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
@@ -205,7 +232,8 @@ static int domodrdn(
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove)	/* flag: remove old RDN */
+    int		remove,		/* flag: remove old RDN */
+    char	*newSuperior)
 {
     int	i;
 
@@ -215,12 +243,14 @@ static int domodrdn(
 	    printf("removing old RDN\n");
 	else
 	    printf("keeping old RDN\n");
+	if(newSuperior!=NULL)
+	    printf("placing node under a new parent = %s\n", newSuperior);
     }
 
     if ( !not ) {
-	i = ldap_modrdn2_s( ld, dn, rdn, remove );
+	i = ldap_rename2_s( ld, dn, rdn, remove, newSuperior );
 	if ( i != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_modrdn2_s" );
+	    ldap_perror( ld, "ldap_rename2_s" );
 	} else if ( verbose ) {
 	    printf( "modrdn complete\n" );
 	}
