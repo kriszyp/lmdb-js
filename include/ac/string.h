@@ -11,6 +11,8 @@
 #		define strrchr rindex
 #	endif
 	char *strchr (), *strrchr ();
+	char *strcpy (), *strncpy (), *strcat (), *strncat ();
+	int   strcmp (),  strncmp (),  memcmp ();
 
 #	ifndef HAVE_MEMCPY
 #		define memcpy(d, s, n)			bcopy ((s), (d), (n))
