@@ -532,17 +532,17 @@ acl_mask(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( ber_bvstrcmp( &b->a_dn_pat, &aci_bv_anonymous ) == 0 ) {
+			if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_anonymous ) == 0 ) {
 				if ( op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( ber_bvstrcmp( &b->a_dn_pat, &aci_bv_users ) == 0 ) {
+			} else if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_users ) == 0 ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( ber_bvstrcmp( &b->a_dn_pat, &aci_bv_self ) == 0 ) {
+			} else if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_self ) == 0 ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}

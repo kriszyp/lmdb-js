@@ -174,9 +174,19 @@ retry:	rc = txn_abort( ltid );
 			goto done;
 		}
 
-		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE ) )
-		{
+		rc = access_allowed( be, conn, op, p,
+			children, NULL, ACL_WRITE );
+
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			/* free parent and writer lock */
+			bdb_entry_return( be, p );
+			p = NULL;
+			goto retry;
+		}
+
+		if ( ! rc ) {
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
 				0, 0, 0 );
 			rc = LDAP_INSUFFICIENT_ACCESS;
@@ -242,6 +252,12 @@ retry:	rc = txn_abort( ltid );
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE );
 				p = NULL;
+
+				switch( opinfo.boi_err ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					goto retry;
+				}
 
 				if ( ! rc ) {
 					Debug( LDAP_DEBUG_TRACE,

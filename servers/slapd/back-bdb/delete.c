@@ -131,6 +131,12 @@ retry:	/* transaction retry */
 		bdb_entry_return( be, p );
 		p = NULL;
 
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
 		if ( !rc  ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- bdb_delete: no access to parent\n",
@@ -150,6 +156,12 @@ retry:	/* transaction retry */
 					children, NULL, ACL_WRITE );
 				p = NULL;
 
+				switch( opinfo.boi_err ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					goto retry;
+				}
+
 				if ( !rc  ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"<=- bdb_delete: no access "
@@ -166,6 +178,7 @@ retry:	/* transaction retry */
 				goto return_results;
 			}
 		}
+
 #if 0
 		if ( ltid ) {
 			DBT obj;

@@ -539,6 +539,16 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
 /*
  * mods.c
  */
+LDAP_SLAPD_F( int ) modify_add_values( Entry *e,
+	Modification *mod,
+	const char **text, char *textbuf, size_t textlen );
+LDAP_SLAPD_F( int ) modify_delete_values( Entry *e,
+	Modification *mod,
+	const char **text, char *textbuf, size_t textlen );
+LDAP_SLAPD_F( int ) modify_replace_values( Entry *e,
+	Modification *mod,
+	const char **text, char *textbuf, size_t textlen );
+
 LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
 LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
 LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );

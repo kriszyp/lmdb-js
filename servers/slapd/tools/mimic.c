@@ -192,11 +192,6 @@ void replog( Backend *be, Operation *op,
 	assert(0);
 }
 
-void slap_mods_free( Modifications *ml )
-{
-	assert(0);
-}
-
 int add_replica_info( Backend *be, const char *host )
 {
 	return 0;
