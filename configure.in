@@ -1353,7 +1353,7 @@ int main(argc, argv)
 			CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
 		else
-			AC_MSG_ERROR([could not link with POSIX Threads])
+			AC_MSG_ERROR([could not locate usable POSIX Threads])
 		fi
 	fi
 
