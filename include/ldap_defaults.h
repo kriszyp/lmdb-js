@@ -42,34 +42,6 @@
 #define LDAPI_SOCK LDAP_RUNDIR LDAP_DIRSEP "ldapi"
 
 /*
- * MAIL500 MAILER DEFINITIONS
- */
-	/* max number of ambiguous matches reported */
-#define MAIL500_MAXAMBIGUOUS	10
-	/* max subscribers allowed (size limit when searching for them ) */
-#define MAIL500_MAXGROUPMEMBERS	LDAP_NO_LIMIT
-	/* timeout for all searches */
-#define MAIL500_TIMEOUT		180
-	/* sendmail location - mail500 needs to exec this */
-#define MAIL500_SENDMAIL	LDAP_SENDMAIL
-
-/*
- * UD DEFINITIONS
- */
-	/* default config file locations */
-#define FILTERFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapfilter.conf"
-	/* ud configuration file */
-#define UD_CONFIG_FILE		LDAP_SYSCONFDIR LDAP_DIRSEP "ud.conf"
-	/* default editor */
-#define UD_DEFAULT_EDITOR	LDAP_EDITOR
-	/* default bbasename of user config file */
-#define UD_USER_CONFIG_FILE	".udrc"
-	/* default base where groups are created */
-#define UD_WHERE_GROUPS_ARE_CREATED	""
-	/* default base below which all groups live */
-#define UD_WHERE_ALL_GROUPS_LIVE	""
-
-/*
  * SLAPD DEFINITIONS
  */
 	/* location of the default slapd config file */
