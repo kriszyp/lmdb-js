@@ -173,7 +173,8 @@ main( int argc, char **argv )
 				data.dsize = strlen( buf ) + 1;
 				if ( ldbm_store( db->dbc_db, key, data,
 				    LDBM_INSERT ) != 0 ) {
-					perror( "id2entry ldbm_store" );
+					fputs("id2entry ldbm_store failed\n",
+					      stderr);
 					exit( 1 );
 				}
 			}
