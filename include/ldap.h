@@ -376,7 +376,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_OTHER			0x50
 
-#define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0xff) /* 81+ */
+#define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0x61) /* 81-97 */
 
 #define LDAP_SERVER_DOWN		0x51
 #define LDAP_LOCAL_ERROR		0x52
@@ -389,13 +389,14 @@ typedef struct ldapcontrol {
 #define LDAP_PARAM_ERROR		0x59
 #define LDAP_NO_MEMORY			0x5a
 
-#define LDAP_CONNECT_ERROR				0x5b	/* new */
-#define LDAP_NOT_SUPPORTED				0x5c	/* new */
-#define LDAP_CONTROL_NOT_FOUND			0x5d	/* new */
-#define LDAP_NO_RESULTS_RETURNED		0x5e	/* new */
-#define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* new */
-#define LDAP_CLIENT_LOOP				0x60	/* new */
-#define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* new */
+/* not technically reserved for APIs */
+#define LDAP_CONNECT_ERROR				0x5b	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_NOT_SUPPORTED				0x5c	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_CONTROL_NOT_FOUND			0x5d	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_NO_RESULTS_RETURNED		0x5e	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
+#define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
 
 /*
  * This structure represents both ldap messages and ldap responses.
@@ -612,16 +613,16 @@ ldap_parse_extended_result LDAP_P((
  * in abandon.c:
  */
 LIBLDAP_F( int )
-ldap_abandon LDAP_P((	/* deprecated */
-	LDAP *ld,
-	int msgid ));
-
-LIBLDAP_F( int )
 ldap_abandon_ext LDAP_P((
 	LDAP			*ld,
 	int				msgid,
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls ));
+
+LIBLDAP_F( int )
+ldap_abandon LDAP_P((	/* deprecated */
+	LDAP *ld,
+	int msgid ));
 
 
 /*
@@ -941,27 +942,6 @@ ldap_rename_s LDAP_P((
 	LDAPControl **cctrls ));
 
 LIBLDAP_F( int )
-ldap_rename_ext LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*dn,
-	LDAP_CONST char	*newrdn,
-	LDAP_CONST char	*newparent,
-	int				deleteoldrdn,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	int 			*msgidp ));
-
-LIBLDAP_F( int )
-ldap_rename_ext_s LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*dn,
-	LDAP_CONST char	*newrdn,
-	LDAP_CONST char	*newparent,
-	int				deleteoldrdn,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls ));
-
-LIBLDAP_F( int )
 ldap_rename2 LDAP_P((	/* deprecated */
 	LDAP *ld,
 	LDAP_CONST char *dn,
@@ -1008,12 +988,12 @@ ldap_modrdn2_s LDAP_P((	/* deprecated */
  * in open.c:
  */
 LIBLDAP_F( LDAP *)
-ldap_open LDAP_P((	/* deprecated */
+ldap_init LDAP_P((
 	LDAP_CONST char *host,
 	int port ));
 
 LIBLDAP_F( LDAP *)
-ldap_init LDAP_P((
+ldap_open LDAP_P((	/* deprecated */
 	LDAP_CONST char *host,
 	int port ));
 
@@ -1027,7 +1007,7 @@ ldap_initialize LDAP_P((
 	LDAP_CONST char *url ));
 
 LIBLDAP_F( int )
-ldap_start_tls LDAP_P((
+ldap_start_tls_s LDAP_P((
 	LDAP *ld,
 	LDAPControl **serverctrls,
 	LDAPControl **clientctrls ));
