@@ -119,13 +119,12 @@ main( int argc, char **argv )
 			if( sc == NULL ) {
 				struct berval vals[2];
 
-				/* int ret = */ 
-				structural_class( oc->a_vals, vals,
+				rc = structural_class( oc->a_vals, vals,
 					NULL, &text, textbuf, textlen );
 
-				if( vals[0].bv_len == 0 ) {
-					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-						progname, e->e_dn, lineno, text );
+				if( rc != LDAP_SUCCESS ) {
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+						progname, e->e_dn, lineno, rc, text );
 					rc = EXIT_FAILURE;
 					entry_free( e );
 					if( continuemode ) continue;
@@ -141,8 +140,8 @@ main( int argc, char **argv )
 			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-					progname, e->e_dn, lineno, text );
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+					progname, e->e_dn, lineno, rc, text );
 				rc = EXIT_FAILURE;
 				entry_free( e );
 				if( continuemode ) continue;

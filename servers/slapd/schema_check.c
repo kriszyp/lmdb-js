@@ -550,7 +550,7 @@ int structural_class(
 
 	*scbv = ocs[scn];
 
-	if( scbv->bv_len ) {
+	if( scbv->bv_len == 0 ) {
 		*text = "invalid structural object class";
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
