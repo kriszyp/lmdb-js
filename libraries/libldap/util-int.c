@@ -50,12 +50,12 @@
 #endif
 
 #if defined(HAVE_GETHOSTBYNAME_R) && \
-    (GETHOSTBYNAME_R_NARGS > 6 || GETHOSTBYNAME_R_NARGS < 5)
+	(GETHOSTBYNAME_R_NARGS < 5) || (6 < GETHOSTBYNAME_R_NARGS)
 	/* Don't know how to handle this version, pretend it's not there */
 #	undef HAVE_GETHOSTBYNAME_R
 #endif
 #if defined(HAVE_GETHOSTBYADDR_R) && \
-    (GETHOSTBYADDR_R_NARGS > 8 || GETHOSTBYADDR_R_NARGS < 7)
+	(GETHOSTBYADDR_R_NARGS < 7) || (8 < GETHOSTBYADDR_R_NARGS)
 	/* Don't know how to handle this version, pretend it's not there */
 #	undef HAVE_GETHOSTBYADDR_R
 #endif
