@@ -12,6 +12,8 @@ OpenLDAP 2.1.15 Release
 	Build Environment
 		Updated NT build environment w/ slurpd support
 		Updated test suite
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.14 Release
 	Fixed slapd schema_check name check crash (ITS#2330)
