@@ -159,8 +159,8 @@ str2entry( char *s )
 	e->e_ndn = ch_strdup( e->e_dn );
 	(void) dn_normalize( e->e_ndn );
 
-	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %ld (0x%lx)\n",
-		e->e_dn, e->e_id, (unsigned long)e );
+	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> 0x%lx\n",
+		e->e_dn, (unsigned long) e, 0 );
 
 	return( e );
 }
@@ -223,47 +223,6 @@ entry2str(
 	return( (char *) ebuf );
 }
 
-#if SLAPD_SLEEPY
-int entry_encode(
-	Entry *e,
-	struct berval **bv )
-{
-	int rc = -1;
-	Attribute *a;
-	BerElement *ber;
-	
-	ber = ber_alloc_t( LBER_USE_DER );
-	if( ber == NULL ) {
-		goto done;
-	}
-
-	rc = ber_printf( ber, "{s{" /*"}}"*/, e->e_dn );
-	if( rc < 0 ) {
-		goto done;
-	}
-
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		rc = ber_printf( ber, "{O{V}}",
-			a->a_desc->ad_cname,
-			a->a_vals );
-		if( rc < 0 ) {
-			goto done;
-		}
-	}
-
-	rc = ber_printf( ber, /*"{{"*/ "}}" );
-	if( rc < 0 ) {
-		goto done;
-	}
-
-	rc = ber_flatten( ber, bv );
-
-done:
-	ber_free( ber, 1 );
-	return rc;
-}
-#endif
-
 void
 entry_free( Entry *e )
 {
@@ -318,3 +277,180 @@ entry_id_cmp( Entry *e1, Entry *e2 )
 	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
 }
 
+#define SLAPD_SLEEPY 1
+#ifdef SLAPD_SLEEPY
+
+/* a DER encoded entry looks like:
+ *
+ * entry :== SEQUENCE {
+ *		dn		DistinguishedName,
+ *		ndn		NormalizedDistinguishedName,
+ *		attrs	SEQUENCE OF SEQUENCE {
+ *			type	AttributeType,
+ *			values	SET OF AttributeValue
+ *		}
+ * }
+ *
+ * Encoding/Decoding of DER should be much faster than LDIF
+ */
+
+int entry_decode( struct berval *bv, Entry **entry )
+{
+	int rc;
+	BerElement	*ber;
+	Entry		*e;
+	ber_tag_t	tag;
+	ber_len_t	len;
+	char *last;
+
+	Debug( LDAP_DEBUG_TRACE, "=> entry_decode",
+		0, 0, 0 );
+
+	ber = ber_init( bv );
+	if( ber == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= entry_encode: ber_init failed\n",
+		    0, 0, 0 );
+		return LDAP_LOCAL_ERROR;
+	}
+
+	/* initialize reader/writer lock */
+	e = (Entry *) ch_malloc( sizeof(Entry) );
+
+	if( e == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= entry_encode: entry allocation failed\n",
+		    0, 0, 0 );
+		return LDAP_LOCAL_ERROR;
+	}
+
+	/* initialize entry */
+	e->e_id = NOID;
+	e->e_dn = NULL;
+	e->e_ndn = NULL;
+	e->e_attrs = NULL;
+	e->e_private = NULL;
+
+	rc = ber_scanf( ber, "{ss" /*"}"*/, &e->e_dn, &e->e_ndn );
+	if( rc < 0 ) {
+		free( e );
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* get the attrs */
+	for ( tag = ber_first_element( ber, &len, &last );
+		tag != LBER_DEFAULT;
+	    tag = ber_next_element( ber, &len, last ) )
+	{
+		struct berval *type;
+		struct berval **vals;
+		AttributeDescription *ad;
+		const char *text;
+
+		rc = ber_scanf( ber, "{O{V}}", &type, &vals );
+
+		if ( rc == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_ANY, "entry_decode: decoding error\n", 0, 0, 0 );
+			entry_free( e );
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		if ( vals == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "entry_decode: no values for type %s\n",
+				type, 0, 0 );
+			ber_bvfree( type );
+			entry_free( e );
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		ad = NULL;
+		rc = slap_bv2ad( type, &ad, &text );
+
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<= entry_decode: str2ad(%s): %s\n", type, text, 0 );
+
+			rc = slap_bv2undef_ad( type, &ad, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"<= str2entry: str2undef_ad(%s): %s\n",
+						type, text, 0 );
+				ber_bvfree( type );
+				ber_bvecfree( vals );
+				entry_free( e );
+				return rc;
+			}
+		}
+
+		rc = attr_merge( e, ad, vals );
+		ad_free( ad, 1 );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			    "<= entry_decode: attr_merge failed\n", 0, 0, 0 );
+			ber_bvfree( type );
+			ber_bvecfree( vals );
+			entry_free( e );
+			return LDAP_LOCAL_ERROR;
+		}
+
+		free( type );
+		ber_bvecfree( vals );
+	}
+
+	rc = ber_scanf( ber, /*"{"*/  "}" );
+	if( rc < 0 ) {
+		entry_free( e );
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s) -> 0x%lx\n",
+		e->e_dn, (unsigned long) e, 0 );
+
+	*entry = e;
+	return LDAP_SUCCESS;
+}
+
+int entry_encode(
+	Entry *e,
+	struct berval **bv )
+{
+	int rc = -1;
+	Attribute *a;
+	BerElement *ber;
+	
+	Debug( LDAP_DEBUG_TRACE, "=> entry_encode",
+		0, 0, 0 );
+
+	ber = ber_alloc_t( LBER_USE_DER );
+	if( ber == NULL ) {
+		goto done;
+	}
+
+	rc = ber_printf( ber, "{ss{" /*"}}"*/, e->e_dn, e->e_ndn );
+	if( rc < 0 ) {
+		goto done;
+	}
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		rc = ber_printf( ber, "{O{V}}",
+			a->a_desc->ad_cname,
+			a->a_vals );
+		if( rc < 0 ) {
+			goto done;
+		}
+	}
+
+	rc = ber_printf( ber, /*"{{"*/ "}}" );
+	if( rc < 0 ) {
+		goto done;
+	}
+
+	rc = ber_flatten( ber, bv );
+
+done:
+	ber_free( ber, 1 );
+	return rc;
+}
+#endif
