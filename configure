@@ -2491,7 +2491,7 @@ fi
 	fi
 
 	SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
-	SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e perl_inc`"
+	SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
 fi
 
 echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
