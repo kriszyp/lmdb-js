@@ -120,18 +120,7 @@ ldap_back_db_init(
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
-	mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
-	if ( mapping != NULL ) {
-		ber_str2bv( "objectclass", sizeof("objectclass")-1, 1, &mapping->src);
-		ber_dupbv( &mapping->dst, &mapping->src );
-		mapping[1].src = mapping->src;
-		mapping[1].dst = mapping->dst;
-
-		avl_insert( &li->at_map.map, (caddr_t)mapping,
-					mapping_cmp, mapping_dup );
-		avl_insert( &li->at_map.remap, (caddr_t)&mapping[1],
-					mapping_cmp, mapping_dup );
-	}
+	ldap_back_map_init( &li->at_map, &mapping );
 
 	be->be_private = li;
 

@@ -319,6 +319,33 @@ mapping_dup ( void *c1, void *c2 )
 }
 
 void
+ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping **m )
+{
+	struct ldapmapping *mapping;
+
+	assert( m );
+
+	*m = NULL;
+	
+	mapping = (struct ldapmapping *)ch_calloc( 2, 
+			sizeof( struct ldapmapping ) );
+	if ( mapping == NULL ) {
+		return;
+	}
+
+	ber_str2bv( "objectclass", sizeof("objectclass")-1, 1, &mapping->src);
+	ber_dupbv( &mapping->dst, &mapping->src );
+	mapping[1].src = mapping->src;
+	mapping[1].dst = mapping->dst;
+
+	avl_insert( &lm->map, (caddr_t)mapping, 
+			mapping_cmp, mapping_dup );
+	avl_insert( &lm->remap, (caddr_t)&mapping[1], 
+			mapping_cmp, mapping_dup );
+	*m = mapping;
+}
+
+void
 ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	int remap )
 {

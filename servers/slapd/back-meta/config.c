@@ -99,20 +99,7 @@ new_target( void )
                 return NULL;
 	}
 
-	mapping = ch_calloc( 2, sizeof( struct ldapmapping ) );
-        if ( mapping == NULL ) {
-		free( lt );
-		return NULL;
-	}
-	ber_str2bv( "objectClass", 0, 1, &mapping->src );
-	ber_str2bv( "objectClass", 0, 1, &mapping->dst );
-	mapping[ 1 ].src = mapping->src;
-	mapping[ 1 ].dst = mapping->dst;
-
-	avl_insert( &lt->at_map.map, ( caddr_t )mapping, 
-			mapping_cmp, mapping_dup );
-	avl_insert( &lt->at_map.remap, ( caddr_t )&mapping[ 1 ],
-			mapping_cmp, mapping_dup );
+	ldap_back_map_init( &lt->at_map, &mapping );
 
 	return lt;
 }
@@ -261,9 +248,11 @@ meta_back_db_config(
 		
 		ldap_free_urldesc( ludp );
 
+#if 0
 		fprintf(stderr, "%s: line %d: URI \"%s\", suffix \"%s\"\n",
 			fname, lineno, li->targets[ i ]->uri, 
 			li->targets[ i ]->psuffix.bv_val );
+#endif
 		
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {

@@ -101,6 +101,7 @@ extern int ldap_back_conn_dup( void *c1, void *c2 );
 int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);
 
+void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
 char *
