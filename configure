@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.359 2001/06/08 23:05:37 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.361 2001/06/22 16:10:55 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -17101,7 +17101,6 @@ for ac_func in \
 	sigaction		\
 	signal			\
 	sigset			\
-	snprintf		\
 	strdup			\
 	strerror		\
 	strpbrk			\
@@ -17120,12 +17119,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:17124: checking for $ac_func" >&5
+echo "configure:17123: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17129 "configure"
+#line 17128 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -17149,7 +17148,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:17153: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17152: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -17177,12 +17176,12 @@ done
 for ac_func in getopt
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:17181: checking for $ac_func" >&5
+echo "configure:17180: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17186 "configure"
+#line 17185 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -17206,7 +17205,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:17210: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17209: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -17239,13 +17238,13 @@ fi
 
 # Check Configuration
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:17243: checking declaration of sys_errlist" >&5
+echo "configure:17242: checking declaration of sys_errlist" >&5
 if eval "test \"\${ol_cv_dcl_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 17249 "configure"
+#line 17248 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -17258,7 +17257,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:17262: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:17261: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes
@@ -17281,20 +17280,20 @@ EOF
 
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:17285: checking existence of sys_errlist" >&5
+echo "configure:17284: checking existence of sys_errlist" >&5
 if eval "test \"\${ol_cv_have_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 17291 "configure"
+#line 17290 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:17298: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17297: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else
