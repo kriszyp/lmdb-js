@@ -50,6 +50,7 @@ ldbm_back_modrdn(
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
+	int		isroot = -1;
 	int		rootlock = 0;
 #define CAN_ROLLBACK	-1
 #define MUST_DESTROY	1
@@ -167,14 +168,40 @@ ldbm_back_modrdn(
 		       p_dn, 0, 0 );
 
 	} else {
-		/* no parent, modrdn entry directly under root */
-		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" ) ) {
-			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
-				0, 0, 0);
+		/* no parent, must be root to modify rdn */
+		isroot = be_isroot( be, op->o_ndn );
+		if ( ! be_isroot ) {
+			if ( be_issuffix( be, "" )
+					|| be_isupdate( be, op->o_ndn ) ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+				p = (Entry *)&rootp;
+				
+				rc = access_allowed( be, conn, op, p,
+						children, NULL, ACL_WRITE );
+				p = NULL;
+								
+				/* check parent for "children" acl */
+				if ( ! rc ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_modrdn: no "
+						"access to parent\n", 0, 0, 0 );
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			goto return_results;
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+						NULL, NULL, NULL, NULL );
+					goto return_results;
+				}
+
+			} else {
+				Debug( LDAP_DEBUG_TRACE,
+					"<=- ldbm_back_modrdn: no parent & "
+					"not root\n", 0, 0, 0);
+
+				send_ldap_result( conn, op, 
+					LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
+				goto return_results;
+			}
 		}
 
 		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
@@ -210,55 +237,97 @@ ldbm_back_modrdn(
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-		if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
+		if ( newSuperior[ 0 ] != '\0' ) {
+
+			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
+				       np_ndn, 0, 0);
+
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "newSuperior not found", NULL, NULL );
+				goto return_results;
+			}
+
 			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
-			       np_ndn, 0, 0);
+			       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+			       np, np->e_id, 0 );
 
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "newSuperior not found", NULL, NULL );
-			goto return_results;
-		}
+			/* check newSuperior for "children" acl */
+			if ( !access_allowed( be, conn, op, np, children, NULL,
+					      ACL_WRITE ) )
+			{
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: no wr to newSup children\n",
+				       0, 0, 0 );
 
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-		       np, np->e_id, 0 );
+				send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
+				goto return_results;
+			}
 
-		/* check newSuperior for "children" acl */
-		if ( !access_allowed( be, conn, op, np, children, NULL,
-				      ACL_WRITE ) )
-		{
-			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: no wr to newSup children\n",
-			       0, 0, 0 );
+			if ( is_entry_alias( np ) ) {
+				/* parent is an alias, don't allow add */
+				Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			goto return_results;
-		}
+				send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+				    NULL, "newSuperior is an alias", NULL, NULL );
 
-		if ( is_entry_alias( np ) ) {
-			/* entry is an alias, don't allow bind */
-			Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
-			    0, 0 );
+				goto return_results;
+			}
 
+			if ( is_entry_referral( np ) ) {
+				/* parent is a referral, don't allow add */
+				Debug( LDAP_DEBUG_TRACE, "entry (%s) is referral\n",
+					np->e_dn, 0, 0 );
 
-			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, "newSuperior is an alias", NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				    NULL, "newSuperior is a referral", NULL, NULL );
 
-			goto return_results;
-		}
+				goto return_results;
+			}
 
-		if ( is_entry_referral( np ) ) {
-			/* parent is a referral, don't allow add */
-			/* parent is an alias, don't allow add */
-			Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-				0, 0 );
+		} else {
 
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, "newSuperior is a referral", NULL, NULL );
+			/* no parent, must be root to modify newSuperior */
+			if ( isroot == -1 ) {
+				isroot = be_isroot( be, op->o_ndn );
+			}
 
-			goto return_results;
+			if ( ! be_isroot ) {
+				if ( be_issuffix( be, "" )
+						|| be_isupdate( be, op->o_ndn ) ) {
+					static const Entry rootp = { NOID, "", "", NULL, NULL };
+					np = (Entry *)&rootp;
+				
+					rc = access_allowed( be, conn, op, np,
+							children, NULL, ACL_WRITE );
+					np = NULL;
+								
+					/* check parent for "children" acl */
+					if ( ! rc ) {
+						Debug( LDAP_DEBUG_TRACE,
+							"<=- ldbm_back_modrdn: no "
+							"access to new superior\n", 0, 0, 0 );
+
+						send_ldap_result( conn, op, 
+							LDAP_INSUFFICIENT_ACCESS,
+							NULL, NULL, NULL, NULL );
+						goto return_results;
+					}
+
+				} else {
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_modrdn: \"\" "
+						"not allowed as new superior\n", 
+						0, 0, 0);
+
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+						NULL, NULL, NULL, NULL );
+					goto return_results;
+				}
+			}
 		}
 
 		Debug( LDAP_DEBUG_TRACE,

@@ -506,6 +506,24 @@ be_isroot( Backend *be, const char *ndn )
 	return(rc);
 }
 
+int
+be_isupdate( Backend *be, const char *ndn )
+{
+	int rc;
+
+	if ( ndn == NULL || *ndn == '\0' ) {
+		return( 0 );
+	}
+
+	if ( be->be_update_ndn == NULL || *be->be_update_ndn == '\0' ) {
+		return( 0 );
+	}
+
+	rc = strcmp( be->be_update_ndn, ndn ) ? 0 : 1;
+
+	return(rc);
+}
+
 char *
 be_root_dn( Backend *be )
 {

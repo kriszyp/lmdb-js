@@ -3,9 +3,12 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.19 Engineering
 	Fixed -lldap cacertfile bug
 	Fixed back-ldbm not filter indexing
+	Fixed back-ldbm null suffix bug
 	Fixed back-passwd e_ndn bug (ITS#1467)
+	Fixed back-ldap undef ad bug (ITS#1367)
 	Fixed slapd suffix "" bugs (ITS#1430)
 	Fixed slapd zero length replace bug (ITS#1364)
+	Fixed slapd undefined present filter bug (ITS#1439)
 	Fixed lber realloc bug (ITS#1410)
 	Fixed various memory leaks
 	Updated slapd emfile/enfile handling
@@ -15,6 +18,7 @@ OpenLDAP 2.0.19 Engineering
 		Updated CThread detection (ITS#1440)
 		Updated MAXPATHLEN handling (ITS#1440)
 		Fixed TLS build (ITS#1412)
+		Added BerkeleyDB 4 support
 		Added GNU ar support (ITS#1460)
 
 OpenLDAP 2.0.18 Release
