@@ -93,8 +93,7 @@ relay_back_db_init( Backend *be )
  	}
 
 	ri->ri_bd = NULL;
-	ri->ri_realsuffix.bv_val = NULL;
-	ri->ri_realsuffix.bv_len = 0;
+	BER_BVZERO( &ri->ri_realsuffix );
 	ri->ri_massage = 0;
 
 	be->be_private = (void *)ri;
@@ -109,10 +108,12 @@ relay_back_db_open( Backend *be )
 
 	assert( ri != NULL );
 
-	if ( ri->ri_realsuffix.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
 		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
 		/* must be there: it was during config! */
 		assert( ri->ri_bd );
+
+		/* FIXME: (somehow) copy supported controls ? */
 	}
 
 	return 0;
@@ -130,7 +131,7 @@ relay_back_db_destroy( Backend *be )
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 
 	if ( ri ) {
-		if ( ri->ri_realsuffix.bv_val ) {
+		if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
 			ch_free( ri->ri_realsuffix.bv_val );
 		}
 		ch_free( ri );
