@@ -160,6 +160,16 @@ rewrite_subst_compile(
 			submatch[ nsub ].ls_type =
 				REWRITE_SUBMATCH_MAP_W_ARG;
 			submatch[ nsub ].ls_map = map;
+
+		/*
+		 * Escape '%' ...
+		 */
+		} else if ( p[ 1 ] == '%' ) {
+			AC_MEMCPY( &p[ 1 ], &p[ 2 ], strlen( &p[ 1 ] ) );
+			continue;
+
+		} else {
+			return NULL;
 		}
 
 		nsub++;
