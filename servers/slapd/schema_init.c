@@ -536,14 +536,10 @@ UTF8StringNormalize(
 	/* All space is ASCII. All ASCII is 1 byte */
 	for ( ; p < val->bv_val + val->bv_len && ASCII_SPACE( p[ 0 ] ); p++ );
 
-	normalized->bv_len = val->bv_len - (p - val->bv_val);
-	if ( normalized->bv_len == 0 ) {
-		return LDAP_INVALID_SYNTAX;
-	}
+	ber_mem2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
+	e = normalized->bv_val + val->bv_len - (p - val->bv_val);
 
-	ber_mem2bv( p, normalized->bv_len, 1, normalized );
-	e = normalized->bv_val + normalized->bv_len;
-
+	assert( normalized->bv_len );
 	assert( normalized->bv_val );
 
 	p = q = normalized->bv_val;
