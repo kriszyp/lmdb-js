@@ -17,6 +17,8 @@
 #include "ldap_pvt.h"
 #include "ldap_pvt_uc.h"
 
+#define OCDEBUG 0
+
 int schema_init_done = 0;
 
 struct slap_internal_schema slap_schema;
@@ -36,7 +38,7 @@ static int objectClassNormalize(
 		ber_dupbv( out, in );
 	}
 
-#if 0
+#if OCDEBUG
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONFIG, ENTRY, 
 		"< objectClassNormalize(%s, %s)\n", in->bv_val, out->bv_val, 0 );
@@ -62,7 +64,7 @@ objectSubClassMatch(
 	ObjectClass *oc = oc_bvfind( value );
 	ObjectClass *asserted = oc_bvfind( a );
 
-#if 0
+#if OCDEBUG
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONFIG, ENTRY, 
 		"> objectSubClassMatch(%s, %s)\n", value->bv_val, a->bv_val, 0 );
@@ -94,7 +96,7 @@ objectSubClassMatch(
 		*matchp = !is_object_subclass( asserted, oc );
 	}
 
-#if 0
+#if OCDEBUG
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONFIG, ENTRY, 
 		"< objectSubClassMatch(%s, %s) = %d\n",
@@ -121,17 +123,6 @@ static int objectSubClassIndexer(
 	BerVarray ocvalues;
 	
 	for( noc=0; values[noc].bv_val != NULL; noc++ ) {
-#if 0
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ENTRY, 
-			"> objectSubClassIndexer(%d, %s)\n",
-			noc, values[noc].bv_val, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"> objectSubClassIndexer(%d, %s)\n",
-			noc, values[noc].bv_val, 0 );
-#endif
-#endif
 		/* just count em */;
 	}
 
@@ -139,7 +130,25 @@ static int objectSubClassIndexer(
 	ocvalues = ch_malloc( sizeof( struct berval ) * (noc+16) );
 
 	/* copy listed values (and termination) */
-	AC_MEMCPY( ocvalues, values, sizeof( struct berval ) * noc+1 );
+	for( i=0; i<noc; i++ ) {
+		ObjectClass *oc = oc_bvfind( &values[i] );
+		if( oc ) {
+			ocvalues[i] = oc->soc_cname;
+		} else {
+			ocvalues[i] = values[i];
+		}
+#if OCDEBUG
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONFIG, ENTRY, 
+			"> objectSubClassIndexer(%d, %s)\n",
+			i, ocvalues[i].bv_val, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"> objectSubClassIndexer(%d, %s)\n",
+			i, ocvalues[i].bv_val, 0 );
+#endif
+#endif
+	}
 
 	/* expand values */
 	for( i=0; i<noc; i++ ) {
@@ -187,7 +196,7 @@ static int objectSubClassIndexer(
 				ocvalues[noc].bv_len = 0;
 				ocvalues[noc].bv_val = NULL;
 
-#if 0
+#if OCDEBUG
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, ENTRY, 
 					"< objectSubClassIndexer(%d, %d, %s)\n",
@@ -219,7 +228,35 @@ static int objectSubClassIndexer(
 	return rc;
 }
 
-#define objectSubClassFilter octetStringFilter
+/* Index generation function */
+static int objectSubClassFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertedValue,
+	BerVarray *keysp )
+{
+#if OCDEBUG
+	struct berval *bv = (struct berval *) assertedValue;
+	ObjectClass *oc = oc_bvfind( bv );
+	if( oc ) {
+		bv = &oc->soc_cname;
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( CONFIG, ENTRY, 
+		"< objectSubClassFilter(%s)\n", bv->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "< objectSubClassFilter(%s)\n",
+		bv->bv_val, 0, 0 );
+#endif
+#endif
+
+	return octetStringFilter( use, flags, syntax, mr,
+		prefix, assertedValue, keysp );
+}
 
 static ObjectClassSchemaCheckFN rootDseObjectClass;
 static ObjectClassSchemaCheckFN aliasObjectClass;
@@ -320,7 +357,7 @@ static struct slap_schema_ad_map {
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		NULL, SLAP_AT_FINAL,
 		NULL, objectClassNormalize, objectSubClassMatch,
-			objectSubClassIndexer, NULL,
+			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
 	/* user entry operational attributes */
@@ -331,7 +368,7 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0,
 		NULL, objectClassNormalize, objectSubClassMatch,
-			objectSubClassIndexer, NULL,
+			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 	{ "createTimestamp", "( 2.5.18.1 NAME 'createTimestamp' "
 			"DESC 'RFC2252: time which object was created' "
@@ -851,25 +888,31 @@ slap_schema_load( void )
 			(*adp)->ad_type->sat_flags |= ad_map[i].ssam_flags;
 
 			/* install custom rule routine */
-			if( ad_map[i].ssam_convert ) {
-				(*adp)->ad_type->sat_equality->smr_convert
-					= ad_map[i].ssam_convert;
-			}
-			if( ad_map[i].ssam_normalize ) {
-				(*adp)->ad_type->sat_equality->smr_normalize
-					= ad_map[i].ssam_normalize;
-			}
-			if( ad_map[i].ssam_match ) {
-				(*adp)->ad_type->sat_equality->smr_match
-					= ad_map[i].ssam_match;
-			}
-			if( ad_map[i].ssam_indexer ) {
-				(*adp)->ad_type->sat_equality->smr_indexer
-					= ad_map[i].ssam_indexer;
-			}
-			if( ad_map[i].ssam_filter ) {
-				(*adp)->ad_type->sat_equality->smr_filter
-					= ad_map[i].ssam_filter;
+			if( ad_map[i].ssam_convert ||
+				ad_map[i].ssam_normalize ||
+				ad_map[i].ssam_match ||
+				ad_map[i].ssam_indexer ||
+				ad_map[i].ssam_filter )
+			{
+				MatchingRule *mr = ch_malloc( sizeof( MatchingRule ) );
+				*mr = *(*adp)->ad_type->sat_equality;
+				(*adp)->ad_type->sat_equality = mr;
+				
+				if( ad_map[i].ssam_convert ) {
+					mr->smr_convert = ad_map[i].ssam_convert;
+				}
+				if( ad_map[i].ssam_normalize ) {
+					mr->smr_normalize = ad_map[i].ssam_normalize;
+				}
+				if( ad_map[i].ssam_match ) {
+					mr->smr_match = ad_map[i].ssam_match;
+				}
+				if( ad_map[i].ssam_indexer ) {
+					mr->smr_indexer = ad_map[i].ssam_indexer;
+				}
+				if( ad_map[i].ssam_filter ) {
+					mr->smr_filter = ad_map[i].ssam_filter;
+				}
 			}
 		}
 	}

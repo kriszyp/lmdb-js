@@ -264,3 +264,8 @@ postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
 telephonenumber: +1 313 764-1817
 associateddomain: umich.edu
 
+dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michiga
+ n,c=US
+objectClass: OpenLDAPperson
+uid: uham
+
