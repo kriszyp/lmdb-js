@@ -50,7 +50,7 @@ dn2id_add(
 	data.dsize = sizeof(ID);
 
 	flags = LDBM_INSERT;
-	if ( li->li_flush_wrt ) flags |= LDBM_SYNC;
+	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 
 	rc = ldbm_cache_store( db, key, data, flags );
 

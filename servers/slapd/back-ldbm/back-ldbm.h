@@ -110,7 +110,7 @@ struct ldbminfo {
 	struct cache		li_cache;
 	Avlnode			*li_attrs;
 	int			li_dbcachesize;
-	int			li_flush_wrt;
+	int			li_dbcachewsync;
 	struct dbcache		li_dbcache[MAXDBCACHE];
 	pthread_mutex_t		li_dbcache_mutex;
 	pthread_cond_t		li_dbcache_cv;
