@@ -273,7 +273,7 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		rc = access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE, NULL ) );
+			children, NULL, ACL_WRITE, NULL );
 
 		if ( ! rc ) {
 			rc = LDAP_INSUFFICIENT_ACCESS;
