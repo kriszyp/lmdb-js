@@ -215,9 +215,12 @@ static int search_aliases(
 			ida = bdb_idl_next(curscop, &cursora))
 		{
 			ei = NULL;
+retry1:
 			rs->sr_err = bdb_cache_find_id(op, NULL,
 				ida, &ei, 0, locker, &lockr );
 			if (rs->sr_err != LDAP_SUCCESS) {
+				if ( rs->sr_err == DB_LOCK_DEADLOCK ||
+					rs->sr_err == DB_LOCK_NOTGRANTED ) goto retry1;
 				continue;
 			}
 			a = ei->bei_e;
@@ -281,9 +284,15 @@ nextido:
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
 		ei = NULL;
+sameido:
 		rs->sr_err = bdb_cache_find_id(op, NULL, ido, &ei,
 			0, locker, &locka );
-		if ( rs->sr_err != LDAP_SUCCESS ) goto nextido;
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			if ( rs->sr_err == DB_LOCK_DEADLOCK ||
+				rs->sr_err == DB_LOCK_NOTGRANTED )
+				goto sameido;
+			goto nextido;
+		}
 		e = ei->bei_e;
 	}
 	return rs->sr_err;

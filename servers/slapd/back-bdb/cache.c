@@ -692,9 +692,11 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 					/* Give up original read lock, obtain write lock with
 					 * (possibly) new locker ID.
 					 */
-					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker2,
-						*eip, 1, 0, lock );
-					if (!ep) {
+				    if ( rc == 0 ) {
+						rc = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker2,
+							*eip, 1, 0, lock );
+					}
+					if ( rc == 0 && !ep) {
 						rc = bdb_id2entry( op->o_bd, ltid, id, &ep );
 					}
 					if ( rc == 0 ) {
@@ -708,7 +710,7 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
-						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+						rc = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 							*eip, 0, 0, lock );
 					} else {
 						/* Otherwise, release the lock. */
