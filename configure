@@ -8240,7 +8240,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:8244: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:8244: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   :
 else
@@ -9316,7 +9316,7 @@ main()
 	return rc;
 }
 EOF
-if { (eval echo configure:9320: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9320: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_c_posix_regex=yes
 else
@@ -11394,7 +11394,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:11398: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11398: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_create=yes
 else
@@ -11581,7 +11581,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:11585: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11585: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_kthread=yes
 else
@@ -11773,7 +11773,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:11777: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11777: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_pthread=yes
 else
@@ -11965,7 +11965,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:11969: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11969: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_pthreads=yes
 else
@@ -12157,7 +12157,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12161: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:12161: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_mthreads=yes
 else
@@ -12349,7 +12349,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12353: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:12353: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_thread=yes
 else
@@ -12542,7 +12542,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12546: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:12546: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthread_lmach_lexc_lc_r=yes
 else
@@ -12734,7 +12734,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12738: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:12738: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthread_lmach_lexc=yes
 else
@@ -12927,7 +12927,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:12931: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:12931: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lib_lpthread_woff=yes
 else
@@ -13120,7 +13120,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13124: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13124: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthread=yes
 else
@@ -13312,7 +13312,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13316: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13316: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lc_r=yes
 else
@@ -13505,7 +13505,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13509: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13509: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_threads=yes
 else
@@ -13698,7 +13698,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13702: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13702: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthreads_lmach_lexc_lc_r=yes
 else
@@ -13890,7 +13890,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:13894: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13894: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthreads_lmach_lexc=yes
 else
@@ -14082,7 +14082,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14086: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:14086: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lpthreads_lexc=yes
 else
@@ -14275,7 +14275,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14279: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:14279: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_lib_lpthreads=yes
 else
@@ -14761,7 +14761,7 @@ int main(argc, argv)
 }
 
 EOF
-if { (eval echo configure:14765: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:14765: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_create_works=yes
 else
@@ -14869,7 +14869,7 @@ int main(argc, argv)
 	exit(2);
 }
 EOF
-if { (eval echo configure:14873: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:14873: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_pthread_select_yields=no
 else
@@ -16351,13 +16351,13 @@ echo "$ac_t""$ol_cv_db_none" 1>&6
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb42)""... $ac_c" 1>&6
-echo "configure:16356: checking for Berkeley DB link (-ldb42)" >&5
-if eval "test \"\${ol_cv_db_db42+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb43)""... $ac_c" 1>&6
+echo "configure:16356: checking for Berkeley DB link (-ldb43)" >&5
+if eval "test \"\${ol_cv_db_db43+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb42
+	ol_DB_LIB=-ldb43
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16411,12 +16411,12 @@ int main() {
 EOF
 if { (eval echo configure:16413: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db42=yes
+  ol_cv_db_db43=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db42=no
+  ol_cv_db_db43=no
 fi
 rm -f conftest*
 
@@ -16424,21 +16424,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db42" 1>&6
+echo "$ac_t""$ol_cv_db_db43" 1>&6
 
-	if test $ol_cv_db_db42 = yes ; then
-		ol_cv_lib_db=-ldb42
+	if test $ol_cv_db_db43 = yes ; then
+		ol_cv_lib_db=-ldb43
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-42)""... $ac_c" 1>&6
-echo "configure:16437: checking for Berkeley DB link (-ldb-42)" >&5
-if eval "test \"\${ol_cv_db_db_42+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-43)""... $ac_c" 1>&6
+echo "configure:16437: checking for Berkeley DB link (-ldb-43)" >&5
+if eval "test \"\${ol_cv_db_db_43+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-42
+	ol_DB_LIB=-ldb-43
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16492,12 +16492,12 @@ int main() {
 EOF
 if { (eval echo configure:16494: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_42=yes
+  ol_cv_db_db_43=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_42=no
+  ol_cv_db_db_43=no
 fi
 rm -f conftest*
 
@@ -16505,21 +16505,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_42" 1>&6
+echo "$ac_t""$ol_cv_db_db_43" 1>&6
 
-	if test $ol_cv_db_db_42 = yes ; then
-		ol_cv_lib_db=-ldb-42
+	if test $ol_cv_db_db_43 = yes ; then
+		ol_cv_lib_db=-ldb-43
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4.2)""... $ac_c" 1>&6
-echo "configure:16518: checking for Berkeley DB link (-ldb-4.2)" >&5
-if eval "test \"\${ol_cv_db_db_4_dot_2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.3)""... $ac_c" 1>&6
+echo "configure:16518: checking for Berkeley DB link (-ldb-4.3)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4.2
+	ol_DB_LIB=-ldb-4.3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16573,12 +16573,12 @@ int main() {
 EOF
 if { (eval echo configure:16575: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_dot_2=yes
+  ol_cv_db_db_4_dot_3=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_dot_2=no
+  ol_cv_db_db_4_dot_3=no
 fi
 rm -f conftest*
 
@@ -16586,21 +16586,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_dot_2" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_dot_3" 1>&6
 
-	if test $ol_cv_db_db_4_dot_2 = yes ; then
-		ol_cv_lib_db=-ldb-4.2
+	if test $ol_cv_db_db_4_dot_3 = yes ; then
+		ol_cv_lib_db=-ldb-4.3
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4-2)""... $ac_c" 1>&6
-echo "configure:16599: checking for Berkeley DB link (-ldb-4-2)" >&5
-if eval "test \"\${ol_cv_db_db_4_2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-3)""... $ac_c" 1>&6
+echo "configure:16599: checking for Berkeley DB link (-ldb-4-3)" >&5
+if eval "test \"\${ol_cv_db_db_4_3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4-2
+	ol_DB_LIB=-ldb-4-3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16654,12 +16654,12 @@ int main() {
 EOF
 if { (eval echo configure:16656: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_2=yes
+  ol_cv_db_db_4_3=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_2=no
+  ol_cv_db_db_4_3=no
 fi
 rm -f conftest*
 
@@ -16667,21 +16667,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_2" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_3" 1>&6
 
-	if test $ol_cv_db_db_4_2 = yes ; then
-		ol_cv_lib_db=-ldb-4-2
+	if test $ol_cv_db_db_4_3 = yes ; then
+		ol_cv_lib_db=-ldb-4-3
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4)""... $ac_c" 1>&6
-echo "configure:16680: checking for Berkeley DB link (-ldb-4)" >&5
-if eval "test \"\${ol_cv_db_db_4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb42)""... $ac_c" 1>&6
+echo "configure:16680: checking for Berkeley DB link (-ldb42)" >&5
+if eval "test \"\${ol_cv_db_db42+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4
+	ol_DB_LIB=-ldb42
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16735,12 +16735,12 @@ int main() {
 EOF
 if { (eval echo configure:16737: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4=yes
+  ol_cv_db_db42=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4=no
+  ol_cv_db_db42=no
 fi
 rm -f conftest*
 
@@ -16748,21 +16748,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4" 1>&6
+echo "$ac_t""$ol_cv_db_db42" 1>&6
 
-	if test $ol_cv_db_db_4 = yes ; then
-		ol_cv_lib_db=-ldb-4
+	if test $ol_cv_db_db42 = yes ; then
+		ol_cv_lib_db=-ldb42
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
-echo "configure:16761: checking for Berkeley DB link (-ldb4)" >&5
-if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-42)""... $ac_c" 1>&6
+echo "configure:16761: checking for Berkeley DB link (-ldb-42)" >&5
+if eval "test \"\${ol_cv_db_db_42+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb4
+	ol_DB_LIB=-ldb-42
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16816,12 +16816,12 @@ int main() {
 EOF
 if { (eval echo configure:16818: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db4=yes
+  ol_cv_db_db_42=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db4=no
+  ol_cv_db_db_42=no
 fi
 rm -f conftest*
 
@@ -16829,21 +16829,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db4" 1>&6
+echo "$ac_t""$ol_cv_db_db_42" 1>&6
 
-	if test $ol_cv_db_db4 = yes ; then
-		ol_cv_lib_db=-ldb4
+	if test $ol_cv_db_db_42 = yes ; then
+		ol_cv_lib_db=-ldb-42
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:16842: checking for Berkeley DB link (-ldb)" >&5
-if eval "test \"\${ol_cv_db_db+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.2)""... $ac_c" 1>&6
+echo "configure:16842: checking for Berkeley DB link (-ldb-4.2)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb
+	ol_DB_LIB=-ldb-4.2
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16897,12 +16897,12 @@ int main() {
 EOF
 if { (eval echo configure:16899: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db=yes
+  ol_cv_db_db_4_dot_2=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db=no
+  ol_cv_db_db_4_dot_2=no
 fi
 rm -f conftest*
 
@@ -16910,21 +16910,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_dot_2" 1>&6
 
-	if test $ol_cv_db_db = yes ; then
-		ol_cv_lib_db=-ldb
+	if test $ol_cv_db_db_4_dot_2 = yes ; then
+		ol_cv_lib_db=-ldb-4.2
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb41)""... $ac_c" 1>&6
-echo "configure:16923: checking for Berkeley DB link (-ldb41)" >&5
-if eval "test \"\${ol_cv_db_db41+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-2)""... $ac_c" 1>&6
+echo "configure:16923: checking for Berkeley DB link (-ldb-4-2)" >&5
+if eval "test \"\${ol_cv_db_db_4_2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb41
+	ol_DB_LIB=-ldb-4-2
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -16978,12 +16978,12 @@ int main() {
 EOF
 if { (eval echo configure:16980: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db41=yes
+  ol_cv_db_db_4_2=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db41=no
+  ol_cv_db_db_4_2=no
 fi
 rm -f conftest*
 
@@ -16991,21 +16991,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db41" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_2" 1>&6
 
-	if test $ol_cv_db_db41 = yes ; then
-		ol_cv_lib_db=-ldb41
+	if test $ol_cv_db_db_4_2 = yes ; then
+		ol_cv_lib_db=-ldb-4-2
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-41)""... $ac_c" 1>&6
-echo "configure:17004: checking for Berkeley DB link (-ldb-41)" >&5
-if eval "test \"\${ol_cv_db_db_41+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4)""... $ac_c" 1>&6
+echo "configure:17004: checking for Berkeley DB link (-ldb-4)" >&5
+if eval "test \"\${ol_cv_db_db_4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-41
+	ol_DB_LIB=-ldb-4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17059,12 +17059,12 @@ int main() {
 EOF
 if { (eval echo configure:17061: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_41=yes
+  ol_cv_db_db_4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_41=no
+  ol_cv_db_db_4=no
 fi
 rm -f conftest*
 
@@ -17072,21 +17072,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_41" 1>&6
+echo "$ac_t""$ol_cv_db_db_4" 1>&6
 
-	if test $ol_cv_db_db_41 = yes ; then
-		ol_cv_lib_db=-ldb-41
+	if test $ol_cv_db_db_4 = yes ; then
+		ol_cv_lib_db=-ldb-4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4.1)""... $ac_c" 1>&6
-echo "configure:17085: checking for Berkeley DB link (-ldb-4.1)" >&5
-if eval "test \"\${ol_cv_db_db_4_dot_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
+echo "configure:17085: checking for Berkeley DB link (-ldb4)" >&5
+if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4.1
+	ol_DB_LIB=-ldb4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17140,12 +17140,12 @@ int main() {
 EOF
 if { (eval echo configure:17142: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_dot_1=yes
+  ol_cv_db_db4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_dot_1=no
+  ol_cv_db_db4=no
 fi
 rm -f conftest*
 
@@ -17153,21 +17153,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_dot_1" 1>&6
+echo "$ac_t""$ol_cv_db_db4" 1>&6
 
-	if test $ol_cv_db_db_4_dot_1 = yes ; then
-		ol_cv_lib_db=-ldb-4.1
+	if test $ol_cv_db_db4 = yes ; then
+		ol_cv_lib_db=-ldb4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4-1)""... $ac_c" 1>&6
-echo "configure:17166: checking for Berkeley DB link (-ldb-4-1)" >&5
-if eval "test \"\${ol_cv_db_db_4_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
+echo "configure:17166: checking for Berkeley DB link (-ldb)" >&5
+if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4-1
+	ol_DB_LIB=-ldb
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17221,12 +17221,12 @@ int main() {
 EOF
 if { (eval echo configure:17223: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_1=yes
+  ol_cv_db_db=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_1=no
+  ol_cv_db_db=no
 fi
 rm -f conftest*
 
@@ -17234,21 +17234,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_1" 1>&6
+echo "$ac_t""$ol_cv_db_db" 1>&6
 
-	if test $ol_cv_db_db_4_1 = yes ; then
-		ol_cv_lib_db=-ldb-4-1
+	if test $ol_cv_db_db = yes ; then
+		ol_cv_lib_db=-ldb
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
-echo "configure:17247: checking for Berkeley DB link (-ldb3)" >&5
-if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb41)""... $ac_c" 1>&6
+echo "configure:17247: checking for Berkeley DB link (-ldb41)" >&5
+if eval "test \"\${ol_cv_db_db41+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb3
+	ol_DB_LIB=-ldb41
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17302,12 +17302,12 @@ int main() {
 EOF
 if { (eval echo configure:17304: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db3=yes
+  ol_cv_db_db41=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db3=no
+  ol_cv_db_db41=no
 fi
 rm -f conftest*
 
@@ -17315,21 +17315,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db3" 1>&6
+echo "$ac_t""$ol_cv_db_db41" 1>&6
 
-	if test $ol_cv_db_db3 = yes ; then
-		ol_cv_lib_db=-ldb3
+	if test $ol_cv_db_db41 = yes ; then
+		ol_cv_lib_db=-ldb41
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-3)""... $ac_c" 1>&6
-echo "configure:17328: checking for Berkeley DB link (-ldb-3)" >&5
-if eval "test \"\${ol_cv_db_db_3+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-41)""... $ac_c" 1>&6
+echo "configure:17328: checking for Berkeley DB link (-ldb-41)" >&5
+if eval "test \"\${ol_cv_db_db_41+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-3
+	ol_DB_LIB=-ldb-41
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17383,12 +17383,12 @@ int main() {
 EOF
 if { (eval echo configure:17385: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_3=yes
+  ol_cv_db_db_41=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_3=no
+  ol_cv_db_db_41=no
 fi
 rm -f conftest*
 
@@ -17396,21 +17396,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_3" 1>&6
+echo "$ac_t""$ol_cv_db_db_41" 1>&6
 
-	if test $ol_cv_db_db_3 = yes ; then
-		ol_cv_lib_db=-ldb-3
+	if test $ol_cv_db_db_41 = yes ; then
+		ol_cv_lib_db=-ldb-41
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
-echo "configure:17409: checking for Berkeley DB link (-ldb2)" >&5
-if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.1)""... $ac_c" 1>&6
+echo "configure:17409: checking for Berkeley DB link (-ldb-4.1)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_1+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb2
+	ol_DB_LIB=-ldb-4.1
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17464,12 +17464,12 @@ int main() {
 EOF
 if { (eval echo configure:17466: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db2=yes
+  ol_cv_db_db_4_dot_1=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db2=no
+  ol_cv_db_db_4_dot_1=no
 fi
 rm -f conftest*
 
@@ -17477,21 +17477,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db2" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_dot_1" 1>&6
 
-	if test $ol_cv_db_db2 = yes ; then
-		ol_cv_lib_db=-ldb2
+	if test $ol_cv_db_db_4_dot_1 = yes ; then
+		ol_cv_lib_db=-ldb-4.1
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-2)""... $ac_c" 1>&6
-echo "configure:17490: checking for Berkeley DB link (-ldb-2)" >&5
-if eval "test \"\${ol_cv_db_db_2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-1)""... $ac_c" 1>&6
+echo "configure:17490: checking for Berkeley DB link (-ldb-4-1)" >&5
+if eval "test \"\${ol_cv_db_db_4_1+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-2
+	ol_DB_LIB=-ldb-4-1
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17545,12 +17545,12 @@ int main() {
 EOF
 if { (eval echo configure:17547: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_2=yes
+  ol_cv_db_db_4_1=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_2=no
+  ol_cv_db_db_4_1=no
 fi
 rm -f conftest*
 
@@ -17558,21 +17558,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_2" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_1" 1>&6
 
-	if test $ol_cv_db_db_2 = yes ; then
-		ol_cv_lib_db=-ldb-2
+	if test $ol_cv_db_db_4_1 = yes ; then
+		ol_cv_lib_db=-ldb-4-1
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
-echo "configure:17571: checking for Berkeley DB link (-ldb1)" >&5
-if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
+echo "configure:17571: checking for Berkeley DB link (-ldb3)" >&5
+if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb1
+	ol_DB_LIB=-ldb3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17626,12 +17626,12 @@ int main() {
 EOF
 if { (eval echo configure:17628: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db1=yes
+  ol_cv_db_db3=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db1=no
+  ol_cv_db_db3=no
 fi
 rm -f conftest*
 
@@ -17639,21 +17639,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db1" 1>&6
+echo "$ac_t""$ol_cv_db_db3" 1>&6
 
-	if test $ol_cv_db_db1 = yes ; then
-		ol_cv_lib_db=-ldb1
+	if test $ol_cv_db_db3 = yes ; then
+		ol_cv_lib_db=-ldb3
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-1)""... $ac_c" 1>&6
-echo "configure:17652: checking for Berkeley DB link (-ldb-1)" >&5
-if eval "test \"\${ol_cv_db_db_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-3)""... $ac_c" 1>&6
+echo "configure:17652: checking for Berkeley DB link (-ldb-3)" >&5
+if eval "test \"\${ol_cv_db_db_3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-1
+	ol_DB_LIB=-ldb-3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -17707,6 +17707,330 @@ int main() {
 EOF
 if { (eval echo configure:17709: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
+  ol_cv_db_db_3=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_3=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_3" 1>&6
+
+	if test $ol_cv_db_db_3 = yes ; then
+		ol_cv_lib_db=-ldb-3
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
+echo "configure:17733: checking for Berkeley DB link (-ldb2)" >&5
+if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb2
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 17743 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:17790: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db2=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db2=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db2" 1>&6
+
+	if test $ol_cv_db_db2 = yes ; then
+		ol_cv_lib_db=-ldb2
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-2)""... $ac_c" 1>&6
+echo "configure:17814: checking for Berkeley DB link (-ldb-2)" >&5
+if eval "test \"\${ol_cv_db_db_2+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-2
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 17824 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:17871: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db_2=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_2=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_2" 1>&6
+
+	if test $ol_cv_db_db_2 = yes ; then
+		ol_cv_lib_db=-ldb-2
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
+echo "configure:17895: checking for Berkeley DB link (-ldb1)" >&5
+if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 17905 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:17952: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db1=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db1=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db1" 1>&6
+
+	if test $ol_cv_db_db1 = yes ; then
+		ol_cv_lib_db=-ldb1
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-1)""... $ac_c" 1>&6
+echo "configure:17976: checking for Berkeley DB link (-ldb-1)" >&5
+if eval "test \"\${ol_cv_db_db_1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 17986 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:18033: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
   ol_cv_db_db_1=yes
 else
   echo "configure: failed program was:" >&5
@@ -17740,17 +18064,17 @@ for ac_hdr in db.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:17744: checking for $ac_hdr" >&5
+echo "configure:18068: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17749 "configure"
+#line 18073 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:17754: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:18078: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -17780,336 +18104,12 @@ if test $ac_cv_header_db_h = yes; then
 	ol_cv_lib_db=no
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (default)""... $ac_c" 1>&6
-echo "configure:17784: checking for Berkeley DB link (default)" >&5
+echo "configure:18108: checking for Berkeley DB link (default)" >&5
 if eval "test \"\${ol_cv_db_none+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	ol_DB_LIB=
-	ol_LIBS=$LIBS
-	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
-
-	cat > conftest.$ac_ext <<EOF
-#line 17794 "configure"
-#include "confdefs.h"
-
-#ifdef HAVE_DB_185_H
-# include <db_185.h>
-#else
-# include <db.h>
-#endif
-
-#ifndef DB_VERSION_MAJOR
-# define DB_VERSION_MAJOR 1
-#endif
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
-int main() {
-
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
-#if DB_VERSION_MAJOR > 2
-	db_env_create( NULL, 0 );
-#elif DB_VERSION_MAJOR > 1
-	db_appexit( NULL );
-#else
-	(void) dbopen( NULL, 0, 0, 0, NULL);
-#endif
-
-; return 0; }
-EOF
-if { (eval echo configure:17841: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-  rm -rf conftest*
-  ol_cv_db_none=yes
-else
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  ol_cv_db_none=no
-fi
-rm -f conftest*
-
-	LIBS="$ol_LIBS"
-
-fi
-
-echo "$ac_t""$ol_cv_db_none" 1>&6
-
-	if test $ol_cv_db_none = yes ; then
-		ol_cv_lib_db=yes
-	fi
-fi
-
-if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb42)""... $ac_c" 1>&6
-echo "configure:17865: checking for Berkeley DB link (-ldb42)" >&5
-if eval "test \"\${ol_cv_db_db42+set}\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  
-	ol_DB_LIB=-ldb42
-	ol_LIBS=$LIBS
-	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
-
-	cat > conftest.$ac_ext <<EOF
-#line 17875 "configure"
-#include "confdefs.h"
-
-#ifdef HAVE_DB_185_H
-# include <db_185.h>
-#else
-# include <db.h>
-#endif
-
-#ifndef DB_VERSION_MAJOR
-# define DB_VERSION_MAJOR 1
-#endif
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
-int main() {
-
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
-#if DB_VERSION_MAJOR > 2
-	db_env_create( NULL, 0 );
-#elif DB_VERSION_MAJOR > 1
-	db_appexit( NULL );
-#else
-	(void) dbopen( NULL, 0, 0, 0, NULL);
-#endif
-
-; return 0; }
-EOF
-if { (eval echo configure:17922: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-  rm -rf conftest*
-  ol_cv_db_db42=yes
-else
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  ol_cv_db_db42=no
-fi
-rm -f conftest*
-
-	LIBS="$ol_LIBS"
-
-fi
-
-echo "$ac_t""$ol_cv_db_db42" 1>&6
-
-	if test $ol_cv_db_db42 = yes ; then
-		ol_cv_lib_db=-ldb42
-	fi
-fi
-
-if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-42)""... $ac_c" 1>&6
-echo "configure:17946: checking for Berkeley DB link (-ldb-42)" >&5
-if eval "test \"\${ol_cv_db_db_42+set}\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  
-	ol_DB_LIB=-ldb-42
-	ol_LIBS=$LIBS
-	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
-
-	cat > conftest.$ac_ext <<EOF
-#line 17956 "configure"
-#include "confdefs.h"
-
-#ifdef HAVE_DB_185_H
-# include <db_185.h>
-#else
-# include <db.h>
-#endif
-
-#ifndef DB_VERSION_MAJOR
-# define DB_VERSION_MAJOR 1
-#endif
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
-int main() {
-
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
-#if DB_VERSION_MAJOR > 2
-	db_env_create( NULL, 0 );
-#elif DB_VERSION_MAJOR > 1
-	db_appexit( NULL );
-#else
-	(void) dbopen( NULL, 0, 0, 0, NULL);
-#endif
-
-; return 0; }
-EOF
-if { (eval echo configure:18003: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-  rm -rf conftest*
-  ol_cv_db_db_42=yes
-else
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  ol_cv_db_db_42=no
-fi
-rm -f conftest*
-
-	LIBS="$ol_LIBS"
-
-fi
-
-echo "$ac_t""$ol_cv_db_db_42" 1>&6
-
-	if test $ol_cv_db_db_42 = yes ; then
-		ol_cv_lib_db=-ldb-42
-	fi
-fi
-
-if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4.2)""... $ac_c" 1>&6
-echo "configure:18027: checking for Berkeley DB link (-ldb-4.2)" >&5
-if eval "test \"\${ol_cv_db_db_4_dot_2+set}\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  
-	ol_DB_LIB=-ldb-4.2
-	ol_LIBS=$LIBS
-	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
-
-	cat > conftest.$ac_ext <<EOF
-#line 18037 "configure"
-#include "confdefs.h"
-
-#ifdef HAVE_DB_185_H
-# include <db_185.h>
-#else
-# include <db.h>
-#endif
-
-#ifndef DB_VERSION_MAJOR
-# define DB_VERSION_MAJOR 1
-#endif
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
-int main() {
-
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
-#if DB_VERSION_MAJOR > 2
-	db_env_create( NULL, 0 );
-#elif DB_VERSION_MAJOR > 1
-	db_appexit( NULL );
-#else
-	(void) dbopen( NULL, 0, 0, 0, NULL);
-#endif
-
-; return 0; }
-EOF
-if { (eval echo configure:18084: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-  rm -rf conftest*
-  ol_cv_db_db_4_dot_2=yes
-else
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  ol_cv_db_db_4_dot_2=no
-fi
-rm -f conftest*
-
-	LIBS="$ol_LIBS"
-
-fi
-
-echo "$ac_t""$ol_cv_db_db_4_dot_2" 1>&6
-
-	if test $ol_cv_db_db_4_dot_2 = yes ; then
-		ol_cv_lib_db=-ldb-4.2
-	fi
-fi
-
-if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4-2)""... $ac_c" 1>&6
-echo "configure:18108: checking for Berkeley DB link (-ldb-4-2)" >&5
-if eval "test \"\${ol_cv_db_db_4_2+set}\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  
-	ol_DB_LIB=-ldb-4-2
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18163,12 +18163,12 @@ int main() {
 EOF
 if { (eval echo configure:18165: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_2=yes
+  ol_cv_db_none=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_2=no
+  ol_cv_db_none=no
 fi
 rm -f conftest*
 
@@ -18176,21 +18176,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_2" 1>&6
+echo "$ac_t""$ol_cv_db_none" 1>&6
 
-	if test $ol_cv_db_db_4_2 = yes ; then
-		ol_cv_lib_db=-ldb-4-2
+	if test $ol_cv_db_none = yes ; then
+		ol_cv_lib_db=yes
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4)""... $ac_c" 1>&6
-echo "configure:18189: checking for Berkeley DB link (-ldb-4)" >&5
-if eval "test \"\${ol_cv_db_db_4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb43)""... $ac_c" 1>&6
+echo "configure:18189: checking for Berkeley DB link (-ldb43)" >&5
+if eval "test \"\${ol_cv_db_db43+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4
+	ol_DB_LIB=-ldb43
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18244,12 +18244,12 @@ int main() {
 EOF
 if { (eval echo configure:18246: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4=yes
+  ol_cv_db_db43=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4=no
+  ol_cv_db_db43=no
 fi
 rm -f conftest*
 
@@ -18257,21 +18257,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4" 1>&6
+echo "$ac_t""$ol_cv_db_db43" 1>&6
 
-	if test $ol_cv_db_db_4 = yes ; then
-		ol_cv_lib_db=-ldb-4
+	if test $ol_cv_db_db43 = yes ; then
+		ol_cv_lib_db=-ldb43
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
-echo "configure:18270: checking for Berkeley DB link (-ldb4)" >&5
-if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-43)""... $ac_c" 1>&6
+echo "configure:18270: checking for Berkeley DB link (-ldb-43)" >&5
+if eval "test \"\${ol_cv_db_db_43+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb4
+	ol_DB_LIB=-ldb-43
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18325,12 +18325,12 @@ int main() {
 EOF
 if { (eval echo configure:18327: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db4=yes
+  ol_cv_db_db_43=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db4=no
+  ol_cv_db_db_43=no
 fi
 rm -f conftest*
 
@@ -18338,21 +18338,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db4" 1>&6
+echo "$ac_t""$ol_cv_db_db_43" 1>&6
 
-	if test $ol_cv_db_db4 = yes ; then
-		ol_cv_lib_db=-ldb4
+	if test $ol_cv_db_db_43 = yes ; then
+		ol_cv_lib_db=-ldb-43
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:18351: checking for Berkeley DB link (-ldb)" >&5
-if eval "test \"\${ol_cv_db_db+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.3)""... $ac_c" 1>&6
+echo "configure:18351: checking for Berkeley DB link (-ldb-4.3)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb
+	ol_DB_LIB=-ldb-4.3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18406,12 +18406,12 @@ int main() {
 EOF
 if { (eval echo configure:18408: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db=yes
+  ol_cv_db_db_4_dot_3=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db=no
+  ol_cv_db_db_4_dot_3=no
 fi
 rm -f conftest*
 
@@ -18419,21 +18419,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_dot_3" 1>&6
 
-	if test $ol_cv_db_db = yes ; then
-		ol_cv_lib_db=-ldb
+	if test $ol_cv_db_db_4_dot_3 = yes ; then
+		ol_cv_lib_db=-ldb-4.3
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb41)""... $ac_c" 1>&6
-echo "configure:18432: checking for Berkeley DB link (-ldb41)" >&5
-if eval "test \"\${ol_cv_db_db41+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-3)""... $ac_c" 1>&6
+echo "configure:18432: checking for Berkeley DB link (-ldb-4-3)" >&5
+if eval "test \"\${ol_cv_db_db_4_3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb41
+	ol_DB_LIB=-ldb-4-3
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18487,12 +18487,12 @@ int main() {
 EOF
 if { (eval echo configure:18489: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db41=yes
+  ol_cv_db_db_4_3=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db41=no
+  ol_cv_db_db_4_3=no
 fi
 rm -f conftest*
 
@@ -18500,21 +18500,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db41" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_3" 1>&6
 
-	if test $ol_cv_db_db41 = yes ; then
-		ol_cv_lib_db=-ldb41
+	if test $ol_cv_db_db_4_3 = yes ; then
+		ol_cv_lib_db=-ldb-4-3
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-41)""... $ac_c" 1>&6
-echo "configure:18513: checking for Berkeley DB link (-ldb-41)" >&5
-if eval "test \"\${ol_cv_db_db_41+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb42)""... $ac_c" 1>&6
+echo "configure:18513: checking for Berkeley DB link (-ldb42)" >&5
+if eval "test \"\${ol_cv_db_db42+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-41
+	ol_DB_LIB=-ldb42
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18568,12 +18568,12 @@ int main() {
 EOF
 if { (eval echo configure:18570: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_41=yes
+  ol_cv_db_db42=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_41=no
+  ol_cv_db_db42=no
 fi
 rm -f conftest*
 
@@ -18581,21 +18581,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_41" 1>&6
+echo "$ac_t""$ol_cv_db_db42" 1>&6
 
-	if test $ol_cv_db_db_41 = yes ; then
-		ol_cv_lib_db=-ldb-41
+	if test $ol_cv_db_db42 = yes ; then
+		ol_cv_lib_db=-ldb42
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4.1)""... $ac_c" 1>&6
-echo "configure:18594: checking for Berkeley DB link (-ldb-4.1)" >&5
-if eval "test \"\${ol_cv_db_db_4_dot_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-42)""... $ac_c" 1>&6
+echo "configure:18594: checking for Berkeley DB link (-ldb-42)" >&5
+if eval "test \"\${ol_cv_db_db_42+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4.1
+	ol_DB_LIB=-ldb-42
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18649,12 +18649,12 @@ int main() {
 EOF
 if { (eval echo configure:18651: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_dot_1=yes
+  ol_cv_db_db_42=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_dot_1=no
+  ol_cv_db_db_42=no
 fi
 rm -f conftest*
 
@@ -18662,21 +18662,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_dot_1" 1>&6
+echo "$ac_t""$ol_cv_db_db_42" 1>&6
 
-	if test $ol_cv_db_db_4_dot_1 = yes ; then
-		ol_cv_lib_db=-ldb-4.1
+	if test $ol_cv_db_db_42 = yes ; then
+		ol_cv_lib_db=-ldb-42
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-4-1)""... $ac_c" 1>&6
-echo "configure:18675: checking for Berkeley DB link (-ldb-4-1)" >&5
-if eval "test \"\${ol_cv_db_db_4_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.2)""... $ac_c" 1>&6
+echo "configure:18675: checking for Berkeley DB link (-ldb-4.2)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-4-1
+	ol_DB_LIB=-ldb-4.2
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18730,12 +18730,12 @@ int main() {
 EOF
 if { (eval echo configure:18732: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_4_1=yes
+  ol_cv_db_db_4_dot_2=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_4_1=no
+  ol_cv_db_db_4_dot_2=no
 fi
 rm -f conftest*
 
@@ -18743,21 +18743,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_4_1" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_dot_2" 1>&6
 
-	if test $ol_cv_db_db_4_1 = yes ; then
-		ol_cv_lib_db=-ldb-4-1
+	if test $ol_cv_db_db_4_dot_2 = yes ; then
+		ol_cv_lib_db=-ldb-4.2
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
-echo "configure:18756: checking for Berkeley DB link (-ldb3)" >&5
-if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-2)""... $ac_c" 1>&6
+echo "configure:18756: checking for Berkeley DB link (-ldb-4-2)" >&5
+if eval "test \"\${ol_cv_db_db_4_2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb3
+	ol_DB_LIB=-ldb-4-2
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18811,12 +18811,12 @@ int main() {
 EOF
 if { (eval echo configure:18813: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db3=yes
+  ol_cv_db_db_4_2=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db3=no
+  ol_cv_db_db_4_2=no
 fi
 rm -f conftest*
 
@@ -18824,21 +18824,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db3" 1>&6
+echo "$ac_t""$ol_cv_db_db_4_2" 1>&6
 
-	if test $ol_cv_db_db3 = yes ; then
-		ol_cv_lib_db=-ldb3
+	if test $ol_cv_db_db_4_2 = yes ; then
+		ol_cv_lib_db=-ldb-4-2
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-3)""... $ac_c" 1>&6
-echo "configure:18837: checking for Berkeley DB link (-ldb-3)" >&5
-if eval "test \"\${ol_cv_db_db_3+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4)""... $ac_c" 1>&6
+echo "configure:18837: checking for Berkeley DB link (-ldb-4)" >&5
+if eval "test \"\${ol_cv_db_db_4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-3
+	ol_DB_LIB=-ldb-4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18892,12 +18892,12 @@ int main() {
 EOF
 if { (eval echo configure:18894: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_3=yes
+  ol_cv_db_db_4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_3=no
+  ol_cv_db_db_4=no
 fi
 rm -f conftest*
 
@@ -18905,21 +18905,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_3" 1>&6
+echo "$ac_t""$ol_cv_db_db_4" 1>&6
 
-	if test $ol_cv_db_db_3 = yes ; then
-		ol_cv_lib_db=-ldb-3
+	if test $ol_cv_db_db_4 = yes ; then
+		ol_cv_lib_db=-ldb-4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
-echo "configure:18918: checking for Berkeley DB link (-ldb2)" >&5
-if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
+echo "configure:18918: checking for Berkeley DB link (-ldb4)" >&5
+if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb2
+	ol_DB_LIB=-ldb4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -18973,12 +18973,12 @@ int main() {
 EOF
 if { (eval echo configure:18975: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db2=yes
+  ol_cv_db_db4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db2=no
+  ol_cv_db_db4=no
 fi
 rm -f conftest*
 
@@ -18986,21 +18986,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db2" 1>&6
+echo "$ac_t""$ol_cv_db_db4" 1>&6
 
-	if test $ol_cv_db_db2 = yes ; then
-		ol_cv_lib_db=-ldb2
+	if test $ol_cv_db_db4 = yes ; then
+		ol_cv_lib_db=-ldb4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-2)""... $ac_c" 1>&6
-echo "configure:18999: checking for Berkeley DB link (-ldb-2)" >&5
-if eval "test \"\${ol_cv_db_db_2+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
+echo "configure:18999: checking for Berkeley DB link (-ldb)" >&5
+if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-2
+	ol_DB_LIB=-ldb
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -19054,12 +19054,12 @@ int main() {
 EOF
 if { (eval echo configure:19056: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db_2=yes
+  ol_cv_db_db=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db_2=no
+  ol_cv_db_db=no
 fi
 rm -f conftest*
 
@@ -19067,21 +19067,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db_2" 1>&6
+echo "$ac_t""$ol_cv_db_db" 1>&6
 
-	if test $ol_cv_db_db_2 = yes ; then
-		ol_cv_lib_db=-ldb-2
+	if test $ol_cv_db_db = yes ; then
+		ol_cv_lib_db=-ldb
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
-echo "configure:19080: checking for Berkeley DB link (-ldb1)" >&5
-if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb41)""... $ac_c" 1>&6
+echo "configure:19080: checking for Berkeley DB link (-ldb41)" >&5
+if eval "test \"\${ol_cv_db_db41+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb1
+	ol_DB_LIB=-ldb41
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -19135,12 +19135,12 @@ int main() {
 EOF
 if { (eval echo configure:19137: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db1=yes
+  ol_cv_db_db41=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db1=no
+  ol_cv_db_db41=no
 fi
 rm -f conftest*
 
@@ -19148,21 +19148,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db1" 1>&6
+echo "$ac_t""$ol_cv_db_db41" 1>&6
 
-	if test $ol_cv_db_db1 = yes ; then
-		ol_cv_lib_db=-ldb1
+	if test $ol_cv_db_db41 = yes ; then
+		ol_cv_lib_db=-ldb41
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb-1)""... $ac_c" 1>&6
-echo "configure:19161: checking for Berkeley DB link (-ldb-1)" >&5
-if eval "test \"\${ol_cv_db_db_1+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-41)""... $ac_c" 1>&6
+echo "configure:19161: checking for Berkeley DB link (-ldb-41)" >&5
+if eval "test \"\${ol_cv_db_db_41+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb-1
+	ol_DB_LIB=-ldb-41
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
@@ -19216,6 +19216,654 @@ int main() {
 EOF
 if { (eval echo configure:19218: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
+  ol_cv_db_db_41=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_41=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_41" 1>&6
+
+	if test $ol_cv_db_db_41 = yes ; then
+		ol_cv_lib_db=-ldb-41
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4.1)""... $ac_c" 1>&6
+echo "configure:19242: checking for Berkeley DB link (-ldb-4.1)" >&5
+if eval "test \"\${ol_cv_db_db_4_dot_1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-4.1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19252 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19299: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db_4_dot_1=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_4_dot_1=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_4_dot_1" 1>&6
+
+	if test $ol_cv_db_db_4_dot_1 = yes ; then
+		ol_cv_lib_db=-ldb-4.1
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-4-1)""... $ac_c" 1>&6
+echo "configure:19323: checking for Berkeley DB link (-ldb-4-1)" >&5
+if eval "test \"\${ol_cv_db_db_4_1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-4-1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19333 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19380: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db_4_1=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_4_1=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_4_1" 1>&6
+
+	if test $ol_cv_db_db_4_1 = yes ; then
+		ol_cv_lib_db=-ldb-4-1
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
+echo "configure:19404: checking for Berkeley DB link (-ldb3)" >&5
+if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb3
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19414 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19461: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db3=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db3=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db3" 1>&6
+
+	if test $ol_cv_db_db3 = yes ; then
+		ol_cv_lib_db=-ldb3
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-3)""... $ac_c" 1>&6
+echo "configure:19485: checking for Berkeley DB link (-ldb-3)" >&5
+if eval "test \"\${ol_cv_db_db_3+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-3
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19495 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19542: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db_3=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_3=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_3" 1>&6
+
+	if test $ol_cv_db_db_3 = yes ; then
+		ol_cv_lib_db=-ldb-3
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
+echo "configure:19566: checking for Berkeley DB link (-ldb2)" >&5
+if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb2
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19576 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19623: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db2=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db2=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db2" 1>&6
+
+	if test $ol_cv_db_db2 = yes ; then
+		ol_cv_lib_db=-ldb2
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-2)""... $ac_c" 1>&6
+echo "configure:19647: checking for Berkeley DB link (-ldb-2)" >&5
+if eval "test \"\${ol_cv_db_db_2+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-2
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19657 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19704: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db_2=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db_2=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db_2" 1>&6
+
+	if test $ol_cv_db_db_2 = yes ; then
+		ol_cv_lib_db=-ldb-2
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
+echo "configure:19728: checking for Berkeley DB link (-ldb1)" >&5
+if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19738 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19785: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ol_cv_db_db1=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_db_db1=no
+fi
+rm -f conftest*
+
+	LIBS="$ol_LIBS"
+
+fi
+
+echo "$ac_t""$ol_cv_db_db1" 1>&6
+
+	if test $ol_cv_db_db1 = yes ; then
+		ol_cv_lib_db=-ldb1
+	fi
+fi
+
+if test $ol_cv_lib_db = no ; then
+	echo $ac_n "checking for Berkeley DB link (-ldb-1)""... $ac_c" 1>&6
+echo "configure:19809: checking for Berkeley DB link (-ldb-1)" >&5
+if eval "test \"\${ol_cv_db_db_1+set}\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	ol_DB_LIB=-ldb-1
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
+
+	cat > conftest.$ac_ext <<EOF
+#line 19819 "configure"
+#include "confdefs.h"
+
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+int main() {
+
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\theader: %s\n\tlibrary: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:19866: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
   ol_cv_db_db_1=yes
 else
   echo "configure: failed program was:" >&5
@@ -19240,7 +19888,7 @@ fi
 	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
 		echo $ac_n "checking for Berkeley DB version match""... $ac_c" 1>&6
-echo "configure:19244: checking for Berkeley DB version match" >&5
+echo "configure:19892: checking for Berkeley DB version match" >&5
 if eval "test \"\${ol_cv_berkeley_db_version+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -19255,7 +19903,7 @@ else
   ol_cv_berkeley_db_version=cross
 else
   cat > conftest.$ac_ext <<EOF
-#line 19259 "configure"
+#line 19907 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -19288,7 +19936,7 @@ main()
 	return 0;
 }
 EOF
-if { (eval echo configure:19292: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:19940: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_berkeley_db_version=yes
 else
@@ -19312,7 +19960,7 @@ echo "$ac_t""$ol_cv_berkeley_db_version" 1>&6
 	fi
 
 		echo $ac_n "checking for Berkeley DB thread support""... $ac_c" 1>&6
-echo "configure:19316: checking for Berkeley DB thread support" >&5
+echo "configure:19964: checking for Berkeley DB thread support" >&5
 if eval "test \"\${ol_cv_berkeley_db_thread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -19327,7 +19975,7 @@ else
   ol_cv_berkeley_db_thread=cross
 else
   cat > conftest.$ac_ext <<EOF
-#line 19331 "configure"
+#line 19979 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -19394,7 +20042,7 @@ main()
 	return rc;
 }
 EOF
-if { (eval echo configure:19398: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:20046: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_berkeley_db_thread=yes
 else
@@ -19456,13 +20104,13 @@ if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
 	{ echo "configure: error: BDB: BerkeleyDB not available" 1>&2; exit 1; }
 elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
 	echo $ac_n "checking Berkeley DB version for BDB backend""... $ac_c" 1>&6
-echo "configure:19460: checking Berkeley DB version for BDB backend" >&5
+echo "configure:20108: checking Berkeley DB version for BDB backend" >&5
 if eval "test \"\${ol_cv_bdb_compat+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 19466 "configure"
+#line 20114 "configure"
 #include "confdefs.h"
 
 #include <db.h>
@@ -19515,18 +20163,18 @@ fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = mdbm ; then
 	echo $ac_n "checking for MDBM library""... $ac_c" 1>&6
-echo "configure:19519: checking for MDBM library" >&5
+echo "configure:20167: checking for MDBM library" >&5
 if eval "test \"\${ol_cv_lib_mdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for mdbm_set_chain""... $ac_c" 1>&6
-echo "configure:19525: checking for mdbm_set_chain" >&5
+echo "configure:20173: checking for mdbm_set_chain" >&5
 if eval "test \"\${ac_cv_func_mdbm_set_chain+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19530 "configure"
+#line 20178 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char mdbm_set_chain(); below.  */
@@ -19550,7 +20198,7 @@ f = mdbm_set_chain;
 
 ; return 0; }
 EOF
-if { (eval echo configure:19554: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20202: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_mdbm_set_chain=yes"
 else
@@ -19569,7 +20217,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for mdbm_set_chain in -lmdbm""... $ac_c" 1>&6
-echo "configure:19573: checking for mdbm_set_chain in -lmdbm" >&5
+echo "configure:20221: checking for mdbm_set_chain in -lmdbm" >&5
 ac_lib_var=`echo mdbm'_'mdbm_set_chain | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -19577,7 +20225,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lmdbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 19581 "configure"
+#line 20229 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -19588,7 +20236,7 @@ int main() {
 mdbm_set_chain()
 ; return 0; }
 EOF
-if { (eval echo configure:19592: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20240: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -19623,17 +20271,17 @@ echo "$ac_t""$ol_cv_lib_mdbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:19627: checking for $ac_hdr" >&5
+echo "configure:20275: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19632 "configure"
+#line 20280 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:19637: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:20285: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -19660,7 +20308,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:19664: checking for db" >&5
+echo "configure:20312: checking for db" >&5
 if eval "test \"\${ol_cv_mdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -19693,18 +20341,18 @@ fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
 	echo $ac_n "checking for GDBM library""... $ac_c" 1>&6
-echo "configure:19697: checking for GDBM library" >&5
+echo "configure:20345: checking for GDBM library" >&5
 if eval "test \"\${ol_cv_lib_gdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for gdbm_open""... $ac_c" 1>&6
-echo "configure:19703: checking for gdbm_open" >&5
+echo "configure:20351: checking for gdbm_open" >&5
 if eval "test \"\${ac_cv_func_gdbm_open+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19708 "configure"
+#line 20356 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char gdbm_open(); below.  */
@@ -19728,7 +20376,7 @@ f = gdbm_open;
 
 ; return 0; }
 EOF
-if { (eval echo configure:19732: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20380: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_gdbm_open=yes"
 else
@@ -19747,7 +20395,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for gdbm_open in -lgdbm""... $ac_c" 1>&6
-echo "configure:19751: checking for gdbm_open in -lgdbm" >&5
+echo "configure:20399: checking for gdbm_open in -lgdbm" >&5
 ac_lib_var=`echo gdbm'_'gdbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -19755,7 +20403,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lgdbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 19759 "configure"
+#line 20407 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -19766,7 +20414,7 @@ int main() {
 gdbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:19770: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20418: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -19801,17 +20449,17 @@ echo "$ac_t""$ol_cv_lib_gdbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:19805: checking for $ac_hdr" >&5
+echo "configure:20453: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19810 "configure"
+#line 20458 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:19815: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:20463: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -19838,7 +20486,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:19842: checking for db" >&5
+echo "configure:20490: checking for db" >&5
 if eval "test \"\${ol_cv_gdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -19872,18 +20520,18 @@ fi
 
 if test $ol_with_ldbm_api = ndbm ; then
 	echo $ac_n "checking for NDBM library""... $ac_c" 1>&6
-echo "configure:19876: checking for NDBM library" >&5
+echo "configure:20524: checking for NDBM library" >&5
 if eval "test \"\${ol_cv_lib_ndbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for dbm_open""... $ac_c" 1>&6
-echo "configure:19882: checking for dbm_open" >&5
+echo "configure:20530: checking for dbm_open" >&5
 if eval "test \"\${ac_cv_func_dbm_open+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19887 "configure"
+#line 20535 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char dbm_open(); below.  */
@@ -19907,7 +20555,7 @@ f = dbm_open;
 
 ; return 0; }
 EOF
-if { (eval echo configure:19911: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20559: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_dbm_open=yes"
 else
@@ -19926,7 +20574,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for dbm_open in -lndbm""... $ac_c" 1>&6
-echo "configure:19930: checking for dbm_open in -lndbm" >&5
+echo "configure:20578: checking for dbm_open in -lndbm" >&5
 ac_lib_var=`echo ndbm'_'dbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -19934,7 +20582,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lndbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 19938 "configure"
+#line 20586 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -19945,7 +20593,7 @@ int main() {
 dbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:19949: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20597: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -19965,7 +20613,7 @@ else
   echo "$ac_t""no" 1>&6
 
 			echo $ac_n "checking for dbm_open in -ldbm""... $ac_c" 1>&6
-echo "configure:19969: checking for dbm_open in -ldbm" >&5
+echo "configure:20617: checking for dbm_open in -ldbm" >&5
 ac_lib_var=`echo dbm'_'dbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -19973,7 +20621,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ldbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 19977 "configure"
+#line 20625 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -19984,7 +20632,7 @@ int main() {
 dbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:19988: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20636: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20021,17 +20669,17 @@ echo "$ac_t""$ol_cv_lib_ndbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:20025: checking for $ac_hdr" >&5
+echo "configure:20673: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20030 "configure"
+#line 20678 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:20035: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:20683: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -20058,7 +20706,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:20062: checking for db" >&5
+echo "configure:20710: checking for db" >&5
 if eval "test \"\${ol_cv_ndbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -20124,17 +20772,17 @@ if test $ol_enable_wrappers != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:20128: checking for $ac_hdr" >&5
+echo "configure:20776: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20133 "configure"
+#line 20781 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:20138: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:20786: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -20156,11 +20804,11 @@ if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
 EOF
  
 		echo $ac_n "checking for TCP wrappers library""... $ac_c" 1>&6
-echo "configure:20160: checking for TCP wrappers library" >&5
+echo "configure:20808: checking for TCP wrappers library" >&5
 		save_LIBS="$LIBS"
 		LIBS="$LIBS -lwrap"
 		cat > conftest.$ac_ext <<EOF
-#line 20164 "configure"
+#line 20812 "configure"
 #include "confdefs.h"
 
 #include <tcpd.h>
@@ -20175,7 +20823,7 @@ hosts_access(req)
 		
 ; return 0; }
 EOF
-if { (eval echo configure:20179: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20827: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""-lwrap" 1>&6
 		have_wrappers=yes
@@ -20187,7 +20835,7 @@ else
   
 				LIBS="$LIBS -lnsl"
 		cat > conftest.$ac_ext <<EOF
-#line 20191 "configure"
+#line 20839 "configure"
 #include "confdefs.h"
 
 #include <tcpd.h>
@@ -20202,7 +20850,7 @@ hosts_access(req)
 		
 ; return 0; }
 EOF
-if { (eval echo configure:20206: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20854: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""-lwrap -lnsl" 1>&6
 		have_wrappers=yes
@@ -20242,12 +20890,12 @@ fi
 
 if test $ol_enable_syslog != no ; then
 	echo $ac_n "checking for openlog""... $ac_c" 1>&6
-echo "configure:20246: checking for openlog" >&5
+echo "configure:20894: checking for openlog" >&5
 if eval "test \"\${ac_cv_func_openlog+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20251 "configure"
+#line 20899 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char openlog(); below.  */
@@ -20271,7 +20919,7 @@ f = openlog;
 
 ; return 0; }
 EOF
-if { (eval echo configure:20275: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:20923: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_openlog=yes"
 else
@@ -20303,17 +20951,17 @@ if test $ol_enable_sql != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:20307: checking for $ac_hdr" >&5
+echo "configure:20955: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20312 "configure"
+#line 20960 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:20317: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:20965: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -20343,7 +20991,7 @@ done
 
 
 	echo $ac_n "checking for SQLDriverConnect in -liodbc""... $ac_c" 1>&6
-echo "configure:20347: checking for SQLDriverConnect in -liodbc" >&5
+echo "configure:20995: checking for SQLDriverConnect in -liodbc" >&5
 ac_lib_var=`echo iodbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20351,7 +20999,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-liodbc  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20355 "configure"
+#line 21003 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20362,7 +21010,7 @@ int main() {
 SQLDriverConnect()
 ; return 0; }
 EOF
-if { (eval echo configure:20366: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21014: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20387,7 +21035,7 @@ fi
 		ol_link_sql="-liodbc"
 	else
 		echo $ac_n "checking for SQLDriverConnect in -lodbc""... $ac_c" 1>&6
-echo "configure:20391: checking for SQLDriverConnect in -lodbc" >&5
+echo "configure:21039: checking for SQLDriverConnect in -lodbc" >&5
 ac_lib_var=`echo odbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20395,7 +21043,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lodbc  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20399 "configure"
+#line 21047 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20406,7 +21054,7 @@ int main() {
 SQLDriverConnect()
 ; return 0; }
 EOF
-if { (eval echo configure:20410: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21058: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20447,17 +21095,17 @@ if test $ol_with_cyrus_sasl != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:20451: checking for $ac_hdr" >&5
+echo "configure:21099: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20456 "configure"
+#line 21104 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:20461: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:21109: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -20486,7 +21134,7 @@ done
 
 	if test $ac_cv_header_sasl_sasl_h = yes -o $ac_cv_header_sasl_h = yes; then
 		echo $ac_n "checking for sasl_client_init in -lsasl2""... $ac_c" 1>&6
-echo "configure:20490: checking for sasl_client_init in -lsasl2" >&5
+echo "configure:21138: checking for sasl_client_init in -lsasl2" >&5
 ac_lib_var=`echo sasl2'_'sasl_client_init | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20494,7 +21142,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lsasl2  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20498 "configure"
+#line 21146 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20505,7 +21153,7 @@ int main() {
 sasl_client_init()
 ; return 0; }
 EOF
-if { (eval echo configure:20509: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21157: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20524,7 +21172,7 @@ if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
 else
   echo "$ac_t""no" 1>&6
 echo $ac_n "checking for sasl_client_init in -lsasl""... $ac_c" 1>&6
-echo "configure:20528: checking for sasl_client_init in -lsasl" >&5
+echo "configure:21176: checking for sasl_client_init in -lsasl" >&5
 ac_lib_var=`echo sasl'_'sasl_client_init | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20532,7 +21180,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lsasl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20536 "configure"
+#line 21184 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20543,7 +21191,7 @@ int main() {
 sasl_client_init()
 ; return 0; }
 EOF
-if { (eval echo configure:20547: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21195: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20579,13 +21227,13 @@ fi
 		fi
 	else
 		echo $ac_n "checking Cyrus SASL library version""... $ac_c" 1>&6
-echo "configure:20583: checking Cyrus SASL library version" >&5
+echo "configure:21231: checking Cyrus SASL library version" >&5
 if eval "test \"\${ol_cv_sasl_compat+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 20589 "configure"
+#line 21237 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_SASL_SASL_H
@@ -20634,12 +21282,12 @@ EOF
 		ac_save_LIBS="$LIBS"
 		LIBS="$LIBS $ol_link_sasl"
 		echo $ac_n "checking for sasl_version""... $ac_c" 1>&6
-echo "configure:20638: checking for sasl_version" >&5
+echo "configure:21286: checking for sasl_version" >&5
 if eval "test \"\${ac_cv_func_sasl_version+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20643 "configure"
+#line 21291 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char sasl_version(); below.  */
@@ -20663,7 +21311,7 @@ f = sasl_version;
 
 ; return 0; }
 EOF
-if { (eval echo configure:20667: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21315: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_sasl_version=yes"
 else
@@ -20722,13 +21370,13 @@ if test $ol_with_fetch != no ; then
 	ol_LIBS=$LIBS
 LIBS="-lfetch -lcom_err $LIBS"
 echo $ac_n "checking fetch(3) library""... $ac_c" 1>&6
-echo "configure:20726: checking fetch(3) library" >&5
+echo "configure:21374: checking fetch(3) library" >&5
 if eval "test \"\${ol_cv_lib_fetch+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 20732 "configure"
+#line 21380 "configure"
 #include "confdefs.h"
 
 #include <sys/param.h>
@@ -20738,7 +21386,7 @@ int main() {
 struct url *u = fetchParseURL("file:///"); 
 ; return 0; }
 EOF
-if { (eval echo configure:20742: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21390: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_lib_fetch=yes
 else
@@ -20775,12 +21423,12 @@ if test $ol_enable_crypt != no ; then
 	LIBS="$TLS_LIBS $LIBS"
 
 	echo $ac_n "checking for crypt""... $ac_c" 1>&6
-echo "configure:20779: checking for crypt" >&5
+echo "configure:21427: checking for crypt" >&5
 if eval "test \"\${ac_cv_func_crypt+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20784 "configure"
+#line 21432 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char crypt(); below.  */
@@ -20804,7 +21452,7 @@ f = crypt;
 
 ; return 0; }
 EOF
-if { (eval echo configure:20808: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21456: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_crypt=yes"
 else
@@ -20824,7 +21472,7 @@ else
 
 		LIBS="$save_LIBS"
 		echo $ac_n "checking for crypt in -lcrypt""... $ac_c" 1>&6
-echo "configure:20828: checking for crypt in -lcrypt" >&5
+echo "configure:21476: checking for crypt in -lcrypt" >&5
 ac_lib_var=`echo crypt'_'crypt | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20832,7 +21480,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lcrypt  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20836 "configure"
+#line 21484 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20843,7 +21491,7 @@ int main() {
 crypt()
 ; return 0; }
 EOF
-if { (eval echo configure:20847: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21495: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20888,12 +21536,12 @@ fi
 
 if test $ol_enable_proctitle != no ; then
 	echo $ac_n "checking for setproctitle""... $ac_c" 1>&6
-echo "configure:20892: checking for setproctitle" >&5
+echo "configure:21540: checking for setproctitle" >&5
 if eval "test \"\${ac_cv_func_setproctitle+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 20897 "configure"
+#line 21545 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char setproctitle(); below.  */
@@ -20917,7 +21565,7 @@ f = setproctitle;
 
 ; return 0; }
 EOF
-if { (eval echo configure:20921: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21569: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_setproctitle=yes"
 else
@@ -20936,7 +21584,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for setproctitle in -lutil""... $ac_c" 1>&6
-echo "configure:20940: checking for setproctitle in -lutil" >&5
+echo "configure:21588: checking for setproctitle in -lutil" >&5
 ac_lib_var=`echo util'_'setproctitle | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -20944,7 +21592,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lutil  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 20948 "configure"
+#line 21596 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -20955,7 +21603,7 @@ int main() {
 setproctitle()
 ; return 0; }
 EOF
-if { (eval echo configure:20959: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21607: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -20995,17 +21643,17 @@ if test $ol_enable_slp != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:20999: checking for $ac_hdr" >&5
+echo "configure:21647: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21004 "configure"
+#line 21652 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:21009: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:21657: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -21034,7 +21682,7 @@ done
 
 	if test $ac_cv_header_slp_h = yes ; then
 		echo $ac_n "checking for SLPOpen in -lslp""... $ac_c" 1>&6
-echo "configure:21038: checking for SLPOpen in -lslp" >&5
+echo "configure:21686: checking for SLPOpen in -lslp" >&5
 ac_lib_var=`echo slp'_'SLPOpen | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -21042,7 +21690,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lslp  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 21046 "configure"
+#line 21694 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -21053,7 +21701,7 @@ int main() {
 SLPOpen()
 ; return 0; }
 EOF
-if { (eval echo configure:21057: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21705: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -21089,20 +21737,20 @@ fi
 
 
 echo $ac_n "checking long long""... $ac_c" 1>&6
-echo "configure:21093: checking long long" >&5
+echo "configure:21741: checking long long" >&5
 if eval "test \"\${ol_cv_type_long_long+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 21099 "configure"
+#line 21747 "configure"
 #include "confdefs.h"
 
 int main() {
 long long x;
 ; return 0; }
 EOF
-if { (eval echo configure:21106: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:21754: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_type_long_long=yes
 else
@@ -21123,12 +21771,12 @@ EOF
 fi
 
 echo $ac_n "checking for ANSI C header files""... $ac_c" 1>&6
-echo "configure:21127: checking for ANSI C header files" >&5
+echo "configure:21775: checking for ANSI C header files" >&5
 if eval "test \"\${ac_cv_header_stdc+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21132 "configure"
+#line 21780 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 #include <stdarg.h>
@@ -21136,7 +21784,7 @@ else
 #include <float.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:21140: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:21788: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -21153,7 +21801,7 @@ rm -f conftest*
 if test $ac_cv_header_stdc = yes; then
   # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 21157 "configure"
+#line 21805 "configure"
 #include "confdefs.h"
 #include <string.h>
 EOF
@@ -21171,7 +21819,7 @@ fi
 if test $ac_cv_header_stdc = yes; then
   # ISC 2.0.2 stdlib.h does not declare free, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 21175 "configure"
+#line 21823 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 EOF
@@ -21192,7 +21840,7 @@ if test "$cross_compiling" = yes; then
   :
 else
   cat > conftest.$ac_ext <<EOF
-#line 21196 "configure"
+#line 21844 "configure"
 #include "confdefs.h"
 #include <ctype.h>
 #if ((' ' & 0x0FF) == 0x020)
@@ -21210,7 +21858,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:21214: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:21862: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   :
 else
@@ -21234,12 +21882,12 @@ EOF
 fi
 
 echo $ac_n "checking for mode_t""... $ac_c" 1>&6
-echo "configure:21238: checking for mode_t" >&5
+echo "configure:21886: checking for mode_t" >&5
 if eval "test \"\${ac_cv_type_mode_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21243 "configure"
+#line 21891 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21270,12 +21918,12 @@ EOF
 fi
 
 echo $ac_n "checking for off_t""... $ac_c" 1>&6
-echo "configure:21274: checking for off_t" >&5
+echo "configure:21922: checking for off_t" >&5
 if eval "test \"\${ac_cv_type_off_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21279 "configure"
+#line 21927 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21306,12 +21954,12 @@ EOF
 fi
 
 echo $ac_n "checking for pid_t""... $ac_c" 1>&6
-echo "configure:21310: checking for pid_t" >&5
+echo "configure:21958: checking for pid_t" >&5
 if eval "test \"\${ac_cv_type_pid_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21315 "configure"
+#line 21963 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21342,19 +21990,19 @@ EOF
 fi
 
 echo $ac_n "checking for ptrdiff_t""... $ac_c" 1>&6
-echo "configure:21346: checking for ptrdiff_t" >&5
+echo "configure:21994: checking for ptrdiff_t" >&5
 if eval "test \"\${am_cv_type_ptrdiff_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21351 "configure"
+#line 21999 "configure"
 #include "confdefs.h"
 #include <stddef.h>
 int main() {
 ptrdiff_t p
 ; return 0; }
 EOF
-if { (eval echo configure:21358: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22006: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   am_cv_type_ptrdiff_t=yes
 else
@@ -21375,12 +22023,12 @@ EOF
    fi
 
 echo $ac_n "checking return type of signal handlers""... $ac_c" 1>&6
-echo "configure:21379: checking return type of signal handlers" >&5
+echo "configure:22027: checking return type of signal handlers" >&5
 if eval "test \"\${ac_cv_type_signal+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21384 "configure"
+#line 22032 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <signal.h>
@@ -21397,7 +22045,7 @@ int main() {
 int i;
 ; return 0; }
 EOF
-if { (eval echo configure:21401: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22049: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_type_signal=void
 else
@@ -21416,12 +22064,12 @@ EOF
 
 
 echo $ac_n "checking for size_t""... $ac_c" 1>&6
-echo "configure:21420: checking for size_t" >&5
+echo "configure:22068: checking for size_t" >&5
 if eval "test \"\${ac_cv_type_size_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21425 "configure"
+#line 22073 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21453,12 +22101,12 @@ fi
 
 
 echo $ac_n "checking for ssize_t""... $ac_c" 1>&6
-echo "configure:21457: checking for ssize_t" >&5
+echo "configure:22105: checking for ssize_t" >&5
 if eval "test \"\${ac_cv_type_ssize_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21462 "configure"
+#line 22110 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21489,12 +22137,12 @@ EOF
 fi
 
 echo $ac_n "checking for caddr_t""... $ac_c" 1>&6
-echo "configure:21493: checking for caddr_t" >&5
+echo "configure:22141: checking for caddr_t" >&5
 if eval "test \"\${ac_cv_type_caddr_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21498 "configure"
+#line 22146 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -21526,12 +22174,12 @@ fi
 
 
 echo $ac_n "checking for socklen_t""... $ac_c" 1>&6
-echo "configure:21530: checking for socklen_t" >&5
+echo "configure:22178: checking for socklen_t" >&5
 if eval "test \"\${ol_cv_type_socklen_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21535 "configure"
+#line 22183 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -21545,7 +22193,7 @@ int main() {
 socklen_t len;
 ; return 0; }
 EOF
-if { (eval echo configure:21549: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22197: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_type_socklen_t=yes
 else
@@ -21566,12 +22214,12 @@ EOF
   fi
  
 echo $ac_n "checking for member st_blksize in aggregate type struct stat""... $ac_c" 1>&6
-echo "configure:21570: checking for member st_blksize in aggregate type struct stat" >&5
+echo "configure:22218: checking for member st_blksize in aggregate type struct stat" >&5
 if eval "test \"\${ac_cv_c_struct_member_st_blksize+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21575 "configure"
+#line 22223 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -21579,7 +22227,7 @@ int main() {
 struct stat foo; foo.st_blksize;
 ; return 0; }
 EOF
-if { (eval echo configure:21583: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22231: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_struct_member_st_blksize=yes
 else
@@ -21601,12 +22249,12 @@ EOF
 fi
 
 echo $ac_n "checking whether time.h and sys/time.h may both be included""... $ac_c" 1>&6
-echo "configure:21605: checking whether time.h and sys/time.h may both be included" >&5
+echo "configure:22253: checking whether time.h and sys/time.h may both be included" >&5
 if eval "test \"\${ac_cv_header_time+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21610 "configure"
+#line 22258 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/time.h>
@@ -21615,7 +22263,7 @@ int main() {
 struct tm *tp;
 ; return 0; }
 EOF
-if { (eval echo configure:21619: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22267: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_header_time=yes
 else
@@ -21636,12 +22284,12 @@ EOF
 fi
 
 echo $ac_n "checking whether struct tm is in sys/time.h or time.h""... $ac_c" 1>&6
-echo "configure:21640: checking whether struct tm is in sys/time.h or time.h" >&5
+echo "configure:22288: checking whether struct tm is in sys/time.h or time.h" >&5
 if eval "test \"\${ac_cv_struct_tm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21645 "configure"
+#line 22293 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -21649,7 +22297,7 @@ int main() {
 struct tm *tp; tp->tm_sec;
 ; return 0; }
 EOF
-if { (eval echo configure:21653: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22301: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_struct_tm=time.h
 else
@@ -21670,12 +22318,12 @@ EOF
 fi
 
 echo $ac_n "checking for uid_t in sys/types.h""... $ac_c" 1>&6
-echo "configure:21674: checking for uid_t in sys/types.h" >&5
+echo "configure:22322: checking for uid_t in sys/types.h" >&5
 if eval "test \"\${ac_cv_type_uid_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21679 "configure"
+#line 22327 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 EOF
@@ -21704,19 +22352,19 @@ EOF
 fi
 
 echo $ac_n "checking for sig_atomic_t""... $ac_c" 1>&6
-echo "configure:21708: checking for sig_atomic_t" >&5
+echo "configure:22356: checking for sig_atomic_t" >&5
 if eval "test \"\${ol_cv_type_sig_atomic_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21713 "configure"
+#line 22361 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int main() {
 sig_atomic_t atomic;
 ; return 0; }
 EOF
-if { (eval echo configure:21720: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22368: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_type_sig_atomic_t=yes
 else
@@ -21740,13 +22388,13 @@ EOF
 
 # test for pw_gecos in struct passwd
 echo $ac_n "checking struct passwd for pw_gecos""... $ac_c" 1>&6
-echo "configure:21744: checking struct passwd for pw_gecos" >&5
+echo "configure:22392: checking struct passwd for pw_gecos" >&5
 if eval "test \"\${ol_cv_struct_passwd_pw_gecos+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 21750 "configure"
+#line 22398 "configure"
 #include "confdefs.h"
 #include <pwd.h>
 int main() {
@@ -21756,7 +22404,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:21760: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22408: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_struct_passwd_pw_gecos=yes
 else
@@ -21778,13 +22426,13 @@ fi
 
 # test for pw_passwd in struct passwd
 echo $ac_n "checking struct passwd for pw_passwd""... $ac_c" 1>&6
-echo "configure:21782: checking struct passwd for pw_passwd" >&5
+echo "configure:22430: checking struct passwd for pw_passwd" >&5
 if eval "test \"\${ol_cv_struct_passwd_pw_passwd+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 21788 "configure"
+#line 22436 "configure"
 #include "confdefs.h"
 #include <pwd.h>
 int main() {
@@ -21794,7 +22442,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:21798: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22446: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_struct_passwd_pw_passwd=yes
 else
@@ -21816,7 +22464,7 @@ fi
 
 
 echo $ac_n "checking if toupper() requires islower()""... $ac_c" 1>&6
-echo "configure:21820: checking if toupper() requires islower()" >&5
+echo "configure:22468: checking if toupper() requires islower()" >&5
 if eval "test \"\${ol_cv_c_upper_lower+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -21825,7 +22473,7 @@ else
   ol_cv_c_upper_lower=safe
 else
   cat > conftest.$ac_ext <<EOF
-#line 21829 "configure"
+#line 22477 "configure"
 #include "confdefs.h"
 
 #include <ctype.h>
@@ -21837,7 +22485,7 @@ main()
 		exit(1);
 }
 EOF
-if { (eval echo configure:21841: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:22489: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ol_cv_c_upper_lower=no
 else
@@ -21860,12 +22508,12 @@ EOF
 fi
 
 echo $ac_n "checking for working const""... $ac_c" 1>&6
-echo "configure:21864: checking for working const" >&5
+echo "configure:22512: checking for working const" >&5
 if eval "test \"\${ac_cv_c_const+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21869 "configure"
+#line 22517 "configure"
 #include "confdefs.h"
 
 int main() {
@@ -21914,7 +22562,7 @@ ccp = (char const *const *) p;
 
 ; return 0; }
 EOF
-if { (eval echo configure:21918: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22566: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_const=yes
 else
@@ -21935,12 +22583,12 @@ EOF
 fi
 
 echo $ac_n "checking if compiler understands volatile""... $ac_c" 1>&6
-echo "configure:21939: checking if compiler understands volatile" >&5
+echo "configure:22587: checking if compiler understands volatile" >&5
 if eval "test \"\${ol_cv_c_volatile+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21944 "configure"
+#line 22592 "configure"
 #include "confdefs.h"
 int x, y, z;
 int main() {
@@ -21949,7 +22597,7 @@ volatile int a; int * volatile b = x ? &y : &z;
       *b = 0;
 ; return 0; }
 EOF
-if { (eval echo configure:21953: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22601: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_c_volatile=yes
 else
@@ -21980,14 +22628,14 @@ EOF
 
 else
 	echo $ac_n "checking whether byte ordering is bigendian""... $ac_c" 1>&6
-echo "configure:21984: checking whether byte ordering is bigendian" >&5
+echo "configure:22632: checking whether byte ordering is bigendian" >&5
 if eval "test \"\${ac_cv_c_bigendian+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_cv_c_bigendian=unknown
 # See if sys/param.h defines the BYTE_ORDER macro.
 cat > conftest.$ac_ext <<EOF
-#line 21991 "configure"
+#line 22639 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -21998,11 +22646,11 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:22002: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22650: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   # It does; now see whether it defined to BIG_ENDIAN or not.
 cat > conftest.$ac_ext <<EOF
-#line 22006 "configure"
+#line 22654 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -22013,7 +22661,7 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:22017: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22665: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_bigendian=yes
 else
@@ -22033,7 +22681,7 @@ if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 22037 "configure"
+#line 22685 "configure"
 #include "confdefs.h"
 main () {
   /* Are we little or big endian?  From Harbison&Steele.  */
@@ -22046,7 +22694,7 @@ main () {
   exit (u.c[sizeof (long) - 1] == 1);
 }
 EOF
-if { (eval echo configure:22050: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:22698: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ac_cv_c_bigendian=no
 else
@@ -22072,13 +22720,13 @@ fi
 fi
 
 echo $ac_n "checking size of short""... $ac_c" 1>&6
-echo "configure:22076: checking size of short" >&5 
+echo "configure:22724: checking size of short" >&5 
 if eval "test \"\${ac_cv_sizeof_short+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 22082 "configure"
+#line 22730 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <stdlib.h>
@@ -22089,7 +22737,7 @@ int main() {
 switch (0) case 0: case (sizeof (short) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:22093: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22741: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_short=$ac_size
 else
@@ -22112,13 +22760,13 @@ EOF
  
  
 echo $ac_n "checking size of int""... $ac_c" 1>&6
-echo "configure:22116: checking size of int" >&5 
+echo "configure:22764: checking size of int" >&5 
 if eval "test \"\${ac_cv_sizeof_int+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 22122 "configure"
+#line 22770 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <stdlib.h>
@@ -22129,7 +22777,7 @@ int main() {
 switch (0) case 0: case (sizeof (int) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:22133: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22781: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_int=$ac_size
 else
@@ -22152,13 +22800,13 @@ EOF
  
  
 echo $ac_n "checking size of long""... $ac_c" 1>&6
-echo "configure:22156: checking size of long" >&5 
+echo "configure:22804: checking size of long" >&5 
 if eval "test \"\${ac_cv_sizeof_long+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 22162 "configure"
+#line 22810 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <stdlib.h>
@@ -22169,7 +22817,7 @@ int main() {
 switch (0) case 0: case (sizeof (long) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:22173: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22821: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_long=$ac_size
 else
@@ -22192,13 +22840,13 @@ EOF
  
 
 echo $ac_n "checking size of wchar_t""... $ac_c" 1>&6
-echo "configure:22196: checking size of wchar_t" >&5 
+echo "configure:22844: checking size of wchar_t" >&5 
 if eval "test \"\${ac_cv_sizeof_wchar_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 22202 "configure"
+#line 22850 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <stdlib.h>
@@ -22209,7 +22857,7 @@ int main() {
 switch (0) case 0: case (sizeof (wchar_t) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:22213: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22861: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_wchar_t=$ac_size
 else
@@ -22260,7 +22908,7 @@ EOF
 
 
 echo $ac_n "checking for 8-bit clean memcmp""... $ac_c" 1>&6
-echo "configure:22264: checking for 8-bit clean memcmp" >&5
+echo "configure:22912: checking for 8-bit clean memcmp" >&5
 if eval "test \"\${ac_cv_func_memcmp_clean+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -22268,7 +22916,7 @@ else
   ac_cv_func_memcmp_clean=no
 else
   cat > conftest.$ac_ext <<EOF
-#line 22272 "configure"
+#line 22920 "configure"
 #include "confdefs.h"
 
 main()
@@ -22278,7 +22926,7 @@ main()
 }
 
 EOF
-if { (eval echo configure:22282: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:22930: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>&5
 then
   ac_cv_func_memcmp_clean=yes
 else
@@ -22296,12 +22944,12 @@ echo "$ac_t""$ac_cv_func_memcmp_clean" 1>&6
 test $ac_cv_func_memcmp_clean = no && LIBOBJS="$LIBOBJS memcmp.${ac_objext}"
 
 echo $ac_n "checking for strftime""... $ac_c" 1>&6
-echo "configure:22300: checking for strftime" >&5
+echo "configure:22948: checking for strftime" >&5
 if eval "test \"\${ac_cv_func_strftime+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22305 "configure"
+#line 22953 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char strftime(); below.  */
@@ -22325,7 +22973,7 @@ f = strftime;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22329: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:22977: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_strftime=yes"
 else
@@ -22347,7 +22995,7 @@ else
   echo "$ac_t""no" 1>&6
 # strftime is in -lintl on SCO UNIX.
 echo $ac_n "checking for strftime in -lintl""... $ac_c" 1>&6
-echo "configure:22351: checking for strftime in -lintl" >&5
+echo "configure:22999: checking for strftime in -lintl" >&5
 ac_lib_var=`echo intl'_'strftime | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -22355,7 +23003,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lintl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 22359 "configure"
+#line 23007 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -22366,7 +23014,7 @@ int main() {
 strftime()
 ; return 0; }
 EOF
-if { (eval echo configure:22370: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23018: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -22394,12 +23042,12 @@ fi
 
 
 echo $ac_n "checking for inet_aton()""... $ac_c" 1>&6
-echo "configure:22398: checking for inet_aton()" >&5
+echo "configure:23046: checking for inet_aton()" >&5
 if eval "test \"\${ol_cv_func_inet_aton+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22403 "configure"
+#line 23051 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -22421,7 +23069,7 @@ struct in_addr in;
 int rc = inet_aton( "255.255.255.255", &in );
 ; return 0; }
 EOF
-if { (eval echo configure:22425: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23073: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_func_inet_aton=yes
 else
@@ -22443,12 +23091,12 @@ EOF
  
 
 echo $ac_n "checking for _spawnlp""... $ac_c" 1>&6
-echo "configure:22447: checking for _spawnlp" >&5
+echo "configure:23095: checking for _spawnlp" >&5
 if eval "test \"\${ac_cv_func__spawnlp+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22452 "configure"
+#line 23100 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _spawnlp(); below.  */
@@ -22472,7 +23120,7 @@ f = _spawnlp;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22476: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23124: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__spawnlp=yes"
 else
@@ -22496,12 +23144,12 @@ fi
 
 
 echo $ac_n "checking for _snprintf""... $ac_c" 1>&6
-echo "configure:22500: checking for _snprintf" >&5
+echo "configure:23148: checking for _snprintf" >&5
 if eval "test \"\${ac_cv_func__snprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22505 "configure"
+#line 23153 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _snprintf(); below.  */
@@ -22525,7 +23173,7 @@ f = _snprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22529: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23177: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__snprintf=yes"
 else
@@ -22551,12 +23199,12 @@ fi
 
 
 echo $ac_n "checking for _vsnprintf""... $ac_c" 1>&6
-echo "configure:22555: checking for _vsnprintf" >&5
+echo "configure:23203: checking for _vsnprintf" >&5
 if eval "test \"\${ac_cv_func__vsnprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22560 "configure"
+#line 23208 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _vsnprintf(); below.  */
@@ -22580,7 +23228,7 @@ f = _vsnprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22584: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23232: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__vsnprintf=yes"
 else
@@ -22606,12 +23254,12 @@ fi
 
 
 echo $ac_n "checking for vprintf""... $ac_c" 1>&6
-echo "configure:22610: checking for vprintf" >&5
+echo "configure:23258: checking for vprintf" >&5
 if eval "test \"\${ac_cv_func_vprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22615 "configure"
+#line 23263 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char vprintf(); below.  */
@@ -22635,7 +23283,7 @@ f = vprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22639: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23287: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_vprintf=yes"
 else
@@ -22659,12 +23307,12 @@ fi
 
 if test "$ac_cv_func_vprintf" != yes; then
 echo $ac_n "checking for _doprnt""... $ac_c" 1>&6
-echo "configure:22663: checking for _doprnt" >&5
+echo "configure:23311: checking for _doprnt" >&5
 if eval "test \"\${ac_cv_func__doprnt+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22668 "configure"
+#line 23316 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _doprnt(); below.  */
@@ -22688,7 +23336,7 @@ f = _doprnt;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22692: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23340: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__doprnt=yes"
 else
@@ -22717,12 +23365,12 @@ if test $ac_cv_func_vprintf = yes ; then
 		for ac_func in snprintf vsnprintf
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:22721: checking for $ac_func" >&5
+echo "configure:23369: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22726 "configure"
+#line 23374 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -22746,7 +23394,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22750: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23398: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -22832,12 +23480,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:22836: checking for $ac_func" >&5
+echo "configure:23484: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22841 "configure"
+#line 23489 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -22861,7 +23509,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22865: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23513: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -22889,12 +23537,12 @@ done
 for ac_func in getopt getpeereid
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:22893: checking for $ac_func" >&5
+echo "configure:23541: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22898 "configure"
+#line 23546 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -22918,7 +23566,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22922: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23570: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -22950,19 +23598,19 @@ if test "$ac_cv_func_getopt" != yes; then
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
 	echo $ac_n "checking for msg_accrights in msghdr""... $ac_c" 1>&6
-echo "configure:22954: checking for msg_accrights in msghdr" >&5
+echo "configure:23602: checking for msg_accrights in msghdr" >&5
 if eval "test \"\${ol_cv_msghdr_msg_accrights+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22959 "configure"
+#line 23607 "configure"
 #include "confdefs.h"
 #include <sys/socket.h>
 int main() {
 struct msghdr m; m.msg_accrightslen=0
 ; return 0; }
 EOF
-if { (eval echo configure:22966: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:23614: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_msghdr_msg_accrights=yes
 else
@@ -23002,13 +23650,13 @@ fi
 
 # Check Configuration
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:23006: checking declaration of sys_errlist" >&5
+echo "configure:23654: checking declaration of sys_errlist" >&5
 if eval "test \"\${ol_cv_dcl_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 23012 "configure"
+#line 23660 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -23021,7 +23669,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:23025: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:23673: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes
@@ -23044,20 +23692,20 @@ EOF
 
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:23048: checking existence of sys_errlist" >&5
+echo "configure:23696: checking existence of sys_errlist" >&5
 if eval "test \"\${ol_cv_have_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 23054 "configure"
+#line 23702 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:23061: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23709: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else
@@ -23085,17 +23733,17 @@ if test "$ol_enable_slapi" != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:23089: checking for $ac_hdr" >&5
+echo "configure:23737: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 23094 "configure"
+#line 23742 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:23099: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:23747: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -23126,7 +23774,7 @@ done
 		{ echo "configure: error: could not locate <ltdl.h>" 1>&2; exit 1; }
 	fi
 	echo $ac_n "checking for lt_dlinit in -lltdl""... $ac_c" 1>&6
-echo "configure:23130: checking for lt_dlinit in -lltdl" >&5
+echo "configure:23778: checking for lt_dlinit in -lltdl" >&5
 ac_lib_var=`echo ltdl'_'lt_dlinit | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -23134,7 +23782,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lltdl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 23138 "configure"
+#line 23786 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -23145,7 +23793,7 @@ int main() {
 lt_dlinit()
 ; return 0; }
 EOF
-if { (eval echo configure:23149: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:23797: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
