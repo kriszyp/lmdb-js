@@ -3642,7 +3642,7 @@ int slapi_int_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_
 		return 1;
 	}
 
-	if ( !c->cac_attrsonly ) {
+	if ( !c->cac_attrsonly && a->a_vals != NULL ) {
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 			if ( !access_allowed( op, e,
 				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
