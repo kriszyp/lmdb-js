@@ -1835,15 +1835,13 @@ cache_back_sentry(
 		rs->sr_entry->e_nname = ndn; 
 
 		op->o_callback = cb; 
-		return 0; 
+		return LDAP_SUCCESS; 
 
 	} else if (rs->sr_type == REP_RESULT) { 
 		op->o_callback = NULL; 
 		send_ldap_result( op, rs ); 
-		return 0; 
+		return LDAP_SUCCESS; 
 	}
 
-	/* FIXME: not handled? */
-	assert(0);
-	return -1;
+	return LDAP_SUCCESS;
 }
