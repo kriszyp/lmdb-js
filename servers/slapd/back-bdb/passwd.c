@@ -38,7 +38,8 @@ bdb_exop_passwd(
 	struct berval id = { 0, NULL };
 	struct berval new = { 0, NULL };
 
-	struct berval *dn;
+	struct berval dn;
+	struct berval ndn;
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
@@ -73,14 +74,24 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	dn = id.bv_val ? &id : &op->o_dn;
+	if( id.bv_len ) {
+		dn = id;
+	} else {
+		dn = op->o_dn;
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
-		dn->bv_val, id.bv_val ? " (proxy)" : "", 0 );
+		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
 
-	if( dn->bv_len == 0 ) {
+	if( dn.bv_len == 0 ) {
 		*text = "No password is associated with the Root DSE";
 		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
+
+	rc = dnNormalize2( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+		*text = "Invalid DN";
 		goto done;
 	}
 
@@ -121,7 +132,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, dn, &e, NULL, 0 );
+	rc = bdb_dn2entry_w( be, ltid, &ndn, &e, NULL, 0 );
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:
