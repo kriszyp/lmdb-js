@@ -180,6 +180,10 @@ SOURCE=..\libldap\error.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\extended.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\free.c
 # End Source File
 # Begin Source File

@@ -179,6 +179,10 @@ SOURCE=.\error.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\extended.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\free.c
 # End Source File
 # Begin Source File
