@@ -99,9 +99,8 @@ monitor_subsys_listener_init(
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
 				i,
-				l[i]->sl_name,
-
-				l[i]->sl_url );
+				l[i]->sl_name.bv_val,
+				l[i]->sl_url.bv_val );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {

@@ -1643,6 +1643,8 @@ typedef struct slap_gacl {
 	char ga_ndn[1];
 } GroupAssertion;
 
+typedef struct slap_listener Listener;
+
 /*
  * represents a connection from an ldap client
  */
@@ -1658,10 +1660,11 @@ typedef struct slap_conn {
 	time_t		c_activitytime;	/* when the connection was last used */
 	unsigned long		c_connid;	/* id of this connection for stats*/
 
-	struct berval	c_listener_url;	/* listener URL */
 	struct berval	c_peer_domain;	/* DNS name of client */
 	struct berval	c_peer_name;	/* peer name (trans=addr:port) */
-	struct berval	c_sock_name;	/* sock name (trans=addr:port) */
+	Listener	*c_listener;
+#define c_listener_url c_listener->sl_url	/* listener URL */
+#define c_sock_name c_listener->sl_name	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
@@ -1725,9 +1728,9 @@ typedef struct slap_conn {
 /*
  * listener; need to access it from monitor backend
  */
-typedef struct slap_listener {
-	char* sl_url;
-	char* sl_name;
+struct slap_listener {
+	struct berval sl_url;
+	struct berval sl_name;
 #ifdef HAVE_TLS
 	int		sl_is_tls;
 #endif
@@ -1737,7 +1740,7 @@ typedef struct slap_listener {
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
-} Listener;
+};
 
 #ifdef SLAPD_MONITOR
 /*

@@ -588,6 +588,9 @@ static int slap_open_listener(
 	int socktype = SOCK_STREAM;	/* default to COTS */
 
 #ifdef LDAP_PF_LOCAL
+	/*
+	 * use safe defaults
+	 */
 	mode_t 	perms = S_IRWXU;
 	int	crit = 1;
 #endif
@@ -607,7 +610,7 @@ static int slap_open_listener(
 		return rc;
 	}
 
-	l.sl_url = NULL;
+	l.sl_url.bv_val = NULL;
 
 #ifndef HAVE_TLS
 	if( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
@@ -831,8 +834,10 @@ static int slap_open_listener(
 			slap_free_listener_addresses(psal);
 			return -1;
 		}
-		l.sl_name = ch_malloc( strlen(addr) + sizeof("PATH=") );
-		sprintf( l.sl_name, "PATH=%s", addr );
+		l.sl_name.bv_len = strlen(addr) + sizeof("PATH=") - 1;
+		l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
+		snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 
+				"PATH=%s", addr );
 	} break;
 #endif /* LDAP_PF_LOCAL */
 
@@ -847,9 +852,11 @@ static int slap_open_listener(
 		s = inet_ntoa( ((struct sockaddr_in *) *sal)->sin_addr );
 #endif
 		port = ntohs( ((struct sockaddr_in *)*sal) ->sin_port );
-		l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65535") );
-		sprintf( l.sl_name, "IP=%s:%d",
+		l.sl_name.bv_val = ber_memalloc( sizeof("IP=255.255.255.255:65535") );
+		snprintf( l.sl_name.bv_val, sizeof("IP=255.255.255.255:65535"),
+			"IP=%s:%d",
 			 s != NULL ? s : "unknown" , port );
+		l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 	} break;
 
 #ifdef LDAP_PF_INET6
@@ -858,8 +865,11 @@ static int slap_open_listener(
 		inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
 			   addr, sizeof addr);
 		port = ntohs( ((struct sockaddr_in6 *)*sal)->sin6_port );
-		l.sl_name = ch_malloc( strlen(addr) + sizeof("IP= 65535") );
-		sprintf( l.sl_name, "IP=%s %d", addr, port );
+		l.sl_name.bv_len = strlen(addr) + sizeof("IP= 65535");
+		l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len );
+		snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=%s %d", 
+				addr, port );
+		l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 	} break;
 #endif /* LDAP_PF_INET6 */
 
@@ -876,7 +886,7 @@ static int slap_open_listener(
 	}
 
 	AC_MEMCPY(&l.sl_sa, *sal, addrlen);
-	l.sl_url = ch_strdup( url );
+	ber_str2bv( url, 0, 1, &l.sl_url);
 	li = ch_malloc( sizeof( Listener ) );
 	*li = l;
 	slap_listeners[*cur] = li;
@@ -887,7 +897,7 @@ static int slap_open_listener(
 
 	slap_free_listener_addresses(psal);
 
-	if ( l.sl_url == NULL )
+	if ( l.sl_url.bv_val == NULL )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, RESULTS, 
@@ -901,10 +911,11 @@ static int slap_open_listener(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONNECTION, RESULTS, 
-		"slap_open_listener: daemon initialized %s\n", l.sl_url, 0, 0 );
+		"slap_open_listener: daemon initialized %s\n",
+		l.sl_url.bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
-		l.sl_url, 0, 0 );
+		l.sl_url.bv_val, 0, 0 );
 #endif
 	return 0;
 }
@@ -1071,10 +1082,10 @@ close_listeners(
 #endif /* LDAP_PF_LOCAL */
 			slapd_close( slap_listeners[l]->sl_sd );
 		}
-		if ( slap_listeners[l]->sl_url )
-			free ( slap_listeners[l]->sl_url );
-		if ( slap_listeners[l]->sl_name )
-			free ( slap_listeners[l]->sl_name );
+		if ( slap_listeners[l]->sl_url.bv_val )
+			ber_memfree( slap_listeners[l]->sl_url.bv_val );
+		if ( slap_listeners[l]->sl_name.bv_val )
+			ber_memfree( slap_listeners[l]->sl_name.bv_val );
 		free ( slap_listeners[l] );
 		slap_listeners[l] = NULL;
 	}
@@ -1149,11 +1160,11 @@ slapd_daemon_task(
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, ERR, 
 				"slapd_daemon_task: listen( %s, 5 ) failed errno=%d (%s)\n",
-				slap_listeners[l]->sl_url, err, sock_errstr(err) );
+				slap_listeners[l]->sl_url.bv_val, err, sock_errstr(err) );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
-					slap_listeners[l]->sl_url, err,
+					slap_listeners[l]->sl_url.bv_val, err,
 					sock_errstr(err) );
 #endif
 			return( (void*)-1 );
@@ -1393,9 +1404,8 @@ slapd_daemon_task(
 				 */
 				if ( slap_listeners[l]->sl_is_udp < 2 ) {
 				    id = connection_init(
-				    	slap_listeners[l]->sl_sd,
-					slap_listeners[l]->sl_url, "", "",
-					slap_listeners[l]->sl_name,
+					slap_listeners[l]->sl_sd,
+				    	slap_listeners[l], "", "",
 					2, ssf, authid );
 				    slap_listeners[l]->sl_is_udp++;
 				}
@@ -1621,10 +1631,9 @@ slapd_daemon_task(
 			}
 
 			id = connection_init(s,
-				slap_listeners[l]->sl_url,
+				slap_listeners[l],
 				dnsname != NULL ? dnsname : "unknown",
 				peername,
-				slap_listeners[l]->sl_name,
 #ifdef HAVE_TLS
 				slap_listeners[l]->sl_is_tls,
 #else
@@ -1638,24 +1647,29 @@ slapd_daemon_task(
 			if( id < 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONNECTION, INFO, 
-					"slapd_daemon_task: connection_init(%ld, %s, %s) failed.\n",
-					(long)s, peername, slap_listeners[l]->sl_name );
+					"slapd_daemon_task: "
+					"connection_init(%ld, %s, %s) "
+					"failed.\n",
+					(long)s, peername, 
+					slap_listeners[l]->sl_name.bv_val );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"daemon: connection_init(%ld, %s, %s) failed.\n",
+					"daemon: connection_init(%ld, %s, %s) "
+					"failed.\n",
 					(long) s,
 					peername,
-					slap_listeners[l]->sl_name );
+					slap_listeners[l]->sl_name.bv_val );
 #endif
 				slapd_close(s);
 				continue;
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"daemon: conn=%ld fd=%ld connection from %s (%s) accepted.\n",
+				"daemon: conn=%ld fd=%ld connection from %s "
+				"(%s) accepted.\n",
 				id, (long) s,
 				peername,
-				slap_listeners[l]->sl_name,
+				slap_listeners[l]->sl_name.bv_val,
 				0 );
 
 			slapd_add( s );

@@ -287,10 +287,9 @@ LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
 LDAP_SLAPD_F (long) connection_init LDAP_P((
 	ber_socket_t s,
-	const char* url,
+	Listener* url,
 	const char* dnsname,
 	const char* peername,
-	const char* sockname,
 	int use_tls,
 	slap_ssf_t ssf,
 	const char *id ));

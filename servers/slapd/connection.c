@@ -320,10 +320,9 @@ static void connection_return( Connection *c )
 
 long connection_init(
 	ber_socket_t s,
-	const char* url,
+	Listener *listener,
 	const char* dnsname,
 	const char* peername,
-	const char* sockname,
 	int tls_udp_option,
 	slap_ssf_t ssf,
 	const char *authid )
@@ -333,9 +332,9 @@ long connection_init(
 
 	assert( connections != NULL );
 
+	assert( listener != NULL );
 	assert( dnsname != NULL );
 	assert( peername != NULL );
-	assert( sockname != NULL );
 
 #ifndef HAVE_TLS
 	assert( tls_udp_option != 1 );
@@ -420,14 +419,11 @@ long connection_init(
 		c->c_ndn.bv_len = 0;
 		c->c_groups = NULL;
 
-		c->c_listener_url.bv_val = NULL;
-		c->c_listener_url.bv_len = 0;
+		c->c_listener = NULL;
 		c->c_peer_domain.bv_val = NULL;
 		c->c_peer_domain.bv_len = 0;
 		c->c_peer_name.bv_val = NULL;
 		c->c_peer_name.bv_len = 0;
-		c->c_sock_name.bv_val = NULL;
-		c->c_sock_name.bv_len = 0;
 
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
@@ -462,10 +458,9 @@ long connection_init(
     assert( c->c_dn.bv_val == NULL );
     assert( c->c_ndn.bv_val == NULL );
     assert( c->c_groups == NULL );
-    assert( c->c_listener_url.bv_val == NULL );
+    assert( c->c_listener == NULL );
     assert( c->c_peer_domain.bv_val == NULL );
     assert( c->c_peer_name.bv_val == NULL );
-    assert( c->c_sock_name.bv_val == NULL );
     assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
     assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
 	assert( c->c_sasl_bind_mech.bv_val == NULL );
@@ -474,10 +469,9 @@ long connection_init(
 	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
 
-	ber_str2bv( url, 0, 1, &c->c_listener_url );
+	c->c_listener = listener;
 	ber_str2bv( dnsname, 0, 1, &c->c_peer_domain );
 	ber_str2bv( peername, 0, 1, &c->c_peer_name );
-	ber_str2bv( sockname, 0, 1, &c->c_sock_name );
 
     c->c_n_ops_received = 0;
     c->c_n_ops_executing = 0;
@@ -633,12 +627,7 @@ connection_destroy( Connection *c )
     c->c_activitytime = c->c_starttime = 0;
 
 	connection2anonymous( c );
-
-	if(c->c_listener_url.bv_val != NULL) {
-		free(c->c_listener_url.bv_val);
-		c->c_listener_url.bv_val = NULL;
-	}
-	c->c_listener_url.bv_len = 0;
+	c->c_listener = NULL;
 
 	if(c->c_peer_domain.bv_val != NULL) {
 		free(c->c_peer_domain.bv_val);
@@ -666,11 +655,6 @@ connection_destroy( Connection *c )
 		c->c_peer_name.bv_val = NULL;
 	}
 	c->c_peer_name.bv_len = 0;
-	if(c->c_sock_name.bv_val != NULL) {
-		free(c->c_sock_name.bv_val);
-		c->c_sock_name.bv_val = NULL;
-	}
-	c->c_sock_name.bv_len = 0;
 
 	c->c_sasl_bind_in_progress = 0;
 	if(c->c_sasl_bind_mech.bv_val != NULL) {
