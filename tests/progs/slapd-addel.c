@@ -185,7 +185,7 @@ get_add_entry( char *filename, LDAPMod ***mods )
 	FILE    *fp;
 	char    *entry = NULL;
 
-	if ( fp = fopen( filename, "r" )) {
+	if ( (fp = fopen( filename, "r" )) != NULL ) {
 		char  line[BUFSIZ];
 
 		if ( fgets( line, BUFSIZ, fp )) {

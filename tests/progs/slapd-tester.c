@@ -259,7 +259,7 @@ get_search_filters( char *filename, char *filters[] )
 	FILE    *fp;
 	int     filter = 0;
 
-	if ( fp = fopen( filename, "r" )) {
+	if ( (fp = fopen( filename, "r" )) != NULL ) {
 		char  line[BUFSIZ];
 
 		while (( filter < MAXREQS ) && ( fgets( line, BUFSIZ, fp ))) {
@@ -283,7 +283,7 @@ get_read_entries( char *filename, char *entries[] )
 	FILE    *fp;
 	int     entry = 0;
 
-	if ( fp = fopen( filename, "r" )) {
+	if ( (fp = fopen( filename, "r" )) != NULL ) {
 		char  line[BUFSIZ];
 
 		while (( entry < MAXREQS ) && ( fgets( line, BUFSIZ, fp ))) {
