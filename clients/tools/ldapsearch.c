@@ -656,7 +656,7 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			err = ber_printf( seber, "{b}", abs(subentries) == 1 ? 0 : 1 );
+			err = ber_printf( seber, "b", abs(subentries) == 1 ? 0 : 1 );
 	    	if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, _("Subentries control encoding error!\n") );
