@@ -6,7 +6,8 @@
 /*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
- ******************************************************************************
+ */
+/*---
  * This notice applies to changes, created by or for Novell, Inc.,
  * to preexisting works for which notices appear elsewhere in this file.
  *
@@ -20,7 +21,7 @@
  * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
  * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
  * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
- ******************************************************************************
+ *---
  * Modification to OpenLDAP source by Novell, Inc.
  * April 2000 sfs Add code to process V3 referrals and search results
  *
@@ -440,7 +441,7 @@ try_read1msg(
 					{
 						v3ref = -1;  /* Assume referral not chased and return it to app */
 						/* Get the referral list */
-						if( ber_scanf( &tmpber, "v", &refs) == LBER_ERROR) {
+						if( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
 							rc = LDAP_DECODING_ERROR;
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,

@@ -6,7 +6,8 @@
 /*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
- ******************************************************************************
+ */
+/*---
  * This notice applies to changes, created by or for Novell, Inc.,
  * to preexisting works for which notices appear elsewhere in this file.
  *
@@ -20,10 +21,9 @@
  * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
  * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
  * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
- ******************************************************************************
+ *---
  * Modification to OpenLDAP source by Novell, Inc.
  * April 2000 sfs  Added code to chase V3 referrals
- *
  *  request.c - sending of ldap requests; handling of referrals
  */
 
@@ -668,12 +668,17 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, 
 	refs = NULL;
 	/* parse out & follow referrals */
 	for( i=0; refarray[i] != NULL; i++) {
-
 		/* Parse the referral URL */
 		if (( rc = ldap_url_parse( refarray[i], &srv)) != LDAP_SUCCESS) {
 			ld->ld_errno = rc;
 			rc = -1;
 			goto done;
+		}
+
+		/* treat ldap://hostpart and ldap://hostpart/ the same */
+		if ( srv->lud_dn && srv->lud_dn[0] == '\0' ) {
+			LDAP_FREE( srv->lud_dn );
+			srv->lud_dn = NULL;
 		}
 
 		/* check connection for re-bind in progress */
@@ -896,12 +901,14 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			continue;
 		}
 
+		/* copy the complete referral for rebind process */
+		rinfo.ri_url = LDAP_STRDUP( ref );
+
 		*hadrefp = 1;
 
 		if (( refdn = strchr( tmpref, '/' )) != NULL ) {
 			*refdn++ = '\0';
 			newdn = refdn[0] != '?' && refdn[0] != '\0';
-
 			if( !newdn ) refdn = NULL;
 		} else {
 			newdn = 0;
