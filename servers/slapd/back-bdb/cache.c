@@ -952,6 +952,9 @@ try_again:
 			goto try_again;
 		}
 
+		/* Mark entry in-use */
+		BEI(ep)->bei_refcnt++;
+
 		/* free cache read lock */
 		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 		/* set lru mutex */
@@ -959,8 +962,6 @@ try_again:
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
-		
-		BEI(ep)->bei_refcnt++;
 
 		/* free lru mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
