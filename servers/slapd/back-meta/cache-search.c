@@ -574,6 +574,7 @@ meta_back_cache_search(
 				mfilter = op->ors_filterstr;
 			}
 
+#if 0
 			/*
 			 * Maps attributes in filter
 			 */
@@ -590,6 +591,9 @@ meta_back_cache_search(
 			}
 			mfilter.bv_val = NULL;
 			mfilter.bv_len = 0;
+#else
+			mapped_filter = (char *) mfilter.bv_val;
+#endif
 
 			/*
 			 * Maps required attributes
