@@ -83,7 +83,7 @@ handle_private_option( int i )
 #if 0
 		int crit;
 		char *control, *cvalue;
-	case 'E': /* delete controls */
+	case 'E': /* delete extensions */
 		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, protocol );
@@ -105,7 +105,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, _("Invalid delete control name: %s\n"), control );
+		fprintf( stderr, _("Invalid delete extension name: %s\n"), control );
 		usage();
 #endif
 

@@ -98,12 +98,12 @@ N_("  -c         continuous operation mode (do not stop on errors)\n"),
 N_("  -C         chase referrals (anonymously)\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
-N_("  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n")
+N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
 N_("             [!]manageDSAit\n")
-N_("             [!]noop\n"),
-N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n"),
+N_("             [!]noop\n")
+N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
@@ -166,7 +166,7 @@ tool_args( int argc, char **argv )
 			}
 			binddn = ber_strdup( optarg );
 			break;
-		case 'e': /* general controls */
+		case 'e': /* general extensions (controls and such) */
 			/* should be extended to support comma separated list of
 			 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
 			 */
