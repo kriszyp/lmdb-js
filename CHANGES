@@ -8,7 +8,7 @@ OpenLDAP 2.0.X Engineering
 	Updated slapd MAXARGS to 200
 	Updated slapd nisNetgroupTriple validation routine (ITS#705)
 	Updated slapd bootParameter validation routine (ITS#706)
-	Updated slapd nameUID syntax to reuse DN routines
+	Updated slapd nameUID syntax to reuse DN routines for uniqueMember
 	Updated client tool usage (ITS#710)
 	Build Environment
 		Fixed MSC tcp_close redefine

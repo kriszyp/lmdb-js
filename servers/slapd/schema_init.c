@@ -57,13 +57,13 @@
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
+#define uniqueMemberMatch				dnMatch
 
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
 #define bitStringMatch					NULL
 #define presentationAddressMatch		NULL
-#define uniqueMemberMatch				NULL
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
 
