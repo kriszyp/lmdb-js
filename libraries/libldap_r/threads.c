@@ -452,6 +452,10 @@ ldap_pvt_thread_pool_wrapper ( ldap_pvt_thread_pool_t pool )
 			 * only die if there are other open threads (i.e.,
 			 * always have at least one thread open).
 			 */
+			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+
 			if (pool->ltp_state == LDAP_PVT_THREAD_POOL_RUNNING)
 				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 
@@ -464,6 +468,7 @@ ldap_pvt_thread_pool_wrapper ( ldap_pvt_thread_pool_t pool )
 
 		(ctx->ltc_start_routine)(ctx->ltc_arg);
 		free(ctx);
+		ldap_pvt_thread_yield();
 
 		/* if we use an idle timer, here's
 		 * a good place to update it
