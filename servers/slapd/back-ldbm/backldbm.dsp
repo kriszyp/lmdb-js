@@ -128,10 +128,6 @@ LIB32=link.exe -lib
 # Name "backldbm - Win32 Single Release"
 # Begin Source File
 
-SOURCE=.\abandon.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\add.c
 # End Source File
 # Begin Source File
@@ -261,10 +257,6 @@ SOURCE=.\search.c
 # Begin Source File
 
 SOURCE=.\tools.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\unbind.c
 # End Source File
 # End Target
 # End Project
