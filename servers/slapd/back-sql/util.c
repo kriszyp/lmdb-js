@@ -27,12 +27,11 @@
 #include "ac/string.h"
 #include "ac/ctype.h"
 #include "ac/stdarg.h"
+
 #include "slap.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
-#include "back-sql.h"
-#include "schema-map.h"
-#include "util.h"
+#include "proto-sql.h"
 
 #define BACKSQL_MAX(a,b) ((a)>(b)?(a):(b))
 #define BACKSQL_MIN(a,b) ((a)<(b)?(a):(b))
@@ -282,7 +281,7 @@ backsql_entry_addattr(
 	return 1;
 }
 
-char *
+static char *
 backsql_get_table_spec( char **p )
 {
 	char		*s, *q;

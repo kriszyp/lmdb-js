@@ -54,6 +54,11 @@ typedef struct backsql_at_map_rec {
 	struct berval	bam_from_tbls;
 	struct berval	bam_join_where;
 	struct berval	bam_sel_expr;
+
+	/* TimesTen, or, if a uppercase function is defined,
+	 * an uppercased version of bam_sel_expr */
+	struct berval	bam_sel_expr_u;
+
 	/* supposed to expect 2 binded values: entry keyval 
 	 * and attr. value to add, like "add_name(?,?,?)" */
 	char		*bam_add_proc;
@@ -72,14 +77,17 @@ typedef struct backsql_at_map_rec {
 	 * (whether back-sql should bind first parameter as output 
 	 * for return code) */
 	int 		bam_expect_return;
-	/* TimesTen */
-	struct berval	bam_sel_expr_u;
 
 	/* next mapping for attribute */
 	struct backsql_at_map_rec	*bam_next;
 } backsql_at_map_rec;
 
-#define BACKSQL_AT_MAP_REC_INIT { NULL, NULL, BER_BVC(""), BER_BVC(""), BER_BVNULL, NULL, NULL, NULL, 0, 0, BER_BVNULL, NULL }
+#define BACKSQL_AT_MAP_REC_INIT { NULL, NULL, BER_BVC(""), BER_BVC(""), BER_BVNULL, BER_BVNULL, NULL, NULL, NULL, 0, 0, NULL }
+
+/* define to uppercase filters only if the matching rule requires it
+ * (currently broken) */
+/* #define	BACKSQL_UPPERCASE_FILTER */
+#define	BACKSQL_AT_CANUPPERCASE(at)	((at)->bam_sel_expr_u.bv_val)
 
 /* defines to support bitmasks above */
 #define BACKSQL_ADD	0x1

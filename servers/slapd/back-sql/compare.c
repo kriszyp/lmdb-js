@@ -24,11 +24,9 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+
 #include "slap.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "entry-id.h"
-#include "util.h"
+#include "proto-sql.h"
 
 int
 backsql_compare( Operation *op, SlapReply *rs )
@@ -173,62 +171,5 @@ return_results:;
 	}
 }
  
-/*
- * sets the supported operational attributes (if required)
- */
-
-int
-backsql_operational(
-	Operation	*op,
-	SlapReply	*rs,
-	int		opattrs,
-	Attribute	**a )
-{
-
-	backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC 		dbh = SQL_NULL_HDBC;
-	Attribute		**aa = a;
-	int			rc = 0;
-
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry '%s'\n",
-			rs->sr_entry->e_nname.bv_val, 0, 0 );
-
-
-	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
-			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
-		
-		rc = backsql_get_db_conn( op, &dbh );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"could not get connection handle - exiting\n", 
-				0, 0, 0 );
-			return 1;
-		}
-		
-		rc = backsql_has_children( bi, dbh, &rs->sr_entry->e_nname );
-
-		switch( rc ) {
-		case LDAP_COMPARE_TRUE:
-		case LDAP_COMPARE_FALSE:
-			*aa = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
-			if ( *aa != NULL ) {
-				aa = &(*aa)->a_next;
-			}
-			rc = 0;
-			break;
-
-		default:
-			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"has_children failed( %d)\n", rc, 0, 0 );
-			rc = 1;
-			break;
-		}
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_operational()\n", 0, 0, 0);
-
-	return rc;
-}
-
 #endif /* SLAPD_SQL */
 

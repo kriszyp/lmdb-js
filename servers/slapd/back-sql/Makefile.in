@@ -13,10 +13,12 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SRCS	= init.c config.c search.c bind.c other.c \
-		entry-id.c schema-map.c sql-wrap.c modify.c util.c
-OBJS	= init.lo config.lo search.lo bind.lo other.lo \
-		entry-id.lo schema-map.lo sql-wrap.lo modify.lo util.lo
+SRCS	= init.c config.c search.c bind.c compare.c operational.c \
+		entry-id.c schema-map.c sql-wrap.c modify.c util.c \
+		add.c delete.c modrdn.c
+OBJS	= init.lo config.lo search.lo bind.lo compare.lo operational.lo \
+		entry-id.lo schema-map.lo sql-wrap.lo modify.lo util.lo \
+		add.lo delete.lo modrdn.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

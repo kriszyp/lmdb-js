@@ -24,11 +24,9 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+
 #include "slap.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "util.h"
-#include "entry-id.h"
+#include "proto-sql.h"
 
 int 
 backsql_bind( Operation *op, SlapReply *rs )

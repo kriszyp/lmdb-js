@@ -78,8 +78,14 @@
 #include "sql-types.h"
 
 /*
- * Better use the standard length of 8192 (as of servers/slapd/dn.c) ?
+ * PostgreSQL 7.0 doesn't work without :(
  */
+#define	BACKSQL_REALLOC_STMT
+
+/*
+ * Better use the standard length of 8192 (as of slap.h)?
+ */
+/* #define BACKSQL_MAX_DN_LEN	SLAP_LDAPDN_MAXLEN */
 #define BACKSQL_MAX_DN_LEN	255
 
 /*
@@ -87,6 +93,147 @@
  */
 #undef BACKSQL_TRACE
 
+/*
+ * Entry ID structure
+ */
+typedef struct backsql_entryID {
+	unsigned long		id;
+	unsigned long		keyval;
+	unsigned long		oc_id;
+	struct berval		dn;
+	struct backsql_entryID	*next;
+} backsql_entryID;
+
+/*
+ * "structural" objectClass mapping structure
+ */
+typedef struct backsql_oc_map_rec {
+	/*
+	 * Structure of corresponding LDAP objectClass definition
+	 */
+	ObjectClass	*bom_oc;
+#define BACKSQL_OC_NAME(ocmap)	((ocmap)->bom_oc->soc_cname.bv_val)
+	
+	struct berval	bom_keytbl;
+	struct berval	bom_keycol;
+	/* expected to return keyval of newly created entry */
+	char		*bom_create_proc;
+	/* in case create_proc does not return the keyval of the newly
+	 * created row */
+	char		*bom_create_keyval;
+	/* supposed to expect keyval as parameter and delete 
+	 * all the attributes as well */
+	char		*bom_delete_proc;
+	/* flags whether delete_proc is a function (whether back-sql 
+	 * should bind first parameter as output for return code) */
+	int		bom_expect_return;
+	unsigned long	bom_id;
+	Avlnode		*bom_attrs;
+} backsql_oc_map_rec;
+
+/*
+ * attributeType mapping structure
+ */
+typedef struct backsql_at_map_rec {
+	/* Description of corresponding LDAP attribute type */
+	AttributeDescription	*bam_ad;
+	/* ObjectClass if bam_ad is objectClass */
+	ObjectClass		*bam_oc;
+
+	struct berval	bam_from_tbls;
+	struct berval	bam_join_where;
+	struct berval	bam_sel_expr;
+
+	/* TimesTen, or, if a uppercase function is defined,
+	 * an uppercased version of bam_sel_expr */
+	struct berval	bam_sel_expr_u;
+
+	/* supposed to expect 2 binded values: entry keyval 
+	 * and attr. value to add, like "add_name(?,?,?)" */
+	char		*bam_add_proc;
+	/* supposed to expect 2 binded values: entry keyval 
+	 * and attr. value to delete */
+	char		*bam_delete_proc;
+	/* for optimization purposes attribute load query 
+	 * is preconstructed from parts on schemamap load time */
+	char		*bam_query;
+	/* following flags are bitmasks (first bit used for add_proc, 
+	 * second - for delete_proc) */
+	/* order of parameters for procedures above; 
+	 * 1 means "data then keyval", 0 means "keyval then data" */
+	int 		bam_param_order;
+	/* flags whether one or more of procedures is a function 
+	 * (whether back-sql should bind first parameter as output 
+	 * for return code) */
+	int 		bam_expect_return;
+
+	/* next mapping for attribute */
+	struct backsql_at_map_rec	*bam_next;
+} backsql_at_map_rec;
+
+#define BACKSQL_AT_MAP_REC_INIT { NULL, NULL, BER_BVC(""), BER_BVC(""), BER_BVNULL, BER_BVNULL, NULL, NULL, NULL, 0, 0, NULL }
+
+/* define to uppercase filters only if the matching rule requires it
+ * (currently broken) */
+/* #define	BACKSQL_UPPERCASE_FILTER */
+
+#define	BACKSQL_AT_CANUPPERCASE(at)	((at)->bam_sel_expr_u.bv_val)
+
+/* defines to support bitmasks above */
+#define BACKSQL_ADD	0x1
+#define BACKSQL_DEL	0x2
+
+#define BACKSQL_IS_ADD(x)	( BACKSQL_ADD & (x) )
+#define BACKSQL_IS_DEL(x)	( BACKSQL_DEL & (x) )
+
+#define BACKSQL_NCMP(v1,v2)	ber_bvcmp((v1),(v2))
+
+#define BACKSQL_CONCAT
+/*
+ * berbuf structure: a berval with a buffer size associated
+ */
+typedef struct berbuf {
+	struct berval	bb_val;
+	ber_len_t	bb_len;
+} BerBuffer;
+
+#define BB_NULL		{ { 0, NULL }, 0 }
+
+typedef struct backsql_srch_info {
+	Operation		*bsi_op;
+
+	int			bsi_flags;
+#define	BSQL_SF_ALL_OPER		0x0001
+#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
+
+	struct berval		*bsi_base_dn;
+	int			bsi_scope;
+	Filter			*bsi_filter;
+	int			bsi_slimit,
+				bsi_tlimit;
+	time_t			bsi_stoptime;
+
+	backsql_entryID		*bsi_id_list,
+				*bsi_c_eid;
+	int			bsi_n_candidates;
+	int			bsi_abandon;
+	int			bsi_status;
+
+	backsql_oc_map_rec	*bsi_oc;
+	struct berbuf		bsi_sel,
+				bsi_from,
+				bsi_join_where,
+				bsi_flt_where;
+	ObjectClass		*bsi_filter_oc;
+	SQLHDBC			bsi_dbh;
+	AttributeName		*bsi_attrs;
+
+	Entry			*bsi_e;
+} backsql_srch_info;
+
+/*
+ * Backend private data structure
+ */
 typedef struct {
 	char		*dbhost;
 	int		dbport;
@@ -149,4 +296,6 @@ typedef struct {
 	( (rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO )
 
 #endif /* __BACKSQL_H__ */
+
+
 

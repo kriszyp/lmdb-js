@@ -25,14 +25,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
+
 #include "slap.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "schema-map.h"
-#include "entry-id.h"
-#include "util.h"
+#include "proto-sql.h"
 
 #define BACKSQL_STOP		0
 #define BACKSQL_CONTINUE	1
@@ -218,18 +215,21 @@ static int
 backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	backsql_at_map_rec *at )
 {
-	int			i;
+#ifdef BACKSQL_UPPERCASE_FILTER
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
+#endif /* BACKSQL_UPPERCASE_FILTER */
+	int			i;
 	int			casefold = 0;
 
 	if ( !f ) {
 		return 0;
 	}
 
-#if 0 /* always uppercase strings by now */
+	/* always uppercase strings by now */
+#ifdef BACKSQL_UPPERCASE_FILTER
 	if ( SLAP_MR_ASSOCIATED( f->f_sub_desc->ad_type->sat_substr,
 			bi->bi_caseIgnoreMatch ) )
-#endif
+#endif /* BACKSQL_UPPERCASE_FILTER */
 	{
 		casefold = 1;
 	}
@@ -246,26 +246,17 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	Debug( LDAP_DEBUG_TRACE, "expr: '%s%s%s'\n", at->bam_sel_expr.bv_val,
 		at->bam_sel_expr_u.bv_val ? "' '" : "",
 		at->bam_sel_expr_u.bv_val ? at->bam_sel_expr_u.bv_val : "" );
-	if ( casefold && bi->upper_func.bv_val ) {
+	if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
 		/*
-		 * If a pre-upper-cased version of the column exists, use it
+		 * If a pre-upper-cased version of the column 
+		 * or a precompiled upper function exists, use it
 		 */
-		if ( at->bam_sel_expr_u.bv_val ) {
-			backsql_strfcat( &bsi->bsi_flt_where, 
-					"bl",
-					&at->bam_sel_expr_u,
-					(ber_len_t)sizeof( " LIKE '" ) - 1,
-						" LIKE '" );
-   		} else {
-			backsql_strfcat( &bsi->bsi_flt_where, 
-					"bcbcl",
-					&bi->upper_func,
-					'(',
-					&at->bam_sel_expr,
-					')', 
-					(ber_len_t)sizeof( " LIKE '" ) - 1,
-						" LIKE '" );
-		}
+		backsql_strfcat( &bsi->bsi_flt_where, 
+				"bl",
+				&at->bam_sel_expr_u,
+				(ber_len_t)sizeof( " LIKE '" ) - 1,
+					" LIKE '" );
+
 	} else {
 		backsql_strfcat( &bsi->bsi_flt_where, "bl",
 				&at->bam_sel_expr,
@@ -273,12 +264,12 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	}
  
 	if ( f->f_sub_initial.bv_val != NULL ) {
-		size_t	start;
+		ber_len_t	start;
 
 		start = bsi->bsi_flt_where.bb_val.bv_len;
 		backsql_strfcat( &bsi->bsi_flt_where, "b",
 				&f->f_sub_initial );
-		if ( casefold && bi->upper_func.bv_val ) {
+		if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
 			ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
 		}
 	}
@@ -287,7 +278,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 
 	if ( f->f_sub_any != NULL ) {
 		for ( i = 0; f->f_sub_any[ i ].bv_val != NULL; i++ ) {
-			size_t	start;
+			ber_len_t	start;
 
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, 
@@ -301,7 +292,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 					"bc",
 					&f->f_sub_any[ i ],
 					'%' );
-			if ( casefold && bi->upper_func.bv_val ) {
+			if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
 				/*
 				 * Note: toupper('%') = '%'
 				 */
@@ -310,12 +301,12 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		}
 
 		if ( f->f_sub_final.bv_val != NULL ) {
-			size_t	start;
+			ber_len_t	start;
 
 			start = bsi->bsi_flt_where.bb_val.bv_len;
     			backsql_strfcat( &bsi->bsi_flt_where, "b",
 					&f->f_sub_final );
-  			if ( casefold && bi->upper_func.bv_val ) {
+  			if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
 				ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
 			}
 		}
@@ -372,6 +363,21 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		
 	case LDAP_FILTER_EXT:
 		ad = f->f_mra->ma_desc;
+		if ( f->f_mr_dnattrs ) {
+			/*
+			 * if dn attrs filtering is requested, better return 
+			 * success and let test_filter() deal with candidate
+			 * selection; otherwise we'd need to set conditions
+			 * on the contents of the DN, e.g. "SELECT ... FROM
+			 * ldap_entries AS attributeName WHERE attributeName.dn
+			 * like '%attributeName=value%'"
+			 */
+			backsql_strfcat( &bsi->bsi_flt_where, "l",
+					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+			bsi->bsi_status = LDAP_SUCCESS;
+			rc = 1;
+			goto done;
+		}
 		break;
 		
 	default:
@@ -553,7 +559,6 @@ done:;
 static int
 backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, backsql_at_map_rec *at )
 {
-	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			casefold = 0;
 	struct berval		*filter_value = NULL;
 	MatchingRule		*matching_rule = NULL;
@@ -591,10 +596,11 @@ backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, backsql_at_map_r
 		matching_rule = f->f_mr_rule;
 
 equality_match:;
-#if 0 /* always uppercase strings by now */
+		/* always uppercase strings by now */
+#ifdef BACKSQL_UPPERCASE_FILTER
 		if ( SLAP_MR_ASSOCIATED( matching_rule,
 					bi->bi_caseIgnoreMatch ) )
-#endif
+#endif /* BACKSQL_UPPERCASE_FILTER */
 		{
 			casefold = 1;
 		}
@@ -605,24 +611,14 @@ equality_match:;
 		 * upper_func stuff is made for Oracle, where UPPER is
 		 * safely applicable to NUMBER etc.
 		 */
-		if ( casefold && bi->upper_func.bv_val ) {
-			size_t	start;
+		if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
+			ber_len_t	start;
 
-			if ( at->bam_sel_expr_u.bv_val ) {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbl",
-						'(', /* ) */
-						&at->bam_sel_expr_u, 
-						(ber_len_t)sizeof( "='" ) - 1,
-							"='" );
-			} else {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbcbl",
-						'(' /* ) */ ,
-						&bi->upper_func,
-						'(' /* ) */ ,
-						&at->bam_sel_expr,
-						(ber_len_t)sizeof( /* ( */ ")='" ) - 1,
-							/* ( */ ")='" );
-			}
+			backsql_strfcat( &bsi->bsi_flt_where, "cbl",
+					'(', /* ) */
+					&at->bam_sel_expr_u, 
+					(ber_len_t)sizeof( "='" ) - 1,
+						"='" );
 
 			start = bsi->bsi_flt_where.bb_val.bv_len;
 
@@ -650,10 +646,11 @@ equality_match:;
 		/* fall thru to next case */
 		
 	case LDAP_FILTER_LE:
-#if 0 /* always uppercase strings by now */
+		/* always uppercase strings by now */
+#ifdef BACKSQL_UPPERCASE_FILTER
 		if ( SLAP_MR_ASSOCIATED( at->bam_ad->ad_type->sat_ordering,
 				bi->bi_caseIgnoreMatch ) )
-#endif
+#endif /* BACKSQL_UPPERCASE_FILTER */
 		{
 			casefold = 1;
 		}
@@ -661,25 +658,14 @@ equality_match:;
 		/*
 		 * FIXME: should we uppercase the operands?
 		 */
-		if ( casefold && bi->upper_func.bv_val ) {
-			size_t	start;
+		if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
+			ber_len_t	start;
 
-			if ( at->bam_sel_expr_u.bv_val ) {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbbc",
-						'(', /* ) */
-						&at->bam_sel_expr_u, 
-						&ordering,
-						'\'' );
-			} else {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbcbcbc",
-						'(' /* ) */ ,
-						&bi->upper_func,
-						'(' /* ) */ ,
-						&at->bam_sel_expr,
-						/* ( */ ')',
-						&ordering,
-						'\'' );
-			}
+			backsql_strfcat( &bsi->bsi_flt_where, "cbbc",
+					'(', /* ) */
+					&at->bam_sel_expr_u, 
+					&ordering,
+					'\'' );
 
 			start = bsi->bsi_flt_where.bb_val.bv_len;
 
@@ -724,24 +710,14 @@ equality_match:;
 		 * upper_func stuff is made for Oracle, where UPPER is
 		 * safely applicable to NUMBER etc.
 		 */
-		if ( bi->upper_func.bv_val ) {
-			size_t	start;
+		if ( at->bam_sel_expr_u.bv_val ) {
+			ber_len_t	start;
 
-			if ( at->bam_sel_expr_u.bv_val ) {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbl",
-						'(', /* ) */
-						&at->bam_sel_expr_u, 
-						(ber_len_t)sizeof( " LIKE '%" ) - 1,
-							" LIKE '%" );
-			} else {
-				backsql_strfcat( &bsi->bsi_flt_where, "cbcbl",
-						'(' /* ) */ ,
-						&bi->upper_func,
-						'(' /* ) */ ,
-						&at->bam_sel_expr,
-						(ber_len_t)sizeof( /* ( */ ") LIKE '%" ) - 1,
-							/* ( */ ") LIKE '%" );
-			}
+			backsql_strfcat( &bsi->bsi_flt_where, "cbl",
+					'(', /* ) */
+					&at->bam_sel_expr_u, 
+					(ber_len_t)sizeof( " LIKE '%" ) - 1,
+						" LIKE '%" );
 
 			start = bsi->bsi_flt_where.bb_val.bv_len;
 

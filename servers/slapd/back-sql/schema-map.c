@@ -25,13 +25,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
+
 #include "slap.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "schema-map.h"
-#include "util.h"
+#include "proto-sql.h"
 
 #define BACKSQL_DUPLICATE	(-1)
 
@@ -438,6 +436,17 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 						"in objectClass \"%s\" map\n",
 						at_map->bam_ad->ad_cname.bv_val,
 						oc_map->bom_oc->soc_cname.bv_val, 0 );
+			}
+
+			if ( si->upper_func.bv_val && at_map->bam_sel_expr_u.bv_val == NULL ) {
+				struct berbuf	bb = BB_NULL;
+
+				backsql_strfcat( &bb, "bcbc",
+						&si->upper_func,
+						'(' /* ) */ ,
+						&at_map->bam_sel_expr,
+						/* ( */ ')' );
+				at_map->bam_sel_expr_u = bb.bb_val;
 			}
 		}
 		backsql_FreeRow( &at_row );
