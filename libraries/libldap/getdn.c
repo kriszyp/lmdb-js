@@ -3382,6 +3382,8 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 			k = 0;
 			set = ne->set;
 		}
+		newAVA->la_private = NULL;
+		newAVA->la_flags = LDAP_AVA_STRING;
 
 		if ( !func ) {
 			int n = OBJ_obj2nid( obj );
