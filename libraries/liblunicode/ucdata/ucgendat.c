@@ -108,11 +108,16 @@ typedef struct {
 
 /*
  * List of decomposition.  Created and expanded in order as the characters are
- * encountered.
+ * encountered. First list contains canonical mappings, second also includes
+ * compatibility mappings.
  */
 static _decomp_t *decomps;
 static unsigned long decomps_used;
 static unsigned long decomps_size;
+
+static _decomp_t *kdecomps;
+static unsigned long kdecomps_used;
+static unsigned long kdecomps_size;
 
 /*
  * Composition exclusion table stuff.
@@ -420,41 +425,56 @@ ordered_range_insert(unsigned long c, char *name, int len)
 }
 
 static void
-add_decomp(unsigned long code)
+add_decomp(unsigned long code, short compat)
 {
     unsigned long i, j, size;
+    _decomp_t **pdecomps;
+    unsigned long *pdecomps_used;
+    unsigned long *pdecomps_size;
 
+    if (compat) {
+	pdecomps = &kdecomps;
+	pdecomps_used = &kdecomps_used;
+	pdecomps_size = &kdecomps_size;
+    } else {
+	pdecomps = &decomps;
+	pdecomps_used = &decomps_used;
+	pdecomps_size = &decomps_size;
+    }
+    
     /*
      * Add the code to the composite property.
      */
-    ordered_range_insert(code, "Cm", 2);
+    if (!compat) {
+	ordered_range_insert(code, "Cm", 2);
+    }
 
     /*
      * Locate the insertion point for the code.
      */
-    for (i = 0; i < decomps_used && code > decomps[i].code; i++) ;
+    for (i = 0; i < *pdecomps_used && code > (*pdecomps)[i].code; i++) ;
 
     /*
      * Allocate space for a new decomposition.
      */
-    if (decomps_used == decomps_size) {
-        if (decomps_size == 0)
-          decomps = (_decomp_t *) malloc(sizeof(_decomp_t) << 3);
+    if (*pdecomps_used == *pdecomps_size) {
+        if (*pdecomps_size == 0)
+          *pdecomps = (_decomp_t *) malloc(sizeof(_decomp_t) << 3);
         else
-          decomps = (_decomp_t *)
-              realloc((char *) decomps,
-                      sizeof(_decomp_t) * (decomps_size + 8));
-        (void) memset((char *) (decomps + decomps_size), '\0',
+          *pdecomps = (_decomp_t *)
+              realloc((char *) *pdecomps,
+                      sizeof(_decomp_t) * (*pdecomps_size + 8));
+        (void) memset((char *) (*pdecomps + *pdecomps_size), '\0',
                       sizeof(_decomp_t) << 3);
-        decomps_size += 8;
+        *pdecomps_size += 8;
     }
 
-    if (i < decomps_used && code != decomps[i].code) {
+    if (i < *pdecomps_used && code != (*pdecomps)[i].code) {
         /*
          * Shift the decomps up by one if the codes don't match.
          */
-        for (j = decomps_used; j > i; j--)
-          (void) AC_MEMCPY((char *) &decomps[j], (char *) &decomps[j - 1],
+        for (j = *pdecomps_used; j > i; j--)
+          (void) AC_MEMCPY((char *) &(*pdecomps)[j], (char *) &(*pdecomps)[j - 1],
                         sizeof(_decomp_t));
     }
 
@@ -462,30 +482,30 @@ add_decomp(unsigned long code)
      * Insert or replace a decomposition.
      */
     size = dectmp_size + (4 - (dectmp_size & 3));
-    if (decomps[i].size < size) {
-        if (decomps[i].size == 0)
-          decomps[i].decomp = (unsigned long *)
+    if ((*pdecomps)[i].size < size) {
+        if ((*pdecomps)[i].size == 0)
+          (*pdecomps)[i].decomp = (unsigned long *)
               malloc(sizeof(unsigned long) * size);
         else
-          decomps[i].decomp = (unsigned long *)
-              realloc((char *) decomps[i].decomp,
+          (*pdecomps)[i].decomp = (unsigned long *)
+              realloc((char *) (*pdecomps)[i].decomp,
                       sizeof(unsigned long) * size);
-        decomps[i].size = size;
+        (*pdecomps)[i].size = size;
     }
 
-    if (decomps[i].code != code)
-      decomps_used++;
+    if ((*pdecomps)[i].code != code)
+      (*pdecomps_used)++;
 
-    decomps[i].code = code;
-    decomps[i].used = dectmp_size;
-    (void) AC_MEMCPY((char *) decomps[i].decomp, (char *) dectmp,
+    (*pdecomps)[i].code = code;
+    (*pdecomps)[i].used = dectmp_size;
+    (void) AC_MEMCPY((char *) (*pdecomps)[i].decomp, (char *) dectmp,
                   sizeof(unsigned long) * dectmp_size);
 
     /*
      * NOTICE: This needs changing later so it is more general than simply
      * pairs.  This calculation is done here to simplify allocation elsewhere.
      */
-    if (dectmp_size == 2)
+    if (!compat && dectmp_size == 2)
       comps_used++;
 }
 
@@ -780,7 +800,7 @@ static void
 read_cdata(FILE *in)
 {
     unsigned long i, lineno, skip, code, ccl_code;
-    short wnum, neg, number[2];
+    short wnum, neg, number[2], compat;
     char line[512], *s, *e;
 
     lineno = skip = 0;
@@ -933,7 +953,14 @@ read_cdata(FILE *in)
          * Check for a decomposition.
          */
         s = ++e;
-        if (*s != ';' && *s != '<') {
+        if (*s != ';') {
+	    compat = *s == '<';
+	    if (compat) {
+		/*
+		 * Skip compatibility formatting tag.
+		 */
+		while (*s++ != '>');
+	    }
             /*
              * Collect the codes of the decomposition.
              */
@@ -942,7 +969,7 @@ read_cdata(FILE *in)
                  * Skip all leading non-hex digits.
                  */
                 while (!ishdigit(*s))
-                  s++;
+ 		  s++;
 
                 for (dectmp[dectmp_size] = 0; ishdigit(*s); s++) {
                     dectmp[dectmp_size] <<= 4;
@@ -960,8 +987,12 @@ read_cdata(FILE *in)
              * If there are any codes in the temporary decomposition array,
              * then add the character with its decomposition.
              */
-            if (dectmp_size > 0)
-              add_decomp(code);
+            if (dectmp_size > 0) {
+		if (!compat) {
+		    add_decomp(code, 0);
+		}
+		add_decomp(code, 1);
+	    }
         }
 
         /*
@@ -1052,33 +1083,35 @@ read_cdata(FILE *in)
 }
 
 static _decomp_t *
-find_decomp(unsigned long code)
+find_decomp(unsigned long code, short compat)
 {
     long l, r, m;
-
+    _decomp_t *decs;
+    
     l = 0;
-    r = decomps_used - 1;
+    r = (compat ? kdecomps_used : decomps_used) - 1;
+    decs = compat ? kdecomps : decomps;
     while (l <= r) {
         m = (l + r) >> 1;
-        if (code > decomps[m].code)
+        if (code > decs[m].code)
           l = m + 1;
-        else if (code < decomps[m].code)
+        else if (code < decs[m].code)
           r = m - 1;
         else
-          return &decomps[m];
+          return &decs[m];
     }
     return 0;
 }
 
 static void
-decomp_it(_decomp_t *d)
+decomp_it(_decomp_t *d, short compat)
 {
     unsigned long i;
     _decomp_t *dp;
 
     for (i = 0; i < d->used; i++) {
-        if ((dp = find_decomp(d->decomp[i])) != 0)
-          decomp_it(dp);
+        if ((dp = find_decomp(d->decomp[i], compat)) != 0)
+          decomp_it(dp, compat);
         else
           dectmp[dectmp_size++] = d->decomp[i];
     }
@@ -1095,9 +1128,16 @@ expand_decomp(void)
 
     for (i = 0; i < decomps_used; i++) {
         dectmp_size = 0;
-        decomp_it(&decomps[i]);
+        decomp_it(&decomps[i], 0);
         if (dectmp_size > 0)
-          add_decomp(decomps[i].code);
+          add_decomp(decomps[i].code, 0);
+    }
+
+    for (i = 0; i < kdecomps_used; i++) {
+        dectmp_size = 0;
+        decomp_it(&kdecomps[i], 1);
+        if (dectmp_size > 0)
+          add_decomp(kdecomps[i].code, 1);
     }
 }
 
@@ -1390,6 +1430,60 @@ write_cdata(char *opath)
         for (i = 0; i < decomps_used; i++)
           fwrite((char *) decomps[i].decomp, sizeof(unsigned long),
                  decomps[i].used, out);
+
+        /*
+         * Seek back to the beginning and write the byte count.
+         */
+        bytes = (sizeof(unsigned long) * idx) +
+            (sizeof(unsigned long) * ((hdr[1] << 1) + 1));
+        fseek(out, sizeof(unsigned short) << 1, 0L);
+        fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+
+        fclose(out);
+    }
+
+    /*
+     * Open the kdecomp.dat file.
+     */
+    sprintf(path, "%s%skdecomp.dat", opath, LDAP_DIRSEP);
+    if ((out = fopen(path, "wb")) == 0)
+      return;
+
+    hdr[1] = kdecomps_used;
+
+    /*
+     * Write the header.
+     */
+    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+
+    /*
+     * Write a temporary byte count which will be calculated as the
+     * decompositions are written out.
+     */
+    bytes = 0;
+    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+
+    if (kdecomps_used) {
+        /*
+         * Write the list of kdecomp nodes.
+         */
+        for (i = idx = 0; i < kdecomps_used; i++) {
+            fwrite((char *) &kdecomps[i].code, sizeof(unsigned long), 1, out);
+            fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+            idx += kdecomps[i].used;
+        }
+
+        /*
+         * Write the sentinel index as the last decomp node.
+         */
+        fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+
+        /*
+         * Write the decompositions themselves.
+         */
+        for (i = 0; i < kdecomps_used; i++)
+          fwrite((char *) kdecomps[i].decomp, sizeof(unsigned long),
+                 kdecomps[i].used, out);
 
         /*
          * Seek back to the beginning and write the byte count.

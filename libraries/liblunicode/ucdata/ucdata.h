@@ -250,6 +250,14 @@ ucdecomp LDAP_P((unsigned long code, unsigned long *num,
 		 unsigned long **decomp));
 
 /*
+ * Equivalent to ucdecomp() except that it includes compatibility
+ * decompositions.
+ */
+LDAP_LUNICODE_F (int)
+uckdecomp LDAP_P((unsigned long code, unsigned long *num,
+		 unsigned long **decomp));
+
+/*
  * If the code is a Hangul syllable, this routine decomposes it into the array
  * passed.  The array size should be at least 3.
  */
@@ -265,6 +273,14 @@ ucdecomp_hangul LDAP_P((unsigned long code, unsigned long *num,
  */
 LDAP_LUNICODE_F (int)
 uccanondecomp LDAP_P((const unsigned long *in, int inlen,
+		     unsigned long **out, int *outlen));
+  
+/*  
+ * Equivalent to uccanondecomp() except that it includes compatibility
+ * decompositions.
+ */
+LDAP_LUNICODE_F (int)
+uccompatdecomp LDAP_P((const unsigned long *in, int inlen,
 		     unsigned long **out, int *outlen));
   
 /**************************************************************************
@@ -318,9 +334,10 @@ LDAP_LUNICODE_F (int) ucgetdigit LDAP_P((unsigned long code));
 #define UCDATA_CMBCL  0x08
 #define UCDATA_NUM    0x10
 #define UCDATA_COMP   0x20
+#define UCDATA_KDECOMP 0x40
 
 #define UCDATA_ALL (UCDATA_CASE|UCDATA_CTYPE|UCDATA_DECOMP|\
-                    UCDATA_CMBCL|UCDATA_NUM|UCDATA_COMP)
+                    UCDATA_CMBCL|UCDATA_NUM|UCDATA_COMP|UCDATA_KDECOMP)
 
 /*
  * Functions to load, unload, and reload specific data files.
