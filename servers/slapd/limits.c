@@ -47,7 +47,7 @@ get_limits(
 			break;
 
 		case SLAP_LIMITS_REGEX:
-			if ( regexec( &lm[0]->lm_dn_regex, ndn, 0, NULL, 0) == 0 ) {
+			if ( regexec( &lm[0]->lm_dn_regex, ndn, 0, NULL, 0 ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -264,7 +264,13 @@ parse_limit(
 					return( 1 );
 				}
 				arg++;
-				limit->lms_t_hard = atoi( arg );
+				if ( strcasecmp( arg, "soft" ) == 0 ) {
+					limit->lms_t_hard = 0;
+				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_t_hard = -1;
+				} else {
+					limit->lms_t_hard = atoi( arg );
+				}
 				
 			} else {
 				return( 1 );
@@ -297,7 +303,13 @@ parse_limit(
 					return( 1 );
 				}
 				arg++;
-				limit->lms_s_hard = atoi( arg );
+				if ( strcasecmp( arg, "soft" ) == 0 ) {
+					limit->lms_s_hard = 0;
+				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_hard = -1;
+				} else {
+					limit->lms_s_hard = atoi( arg );
+				}
 				
 			} else if ( strncasecmp( arg, "unchecked", 9 ) == 0 ) {
 				arg += 9;
@@ -305,7 +317,11 @@ parse_limit(
 					return( 1 );
 				}
 				arg++;
-				limit->lms_s_unchecked = atoi( arg );
+				if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_unchecked = -1;
+				} else {
+					limit->lms_s_unchecked = atoi( arg );
+				}
 				
 			} else {
 				return( 1 );

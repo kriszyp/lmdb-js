@@ -183,8 +183,9 @@ limit is used; if the requested time limit exceedes the
 limit, an "Unwilling to perform" is returned.
 If the
 .BR hard
-limit is set to zero, the soft limit is used in either case;
-if it is set to -1, no hard limit is enforced.
+limit is set to 0 or to the keyword "soft", the soft limit is used 
+in either case; if it is set to -1 or to the keyword "none", 
+no hard limit is enforced.
 Explicit requests for time limits smaller or equal to the
 .BR hard 
 limit are honored.
@@ -207,8 +208,9 @@ limit is used; if the requested size limit exceedes the
 limit, an "Unwilling to perform" is returned.
 If the 
 .BR hard
-limit is set to zero, the soft limit is used in either case;
-if it is set to -1, no hard limit is enforced.
+limit is set to 0 or to the keyword "soft", the soft limit is used 
+in either case; if it is set to -1 or to the keyword "none", 
+no hard limit is enforced.
 Explicit requests for size limits smaller or equal to the
 .BR hard
 limit are honored.
@@ -219,6 +221,7 @@ to examine.
 If the selected candidates exceed the 
 .BR unchecked
 limit, the search will abort with "Unwilling to perform".
+If it is set to -1 or to the keyword "none", no limit is applied (the default).
 If no flag is set, the value is assigned to the
 .BR soft 
 limit, and the
