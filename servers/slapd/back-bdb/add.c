@@ -361,7 +361,7 @@ retry:	/* transaction retry */
 		char gid[DB_XIDDATASIZE];
 
 		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
-			bdb_uuid, (long) op->o_connid, (long) op->o_opid );
+			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 
 		if (( rc=TXN_PREPARE( ltid, gid )) != 0 ) {
 			text = "txn_prepare failed";
