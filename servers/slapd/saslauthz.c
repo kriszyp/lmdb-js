@@ -27,6 +27,7 @@
 #include <limits.h>
 
 #include <ldap_pvt.h>
+#include "lutil.h"
 
 #define SASLREGEX_REPLACE 10
 
@@ -35,6 +36,7 @@
 #define LDAP_X_SCOPE_CHILDREN	((ber_int_t) 0x0030)
 #define LDAP_X_SCOPE_SUBTREE	((ber_int_t) 0x0040)
 #define LDAP_X_SCOPE_ONELEVEL	((ber_int_t) 0x0050)
+#define LDAP_X_SCOPE_GROUP	((ber_int_t) 0x0060)
 
 /*
  * IDs in DNauthzid form can now have a type specifier, that
@@ -311,6 +313,59 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		}
 
 		return rc;
+
+	} else if ( strncasecmp( uri->bv_val, "group", STRLENOF( "group" ) ) == 0 )
+	{
+		struct berval	group_dn = BER_BVNULL,
+				group_oc = BER_BVNULL,
+				member_at = BER_BVNULL;
+		char		*tmp;
+
+		bv.bv_val = uri->bv_val + STRLENOF( "group" );
+		group_dn.bv_val = strchr( bv.bv_val, ':' );
+		if ( group_dn.bv_val == NULL ) {
+			/* last chance: assume it's a(n exact) DN ... */
+			bv.bv_val = uri->bv_val;
+			*scope = LDAP_X_SCOPE_EXACT;
+			goto is_dn;
+		}
+		
+		if ( bv.bv_val[ 0 ] == '/' ) {
+			group_oc.bv_val = &bv.bv_val[ 1 ];
+
+			member_at.bv_val = strchr( group_oc.bv_val, '/' );
+			if ( member_at.bv_val ) {
+				group_oc.bv_len = member_at.bv_val - group_oc.bv_val;
+				member_at.bv_val++;
+				member_at.bv_len = group_dn.bv_val - member_at.bv_val;
+
+			} else {
+				group_oc.bv_len = group_dn.bv_val - group_oc.bv_val;
+				BER_BVSTR( &member_at, "member" );
+			}
+
+		} else {
+			BER_BVSTR( &group_oc, "groupOfNames" );
+		}
+		group_dn.bv_val++;
+		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );
+
+		fstr->bv_len = STRLENOF( "(&(objectClass=)(=" ) + group_oc.bv_len + member_at.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+
+		tmp = lutil_strncopy( fstr->bv_val, "(&(objectClass=", STRLENOF( "(&(objectClass=" ) );
+		tmp = lutil_strncopy( tmp, group_oc.bv_val, group_oc.bv_len );
+		tmp = lutil_strncopy( tmp, ")(", STRLENOF( ")(" ) );
+		tmp = lutil_strncopy( tmp, member_at.bv_val, member_at.bv_len );
+		tmp = lutil_strncopy( tmp, "=", STRLENOF( "=" ) );
+
+		rc = dnNormalize( 0, NULL, NULL, &group_dn, nbase, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			*scope = -1;
+		} else {
+			*scope = LDAP_X_SCOPE_GROUP;
+		}
+		return rc;
 	}
 		
 	rc = ldap_url_parse( uri->bv_val, &ludp );
@@ -434,7 +489,7 @@ int slap_sasl_rewrite_config(
 int slap_sasl_rewrite_destroy( void )
 {
 	if ( sasl_rwinfo ) {
-		rewrite_info_delete( sasl_rwinfo );
+		rewrite_info_delete( &sasl_rwinfo );
 		sasl_rwinfo = NULL;
 	}
 
@@ -456,8 +511,6 @@ int slap_sasl_regexp_rewrite_config(
 	if ( sasl_rwinfo == NULL ) {
 		char *argvEngine[] = { "rewriteEngine", "on", NULL };
 		char *argvContext[] = { "rewriteContext", NULL, NULL };
-		char *argvFirstRule[] = { "rewriteRule", ".*", 
-			"%{>" AUTHID_CONTEXT "(%0)}", ":", NULL };
 
 		/* initialize rewrite engine */
  		sasl_rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
@@ -749,6 +802,10 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 
+	sm.dn = assertDN;
+	sm.match = 0;
+	cb.sc_private = &sm;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_match: comparing DN %s to rule %s\n", 
@@ -843,6 +900,40 @@ exact_match:
 		}
 		goto CONCLUDED;
 
+	case LDAP_X_SCOPE_GROUP: {
+		char	*tmp;
+
+		/* Now filterstr looks like "(&(objectClass=<group_oc>)(<member_at>="
+		 * we need to append the <assertDN> so that the <group_dn> is searched
+		 * with scope "base", and the filter ensures that <assertDN> is
+		 * member of the group */
+		tmp = ch_realloc( op.ors_filterstr.bv_val,
+				op.ors_filterstr.bv_len + assertDN->bv_len + STRLENOF( "))" ) + 1 );
+		if ( tmp == NULL ) {
+			rc = LDAP_NO_MEMORY;
+			goto CONCLUDED;
+		}
+		op.ors_filterstr.bv_val = tmp;
+		
+		tmp = lutil_strcopy( &tmp[ op.ors_filterstr.bv_len ], assertDN->bv_val );
+		tmp = lutil_strcopy( tmp, "))" );
+
+		/* pass opx because str2filter_x may (and does) use o_tmpmfuncs */
+		op.ors_filter = str2filter_x( opx, op.ors_filterstr.bv_val );
+		if ( op.ors_filter == NULL ) {
+			rc = LDAP_PROTOCOL_ERROR;
+			goto CONCLUDED;
+		}
+		op.ors_scope = LDAP_SCOPE_BASE;
+
+		/* hijack match DN: use that of the group instead of the assertDN;
+		 * assertDN is now in the filter */
+		sm.dn = &op.o_req_ndn;
+
+		/* do the search */
+		break;
+		}
+
 	default:
 		break;
 	}
@@ -869,10 +960,6 @@ exact_match:
 		goto CONCLUDED;
 	}
 
-	sm.dn = assertDN;
-	sm.match = 0;
-	cb.sc_private = &sm;
-
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = *authc;
@@ -888,7 +975,9 @@ exact_match:
 #endif
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
-	op.o_req_dn = op.o_req_ndn;
+	/* use req_ndn as req_dn instead of non-pretty base of uri */
+	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
+	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_tlimit = -1;
 
@@ -901,10 +990,10 @@ exact_match:
 	}
 
 CONCLUDED:
-	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
-	if( op.o_req_ndn.bv_len ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_dn ) ) slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
+	if( !BER_BVISNULL( &op.o_req_ndn ) ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
-	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
+	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -1034,6 +1123,7 @@ void slap_sasl2dn( Operation *opx,
 	case LDAP_X_SCOPE_SUBTREE:
 	case LDAP_X_SCOPE_CHILDREN:
 	case LDAP_X_SCOPE_ONELEVEL:
+	case LDAP_X_SCOPE_GROUP:
 		/* correctly parsed, but illegal */
 		goto FINISHED;
 

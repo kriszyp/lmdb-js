@@ -214,6 +214,9 @@ or a set of identities; it can take three forms:
 .B u[<mech>[<realm>]]:<pattern>
 .RE
 .RS
+.B group[/objectClass[/attributeType]]:<pattern>
+.RE
+.RS
 .B <pattern>
 .RE
 .RS
@@ -262,6 +265,18 @@ and eventually a SASL
 for those mechanisms that support one.
 The need to allow the specification of a mechanism is still debated, 
 and users are strongly discouraged to rely on this possibility.
+The fourth form is a group specification, consisting of the keyword
+.BR group ,
+optionally followed by the specification of the group
+.B objectClass
+and member
+.BR attributeType .
+The group with DN
+.B <pattern>
+is searched with base scope, and in case of match, the values of the
+member
+.B attributeType
+are searched for the asserted DN.
 For backwards compatibility, if no identity type is provided, i.e. only
 .B <pattern>
 is present, an
