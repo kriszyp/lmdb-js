@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2.12 Engineering
 	Fixed libldap/add mod_bvalues typo
 	Fixed ldappasswd crypt(3) crash (ITD#598)
 	Fixed slapd/config.c MAXARGS boundary condition bug
+	Fixed cn=monitor/config rdwr lock leak
 	Build Environment
 		Remove extra Digital UNIX symbol (ITS#590)
 		Ignore make clean rm failure
