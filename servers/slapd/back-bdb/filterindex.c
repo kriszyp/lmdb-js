@@ -339,7 +339,7 @@ presence_candidates(
 			"returned=%d\n",
 			desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return 0;
+		return rc;
 	}
 
 	if( db == NULL ) {
@@ -353,7 +353,7 @@ presence_candidates(
 			"<= bdb_presence_candidates: (%s) not indexed\n",
 			desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return 0;
+		return -1;
 	}
 
 	if( prefix.bv_val == NULL ) {
@@ -366,7 +366,7 @@ presence_candidates(
 			"<= bdb_presence_candidates: (%s) no prefix\n",
 			desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return 0;
+		return -1;
 	}
 
 	rc = bdb_key_read( op->o_bd, db, NULL, &prefix, ids );
@@ -502,7 +502,7 @@ equality_candidates(
 			"<= bdb_equality_candidates: (%s) no keys\n",
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return 0;
+		return -1;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
@@ -671,7 +671,7 @@ approx_candidates(
 			"<= bdb_approx_candidates: (%s) no keys (%s)\n",
 			prefix.bv_val, ava->aa_desc->ad_cname.bv_val, 0 );
 #endif
-		return 0;
+		return -1;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
@@ -834,7 +834,7 @@ substring_candidates(
 			"<= bdb_substring_candidates: (0x%04lx) no keys (%s)\n",
 			mask, sub->sa_desc->ad_cname.bv_val, 0 );
 #endif
-		return 0;
+		return -1;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
@@ -896,6 +896,6 @@ substring_candidates(
 		(long) BDB_IDL_FIRST(ids),
 		(long) BDB_IDL_LAST(ids) );
 #endif
-	return( 0 );
+	return( rc );
 }
 
