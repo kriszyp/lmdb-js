@@ -506,6 +506,7 @@ retry:	/* transaction retry */
 	} else {
 		char gid[DB_XIDDATASIZE];
 
+		memset( gid, 0, sizeof(gid) );
 		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
 			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 
