@@ -571,7 +571,7 @@ ldap_build_entry(
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					NULL /* op->o_tmpmemctx */ );
+					NULL );
 
 				if ( rc != LDAP_SUCCESS ) {
 					BER_BVZERO( &attr->a_nvals[i] );

@@ -10,6 +10,8 @@ OpenLDAP 2.2.20 Engineering
 	Fixed back-bdb locks in backend_group (ITS#3263, #3365)
 	Fixed back-bdb/back-hdb listing of permissive control (ITS#3453)
 	Fixed back-ldap failed connection retry (ITS#3217)
+	Fixed back-ldap/back-meta memory handling in attr mapping
+	Fixed back-meta modrdn newSuperior target selection
 	Fixed back-sql segfault when logging and delete_rule is NULL (ITS#3407)
 	Build Environment
 		Fixed slurpd build on Windows

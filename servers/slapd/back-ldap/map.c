@@ -594,7 +594,7 @@ ldap_dnattr_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			LBER_FREE( &a_vals[i].bv_val );
+			LBER_FREE( a_vals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}
