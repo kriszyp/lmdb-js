@@ -327,16 +327,18 @@ long connection_init(
 		c = NULL;
 
         for( i=0; i < dtblsize; i++) {
-	    ber_socket_t	sd;
+	    	ber_socket_t	sd;
 
-	    ber_sockbuf_ctrl( connections[i].c_sb, LBER_SB_OPT_GET_FD, &sd );
-	    
             if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
                 assert( connections[i].c_sb == 0 );
                 c = &connections[i];
                 break;
             }
 
+			sd = AC_SOCKET_INVALID;
+			if (connections[i].c_sb != NULL)
+	    		ber_sockbuf_ctrl( connections[i].c_sb, LBER_SB_OPT_GET_FD, &sd );
+	    
             if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
                 assert( sd == AC_SOCKET_INVALID );
                 c = &connections[i];
@@ -1064,7 +1066,9 @@ connection_resched( Connection *conn )
 			"connection_resched: attempting closing conn=%ld sd=%d\n",
 			conn->c_connid, sd, 0 );
 
+		ldap_pvt_thread_mutex_lock( &connections_mutex );
 		connection_close( conn );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return 0;
 	}
 
