@@ -317,6 +317,8 @@ void *slapi_get_object_extension(int objecttype, void *object,
 void slapi_set_object_extension(int objecttype, void *object,
 	int extensionhandle, void *extension);
 
+int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
+
 /* parameters currently supported */
 
 /*
@@ -329,6 +331,20 @@ void slapi_set_object_extension(int objecttype, void *object,
 #define SLAPI_ATTR_FLAG_OBSOLETE	0x0040
 #define SLAPI_ATTR_FLAG_COLLECTIVE	0x0080
 #define SLAPI_ATTR_FLAG_NOUSERMOD	0x0100
+
+/*
+ * Backend flags returned by slapi_x_backend_get_flags()
+ */
+#define SLAPI_BACKEND_FLAG_NOLASTMOD		0x0001U
+#define SLAPI_BACKEND_FLAG_NO_SCHEMA_CHECK	0x0002U
+#define SLAPI_BACKEND_FLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
+#define SLAPI_BACKEND_FLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
+#define SLAPI_BACKEND_FLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
+#define SLAPI_BACKEND_FLAG_OVERLAY		0x0080U	/* this db struct is an overlay */
+#define SLAPI_BACKEND_FLAG_GLOBAL_OVERLAY	0x0100U	/* this db struct is a global overlay */
+#define SLAPI_BACKEND_FLAG_SHADOW		0x8000U /* a shadow */
+#define SLAPI_BACKEND_FLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
+#define SLAPI_BACKEND_FLAG_SLURP_SHADOW		0x2000U /* a slurp shadow */
 
 /*
  * ACL levels

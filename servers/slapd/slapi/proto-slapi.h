@@ -248,6 +248,8 @@ extern int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **p
 
 extern int slapi_int_access_allowed(Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state);
 
+extern int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
+
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_printmessage_mutex; 
