@@ -190,7 +190,7 @@ int lutil_sasl_interact(
 {
 	sasl_interact_t *interact = in;
 
-	if( interact->result ) {
+	if( interact && interact->result ) {
 		/* we have results from a previous interaction */
 		free( interact->result );
 		interact->result = NULL;
