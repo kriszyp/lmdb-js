@@ -569,8 +569,13 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = sock_errno();
 
-				if( err == EBADF && ++ebadf < SLAPD_EBADF_LIMIT) {
-					continue;
+				if( err == EBADF 
+#ifdef HAVE_WINSOCK
+					|| err == WSAENOTSOCK	/* you'd think this would be EBADF */
+#endif
+				) {
+					if (++ebadf < SLAPD_EBADF_LIMIT)
+						continue;
 				}
 
 				if( err != EINTR ) {
