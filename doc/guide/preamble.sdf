@@ -69,6 +69,8 @@ TCL		http://www.tcl.com/
 # Internet and X.500 terms
 !block terms; data
 Term	Definition
+ASN	Abstract Syntax Notation
+ASN.1	Abstract Syntax Notation 1
 BCP	Best Common Practice
 BER	Basic Encoding Rules
 CLDAP	Connection-less LDAP
