@@ -90,7 +90,9 @@ typedef struct bdb_entry_info {
 	 * remaining fields require backend cache lock to access
 	 */
 	struct berval bei_nrdn;
+#ifdef BDB_HIER
 	struct berval bei_rdn;
+#endif
 	Entry	*bei_e;
 	Avlnode	*bei_kids;
 	ldap_pvt_thread_mutex_t	bei_kids_mutex;
@@ -148,8 +150,6 @@ struct bdb_info {
 
 	int			bi_lock_detect;
 	long		bi_shm_key;
-
-	int		bi_is_hier;
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;

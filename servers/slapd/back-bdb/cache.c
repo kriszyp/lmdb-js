@@ -269,7 +269,9 @@ bdb_entryinfo_add_internal(
 	}
 	ei2->bei_id = ei->bei_id;
 	ei2->bei_parent = ei->bei_parent;
+#ifdef BDB_HIER
 	ei2->bei_rdn = ei->bei_rdn;
+#endif
 
 	/* Add to cache ID tree */
 	if (avl_insert( &cache->c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
@@ -279,8 +281,10 @@ bdb_entryinfo_add_internal(
 		ei2 = eix;
 		addkid = 0;
 		cache->c_cursize -= incr;
+#ifdef BDB_HIER
 		if ( ei->bei_rdn.bv_val )
 			ber_memfree_x( ei->bei_rdn.bv_val, NULL );
+#endif
 	} else {
 		LRU_ADD( cache, ei2 );
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
@@ -421,9 +425,11 @@ bdb_cache_find_parent(
 		/* Create a new node for the current ID */
 		ein = bdb_cache_entryinfo_new();
 		ein->bei_id = ei.bei_id;
-		ein->bei_nrdn = ei.bei_nrdn;
-		ein->bei_rdn = ei.bei_rdn;
 		ein->bei_kids = ei.bei_kids;
+		ein->bei_nrdn = ei.bei_nrdn;
+#ifdef BDB_HIER
+		ein->bei_rdn = ei.bei_rdn;
+#endif
 		
 		/* This node is not fully connected yet */
 		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
@@ -618,11 +624,13 @@ bdb_cache_add(
 	ei.bei_id = e->e_id;
 	ei.bei_parent = eip;
 	ei.bei_nrdn = *nrdn;
+#ifdef BDB_HIER
 	if ( nrdn->bv_len != e->e_nname.bv_len ) {
 		char *ptr = strchr( rdn.bv_val, ',' );
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei.bei_rdn, &rdn );
+#endif
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new, locker );
 	new->bei_e = e;
 	e->e_private = new;
@@ -703,14 +711,17 @@ bdb_cache_modrdn(
 	bdb_cache_entryinfo_lock( pei );
 	avl_delete( &pei->bei_kids, (caddr_t) ei, bdb_rdn_cmp );
 	free( ei->bei_nrdn.bv_val );
-	free( ei->bei_rdn.bv_val );
 	ber_dupbv( &ei->bei_nrdn, nrdn );
+#ifdef BDB_HIER
+	free( ei->bei_rdn.bv_val );
+
 	rdn = e->e_name;
 	if ( nrdn->bv_len != e->e_nname.bv_len ) {
 		char *ptr = strchr(rdn.bv_val, ',');
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei->bei_rdn, &rdn );
+#endif
 
 	if (!ein) {
 		ein = ei->bei_parent;

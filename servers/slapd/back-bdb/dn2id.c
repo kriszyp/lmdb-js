@@ -313,7 +313,6 @@ bdb_dn2id(
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 #endif
-
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = sl_malloc( key.size, ctx );
