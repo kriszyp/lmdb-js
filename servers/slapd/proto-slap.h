@@ -341,6 +341,7 @@ LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
  */
 
 #define dn_match(dn1, dn2) 	( ber_bvcmp((dn1), (dn2)) == 0 )
+#define bvmatch(bv1, bv2)	( ((bv1)->bv_len == (bv2)->bv_len) && memcmp((bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len) == 0 )
 
 LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 
@@ -677,7 +678,7 @@ LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
 /*
  * operational.c
  */
-LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( void );
+LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( Backend *be );
 LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
 
 /*
@@ -1044,6 +1045,11 @@ LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
 LDAP_SLAPD_V (struct berval)	default_search_nbase;
+
+#ifdef SLAPD_SCHEMA_DN
+LDAP_SLAPD_V (struct berval)	global_schemadn;
+LDAP_SLAPD_V (struct berval)	global_schemandn;
+#endif
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_V (unsigned long)		num_bytes_sent;

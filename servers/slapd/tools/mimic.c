@@ -239,7 +239,7 @@ int read_root_dse_file ( const char *file )
 }
 
 Attribute *
-slap_operational_subschemaSubentry( void )
+slap_operational_subschemaSubentry( Backend *be )
 {
 	return NULL;
 }

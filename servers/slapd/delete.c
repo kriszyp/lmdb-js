@@ -104,7 +104,7 @@ do_delete(
 
 #ifdef SLAPD_SCHEMA_DN
 
-	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
 			"Attempt to delete subschema subentry.\n", conn->c_connid, 0, 0 );

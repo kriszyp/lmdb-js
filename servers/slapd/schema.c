@@ -35,8 +35,11 @@ schema_info( Entry **entry, const char **text )
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	e->e_attrs = NULL;
-	ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1, &e->e_name);
-	(void) dnNormalize2( NULL, &e->e_name, &e->e_nname );
+	/* backend-specific schema info should be created by the
+	 * backend itself
+	 */
+	ber_dupbv( &e->e_name, &global_schemadn );
+	ber_dupbv( &e->e_nname, &global_schemandn );
 	e->e_private = NULL;
 
 	vals[0].bv_val = "subentry";
@@ -62,8 +65,7 @@ schema_info( Entry **entry, const char **text )
 	{
 		int rc;
 		AttributeDescription *desc = NULL;
-		struct berval rdn = { sizeof(SLAPD_SCHEMA_DN)-1,
-			SLAPD_SCHEMA_DN };
+		struct berval rdn = global_schemadn;
 		vals[0].bv_val = strchr( rdn.bv_val, '=' );
 
 		if( vals[0].bv_val == NULL ) {

@@ -14,16 +14,19 @@
 
 #ifdef SLAPD_SCHEMA_DN
 Attribute *
-slap_operational_subschemaSubentry( void )
+slap_operational_subschemaSubentry( Backend *be )
 {
 	Attribute	*a;
+
+	/* The backend wants to take care of it */
+	if ( be && be->be_schemadn.bv_val )
+		return NULL;
 
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_subschemaSubentry;
 
-	/* Should be backend specific */
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1, a->a_vals );
+	ber_dupbv( a->a_vals, &global_schemadn );
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;

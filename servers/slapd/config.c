@@ -52,6 +52,10 @@ char	**cargv;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
+#ifdef SLAPD_SCHEMA_DN
+struct berval global_schemadn;
+struct berval global_schemandn;
+#endif
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -564,6 +568,42 @@ read_config( const char *fname, int depth )
 				return 1;
 #endif /* HAVE_CYRUS_SASL */
 
+#ifdef SLAPD_SCHEMA_DN
+		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
+			struct berval dn;
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					   "%s: line %d: missing dn in "
+					   "\"schemadn <dn>\" line.\n", fname, lineno, 0  );
+#else
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing dn in \"schemadn <dn>\" line\n",
+				    fname, lineno, 0 );
+#endif
+				return 1 ;
+			}
+			ber_str2bv( cargv[1], 0, 0, &dn );
+			if ( be ) {
+				rc = dnPrettyNormal( NULL, &dn, &be->be_schemadn,
+					&be->be_schemandn );
+			} else {
+				rc = dnPrettyNormal( NULL, &dn, &global_schemadn,
+					&global_schemandn );
+			}
+			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: schemadn DN is invalid.\n",
+					fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: schemadn DN is invalid\n",
+					fname, lineno, 0 );
+#endif
+				return 1;
+			}
+#endif /* SLAPD_SCHEMA_DN */
 		/* set UCDATA path */
 		} else if ( strcasecmp( cargv[0], "ucdata-path" ) == 0 ) {
 			int err;
@@ -2261,6 +2301,14 @@ read_config( const char *fname, int depth )
 
 	if ( depth == 0 ) ch_free( cargv );
 
+#ifdef SLAPD_SCHEMA_DN
+	if ( !global_schemadn.bv_val ) {
+		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
+			&global_schemadn );
+		dnNormalize2( NULL, &global_schemadn, &global_schemandn );
+	}
+#endif
+
 	if ( load_ucdata( NULL ) < 0 ) return 1;
 	return( 0 );
 }
@@ -2480,6 +2528,10 @@ void
 config_destroy( )
 {
 	ucdata_unload( UCDATA_ALL );
+#ifdef SLAPD_SCHEMA_DN
+	free( global_schemandn.bv_val );
+	free( global_schemadn.bv_val );
+#endif
 	free( line );
 	if ( slapd_args_file )
 		free ( slapd_args_file );
