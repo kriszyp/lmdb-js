@@ -1179,6 +1179,19 @@ typedef struct slap_op {
 } Operation;
 
 /*
+ * Caches the result of a backend_group check for ACL evaluation
+ */
+typedef struct slap_gacl {
+	struct slap_gacl *next;
+	Backend *be;
+	ObjectClass *oc;
+	AttributeDescription *at;
+	int res;
+	int len;
+	char ndn[1];
+} GroupAssertion;
+
+/*
  * represents a connection from an ldap client
  */
 typedef struct slap_conn {
@@ -1210,6 +1223,7 @@ typedef struct slap_conn {
 	Backend *c_authz_backend;
 
 	AuthorizationInformation c_authz;
+	GroupAssertion *c_groups;
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 
