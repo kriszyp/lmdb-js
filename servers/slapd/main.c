@@ -112,10 +112,7 @@ usage( char *name )
 #ifdef LOG_LOCAL4
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
-#ifdef HAVE_NT_EVENT_LOG
-		"\t-n NTserviceName\tNT service name\n"
-#endif
-
+		"\t-n serviceName\tservice name\n"
 		"\t-s level\tSyslog Level\n"
 #ifdef SLAPD_BDB2
 		"\t-t\t\tEnable BDB2 timing\n"
@@ -146,15 +143,12 @@ int main( int argc, char **argv )
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
 
-#ifdef HAVE_NT_EVENT_LOG
-	char        *NTservice  = SERVICE_NAME;
-#endif
 #ifdef HAVE_NT_SERVICE_MANAGER
 	char		*configfile = ".\\slapd.conf";
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
 #endif
-	char        *serverName;
+	char        *serverName = NULL;
 	int         serverMode = SLAP_SERVER_MODE;
 
 #ifdef CSRIMALLOC
@@ -209,7 +203,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:s:"
+			     "d:f:h:s:n:"
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
@@ -224,9 +218,6 @@ int main( int argc, char **argv )
 #endif
 #ifdef LDAP_CONNECTIONLESS
 				 "c"
-#endif
-#ifdef HAVE_NT_EVENT_LOG
-				 "n:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -294,11 +285,11 @@ int main( int argc, char **argv )
 			break;
 #endif /* SETUID && GETUID */
 
-#ifdef HAVE_NT_EVENT_LOG
 		case 'n':  /* NT service name */
-			NTservice = ch_strdup( optarg );
+			if( serverName != NULL ) free( serverName );
+			serverName = ch_strdup( optarg );
 			break;
-#endif
+
 		default:
 			usage( argv[0] );
 			rc = 1;
@@ -313,10 +304,12 @@ int main( int argc, char **argv )
 
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 
-	if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
-		serverName = ch_strdup( argv[0] );
-	} else {
-		serverName = ch_strdup( serverName + 1 );
+	if( serverName == NULL ) {
+		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
+			serverName = ch_strdup( argv[0] );
+		} else {
+			serverName = ch_strdup( serverName + 1 );
+		}
 	}
 
 #ifdef LOG_LOCAL4

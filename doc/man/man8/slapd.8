@@ -9,7 +9,7 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
 .B [\-d debug\-level]
-.B [\-s syslog\-level] [\-l syslog\-local\-user]
+.B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
@@ -72,6 +72,10 @@ This option tells
 at what level debugging statements should be logged to the
 .BR syslog (8)
 facility.
+.TP
+.BI \-n " service\-name"
+Specifies the service name for logging and other purposes.  Defaults
+to basename of argv[0], i.e.: "slapd".
 .TP
 .BI \-l " syslog\-local\-user"
 Selects the local user of the
