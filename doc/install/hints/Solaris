@@ -25,3 +25,8 @@ OR use Solaris (LWP) Threads
 OR disable threads: 
 	./configure --without-threads
 
+
+NDBM on Solaris
+
+Solaris NDBM and OpenLDAP appears to be incompatible.  Use
+GDBM or Berkeley DB2.

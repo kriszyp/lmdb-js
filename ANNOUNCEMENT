@@ -45,7 +45,7 @@ CHANGES
 
 	Changes from U. Mich release 3.3
 	- TCP Wrappers support added to slapd,
-	- Berkely DB2 compatibility added to slapd,
+	- Berkeley DB2 compatibility added to slapd,
 	- ACL enhancements including Access by Group and POSIX regex(3) support,
 	- platforms updates, and
 	- numerous bug fixes and build changes.
