@@ -55,7 +55,6 @@ ber_memfree( void *p )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-	/* ignore p == NULL when not debugging */
 	if( p == NULL ) {
 		return;
 	}
@@ -110,11 +109,9 @@ ber_memalloc( size_t s )
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
-	/* catch s == 0 when debugging */
-	assert( s );
+	assert( s != 0 );
 #endif
 
-	/* ignore s == 0 when not debugging */
 	if( s == 0 ) {
 		return NULL;
 	}
@@ -146,11 +143,9 @@ ber_memcalloc( size_t n, size_t s )
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
-	/* catch s,n == 0 when debugging */
-	assert( n && s );
+	assert( n != 0 && s != 0);
 #endif
 
-	/* ignore s,n == 0 when not debugging */
 	if( n == 0 || s == 0 ) {
 		return NULL;
 	}
@@ -310,7 +305,7 @@ ber_strdup( LDAP_CONST char *s )
 
 	len = strlen( s ) + 1;
 
-	if ( (p = (char *) LBER_MALLOC( len )) == NULL ) {
+	if ( (p = LBER_MALLOC( len )) == NULL ) {
 		return( NULL );
 	}
 
