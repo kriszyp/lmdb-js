@@ -13,6 +13,8 @@ OpenLDAP 2.1.24 Engineering
 	Build Environment
 		Fixed liblber libdir handling (ITS#2797)
 		Fixed perl LDFLAGS (ITS#2764)
+	Documentation
+		Misc man page updates (ITS#2822, ITS#2823)
 
 OpenLDAP 2.1.23 Release
 	Fixed ldapmodify NULL dn bug (ITS#2645)
