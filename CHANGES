@@ -8,6 +8,9 @@ OpenLDAP 2.0.26 Engineering
 	Fixed libldap buffer size bugs (ITS#1935, ITS#1936)
 	Fixed libldap gethostbyname mutex init bug (ITS#2019)
 	Updated back-ldbm reindexing - slapindex rebuilds dn2id index
+	Build environment
+		Require version 1.5 if Cyrus SASL is present
+
 
 OpenLDAP 2.0.25 Release
 	Fixed slapd extended op reqdata crash bug (ITS#1721)
