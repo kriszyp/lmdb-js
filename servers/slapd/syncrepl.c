@@ -201,6 +201,7 @@ do_syncrepl(
 	int		syncstate;
 	struct berval	syncUUID = { 0, NULL };
 	struct berval	syncCookie = { 0, NULL };
+	struct berval	syncCookie_req = { 0, NULL };
 
 	int	rc;
 	int	err;
@@ -233,6 +234,9 @@ do_syncrepl(
 	Modifications	*modlist = NULL;
 	Modifications	*ml, *mlnext;
 	char *def_filter_str = NULL;
+
+	const char		*text;
+	int				match;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
@@ -418,6 +422,8 @@ do_syncrepl(
 	si->syncCookie = NULL;
 	be->be_search( &op, &rs );
 
+	ber_dupbv( &syncCookie_req, si->syncCookie );
+
 	ch_free( op.o_req_dn.bv_val );
 	ch_free( op.o_req_ndn.bv_val );
 	filter_free( op.ors_filter );
@@ -481,6 +487,7 @@ do_syncrepl(
 		      msg != NULL;
 		      msg = ldap_next_message( ld, msg ) )
 		{
+			syncCookie.bv_len = 0; syncCookie.bv_val = NULL;
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
 				entry = syncrepl_message_to_entry( si, ld, &op, msg,
@@ -523,9 +530,13 @@ do_syncrepl(
 						ber_scanf( ctrl_ber, "o", &syncCookie );
 					}
 				}
+				value_match( &match, slap_schema.si_ad_entryCSN,
+							slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							&syncCookie_req, &syncCookie, &text );
 				if (si->type == LDAP_SYNC_REFRESH_AND_PERSIST) {
 					if ( cancel_response ) {
-						if ( syncCookie.bv_len ) {
+						if ( syncCookie.bv_len && match < 0) {
 							syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie );
 						}
 						if ( ctrl_ber )
@@ -538,11 +549,12 @@ do_syncrepl(
 						break;
 					}
 				} else {
-					if ( syncCookie.bv_len ) {
+					if ( syncCookie.bv_len && match < 0 ) {
 						syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie);
 					}
-					if ( si->sync_mode == LDAP_SYNC_STATE_MODE )
-						syncrepl_del_nonpresent( ld, &op );
+					if ( si->sync_mode == LDAP_SYNC_STATE_MODE && match < 0 ) {
+							syncrepl_del_nonpresent( ld, &op );
+					}
 					if ( ctrl_ber )
 						ber_free( ctrl_ber, 1 );
 					goto done;
@@ -557,8 +569,34 @@ do_syncrepl(
 					res_ber = ber_init( retdata );
 					ber_scanf( res_ber, "{e" /*"}"*/, &syncstate );
 
+					if ( ber_peek_tag( res_ber, &len )
+								== LDAP_SYNC_TAG_COOKIE ) {
+						ber_scanf( res_ber, /*"{"*/ "o}", &syncCookie );
+					} else {
+						if ( syncstate == LDAP_SYNC_NEW_COOKIE ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( OPERATION, ERR,
+								"do_syncrepl : cookie required\n", 0, 0, 0 );
+#else
+							Debug( LDAP_DEBUG_ANY,
+								"do_syncrepl : cookie required\n", 0, 0, 0 );
+#endif
+						}
+					}
+
+					value_match( &match, slap_schema.si_ad_entryCSN,
+								slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								&syncCookie_req, &syncCookie, &text );
+
+					if ( syncCookie.bv_len && match < 0 ) {
+						syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie);
+					}
+
 					if ( syncstate == LDAP_SYNC_STATE_MODE_DONE ) {
-						syncrepl_del_nonpresent( ld, &op );
+						if ( match < 0 ) {
+							syncrepl_del_nonpresent( ld, &op );
+						}
 						si->sync_mode = LDAP_SYNC_LOG_MODE;
 					} else if ( syncstate == LDAP_SYNC_LOG_MODE_DONE ) {
 						si->sync_mode = LDAP_SYNC_PERSIST_MODE;
@@ -573,24 +611,6 @@ do_syncrepl(
 						Debug( LDAP_DEBUG_ANY,
 							"do_syncrepl : unknown sync info\n", 0, 0, 0 );
 #endif
-					}
-
-					if ( ber_peek_tag( res_ber, &len )
-								== LDAP_SYNC_TAG_COOKIE ) {
-						ber_scanf( res_ber, /*"{"*/ "o}", &syncCookie );
-						if ( syncCookie.bv_len ) {
-							syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie);
-						}
-					} else {
-						if ( syncstate == LDAP_SYNC_NEW_COOKIE ) {
-#ifdef NEW_LOGGING
-							LDAP_LOG( OPERATION, ERR,
-								"do_syncrepl : cookie required\n", 0, 0, 0 );
-#else
-							Debug( LDAP_DEBUG_ANY,
-								"do_syncrepl : cookie required\n", 0, 0, 0 );
-#endif
-						}
 					}
 
 					ldap_memfree( retoid );
@@ -640,6 +660,8 @@ do_syncrepl(
 done:
 	if ( syncCookie.bv_val )
 		ch_free( syncCookie.bv_val );
+	if ( syncCookie_req.bv_val )
+		ch_free( syncCookie_req.bv_val );
 	if ( syncUUID.bv_val )
 		ch_free( syncUUID.bv_val );
 

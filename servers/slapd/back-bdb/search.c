@@ -400,6 +400,7 @@ int bdb_search( Operation *op, SlapReply *rs )
 	int		rc_sync = 0;
 	int		entry_sync_state = -1;
 	AttributeName	null_attr;
+	int		no_sync_state_change = 0;
 #endif
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
@@ -854,6 +855,10 @@ ctxcsn_retry :
 	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) ||
 		( IS_PSEARCH && sop->o_ps_protocol == LDAP_SYNC ))
 	{
+		MatchingRule	*mr;
+		const char		*text;
+		int				match;
+
 		cookief.f_choice = LDAP_FILTER_AND;
 		cookief.f_and = &csnfnot;
 		cookief.f_next = NULL;
@@ -888,6 +893,16 @@ ctxcsn_retry :
 			contextcsnle.f_av_desc = slap_schema.si_ad_entryCSN;
 			contextcsnle.f_av_value = *search_context_csn;
 			contextcsnle.f_next = sop->oq_search.rs_filter;
+
+			mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
+			if ( sop->o_sync_state.bv_len != 0 ) {
+				value_match( &match, slap_schema.si_ad_entryCSN, mr,
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							&sop->o_sync_state, search_context_csn, &text );
+			} else {
+				match = -1;
+			}
+			no_sync_state_change = !match;
 		} else {
 			csnfge.f_next = sop->oq_search.rs_filter;
 		}
@@ -1131,8 +1146,22 @@ id2entry_retry:
 					rs->sr_entry, &contextcsnand );
 				if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 					if ( rc_sync == LDAP_COMPARE_TRUE ) {
+						if ( no_sync_state_change ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG ( OPERATION, RESULTS,
+								"bdb_search: error in context csn management\n",
+								0, 0, 0 );
+#else
+							Debug( LDAP_DEBUG_TRACE,
+								"bdb_search: error in context csn management\n",
+								0, 0, 0 );
+#endif
+						}
 						entry_sync_state = LDAP_SYNC_ADD;
 					} else {
+						if ( no_sync_state_change ) {
+							goto loop_continue;
+						}
 						entry_sync_state = LDAP_SYNC_PRESENT;
 					}
 				}
