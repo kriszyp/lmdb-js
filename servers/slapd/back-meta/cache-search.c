@@ -850,11 +850,11 @@ meta_create_entry (
 	Attribute 		*attr, *soc_attr, **attrp;
 	struct berval	dummy = { 0, NULL };
 	struct berval	*bv, bdn;
-	const char 		*text;
+	const char 		*text = NULL;
 	char* 			ename = NULL; 
 	struct berval	sc = { 0, NULL };
-	char*			textbuf;
-	size_t			textlen;
+	char			textbuf[SLAP_TEXT_BUFLEN];
+	size_t			textlen = sizeof(textbuf);
 
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		result->type = CREATE_ENTRY_ERR;  	
