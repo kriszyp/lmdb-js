@@ -200,11 +200,6 @@ LDAP_BEGIN_DECL
 #define NO_THREADS 1
 #endif
 
-#ifndef PREEMPTIVE_THREADS
-/* treat no threads as preemptive */
-#define PREEMPTIVE_THREADS 1
-#endif
-
 typedef void	*(*VFP)();
 
 /* thread attributes and thread type */

@@ -42,7 +42,7 @@ OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach lwp yes no manual] )
-OL_ARG_WITH(preemptive,[  --with-preemptive	thread implementation is preemptive],
+OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
 
 dnl Server options
@@ -415,8 +415,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthread, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
 				fi
 				],,[-lexc])
 			LIBS="$save_LIBS"
@@ -428,8 +428,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthreads, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
 				fi
 				],,[-lmach -lexc -lc_r])
 			LIBS="$save_LIBS"
@@ -504,9 +504,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				thr_setconcurrency \
 			)
 
-			dnl Check PREEMPTIVE Implementation 
-			if test $ol_with_preemptive = auto ; then
-				AC_MSG_CHECKING([for preemptive Pthread implementation])
+			dnl Check if select causes an yield
+			if test $ol_with_yielding_select = auto ; then
+				AC_MSG_CHECKING([if select yields])
 				AC_TRY_RUN([
 #include <sys/types.h>
 #include <sys/time.h>
@@ -560,13 +560,12 @@ int argc; char **argv;
 #endif
 	exit(0);
 }
-				], [ol_pthread_preemptive=yes], [ol_pthread_preemptive=no], [
-				AC_MSG_ERROR([crossing compiling: use --with-preemptive=yes|no|manual])])
-				AC_MSG_RESULT($ol_pthread_preemptive)
+				], [ol_pthread_select_yields=yes], [ol_pthread_select_yields=no], [
+				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])
+				AC_MSG_RESULT($ol_pthread_select_yields)
 
-				if test $ol_pthread_preemptive = yes ; then
-					AC_DEFINE(HAVE_PREEMPTIVE_PTHREADS)
-					ol_with_preemptive=yes
+				if test $ol_pthread_select_yields = yes ; then
+					ol_with_yielding_select=yes
 				fi
 			fi
 
@@ -648,8 +647,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 			LTHREAD_LIBS="$LTHREAD_LIBS -lthread"
 			ol_link_threads=thr
 
-			if test $ol_with_preemptive = auto ; then
-				ol_with_preemptive=yes
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
 			fi
 		fi
 	fi
@@ -664,15 +663,15 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 			ol_link_threads=lwp
 
-			if test $ol_with_preemptive = auto ; then
-				ol_with_preemptive=no
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=no
 			fi
 		fi
 	fi
 fi
 
-if test $ol_with_preemptive = yes ; then
-	AC_DEFINE(PREEMPTIVE_THREADS,1)
+if test $ol_with_yielding_select = yes ; then
+	AC_DEFINE(HAVE_YIELDING_SELECT,1)
 fi
 
 if test $ol_with_threads = manual ; then
@@ -731,7 +730,6 @@ if test $ol_link_threads = no ; then
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
-	AC_DEFINE(PREEMPTIVE_THREADS,1)
 	LTHREAD_LIBS=""
 fi
 
