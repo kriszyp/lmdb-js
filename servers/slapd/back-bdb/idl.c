@@ -251,7 +251,7 @@ bdb_idl_fetch_key(
 #ifdef BDB_IDL_MULTI
 	{
 		DBC *cursor;
-		ID buf[BDB_IDL_DB_SIZE];
+		ID buf[BDB_PAGESIZE*4];
 		ID *i;
 		void *ptr;
 		size_t len;
