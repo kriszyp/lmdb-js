@@ -36,8 +36,6 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
-#define SLAP_EXTENDED_SCHEMA 1
-
 LDAP_BEGIN_DECL
 /*
  * SLAPD Memory allocation macros

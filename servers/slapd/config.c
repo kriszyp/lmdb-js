@@ -1639,13 +1639,11 @@ read_config( const char *fname, int depth )
 #endif
 			}
 
-#ifdef SLAP_EXTENDED_SCHEMA
 		} else if ( strcasecmp( cargv[0], "ditcontentrule" ) == 0 ) {
 			char * p;
 			p = strchr(saveline,'(' /*')'*/);
 			rc = parse_cr( fname, lineno, p, cargv );
 			if( rc ) return rc;
-#endif
 
 		/* specify an attribute type */
 		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )

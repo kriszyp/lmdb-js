@@ -42,10 +42,8 @@ entry_schema_check(
 {
 	Attribute	*a, *asc, *aoc;
 	ObjectClass *sc, *oc;
-#ifdef SLAP_EXTENDED_SCHEMA
 	AttributeType *at;
 	ContentRule *cr;
-#endif
 	int	rc, i;
 	struct berval nsc;
 	AttributeDescription *ad_structuralObjectClass
@@ -238,7 +236,6 @@ entry_schema_check(
 			/* Glue Entry */
         }
 
-#ifdef SLAP_EXTENDED_SCHEMA
 	/* find the content rule for the structural class */
 	cr = cr_find( sc->soc_oid );
 
@@ -322,7 +319,6 @@ entry_schema_check(
 			}
 		}
 	}
-#endif /* SLAP_EXTENDED_SCHEMA */
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i].bv_val != NULL; i++ ) {
@@ -434,7 +430,6 @@ entry_schema_check(
 		} else if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL || oc == sc ) {
 			char *s;
 
-#ifdef SLAP_EXTENDED_SCHEMA
 			if( oc->soc_kind == LDAP_SCHEMA_AUXILIARY ) {
 				int k;
 
@@ -475,7 +470,6 @@ entry_schema_check(
 					return LDAP_OBJECT_CLASS_VIOLATION;
 				}
 			}
-#endif /* SLAP_EXTENDED_SCHEMA */
 
 			s = oc_check_required( e, oc, &aoc->a_vals[i] );
 			if (s != NULL) {
@@ -509,7 +503,6 @@ entry_schema_check(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		int ret;
 
-#ifdef SLAP_EXTENDED_SCHEMA
  		ret = LDAP_OBJECT_CLASS_VIOLATION;
 
 		if( cr && cr->scr_required ) {
@@ -531,7 +524,6 @@ entry_schema_check(
 		}
 
 		if( ret != LDAP_SUCCESS ) 
-#endif /* SLAP_EXTENDED_SCHEMA */
 		{
 			ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals, sc );
 		}
