@@ -270,7 +270,10 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	char **krbinstancep, int async )
 {
 	int rc = -1;
-	int port, tls;
+	int port;
+#ifdef HAVE_TLS
+	int tls;
+#endif
 	long addr;
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
