@@ -62,11 +62,11 @@ int bdb_modify_internal(
 		case LDAP_MOD_REPLACE:
 			if ( mod->sm_desc == slap_schema.si_ad_structuralObjectClass ) {
 				value_match( &match, slap_schema.si_ad_structuralObjectClass,
-				slap_schema.si_ad_structuralObjectClass->ad_type->sat_equality,
-				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-				&mod->sm_values[0], &scbva[0], text );
-				if ( !match )
-					glue_attr_delete = 1;
+					slap_schema.si_ad_structuralObjectClass->
+						ad_type->sat_equality,
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					&mod->sm_values[0], &scbva[0], text );
+				if ( !match ) glue_attr_delete = 1;
 			}
 		}
 		if ( glue_attr_delete )
@@ -181,9 +181,7 @@ int bdb_modify_internal(
 			e->e_ocflags = 0;
 		}
 
-		if ( glue_attr_delete ) {
-			e->e_ocflags = 0;
-		}
+		if ( glue_attr_delete ) e->e_ocflags = 0;
 
 		/* check if modified attribute was indexed
 		 * but not in case of NOOP... */
@@ -377,7 +375,7 @@ retry:	/* transaction retry */
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
-					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
+				&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -427,20 +425,18 @@ retry:	/* transaction retry */
 			&slap_pre_read_bv, preread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- " LDAP_XSTRING(bdb_modify)
-				": pre-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modify) ": pre-read failed!\n",
+				0, 0, 0 );
 			goto return_results;
 		}
 	}
 
 	/* nested transaction */
-	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
-		bdb->bi_db_opflags );
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, bdb->bi_db_opflags );
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modify) ": txn_begin(2) failed: "
-			"%s (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": txn_begin(2) failed: " "%s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
@@ -472,8 +468,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modify) ": id2entry update failed "
-			"(%d)\n", rs->sr_err, 0, 0 );
+			LDAP_XSTRING(bdb_modify) ": id2entry update failed " "(%d)\n",
+			rs->sr_err, 0, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
