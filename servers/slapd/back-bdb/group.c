@@ -35,7 +35,7 @@ bdb_group(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
-	DB_TXN *txn;
+	DB_TXN *txn = NULL;
 	Entry *e;
 	int	rc = 1;
 	Attribute *attr;
