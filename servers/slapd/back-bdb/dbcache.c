@@ -115,7 +115,7 @@ bdb_db_cache(
 	flags = bdb->bi_db_opflags | DB_CREATE | DB_THREAD;
 	if ( !tid ) flags |= DB_AUTO_COMMIT;
 	rc = DB_OPEN( db->bdi_db, tid,
-		file, name,
+		file, NULL /* name */,
 		DB_HASH, flags,
 		bdb->bi_dbenv_mode );
 
