@@ -3644,7 +3644,7 @@ certificateExactMatch(
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 		   "certificateExactMatch: %d\n	 %s $ %s\n	 %s $	%s\n",
 		   *matchp, serial->bv_val, issuer_dn->bv_val,
-		   asserted->serial->bv_val, asserted_issuer_dn->bv_val));
+		   asserted_serial->bv_val, asserted_issuer_dn->bv_val));
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
 		"%d\n\t\"%s $ %s\"\n",

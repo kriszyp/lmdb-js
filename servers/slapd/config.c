@@ -378,7 +378,7 @@ read_config( const char *fname )
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
 					"default search base \"%s\" already defined "
 					"(discarding old)\n", fname, lineno,
-					default_search_base->bv_val ));
+					default_search_base.bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"default search base \"%s\" already defined "

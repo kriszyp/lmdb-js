@@ -163,7 +163,7 @@ entry_schema_check(
 	if ( aoc == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-			"entry_schema_check: No objectClass for entry (%s).\n"
+			"entry_schema_check: No objectClass for entry (%s).\n",
 			e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ANY, "No objectClass for entry (%s)\n",
