@@ -2490,7 +2490,7 @@ description: Just added as ldap://localhost.localdomain:389/ou=Referrals,o=Bei
  spiel,c=DE
 description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,o=Bei
  spiel,c=DE
-ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??base
+ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE
 
 # 	base="o=Esempio,c=IT"...
 dn: ou=Referrals,o=Esempio,c=IT
@@ -2501,7 +2501,7 @@ description: Just added as ldap://localhost.localdomain:389/ou=Referrals,o=Bei
  spiel,c=DE
 description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,o=Bei
  spiel,c=DE
-ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??base
+ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE
 
 # searching filter="(seeAlso=cn=all staff,ou=Groups,o=Example,c=US)"
 # 	attrs="seeAlso"
