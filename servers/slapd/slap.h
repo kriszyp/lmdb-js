@@ -93,11 +93,12 @@ LDAP_BEGIN_DECL
 #define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
-#define SLAPD_ACI_DEFAULT_ATTR		"aci"
-
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 /* schema needed by slapd */
-#define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
 #define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.666.2.1" /* experimental */
+#define SLAPD_ACI_DEFAULT_ATTR		"aci"
+#endif
+
 
 LIBSLAPD_F (int) slap_debug;
 
@@ -155,10 +156,11 @@ typedef struct slap_syntax {
 
 	unsigned	ssyn_flags;
 
-#define SLAP_SYNTAX_NONE	0x0U
-#define SLAP_SYNTAX_BLOB	0x1U /* syntax treated as blob (audio) */
-#define SLAP_SYNTAX_BINARY	0x2U /* binary transfer required (certificate) */
-#define SLAP_SYNTAX_BER		0x4U /* stored using BER encoding (binary,certificate) */
+#define SLAP_SYNTAX_NONE	0x00U
+#define SLAP_SYNTAX_BLOB	0x01U /* syntax treated as blob (audio) */
+#define SLAP_SYNTAX_BINARY	0x02U /* binary transfer required (certificate) */
+#define SLAP_SYNTAX_BER		0x04U /* stored using BER encoding (binary,certificate) */
+#define SLAP_SYNTAX_HIDE	0x80U /* hide (do not publish) */
 
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_normalize;
@@ -177,6 +179,7 @@ typedef struct slap_syntax {
 #define slap_syntax_is_blob(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BLOB)
 #define slap_syntax_is_binary(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_BINARY)
 #define slap_syntax_is_ber(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BER)
+#define slap_syntax_is_hidden(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_HIDE)
 
 /* XXX -> UCS-2 Converter */
 typedef int slap_mr_convert_func LDAP_P((
@@ -327,8 +330,15 @@ typedef struct slap_attr_desc {
  */
 struct slap_internal_schema {
 	/* objectClass */
+	ObjectClass *si_oc_top;
 	ObjectClass *si_oc_alias;
 	ObjectClass *si_oc_referral;
+	ObjectClass *si_oc_subentry;
+	ObjectClass *si_oc_subschema;
+	ObjectClass *si_oc_rootdse;
+#ifdef SLAPD_ACI_ENABLED
+	ObjectClass *si_oc_groupOfNames;
+#endif
 
 	/* objectClass attribute */
 	AttributeDescription *si_ad_objectClass;
@@ -361,9 +371,14 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_aliasedObjectName;
 	AttributeDescription *si_ad_ref;
 
-	/* ACL Internals */
+	/* Access Control Internals */
 	AttributeDescription *si_ad_entry;
 	AttributeDescription *si_ad_children;
+	AttributeDescription *si_ad_member;
+	AttributeDescription *si_ad_distinguishedName;
+#ifdef SLAPD_ACI_ENABLED
+	AttributeDescription *si_ad_aci;
+#endif
 
 	/* Other */
 	AttributeDescription *si_ad_userPassword;

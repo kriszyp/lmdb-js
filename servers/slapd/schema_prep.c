@@ -41,8 +41,15 @@ struct slap_schema_oc_map {
 	char *ssom_name;
 	size_t ssom_offset;
 } oc_map[] = {
+	{ "top", offsetof(struct slap_internal_schema, si_oc_top) },
 	{ "alias", offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", offsetof(struct slap_internal_schema, si_oc_referral) },
+	{ "LDAProotDSE", offsetof(struct slap_internal_schema, si_oc_rootdse) },
+	{ "LDAPsubentry", offsetof(struct slap_internal_schema, si_oc_subentry) },
+	{ "subschema", offsetof(struct slap_internal_schema, si_oc_subschema) },
+#ifdef SLAPD_ACI_ENABLED
+	{ "groupOfNames", offsetof(struct slap_internal_schema, si_oc_groupOfNames) },
+#endif
 	{ NULL, 0 }
 };
 
@@ -54,6 +61,7 @@ struct slap_schema_ad_map {
 	{ "objectClass", objectClassMatch,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
+	/* user entry operational attributes */
 	{ "creatorsName", NULL,
 		offsetof(struct slap_internal_schema, si_ad_creatorsName) },
 	{ "createTimestamp", NULL,
@@ -62,10 +70,10 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_modifiersName) },
 	{ "modifyTimestamp", NULL,
 		offsetof(struct slap_internal_schema, si_ad_modifyTimestamp) },
-
 	{ "subschemaSubentry", NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
 
+	/* root DSE attributes */
 	{ "namingContexts", NULL,
 		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
 	{ "supportedControl", NULL,
@@ -74,14 +82,14 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_supportedExtension) },
 	{ "supportedLDAPVersion", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+#ifdef SLAPD_ACI_ENABLED
 	{ "supportedACIMechanisms", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedACIMechanisms) },
-
 #endif
 	{ "supportedSASLMechanisms", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
 
+	/* subschema subentry attributes */
 	{ "attributeTypes", NULL,
 		offsetof(struct slap_internal_schema, si_ad_attributeTypes) },
 	{ "ldapSyntaxes", NULL,
@@ -91,13 +99,25 @@ struct slap_schema_ad_map {
 	{ "objectClasses", NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClasses) },
 
+	/* knowledge information */
+	{ "aliasedObjectName", NULL,
+		offsetof(struct slap_internal_schema, si_ad_aliasedObjectName) },
 	{ "ref", NULL,
 		offsetof(struct slap_internal_schema, si_ad_ref) },
 
+	/* access control information */
 	{ "entry", NULL,
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children", NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
+	{ "distinguishedName", NULL,
+		offsetof(struct slap_internal_schema, si_ad_distinguishedName) },
+	{ "member", NULL,
+		offsetof(struct slap_internal_schema, si_ad_member) },
+#ifdef SLAPD_ACI_ENABLED
+	{ "aci", NULL,
+		offsetof(struct slap_internal_schema, si_ad_aci) },
+#endif
 
 	{ "userPassword", NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },

@@ -98,8 +98,14 @@ parse_acl(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
 	const char *text;
-	static AttributeDescription *member = NULL;
-	static AttributeDescription *aci = NULL;
+	AttributeDescription *ad_distinguishedName = slap_schema.si_ad_distinguishedName;
+	AttributeDescription *ad_member = slap_schema.si_ad_member;
+#ifdef SLAPD_ACI_ENABLED
+	AttributeDescription *ad_aci = slap_schema.si_ad_aci;
+#endif
+#else
+	static char *ad_aci = "aci";
+	static char *ad_member = "member";
 #endif
 
 	a = NULL;
@@ -336,16 +342,17 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_OID_DN_SYNTAX
-					if( strcmp( b->a_dn_at->ad_type->sat_syntax_oid,
-						SLAPD_OID_DN_SYNTAX ) != 0 )
+
+					if( b->a_dn_at->ad_type->sat_syntax
+						!= ad_distinguishedName->ad_type->sat_syntax )
 					{
 						fprintf( stderr,
-							"%s: line %d: dnattr attribute type not of DN syntax.\n",
-							fname, lineno );
+							"%s: line %d: dnattr \"%s\": inappropriate syntax: %s\n",
+							fname, lineno, right,
+							b->a_dn_at->ad_type->sat_syntax_oid );
 						acl_usage();
 					}
-#endif
+
 #else
 					b->a_dn_at = ch_strdup( right );
 #endif
@@ -393,6 +400,16 @@ parse_acl(
 								fname, lineno, right, text );
 							acl_usage();
 						}
+
+						if( b->a_group_at->ad_type->sat_syntax
+							!= ad_member->ad_type->sat_syntax )
+						{
+							fprintf( stderr,
+								"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
+								fname, lineno, right,
+								b->a_group_at->ad_type->sat_syntax_oid );
+							acl_usage();
+						}
 #else
 						b->a_group_at = ch_strdup(name);
 #endif
@@ -400,9 +417,9 @@ parse_acl(
 
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_at = member;
+						b->a_group_at = ad_dup( ad_member );
 #else
-						b->a_group_at = ch_strdup("member");
+						b->a_group_at = ch_strdup( ad_member );
 #endif
 					}
 
@@ -413,17 +430,6 @@ parse_acl(
 							fname, lineno );
 						acl_usage();
 					}
-
-#ifdef SLAPD_OID_DN_SYNTAX
-					if( strcmp( b->a_group_at->ad_type->sat_syntax_oid,
-						SLAPD_OID_DN_SYNTAX ) != 0 )
-					{
-						fprintf( stderr,
-							"%s: line %d: group attribute type not of DN syntax.\n",
-							fname, lineno );
-						acl_usage();
-					}
-#endif /* SLAPD_OID_DN_SYNTAX */
 #endif /* SLAPD_SCHEMA_NOT_COMPAT */
 					continue;
 				}
@@ -499,8 +505,18 @@ parse_acl(
 								fname, lineno, right, text );
 							acl_usage();
 						}
+
+						if( b->a_aci_at->ad_type->sat_syntax
+							!= ad_aci->ad_type->sat_syntax )
+						{
+							fprintf( stderr,
+								"%s: line %d: aci \"%s\": inappropriate syntax: %s\n",
+								fname, lineno, right,
+								b->a_aci_at->ad_type->sat_syntax_oid );
+							acl_usage();
+						}
 					} else {
-						b->a_aci_at = aci;
+						b->a_aci_at = ad_dup( ad_aci );
 					}
 
 					if( b->a_aci_at == NULL ) {
@@ -510,14 +526,6 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( strcmp( b->a_aci_at->ad_type->sat_syntax_oid,
-						SLAPD_OID_ACI_SYNTAX ) != 0 )
-					{
-						fprintf( stderr,
-							"%s: line %d: aci attribute type not of ACI syntax.\n",
-							fname, lineno );
-						acl_usage();
-					}
 #else
 					if ( right != NULL && *right != '\0' ) {
 						b->a_aci_at = ch_strdup( right );
@@ -939,7 +947,11 @@ print_access( Access *b )
 	}
 
 	if ( b->a_dn_at != NULL ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname->bv_val );
+#else
 		fprintf( stderr, " dnattr=%s", b->a_dn_at );
+#endif
 	}
 
 	if ( b->a_group_pat != NULL ) {
@@ -949,7 +961,11 @@ print_access( Access *b )
 			fprintf( stderr, " objectClass: %s", b->a_group_oc );
 
 			if ( b->a_group_at ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname->bv_val );
+#else
 				fprintf( stderr, " attributeType: %s", b->a_group_at );
+#endif
 			}
 		}
     }
@@ -972,7 +988,11 @@ print_access( Access *b )
 
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname->bv_val );
+#else
 		fprintf( stderr, " aci=%s", b->a_aci_at );
+#endif
 	}
 #endif
 

@@ -41,7 +41,7 @@ ldbm_back_group(
 	Attribute   *attr;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *objectClass = NULL;
+	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
 	const char *groupattrName = group_at->ad_cname->bv_val;
 #else
 	struct berval bv;

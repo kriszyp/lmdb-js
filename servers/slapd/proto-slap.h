@@ -92,7 +92,6 @@ LIBSLAPD_F (AttributeType *) at_find LDAP_P(( const char *name ));
 LIBSLAPD_F (int) at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
 LIBSLAPD_F (int) at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
 LIBSLAPD_F (int) at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
-LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
 LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 
@@ -103,6 +102,7 @@ LIBSLAPD_F (int) is_at_subtype LDAP_P((
 
 #	define at_canonical_name(at) ((at)->sat_cname)	
 #else
+LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
 LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 #endif
 

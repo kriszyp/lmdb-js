@@ -16,7 +16,15 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
-#define berValidate blobValidate
+static int
+inValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	/* any value allowed */
+	return LDAP_OTHER;
+}
+
 static int
 blobValidate(
 	Syntax *syntax,
@@ -25,6 +33,8 @@ blobValidate(
 	/* any value allowed */
 	return LDAP_SUCCESS;
 }
+
+#define berValidate blobValidate
 
 static int
 UTF8StringValidate(
@@ -341,6 +351,7 @@ struct syntax_defs_rec {
 #endif
 };
 
+#define X_HIDE "X-HIDE 'TRUE' "
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
@@ -457,8 +468,12 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 
 	/* OpenLDAP Experimental Syntaxes */
-	{"( " SLAPD_OID_ACI_SYNTAX " DESC 'OpenLDAP Experimental ACI' )",
+	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		0, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP void' " X_HIDE ")" ,
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP DN' " X_HIDE ")" ,
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 
 	{NULL, 0, NULL, NULL, NULL}
 };

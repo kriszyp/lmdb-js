@@ -218,9 +218,9 @@ static char* get_alias_dn(
 {	
 	Attribute *a;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *aliasedObjectName = NULL;
+	AttributeDescription *aliasedObjectName = slap_schema.si_ad_aliasedObjectName;
 #else
-	static const char *aliasedObjectName = NULL;
+	static const char *aliasedObjectName = "aliasedObjectName";
 #endif
 
 	a = attr_find( e->e_attrs, aliasedObjectName );
