@@ -80,17 +80,17 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
-OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl  with Cyrus SASL support],
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(fetch,[  --with-fetch  with fetch URL support],
+OL_ARG_WITH(fetch,[  --with-fetch		with fetch URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 	auto, [auto k5 k4 afs yes no])
-OL_ARG_WITH(readline,[  --with-readline  with readline support],
+OL_ARG_WITH(readline,[  --with-readline	with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach pth lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls  with TLS/SSL support],
+OL_ARG_WITH(tls,[  --with-tls		with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
@@ -123,10 +123,10 @@ OL_ARG_ENABLE(ldap,[    --enable-ldap	enable ldap backend], no)dnl
 OL_ARG_WITH(ldap_module,[      --with-ldap-module	module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
-OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
-	[static dynamic])
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
 	[auto db2 db mdbm gdbm ndbm manual])
+OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
+	[static dynamic])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
 

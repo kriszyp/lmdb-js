@@ -33,17 +33,17 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-dmalloc	enable debug malloc support (no)"
 ac_help="$ac_help
-  --with-cyrus-sasl  with Cyrus SASL support (auto)"
+  --with-cyrus-sasl	with Cyrus SASL support (auto)"
 ac_help="$ac_help
-  --with-fetch  with fetch URL support (auto)"
+  --with-fetch		with fetch URL support (auto)"
 ac_help="$ac_help
   --with-kerberos	with Kerberos support (auto)"
 ac_help="$ac_help
-  --with-readline  with readline support (auto)"
+  --with-readline	with readline support (auto)"
 ac_help="$ac_help
   --with-threads	use threads (auto)"
 ac_help="$ac_help
-  --with-tls  with TLS/SSL support (auto)"
+  --with-tls		with TLS/SSL support (auto)"
 ac_help="$ac_help
   --with-yielding-select	with implicitly yielding select (auto)"
 ac_help="$ac_help
@@ -85,9 +85,9 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-ldbm	enable ldbm backend (yes)"
 ac_help="$ac_help
-      --with-ldbm-module	module type (static)"
-ac_help="$ac_help
       --with-ldbm-api	use LDBM API (auto)"
+ac_help="$ac_help
+      --with-ldbm-module	module type (static)"
 ac_help="$ac_help
       --with-ldbm-type	use LDBM type (auto)"
 ac_help="$ac_help
@@ -1832,27 +1832,6 @@ else
   	ol_enable_ldbm="yes"
 fi
 # end --enable-ldbm
-# OpenLDAP --with-ldbm_module
-	# Check whether --with-ldbm_module or --without-ldbm_module was given.
-if test "${with_ldbm_module+set}" = set; then
-  withval="$with_ldbm_module"
-  
-	ol_arg=invalid
-	for ol_val in static dynamic ; do
-		if test "$withval" = "$ol_val" ; then
-			ol_arg="$ol_val"
-		fi
-	done
-	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $withval for --with-ldbm_module" 1>&2; exit 1; }
-	fi
-	ol_with_ldbm_module="$ol_arg"
-
-else
-  	ol_with_ldbm_module="static"
-fi
-# end --with-ldbm_module
-
 # OpenLDAP --with-ldbm_api
 	# Check whether --with-ldbm_api or --without-ldbm_api was given.
 if test "${with_ldbm_api+set}" = set; then
@@ -1873,6 +1852,27 @@ else
   	ol_with_ldbm_api="auto"
 fi
 # end --with-ldbm_api
+
+# OpenLDAP --with-ldbm_module
+	# Check whether --with-ldbm_module or --without-ldbm_module was given.
+if test "${with_ldbm_module+set}" = set; then
+  withval="$with_ldbm_module"
+  
+	ol_arg=invalid
+	for ol_val in static dynamic ; do
+		if test "$withval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		{ echo "configure: error: bad value $withval for --with-ldbm_module" 1>&2; exit 1; }
+	fi
+	ol_with_ldbm_module="$ol_arg"
+
+else
+  	ol_with_ldbm_module="static"
+fi
+# end --with-ldbm_module
 
 # OpenLDAP --with-ldbm_type
 	# Check whether --with-ldbm_type or --without-ldbm_type was given.
