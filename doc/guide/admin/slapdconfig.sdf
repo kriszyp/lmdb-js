@@ -843,7 +843,7 @@ a OID under {{ORG[expand]IANA}} maintained
 may request an OID to be assigned under this arch.  Just fill
 out the form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
 and your official OID will be sent to you usually within a few days.
-Your base OID will be something like {EX:1.3.6.1.4.1.X}} were {{EX:X}}
+Your base OID will be something like {{EX:1.3.6.1.4.1.X}} were {{EX:X}}
 is an integer.
 
 Note: Don't let the "MIB/SNMP" statement confuse you.  OIDs
