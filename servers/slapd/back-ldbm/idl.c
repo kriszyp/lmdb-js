@@ -560,6 +560,11 @@ idl_insert_key(
 	if (ID_BLOCK_ID(idl, i) < id)
 		i++;
 #endif
+	/* The ID already exists in the IDL, no insert needed */
+	if (ID_BLOCK_ID(idl, i) == id) {
+		idl_free( idl );
+		return 0;
+	}
 
 	if ( i != 0 ) {
 		i--;
