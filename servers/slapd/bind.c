@@ -46,6 +46,7 @@ do_bind(
 {
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
+	ber_tag_t method;
 	struct berval mech = { 0, NULL };
 	struct berval dn = { 0, NULL };
 	ber_tag_t tag;
@@ -106,7 +107,7 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &op->orb_method );
+	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -121,6 +122,7 @@ do_bind(
 	}
 
 	op->o_protocol = version;
+	op->orb_method = method;
 
 	if( op->orb_method != LDAP_AUTH_SASL ) {
 		tag = ber_scanf( ber, /*{*/ "m}", &op->orb_cred );
