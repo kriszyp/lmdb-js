@@ -76,8 +76,7 @@ clean-local: FORCE
 depend-local: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
-install-local: install-ldbm-$(BUILD_LDBM) \
-	install-quipu-$(BUILD_QUIPU)
+install-local: install-ldbm-$(BUILD_LDBM)
 
 install-ldbm-no:
 
