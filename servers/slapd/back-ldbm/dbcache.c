@@ -13,12 +13,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-
 #include <sys/stat.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include "slap.h"
 #include "back-ldbm.h"

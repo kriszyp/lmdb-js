@@ -19,8 +19,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include <ac/param.h>
-
 #include "ldap_pvt.h"
 #include "slap.h"
 

@@ -182,7 +182,6 @@ ldap_result
 ldap_search
 ldap_srvtab
 ldap_syslog
-ldap_syslog_level
 ldap_unbind
 ldbm_back_abandon
 ldbm_back_add

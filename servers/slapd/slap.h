@@ -17,6 +17,7 @@
 #include <ac/regex.h>
 #include <ac/socket.h>
 #include <ac/time.h>
+#include <ac/param.h>
 
 #ifdef HAVE_CYRUS_SASL
 #include <sasl.h>
