@@ -25,7 +25,7 @@ ifdef(`MAIL500_MAILER_FLAGS',,
 	`define(`MAIL500_MAILER_FLAGS', `SmnXuh')')
 ifdef(`MAIL500_MAILER_ARGS',,
 	`define(`MAIL500_MAILER_ARGS',
-		CONCAT(`mail500',CONCAT(` -C ',MAIL500_CONFIG_PATH,MAIL500_HOST_FLAG,`-f $f -m $n@$w $u')))')
+		CONCAT(`mail500',CONCAT(` -C ',MAIL500_CONFIG_PATH,MAIL500_HOST_FLAG,`-f $f -m <> $n@$w $u')))')
 dnl
 MAILER_DEFINITIONS
 
