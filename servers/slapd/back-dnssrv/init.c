@@ -45,7 +45,7 @@ dnssrv_back_initialize(
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = dnssrv_back_db_destroy;
 
-	bi->bi_op_bind = 0;
+	bi->bi_op_bind = dnssrv_back_bind;
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = dnssrv_back_search;
 	bi->bi_op_compare = dnssrv_back_compare;
