@@ -32,9 +32,9 @@ int passwd_extop(
 	Operation *op,
 	SlapReply *rs )
 {
-	struct berval id = {0, NULL}, old = {0, NULL}, new = {0, NULL},
-		dn, ndn, hash, vals[2], tmpbv, *rsp = NULL;
-	Modifications ml, **modtail;
+	struct berval id = {0, NULL}, hash, *rsp = NULL;
+	req_pwdexop_s *qpw = &op->oq_pwdexop;
+	Modifications *ml;
 	Operation op2;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
@@ -47,29 +47,30 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( op->oq_extended.rs_reqdata ) {
-		ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
-	}
-	rs->sr_err = slap_passwd_parse(
-		op->oq_extended.rs_reqdata ? &tmpbv : NULL,
-		&id, &old, &new, &rs->sr_text );
+	qpw->rs_old.bv_val = NULL;
+	qpw->rs_new.bv_val = NULL;
+	qpw->rs_mods = NULL;
+	qpw->rs_modtail = NULL;
+
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id, &qpw->rs_old,
+		&qpw->rs_new, &rs->sr_text );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;
 	}
 
 	if ( id.bv_len ) {
-		dn = id;
+		op->o_req_dn = id;
 		/* ndn is in tmpmem, so we don't need to free it */
-		rs->sr_err = dnNormalize( 0, NULL, NULL, &dn, &ndn, op->o_tmpmemctx );
+		rs->sr_err = dnNormalize( 0, NULL, NULL, &id, &op->o_req_ndn, op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			return rs->sr_err;
 		}
-		op->o_bd = select_backend( &ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
 	} else {
-		dn = op->o_dn;
-		ndn = op->o_ndn;
+		op->o_req_dn = op->o_dn;
+		op->o_req_ndn = op->o_ndn;
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		op->o_bd = op->o_conn->c_authz_backend;
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
@@ -84,7 +85,7 @@ int passwd_extop(
 #endif
 	}
 
-	if ( ndn.bv_len == 0 ) {
+	if ( op->o_req_ndn.bv_len == 0 ) {
 		rs->sr_text = "no password is associated with the Root DSE";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -116,10 +117,23 @@ int passwd_extop(
 	}
 #endif /* !SLAPD_MULTIMASTER */
 
+	/* generate a new password if none was provided */
+	if ( qpw->rs_new.bv_len == 0 ) {
+		slap_passwd_generate( &qpw->rs_new );
+		if ( qpw->rs_new.bv_len ) {
+			rsp = slap_passwd_return( &qpw->rs_new );
+		}
+	}
+	if ( qpw->rs_new.bv_len == 0 ) {
+		rs->sr_text = "password generation failed";
+		return LDAP_OTHER;
+	}
+
 	/* Give the backend a chance to handle this itself */
 	if ( op->o_bd->be_extended ) {
 		rs->sr_err = op->o_bd->be_extended( op, rs );
-		if ( rs->sr_err != LDAP_UNWILLING_TO_PERFORM ) {
+		if ( rs->sr_err != LDAP_UNWILLING_TO_PERFORM &&
+			rs->sr_err != SLAP_CB_CONTINUE ) {
 			return rs->sr_err;
 		}
 	}
@@ -130,17 +144,9 @@ int passwd_extop(
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
-	if ( new.bv_len == 0 ) {
-		slap_passwd_generate( &new );
-		rsp = slap_passwd_return( &new );
-	}
-	if ( new.bv_len == 0 ) {
-		rs->sr_text = "password generation failed";
-		return LDAP_OTHER;
-	}
-	slap_passwd_hash( &new, &hash, &rs->sr_text );
+	slap_passwd_hash( &qpw->rs_new, &hash, &rs->sr_text );
 	if ( rsp ) {
-		free( new.bv_val );
+		free( qpw->rs_new.bv_val );
 	}
 	if ( hash.bv_len == 0 ) {
 		if ( !rs->sr_text ) {
@@ -148,23 +154,23 @@ int passwd_extop(
 		}
 		return LDAP_OTHER;
 	}
-	vals[0] = hash;
-	vals[1].bv_val = NULL;
-	ml.sml_desc = slap_schema.si_ad_userPassword;
-	ml.sml_values = vals;
-	ml.sml_nvalues = NULL;
-	ml.sml_op = LDAP_MOD_REPLACE;
-	ml.sml_next = NULL;
+	ml = ch_malloc( sizeof(Modifications) );
+	if ( !qpw->rs_modtail ) qpw->rs_modtail = &ml->sml_next;
+	ml->sml_values = ch_malloc( 2*sizeof(struct berval) );
+	ml->sml_values[0] = hash;
+	ml->sml_values[1].bv_val = NULL;
+	ml->sml_desc = slap_schema.si_ad_userPassword;
+	ml->sml_nvalues = NULL;
+	ml->sml_op = LDAP_MOD_REPLACE;
+	ml->sml_next = qpw->rs_mods;
+	qpw->rs_mods = ml;
 
 	op2 = *op;
 	op2.o_tag = LDAP_REQ_MODIFY;
 	op2.o_callback = &cb2;
-	op2.o_req_dn = dn;
-	op2.o_req_ndn = ndn;
-	op2.orm_modlist = &ml;
+	op2.orm_modlist = qpw->rs_mods;
 
-	modtail = &ml.sml_next;
-	rs->sr_err = slap_mods_opattrs( &op2, &ml, modtail, &rs->sr_text,
+	rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
 		NULL, 0 );
 	
 	if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -175,8 +181,7 @@ int passwd_extop(
 	} else if ( rsp ) {
 		ber_bvfree( rsp );
 	}
-	slap_mods_free( ml.sml_next );
-	free( hash.bv_val );
+	slap_mods_free( ml );
 
 	return rs->sr_err;
 }

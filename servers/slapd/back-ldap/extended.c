@@ -95,13 +95,11 @@ ldap_back_exop_passwd(
 {
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	struct berval id = { 0, NULL };
-	struct berval old = { 0, NULL };
-	struct berval new = { 0, NULL };
-	struct berval dn, mdn = { 0, NULL }, newpw;
+	req_pwdexop_s *qpw = &op->oq_pwdexop;
+	struct berval mdn = { 0, NULL }, newpw;
 	LDAPMessage *res;
 	ber_int_t msgid;
-	int rc;
+	int rc, isproxy;
 	dncookie dc;
 
 	lc = ldap_back_getconn(op, rs);
@@ -109,29 +107,17 @@ ldap_back_exop_passwd(
 		return -1;
 	}
 
-	rc = slap_passwd_parse( op->oq_extended.rs_reqdata, &id, &old, &new, &rs->sr_text );
-	if (rc != LDAP_SUCCESS)
-		return rc;
-	
-	if (id.bv_len) {
-		dn = id;
-	} else {
-		dn = op->o_dn;
-	}
+	isproxy = ber_bvcmp( &op->o_req_ndn, &op->o_ndn );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( ACL, DETAIL1, "ldap_back_exop_passwd: \"%s\"%s\"\n",
-		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
+		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_back_exop_passwd: \"%s\"%s\n",
-		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
+		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 #endif
 
-	if (dn.bv_len == 0) {
-		rs->sr_text = "No password is associated with the Root DSE";
-		return LDAP_UNWILLING_TO_PERFORM;
-	}
-	if (id.bv_len) {
+	if (isproxy) {
 		dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
 		dc.conn = op->o_conn;
@@ -141,16 +127,17 @@ ldap_back_exop_passwd(
 		dc.tofrom = 1;
 		dc.normalized = 0;
 #endif
-		if ( ldap_back_dn_massage( &dc, &dn, &mdn ) ) {
+		if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 			send_ldap_result( op, rs );
 			return -1;
 		}
 	}
 
-	rc = ldap_passwd(lc->ld, id.bv_len ? &mdn : NULL, old.bv_len ? &old : NULL,
-		new.bv_len ? &new : NULL, op->o_ctrls, NULL, &msgid);
+	rc = ldap_passwd(lc->ld, isproxy ? &mdn : NULL,
+		qpw->rs_old.bv_len ? &qpw->rs_old : NULL,
+		qpw->rs_new.bv_len ? &qpw->rs_new : NULL, op->o_ctrls, NULL, &msgid);
 
-	if (mdn.bv_val != dn.bv_val) {
+	if (mdn.bv_val != op->o_req_dn.bv_val) {
 		free(mdn.bv_val);
 	}
 

@@ -1605,6 +1605,14 @@ typedef struct req_extended_s {
 	struct berval *rs_reqdata;
 } req_extended_s;
 
+typedef struct req_pwdexop_s {
+	struct berval rs_reqoid;
+	struct berval rs_old;
+	struct berval rs_new;
+	Modifications *rs_mods;
+	Modifications **rs_modtail;
+} req_pwdexop_s;
+
 typedef enum slap_reply_e {
 	REP_RESULT,
 	REP_SASL,
@@ -1932,6 +1940,7 @@ typedef struct slap_op {
 		req_abandon_s oq_abandon;
 		req_abandon_s oq_cancel;
 		req_extended_s oq_extended;
+		req_pwdexop_s oq_pwdexop;
 	} o_request;
 
 /* short hands for union members */
@@ -1944,6 +1953,7 @@ typedef struct slap_op {
 #define oq_abandon o_request.oq_abandon
 #define oq_cancel o_request.oq_cancel
 #define oq_extended o_request.oq_extended
+#define oq_pwdexop o_request.oq_pwdexop
 
 /* short hands for inner request members */
 #define orb_method oq_bind.rb_method
