@@ -82,7 +82,6 @@ LDAP_BEGIN_DECL
 
 /* LBER BerElement options */
 #define LBER_USE_DER		0x01
-#define LBER_USE_INDEFINITE_LEN	0x02
 
 /* get/set options for BerElement */
 #define LBER_OPT_BER_OPTIONS			0x01
