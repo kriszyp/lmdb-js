@@ -62,9 +62,6 @@ BackendInfo		*backendInfo = NULL;
 int			nBackendDB = 0; 
 BackendDB		*backendDB = NULL;
 
-ldap_pvt_thread_pool_t	syncrepl_pool;
-int			syncrepl_pool_max = SLAP_MAX_SYNCREPL_THREADS;
-
 static int
 backend_init_controls( BackendInfo *bi )
 {
@@ -94,8 +91,6 @@ backend_init_controls( BackendInfo *bi )
 int backend_init(void)
 {
 	int rc = -1;
-
-	ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
@@ -442,8 +437,6 @@ int backend_destroy(void)
 	int i;
 	BackendDB *bd;
 	struct slap_csn_entry *csne;
-
-	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
 
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
