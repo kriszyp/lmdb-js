@@ -1,0 +1,563 @@
+
+
+
+
+
+
+Network Working Group                                         S. Kille
+Request for Comments: 2164                                  Isode Ltd.
+Obsoletes: 1838                                           January 1998
+Category: Standards Track
+
+
+
+    Use of an X.500/LDAP directory to support MIXER address mapping
+
+Status of this Memo
+
+   This document specifies an Internet standards track protocol for the
+   Internet community, and requests discussion and suggestions for
+   improvements.  Please refer to the current edition of the "Internet
+   Official Protocol Standards" (STD 1) for the standardization state
+   and status of this protocol.  Distribution of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (1998).  All Rights Reserved.
+
+1  MIXER X.400/RFC 822 Mappings
+
+   MIXER (RFC 2156) defines an algorithm for use of a set of global
+   mapping between X.400 and RFC 822 addresses [4].  This specification
+   defines how to represent and maintain these mappings (MIXER
+   Conformant Global Address Mappings of MCGAMs) in an X.500 or LDAP
+   directory.  Mechanisms for representing OR Address and Domain
+   hierarchies within the DIT are defined in [5, 2].  These techniques
+   are used to define two independent subtrees in the DIT, which contain
+   the mapping information.  The benefits of this approach are:
+
+   1.  The mapping information is kept in a clearly defined area which
+       can be widely replicated in an efficient manner.  The tree is
+       constrained to hold only information needed to support the
+       mapping.  This is important as gateways need good access to the
+       entire mapping.
+
+   2.  It facilitates migration from a table-based approach.
+
+   3.  It handles the issues of "missing components" in a natural
+       manner.
+
+          An alternative approach which is not taken is to locate the
+          information in the routing subtrees.  The benefits of this
+          would be:
+
+
+
+
+
+Kille                       Standards Track                     [Page 1]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+        o  It is the "natural" location, and will also help to
+           ensure correct administrative authority for a mapping
+           definition.
+
+        o  The tree will usually be accessed for routing, and so it
+           will be efficient for addresses which are being routed.
+
+          This is not done, as the benefits of the approach proposed are
+          greater.
+
+   MCGAMs are global.  A MIXER gateway may use any set of MCGAMs.  A key
+   use of the directory is to enable MIXER gateways to share MCGAMs and
+   to share the effort of maintaining and publishing MCGAMs.  This
+   specification and MIXER also recognise that there is not a single
+   unique location for publication of all MCGAMs.  This specification
+   allows for multiple sets of MCGAMs to be published.  Each set of
+   MCGAMs is published under a single part of the directory.  There are
+   four mappings, which are represented by two subtrees located under
+   any part of the DIT. For the examples the location defined below is
+   used:
+
+
+   OU=MIXER MCGAMs, O=Zydeco Plc,  C=GB
+
+   These subtree roots are of object class subtree, and use the
+   mechanism for representing subtrees defined in [1].
+
+
+   X.400 to RFC 822 This table gives the equivalence mapping from X.400
+       to RFC 822.  There is an OR Address tree under this.  An example
+       entry is:
+
+       PRMD=Isode, ADMD=Mailnet, C=FI, CN=X.400 to RFC 822,
+       OU=MIXER MCGAMs, O=Zydeco Plc,  C=GB
+
+   RFC 822 to X.400 There is a domain tree under this.  This table holds
+       the equivalence mapping from RFC 822 to X.400, and the gateway
+       mapping defined in RFC 1327.  An example entry is:
+
+       DomainComponent=ISODE, DomainComponent=COM,
+       CN=RFC 822 to X.400,
+       OU=MIXER MCGAMs, O=Zydeco Plc,  C=GB
+
+   The values of the table mapping are defined by use of two new object
+   classes, as specified in Figure 1.  The objects give pointers to the
+   mapped components.
+
+
+
+
+
+Kille                       Standards Track                     [Page 2]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+2  Omitted Components
+
+   In MIXER, it is possible to have omitted components in OR Addresses
+   on either side of the mapping.  A mechanism to represent such omitted
+   components is defined in Figure 2.  The attribute at-or-address-
+   component-type is set to the X.500 attribute type associated with the
+   omitted component (e.g.,
+
+
+rFC822ToX400Mapping OBJECT-CLASS ::= {
+    SUBCLASS OF {domain-component}
+    MAY CONTAIN {
+        associatedORAddress|
+        associatedX400Gateway}
+    ID oc-rfc822-to-x400-mapping}
+
+x400ToRFC822Mapping OBJECT-CLASS ::= {
+    SUBCLASS OF {top}
+    MAY CONTAIN {                                                   10
+        associatedDomain|
+        associatedInternetGateway}
+    ID oc-x400-to-rfc822-mapping}
+
+associatedORAddress ATTRIBUTE ::= {
+    SUBTYPE OF distinguishedName
+    SINGLE VALUE
+    ID at-associated-or-address}
+
+                                                                    20
+associatedX400Gateway ATTRIBUTE ::= {
+    SUBTYPE OF mhs-or-addresses
+    MULTI VALUE
+    ID at-associated-x400-gateway}
+
+associatedDomain ATTRIBUTE ::= {
+    SUBTYPE OF name
+    WITH SYNTAX caseIgnoreIA5String
+    SINGLE VALUE
+    ID at-associated-domain}                                        30
+
+associatedInternetGateway ATTRIBUTE ::= {
+    SUBTYPE OF name
+    WITH SYNTAX caseIgnoreIA5String
+    MULTI VALUE
+    ID at-associated-internet-gateway}
+
+
+              Figure 1:  Object Classes for MIXER mappings
+
+
+
+Kille                       Standards Track                     [Page 3]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+omittedORAddressComponent OBJECT-CLASS ::=
+        SUBCLASS OF {top}
+        MUST Contain {
+                oRAddressComponentType
+        }
+        ID oc-omitted-or-address-component}
+
+
+oRAddressComponentType ATTRIBUTE ::= {
+        SUBTYPE OF  objectIdentifier                                10
+        SINGLE VALUE
+        ID at-or-address-component-type}
+
+                Figure 2:  Omitted OR Address Component
+
+
+   at-prmd-name).  This mechanism is for use only within the X.400 to
+   RFC 822 subtree and for the at-associated-or-address attribute.
+
+3  Mapping from X.400 to RFC 822
+
+   As an example, consider the mapping from the OR Address:
+
+
+   P=Isode; A=Mailnet; C=FI
+
+   This would be keyed by the directory entry:
+
+   PRMD=Isode, ADMD=Mailnet, C=FI, CN=X.400 to RFC 822,
+   OU=MIXER MCGAMs, O=Zydeco Plc,  C=GB
+
+   and return the mapping from the associatedDomain attribute, which
+   gives the domain which this OR address maps to.  This attribute is
+   used to define authoritative mappings, which are placed in the open
+   community tree.  The manager of an MCGAM shall make the appropriate
+   entry.
+
+   The Internet gateway mapping defined in MIXER[4] is provided by the
+   associatedInternetGateway attribute.  This value may identify
+   multiple possible associated gateways.  This information is looked up
+   at the same time as mapped OR addresses.  In effect, this provides a
+   fallback mapping, which is found if there is no equivalence mapping.
+   Because of the nature of the mapping an OR Address will map to either
+   a gateway or a domain, but not both.  Thus, there shall never be both
+
+
+
+
+
+
+
+Kille                       Standards Track                     [Page 4]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+   an associatedDomain and associatedInternetGateway attribute present
+   in the same entry.  Functionally, mapping takes place exactly
+   according to MIXER. The longest match is found by the following
+   algorithm.
+
+   1.  Take the OR Address, and derive a directory name.  This will be
+       the OR Address as far as the lowest OU.
+
+   2.  Look up the entire name derived from the MIXER key in the in the
+       X.400 to RFC 822 subtree.  This lookup will either succeed, or it
+       will fail and indicate the longest possible match, which can then
+       be looked up.
+
+   3.  Check for an associatedDomain or associatedInternetGateway
+       attribute in the matched entry.
+
+   The mapping can always be achieved with two lookups.  Because of the
+   availability of aliases, some of the table mappings may be
+   simplified.  In addition, the directory can support mapping from
+   addresses using the numeric country codes.
+
+4  Mapping from RFC 822 to X.400
+
+   There is an analogous structure for mappings in the reverse
+   direction.  The domain hierarchy is represented in the DIT according
+   to RFC 1279.  The domain:
+
+   ISODE.COM
+
+   Is represented in the DIT as:
+
+   DomainComponent=ISODE, DomainComponent=COM,  CN=RFC 822 to X.400,
+   OU=MIXER MCGAMs, O=Zydeco Plc,  C=GB
+
+   This has associated with it the attribute associatedORAddress encoded
+   as a distinguished name with a value: PRMD=Isode, ADMD=Mailnet, C=FI
+
+   The X.400 gateway mapping defined in MIXER[4] is provided by the
+   associatedX400Gateway attribute.  This value may identify multiple
+   possible associated gateways.  This information is looked up at the
+   same time as mapped OR addresses.  In effect, this provides a
+   fallback mapping, which is found if there is no equivalence mapping.
+   Because of the nature of the mapping a domain will map to either a
+   gateway or a domain, but not both.  Thus, there shall never be both
+   an associatedX400Gateway and associatedORAddress attribute present in
+   the same entry.  Functionally, mapping takes place exactly according
+   to MIXER. The longest match is found by the following algorithm.
+
+
+
+
+Kille                       Standards Track                     [Page 5]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+   1.  Derive a directory name from the domain part of the RFC 822
+       address.
+
+   2.  Look up this name in the RFC 822 to X.400 subtree to find the
+       mapped value (either associatedORAddress or
+       associatedX400Gateway.).  If the lookup fails, the error will
+       indicate the longest match, which can then be looked up.
+
+   If associatedORAddress is found, this will define the mapped OR
+   Address.  The mapping can always be achieved with two lookups.  If an
+   associatedX400Gateway is present, the address in question will be
+   encoded as a domain defined attribute, relative to the OR Address
+   defined by this attribute.  If multiple associatedX400Gateway
+   attributes are found, the MTA may select the one it chooses to use.
+
+   Because of the availability of aliases, some of the table mappings
+   may be simplified.  In addition, the directory can support mapping
+   from addresses using the numeric country codes.
+
+5  Gateway Selection of MCGAMs
+
+   The directory information to support identification of MCGAMs is
+   given in Figure 3.  A MIXER gateway simply identifies the an ordered
+   lists of MCGAM collections that it will use for lookup.  These are
+   referenced by name.  A gateway is not required to use any MCGAMs.
+   Where MCGAMs are accessed from multiple sources, it is recommended
+   that all of the sources be accessed in order to determine the MCGAM
+   which gives the
+
+
+mixerGateway OBJECT-CLASS ::=
+        KIND auxiliary
+        SUBCLASS OF {mhs-message-transfer-agent}
+        MUST Contain {
+                mcgamTables
+        }
+        ID oc-mixer-gateway}
+
+
+mcgamTables ATTRIBUTE ::= {                                         10
+        WITH SYNTAX SEQUENCE OF DistinguishedName
+        SINGLE VALUE
+        ID at-mcgam-tables}
+
+             Figure 3:  Object Classes for MCGAM selection
+
+
+best match.
+
+
+
+Kille                       Standards Track                     [Page 6]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+6  Acknowledgements
+
+   Acknowledgements for work on this document are given in [3].
+
+References
+
+   [1] Kille, S., "Representing tables and subtrees in the X.500
+       directory", RFC 1837, August 1995.
+
+   [2] Kille, S., "Representing the O/R Address hierarchy in the X.500
+       directory information tree," RFC 1836, August 1995.
+
+   [3] Kille, S., " X.400-MHS use of the X.500 directory to support
+       X.400-MHS routing," RFC 1801, June 1995.
+
+   [4] Kille, S., "MIXER (Mime Internet X.400 Enhanced Relay):
+       Mapping between X.400 and RFC 822/MIME," RFC 2156, January 1998.
+
+   [5] Kille, S., Wahl, M., Grimsatd, A., Huber, R., and S. Sataluri,
+       "Using Domains in LDAP/X.500 Distinguished Names", RFC 2247,
+       January 1998.
+
+7  Security Considerations
+
+   This document specifies a means by which the X.500/LDAP directory
+   service can direct the translation between X.400 and Internet mail
+   addresses.  This can indirectly affect the routing of messages across
+   a gateway between X.400 and Internet Mail.  A succesful attack on
+   this service could cause incorrect translation of an originator
+   address (thus "forging" the originator address), or incorrect
+   translation of a recipient address (thus directing the mail to an
+   unauthorized recipient, or making it appear to an authorized
+   recipient, that the message was intended for recipients other than
+   those chosen by the originator).  When cryptographic authentication
+   is available for directory responses, clients shall employ those
+   mechanisms to verify the authenticity and integrity of those
+   responses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kille                       Standards Track                     [Page 7]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+8  Author's Address
+
+   Steve Kille
+   Isode Ltd.
+   The Dome
+   The Square
+   Richmond
+   TW9 1DT
+   England
+
+   Phone:  +44-181-332-9091
+   Internet EMail:  S.Kille@ISODE.COM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kille                       Standards Track                     [Page 8]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+A  Object Identifier Assignment
+
+
+mhs-ds OBJECT IDENTIFIER ::= {iso(1) org(3) dod(6) internet(1) private(4)
+          enterprises(1) isode-consortium (453) mhs-ds (7)}
+
+mapping OBJECT IDENTIFIER ::= {mhs-ds 4}
+
+oc OBJECT IDENTIFIER ::= {mapping 1}
+at OBJECT IDENTIFIER ::= {mapping 2}
+
+
+oc-rfc822-to-x400-mapping OBJECT IDENTIFIER ::= {oc 1}              10
+oc-x400-to-rfc822-mapping OBJECT IDENTIFIER ::= {oc 2}
+oc-omitted-or-address-component OBJECT IDENTIFIER ::= {oc 3}
+oc-mixer-gateway ::= {oc 4}
+
+at-associated-or-address OBJECT IDENTIFIER ::= {at 6}
+at-associated-x400-gateway OBJECT IDENTIFIER ::= {at 3}
+at-associated-domain OBJECT IDENTIFIER ::= {at 4}
+at-or-address-component-type OBJECT IDENTIFIER ::= {at 7}
+at-associated-internet-gateway OBJECT IDENTIFIER ::= {at 8}
+at-mcgam-tables ::= {at 9}                                          20
+
+
+                Figure 4:  Object Identifier Assignment
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kille                       Standards Track                     [Page 9]
+
+RFC 2164         X.500/LDAP Directory to Support MIXER      January 1998
+
+
+Full Copyright Statement
+
+   Copyright (C) The Internet Society (1998).  All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kille                       Standards Track                    [Page 10]
+

@@ -1,0 +1,14 @@
+The following FreeBSD ports and packages may be useful:
+	databases/db		Berkeley DB2
+	databases/gdbm		GNU Database Manager
+	devel/autoconf		GNU Autoconf
+	devel/gdb		GNU Debugger
+	lang/egcs		EGCS enhanced GNU C Suite
+	security/tcp_wrappers	TCP Wrappers
+
+FreeBSD 3.0
+	no special options
+
+FreeBSD 2.2.5 (and prior?)
+	requires --without-preemptive
+
