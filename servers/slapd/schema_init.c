@@ -16,6 +16,8 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
+#define UTF8MATCH 1
+
 #ifdef USE_MD5
 #include "lutil_md5.h"
 /* We should replace MD5 with a faster hash */
@@ -487,7 +489,7 @@ booleanMatch(
 	return LDAP_SUCCESS;
 }
 
-#if 0
+#if UTF8MATCH
 static int
 UTF8casecmp(
 	struct berval *right,
