@@ -187,6 +187,8 @@ extern int slapi_filter_get_attribute_type( Slapi_Filter *f, char **type );
 extern int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 	char ***any, char **final );
 extern Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
+extern int slapi_x_filter_append( int choice, Slapi_Filter **pContainingFilter,
+	Slapi_Filter **pNextFilter, Slapi_Filter *filterToAppend );
 extern int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access );
 extern int slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_code );

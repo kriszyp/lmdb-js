@@ -1520,6 +1520,7 @@ slapi_filter_dup( Slapi_Filter *filter )
 		int i;
 
 		f->f_sub = (SubstringsAssertion *)slapi_ch_malloc( sizeof(SubstringsAssertion) );
+		f->f_sub->sa_desc = filter->f_sub->sa_desc;
 		ber_dupbv( &f->f_sub_initial, &filter->f_sub_initial );
 		if ( filter->f_sub_any != NULL ) {
 			for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ )
@@ -1619,7 +1620,7 @@ slapi_filter_list_first( Slapi_Filter *f )
 	if ( ftype == LDAP_FILTER_AND
 			|| ftype == LDAP_FILTER_OR
 			|| ftype == LDAP_FILTER_NOT ) {
-		return (Slapi_Filter *)f->f_and;
+		return (Slapi_Filter *)f->f_list;
 	} else {
 		return NULL;
 	}
@@ -1725,7 +1726,7 @@ slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 }
 
 Slapi_Filter *
-slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2)
+slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2 )
 {
 #ifdef LDAP_SLAPI
 	Slapi_Filter *f = NULL;
@@ -1737,13 +1738,45 @@ slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2)
 		f = (Slapi_Filter *)slapi_ch_malloc( sizeof(*f) );
 		f->f_choice = ftype;
 		f->f_list = f1;
-		f->f_next = f2;
+		f->f_list->f_next = f2;
+		f->f_next = NULL;
 	}
 
 	return f;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */
+}
+
+int
+slapi_x_filter_append( int ftype,
+	Slapi_Filter **pContainingFilter, /* NULL on first call */
+	Slapi_Filter **pNextFilter,
+	Slapi_Filter *filterToAppend )
+{
+#ifdef LDAP_SLAPI
+	if ( ftype == LDAP_FILTER_AND ||
+	     ftype == LDAP_FILTER_OR ||
+	     ftype == LDAP_FILTER_NOT )
+	{
+		if ( *pContainingFilter == NULL ) {
+			*pContainingFilter = (Slapi_Filter *)slapi_ch_malloc( sizeof(Slapi_Filter) );
+			(*pContainingFilter)->f_choice = ftype;
+			(*pContainingFilter)->f_list = filterToAppend;
+			(*pContainingFilter)->f_next = NULL;
+		} else {
+			if ( (*pContainingFilter)->f_choice != ftype ) {
+				/* Sanity check */
+				return -1;
+			}
+			(*pNextFilter)->f_next = filterToAppend;
+		}
+		*pNextFilter = filterToAppend;
+
+		return 0;
+	}
+#endif /* LDAP_SLAPI */
+	return -1;
 }
 
 int
