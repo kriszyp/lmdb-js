@@ -24,14 +24,13 @@ define([AC_INIT_BINSH],
 
 echo "Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved."
 echo "Copying restrictions apply, see COPYRIGHT file."
-
 ])dnl
 dnl ----------------------------------------------------------------
-
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
-
+dnl
+dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
 AC_CONFIG_AUX_DIR(build)dnl
