@@ -849,9 +849,8 @@ E: 27.		by dn="cn=Admin,dc=example,dc=com" write
 E: 28.		by * none
 E: 29.	access to *
 E: 30.		by self write
-E: 31.		by anonymous auth
-E: 32.		by dn="cn=Admin,dc=example,dc=com" write
-E: 33.		by * read
+E: 31.		by dn="cn=Admin,dc=example,dc=com" write
+E: 32.		by * read
 
 Line 5 is a comment. The start of the database definition is
 marked by the database keyword on line 6. Line 7 specifies
@@ -875,14 +874,12 @@ information on these directives.
 Lines 20 through 22 indicate the indexes to maintain for
 various attributes.
 
-Lines 24 through 33 specify access control for entries in the
-database. For all entries, the {{EX:userPassword}} attribute 
-is writable by the entry itself and by the "admin" entry.  It 
-may be used for authentication/authorization purposes, but is 
-otherwise not readable.  All other attributes are writable by 
-the entry and the "admin" entry, may be used for 
-authentication/authorization purposes, but may be read by 
-authenticated users.
+Lines 24 through 32 specify access control for entries in the
+database. For all entries, the {{EX:userPassword}} attribute is
+writable by the entry itself and by the "admin" entry.  It may be
+used for authentication/authorization purposes, but is otherwise
+not readable.  All other attributes are writable by the entry and
+the "admin" entry, but may be read by authenticated users.
 
 The next section of the example configuration file defines
 another LDBM database. This one handles queries involving
