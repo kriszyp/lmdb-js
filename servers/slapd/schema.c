@@ -138,114 +138,6 @@ oc_check_required( Entry *e, char *ocname )
 	return( NULL );
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
-	/* these shouldn't be hardcoded */
-
-static char *oc_op_usermod_attrs[] = {
-	/*
-	 * these are operational attributes which are
-	 * not defined as NO-USER_MODIFICATION and
-	 * which slapd supports modification of.
-	 *
-	 * Currently none.
-	 * Likely candidate, "aci"
-	 */
-	NULL
-};
-
-static char *oc_op_attrs[] = {
-	/*
-	 * these are operational attributes 
-	 * most could be user modifiable
-	 */
-	"objectClasses",
-	"attributeTypes",
-	"matchingRules",
-	"matchingRuleUse",
-	"dITStructureRules",
-	"dITContentRules",
-	"nameForms",
-	"ldapSyntaxes",
-	"namingContexts",
-	"supportedExtension",
-	"supportedControl",
-	"supportedSASLMechanisms",
-	"supportedLDAPversion",
-	"supportedACIMechanisms",
-	"subschemaSubentry",		/* NO USER MOD */
-	NULL
-
-};
-
-/* this list should be extensible  */
-static char *oc_op_no_usermod_attrs[] = {
-	/*
-	 * Operational and 'no user modification' attributes
-	 * which are STORED in the directory server.
-	 */
-
-	/* RFC2252, 3.2.1 */
-	"creatorsName",
-	"createTimestamp",
-	"modifiersName",
-	"modifyTimestamp",
-
-	NULL
-};
-#endif
-
-
-/*
- * check to see if attribute is 'operational' or not.
- */
-int
-oc_check_op_attr( const char *type )
-{
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	return charray_inlist( oc_op_attrs, type )
-		|| charray_inlist( oc_op_usermod_attrs, type )
-		|| charray_inlist( oc_op_no_usermod_attrs, type );
-#else
-	AttributeType *at = at_find( type );
-
-	if( at == NULL ) return 0;
-
-	return at->sat_usage != LDAP_SCHEMA_USER_APPLICATIONS;
-#endif
-}
-
-/*
- * check to see if attribute can be user modified or not.
- */
-int
-oc_check_op_usermod_attr( const char *type )
-{
-#ifdef SLAPD_SCHEMA_COMPAT
-	return charray_inlist( oc_op_usermod_attrs, type );
-#else
-	/* not (yet) in schema */
-	return 0;
-#endif
-}
-
-/*
- * check to see if attribute is 'no user modification' or not.
- */
-int
-oc_check_op_no_usermod_attr( const char *type )
-{
-#ifdef SLAPD_SCHEMA_COMPAT
-	return charray_inlist( oc_op_no_usermod_attrs, type );
-#else
-	AttributeType *at = at_find( type );
-
-	if( at == NULL ) return 0;
-
-	return at->sat_no_user_mod;
-#endif
-}
-
-
 static int
 oc_check_allowed( char *type, struct berval **ocl )
 {
@@ -358,6 +250,115 @@ oc_check_allowed( char *type, struct berval **ocl )
 	/* not allowed by any oc */
 	return( 1 );
 }
+
+
+#ifdef SLAPD_SCHEMA_COMPAT
+	/* these shouldn't be hardcoded */
+
+static char *oc_op_usermod_attrs[] = {
+	/*
+	 * these are operational attributes which are
+	 * not defined as NO-USER_MODIFICATION and
+	 * which slapd supports modification of.
+	 *
+	 * Currently none.
+	 * Likely candidate, "aci"
+	 */
+	NULL
+};
+
+static char *oc_op_attrs[] = {
+	/*
+	 * these are operational attributes 
+	 * most could be user modifiable
+	 */
+	"objectClasses",
+	"attributeTypes",
+	"matchingRules",
+	"matchingRuleUse",
+	"dITStructureRules",
+	"dITContentRules",
+	"nameForms",
+	"ldapSyntaxes",
+	"namingContexts",
+	"supportedExtension",
+	"supportedControl",
+	"supportedSASLMechanisms",
+	"supportedLDAPversion",
+	"supportedACIMechanisms",
+	"subschemaSubentry",		/* NO USER MOD */
+	NULL
+
+};
+
+/* this list should be extensible  */
+static char *oc_op_no_usermod_attrs[] = {
+	/*
+	 * Operational and 'no user modification' attributes
+	 * which are STORED in the directory server.
+	 */
+
+	/* RFC2252, 3.2.1 */
+	"creatorsName",
+	"createTimestamp",
+	"modifiersName",
+	"modifyTimestamp",
+
+	NULL
+};
+#endif
+
+
+/*
+ * check to see if attribute is 'operational' or not.
+ */
+int
+oc_check_op_attr( const char *type )
+{
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+	return charray_inlist( oc_op_attrs, type )
+		|| charray_inlist( oc_op_usermod_attrs, type )
+		|| charray_inlist( oc_op_no_usermod_attrs, type );
+#else
+	AttributeType *at = at_find( type );
+
+	if( at == NULL ) return 0;
+
+	return at->sat_usage != LDAP_SCHEMA_USER_APPLICATIONS;
+#endif
+}
+
+/*
+ * check to see if attribute can be user modified or not.
+ */
+int
+oc_check_op_usermod_attr( const char *type )
+{
+#ifdef SLAPD_SCHEMA_COMPAT
+	return charray_inlist( oc_op_usermod_attrs, type );
+#else
+	/* not (yet) in schema */
+	return 0;
+#endif
+}
+
+/*
+ * check to see if attribute is 'no user modification' or not.
+ */
+int
+oc_check_op_no_usermod_attr( const char *type )
+{
+#ifdef SLAPD_SCHEMA_COMPAT
+	return charray_inlist( oc_op_no_usermod_attrs, type );
+#else
+	AttributeType *at = at_find( type );
+
+	if( at == NULL ) return 0;
+
+	return at->sat_no_user_mod;
+#endif
+}
+
 
 struct oindexrec {
 	char		*oir_name;
