@@ -326,7 +326,7 @@ void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *ur
 	Inserts[i] = (char *)malloc( 20 );
 	itoa( slap_debug, Inserts[i++], 10 );
 	Inserts[i++] = ldap_pvt_strdup( configfile );
-	Inserts[i++] = ldap_pvt_strdup( urls );
+	Inserts[i++] = ldap_pvt_strdup( urls ? urls : "ldap:///" );
 	Inserts[i++] = ldap_pvt_strdup( is_NT_Service ? "svc" : "cmd" );
 
 	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
