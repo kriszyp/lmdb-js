@@ -18,8 +18,6 @@
 #include "ldap_queue.h"
 #include "ldap_rq.h"
 
-#ifdef LDAP_SYNCREPL
-
 void
 ldap_pvt_runqueue_insert(
 	struct runqueue_s* rq,
@@ -184,4 +182,3 @@ ldap_pvt_runqueue_persistent_backload(
 	return count;
 }
 
-#endif

@@ -556,9 +556,8 @@ do_syncrepl(
 				}
 				break;
 
-			case LDAP_RES_INTERMEDIATE_RESP:
-				ldap_parse_intermediate_resp_result( ld, msg,
-						&retoid, &retdata, 0 );
+			case LDAP_RES_INTERMEDIATE:
+				ldap_parse_intermediate( ld, msg, &retoid, &retdata, NULL, 0 );
 				if ( !strcmp( retoid, LDAP_SYNC_INFO ) ) {
 					sync_info_arrived = 1;
 					res_ber = ber_init( retdata );

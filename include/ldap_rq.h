@@ -10,7 +10,12 @@
  * top-level directory of the distribution.
  */
 
-#ifdef LDAP_SYNCREPL
+#ifndef LDAP_RQ_H
+#define LDAP_RQ_H 1
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
 
 typedef struct re_s {
 	struct timeval next_sched;
@@ -75,5 +80,7 @@ LDAP_F( int )
 ldap_pvt_runqueue_persistent_backload(
 	struct runqueue_s* rq
 );
+
+LDAP_END_DECL
 
 #endif

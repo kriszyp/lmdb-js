@@ -283,7 +283,7 @@ ldap_parse_extended_result (
 
 /* Parse an extended partial */
 int
-ldap_parse_extended_partial (
+ldap_parse_intermediate (
 	LDAP			*ld,
 	LDAPMessage		*res,
 	char			**retoidp,
@@ -303,9 +303,9 @@ ldap_parse_extended_partial (
 	assert( res != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "ldap_parse_extended_partial\n", 0,0,0 );
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_parse_intermediate\n", 0,0,0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_partial\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_parse_intermediate\n", 0, 0, 0 );
 #endif
 
 	if( ld->ld_version < LDAP_VERSION3 ) {
@@ -313,7 +313,7 @@ ldap_parse_extended_partial (
 		return ld->ld_errno;
 	}
 
-	if( res->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL ) {
+	if( res->lm_msgtype != LDAP_RES_INTERMEDIATE ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
 	}
@@ -396,7 +396,7 @@ free_and_return:
 	return LDAP_SUCCESS;
 }
 
-#ifdef LDAP_RES_INTERMEDIATE_RESP
+#if 0
 /* Parse an intermediate response result */
 int
 ldap_parse_intermediate_resp_result (

@@ -265,7 +265,7 @@ ldap_parse_result(
 		/* skip over entries and references */
 		if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
 			lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
-			lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
+			lm->lm_msgtype != LDAP_RES_INTERMEDIATE )
 		{
 			break;
 		}
@@ -378,7 +378,7 @@ ldap_parse_result(
 			/* skip over entries and references */
 			if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
 				lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
-				lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
+				lm->lm_msgtype != LDAP_RES_INTERMEDIATE )
 			{
 				/* more results to return */
 				errcode = LDAP_MORE_RESULTS_TO_RETURN;

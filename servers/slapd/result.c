@@ -551,9 +551,9 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 	send_ldap_response( op, rs );
 }
 
-#ifdef LDAP_RES_INTERMEDIATE_RESP
+#ifdef LDAP_RES_INTERMEDIATE
 void
-slap_send_ldap_intermediate_resp( Operation *op, SlapReply *rs )
+slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 {
 	rs->sr_type = REP_EXTENDED;
 #ifdef NEW_LOGGING
@@ -568,7 +568,7 @@ slap_send_ldap_intermediate_resp( Operation *op, SlapReply *rs )
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 #endif
-	rs->sr_tag = LDAP_RES_INTERMEDIATE_RESP;
+	rs->sr_tag = LDAP_RES_INTERMEDIATE;
 	rs->sr_msgid = op->o_msgid;
 	send_ldap_response( op, rs );
 }

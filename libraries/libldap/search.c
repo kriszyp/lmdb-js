@@ -140,7 +140,7 @@ ldap_search_ext_s(
 		return( ld->ld_errno );
 	}
 
-	if( rc == LDAP_RES_SEARCH_REFERENCE || rc == LDAP_RES_EXTENDED_PARTIAL ) {
+	if( rc == LDAP_RES_SEARCH_REFERENCE || rc == LDAP_RES_INTERMEDIATE ) {
 		return( ld->ld_errno );
 	}
 

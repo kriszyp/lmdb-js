@@ -330,8 +330,7 @@ typedef struct ldapcontrol {
 #define LDAP_RES_RENAME		LDAP_RES_MODDN	/* application + constructed */
 #define LDAP_RES_COMPARE	((ber_tag_t) 0x6fU)	/* application + constructed */
 #define LDAP_RES_EXTENDED	((ber_tag_t) 0x78U)	/* V3: application + constructed */
-#define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
-#define LDAP_RES_INTERMEDIATE_RESP	((ber_tag_t) 0x7aU)
+#define LDAP_RES_INTERMEDIATE	((ber_tag_t) 0x79U) /* V3+: application + constructed */
 
 #define LDAP_RES_ANY			(-1)
 #define LDAP_RES_UNSOLICITED	(0)
@@ -692,21 +691,13 @@ ldap_parse_extended_result LDAP_P((
 	int				freeit ));
 
 LDAP_F( int )
-ldap_parse_extended_partial LDAP_P((
+ldap_parse_intermediate LDAP_P((
 	LDAP			*ld,
 	LDAPMessage		*res,
 	char			**retoidp,
 	struct berval	**retdatap,
 	LDAPControl		***serverctrls,
 	int				freeit ));
-
-LDAP_F( int )
-ldap_parse_intermediate_resp_result LDAP_P((
-	LDAP                    *ld,
-	LDAPMessage             *res,
-	char                    **retoidp,
-	struct berval   **retdatap,
-	int                             freeit ));
 
 /*
  * in abandon.c:

@@ -32,6 +32,7 @@
 #include <ldap.h>
 #include <ldap_schema.h>
 
+#include "lber_pvt.h"
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
@@ -1997,7 +1998,7 @@ typedef int (SEND_SEARCH_REFERENCE)(
 	struct slap_op *op, struct slap_rep *rs);
 typedef void (SEND_LDAP_EXTENDED)(
 	struct slap_op *op, struct slap_rep *rs);
-typedef void (SEND_LDAP_INTERMEDIATE_RESP)(
+typedef void (SEND_LDAP_INTERMEDIATE)(
 	struct slap_op *op, struct slap_rep *rs);
 
 #define send_ldap_result( op, rs ) \
@@ -2008,8 +2009,8 @@ typedef void (SEND_LDAP_INTERMEDIATE_RESP)(
 	(op->o_conn->c_send_search_reference)( op, rs )
 #define send_ldap_extended( op, rs ) \
 	(op->o_conn->c_send_ldap_extended)( op, rs )
-#define send_ldap_intermediate_resp( op, rs ) \
-	(op->o_conn->c_send_ldap_intermediate_resp)( op, rs )
+#define send_ldap_intermediate( op, rs ) \
+	(op->o_conn->c_send_ldap_intermediate)( op, rs )
 
 /*
  * Caches the result of a backend_group check for ACL evaluation
@@ -2105,8 +2106,8 @@ typedef struct slap_conn {
 	SEND_SEARCH_ENTRY *c_send_search_entry;
 	SEND_SEARCH_REFERENCE *c_send_search_reference;
 	SEND_LDAP_EXTENDED *c_send_ldap_extended;
-#ifdef LDAP_RES_INTERMEDIATE_RESP
-	SEND_LDAP_INTERMEDIATE_RESP *c_send_ldap_intermediate_resp;
+#ifdef LDAP_RES_INTERMEDIATE
+	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
 #endif
 
 } Connection;

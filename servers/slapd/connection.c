@@ -410,8 +410,8 @@ long connection_init(
 		c->c_send_search_entry = slap_send_search_entry;
 		c->c_send_search_reference = slap_send_search_reference;
 		c->c_send_ldap_extended = slap_send_ldap_extended;
-#ifdef LDAP_RES_INTERMEDIATE_RESP
-		c->c_send_ldap_intermediate_resp = slap_send_ldap_intermediate_resp;
+#ifdef LDAP_RES_INTERMEDIATE
+		c->c_send_ldap_intermediate = slap_send_ldap_intermediate;
 #endif
 
 		c->c_authmech.bv_val = NULL;

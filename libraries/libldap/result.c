@@ -185,7 +185,7 @@ chkResponseList(
 			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
 				if ( tmp->lm_msgtype != LDAP_RES_SEARCH_ENTRY
 				    && tmp->lm_msgtype != LDAP_RES_SEARCH_REFERENCE
-					&& tmp->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
+					&& tmp->lm_msgtype != LDAP_RES_INTERMEDIATE )
 				{
 					break;
 				}
@@ -957,7 +957,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	for ( tmp = l; (tmp->lm_chain != NULL) &&
 	    	((tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
 	    	 (tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-			 (tmp->lm_chain->lm_msgtype == LDAP_RES_EXTENDED_PARTIAL ));
+			 (tmp->lm_chain->lm_msgtype == LDAP_RES_INTERMEDIATE ));
 	    tmp = tmp->lm_chain )
 		;	/* NULL */
 	tmp->lm_chain = new;
@@ -1109,7 +1109,7 @@ char * ldap_int_msgtype2str( ber_tag_t tag )
 	case LDAP_RES_COMPARE: return "compare";
 	case LDAP_RES_DELETE: return "delete";
 	case LDAP_RES_EXTENDED: return "extended-result";
-	case LDAP_RES_EXTENDED_PARTIAL: return "extended-partial";
+	case LDAP_RES_INTERMEDIATE: return "intermediate";
 	case LDAP_RES_MODIFY: return "modify";
 	case LDAP_RES_RENAME: return "rename";
 	case LDAP_RES_SEARCH_ENTRY: return "search-entry";
