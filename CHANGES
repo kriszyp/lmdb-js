@@ -14,6 +14,7 @@ OpenLDAP 2.2.21 Engineering
 		Fixed slappasswd man page quotes (ITS#3468)
 		Updated slapd-bdb(5) checkpoint description (ITS#3493)
 		Updated slapd.conf(5) syncrepl info (ITS#3293, #3476, #3478)
+		Updated slapd-bdb, slapd-ldbm(5) index notes (ITS#3330)
 
 OpenLDAP 2.2.20 Release
 	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
