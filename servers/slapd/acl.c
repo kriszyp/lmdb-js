@@ -1091,10 +1091,20 @@ acl_check_modlist(
 
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
-		case LDAP_MOD_ADD:
 			if ( mlist->sml_bvalues == NULL ) {
+				if ( ! access_allowed( be, conn, op, e,
+					mlist->sml_desc, NULL, ACL_WRITE ) )
+				{
+					return( 0 );
+				}
 				break;
 			}
+
+			/* fall thru */
+
+		case LDAP_MOD_ADD:
+			assert( mlist->sml_bvalues != NULL );
+
 			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
 				if ( ! access_allowed( be, conn, op, e,
 					mlist->sml_desc, bv, ACL_WRITE ) )
