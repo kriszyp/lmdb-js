@@ -253,9 +253,9 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_MODIFY			((ber_tag_t) 0x66U)	/* application + constructed */
 #define LDAP_REQ_ADD			((ber_tag_t) 0x68U)	/* application + constructed */
 #define LDAP_REQ_DELETE			((ber_tag_t) 0x4aU)	/* application + primitive   */
-#define LDAP_REQ_MODRDN			((ber_tag_t) 0x6cU)	/* application + constructed */
-#define LDAP_REQ_MODDN			LDAP_REQ_MODRDN	
-#define LDAP_REQ_RENAME			LDAP_REQ_MODRDN	
+#define LDAP_REQ_MODDN			((ber_tag_t) 0x6cU)	/* application + constructed */
+#define LDAP_REQ_MODRDN			LDAP_REQ_MODDN	
+#define LDAP_REQ_RENAME			LDAP_REQ_MODDN	
 #define LDAP_REQ_COMPARE		((ber_tag_t) 0x6eU)	/* application + constructed */
 #define LDAP_REQ_ABANDON		((ber_tag_t) 0x50U)	/* application + primitive   */
 #define LDAP_REQ_EXTENDED		((ber_tag_t) 0x77U)	/* application + constructed */
@@ -268,9 +268,9 @@ typedef struct ldapcontrol {
 #define LDAP_RES_MODIFY			((ber_tag_t) 0x67U)	/* application + constructed */
 #define LDAP_RES_ADD			((ber_tag_t) 0x69U)	/* application + constructed */
 #define LDAP_RES_DELETE			((ber_tag_t) 0x6bU)	/* application + constructed */
-#define LDAP_RES_MODRDN			((ber_tag_t) 0x6dU)	/* application + constructed */
-#define LDAP_RES_MODDN			LDAP_RES_MODRDN	/* application + constructed */
-#define LDAP_RES_RENAME			LDAP_RES_MODRDN	/* application + constructed */
+#define LDAP_RES_MODDN			((ber_tag_t) 0x6dU)	/* application + constructed */
+#define LDAP_RES_MODRDN			LDAP_RES_MODDN	/* application + constructed */
+#define LDAP_RES_RENAME			LDAP_RES_MODDN	/* application + constructed */
 #define LDAP_RES_COMPARE		((ber_tag_t) 0x6fU)	/* application + constructed */
 #define LDAP_RES_EXTENDED		((ber_tag_t) 0x78U)	/* V3: application + constructed */
 #define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
@@ -280,7 +280,8 @@ typedef struct ldapcontrol {
 
 
 /* sasl methods */
-#define LDAP_SASL_SIMPLE			NULL
+#define LDAP_SASL_SIMPLE		((char*)0)
+
 
 /* authentication methods available */
 #define LDAP_AUTH_NONE		((ber_tag_t) 0x00U)	/* no authentication		  */
