@@ -145,6 +145,30 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 }
 
 int
+ldap_get_values_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber, BerVarray *bv )
+{
+	int		rc = LDAP_SUCCESS;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( ber != NULL );
+	assert( bv != NULL );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_values_ber\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_values_ber\n", 0, 0, 0 );
+#endif
+
+	/* get the array of vals */
+	if ( ber_scanf( ber, "W}" /* }}} */, bv ) == LBER_ERROR ) {
+		rc = ld->ld_errno = LDAP_DECODING_ERROR;
+	}
+
+	return( rc );
+}
+int
 ldap_count_values( char **vals )
 {
 	int	i;

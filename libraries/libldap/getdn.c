@@ -103,6 +103,57 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	return( dn );
 }
 
+int
+ldap_get_dn_ber( LDAP *ld, LDAPMessage *entry, BerElement **berout,
+	BerValue *dn )
+{
+	BerElement	tmp, *ber;
+	ber_len_t	len = 0;
+	int rc = LDAP_SUCCESS;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_dn_ber\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_dn_ber\n", 0, 0, 0 );
+#endif
+
+	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
+	assert( entry != NULL );
+	assert( dn != NULL );
+
+	dn->bv_val = NULL;
+	dn->bv_len = 0;
+
+	if ( berout ) {
+		*berout = NULL;
+		ber = ldap_alloc_ber_with_options( ld );
+		if( ber == NULL ) {
+			return LDAP_NO_MEMORY;
+		}
+		*berout = ber;
+	} else {
+		ber = &tmp;
+	}
+		
+	*ber = *entry->lm_ber;	/* struct copy */
+	if ( ber_scanf( ber, "{ml{" /*}*/, dn, &len ) == LBER_ERROR ) {
+		rc = ld->ld_errno = LDAP_DECODING_ERROR;
+	}
+	if ( rc == LDAP_SUCCESS ) {
+		/* set the length to avoid overrun */
+		rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
+		if( rc != LBER_OPT_SUCCESS ) {
+			rc = ld->ld_errno = LDAP_LOCAL_ERROR;
+		}
+	}
+	if ( rc != LDAP_SUCCESS && berout ) {
+		ber_free( ber, 0 );
+		*berout = NULL;
+	}
+	return rc;
+}
+
 /*
  * RFC 1823 ldap_dn2ufn
  */
@@ -3390,9 +3441,16 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 				goto get_oid;
 			newAVA->la_attr.bv_val = (char *)OBJ_nid2sn( n );
 			newAVA->la_attr.bv_len = strlen( newAVA->la_attr.bv_val );
+#ifdef HAVE_EBCDIC
+			newAVA->la_attr.bv_val = LDAP_STRDUP( newAVA->la_attr.bv_val );
+			__etoa( newAVA->la_attr.bv_val );
+#endif
 		} else {
 get_oid:		newAVA->la_attr.bv_val = oidptr;
 			newAVA->la_attr.bv_len = OBJ_obj2txt( oidptr, oidrem, obj, 1 );
+#ifdef HAVE_EBCDIC
+			__etoa( newAVA->la_attr.bv_val );
+#endif
 			oidptr += newAVA->la_attr.bv_len + 1;
 			oidrem -= newAVA->la_attr.bv_len + 1;
 
@@ -3468,6 +3526,9 @@ to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
 nomem:
 	for (;baseAVA < newAVA; baseAVA++) {
 		LDAP_FREE( baseAVA->la_value.bv_val );
+#ifdef HAVE_EBCDIC
+		if ( !func ) LDAP_FREE( baseAVA->la_attr.bv_val );
+#endif
 	}
 
 	if ( oidsize != 0 )

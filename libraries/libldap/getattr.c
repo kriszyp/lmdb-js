@@ -120,3 +120,37 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 
 	return attr;
 }
+
+/* ARGSUSED */
+int
+ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
+	BerValue *attr )
+{
+	ber_tag_t tag;
+	int rc = LDAP_SUCCESS;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_attribute_ber\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_attribute_ber\n", 0, 0, 0 );
+#endif
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( ber != NULL );
+	assert( attr != NULL );
+
+	attr->bv_val = NULL;
+	attr->bv_len = 0;
+
+	if ( ber_pvt_ber_remaining( ber ) ) {
+		/* skip sequence, snarf attribute type */
+		tag = ber_scanf( ber, "{m", attr ); 
+		if( tag == LBER_ERROR ) {
+			rc = ld->ld_errno = LDAP_DECODING_ERROR;
+		}
+	}
+
+	return rc;
+}
