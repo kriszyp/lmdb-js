@@ -17,9 +17,16 @@
 #include "../back-ldbm/back-ldbm.h"
 #include "ldif.h"
 
+
+#ifdef WIN32
+#define INDEXCMD		"ldif2index.exe"
+#define ID2ENTRYCMD		"ldif2id2entry.exe"
+#define ID2CHILDRENCMD		"ldif2id2children.exe"
+#else
 #define INDEXCMD		"ldif2index"
 #define ID2ENTRYCMD		"ldif2id2entry"
 #define ID2CHILDRENCMD		"ldif2id2children"
+#endif
 #define MAXARGS      		100
 
 static void fork_child( char *prog, char *args[] );
@@ -29,10 +36,6 @@ static char	*tailorfile;
 static char	*inputfile;
 static int      maxkids = 1;
 static int      nkids;
-
-#ifdef WIN32
-time_t starttime;
-#endif
 
 static void
 usage( char *name )
@@ -290,20 +293,23 @@ fork_child( char *prog, char *args[] )
 {
     PROCESS_INFORMATION proc_info;
     PROCESS_INFORMATION *pinfo = &proc_info;
+    STARTUPINFO  start_info;
 
-    int i = 0;
+    int i = 1;
     char cmdLine[2048];
+    memset( &start_info, 0, sizeof(STARTUPINFO) );
     memset( cmdLine, 0, sizeof(cmdLine) );
     strcpy( cmdLine, prog );
-    while ( args[i] != NULL );
+    while ( args[i] != NULL )
     {
         strcat( cmdLine, " " );
         strcat( cmdLine, args[i] );
+        i++;
     }
 
     if ( !CreateProcess( NULL, cmdLine, NULL, NULL,
                          TRUE, CREATE_NEW_CONSOLE,
-                         NULL, NULL, NULL, pinfo ) )
+                         NULL, NULL, &start_info, pinfo ) )
     {
         fprintf( stderr, "Could not create %s: ", prog );
         perror( "CreateProcess" );
