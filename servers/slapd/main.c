@@ -207,7 +207,7 @@ usage( char *name )
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
-		"\t-o <opt>[=val] Generic means to specify options" );
+		"\t-o <opt>[=val] generic means to specify options" );
 	if ( !BER_BVISNULL( &option_helpers[0].oh_name ) ) {
 		int	i;
 
