@@ -274,7 +274,7 @@ AC_DEFUN([OL_RESOLVER_TRY],
 	unsigned char host[64*1024];
 	unsigned char *p;
 
-#ifdef HS_HFIXEDSZ
+#ifdef NS_HFIXEDSZ
 	/* Bind 8/9 interface */
 	len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
 #else
@@ -285,7 +285,7 @@ AC_DEFUN([OL_RESOLVER_TRY],
 	len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
 #endif
 	p = reply;
-#ifdef HS_HFIXEDSZ
+#ifdef NS_HFIXEDSZ
 	/* Bind 8/9 interface */
 	p += NS_HFIXEDSZ;
 #elif defined(HFIXEDSZ)
