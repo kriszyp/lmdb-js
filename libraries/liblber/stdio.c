@@ -138,7 +138,7 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 			if (rem < 1) return -1;
 			if (rem < len) len = rem;
 		}
-		s2 = ber_pvt_strncopy( s2, ptr, len );
+		s2 = lutil_strncopy( s2, ptr, len );
 		/* Did we cheat the length above? If so, bail out */
 		if (len < pct-ptr) return -1;
 		for (pct++, f2 = fm2+1; isdigit(*pct);) *f2++ = *pct++;
@@ -173,12 +173,12 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 		rem = end-s2;
 		if (rem > 0) {
 			len = strlen(ptr);
-			s2 = ber_pvt_strncopy( s2, ptr, rem );
+			s2 = lutil_strncopy( s2, ptr, rem );
 			rem -= len;
 		}
 		if (rem < 0) return -1;
 	} else {
-		s2 = ber_pvt_strcopy( s2, ptr );
+		s2 = lutil_strcopy( s2, ptr );
 	}
 	return s2 - str;
 }
