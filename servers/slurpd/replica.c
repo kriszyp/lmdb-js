@@ -67,7 +67,7 @@ start_replica_thread(
     /* POSIX_THREADS or compatible
      * This is a draft 10 or standard pthreads implementation
      */
-    if ( pthread_create( &(ri->ri_tid), &attr, (void *) replicate,
+    if ( pthread_create( &(ri->ri_tid), &attr, replicate,
 	    (void *) ri ) != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );
@@ -78,7 +78,7 @@ start_replica_thread(
     /*
      * This is a draft 4 or earlier pthreads implementation
      */
-    if ( pthread_create( &(ri->ri_tid), attr, (void *) replicate,
+    if ( pthread_create( &(ri->ri_tid), attr, replicate,
 	    (void *) ri ) != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );

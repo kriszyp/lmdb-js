@@ -35,9 +35,9 @@
  * slurpd receives a USR2 signal, it will dump its replication 
  * queue to the disk file given by SLURPD_DUMPFILE.
  */
-void
+RETSIGTYPE
 do_admin()
 {
     sglob->rq->rq_dump( sglob->rq );
-    (void) SIGNAL( SIGUSR2, (void *) do_admin );
+    (void) SIGNAL( SIGUSR2, do_admin );
 }

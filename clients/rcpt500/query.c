@@ -322,7 +322,7 @@ do_read( ldp, dn, reply, tmpll )
 
 
     rc = ldap_entry2text_search( ldp, dn, searchbase, NULLMSG, tmpll,
-	    defattrs, defvals, (void *)append_text, (void *)reply, "\n",
+	    defattrs, defvals, append_text, (void *)reply, "\n",
 	    rdncount, LDAP_DISP_OPT_DOSEARCHACTIONS );
 
     return( rc );

@@ -474,7 +474,7 @@ get_idlist( fp, data )
 			p->b_nids = i;
 		}
 
-		qsort( (void *) p->b_ids, i, sizeof(ID), (void *) dnid_cmp );
+		qsort( (void *) p->b_ids, i, sizeof(ID), dnid_cmp );
 	}
 
 	data->dptr = (char *) p;

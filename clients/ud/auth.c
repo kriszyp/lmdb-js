@@ -40,6 +40,8 @@ static int kinit();
 static int valid_tgt();
 #endif
 
+static void set_bound_dn();
+
 auth(who, implicit)
 char *who;
 int implicit;
@@ -68,7 +70,6 @@ int implicit;
 	extern void printbase();	/* used to pretty-print a base */
 	extern int bind_status;
 	extern void Free();
-	static void set_bound_dn();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)

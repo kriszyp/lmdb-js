@@ -206,7 +206,7 @@ connection_activity(
 	 * This is a draft 10 or standard pthreads implementation
 	 */
 	if ( pthread_create( &arg->co_op->o_tid, &attr,
-	    (void *) connection_operation, (void *) arg ) != 0 ) {
+	    connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
@@ -218,7 +218,7 @@ connection_activity(
 	 * This is a draft 4 or earlier pthreads implementation
 	 */
 	if ( pthread_create( &arg->co_op->o_tid, attr,
-	    (void *) connection_operation, (void *) arg ) != 0 ) {
+	    connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );

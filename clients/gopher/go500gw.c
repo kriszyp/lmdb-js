@@ -13,13 +13,13 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-#include <signal.h>
 
-#include <ac/time.h>
+#include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
+#include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
@@ -198,7 +198,7 @@ char	**argv;
 		s = set_socket( port );
 
 		/* arrange to reap children */
-		(void) signal( SIGCHLD, (void *) wait4child );
+		(void) SIGNAL( SIGCHLD, wait4child );
 	}
 
 	if ( inetd ) {
@@ -339,7 +339,7 @@ wait4child()
 		;	/* NULL */
 #endif
 
-	(void) signal( SIGCHLD, (void *) wait4child );
+	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
 static do_queries( s )

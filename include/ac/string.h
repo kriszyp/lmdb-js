@@ -13,20 +13,22 @@
 	char *strchr (), *strrchr ();
 
 #	ifndef HAVE_MEMCPY
-#		define memcpy(d, s, n) bcopy ((s), (d), (n))
-#		define memmove(d, s, n) bcopy ((s), (d), (n))
+#		define memcpy(d, s, n)			bcopy ((s), (d), (n))
+#		define memmove(d, s, n)			bcopy ((s), (d), (n))
 #	endif
 #endif
 
-#if defined( HAVE_MEMMOVE )
-#define SAFEMEMCPY( d, s, n )		 	memmove((s), (d), (n))
-#elif defined( HAVE_BCOPY )
-#define SAFEMEMCPY( d, s, n ) 		bcopy((s), (d), (n))
-#elif defined( MACOS )
-#define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
-#else
-/* nothing left but memcpy() */
-#define SAFEMEMCPY( d, s, n )	memcpy((s), (d), (n))
+#ifndef SAFEMEMCPY
+#	if defined( HAVE_MEMMOVE )
+#		define SAFEMEMCPY( d, s, n ) 	memmove((d), (s), (n))
+#	elif defined( HAVE_BCOPY )
+#		define SAFEMEMCPY( d, s, n ) 	bcopy((s), (d), (n))
+#	elif defined( MACOS )
+#		define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
+#	else
+		/* nothing left but memcpy() */
+#		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))
+#	endif
 #endif
 
 #endif /* _AC_STRING_H */

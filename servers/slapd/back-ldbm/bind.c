@@ -63,7 +63,9 @@ crypted_value_find(
 				char *userpassword = vals[i]->bv_val + sizeof("{MD5}") - 1;
 
 				ldap_MD5Init(&MD5context);
-				ldap_MD5Update(&MD5context, cred->bv_val, strlen(cred->bv_val));
+				ldap_MD5Update(&MD5context,
+					(unsigned char *) cred->bv_val,
+					strlen(cred->bv_val));
 				ldap_MD5Final(MD5digest, &MD5context);
 
 				if (b64_ntop(MD5digest, sizeof(MD5digest),
@@ -86,7 +88,9 @@ crypted_value_find(
 				char *userpassword = vals[i]->bv_val + sizeof("{SHA}") - 1;
 
 				ldap_SHA1Init(&SHA1context);
-				ldap_SHA1Update(&SHA1context, cred->bv_val, strlen(cred->bv_val));
+				ldap_SHA1Update(&SHA1context,
+					(unsigned char *) cred->bv_val,
+					strlen(cred->bv_val));
 				ldap_SHA1Final(SHA1digest, &SHA1context);
 
 				if (b64_ntop(SHA1digest, sizeof(SHA1digest),

@@ -185,7 +185,7 @@ main( argc, argv )
 		/* POSIX_THREADS or compatible
 		 * This is a draft 10 or standard pthreads implementation
 		 */
-		if ( pthread_create( &listener_tid, &attr, (void *) slapd_daemon,
+		if ( pthread_create( &listener_tid, &attr, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
@@ -195,7 +195,7 @@ main( argc, argv )
 		/*
 		 * This is a draft 4 or earlier pthreads implementation
 		 */
-		if ( pthread_create( &listener_tid, attr, (void *) slapd_daemon,
+		if ( pthread_create( &listener_tid, attr, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );

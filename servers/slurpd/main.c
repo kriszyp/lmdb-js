@@ -128,7 +128,7 @@ main(
     /* POSIX_THREADS or compatible
      * This is a draft 10 or standard pthreads implementation
      */
-    if ( pthread_create( &(sglob->fm_tid), &attr, (void *) fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), &attr, fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );
@@ -139,7 +139,7 @@ main(
     /*
      * This is a draft 4 or earlier pthreads implementation
      */
-    if ( pthread_create( &(sglob->fm_tid), attr, (void *) fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), attr, fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );

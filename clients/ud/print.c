@@ -34,6 +34,9 @@ extern void * Malloc();
 extern void Free();
 extern char * my_ldap_dn2ufn();
 
+static char *time2text();
+static long		gtime();
+
 /*
  *  When displaying entries, display only these attributes, and in this
  *  order.
@@ -193,7 +196,6 @@ print_an_entry()
 	char is_a_group, **order;
 	char *sub_list[MAX_VALUES], buf[SMALL_BUF_SIZE];
 	extern int col_size, isaurl(), isadn();
-	static char *time2text();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -557,7 +559,6 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
-    static long		gtime();
 
     memset( (char *)&t, 0, sizeof( struct tm ));
     if ( strlen( ldtimestr ) < 13 ) {

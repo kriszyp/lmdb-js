@@ -27,6 +27,10 @@ extern int verbose;
 extern LDAP *ld;
 
 extern LDAPMessage *find();
+extern void * Malloc();
+
+static char * get_URL();
+static int check_URL();
 
 #ifdef DEBUG
 extern int debug;
@@ -382,9 +386,6 @@ char *id, *prompt;
 	static char line[LINE_SIZE];	/* raw line from user */
 	static char buffer[MAX_DESC_LINES * LINE_SIZE];	/* holds ALL of the 
 							   lines we get */
-	extern void * Malloc();
-	static char * get_URL();
-
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->get_value(%s, %s)\n", id, prompt);
@@ -754,8 +755,6 @@ int group;
 static char * get_URL()
 {
 	char *rvalue, label[MED_BUF_SIZE], url[MED_BUF_SIZE];
-	static int check_URL();
-	extern void * Malloc();
 
 	if (verbose) {
 		printf("  First, enter the URL.  (Example: http://www.us.itd.umich.edu/users/).\n");

@@ -33,6 +33,12 @@ extern LDAP *ld;
 
 extern LDAPMessage *find();
 
+static int load_editor();
+static int modifiable();
+static int print_attrs_and_values();
+static int ovalues();
+static int write_entry();
+
 static char *entry_temp_file;
 
 #ifdef DEBUG
@@ -46,8 +52,6 @@ char *who;
 	char *dn, **rdns;			/* distinguished name */
 	char name[MED_BUF_SIZE];		/* entry to modify */
 	extern int bind_status;
-	static int load_editor();
-	static int write_entry();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -114,7 +118,6 @@ static load_editor()
 	static char template[MED_BUF_SIZE];
 	extern char * mktemp();
 	extern int isgroup(), fatal();
-	static int print_attrs_and_values();
 	int pid;
 	int status;
 	int rc;
@@ -195,7 +198,6 @@ FILE *fp;
 struct attribute attrs[];
 short flag;
 {
-	static int modifiable();
 	register int i, j;
 
 	for (i = 0; attrs[i].quipu_name != NULL; i++) {
@@ -242,7 +244,6 @@ static write_entry()
 	LDAPMod *mods[MAX_ATTRS + 1];
 	LDAPMod *modp = NULL;
 
-	static int ovalues();
 	extern char * code_to_str();
 	extern void free_mod_struct();
 

@@ -139,7 +139,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 #endif /* notyet */
 
 		Debug( LDAP_DEBUG_TRACE, "sd %d connected to: %s\n",
-		    s, inet_ntoa( sin.sin_addr ), 0 );
+		    s, (char *) inet_ntoa( sin.sin_addr ), 0 );
 	}
 
 	return( rc );

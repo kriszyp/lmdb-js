@@ -37,6 +37,8 @@ extern LDAP *ld;
 
 extern void Free();
 
+static char * bind_and_fetch();
+
 void add_group(name)
 char *name;
 {
@@ -209,7 +211,6 @@ void remove_group(name)
 char *name;
 {
 	char *dn, tmp[BUFSIZ];
-	static char * bind_and_fetch();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -260,7 +261,6 @@ char *name;
 	char *values[2], *group_name;
 	LDAPMod mod, *mods[2];
 	static char *actions[] = { "join", "resign from", NULL };
-	static char * bind_and_fetch();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {

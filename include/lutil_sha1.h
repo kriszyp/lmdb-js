@@ -49,4 +49,4 @@ LDAP_F char *ldap_SHA1Data
 
 LDAP_END_DECL
 
-#endif _LDAP_SHA1_H_
+#endif /* _LDAP_SHA1_H_ */

@@ -51,9 +51,9 @@ Ri_process(
     char	*errmsg;
 
 #ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
 #else
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( SIGUSR1, do_nothing );
 #endif
     (void) SIGNAL( SIGPIPE, SIG_IGN );
     if ( ri == NULL ) {
@@ -153,10 +153,10 @@ Ri_wake(
     }
 #ifdef HAVE_LINUX_THREADS
     pthread_kill( ri->ri_tid, SIGSTKFLT );
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
 #else
     pthread_kill( ri->ri_tid, SIGUSR1 );
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( SIGUSR1, do_nothing );
 #endif
 }
 

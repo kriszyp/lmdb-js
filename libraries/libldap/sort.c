@@ -79,7 +79,7 @@ ldap_sort_entries(
     LDAP	*ld,
     LDAPMessage	**chain,
     char	*attr,		/* NULL => sort by DN */
-    int		(*cmp)()
+    int		(*cmp) LDAP_P((char *, char *))
 )
 {
 	int			i, count;
@@ -113,7 +113,7 @@ ldap_sort_entries(
 	last = e;
 
 	et_cmp_fn = cmp;
-	qsort( et, count, sizeof(struct entrything), (void *) et_cmp );
+	qsort( et, count, sizeof(struct entrything), et_cmp );
 
 	ep = chain;
 	for ( i = 0; i < count; i++ ) {
@@ -140,7 +140,7 @@ ldap_sort_values(
 	for ( nel = 0; vals[nel] != NULL; nel++ )
 		;	/* NULL */
 
-	qsort( vals, nel, sizeof(char *), (void *) cmp );
+	qsort( vals, nel, sizeof(char *), cmp );
 
 	return( 0 );
 }

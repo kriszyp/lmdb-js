@@ -28,7 +28,7 @@
 /*
  * Externs
  */
-extern void do_admin LDAP_P((void));
+extern RETSIGTYPE do_admin LDAP_P((int));
 extern int file_nonempty LDAP_P(( char * ));
 extern int acquire_lock LDAP_P((char *, FILE **, FILE ** ));
 extern int relinquish_lock LDAP_P((char *, FILE *, FILE * ));
@@ -38,8 +38,8 @@ extern int relinquish_lock LDAP_P((char *, FILE *, FILE * ));
  */
 static char *get_record LDAP_P(( FILE * ));
 static void populate_queue LDAP_P(( char *f ));
-static void set_shutdown LDAP_P((void));
-void do_nothing LDAP_P((void));
+static RETSIGTYPE set_shutdown LDAP_P((int));
+RETSIGTYPE do_nothing LDAP_P((int));
 
 
 /*
@@ -64,15 +64,15 @@ fm(
      *           (not yet implemented).
      */
 #ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
-    (void) SIGNAL( SIGUNUSED, (void *) do_admin );
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
+    (void) SIGNAL( SIGUNUSED, do_admin );
 #else
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
-    (void) SIGNAL( SIGUSR2, (void *) do_admin );
+    (void) SIGNAL( SIGUSR1, do_nothing );
+    (void) SIGNAL( SIGUSR2, do_admin );
 #endif
-    (void) SIGNAL( SIGTERM, (void *) set_shutdown );
-    (void) SIGNAL( SIGINT, (void *) set_shutdown );
-    (void) SIGNAL( SIGHUP, (void *) set_shutdown );
+    (void) SIGNAL( SIGTERM, set_shutdown );
+    (void) SIGNAL( SIGINT, set_shutdown );
+    (void) SIGNAL( SIGHUP, set_shutdown );
 
     if ( sglob->one_shot_mode ) {
 	if ( file_nonempty( sglob->slapd_replogfile )) {
@@ -141,8 +141,8 @@ fm(
 /*
  * Set a global flag which signals that we're shutting down.
  */
-static void
-set_shutdown()
+static RETSIGTYPE
+set_shutdown(int x)
 {
     int	i;
 
@@ -158,9 +158,9 @@ set_shutdown()
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
     sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
-    (void) SIGNAL( SIGTERM, (void *) set_shutdown );	/* reinstall handlers */
-    (void) SIGNAL( SIGINT, (void *) set_shutdown );
-    (void) SIGNAL( SIGHUP, (void *) set_shutdown );
+    (void) SIGNAL( SIGTERM, set_shutdown );	/* reinstall handlers */
+    (void) SIGNAL( SIGINT, set_shutdown );
+    (void) SIGNAL( SIGHUP, set_shutdown );
 }
 
 
@@ -169,13 +169,13 @@ set_shutdown()
 /*
  * A do-nothing signal handler.
  */
-void
-do_nothing()
+RETSIGTYPE
+do_nothing(int i)
 {
 #ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
 #else
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( SIGUSR1, do_nothing );
 #endif
 }
 
