@@ -301,7 +301,10 @@ typedef struct slap_matching_rule {
 	slap_mr_match_func		*smr_match;
 	slap_mr_indexer_func	*smr_indexer;
 	slap_mr_filter_func		*smr_filter;
+
+	struct slap_matching_rule	*smr_associated;
 	struct slap_matching_rule	*smr_next;
+
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
 #define smr_desc			smr_mrule.mr_desc

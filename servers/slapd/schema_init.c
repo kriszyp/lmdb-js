@@ -53,6 +53,12 @@
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
 
+/* approx matching rules */
+#define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
+#define directoryStringApproxMatch		NULL
+#define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
+#define IA5StringApproxMatch			NULL
+
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
@@ -77,6 +83,7 @@
 #define caseIgnoreSubstringsFilter		caseIgnoreIA5SubstringsFilter
 #define caseExactSubstringsIndexer		caseExactIA5SubstringsIndexer
 #define caseExactSubstringsFilter		caseExactIA5SubstringsFilter
+
 
 static int
 octetStringMatch(
@@ -2097,6 +2104,8 @@ struct mrule_defs_rec {
 	slap_mr_match_func *		mrd_match;
 	slap_mr_indexer_func *		mrd_indexer;
 	slap_mr_filter_func *		mrd_filter;
+
+	char *						mrd_associated;
 };
 
 /*
@@ -2126,170 +2135,256 @@ struct mrule_defs_rec {
  */
 
 struct mrule_defs_rec mrule_defs[] = {
+	/*
+	 * EQUALITY matching rules must be listed after associated APPROX
+	 * matching rules.  So, we list all APPROX matching rules first.
+	 */
+	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		NULL, NULL,
+		directoryStringApproxMatch, NULL, NULL,
+		NULL},
+
+	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		NULL, NULL,
+		IA5StringApproxMatch, NULL, NULL,
+		NULL},
+
+	/*
+	 * Other matching rules
+	 */
+	
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, objectIdentifierMatch,
-		caseIgnoreIA5Indexer, caseIgnoreIA5Filter},
+		NULL, NULL,
+		objectIdentifierMatch, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
+		NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, dnMatch, dnIndexer, dnFilter},
+		NULL, NULL,
+		dnMatch, dnIndexer, dnFilter,
+		NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreMatch, caseIgnoreIndexer, caseIgnoreFilter},
+		NULL, NULL,
+		caseIgnoreMatch, caseIgnoreIndexer, caseIgnoreFilter,
+		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, caseIgnoreOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreSubstringsMatch,
-		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter},
+		NULL, NULL,
+		caseIgnoreSubstringsMatch,
+		caseIgnoreSubstringsIndexer,
+		caseIgnoreSubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseExactMatch, caseExactIndexer, caseExactFilter},
+		NULL, NULL,
+		caseExactMatch, caseExactIndexer, caseExactFilter,
+		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, caseExactOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		caseExactOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseExactSubstringsMatch,
-		caseExactSubstringsIndexer, caseExactSubstringsFilter},
+		NULL, NULL,
+		caseExactSubstringsMatch,
+		caseExactSubstringsIndexer,
+		caseExactSubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5Match, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreIA5Match, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+		NULL, NULL,
+		caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer,
+		caseIgnoreIA5SubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreListMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreListMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreListSubstringsMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreListSubstringsMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.13 NAME 'booleanMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, booleanMatch, NULL, NULL},
+		NULL, NULL,
+		booleanMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, integerMatch, NULL, NULL},
+		NULL, NULL,
+		integerMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, bitStringMatch, NULL, NULL},
+		NULL, NULL,
+		bitStringMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, octetStringMatch, octetStringIndexer, octetStringFilter},
+		NULL, NULL,
+		octetStringMatch, octetStringIndexer, octetStringFilter,
+		NULL},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, telephoneNumberMatch, NULL, NULL},
+		NULL, NULL,
+		telephoneNumberMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, telephoneNumberSubstringsMatch, NULL, NULL},
+		NULL, NULL,
+		telephoneNumberSubstringsMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, presentationAddressMatch, NULL, NULL},
+		NULL, NULL,
+		presentationAddressMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, uniqueMemberMatch, NULL, NULL},
+		NULL, NULL,
+		uniqueMemberMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, protocolInformationMatch, NULL, NULL},
+		NULL, NULL,
+		protocolInformationMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, generalizedTimeMatch, NULL, NULL},
+		NULL, NULL,
+		generalizedTimeMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, generalizedTimeOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		generalizedTimeOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, integerFirstComponentMatch, NULL, NULL},
+		NULL, NULL,
+		integerFirstComponentMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, objectIdentifierFirstComponentMatch, NULL, NULL},
+		NULL, NULL,
+		objectIdentifierFirstComponentMatch, NULL, NULL,
+		NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+		NULL, NULL,
+		caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer,
+		caseIgnoreIA5SubstringsFilter,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.3 NAME 'caseExactIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseExactIA5SubstringsMatch,
-		caseExactIA5SubstringsIndexer, caseExactIA5SubstringsFilter},
+		NULL, NULL,
+		caseExactIA5SubstringsMatch,
+		caseExactIA5SubstringsIndexer,
+		caseExactIA5SubstringsFilter,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_EQUALITY,
-		NULL, NULL, authPasswordMatch, NULL, NULL},
+		NULL, NULL,
+		authPasswordMatch, NULL, NULL,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
 		SLAP_MR_EQUALITY,
-		NULL, NULL, OpenLDAPaciMatch, NULL, NULL},
+		NULL, NULL,
+		OpenLDAPaciMatch, NULL, NULL,
+		NULL},
 
-	{NULL, SLAP_MR_NONE, NULL, NULL, NULL}
+	{NULL, SLAP_MR_NONE, NULL, NULL, NULL, NULL}
 };
 
 int
@@ -2336,7 +2431,8 @@ schema_init( void )
 			mrule_defs[i].mrd_normalize,
 		    mrule_defs[i].mrd_match,
 			mrule_defs[i].mrd_indexer,
-			mrule_defs[i].mrd_filter );
+			mrule_defs[i].mrd_filter,
+			mrule_defs[i].mrd_associated );
 
 		if ( res ) {
 			fprintf( stderr,

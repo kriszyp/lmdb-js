@@ -116,6 +116,7 @@ mr_add(
     slap_mr_match_func	*match,
 	slap_mr_indexer_func *indexer,
     slap_mr_filter_func	*filter,
+	MatchingRule	*amr,
     const char		**err
 )
 {
@@ -132,6 +133,7 @@ mr_add(
 	smr->smr_match = match;
 	smr->smr_indexer = indexer;
 	smr->smr_filter = filter;
+	smr->smr_associated = amr;
 
 	if ( smr->smr_syntax_oid ) {
 		if ( (syn = syn_find(smr->smr_syntax_oid)) ) {
@@ -157,15 +159,27 @@ register_matching_rule(
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
 	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter )
+	slap_mr_filter_func *filter,
+	const char* associated )
 {
 	LDAPMatchingRule *mr;
+	MatchingRule *amr = NULL;
 	int		code;
 	const char	*err;
 
 	if( usage == SLAP_MR_NONE ) {
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
 		    desc, 0, 0 );
+		return -1;
+	}
+
+	if( associated != NULL ) {
+		amr = mr_find( associated );
+
+		Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
+			"associated matching rule %s for %s\n",
+			associated, desc, 0 );
+
 		return -1;
 	}
 
@@ -177,7 +191,7 @@ register_matching_rule(
 	}
 
 	code = mr_add( mr, usage,
-		convert, normalize, match, indexer, filter,
+		convert, normalize, match, indexer, filter, amr,
 		&err );
 
 	ldap_memfree( mr );

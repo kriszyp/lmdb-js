@@ -306,6 +306,7 @@ at_add(
 	if ( sat->sat_equality_oid ) {
 		if ( (mr = mr_find(sat->sat_equality_oid)) ) {
 			sat->sat_equality = mr;
+			sat->sat_approx = mr->smr_associated;
 		} else {
 			*err = sat->sat_equality_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;

@@ -604,6 +604,7 @@ LDAP_SLAPD_F (int) mr_add LDAP_P((LDAPMatchingRule *mr,
 	slap_mr_match_func *match,
 	slap_mr_indexer_func *indexer,
 	slap_mr_filter_func *filter,
+	MatchingRule * associated,
 	const char **err));
 
 LDAP_SLAPD_F (int) register_syntax LDAP_P((
@@ -620,7 +621,8 @@ LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
 	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter	));
+	slap_mr_filter_func *filter,
+	const char *associated ));
 
 LDAP_SLAPD_F (int) schema_info LDAP_P(( Entry **entry, const char **text ));
 
