@@ -345,7 +345,7 @@ retry:	/* transaction retry */
 				": non-leaf %s\n",
 				op->o_req_dn.bv_val, 0, 0);
 			rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
-			rs->sr_text = "subtree delete not supported";
+			rs->sr_text = "subordinate objects must be deleted first";
 			break;
 		default:
 			Debug(LDAP_DEBUG_ARGS,

@@ -115,7 +115,7 @@ ldbm_back_delete(
 			op->o_req_dn.bv_val, 0, 0);
 
 		send_ldap_error( op, rs, LDAP_NOT_ALLOWED_ON_NONLEAF,
-			"subtree delete not supported" );
+			"subordinate objects must be deleted first");
 		goto return_results;
 	}
 
