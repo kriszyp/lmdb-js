@@ -6,6 +6,16 @@
 
 #include "portable.h"
 
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_WINCRYPT_H
+#include <wincrypt.h>
+#endif
+#ifdef HAVE_PROCESS_H
+#include <process.h>
+#endif
+
 #include <fcntl.h>
 
 #include <lutil.h>
@@ -34,6 +44,26 @@ int lutil_entropy( char *buf, int nbytes )
 
 		/* should return nbytes */
 		if( rc < nbytes ) return -1;
+
+		return 0;
+	}
+#elif PROV_RSA_FULL
+	{
+		/* Not used since _WIN32_WINNT not set... */
+		HCRYPTPROV hProv = 0;
+
+		/* Get handle to user default provider */
+		if(!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, 0)) {
+		   return -1;
+		}
+
+		/* Generate random initialization vector */
+		if(!CryptGenRandom(hProv, (DWORD) nbytes, (BYTE *) buf)) {
+		   return -1;
+		}
+
+		/* Release provider handle */
+		if(hProv != 0) CryptReleaseContext(hProv, 0);
 
 		return 0;
 	}

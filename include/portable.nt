@@ -94,6 +94,9 @@ typedef char * caddr_t;
 /* we have <process.h> */
 #define HAVE_PROCESS_H 1
 
+/* we have <wincrypt.h> */
+#define HAVE_WINCRYPT_H 1
+
 #define LDAP_SIGUSR1	SIGILL
 #define LDAP_SIGUSR2	SIGTERM
 

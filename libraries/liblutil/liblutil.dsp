@@ -136,6 +136,10 @@ SOURCE=.\debug.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\entropy.c
+# End Source File
+# Begin Source File
+
 SOURCE="..\..\include\getopt-compat.h"
 # End Source File
 # Begin Source File
