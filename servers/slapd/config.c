@@ -48,14 +48,14 @@
  */
 struct slap_limits_set deflimit = {
 	SLAPD_DEFAULT_TIMELIMIT,	/* backward compatible limits */
-	0,
+	SLAPD_DEFAULT_TIMELIMIT,
 
 	SLAPD_DEFAULT_SIZELIMIT,	/* backward compatible limits */
-	0,
+	SLAPD_DEFAULT_SIZELIMIT,
 	-1,				/* no limit on unchecked size */
 	0,				/* page limit */
 	0,				/* hide number of entries left */
-	0				/* number of total entries returned by pagedResults equal to hard limit */
+	SLAPD_DEFAULT_SIZELIMIT		/* number of total entries returned by pagedResults equal to hard limit */
 };
 
 AccessControl	*global_acl = NULL;
@@ -843,7 +843,8 @@ read_config( const char *fname, int depth )
 #endif
 						}
 					}
-					lim->lms_s_hard = 0;
+					lim->lms_s_hard = lim->lms_s_soft;
+					lim->lms_s_pr_total = lim->lms_s_soft;
 				}
 			}
 
@@ -923,7 +924,7 @@ read_config( const char *fname, int depth )
 #endif
 						}
 					}
-					lim->lms_t_hard = 0;
+					lim->lms_t_hard = lim->lms_t_soft;
 				}
 			}
 
