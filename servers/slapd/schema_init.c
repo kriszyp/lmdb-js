@@ -2580,7 +2580,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		caseIgnoreIA5SubstringsFilter,
 		NULL},
 
-	{"( 1.3.6.1.4.1.4203.666.4.3 NAME 'caseExactIA5SubstringsMatch' "
+	{"( 1.3.6.1.4.1.4203.1.2.1 NAME 'caseExactIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
 		NULL, NULL,
