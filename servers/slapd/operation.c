@@ -11,7 +11,7 @@
 
 
 void
-slap_op_free( Operation *op )
+op_free( Operation *op )
 {
 	if ( op->o_ber != NULL )
 		ber_free( op->o_ber, 1 );
@@ -23,7 +23,7 @@ slap_op_free( Operation *op )
 }
 
 Operation *
-slap_op_add(
+op_add(
     Operation		**olist,
     BerElement		*ber,
     unsigned long	msgid,
@@ -57,7 +57,7 @@ slap_op_add(
 }
 
 void
-slap_op_delete( Operation **olist, Operation *op )
+op_delete( Operation **olist, Operation *op )
 {
 	Operation	**tmp;
 
@@ -71,5 +71,5 @@ slap_op_delete( Operation **olist, Operation *op )
 	}
 
 	*tmp = (*tmp)->o_next;
-	slap_op_free( op );
+	op_free( op );
 }
