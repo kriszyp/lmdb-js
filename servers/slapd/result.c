@@ -84,7 +84,7 @@ static void trim_refs_urls(
 		{
 			unsigned j;
 			for( j=sizeof("ldap://"); j<refs[i]->bv_len ; j++ ) {
-				if( refs[i]->bv_val[j] = '/' ) {
+				if( refs[i]->bv_val[j] == '/' ) {
 					refs[i]->bv_val[j] = '\0';
 					refs[i]->bv_len = j;
 					break;
