@@ -799,8 +799,8 @@ dnl Checks for libraries
 
 AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
 
-dnl HP-UX requires -lV3
-AC_CHECK_LIB(V3, sigset)
+dnl HP-UX requires -lV3 (or not)
+dnl AC_CHECK_LIB(V3, sigset)
 
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
@@ -1882,9 +1882,17 @@ if test $ol_with_ldbm_api = auto \
 fi
 
 if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
-	AC_MSG_ERROR(BerkeleyDB not available)
-elif test $ol_enable_bdb != no -a $ol_link_ldbm != berkeley ; then
-	ol_enable_bdb=yes
+	AC_MSG_ERROR(BDB: BerkeleyDB not available)
+elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
+	OL_BDB_COMPAT
+
+	if test $ol_cv_bdb_compat = yes ; then
+		ol_enable_bdb=yes
+	elif test $ol_enable_bdb = yes ; then
+		AC_MSG_ERROR(BDB: BerkeleyDB version incompatible)
+	else
+		ol_enable_bdb=no
+	fi
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then

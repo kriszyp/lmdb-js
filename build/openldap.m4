@@ -417,12 +417,31 @@ if test $ac_cv_header_db_h = yes; then
 	fi
 fi
 ])
-dnl
+dnl --------------------------------------------------------------------
+dnl Check for version compatility with back-bdb
+AC_DEFUN([OL_BDB_COMPAT],
+[AC_CACHE_CHECK([Berkeley DB version for BDB backend], [ol_cv_bdb_compat],[
+	AC_EGREP_CPP(__db_version_compat,[
+#include <db.h>
+
+ /* this check could be improved */
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+
+/* require 3.3 or later */
+#if DB_VERSION_MAJOR > 3 
+	__db_version_compat
+#elif DB_VERSION_MAJOR == 3 && DB_VERSION_MINOR >= 3
+	__db_version_compat
+#endif
+	],	[ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
+])
+
 dnl --------------------------------------------------------------------
 dnl Find old Berkeley DB 1.85/1.86
 AC_DEFUN([OL_BERKELEY_COMPAT_DB],
-[ol_cv_berkeley_db=no
-AC_CHECK_HEADERS(db_185.h db.h)
+[AC_CHECK_HEADERS(db_185.h db.h)
 if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
 	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
 		AC_EGREP_CPP(__db_version_1,[
