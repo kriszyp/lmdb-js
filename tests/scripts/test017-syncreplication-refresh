@@ -27,8 +27,9 @@ echo "running defines.sh"
 
 echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
-echo "Cleaning up in $R1REPLDIR..."
-rm -rf $R1REPLDIR/[!C]*
+echo "Resetting $R1REPLDIR..."
+rm -rf $R1REPLDIR
+mkdir $R1REPLDIR
 
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF

@@ -25,7 +25,7 @@ test-bdb:	FORCE
 	@-$(LN_S) ../libraries/liblunicode ucdata
 	@if test "$(BUILD_BDB)" != "no"; then \
 		echo "Initiating LDAP tests for BDB..." ; \
-		$(MKDIR) test-db test-repl test-repl/r1 test-repl/r2 test-repl/p1 test-repl/p2 test-repl/p3 || true; \
+		$(MKDIR) test-db test-repl || true; \
 		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_BDB) $(BUILD_MONITOR) ; \
 	else \
 		echo "run configure with --enable-bdb" ; \
@@ -38,7 +38,7 @@ test-hdb:	FORCE
 	@-$(LN_S) ../libraries/liblunicode ucdata
 	@if test "$(BUILD_HDB)" != "no" ; then \
 		echo "Initiating LDAP tests for HDB..." ; \
-		$(MKDIR) test-db test-repl test-repl/r1 test-repl/r2 test-repl/p1 test-repl/p2 test-repl/p3 || true; \
+		$(MKDIR) test-db test-repl || true; \
 		$(srcdir)/scripts/all $(srcdir) hdb $(BUILD_HDB) $(BUILD_MONITOR) ; \
 	else \
 		echo "run configure with --enable-hdb" ; \
@@ -51,7 +51,7 @@ test-ldbm:	FORCE
 	@-$(LN_S) ../libraries/liblunicode ucdata
 	@if test "$(BUILD_LDBM)" != "no"; then \
 		echo "Initiating LDAP tests for LDBM..." ; \
-		$(MKDIR) test-db test-repl test-repl/r1 test-repl/r2 test-repl/p1 test-repl/p2 test-repl/p3 || true; \
+		$(MKDIR) test-db test-repl || true; \
 		$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR); \
 	else \
 		echo "run configure with --enable-ldbm" ; \
