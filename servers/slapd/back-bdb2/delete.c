@@ -13,7 +13,7 @@
 
 static int
 bdb2i_back_delete_internal(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn
@@ -152,7 +152,7 @@ return_results:;
 
 int
 bdb2_back_delete(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn
@@ -167,7 +167,7 @@ bdb2_back_delete(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_w( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -176,7 +176,7 @@ bdb2_back_delete(
 
 	ret = bdb2i_back_delete_internal( be, conn, op, dn );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 

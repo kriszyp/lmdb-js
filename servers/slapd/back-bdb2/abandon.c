@@ -15,7 +15,7 @@
 /*ARGSUSED*/
 static int
 bdb2i_back_abandon_internal(
-	Backend    *be,
+	BackendDB    *be,
 	Connection *c,
 	Operation  *o,
 	int        msgid )
@@ -26,7 +26,7 @@ bdb2i_back_abandon_internal(
 
 int
 bdb2_back_abandon(
-	Backend    *be,
+	BackendDB    *be,
 	Connection *c,
 	Operation  *o,
 	int        msgid )

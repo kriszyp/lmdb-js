@@ -30,7 +30,7 @@ bdb2i_idl_alloc( int nids )
 
 /* Allocate an empty ALLIDS ID_BLOCK */
 ID_BLOCK	*
-bdb2i_idl_allids( Backend *be )
+bdb2i_idl_allids( BackendDB *be )
 {
 	ID_BLOCK	*idl;
 
@@ -60,7 +60,7 @@ bdb2i_idl_free( ID_BLOCK *idl )
 /* Fetch an single ID_BLOCK from the cache */
 static ID_BLOCK *
 idl_fetch_one(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     Datum		key
 )
@@ -96,7 +96,7 @@ idl_fetch_one(
  */
 ID_BLOCK *
 bdb2i_idl_fetch(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     Datum		key
 )
@@ -190,7 +190,7 @@ bdb2i_idl_fetch(
 /* store a single block */
 static int
 idl_store(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     Datum		key, 
     ID_BLOCK		*idl
@@ -276,7 +276,7 @@ idl_split_block(
  */
 static int
 idl_change_first(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     Datum		hkey,		/* header block key	*/
     ID_BLOCK		*h,		/* header block 	*/
@@ -320,7 +320,7 @@ idl_change_first(
 
 int
 bdb2i_idl_insert_key(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     Datum		key,
     ID			id
@@ -663,7 +663,7 @@ bdb2i_idl_insert( ID_BLOCK **idl, ID id, int maxids )
 
 int
 bdb2i_idl_delete_key (
-	Backend         *be,
+	BackendDB         *be,
 	struct dbcache  *db,
 	Datum           key,
 	ID              id
@@ -801,7 +801,7 @@ idl_min( ID_BLOCK *a, ID_BLOCK *b )
  */
 ID_BLOCK *
 bdb2i_idl_intersection(
-    Backend	*be,
+    BackendDB	*be,
     ID_BLOCK	*a,
     ID_BLOCK	*b
 )
@@ -853,7 +853,7 @@ bdb2i_idl_intersection(
  */
 ID_BLOCK *
 bdb2i_idl_union(
-    Backend	*be,
+    BackendDB	*be,
     ID_BLOCK	*a,
     ID_BLOCK	*b
 )
@@ -912,7 +912,7 @@ bdb2i_idl_union(
  */
 ID_BLOCK *
 bdb2i_idl_notin(
-    Backend	*be,
+    BackendDB	*be,
     ID_BLOCK 	*a,
     ID_BLOCK 	*b
 )

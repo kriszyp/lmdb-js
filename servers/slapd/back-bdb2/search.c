@@ -11,9 +11,9 @@
 #include "back-bdb2.h"
 #include "proto-back-bdb2.h"
 
-static ID_BLOCK	*base_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
-static ID_BLOCK	*onelevel_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
-static ID_BLOCK	*subtree_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, Entry *e, int *err, int lookupbase);
+static ID_BLOCK	*base_candidates(BackendDB *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static ID_BLOCK	*onelevel_candidates(BackendDB *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static ID_BLOCK	*subtree_candidates(BackendDB *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, Entry *e, int *err, int lookupbase);
 
 #define GRABSIZE	BUFSIZ
 
@@ -28,7 +28,7 @@ static ID_BLOCK	*subtree_candidates(Backend *be, Connection *conn, Operation *op
 
 static int
 bdb2i_back_search_internal(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*base,
@@ -316,7 +316,7 @@ bdb2i_back_search_internal(
 
 int
 bdb2_back_search(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*base,
@@ -339,7 +339,7 @@ bdb2_back_search(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_r( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -349,7 +349,7 @@ bdb2_back_search(
 	ret = bdb2i_back_search_internal( be, conn, op, base, scope, deref,
 					slimit, tlimit, filter, filterstr, attrs, attrsonly );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 
@@ -367,7 +367,7 @@ bdb2_back_search(
 
 static ID_BLOCK *
 base_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*base,
@@ -408,7 +408,7 @@ base_candidates(
 
 static ID_BLOCK *
 onelevel_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*base,
@@ -471,7 +471,7 @@ onelevel_candidates(
 
 static ID_BLOCK *
 subtree_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*base,

@@ -12,8 +12,6 @@
 
 #define  PORTER_OBJ   "bdb2_backend"
 
-int  bdb2i_with_dbenv = 0;
-
 
 static int
 bdb2i_enter_backend( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
@@ -23,7 +21,8 @@ bdb2i_enter_backend( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 	DBT            lock_dbt;
 	int            ret;
 
-	if ( !bdb2i_with_dbenv ) return( 0 );
+	if ( ( slapMode != SLAP_SERVER_MODE ) && ( slapMode != SLAP_TOOL_MODE ) )
+			return( 0 );
 
 	if ( ( ret = lock_id( dbEnv->lk_info, &locker )) != 0 ) {
 
@@ -42,7 +41,7 @@ bdb2i_enter_backend( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 					lock_type, lock ))) {
 
 		case 0:
-			Debug( LDAP_DEBUG_ANY, "bdb2i_enter_backend() -- %s lock granted\n",
+			Debug( LDAP_DEBUG_TRACE, "bdb2i_enter_backend() -- %s lock granted\n",
 						writer ? "write" : "read", 0, 0 );
 			break;
 
@@ -90,12 +89,13 @@ bdb2i_leave_backend( DB_ENV *dbEnv, DB_LOCK lock )
 {
 	int   ret;
 
-	if ( !bdb2i_with_dbenv ) return( 0 );
+	if ( ( slapMode != SLAP_SERVER_MODE ) && ( slapMode != SLAP_TOOL_MODE ) )
+			return( 0 );
 
 	switch( ( ret = lock_put( dbEnv->lk_info, lock ))) {
 
 		case 0:
-			Debug( LDAP_DEBUG_ANY, "bdb2i_leave_backend() -- lock released\n",
+			Debug( LDAP_DEBUG_TRACE, "bdb2i_leave_backend() -- lock released\n",
 						0, 0, 0 );
 			break;
 

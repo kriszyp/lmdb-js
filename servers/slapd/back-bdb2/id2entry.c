@@ -10,7 +10,7 @@
 #include "back-bdb2.h"
 
 int
-bdb2i_id2entry_add( Backend *be, Entry *e )
+bdb2i_id2entry_add( BackendDB *be, Entry *e )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
@@ -54,7 +54,7 @@ bdb2i_id2entry_add( Backend *be, Entry *e )
 }
 
 int
-bdb2i_id2entry_delete( Backend *be, Entry *e )
+bdb2i_id2entry_delete( BackendDB *be, Entry *e )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
@@ -96,7 +96,7 @@ bdb2i_id2entry_delete( Backend *be, Entry *e )
 
 /* XXX returns entry with reader/writer lock */
 Entry *
-bdb2i_id2entry( Backend *be, ID id, int rw )
+bdb2i_id2entry( BackendDB *be, ID id, int rw )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
@@ -161,13 +161,13 @@ bdb2i_id2entry( Backend *be, ID id, int rw )
 }
 
 Entry *
-bdb2i_id2entry_r( Backend *be, ID id )
+bdb2i_id2entry_r( BackendDB *be, ID id )
 {
 	return( bdb2i_id2entry( be, id, 0 ) );
 }
 
 Entry *
-bdb2i_id2entry_w( Backend *be, ID id )
+bdb2i_id2entry_w( BackendDB *be, ID id )
 {
 	return( bdb2i_id2entry( be, id, 1 ) );
 }

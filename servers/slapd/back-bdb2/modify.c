@@ -17,7 +17,7 @@ static int	replace_values(Entry *e, LDAPMod *mod, char *dn);
 
 static int
 bdb2i_back_modify_internal(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn,
@@ -117,7 +117,7 @@ error_return:;
 
 int
 bdb2_back_modify(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn,
@@ -133,7 +133,7 @@ bdb2_back_modify(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_w( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -142,12 +142,12 @@ bdb2_back_modify(
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
-	if ( bdb2i_with_dbenv )
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
 		bdb2i_check_default_attr_index_mod( li, modlist );
 
 	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 

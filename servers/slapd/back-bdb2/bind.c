@@ -59,7 +59,7 @@ crypted_value_find(
 
 static int
 bdb2i_back_bind_internal(
-    Backend		*be,
+    BackendDB		*be,
     Connection		*conn,
     Operation		*op,
     char		*dn,
@@ -217,7 +217,7 @@ return_results:;
 
 int
 bdb2_back_bind(
-    Backend		*be,
+    BackendDB		*be,
     Connection		*conn,
     Operation		*op,
     char		*dn,
@@ -235,7 +235,7 @@ bdb2_back_bind(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_r( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( 1 );
@@ -244,7 +244,7 @@ bdb2_back_bind(
 
 	ret = bdb2i_back_bind_internal( be, conn, op, dn, method, cred, edn );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 

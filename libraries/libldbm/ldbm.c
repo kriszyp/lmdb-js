@@ -92,7 +92,7 @@ ldbm_db_errcall( const char *prefix, char *message )
 }
 
 /*  a dbEnv for BERKELEYv2  */
-static DB_ENV           ldbm_Env;
+DB_ENV           ldbm_Env;
 
 /* Berkeley DB 2.x is reentrant */
 #define LDBM_LOCK	((void)0)
@@ -158,7 +158,8 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	DB_INFO dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
-	dbinfo.db_cachesize = dbcachesize;
+	if ( ldbm_Env.mp_info == NULL )
+		dbinfo.db_cachesize = dbcachesize;
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 

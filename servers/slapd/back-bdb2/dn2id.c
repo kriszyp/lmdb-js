@@ -13,7 +13,7 @@
 
 int
 bdb2i_dn2id_add(
-    Backend	*be,
+    BackendDB	*be,
     char	*dn,
     ID		id
 )
@@ -57,7 +57,7 @@ bdb2i_dn2id_add(
 
 ID
 bdb2i_dn2id(
-    Backend	*be,
+    BackendDB	*be,
     char	*dn
 )
 {
@@ -112,7 +112,7 @@ bdb2i_dn2id(
 
 int
 bdb2i_dn2id_delete(
-    Backend	*be,
+    BackendDB	*be,
     char	*dn
 )
 {
@@ -155,7 +155,7 @@ bdb2i_dn2id_delete(
 
 static Entry *
 dn2entry(
-    Backend	*be,
+    BackendDB	*be,
     char	*dn,
     char	**matched,
     int         rw
@@ -210,7 +210,7 @@ dn2entry(
 
 Entry *
 bdb2i_dn2entry_r(
-	Backend	*be,
+	BackendDB	*be,
 	char	*dn,
 	char	**matched
 )
@@ -220,7 +220,7 @@ bdb2i_dn2entry_r(
 
 Entry *
 bdb2i_dn2entry_w(
-	Backend	*be,
+	BackendDB	*be,
 	char	*dn,
 	char	**matched
 )

@@ -22,7 +22,7 @@ ldbm_back_db_config(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	if ( li == NULL ) {
-		fprintf( stderr, "%s: line %d: ldbm backend info is null!\n",
+		fprintf( stderr, "%s: line %d: ldbm database info is null!\n",
 		    fname, lineno );
 		return( 1 );
 	}
@@ -38,7 +38,7 @@ ldbm_back_db_config(
 		li->li_directory = ch_strdup( argv[1] );
 
 		li->li_nextid_file =
-			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") );
+			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") + 1 );
 
 		strcpy(li->li_nextid_file, li->li_directory);
 		strcat(li->li_nextid_file, "/NEXTID");

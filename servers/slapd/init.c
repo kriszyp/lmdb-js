@@ -62,14 +62,14 @@ ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
 
 static char* slap_name;
-int slapMode = 0;
+int slapMode = SLAP_UNDEFINED_MODE;
 
 int
 slap_init( int mode, char *name )
 {
 	int rc;
 
-	if( slapMode ) {
+	if( slapMode != SLAP_UNDEFINED_MODE ) {
 		Debug( LDAP_DEBUG_ANY,
 	   	 "%s init: init called twice (old=%d, new=%d)\n",
 	   	 name, slapMode, mode );
@@ -78,7 +78,7 @@ slap_init( int mode, char *name )
 
 	slapMode = mode;
 
-	if(!slapMode) {
+	if( ( slapMode != SLAP_SERVER_MODE ) && ( slapMode != SLAP_TOOL_MODE ) ) {
 		Debug( LDAP_DEBUG_ANY,
 	   	 "%s init: undefined mode (%d).\n",
 	   	 name, mode, 0 );

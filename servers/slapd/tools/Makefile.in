@@ -14,6 +14,7 @@
 #-----------------------------------------------------------------------------
 HAVE_ISODE = @HAVE_ISODE@
 BUILD_LDBM = @BUILD_LDBM@
+BUILD_BDB2 = @BUILD_BDB2@
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -23,11 +24,17 @@ XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(LDBM_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
-PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry \
-	ldif2id2children centipede ldbmtest ldif
+PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry ldif2id2children \
+	centipede ldbmtest ldif
+
+PROGRAMS2=ldif2index-bdb2 ldif2ldbm-bdb2 \
+	ldif2id2entry-bdb2 ldif2id2children-bdb2
 
 SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
 	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c
+
+SRCS2 = ldif2id2children-bdb2.c ldif2id2entry-bdb2.c \
+	ldif2index-bdb2.c ldif2ldbm-bdb2.c
 
 XSRCS = edb2-vers.c
 
@@ -40,7 +47,7 @@ OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../schemaparse.o
 
-all-local: build-ldbm build-edb2ldif build-chlog2replog
+all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
 
 build-ldbm: FORCE
 	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
@@ -49,7 +56,16 @@ build-ldbm: FORCE
 		echo "run configure with --with-ldbm to build LDBM tools"; \
     fi
 
+build-bdb2: FORCE
+	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) bdb2-tools; \
+    else \
+		echo "run configure with --enable-bdb2 to build BDB2 tools"; \
+    fi
+
 ldbm-tools: $(PROGRAMS)
+
+bdb2-tools: $(PROGRAMS2)
 
 build-edb2ldif:	FORCE
 	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
@@ -82,15 +98,30 @@ chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 ldif2index:	ldif2index.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
 
+ldif2index-bdb2:	ldif2index-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2index-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
 ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2ldbm-bdb2:	ldif2ldbm-bdb2.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2ldbm-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
 
+ldif2id2entry-bdb2:	ldif2id2entry-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2entry-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
 ldif2id2children:	ldif2id2children.o ../libbackends.a \
 		$(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2id2children-bdb2:	ldif2id2children-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2children-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldbmcat:	ldbmcat.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldbmcat.o $(LIBS)
@@ -108,13 +139,17 @@ ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND)
 	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c \
+	$(RM) $(PROGRAMS) $(PROGRAMS2) $(XPROGRAMS) $(XSRCS) edb2-vers.c \
 		*.o core .libs/*
 
 depend-local: FORCE
-	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ; \
+	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_ISODE= ; \
 	if [ "$(BUILD_LDBM)" = "yes" ]; then \
         DEPEND_LDBM="$(SRCS)"; \
+		DEPEND=yes ; \
+    fi; \
+	if [ "$(BUILD_BDB2)" = "yes" ]; then \
+        DEPEND_BDB2="$(SRCS2)"; \
 		DEPEND=yes ; \
     fi; \
 	if [ "$(HAVE_ISODE)" = "yes" ]; then \
@@ -122,12 +157,13 @@ depend-local: FORCE
 		DEPEND=yes ; \
     fi; \
 	if [ "$$DEPEND" = "yes" ]; then \
-    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE $$DEPEND_LDBM; \
+    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE \
+			$$DEPEND_LDBM $$DEPEND_BDB2; \
 	else \
 		echo "slapd-tools: no dependencies to make"; \
 	fi
 
-install-local: install-ldbm install-isode FORCE
+install-local: install-ldbm install-bdb2 install-isode FORCE
 
 install-ldbm: FORCE
 	@-$(MKDIR) $(sbindir) 
@@ -140,6 +176,17 @@ install-ldbm: FORCE
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
+	else \
+		exit 0 ; \
+	fi
+
+install-bdb2: FORCE
+	@-$(MKDIR) $(sbindir) 
+	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children-bdb2 $(sbindir) ; \
 	else \
 		exit 0 ; \
 	fi

@@ -13,7 +13,7 @@
 
 static int
 bdb2i_back_add_internal(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     Entry	*e
@@ -242,14 +242,14 @@ return_results:;
 
 int
 bdb2_back_add(
-    Backend	*be,
+    BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     Entry	*e
 )
 {
 	DB_LOCK  lock;
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li  = (struct ldbminfo *) be->be_private;
 
 	struct   timeval  time1, time2;
 	char     *elapsed_time;
@@ -257,7 +257,7 @@ bdb2_back_add(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_w( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 		return( -1 );
@@ -266,12 +266,12 @@ bdb2_back_add(
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
-	if ( bdb2i_with_dbenv )
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
 		bdb2i_check_default_attr_index_add( li, e );
 
 	ret = bdb2i_back_add_internal( be, conn, op, e );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 

@@ -5,8 +5,11 @@ if [ $# -eq 0 ]; then
 else
 	SRCDIR=$1; shift
 fi
+if [ $# -eq 1 ]; then
+	BDB2=$1; shift
+fi
 
-. $SRCDIR/scripts/defines.sh $SRCDIR
+. $SRCDIR/scripts/defines.sh $SRCDIR $BDB2
 
 echo "Cleaning up in $DBDIR..."
 

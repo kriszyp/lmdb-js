@@ -23,7 +23,7 @@
  * given an alias object, dereference it to its end point.
  * Entry returned has reader lock or is NULL.  Starting entry is not released.
  */
-Entry *bdb2i_derefAlias_r ( Backend     *be,
+Entry *bdb2i_derefAlias_r ( BackendDB     *be,
 		    Connection	*conn,
 		    Operation	*op,
 		    Entry       *e)
@@ -161,7 +161,7 @@ Entry *bdb2i_derefAlias_r ( Backend     *be,
  *   reconstructed dn is ou=MyOU,o=MyOrg,c=MyCountry
  *   release lock on o=MyOrg,c=MyCountry entry
  */
-char *bdb2i_derefDN ( Backend     *be,
+char *bdb2i_derefDN ( BackendDB     *be,
                 Connection  *conn,
                 Operation   *op,
                 char        *dn

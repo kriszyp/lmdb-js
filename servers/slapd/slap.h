@@ -289,7 +289,7 @@ struct backend_db {
 	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
-	void	*be_private;	/* anything the backend needs 		   */
+	void	*be_private;	/* anything the backend database needs 	   */
 };
 
 struct backend_info {
@@ -387,7 +387,7 @@ struct backend_info {
 		char *objectclassValue, char *groupattrName ));
 #endif
 
-	void	*bi_private;	/* anything the backend needs */
+	void	*bi_private;	/* anything the backend type needs */
 };
 
 /*

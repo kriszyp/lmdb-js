@@ -1,4 +1,4 @@
-/* close.c - close bdb2 backend */
+/* close.c - close bdb2 backend database */
 
 #include "portable.h"
 
@@ -10,23 +10,24 @@
 #include "back-bdb2.h"
 
 static int
-bdb2i_back_db_close_internal( Backend *be )
+bdb2i_back_db_close_internal( BackendDB *be )
 {
 	Debug( LDAP_DEBUG_TRACE, "bdb2 backend saving nextid\n", 0, 0, 0 );
 	if ( bdb2i_next_id_save( be ) < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "bdb2 backend nextid save failed!\n", 0, 0, 0 );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "bdb2 backend syncing\n", 0, 0, 0 );
-	bdb2i_cache_flush_all( be );
-	Debug( LDAP_DEBUG_TRACE, "bdb2 backend done syncing\n", 0, 0, 0 );
+	/*  close all DB files  */
+	Debug( LDAP_DEBUG_TRACE, "bdb2 backend closing DB files\n", 0, 0, 0 );
+	bdb2i_txn_close_files( be );
+	Debug( LDAP_DEBUG_TRACE, "bdb2 backend done closing DB files\n", 0, 0, 0 );
 
 	return 0;
 }
 
 
 int
-bdb2_back_db_close( Backend *be )
+bdb2_back_db_close( BackendDB *be )
 {
 	struct timeval  time1, time2;
 	char   *elapsed_time;

@@ -11,8 +11,90 @@
 #include "back-bdb2.h"
 
 static int
+bdb2i_back_config_internal(
+    BackendInfo	*bi,
+    char		*fname,
+    int			lineno,
+    int			argc,
+    char		**argv
+)
+{
+	struct ldbtype	*lty = (struct ldbtype *) bi->bi_private;
+
+	if ( lty == NULL ) {
+		fprintf( stderr, "%s: line %d: ldbm backend type info is null!\n",
+		    fname, lineno );
+		return( 1 );
+	}
+
+	/* directory where DB control files live */
+	if ( strcasecmp( argv[0], "home" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+		"%s: line %d: missing dir in \"home <dir>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		lty->lty_dbhome = ch_strdup( argv[1] );
+
+	/* size of the DB memory pool */
+	} else if ( strcasecmp( argv[0], "mpoolsize" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+			"%s: line %d: missing size in \"mpoolsize <size>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		lty->lty_mpsize = (size_t) atoi( argv[1] );
+		/*  we should at least have the suggested 128k  */
+		if ( lty->lty_mpsize < DEFAULT_DBCACHE_SIZE )
+			lty->lty_mpsize = DEFAULT_DBCACHE_SIZE;
+
+	/* anything else */
+	} else {
+		fprintf( stderr,
+"%s: line %d: unknown directive \"%s\" in ldbm backend definition (ignored)\n",
+		    fname, lineno, argv[0] );
+	}
+
+	return 0;
+}
+
+
+int
+bdb2_back_config(
+    BackendInfo	*bi,
+    char	*fname,
+    int		lineno,
+    int		argc,
+    char	**argv
+)
+{
+	struct timeval  time1, time2;
+	char   *elapsed_time;
+	int    ret;
+
+	gettimeofday( &time1, NULL );
+
+	ret = bdb2i_back_config_internal( bi, fname, lineno, argc, argv );
+
+	if ( bdb2i_do_timing ) {
+
+		gettimeofday( &time2, NULL);
+		elapsed_time = bdb2i_elapsed( time1, time2 );
+		Debug( LDAP_DEBUG_TRACE, "BE-CONFIG elapsed=%s\n",
+				elapsed_time, 0, 0 );
+		free( elapsed_time );
+
+	}
+
+	return( ret );
+}
+
+
+static int
 bdb2i_back_db_config_internal(
-    Backend	*be,
+    BackendDB	*be,
     char	*fname,
     int		lineno,
     int		argc,
@@ -22,7 +104,7 @@ bdb2i_back_db_config_internal(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	if ( li == NULL ) {
-		fprintf( stderr, "%s: line %d: ldbm backend info is null!\n",
+		fprintf( stderr, "%s: line %d: ldbm database info is null!\n",
 		    fname, lineno );
 		return( 1 );
 	}
@@ -38,7 +120,7 @@ bdb2i_back_db_config_internal(
 		li->li_directory = ch_strdup( argv[1] );
 
 		li->li_nextid_file =
-			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") );
+			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") + 1 );
 
 		strcpy(li->li_nextid_file, li->li_directory);
 		strcat(li->li_nextid_file, "/NEXTID");
@@ -107,7 +189,7 @@ bdb2i_back_db_config_internal(
 
 int
 bdb2_back_db_config(
-    Backend	*be,
+    BackendDB	*be,
     char	*fname,
     int		lineno,
     int		argc,
@@ -126,7 +208,7 @@ bdb2_back_db_config(
 
 		gettimeofday( &time2, NULL);
 		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "CONFIG elapsed=%s\n",
+		Debug( LDAP_DEBUG_ANY, "DB-CONFIG elapsed=%s\n",
 				elapsed_time, 0, 0 );
 		free( elapsed_time );
 

@@ -11,13 +11,35 @@
 #include "back-bdb2.h"
 
 
+static int
+bdb2i_back_init_private(
+    BackendInfo	*bi
+)
+{
+	struct ldbtype  *bt;
+
+	/*  allocate backend-type-specific stuff */
+	bt = (struct ldbtype *) ch_calloc( 1, sizeof(struct ldbtype) );
+
+	bt->lty_dbhome = DEFAULT_DB_HOME;
+	bt->lty_mpsize = DEFAULT_DBCACHE_SIZE;
+	bt->lty_dbenv  = &ldbm_Env;
+
+	bi->bi_private = bt;
+
+	return 0;
+}
+
+
 int
 bdb2_back_initialize(
     BackendInfo	*bi
 )
 {
+	int  ret;
+
 	bi->bi_open = bdb2_back_open;
-	bi->bi_config = NULL;
+	bi->bi_config = bdb2_back_config;
 	bi->bi_close = bdb2_back_close;
 	bi->bi_destroy = bdb2_back_destroy;
 
@@ -37,9 +59,15 @@ bdb2_back_initialize(
 	bi->bi_op_delete = bdb2_back_delete;
 	bi->bi_op_abandon = bdb2_back_abandon;
 
+#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = bdb2_back_group;
+#endif
 
-	return 0;
+	ret = bdb2i_back_init_private( bi );
+
+	Debug( LDAP_DEBUG_TRACE, "bdb2_back_initialize: done (%d).\n", ret, 0, 0 );
+
+	return( ret );
 }
 
 int
@@ -55,10 +83,19 @@ bdb2_back_open(
     BackendInfo	*bi
 )
 {
+	static int initialized = 0;
 	int rc;
 
+	if ( initialized++ ) {
+
+		Debug( LDAP_DEBUG_TRACE,
+				"bdb2_back_open: backend already initialized.\n", 0, 0, 0 );
+		return 0;
+
+	}
+
 	/* initialize the underlying database system */
-	rc = bdb2_initialize();
+	rc = bdb2i_back_startup( bi );
 
 	return rc;
 }
@@ -68,23 +105,25 @@ bdb2_back_close(
     BackendInfo	*bi
 )
 {
-	/* close the underlying database system */
-	bdb2_shutdown();
+	int  rc;
 
-	return 0;
+	/* close the underlying database system */
+	rc = bdb2i_back_shutdown( bi );
+
+	return rc;
 }
 
 /*  BDB2 changed  */
 static int
 bdb2i_back_db_init_internal(
-    Backend	*be
+    BackendDB	*be
 )
 {
 	struct ldbminfo	*li;
 	char		*argv[ 4 ];
 	int		i;
 
-	/* allocate backend-specific stuff */
+	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
 	/* arrange to read nextid later (on first request for it) */
@@ -139,7 +178,8 @@ bdb2i_back_db_init_internal(
 	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	/*  initialize the TP file head  */
-	bdb2i_txn_head_init( &li->li_txn_head );
+	if ( bdb2i_txn_head_init( &li->li_txn_head ) != 0 )
+		return 1;
 
 	be->be_private = li;
 
@@ -149,7 +189,7 @@ bdb2i_back_db_init_internal(
 
 int
 bdb2_back_db_init(
-    Backend	*be
+    BackendDB	*be
 )
 {
 	struct timeval  time1, time2;
@@ -164,7 +204,7 @@ bdb2_back_db_init(
 
 		gettimeofday( &time2, NULL);
 		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "INIT elapsed=%s\n",
+		Debug( LDAP_DEBUG_ANY, "DB-INIT elapsed=%s\n",
 				elapsed_time, 0, 0 );
 		free( elapsed_time );
 
@@ -179,7 +219,11 @@ bdb2_back_db_open(
     BackendDB	*be
 )
 {
-	return 0;
+	int  rc;
+
+	rc = bdb2_back_db_startup( be );
+
+	return( rc );
 }
 
 int

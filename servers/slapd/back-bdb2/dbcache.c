@@ -19,12 +19,9 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
-#define  ldbm_open_env( buf, flags, mode, dbcachesize, env ) \
-			ldbm_open( (buf), (flags), (mode), (dbcachesize) )
-
 struct dbcache *
 bdb2i_cache_open(
-    Backend	*be,
+    BackendDB	*be,
     char	*name,
     char	*suffix,
     int		flags
@@ -36,14 +33,18 @@ bdb2i_cache_open(
 	char		buf[MAXPATHLEN];
 	LDBM		db;
 	struct stat	st;
-	int			dbcachesize;
-
-	/* sprintf( buf, "%s%s%s%s", li->li_directory, DEFAULT_DIRSEP, name, suffix ); */
-	sprintf( buf, "%s%s", name, suffix );
 
 	/*  if in slapd, all files are open, so return handle from file cache  */
-	if (  bdb2i_with_dbenv )
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) ) {
+
+		/*  use short name  */
+		sprintf( buf, "%s%s", name, suffix );
 		return( bdb2i_get_db_file_cache( li, buf ));
+
+	}
+
+	/*  use the absolute path  */
+	sprintf( buf, "%s%s%s%s", li->li_directory, DEFAULT_DIRSEP, name, suffix );
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
@@ -100,11 +101,8 @@ bdb2i_cache_open(
 		li->li_dbcache[i].dbc_name = NULL;
 	}
 
-	dbcachesize = li->li_dbcachesize;
-
-	if (  bdb2i_with_dbenv ) dbcachesize = 0;
-	if ( (li->li_dbcache[i].dbc_db = ldbm_open_env( buf, flags, li->li_mode,
-	    dbcachesize, &li->li_db_env )) == NULL ) {
+	if ( (li->li_dbcache[i].dbc_db = ldbm_open( buf, flags, li->li_mode,
+	    0 )) == NULL ) {
 
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= bdb2i_cache_open NULL \"%s\" errno %d reason \"%s\")\n",
@@ -136,13 +134,14 @@ bdb2i_cache_open(
 }
 
 void
-bdb2i_cache_close( Backend *be, struct dbcache *db )
+bdb2i_cache_close( BackendDB *be, struct dbcache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	/*  if in slapd, all files stay open and we have only
 		readers or one writer  */
-	if (  bdb2i_with_dbenv ) return;
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+			return;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {
@@ -152,13 +151,14 @@ bdb2i_cache_close( Backend *be, struct dbcache *db )
 }
 
 void
-bdb2i_cache_really_close( Backend *be, struct dbcache *db )
+bdb2i_cache_really_close( BackendDB *be, struct dbcache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	/*  if in slapd, all files stay open and we have only
 		readers or one writer  */
-	if (  bdb2i_with_dbenv ) return;
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+			return;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {
@@ -171,13 +171,14 @@ bdb2i_cache_really_close( Backend *be, struct dbcache *db )
 }
 
 void
-bdb2i_cache_flush_all( Backend *be )
+bdb2i_cache_flush_all( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		i;
 
 	/*  if in slapd, syncing is done by TP  */
-	if (  bdb2i_with_dbenv ) return;
+	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+			return;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {

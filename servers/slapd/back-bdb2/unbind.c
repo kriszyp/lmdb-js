@@ -10,7 +10,7 @@
 
 static int
 bdb2i_back_unbind_internal(
-	Backend     *be,
+	BackendDB     *be,
 	Connection  *conn,
 	Operation   *op
 )
@@ -21,7 +21,7 @@ bdb2i_back_unbind_internal(
 
 int
 bdb2_back_unbind(
-	Backend     *be,
+	BackendDB     *be,
 	Connection  *conn,
 	Operation   *op
 )

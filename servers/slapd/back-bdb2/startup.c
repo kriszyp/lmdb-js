@@ -1,4 +1,4 @@
-/* startup.c - startup bdb2 backend */
+/* startup.c - startup/shutdown bdb2 backend */
 
 #include "portable.h"
 
@@ -23,53 +23,30 @@ bdb2i_db_errcall( char *prefix, char *message )
 }
 
 
-void
+/*  startup/shutdown per backend type  */
+
+static int
 bdb2i_back_startup_internal(
-    Backend	*be
+    BackendInfo	*bi
 )
 {
-	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
-	DB_ENV           *dbEnv = &li->li_db_env;
+	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
+	DB_ENV           *dbEnv = lty->lty_dbenv;
 	int    envFlags = DB_CREATE | DB_THREAD | DB_INIT_LOCK | DB_INIT_MPOOL;
 	int    err      = 0;
 	char   *home;
-	char   datadir[MAXPATHLEN];
-	char   *config[2] = { datadir, NULL };
 
-	/*  if the data directory is not an absolute path, have it relative
-        to the current working directory (which should not be configured !)  */
-	if ( *li->li_directory != *DEFAULT_DIRSEP ) {
+	/*  make sure, dbhome is an absolute path  */
+	if ( *lty->lty_dbhome != *DEFAULT_DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_directory );
-		free( li->li_directory );
-		li->li_directory = strdup( cwd );
+		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, lty->lty_dbhome );
+		free( lty->lty_dbhome );
+		lty->lty_dbhome = strdup( cwd );
 
 	}
-
-	/*  set the DB home directory to the configured one, or the data dir  */
-	if ( li->li_dbhome ) {
-
-		if ( *li->li_dbhome != *DEFAULT_DIRSEP ) {
-			char   cwd[MAXPATHLEN];
-
-			(void) getcwd( cwd, MAXPATHLEN );
-			sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_dbhome );
-			free( li->li_dbhome );
-			li->li_dbhome = strdup( cwd );
-
-		}
-		home = li->li_dbhome;
-
-	} else {
-
-		home = li->li_directory;
-
-	}
-
-	/*  set the DATA_DIR  */
-	sprintf( datadir, "DB_DATA_DIR %s", li->li_directory );
+	home = lty->lty_dbhome;
 
 	/*  general initialization of the environment  */
 	memset( dbEnv, 0, sizeof( DB_ENV ));
@@ -83,44 +60,34 @@ bdb2i_back_startup_internal(
 	remove_old_locks( home );
 
 	/*  initialize the mpool subsystem  */
-	dbEnv->mp_size   = (size_t) li->li_dbcachesize;
+	dbEnv->mp_size   = lty->lty_mpsize;
 
 	/*  now do the db_appinit  */
-	if ( ( err = db_appinit( home, config, dbEnv, envFlags )) ) {
+	if ( ( err = db_appinit( home, NULL, dbEnv, envFlags )) ) {
 		char  error[BUFSIZ];
 
 		if ( err < 0 ) sprintf( error, "%ld\n", (long) err );
 		else           sprintf( error, "%s\n", strerror( err ));
 
-		fprintf( stderr,
+		Debug( LDAP_DEBUG_ANY,
 				"bdb2i_back_startup(): FATAL error in db_appinit() : %s\n",
-				error );
-	 	exit( 1 );
+				error, 0, 0 );
+	 	return( 1 );
 
 	}
 
-	bdb2i_with_dbenv = 1;
-
-	/*  if there are more index files, add them to the DB file list  */
-	bdb2i_check_additional_attr_index( li );
-
-	/*  now open all DB files  */
-	bdb2i_txn_open_files( li );
-
+	return 0;
 }
 
 
-static void
+static int
 bdb2i_back_shutdown_internal(
-    Backend	*be
+    BackendInfo	*bi
 )
 {
-	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
-	DB_ENV           *dbEnv = &li->li_db_env;
+	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
+	DB_ENV           *dbEnv = lty->lty_dbenv;
 	int              err;
-
-	/*  close all DB files  */
-	bdb2i_txn_close_files( &li->li_txn_head );
 
 	/*  remove old locking tables  */
 	dbEnv->db_errpfx  = "bdb2i_back_shutdown(): lock_unlink:";
@@ -134,56 +101,159 @@ bdb2i_back_shutdown_internal(
 		Debug( LDAP_DEBUG_ANY, "bdb2i_back_shutdown(): memp_unlink: %s\n",
 					strerror( err ), 0, 0);
 
-	(void) db_appexit( &li->li_db_env );
+	(void) db_appexit( dbEnv );
 
+	return( 0 );
 }
 
 
-void
-bdb2_back_startup(
-    Backend	*be
+int
+bdb2i_back_startup(
+    BackendInfo	*bi
 )
 {
 	struct timeval  time1, time2;
 	char   *elapsed_time;
+	int    ret;
 
 	gettimeofday( &time1, NULL );
 
-	bdb2i_back_startup_internal( be );
+	ret = bdb2i_back_startup_internal( bi );
 
 	if ( bdb2i_do_timing ) {
 
 		gettimeofday( &time2, NULL);
 		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "START elapsed=%s\n",
+		Debug( LDAP_DEBUG_ANY, "BE-START elapsed=%s\n",
 				elapsed_time, 0, 0 );
 		free( elapsed_time );
 
 	}
+
+	return( ret );
 }
 
 
-void
-bdb2_back_shutdown(
-    Backend	*be
+int
+bdb2i_back_shutdown(
+    BackendInfo	*bi
 )
 {
 	struct timeval  time1, time2;
 	char   *elapsed_time;
+	int    ret;
 
 	gettimeofday( &time1, NULL );
 
-	bdb2i_back_shutdown_internal( be );
+	ret = bdb2i_back_shutdown_internal( bi );
 
 	if ( bdb2i_do_timing ) {
 
 		gettimeofday( &time2, NULL);
 		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "SHUTDOWN elapsed=%s\n",
+		Debug( LDAP_DEBUG_ANY, "BE-SHUTDOWN elapsed=%s\n",
 				elapsed_time, 0, 0 );
 		free( elapsed_time );
 
 	}
+
+	return( ret );
+}
+
+
+/*  startup/shutdown per backend database  */
+
+static int
+bdb2i_back_db_startup_internal(
+    BackendDB	*be
+)
+{
+	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
+
+	/*  if the data directory is not an absolute path, have it relative
+        to the current working directory (which should not be configured !)  */
+	if ( *li->li_directory != *DEFAULT_DIRSEP ) {
+		char   cwd[MAXPATHLEN];
+
+		(void) getcwd( cwd, MAXPATHLEN );
+		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_directory );
+		free( li->li_directory );
+		li->li_directory = strdup( cwd );
+
+	}
+
+	/*  if there are more index files, add them to the DB file list  */
+	if ( bdb2i_check_additional_attr_index( li ) != 0 )
+		return 1;
+
+	/*  now open all DB files  */
+	if ( bdb2i_txn_open_files( li ) != 0 )
+		return 1;
+
+	return 0;
+}
+
+
+static int
+bdb2i_back_db_shutdown_internal(
+    BackendDB	*be
+)
+{
+	return 0;
+}
+
+
+int
+bdb2_back_db_startup(
+    BackendDB	*be
+)
+{
+	struct timeval  time1, time2;
+	char   *elapsed_time;
+	int    ret;
+
+	gettimeofday( &time1, NULL );
+
+	ret = bdb2i_back_db_startup_internal( be );
+
+	if ( bdb2i_do_timing ) {
+
+		gettimeofday( &time2, NULL);
+		elapsed_time = bdb2i_elapsed( time1, time2 );
+		Debug( LDAP_DEBUG_ANY, "DB-START elapsed=%s\n",
+				elapsed_time, 0, 0 );
+		free( elapsed_time );
+
+	}
+
+	return( ret );
+}
+
+
+int
+bdb2_back_db_shutdown(
+    BackendDB	*be
+)
+{
+	struct timeval  time1, time2;
+	char   *elapsed_time;
+	int    ret;
+
+	gettimeofday( &time1, NULL );
+
+	ret = bdb2i_back_db_shutdown_internal( be );
+
+	if ( bdb2i_do_timing ) {
+
+		gettimeofday( &time2, NULL);
+		elapsed_time = bdb2i_elapsed( time1, time2 );
+		Debug( LDAP_DEBUG_ANY, "DB-SHUTDOWN elapsed=%s\n",
+				elapsed_time, 0, 0 );
+		free( elapsed_time );
+
+	}
+
+	return( ret );
 }
 
 

@@ -15,6 +15,7 @@ LDAP_BEGIN_DECL
 #define DEFAULT_DBCACHE_SIZE (128 * DEFAULT_DB_PAGE_SIZE)
 
 #define DEFAULT_DB_DIRECTORY	"/usr/tmp"
+#define DEFAULT_DB_HOME         "/usr/tmp"
 #define DEFAULT_MODE		0600
 
 #define SUBLEN			3
@@ -132,8 +133,7 @@ typedef  struct _bdb2_txn_head {
 	/*  a list of all DB files in use  */
 	BDB2_TXN_FILES   *dbFiles;
 
-	/*  for performance reasons we have pointers to fixed descriptors  */
-	BDB2_TXN_FILES   *dbFileHandle[4];
+	/*  we have five fixed files  */
 #define  BDB2_DB_DN_FILE            0
 #define  BDB2_DB_DN2ID_FILE         1
 #define  BDB2_DB_ID2ENTRY_FILE      2
@@ -149,6 +149,20 @@ typedef  struct _bdb2_txn_head {
 
 /*  end of TP stuff  */
 
+
+/*  the private description of a backend type  */
+struct ldbtype {
+	char			*lty_dbhome;
+	size_t			lty_mpsize;
+
+	/*  XXX do we need a private DB_ENV for all DB2 backend types ?  */
+	DB_ENV			*lty_dbenv;
+};
+
+#define get_dbenv(be) ((struct ldbtype *) (be)->bd_info->bi_private)->lty_dbenv
+
+
+/*  the private description of a database  */
 struct ldbminfo {
 	ID			li_nextid;
 #if SLAPD_NEXTID_CHUNK > 1
@@ -168,15 +182,11 @@ struct ldbminfo {
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
 
-	/*  Berkeley DB2 Environment  */
-	DB_ENV			li_db_env;
-	char			*li_dbhome;
+	/*  a list of all files of the database  */
 	BDB2_TXN_HEAD		li_txn_head;
 
 };
 
-
-extern  int bdb2i_with_dbenv;
 
 #include "proto-back-bdb2.h"
 

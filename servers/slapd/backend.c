@@ -15,6 +15,9 @@
 #ifdef SLAPD_LDBM
 #include "back-ldbm/external.h"
 #endif
+#ifdef SLAPD_BDB2
+#include "back-bdb2/external.h"
+#endif
 #ifdef SLAPD_PASSWD
 #include "back-passwd/external.h"
 #endif
@@ -28,6 +31,9 @@
 static BackendInfo binfo[] = {
 #ifdef SLAPD_LDBM
 	{"ldbm",	ldbm_back_initialize},
+#endif
+#ifdef SLAPD_BDB2
+	{"bdb2",	bdb2_back_initialize},
 #endif
 #ifdef SLAPD_PASSWD
 	{"passwd",	passwd_back_initialize},
@@ -49,7 +55,7 @@ BackendDB	*backendDB = NULL;
 
 int backend_init(void)
 {
-	int rc = 0;
+	int rc = -1;
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
@@ -93,7 +99,7 @@ int backend_init(void)
 		"backend_init: failed\n",
 		0, 0, 0 );
 
-	return rc ? rc : -1;
+	return rc;
 }
 
 int backend_startup(int n)
@@ -115,13 +121,22 @@ int backend_startup(int n)
 			"backend_startup: starting database %d\n",
 			n, 0, 0 );
 
+		/* make sure, n does not exceed the number of backend databases */
+		if ( n >= nbackends ) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: database number %d exceeding maximum (%d)\n",
+				n, nbackends, 0 );
+			return 1;
+		}
+
 		if ( backendDB[n].bd_info->bi_open ) {
 			rc = backendDB[n].bd_info->bi_open(
 				backendDB[n].bd_info );
 		}
 
 		if(rc != 0) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_open failed!\n",
 				0, 0, 0 );
 			return rc;
@@ -133,7 +148,7 @@ int backend_startup(int n)
 		}
 
 		if(rc != 0) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open failed!\n",
 				0, 0, 0 );
 			return rc;
@@ -143,6 +158,7 @@ int backend_startup(int n)
 	}
 
 	/* open each backend type */
+/*
 	for( i = 0; i < nBackendInfo; i++ ) {
 		if( backendInfo[i].bi_open ) {
 			rc = backendInfo[i].bi_open(
@@ -150,22 +166,38 @@ int backend_startup(int n)
 		}
 
 		if(rc != 0) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_open %d failed!\n",
 				i, 0, 0 );
 			return rc;
 		}
 	}
+*/
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+		BackendInfo  *bi;
+
+		/* open the backend type, if not done already */
+		bi =  backendDB[i].bd_info;
+		if( bi->bi_open ) {
+			rc = bi->bi_open( bi );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_open %s failed!\n",
+				bi->bi_type, 0, 0 );
+			return rc;
+		}
+
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
 				&backendDB[i] );
 		}
 
 		if(rc != 0) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open %d failed!\n",
 				i, 0, 0 );
 			return rc;
@@ -178,9 +210,19 @@ int backend_startup(int n)
 int backend_shutdown(int n)
 {
 	int i;
+	int rc = 0;
 
 	if(n >= 0) {
 		/* shutdown a specific backend database */
+
+		/* make sure, n does not exceed the number of backend databases */
+		if ( n >= nbackends ) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: database number %d exceeding maximum (%d)\n",
+				n, nbackends, 0 );
+			return 1;
+		}
 
 		if ( backendDB[n].bd_info->bi_db_close ) {
 			backendDB[n].bd_info->bi_db_close(
@@ -197,19 +239,35 @@ int backend_shutdown(int n)
 
 	/* close each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+		BackendInfo  *bi;
+
 		if ( backendDB[i].bd_info->bi_db_close ) {
 			backendDB[i].bd_info->bi_db_close(
 				&backendDB[i] );
 		}
+
+		/* close the backend type, if not done already */
+		bi =  backendDB[i].bd_info;
+		if( bi->bi_close ) {
+			rc = bi->bi_close( bi );
+		}
+
+		if(rc != 0) {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_close: bi_close %s failed!\n",
+				bi->bi_type, 0, 0 );
+		}
 	}
 
 	/* close each backend type */
+/*
 	for( i = 0; i < nBackendInfo; i++ ) {
 		if( backendInfo[i].bi_close ) {
 			backendInfo[i].bi_close(
 				&backendInfo[i] );
 		}
 	}
+*/
 
 	return 0;
 }
@@ -227,12 +285,14 @@ int backend_destroy(void)
 	}
 
 	/* destroy each backend type */
+/*
 	for( i = 0; i < nBackendInfo; i++ ) {
 		if( backendInfo[i].bi_destroy ) {
 			backendInfo[i].bi_destroy(
 				&backendInfo[i] );
 		}
 	}
+*/
 
 	return 0;
 }

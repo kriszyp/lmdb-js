@@ -19,7 +19,7 @@
  */
 static int
 bdb2i_back_group_internal(
-	Backend	*be,
+	BackendDB	*be,
 	Entry	*target,
 	char	*gr_ndn,
 	char	*op_ndn,
@@ -126,7 +126,7 @@ bdb2i_back_group_internal(
 
 int
 bdb2_back_group(
-	Backend	*be,
+	BackendDB	*be,
 	Entry	*target,
 	char	*gr_ndn,
 	char	*op_ndn,
@@ -143,7 +143,7 @@ bdb2_back_group(
 
 	gettimeofday( &time1, NULL );
 
-	if ( bdb2i_enter_backend_r( &li->li_db_env, &lock ) != 0 ) {
+	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
 		return( 1 );
 
@@ -152,7 +152,7 @@ bdb2_back_group(
 	ret = bdb2i_back_group_internal( be, target, gr_ndn, op_ndn,
 					objectclassValue, groupattrName );
 
-	(void) bdb2i_leave_backend( &li->li_db_env, lock );
+	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
 
 	if ( bdb2i_do_timing ) {
 

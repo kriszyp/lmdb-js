@@ -2,12 +2,23 @@
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## tests Makefile.in for OpenLDAP
+BUILD_BDB2 = @BUILD_BDB2@
+
+bdb2-local:	FORCE
+	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		@-$(LN_S) $(srcdir)/data .; \
+		echo "Initiating LDAP tests..."; \
+		$(MKDIR) test-db test-repl ; \
+		$(srcdir)/scripts/all $(srcdir) bdb2;\
+	else \
+		echo "run configure with --enable-bdb2"; \
+	fi
 
 all-local:	FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@echo "Initiating LDAP tests..."; \
 	$(MKDIR) test-db test-repl ; \
-	$(srcdir)/scripts/all $(srcdir)
+	$(srcdir)/scripts/all $(srcdir) ldbm
 
 clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core

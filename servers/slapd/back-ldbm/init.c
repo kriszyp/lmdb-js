@@ -36,7 +36,9 @@ ldbm_back_initialize(
 	bi->bi_op_delete = ldbm_back_delete;
 	bi->bi_op_abandon = ldbm_back_abandon;
 
+#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = ldbm_back_group;
+#endif
 
 	return 0;
 }
@@ -82,7 +84,7 @@ ldbm_back_db_init(
 	char		*argv[ 4 ];
 	int		i;
 
-	/* allocate backend-specific stuff */
+	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
 	/* arrange to read nextid later (on first request for it) */

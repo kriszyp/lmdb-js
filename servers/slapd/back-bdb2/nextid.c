@@ -14,7 +14,7 @@
 #include "back-bdb2.h"
 
 static ID
-next_id_read( Backend *be )
+next_id_read( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID  	id;
@@ -51,7 +51,7 @@ next_id_read( Backend *be )
 }
 
 static int
-next_id_write( Backend *be, ID id )
+next_id_write( BackendDB *be, ID id )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char	buf[20];
@@ -83,7 +83,7 @@ next_id_write( Backend *be, ID id )
 }
 
 int
-bdb2i_next_id_save( Backend *be )
+bdb2i_next_id_save( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID id = next_id_get( be );
@@ -97,7 +97,7 @@ bdb2i_next_id_save( Backend *be )
 }
 
 ID
-bdb2i_next_id( Backend *be )
+bdb2i_next_id( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
@@ -133,7 +133,7 @@ bdb2i_next_id( Backend *be )
 }
 
 void
-bdb2i_next_id_return( Backend *be, ID id )
+bdb2i_next_id_return( BackendDB *be, ID id )
 {
 #ifdef SLAPD_NEXTID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -156,7 +156,7 @@ bdb2i_next_id_return( Backend *be, ID id )
 }
 
 ID
-bdb2i_next_id_get( Backend *be )
+bdb2i_next_id_get( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;

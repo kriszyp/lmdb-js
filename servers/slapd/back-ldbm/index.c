@@ -179,9 +179,6 @@ add_value(
 
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
 
-	realval = val;
-	tmpval = NULL;
-
 	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int     len = strlen( val );
 

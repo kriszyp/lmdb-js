@@ -84,7 +84,7 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	entry_rdwr_unlock(e, rw);;
+	entry_rdwr_unlock(e, rw);
 
 	if ( --e->e_refcnt == 0 && e->e_state == ENTRY_STATE_DELETED ) {
 		entry_free( e );
@@ -213,9 +213,9 @@ bdb2i_cache_add_entry_lock(
                     == 0 && cache->c_cursize > cache->c_maxsize ) {
 			e = cache->c_lrutail;
 
-		/* XXX check for writer lock - should also check no readers pending */
+		/* check for active readers/writer lock */
 #ifdef LDAP_DEBUG
-			assert(!ldap_pvt_thread_rdwr_active(&e->e_rdwr));
+			assert(!ldap_pvt_thread_rdwr_active( &e->e_rdwr ));
 #endif
 
 			/* delete from cache and lru q */
@@ -236,7 +236,7 @@ bdb2i_cache_add_entry_lock(
 
 ID
 bdb2i_cache_find_entry_dn2id(
-	Backend		*be,
+	BackendDB		*be,
     struct cache	*cache,
     char		*dn
 )
@@ -386,13 +386,13 @@ bdb2i_cache_delete_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry:\n", 0, 0, 0 );
 
-	/* XXX check for writer lock - should also check no readers pending */
-#ifdef LDAP_DEBUG
-	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr));
-#endif
-
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
+	/* XXX check for writer lock - should also check no readers pending */
+#ifdef LDAP_DEBUG
+	assert(ldap_pvt_thread_rdwr_writers( &e->e_rdwr ) == 1);
+#endif
 
 	rc = cache_delete_entry_internal( cache, e );
 

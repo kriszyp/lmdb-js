@@ -19,7 +19,7 @@ extern char		*ldap_srvtab;
 extern Attribute	*attr_find();
 
 bdb2i_krbv4_ldap_auth(
-    Backend		*be,
+    BackendDB		*be,
     struct berval	*cred,
     AUTH_DAT		*ad
 )

@@ -10,12 +10,12 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
-static int	add_value(Backend *be, struct dbcache *db, char *type, int indextype, char *val, ID id);
+static int	add_value(BackendDB *be, struct dbcache *db, char *type, int indextype, char *val, ID id);
 static int	index2prefix(int indextype);
 
 int
 bdb2i_index_add_entry(
-    Backend	*be,
+    BackendDB	*be,
     Entry	*e
 )
 {
@@ -55,7 +55,7 @@ bdb2i_index_add_entry(
 
 int
 bdb2i_index_add_mods(
-    Backend	*be,
+    BackendDB	*be,
     LDAPModList	*ml,
     ID		id
 )
@@ -87,7 +87,7 @@ bdb2i_index_add_mods(
 
 ID_BLOCK *
 bdb2i_index_read(
-    Backend	*be,
+    BackendDB	*be,
     char	*type,
     int		indextype,
     char	*val
@@ -158,7 +158,7 @@ bdb2i_index_read(
 
 static int
 add_value(
-    Backend		*be,
+    BackendDB		*be,
     struct dbcache	*db,
     char		*type,
     int			indextype,
@@ -168,19 +168,17 @@ add_value(
 {
 	int	rc;
 	Datum   key;
-	ID_BLOCK	*idl;
-	char	prefix;
-	char	*realval, *tmpval, *s;
+	ID_BLOCK	*idl = NULL;
+	char	*tmpval = NULL;
+	char	*realval = val;
 	char	buf[BUFSIZ];
+
+	char	prefix = index2prefix( indextype );
 
 	ldbm_datum_init( key );
 
-	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
 
-	realval = val;
-	tmpval = NULL;
-	idl = NULL;
 	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int     len = strlen( val );
 
@@ -203,7 +201,10 @@ add_value(
 	if ( tmpval != NULL ) {
 		free( tmpval );
 	}
-	bdb2i_idl_free( idl );
+
+	if( idl != NULL ) {
+		bdb2i_idl_free( idl );
+	}
 
 	ldap_pvt_thread_yield();
 
@@ -213,7 +214,7 @@ add_value(
 
 int
 bdb2i_index_add_values(
-    Backend		*be,
+    BackendDB		*be,
     char		*type,
     struct berval	**vals,
     ID			id

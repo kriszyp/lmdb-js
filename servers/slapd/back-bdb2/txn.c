@@ -3,7 +3,7 @@
 #include "txn.h"
 
 
-void
+int
 bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 {
 	int             dbFile;
@@ -16,13 +16,12 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 
 		char fileName[MAXPATHLEN];
 
-		*fileNodeH = head->dbFileHandle[dbFile] =
-			(BDB2_TXN_FILES *) ch_calloc( 1, sizeof( BDB2_TXN_FILES ));
+		*fileNodeH = (BDB2_TXN_FILES *) ch_calloc( 1, sizeof( BDB2_TXN_FILES ));
 		if ( *fileNodeH == NULL ) {
 
 			Debug( LDAP_DEBUG_ANY, "bdb2i_txn_head_init(): out of memory!\n",
 					0, 0, 0 );
-			exit( 1 );
+			return( 1 );
 
 		}
 
@@ -33,6 +32,7 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 
 	}
 
+	return 0;
 }
 
 
@@ -43,9 +43,9 @@ bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 	struct stat st;
 	char        buf[MAXPATHLEN];
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 	curtime = currenttime;
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 	fileinfo->dbc_refcnt = 1;
 	fileinfo->dbc_lastref = curtime;
@@ -58,7 +58,8 @@ bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 		fileinfo->dbc_blksize = DEFAULT_BLOCKSIZE;
 	}
 
-	fileinfo->dbc_maxids = ( fileinfo->dbc_blksize / sizeof( ID )) - 2;
+	fileinfo->dbc_maxids = ( fileinfo->dbc_blksize / sizeof( ID )) -
+			ID_BLOCK_IDS_OFFSET;
 	fileinfo->dbc_maxindirect = ( SLAPD_LDBM_MIN_MAXIDS /
 		fileinfo->dbc_maxids ) + 1;
 
@@ -122,9 +123,12 @@ bdb2i_txn_attr_config(
 			/*  BUT NOT "objectclass", 'cause that's a default index !  */
 			if ( open && strcasecmp( fileName, "objectclass" )) {
 
+				/*  re-use filename to get the complete path  */
+				sprintf( fileName, "%s%s%s",
+							li->li_directory, DEFAULT_DIRSEP, p->dbc_name );
+
 				/*  since we have an mpool, we should not define a cache size */
-				p->dbc_db = ldbm_open_env( p->dbc_name, LDBM_WRCREAT,
-							li->li_mode, 0, &li->li_db_env );
+				p->dbc_db = ldbm_open( fileName, LDBM_WRCREAT, li->li_mode, 0 );
 
 				/*  if the files could not be opened, something is wrong;
 					complain  */
@@ -154,17 +158,20 @@ bdb2i_txn_attr_config(
 }
 
 
-void
+int
 bdb2i_txn_open_files( struct ldbminfo *li )
 {
 	BDB2_TXN_HEAD   *head = &li->li_txn_head;
 	BDB2_TXN_FILES  *dbFile;
 
 	for ( dbFile = head->dbFiles; dbFile; dbFile = dbFile->next ) {
+		char   fileName[MAXPATHLEN];
+
+		sprintf( fileName, "%s%s%s",
+					li->li_directory, DEFAULT_DIRSEP, dbFile->dbc_name );
 
 		/*  since we have an mpool, we should not define a cache size */
-		dbFile->dbc_db = ldbm_open_env( dbFile->dbc_name, LDBM_WRCREAT,
-							li->li_mode, 0, &li->li_db_env );
+		dbFile->dbc_db = ldbm_open( fileName, LDBM_WRCREAT, li->li_mode, 0 );
 
 		/*  if the files could not be opened, something is wrong; complain  */
 		if ( dbFile->dbc_db == NULL ) {
@@ -172,7 +179,7 @@ bdb2i_txn_open_files( struct ldbminfo *li )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb2i_txn_open_files(): couldn't open file \"%s\" -- FATAL.\n",
 				dbFile->dbc_name, 0, 0 );
-			exit( 1 );
+			return( 1 );
 
 		}
 
@@ -184,13 +191,16 @@ bdb2i_txn_open_files( struct ldbminfo *li )
 
 	}
 
+	return 0;
 }
 
 
 void
-bdb2i_txn_close_files( BDB2_TXN_HEAD *head)
+bdb2i_txn_close_files( BackendDB *be )
 {
-	BDB2_TXN_FILES  *dbFile;
+	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
+	BDB2_TXN_HEAD    *head = &li->li_txn_head;
+	BDB2_TXN_FILES   *dbFile;
 
 	for ( dbFile = head->dbFiles; dbFile; dbFile = dbFile->next ) {
 
@@ -207,8 +217,12 @@ bdb2i_get_db_file_cache( struct ldbminfo *li, char *name )
 	BDB2_TXN_FILES *dbFile;
 	int            dbFileNum;
 
+	Debug( LDAP_DEBUG_TRACE, "bdb2i_get_db_file_cache(): looking for file %s\n",
+			name, 0, 0 );
+
 	for ( dbFile = head->dbFiles; dbFile; dbFile = dbFile->next ) {
 
+		/*  we've got it  */
 		if ( !strcasecmp( dbFile->dbc_name, name )) return( dbFile );
 
 	}
@@ -225,19 +239,18 @@ bdb2i_get_db_file_cache( struct ldbminfo *li, char *name )
 /*  check for new attribute indexes, that might have been created
     during former runs of slapd  */
 /*  this is called during startup of the slapd server  */
-void
+int
 bdb2i_check_additional_attr_index( struct ldbminfo *li )
 {
 	DIR            *datadir;
 	struct dirent  *file;
 
 	if ( ( datadir = opendir( li->li_directory ) ) == NULL ) {
-	/* if ( ( datadir = opendir( "/tmp" ) ) == NULL ) { */
 
 		Debug( LDAP_DEBUG_ANY,
 	"bdb2i_check_additional_attr_index(): ERROR while opening datadir: %s\n",
 				strerror( errno ), 0, 0 );
-		exit( 1 );
+		return( 1 );
 
 	}
 
@@ -266,6 +279,7 @@ bdb2i_check_additional_attr_index( struct ldbminfo *li )
 
 	closedir( datadir );
 
+	return 0;
 }
 
 

@@ -304,9 +304,14 @@ main( int argc, char **argv )
 	}
 
 shutdown:
-	slap_shutdown(-1);
+	/* remember an error during shutdown */
+	rc |= slap_shutdown(-1);
 destroy:
-	slap_destroy();
+	/* remember an error during destroy */
+	rc |= slap_destroy();
+
+	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
+
 	return rc;
 }
 

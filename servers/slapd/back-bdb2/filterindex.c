@@ -10,12 +10,12 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
-static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );
-static ID_BLOCK	*presence_candidates( Backend *be, char *type );
-static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
-static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
-static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
-static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
+static ID_BLOCK	*ava_candidates( BackendDB *be, Ava *ava, int type );
+static ID_BLOCK	*presence_candidates( BackendDB *be, char *type );
+static ID_BLOCK	*approx_candidates( BackendDB *be, Ava *ava );
+static ID_BLOCK	*list_candidates( BackendDB *be, Filter *flist, int ftype );
+static ID_BLOCK	*substring_candidates( BackendDB *be, Filter *f );
+static ID_BLOCK	*substring_comp_candidates( BackendDB *be, char *type, char *val, int prepost );
 
 /*
  * test_filter - test a filter against a single entry.
@@ -26,7 +26,7 @@ static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, 
 
 ID_BLOCK *
 bdb2i_filter_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Filter	*f
 )
 {
@@ -93,7 +93,7 @@ bdb2i_filter_candidates(
 
 static ID_BLOCK *
 ava_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Ava		*ava,
     int		type
 )
@@ -124,7 +124,7 @@ ava_candidates(
 
 static ID_BLOCK *
 presence_candidates(
-    Backend	*be,
+    BackendDB	*be,
     char	*type
 )
 {
@@ -141,7 +141,7 @@ presence_candidates(
 
 static ID_BLOCK *
 approx_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Ava		*ava
 )
 {
@@ -178,7 +178,7 @@ approx_candidates(
 
 static ID_BLOCK *
 list_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Filter	*flist,
     int		ftype
 )
@@ -219,7 +219,7 @@ list_candidates(
 
 static ID_BLOCK *
 substring_candidates(
-    Backend	*be,
+    BackendDB	*be,
     Filter	*f
 )
 {
@@ -286,7 +286,7 @@ substring_candidates(
 
 static ID_BLOCK *
 substring_comp_candidates(
-    Backend	*be,
+    BackendDB	*be,
     char	*type,
     char	*val,
     int		prepost

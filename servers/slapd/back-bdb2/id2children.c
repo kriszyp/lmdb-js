@@ -12,7 +12,7 @@
 
 int
 bdb2i_id2children_add(
-    Backend	*be,
+    BackendDB	*be,
     Entry	*p,
     Entry	*e
 )
@@ -56,7 +56,7 @@ bdb2i_id2children_add(
 
 int
 bdb2i_id2children_remove(
-    Backend	*be,
+    BackendDB	*be,
     Entry	*p,
     Entry	*e
 )
@@ -98,7 +98,7 @@ bdb2i_id2children_remove(
 
 int
 bdb2i_has_children(
-    Backend	*be,
+    BackendDB	*be,
     Entry	*p
 )
 {

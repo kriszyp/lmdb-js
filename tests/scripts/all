@@ -10,12 +10,20 @@ if [ $# -eq 0 ]; then
 else
 	SRCDIR=$1; shift
 fi
-
 echo ">>>>> Test Directory: $SRCDIR"
+
+if [ $# -eq 1 ]; then
+	BDB2=$1; shift
+	if [ "$BDB2" == "ldbm" ]; then
+		echo ">>>>> LDBM mode"
+	else
+		echo ">>>>> BDB2 mode"
+	fi
+fi
 
 for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting `basename $CMD` ..."
-	$CMD $SRCDIR
+	$CMD $SRCDIR $BDB2
 	RC=$?
 	if [ $RC -eq 0 ]; then
 		echo ">>>>> $CMD completed OK."
