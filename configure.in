@@ -212,9 +212,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
-	if test $ol_enable_multimaster = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-multimaster argument])
-	fi
 dnl	if test $ol_enable_multimaster = yes ; then
 dnl		AC_MSG_WARN([slapd disabled, ignoring --enable-multimaster argument])
 dnl	fi
