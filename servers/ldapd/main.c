@@ -319,8 +319,8 @@ main( int argc, char **argv )
 		len = sizeof(from);
 		if ( getpeername( ns, (struct sockaddr *) &from, &len )
 		    == 0 ) {
-			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-			sizeof(from.sin_addr.s_addr), AF_INET );
+			hp = gethostbyaddr( (char *) &(from.sin_addr),
+			sizeof(from.sin_addr), AF_INET );
 			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
 			    (hp == NULL) ? "unknown" : hp->h_name,
 			    inet_ntoa( from.sin_addr ), 0 );
@@ -401,8 +401,8 @@ main( int argc, char **argv )
 			continue;
 		}
 
-		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-		    sizeof(from.sin_addr.s_addr), AF_INET );
+		hp = gethostbyaddr( (char *) &(from.sin_addr),
+		    sizeof(from.sin_addr), AF_INET );
 
 #ifdef HAVE_TCPD
 		if ( !hosts_ctl("ldapd", (hp == NULL) ? "unknown" : hp->h_name,

@@ -203,8 +203,8 @@ main( int argc, char **argv )
 		fromlen = sizeof(from);
 		if ( getpeername( 0, (struct sockaddr *) &from, &fromlen )
 		    == 0 ) {
-			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-			    sizeof(from.sin_addr.s_addr), AF_INET );
+			hp = gethostbyaddr( (char *) &(from.sin_addr),
+			    sizeof(from.sin_addr), AF_INET );
 			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
 			    (hp == NULL) ? "unknown" : hp->h_name,
 			    inet_ntoa( from.sin_addr ), 0 );
@@ -247,8 +247,8 @@ main( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 
-		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-		    sizeof(from.sin_addr.s_addr), AF_INET );
+		hp = gethostbyaddr( (char *) &(from.sin_addr),
+		    sizeof(from.sin_addr), AF_INET );
 
 		if ( dosyslog ) {
 			syslog( LOG_INFO, "TCP connection from %s (%s)",

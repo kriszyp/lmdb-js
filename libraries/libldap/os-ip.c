@@ -303,9 +303,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		(void)memset((char *)&sin, 0, sizeof(struct sockaddr_in));
 		sin.sin_family = AF_INET;
 		sin.sin_port = port;
-		p = (char *)&sin.sin_addr.s_addr;
+		p = (char *)&sin.sin_addr;
 		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
-		SAFEMEMCPY(p, q, sizeof(p) );
+		SAFEMEMCPY(p, q, sizeof(sin.sin_addr) );
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
 				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);

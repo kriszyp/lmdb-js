@@ -664,8 +664,8 @@ slapd_daemon_task(
 
 #if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
 			hp = gethostbyaddr( (char *)
-			    &(from.sin_addr.s_addr),
-			    sizeof(from.sin_addr.s_addr), AF_INET );
+			    &(from.sin_addr),
+			    sizeof(from.sin_addr), AF_INET );
 
 			if(hp) {
 				dnsname = ldap_pvt_str2lower( hp->h_name );

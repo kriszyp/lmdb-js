@@ -165,8 +165,8 @@ get_cldap_msg(
 		    tmp->m_msgtype == msgtype &&
 		    ((struct sockaddr_in *)&tmp->m_clientaddr)->sin_port ==
 		    ((struct sockaddr_in *)fromaddr)->sin_port &&
-		    ((struct sockaddr_in *)&tmp->m_clientaddr)->sin_addr.s_addr
-		    == ((struct sockaddr_in *)fromaddr)->sin_addr.s_addr ) {
+		    ((struct sockaddr_in *)&tmp->m_clientaddr)->sin_addr
+		    == ((struct sockaddr_in *)fromaddr)->sin_addr ) {
 			break;
 		}
 	}

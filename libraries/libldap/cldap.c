@@ -129,9 +129,9 @@ cldap_open( LDAP_CONST char *host, int port )
 		}
 
 		for ( i = 0; hp->h_addr_list[ i ] != 0; ++i ) {
-		    SAFEMEMCPY( (char *)&sock.sin_addr.s_addr,
+		    SAFEMEMCPY( (char *)&sock.sin_addr,
 			    (char *)hp->h_addr_list[ i ],
-			    sizeof(sock.sin_addr.s_addr));
+			    sizeof(sock.sin_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 			ldap_ld_free( ld, 1, NULL, NULL );
 			LDAP_FREE( host_dup );
