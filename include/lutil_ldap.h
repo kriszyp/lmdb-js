@@ -22,6 +22,10 @@
 
 LDAP_BEGIN_DECL
 
+LDAP_LUTIL_F( void )
+lutil_sasl_freedefs LDAP_P((
+	void *defaults ));
+
 LDAP_LUTIL_F( void * )
 lutil_sasl_defaults LDAP_P((
 	LDAP *ld,
