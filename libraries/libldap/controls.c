@@ -107,9 +107,9 @@ int ldap_int_put_controls(
 	return LDAP_SUCCESS;
 }
 
-int ldap_int_get_controls LDAP_P((
+int ldap_int_get_controls(
 	BerElement *ber,
-	LDAPControl ***ctrls ))
+	LDAPControl ***ctrls )
 {
 	int nctrls;
 	unsigned long tag, len;
