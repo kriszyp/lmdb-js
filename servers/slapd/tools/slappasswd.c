@@ -31,7 +31,7 @@ usage(const char *s)
 		"Usage: %s [options]\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
-		"  -u\t\tgenerate RFC2307 values\n"
+		"  -u\t\tgenerate RFC2307 values (default)\n"
 		"  -v\t\tincrease verbosity\n"
 		, s );
 
