@@ -91,6 +91,9 @@ ID ldbm_tool_entry_first(
 	}
 
 	AC_MEMCPY( &id, key.dptr, key.dsize );
+#ifndef WORDS_BIGENDIAN
+	id = ntohl( id );
+#endif
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 
