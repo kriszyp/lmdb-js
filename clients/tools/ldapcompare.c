@@ -217,7 +217,7 @@ main( int argc, char **argv )
 
 	free( bvalue.bv_val );
 
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 
 	return rc;
 }

@@ -307,7 +307,7 @@ main( int argc, char **argv )
 	}
 
 	if ( !not ) {
-		ldap_unbind( ld );
+		ldap_unbind_ext( ld, NULL, NULL );
 	}
 
 	if ( rejfp != NULL ) {

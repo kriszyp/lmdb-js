@@ -825,7 +825,7 @@ getNextPage:
 	}
 #endif
 
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
 #endif

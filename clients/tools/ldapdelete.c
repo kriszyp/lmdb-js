@@ -197,7 +197,7 @@ main( int argc, char **argv )
 		}
 	}
 
-    ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 
     return( retval );
 }
