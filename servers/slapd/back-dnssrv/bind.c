@@ -1,7 +1,7 @@
 /* bind.c - DNS SRV backend bind function */
 /* $OpenLDAP$ */
 /*
- * Copyright 2000-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 

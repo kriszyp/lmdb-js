@@ -1,7 +1,7 @@
 /* modrdn.c - DNS SRV backend modrdn function */
 /* $OpenLDAP$ */
 /*
- * Copyright 2000-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
