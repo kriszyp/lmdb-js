@@ -191,6 +191,7 @@ X.500|X.500 Directory Services
 !block references; data
 Reference|Status|Document|Jump
 RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|ftp://ftp.isi.edu/in-notes/rfc2079.txt
+RFC2222|PS|Simple Authentication and Security Layer|ftp://ftp.isi.edu/in-notes/rfc2222.txt
 RFC2251|PS|Lightweight Directory Access Protocol (v3)|ftp://ftp.isi.edu/in-notes/rfc2251.txt
 RFC2252|PS|LDAPv3: Attribute Syntax Definitions|ftp://ftp.isi.edu/in-notes/rfc2252.txt
 RFC2253|PS|LDAPv3: UTF-8 String Representation of Distinguished Names|ftp://ftp.isi.edu/in-notes/rfc2253.txt
