@@ -600,7 +600,9 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 				if ( rc ) {
 					bdb_cache_entry_db_relock( bdb->bi_dbenv,
 						locker, *eip, 1, 0, lock );
-					rc = bdb_fix_dn( (*eip)->bei_e, 2 );
+					/* check again in case other modifier did it already */
+					if ( bdb_fix_dn( (*eip)->bei_e, 1 ) )
+						rc = bdb_fix_dn( (*eip)->bei_e, 2 );
 					bdb_cache_entry_db_relock( bdb->bi_dbenv,
 						locker, *eip, 0, 0, lock );
 				}
