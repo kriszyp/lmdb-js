@@ -1,86 +1,93 @@
 	A N N O U N C E M E N T
 
-	OpenLDAP 1.1
+	OpenLDAP 2.0-alpha
 
 	The OpenLDAP Project is pleased to announce the availability
-	of OpenLDAP release 1.1, a suite of the Lightweight Weight
+	of OpenLDAP release 2.0-alpha, a suite of the Lightweight Weight
 	Directory Protocol servers, clients, utilities, and development tools.
 
-	OpenLDAP is derived from University of Michigan LDAP release 3.3.
+	This release contains the following major enhancements:
 
-	This release includes the following components:
+		* LDAPv3 support
+			- RFC2251 support
+			- named referrals
+			- named aliases
+		* SASL bind support
+		* TLS/SSL support
+		* Updated C API 
+		* Additional SLAPD backends:
+			- LDAP backend
+			- Perl backend
+			- TCL backend
 
-	- slapd - a stand-alone LDAP directory server
-	- slurpd - a stand-alone LDAP replication server
-	- ldapd - an LDAP-to-X.500 gateway server
-	- centipede - an LDAP centroid generation and maintenance program
-	- libldap - an LDAP client library
-	- liblber - a lightweight BER/DER encoding/decoding library
-	- ldif tools - data conversion tools for use with slapd
-	- in.xfingerd - a finger-to-LDAP gateway server
-	- go500 - a gopher-to-LDAP gateway server for searching
-	- go500gw - a gopher-to-LDAP gateway server for searching and browsing
-	- rcpt500 - an email-to-LDAP query responder
-	- mail500 - an LDAP-capable mailer
-	- fax500 - an LDAP-capable mailer that supports remote printing
-	- LDAP tools - A collection of shell-based LDAP utility programs
+	This release includes the following major components:
+
+		* slapd - a stand-alone LDAP directory server
+		* slurpd - a stand-alone LDAP replication server
+		* -lldap - an LDAP client library
+		* -llber - a lightweight BER/DER encoding/decoding library
+		* LDIF tools - data conversion tools for use with slapd
+		* LDAP gateways - finger, gopher, email to LDAP gateways
+		* LDAP mailers - sendmail-compatibile mail delivery agents
+		* LDAP tools - A collection of command line LDAP utility programs
 
 	In addition, there are some contributed components:
 
-	- gtk-tool - a demonstration ldap interface written gtk
-	- php3-tool - a demonstration ldap interface written php3 
-	- saucer - a simple command-line oriented client program
-	- whois++d - a WHOIS++-to-LDAP gateway
+		* ldapTCL - the NeoSoft TCL LDAP SDK 
+		* gtk-tool - a demonstration ldap interface written gtk
+		* php3-tool - a demonstration ldap interface written php3 
+		* saucer - a simple command-line oriented client program
+		* whois++d - a WHOIS++-to-LDAP gateway
 
-CHANGES
-	Changes from OpenLDAP 1.0
-	- improved build environment with dynamic library support,
-	- externally configurable client library support: ldap.conf(5),
-	- improved password security features include SHA1, MD5, crypt(3)
-	  user and root passwords instead of clear-text password
-	- integrated SDK and tools for MS NT,
-	- platforms updates, and
-	- numerous bug fixes and build changes.
 
-	Changes from U. Mich release 3.3
-	- TCP Wrappers support added to slapd,
-	- Berkeley DB2 compatibility added to slapd,
-	- ACL enhancements including Access by Group and POSIX regex(3) support,
-	- platforms updates, and
-	- numerous bug fixes and build changes.
+ACKNOWLEDGEMENTS
 
-	See the CHANGES file in the distribution for more details.
+	OpenLDAP is developed by a team of volunteers whose use
+	the Internet to coordinate their activities.   The project is
+	managed by the OpenLDAP Foundation.
+
+	OpenLDAP software is derived from University of Michigan
+	LDAP release 3.3.
+
 
 AVAILABILITY
 
 	This software is available under the OpenLDAP Public License.
 	For download information is available at:
+
 		http://www.OpenLDAP.org/software/download/
+
 
 SUPPORT
 
-	The software is provided as is without any express or implied
-	warranty, but there is a bug reporting mail address which is
-	responded to on a best-effort basis:
+	OpenLDAP software is user supported.
 
-	OpenLDAP-bugs@OpenLDAP.org
+		http://www.openldap.org/support/
+
+	To report bugs, please use project's Issue Tracking System:
+
+		http://www.openldap.org/its/
+
+	The project maintains a FAQ which you may find useful:
+
+		http://www.openldap.org/fag/
 
 	In addition, there are also a number of discussion lists
 	related OpenLDAP.  A list of mailing lists is available at:
 
-	http://www.OpenLDAP.org/lists/
+		http://www.OpenLDAP.org/lists/
 
 	The OpenLDAP home page containing lots of interesting information
 	and online documentation is available at this URL:
 
-	http://www.OpenLDAP.org/
+		http://www.OpenLDAP.org/
+
 
 SUPPORTED PLATFORMS
 
 	This release has been ported to many UNIX (and UNIX-like) platforms
 	including AIX, Digital UNIX (OSF/1), FreeBSD, HP-UX, IRIX, Linux,
 	NetBSD, NexTSTEP, OpenBSD, SCO, Solaris, SunOS, and Ultrix.
-
-	The client libraries and some clients have also been ported to
-	MS Windows 95/NT.
+	The release has also be ported (in part or in whole) to other
+	platforms including BeOS, MacOS, and MS Windows 95/NT.
 
