@@ -353,7 +353,7 @@ change_base( int type, char **base, char *s )
 	/*
 	 *  If s is NULL we need to prompt the user for an argument.
 	 */
-	while (s == NULL) {
+	if (s == NULL) {
 		if (verbose) {
 			printf("  You need to specify how the base is to be changed.  Valid choices are:\n");
 			printf("     ?       - list the choices immediately below this level\n");
@@ -367,6 +367,8 @@ change_base( int type, char **base, char *s )
 		fetch_buffer(buf, sizeof(buf), stdin);
 		if ((buf != NULL) && (buf[0] != '\0'))
 			s = buf;
+		else
+			return;
 	}
 
 	/* set the output string */
