@@ -29,13 +29,17 @@ bdb_db_hash(
 	u_int32_t length
 )
 {
-	u_int32_t i, ret = 0;
+	u_int32_t ret = 0;
+	unsigned char *dst = (unsigned char *)&ret;
+	const unsigned char *src = (const unsigned char *)bytes;
 
 	if ( length > sizeof(u_int32_t) )
 		length = sizeof(u_int32_t);
 
-	for( i = 0; i < length; i++ )
-		ret = (ret << 8) + ((const unsigned char *)bytes)[i];
+	while ( length ) {
+		*dst++ = *src++;
+		length--;
+	}
 	return ret;
 }
 
