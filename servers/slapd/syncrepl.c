@@ -676,7 +676,7 @@ syncrepl_message_to_entry(
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	struct berval	bdn = {0, NULL};
+	struct berval	bdn = {0, NULL}, dn, ndn;
 	int		rc;
 
 	ber_len_t	len;
@@ -707,46 +707,7 @@ syncrepl_message_to_entry(
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_entry : control get failed (%d)", rc, 0, 0 );
 #endif
-		goto done;
-	}
-
-	rc = ldap_get_dn_ber( ld, msg, &ber, &bdn );
-
-	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
-#endif
 		return NULL;
-	}
-
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
-	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname, op->o_tmpmemctx );
-	ber_dupbv( &op->o_req_dn, &e->e_name );
-	ber_dupbv( &op->o_req_ndn, &e->e_nname );
-	sl_free( e->e_nname.bv_val, op->o_tmpmemctx );
-	sl_free( e->e_name.bv_val, op->o_tmpmemctx );
-	e->e_name = op->o_req_dn;
-	e->e_nname = op->o_req_ndn;
-
-	while ( ber_remaining( ber ) ) {
-		if ( (ber_scanf( ber, "{mW}", &tmp.sml_type, &tmp.sml_values ) ==
-			LBER_ERROR ) || ( tmp.sml_type.bv_val == NULL )) break;
-
-		mod  = (Modifications *) ch_malloc( sizeof( Modifications ));
-
-		mod->sml_op = LDAP_MOD_REPLACE;
-		mod->sml_next = NULL;
-		mod->sml_desc = NULL;
-		mod->sml_type = tmp.sml_type;
-		mod->sml_bvalues = tmp.sml_bvalues;
-		mod->sml_nvalues = NULL;
-
-		*modtail = mod;
-		modtail = &mod->sml_next;
 	}
 
 	if ( rctrls ) {
@@ -771,9 +732,48 @@ syncrepl_message_to_entry(
 #endif
 	}
 
+	rc = ldap_get_dn_ber( ld, msg, &ber, &bdn );
+
+	if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
+#endif
+		return NULL;
+	}
+
+	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+	ber_dupbv( &op->o_req_dn, &dn );
+	ber_dupbv( &op->o_req_ndn, &ndn );
+	sl_free( ndn.bv_val, op->o_tmpmemctx );
+	sl_free( dn.bv_val, op->o_tmpmemctx );
+
 	if ( *syncstate == LDAP_SYNC_PRESENT || *syncstate == LDAP_SYNC_DELETE ) {
-		rc = 1;
-		goto done;
+		return NULL;
+	}
+
+	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
+	e->e_name = op->o_req_dn;
+	e->e_nname = op->o_req_ndn;
+
+	while ( ber_remaining( ber ) ) {
+		if ( (ber_scanf( ber, "{mW}", &tmp.sml_type, &tmp.sml_values ) ==
+			LBER_ERROR ) || ( tmp.sml_type.bv_val == NULL )) break;
+
+		mod  = (Modifications *) ch_malloc( sizeof( Modifications ));
+
+		mod->sml_op = LDAP_MOD_REPLACE;
+		mod->sml_next = NULL;
+		mod->sml_desc = NULL;
+		mod->sml_type = tmp.sml_type;
+		mod->sml_bvalues = tmp.sml_bvalues;
+		mod->sml_nvalues = NULL;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
 	}
 
 	if ( *modlist == NULL ) {
@@ -991,7 +991,7 @@ syncrepl_entry(
 			rc = be->be_delete( op, &rs );
 		}
 		/* Already deleted otherwise */
-		return 1;
+		return 0;
 
 	default :
 #ifdef NEW_LOGGING
