@@ -554,8 +554,8 @@ do_syncrep2(
 				}
 				if ( rc_efree && entry ) {
 					entry_free( entry );
-					entry = NULL;
 				}
+				entry = NULL;
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
@@ -1008,6 +1008,8 @@ syncrepl_message_to_entry(
 	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
+		if ( entry )
+			*entry = NULL;
 		return LDAP_SUCCESS;
 	}
 
@@ -1048,6 +1050,8 @@ syncrepl_message_to_entry(
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: no attributes\n",
 			0, 0, 0 );
 #endif
+		rc = -1;
+		goto done;
 	}
 
 	rc = slap_mods_check( *modlist, 1, &text, txtbuf, textlen, NULL );
@@ -1089,8 +1093,10 @@ syncrepl_message_to_entry(
 done:
 	ber_free ( ber, 0 );
 	if ( rc != LDAP_SUCCESS ) {
-		entry_free( e );
-		*entry = e = NULL;
+		if ( e ) {
+			entry_free( e );
+			*entry = e = NULL;
+		}
 	}
 
 	return rc;
@@ -1100,7 +1106,7 @@ int
 syncrepl_entry(
 	syncinfo_t* si,
 	Operation *op,
-	Entry* e,
+	Entry* entry,
 	Modifications* modlist,
 	int syncstate,
 	struct berval* syncUUID,
@@ -1136,7 +1142,11 @@ syncrepl_entry(
 	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT ) {
-		return e ? 1 : 0;
+		return 0;
+	} else if ( syncstate != LDAP_SYNC_DELETE ) {
+		if ( entry == NULL ) {
+			return 0;
+		}
 	}
 
 	f.f_choice = LDAP_FILTER_EQUALITY;
@@ -1247,14 +1257,14 @@ syncrepl_entry(
 			 rs_search.sr_err == LDAP_NO_SUCH_OBJECT ||
 			 rs_search.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF )
 		{
-			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
-			attr_merge_one( e, slap_schema.si_ad_entryUUID,
+			attr_delete( &entry->e_attrs, slap_schema.si_ad_entryUUID );
+			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
 				&syncUUID_strrep, syncUUID );
 
 			op->o_tag = LDAP_REQ_ADD;
-			op->ora_e = e;
-			op->o_req_dn = e->e_name;
-			op->o_req_ndn = e->e_nname;
+			op->ora_e = entry;
+			op->o_req_dn = entry->e_name;
+			op->o_req_ndn = entry->e_nname;
 
 			rc = be->be_add( op, &rs_add );
 
@@ -1280,8 +1290,8 @@ syncrepl_entry(
 					
 					op->o_tag = LDAP_REQ_MODIFY;
 					op->orm_modlist = modlist;
-					op->o_req_dn = e->e_name;
-					op->o_req_ndn = e->e_nname;
+					op->o_req_dn = entry->e_name;
+					op->o_req_ndn = entry->e_nname;
 
 					rc = be->be_modify( op, &rs_modify );
 					if ( rs_modify.sr_err != LDAP_SUCCESS ) {
@@ -1299,7 +1309,7 @@ syncrepl_entry(
 					goto done;
 				} else if ( rs_modify.sr_err == LDAP_REFERRAL ||
 							rs_modify.sr_err == LDAP_NO_SUCH_OBJECT ) {
-					syncrepl_add_glue( op, e );
+					syncrepl_add_glue( op, entry );
 					ret = 0;
 					goto done;
 				} else {
@@ -1316,7 +1326,7 @@ syncrepl_entry(
 					goto done;
 				}
 			} else {
-				be_entry_release_w( op, e );
+				be_entry_release_w( op, entry );
 				ret = 0;
 				goto done;
 			}
