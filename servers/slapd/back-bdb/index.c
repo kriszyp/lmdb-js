@@ -112,6 +112,7 @@ int bdb_index_param(
 	switch( ftype ) {
 	case LDAP_FILTER_PRESENT:
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
+			*prefixp = presence_key;
 			goto done;
 		}
 		break;
