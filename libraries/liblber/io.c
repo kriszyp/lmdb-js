@@ -510,13 +510,13 @@ ber_get_next(
 	}
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
-		(char *)&ber->ber_len + LENSIZE*2) {
+		(char *)&ber->ber_len + LENSIZE*2 -1) {
 		ber_slen_t sblen;
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
-			((char *)&ber->ber_len + LENSIZE*2)-ber->ber_rwptr);
+			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
 		ber->ber_rwptr += sblen;
 
