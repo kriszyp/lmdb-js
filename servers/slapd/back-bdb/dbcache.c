@@ -62,7 +62,7 @@ bdb_db_cache(
 
 	*dbout = NULL;
 
-	for( i=BDB_NDB; i < BDB_INDICES && bdb->bi_databases[i]; i++ ) {
+	for( i=BDB_NDB; i < bdb->bi_ndatabases; i++ ) {
 		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
 			return 0;
@@ -86,7 +86,7 @@ bdb_db_cache(
 	if (rc) return rc;
 
 	/* check again! may have been added by another thread */
-	for( i=BDB_NDB; i < BDB_INDICES && bdb->bi_databases[i]; i++ ) {
+	for( i=BDB_NDB; i < bdb->bi_ndatabases; i++ ) {
 		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
 			LOCK_PUT( bdb->bi_dbenv, &lock);
