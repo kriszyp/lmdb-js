@@ -43,13 +43,17 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 {
 	unsigned tid;
 	HANDLE thd;
+	int rc = -1;
 
 	thd = (HANDLE) _beginthreadex(NULL, LDAP_PVT_THREAD_STACK_SIZE, (thrfunc_t *) start_routine,
 				      arg, 0, &tid);
 
-	*thread = (ldap_pvt_thread_t) thd;
-
-	return thd == NULL ? -1 : 0;
+	if ( thd ) {
+		*thread = (ldap_pvt_thread_t) tid;
+		CloseHandle( thd );
+		rc = 0;
+	}
+	return rc;
 }
 	
 void 
@@ -62,7 +66,12 @@ int
 ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	DWORD status;
-	status = WaitForSingleObject( (HANDLE) thread, INFINITE );
+	HANDLE thd;
+	HANDLE __stdcall OpenThread( int, int, int );
+
+	thd = OpenThread( SYNCHRONIZE, 0, thread );
+	status = WaitForSingleObject( thd, INFINITE );
+	CloseHandle( thd );
 	return status == WAIT_FAILED ? -1 : 0;
 }
 
@@ -158,7 +167,7 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mp )
 ldap_pvt_thread_t
 ldap_pvt_thread_self( void )
 {
-	return GetCurrentThread();
+	return GetCurrentThreadId();
 }
 
 #endif
