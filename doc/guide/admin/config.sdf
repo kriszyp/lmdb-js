@@ -54,7 +54,7 @@ provide the required reliability or availability.
 H2: Distributed Local Directory Service
 
 In this configuration, the local service is partitioned into smaller
-services, each which may be replicated, and {{glued}} together with
+services, each of which may be replicated, and {{glued}} together with
 {{superior}} and {{subordinate}} referrals.
 !if 0
 An example of this configuration is shown in Figure 3.4.

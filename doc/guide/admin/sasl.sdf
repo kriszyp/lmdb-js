@@ -87,58 +87,8 @@ of the first step will be given in the next section using Kerberos
 V4 as an example mechanism. The steps necessary for your site's
 authentication mechanism will be similar, but a guide to every
 mechanism available under SASL is beyond the scope of this chapter.
-The next section after that describes the second step of mapping
-authentication identities to DN's.
-
-
-H3: GSSAPI
-
-This section describes the use of the SASL GSSAPI mechanism and
-Kerberos V with OpenLDAP. It will be assumed that you have Kerberos
-V deployed, you are familiar with the operation of the system, and that
-your users are trained its use.  This section also assumes you have
-familiarized yourself with the use of the GSSAPI mechanism by reading
-{{Configuring GSSAPI and Cyrus SASL}} (provided with Cyrus SASL in
-the {{FILE:doc/gssapi}} file) and successfully experimented with
-the Cyrus provided sample_server and sample_client applications.
-General information about Kerberos is available at
-{{URL:http://web.mit.edu/kerberos/www/}}.
-
-To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
-key with a principal for {{ldap}} service within the realm for the host
-on which the service runs.  For example, if your run {{slapd}} on
-{{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
-you need to create a service key with the principal:
-
->	ldap/directory.example.com@EXAMPLE.COM
-
-When {{slapd}}(8) runs, it must have access to this key.  This is
-generally done by placing the key into a keytab, such as
-{{FILE:/etc/krb5.keytab}}.
-
-To use the GSSAPI mechanism to authenticate to the directory, the
-user obtains a Ticket Granting Ticket (TGT) prior to running the
-LDAP client.  When using OpenLDAP client tools, the user may mandate
-use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
-command option.
-
-For the purposes of authentication and authorization, {{slapd}}(8)
-associates a non-mapped authentication DN of the form:
-
->	uid=principal,cn=GSSAPI,cn=auth
-
-If the user principal is within the same realm, the realm is
-trimmed from the principal.  Continuting our example, a user
-with the Kerberos principal {{EX:kurt@EXAMPLE.COM}} would have
-the associated DN:
-
->	uid=kurt,cn=GSSAPI,cn=auth
-
-and the principal {{EX:ursula@@FORIEGN.REALM}} would have the
-associated DN:
-
->	uid=ursula@FOREIGN-REALM,cn=GSSAPI,cn=auth
-
+The second step is described in the section 
+{{SECT:Mapping Authentication identities to LDAP entries}}.
 
 H3: KERBEROS_V4
 
@@ -146,7 +96,7 @@ This section describes the use of the SASL KERBEROS_V4 mechanism
 with OpenLDAP.  It will be assumed that you are familiar with the
 workings of Kerberos IV security system, and that your site has
 Kerberos IV deployed.  Your users should be familiar with
-authentication policy, are aware of how to receive credentials in
+authentication policy, how to receive credentials in
 a Kerberos ticket cache, and how to refresh expired credentials.
 
 Client programs will need to be able to obtain a session key for
@@ -187,18 +137,70 @@ DN}} of the form
 So in our above example, if the user's name were "adamson", the
 authentication request DN would be:
 
->	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTH
+>	uid=adamsom,cn=example.com,cn=kerberos_v4,cn=auth
 
 This authentication request DN by itself could be placed into ACL's
 and {{EX:groupOfNames}} "member" attributes, since it is of legitimate
-LDAP DN format. The next section, however, tells how to map that
+LDAP DN format. The section
+{{SECT:Mapping Authentication identities to LDAP entries}},
+however, tells how to map that
 DN into the DN of a person's own LDAP entry.
 
 Also note that this example, being for Kerberos, shows the <realm>
 portion of the DN being filled in with the Kerberos realm of the
-company. Several other authentication mechanisms do not emply the
+company. Several other authentication mechanisms do not employ the
 concept of a realm, so the ",cn=<realm>" portion of the authentication
 request DN would not appear.
+
+
+H3: GSSAPI
+
+This section describes the use of the SASL GSSAPI mechanism and
+Kerberos V with OpenLDAP. Since Kerberos V is being used, the information
+is very similar to the previous section.
+It will be assumed that you have Kerberos
+V deployed, you are familiar with the operation of the system, and that
+your users are trained in its use.  This section also assumes you have
+familiarized yourself with the use of the GSSAPI mechanism by reading
+{{Configuring GSSAPI and Cyrus SASL}} (provided with Cyrus SASL in
+the {{FILE:doc/gssapi}} file) and successfully experimented with
+the Cyrus provided sample_server and sample_client applications.
+General information about Kerberos is available at
+{{URL:http://web.mit.edu/kerberos/www/}}.
+
+To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
+key with a principal for {{ldap}} service within the realm for the host
+on which the service runs.  For example, if you run {{slapd}} on
+{{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
+you need to create a service key with the principal:
+
+>	ldap/directory.example.com@EXAMPLE.COM
+
+When {{slapd}}(8) runs, it must have access to this key.  This is
+generally done by placing the key into a keytab, such as
+{{FILE:/etc/krb5.keytab}}.
+
+To use the GSSAPI mechanism to authenticate to the directory, the
+user obtains a Ticket Granting Ticket (TGT) prior to running the
+LDAP client.  When using OpenLDAP client tools, the user may mandate
+use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
+command option.
+
+For the purposes of authentication and authorization, {{slapd}}(8)
+associates a non-mapped authentication request DN of the form:
+
+>	uid=<principal>,cn=<realm>,cn=gssapi,cn=auth
+
+Continuing our example, a user
+with the Kerberos principal {{EX:kurt@EXAMPLE.COM}} would have
+the associated DN:
+
+>	uid=kurt,cn=example.com,cn=gssapi,cn=auth
+
+and the principal {{EX:ursula@FOREIGN.REALM}} would have the
+associated DN:
+
+>	uid=ursula,cn=foreign.realm,cn=gssapi,cn=auth
 
 
 H3: Mapping Authentication identities to LDAP entries
@@ -207,7 +209,7 @@ The authentication mechanism in the slapd server will use SASL
 library calls to obtain the authenticated user's "username", based
 on whatever underlying authentication mechanism was used.  This
 username is in the namespace of the authentication mechanism, and
-not in the LDAP namespace. As stated in the section above, that
+not in the LDAP namespace. As stated in the sections above, that
 username is reformatted into an authentication request DN of the
 form
 
