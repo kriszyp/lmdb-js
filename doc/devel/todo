@@ -37,20 +37,21 @@ Localize slapd
 
 Medium projects
 ---------------
+Implement authPassword (RFC 3112)
+Implement DIT Structure Rules and Name Forms
+Implement LDAP Cancel extension
 Implement LDAP Transactions extension
 Implement Proxy Authorization Control extension
-Implement LDAP Cancel extension
-Implement authPassword (RFC 3112)
 Localize tools
 
 
 Small projects
 --------------
-Implement -V version options
 Add dumpasn1 logging support
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
-Recode linked-list structs to use <ldap_queue.h> macros
 Convert utfconv.txt into man page(s).
+Implement -V version options
+Recode linked-list structs to use <ldap_queue.h> macros
 Update any manual page
 
 
