@@ -277,6 +277,10 @@ do_bind(
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if( rc == LDAP_SUCCESS ) {
 			conn->c_dn = edn;
+			if( edn != NULL ) {
+				conn->c_ndn = ch_strdup( edn );
+				dn_normalize( conn->c_ndn );
+			}
 			conn->c_authmech = conn->c_sasl_bind_mech;
 			conn->c_sasl_bind_mech = NULL;
 			conn->c_sasl_bind_in_progress = 0;
@@ -477,9 +481,10 @@ do_bind(
 			if(edn != NULL) {
 				conn->c_dn = edn;
 			} else {
-				conn->c_dn = ndn;
-				ndn = NULL;
+				conn->c_dn = ch_strdup( conn->c_cdn );
 			}
+			conn->c_ndn = ndn;
+			ndn = NULL;
 
 			if( conn->c_dn != NULL ) {
 				ber_len_t max = sockbuf_max_incoming;

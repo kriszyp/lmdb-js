@@ -1167,6 +1167,7 @@ struct slap_backend_info {
 #define c_authtype	c_authz.sai_method
 #define c_authmech	c_authz.sai_mech
 #define c_dn		c_authz.sai_dn
+#define c_ndn		c_authz.sai_ndn
 #define c_ssf			c_authz.sai_ssf
 #define c_transport_ssf	c_authz.sai_transport_ssf
 #define c_tls_ssf		c_authz.sai_tls_ssf

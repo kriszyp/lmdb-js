@@ -414,6 +414,7 @@ long connection_init(
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
 		c->c_authmech = NULL;
 		c->c_dn = NULL;
+		c->c_ndn = NULL;
 		c->c_cdn = NULL;
 		c->c_groups = NULL;
 
@@ -451,6 +452,7 @@ long connection_init(
     assert( c->c_struct_state == SLAP_C_UNUSED );
 	assert( c->c_authmech == NULL );
     assert(	c->c_dn == NULL );
+    assert(	c->c_ndn == NULL );
     assert(	c->c_cdn == NULL );
     assert( c->c_groups == NULL );
     assert( c->c_listener_url == NULL );
@@ -579,6 +581,10 @@ void connection2anonymous( Connection *c )
     if(c->c_dn != NULL) {
 	free(c->c_dn);
 	c->c_dn = NULL;
+    }
+    if(c->c_ndn != NULL) {
+	free(c->c_ndn);
+	c->c_ndn = NULL;
     }
 
 	if(c->c_cdn != NULL) {
@@ -1460,9 +1466,8 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	if (!arg->co_op->o_dn) {
 	    arg->co_op->o_authz = conn->c_authz;
 	    arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
+	    arg->co_op->o_ndn = ch_strdup( conn->c_ndn != NULL ? conn->c_ndn : "" );
 	}
-	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
-	(void) dn_normalize( arg->co_op->o_ndn );
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
