@@ -356,13 +356,17 @@ bdb_idl_fetch_key(
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
-			BDB_IDL_CPY( ids, matched_idl_entry->idl );
+			if ( matched_idl_entry->idl )
+				BDB_IDL_CPY( ids, matched_idl_entry->idl );
 			ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
 			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			IDL_LRU_ADD( bdb, matched_idl_entry );
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
-			return LDAP_SUCCESS;
+			if ( matched_idl_entry->idl )
+				return LDAP_SUCCESS;
+			else
+				return DB_NOTFOUND;
 		}
 		ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
 	}
@@ -442,7 +446,9 @@ bdb_idl_fetch_key(
 	}
 
 	if( rc == DB_NOTFOUND ) {
+#ifndef SLAP_IDL_CACHE
 		return rc;
+#endif
 
 	} else if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -489,10 +495,14 @@ bdb_idl_fetch_key(
 		ee = (bdb_idl_cache_entry_t *) ch_malloc(
 			sizeof( bdb_idl_cache_entry_t ) );
 		ee->db = db;
-		ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
+		if ( rc == DB_NOTFOUND) {
+			ee->idl = NULL;
+		} else {
+			ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
+			BDB_IDL_CPY( ee->idl, ids );
+		}
 		ee->idl_lru_prev = NULL;
 		ee->idl_lru_next = NULL;
-		BDB_IDL_CPY( ee->idl, ids );
 		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
@@ -596,7 +606,8 @@ bdb_idl_insert_key(
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			free( matched_idl_entry->kstr.bv_val );
-			free( matched_idl_entry->idl );
+			if ( matched_idl_entry->idl )
+				free( matched_idl_entry->idl );
 			free( matched_idl_entry );
 		}
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
@@ -820,7 +831,8 @@ bdb_idl_delete_key(
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			free( matched_idl_entry->kstr.bv_val );
-			free( matched_idl_entry->idl );
+			if ( matched_idl_entry->idl )
+				free( matched_idl_entry->idl );
 			free( matched_idl_entry );
 		}
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );

@@ -468,7 +468,8 @@ bdb_db_close( BackendDB *be )
 			next_entry = entry->idl_lru_next;
 			avl_delete( &bdb->bi_idl_tree, (caddr_t) entry,
 					bdb_idl_entry_cmp );
-			free( entry->idl );
+			if ( entry->idl )
+				free( entry->idl );
 			free( entry->kstr.bv_val );
 			free( entry );
 			entry = next_entry;
