@@ -51,10 +51,7 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	DWORD status;
 	status = WaitForSingleObject( (HANDLE) thread, INFINITE );
-	if (status == WAIT_FAILED) {
-		return -1;
-	}
-	return 0;
+	return status == WAIT_FAILED ? -1 : 0;
 }
 
 int 
@@ -124,8 +121,9 @@ ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 int 
 ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
-	WaitForSingleObject( *mutex, INFINITE );
-	return ( 0 );
+	DWORD status;
+	status = WaitForSingleObject( *mutex, INFINITE );
+	return status == WAIT_FAILED ? -1 : 0;
 }
 
 int 
@@ -139,12 +137,9 @@ int
 ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mp )
 {
 	DWORD status;
-
 	status = WaitForSingleObject( *mp, 0 );
-	if ( (status == WAIT_FAILED) || (status == WAIT_TIMEOUT) )
-		return 0;
-	else
-		return 1;
+	return status == WAIT_FAILED || status == WAIT_TIMEOUT
+		? -1 : 0;
 }
 
 #endif
