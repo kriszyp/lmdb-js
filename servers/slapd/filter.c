@@ -124,6 +124,10 @@ get_filter(
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
 #endif
 		err = get_substring_filter( conn, ber, f, text );
+		if( err != LDAP_SUCCESS ) {
+			break;
+		}
+		assert( f->f_sub != NULL );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -137,6 +141,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_ava != NULL );
 		break;
 
 	case LDAP_FILTER_LE:
@@ -150,6 +155,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_ava != NULL );
 		break;
 
 	case LDAP_FILTER_PRESENT: {
@@ -190,6 +196,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_ava != NULL );
 		break;
 
 	case LDAP_FILTER_AND:
@@ -203,6 +210,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_and != NULL );
 		break;
 
 	case LDAP_FILTER_OR:
@@ -216,6 +224,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_or != NULL );
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -230,6 +239,7 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		assert( f->f_not != NULL );
 		break;
 
 	case LDAP_FILTER_EXT:
