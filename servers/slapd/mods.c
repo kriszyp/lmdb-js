@@ -24,8 +24,6 @@ slap_mod_free(
 	int				freeit
 )
 {
-	ad_free( mod->sm_desc, 1 );
-
 	if ( mod->sm_bvalues != NULL )
 		ber_bvecfree( mod->sm_bvalues );
 

@@ -109,7 +109,7 @@ meta_back_compare(
 	 */
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		char *mdn = NULL;
-		char *mapped_attr = ava->aa_desc->ad_cname->bv_val;
+		char *mapped_attr = ava->aa_desc->ad_cname.bv_val;
 		char *mapped_value = ava->aa_value->bv_val;
 
 		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
@@ -166,7 +166,7 @@ meta_back_compare(
 		 */
 		} else {
 			mapped_attr = ldap_back_map( &li->targets[ i ]->at_map,
-				ava->aa_desc->ad_cname->bv_val, 0 );
+				ava->aa_desc->ad_cname.bv_val, 0 );
 			if ( mapped_attr == NULL ) {
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 				continue;
@@ -188,7 +188,7 @@ meta_back_compare(
 		if ( mdn != dn ) {
 			free( mdn );
 		}
-		if ( mapped_attr != ava->aa_desc->ad_cname->bv_val ) {
+		if ( mapped_attr != ava->aa_desc->ad_cname.bv_val ) {
 			free( mapped_attr );
 		}
 		if ( mapped_value != ava->aa_value->bv_val ) {

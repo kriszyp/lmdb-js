@@ -113,7 +113,7 @@ ldap_back_modify(
 	}
 
 	for (i=0, ml=modlist; ml; ml=ml->sml_next) {
-		mapped = ldap_back_map(&li->at_map, ml->sml_desc->ad_cname->bv_val, 0);
+		mapped = ldap_back_map(&li->at_map, ml->sml_desc->ad_cname.bv_val, 0);
 		if (mapped == NULL) {
 			continue;
 		}

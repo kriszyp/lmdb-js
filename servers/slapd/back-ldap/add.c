@@ -119,20 +119,20 @@ ldap_back_add(
 		 * of the target directory are used, if available
 		 */
 #if 0
-		if ( !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_creatorsName->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_createTimestamp->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_modifiersName->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_modifyTimestamp->ad_cname->bv_val )
+		if ( !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_creatorsName->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_createTimestamp->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_modifiersName->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_modifyTimestamp->ad_cname.bv_val )
 		) {
 			continue;
 		}
 #endif
 		
-		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname->bv_val, 0);
+		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname.bv_val, 0);
 		if (mapped == NULL) {
 			continue;
 		}

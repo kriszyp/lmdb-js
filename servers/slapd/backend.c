@@ -1011,7 +1011,7 @@ Attribute *backend_operational(
 
 #ifdef SLAPD_SCHEMA_DN
 	a = ch_malloc( sizeof( Attribute ) );
-	a->a_desc = ad_dup( slap_schema.si_ad_subschemaSubentry );
+	a->a_desc = slap_schema.si_ad_subschemaSubentry;
 
 	/* Should be backend specific */
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );

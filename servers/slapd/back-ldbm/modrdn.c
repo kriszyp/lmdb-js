@@ -524,7 +524,6 @@ ldbm_back_modrdn(
 				"to attr \"%s\"\n%s%s",
 				new_rdn_types[a_cnt], "", "" );
 #endif
-			ad_free( desc, 1 );
 			send_ldap_result( conn, op, 
 				LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -601,7 +600,6 @@ ldbm_back_modrdn(
 					"to attr \"%s\"\n%s%s",
 					old_rdn_types[d_cnt], "", "" );
 #endif
-				ad_free( desc, 1 );
 				send_ldap_result( conn, op, 
 					LDAP_INSUFFICIENT_ACCESS,
 					NULL, NULL, NULL, NULL );

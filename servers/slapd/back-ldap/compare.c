@@ -100,7 +100,7 @@ ldap_back_compare(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	mapped_oc = ldap_back_map(&li->oc_map, ava->aa_desc->ad_cname->bv_val, 0);
+	mapped_oc = ldap_back_map(&li->oc_map, ava->aa_desc->ad_cname.bv_val, 0);
 	if (mapped_oc == NULL)
 		return( -1 );
 

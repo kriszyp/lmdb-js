@@ -21,7 +21,6 @@ ava_free(
     int	freeit
 )
 {
-	ad_free( ava->aa_desc, 1 );
 	ber_bvfree( ava->aa_value );
 	if ( freeit ) {
 		ch_free( (char *) ava );
@@ -70,7 +69,6 @@ get_ava(
 	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
-		ad_free( aa->aa_desc, 1 );
 		ch_free( aa );
 		return rc;
 	}

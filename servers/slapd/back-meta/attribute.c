@@ -138,7 +138,7 @@ meta_back_attribute(
 	}
 
 	mapped = ldap_back_map( &li->targets[ candidate ]->at_map,
-			entry_at->ad_cname->bv_val, 0 );
+			entry_at->ad_cname.bv_val, 0 );
 	if ( mapped == NULL )
 		return 1;
 

@@ -113,7 +113,7 @@ int backsql_process_filter_list(backsql_srch_info *bsi,Filter *f,int op)
 int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
 {
  int i;
- backsql_at_map_rec *at=backsql_at_with_name(bsi->oc,f->f_sub_desc->ad_cname->bv_val);
+ backsql_at_map_rec *at=backsql_at_with_name(bsi->oc,f->f_sub_desc->ad_cname.bv_val);
  
  if (!f)
   return 0;
@@ -208,10 +208,10 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			done=1;
 			break;
   case LDAP_FILTER_PRESENT:
-			at_name=f->f_desc->ad_cname->bv_val;
+			at_name=f->f_desc->ad_cname.bv_val;
 			break;
   default:
-			 at_name=f->f_av_desc->ad_cname->bv_val;
+			 at_name=f->f_av_desc->ad_cname.bv_val;
 			break;
  }
 

@@ -192,15 +192,15 @@ do_compare(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 		   "do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
-		   conn->c_connid, dn, ava.aa_desc->ad_cname->bv_val,
+		   conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
 		   ava.aa_value->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    dn, ava.aa_desc->ad_cname->bv_val, ava.aa_value->bv_val );
+	    dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
 #endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname->bv_val, 0 );
+	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname.bv_val, 0 );
 
 
 	/* deref suffix alias if appropriate */
@@ -218,9 +218,6 @@ cleanup:
 	free( ndn );
 	free( desc.bv_val );
 	free( value.bv_val );
-	if( ava.aa_desc != NULL ) {
-		ad_free( ava.aa_desc, 1 );
-	}
 
 	return rc;
 }

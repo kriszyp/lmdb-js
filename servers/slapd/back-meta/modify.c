@@ -153,20 +153,20 @@ meta_back_modify(
 		 * lastmod should always be <off>
 		 */
 #if 0
-		if ( !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_creatorsName->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_createTimestamp->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_modifiersName->ad_cname->bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
-			slap_schema.si_ad_modifyTimestamp->ad_cname->bv_val ) ) {
+		if ( !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_creatorsName->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_createTimestamp->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_modifiersName->ad_cname.bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
+			slap_schema.si_ad_modifyTimestamp->ad_cname.bv_val ) ) {
 			continue;
 		}
 #endif
 
 		mapped = ldap_back_map( &li->targets[ candidate ]->at_map,
-				ml->sml_desc->ad_cname->bv_val, 0 );
+				ml->sml_desc->ad_cname.bv_val, 0 );
 		if ( mapped == NULL ) {
 			continue;
 		}

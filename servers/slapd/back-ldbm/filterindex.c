@@ -82,7 +82,7 @@ filter_candidates(
 	case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "filter_candidates:  Present (%s)\n", f->f_desc->ad_cname->bv_val ));
+			   "filter_candidates:  Present (%s)\n", f->f_desc->ad_cname.bv_val ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
 #endif
@@ -94,7 +94,7 @@ filter_candidates(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
 			   "filter_candidates:  EQUALITY (%s),(%s)\n",
-			   f->f_ava->aa_desc->ad_cname->bv_val,
+			   f->f_ava->aa_desc->ad_cname.bv_val,
 			   f->f_ava->aa_value->bv_val ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
@@ -107,7 +107,7 @@ filter_candidates(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
 			   "filter_candidates:  APPROX (%s), (%s)\n",
-			   f->f_ava->aa_desc->ad_cname->bv_val,
+			   f->f_ava->aa_desc->ad_cname.bv_val,
 			   f->f_ava->aa_value->bv_val ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );

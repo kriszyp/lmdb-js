@@ -215,8 +215,6 @@ str2entry( char *s )
 
 		rc = attr_merge( e, ad, vals );
 
-		ad_free( ad, 1 );
-
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
@@ -307,10 +305,10 @@ entry2str(
 		/* put "<type>:[:] <value>" line for each value */
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			bv = a->a_vals[i];
-			tmplen = a->a_desc->ad_cname->bv_len;
+			tmplen = a->a_desc->ad_cname.bv_len;
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
 			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
-				a->a_desc->ad_cname->bv_val,
+				a->a_desc->ad_cname.bv_val,
 			    bv->bv_val, bv->bv_len );
 		}
 	}
@@ -501,21 +499,21 @@ int entry_decode( struct berval *bv, Entry **entry )
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "entry_decode: str2ad(%s): %s\n", type, text ));
+				   "entry_decode: str2ad(%s): %s\n", type->bv_val, text ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"<= entry_decode: str2ad(%s): %s\n", type, text, 0 );
+				"<= entry_decode: str2ad(%s): %s\n", type->bv_val, text, 0 );
 #endif
 			rc = slap_bv2undef_ad( type, &ad, &text );
 
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "entry_decode:  str2undef_ad(%s): %s\n", type, text));
+					   "entry_decode:  str2undef_ad(%s): %s\n", type->bv_val, text));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= entry_decode: str2undef_ad(%s): %s\n",
-						type, text, 0 );
+						type->bv_val, text, 0 );
 #endif
 				ber_bvfree( type );
 				ber_bvecfree( vals );
@@ -525,7 +523,6 @@ int entry_decode( struct berval *bv, Entry **entry )
 		}
 
 		rc = attr_merge( e, ad, vals );
-		ad_free( ad, 1 );
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -591,7 +588,7 @@ int entry_encode(
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		rc = ber_printf( ber, "{O{V}}",
-			a->a_desc->ad_cname,
+			&a->a_desc->ad_cname,
 			a->a_vals );
 		if( rc < 0 ) {
 			goto done;

@@ -29,7 +29,6 @@ static void at_index_print( void );
 void
 attr_free( Attribute *a )
 {
-	ad_free( a->a_desc, 1 );
 	ber_bvecfree( a->a_vals );
 	free( a );
 }
@@ -74,7 +73,7 @@ Attribute *attr_dup( Attribute *a )
 		tmp->a_vals = NULL;
 	}
 
-	tmp->a_desc = ad_dup( a->a_desc );
+	tmp->a_desc = a->a_desc;
 	tmp->a_next = NULL;
 
 	return tmp;
@@ -124,7 +123,7 @@ attr_merge(
 
 	if ( *a == NULL ) {
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(*a)->a_desc = ad_dup( desc );
+		(*a)->a_desc = desc;
 		(*a)->a_vals = NULL;
 		(*a)->a_next = NULL;
 	}

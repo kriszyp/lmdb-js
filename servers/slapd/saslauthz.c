@@ -567,7 +567,6 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 
 COMPLETE:
 	if( vals ) ber_bvecfree( vals );
-	if( ad ) ad_free( ad, 1 );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,

@@ -21,7 +21,6 @@ mra_free(
     int	freeit
 )
 {
-	ad_free( mra->ma_desc, 1 );
 	ch_free( mra->ma_rule_text );
 	ber_bvfree( mra->ma_value );
 	if ( freeit ) {

@@ -62,7 +62,7 @@ ldap_back_attribute(
 		}
 
 	} else {
-		mapped = ldap_back_map(&li->at_map, entry_at->ad_cname->bv_val, 0);
+		mapped = ldap_back_map(&li->at_map, entry_at->ad_cname.bv_val, 0);
 		if (mapped == NULL)
 			return(1);
 

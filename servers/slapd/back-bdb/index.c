@@ -27,11 +27,11 @@ static slap_mask_t index_mask(
 	/* we do not support indexing of binary attributes */
 	if( slap_ad_is_binary( desc ) ) return 0;
 
-	bdb_attr_mask( be->be_private, desc->ad_cname->bv_val, &mask );
+	bdb_attr_mask( be->be_private, desc->ad_cname.bv_val, &mask );
 
 	if( mask ) {
-		*atname = desc->ad_cname->bv_val;
-		*dbname = desc->ad_cname->bv_val;
+		*atname = desc->ad_cname.bv_val;
+		*dbname = desc->ad_cname.bv_val;
 		return mask;
 	}
 
@@ -40,7 +40,7 @@ static slap_mask_t index_mask(
 		bdb_attr_mask( be->be_private, desc->ad_type->sat_cname, &mask );
 
 		if( mask & SLAP_INDEX_AUTO_LANG ) {
-			*atname = desc->ad_cname->bv_val;
+			*atname = desc->ad_cname.bv_val;
 			*dbname = desc->ad_type->sat_cname;
 			return mask;
 		}
@@ -248,7 +248,6 @@ static int indexer(
 	}
 
 done:
-	ad_free( ad, 1 );
 	return rc;
 }
 
@@ -256,7 +255,7 @@ static int index_at_values(
 	Backend *be,
 	DB_TXN *txn,
 	AttributeType *type,
-	const char *lang,
+	struct berval *lang,
 	struct berval **vals,
 	ID id,
 	int op,
@@ -295,13 +294,13 @@ static int index_at_values(
 		if( rc ) return rc;
 	}
 
-	if( lang ) {
+	if( lang->bv_len ) {
 		char *dbname = NULL;
 		size_t tlen = strlen( type->sat_cname );
-		size_t llen = strlen( lang );
+		size_t llen = lang->bv_len;
 		char *lname = ch_malloc( tlen + llen + sizeof(";") );
 
-		sprintf( lname, "%s;%s", type->sat_cname, lang );
+		sprintf( lname, "%s;%s", type->sat_cname, lang->bv_val );
 
 		bdb_attr_mask( be->be_private, lname, &tmpmask );
 
@@ -347,7 +346,7 @@ int bdb_index_values(
 	}
 
 	rc = index_at_values( be, txn,
-		desc->ad_type, desc->ad_lang,
+		desc->ad_type, &desc->ad_lang,
 		vals, id, op,
 		&dbname, &mask );
 

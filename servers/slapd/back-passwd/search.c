@@ -115,8 +115,6 @@ passwd_back_search(
 
 			attr_merge( e, desc, vals );
 
-			ad_free( desc, 1 );
-
 			free(rdn);
 			rdn = NULL;
 

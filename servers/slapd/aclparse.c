@@ -539,7 +539,7 @@ parse_acl(
 							fprintf( stderr,
 								"%s: line %d: group: \"%s\" not allowed by \"%s\"\n",
 								fname, lineno,
-								b->a_group_at->ad_cname->bv_val,
+								b->a_group_at->ad_cname.bv_val,
 								b->a_group_oc->soc_oid );
 							acl_usage();
 						}
@@ -1200,7 +1200,7 @@ print_access( Access *b )
 	}
 
 	if ( b->a_dn_at != NULL ) {
-		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname->bv_val );
+		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname.bv_val );
 	}
 
 	if ( b->a_group_pat != NULL ) {
@@ -1211,7 +1211,7 @@ print_access( Access *b )
 				b->a_group_oc->soc_oclass.oc_oid );
 
 			if ( b->a_group_at ) {
-				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname->bv_val );
+				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname.bv_val );
 			}
 		}
     }
@@ -1234,7 +1234,7 @@ print_access( Access *b )
 
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
-		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname->bv_val );
+		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname.bv_val );
 	}
 #endif
 

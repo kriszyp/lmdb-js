@@ -68,11 +68,11 @@ int backsql_modify(BackendDB *be,Connection *conn,Operation *op,
  for(ml=modlist;ml!=NULL;ml=ml->sml_next)
  {
   c_mod=&ml->sml_mod;
-  Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute '%s'\n",c_mod->sm_desc->ad_cname->bv_val,0,0);
-  at=backsql_at_with_name(oc,c_mod->sm_desc->ad_cname->bv_val);
+  Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute '%s'\n",c_mod->sm_desc->ad_cname.bv_val,0,0);
+  at=backsql_at_with_name(oc,c_mod->sm_desc->ad_cname.bv_val);
   if (at==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute provided is not registered in this objectclass ('%s')\n",c_mod->sm_desc->ad_cname->bv_val,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute provided is not registered in this objectclass ('%s')\n",c_mod->sm_desc->ad_cname.bv_val,0,0);
    continue;
   }
   
@@ -371,7 +371,7 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
  for(at=e->e_attrs;at!=NULL;at=at->a_next)
  {
   /*Debug(LDAP_DEBUG_TRACE,"backsql_add(): scanning entry -- %s\n",at->a_type,0,0);*/
-  if (!strcasecmp(at->a_desc->ad_cname->bv_val,"objectclass"))
+  if (!strcasecmp(at->a_desc->ad_cname.bv_val,"objectclass"))
   {
    oc=backsql_oc_with_name(bi,at->a_vals[0]->bv_val);
    break;
@@ -417,16 +417,16 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
 
  for(at=e->e_attrs;at!=NULL;at=at->a_next)
  {
-  at_rec=backsql_at_with_name(oc,at->a_desc->ad_cname->bv_val); 
+  at_rec=backsql_at_with_name(oc,at->a_desc->ad_cname.bv_val); 
   
   if (at_rec==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_add(): attribute provided is not registered in this objectclass ('%s')\n",at->a_desc->ad_cname->bv_val,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_add(): attribute provided is not registered in this objectclass ('%s')\n",at->a_desc->ad_cname.bv_val,0,0);
    continue;
   }
   if (at_rec->add_proc==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_add(): add procedure is not defined for this attribute ('%s')\n",at->a_desc->ad_cname->bv_val,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_add(): add procedure is not defined for this attribute ('%s')\n",at->a_desc->ad_cname.bv_val,0,0);
    continue;
   }
   

@@ -55,21 +55,21 @@ shell_back_modify(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
-			fprintf( wfp, "add: %s\n", mod->sm_desc->ad_cname->bv_val );
+			fprintf( wfp, "add: %s\n", mod->sm_desc->ad_cname.bv_val );
 			break;
 
 		case LDAP_MOD_DELETE:
-			fprintf( wfp, "delete: %s\n", mod->sm_desc->ad_cname->bv_val );
+			fprintf( wfp, "delete: %s\n", mod->sm_desc->ad_cname.bv_val );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			fprintf( wfp, "replace: %s\n", mod->sm_desc->ad_cname->bv_val );
+			fprintf( wfp, "replace: %s\n", mod->sm_desc->ad_cname.bv_val );
 			break;
 		}
 
 		if( mod->sm_bvalues != NULL ) {
 			for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
-				fprintf( wfp, "%s: %s\n", mod->sm_desc->ad_cname->bv_val,
+				fprintf( wfp, "%s: %s\n", mod->sm_desc->ad_cname.bv_val,
 					mod->sm_bvalues[i]->bv_val /* binary! */ );
 			}
 		}

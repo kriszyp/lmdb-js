@@ -52,7 +52,7 @@ shell_back_compare(
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	fprintf( wfp, "%s: %s\n",
-		ava->aa_desc->ad_cname->bv_val,
+		ava->aa_desc->ad_cname.bv_val,
 		ava->aa_value->bv_val /* could be binary! */ );
 	fclose( wfp );
 

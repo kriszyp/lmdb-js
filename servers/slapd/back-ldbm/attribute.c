@@ -35,7 +35,7 @@ ldbm_back_attribute(
 	int	     i, j, rc;
 	Attribute   *attr;
 	struct berval **v;
-	const char *entry_at_name = entry_at->ad_cname->bv_val;
+	const char *entry_at_name = entry_at->ad_cname.bv_val;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,

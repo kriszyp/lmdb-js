@@ -357,7 +357,7 @@ add_values(
 	int		i;
 	Attribute	*a;
 
-	/* char *desc = mod->sm_desc->ad_cname->bv_val; */
+	/* char *desc = mod->sm_desc->ad_cname.bv_val; */
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
@@ -418,7 +418,7 @@ delete_values(
 {
 	int		i, j, k, found;
 	Attribute	*a;
-	char *desc = mod->sm_desc->ad_cname->bv_val;
+	char *desc = mod->sm_desc->ad_cname.bv_val;
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
 	/* delete the entire attribute */

@@ -94,7 +94,7 @@ access_allowed(
 	assert( desc != NULL );
 	assert( access > ACL_NONE );
 
-	attr = desc->ad_cname->bv_val;
+	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
 
@@ -292,7 +292,7 @@ acl_get(
 	assert( count != NULL );
 	assert( desc != NULL );
 
-	attr = desc->ad_cname->bv_val;
+	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
 
@@ -463,7 +463,7 @@ acl_mask(
 	assert( mask != NULL );
 	assert( desc != NULL );
 
-	attr = desc->ad_cname->bv_val;
+	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
 
@@ -685,7 +685,7 @@ acl_mask(
 			struct berval	bv;
 			int rc, match = 0;
 			const char *text;
-			const char *attr = b->a_dn_at->ad_cname->bv_val;
+			const char *attr = b->a_dn_at->ad_cname.bv_val;
 
 			assert( attr != NULL );
 
@@ -1081,11 +1081,11 @@ acl_check_modlist(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
 				   "acl_check_modlist: conn %d  no-user-mod %s: modify access granted\n",
-				   conn->c_connid, mlist->sml_desc->ad_cname->bv_val ));
+				   conn->c_connid, mlist->sml_desc->ad_cname.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
-				mlist->sml_desc->ad_cname->bv_val, 0, 0 );
+				mlist->sml_desc->ad_cname.bv_val, 0, 0 );
 #endif
 			continue;
 		}
@@ -1236,7 +1236,6 @@ aci_set_gather (void *cookie, char *name, char *attr)
 					}
 					ber_bvecfree(bvals);
 				}
-				ad_free(desc, 1);
 			}
 		}
 		ch_free(ndn);
@@ -1294,7 +1293,6 @@ aci_match_set (
 			{
 				backend_attribute(be, NULL, NULL, e,
 								subjdn, desc, &bvals);
-				ad_free(desc, 1);
 				if ( bvals != NULL ) {
 					if ( bvals[0] != NULL )
 						set = ch_strdup(bvals[0]->bv_val);
@@ -1533,7 +1531,6 @@ aci_group_member (
 	}
 
 done:
-	if( grp_ad != NULL ) ad_free( grp_ad, 1 );
 	ch_free(grpdn);
 	ch_free(grpat);
 	ch_free(grpoc);
@@ -1558,7 +1555,7 @@ aci_mask(
     struct berval bv, perms, sdn;
     char *subjdn;
 	int rc;
-	char *attr = desc->ad_cname->bv_val;
+	char *attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
 
@@ -1645,7 +1642,6 @@ aci_mask(
 			}
 		}
 
-		ad_free( ad, 1 );
 		return rc;
 
 

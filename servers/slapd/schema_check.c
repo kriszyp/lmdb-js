@@ -48,7 +48,7 @@ entry_schema_check(
 		if( is_at_single_value( a->a_desc->ad_type ) &&
 			a->a_vals[1] != NULL )
 		{
-			char *type = a->a_desc->ad_cname->bv_val;
+			char *type = a->a_desc->ad_cname.bv_val;
 
 			snprintf( textbuf, textlen, 
 				"attribute '%s' cannot have multiple values",
@@ -139,7 +139,7 @@ entry_schema_check(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		int ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
 		if ( ret != LDAP_SUCCESS ) {
-			char *type = a->a_desc->ad_cname->bv_val;
+			char *type = a->a_desc->ad_cname.bv_val;
 
 			snprintf( textbuf, textlen, 
 				"attribute '%s' not allowed",

@@ -176,8 +176,6 @@ dnssrv_back_search(
 
 				val.bv_len = strlen(val.bv_val);
 				attr_merge( e, ad, vals );
-
-				ad_free( ad, 1 );
 			}
 		}
 
@@ -191,8 +189,6 @@ dnssrv_back_search(
 				val.bv_val = domain;
 				val.bv_len = strlen(domain);
 				attr_merge( e, ad, vals );
-
-				ad_free( ad, 1 );
 			}
 		}
 

@@ -760,7 +760,6 @@ meta_send_entry(
 	while ( ent.e_attrs ) {
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
-		ad_free( attr->a_desc, 1 );
 		if ( attr->a_vals != &dummy ) {
 			ber_bvecfree(attr->a_vals);
 		}

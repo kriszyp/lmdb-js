@@ -93,7 +93,6 @@ int backsql_entry_addattr(Entry *e,char *at_name,char *at_val,unsigned int at_va
   }
   
  rc = attr_merge(e,ad,add_val);
- ad_free( ad, 1 );
 
  if( rc != 0 )
   {

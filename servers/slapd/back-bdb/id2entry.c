@@ -26,7 +26,7 @@ ad_type_cmp(
 	AttributeDescription *ad
 )
 {
-	return strcasecmp(desc, ad->ad_cname->bv_val);
+	return strcasecmp(desc, ad->ad_cname.bv_val);
 }
 
 static int
@@ -35,7 +35,7 @@ ad_info_cmp(
 	AttributeDescription *a2
 )
 {
-	return strcasecmp(a1->ad_cname->bv_val, a2->ad_cname->bv_val);
+	return strcasecmp(a1->ad_cname.bv_val, a2->ad_cname.bv_val);
 }
 
 AttributeDescription *
@@ -87,7 +87,7 @@ int bdb_encode(Entry *e, struct berval **bv)
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr name */
 		siz += sizeof(Attribute);
-		len += a->a_desc->ad_cname->bv_len+1;
+		len += a->a_desc->ad_cname.bv_len+1;
 		for (i=0; a->a_vals[i]; i++) {
 			siz += sizeof(struct berval *);
 			siz += sizeof(struct berval);
@@ -116,9 +116,9 @@ int bdb_encode(Entry *e, struct berval **bv)
 		b = (Attribute *)data;
 		data = (char *)(b+1);
 		b->a_desc = (AttributeDescription *)(ptr-base);
-		memcpy(ptr, a->a_desc->ad_cname->bv_val,
-			a->a_desc->ad_cname->bv_len);
-		ptr += a->a_desc->ad_cname->bv_len;
+		memcpy(ptr, a->a_desc->ad_cname.bv_val,
+			a->a_desc->ad_cname.bv_len);
+		ptr += a->a_desc->ad_cname.bv_len;
 		*ptr++ = '\0';
 		if (a->a_vals) {
 		    bvl = (struct berval **)data;

@@ -364,6 +364,8 @@ typedef struct slap_matching_rule {
 #define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
 
+struct slap_attr_desc;
+
 typedef struct slap_attribute_type {
 	char					*sat_cname;
 	LDAPAttributeType		sat_atype;
@@ -374,6 +376,7 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
+	struct slap_attr_desc		*sat_ad;
 	struct slap_attribute_type	*sat_next;
 #define sat_oid			sat_atype.at_oid
 #define sat_names		sat_atype.at_names
@@ -419,15 +422,16 @@ typedef struct slap_object_class {
  * represents a recognized attribute description ( type + options )
  */
 typedef struct slap_attr_desc {
-	struct berval *ad_cname;	/* canonical name, must be specified */
+	struct slap_attr_desc *ad_next;
 	AttributeType *ad_type;		/* attribute type, must be specified */
-	char *ad_lang;				/* NULL if no language tags */
+	struct berval ad_cname;		/* canonical name, must be specified */
+	struct berval ad_lang;		/* empty if no language tags */
 	unsigned ad_flags;
 #define SLAP_DESC_NONE		0x0U
 #define SLAP_DESC_BINARY	0x1U
 } AttributeDescription;
 
-#define slap_ad_is_lang(ad)		( (ad)->ad_lang != NULL )
+#define slap_ad_is_lang(ad)		( (ad)->ad_lang.bv_len != 0 )
 #define slap_ad_is_binary(ad)	( (int)((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
 /*

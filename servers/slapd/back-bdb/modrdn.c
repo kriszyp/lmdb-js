@@ -397,7 +397,6 @@ retry:	/* transaction retry */
 				"bdb_modrdn: access to attr \"%s\" "
 				"(new) not allowed\n", 
 				new_rdn_types[ a_cnt ], 0, 0 );
-			ad_free( desc, 1);
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
@@ -450,7 +449,6 @@ retry:	/* transaction retry */
 					"bdb_modrdn: access to attr \"%s\" "
 					"(old) not allowed\n", 
 					old_rdn_types[ d_cnt ], 0, 0 );
-				ad_free( desc, 1);
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}

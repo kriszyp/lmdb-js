@@ -28,12 +28,8 @@ LDAP_SLAPD_F (int) slap_bv2ad LDAP_P((
 LDAP_SLAPD_F (AttributeDescription *) ad_dup LDAP_P((
 	AttributeDescription *desc ));
 
-LDAP_SLAPD_F (void) ad_free LDAP_P((
-	AttributeDescription *desc,
-	int freeit ));
-
 #define ad_cmp(l,r)	( strcasecmp( \
-	(l)->ad_cname->bv_val, (r)->ad_cname->bv_val ))
+	(l)->ad_cname.bv_val, (r)->ad_cname.bv_val ))
 
 LDAP_SLAPD_F (int) is_ad_subtype LDAP_P((
 	AttributeDescription *sub,

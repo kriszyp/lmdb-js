@@ -136,7 +136,7 @@ replog(
 		ml = change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
-			type = ml->sml_desc->ad_cname->bv_val;
+			type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
 				fprintf( fp, "add: %s\n", type );

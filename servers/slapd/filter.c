@@ -118,11 +118,11 @@ get_filter(
 		filter_escape_value( f->f_av_value, &escaped );
 
 		*fstr = ch_malloc( sizeof("(=)")
-			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_desc->ad_cname.bv_len
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
@@ -153,11 +153,11 @@ get_filter(
 		filter_escape_value( f->f_av_value, &escaped );
 
 		*fstr = ch_malloc( sizeof("(>=)")
-			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_desc->ad_cname.bv_len
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s>=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
@@ -179,11 +179,11 @@ get_filter(
 		filter_escape_value( f->f_av_value, &escaped );
 
 		*fstr = ch_malloc( sizeof("(<=)")
-			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_desc->ad_cname.bv_len
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s<=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
@@ -215,9 +215,9 @@ get_filter(
 		ch_free( type.bv_val );
 
 		*fstr = ch_malloc( sizeof("(=*)")
-			+ f->f_desc->ad_cname->bv_len );
+			+ f->f_desc->ad_cname.bv_len );
 		sprintf( *fstr, "(%s=*)",
-			f->f_desc->ad_cname->bv_val );
+			f->f_desc->ad_cname.bv_val );
 
 		} break;
 
@@ -236,11 +236,11 @@ get_filter(
 		filter_escape_value( f->f_av_value, &escaped );
 
 		*fstr = ch_malloc( sizeof("(~=)")
-			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_desc->ad_cname.bv_len
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s~=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
@@ -316,12 +316,12 @@ get_filter(
 		filter_escape_value( f->f_mr_value, &escaped );
 
 		*fstr = ch_malloc( sizeof("(:dn::=)")
-			+ (f->f_mr_desc ? f->f_mr_desc->ad_cname->bv_len : 0)
+			+ (f->f_mr_desc ? f->f_mr_desc->ad_cname.bv_len : 0)
 			+ (f->f_mr_rule_text ? strlen(f->f_mr_rule_text) : 0)
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s%s%s%s:=%s)",
-			 (f->f_mr_desc ? f->f_mr_desc->ad_cname->bv_val : ""),
+			 (f->f_mr_desc ? f->f_mr_desc->ad_cname.bv_val : ""),
 			 (f->f_mr_dnattrs ? ":dn" : ""),
 			 (f->f_mr_rule_text ? ":" : ""),
 			 (f->f_mr_rule_text ? f->f_mr_rule_text : ""),
@@ -474,8 +474,8 @@ get_substring_filter(
 
 	if( fstr ) {
 		*fstr = ch_malloc( sizeof("(=" /*)*/) +
-			f->f_sub_desc->ad_cname->bv_len );
-		sprintf( *fstr, "(%s=" /*)*/, f->f_sub_desc->ad_cname->bv_val );
+			f->f_sub_desc->ad_cname.bv_len );
+		sprintf( *fstr, "(%s=" /*)*/, f->f_sub_desc->ad_cname.bv_val );
 	}
 
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -646,7 +646,6 @@ return_error:
 				*fstr = NULL;
 			}
 
-			ad_free( f->f_sub_desc, 1 );
 			ber_bvfree( f->f_sub_initial );
 			ber_bvecfree( f->f_sub_any );
 			ber_bvfree( f->f_sub_final );
@@ -683,7 +682,6 @@ filter_free( Filter *f )
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_PRESENT:
-		ad_free( f->f_desc, 1 );
 		break;
 
 	case LDAP_FILTER_EQUALITY:
@@ -694,7 +692,6 @@ filter_free( Filter *f )
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		ad_free( f->f_sub_desc, 1 );
 		if ( f->f_sub_initial != NULL ) {
 			ber_bvfree( f->f_sub_initial );
 		}
@@ -747,7 +744,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_EQUALITY:
 		filter_escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 		ber_memfree( escaped.bv_val );
 		break;
@@ -755,7 +752,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_GE:
 		filter_escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s>=%s)",
-			f->f_av_desc->ad_cname->bv_val,
+			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 		ber_memfree( escaped.bv_val );
 		break;
@@ -763,7 +760,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_LE:
 		filter_escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s<=%s)",
-			f->f_ava->aa_desc->ad_cname->bv_val,
+			f->f_ava->aa_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 		ber_memfree( escaped.bv_val );
 		break;
@@ -771,14 +768,14 @@ filter_print( Filter *f )
 	case LDAP_FILTER_APPROX:
 		filter_escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s~=%s)",
-			f->f_ava->aa_desc->ad_cname->bv_val,
+			f->f_ava->aa_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		fprintf( stderr, "(%s=" /*)*/,
-			f->f_sub_desc->ad_cname->bv_val );
+			f->f_sub_desc->ad_cname.bv_val );
 		if ( f->f_sub_initial != NULL ) {
 			filter_escape_value( f->f_sub_initial, &escaped );
 			fprintf( stderr, "%s",
@@ -804,7 +801,7 @@ filter_print( Filter *f )
 
 	case LDAP_FILTER_PRESENT:
 		fprintf( stderr, "(%s=*)",
-			f->f_desc->ad_cname->bv_val );
+			f->f_desc->ad_cname.bv_val );
 		break;
 
 	case LDAP_FILTER_AND:

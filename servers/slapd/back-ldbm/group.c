@@ -41,7 +41,7 @@ ldbm_back_group(
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	const char *group_oc_name = NULL;
-	const char *group_at_name = group_at->ad_cname->bv_val;
+	const char *group_at_name = group_at->ad_cname.bv_val;
 
 	if( group_oc->soc_names && group_oc->soc_names[0] ) {
 		group_oc_name = group_oc->soc_names[0];

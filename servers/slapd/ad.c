@@ -18,43 +18,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-AttributeDescription *ad_dup(
-	AttributeDescription *desc )
-{
-	AttributeDescription *ad;
-
-	if( desc == NULL ) {
-		return NULL;
-	}
-
-	ad = (AttributeDescription *) ch_malloc( sizeof(AttributeDescription) );
-
-	*ad = *desc;
-
-	if( ad->ad_cname != NULL ) {
-		ad->ad_cname = ber_bvdup( ad->ad_cname );
-	}
-
-	if( ad->ad_lang != NULL ) {
-		ad->ad_lang = ch_strdup( ad->ad_lang );
-	}
-
-	return ad;
-}
-
-void
-ad_free( AttributeDescription *ad, int freeit )
-{
-	if( ad == NULL ) return;
-
-	if( ad->ad_cname != NULL ) {
-		ber_bvfree( ad->ad_cname );
-	}
-
-	free( ad->ad_lang );
-
-	if( freeit ) free( ad );
-}
+extern ldap_pvt_thread_mutex_t	ad_mutex;	/* init.c */
 
 static int ad_keystring(
 	struct berval *bv )
@@ -92,8 +56,8 @@ int slap_bv2ad(
 {
 	int rtn = LDAP_UNDEFINED_TYPE;
 	int i;
-	AttributeDescription desc;
-	char **tokens;
+	AttributeDescription desc, *d2;
+	char *name, *options;
 
 	assert( ad != NULL );
 	assert( *ad == NULL ); /* temporary */
@@ -109,25 +73,37 @@ int slap_bv2ad(
 		return rtn;
 	}
 
-	tokens = str2charray( bv->bv_val, ";");
-
-	if( tokens == NULL || *tokens == NULL ) {
-		*text = "no attribute type";
-		goto done;
-	}
-
-	desc.ad_type = at_find( *tokens );
-
+	/* find valid base attribute type; parse in place */
+	name = bv->bv_val;
+	options = strchr(name, ';');
+	if (options != NULL) *options = '\0';
+	desc.ad_type = at_find( name );
+	if (options != NULL) *options = ';';
 	if( desc.ad_type == NULL ) {
 		*text = "attribute type undefined";
-		goto done;
+
+		return rtn;
 	}
 
-	desc.ad_flags = SLAP_DESC_NONE;
-	desc.ad_lang = NULL;
+	if (options != NULL)
+		desc.ad_cname.bv_len = options - name;
+	else
+		desc.ad_cname.bv_len = strlen(name);
 
-	for( i=1; tokens[i] != NULL; i++ ) {
-		if( strcasecmp( tokens[i], "binary" ) == 0 ) {
+	desc.ad_flags = SLAP_DESC_NONE;
+	desc.ad_lang.bv_len = 0;
+	desc.ad_lang.bv_val = NULL;
+
+	/* parse options in place */
+	for( ; options != NULL; ) {
+		name = options+1;
+		options = strchr( name, ';' );
+		if ( options != NULL )
+			i = options - name;
+		else
+			i = strlen(name);
+
+		if( i == sizeof("binary")-1 && strncasecmp( name, "binary", i) == 0 ) {
 			if( slap_ad_is_binary( &desc ) ) {
 				*text = "option \"binary\" specified multiple times";
 				goto done;
@@ -141,57 +117,126 @@ int slap_bv2ad(
 
 			desc.ad_flags |= SLAP_DESC_BINARY;
 
-		} else if ( strncasecmp( tokens[i], "lang-",
-			sizeof("lang-")-1 ) == 0 && tokens[i][sizeof("lang-")-1] )
+		} else if ( i >= sizeof("lang-") && strncasecmp( name, "lang-",
+			sizeof("lang-")-1 ) == 0)
 		{
-			if( desc.ad_lang != NULL ) {
+			if( desc.ad_lang.bv_len != 0 ) {
 				*text = "multiple language tag options specified";
 				goto done;
 			}
 
-			desc.ad_lang = ch_strdup( tokens[i] );
-
-			/* normalize to all lower case, it's easy */
-			ldap_pvt_str2lower( desc.ad_lang );
-
+			desc.ad_lang.bv_val = name;
+			desc.ad_lang.bv_len = i;
 		} else {
 			*text = "unrecognized option";
 			goto done;
 		}
 	}
 
-	desc.ad_cname = ch_malloc( sizeof( struct berval ) );
-
-	desc.ad_cname->bv_len = strlen( desc.ad_type->sat_cname );
-	if( slap_ad_is_binary( &desc ) ) {
-		desc.ad_cname->bv_len += sizeof("binary");
-	}
-	if( desc.ad_lang != NULL ) {
-		desc.ad_cname->bv_len += 1 + strlen( desc.ad_lang );
-	}
-
-	desc.ad_cname->bv_val = ch_malloc( desc.ad_cname->bv_len + 1 );
-
-	strcpy( desc.ad_cname->bv_val, desc.ad_type->sat_cname );
-	if( slap_ad_is_binary( &desc ) ) {
-		strcat( desc.ad_cname->bv_val, ";binary" );
+	/* see if a matching description is already cached */
+	for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
+		if (d2->ad_flags != desc.ad_flags)
+			continue;
+		if (d2->ad_lang.bv_len != desc.ad_lang.bv_len)
+			continue;
+		if (d2->ad_lang.bv_len == 0)
+			break;
+		if (strncasecmp(d2->ad_lang.bv_val, desc.ad_lang.bv_val,
+			desc.ad_lang.bv_len) == 0)
+			break;
 	}
 
-	if( desc.ad_lang != NULL ) {
-		strcat( desc.ad_cname->bv_val, ";" );
-		strcat( desc.ad_cname->bv_val, desc.ad_lang );
+	/* Not found, add new one */
+	while (d2 == NULL) {
+		int dlen = 0;
+		/* uses a single mutex instead of one per attributetype.
+		 * I don't believe this is a significant bottleneck. If
+		 * necessary, could change to a per-AttrType rwlock.
+		 */
+		ldap_pvt_thread_mutex_lock( &ad_mutex );
+		/* Check again just in case another thread added it */
+		for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
+			if (d2->ad_flags != desc.ad_flags)
+				continue;
+			if (d2->ad_lang.bv_len != desc.ad_lang.bv_len)
+				continue;
+			if (d2->ad_lang.bv_len == 0)
+				break;
+			if (strncasecmp(d2->ad_lang.bv_val,desc.ad_lang.bv_val,
+				desc.ad_lang.bv_len) == 0)
+				break;
+		}
+		/* Some other thread added it before we got the lock. */
+		if (d2 != NULL) {
+			ldap_pvt_thread_mutex_unlock( &ad_mutex );
+			break;
+		}
+
+		/* Allocate a single contiguous block. If there are no
+		 * options, we just need space for the AttrDesc structure.
+		 * Otherwise, we need to tack on the full name length +
+		 * options length.
+		 */
+		i = sizeof(AttributeDescription);
+		if (desc.ad_lang.bv_len || desc.ad_flags != SLAP_DESC_NONE) {
+			if (desc.ad_lang.bv_len)
+				dlen = desc.ad_lang.bv_len+1;
+			dlen += strlen(desc.ad_type->sat_cname)+1;
+			if( slap_ad_is_binary( &desc ) ) {
+				dlen += sizeof("binary");
+			}
+		}
+
+		d2 = ch_malloc(i + dlen);
+		d2->ad_type = desc.ad_type;
+		d2->ad_flags = desc.ad_flags;
+		d2->ad_cname.bv_len = desc.ad_cname.bv_len;
+		d2->ad_lang.bv_len = desc.ad_lang.bv_len;
+		if (dlen == 0) {
+			d2->ad_cname.bv_val = d2->ad_type->sat_cname;
+			d2->ad_lang.bv_val = NULL;
+		} else {
+			d2->ad_cname.bv_val = (char *)(d2+1);
+			strcpy(d2->ad_cname.bv_val, d2->ad_type->sat_cname);
+			if( slap_ad_is_binary( &desc ) ) {
+				strcpy(d2->ad_cname.bv_val+d2->ad_cname.bv_len,
+					";binary");
+				d2->ad_cname.bv_len += sizeof("binary");
+			}
+			if( d2->ad_lang.bv_len ) {
+				d2->ad_cname.bv_val[d2->ad_cname.bv_len++]=';';
+				d2->ad_lang.bv_val = d2->ad_cname.bv_val+
+					d2->ad_cname.bv_len;
+				strncpy(d2->ad_lang.bv_val,desc.ad_lang.bv_val,
+					d2->ad_lang.bv_len);
+				d2->ad_lang.bv_val[d2->ad_lang.bv_len] = '\0';
+				ldap_pvt_str2lower(d2->ad_lang.bv_val);
+				d2->ad_cname.bv_len += d2->ad_lang.bv_len;
+			}
+		}
+		/* Add new desc to list. We always want the bare Desc with
+		 * no options to stay at the head of the list, assuming
+		 * that one will be used most frequently.
+		 */
+		if (desc.ad_type->sat_ad == NULL || dlen == 0) {
+			d2->ad_next = desc.ad_type->sat_ad;
+			desc.ad_type->sat_ad = d2;
+		} else {
+			d2->ad_next = desc.ad_type->sat_ad->ad_next;
+			desc.ad_type->sat_ad->ad_next = d2;
+		}
+		ldap_pvt_thread_mutex_unlock( &ad_mutex );
 	}
 
 	if( *ad == NULL ) {
-		*ad = ch_malloc( sizeof( AttributeDescription ) );
+		*ad = d2;
+	} else {
+		**ad = *d2;
 	}
-
-	**ad = desc;
 
 	rtn = LDAP_SUCCESS;
 
 done:
-	charray_free( tokens );
 	return rtn;
 }
 
@@ -208,8 +253,9 @@ int is_ad_subtype(
 		return 0;
 	}
 
-	if( super->ad_lang != NULL && ( sub->ad_lang == NULL
-		|| strcasecmp( super->ad_lang, sub->ad_lang )))
+	if( super->ad_lang.bv_len && (sub->ad_lang.bv_len !=
+		super->ad_lang.bv_len || strcmp( super->ad_lang.bv_val,
+		sub->ad_lang.bv_val)))
 	{
 		return 0;
 	}
@@ -233,8 +279,6 @@ int ad_inlist(
 		if( rc != LDAP_SUCCESS ) continue;
 
 		rc = is_ad_subtype( desc, ad );
-
-		ad_free( ad, 1 );
 
 		if( rc ) return 1;
 	}
@@ -260,10 +304,9 @@ int slap_bv2undef_ad(
 	AttributeDescription **ad,
 	const char **text )
 {
-	AttributeDescription desc;
+	AttributeDescription *desc;
 
 	assert( ad != NULL );
-	assert( *ad == NULL ); /* temporary */
 
 	if( bv == NULL || bv->bv_len == 0 ) {
 		*text = "empty attribute description";
@@ -276,21 +319,36 @@ int slap_bv2undef_ad(
 		return LDAP_UNDEFINED_TYPE;
 	}
 
-	desc.ad_type = slap_schema.si_at_undefined;
-	desc.ad_flags = SLAP_DESC_NONE;
-	desc.ad_lang = NULL;
+	for (desc = slap_schema.si_at_undefined->sat_ad; desc;
+		desc=desc->ad_next)
+		if (desc->ad_cname.bv_len == bv->bv_len &&
+		    !strcasecmp(desc->ad_cname.bv_val, bv->bv_val))
+		    	break;
+	
+	if (!desc) {
+		desc = ch_malloc(sizeof(AttributeDescription) +
+			bv->bv_len + 1);
+		
+		desc->ad_flags = SLAP_DESC_NONE;
+		desc->ad_lang.bv_val = NULL;
+		desc->ad_lang.bv_len = 0;
 
-	desc.ad_cname = ber_bvdup( bv );
+		desc->ad_cname.bv_len = bv->bv_len;
+		desc->ad_cname.bv_val = (char *)(desc+1);
+		strcpy(desc->ad_cname.bv_val, bv->bv_val);
 
-	/* canoncial to upper case */
-	ldap_pvt_str2upper( bv->bv_val );
+		/* canonical to upper case */
+		ldap_pvt_str2upper( desc->ad_cname.bv_val );
 
-	if( *ad == NULL ) {
-		*ad = ch_malloc( sizeof( AttributeDescription ) );
+		desc->ad_type = slap_schema.si_at_undefined;
+		desc->ad_next = desc->ad_type->sat_ad;
+		desc->ad_type->sat_ad = desc;
 	}
 
-	**ad = desc;
+	if (!*ad)
+		*ad = desc;
+	else
+		**ad = *desc;
 
 	return LDAP_SUCCESS;
 }
-

@@ -203,18 +203,17 @@ bdb_attr_index_config(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			   "attr_index_config: index %s 0x%04x\n",
-			   ad->ad_cname->bv_val, mask ));
+			   ad->ad_cname.bv_val, mask ));
 #else
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04x\n",
-			ad->ad_cname->bv_val, mask, 0 ); 
+			ad->ad_cname.bv_val, mask, 0 ); 
 #endif
 
 
 #ifdef SLAPD_USE_AD
 		a->ai_desc = ad;
 #else
-		a->ai_desc = ch_strdup( ad->ad_cname->bv_val );
-		ad_free( ad, 1 );
+		a->ai_desc = ch_strdup( ad->ad_cname.bv_val );
 #endif
 
 		a->ai_indexmask = mask;
@@ -242,9 +241,7 @@ static void
 ainfo_free( void *attr )
 {
 	AttrInfo *ai = attr;
-#ifdef SLAPD_USE_AD
-	ad_free( ai->ai_desc, 1 );
-#else
+#ifndef SLAPD_USE_AD
 	free( ai->ai_desc );
 #endif
 	free( ai );
