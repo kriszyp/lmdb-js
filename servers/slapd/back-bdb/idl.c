@@ -14,7 +14,7 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-#define IDL_DEBUG
+#undef IDL_DEBUG
 #ifdef IDL_DEBUG
 void idl_dump( ID *ids )
 {
@@ -40,7 +40,7 @@ void idl_dump( ID *ids )
 
 unsigned bdb_idl_search( ID *ids, ID id )
 {
-#define IDL_BINARY_SEARCH
+#undef IDL_BINARY_SEARCH
 #ifdef IDL_BINARY_SEARCH
 	/*
 	 * binary search of id in ids
