@@ -52,6 +52,7 @@ static void tls_report_error( void );
 
 static void tls_info_cb( SSL *ssl, int where, int ret );
 static int tls_verify_cb( int ok, X509_STORE_CTX *ctx );
+static int tls_verify_ok( int ok, X509_STORE_CTX *ctx );
 static RSA * tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
 static STACK_OF(X509_NAME) * get_ca_list( char * bundle, char * dir );
 
@@ -173,6 +174,7 @@ ldap_pvt_tls_init_def_ctx( void )
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
 	if ( tls_def_ctx == NULL ) {
+		int i;
 		tls_def_ctx = SSL_CTX_new( SSLv23_method() );
 		if ( tls_def_ctx == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -250,11 +252,17 @@ ldap_pvt_tls_init_def_ctx( void )
 		if ( tls_opt_trace ) {
 			SSL_CTX_set_info_callback( tls_def_ctx, tls_info_cb );
 		}
-		SSL_CTX_set_verify( tls_def_ctx,
-			tls_opt_require_cert ?
-			(SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT) :
-			SSL_VERIFY_NONE,
-			tls_verify_cb );
+		i = SSL_VERIFY_NONE;
+		if ( tls_opt_require_cert ) {
+			i = SSL_VERIFY_PEER;
+			if ( tls_opt_require_cert == LDAP_OPT_X_TLS_DEMAND ||
+			     tls_opt_require_cert == LDAP_OPT_X_TLS_HARD ) {
+				i |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+			}
+		}
+		SSL_CTX_set_verify( tls_def_ctx, i,
+			tls_opt_require_cert == LDAP_OPT_X_TLS_ALLOW ?
+			tls_verify_ok : tls_verify_cb );
 		SSL_CTX_set_tmp_rsa_callback( tls_def_ctx, tls_tmp_rsa_cb );
 		/* SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb ); */
 	}
@@ -731,6 +739,10 @@ ldap_pvt_tls_get_peer( void *s )
     X509_NAME *xn;
     char buf[2048], *p;
 
+    /* If peer cert was bad, treat as if no cert was given */
+    if (SSL_get_verify_result((SSL *)s))
+    	return NULL;
+
     x = SSL_get_peer_certificate((SSL *)s);
 
     if (!x)
@@ -748,6 +760,9 @@ ldap_pvt_tls_get_peer_dn( void *s )
 	X509 *x;
 	X509_NAME *xn;
 	char buf[2048], *p, *dn;
+
+	if (SSL_get_verify_result((SSL *)s))
+    		return NULL;
 
 	x = SSL_get_peer_certificate((SSL *)s);
 
@@ -769,6 +784,9 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 	X509_NAME *xn;
 	char buf[2048], *p;
 	int ret;
+
+	if (SSL_get_verify_result((SSL *)s))
+    		return NULL;
 
 	x = SSL_get_peer_certificate((SSL *)s);
 
@@ -802,6 +820,9 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 	} else {
 		name = name_in;
 	}
+
+	if (SSL_get_verify_result((SSL *)s))
+    		return LDAP_CONNECT_ERROR;
 
     x = SSL_get_peer_certificate((SSL *)s);
     if (!x)
@@ -921,11 +942,6 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
-		i = ( ( strcasecmp( arg, "on" ) == 0 ) ||
-		      ( strcasecmp( arg, "yes" ) == 0) ||
-		      ( strcasecmp( arg, "true" ) == 0 ) );
-		return ldap_pvt_tls_set_option( ld, option, (void *) &i );
-
 	case LDAP_OPT_X_TLS:
 		i = -1;
 		if ( strcasecmp( arg, "never" ) == 0 )
@@ -936,7 +952,10 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 			i = LDAP_OPT_X_TLS_ALLOW ;
 		if ( strcasecmp( arg, "try" ) == 0 )
 			i = LDAP_OPT_X_TLS_TRY ;
-		if ( strcasecmp( arg, "hard" ) == 0 )
+		if ( ( strcasecmp( arg, "hard" ) == 0 ) ||
+		      ( strcasecmp( arg, "on" ) == 0 ) ||
+		      ( strcasecmp( arg, "yes" ) == 0) ||
+		      ( strcasecmp( arg, "true" ) == 0 ) )
 			i = LDAP_OPT_X_TLS_HARD ;
 
 		if (i >= 0) {
@@ -1079,8 +1098,16 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		tls_opt_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
-		tls_opt_require_cert = * (int *) arg;
-		break;
+		switch( *(int *) arg ) {
+		case LDAP_OPT_X_TLS_NEVER:
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_ALLOW:
+		case LDAP_OPT_X_TLS_TRY:
+		case LDAP_OPT_X_TLS_HARD:
+			tls_opt_require_cert = * (int *) arg;
+			return 0;
+		}
+		return -1;
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		if ( tls_opt_ciphersuite ) LDAP_FREE( tls_opt_ciphersuite );
 		tls_opt_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
@@ -1226,6 +1253,13 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 		CRYPTO_free ( iname );
 
 	return ok;
+}
+
+static int
+tls_verify_ok( int ok, X509_STORE_CTX *ctx )
+{
+	(void) tls_verify_cb( ok, ctx );
+	return 1;
 }
 
 /* Inspired by ERR_print_errors in OpenSSL */

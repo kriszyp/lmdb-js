@@ -2185,10 +2185,17 @@ read_config( const char *fname )
 			if ( rc )
 				return rc;
 		} else if ( !strcasecmp( cargv[0], "TLSVerifyClient" ) ) {
-			i = atoi(cargv[1]);
-			rc = ldap_pvt_tls_set_option( NULL,
+			if ( isdigit( cargv[1][0] ) ) {
+				i = atoi(cargv[1]);
+				rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_REQUIRE_CERT,
 						      &i );
+			} else {
+				rc = ldap_int_tls_config( NULL,
+						      LDAP_OPT_X_TLS_REQUIRE_CERT,
+						      cargv[1] );
+			}
+
 			if ( rc )
 				return rc;
 
