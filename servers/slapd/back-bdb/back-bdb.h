@@ -99,6 +99,7 @@ struct bdb_info {
 	slap_mask_t	bi_defaultmask;
 	Cache		bi_cache;
 	Avlnode		*bi_attrs;
+	void		*bi_search_stack;
 #ifdef BDB_HIER
 	Avlnode		*bi_tree;
 	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
