@@ -17,10 +17,10 @@
 
 topbuilddir = ../../../../build
 topsrcdir = ../../..
-snaccdir = /home/slim/snacc
+snaccdir = /usr/local/snacc
 
 LIBTOOL=$(topbuilddir)/libtool
-OPT=-g -finstrument-functions -DLDAP_COMPONENT
+OPT=-g -O2 -DLDAP_COMPONENT
 CC=gcc
 
 SNACC_INC=-I$(snaccdir) -I$(snaccdir)/c-lib/inc
@@ -31,7 +31,7 @@ INCS=$(LDAP_INC) $(SNACC_INC)
 SNACC_LIB=$(snaccdir)/c-lib/libcasn1.a
 SSL_LIB=-lcrypto
 LDAP_LIB=-lldap_r -llber
-LIBS=$(LDAP_LIB) $(SNACC_LIB) $(SSL_LIB) /home/slim/local/lib/libfnccheck.a
+LIBS=$(LDAP_LIB) $(SNACC_LIB) $(SSL_LIB)
 
 all:	compmatch.la
 
@@ -50,7 +50,7 @@ init.lo:	init.c
 
 compmatch.la:	componentlib.lo init.lo certificate.lo asn_to_syn_mr.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) $(LIBS) -version-info 0:0:0 \
-	-rpath /home/slim/ldap/local/libexec/openldap -module -o $@ $? $(LIBS)
+	-rpath /usr/local/libexec/openldap -module -o $@ $? $(LIBS)
 
 clean:
 	\rm compmatch.la componentlib.lo certificate.lo asn_to_syn_mr.lo\
