@@ -300,10 +300,12 @@ rewrite_subst_apply(
 	/*
 	 * Prepare room for submatch expansion
 	 */
-	submatch = calloc( sizeof( struct berval ),
-			subst->lt_num_submatch );
-	if ( submatch == NULL ) {
-		return REWRITE_REGEXEC_ERR;
+	if ( subst->lt_num_submatch > 0 ) {
+		submatch = calloc( sizeof( struct berval ),
+				subst->lt_num_submatch );
+		if ( submatch == NULL ) {
+			return REWRITE_REGEXEC_ERR;
+		}
 	}
 	
 	/*
@@ -408,8 +410,8 @@ rewrite_subst_apply(
 	l += subst->lt_subs_len;
 	res = calloc( sizeof( char ), l + 1 );
 	if ( res == NULL ) {
-		free( submatch );
-		return REWRITE_REGEXEC_ERR;
+		rc = REWRITE_REGEXEC_ERR;
+		goto cleanup;
 	}
 
 	/*
@@ -433,7 +435,12 @@ rewrite_subst_apply(
 
 	val->bv_val = res;
 	val->bv_len = l;
-	
+
+cleanup:;
+	if ( submatch ) {
+		free( submatch );
+	}
+
 	return rc;
 }
 
