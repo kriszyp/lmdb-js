@@ -325,6 +325,7 @@ do_syncrepl(
 	si->ctx = ctx;
 
 	op.o_tmpmemctx = NULL; /* FIXME : to use per-thread mem context */
+	op.o_tmpmfuncs = &ch_mfuncs;
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_dn = si->updatedn;
 	op.o_ndn = si->updatedn;
@@ -974,22 +975,20 @@ syncrepl_entry(
 			if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
 				attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
 			}
+
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
 			op->o_req_dn = e->e_name;
 			op->o_req_ndn = e->e_nname;
 			rc = be->be_add( op, &rs );
+
 			if ( rc != LDAP_SUCCESS ) {
-				if ( rc == LDAP_ALREADY_EXISTS ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR,
-						"be_add failed : already exists (%d)\n",
-						rc, 0, 0 );
-#else
-					Debug( LDAP_DEBUG_ANY,
-						"be_add failed : already exists (%d)\n",
-						rc, 0, 0 );
-#endif
+				if ( rc == LDAP_ALREADY_EXISTS ) {	
+					op->o_tag = LDAP_REQ_MODIFY;
+					op->orm_modlist = modlist;
+					op->o_req_dn = e->e_name;
+					op->o_req_ndn = e->e_nname;
+					rc = be->be_modify( op, &rs );
 				} else if ( rc == LDAP_REFERRAL ||
 							rc == LDAP_NO_SUCH_OBJECT ||
 							rc == DB_NOTFOUND ) {
@@ -999,11 +998,11 @@ syncrepl_entry(
 				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
-						"be_add failed (%d)\n",
+						"be_modify failed (%d)\n",
 						rc, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-						"be_add failed (%d)\n",
+						"be_modify failed (%d)\n",
 						rc, 0, 0 );
 #endif
 				}
