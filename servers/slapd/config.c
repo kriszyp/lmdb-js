@@ -910,7 +910,7 @@ read_config( const char *fname, int depth )
 					"subordinate keyword must appear inside a database "
 					"definition.\n", fname, lineno, 0 );
 #else
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: subordinate keyword "
 					"must appear inside a database definition.\n",
 				    fname, lineno, 0 );
 #endif
@@ -919,6 +919,24 @@ read_config( const char *fname, int depth )
 			} else {
 				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
+			}
+
+		/* add an overlay to this backend */
+		} else if ( strcasecmp( cargv[0], "overlay" ) == 0 ) {
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
+					"overlay keyword must appear inside a database "
+					"definition.\n", fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: overlay keyword "
+					"must appear inside a database definition.\n",
+				    fname, lineno, 0 );
+#endif
+				return 1;
+
+			} else {
+				return overlay_config( be, cargv[1] );
 			}
 
 		/* set database suffix */

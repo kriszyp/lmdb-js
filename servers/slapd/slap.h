@@ -1763,6 +1763,22 @@ typedef struct slap_callback {
 	void *sc_private;
 } slap_callback;
 
+struct slap_overinfo;
+
+typedef struct slap_overinst {
+	BackendInfo on_bi;
+	slap_response *on_response;
+	void *on_private;
+	struct slap_overinfo *on_info;
+	struct slap_overinst *on_next;
+} slap_overinst;
+
+typedef struct slap_overinfo {
+	BackendInfo oi_bi;
+	BackendDB oi_bd;
+	slap_overinst *oi_list;
+} slap_overinfo;
+
 /*
  * Paged Results state
  */

@@ -254,6 +254,13 @@ LDAP_SLAPD_F (int) glue_back_initialize( BackendInfo *bi );
 LDAP_SLAPD_F (int) glue_sub_init( void );
 
 /*
+ * backover.c
+ */
+
+LDAP_SLAPD_F (int) overlay_register( slap_overinst *on );
+LDAP_SLAPD_F (int) overlay_config( BackendDB *be, const char *ov );
+
+/*
  * ch_malloc.c
  */
 LDAP_SLAPD_V (BerMemoryFunctions) ch_mfuncs;
