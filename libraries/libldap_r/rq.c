@@ -20,7 +20,8 @@ void
 ldap_pvt_runqueue_insert(
 	struct runqueue_s* rq,
 	time_t interval,
-	void *private
+	ldap_pvt_thread_start_t *routine,
+	void *arg
 )
 {
 	struct re_s* entry;
@@ -30,7 +31,8 @@ ldap_pvt_runqueue_insert(
 	entry->interval.tv_usec = 0;
 	entry->next_sched.tv_sec = time( NULL );
 	entry->next_sched.tv_usec = 0;
-	entry->private = private;
+	entry->routine = routine;
+	entry->arg = arg;
 	LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
 }
 

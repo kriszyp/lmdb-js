@@ -1297,12 +1297,25 @@ slapd_daemon_task(
 		at = ldap_pvt_thread_pool_backload(&connection_pool);
 
 #ifdef LDAP_SYNCREPL
-		/* cat is of struct timeval containing the earliest schedule */
 		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
+			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+			} else {
+				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
+				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
+				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_thread_pool_submit( &connection_pool,
+											rtask->routine, (void *) rtask );
+			}
+			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+		}
+		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
 		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+
 		if ( cat != NULL ) {
-			diff.tv_sec = cat->tv_sec - slap_get_time();
+			diff.tv_sec = difftime( cat->tv_sec, now );
 			if ( diff.tv_sec == 0 )
 				diff.tv_sec = tdelta;
 		}
@@ -1386,22 +1399,6 @@ slapd_daemon_task(
 			    0, 0, 0 );
 #endif
 
-#ifdef LDAP_SYNCREPL
-			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
-			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
-			} else if ( cat && cat->tv_sec && cat->tv_sec <= slap_get_time() ) {
-				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
-				ldap_pvt_thread_pool_submit( &connection_pool,
-								do_syncrepl, (void *) rtask );
-			} else {
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
-			}
-#endif
 			ldap_pvt_thread_yield();
 			continue;
 

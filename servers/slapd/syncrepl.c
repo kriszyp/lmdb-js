@@ -119,7 +119,7 @@ do_syncrepl(
 	void	*arg )
 {
 	struct re_s* rtask = arg;
-	Backend *be = rtask->private;
+	Backend *be = rtask->arg;
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
 
 	SlapReply	rs = {REP_RESULT};
