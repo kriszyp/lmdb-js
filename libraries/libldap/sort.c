@@ -1,10 +1,19 @@
+/* sort.c -- LDAP library entry and value sort routines */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions
- * Copyright (c) 1994 Regents of the University of Michigan.
+/* Portions Copyright (c) 1994 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,8 +22,6 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
- *
- * sort.c:  LDAP library entry and value sort routines
  */
 
 #include "portable.h"
@@ -85,20 +92,36 @@ ldap_sort_entries(
     int		(*cmp) (LDAP_CONST  char *, LDAP_CONST char *)
 )
 {
-	int			i, count;
+	int			i, count = 0;
 	struct entrything	*et;
-	LDAPMessage		*e, *last;
+	LDAPMessage		*e, *ehead = NULL, *etail = NULL;
+	LDAPMessage		*ohead = NULL, *otail = NULL;
 	LDAPMessage		**ep;
 
 	assert( ld != NULL );
 
-	count = ldap_count_entries( ld, *chain );
+	/* Separate entries from non-entries */
+	for ( e = *chain; e; e=e->lm_chain ) {
+		if ( e->lm_msgtype == LDAP_RES_SEARCH_ENTRY ) {
+			count++;
+			if ( !ehead ) ehead = e;
+			if ( etail ) etail->lm_chain = e;
+			etail = e;
+		} else {
+			if ( !ohead ) ohead = e;
+			if ( otail ) otail->lm_chain = e;
+			otail = e;
+		}
+	}
 
-	if ( count < 0 ) {
-		return -1;
-
-	} else if ( count < 2 ) {
+	if ( count < 2 ) {
 		/* zero or one entries -- already sorted! */
+		if ( ehead ) {
+			etail->lm_chain = ohead;
+			*chain = ehead;
+		} else {
+			*chain = ohead;
+		}
 		return 0;
 	}
 
@@ -108,7 +131,7 @@ ldap_sort_entries(
 		return( -1 );
 	}
 
-	e = *chain;
+	e = ehead;
 	for ( i = 0; i < count; i++ ) {
 		et[i].et_cmp_fn = cmp;
 		et[i].et_msg = e;
@@ -124,7 +147,6 @@ ldap_sort_entries(
 
 		e = e->lm_chain;
 	}
-	last = e;
 
 	qsort( et, count, sizeof(struct entrything), et_cmp );
 
@@ -135,7 +157,8 @@ ldap_sort_entries(
 
 		LDAP_VFREE( et[i].et_vals );
 	}
-	*ep = last;
+	*ep = ohead;
+		
 	LDAP_FREE( (char *) et );
 
 	return( 0 );
