@@ -14,14 +14,10 @@
 /* --------------------------------------------------- */
 /* begin of WINNT specific entries */
 
-#ifdef WINNT
+#if defined(WINNT) || defined(_WIN32)
 
 /* don't suck in all of the win32 api */
 #define WIN32_LEAN_AND_MEAN
-
-/* WindowsNT specific features */
-#define HAVE_NT_SERVICE_MANAGER 1
-#define HAVE_NT_EVENT_LOG 1
 
 #define MAXPATHLEN _MAX_PATH
 

@@ -14,6 +14,10 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include <ldap.h>
 
 #include "ldif.h"

@@ -3,8 +3,11 @@
 
 #include <windows.h>
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_WINSOCK2
+#include <winsock2.h>
+#elif HAVE_WINSOCK
 #include <winsock.h>
+#endif /* HAVE_WINSOCK(2) */
 
 #define __RETSTR( x ) case x: return #x;
 
@@ -87,9 +90,6 @@ char *WSAGetLastErrorString( void )
 }
 
 #undef __RETSTR
-
-#endif /* HAVE_WINSOCK */
-
 
 char *GetErrorString( int err )
 {

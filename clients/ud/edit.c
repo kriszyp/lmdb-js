@@ -31,6 +31,10 @@
 #include <process.h>
 #endif
 
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 

@@ -26,7 +26,7 @@
 #undef LDAP_SIGUSR1
 #undef LDAP_SIGUSR2
 
-#	if defined(WINNT) || defined(_WINNT)
+#	if defined(WINNT) || defined(_WINNT) || defined(_WIN32)
 #		define LDAP_SIGUSR1	SIGILL
 #		define LDAP_SIGUSR2	SIGTERM
 
