@@ -167,7 +167,7 @@ attr_merge_normalize(
 		
 		for ( i = 0; vals[i].bv_val; i++ );
 
-		nvals = ch_calloc( sizeof(struct berval), i + 1 );
+		nvals = sl_calloc( sizeof(struct berval), i + 1, memctx );
 		for ( i = 0; vals[i].bv_val; i++ ) {
 			rc = (*desc->ad_type->sat_equality->smr_normalize)(
 					0,
@@ -187,7 +187,7 @@ attr_merge_normalize(
 
 error_return:;
 	if ( nvals != NULL ) {
-		ber_bvarray_free( nvals );
+		ber_bvarray_free_x( nvals, memctx );
 	}
 	return rc;
 }
@@ -252,7 +252,7 @@ attr_merge_normalize_one(
 
 	rc = attr_merge_one( e, desc, val, nvalp );
 	if ( nvalp != NULL ) {
-		ch_free( nval.bv_val );
+		sl_free( nval.bv_val, memctx );
 	}
 	return rc;
 }
