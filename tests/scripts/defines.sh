@@ -14,6 +14,7 @@ MASTERCONF=$DATADIR/slapd-repl-master.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SUBMASTERCONF=$DATADIR/slapd-repl-submaster.conf
+SUBSLAVECONF=$DATADIR/slapd-repl-subslave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 
 DBCONF=$DBDIR/slapd.conf
@@ -29,6 +30,8 @@ CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
 
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
+SUBFILTER=$SRCDIR/scripts/subfilter.sh
+UNDIFFFILTER=$SRCDIR/scripts/undiff.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
 
 SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
@@ -70,8 +73,11 @@ SLURPLOG=$DBDIR/slurp.log
 SEARCHOUT=$DBDIR/ldapsearch.out
 SEARCHFLT=$DBDIR/ldapsearch.flt
 LDIFFLT=$DBDIR/ldif.flt
+SUBFLT=$DBDIR/sub.flt
+SUBFLT2=$DBDIR/sub2.flt
 MASTEROUT=$DBDIR/master.out
 SLAVEOUT=$DBDIR/slave.out
+SUBMASTEROUT=$DBDIR/submaster.out
 TESTOUT=$DBDIR/test.out
 INITOUT=$DBDIR/init.out
 SEARCHOUTMASTER=$DATADIR/search.out.master

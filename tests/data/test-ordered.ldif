@@ -34,7 +34,7 @@ dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
 objectclass: top
 objectclass: organizationalUnit
-ou: Information Technology Divisio
+ou: Information Technology Division
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager, o=University of Michigan, c=US
@@ -311,3 +311,4 @@ homephone: +1 313 555 8421
 pager: +1 313 555 2844
 facsimiletelephonenumber: +1 313 555 9700
 telephonenumber: +1 313 555 5331
+

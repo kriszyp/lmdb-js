@@ -38,6 +38,7 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 echo "Cleaning up in $REPLDIR..."
 rm -f $REPLDIR/[!C]*
+rm -f $REPLDIR/replica/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND < $SUBMASTERCONF > $DBCONF
@@ -49,7 +50,7 @@ if test $WAIT != 0 ; then
 fi
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-. $CONFFILTER $BACKEND < $SLAVECONF > $REPLCONF
+. $CONFFILTER $BACKEND < $SUBSLAVECONF > $REPLCONF
 $SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
@@ -78,17 +79,6 @@ for i in 0 1 2 3 4 5; do
 		sleep 5
 	fi
 done
-
-echo "Creating base in subtree slave"
-$LDAPADD -D "$UPDATEDN" -h localhost -p $SLAVEPORT -w $PASSWD < \
-	$LDIFBASE > /dev/null 2>&1
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapadd failed ($RC)!"
-	kill -INT $PID $SLAVEPID
-	kill -KILL $SLURPPID
-	exit $RC
-fi
 
 echo "Starting slurpd..."
 $SLURPD -f $SUBMASTERCONF -d ${SLURPD_DEBUG-5} -t $REPLDIR > $SLURPLOG 2>&1 &
@@ -186,8 +176,8 @@ EOMODS
 echo "Waiting 15 seconds for slurpd to send changes..."
 sleep 15
 
-echo "Using ldapsearch to read the subtree entries from the master..."
-$LDAPSEARCH -S "" -b "$BASEDN" -s base -h localhost -p $PORT \
+echo "Using ldapsearch to read all the entries from the master..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
 
 if test $RC != 0 ; then
@@ -197,8 +187,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPSEARCH -S "" -b "ou=People, $BASEDN" -h localhost -p $PORT \
-	'objectclass=*' >> $MASTEROUT 2>&1
+echo "Using ldapsearch to read the subtree entries from the master..."
+$LDAPSEARCH -S "" -b "ou=Groups, $BASEDN" -h localhost -p $PORT \
+	'objectclass=*' > $SUBMASTEROUT 2>&1
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -208,18 +199,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the slave..."
-$LDAPSEARCH -S "" -b "$BASEDN" -s base -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -S "" -b "ou=Groups, $BASEDN" -h localhost -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
-
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	kill -INT $PID $SLAVEPID
-	kill -KILL $SLURPPID
-	exit $RC
-fi
-
-$LDAPSEARCH -S "" -b "ou=People, $BASEDN" -h localhost -p $SLAVEPORT \
-	'objectclass=*' >> $SLAVEOUT 2>&1
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -231,12 +212,12 @@ fi
 kill -INT $PID $SLAVEPID
 kill -KILL $SLURPPID
 
-SEARCHOUT=$MASTEROUT
+SEARCHOUT=$SUBMASTEROUT
 LDIF=$SLAVEOUT
 
-echo "Filtering ldapsearch results..."
+echo "Filtering master ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering original ldif used to create database..."
+echo "Filtering slave ldapsearch results..."
 . $LDIFFILTER < $LDIF > $LDIFFLT
 
 echo "Comparing retrieved entries from master and slave..."
@@ -247,7 +228,26 @@ if test $? != 0 ; then
 	exit 1
 fi
 
-echo ">>>>> Test succeeded"
+SEARCHOUT=$MASTEROUT
 
+echo "Filtering remaining data"
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+
+echo "Stripping slave entries from master output..."
+$CMP $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
+
+echo "Stripping subtree entries from master output..."
+. $SUBFILTER 'ou=Groups,[ ]?o=University of Michigan,[ ]?c=US' < $SEARCHOUT \
+	| $UNDIFFFILTER > $SUBFLT2
+
+echo "Comparing master minus subtree and master minus slave..."
+$CMP $SUBFLT $SUBFLT2 > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - master and slave databases differ"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
 
 exit 0
