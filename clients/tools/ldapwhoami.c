@@ -79,7 +79,6 @@ main( int argc, char *argv[] )
 	int		debug = 0;
 	int		version = -1;
 	int		authmethod = -1;
-	int		manageDSAit = 0;
 #ifdef HAVE_CYRUS_SASL
 	unsigned	sasl_flags = LDAP_SASL_AUTOMATIC;
 	char		*sasl_realm = NULL;
@@ -205,16 +204,6 @@ main( int argc, char *argv[] )
 		return( EXIT_FAILURE );
 #endif
 	    break;
-	case 'M':
-		/* enable Manage DSA IT */
-		if( version == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -M incompatible with LDAPv%d\n",
-				prog, version );
-			return EXIT_FAILURE;
-		}
-		manageDSAit++;
-		version = LDAP_VERSION3;
-		break;
 	case 'n':	/* print deletes, don't actually do them */
 	    ++not;
 	    break;
