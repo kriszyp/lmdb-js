@@ -238,21 +238,21 @@ main( int argc, char **argv )
 		if ( j < snum ) {
 
 			sargs[sanum - 2] = sreqs[j];
-			fork_child( scmd, &sargs[0] );
+			fork_child( scmd, sargs );
 
 		}
 
 		if ( j < rnum ) {
 
 			rargs[ranum - 2] = rreqs[j];
-			fork_child( rcmd, &rargs[0] );
+			fork_child( rcmd, rargs );
 
 		}
 
 		if ( j < anum ) {
 
 			aargs[aanum - 2] = afiles[j];
-			fork_child( acmd, &aargs[0] );
+			fork_child( acmd, aargs );
 
 		}
 
