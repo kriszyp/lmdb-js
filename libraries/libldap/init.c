@@ -210,6 +210,7 @@ static void openldap_ldap_init_w_conf(
 				}
 				break;
 			}
+			break;
 		}
 	}
 
