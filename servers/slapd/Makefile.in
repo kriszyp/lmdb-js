@@ -9,7 +9,7 @@ XSRCS=version.c
 NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
-SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
+SRCS	= main.c daemon.c connection.c search.c filter.c add.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
 		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
@@ -22,7 +22,7 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		limits.c backglue.c operational.c matchedValues.c \
 		$(@PLAT@_SRCS)
 
-OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
+OBJS	= main.o daemon.o connection.o search.o filter.o add.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
 		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
