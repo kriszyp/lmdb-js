@@ -26,7 +26,11 @@
 #undef LDAP_SIGUSR1
 #undef LDAP_SIGUSR2
 
-#	ifndef HAVE_LINUX_THREADS
+#	if defined(WINNT) || defined(_WINNT)
+#		define LDAP_SIGUSR1	SIGILL
+#		define LDAP_SIGUSR2	SIGTERM
+
+#	elif !defined(HAVE_LINUX_THREADS)
 #		define LDAP_SIGUSR1	SIGUSR1
 #		define LDAP_SIGUSR2	SIGUSR2
 
