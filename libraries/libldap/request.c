@@ -351,10 +351,11 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 	for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 		for ( ls = srv; ls != NULL; ls = ls->lud_next ) {
 			if ( lc->lconn_server->lud_host != NULL &&
-			    ls->lud_host != NULL && strcasecmp(
-			    ls->lud_host, lc->lconn_server->lud_host ) == 0
+				*lc->lconn_server->lud_host != '\0' &&
+			    ls->lud_host != NULL && *ls->lud_host != '\0' &&
+				strcasecmp( ls->lud_host, lc->lconn_server->lud_host ) == 0
 			    && ls->lud_port == lc->lconn_server->lud_port ) {
-				return( lc );
+				return lc;
 			}
 			if ( !any ) {
 				break;
@@ -362,7 +363,7 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 		}
 	}
 
-	return( NULL );
+	return NULL;
 }
 
 
@@ -629,6 +630,13 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		/* Parse the referral URL */
 		if (( rc = ldap_url_parse( refarray[i], &srv)) != LDAP_SUCCESS) {
 			ld->ld_errno = rc;
+			rc = -1;
+			goto done;
+		}
+
+		if( srv->lud_crit_exts ) {
+			/* we do not support any extensions */
+			ld->ld_errno = LDAP_NOT_SUPPORTED;
 			rc = -1;
 			goto done;
 		}

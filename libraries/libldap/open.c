@@ -252,6 +252,7 @@ ldap_int_open_connection(
 	char *sasl_host = NULL;
 	int sasl_ssf = 0;
 #endif
+	char *host;
 	int port;
 	long addr;
 
@@ -262,11 +263,15 @@ ldap_int_open_connection(
 			port = htons( (short) srv->lud_port );
 
 			addr = 0;
-			if ( srv->lud_host == NULL || *srv->lud_host == 0 )
+			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
+				host = NULL;
 				addr = htonl( INADDR_LOOPBACK );
+			} else {
+				host = srv->lud_host;
+			}
 
 			rc = ldap_connect_to_host( ld, conn->lconn_sb, 0,
-				srv->lud_host, addr, port, async );
+				host, addr, port, async );
 
 			if ( rc == -1 ) return rc;
 

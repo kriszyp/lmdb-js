@@ -74,9 +74,11 @@ static LDAPMessage * chkResponseList LDAP_P(( LDAP *ld, int msgid, int all));
  * with msgid.  If all is LDAP_MSG_ONE (0) the first message with id
  * msgid will be accepted, otherwise, ldap_result will wait for all
  * responses with id msgid and then return a pointer to the entire list
- * of messages.  This is only useful for search responses, which can be
- * of two message types (zero or more entries, followed by an
- * ldap result).  The type of the first message received is returned.
+ * of messages.  In general, this is only useful for search responses,
+ * which can be of three message types (zero or more entries, zero or
+ * search references, followed by an ldap result).  An extension to
+ * LDAPv3 allows partial extended responses to be returned in response
+ * to any request.  The type of the first message received is returned.
  * When waiting, any messages that have been abandoned are discarded.
  *
  * Example:
@@ -118,9 +120,10 @@ ldap_result(
 }
 
 static LDAPMessage *
-chkResponseList( LDAP *ld,
-	             int msgid,
-	             int all)
+chkResponseList(
+	LDAP *ld,
+	int msgid,
+	int all)
 {
 	LDAPMessage	*lm, *lastlm, *nextlm;
     /*
@@ -130,14 +133,16 @@ chkResponseList( LDAP *ld,
 	 * wait until it arrives or timeout occurs.
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "chkResponseList for msgid %d, all %d\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"ldap_chkResponseList for msgid=%d, all=%d\n",
 	    msgid, all, 0 );
 	lastlm = NULL;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
 
 		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
-			Debug( LDAP_DEBUG_TRACE, "chkResponseList msg abandoned, msgid %d\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"ldap_chkResponseList msg abandoned, msgid %d\n",
 			    msgid, 0, 0 );
 			ldap_mark_abandoned( ld, lm->lm_msgid );
 
@@ -156,16 +161,17 @@ chkResponseList( LDAP *ld,
 		if ( msgid == LDAP_RES_ANY || lm->lm_msgid == msgid ) {
 			LDAPMessage	*tmp;
 
-			if ( all == LDAP_MSG_ONE
-			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
-			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
-			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY
-				&& lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL) )
+			if ( all == LDAP_MSG_ONE || msgid == LDAP_RES_UNSOLICITED ) {
 				break;
+			}
 
 			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
-				if ( tmp->lm_msgtype == LDAP_RES_SEARCH_RESULT )
+				if ( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+				    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE
+					&& lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
+				{
 					break;
+				}
 			}
 
 			if ( tmp == NULL ) {
@@ -176,6 +182,7 @@ chkResponseList( LDAP *ld,
 		}
 		lastlm = lm;
 	}
+
     if ( lm != NULL ) {
 		/* Found an entry, remove it from the list */
 	    if ( lastlm == NULL ) {
@@ -185,8 +192,7 @@ chkResponseList( LDAP *ld,
 		    lastlm->lm_next = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		        ? lm->lm_chain : lm->lm_next);
 	    }
-	    if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL )
-	    {
+	    if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL ) {
 		    lm->lm_chain->lm_next = lm->lm_next;
 		    lm->lm_chain = NULL;
 	    }
@@ -195,10 +201,12 @@ chkResponseList( LDAP *ld,
 
 #ifdef LDAP_DEBUG
 	if( lm == NULL) {
-		Debug( LDAP_DEBUG_TRACE, "chkResponseList returns NULL\n", 0, 0, 0);
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_chkResponseList returns NULL\n", 0, 0, 0);
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "chkResponseList returns msgid %d, type %lu\n",
-			    lm->lm_msgid, (unsigned long) lm->lm_msgtype, 0);
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_chkResponseList returns msgid %d, type 0x%02lu\n",
+			lm->lm_msgid, (unsigned long) lm->lm_msgtype, 0);
 	}
 #endif
     return lm;
