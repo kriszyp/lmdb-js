@@ -179,7 +179,7 @@ ldap_host_connected_to( Sockbuf *sb )
 	if (( hp = gethostbyaddr( (char *) &sin.sin_addr,
 	    sizeof( sin.sin_addr ), AF_INET )) != NULL ) {
 		if ( hp->h_name != NULL ) {
-			return( strdup( hp->h_name ));
+			return( ldap_strdup( hp->h_name ));
 		}
 	}
 

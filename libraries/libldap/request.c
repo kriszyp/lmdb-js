@@ -685,7 +685,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 				return( -1 );
 			}
 
-			if (( srv->lsrv_host = strdup( tmpref )) == NULL ) {
+			if (( srv->lsrv_host = ldap_strdup( tmpref )) == NULL ) {
 				free( (char *)srv );
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
@@ -919,9 +919,9 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 			prevsrv = srv;
 			
 			/* copy in info. */
-			if (( srv->lsrv_host = strdup( host )) == NULL ||
+			if (( srv->lsrv_host = ldap_strdup( host )) == NULL ||
 			    ( server_dn != NULL && ( srv->lsrv_dn =
-			    strdup( server_dn )) == NULL )) {
+			    ldap_strdup( server_dn )) == NULL )) {
 				free_servers( srvlist );
 				srvlist = NULL;
 				break;		/* exit loop & return */

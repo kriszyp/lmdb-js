@@ -83,8 +83,8 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 				}
 			}
 
-			(*map)[i].f_unfriendly = strdup( buf );
-			(*map)[i].f_friendly = strdup( s );
+			(*map)[i].f_unfriendly = ldap_strdup( buf );
+			(*map)[i].f_friendly   = ldap_strdup( s );
 			i++;
 		}
 

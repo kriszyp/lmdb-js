@@ -45,7 +45,7 @@ ldap_getdxbyname( char *domain )
 	 * punt:  return list conisting of the original domain name only
 	 */
 	if (( dxs = (char **)malloc( 2 * sizeof( char * ))) == NULL ||
-		( dxs[ 0 ] = strdup( domain )) == NULL ) {
+		( dxs[ 0 ] = ldap_strdup( domain )) == NULL ) {
 	    if ( dxs != NULL ) {
 		free( dxs );
 	    }

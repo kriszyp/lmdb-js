@@ -128,7 +128,7 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 				    * 2 )) == NULL ) {
 					return( ld->ld_errno = LDAP_NO_MEMORY );
 				}
-				dns[0] = strdup( prefix );
+				dns[0] = ldap_strdup( prefix );
 				dns[1] = NULL;
 			} else {
 				dns = NULL;
@@ -472,7 +472,7 @@ ldap_ufn_setprefix( LDAP *ld, char *prefix )
 	if ( ld->ld_ufnprefix != NULL )
 		free( ld->ld_ufnprefix );
 
-	ld->ld_ufnprefix = strdup( prefix );
+	ld->ld_ufnprefix = ldap_strdup( prefix );
 }
 
 int

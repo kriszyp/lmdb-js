@@ -54,9 +54,9 @@ ldap_dn2ufn( char *dn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
 	if ( ldap_is_dns_dn( dn ) || ( p = strchr( dn, '=' )) == NULL )
-		return( strdup( dn ));
+		return( ldap_strdup( dn ) );
 
-	ufn = strdup( ++p );
+	ufn = ldap_strdup( ++p );
 
 #define INQUOTE		1
 #define OUTQUOTE	2
@@ -139,7 +139,7 @@ ldap_explode_dns( char *dn )
 				return( NULL );
 			}
 		}
-		rdns[ncomps++] = strdup( s );
+		rdns[ncomps++] = ldap_strdup( s );
 	}
 	rdns[ncomps] = NULL;
 
