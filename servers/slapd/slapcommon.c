@@ -432,6 +432,10 @@ slap_tool_init(
 		be = select_backend( &nbase, 0, 0 );
 		ber_memfree( nbase.bv_val );
 
+		if ( tool == SLAPACL ) {
+			goto startup;
+		}
+
 		if( be == NULL ) {
 			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
 				progname, base.bv_val );

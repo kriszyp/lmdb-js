@@ -56,8 +56,6 @@ slapacl( int argc, char **argv )
 
 	connection_fake_init( &conn, &op, &conn );
 
-	assert( be != NULL );
-
 	if ( !BER_BVISNULL( &authcID ) ) {
 		rc = slap_sasl_getdn( &conn, &op, &authcID, NULL, &authcDN, SLAP_GETDN_AUTHCID );
 		if ( rc != LDAP_SUCCESS ) {
