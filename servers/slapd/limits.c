@@ -277,31 +277,31 @@ parse_limits(
 	} else if ( strcasecmp( pattern, "users" ) == 0 ) {
 		type = SLAP_LIMITS_USERS;
 		
-	} else if ( strncasecmp( pattern, "dn", 2 ) == 0 ) {
+	} else if ( strncasecmp( pattern, "dn", sizeof( "dn") - 1 ) == 0 ) {
 		pattern += 2;
 		if ( pattern[0] == '.' ) {
 			pattern++;
-			if ( strncasecmp( pattern, "exact", 5 ) == 0 ) {
+			if ( strncasecmp( pattern, "exact", sizeof( "exact" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_EXACT;
 				pattern += 5;
 
-			} else if ( strncasecmp( pattern, "base", 4 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "base", sizeof( "base " ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_BASE;
 				pattern += 4;
 
-			} else if ( strncasecmp( pattern, "one", 3 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "one", sizeof( "one" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_ONE;
 				pattern += 3;
 
-			} else if ( strncasecmp( pattern, "subtree", 7 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "subtree", sizeof( "subtree" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_SUBTREE;
 				pattern += 7;
 
-			} else if ( strncasecmp( pattern, "children", 8 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "children", sizeof( "children" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_CHILDREN;
 				pattern += 8;
 
-			} else if ( strncasecmp( pattern, "regex", 5 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "regex", sizeof( "regex" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_REGEX;
 				pattern += 5;
 
@@ -309,7 +309,7 @@ parse_limits(
 			 * this could be deprecated in favour
 			 * of the pattern = "anonymous" form
 			 */
-			} else if ( strncasecmp( pattern, "anonymous", 9 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "anonymous", sizeof( "anonymous" ) - 1 ) == 0 ) {
 				type = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
 			}
@@ -384,11 +384,15 @@ parse_limits(
 	/*
 	 * sanity checks ...
 	 */
-	if ( limit.lms_t_hard > 0 && limit.lms_t_hard < limit.lms_t_soft ) {
+	if ( limit.lms_t_hard > 0 && 
+			( limit.lms_t_hard < limit.lms_t_soft 
+			  || limit.lms_t_soft == -1 ) ) {
 		limit.lms_t_hard = limit.lms_t_soft;
 	}
 	
-	if ( limit.lms_s_hard > 0 && limit.lms_s_hard < limit.lms_s_soft ) {
+	if ( limit.lms_s_hard > 0 && 
+			( limit.lms_s_hard < limit.lms_s_soft 
+			  || limit.lms_s_soft == -1 ) ) {
 		limit.lms_s_hard = limit.lms_s_soft;
 	}
 	
@@ -404,20 +408,30 @@ parse_limit(
 	assert( arg );
 	assert( limit );
 
-	if ( strncasecmp( arg, "time", 4 ) == 0 ) {
+	if ( strncasecmp( arg, "time", sizeof( "time" ) - 1 ) == 0 ) {
 		arg += 4;
 
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", 4 ) == 0 ) {
+			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
 				}
 				arg++;
-				limit->lms_t_soft = atoi( arg );
+				if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_t_soft = -1;
+				} else {
+					char	*next = NULL;
+
+					limit->lms_t_soft = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_t_soft < -1 ) {
+						return( 1 );
+					}
+				}
 				
-			} else if ( strncasecmp( arg, "hard", 4 ) == 0 ) {
+			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -428,7 +442,13 @@ parse_limit(
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_hard = -1;
 				} else {
-					limit->lms_t_hard = atoi( arg );
+					char	*next = NULL;
+
+					limit->lms_t_hard = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_t_hard < -1 ) {
+						return( 1 );
+					}
 				}
 				
 			} else {
@@ -436,28 +456,43 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
+			char	*next = NULL;
+
 			arg++;
-			limit->lms_t_soft = atoi( arg );
+			limit->lms_t_soft = strtol( arg, &next, 10 );
+			if ( next == arg || limit->lms_t_soft < -1 ) {
+				return( 1 );
+			}
 			limit->lms_t_hard = 0;
 			
 		} else {
 			return( 1 );
 		}
 
-	} else if ( strncasecmp( arg, "size", 4 ) == 0 ) {
+	} else if ( strncasecmp( arg, "size", sizeof( "size" ) - 1 ) == 0 ) {
 		arg += 4;
 		
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", 4 ) == 0 ) {
+			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
 				}
 				arg++;
-				limit->lms_s_soft = atoi( arg );
+				if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_soft = -1;
+				} else {
+					char	*next = NULL;
+
+					limit->lms_s_soft = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_s_soft < -1 ) {
+						return( 1 );
+					}
+				}
 				
-			} else if ( strncasecmp( arg, "hard", 4 ) == 0 ) {
+			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -468,10 +503,16 @@ parse_limit(
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_hard = -1;
 				} else {
-					limit->lms_s_hard = atoi( arg );
+					char	*next = NULL;
+
+					limit->lms_s_hard = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_s_hard < -1 ) {
+						return( 1 );
+					}
 				}
 				
-			} else if ( strncasecmp( arg, "unchecked", 9 ) == 0 ) {
+			} else if ( strncasecmp( arg, "unchecked", sizeof( "unchecked" ) - 1 ) == 0 ) {
 				arg += 9;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -480,7 +521,13 @@ parse_limit(
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_unchecked = -1;
 				} else {
-					limit->lms_s_unchecked = atoi( arg );
+					char	*next = NULL;
+
+					limit->lms_s_unchecked = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_s_unchecked < -1 ) {
+						return( 1 );
+					}
 				}
 				
 			} else {
@@ -488,8 +535,13 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
+			char	*next = NULL;
+
 			arg++;
-			limit->lms_s_soft = atoi( arg );
+			limit->lms_s_soft = strtol( arg, &next, 10 );
+			if ( next == arg || limit->lms_s_soft < -1 ) {
+				return( 1 );
+			}
 			limit->lms_s_hard = 0;
 			
 		} else {

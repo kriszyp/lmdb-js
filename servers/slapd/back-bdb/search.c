@@ -262,13 +262,15 @@ dn2entry_retry:
 		/* if requested limit higher than hard limit, abort */
 		} else if ( tlimit > limit->lms_t_hard ) {
 			/* no hard limit means use soft instead */
-			if ( limit->lms_t_hard == 0 && tlimit > limit->lms_t_soft ) {
+			if ( limit->lms_t_hard == 0
+					&& limit->lms_t_soft > -1
+					&& tlimit > limit->lms_t_soft ) {
 				tlimit = limit->lms_t_soft;
 
 			/* positive hard limit means abort */
 			} else if ( limit->lms_t_hard > 0 ) {
 				send_search_result( conn, op, 
-						LDAP_UNWILLING_TO_PERFORM,
+						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL, NULL, NULL, NULL, 0 );
 				rc = 0;
 				goto done;
@@ -284,13 +286,15 @@ dn2entry_retry:
 		/* if requested limit higher than hard limit, abort */
 		} else if ( slimit > limit->lms_s_hard ) {
 			/* no hard limit means use soft instead */
-			if ( limit->lms_s_hard == 0 && slimit > limit->lms_s_soft ) {
+			if ( limit->lms_s_hard == 0
+					&& limit->lms_s_soft > -1
+					&& slimit > limit->lms_s_soft ) {
 				slimit = limit->lms_s_soft;
 
 			/* positive hard limit means abort */
 			} else if ( limit->lms_s_hard > 0 ) {
 				send_search_result( conn, op, 
-						LDAP_UNWILLING_TO_PERFORM,
+						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL, NULL, NULL, NULL, 0 );
 				rc = 0;	
 				goto done;
