@@ -103,7 +103,7 @@ int main( int argc, LPTSTR *argv )
 	puts( "starting slapd..." );
 	if (svc_installed(SERVICE_NAME, NULL) != 0
 		|| svc_running(SERVICE_NAME) == 1
-		|| StartServiceCtrlDispatcher(DispatchTable) != 0 )
+		|| StartServiceCtrlDispatcher(DispatchTable) == 0 )
 	{
 		is_NT_Service = 0;
 		ServiceMain( argc, argv );
