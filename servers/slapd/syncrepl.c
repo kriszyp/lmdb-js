@@ -121,6 +121,7 @@ ldap_sync_search(
 	LDAPControl c[2];
 	LDAPControl **ctrls;
 	int err;
+	struct timeval timeout;
 
     /* setup LDAP SYNC control */
     sync_ber = ber_alloc_t( LBER_USE_DER );
@@ -165,9 +166,12 @@ ldap_sync_search(
     if ( err != LDAP_OPT_SUCCESS )
         fprintf( stderr, "Could not set controls : %d\n", err );
 
+	timeout.tv_sec = si->tlimit > 0 ? si->tlimit : 1;
+
 	rc = ldap_search_ext( ld, si->base, si->scope, si->filterstr,
 						  si->attrs, si->attrsonly, sctrls, cctrls,
-						  si->tlimit, si->slimit, msgidp );
+						  si->tlimit < 0 ? NULL : &timeout,
+						  si->slimit, msgidp );
 
 	return rc;
 }
@@ -310,11 +314,11 @@ do_syncrepl(
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_bind: Error: "
 					"ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
-					si->mastername, si->secprops, 0 );
+					si->masteruri, si->secprops, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->mastername, si->secprops, NULL );
+					si->masteruri, si->secprops, NULL );
 #endif
 				return NULL;
 			}
@@ -369,16 +373,11 @@ do_syncrepl(
 	si->ctx = ctx;
 
 	/* set memory context */
-#if 0
 #define SLAB_SIZE 1048576
 	memsiz = SLAB_SIZE;
 	memctx = sl_mem_create( memsiz, ctx );
 	op.o_tmpmemctx = memctx;
 	op.o_tmpmfuncs = &sl_mfuncs;
-#else
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
-#endif
 
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_dn = si->updatedn;
@@ -392,8 +391,8 @@ do_syncrepl(
 	op.o_connid = op.o_conn->c_connid;
 	op.ors_scope = LDAP_SCOPE_BASE;
 	op.ors_deref = LDAP_DEREF_NEVER;
-	op.ors_slimit = -1;
-	op.ors_tlimit = -1;
+	op.ors_slimit = 0;
+	op.ors_tlimit = 0;
 	op.ors_attrsonly = 0;
 	op.ors_attrs = NULL;
 	op.ors_filter = str2filter( def_filter_str = "(objectClass=*)" );
@@ -734,7 +733,7 @@ syncrepl_message_to_entry(
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
-	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname, op->o_tmpmemctx );
+	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname, NULL );
 
 	e->e_attrs = NULL;
 
@@ -1069,8 +1068,8 @@ syncrepl_del_nonpresent(
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = si->scope;
 	op->ors_deref = LDAP_DEREF_NEVER;
-	op->ors_slimit = -1;
-	op->ors_tlimit = -1;
+	op->ors_slimit = 0;
+	op->ors_tlimit = 0;
 	op->ors_attrsonly = 0;
 	op->ors_attrs = NULL;
 	op->ors_filter = filter;
@@ -1356,7 +1355,7 @@ syncrepl_updateCookie(
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
 	build_new_dn( &sub_bv, pdn, &psubrdn );
-	dnPrettyNormal( NULL, &sub_bv, &e->e_name, &e->e_nname, op->o_tmpmemctx );
+	dnPrettyNormal( NULL, &sub_bv, &e->e_name, &e->e_nname, NULL );
 	ch_free( sub_bv.bv_val );
 	ch_free( psubrdn.bv_val );
 
