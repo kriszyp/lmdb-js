@@ -96,16 +96,6 @@
 #define OPENLOG_OPTIONS		( LOG_PID | LOG_NOWAIT )
 #endif
 
-
-/*
- * some systems don't have the BSD re_comp and re_exec routines
- */
-#ifndef NEED_BSDREGEX
-#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( linux )
-#define NEED_BSDREGEX
-#endif
-#endif
-
 /*
  * many systems do not have the setpwfile() library routine... we just
  * enable use for those systems we know have it.
