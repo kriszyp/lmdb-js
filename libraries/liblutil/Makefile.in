@@ -1,6 +1,6 @@
 # $OpenLDAP$
 ##
-## Makefile for -lutil
+## Makefile for -llutil
 ##
 
 LIBRARY	= liblutil.a
