@@ -222,6 +222,11 @@ main( int argc, char **argv )
 		break;
 	case 'l':	/* time limit */
 		timelimit = atoi( optarg );
+		if( timelimit < 0 ) {
+			fprintf( stderr, "%s: invalid timelimit (%d) specified\n",
+				prog, timelimit );
+			return EXIT_FAILURE;
+		}
 		break;
 	case 'L':	/* print entries in LDIF format */
 		++ldif;
