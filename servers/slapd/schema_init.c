@@ -1246,8 +1246,8 @@ static int caseExactIgnoreIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	int i;
-	unsigned casefold;
+	int i,j;
+	unsigned casefold,wasspace;
 	size_t slen, mlen;
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
@@ -1272,8 +1272,32 @@ static int caseExactIgnoreIndexer(
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		struct berval value;
+		struct berval value, nvalue;
 		UTF8bvnormalize( &values[i], &value, casefold );
+
+		/* collapse spaces (in place) */
+		nvalue.bv_len = 0;
+		nvalue.bv_val = value.bv_val;
+
+		wasspace=1;
+		for( j=0; j<value.bv_len; j++) {
+			if ( ASCII_SPACE( value.bv_val[j] )) {
+				if( wasspace++ == 0 ) {
+					nvalue.bv_val[nvalue.bv_len++] = value.bv_val[j];
+				}
+			} else {
+				wasspace = 0;
+				nvalue.bv_val[nvalue.bv_len++] = value.bv_val[j];
+			}
+		}
+
+		if( nvalue.bv_len == 0 ) {
+			nvalue.bv_val = " ";
+			nvalue.bv_len = sizeof(" ")-1;
+		} else {
+			if( wasspace ) --nvalue.bv_len;
+			nvalue.bv_val[nvalue.bv_len] = '\0';
+		}
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1285,11 +1309,10 @@ static int caseExactIgnoreIndexer(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value.bv_val, value.bv_len );
+			nvalue.bv_val, nvalue.bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
 		free( value.bv_val );
-
 		ber_dupbv( &keys[i], &digest );
 	}
 
