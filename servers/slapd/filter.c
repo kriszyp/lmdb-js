@@ -265,7 +265,7 @@ get_filter(
 		break;
 
 	default:
-		(void) ber_skip_tag( ber, &len );
+		(void) ber_scanf( ber, "x" ); /* skip the element */
 		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
