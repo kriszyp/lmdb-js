@@ -1423,7 +1423,7 @@ syncrepl_del_nonpresent(
 	Modifications *mlnext;
 	Modifications *mod;
 	Modifications *modlist = NULL;
-	Modifications **modtail = &modlist;
+	Modifications **modtail;
 	Attribute	*attr;
 
 	struct berval pdn = BER_BVNULL;
@@ -1478,6 +1478,7 @@ syncrepl_del_nonpresent(
 			rc = op->o_bd->be_delete( op, &rs_delete );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
+				modtail = &modlist;
 				mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 				mod->sml_op = LDAP_MOD_REPLACE;
 				mod->sml_desc = slap_schema.si_ad_objectClass;
