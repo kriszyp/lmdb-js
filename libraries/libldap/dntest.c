@@ -12,11 +12,11 @@
  */
 #include "portable.h"
 
+#include <stdio.h>
+
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
-
-#include <stdio.h>
 
 #include <ldap.h>
 
