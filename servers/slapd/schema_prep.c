@@ -600,7 +600,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2252: matching rule uses' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )",
-		subentryAttribute, SLAP_AT_HIDE,
+		subentryAttribute, 0,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRuleUse) },
 

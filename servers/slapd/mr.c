@@ -398,7 +398,7 @@ matching_rule_use_init( void )
 								at->sat_cname.bv_val, 0 );
 #endif
 						ldap_charray_add( &applies_oids,
-								at->sat_oid );
+								at->sat_cname.bv_val );
 					}
 				}
 			}
@@ -427,7 +427,7 @@ matching_rule_use_init( void )
 							at->sat_cname.bv_val, 0 );
 #endif
 					ldap_charray_add( &applies_oids,
-							at->sat_oid );
+							at->sat_cname.bv_val );
 				}
 			}
 			break;
@@ -455,7 +455,7 @@ matching_rule_use_init( void )
 							at->sat_cname.bv_val, 0 );
 #endif
 					ldap_charray_add( &applies_oids,
-							at->sat_oid );
+							at->sat_cname.bv_val );
 				}
 			}
 			break;
