@@ -635,22 +635,6 @@ connection_destroy( Connection *c )
 	}
 	c->c_peer_domain.bv_len = 0;
 	if(c->c_peer_name.bv_val != NULL) {
-#ifdef LDAP_PF_LOCAL
-		/*
-		 * If peer was a domain socket, unlink. Mind you,
-		 * they may be un-named. Should we leave this to
-		 * the client?
-		 */
-		if (strncmp(c->c_peer_name.bv_val, "PATH=", 
-					sizeof("PATH=") - 1) == 0) {
-			char *path = c->c_peer_name.bv_val 
-				+ sizeof("PATH=") - 1;
-			if (path[0] != '\0') {
-				(void)unlink(path);
-			}
-		}
-#endif /* LDAP_PF_LOCAL */
-
 		free(c->c_peer_name.bv_val);
 		c->c_peer_name.bv_val = NULL;
 	}
