@@ -15,7 +15,7 @@
 
 all:	FORCE
 	@if [ ! -z "$(NEEDUNPROTO)" ]; then \
-	    cd unproto; $(MAKE) $(MFLAGS) CC=$(CC); \
+	    cd unproto; $(MAKE) $(MFLAGS) CC="$(CC)"; \
 	else \
 	    exit 0; \
 	fi
