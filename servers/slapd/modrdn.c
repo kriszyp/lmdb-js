@@ -51,11 +51,11 @@ do_modrdn(
 
 	struct berval pdn = { 0, NULL };
 	struct berval pnewrdn = { 0, NULL };
-	struct berval pnewSuperior = { 0, NULL };
+	struct berval pnewSuperior = { 0, NULL }, *pnewS = NULL;
 
 	struct berval ndn = { 0, NULL };
 	struct berval nnewrdn = { 0, NULL };
-	struct berval nnewSuperior = { 0, NULL };
+	struct berval nnewSuperior = { 0, NULL }, *nnewS = NULL;
 
 	Backend	*be;
 	Backend	*newSuperior_be = NULL;
@@ -136,6 +136,8 @@ do_modrdn(
 			rc = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
+		pnewS = &pnewSuperior;
+		nnewS = &nnewSuperior;
 	}
 
 #ifdef NEW_LOGGING
@@ -249,7 +251,7 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( newSuperior.bv_len ) {
+	if( pnewS ) {
 		rc = dnPrettyNormal( NULL, &newSuperior, &pnewSuperior,
 			&nnewSuperior );
 		if( rc != LDAP_SUCCESS ) {
@@ -306,7 +308,7 @@ do_modrdn(
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
-	if( newSuperior.bv_len ) {
+	if( pnewS ) {
 		newSuperior_be = select_backend( &nnewSuperior, 0, 0 );
 
 		if ( newSuperior_be != be ) {
@@ -341,7 +343,7 @@ do_modrdn(
 		{
 			if ( (*be->be_modrdn)( be, conn, op, &pdn, &ndn,
 				&pnewrdn, &nnewrdn, deloldrdn,
-				&pnewSuperior, &nnewSuperior ) == 0
+				pnewS, nnewS ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( !be->be_update_ndn.bv_len || !repl_user )
 #endif

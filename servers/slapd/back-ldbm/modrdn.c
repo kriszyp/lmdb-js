@@ -281,7 +281,7 @@ ldbm_back_modrdn(
 
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
-	if ( newSuperior->bv_val != NULL ) {
+	if ( newSuperior != NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			"ldbm_back_modrdn: new parent \"%s\" requested\n",
@@ -314,7 +314,7 @@ ldbm_back_modrdn(
 		}
 	}
 
-	if ( newSuperior && newSuperior->bv_val != NULL ) {
+	if ( newSuperior != NULL ) {
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
