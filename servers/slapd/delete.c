@@ -211,11 +211,10 @@ do_delete(
 #endif
 		{
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 			if ( !repl_user ) {
-				struct berval csn = { 0 , NULL };
-				char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &op->ord_csn, 1 );
 			}
 
 #ifdef SLAPD_MULTIMASTER
