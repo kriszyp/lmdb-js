@@ -1287,6 +1287,8 @@ fp_getline( FILE *fp, int *lineno )
 			return( line );
 		}
 
+		buf[0] = ' ';
+
 		CATLINE( buf );
 		(*lineno)++;
 	}
