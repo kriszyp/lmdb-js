@@ -1,33 +1,14 @@
 /* include/portable.h.in.  Generated automatically from configure.in by autoheader.  */
 /* portable.h.top begin */
 /*
-Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
-All rights reserved.
-
-Redistribution and use in source and binary forms are permitted only
-as authorized by the OpenLDAP Public License.  A copy of this
-license is available at http://www.OpenLDAP.org/license.html or
-in file LICENSE in the top-level directory of the distribution.
-
-This work is derived from the University of Michigan LDAP v3.3
-distribution.  Information concerning is available at
-    http://www.umich.edu/~dirsvcs/ldap/ldap.html.
-
-This work also contains materials derived from public sources.
-
----
-
-Portions Copyright (c) 1992-1996 Regents of the University of Michigan.
-All rights reserved.
-
-Redistribution and use in source and binary forms are permitted
-provided that this notice is preserved and that due credit is given
-to the University of Michigan at Ann Arbor. The name of the University
-may not be used to endorse or promote products derived from this 
-software without specific prior written permission. This software
-is provided ``as is'' without express or implied warranty.
- 
-*/
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
 
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
@@ -611,6 +592,15 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
 /* portable.h.bot begin */
+/*
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
