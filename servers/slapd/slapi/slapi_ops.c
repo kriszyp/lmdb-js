@@ -1143,8 +1143,8 @@ slapi_search_internal_bind(
 	}
 
 	if ( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
-		slapi_ch_free( (void **)op->o_req_dn.bv_val );
-		slapi_ch_free( (void **)op->o_req_ndn.bv_val );
+		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
+		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
 
 		ber_dupbv( &op->o_req_dn, &default_search_base );
 		ber_dupbv( &op->o_req_ndn, &default_search_nbase );
