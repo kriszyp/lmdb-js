@@ -36,10 +36,11 @@ Perform a security audit (and fix any hole found)
 
 Medium projects
 ---------------
-Implement LDAP Transactions
+Implement LDAP Transactions extension
+Implement Proxy Authorization Control extension
+Implement LDAP Cancel extension
 Implement authPassword (RFC 3112)
 Implement localization
-Implement Proxy Authorization Control extension
 Update to latest autoconf and friends
 
 
@@ -50,7 +51,6 @@ Populate matchingRuleUse attribute in the subschema
 Implement -V version options
 Add No-Op Control support to client tools (e.g. ldapsearch(1))
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
-Add support for Cyrus pwcheckd/saslauthd
 Recode linked-list structs to use <ldap_queue.h> macros
 Create ldapbind(1) to support bind operations
 Convert utfconv.txt into man page(s).
