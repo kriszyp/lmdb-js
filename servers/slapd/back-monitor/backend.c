@@ -83,13 +83,7 @@ monitor_subsys_backend_init(
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=%d,%s\n"
-				"objectClass: top\n"
-				"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-				"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-				"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+				SLAPD_MONITOR_OBJECTCLASSES
 				"cn: %d\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val,

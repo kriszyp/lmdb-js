@@ -323,13 +323,7 @@ monitor_back_db_init(
 
 		snprintf( buf, sizeof( buf ),
 				"dn: %s\n"
-				"objectClass: top\n"
-				"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-				"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-				"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+				SLAPD_MONITOR_OBJECTCLASSES 
 				"cn: %s\n",
 				monitor_subsys[ i ].mss_dn.bv_val,
 				monitor_subsys[ i ].mss_name );
@@ -378,12 +372,9 @@ monitor_back_db_init(
 	snprintf( buf, sizeof( buf ), 
 			"dn: " SLAPD_MONITOR_DN "\n"
 			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
+			"objectClass: monitor\n"
 			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			"structuralObjectClass: monitor\n"
 			"cn: Monitor" );
 
 	e = str2entry( buf );

@@ -162,6 +162,12 @@ struct monitorinfo {
 #define SLAPD_MONITOR_SENT_DN	\
 	SLAPD_MONITOR_SENT_RDN "," SLAPD_MONITOR_DN
 
+#define SLAPD_MONITOR_OBJECTCLASSES \
+	"objectClass: top\n" \
+	"objectClass: monitor\n" \
+	"objectClass: extensibleObject\n" \
+	"structuralObjectClass: monitor\n"
+
 struct monitorsubsys {
 	int		mss_type;
 	char		*mss_name;

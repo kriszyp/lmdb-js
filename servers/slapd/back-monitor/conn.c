@@ -78,13 +78,7 @@ monitor_subsys_conn_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=Total,%s\n"
-		"objectClass: top\n"
-		"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-		"objectClass: monitor\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-		"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+		SLAPD_MONITOR_OBJECTCLASSES
 		"cn: Total\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val );
 	
@@ -142,13 +136,7 @@ monitor_subsys_conn_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=Current,%s\n"
-		"objectClass: top\n"
-		"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-		"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-		"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+		SLAPD_MONITOR_OBJECTCLASSES
 		"cn: Current\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val );
 	
@@ -270,13 +258,7 @@ conn_create(
 
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=%ld,%s\n"
-		"objectClass: top\n"
-		"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-		"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-		"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+		SLAPD_MONITOR_OBJECTCLASSES
 		"cn: %ld\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		c->c_connid );

@@ -39,11 +39,9 @@ to ease the addition of new subsystems.
 SCHEMA
 
 All the subsystems get a default "cn" attribute, represented by the
-subsystem's name, and they all have "top", "LDAPsubEntry" and
-"monitorSubEntry" objectclasses (the latter has not been defined yet,
-pending the design of the monitor schema and its registration under
-OpenLDAP's OID).
-At present "extensibleObject" is used, and the "description" attribute 
+subsystem's name, and they all have "top", "monitor" and "extensibleObject"
+objectclasses.
+"extensibleObject" is used, and the "description" attribute 
 is used to hold the monitor information of each entry.
 
 

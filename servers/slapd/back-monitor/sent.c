@@ -78,13 +78,7 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Entries,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Entries\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
 
@@ -141,13 +135,7 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Referrals,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Referrals\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
 
@@ -203,13 +191,7 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=PDU,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: PDU\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
 
@@ -265,13 +247,7 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Bytes,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Bytes\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
 

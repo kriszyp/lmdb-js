@@ -78,13 +78,7 @@ monitor_subsys_ops_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Initiated,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Initiated\n",
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
 
@@ -141,13 +135,7 @@ monitor_subsys_ops_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Completed,%s\n"
-			"objectClass: top\n"
-			"objectClass: LDAPsubEntry\n"
-#ifdef SLAPD_MONITORSUBENTRY
-			"objectClass: monitorSubEntry\n"
-#else /* !SLAPD_MONITORSUBENTRY */
-			"objectClass: extensibleObject\n"
-#endif /* !SLAPD_MONITORSUBENTRY */
+			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Completed\n",
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
 
