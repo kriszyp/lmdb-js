@@ -170,7 +170,7 @@ int bdb_tool_next_id(
 			return rc;
 		}
 		e->e_nname = dn;
-		rc = bdb_dn2id_add( be, tid, &pdn, e, NULL );
+		rc = bdb_dn2id_add( be, tid, ei, e, NULL );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len, 
 				"dn2id_add failed: %s (%d)",
@@ -222,7 +222,6 @@ ID bdb_tool_entry_put(
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
-	struct berval pdn;
 	Operation op = {0};
 	u_int32_t locker;
 
@@ -343,7 +342,6 @@ int bdb_tool_entry_reindex(
 	int rc;
 	Entry *e;
 	DB_TXN *tid = NULL;
-	struct berval pdn;
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
@@ -398,13 +396,9 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 #endif
 
+#ifndef BDB_HIER
 	/* add dn2id indices */
-	if ( be_issuffix( be, &e->e_nname ) ) {
-		pdn = slap_empty_bv;
-	} else {
-		dnParent( &e->e_nname, &pdn );
-	}
-	rc = bdb_dn2id_add( be, tid, &pdn, e, NULL );
+	rc = bdb_dn2id_add( be, tid, NULL, e, NULL );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( TOOLS, ERR, 
@@ -417,6 +411,7 @@ int bdb_tool_entry_reindex(
 #endif
 		goto done;
 	}
+#endif
 
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;

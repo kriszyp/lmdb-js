@@ -475,6 +475,28 @@ bdb_cache_find_entry_id(
 	return rc;
 }
 
+int
+bdb_cache_children(
+	Operation *op,
+	DB_TXN *txn,
+	Entry *e
+)
+{
+	int rc;
+
+	if ( BEI(e)->bei_kids ) {
+		return 0;
+	}
+	if ( BEI(e)->bei_state & CACHE_ENTRY_NO_KIDS ) {
+		return DB_NOTFOUND;
+	}
+	rc = bdb_dn2id_children( op, txn, e );
+	if ( rc == DB_NOTFOUND ) {
+		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS;
+	}
+	return rc;
+}
+
 /* Update the cache after a successful database Add. */
 int
 bdb_cache_add(

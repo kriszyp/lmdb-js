@@ -69,14 +69,14 @@ int bdb_dn2id(
 int bdb_dn2id_add(
 	BackendDB *be,
 	DB_TXN *tid,
-	struct berval *pdn,
+	EntryInfo *eip,
 	Entry *e,
 	void *ctx );
 
 int bdb_dn2id_delete(
 	BackendDB *be,
 	DB_TXN *tid,
-	char *pdn,
+	EntryInfo *eip,
 	Entry *e,
 	void *ctx );
 
@@ -312,6 +312,12 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 	bdb_unlocked_cache_return_entry_rw((c), (e), 0)
 #define bdb_unlocked_cache_return_entry_w( c, e ) \
 	bdb_unlocked_cache_return_entry_rw((c), (e), 1)
+
+int bdb_cache_children(
+	Operation *op,
+	DB_TXN *txn,
+	Entry *e
+);
 int bdb_cache_add(
 	struct bdb_info *bdb,
 	EntryInfo *pei,

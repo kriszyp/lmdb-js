@@ -323,7 +323,7 @@ retry:	/* transaction retry */
 	}
 
 	/* Can't do it if we have kids */
-	rs->sr_err = bdb_dn2id_children( op, lt2, e );
+	rs->sr_err = bdb_cache_children( op, lt2, e );
 	if( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -358,7 +358,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, pdn.bv_val, e,
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {

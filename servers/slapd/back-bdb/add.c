@@ -384,7 +384,7 @@ retry:	/* transaction retry */
 	}
 
 	/* dn2id index */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, &pdn, op->oq_add.rs_e,
+	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, ei, op->oq_add.rs_e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING

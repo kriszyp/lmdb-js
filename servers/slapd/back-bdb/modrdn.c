@@ -205,7 +205,7 @@ retry:	/* transaction retry */
 	}
 
 #ifndef BDB_HIER
-	rs->sr_err = bdb_dn2id_children( op, ltid, e );
+	rs->sr_err = bdb_cache_children( op, ltid, e );
 	if ( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -775,7 +775,7 @@ retry:	/* transaction retry */
 	e = &dummy;
 
 	/* delete old one */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, p_ndn.bv_val, e,
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
@@ -812,7 +812,7 @@ retry:	/* transaction retry */
 	new_ndn.bv_val = NULL;
 #endif
 	/* add new one */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, np_ndn, e,
+	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, neip ? neip : eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {

@@ -31,7 +31,7 @@ bdb_hasSubordinates(
 	assert( e );
 
 retry:
-	rc = bdb_dn2id_children( op, NULL, e );
+	rc = bdb_cache_children( op, NULL, e );
 	
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:

@@ -19,7 +19,7 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	struct berval	*pbv,
+	EntryInfo *eip,
 	Entry		*e,
 	void *ctx )
 {
@@ -162,7 +162,7 @@ int
 bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
-	char	*pdnc,
+	EntryInfo	*eip,
 	Entry		*e,
 	void *ctx )
 {
@@ -357,6 +357,10 @@ bdb_dn2id_children(
 	DB_TXN *txn,
 	Entry *e )
 {
+	DBT		key, data;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	ID		id;
 	int		rc;
 
 #ifdef NEW_LOGGING
@@ -366,19 +370,6 @@ bdb_dn2id_children(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
 		e->e_nname.bv_val, 0, 0 );
 #endif
-
-	if ( BEI(e)->bei_kids ) {
-		rc = 0;
-	}
-	if ( BEI(e)->bei_state & CACHE_ENTRY_NO_KIDS ) {
-		rc = DB_NOTFOUND;
-	} else {
-
-	DBT		key, data;
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	DB *db = bdb->bi_dn2id->bdi_db;
-	ID		id;
-
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
 	key.data = sl_malloc( key.size, op->o_tmpmemctx );
@@ -395,12 +386,6 @@ bdb_dn2id_children(
 
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 	sl_free( key.data, op->o_tmpmemctx );
-
-	if ( rc == DB_NOTFOUND ) {
-		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS;
-	}
-
-	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, DETAIL1, 
@@ -483,190 +468,52 @@ bdb_dn2idl(
 }
 #else	/* BDB_HIER */
 
-/* Experimental management routines for a hierarchically structured backend.
+/* Experimental management routines for a hierarchically structured database.
  *
  * Unsupported! Use at your own risk!
  *
- * Instead of a dn2id database, we use an id2parent database. Each entry in
- * this database is a struct diskNode, containing the ID of the node's parent
- * and the RDN of the node.
+ * Instead of a ldbm-style dn2id database, we use a hierarchical one. Each
+ * entry in this database is a struct diskNode, keyed by entryID and with
+ * the data containing the RDN and entryID of the node's children. We use
+ * a B-Tree with sorted duplicates to store all the children of a node under
+ * the same key. Also, the first item under the key contains an empty rdn
+ * and the ID of the node's parent, to allow bottom-up tree traversal as
+ * well as top-down.
+ *
+ * The diskNode is a variable length structure. This definition is not
+ * directly usable for in-memory manipulation.
  */
 typedef struct diskNode {
-	ID parent;
-	struct berval rdn;
-	struct berval nrdn;
+	ID entryID;
+	short nrdnlen;
+	char nrdn[1];
+	char rdn[1];
 } diskNode;
 
-/* In bdb_db_open() we call bdb_build_tree() which reads the entire id2parent
- * database into memory (into an AVL tree). Next we iterate through each node
- * of this tree, connecting each child to its parent. The nodes in this AVL
- * tree are a struct idNode. The immediate (Onelevel) children of a node are
- * referenced in the i_kids AVL tree. With this arrangement, there is no need
- * to maintain the DN_ONE_PREFIX or DN_SUBTREE_PREFIX database keys. Note that
- * the DN of an entry is constructed by walking up the list of i_parent
- * pointers, so no full DN is stored on disk anywhere. This makes modrdn
- * extremely efficient, even when operating on a populated subtree.
- *
- * The idNode tree is searched directly from the root when performing id to
- * entry lookups. The tree is traversed using the i_kids subtrees when
- * performing dn to id lookups.
+/* Sort function for the sorted duplicate data items of a dn2id key.
+ * Sorts based on normalized RDN, in lexical order.
  */
-typedef struct idNode {
-	ID i_id;
-	struct idNode *i_parent;
-	diskNode *i_rdn;
-	Avlnode *i_kids;
-	ldap_pvt_thread_rdwr_t i_kids_rdwr;
-} idNode;
-
-
-/* The main AVL tree is sorted in ID order. The i_kids AVL trees are
- * sorted in lexical order. These are the various helper routines used
- * for the searches and sorts.
- */
-static int
-node_find_cmp(
-	const void *id,
-	const void *node
+int
+bdb_hdb_compare(
+	DB *db, 
+	const DBT *usrkey,
+	const DBT *curkey
 )
 {
-	return *(const ID *)id - ((const idNode *)node)->i_id;
-}
-
-static int
-node_frdn_cmp(
-	const void *v_nrdn,
-	const void *v_n
-)
-{
-	const struct berval *nrdn = v_nrdn;
-	const idNode *n = v_n;
-	return ber_bvcmp(nrdn, &n->i_rdn->nrdn);
-}
-
-static int
-node_add_cmp(
-	const void *v_a,
-	const void *v_b
-)
-{
-	const idNode *a = v_a, *b = v_b;
-	return a->i_id - b->i_id;
-}
-
-static int
-node_rdn_cmp(
-	const void *v_a,
-	const void *v_b
-)
-{
-	const idNode *a = v_a, *b = v_b;
-	/* should be slightly better without ordering drawbacks */
-	return ber_bvcmp(&a->i_rdn->nrdn, &b->i_rdn->nrdn);
-}
-
-idNode * bdb_find_id_node(
-	ID id,
-	Avlnode *tree
-)
-{
-	return avl_find(tree, &id, node_find_cmp);
-}
-
-idNode * bdb_find_rdn_node(
-	struct berval *nrdn,
-	Avlnode *tree
-)
-{
-	return avl_find(tree, nrdn, node_frdn_cmp);
-}
-
-/* This function links a node into its parent's i_kids tree. */
-static int bdb_insert_kid(
-	void *v_a,
-	void *v_tree
-)
-{
-	idNode *a = v_a;
-	Avlnode *tree = v_tree;
+	diskNode *usr = usrkey->data;
+	diskNode *cur = curkey->data;
+	short curlen;
+	char *ptr = (char *)&cur->nrdnlen;
 	int rc;
 
-	if (a->i_rdn->parent == 0)
-		return 0;
-	a->i_parent = bdb_find_id_node(a->i_rdn->parent, tree);
-	if (!a->i_parent)
-		return -1;
-	ldap_pvt_thread_rdwr_wlock(&a->i_parent->i_kids_rdwr);
-	rc = avl_insert( &a->i_parent->i_kids, (caddr_t) a,
-	                 node_rdn_cmp, avl_dup_error );
-	ldap_pvt_thread_rdwr_wunlock(&a->i_parent->i_kids_rdwr);
+	curlen = ptr[0] << 8 | ptr[1];
+
+	rc = strncmp( usr->nrdn, cur->nrdn, usr->nrdnlen );
+	if ( rc == 0 ) rc = usrlen - curlen;
 	return rc;
 }
 
-/* This function adds a node into the main AVL tree */
-idNode *bdb_add_node(
-	ID id,
-	char *d,
-	struct bdb_info *bdb
-)
-{
-	idNode *node;
-
-	node = (idNode *)ch_malloc(sizeof(idNode));
-	node->i_id = id;
-	node->i_parent = NULL;
-	node->i_kids = NULL;
-	node->i_rdn = (diskNode *)d;
-	node->i_rdn->rdn.bv_val += (long)d;
-	node->i_rdn->nrdn.bv_val += (long)d;
-	ldap_pvt_thread_rdwr_init(&node->i_kids_rdwr);
-	avl_insert( &bdb->bi_tree, (caddr_t) node, node_add_cmp, avl_dup_error );
-	if (id == 1)
-		bdb->bi_troot = node;
-	return node;
-}
-
-/* This function initializes the trees at startup time. */
-int bdb_build_tree(
-	Backend *be
-)
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	DBC *cursor;
-	DBT key, data;
-	ID id;
-	idNode *node;
-
-	bdb->bi_tree = NULL;
-
-	rc = bdb->bi_id2parent->bdi_db->cursor(
-		bdb->bi_id2parent->bdi_db, NULL, &cursor,
-		bdb->bi_db_opflags );
-	if( rc != 0 ) {
-		return NOID;
-	}
-
-	DBTzero( &key );
-	DBTzero( &data );
-	key.data = (char *)&id;
-	key.ulen = sizeof( id );
-	key.flags = DB_DBT_USERMEM;
-	data.flags = DB_DBT_MALLOC;
-
-	while (cursor->c_get( cursor, &key, &data, DB_NEXT ) == 0) {
-		bdb_add_node( id, data.data, bdb );
-	}
-	cursor->c_close( cursor );
-
-	rc = avl_apply(bdb->bi_tree, bdb_insert_kid, bdb->bi_tree,
-		-1, AVL_INORDER );
-
-	return rc;
-}
-
-/* This function constructs a full DN for a given id. We really should
- * be passing idNodes directly, to save some effort...
+/* This function constructs a full DN for a given id.
  */
 int bdb_fix_dn(
 	BackendDB *be,
@@ -707,19 +554,24 @@ int bdb_fix_dn(
 	return 0;
 }
 
+/* We add two elements to the DN2ID database - a data item under the parent's
+ * entryID containing the child's RDN and entryID, and an item under the
+ * child's entryID containing the parent's entryID.
+ */
 int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	struct berval	*pdn,
-	Entry		*e )
+	EntryInfo	*eip,
+	Entry		*e,
+	void *ctx )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int		rc, rlen, nrlen;
+	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
-	DB *db = bdb->bi_id2parent->bdi_db;
+	int		rc, rlen, nrlen;
 	diskNode *d;
-	idNode *n;
+	char *ptr;
 
 	nrlen = dn_rdnlen( be, &e->e_nname );
 	if (nrlen) {
@@ -728,27 +580,17 @@ bdb_dn2id_add(
 		rlen = 0;
 	}
 
-	d = ch_malloc(sizeof(diskNode) + rlen + nrlen + 2);
-	d->rdn.bv_len = rlen;
-	d->nrdn.bv_len = nrlen;
-	d->rdn.bv_val = (char *)(d+1);
-	d->nrdn.bv_val = d->rdn.bv_val + rlen + 1;
-	strncpy(d->rdn.bv_val, e->e_dn, rlen);
-	d->rdn.bv_val[rlen] = '\0';
-	strncpy(d->nrdn.bv_val, e->e_ndn, nrlen);
-	d->nrdn.bv_val[nrlen] = '\0';
-	d->rdn.bv_val -= (long)d;
-	d->nrdn.bv_val -= (long)d;
-
-	if (pdn->bv_len) {
-		bdb_dn2id(be, txn, pdn, &d->parent, 0);
-	} else {
-		d->parent = 0;
-	}
+	d = sl_malloc(sizeof(diskNode) + rlen + nrlen, ctx);
+	d->entryID = e->e_id;
+	d->nrdnlen = nrlen;
+	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
+	*ptr++ = '\0';
+	ptr = lutil_strncopy( ptr, e->e_name.bv_val, rlen );
+	*ptr = '\0';
 
 	DBTzero(&key);
 	DBTzero(&data);
-	key.data = &e->e_id;
+	key.data = &eip->bei_id;
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
 
@@ -759,18 +601,18 @@ bdb_dn2id_add(
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 
 	if (rc == 0) {
-		ldap_pvt_thread_rdwr_wlock(&bdb->bi_tree_rdwr);
-		n = bdb_add_node( e->e_id, data.data, bdb);
-		ldap_pvt_thread_rdwr_wunlock(&bdb->bi_tree_rdwr);
+		key.data = &e->e_id;
+		d->entryID = eip->bei_id;
+		d->nrdnlen = 0;
+		d->nrdn[0] = '\0';
+		d->rdn[0] = '\0';
+		data.size = sizeof(diskNode);
 
-		if (d->parent) {
-			ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-			bdb_insert_kid(n, bdb->bi_tree);
-			ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-		}
-	} else {
-		free(d);
+		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	}
+
+	sl_free( d, ctx );
+
 	return rc;
 }
 
@@ -778,89 +620,45 @@ int
 bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
-	char	*pdn,
-	Entry	*e )
+	EntryInfo	*eip,
+	Entry	*e,
+	void	*ctx )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	DBT		key;
-	DB *db = bdb->bi_id2parent->bdi_db;
-	idNode *n;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	DBT		key, data;
+	DBC	*cursor;
+	diskNode *d;
+	int rc, nrlen;
 
 	DBTzero(&key);
-	key.size = sizeof(e->e_id);
+	key.size = sizeof(ID);
+	key.ulen = key.size;
+	key.data = &eip->bei_id;
+	key.flags = DB_DBT_USERMEM;
+
+	DBTzero(&data);
+	data.size = sizeof(diskNode) + BEI(e)->nrdn.bv_len;
+	d = sl_malloc( data.size, ctx );
+	d->entryID = e->e_id;
+	d->nrdnlen = BEI(e)->nrdn.bv_len;
+	strcpy( d->nrdn, BEI(e)->nrdn.bv_val );
+	data.data = d;
+	data.ulen = data.size;
+	data.dlen = data.size;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH | DB_RMW );
+	if ( rc == 0 )
+		rc = cursor->c_del( cursor, 0 );
+	cursor->c_close( cursor );
+
 	key.data = &e->e_id;
-
 	rc = db->del( db, txn, &key, 0);
-
-	ldap_pvt_thread_rdwr_wlock(&bdb->bi_tree_rdwr);
-	n = avl_delete(&bdb->bi_tree, &e->e_id, node_find_cmp);
-	if (n) {
-		if (n->i_parent) {
-			ldap_pvt_thread_rdwr_wlock(&n->i_parent->i_kids_rdwr);
-			avl_delete(&n->i_parent->i_kids, &n->i_rdn->nrdn, node_frdn_cmp);
-			ldap_pvt_thread_rdwr_wunlock(&n->i_parent->i_kids_rdwr);
-		}
-		free(n->i_rdn);
-		ldap_pvt_thread_rdwr_destroy(&n->i_kids_rdwr);
-		free(n);
-	}
-	if (e->e_id == 1)
-		bdb->bi_troot = NULL;
-	ldap_pvt_thread_rdwr_wunlock(&bdb->bi_tree_rdwr);
-
-	return rc;
-}
-
-int
-bdb_dn2id_matched(
-	BackendDB	*be,
-	DB_TXN *txn,
-	struct berval	*in,
-	ID *id,
-	ID *id2,
-	int flags )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	struct berval	rdn;
-	char		*p1, *p2;
-	idNode *n, *p;
-	int		rc = 0;
-
-	if (!bdb->bi_troot)
-		return DB_NOTFOUND;
-
-	p = bdb->bi_troot;
-	if (be_issuffix(be, in)) {
-		*id = p->i_id;
-		return 0;
-	}
-
-	p1 = in->bv_val + in->bv_len - be->be_nsuffix[0].bv_len - 1;
-
-	n = p;
-	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-	for (;;) {
-		for (p2 = p1-1; (p2 >= in->bv_val) && !DN_SEPARATOR(*p2); p2--);
-		rdn.bv_val = p2+1;
-		rdn.bv_len = p1-rdn.bv_val;
-		p1 = p2;
-
-		ldap_pvt_thread_rdwr_rlock(&p->i_kids_rdwr);
-		n = bdb_find_rdn_node(&rdn, p->i_kids);
-		ldap_pvt_thread_rdwr_runlock(&p->i_kids_rdwr);
-		if (!n || p2 < in->bv_val) break;
-		p = n;
-	}
-	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-
-	if (n) {
-		*id = n->i_id;
-	} else if (id2) {
-		*id2 = p->i_id;
-	} else {
-		rc = DB_NOTFOUND;
-	}
+	sl_free( d, ctx );
 
 	return rc;
 }
@@ -869,22 +667,57 @@ int
 bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
-	struct berval	*dn,
-	ID *id,
-	int flags )
+	struct berval	*in,
+	EntryInfo	*ei,
+	void *ctx )
 {
-	return bdb_dn2id_matched(be, txn, dn, id, NULL, flags);
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	DBT		key, data;
+	DBC	*cursor;
+	int		rc = 0, nrlen;
+	char	*ptr;
+
+	nrlen = dn_rdnlen( be, &in );
+
+	DBTzero(&key);
+	key.size = sizeof(ID);
+	key.data = &eip->bei_id;
+	key.flags = DB_DBT_USERMEM;
+
+	DBTzero(&data);
+	data.size = sizeof(diskNode) + nrlen;
+	d = sl_malloc( data.size * 3, ctx );
+	d->nrdnlen = nrlen;
+	ptr = lutil_strncopy( d->nrdn, BEI(e)->nrdn.bv_val, nrlen );
+	*ptr = '\0';
+	data.data = d;
+	data.ulen = data.size * 3;
+	data.flags = DB_DBT_USERMEM;
+
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH );
+	cursor->c_close( cursor );
+	if ( rc ) return rc;
+
+	AC_MEMCPY( &ei->bei_id, &d->entryID, sizeof(ID) );
+	ei->rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
+	ptr = d->nrdn + nrlen + 1;
+	strcpy( ei->rdn.bv_val, ptr );
+
+	return rc;
 }
 
 int
 bdb_dn2id_children(
-	BackendDB	*be,
+	Operation *op,
 	DB_TXN *txn,
-	struct berval	*dn,
-	int flags )
+	Entry *e )
 {
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int		rc;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	ID		id;
 	idNode *n;
 
