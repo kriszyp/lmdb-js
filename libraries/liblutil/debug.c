@@ -33,7 +33,7 @@ static FILE *log_file;
 
 int lutil_debug_file( FILE *file )
 {
-	log_file = log_file;
+	log_file = file;
 
 	return 0;
 }
