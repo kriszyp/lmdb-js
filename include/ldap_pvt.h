@@ -102,7 +102,6 @@ ldap_charray2str LDAP_P((
 
 /* url.c */
 LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
-LDAP_F (int) ldap_pvt_unhex( int c );
 
 /*
  * these macros assume 'x' is an ASCII x

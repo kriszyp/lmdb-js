@@ -1115,90 +1115,13 @@ ldap_free_urldesc( LDAPURLDesc *ludp )
 	LDAP_FREE( ludp );
 }
 
-
-int
-ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
+static int
+ldap_int_unhex( int c )
 {
-	int		err;
-	LDAPURLDesc	*ludp;
-	BerElement	*ber;
-	LDAPreqinfo  bind;
-
-	assert( ld != NULL );
-	assert( LDAP_VALID( ld ) );
-
-	if ( ldap_url_parse( url, &ludp ) != 0 ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return( -1 );
-	}
-
-	if( ludp->lud_crit_exts ) {
-		/* we don't support any extension (yet) */
-		ld->ld_errno = LDAP_NOT_SUPPORTED;
-		return( -1 );
-	}
-
-	ber = ldap_build_search_req( ld, ludp->lud_dn, ludp->lud_scope,
-	    ludp->lud_filter, ludp->lud_attrs, attrsonly, NULL, NULL,
-		-1, -1 );
-
-	if ( ber == NULL ) {
-		err = -1;
-	} else {
-		bind.ri_request = LDAP_REQ_SEARCH;
-		bind.ri_msgid = ld->ld_msgid;
-		bind.ri_url = (char *)url;
-		err = ldap_send_server_request(
-					ld, ber, ld->ld_msgid, NULL,
-					ludp, NULL, &bind );
-	}
-
-	ldap_free_urldesc( ludp );
-	return( err );
+	return( c >= '0' && c <= '9' ? c - '0'
+	    : c >= 'A' && c <= 'F' ? c - 'A' + 10
+	    : c - 'a' + 10 );
 }
-
-
-int
-ldap_url_search_st( LDAP *ld, LDAP_CONST char *url, int attrsonly,
-	struct timeval *timeout, LDAPMessage **res )
-{
-	int	msgid;
-
-	if (( msgid = ldap_url_search( ld, url, attrsonly )) == -1 ) {
-		return( ld->ld_errno );
-	}
-
-	if ( ldap_result( ld, msgid, 1, timeout, res ) == -1 ) {
-		return( ld->ld_errno );
-	}
-
-	if ( ld->ld_errno == LDAP_TIMEOUT ) {
-		(void) ldap_abandon( ld, msgid );
-		ld->ld_errno = LDAP_TIMEOUT;
-		return( ld->ld_errno );
-	}
-
-	return( ldap_result2error( ld, *res, 0 ));
-}
-
-
-int
-ldap_url_search_s(
-	LDAP *ld, LDAP_CONST char *url, int attrsonly, LDAPMessage **res )
-{
-	int	msgid;
-
-	if (( msgid = ldap_url_search( ld, url, attrsonly )) == -1 ) {
-		return( ld->ld_errno );
-	}
-
-	if ( ldap_result( ld, msgid, 1, (struct timeval *)NULL, res ) == -1 ) {
-		return( ld->ld_errno );
-	}
-
-	return( ldap_result2error( ld, *res, 0 ));
-}
-
 
 void
 ldap_pvt_hex_unescape( char *s )
@@ -1212,10 +1135,10 @@ ldap_pvt_hex_unescape( char *s )
 	for ( p = s; *s != '\0'; ++s ) {
 		if ( *s == '%' ) {
 			if ( *++s != '\0' ) {
-				*p = ldap_pvt_unhex( *s ) << 4;
+				*p = ldap_int_unhex( *s ) << 4;
 			}
 			if ( *++s != '\0' ) {
-				*p++ += ldap_pvt_unhex( *s );
+				*p++ += ldap_int_unhex( *s );
 			}
 		} else {
 			*p++ = *s;
@@ -1226,10 +1149,3 @@ ldap_pvt_hex_unescape( char *s )
 }
 
 
-int
-ldap_pvt_unhex( int c )
-{
-	return( c >= '0' && c <= '9' ? c - '0'
-	    : c >= 'A' && c <= 'F' ? c - 'A' + 10
-	    : c - 'a' + 10 );
-}

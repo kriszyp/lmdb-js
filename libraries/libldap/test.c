@@ -607,19 +607,6 @@ main( int argc, char **argv )
 			timeout.tv_sec = atoi( line );
 			break;
 
-		case 'l':	/* URL search */
-			getline( line, sizeof(line), stdin,
-			    "attrsonly (0=attrs&values, 1=attrs only)? " );
-			attrsonly = atoi( line );
-			getline( line, sizeof(line), stdin, "LDAP URL? " );
-			if (( id = ldap_url_search( ld, line, attrsonly  ))
-				== -1 ) {
-			    ldap_perror( ld, "ldap_url_search" );
-			} else {
-			    printf( "URL search initiated with id %d\n", id );
-			}
-			break;
-
 		case 'p':	/* parse LDAP URL */
 			getline( line, sizeof(line), stdin, "LDAP URL? " );
 			if (( i = ldap_url_parse( line, &ludp )) != 0 ) {

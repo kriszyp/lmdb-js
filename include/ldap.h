@@ -1271,12 +1271,6 @@ ldap_next_attribute LDAP_P((
 /*
  * in getvalues.c
  */
-LDAP_F( char ** )
-ldap_get_values LDAP_P((
-	LDAP *ld,
-	LDAPMessage *entry,
-	LDAP_CONST char *target ));
-
 LDAP_F( struct berval ** )
 ldap_get_values_len LDAP_P((
 	LDAP *ld,
@@ -1284,20 +1278,26 @@ ldap_get_values_len LDAP_P((
 	LDAP_CONST char *target ));
 
 LDAP_F( int )
-ldap_count_values LDAP_P((
-	char **vals ));
-
-LDAP_F( int )
 ldap_count_values_len LDAP_P((
 	struct berval **vals ));
 
 LDAP_F( void )
-ldap_value_free LDAP_P((
+ldap_value_free_len LDAP_P((
+	struct berval **vals ));
+
+LDAP_F( char ** )
+ldap_get_values LDAP_P((	/* deprecated */
+	LDAP *ld,
+	LDAPMessage *entry,
+	LDAP_CONST char *target ));
+
+LDAP_F( int )
+ldap_count_values LDAP_P((	/* deprecated */
 	char **vals ));
 
 LDAP_F( void )
-ldap_value_free_len LDAP_P((
-	struct berval **vals ));
+ldap_value_free LDAP_P((	/* deprecated */
+	char **vals ));
 
 /*
  * in result.c:
@@ -1473,16 +1473,17 @@ ldap_mods_free LDAP_P((
 
 /*
  * in sort.c
+ *	(deprecated)
  */
-typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P((
+typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P(( /* deprecated */
 	LDAP_CONST char *left,
 	LDAP_CONST char *right ));
 
-typedef int (LDAP_SORT_AV_CMP_PROC) LDAP_P((
+typedef int (LDAP_SORT_AV_CMP_PROC) LDAP_P(( /* deprecated */
 	LDAP_CONST void *left,
 	LDAP_CONST void *right ));
 
-LDAP_F( int )
+LDAP_F( int )	/* deprecated */
 ldap_sort_entries LDAP_P(( LDAP *ld,
 	LDAPMessage **chain,
 	LDAP_CONST char *attr,
@@ -1527,27 +1528,6 @@ ldap_url_desc2str LDAP_P((
 LDAP_F( void )
 ldap_free_urldesc LDAP_P((
 	LDAPURLDesc *ludp ));
-
-LDAP_F( int )
-ldap_url_search LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *url,
-	int attrsonly ));
-
-LDAP_F( int )
-ldap_url_search_s LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *url,
-	int attrsonly,
-	LDAPMessage **res ));
-
-LDAP_F( int )
-ldap_url_search_st LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *url,
-	int attrsonly,
-	struct timeval *timeout,
-	LDAPMessage **res ));
 
 /*
  * in sortctrl.c
