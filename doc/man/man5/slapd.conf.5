@@ -123,11 +123,19 @@ OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
 .HP
 .hy 0
-.B attributetype "(\ <oid> [NAME\ <name>] [OBSOLETE]\
+.B attributetype "(\ <oid>\
+ [NAME\ <name>]\
  [DESC\ <description>]\
- [SUP\ <oid>] [EQUALITY\ <oid>] [ORDERING\ <oid>]\
- [SUBSTR\ <oid>] [SYNTAX\ <oidlen>] [SINGLE\-VALUE] [COLLECTIVE]\
- [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )"
+ [OBSOLETE]\
+ [SUP\ <oid>]\
+ [EQUALITY\ <oid>]\
+ [ORDERING\ <oid>]\
+ [SUBSTR\ <oid>]\
+ [SYNTAX\ <oidlen>]\
+ [SINGLE\-VALUE]\
+ [COLLECTIVE]\
+ [NO\-USER\-MODIFICATION]\
+ [USAGE\ <attributeUsage>]\ )"
 .RS
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -227,6 +235,25 @@ disables Start TLS from forcing session to anonymous status (see also
 .B tls_authc
 disables StartTLS if authenticated (see also
 .BR tls_2_anon ).
+.HP
+.hy 0
+.B ditcontentrule "(\ <oid>\
+ [NAME\ <name>]\
+ [DESC\ <description>]\
+ [OBSOLETE]\
+ [AUX\ <oids>]\
+ [MUST\ <oids>]\
+ [MAY\ <oids>]\
+ [NOT\ <oids>]\ )"
+.RS
+Specify an DIT Content Rule using the LDAPv3 syntax defined in RFC 2252.
+The slapd parser extends the RFC 2252 definition by allowing string
+forms as well as numeric OIDs to be used for the attribute OID and
+attribute syntax OID.
+(See the
+.B objectidentifier
+description.) 
+.RE
 .TP
 .B gentlehup { on | off }
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
@@ -457,9 +484,14 @@ option are only usable if slapd was compiled with --enable-modules.
 Specify a list of directories to search for loadable modules. Typically
 the path is colon-separated but this depends on the operating system.
 .HP
-.B objectclass "( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
- [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>]\
- [MAY <oids>] )"
+.hy 0
+.B objectclass "(\ <oid>\
+ [NAME\ <name>]\
+ [DESC\ <description]\
+ [OBSOLETE]\
+ [SUP\ <oids>]\
+ [{ ABSTRACT | STRUCTURAL | AUXILIARY }]\
+ [MUST\ <oids>] [MAY\ <oids>] )"
 .RS
 Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -971,6 +1003,7 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
+.hy 0
 .B replica uri=ldap[s]://<hostname>[:port]|host=<hostname>[:port] 
 .B [starttls=yes|critical]
 .B [suffix=<suffix> [...]]
@@ -1102,6 +1135,7 @@ Specify the referral to pass back when
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
 .HP
+.hy 0
 .B syncrepl id=<replica ID>
 .B provider=ldap[s]://<hostname>[:port]
 .B [updatedn=<dn>]
