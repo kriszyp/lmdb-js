@@ -456,7 +456,7 @@ slap_tool_init(
 
 void slap_tool_destroy( void )
 {
-	if ( !dryrun ) {
+	if ( !dryrun && be != NULL ) {
 		slap_shutdown( be );
 	}
 	slap_destroy();
