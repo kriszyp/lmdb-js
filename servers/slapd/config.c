@@ -2377,12 +2377,22 @@ fp_getline( FILE *fp, int *lineno )
 			if( p > buf && p[-1] == '\r' ) --p;
 			*p = '\0';
 		}
-		if ( ! isspace( (unsigned char) buf[0] ) ) {
-			return( line );
-		}
+		
+		/* trim off trailing \ and append the next line */
+		if ( line[ 0 ] != '\0' 
+				&& (p = line + strlen( line ) - 1)[ 0 ] == '\\'
+				&& p[ -1 ] != '\\' ) {
+			p[ 0 ] = '\0';
+			lcur--;
 
-		/* change leading whitespace to a space */
-		buf[0] = ' ';
+		} else {
+			if ( ! isspace( (unsigned char) buf[0] ) ) {
+				return( line );
+			}
+
+			/* change leading whitespace to a space */
+			buf[0] = ' ';
+		}
 
 		CATLINE( buf );
 		(*lineno)++;
