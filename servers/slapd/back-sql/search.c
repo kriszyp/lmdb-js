@@ -284,7 +284,7 @@ char* backsql_srch_query(backsql_srch_info *bsi)
  bsi->sel_len=bsi->from_len=bsi->jwhere_len=bsi->fwhere_len=0;
 
  bsi->sel=backsql_strcat(bsi->sel,&bsi->sel_len,
-				"SELECT ldap_entries.id,",bsi->oc->keytbl,".",bsi->oc->keycol,
+				"SELECT DISTINCT ldap_entries.id,",bsi->oc->keytbl,".",bsi->oc->keycol,
 				", '",bsi->oc->name,"' AS objectClass",
 				", ldap_entries.dn AS dn",
 				NULL);
