@@ -53,7 +53,7 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 		if ( csne->ce_state == SLAP_CSN_PENDING ) break;
 	}
 
-	if ( committed_csne ) ber_dupbv( csn, committed_csne->ce_csn );
+	if ( committed_csne ) ber_dupbv_x( csn, committed_csne->ce_csn, op->o_tmpmemctx );
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 }
 

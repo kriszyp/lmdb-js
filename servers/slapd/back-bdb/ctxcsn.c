@@ -39,7 +39,6 @@ bdb_csn_commit(
 )
 {
 	struct bdb_info	*bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval	ctxcsn_ndn = BER_BVNULL;
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	max_committed_csn;
@@ -55,15 +54,10 @@ bdb_csn_commit(
 		e = ei->bei_e;
 	}
 
-	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
-		(struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
-
-	rc =  bdb_dn2entry( op, tid, &ctxcsn_ndn, &ctxcsn_ei,
+	rc =  bdb_dn2entry( op, tid, &op->o_bd->be_context_csn, &ctxcsn_ei,
 			1, locker, &ctxcsn_lock );
 	
 	*ctxcsn_e = ctxcsn_ei->bei_e;
-
-	op->o_tmpfree( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
 
 	slap_get_commit_csn( op, &max_committed_csn );
 
@@ -78,7 +72,7 @@ bdb_csn_commit(
 		if ( !*ctxcsn_e ) {
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "context csn not present";
-			ch_free( max_committed_csn.bv_val );
+			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			return BDB_CSN_ABORT;
 		} else {
 			Modifications mod;
@@ -99,7 +93,7 @@ bdb_csn_commit(
 			dummy = **ctxcsn_e;
 			ret = bdb_modify_internal( op, tid, &mod, &dummy,
 									&rs->sr_text, textbuf, textlen );						       
-			ch_free( max_committed_csn.bv_val );
+			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			if ( ret != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR,
@@ -158,7 +152,7 @@ bdb_csn_commit(
 		}
 
 		*ctxcsn_e = slap_create_context_csn_entry( op->o_bd, &max_committed_csn );
-		ch_free( max_committed_csn.bv_val );
+		op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 		(*ctxcsn_e)->e_id = ctxcsn_id;
 		*ctxcsn_added = 1;
 
@@ -245,7 +239,6 @@ bdb_get_commit_csn(
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval ctxcsn_ndn = BER_BVNULL;
 	struct berval csn = BER_BVNULL;
 	EntryInfo	*ctxcsn_ei = NULL;
 	EntryInfo	*suffix_ei = NULL;
@@ -264,34 +257,34 @@ bdb_get_commit_csn(
 	if ( op->o_sync_mode != SLAP_SYNC_NONE &&
 		 !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		char substr[67];
+		struct berval ctxcsn_ndn = BER_BVNULL;
 		struct berval bv;
 
 		LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
 			sprintf( substr, "cn=syncrepl%ld", si->si_rid );
 			ber_str2bv( substr, 0, 0, &bv );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, op->o_tmpmemctx );
 
 consumer_ctxcsn_retry :
 			rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
 										0, locker, ctxcsn_lock );
 			switch(rs->sr_err) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto consumer_ctxcsn_retry;
 			case 0:
-				ch_free( ctxcsn_ndn.bv_val );
+				op->o_tmpfree( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
 				ctxcsn_ndn.bv_val = NULL;
 				if ( ctxcsn_ei ) {
 					ctxcsn_e = ctxcsn_ei->bei_e;
 				}
 				break;
-			case LDAP_BUSY:
-				goto done;
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto consumer_ctxcsn_retry;
 			case DB_NOTFOUND:
-				rs->sr_err = LDAP_OTHER;
-				goto done;
 			default:
 				rs->sr_err = LDAP_OTHER;
+			case LDAP_BUSY:
+				op->o_tmpfree( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
+				ctxcsn_ndn.bv_val = NULL;
 				goto done;
 			}
 
@@ -333,11 +326,9 @@ consumer_ctxcsn_retry :
 		}
 	} else if ( op->o_sync_mode != SLAP_SYNC_NONE &&
 		 LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-		build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
-					(struct berval *)&slap_ldapsync_cn_bv, NULL );
 
 provider_ctxcsn_retry :
-		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+		rs->sr_err = bdb_dn2entry( op, NULL, &op->o_bd->be_context_csn, &ctxcsn_ei,
 									0, locker, ctxcsn_lock );
 		switch(rs->sr_err) {
 		case 0:
@@ -401,10 +392,8 @@ txn_retry:
 				goto done;
 			}
 
-			rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+			rs->sr_err = bdb_dn2entry( op, NULL, &op->o_bd->be_context_csn, &ctxcsn_ei,
                                     0, ctxcsn_locker, ctxcsn_lock );
-			ch_free( ctxcsn_ndn.bv_val );
-			ctxcsn_ndn.bv_val = NULL;
 
 			if ( ctxcsn_ei ) {
 				ctxcsn_e = ctxcsn_ei->bei_e;
@@ -436,9 +425,6 @@ done:
     if( ltid != NULL ) {
         TXN_ABORT( ltid );
     }
-
-	if ( ctxcsn_ndn.bv_val != NULL )
-		ch_free( ctxcsn_ndn.bv_val );
 
 	return rs->sr_err;
 }

@@ -301,6 +301,8 @@ int backend_startup(Backend *be)
 		/* startup a specific backend database */
 		be->be_pending_csn_list = (struct be_pcl *)
 			ch_calloc( 1, sizeof( struct be_pcl ));
+		build_new_dn( &be->be_context_csn, be->be_nsuffix,
+			&slap_ldapsync_cn_bv, NULL );
 
 		LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
@@ -399,6 +401,8 @@ int backend_startup(Backend *be)
 				i, backendDB[i].bd_info->bi_type, 0 );
 #endif
 		}
+		build_new_dn( &be->be_context_csn, be->be_nsuffix,
+			&slap_ldapsync_cn_bv, NULL );
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
