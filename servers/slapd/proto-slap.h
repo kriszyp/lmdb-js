@@ -543,6 +543,7 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	void *memctx ));
 
 LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
+LDAP_SLAPD_F (void) dnRdn LDAP_P(( struct berval *dn, struct berval *rdn ));
 
 LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out ));
 

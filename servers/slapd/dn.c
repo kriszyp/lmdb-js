@@ -1126,6 +1126,33 @@ dnParent(
 	return;
 }
 
+/*
+ * dnRdn - dn's rdn, in-place
+ * note: the incoming dn is assumed to be normalized/prettyfied,
+ * so that escaped rdn/ava separators are in '\'+hexpair form
+ */
+void
+dnRdn( 
+	struct berval	*dn, 
+	struct berval	*rdn )
+{
+	char	*p;
+
+	*rdn = *dn;
+	p = strchr( dn->bv_val, ',' );
+
+	/* one-level dn */
+	if ( p == NULL ) {
+		return;
+	}
+
+	assert( DN_SEPARATOR( p[ 0 ] ) );
+	assert( ATTR_LEADCHAR( p[ 1 ] ) );
+	rdn->bv_len = p - dn->bv_val;
+
+	return;
+}
+
 int
 dnExtractRdn( 
 	struct berval	*dn, 
