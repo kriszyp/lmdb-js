@@ -1014,40 +1014,108 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-debug 	  enable debugging yes
-  --enable-dynamic	  enable linking built binaries with dynamic libs no
-  --enable-syslog	  enable syslog support auto
-  --enable-proctitle	  enable proctitle support yes
-  --enable-ipv6 	  enable IPv6 support auto
-  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support auto
-  --enable-x-compile	  enable cross compiling no
-  --enable-slapd	  enable building slapd yes
-    --enable-aci	  enable per-object ACIs (experimental) no
-    --enable-cleartext	  enable cleartext passwords yes
-    --enable-crypt	  enable crypt(3) passwords no
-    --enable-kpasswd	  enable Kerberos password verification no
-    --enable-lmpasswd	  enable LAN Manager passwords no
-    --enable-spasswd	  enable (Cyrus) SASL password verification no
-    --enable-modules	  enable dynamic module support no
-    --enable-phonetic	  enable phonetic/soundex no
-    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta no
-    --enable-rlookups	  enable reverse lookups of client hostnames no
-    --enable-slapi        enable installation of slapi library no
-    --enable-slp          enable SLPv2 support no
-    --enable-wrappers	  enable tcp wrapper support no
-    --enable-bdb	  enable Berkeley DB backend yes
-    --enable-dnssrv	  enable dnssrv backend no
-    --enable-ldap	  enable ldap backend no
-    --enable-ldbm	  enable ldbm backend no
-    --enable-meta	  enable metadirectory backend no
-    --enable-monitor	  enable monitor backend no
-    --enable-null	  enable null backend no
-    --enable-passwd	  enable passwd backend no
-    --enable-perl	  enable perl backend no
-    --enable-shell	  enable shell backend no
-    --enable-sql	  enable sql backend no
-    --enable-tcl	  enable tcl backend no
-  --enable-slurpd	  enable building slurpd auto
+  --enable-debug          enable debugging
+                          <auto>
+                          default=yes
+  --enable-dynamic        enable linking built binaries with dynamic libs
+                          <auto>
+                          default=no
+  --enable-syslog         enable syslog support
+                          <auto>
+                          default=auto
+  --enable-proctitle      enable proctitle support
+                          <auto>
+                          default=yes
+  --enable-ipv6           enable IPv6 support
+                          <auto>
+                          default=auto
+  --enable-local          enable AF_LOCAL (AF_UNIX) socket support
+                          <auto>
+                          default=auto
+  --enable-x-compile      enable cross compiling
+                          <no>
+                          default=no
+  --enable-slapd          enable building slapd
+                          <auto>
+                          default=yes
+  --enable-aci            enable per-object ACIs (experimental)
+                          <auto>
+                          default=no
+  --enable-cleartext      enable cleartext passwords
+                          <auto>
+                          default=yes
+  --enable-crypt          enable crypt(3) passwords
+                          <auto>
+                          default=no
+  --enable-kpasswd        enable Kerberos password verification
+                          <auto>
+                          default=no
+  --enable-lmpasswd       enable LAN Manager passwords
+                          <auto>
+                          default=no
+  --enable-spasswd        enable (Cyrus) SASL password verification
+                          <auto>
+                          default=no
+  --enable-modules        enable dynamic module support
+                          <auto>
+                          default=no
+  --enable-phonetic       enable phonetic/soundex
+                          <auto>
+                          default=no
+  --enable-rewrite        enable DN rewriting in back-ldap and back-meta
+                          <auto>
+                          default=no
+  --enable-rlookups       enable reverse lookups of client hostnames
+                          <auto>
+                          default=no
+  --enable-slapi          enable installation of slapi library
+                          <auto>
+                          default=no
+  --enable-slp            enable SLPv2 support
+                          <auto>
+                          default=no
+  --enable-wrappers       enable tcp wrapper support
+                          <auto>
+                          default=no
+  --enable-bdb            enable Berkeley DB backend
+                          <auto>
+                          default=yes
+  --enable-dnssrv         enable dnssrv backend
+                          <auto>
+                          default=no
+  --enable-ldap           enable ldap backend
+                          <auto>
+                          default=no
+  --enable-ldbm           enable ldbm backend
+                          <auto>
+                          default=no
+  --enable-meta           enable metadirectory backend
+                          <auto>
+                          default=no
+  --enable-monitor        enable monitor backend
+                          <auto>
+                          default=no
+  --enable-null           enable null backend
+                          <auto>
+                          default=no
+  --enable-passwd         enable passwd backend
+                          <auto>
+                          default=no
+  --enable-perl           enable perl backend
+                          <auto>
+                          default=no
+  --enable-shell          enable shell backend
+                          <auto>
+                          default=no
+  --enable-sql            enable sql backend
+                          <auto>
+                          default=no
+  --enable-tcl            enable tcl backend
+                          <auto>
+                          default=no
+  --enable-slurpd         enable building slurpd
+                          <auto>
+                          default=auto
   --enable-static=PKGS  build static libraries default=yes
   --enable-shared=PKGS  build shared libraries default=yes
   --enable-fast-install=PKGS  optimize for fast installation default=yes
@@ -1057,33 +1125,69 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-subdir=DIR       change default subdirectory used for installs
-  --with-cyrus-sasl	  with Cyrus SASL support auto
-  --with-fetch		  with fetch(3) URL support auto
-  --with-kerberos	  with Kerberos support auto
-  --with-readline	  with readline support auto
-  --with-threads	  with threads auto
-  --with-tls		  with TLS/SSL support auto
-  --with-yielding-select  with implicitly yielding select auto
-
-SLAPD (Standalone LDAP Daemon) Options:
-    --with-bdb-module     module type static|dynamic static
-    --with-dnssrv-module  module type static|dynamic static
-    --with-ldap-module	  module type static|dynamic static
-    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm auto
-    --with-ldbm-module	  module type static|dynamic static
-    --with-ldbm-type	  use LDBM type auto|btree|hash auto
-    --with-meta-module	  module type static|dynamic static
-    --with-monitor-module module type static|dynamic static
-    --with-null-module	  module type static|dynamic static
-    --with-passwd-module  module type static|dynamic static
-    --with-perl-module	  module type static|dynamic static
-    --with-shell-module	  module type static|dynamic static
-    --with-sql-module	  module type static|dynamic static
-    --with-tcl-module	  module type static|dynamic static
-
-SLURPD (Replication Daemon) Options:
-
-Library Generation & Linking Options
+  --with-cyrus_sasl       with Cyrus SASL support
+                          <auto>
+                          default=auto
+  --with-fetch            with fetch(3) URL support
+                          <auto>
+                          default=auto
+  --with-kerberos         with Kerberos support
+                          <k5>
+                          default=auto
+  --with-readline         with readline support
+                          <auto>
+                          default=auto
+  --with-threads          with threads
+                          <nt>
+                          default=auto
+  --with-tls              with TLS/SSL support
+                          <ssleay>
+                          default=auto
+  --with-yielding_select  with implicitly yielding select
+                          <yes>
+                          default=auto
+  --with-bdb-module       module type
+                          <dynamic>
+                          default=static
+  --with-dnssrv-module    module type
+                          <dynamic>
+                          default=static
+  --with-ldap-module      module type
+                          <dynamic>
+                          default=static
+  --with-ldbm_api         with LDBM API
+                          <berkeley>
+                          default=auto
+  --with-ldbm-module      module type
+                          <dynamic>
+                          default=static
+  --with-ldbm-type        use LDBM type
+                          <btree>
+                          default=auto
+  --with-meta-module      module type
+                          <dynamic>
+                          default=static
+  --with-monitor-module   module type
+                          <dynamic>
+                          default=static
+  --with-null-module      module type
+                          <dynamic>
+                          default=static
+  --with-passwd-module    module type
+                          <dynamic>
+                          default=static
+  --with-perl-module      module type
+                          <dynamic>
+                          default=static
+  --with-shell-module     module type
+                          <dynamic>
+                          default=static
+  --with-sql-module       module type
+                          <dynamic>
+                          default=static
+  --with-tcl-module       module type
+                          <dynamic>
+                          default=static
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-pic              try to use only PIC/non-PIC objects default=use both
 
@@ -1757,8 +1861,7 @@ fi;
 	# Check whether --enable-debug or --disable-debug was given.
 if test "${enable_debug+set}" = set; then
   enableval="$enable_debug"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1778,8 +1881,7 @@ fi; # end --enable-debug
 	# Check whether --enable-dynamic or --disable-dynamic was given.
 if test "${enable_dynamic+set}" = set; then
   enableval="$enable_dynamic"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1799,8 +1901,7 @@ fi; # end --enable-dynamic
 	# Check whether --enable-syslog or --disable-syslog was given.
 if test "${enable_syslog+set}" = set; then
   enableval="$enable_syslog"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1820,8 +1921,7 @@ fi; # end --enable-syslog
 	# Check whether --enable-proctitle or --disable-proctitle was given.
 if test "${enable_proctitle+set}" = set; then
   enableval="$enable_proctitle"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1843,8 +1943,7 @@ ol_enable_kbind=${ol_enable_kbind-no}
 	# Check whether --enable-ipv6 or --disable-ipv6 was given.
 if test "${enable_ipv6+set}" = set; then
   enableval="$enable_ipv6"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1864,8 +1963,7 @@ fi; # end --enable-ipv6
 	# Check whether --enable-local or --disable-local was given.
 if test "${enable_local+set}" = set; then
   enableval="$enable_local"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1881,37 +1979,34 @@ echo "$as_me: error: bad value $enableval for --enable-local" >&2;}
 else
   	ol_enable_local="auto"
 fi; # end --enable-local
-# OpenLDAP --enable-x_compile
-	# Check whether --enable-x_compile or --disable-x_compile was given.
+# OpenLDAP --enable-x-compile
+	# Check whether --enable-x-compile or --disable-x-compile was given.
 if test "${enable_x_compile+set}" = set; then
   enableval="$enable_x_compile"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $enableval for --enable-x_compile" >&5
-echo "$as_me: error: bad value $enableval for --enable-x_compile" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $enableval for --enable-x-compile" >&5
+echo "$as_me: error: bad value $enableval for --enable-x-compile" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_enable_x_compile="$ol_arg"
+	ol_enable_x-compile="$ol_arg"
 
 else
-  	ol_enable_x_compile="no"
-fi; # end --enable-x_compile
-
+  	ol_enable_x-compile="no"
+fi; # end --enable-x-compile
 
 # OpenLDAP --with-cyrus_sasl
 
 # Check whether --with-cyrus_sasl or --without-cyrus_sasl was given.
 if test "${with_cyrus_sasl+set}" = set; then
   withval="$with_cyrus_sasl"
-
-	ol_arg=invalid
-	for ol_val in auto yes no  ; do
+  	ol_arg=invalid
+	for ol_val in auto yes no ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -1926,15 +2021,13 @@ echo "$as_me: error: bad value $withval for --with-cyrus_sasl" >&2;}
 else
   	ol_with_cyrus_sasl="auto"
 fi; # end --with-cyrus_sasl
-
 # OpenLDAP --with-fetch
 
 # Check whether --with-fetch or --without-fetch was given.
 if test "${with_fetch+set}" = set; then
   withval="$with_fetch"
-
-	ol_arg=invalid
-	for ol_val in auto yes no  ; do
+  	ol_arg=invalid
+	for ol_val in auto yes no ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -1949,14 +2042,12 @@ echo "$as_me: error: bad value $withval for --with-fetch" >&2;}
 else
   	ol_with_fetch="auto"
 fi; # end --with-fetch
-
 # OpenLDAP --with-kerberos
 
 # Check whether --with-kerberos or --without-kerberos was given.
 if test "${with_kerberos+set}" = set; then
   withval="$with_kerberos"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto k5 k5only k425 kth k4 afs yes no ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -1972,15 +2063,13 @@ echo "$as_me: error: bad value $withval for --with-kerberos" >&2;}
 else
   	ol_with_kerberos="auto"
 fi; # end --with-kerberos
-
 # OpenLDAP --with-readline
 
 # Check whether --with-readline or --without-readline was given.
 if test "${with_readline+set}" = set; then
   withval="$with_readline"
-
-	ol_arg=invalid
-	for ol_val in auto yes no  ; do
+  	ol_arg=invalid
+	for ol_val in auto yes no ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -1995,15 +2084,13 @@ echo "$as_me: error: bad value $withval for --with-readline" >&2;}
 else
   	ol_with_readline="auto"
 fi; # end --with-readline
-
 # OpenLDAP --with-threads
 
 # Check whether --with-threads or --without-threads was given.
 if test "${with_threads+set}" = set; then
   withval="$with_threads"
-
-	ol_arg=invalid
-	for ol_val in auto nt posix mach pth lwp yes no manual  ; do
+  	ol_arg=invalid
+	for ol_val in auto nt posix mach pth lwp yes no manual ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -2018,15 +2105,13 @@ echo "$as_me: error: bad value $withval for --with-threads" >&2;}
 else
   	ol_with_threads="auto"
 fi; # end --with-threads
-
 # OpenLDAP --with-tls
 
 # Check whether --with-tls or --without-tls was given.
 if test "${with_tls+set}" = set; then
   withval="$with_tls"
-
-	ol_arg=invalid
-	for ol_val in auto ssleay openssl yes no  ; do
+  	ol_arg=invalid
+	for ol_val in auto ssleay openssl yes no ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -2041,15 +2126,13 @@ echo "$as_me: error: bad value $withval for --with-tls" >&2;}
 else
   	ol_with_tls="auto"
 fi; # end --with-tls
-
 # OpenLDAP --with-yielding_select
 
 # Check whether --with-yielding_select or --without-yielding_select was given.
 if test "${with_yielding_select+set}" = set; then
   withval="$with_yielding_select"
-
-	ol_arg=invalid
-	for ol_val in auto yes no manual  ; do
+  	ol_arg=invalid
+	for ol_val in auto yes no manual ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -2065,20 +2148,11 @@ else
   	ol_with_yielding_select="auto"
 fi; # end --with-yielding_select
 
-
-
-
-# Check whether --with-xxslapdoptions or --without-xxslapdoptions was given.
-if test "${with_xxslapdoptions+set}" = set; then
-  withval="$with_xxslapdoptions"
-
-fi;
 # OpenLDAP --enable-slapd
 	# Check whether --enable-slapd or --disable-slapd was given.
 if test "${enable_slapd+set}" = set; then
   enableval="$enable_slapd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2098,8 +2172,7 @@ fi; # end --enable-slapd
 	# Check whether --enable-aci or --disable-aci was given.
 if test "${enable_aci+set}" = set; then
   enableval="$enable_aci"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2119,8 +2192,7 @@ fi; # end --enable-aci
 	# Check whether --enable-cleartext or --disable-cleartext was given.
 if test "${enable_cleartext+set}" = set; then
   enableval="$enable_cleartext"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2140,8 +2212,7 @@ fi; # end --enable-cleartext
 	# Check whether --enable-crypt or --disable-crypt was given.
 if test "${enable_crypt+set}" = set; then
   enableval="$enable_crypt"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2161,8 +2232,7 @@ fi; # end --enable-crypt
 	# Check whether --enable-kpasswd or --disable-kpasswd was given.
 if test "${enable_kpasswd+set}" = set; then
   enableval="$enable_kpasswd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2182,8 +2252,7 @@ fi; # end --enable-kpasswd
 	# Check whether --enable-lmpasswd or --disable-lmpasswd was given.
 if test "${enable_lmpasswd+set}" = set; then
   enableval="$enable_lmpasswd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2203,8 +2272,7 @@ fi; # end --enable-lmpasswd
 	# Check whether --enable-spasswd or --disable-spasswd was given.
 if test "${enable_spasswd+set}" = set; then
   enableval="$enable_spasswd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2224,8 +2292,7 @@ fi; # end --enable-spasswd
 	# Check whether --enable-modules or --disable-modules was given.
 if test "${enable_modules+set}" = set; then
   enableval="$enable_modules"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2246,8 +2313,7 @@ ol_enable_multimaster=${ol_enable_multimaster-no}
 	# Check whether --enable-phonetic or --disable-phonetic was given.
 if test "${enable_phonetic+set}" = set; then
   enableval="$enable_phonetic"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2267,8 +2333,7 @@ fi; # end --enable-phonetic
 	# Check whether --enable-rewrite or --disable-rewrite was given.
 if test "${enable_rewrite+set}" = set; then
   enableval="$enable_rewrite"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2288,8 +2353,7 @@ fi; # end --enable-rewrite
 	# Check whether --enable-rlookups or --disable-rlookups was given.
 if test "${enable_rlookups+set}" = set; then
   enableval="$enable_rlookups"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2309,8 +2373,7 @@ fi; # end --enable-rlookups
 	# Check whether --enable-slapi or --disable-slapi was given.
 if test "${enable_slapi+set}" = set; then
   enableval="$enable_slapi"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2330,8 +2393,7 @@ fi; # end --enable-slapi
 	# Check whether --enable-slp or --disable-slp was given.
 if test "${enable_slp+set}" = set; then
   enableval="$enable_slp"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2351,8 +2413,7 @@ fi; # end --enable-slp
 	# Check whether --enable-wrappers or --disable-wrappers was given.
 if test "${enable_wrappers+set}" = set; then
   enableval="$enable_wrappers"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2369,13 +2430,11 @@ else
   	ol_enable_wrappers="no"
 fi; # end --enable-wrappers
 
-
 # OpenLDAP --enable-bdb
 	# Check whether --enable-bdb or --disable-bdb was given.
 if test "${enable_bdb+set}" = set; then
   enableval="$enable_bdb"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2391,35 +2450,32 @@ echo "$as_me: error: bad value $enableval for --enable-bdb" >&2;}
 else
   	ol_enable_bdb="yes"
 fi; # end --enable-bdb
-# OpenLDAP --with-bdb_module
+# OpenLDAP --with-bdb-module
 
-# Check whether --with-bdb_module or --without-bdb_module was given.
+# Check whether --with-bdb-module or --without-bdb-module was given.
 if test "${with_bdb_module+set}" = set; then
   withval="$with_bdb_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-bdb_module" >&5
-echo "$as_me: error: bad value $withval for --with-bdb_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-bdb-module" >&5
+echo "$as_me: error: bad value $withval for --with-bdb-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_bdb_module="$ol_arg"
+	ol_with_bdb-module="$ol_arg"
 
 else
-  	ol_with_bdb_module="static"
-fi; # end --with-bdb_module
-
+  	ol_with_bdb-module="static"
+fi; # end --with-bdb-module
 # OpenLDAP --enable-dnssrv
 	# Check whether --enable-dnssrv or --disable-dnssrv was given.
 if test "${enable_dnssrv+set}" = set; then
   enableval="$enable_dnssrv"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2435,35 +2491,32 @@ echo "$as_me: error: bad value $enableval for --enable-dnssrv" >&2;}
 else
   	ol_enable_dnssrv="no"
 fi; # end --enable-dnssrv
-# OpenLDAP --with-dnssrv_module
+# OpenLDAP --with-dnssrv-module
 
-# Check whether --with-dnssrv_module or --without-dnssrv_module was given.
+# Check whether --with-dnssrv-module or --without-dnssrv-module was given.
 if test "${with_dnssrv_module+set}" = set; then
   withval="$with_dnssrv_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-dnssrv_module" >&5
-echo "$as_me: error: bad value $withval for --with-dnssrv_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-dnssrv-module" >&5
+echo "$as_me: error: bad value $withval for --with-dnssrv-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_dnssrv_module="$ol_arg"
+	ol_with_dnssrv-module="$ol_arg"
 
 else
-  	ol_with_dnssrv_module="static"
-fi; # end --with-dnssrv_module
-
+  	ol_with_dnssrv-module="static"
+fi; # end --with-dnssrv-module
 # OpenLDAP --enable-ldap
 	# Check whether --enable-ldap or --disable-ldap was given.
 if test "${enable_ldap+set}" = set; then
   enableval="$enable_ldap"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2479,35 +2532,32 @@ echo "$as_me: error: bad value $enableval for --enable-ldap" >&2;}
 else
   	ol_enable_ldap="no"
 fi; # end --enable-ldap
-# OpenLDAP --with-ldap_module
+# OpenLDAP --with-ldap-module
 
-# Check whether --with-ldap_module or --without-ldap_module was given.
+# Check whether --with-ldap-module or --without-ldap-module was given.
 if test "${with_ldap_module+set}" = set; then
   withval="$with_ldap_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldap_module" >&5
-echo "$as_me: error: bad value $withval for --with-ldap_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldap-module" >&5
+echo "$as_me: error: bad value $withval for --with-ldap-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_ldap_module="$ol_arg"
+	ol_with_ldap-module="$ol_arg"
 
 else
-  	ol_with_ldap_module="static"
-fi; # end --with-ldap_module
-
+  	ol_with_ldap-module="static"
+fi; # end --with-ldap-module
 # OpenLDAP --enable-ldbm
 	# Check whether --enable-ldbm or --disable-ldbm was given.
 if test "${enable_ldbm+set}" = set; then
   enableval="$enable_ldbm"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2528,8 +2578,7 @@ fi; # end --enable-ldbm
 # Check whether --with-ldbm_api or --without-ldbm_api was given.
 if test "${with_ldbm_api+set}" = set; then
   withval="$with_ldbm_api"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto berkeley bcompat mdbm gdbm ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2545,59 +2594,53 @@ echo "$as_me: error: bad value $withval for --with-ldbm_api" >&2;}
 else
   	ol_with_ldbm_api="auto"
 fi; # end --with-ldbm_api
+# OpenLDAP --with-ldbm-module
 
-# OpenLDAP --with-ldbm_module
-
-# Check whether --with-ldbm_module or --without-ldbm_module was given.
+# Check whether --with-ldbm-module or --without-ldbm-module was given.
 if test "${with_ldbm_module+set}" = set; then
   withval="$with_ldbm_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldbm_module" >&5
-echo "$as_me: error: bad value $withval for --with-ldbm_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldbm-module" >&5
+echo "$as_me: error: bad value $withval for --with-ldbm-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_ldbm_module="$ol_arg"
+	ol_with_ldbm-module="$ol_arg"
 
 else
-  	ol_with_ldbm_module="static"
-fi; # end --with-ldbm_module
+  	ol_with_ldbm-module="static"
+fi; # end --with-ldbm-module
+# OpenLDAP --with-ldbm-type
 
-# OpenLDAP --with-ldbm_type
-
-# Check whether --with-ldbm_type or --without-ldbm_type was given.
+# Check whether --with-ldbm-type or --without-ldbm-type was given.
 if test "${with_ldbm_type+set}" = set; then
   withval="$with_ldbm_type"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto btree hash ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldbm_type" >&5
-echo "$as_me: error: bad value $withval for --with-ldbm_type" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-ldbm-type" >&5
+echo "$as_me: error: bad value $withval for --with-ldbm-type" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_ldbm_type="$ol_arg"
+	ol_with_ldbm-type="$ol_arg"
 
 else
-  	ol_with_ldbm_type="auto"
-fi; # end --with-ldbm_type
-
+  	ol_with_ldbm-type="auto"
+fi; # end --with-ldbm-type
 # OpenLDAP --enable-meta
 	# Check whether --enable-meta or --disable-meta was given.
 if test "${enable_meta+set}" = set; then
   enableval="$enable_meta"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2613,35 +2656,32 @@ echo "$as_me: error: bad value $enableval for --enable-meta" >&2;}
 else
   	ol_enable_meta="no"
 fi; # end --enable-meta
-# OpenLDAP --with-meta_module
+# OpenLDAP --with-meta-module
 
-# Check whether --with-meta_module or --without-meta_module was given.
+# Check whether --with-meta-module or --without-meta-module was given.
 if test "${with_meta_module+set}" = set; then
   withval="$with_meta_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-meta_module" >&5
-echo "$as_me: error: bad value $withval for --with-meta_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-meta-module" >&5
+echo "$as_me: error: bad value $withval for --with-meta-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_meta_module="$ol_arg"
+	ol_with_meta-module="$ol_arg"
 
 else
-  	ol_with_meta_module="static"
-fi; # end --with-meta_module
-
+  	ol_with_meta-module="static"
+fi; # end --with-meta-module
 # OpenLDAP --enable-monitor
 	# Check whether --enable-monitor or --disable-monitor was given.
 if test "${enable_monitor+set}" = set; then
   enableval="$enable_monitor"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2657,35 +2697,32 @@ echo "$as_me: error: bad value $enableval for --enable-monitor" >&2;}
 else
   	ol_enable_monitor="no"
 fi; # end --enable-monitor
-# OpenLDAP --with-monitor_module
+# OpenLDAP --with-monitor-module
 
-# Check whether --with-monitor_module or --without-monitor_module was given.
+# Check whether --with-monitor-module or --without-monitor-module was given.
 if test "${with_monitor_module+set}" = set; then
   withval="$with_monitor_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-monitor_module" >&5
-echo "$as_me: error: bad value $withval for --with-monitor_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-monitor-module" >&5
+echo "$as_me: error: bad value $withval for --with-monitor-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_monitor_module="$ol_arg"
+	ol_with_monitor-module="$ol_arg"
 
 else
-  	ol_with_monitor_module="static"
-fi; # end --with-monitor_module
-
+  	ol_with_monitor-module="static"
+fi; # end --with-monitor-module
 # OpenLDAP --enable-null
 	# Check whether --enable-null or --disable-null was given.
 if test "${enable_null+set}" = set; then
   enableval="$enable_null"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2701,35 +2738,32 @@ echo "$as_me: error: bad value $enableval for --enable-null" >&2;}
 else
   	ol_enable_null="no"
 fi; # end --enable-null
-# OpenLDAP --with-null_module
+# OpenLDAP --with-null-module
 
-# Check whether --with-null_module or --without-null_module was given.
+# Check whether --with-null-module or --without-null-module was given.
 if test "${with_null_module+set}" = set; then
   withval="$with_null_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-null_module" >&5
-echo "$as_me: error: bad value $withval for --with-null_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-null-module" >&5
+echo "$as_me: error: bad value $withval for --with-null-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_null_module="$ol_arg"
+	ol_with_null-module="$ol_arg"
 
 else
-  	ol_with_null_module="static"
-fi; # end --with-null_module
-
+  	ol_with_null-module="static"
+fi; # end --with-null-module
 # OpenLDAP --enable-passwd
 	# Check whether --enable-passwd or --disable-passwd was given.
 if test "${enable_passwd+set}" = set; then
   enableval="$enable_passwd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2745,35 +2779,32 @@ echo "$as_me: error: bad value $enableval for --enable-passwd" >&2;}
 else
   	ol_enable_passwd="no"
 fi; # end --enable-passwd
-# OpenLDAP --with-passwd_module
+# OpenLDAP --with-passwd-module
 
-# Check whether --with-passwd_module or --without-passwd_module was given.
+# Check whether --with-passwd-module or --without-passwd-module was given.
 if test "${with_passwd_module+set}" = set; then
   withval="$with_passwd_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-passwd_module" >&5
-echo "$as_me: error: bad value $withval for --with-passwd_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-passwd-module" >&5
+echo "$as_me: error: bad value $withval for --with-passwd-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_passwd_module="$ol_arg"
+	ol_with_passwd-module="$ol_arg"
 
 else
-  	ol_with_passwd_module="static"
-fi; # end --with-passwd_module
-
+  	ol_with_passwd-module="static"
+fi; # end --with-passwd-module
 # OpenLDAP --enable-perl
 	# Check whether --enable-perl or --disable-perl was given.
 if test "${enable_perl+set}" = set; then
   enableval="$enable_perl"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2789,35 +2820,32 @@ echo "$as_me: error: bad value $enableval for --enable-perl" >&2;}
 else
   	ol_enable_perl="no"
 fi; # end --enable-perl
-# OpenLDAP --with-perl_module
+# OpenLDAP --with-perl-module
 
-# Check whether --with-perl_module or --without-perl_module was given.
+# Check whether --with-perl-module or --without-perl-module was given.
 if test "${with_perl_module+set}" = set; then
   withval="$with_perl_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-perl_module" >&5
-echo "$as_me: error: bad value $withval for --with-perl_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-perl-module" >&5
+echo "$as_me: error: bad value $withval for --with-perl-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_perl_module="$ol_arg"
+	ol_with_perl-module="$ol_arg"
 
 else
-  	ol_with_perl_module="static"
-fi; # end --with-perl_module
-
+  	ol_with_perl-module="static"
+fi; # end --with-perl-module
 # OpenLDAP --enable-shell
 	# Check whether --enable-shell or --disable-shell was given.
 if test "${enable_shell+set}" = set; then
   enableval="$enable_shell"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2833,35 +2861,32 @@ echo "$as_me: error: bad value $enableval for --enable-shell" >&2;}
 else
   	ol_enable_shell="no"
 fi; # end --enable-shell
-# OpenLDAP --with-shell_module
+# OpenLDAP --with-shell-module
 
-# Check whether --with-shell_module or --without-shell_module was given.
+# Check whether --with-shell-module or --without-shell-module was given.
 if test "${with_shell_module+set}" = set; then
   withval="$with_shell_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-shell_module" >&5
-echo "$as_me: error: bad value $withval for --with-shell_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-shell-module" >&5
+echo "$as_me: error: bad value $withval for --with-shell-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_shell_module="$ol_arg"
+	ol_with_shell-module="$ol_arg"
 
 else
-  	ol_with_shell_module="static"
-fi; # end --with-shell_module
-
+  	ol_with_shell-module="static"
+fi; # end --with-shell-module
 # OpenLDAP --enable-sql
 	# Check whether --enable-sql or --disable-sql was given.
 if test "${enable_sql+set}" = set; then
   enableval="$enable_sql"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2877,35 +2902,32 @@ echo "$as_me: error: bad value $enableval for --enable-sql" >&2;}
 else
   	ol_enable_sql="no"
 fi; # end --enable-sql
-# OpenLDAP --with-sql_module
+# OpenLDAP --with-sql-module
 
-# Check whether --with-sql_module or --without-sql_module was given.
+# Check whether --with-sql-module or --without-sql-module was given.
 if test "${with_sql_module+set}" = set; then
   withval="$with_sql_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-sql_module" >&5
-echo "$as_me: error: bad value $withval for --with-sql_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-sql-module" >&5
+echo "$as_me: error: bad value $withval for --with-sql-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_sql_module="$ol_arg"
+	ol_with_sql-module="$ol_arg"
 
 else
-  	ol_with_sql_module="static"
-fi; # end --with-sql_module
-
+  	ol_with_sql-module="static"
+fi; # end --with-sql-module
 # OpenLDAP --enable-tcl
 	# Check whether --enable-tcl or --disable-tcl was given.
 if test "${enable_tcl+set}" = set; then
   enableval="$enable_tcl"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2921,42 +2943,33 @@ echo "$as_me: error: bad value $enableval for --enable-tcl" >&2;}
 else
   	ol_enable_tcl="no"
 fi; # end --enable-tcl
-# OpenLDAP --with-tcl_module
+# OpenLDAP --with-tcl-module
 
-# Check whether --with-tcl_module or --without-tcl_module was given.
+# Check whether --with-tcl-module or --without-tcl-module was given.
 if test "${with_tcl_module+set}" = set; then
   withval="$with_tcl_module"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in static dynamic ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-tcl_module" >&5
-echo "$as_me: error: bad value $withval for --with-tcl_module" >&2;}
+		{ { echo "$as_me:$LINENO: error: bad value $withval for --with-tcl-module" >&5
+echo "$as_me: error: bad value $withval for --with-tcl-module" >&2;}
    { (exit 1); exit 1; }; }
 	fi
-	ol_with_tcl_module="$ol_arg"
+	ol_with_tcl-module="$ol_arg"
 
 else
-  	ol_with_tcl_module="static"
-fi; # end --with-tcl_module
+  	ol_with_tcl-module="static"
+fi; # end --with-tcl-module
 
-
-
-# Check whether --with-xxslurpdoptions or --without-xxslurpdoptions was given.
-if test "${with_xxslurpdoptions+set}" = set; then
-  withval="$with_xxslurpdoptions"
-
-fi;
 # OpenLDAP --enable-slurpd
 	# Check whether --enable-slurpd or --disable-slurpd was given.
 if test "${enable_slurpd+set}" = set; then
   enableval="$enable_slurpd"
-
-	ol_arg=invalid
+  	ol_arg=invalid
 	for ol_val in auto yes no ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
@@ -2973,12 +2986,6 @@ else
   	ol_enable_slurpd="auto"
 fi; # end --enable-slurpd
 
-
-# Check whether --with-xxliboptions or --without-xxliboptions was given.
-if test "${with_xxliboptions+set}" = set; then
-  withval="$with_xxliboptions"
-
-fi;
 # Check whether --enable-static or --disable-static was given.
 if test "${enable_static+set}" = set; then
   enableval="$enable_static"
@@ -6183,7 +6190,7 @@ test "x$enable_libtool_lock" != xno && enable_libtool_lock=yes
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6186 "configure"' > conftest.$ac_ext
+  echo '#line 6193 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6712,7 +6719,7 @@ chmod -w .
 save_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -o out/conftest2.$ac_objext"
 compiler_c_o=no
-if { (eval echo configure:6715: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
+if { (eval echo configure:6722: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
   # The compiler can only warn and ignore the option if not recognized
   # So say no if there are warnings
   if test -s out/conftest.err; then
@@ -8544,7 +8551,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 8547 "configure"
+#line 8554 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -8642,7 +8649,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 8645 "configure"
+#line 8652 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

@@ -19,9 +19,10 @@ dnl $2 = help-string
 dnl $3 = default value	(auto)
 dnl $4 = allowed values (auto yes no)
 AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
-	AC_ARG_ENABLE($1,changequote(<,>)<$2 [>ifelse($3,,auto,$3)<]>changequote([,]),[
-	ol_arg=invalid
-	for ol_val in ifelse($4,,[auto yes no],[$4]) ; do
+	AC_ARG_ENABLE([$1], AC_HELP_STRING([--enable-$1],
+	[$2 <m4_ifval([$4],[$4],[auto yes no])> default=m4_ifval([$3],[$3],[auto])]),
+[	ol_arg=invalid
+	for ol_val in m4_ifval([$4],[$4],[auto yes no]) ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -31,8 +32,7 @@ AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
 	fi
 	ol_enable_$1="$ol_arg"
 ],
-[	ol_enable_$1=ifelse($3,,"auto","$3")])dnl
-dnl AC_VERBOSE(OpenLDAP -enable-$1 $ol_enable_$1)
+[	ol_enable_$1=m4_ifval([$3],["$3"],["auto"])])dnl
 # end --enable-$1
 ])dnl
 dnl
@@ -42,11 +42,12 @@ dnl
 dnl $1 = option name
 dnl $2 = help-string
 dnl $3 = default value (no)
-dnl $4 = allowed values (yes or no)
+dnl $4 = allowed values (yes no)
 AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
-	AC_ARG_WITH($1,changequote(<,>)<$2 [>ifelse($3,,yes,$3)<]>changequote([,]),[
-	ol_arg=invalid
-	for ol_val in ifelse($4,,[yes no],[$4]) ; do
+	AC_ARG_WITH([$1], AC_HELP_STRING([--with-$1],
+	[$2 <m4_ifval([$4],[$4],[auto yes no])> default=m4_ifval([$3],[$3],[auto])]),
+[	ol_arg=invalid
+	for ol_val in m4_ifval([$4],[$4],[auto yes no]) ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -56,8 +57,7 @@ AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
 	fi
 	ol_with_$1="$ol_arg"
 ],
-[	ol_with_$1=ifelse($3,,"no","$3")])dnl
-dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
+[	ol_with_$1=m4_ifval([$3],["$3"],["auto"])])dnl
 # end --with-$1
 ])dnl
 dnl
