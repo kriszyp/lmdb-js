@@ -52,10 +52,10 @@ starttls_extop (
 	}
 
 	/* can't start TLS if there are other op's around */
-	if (( !STAILQ_EMPTY(&conn->c_ops) &&
-			(STAILQ_FIRST(&conn->c_ops) != op ||
-			STAILQ_NEXT(op, o_next) != NULL)) ||
-		( !STAILQ_EMPTY(&conn->c_pending_ops) ))
+	if (( !LDAP_STAILQ_EMPTY(&conn->c_ops) &&
+			(LDAP_STAILQ_FIRST(&conn->c_ops) != op ||
+			LDAP_STAILQ_NEXT(op, o_next) != NULL)) ||
+		( !LDAP_STAILQ_EMPTY(&conn->c_pending_ops) ))
 	{
 		*text = "cannot start TLS when operations are outstanding";
 		rc = LDAP_OPERATIONS_ERROR;

@@ -91,7 +91,7 @@ do_abandon(
 	 * flag and abort the operation at a convenient time.
 	 */
 
-	STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
+	LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
 		if ( o->o_msgid == id ) {
 			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 			o->o_abandon = 1;
@@ -102,13 +102,13 @@ do_abandon(
 		}
 	}
 
-	STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
+	LDAP_STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == id )
 			break;
 	}
 
 	if( o != NULL ) {
-		STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
+		LDAP_STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
 		slap_op_free( o );
 		notfound = 0;
 	}

@@ -33,14 +33,14 @@ shell_back_abandon(
 	if ( si->si_abandon == NULL ) {
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		pid = -1;
-		STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
+		LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
 			if ( o->o_msgid == msgid ) {
 				pid = (pid_t) o->o_private;
 				break;
 			}
 		}
 		if( pid == -1 ) {
-			STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
+			LDAP_STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
 				if ( o->o_msgid == msgid ) {
 					pid = (pid_t) o->o_private;
 					break;

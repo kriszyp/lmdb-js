@@ -354,7 +354,7 @@ char *slap_sasl2dn( char *saslname )
 	if( rc != LDAP_SUCCESS )
 		goto FINISHED;
 
-	(*be->be_search)( be, conn, STAILQ_FIRST(&conn->c_ops), /*base*/NULL, &searchbase,
+	(*be->be_search)( be, conn, LDAP_STAILQ_FIRST(&conn->c_ops), /*base*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
@@ -484,7 +484,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
-	(*be->be_search)( be, conn, STAILQ_FIRST(&conn->c_ops), /*base=*/NULL, &searchbase,
+	(*be->be_search)( be, conn, LDAP_STAILQ_FIRST(&conn->c_ops), /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 

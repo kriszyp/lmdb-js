@@ -18,7 +18,7 @@
 void
 slap_op_free( Operation *op )
 {
-	assert( STAILQ_NEXT(op, o_next) == NULL );
+	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );

@@ -331,8 +331,8 @@ conn_create(
 		
 		c->c_currentber ? "r" : "",
 		c->c_writewaiter ? "w" : "",
-		STAILQ_EMPTY( &c->c_ops ) ? "" : "x",
-		STAILQ_EMPTY( &c->c_pending_ops ) ? "" : "p",
+		LDAP_STAILQ_EMPTY( &c->c_ops ) ? "" : "x",
+		LDAP_STAILQ_EMPTY( &c->c_pending_ops ) ? "" : "p",
 		connection_state2str( c->c_conn_state ),
 		c->c_sasl_bind_in_progress ? "S" : "",
 		
