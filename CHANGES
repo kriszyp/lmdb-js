@@ -6,6 +6,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed ldbm Berkeley DB 2.4 mp_pool init problem
 	Fixed slapd modrdn
 	Fixed slapd command line usage and log level option
+	Fixed slapd acl group extended format parsing (ITS#123)
 	Fixed slurpd ldap_pvt_thread_create argument typo
 	Added modrdn test.
 	Build environment
