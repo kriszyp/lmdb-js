@@ -530,7 +530,7 @@ at_add(
 
 
 char *
-at_official_name( char * a_type )
+at_canonical_name( char * a_type )
 {
 	AttributeType	*atp;
 
@@ -554,7 +554,7 @@ at_official_name( char * a_type )
 
 	}
 
-}/* char * at_official_name() */
+}/* char * at_canonica_name() */
 
 
 #if defined( SLAPD_SCHEMA_DN )

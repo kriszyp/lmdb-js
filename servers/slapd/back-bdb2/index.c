@@ -121,7 +121,7 @@ bdb2i_index_read(
 	}
 
 	attr_normalize( type );
-	at_on = at_official_name(type);
+	at_on = at_canonical_name(type);
 
 	if ( (db = bdb2i_cache_open( be, at_on, BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -238,7 +238,7 @@ bdb2i_index_add_values(
 	if ( indexmask == 0 ) {
 		return( 0 );
 	}
-	at_on = at_official_name(type);
+	at_on = at_canonical_name(type);
 
 	if ( (db = bdb2i_cache_open( be, at_on, BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {

@@ -104,7 +104,7 @@ index_read(
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
 
-	char		*at_on;
+	char		*at_cn;
 
 	ldbm_datum_init( key );
 
@@ -122,12 +122,12 @@ index_read(
 	}
 
 	attr_normalize( type );
-	at_on = at_official_name( type );
+	at_cn = at_canonical_name( type );
 
-	if ( (db = ldbm_cache_open( be, at_on, LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_read NULL (could not open %s%s)\n", at_on,
+		    "<= index_read NULL (could not open %s%s)\n", at_cn,
 		    LDBM_SUFFIX, 0 );
 		return( NULL );
 	}
@@ -236,7 +236,7 @@ index_add_values(
 	char		*bigbuf;
 	struct dbcache	*db;
 
-	char		*at_on;	/* Attribute official name */
+	char		*at_cn;	/* Attribute canonical name */
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_add_values( \"%s\", %ld )\n", type,
 	    id, 0 );
@@ -245,12 +245,12 @@ index_add_values(
 	if ( indexmask == 0 ) {
 		return( 0 );
 	}
-	at_on = at_official_name( type );
-	if ( (db = ldbm_cache_open( be, at_on, LDBM_SUFFIX, LDBM_WRCREAT ))
+	at_cn = at_canonical_name( type );
+	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_add_values -1 (could not open/create %s%s)\n",
-		    at_on, LDBM_SUFFIX, 0 );
+		    at_cn, LDBM_SUFFIX, 0 );
 		return( -1 );
 	}
 
@@ -260,7 +260,7 @@ index_add_values(
 		 * presence index entry
 		 */
 		if ( indexmask & INDEX_PRESENCE ) {
-			add_value( be, db, at_on, INDEX_PRESENCE, "*", id );
+			add_value( be, db, at_cn, INDEX_PRESENCE, "*", id );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "*** index_add_values syntax 0x%x syntax bin 0x%x\n",
@@ -292,7 +292,7 @@ index_add_values(
 		 * equality index entry
 		 */
 		if ( indexmask & INDEX_EQUALITY ) {
-			add_value( be, db, at_on, INDEX_EQUALITY, val, id );
+			add_value( be, db, at_cn, INDEX_EQUALITY, val, id );
 		}
 
 		/*
@@ -302,7 +302,7 @@ index_add_values(
 			for ( w = first_word( val ); w != NULL;
 			    w = next_word( w ) ) {
 				if ( (code = phonetic( w )) != NULL ) {
-					add_value( be, db, at_on, INDEX_APPROX,
+					add_value( be, db, at_cn, INDEX_APPROX,
 					    code, id );
 					free( code );
 				}
@@ -321,7 +321,7 @@ index_add_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, at_on, INDEX_SUB, buf, id );
+				add_value( be, db, at_cn, INDEX_SUB, buf, id );
 
 				p = val + len - SUBLEN + 1;
 				for ( j = 0; j < SUBLEN - 1; j++ ) {
@@ -330,7 +330,7 @@ index_add_values(
 				buf[SUBLEN - 1] = '$';
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, at_on, INDEX_SUB, buf, id );
+				add_value( be, db, at_cn, INDEX_SUB, buf, id );
 			}
 
 			/* any */
@@ -340,7 +340,7 @@ index_add_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, at_on, INDEX_SUB, buf, id );
+				add_value( be, db, at_cn, INDEX_SUB, buf, id );
 			}
 		}
 

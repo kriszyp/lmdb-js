@@ -53,7 +53,7 @@ int at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
 int at_fake_if_needed LDAP_P(( char *name ));
 int at_schema_info LDAP_P(( Entry *e ));
 int at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
-char * at_official_name LDAP_P(( char * a_type ));
+char * at_canonical_name LDAP_P(( char * a_type ));
 
 /*
  * ava.c
