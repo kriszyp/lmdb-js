@@ -688,17 +688,55 @@ dn2entry_retry:
 
 #ifdef LDAP_SYNC
 	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
-		ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
-		build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+#ifdef LDAP_SYNCREPL
+		if ( sop->o_bd->syncinfo ) {
+			char substr[67];
+			sprintf( substr, "cn=syncrepl%d", sop->o_bd->syncinfo->id );
+			ber_str2bv( substr, strlen( substr ), 0, &ctxcsn_rdn );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+		} else
+#endif
+		{
+			ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+		}
 
-		bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei, 0, locker, &ctxcsn_lock );
+ctxcsn_retry :
+		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei, 0, locker, &ctxcsn_lock );
+
+		switch(rs->sr_err) {
+		case 0:
+			e = ei->bei_e; break;
+		case LDAP_BUSY:
+			send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
+			return LDAP_BUSY;
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto ctxcsn_retry;
+		case DB_NOTFOUND:
+			send_ldap_error( sop, rs, LDAP_OTHER, "context csn entry not present" );
+			LOCK_ID_FREE( bdb->bi_dbenv, locker );
+			return rs->sr_err;
+		default:
+			send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
+			return rs->sr_err;
+		}
 
 		if ( ctxcsn_ei ) {
 			ctxcsn_e = ctxcsn_ei->bei_e;
 		}
 
 		if ( ctxcsn_e ) {
-			csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+#ifdef LDAP_SYNCREPL
+			if ( sop->o_bd->syncinfo ) {
+				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_syncreplCookie );
+			} else
+#endif
+			{
+				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+			}
 			if ( csn_a ) {
 				search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
 			} else {
@@ -838,7 +876,7 @@ dn2entry_retry:
 		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
 		csnfge.f_av_value = sop->o_sync_state;
 
-		if ( search_context_csn ) {
+		if ( search_context_csn && !IS_PSEARCH ) {
 			csnfge.f_next = &contextcsnand;
 
 			contextcsnand.f_choice = LDAP_FILTER_AND;

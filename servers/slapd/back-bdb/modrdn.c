@@ -915,13 +915,18 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef LDAP_SYNCREPL
+	if ( !op->o_bd->syncinfo )
+#endif
 #ifdef LDAP_SYNC
-	rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
-	switch ( rc ) {
-	case BDB_CSN_ABORT :
-		goto return_results;
-	case BDB_CSN_RETRY :
-		goto retry;
+	{
+		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+		switch ( rc ) {
+		case BDB_CSN_ABORT :
+			goto return_results;
+		case BDB_CSN_RETRY :
+			goto retry;
+		}
 	}
 #endif
 
@@ -949,11 +954,16 @@ retry:	/* transaction retry */
 			bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
 				bdb->bi_dbenv, locker, &lock );
 
+#ifdef LDAP_SYNCREPL
+			if ( !op->o_bd->syncinfo )
+#endif
 #ifdef LDAP_SYNC
-			if ( ctxcsn_added ) {
-				ctx_nrdn.bv_val = "cn=ldapsync";
-				ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+			{
+				if ( ctxcsn_added ) {
+					ctx_nrdn.bv_val = "cn=ldapsync";
+					ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
+					bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+				}
 			}
 #endif
 
