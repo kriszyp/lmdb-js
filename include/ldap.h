@@ -319,7 +319,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
-/* possible operations a client can invoke */
+/* LDAP Request Messages */
 #define LDAP_REQ_BIND		((ber_tag_t) 0x60U)	/* application + constructed */
 #define LDAP_REQ_UNBIND		((ber_tag_t) 0x42U)	/* application + primitive   */
 #define LDAP_REQ_SEARCH		((ber_tag_t) 0x63U)	/* application + constructed */
@@ -333,7 +333,7 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_ABANDON	((ber_tag_t) 0x50U)	/* application + primitive   */
 #define LDAP_REQ_EXTENDED	((ber_tag_t) 0x77U)	/* application + constructed */
 
-/* possible result types a server can return */
+/* LDAP Response Messages */
 #define LDAP_RES_BIND		((ber_tag_t) 0x61U)	/* application + constructed */
 #define LDAP_RES_SEARCH_ENTRY	((ber_tag_t) 0x64U)	/* application + constructed */
 #define LDAP_RES_SEARCH_REFERENCE	((ber_tag_t) 0x73U)	/* V3: application + constructed */
@@ -406,12 +406,12 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /*
- * possible error codes we can return
+ * LDAP Result Codes
  */
+#define LDAP_SUCCESS				0x00
 
 #define LDAP_RANGE(n,x,y)	(((x) <= (n)) && ((n) <= (y)))
 
-#define LDAP_SUCCESS				0x00
 #define LDAP_OPERATIONS_ERROR		0x01
 #define LDAP_PROTOCOL_ERROR			0x02
 #define LDAP_TIMELIMIT_EXCEEDED		0x03
