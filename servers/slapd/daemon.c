@@ -178,9 +178,10 @@ set_socket( struct sockaddr_in *addr )
 		int	tmp;
 
 		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
+			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: socket() failed errno %d (%s)\n", errno,
-		    	errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
+				"daemon: socket() failed errno %d (%s)\n", err,
+		    	err > -1 && err < sys_nerr ? sys_errlist[err] :
 		    	"unknown", 0 );
 			exit( 1 );
 		}
@@ -198,20 +199,20 @@ set_socket( struct sockaddr_in *addr )
 		if ( setsockopt( tcps, SOL_SOCKET, SO_REUSEADDR,
 			(char *) &tmp, sizeof(tmp) ) == -1 )
 		{
+			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
 			       "slapd(%d): setsockopt() failed errno %d (%s)\n",
-		    	tcps, errno,
-				errno > -1 && errno < sys_nerr
-					? sys_errlist[errno] : "unknown" );
-
-			errno = 0;
+		    	tcps, err,
+				err > -1 && err < sys_nerr
+					? sys_errlist[err] : "unknown" );
 		}
 
 		if ( bind( tcps, (struct sockaddr *) addr, sizeof(*addr) ) == -1 ) {
+			int err = errno;
 			Debug( LDAP_DEBUG_ANY, "daemon: bind(%d) failed errno %d (%s)\n",
-		    	tcps, errno,
-				errno > -1 && errno < sys_nerr
-					? sys_errlist[errno] : "unknown" );
+		    	tcps, err,
+				err > -1 && err < sys_nerr
+					? sys_errlist[err] : "unknown" );
 			exit( 1 );
 		}
 	}
@@ -236,11 +237,12 @@ slapd_daemon_task(
 
 	if( !inetd ) {
 		if ( listen( tcps, 5 ) == -1 ) {
+			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%d, 5) failed errno %d (%s)\n",
-			    tcps, errno,
-				errno > -1 && errno < sys_nerr
-					? sys_errlist[errno] : "unknown" );
+			    tcps, err,
+				err > -1 && err < sys_nerr
+					? sys_errlist[err] : "unknown" );
 			exit( 1 );
 		}
 
@@ -321,18 +323,19 @@ slapd_daemon_task(
 		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
 		switch(ns = select( nfds, &readfds, &writefds, 0, tvp )) {
-		case -1:	/* failure - try again */
-			if( errno != EINTR ) {
-				Debug( LDAP_DEBUG_CONNS,
-					"daemon: select failed (%d): %s\n",
-					errno,
-					errno >= 0 && errno < sys_nerr
-						? sys_errlist[errno] : "unknown",
-					0 );
+		case -1: {	/* failure - try again */
+				int err = errno;
+				if( err != EINTR ) {
+					Debug( LDAP_DEBUG_CONNS,
+						"daemon: select failed (%d): %s\n",
+						err,
+						err >= 0 && err < sys_nerr
+							? sys_errlist[err] : "unknown",
+						0 );
 
-				slapd_shutdown = -1;
+					slapd_shutdown = -1;
+				}
 			}
-			errno = 0;
 			continue;
 
 		case 0:		/* timeout - let threads run */
@@ -355,10 +358,11 @@ slapd_daemon_task(
 			if ( (s = accept( tcps,
 				(struct sockaddr *) &from, &len )) == -1 )
 			{
+				int err = errno;
 				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%d) failed errno %d (%s)\n", errno,
-				    tcps, errno >= 0 && errno < sys_nerr ?
-				    sys_errlist[errno] : "unknown");
+				    "daemon: accept(%d) failed errno %d (%s)\n", err,
+				    tcps, err >= 0 && err < sys_nerr ?
+				    sys_errlist[err] : "unknown");
 				continue;
 			}
 
@@ -551,13 +555,13 @@ slapd_daemon_task(
 
 	if( slapd_shutdown > 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: shutdown requested and initiated.\n",
-			0, 0, 0 );
+			"daemon: shutdown requested (%d) and initiated.\n",
+			(int) slapd_shutdown, 0, 0 );
 
 	} else if ( slapd_shutdown < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: abnormal condition, shutdown initiated.\n",
-			0, 0, 0 );
+			"daemon: abnormal condition (%d), shutdown initiated.\n",
+			(int) slapd_shutdown, 0, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: no active streams, shutdown initiated.\n",
@@ -605,7 +609,7 @@ int slapd_daemon( int inetd, int tcps )
 void
 slap_set_shutdown( int sig )
 {
-	slapd_shutdown = 1;
+	slapd_shutdown = sig;
 	ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 
 	/* reinstall self */

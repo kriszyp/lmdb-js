@@ -592,8 +592,8 @@ int connection_read(int s)
 
 	if( rc < 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_read(%d): input error id=%ld, closing.\n",
-			s, c->c_connid, 0 );
+			"connection_read(%d): input error=%d id=%ld, closing.\n",
+			s, rc, c->c_connid );
 
 		connection_closing( c );
 		connection_close( c );
@@ -624,21 +624,23 @@ connection_input(
 	if ( (tag = ber_get_next( &conn->c_sb, &len, conn->c_currentber ))
 	    != LDAP_TAG_MESSAGE )
 	{
+		int err = errno;
+
 		Debug( LDAP_DEBUG_TRACE,
 			"ber_get_next on fd %d failed errno %d (%s)\n",
-			lber_pvt_sb_get_desc(&conn->c_sb), errno,
-			errno > -1 && errno < sys_nerr ?  sys_errlist[errno] : "unknown" );
+			lber_pvt_sb_get_desc(&conn->c_sb), err,
+			err > -1 && err < sys_nerr ?  sys_errlist[err] : "unknown" );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",
 			(long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
 			conn->c_currentber->ber_len, 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
 
-			return -1;
+			return -2;
 		}
 		return 1;
 	}

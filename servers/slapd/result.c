@@ -97,6 +97,7 @@ send_ldap_result2(
 	bytes = ber->ber_ptr - ber->ber_buf;
 
 	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
+		int err = errno;
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -104,10 +105,10 @@ send_ldap_result2(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno %d msg (%s)\n",
-		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno]
+		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
 		    : "unknown", 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -325,6 +326,7 @@ send_search_entry(
 
 	/* write the pdu */
 	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
+		int err = errno;
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -332,10 +334,10 @@ send_search_entry(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno %d msg (%s)\n",
-		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno]
+		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
 		    : "unknown", 0 );
 
-		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
+		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );

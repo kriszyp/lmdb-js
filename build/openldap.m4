@@ -478,7 +478,7 @@ AC_DEFUN([OL_PTHREAD_TRY_LINK], [# Pthread try link: $1 ($2)
 		# try $1
 		AC_CACHE_CHECK([for pthread link with $1], [$2], [
 			# save the flags
-			save_LIBS="$LIBS"
+			ol_LIBS="$LIBS"
 			LIBS="$1 $LIBS"
 
 			AC_TRY_LINK([
@@ -502,7 +502,7 @@ AC_DEFUN([OL_PTHREAD_TRY_LINK], [# Pthread try link: $1 ($2)
 ], [$2=yes], [$2=no])
 
 		# restore the LIBS
-		LIBS="$save_LIBS"
+		LIBS="$ol_LIBS"
 		])
 
 		if test $$2 = yes ; then
