@@ -59,6 +59,7 @@ bdb_delete(
 retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
+			e = NULL;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 

@@ -131,7 +131,7 @@ retry:	/* transaction retry */
 			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_delete: txn_begin failed: %s (%d)\n",
+			"bdb_modrdn: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 #endif
 		rc = LDAP_OTHER;
