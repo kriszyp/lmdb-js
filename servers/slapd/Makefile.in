@@ -337,11 +337,11 @@ install-slapd: FORCE
 all-cffiles: slapd
 	@if test $(PLAT) = NT; then \
 	    sysconfdir=`cygpath -w $(sysconfdir) | \
-		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    localstatedir=`cygpath -w $(localstatedir) | \
-		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    moduledir=`cygpath -w $(moduledir) | \
-		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	else \
 	    sysconfdir=$(sysconfdir); \
 	    localstatedir=$(localstatedir); \
