@@ -14,7 +14,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was originally developed by Howard Chu for inclusion
+ * This work was originally developed by Hallvard Furuseth for inclusion
  * in OpenLDAP Software.
  */
 
