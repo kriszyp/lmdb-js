@@ -143,6 +143,10 @@ bdb_filter_candidates(
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 #endif
+		{ struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+		BDB_IDL_ALL( bdb, ids );
+		}
+		rc = 0;
 		break;
 
 	case LDAP_FILTER_AND:
