@@ -25,8 +25,10 @@
 #	define OPENLOG_OPTIONS ( LOG_PID | LOG_NDELAY )
 #elif defined( LOG_NOWAIT )
 #	define OPENLOG_OPTIONS ( LOG_PID | LOG_NOWAIT )
-#else
+#elif defined( LOG_PID )
 #	define OPENLOG_OPTIONS ( LOG_PID )
+#else
+#   define OPENLOG_OPTIONS ( 0 )
 #endif
 
 #endif /* _AC_SYSLOG_H_ */

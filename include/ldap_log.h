@@ -65,7 +65,7 @@ extern int	ldap_syslog_level;
 			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	}
 #else /* LDAP_SYSLOG */
-#ifndef WINSOCK
+#ifndef HAVE_WINSOCK
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
 		if ( ldap_debug & (level) ) \
 			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) );

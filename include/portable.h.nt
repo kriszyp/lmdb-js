@@ -36,6 +36,9 @@
 /* define type for caddr_t */
 typedef char * caddr_t;
 
+#define LOG_DEBUG 0
+#define openlog( a, b )
+
 /* we have NT threads */
 #define HAVE_NT_THREADS 1
 
@@ -230,7 +233,7 @@ typedef char * caddr_t;
 #define SLAPD_ACLGROUPS 1
 
 /* define this to use SLAPD Berkeley DB2 backend */
-#define SLAPD_BDB2 1 
+/* #define SLAPD_BDB2 1 */
 
 /* define this for ClearText password support */
 #define SLAPD_CLEARTEXT 1
@@ -239,7 +242,7 @@ typedef char * caddr_t;
 /* #undef SLAPD_CRYPT */
 
 /* define this to use SLAPD LDBM backend */
-/* #define SLAPD_LDBM 1 */
+#define SLAPD_LDBM 1
 
 /* define this to use SLAPD passwd backend */
 /* #undef SLAPD_PASSWD */
