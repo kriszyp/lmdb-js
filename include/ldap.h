@@ -136,7 +136,7 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_RENAME			LDAP_REQ_MODRDN	
 #define LDAP_REQ_COMPARE		0x6eL	/* application + constructed */
 #define LDAP_REQ_ABANDON		0x50L	/* application + primitive   */
-#define LDAP_REQ_ABANDON		0x77L	/* application + constructed */
+#define LDAP_REQ_EXTENDED		0x77L	/* application + constructed */
 
 /* U-Mich version 3.0 compatibility stuff */
 #define LDAP_REQ_UNBIND_30		0x62L
