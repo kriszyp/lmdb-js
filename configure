@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.455 2003/01/03 19:20:47 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.456 2003/02/09 06:42:24 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -7850,7 +7850,7 @@ LIBTOOL='$(SHELL) $(top_builddir)/libtool'
 
 
 LTSTATIC=""
-if test -z "$LTDYNAMIC" -a "${OPENLDAP_CVS}"; then
+if test -z "$LTDYNAMIC"; then
 	LTSTATIC="-static"
 fi
 
