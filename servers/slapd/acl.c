@@ -248,7 +248,7 @@ access_allowed_mask(
 #endif /* LDAP_SLAPI */
 
 	/* grant database root access */
-	if ( be != NULL && be_isroot( op ) ) {
+	if ( /* be != NULL && */ be_isroot( op ) ) {
 		Debug( LDAP_DEBUG_ACL,
 		    "<= root access granted\n",
 			0, 0, 0 );
@@ -713,17 +713,17 @@ acl_mask(
 			 * is maintaned in a_dn_pat.
 			 */
 			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS ) {
-				if ( op->o_ndn.bv_len != 0 ) {
+				if ( !BER_BVISEMPTY( &op->o_ndn ) ) {
 					continue;
 				}
 
 			} else if ( b->a_dn_style == ACL_STYLE_USERS ) {
-				if ( op->o_ndn.bv_len == 0 ) {
+				if ( BER_BVISEMPTY( &op->o_ndn ) ) {
 					continue;
 				}
 
 			} else if ( b->a_dn_style == ACL_STYLE_SELF ) {
-				if ( op->o_ndn.bv_len == 0 ) {
+				if ( BER_BVISEMPTY( &op->o_ndn ) ) {
 					continue;
 				}
 				
