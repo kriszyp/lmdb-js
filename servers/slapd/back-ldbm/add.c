@@ -55,6 +55,7 @@ ldbm_back_add(
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+	rs->sr_text = NULL;
 
 #ifdef LDBM_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );
