@@ -83,6 +83,8 @@ bvptr2obj(
 		tmpberval[i].bv_val = bvptr[i]->bv_val;
 		tmpberval[i].bv_len = bvptr[i]->bv_len;
 	}
+	tmpberval[i].bv_val = NULL;
+	tmpberval[i].bv_len = 0;
 
 	if ( rc == LDAP_SUCCESS ) {
 		*bvobj = tmpberval;
@@ -445,7 +447,7 @@ slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value )
 	bv.bv_val = (char *)value;
 	bv.bv_len = strlen( value );
 
-	return slapi_attr_value_find( attr, &bv );
+	return ( slapi_attr_value_find( attr, &bv ) != -1 );
 #else
 	return 0;
 #endif
