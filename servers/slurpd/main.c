@@ -112,33 +112,13 @@ main(
     /*
      * Start the main file manager thread (in fm.c).
      */
-    pthread_attr_init( &attr );
-
-#if !defined(HAVE_PTHREADS_D4)
-    /* POSIX_THREADS or compatible
-     * This is a draft 10 or standard pthreads implementation
-     */
-    if ( pthread_create( &(sglob->fm_tid), &attr, fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), NULL, fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );
 	exit( 1 );
 
     }
-#else /* !PTHREADS_FINAL */
-    /*
-     * This is a draft 4 or earlier pthreads implementation
-     */
-    if ( pthread_create( &(sglob->fm_tid), attr, fm, (void *) NULL )
-	    != 0 ) {
-	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
-		0, 0, 0 );
-	exit( 1 );
-
-    }
-#endif /* !PTHREADS_FINAL */
-
-    pthread_attr_destroy( &attr );
 
     /*
      * Wait for the fm thread to finish.
@@ -160,7 +140,7 @@ main(
     }
     Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
     sglob->slurpd_shutdown = 1;
-    pthread_exit( 0 );
 
+	return 0;
 #endif /* !NO_THREADS */
 }

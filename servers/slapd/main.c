@@ -175,44 +175,25 @@ main( int argc, char **argv )
 	read_config( configfile, &be, fp );
 
 	if ( ! inetd ) {
-		pthread_attr_t	attr;
 		int		status;
 
 		time( &starttime );
-		pthread_attr_init( &attr );
-#ifdef DETACH_LISTENER_THREAD
-		/* we should detach it if we're going to join with it */
-		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
-#endif
 
-#if !defined(HAVE_PTHREADS_D4)
-		/* POSIX_THREADS or compatible
-		 * This is a draft 10 or standard pthreads implementation
-		 */
-		if ( pthread_create( &listener_tid, &attr, slapd_daemon,
+		if ( pthread_create( &listener_tid, NULL, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
-#else	/* draft4 */
-		/*
-		 * This is a draft 4 or earlier pthreads implementation
-		 */
-		if ( pthread_create( &listener_tid, attr, slapd_daemon,
-		    (void *) port ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "listener pthread_create failed\n", 0, 0, 0 );
-			exit( 1 );
-		}
-#endif	/* !draft4 */
-		pthread_attr_destroy( &attr );
+
 #ifdef HAVE_PHREADS_FINAL
 		pthread_join( listener_tid, (void *) NULL );
 #else
 		pthread_join( listener_tid, (void *) &status );
 #endif
-		pthread_exit( 0 );
+
+		return 0;
+
 	} else {
 		Connection		c;
 		Operation		*o;
