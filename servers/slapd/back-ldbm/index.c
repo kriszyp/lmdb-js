@@ -22,7 +22,7 @@ static index_mask(
 	char **atname )
 {
 	AttributeType *at;
-	slap_index mask = 0;
+	slap_mask_t mask = 0;
 
 	/* we do support indexing of binary attributes */
 	if( slap_ad_is_binary( desc ) ) return 0;
@@ -77,10 +77,10 @@ int index_param(
 	AttributeDescription *desc,
 	int ftype,
 	char **dbnamep,
-	slap_index *maskp,
+	slap_mask_t *maskp,
 	struct berval **prefixp )
 {
-	slap_index mask;
+	slap_mask_t mask;
 	char *dbname;
 	char *atname;
 
@@ -135,7 +135,7 @@ static int indexer(
 	struct berval **vals,
 	ID id,
 	int op,
-	slap_index mask )
+	slap_mask_t mask )
 {
 	int rc, i;
 	const char *text;
@@ -169,6 +169,7 @@ static int indexer(
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
 		rc = ad->ad_type->sat_equality->smr_indexer(
+			LDAP_FILTER_EQUALITY,
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_equality,
@@ -184,6 +185,7 @@ static int indexer(
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
 		rc = ad->ad_type->sat_approx->smr_indexer(
+			LDAP_FILTER_APPROX,
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_approx,
@@ -199,6 +201,7 @@ static int indexer(
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) ) {
 		rc = ad->ad_type->sat_substr->smr_indexer(
+			LDAP_FILTER_SUBSTRINGS,
 			mask,
 			ad->ad_type->sat_syntax,
 			ad->ad_type->sat_substr,
@@ -225,10 +228,10 @@ static int index_at_values(
 	ID id,
 	int op,
 	char ** dbnamep,
-	slap_index *maskp )
+	slap_mask_t *maskp )
 {
-	slap_index mask;
-	slap_index tmpmask = 0;
+	slap_mask_t mask;
+	slap_mask_t tmpmask = 0;
 	int lindex = 0;
 
 	if( type->sat_sup ) {
@@ -291,7 +294,7 @@ int index_values(
 	int op )
 {
 	char *dbname = NULL;
-	slap_index mask;
+	slap_mask_t mask;
 
 	if( slap_ad_is_binary( desc ) ) {
 		/* binary attributes have no index capabilities */

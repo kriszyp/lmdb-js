@@ -23,7 +23,7 @@ typedef struct ldbm_attrinfo {
 #else
 	char *ai_desc;
 #endif
-	slap_index ai_indexmask;	/* how the attr is indexed	*/
+	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
 } AttrInfo;
 
 static int
@@ -64,7 +64,7 @@ attr_mask(
 #else
     const char *desc,
 #endif
-    slap_index *indexmask )
+    slap_mask_t *indexmask )
 {
 	AttrInfo	*a;
 
@@ -84,7 +84,7 @@ attr_index_config(
 {
 	int rc;
 	int	i;
-	slap_index mask;
+	slap_mask_t mask;
 	char **attrs;
 	char **indexes = NULL;
 
@@ -115,7 +115,7 @@ attr_index_config(
 		mask = 0;
 
 		for ( i = 0; indexes[i] != NULL; i++ ) {
-			slap_index index;
+			slap_mask_t index;
 			rc = slap_str2index( indexes[i], &index );
 
 			if( rc != LDAP_SUCCESS ) {

@@ -147,7 +147,7 @@ LDAP_SLAPD_F (int) slap_debug;
 #define SLAP_INDEX_LANG           0x4000UL /* use index with lang subtypes */
 #define SLAP_INDEX_AUTO_LANG      0x8000UL /* use mask with lang subtypes */
 
-typedef long slap_index;
+typedef unsigned long slap_mask_t;
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
@@ -240,7 +240,7 @@ typedef int slap_mr_convert_func LDAP_P((
 
 /* Normalizer */
 typedef int slap_mr_normalize_func LDAP_P((
-	unsigned use,
+	slap_mask_t use,
 	struct slap_syntax *syntax, /* NULL if in is asserted value */
 	struct slap_matching_rule *mr,
 	struct berval * in,
@@ -249,7 +249,7 @@ typedef int slap_mr_normalize_func LDAP_P((
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
 	int *match,
-	unsigned flags,
+	slap_mask_t use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval * value,
@@ -257,7 +257,8 @@ typedef int slap_mr_match_func LDAP_P((
 
 /* Index generation function */
 typedef int slap_mr_indexer_func LDAP_P((
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t mask,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
@@ -266,7 +267,8 @@ typedef int slap_mr_indexer_func LDAP_P((
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t mask,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
@@ -275,7 +277,7 @@ typedef int slap_mr_filter_func LDAP_P((
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
-	unsigned				smr_usage;
+	slap_mask_t				smr_usage;
 
 #define SLAP_MR_TYPE_MASK		0xFF00U
 #define SLAP_MR_SUBTYPE_MASK	0x00F0U

@@ -24,7 +24,7 @@ static ID_BLOCK	*approx_candidates(
 	Backend *be, AttributeAssertion *ava );
 static ID_BLOCK	*substring_candidates(
 	Backend *be,
-	Filter *f );
+	SubstringsAssertion *sub );
 static ID_BLOCK	*list_candidates(
 	Backend *be,
 	Filter *flist,
@@ -69,7 +69,7 @@ filter_candidates(
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
-		result = substring_candidates( be, f );
+		result = substring_candidates( be, f->f_sub );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -117,7 +117,7 @@ presence_candidates(
 	DBCache	*db;
 	int rc;
 	char *dbname;
-	slap_index mask;
+	slap_mask_t mask;
 	struct berval *prefix;
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
@@ -128,11 +128,17 @@ presence_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= presence_candidates: index_param failed (%d)\n",
+			rc, 0, 0 );
 		return idl;
 	}
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= presense_candidates: not indexed\n",
+			0, 0, 0 );
 		ber_bvfree( prefix );
 		return idl;
 	}
@@ -184,7 +190,7 @@ equality_candidates(
 	int i;
 	int rc;
 	char *dbname;
-	slap_index mask;
+	slap_mask_t mask;
 	struct berval *prefix;
 	struct berval **keys = NULL;
 	MatchingRule *mr;
@@ -197,11 +203,17 @@ equality_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= equality_candidates: index_param failed (%d)\n",
+			rc, 0, 0 );
 		return idl;
 	}
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= equality_candidates: not indexed\n",
+			0, 0, 0 );
 		ber_bvfree( prefix );
 		return idl;
 	}
@@ -209,7 +221,6 @@ equality_candidates(
 	mr = ava->aa_desc->ad_type->sat_equality;
 	if( !mr ) {
 		ber_bvfree( prefix );
-		/* return LDAP_INAPPROPRIATE_MATCHING; */
 		return idl;
 	}
 
@@ -220,6 +231,7 @@ equality_candidates(
 
 	rc = (mr->smr_filter)(
 		LDAP_FILTER_EQUALITY,
+		mask,
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		prefix,
@@ -229,6 +241,16 @@ equality_candidates(
 	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= equality_candidates: (%s%s) MR filter failed (%d)\n",
+			dbname, LDBM_SUFFIX, rc );
+		return idl;
+	}
+
+	if( keys == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= equality_candidates: no keys (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
 		return idl;
 	}
 
@@ -294,7 +316,7 @@ approx_candidates(
 	int i;
 	int rc;
 	char *dbname;
-	slap_index mask;
+	slap_mask_t mask;
 	struct berval *prefix;
 	struct berval **keys = NULL;
 	MatchingRule *mr;
@@ -303,28 +325,33 @@ approx_candidates(
 
 	idl = idl_allids( be );
 
-	rc = index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
+	rc = index_param( be, ava->aa_desc, LDAP_FILTER_APPROX,
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= approx_candidates: index_param failed (%d)\n",
+			rc, 0, 0 );
 		return idl;
 	}
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		Debug( LDAP_DEBUG_ANY,
+		    "<= approx_candidates: not indexed\n",
+			0, 0, 0 );
 		ber_bvfree( prefix );
 		return idl;
 	}
 
 	mr = ava->aa_desc->ad_type->sat_approx;
-	if( mr == NULL ) {
+	if( !mr ) {
 		/* no approx matching rule, try equality matching rule */
 		mr = ava->aa_desc->ad_type->sat_equality;
 	}
 
 	if( !mr ) {
 		ber_bvfree( prefix );
-		/* return LDAP_INAPPROPRIATE_MATCHING; */
 		return idl;
 	}
 
@@ -334,7 +361,8 @@ approx_candidates(
 	}
 
 	rc = (mr->smr_filter)(
-		LDAP_FILTER_EQUALITY,
+		LDAP_FILTER_APPROX,
+		mask,
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		prefix,
@@ -344,6 +372,16 @@ approx_candidates(
 	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= approx_candidates: (%s%s) MR filter failed (%d)\n",
+			dbname, LDBM_SUFFIX, rc );
+		return idl;
+	}
+
+	if( keys == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= approx_candidates: no keys (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
 		return idl;
 	}
 
@@ -438,16 +476,122 @@ list_candidates(
 static ID_BLOCK *
 substring_candidates(
     Backend	*be,
-    Filter	*f
+    SubstringsAssertion	*sub
 )
 {
 	ID_BLOCK *idl;
+	DBCache	*db;
+	int i;
+	int rc;
+	char *dbname;
+	slap_mask_t mask;
+	struct berval *prefix;
+	struct berval **keys = NULL;
+	MatchingRule *mr;
 
-	Debug( LDAP_DEBUG_TRACE, "=> substring_candidates\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> substrings_candidates\n", 0, 0, 0 );
 
 	idl = idl_allids( be );
-	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %ld\n",
+
+	rc = index_param( be, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
+		&dbname, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= substrings_candidates: index_param failed (%d)\n",
+			rc, 0, 0 );
+		return idl;
+	}
+
+	if( dbname == NULL ) {
+		/* not indexed */
+		Debug( LDAP_DEBUG_ANY,
+		    "<= substrings_candidates: not indexed\n",
+			0, 0, 0 );
+		ber_bvfree( prefix );
+		return idl;
+	}
+
+	mr = sub->sa_desc->ad_type->sat_substr;
+
+	if( !mr ) {
+		ber_bvfree( prefix );
+		return idl;
+	}
+
+	if( !mr->smr_filter ) {
+		ber_bvfree( prefix );
+		return idl;
+	}
+
+	rc = (mr->smr_filter)(
+		LDAP_FILTER_SUBSTRINGS,
+		mask,
+		sub->sa_desc->ad_type->sat_syntax,
+		mr,
+		prefix,
+		sub,
+		&keys );
+
+	ber_bvfree( prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= substrings_candidates: (%s%s) MR filter failed (%d)\n",
+			dbname, LDBM_SUFFIX, rc );
+		return idl;
+	}
+
+	if( keys == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= substrings_candidates: (0x%04lx) no keys (%s%s)\n",
+			mask, dbname, LDBM_SUFFIX );
+		return idl;
+	}
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= substrings_candidates db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		return idl;
+	}
+
+	for ( i= 0; keys[i] != NULL; i++ ) {
+		ID_BLOCK *save;
+		ID_BLOCK *tmp;
+
+		rc = key_read( be, db, keys[i], &tmp );
+
+		if( rc != LDAP_SUCCESS ) {
+			idl_free( idl );
+			idl = NULL;
+			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates key read failed (%d)\n",
+			    rc, 0, 0 );
+			break;
+		}
+
+		if( tmp == NULL ) {
+			idl_free( idl );
+			idl = NULL;
+			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates NULL\n",
+			    0, 0, 0 );
+			break;
+		}
+
+		save = idl;
+		idl = idl_intersection( be, idl, tmp );
+		idl_free( save );
+
+		if( idl == NULL ) break;
+	}
+
+	ber_bvecfree( keys );
+
+	ldbm_cache_close( be, db );
+
+	Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
-

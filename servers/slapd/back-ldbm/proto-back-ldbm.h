@@ -35,7 +35,7 @@ Entry *deref_internal_r LDAP_P((
 
 void attr_mask LDAP_P(( struct ldbminfo *li,
 	const char *desc,
-	slap_index *indexmask ));
+	slap_mask_t *indexmask ));
 
 int attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
@@ -139,7 +139,7 @@ index_param LDAP_P((
 	AttributeDescription *desc,
 	int ftype,
 	char **dbname,
-	slap_index *mask,
+	slap_mask_t *mask,
 	struct berval **prefix ));
 
 extern int

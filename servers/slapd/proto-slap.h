@@ -252,7 +252,7 @@ LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname ));
  * index.c
  */
 LDAP_SLAPD_F (int) slap_index2prefix LDAP_P(( int indextype ));
-LDAP_SLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_index *idx ));
+LDAP_SLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_mask_t *idx ));
 
 /*
  * connection.c

@@ -34,7 +34,7 @@ slap_index2prefix( int indextype )
 	return( prefix );
 }
 
-int slap_str2index( const char *str, slap_index *idx )
+int slap_str2index( const char *str, slap_mask_t *idx )
 {
 	if ( strcasecmp( str, "pres" ) == 0 ) {
 		*idx = SLAP_INDEX_PRESENT;

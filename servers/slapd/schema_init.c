@@ -88,7 +88,7 @@
 static int
 octetStringMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -108,7 +108,8 @@ octetStringMatch(
 
 /* Index generation function */
 int octetStringIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -161,7 +162,8 @@ int octetStringIndexer(
 
 /* Index generation function */
 int octetStringFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -254,7 +256,7 @@ dnNormalize(
 static int
 dnMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -329,7 +331,7 @@ booleanValidate(
 static int
 booleanMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -628,7 +630,7 @@ IA5StringNormalize(
 static int
 caseExactIA5Match(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -649,7 +651,7 @@ caseExactIA5Match(
 static int
 caseExactIA5SubstringsMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -773,7 +775,8 @@ done:
 
 /* Index generation function */
 int caseExactIA5Indexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -826,7 +829,8 @@ int caseExactIA5Indexer(
 
 /* Index generation function */
 int caseExactIA5Filter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -871,7 +875,8 @@ int caseExactIA5Filter(
 
 /* Substrings Index generation function */
 int caseExactIA5SubstringsIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -894,7 +899,7 @@ int caseExactIA5SubstringsIndexer(
 			continue;
 		}
 
-		if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
@@ -903,13 +908,13 @@ int caseExactIA5SubstringsIndexer(
 			}
 		}
 
-		if( flags & SLAP_MR_SUBSTR_ANY ) {
+		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 
-		if( flags & SLAP_MR_SUBSTR_FINAL ) {
+		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
@@ -939,7 +944,7 @@ int caseExactIA5SubstringsIndexer(
 		value = values[i];
 		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		if( ( flags & SLAP_MR_SUBSTR_ANY ) &&
+		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
@@ -973,7 +978,7 @@ int caseExactIA5SubstringsIndexer(
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
 
-			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -993,7 +998,7 @@ int caseExactIA5SubstringsIndexer(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
-			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1016,13 +1021,20 @@ int caseExactIA5SubstringsIndexer(
 		}
 	}
 
-	keys[nkeys] = NULL;
-	*keysp = keys;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
+
 	return LDAP_SUCCESS;
 }
 
 int caseExactIA5SubstringsFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1039,13 +1051,13 @@ int caseExactIA5SubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	if( sa->sa_initial != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
-	if( sa->sa_any ) {
+	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
 			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
@@ -1056,7 +1068,7 @@ int caseExactIA5SubstringsFilter(
 		}
 	}
 
-	if( sa->sa_final != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
@@ -1076,7 +1088,7 @@ int caseExactIA5SubstringsFilter(
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( sa->sa_initial != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
@@ -1103,7 +1115,7 @@ int caseExactIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	if( sa->sa_any ) {
+	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = SLAP_INDEX_SUBSTR_MAXLEN;
@@ -1137,7 +1149,7 @@ int caseExactIA5SubstringsFilter(
 		}
 	}
 
-	if( sa->sa_final != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
@@ -1164,16 +1176,21 @@ int caseExactIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	keys[nkeys] = NULL;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
 
-	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 	
 static int
 caseIgnoreIA5Match(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -1208,7 +1225,7 @@ static char *strcasechr( const char *str, int c )
 static int
 caseIgnoreIA5SubstringsMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -1333,7 +1350,8 @@ done:
 
 /* Index generation function */
 int caseIgnoreIA5Indexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1389,7 +1407,8 @@ int caseIgnoreIA5Indexer(
 
 /* Index generation function */
 int caseIgnoreIA5Filter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1432,12 +1451,14 @@ int caseIgnoreIA5Filter(
 	ber_bvfree( value );
 
 	*keysp = keys;
+
 	return LDAP_SUCCESS;
 }
 
 /* Substrings Index generation function */
 int caseIgnoreIA5SubstringsIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1460,7 +1481,7 @@ int caseIgnoreIA5SubstringsIndexer(
 			continue;
 		}
 
-		if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
@@ -1469,13 +1490,13 @@ int caseIgnoreIA5SubstringsIndexer(
 			}
 		}
 
-		if( flags & SLAP_MR_SUBSTR_ANY ) {
+		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 
-		if( flags & SLAP_MR_SUBSTR_FINAL ) {
+		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
@@ -1507,7 +1528,7 @@ int caseIgnoreIA5SubstringsIndexer(
 		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
 
-		if( ( flags & SLAP_MR_SUBSTR_ANY ) &&
+		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
@@ -1541,7 +1562,7 @@ int caseIgnoreIA5SubstringsIndexer(
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
 
-			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1561,7 +1582,7 @@ int caseIgnoreIA5SubstringsIndexer(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
-			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1586,13 +1607,20 @@ int caseIgnoreIA5SubstringsIndexer(
 		ber_bvfree( value );
 	}
 
-	keys[nkeys] = NULL;
-	*keysp = keys;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
+
 	return LDAP_SUCCESS;
 }
 
 int caseIgnoreIA5SubstringsFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1609,13 +1637,13 @@ int caseIgnoreIA5SubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	if( sa->sa_initial != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
-	if( sa->sa_any ) {
+	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
 			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
@@ -1626,7 +1654,7 @@ int caseIgnoreIA5SubstringsFilter(
 		}
 	}
 
-	if( sa->sa_final != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
@@ -1646,7 +1674,7 @@ int caseIgnoreIA5SubstringsFilter(
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( sa->sa_initial != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
@@ -1675,7 +1703,7 @@ int caseIgnoreIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	if( sa->sa_any ) {
+	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = SLAP_INDEX_SUBSTR_MAXLEN;
@@ -1711,7 +1739,7 @@ int caseIgnoreIA5SubstringsFilter(
 		}
 	}
 
-	if( sa->sa_final != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
@@ -1740,9 +1768,14 @@ int caseIgnoreIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	keys[nkeys] = NULL;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
 
-	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 	
@@ -1804,7 +1837,7 @@ numericStringNormalize(
 static int
 objectIdentifierFirstComponentMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
