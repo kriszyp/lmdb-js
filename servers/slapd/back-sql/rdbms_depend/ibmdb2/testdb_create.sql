@@ -2,7 +2,8 @@ drop table persons;
 CREATE TABLE persons (
 	id int NOT NULL,
 	name varchar(255) NOT NULL,
-	surname varchar(255) NOT NULL
+	surname varchar(255) NOT NULL,
+	password varchar(64)
 );
 
 drop table institutes;

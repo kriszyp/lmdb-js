@@ -84,6 +84,8 @@ Description     = ODBC for MySQL
 Driver          = /usr/lib/libmyodbc.so
 FileUsage       = 1
 
+2.3) IBM db2
+
 3) The RDBMS must be setup; examples are provided for my installations 
 of PostgreSQL and MySQL, but details may change; other RDBMSes should
 be configured in a similar manner, you need to find out the details by
@@ -148,10 +150,34 @@ mysql> exit;
 [root@localhost]# cd $SOURCES/tests
 [root@localhost]# SLAPD_USE_SQL=mysql ./run test031
 
+3.3) IBM db2
+
+3.3.1) Start the server:
+
+3.3.2) Create the database:
+
+3.3.3) Create the user:
+
+3.3.4) Populate the database:
+connect to the database as user manager, and execute the test files
+in auto-commit mode (-c)
+[root@localhost]# su - manager
+[manager@localhost]$ db2 "connect to example user manager using secret"
+[manager@localhost]$ db2 -ctvf backsql_create.sql
+[manager@localhost]$ db2 -ctvf testdb_create.sql
+[manager@localhost]$ db2 -ctvf testdb_data.sql
+[manager@localhost]$ db2 -ctvf testdb_metadata.sql
+[manager@localhost]$ db2 "connect reset"
+
+3.3.5) Run the test:
+[root@localhost]# cd $SOURCES/tests
+[root@localhost]# SLAPD_USE_SQL=ibmdb2 ./run test031
+
 4) Cleanup:
 The basic portion of the test is readonly; this is performed by all RDBMSes.
 The secondary part involves write operations.  Currently, the write
-portion of the test is enabled only for PostgreSQL.  Note that after 
-a successful run of the write portion, the database is no longer in the
-correct state to restart the test, and step 3.X.4 needs to be re-run first.
+portion of the test is enabled only for PostgreSQL and IBM db2.
+Note that after a successful run of the write portion, the database is 
+no longer in the correct state to restart the test, and step 3.X.4 needs 
+to be re-run first.
 
