@@ -1440,6 +1440,54 @@ typedef int (BI_db_open) LDAP_P((Backend *bd));
 typedef int (BI_db_close) LDAP_P((Backend *bd));
 typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
+#ifdef SLAP_OP_BLOCKS
+typedef struct req_bind_s {
+	int method;
+	struct berval cred;
+	struct berval edn;
+} req_bind_s;
+
+typedef struct req_search_s {
+	int scope;
+	int deref;
+	int slimit;
+	int tlimit;
+	int attrsonly;
+	AttributeName *attrs;
+	Filter *f;
+	struct berval filterstr;
+} req_search_s;
+
+typedef struct req_compare_s {
+	AttributeAssertion *ava;
+} req_compare_s;
+
+typedef struct req_modrdn_s {
+	struct berval newrdn;
+	struct berval nnewrdn;
+	struct berval newSup;
+	struct berval nnewSup;
+	int deleteoldrdn;
+} req_modrdn_s;
+
+typedef struct req_add_s {
+	Entry *e;
+} req_add_s;
+
+typedef struct req_abandon_s {
+	ber_int_t msgid;
+} req_abandon_s;
+
+typedef struct req_extended_s {
+	struct berval reqoid;
+	char *rspoid;
+	struct berval *rspdata;
+	LDAPControl **rspctrls;
+	const char *text;
+	BerVarray refs;
+} req_extended_s;
+#endif /* SLAP_OP_BLOCKS */
+
 typedef int (BI_op_bind)  LDAP_P(( BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		struct berval *dn, struct berval *ndn, int method,
@@ -1731,11 +1779,30 @@ typedef struct slap_op {
 	unsigned long o_opid;	/* id of this operation */
 	unsigned long o_connid; /* id of conn initiating this op */
 	struct slap_conn *o_conn;	/* connection spawning this op */
+#ifdef SLAP_OP_BLOCKS
+	BackendDB	*o_bd;	/* backend DB processing this op */
+#endif
 
 	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
+
+#ifdef SLAP_OP_BLOCKS
+	struct berval	o_req_dn;	/* DN of target of request */
+	struct berval	o_req_ndn;
+
+	union {
+		req_bind_s bind;
+		req_search_s srch;
+		req_compare_s comp;
+		req_modrdn_s mrdn;
+		req_add_s add;
+		req_abandon_s aban;
+		req_abandon_s cncl;
+		req_extended_s xtnd;
+	} o_req;
+#endif
 
 	char *		o_extendedop;	/* extended operation OID */
 
