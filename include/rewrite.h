@@ -25,10 +25,6 @@
 #ifndef REWRITE_H
 #define REWRITE_H
 
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
-
 LDAP_BEGIN_DECL
 
 /*
@@ -84,7 +80,8 @@ LDAP_BEGIN_DECL
  * Rewrite info
  */
 struct rewrite_info;
-struct berval;
+
+struct berval; /* avoid include */
 
 /*
  * Inits the info
@@ -223,4 +220,3 @@ rewrite_param_destroy(
 LDAP_END_DECL
 
 #endif /* REWRITE_H */
-

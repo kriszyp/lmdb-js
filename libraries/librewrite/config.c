@@ -24,6 +24,8 @@
 
 #include <portable.h>
 
+#include <ac/string.h>
+
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 

@@ -30,6 +30,7 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>
 #include <ac/ctype.h>
+#include <ac/string.h>
 
 #include <rewrite.h>
 
