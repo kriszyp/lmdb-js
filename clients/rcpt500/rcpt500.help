@@ -1,10 +1,10 @@
-How to use the University of Michigan X.500 Email Query Service
+How to use the OpenLDAP LDAP Email Query Service
 
 By sending electronic mail to the address:
 
-        x500-query@umich.edu
+        ldap-query@example.com
 
-you can access the campus X.500 Directory.  The Directory contains
+you can access the campus LDAP Directory.  The Directory contains
 information about all faculty, staff, and students of the University,
 including phone numbers, mailing addresses, job titles, email
 addresses, and more.

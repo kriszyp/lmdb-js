@@ -108,13 +108,13 @@ typedef struct baseinfo {
 } Base;
 
 Base	base[] = {
-	{"ou=People, dc=OpenLDAP, dc=org",
+	{"ou=People, dc=example, dc=com",
 		0, USER,
 		{"uid=%s", "cn=%s", NULL}},
-	{"ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org",
+	{"ou=System Groups, ou=Groups, dc=example, dc=com",
 		1, 0xff,
 		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
-	{"ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org",
+	{"ou=User Groups, ou=Groups, dc=example, dc=com",
 		1, 0xff,
 		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
 	{NULL}
