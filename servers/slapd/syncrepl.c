@@ -694,7 +694,7 @@ do_syncrepl(
 				} else {
 					connection_client_enable( s );
 				}
-			} else {
+			} else if ( !first ) {
 				dostop = 1;
 			}
 		} else {
