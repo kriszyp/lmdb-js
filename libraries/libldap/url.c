@@ -221,7 +221,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	const char *url_tmp;
 	char *url;
 
-	if( url_in == NULL && ludpp == NULL ) {
+	if( url_in == NULL || ludpp == NULL ) {
 		return LDAP_URL_ERR_PARAM;
 	}
 
@@ -526,7 +526,6 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if( i == 0 ) {
 		/* must have 1 or more */
-		ldap_charray_free( ludp->lud_exts );
 		LDAP_FREE( url );
 		ldap_free_urldesc( ludp );
 		return LDAP_URL_ERR_BADEXTS;
