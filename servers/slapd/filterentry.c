@@ -21,7 +21,7 @@ static int	test_filter_and( Backend *be,
 static int	test_filter_or( Backend *be,
 	Connection *conn, Operation *op,
 	Entry *e, Filter *flist );
-static int	test_substring_filter( Backend *be,
+static int	test_substrings_filter( Backend *be,
 	Connection *conn, Operation *op,
 	Entry *e, Filter *f);
 static int	test_ava_filter( Backend *be,
@@ -75,7 +75,7 @@ test_filter(
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "    SUBSTRINGS\n", 0, 0, 0 );
-		rc = test_substring_filter( be, conn, op, e, f );
+		rc = test_substrings_filter( be, conn, op, e, f );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -310,7 +310,7 @@ test_filter_or(
 
 
 static int
-test_substring_filter(
+test_substrings_filter(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
@@ -320,7 +320,7 @@ test_substring_filter(
 {
 	Attribute	*a;
 
-	Debug( LDAP_DEBUG_FILTER, "begin test_substring_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "begin test_substrings_filter\n", 0, 0, 0 );
 
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		f->f_sub_desc, NULL, ACL_SEARCH ) )
@@ -358,6 +358,6 @@ test_substring_filter(
 		}
 	}
 
-	Debug( LDAP_DEBUG_FILTER, "end test_substring_filter 1\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter 1\n", 0, 0, 0 );
 	return LDAP_COMPARE_FALSE;
 }
