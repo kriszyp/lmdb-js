@@ -77,7 +77,8 @@ main( int argc, char **argv )
 
 		printf( "> " );
 	}
-	/* NOTREACHED */
+
+	return( 0 );
 }
 
 static void ravl_print( Avlnode *root, int depth )
