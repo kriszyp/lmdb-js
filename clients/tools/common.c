@@ -440,7 +440,7 @@ tool_args( int argc, char **argv )
 			break;
 		case 'Z':
 #ifdef HAVE_TLS
-			use_tls = 1;
+			use_tls++;
 #else
 			fprintf( stderr, "%s: not compiled with TLS support\n", prog );
 			exit( EXIT_FAILURE );
