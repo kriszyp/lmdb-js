@@ -124,12 +124,16 @@ fe_op_delete( Operation *op, SlapReply *rs )
 		if ( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
 
+			op->o_bd = frontendDB;
 			send_ldap_result( op, rs );
+			op->o_bd = NULL;
 
 			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		} else {
+			op->o_bd = frontendDB;
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"no global superior knowledge" );
+			op->o_bd = NULL;
 		}
 		goto cleanup;
 	}

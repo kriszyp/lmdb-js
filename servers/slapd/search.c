@@ -353,7 +353,9 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 		if (!rs->sr_ref) rs->sr_ref = default_referral;
 		rs->sr_err = LDAP_REFERRAL;
+		op->o_bd = frontendDB;
 		send_ldap_result( op, rs );
+		op->o_bd = NULL;
 
 		if (rs->sr_ref != default_referral)
 		ber_bvarray_free( rs->sr_ref );
