@@ -7,7 +7,7 @@
 LIBRARY = libldap.la
 XLIBRARY = ../libldap.a
 
-PROGRAMS = apitest ltest dntest
+PROGRAMS = apitest dntest ftest ltest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	controls.c messages.c references.c extended.c cyrus.c \
@@ -39,10 +39,12 @@ NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) -o $@ apitest.o $(LIBS)
-ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) -o $@ test.o $(LIBS)
 dntest:	$(LIBRARY) dntest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) -o $@ dntest.o $(LIBS)
+ftest:	$(LIBRARY) ftest.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) -o $@ ftest.o $(LIBS)
+ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) -o $@ test.o $(LIBS)
 
 CFFILES=ldap.conf ldapfilter.conf
 

@@ -22,28 +22,24 @@
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 
-static int filter2ber( const char *filter );
+static int filter2ber( char *filter );
 
 int usage()
 {
 	fprintf( stderr, "usage:\n"
-		"	ftest [filter]" );
+		"\tftest [-d n] filter" );
 	return EXIT_FAILURE;
 }
 
 int
 main( int argc, char *argv[] )
 {
-	int i, debug=0, ber=0;
+	int i;
+	int debug=0;
 	char *filter=NULL;
 
-    while( (i = getopt( argc, argv, "Aa:Ss:"
-        "bd:" )) != EOF )
-    {
+    while( (i = getopt( argc, argv, "Aa:Ss:" "d:" )) != EOF ) {
 		switch ( i ) {
-		case 'b':
-			ber++;
-			break;
 		case 'd':
 			debug = atoi( optarg );
 			break;
@@ -71,42 +67,45 @@ main( int argc, char *argv[] )
 
 	if( argc - optind > 1 ) {
 		return usage();
-	} else if ( argc - optind == 1 ) {
-		if( ber ) {
-			fprintf( stderr, "ftest: parameter %s unexpected\n",
-				argv[optind] );
-			return usage();
-		}
-		return filter2ber( argv[optind] );
+
+	} else if ( argc - optind != 1 ) {
+		return usage();
 	}
 
-	return EXIT_FAILURE;
+	return filter2ber( strdup( argv[optind] ) );
 }
 
-static int filter2ber( const char *filter )
+static int filter2ber( char *filter )
 {
 	int rc;
-	BerElement *ber = ber_alloc_t( LBER_USE_DER );
 	struct berval *bv = NULL;
+	BerElement *ber;
 
+	printf( "Filter: %s\n", filter );
+
+	ber = ber_alloc_t( LBER_USE_DER );
 	if( ber == NULL ) {
 		perror( "ber_alloc_t" );
 		return EXIT_FAILURE;
 	}
 
-	rc = ldap_int_put_filter( ber, (char *) filter );
-
-	ber_dump( ber, 0 );
+	rc = ldap_int_put_filter( ber, filter );
+	if( rc ) {
+		perror( "ber_flatten" );
+		return EXIT_FAILURE;
+	}
 
 	rc = ber_flatten( ber, &bv );
-
 	if( rc < 0 ) {
 		perror( "ber_flatten" );
 		return EXIT_FAILURE;
 	}
 
-	ber_free( ber, 1 );
+	ber_bprint( bv->bv_val, bv->bv_len );
+
+	ber_free( ber, 0 );
 	ber_bvfree( bv );
 
 	return EXIT_SUCCESS;
 }
+
