@@ -683,7 +683,7 @@ read_config( const char *fname, int depth )
 
 			lutil_salt_format( cargv[1] );
 
-#ifdef SLAP_SASL_REWRITE
+#ifdef SLAP_AUTH_REWRITE
 		/* use authid rewrite instead of sasl regexp */
 		} else if ( strncasecmp( cargv[0], "auth-rewrite",
 			STRLENOF("auth-rewrite") ) == 0 )
@@ -693,7 +693,7 @@ read_config( const char *fname, int depth )
 			if ( rc ) {
 				return rc;
 			}
-#endif /* SLAP_SASL_REWRITE */
+#endif /* SLAP_AUTH_REWRITE */
 
 		/* Auth + SASL config options */
 		} else if ( !strncasecmp( cargv[0], "auth", STRLENOF("auth") ) ||

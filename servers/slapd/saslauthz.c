@@ -73,11 +73,11 @@ typedef struct sasl_regexp {
 static int nSaslRegexp = 0;
 static SaslRegexp_t *SaslRegexp = NULL;
 
-#ifdef SLAP_SASL_REWRITE
+#ifdef SLAP_AUTH_REWRITE
 #include "rewrite.h"
 struct rewrite_info	*sasl_rwinfo = NULL;
 #define AUTHID_CONTEXT	"authid"
-#endif /* SLAP_SASL_REWRITE */
+#endif /* SLAP_AUTH_REWRITE */
 
 /* What SASL proxy authorization policies are allowed? */
 #define	SASL_AUTHZ_NONE	0x00
@@ -406,7 +406,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 	return( LDAP_SUCCESS );
 }
 
-#ifdef SLAP_SASL_REWRITE
+#ifdef SLAP_AUTH_REWRITE
 int slap_sasl_rewrite_config( 
 		const char	*fname,
 		int		lineno,
@@ -493,14 +493,14 @@ int slap_sasl_regexp_rewrite_config(
 
 	return rc;
 }
-#endif /* SLAP_SASL_REWRITE */
+#endif /* SLAP_AUTH_REWRITE */
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-#ifdef SLAP_SASL_REWRITE
+#ifdef SLAP_AUTH_REWRITE
 	return slap_sasl_regexp_rewrite_config( "sasl-regexp", 0,
 			match, replace, AUTHID_CONTEXT );
-#else /* ! SLAP_SASL_REWRITE */
+#else /* ! SLAP_AUTH_REWRITE */
 	int rc;
 	SaslRegexp_t *reg;
 
@@ -533,7 +533,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 	nSaslRegexp++;
 	return( LDAP_SUCCESS );
-#endif /* ! SLAP_SASL_REWRITE */
+#endif /* ! SLAP_AUTH_REWRITE */
 }
 
 /* Perform replacement on regexp matches */
@@ -595,7 +595,7 @@ static void slap_sasl_rx_exp(
 static int slap_sasl_regexp( struct berval *in, struct berval *out,
 		int flags, void *ctx )
 {
-#ifdef SLAP_SASL_REWRITE
+#ifdef SLAP_AUTH_REWRITE
 	const char	*context = AUTHID_CONTEXT;
 
 	if ( sasl_rwinfo == NULL || BER_BVISNULL( in ) ) {
@@ -632,7 +632,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out,
 		return 0;
 	}
 
-#else /* ! SLAP_SASL_REWRITE */
+#else /* ! SLAP_AUTH_REWRITE */
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
   	regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
@@ -680,7 +680,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out,
 #endif
 
 	return( 1 );
-#endif /* ! SLAP_SASL_REWRITE */
+#endif /* ! SLAP_AUTH_REWRITE */
 }
 
 /* This callback actually does some work...*/

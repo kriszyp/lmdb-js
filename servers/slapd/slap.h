@@ -2364,7 +2364,7 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 
 #if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
 /* use librewrite for sasl-regexp */
-#define SLAP_SASL_REWRITE	1
+#define SLAP_AUTH_REWRITE	1
 #endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 LDAP_END_DECL
