@@ -254,28 +254,35 @@ ldbm_back_search(
 					case LDAP_DEREF_ALWAYS:
 						{
 							Entry *newe = derefAlias_r( be, conn, op, e );
-							cache_return_entry_r( &li->li_cache, e );
-							e = newe;
+							if ( newe == NULL ) { /* problem with the alias */
+								cache_return_entry_r( &li->li_cache, e );
+								e = NULL;
+							}
+							else if ( newe != e ) { /* reassign e */
+								cache_return_entry_r( &li->li_cache, e );
+								e = newe;
+							}	
 						}
 						break;
 					}
+					if (e) {
+						switch ( send_search_entry( be, conn, op, e,
+							attrs, attrsonly ) ) {
+						case 0:		/* entry sent ok */
+							nentries++;
+							break;
+						case 1:		/* entry not sent */
+							break;
+						case -1:	/* connection closed */
+							cache_return_entry_r( &li->li_cache, e );
+							idl_free( candidates );
+							free( rbuf );
 
-					switch ( send_search_entry( be, conn, op, e,
-						attrs, attrsonly ) ) {
-					case 0:		/* entry sent ok */
-						nentries++;
-						break;
-					case 1:		/* entry not sent */
-						break;
-					case -1:	/* connection closed */
-						cache_return_entry_r( &li->li_cache, e );
-						idl_free( candidates );
-						free( rbuf );
-
-						if( realBase != NULL) {
-							free( realBase );
+							if( realBase != NULL) {
+								free( realBase );
+							}
+							return( 0 );
 						}
-						return( 0 );
 					}
 				}
 			}
