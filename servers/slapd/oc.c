@@ -92,8 +92,10 @@ int is_entry_objectclass(
 		if ( objectClass == oc && !set_flags ) {
 			return 1;
 		}
-
-		e->e_ocflags |= objectClass->soc_flags;
+		
+		if ( objectClass != NULL ) {
+			e->e_ocflags |= objectClass->soc_flags;
+		}
 	}
 	e->e_ocflags |= SLAP_OC__END;	/* We've finished this */
 
