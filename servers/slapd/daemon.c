@@ -1555,6 +1555,19 @@ slapd_daemon_task(
 			case AF_LOCAL:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
 				ssf = LDAP_PVT_SASL_LOCAL_SSF;
+#   ifdef SO_PEERCRED
+				{
+					struct ucred peercred;
+					size_t peercred_len = sizeof(peercred);
+
+					if (getsockopt( s, SOL_SOCKET, SO_PEERCRED,
+					    (void *)&peercred, &peercred_len ) == 0 &&
+					    peercred_len == sizeof(peercred) ) {
+						authid = ch_malloc(sizeof("uidNumber=+gidNumber=+,cn=peercred,cn=external,cn=auth") + 32);
+						sprintf(authid, "uidNumber=%d+gidNumber=%d,cn=peercred,cn=external,cn=auth", peercred.uid, peercred.gid);
+					}
+				}
+#   endif /* SO_PEERCRED */
 				dnsname = "local";
 				break;
 #endif /* LDAP_PF_LOCAL */
