@@ -12,12 +12,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-# FIXME: temporary! bdb doesn't work
-if test "$BACKEND" != "ldbm" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -52,12 +46,12 @@ if test $RC != 0 ; then
 fi
 
 echo "Loading database..."
-$LDAPADD -D "$DNDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -c -f $LDIFDN > \
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -c -f $LDIFDN > \
 	/dev/null 2>&1
 
 echo "Searching database..."
 
-$LDAPSEARCH -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -65,6 +59,8 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIFOUT=$DNOUT
 
@@ -77,8 +73,6 @@ if test $? != 0 ; then
 fi
 
 #####
-
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
