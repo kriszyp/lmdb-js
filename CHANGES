@@ -13,6 +13,7 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd berbuf align bugs
 	Added lutil_passwd extensions
 	Build Environment
+		Added Berkeley DB 4.2 detection (ITS#2839)
 		Fixed liblber libdir handling (ITS#2797)
 		Fixed perl LDFLAGS (ITS#2764)
 	Documentation
