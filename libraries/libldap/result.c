@@ -61,7 +61,11 @@ static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPReques
  *	ldap_result( s, msgid, all, timeout, result )
  */
 int
-ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
+ldap_result(
+	LDAP *ld,
+	int msgid,
+	int all,
+	struct timeval *timeout,
 	LDAPMessage **result )
 {
 	LDAPMessage	*lm, *lastlm, *nextlm;
@@ -121,8 +125,7 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			}
 
 			if ( tmp == NULL ) {
-				return( wait4msg( ld, msgid, all, timeout,
-				    result ) );
+				lm = NULL;
 			}
 
 			break;
