@@ -268,4 +268,11 @@ char** str2clist( char ***out, char *in, const char *brkstr )
 {
 	return NULL;
 }
+
+void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
+				Modifications *modlist, int syncstate, struct berval* syncUUID,
+				struct berval* syncCookie )
+{
+	return;
+}
 #endif

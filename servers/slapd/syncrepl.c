@@ -40,10 +40,6 @@
 static void
 syncrepl_del_nonpresent( syncinfo_t *, LDAP *, Operation * );
 
-static void
-syncrepl_add_glue( syncinfo_t *, LDAP *, Operation*, Entry*, Modifications*,
-				   int, struct berval*, struct berval* );
-
 static int
 slap_mods_check_syncrepl( syncinfo_t *, Operation *, Modifications **,
 			  const char **, char *, size_t, void *ctx );
@@ -1115,7 +1111,7 @@ syncrepl_del_nonpresent(
 }
 
 
-static void
+void
 syncrepl_add_glue(
 	syncinfo_t *si,
 	LDAP *ld,

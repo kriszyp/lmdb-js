@@ -1157,6 +1157,9 @@ LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
 							syncinfo_t *, LDAP *, Operation *, struct berval *,
 							struct berval * ));
 LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
+
+LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *, Operation*, Entry*,
+							Modifications*, int, struct berval*, struct berval* ));
 #endif
 
 LDAP_END_DECL
