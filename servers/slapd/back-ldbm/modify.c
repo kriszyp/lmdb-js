@@ -110,7 +110,6 @@ int ldbm_modify_internal(
 #endif
 
 			rc = modify_replace_values( e, mod, text, textbuf, textlen );
-			assert( rc != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

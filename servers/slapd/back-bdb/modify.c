@@ -91,7 +91,6 @@ int bdb_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: replace\n", 0, 0, 0);
 #endif
 			err = modify_replace_values( e, mod, text, textbuf, textlen );
-			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "modify", LDAP_LEVEL_ERR, "bdb_modify_internal: %d %s\n", err, *text ));
