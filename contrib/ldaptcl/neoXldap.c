@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id: neoXldap.c,v 1.5 1999/02/05 18:45:14 kunkee Exp $
+ * $Id: neoXldap.c,v 1.1 1999/02/10 22:56:49 kunkee Exp $
  *
  */
 
@@ -69,25 +69,25 @@
        */
 #define ldap_attributefree(p) ldap_memfree(p)
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ldap))
+	ldap_err2string(ldap_get_lderrno(ld))
 #elif defined( LDAP_OPT_SIZELIMIT )
        /*
        ** Netscape SDK w/ ldap_set_option, ldap_get_option
        */
 #define ldap_attributefree(p) ldap_memfree(p)
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ldap, (char**)NULL, (char**)NULL))
+	ldap_err2string(ldap_get_lderrno(ld, (char**)NULL, (char**)NULL))
 #else
        /* U-Mich/OpenLDAP 1.x API */
        /* RFC-1823 w/ changes */
 #define UMICH_LDAP
 #define ldap_memfree(p) free(p)
 #define ldap_ber_free(p, n) ber_free(p, n)
-#define ldap_get_lderrno(ld, dummy1, dummy2) (ld->ld_errno)
+#define ldap_get_lderrno(ld, dummy1, dummy2) ((ld)->ld_errno)
 #define ldap_value_free_len(bvals) ber_bvecfree(bvals)
 #define ldap_attributefree(p) 
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ldap))
+	ldap_err2string(ldap_get_lderrno(ld))
 #endif
 
 #if defined(LDAP_API_VERSION)
