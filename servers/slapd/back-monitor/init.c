@@ -41,7 +41,7 @@
 #include "lber_pvt.h"
 #include "back-monitor.h"
 
-#define INTEGRATE_CORE_SCHEMA
+#undef INTEGRATE_CORE_SCHEMA
 
 /*
  * used by many functions to add description to entries
@@ -454,7 +454,6 @@ monitor_back_db_open(
 		{ NULL, NULL, -1 },	/* l */
 #endif /* INTEGRATE_CORE_SCHEMA */
 		{ NULL, NULL, -1 }
-#ifdef INTEGRATE_CORE_SCHEMA
 	}, mat_core[] = {
 		{ "description", "( 2.5.4.13 "
 			"NAME 'description' "
@@ -474,7 +473,6 @@ monitor_back_db_open(
 			"SUP name )",
 			offsetof(struct monitorinfo, mi_ad_l) },
 		{ NULL, NULL, -1 }
-#endif /* INTEGRATE_CORE_SCHEMA */
 	};
 	
 	struct tm		*tms;
@@ -496,8 +494,10 @@ monitor_back_db_open(
 	mi->mi_startTime.bv_val = tmbuf;
 	mi->mi_startTime.bv_len = strlen( tmbuf );
 
+#ifdef INTEGRATE_CORE_SCHEMA
 	/* prepare for schema integration */
 	for ( k = 0; mat[k].name != NULL; k++ );
+#endif /* INTEGRATE_CORE_SCHEMA */
 
 	for ( i = 0; mat_core[i].name != NULL; i++ ) {
 		AttributeDescription	**ad;
