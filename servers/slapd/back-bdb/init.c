@@ -87,7 +87,7 @@ static void *lock_detect_task( void *arg )
 		int rc;
 		sleep( bdb->bi_lock_detect_seconds );
 
-		rc = lock_detect( bdb->bi_dbenv, 0,
+		rc = LOCK_DETECT( bdb->bi_dbenv, 0,
 			bdb->bi_lock_detect, NULL );
 
 		if( rc != 0 ) {
@@ -311,7 +311,7 @@ bdb_db_destroy( BackendDB *be )
 
 	/* force a checkpoint */
 	if( bdb->bi_txn ) {
-		rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
+		rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",

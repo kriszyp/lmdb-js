@@ -110,6 +110,14 @@ struct bdb_op_info {
 	int			boi_err;
 };
 
+#if DB_VERSION_MAJOR < 4
+#define	TXN_CHECKPOINT(env, k, m, f)	txn_checkpoint(env, k, m, f)
+#define	LOCK_DETECT(env, f, t, a)	lock_detect(env, f, t, a)
+#else
+#define	TXN_CHECKPOINT(env, k, m, f)	(env)->txn_checkpoint(env, k, m, f)
+#define	LOCK_DETECT(env, f, t, a)	(env)->lock_detect(env, f, t, a)
+#endif
+
 LDAP_END_DECL
 
 #include "proto-bdb.h"
