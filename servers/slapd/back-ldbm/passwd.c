@@ -120,7 +120,6 @@ ldbm_back_exop_passwd(
 		Modifications ml;
 		struct berval *vals[2];
 		char textbuf[SLAP_TEXT_BUFLEN]; /* non-returnable */
-		size_t textlen;
 
 		vals[0] = hash;
 		vals[1] = NULL;
@@ -131,7 +130,8 @@ ldbm_back_exop_passwd(
 		ml.sml_next = NULL;
 
 		rc = ldbm_modify_internal( be,
-			conn, op, op->o_ndn, &ml, e, text, textbuf, textlen );
+			conn, op, op->o_ndn, &ml, e, text, textbuf,
+			sizeof( textbuf ) );
 
 		/* FIXME: ldbm_modify_internal may set *tex = textbuf,
 		 * which is BAD */
