@@ -21,23 +21,21 @@
 
 int
 monitor_back_operational(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
-	Entry		*e,
-	AttributeName	*attrs,
+	SlapReply	*rs,
 	int		opattrs,
 	Attribute	**a )
 {
 	Attribute	**aa = a;
 
-	assert( e );
+	assert( rs->sr_entry );
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates,
+				rs->sr_attrs ) ) {
 		int			hs;
 		struct monitorentrypriv	*mp;
 
-		mp = ( struct monitorentrypriv * )e->e_private;
+		mp = ( struct monitorentrypriv * )rs->sr_entry->e_private;
 
 		assert( mp );
 

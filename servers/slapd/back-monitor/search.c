@@ -135,7 +135,8 @@ monitor_send_children(
 }
 
 int
-monitor_back_search(
+monitor_back_search( Operation *op, SlapReply *rs )
+	/*
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
@@ -148,10 +149,11 @@ monitor_back_search(
 	Filter		*filter,
 	struct berval	*filterstr,
 	AttributeName	*attrs,
-	int		attrsonly 
-)
+	int		attrsonly
+	*/
 {
-	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
+	struct monitorinfo	*mi
+		= (struct monitorinfo *) op->o_bd->be_private;
 	int		rc = LDAP_SUCCESS;
 	Entry		*e, *matched = NULL;
 	int		nentries = 0;
@@ -165,16 +167,18 @@ monitor_back_search(
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, nbase, &e, &matched );
+	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			matched ? matched->e_dn : NULL, 
-			NULL, NULL, NULL );
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
+			rs->sr_matched = ch_strdup( matched->e_dn );
 			monitor_cache_release( mi, matched );
 		}
 
-		return( rc );
+		send_ldap_result( op, rs );
+		rs->sr_matched = NULL;
+
+		return( 0 );
 	}
 
 	nentries = 0;
