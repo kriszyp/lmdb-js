@@ -33,6 +33,9 @@ ldbm_back_compare(
 	int		rc;
 	int		manageDSAit = get_manageDSAit( op );
 
+	/* grab giant lock for reading */
+	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
+
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
@@ -48,6 +51,8 @@ ldbm_back_compare(
 			refs = referral_rewrite( default_referral,
 				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
+
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
@@ -115,5 +120,6 @@ ldbm_back_compare(
 
 return_results:;
 	cache_return_entry_r( &li->li_cache, e );
+	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 	return( rc );
 }

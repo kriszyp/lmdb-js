@@ -29,7 +29,6 @@ ldbm_back_delete(
 	Entry	*matched;
 	struct berval	pdn;
 	Entry	*e, *p = NULL;
-	int rootlock = 0;
 	int	rc = -1;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
@@ -40,6 +39,9 @@ ldbm_back_delete(
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn->bv_val, 0, 0);
 #endif
+
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
@@ -65,6 +67,8 @@ ldbm_back_delete(
 			refs = referral_rewrite( default_referral,
 				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
+
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
@@ -196,9 +200,6 @@ ldbm_back_delete(
 				goto return_results;
 			}
 		}
-
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
-		rootlock = 1;
 	}
 
 	/* delete from dn2id mapping */
@@ -248,13 +249,10 @@ return_results:;
 		cache_return_entry_w( &li->li_cache, p );
 	}
 
-	if ( rootlock ) {
-		/* release root lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-	}
-
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
+
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	return rc;
 }
