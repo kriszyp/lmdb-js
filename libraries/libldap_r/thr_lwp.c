@@ -131,7 +131,7 @@ ldap_pvt_thread_free_stack( int	stackno )
 	stacks[stackno].stk_inuse = 0;
 }
 
-static static void
+static void
 lwp_create_stack( void *(*func)(), void *arg, int stackno )
 {
 	(*func)( arg );
