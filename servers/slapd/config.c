@@ -132,8 +132,6 @@ read_config( const char *fname )
 				    cargv[1], 0, 0 );
 				return( 1 );
 			}
-
-		/* start of a new database definition */
 		} else if ( strcasecmp( cargv[0], "database" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -800,8 +798,6 @@ read_config( const char *fname )
 					return( 1 );
 				}
 			}
-
-		
 		/* where to send clients when we don't hold it */
 		} else if ( strcasecmp( cargv[0], "referral" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -815,18 +811,6 @@ read_config( const char *fname )
 			vals[0]->bv_len = strlen( vals[0]->bv_val );
 			value_add( &default_referral, vals );
 
-		} else if ( strcasecmp( cargv[0], "debug" ) == 0 ) {
-                        int level;
-			if ( cargc < 3 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
-					fname, lineno, 0 );
-				return( 1 );
-			}
-                        level = atoi( cargv[2] );
-                        if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
-                        lutil_set_debug_level( cargv[1], level );
-		/* specify an Object Identifier macro */
 #ifdef NEW_LOGGING
                 } else if ( strcasecmp( cargv[0], "logfile" ) == 0 ) {
                         FILE *logfile;
@@ -840,6 +824,19 @@ read_config( const char *fname )
                         if ( logfile != NULL ) lutil_debug_file( logfile );
 
 #endif
+		/* start of a new database definition */
+		} else if ( strcasecmp( cargv[0], "debug" ) == 0 ) {
+                        int level;
+			if ( cargc < 3 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
+					fname, lineno, 0 );
+				return( 1 );
+			}
+                        level = atoi( cargv[2] );
+                        if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
+                        lutil_set_debug_level( cargv[1], level );
+		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			parse_oidm( fname, lineno, cargc, cargv );
 

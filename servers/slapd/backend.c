@@ -96,8 +96,13 @@ int backend_init(void)
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+                      "backend_init:  backend already initialized\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"backend_init: already initialized.\n", 0, 0, 0 );
+#endif
 		return -1;
 	}
 
@@ -108,10 +113,15 @@ int backend_init(void)
 		rc = binfo[nBackendInfo].bi_init( &binfo[nBackendInfo] );
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+                               "backend_init:  initialized for type \"%s\"\n",
+                               binfo[nBackendInfo].bi_type ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_init: initialized for type \"%s\"\n",
 					binfo[nBackendInfo].bi_type, 0, 0 );
-
+#endif
 			/* destroy those we've already inited */
 			for( nBackendInfo--;
 				nBackendInfo >= 0 ;
@@ -134,9 +144,15 @@ int backend_init(void)
 #ifdef SLAPD_MODULES	
 	return 0;
 #else
-	Debug( LDAP_DEBUG_ANY,
+
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+                   "backend_init: failed\n" ));
+#else
+        Debug( LDAP_DEBUG_ANY,
 		"backend_init: failed\n",
 		0, 0, 0 );
+#endif
 
 	return rc;
 #endif /* SLAPD_MODULES */
@@ -147,9 +163,15 @@ int backend_add(BackendInfo *aBackendInfo)
    int rc = 0;
 
    if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
+#ifdef NEW_LOGGING
+       LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+                  "backend_add:  initialization for type \"%s\" failed\n",
+                  aBackendInfo->bi_type ));
+#else
       Debug( LDAP_DEBUG_ANY,
 	     "backend_add: initialization for type \"%s\" failed\n",
 	     aBackendInfo->bi_type, 0, 0 );
+#endif
       return rc;
    }
 
@@ -182,26 +204,44 @@ int backend_startup(Backend *be)
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+                       "backend_startup: %d databases to startup. \n",
+                       nBackendDB ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"backend_startup: %d databases to startup.\n",
 			nBackendDB, 0, 0 );
+#endif
 		return 1;
 	}
 
 	if(be != NULL) {
 		/* startup a specific backend database */
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+                       "backend_startup:  starting \"%s\"\n",
+                       be->be_suffix[0] ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"backend_startup: starting \"%s\"\n",
 			be->be_suffix[0], 0, 0 );
+#endif
 
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );
 		}
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
+                               "backend_startup: bi_open failed!\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_open failed!\n",
 				0, 0, 0 );
+#endif
+
 			return rc;
 		}
 
@@ -210,9 +250,14 @@ int backend_startup(Backend *be)
 		}
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
+                               "backend_startup: bi_db_open failed!\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open failed!\n",
 				0, 0, 0 );
+#endif
 			return rc;
 		}
 
@@ -232,9 +277,14 @@ int backend_startup(Backend *be)
 		}
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
+                               "backend_startup: bi_open %d failed!\n", i ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_open %d failed!\n",
 				i, 0, 0 );
+#endif
 			return rc;
 		}
 	}
@@ -250,9 +300,14 @@ int backend_startup(Backend *be)
 		}
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
+                               "backend_startup: bi_db_open %d failed!\n", i ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open %d failed!\n",
 				i, 0, 0 );
+#endif
 			return rc;
 		}
 	}
@@ -304,9 +359,15 @@ int backend_shutdown( Backend *be )
 		}
 
 		if(rc != 0) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
+                               "backend_shutdown: bi_close %s failed!\n",
+                               backendDB[i].be_type ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_close %s failed!\n",
 				backendDB[i].be_type, 0, 0 );
+#endif
 		}
 	}
 

@@ -35,7 +35,11 @@ do_abandon(
 	Operation	**oo;
 	int rc, notfound;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "conn: %d do_abandon\n", conn->c_connid));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
+#endif
 
 	/*
 	 * Parse the abandon request.  It looks like this:
@@ -44,7 +48,13 @@ do_abandon(
 	 */
 
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR, 
+                       "conn: %d do_abandon: ber_scanf failed\n",
+                       conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
+#endif
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return -1;
@@ -55,11 +65,21 @@ do_abandon(
 		return rc;
 	} 
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                   "do_abandon: conn: %d  id=%ld\n", conn->c_connid, (long) id ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "do_abandon: id=%ld\n", (long) id, 0 ,0 );
+#endif
 
 	if( id <= 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_abandon: conn: %d bad msgid %ld\n", conn->c_connid, (long) id ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_abandon: bad msgid %ld\n", (long) id, 0, 0 );
+#endif
 		return LDAP_SUCCESS;
 	}
 
@@ -99,8 +119,13 @@ do_abandon(
 done:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "do_abandon: conn: %d op=%ld %sfound\n",
+                   conn->c_connid, (long)id, notfound ? "not " : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
 	       (long) id, notfound ? "not " : "", 0 );
-
+#endif
 	return LDAP_SUCCESS;
 }

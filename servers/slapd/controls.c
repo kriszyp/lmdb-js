@@ -55,8 +55,12 @@ int get_ctrls(
 		goto return_results;
 	}
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "get_ctrls: conn %d\n", conn->c_connid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
-
+#endif
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		rc = SLAPD_DISCONNECT;
 		errmsg = "controls require LDAPv3";
@@ -116,8 +120,14 @@ int get_ctrls(
 		tag = ber_scanf( ber, "{a" /*}*/, &tctrl->ldctl_oid );
 
 		if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                               "get_ctrls: conn %d  get OID failed.\n",
+                               conn->c_connid ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
+#endif
 			*ctrls = NULL;
 			ldap_controls_free( tctrls );
 			rc = SLAPD_DISCONNECT;
@@ -132,8 +142,14 @@ int get_ctrls(
 			tag = ber_scanf( ber, "b", &crit );
 
 			if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                                       "get_ctrls: conn %d  get crit failed.\n",
+                                       conn->c_connid ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
+#endif
 				*ctrls = NULL;
 				ldap_controls_free( tctrls );
 				rc = SLAPD_DISCONNECT;
@@ -145,17 +161,28 @@ int get_ctrls(
 			tag = ber_peek_tag( ber, &len );
 		}
 
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                           "get_ctrls: conn %d oid=\"%s\" (%scritical)\n",
+                           conn->c_connid, tctrl->ldctl_oid,
+                           tctrl->ldctl_iscritical ? "" : "non" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
 			tctrl->ldctl_oid, 
 			tctrl->ldctl_iscritical ? "" : "non",
 			0 );
-
+#endif
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
 
 			if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                                       "get_ctrls: conn %d  get value failed.\n", conn->c_connid ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get value failed.\n",
 					0, 0, 0 );
+#endif
 				*ctrls = NULL;
 				ldap_controls_free( tctrls );
 				rc = SLAPD_DISCONNECT;
@@ -176,9 +203,14 @@ int get_ctrls(
 	}
 
 return_results:
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_RESULTS,
+                   "get_ctrls: conn %s  %d %d %s\n",
+                   conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: %d %d %s\n",
 		nctrls, rc, errmsg ? errmsg : "");
-
+#endif
 	if( sendres && rc != LDAP_SUCCESS ) {
 		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op, rc, errmsg );

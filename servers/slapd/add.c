@@ -46,8 +46,12 @@ do_add( Connection *conn, Operation *op )
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "do_add: conn %d enter\n", conn->c_connid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
-
+#endif
 	/*
 	 * Parse the add request.  It looks like this:
 	 *
@@ -62,7 +66,12 @@ do_add( Connection *conn, Operation *op )
 
 	/* get the name */
 	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_add: conn %d ber_scanf failed\n", conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+#endif
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return -1;
@@ -71,7 +80,12 @@ do_add( Connection *conn, Operation *op )
 	ndn = ch_strdup( dn );
 
 	if ( dn_normalize( ndn ) == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_add: conn %d  invalid dn (%s)\n", conn->c_connid, dn ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
+#endif
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		free( dn );
@@ -86,7 +100,12 @@ do_add( Connection *conn, Operation *op )
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                   "do_add: conn %d  ndn (%s)\n", conn->c_connid, e->e_ndn ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
+#endif
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -99,7 +118,12 @@ do_add( Connection *conn, Operation *op )
 		rc = ber_scanf( ber, "{a{V}}", &mod->ml_type, &mod->ml_bvalues );
 
 		if ( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "do_add: conn %d  decoding error \n", conn->c_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
+#endif
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
@@ -108,8 +132,14 @@ do_add( Connection *conn, Operation *op )
 		}
 
 		if ( mod->ml_bvalues == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                               "do_add: conn %d  no values for type %s\n",
+                               conn->c_connid, mod->ml_type ));
+#else
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				mod->ml_type, 0, 0 );
+#endif
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for attribute type", NULL, NULL );
 			free( mod->ml_type );
@@ -122,7 +152,12 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_add: conn %d  ber_scanf failed\n", conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+#endif
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = -1;
@@ -130,7 +165,12 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "do_add: conn %d  get_ctrls failed\n", conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+#endif
 		goto done;
 	} 
 
@@ -252,9 +292,14 @@ do_add( Connection *conn, Operation *op )
 #endif
 		}
 	} else {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "do_add: conn %d  no backend support\n", conn->c_connid ));
+#else
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: no backend support\n", 0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "operation not supported within namingContext", NULL, NULL );
+#endif
+            send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+                              NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 done:
