@@ -47,7 +47,7 @@ usage( int tool )
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\t[-l ldiffile]\n";
+		options = "\t[-l ldiffile] [-u]\n";
 		break;
 
 	case SLAPCAT:
