@@ -15,8 +15,6 @@
 
 #include "slap.h"
 
-#define SLAPD_EXT_FILTERS 1
-
 static int	test_filter_and( Backend *be,
 	Connection *conn, Operation *op,
 	Entry *e, Filter *flist );
@@ -145,58 +143,6 @@ test_filter(
 	return( rc );
 }
 
-static int test_mra_filter(
-	Backend *be,
-	Connection *conn,
-	Operation *op,
-	Entry *e,
-	MatchingRuleAssertion *mra )
-{
-	int		i;
-	Attribute	*a;
-
-	if( !access_allowed( be, conn, op, e,
-		mra->ma_desc, mra->ma_value, ACL_SEARCH ) )
-	{
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-
-	if( strcmp(mra->ma_rule->smr_syntax->ssyn_oid,
-		mra->ma_desc->ad_type->sat_syntax->ssyn_oid) != 0)
-	{
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	if( mra->ma_rule == NULL )
-	{
-		return LDAP_INAPPROPRIATE_MATCHING;
-	}
-
-	for(a = attrs_find( e->e_attrs, mra->ma_desc );
-		a != NULL;
-		a = attrs_find( a->a_next, mra->ma_desc ) )
-	{
-		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-			int ret;
-			int rc;
-			const char *text;
-
-			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-				a->a_vals[i], mra->ma_value,
-				&text );
-
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
-
-			if ( ret ) {
-				return LDAP_COMPARE_TRUE;
-			}
-		}
-	}
-
-	return LDAP_COMPARE_FALSE;
-}
 
 static int
 test_ava_filter(
