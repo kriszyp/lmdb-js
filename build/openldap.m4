@@ -621,36 +621,47 @@ dnl
 dnl ====================================================================
 dnl Check POSIX Thread version 
 dnl
-dnl defines ol_cv_posix_version to 'final' or 'draft' or 'unknown'
-dnl 	'unknown' implies that the version could not be detected
-dnl		or that pthreads.h does exist.  Existance of pthreads.h
-dnl		should be tested separately.
+dnl defines ol_cv_pthread_version to 4, 5, 6, 7, 10, depending on the
+dnl	version of the POSIX.4a Draft that is implemented.
+dnl	10 == POSIX.4a Final == POSIX.1c-1996 for our purposes.
+dnl	Existence of pthreads.h should be tested separately.
+dnl
+dnl tests:
+dnl	pthread_yield() was dropped in Draft 9, so
+dnl		only a Draft <= 8 library will define this
+dnl	pthread_detach() was dropped in Draft 8, it is present
+dnl		in every other version
+dnl	PTHREAD_CREATE_UNDETACHED is only in Draft 7, it was called
+dnl		PTHREAD_CREATE_JOINABLE after that
+dnl	pthread_attr_default was dropped in Draft 6, only 4 and 5 have it
+dnl	PTHREAD_MUTEX_INITIALIZER was introduced in Draft 5. It's not
+dnl		interesting to us because we don't try to statically
+dnl		initialize mutexes. 5-10 has it.
+dnl	pthread_attr_create was renamed to pthread_attr_init in Draft 6.
+dnl		Draft 6-10 has _init, Draft 4-5 has _create.
+dnl
+dnl Draft 9 and 10 are equivalent for our purposes.
 dnl
 AC_DEFUN([OL_POSIX_THREAD_VERSION],
 [AC_CACHE_CHECK([POSIX thread version],[ol_cv_pthread_version],[
-	AC_EGREP_CPP(pthread_version_final,[
+	AC_EGREP_HEADER(pthread_yield,pthread.h,[
+	AC_EGREP_HEADER(pthread_detach,pthread.h,[
+	AC_EGREP_CPP(draft7,[
 #		include <pthread.h>
-		/* this check could be improved */
-#		ifdef PTHREAD_ONCE_INIT
-			pthread_version_final;
+#		ifdef PTHREAD_CREATE_UNDETACHED
+		draft7
 #		endif
-	], ol_pthread_final=yes, ol_pthread_final=no)
-
-	AC_EGREP_CPP(pthread_version_draft4,[
+	], ol_cv_pthread_version=7, [
+	AC_EGREP_HEADER(pthread_attr_default,pthread.h,[
+	AC_EGREP_CPP(draft5,[
 #		include <pthread.h>
-		/* this check could be improved */
-#		ifdef pthread_once_init
-			pthread_version_draft4;
-#		endif
-	], ol_pthread_draft4=yes, ol_pthread_draft4=no)
-
-	if test $ol_pthread_final = yes -a $ol_pthread_draft4 = no; then
-		ol_cv_pthread_version=final
-	elif test $ol_pthread_final = no -a $ol_pthread_draft4 = yes; then
-		ol_cv_pthread_version=draft4
-	else
-		ol_cv_pthread_version=unknown
-	fi
+#ifdef		PTHREAD_MUTEX_INITIALIZER
+		draft5
+#endif
+	], ol_cv_pthread_version=5, ol_cv_pthread_version=4) ],
+	ol_cv_pthread_version=6) ]) ],
+	ol_cv_pthread_version=8) ],
+	ol_cv_pthread_version=10)
 ])
 ])dnl
 dnl
@@ -658,6 +669,9 @@ dnl --------------------------------------------------------------------
 AC_DEFUN([OL_PTHREAD_TEST_INCLUDES],
 [/* pthread test headers */
 #include <pthread.h>
+#if HAVE_PTHREADS < 7
+#include <errno.h>
+#endif
 #ifndef NULL
 #define NULL (void*)0
 #endif
@@ -670,60 +684,43 @@ static void *task(p)
 ])
 AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 	/* pthread test function */
+#ifndef PTHREAD_CREATE_DETACHED
+#define	PTHREAD_CREATE_DETACHED	1
+#endif
 	pthread_t t;
 	int status;
-	int detach = 1;
+	int detach = PTHREAD_CREATE_DETACHED;
 
-#ifdef HAVE_PTHREADS_FINAL
+#if HAVE_PTHREADS > 4
 	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
 	if( status ) return status;
 
-#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
-	if( !detach ) {
-#if defined( PTHREAD_CREATE_JOINABLE )
-		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+#if HAVE_PTHREADS < 7
+	status = pthread_attr_setdetachstate(&attr, &detach);
+	if( status < 0 ) status = errno;
 #else
-		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
+	status = pthread_attr_setdetachstate(&attr, detach);
 #endif
-
-#ifdef PTHREAD_CREATE_DETACHED
-	} else {
-		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-#endif
-	}
 	if( status ) return status;
-#endif
-
 	status = pthread_create( &t, &attr, task, NULL );
-	if( status ) return status;
-
-#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
-	if( detach ) {
-		/* give thread a chance to complete */
-		/* it should remain joinable and hence detachable */
-		sleep( 1 );
-
-		status = pthread_detach( t );
-		if( status ) return status;
-	}
+#if HAVE_PTHREADS < 7
+	if( status < 0 ) status = errno;
 #endif
-
+	if( status ) return status;
 #else
 	/* Draft 4 pthreads */
 	status = pthread_create( &t, pthread_attr_default, task, NULL );
-	if( status ) return status;
+	if( status ) return errno;
 
-	if( detach ) {
-		/* give thread a chance to complete */
-		/* it should remain joinable and hence detachable */
-		sleep( 1 );
+	/* give thread a chance to complete */
+	/* it should remain joinable and hence detachable */
+	sleep( 1 );
 
-		status = pthread_detach( &t );
-		if( status ) return status;
-	}
+	status = pthread_detach( &t );
+	if( status ) return errno;
 #endif
 
 #ifdef HAVE_LINUX_THREADS

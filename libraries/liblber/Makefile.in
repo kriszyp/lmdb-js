@@ -10,6 +10,9 @@ LIBRARY = liblber.la
 NT_SRCS = nt_err.c
 NT_OBJS = nt_err.lo
 
+UNIX_SRCS = stdio.c
+UNIX_OBJS = stdio.lo
+
 LIB_DEFS = -DLBER_LIBRARY
 
 SRCS= assert.c decode.c encode.c io.c bprint.c debug.c \

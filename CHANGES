@@ -28,6 +28,7 @@ OpenLDAP 2.1.5 Engineering
 		Added IPv6 sockaddr_storage check
 		Added Berkeley DB 4.1 support
 		Fixed module build issues (ITS#2047 ITS#2048 ITS#2065)
+		Updated pthreads detection
 		Updated test suite (ITS#2054)
 		Updated NT and zOS ports
 	Documentation

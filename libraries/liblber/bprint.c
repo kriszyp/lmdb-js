@@ -87,15 +87,8 @@ int ber_pvt_log_output(
 	{
             int level;
             ber_get_option( NULL, LBER_OPT_BER_DEBUG, &level );
-#ifdef HAVE_VSNPRINTF
             buf[sizeof(buf) - 1] = '\0';
             vsnprintf( buf, sizeof(buf)-1, fmt, vl );
-#elif HAVE_VSPRINTF
-            vsprintf( buf, fmt, vl ); /* hope it's not too long */
-#else
-                /* use doprnt() */
-#error "vsprintf() required.";
-#endif
             if ( ber_log_check( LDAP_DEBUG_BER, level ) )
                 (*ber_pvt_log_print)( buf );
         }
@@ -117,15 +110,8 @@ int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 
 	va_start( ap, fmt );
 
-#ifdef HAVE_VSNPRINTF
 	buf[sizeof(buf) - 1] = '\0';
 	vsnprintf( buf, sizeof(buf)-1, fmt, ap );
-#elif HAVE_VSPRINTF
-	vsprintf( buf, fmt, ap ); /* hope it's not too long */
-#else
-	/* use doprnt() */
-#error "vsprintf() required."
-#endif
 
 	va_end(ap);
 

@@ -311,11 +311,7 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 #endif
 	va_start( vl, fmt );
 
-#ifdef HAVE_VSNPRINTF
 	vsnprintf( buffer, sizeof(buffer), fmt, vl );
-#else
-	vsprintf( buffer, fmt, vl );
-#endif
 	buffer[sizeof(buffer)-1] = '\0';
 
 	if( log_file != NULL ) {
