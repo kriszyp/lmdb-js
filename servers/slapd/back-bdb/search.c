@@ -668,6 +668,13 @@ dn2entry_retry:
 		goto done;
 	}
 
+	if ( sop->o_sync_state.bv_val && ber_bvcmp( &sop->o_sync_state, 
+		search_context_csn ) == 0 )
+	{
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+		goto nochange;
+	}
+
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
 		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
@@ -1245,6 +1252,7 @@ loop_continue:
 		ldap_pvt_thread_yield();
 	}
 
+nochange:
 	if (!IS_PSEARCH) {
 		if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 			rs->sr_err = LDAP_SUCCESS;
