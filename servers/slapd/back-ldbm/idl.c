@@ -306,7 +306,7 @@ idl_find(
     ID		id
 )
 {
-	unsigned int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr;
+	int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr;
 
 	for (;lo<=hi;)
 	{
