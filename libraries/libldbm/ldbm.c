@@ -26,6 +26,7 @@ ldbm_datum_free( LDBM ldbm, Datum data )
 	if ( data.dptr ) {
 		free( data.dptr );
 		memset( &data, 0, sizeof( Datum ));
+		data.dptr = NULL;
 	}
 }
 
@@ -411,7 +412,9 @@ ldbm_errno( LDBM ldbm )
 
 #elif defined( HAVE_GDBM )
 
+#ifdef HAVE_ST_BLKSIZE
 #include <sys/stat.h>
+#endif
 
 /*****************************************************************
  *                                                               *
@@ -423,7 +426,6 @@ LDBM
 ldbm_open( char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		db;
-	struct stat	st;
 
 	LDBM_LOCK;
 
@@ -431,10 +433,17 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 		LDBM_UNLOCK;
 		return( NULL );
 	}
+
+#ifdef HAVE_ST_BLKSIZE
 	if ( dbcachesize > 0 && stat( name, &st ) == 0 ) {
+		struct stat	st;
 		dbcachesize = (dbcachesize / st.st_blksize);
 		gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
 	}
+#else
+	dbcachesize = (dbcachesize / 4096);
+	gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
+#endif
 
 	LDBM_UNLOCK;
 
