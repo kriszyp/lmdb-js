@@ -1001,6 +1001,9 @@ LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
 LDAP_SLAPD_F (int) slap_parse_user LDAP_P((
 	struct berval *id, struct berval *user,
 	struct berval *realm, struct berval *mech ));
+LDAP_SLAPD_F (int) slap_sasl_matches LDAP_P((
+	Operation *op, BerVarray rules,
+	struct berval *assertDN, struct berval *authc ));
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
 	Operation *op,
 	struct berval *saslname,

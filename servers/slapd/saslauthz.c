@@ -89,6 +89,10 @@ struct rewrite_info	*sasl_rwinfo = NULL;
 
 static int authz_policy = SASL_AUTHZ_NONE;
 
+static
+int slap_sasl_match( Operation *opx, struct berval *rule,
+	struct berval *assertDN, struct berval *authc );
+
 int slap_sasl_setpolicy( const char *arg )
 {
 	int rc = LDAP_SUCCESS;
@@ -250,6 +254,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		} else {
 			if ( bv.bv_val[ 0 ] != ':' )
 				return LDAP_PROTOCOL_ERROR;
+			*scope = LDAP_X_SCOPE_EXACT;
 			bv.bv_val++;
 		}
 
@@ -830,6 +835,24 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 	return 0;
 }
 
+int
+slap_sasl_matches( Operation *op, BerVarray rules,
+		struct berval *assertDN, struct berval *authc )
+{
+	int	rc = LDAP_INAPPROPRIATE_AUTH;
+
+	if ( rules != NULL ) {
+		int	i;
+
+		for( i = 0; !BER_BVISNULL( &rules[i] ); i++ ) {
+			rc = slap_sasl_match( op, &rules[i], assertDN, authc );
+			if ( rc == LDAP_SUCCESS ) break;
+		}
+	}
+	
+	return rc;
+}
+
 /*
  * Map a SASL regexp rule to a DN. If the rule is just a DN or a scope=base
  * URI, just strcmp the rule (or its searchbase) to the *assertDN. Otherwise,
@@ -1072,7 +1095,7 @@ slap_sasl_check_authz( Operation *op,
 	struct berval *authc )
 {
 	int i, rc;
-	BerVarray vals=NULL;
+	BerVarray vals = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -1084,18 +1107,11 @@ slap_sasl_check_authz( Operation *op,
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( op, NULL,
-		searchDN, ad, &vals );
+	rc = backend_attribute( op, NULL, searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
-	/* Check if the *assertDN matches any **vals */
-	if( vals != NULL ) {
-		for( i=0; !BER_BVISNULL( &vals[i] ); i++ ) {
-			rc = slap_sasl_match( op, &vals[i], assertDN, authc );
-			if ( rc == LDAP_SUCCESS ) goto COMPLETE;
-		}
-	}
-	rc = LDAP_INAPPROPRIATE_AUTH;
+	/* Check if the *assertDN matches any *vals */
+	rc = slap_sasl_matches( op, vals, assertDN, authc );
 
 COMPLETE:
 	if( vals ) ber_bvarray_free_x( vals, op->o_tmpmemctx );
