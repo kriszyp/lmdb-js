@@ -13,19 +13,20 @@
 #include "back-bdb.h"
 #include "external.h"
 
+static char bdb_gid[DB_XIDDATASIZE];
+
 int
 bdb_modrdn(
-    Backend	*be,
-    Connection	*conn,
-    Operation	*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-    struct berval	*newrdn,
-    struct berval	*nnewrdn,
-    int		deleteoldrdn,
-    struct berval	*newSuperior,
-    struct berval	*nnewSuperior
-)
+	Backend	*be,
+	Connection	*conn,
+	Operation	*op,
+	struct berval	*dn,
+	struct berval	*ndn,
+	struct berval	*newrdn,
+	struct berval	*nnewrdn,
+	int		deleteoldrdn,
+	struct berval	*newSuperior,
+	struct berval	*nnewSuperior )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	AttributeDescription *children = slap_schema.si_ad_children;
@@ -81,7 +82,7 @@ retry:	/* transaction retry */
 			bdb_cache_return_entry_r(&bdb->bi_cache, np);
 		}
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
-		rc = txn_abort( ltid );
+		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {
@@ -93,7 +94,7 @@ retry:	/* transaction retry */
 	}
 
 	/* begin transaction */
-	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
+	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
 		bdb->bi_db_opflags );
 	text = NULL;
 	if( rc != 0 ) {
@@ -581,7 +582,7 @@ retry:	/* transaction retry */
 	e->e_nname = new_ndn;
 
 	new_dn.bv_val = NULL;
-        new_ndn.bv_val = NULL;
+	new_ndn.bv_val = NULL;
 
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
@@ -623,30 +624,48 @@ retry:	/* transaction retry */
 	}
 
 	if( op->o_noop ) {
-		rc = txn_abort( ltid );
+		if(( rc=TXN_ABORT( ltid )) != 0 ) {
+			text = "txn_abort (no-op) failed";
+		} else {
+			rc = LDAP_SUCCESS;
+		}
+
 	} else {
-		rc = txn_commit( ltid, 0 );
+		if(( rc=TXN_PREPARE( ltid, bdb_gid )) != 0 ) {
+			text = "txn_prepare failed";
+		} else {
+			if( bdb_cache_update_entry(&bdb->bi_cache, e) == -1 ) {
+				if(( rc=TXN_ABORT( ltid )) != 0 ) {
+					text ="cache update & txn_abort failed";
+				} else {
+					rc = LDAP_OTHER;
+					text = "cache update failed";
+				}
+
+			} else {
+				if(( rc=TXN_COMMIT( ltid, 0 )) != 0 ) {
+					text = "txn_commit failed";
+				} else {
+					rc = LDAP_SUCCESS;
+				}
+			}
+		}
 	}
+ 
 	ltid = NULL;
 	op->o_private = NULL;
-
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: txn_%s failed: %s (%d)\n",
-			op->o_noop ? "abort (no-op)" : "commit",
-			db_strerror(rc), rc );
-		rc = LDAP_OTHER;
-		text = "commit failed";
-
-	} else {
-		(void) bdb_cache_update_entry(&bdb->bi_cache, e);
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: added%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "",
-			e->e_id, e->e_dn );
-		rc = LDAP_SUCCESS;
+ 
+	if( rc == LDAP_SUCCESS ) {
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
+			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 		text = NULL;
 		bdb_cache_entry_commit( e );
+
+	} else {
+		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
+			text, db_strerror(rc), rc );
+		rc = LDAP_OTHER;
 	}
 
 return_results:
@@ -691,7 +710,7 @@ done:
 	}
 
 	if( ltid != NULL ) {
-		txn_abort( ltid );
+		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}
 

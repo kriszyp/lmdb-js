@@ -47,7 +47,7 @@ retry:	/* transaction retry */
 		}
 		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n",
 			0, 0, 0 );
-		rc = txn_abort( ltid );
+		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {
@@ -59,7 +59,7 @@ retry:	/* transaction retry */
 	}
 
 	/* begin transaction */
-	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
+	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
 		bdb->bi_db_opflags );
 	text = NULL;
 	if( rc != 0 ) {
@@ -332,9 +332,9 @@ retry:	/* transaction retry */
 #endif
 
 	if( op->o_noop ) {
-		rc = txn_abort( ltid );
+		rc = TXN_ABORT( ltid );
 	} else {
-		rc = txn_commit( ltid, 0 );
+		rc = TXN_COMMIT( ltid, 0 );
 	}
 	ltid = NULL;
 	op->o_private = NULL;
@@ -372,7 +372,7 @@ done:
 	}
 
 	if( ltid != NULL ) {
-		txn_abort( ltid );
+		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}
 

@@ -130,7 +130,7 @@ ID bdb_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
 
-	rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 
+	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
@@ -191,7 +191,7 @@ ID bdb_tool_entry_put(
 
 done:
 	if( rc == 0 ) {
-		rc = txn_commit( tid, 0 );
+		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
 					"txn_commit failed: %s (%d)",
@@ -203,7 +203,7 @@ done:
 		}
 
 	} else {
-		txn_abort( tid );
+		TXN_ABORT( tid );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
 			db_strerror(rc), rc );
@@ -238,7 +238,7 @@ int bdb_tool_entry_reindex(
 		return -1;
 	}
 
-	rc = txn_begin( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
+	rc = TXN_BEGIN( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n",
@@ -274,7 +274,7 @@ int bdb_tool_entry_reindex(
 
 done:
 	if( rc == 0 ) {
-		rc = txn_commit( tid, 0 );
+		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n",
@@ -283,7 +283,7 @@ done:
 		}
 
 	} else {
-		txn_abort( tid );
+		TXN_ABORT( tid );
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n",
 			db_strerror(rc), rc, 0 );
