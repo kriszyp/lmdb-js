@@ -60,10 +60,10 @@ fi
 SHTOOL="$ac_cv_shtool"
 dnl AC_SUBST(SHTOOL)dnl
 
-TB=`($SHTOOL echo -e '%B') 2>/dev/null`
-TN=`($SHTOOL echo -e '%b') 2>/dev/null`
+TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
+TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
 
-echo "Configuring $TB$OL_STRING$TN ..."
+echo "Configuring ${TB}${OL_STRING}${TN} ..."
 
 dnl Determine host platform
 dnl		we try not to use this for much
