@@ -39,10 +39,10 @@ LDAP_BEGIN_DECL
 #define BDB_LG_SUBDIR	LDAP_DIRSEP "log"
 #define BDB_DATA_SUBDIR	LDAP_DIRSEP "data"
 
-#define BDB_NEXTID	0
-#define BDB_ENTRIES	1
-#define BDB_DN2ID	2
-#define BDB_INDICES	3
+#define BDB_NEXTID		0
+#define BDB_DN2ID		1
+#define BDB_ID2ENTRY	2
+#define BDB_INDICES		3
 
 struct bdb_db_info {
 	DB			*bdi_db;
@@ -61,7 +61,7 @@ struct bdb_info {
 	struct bdb_db_info **bi_databases;
 };
 #define bi_nextid	bi_databases[BDB_NEXTID]
-#define bi_entries	bi_databases[BDB_ENTRIES]
+#define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]
 
 LDAP_END_DECL

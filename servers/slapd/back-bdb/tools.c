@@ -8,9 +8,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
-#include <ac/socket.h>
 
 #include "back-bdb.h"
 
@@ -23,8 +21,8 @@ int bdb_tool_entry_open(
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	
-	rc = bdb->bi_entries->bdi_db->cursor(
-		bdb->bi_entries->bdi_db, NULL, &cursor, 0 );
+	rc = bdb->bi_id2entry->bdi_db->cursor(
+		bdb->bi_id2entry->bdi_db, NULL, &cursor, 0 );
 	if( rc != 0 ) {
 		return NOID;
 	}
@@ -109,29 +107,14 @@ ID bdb_tool_entry_put(
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid;
-	DBT key, data;
-	struct berval *bv;
 
 	assert( slapMode & SLAP_TOOL_MODE );
-
-	DBTzero( &key );
-	key.data = (char *) &e->e_id;
-	key.size = sizeof(ID);
-
-	rc = entry_encode( e, &bv );
-	if( rc != LDAP_SUCCESS ) {
-		return NOID;
-	}
-
-	DBTzero( &data );
-	bv2DBT( bv, &data );
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 
 	rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 0 );
 	if( rc != 0 ) {
-		ber_bvfree( bv );
 		return NOID;
 	}
 
@@ -140,15 +123,14 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	/* store it -- don't override */
-	rc = bdb->bi_entries->bdi_db->put( bdb->bi_entries->bdi_db,
-		tid, &key, &data, DB_NOOVERWRITE );
+	/* add dn2id indices */
+	rc = bdb_dn2id_add( be, tid, e->e_ndn, e->e_id );
 	if( rc != 0 ) {
 		goto done;
 	}
 
-	/* add dn indices */
-	rc = bdb_index_dn_add( be, tid, e->e_ndn, e->e_id );
+	/* id2entry index */
+	rc = bdb_id2entry_add( be, tid, e );
 	if( rc != 0 ) {
 		goto done;
 	}
@@ -161,8 +143,6 @@ ID bdb_tool_entry_put(
 #endif
 
 done:
-	ber_bvfree( bv );
-
 	if( rc == 0 ) {
 		rc = txn_commit( tid, 0 );
 		if( rc != 0 ) {

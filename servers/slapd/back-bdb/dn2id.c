@@ -15,7 +15,7 @@
 #include "back-bdb.h"
 
 int
-bdb_index_dn_add(
+bdb_dn2id_add(
     Backend	*be,
 	DB_TXN *txn,
     const char	*dn,

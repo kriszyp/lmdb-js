@@ -8,9 +8,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
-#include <ac/socket.h>
 
 #include "back-bdb.h"
 
@@ -21,8 +19,8 @@ static struct bdbi_database {
 	int flags;
 } bdbi_databases[BDB_INDICES] = {
 	{ "nextid", "nextid", DB_BTREE, 0 },
+	{ "dn2entry", "dn2entry", DB_BTREE, 0 },
 	{ "id2entry", "id2entry", DB_BTREE, 0 },
-	{ "dn2entry", "dn2entry", DB_BTREE, 0 }
 };
 
 static int
@@ -283,11 +281,11 @@ bdb_initialize(
 
 	bi->bi_extended = bi_back_extended;
 
-	bi->bi_entry_release_rw = bi_back_entry_release_rw;
 	bi->bi_acl_group = bi_back_group;
 	bi->bi_acl_attribute = bi_back_attribute;
 	bi->bi_chk_referrals = bi_back_referrals;
 #endif
+	bi->bi_entry_release_rw = 0;
 
 	/*
 	 * hooks for slap tools

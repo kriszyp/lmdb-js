@@ -8,9 +8,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
-#include <ac/socket.h>
 
 #include "back-bdb.h"
 
@@ -38,7 +36,7 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	data.flags = DB_DBT_USERMEM;
 
 	/* get exiting value (with write lock) */
-	rc = bdb->bi_entries->bdi_db->get( bdb->bi_nextid->bdi_db,
+	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
 		ltid, &key, &data, DB_RMW );
 
 	if( rc == DB_NOTFOUND ) {
@@ -57,7 +55,7 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	id++;
 
 	/* store new value */
-	rc = bdb->bi_entries->bdi_db->put( bdb->bi_nextid->bdi_db,
+	rc = bdb->bi_nextid->bdi_db->put( bdb->bi_nextid->bdi_db,
 		ltid, &key, &data, 0 );
 
 	*out = id;
