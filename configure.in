@@ -1255,7 +1255,6 @@ AC_CHECK_FUNCS(		\
 	strtol			\
 	strtoul			\
 	strspn			\
-	strpbrk			\	
 	sysconf			\
 	waitpid			\
 )
