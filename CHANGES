@@ -4,6 +4,8 @@ OpenLDAP 2.2.20 Engineering
 	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
 	Fixed slapd ID to DN mapping when values need DN escaping (ITS#3419)
 	Fixed back-sql segfault when logging and delete_rule is NULL (ITS#3407)
+	Build Environment
+		Fixed slurpd build on Windows
 
 OpenLDAP 2.2.19 Release
 	Fixed slapd check for mandatory filter in authz-regexp URI (ITS#3396)
