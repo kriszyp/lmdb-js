@@ -17,6 +17,7 @@
 
 #include "ldap_pvt.h"
 #include "ldap_defaults.h"
+#include "lutil.h"
 #include "slap.h"
 
 #ifdef HAVE_TCPD
@@ -263,9 +264,9 @@ open_listener(
 #ifdef SO_REUSEADDR
 	/* enable address reuse */
 	tmp = 1;
-	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
-		(char *) &tmp, sizeof(tmp) ) == -1 )
-	{
+	rc = setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
+		(char *) &tmp, sizeof(tmp) );
+	if ( rc == AC_SOCKET_ERROR ) {
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
@@ -275,9 +276,9 @@ open_listener(
 #ifdef SO_KEEPALIVE
 	/* enable keep alives */
 	tmp = 1;
-	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
-		(char *) &tmp, sizeof(tmp) ) == -1 )
-	{
+	rc = setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
+		(char *) &tmp, sizeof(tmp) );
+	if ( rc == AC_SOCKET_ERROR ) {
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
@@ -287,9 +288,9 @@ open_listener(
 #ifdef TCP_NODELAY
 	/* enable no delay */
 	tmp = 1;
-	if ( setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
-		(char *)&tmp, sizeof(tmp) ) )
-	{
+	rc = setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
+		(char *)&tmp, sizeof(tmp) );
+	if ( rc == AC_SOCKET_ERROR ) {
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
@@ -297,7 +298,8 @@ open_listener(
 	}
 #endif
 
-	if ( bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) ) == -1 ) {
+	rc = bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) );
+	if ( rc == AC_SOCKET_ERROR ) {
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
 	    	(long) l.sl_sd, err, sock_errstr(err) );
@@ -359,8 +361,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	 * loop will be select'ing on this socket, and will wake up when
 	 * this byte arrives.
 	 */
-	if( (rc = lutil_pair( wake_sds )) < 0 )
-	{
+	if( (rc = lutil_pair( wake_sds )) < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
 		return rc;
@@ -961,38 +962,10 @@ int sockdestroy(void)
 	return 0;
 }
 
-void hit_socket(void)
-{
-	ber_socket_t s;
-	int on = 1;
-	extern struct sockaddr_in	bind_addr;
-
-	/* throw something at the socket to terminate the select() in the daemon thread. */
-	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID )
-		Debug( LDAP_DEBUG_ANY,
-			"slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n",
-			WSAGetLastError(), WSAGetLastErrorString(), 0 );
-
-	if ( ioctlsocket( s, FIONBIO, &on ) == -1 ) 
-		Debug( LDAP_DEBUG_ANY,
-			"slap_set_shutdown:FIONBIO ioctl on %d faled\n\tWSAGetLastError=%d (%s)\n",
-			s, WSAGetLastError(), WSAGetLastError() );
-	
-	bind_addr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
-
-	if ( connect( s, (struct sockaddr *)&bind_addr, sizeof( struct sockaddr_in )) == SOCKET_ERROR ) {
-		Debug( LDAP_DEBUG_ANY,
-			"hit_socket: error on connect: %d\n",
-			WSAGetLastError(), 0, 0 );
-		/* we can probably expect some error to occur here, mostly WSAEWOULDBLOCK */
-	}
-
-	tcp_close(s);
-}
-
 #elif HAVE_WINSOCK
 static int sockinit(void)
-{	WSADATA wsaData;
+{
+	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
 	    return -1;
 	}

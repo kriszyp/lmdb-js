@@ -88,6 +88,8 @@
 #define	sock_errno()	WSAGetLastError()
 #define	sock_errstr(e)	WSAGetErrorString(e)
 
+extern char* WSAGetErrorString LDAP_P((int));
+
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
 #	define tcp_read( s, buf, len )	tcpread( s, buf, len )
@@ -112,6 +114,11 @@
 #	define tcp_close( s )		close( s )
 #	define tcp_read( s, buf, len)	read( s, buf, len )
 #	define tcp_write( s, buf, len)	write( s, buf, len )
+
+#ifdef HAVE_PAIR
+#define USE_PAIR HAVE_PAIR
+#endif
+
 #endif /* MACOS */
 
 #ifndef ioctl_t
@@ -120,6 +127,9 @@
 
 #ifndef AC_SOCKET_INVALID
 #	define AC_SOCKET_INVALID	(-1)
+#endif
+#ifndef AC_SOCKET_ERROR
+#	define AC_SOCKET_ERROR		(-1)
 #endif
 
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )

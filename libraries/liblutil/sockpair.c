@@ -25,7 +25,7 @@ int lutil_pair( LBER_SOCKET_T sds[2] )
 	LBER_SOCKET_T sd;
 
 	sd = socket( AF_INET, SOCK_DGRAM, 0 );
-	if (sd < 0)
+	if ( sd == AC_SOCKET_INVALID )
 		return sd;
 	
 	(void) memset( (void*) &si, 0, len );
@@ -33,17 +33,20 @@ int lutil_pair( LBER_SOCKET_T sds[2] )
 	si.sin_port = 0;
 	si.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
 
-	if ( rc = bind( sd, (struct sockaddr *)&si, len ) ) {
+	rc = bind( sd, (struct sockaddr *)&si, len );
+	if ( rc == AC_SOCKET_ERROR ) {
 		tcp_close(sd);
 		return rc;
 	}
 
-	if ( rc = getsockname( sd, (struct sockaddr *)&si, &len ) ) {
+	rc = getsockname( sd, (struct sockaddr *)&si, &len );
+	if ( rc == AC_SOCKET_ERROR ) {
 		tcp_close(sd);
 		return rc;
 	}
 
-	if ( rc = connect( sd, (struct sockaddr *)&si, len ) ) {
+	rc = connect( sd, (struct sockaddr *)&si, len );
+	if ( rc == AC_SOCKET_ERROR ) {
 		tcp_close(sd);
 		return rc;
 	}
