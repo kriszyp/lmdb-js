@@ -38,4 +38,6 @@ struct bdb_dbinfo {
 
 LDAP_END_DECL
 
+#include "proto-bdb.h"
+
 #endif /* _BACK_BDB_H_ */

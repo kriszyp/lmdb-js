@@ -185,9 +185,11 @@ bdb_back_db_open(
 	flags |= DB_INIT_MPOOL;
 #endif
 
+	bdi->bdi_dbenv->set_errpfx( bdi->bdi_dbenv, be->be_suffix[0] );
+	bdi->bdi_dbenv->set_errcall( bdi->bdi_dbenv, bdb_errcall );
+
 	rc = bdi->bdi_dbenv->set_tmp_dir( bdi->bdi_dbenv,
 		bdi->bdi_db_tmp_dir );
-
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_back_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
@@ -197,7 +199,6 @@ bdb_back_db_open(
 
 	rc = bdi->bdi_dbenv->set_lg_dir( bdi->bdi_dbenv,
 		bdi->bdi_db_lg_dir );
-
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_back_db_open: set_lg_dir(%s) failed: %s (%d)\n",
@@ -207,7 +208,6 @@ bdb_back_db_open(
 
 	rc = bdi->bdi_dbenv->set_data_dir( bdi->bdi_dbenv,
 		bdi->bdi_db_data_dir );
-
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_back_db_open: set_data_dir(%s) failed: %s (%d)\n",
@@ -219,7 +219,6 @@ bdb_back_db_open(
 		bdi->bdi_dbenv_home,
 		flags | bdi->bdi_dbenv_xflags,
 		bdi->bdi_dbenv_mode );
-
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_back_db_open: db_open(%s) failed: %s (%d)\n",
