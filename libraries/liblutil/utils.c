@@ -37,7 +37,7 @@ int mkstemp( char * template )
 #ifdef HAVE_MKTEMP
 	return open ( mktemp ( template ), O_RDWR|O_CREAT|O_EXCL, 0600 );
 #else
-	return -1
+	return -1;
 #endif
 }
 #endif
