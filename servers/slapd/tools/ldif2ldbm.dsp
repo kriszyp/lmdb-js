@@ -85,5 +85,9 @@ LINK32=link.exe
 
 SOURCE=..\tools\ldif2ldbm.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\mimic.c
+# End Source File
 # End Target
 # End Project
