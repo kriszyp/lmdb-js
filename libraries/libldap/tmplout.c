@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * tmplout.c:  display template library output routines for LDAP clients
  * 12 April 1994 by Mark C Smith
  */

@@ -1,31 +1,22 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  bind.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -54,7 +45,7 @@ ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
 	 *		name		DistinguishedName,	 -- who
 	 *		authentication	CHOICE {
 	 *			simple		[0] OCTET STRING -- passwd
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	 *			krbv42ldap	[1] OCTET STRING
 	 *			krbv42dsa	[2] OCTET STRING
 #endif
@@ -69,7 +60,7 @@ ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind( ld, dn, passwd ) );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV41:
 		return( ldap_kerberos_bind1( ld, dn ) );
 
@@ -106,7 +97,7 @@ ldap_bind_s( LDAP *ld, char *dn, char *passwd, int authmethod )
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind_s( ld, dn, passwd ) );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV4:
 		return( ldap_kerberos_bind_s( ld, dn ) );
 

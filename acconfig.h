@@ -1,4 +1,7 @@
 /* acconfig.h
+  Copyright 1998 The OpenLDAP Foundation,  All Rights Reserved.
+  COPYING RESTRICTIONS APPLY, See COPYRIGHT file
+
    Descriptive text for the C preprocessor macros that
    the distributed Autoconf macros can define.
 

@@ -1,4 +1,13 @@
 /*
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
+/* Portions
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -13,9 +22,9 @@
 #ifndef _LDIF_H
 #define _LDIF_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
 
 #define LINE_WIDTH      76      /* maximum length of LDIF lines */
 
@@ -34,23 +43,13 @@ extern "C" {
  */
 #define LDIF_SIZE_NEEDED(tlen,vlen) \
     ((tlen) + 4 + LDIF_BASE64_LEN(vlen) \
-    + ((LDIF_BASE64_LEN(vlen) + tlen + 3) / LINE_WIDTH * 2 ))
+    + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LINE_WIDTH * 2 ))
 
+int str_parse_line LDAP_P(( char *line, char **type, char **value, int *vlen));
+char * str_getline LDAP_P(( char **next ));
+void put_type_and_value LDAP_P(( char **out, char *t, char *val, int vlen ));
+char *ldif_type_and_value LDAP_P(( char *type, char *val, int vlen ));
 
-#ifdef NEEDPROTOS
-int str_parse_line( char *line, char **type, char **value, int *vlen);
-char * str_getline( char **next );
-void put_type_and_value( char **out, char *t, char *val, int vlen );
-char *ldif_type_and_value( char *type, char *val, int vlen );
-#else /* NEEDPROTOS */
-int str_parse_line();
-char * str_getline();
-void put_type_and_value();
-char *ldif_type_and_value();
-#endif /* NEEDPROTOS */
-
-#ifdef __cplusplus
-}
-#endif
+LDAP_END_DECL
 
 #endif /* _LDIF_H */

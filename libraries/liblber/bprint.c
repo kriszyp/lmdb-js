@@ -1,20 +1,30 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
+
+#if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#endif /* LDAP_DEBUG && LDAP_LIBUI  */
+
 #include "lber.h"
 
 /*
  * Print arbitrary stuff, for debugging.
  */
 
-#ifdef LDAP_DEBUG
-
-#ifndef NO_USERINTERFACE
-#define BPLEN	48
 
 void
 lber_bprint( char *data, int len )
 {
+#if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
+#define BPLEN	48
+
     static char	hexdig[] = "0123456789abcdef";
     char	out[ BPLEN ];
     int		i = 0;
@@ -49,12 +59,7 @@ lber_bprint( char *data, int len )
 	}
 	out[ i++ ] = ' ';
     }
-}
-#else /* NO_USERINTERFACE */
-void
-lber_bprint( char *data, int len )
-{
-}
-#endif /* NO_USERINTERFACE */
 
-#endif
+#endif /* LDAP_DEBUG && LDAP_LIBUI  */
+}
+

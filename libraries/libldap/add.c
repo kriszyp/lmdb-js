@@ -1,30 +1,21 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  add.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* !MACOS && !DOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -69,7 +60,7 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 	Debug( LDAP_DEBUG_TRACE, "ldap_add\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -103,7 +94,7 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 	}
 
 	/* send the message */
-	return( send_initial_request( ld, LDAP_REQ_ADD, dn, ber ));
+	return( ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber ));
 }
 
 int

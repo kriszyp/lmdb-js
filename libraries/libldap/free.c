@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1994 The Regents of the University of Michigan.
  *  All rights reserved.
  *
@@ -6,26 +10,14 @@
  *           link in lots of extra code when not using certain features
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
-
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <stdlib.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
