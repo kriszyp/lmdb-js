@@ -614,9 +614,8 @@ static int base_candidate(
 	return 0;
 }
 
-/* Is "objectClass=xx" mentioned anywhere in this filter? Presence
- * doesn't count, we're looking for explicit values. Also count depth
- * of filter tree while we're at it.
+/* Look for "objectClass Present" in this filter.
+ * Also count depth of filter tree while we're at it.
  */
 static int oc_filter(
 	Filter *f,
@@ -629,14 +628,8 @@ static int oc_filter(
 	if( cur > *max ) *max = cur;
 
 	switch(f->f_choice) {
-	case LDAP_FILTER_EQUALITY:
-	case LDAP_FILTER_APPROX:
-		if (f->f_av_desc == slap_schema.si_ad_objectClass)
-			rc = 1;
-		break;
-
-	case LDAP_FILTER_SUBSTRINGS:
-		if (f->f_sub_desc == slap_schema.si_ad_objectClass)
+	case LDAP_FILTER_PRESENT:
+		if (f->f_desc == slap_schema.si_ad_objectClass)
 			rc = 1;
 		break;
 
@@ -644,8 +637,7 @@ static int oc_filter(
 	case LDAP_FILTER_OR:
 		cur++;
 		for (f=f->f_and; f; f=f->f_next)
-			if ((rc = oc_filter(f, cur, max)))
-				break;
+			rc |= oc_filter(f, cur, max);
 		break;
 	default:
 		break;
@@ -696,10 +688,10 @@ static int search_candidates(
 	xf.f_choice = LDAP_FILTER_OR;
 	xf.f_next = NULL;
 
-	/* If the user's filter doesn't mention objectClass, or if
-	 * it just uses objectClass=*, these clauses are redundant.
+	/* If the user's filter uses objectClass=*,
+	 * these clauses are redundant.
 	 */
-	if (oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
+	if (!oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
 		if( !get_manageDSAit(op) ) { /* match referrals */
 			struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
 			rf.f_choice = LDAP_FILTER_EQUALITY;
