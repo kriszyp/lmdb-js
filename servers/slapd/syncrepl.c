@@ -715,11 +715,6 @@ do_syncrep2(
 						ber_scanf( ber, "tm", &tag, &cookie );
 						break;
 					case LDAP_TAG_SYNC_REFRESH_DELETE:
-						Debug( LDAP_DEBUG_SYNC,
-							"do_syncrep2: %s - %s%s\n", 
-							"LDAP_RES_INTERMEDIATE", 
-							"REFRESH_DELETE\n", "\n" );
-						si->si_refreshDelete = 1;
 					case LDAP_TAG_SYNC_REFRESH_PRESENT:
 						Debug( LDAP_DEBUG_SYNC,
 							"do_syncrep2: %s - %s%s\n", 
@@ -727,8 +722,11 @@ do_syncrep2(
 							si_tag == LDAP_TAG_SYNC_REFRESH_PRESENT ?
 							"REFRESH_PRESENT" : "REFRESH_DELETE",
 							"\n" );
-						si->si_refreshDelete = 1;
-						si->si_refreshPresent = 1;
+						if ( si->si_tag == LDAP_TAG_SYNC_REFRESH_DELETE ) {
+							si->si_refreshDelete = 1;
+						} else {
+							si->si_refreshPresent = 1;
+						}
 						ber_scanf( ber, "t{" /*"}"*/, &tag );
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
 						{
