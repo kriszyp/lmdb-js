@@ -37,7 +37,7 @@
 #define LDAP_ENV_PREFIX "LDAP"
 
 /* default ldapi:// socket */
-#define LDAPI_SOCK LDAP_TMPDIR LDAP_DIRSEP ".ldapi_sock"
+#define LDAPI_SOCK LDAP_RUNDIR LDAP_DIRSEP "ldapi"
 
 /* default file: URI prefix */
 #define LDAP_FILE_URI_PREFIX "file://" LDAP_TMPDIR LDAP_DIRSEP
