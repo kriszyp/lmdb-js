@@ -428,9 +428,9 @@ send_ldap_disconnect(
 		reqoid, NULL, NULL, NULL );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%ld DISCONNECT err=%ld tag=%lu text=%s\n",
+	    "conn=%ld op=%ld DISCONNECT tag=%lu err=%ld text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(long) tag, (long) err, text ? text : "" );
+		(unsigned long) tag, (long) err, text ? text : "" );
 }
 
 void
@@ -515,7 +515,7 @@ send_ldap_result(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld RESULT tag=%lu err=%ld text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(long) tag, (long) err, text ? text : "" );
+		(unsigned long) tag, (long) err, text ? text : "" );
 
 	if( tmp != NULL ) {
 		ch_free(tmp);
@@ -657,7 +657,7 @@ send_search_result(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld SEARCH RESULT tag=%lu err=%ld text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(long) tag, (long) err, text ? text : "" );
+		(unsigned long) tag, (long) err, text ? text : "" );
 
 	if (tmp != NULL) {
 	    ch_free(tmp);
