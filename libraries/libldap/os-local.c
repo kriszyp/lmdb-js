@@ -164,7 +164,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	 * obtain our uid/gid by fstat'ing this descriptor.
 	 */
 sendcred:	 {
-			int fds[2], rc;
+			int fds[2];
 			/* Abandon, noop, has no reply */
 			char txt[] = {LDAP_TAG_MESSAGE, 6, LDAP_TAG_MSGID, 1, 0,  LDAP_REQ_ABANDON, 1, 0};
 			struct iovec iov = {txt, sizeof(txt)};
@@ -174,8 +174,7 @@ sendcred:	 {
 				msg.msg_iovlen = 1;
 				msg.msg_accrights = (char *)fds;
 				msg.msg_accrightslen = sizeof(int);
-				rc = sendmsg( s, &msg, 0 );
-				if (rc < 0) rc = errno;
+				sendmsg( s, &msg, 0 );
 			    	close(fds[0]);
 				close(fds[1]);
 			}
