@@ -46,7 +46,7 @@ static char *tls_opt_ciphersuite = NULL;
 static char *tls_opt_randfile = NULL;
 
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
-				(void *)&ldap_pvt_sockbuf_io_tls )
+				(void *)&sb_tls_sbio )
 
 static void tls_report_error( void );
 
@@ -313,7 +313,7 @@ struct tls_data {
 	Sockbuf_IO_Desc		*sbiod;
 };
 
-extern BIO_METHOD ldap_pvt_sb_bio_method;
+static BIO_METHOD sb_tls_bio_method;
 
 static int
 sb_tls_setup( Sockbuf_IO_Desc *sbiod, void *arg )
@@ -329,7 +329,7 @@ sb_tls_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	
 	p->ssl = (SSL *)arg;
 	p->sbiod = sbiod;
-	bio = BIO_new( &ldap_pvt_sb_bio_method );
+	bio = BIO_new( &sb_tls_bio_method );
 	bio->ptr = (void *)p;
 	SSL_set_bio( p->ssl, bio, bio );
 	sbiod->sbiod_pvt = p;
@@ -443,7 +443,7 @@ sb_tls_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	return ret;
 }
 
-Sockbuf_IO ldap_pvt_sockbuf_io_tls =
+static Sockbuf_IO sb_tls_sbio =
 {
 	sb_tls_setup,		/* sbi_setup */
 	sb_tls_remove,		/* sbi_remove */
@@ -542,7 +542,7 @@ sb_tls_bio_puts( BIO *b, const char *str )
 	return sb_tls_bio_write( b, str, strlen( str ) );
 }
 	
-BIO_METHOD ldap_pvt_sb_bio_method =
+static BIO_METHOD sb_tls_bio_method =
 {
 	( 100 | 0x400 ),		/* it's a source/sink BIO */
 	"sockbuf glue",
@@ -590,7 +590,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
 #endif
-		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_tls,
+		ber_sockbuf_add_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 
 		if( ctx == NULL ) {
@@ -612,7 +612,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 			ld->ld_error = LDAP_STRDUP(ERR_error_string(err, buf));
 		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
-		ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_tls,
+		ber_sockbuf_remove_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #ifdef LDAP_DEBUG
 		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
@@ -644,7 +644,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
 #endif
-		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_tls,
+		ber_sockbuf_add_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 	}
 
@@ -658,7 +658,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 			return 1;
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept.\n",0,0,0 );
 		tls_report_error();
-		ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_tls,
+		ber_sockbuf_remove_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #ifdef LDAP_DEBUG
 		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
