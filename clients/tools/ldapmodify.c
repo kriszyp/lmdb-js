@@ -105,13 +105,16 @@ usage( const char *prog )
 "Add or modify options:\n"
 "  -a         add values (default%s)\n"
 "  -c         continuous operation mode (do not stop on errors)\n"
-"  -f file    read operations from `file'\n"
 "  -F         force all changes records to be used\n"
 "  -S file    write skipped modifications to `file'\n"
 
 "Common options:\n"
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
+"  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]manageDSAit   (alternate form, see -M)\n"
+"             [!]noop\n"
+"  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
@@ -145,9 +148,11 @@ main( int argc, char **argv )
     char		*infile, *rejfile, *rbuf, *start, *rejbuf = NULL;
     FILE		*fp, *rejfp;
 	char		*matched_msg = NULL, *error_msg = NULL;
-	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, referrals;
+	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, noop, referrals;
 	int count, len;
 	char	*pw_file = NULL;
+	char	*control, *cvalue;
+	int		crit;
 
     prog = lutil_progname( "ldapmodify", argc, argv );
 
@@ -159,12 +164,12 @@ main( int argc, char **argv )
 
     infile = NULL;
     rejfile = NULL;
-    not = verbose = want_bindpw = debug = manageDSAit = referrals = 0;
+    not = verbose = want_bindpw = debug = manageDSAit = noop = referrals = 0;
     authmethod = -1;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "acrf:F"
-		"Cd:D:h:H:IkKMnO:p:P:QR:S:U:vw:WxX:y:Y:Z" )) != EOF )
+    while (( i = getopt( argc, argv, "acrf:E:F"
+		"Cd:D:e:h:H:IkKMnO:p:P:QR:S:U:vw:WxX:y:Y:Z" )) != EOF )
 	{
 	switch( i ) {
 	/* Modify Options */
@@ -174,6 +179,31 @@ main( int argc, char **argv )
 	case 'c':	/* continuous operation */
 	    contoper = 1;
 	    break;
+	case 'E': /* modify controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -E !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+		fprintf( stderr, "Invalid modify control name: %s\n", control );
+		usage(prog);
+		return EXIT_FAILURE;
 	case 'f':	/* read from file */
 		if( infile != NULL ) {
 			fprintf( stderr, "%s: -f previously specified\n", prog );
@@ -199,6 +229,56 @@ main( int argc, char **argv )
 		}
 	    binddn = strdup( optarg );
 	    break;
+	case 'e': /* general controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -e incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+
+		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "manageDSAit: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			manageDSAit = 1 + crit;
+			free( control );
+			break;
+			
+		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "noop: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			noop = 1 + crit;
+			free( control );
+			break;
+
+		} else {
+			fprintf( stderr, "Invalid general control name: %s\n", control );
+			usage(prog);
+			return EXIT_FAILURE;
+		}
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
 			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
@@ -701,25 +781,38 @@ main( int argc, char **argv )
 
     rc = 0;
 
-	if ( manageDSAit ) {
-		int err;
-		LDAPControl c;
-		LDAPControl *ctrls[2];
-		ctrls[0] = &c;
-		ctrls[1] = NULL;
+	if ( manageDSAit || noop ) {
+		int err, i = 0;
+		LDAPControl c1, c2;
+		LDAPControl *ctrls[3];
 
-		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-		c.ldctl_value.bv_val = NULL;
-		c.ldctl_value.bv_len = 0;
-		c.ldctl_iscritical = manageDSAit > 1;
+		if ( manageDSAit ) {
+			ctrls[i++] = &c1;
+			ctrls[i] = NULL;
+			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c1.ldctl_value.bv_val = NULL;
+			c1.ldctl_value.bv_len = 0;
+			c1.ldctl_iscritical = manageDSAit > 1;
+		}
 
+		if ( noop ) {
+			ctrls[i++] = &c2;
+			ctrls[i] = NULL;
+
+			c2.ldctl_oid = LDAP_CONTROL_NOOP;
+			c2.ldctl_value.bv_val = NULL;
+			c2.ldctl_value.bv_len = 0;
+			c2.ldctl_iscritical = noop > 1;
+		}
+	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
-				c.ldctl_iscritical ? "critical " : "" );
-			if( c.ldctl_iscritical ) {
-				exit( EXIT_FAILURE );
+			fprintf( stderr, "Could not set %scontrols\n",
+				(c1.ldctl_iscritical || c2.ldctl_iscritical)
+				? "critical " : "" );
+			if ( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				return EXIT_FAILURE;
 			}
 		}
 	}

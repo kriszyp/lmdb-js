@@ -40,6 +40,9 @@ usage(const char *s)
 "Common options:\n"
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
+"  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]manageDSAit   (alternate form, see -M)\n"
+"             [!]noop\n"
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server(s)\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
@@ -88,6 +91,9 @@ main( int argc, char *argv[] )
 	int		version = -1;
 	int		authmethod = -1;
 	int		manageDSAit = 0;
+	int		noop = 0;
+	int		crit;
+	char	*control, *cvalue;
 #ifdef HAVE_CYRUS_SASL
 	unsigned	sasl_flags = LDAP_SASL_AUTOMATIC;
 	char		*sasl_realm = NULL;
@@ -110,7 +116,7 @@ main( int argc, char *argv[] )
     prog = lutil_progname( "ldappasswd", argc, argv );
 
 	while( (i = getopt( argc, argv, "Aa:Ss:"
-		"Cd:D:h:H:InO:p:QR:U:vw:WxX:Y:Z" )) != EOF )
+		"Cd:D:e:h:H:InO:p:QR:U:vw:WxX:Y:Z" )) != EOF )
 	{
 		switch (i) {
 		/* Password Options */
@@ -130,6 +136,31 @@ main( int argc, char *argv[] )
 			}
 			break;
 
+	case 'E': /* passwd controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -E !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+		fprintf( stderr, "Invalid passwd control name: %s\n", control );
+		usage(prog);
+		return EXIT_FAILURE;
 		case 'S':	/* prompt for user password */
 			want_newpw++;
 			break;
@@ -159,6 +190,56 @@ main( int argc, char *argv[] )
 		}
 	    binddn = strdup( optarg );
 	    break;
+	case 'e': /* general controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -e incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+
+		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "manageDSAit: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			manageDSAit = 1 + crit;
+			free( control );
+			break;
+			
+		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "noop: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			noop = 1 + crit;
+			free( control );
+			break;
+
+		} else {
+			fprintf( stderr, "Invalid general control name: %s\n", control );
+			usage(prog);
+			return EXIT_FAILURE;
+		}
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
 			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
@@ -645,6 +726,42 @@ main( int argc, char *argv[] )
 				!= LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_bind" );
 			return( EXIT_FAILURE );
+		}
+	}
+
+	if ( manageDSAit || noop ) {
+		int err, i = 0;
+		LDAPControl c1, c2;
+		LDAPControl *ctrls[3];
+
+		if ( manageDSAit ) {
+			ctrls[i++] = &c1;
+			ctrls[i] = NULL;
+			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c1.ldctl_value.bv_val = NULL;
+			c1.ldctl_value.bv_len = 0;
+			c1.ldctl_iscritical = manageDSAit > 1;
+		}
+
+		if ( noop ) {
+			ctrls[i++] = &c2;
+			ctrls[i] = NULL;
+
+			c2.ldctl_oid = LDAP_CONTROL_NOOP;
+			c2.ldctl_value.bv_val = NULL;
+			c2.ldctl_value.bv_len = 0;
+			c2.ldctl_iscritical = noop > 1;
+		}
+	
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set %scontrols\n",
+				(c1.ldctl_iscritical || c2.ldctl_iscritical)
+				? "critical " : "" );
+			if ( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				return EXIT_FAILURE;
+			}
 		}
 	}
 
