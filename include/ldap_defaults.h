@@ -207,7 +207,7 @@ Please try again later.\r\n"
 /* the following DNs must be normalized! */
 	/* dn of the special "schema" entry */
 #define SLAPD_SCHEMA_DN			"cn=Schema"
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#if 0
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
 	/* dn of the special "config" entry */
