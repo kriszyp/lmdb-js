@@ -3321,10 +3321,10 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 	X509_NAME_ENTRY *ne;
 	ASN1_OBJECT *obj;
 	ASN1_STRING *str;
-	char oids[8192], *oidptr = oids, *oidbuf;
+	char oids[8192], *oidptr = oids, *oidbuf = NULL;
 	void *ptrs[2048];
-	int i, j, k, navas, nrdns, rc = LDAP_SUCCESS;
-	int set = 0;
+	int i, j, k = 0, navas, nrdns, rc = LDAP_SUCCESS;
+	int set = -1;
 	size_t dnsize, oidrem = sizeof(oids), oidsize = 0;
 	int csize;
 
