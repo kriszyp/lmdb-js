@@ -9,19 +9,19 @@ class ldap_entry_attribute {
 	}
 
 	cfunction getAttributeName($string) {
-		global $attribute_names;
-		for ($i=0; $i<count($attribute_names); $i++) {
-			if ($attribute_names[$i][0] == $string) {
-				return $attribute_names[$i][1];
+		global $prefs;
+		for ($i=0; $i<count($prefs->attribute_names); $i++) {
+			if ($prefs->attribute_names[$i][0] == $string) {
+				return $prefs->attribute_names[$i][1];
 			}	
 		}
 		return $string;
 	}
 	cfunction isVisible($string) {
-		global $attribute_names;
-		for ($i=0; $i<count($attribute_names); $i++) {
-			if ($attribute_names[$i][0] == $string) {
-				return $attribute_names[$i][2];
+		global $prefs;
+		for ($i=0; $i<count($prefs->attribute_names); $i++) {
+			if ($prefs->attribute_names[$i][0] == $string) {
+				return $prefs->attribute_names[$i][2];
 			}
 		}
 		return "FALSE";
@@ -66,7 +66,7 @@ class ldap_entry_attribute {
 	}
 	
 	cfunction formatHTMLValue($index) {
-		global $FILE, $JPEGFILE, $host;
+		global $prefs, $FILE, $host;
 		$p = "";
 		switch ($this->name) {
 			case "cn":
@@ -116,7 +116,7 @@ class ldap_entry_attribute {
 				$p .= $date;
 				break;
 			case "jpegphoto":
-				$p .= '<a href="'.$JPEGFILE.'?base_dn='.urlencode($this->dn).'"><img src="'.$JPEGFILE.'?base_dn='.urlencode($this->dn).'" alt="Image of '.$this->cn.'" border=0></a>';
+				$p .= '<a href="'.$prefs->get("PATH.photo").'?base_dn='.urlencode($this->dn).'"><img src="'.$prefs->get("PATH.photo").'?base_dn='.urlencode($this->dn).'" alt="Image of '.$this->cn.'" border=0></a>';
 				break;
 			default:
 				$p .= $this->values[$index];

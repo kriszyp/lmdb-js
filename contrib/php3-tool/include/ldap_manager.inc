@@ -46,41 +46,6 @@ class ldap_manager {
 		echo $this->formatHTMLEntries();
 	}
 
-	cfunction loadAttributeNames() {
-		global $attribute_names;
-		if (count($attribute_names) != 0) {
-			//This is bullshit here..how do we make php3
-			//preserve an array in memory between re-loads?
-			//And no, I'm not going to send it every time
-			//I make a subsequent request..
-			//If we don't fix these things it won't run
-			//on anything smaller than a StarFire 10000
-			//EVEN THOUGH this stuff is suprisingly fast.
-			echo "I have got attribute_names here<br>\n";
-		}
-		else {
-			//echo "I dont have attribute_names here<br>\n";
-			$fp = fopen("at.conf", "r");
-			$i = 0;
-			while (!feof($fp)) {
-				$string = "";
-				$foo = "";
-				$string = fgets($fp, 80);
-				$foo = strtok($string, ",");
-				$attribute_names[$i][0] = $foo;
-				$foo = strtok(",");
-				$attribute_names[$i][1] = $foo;
-				$foo = strtok("\n");
-				$attribute_names[$i][2] = $foo;
-				$i++;
-			}
-		}
-	//	echo "Hello world:<b>".count($attribute_names)."</b>\n";
-	//	for ($i=0; $i<count($attribute_names)-1; $i++) {
-	//		echo $attribute_names[$i][0]." - <strong>".$attribute_names[$i][1]."</strong> - ".$attribute_names[$i][2]."<br>\n";
-	//	}	
-		return $attribute_names;
-	}
 	cfunction formatHTMLBaseDN($dn) {
 		global $FILE, $host;
 		$string = "";

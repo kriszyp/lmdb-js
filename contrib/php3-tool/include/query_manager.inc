@@ -52,7 +52,7 @@ class query_manager {
 				case "Common Name": $search_filter .= "(cn"; break;
 				case "Surname": $search_filter .= "(sn"; break;
 				case "Business Phone": $search_filter .= "(telephone"; break;
-				case "E-mail": $search_filter .= "(mail"; break;
+				case "E-mail Address": $search_filter .= "(mail"; break;
 				case "Title": $search_filter .= "(title"; break;
 				case "Distinguished Name": $search_filter .="(dn"; break;
 				case "Location": $search_filter .="(l"; break;

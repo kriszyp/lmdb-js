@@ -1,60 +1,33 @@
-<!-- copyright, (C) Predrag Balorda, 1998 -->
+<!DOCTYPE PUBLIC HTML "-//W3C//HTML3.2 Final//En">
 <html>
 <head>
-	<style type="text/css">
-	<!--
-	BODY {
-		font-family: lucida sans unicode;
-	}
-	B {
-		font-weight: bold;
-	}
-	P {
-		font-family: lucida sans unicode,Arial,Helvetica;
-		font-size: 12pt;
-	}
-	.form {
-		font-family: lucinda sans unicode;	
-		font-size: 10pt;
-		color: #003333;
-	}
-	H3 {
-		font-family: Verdana,Arial,Helvetica;
-		font-size: 12pt;
-		font-weight: bold;
-	}
-	.head {
-		font-size: 13pt;
-		color: #003333;
-	}
-	.subsection {
-		font-size: 12pt;
-		color: #003333;
-	}
-	-->
-	</style>
+	<!-- copyright, (C) Predrag Balorda, OpenLDAP Foundation, 1998 -->
+	<title>PHP3 Thingy</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
 <?
+include ('include/preferences.inc');
 include ('include/ldap_manager.inc');
 include ('include/query_manager.inc');
 include ('include/search_form.inc');
 $FILE = "http://$HTTP_HOST$SCRIPT_NAME";
-$JPEGFILE = "http://$HTTP_HOST/ldap/ldap-photo.php3";
+$JPEGFILE = "http://$HTTP_HOST/ldap/php3-tool/ldap-photo.php3";
 $qm = new query_manager;
 $lm = new ldap_manager;
-$attribute_names = array();
+$prefs = new preferences;
 
 function main() {
 	$main_start_time = microtime();
-	global $lm, $qm, $FILE;
+	global $lm, $qm, $prefs, $FILE;
 	$qm = new query_manager;
 	$lm = new ldap_manager;
+	$prefs = new preferences;
 	$lm->ldap_action = $qm->get_action();
 	$lm->base_dn = $qm->get_base_dn();
 	$lm->host = $qm->get_host();
 	$lm->search_filter = $qm->get_search_filter();
-	$lm->loadAttributeNames();
+	$prefs->loadPreferences();
 	display_advanced_form();
 	if (!$lm->connect($lm->host)) {
 		echo "Couldn't connect to <b>".$lm->host."</b><br>\n";
