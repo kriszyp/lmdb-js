@@ -82,6 +82,12 @@ static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 	if ( stacks == NULL ) {
 		stacks = (struct stackinfo *) LDAP_CALLOC( 1, MAX_THREADS *
 		    sizeof(struct stackinfo) );
+
+		if( stacks == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "stacks allocation failed",
+				0, 0, 0 );
+			return NULL;
+		}
 	}
 
 	for ( i = 0; i < MAX_THREADS; i++ ) {
@@ -98,9 +104,15 @@ static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 	}
 
 	if ( stacks[i].stk_stack == NULL ) {
-		stacks[i].stk_stack = (stkalign_t *) malloc(
+		stacks[i].stk_stack = (stkalign_t *) LDAP_MALLOC(
 		    (MAX_STACK / sizeof(stkalign_t) + 1 )
 		    * sizeof(stkalign_t) );
+
+		if( stacks[i].stk_stack == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "stack allocation failed",
+				0, 0, 0 );
+			return( NULL );
+		}
 	}
 
 	*stacknop = i;
@@ -179,7 +191,9 @@ ldap_pvt_thread_sleep(
 		}
 	}
 
-	nt = (tl_t *) malloc( sizeof( tl_t ));
+	nt = (tl_t *) LDAP_MALLOC( sizeof( tl_t ));
+
+	if( nt == NULL ) return -1;
 
 	nt->tl_next = sglob->tsl_list;
 	nt->tl_wake = now + interval;
