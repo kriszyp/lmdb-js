@@ -712,6 +712,7 @@ esac
 dnl ----------------------------------------------------------------
 dnl Check for module support
 ol_link_modules=no
+WITH_MODULES_ENABLED=no
 if test $ol_enable_modules != no ; then
 	AC_CHECK_HEADERS(ltdl.h)
 
@@ -728,6 +729,7 @@ if test $ol_enable_modules != no ; then
 		AC_MSG_ERROR([could not locate libtool -lltdl])
 	fi
 	ol_link_modules=yes
+	WITH_MODULES_ENABLED=yes
 
 else
 	for i in $Backends; do
@@ -2588,7 +2590,6 @@ if test "$ol_link_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
-	WITH_MODULES_ENABLED=yes
 fi
 
 AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
