@@ -37,6 +37,7 @@ static char *v2ref( struct berval **ref, const char *text )
 			v2[len++] = '\n';
 	}
 	strcpy( v2+len, "Referral:" );
+	len += sizeof("Referral:");
 
 	for( i=0; ref[i] != NULL; i++ ) {
 		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
