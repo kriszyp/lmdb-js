@@ -1,0 +1,43 @@
+#! /bin/sh
+# $OpenLDAP$
+## Copyright 2002 The OpenLDAP Foundation
+## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+## of this package for details.
+#
+# use the preprocessor, parse #line directives...
+#
+# The _C89_ELINES env var tells c89 to generate #line directives. It only
+# generates them for files that actually contribute non-whitespace. Since
+# portable.h is mostly #defines, it preprocesses to blanks, and causes no
+# #line directive to be emitted for it.
+#
+# We work around this with the -C flag which says to preserve comments. 
+# With this flag, all files generate non-blank output, so all header files
+# are included in the output. Because we depend on comments, every file
+# must have a comment on its first line to get accurate results.
+# 
+_C89_ELINES=1
+export _C89_ELINES
+FLAGS=""
+FILES=""
+for i in $*; do
+	case $i in
+	-*)	FLAGS="$FLAGS $i" ;;
+	*)	FILES="$FILES $i" ;;
+	esac
+done
+for i in $FILES; do
+	c89 -CE $FLAGS $i | egrep '^#line.*"' | awk '
+BEGIN {
+	file = "'$i'"
+	n = split(file, parts, "/")
+	filenm = substr(parts[n], 0, length(parts[n])-1) "o"
+}
+{
+	dep = split($3, parts, "\"")
+	dep = parts[2]
+	if (dep ~ "^\./.*") dep = substr(dep, 3, length(dep)-2)
+	if (deps[dep] == 0) printf "%s: %s\n", filenm, dep
+	deps[dep] = 1
+}'
+done
