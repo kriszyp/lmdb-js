@@ -66,7 +66,7 @@ LTLINK  = $(LIBTOOL) --mode=link $(CC) \
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in build environment
-AR = ar
+AR = @AR@
 AWK = @AWK@
 BASENAME = basename
 CAT = cat

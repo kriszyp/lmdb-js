@@ -5,7 +5,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
- * Public License.  A copy of this * license is available at
+ * Public License.  A copy of this license is available at
  * http://www.OpenLDAP.org/license.html or in file LICENSE in the
  * top-level directory of the distribution.
  */
@@ -348,6 +348,9 @@
 
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
+
+/* Define if you have the <cthread.h> header file.  */
+#undef HAVE_CTHREAD_H
 
 /* Define if you have the <db.h> header file.  */
 #undef HAVE_DB_H

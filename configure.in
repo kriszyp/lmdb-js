@@ -339,7 +339,7 @@ fi
 if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	if test $ol_with_kerberos = no ; then
 		AC_MSG_ERROR([options require --with-kerberos])
-	elif $ol_with_kerberos = auto ; then
+	elif test $ol_with_kerberos = auto ; then
 		ol_with_kerberos=yes
 	fi
 
@@ -468,6 +468,8 @@ fi
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
+
+AC_CHECK_PROGS(AR,ar gar)
 
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
@@ -1387,7 +1389,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = mach ; then
 
 	dnl check for Mach CThreads
-	AC_CHECK_HEADERS(mach/cthreads.h)
+	AC_CHECK_HEADERS(mach/cthreads.h cthread.h)
 	if test $ac_cv_header_mach_cthreads_h = yes ; then
 		ol_with_threads=found
 
@@ -1415,17 +1417,34 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 		fi
 
-		if test $ol_link_threads != no ; then
-			: check for cthread specific functionality here
-			AC_DEFINE(HAVE_MACH_CTHREADS,1,
-				[define if you have Mach Cthreads])
+    elif test $ac_cv_header_cthreads_h = yes ; then
+		dnl Hurd variant of Mach Cthreads
+		dnl uses <cthreads.h> and -lthreads
+
+		ol_with_threads=found
+ 
+		dnl save the flags
+		save_LIBS="$LIBS"
+		LIBS="$LIBS -lthreads"
+		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
+		LIBS="$save_LIBS"
+
+		if test $ol_link_threads = yes ; then
+			LTHREAD_LIBS="-lthreads"
+			ol_link_threads=mach
 		else
 			AC_MSG_ERROR([could not link with Mach CThreads])
 		fi
+
+	elif test $ol_with_threads = mach ; then
+		AC_MSG_ERROR([could not locate Mach CThreads])
 	fi
 
-	if test $ol_with_threads = mach ; then
-		AC_MSG_ERROR([could not locate Mach CThreads])
+	if test $ol_link_threads = mach ; then
+		AC_DEFINE(HAVE_MACH_CTHREADS,1,
+			[define if you have Mach Cthreads])
+	elif test $ol_with_threads = found ; then
+		AC_MSG_ERROR([could not link with Mach CThreads])
 	fi
 fi
 

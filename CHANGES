@@ -1,8 +1,16 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.19 Engineering
-	Fixed memory leaks (ITS#1116)
-	Fixed cacertfile bug
+	Fixed -lldap cacertfile bug
+	Fixed back-ldbm not filter indexing
+	Fixed slapd suffix "" bugs (ITS#1430)
+	Fixed various memory leaks
+	Updated slapd emfile/enfile handling
+	Build environment
+		Fixed Kerberos build bug
+		Updated CThread detection
+		Updated MAXPATHLEN handling
+		Added GNU ar support
 
 OpenLDAP 2.0.18 Release
 	Fixed -llber ber_bvecadd bug (ITS#1398)

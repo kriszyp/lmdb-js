@@ -62,7 +62,11 @@ LDAP_END_DECL
  *                                *
  **********************************/
 
-#include <mach/cthreads.h>
+#if defined( HAVE_MACH_CTHREADS_H )
+#	include <mach/cthreads.h>
+#elif defined( HAVE_CTHREAD_H
+#	include <cthreads.h>
+#endif
 
 LDAP_BEGIN_DECL
 
