@@ -388,7 +388,7 @@ slap_auxprop_lookup(
 	unsigned ulen)
 {
 	Operation op = {0};
-	int rc, i, doit=0;
+	int i, doit = 0;
 	Connection *conn = NULL;
 	lookup_info sl;
 
@@ -1718,10 +1718,12 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	int rc, is_dn = SET_NONE, do_norm = 1;
 	struct berval dn2;
 
+	assert( conn );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_getdn: conn %d id=%s [len=%d]\n",
-		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", len );
+		conn->c_connid, id ? (*id ? id : "<empty>") : "NULL", len );
 #else
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s [len=%d]\n", 
 		id ? ( *id ? id : "<empty>" ) : "NULL", len, 0 );
