@@ -136,7 +136,8 @@ void slapd_set_write(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_SET( (unsigned) s, &slap_daemon.sd_writers );
+	if (!FD_ISSET(s, &slap_daemon.sd_writers))
+	    FD_SET( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
@@ -156,7 +157,8 @@ void slapd_set_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_SET( s, &slap_daemon.sd_readers );
+	if (!FD_ISSET(s, &slap_daemon.sd_readers))
+	    FD_SET( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
@@ -511,12 +513,14 @@ slapd_daemon_task(
 		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
+		assert(!FD_ISSET(wake_sds[0], &readfds));
 		FD_SET( wake_sds[0], &readfds );
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
-			FD_SET( slap_listeners[l]->sl_sd, &readfds );
+			if (!FD_ISSET(slap_listeners[l]->sl_sd, &readfds))
+			    FD_SET( slap_listeners[l]->sl_sd, &readfds );
 		}
 
 #ifndef HAVE_WINSOCK
