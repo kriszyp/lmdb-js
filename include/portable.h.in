@@ -411,6 +411,9 @@
 /* Define if you have the <limits.h> header file.  */
 #undef HAVE_LIMITS_H
 
+/* Define if you have the <locale.h> header file.  */
+#undef HAVE_LOCALE_H
+
 /* Define if you have the <lwp/lwp.h> header file.  */
 #undef HAVE_LWP_LWP_H
 

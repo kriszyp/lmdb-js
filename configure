@@ -7988,6 +7988,7 @@ for ac_hdr in \
 	getopt.h		\
 	libutil.h		\
 	limits.h		\
+	locale.h		\
 	malloc.h		\
 	memory.h		\
 	regex.h			\

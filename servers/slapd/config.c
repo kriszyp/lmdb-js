@@ -3,6 +3,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
 
 #include <ac/string.h>
 #include <ac/ctype.h>
@@ -309,6 +312,35 @@ read_config( char *fname )
 			strcpy( default_referral, "Referral:\n" );
 			strcat( default_referral, cargv[1] );
 
+		/* specify locale */
+		} else if ( strcasecmp( cargv[0], "locale" ) == 0 ) {
+#ifdef HAVE_LOCALE_H
+			char *locale;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing locale in \"locale <name | on | off>\" line\n",
+				       fname, lineno, 0 );
+				return( 1 );
+			}
+
+			locale = (strcasecmp(   cargv[1], "on"  ) == 0 ? ""
+				  : strcasecmp( cargv[1], "off" ) == 0 ? "C"
+				  : ch_strdup( cargv[1] )                    );
+
+			if ( setlocale( LC_CTYPE, locale ) == 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+				       (*locale
+					? "%s: line %d: bad locale \"%s\"\n"
+					: "%s: line %d: bad locale\n"),
+				       fname, lineno, locale );
+				return( 1 );
+			}
+#else
+			Debug( LDAP_DEBUG_ANY,
+			       "%s: line %d: \"locale\" unsupported\n",
+			       fname, lineno, 0 );
+			return( 1 );
+#endif
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			parse_oc( be, fname, lineno, cargc, cargv );

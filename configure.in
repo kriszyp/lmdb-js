@@ -1404,6 +1404,7 @@ AC_CHECK_HEADERS(	\
 	getopt.h		\
 	libutil.h		\
 	limits.h		\
+	locale.h		\
 	malloc.h		\
 	memory.h		\
 	regex.h			\

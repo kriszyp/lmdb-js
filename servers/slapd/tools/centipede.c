@@ -502,9 +502,7 @@ generate_new_centroids(
 
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
-					if ( isascii( *s ) ) {
-						*s = TOLOWER( *s );
-					}
+					*s = TOLOWER( (unsigned char) *s );
 					last = *s;
 				}
 				if ( isascii( last ) && isdigit( last ) ) {
