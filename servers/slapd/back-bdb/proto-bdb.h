@@ -379,13 +379,6 @@ int bdb_modify_internal(
 	char *textbuf,
 	size_t textlen );
 
-/*
- * passwd.c
- */
-#define bdb_exop_passwd				BDB_SYMBOL(exop_passwd)
-
-BI_op_extended bdb_exop_passwd;
-
 
 /*
  * cache.c

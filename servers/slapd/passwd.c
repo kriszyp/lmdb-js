@@ -32,8 +32,13 @@ int passwd_extop(
 	Operation *op,
 	SlapReply *rs )
 {
-	struct berval tmpbv, id, old, new;
-	
+	struct berval id = {0, NULL}, old = {0, NULL}, new = {0, NULL},
+		dn, ndn, hash, vals[2];
+	int freenew = 0;
+	Modifications ml, **modtail;
+	Operation op2;
+	slap_callback cb = { slap_null_cb, NULL };
+
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
@@ -41,35 +46,35 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	/* FIXME: need to parse the reqdata to determine the backend
-	 * of the DN the passwd_extop () will apply to; this, on turn,
-	 * requires to duplicate the reqdata because slap_passwd_parse()
-	 * apparently alters it!
-	 *
-	 * Maybe we can make a lightweight version of slap_passwd_parse()
-	 * that extracts the DN with no impact on the reqdata value?
-	 */
-	ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
-	rs->sr_err = slap_passwd_parse( &tmpbv, &id, &old, &new, &rs->sr_text );
-	if (rs->sr_err != LDAP_SUCCESS) {
-		ber_memfree_x( tmpbv.bv_val, op->o_tmpmemctx );
+	rs->sr_err = slap_passwd_parse( op->oq_extended.rs_reqdata, &id,
+		&old, &new, &rs->sr_text );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;
 	}
-	
-	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-	/* FIXME: we select the appropriate backend based on the DN
-	 * in the reqdata
-	 */
-	if ( id.bv_len ) {
-		op->o_bd = select_backend( &id, 0, 0 );
-		
-	} else {
-		op->o_bd = op->o_conn->c_authz_backend;
-	}
-	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-	ber_memfree_x( tmpbv.bv_val, op->o_tmpmemctx );
 
-	if( op->o_bd && !op->o_bd->be_extended ) {
+	if ( id.bv_len ) {
+		dn = id;
+		/* ndn is in tmpmem, so we don't need to free it */
+		rs->sr_err = dnNormalize( 0, NULL, NULL, &dn, &ndn, op->o_tmpmemctx );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			rs->sr_text = "Invalid DN";
+			return rs->sr_err;
+		}
+		op->o_bd = select_backend( &ndn, 0, 0 );
+	} else {
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+		op->o_bd = op->o_conn->c_authz_backend;
+		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+	}
+
+	if ( ndn.bv_len == 0 ) {
+		rs->sr_text = "no password is associated with the Root DSE";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	if( op->o_bd && !op->o_bd->be_modify ) {
 		rs->sr_text = "operation not supported for current user";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -81,15 +86,16 @@ int passwd_extop(
 
 	if( op->o_bd == NULL ) {
 #ifdef HAVE_CYRUS_SASL
-		rs->sr_err = slap_sasl_setpass( op, rs );
+		return slap_sasl_setpass( op, rs );
 #else
 		rs->sr_text = "no authz backend";
-		rs->sr_err = LDAP_OTHER;
+		return LDAP_OTHER;
 #endif
+	}
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	} else if( op->o_bd->be_update_ndn.bv_len ) {
+	if( op->o_bd->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = NULL;
 		if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
@@ -104,12 +110,54 @@ int passwd_extop(
 				NULL, NULL, LDAP_SCOPE_DEFAULT );
 		}
 		rs->sr_ref = defref;
-		rs->sr_err = LDAP_REFERRAL;
-#endif /* !SLAPD_MULTIMASTER */
-
-	} else {
-		rs->sr_err = op->o_bd->be_extended( op, rs );
+		return LDAP_REFERRAL;
 	}
+#endif /* !SLAPD_MULTIMASTER */
+	if ( new.bv_len == 0 ) {
+		slap_passwd_generate( &new );
+		freenew = 1;
+	}
+	if ( new.bv_len == 0 ) {
+		rs->sr_text = "password generation failed";
+		return LDAP_OTHER;
+	}
+	slap_passwd_hash( &new, &hash, &rs->sr_text );
+	if ( freenew ) {
+		free( new.bv_val );
+	}
+	if ( hash.bv_len == 0 ) {
+		if ( !rs->sr_text ) {
+			rs->sr_text = "password hash failed";
+		}
+		return LDAP_OTHER;
+	}
+	vals[0] = hash;
+	vals[1].bv_val = NULL;
+	ml.sml_desc = slap_schema.si_ad_userPassword;
+	ml.sml_values = vals;
+	ml.sml_nvalues = NULL;
+	ml.sml_op = LDAP_MOD_REPLACE;
+	ml.sml_next = NULL;
+
+	op2 = *op;
+	op2.o_tag = LDAP_REQ_MODIFY;
+	op2.o_callback = &cb;
+	op2.o_req_dn = dn;
+	op2.o_req_ndn = ndn;
+	op2.orm_modlist = &ml;
+
+	modtail = &ml.sml_next;
+	rs->sr_err = slap_mods_opattrs( &op2, &ml, modtail, &rs->sr_text,
+		NULL, 0 );
+	
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		rs->sr_err = op2.o_bd->be_modify( &op2, rs );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			replog( &op2 );
+		}
+	}
+	slap_mods_free( ml.sml_next );
+	free( hash.bv_val );
 
 	return rs->sr_err;
 }

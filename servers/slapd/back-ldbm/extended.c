@@ -30,7 +30,6 @@ struct exop {
 	struct berval *oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
-	{ (struct berval *)&slap_EXOP_MODIFY_PASSWD, ldbm_back_exop_passwd },
 	{ NULL, NULL }
 };
 

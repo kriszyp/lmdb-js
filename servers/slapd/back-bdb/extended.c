@@ -27,7 +27,6 @@ static struct exop {
 	struct berval *oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
-	{ (struct berval *)&slap_EXOP_MODIFY_PASSWD, bdb_exop_passwd },
 	{ NULL, NULL }
 };
 
