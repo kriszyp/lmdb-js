@@ -36,14 +36,6 @@
 
 #define EXBUFSIZ	1024
 
-/* probably far too large... */
-#define MAX_BERBUFSIZE	(128*1024)
-
-#if defined( DOS ) && !defined( _WIN32 ) && (MAX_BERBUFSIZE > 65535)
-# undef MAX_BERBUFSIZE
-# define MAX_BERBUFSIZE 65535
-#endif
-
 static ber_slen_t
 BerRead(
 	Sockbuf *sb,
@@ -340,19 +332,20 @@ ber_init( struct berval *bv )
 
 	if( ber == NULL ) {
 		/* allocation failed */
-		return ( NULL );
+		return NULL;
 	}
 
 	/* copy the data */
-	if ( ( (ber_len_t) ber_write ( ber, bv->bv_val, bv->bv_len, 0 )) != bv->bv_len ) {
+	if ( ((ber_len_t) ber_write ( ber, bv->bv_val, bv->bv_len, 0 ))
+		!= bv->bv_len )
+	{
 		/* write failed, so free and return NULL */
 		ber_free( ber, 1 );
-		return( NULL );
+		return NULL;
 	}
 
 	ber_reset( ber, 1 );	/* reset the pointer to the start of the buffer */
-
-	return ( ber );
+	return ber;
 }
 
 /* New C-API ber_flatten routine */
@@ -371,11 +364,12 @@ int ber_flatten(
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if(bvPtr == NULL) {
-		return( -1 );
+		return -1;
 	}
 
-	if ( (bv = LBER_MALLOC( sizeof(struct berval))) == NULL ) {
-		return( -1 );
+	bv = LBER_MALLOC( sizeof(struct berval));
+	if ( bv == NULL ) {
+		return -1;
 	}
 
 	if ( ber == NULL ) {
@@ -387,9 +381,10 @@ int ber_flatten(
 		/* copy the berval */
 		ber_len_t len = ber->ber_ptr - ber->ber_buf;
 
-		if ( (bv->bv_val = (char *) LBER_MALLOC( len + 1 )) == NULL ) {
-			ber_bvfree( bv );
-			return( -1 );
+		bv->bv_val = (char *) LBER_MALLOC( len + 1 );
+		if ( bv->bv_val == NULL ) {
+			LBER_FREE( bv );
+			return -1;
 		}
 
 		AC_MEMCPY( bv->bv_val, ber->ber_buf, len );
@@ -398,7 +393,7 @@ int ber_flatten(
 	}
     
 	*bvPtr = bv;
-	return( 0 );
+	return 0;
 }
 
 void
@@ -416,46 +411,6 @@ ber_reset( BerElement *ber, int was_writing )
 
 	ber->ber_rwptr = NULL;
 }
-
-#if 0
-/* return the tag - LBER_DEFAULT returned means trouble */
-static ber_tag_t
-get_tag( Sockbuf *sb )
-{
-	unsigned char	xbyte;
-	ber_tag_t	tag;
-	char		*tagp;
-	unsigned int	i;
-
-	assert( sb != NULL );
-	assert( SOCKBUF_VALID( sb ) );
-
-	if ( ber_int_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
-		return( LBER_DEFAULT );
-
-	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
-		return( (ber_tag_t) xbyte );
-
-	tagp = (char *) &tag;
-	tagp[0] = xbyte;
-	for ( i = 1; i < sizeof(ber_tag_t); i++ ) {
-		if ( ber_int_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
-			return( LBER_DEFAULT );
-
-		tagp[i] = xbyte;
-
-		if ( ! (xbyte & LBER_MORE_TAG_MASK) )
-			break;
-	}
-
-	/* tag too big! */
-	if ( i == sizeof(ber_tag_t) )
-		return( LBER_DEFAULT );
-
-	/* want leading, not trailing 0's */
-	return( tag >> (sizeof(ber_tag_t) - i - 1) );
-}
-#endif
 
 /*
  * A rewrite of ber_get_next that can safely be called multiple times 
@@ -579,13 +534,10 @@ get_lenbyte:
 fill_buffer:	
 	/* now fill the buffer. */
 	if (ber->ber_buf==NULL) {
-		if (ber->ber_len > MAX_BERBUFSIZE) {
-			errno = ERANGE;
+		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
+		if (ber->ber_buf==NULL) {
 			return LBER_DEFAULT;
 		}
-		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
-		if (ber->ber_buf==NULL)
-			return LBER_DEFAULT;
 		ber->ber_rwptr = ber->ber_buf;
 		ber->ber_ptr = ber->ber_buf;
 		ber->ber_end = ber->ber_buf + ber->ber_len;

@@ -174,7 +174,7 @@ ber_bprint(
 		line[ off   ] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
 		line[ off+1 ] = hexdig[ 0x0f & data[i] ];
 		
-		off = BP_GRAPH + n;
+		off = BP_GRAPH + n + ((n >= 8)?1:0);
 
 		if ( isprint( data[i] )) {
 			line[ BP_GRAPH + n ] = data[i];

@@ -44,28 +44,33 @@ ber_get_tag( BerElement *ber )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
-		return( LBER_DEFAULT );
+	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 ) {
+		return LBER_DEFAULT;
+	}
 
 	tag = xbyte;
 
-	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
+	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK ) {
 		return tag;
+	}
 
 	for ( i = 1; i < sizeof(ber_tag_t); i++ ) {
-		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
-			return( LBER_DEFAULT );
+		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 ) {
+			return LBER_DEFAULT;
+		}
 
 		tag <<= 8;
 		tag |= 0x00ffUL & (ber_tag_t) xbyte;
 
-		if ( ! (xbyte & LBER_MORE_TAG_MASK) )
+		if ( ! (xbyte & LBER_MORE_TAG_MASK) ) {
 			break;
+		}
 	}
 
 	/* tag too big! */
-	if ( i == sizeof(ber_tag_t) )
-		return( LBER_DEFAULT );
+	if ( i == sizeof(ber_tag_t) ) {
+		return LBER_DEFAULT;
+	}
 
 	return tag;
 }
@@ -98,8 +103,9 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * First, we read the tag.
 	 */
 
-	if ( (tag = ber_get_tag( ber )) == LBER_DEFAULT )
-		return( LBER_DEFAULT );
+	if ( (tag = ber_get_tag( ber )) == LBER_DEFAULT ) {
+		return LBER_DEFAULT;
+	}
 
 	/*
 	 * Next, read the length.  The first byte contains the length of
@@ -109,17 +115,17 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 */
 
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 
 	if ( lc & 0x80U ) {
 		noctets = (lc & 0x7fU);
 
 		if ( noctets > sizeof(ber_len_t) ) {
-			return( LBER_DEFAULT );
+			return LBER_DEFAULT;
 		}
 
 		if( (unsigned) ber_read( ber, netlen, noctets ) != noctets ) {
-			return( LBER_DEFAULT );
+			return LBER_DEFAULT;
 		}
 
 		for( i = 0; i < noctets; i++ ) {
@@ -131,7 +137,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 		*len = lc;
 	}
 
-	return( tag );
+	return tag;
 }
 
 ber_tag_t
@@ -164,7 +170,6 @@ ber_getnint(
 
 	assert( ber != NULL );
 	assert( num != NULL );
-
 	assert( BER_VALID( ber ) );
 
 	/*
@@ -174,12 +179,13 @@ ber_getnint(
 	 * extend after we read it in.
 	 */
 
-	if ( len > sizeof(ber_int_t) )
-		return( -1 );
+	if ( len > sizeof(ber_int_t) ) {
+		return -1;
+	}
 
 	/* read into the low-order bytes of our buffer */
 	if ( (ber_len_t) ber_read( ber, (char *) buf, len ) != len ) {
-		return( -1 );
+		return -1;
 	}
 
 	if( len ) {
@@ -198,7 +204,7 @@ ber_getnint(
 		*num = 0;
 	}
 
-	return( len );
+	return len;
 }
 
 ber_tag_t
@@ -212,13 +218,15 @@ ber_get_int(
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
-		return( LBER_DEFAULT );
+	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
+		return LBER_DEFAULT;
+	}
 
-	if ( ber_getnint( ber, num, len ) != len )
-		return( LBER_DEFAULT );
-	else
-		return( tag );
+	if ( ber_getnint( ber, num, len ) != len ) {
+		return LBER_DEFAULT;
+	}
+	
+	return tag;
 }
 
 ber_tag_t
@@ -241,18 +249,21 @@ ber_get_stringb(
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
-		return( LBER_DEFAULT );
-	if ( datalen > (*len - 1) )
-		return( LBER_DEFAULT );
+	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
+		return LBER_DEFAULT;
+	}
+	if ( datalen > (*len - 1) ) {
+		return LBER_DEFAULT;
+	}
 
-	if ( (ber_len_t) ber_read( ber, buf, datalen ) != datalen )
-		return( LBER_DEFAULT );
+	if ( (ber_len_t) ber_read( ber, buf, datalen ) != datalen ) {
+		return LBER_DEFAULT;
+	}
 
 	buf[datalen] = '\0';
 
 	*len = datalen;
-	return( tag );
+	return tag;
 }
 
 ber_tag_t
@@ -268,20 +279,21 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
-	if ( (*buf = (char *) LBER_MALLOC( datalen + 1 )) == NULL )
-		return( LBER_DEFAULT );
+	if ( (*buf = (char *) LBER_MALLOC( datalen + 1 )) == NULL ) {
+		return LBER_DEFAULT;
+	}
 
 	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
 		LBER_FREE( *buf );
 		*buf = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 	(*buf)[datalen] = '\0';
 
-	return( tag );
+	return tag;
 }
 
 ber_tag_t
@@ -327,7 +339,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
 
-	return( tag );
+	return tag;
 }
 
 ber_tag_t
@@ -348,27 +360,28 @@ ber_get_bitstringa(
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 	--datalen;
 
-	if ( (*buf = (char *) LBER_MALLOC( datalen )) == NULL )
-		return( LBER_DEFAULT );
+	if ( (*buf = (char *) LBER_MALLOC( datalen )) == NULL ) {
+		return LBER_DEFAULT;
+	}
 
 	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
 		LBER_FREE( buf );
 		*buf = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
 	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
 		LBER_FREE( buf );
 		*buf = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
 	*blen = datalen * 8 - unusedbits;
-	return( tag );
+	return tag;
 }
 
 ber_tag_t
@@ -380,11 +393,13 @@ ber_get_null( BerElement *ber )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
-		return( LBER_DEFAULT );
+	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
+		return LBER_DEFAULT;
+	}
 
-	if ( len != 0 )
-		return( LBER_DEFAULT );
+	if ( len != 0 ) {
+		return LBER_DEFAULT;
+	}
 
 	return( tag );
 }
@@ -405,7 +420,7 @@ ber_get_boolean(
 	rc = ber_get_int( ber, &longbool );
 	*boolval = longbool;
 
-	return( rc );
+	return rc;
 }
 
 ber_tag_t
@@ -421,16 +436,16 @@ ber_first_element(
 	/* skip the sequence header, use the len to mark where to stop */
 	if ( ber_skip_tag( ber, len ) == LBER_DEFAULT ) {
 		*last = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
 	*last = ber->ber_ptr + *len;
 
 	if ( *last == ber->ber_ptr ) {
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
-	return( ber_peek_tag( ber, len ) );
+	return ber_peek_tag( ber, len );
 }
 
 ber_tag_t
@@ -446,10 +461,10 @@ ber_next_element(
 	assert( BER_VALID( ber ) );
 
 	if ( ber->ber_ptr == last ) {
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
-	return( ber_peek_tag( ber, len ) );
+	return ber_peek_tag( ber, len );
 }
 
 /* VARARGS */
@@ -729,5 +744,5 @@ ber_scanf ( BerElement *ber,
 	    va_end( ap );
 	}
 
-	return( rc );
+	return rc;
 }
