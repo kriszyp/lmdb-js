@@ -1655,3 +1655,52 @@ int slap_read_controls(
 	**ctrl = c;
 	return LDAP_SUCCESS;
 }
+
+/* Map API errors to protocol errors... */
+int
+slap_map_api2result( SlapReply *rs )
+{
+	switch(rs->sr_err)
+	{
+	case LDAP_SERVER_DOWN:
+		return LDAP_UNAVAILABLE;
+	case LDAP_LOCAL_ERROR:
+		return LDAP_OTHER;
+	case LDAP_ENCODING_ERROR:
+	case LDAP_DECODING_ERROR:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_TIMEOUT:
+		return LDAP_UNAVAILABLE;
+	case LDAP_AUTH_UNKNOWN:
+		return LDAP_AUTH_METHOD_NOT_SUPPORTED;
+	case LDAP_FILTER_ERROR:
+		rs->sr_text = "Filter error";
+		return LDAP_OTHER;
+	case LDAP_USER_CANCELLED:
+		rs->sr_text = "User cancelled";
+		return LDAP_OTHER;
+	case LDAP_PARAM_ERROR:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_NO_MEMORY:
+		return LDAP_OTHER;
+	case LDAP_CONNECT_ERROR:
+		return LDAP_UNAVAILABLE;
+	case LDAP_NOT_SUPPORTED:
+		return LDAP_UNWILLING_TO_PERFORM;
+	case LDAP_CONTROL_NOT_FOUND:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_NO_RESULTS_RETURNED:
+		return LDAP_NO_SUCH_OBJECT;
+	case LDAP_MORE_RESULTS_TO_RETURN:
+		rs->sr_text = "More results to return";
+		return LDAP_OTHER;
+	case LDAP_CLIENT_LOOP:
+	case LDAP_REFERRAL_LIMIT_EXCEEDED:
+		return LDAP_LOOP_DETECT;
+	default:
+		if ( LDAP_API_ERROR(rs->sr_err) )
+			return LDAP_OTHER;
+		return rs->sr_err;
+	}
+}
+
