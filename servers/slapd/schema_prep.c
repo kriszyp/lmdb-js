@@ -199,6 +199,17 @@ struct slap_schema_ad_map {
 	{ NULL, NULL, NULL, NULL, 0 }
 };
 
+static AttributeType slap_at_undefined = {
+	"UNDEFINED", /* cname */
+	{ "1.1.1", NULL, NULL, 1, NULL,
+		NULL, NULL, NULL, NULL,
+		0, 0, 0, 1, 3 },
+	NULL, /* sup */
+	NULL, /* subtypes */
+	NULL, NULL, NULL, NULL,	/* matching rules */
+	NULL, /* syntax (this may need to be defined) */
+	NULL  /* next */
+};
 
 int
 schema_prep( void )
@@ -244,6 +255,8 @@ schema_prep( void )
 			(*adp)->ad_type->sat_equality->smr_match = ad_map[i].ssam_match;
 		}
 	}
+
+	slap_schema.si_at_undefined = &slap_at_undefined;
 
 	++schema_init_done;
 	return LDAP_SUCCESS;

@@ -388,10 +388,10 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_rootdse;
 
-	/* objectClass attribute */
+	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;
 
-	/* operational attributes */
+	/* operational attribute descriptions */
 	AttributeDescription *si_ad_structuralObjectClass;
 	AttributeDescription *si_ad_creatorsName;
 	AttributeDescription *si_ad_createTimestamp;
@@ -399,14 +399,14 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_modifyTimestamp;
 	AttributeDescription *si_ad_subschemaSubentry;
 
-	/* root DSE attributes */
+	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_namingContexts;
 	AttributeDescription *si_ad_supportedControl;
 	AttributeDescription *si_ad_supportedExtension;
 	AttributeDescription *si_ad_supportedLDAPVersion;
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 
-	/* subschema subentry attributes */
+	/* subschema subentry attribute descriptions */
 	AttributeDescription *si_ad_objectClasses;
 	AttributeDescription *si_ad_attributeTypes;
 	AttributeDescription *si_ad_ldapSyntaxes;
@@ -424,12 +424,15 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_aci;
 #endif
 
-	/* Other */
+	/* Other attributes descriptions */
 	AttributeDescription *si_ad_userPassword;
 	AttributeDescription *si_ad_authPassword;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif
+
+	/* Undefined Attribute Type */
+	AttributeType	*si_at_undefined;
 };
 
 typedef struct slap_attr_assertion {

@@ -115,11 +115,19 @@ str2entry( char *s )
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"<= str2entry NULL (str2ad=%s)\n", text, 0, 0 );
-			entry_free( e );
-			free( value.bv_val );
-			free( type );
-			return( NULL );
+				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
+
+			rc = slap_str2undef_ad( type, &ad, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"<= str2entry: str2undef_ad(%s): %s\n",
+						type, text, 0 );
+				entry_free( e );
+				free( value.bv_val );
+				free( type );
+				return( NULL );
+			}
 		}
 
 		rc = attr_merge( e, ad, vals );
