@@ -62,7 +62,7 @@ monitor_subsys_overlay_init(
 	}
 
 	e_tmp = NULL;
-	for ( on = overlay_next( NULL ), i = 0; on ; on = overlay_next( on ), i++ ) {
+	for ( on = overlay_next( NULL ), i = 0; on; on = overlay_next( on ), i++ ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
 		struct berval 	bv;
 		int		j;
