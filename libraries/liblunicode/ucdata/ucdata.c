@@ -603,9 +603,9 @@ uccomp_hangul(unsigned long *str, int len)
 
         /* check if two current characters are L and V */
         lindex = last - LBase;
-        if (0 <= lindex && lindex < LCount) {
+        if (0 <= lindex && lindex < (unsigned long) LCount) {
             unsigned long vindex = ch - VBase;
-            if (0 <= vindex && vindex < VCount) {
+            if (0 <= vindex && vindex < (unsigned long) VCount) {
                 /* make syllable of form LV */
                 last = SBase + (lindex * VCount + vindex) * TCount;
                 str[rlen-1] = last; /* reset last */
@@ -615,9 +615,11 @@ uccomp_hangul(unsigned long *str, int len)
         
         /* check if two current characters are LV and T */
         sindex = last - SBase;
-        if (0 <= sindex && sindex < SCount && (sindex % TCount) == 0) {
+        if (0 <= sindex && sindex < (unsigned long) SCount
+			&& (sindex % TCount) == 0)
+		{
             unsigned long tindex = ch - TBase;
-            if (0 <= tindex && tindex <= TCount) {
+            if (0 <= tindex && tindex <= (unsigned long) TCount) {
                 /* make syllable of form LVT */
                 last += tindex;
                 str[rlen-1] = last; /* reset last */
@@ -788,7 +790,8 @@ int
 uccanondecomp(const unsigned long *in, int inlen,
               unsigned long **out, int *outlen)
 {
-    int i, j, k, l, size;
+    int l, size;
+	unsigned i, j, k;
     unsigned long num, class, *decomp, hangdecomp[3];
 
     size = inlen;
@@ -797,9 +800,9 @@ uccanondecomp(const unsigned long *in, int inlen,
         return *outlen = -1;
 
     i = 0;
-    for (j = 0; j < inlen; j++) {
+    for (j = 0; j < (unsigned) inlen; j++) {
         if (ucdecomp(in[j], &num, &decomp)) {
-            if (size - i < num) {
+            if ( size - i < num) {
                 size = inlen + i - j + num - 1;
                 *out = (unsigned long *) realloc(*out, size * sizeof(**out));
                 if (*out == NULL)
