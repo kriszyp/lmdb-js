@@ -141,6 +141,16 @@ description.)
 .B concurrency <integer>
 Specify a desired level of concurrency.  Provided to the underlying
 thread system as a hint.  The default is not to provide any hint.
+.TP
+.B conn_max_pending <integer>
+Specify the maximum number of pending requests for an anonymous session.
+If requests are submitted faster than the server can process them, they
+will be queued up to this limit. If the limit is exceeded, the session
+is closed. The default is 100.
+.TP
+.B conn_max_pending_auth <integer>
+Specify the maximum number of pending requests for an authenticated session.
+The default is 1000.
 .\".TP
 .\".B debug <subsys> <level>
 .\"Specify a logging level for a particular subsystem.  The subsystems include
