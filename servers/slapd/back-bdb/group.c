@@ -34,6 +34,8 @@ bdb_group(
 )
 {
 	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
+	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
+	DB_TXN *txn;
 	Entry *e;
 	int	rc = 1;
 	Attribute *attr;
@@ -69,6 +71,10 @@ bdb_group(
 		target->e_ndn, 0, 0 ); 
 #endif
 
+	if( boi != NULL && be == boi->boi_bdb ) {
+		txn = boi->boi_txn;
+	}
+
 	if (dn_match(&target->e_name, gr_ndn)) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
@@ -82,8 +88,11 @@ bdb_group(
 #endif
 	} else {
 		/* can we find group entry */
-		rc = bdb_dn2entry( be, NULL, gr_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry( be, txn, gr_ndn, &e, NULL, 0 );
 		if( rc ) {
+			if( txn ) {
+				boi->boi_err = rc;
+			}
 			return( 1 );
 		}
 		if (e == NULL) {

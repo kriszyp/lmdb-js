@@ -794,8 +794,7 @@ acl_mask(
 				b->a_group_oc, b->a_group_at);
 			if ( ndn.bv_val )
 				free( ndn.bv_val );
-			if ( rc != 0 )
-			{
+			if ( rc != 0 ) {
 				continue;
 			}
 		}

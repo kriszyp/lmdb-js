@@ -16,7 +16,6 @@
 #include "back-bdb.h"
 #include "proto-bdb.h"
 
-
 /* return LDAP_SUCCESS IFF we can retrieve the attributes
  * of entry with e_ndn
  */
@@ -31,6 +30,8 @@ bdb_attribute(
 	BerVarray *vals )
 {
 	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
+	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
+	DB_TXN *txn = NULL;
 	Entry *e;
 	int	i, j, rc;
 	Attribute *attr;
@@ -58,6 +59,10 @@ bdb_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
+	if( boi != NULL && be == boi->boi_bdb ) {
+		txn = boi->boi_txn;
+	}
+
 	if (target != NULL && dn_match(&target->e_nname, entry_ndn)) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
@@ -74,12 +79,15 @@ bdb_attribute(
 
 	} else {
 		/* can we find entry */
-		rc = bdb_dn2entry( be, NULL, entry_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry( be, txn, entry_ndn, &e, NULL, 0 );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
 			break;
 		default:
+			if( txn != NULL ) {
+				boi->boi_err = rc;
+			}
 			return LDAP_OTHER;
 		}
 		if (e == NULL) {
