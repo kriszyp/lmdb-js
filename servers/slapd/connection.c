@@ -104,8 +104,6 @@ int connections_destroy(void)
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
 		}
-
-		free( &connections[i] );
 	}
 
 	free( connections );
