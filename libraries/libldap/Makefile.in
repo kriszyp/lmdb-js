@@ -2,7 +2,7 @@
 ## Makefile.in for LDAP -lldap
 ##
 LIBRARY = libldap.a
-PROGRAMS = ltest ttest
+PROGRAMS = apitest ltest ttest
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
@@ -26,6 +26,8 @@ OBJS	= bind.o open.o result.o error.o compare.o search.o \
 LIBS = -L$(LDAP_LIBDIR) -lldap -llber $(AC_LIBS)
 LIBLBER = ../liblber/liblber.a
 
+apitest:	$(LIBRARY) apitest.o $(LIBLBER)
+	$(CC) $(LDFLAGS) -o $@ apitest.o $(LIBS)
 ltest:	$(LIBRARY) test.o $(LIBLBER)
 	$(CC) $(LDFLAGS) -o $@ test.o $(LIBS)
 ttest:	$(LIBRARY) tmpltest.o $(LIBLBER)
