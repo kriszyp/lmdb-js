@@ -568,37 +568,43 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	if ( *eip && rc == 0 ) {
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
-		} else if ( !(*eip)->bei_e ) {
-			if (!ep) {
-				rc = bdb_id2entry( op->o_bd, tid, id, &ep );
-			}
-			if ( rc == 0 ) {
-				bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
-					*eip, 1, 0, lock );
-				ep->e_private = *eip;
-#ifdef BDB_HIER
-				bdb_fix_dn( ep, 0 );
-#endif
-				(*eip)->bei_e = ep;
-				bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
-					*eip, 0, 0, lock );
-			}
 		} else {
-#ifdef BDB_HIER
-			rc = bdb_fix_dn( (*eip)->bei_e, 1 );
-			if ( rc ) {
-				bdb_cache_entry_db_lock( bdb->bi_dbenv,
-					locker, *eip, 1, 0, lock );
-				rc = bdb_fix_dn( (*eip)->bei_e, 2 );
-				bdb_cache_entry_db_relock( bdb->bi_dbenv,
-					locker, *eip, 0, 0, lock );
-			} else {
-				bdb_cache_entry_db_lock( bdb->bi_dbenv,
-					locker, *eip, 0, 0, lock );
-			}
-#else
 			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
 					*eip, 0, 0, lock );
+
+			if ( !(*eip)->bei_e ) {
+				if (!ep) {
+					rc = bdb_id2entry( op->o_bd, tid, id, &ep );
+				}
+				if ( rc == 0 ) {
+					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+						*eip, 1, 0, lock );
+					/* Make sure no other modifier beat us to it */
+					if ( (*eip)->bei_e ) {
+						bdb_entry_return( ep );
+						ep = NULL;
+					} else {
+						ep->e_private = *eip;
+#ifdef BDB_HIER
+						bdb_fix_dn( ep, 0 );
+#endif
+						(*eip)->bei_e = ep;
+					}
+					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+						*eip, 0, 0, lock );
+				}
+			}
+#ifdef BDB_HIER
+			else {
+				rc = bdb_fix_dn( (*eip)->bei_e, 1 );
+				if ( rc ) {
+					bdb_cache_entry_db_relock( bdb->bi_dbenv,
+						locker, *eip, 1, 0, lock );
+					rc = bdb_fix_dn( (*eip)->bei_e, 2 );
+					bdb_cache_entry_db_relock( bdb->bi_dbenv,
+						locker, *eip, 0, 0, lock );
+				}
+			}
 #endif
 		}
 	}
