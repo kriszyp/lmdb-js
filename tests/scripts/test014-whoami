@@ -220,12 +220,26 @@ fi
 BINDDN="cn=Should Fail,dc=example,dc=com"
 BINDPW=fail
 AUTHZID="u:bjorn"
-echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.subtree)..."
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI; should fail)..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
 RC=$?
-if test $RC != 0 ; then
+if test $RC != 1 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Must Fail,dc=example,dc=com"
+BINDPW=fail
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI; should fail)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 1 ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
@@ -366,6 +380,6 @@ echo ">>>>> Test succeeded"
 exit 0
 
 ## Note to developers: the command
-## awk '/<===slap_sasl_match:/ {if (s==0) {s=1;c=0} c++; if ($4==0) {print c;s=0}} END {if (s==1) print c}' testrun/slapd.1.log
+## awk '/^do_extended$/ {if (c) {print c} c=0} /<===slap_sasl_match:/ {c++} END {print c}' testrun/slapd.1.log
 ## must return consecutive numbers from 1 to 9 twice to indicate
 ## that the authzFrom and authzTo rules applied in the right order.
