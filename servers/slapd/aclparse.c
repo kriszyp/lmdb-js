@@ -491,10 +491,10 @@ parse_acl(
 					}
 
 					if( strcmp( b->a_aci_at->sat_syntax_oid,
-						SLAPD_OID_DN_SYNTAX ) != 0 )
+						SLAPD_OID_ACI_SYNTAX ) != 0 )
 					{
 						fprintf( stderr,
-							"%s: line %d: aci attribute type not of DN syntax.\n",
+							"%s: line %d: aci attribute type not of ACI syntax.\n",
 							fname, lineno );
 						acl_usage();
 					}

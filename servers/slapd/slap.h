@@ -89,6 +89,7 @@ LDAP_BEGIN_DECL
 
 /* schema needed by slapd */
 #define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
+#define SLAPD_OID_ACI_SYNTAX "1.1.1" /* bogus */
 
 LIBSLAPD_F (int) slap_debug;
 

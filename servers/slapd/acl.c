@@ -35,15 +35,15 @@ static int aci_mask(
 	regmatch_t *matches, slap_access_t *grant, slap_access_t *deny );
 
 char *supportedACIMechs[] = {
-				"1.3.6.1.4.1.4203.666.7.1",	/* experimental draft aci family */
-				"1.3.6.1.4.1.4203.666.7.2",	/* experimental OpenLDAP aci family */
-				NULL
-		};
+	"1.3.6.1.4.1.4203.666.7.1",	/* experimental draft aci family */
+	"1.3.6.1.4.1.4203.666.7.2",	/* experimental OpenLDAP aci family */
+	NULL
+};
 #endif
 
 static int	regex_matches(char *pat, char *str, char *buf, regmatch_t *matches);
 static void	string_expand(char *newbuf, int bufsiz, char *pattern,
-			      char *match, regmatch_t *matches);
+	char *match, regmatch_t *matches);
 
 
 /*
