@@ -1148,11 +1148,6 @@ syncrepl_entry(
 	int ret = LDAP_SUCCESS;
 
 	struct berval pdn = BER_BVNULL;
-	struct berval org_req_dn = BER_BVNULL;
-	struct berval org_req_ndn = BER_BVNULL;
-	struct berval org_dn = BER_BVNULL;
-	struct berval org_ndn = BER_BVNULL;
-	int	org_managedsait;
 	dninfo dni = {0};
 	int	retry = 1;
 
@@ -1249,15 +1244,6 @@ syncrepl_entry(
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
-	org_req_dn = op->o_req_dn;
-	org_req_ndn = op->o_req_ndn;
-	org_dn = op->o_dn;
-	org_ndn = op->o_ndn;
-	org_managedsait = get_manageDSAit( op );
-	op->o_dn = op->o_bd->be_rootdn;
-	op->o_ndn = op->o_bd->be_rootndn;
-	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
-
 	if ( entry && !BER_BVISNULL( &entry->e_name ) ) {
 		Debug( LDAP_DEBUG_SYNC,
 				"syncrepl_entry: %s\n",
@@ -1267,11 +1253,6 @@ syncrepl_entry(
 				"syncrepl_entry: %s\n",
 				dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0, 0 );
 	}
-
-	org_req_dn = op->o_req_dn;
-	org_req_ndn = op->o_req_ndn;
-	org_managedsait = get_manageDSAit( op );
-	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 	if ( syncstate != LDAP_SYNC_DELETE ) {
 		Attribute	*a = attr_find( entry->e_attrs, slap_schema.si_ad_entryUUID );
@@ -1540,7 +1521,6 @@ syncrepl_del_nonpresent(
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
 	struct berval org_req_ndn = BER_BVNULL;
-	int	org_managedsait;
 
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
@@ -1565,7 +1545,6 @@ syncrepl_del_nonpresent(
 		op->ors_attrs = slap_anlist_no_attrs;
 		op->ors_limit = NULL;
 		op->ors_filter = &uf;
-		op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 		uf.f_ava = &eq;
 		uf.f_av_desc = slap_schema.si_ad_entryUUID;
@@ -1589,7 +1568,6 @@ syncrepl_del_nonpresent(
 		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
 		op->ors_filterstr = si->si_filterstr;
 		op->o_nocaching = 1;
-		op->o_managedsait = SLAP_CONTROL_NONE;
 
 		if ( limits_check( op, &rs_search ) == 0 ) {
 			rc = be->be_search( op, &rs_search );
@@ -1597,7 +1575,6 @@ syncrepl_del_nonpresent(
 		if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
 	}
 
-	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op->o_nocaching = 0;
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
@@ -1639,9 +1616,6 @@ syncrepl_del_nonpresent(
 				rc = be->be_modify( op, &rs_modify );
 			}
 
-			org_managedsait = get_manageDSAit( op );
-			op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
-
 			while ( rs_delete.sr_err == LDAP_SUCCESS &&
 					op->o_delete_glue_parent ) {
 				op->o_delete_glue_parent = 0;
@@ -1659,15 +1633,10 @@ syncrepl_del_nonpresent(
 			    }
 			}
 
-			op->o_managedsait = org_managedsait;
-			op->o_req_dn = org_req_dn;
-			op->o_req_ndn = org_req_ndn;
 			op->o_delete_glue_parent = 0;
 
 			ber_bvfree( np_prev->npe_name );
 			ber_bvfree( np_prev->npe_nname );
-			BER_BVZERO( &op->o_req_dn );
-			BER_BVZERO( &op->o_req_ndn );
 			ch_free( np_prev );
 		}
 
