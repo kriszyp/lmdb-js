@@ -189,8 +189,8 @@ rewrite_rule_compile(
 				return REWRITE_ERR;
 			}
 			
-			mode &= ~REWRITE_RECURSE;
-			mode |= REWRITE_EXEC_ONCE;
+			//mode &= ~REWRITE_RECURSE;
+			//mode |= REWRITE_EXEC_ONCE;
 			action->la_type = REWRITE_ACTION_STOP;
 			break;
 			
@@ -219,8 +219,7 @@ rewrite_rule_compile(
 			 * After applying rule, return user-defined
 			 * error code
 			 */
-			char buf[16], *q;
-			size_t l;
+			char *next = NULL;
 			int *d;
 			
 			if ( p[ 1 ] != '{' ) {
@@ -228,26 +227,17 @@ rewrite_rule_compile(
 				return REWRITE_ERR;
 			}
 
-			q = strchr( p + 2, '}' );
-			if ( q == NULL ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
-			}
-
-			l = q - p + 1;
-			if ( l >= sizeof( buf ) ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
-			}
-			AC_MEMCPY( buf, p + 2, l );
-			buf[ l ] = '\0';
-
 			d = malloc( sizeof( int ) );
 			if ( d == NULL ) {
 				/* XXX Need to free stuff */
 				return REWRITE_ERR;
 			}
-			d[ 0 ] = atoi( buf );
+
+			d[ 0 ] = strtol( &p[ 2 ], &next, 0 );
+			if ( next == NULL || next == &p[ 2 ] || next[0] != '}' ) {
+				/* XXX Need to free stuff */
+				return REWRITE_ERR;
+			}
 
 			action = calloc( sizeof( struct rewrite_action ), 1 );
 			if ( action == NULL ) {
@@ -269,7 +259,7 @@ rewrite_rule_compile(
 
 			action->la_args = (void *)d;
 
-			p = q;	/* p is incremented by the for ... */
+			p = next;	/* p is incremented by the for ... */
 		
 			break;
 		}

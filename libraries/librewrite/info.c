@@ -259,11 +259,13 @@ rewrite_session(
 	 */
 	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
-	default:
 		if ( *result != NULL ) {
 			free( *result );
 			*result = NULL;
 		}
+
+	default:
+		break;
 	}
 
 rc_return:;

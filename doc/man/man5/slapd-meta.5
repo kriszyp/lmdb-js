@@ -362,20 +362,41 @@ use POSIX Basic Regular Expressions (default is Extended)
 apply the rule once only (default is recursive)
 .TP
 .B `@'
-stop applying rules in case of match.
+stop applying rules in case of match; the current rule is still applied 
+recursively; combine with `:' to apply the current rule only once 
+and then stop.
 .TP
 .B `#'
 stop current operation if the rule matches, and issue an `unwilling to
 perform' error.
 .TP
 .B `G{n}'
-jump n rules back and forth (watch for loops!).
+jump
+.B n
+rules back and forth (watch for loops!).
 Note that `G{1}' is implicit in every rule.
 .TP
 .B `I'
 ignores errors in rule; this means, in case of error, e.g. issued by a
 map, the error is treated as a missed match.
 The `unwilling to perform' is not overridden.
+.TP
+.B `U{n}'
+uses
+.B
+n
+as return code if the rule matches; the flag does not alter the recursive
+behavior of the rule, so, to have it performed only once, it must be used 
+in combination with `:', e.g.
+.B `:U{16}'
+returns the value `16' after exactly one execution of the rule, if the
+pattern matches.
+As a consequence, its behavior is equivalent to `@', with the return
+code set to
+.BR n ;
+or, in other words, `@' is equivalent to `U{0}'.
+By convention, the freely available codes are above 16 included;
+the others are reserved.
 .LP
 The ordering of the flags is significant.
 For instance: `IG{2}' means ignore errors and jump two lines ahead
@@ -616,7 +637,7 @@ rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 # regular DNs, because the definition of a bindDn
 # rewrite context overrides the default definition.
 rewriteContext bindDn
-rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
+rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" ":@I"
 
 # This is a rather sophisticated example. It massages a
 # search filter in case who performs the search has
@@ -645,7 +666,7 @@ rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
   "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
   ":I"
 rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
-  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
+  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" ":@I"
 rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 
 # This example shows how to strip unwanted DN-valued
@@ -655,7 +676,7 @@ rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 # The second rule matches everything else and causes
 # the value to be rejected.
 rewriteContext searchResult
-rewriteRule ".*,ou=People,dc=example,dc=com" "%0" "@"
+rewriteRule ".*,ou=People,dc=example,dc=com" "%0" ":@"
 rewriteRule ".*" "" "#"
 .fi
 .SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
@@ -666,16 +687,16 @@ E.g.:
 .LP
 .nf
   rewriteRule '^cn=root,.*' '%0'                     'G{3}'
-  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' '@'
-  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' '@'
-  rewriteRule '.*'          'ldap://ldap3.my.org/%0' '@'
+  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' ':@'
+  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' ':@'
+  rewriteRule '.*'          'ldap://ldap3.my.org/%0' ':@'
 .fi
 .LP
 (Rule 1 is simply there to illustrate the `G{n}' action; it could have
 been written:
 .LP
 .nf
-  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' '@'
+  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' ':@'
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
