@@ -2333,6 +2333,7 @@ openbsd*)
 openedition*)
   need_lib_prefix=no
   need_version=no
+  shlibpath_overrides_runpath=yes
   shlibpath_var=LIBPATH
   postinstall_cmds="rm \$destdir/\$linkname; cp \$linkname \$destdir"
   # the library's exports are in libname.x; this is the file that must
