@@ -9,9 +9,9 @@ OpenLDAP 2.1.5 Engineering
 	Fixed liblber write bugs (ITS#1983)
 	Added slapadd lastmod attribute support
 	Added ldap tools passfile (-y) support (ITS#2031)
-	Updated slapd hasSubordinates support
-	Updated slapd extensible matching support
-	Updated noop & matchedval control support
+	Updated slapd hasSubordinates
+	Updated slapd extensible matching
+	Updated matched values and noop controls
 	Updated back-passwd gecos buffer size bug (ITS#2046)
 	Updated back-sql
 	Build Environment
