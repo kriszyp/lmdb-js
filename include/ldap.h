@@ -708,7 +708,7 @@ ldap_sasl_interactive_bind_s LDAP_P((
 	LDAPControl **serverControls,
 	LDAPControl **clientControls,
 	LDAP_SASL_INTERACT_PROC *proc,
-	LDAP_CONST void *defaults ));
+	void *defaults ));
 
 LDAP_F( int )
 ldap_sasl_bind_s LDAP_P((
