@@ -62,7 +62,7 @@ int ldbm_back_entry_get(
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	Entry *e;
 	int	rc;
-	const char *at_name = at->ad_cname.bv_val;
+	const char *at_name = at ? at->ad_cname.bv_val : "(null)";
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ARGS, 

@@ -605,10 +605,12 @@ ldap_back_entry_get(
 		return 1;
 	}
 
-	ldap_back_map(&li->rwmap.rwm_at, &at->ad_cname, &mapped, BACKLDAP_MAP);
-	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-		rc = 1;
-		goto cleanup;
+	if ( at ) {
+		ldap_back_map(&li->rwmap.rwm_at, &at->ad_cname, &mapped, BACKLDAP_MAP);
+		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+			rc = 1;
+			goto cleanup;
+		}
 	}
 
 	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
