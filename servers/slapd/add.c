@@ -143,15 +143,12 @@ do_add( Connection *conn, Operation *op )
 			free( tmp.sml_type.bv_val );
 			goto done;
 		}
-		mod  = (Modifications *) ch_malloc( sizeof(Modifications)
-			+ tmp.sml_type.bv_len + 1);
+		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 		
 		mod->sml_op = LDAP_MOD_ADD;
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
-		mod->sml_type.bv_val = (char *)(mod+1);
-		strcpy(mod->sml_type.bv_val, tmp.sml_type.bv_val);
-		mod->sml_type.bv_len = tmp.sml_type.bv_len;
+		mod->sml_type = tmp.sml_type;
 		mod->sml_bvalues = tmp.sml_bvalues;
 
 		*modtail = mod;

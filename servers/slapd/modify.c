@@ -116,11 +116,8 @@ do_modify(
 			goto cleanup;
 		}
 
-		mod = (Modifications *) ch_malloc( sizeof(Modifications) 
-			+ tmp.sml_type.bv_len + 1);
-		mod->sml_type.bv_val = (char *)(mod+1);
-		strcpy(mod->sml_type.bv_val, tmp.sml_type.bv_val);
-		mod->sml_type.bv_len = tmp.sml_type.bv_len;
+		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod->sml_type = tmp.sml_type;
 		mod->sml_bvalues = tmp.sml_bvalues;
 		mod->sml_desc = NULL;
 		*modtail = mod;
@@ -595,6 +592,7 @@ int slap_mods_opattrs(
 		if ( tmpval.bv_len ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
+			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 			mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_bvalues[0], &tmpval );
@@ -609,6 +607,7 @@ int slap_mods_opattrs(
 		
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_entryUUID;
 		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &tmpval );
@@ -619,6 +618,7 @@ int slap_mods_opattrs(
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_creatorsName;
 		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &name );
@@ -629,6 +629,7 @@ int slap_mods_opattrs(
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_createTimestamp;
 		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &timestamp );
@@ -640,6 +641,7 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 	mod->sml_op = mop;
+	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_entryCSN;
 	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &csn );
@@ -650,6 +652,7 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 	mod->sml_op = mop;
+	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_modifiersName;
 	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &name );
@@ -660,6 +663,7 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 	mod->sml_op = mop;
+	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
 	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &timestamp );
