@@ -8,3 +8,5 @@ dc=example,dc=com
 cn=Bjorn Jensen
 dc=example,dc=com
 cn=Alumni Assoc Staff
+dc=example,dc=com
+cn=James*
