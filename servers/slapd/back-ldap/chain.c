@@ -92,7 +92,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	void		*private = op->o_bd->be_private;
 	slap_callback	*sc = op->o_callback;
 	LDAPControl	**prev = op->o_ctrls;
-	LDAPControl	**ctrls = NULL, authz;
+	LDAPControl	**ctrls = NULL, *c[ 2 ], authz;
 	int		i, nctrls, rc = 0;
 	int		cache = op->o_do_not_cache;
 	char		*authzid = NULL;
@@ -130,7 +130,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			/* parse reference and use 
 			 * proto://[host][:port]/ only */
 			rc = ldap_url_parse_ext( ref[0].bv_val, &srv );
-			if ( rc != LDAP_URL_SUCCESS) {
+			if ( rc != LDAP_URL_SUCCESS ) {
 				/* error */
 				return 1;
 			}
@@ -160,20 +160,21 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	 * Binds are done separately, on an anonymous session.
 	 */
 	if ( op->o_tag != LDAP_REQ_BIND ) {
-		for ( i = 0; prev && prev[i]; i++ )
-			/* count and set prev to the last one */ ;
-		nctrls = i;
+		if ( prev ) {
+			for ( i = 0; prev[i]; i++ )
+				/* count and set prev to the last one */ ;
+			nctrls = i;
 
-		/* Add an extra NULL slot */
-		if ( !prev ) {
-			i++;
+			ctrls = op->o_tmpalloc((i + 1)*sizeof(LDAPControl *),
+				op->o_tmpmemctx);
+			for ( i = 0; i < nctrls; i++ ) {
+				ctrls[i] = prev[i];
+			}
+
+		} else {
+			ctrls = c;
 		}
 
-		ctrls = op->o_tmpalloc((i + 1)*sizeof(LDAPControl *),
-			op->o_tmpmemctx);
-		for ( i = 0; i < nctrls; i++ ) {
-			ctrls[i] = prev[i];
-		}
 		ctrls[nctrls] = &authz;
 		ctrls[nctrls + 1] = NULL;
 		authz.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
@@ -369,7 +370,7 @@ end_of_searchref:;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
-	if ( ctrls ) {
+	if ( ctrls && ctrls != c ) {
 		op->o_tmpfree( ctrls, op->o_tmpmemctx );
 	}
 	if ( authzid ) {
