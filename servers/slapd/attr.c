@@ -528,6 +528,35 @@ at_add(
 	return code;
 }
 
+
+char *
+at_official_name( char * a_type )
+{
+	AttributeType	*atp;
+
+	if ( (atp=at_find(a_type)) == NULL ) {
+
+		return a_type;
+
+	} else  if ( atp->sat_names 
+		     && atp->sat_names[0]
+		     && (*(atp->sat_names[0]) != '\0') ) {
+	    
+		return atp->sat_names[0];
+
+	} else if (atp->sat_oid && (*atp->sat_oid != '\0')) {
+
+		return atp->sat_oid;
+		
+	} else {
+
+		return a_type;
+
+	}
+
+}/* char * at_official_name() */
+
+
 #if defined( SLAPD_SCHEMA_DN )
 
 int
