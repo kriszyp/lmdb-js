@@ -127,7 +127,7 @@ int bdb_modify_internal(
 		return rc;
 	}
 
-#if 0
+#if BDB_INDEX
 	/* delete indices for old attributes */
 	rc = index_entry_del( be, tid, e, save_attrs);
 

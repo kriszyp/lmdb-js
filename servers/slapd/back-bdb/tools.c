@@ -156,7 +156,7 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-#if 0
+#if BDB_INDEX
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
 		goto done;
@@ -184,7 +184,7 @@ done:
 	return e->e_id;
 }
 
-#if 0
+#if BDB_INDEX
 int bdb_tool_entry_reindex(
 	BackendDB *be,
 	ID id )
