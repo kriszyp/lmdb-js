@@ -24,7 +24,7 @@ static int		emaxsize;/* max size of ebuf			 */
 /*
  * Empty root entry
  */
-const Entry slap_entry_root = { NOID, "", "", NULL, NULL };
+const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, NULL };
 
 int entry_destroy(void)
 {
@@ -41,7 +41,6 @@ str2entry( char *s )
 {
 	int rc;
 	Entry		*e;
-	ber_len_t	dnlen;
 	char		*type;
 	struct berval value;
 	struct berval	*vals[2];
@@ -89,8 +88,10 @@ str2entry( char *s )
 
 	/* initialize entry */
 	e->e_id = NOID;
-	e->e_dn = NULL;
-	e->e_ndn = NULL;
+	e->e_name.bv_val = NULL;
+	e->e_name.bv_len = 0;
+	e->e_nname.bv_val = NULL;
+	e->e_nname.bv_len = 0;
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
@@ -155,8 +156,8 @@ str2entry( char *s )
 				return NULL;
 			}
 
-			e->e_dn = pdn->bv_val != NULL ? pdn->bv_val : ch_strdup( "" );
-			dnlen = pdn->bv_len;
+			e->e_name.bv_val = pdn->bv_val != NULL ? pdn->bv_val : ch_strdup( "" );
+			e->e_name.bv_len = pdn->bv_len;
 			free( pdn );
 			continue;
 		}
@@ -289,29 +290,25 @@ str2entry( char *s )
 
 	/* generate normalized dn */
 	{
-		struct berval dn;
 		struct berval *ndn;
 
-		dn.bv_val = e->e_dn;
-		dn.bv_len = dnlen;
-
-		rc = dnNormalize( NULL, &dn, &ndn );
+		rc = dnNormalize( NULL, &e->e_name, &ndn );
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "str2entry:  entry %ld has invalid dn: %s\n",
-					(long) e->e_id, e->e_ndn ));
+					(long) e->e_id, e->e_dn ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"str2entry: entry %ld has invalid dn: %s\n",
-			    (long) e->e_id, e->e_ndn, 0 );
+			    (long) e->e_id, e->e_dn, 0 );
 #endif
 			entry_free( e );
 			return NULL;
 		}
 
-		e->e_ndn = ndn->bv_val;
+		e->e_nname = *ndn;
 		free( ndn );
 	}
 
@@ -346,7 +343,8 @@ entry2str(
 {
 	Attribute	*a;
 	struct berval	*bv;
-	int		i, tmplen;
+	int		i;
+	ber_len_t tmplen;
 
 	/*
 	 * In string format, an entry looks like this:
@@ -359,7 +357,7 @@ entry2str(
 	/* put the dn */
 	if ( e->e_dn != NULL ) {
 		/* put "dn: <dn>" */
-		tmplen = strlen( e->e_dn );
+		tmplen = e->e_name.bv_len;
 		MAKE_SPACE( LDIF_SIZE_NEEDED( 2, tmplen ));
 		ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen );
 	}
@@ -504,8 +502,8 @@ entry_getlen(unsigned char **buf)
  */
 int entry_encode(Entry *e, struct berval *bv)
 {
-	int siz = sizeof(Entry);
-	int len, dnlen, ndnlen;
+	ber_len_t siz = sizeof(Entry);
+	ber_len_t len, dnlen, ndnlen;
 	int i;
 	Attribute *a;
 	unsigned char *ptr;
@@ -518,8 +516,8 @@ int entry_encode(Entry *e, struct berval *bv)
 	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
 		(long) e->e_id, e->e_dn, 0 );
 #endif
-	dnlen = strlen(e->e_dn);
-	ndnlen = strlen(e->e_ndn);
+	dnlen = e->e_name.bv_len;
+	ndnlen = e->e_nname.bv_len;
 	len = dnlen + ndnlen + 2;	/* two trailing NUL bytes */
 	len += entry_lenlen(dnlen);
 	len += entry_lenlen(ndnlen);
@@ -607,7 +605,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	ptr += i+1;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
-		   "entry_decode: \"%s\"\n", x->e_dn ));
+		"entry_decode: \"%s\"\n", x->e_dn ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	    "entry_decode: \"%s\"\n",
@@ -633,7 +631,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "entry_decode: str2ad(%s): %s\n", ptr, text ));
+				"entry_decode: str2ad(%s): %s\n", ptr, text ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= entry_decode: str2ad(%s): %s\n", ptr, text, 0 );
@@ -643,7 +641,7 @@ int entry_decode(struct berval *bv, Entry **e)
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "entry_decode:  str2undef_ad(%s): %s\n", ptr, text));
+					"entry_decode:  str2undef_ad(%s): %s\n", ptr, text));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= entry_decode: str2undef_ad(%s): %s\n",
@@ -676,7 +674,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		a->a_next = NULL;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "entry_decode:  %s\n", x->e_dn ));
+		"entry_decode:  %s\n", x->e_dn ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
 		x->e_dn, 0, 0 );

@@ -79,8 +79,10 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	e->e_dn = NULL;
-	e->e_ndn = NULL;
+	e->e_name.bv_val = NULL;
+	e->e_name.bv_len = 0;
+	e->e_nname.bv_val = NULL;
+	e->e_nname.bv_len = 0;
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
@@ -101,7 +103,7 @@ do_add( Connection *conn, Operation *op )
 			goto done;
 		}
 
-		e->e_dn = pdn->bv_val;
+		e->e_name = *pdn;
 		free( pdn );
 	}
 
@@ -122,7 +124,7 @@ do_add( Connection *conn, Operation *op )
 			goto done;
 		}
 
-		e->e_ndn = ndn->bv_val;
+		e->e_nname = *ndn;
 		free( ndn );
 	}
 
