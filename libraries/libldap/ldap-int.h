@@ -24,7 +24,11 @@
 
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
+#ifdef HAVE_CYRUS_SASL2
+#include <sasl/sasl.h>
+#else
 #include <sasl.h>
+#endif
 
 #define SASL_MAX_BUFF_SIZE	65536
 #define SASL_MIN_BUFF_SIZE	4096
