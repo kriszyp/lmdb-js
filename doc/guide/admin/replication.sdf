@@ -103,7 +103,7 @@ you give it. Current debugging levels (a subset of slapd's
 debugging levels) are
 
 !block table; colaligns="RL"; align=Center; \
-	title="Table 10.1: Debugging Levels"
+	title="Table 13.1: Debugging Levels"
 Level	Description
 4	heavy trace debugging
 64	configuration file processing

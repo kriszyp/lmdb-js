@@ -16,6 +16,13 @@ export schema definitions from an LDAPv3 server and transform it
 to {{slapd.conf}}(5) format.
 !endif
 
+This chapter does discuss how to extend system schema used by
+{{slapd}}(8) as this requires source code modification.  System
+schema includes all operational attribute types or any object class
+which allows or requires an operational attribute (directly or
+indirectly).
+
+
 H2: Distributed Schema Files
 
 OpenLDAP is distributed with a set of schema specifications for
@@ -25,7 +32,7 @@ file.  These schema files are normally installed in the
 {{F:/usr/local/etc/openldap/schema}} directory.
 
 !block table; colaligns="LR"; coltags="F,N"; align=Center; \
-	title="Table 6.1: Provided Schema Specifications"
+	title="Table 8.1: Provided Schema Specifications"
 File			Description
 core.schema		OpenLDAP {{core}} (required)
 cosine.schema		Cosine and Internet X.500 (useful)
@@ -82,7 +89,7 @@ if your organization were assigned OID {{EX:1.1}}, you could branch
 the tree as follows:
 
 !block table; colaligns="LR"; coltags="EX,N"; align=Center; \
-	title="Table 6.2: Example OID hierarchy"
+	title="Table 8.2: Example OID hierarchy"
 OID		Assignment
 1.1		Organization's OID
 1.1.1		SNMP Elements
@@ -119,7 +126,7 @@ you.  OIDs obtained using this form may be used for any purpose
 including identifying LDAP schema elements.
 
 Alternatively, OID name space may be available from a national
-authority (e.g., ANSI).
+authority (e.g., ANSI, BSI).
 
 For private experiments, OIDs under {{EX:1.1}} may be used.  The
 OID {{EX:1.1}} arc is regarded as dead name space.
@@ -129,23 +136,21 @@ H3: Name Prefix
 
 In addition to assigning a unique object identifier to each schema
 element, you should provide a least one textual name for each
-element.  The name should be both descriptive and not likely
-to clash with names of other schema elements.  In particular,
-any name you choose should not clash with present or future
-Standard Track names.
+element.  The name should be both descriptive and not likely to
+clash with names of other schema elements.  In particular, any name
+you choose should not clash with present or future Standard Track
+names.
 
-To reduce (but not eliminate) the potential for name clashes,
-the convention is to prefix names of non-Standard Track with
-a few letters to localize the changes to your organization.
-The smaller the organization, the longer your prefix should
-be.
+To reduce (but not eliminate) the potential for name clashes, the
+convention is to prefix names of non-Standard Track with a few
+letters to localize the changes to your organization.  The smaller
+the organization, the longer your prefix should be.
 
 In the examples below, we have chosen a short prefix '{{EX:my}}'
-(to save space).  Such a short prefix would only be suitable for
-a very large, global organization.  For a small, local organization,
-we recommend something like '{{EX:deFirm}}' (German company) or
-'{{EX:comExample}}' (elements associated with organization associated
-with {{EX:example.com}}).
+(to save space).  Such a short prefix would only be suitable for a
+very large, global organization.  In general, we recommend something
+like '{{EX:deFirm}}' (German company) or '{{EX:comExample}}' (elements
+associated with organization associated with {{EX:example.com}}).
 
 
 H3: Local schema file
@@ -235,7 +240,7 @@ rules.  Below are tables listing commonly used syntax and
 matching rules (OpenLDAP supports these and many more).
 
 !block table; align=Center; coltags="EX,EX,N"; \
-	title="Table 6.3: Commonly Used Syntaxes"
+	title="Table 8.3: Commonly Used Syntaxes"
 Name			OID				Description
 boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
 distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	DN
@@ -252,7 +257,7 @@ Printable String	1.3.6.1.4.1.1466.115.121.1.44	printable string
 > 
 
 !block table; align=Center; coltags="EX,N"; \
-	title="Table 6.4: Commonly Used Matching Rules"
+	title="Table 8.4: Commonly Used Matching Rules"
 Name				Type		Description
 booleanMatch			equality	boolean
 octetStringMatch		equality	octet string
