@@ -19,12 +19,13 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static ID
-next_id_read( Backend *be )
+static int
+next_id_read( Backend *be, ID *idp )
 {
-	ID id = NOID;
 	Datum key, data;
 	DBCache *db;
+
+	*idp = NOID;
 
 	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -36,35 +37,34 @@ next_id_read( Backend *be )
 			0, 0, 0 );
 #endif
 
-		return( NOID );
+		return( -1 );
 	}
 
 	ldbm_datum_init( key );
-	key.dptr = (char *) &id;
+	key.dptr = (char *) idp;
 	key.dsize = sizeof(ID);
 
 	data = ldbm_cache_fetch( db, key );
 
 	if( data.dptr != NULL ) {
-		AC_MEMCPY( &id, data.dptr, sizeof( ID ) );
+		AC_MEMCPY( idp, data.dptr, sizeof( ID ) );
 		ldbm_datum_free( db->dbc_db, data );
 
 	} else {
-		id = 1;
+		*idp = 1;
 	}
 
 	ldbm_cache_close( be, db );
-	return id;
+	return( 0 );
 }
 
-ID
+int
 next_id_write( Backend *be, ID id )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Datum key, data;
 	DBCache *db;
 	ID noid = NOID;
-	int flags;
+	int flags, rc = 0;
 
 	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -76,7 +76,7 @@ next_id_write( Backend *be, ID id )
 		    0, 0, 0 );
 #endif
 
-		return( NOID );
+		return( -1 );
 	}
 
 	ldbm_datum_init( key );
@@ -90,49 +90,58 @@ next_id_write( Backend *be, ID id )
 
 	flags = LDBM_REPLACE;
 	if ( ldbm_cache_store( db, key, data, flags ) != 0 ) {
-		id = NOID;
+		rc = -1;
 	}
 
 	ldbm_cache_close( be, db );
-	return id;
+	return( rc );
 }
 
-ID
-next_id_get( Backend *be )
+int
+next_id_get( Backend *be, ID *idp )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	ID id = NOID;
+	int rc = 0;
+
+	*idp = NOID;
 
 	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
 
 	if ( li->li_nextid == NOID ) {
-		li->li_nextid = next_id_read( be );
+		if ( ( rc = next_id_read( be, idp ) ) ) {
+			ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
+			return( rc );
+		}
+		li->li_nextid = *idp;
 	}
 
-	id = li->li_nextid;
+	*idp = li->li_nextid;
 
 	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
-	return id;
+	return( rc );
 }
 
-ID
-next_id( Backend *be )
+int
+next_id( Backend *be, ID *idp )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	ID id = NOID;
+	int rc = 0;
 
 	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
 
 	if ( li->li_nextid == NOID ) {
-		li->li_nextid = next_id_read( be );
+		if ( ( rc = next_id_read( be, idp ) ) ) {
+			ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
+			return( rc );
+		}
+		li->li_nextid = *idp;
 	}
 
-	if ( li->li_nextid != NOID ) {
-		id = li->li_nextid++;
-
-		(void) next_id_write( be, li->li_nextid );
+	*idp = li->li_nextid++;
+	if ( next_id_write( be, li->li_nextid ) ) {
+		rc = -1;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
-	return id;
+	return( rc );
 }

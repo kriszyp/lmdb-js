@@ -31,7 +31,8 @@ typedef struct ldbm_entry_info {
 #define CACHE_ENTRY_CREATING	1
 #define CACHE_ENTRY_READY		2
 #define CACHE_ENTRY_DELETED		3
-
+#define CACHE_ENTRY_DESTROY_PRIVATE	4
+	
 	int		lei_refcnt;	/* # threads ref'ing this entry */
 	Entry	*lei_lrunext;	/* for cache lru list */
 	Entry	*lei_lruprev;
@@ -134,6 +135,20 @@ cache_entry_private_init( Entry*e )
 	return 0;
 }
 
+/*
+ * assumes that the entry is write-locked;marks it i a manner that
+ * makes e_private be destroyed at the following cache_return_entry_w,
+ * but lets the entry untouched (owned by someone else)
+ */
+void
+cache_entry_private_destroy_mark( Entry *e )
+{
+	assert( e );
+	assert( e->e_private );
+
+	LEI(e)->lei_state = CACHE_ENTRY_DESTROY_PRIVATE;
+}
+
 static int
 cache_entry_private_destroy( Entry*e )
 {
@@ -179,7 +194,8 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 #endif
 
 
-	} else if ( LEI(e)->lei_state == CACHE_ENTRY_DELETED ) {
+	} else if ( LEI(e)->lei_state == CACHE_ENTRY_DELETED
+		 || LEI(e)->lei_state == CACHE_ENTRY_DESTROY_PRIVATE ) {
 		if( refcnt > 0 ) {
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
@@ -196,8 +212,12 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 
 		} else {
+			int state = LEI(e)->lei_state;
+
 			cache_entry_private_destroy( e );
-			entry_free( e );
+			if ( state == CACHE_ENTRY_DELETED ) {
+				entry_free( e );
+			}
 
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );

@@ -65,10 +65,14 @@ ID_BLOCK	*
 idl_allids( Backend *be )
 {
 	ID_BLOCK	*idl;
+	ID		id;
 
 	idl = idl_alloc( 0 );
 	ID_BLOCK_NMAX(idl) = ID_BLOCK_ALLIDS_VALUE;
-	ID_BLOCK_NIDS(idl) = next_id_get( be );
+	if ( next_id_get( be, &id ) ) {
+		return NULL;
+	}
+	ID_BLOCK_NIDS(idl) = id;
 
 	return( idl );
 }

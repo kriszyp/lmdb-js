@@ -162,7 +162,7 @@ ID ldbm_tool_entry_put(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	if( next_id_get( be ) == NOID ) {
+	if ( next_id_get( be, &id ) || id == NOID ) {
 		return NOID;
 	}
 
@@ -286,7 +286,9 @@ int ldbm_tool_sync( BackendDB *be )
 	assert( slapMode & SLAP_TOOL_MODE );
 
 	if ( li->li_nextid != NOID ) {
-		next_id_write( be, li->li_nextid );
+		if ( next_id_write( be, li->li_nextid ) ) {
+			return( -1 );
+		}
 	}
 
 	return 0;

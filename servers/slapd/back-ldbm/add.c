@@ -240,9 +240,7 @@ ldbm_back_add(
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
 
-	e->e_id = next_id( be );
-
-	if( e->e_id == NOID ) {
+	if ( next_id( be, &e->e_id ) ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
@@ -311,7 +309,7 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_TRACE, "index_entry_add failed\n", 0,
 		    0, 0 );
 #endif
-
+		
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "index generation failed", NULL, NULL );
 
@@ -327,6 +325,7 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
 		    0, 0 );
 #endif
+		/* FIXME: delete attr indices? */
 
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "DN index generation failed", NULL, NULL );
@@ -344,7 +343,9 @@ ldbm_back_add(
 		    0, 0 );
 #endif
 
+		/* FIXME: delete attr indices? */
 		(void) dn2id_delete( be, e->e_ndn, e->e_id );
+		
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "entry store failed", NULL, NULL );
 
@@ -367,6 +368,9 @@ return_results:;
 	}
 
 	if ( rc ) {
+		/* FIXME: remove from cache? */
+		cache_entry_private_destroy_mark( e );
+
 		/* free entry and writer lock */
 		cache_return_entry_w( &li->li_cache, e );
 	}
