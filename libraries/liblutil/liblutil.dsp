@@ -128,6 +128,10 @@ SOURCE=.\base64.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ac\bytes.h
+# End Source File
+# Begin Source File
+
 SOURCE="..\..\include\getopt-compat.h"
 # End Source File
 # Begin Source File
@@ -149,6 +153,10 @@ SOURCE=.\lockf.c
 # Begin Source File
 
 SOURCE=..\..\include\lutil.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\lutil_lockf.h
 # End Source File
 # Begin Source File
 
