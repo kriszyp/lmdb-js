@@ -27,7 +27,7 @@ int	backsql_compare(BackendDB *bd,
 	const char *dn, const char *ndn,
 	AttributeAssertion *ava )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_compare()\n",0,0,0);
+ Debug(LDAP_DEBUG_TRACE,"==>backsql_compare() - not implemented\n",0,0,0);
  return 0;
 }
 

@@ -57,4 +57,5 @@ extern char backsql_def_oc_query[],backsql_def_at_query[],
 
 int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from);
 
+
 #endif
