@@ -80,7 +80,9 @@ Filter *
 str2filter( const char *str )
 {
 	Operation op = {0};
+	Opheader ohdr = {0};
 
+	op.o_hdr = &ohdr;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 

@@ -202,7 +202,7 @@ int passwd_extop(
 		rs->sr_err = LDAP_OTHER;
 
 	} else {
-		op2.o_hdr = op->o_hdr;
+		op2 = *op;
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb2;
 		op2.orm_modlist = qpw->rs_mods;
