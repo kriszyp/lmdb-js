@@ -38,6 +38,9 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
+static char *style_strings[] = { "regex",
+	"base", "one", "subtree", "children", NULL };
+
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
 static void		acl_usage(void) LDAP_GCCATTR((noreturn));
@@ -280,30 +283,34 @@ parse_acl(
 						a->acl_attrval_style = ACL_STYLE_REGEX;
 					} else {
 						/* FIXME: if the attribute has DN syntax,
-						 * we might allow subtree and children styles as well */
+						 * we might allow one, subtree and children styles as well */
 						if ( !strcasecmp( style, "exact" ) ) {
 							a->acl_attrval_style = ACL_STYLE_BASE;
 
 						} else if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
 							if ( !strcasecmp( style, "base" ) ) {
 								a->acl_attrval_style = ACL_STYLE_BASE;
-							} else if ( !strcasecmp( style, "children" ) ) {
-								a->acl_attrval_style = ACL_STYLE_CHILDREN;
 							} else if ( !strcasecmp( style, "onelevel" ) || !strcasecmp( style, "one" ) ) {
 								a->acl_attrval_style = ACL_STYLE_ONE;
 							} else if ( !strcasecmp( style, "subtree" ) || !strcasecmp( style, "sub" ) ) {
 								a->acl_attrval_style = ACL_STYLE_SUBTREE;
+							} else if ( !strcasecmp( style, "children" ) ) {
+								a->acl_attrval_style = ACL_STYLE_CHILDREN;
 							} else {
 								fprintf( stderr, 
-									"%s: line %d: unknown val.<style>, got \"%s\" (ignored)\n",
-									    fname, lineno, style );
+									"%s: line %d: unknown val.<style> \"%s\" "
+									"for attributeType \"%s\" with DN syntax; using \"base\"\n",
+									fname, lineno, style,
+									a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								a->acl_attrval_style = ACL_STYLE_BASE;
 							}
 							
 						} else {
 							fprintf( stderr, 
-								"%s: line %d: unknown val.<style>, got \"%s\" (ignored)\n",
-								    fname, lineno, style );
+								"%s: line %d: unknown val.<style> \"%s\" "
+								"for attributeType \"%s\"; using \"exact\"\n",
+								fname, lineno, style,
+								a->acl_attrs[0].an_desc->ad_cname.bv_val );
 							a->acl_attrval_style = ACL_STYLE_BASE;
 						}
 					}
@@ -1590,9 +1597,6 @@ str2access( const char *str )
 }
 
 #ifdef LDAP_DEBUG
-
-static char *style_strings[5] = { "regex",
-	"base", "one", "subtree", "children" };
 
 static void
 print_access( Access *b )
