@@ -366,16 +366,16 @@ select_backend( char * dn )
 
 	dnlen = strlen( dn );
 	for ( i = 0; i < nbackends; i++ ) {
-		for ( j = 0; backends[i].be_suffix != NULL &&
-		    backends[i].be_suffix[j] != NULL; j++ )
+		for ( j = 0; backends[i].be_nsuffix != NULL &&
+		    backends[i].be_nsuffix[j] != NULL; j++ )
 		{
-			len = strlen( backends[i].be_suffix[j] );
+			len = strlen( backends[i].be_nsuffix[j] );
 
 			if ( len > dnlen ) {
 				continue;
 			}
 
-			if ( strcmp( backends[i].be_suffix[j],
+			if ( strcmp( backends[i].be_nsuffix[j],
 			    dn + (dnlen - len) ) == 0 ) {
 				return( &backends[i] );
 			}
@@ -427,8 +427,8 @@ be_issuffix(
 {
 	int	i;
 
-	for ( i = 0; be->be_suffix != NULL && be->be_suffix[i] != NULL; i++ ) {
-		if ( strcmp( be->be_suffix[i], suffix ) == 0 ) {
+	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
+		if ( strcmp( be->be_nsuffix[i], suffix ) == 0 ) {
 			return( 1 );
 		}
 	}

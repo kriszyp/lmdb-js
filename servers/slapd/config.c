@@ -179,8 +179,10 @@ read_config( char *fname )
 				    fname, lineno, 0 );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
-				(void) dn_normalize_case( dn );
+				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
+				(void) dn_upcase( dn );
+				charray_add( &be->be_nsuffix, dn );
 				free( dn );
 			}
 
