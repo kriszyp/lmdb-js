@@ -212,6 +212,41 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifndef BDB_HIER
+	rc = bdb_dn2id_children( be, ltid, &e->e_nname, 0 );
+	if ( rc != DB_NOTFOUND ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		case 0:
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_modrdn: non-leaf %s\n", dn->bv_val, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_ARGS,
+				"<=- bdb_modrdn: non-leaf %s\n",
+				dn->bv_val, 0, 0);
+#endif
+			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
+			text = "subtree rename not supported";
+			break;
+		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, ERR, 
+				"<=- bdb_modrdn: has_children failed %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+#else
+			Debug(LDAP_DEBUG_ARGS,
+				"<=- bdb_modrdn: has_children failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+#endif
+			rc = LDAP_OTHER;
+			text = "internal error";
+		}
+		goto return_results;
+	}
+#endif
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
