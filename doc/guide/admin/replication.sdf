@@ -201,12 +201,12 @@ or is allowed {{EX:access}} by one or more access directives).
 should return if an update request is received.
 
 
-H3: Shut down the master {{slapd}}
+H3: Shut down the master server
 
 In order to ensure that the slave starts with an exact copy of the
 master's data, you must shut down the master slapd. Do this by
-sending the master slapd process an interrupt signal with {{EX:kill
--INT <pid>}}, where {{EX:<pid>}} is the process-id of the master
+sending the master slapd process an interrupt signal with
+{{EX:kill -INT <pid>}}, where {{EX:<pid>}} is the process-id of the master
 slapd process.
 
 If you like, you may restart the master slapd in read-only mode
