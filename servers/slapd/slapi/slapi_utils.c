@@ -2229,7 +2229,13 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 		return rc;
 
 	/* Returns pointer to static string */
-	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls, 1 );
+	connAuthType = Authorization2AuthType( &conn->c_authz,
+#ifdef HAVE_TLS
+		conn->c_is_tls,
+#else
+		0,
+#endif
+		1 );
 	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
 		if ( rc != LDAP_SUCCESS )
@@ -2237,7 +2243,13 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 	}
 
 	/* Returns pointer to allocated string */
-	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls, 0 );
+	connAuthType = Authorization2AuthType( &conn->c_authz,
+#ifdef HAVE_TLS
+		conn->c_is_tls,
+#else
+		0,
+#endif
+		0 );
 	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
 		if ( rc != LDAP_SUCCESS )
@@ -2331,7 +2343,11 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 	Connection *conn;
 
 	slapi_pblock_get( pb, SLAPI_CONNECTION, &conn );
+#ifdef HAVE_TLS
 	*isSSL = conn->c_is_tls;
+#else
+	*isSSL = 0;
+#endif
 
 	return LDAP_SUCCESS;
 #else
