@@ -3,6 +3,10 @@
 
 #include <ldap_cdefs.h>
 
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>		/* Needed in add.c compare.c struct timeval */
+#endif
+
 #include "external.h"
 
 LDAP_BEGIN_DECL
