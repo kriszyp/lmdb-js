@@ -313,9 +313,12 @@ bdb_idl_fetch_key(
 	 * stack space is too limited.
 	 *
 	 * configure now requires Berkeley DB 4.1.
-	 * if using 4.0, set BDB_ENOUGH to 5
 	 */
-#define BDB_ENOUGH 1
+#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 0)
+#	define BDB_ENOUGH 5
+#else
+#	define BDB_ENOUGH 1
+#endif
 	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
 
 	char keybuf[16];
