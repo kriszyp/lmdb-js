@@ -83,7 +83,11 @@ ldap_send_initial_request(
 	LDAPURLDesc	*servers;
 	int rc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_send_initial_request\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
+#endif
 
 	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
@@ -94,9 +98,14 @@ ldap_send_initial_request(
 			return( -1 );
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+			"ldap_send_initial_request: ldap_open_defconn: successful\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_open_defconn: successful\n",
 			0, 0, 0 );
+#endif
 	}
 
 	{
@@ -141,7 +150,11 @@ ldap_send_server_request(
 	LDAPRequest	*lr;
 	int incparent;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_send_server_request\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_server_request\n", 0, 0, 0 );
+#endif
 
 	incparent = 0;
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
@@ -249,7 +262,11 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	LDAPURLDesc	*srv;
 	Sockbuf		*sb = NULL;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_new_connection\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection\n", 0, 0, 0 );
+#endif
 	/*
 	 * make a new LDAP server connection
 	 * XXX open connection synchronously for now
@@ -311,7 +328,12 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 				++lc->lconn_refcnt;	/* avoid premature free */
 				ld->ld_defconn = lc;
 
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+					"ldap_new_connection: Call application rebind_proc\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "Call application rebind_proc\n", 0, 0, 0);
+#endif
 				err = (*ld->ld_rebind_proc)( ld,
 					bind->ri_url, bind->ri_request, bind->ri_msgid,
 					ld->ld_rebind_params );
@@ -331,7 +353,12 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 			++lc->lconn_refcnt;	/* avoid premature free */
 			ld->ld_defconn = lc;
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+				"ldap_new_connection: anonymous rebind via ldap_bind_s\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "anonymous rebind via ldap_bind_s\n", 0, 0, 0);
+#endif
 			if ( ldap_bind_s( ld, "", "", LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 				err = -1;
 			}
@@ -394,7 +421,11 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 {
 	LDAPConn	*tmplc, *prevlc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_free_connection\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_free_connection\n", 0, 0, 0 );
+#endif
 
 	if ( force || --lc->lconn_refcnt <= 0 ) {
 		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
@@ -440,12 +471,22 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			LDAP_FREE( lc->lconn_rebind_queue);
 		}
 		LDAP_FREE( lc );
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_RESULTS, 
+			"ldap_free_connection: actually freed\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
 		    0, 0, 0 );
+#endif
 	} else {
 		lc->lconn_lastused = time( NULL );
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_RESULTS, 
+			"ldap_free_connection: refcnt %d\n", lc->lconn_refcnt ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: refcnt %d\n",
 		    lc->lconn_refcnt, 0, 0 );
+#endif
 	}
 }
 
@@ -570,8 +611,14 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 {
 	LDAPRequest     **ttmplr;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ARGS, 
+		"ldap_free_request (origid %d, msgid %d)\n",
+		lr->lr_origid, lr->lr_msgid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",
 		lr->lr_origid, lr->lr_msgid, 0 );
+#endif
 
 	if ( lr->lr_parent != NULL ) {
 		--lr->lr_parent->lr_outrefcnt;
@@ -617,7 +664,11 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 	*hadrefp = 0;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_chase_v3referrals\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referrals\n", 0, 0, 0 );
+#endif
 
 	unfollowed = NULL;
 	rc = count = 0;
@@ -630,8 +681,14 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 
 	/* Check for hop limit exceeded */
 	if ( lr->lr_parentcnt >= ld->ld_refhoplimit ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+			"ldap_chase_v3referrals: more than %d referral hops (dropping)\n",
+			ld->ld_refhoplimit ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "more than %d referral hops (dropping)\n", ld->ld_refhoplimit, 0, 0 );
+#endif
 		ld->ld_errno = LDAP_REFERRAL_LIMIT_EXCEEDED;
 	    rc = -1;
 		goto done;
@@ -679,9 +736,15 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				 * if two search references come in one behind the other
 				 * for the same server with different contexts.
 				 */
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+					"ldap_chase_v3referrals: queue referral \"%s\"\n",
+					refarray[i] ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldap_chase_v3referrals: queue referral \"%s\"\n",
 					refarray[i], 0, 0);
+#endif
 				if( lc->lconn_rebind_queue == NULL ) {
 					/* Create a referral list */
 					lc->lconn_rebind_queue =
@@ -743,9 +806,15 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			goto done;
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+			"ldap_chase_v3referrals: msgid %d, url \"%s\"\n",
+			lr->lr_msgid, refarray[i] ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chase_v3referral: msgid %d, url \"%s\"\n",
 			lr->lr_msgid, refarray[i], 0);
+#endif
 
 		/* Send the new request to the server - may require a bind */
 		rinfo.ri_msgid = origreq->lr_origid;
@@ -753,8 +822,14 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		if ( (rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
 		    	origreq, srv, NULL, &rinfo )) < 0 ) {
 			/* Failure, try next referral in the list */
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "request", LDAP_LEVEL_ERR, 
+			"ldap_chase_v3referrals: Unable to chase referral \"%s\" (%s)\n",
+			refarray[i], ldap_err2string( ld->ld_errno ) ));
+#else
 			Debug( LDAP_DEBUG_ANY, "Unable to chase referral \"%s\" (%s)\n", 
 				refarray[i], ldap_err2string( ld->ld_errno ), 0);
+#endif
 			unfollowedcnt += ldap_append_referral( ld, &unfollowed, refarray[i]);
 			ldap_free_urllist(srv);
 			srv = NULL;
@@ -831,7 +906,11 @@ ldap_chase_referrals( LDAP *ld,
 	BerElement	*ber;
 	LDAPreqinfo  rinfo;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, "ldap_chase_referrals\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_chase_referrals\n", 0, 0, 0 );
+#endif
 
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 	*hadrefp = 0;
@@ -854,9 +933,15 @@ ldap_chase_referrals( LDAP *ld,
 	}
 
 	if ( lr->lr_parentcnt >= ld->ld_refhoplimit ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_ENTRY, 
+			"ldap_chase_referrals: more than %d referral hops (dropping)\n",
+			ld->ld_refhoplimit ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "more than %d referral hops (dropping)\n",
 		    ld->ld_refhoplimit, 0, 0 );
+#endif
 		    /* XXX report as error in ld->ld_errno? */
 		    return( 0 );
 	}
@@ -881,8 +966,14 @@ ldap_chase_referrals( LDAP *ld,
 		rc = ldap_url_parse_ext( ref, &srv );
 
 		if ( rc != LDAP_URL_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+				"ldap_chase_referrals: ignoring unknown referral <%s>\n",
+				ref ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
+#endif
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
 			continue;
@@ -893,8 +984,13 @@ ldap_chase_referrals( LDAP *ld,
 			srv->lud_dn = NULL;
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1, 
+			"ldap_chase_referrals: chasing LDAP referral <%s>\n", ref ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 		    "chasing LDAP referral: <%s>\n", ref, 0, 0 );
+#endif
 
 		*hadrefp = 1;
 
@@ -918,9 +1014,15 @@ ldap_chase_referrals( LDAP *ld,
 		if( rc >= 0 ) {
 			++count;
 		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "request", LDAP_LEVEL_ERR, 
+				"ldap_chase_referrals: Unable to chase referral <%s>\n", 
+				ldap_err2string( ld->ld_errno) ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			    "Unable to chase referral (%s)\n", 
 			    ldap_err2string( ld->ld_errno ), 0, 0 );
+#endif
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
 
@@ -986,10 +1088,17 @@ re_encode_request( LDAP *ld,
 	char		*orig_dn;
 	char		*dn;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "request", LDAP_LEVEL_ARGS, 
+		"re_encode_request: new msgid %ld, new dn <%s>\n",
+		(long) msgid, 
+		( srv == NULL || srv->lud_dn == NULL ) ? "NONE" : srv->lud_dn ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 	    "re_encode_request: new msgid %ld, new dn <%s>\n",
 	    (long) msgid,
 		( srv == NULL || srv->lud_dn == NULL) ? "NONE" : srv->lud_dn, 0 );
+#endif
 
 	tmpber = *origber;
 
@@ -1080,8 +1189,13 @@ re_encode_request( LDAP *ld,
 
 #ifdef LDAP_DEBUG
 	if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "request", LDAP_LEVEL_DETAIL1,
+			"re_encode_request: new request is:\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "re_encode_request new request is:\n",
 		    0, 0, 0 );
+#endif
 		ber_log_dump( LDAP_DEBUG_BER, ldap_debug, ber, 0 );
 	}
 #endif /* LDAP_DEBUG */
