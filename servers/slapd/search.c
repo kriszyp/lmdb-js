@@ -34,8 +34,8 @@ do_search(
 	ber_int_t	scope, deref, attrsonly;
 	ber_int_t	sizelimit, timelimit;
 	struct berval base = { 0, NULL };
-	struct berval *pbase = NULL;
-	struct berval *nbase = NULL;
+	struct berval pbase = { 0, NULL };
+	struct berval nbase = { 0, NULL };
 	struct berval	fstr = { 0, NULL };
 	Filter		*filter = NULL;
 	struct berval	**attrs = NULL;
@@ -109,7 +109,7 @@ do_search(
 		goto return_results;
 	}
 
-	rc = dnPretty( NULL, &base, &pbase );
+	rc = dnPrettyNormal( NULL, &base, &pbase, &nbase );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
@@ -123,22 +123,6 @@ do_search(
 		    "invalid DN", NULL, NULL );
 		goto return_results;
 	}
-
-	rc = dnNormalize( NULL, &base, &nbase );
-	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_searc: conn %d  invalid dn (%s)\n",
-			conn->c_connid, base.bv_val ));
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
-#endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto return_results;
-	}
-
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
@@ -221,14 +205,14 @@ do_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    op->o_connid, op->o_opid, pbase->bv_val, scope, fstr.bv_val );
+	    op->o_connid, op->o_opid, pbase.bv_val, scope, fstr.bv_val );
 
 	manageDSAit = get_manageDSAit( op );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
-		if ( strcasecmp( nbase->bv_val, LDAP_ROOT_DSE ) == 0 ) {
+		if ( strcasecmp( nbase.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef LDAP_CONNECTIONLESS
 			/* Ignore LDAPv2 CLDAP DSE queries */
 			if (op->o_protocol==LDAP_VERSION2 && conn->c_is_udp) {
@@ -247,7 +231,7 @@ do_search(
 		}
 
 #if defined( SLAPD_SCHEMA_DN )
-		else if ( strcasecmp( nbase->bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+		else if ( strcasecmp( nbase.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 			/* check restrictions */
 			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 			if( rc != LDAP_SUCCESS ) {
@@ -282,14 +266,12 @@ do_search(
 		}
 	}
 
-	if( !nbase->bv_len && default_search_nbase.bv_len ) {
-		ch_free( base.bv_val );
-		ch_free( nbase->bv_val );
+	if( !nbase.bv_len && default_search_nbase.bv_len ) {
+		ch_free( pbase.bv_val );
+		ch_free( nbase.bv_val );
 
-		base.bv_val = ch_strdup( default_search_base.bv_val );
-		base.bv_len = default_search_base.bv_len;
-		nbase->bv_val = ch_strdup( default_search_nbase.bv_val );
-		nbase->bv_len = default_search_nbase.bv_len;
+		ber_dupbv( &pbase, &default_search_base );
+		ber_dupbv( &nbase, &default_search_nbase );
 	}
 
 	/*
@@ -297,9 +279,9 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
+	if ( (be = select_backend( &nbase, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, pbase, scope );
+			NULL, &pbase, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -317,17 +299,17 @@ do_search(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, pbase, nbase );
+	rc = backend_check_referrals( be, conn, op, &pbase, &nbase );
 	if ( rc != LDAP_SUCCESS ) {
 		goto return_results;
 	}
 
 	/* deref the base if needed */
-	suffix_alias( be, nbase );
+	suffix_alias( be, &nbase );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, pbase, nbase,
+		(*be->be_search)( be, conn, op, &pbase, &nbase,
 			scope, deref, sizelimit,
 		    timelimit, filter, fstr.bv_val, attrs, attrsonly );
 	} else {
@@ -337,8 +319,8 @@ do_search(
 
 return_results:;
 	free( base.bv_val );
-	if( pbase != NULL) ber_bvfree( pbase );
-	if( nbase != NULL) ber_bvfree( nbase );
+	if( pbase.bv_val != NULL) free( pbase.bv_val );
+	if( nbase.bv_val != NULL) free( nbase.bv_val );
 
 	if( fstr.bv_val != NULL) free( fstr.bv_val );
 	if( filter != NULL) filter_free( filter );

@@ -38,8 +38,8 @@ do_bind(
 	ber_tag_t method;
 	char *mech = NULL;
 	struct berval dn = { 0, NULL };
-	struct berval *pdn = NULL;
-	struct berval *ndn = NULL;
+	struct berval pdn = { 0, NULL };
+	struct berval ndn = { 0, NULL };
 	ber_tag_t tag;
 	int	rc = LDAP_SUCCESS;
 	const char *text;
@@ -151,22 +151,7 @@ do_bind(
 		goto cleanup;
 	} 
 
-	rc = dnPretty( NULL, &dn, &pdn );
-	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_bind: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
-#else
-		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n",
-			dn.bv_val, 0, 0 );
-#endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
-	rc = dnNormalize( NULL, &dn, &ndn );
+	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
@@ -185,10 +170,10 @@ do_bind(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation",	 LDAP_LEVEL_DETAIL1,
 			"do_sasl_bind: conn %d  dn (%s) mech %s\n", conn->c_connid,
-			pdn->bv_val, mech ));
+			pdn.bv_val, mech ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
-			pdn->bv_val, mech, NULL );
+			pdn.bv_val, mech, NULL );
 #endif
 
 	} else {
@@ -196,17 +181,17 @@ do_bind(
 		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 			"do_bind: conn %d  version=%ld dn=\"%s\" method=%ld\n",
 			conn->c_connid, (unsigned long) version,
-			pdn->bv_val, (unsigned long)method ));
+			pdn.bv_val, (unsigned long)method ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
 			(unsigned long) version,
-			pdn->bv_val, (unsigned long) method );
+			pdn.bv_val, (unsigned long) method );
 #endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d BIND dn=\"%s\" method=%ld\n",
-	    op->o_connid, op->o_opid, pdn->bv_val, (unsigned long) method, 0 );
+	    op->o_connid, op->o_opid, pdn.bv_val, (unsigned long) method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 #ifdef NEW_LOGGING
@@ -292,7 +277,7 @@ do_bind(
 
 		edn = NULL;
 		rc = slap_sasl_bind( conn, op,
-			pdn, ndn,
+			&pdn, &ndn,
 			&cred, &edn, &ssf );
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
@@ -350,7 +335,7 @@ do_bind(
 
 	if ( method == LDAP_AUTH_SIMPLE ) {
 		/* accept "anonymous" binds */
-		if ( cred.bv_len == 0 || ndn->bv_len == 0 ) {
+		if ( cred.bv_len == 0 || ndn.bv_len == 0 ) {
 			rc = LDAP_SUCCESS;
 			text = NULL;
 
@@ -360,7 +345,7 @@ do_bind(
 				/* cred is not empty, disallow */
 				rc = LDAP_INVALID_CREDENTIALS;
 
-			} else if ( ndn->bv_len &&
+			} else if ( ndn.bv_len &&
 				!( global_allows & SLAP_ALLOW_BIND_ANON_DN ))
 			{
 				/* DN is not empty, disallow */
@@ -402,11 +387,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "do_bind: conn %d  v%d simple bind(%s) disallowed\n",
-				   conn->c_connid, version, ndn ));
+				   conn->c_connid, version, ndn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d simple bind(%s) disallowed\n",
-				version, ndn, 0 );
+				version, ndn.bv_val, 0 );
 #endif
 			goto cleanup;
 		}
@@ -456,10 +441,10 @@ do_bind(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( ndn, 0, 0 )) == NULL ) {
+	if ( (be = select_backend( &ndn, 0, 0 )) == NULL ) {
 		if ( default_referral ) {
 			struct berval **ref = referral_rewrite( default_referral,
-				NULL, pdn, LDAP_SCOPE_DEFAULT );
+				NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				NULL, NULL, ref ? ref : default_referral, NULL );
@@ -491,10 +476,10 @@ do_bind(
 		struct berval edn = { 0, NULL };
 
 		/* deref suffix alias if appropriate */
-		suffix_alias( be, ndn );
+		suffix_alias( be, &ndn );
 
 		ret = (*be->be_bind)( be, conn, op,
-			pdn, ndn, method, &cred, &edn );
+			&pdn, &ndn, method, &cred, &edn );
 
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
@@ -502,16 +487,15 @@ do_bind(
 			if(edn.bv_len) {
 				conn->c_dn = edn;
 			} else {
-				conn->c_dn.bv_val = ch_strdup( pdn->bv_val );
-				conn->c_dn.bv_len = pdn->bv_len;
+				ber_dupbv( &conn->c_dn, &pdn );
 			}
-			conn->c_cdn = pdn->bv_val;
-			pdn->bv_val = NULL;
-			pdn->bv_len = 0;
+			conn->c_cdn = pdn.bv_val;
+			pdn.bv_val = NULL;
+			pdn.bv_len = 0;
 
-			conn->c_ndn = *ndn;
-			ndn->bv_val = NULL;
-			ndn->bv_len = 0;
+			conn->c_ndn = ndn;
+			ndn.bv_val = NULL;
+			ndn.bv_len = 0;
 
 			if( conn->c_dn.bv_len != 0 ) {
 				ber_len_t max = sockbuf_max_incoming;
@@ -547,11 +531,11 @@ do_bind(
 
 cleanup:
 	free( dn.bv_val );
-	if( pdn != NULL ) {
-		ber_bvfree( pdn );
+	if( pdn.bv_val != NULL ) {
+		free( pdn.bv_val );
 	}
-	if( ndn != NULL ) {
-		ber_bvfree( ndn );
+	if( ndn.bv_val != NULL ) {
+		free( ndn.bv_val );
 	}
 	if ( mech != NULL ) {
 		free( mech );

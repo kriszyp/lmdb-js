@@ -86,46 +86,19 @@ do_add( Connection *conn, Operation *op )
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
-	{
-		struct berval *pdn = NULL;
-		rc = dnPretty( NULL, &dn, &pdn );
+	rc = dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname );
 
-		if( rc != LDAP_SUCCESS ) {
+	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
 				dn.bv_val ));
 #else
-			Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
-			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 			    "invalid DN", NULL, NULL );
-			goto done;
-		}
-
-		e->e_name = *pdn;
-		free( pdn );
-	}
-
-	{
-		struct berval *ndn = NULL;
-		rc = dnNormalize( NULL, &dn, &ndn );
-
-		if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
-				dn.bv_val ));
-#else
-			Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
-			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-			    "invalid DN", NULL, NULL );
-			goto done;
-		}
-
-		e->e_nname = *ndn;
-		free( ndn );
+		goto done;
 	}
 
 #ifdef NEW_LOGGING

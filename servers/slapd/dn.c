@@ -420,6 +420,86 @@ dnPretty(
 }
 
 /*
+ * Combination of both dnPretty and dnNormalize
+ */
+int
+dnPrettyNormal(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *pretty,
+	struct berval *normal)
+{
+	Debug( LDAP_DEBUG_TRACE, ">>> dnPrettyNormal: <%s>\n", val->bv_val, 0, 0 );
+
+	assert( val );
+	assert( pretty );
+	assert( normal );
+
+	if ( val->bv_len != 0 ) {
+		LDAPDN		*dn = NULL;
+		char		*dn_out = NULL;
+		int		rc;
+
+		pretty->bv_val = NULL;
+		normal->bv_val = NULL;
+		pretty->bv_len = 0;
+		normal->bv_len = 0;
+
+		/* FIXME: should be liberal in what we accept */
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/*
+		 * Schema-aware rewrite
+		 */
+		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
+			ldap_dnfree( dn );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		rc = ldap_dn2str( dn, &dn_out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_dnfree( dn );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		ber_str2bv( dn_out, 0, 0, pretty );
+
+		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
+			ldap_dnfree( dn );
+			free( pretty->bv_val );
+			pretty->bv_val = NULL;
+			pretty->bv_len = 0;
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
+
+		ldap_dnfree( dn );
+		if ( rc != LDAP_SUCCESS ) {
+			free( pretty->bv_val );
+			pretty->bv_val = NULL;
+			pretty->bv_len = 0;
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		ber_str2bv( dn_out, 0, 0, normal );
+	} else {
+		ber_dupbv( pretty, val );
+		ber_dupbv( normal, val );
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<<< dnPrettyNormal: <%s>, <%s>\n",
+		pretty->bv_val, normal->bv_val, 0 );
+
+	return LDAP_SUCCESS;
+}
+
+/*
  * dnMatch routine
  */
 int

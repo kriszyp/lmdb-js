@@ -362,6 +362,12 @@ LDAP_SLAPD_F (int) dnPretty LDAP_P((
 	struct berval *val, 
 	struct berval **pretty ));
 
+LDAP_SLAPD_F (int) dnPrettyNormal LDAP_P(( 
+	Syntax *syntax, 
+	struct berval *val, 
+	struct berval *pretty,
+	struct berval *normal ));
+
 LDAP_SLAPD_F (int) dnMatch LDAP_P(( 
 	int *matchp, 
 	slap_mask_t flags, 
