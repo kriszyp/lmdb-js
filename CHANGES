@@ -1,6 +1,11 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP Stable 
+	CVS Tag: OPENLDAP_STABLE_981105
+	Updated manual pages.
+	Fixed libldif/line64 bug
+
+Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE_981027
 	Fixed slapd filter.c to error on stderr
 	Fixed slapd/back-ldbm/group.c member bug
