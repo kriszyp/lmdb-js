@@ -6,7 +6,6 @@
 ##
 
 LIBRARY		= libldbm.a
-XPROGRAMS	= testldbm
 SRCS		= ldbm.c
 OBJS		= ldbm.o
 
@@ -18,7 +17,4 @@ CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
 
 XLIBS		= -lldbm -lavl
 XXLIBS		= $(LDBM_LIBS)
-
-testldbm:	libldbm.a testldbm.o
-	$(CC) $(LDFLAGS) -o $@ testldbm.o $(LIBS)
 

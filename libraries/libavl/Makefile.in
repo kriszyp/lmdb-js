@@ -17,4 +17,4 @@ PROGRAMS	= testavl
 XLIBS = -lavl
 
 testavl:	$(LIBRARY) testavl.o
-	$(LTLINK) $(LDFLAGS) -o $@ testavl.o $(LIBS)
+	$(LTLINK) -o $@ testavl.o $(LIBS)
