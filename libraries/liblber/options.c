@@ -211,7 +211,7 @@ ber_set_option(
 
 	case LBER_OPT_BER_MEMCTX:
 		assert( LBER_VALID( ber ) );
-		ber->ber_memctx = (void *)invalue;
+		ber->ber_memctx = *(void **)invalue;
 		return LBER_OPT_SUCCESS;
 
 	default:

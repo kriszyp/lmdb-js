@@ -386,7 +386,7 @@ do_syncrepl(
 
 	/* setup LDAP SYNC control */
 	sync_ber = ber_alloc_t( LBER_USE_DER );
-	ber_set_option( sync_ber, LBER_OPT_BER_MEMCTX, op.o_tmpmemctx );
+	ber_set_option( sync_ber, LBER_OPT_BER_MEMCTX, &op.o_tmpmemctx );
 
 	if ( si->syncCookie ) {
 		ber_printf( sync_ber, "{eO}", abs(si->type), si->syncCookie );
@@ -520,7 +520,7 @@ do_syncrepl(
 				if ( rctrls ) {
 					rctrlp = *rctrls;
 					ctrl_ber = ber_alloc_t( LBER_USE_DER );
-					ber_set_option( ctrl_ber, LBER_OPT_BER_MEMCTX, op.o_tmpmemctx );
+					ber_set_option( ctrl_ber, LBER_OPT_BER_MEMCTX, &op.o_tmpmemctx );
 					ber_write( ctrl_ber, rctrlp->ldctl_value.bv_val, rctrlp->ldctl_value.bv_len, 0 );
 					ber_reset( ctrl_ber, 1 );
 
@@ -787,7 +787,7 @@ syncrepl_message_to_entry(
 	if ( rctrls ) {
 		rctrlp = *rctrls;
 		ctrl_ber = ber_alloc_t( LBER_USE_DER );
-		ber_set_option( ctrl_ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+		ber_set_option( ctrl_ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 		ber_write( ctrl_ber, rctrlp->ldctl_value.bv_val, rctrlp->ldctl_value.bv_len, 0 );
 		ber_reset( ctrl_ber, 1 );
 		ber_scanf( ctrl_ber, "{eo", syncstate, syncUUID );

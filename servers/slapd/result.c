@@ -240,7 +240,7 @@ send_ldap_response(
 #endif
 	{
 		ber_init_w_nullc( ber, LBER_USE_DER );
-		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 	}
 
 #ifdef NEW_LOGGING
@@ -649,7 +649,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
 
 		ber_init2( ber, &bv, LBER_USE_DER );
-		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1297,7 +1297,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 	{
 		ber_init_w_nullc( ber, LBER_USE_DER );
-		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 	}
 
 	rc = ber_printf( ber, "{it{W}" /*"}"*/ , op->o_msgid,

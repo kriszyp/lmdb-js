@@ -44,7 +44,7 @@ str2filter_x( Operation *op, const char *str )
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 	if ( op->o_tmpmemctx ) {
-		ber_set_option( ber, LBER_OPT_BER_MEMCTX, op->o_tmpmemctx );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 	}
 
 	rc = ldap_pvt_put_filter( ber, str );

@@ -934,7 +934,7 @@ connection_operation( void *ctx, void *arg_v )
 		 * regular memory; this only affects subsequent mallocs that
 		 * ber_scanf may invoke.
 		 */
-		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
+		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx );
 	}
 
 	switch ( tag ) {
@@ -1088,7 +1088,8 @@ operations_error:
 
 co_op_free:
 
-	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, NULL );
+	memctx = NULL;
+	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx );
 	slap_op_free( op );
 
 no_co_op_free:
