@@ -58,7 +58,7 @@ H2: Immediate Superior Knowledge Information
 
 Immediate superior knowledge information may be provided in the
 entry at the root of a delegated subtree.  The knowledge information
-is contained with {{ref}} operational attribute.
+is contained with {{EX:ref}} operational attribute.
 
 Extending the example above, a {{ref}} attribute can be added
 to the entry {{EX:dc=subtree,dc=example,dc=net}} in server B indicating
@@ -72,7 +72,7 @@ that A holds the immediate superior naming context.
 The server uses this information to generate referrals to
 management operations.
 
-For those familiar with X.500, this use of the {{ref}} attribute
+For those familiar with X.500, this use of the {{EX:ref}} attribute
 is similar to an X.500 knowledge reference held in a
 {{immSupr}} {{TERM:DSE}}.
 !endif
@@ -100,11 +100,11 @@ The server uses this information to generate referrals to
 operations acting upon operations not within or subordinate
 to any of the naming contexts held by the server.
 
-For those familiar with X.500, this use of the {{ref}} attribute
+For those familiar with X.500, this use of the {{EX:ref}} attribute
 is similar to an X.500 knowledge reference held in a
 {{Supr}} {{TERM:DSE}}.
 
-H2: ManageDSAit
+H2: The ManageDsaIT Control
 
 Adding, modify, and deleting referral objects is generally done
 using {{ldapmodify}}(1) or similar tools which support the

@@ -7,15 +7,13 @@ H1: A Quick-Start Guide to Running slapd
 This chapter provides a quick step-by-step guide to building,
 installing and running {{slapd}}(8). It is intended to provide
 users with a simple and quick way to get started only.
-If you intend to run slapd seriously, you should read the rest
+If you intend to run {{slapd}} seriously, you should read the rest
 of this guide.
 
 
 Note: This guide does not use strong authentication nor any
 privacy and integrity protection services.  These services are
-described in detail in later chapters.  This guide should
-only be used in isolated environments (such as on a single
-host protected by a firewall).
+described in detail in later chapters.
 
 
 ^{{B:Get the software}}.
@@ -71,7 +69,8 @@ is installed into {{F:/usr/local}}.  This is typically done as root.
 +{{B:Edit the configuration file}}.
 
 .Use this chapter as a brief tutorial.  For more details on the
-configuration file, see slapd.conf(5) and chapter 5.
+configuration file, see slapd.conf(5) and the
+{{SECT:The slapd Configuration File}} chapter of this document.
 
 .Now we need to edit the default configuration file that was
 installed earlier.  The {{slapd}} configuration file {{slapd.conf}}(5)
@@ -133,7 +132,7 @@ mechanisms.  These are described in later chapters.
 . At this point the LDAP server is up and running, but there isn't
 any data in the directory.  You can check to see if the server is
 running and your naming context (the {{EX:suffix}} you specified above)
-by searching it with {{ldapsearch}}(1).  By default ldapsearch is
+by searching it with {{ldapsearch}}(1).  By default, ldapsearch is
 installed as {{F:/usr/local/bin/ldapsearch}}.
 
 ..{{EX:ldapsearch -x -b '' -s base '(objectclass=*)' namingContexts}}
@@ -151,7 +150,8 @@ special characters from interpreted by the shell.  This should return:
 . This is a two-step process. The first step is to create a file
 (we'll call it {{F:example.ldif}}) containing the entries you
 want your database to contain. Use the following example as a
-guide, or see Section 7.3 for more details.
+guide, or see {{Database Creation and Maintenance Tools}} section
+of this document for more details.
 
 ..{{EX:dn: dc=example, dc=net}}
 ..{{EX:objectclass: dcObject}}
@@ -203,7 +203,8 @@ database grants {{read access to everybody}} excepting the
 {{super-user}} (as specified by the {{EX:rootdn}} configuration
 directive).  It is highly recommended that you establish controls
 to restrict access to authorized users.  Access controls are discussed
-in a later chapter.
+in the {{SECT:Access Control}} section of the
+{{SECT:The slapd Configuration File}} chapter.
 
 The following chapters provide more detailed information on making,
 installing, and running {{slapd}}(8).

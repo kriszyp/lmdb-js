@@ -348,7 +348,7 @@ and exit, use the command
 >	slurpd -r /usr/tmp/replog.slave.example.com:389 -o
 
 
-H2: Replication from a slapd directory server to an X.500 DSA
+H2: Replication to an X.500 DSA
 
 In mixed environments where both X.500 DSAs and slapd
 are used, it may be desirable to replicate changes from a

@@ -1,11 +1,13 @@
 # $OpenLDAP$
 # Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
-H1: Introduction to slapd and slurpd
+H1: Introduction to OpenLDAP Directory Services
 
-This document describes how to build, configure, and run the stand-alone
-{{TERM:LDAP}} daemon, {{slapd}}(8) and the stand-alone LDAP update replication
-daemon, {{slurpd}}(8). It is intended for newcomers and experienced
+This document describes how to build, configure, and operate OpenLDAP
+software to provide directory services.  This includes details on
+how to configure and run the stand-alone {{TERM:LDAP}} daemon,
+{{slapd}}(8) and the stand-alone LDAP update replication daemon,
+{{slurpd}}(8). It is intended for newcomers and experienced
 administrators alike. This section provides a basic introduction to
 directory services and, in particular, the directory services provided
 by {{slapd}}(8).
@@ -222,21 +224,20 @@ H2: What about X.500?
 
 Technically, LDAP is a directory access protocol to an {{TERM:X.500}}
 directory service, the {{TERM:OSI}} directory service.  Initial
-LDAP servers were were gateway between LDAP and the X.500
-{{TERM[expand]DAP}} ({{TERM:DAP}}).
-DAP is a heavyweight protocol that runs over a full OSI protocol stack
-and requires a significant amount of computing resources to run.
-LDAP is designed to operate over {{TERM:TCP}}/{{TERM:IP}} and provides
-most of the functionality of DAP at a much lower cost.
+LDAP servers were gateway between LDAP and the X.500 {{TERM[expand]DAP}}
+({{TERM:DAP}}).  DAP is a heavyweight protocol that operates over a full
+OSI protocol stack and requires a significant amount of computing
+resources.  LDAP is designed to operate over {{TERM:TCP}}/{{TERM:IP}}
+and provides most of the functionality of DAP at a much lower cost.
 
 This use of LDAP makes it easy to access the X.500 directory, but still
 requires a full X.500 service to make data available to the many LDAP
 clients being developed. As with full X.500 DAP clients, a full X.500
-DAP server is no small piece of software to run.
+DAP server is no small piece of software to operate.
 
 The stand-alone LDAP daemon, or {{slapd}}(8), is meant to remove much
 of the burden from the server side just as LDAP itself removed much of
-the burden from clients. If you are already running an X.500 DAP service
+the burden from clients. If you are already running a X.500 DAP service
 and you want to continue to do so, you can probably stop reading this
 guide, which is all about running LDAP via {{slapd}}, without running
 X.500 DAP. If you are not running X.500 DAP, want to stop running
@@ -245,7 +246,10 @@ X.500 DAP, or have no immediate plans to run X.500 DAP, read on.
 It is possible to replicate data from a {{slapd}} directory 
 server to a X.500 {{TERM:DSA}}, which allows your organization to
 make your data available as part of the global X.500 DAP directory
-service on a "read-only" basis. This is discussed in section 11.6.
+service on a {{read-only}} basis.  See the
+{{SECT:Replication to an X.500 DSA}}
+section in the
+{{SECT:Replication with slurpd}} chapter of this document.
 
 Another way to make data in a {{slapd}} server available to the
 X.500 community would be by using a X.500 DAP to LDAP gateway. At
@@ -264,3 +268,6 @@ replicas might be down or unreachable when a change comes through;
 {{slurpd}} handles retrying failed requests automatically. 
 {{slapd}} and {{slurpd}} communicate through a simple text 
 file that is used to log changes.
+
+See the {{SECT:Replication with slurpd}} chapter for information
+about how to configure and run {{slurpd}}(8).

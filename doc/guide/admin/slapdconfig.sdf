@@ -4,16 +4,15 @@
 
 H1: The slapd Configuration File
 
-Once the software has been built and installed, you are ready to configure it
-for use at your site. All slapd runtime configuration is accomplished through
-the {{I:slapd.conf}}(5) file, normally installed in the
-{{EX:/usr/local/etc/openldap}} directory.
+Once the software has been built and installed, you are ready
+to configure it for use at your site. The slapd runtime configuration
+is primarily accomplished through the {{I:slapd.conf}}(5) file,
+normally installed in the {{EX:/usr/local/etc/openldap}} directory.
 
 An alternate configuration file can be specified via a
-command-line option to slapd or slurpd (see Sections 5 and 8,
-respectively). This section describes the general format of the config file,
-followed by a detailed description of each config file directive.
-
+command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
+describes the general format of the config file, followed by a
+detailed description of commonly used config file directives.
 
 
 H2: Configuration File Format
@@ -89,31 +88,40 @@ H4: access to <what> [ by <who> <accesslevel> <control> ]+
 
 This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>). See Section 5.3 on
-access control for more details and examples.
+more requesters (specified by <who>).
+See the {{SECT:Access Control}} section of this chapter for more
+details and examples.
 
 
 H4: attributetype <RFC2252 Attribute Type Description>
 
 This directive defines an attribute type.
 
+
 H4: defaultaccess { none | compare | search | read | write }
 
 This directive specifies the default access to grant requesters
-not matched by any other access line (see Section 5.3). Note
-that an access level implies all lesser access levels (e.g.,
-write access implies read, search and compare).
+when no {{EX:access}} directives have been specified.  Access
+levels implies all lesser access levels (e.g., read access
+implies search and compare but no write).
+
+Note: It is recommend that the {{EX:access}} directive be used
+to specify access control.  See the {{SECT:Access Control}}
+section of this chapter for information regarding the {{EX:access}}
+directive.
 
 \Default:
 
 E: defaultaccess read
+
 
 H4: include <filename>
 
 This directive specifies that slapd should read additional
 configuration information from the given file before continuing
 with the next line of the current file. The included file should
-follow the normal slapd config file format.
+follow the normal slapd config file format.  The file is commonly
+used to include files containing schema specifications.
 
 Note: You should be careful when using this directive - there is
 no small limit on the number of nested include directives, and no
@@ -201,19 +209,6 @@ from a search operation.
 >	sizelimit 500
 
 
-H4: srvtab <filename>
-
-This directive specifies the srvtab file in which slapd can find the
-Kerberos keys necessary for authenticating clients using
-Kerberos. This directive is only meaningful if you are using
-Kerberos authentication, which must be enabled at compile
-time by including the appropriate definitions in the
-{{EX:Make-common}} file.
-
-\Default:
-
->	srvtab /etc/srvtab
-
 H4: timelimit <integer>
 
 This directive specifies the maximum number of seconds (in real
@@ -289,8 +284,8 @@ updatedn directive in the slave slapd's config file. Since DNs are
 likely to contain embedded spaces, the entire {{EX:"binddn=<DN>"}}
 string should be enclosed in double quotes.
 
-The {{EX:bindmethod}} is either simple or kerberos, depending on
-whether simple password-based authentication or kerberos
+The {{EX:bindmethod}} is either simple or Kerberos, depending on
+whether simple password-based authentication or Kerberos
 authentication is to be used when connecting to the slave
 slapd. Simple authentication requires a valid password be
 given. Kerberos authentication requires a valid srvtab file.
@@ -299,11 +294,12 @@ The {{EX:credentials=}} parameter, which is only required if using
 simple authentication, gives the password for {{EX:binddn}} on the
 slave slapd.
 
-The {{EX:srvtab=}} parameter, which is only required if using
-kerberos, specifies the filename which holds the kerberos key
-for the slave slapd. If omitted, {{F:/etc/srvtab}} is used.
+The {{EX:srvtab=}} parameter is deprecated in favor of SASL
+based authentication services.
 
-See Section 10 for more details on replication.
+See the {{SECT:Replication}} chapter for more information on how to
+use this directive.
+
 
 H4: replogfile <filename>
 
@@ -315,41 +311,50 @@ However, you can also use it to generate a transaction log, if
 slurpd is not running. In this case, you will need to periodically
 truncate the file, since it will grow indefinitely otherwise.
 
-See Section 10 for more details on replication.
+See the {{SECT:Replication}} chapter for more information on how to
+use this directive.
+
 
 H4: rootdn <dn>
 
-This directive specifies the DN of an entry that is not subject to
+This directive specifies the DN that is not subject to
 access control or administrative limit restrictions for
-operations on this database.
+operations on this database.  The DN need not refer to
+an entry in the directory. The DN may refer to a SASL
+identity.
 
-\Example:
+Entry-based Example:
 
 >	rootdn "cn=Manager, dc=example, dc=com"
 
+SASL-based Example:
+
+>	rootdn "uid=root@EXAMPLE.COM"
+
+
 H4: rootkrbname <kerberosname>
 
-This directive specifies a kerberos name for the DN given above
+This directive specifies a Kerberos name for the DN given above
 that will always work, regardless of whether an entry with the
-given DN exists or has a {{EX:krbName}} attribute. This directive is
-useful when creating a database and also when using slurpd
-to provide replication service (see Section 10).
+given DN exists or has a {{EX:krbName}} attribute.
+This directive is deprecated in favor of SASL based authentication.
 
 \Example:
 
 >	rootkrbname admin@EXAMPLE.COM
 
+
 H4: rootpw <password>
 
 This directive specifies a password for the DN given above that
 will always work, regardless of whether an entry with the given
-DN exists or has a password. This directive is useful when
-creating a database and also when using slurpd to provide
-replication service (see Section 10).
+DN exists or has a password.
+This directive is deprecated in favor of SASL based authentication.
 
 \Example:
 
 >	rootpw secret
+
 
 H4: suffix <dn suffix>
 
@@ -373,9 +378,20 @@ prefix of another, it must appear after it in the config file.
 H4: updatedn <dn>
 
 This directive is only applicable in a slave slapd. It specifies the
-DN allowed to make changes to the replica (typically, this is
-the DN slurpd binds as when making changes to the replica).
+DN allowed to make changes to the replica.  This may be the
+the DN slurpd binds as when making changes to the replica or
+the DN associated with a SASL identity.
 
+Entry-based Example:
+
+>	updatedn "cn=Update Daemon, dc=example, dc=com"
+
+SASL-based Example:
+
+>	updatedn "uid=slurpd@EXAMPLE.COM"
+
+See the {{SECT:Replication}} chapter for more information on how to
+use this directive.
 
 
 H3: LDBM Backend-Specific Directives
@@ -421,8 +437,9 @@ containing the database and associated indexes live.
 H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
 
 This directive specifies the indexes to maintain for the given
-attribute. If only an <attrlist> is given, all possible indexes are
-maintained.
+attribute. If only an {{EX:<attrlist>}} is given, the default
+indexes are maintained.
+
 
 \Example:
 
@@ -432,9 +449,9 @@ maintained.
 
 The first line sets the default to indices to maintain to present
 and equality.  The second line causes the default (pres,eq) set
-of indices to be maintained for objectClass and uid attribute
+of indices to be maintained for {{EX:objectClass}} and {{EX:uid}} attribute
 types.  The third line causes equality, substring, and approximate
-filters to be maintained for cn and sn attribute types.
+filters to be maintained for {{EX:cn}} and {{EX:sn}} attribute types.
 
 H4: mode <integer>
 
@@ -954,7 +971,7 @@ through 13 specify the hostname and port for a replicated
 host, the DN to bind as when performing updates, the bind
 method (simple) and the credentials (password) for the
 binddn. Lines 14 through 17 specify a second replication site,
-using kerberos instead of simple authentication. See Section
+using Kerberos instead of simple authentication. See Section
 10 on slurpd for more information on these directives.
 
 Lines 19 through 21 indicate the indexes to maintain for
