@@ -590,7 +590,6 @@ slap_entry2mods(
 	Modifications **mods,
 	const char **text,
 	char *textbuf, size_t textlen )
-)
 {
 	Modifications	*modhead = NULL;
 	Modifications	*mod;
