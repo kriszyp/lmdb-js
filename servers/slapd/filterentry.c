@@ -434,11 +434,13 @@ static int test_mra_filter(
 
 			for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 				LDAPAVA		*ava = rdn[ iAVA ];
-				struct berval	*bv = &ava->la_value, value;
+				struct berval	*bv = &ava->la_value,
+						value = BER_BVNULL,
+						nbv = BER_BVNULL;
 				AttributeDescription *ad =
 					(AttributeDescription *)ava->la_private;
-				int ret;
-				const char *text;
+				int		ret;
+				const char	*text;
 
 				assert( ad );
 
@@ -473,11 +475,35 @@ static int test_mra_filter(
 					}
 				}
 
+				if ( mra->ma_rule->smr_normalize ) {
+					/* see comment above */
+					if ( mra->ma_rule->smr_normalize(
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							mra->ma_rule->smr_syntax,
+							mra->ma_rule,
+							bv, &nbv, memctx ) != LDAP_SUCCESS )
+					{
+						/* FIXME: stop processing? */
+						rc = LDAP_SUCCESS;
+						ret = -1;
+						goto cleanup;
+					}
+
+				} else {
+					nbv = *bv;
+				}
+
 				/* check match */
 				rc = value_match( &ret, ad, mra->ma_rule, 0,
-					bv, &value, &text );
-				if ( value.bv_val != mra->ma_value.bv_val ) {
+					&nbv, &value, &text );
+
+cleanup:;
+				if ( !BER_BVISNULL( &value ) && value.bv_val != mra->ma_value.bv_val ) {
 					memfree( value.bv_val, memctx );
+				}
+
+				if ( !BER_BVISNULL( &nbv ) && nbv.bv_val != bv->bv_val ) {
+					memfree( nbv.bv_val, memctx );
 				}
 
 				if ( rc == LDAP_SUCCESS && ret == 0 ) rc = LDAP_COMPARE_TRUE;
@@ -504,7 +530,7 @@ test_ava_filter(
 	int rc;
 	Attribute	*a;
 #ifdef LDAP_COMP_MATCH
-	int i, num_attr_vals;
+	int i, num_attr_vals = 0;
 	AttributeAliasing *a_alias = NULL;
 #endif
 
