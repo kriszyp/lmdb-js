@@ -18,7 +18,7 @@ typedef struct {
 	BerVarray	col_names;
 	UDWORD		*col_prec;
 	char		**cols;
-	SQLINTEGER	*is_null;
+	SQLINTEGER	*value_len;
 } BACKSQL_ROW_NTS;
 
 #endif /* __BACKSQL_SQL_TYPES_H__ */

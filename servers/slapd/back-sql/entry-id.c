@@ -164,22 +164,23 @@ backsql_dn2id(
 }
 
 int
-backsql_has_children(
+backsql_count_children(
 	backsql_info		*bi,
 	SQLHDBC			dbh,
-	struct berval		*dn )
+	struct berval		*dn,
+	unsigned long		*nchildren )
 {
 	SQLHSTMT		sth; 
 	BACKSQL_ROW_NTS		row;
 	RETCODE 		rc;
-	int			res;
+	int			res = LDAP_SUCCESS;
 
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_has_children(): dn='%s'\n", 
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_count_children(): dn='%s'\n", 
 			dn->bv_val, 0, 0 );
 
 	if ( dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, 
-			"backsql_has_children(): DN \"%s\" (%ld bytes) "
+			"backsql_count_children(): DN \"%s\" (%ld bytes) "
 			"exceeds max DN length (%d):\n",
 			dn->bv_val, dn->bv_len, BACKSQL_MAX_DN_LEN );
 		return LDAP_OTHER;
@@ -192,7 +193,7 @@ backsql_has_children(
  	rc = backsql_Prepare( dbh, &sth, bi->has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
-			"backsql_has_children(): error preparing SQL:\n%s", 
+			"backsql_count_children(): error preparing SQL:\n%s", 
 			bi->has_children_query, 0, 0);
 		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -202,7 +203,7 @@ backsql_has_children(
 	rc = backsql_BindParamStr( sth, 1, dn->bv_val, BACKSQL_MAX_DN_LEN );
 	if ( rc != SQL_SUCCESS) {
 		/* end TimesTen */ 
-		Debug( LDAP_DEBUG_TRACE, "backsql_has_children(): "
+		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error binding dn=\"%s\" parameter:\n", 
 			dn->bv_val, 0, 0 );
 		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
@@ -212,7 +213,7 @@ backsql_has_children(
 
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_has_children(): "
+		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error executing query (\"%s\", \"%s\"):\n", 
 			bi->has_children_query, dn->bv_val, 0 );
 		backsql_PrintErrors( SQL_NULL_HENV, dbh, sth, rc );
@@ -224,10 +225,11 @@ backsql_has_children(
 	
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
-		if ( strtol( row.cols[ 0 ], NULL, 0 ) > 0 ) {
-			res = LDAP_COMPARE_TRUE;
-		} else {
-			res = LDAP_COMPARE_FALSE;
+		char *end;
+
+		*nchildren = strtol( row.cols[ 0 ], &end, 0 );
+		if ( end[ 0 ] != '\0' ) {
+			res = LDAP_OTHER;
 		}
 
 	} else {
@@ -237,10 +239,28 @@ backsql_has_children(
 
 	SQLFreeStmt( sth, SQL_DROP );
 
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_has_children(): %s\n",
-			res == LDAP_COMPARE_TRUE ? "yes" : "no", 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_count_children(): %lu\n",
+			*nchildren, 0, 0 );
 
 	return res;
+}
+
+int
+backsql_has_children(
+	backsql_info		*bi,
+	SQLHDBC			dbh,
+	struct berval		*dn )
+{
+	unsigned long	nchildren;
+	int		rc;
+
+	rc = backsql_count_children( bi, dbh, dn, &nchildren );
+
+	if ( rc == LDAP_SUCCESS ) {
+		return nchildren > 0 ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
+	}
+
+	return rc;
 }
 
 int
@@ -289,7 +309,7 @@ backsql_get_attr_vals( backsql_at_map_rec *at, backsql_srch_info *bsi )
 	rc = SQLFetch( sth );
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
 		for ( i = 0; i < row.ncols; i++ ) {
-			if ( row.is_null[ i ] > 0 ) {
+			if ( row.value_len[ i ] > 0 ) {
 				struct berval	bv;
 
 				bv.bv_val = row.cols[ i ];
