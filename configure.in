@@ -58,7 +58,7 @@ else
 fi
 
 SHTOOL="$ac_cv_shtool"
-AC_SUBST(SHTOOL)
+dnl AC_SUBST(SHTOOL)dnl
 
 TB=`$SHTOOL echo -e %B`
 TN=`$SHTOOL echo -e %b`
