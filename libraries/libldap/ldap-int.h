@@ -496,7 +496,8 @@ LDAP_F (int) ldap_url_parselist LDAP_P((
 
 LDAP_F (int) ldap_url_parsehosts LDAP_P((
 	LDAPURLDesc **ludlist,
-	const char *hosts ));
+	const char *hosts,
+	int port ));
 
 LDAP_F (char *) ldap_url_list2hosts LDAP_P((
 	LDAPURLDesc *ludlist ));

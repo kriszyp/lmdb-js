@@ -199,9 +199,11 @@ ldap_pvt_tls_init_def_ctx( void )
 		if ( tls_opt_trace ) {
 			SSL_CTX_set_info_callback( tls_def_ctx, tls_info_cb );
 		}
-		SSL_CTX_set_verify( tls_def_ctx, (tls_opt_require_cert) ?
+		SSL_CTX_set_verify( tls_def_ctx,
+			tls_opt_require_cert ?
 			(SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT) :
-			SSL_VERIFY_PEER, tls_verify_cb );
+			SSL_VERIFY_NONE,
+			tls_verify_cb );
 		SSL_CTX_set_tmp_rsa_callback( tls_def_ctx, tls_tmp_rsa_cb );
 		/* SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb ); */
 	}

@@ -75,7 +75,7 @@ BNF:
 .LP
 The '~=' construct is used to specify approximate matching.  The
 representation for <attributetype> and <attributevalue> are as
-described in RFC 1778.  In addition, <attributevalue> can be a single *
+described in RFC 2254.  In addition, <attributevalue> can be a single *
 to achieve an attribute existence test, or can contain text and *'s
 interspersed to achieve substring matching.
 .LP
@@ -83,7 +83,7 @@ For example, the filter "mail=*" will find any entries that have a mail
 attribute.  The filter "mail=*@terminator.rs.itd.umich.edu" will find
 any entries that have a mail attribute ending in the specified string.
 To put parentheses in a filter, escape them with a backslash '\\'
-character.  See RFC 1588 for a more complete description of allowable
+character.  See RFC 2254 for a more complete description of allowable
 filters.  See
 .BR ldap_getfilter (3)
 for routines to help in constructing search filters automatically.
