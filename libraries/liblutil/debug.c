@@ -50,17 +50,16 @@ void (lutil_debug)( int level, int debug, const char *fmt, ... )
 		return;
 
 #ifdef HAVE_WINSOCK
-	if( log_file == NULL )
-    {
+	if( log_file == NULL ) {
 		log_file = fopen( LDAP_RUNDIR LDAP_DIRSEP "openldap.log", "w" );
 
-        if ( log_file == NULL )
+		if ( log_file == NULL )
 			log_file = fopen( "openldap.log", "w" );
 
 		if ( log_file == NULL )
 			return;
 
-	    ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log_file );
+		ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log_file );
 	}
 #endif
 	va_start( vl, fmt );
