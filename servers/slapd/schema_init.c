@@ -415,7 +415,7 @@ dnNormalize(
 	return LDAP_SUCCESS;
 }
 
-static int
+int
 dnMatch(
 	int *matchp,
 	slap_mask_t flags,
