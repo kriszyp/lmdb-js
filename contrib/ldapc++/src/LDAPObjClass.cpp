@@ -16,6 +16,7 @@ LDAPObjClass::LDAPObjClass(){
     names = StringList ();
     must = StringList();
     may = StringList();
+    sup = StringList();
 }
 
 LDAPObjClass::LDAPObjClass (const LDAPObjClass &oc){
@@ -28,6 +29,7 @@ LDAPObjClass::LDAPObjClass (const LDAPObjClass &oc){
     must = oc.must;
     may = oc.may;
     kind = oc.kind;
+    sup = oc.sup;
 }
 
 LDAPObjClass::LDAPObjClass (string oc_item) { 
@@ -47,6 +49,7 @@ LDAPObjClass::LDAPObjClass (string oc_item) {
 	this->setKind (o->oc_kind);
         this->setMust (o->oc_at_oids_must);
 	this->setMay (o->oc_at_oids_may);
+        this->setSup (o->oc_sup_oids);
     }
     // else? -> error
 }
@@ -69,6 +72,10 @@ void LDAPObjClass::setMust (char **oc_must) {
 
 void LDAPObjClass::setMay (char **oc_may) {
     may = StringList (oc_may);
+}
+
+void LDAPObjClass::setSup (char **oc_sup) {
+    sup = StringList (oc_sup);
 }
 
 void LDAPObjClass::setDesc (char *oc_desc) {
@@ -101,6 +108,10 @@ StringList LDAPObjClass::getMust () {
 
 StringList LDAPObjClass::getMay () {
     return may;
+}
+
+StringList LDAPObjClass::getSup () {
+    return sup;
 }
 
 string LDAPObjClass::getName () {

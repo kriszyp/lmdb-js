@@ -21,7 +21,7 @@ using namespace std;
  */
 class LDAPObjClass{
     private :
-	StringList names, must, may;
+	StringList names, must, may, sup;
 	string desc, oid;
 	int kind;
 	
@@ -81,6 +81,11 @@ class LDAPObjClass{
 	 * Returns list of allowed (and not required) attributes
 	 */
 	StringList getMay();
+	
+        /**
+	 * Returns list of the OIDs of the superior ObjectClasses
+	 */
+	StringList getSup();
 
 	void setNames (char **oc_names);
 	void setMay (char **oc_may);
@@ -88,6 +93,7 @@ class LDAPObjClass{
 	void setDesc (char *oc_desc);
 	void setOid (char *oc_oid);
 	void setKind (int oc_kind);
+	void setSup (char **oc_sup);
 	
 };
 
