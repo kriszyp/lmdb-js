@@ -843,10 +843,11 @@ static int parsePagedResults (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	ber_tag_t tag;
-	ber_int_t size;
-	BerElement *ber;
-	struct berval cookie = BER_BVNULL;
+	int		rc = LDAP_SUCCESS;
+	ber_tag_t	tag;
+	ber_int_t	size;
+	BerElement	*ber;
+	struct berval	cookie = BER_BVNULL;
 
 	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
 		rs->sr_text = "paged results control specified multiple times";
@@ -878,16 +879,17 @@ static int parsePagedResults (
 	}
 
 	tag = ber_scanf( ber, "{im}", &size, &cookie );
-	(void) ber_free( ber, 1 );
 
 	if( tag == LBER_ERROR ) {
 		rs->sr_text = "paged results control could not be decoded";
-		return LDAP_PROTOCOL_ERROR;
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	if( size < 0 ) {
 		rs->sr_text = "paged results control size invalid";
-		return LDAP_PROTOCOL_ERROR;
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	if( cookie.bv_len ) {
@@ -895,7 +897,8 @@ static int parsePagedResults (
 		if( cookie.bv_len != sizeof( reqcookie ) ) {
 			/* bad cookie */
 			rs->sr_text = "paged results cookie is invalid";
-			return LDAP_PROTOCOL_ERROR;
+			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
 		}
 
 		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
@@ -903,11 +906,13 @@ static int parsePagedResults (
 		if ( reqcookie > op->o_pagedresults_state.ps_cookie ) {
 			/* bad cookie */
 			rs->sr_text = "paged results cookie is invalid";
-			return LDAP_PROTOCOL_ERROR;
+			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
 
 		} else if ( reqcookie < op->o_pagedresults_state.ps_cookie ) {
 			rs->sr_text = "paged results cookie is invalid or old";
-			return LDAP_UNWILLING_TO_PERFORM;
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
 		}
 
 	} else {
@@ -937,7 +942,9 @@ static int parsePagedResults (
 		op->o_pagedresults = SLAP_NONCRITICAL_CONTROL;
 	}
 
-	return LDAP_SUCCESS;
+done:;
+	(void)ber_free( ber, 1 );
+	return rc;
 }
 
 static int parseAssert (
