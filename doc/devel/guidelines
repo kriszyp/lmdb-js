@@ -1,3 +1,8 @@
+This document is being replaced with:
+	http://www.openldap.org/devel/programming.html
+
+However, some of the info here is still useful.
+
 Coding guide lines and and hints for OpenLDAP developers.
 =========================================================
 
@@ -69,8 +74,10 @@ CVS updating
 -stable.  To get the -devel (HEAD) branch, omit `-r OPENLDAP_STABLE'.
 You can use 'cvs status -v README' to get a list available CVS tags.
 
-Core members should subscribe to the private -core mailing list and
-coordinate activities there.
+Core members should subscribe to the -core mailing list.  This
+list is for private discussions between core team members.  The
+-devel list is the primary list used to for technical disscusions
+and coordinating efforts.
 
 Please test patches before committing.  This should include compiling
 and linking the system AND running the test suite.
