@@ -40,7 +40,6 @@ static int
 ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 	 struct berval *bdn, int flags );
 #define LDAP_BUILD_ENTRY_PRIVATE	0x01
-#define LDAP_BUILD_ENTRY_NORMALIZE	0x02
 
 static struct berval dummy = BER_BVNULL;
 
@@ -336,7 +335,6 @@ ldap_build_entry(
 	const char *text;
 	int last;
 	int private = flags & LDAP_BUILD_ENTRY_PRIVATE;
-	int normalize = flags & LDAP_BUILD_ENTRY_NORMALIZE;
 	dncookie dc;
 
 	/* safe assumptions ... */
@@ -483,7 +481,7 @@ ldap_build_entry(
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
 		}
 
-		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&
+		if ( last && attr->a_desc->ad_type->sat_equality &&
 			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
 			int i;
 
@@ -605,7 +603,7 @@ ldap_back_entry_get(
 
 	*ent = ch_calloc(1,sizeof(Entry));
 
-	rc = ldap_build_entry(op, e, *ent, &bdn, LDAP_BUILD_ENTRY_NORMALIZE);
+	rc = ldap_build_entry(op, e, *ent, &bdn, 0);
 
 	if (rc != LDAP_SUCCESS) {
 		ch_free(*ent);
