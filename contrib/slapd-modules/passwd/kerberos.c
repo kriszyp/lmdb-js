@@ -42,25 +42,25 @@ static int chk_kerberos(
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
-			return 1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( cred->bv_val[i] != '\0' ) {
-		return 1;	/* cred must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* cred must behave like a string */
 	}
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return 1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return 1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
-	rtn = 1;
+	rtn = LUTIL_PASSWD_ERR;
 
 #ifdef HAVE_KRB5 /* HAVE_HEIMDAL_KRB5 */
 	{
@@ -109,7 +109,7 @@ static int chk_kerberos(
 
 		ret = krb5_init_context( &context );
 		if (ret) {
-			return 1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 #ifdef notdef
@@ -125,7 +125,7 @@ static int chk_kerberos(
 
 		if (ret) {
 			krb5_free_context( context );
-			return 1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 		ret = krb5_get_init_creds_password( context,
@@ -135,7 +135,7 @@ static int chk_kerberos(
 		if (ret) {
 			krb5_free_principal( context, client );
 			krb5_free_context( context );
-			return 1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 		{
@@ -144,7 +144,7 @@ static int chk_kerberos(
 			if( host == NULL ) {
 				krb5_free_principal( context, client );
 				krb5_free_context( context );
-				return 1;
+				return LUTIL_PASSWD_ERR;
 			}
 
 			ret = krb5_sname_to_principal( context,
@@ -156,7 +156,7 @@ static int chk_kerberos(
 		if (ret) {
 			krb5_free_principal( context, client );
 			krb5_free_context( context );
-			return 1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 		ret = krb5_verify_init_creds( context,
@@ -167,7 +167,7 @@ static int chk_kerberos(
 		krb5_free_cred_contents( context, &creds );
 		krb5_free_context( context );
 
-		rtn = !!ret;
+		rtn = ret ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 	}
 #elif	defined(HAVE_KRB4)
 	{
@@ -184,7 +184,7 @@ static int chk_kerberos(
 
 		status = krb_get_lrealm(lrealm,1);
 		if (status == KFAILURE) {
-			return 1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 		snprintf(tkt, sizeof(tkt), "%s_slapd.%u",
@@ -196,7 +196,7 @@ static int chk_kerberos(
 
 		dest_tkt(); /* no point in keeping the tickets */
 
-		return status == KFAILURE;
+		return status == KFAILURE ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 	}
 #endif
 
