@@ -128,7 +128,7 @@ By default ldapsearch is installed as {{FILE:/usr/local/bin/ldapsearch}}.
 
 ..{{EX:ldapsearch -x -b "" -s base '(objectclass=*)' namingContexts}}
 
-This should return:
+.This should return:
 
 ..{{EX:dn:}}
 ..{{EX:namingContexts: dc=example, dc=net}}
