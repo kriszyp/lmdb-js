@@ -396,6 +396,7 @@ static int slap_get_listener_addresses(
 		}
 
 		sap = *sal;
+		*sap = NULL;
 
 		for ( sai=res; sai; sai=sai->ai_next ) {
 			if( sai->ai_addr == NULL ) {
@@ -436,13 +437,14 @@ static int slap_get_listener_addresses(
 				*sap = NULL;
 				break;
 			}
+
 			if (*sap != NULL) {
 				(*sap)->sa_family = sai->ai_family;
 				sap++;
+				*sap = NULL;
 			}
 		}
 
-		*sap = NULL;
 		freeaddrinfo(res);
 #else
 		struct in_addr in;
