@@ -1745,21 +1745,21 @@ str2accessmask( const char *str )
 static void
 acl_usage( void )
 {
-	fprintf( stderr, "%s%s\n",
+	fprintf( stderr, "%s%s%s\n",
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> [val[.<style>]=<value>] | <attr> , <attrlist>\n"
-		"<attr> ::= <attrname> | entry | children\n"
+		"<attr> ::= <attrname> | entry | children\n",
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
-			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n",
+			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
-			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
+			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
 			"exact | regex\n"
 		"<style> ::= exact | regex | base(Object)\n"
