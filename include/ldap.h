@@ -723,17 +723,6 @@ ldap_bind_s LDAP_P((	/* deprecated */
 	LDAP_CONST char *cred,
 	int authmethod ));
 
-LIBLDAP_F( void )
-ldap_set_rebind_proc LDAP_P((	/* deprecated */
-	LDAP *ld,
-	int (*rebindproc) LDAP_P((
-		LDAP *ld,
-		char **dnp,
-		char **passwdp,
-		int *authmethodp,
-		int freeit ))));
-
-
 /*
  * in sbind.c:
  */
