@@ -41,20 +41,24 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback *sc = op->o_callback;
 	LDAPControl **prev = op->o_ctrls;
 	LDAPControl **ctrls = NULL, authz;
-	int i, nctrls, rc;
+	int i, nctrls, rc = 0;
 	int cache = op->o_do_not_cache;
 	char *authzid = NULL;
 	BerVarray ref;
 	struct berval ndn = op->o_ndn;
 
-	if ( rs->sr_err != LDAP_REFERRAL )
+	if ( rs->sr_err != LDAP_REFERRAL && rs->sr_type != REP_SEARCHREF )
 		return SLAP_CB_CONTINUE;
 
 	/* currently we assume only one referral destination.
 	 * we'll have to parse this in the future.
 	 */
+	/* leave in place if result type is search reference;
+	 * will be cleared later */
 	ref = rs->sr_ref;
-	rs->sr_ref = NULL;
+	if ( rs->sr_type != REP_SEARCHREF ) {
+		rs->sr_ref = NULL;
+	}
 
 	op->o_bd->be_private = on->on_bi.bi_private;
 	op->o_callback = NULL;
@@ -118,7 +122,65 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		rc = ldap_back_compare( op, rs );
 		break;
 	case LDAP_REQ_SEARCH:
-		rc = ldap_back_search( op, rs );
+		if ( rs->sr_type == REP_SEARCHREF ) {
+			struct ldapinfo	li;
+			struct berval	*curr = rs->sr_ref,
+					odn = op->o_req_dn,
+					ondn = op->o_req_ndn;
+
+			op->o_bd->be_private = &li;
+			rs->sr_type = REP_SEARCH;
+			rs->sr_ref = NULL;
+
+			/* copy the private info because we need to modify it */
+			AC_MEMCPY( &li, on->on_bi.bi_private, sizeof( struct ldapinfo ) );
+			for ( ; curr[0].bv_val; curr++ ) {
+				LDAPURLDesc	*srv;
+
+				/* parse reference and use proto://[host][:port]/ only */
+				rc = ldap_url_parse_ext( curr[0].bv_val, &srv );
+				if ( rc != LDAP_SUCCESS) {
+					/* error */
+					continue;
+				}
+
+				ber_str2bv(srv->lud_dn, 0, 0, &op->o_req_dn);
+				op->o_req_ndn = op->o_req_dn;
+
+				/* remove DN essentially because later on 
+				 * ldap_initialize() will parse the URL 
+				 * as a comma-separated URL list */
+				srv->lud_dn = "";
+				li.url = ldap_url_desc2str( srv );
+				if ( li.url == NULL ) {
+					/* error */
+					srv->lud_dn = op->o_req_dn.bv_val;
+					ldap_free_urldesc( srv );
+					continue;
+				}
+
+				/* FIXME: should we also copy filter and scope?
+				 * according to RFC3296, no */
+
+				rc = ldap_back_search( op, rs );
+
+				srv->lud_dn = op->o_req_dn.bv_val;
+				ldap_free_urldesc( srv );
+
+				if ( rc ) {
+					/* error */
+					continue;
+				}
+			}
+
+			op->o_req_dn = odn;
+			op->o_req_ndn = ondn;
+			rs->sr_type = REP_SEARCHREF;
+			op->o_bd->be_private = on->on_bi.bi_private;
+			
+		} else {
+			rc = ldap_back_search( op, rs );
+		}
 	    	break;
 	case LDAP_REQ_EXTENDED:
 		rc = ldap_back_extended( op, rs );
