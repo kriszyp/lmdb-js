@@ -374,6 +374,20 @@ if test $RC != 1 ; then
 	exit $RC
 fi
 
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="dn:cn=Should Fail,dc=example,dc=com"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI; should fail)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 1 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
