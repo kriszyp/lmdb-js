@@ -9,6 +9,10 @@ BACKEND=ldbm
 if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
+WAIT=0
+if test $# -ge 1 ; then
+	WAIT=1; shift
+fi
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
@@ -32,6 +36,10 @@ fi
 echo "Starting slapd on TCP/IP port $PORT..."
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
 
 echo "Testing slapd modify operations..."
 for i in 0 1 2 3 4 5; do
