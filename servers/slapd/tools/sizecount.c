@@ -94,6 +94,9 @@ main( int argc, char **argv )
 					Datum	key, data;
 					char	*w;
 
+					memset( &key, 0, sizeof( key ));
+					memset( &data, 0, sizeof( data ));
+
 					/* update value count */
 					vcount++;
 					vsize += bvals[j]->bv_len;
@@ -175,6 +178,9 @@ add(
 )
 {
 	Datum	key, data;
+
+	memset( &key, 0, sizeof( key ));
+	memset( &data, 0, sizeof( data ));
 
 	key.dptr = s;
 	key.dsize = strlen( key.dptr ) + 1;
