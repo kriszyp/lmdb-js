@@ -101,7 +101,7 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 
 
 	fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-				pid, maxloop, sbase, filter );
+				(long) pid, maxloop, sbase, filter );
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
@@ -119,7 +119,7 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 		ldap_msgfree( res );
 	}
 
-	fprintf( stderr, " PID=%ld - Search done.\n", pid );
+	fprintf( stderr, " PID=%ld - Search done.\n", (long) pid );
 
 	ldap_unbind( ld );
 }

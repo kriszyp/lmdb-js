@@ -248,7 +248,7 @@ do_addel(
 
 
 	fprintf( stderr, "PID=%ld - Add/Delete(%d): entry=\"%s\".\n",
-					pid, maxloop, entry );
+					(long) pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
 
@@ -273,7 +273,7 @@ do_addel(
 
 	}
 
-	fprintf( stderr, " PID=%ld - Add/Delete done.\n", pid );
+	fprintf( stderr, " PID=%ld - Add/Delete done.\n", (long) pid );
 
 	ldap_unbind( ld );
 }
