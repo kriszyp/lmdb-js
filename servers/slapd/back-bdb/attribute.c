@@ -202,11 +202,22 @@ dn2entry_retry:
 		if( conn != NULL
 			&& op != NULL
 			&& access_allowed(be, conn, op, e, entry_at,
-				&attr->a_vals[i], ACL_AUTH, &acl_state ) == 0)
+#ifdef SLAP_NVALUES
+				attr->a_nvals ? &attr->a_nvals[i] : &attr->a_vals[i],
+#else
+				&attr->a_vals[i],
+#endif
+				ACL_AUTH, &acl_state ) == 0)
 		{
 			continue;
 		}
+
+#ifdef SLAP_NVALUES
+		ber_dupbv( &v[j],
+			attr->a_nvals ? &attr->a_nvals[i] : &attr->a_vals[i] );
+#else
 		ber_dupbv( &v[j], &attr->a_vals[i] );
+#endif
 
 		if( v[j].bv_val != NULL ) j++;
 	}
