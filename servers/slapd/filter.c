@@ -264,7 +264,7 @@ get_filter(
 			case LDAP_COMPARE_FALSE:
 				f.f_result = LDAP_COMPARE_TRUE;
 				break;
-			default:
+			default: ;
 				/* (!Undefined) is Undefined */
 			}
 		}
