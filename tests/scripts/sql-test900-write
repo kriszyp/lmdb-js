@@ -304,7 +304,7 @@ EOMODS
 	fi
 
 	echo "Using ldapsearch to retrieve all the entries..."
-	$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
 		 "objectClass=*" > $SEARCHOUT 2>&1
 
 	RC=$?
@@ -315,9 +315,9 @@ EOMODS
 	fi
 
 	echo "Filtering ldapsearch results..."
-	. $LDIFFILTERSORT < $SEARCHOUT > $SEARCHFLT
+	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 	echo "Filtering modified ldif..."
-	. $LDIFFILTERSORT < $SQLWRITE > $LDIFFLT
+	. $LDIFFILTER < $SQLWRITE > $LDIFFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

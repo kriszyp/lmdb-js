@@ -93,8 +93,6 @@ CLIENTDIR=../clients/tools
 
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
-LDIFFILTERSORT=$SRCDIR/scripts/acfiltersort.sh
-LDIFSORT=$SRCDIR/scripts/ldifsort.awk
 
 SLAPADD="../servers/slapd/slapd -Ta $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/slapd -Tc $LDAP_VERBOSE"
