@@ -1604,7 +1604,7 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-#if 0
+#if UTF8MATCH
 	*matchp = UTF8casecmp( value, (struct berval *) assertedValue );
 #else
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
