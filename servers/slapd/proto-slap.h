@@ -784,6 +784,12 @@ LDAP_SLAPD_F (BerVarray) referral_rewrite LDAP_P((
 	struct berval *target,
 	int scope ));
 
+LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
+	Entry *e,
+	struct berval *ndn,
+	int *err,
+	const char **text ));
+
 /*
  * repl.c
  */

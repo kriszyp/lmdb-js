@@ -356,3 +356,48 @@ BerVarray get_entry_referrals(
 	return refs;
 }
 
+
+int get_alias_dn(
+	Entry *e,
+	struct berval *ndn,
+	int *err,
+	const char **text )
+{	
+	Attribute *a;
+	AttributeDescription *aliasedObjectName
+		= slap_schema.si_ad_aliasedObjectName;
+
+	a = attr_find( e->e_attrs, aliasedObjectName );
+
+	if( a == NULL ) {
+		/*
+		 * there was an aliasedobjectname defined but no data.
+		 */
+		*err = LDAP_ALIAS_PROBLEM;
+		*text = "alias missing aliasedObjectName attribute";
+		return -1;
+	}
+
+	/* 
+	 * aliasedObjectName should be SINGLE-VALUED with a single value. 
+	 */			
+	if ( a->a_vals[0].bv_val == NULL ) {
+		/*
+		 * there was an aliasedobjectname defined but no data.
+		 */
+		*err = LDAP_ALIAS_PROBLEM;
+		*text = "alias missing aliasedObjectName value";
+		return -1;
+	}
+
+	if( a->a_nvals[1].bv_val != NULL ) {
+		*err = LDAP_ALIAS_PROBLEM;
+		*text = "alias has multivalued aliasedObjectName";
+		return -1;
+	}
+
+	*ndn = a->a_nvals[0];
+
+	return 0;
+}
+
