@@ -1866,14 +1866,7 @@ proxy_cache_open(
 	cache_manager *cm = on->on_bi.bi_private;
 	int rc = 0;
 
-	if ( cm->db.bd_info->bi_db_open ) {
-		cm->db.be_pending_csn_list = (struct be_pcl *)
-							ch_calloc( 1, sizeof( struct be_pcl ));
-		LDAP_TAILQ_INIT( cm->db.be_pending_csn_list );
-		build_new_dn( &cm->db.be_context_csn, be->be_nsuffix,
-			(struct berval *)&slap_ldapsync_cn_bv, NULL );
-		rc = cm->db.bd_info->bi_db_open( &cm->db );
-	}
+	rc = backend_startup_one( &cm->db );
 
 	/* There is no runqueue in TOOL mode */
 	if ( slapMode & SLAP_SERVER_MODE ) {
