@@ -167,11 +167,11 @@ typedef char * caddr_t;
 /* define if your POSIX Threads implementatin is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
 
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
 /* define if you have -lwrap */
 #undef HAVE_TCPD
+
+/* define if you have -ltermcap */
+#undef HAVE_TERMCAP
 
 /* define this for connectionless LDAP support */
 #define LDAP_CONNECTIONLESS
@@ -190,6 +190,18 @@ typedef char * caddr_t;
 
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
+
+/* define this to use DBBTREE w/ LDBM backend */
+#undef LDBM_USE_DBBTREE
+
+/* define this to use DBHASH w/ LDBM backend */
+#undef LDBM_USE_DBHASH
+
+/* define this if you want no termcap support */
+#define NO_TERMCAP 1
+
+/* define this if you want no thread support */
+#define NO_THREADS 1
 
 /* define this for ACL Group support */
 #define SLAPD_ACLGROUPS
@@ -217,18 +229,6 @@ typedef char * caddr_t;
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
-
-/* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
-
-/* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
-
-/* define this if you want no termcap support */
-#define NO_TERMCAP 1
-
-/* define this if you want no thread support */
-#define NO_THREADS 1
 
 /* define this if the thread package is preemptive */
 #undef THREAD_PREEMPTIVE
@@ -326,6 +326,9 @@ typedef char * caddr_t;
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
+/* Define if you have the <errno.h> header file.  */
+#define HAVE_ERRNO_H 1
+
 /* Define if you have the <fcntl.h> header file.  */
 #define HAVE_FCNTL_H 1
 
@@ -368,6 +371,9 @@ typedef char * caddr_t;
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
+/* Define if you have the <regex.h> header file.  */
+#undef HAVE_REGEX_H
+
 /* Define if you have the <sched.h> header file.  */
 #undef HAVE_SCHED_H
 
@@ -383,6 +389,9 @@ typedef char * caddr_t;
 /* Define if you have the <sys/dir.h> header file.  */
 #undef HAVE_SYS_DIR_H
 
+/* Define if you have the <sys/errno.h> header file.  */
+#undef HAVE_SYS_ERRNO_H
+
 /* Define if you have the <sys/file.h> header file.  */
 #undef HAVE_SYS_FILE_H
 
@@ -392,8 +401,17 @@ typedef char * caddr_t;
 /* Define if you have the <sys/ndir.h> header file.  */
 #undef HAVE_SYS_NDIR_H
 
+/* Define if you have the <sys/param.h> header file.  */
+#undef HAVE_SYS_PARAM_H
+
+/* Define if you have the <sys/socket.h> header file.  */
+#define HAVE_SYS_SOCKET_H 1
+
 /* Define if you have the <sys/time.h> header file.  */
 #undef HAVE_SYS_TIME_H
+
+/* Define if you have the <sys/types.h> header file.  */
+#define HAVE_SYS_TYPES_H 1
 
 /* Define if you have the <syslog.h> header file.  */
 #undef HAVE_SYSLOG_H
