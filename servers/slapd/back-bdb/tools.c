@@ -123,7 +123,7 @@ ID bdb_tool_entry_put(
 
 	assert( text );
 	assert( text->bv_val );
-	assert( text->bv_val[0] == '\0' );
+	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( TOOLS, ARGS, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
