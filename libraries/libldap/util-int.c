@@ -41,7 +41,7 @@
 #	define USE_CTIME_R
 #endif
 
-#ifdef LDAP_COMPILING_R
+#ifdef LDAP_R_COMPILE
 # ifndef USE_CTIME_R
 	static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
 # endif
@@ -65,11 +65,11 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 # endif	  
 
 #else
-# ifdef LDAP_COMPILNG_R
+# ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ldap_int_ctime_mutex );
 # endif
 	memcpy( buf, ctime(tp), 26 );
-# ifdef LDAP_COMPILNG_R
+# ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ldap_int_ctime_mutex );
 # endif
 	return buf;
@@ -111,7 +111,7 @@ int ldap_pvt_gethostbyname_a(
 		return r;
 	}
 	return -1;
-#elif defined( LDAP_COMPILING_R )
+#elif defined( LDAP_R_COMPILE )
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
 	int	retval;
@@ -180,7 +180,7 @@ int ldap_pvt_gethostbyaddr_a(
 		return r;
 	}
 	return -1;
-#elif defined( LDAP_COMPILING_R )
+#elif defined( LDAP_R_COMPILE )
 # undef NEED_COPY_HOSTENT
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
@@ -224,18 +224,18 @@ void ldap_pvt_init_utils( void )
 	  return;
 	done=1;
 
-#ifdef LDAP_COMPILING_R
+#ifdef LDAP_R_COMPILE
 
 #if !defined( USE_CTIME_R ) && !defined( HAVE_REENTRANT_FUNCTIONS )
-	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex, NULL );
+	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex );
 #endif
 
 #if !defined( HAVE_GETHOSTBYNAME_R )
-	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyname_mutex, NULL );
+	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyname_mutex );
 #endif
 
 #if !defined( HAVE_GETHOSTBYADDR_R )
-	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex, NULL );
+	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex );
 #endif
 
 	/* call other module init functions here... */

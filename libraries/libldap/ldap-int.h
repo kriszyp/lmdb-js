@@ -12,7 +12,7 @@
 #ifndef	_LDAP_INT_H
 #define	_LDAP_INT_H 1
 
-#ifdef LDAP_COMPILING_R
+#ifdef LDAP_R_COMPILE
 #define LDAP_THREAD_SAFE 1
 #endif
 
