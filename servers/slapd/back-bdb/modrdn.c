@@ -866,7 +866,7 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
  
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
+		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: %s : %s (%d)\n",
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 
@@ -876,7 +876,7 @@ retry:	/* transaction retry */
 	Debug(LDAP_DEBUG_TRACE,
 		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
 		op->o_noop ? " (no-op)" : "",
-		e->e_id, e->e_dn );
+		dummy.e_id, op->o_req_dn.bv_val );
 	rs->sr_text = NULL;
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 

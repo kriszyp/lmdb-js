@@ -626,7 +626,7 @@ retry:	/* transaction retry */
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modify: updated%s id=%08lx dn=\"%s\"\n",
 		op->o_noop ? " (no-op)" : "",
-		e->e_id, e->e_dn );
+		dummy.e_id, op->o_req_dn.bv_val );
 
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;

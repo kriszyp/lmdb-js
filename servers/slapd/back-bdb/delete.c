@@ -36,6 +36,7 @@ bdb_delete( Operation *op, SlapReply *rs )
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
+	ID	eid;
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock, plock;
@@ -458,6 +459,8 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	eid = e->e_id;
+
 #if 0	/* Do we want to reclaim deleted IDs? */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_lastid_mutex );
 	if ( e->e_id == bdb->bi_lastid ) {
@@ -545,7 +548,7 @@ retry:	/* transaction retry */
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_delete: deleted%s id=%08lx dn=\"%s\"\n",
 		op->o_noop ? " (no-op)" : "",
-		e->e_id, e->e_dn );
+		eid, op->o_req_dn.bv_val );
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
