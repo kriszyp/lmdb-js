@@ -26,8 +26,8 @@
 #  include <sys/uuid.h>
 #else
 #  include <ac/socket.h>
+#  include <ac/time.h>
 #  include <net/if.h>
-#  include <sys/time.h>
 #  ifdef HAVE_SYS_SYSCTL_H
 #    include <sys/sysctl.h>
 #    include <net/route.h>
