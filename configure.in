@@ -968,51 +968,26 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for resolver routines
-dnl	  need to check for both res_query and __res_query
-dnl   need to check -lc, -lbind, and -lresolv
+OL_RESOLVER_LINK
+
 ol_link_dnssrv=no
-AC_CHECK_FUNC(res_query,:)
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_FUNC(__res_query,:)
-	ac_cv_func_res_query=$ac_cv_func___res_query
-fi
-
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_LIB(bind, res_query)
-	ac_cv_func_res_query=$ac_cv_lib_bind_res_query
-fi
-
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_LIB(bind, __res_query)
-	ac_cv_func_res_query=$ac_cv_lib_bind___res_query
-fi
-
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_LIB(resolv, res_query)
-	ac_cv_func_res_query=$ac_cv_lib_resolv_res_query
-fi
-
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_LIB(resolv, __res_query)
-	ac_cv_func_res_query=$ac_cv_lib_resolv___res_query
-fi
-
-if test $ac_cv_func_res_query = no ; then 
-	AC_CHECK_LIB(resolv, _res_9_query)
-	ac_cv_func_res_query=$ac_cv_lib_resolv_res_9_query
-fi
-
-if test "$ac_cv_func_res_query" = yes ; then
+if test "$ol_cv_lib_resolver" != no ; then
 	AC_DEFINE(HAVE_RES_QUERY,1,
 		[define if you have res_query()])
 
-	if test $ol_enable_dnssrv != no ; then
-		ol_link_dnssrv=yes
+	if test "$ol_enable_dnssrv" != no ; then
+		ol_link_dnssrv=yes;
+	fi
+
+	if test "$ol_cv_lib_resolver" != yes ; then
+		LIBS="$ol_cv_lib_resolver $LIBS"
 	fi
 fi
 
-if test "$ol_enable_dnssrv" != no -a "$ol_link_dnssrv" = no ; then
+if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
 	AC_MSG_ERROR([DNSSRV requires res_query()])
+else
+	ol_enable_dnssrv=no
 fi
 
 AC_CHECK_FUNCS( hstrerror )

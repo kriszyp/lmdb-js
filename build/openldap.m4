@@ -247,6 +247,75 @@ fi
 ])
 dnl
 dnl ====================================================================
+dnl DNS resolver macros
+AC_DEFUN([OL_RESOLVER_TRY],
+[if test $ol_cv_lib_resolver = no ; then
+	AC_CACHE_CHECK([for resolver link (]ifelse($2,,default,$2)[)],[$1],
+[
+	ol_RESOLVER_LIB=ifelse($2,,,$2)
+	ol_LIBS=$LIBS
+	LIBS="$ol_RESOLVER_LIB $LIBS"
+
+	AC_TRY_LINK([
+#ifdef HAVE_SYS_TYPES_H
+#	include <sys/types.h>
+#endif
+#include <netinet/in.h>
+#ifdef HAVE_ARPA_NAMESER_H
+#	include <arpa/nameser.h>
+#endif
+#ifdef HAVE_RESOLV_H
+#	include <resolv.h>
+#endif
+],[{
+	int len, status;
+	char *request = NULL;
+	unsigned char reply[64*1024];
+	unsigned char host[64*1024];
+	unsigned char *p;
+
+#ifdef HS_HFIXEDSZ
+	/* Bind 8/9 interface */
+	len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
+#else
+	/* Bind 4 interface */
+# ifndef T_SRV
+#  define T_SRV 33
+# endif
+	len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
+#endif
+	p = reply;
+#ifdef HS_HFIXEDSZ
+	/* Bind 8/9 interface */
+	p += NS_HFIXEDSZ;
+#elif defined(HFIXEDSZ)
+	/* Bind 4 interface w/ HFIXEDSZ */
+	p += HFIXEDSZ;
+#else
+	/* Bind 4 interface w/o HFIXEDSZ */
+	p += sizeof(HEADER);
+#endif
+	status = dn_expand( reply, reply+len, p, host, sizeof(host));
+}],[$1=yes],[$1=no])
+
+	LIBS="$ol_LIBS"
+])
+
+	if test $$1 = yes ; then
+		ol_cv_lib_resolver=ifelse($2,,yes,$2)
+	fi
+fi
+])
+dnl --------------------------------------------------------------------
+dnl Try to locate appropriate library
+AC_DEFUN([OL_RESOLVER_LINK],
+[ol_cv_lib_resolver=no
+OL_RESOLVER_TRY(ol_cv_resolver_none)
+OL_RESOLVER_TRY(ol_cv_resolver_resolv,[-lresol])
+OL_RESOLVER_TRY(ol_cv_resolver_bind,[-lbind])
+])
+dnl
+dnl ====================================================================
 dnl Berkeley DB macros
 dnl
 dnl --------------------------------------------------------------------
