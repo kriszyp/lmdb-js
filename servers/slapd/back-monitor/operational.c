@@ -18,19 +18,6 @@
  * in OpenLDAP Software.
  */
 
-#ifndef _BACK_MONITOR_H_
-#define _BACK_MONITOR_H_
-
-#include <ldap_pvt.h>
-#include <ldap_pvt_thread.h>
-#include <avl.h>
-#include <slap.h>
-
-LDAP_BEGIN_DECL
-
-/*
- * The cache maps DNs to Entries.
-
 #include "portable.h"
 
 #include <stdio.h>
