@@ -133,7 +133,7 @@ send_ldap_result2(
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%d op=%d RESULT err=%d tag=%d nentries=%d\n", conn->c_connid,
+	    "conn=%d op=%d RESULT err=%d tag=%lu nentries=%d\n", conn->c_connid,
 	    op->o_opid, err, tag, nentries );
 
 	return;
