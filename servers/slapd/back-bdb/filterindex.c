@@ -67,9 +67,6 @@ bdb_filter_candidates(
 {
 	int rc = 0;
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_filter_candidates\n", 0, 0, 0 );
-#if 0
-	char *subtree="SUBTREE";
-#endif
 
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
@@ -91,27 +88,6 @@ bdb_filter_candidates(
 			break;
 		}
 		break;
-#if 0	/* Not used any more, search calls bdb_dn2idl directly */
-	case SLAPD_FILTER_DN_ONE:
-		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
-		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_ONE_PREFIX, ids,
-			stack, op->o_tmpmemctx );
-		if( rc == DB_NOTFOUND ) {
-			BDB_IDL_ZERO( ids );
-			rc = 0;
-		}
-		break;
-
-	case SLAPD_FILTER_DN_CHILDREN:
-		subtree="CHILDREN";
-		/* Fall Thru */
-	case SLAPD_FILTER_DN_SUBTREE:
-		Debug( LDAP_DEBUG_FILTER, "\tDN %s\n",
-			subtree, 0, 0 );
-		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, ids,
-			stack, op->o_tmpmemctx );
-		break;
-#endif
 	case LDAP_FILTER_PRESENT:
 		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
 		rc = presence_candidates( op, f->f_desc, ids );

@@ -1294,7 +1294,6 @@ id2entry_retry:
 			} break;
 		}
 
-#ifdef BDB_ALIASES
 		/* aliases were already dereferenced in candidate list */
 		if ( sop->ors_deref & LDAP_DEREF_SEARCHING ) {
 			/* but if the search base is an alias, and we didn't
@@ -1326,7 +1325,6 @@ id2entry_retry:
 				}
 			}
 		}
-#endif
 
 		/* Not in scope, ignore it */
 		if ( !IS_POST_SEARCH && !scopeok ) {
@@ -2022,14 +2020,8 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	/* Already tested by frontend */
+	/* Tested by frontend */
 	assert( c[0]->ldctl_value.bv_len > 0 );
-#if 0
-	if ( c[0]->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "paged results control value is empty (or absent)";
-		return LDAP_PROTOCOL_ERROR;
-	}
-#endif
 
 	/* Parse the control value
 	 *	realSearchControlValue ::= SEQUENCE {
@@ -2047,25 +2039,9 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 
 	tag = ber_scanf( ber, "{im}", &size, &cookie );
 
-	/* Already tested by frontend */
+	/* Tested by frontend */
 	assert( tag != LBER_ERROR );
-#if 0
-	if ( tag == LBER_ERROR ) {
-		rs->sr_text = "paged results control could not be decoded";
-		rc = LDAP_PROTOCOL_ERROR;
-		goto done;
-	}
-#endif
-
-	/* Already tested by frontend */
 	assert( size >= 0 );
-#if 0
-	if ( size < 0 ) {
-		rs->sr_text = "paged results control size invalid";
-		rc = LDAP_PROTOCOL_ERROR;
-		goto done;
-	}
-#endif
 
 	/* cookie decoding/checks deferred to backend... */
 	if ( cookie.bv_len ) {

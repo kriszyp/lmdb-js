@@ -572,9 +572,7 @@ bdb_initialize(
 #ifdef BDB_SUBENTRIES
 		SLAP_BFLAG_SUBENTRIES |
 #endif
-#ifdef BDB_ALIASES
 		SLAP_BFLAG_ALIASES |
-#endif
 		SLAP_BFLAG_REFERRALS;
 
 	bi->bi_controls = controls;

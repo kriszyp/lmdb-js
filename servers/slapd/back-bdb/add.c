@@ -208,7 +208,6 @@ retry:	/* transaction retry */
 			goto return_results;;
 		}
 #endif
-#ifdef BDB_ALIASES
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is alias\n",
@@ -217,7 +216,6 @@ retry:	/* transaction retry */
 			rs->sr_text = "parent is an alias";
 			goto return_results;;
 		}
-#endif
 
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */

@@ -474,7 +474,6 @@ retry:	/* transaction retry */
 				goto return_results;
 			}
 
-#ifdef BDB_ALIASES
 			if ( is_entry_alias( np ) ) {
 				/* parent is an alias, don't allow add */
 				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is alias\n",
@@ -483,7 +482,6 @@ retry:	/* transaction retry */
 				rs->sr_err = LDAP_ALIAS_PROBLEM;
 				goto return_results;
 			}
-#endif
 
 			if ( is_entry_referral( np ) ) {
 				/* parent is a referral, don't allow add */

@@ -313,7 +313,6 @@ dn2entry_retry:
 		"=> bdb_entry_get: found entry: \"%s\"\n",
 		ndn->bv_val, 0, 0 ); 
 
-#ifdef BDB_ALIASES
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
 		Debug( LDAP_DEBUG_ACL,
@@ -321,7 +320,6 @@ dn2entry_retry:
 		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
-#endif
 
 	if( is_entry_referral( e ) ) {
 		Debug( LDAP_DEBUG_ACL,

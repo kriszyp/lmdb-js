@@ -114,20 +114,12 @@ dn2entry_retry:
 	}
 #endif
 
-#ifdef BDB_ALIASES
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
-
-#if 1
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-#else
-		rs->sr_err = LDAP_ALIAS_PROBLEM;
-		rs->sr_text = "entry is alias";
-#endif
 		goto done;
 	}
-#endif
 
 	if ( is_entry_referral( e ) ) {
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
@@ -141,20 +133,12 @@ dn2entry_retry:
 		rs->sr_err = access_allowed( op, e,
 			password, NULL, ACL_AUTH, NULL );
 		if ( ! rs->sr_err ) {
-#if 1
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-#else
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-#endif
 			goto done;
 		}
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
-#if 1
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-#else
-			rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
-#endif
 			goto done;
 		}
 
