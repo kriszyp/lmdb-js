@@ -219,6 +219,8 @@ Name		OID				Description
 directoryString	1.3.6.1.4.1.1466.115.121.1.15	A directory string
 !endblock
 
+>
+
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 6.4: Supported Matching Rules"
 Name		Description
@@ -231,7 +233,7 @@ in inherits the syntax, matching rules, and usage of {{EX:name}}.
 {{EX:commonName}} is an alternative name.
 
 Neither attributes is restricted to a single value and both are
-meant for usage by user applications.  You likely won't need
+meant for usage by user applications.  You likely won't need to
 specify other parameters such as {{EX:OBSOLETE}}.
 
 The following subsections provide a couple of examples.
