@@ -47,9 +47,9 @@ do_abandon( LDAP *ld, int origid, int msgid )
 	BerElement	*ber;
 	int		i, err, sendabandon;
 	Sockbuf		*sb;
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPRequest	*lr;
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	/*
 	 * An abandon request looks like this:
@@ -61,7 +61,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 
 	sendabandon = 1;
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	/* find the request that we are abandoning */
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
 		if ( lr->lr_msgid == msgid ) {	/* this message */
@@ -83,7 +83,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 			sendabandon = 0;
 		}
 	}
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( ldap_msgdelete( ld, msgid ) == 0 ) {
 		ld->ld_errno = LDAP_SUCCESS;
@@ -115,15 +115,15 @@ do_abandon( LDAP *ld, int origid, int msgid )
 				ber_free( ber, 1 );
 			} else {
 				/* send the message */
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 				if ( lr != NULL ) {
 					sb = lr->lr_conn->lconn_sb;
 				} else {
 					sb = &ld->ld_sb;
 				}
-#else /* LDAP_REFERRALS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 				sb = &ld->ld_sb;
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 				if ( ber_flush( sb, ber, 1 ) != 0 ) {
 					ld->ld_errno = LDAP_SERVER_DOWN;
 					err = -1;
@@ -134,7 +134,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		}
 	}
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if ( lr != NULL ) {
 		if ( sendabandon ) {
 			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
@@ -143,7 +143,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 			ldap_free_request( ld, lr );
 		}
 	}
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 	if ( ld->ld_abandoned == NULL ) {

@@ -37,6 +37,9 @@ LDAP_BEGIN_DECL
 /* We'll eventually release as 200 */
 #define LDAP_VENDOR_VERSION	190
 
+/* include LDAP_API_FEATURE defines */
+#include <ldap_features.h>
+
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
 #if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
@@ -306,7 +309,7 @@ typedef struct ldapmsg LDAPMessage;
 #define NULLMSG	((LDAPMessage *) NULL)
 
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 /*
  * structure for tracking LDAP server host, ports, DNs, etc.
  */
@@ -359,7 +362,7 @@ typedef struct ldapreq {
 	struct ldapreq	*lr_prev;	/* previous request */
 	struct ldapreq	*lr_next;	/* next request */
 } LDAPRequest;
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 /*

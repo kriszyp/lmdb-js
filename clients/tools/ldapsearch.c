@@ -35,9 +35,9 @@ char	*s;
     fprintf( stderr, "    -A\t\tretrieve attribute names only (no values)\n" );
     fprintf( stderr, "    -B\t\tdo not suppress printing of non-ASCII values\n" );
     fprintf( stderr, "    -L\t\tprint entries in LDIF format (-B is implied)\n" );
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
     fprintf( stderr, "    -R\t\tdo not automatically follow referrals\n" );
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
     fprintf( stderr, "    -d level\tset LDAP debugging level to `level'\n" );
     fprintf( stderr, "    -F sep\tprint `sep' instead of `=' between attribute names and values\n" );
     fprintf( stderr, "    -S attr\tsort the results by attribute `attr'\n" );

@@ -260,11 +260,11 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
-#else /* LDAP_REFERRALS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	krbinstance = ld->ld_host;
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))
 	    != KSUCCESS ) {

@@ -214,7 +214,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 }
 
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 int
 bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	int freeit )
@@ -249,7 +249,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 
 	return( LDAP_SUCCESS );
 }
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 int
@@ -532,11 +532,11 @@ main( int argc, char **argv )
 			if ( cldapflg )
 				cldap_close( ld );
 #endif /* LDAP_CONNECTIONLESS */
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 			if ( !cldapflg )
-#else /* LDAP_REFERRALS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 			if ( !cldapflg && bound )
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 				ldap_unbind( ld );
 			exit( 0 );
 			break;
@@ -771,15 +771,15 @@ main( int argc, char **argv )
 			}
 #endif /* STR_TRANSLATION */
 
-#ifdef LDAP_DNS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 			getline( line, sizeof(line), stdin,
 				"Use DN & DNS to determine where to send requests (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {
 				LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_DNS);
 			}
-#endif /* LDAP_DNS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {
@@ -790,7 +790,7 @@ main( int argc, char **argv )
 					ldap_set_rebind_proc( ld, bind_prompt );
 				}
 			}
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 			break;
 
 		case 'O':	/* set cache options */

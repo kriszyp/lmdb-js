@@ -43,9 +43,9 @@ LDAP *
 ldap_open( char *host, int port )
 {
 	LDAP		*ld;
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPServer	*srv;
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
@@ -53,7 +53,7 @@ ldap_open( char *host, int port )
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
@@ -70,13 +70,13 @@ ldap_open( char *host, int port )
 	}
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
 
-#else /* LDAP_REFERRALS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
 	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
 		ldap_ld_free( ld, 0 );
 		return( NULL );
 	}
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
 		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
@@ -146,7 +146,7 @@ ldap_init( char *defhost, int defport )
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*)ld );
 	    WSACleanup( );
@@ -161,9 +161,9 @@ ldap_init( char *defhost, int defport )
 
 	if ( defhost != NULL &&
 	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		ldap_free_select_info( ld->ld_selectinfo );
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 		free( (char*)ld );
 	    WSACleanup( );
 		return( NULL );
@@ -175,9 +175,9 @@ ldap_init( char *defhost, int defport )
 	ld->ld_lberoptions = LBER_USE_DER;
 	ld->ld_options.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 
-#ifdef LDAP_REFERRALS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_REFERRALS);
-#endif /* LDAP_REFERRALS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;

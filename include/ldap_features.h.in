@@ -1,0 +1,13 @@
+/* 
+ * LDAP Features
+ */
+#ifndef _LDAP_FEATURES_H
+#define _LDAP_FEATURES_H 1
+
+/* LDAP v2 DNS */
+#undef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+
+/* LDAP v2 Referrals */
+#undef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+
+#endif /* LDAP_FEATURES */

@@ -7,7 +7,7 @@
 
 #include "portable.h"
 
-#ifdef LDAP_DNS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,4 +195,4 @@ decode_answer( unsigned char *answer, int len )
     return( dxs );
 }
 
-#endif /* LDAP_DNS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */

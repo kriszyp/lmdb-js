@@ -108,9 +108,6 @@
 /* define this for LDAP process title support */
 #undef LDAP_PROCTITLE
 
-/* define this for LDAP referrals support */
-#undef LDAP_REFERRALS
-
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
 
@@ -167,6 +164,12 @@
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
+
+/* These are defined in ldap_features.h */
+/*
+	LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+	LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+*/
 
 
 /* Leave that blank line there!!  Autoheader needs it. */

@@ -108,10 +108,11 @@ main( argc, argv )
 	exit( 1 );
     }
 
-#if LDAP_VERSION > LDAP_VERSION2
-	/* this seems prudent */
-	ldap_set_option( LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
-#endif
+	{
+		/* this seems prudent */
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref );
+	}
 
     if ( !kerberos ) {
 	authmethod = LDAP_AUTH_SIMPLE;
