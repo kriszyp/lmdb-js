@@ -93,12 +93,13 @@ get_filter(
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
+
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "error decoding filter";
 			break;
 		}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*fstr = ch_malloc( sizeof("(=)")
 			+ f->f_av_desc->ad_cname->bv_len
 			+ f->f_av_value->bv_len );
@@ -108,11 +109,6 @@ get_filter(
 		    f->f_av_value->bv_val );
 
 #else
-		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "error decoding filter";
-			break;
-		}
-
 		*fstr = ch_malloc( sizeof("(=)")
 			+ strlen( f->f_avtype )
 			+ f->f_avvalue.bv_len);
@@ -128,12 +124,13 @@ get_filter(
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
+
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "decoding filter error";
 			break;
 		}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*fstr = ch_malloc( sizeof("(>=)")
 			+ f->f_av_desc->ad_cname->bv_len
 			+ f->f_av_value->bv_len );
@@ -143,12 +140,7 @@ get_filter(
 		    f->f_av_value->bv_val );
 
 #else
-		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "decoding filter error";
-			break;
-		}
-
-		*fstr = ch_malloc( sizeof("(>=)"
+		*fstr = ch_malloc( sizeof("(>=)")
 			+ strlen( f->f_avtype )
 			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s>=%s)", f->f_avtype,
@@ -158,11 +150,13 @@ get_filter(
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
+
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "decoding filter error";
 			break;
 		}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 
 		*fstr = ch_malloc( sizeof("(<=)")
 			+ f->f_av_desc->ad_cname->bv_len
@@ -173,11 +167,7 @@ get_filter(
 		    f->f_av_value->bv_val );
 
 #else
-		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "error decoding filter";
-			break;
-		}
-		*fstr = ch_malloc( sizeof("(<=)"
+		*fstr = ch_malloc( sizeof("(<=)")
 			+ strlen( f->f_avtype )
 			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s<=%s)", f->f_avtype,
@@ -227,12 +217,13 @@ get_filter(
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
+
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "decoding filter error";
 			break;
 		}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*fstr = ch_malloc( sizeof("(~=)")
 			+ f->f_av_desc->ad_cname->bv_len
 			+ f->f_av_value->bv_len );
@@ -242,11 +233,7 @@ get_filter(
 		    f->f_av_value->bv_val );
 
 #else
-		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
-			*text = "error decoding filter";
-			break;
-		}
-		*fstr = ch_malloc( sizeof("(~=)"
+		*fstr = ch_malloc( sizeof("(~=)")
 			+ strlen( f->f_avtype )
 			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s~=%s)", f->f_avtype,
