@@ -139,6 +139,7 @@ glue_back_db_open (
 
 	gi->gi_bd.be_acl = be->be_acl;
 	gi->gi_bd.be_pending_csn_list = be->be_pending_csn_list;
+	gi->gi_bd.be_context_csn = be->be_context_csn;
 
 	if (gi->gi_bd.bd_info->bi_db_open)
 		rc = gi->gi_bd.bd_info->bi_db_open(&gi->gi_bd);
