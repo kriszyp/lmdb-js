@@ -158,6 +158,16 @@ do_modify(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "modify upon the root DSE not supported", NULL, NULL );
 		goto cleanup;
+
+#if defined( SLAPD_SCHEMA_DN )
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: subschema subentry!\n", 0, 0, 0 );
+
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "modification of subschema subentry not supported",
+			NULL, NULL );
+		goto cleanup;
+#endif
 	}
 
 #ifdef LDAP_DEBUG

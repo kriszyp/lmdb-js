@@ -156,6 +156,15 @@ do_modrdn(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "cannot rename the root DSE", NULL, NULL );
 		goto cleanup;
+
+#ifdef SLAPD_SCHEMA_DN
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry!\n", 0, 0, 0 );
+
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "cannot rename subschema subentry", NULL, NULL );
+		goto cleanup;
+#endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",

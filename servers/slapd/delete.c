@@ -72,6 +72,16 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "cannot delete the root DSE", NULL, NULL );
 		goto cleanup;
+
+#ifdef SLAPD_SCHEMA_DN
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
+		/* protocolError would likely be a more appropriate error */
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "cannot delete the root DSE", NULL, NULL );
+		goto cleanup;
+
+#endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
