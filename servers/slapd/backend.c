@@ -490,6 +490,7 @@ backend_db_init(
 
 	be->be_restrictops = global_restrictops;
 	be->be_requires = global_requires;
+	be->be_ssf_set = global_ssf_set;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
