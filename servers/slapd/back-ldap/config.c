@@ -46,6 +46,8 @@
 #include "back-ldap.h"
 #include "lutil.h"
 
+static SLAP_EXTOP_MAIN_FN ldap_back_exop_whoami;
+
 int
 ldap_back_db_config(
     BackendDB	*be,
@@ -121,6 +123,16 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		li->savecred = 1;
+	
+	/* intercept exop_who_am_i? */
+	} else if ( strcasecmp( argv[0], "proxy-whoami" ) == 0 ) {
+		if (argc != 1) {
+			fprintf( stderr,
+	"%s: line %d: proxy-whoami takes no arguments\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		load_extop( (struct berval *)&slap_EXOP_WHOAMI, ldap_back_exop_whoami );
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
@@ -310,6 +322,92 @@ ldap_back_db_config(
 	}
 	return 0;
 }
+
+static int
+ldap_back_exop_whoami(
+	Connection *conn,
+	Operation *op,
+	struct berval *reqoid,
+	struct berval *reqdata,
+	char **rspoid,
+	struct berval **rspdata,
+	LDAPControl ***rspctrls,
+	const char **text,
+	BerVarray *refs )
+{
+	struct berval *bv = NULL;
+	int rc = LDAP_SUCCESS;
+
+	if ( reqdata != NULL ) {
+		/* no request data should be provided */
+		*text = "no request data expected";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	{
+		rc = backend_check_restrictions( conn->c_authz_backend,
+			conn, op, (struct berval *)&slap_EXOP_WHOAMI, text );
+
+		if( rc != LDAP_SUCCESS ) return rc;
+	}
+
+	/* if auth'd by back-ldap and request is proxied, forward it */
+	if ( conn->c_authz_backend && !strcmp(conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &conn->c_ndn)) {
+		struct ldapinfo *li =
+			(struct ldapinfo *)conn->c_authz_backend->be_private;
+		struct ldapconn *lc;
+
+		LDAPControl c, *ctrls[2] = {&c, NULL};
+		LDAPMessage *res;
+		Operation op2 = *op;
+		ber_int_t msgid;
+
+		op2.o_ndn = conn->c_ndn;
+		lc = ldap_back_getconn(li, conn, &op2);
+		if (!lc || !ldap_back_dobind( li, lc, conn, op )) {
+			return -1;
+		}
+		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+		c.ldctl_iscritical = 1;
+		c.ldctl_value.bv_val = ch_malloc(op->o_ndn.bv_len+4);
+		c.ldctl_value.bv_len = op->o_ndn.bv_len + 3;
+		strcpy(c.ldctl_value.bv_val, "dn:");
+		strcpy(c.ldctl_value.bv_val+3, op->o_ndn.bv_val);
+
+		rc = ldap_whoami(lc->ld, ctrls, NULL, &msgid);
+		if (rc == LDAP_SUCCESS) {
+			if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
+				ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
+					&rc);
+			} else {
+				rc = ldap_parse_whoami(lc->ld, res, &bv);
+				ldap_msgfree(res);
+			}
+		}
+		ch_free(c.ldctl_value.bv_val);
+		if (rc != LDAP_SUCCESS) {
+			rc = ldap_back_map_result(rc);
+		}
+	} else {
+	/* else just do the same as before */
+		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
+		if( op->o_dn.bv_len ) {
+			bv->bv_len = op->o_dn.bv_len + sizeof("dn:")-1;
+			bv->bv_val = ch_malloc( bv->bv_len + 1 );
+			AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:")-1 );
+			AC_MEMCPY( &bv->bv_val[sizeof("dn:")-1], op->o_dn.bv_val,
+				op->o_dn.bv_len );
+			bv->bv_val[bv->bv_len] = '\0';
+		} else {
+			bv->bv_len = 0;
+			bv->bv_val = NULL;
+		}
+	}
+
+	*rspdata = bv;
+	return rc;
+}
+
 
 #ifdef ENABLE_REWRITE
 static char *
