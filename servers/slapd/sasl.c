@@ -581,7 +581,8 @@ static sasl_auxprop_plug_t slap_auxprop_plugin = {
 	NULL,	/* auxprop_free */
 	slap_auxprop_lookup,
 	"slapd",	/* name */
-	slap_auxprop_store
+	slap_auxprop_store	/* the declaration of this member changed
+				 * in cyrus SASL from 2.1.15 to 2.1.16 */
 };
 
 static int
