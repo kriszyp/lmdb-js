@@ -748,7 +748,9 @@
 #undef HAVE_CYRUS_SASL
 
 /* set to urandom device */
+#ifndef URANDOM_DEVICE
 #undef URANDOM_DEVICE
+#endif
 
 /* define if you actually have FreeBSD fetch(3) */
 #undef HAVE_FETCH
