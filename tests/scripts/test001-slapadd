@@ -5,7 +5,7 @@ SRCDIR="."
 if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
-BACKEND=ldbm
+BACKEND=bdb
 if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
@@ -68,7 +68,7 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	echo $SEARCHFLT $LDIFFLT
-	diff -iu $SEARCHFLT $LDIFFLT
+	$DIFF $SEARCHFLT $LDIFFLT
 	exit 1
 fi
 

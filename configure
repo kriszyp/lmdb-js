@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.387 2002/01/03 15:24:54 hyc Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.388 2002/01/04 20:17:28 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -90,7 +90,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-wrappers	  enable tcp wrapper support [no]"
 ac_help="$ac_help
-    --enable-bdb	  enable Berkeley DB backend [no]"
+    --enable-bdb	  enable Berkeley DB backend [yes]"
 ac_help="$ac_help
     --with-bdb-module     module type [static]"
 ac_help="$ac_help
@@ -102,7 +102,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --with-ldap-module	  module type [static]"
 ac_help="$ac_help
-    --enable-ldbm	  enable ldbm backend [yes]"
+    --enable-ldbm	  enable ldbm backend [no]"
 ac_help="$ac_help
     --with-ldbm-api       with LDBM API [auto]"
 ac_help="$ac_help
@@ -1844,7 +1844,7 @@ if test "${enable_bdb+set}" = set; then
 	ol_enable_bdb="$ol_arg"
 
 else
-  	ol_enable_bdb="no"
+  	ol_enable_bdb="yes"
 fi
 # end --enable-bdb
 # OpenLDAP --with-bdb_module
@@ -1967,7 +1967,7 @@ if test "${enable_ldbm+set}" = set; then
 	ol_enable_ldbm="$ol_arg"
 
 else
-  	ol_enable_ldbm="yes"
+  	ol_enable_ldbm="no"
 fi
 # end --enable-ldbm
 # OpenLDAP --with-ldbm_api
@@ -14037,8 +14037,8 @@ EOF
 fi
 
 if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
-	{ echo "configure: error: BerkeleyDB not availabl" 1>&2; exit 1; }
-elif test $ol_enable_bdb != no -a $ol_link_ldbm != no ; then
+	{ echo "configure: error: BerkeleyDB not available" 1>&2; exit 1; }
+elif test $ol_enable_bdb != no -a $ol_link_ldbm != berkeley ; then
 	ol_enable_bdb=yes
 fi
 

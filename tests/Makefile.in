@@ -8,7 +8,7 @@ BUILD_LDBM=@BUILD_LDBM@
 BUILD_BDB=@BUILD_BDB@
 
 test: tests
-tests: ldbm
+tests: bdb ldbm
 
 bdb: test-bdb
 test-bdb:	FORCE

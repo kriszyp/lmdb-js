@@ -164,7 +164,7 @@ OL_ARG_ENABLE(slp, [    --enable-slp          enable SLPv2 support], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
 dnl SLAPD Backend options
-OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], no)dnl
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl
 OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
@@ -173,7 +173,7 @@ OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type], static,
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
 OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], yes)dnl
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], no)dnl
 OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API], auto,
 	[auto berkeley bcompat mdbm gdbm])
 OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type], static,
@@ -1879,8 +1879,8 @@ if test $ol_with_ldbm_api = auto \
 fi
 
 if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
-	AC_MSG_ERROR(BerkeleyDB not availabl)
-elif test $ol_enable_bdb != no -a $ol_link_ldbm != no ; then
+	AC_MSG_ERROR(BerkeleyDB not available)
+elif test $ol_enable_bdb != no -a $ol_link_ldbm != berkeley ; then
 	ol_enable_bdb=yes
 fi
 

@@ -39,7 +39,9 @@ SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
 SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 
-CMP="diff -i"
+unset DIFF_OPTIONS
+DIFF="diff -iu"
+CMP="diff -ic"
 CMPOUT=/dev/null
 SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd
@@ -62,13 +64,13 @@ LDIFBASE=$DATADIR/test-base.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
 MONITOR=""
-BASEDN="o=University of Michigan, c=US"
-MANAGERDN="cn=Manager, o=University of Michigan, c=US"
-UPDATEDN="cn=Replica, o=University of Michigan, c=US"
+BASEDN="o=University of Michigan,c=US"
+MANAGERDN="cn=Manager,o=University of Michigan,c=US"
+UPDATEDN="cn=Replica,o=University of Michigan,c=US"
 PASSWD=secret
-BABSDN="cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan , c = US "
-BJORNSDN="cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
-JAJDN="cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US"
+BABSDN="cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US"
+BJORNSDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US"
+JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US"
 MASTERLOG=$DBDIR/master.log
 SLAVELOG=$DBDIR/slave.log
 SLURPLOG=$DBDIR/slurp.log

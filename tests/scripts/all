@@ -15,7 +15,7 @@ fi
 echo ">>>>> Test Directory: $SRCDIR"
 
 if test $# -eq 0 ; then
-	BACKEND=ldbm
+	BACKEND=bdb
 else
 	BACKEND=$1; shift
 fi
