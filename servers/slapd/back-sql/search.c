@@ -1206,7 +1206,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 			rs->sr_err = LDAP_REFERRAL;
 			rs->sr_matched = matched_dn.bv_val;
-			send_ldap_result( op, rs );
+			send_search_reference( op, rs );
 
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
