@@ -154,6 +154,7 @@ typedef struct lber_memory_fns {
 #define LBER_OPT_SUCCESS	(0)
 #define LBER_OPT_ERROR		(-1)
 
+#define LBER_ELEMENT_SIZEOF (256) /* must be >= sizeof(BerElement) */
 typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
 typedef struct seqorset Seqorset;

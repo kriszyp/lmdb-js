@@ -213,7 +213,7 @@ send_ldap_response(
 	LDAPControl **ctrls
 )
 {
-	char berbuf[256];
+	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement	*ber = (BerElement *)berbuf;
 	int		rc;
 	long	bytes;
@@ -655,7 +655,7 @@ send_search_entry(
 	LDAPControl **ctrls
 )
 {
-	char		berbuf[256];
+	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement	*ber = (BerElement *)berbuf;
 	Attribute	*a, *aa;
 	int		i, j, rc=-1, bytes;
@@ -1197,7 +1197,7 @@ send_search_reference(
     BerVarray *v2refs
 )
 {
-	char		berbuf[256];
+	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement	*ber = (BerElement *)berbuf;
 	int rc;
 	int bytes;
