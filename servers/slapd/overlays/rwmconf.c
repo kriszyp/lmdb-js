@@ -338,12 +338,25 @@ rwm_suffix_massage_config(
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 
+#ifdef RWM_REFERRAL_REWRITE
+	/* FIXME: we don't want this on by default, do we? */
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "referralDN";
 	rargv[ 2 ] = "alias";
 	rargv[ 3 ] = "searchEntryDN";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+#else /* ! RWM_REFERRAL_REWRITE */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "referralAttrDN";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "referralDN";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
+#endif /* ! RWM_REFERRAL_REWRITE */
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchAttrDN";

@@ -299,9 +299,11 @@ searchFilterAttrDN   search
 compareDN            compare
 compareAttrDN        compare AVA
 addDN                add
-addAttrDN            add AVA (including "ref")
+addAttrDN            add AVA (DN portion of "ref" excluded)
 modifyDN             modify
-modifyAttrDN         modify AVA (including "ref")
+modifyAttrDN         modify AVA (DN portion of "ref" excluded)
+referralAttrDN       add/modify DN portion of referrals
+                     (default to none)
 modrDN               modrdn
 newSuperiorDN        modrdn
 deleteDN             delete
@@ -321,7 +323,7 @@ searchAttrDN         search AVA (only if defined; defaults
 matchedDN            all ops (only if applicable; defaults
                      to searchEntryDN)
 referralDN           all ops (only if applicable; defaults
-                     to searchEntryDN)
+                     to none)
 .fi
 .RE
 .LP

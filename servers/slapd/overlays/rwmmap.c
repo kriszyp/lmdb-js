@@ -386,7 +386,7 @@ map_attr_value(
 
 #ifdef ENABLE_REWRITE
 		fdc.ctx = "searchFilterAttrDN";
-#endif
+#endif /* ENABLE_REWRITE */
 
 		rc = rwm_dn_massage( &fdc, value, NULL, &vtmp );
 		switch ( rc ) {
@@ -773,10 +773,10 @@ rwm_referral_rewrite(
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else
+#else /* ! ENABLE_REWRITE */
 	dc.tofrom = ((int *)cookie)[0];
 	dc.normalized = 0;
-#endif
+#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ );
 	if ( pa_nvals != NULL ) {
@@ -922,10 +922,10 @@ rwm_dnattr_rewrite(
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else
+#else /* ! ENABLE_REWRITE */
 	dc.tofrom = ((int *)cookie)[0];
 	dc.normalized = 0;
-#endif
+#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &in[last] ); last++ );
 	if ( pa_nvals != NULL ) {

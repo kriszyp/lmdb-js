@@ -31,6 +31,9 @@
 
 LDAP_BEGIN_DECL
 
+/* define to enable referral DN massage by default */
+#undef RWM_REFERRAL_REWRITE
+
 struct ldapmap {
 	int drop_missing;
 
@@ -87,10 +90,10 @@ typedef struct dncookie {
 	Connection *conn;
 	char *ctx;
 	SlapReply *rs;
-#else
+#else /* !ENABLE_REWRITE */
 	int normalized;
 	int tofrom;
-#endif
+#endif /* !ENABLE_REWRITE */
 } dncookie;
 
 int rwm_dn_massage( dncookie *dc, struct berval *in,

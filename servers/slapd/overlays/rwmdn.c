@@ -116,7 +116,7 @@ rwm_dn_massage(
 	return rc;
 }
 
-#else
+#else /* ! ENABLE_REWRITE */
 /*
  * rwm_dn_massage
  * 
@@ -258,6 +258,6 @@ rwm_dn_massage(
 
 	return LDAP_SUCCESS;
 }
-#endif /* !ENABLE_REWRITE */
+#endif /* ! ENABLE_REWRITE */
 
 #endif /* SLAPD_OVER_RWM */
