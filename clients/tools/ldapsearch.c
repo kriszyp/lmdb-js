@@ -167,10 +167,8 @@ urlize(char *url)
 {
 	char *p;
 
-	if (*LDAP_DIRSEP != '/')
-	{
-		for (p = url; *p; p++)
-		{
+	if (*LDAP_DIRSEP != '/') {
+		for (p = url; *p; p++) {
 			if (*p == *LDAP_DIRSEP)
 				*p = '/';
 		}
@@ -195,6 +193,8 @@ main( int argc, char **argv )
 	infile = NULL;
 	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
+
+	prog = lutil_progname( "ldapsearch", argc, argv );
 
 	lutil_log_initialize(argc, argv);
 
@@ -224,8 +224,6 @@ main( int argc, char **argv )
 		def_tmpdir[0] == *LDAP_DIRSEP ? &def_tmpdir[1] : def_tmpdir );
 
 	urlize( def_urlpre );
-
-    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
 	while (( i = getopt( argc, argv, "Aa:b:E:F:f:Ll:S:s:T:tuz:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )
@@ -1193,7 +1191,8 @@ print_entry(
 				{
 					int tmpfd;
 					/* write value to file */
-					sprintf( tmpfname, "%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
+					snprintf( tmpfname, sizeof tmpfname,
+						"%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
 						tmpdir, a );
 					tmpfp = NULL;
 
@@ -1219,7 +1218,7 @@ print_entry(
 
 					fclose( tmpfp );
 
-					sprintf( url, "%s%s", urlpre,
+					snprintf( url, sizeof url, "%s%s", urlpre,
 						&tmpfname[strlen(tmpdir) + sizeof(LDAP_DIRSEP) - 1] );
 
 					urlize( url );
