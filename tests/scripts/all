@@ -19,5 +19,7 @@ for i in $SCRIPTDIR/test*; do
 		echo ">>>>> $CMD failed (exit $RC)"
 		exit $RC
 	fi
+	echo ">>>>> waiting 5 seconds for things to exit"
+	sleep 5
 	echo
 done
