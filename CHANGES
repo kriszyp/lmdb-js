@@ -9,6 +9,8 @@ Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	Fixed no-ldapd make install bugs
 	Fixed slapd/detach-join thread bug
 	Fixed slapd/nextid-atol bug
+	Fixed slapd/derefDN bug
+	Fixed ldbm2ldif ldif bug
 	Updated slapd to use ch_strdup()
 	Moved ldapfriendly to datadir
 	Updated $(MKDIR) handling to always use -p
