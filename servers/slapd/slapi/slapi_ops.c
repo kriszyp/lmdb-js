@@ -714,7 +714,7 @@ slapi_add_internal(
 
 	if ( rc == LDAP_SUCCESS ) {
 		for ( i = 0, pMod = mods[0]; pMod != NULL; pMod = mods[++i] ) {
-			if ( (pMod->mod_op & ~LDAP_MOD_BVALUES) != LDAP_MOD_ADD ) {
+			if ( (pMod->mod_op & LDAP_MOD_OP ) != LDAP_MOD_ADD ) {
 				rc = LDAP_OTHER;
 				break;
 			}
@@ -969,7 +969,7 @@ slapi_modify_internal(
 
 			mod  = (Modifications *)ch_malloc( sizeof(Modifications) );
 
-			mod->sml_op = pMod->mod_op;
+			mod->sml_op = pMod->mod_op & LDAP_MOD_OP;
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
@@ -986,7 +986,7 @@ slapi_modify_internal(
 
 			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
-			mod->sml_op = pMod->mod_op;
+			mod->sml_op = pMod->mod_op & LDAP_MOD_OP;
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
@@ -996,7 +996,7 @@ slapi_modify_internal(
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
-		switch( pMod->mod_op ) {
+		switch( pMod->mod_op & LDAP_MOD_OP ) {
 		case LDAP_MOD_ADD:
 		if ( mod->sml_bvalues == NULL ) {
 			rs.sr_err = LDAP_PROTOCOL_ERROR;

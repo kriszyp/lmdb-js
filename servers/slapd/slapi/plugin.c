@@ -449,7 +449,7 @@ newExtendedOp(
 	}
 
 	rc = slapi_pblock_get( pPB,SLAPI_PLUGIN_EXT_OP_OIDLIST, &pTmpOIDs );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != 0 ) {
 		rc = LDAP_OTHER;
 		goto error_return;
 	}
