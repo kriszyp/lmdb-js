@@ -28,6 +28,15 @@
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
 #endif
 
+/* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
+ *
+ * This is a value used internally by the backends. It is needed to allow
+ * adding values that already exist without getting an error as required by
+ * modrdn when the new rdn was already an attribute value itself.
+ * JCG 05/1999 (gomez@engr.sgi.com)
+ */
+#define LDAP_MOD_SOFTADD	0x04
+
 #define DN_DNS	0
 #define DN_X500	1
 
