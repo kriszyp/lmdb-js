@@ -37,13 +37,14 @@
 
 
 /*
- * ldap_sasl_bind - bind to the ldap server (and X.500).  The dn, mechanism, and
- * credentials of the entry to which to bind are supplied.  The message id
- * of the request initiated is provided upon successful (LDAP_SUCCESS) return.
+ * ldap_sasl_bind - bind to the ldap server (and X.500).
+ * The dn (usually NULL), mechanism, and credentials are provided.
+ * The message id of the request initiated is provided upon successful
+ * (LDAP_SUCCESS) return.
  *
  * Example:
- *	ldap_sasl_bind( ld, "cn=manager, o=university of michigan, c=us",
- *	    "mechanism", "secret", NULL, NULL, &msgid )
+ *	ldap_sasl_bind( ld, NULL, "mechanism",
+ *		cred, NULL, NULL, &msgid )
  */
 
 int
@@ -829,16 +830,12 @@ ldap_negotiated_sasl_bind_s(
 	sasl_callback_t callbacks[4];
 	int rc;
 
-	/*
-	 * Cyrus uses screwy terms.  The authname is the
-	 * SASL "username" or authentication identity.
-	 * The user is the authorization identity.
-	 */
-
+	/* SASL Authentication Identity */
 	callbacks[n=0].id = SASL_CB_AUTHNAME;
 	callbacks[n].proc = ldap_pvt_sasl_getsimple;
 	callbacks[n].context = (void *)authenticationId;
 
+	/* SASL Authorization Identity (userid) */
 	if( authorizationId != NULL ) {
 		callbacks[++n].id = SASL_CB_USER;
 		callbacks[n].proc = ldap_pvt_sasl_getsimple;
