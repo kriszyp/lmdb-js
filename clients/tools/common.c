@@ -837,7 +837,9 @@ tool_bind( LDAP *ld )
 		if ( err != LDAP_SUCCESS || msgbuf[0] ) {
 			fprintf( stderr, "ldap_bind: %s%s\n", ldap_err2string( err ),
 				msgbuf );
-			exit( EXIT_FAILURE );
+			if ( err != LDAP_SUCCESS ) {
+				exit( EXIT_FAILURE );
+			}
 		}
 	}
 }
