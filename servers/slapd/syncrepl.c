@@ -408,7 +408,7 @@ do_syncrepl(
 	backend_attribute( &op, NULL, &op.o_req_ndn,
 		slap_schema.si_ad_syncreplCookie, &si->syncCookie );
 
-	ber_dupbv( &syncCookie_req, si->syncCookie );
+	ber_dupbv( &syncCookie_req, &si->syncCookie[0] );
 
 	psub = be->be_nsuffix[0];
 
@@ -642,6 +642,9 @@ done:
 		ldap_msgfree( res );
 
 	ldap_unbind( ld );
+
+	ber_bvarray_free_x( si->syncCookie, op.o_tmpmemctx );
+	si->syncCookie = NULL;
 
 	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
@@ -1255,11 +1258,17 @@ syncrepl_updateCookie(
 	slap_callback cb;
 	SlapReply	rs = {REP_RESULT};
 
+	struct berval *dup_syncCookie = NULL;
+
 	/* update in memory cookie */
-	if ( si->syncCookie != NULL ) {
-		ber_bvfree( si->syncCookie );
-	}
-	si->syncCookie = ber_dupbv( NULL, syncCookie );
+	ber_bvarray_free_x( si->syncCookie, op->o_tmpmemctx );
+	si->syncCookie = NULL;
+
+	/* ber_bvarray_add() doesn't have dup option */
+	dup_syncCookie = ber_dupbv_x( NULL, syncCookie, op->o_tmpmemctx );
+	ber_bvarray_add_x( &si->syncCookie, dup_syncCookie, op->o_tmpmemctx );
+	op->o_tmpfree( dup_syncCookie, op->o_tmpmemctx );
+
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_objectClass;
@@ -1281,7 +1290,7 @@ syncrepl_updateCookie(
 	modtail = &mod->sml_next;
 
 	if ( scbva[0].bv_val ) ch_free( scbva[0].bv_val );
-	ber_dupbv( &scbva[0], si->syncCookie );
+	ber_dupbv( &scbva[0], &si->syncCookie[0] );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
