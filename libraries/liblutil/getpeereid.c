@@ -62,9 +62,13 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	msg.msg_accrightslen = sizeof(fd);
 	if( recvmsg( s, &msg, 0) >= 0 && msg.msg_accrightslen == sizeof(int) )
 	{
+		/* We must receive a valid descriptor, it must be a pipe,
+		 * and it must only be accessible by its owner.
+		 */
 		dummy = fstat( fd, &st );
 		close(fd[0]);
-		if( dummy == 0 )
+		if( dummy == 0 && S_ISFIFO(st.st_mode) &&
+			((st.st_mode & (S_IRWXG|S_IRWXO)) == 0))
 		{
 			*euid = st.st_uid;
 			*egid = st.st_gid;
