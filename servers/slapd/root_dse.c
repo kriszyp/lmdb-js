@@ -44,9 +44,24 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		}
 	}
 
+#if defined( SLAPD_MONITOR_DN )
+	strcpy( buf, SLAPD_MONITOR_DN );
+	val.bv_val = buf;
+	val.bv_len = strlen( buf );
+	attr_merge( e, "namingContexts", vals );
+#endif
+
+#if defined( SLAPD_CONFIG_DN )
+	strcpy( buf, SLAPD_CONFIG_DN );
+	val.bv_val = buf;
+	val.bv_len = strlen( buf );
+	attr_merge( e, "namingContexts", vals );
+#endif
+
 #if defined( SLAPD_SCHEMA_DN )
 	val.bv_val = ch_strdup( SLAPD_SCHEMA_DN );
 	val.bv_len = strlen( val.bv_val );
+	attr_merge( e, "namingContexts", vals );
 	attr_merge( e, "subschemaSubentry", vals );
 	ldap_memfree( val.bv_val );
 #endif
