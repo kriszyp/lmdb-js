@@ -706,7 +706,7 @@ LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
 
-LDAP_SLAPD_V (char **)	slap_known_controls;
+LDAP_SLAPD_V (char *)	slap_known_controls[];
 
 /*
  * kerberos.c
