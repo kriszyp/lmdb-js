@@ -276,7 +276,8 @@ at_add(
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
 	AC_MEMCPY( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
-	sat->sat_cname = cname;
+	sat->sat_cname.bv_val = cname;
+	sat->sat_cname.bv_len = strlen( cname );
 	ldap_pvt_thread_mutex_init(&sat->sat_ad_mutex);
 
 	if ( at->at_sup_oid ) {

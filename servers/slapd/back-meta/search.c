@@ -725,13 +725,13 @@ meta_send_entry(
 							"[rw] searchResult on"
 							" attr=%s:"
 							" \"%s\" -> \"%s\"\n",
-					attr->a_desc->ad_type->sat_cname,
+					attr->a_desc->ad_type->sat_cname.bv_val,
 							bv->bv_val, newval ));
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 						"rw> searchResult on attr=%s:"
 						" \"%s\" -> \"%s\"\n",
-					attr->a_desc->ad_type->sat_cname,
+					attr->a_desc->ad_type->sat_cname.bv_val,
 						bv->bv_val, newval );
 #endif /* !NEW_LOGGING */
 					

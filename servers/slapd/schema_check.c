@@ -202,7 +202,7 @@ oc_check_required( Entry *e, struct berval *ocname )
 		}
 		/* not there => schema violation */
 		if ( a == NULL ) {
-			return at->sat_cname;
+			return at->sat_cname.bv_val;
 		}
 	}
 
@@ -218,15 +218,15 @@ int oc_check_allowed(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "oc_check_allowed: type \"%s\"\n", at->sat_cname ));
+		   "oc_check_allowed: type \"%s\"\n", at->sat_cname.bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"oc_check_allowed type \"%s\"\n",
-		at->sat_cname, 0, 0 );
+		at->sat_cname.bv_val, 0, 0 );
 #endif
 
 	/* always allow objectClass attribute */
-	if ( strcasecmp( at->sat_cname, "objectClass" ) == 0 ) {
+	if ( strcasecmp( at->sat_cname.bv_val, "objectClass" ) == 0 ) {
 		return LDAP_SUCCESS;
 	}
 
