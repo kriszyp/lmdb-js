@@ -146,6 +146,7 @@ struct metadncache {
 struct metainfo {
 	int			ntargets;
 	int			defaulttarget;
+	int			network_timeout;
 #define META_DEFAULT_TARGET_NONE	-1
 	struct metatarget	**targets;
 

@@ -235,6 +235,7 @@ init_one_conn(
 		struct metasingleconn	*lsc
 		)
 {
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	int		vers;
 	dncookie	dc;
 
@@ -261,6 +262,18 @@ init_one_conn(
 	ldap_set_option( lsc->ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
 	/* FIXME: configurable? */
 	ldap_set_option(lsc->ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON);
+
+	/*
+	 * Set the network timeout if set
+	 */
+	if (li->network_timeout != 0){
+		struct timeval network_timeout;
+
+		network_timeout.tv_usec = 0;
+		network_timeout.tv_sec = li->network_timeout;
+
+		ldap_set_option( lsc->ld, LDAP_OPT_NETWORK_TIMEOUT, (void *) &network_timeout);
+	}
 
 	/*
 	 * Sets a cookie for the rewrite session

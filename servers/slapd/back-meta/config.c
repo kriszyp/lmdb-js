@@ -312,6 +312,16 @@ meta_back_db_config(
 			li->cache.ttl = atol( argv[ 1 ] );
 		}
 
+	/* network timeout when connecting to ldap servers */
+	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing network timeout in \"network-timeout <seconds>\" line\n",
+				fname, lineno );
+			return 1;
+		}
+		li->network_timeout = atol(argv[ 1 ]);
+
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "binddn" ) == 0 ) {
 		int 		i = li->ntargets-1;
