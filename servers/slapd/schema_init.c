@@ -686,7 +686,7 @@ caseIgnoreIA5SubstringsMatch(
 	}
 	if( sub->sa_any ) {
 		for(i=0; sub->sa_any[i]; i++) {
-			inlen += sub->sa_final->bv_len;
+			inlen += sub->sa_any[i]->bv_len;
 		}
 	}
 	if( sub->sa_final ) {
