@@ -74,23 +74,12 @@ at_find(
     const char		*name
 )
 {
-	struct aindexrec	*air;
-	char			*tmpname;
+	struct aindexrec *air;
 
-	{
-		tmpname = (char *)name;
-	}
+	air = (struct aindexrec *) avl_find( attr_index, name,
+            (AVL_CMP) attr_index_name_cmp );
 
-	if ( (air = (struct aindexrec *) avl_find( attr_index, tmpname,
-            (AVL_CMP) attr_index_name_cmp )) != NULL ) {
-		if ( tmpname != name )
-			ldap_memfree( tmpname );
-		return( air->air_at );
-	}
-
-	if ( tmpname != name )
-		ldap_memfree( tmpname );
-	return( NULL );
+	return air != NULL ? air->air_at : NULL;
 }
 
 int
