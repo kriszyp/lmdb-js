@@ -346,6 +346,12 @@ int slap_modlist2mods(
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
 
+			if( !validate ) {
+				slap_mods_free( mod );
+				*text = "no validator for syntax";
+				return LDAP_INVALID_SYNTAX;
+			}
+
 			/*
 			 * check that each value is valid per syntax
 			 */

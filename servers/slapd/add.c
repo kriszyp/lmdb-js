@@ -96,7 +96,8 @@ do_add( Connection *conn, Operation *op )
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
-	    tag = ber_next_element( ber, &len, last ) ) {
+	    tag = ber_next_element( ber, &len, last ) )
+	{
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		LDAPModList *mod = (LDAPModList *) ch_malloc( sizeof(LDAPModList) );
 #else
@@ -131,7 +132,7 @@ do_add( Connection *conn, Operation *op )
 		}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		(*modtail)->ml_next = mod;
+		*modtail = mod;
 		modtail = &mod->ml_next;
 #else
 		attr_merge( e, mod->ml_type, mod->ml_bvalues );
