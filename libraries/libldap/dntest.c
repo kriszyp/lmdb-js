@@ -35,7 +35,7 @@ main( int argc, char *argv[] )
 	int 		rc, i, debug = 0, f2 = 0;
 	unsigned 	flags[ 2 ] = { 0U, 0U };
 	char		*strin, *str, *str2, buf[ 1024 ];
-	LDAPDN		*dn = NULL;
+	LDAPDN		*dn, *dn2 = NULL;
 
 	while ( 1 ) {
 		int opt = getopt( argc, argv, "d:" );
@@ -57,8 +57,9 @@ main( int argc, char *argv[] )
 
 	if ( argc < 2 ) {
 		fprintf( stderr, "usage: dntest <dn> [flags-in[,...]] [flags-out[,...]]\n\n" );
-		fprintf( stderr, "\tflags-in:  V3,V2,DCE,PEDANTIC\n" );
-		fprintf( stderr, "\tflags-out: V3,V2,UFN,DCE,AD,PEDANTIC\n\n" );
+		fprintf( stderr, "\tflags-in:   V3,V2,DCE,<pedantic>\n" );
+		fprintf( stderr, "\tflags-out:  V3,V2,UFN,DCE,AD,<pedantic>\n\n" );
+		fprintf( stderr, "\t<pedantic>: PEDANTIC,NOSPACES,NOONESPACE\n\n" );
 		return( 0 );
 	}
 
@@ -104,6 +105,10 @@ main( int argc, char *argv[] )
 					flags[ i ] |= LDAP_DN_FORMAT_AD_CANONICAL;
 				} else if ( !strcasecmp( s, "PEDANTIC" ) ) {
 					flags[ i ] |= LDAP_DN_PEDANTIC;
+				} else if ( !strcasecmp( s, "NOSPACES" ) ) {
+					flags[ i ] |= LDAP_DN_P_NOLEADTRAILSPACES;
+				} else if ( !strcasecmp( s, "NOONESPACE" ) ) {
+					flags[ i ] |= LDAP_DN_P_NOSPACEAFTERRDN;
 				}
 			}
 		}
@@ -118,6 +123,9 @@ main( int argc, char *argv[] )
 		char	**values, *tmp, *tmp2;
 		int	n;
 		
+		fprintf( stdout, "\nldap_dn2str(ldap_str2dn(\"%s\"))\n"
+				"\t= \"%s\"\n", strin, str );
+			
 		switch ( flags[ f2 ] & LDAP_DN_FORMAT_MASK ) {
 		case LDAP_DN_FORMAT_UFN:
 		case LDAP_DN_FORMAT_AD_CANONICAL:
@@ -125,23 +133,21 @@ main( int argc, char *argv[] )
 
 		case LDAP_DN_FORMAT_LDAPV3:
 		case LDAP_DN_FORMAT_LDAPV2:
-			fprintf( stdout, "\nldap_dn2str(ldap_str2dn(\"%s\"))\n"
-					"\t=\"%s\"\n", strin, str );
 			tmp = ldap_dn2ufn( strin );
-			fprintf( stdout, "\nldap_dn2ufn(\"%s\")\n\t=\"%s\"\n", 
-					strin, tmp );
+			fprintf( stdout, "\nldap_dn2ufn(\"%s\")\n"
+					"\t= \"%s\"\n", strin, tmp );
 			ldap_memfree( tmp );
 			tmp = ldap_dn2dcedn( strin );
 			fprintf( stdout, "\nldap_dn2dcedn(\"%s\")\n"
-					"\t=\"%s\"\n", strin, tmp );
+					"\t= \"%s\"\n", strin, tmp );
 			tmp2 = ldap_dcedn2dn( tmp );
 			fprintf( stdout, "\nldap_dcedn2dn(\"%s\")\n"
-					"\t=\"%s\"\n", tmp, tmp2 );
+					"\t= \"%s\"\n", tmp, tmp2 );
 			ldap_memfree( tmp );
 			ldap_memfree( tmp2 );
 			tmp = ldap_dn2ad_canonical( strin );
 			fprintf( stdout, "\nldap_dn2ad_canonical(\"%s\")\n"
-					"\t=\"%s\"\n", strin, tmp );
+					"\t= \"%s\"\n", strin, tmp );
 			ldap_memfree( tmp );
 
 			fprintf( stdout, "\nldap_explode_dn(\"%s\"):\n", str );
@@ -184,17 +190,41 @@ main( int argc, char *argv[] )
 			break;
 		}
 	
-		rc = ldap_str2dn( str, &dn, flags[ f2 ] );
+		rc = ldap_str2dn( str, &dn2, flags[ f2 ] );
 		if ( rc == LDAP_SUCCESS && 
-				ldap_dn2str( dn, &str2, flags[ f2 ] )
+				ldap_dn2str( dn2, &str2, flags[ f2 ] )
 				== LDAP_SUCCESS ) {
+			int 	iRDN;
+			
 			fprintf( stdout, "\n\"%s\"\n\t == \"%s\" ? %s\n", 
 				str, str2, 
 				strcmp( str, str2 ) == 0 ? "yes" : "no" );
+
+			for ( iRDN = 0; dn[ iRDN ] && dn2[ iRDN ]; iRDN++ ) {
+				LDAPRDN 	*r = dn[ iRDN ][ 0 ];
+				LDAPRDN 	*r2 = dn2[ iRDN ][ 0 ];
+				int 		iAVA;
+				
+				for ( iAVA = 0; r[ iAVA ] && r[ iAVA ]; iAVA++ ) {
+					LDAPAVA		*a = r[ iAVA ][ 0 ];
+					LDAPAVA		*a2 = r2[ iAVA ][ 0 ];
+
+					if ( strcmp( a->la_attr, a2->la_attr )
+							|| a->la_flags != a2->la_flags
+							|| a->la_value->bv_len != a2->la_value->bv_len
+							|| memcmp( a->la_value->bv_val, a2->la_value->bv_val, a->la_value->bv_len ) ) {
+						fprintf( stdout, "mismatch\n" );
+						
+					}
+				}
+			}
+			
+			ldapava_free_dn( dn2 );
 			ldap_memfree( str2 );
 		}
 		ldap_memfree( str );
 	}
+	ldapava_free_dn( dn );
 
 	/* note: dn is not freed */
 

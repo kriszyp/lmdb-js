@@ -1179,7 +1179,7 @@ typedef struct ldap_ava {
 	unsigned la_flags;
 #define LDAP_AVA_STRING		0x0000U
 #define LDAP_AVA_BINARY		0x0001U
-#define LDAP_AVA_PRINTABLE	0x0002U
+#define LDAP_AVA_NONPRINTABLE	0x0002U
 } LDAPAVA;
 
 typedef LDAPAVA** LDAPRDN;
@@ -1194,7 +1194,8 @@ typedef LDAPRDN** LDAPDN;
 #define LDAP_DN_FORMAT_MASK		0x000FU
 
 /* str2dn flags */
-#define LDAP_DN_P_LEADTRAILSPACES	0x1000U
+#define LDAP_DN_P_NOLEADTRAILSPACES	0x1000U
+#define LDAP_DN_P_NOSPACEAFTERRDN	0x2000U
 #define LDAP_DN_PEDANTIC		0xF000U
 
 LDAP_F( int )
@@ -1208,6 +1209,9 @@ ldap_dn2str LDAP_P((
 	LDAPDN *dn,
 	char **str,
 	unsigned flags ));
+
+LDAP_F( void )
+ldapava_free_dn LDAP_P(( LDAPDN *dn ));
 
 LDAP_F( int )
 ldap_dn_normalize LDAP_P((
@@ -1233,6 +1237,9 @@ ldap_dn2dcedn LDAP_P(( LDAP_CONST char *dn ));	/* deprecated */
 
 LDAP_F( char * )
 ldap_dcedn2dn LDAP_P(( LDAP_CONST char *dce ));	/* deprecated */
+
+LDAP_F( char * )
+ldap_dn2ad_canonical LDAP_P(( LDAP_CONST char *dn ));	/* deprecated */
 
 /*
  * in getattr.c
