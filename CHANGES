@@ -1,14 +1,18 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.x Engineering
-	Fixed clients printf bugs
+	Fixed clients printf/usage bugs (ITS#749)
 	Fixed -lldap SASL interoperability bug
 	Fixed -lldap PF_LOCAL declaration/call bugs
+	Fixed slapd spasswd support (ITS#751)
 	Updated slurpd SASL support
 	Added slurpd TLS support
 	Removed lint
+	Build Environment
+		Fixed --enable-spasswd (ITS#751)
 	Documentation
-		updated ldap_schema(3)
+		Fixed ldif(5) file:/// bug (ITS#750)
+		Updated ldap_schema(3)
 
 OpenLDAP 2.0.3 Release
 	Fixed -lldap KBIND typo (ITS#717)

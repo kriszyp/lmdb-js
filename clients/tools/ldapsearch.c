@@ -586,7 +586,7 @@ main( int argc, char **argv )
 #endif
 		break;
 	default:
-		fprintf( stderr, "%s: unrecongized option -%c\n",
+		fprintf( stderr, "%s: unrecognized option -%c\n",
 			prog, optopt );
 		usage( argv[0] );
 	}

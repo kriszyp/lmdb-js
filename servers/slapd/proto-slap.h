@@ -151,7 +151,8 @@ LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P(( const char * dn ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be, const char *suffix ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be, const char *ndn ));
-LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be, const char *ndn, struct berval *cred ));
+LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be,
+	Connection *conn, const char *ndn, struct berval *cred ));
 LDAP_SLAPD_F (char *) be_root_dn LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
 #define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )
@@ -727,6 +728,7 @@ LDAP_SLAPD_F (int) passwd_extop LDAP_P((
 	struct berval *** refs ));
 
 LDAP_SLAPD_F (int) slap_passwd_check(
+	Connection			*conn,
 	Attribute			*attr,
 	struct berval		*cred );
 
@@ -803,8 +805,8 @@ LDAP_SLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	replog_mutex;
 
-#ifdef SLAPD_CRYPT
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	crypt_mutex;
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 

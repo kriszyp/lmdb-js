@@ -203,11 +203,7 @@ int slap_sasl_init( void )
     sasl_secprops.maxbufsize = 65536;
     sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
 
-#ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = server;
-#else
 	sasl_dispose( &server );
-#endif
 
 #endif
 	return 0;
@@ -216,9 +212,6 @@ int slap_sasl_init( void )
 int slap_sasl_destroy( void )
 {
 #ifdef HAVE_CYRUS_SASL
-#ifdef SLAPD_SPASSWD
-	sasl_dispose( &lutil_passwd_sasl_conn );
-#endif
 	sasl_done();
 #endif
 	return 0;

@@ -870,18 +870,6 @@ slapd_daemon_task(
 				continue;
 			}
 
-#ifdef LDAP_DEBUG
-			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
-			/* newly accepted stream should not be in any of the FD SETS */
-
-			assert( !FD_ISSET( s, &slap_daemon.sd_actives) );
-			assert( !FD_ISSET( s, &slap_daemon.sd_readers) );
-			assert( !FD_ISSET( s, &slap_daemon.sd_writers) );
-
-			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-#endif
-
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
 			if ( s >= dtblsize ) {
@@ -892,7 +880,18 @@ slapd_daemon_task(
 				continue;
 			}
 #endif
-		   
+
+#ifdef LDAP_DEBUG
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+			/* newly accepted stream should not be in any of the FD SETS */
+			assert( !FD_ISSET( s, &slap_daemon.sd_actives) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_readers) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_writers) );
+
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+#endif
+
 			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
 				(long) s, 0, 0 );
 

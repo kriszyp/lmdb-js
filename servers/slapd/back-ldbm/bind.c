@@ -68,7 +68,7 @@ ldbm_back_bind(
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
-			if ( be_isroot_pw( be, dn, cred ) ) {
+			if ( be_isroot_pw( be, conn, dn, cred ) ) {
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
@@ -139,7 +139,7 @@ ldbm_back_bind(
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
 		/* check for root dn/passwd */
-		if ( be_isroot_pw( be, dn, cred ) ) {
+		if ( be_isroot_pw( be, conn, dn, cred ) ) {
 			/* front end will send result */
 			if(*edn != NULL) free( *edn );
 			*edn = ch_strdup( be_root_dn( be ) );
@@ -165,7 +165,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( a, cred ) != 0 ) {
+		if ( slap_passwd_check( conn, a, cred ) != 0 ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 			/* stop front end from sending result */
