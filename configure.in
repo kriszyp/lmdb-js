@@ -178,7 +178,6 @@ OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verif
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 ol_enable_multimaster=${ol_enable_multimaster-no}
-OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
 OL_ARG_ENABLE(slapi,[    --enable-slapi        enable installation of slapi library], no)dnl
@@ -300,9 +299,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_wrappers = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
 	fi
-	if test $ol_enable_phonetic = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-phonetic argument])
-	fi
 	if test $ol_enable_rlookups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
 	fi
@@ -379,7 +375,6 @@ if test $ol_enable_slapd = no ; then
 
 	ol_enable_modules=no
 	ol_enable_multimaster=no
-	ol_enable_phonetic=no
 	ol_enable_rlookups=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
@@ -2558,9 +2553,6 @@ if test "$ol_link_spasswd" != no ; then
 fi
 if test "$ol_enable_multimaster" != no ; then
 	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])
-fi
-if test "$ol_enable_phonetic" != no ; then
-	AC_DEFINE(SLAPD_PHONETIC,1,[define to support phonetic])
 fi
 if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])

@@ -461,12 +461,6 @@
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
 
-/* Define if you have the <readline/history.h> header file.  */
-#undef HAVE_READLINE_HISTORY_H
-
-/* Define if you have the <readline/readline.h> header file.  */
-#undef HAVE_READLINE_READLINE_H
-
 /* Define if you have the <regex.h> header file.  */
 #undef HAVE_REGEX_H
 
@@ -815,9 +809,6 @@
 /* define if you actually have FreeBSD fetch(3) */
 #undef HAVE_FETCH
 
-/* define if you have -lreadline */
-#undef HAVE_READLINE
-
 /* define if crypt(3) is available */
 #undef HAVE_CRYPT
 
@@ -940,9 +931,6 @@
 
 /* define to support multimaster replication */
 #undef SLAPD_MULTIMASTER
-
-/* define to support phonetic */
-#undef SLAPD_PHONETIC
 
 /* define to support reverse lookups */
 #undef SLAPD_RLOOKUPS
