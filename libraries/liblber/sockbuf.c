@@ -486,8 +486,8 @@ long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
 int lber_pvt_sb_close( Sockbuf *sb )
 {
    int ret;
-   assert( sb->sb_io );
-   assert( sb->sb_io->sbi_close );
+   assert( sb->sb_io != NULL );
+   assert( sb->sb_io->sbi_close != NULL );
    assert( status_is_ok(sb) );
    assert( lber_pvt_sb_in_use( sb ) );
    
