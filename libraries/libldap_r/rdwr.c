@@ -7,13 +7,10 @@
 **
 ** Does not support cancellation nor does any status checking.
 */
-
-/********************************************************
- * Adapted from:
+/* Adapted from publically available examples for:
  *	"Programming with Posix Threads"
- *		by David R Butenhof
- *		Addison-Wesley 
- ********************************************************
+ *		by David R Butenhof, Addison-Wesley 
+ *		http://cseng.aw.com/bookpage.taf?ISBN=0-201-63392-2
  */
 
 #include "portable.h"
@@ -24,6 +21,12 @@
 #include <ac/string.h>
 
 #include "ldap_pvt_thread.h"
+
+/*
+ * implementations that provide their own compatible
+ * should define LDAP_THREAD_HAVE_RDWR in ldap_pvt_thread.h
+ */
+#ifndef LDAP_THREAD_HAVE_RDWR
 
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
@@ -260,3 +263,5 @@ int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rw)
 }
 
 #endif /* LDAP_DEBUG */
+
+#endif /* LDAP_THREAD_HAVE_RDWR */
