@@ -21,6 +21,10 @@
 #include <io.h>
 #endif /* HAVE_IO_H */
 
+#if defined( HAVE_FCNTL_H )
+#include <fcntl.h>
+#endif
+
 #if defined( HAVE_SYS_FILIO_H )
 #include <sys/filio.h>
 #elif defined( HAVE_SYS_IOCTL_H )
