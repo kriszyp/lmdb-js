@@ -116,7 +116,10 @@ structuralObjectClassMatch(
 }
 
 static ObjectClassSchemaCheckFN rootDseObjectClass;
+static ObjectClassSchemaCheckFN aliasObjectClass;
+static ObjectClassSchemaCheckFN referralObjectClass;
 static ObjectClassSchemaCheckFN subentryObjectClass;
+static ObjectClassSchemaCheckFN dynamicObjectClass;
 
 static struct slap_schema_oc_map {
 	char *ssom_name;
@@ -137,36 +140,42 @@ static struct slap_schema_oc_map {
 			"DESC 'RFC2256: an alias' "
 			"SUP top STRUCTURAL "
 			"MUST aliasedObjectName )",
-		0, offsetof(struct slap_internal_schema, si_oc_alias) },
+		aliasObjectClass,
+		offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", "( 2.16.840.1.113730.3.2.6 NAME 'referral' "
 			"DESC 'namedref: named subordinate referral' "
 			"SUP top STRUCTURAL MUST ref )",
-		0, offsetof(struct slap_internal_schema, si_oc_referral) },
+		referralObjectClass,
+		offsetof(struct slap_internal_schema, si_oc_referral) },
 	{ "LDAProotDSE", "( 1.3.6.1.4.1.4203.1.4.1 "
 			"NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' ) "
 			"DESC 'OpenLDAP Root DSE object' "
-			"SUP top STRUCTURAL MAY cn )", rootDseObjectClass,
+			"SUP top STRUCTURAL MAY cn )",
+		rootDseObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_rootdse) },
 	{ "subentry", "( 2.5.20.0 NAME 'subentry' "
 			"SUP top STRUCTURAL "
 			"MUST ( cn $ subtreeSpecification ) )",
-		0, offsetof(struct slap_internal_schema, si_oc_subentry) },
+		subentryObjectClass,
+		offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC2252: controlling subschema (sub)entry' "
 		"AUXILIARY "
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
-			"matchingRuleUse ) )", subentryObjectClass,
+			"matchingRuleUse ) )",
+		subentryObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "collectiveAttributes", "( 2.5.20.2 "
 			"NAME 'collectiveAttributes' "
-			"AUXILIARY )", subentryObjectClass,
+			"AUXILIARY )",
+		subentryObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributes) },
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
 			"DESC 'RFC2589: Dynamic Object' "
 			"SUP top AUXILIARY )",
-		0,
+		dynamicObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 	{ NULL, 0 }
 };
@@ -457,7 +466,7 @@ static struct slap_schema_ad_map {
 		rootDseAttribute, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_dynamicSubtrees) },
 
-	/* userApplication attributes */
+	/* userApplication attributes (which system schema depends upon) */
 	{ "distinguishedName", "( 2.5.4.49 NAME 'distinguishedName' "
 			"DESC 'RFC2256: common supertype of DN attributes' "
 			"EQUALITY distinguishedNameMatch "
@@ -476,7 +485,6 @@ static struct slap_schema_ad_map {
 			"SUP name )",
 		NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_cn) },
-
 	{ "userPassword", "( 2.5.4.35 NAME 'userPassword' "
 			"DESC 'RFC2256/2307: password of user' "
 			"EQUALITY octetStringMatch "
@@ -732,6 +740,38 @@ static int rootDseObjectClass (
 	return LDAP_SUCCESS;
 }
 
+static int aliasObjectClass (
+	Backend *be,
+	Entry *e,
+	ObjectClass *oc,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	if( !SLAP_ALIASES(be) ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" not supported in context",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+	return LDAP_SUCCESS;
+}
+
+static int referralObjectClass (
+	Backend *be,
+	Entry *e,
+	ObjectClass *oc,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	if( !SLAP_REFERRALS(be) ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" not supported in context",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+	return LDAP_SUCCESS;
+}
+
 static int subentryObjectClass (
 	Backend *be,
 	Entry *e,
@@ -739,9 +779,32 @@ static int subentryObjectClass (
 	const char** text,
 	char *textbuf, size_t textlen )
 {
-	if( !is_entry_subentry( e ) ) {
+	if( !SLAP_SUBENTRIES(be) ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" not supported in context",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( oc != slap_schema.si_oc_subentry && !is_entry_subentry( e ) ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" only allowed in subentries",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+	return LDAP_SUCCESS;
+}
+
+static int dynamicObjectClass (
+	Backend *be,
+	Entry *e,
+	ObjectClass *oc,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	if( !SLAP_DYNAMIC(be) ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" not supported in context",
 			oc->soc_oid );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
