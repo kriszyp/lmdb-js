@@ -150,7 +150,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 #endif
 		return( rc );
 	}
-	reg->match = nbv.bv_val;
+	reg->sr_match = nbv.bv_val;
 
 	ber_str2bv( replace, 0, 0, &bv );
 	rc = dnNormalize2( NULL, &bv, &nbv );
@@ -166,28 +166,28 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 #endif
 		return( rc );
 	}
-	reg->replace = nbv.bv_val;
+	reg->sr_replace = nbv.bv_val;
 
 	/* Precompile matching pattern */
-	rc = regcomp( &reg->workspace, reg->match, REG_EXTENDED|REG_ICASE );
+	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
 			   "slap_sasl_regexp_config: \"%s\" could not be compiled.\n",
-			   reg->match ));
+			   reg->sr_match ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"SASL match pattern %s could not be compiled by regexp engine\n",
-		reg->match, 0, 0 );
+		reg->sr_match, 0, 0 );
 #endif
 
 		return( LDAP_OPERATIONS_ERROR );
 	}
 
 	/* Precompile replace pattern. Find the $<n> placeholders */
-	reg->offset[0] = -2;
+	reg->sr_offset[0] = -2;
 	n = 1;
-	for ( c = reg->replace;	 *c;  c++ ) {
+	for ( c = reg->sr_replace;	 *c;  c++ ) {
 		if ( *c == '\\' ) {
 			c++;
 			continue;
@@ -196,25 +196,27 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 			if ( n == SASLREGEX_REPLACE ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-					   "slap_sasl_regexp_config: \"%s\" has too many $n placeholders (max %d)\n",
-					   reg->replace, SASLREGEX_REPLACE ));
+					"slap_sasl_regexp_config: \"%s\" has too many $n "
+						"placeholders (max %d)\n",
+					reg->sr_replace, SASLREGEX_REPLACE ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-				   "SASL replace pattern %s has too many $n placeholders (max %d)\n",
-				   reg->replace, SASLREGEX_REPLACE, 0 );
+					"SASL replace pattern %s has too many $n "
+						"placeholders (max %d)\n",
+					reg->sr_replace, SASLREGEX_REPLACE, 0 );
 #endif
 
 				return( LDAP_OPERATIONS_ERROR );
 			}
-			reg->offset[n] = c - reg->replace;
+			reg->sr_offset[n] = c - reg->sr_replace;
 			n++;
 		}
 	}
 
 	/* Final placeholder, after the last $n */
-	reg->offset[n] = c - reg->replace;
+	reg->sr_offset[n] = c - reg->sr_replace;
 	n++;
-	reg->offset[n] = -1;
+	reg->sr_offset[n] = -1;
 
 	nSaslRegexp++;
 #endif
@@ -247,8 +249,8 @@ char *slap_sasl_regexp( char *saslname )
 
 	/* Match the normalized SASL name to the saslregexp patterns */
 	for( reg = SaslRegexp,i=0;  i<nSaslRegexp;  i++,reg++ ) {
-		if ( regexec( &reg->workspace, saslname, SASLREGEX_REPLACE,
-		  reg->strings, 0)  == 0 )
+		if ( regexec( &reg->sr_workspace, saslname, SASLREGEX_REPLACE,
+		  reg->sr_strings, 0)  == 0 )
 			break;
 	}
 
@@ -266,15 +268,15 @@ char *slap_sasl_regexp( char *saslname )
 
 	n=1;
 	len = 0;
-	while( reg->offset[n] >= 0 ) {
+	while( reg->sr_offset[n] >= 0 ) {
 		/* Len of next section from replacement string (x,y,z above) */
-		len += reg->offset[n] - reg->offset[n-1] - 2;
-		if( reg->offset[n+1] < 0)
+		len += reg->sr_offset[n] - reg->sr_offset[n-1] - 2;
+		if( reg->sr_offset[n+1] < 0)
 			break;
 
 		/* Len of string from saslname that matched next $i  (b,d above) */
-		i = reg->replace[ reg->offset[n] + 1 ]	- '0';
-		len += reg->strings[i].rm_eo - reg->strings[i].rm_so;
+		i = reg->sr_replace[ reg->sr_offset[n] + 1 ]	- '0';
+		len += reg->sr_strings[i].rm_eo - reg->sr_strings[i].rm_so;
 		n++;
 	}
 	uri = ch_malloc( len + 1 );
@@ -282,18 +284,18 @@ char *slap_sasl_regexp( char *saslname )
 	/* Fill in URI with replace string, replacing $i as we go */
 	n=1;
 	insert = 0;
-	while( reg->offset[n] >= 0) {
+	while( reg->sr_offset[n] >= 0) {
 		/* Paste in next section from replacement string (x,y,z above) */
-		len = reg->offset[n] - reg->offset[n-1] - 2;
-		strncpy( uri+insert, reg->replace + reg->offset[n-1] + 2, len);
+		len = reg->sr_offset[n] - reg->sr_offset[n-1] - 2;
+		strncpy( uri+insert, reg->sr_replace + reg->sr_offset[n-1] + 2, len);
 		insert += len;
-		if( reg->offset[n+1] < 0)
+		if( reg->sr_offset[n+1] < 0)
 			break;
 
 		/* Paste in string from saslname that matched next $i  (b,d above) */
-		i = reg->replace[ reg->offset[n] + 1 ]	- '0';
-		len = reg->strings[i].rm_eo - reg->strings[i].rm_so;
-		strncpy( uri+insert, saslname + reg->strings[i].rm_so, len );
+		i = reg->sr_replace[ reg->sr_offset[n] + 1 ]	- '0';
+		len = reg->sr_strings[i].rm_eo - reg->sr_strings[i].rm_so;
+		strncpy( uri+insert, saslname + reg->sr_strings[i].rm_so, len );
 		insert += len;
 
 		n++;

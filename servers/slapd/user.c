@@ -41,7 +41,7 @@
  */
 
 void
-slap_init_user( char *user, char *group )
+slap_init_user( const char *user, const char *group )
 {
     uid_t	uid = 0;
     gid_t	gid = 0;

@@ -1004,16 +1004,17 @@ backend_group(
 	} 
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-	for (g = conn->c_groups; g; g=g->next) {
-		if (g->be != be || g->oc != group_oc || g->at != group_at ||
-		    g->len != gr_ndn->bv_len)
+	for (g = conn->c_groups; g; g=g->ga_next) {
+		if (g->ga_be != be || g->ga_oc != group_oc ||
+			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
 			continue;
-		if (strcmp( g->ndn, gr_ndn->bv_val ) == 0)
+		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-	if (g)
-		return g->res;
+	if (g) {
+		return g->ga_res;
+	}
 
 	if( be->be_group ) {
 		int res = be->be_group( be, conn, op,
@@ -1022,14 +1023,14 @@ backend_group(
 		
 		if (op->o_tag != LDAP_REQ_BIND) {
 			g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
-			g->be = be;
-			g->oc = group_oc;
-			g->at = group_at;
-			g->res = res;
-			g->len = gr_ndn->bv_len;
-			strcpy(g->ndn, gr_ndn->bv_val);
+			g->ga_be = be;
+			g->ga_oc = group_oc;
+			g->ga_at = group_at;
+			g->ga_res = res;
+			g->ga_len = gr_ndn->bv_len;
+			strcpy(g->ga_ndn, gr_ndn->bv_val);
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			g->next = conn->c_groups;
+			g->ga_next = conn->c_groups;
 			conn->c_groups = g;
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		}

@@ -698,7 +698,7 @@ typedef struct slap_filter {
 #define f_sub_final		f_un.f_un_ssa->sa_final
 #define f_mra			f_un.f_un_mra
 #define f_mr_rule		f_un.f_un_mra->ma_rule
-#define f_mr_rule_text		f_un.f_un_mra->ma_rule_text
+#define f_mr_rule_text	f_un.f_un_mra->ma_rule_text
 #define f_mr_desc		f_un.f_un_mra->ma_desc
 #define f_mr_value		f_un.f_un_mra->ma_value
 #define	f_mr_dnattrs	f_un.f_un_mra->ma_dnattrs
@@ -1411,7 +1411,7 @@ typedef struct slap_op {
 	char o_subentries_visibility;
 	char o_noop;
 
-	int		o_abandon;	/* abandon flag */
+	char o_abandon;	/* abandon flag */
 	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1436,13 +1436,13 @@ typedef struct slap_op {
  * Caches the result of a backend_group check for ACL evaluation
  */
 typedef struct slap_gacl {
-	struct slap_gacl *next;
-	Backend *be;
-	ObjectClass *oc;
-	AttributeDescription *at;
-	int res;
-	ber_len_t len;
-	char ndn[1];
+	struct slap_gacl *ga_next;
+	Backend *ga_be;
+	ObjectClass *ga_oc;
+	AttributeDescription *ga_at;
+	int ga_res;
+	ber_len_t ga_len;
+	char ga_ndn[1];
 } GroupAssertion;
 
 /*
@@ -1501,9 +1501,9 @@ typedef struct slap_conn {
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
 
-	long	c_n_ops_received;		/* num of ops received (next op_id) */
+	long	c_n_ops_received;	/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */
-	long	c_n_ops_pending;		/* num of ops pending execution */
+	long	c_n_ops_pending;	/* num of ops pending execution */
 	long	c_n_ops_completed;	/* num of ops completed */
 
 	long	c_n_get;		/* num of get calls */
@@ -1530,11 +1530,11 @@ typedef struct slap_conn {
 #define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
 
 typedef struct sasl_regexp {
-  char *match;                            /* regexp match pattern */
-  char *replace;                          /* regexp replace pattern */
-  regex_t workspace;                      /* workspace for regexp engine */
-  regmatch_t strings[SASLREGEX_REPLACE];  /* strings matching $1,$2 ... */
-  int offset[SASLREGEX_REPLACE+2];        /* offsets of $1,$2... in *replace */
+  char *sr_match;							/* regexp match pattern */
+  char *sr_replace;							/* regexp replace pattern */
+  regex_t sr_workspace;						/* workspace for regexp engine */
+  regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
+  int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
 /*

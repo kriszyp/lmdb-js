@@ -612,7 +612,7 @@ void connection2anonymous( Connection *c )
 	GroupAssertion *g, *n;
 	for (g = c->c_groups; g; g=n)
 	{
-	    n = g->next;
+	    n = g->ga_next;
 	    free(g);
 	}
 	c->c_groups = NULL;
