@@ -324,7 +324,8 @@ bdb_db_close( BackendDB *be )
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
 		rc = db->bdi_db->close( db->bdi_db, 0 );
-		if( db->bdi_name )
+		/* Lower numbered names are not strdup'd */
+		if( bdb->bi_ndatabases >= BDB_NDB )
 			free( db->bdi_name );
 		free( db );
 	}
