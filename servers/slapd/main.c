@@ -88,6 +88,7 @@ static int   cnvt_str2int( char *, STRDISP_P, int );
 
 #endif	/* LOG_LOCAL4 */
 
+static int check_config = 0;
 
 static void
 usage( char *name )
@@ -95,22 +96,23 @@ usage( char *name )
 	fprintf( stderr,
 		"usage: %s options\n", name );
 	fprintf( stderr,
-		"\t-d level\tDebug Level" "\n"
-		"\t-f filename\tConfiguration File\n"
+		"\t-d level\tDebug level" "\n"
+		"\t-f filename\tConfiguration file\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-g group\tGroup (id or name) to run as\n"
 #endif
-		"\t-h URLs\tList of URLs to serve\n"
+		"\t-h URLs\t\tList of URLs to serve\n"
 #ifdef LOG_LOCAL4
-		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
+		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
-		"\t-n serverName\tservice name\n"
+		"\t-n serverName\tService name\n"
 #ifdef HAVE_CHROOT
-		"\t-r directory\n"
+		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
-		"\t-s level\tSyslog Level\n"
+		"\t-s level\tSyslog level\n"
+		"\t-t\t\tCheck configuration file and exit\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
-		"\t-u user\tUser (id or name) to run as\n"
+		"\t-u user\t\tUser (id or name) to run as\n"
 #endif
     );
 }
@@ -213,7 +215,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:s:n:"
+			     "d:f:h:s:n:t"
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
@@ -280,6 +282,10 @@ int main( int argc, char **argv )
 			serverName = ch_strdup( optarg );
 			break;
 
+		case 't':
+			check_config++;
+			break;
+
 		default:
 			usage( argv[0] );
 			rc = 1;
@@ -319,7 +325,7 @@ int main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-	if( slapd_daemon_init( urls ) != 0 ) {
+	if( !check_config && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
 		goto stop;
@@ -378,6 +384,17 @@ int main( int argc, char **argv )
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
+
+		if ( check_config ) {
+			fprintf( stderr, "config check failed\n" );
+		}
+
+		goto destroy;
+	}
+
+	if ( check_config ) {
+		rc = 0;
+		fprintf( stderr, "config check succeeded\n" );
 		goto destroy;
 	}
 
