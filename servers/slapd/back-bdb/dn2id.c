@@ -512,28 +512,21 @@ bdb_dup_compare(
 	const DBT *curkey
 )
 {
-	diskNode *usr = usrkey->data;
-	diskNode *cur = curkey->data;
-	short curlen, usrlen;
-	char *ptr;
-	unsigned char *pt2;
-	int rc;
+	char *u = (char *)&(((diskNode *)(usrkey->data))->nrdnlen);
+	char *c = (char *)&(((diskNode *)(curkey->data))->nrdnlen);
+	int rc, i;
 
-	/* Make sure to detect negative values in the nrdnlen */
-	ptr = (char *)&usr->nrdnlen;
-	pt2 = (unsigned char *)(ptr+1);
-
-	usrlen = ptr[0] << 8 | *pt2;
-
-	ptr = (char *)&cur->nrdnlen;
-	pt2 = (unsigned char *)(ptr+1);
-
-	curlen = ptr[0] << 8 | *pt2;
-
-	rc = usrlen - curlen;
-
-	if ( rc == 0 ) rc = strncmp( usr->nrdn, cur->nrdn, usrlen );
-	return rc;
+	/* data is not aligned, cannot compare directly */
+#ifdef WORDS_BIGENDIAN
+	for( i = 0; i < (int)sizeof(short); i++)
+#else
+	for( i = sizeof(short)-1; i >= 0; i--)
+#endif
+	{
+		rc = u[i] - c[i];
+		if( rc ) return rc;
+	}
+	return strcmp( u+sizeof(short), c+sizeof(short) );
 }
 
 /* This function constructs a full DN for a given entry.
