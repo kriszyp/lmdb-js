@@ -220,6 +220,10 @@ else
 		$ol_with_ldbm_type = btree ; then
 		AC_MSG_ERROR([GDBM only supports LDBM type hash])
 	fi
+	if test $ol_with_ldbm_api = mdbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([MDBM only supports LDBM type hash])
+	fi
 	if test $ol_with_ldbm_api = ndbm -a \
 		$ol_with_ldbm_type = btree ; then
 		AC_MSG_ERROR([NDBM only supports LDBM type hash])
@@ -1395,6 +1399,18 @@ fi
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
 	ol_with_ldbm_api=none
+fi
+
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = mdbm ; then
+	OL_MDBM
+
+	if test $ol_cv_mdbm = yes ; then
+		ol_link_ldbm=mdbm
+		ol_with_ldbm_api=mdbm
+		if test $ol_cv_lib_mdbm != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_mdbm"
+		fi
+	fi
 fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
