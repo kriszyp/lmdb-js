@@ -93,9 +93,11 @@ dnssrv_back_search(
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol, dn, urls[0]->bv_val );
 
-	Debug( LDAP_DEBUG_TRACE, "DNSSRV: ManageDSAit dn=\"%s\" -> url=\"%s\"\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"DNSSRV: ManageDSAit scope=%d dn=\"%s\" -> url=\"%s\"\n",
+		scope,
 		dn == NULL ? "" : dn,
-		urls[0]->bv_val, 0 );
+		urls[0]->bv_val );
 
 	rc = ldap_domain2dn(domain, &refdn);
 
