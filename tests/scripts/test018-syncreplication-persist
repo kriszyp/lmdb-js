@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" -o "$BACKEND" != "hdb" -o ; then
+if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb" -o ; then
 	echo "Test does not support $BACKEND"
 	exit 0
 fi
