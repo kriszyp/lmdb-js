@@ -8,8 +8,47 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
-/* define this you have crypt */
+/* define if you have berkeley db */
+#undef HAVE_BERKELEY_DB2
+
+/* define if you have berkeley db2 */
+#undef HAVE_BERKELEY_DB2
+
+/* define if you have Mach CThreads */
+#undef HAVE_CTHREADS
+
+/* define if you have crypt */
 #undef HAVE_CRYPT
+
+/* define if you have DCE */
+#undef HAVE_DCE
+
+/* define if you have GDBM */
+#undef HAVE_GDBM
+
+/* define if you have Kerberos */
+#undef HAVE_KERBEROS
+
+/* define if you have LinuxThreads */
+#undef HAVE_LINUX_THREADS
+
+/* define if you have Sun LWP (SunOS style) */
+#undef HAVE_LWP
+
+/* define if you have Sun LWP (Solaris style) */
+#undef HAVE_LWP_THR
+
+/* define if you have NDBM */
+#undef HAVE_NDBM
+
+/* define if you have a preemptive POSIX Threads implementation */
+#undef HAVE_PREEMPTIVE_PTHREADS
+
+/* define if you have POSIX Threads */
+#undef HAVE_PTHREADS
+
+/* define if your POSIX Threads implementatin is circa Draft 4 */
+#undef HAVE_PTHREADS_D4
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS

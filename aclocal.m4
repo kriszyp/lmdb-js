@@ -112,6 +112,9 @@ AC_DEFUN([OL_BERKELEY_DB2],
 		ol_cv_berkeley_db2=yes
 	fi
 ])
+ if test $ol_cv_berkeley_db2 = yes ; then
+	AC_DEFINE(HAVE_BERKELEY_DB2)
+ fi
 ])dnl
 dnl
 dnl ====================================================================
@@ -175,6 +178,9 @@ AC_DEFUN([OL_BERKELEY_DB],
 		ol_cv_berkeley_db=yes
 	fi
 ])
+ if test $ol_cv_berkeley_db = yes ; then
+	AC_DEFINE(HAVE_BERKELEY_DB)
+ fi
 ])dnl
 dnl
 dnl ====================================================================
@@ -217,6 +223,9 @@ AC_DEFUN([OL_GDBM],
 		ol_cv_gdbm=yes
 	fi
 ])
+ if test $ol_cv_gdbm = yes ; then
+	AC_DEFINE(HAVE_GDBM)
+ fi
 ])dnl
 dnl
 dnl ====================================================================
@@ -270,6 +279,9 @@ AC_DEFUN([OL_NDBM],
 		ol_cv_ndbm=yes
 	fi
 ])
+ if test $ol_cv_ndbm = yes ; then
+	AC_DEFINE(HAVE_NDBM)
+ fi
 ])dnl
 dnl
 dnl ====================================================================

@@ -11,8 +11,11 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
+
 #ifdef MACOS
 #include <stdlib.h>
 #include <console.h>

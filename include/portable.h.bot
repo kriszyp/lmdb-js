@@ -4,5 +4,6 @@
 #endif
 
 #include "bridge.h"
+#include "ldap_cdefs.h"
 
 #endif /* _LDAP_PORTABLE_H */

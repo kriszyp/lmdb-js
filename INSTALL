@@ -20,7 +20,9 @@ these steps:
  2. Type:
 	% ./configure --help
 
-	to list available configuration options.
+	to list available configuration options.   A description of
+	these options is provided in the 'CONFIGURE OPTIONS' section
+	below.
 
 	The configure script will also use your environmental
 	variables for determining compiler/linker options.
@@ -30,6 +32,9 @@ these steps:
 		CFLAGS		C Flags		(-ansi)
 		CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
 		LDFLAGS		LDFLAGS		(-L/path/lib -llib)
+
+	A list of defines and other options are noted in the
+	'DEFINES and FLAGS' comments below.
 
  3. edit the file include/ldapconfig.h.edit to configure
     the software for your site (the files are well-commented):
@@ -100,5 +105,24 @@ Follow these steps for each different platform:
  4. Continue as above (starting at step 6).
 
 	Note: make depend in VPATH environment is not yet supported.
+
+
+CONFIGURE OPTIONS
+
+Regrettably, this section has not been written (yet).  See
+"./configure --help" for current list of options.
+
+
+DEFINES and FLAGS
+
+The configure script will also use your environmental
+variables for determining compiler/linker options.   This can
+be used to manual specify features and compilation options.
+
+Supported Environmental Variables
+	CC			C Compiler	(cc, ecgs)
+	CFLAGS		C Flags		(-ansi)
+	CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
+	LDFLAGS		LDFLAGS		(-L/path/lib -llib)
 
 End of OpenLDAP INSTALL file.

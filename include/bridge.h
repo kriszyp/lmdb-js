@@ -23,6 +23,11 @@
  * edit this file.
  */
 
+#ifndef LDAP_LIBUI
+#ifndef NO_USERINTERFACE
+#define NO_USERINTERFACE
+#endif
+#endif
 
 #ifndef SYSV
 #if defined( hpux ) || defined( sunos5 ) || defined ( sgi ) || defined( SVR4 )

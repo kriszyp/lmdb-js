@@ -35,6 +35,8 @@ OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach lwp yes no manual] )
+OL_ARG_WITH(preemptive,[  --with-preemptive	thread implementation is preemptive],
+	auto, [auto yes no manual] )
 
 dnl Server options
 
@@ -241,6 +243,8 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 			ol_with_kerberos=found
 			ol_link_kerberos=yes
 
+			AC_DEFINE(HAVE_KERBEROS)
+
 			KRB_DEFS="-DKERBEROS"
 			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
 		fi
@@ -255,6 +259,8 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 		if test $have_k4 = yes ; then
 			ol_with_kerberos=found
 			ol_link_kerberos=yes
+
+			AC_DEFINE(HAVE_KERBEROS)
 
 			KRB_DEFS="-DKERBEROS"
 			KRB_LIBS="-lkrb -ldes"
@@ -273,6 +279,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		if test $ol_cv_pthread_version = final ; then
 			LTHREAD_DEFS="$LTHREAD_DEFS -DPOSIX_THREADS"
 		elif test $ol_cv_pthread_version = draft4 ; then
+			AC_DEFINE(HAVE_PTHREADS_D4)
 			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_MIT_PTHREADS"
 		else
 			AC_MSG_ERROR([unknown pthread version])
@@ -284,8 +291,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		OL_LINUX_THREADS
 
 		if test $ol_cv_linux_threads = yes ; then
-dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DHAVE_LINUX_THREADS"
+			AC_DEFINE(HAVE_LINUX_THREADS,1)
+			LTHREAD_DEFS="$LTHREAD_DEFS -DLINUX_THREADS"
 		fi
 
 		dnl Now the hard part, how to link
@@ -336,15 +343,24 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			dnl try DEC Threads
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
+				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
-				LTHREAD_DEFS="$LTHREAD_DEFS -DDEC_THREADS"
+				LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_DCE_THREADS"
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
+				if test $with_preemptive = auto ; then
+					ol_with_preemptive=yes
+				fi
 				[-lmach -lexc -lc])
 			LIBS="$save_LIBS"
 		fi
 
 		if test $ol_link_threads != no ; then
+			AC_DEFINE(HAVE_PTHREADS)
+
+			dnl save DEFS/LIBS
+			save_CPPFLAGS="$CPPFLAGS"
 			save_LIBS="$LIBS"
+			CPPFLAGS="$LTHREAD_DEFS $CPPFLAGS"
 			LIBS="$LTHREAD_LIBS $LIBS"
 
 			dnl All POSIX Thread (final) implementations should have
@@ -360,12 +376,68 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill \
-				pthread_attr_init pthread_attr_create \
-				pthread_attr_destroy pthread_attr_delete \
-				pthread_attr_setdetachstate pthread_attr_setdetach_np \
-			)
+			AC_CHECK_FUNCS(pthread_kill)
+dnl			AC_CHECK_FUNCS(
+dnl				pthread_attr_create pthread_attr_init \
+dnl				pthread_attr_destroy pthread_attr_delete \
+dnl				pthread_attr_setdetachstate pthread_attr_setdetach_np \
+dnl			)
 
+			dnl Check PREEMPTIVE Implementation 
+			if test $ol_with_preemptive = auto ; then
+				AC_MSG_CHECKING([for preemptive Pthread implementation])
+				AC_TRY_RUN([
+#include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <pthread.h>
+#ifndef NULL
+#define NULL 0
+#endif
+
+int task(arg)
+	int *arg;
+{
+	struct timeval tv;
+
+	tv.tv_sec=4;
+	tv.tv_usec=0;
+	select(0, NULL, NULL, NULL, &tv);
+
+	tv.tv_sec=6;
+	tv.tv_usec=0;
+	select(0, NULL, NULL, NULL, &tv);
+
+	exit(1); /* if we exit here, the select blocked the whole process */
+}
+
+main(argc, argv)
+int argc; char **argv;
+{
+	pthread_t t;
+	pthread_create(&t, NULL, (void *) task, NULL);
+
+#if HAVE_SCHED_YIELD
+	sched_yield();	/* make sure task runs first */
+#else
+#if defined(HAVE_PTHREAD_YIELD)
+	pthread_yield();	/* make sure task runs first */
+#endif
+#endif
+	exit(0);
+}
+				], [ol_pthread_preemptive=yes], [ol_pthread_preemptive=no], [
+				AC_MSG_ERROR([crossing compiling: use --with-preemptive=yes|no|manual])])
+				AC_MSG_RESULT($ol_pthread_preemptive)
+
+				if test $ol_pthread_preemptive = yes ; then
+					AC_DEFINE(HAVE_PREEMPTIVE_PTHREADS)
+					ol_with_preemptive=yes
+				fi
+			fi
+
+			dnl restore DEFS/LIBS
+			CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
 		else
 			AC_MSG_ERROR([could not link with POSIX Threads])
@@ -384,6 +456,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = cthreads ; then
 		AC_CHECK_LIB(lwp, cthread_fork, [have_cthreads=yes], [have_cthreads=no])
 
 		if test $have_cthreads = yes ; then
+			AC_DEFINE(HAVE_CTHREADS)
 			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_NEXT_CTHREADS"
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 		fi
@@ -392,26 +465,37 @@ fi
 
 if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 	dnl check for SunOS5 LWP
-	AC_CHECK_HEADERS(lwp/lwp.h)
+	AC_CHECK_HEADERS(thread.h synch.h)
 	if test $ac_cv_header_lwp_lwp_h = yes ; then
 		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
+			AC_DEFINE(HAVE_LWP)
+			AC_DEFINE(HAVE_LWP_THR)
 			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS5_LWP"
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 		fi
 	fi
 
 	dnl check for SunOS4 LWP
-	AC_CHECK_HEADERS(thread.h synch.h)
+	AC_CHECK_HEADERS(lwp/lwp.h)
 	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
 		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
+			AC_DEFINE(HAVE_LWP)
 			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS4_LWP"
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+
+			if test $with_preemptive = auto ; then
+				with_preemptive=yes
+			fi
 		fi
 	fi
+fi
+
+if test $ol_with_preemptive = yes ; then
+	LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_PREEMPTIVE"
 fi
 
 if test $ol_with_threads = manual ; then
@@ -423,6 +507,10 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(pthread.h sched.h)
 	AC_CHECK_FUNCS(sched_yield pthread_yield)
 	OL_LINUX_THREADS
+
+	AC_CHECK_HEADERS(mach/cthreads.h)
+	AC_CHECK_HEADERS(lwp/lwp.h)
+	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
 if test $ol_link_threads = no ; then
@@ -551,7 +639,6 @@ if test $ol_enable_wrappers = yes ; then
 		[have_wrappers=yes], [have_wrappers=no])
 
 	if test $have_wrappers = yes ; then
-dnl		LIBTCPD="-lwrap"
 dnl		AC_DEFINE(HAVE_TCPD)
 		SLAPD_DEFS="$SLAPD_DEFS -DTCP_WRAPPERS"
 		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
@@ -575,6 +662,7 @@ AC_CHECK_HEADERS(termcap.h ncurses.h)
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
 	if test $have_termcap = yes ; then
+dnl		AC_DEFINE(HAVE_TERMCAP)
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-ltermcap
 	fi
@@ -583,6 +671,7 @@ fi
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
 	if test $have_ncurses = yes ; then
+dnl		AC_DEFINE(HAVE_NCURSES)
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-lncurses
 	fi
@@ -600,7 +689,7 @@ if test $ol_enable_crypt != no ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-dnl		AC_DEFINE(SLAPD_CRYPT,1)
+dnl		AC_DEFINE(HAVE_CRYPT)
 		LUTIL_DEFS="$LUTIL_DEFS -DLDAP_CRYPT"
 	else
 		AC_MSG_WARN(could not find crypt)
@@ -695,8 +784,8 @@ fi
 dnl	if test $ol_enable_syslog != no ; then
 dnl		LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
 dnl	fi
-if test $ol_enable_libui = no ; then
-	LDAP_DEFS="$LDAP_DEFS -DNO_USERINTERFACE"
+if test $ol_enable_libui = yes ; then
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_LIBUI"
 fi
 if test $ol_enable_cache = no ; then
 	LDAP_DEFS="$LDAP_DEFS -DNO_CACHE"

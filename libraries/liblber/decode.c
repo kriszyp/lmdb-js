@@ -11,17 +11,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define LDAP_BRIDGE /* disable LDAP_BRIDGE code */
+#include "portable.h"
+
 #include <stdio.h>
+
 #ifdef MACOS
 #include <stdlib.h>
 #include <stdarg.h>
 #include "macos.h"
 #else /* MACOS */
-#if defined(NeXT) || defined(VMS)
+
+#if defined(NeXT) || defined(VMS) || defined(__FreeBSD__)
 #include <stdlib.h>
-#else /* next || vms */
+#else /* next || vms || freebsd */
 #include <malloc.h>
-#endif /* next || vms */
+#endif /* next || vms || freebsd */
 #if defined(BC31) || defined(_WIN32)
 #include <stdarg.h>
 #else /* BC31 || _WIN32 */
@@ -40,16 +45,14 @@
 #endif /* DOS */
 
 #include <string.h>
+
 #include "lber.h"
 
 #ifdef LDAP_DEBUG
 int	lber_debug;
 #endif
 
-#ifdef NEEDPROTOS
-static int ber_getnint( BerElement *ber, long *num, int len );
-#endif /* NEEDPROTOS */
-
+static int ber_getnint LDAP_P(( BerElement *ber, long *num, int len ));
 
 /* return the tag - LBER_DEFAULT returned means trouble */
 unsigned long
@@ -155,6 +158,7 @@ ber_getnint( BerElement *ber, long *num, int len )
 {
 	int	diff, sign, i;
 	long	netnum;
+	char    *p;
 
 	/*
 	 * The tag and length have already been stripped off.  We should
@@ -172,11 +176,12 @@ ber_getnint( BerElement *ber, long *num, int len )
 	if ( ber_read( ber, ((char *) &netnum) + diff, len ) != len )
 		return( -1 );
 
-	/* sign extend if necessary */
-	sign = ((0x80 << ((len - 1) * 8)) & netnum);
-	if ( sign && len < sizeof(long) ) {
-		for ( i = sizeof(long) - 1; i > len - 1; i-- ) {
-			netnum |= (0xffL << (i * 8));
+        /* sign extend if necessary */
+        p = (char *) &netnum;
+        sign = (0x80 & *(p+diff) );
+        if ( sign && len < sizeof(long) ) {
+                for ( i = 0; i < diff; i++ ) {
+                        *(p+i) = 0xff;
 		}
 	}
 	*num = LBER_NTOHL( netnum );
