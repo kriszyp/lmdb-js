@@ -43,10 +43,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    localstatedir=`cygpath -w $(localstatedir) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
-	    editor=`cygpath -w $(EDITOR) | \
-		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
-	    sendmail=`cygpath -w $(SENDMAIL) | \
-		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	else \
 	    sysconfdir=$(sysconfdir); \
 	    datadir=$(datadir); \
@@ -54,8 +50,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 	    sbindir=$(sbindir); \
 	    libexecdir=$(libexecdir); \
 	    localstatedir=$(localstatedir); \
-	    editor=$(EDITOR); \
-	    sendmail=$(SENDMAIL); \
 	fi; \
 	$(SED) \
 			-e "s;%SYSCONFDIR%;$$sysconfdir;" \
@@ -64,8 +58,6 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 			-e "s;%SBINDIR%;$$sbindir;" \
 			-e "s;%LIBEXECDIR%;$$libexecdir;" \
 			-e "s;%RUNDIR%;$$localstatedir;" \
-			-e "s;%EDITOR%;$$editor;" \
-			-e "s;%SENDMAIL%;$$sendmail;" \
 			 $(LDAP_CONFIG) >> $@; \
 	$(CHMOD) 444 $@
 
