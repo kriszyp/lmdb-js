@@ -88,6 +88,11 @@ int slap_passwd_parse( struct berval *reqdata,
 		return LDAP_SUCCESS;
 	}
 
+	if( reqdata->bv_len == 0 ) {
+		*text = "empty request data field";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	/* ber_init2 uses reqdata directly, doesn't allocate new buffers */
 	ber_init2( ber, reqdata, 0 );
 
@@ -203,7 +208,6 @@ decoding_error:
 			"slap_passwd_parse: decoding error, len=%ld\n",
 			(long) len, 0, 0 );
 #endif
-
 
 		*text = "data decoding error";
 		rc = LDAP_PROTOCOL_ERROR;
