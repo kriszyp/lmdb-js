@@ -49,14 +49,14 @@ LDAPDN_validate( LDAPDN *dn )
 
 	assert( dn );
 
-	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
-		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+	for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
+		LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
 		int		iAVA;
 
 		assert( rdn );
 
-		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+		for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validate = NULL;
 
@@ -147,13 +147,13 @@ static void
 AVA_Sort( LDAPRDN *rdn, int iAVA )
 {
 	int		i;
-	LDAPAVA		*ava_in = rdn[ iAVA ][ 0 ];
+	LDAPAVA		*ava_in = rdn[ 0 ][ iAVA ];
 
 	assert( rdn );
 	assert( ava_in );
 	
 	for ( i = 0; i < iAVA; i++ ) {
-		LDAPAVA		*ava = rdn[ i ][ 0 ];
+		LDAPAVA		*ava = rdn[ 0 ][ i ];
 		int		a, j;
 
 		assert( ava );
@@ -192,7 +192,7 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 				return;
 			}
 
-			ava = rdn[ i ][ 0 ];
+			ava = rdn[ 0 ][ i ];
 			a = strcmp( ava_in->la_value.bv_val, 
 					ava->la_value.bv_val );
 		}
@@ -201,9 +201,9 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 		 * move ahead
 		 */
 		for ( j = iAVA; j > i; j-- ) {
-			rdn[ j ][ 0 ] = rdn[ j - 1 ][ 0 ];
+			rdn[ 0 ][ j ] = rdn[ 0 ][ j - 1 ];
 		}
-		rdn[ i ][ 0 ] = ava_in;
+		rdn[ 0 ][ i ] = ava_in;
 
 		return;
 	}
@@ -221,14 +221,14 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 	assert( dn );
 
-	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
-		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+	for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
+		LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
 		int		iAVA;
 
 		assert( rdn );
 
-		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+		for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
@@ -913,8 +913,8 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 	}
 #endif
 
-	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) {
-		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
+	for ( iAVA = 0; tmpRDN[ 0 ][ iAVA ]; iAVA++ ) {
+		LDAPAVA		*ava = tmpRDN[ 0 ][ iAVA ];
 
 		assert( ava );
 		assert( ava->la_attr.bv_val );

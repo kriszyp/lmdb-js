@@ -122,7 +122,7 @@ main( int argc, char *argv[] )
 		int i;
 		if( dn ) {
 			for ( i = 0; dn[i]; i++ ) {
-				LDAPRDN		*rdn = dn[ i ][ 0 ];
+				LDAPRDN		*rdn = dn[ 0 ][ i ];
 				char		*rstr;
 
 				if ( ldap_rdn2str( rdn, &rstr, flags[ f2 ] ) ) {
@@ -226,23 +226,23 @@ main( int argc, char *argv[] )
 			{
 				fprintf( stdout, "mismatch\n" );
 			} else if (( dn != NULL ) && (dn2 != NULL))
-				for ( iRDN = 0; dn[ iRDN ] && dn2[ iRDN ]; iRDN++ )
+				for ( iRDN = 0; dn[ 0 ][ iRDN ] && dn2[ 0 ][ iRDN ]; iRDN++ )
 			{
-				LDAPRDN 	*r = dn[ iRDN ][ 0 ];
-				LDAPRDN 	*r2 = dn2[ iRDN ][ 0 ];
+				LDAPRDN 	*r = dn[ 0 ][ iRDN ];
+				LDAPRDN 	*r2 = dn2[ 0 ][ iRDN ];
 				int 		iAVA;
 				
-				for ( iAVA = 0; r[ iAVA ] && r[ iAVA ]; iAVA++ ) {
-					LDAPAVA		*a = r[ iAVA ][ 0 ];
-					LDAPAVA		*a2 = r2[ iAVA ][ 0 ];
+				for ( iAVA = 0; r[ 0 ][ iAVA ] && r2[ 0 ][ iAVA ]; iAVA++ ) {
+					LDAPAVA		*a = r[ 0 ][ iAVA ];
+					LDAPAVA		*a2 = r2[ 0 ][ iAVA ];
 
-					if ( a->la_attr->bv_len != a2->la_attr->bv_len
-						|| memcmp( a->la_attr->bv_val, a2->la_attr->bv_val,
-							a->la_attr->bv_len )
+					if ( a->la_attr.bv_len != a2->la_attr.bv_len
+						|| memcmp( a->la_attr.bv_val, a2->la_attr.bv_val,
+							a->la_attr.bv_len )
 						|| a->la_flags != a2->la_flags
-						|| a->la_value->bv_len != a2->la_value->bv_len
-						|| memcmp( a->la_value->bv_val, a2->la_value->bv_val,
-							a->la_value->bv_len ) )
+						|| a->la_value.bv_len != a2->la_value.bv_len
+						|| memcmp( a->la_value.bv_val, a2->la_value.bv_val,
+							a->la_value.bv_len ) )
 					{
 						fprintf( stdout, "mismatch\n" );
 					}
