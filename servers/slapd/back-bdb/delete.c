@@ -142,6 +142,8 @@ retry:	/* transaction retry */
 
 	/* FIXME : dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
+		BerVarray deref = NULL;
+
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: no such object %s\n",
 			op->o_req_dn.bv_val, 0, 0);
@@ -155,7 +157,6 @@ retry:	/* transaction retry */
 			matched = NULL;
 
 		} else {
-			BerVarray deref = NULL;
 			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 				syncinfo_t *si;
 				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
@@ -167,7 +168,7 @@ retry:	/* transaction retry */
 				deref = default_referral;
 			}
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-				LDAP_SCOPE_DEFAULT );
+					LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -175,6 +176,9 @@ retry:	/* transaction retry */
 
 		if ( rs->sr_ref != default_referral ) {
 			ber_bvarray_free( rs->sr_ref );
+		}
+		if ( deref != default_referral ) {
+			ber_bvarray_free( deref );
 		}
 		free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
