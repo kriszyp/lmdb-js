@@ -3,6 +3,7 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.19 Engineering
 	Fixed -lldap cacertfile bug
 	Fixed back-ldbm not filter indexing
+	Fixed back-passwd e_ndn bug
 	Fixed slapd suffix "" bugs (ITS#1430)
 	Fixed various memory leaks
 	Updated slapd emfile/enfile handling

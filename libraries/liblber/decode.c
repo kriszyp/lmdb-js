@@ -585,13 +585,14 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				void *save = *sss;
+				char **save = *sss;
 
 				*sss = (char **) LBER_REALLOC( *sss,
 					(j + 2) * sizeof(char *) );
 
 				if( *sss == NULL ) {
-					LBER_FREE( save );
+					save[j] = NULL;
+					ber_memvfree( (void **) save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -599,8 +600,7 @@ ber_scanf ( BerElement *ber,
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
-			if ( j > 0 )
-				(*sss)[j] = NULL;
+			if ( j > 0 ) (*sss)[j] = NULL;
 			break;
 
 		case 'V':	/* sequence of strings + lengths */
@@ -611,13 +611,14 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				void *save = *bv;
+				struct berval **save = *bv;
 
 				*bv = (struct berval **) LBER_REALLOC( *bv,
 					(j + 2) * sizeof(struct berval *) );
 		
 				if( *bv == NULL ) {
-					LBER_FREE( save );
+					save[j] = NULL;
+					ber_bvecfree( save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -625,8 +626,7 @@ ber_scanf ( BerElement *ber,
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
-			if ( j > 0 )
-				(*bv)[j] = NULL;
+			if ( j > 0 ) (*bv)[j] = NULL;
 			break;
 
 		case 'x':	/* skip the next element - whatever it is */
@@ -734,11 +734,7 @@ breakout:
 		case 'v':	/* sequence of strings */
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
-				for (j = 0;  (*sss)[j];  j++) {
-					LBER_FREE( (*sss)[j] );
-					(*sss)[j] = NULL;
-				}
-				LBER_FREE( *sss );
+				ber_memvfree( (void **) *sss );
 				*sss = NULL;
 			}
 			break;
