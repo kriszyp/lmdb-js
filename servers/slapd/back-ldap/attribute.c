@@ -72,7 +72,7 @@ ldap_back_attribute(
 	is_oc = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
 	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind(lc, NULL, op) ) {
+	if ( !lc || !ldap_back_dobind(li, lc, NULL, op) ) {
 		op->o_do_not_cache = is_oc;
 		return 1;
 	}

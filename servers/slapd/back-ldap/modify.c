@@ -66,7 +66,7 @@ ldap_back_modify(
 	ber_int_t msgid;
 
 	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind( lc, conn, op ) ) {
+	if ( !lc || !ldap_back_dobind( li, lc, conn, op ) ) {
 		return( -1 );
 	}
 
@@ -171,6 +171,6 @@ cleanup:;
 		ch_free(modv[i]->mod_bvalues);
 	ch_free(mods);
 	ch_free(modv);
-	return( ldap_back_op_result( lc, conn, op, msgid, rc ));
+	return( ldap_back_op_result( li, lc, conn, op, msgid, rc ));
 }
 

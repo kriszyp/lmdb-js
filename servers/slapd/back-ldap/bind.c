@@ -116,7 +116,7 @@ ldap_back_bind(
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
 	rc = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
 		cred, op->o_ctrls, NULL, &msgid);
-	rc = ldap_back_op_result( lc, conn, op, msgid, rc );
+	rc = ldap_back_op_result( li, lc, conn, op, msgid, rc );
 	if (rc == LDAP_SUCCESS) {
 		lc->bound = 1;
 		if ( mdn.bv_val != dn->bv_val ) {
@@ -410,7 +410,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
  * it can be used to simplify the check.
  */
 int
-ldap_back_dobind( struct ldapconn *lc, Connection *conn, Operation *op )
+ldap_back_dobind( struct ldapinfo *li, struct ldapconn *lc, Connection *conn, Operation *op )
 {	
 	int rc;
 	ber_int_t msgid;
@@ -419,7 +419,7 @@ ldap_back_dobind( struct ldapconn *lc, Connection *conn, Operation *op )
 	if ( !lc->bound ) {
 		rc = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
-		rc = ldap_back_op_result( lc, conn, op, msgid, rc );
+		rc = ldap_back_op_result( li, lc, conn, op, msgid, rc );
 		if (rc == LDAP_SUCCESS) {
 			lc->bound = 1;
 		}
@@ -492,8 +492,8 @@ ldap_back_map_result(int err)
 }
 
 int
-ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op,
-	ber_int_t msgid, int err)
+ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
+	Connection *conn, Operation *op, ber_int_t msgid, int err)
 {
 	char *msg = NULL;
 	char *match = NULL;
@@ -509,34 +509,38 @@ ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op,
 			if (rc != LDAP_SUCCESS) err = rc;
 		}
 	}
-	err = ldap_back_map_result(err);
+	if (err != LDAP_SUCCESS) {
+		err = ldap_back_map_result(err);
 
-	/* internal ops must not reply to client */
-	if ( !conn || op->o_do_not_cache ) goto quiet;
-
+		/* internal ops must not reply to client */
+		if ( conn && !op->o_do_not_cache ) {
+			char *mmatch = NULL;
 #ifdef ENABLE_REWRITE
-	
-	/*
-	 * FIXME: need rewrite info for match; mmmh ...
-	 */
-	send_ldap_result( conn, op, err, match, msg, NULL, NULL );
-	/* better test the pointers before freeing? */
-	if ( match ) {
-		free( match );
+			if (match) {
+				
+				switch(rewrite_session(li->rwinfo, "matchedDn", match, conn,
+					&mmatch)) {
+				case REWRITE_REGEXEC_OK:
+					if (!mmatch) mmatch = match; break;
+				case REWRITE_REGEXEC_UNWILLING:
+				case REWRITE_REGEXEC_ERR:
+					break;
+				}
+			}
+#else
+			struct berval dn, mdn;
+			if (match) {
+				ber_str2bv(match, 0, 0, &dn);
+				ldap_back_dn_massage(li, &dn, &mdn, 0, 0);
+				mmatch = mdn.bv_val;
+			}
+#endif
+			send_ldap_result( conn, op, err, mmatch, msg, NULL, NULL );
+			if (mmatch != match) free(mmatch);
+		}
 	}
-
-#else /* !ENABLE_REWRITE */
-
-	send_ldap_result( conn, op, err, match, msg, NULL, NULL );
-	/* better test the pointers before freeing? */
-	if ( match ) {
-		free( match );
-	}
-
-#endif /* !ENABLE_REWRITE */
-
+	if ( match ) free( match );
 	if ( msg ) free( msg );
-quiet:
 	return( (err==LDAP_SUCCESS) ? 0 : -1 );
 }
 

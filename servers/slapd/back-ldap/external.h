@@ -37,6 +37,8 @@ extern BI_op_delete	ldap_back_delete;
 
 extern BI_op_abandon	ldap_back_abandon;
 
+extern BI_op_extended	ldap_back_extended;
+
 extern BI_acl_group	ldap_back_group;
 
 extern BI_acl_attribute	ldap_back_attribute;

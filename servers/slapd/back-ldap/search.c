@@ -93,7 +93,7 @@ ldap_back_search(
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( lc, conn, op ) ) {
+	if ( !ldap_back_dobind( li, lc, conn, op ) ) {
 		return( -1 );
 	}
 
@@ -265,7 +265,7 @@ ldap_back_search(
 			: NULL, slimit, &msgid);
 	if ( rc != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(lc, conn, op, msgid, rc);
+		rc = ldap_back_op_result(li, lc, conn, op, msgid, rc);
 		goto finish;
 	}
 

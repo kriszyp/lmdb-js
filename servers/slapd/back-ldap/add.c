@@ -69,7 +69,7 @@ ldap_back_add(
 #endif /* !NEW_LOGGING */
 	
 	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind( lc, conn, op ) ) {
+	if ( !lc || !ldap_back_dobind( li, lc, conn, op ) ) {
 		return( -1 );
 	}
 
@@ -187,7 +187,7 @@ ldap_back_add(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, conn, op, msgid, j ) );
+	return( ldap_back_op_result( li, lc, conn, op, msgid, j ) );
 }
 
 #ifdef ENABLE_REWRITE
