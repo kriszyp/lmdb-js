@@ -1438,7 +1438,7 @@ restrict_unknown:;
 		} else if ( strcasecmp( cargv[0], "allows" ) == 0 ||
 			strcasecmp( cargv[0], "allow" ) == 0 )
 		{
-			slap_mask_t	allows;
+			slap_mask_t	allows = 0;
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
@@ -1466,8 +1466,6 @@ restrict_unknown:;
 
 				return( 1 );
 			}
-
-			allows = 0;
 
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
