@@ -19,6 +19,9 @@ proper Pthreads libraries:
 	LIBS="-lpthread -lposix4"
 	./configure
 
-to use OR disable threads: 
+OR use Solaris (LWP) Threads
+	./configure --with-threads=lwp
+
+OR disable threads: 
 	./configure --without-threads
 
