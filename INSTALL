@@ -1,226 +1,226 @@
 Making and Installing the OpenLDAP Distribution
+===============================================
 
-**
-** It is recommended that you read or at least skim through ALL of the
-** instructions in this file before attempting to build the software.
-**
-** The OpenLDAP Quick Start Guide is available at:
-**    http://www.openldap.org/faq/index.cgi?file=172
-**
-** The OpenLDAP Installation FAQ is available at:
-**    http://www.openldap.org/faq/index.cgi?file=8
-**
-** You should also check for platform specific hints located on
-** on our web site.
-**    http://www.openldap.org/faq/index.cgi?file=9
-**
+This file provides brief instructions on how to build and install
+OpenLDAP on UNIX (and UNIX-like) system.  For other systems, please
+consult The OpenLDAP Administrator's Guide
+http://www.openldap.org/doc/admin/.
 
-If you want to build binaries for more than one platform from a single
-source tree, skip ahead to the "Building LDAP For More Than One Platform"
-section near the end of this file.
+It is recommended that you read, or at least skim through, ALL of the
+instructions in this file before attempting to build the software.
 
-If you simply want to build LDAP for a single machine platform, follow
-these steps:
+It is also recommended your review The OpenLDAP Administrator's Guide
+(http://www.openldap.org/devel/admin/) and the Frequently Asked
+Questions (http://www.openldap.org/faq/) pages, in particular the
+Installation section (http://www.openldap.org/faq/index.cgi?file=8)
+and Platform Hints (http://www.openldap.org/faq/index.cgi?file=9)
+should be examined.
 
- 1. untar the distribution and cd to the top:
+Making and Installing the OpenLDAP Distribution
+-----------------------------------------------
 
-	% tar xfz openldap-VERSION.tgz
-	% cd openldap-VERSION
+1.   Unpack the distribution and change directory:
 
-	replacing VERSION to match the version you downloaded.  If you are
-	reading this file, you probably have already done this!
+        % tar xfz openldap-VERSION.tgz
+        % cd openldap-VERSION
 
- 2. Type:
-	% ./configure --help
+     (replacing VERSION with the appropriate version string).  If you
+     are reading this file, you probably have already done this!
 
-	to list available configuration options.   A description of
-	these options is provided in the 'CONFIGURE OPTIONS' section
-	below.
+2.   Type:
 
-	The configure script uses environmental variables for
-	determining compiler/linker options.  See the HINTS
-	section for commonly used settings. 
+        % ./configure --help
 
-	These environment variables are used: 
-		CC			C Compiler	(cc, ecgs)
-		CFLAGS		C Flags		(-O -g)
-		CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
-		LDFLAGS		LDFLAGS		(-L/path/lib)
-		LIBS		LIBS		(-llib)
+     to list available configuration options.   A description of these
+     options is provided in the 'CONFIGURE OPTIONS' section below.
 
-	See the 'USING ENVIRONMENT VARIABLES' section for information
-	on how to use the variables. 
+     The configure script uses environmental variables for determining
+     compiler/linker options.  See the 'USING ENVIRONMENT VARIABLES'
+     section for commonly used settings.
 
- 3. Configure the build system
+     These environment variables are used:
 
-	% [env settings] ./configure [options]
+        CC              C compiler      gcc
+        CFLAGS          C flags         -O -g
+        CPPFLAGS        cpp flags       -I/path/include -Ddef
+        LDFLAGS         ld flags        -L/usr/local/lib
+        LIBS            libraries       -llib
+        PATH            command path    /usr/local/bin:/usr/bin:/bin
 
-	If all goes well, the configure script with auto-detect the
-	appropriate settings.  Use configure enable/with options and/or
-	environment variables to obtain desired results.
+     See the 'USING ENVIRONMENT VARIABLES' section for information on
+     how to use the variables.
 
- 4. Build dependencies
+3.   Configure the build system
 
-	% make depend
+        % [env settings] ./configure [options]
 
- 5. Build the system
+     If all goes well, the configure script with automatically detect
+     the appropriate settings.  However, you may need to specify
+     options and/or environment variables to obtain desired results.
 
-	% make
+4.   Build dependencies
 
-    If all goes well, the system will build as configured.  If not,
-	return to step 4 after reviewing the configuration settings.
+        % make depend
 
-	You may want to consult the doc/install/hints file for your
-	platform.
+5.   Build the system
 
- 6. Test the standalone system
+        % make
 
-	This step requires the standalone LDAP server (slapd) with
-	LDBM support.
+     If all goes well, the system will build as configured.  If not,
+     return to step 3 after reviewing the configuration settings.  You
+     may want to consult the Platform Hints subsection of the FAQ if
+     you have not done so already.
 
-	% cd tests
-	% make test
+6.   Test the standalone system
 
-	If all goes well, the system has been built as configured.  If not,
-	return to step 4 after reviewing your configuration settings.
+     This step requires the standalone LDAP server, slapd(8), with
+     LDBM support.
 
-	You may want to consult the doc/install/hints file for your
-	platform.
+        % make test
 
- 7. install the binaries and man pages.  You may need to be superuser to
-    do this (depending on where you are installing things):
+     If all goes well, the system has been built as configured.  If
+     not, return to step 4 after reviewing your configuration
+     settings.  You may want to consult the Installation section of
+     the FAQ if you have not done so already.
 
-	% su root -c 'make install'
+7.   install the binaries and man pages.  You may need to be superuser
+     to do this (depending on where you are installing things):
 
-    That's it!
+        % su root -c 'make install'
 
-	See the man pages for the individual applications for
-	information on configuring and using them.  You may also want
-	to edit the configuration files used by the various clients.
-	These configuration files are located in the OpenLDAP
-	configuration directory (normally /usr/local/etc/openldap).
+8.   That's it!
 
-	Client configuration files:
-	  ldap.conf            - client defaults
-	  ldapfilter.conf      - search filter configuration
-	  ldapsearchprefs.conf - search object definitions
-	  ldaptemplates.conf   - display template definitions
+See the Administrator's Guide and the manual pages for the individual
+applications for configuration and use information. You may also want
+to edit the configuration files used by the various components.  These
+configuration files are located in the OpenLDAP configuration
+directory (normally /usr/local/etc/openldap).
 
-	Server configuration files:
-	  slapd.conf           - Standalone LDAP daemon configuration
-	  schema/*.schema      - Schema Definitions
+        ldap.conf               client defaults
+        ldapfilter.conf         search filter configuration
+        ldapsearchprefs.conf    search object definitions
+        ldaptemplates.conf      display template definitions
+        slapd.conf              Standalone LDAP daemon
+        schema/*.schema         Schema Definitions
 
-    There are section 5 man pages for these configuration files.
+There are section 5 man pages for these configuration files.
 
+Building OpenLDAP For More Than One Platform
+--------------------------------------------
 
-Building LDAP For More Than One Platform
-
-It is now possible to build LDAP for more than one platform from the same
-source tree.  This is accomplished by using make(1) VPATH support.  If
-your make(1) program is old and doesn't have VPATH support, install GNU
-Make.
+You can build OpenLDAP for more than one platform from the same source
+tree. This is accomplished by using make(1) VPATH support. If your
+make(1) program is old and doesn't have VPATH support, install BSD
+Make or GNU Make.
 
 Follow these steps for each different platform:
 
- 1.	Create a directory for the platform object files.
+1.   Create a directory for the platform object files.
 
-	% mkdir obj-platform
+        % mkdir obj-platform
 
- 2. Change your working directory to the platform object directory.
+2.   Change your working directory to the platform object directory.
 
-	% cd obj-platform
+        % cd obj-platform
 
- 3. Configure the build system
+3.   Configure the build system
 
-	% [env settings] ../configure --src-dir=.. [options]
+        % [env settings] ../configure --src-dir=.. [options]
 
-		( replace ".." with the appropriate path )
+     ( replace ".." with the appropriate path )
 
- 4. Continue as above (starting at step 6).
-
+4.   Continue as above (starting at step 6).
 
 CONFIGURE OPTIONS
+-----------------
 
 Regrettably, this section has not been written (yet).  See
 "./configure --help" for current list of options.  For general
-information about how to use "configure", please read:
-	doc/install/configure
-
+information about how to use "configure", please read
+doc/install/configure.
 
 USING ENVIRONMENT VARIABLES
+---------------------------
 
-The configure script will also use environmental variables for
-determining compiler/linker options.   This can be used to manually
+The configure script will also use your environmental variables for
+determining compiler/linker options.   This can be used to manual
 specify features and compilation options.
 
-WARNING: Executables built in your environment may not run
-	in your users' environments.  The portability of
-	executables between environments is your responsibility.
+Warning: Executables built in your environment may not run in your
+users' environments.  The portability of executables between
+environments is your responsibility.
 
-Supported Environmental Variables
-	CC			C compiler		(cc, egcc)
-	CFLAGS		C flags			(-O -g)
-	CPPFLAGS	cpp flags		(-I/path/include -Ddef)
-	LDFLAGS		ld flags		(-L/usr/local/lib)
-	LIBS		libraries		(-llib)
-	PATH		command path	/usr/local/bin:/usr/bin:/bin
+Supported Environmental Variables:
 
-* Including alternative compilers
-	Use the CC environment variable to tell configure to
-	use a specific compiler.  For example, to use GNU
-	C Compiler instead of the compiler configure choose,
-	use:
+        CC              C compiler      cc
+        CFLAGS          C flags         -O -g
+        CPPFLAGS        cpp flags       -I/path/include -Ddef
+        LDFLAGS         ld flags        -L/usr/local/lib
+        LIBS            libraries       -llib
+        PATH            command path    /usr/local/bin:/usr/bin:/bin
 
-	[env] CC=gcc ./configure 
+o    Including alternative compilers
 
-	You can also use CC use specific flags with the
-	specified compiler.  For example, to require strict
-	ANSI C using the GNU C Compiler, use:
+     Use the CC environment variable to tell configure to use a
+     specific compiler.  For example, to use GNU C Compiler instead of
+     the default compiler, use:
 
-	[env] CC="gcc -ansi -pedantic" ./configure
+        % [env] CC=gcc ./configure
 
-	(you can use CFLAGS to specify compiler flags)
+     You can also use CC use specific flags with the specified
+     compiler.  For example, to require strict ANSI C using the GNU C
+     Compiler, use:
 
-* Preprocessor Flags
-	You may specify additional preprocessor flags by setting
-	CPPFLAGS.  For example, if you would like to use headers
-	installed in /usr/local/include, use:
+        % [env] CC="gcc -ansi -pedantic" ./configure
 
-	[env] CPPFLAGS="-I/usr/local/include" ./configure
+     (you can use CFLAGS to specify compiler flags)
 
-	You can also use CPPFLAGS to specify preprocessor macros.
+o    Preprocessor Flags
 
-	[env] CPPFLAGS="-D__SPECIAL_FLAG__" ./configure
+     You may specify additional preprocessor flags by setting
+     CPPFLAGS.  For example, if you would like to use headers
+     installed in /usr/local/include, use:
 
-* Linker Flags
-	You may specify additional linker flags by setting LDFLAGS.
-	For example, if you would like to use libraries installed
-	in /usr/local/lib, use:
+        % [env] CPPFLAGS="-I/usr/local/include" ./configure
 
-	[env] LDFLAGS="-L/usr/local/lib" ./configure
+     You can also use CPPFLAGS to specify preprocessor macros.
 
-	You can also use CPPFLAGS to specify linker flags:
+        % [env] CPPFLAGS="-D__SPECIAL_FLAG__" ./configure
 
-	[env] LDFLAGS="-Bstatic" ./configure
+o    Linker Flags
 
-* Path
-	You may alter your path to affect configure ability to
-	find (or not find) commands.  For example, to have configure
-	additionally look in /usr/css/bin for commands, use:
+     You may specify additional linker flags by setting LDFLAGS. For
+     example, if you would like to use libraries installed in
+     /usr/local/lib, use:
 
-	[env] PATH="/usr/css/bin:$PATH" ./configure
-	
+        % [env] LDFLAGS="-L/usr/local/lib" ./configure
 
-HINTS
+     You can also use CPPFLAGS to specify linker flags:
 
-* Platform specific hints are available in doc/install/hints.
+        % [env] LDFLAGS="-Bstatic" ./configure
 
-* Use software under installed in /usr/local/{include,lib}
-	[env] \
-		CPPFLAGS="-I/usr/local/include" \
-		LDFLAGS="-L/usr/local/lib" \
-		./configure
+o    Path
 
+     You may alter your path to affect configure ability to find (or
+     not find) commands.  For example, to have configure additionally
+     look in /usr/css/bin for commands, use:
 
----
-$OpenLDAP$
+        % [env] PATH="/usr/css/bin:$PATH" ./configure
+
+o    Using locally installed software
+
+     To use software under installed under /usr/local.
+
+        [env] \
+                CPPFLAGS="-I/usr/local/include" \
+                LDFLAGS="-L/usr/local/lib" \
+                ./configure
+
+Note: You may have add additional flags if your system supports shared
+libraries.
+
+End of OpenLDAP INSTALL file.
+
+$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.8 2000/08/22
+22:50:50 kurt Exp $
+
