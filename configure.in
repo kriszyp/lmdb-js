@@ -324,7 +324,7 @@ AC_ISC_POSIX
 AC_MINIX
 
 dnl BeOS requires -lbe -lroot
-AC_CHECK_LIB(be, be_app,[LIBS="$LIBS -lbe -lroot"])
+AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot"], :, [-lroot])
 
 dnl Checks for system services
 AC_CYGWIN
