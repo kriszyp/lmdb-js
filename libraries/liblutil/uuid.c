@@ -228,7 +228,7 @@ lutil_uuidstr( char *buf, size_t len )
 	}
 
 	strncpy( buf, uuidstr, len );
-	free( uuidstr );
+	RpcStringFree( &uuidstr );
 
 	return uuidlen;
  
