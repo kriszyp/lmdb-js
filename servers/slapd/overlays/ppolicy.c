@@ -222,7 +222,15 @@ parse_time( char *atm )
 
 	tmg.tm_mday -= tml.tm_mday;
 	tmg.tm_hour -= tml.tm_hour;
-	if ( tmg.tm_mday ) tmg.tm_hour += tmg.tm_mday > 0 ? 24 : -24;
+	if ( tmg.tm_mday ) {
+		/* The difference should only be +/- 1 day, but may
+		 * fall outside this range at the beginning/end of a month
+		 */
+		if ( tmg.tm_mday > 1 ) tmg.tm_mday = -1;
+		else if ( tmg.tm_mday < -1 ) tmg.tm_mday = 1;
+
+		tmg.tm_hour += tmg.tm_mday > 0 ? 24 : -24;
+	}
 	if ( tmg.tm_hour ) t -= tmg.tm_hour * 3600;
 	tmg.tm_min -= tml.tm_min;
 	if ( tmg.tm_min ) t -= tmg.tm_min * 60;
