@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.3
+	CVS Tag: OPENLDAP_REL_ENG_1_3_3
 	Fixed indexing of normalized dn length bug (ITS#189)
 
 Changes included in OpenLDAP 1.2.2
