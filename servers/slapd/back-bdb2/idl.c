@@ -292,7 +292,7 @@ idl_change_first(
 	/* delete old key block */
 	if ( (rc = bdb2i_cache_delete( db, bkey )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "ldbm_delete of (%s) returns %d\n", bkey.dptr, rc,
+		    "bdb2i_db_delete of (%s) returns %d\n", bkey.dptr, rc,
 		    0 );
 		return( rc );
 	}

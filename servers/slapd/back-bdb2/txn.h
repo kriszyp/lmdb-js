@@ -22,12 +22,27 @@
 
 
 
-#define  BDB2_TXN_CHKP_MAX_CNT     20                   /*  checkpoint every
-                                                            20 transactions */
-#define  BDB2_TXN_CHKP_MAX_TIME    600                  /*  checkpoint after
-                                                            600 seconds     */
+/*  variables for transaction support  */
+DB_TXN                    *txnid       = NULL;
+int                       txn_do_abort = 0;
+
+u_int32_t                 txn_max_pending_log;
+u_int32_t                 txn_max_pending_time;
+int                       txn_dirty = 0;
+ldap_pvt_thread_mutex_t   txn_dirty_mutex;
+
+/*  defaults for checkpointing  */
+#define  BDB2_TXN_CHKP_MAX_LOG     2000    /*  checkpoint every 2MB lock file
+                                               (approx. 20 ADD TXNs)  */
+#define  BDB2_TXN_CHKP_MAX_TIME       5    /*  checkpoint after 5 minutes */
 
 
+/*  the name of the file and the record number of the NEXTID datum  */
+#define NEXTID_NAME    "NEXTID"
+#define NEXTID_RECNO   (db_recno_t) 1
+
+
+/*  default DB files  */
 char  *bdb2i_fixed_filenames[] = {
 
 		"dn", "dn2id", "id2entry", "id2children", "objectclass"

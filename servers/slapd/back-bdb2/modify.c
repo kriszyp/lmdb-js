@@ -144,6 +144,7 @@ bdb2_back_modify(
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			bdb2i_check_default_attr_index_mod( li, modlist );
 			break;
 	}

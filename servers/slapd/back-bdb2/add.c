@@ -254,6 +254,7 @@ bdb2_back_add(
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			bdb2i_check_default_attr_index_add( li, e );
 			break;
 	}

@@ -12,10 +12,27 @@
 static int
 bdb2i_back_db_close_internal( BackendDB *be )
 {
-	Debug( LDAP_DEBUG_TRACE, "bdb2 backend saving nextid\n", 0, 0, 0 );
-	if ( bdb2i_next_id_save( be ) < 0 ) {
-		Debug( LDAP_DEBUG_ANY, "bdb2 backend nextid save failed!\n", 0, 0, 0 );
+	DB_LOCK         lock;
+
+	/*  since close will probably write the NEXTID file,
+		wee need transaction control  */
+	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
+		return( -1 );
 	}
+
+	if ( slapMode != SLAP_TOOL_MODE ) {
+
+		Debug( LDAP_DEBUG_TRACE, "bdb2 backend saving nextid\n", 0, 0, 0 );
+		if ( bdb2i_next_id_save( be ) < 0 ) {
+			Debug( LDAP_DEBUG_ANY, "bdb2 backend nextid save failed!\n",
+					0, 0, 0 );
+		}
+	}
+
+	/*  before closing all files, leave the backend (thus commiting
+		all writes) and set a last checkpoint  */
+	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
+	(void) bdb2i_set_txn_checkpoint( get_dbenv( be )->tx_info, 1 );
 
 	/*  close all DB files  */
 	Debug( LDAP_DEBUG_TRACE, "bdb2 backend closing DB files\n", 0, 0, 0 );

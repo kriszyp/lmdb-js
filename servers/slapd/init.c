@@ -84,6 +84,7 @@ slap_init( int mode, char *name )
 		case SLAP_TOOL_MODE:
 #ifdef SLAPD_BDB2
 		case SLAP_TIMEDSERVER_MODE:
+		case SLAP_TOOLID_MODE:
 #endif
 
 			Debug( LDAP_DEBUG_TRACE,

@@ -33,6 +33,7 @@ bdb2i_cache_open(
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			{
 				struct	ldbminfo	*li = (struct ldbminfo *) be->be_private;
 				char	buf[MAXPATHLEN];
@@ -64,6 +65,7 @@ bdb2i_cache_close( BackendDB *be, struct dbcache *db )
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -84,6 +86,7 @@ bdb2i_cache_really_close( BackendDB *be, struct dbcache *db )
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -104,6 +107,7 @@ bdb2i_cache_flush_all( BackendDB *be )
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -125,7 +129,7 @@ bdb2i_cache_fetch(
 
 	ldbm_datum_init( data );
 
-	data = ldbm_fetch( db->dbc_db, key );
+	data = bdb2i_db_fetch( db->dbc_db, key );
 
 	return( data );
 }
@@ -162,7 +166,7 @@ bdb2i_cache_store(
 	if ( slapMode == SLAP_TIMEDSERVER_MODE )
 		bdb2i_uncond_start_timing( &time1 );
 
-	rc = ldbm_store( db->dbc_db, key, data, flags );
+	rc = bdb2i_db_store( db->dbc_db, key, data, flags );
 
 	if ( slapMode == SLAP_TIMEDSERVER_MODE ) {
 		char buf[BUFSIZ];
@@ -187,7 +191,7 @@ bdb2i_cache_delete(
 {
 	int	rc;
 
-	rc = ldbm_delete( db->dbc_db, key );
+	rc = bdb2i_db_delete( db->dbc_db, key );
 
 	return( rc );
 }

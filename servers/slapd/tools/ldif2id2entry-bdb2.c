@@ -81,7 +81,7 @@ main( int argc, char **argv )
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
-	slap_init(SLAP_TOOL_MODE, "ldif2id2entry");
+	slap_init(SLAP_TOOLID_MODE, "ldif2id2entry");
 	read_config( tailorfile );
 
 	if ( dbnum == -1 ) {
@@ -187,18 +187,10 @@ main( int argc, char **argv )
 		}
 	}
 
-	slap_shutdown(dbnum);
-
 	id++;
-	sprintf( line, "%s/NEXTID",
-	    ((struct ldbminfo *) be->be_private)->li_directory );
-	if ( (fp = fopen( line, "w" )) == NULL ) {
-		perror( line );
-		fprintf( stderr, "Could not write next id %ld\n", id );
-	} else {
-		fprintf( fp, "%ld\n", id );
-		fclose( fp );
-	}
+	bdb2i_put_nextid( be, id );
+
+	slap_shutdown(dbnum);
 
 	slap_destroy();
 

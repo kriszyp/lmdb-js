@@ -31,10 +31,14 @@ bdb2i_back_startup_internal(
 )
 {
 	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
-	DB_ENV           *dbEnv = lty->lty_dbenv;
-	int    envFlags = DB_CREATE | DB_THREAD | DB_INIT_LOCK | DB_INIT_MPOOL;
-	int    err      = 0;
-	char   *home;
+	DB_ENV          *dbEnv = lty->lty_dbenv;
+	int             envFlags;
+	int             err      = 0;
+	char            *home;
+
+	/*  set the flags for a full-feldged transaction schema  */
+	envFlags = ( DB_CREATE | DB_THREAD | DB_INIT_TXN | DB_INIT_LOG |
+					DB_INIT_LOCK | DB_INIT_MPOOL );
 
 	/*  make sure, dbhome is an absolute path  */
 	if ( *lty->lty_dbhome != *DEFAULT_DIRSEP ) {
@@ -167,7 +171,7 @@ bdb2i_back_db_startup_internal(
 		return 1;
 
 	/*  now open all DB files  */
-	if ( bdb2i_txn_open_files( li ) != 0 )
+	if ( bdb2i_txn_open_files( be ) != 0 )
 		return 1;
 
 	return 0;

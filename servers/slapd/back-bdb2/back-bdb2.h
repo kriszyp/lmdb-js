@@ -131,9 +131,9 @@ struct attrinfo {
 
 typedef  struct _bdb2_txn_head {
 
-	/*  counter and timer to control checkpoints  */
-	size_t           txn_cnt;
-	time_t           txn_chkp;
+	/*  log size and timer to control checkpoints  */
+	u_int32_t        txn_log;
+	u_int32_t        txn_time;
 
 	/*  a list of all DB files in use  */
 	BDB2_TXN_FILES   *dbFiles;
@@ -145,10 +145,10 @@ typedef  struct _bdb2_txn_head {
 #define  BDB2_DB_ID2CHILDREN_FILE   3
 #define  BDB2_DB_OC_IDX_FILE        4
 
-	/*  a file pointer for the NEXTID file
-		(must be opened appropriately at backend
-		entry and closed on leave  */
-	FILE             *nextidFP;
+	/*  a database handle for the NEXTID file
+		(must be opened like all DB files at startup
+		and closed on shutdown  */
+	LDBM             nextidFile;
 
 	/*  is the default attribute index set to non-none  */
 	int              withDefIDX;

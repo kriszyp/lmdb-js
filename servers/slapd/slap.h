@@ -232,6 +232,7 @@ extern int			slapMode;
 #define SLAP_TOOL_MODE		2
 #ifdef SLAPD_BDB2
 #  define SLAP_TIMEDSERVER_MODE  3
+#  define SLAP_TOOLID_MODE       4
 #endif
 
 /* temporary aliases */

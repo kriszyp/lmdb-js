@@ -179,7 +179,7 @@ void bdb2i_txn_attr_config LDAP_P((
  struct ldbminfo  *li,
  char *attr,
  int open ));
-int bdb2i_txn_open_files LDAP_P(( struct ldbminfo *li ));
+int bdb2i_txn_open_files LDAP_P(( BackendDB *be ));
 void bdb2i_txn_close_files LDAP_P(( BackendDB *be ));
 BDB2_TXN_FILES *bdb2i_get_db_file_cache LDAP_P((
  struct ldbminfo *li,
@@ -191,7 +191,16 @@ void bdb2i_check_default_attr_index_add LDAP_P((
 void bdb2i_check_default_attr_index_mod LDAP_P((
  struct ldbminfo *li,
  LDAPModList *modlist ));
-
+ID bdb2i_get_nextid  LDAP_P(( BackendDB *be ));
+int bdb2i_put_nextid LDAP_P(( BackendDB *be, ID id ));
+int bdb2i_db_store   LDAP_P(( LDBM ldbm, Datum key, Datum data, int flags ));
+int bdb2i_db_delete  LDAP_P(( LDBM ldbm, Datum key ));
+Datum bdb2i_db_fetch LDAP_P(( LDBM ldbm, Datum key ));
+Datum bdb2i_db_firstkey LDAP_P(( LDBM ldbm, DBC **dbch ));
+Datum bdb2i_db_nextkey  LDAP_P(( LDBM ldbm, Datum key, DBC *dbcp ));
+int bdb2i_start_transction   LDAP_P(( DB_TXNMGR *txmgr ));
+int bdb2i_finish_transaction LDAP_P(( ));
+int bdb2i_set_txn_checkpoint LDAP_P(( DB_TXNMGR *txmgr, int forced ));
 
 
 LDAP_END_DECL

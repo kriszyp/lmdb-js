@@ -26,6 +26,7 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
+		case SLAP_TOOLID_MODE:
 			if ( ( ret = lock_id( dbEnv->lk_info, &locker )) != 0 ) {
 
 				Debug( LDAP_DEBUG_ANY,
@@ -71,6 +72,14 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 			break;
 	}
 
+	/*  if we are a writer and we have the backend lock,
+		start transaction control  */
+	if ( writer && ( ret == 0 )) {
+
+		ret = bdb2i_start_transction( dbEnv->tx_info );
+
+	}
+
 	return( ret );
 }
 
@@ -78,14 +87,30 @@ bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 int
 bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
 {
-	int   ret = 0;
+	/*  since one or more error can occure,
+		we must have several return codes that are or'ed at the end  */
+	int   ret_transaction = 0;
+	int   ret_lock        = 0;
+	int   ret_chkp        = 0;
 
+	/*  if we are a writer, finish the transaction  */
+	if ( writer ) {
+
+		ret_transaction = bdb2i_finish_transaction();
+
+	}
+
+	/*  check whether checkpointing is needed  */
+	ret_transaction |= bdb2i_set_txn_checkpoint( dbEnv->tx_info, 0 );
+
+	/*  now release the lock  */
 	switch ( slapMode ) {
 
 		case SLAP_SERVER_MODE:
 		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-			switch( ( ret = lock_put( dbEnv->lk_info, lock ))) {
+		case SLAP_TOOLID_MODE:
+			switch( ( ret_lock = lock_put( dbEnv->lk_info, lock ))) {
 
 				case 0:
 					Debug( LDAP_DEBUG_TRACE,
@@ -109,15 +134,14 @@ bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
 					Debug( LDAP_DEBUG_ANY,
 						"bdb2i_leave_backend() -- %s lock returned ERROR: %s\n",
 						writer ? "write" : "read", strerror( errno ), 0 );
-					ret = errno;
+					ret_lock = errno;
 					break;
 			
 			}
 			break;
 	}
 
-	return( ret );
-
+	return( ret_transaction | ret_lock );
 }
 
 

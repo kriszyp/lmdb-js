@@ -32,6 +32,13 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 
 	}
 
+	/*  set defaults for checkpointing  */
+	head->txn_log  = BDB2_TXN_CHKP_MAX_LOG;
+	head->txn_time = BDB2_TXN_CHKP_MAX_TIME;
+
+	/*  initialize the txn_dirty_mutex  */
+	ldap_pvt_thread_mutex_init( &txn_dirty_mutex );
+
 	return 0;
 }
 
@@ -164,25 +171,37 @@ bdb2i_txn_attr_config(
 	create it (access to the file must be preceeded by a rewind)
 */
 static int
-bdb2i_open_nextid( struct ldbminfo *li )
+bdb2i_open_nextid( BackendDB *be )
 {
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	BDB2_TXN_HEAD   *head = &li->li_txn_head;
-	FILE            *fp = NULL;
-	char            *file = li->li_nextid_file;
+	LDBM            db = NULL;
+	DB_INFO			dbinfo;
+	DB_ENV			*dbenv = get_dbenv( be );
+	char            fileName[MAXPATHLEN];
+
+	sprintf( fileName, "%s%s%s",
+				li->li_directory, DEFAULT_DIRSEP, NEXTID_NAME );
 
 	/*  try to open the file for read and write  */
-	if ((( fp = fopen( file, "r+" )) == NULL ) &&
-		(( fp = fopen( file, "w+" )) == NULL )) {
+	memset( &dbinfo, 0, sizeof( dbinfo ));
+	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
+	dbinfo.db_malloc    = ldbm_malloc;
+
+	(void) db_open( fileName, DB_RECNO, DB_CREATE | DB_THREAD,
+					li->li_mode, dbenv, &dbinfo, &db );
+
+	if ( db == NULL ) {
 
 			Debug( LDAP_DEBUG_ANY,
 				"bdb2i_open_nextid: could not open \"%s\"\n",
-				file, 0, 0 );
+				NEXTID_NAME, 0, 0 );
 			return( -1 );
 
 	}
 
 	/*  the file is open for read/write  */
-	head->nextidFP = fp;
+	head->nextidFile = db;
 
 	return( 0 );
 }
@@ -192,10 +211,12 @@ bdb2i_open_nextid( struct ldbminfo *li )
 	additional files may be opened during slapd life-time due to
 	default indexes (must be configured in slapd.conf;
 	see bdb2i_txn_attr_config)
+	also, set the counter and timer for TP checkpointing
 */
 int
-bdb2i_txn_open_files( struct ldbminfo *li )
+bdb2i_txn_open_files( BackendDB *be )
 {
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	BDB2_TXN_HEAD   *head = &li->li_txn_head;
 	BDB2_TXN_FILES  *dbFile;
 	int             rc;
@@ -227,18 +248,12 @@ bdb2i_txn_open_files( struct ldbminfo *li )
 
 	}
 
-	rc = bdb2i_open_nextid( li );
+	rc = bdb2i_open_nextid( be );
+
+	txn_max_pending_log  = head->txn_log;
+	txn_max_pending_time = head->txn_time;
 
 	return rc;
-}
-
-
-/*  close the NEXTID file  */
-static void
-bdb2i_close_nextid( BDB2_TXN_HEAD *head )
-{
-	fclose( head->nextidFP );
-	head->nextidFP = NULL;
 }
 
 
@@ -256,7 +271,7 @@ bdb2i_txn_close_files( BackendDB *be )
 
 	}
 
-	bdb2i_close_nextid( head );
+	ldbm_close( head->nextidFile );
 
 }
 
@@ -384,6 +399,388 @@ bdb2i_check_default_attr_index_mod( struct ldbminfo *li, LDAPModList *modlist )
 			bdb2i_txn_attr_config( li, default_attrs[attr], 1 );
 		}
 	}
+}
+
+
+/*  get the next ID from the NEXTID file  */
+ID
+bdb2i_get_nextid( BackendDB *be )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	BDB2_TXN_HEAD	*head = &li->li_txn_head;
+	ID				id;
+	Datum			key;
+	Datum			data;
+	db_recno_t		rec = NEXTID_RECNO;
+
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
+
+	key.data = &rec;
+	key.size = sizeof( rec );
+
+	data = bdb2i_db_fetch( head->nextidFile, key );
+	if ( data.data == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"next_id_read: could not get nextid from \"%s\"\n",
+			NEXTID_NAME, 0, 0 );
+		return NOID;
+	}
+
+	id = atol( data.data );
+	ldbm_datum_free( head->nextidFile, data );
+
+	if ( id < 1 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"next_id_read %ld: return non-positive integer\n",
+			id, 0, 0 );
+		return NOID;
+	}
+
+	return( id );
+}
+
+
+int
+bdb2i_put_nextid( BackendDB *be, ID id )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	BDB2_TXN_HEAD	*head = &li->li_txn_head;
+	int				rc, flags;
+	Datum			key;
+	Datum			data;
+	db_recno_t		rec = NEXTID_RECNO;
+	char			buf[20];
+
+	sprintf( buf, "%ld\n", id );
+
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
+
+	key.data = &rec;
+	key.size = sizeof( rec );
+
+	data.data = &buf;
+	data.size = sizeof( buf );
+
+	flags = LDBM_REPLACE;
+	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
+
+	if (( rc = bdb2i_db_store( head->nextidFile, key, data, flags )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): store failed (%d)\n",
+			id, rc, 0 );
+		return( -1 );
+	}
+
+	return( rc );
+}
+
+
+/*  BDB2 backend-private functions of ldbm_store and ldbm_delete  */
+int
+bdb2i_db_store( LDBM ldbm, Datum key, Datum data, int flags )
+{
+	int     rc;
+
+	rc = (*ldbm->put)( ldbm, txnid, &key, &data, flags & ~LDBM_SYNC );
+	rc = (-1 ) * rc;
+
+	if ( txnid != NULL ) {
+
+		/*  if the store was OK, set the dirty flag,
+			otherwise set the abort flag  */
+		if ( rc == 0 ) {
+
+			txn_dirty = 1;
+
+		} else {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_db_store: transaction failed: aborted.\n",
+				0, 0, 0 );
+			txn_do_abort = 1;
+
+		}
+	}
+
+	return( rc );
+}
+
+
+int
+bdb2i_db_delete( LDBM ldbm, Datum key )
+{
+	int     rc;
+
+	rc = (*ldbm->del)( ldbm, txnid, &key, 0 );
+	rc = (-1 ) * rc;
+
+	if ( txnid != NULL ) {
+
+		/*  if the delete was OK, set the dirty flag,
+			otherwise set the abort flag  */
+		if ( rc == 0 ) {
+
+			txn_dirty = 1;
+
+		} else {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_db_delete: transaction failed: aborted.\n",
+				0, 0, 0 );
+			txn_do_abort = 1;
+
+		}
+	}
+
+	return( rc );
+}
+
+
+Datum
+bdb2i_db_fetch( LDBM ldbm, Datum key )
+{
+	Datum   data;
+	int     rc;
+
+	ldbm_datum_init( data );
+	data.flags = DB_DBT_MALLOC;
+
+	if ( (rc = (*ldbm->get)( ldbm, txnid, &key, &data, 0 )) != 0 ) {
+		if (( txnid != NULL ) && ( rc != DB_NOTFOUND )) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_db_fetch: transaction failed: aborted.\n",
+				0, 0, 0 );
+			txn_do_abort = 1;
+
+		}
+		if ( data.dptr ) free( data.dptr );
+		data.dptr = NULL;
+		data.dsize = 0;
+	}
+
+	return( data );
+}
+
+
+Datum
+bdb2i_db_firstkey( LDBM ldbm, DBC **dbch )
+{
+	Datum	key, data;
+	int		rc;
+	DBC		*dbci;
+
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
+
+	key.flags = data.flags = DB_DBT_MALLOC;
+
+#if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
+   DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6
+
+	if ( (*ldbm->cursor)( ldbm, txnid, &dbci ))
+
+#else
+
+	if ( (*ldbm->cursor)( ldbm, txnid, &dbci, 0 ))
+
+#endif
+	{
+		if ( txnid != NULL ) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_db_firstkey: transaction failed: aborted.\n",
+				0, 0, 0 );
+			txn_do_abort = 1;
+
+		}
+		return( key );
+	} else {
+		*dbch = dbci;
+		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
+			if ( data.dptr ) free( data.dptr );
+		} else {
+			if ( txnid != NULL ) {
+
+				Debug( LDAP_DEBUG_ANY,
+					"bdb2i_db_firstkey: transaction failed: aborted.\n",
+					0, 0, 0 );
+				txn_do_abort = 1;
+
+			}
+			if ( key.dptr ) free( key.dptr );
+			key.dptr = NULL;
+			key.dsize = 0;
+		}
+	}
+
+	return( key );
+}
+
+
+Datum
+bdb2i_db_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
+{
+	Datum	data;
+	int		rc;
+	void 	*oldKey = key.dptr;
+
+	ldbm_datum_init( data );
+	data.flags = DB_DBT_MALLOC;
+
+	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
+		if ( data.dptr ) free( data.dptr );
+	} else {
+		if ( txnid != NULL ) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_db_nextkey: transaction failed: aborted.\n",
+				0, 0, 0 );
+			txn_do_abort = 1;
+
+		}
+		key.dptr = NULL;
+		key.dsize = 0;
+	}
+
+	if ( oldKey ) free( oldKey );
+
+	return( key );
+}
+
+
+/*  Transaction control of write access  */
+/*  Since these functions are only used by one writer at a time,
+	we do not have any concurrency (locking) problem  */
+
+/*  initialize a new transaction  */
+int
+bdb2i_start_transction( DB_TXNMGR *txmgr )
+{
+	int		rc;
+
+	txnid        = NULL;
+	txn_do_abort = 0;
+
+	if (( rc = txn_begin( txmgr, NULL, &txnid )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "bdb2i_start_transction failed: %d: errno=%s\n",
+					rc, strerror( errno ), 0 );
+
+		if ( txnid != NULL )
+			(void) txn_abort( txnid );
+		return( -1 );
+	}
+
+	Debug( LDAP_DEBUG_TRACE,
+			"bdb2i_start_transaction: transaction started.\n",
+			0, 0, 0 );
+
+	return( 0 );
+}
+
+
+/*  finish the transaction  */
+int
+bdb2i_finish_transaction()
+{
+	int		rc = 0;
+
+	/*  if transaction was NOT selected, just return  */
+	if ( txnid == NULL ) return( 0 );
+
+	/*  if nothing was wrong so far, we can try to commit the transaction  */
+	/*  complain, if the commit fails  */
+	if (( txn_do_abort == 0 ) && ( txn_commit( txnid )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb2i_finish_transaction: transaction commit failed: aborted.\n",
+			0, 0, 0 );
+		txn_do_abort = 1;
+	}
+
+	/*  if anything went wrong, we have to abort the transaction  */
+	if ( txn_do_abort ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb2i_finish_transaction: transaction aborted.\n",
+			0, 0, 0 );
+		(void) txn_abort( txnid );
+		rc = -1;
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb2i_finish_transaction: transaction commited.\n",
+			0, 0, 0 );
+	}
+
+	/*  XXX do NOT free the txnid memory !!!  */
+	txnid        = NULL;
+	txn_do_abort = 0;
+
+	return( rc );
+}
+
+
+/*  set a checkpoint
+	either forced (during shutdown) or when logsize or time are exceeded
+	(is called by reader and writer, so protect txn_dirty)
+*/
+int
+bdb2i_set_txn_checkpoint( DB_TXNMGR *txmgr, int forced )
+{
+	int   rc = 0;
+
+	/*  set dirty mutex  */
+	ldap_pvt_thread_mutex_lock( &txn_dirty_mutex );
+
+	if ( txn_dirty ) {
+		int  rc;
+		u_int32_t   logsize;
+		u_int32_t   mins;
+		time_t      now;
+
+		logsize = forced ? (u_int32_t) 0 : txn_max_pending_log;
+		mins    = forced ? (u_int32_t) 0 : txn_max_pending_time;
+
+		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
+		time( &currenttime );
+		now = currenttime;
+		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+
+		rc = txn_checkpoint( txmgr, logsize, mins );
+
+		/*  if checkpointing was successful, reset txn_dirty  */
+		if ( rc == 0 ) {
+			DB_TXN_STAT  *statp = NULL;
+
+			/*  check whether the checkpoint was actually written;
+				if so, unset the txn_dirty flag  */
+			if (( rc = txn_stat( txmgr, &statp, ldbm_malloc )) == 0 ) {
+
+				if ( statp && ( statp->st_time_ckp >= now )) {
+
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb2i_set_txn_checkpoint succeded.\n",
+						0, 0, 0 );
+					txn_dirty = 0;
+
+				}
+
+				if ( statp ) free( statp );
+
+			} else {
+				Debug( LDAP_DEBUG_ANY,
+						"bdb2i_set_txn_checkpoint: txn_stat failed: %d\n",
+						rc, 0, 0 );
+			}
+		} else {
+			Debug( LDAP_DEBUG_ANY, "bdb2i_set_txn_checkpoint failed: %d\n",
+					rc, 0, 0 );
+		}
+	}
+
+	/*  release dirty mutex  */
+	ldap_pvt_thread_mutex_unlock( &txn_dirty_mutex );
+
+	return( rc );
 }
 
 
