@@ -2951,8 +2951,7 @@ parse_syncrepl_line(
                         si->interval = atoi( val );
                         if ( si->interval <= 0 ) {
                                 fprintf( stderr,
-                                        "Error: parse_syncrepl_line: invalid interval \"%d
-\"\n",
+                                        "Error: parse_syncrepl_line: invalid interval \"%d\"\n",
                                         si->interval);
                                 return 1;
                         }
@@ -2969,8 +2968,7 @@ parse_syncrepl_line(
 
         if ( si->bindmethod == LDAP_AUTH_SASL) {
                 if ((gots & GOT_MECH) == 0) {
-                        fprintf( stderr, "Error: \"syncrepl\" line needs SASLmech flag in
-" );
+                        fprintf( stderr, "Error: \"syncrepl\" line needs SASLmech flag in " );
                         fprintf( stderr, "slapd config file\n" );
                         return -1;
                 }
