@@ -83,13 +83,14 @@ could be used:
 >	index cn,sn,uid
 >	index objectClass pres,eq
 
-See {{SECT:The slapd Configuration File}} section for more details
-on this option. Once you have configured things to your liking,
-start up slapd, connect with your LDAP client, and start adding
-entries. For example, to add a the organizational entry followed
-by a Postmaster entry using the {{I:ldapadd}} tool, you could create
-an {{TERM:LDIF}} file called {{EX:entries.ldif}} with the contents:
+See {{SECT:The slapd Configuration File}} section for more details on
+this option. Once you have configured things to your liking, start up
+slapd, connect with your LDAP client, and start adding entries.  For
+example, to add an organization entry and an organizational role entry
+using the {{I:ldapadd}} tool, you could create an {{TERM:LDIF}} file
+called {{EX:entries.ldif}} with the contents:
 
+>	# Organization for Example Corporation
 >	dc=example, dc=com
 >	objectClass=dcObject
 >	objectClass=organization
@@ -97,10 +98,11 @@ an {{TERM:LDIF}} file called {{EX:entries.ldif}} with the contents:
 >	o=Example Corporation
 >	description=The Example Corporation
 >
->	cn=Postmaster, dc=example, dc=com
+>	# Organizational Role for Directory Manager
+>	cn=Manager, dc=example, dc=com
 >	objectClass=organizationalRole
->	cn=Postmaster
->	description=OpenLDAP Postmaster <Postmaster@example.com>
+>	cn=Manager
+>	description=Directory Manager
 
 and then use a command like this to actually create the entry:
 
@@ -317,14 +319,14 @@ should be obtained from the file {{F:/path/to/file.jpeg}}.
 Multiple entries within the same LDIF file are separated by blank
 lines. Here's an example of an LDIF file containing three entries.
 
->	# First Entry
+>	# Barbara's Entry
 >	dn: cn=Barbara J Jensen, dc=example, dc=com
 >	cn: Barbara J Jensen
 >	cn: Babs Jensen
 >	objectClass: person
 >	sn: Jensen
 >
->	# Second Entry
+>	# Bjorn's Entry
 >	dn: cn=Bjorn J Jensen, dc=example, dc=com
 >	cn: Bjorn J Jensen
 >	cn: Bjorn Jensen
@@ -332,10 +334,10 @@ lines. Here's an example of an LDIF file containing three entries.
 >	sn: Jensen
 >	# Base64 encoded JPEG photo
 >	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
->	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
->	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+>	 A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+>	 ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
 >
->	# Third Entry
+>	# Jennifer's Entry
 >	dn: cn=Jennifer J Jensen, dc=example, dc=com
 >	cn: Jennifer J Jensen
 >	cn: Jennifer Jensen

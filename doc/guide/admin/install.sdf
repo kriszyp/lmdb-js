@@ -163,8 +163,8 @@ and their usage.
 !endif
 >	./configure --help
 
-The {{EX:configure}} script will also look at certain environment variables
-for certain settings.  These environment variables are:
+The {{EX:configure}} script will also look at various environment variables
+for certain settings.  These environment variables include:
 
 !block table; align=Center; coltags="EX,N"; title="Table 4.1: Environment Variables"
 Variable	Description
@@ -174,10 +174,6 @@ CPPFLAGS	Specify C Preprocessor flags
 LDFLAGS 	Specify linker flags
 LIBS    	Specify additional libraries
 !endblock
-
-Note: If you intend to build OpenLDAP for multiple platforms from a
-single source tree you should consult the {{F:INSTALL}} file in the
-top level distribution directory before running {{EX:configure}}.
 
 Now run the configure script with any desired configuration options or
 environment variables.

@@ -50,15 +50,19 @@ name of the release.
 
 
 .{{S: }}
-+{{B: Review the release documents}}
++{{B: Review documentation}}
 
-. You should now review the {{F:COPYRIGHT}}, {{F:LICENSE}}, {{F:README}}
-and {{F:INSTALL}} documents provided with the distribution.
+. You should now review the {{F:COPYRIGHT}}, {{F:LICENSE}},
+{{F:README}} and {{F:INSTALL}} documents provided with the distribution.
 The {{F:COPYRIGHT}} and {{F:LICENSE}} provide information on
 acceptable use, copying, and limitation of warranty of OpenLDAP
-software. The {{F:README}} and {{F:INSTALL}} documents provide
-detailed information on prerequisite software and installation
-procedures.
+software. 
+
+.{{S: }}
+. You should also review other chapters of this document.
+In particular, the {{SECT:Building and Installing OpenLDAP Software}}
+chapter of this document provides detailed information on prerequisite
+software and installation procedures.
 
 
 .{{S: }}
@@ -207,9 +211,8 @@ in the {{slapd}}(8) manual page and the
 ..{{EX:dc: <MY-DOMAIN>}}
 ..{{EX: }}
 ..{{EX:dn: cn=Manager, dc=<MY-DOMAIN>, dc=<COM>}}
-..{{EX:objectclass: person}}
+..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
-..{{EX:sn: Manager}}
 
 . Be sure to replace <MY-DOMAIN> and <COM> with the appropriate domain
 components of your domain name.  <MY ORGANIZATION> should be replaced
@@ -222,10 +225,9 @@ to trim any leading whitespace from the example:
 ..{{EX:o: Example Company}}
 ..{{EX:dc: example}}
 ..{{EX: }}
-..{{EX:dn: cn=Bob Smith, dc=example, dc=com}}
-..{{EX:objectclass: person}}
-..{{EX:cn: Bob Smith}}
-..{{EX:sn: Smith}}
+..{{EX:dn: cn=Manager, dc=example, dc=com}}
+..{{EX:objectclass: organizationalRole}}
+..{{EX:cn: Manager}}
 
 . Now, you may run {{ldapadd}}(1) to insert these entries into
 your directory.
