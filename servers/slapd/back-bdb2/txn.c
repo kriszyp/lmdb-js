@@ -26,7 +26,7 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 		}
 
 		sprintf( fileName, "%s%s", bdb2i_fixed_filenames[dbFile], BDB2_SUFFIX );
-		(*fileNodeH)->dbc_name = strdup( fileName );
+		(*fileNodeH)->dbc_name = ch_strdup( fileName );
 
 		fileNodeH = &(*fileNodeH)->next;
 
@@ -119,7 +119,7 @@ bdb2i_txn_attr_config(
 				}
 			}
 
-			p->dbc_name = strdup( fileName );
+			p->dbc_name = ch_strdup( fileName );
 
 			/*  if requested for, we have to open the DB file  */
 			/*  BUT NOT "objectclass", 'cause that's a default index !  */

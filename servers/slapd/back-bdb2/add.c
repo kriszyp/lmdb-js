@@ -23,6 +23,7 @@ bdb2i_back_add_internal(
 	char		*pdn;
 	Entry		*p = NULL;
 	int			rc; 
+	struct timeval  time1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb2i_back_add: %s\n", e->e_dn, 0, 0);
 
@@ -106,7 +107,11 @@ bdb2i_back_add_internal(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
+	bdb2i_start_timing( be->bd_info, &time1 );
+
 	rc = bdb2i_cache_add_entry_rw( &li->li_cache, e, CACHE_WRITE_LOCK );
+
+	bdb2i_stop_timing( be->bd_info, time1, "ADD-CACHE", conn, op );
 
 	if ( rc != 0 ) {
 		if( p != NULL) {
@@ -138,18 +143,26 @@ bdb2i_back_add_internal(
 	 * add it to the id2children index for the parent
 	 */
 
+	bdb2i_start_timing( be->bd_info, &time1 );
+
 	if ( bdb2i_id2children_add( be, p, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_id2children_add failed\n", 0,
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
+		bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2CHILDREN", conn, op );
+
 		goto return_results;
 	}
+
+	bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2CHILDREN", conn, op );
 
 	/*
 	 * Add the entry to the attribute indexes, then add it to
 	 * the id2children index, dn2id index, and the id2entry index.
 	 */
+
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	/* attribute indexes */
 	if ( bdb2i_index_add_entry( be, e ) != 0 ) {
@@ -157,8 +170,14 @@ bdb2i_back_add_internal(
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
+		bdb2i_stop_timing( be->bd_info, time1, "ADD-INDEX", conn, op );
+
 		goto return_results;
 	}
+
+	bdb2i_stop_timing( be->bd_info, time1, "ADD-INDEX", conn, op );
+
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	/* dn2id index */
 	if ( bdb2i_dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
@@ -166,8 +185,14 @@ bdb2i_back_add_internal(
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
+		bdb2i_stop_timing( be->bd_info, time1, "ADD-DN2ID", conn, op );
+
 		goto return_results;
 	}
+
+	bdb2i_stop_timing( be->bd_info, time1, "ADD-DN2ID", conn, op );
+
+	bdb2i_start_timing( be->bd_info, &time1 );
 
 	/* id2entry index */
 	if ( bdb2i_id2entry_add( be, e ) != 0 ) {
@@ -176,8 +201,12 @@ bdb2i_back_add_internal(
 		(void) bdb2i_dn2id_delete( be, e->e_ndn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
+		bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2ENTRY", conn, op );
+
 		goto return_results;
 	}
+
+	bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2ENTRY", conn, op );
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
 	rc = 0;
@@ -186,7 +215,6 @@ return_results:;
 	if (p != NULL) {
 		/* free parent and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, p ); 
-
 	}
 
 	/* free entry and writer lock */
@@ -206,7 +234,7 @@ bdb2_back_add(
 {
 	DB_LOCK         lock;
 	struct ldbminfo	*li  = (struct ldbminfo *) be->be_private;
-	struct timeval  time1;
+	struct timeval  time1, time2;
 	int             ret;
 
 	bdb2i_start_timing( be->bd_info, &time1 );
@@ -217,6 +245,8 @@ bdb2_back_add(
 		return( -1 );
 
 	}
+
+	bdb2i_start_timing( be->bd_info, &time2 );
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
@@ -229,7 +259,8 @@ bdb2_back_add(
 	}
 
 	ret = bdb2i_back_add_internal( be, conn, op, e );
-	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
+	bdb2i_stop_timing( be->bd_info, time2, "ADD-INTERN", conn, op );
+	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
 	bdb2i_stop_timing( be->bd_info, time1, "ADD", conn, op );
 
 	return( ret );

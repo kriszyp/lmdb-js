@@ -172,6 +172,9 @@ bdb2i_back_db_init_internal(
 	    1 );
 	free( argv[ 1 ] );
 
+	/*  initialize the cache mutex */
+	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
+
 	/*  initialize the TP file head  */
 	if ( bdb2i_txn_head_init( &li->li_txn_head ) != 0 )
 		return 1;

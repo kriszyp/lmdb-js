@@ -139,6 +139,7 @@ bdb2i_cache_store(
 )
 {
 	int	rc;
+	struct timeval  time1;
 
 #ifdef LDBM_DEBUG
 	Statslog( LDAP_DEBUG_STATS,
@@ -158,7 +159,22 @@ bdb2i_cache_store(
 		flags, 0, 0, 0, 0 );
 #endif /* LDBM_DEBUG */
 
+	if ( slapMode == SLAP_TIMEDSERVER_MODE )
+		bdb2i_uncond_start_timing( &time1 );
+
 	rc = ldbm_store( db->dbc_db, key, data, flags );
+
+	if ( slapMode == SLAP_TIMEDSERVER_MODE ) {
+		char buf[BUFSIZ];
+		char buf2[BUFSIZ];
+
+		*buf2 = '\0';
+		if ( !( strcasecmp( db->dbc_name, "dn.bdb2" )))
+			sprintf( buf2, " [%s]", key.dptr );
+		sprintf( buf, "ADD-BDB2( %s%s )", db->dbc_name, buf2 );
+		bdb2i_uncond_stop_timing( time1, buf,
+					NULL, NULL, LDAP_DEBUG_TRACE );
+	}
 
 	return( rc );
 }

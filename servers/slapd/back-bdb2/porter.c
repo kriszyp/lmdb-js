@@ -13,8 +13,8 @@
 #define  PORTER_OBJ   "bdb2_backend"
 
 
-static int
-bdb2i_enter_backend( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
+int
+bdb2i_enter_backend_rw( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 {
 	u_int32_t      locker;
 	db_lockmode_t  lock_type;
@@ -76,21 +76,7 @@ bdb2i_enter_backend( DB_ENV *dbEnv, DB_LOCK *lock, int writer )
 
 
 int
-bdb2i_enter_backend_r( DB_ENV *dbEnv, DB_LOCK *lock )
-{
-	return( bdb2i_enter_backend( dbEnv, lock, 0 ));
-}
-
-
-int
-bdb2i_enter_backend_w( DB_ENV *dbEnv, DB_LOCK *lock )
-{
-	return( bdb2i_enter_backend( dbEnv, lock, 1 ));
-}
-
-
-int
-bdb2i_leave_backend( DB_ENV *dbEnv, DB_LOCK lock )
+bdb2i_leave_backend_rw( DB_ENV *dbEnv, DB_LOCK lock, int writer )
 {
 	int   ret = 0;
 
@@ -103,26 +89,26 @@ bdb2i_leave_backend( DB_ENV *dbEnv, DB_LOCK lock )
 
 				case 0:
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb2i_leave_backend() -- lock released\n",
-						0, 0, 0 );
+						"bdb2i_leave_backend() -- %s lock released\n",
+						writer ? "write" : "read", 0, 0 );
 					break;
 
 				case DB_LOCK_NOTHELD:
 					Debug( LDAP_DEBUG_ANY,
-						"bdb2i_leave_backend() -- lock NOT held\n",
-						0, 0, 0 );
+						"bdb2i_leave_backend() -- %s lock NOT held\n",
+						writer ? "write" : "read", 0, 0 );
 					break;
 
 				case DB_LOCK_DEADLOCK:
 					Debug( LDAP_DEBUG_ANY,
-						"bdb2i_leave_backend() -- lock returned DEADLOCK\n",
-						0, 0, 0 );
+						"bdb2i_leave_backend() -- %s lock returned DEADLOCK\n",
+						writer ? "write" : "read", 0, 0 );
 					break;
 
 				default:
 					Debug( LDAP_DEBUG_ANY,
-						"bdb2i_leave_backend() -- lock returned ERROR: %s\n",
-						strerror( errno ), 0, 0 );
+						"bdb2i_leave_backend() -- %s lock returned ERROR: %s\n",
+						writer ? "write" : "read", strerror( errno ), 0 );
 					ret = errno;
 					break;
 			

@@ -86,7 +86,7 @@ bdb2_back_compare(
 	}
 
 	ret = bdb2i_back_compare_internal( be, conn, op, dn, ava );
-	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_r( get_dbenv( be ), lock );
 	bdb2i_stop_timing( be->bd_info, time1, "CMP", conn, op );
 
 	return( ret );

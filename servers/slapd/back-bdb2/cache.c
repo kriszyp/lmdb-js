@@ -71,6 +71,9 @@ cache_entry_private_destroy( Entry*e )
 void
 bdb2i_cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 {
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 #ifdef LDAP_DEBUG
 	assert( e->e_private );
 #endif
@@ -104,6 +107,9 @@ bdb2i_cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 			"====> bdb2i_cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", e->e_id, LEI(e)->lei_refcnt);
 	}
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
 #define LRU_DELETE( cache, e ) { \
@@ -147,6 +153,9 @@ bdb2i_cache_add_entry_rw(
 	int	i;
 	Entry	*ee;
 
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 #ifdef LDAP_DEBUG
 	assert( e->e_private == NULL );
 #endif
@@ -167,6 +176,8 @@ bdb2i_cache_add_entry_rw(
 
 		cache_entry_private_destroy(e);
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( 1 );
 	}
 
@@ -188,6 +199,8 @@ bdb2i_cache_add_entry_rw(
 
 		cache_entry_private_destroy(e);
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( -1 );
 	}
 
@@ -233,6 +246,8 @@ bdb2i_cache_add_entry_rw(
 		}
 	}
 
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( 0 );
 }
 
@@ -251,6 +266,9 @@ bdb2i_cache_update_entry(
 	int	i;
 	Entry	*ee;
 
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 #ifdef LDAP_DEBUG
 	assert( e->e_private );
 #endif
@@ -262,6 +280,8 @@ bdb2i_cache_update_entry(
 		"====> bdb2i_cache_add_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( 1 );
 	}
 
@@ -281,6 +301,8 @@ bdb2i_cache_update_entry(
 			    0, 0, 0 );
 		}
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( -1 );
 	}
 
@@ -325,11 +347,13 @@ bdb2i_cache_update_entry(
 		}
 	}
 
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( 0 );
 }
 
 /*
- * cache_find_entry_dn2id - find an entry in the cache, given dn
+ * bdb2i_cache_find_entry_dn2id - find an entry in the cache, given dn
  */
 
 ID
@@ -342,6 +366,9 @@ bdb2i_cache_find_entry_dn2id(
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	Entry		e, *ep;
 	ID			id;
+
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	e.e_dn = dn;
 	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
@@ -371,6 +398,8 @@ bdb2i_cache_find_entry_dn2id(
 			"====> bdb2i_cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
 				dn, ep->e_id, LEI(ep)->lei_state);
 
+			/* free cache mutex */
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NOID );
 		}
 
@@ -385,10 +414,16 @@ bdb2i_cache_find_entry_dn2id(
 		/* save id */
 		id = ep->e_id;
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+
 		return( id );
 	}
 
 	free(e.e_ndn);
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 	return( NOID );
 }
@@ -410,6 +445,9 @@ bdb2i_cache_find_entry_id(
 	e.e_id = id;
 
 try_again:
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 		entry_id_cmp )) != NULL )
 	{
@@ -428,6 +466,8 @@ try_again:
 				"====> bdb2i_cache_find_entry_id( %ld ): %ld (not ready) %d\n",
 				id, ep->e_id, LEI(ep)->lei_state);
 
+			/* free cache mutex */
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NULL );
 		}
 
@@ -441,8 +481,14 @@ try_again:
                 
 		LEI(ep)->lei_refcnt++;
 
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+
 		return( ep );
 	}
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 	return( NULL );
 }
@@ -466,6 +512,9 @@ bdb2i_cache_delete_entry(
 {
 	int	rc;
 
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 #ifdef LDAP_DEBUG
 	assert( e->e_private );
 #endif
@@ -475,6 +524,8 @@ bdb2i_cache_delete_entry(
 
 	rc = cache_delete_entry_internal( cache, e );
 
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( rc );
 }
 

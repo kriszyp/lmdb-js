@@ -79,6 +79,7 @@ struct cache {
 	Avlnode		*c_idtree;
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
+	ldap_pvt_thread_mutex_t	c_mutex;
 };
 
 #define CACHE_READ_LOCK		1

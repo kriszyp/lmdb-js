@@ -149,7 +149,7 @@ bdb2_back_modify(
 	}
 
 	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist );
-	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
 	bdb2i_stop_timing( be->bd_info, time1, "MOD", conn, op );
 
 	return( ret );

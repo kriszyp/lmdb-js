@@ -164,7 +164,7 @@ bdb2_back_delete(
 	}
 
 	ret = bdb2i_back_delete_internal( be, conn, op, dn );
-	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
+	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
 	bdb2i_stop_timing( be->bd_info, time1, "DEL", conn, op );
 
 	return( ret );

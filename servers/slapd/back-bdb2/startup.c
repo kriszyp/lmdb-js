@@ -43,7 +43,7 @@ bdb2i_back_startup_internal(
 		(void) getcwd( cwd, MAXPATHLEN );
 		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, lty->lty_dbhome );
 		free( lty->lty_dbhome );
-		lty->lty_dbhome = strdup( cwd );
+		lty->lty_dbhome = ch_strdup( cwd );
 
 	}
 	home = lty->lty_dbhome;
@@ -158,7 +158,7 @@ bdb2i_back_db_startup_internal(
 		(void) getcwd( cwd, MAXPATHLEN );
 		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_directory );
 		free( li->li_directory );
-		li->li_directory = strdup( cwd );
+		li->li_directory = ch_strdup( cwd );
 
 	}
 

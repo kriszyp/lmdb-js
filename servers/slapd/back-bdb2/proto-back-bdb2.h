@@ -153,19 +153,22 @@ int bdb2i_back_db_shutdown LDAP_P(( BackendDB *be ));
  *  timing.c
  */
 
-char *bdb2i_elapsed LDAP_P(( struct timeval firsttime,
- struct timeval secondtime ));
-void bdb2i_start_timing LDAP_P(( BackendInfo *bi, struct timeval *time1 ));
-void bdb2i_stop_timing LDAP_P(( BackendInfo *bi, struct timeval time1,
-  char *func, Connection *conn, Operation *op ));
+void bdb2i_uncond_start_timing LDAP_P(( struct timeval *time1 ));
+#define bdb2i_start_timing(bi,time1)  if ( with_timing( bi )) bdb2i_uncond_start_timing( (time1) )
+void bdb2i_uncond_stop_timing LDAP_P(( struct timeval time1,
+  char *func, Connection *conn, Operation *op, int level ));
+#define bdb2i_stop_timing(bi,time1,func,conn,op)  if ( with_timing( bi )) bdb2i_uncond_stop_timing( (time1), (func), (conn), (op), LDAP_DEBUG_ANY )
 
 /*
  * porter.c
  */
 
-int bdb2i_enter_backend_r  LDAP_P(( DB_ENV *dbEnv, DB_LOCK *lock ));
-int bdb2i_enter_backend_w  LDAP_P(( DB_ENV *dbEnv, DB_LOCK *lock ));
-int bdb2i_leave_backend    LDAP_P(( DB_ENV *dbEnv, DB_LOCK lock ));
+int bdb2i_enter_backend_rw  LDAP_P(( DB_ENV *dbEnv, DB_LOCK *lock, int writer ));
+#define bdb2i_enter_backend_r(dbEnv,lock)  bdb2i_enter_backend_rw( (dbEnv), (lock), 0 )
+#define bdb2i_enter_backend_w(dbEnv,lock)  bdb2i_enter_backend_rw( (dbEnv), (lock), 1 )
+int bdb2i_leave_backend_rw LDAP_P(( DB_ENV *dbEnv, DB_LOCK lock, int writer ));
+#define bdb2i_leave_backend_r(dbEnv,lock)  bdb2i_leave_backend_rw( (dbEnv), (lock), 0 )
+#define bdb2i_leave_backend_w(dbEnv,lock)  bdb2i_leave_backend_rw( (dbEnv), (lock), 1 )
 
 /*
  *  txn.c
