@@ -5,6 +5,7 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd running as NT service (ITS#2769)
 	Fixed slapd SASL internal searches (ITS#2825)
 	Fixed slapd extended op referrals (ITS#2678, ITS#2781)
+	Fixed slapd group ACL caching (ITS#2779)
 	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
 	Fixed lunicode insufficient buffer allocation bug (ITS#2727)
