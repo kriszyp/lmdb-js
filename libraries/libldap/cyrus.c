@@ -331,8 +331,13 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* Are there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-		if ( ret <= 0 )
+		if ( ret < 0 )
 			return ret;
+		/* Still have something left?? */
+		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
+			errno = EWOULDBLOCK;
+			return 0;
+		}
 	}
 
 	/* now encode the next packet. */
@@ -1088,6 +1093,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 }
 
 #ifdef LDAP_R_COMPILE
+#define LDAP_DEBUG_R_SASL
 void *ldap_pvt_sasl_mutex_new(void)
 {
 	ldap_pvt_thread_mutex_t *mutex;
@@ -1098,23 +1104,47 @@ void *ldap_pvt_sasl_mutex_new(void)
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
 		return mutex;
 	}
+#ifndef LDAP_DEBUG_R_SASL
+	assert( 0 );
+#endif /* !LDAP_DEBUG_R_SASL */
 	return NULL;
 }
 
 int ldap_pvt_sasl_mutex_lock(void *mutex)
 {
+#ifdef LDAP_DEBUG_R_SASL
+	if ( mutex == NULL ) {
+		return SASL_OK;
+	}
+#else /* !LDAP_DEBUG_R_SASL */
+	assert( mutex );
+#endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
 }
 
 int ldap_pvt_sasl_mutex_unlock(void *mutex)
 {
+#ifdef LDAP_DEBUG_R_SASL
+	if ( mutex == NULL ) {
+		return SASL_OK;
+	}
+#else /* !LDAP_DEBUG_R_SASL */
+	assert( mutex );
+#endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
 }
 
 void ldap_pvt_sasl_mutex_dispose(void *mutex)
 {
+#ifdef LDAP_DEBUG_R_SASL
+	if ( mutex == NULL ) {
+		return;
+	}
+#else /* !LDAP_DEBUG_R_SASL */
+	assert( mutex );
+#endif /* !LDAP_DEBUG_R_SASL */
 	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
 	LDAP_FREE( mutex );
 }

@@ -28,9 +28,7 @@ schema_info( Entry **entry, const char **text )
 		= slap_schema.si_ad_objectClass;
 
 	Entry		*e;
-	struct berval	vals[2];
-
-	vals[1].bv_val = NULL;
+	struct berval	vals[5];
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
@@ -44,22 +42,17 @@ schema_info( Entry **entry, const char **text )
 
 	vals[0].bv_val = "subentry";
 	vals[0].bv_len = sizeof("subentry")-1;
-	attr_merge( e, ad_structuralObjectClass, vals );
+	attr_merge_one( e, ad_structuralObjectClass, vals );
 
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
-	attr_merge( e, ad_objectClass, vals );
-
-	vals[0].bv_val = "subentry";
-	vals[0].bv_len = sizeof("subentry")-1;
-	attr_merge( e, ad_objectClass, vals );
-
-	vals[0].bv_val = "subschema";
-	vals[0].bv_len = sizeof("subschema")-1;
-	attr_merge( e, ad_objectClass, vals );
-
-	vals[0].bv_val = "extensibleObject";
-	vals[0].bv_len = sizeof("extensibleObject")-1;
+	vals[1].bv_val = "subentry";
+	vals[1].bv_len = sizeof("subentry")-1;
+	vals[2].bv_val = "subschema";
+	vals[2].bv_len = sizeof("subschema")-1;
+	vals[3].bv_val = "extensibleObject";
+	vals[3].bv_len = sizeof("extensibleObject")-1;
+	vals[4].bv_val = NULL;
 	attr_merge( e, ad_objectClass, vals );
 
 	{
@@ -85,7 +78,7 @@ schema_info( Entry **entry, const char **text )
 			return LDAP_OTHER;
 		}
 
-		attr_merge( e, desc, vals );
+		attr_merge_one( e, desc, vals );
 	}
 
 	if ( syn_schema_info( e ) 

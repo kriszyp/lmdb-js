@@ -40,7 +40,6 @@ bdb_group(
 	int	rc = 1;
 	Attribute *attr;
 
-	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	const char *group_oc_name = NULL;
 	const char *group_at_name = group_at->ad_cname.bv_val;
 

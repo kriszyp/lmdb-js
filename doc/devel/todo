@@ -31,7 +31,7 @@ OpenLDAP 2.x Projects
 Large projects
 --------------
 Redesign slapd memory allocation fault handling
-Perform a security audit (and fix any hole found)
+Update to latest autoconf and friends
 Implement localization
 
 
@@ -41,16 +41,14 @@ Implement LDAP Transactions extension
 Implement Proxy Authorization Control extension
 Implement LDAP Cancel extension
 Implement authPassword (RFC 3112)
-Update to latest autoconf and friends
+Populate matchingRuleUse attribute in the subschema
 
 
 Small projects
 --------------
 Add dumpasn1 logging support
 Add LDIFv1 control support
-Populate matchingRuleUse attribute in the subschema
 Implement -V version options
-Add No-Op Control support to client tools (e.g. ldapsearch(1))
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Recode linked-list structs to use <ldap_queue.h> macros
 Create ldapbind(1) to support bind operations

@@ -22,10 +22,6 @@
 
 const struct berval slap_empty_bv = { 0, "" };
 
-#define SLAP_LDAPDN_PRETTY 0x1
-
-#define SLAP_LDAPDN_MAXLEN 8192
-
 /*
  * The DN syntax-related functions take advantage of the dn representation
  * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
@@ -489,6 +485,60 @@ dnPretty2(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
+
+	return LDAP_SUCCESS;
+}
+
+int
+dnPrettyNormalDN(
+	Syntax *syntax,
+	struct berval *val,
+	LDAPDN **dn,
+	int flags )
+{
+	assert( val );
+	assert( dn );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, ">>> dn%sDN: <%s>\n", 
+			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal", 
+			val->bv_val, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, ">>> dn%sDN: <%s>\n", 
+			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal", 
+			val->bv_val, 0 );
+#endif
+
+	if ( val->bv_len == 0 ) {
+		return LDAP_SUCCESS;
+
+	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		return LDAP_INVALID_SYNTAX;
+
+	} else {
+		int		rc;
+
+		/* FIXME: should be liberal in what we accept */
+		rc = ldap_bv2dn( val, dn, LDAP_DN_FORMAT_LDAP );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		assert( strlen( val->bv_val ) == val->bv_len );
+
+		/*
+		 * Schema-aware rewrite
+		 */
+		if ( LDAPDN_rewrite( *dn, flags ) != LDAP_SUCCESS ) {
+			ldap_dnfree( *dn );
+			*dn = NULL;
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<<< dn%sDN\n", 
+			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal",
+			0, 0 );
 
 	return LDAP_SUCCESS;
 }

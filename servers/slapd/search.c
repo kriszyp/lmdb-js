@@ -142,14 +142,12 @@ do_search(
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, text );
 		} else {
-			send_ldap_result( conn, op, rc,
-				NULL, text, NULL, NULL );
+			send_ldap_result( conn, op, rc, 
+					NULL, text, NULL, NULL );
 		}
 		goto return_results;
-
-	} else {
-		filter2bv( filter, &fstr );
 	}
+	filter2bv( filter, &fstr );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
@@ -319,7 +317,7 @@ do_search(
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, &pbase, &nbase,
 			scope, deref, sizelimit,
-		    timelimit, filter, &fstr, an, attrsonly );
+			timelimit, filter, &fstr, an, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext",

@@ -301,6 +301,17 @@ int bdb_modify_internal(
 	size_t textlen );
 
 /*
+ * operational.c
+ */
+int
+bdb_hasSubordinates(
+	BackendDB	*be,
+	Connection	*conn, 
+	Operation	*op,
+	Entry		*e,
+	int		*hasSubordinates );
+
+/*
  * passwd.c
  */
 BI_op_extended bdb_exop_passwd;
