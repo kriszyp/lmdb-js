@@ -1616,8 +1616,6 @@ add_syncrepl(
 	si->si_manageDSAit = 0;
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
-	si->si_syncUUID_ndn.bv_val = NULL;
-	si->si_syncUUID_ndn.bv_len = 0;
 
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );

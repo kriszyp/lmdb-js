@@ -1253,7 +1253,7 @@ LDAP_SLAPD_F (int) syncrepl_message_to_entry LDAP_P((
 					Modifications **, Entry **, int ));
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
 					syncinfo_t *, Operation*, Entry*,
-					Modifications*,int, struct berval*,
+					Modifications**,int, struct berval*,
 					struct sync_cookie *,
 					struct berval * ));
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((

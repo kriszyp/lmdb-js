@@ -1492,7 +1492,6 @@ typedef struct syncinfo_s {
         int					si_manageDSAit;
         int					si_slimit;
 		int					si_tlimit;
-		struct berval		si_syncUUID_ndn;
 		int					si_refreshDelete;
 		int					si_refreshPresent;
         Avlnode				*si_presentlist;
