@@ -446,21 +446,24 @@ slap_tool_init(
 			fprintf( stderr, "No available databases\n" );
 			exit( EXIT_FAILURE );
 		}
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+			dbnum++;
+			if ( dbnum < 1 ) continue;
 		
-		be = &backends[dbnum=1];
+		 	if ( SLAP_MONITOR(be))
+				continue;
+
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */
-		while (SLAP_GLUE_SUBORDINATE(be) || SLAP_MONITOR(be)) {
-			if (SLAP_GLUE_SUBORDINATE(be)) {
+			if ( SLAP_GLUE_SUBORDINATE(be) ) {
 				nosubordinates = 1;
+				continue;
 			}
-			be++;
-			dbnum++;
+			break;
 		}
 
-
-		if ( dbnum >= nbackends ) {
+		if ( !be ) {
 			fprintf( stderr, "Available database(s) "
 					"do not allow %s\n", progname );
 			exit( EXIT_FAILURE );
@@ -482,7 +485,10 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 
 	} else {
-		be = &backends[dbnum];
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+			if ( dbnum == 0 ) break;
+			dbnum--;
+		}
 	}
 
 startup:;

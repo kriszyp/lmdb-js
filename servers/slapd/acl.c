@@ -223,7 +223,7 @@ access_allowed_mask(
 
 	be = op->o_bd;
 	if ( be == NULL ) {
-		be = &backends[0];
+		be = LDAP_STAILQ_FIRST(&backendDB);
 		be_null = 1;
 #ifdef LDAP_DEVEL
 		/*
@@ -1725,7 +1725,7 @@ acl_check_modlist(
 
 	be = op->o_bd;
 	if ( be == NULL ) {
-		be = &backends[0];
+		be = LDAP_STAILQ_FIRST(&backendDB);
 		be_null = 1;
 		op->o_bd = be;
 	}

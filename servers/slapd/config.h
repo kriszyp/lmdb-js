@@ -72,6 +72,12 @@ typedef struct ConfigOCs {
 	char *def;
 	ConfigType cft;
 	ObjectClass **oc;
+#if 0
+	BI_op_add *add;		/* optional, add-specific processing */
+	BI_op_delete *del;	/* mandatory, delete implementation */
+	BI_op_modify *mod;	/* optional, mod-specific */
+	BI_op_modrdn *ren;	/* optional, modrdn... */
+#endif
 } ConfigOCs;
 
 typedef struct config_args_s {

@@ -56,6 +56,7 @@ root_dse_info(
 	struct berval nvals[2];
 	int		i, j;
 	char ** supportedSASLMechanisms;
+	BackendDB *be;
 
 	AttributeDescription *ad_structuralObjectClass
 		= slap_schema.si_ad_structuralObjectClass;
@@ -116,34 +117,34 @@ root_dse_info(
 		return LDAP_OTHER;
 	}
 
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_suffix == NULL
-				|| backends[i].be_nsuffix == NULL ) {
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->be_suffix == NULL
+				|| be->be_nsuffix == NULL ) {
 			/* no suffix! */
 			continue;
 		}
-		if ( SLAP_MONITOR( &backends[i] )) {
-			vals[0] = backends[i].be_suffix[0];
-			nvals[0] = backends[i].be_nsuffix[0];
+		if ( SLAP_MONITOR( be )) {
+			vals[0] = be->be_suffix[0];
+			nvals[0] = be->be_nsuffix[0];
 			if( attr_merge( e, ad_monitorContext, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}
 			continue;
 		}
-		if ( SLAP_CONFIG( &backends[i] )) {
-			vals[0] = backends[i].be_suffix[0];
-			nvals[0] = backends[i].be_nsuffix[0];
+		if ( SLAP_CONFIG( be )) {
+			vals[0] = be->be_suffix[0];
+			nvals[0] = be->be_nsuffix[0];
 			if( attr_merge( e, ad_configContext, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}
 			continue;
 		}
-		if ( SLAP_GLUE_SUBORDINATE( &backends[i] ) && !SLAP_GLUE_ADVERTISE( &backends[i] ) ) {
+		if ( SLAP_GLUE_SUBORDINATE( be ) && !SLAP_GLUE_ADVERTISE( be ) ) {
 			continue;
 		}
-		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {
-			vals[0] = backends[i].be_suffix[j];
-			nvals[0] = backends[i].be_nsuffix[0];
+		for ( j = 0; be->be_suffix[j].bv_val != NULL; j++ ) {
+			vals[0] = be->be_suffix[j];
+			nvals[0] = be->be_nsuffix[0];
 			if( attr_merge( e, ad_namingContexts, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}

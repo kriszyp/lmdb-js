@@ -1389,11 +1389,13 @@ typedef struct slap_acl_state {
 
 typedef struct slap_backend_info BackendInfo;	/* per backend type */
 typedef struct slap_backend_db BackendDB;		/* per backend database */
+typedef LDAP_STAILQ_HEAD(BeI, slap_backend_info) slap_bi_head;
+typedef LDAP_STAILQ_HEAD(BeDB, slap_backend_db) slap_be_head;
 
 LDAP_SLAPD_V (int) nBackendInfo;
 LDAP_SLAPD_V (int) nBackendDB;
-LDAP_SLAPD_V (BackendInfo *) backendInfo;
-LDAP_SLAPD_V (BackendDB *) backendDB;
+LDAP_SLAPD_V (slap_bi_head) backendInfo;
+LDAP_SLAPD_V (slap_be_head) backendDB;
 LDAP_SLAPD_V (BackendDB *) frontendDB;
 
 LDAP_SLAPD_V (int) slapMode;	
@@ -1736,6 +1738,7 @@ struct slap_backend_db {
 	struct ConfigTable *be_cf_table;
 
 	void	*be_private;	/* anything the backend database needs 	   */
+	LDAP_STAILQ_ENTRY(slap_backend_db) be_next;
 };
 
 struct slap_conn;
@@ -2068,6 +2071,7 @@ struct slap_backend_info {
 	unsigned int bi_nDB;	/* number of databases of this type */
 	struct ConfigTable *bi_cf_table;
 	void	*bi_private;	/* anything the backend type needs */
+	LDAP_STAILQ_ENTRY(slap_backend_info) bi_next ;
 };
 
 #define c_authtype	c_authz.sai_method
@@ -2921,11 +2925,10 @@ struct zone_heap {
 #endif
 
 #define SLAP_BACKEND_INIT_MODULE(b) \
+	static BackendInfo bi;	\
 	int \
 	init_module( int argc, char *argv[] ) \
 	{ \
-		BackendInfo bi; \
-		memset( &bi, '\0', sizeof( bi ) ); \
 		bi.bi_type = #b ; \
 		bi.bi_init = b ## _back_initialize; \
 		backend_add( &bi ); \

@@ -42,6 +42,7 @@ monitor_subsys_backend_init(
 	int			i;
 	monitor_entry_t		*mp;
 	monitor_subsys_t	*ms_database;
+	BackendInfo			*bi;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -69,14 +70,15 @@ monitor_subsys_backend_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	for ( i = 0; i < nBackendInfo; i++ ) {
+	i = -1;
+	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
-		BackendInfo 	*bi;
+		BackendDB		*be;
 		struct berval 	bv;
 		int		j;
 		Entry		*e;
 
-		bi = &backendInfo[ i ];
+		i++;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Backend %d,%s\n"
@@ -124,11 +126,13 @@ monitor_subsys_backend_init(
 			}
 		}
 
-		for ( j = 0; j < nBackendDB; j++ ) {
-			BackendDB	*be = &backendDB[ j ];
+		j = -1;
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			char		buf[ SLAP_LDAPDN_MAXLEN ];
 			struct berval	dn;
 			
+			j++;
+
 			if ( be->bd_info != bi ) {
 				continue;
 			}

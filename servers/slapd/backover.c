@@ -545,12 +545,10 @@ overlay_register_control( BackendDB *be, const char *oid )
 	}
 
 	if ( SLAP_DBFLAGS( be ) & SLAP_DBFLAG_GLOBAL_OVERLAY ) {
-		int	i;
+		BackendDB *bd;
 		
 		/* add to all backends... */
-		for ( i = 0; i < nBackendDB; i++ ) {
-			BackendDB	*bd = &backendDB[i];
-			
+		LDAP_STAILQ_FOREACH( bd, &backendDB, be_next ) {
 			if ( be == bd ) {
 				gotit = 1;
 			}

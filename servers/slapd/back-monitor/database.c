@@ -166,14 +166,15 @@ monitor_subsys_database_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	for ( i = 0; i < nBackendDB; i++ ) {
+	i = -1;
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		char		buf[ BACKMONITOR_BUFSIZE ];
 		int		j;
 		slap_overinfo	*oi = NULL;
-		BackendInfo	*bi;
+		BackendInfo	*bi, *bi2;
 		Entry		*e;
 
-		be = &backendDB[ i ];
+		i++;
 
 		bi = be->bd_info;
 
@@ -356,8 +357,10 @@ monitor_subsys_database_init(
 		}
 #endif /* defined(SLAPD_LDAP) */
 
-		for ( j = 0; j < nBackendInfo; j++ ) {
-			if ( backendInfo[ j ].bi_type == bi->bi_type ) {
+		j = -1;
+		LDAP_STAILQ_FOREACH( bi2, &backendInfo, bi_next ) {
+			j++;
+			if ( bi2->bi_type == bi->bi_type ) {
 				struct berval 		bv;
 
 				snprintf( buf, sizeof( buf ), 
@@ -550,8 +553,11 @@ monitor_subsys_database_modify(
 	if ( n < 0 || n >= nBackendDB )
 		return LDAP_NO_SUCH_OBJECT;
 
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( n == 0 ) break;
+		n--;
+	}
 	/* do not allow some changes on back-monitor (needs work)... */
-	be = &backendDB[ n ];
 	if ( SLAP_MONITOR( be ) )
 		return LDAP_UNWILLING_TO_PERFORM;
 		

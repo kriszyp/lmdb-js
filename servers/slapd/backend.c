@@ -57,10 +57,10 @@ static void call_group_postop_plugins( Operation *op );
  */
 
 int			nBackendInfo = 0;
-BackendInfo		*backendInfo = NULL;
+slap_bi_head backendInfo = LDAP_STAILQ_HEAD_INITIALIZER(backendInfo);
 
 int			nBackendDB = 0; 
-BackendDB		*backendDB = NULL;
+slap_be_head backendDB = LDAP_STAILQ_HEAD_INITIALIZER(backendDB);
 
 static int
 backend_init_controls( BackendInfo *bi )
@@ -91,26 +91,25 @@ backend_init_controls( BackendInfo *bi )
 int backend_init(void)
 {
 	int rc = -1;
+	BackendInfo *bi;
 
-	if((nBackendInfo != 0) || (backendInfo != NULL)) {
+	if((nBackendInfo != 0) || !LDAP_STAILQ_EMPTY(&backendInfo)) {
 		/* already initialized */
 		Debug( LDAP_DEBUG_ANY,
 			"backend_init: already initialized\n", 0, 0, 0 );
 		return -1;
 	}
 
-	for( ;
-		slap_binfo[nBackendInfo].bi_type != NULL;
-		nBackendInfo++ )
+	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ )
 	{
-		assert( slap_binfo[nBackendInfo].bi_init );
+		assert( bi->bi_init );
 
-		rc = slap_binfo[nBackendInfo].bi_init( &slap_binfo[nBackendInfo] );
+		rc = bi->bi_init( bi );
 
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_init: initialized for type \"%s\"\n",
-				slap_binfo[nBackendInfo].bi_type, 0, 0 );
+				bi->bi_type, 0, 0 );
 			/* destroy those we've already inited */
 			for( nBackendInfo--;
 				nBackendInfo >= 0 ;
@@ -123,10 +122,10 @@ int backend_init(void)
 			}
 			return rc;
 		}
+		LDAP_STAILQ_INSERT_TAIL(&backendInfo, bi, bi_next);
 	}
 
 	if ( nBackendInfo > 0) {
-		backendInfo = slap_binfo;
 		return 0;
 	}
 
@@ -164,25 +163,9 @@ int backend_add(BackendInfo *aBackendInfo)
 	(void)backend_init_controls( aBackendInfo );
 
 	/* now add the backend type to the Backend Info List */
-	{
-		BackendInfo *newBackendInfo = 0;
-
-		/* if backendInfo == slap_binfo no deallocation of old backendInfo */
-		if (backendInfo == slap_binfo) {
-			newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
-			AC_MEMCPY(newBackendInfo, backendInfo,
-				sizeof(BackendInfo) * nBackendInfo);
-		} else {
-			newBackendInfo = ch_realloc(backendInfo,
-				sizeof(BackendInfo) * (nBackendInfo + 1));
-		}
-
-		AC_MEMCPY(&newBackendInfo[nBackendInfo], aBackendInfo,
-			sizeof(BackendInfo));
-		backendInfo = newBackendInfo;
-		nBackendInfo++;
-		return 0;
-	}
+	LDAP_STAILQ_INSERT_TAIL( &backendInfo, aBackendInfo, bi_next );
+	nBackendInfo++;
+	return 0;
 }
 
 static int
@@ -255,6 +238,7 @@ int backend_startup(Backend *be)
 {
 	int i;
 	int rc = 0;
+	BackendInfo *bi;
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
@@ -291,23 +275,25 @@ int backend_startup(Backend *be)
 	}
 
 	/* open each backend type */
-	for( i = 0; i < nBackendInfo; i++ ) {
-		if( backendInfo[i].bi_nDB == 0) {
+	i = -1;
+	LDAP_STAILQ_FOREACH(bi, &backendInfo, bi_next) {
+		i++;
+		if( bi->bi_nDB == 0) {
 			/* no database of this type, don't open */
 			continue;
 		}
 
-		if( backendInfo[i].bi_open ) {
-			rc = backendInfo[i].bi_open( &backendInfo[i] );
+		if( bi->bi_open ) {
+			rc = bi->bi_open( bi );
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-					"backend_startup: bi_open %d failed!\n",
-					i, 0, 0 );
+					"backend_startup: bi_open %d (%s) failed!\n",
+					i, bi->bi_type, 0 );
 				return rc;
 			}
 		}
 
-		(void)backend_init_controls( &backendInfo[i] );
+		(void)backend_init_controls( bi );
 	}
 
 	ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
@@ -315,26 +301,28 @@ int backend_startup(Backend *be)
 	LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
 	/* open each backend database */
-	for( i = 0; i < nBackendDB; i++ ) {
-		if ( backendDB[i].be_suffix == NULL ) {
+	i = -1;
+	LDAP_STAILQ_FOREACH(be, &backendDB, be_next) {
+		i++;
+		if ( be->be_suffix == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: warning, database %d (%s) "
 				"has no suffix\n",
-				i, backendDB[i].bd_info->bi_type, 0 );
+				i, be->bd_info->bi_type, 0 );
 		}
 		/* append global access controls */
-		acl_append( &backendDB[i].be_acl, frontendDB->be_acl );
+		acl_append( &be->be_acl, frontendDB->be_acl );
 
-		rc = backend_startup_one( &backendDB[i] );
+		rc = backend_startup_one( be );
 
 		if ( rc ) return rc;
 
 
-		if ( backendDB[i].be_syncinfo ) {
+		if ( be->be_syncinfo ) {
 			syncinfo_t *si;
 
-			if ( !( backendDB[i].be_search && backendDB[i].be_add &&
-				backendDB[i].be_modify && backendDB[i].be_delete )) {
+			if ( !( be->be_search && be->be_add &&
+				be->be_modify && be->be_delete )) {
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: database(%d) does not support "
 					"operations required for syncrepl", i, 0, 0 );
@@ -342,8 +330,8 @@ int backend_startup(Backend *be)
 			}
 
 			{
-				si = backendDB[i].be_syncinfo;
-				si->si_be = &backendDB[i];
+				si = be->be_syncinfo;
+				si->si_be = be;
 				init_syncrepl( si );
 				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 				ldap_pvt_runqueue_insert( &slapd_rq,
@@ -358,12 +346,14 @@ int backend_startup(Backend *be)
 
 int backend_num( Backend *be )
 {
-	int i;
+	int i = 0;
+	BackendDB *b2;
 
 	if( be == NULL ) return -1;
 
-	for( i = 0; i < nBackendDB; i++ ) {
-		if( be == &backendDB[i] ) return i;
+	LDAP_STAILQ_FOREACH( b2, &backendDB, be_next ) {
+		if( be == b2 ) return i;
+		i++;
 	}
 	return -1;
 }
@@ -372,6 +362,7 @@ int backend_shutdown( Backend *be )
 {
 	int i;
 	int rc = 0;
+	BackendInfo *bi;
 
 	if( be != NULL ) {
 		/* shutdown a specific backend database */
@@ -393,29 +384,27 @@ int backend_shutdown( Backend *be )
 	}
 
 	/* close each backend database */
-	for( i = 0; i < nBackendDB; i++ ) {
-		if ( backendDB[i].bd_info->bi_db_close ) {
-			backendDB[i].bd_info->bi_db_close(
-				&backendDB[i] );
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->bd_info->bi_db_close ) {
+			be->bd_info->bi_db_close( be );
 		}
 
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_db_close %s failed!\n",
-				backendDB[i].be_type, 0, 0 );
+				be->be_type, 0, 0 );
 		}
 	}
 
 	/* close each backend type */
-	for( i = 0; i < nBackendInfo; i++ ) {
-		if( backendInfo[i].bi_nDB == 0 ) {
+	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
+		if( bi->bi_nDB == 0 ) {
 			/* no database of this type */
 			continue;
 		}
 
-		if( backendInfo[i].bi_close ) {
-			backendInfo[i].bi_close(
-				&backendInfo[i] );
+		if( bi->bi_close ) {
+			bi->bi_close( bi );
 		}
 	}
 
@@ -436,10 +425,12 @@ int backend_destroy(void)
 {
 	int i;
 	BackendDB *bd;
+	BackendInfo *bi;
 	struct slap_csn_entry *csne;
 
 	/* destroy each backend database */
-	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
+	while (( bd = LDAP_STAILQ_FIRST(&backendDB))) {
+		LDAP_STAILQ_REMOVE_HEAD(&backendDB, be_next);
 
 		if ( bd->be_syncinfo ) {
 			syncinfo_free( bd->be_syncinfo );
@@ -472,25 +463,18 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
+		free( bd );
 	}
-	free( backendDB );
 
 	/* destroy each backend type */
-	for( i = 0; i < nBackendInfo; i++ ) {
-		if( backendInfo[i].bi_destroy ) {
-			backendInfo[i].bi_destroy(
-				&backendInfo[i] );
+	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
+		if( bi->bi_destroy ) {
+			bi->bi_destroy( bi );
 		}
 	}
 
-#ifdef SLAPD_MODULES
-	if (backendInfo != slap_binfo) {
-	   free(backendInfo);
-	}
-#endif /* SLAPD_MODULES */
-
 	nBackendInfo = 0;
-	backendInfo = NULL;
+	LDAP_STAILQ_INIT(&backendInfo);
 
 	/* destroy frontend database */
 	bd = frontendDB;
@@ -517,12 +501,12 @@ int backend_destroy(void)
 
 BackendInfo* backend_info(const char *type)
 {
-	int i;
+	BackendInfo *bi;
 
 	/* search for the backend type */
-	for( i = 0; i < nBackendInfo; i++ ) {
-		if( strcasecmp(backendInfo[i].bi_type, type) == 0 ) {
-			return &backendInfo[i];
+	LDAP_STAILQ_FOREACH(bi,&backendInfo,bi_next) {
+		if( strcasecmp(bi->bi_type, type) == 0 ) {
+			return bi;
 		}
 	}
 
@@ -543,23 +527,9 @@ backend_db_init(
 		return NULL;
 	}
 
-	be = backendDB;
-
-	backendDB = (BackendDB *) ch_realloc(
-			(char *) backendDB,
-		    (nBackendDB + 1) * sizeof(Backend) );
-
-	memset( &backendDB[nbackends], '\0', sizeof(Backend) );
-
-	/* did realloc move our table? if so, fix up dependent pointers */
-	if ( be != backendDB ) {
-		int i;
-		for ( i=0, be=backendDB; i<nbackends; i++, be++ ) {
-			be->be_pcl_mutexp = &be->be_pcl_mutex;
-		}
-	}
-
-	be = &backends[nbackends++];
+	be = ch_calloc( 1, sizeof(Backend) );
+	nbackends++;
+	LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
 
 	be->bd_info = bi;
 
@@ -593,11 +563,12 @@ backend_db_init(
 void
 be_db_close( void )
 {
+	BackendDB *be;
 	int	i;
 
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].bd_info->bi_db_close ) {
-			(*backends[i].bd_info->bi_db_close)( &backends[i] );
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->bd_info->bi_db_close ) {
+			be->bd_info->bi_db_close( be );
 		}
 	}
 
@@ -615,22 +586,21 @@ select_backend(
 {
 	int		i, j;
 	ber_len_t	len, dnlen = dn->bv_len;
-	Backend		*be = NULL;
+	Backend		*be, *b2;
 
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_nsuffix == NULL ) {
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->be_nsuffix == NULL ) {
 			continue;
 		}
 
-		for ( j = 0; !BER_BVISNULL( &backends[i].be_nsuffix[j] ); j++ )
+		for ( j = 0; !BER_BVISNULL( &be->be_nsuffix[j] ); j++ )
 		{
-			if ( ( SLAP_GLUE_SUBORDINATE( &backends[i] ) )
-				&& noSubs )
+			if ( ( SLAP_GLUE_SUBORDINATE( be ) ) && noSubs )
 			{
 			  	continue;
 			}
 
-			len = backends[i].be_nsuffix[j].bv_len;
+			len = be->be_nsuffix[j].bv_len;
 
 			if ( len > dnlen ) {
 				/* suffix is longer than DN */
@@ -647,25 +617,25 @@ select_backend(
 				continue;
 			}
 
-			if ( strcmp( backends[i].be_nsuffix[j].bv_val,
+			if ( strcmp( be->be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
-				if( be == NULL ) {
-					be = &backends[i];
+				if( b2 == NULL ) {
+					b2 = be;
 
 					if( manageDSAit && len == dnlen &&
 						!SLAP_GLUE_SUBORDINATE( be ) ) {
 						continue;
 					}
 				} else {
-					be = &backends[i];
+					b2 = be;
 				}
-				return be;
+				return b2;
 			}
 		}
 	}
 
-	return be;
+	return b2;
 }
 
 int
@@ -780,15 +750,16 @@ be_entry_release_rw(
 int
 backend_unbind( Operation *op, SlapReply *rs )
 {
-	int		i;
+	int		i = 0;
+	BackendDB *be;
 
-	for ( i = 0; i < nbackends; i++ ) {
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 #if defined( LDAP_SLAPI )
 		if ( op->o_pb ) {
 			int rc;
 			if ( i == 0 ) slapi_int_pblock_set_operation( op->o_pb, op );
-			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
-			rc = slapi_int_call_plugins( &backends[i],
+			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)be );
+			rc = slapi_int_call_plugins( be,
 				SLAPI_PLUGIN_PRE_UNBIND_FN, (Slapi_PBlock *)op->o_pb );
 			if ( rc < 0 ) {
 				/*
@@ -803,13 +774,13 @@ backend_unbind( Operation *op, SlapReply *rs )
 		}
 #endif /* defined( LDAP_SLAPI ) */
 
-		if ( backends[i].be_unbind ) {
-			op->o_bd = &backends[i];
-			(*backends[i].be_unbind)( op, rs );
+		if ( be->be_unbind ) {
+			op->o_bd = be;
+			be->be_unbind( op, rs );
 		}
 
 #if defined( LDAP_SLAPI )
-		if ( op->o_pb != NULL && slapi_int_call_plugins( &backends[i],
+		if ( op->o_pb != NULL && slapi_int_call_plugins( be,
 			SLAPI_PLUGIN_POST_UNBIND_FN, (Slapi_PBlock *)op->o_pb ) < 0 )
 		{
 			Debug(LDAP_DEBUG_TRACE,
@@ -817,6 +788,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 				0, 0, 0);
 		}
 #endif /* defined( LDAP_SLAPI ) */
+		i++;
 	}
 
 	return 0;
@@ -826,11 +798,11 @@ int
 backend_connection_init(
 	Connection   *conn )
 {
-	int	i;
+	BackendDB *be;
 
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_connection_init ) {
-			(*backends[i].be_connection_init)( &backends[i], conn);
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->be_connection_init ) {
+			be->be_connection_init( be, conn);
 		}
 	}
 
@@ -841,11 +813,11 @@ int
 backend_connection_destroy(
 	Connection   *conn )
 {
-	int	i;
+	BackendDB *be;
 
-	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_connection_destroy ) {
-			(*backends[i].be_connection_destroy)( &backends[i], conn);
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( be->be_connection_destroy ) {
+			be->be_connection_destroy( be, conn);
 		}
 	}
 

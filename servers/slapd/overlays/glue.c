@@ -40,7 +40,6 @@
 
 typedef struct gluenode {
 	BackendDB *gn_be;
-	int	gn_bx;
 	struct berval gn_pdn;
 	int gn_async;
 } gluenode;
@@ -731,23 +730,6 @@ glue_db_destroy (
 }
 
 static int
-glue_db_open (
-	BackendDB *be
-)
-{
-	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
-	int i;
-
-	for ( i=0; i<gi->gi_nodes; i++ ) {
-		int j;
-
-		gi->gi_n[i].gn_be = backendDB + gi->gi_n[i].gn_bx;
-	}
-	return 0;
-}
-
-static int
 glue_db_close( 
 	BackendDB *be
 )
@@ -813,7 +795,7 @@ glue_db_config(
 		}
 		gi = (glueinfo *)ch_realloc( gi, sizeof(glueinfo) +
 			gi->gi_nodes * sizeof(gluenode));
-		gi->gi_n[gi->gi_nodes].gn_bx = b2 - backendDB;
+		gi->gi_n[gi->gi_nodes].gn_be = b2;
 		dnParent( &b2->be_nsuffix[0], &gi->gi_n[gi->gi_nodes].gn_pdn );
 		gi->gi_n[gi->gi_nodes].gn_async = async;
 		gi->gi_nodes++;
@@ -830,7 +812,6 @@ glue_init()
 
 	glue.on_bi.bi_db_init = glue_db_init;
 	glue.on_bi.bi_db_config = glue_db_config;
-	glue.on_bi.bi_db_open = glue_db_open;
 	glue.on_bi.bi_db_close = glue_db_close;
 	glue.on_bi.bi_db_destroy = glue_db_destroy;
 

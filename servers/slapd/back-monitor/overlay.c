@@ -73,6 +73,7 @@ monitor_subsys_overlay_init(
 		struct berval 	bv;
 		int		j;
 		Entry		*e;
+		BackendDB	*be;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Overlay %d,%s\n"
@@ -110,11 +111,12 @@ monitor_subsys_overlay_init(
 		attr_merge_normalize_one( e_overlay, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 
-		for ( j = 0; j < nBackendDB; j++ ) {
-			BackendDB	*be = &backendDB[ j ];
+		j = -1;
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			char		buf[ SLAP_LDAPDN_MAXLEN ];
 			struct berval	dn;
 
+			j++;
 			if ( !overlay_is_inst( be, on->on_bi.bi_type ) ) {
 				continue;
 			}

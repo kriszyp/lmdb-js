@@ -893,7 +893,7 @@ config_generic(ConfigArgs *c) {
 			/* NOTE: config is always the first backend!
 			 */
 			if ( !strcasecmp( c->argv[1], "config" )) {
-				c->be = backendDB;
+				c->be = LDAP_STAILQ_FIRST(&backendDB);
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
 			} else if(!(c->be = backend_db_init(c->argv[1]))) {
@@ -3166,7 +3166,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			goto ok;
 		/* FALLTHRU */
 	case Cft_Global:
-		ca.be = backendDB;
+		ca.be = LDAP_STAILQ_FIRST(&backendDB);
 		break;
 
 	case Cft_Backend:
@@ -3764,8 +3764,7 @@ config_back_db_open( BackendDB *be )
 	 */
 	
 	c.line = 0;
-	bi = backendInfo;
-	for (i=0; i<nBackendInfo; i++, bi++) {
+	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next) {
 		if (!bi->bi_cf_table) continue;
 		if (!bi->bi_private) continue;
 
@@ -3788,12 +3787,14 @@ config_back_db_open( BackendDB *be )
 	}
 
 	/* Create database nodes... */
-	for (i=0; i<nBackendDB; i++) {
+	i = -1;
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		slap_overinfo *oi = NULL;
+		i++;
 		if ( i == 0 ) {
 			bptr = frontendDB;
 		} else {
-			bptr = &backendDB[i];
+			bptr = be;
 		}
 		if ( overlay_is_over( bptr )) {
 			oi = bptr->bd_info->bi_private;
