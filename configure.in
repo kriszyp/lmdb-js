@@ -150,8 +150,9 @@ dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (dep
 ol_enable_kbind=${ol_enable_kbind-no}
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
-OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
-	no, [yes no])dnl
+dnl OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
+dnl	no, [yes no])dnl
+ol_enable_x_compile=${ol_enable_x_compile-no}
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
