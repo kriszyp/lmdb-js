@@ -268,6 +268,10 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	default:
+#ifdef HAVE_TLS
+	   	if ( ldap_pvt_tls_get_option(lo, option, outvalue ) == 0 )
+	     		return LDAP_OPT_SUCCESS;
+#endif
 		/* bad param */
 		break;
 	}
@@ -468,6 +472,10 @@ ldap_set_option(
 		return LDAP_OPT_SUCCESS;
 
 	default:
+#ifdef HAVE_TLS
+		if ( ldap_pvt_tls_set_option( lo, option, invalue ) == 0 )
+	     		return LDAP_OPT_SUCCESS;
+#endif
 		/* bad param */
 		break;
 	}
