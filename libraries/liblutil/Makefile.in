@@ -4,7 +4,7 @@
 
 LIBRARY	= liblutil.a
 SRCS	= base64.c detach.c md5.c passwd.c sha1.c
-OBJS	= base64.o detach.o md5.o passwd.c sha1.o @LIBOBJS@
+OBJS	= base64.o detach.o md5.o passwd.o sha1.o @LIBOBJS@
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
