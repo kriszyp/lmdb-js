@@ -138,34 +138,18 @@ ID bdb_tool_dn2id_get(
 	struct berval *dn
 )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB *db = bdb->bi_dn2id->bdi_db;
-	int rc;
-	DBT	key, data;
-	ID	id;
+	Operation op = {0};
+	Opheader ohdr = {0};
+	EntryInfo ei = {0};
 
-	DBTzero( &key );
-	key.size = dn->bv_len + 2;
-	key.data = ch_malloc( key.size );
-	((char*)key.data)[0] = DN_BASE_PREFIX;
-	AC_MEMCPY( &((char*)key.data)[1], dn->bv_val, key.size - 1 );
+	op.o_hdr = &ohdr;
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
 
-	DBTzero( &data );
-	data.data = &id;
-	data.ulen = sizeof(ID);
-	data.flags = DB_DBT_USERMEM;
-
-	rc = db->get( db, NULL, &key, &data, bdb->bi_db_opflags );
-
-    if( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_dn2id_get)
-				": get failed: %s (%d)\n",
-				db_strerror( rc ), rc, 0 );
-		id = NOID;
-	}
-
-	ch_free( key.data );
-	return id;
+	bdb_dn2id( &op, NULL, dn, &ei );
+	
+	return ei.bei_id;
 }
 
 int bdb_tool_id2entry_get(
