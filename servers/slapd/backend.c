@@ -400,9 +400,6 @@ backend_db_init(
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
-	be->be_realm = global_realm != NULL
-		? ch_strdup( global_realm ) : NULL;
-
 	if(bi->bi_db_init) {
 		rc = bi->bi_db_init( be );
 	}

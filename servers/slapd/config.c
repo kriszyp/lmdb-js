@@ -32,6 +32,7 @@ slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
+char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash;
@@ -225,6 +226,25 @@ read_config( const char *fname )
 				default_passwd_hash = ch_strdup( cargv[1] );
 			}
 
+		/* set SASL host */
+		} else if ( strcasecmp( cargv[0], "sasl-host" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing host in \"sasl-host <host>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			if ( global_host != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: already set sasl-host!\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else {
+				global_host = ch_strdup( cargv[1] );
+			}
+
 		/* set SASL realm */
 		} else if ( strcasecmp( cargv[0], "sasl-realm" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -233,12 +253,10 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
-			if ( be != NULL ) {
-				be->be_realm = ch_strdup( cargv[1] );
 
-			} else if ( global_realm != NULL ) {
+			if ( global_realm != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: already set global realm!\n",
+					"%s: line %d: already set sasl-realm!\n",
 					fname, lineno, 0 );
 				return 1;
 
