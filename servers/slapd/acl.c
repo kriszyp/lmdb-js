@@ -740,7 +740,7 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_sockurl_pat.bv_len ) {
-			if ( !conn->c_listener_url.bv_val ) {
+			if ( ! conn->c_listener ) {
 				continue;
 			}
 #ifdef NEW_LOGGING
