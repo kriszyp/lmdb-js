@@ -1,0 +1,77 @@
+.TH SLAPO-TRANSLUCENT 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapo-translucent \- Proxy Override overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Proxy Override overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to create a "translucent proxy".  Entries retrieved from a remote LDAP
+server may have some or all attributes overridden, or new attributes
+added, by entries in the local database before being presented to the
+client.
+.LP
+A
+.BR search
+operation is first populated with entries from the remote LDAP server, the
+attributes of which are then overridden with any attributes defined in the
+local database. Local overrides may be populated with the
+.BR add ,
+.B modify ,
+and
+.B modrdn
+operations, the use of which is restricted to the root user.
+.LP
+A
+.BR compare
+operation will perform a comparison with attributes defined in the local
+database record (if any) before any comparison is made with data in the
+remote database.
+.SH CONFIGURATION
+The Proxy Override overlay uses a remote LDAP server which is configured
+with the options shown in
+.BR slapd-ldap (5).
+These
+.B slapd.conf
+options are specific to the Proxy Override overlay; they may appear anywhere
+after the
+.B overlay
+directive and before any subsequent
+.B database
+directive.
+.TP
+.B translucent_strict
+By default, attempts to delete attributes in either the local or remote
+databases will be silently ignored. The
+.B translucent_strict
+directive causes these modifications to fail with a Constraint Violation.
+.TP
+.B translucent_no_glue
+This configuration option disables the automatic creation of "glue" records
+for an
+.B add
+or
+.B modrdn
+operation, such that all parents of an entry added to the local database
+must be created by hand. Glue records are always created for a
+.B modify
+operation.
+.SH CAVEATS
+.LP
+The Proxy Override overlay will disable schema checking in the local database,
+so that an entry consisting of overlay attributes need not adhere to the
+complete schema.
+.LP
+Because the translucent overlay does not perform any DN rewrites,  the local
+and remote database instances must have the same suffix.  Other configurations
+will probably fail with No Such Object and other errors.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd-ldap (5).
