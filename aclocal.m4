@@ -53,10 +53,16 @@ dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 dnl
 dnl ====================================================================
 dnl Check if db.h is Berkeley DB2
+dnl
+dnl defines ol_cv_header_db2 to 'yes' or 'no'
+dnl
+dnl uses:
+dnl		AC_CHECK_HEADERS(db.h)
+dnl
 AC_DEFUN([OL_HEADER_BERKELEY_DB2],
 [AC_CHECK_HEADERS(db.h)
 if test $ac_cv_header_db_h = yes ; then
-	AC_CACHE_CHECK(if db.h is DB2, [ol_cv_header_db2],[
+	AC_CACHE_CHECK([if db.h is DB2], [ol_cv_header_db2],[
 		AC_EGREP_CPP(__db_version_2,[
 #			include <db.h>
 			/* this check could be improved */
@@ -71,8 +77,14 @@ fi
 dnl --------------------------------------------------------------------
 dnl Check if Berkeley DB2 library exists
 dnl Check for dbopen in standard libraries or -ldb
+dnl
+dnl defines ol_cv_lib_db2 to '-ldb' or 'no'
+dnl
+dnl uses:
+dnl		AC_CHECK_LIB(db,db_open)
+dnl
 AC_DEFUN([OL_LIB_BERKELEY_DB2],
-[AC_CACHE_CHECK(for DB2 library, [ol_cv_lib_db2],
+[AC_CACHE_CHECK([for DB2 library], [ol_cv_lib_db2],
 [	ol_LIBS="$LIBS"
 	AC_CHECK_LIB(db,db_open,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
 	LIBS="$ol_LIBS"
@@ -81,10 +93,17 @@ AC_DEFUN([OL_LIB_BERKELEY_DB2],
 dnl
 dnl --------------------------------------------------------------------
 dnl Check if Berkeley db2 exists
+dnl
+dnl defines ol_cv_berkeley_db2 to 'yes' or 'no'
+dnl 
+dnl uses:
+dnl		OL_LIB_BERKELEY_DB2
+dnl		OL_HEADER_BERKELEY_DB2
+dnl
 AC_DEFUN([OL_BERKELEY_DB2],
 [AC_REQUIRE([OL_LIB_BERKELEY_DB2])
  AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
- AC_CACHE_CHECK(for Berkeley DB2, [ol_cv_berkeley_db2], [
+ AC_CACHE_CHECK([for Berkeley DB2], [ol_cv_berkeley_db2], [
 	if test $ol_cv_lib_db2 = no -o $ol_cv_header_db2 = no ; then
 		ol_cv_berkeley_db2=no
 	else
@@ -95,6 +114,13 @@ AC_DEFUN([OL_BERKELEY_DB2],
 dnl
 dnl ====================================================================
 dnl Check for db.h/db_185.h is Berkeley DB
+dnl
+dnl defines ol_cv_header_db to 'yes' or 'no'
+dnl
+dnl uses:
+dnl		OL_HEADER_BERKELEY_DB2
+dnl		AC_CHECK_HEADERS(db_185.h)
+dnl
 AC_DEFUN([OL_HEADER_BERKELEY_DB],
 [AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
 AC_CHECK_HEADERS(db_185.h)
@@ -110,8 +136,16 @@ dnl
 dnl --------------------------------------------------------------------
 dnl Check if Berkeley DB library exists
 dnl Check for dbopen in standard libraries or -ldb
+dnl
+dnl defines ol_cv_lib_db to 'yes' or '-ldb' or 'no'
+dnl		'yes' implies dbopen is in $LIBS
+dnl
+dnl uses:
+dnl		AC_CHECK_FUNC(dbopen)
+dnl		AC_CHECK_LIB(db,dbopen)
+dnl
 AC_DEFUN([OL_LIB_BERKELEY_DB],
-[AC_CACHE_CHECK(for Berkeley DB library, [ol_cv_lib_db],
+[AC_CACHE_CHECK([for Berkeley DB library], [ol_cv_lib_db],
 [	ol_LIBS="$LIBS"
 	AC_CHECK_FUNC(dbopen,[ol_cv_lib_db=yes], [
 		AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb],[ol_cv_lib_db=no])
@@ -121,11 +155,18 @@ AC_DEFUN([OL_LIB_BERKELEY_DB],
 ])dnl
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if db exists
+dnl Check if Berkeley DB exists
+dnl
+dnl defines ol_cv_berkeley_db to 'yes' or 'no'
+dnl 
+dnl uses:
+dnl		OL_LIB_BERKELEY_DB
+dnl		OL_HEADER_BERKELEY_DB
+dnl
 AC_DEFUN([OL_BERKELEY_DB],
 [AC_REQUIRE([OL_LIB_BERKELEY_DB])
  AC_REQUIRE([OL_HEADER_BERKELEY_DB])
- AC_CACHE_CHECK(for Berkeley DB, [ol_cv_berkeley_db], [
+ AC_CACHE_CHECK([for Berkeley DB], [ol_cv_berkeley_db], [
 	if test $ol_cv_lib_db = no -o $ol_cv_header_db = no ; then
 		ol_cv_berkeley_db=no
 	else
