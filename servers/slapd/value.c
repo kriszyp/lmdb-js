@@ -34,9 +34,9 @@ value_add_fast(
 		    *maxvals * sizeof(struct berval *) );
 	}
 
-	for ( i = 0, j = 0; i < naddvals; i++, j++ ) {
+	for ( i = 0, j = 0; i < naddvals; i++ ) {
 		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
+			(*vals)[nvals + j++] = ber_bvdup( addvals[i] );
 		}
 	}
 	(*vals)[nvals + j] = NULL;
