@@ -1,5 +1,16 @@
 ChangeLog for gtk-tool
 
+12/01/1999 - Pele
+	* Added some defines for U-MICH compatibility
+	* Updated to the latest Gtk-- API (in Gtk-- CVS tree)
+	* Minor fixes due to the new and cleaner Gtk-- API
+	* A new server can be added by entering a hostname into the
+	"url" field at the top and clicking on "Query Server" button
+	(note that one server still has to be supplied on the command line -
+	I'll try and fix this tomorrow...to do with ldap_get_opt)
+	* Somewhat "smarter" Makefile - can someone please look into integrating
+	gtk-tool into the openldap autoconf stuff?
+
 09/12/1998 - Pele
 	* Display of all ldap options in their proper widgets (sliders for 
 	timeout, radio buttons for booleans etc.) when server selected

@@ -40,39 +40,46 @@ int main(int argc, char **argv) {
 		debug("%s\n", hosts->nth_data(f));
 	}
 	if (hosts->length() == 0) {
+#ifdef LDAP_GET_OPT
+		printf("Supply me with a host please (hint: use -s\n");
+		exit(0);
+#else
 		ldap_get_option(NULL, LDAP_OPT_HOST_NAME, host);
 		hosts = hosts->append(host);
+#endif /* LDAP_GET_OPT */
 	}	
 	if (port == 0) port = LDAP_PORT;
 
 	Gtk_Main m(&argc, &argv);
 
 	window = new My_Window(GTK_WINDOW_TOPLEVEL);
+
+//	viewport = new Gtk_Viewport();
+	if (hosts!=NULL) {
+		tree = new Gtk_Tree();
+		for (int f=0; f<hosts->length(); f++) {
+			host = strtok(hosts->nth_data(f), ":");
+			prt = strtok(NULL, "\0");
+			if (prt != NULL) port = atoi(prt);
+			else port = LDAP_PORT;
+			treeitem = new Gtk_LdapServer(window, host, port);
+			subtree = treeitem->getSubtree();
+			tree->append(*treeitem);
+			treeitem->set_subtree(*subtree);
+			treeitem->show();
+		}
+		window->viewport->add(tree);
+		tree->show();
+	}
+
+//	window->scroller->add(viewport);
+	window->viewport->show();
+	window->scroller->show();
+
 	window->set_title("gtk-tool");
 	window->activate();
 	window->set_usize(600, 500);
 	window->show();
-
-	tree = new Gtk_Tree();
-	for (int f=0; f<hosts->length(); f++) {
-		host = strtok(hosts->nth_data(f), ":");
-		prt = strtok(NULL, "\0");
-		if (prt != NULL) port = atoi(prt);
-		else port = LDAP_PORT;
-		treeitem = new Gtk_LdapServer(window, host, port);
-		subtree = treeitem->getSubtree();
-		tree->append(*treeitem);
-		treeitem->set_subtree(*subtree);
-		treeitem->show();
-	}
-	viewport = new Gtk_Viewport();
-	viewport->add(tree);
-	window->scroller->add(viewport);
-	tree->show();
-	viewport->show();
-	window->scroller->show();
-//	treeitem->showDetails();
-//	treeitem->select();
 
 	m.run();
 	return 0;

@@ -1,5 +1,10 @@
 LOADS!!!
 
+Please someone test this with old U-MICH API - hopefully all is as it should be.
+
+Odd behaviour with tabbed panes - labels misteriously dissapear after you
+select a node for the second time 'round. Anyone any ideas on this?
+
 Priorities:
 	Now that we have cn=config we can start using ldap_get_option propperly
 	and be able to run/stop server from the gtk-tool. Other things like

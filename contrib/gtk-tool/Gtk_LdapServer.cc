@@ -32,8 +32,8 @@ void Gtk_LdapServer::setType(int t) {
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	char *c = NULL;
-	if (this->getchild() != NULL) {
-		xpm_label = new Gtk_HBox(GTK_HBOX(this->getchild()->gtkobj()));
+	if (this->get_child() != NULL) {
+		xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 	}
@@ -47,7 +47,7 @@ void Gtk_LdapServer::setType(int t) {
 	label = new Gtk_Label(this->hostname);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
-	if (this->getchild() == NULL) this->add(xpm_label);
+	if (this->get_child() == NULL) this->add(xpm_label);
 	label->show();
 	xpm_label->show();
 	xpm_icon->show();
@@ -55,22 +55,21 @@ void Gtk_LdapServer::setType(int t) {
 
 int Gtk_LdapServer::showDetails() {
 	debug("Gtk_LdapServer::showDetails()\n");
+	if (this->notebook == NULL) this->getOptions();
 	if (this->notebook != NULL) {
-//		debug("Have notebook here");
-		if (par->viewport->getchild() != NULL) {
-//			debug(" and viewport has children");
-			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
-//			debug(" which have been removed");
+		debug("Have a notebook here");
+		if (par->viewport2->get_child() != NULL) {
+			debug(" and viewport has children");
+			par->viewport2->remove(par->viewport2->get_child());
+			debug(" which have been removed");
 		}
-//		else debug(" and viewport without children");
-		par->viewport->add(this->notebook);
+		else debug(" and viewport without children");
+		par->viewport2->add(this->notebook);
 		this->notebook->show();
-		par->viewport->show();
+		par->viewport2->show();
 		return 0;
 	}
-	if (this->getOptions() != 0) return 1;
-	this->showDetails();
-//	debug("done\n");
+	debug("done\n");
 	return 0;
 }
 
@@ -115,6 +114,7 @@ int Gtk_LdapServer::getConfig() {
 	return entriesCount;
 }
 
+#ifndef LDAP_GET_OPT /* a temporary fix for usability with (old) U-MICH api */
 char* Gtk_LdapServer::getOptDescription(int option) {
 	debug("Gtk_LdapServer::getOptDescription(%i) ", option);
 	char *c;
@@ -172,10 +172,20 @@ int Gtk_LdapServer::getOptType(int option) {
 	debug("%i\n", type);
 	return type;
 }
+#endif /* LDAP_GET_OPT */
 
 int Gtk_LdapServer::getOptions() {
 	debug("Gtk_LdapServer::getOptions()\n");
 	if (this->notebook != NULL) return 0;
+#ifdef LDAP_GET_OPT /* a temporary fix for usability with (old) U-MICH api */
+	Gtk_Label *label;
+	label = new Gtk_Label("This tool has been compiled with (old) U-MICH API (no LDAP_GET_OPT)\nCompile with the latest -devel (from OpenLDAP cvs tree)\nto get some nice options here");
+	this->notebook = new Gtk_Frame("LDAP Options");
+	this->notebook->add(*label);
+	label->show();
+	this->notebook->show();
+	return 0;
+#else
 	LDAPAPIInfo api;
 	Gtk_HBox *hbox, *mini_hbox;
 	Gtk_VBox *vbox, *mini_vbox;
@@ -216,7 +226,7 @@ int Gtk_LdapServer::getOptions() {
 	for (int i=0; i<10; i++) {
 	//	debug("%i\n", i);
 		hbox = new Gtk_HBox(TRUE, 2);
-		hbox->border_width(2);
+		hbox->set_border_width(2);
 		description = this->getOptDescription(things[i]);
 		label = new Gtk_Label(description);
 		label->set_justify(GTK_JUSTIFY_LEFT);
@@ -246,10 +256,10 @@ int Gtk_LdapServer::getOptions() {
 				ldap_get_option(this->ld, things[i], &i_value);
 				radio1 = new Gtk_RadioButton(static_cast<GSList*>(0), "Enabled");
 				radio2 = new Gtk_RadioButton(*radio1, "Disabled");
-				if (i_value == 1) radio1->set_state(true);
-				else radio2->set_state(true);
+				if (i_value == 1) radio1->set_active(true);
+				else radio2->set_active(true);
 				mini_hbox = new Gtk_HBox(FALSE, 2);
-				mini_hbox->border_width(2);
+				mini_hbox->set_border_width(2);
 				mini_hbox->pack_start(*radio1);
 				radio1->show();
 				mini_hbox->pack_end(*radio2);
@@ -298,11 +308,12 @@ int Gtk_LdapServer::getOptions() {
 		table->attach_defaults(*hbox, 0, 1, i, i+1);
 		hbox->show();
 	}
-	table->border_width(2);
+	table->set_border_width(2);
 	this->notebook = new Gtk_Frame("LDAP Options");
 	this->notebook->add(*table);
 	table->show();
 	return 0;
+#endif /* LDAP_GET_OPT */
 }
 
 Gtk_Tree* Gtk_LdapServer::getSubtree() {
@@ -336,37 +347,47 @@ Gtk_Tree* Gtk_LdapServer::getSubtree() {
 	//	tree->show();
 	}
 //	this->set_subtree(*tree);
-	debug("getTree() done\n");
+	debug("getSubtree() done\n");
 	return tree;
 }
-
+/*
 void Gtk_LdapServer::show_impl() {
 	debug("%s showed\n", this->hostname);
-	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
-	sig->show(GTK_WIDGET(gtkobj()));
+	BaseClassType *sig=static_cast<BaseClassType *>(get_parent_class());
+	if (!sig->show) return;
+	sig->show(gtkobj());
+//	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
+//	sig->show(GTK_WIDGET(gtkobj()));
 }
-
+*/
 void Gtk_LdapServer::select_impl() {
 	debug("%s selected\n", this->hostname);
-	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
-	if (!sig->select) return;
+//	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
+//	if (!sig->select) return;
 	this->showDetails();
-	sig->select(GTK_ITEM(gtkobj()));
+//	sig->select(GTK_ITEM(gtkobj()));
+	Gtk_TreeItem::select_impl();
 }
 
 void Gtk_LdapServer::collapse_impl() {
 	debug("%s collapsed\n", this->hostname);
-	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
-	if (!sig->collapse) return;
-	sig->collapse(GTK_TREE_ITEM(gtkobj()));
+//	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
+//	if (!sig->collapse) return;
+//	sig->collapse(GTK_TREE_ITEM(gtkobj()));
 //	gtk_widget_hide(GTK_WIDGET(GTK_TREE(GTK_TREE_ITEM (this->gtkobj())->subtree)));
+	Gtk_TreeItem::collapse_impl();
 }
 
 void Gtk_LdapServer::expand_impl() {
 	debug("%s expanded\n", this->hostname);
-	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
-	if (!sig->expand) return;
-	sig->expand(GTK_TREE_ITEM(gtkobj()));
+	Gtk_TreeItem::expand_impl();
+//	BaseClassType *sig=static_cast<BaseClassType *>(get_parent_class());
+//	if (!sig->expand)
+//		{ return; }
+//	sig->expand(gtkobj());
+//	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
+//	if (!sig->expand) return;
+//	sig->expand(GTK_TREE_ITEM(gtkobj()));
 //	Gtk_Tree *t;
 //	t = new Gtk_Tree(GTK_TREE(GTK_TREE_ITEM(this->gtkobj())->subtree));
 //	bool vis = t->visible();

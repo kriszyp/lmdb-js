@@ -10,18 +10,20 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 
 	pane = new Gtk_HPaned();
 	this->scroller = new Gtk_ScrolledWindow();
+	this->viewport = new Gtk_Viewport();
 	this->scroller->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-//	this->scroller->set_usize(this->height(), 400);
+	this->scroller->add(*this->viewport);
 	pane->add1(*this->scroller);
 	this->scroller->show();
+	this->viewport->show();
 
-//	this->scroller2 = new My_Scroller();
 	this->scroller2 = new Gtk_ScrolledWindow();
-	this->viewport = new Gtk_Viewport();
+	this->viewport2 = new Gtk_Viewport();
 	this->scroller2->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	this->scroller2->add(*this->viewport);
+	this->scroller2->add(*this->viewport2);
 	pane->add2(*this->scroller2);	
 	this->scroller2->show();
+	this->viewport2->show();
 
 	top_hbox = new Gtk_HBox();
 	menu = new Gtk_Menu();
@@ -29,7 +31,7 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	menu->append(*menuitem);
 	this->menubar = new Gtk_MenuBar();
 	file_menu = new Gtk_MenuItem("File");
-	file_menu->set_submenu(menu);
+	file_menu->set_submenu(*menu);
 	this->menubar->append(*file_menu);
 	menuitem->show();
 	menu->show();
@@ -39,8 +41,8 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->urlfield = new Gtk_Entry();
 	top_hbox->pack_start(*this->urlfield, TRUE, TRUE, 1);
 	this->urlfield->show();
-	this->display_button = new Gtk_Button("Display");
-	connect_to_method(this->display_button->clicked, this, &do_display);
+	this->display_button = new Gtk_Button("Query Server");
+	connect_to_method(this->display_button->clicked, this, &getHost);
 	top_hbox->pack_end(*this->display_button, FALSE, FALSE, 1);
 	this->display_button->show();
 
@@ -89,6 +91,40 @@ int My_Window::debug(const char *format,...) {
 
 void My_Window::do_display() {
 	cout << this->urlfield->get_text() << endl;
+}
+
+void My_Window::getHost() {
+	debug("My_Window::getHost()\n");
+	Gtk_Tree *tree, *subtree;
+	Gtk_LdapServer *treeitem;
+	char *host, *prt;
+	int port;
+
+//	viewport = (Gtk_Viewport *) GTK_VIEWPORT(this->scroller->children()->nth_data(1));
+//	viewport = (Gtk_Viewport *)this->scroller->children()->nth_data(1);
+	if (this->viewport->get_child()!=NULL) {
+		tree = (Gtk_Tree *)(this->viewport->get_child());
+	}
+	else {
+		tree = new Gtk_Tree();
+	}
+	string thing;
+	thing = this->urlfield->get_text();
+	gchar **c;
+	c = g_strsplit(thing.c_str(), ":", 2);
+	host = c[0];
+	prt = c[1]; //strtok(NULL, "\0");
+	if (prt != NULL) port = atoi(prt);
+	else port = LDAP_PORT;
+	treeitem = new Gtk_LdapServer(this, host, port);
+	subtree = treeitem->getSubtree();
+	tree->append(*treeitem);
+	treeitem->set_subtree(*subtree);
+	treeitem->show();
+	this->viewport->add(tree);
+	tree->show();
+	this->viewport->show();
+	this->scroller->show();
 }
 
 gint My_Window::delete_event_impl(GdkEventAny*) {

@@ -1,5 +1,4 @@
 #include "Gtk_LdapTreeItem.h"
-#include <gtk--/base.h>
 
 Gtk_LdapTreeItem::Gtk_LdapTreeItem() : Gtk_TreeItem() {
 	this->objectClass = NULL;
@@ -83,8 +82,8 @@ void Gtk_LdapTreeItem::setType(int t) {
 	debug("Gtk_LdapTreeItem::setType(%s)\n", this->objectClass);
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
-	if (this->getchild() != NULL) {
-		xpm_label = new Gtk_HBox(GTK_HBOX(this->getchild()->gtkobj()));
+	if (this->get_child() != NULL) {
+		xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 	}
@@ -103,7 +102,7 @@ void Gtk_LdapTreeItem::setType(int t) {
 	label = new Gtk_Label(this->rdn);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
-	if (this->getchild() == NULL) this->add(xpm_label);
+	if (this->get_child() == NULL) this->add(xpm_label);
 	label->show();
 	xpm_label->show();
 	xpm_icon->show();
@@ -111,17 +110,21 @@ void Gtk_LdapTreeItem::setType(int t) {
 
 int Gtk_LdapTreeItem::showDetails() {
 	debug("Gtk_LdapTreeItem::showDetails()\n");
+	if (this->notebook == NULL) this->getDetails();
 	if (this->notebook != NULL) {
-		if (par->viewport->getchild() != NULL) {
-			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
+		debug("Have a notebook here");
+		if (par->viewport2->get_child() != NULL) {
+			debug(" and the viewport has children");
+			par->viewport2->remove(par->viewport2->get_child());
+			debug(" which have been removed");
 		}
-		par->viewport->add(this->notebook);
+		else debug(" and viewport has no children");
+		par->viewport2->add(*this->notebook);
 		this->notebook->show();
-		par->viewport->show();
+		par->viewport2->show();
 		return 0;
 	}
-	else this->getDetails();
-	this->showDetails();
+	else debug("No notebook and no details");
 	return 0;
 }
 
@@ -131,16 +134,17 @@ int Gtk_LdapTreeItem::getDetails() {
 	BerElement *ber;
 	LDAPMessage *entry;
 	char *attribute, **values;
+	char attrib[32];
 	Gtk_CList *table;
 	Gtk_Label *label;
 	GList *child_list;
-	Gtk_Notebook *g;
+//	Gtk_Notebook *g;
 	Gtk_Viewport *viewport;
 	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &this->result_identifier);
 	entriesCount = ldap_count_entries(this->ld, this->result_identifier);
 	if (entriesCount == 0) return 0;
-	notebook = new Gtk_Notebook();
-	notebook->set_tab_pos(GTK_POS_LEFT);
+	this->notebook = new Gtk_Notebook();
+	this->notebook->set_tab_pos(GTK_POS_LEFT);
 	const gchar *titles[] = { "values" };
 	
 	for (entry = ldap_first_entry(ld, result_identifier); entry != NULL; entry = ldap_next_entry(ld, result_identifier)) {
@@ -159,10 +163,11 @@ int Gtk_LdapTreeItem::getDetails() {
 				table->append(t);
 			}
 			ldap_value_free(values);
-			label = new Gtk_Label(attribute);
+			sprintf(attrib, "%s", attribute);
+			label = new Gtk_Label(attrib);
 			label->set_alignment(0, 0);
 			label->set_justify(GTK_JUSTIFY_LEFT);
-			notebook->append_page(*table, *label);
+			this->notebook->append_page(*table, *label);
 			table->show();
 			label->show();
 		}
@@ -171,28 +176,22 @@ int Gtk_LdapTreeItem::getDetails() {
 	debug("done\n");
 	return 0;
 }
-
+/*
 void Gtk_LdapTreeItem::show_impl() {
 	debug("%s showed\n", this->dn);
-	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
-	sig->show(GTK_WIDGET(gtkobj()));
+//	Gtk_c_signals_Base *sig=(Gtk_c_signals_Base *)internal_getsignalbase();
+//	sig->show(GTK_WIDGET(gtkobj()));
 }
-
+*/
 void Gtk_LdapTreeItem::select_impl() {
 	debug("%s selected\n", this->dn);
-//	gtk_item_select(GTK_ITEM(GTK_TREE_ITEM(this->gtkobj())));
-	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
-	if (!sig->select) return;
-	sig->select(GTK_ITEM(gtkobj()));
 	this->showDetails();
+	Gtk_TreeItem::select_impl();
 }
 
 void Gtk_LdapTreeItem::collapse_impl() {
 	debug("%s collapsed\n", this->dn);
-	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
-	if (!sig->collapse) return;
-	sig->collapse(GTK_TREE_ITEM(gtkobj()));
-//	gtk_widget_hide(GTK_WIDGET(GTK_TREE(GTK_TREE_ITEM (this->gtkobj())->subtree)));
+	Gtk_TreeItem::collapse_impl();
 }
 
 void Gtk_LdapTreeItem::expand_impl() {
@@ -200,18 +199,5 @@ void Gtk_LdapTreeItem::expand_impl() {
 	Gtk_LdapTreeItem *item;
 	G_List<GtkWidget> *list;
 	Gtk_Tree *tree;
-	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
-	if (!sig->expand) return;
-	sig->expand(GTK_TREE_ITEM(gtkobj()));
-//	Gtk_Tree *t;
-//	t = new Gtk_Tree(GTK_TREE(GTK_TREE_ITEM(this->gtkobj())->subtree));
-//	bool vis = t->visible();
-//	if (vis == false) {
-//		gtk_widget_show(GTK_WIDGET(GTK_TREE(GTK_TREE_ITEM (this->gtkobj())->subtree)));
-//		cout << this->dn << " expanded" << endl;
-//	}
-//	else {
-//		gtk_widget_hide(GTK_WIDGET(GTK_TREE(GTK_TREE_ITEM (this->gtkobj())->subtree)));
-//		cout << this->dn << " collapsed" << endl;
-//	}
+	Gtk_TreeItem::expand_impl();
 }

@@ -38,7 +38,7 @@ public:
 	void setType(int t);
 	int getDetails();
 	int showDetails();
-	void show_impl();
+//	void show_impl();
 	void select_impl();
 	void collapse_impl();
 	void expand_impl();

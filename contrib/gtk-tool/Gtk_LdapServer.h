@@ -38,11 +38,13 @@ public:
 	void setType(int t);
 	int getConfig();
 	Gtk_Tree* getSubtree();
+#ifndef LDAP_GET_OPT
 	char* getOptDescription(int option);
 	int getOptType(int option);
+#endif
 	int getOptions();
 	int showDetails();
-	void show_impl();
+//	void show_impl();
 	void select_impl();
 	void collapse_impl();
 	void expand_impl();
