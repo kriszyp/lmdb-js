@@ -44,9 +44,6 @@ LDAPModDNRequest::LDAPModDNRequest(const string& dn, const string& newRDN,
 
 LDAPModDNRequest::~LDAPModDNRequest(){
     DEBUG(LDAP_DEBUG_DESTROY, "LDAPModDNRequest::~LDAPModDNRequest()" << endl);
-    // flush entries from the cache.
-    m_connection->uncache_entry(m_dn);
-    m_connection->uncache_entry(m_newRDN);
 }
 
 LDAPMessageQueue* LDAPModDNRequest::sendRequest(){
