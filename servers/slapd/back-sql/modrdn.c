@@ -232,13 +232,13 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
  
 	Debug(	LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"executing delentry_query\n", 0, 0, 0 );
+		"executing delentry_stmt\n", 0, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn(): "
-			"error preparing delentry_query\n", 0, 0, 0 );
+			"error preparing delentry_stmt\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 
@@ -279,13 +279,13 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"executing insentry_query\n", 0, 0, 0 );
+		"executing insentry_stmt\n", 0, 0, 0 );
 
-	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn(): "
-			"error preparing insentry_query\n", 0, 0, 0 );
+			"error preparing insentry_stmt\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 

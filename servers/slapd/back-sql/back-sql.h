@@ -238,9 +238,14 @@ typedef struct {
  */
 typedef struct backsql_api {
 	char			*ba_name;
+	int 			(*ba_config)( struct backsql_api *self, int argc, char *argv[] );
+	int			(*ba_destroy)( struct backsql_api *self );
+
 	int 			(*ba_dn2odbc)( Operation *op, SlapReply *rs, struct berval *dn );
 	int 			(*ba_odbc2dn)( Operation *op, SlapReply *rs, struct berval *dn );
-	struct backsql_api *ba_next;
+
+	void			*ba_private;
+	struct backsql_api	*ba_next;
 } backsql_api;
 
 /*
@@ -437,10 +442,10 @@ typedef struct {
 	struct berval	sql_children_cond;
 	char		*sql_oc_query,
 			*sql_at_query;
-	char		*sql_insentry_query,
-			*sql_delentry_query,
-			*sql_delobjclasses_query,
-			*sql_delreferrals_query;
+	char		*sql_insentry_stmt,
+			*sql_delentry_stmt,
+			*sql_delobjclasses_stmt,
+			*sql_delreferrals_stmt;
 	char		*sql_id_query;
 	char		*sql_has_children_query;
 

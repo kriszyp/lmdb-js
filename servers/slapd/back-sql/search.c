@@ -958,6 +958,10 @@ equality_match:;
 			casefold = 1;
 		}
 
+		/* FIXME: directoryString filtering should use a similar
+		 * approach to deal with non-prettified values like
+		 * " A  non    prettified   value  ", by using a LIKE
+		 * filter with all whitespaces collapsed to a single '%' */
 		if ( SLAP_MR_ASSOCIATED( matching_rule,
 					bi->sql_telephoneNumberMatch ) )
 		{

@@ -1348,7 +1348,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 	}
 
-	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -1416,7 +1416,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
-			bi->sql_insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );
+			bi->sql_insentry_stmt, op->oq_add.rs_e->e_name.bv_val, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
 			"parent_id=%s, keyval=%ld\n",

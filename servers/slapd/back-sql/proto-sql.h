@@ -96,7 +96,9 @@ int backsql_modify_internal(
 /*
  * api.c
  */
-int backsql_api_config( backsql_info *si, const char *name );
+int backsql_api_config( backsql_info *bi, const char *name,
+		int argc, char *argv[] );
+int backsql_api_destroy( backsql_info *bi );
 int backsql_api_register( backsql_api *ba );
 int backsql_api_dn2odbc( Operation *op, SlapReply *rs, struct berval *dn );
 int backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn );
@@ -221,10 +223,10 @@ extern char
 	backsql_def_oc_query[],
 	backsql_def_needs_select_oc_query[],
 	backsql_def_at_query[],
-	backsql_def_delentry_query[],
-	backsql_def_insentry_query[],
-	backsql_def_delobjclasses_query[],
-	backsql_def_delreferrals_query[],
+	backsql_def_delentry_stmt[],
+	backsql_def_insentry_stmt[],
+	backsql_def_delobjclasses_stmt[],
+	backsql_def_delreferrals_stmt[],
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
 	backsql_id_query[],

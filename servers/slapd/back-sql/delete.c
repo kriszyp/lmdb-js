@@ -246,7 +246,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete "auxiliary" objectClasses, if any... */
-	rc = backsql_Prepare( dbh, &sth, bi->sql_delobjclasses_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delobjclasses_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "
@@ -296,7 +296,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete referrals, if any... */
-	rc = backsql_Prepare( dbh, &sth, bi->sql_delreferrals_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delreferrals_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "
@@ -346,7 +346,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLFreeStmt( sth, SQL_DROP );
 
 	/* delete entry... */
-	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_query, 0 );
+	rc = backsql_Prepare( dbh, &sth, bi->sql_delentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_delete(): "

@@ -31,7 +31,7 @@
 static backsql_api *backsqlapi;
 
 int
-backsql_api_config( backsql_info *bi, const char *name )
+backsql_api_config( backsql_info *bi, const char *name, int argc, char *argv[] )
 {
 	backsql_api	*ba;
 
@@ -44,6 +44,14 @@ backsql_api_config( backsql_info *bi, const char *name )
 
 			ba2 = ch_malloc( sizeof( backsql_api ) );
 			*ba2 = *ba;
+
+			if ( ba2->ba_config ) {
+				if ( ( *ba2->ba_config )( ba2, argc, argv ) ) {
+					ch_free( ba2 );
+					return 1;
+				}
+			}
+			
 			ba2->ba_next = bi->sql_api;
 			bi->sql_api = ba2;
 			return 0;
@@ -54,11 +62,34 @@ backsql_api_config( backsql_info *bi, const char *name )
 }
 
 int
+backsql_api_destroy( backsql_info *bi )
+{
+	backsql_api	*ba;
+
+	assert( bi );
+
+	ba = bi->sql_api;
+
+	if ( ba == NULL ) {
+		return 0;
+	}
+
+	for ( ; ba; ba = ba->ba_next ) {
+		if ( ba->ba_destroy ) {
+			(void)( *ba->ba_destroy )( ba );
+		}
+	}
+
+	return 0;
+}
+
+int
 backsql_api_register( backsql_api *ba )
 {
 	backsql_api	*ba2;
 
 	assert( ba );
+	assert( ba->ba_private == NULL );
 
 	if ( ba->ba_name == NULL ) {
 		fprintf( stderr, "API module has no name\n" );
