@@ -115,7 +115,9 @@ access_allowed(
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
 	 */
-	if ( access >= ACL_WRITE && is_at_no_user_mod( desc->ad_type ) )
+	if ( access >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+		&& desc != slap_schema.si_ad_entry
+		&& desc != slap_schema.si_ad_children )
 	{
  		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
