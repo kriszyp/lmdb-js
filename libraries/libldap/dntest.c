@@ -31,7 +31,7 @@ int
 main( int argc, char *argv[] )
 {
 	int 		rc, i, debug = 0, f2 = 0;
-	unsigned 	flags[ 2 ] = { 0U, LDAP_DN_FORMAT_LDAPV3 };
+	unsigned 	flags[ 2 ] = { 0U, 0 };
 	char		*strin, *str = NULL, buf[ 1024 ];
 	LDAPDN		*dn, *dn2 = NULL;
 
@@ -113,6 +113,9 @@ main( int argc, char *argv[] )
 			}
 		}
 	}
+
+	if ( flags[ 1 ] == 0 )
+		flags[ 1 ] = LDAP_DN_FORMAT_LDAPV3;
 
 	f2 = 1;
 
