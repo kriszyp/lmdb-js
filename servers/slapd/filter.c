@@ -210,7 +210,9 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+#if XXX
 		assert( f->f_and != NULL );
+#endif
 		break;
 
 	case LDAP_FILTER_OR:
@@ -224,7 +226,9 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+#if XXX
 		assert( f->f_or != NULL );
+#endif
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -239,7 +243,9 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+#if XXX
 		assert( f->f_not != NULL );
+#endif
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -255,7 +261,9 @@ get_filter(
 			break;
 		}
 
+#if nothosed
 		assert( f->f_mra != NULL );
+#endif
 		break;
 
 	default:

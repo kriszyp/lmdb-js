@@ -246,10 +246,11 @@ get_mra(
 		&ma->ma_value, &value, text );
 	if ( rc == LDAP_SUCCESS ) {
 		ber_dupbv( &ma->ma_value, &value );
-	}
+	} else
+#else
+	if( rc != LDAP_SUCCESS )
 #endif
-
-	if( rc != LDAP_SUCCESS ) {
+	{
 		mra_free( ma, 1 );
 		return rc;
 	}
