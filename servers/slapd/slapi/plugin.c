@@ -574,6 +574,10 @@ doPluginFNs(
 	int rc = 0;
 	SLAPI_FUNC *pGetPlugin = NULL, *tmpPlugin = NULL; 
 
+	if ( pPB == NULL ) {
+		return 0;
+	}
+
 	rc = getAllPluginFuncs(be, funcType, &tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* Nothing to do, front-end should ignore. */
