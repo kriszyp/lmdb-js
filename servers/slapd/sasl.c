@@ -318,7 +318,7 @@ slap_sasl_log(
 
 #if SASL_VERSION_MAJOR >= 2
 static const char *slap_propnames[] = {
-	"*slapConn", "*authcDN", "*authzDN", NULL };
+	"*slapConn", "*slapAuthcDN", "*slapAuthzDN", NULL };
 
 static Filter generic_filter = { LDAP_FILTER_PRESENT };
 static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
@@ -326,9 +326,9 @@ static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 #define	PROP_CONN	0
 #define	PROP_AUTHC	1
 #define	PROP_AUTHZ	2
+#define	PROP_COUNT	3	/* Number of properties we used */
 
 typedef struct lookup_info {
-	int last;
 	int flags;
 	const struct propval *list;
 	sasl_server_params_t *sparams;
@@ -349,11 +349,16 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 
 	if (rs->sr_type != REP_SEARCH) return 0;
 
-	for( i = 0; i < sl->last; i++ ) {
+	for( i = 0; sl->list[i].name; i++ ) {
 		const char *name = sl->list[i].name;
 
 		if ( name[0] == '*' ) {
 			if ( sl->flags & SASL_AUXPROP_AUTHZID ) continue;
+			/* Skip our private properties */
+			if ( !strcmp( name, slap_propnames[0] )) {
+				i += PROP_COUNT-1;
+				continue;
+			}
 			name++;
 		} else if ( !(sl->flags & SASL_AUXPROP_AUTHZID ) )
 			continue;
@@ -408,23 +413,21 @@ slap_auxprop_lookup(
 	sl.flags = flags;
 
 	/* Find our DN and conn first */
-	for( i = 0, sl.last = 0; sl.list[i].name; i++ ) {
+	for( i = 0; sl.list[i].name; i++ ) {
 		if ( sl.list[i].name[0] == '*' ) {
 			if ( !strcmp( sl.list[i].name, slap_propnames[PROP_CONN] ) ) {
 				if ( sl.list[i].values && sl.list[i].values[0] )
 					AC_MEMCPY( &conn, sl.list[i].values[0], sizeof( conn ) );
-				if ( !sl.last ) sl.last = i;
+				continue;
 			}
 			if ( (flags & SASL_AUXPROP_AUTHZID) &&
 				!strcmp( sl.list[i].name, slap_propnames[PROP_AUTHZ] ) ) {
 
 				if ( sl.list[i].values && sl.list[i].values[0] )
 					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
-				if ( !sl.last ) sl.last = i;
 				break;
 			}
 			if ( !strcmp( sl.list[i].name, slap_propnames[PROP_AUTHC] ) ) {
-				if ( !sl.last ) sl.last = i;
 				if ( sl.list[i].values && sl.list[i].values[0] ) {
 					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
 					if ( !(flags & SASL_AUXPROP_AUTHZID) )
@@ -435,11 +438,16 @@ slap_auxprop_lookup(
 	}
 
 	/* Now see what else needs to be fetched */
-	for( i = 0; i < sl.last; i++ ) {
+	for( i = 0; sl.list[i].name; i++ ) {
 		const char *name = sl.list[i].name;
 
 		if ( name[0] == '*' ) {
 			if ( flags & SASL_AUXPROP_AUTHZID ) continue;
+			/* Skip our private properties */
+			if ( !strcmp( name, slap_propnames[0] )) {
+				i += PROP_COUNT-1;
+				continue;
+			}
 			name++;
 		} else if ( !(flags & SASL_AUXPROP_AUTHZID ) )
 			continue;
@@ -448,6 +456,7 @@ slap_auxprop_lookup(
 			if ( !(flags & SASL_AUXPROP_OVERRIDE) ) continue;
 		}
 		doit = 1;
+		break;
 	}
 
 	if (doit) {
