@@ -52,6 +52,7 @@ Implement authPassword (RFC 3112)
 Add LDIFv2 (XML) support to command line tools
 Implement LDAPprep and SASLprep
 Implement additional matching rules (RFC 3698)
+Add syncrepl "turn" support
 Add dumpasn1 logging support
 Add tests to test suite
 Add jail(2) support
