@@ -351,9 +351,10 @@ or administrative limit restrictions for operations on this database.
 .TP
 .B rootpw <password>
 Specify a password (or hash of the password) for the rootdn.
-This option accepts all password formats known to the server
-including \fB{SHA}\fP, \fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext.  
-Cleartext passwords are not recommended.
+This option accepts all RFC 2307 userPassword formats known to
+the server including \fB{SSHA}\fP, \fB{SHA}\fP, \fB{SMD5}\fP,
+\fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext schemes.  Cleartext
+passwords are not recommended.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
