@@ -265,16 +265,16 @@ do_syncrepl(
 
 	/* Init connection to master */
 
-	rc = ldap_initialize( &ld, si->masteruri );
+	rc = ldap_initialize( &ld, si->provideruri );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, "do_syncrepl: "
 			"ldap_initialize failed (%s)\n",
-			si->masteruri, 0, 0 );
+			si->provideruri, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_syncrepl: "
 			"ldap_initialize failed (%s)\n",
-			si->masteruri, 0, 0 );
+			si->provideruri, 0, 0 );
 #endif
 	}
 
@@ -314,11 +314,11 @@ do_syncrepl(
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_bind: Error: "
 					"ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
-					si->masteruri, si->secprops, 0 );
+					si->provideruri, si->secprops, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->masteruri, si->secprops, NULL );
+					si->provideruri, si->secprops, NULL );
 #endif
 				return NULL;
 			}
@@ -2059,7 +2059,7 @@ null_callback(
 
 
 char **
-str2clist( char **out, char *in, const char *brkstr )
+str2clist( char ***out, char *in, const char *brkstr )
 {
 	char	*str;
 	char	*s;
@@ -2069,7 +2069,7 @@ str2clist( char **out, char *in, const char *brkstr )
 	char	**new;
 
 	/* find last element in list */
-	for (i = 0; out && out[i]; i++);
+	for (i = 0; *out && *out[i]; i++);
 	
 	/* protect the input string from strtok */
 	str = ch_strdup( in );
@@ -2082,8 +2082,8 @@ str2clist( char **out, char *in, const char *brkstr )
 		}
 	}
 
-	out = ch_realloc( out, ( i + j + 1 ) * sizeof( char * ) );
-	new = out + i;
+	*out = ch_realloc( *out, ( i + j + 1 ) * sizeof( char * ) );
+	new = *out + i;
 	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
 		s != NULL;
 		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
@@ -2094,7 +2094,7 @@ str2clist( char **out, char *in, const char *brkstr )
 
 	*new = NULL;
 	free( str );
-	return( out );
+	return( *out );
 }
 
 #endif

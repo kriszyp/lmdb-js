@@ -59,7 +59,7 @@ int passwd_extop(
 		BerVarray defref = NULL;
 #ifdef LDAP_SYNCREPL
 		if ( op->o_bd->syncinfo ) {
-			defref = op->o_bd->syncinfo->masteruri_bv;
+			defref = op->o_bd->syncinfo->provideruri_bv;
 		} else
 #endif
 		{

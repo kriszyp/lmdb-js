@@ -178,7 +178,7 @@ retry:	/* transaction retry */
 		} else {
 #ifdef LDAP_SYNCREPL
 			BerVarray deref = op->o_bd->syncinfo ?
-							  op->o_bd->syncinfo->masteruri_bv : default_referral;
+							  op->o_bd->syncinfo->provideruri_bv : default_referral;
 #else
 			BerVarray deref = default_referral;
 #endif

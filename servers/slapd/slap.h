@@ -1300,42 +1300,41 @@ typedef struct syncinfo_s {
         struct slap_entry *e;
         void			*ctx;
         int				id;
-        char			*masteruri;
-        BerVarray		masteruri_bv;
-        int				type;
+        char			*provideruri;
+        BerVarray		provideruri_bv;
+#define TLS_OFF			0
+#define TLS_ON			1
+#define TLS_CRITICAL	2
+        int				tls;
 		struct berval	updatedn;	
-        char			*binddn;
         int				bindmethod;
+        char			*binddn;
         char			*passwd;
+        char			*saslmech;
         char			*secprops;
         char			*realm;
         char			*authcId;
         char			*authzId;
         char			*srvtab;
-        char			*saslmech;
-        time_t			interval;
-        char			*base;
-        int				scope;
-        int				deref;
-        int				slimit;
-		int				tlimit;
-        Filter			*filter;
-        char			*filterstr;
-        char			**attrs;
-        int				attrsonly;
 #define LASTMOD_REQ		0
 #define LASTMOD_GEN		1
 #define LASTMOD_NO		2
         int				lastmod;
-        /* TLS flags */
-#define TLS_OFF			0
-#define TLS_ON			1
-#define TLS_CRITICAL	2
-        int				tls;
-        int				found;
+        Filter			*filter;
+        char			*filterstr;
+        char			*base;
+        int				scope;
+        int				attrsonly;
+		int				attrsexclude;
+        char			**attrs;
+        int				type;
+        time_t			interval;
+        struct berval	*syncCookie;
+        int				manageDSAit;
+        int				slimit;
+		int				tlimit;
         struct berval	*syncUUID;
 		struct berval	*syncUUID_ndn;
-        struct berval	*syncCookie;
         Avlnode			*presentlist;
 		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
 } syncinfo_t;
