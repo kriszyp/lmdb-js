@@ -30,7 +30,7 @@ ldappasswd:	ldpversion.o
 	$(LTLINK) -o $@ ldappasswd.o ldpversion.o $(LIBS)
 
 ldapadd:	ldapmodify
-	@-$(RM) $@
+	@-$(RM) $@$(EXEEXT)
 	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
 
 ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
