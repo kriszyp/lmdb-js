@@ -1,0 +1,413 @@
+.TH SLAPD.ACCESS 5 "28 Oct 2001" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2001 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapd.access \- access configuration for slapd, the stand-alone LDAP daemon
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The file
+.B ETCDIR/slapd.conf (5)
+contains configuration information for the
+.BR slapd (8)
+daemon. This configuration file is also used by the
+.BR slurpd (8)
+replication daemon and by the SLAPD tools
+.BR slapadd (8),
+.BR slapcat (8),
+and
+.BR slapindex (8).
+.LP
+The
+.B slapd.conf
+file consists of a series of global configuration options that apply to
+.B slapd
+as a whole (including all backends), followed by zero or more database
+backend definitions that contain information specific to a backend
+instance.
+.LP
+The general format of
+.B slapd.conf
+is as follows:
+.LP
+.nf
+    # comment - these options apply to every database
+    <global configuration options>
+    # first database definition & configuration options
+    database    <backend 1 type>
+    <configuration options specific to backend 1>
+    # subsequent database definitions & configuration options
+    ...
+.fi
+.LP
+Both the global configuration and each backend-specific section can contain
+access information.
+Backend-specific access control directives are used for those entries
+that belong to the backend, according to their naming context.
+In case no access control directives are defined for a backend, 
+the appropriate directives from the global configuration section
+are used.
+.LP
+Arguments that should be replaced by actual text are shown in brackets <>.
+The structure of the access control directives is
+.TP
+.B access to <what> [ by <who> <access> [ <control> ] ]+
+Grant access (specified by 
+.BR <access> ) 
+to a set of entries and/or attributes (specified by 
+.BR <what> ) 
+by one or more requestors (specified by 
+.BR <who> ).
+.LP
+The field
+.BR <what>
+specifies the entity the access control directive applies to.
+It can have the forms
+.LP
+.nf
+	*
+	[dn[.<dnstyle>]=<pattern>] 
+	[filter=<ldapfilter>]
+	[attrs=<attrlist>]
+.fi
+.LP
+The wildcard
+.B *
+stands for all the entries.
+.LP
+The statement
+.B dn=<pattern>
+selects the entries based on their naming context.
+The optional style qualificator
+.B <dnstyle>
+can be 
+.BR regex ,
+which implies a regex (7)
+.B pattern 
+will be used (the default),
+.B base
+or
+.B exact 
+(an alias of 
+.BR base )
+for an exact match of the entry,
+.B one
+to indicate all the entries immediately below the
+.BR pattern ,
+.B sub
+to indicate all the subentries of an entry including the entry itself,
+.B children
+to indicate all the subentries of an entry not including the entry itself.
+Note that 
+.B dn=".*"
+is equivalent to
+.BR * .
+The regex form of the pattern does not support UTF-8 (7) yet.
+.LP
+The statement
+.B filter=<ldapfilter>
+selects the entries based on a valid LDAP filter as described in RFC 2254.
+.LP
+The statement
+.B attrs=<attrlist>
+selects the attributes the access control rule applies to.
+It is a comma-separated list of attribute types, plus the special names
+.BR entry ,
+indicating access to the entry itself, and
+.BR children ,
+indicating access to the entry's children.
+.LP
+The last three statements are additive; they can be used in sequence 
+to select entities the access rule applies to based on naming context,
+value and attribute type simultaneously.
+.LP
+The field
+.B <who>
+indicates whom the access rules apply to.
+Multiple 
+.B <who>
+statements can appear in an access control statement, indicating the
+different access privileges to the same resource that apply to different
+accessee.
+It can have the forms
+.LP
+.nf
+	*
+	anonymous
+	users
+	self
+
+	dn[.<dnstyle>]=<pattern>
+	dnattr=<attrname>
+	group[/<objectclass>[/<attrname>]]
+		[.<style>]=<pattern>
+	peername[.<style>]=<pattern>
+	sockname[.<style>]=<pattern>
+	domain[.<style>]=<pattern>
+	sockurl[.<style>]=<pattern>
+	set[.<style>]=<pattern>
+
+	aci=<attrname>
+.fi
+.LP
+Each of them can be prefixed by the modifiers
+.LP
+.nf
+	ssf=<n>
+	transport_ssf=<n>
+	tls_ssf=<n>
+	sasl_ssf=<n>
+.fi
+.LP
+The wildcard
+.B *
+refers to everybody.
+.LP
+The keyword
+.B anonymous
+means access is granted to unauthenticated users; it is moslty used 
+to limit access to authentication resources (e.g. the
+.B userPassword
+attribute) to unauthenticated users for authentication purposes.
+.LP
+The keyword
+.B users
+means access is granted to authenticated users.
+.LP
+The keyword
+.B self
+means access to an entry is allowed to the entry itself (e.g. the entry
+being accessed and the requesting entry must be the same).
+.LP
+The statement
+.B dn=<pattern>
+means that access is granted to the matching dn.
+The optional style qualificator
+.B dnstyle
+allows the same choices of the dn form of the
+.B <what>
+field.
+In detail, the
+.B regex
+form of
+.B pattern
+can exploit substring substitution of submatches in the
+.B <what>
+dn by using the form
+.BR $<digit> ,
+with 
+.B digit
+ranging from 1 to 9.
+.LP
+The statement
+.B dnattr=<attrname>
+means that access is granted to requests whose dn is listed in the
+entry being accessed under the 
+.B attrname
+attribute.
+.LP
+The statement
+.B group=<pattern>
+means that access is granted to requests whose dn is listed
+in the group entry whose dn is given by
+.BR pattern .
+The optional parameters
+.B objectclass
+and
+.B attrname
+define the objectClass and the member attributeType of the group entry.
+The optional style qualificator
+.B style
+can be
+.BR regex ,
+which means that
+.B pattern
+will be expanded accorging to regex (7), and
+.B base
+or
+.B exact
+(an alias of
+.BR base ),
+which means that an exact match will be used.
+.LP
+The statements
+.BR peername=<pattern> ,
+.BR sockname=<pattern> ,
+.BR domain=<pattern> ,
+and
+.BR sockurl=<pattern>
+mean that the contacting host IP for
+.BR peername ,
+the named pipe file name for
+.BR sockname ,
+the contacting host name for
+.BR domain ,
+and the contacting URL for
+.BR sockurl
+are compared against
+.B pattern
+to determine access.
+The same
+.B style
+rules for pattern match described for the
+.B group
+case apply.
+.LP
+The statement
+.B set=<pattern>
+is undocumented yet.
+.LP
+The statement
+.B aci=<attrname>
+means that the access control is determined by the values in the
+.B attrname
+of the entry itself.
+ACIs are experimental; they must be enabled at compile time.
+.LP
+The modifiers
+.BR ssf=<n> ,
+.BR transport_ssf=<n> ,
+.BR tls_ssf=<n> ,
+and
+.BR sasl_ssf=<n>
+set the required Security Strenght Factor (ssf) required to grant access.
+They are prefixed to the 
+.B <who>
+clause they alter.
+.LP
+The field
+.B <access> ::= [self]{<level>|<priv>}
+determines the access level or the specific access privileges the
+.B who 
+field will have.
+Its component are defined as
+.LP
+.nf
+	<level> ::= none|auth|compare|search|read|write
+	<priv> ::= {=|+|-}{w|r|s|c|x}+
+.fi
+.LP
+The modifier
+.B self
+allows special operations like having a certain access level or privilege
+only in case the operation involves the name of the user that's requesting
+the access.
+It implies the user that requests access is bound.
+An example is the
+.B self write
+access to the member attribute of a group, which allows one to add/delete
+its own DN from the member list of a group, without affecting other members.
+.LP
+The 
+.B level 
+access model relies on an incremental interpretation of the access
+privileges.
+The possible levels are
+.BR none ,
+.BR auth ,
+.BR compare ,
+.BR search ,
+.BR read ,
+and
+.BR write .
+Each access level implies all the preceding ones, thus 
+.B write
+access will imply all accesses.
+While
+.B none
+is trivial, 
+.B auth
+access means that one is allowed access to an attribute to perform
+authentication operations (e.g.
+.BR bind )
+with no other access.
+This is useful to grant unauthenticated users the least possible 
+access level to critical resources, like passwords.
+.LP
+The
+.B priv
+access model relies on the explicit setting of access privileges
+for each clause.
+The
+.B =
+sign resets previously defined accesses; as a consequence, the final 
+access privileges will be only those defined by the clause.
+The 
+.B +
+and
+.B -
+signs add/remove access privileges to the existing ones.
+The privileges are
+.B w
+for write,
+.B r
+for read,
+.B s 
+for search,
+.B c 
+for compare, and
+.B x
+for authentication.
+More than one privilege can be added in one statement.
+.LP
+The optional field
+.B <control>
+controls the flow of access rule application.
+It can have the forms
+.LP
+.nf
+	stop
+	continue
+	break
+.fi
+.LP
+where
+.BR stop ,
+the default, means access checking stops in case of match.
+The other two forms are used to keep on processing access clauses.
+In detail, the
+.B continue
+form allows for other 
+.B <who>
+clauses in the same 
+.B <access>
+clause to be considered, so that they may result in incrementally altering
+the privileges, while the
+.B break
+form allows for other
+.B <access>
+clauses that match the same target to be processed.
+Consider the (silly) example
+.LP
+.nf
+	access to dn.subtree="dc=example,dc=com" attrs=cn
+		by * =cs break
+
+	access to dn.subtree="ou=People,dc=example,dc=com"
+		by * +r
+.fi
+.LP
+which allows search and compare privileges to everybody under
+the "dc=example,dc=com" tree, with the seconf rule allowing
+also read in the "ou=People" subtree,
+or the (even more silly) example
+.LP
+.nf
+	access to dn.subtree="dc=example,dc=com" attrs=cn
+		by * =cs continue
+		by users +r
+.fi
+.LP
+which grants everybody search and compare privileges, and adds read
+privileges to authenticated users.
+.SH FILES
+ETCDIR/slapd.conf
+.SH SEE ALSO
+.BR slapd (8),
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B      OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B      OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.
