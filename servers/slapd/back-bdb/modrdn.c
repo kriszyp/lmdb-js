@@ -752,7 +752,9 @@ retry:	/* transaction retry */
 			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 #endif
 		text = NULL;
-		bdb_cache_entry_commit( e );
+		if ( !noop ) {
+			bdb_cache_entry_commit( e );
+		}
 
 	} else {
 #ifdef NEW_LOGGING
