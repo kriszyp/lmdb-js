@@ -2773,7 +2773,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		SLAP_MR_EQUALITY, NULL,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, NULL, authPasswordMatch,
 		NULL, NULL,
 		NULL},
@@ -2782,7 +2782,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #ifdef SLAPD_ACI_ENABLED
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
-		SLAP_MR_EQUALITY, NULL,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, NULL, OpenLDAPaciMatch,
 		NULL, NULL,
 		NULL},
