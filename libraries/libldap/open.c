@@ -292,9 +292,11 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 		case LDAP_PROTO_UDP:
 			rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
 			break;
+#ifdef LDAP_PF_LOCAL
 		case LDAP_PROTO_LOCAL:
 			rc = ldap_connect_to_path( ld, sb, srv->lud_host, async );
 			break;
+#endif /* LDAP_PF_LOCAL */
 		default:
 			rc = -1;
 			break;
