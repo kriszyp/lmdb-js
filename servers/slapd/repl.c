@@ -260,8 +260,9 @@ replog1(
 	Modifications	*ml;
 	Attribute	*a;
 	AttributeName	*an;
-	int		dohdr = 1;
+	int		dohdr = 1, ocs = -1;
 	struct berval vals[2];
+
 	vals[1].bv_val = NULL;
 	vals[1].bv_len = 0;
 
@@ -298,9 +299,12 @@ replog1(
 				/* If this is objectClass, see if the value is included
 				 * in any subset, otherwise drop it.
 				 */
-				if ( ml->sml_desc == slap_schema.si_ad_objectClass
+				if ( ocs && ml->sml_desc == slap_schema.si_ad_objectClass
 					&& ml->sml_bvalues ) {
-					int i, ocs = 0, first = 1;
+					int i, first = 1;
+
+					if ( ocs == -1 ) ocs = 0;
+
 					for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
 						int match = 0;
 						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
@@ -314,24 +318,28 @@ replog1(
 								}
 							}
 						}
-						if ( ocs ) {
-							match ^= ri->ri_exclude;
-							/* Found a match, log it */
-							if ( match ) {
-								if ( dohdr ) {
-									rephdr( ri, op, fp, now );
-									fprintf( fp, "changetype: modify\n" );
-									dohdr = 0;
-								}
-								if ( first ) {
-									fprintf( fp, "%s: %s\n", did, type );
-									first = 0;
-								}
-								vals[0] = an->an_name;
-								print_vals( fp, &ml->sml_desc->ad_cname, vals );
-								ocs = 2;
+						/* Objectclasses need no special treatment, drop into
+						 * regular processing
+						 */
+						if ( !ocs ) break;
+
+						match ^= ri->ri_exclude;
+						/* Found a match, log it */
+						if ( match ) {
+							if ( dohdr ) {
+								rephdr( ri, op, fp, now );
+								fprintf( fp, "changetype: modify\n" );
+								dohdr = 0;
 							}
+							if ( first ) {
+								fprintf( fp, "%s: %s\n", did, type );
+								first = 0;
+							}
+							vals[0] = an->an_name;
+							print_vals( fp, &ml->sml_desc->ad_cname, vals );
+							ocs = 2;
 						}
+
 					}
 					/* Explicit objectclasses have been handled already */
 					if ( ocs ) {
@@ -367,8 +375,11 @@ replog1(
 				 * only include those classes in the
 				 * objectClass attribute
 				 */
-				if ( a->a_desc == slap_schema.si_ad_objectClass ) {
-					int i, ocs = 0;
+				if ( ocs && a->a_desc == slap_schema.si_ad_objectClass ) {
+					int i;
+
+					if ( ocs == -1 ) ocs = 0;
+
 					for ( i=0; a->a_vals[i].bv_val; i++ ) {
 						int match = 0;
 						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
@@ -382,8 +393,10 @@ replog1(
 								}
 							}
 						}
+						if ( !ocs ) break;
+
 						match ^= ri->ri_exclude;
-						if ( ocs && match ) {
+						if ( match ) {
 							if ( dohdr ) {
 								rephdr( ri, op, fp, now );
 								fprintf( fp, "changetype: add\n" );
