@@ -14,34 +14,6 @@
 
 /* end of preamble */
 
-/* --------------------------------------------------- */
-/* begin of WINNT specific entries */
-
-#ifdef WINNT
-
-/* don't suck in all of the win32 api */
-#define WIN32_LEAN_AND_MEAN
-
-/* WindowsNT specific features */
-#define HAVE_NT_SERVICE_MANAGER 1
-#define HAVE_NT_EVENT_LOG 1
-
-#define MAXPATHLEN _MAX_PATH
-
-/* preprocess out undefined functions */
-#define LOG_DEBUG 0
-#define openlog(a, b)
-#define closelog()
-
-/* define undefined types */
-#define ssize_t signed int
-typedef char * caddr_t;
-
-#endif
-
-/* end of WINNT specific entries */
-/* --------------------------------------------------- */
-
 /* Define if on AIX 3.
    System headers sometimes define this.
    We just want to avoid a redefinition error message.  */
@@ -304,9 +276,6 @@ typedef char * caddr_t;
 /* Define if you have the snprintf function.  */
 #undef HAVE_SNPRINTF
 
-/* Define to different name, if applicable */
-#undef snprintf
-
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
 
@@ -349,14 +318,8 @@ typedef char * caddr_t;
 /* Define if you have the thr_yield function.  */
 #undef HAVE_THR_YIELD
 
-/* Define if you have the _spawnlp function.  */
-#undef HAVE_SPAWNLP
-
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
-
-/* Define to different name, if applicable */
-#undef vsnprintf
 
 /* Define if you have the vsprintf function.  */
 #undef HAVE_VSPRINTF
@@ -366,9 +329,6 @@ typedef char * caddr_t;
 
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
-
-/* Define if you have the winsock support.  */
-#undef HAVE_WINSOCK
 
 /* Define if you have the write function.  */
 #undef HAVE_WRITE
@@ -484,6 +444,9 @@ typedef char * caddr_t;
 /* Define if you have the <openssl/ssl.h> header file.  */
 #undef HAVE_OPENSSL_SSL_H
 
+/* Define if you have the <process.h> header file.  */
+#undef HAVE_PROCESS_H
+
 /* Define if you have the <psap.h> header file.  */
 #undef HAVE_PSAP_H
 
@@ -495,9 +458,6 @@ typedef char * caddr_t;
 
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
-
-/* Define if you have the <process.h> header file.  */
-#undef HAVE_PROCESS_H
 
 /* Define if you have the <quipu/commonarg.h> header file.  */
 #undef HAVE_QUIPU_COMMONARG_H
@@ -601,6 +561,9 @@ typedef char * caddr_t;
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the <winsock.h> header file.  */
+#undef HAVE_WINSOCK_H
+
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
 
@@ -615,9 +578,6 @@ typedef char * caddr_t;
 
 /* Define if you have the inet library (-linet).  */
 #undef HAVE_LIBINET
-
-/* Define if you have the ltdl library (-lltdl).  */
-#undef HAVE_LIBLTDL
 
 /* Define if you have the net library (-lnet).  */
 #undef HAVE_LIBNET
@@ -646,6 +606,9 @@ typedef char * caddr_t;
 /* defined to be the EXE extension */
 #undef EXEEXT
 
+/* define if you have libtool -ltdl */
+#undef HAVE_LIBLTDL
+
 /* define if system uses EBCDIC instead of ASCII */
 #undef HAVE_EBCDIC
 
@@ -654,6 +617,9 @@ typedef char * caddr_t;
 
 /* define if you have POSIX termios */
 #undef HAVE_POSIX_TERMIOS
+
+/* define if you have winsock */
+#undef HAVE_WINSOCK
 
 /* define if you have res_search() */
 #undef HAVE_RES_SEARCH
@@ -697,6 +663,9 @@ typedef char * caddr_t;
 /* set to the number of arguments gethostbyaddr_r() expects */
 #undef GETHOSTBYADDR_R_NARGS
 
+/* if you have NT threads */
+#undef HAVE_NT_THREADS
+
 /* define if pthreads API compatible with final spec */
 #undef HAVE_PTHREADS_FINAL
 
@@ -732,9 +701,6 @@ typedef char * caddr_t;
 
 /* if you have LinuxThreads */
 #undef HAVE_LINUX_THREADS
-
-/* if you have NT threads */
-#undef HAVE_NT_THREADS
 
 /* define if you have (or want) no threads */
 #undef NO_THREADS
@@ -802,11 +768,11 @@ typedef char * caddr_t;
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 
-/* define to atomic type if sig_atomic_t is not available */
-#undef sig_atomic_t
-
 /* define to int if socklen_t is not available */
 #undef socklen_t
+
+/* define to atomic type if sig_atomic_t is not available */
+#undef sig_atomic_t
 
 /* define if struct passwd has pw_gecos */
 #undef HAVE_PW_GECOS
@@ -825,6 +791,15 @@ typedef char * caddr_t;
 
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
+
+/* define to snprintf routine */
+#undef snprintf
+
+/* define to vsnprintf routine */
+#undef vsnprintf
+
+/* if you have spawnlp() */
+#undef HAVE_SPAWNLP
 
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST

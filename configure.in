@@ -594,7 +594,7 @@ if test $ol_enable_modules != no ; then
 
 	AC_CHECK_LIB(ltdl, lt_dlinit, [
 	    MODULES_LIBS=-lltdl
-	    AC_DEFINE(HAVE_LIBLTDL)
+	    AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
 	])
 
 	if test "$ac_cv_lib_ltdl_lt_dlinit" = no ; then
@@ -695,7 +695,7 @@ closesocket(0);
 gethostname(NULL,0);
     ],[
 	AC_MSG_RESULT(yes)
-	AC_DEFINE(HAVE_WINSOCK)
+	AC_DEFINE(HAVE_WINSOCK,1,[define if you have winsock])
 	ac_cv_func_socket=yes
 	ac_cv_func_select=yes
 	ac_cv_func_closesocket=yes
@@ -1000,7 +1000,7 @@ if test "$ac_cv_mingw32" = yes ; then
     ol_with_yielding_select=yes
     AC_MSG_CHECKING(for NT threads)
     AC_MSG_RESULT(yes)
-    AC_DEFINE(HAVE_NT_THREADS)
+    AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT threads])
 fi
 
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
@@ -1971,15 +1971,15 @@ dnl Check for Mingw32 specific functions.
 if test "$ac_cv_mingw32" = yes ; then
     AC_CHECK_FUNC(_snprintf, [
 	ac_cv_func_snprintf=yes
-	AC_DEFINE(snprintf, _snprintf)
+	AC_DEFINE(snprintf, _snprintf, [define to snprintf routine])
     ])
 
     AC_CHECK_FUNC(_vsnprintf, [
 	ac_cv_func_vsnprintf=yes
-	AC_DEFINE(vsnprintf, _vsnprintf)
+	AC_DEFINE(vsnprintf, _vsnprintf, [define to vsnprintf routine])
     ])
 
-    AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP))
+    AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP,1,[if you have spawnlp()]))
 fi
 
 dnl we should use vfork instead of fork in a number of places...
