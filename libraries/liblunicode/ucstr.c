@@ -10,7 +10,7 @@
 #include <ac/string.h>
 #include <ac/stdlib.h>
 
-#include <lber.h>
+#include <lber_pvt.h>
 
 #include <ldap_utf8.h>
 #include <ldap_pvt_uc.h>
