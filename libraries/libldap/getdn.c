@@ -648,8 +648,11 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 		return LDAP_PARAM_ERROR;
 	}
 
-	if ( str[ 0 ] == '\0' ) {
+	if ( bv->bv_len == 0 ) {
 		return LDAP_SUCCESS;
+
+	} else if ( str[ 0 ] == '\0' ) {
+		return LDAP_DECODING_ERROR;
 	}
 
 	p = str;
@@ -873,8 +876,11 @@ ldap_bv2rdn( struct berval *bv, LDAPRDN **rdn,
 		return LDAP_PARAM_ERROR;
 	}
 
-	if ( str[ 0 ] == '\0' ) {
+	if ( bv->bv_len == 0 ) {
 		return LDAP_SUCCESS;
+
+	} else if ( str[ 0 ] == '\0' ) {
+		return LDAP_DECODING_ERROR;
 	}
 
 	p = str;

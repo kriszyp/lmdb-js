@@ -117,20 +117,21 @@ dnValidate(
 	}
 
 	rc = ldap_bv2dn( in, &dn, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	assert( strlen( in->bv_val ) == in->bv_len );
 
 	/*
 	 * Schema-aware validate
 	 */
+	rc = LDAPDN_validate( dn );
 	if ( rc == LDAP_SUCCESS ) {
-		rc = LDAPDN_validate( dn );
 		ldap_dnfree( dn );
 	}
 	
-	if ( rc != LDAP_SUCCESS ) {
-		return( LDAP_INVALID_SYNTAX );
-	}
-
-	return( LDAP_SUCCESS );
+	return LDAP_INVALID_SYNTAX;
 }
 
 /*
@@ -354,6 +355,8 @@ dnNormalize2(
 			return LDAP_INVALID_SYNTAX;
 		}
 
+		assert( strlen( val->bv_val ) == val->bv_len );
+
 		/*
 		 * Schema-aware rewrite
 		 */
@@ -425,6 +428,8 @@ dnPretty2(
 			return LDAP_INVALID_SYNTAX;
 		}
 
+		assert( strlen( val->bv_val ) == val->bv_len );
+
 		/*
 		 * Schema-aware rewrite
 		 */
@@ -484,6 +489,8 @@ dnPrettyNormal(
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
+
+		assert( strlen( val->bv_val ) == val->bv_len );
 
 		/*
 		 * Schema-aware rewrite
