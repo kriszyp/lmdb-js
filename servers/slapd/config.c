@@ -240,7 +240,7 @@ read_config( char *fname )
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth line must appear inside a database definition (ignored)\n",
                                    fname, lineno, 0 );
-                       } else if ((i = atoi(cargv[i])) < 0) {
+                       } else if ((i = atoi(cargv[1])) < 0) {
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth must be positive (ignored)\n",
                                    fname, lineno, 0 );
