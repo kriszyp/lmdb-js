@@ -226,7 +226,7 @@ retry:	/* transaction retry */
 		}
 	}
 
-#ifdef LDAP_SYNCREPL
+#ifdef LDAP_SYNCREPL /* FIXME : dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
 #else
 	if ( e == NULL ) {
@@ -240,11 +240,7 @@ retry:	/* transaction retry */
 			op->o_req_dn.bv_val, 0, 0);
 #endif
 
-#ifdef LDAP_SYNCREPL
-		if ( e == NULL && matched != NULL && !is_entry_glue( matched )) {
-#else
 		if ( matched != NULL ) {
-#endif
 			rs->sr_matched = ch_strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )

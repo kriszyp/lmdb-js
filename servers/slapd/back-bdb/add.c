@@ -312,10 +312,13 @@ retry:	/* transaction retry */
 #endif
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 					rs->sr_text = "no write access to parent";
-					goto return_results;;
+					goto return_results;
 				}
-
+#ifdef LDAP_SYNCREPL
+			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
+#else
 			} else {
+#endif
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: %s denied\n", 
 					pdn.bv_len == 0 ? "suffix" : "entry at root", 0, 0 );
@@ -324,7 +327,7 @@ retry:	/* transaction retry */
 					pdn.bv_len == 0 ? "suffix" : "entry at root",
 					0, 0 );
 #endif
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				goto return_results;
 			}
 		}
@@ -339,9 +342,9 @@ retry:	/* transaction retry */
 				"bdb_add: no parent, cannot add subentry\n",
 				0, 0, 0 );
 #endif
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			rs->sr_text = "no parent, cannot add subentry";
-			goto return_results;;
+			goto return_results;
 		}
 #endif
 	}

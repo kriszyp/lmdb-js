@@ -175,6 +175,7 @@ retry:	/* transaction retry */
 
 #ifdef LDAP_SYNCREPL
 	if ( e == NULL || is_entry_glue( e )) {
+			/* FIXME: dn2entry() should return non-glue entry */
 #else
 	if ( e == NULL ) {
 #endif
@@ -191,6 +192,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 #endif
+
 #ifdef BDB_ALIASES
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */

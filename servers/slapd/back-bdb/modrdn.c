@@ -160,14 +160,12 @@ retry:	/* transaction retry */
 	}
 
 	e = ei->bei_e;
-#ifdef LDAP_SYNCREPL
-	if ( rs->sr_err == DB_NOTFOUND || !e ||
-			( !manageDSAit && is_entry_glue( e ))) {
-		if( e != NULL && !is_entry_glue( e )) {
+#ifdef LDAP_SYNCREPL /* FIXME: dn2entry() should return non-glue entry */
+	if (( rs->sr_err == DB_NOTFOUND ) || ( !manageDSAit && e && is_entry_glue( e ))) {
 #else
 	if ( rs->sr_err == DB_NOTFOUND ) {
-		if( e != NULL ) {
 #endif
+		if( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
 				? get_entry_referrals( op, e )
@@ -686,6 +684,7 @@ retry:	/* transaction retry */
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
 		new_ndn.bv_val, 0, 0 );
 #endif
+
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;

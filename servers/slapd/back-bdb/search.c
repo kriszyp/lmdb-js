@@ -887,7 +887,9 @@ id2entry_retry:
 
 		rs->sr_entry = e;
 #ifdef BDB_SUBENTRIES
+		/* FIXME: send all but syncrepl
 		if ( !is_sync_protocol( sop ) ) {
+		*/
 			if ( is_entry_subentry( e ) ) {
 				if( sop->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
 					if(!get_subentries_visibility( sop )) {
@@ -906,7 +908,9 @@ id2entry_retry:
 				/* only subentries are visible */
 				goto loop_continue;
 			}
+		/*
 		}
+		*/
 #endif
 
 		/* Does this candidate actually satisfy the search scope?
@@ -1017,8 +1021,7 @@ id2entry_retry:
 		}
 
 #ifdef LDAP_SYNCREPL
-		if ( !manageDSAit && is_entry_glue( e ) )
-		{
+		if ( !manageDSAit && is_entry_glue( e )) {
 			goto loop_continue;
 		}
 #endif
