@@ -446,18 +446,30 @@ bdb_idl_insert_key(
 				}
 				if ( count >= BDB_IDL_DB_SIZE ) {
 				/* No room, convert to a range */
+					DBT key2 = *key;
+
+					key2.dlen = key2.ulen;
+					key2.flags |= DB_DBT_PARTIAL;
+
 					lo = tmp;
-					hi = NOID;
 					data.data = &hi;
-					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-					if ( rc != 0 ) {
-						err = "c_put NOID";
+					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_NODUP );
+					if ( rc != 0 && rc != DB_NOTFOUND ) {
+						err = "c_get next_nodup";
 						goto fail;
 					}
-					rc = cursor->c_get( cursor, key, &data, DB_PREV );
-					if ( rc != 0 ) {
-						err = "c_get prev";
-						goto fail;
+					if ( rc == DB_NOTFOUND ) {
+						rc = cursor->c_get( cursor, key, &data, DB_LAST );
+						if ( rc != 0 ) {
+							err = "c_get last";
+							goto fail;
+						}
+					} else {
+						rc = cursor->c_get( cursor, key, &data, DB_PREV );
+						if ( rc != 0 ) {
+							err = "c_get prev";
+							goto fail;
+						}
 					}
 					if ( id < lo )
 						lo = id;
