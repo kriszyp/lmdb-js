@@ -509,9 +509,7 @@ slapi_attr_get_values(
 
 	bv = (struct berval **)ch_malloc( (i + 1) * sizeof(struct berval *) );
 	for ( j = 0; j < i; j++ ) {
-		bv[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
-		bv[j]->bv_val = ch_strdup( attr->a_vals[j].bv_val );
-		bv[j]->bv_len = attr->a_vals[j].bv_len;
+		bv[j] = ber_dupbv( NULL, &attr->a_vals[j] );
 	}
 	bv[j] = NULL;
 	
@@ -1107,15 +1105,8 @@ slapi_filter_get_ava(
 			goto done;
 		}
 
-		*bval = (struct berval *)slapi_ch_malloc( sizeof(struct berval) );
+		*bval = ber_dupbv( NULL, &f->f_un.f_un_ava->aa_value );
 		if ( *bval == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto done;
-		}
-
-		(*bval)->bv_len = f->f_un.f_un_ava->aa_value.bv_len;
-		(*bval)->bv_val = slapi_ch_strdup( f->f_un.f_un_ava->aa_value.bv_val );
-		if ( (*bval)->bv_val == NULL ) {
 			rc = LDAP_NO_MEMORY;
 			goto done;
 		}
