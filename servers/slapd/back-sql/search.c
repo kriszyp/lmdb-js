@@ -1983,10 +1983,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
-			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
-				: LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			goto end_of_search;
+			goto send_results;
 		}
 
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -2217,17 +2214,11 @@ next_entry2:;
 				&& rs->sr_nentries >= op->ors_slimit )
 		{
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-			send_ldap_result( op, rs );
-			goto end_of_search;
+			goto send_results;
 		}
 	}
 
 end_of_search:;
-	entry_clean( &base_entry );
-
-	/* in case we got here accidentally */
-	entry_clean( &user_entry );
-
 	if ( rs->sr_nentries > 0 ) {
 		rs->sr_ref = rs->sr_v2ref;
 		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
@@ -2236,7 +2227,14 @@ end_of_search:;
 	} else {
 		rs->sr_err = bsi.bsi_status;
 	}
+
+send_results:;
 	send_ldap_result( op, rs );
+
+	entry_clean( &base_entry );
+
+	/* in case we got here accidentally */
+	entry_clean( &user_entry );
 
 	if ( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );
