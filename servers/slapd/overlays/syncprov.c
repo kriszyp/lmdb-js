@@ -1593,7 +1593,6 @@ syncprov_db_config(
 	slap_overinst		*on = (slap_overinst *)be->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 
-#if 0
 	if ( strcasecmp( argv[ 0 ], "syncprov-checkpoint" ) == 0 ) {
 		if ( argc != 3 ) {
 			fprintf( stderr, "%s: line %d: wrong number of arguments in "
@@ -1602,11 +1601,9 @@ syncprov_db_config(
 		}
 		si->si_chkops = atoi( argv[1] );
 		si->si_chktime = atoi( argv[2] ) * 60;
+		return 0;
 
-	} else {
-		return SLAP_CONF_UNKNOWN;
 	}
-#endif
 
 	return SLAP_CONF_UNKNOWN;
 }
@@ -1889,10 +1886,6 @@ syncprov_init()
 	syncprov.on_bi.bi_op_search = syncprov_op_search;
 	syncprov.on_bi.bi_extended = syncprov_op_extended;
 	syncprov.on_bi.bi_operational = syncprov_operational;
-
-#if 0
-	syncprov.on_response = syncprov_response;
-#endif
 
 	return overlay_register( &syncprov );
 }
