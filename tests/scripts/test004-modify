@@ -103,6 +103,16 @@ uniquemember: cn=Dorothy Stevens,ou=Alumni Association,
  ou=People,dc=example,dc=com
 uniquemember: cn=James A Jones 1,ou=Alumni Association,
  ou=People,dc=example,dc=com
+-
+add: objectClass
+objectClass: OpenLDAPdisplayableObject
+objectClass: pkiUser
+objectClass: userSecurityInformation
+-
+delete: objectClass
+objectClass: userSecurityInformation
+objectClass: pkiUser
+objectClass: OpenLDAPdisplayableObject
 
 dn: cn=All Staff,ou=Groups,dc=example,dc=com
 changetype: modify
