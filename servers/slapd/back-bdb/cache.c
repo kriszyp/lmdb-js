@@ -527,9 +527,10 @@ bdb_cache_lru_add(
 				lockp ) == 0 ) {
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
-				 * skip it.
+				 * or this node is being deleted, skip it.
 				 */
-				if ( !elru->bei_e || (elru->bei_state & CACHE_ENTRY_NOT_LINKED) ) {
+				if ( !elru->bei_e || (elru->bei_state & 
+					( CACHE_ENTRY_NOT_LINKED | CACHE_ENTRY_DELETED ))) {
 					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
