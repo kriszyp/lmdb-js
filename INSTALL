@@ -24,8 +24,9 @@ these steps:
 	these options is provided in the 'CONFIGURE OPTIONS' section
 	below.
 
-	The configure script will also use your environmental
-	variables for determining compiler/linker options.
+	The configure script uses environmental variables for
+	determining compiler/linker options.  See the HINTS
+	section for commonly used settings. 
 
 	These environment variables are used: 
 		CC			C Compiler	(cc, ecgs)
@@ -33,8 +34,8 @@ these steps:
 		CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
 		LDFLAGS		LDFLAGS		(-L/path/lib -llib)
 
-	A list of defines and other options are noted in the
-	'DEFINES and FLAGS' comments below.
+	See the 'USING ENVIRONMENT VARIABLES' section for information
+	on how to use the variables. 
 
  3. edit the file include/ldapconfig.h.edit to configure
     the software for your site (the files are well-commented):
@@ -113,16 +114,71 @@ Regrettably, this section has not been written (yet).  See
 "./configure --help" for current list of options.
 
 
-DEFINES and FLAGS
+USING ENVIRONMENT VARIABLES
 
 The configure script will also use your environmental
 variables for determining compiler/linker options.   This can
 be used to manual specify features and compilation options.
 
 Supported Environmental Variables
-	CC			C Compiler	(cc, ecgs)
-	CFLAGS		C Flags		(-ansi)
-	CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
-	LDFLAGS		LDFLAGS		(-L/path/lib -llib)
+	CC			C Compiler		(cc, ecgs)
+	CFLAGS		C Flags			(-ansi)
+	CPPFLAGS	CPP Flags		(-I/path/include -Ddef)
+	LDFLAGS		LDFLAGS			(-L/path/lib -llib)
+	PATH		command path	/usr/local/bin:/usr/bin:/bin
+
+* Including alternative compilers
+	Use the CC environment variable to tell configure to
+	use a specific compiler.  For example, to use ecgs
+	instead of the compiler configure choose, use:
+
+	[env] CC=ecgs ./configure 
+
+	You can also use CC use specific flags with the
+	specified compiler.  For example, to require strict
+	ANSI C using the GNU C Compiler, use:
+
+	[env] CC="gcc -ansi -predantic" ./configure
+
+	(you can use CFLAGS to specify compiler flags)
+
+* Preprocessor Flags
+	You may specify additional preprocessor flags by setting
+	CPPFLAGS.  For example, if you would like to use headers
+	installed in /usr/local/include, use:
+
+	[env] CPPFLAGS="-I/usr/local/include" ./configure
+
+	You can also use CPPFLAGS to specify preprocessor macros.
+
+	[env] CPPFLAGS="-D__SPECIAL_FLAG__" ./configure
+
+* Linker Flags
+	You may specify additional linker flags by setting LDFLAGS.
+	For example, if you would like to use libraries installed
+	in /usr/local/lib, use:
+
+	[env] LDFLAGS="-L/usr/local/lib" ./configure
+
+	You can also use CPPFLAGS to specify linker flags:
+
+	[env] LDFLAGS="-Bstatic" ./configure
+
+* Path
+	You may alter your path to affect configure ability to
+	find (or not find) commands.  For example, to have configure
+	additionally look in /usr/css/bin for commands, use:
+
+	[env] PATH="/usr/css/bin:$PATH" ./configure
+	
+
+HINTS
+
+* use software under installed in /usr/local/{include,lib}
+	[env] \
+		CPPFLAGS="-I/usr/local/include" \
+		LDFLAGS="-L/usr/local/lib" \
+		./configure
+
 
 End of OpenLDAP INSTALL file.
