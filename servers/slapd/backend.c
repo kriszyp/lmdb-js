@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 #ifdef SLAPD_LDBM
 #include "back-ldbm/external.h"
