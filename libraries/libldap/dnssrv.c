@@ -213,7 +213,7 @@ int ldap_domain2hostlist(
 
 	/* Parse out query */
 	p = reply;
-	p += sizeof(HEADER);
+	p += NS_HFIXEDSZ;
 	status = dn_expand(reply, reply + len, p, host, sizeof(host));
 	if (status < 0) {
 	    goto out;
