@@ -1397,7 +1397,7 @@ slapiControlOp2SlapControlMask(unsigned long slapi_mask,
 	if ( slapi_mask & SLAPI_OPERATION_ABANDON )
 		*slap_mask |= SLAP_CTRL_ABANDON;
 
-	*slap_mask |= SLAP_CTRL_FRONTEND;
+	*slap_mask |= SLAP_CTRL_GLOBAL;
 }
 
 static int
@@ -4264,6 +4264,20 @@ void slapi_ldap_unbind( LDAP *ld )
 {
 #ifdef LDAP_SLAPI
 	ldap_unbind( ld );
+#endif /* LDAP_SLAPI */
+}
+
+int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags )
+{
+#ifdef LDAP_SLAPI
+	if ( be == NULL )
+		return LDAP_PARAM_ERROR;
+
+	*flags = SLAP_DBFLAGS(be);
+
+	return LDAP_SUCCESS;
+#else
+	return -1;
 #endif /* LDAP_SLAPI */
 }
 
