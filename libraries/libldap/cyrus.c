@@ -1103,23 +1103,27 @@ void *ldap_pvt_sasl_mutex_new(void)
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
 		return mutex;
 	}
+	assert( 0 );
 	return NULL;
 }
 
 int ldap_pvt_sasl_mutex_lock(void *mutex)
 {
+	assert( mutex );
 	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
 }
 
 int ldap_pvt_sasl_mutex_unlock(void *mutex)
 {
+	assert( mutex );
 	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
 }
 
 void ldap_pvt_sasl_mutex_dispose(void *mutex)
 {
+	assert( mutex );
 	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
 	LDAP_FREE( mutex );
 }
