@@ -877,6 +877,9 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	BerElement	*ber;
 	LDAPreqinfo  bind;
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	if ( ldap_url_parse( url, &ludp ) != 0 ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return( -1 );

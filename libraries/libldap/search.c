@@ -96,6 +96,9 @@ ldap_search_ext(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	/*
 	 * if timeout is provided, both tv_sec and tv_usec must
 	 * be non-zero
@@ -206,6 +209,9 @@ ldap_search(
 	BerElement	*ber;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
 	    attrsonly, NULL, NULL, -1, -1 ); 
