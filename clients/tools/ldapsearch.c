@@ -444,7 +444,7 @@ main( int argc, char **argv )
 	}
 
 	if( urlpre == NULL ) {
-		urlpre = malloc( sizeof("file:///") + strlen(tmpdir) );
+		urlpre = malloc( sizeof("file:////") + strlen(tmpdir) );
 
 		if( urlpre == NULL ) {
 			perror( "malloc" );
