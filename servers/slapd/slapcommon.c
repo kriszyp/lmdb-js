@@ -55,7 +55,8 @@ usage( int tool, const char *progname )
 	switch( tool ) {
 	case SLAPACL:
 		options = "\n\t[-U authcID | -D authcDN]"
-			" -b DN [attr[/access][:value]] [...]\n";
+			" -b DN -o <var>[=<val>]"
+			"\n\t[attr[/access][:value]] [...]\n";
 		break;
 
 	case SLAPADD:
@@ -91,6 +92,62 @@ usage( int tool, const char *progname )
 	exit( EXIT_FAILURE );
 }
 
+static int
+parse_slapacl( void )
+{
+	size_t	len;
+	char	*p;
+
+	p = strchr( optarg, '=' );
+	if ( p == NULL ) {
+		return -1;
+	}
+
+	len = p - optarg;
+	p++;
+
+	if ( strncasecmp( optarg, "sockurl", len ) == 0 ) {
+		if ( !BER_BVISNULL( &listener_url ) ) {
+			ber_memfree( listener_url.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &listener_url );
+
+	} else if ( strncasecmp( optarg, "domain", len ) == 0 ) {
+		if ( !BER_BVISNULL( &peer_domain ) ) {
+			ber_memfree( peer_domain.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &peer_domain );
+
+	} else if ( strncasecmp( optarg, "peername", len ) == 0 ) {
+		if ( !BER_BVISNULL( &peer_name ) ) {
+			ber_memfree( peer_name.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &peer_name );
+
+	} else if ( strncasecmp( optarg, "sockname", len ) == 0 ) {
+		if ( !BER_BVISNULL( &sock_name ) ) {
+			ber_memfree( sock_name.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &sock_name );
+
+	} else if ( strncasecmp( optarg, "ssf", len ) == 0 ) {
+		ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "transport_ssf", len ) == 0 ) {
+		transport_ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "tls_ssf", len ) == 0 ) {
+		tls_ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "sasl_ssf", len ) == 0 ) {
+		sasl_ssf = atoi( p );
+
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
 
 /*
  * slap_tool_init - initialize slap utility, handle program options.
@@ -157,7 +214,7 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
-		options = "b:D:d:f:F:U:v";
+		options = "b:D:d:f:F:o:U:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -207,6 +264,12 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg );
+			break;
+
+		case 'o':
+			if ( parse_slapacl() ) {
+				usage( tool, progname );
+			}
 			break;
 
 		case 'q':	/* turn on quick */

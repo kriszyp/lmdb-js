@@ -39,8 +39,9 @@ slapacl( int argc, char **argv )
 {
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapacl";
-	Connection		conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
+	Connection		conn = { 0 };
+	Listener		listener;
+	char			opbuf[OPERATION_BUFFER_SIZE];
 	Operation		*op;
 	Entry			e = { 0 };
 	char			*attr = NULL;
@@ -52,6 +53,16 @@ slapacl( int argc, char **argv )
 
 	op = (Operation *)opbuf;
 	connection_fake_init( &conn, op, &conn );
+
+	conn.c_listener = &listener;
+	conn.c_listener_url = listener_url;
+	conn.c_peer_domain = peer_domain;
+	conn.c_peer_name = peer_name;
+	conn.c_sock_name = sock_name;
+	op->o_ssf = ssf;
+	op->o_transport_ssf = transport_ssf;
+	op->o_tls_ssf = tls_ssf;
+	op->o_sasl_ssf = sasl_ssf;
 
 	if ( !BER_BVISNULL( &authcID ) ) {
 		rc = slap_sasl_getdn( &conn, op, &authcID, NULL,
