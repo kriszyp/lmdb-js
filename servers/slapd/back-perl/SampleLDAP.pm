@@ -14,10 +14,10 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 #
-# Usage: Add something this to slapd.conf:
+# Usage: Add something like this to slapd.conf:
 #
 #	database	perl
-#	suffix		"o=AnyOrg, c=US"
+#	suffix		"o=AnyOrg,c=US"
 #	perlModulePath	/path/to/this/file
 #	perlModule	SampleLDAP
 
