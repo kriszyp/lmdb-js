@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include "slap.h"
 #include "ldapconfig.h"
 #include "back-ldbm.h"
