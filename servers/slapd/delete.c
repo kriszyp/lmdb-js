@@ -86,7 +86,7 @@ do_delete(
 		goto cleanup;
 	}
 
-	if( ndn == '\0' ) {
+	if( *ndn == '\0' ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 			   "do_delete: conn %d  Attempt to delete root DSE.\n", conn->c_connid ));

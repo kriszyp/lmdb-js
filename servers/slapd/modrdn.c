@@ -212,7 +212,7 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( ndn == '\0' ) {
+	if( *ndn == '\0' ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "do_modrdn:  attempt to modify root DSE.\n" ));
