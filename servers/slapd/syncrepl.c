@@ -774,6 +774,7 @@ do_syncrepl(
 	int dostop = 0;
 	ber_socket_t s;
 	int i, defer = 1;
+	Backend *be;
 
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl\n", 0, 0, 0 );
 
@@ -805,7 +806,7 @@ do_syncrepl(
 	op.o_dn = si->si_updatedn;
 	op.o_ndn = si->si_updatedn;
 	op.o_managedsait = 1;
-	op.o_bd = si->si_be;
+	op.o_bd = be = si->si_be;
 
 	op.o_sync_state.ctxcsn = NULL;
 	op.o_sync_state.sid = -1;
@@ -880,6 +881,8 @@ do_syncrepl(
 
 		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
 			ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+			LDAP_STAILQ_REMOVE( &be->be_syncinfo, si, syncinfo_s, si_next );
+			syncinfo_free( si );
 		} else if ( si->si_retrynum[i] >= -1 ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
@@ -1277,6 +1280,7 @@ done :
 	}
 	if ( si->si_syncUUID_ndn.bv_val ) {
 		ch_free( si->si_syncUUID_ndn.bv_val );
+		si->si_syncUUID_ndn.bv_val = NULL;
 	}
 	return ret;
 }
