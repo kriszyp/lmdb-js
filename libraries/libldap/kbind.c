@@ -273,7 +273,7 @@ ldap_get_kerberosv4_credentials(
 		return( NULL );
 	}
 
-	if( ! ber_pvt_sb_in_use( &ld->ld_sb ) ) {
+	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
 		int rc = ldap_open_defconn( ld );
 

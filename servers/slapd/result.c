@@ -19,9 +19,6 @@
 
 #include "slap.h"
 
-/* we need LBER internals */
-#include "../../libraries/liblber/lber-int.h"
-
 static char *v2ref( struct berval **ref, const char *text )
 {
 	size_t len = 0, i = 0;
@@ -196,6 +193,7 @@ static long send_ldap_ber(
 	/* write the pdu */
 	while( 1 ) {
 		int err;
+		ber_socket_t	sd;
 
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -230,7 +228,8 @@ static long send_ldap_ber(
 
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
-		slapd_set_write( ber_pvt_sb_get_desc( conn->c_sb ), 1 );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
+		slapd_set_write( sd, 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
 		conn->c_writewaiter = 0;
@@ -382,7 +381,8 @@ send_ldap_disconnect(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -453,7 +453,8 @@ send_ldap_result(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -499,7 +500,8 @@ send_ldap_sasl(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -540,7 +542,8 @@ send_ldap_extended(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -603,7 +606,8 @@ send_search_result(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),

@@ -26,7 +26,6 @@
 #include <quipu/dua.h>
 
 #include "lber.h"
-#include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
 #include "ldap.h"
 #include "common.h"
 
@@ -701,7 +700,8 @@ search_result(
 			    LDAP_OPERATIONS_ERROR, NULL, "ber_printf" );
 			return;
 		}
-	   	ber_pvt_sb_udp_set_dst( sb, &m->m_clientaddr );
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&m->m_clientaddr );
 
 		if ( ber_flush( sb, ber, 1 ) != 0 ) {
 		    send_ldap_msgresult( sb, SEARCHRESTAG, m, 

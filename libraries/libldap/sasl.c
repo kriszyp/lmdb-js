@@ -32,6 +32,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/errno.h>
 
 #include "ldap-int.h"
 
@@ -349,22 +350,8 @@ ldap_parse_sasl_bind_result(
 * Various Cyrus SASL related stuff.
 */
 
-static int sasl_setup( Sockbuf *sb, void *arg );
-static int sasl_remove( Sockbuf *sb );
-static ber_slen_t sasl_read( Sockbuf *sb, void *buf, ber_len_t len );
-static ber_slen_t sasl_write( Sockbuf *sb, void *buf, ber_len_t len );
-static int sasl_close( Sockbuf *sb );
-
-static Sockbuf_IO sasl_io=
-{
-sasl_setup,
-sasl_remove,
-sasl_read,
-sasl_write,
-sasl_close
-}; 
-
-#define HAS_SASL( sb ) ((sb)->sb_io==&sasl_io)
+#define MAX_BUFF_SIZE	65536
+#define MIN_BUFF_SIZE	4096
 
 static char *
 array2str( char **a )
@@ -424,79 +411,259 @@ int ldap_pvt_sasl_init( void )
 	return -1;
 }
 
+/*
+ * SASL encryption support for LBER Sockbufs
+ */
+
+struct sb_sasl_data {
+	sasl_conn_t		*sasl_context;
+	Sockbuf_Buf		sec_buf_in;
+	Sockbuf_Buf		buf_in;
+	Sockbuf_Buf		buf_out;
+};
+
+static int
+sb_sasl_setup( Sockbuf_IO_Desc *sbiod, void *arg )
+{
+	struct sb_sasl_data	*p;
+
+	assert( sbiod != NULL );
+
+	p = LBER_MALLOC( sizeof( *p ) );
+	if ( p == NULL )
+		return -1;
+	p->sasl_context = (sasl_conn_t *)arg;
+	ber_pvt_sb_buf_init( &p->sec_buf_in );
+	ber_pvt_sb_buf_init( &p->buf_in );
+	ber_pvt_sb_buf_init( &p->buf_out );
+	if ( ber_pvt_sb_grow_buffer( &p->sec_buf_in, MIN_BUFF_SIZE ) < 0 ) {
+		errno = ENOMEM;
+		return -1;
+	}
+
+	sbiod->sbiod_pvt = p;
+
+	return 0;
+}
+
+static int
+sb_sasl_remove( Sockbuf_IO_Desc *sbiod )
+{
+	struct sb_sasl_data	*p;
+
+	assert( sbiod != NULL );
+	
+	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
+	ber_pvt_sb_buf_destroy( &p->sec_buf_in );
+	ber_pvt_sb_buf_destroy( &p->buf_in );
+	ber_pvt_sb_buf_destroy( &p->buf_out );
+	LBER_FREE( p );
+	sbiod->sbiod_pvt = NULL;
+	return 0;
+}
+
+static ber_len_t
+sb_sasl_pkt_length( const char *buf, int debuglevel )
+{
+	ber_len_t		size;
+	long			tmp;
+
+	assert( buf != NULL );
+
+	tmp = *((long *)buf);
+	size = ntohl( tmp );
+   
+	if ( size > MAX_BUFF_SIZE ) {
+		/* somebody is trying to mess me up. */
+		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
+			"sb_sasl_pkt_length: received illegal packet length "
+			"of %lu bytes\n", (unsigned long)size );      
+		size = 16; /* this should lead to an error. */
+}
+
+	return size + 4; /* include the size !!! */
+}
+
+/* Drop a processed packet from the input buffer */
+static void
+sb_sasl_drop_packet ( Sockbuf_Buf *sec_buf_in, int debuglevel )
+{
+	ber_slen_t			len;
+
+	len = sec_buf_in->buf_ptr - sec_buf_in->buf_end;
+	if ( len > 0 )
+		memmove( sec_buf_in->buf_base, sec_buf_in->buf_base +
+			sec_buf_in->buf_end, len );
+   
+	if ( len >= 4 ) {
+		sec_buf_in->buf_end = sb_sasl_pkt_length( sec_buf_in->buf_base,
+			debuglevel);
+	}
+	else {
+		sec_buf_in->buf_end = 0;
+	}
+	sec_buf_in->buf_ptr = len;
+}
+
+static ber_slen_t
+sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
+{
+	struct sb_sasl_data	*p;
+	ber_slen_t		ret, bufptr;
+   
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
+
+	/* Are there anything left in the buffer? */
+	ret = ber_pvt_sb_copy_out( &p->buf_in, buf, len );
+	bufptr = ret;
+	len -= ret;
+
+	if ( len == 0 )
+		return bufptr;
+
+	ber_pvt_sb_buf_destroy( &p->buf_in );
+
+	/* Read the length of the packet */
+	while ( p->sec_buf_in.buf_ptr < 4 ) {
+		ret = LBER_SBIOD_READ_NEXT( sbiod, p->sec_buf_in.buf_base,
+			4 - p->sec_buf_in.buf_ptr );
+#ifdef EINTR
+		if ( ( ret < 0 ) && ( errno == EINTR ) )
+			continue;
+#endif
+		if ( ret <= 0 )
+			return ret;
+
+		p->sec_buf_in.buf_ptr += ret;
+	}
+
+	/* The new packet always starts at p->sec_buf_in.buf_base */
+	ret = sb_sasl_pkt_length( p->sec_buf_in.buf_base,
+		sbiod->sbiod_sb->sb_debug );
+
+	/* Grow the packet buffer if neccessary */
+	if ( ( p->sec_buf_in.buf_size < ret ) && 
+			ber_pvt_sb_grow_buffer( &p->sec_buf_in, ret ) < 0 ) {
+		errno = ENOMEM;
+		return -1;
+	}
+	p->sec_buf_in.buf_end = ret;
+
+	/* Did we read the whole encrypted packet? */
+	while ( p->sec_buf_in.buf_ptr < p->sec_buf_in.buf_end ) {
+		/* No, we have got only a part of it */
+		ret = p->sec_buf_in.buf_end - p->sec_buf_in.buf_ptr;
+
+		ret = LBER_SBIOD_READ_NEXT( sbiod, p->sec_buf_in.buf_base +
+			p->sec_buf_in.buf_ptr, ret );
+#ifdef EINTR
+		if ( ( ret < 0 ) && ( errno == EINTR ) )
+			continue;
+#endif
+		if ( ret <= 0 )
+			return ret;
+
+		p->sec_buf_in.buf_ptr += ret;
+   	}
+
+	/* Decode the packet */
+	ret = sasl_decode( p->sasl_context, p->sec_buf_in.buf_base,
+		p->sec_buf_in.buf_end, &p->buf_in.buf_base,
+		(unsigned *)&p->buf_in.buf_end );
+	if ( ret != SASL_OK ) {
+		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
+			"sb_sasl_read: failed to decode packet: %s\n",
+			sasl_errstring( ret, NULL, NULL ) );
+		sb_sasl_drop_packet( &p->sec_buf_in,
+			sbiod->sbiod_sb->sb_debug );
+		errno = EIO;
+		return -1;
+	}
+	
+	/* Drop the packet from the input buffer */
+	sb_sasl_drop_packet( &p->sec_buf_in, sbiod->sbiod_sb->sb_debug );
+
+	p->buf_in.buf_size = p->buf_in.buf_end;
+
+	bufptr += ber_pvt_sb_copy_out( &p->buf_in, buf + bufptr, len );
+
+	return bufptr;
+}
+
+static ber_slen_t
+sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
+{
+	struct sb_sasl_data	*p;
+	int			ret;
+
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
+
+	/* Are there anything left in the buffer? */
+	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
+		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+		if ( ret <= 0 )
+			return ret;
+	}
+
+	/* now encode the next packet. */
+	ber_pvt_sb_buf_destroy( &p->buf_out );
+	ret = sasl_encode( p->sasl_context, buf, len, &p->buf_out.buf_base,
+		(unsigned *)&p->buf_out.buf_size );
+	if ( ret != SASL_OK ) {
+		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
+			"sb_sasl_write: failed to encode packet: %s\n",
+			sasl_errstring( ret, NULL, NULL ) );
+		return -1;
+	}
+	p->buf_out.buf_end = p->buf_out.buf_size;
+
+	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+	if ( ret <= 0 )
+		return ret;
+	return len;
+}
+
+static int
+sb_sasl_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
+{
+	struct sb_sasl_data	*p;
+
+	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
+
+	if ( opt == LBER_SB_OPT_DATA_READY ) {
+		if ( p->buf_in.buf_ptr != p->buf_in.buf_end )
+			return 1;
+	}
+	
+	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );
+}
+
+Sockbuf_IO ldap_pvt_sockbuf_io_sasl =
+{
+	sb_sasl_setup,		/* sbi_setup */
+	sb_sasl_remove,		/* sbi_remove */
+	sb_sasl_ctrl,		/* sbi_ctrl */
+	sb_sasl_read,		/* sbi_read */
+	sb_sasl_write,		/* sbi_write */
+	NULL			/* sbi_close */
+};
+
 int ldap_pvt_sasl_install( Sockbuf *sb, void *ctx_arg )
 {
 	/* don't install the stuff unless security has been negotiated */
 
-	if ( !HAS_SASL( sb ) ) {
-		ber_pvt_sb_clear_io( sb );
-		ber_pvt_sb_set_io( sb, &sasl_io, ctx_arg );
-	}
+	if ( !ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO,
+			&ldap_pvt_sockbuf_io_sasl ) )
+		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_sasl,
+			LBER_SBIOD_LEVEL_APPLICATION, ctx_arg );
 
-	return 0;
-}
-
-static int sasl_setup( Sockbuf *sb, void *arg )
-{
-	sb->sb_iodata = arg;
-	return 0;
-}
-
-static int sasl_remove( Sockbuf *sb )
-{
-	return 0;
-}
-
-static ber_slen_t sasl_read( Sockbuf *sb, void *buf, ber_len_t buflen )
-{
-	char *recv_tok;
-	unsigned recv_tok_len;
-	sasl_conn_t *conn = (sasl_conn_t *)sb->sb_iodata;
-
-	if ((ber_pvt_sb_io_tcp.sbi_read)( sb, buf, buflen ) != buflen ) {
-		return -1;
-	}
-
-	if ( sasl_decode( conn, buf, buflen, &recv_tok, &recv_tok_len ) != SASL_OK ) {
-		return -1;
-	}
-
-	if ( recv_tok_len > buflen ) {
-		LDAP_FREE( recv_tok );
-		return -1;
-	}
-
-	memcpy( buf, recv_tok, recv_tok_len );	
-
-	LDAP_FREE( recv_tok );
-
-	return recv_tok_len;
-}
-
-static ber_slen_t sasl_write( Sockbuf *sb, void *buf, ber_len_t len )
-{
-	char *wrapped_tok;
-	unsigned wrapped_tok_len;
-	sasl_conn_t *conn = (sasl_conn_t *)sb->sb_iodata;
-
-	if ( sasl_encode( conn, (const char *)buf, len,
-		&wrapped_tok, &wrapped_tok_len ) != SASL_OK ) {
-		return -1;
-	}
-
-	if ((ber_pvt_sb_io_tcp.sbi_write)( sb, wrapped_tok, wrapped_tok_len ) != wrapped_tok_len ) {
-		LDAP_FREE( wrapped_tok );
-		return -1;
-	}
-
-	LDAP_FREE( wrapped_tok );
-
-	return len;
-}
-
-static int sasl_close( Sockbuf *sb )
-{
-	return (ber_pvt_sb_io_tcp.sbi_close)( sb );
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -598,11 +765,16 @@ ldap_pvt_sasl_bind(
 	LDAPControl		**cctrls )
 {
 	const char *mech;
-	int	saslrc, rc, ssf = 0;
+	int			saslrc, rc;
+	sasl_ssf_t		*ssf = NULL;
 	unsigned credlen;
 	struct berval ccred, *scred;
 	char *host;
 	sasl_interact_t *client_interact = NULL;
+	struct sockaddr_in	sin;
+	socklen_t		len;
+	sasl_security_properties_t	secprops;
+	ber_socket_t		sd;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_bind\n", 0, 0, 0 );
 
@@ -612,15 +784,18 @@ ldap_pvt_sasl_bind(
 		return ld->ld_errno;
 	}
 
-	if( ! ber_pvt_sb_in_use( &ld->ld_sb ) ) {
+	ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
+
+	if ( sd == AC_SOCKET_INVALID ) {
  		/* not connected yet */
  		int rc = ldap_open_defconn( ld );
   
 		if( rc < 0 ) return ld->ld_errno;
+		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
 	}   
 
 	/* XXX this doesn't work with PF_LOCAL hosts */
-	host = ldap_host_connected_to( &ld->ld_sb );
+	host = ldap_host_connected_to( ld->ld_sb );
 
 	if ( host == NULL ) {
 		ld->ld_errno = LDAP_UNAVAILABLE;
@@ -631,15 +806,41 @@ ldap_pvt_sasl_bind(
 		sasl_dispose( &ld->ld_sasl_context );
 	}
 
-	saslrc = sasl_client_new( "ldap", host, callbacks, 0, &ld->ld_sasl_context );
+	saslrc = sasl_client_new( "ldap", host, callbacks, SASL_SECURITY_LAYER,
+		&ld->ld_sasl_context );
 
 	LDAP_FREE( host );
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
-		ld->ld_errno = sasl_err2ldap( rc );
+		ld->ld_errno = sasl_err2ldap( saslrc );
 		sasl_dispose( &ld->ld_sasl_context );
 		return ld->ld_errno;
 	}
+
+	len = sizeof( sin );
+	if ( getpeername( sd, (struct sockaddr *)&sin, &len ) == -1 ) {
+		Debug( LDAP_DEBUG_ANY, "SASL: can't query remote IP.\n",
+			0, 0, 0 );
+		ld->ld_errno = LDAP_OPERATIONS_ERROR;
+		return ld->ld_errno;
+	}
+	sasl_setprop( ld->ld_sasl_context, SASL_IP_REMOTE, &sin );
+
+	len = sizeof( sin );
+	if ( getsockname( sd, (struct sockaddr *)&sin, &len ) == -1 ) {
+		Debug( LDAP_DEBUG_ANY, "SASL: can't query local IP.\n",
+			0, 0, 0 );
+		ld->ld_errno = LDAP_OPERATIONS_ERROR;
+		return ld->ld_errno;
+	}
+	sasl_setprop( ld->ld_sasl_context, SASL_IP_LOCAL, &sin );
+
+	memset( &secprops, 0, sizeof( secprops ) );
+	secprops.min_ssf = ld->ld_options.ldo_sasl_minssf;
+	secprops.max_ssf = ld->ld_options.ldo_sasl_maxssf;
+	secprops.security_flags = SASL_SECURITY_LAYER;
+	secprops.maxbufsize = 65536;
+	sasl_setprop( ld->ld_sasl_context, SASL_SEC_PROPS, &secprops );
 
 	ccred.bv_val = NULL;
 	ccred.bv_len = 0;
@@ -702,8 +903,8 @@ ldap_pvt_sasl_bind(
 	assert ( rc == LDAP_SUCCESS );
 
 	if ( sasl_getprop( ld->ld_sasl_context, SASL_SSF, (void **)&ssf )
-		== SASL_OK && ssf ) {
-		ldap_pvt_sasl_install( &ld->ld_sb, ld->ld_sasl_context );
+		== SASL_OK && ssf && *ssf ) {
+		ldap_pvt_sasl_install( ld->ld_sb, ld->ld_sasl_context );
 	}
 
 	return rc;

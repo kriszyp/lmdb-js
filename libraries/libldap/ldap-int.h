@@ -20,11 +20,12 @@
 #include "../liblber/lber-int.h"
 
 #define ldap_debug	(ldap_int_global_options.ldo_debug)
+
+#include "ldap_log.h"
+
 #undef Debug
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
-
-#include "ldap_log.h"
 
 #include "ldap.h"
 
@@ -230,7 +231,7 @@ typedef struct ldapreqinfo {
  */
 
 struct ldap {
-	Sockbuf		ld_sb;		/* socket descriptor & buffer */
+	Sockbuf		*ld_sb;		/* socket descriptor & buffer */
 
 	struct ldapoptions ld_options;
 
@@ -390,8 +391,6 @@ LIBLDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srvlis
 LIBLDAP_F (int) ldap_int_tblsize;
 LIBLDAP_F (int) ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
 LIBLDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host, unsigned long address, int port, int async );
-
-LIBLDAP_F (void) ldap_close_connection( Sockbuf *sb );
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LIBLDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );

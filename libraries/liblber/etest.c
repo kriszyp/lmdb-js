@@ -75,7 +75,9 @@ main( int argc, char **argv )
 	fd = fileno(stdout);
 #endif
 
-	sb = ber_sockbuf_alloc_fd( fd );
+	sb = ber_sockbuf_alloc();
+	ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd, LBER_SBIOD_LEVEL_PROVIDER,
+		(void *)&fd );
 
 	if( sb == NULL ) {
 		perror( "ber_sockbuf_alloc_fd" );

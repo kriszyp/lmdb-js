@@ -161,7 +161,13 @@ ldap_create( LDAP **ldp )
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
-	ber_pvt_sb_init( &(ld->ld_sb) );
+	ld->ld_sb = ber_sockbuf_alloc( );
+	if ( ld->ld_sb == NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		LDAP_FREE( (char*) ld );
+		WSACleanup( );
+		return LDAP_NO_MEMORY;
+	}
 
 	*ldp = ld;
 	return LDAP_SUCCESS;
@@ -283,24 +289,41 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 
 	switch ( srv->lud_protocol ) {
 		case LDAP_PROTO_TCP:
+			rc = ldap_connect_to_host( ld, sb, srv->lud_host,
+				addr, port, async );
+			if ( rc == -1 )
+				return rc;
+			ber_sockbuf_add_io( sb, &ber_sockbuf_io_tcp,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+			break;
 		case LDAP_PROTO_UDP:
-			rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
+			rc = ldap_connect_to_host( ld, sb, srv->lud_host,
+				addr, port, async );
+			if ( rc == -1 )
+				return rc;
+			ber_sockbuf_add_io( sb, &ber_sockbuf_io_udp,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
 #ifdef LDAP_PF_LOCAL
 		case LDAP_PROTO_LOCAL:
-			rc = ldap_connect_to_path( ld, sb, srv->lud_host, async );
+			rc = ldap_connect_to_path( ld, sb, srv->lud_host,
+				async );
+			if ( rc == -1 )
+				return rc;
+			ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
 #endif /* LDAP_PF_LOCAL */
 		default:
-			rc = -1;
+			return -1;
 			break;
 	}
 
-	if ( rc == -1 ) {
-		return( rc );
-	}
-   
-   	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
+	ber_sockbuf_add_io( sb, &ber_sockbuf_io_readahead,
+		LBER_SBIOD_LEVEL_PROVIDER, NULL );
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug, INT_MAX, NULL );
+#endif
 
 #ifdef HAVE_TLS
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||

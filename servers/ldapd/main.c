@@ -38,7 +38,6 @@
 #include <quipu/ds_error.h>
 
 #include "lber.h"
-#include "../../libraries/liblber/lber-int.h"	/* get struct sockbuf */
 #include "ldap.h"
 #include "common.h"
 #include "lutil.h"		/* Get lutil_detach() */
@@ -492,7 +491,7 @@ do_queries(
 	fd_set		readfds;
 	int		rc;
 	struct timeval	timeout;
-	Sockbuf		sb;
+	Sockbuf		*sb;
 #ifdef LDAP_CONNECTIONLESS
 	struct sockaddr	saddr, faddr;
 	struct sockaddr *saddrlist[ 1 ];
@@ -515,10 +514,9 @@ do_queries(
 		conn_init();
 	}
 
-   	ber_pvt_sb_init( &sb );
-   	ber_pvt_sb_set_desc( &sb, clientsock );
-	ber_pvt_sb_set_io( &sb, (udp) ? &ber_pvt_sb_io_udp :
-					&ber_pvt_sb_io_tcp, NULL );
+	sb = ber_sockbuf_alloc( );
+	ber_sockbuf_add_io( sb, (udp) ? &ber_sockbuf_io_udp :
+		&ber_sockbuf_io_tcp, (void *)&clientsock );
 	timeout.tv_sec = idletime;
 	timeout.tv_usec = 0;
 	for ( ;; ) {
@@ -547,7 +545,7 @@ do_queries(
 		 * already waiting for us on the client sock.
 		 */
 
-		if ( ! ber_pvt_sb_data_ready( &sb ) ) {
+		if ( ! ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
 			if ( (rc = select( dtblsize, &readfds, 0, 0,
 			    udp ? 0 : &timeout )) < 1 ) {
 #ifdef LDAP_DEBUG
@@ -573,9 +571,9 @@ do_queries(
 			}
 		}
 
-		if ( ber_pvt_sb_data_ready( &sb ) ||
+		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ||
 		    FD_ISSET( clientsock, &readfds ) ) {
-			client_request( &sb, conns, udp );
+			client_request( sb, conns, udp );
 		} else {
 			if ( (dsaconn = conn_getfd( &readfds )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "No DSA activity!\n",
@@ -583,7 +581,7 @@ do_queries(
 				continue;
 			}
 
-			dsa_response( dsaconn, &sb );
+			dsa_response( dsaconn, sb );
 		}
 	}
 	/* NOT REACHED */

@@ -208,7 +208,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 	rc = ldap_pvt_connect(ld, s, &server, async);
 
 	if (rc == 0) {
-		ber_pvt_sb_set_desc( sb, s );
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, (void *)&s );
 	} else {
 		ldap_pvt_close_socket(ld, s);
 	}

@@ -180,7 +180,7 @@ do_abandon(
 				if ( lr != NULL ) {
 					sb = lr->lr_conn->lconn_sb;
 				} else {
-					sb = &ld->ld_sb;
+					sb = ld->ld_sb;
 				}
 
 				if ( ber_flush( sb, ber, 1 ) != 0 ) {

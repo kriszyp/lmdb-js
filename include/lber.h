@@ -123,11 +123,26 @@ typedef struct lber_memory_fns {
 	BER_MEMFREE_FN bmf_free;
 } BerMemoryFunctions;
 
-/* LBER Sockbuf options */ 
-#define LBER_TO_FILE           0x01	/* to a file referenced by sb_fd   */
-#define LBER_TO_FILE_ONLY      0x02	/* only write to file, not network */
-#define LBER_MAX_INCOMING_SIZE 0x04	/* impose limit on incoming stuff  */
-#define LBER_NO_READ_AHEAD     0x08	/* read only as much as requested  */
+/* LBER Sockbuf_IO options */ 
+#define LBER_SB_OPT_GET_FD		1
+#define LBER_SB_OPT_SET_FD		2
+#define LBER_SB_OPT_HAS_IO		3
+#define LBER_SB_OPT_SET_NONBLOCK	4
+#define LBER_SB_OPT_UDP_GET_SRC		5
+#define LBER_SB_OPT_UDP_SET_DST		6
+#define LBER_SB_OPT_GET_SSL		7
+#define LBER_SB_OPT_DATA_READY		8
+#define LBER_SB_OPT_SET_READAHEAD	9
+#define LBER_SB_OPT_DRAIN		10
+#define LBER_SB_OPT_NEEDS_READ		11
+#define LBER_SB_OPT_NEEDS_WRITE		12
+/* Largest option used by the library */
+#define LBER_SB_OPT_OPT_MAX		12
+
+/* LBER IO operations stacking levels */
+#define LBER_SBIOD_LEVEL_PROVIDER	10
+#define LBER_SBIOD_LEVEL_TRANSPORT	20
+#define LBER_SBIOD_LEVEL_APPLICATION	30
 
 /* get/set options for Sockbuf */
 #define LBER_OPT_SOCKBUF_DESC		0x1000
@@ -144,6 +159,43 @@ typedef struct lber_memory_fns {
 typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
 typedef struct seqorset Seqorset;
+
+typedef struct sockbuf_io Sockbuf_IO;
+
+/* Structure for LBER IO operarion descriptor */
+typedef struct sockbuf_io_desc {
+	int			sbiod_level;
+	Sockbuf			*sbiod_sb;
+	Sockbuf_IO		*sbiod_io;
+	void 			*sbiod_pvt;
+	struct sockbuf_io_desc	*sbiod_next;
+} Sockbuf_IO_Desc;
+
+/* Structure for LBER IO operation functions */
+struct sockbuf_io {
+	int (*sbi_setup)( Sockbuf_IO_Desc *sbiod, void *arg );
+	int (*sbi_remove)( Sockbuf_IO_Desc *sbiod );
+	int (*sbi_ctrl)( Sockbuf_IO_Desc *sbiod, int opt, void *arg);
+	
+	ber_slen_t (*sbi_read)( Sockbuf_IO_Desc *sbiod, void *buf,
+		ber_len_t len );
+	ber_slen_t (*sbi_write)( Sockbuf_IO_Desc *sbiod, void *buf,
+		ber_len_t len );
+	
+	int (*sbi_close)( Sockbuf_IO_Desc *sbiod );
+};
+
+/* Helper macros for LBER IO functions */
+#define LBER_SBIOD_READ_NEXT( sbiod, buf, len ) \
+	( (sbiod)->sbiod_next->sbiod_io->sbi_read( (sbiod)->sbiod_next, \
+		buf, len ) )
+#define LBER_SBIOD_WRITE_NEXT( sbiod, buf, len ) \
+	( (sbiod)->sbiod_next->sbiod_io->sbi_write( (sbiod)->sbiod_next, \
+		buf, len ) )
+#define LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg ) \
+	( (sbiod)->sbiod_next ? \
+		( (sbiod)->sbiod_next->sbiod_io->sbi_ctrl( \
+		(sbiod)->sbiod_next, opt, arg ) ) : 0 )
 
 /* structure for returning a sequence of octet strings + length */
 typedef struct berval {
@@ -428,16 +480,38 @@ ber_set_option LDAP_P((
  * LBER sockbuf.c
  */
 
-LIBLBER_F( Sockbuf * )
-ber_sockbuf_alloc( void );
-
 LIBLBER_F( Sockbuf *  )
-ber_sockbuf_alloc_fd(
-	ber_socket_t fd );
+ber_sockbuf_alloc LDAP_P((
+	void ));
 
 LIBLBER_F( void )
-ber_sockbuf_free(
-	Sockbuf *sb );
+ber_sockbuf_free LDAP_P((
+	Sockbuf *sb ));
+
+LIBLBER_F( int )
+ber_sockbuf_add_io LDAP_P((
+	Sockbuf *sb,
+	Sockbuf_IO *sbio,
+	int layer,
+	void *arg ));
+
+LIBLBER_F( int )
+ber_sockbuf_remove_io LDAP_P((
+	Sockbuf *sb,
+	Sockbuf_IO *sbio,
+	int layer ));
+
+LIBLBER_F( int )
+ber_sockbuf_ctrl LDAP_P((
+	Sockbuf *sb,
+	int opt,
+	void *arg ));
+
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_tcp;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_udp;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_readahead;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_fd;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_debug;
 
 /*
  * LBER memory.c

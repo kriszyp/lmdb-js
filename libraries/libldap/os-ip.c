@@ -337,7 +337,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		rc = ldap_pvt_connect(ld, s, &sin, async);
    
 		if ( (rc == 0) || (rc == -2) ) {
-			ber_pvt_sb_set_desc( sb, s );
+			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
 			break;
 		}
 
@@ -349,13 +349,6 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	if (ha_buf) LDAP_FREE(ha_buf);
 	return rc;
 }
-
-void
-ldap_close_connection( Sockbuf *sb )
-{
-	ber_pvt_sb_close( sb );
-}
-
 
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
 char *
@@ -369,12 +362,14 @@ ldap_host_connected_to( Sockbuf *sb )
    	struct hostent		he_buf;
         int			local_h_errno;
    	char			*ha_buf=NULL;
+	ber_socket_t		sd;
 #define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
 	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
 
-	if ( getpeername( ber_pvt_sb_get_desc(sb), (struct sockaddr *)&sin, &len ) == -1 ) {
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( getpeername( sd, (struct sockaddr *)&sin, &len ) == -1 ) {
 		return( NULL );
 	}
 
@@ -414,11 +409,13 @@ void
 ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	
-	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_writefds )) {
-		FD_SET( (u_int) sb->sb_sd, &sip->si_writefds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( !FD_ISSET( sd, &sip->si_writefds )) {
+		FD_SET( sd, &sip->si_writefds );
 	}
 }
 
@@ -427,11 +424,13 @@ void
 ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_readfds )) {
-		FD_SET( (u_int) sb->sb_sd, &sip->si_readfds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( !FD_ISSET( sd, &sip->si_readfds )) {
+		FD_SET( sd, &sip->si_readfds );
 	}
 }
 
@@ -440,11 +439,13 @@ void
 ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_writefds );
-	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_readfds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	FD_CLR( sd, &sip->si_writefds );
+	FD_CLR( sd, &sip->si_readfds );
 }
 
 
@@ -452,10 +453,12 @@ int
 ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_writefds ));
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	return( FD_ISSET( sd, &sip->si_use_writefds ));
 }
 
 
@@ -463,10 +466,12 @@ int
 ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_readfds ));
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	return( FD_ISSET( sd, &sip->si_use_readfds ));
 }
 
 

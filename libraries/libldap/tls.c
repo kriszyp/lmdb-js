@@ -41,23 +41,10 @@ static char *tls_opt_cacertdir = NULL;
 static int  tls_opt_require_cert = 0;
 static char *tls_opt_ciphersuite = NULL;
 
-#define HAS_TLS( sb ) ((sb)->sb_io==&tls_io)
+#define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
+				(void *)&ldap_pvt_sockbuf_io_tls )
 
-static int tls_setup( Sockbuf *sb, void *arg );
-static int tls_remove( Sockbuf *sb );
-static ber_slen_t tls_read( Sockbuf *sb, void *buf, ber_len_t len );
-static ber_slen_t tls_write( Sockbuf *sb, void *buf, ber_len_t len );
-static int tls_close( Sockbuf *sb );
 static void tls_report_error( void );
-
-static Sockbuf_IO tls_io=
-{
-   tls_setup,
-   tls_remove,
-   tls_read,
-   tls_write,
-   tls_close
-};
 
 static void tls_info_cb( SSL *ssl, int where, int ret );
 static int tls_verify_cb( int ok, X509_STORE_CTX *ctx );
@@ -243,9 +230,8 @@ get_ca_list( char * bundle, char * dir )
 }
 
 static SSL *
-alloc_handle( Sockbuf *sb, void *ctx_arg )
+alloc_handle( void *ctx_arg )
 {
-	int	err;
 	SSL_CTX	*ctx;
 	SSL	*ssl;
 
@@ -266,8 +252,6 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 	if ( tls_opt_trace ) {
 		SSL_set_info_callback( ssl, tls_info_cb );
 	}
-	sb->sb_iodata = ssl;
-	SSL_set_fd( ssl, ber_pvt_sb_get_desc( sb ) );
 	return ssl;
 }
 
@@ -294,6 +278,252 @@ update_flags( Sockbuf *sb, SSL * ssl, int rc )
 }
 
 /*
+ * TLS support for LBER Sockbufs
+ */
+
+struct tls_data {
+	SSL			*ssl;
+	Sockbuf_IO_Desc		*sbiod;
+};
+
+extern BIO_METHOD ldap_pvt_sb_bio_method;
+
+static int
+sb_tls_setup( Sockbuf_IO_Desc *sbiod, void *arg )
+{
+	struct tls_data		*p;
+	BIO			*bio;
+
+	assert( sbiod != NULL );
+
+	p = LBER_MALLOC( sizeof( *p ) );
+	if ( p == NULL )
+		return -1;
+	
+	p->ssl = (SSL *)arg;
+	p->sbiod = sbiod;
+	bio = BIO_new( &ldap_pvt_sb_bio_method );
+	bio->ptr = (void *)p;
+	SSL_set_bio( p->ssl, bio, bio );
+	sbiod->sbiod_pvt = p;
+	return 0;
+}
+
+static int
+sb_tls_remove( Sockbuf_IO_Desc *sbiod )
+{
+	struct tls_data		*p;
+	
+	assert( sbiod != NULL );
+	assert( sbiod->sbiod_pvt != NULL );
+
+	p = (struct tls_data *)sbiod->sbiod_pvt;
+	SSL_free( p->ssl );
+	LBER_FREE( sbiod->sbiod_pvt );
+	sbiod->sbiod_pvt = NULL;
+	return 0;
+}
+
+static int
+sb_tls_close( Sockbuf_IO_Desc *sbiod )
+{
+	struct tls_data		*p;
+	
+	assert( sbiod != NULL );
+	assert( sbiod->sbiod_pvt != NULL );
+
+	p = (struct tls_data *)sbiod->sbiod_pvt;
+	SSL_shutdown( p->ssl );
+	return 0;
+}
+
+static int
+sb_tls_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
+{
+	struct tls_data		*p;
+	
+	assert( sbiod != NULL );
+	assert( sbiod->sbiod_pvt != NULL );
+
+	p = (struct tls_data *)sbiod->sbiod_pvt;
+	
+	if ( opt == LBER_SB_OPT_GET_SSL ) {
+		*((SSL **)arg) = p->ssl;
+		return 1;
+	}
+	
+	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );
+}
+
+static ber_slen_t
+sb_tls_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
+{
+	struct tls_data		*p;
+	ber_slen_t		ret;
+	int			err;
+
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	p = (struct tls_data *)sbiod->sbiod_pvt;
+
+	ret = SSL_read( p->ssl, (char *)buf, len );
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
+	err = SSL_get_error( p->ssl, ret );
+	if (err == SSL_ERROR_WANT_READ ) {
+		sbiod->sbiod_sb->sb_trans_needs_read = 1;
+#ifdef WIN32
+		errno = EWOULDBLOCK;
+#endif
+	}
+	else
+		sbiod->sbiod_sb->sb_trans_needs_read = 0;
+	return ret;
+}
+
+static ber_slen_t
+sb_tls_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
+{
+	struct tls_data		*p;
+	ber_slen_t		ret;
+	int			err;
+
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	p = (struct tls_data *)sbiod->sbiod_pvt;
+
+	ret = SSL_write( p->ssl, (char *)buf, len );
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
+	err = SSL_get_error( p->ssl, ret );
+	if (err == SSL_ERROR_WANT_WRITE ) {
+		sbiod->sbiod_sb->sb_trans_needs_write = 1;
+#ifdef WIN32
+		errno = EWOULDBLOCK;
+#endif
+	}
+	else
+		sbiod->sbiod_sb->sb_trans_needs_write = 0;
+	return ret;
+}
+
+Sockbuf_IO ldap_pvt_sockbuf_io_tls =
+{
+	sb_tls_setup,		/* sbi_setup */
+	sb_tls_remove,		/* sbi_remove */
+	sb_tls_ctrl,		/* sbi_ctrl */
+	sb_tls_read,		/* sbi_read */
+	sb_tls_write,		/* sbi_write */
+	sb_tls_close		/* sbi_close */
+};
+
+static int
+sb_tls_bio_create( BIO *b ) {
+	b->init = 1;
+	b->num = 0;
+	b->ptr = NULL;
+	b->flags = 0;
+	return 1;
+}
+
+static int
+sb_tls_bio_destroy( BIO *b )
+{
+	if ( b == NULL )
+		return 0;
+
+	b->ptr = NULL;		/* sb_tls_remove() will free it */
+	b->init = 0;
+	b->flags = 0;
+	return 1;
+}
+
+static int
+sb_tls_bio_read( BIO *b, char *buf, int len )
+{
+	struct tls_data		*p;
+	int			ret;
+		
+	if ( buf == NULL || len <= 0 )
+		return 0;
+
+	p = (struct tls_data *)b->ptr;
+
+	if ( p == NULL || p->sbiod == NULL )
+		return 0;
+
+	ret = LBER_SBIOD_READ_NEXT( p->sbiod, buf, len );
+
+	BIO_clear_retry_flags( b );
+	if ( ret < 0 && errno == EWOULDBLOCK )
+		BIO_set_retry_read( b );
+
+	return ret;
+}
+
+static int
+sb_tls_bio_write( BIO *b, char *buf, int len )
+{
+	struct tls_data		*p;
+	int			ret;
+	
+	if ( buf == NULL || len <= 0 )
+		return 0;
+	
+	p = (struct tls_data *)b->ptr;
+
+	if ( p == NULL || p->sbiod == NULL )
+		return 0;
+
+	ret = LBER_SBIOD_WRITE_NEXT( p->sbiod, buf, len );
+
+	BIO_clear_retry_flags( b );
+	if ( ret < 0 && errno == EWOULDBLOCK )
+		BIO_set_retry_write( b );
+
+	return ret;
+}
+
+static long
+sb_tls_bio_ctrl( BIO *b, int cmd, long num, char *ptr )
+{
+	if ( cmd == BIO_CTRL_FLUSH ) {
+		/* The OpenSSL library needs this */
+		return 1;
+	}
+	return 0;
+}
+
+static int
+sb_tls_bio_gets( BIO *b, char *buf, int len )
+{
+	return -1;
+}
+
+static int
+sb_tls_bio_puts( BIO *b, char *str )
+{
+	return sb_tls_bio_write( b, str, strlen( str ) );
+}
+	
+BIO_METHOD ldap_pvt_sb_bio_method =
+{
+	( 100 | 0x400 ),		/* it's a source/sink BIO */
+	"sockbuf glue",
+	sb_tls_bio_write,
+	sb_tls_bio_read,
+	sb_tls_bio_puts,
+	sb_tls_bio_gets,
+	sb_tls_bio_ctrl,
+	sb_tls_bio_create,
+	sb_tls_bio_destroy
+};
+
+/*
  * Call this to do a TLS connect on a sockbuf. ctx_arg can be
  * a SSL_CTX * or NULL, in which case the default ctx is used.
  *
@@ -313,13 +543,17 @@ ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	SSL	*ssl;
 
 	if ( HAS_TLS( sb ) ) {
-		ssl = (SSL *) sb->sb_iodata;
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
 	} else {
-		ssl = alloc_handle( sb, ctx_arg );
+		ssl = alloc_handle( ctx_arg );
 		if ( ssl == NULL )
 			return -1;
-		ber_pvt_sb_clear_io( sb );
-		ber_pvt_sb_set_io( sb, &tls_io, (void *)ssl );
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
+#endif
+		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_tls,
+			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 	}
 
 	err = SSL_connect( ssl );
@@ -335,8 +569,12 @@ ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 			ld->ld_error = ldap_strdup(ERR_error_string(err, buf));
 		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
-		ber_pvt_sb_clear_io( sb );
-		ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
+		ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_tls,
+			LBER_SBIOD_LEVEL_TRANSPORT );
+#ifdef LDAP_DEBUG
+		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_TRANSPORT );
+#endif
 		return -1;
 	}
 	return 0;
@@ -353,13 +591,17 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 	SSL	*ssl;
 
 	if ( HAS_TLS( sb ) ) {
-		ssl = (SSL *) sb->sb_iodata;
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
 	} else {
-		ssl = alloc_handle( sb, ctx_arg );
+		ssl = alloc_handle( ctx_arg );
 		if ( ssl == NULL )
 			return -1;
-		ber_pvt_sb_clear_io( sb );
-		ber_pvt_sb_set_io( sb, &tls_io, (void *)ssl );
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
+#endif
+		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_tls,
+			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 	}
 
 	err = SSL_accept( ssl );
@@ -372,8 +614,12 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 			return 1;
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept.\n",0,0,0 );
 		tls_report_error();
-		ber_pvt_sb_clear_io( sb );
-		ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
+		ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_tls,
+			LBER_SBIOD_LEVEL_TRANSPORT );
+#ifdef LDAP_DEBUG
+		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_TRANSPORT );
+#endif
 		return -1;
 	}
 	return 0;
@@ -390,16 +636,19 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 void *
 ldap_pvt_tls_sb_handle( Sockbuf *sb )
 {
-	if (HAS_TLS( sb ))
-		return sb->sb_iodata;
-	else
+	void			*p;
+	
+	if (HAS_TLS( sb )) {
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&p );
+		return p;
+	}
 		return NULL;
 }
 
 void *
 ldap_pvt_tls_get_handle( LDAP *ld )
 {
-	return ldap_pvt_tls_sb_handle(&ld->ld_sb);
+	return ldap_pvt_tls_sb_handle( ld->ld_sb );
 }
 
 const char *
@@ -566,60 +815,6 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	 */
 
 	return LDAP_SUCCESS;
-}
-
-
-static int
-tls_setup( Sockbuf *sb, void *arg )
-{
-	sb->sb_iodata = arg;
-	return 0;
-}
-
-static int
-tls_remove( Sockbuf *sb )
-{
-	SSL_free( (SSL *) sb->sb_iodata );
-	return 0;
-}
-
-static ber_slen_t
-tls_write( Sockbuf *sb, void *buf, ber_len_t sz )
-{
-	int ret = SSL_write( (SSL *)sb->sb_iodata, buf, sz );
-
-#ifdef HAVE_WINSOCK
-	errno = WSAGetLastError();
-#endif
-	update_flags(sb, (SSL *)sb->sb_iodata, ret );
-#ifdef WIN32
-	if (sb->sb_trans_needs_write)
-		errno = EWOULDBLOCK;
-#endif
-	return ret;
-}
-
-static ber_slen_t
-tls_read( Sockbuf *sb, void *buf, ber_len_t sz )
-{
-	int ret = SSL_read( (SSL *)sb->sb_iodata, buf, sz );
-
-#ifdef HAVE_WINSOCK
-	errno = WSAGetLastError();
-#endif
-	update_flags(sb, (SSL *)sb->sb_iodata, ret );
-#ifdef WIN32
-	if (sb->sb_trans_needs_read)
-		errno = EWOULDBLOCK;
-#endif
-	return ret;
-}
-
-static int
-tls_close( Sockbuf *sb )
-{
-	tcp_close( ber_pvt_sb_get_desc( sb ) );
-	return 0;
 }
 
 /* Derived from openssl/apps/s_cb.c */

@@ -145,7 +145,7 @@ ldap_ld_free(
 	}
 #endif 
 
-	ber_pvt_sb_destroy( &(ld->ld_sb) );   
+	ber_sockbuf_free( ld->ld_sb );   
    
 	LDAP_FREE( (char *) ld );
    

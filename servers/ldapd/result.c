@@ -24,7 +24,6 @@
 #include <quipu/dua.h>
 
 #include "lber.h"
-#include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
 #include "ldap.h"
 #include "common.h"
 
@@ -281,7 +280,8 @@ send_ldap_msgresult(
 {
 #ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
-	   	ber_pvt_sb_udp_set_dst( &sb, &m->m_clientaddr );
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_UDP_SET_DST,
+		    (void *)&m->m_clientaddr );
 
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
@@ -306,7 +306,7 @@ send_ldap_result(
 	int		rc;
 #ifdef LDAP_CONNECTIONLESS
 	int		cldap;
-	cldap = ( sb->sb_io == &ber_pvt_sb_io_udp );
+	cldap = ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, &ber_sockbuf_io_udp );
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_result\n", 0, 0, 0 );

@@ -151,12 +151,12 @@ ldap_get_option(
 		} break;
 
 	case LDAP_OPT_DESC:
-		if(ld == NULL) {
+		if( ld == NULL || ld->ld_sb == NULL ) {
 			/* bad param */
 			break;
 		} 
 
-		* (ber_socket_t *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
+		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, outvalue );
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:

@@ -218,7 +218,8 @@ wait4msg(
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( ber_pvt_sb_data_ready(lc->lconn_sb) ) {
+			if ( ber_sockbuf_ctrl( lc->lconn_sb,
+					LBER_SB_OPT_DATA_READY, NULL ) ) {
 				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
@@ -888,14 +889,16 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	int	rc;
 	ber_tag_t	tag;
 	ber_len_t	len;
+	ber_socket_t	sd;
 
-	if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
+	ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( sd != AC_SOCKET_INVALID ) {
 		/* restored from ldap_select1() in result.c version 1.24 */
 		fd_set	readfds;
 		if ( ldap_int_tblsize == 0 )
 			ldap_int_ip_init();
 		FD_ZERO( &readfds );
-		FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
+		FD_SET( sd, &readfds );
 		rc = select( ldap_int_tblsize, &readfds, 0, 0, timeout );
 
 		if ( rc == -1 || rc == 0 ) {
@@ -906,7 +909,7 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	}
 
 	/* get the next message */
-	if ( (tag = ber_get_next( &ld->ld_sb, &len, ber ))
+	if ( (tag = ber_get_next( ld->ld_sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
 		ld->ld_errno = (tag == LBER_DEFAULT ? LDAP_SERVER_DOWN :
 		    LDAP_LOCAL_ERROR);

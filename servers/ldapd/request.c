@@ -28,7 +28,6 @@
 #include <quipu/dua.h>
 
 #include "lber.h"
-#include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
 #include "ldap.h"
 #include "common.h"
 
@@ -89,7 +88,8 @@ client_request(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( udp && dosyslog ) {
-	   	sai = (struct sockaddr_in *)ber_pvt_sb_udp_get_src( &clientsb );
+		ber_sockbuf_ctrl( clientsb, LBER_SB_OPT_UDP_GET_SRC,
+			(void *)&sai );
 		syslog( LOG_INFO, "UDP request from unknown (%s)",
 			inet_ntoa( sai->sin_addr ) );
 	}
@@ -193,7 +193,7 @@ client_request(
 		free( ber.ber_buf );
 		return;
 	}
-	sai = (struct sockaddr_in *) ber_pvt_sb_udp_get_src( &clientsb );
+	ber_sockbuf_ctrl( clientsb, LBER_SB_OPT_UDP_GET_SRC, (void *)&sai );
    
 	if ( get_cldap_msg( msgid, tag,
 	    (struct sockaddr *)sai ) != NULL ) {

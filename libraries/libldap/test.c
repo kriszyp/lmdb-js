@@ -235,6 +235,9 @@ bind_prompt( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid)
 	char *dnp;
 	int	authmethod;
 
+	printf("rebind for request=%d msgid=%ld url=%s\n",
+		request, (long) msgid, url );
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
@@ -321,12 +324,12 @@ main( int argc, char **argv )
 
 		case 't':	/* copy ber's to given file */
 			copyfname = strdup( optarg );
-			copyoptions = LBER_TO_FILE;
+/*			copyoptions = LBER_TO_FILE; */
 			break;
 
 		case 'T':	/* only output ber's to given file */
 			copyfname = strdup( optarg );
-			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY);
+/*			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY); */
 			break;
 
 		default:
@@ -362,12 +365,12 @@ main( int argc, char **argv )
 	}
 
 	if ( copyfname != NULL ) {
-		if ( (ld->ld_sb.sb_fd = open( copyfname, O_WRONLY | O_CREAT,
+		if ( ( ld->ld_sb->sb_fd = open( copyfname, O_WRONLY | O_CREAT,
 		    0600 ))  == -1 ) {
 			perror( copyfname );
 			exit ( EXIT_FAILURE );
 		}
-		ld->ld_sb.sb_options = copyoptions;
+		ld->ld_sb->sb_options = copyoptions;
 	}
 
 	bound = 0;

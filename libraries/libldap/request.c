@@ -100,7 +100,7 @@ ldap_send_initial_request(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
-	if ( ! ber_pvt_sb_in_use(&ld->ld_sb ) ) {
+	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
 		int rc = ldap_open_defconn( ld );
 
@@ -293,7 +293,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 		return( NULL );
 	}
 
-	lc->lconn_sb = ( use_ldsb ) ? &ld->ld_sb : sb;
+	lc->lconn_sb = ( use_ldsb ) ? ld->ld_sb : sb;
 
 	if ( connect ) {
 		for ( srv = srvlist; srv != NULL; srv = srv->lud_next ) {
@@ -433,10 +433,6 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 		}
 
-		/* force closure */
-		ldap_close_connection( lc->lconn_sb );
-		ber_pvt_sb_destroy( lc->lconn_sb );
-
 		if( lc->lconn_ber != NULL ) {
 			ber_free( lc->lconn_ber, 1 );
 		}
@@ -458,7 +454,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if ( lc->lconn_krbinstance != NULL ) {
 			LDAP_FREE( lc->lconn_krbinstance );
 		}
-		if ( lc->lconn_sb != &ld->ld_sb ) {
+		if ( lc->lconn_sb != ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		}
 		if( lc->lconn_rebind_queue != NULL) {
@@ -493,7 +489,7 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 			    ( lc->lconn_server->lud_host == NULL ) ? "(null)"
 			    : lc->lconn_server->lud_host,
 			    lc->lconn_server->lud_port, ( lc->lconn_sb ==
-			    &ld->ld_sb ) ? "  (default)" : "" );
+			    ld->ld_sb ) ? "  (default)" : "" );
 		}
 		fprintf( stderr, "  refcnt: %d  status: %s\n", lc->lconn_refcnt,
 		    ( lc->lconn_status == LDAP_CONNST_NEEDSOCKET ) ?
