@@ -42,15 +42,6 @@ fi
 echo "Waiting 5 seconds to wait for master to start..."
 sleep 5
 
-echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRREFSLAVECONF > $REPLCONF
-$SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
-SLAVEPID=$!
-if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
-    read foo
-fi
-
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
@@ -62,6 +53,25 @@ for i in 0 1 2 3 4 5; do
 	echo "Waiting 5 seconds for slapd to start..."
 	sleep 5
 done
+
+echo "Using ldapadd to create the context prefix entry in the master..."
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
+	$LDIFORDEREDCP > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed ($RC)!"
+	kill -HUP $PID $SLAVEPID
+	exit $RC
+fi
+
+echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
+. $CONFFILTER $BACKEND $MONITORDB < $SRREFSLAVECONF > $REPLCONF
+$SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+SLAVEPID=$!
+if test $WAIT != 0 ; then
+    echo SLAVEPID $SLAVEPID
+    read foo
+fi
 
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
@@ -77,7 +87,7 @@ done
 
 echo "Using ldapadd to populate the master directory..."
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
-	$LDIFORDERED > /dev/null 2>&1
+	$LDIFORDEREDNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
