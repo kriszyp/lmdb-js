@@ -161,7 +161,8 @@ LDAP_SLAPD_F (int) at_delete_from_list LDAP_P((
 	int pos, AttributeType ***listp ));
 LDAP_SLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) at_add LDAP_P((
-	LDAPAttributeType *at, int user, const char **err ));
+	LDAPAttributeType *at, int user,
+	AttributeType **sat, const char **err ));
 LDAP_SLAPD_F (void) at_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) is_at_subtype LDAP_P((
@@ -174,6 +175,9 @@ LDAP_SLAPD_F (int) is_at_syntax LDAP_P((
 
 LDAP_SLAPD_F (int) at_start LDAP_P(( AttributeType **at ));
 LDAP_SLAPD_F (int) at_next LDAP_P(( AttributeType **at ));
+
+LDAP_SLAPD_F (void) at_unparse LDAP_P((
+	BerVarray *bva, AttributeType *start, AttributeType *end, int system ));
 
 /*
  * attr.c
@@ -512,11 +516,15 @@ LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));
  * cr.c
  */
 LDAP_SLAPD_F (int) cr_schema_info( Entry *e );
+LDAP_SLAPD_F (void) cr_unparse LDAP_P((
+	BerVarray *bva, ContentRule *start, ContentRule *end, int system ));
 
 LDAP_SLAPD_F (int) cr_add LDAP_P((
 	LDAPContentRule *oc,
 	int user,
+	ContentRule **scr,
 	const char **err));
+
 LDAP_SLAPD_F (void) cr_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (ContentRule *) cr_find LDAP_P((
@@ -951,6 +959,7 @@ LDAP_SLAPD_F (void) mra_free LDAP_P((
 LDAP_SLAPD_F (int) oc_add LDAP_P((
 	LDAPObjectClass *oc,
 	int user,
+	ObjectClass **soc,
 	const char **err));
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
 
@@ -1000,15 +1009,19 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, 1))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
+LDAP_SLAPD_F (void) oc_unparse LDAP_P((
+	BerVarray *bva, ObjectClass *start, ObjectClass *end, int system ));
 
 /*
  * oidm.c
  */
 LDAP_SLAPD_F(char *) oidm_find(char *oid);
 LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
-LDAP_SLAPD_F (void) oidm_unparse LDAP_P(( BerVarray *bva ));
+LDAP_SLAPD_F (void) oidm_unparse LDAP_P((
+	BerVarray *bva, OidMacro *start, OidMacro *end, int system ));
 LDAP_SLAPD_F (int) parse_oidm LDAP_P((
-	const char *fname, int lineno, int argc, char **argv, int user ));
+	const char *fname, int lineno, int argc, char **argv, int user,
+	OidMacro **om ));
 
 /*
  * operation.c
@@ -1261,11 +1274,14 @@ LDAP_SLAPD_F (int) slap_schema_check LDAP_P((void));
 LDAP_SLAPD_F( int ) slap_valid_descr( const char * );
 
 LDAP_SLAPD_F (int) parse_cr LDAP_P((
-	const char *fname, int lineno, char *line, char **argv ));
+	const char *fname, int lineno, char *line, char **argv,
+	ContentRule **scr ));
 LDAP_SLAPD_F (int) parse_oc LDAP_P((
-	const char *fname, int lineno, char *line, char **argv ));
+	const char *fname, int lineno, char *line, char **argv,
+	ObjectClass **soc ));
 LDAP_SLAPD_F (int) parse_at LDAP_P((
-	const char *fname, int lineno, char *line, char **argv ));
+	const char *fname, int lineno, char *line, char **argv,
+	AttributeType **sat ));
 LDAP_SLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 	char delim ));

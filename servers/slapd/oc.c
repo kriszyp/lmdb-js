@@ -120,8 +120,8 @@ struct oindexrec {
 
 static Avlnode	*oc_index = NULL;
 static Avlnode	*oc_cache = NULL;
-static LDAP_SLIST_HEAD(OCList, slap_object_class) oc_list
-	= LDAP_SLIST_HEAD_INITIALIZER(&oc_list);
+static LDAP_STAILQ_HEAD(OCList, slap_object_class) oc_list
+	= LDAP_STAILQ_HEAD_INITIALIZER(oc_list);
 
 static int
 oc_index_cmp(
@@ -179,8 +179,8 @@ oc_bvfind( struct berval *ocname )
 	return( NULL );
 }
 
-static LDAP_SLIST_HEAD(OCUList, slap_object_class) oc_undef_list
-	= LDAP_SLIST_HEAD_INITIALIZER(&oc_undef_list);
+static LDAP_STAILQ_HEAD(OCUList, slap_object_class) oc_undef_list
+	= LDAP_STAILQ_HEAD_INITIALIZER(oc_undef_list);
 
 ObjectClass *
 oc_bvfind_undef( struct berval *ocname )
@@ -191,7 +191,7 @@ oc_bvfind_undef( struct berval *ocname )
 		return oc;
 	}
 
-	LDAP_SLIST_FOREACH( oc, &oc_undef_list, soc_next ) {
+	LDAP_STAILQ_FOREACH( oc, &oc_undef_list, soc_next ) {
 		int	d = oc->soc_cname.bv_len - ocname->bv_len;
 
 		if ( d ) {
@@ -214,8 +214,8 @@ oc_bvfind_undef( struct berval *ocname )
 	oc->soc_cname.bv_val = (char *)&oc[ 1 ];
 	AC_MEMCPY( oc->soc_cname.bv_val, ocname->bv_val, ocname->bv_len );
 
-	LDAP_SLIST_NEXT( oc, soc_next ) = NULL;
-	LDAP_SLIST_INSERT_HEAD( &oc_undef_list, oc, soc_next );
+	LDAP_STAILQ_NEXT( oc, soc_next ) = NULL;
+	LDAP_STAILQ_INSERT_HEAD( &oc_undef_list, oc, soc_next );
 
 	return oc;
 }
@@ -378,9 +378,9 @@ oc_destroy( void )
 	ObjectClass *o;
 
 	avl_free(oc_index, ldap_memfree);
-	while( !LDAP_SLIST_EMPTY(&oc_list) ) {
-		o = LDAP_SLIST_FIRST(&oc_list);
-		LDAP_SLIST_REMOVE_HEAD(&oc_list, soc_next);
+	while( !LDAP_STAILQ_EMPTY(&oc_list) ) {
+		o = LDAP_STAILQ_FIRST(&oc_list);
+		LDAP_STAILQ_REMOVE_HEAD(&oc_list, soc_next);
 
 		if (o->soc_sups) ldap_memfree(o->soc_sups);
 		if (o->soc_required) ldap_memfree(o->soc_required);
@@ -388,9 +388,9 @@ oc_destroy( void )
 		ldap_objectclass_free((LDAPObjectClass *)o);
 	}
 	
-	while( !LDAP_SLIST_EMPTY(&oc_undef_list) ) {
-		o = LDAP_SLIST_FIRST(&oc_undef_list);
-		LDAP_SLIST_REMOVE_HEAD(&oc_undef_list, soc_next);
+	while( !LDAP_STAILQ_EMPTY(&oc_undef_list) ) {
+		o = LDAP_STAILQ_FIRST(&oc_undef_list);
+		LDAP_STAILQ_REMOVE_HEAD(&oc_undef_list, soc_next);
 
 		ch_free( (ObjectClass *)o );
 	}
@@ -403,9 +403,6 @@ oc_insert(
 {
 	struct oindexrec	*oir;
 	char			**names;
-
-	LDAP_SLIST_NEXT( soc, soc_next ) = NULL;
-	LDAP_SLIST_INSERT_HEAD( &oc_list, soc, soc_next );
 
 	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
@@ -454,6 +451,8 @@ oc_insert(
 			names++;
 		}
 	}
+	LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
+
 
 	return 0;
 }
@@ -462,6 +461,7 @@ int
 oc_add(
     LDAPObjectClass	*oc,
 	int user,
+	ObjectClass		**rsoc,
     const char		**err )
 {
 	ObjectClass	*soc;
@@ -522,8 +522,59 @@ oc_add(
 
 	if( user && op ) return SLAP_SCHERR_CLASS_BAD_USAGE;
 
+	if( !user ) soc->soc_flags |= SLAP_OC_HARDCODE;
+
 	code = oc_insert(soc,err);
+	if ( code == 0 && rsoc )
+		*rsoc = soc;
 	return code;
+}
+
+void
+oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
+{
+	ObjectClass *oc;
+	int i, num;
+	struct berval bv, *bva = NULL, idx;
+	char ibuf[32], *ptr;
+
+	if ( !start )
+		start = LDAP_STAILQ_FIRST( &oc_list );
+
+	/* count the result size */
+	i = 0;
+	for ( oc=start; oc && oc!=end; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		i++;
+	}
+	if (!i) return;
+
+	num = i;
+	bva = ch_malloc( (num+1) * sizeof(struct berval) );
+	BER_BVZERO( bva );
+	idx.bv_val = ibuf;
+	if ( sys ) {
+		idx.bv_len = 0;
+		ibuf[0] = '\0';
+	}
+	i = 0;
+	for ( oc=start; oc && oc!=end; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		if ( ldap_objectclass2bv( &oc->soc_oclass, &bv ) == NULL ) {
+			ber_bvarray_free( bva );
+		}
+		if ( !sys ) {
+			idx.bv_len = sprintf(idx.bv_val, "{%02d}", i);
+		}
+		bva[i].bv_len = idx.bv_len + bv.bv_len;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+		strcpy( bva[i].bv_val, ibuf );
+		strcpy( bva[i].bv_val + idx.bv_len, bv.bv_val );
+		i++;
+		bva[i].bv_val = NULL;
+		ldap_memfree( bv.bv_val );
+	}
+	*res = bva;
 }
 
 int
@@ -534,7 +585,7 @@ oc_schema_info( Entry *e )
 	struct berval	val;
 	struct berval	nval;
 
-	LDAP_SLIST_FOREACH( oc, &oc_list, soc_next ) {
+	LDAP_STAILQ_FOREACH( oc, &oc_list, soc_next ) {
 		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
 
 		if ( ldap_objectclass2bv( &oc->soc_oclass, &val ) == NULL ) {

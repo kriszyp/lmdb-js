@@ -1035,7 +1035,7 @@ monitor_back_db_init(
 			return -1;
 		}
 
-		code = at_add(at, 0, &err);
+		code = at_add(at, 0, NULL, &err);
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"%s in attributeType \"%s\"\n",
@@ -1078,7 +1078,7 @@ monitor_back_db_init(
 			return -1;
 		}
 
-		code = oc_add(oc, 0, &err);
+		code = oc_add(oc, 0, NULL, &err);
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass \"%s\": %s \"%s\"\n" ,

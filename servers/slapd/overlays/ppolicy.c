@@ -1797,7 +1797,7 @@ int ppolicy_init()
 				ldap_scherr2str(code), err );
 			return code;
 		}
-		code = at_add( at, 0, &err );
+		code = at_add( at, 0, NULL, &err );
 		if ( !code ) {
 			slap_str2ad( at->at_names[0], pwd_OpSchema[i].ad, &err );
 		}

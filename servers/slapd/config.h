@@ -35,6 +35,7 @@ typedef enum {
 	Cft_Database,
 	Cft_Overlay,
 	Cft_Include,
+	Cft_Module
 } ConfigType;
 
 #define ARGS_USERLAND	0x00000fff
@@ -99,10 +100,12 @@ typedef struct config_args_s {
 	BerVarray rvalue_vals;
 	BerVarray rvalue_nvals;
 #define	SLAP_CONFIG_EMIT	0x2000	/* emit instead of set */
+#define SLAP_CONFIG_ADD		0x4000	/* config file add vs LDAP add */
 	int op;
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;
 	BackendInfo *bi;
+	void *private;	/* anything */
 } ConfigArgs;
 
 #define value_int values.v_int

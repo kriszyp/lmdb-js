@@ -126,7 +126,8 @@ parse_cr(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	ContentRule **scr )
 {
 	LDAPContentRule *cr;
 	int		code;
@@ -148,7 +149,7 @@ parse_cr(
 		return 1;
 	}
 
-	code = cr_add(cr,1,&err);
+	code = cr_add(cr,1,scr,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
@@ -164,7 +165,8 @@ parse_oc(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	ObjectClass **soc )
 {
 	LDAPObjectClass *oc;
 	int		code;
@@ -186,7 +188,7 @@ parse_oc(
 		return 1;
 	}
 
-	code = oc_add(oc,1,&err);
+	code = oc_add(oc,1,soc,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
@@ -245,7 +247,8 @@ parse_at(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	AttributeType **sat )
 {
 	LDAPAttributeType *at;
 	int		code;
@@ -274,7 +277,7 @@ parse_at(
 		return 1;
 	}
 
-	code = at_add(at,1,&err);
+	code = at_add(at,1,sat,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

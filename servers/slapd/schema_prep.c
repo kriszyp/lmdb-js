@@ -1124,7 +1124,7 @@ slap_schema_load( void )
 				return LDAP_OTHER;
 			}
 
-			code = at_add( at, 0, &err );
+			code = at_add( at, 0, NULL, &err );
 			if ( code ) {
 				fprintf( stderr, "slap_schema_load: AttributeType "
 					"\"%s\": %s: \"%s\"\n",
@@ -1237,7 +1237,7 @@ slap_schema_load( void )
 				return LDAP_OTHER;
 			}
 
-			code = oc_add(oc,0,&err);
+			code = oc_add(oc,0,NULL,&err);
 			if ( code ) {
 				fprintf( stderr, "slap_schema_load: ObjectClass "
 					"\"%s\": %s: \"%s\"\n",

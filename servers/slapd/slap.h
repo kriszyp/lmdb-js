@@ -325,7 +325,7 @@ typedef struct slap_oid_macro {
 	BerVarray som_subs;
 #define	SLAP_OM_HARDCODE	0x10000U	/* This is hardcoded schema */
 	int som_flags;
-	LDAP_SLIST_ENTRY(slap_oid_macro) som_next;
+	LDAP_STAILQ_ENTRY(slap_oid_macro) som_next;
 } OidMacro;
 
 /* forward declarations */
@@ -655,7 +655,7 @@ typedef struct slap_attribute_type {
 
 	slap_mask_t					sat_flags;
 
-	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;
+	LDAP_STAILQ_ENTRY(slap_attribute_type) sat_next;
 
 #define sat_oid				sat_atype.at_oid
 #define sat_names			sat_atype.at_names
@@ -709,7 +709,7 @@ typedef struct slap_object_class {
 #define soc_at_oids_may		soc_oclass.oc_at_oids_may
 #define soc_extensions		soc_oclass.oc_extensions
 
-	LDAP_SLIST_ENTRY(slap_object_class) soc_next;
+	LDAP_STAILQ_ENTRY(slap_object_class) soc_next;
 } ObjectClass;
 
 #define	SLAP_OC_ALIAS		0x0001
@@ -749,7 +749,10 @@ typedef struct slap_content_rule {
 #define scr_at_oids_may		scr_crule.cr_at_oids_may
 #define scr_at_oids_not		scr_crule.cr_at_oids_not
 
-	LDAP_SLIST_ENTRY( slap_content_rule ) scr_next;
+#define 	SLAP_CR_HARDCODE	0x10000U
+	int	scr_flags;
+
+	LDAP_STAILQ_ENTRY( slap_content_rule ) scr_next;
 } ContentRule;
 
 /* Represents a recognized attribute description ( type + options ). */

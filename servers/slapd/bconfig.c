@@ -36,6 +36,7 @@
 #include "config.h"
 
 static struct berval config_rdn = BER_BVC("cn=config");
+static struct berval schema_rdn = BER_BVC("cn=schema");
 
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
@@ -43,16 +44,18 @@ typedef struct modpath_s {
 	struct berval mp_path;
 	BerVarray mp_loads;
 } ModPaths;
+
+static ModPaths modpaths, *modlast = &modpaths, *modcur = &modpaths;
 #endif
 
 typedef struct ConfigFile {
 	struct ConfigFile *c_sibs;
 	struct ConfigFile *c_kids;
 	struct berval c_file;
-#ifdef SLAPD_MODULES
-	ModPaths c_modpaths;
-	ModPaths *c_modlast;
-#endif
+	AttributeType *c_at_head, *c_at_tail;
+	ContentRule *c_cr_head, *c_cr_tail;
+	ObjectClass *c_oc_head, *c_oc_tail;
+	OidMacro *c_om_head, *c_om_tail;
 	BerVarray c_dseFiles;
 } ConfigFile;
 
@@ -63,6 +66,7 @@ typedef struct CfOcInfo {
 } CfOcInfo;
 
 typedef struct CfEntryInfo {
+	struct CfEntryInfo *ce_parent;
 	struct CfEntryInfo *ce_sibs;
 	struct CfEntryInfo *ce_kids;
 	Entry *ce_entry;
@@ -96,7 +100,7 @@ static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
 	*cfAd_include;
 
 static ObjectClass *cfOc_schema, *cfOc_global, *cfOc_backend, *cfOc_database,
-	*cfOc_include, *cfOc_overlay;
+	*cfOc_include, *cfOc_overlay, *cfOc_module;
 
 static ConfigFile cf_prv, *cfn = &cf_prv;
 
@@ -227,9 +231,12 @@ ConfigTable config_back_cf_table[] = {
 			"DESC 'File for slapd command line options' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	/* Use standard 'attributeTypes' attr */
 	{ "attribute",	"attribute", 2, 0, 9, ARG_PAREN|ARG_MAGIC|CFG_ATTR,
-		&config_generic, NULL, NULL, NULL },
+		&config_generic, "( OLcfgAt:4 NAME 'olcAttributeTypes' "
+			"DESC 'OpenLDAP attributeTypes' "
+			"EQUALITY objectIdentifierFirstComponentMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 X-ORDERED 'VALUES' )",
+				NULL, NULL },
 	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
 		&config_generic, "( OLcfgAt:5 NAME 'olcAttributeOptions' "
 			"EQUALITY caseIgnoreMatch "
@@ -276,9 +283,12 @@ ConfigTable config_back_cf_table[] = {
 		&config_disallows, "( OLcfgAt:15 NAME 'olcDisallows' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	/* use standard schema */
 	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT,
-		&config_generic, NULL, NULL, NULL },
+		&config_generic, "( OLcfgAt:16 NAME 'olcDitContentRules' "
+			"DESC 'OpenLDAP DIT content rules' "
+			"EQUALITY objectIdentifierFirstComponentMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 X-ORDERED 'VALUES' )",
+			NULL, NULL },
 	{ "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
 		ARG_ON_OFF, &global_gentlehup,
@@ -340,9 +350,12 @@ ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
-	/* use standard schema */
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
-		&config_generic, NULL, NULL, NULL },
+		&config_generic, "( OLcfgAt:32 NAME 'olcObjectClasses' "
+		"DESC 'OpenLDAP object classes' "
+		"EQUALITY objectIdentifierFirstComponentMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 X-ORDERED 'VALUES' )",
+			NULL, NULL },
 	{ "objectidentifier", NULL,	0, 0, 0, ARG_MAGIC|CFG_OID,
 		&config_generic, "( OLcfgAt:33 NAME 'olcObjectIdentifier' "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -578,7 +591,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcDefaultSearchBase $ olcDisallows $ olcGentleHUP $ "
 		 "olcIdleTimeout $ olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
-		 "olcLogLevel $ olcModuleLoad $ olcModulePath $ olcObjectIdentifier $ "
+		 "olcLogLevel $ olcModulePath $ olcObjectIdentifier $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPlugin $ olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
@@ -594,8 +607,8 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcObjectIdentifier $ attributeTypes $ objectClasses $ "
-		 "ditContentRules ) )", Cft_Schema, &cfOc_schema },
+		"MAY ( olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
+		 "olcDitContentRules ) )", Cft_Schema, &cfOc_schema },
 	{ "( OLcfgOc:4 "
 		"NAME 'olcBackendConfig' "
 		"DESC 'OpenLDAP Backend-specific options' "
@@ -620,8 +633,16 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcInclude $ olcModuleLoad $ olcModulePath $ olcRootDSE ) )",
+		"MAY ( olcInclude $ olcRootDSE ) )",
 		Cft_Include, &cfOc_include },
+#ifdef SLAPD_MODULES
+	{ "( OLcfgOc:8 "
+		"NAME 'olcModuleList' "
+		"DESC 'OpenLDAP dynamic module info' "
+		"SUP olcConfig STRUCTURAL "
+		"MUST olcModuleLoad  )",
+		Cft_Module, &cfOc_module },
+#endif
 	{ NULL, 0, NULL }
 };
 
@@ -687,11 +708,51 @@ config_generic(ConfigArgs *c) {
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
 			break;
-		case CFG_OID:
-			oidm_unparse( &c->rvalue_vals );
+		case CFG_OID: {
+			ConfigFile *cf = c->private;
+			if ( !cf )
+				oidm_unparse( &c->rvalue_vals, NULL, NULL, 1 );
+			else if ( cf->c_om_head )
+				oidm_unparse( &c->rvalue_vals, cf->c_om_head,
+					cf->c_om_tail, 0 );
 			if ( !c->rvalue_vals )
 				rc = 1;
+			}
 			break;
+		case CFG_OC: {
+			ConfigFile *cf = c->private;
+			if ( !cf )
+				oc_unparse( &c->rvalue_vals, NULL, NULL, 1 );
+			else if ( cf->c_oc_head )
+				oc_unparse( &c->rvalue_vals, cf->c_oc_head,
+					cf->c_oc_tail, 0 );
+			if ( !c->rvalue_vals )
+				rc = 1;
+			}
+			break;
+		case CFG_ATTR: {
+			ConfigFile *cf = c->private;
+			if ( !cf )
+				at_unparse( &c->rvalue_vals, NULL, NULL, 1 );
+			else if ( cf->c_at_head )
+				at_unparse( &c->rvalue_vals, cf->c_at_head,
+					cf->c_at_tail, 0 );
+			if ( !c->rvalue_vals )
+				rc = 1;
+			}
+			break;
+		case CFG_DIT: {
+			ConfigFile *cf = c->private;
+			if ( !cf )
+				cr_unparse( &c->rvalue_vals, NULL, NULL, 1 );
+			else if ( cf->c_cr_head )
+				cr_unparse( &c->rvalue_vals, cf->c_cr_head,
+					cf->c_cr_tail, 0 );
+			if ( !c->rvalue_vals )
+				rc = 1;
+			}
+			break;
+			
 		case CFG_CHECK:
 			c->value_int = global_schemacheck;
 			break;
@@ -725,7 +786,7 @@ config_generic(ConfigArgs *c) {
 				c->value_string = ch_strdup( c->be->be_replogfile );
 			break;
 		case CFG_ROOTDSE: {
-			ConfigFile *cf = (ConfigFile *)c->line;
+			ConfigFile *cf = c->private;
 			if ( cf->c_dseFiles ) {
 				value_add( &c->rvalue_vals, cf->c_dseFiles );
 			} else {
@@ -750,26 +811,24 @@ config_generic(ConfigArgs *c) {
 			break;
 #ifdef SLAPD_MODULES
 		case CFG_MODLOAD: {
-			ConfigFile *cf = (ConfigFile *)c->line;
-			ModPaths *mp;
-			for (i=0, mp=&cf->c_modpaths; mp; mp=mp->mp_next, i++) {
-				int j;
-				if (!mp->mp_loads) continue;
-				for (j=0; !BER_BVISNULL(&mp->mp_loads[j]); j++) {
+			ModPaths *mp = c->private;
+			if (mp->mp_loads) {
+				int i;
+				for (i=0; !BER_BVISNULL(&mp->mp_loads[i]); i++) {
 					struct berval bv;
 					bv.bv_val = c->log;
-					bv.bv_len = sprintf( bv.bv_val, "{%d}{%d}%s", i, j,
-						mp->mp_loads[j].bv_val );
+					bv.bv_len = sprintf( bv.bv_val, "{%d}%s", i,
+						mp->mp_loads[i].bv_val );
 					value_add_one( &c->rvalue_vals, &bv );
 				}
 			}
+
 			rc = c->rvalue_vals ? 0 : 1;
 			}
 			break;
 		case CFG_MODPATH: {
-			ConfigFile *cf = (ConfigFile *)c->line;
 			ModPaths *mp;
-			for (i=0, mp=&cf->c_modpaths; mp; mp=mp->mp_next, i++) {
+			for (i=0, mp=&modpaths; mp; mp=mp->mp_next, i++) {
 				struct berval bv;
 				if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
 					continue;
@@ -898,20 +957,41 @@ config_generic(ConfigArgs *c) {
 			c->be->be_max_deref_depth = c->value_int;
 			break;
 
-		case CFG_OID:
-			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv, 1)) return(0);
+		case CFG_OID: {
+			OidMacro *om;
+
+			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv, 1, &om))
+				return(1);
+			if (!cfn->c_om_head) cfn->c_om_head = om;
+			cfn->c_om_tail = om;
+			}
 			break;
 
-		case CFG_OC:
-			if(parse_oc(c->fname, c->lineno, p, c->argv)) return(1);
+		case CFG_OC: {
+			ObjectClass *oc;
+
+			if(parse_oc(c->fname, c->lineno, p, c->argv, &oc)) return(1);
+			if (!cfn->c_oc_head) cfn->c_oc_head = oc;
+			cfn->c_oc_tail = oc;
+			}
 			break;
 
-		case CFG_DIT:
-			if(parse_cr(c->fname, c->lineno, p, c->argv)) return(1);
+		case CFG_DIT: {
+			ContentRule *cr;
+
+			if(parse_cr(c->fname, c->lineno, p, c->argv, &cr)) return(1);
+			if (!cfn->c_cr_head) cfn->c_cr_head = cr;
+			cfn->c_cr_tail = cr;
+			}
 			break;
 
-		case CFG_ATTR:
-			if(parse_at(c->fname, c->lineno, p, c->argv)) return(1);
+		case CFG_ATTR: {
+			AttributeType *at;
+
+			if(parse_at(c->fname, c->lineno, p, c->argv, &at)) return(1);
+			if (!cfn->c_at_head) cfn->c_at_head = at;
+			cfn->c_at_tail = at;
+			}
 			break;
 
 		case CFG_ATOPT:
@@ -1007,7 +1087,7 @@ config_generic(ConfigArgs *c) {
 			{
 				struct berval bv;
 				ber_str2bv(c->line, 0, 1, &bv);
-				ber_bvarray_add( &cfn->c_modlast->mp_loads, &bv );
+				ber_bvarray_add( &modcur->mp_loads, &bv );
 			}
 			break;
 
@@ -1017,16 +1097,18 @@ config_generic(ConfigArgs *c) {
 			{
 				ModPaths *mp;
 
-				if (!cfn->c_modpaths.mp_loads) {
-					mp = &cfn->c_modpaths;
+				if (!modpaths.mp_loads) {
+					mp = &modpaths;
 				} else {
 					mp = ch_malloc( sizeof( ModPaths ));
-					cfn->c_modlast->mp_next = mp;
+					modlast->mp_next = mp;
 				}
 				ber_str2bv(c->argv[1], 0, 1, &mp->mp_path);
 				mp->mp_next = NULL;
 				mp->mp_loads = NULL;
-				cfn->c_modlast = mp;
+				modlast = mp;
+				if ( c->op == SLAP_CONFIG_ADD )
+					modcur = mp;
 			}
 			
 			break;
@@ -1064,8 +1146,8 @@ config_generic(ConfigArgs *c) {
 static int
 config_fname(ConfigArgs *c) {
 	if(c->op == SLAP_CONFIG_EMIT) {
-		if (c->line) {
-			ConfigFile *cf = (ConfigFile *)c->line;
+		if (c->private) {
+			ConfigFile *cf = c->private;
 			value_add_one( &c->rvalue_vals, &cf->c_file );
 			return 0;
 		}
@@ -1904,9 +1986,6 @@ config_include(ConfigArgs *c) {
 		return 1;
 	}
 	cf = ch_calloc( 1, sizeof(ConfigFile));
-#ifdef SLAPD_MODULES
-	cf->c_modlast = &cf->c_modpaths;
-#endif
 	if ( cfn->c_kids ) {
 		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
 		cf2->c_sibs = cf;
@@ -2933,6 +3012,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 			rc = LDAP_CONSTRAINT_VIOLATION;
 			goto leave;
 		}
+#ifdef SLAPD_MODULES
+	case Cft_Module:
+		if ( !last || last->ce_type != Cft_Global ) {
+			rc = LDAP_CONSTRAINT_VIOLATION;
+			goto leave;
+		}
+#endif
 		break;
 	}
 
@@ -2940,10 +3026,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 	 * performing any set actions.
 	 */
 	switch (colst[0]->co_type) {
-	case Cft_Global:	/* */
 	case Cft_Schema:
+		/* The cn=schema entry is all hardcoded, so never reparse it */
+		if (last->ce_type == Cft_Global )
+			goto ok;
+		/* FALLTHRU */
+	case Cft_Global:
 		ca.be = cfb->cb_be;
 		break;
+
 	case Cft_Backend:
 		if ( last->ce_type == Cft_Backend )
 			ca.bi = last->ce_bi;
@@ -2968,6 +3059,27 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 		if ( !rs )	/* ignored */
 			break;
 		type_ad = cfAd_include;
+#ifdef SLAPD_MODULES
+	case Cft_Module: {
+		ModPaths *mp;
+		char *ptr;
+		ptr = strchr( e->e_name.bv_val, '{' );
+		if ( !ptr ) {
+			rc = LDAP_NAMING_VIOLATION;
+			goto leave;
+		}
+		j = atoi(ptr+1);
+		for (i=0, mp=&modpaths; mp && i<j; mp=mp->mp_next);
+		/* There is no corresponding modpath for this load? */
+		if ( i != j ) {
+			rc = LDAP_NAMING_VIOLATION;
+			goto leave;
+		}
+		module_path( mp->mp_path.bv_val );
+		ca.private = mp;
+		}
+		break;
+#endif
 	}
 	init_config_argv( &ca );
 	if ( type_ad ) {
@@ -3019,7 +3131,9 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 			if ( rc ) goto leave;
 		}
 	}
+ok:
 	ce = ch_calloc( 1, sizeof(CfEntryInfo) );
+	ce->ce_parent = last;
 	ce->ce_entry = entry_dup( e );
 	ce->ce_entry->e_private = ce;
 	ce->ce_type = colst[0]->co_type;
@@ -3146,13 +3260,22 @@ out:
 }
 
 static Entry *
-config_alloc_entry( struct berval *pdn, struct berval *rdn )
+config_alloc_entry( CfEntryInfo *parent, struct berval *rdn )
 {
 	Entry *e = ch_calloc( 1, sizeof(Entry) );
 	CfEntryInfo *ce = ch_calloc( 1, sizeof(CfEntryInfo) );
+	struct berval pdn;
+
 	e->e_private = ce;
 	ce->ce_entry = e;
-	build_new_dn( &e->e_name, pdn, rdn, NULL );
+	ce->ce_parent = parent;
+	if ( parent ) {
+		pdn = parent->ce_entry->e_nname;
+	} else {
+		BER_BVZERO( &pdn );
+	}
+
+	build_new_dn( &e->e_name, &pdn, rdn, NULL );
 	ber_dupbv( &e->e_nname, &e->e_name );
 	return e;
 }
@@ -3247,21 +3370,24 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 }
 
 static CfEntryInfo *
-config_build_includes( ConfigArgs *c, Entry *parent,
+config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
 {
 	Entry *e;
 	int i;
-	ConfigFile *cf = (ConfigFile *)c->line;
-	CfEntryInfo *ce, *ceparent, *ceprev;
+	ConfigFile *cf = c->private;
+	CfEntryInfo *ce, *ceprev;
 
-	ceparent = parent->e_private;
+	if ( ceparent->ce_kids ) {
+		for ( ceprev = ceparent->ce_kids; ceprev->ce_sibs;
+			ceprev = ceprev->ce_sibs );
+	}
 
 	for (i=0; cf; cf=cf->c_sibs, i++) {
 		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include{%d}", i);
-		e = config_alloc_entry( &parent->e_nname, &c->value_dn );
-		c->line = (char *)cf;
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include{%02d}", i);
+		e = config_alloc_entry( ceparent, &c->value_dn );
+		c->private = cf;
 		config_build_entry( c, e, cfOc_include, &c->value_dn,
 			c->bi->bi_cf_table, NO_TABLE );
 		op->ora_e = e;
@@ -3276,12 +3402,53 @@ config_build_includes( ConfigArgs *c, Entry *parent,
 		}
 		ceprev = ce;
 		if ( cf->c_kids ) {
-			c->line = (char *)cf->c_kids;
-			config_build_includes( c, e, op, rs );
+			c->private = cf->c_kids;
+			config_build_includes( c, ce, op, rs );
 		}
 	}
 	return ce;
 }
+
+#ifdef SLAPD_MODULES
+
+static CfEntryInfo *
+config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
+	Operation *op, SlapReply *rs )
+{
+	Entry *e;
+	int i;
+	CfEntryInfo *ce, *ceprev;
+	ModPaths *mp;
+
+	if ( ceparent->ce_kids ) {
+		for ( ceprev = ceparent->ce_kids; ceprev->ce_sibs;
+			ceprev = ceprev->ce_sibs );
+	}
+
+	for (i=0, mp=&modpaths; mp; mp=mp->mp_next, i++) {
+		if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
+			continue;
+		c->value_dn.bv_val = c->log;
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=module{%02d}", i);
+		e = config_alloc_entry( ceparent, &c->value_dn );
+		ce = e->e_private;
+		ce->ce_type = Cft_Include;
+		c->private = mp;
+		config_build_entry( c, e, cfOc_module, &c->value_dn,
+			c->bi->bi_cf_table, NO_TABLE );
+		op->ora_e = e;
+		op->o_bd->be_add( op, rs );
+		ce->ce_bi = c->bi;
+		if ( !ceparent->ce_kids ) {
+			ceparent->ce_kids = ce;
+		} else {
+			ceprev->ce_sibs = ce;
+		}
+		ceprev = ce;
+	}
+	return ce;
+}
+#endif
 
 static int
 config_back_db_open( BackendDB *be )
@@ -3319,15 +3486,15 @@ config_back_db_open( BackendDB *be )
 	rdn = config_rdn;
 	e = config_alloc_entry( NULL, &rdn );
 	ce = e->e_private;
+	ce->ce_type = Cft_Global;
 	cfb->cb_root = ce;
 	c.be = be;
 	c.bi = be->bd_info;
-	c.line = (char *)cfb->cb_config;
+	c.private = cfb->cb_config;
 	ct = c.bi->bi_cf_table;
 	config_build_entry( &c, e, cfOc_global, &rdn, ct, NO_TABLE );
 	op->ora_e = e;
 	op->o_bd->be_add( op, &rs );
-	ce->ce_type = Cft_Global;
 	ce->ce_bi = c.bi;
 
 	parent = e;
@@ -3337,12 +3504,33 @@ config_back_db_open( BackendDB *be )
 	 * schema, read-only. Child objects will contain runtime loaded schema
 	 * files.  FIXME
 	 */
+	rdn = schema_rdn;
+	e = config_alloc_entry( ceparent, &rdn );
+	ce = e->e_private;
+	ce->ce_type = Cft_Schema;
+	c.private = NULL;
+	config_build_entry( &c, e, cfOc_schema, &rdn, ct, NO_TABLE );
+	op->ora_e = e;
+	op->o_bd->be_add( op, &rs );
+	if ( !ceparent->ce_kids ) {
+		ceparent->ce_kids = ce;
+	} else {
+		ceprev->ce_sibs = ce;
+	}
+	ceprev = ce;
 
 	/* Create includeFile nodes... */
 	if ( cfb->cb_config->c_kids ) {
-		c.line = (char *)cfb->cb_config->c_kids;
-		ceprev = config_build_includes( &c, parent, op, &rs );
+		c.private = cfb->cb_config->c_kids;
+		ceprev = config_build_includes( &c, ceparent, op, &rs );
 	}
+
+#ifdef SLAPD_MODULES
+	/* Create Module nodes... */
+	if ( modpaths.mp_loads ) {
+		ceprev = config_build_includes( &c, ceparent, op, &rs );
+	}
+#endif
 
 	/* Create backend nodes. Skip if they don't provide a cf_table.
 	 * There usually aren't any of these.
@@ -3356,7 +3544,7 @@ config_back_db_open( BackendDB *be )
 
 		rdn.bv_val = c.log;
 		rdn.bv_len = sprintf(rdn.bv_val, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
-		e = config_alloc_entry( &parent->e_nname, &rdn );
+		e = config_alloc_entry( ceparent, &rdn );
 		ce = e->e_private;
 		ce->ce_type = Cft_Backend;
 		ce->ce_bi = bi;
@@ -3389,7 +3577,7 @@ config_back_db_open( BackendDB *be )
 		rdn.bv_val = c.log;
 		rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
-		e = config_alloc_entry( &parent->e_nname, &rdn );
+		e = config_alloc_entry( ceparent, &rdn );
 		ce = e->e_private;
 		c.be = bptr;
 		c.bi = bi;
@@ -3416,7 +3604,7 @@ config_back_db_open( BackendDB *be )
 				rdn.bv_val = c.log;
 				rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s",
 					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
-				oe = config_alloc_entry( &e->e_nname, &rdn );
+				oe = config_alloc_entry( opar, &rdn );
 				ce = oe->e_private;
 				c.be = bptr;
 				c.bi = &on->on_bi;
@@ -3473,15 +3661,11 @@ config_back_db_init( Backend *be )
 static struct {
 	char *name;
 	AttributeDescription **desc;
-	AttributeDescription *sub;
 } ads[] = {
-	{ "attribute", NULL, NULL },
-	{ "backend", &cfAd_backend, NULL },
-	{ "database", &cfAd_database, NULL },
-	{ "ditcontentrule", NULL, NULL },
-	{ "include", &cfAd_include, NULL },
-	{ "objectclass", NULL, NULL },
-	{ "overlay", &cfAd_overlay, NULL },
+	{ "backend", &cfAd_backend },
+	{ "database", &cfAd_database },
+	{ "include", &cfAd_include },
+	{ "overlay", &cfAd_overlay },
 	{ NULL, NULL, NULL }
 };
 
@@ -3547,7 +3731,7 @@ config_back_initialize( BackendInfo *bi )
 	for (i=0; OidMacros[i].name; i++ ) {
 		argv[1] = OidMacros[i].name;
 		argv[2] = OidMacros[i].oid;
-		parse_oidm( "slapd", i, 3, argv, 0 );
+		parse_oidm( "slapd", i, 3, argv, 0, NULL );
 	}
 
 	bi->bi_cf_table = ct;
@@ -3556,18 +3740,10 @@ config_back_initialize( BackendInfo *bi )
 	if ( i ) return i;
 
 	/* set up the notable AttributeDescriptions */
-	ads[0].sub = slap_schema.si_ad_attributeTypes;
-	ads[3].sub = slap_schema.si_ad_ditContentRules;
-	ads[5].sub = slap_schema.si_ad_objectClasses;
-
 	i = 0;
 	for (;ct->name;ct++) {
 		if (strcmp(ct->name, ads[i].name)) continue;
-		if (ads[i].sub) {
-			ct->ad = ads[i].sub;
-		} else {
-			*ads[i].desc = ct->ad;
-		}
+		*ads[i].desc = ct->ad;
 		i++;
 		if (!ads[i].name) break;
 	}

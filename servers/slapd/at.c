@@ -58,8 +58,8 @@ struct aindexrec {
 
 static Avlnode	*attr_index = NULL;
 static Avlnode	*attr_cache = NULL;
-static LDAP_SLIST_HEAD(ATList, slap_attribute_type) attr_list
-	= LDAP_SLIST_HEAD_INITIALIZER(&attr_list);
+static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
+	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
 
 int at_oc_cache;
 
@@ -210,9 +210,9 @@ at_destroy( void )
 	AttributeType *a;
 	avl_free(attr_index, ldap_memfree);
 
-	while( !LDAP_SLIST_EMPTY(&attr_list) ) {
-		a = LDAP_SLIST_FIRST(&attr_list);
-		LDAP_SLIST_REMOVE_HEAD(&attr_list, sat_next);
+	while( !LDAP_STAILQ_EMPTY(&attr_list) ) {
+		a = LDAP_STAILQ_FIRST(&attr_list);
+		LDAP_STAILQ_REMOVE_HEAD(&attr_list, sat_next);
 
 		if (a->sat_subtypes) ldap_memfree(a->sat_subtypes);
 		ad_destroy(a->sat_ad);
@@ -230,7 +230,7 @@ at_start( AttributeType **at )
 {
 	assert( at );
 
-	*at = LDAP_SLIST_FIRST(&attr_list);
+	*at = LDAP_STAILQ_FIRST(&attr_list);
 
 	return (*at != NULL);
 }
@@ -244,7 +244,7 @@ at_next( AttributeType **at )
 	{
 		AttributeType *tmp = NULL;
 
-		LDAP_SLIST_FOREACH(tmp,&attr_list,sat_next) {
+		LDAP_STAILQ_FOREACH(tmp,&attr_list,sat_next) {
 			if ( tmp == *at ) {
 				break;
 			}
@@ -254,7 +254,7 @@ at_next( AttributeType **at )
 	}
 #endif
 
-	*at = LDAP_SLIST_NEXT(*at,sat_next);
+	*at = LDAP_STAILQ_NEXT(*at,sat_next);
 
 	return (*at != NULL);
 }
@@ -268,9 +268,6 @@ at_insert(
 {
 	struct aindexrec	*air;
 	char			**names;
-
-	LDAP_SLIST_NEXT( sat, sat_next ) = NULL;
-	LDAP_SLIST_INSERT_HEAD( &attr_list, sat, sat_next );
 
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
@@ -307,6 +304,8 @@ at_insert(
 		}
 	}
 
+	LDAP_STAILQ_INSERT_TAIL( &attr_list, sat, sat_next );
+
 	return 0;
 }
 
@@ -314,6 +313,7 @@ int
 at_add(
     LDAPAttributeType	*at,
 	int				user,
+	AttributeType	**rsat,
     const char		**err )
 {
 	AttributeType	*sat;
@@ -596,6 +596,8 @@ at_add(
 	}
 
 	code = at_insert(sat,err);
+	if ( code == 0 && rsat )
+		*rsat = sat;
 	return code;
 }
 
@@ -618,6 +620,53 @@ at_index_print( void )
 }
 #endif
 
+void
+at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
+{
+	AttributeType *at;
+	int i, num;
+	struct berval bv, *bva = NULL, idx;
+	char ibuf[32], *ptr;
+
+	if ( !start )
+		start = LDAP_STAILQ_FIRST( &attr_list );
+
+	/* count the result size */
+	i = 0;
+	for ( at=start; at && at!=end; at=LDAP_STAILQ_NEXT(at, sat_next)) {
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		i++;
+	}
+	if (!i) return;
+
+	num = i;
+	bva = ch_malloc( (num+1) * sizeof(struct berval) );
+	BER_BVZERO( bva );
+	idx.bv_val = ibuf;
+	if ( sys ) {
+		idx.bv_len = 0;
+		ibuf[0] = '\0';
+	}
+	i = 0;
+	for ( at=start; at && at!=end; at=LDAP_STAILQ_NEXT(at, sat_next)) {
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		if ( ldap_attributetype2bv( &at->sat_atype, &bv ) == NULL ) {
+			ber_bvarray_free( bva );
+		}
+		if ( !sys ) {
+			idx.bv_len = sprintf(idx.bv_val, "{%02d}", i);
+		}
+		bva[i].bv_len = idx.bv_len + bv.bv_len;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+		strcpy( bva[i].bv_val, ibuf );
+		strcpy( bva[i].bv_val + idx.bv_len, bv.bv_val );
+		i++;
+		bva[i].bv_val = NULL;
+		ldap_memfree( bv.bv_val );
+	}
+	*res = bva;
+}
+
 int
 at_schema_info( Entry *e )
 {
@@ -626,15 +675,14 @@ at_schema_info( Entry *e )
 	struct berval	val;
 	struct berval	nval;
 
-	LDAP_SLIST_FOREACH(at,&attr_list,sat_next) {
+	LDAP_STAILQ_FOREACH(at,&attr_list,sat_next) {
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
 		if ( ldap_attributetype2bv( &at->sat_atype, &val ) == NULL ) {
 			return -1;
 		}
 
-		nval.bv_val = at->sat_oid;
-		nval.bv_len = strlen(at->sat_oid);
+		ber_str2bv( at->sat_oid, 0, 0, &nval );
 
 		if( attr_merge_one( e, ad_attributeTypes, &val, &nval ) )
 		{

@@ -404,7 +404,7 @@ init_config_attrs(ConfigTable *ct) {
 				ct[i].attribute, ldap_scherr2str(code), err );
 			return code;
 		}
-		code = at_add( at, 0, &err );
+		code = at_add( at, 0, NULL, &err );
 		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
 			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
 				ct[i].attribute, scherr2str(code), err );
@@ -438,7 +438,7 @@ init_config_ocs( ConfigOCs *ocs ) {
 				ocs[i].def, ldap_scherr2str(code), err );
 			return code;
 		}
-		code = oc_add(oc,0,&err);
+		code = oc_add(oc,0,NULL,&err);
 		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
 			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
 				ocs[i].def, scherr2str(code), err );
@@ -551,7 +551,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			continue;
 		}
 
-		c->op = LDAP_MOD_ADD;
+		c->op = SLAP_CONFIG_ADD;
 
 		ct = config_find_keyword( config_back_cf_table, c );
 		if ( ct ) {
