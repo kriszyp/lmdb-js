@@ -102,7 +102,7 @@ void
 ldap_pvt_thread_free_stack( int	stackno )
 {
 	if ( stackno < 0 || stackno > MAX_THREADS ) {
-		Debug( LDAP_DEBUG_ANY, "free_stack of bogus stack %d",
+		Debug( LDAP_DEBUG_ANY, "free_stack of bogus stack %d\n",
 		    stackno, 0, 0 );
 	}
 

@@ -198,7 +198,7 @@ op_ldap_add(
     } else {
 	*errmsg = "No modifications to do";
 	Debug( LDAP_DEBUG_ANY,
-		"Error: op_ldap_add: no mods to do (%s)!", re->re_dn, 0, 0 );
+	       "Error: op_ldap_add: no mods to do (%s)!\n", re->re_dn, 0, 0 );
     }
     free_ldmarr( ldmarr );
     return( lderr ); 
