@@ -1191,7 +1191,6 @@ struct mrule_defs_rec {
  */
 
 /* recycled matching functions */
-#define stringNormalize IA5StringNormalize
 #define caseIgnoreMatch caseIgnoreIA5Match
 #define caseExactMatch caseExactIA5Match
 
@@ -1230,28 +1229,28 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		stringNormalize, caseIgnoreMatch},
+		UTF8StringNormalize, caseIgnoreMatch},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		stringNormalize, caseIgnoreOrderingMatch},
+		UTF8StringNormalize, caseIgnoreOrderingMatch},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		stringNormalize, caseIgnoreSubstringsMatch},
+		UTF8StringNormalize, caseIgnoreSubstringsMatch},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		stringNormalize, caseExactMatch},
+		UTF8StringNormalize, caseExactMatch},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		stringNormalize, caseExactOrderingMatch},
+		UTF8StringNormalize, caseExactOrderingMatch},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		stringNormalize, caseExactSubstringsMatch},
+		UTF8StringNormalize, caseExactSubstringsMatch},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
