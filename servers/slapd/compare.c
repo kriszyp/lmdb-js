@@ -326,10 +326,14 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		}
 
 	} else if ( op->o_bd->be_compare ) {
-		op->o_bd->be_compare( op, rs );
+		rs->sr_err = op->o_bd->be_compare( op, rs );
 
 #endif /* ! SLAP_COMPARE_IN_FRONTEND */
 	} else {
+		rs->sr_err = SLAP_CB_CONTINUE;
+	}
+
+	if ( rs->sr_err == SLAP_CB_CONTINUE ) {
 		/* do our best to compare that AVA
 		 * 
 		 * NOTE: this code is used only
