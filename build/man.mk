@@ -10,10 +10,9 @@ MANDIR=$(mandir)/man$(MANSECT)
 TMP_SUFFIX=tmp
 
 all-common:
-	VERSION=`$(CAT) $(VERSIONFILE)`; \
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
-		$(SED) -e "s%LDVERSION%$$VERSION%" \
+		$(SED) -e "s%LDVERSION%$(VERSION)%" \
 			-e 's%ETCDIR%$(sysconfdir)%' \
 			-e 's%LOCALSTATEDIR%$(localstatedir)%' \
 			-e 's%SYSCONFDIR%$(sysconfdir)%' \

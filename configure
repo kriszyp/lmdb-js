@@ -2311,7 +2311,7 @@ $libtool_flags --no-verify $ac_aux_dir/ltmain.sh $host \
 || { echo "configure: error: libtool configure failed" 1>&2; exit 1; }
 
 
-for ac_prog in gawk mawk nawk awk
+for ac_prog in mawk gawk nawk awk
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4154,7 +4154,7 @@ fi
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 	
-	for ac_hdr in ssl.h ssl/ssl.h
+	for ac_hdr in ssl.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
@@ -4195,7 +4195,7 @@ fi
 done
 
 	
-	if test $ac_cv_header_ssl_h = yes -o $ac_cv_header_ssl_ssl_h = yes ; then
+	if test $ac_cv_header_ssl_h = yes ; then
 		echo $ac_n "checking for SSLeay_add_ssl_algorithms in -lssl""... $ac_c" 1>&6
 echo "configure:4201: checking for SSLeay_add_ssl_algorithms in -lssl" >&5
 ac_lib_var=`echo ssl'_'SSLeay_add_ssl_algorithms | sed 'y%./+-%__p_%'`

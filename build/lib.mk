@@ -8,13 +8,9 @@
 
 all-common: $(LIBRARY) $(PROGRAMS)
 
-version.c: $(OBJS) $(srcdir)/Version.c
+version.c: $(OBJS)
 	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` \
-	h=`$(HOSTNAME)` t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Version.c > $@)
+	$(MKVERSION) $(LIBRARY) > $@
 
 install-common: FORCE
 
