@@ -501,7 +501,7 @@ slap_passwd_hash(
 	struct berval * new,
 	const char **text )
 {
-	char *hash;
+	char *hash = NULL;
 	if ( default_passwd_hash ) {
 		hash = default_passwd_hash[0];
 	}
