@@ -238,21 +238,28 @@ H3: The {{EX:ldif}} program
 The {{ldif}}(1) program is used to convert arbitrary data values to
 {{TERM:LDIF}} format. This can be useful when writing a program or
 script to create the LDIF file you will feed into the {{slapadd}}(8)
-or {{ldapadd}}(1) program, or when writing a SHELL backend. ldif takes an
-attribute name as an argument, and reads the attribute
+or {{ldapadd}}(1) program, or when writing a SHELL backend. {{ldif}}(1)
+takes an attribute descriptin as an argument and reads the attribute
 value(s) from standard input. It produces the LDIF formatted
 attribute line(s) on standard output. The usage is:
 
-> 	ldif [-b] <attrname>
+> 	ldif [-b] <attrdesc>
 
-where {{EX:<attrname>}} is the name of the attribute. Without the
+where {{EX:<attrdesc>}} is an attribute description. Without the
 -b option, ldif considers each line of standard input to be a
 separate value of the attribute.
+
+>	ldif description << EOF
+>	 leading space
+>	# leading hash mark
+>	EOF
 
 The -b option can be used to force ldif to interpret its input
 as a single raw binary value. This option is useful when
 converting binary data such as a {{EX:jpegPhoto}} or {{EX:audio}}
-attribute.
+attribute.  For example:
+
+>	ldif -b jpegPhoto < photo.jpeg
 
 
 H2: The LDIF text entry format
@@ -269,19 +276,20 @@ entries in a simple text format. The basic form of an entry is:
 
 Lines starting with '{{EX:#}}' character are
 comments.  An attribute description may be a simple attribute
-type like {{EX:cn}} or {{objectClass}} or {{1.2.3}} (an {{TERM:OID}}
+type like {{EX:cn}} or {{EX:objectClass}} or {{EX:1.2.3}} (an {{TERM:OID}}
 associated with an attribute type) or may include options such
 as {{EX:cn;lang_en_US}} or {{EX:userCertificate;binary}}.
 
 A line may be continued by starting the next line with a
-{{single}} space or tab character. e.g.,
+{{single}} space or tab character.  For example:
 
 >	dn: cn=Barbara J Jensen, dc=example, dc=
 >	 com
 >	cn: Barbara J
 >	  Jensen
 
-which is equivalent to:
+is equivalent to:
+
 >	dn: cn=Barbara J Jensen, dc=example, dc=com
 >	cn: Barbara J Jensen
 
@@ -327,11 +335,11 @@ three entries.
 >	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
 >	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
 
-Notice that the {{EX:jpegPhoto}} in Jennifer Jensen's entry is
+Notice that the {{EX:jpegPhoto}} in Jennifer's entry is
 encoded using base 64. The {{ldif}}(1) program (described in
-Section 8.2.6) can be used to produce an attribute
-description/base64-value pair suitable for inclusion in an
-LDIF file.
+{{SECT:The {{EX:ldif}} program}} section above) can be used to
+produce an attribute-description/base64-value pair suitable for
+inclusion in an LDIF file.
 
 Note: Trailing spaces are not trimmed from values in an
 LDIF file. Nor are multiple internal spaces compressed. If

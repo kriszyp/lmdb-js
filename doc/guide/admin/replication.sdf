@@ -92,7 +92,7 @@ operational attributes were added by the master {{slapd}}.
 
 H2: Command-Line Options
 
-{{slurpd}}(8) supports the following command-line options.
+This section details commonly used {{slurpd}}(8) command-line options.
 
 >	-d <level> | ?
 
@@ -125,7 +125,7 @@ Under normal circumstances, slurpd reads the name of
 the slapd replication log file from the slapd configuration
 file. However, you can override this with the -r flag, to
 cause slurpd to process a different replication log file. See
-section 10.5, Advanced slurpd Operation, for a discussion
+the {{SECT:Advanced slurpd Operation}} section for a discussion
 of how you might use this option.
 
 >	-o
@@ -137,25 +137,13 @@ see if new entries have been added to the replication log.
 In one-shot mode, by comparison, slurpd processes a
 replication log and exits immediately. If the -o option is
 given, the replication log file must be explicitly specified
-with the -r option
+with the -r option.  See the {{SECT:One-shot mode and reject files}}
+section for  a discussion of this mode.
 
 >	-t <directory>
 
 Specify an alternate directory for slurpd's temporary
 copies of replication logs. The default location is /usr/tmp.
-
->	-k <filename>
-
-When slurpd uses Kerberos to authenticate to slave slapd
-instances, it needs to have an appropriate srvtab file for
-the remote slapd. This option allows you to specify an
-alternate filename containing Kerberos keys for the remote
-slapd. The default filename is /etc/srvtab. You can also
-specify the srvtab file to use in the slapd configuration
-file's replica option. See the documentation on the srvtab
-directive in section 5.2.2, General Backend Options. A
-more complete discussion of using Kerberos with slapd
-and slurpd may be found in Appendix D.
 
 
 H2: Configuring slurpd and a slave slapd instance
@@ -169,56 +157,56 @@ steps are detailed in the following sections. You can set
 up as many slave slapd instances as you wish.
 
 
-H3: Set up the master slapd
+H3: Set up the master {{slapd}}
 
-Follow the procedures in Section 4, Building and Installing
-slapd. Be sure that the slapd instance is working properly
-before proceeding. Be sure to do the following in the
-master slapd configuration file.
+The following section assumes you have a properly
+working {{slapd}}(8) instance. To configure your working
+{{slapd}}(8) server as a replication master, you need
+to make the following changes to your {{slapd.conf}}(5).
 
-^ Add a replica directive for each replica. The binddn=
-parameter should match the {{F:updatedn}} option in the
+^ Add a {{EX:replica}} directive for each replica. The {{EX:binddn=}}
+parameter should match the {{EX:updatedn}} option in the
 corresponding slave slapd configuration file, and should
 name an entry with write permission to the slave database
-(e.g., an entry listed as rootdn, or allowed access via
-access directives in the slave slapd configuration file).
+(e.g., an entry listed as {{EX:rootdn}}, or allowed access via
+{{EX:access}} directives in the slave slapd configuration file).
 
-+ Add a replogfile directive, which tells slapd where to log
++ Add a {{EX:replogfile}} directive, which tells slapd where to log
 changes. This file will be read by slurpd.
 
 
 
-H3: Set up the slave slapd
+H3: Set up the slave {{slapd}}
 
 Install the slapd software on the host which is to be the
 slave slapd server. The configuration of the slave server
 should be identical to that of the master, with the following
 exceptions:
 
-^ Do not include a replica directive. While it is possible to
-create "chains" of replicas, in most cases this is
+^ Do not include a {{EX:replica}} directive. While it is
+possible to create "chains" of replicas, in most cases this is
 inappropriate.
 
-+ Do not include a replogfile directive.
++ Do not include a {{EX:replogfile}} directive.
 
 + Do include an updatedn line. The DN given should
-match the DN given in the {{EX: binddn=}} parameter of the
-corresponding {{EX: replica=}} directive in the master slapd
+match the DN given in the {{EX:binddn=}} parameter of the
+corresponding {{EX:replica=}} directive in the master slapd
 config file.
 
-+ Make sure the DN given in the {{EX: updatedn}} directive has
-permission to write the database (e.g., it is listed as rootdn
-or is allowed access by one or more access directives).
++ Make sure the DN given in the {{EX:updatedn}} directive has
+permission to write the database (e.g., it is listed as {{EX:rootdn}}
+or is allowed {{EX:access}} by one or more access directives).
 
 
 
-H3: Shut down the master slapd
+H3: Shut down the master {{slapd}}
 
 In order to ensure that the slave starts with an exact copy
 of the master's data, you must shut down the master
 slapd. Do this by sending the master slapd process an
-interrupt signal with {{EX: kill -TERM <pid>}}, where {{EX: <pid>}} is the
-process-id of the master slapd process.
+interrupt signal with {{EX:kill -INT <pid>}}, where
+{{EX:<pid>}} is the process-id of the master slapd process.
 
 If you like, you may restart the master slapd in read-only
 mode while you are replicating the database. During this
@@ -242,6 +230,9 @@ The current possibilities are
 In general, you should copy all files found in the database
 {{EX: directory}} unless you know it not used by {{slapd}}(8).
 
+Note: The copy process assumes homogeneous servers with
+identically configured OpenLDAP installations.
+
 
 H3: Configure the master slapd for replication
 
@@ -249,7 +240,7 @@ To configure slapd to generate a replication logfile, you
 add a "{{EX: replica}}" configuration option to the master slapd's
 config file. For example, if we wish to propagate changes
 to the slapd instance running on host
-slave.example.com:
+{{EX:slave.example.com}}:
 
 >	replica host=slave.example.com:389
 >		binddn="cn=Replicator,dc=example,dc=com"
@@ -258,16 +249,15 @@ slave.example.com:
 In this example, changes will be sent to port 389 (the
 standard LDAP port) on host slave.example.com. The slurpd
 process will bind to the slave slapd as 
-"cn=Replicator,dc=example,dc=com" using simple authentication
-with password "secret".  Note that the DN given by the binddn=
+"{{EX:cn=Replicator,dc=example,dc=com}}" using simple authentication
+with password "{{EX:secret}}".  Note that the DN given by the {{EX:binddn=}}
 directive must either exist in the slave slapd's database (or be
 the rootdn specified in the slapd config file) in order for the
 bind operation to succeed.  The DN should also be listed as
 the {{EX:updatedn}} for the database in the slave's slapd.conf(5).
 
-Note: use of simple authentication is discouraged.  Use
-of strong SASL mechanisms such as DIGEST-MD5 or GSSAPI is
-recommended.
+Note: The use of strong authentication and transport security
+is highly recommended.
 
 
 H3: Restart the master slapd and start the slave slapd
@@ -298,8 +288,8 @@ receives an error return code, it writes the reason for the
 error and the replication record to a reject file. The reject
 file is located in the same directory with the per-replica
 replication logfile, and has the same name, but with the
-string ".rej" appended. For example, for a replica running
-on host slave.example.com, port 389, the reject file, if it
+string "{{F:.rej}}" appended. For example, for a replica running
+on host {{EX:slave.example.com}}, port 389, the reject file, if it
 exists, will be named
 
 >	/usr/local/var/openldap/replog.slave.example.com:389.
@@ -322,12 +312,12 @@ A sample rejection log entry follows:
 >	-
 
 Note that this is precisely the same format as the original
-replication log entry, but with an ERROR line prepended to
+replication log entry, but with an {{EX:ERROR}} line prepended to
 the entry.
 
 
 
-H3: {{I:Slurpd}}'s one-shot mode and reject files
+H3: One-shot mode and reject files
 
 It is possible to use slurpd to process a rejection log with
 its "one-shot mode." In normal operation, slurpd watches
@@ -350,9 +340,9 @@ and exit, use the command
 
 H2: Replication to an X.500 DSA
 
-In mixed environments where both X.500 DSAs and slapd
+In mixed environments where both {{TERM:X.500}} DSAs and slapd
 are used, it may be desirable to replicate changes from a
-slapd directory server to an X.500 DSA. This section
+slapd directory server to an X.500 {{TERM:DSA}}. This section
 discusses issues involved with this method of replication,
 and describes the currently-available facilities.
 
@@ -366,7 +356,7 @@ the X.500 DSA:
 FT: Figure 6: Replication from slapd to an X.500 DSA
 
 Note that the X.500 DSA must be a read-only copy. Since
-the replication is one-way, updates from DAP clients
+the replication is one-way, updates from {{TERM:DAP}} clients
 connecting to the X.500 DSA simply cannot be handled.
 
 A problem arises where attribute names differ between the

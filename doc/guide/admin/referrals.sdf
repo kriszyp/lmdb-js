@@ -38,7 +38,7 @@ values.  This is best demonstrated by example.
 If the server {{EX:a.example.net}} holds {{EX:dc=example,dc=net}}
 and wished to delegate the subtree {{EX:ou=subtree,dc=example,dc=net}}
 to another server {{EX:b.example.net}}, the following named referral
-object would be added to {{a.example.net}}:
+object would be added to {{EX:a.example.net}}:
 
 >	dn: dc=subtree, dc=example, dc=net
 >	objectClass: referral
