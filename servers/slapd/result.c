@@ -902,8 +902,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	/* check for special all user attributes ("*") type */
-	userattrs = ( rs->sr_attrs == NULL ) ? 1
-		: an_find( rs->sr_attrs, &AllUser );
+	userattrs = SLAP_USERATTRS( rs->sr_attr_flags );
 
 	/* create an array of arrays of flags. Each flag corresponds
 	 * to particular value of attribute and equals 1 if value matches
