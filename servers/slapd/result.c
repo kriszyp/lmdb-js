@@ -1139,11 +1139,11 @@ send_search_entry(
 	if ( bytes < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "send_ldap_response: conn %lu  ber write failed.\n",
+			   "send_search_entry: conn %lu  ber write failed.\n",
 			   op->o_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"send_ldap_response: ber write failed\n",
+			"send_search_entry: ber write failed\n",
 			0, 0, 0 );
 #endif
 
