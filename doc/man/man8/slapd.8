@@ -128,13 +128,21 @@ extension to indicate the permissions of the underlying socket, on those
 OSes that honor them.  Support for the
 latter two schemes depends on selected configuration options.  Hosts
 may be specified by name or IPv4 and IPv6 address formats.
-Ports, if specfied, must be numeric.  The default ldap:// port is 389
+Ports, if specified, must be numeric.  The default ldap:// port is 389
 and the default ldaps:// port is 636.
 The socket permissions for LDAP over IPC are indicated by
 "x-mod=-rwxrwxrwx", "x-mod=0777" or "x-mod=777", where any 
 of the "rwx" can be "-" to suppress the related permission (note, 
 however, that sockets only honor the "w" permission), while any 
 of the "7" can be any legal octal digit, according to chmod(1).
+The usage is a bit awkward: since on some systems write permission
+("w") is required to be able to operate on the socket, it must always
+be set to allow operations on the socket.  As a consequence,
+the meaning of the "r" field is to negate write access if present;
+e.g., "x-mod=--wx---rw-" means "owner" can access read/write even
+without binding (and subject to regular ACLs), while for "others"
+bind is required, and the listener is read-only.  "Group" permissions
+are not considered at present.
 .TP
 .BI \-r " directory"
 Specifies a chroot "jail" directory.  slapd will
