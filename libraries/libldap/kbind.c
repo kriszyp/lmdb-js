@@ -125,7 +125,7 @@ ldap_kerberos_bind1_s( LDAP *ld, LDAP_CONST char *dn )
 		return( ld->ld_errno );
 
 	/* wait for a result */
-	if ( ldap_result( ld, ld->ld_msgid, 1, (struct timeval *) 0, &res )
+	if ( ldap_result( ld, msgid, 1, (struct timeval *) 0, &res )
 	    == -1 ) {
 		return( ld->ld_errno );	/* ldap_result sets ld_errno */
 	}
@@ -212,7 +212,7 @@ ldap_kerberos_bind2_s( LDAP *ld, LDAP_CONST char *dn )
 		return( ld->ld_errno );
 
 	/* wait for a result */
-	if ( ldap_result( ld, ld->ld_msgid, 1, (struct timeval *) 0, &res )
+	if ( ldap_result( ld, msgid, 1, (struct timeval *) 0, &res )
 	    == -1 ) {
 		return( ld->ld_errno );	/* ldap_result sets ld_errno */
 	}
