@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.13 Engineering
+OpenLDAP 2.2.13 Release
 	Fixed pcache CSN pending segfault (ITS#3180)
 	Added libldap cert check extension (ITS#3134)
 
