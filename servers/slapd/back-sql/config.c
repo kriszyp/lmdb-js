@@ -114,6 +114,19 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"subtree_cond=%s\n", si->subtree_cond.bv_val, 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "children_cond" ) ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE, 
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL condition "
+				"in \"children_cond\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		ber_str2bv( argv[ 1 ], 0, 1, &si->children_cond );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"subtree_cond=%s\n", si->children_cond.bv_val, 0, 0 );
+
 	} else if ( !strcasecmp( argv[ 0 ], "oc_query" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE, 

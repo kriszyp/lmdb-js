@@ -59,6 +59,8 @@ bdb_modrdn(
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
+	int		noop = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "==>bdb_modrdn(%s,%s,%s)\n", 
 		dn->bv_val,newrdn->bv_val, newSuperior ? newSuperior->bv_val : "NULL" );
@@ -705,6 +707,7 @@ retry:	/* transaction retry */
 		if(( rc=TXN_ABORT( ltid )) != 0 ) {
 			text = "txn_abort (no-op) failed";
 		} else {
+			noop = 1;
 			rc = LDAP_SUCCESS;
 		}
 
@@ -749,7 +752,9 @@ retry:	/* transaction retry */
 			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 #endif
 		text = NULL;
-		bdb_cache_entry_commit( e );
+		if ( !noop ) {
+			bdb_cache_entry_commit( e );
+		}
 
 	} else {
 #ifdef NEW_LOGGING
@@ -812,5 +817,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return rc;
+	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }

@@ -166,9 +166,10 @@ int bdb_modify_internal(
 			e->e_ocflags = 0;
 		}
 
-		/* check if modified attribute was indexed */
+		/* check if modified attribute was indexed
+		 * but not in case of NOOP... */
 		err = bdb_index_is_indexed( be, mod->sm_desc );
-		if ( err == LDAP_SUCCESS ) {
+		if ( err == LDAP_SUCCESS && !op->o_noop ) {
 			ap = attr_find( save_attrs, mod->sm_desc );
 			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
 
@@ -179,17 +180,23 @@ int bdb_modify_internal(
 
 	/* check that the entry still obeys the schema */
 	rc = entry_schema_check( be, e, save_attrs, text, textbuf, textlen );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
+
+		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, ERR, 
-					"bdb_modify_internal: entry failed schema check %s\n", 
-					*text, 0, 0 );
+			LDAP_LOG ( OPERATION, ERR, "bdb_modify_internal: "
+				"entry failed schema check %s\n", 
+				*text, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
-			*text, 0, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"entry failed schema check: %s\n",
+				*text, 0, 0 );
 #endif
+		}
+
+		/* if NOOP then silently revert to saved attrs */
 		return rc;
 	}
 
@@ -267,6 +274,8 @@ bdb_modify(
 
 	u_int32_t	locker;
 	DB_LOCK		lock;
+
+	int		noop = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n", dn->bv_val, 0, 0 );
@@ -439,7 +448,12 @@ retry:	/* transaction retry */
 	}
 
 	if( op->o_noop ) {
-		rc = TXN_ABORT( ltid );
+		if ( ( rc = TXN_ABORT( ltid ) ) != 0 ) {
+			text = "txn_abort (no-op) failed";
+		} else {
+			noop = 1;
+			rc = LDAP_SUCCESS;
+		}
 	} else {
 		rc = TXN_COMMIT( ltid, 0 );
 	}
@@ -494,5 +508,5 @@ done:
 	if( e != NULL ) {
 		bdb_unlocked_cache_return_entry_w (&bdb->bi_cache, e);
 	}
-	return rc;
+	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }

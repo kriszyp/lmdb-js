@@ -23,7 +23,7 @@ bdb_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval	pdn;
 	Entry		*p = NULL;
-	int		rc, ret; 
+	int		rc; 
 	const char	*text;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -39,6 +39,7 @@ bdb_add(
 	u_int32_t	lockid;
 	DB_LOCK		lock;
 #endif
+	int		noop = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0 );
@@ -434,6 +435,7 @@ retry:	/* transaction retry */
 		if (( rc=TXN_ABORT( ltid )) != 0 ) {
 			text = "txn_abort (no-op) failed";
 		} else {
+			noop = 1;
 			rc = LDAP_SUCCESS;
 		}
 
@@ -447,7 +449,9 @@ retry:	/* transaction retry */
 			text = "txn_prepare failed";
 
 		} else {
-			ret = bdb_cache_add_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, CACHE_WRITE_LOCK, locker, &lock);
+			int ret = bdb_cache_add_entry_rw(bdb->bi_dbenv,
+					&bdb->bi_cache, e, CACHE_WRITE_LOCK,
+					locker, &lock);
 #if 0
 			if ( bdb_cache_add_entry_rw(&bdb->bi_cache,
 				e, CACHE_WRITE_LOCK) != 0 )
@@ -492,7 +496,9 @@ retry:	/* transaction retry */
 			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 #endif
 		text = NULL;
-		bdb_cache_entry_commit( e );
+		if ( !noop ) {
+			bdb_cache_entry_commit( e );
+		}
 	}
 	else {
 #ifdef NEW_LOGGING
@@ -522,5 +528,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return rc;
+	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }

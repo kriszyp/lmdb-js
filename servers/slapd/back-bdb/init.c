@@ -612,7 +612,7 @@ bdb_initialize(
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 
 	{
-		static char uuidbuf[40];
+		static char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
 		bdb_uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ));
 		bdb_uuid.bv_val = uuidbuf;
