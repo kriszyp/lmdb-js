@@ -28,7 +28,7 @@
 #endif
 #include "common.h"
 #ifdef SVR4
-#if !defined(_AIX) && !defined(__osf__)
+#if !defined(_AIX) && !defined(__osf__) && !defined(linux)
 #include <sys/filio.h>
 #endif
 #endif
