@@ -84,7 +84,9 @@ Specifies a where-clause template used to form a subtree search condition
 It may differ from one SQL dialect to another (see samples).
 By default, it is constructed based on the knowledge about
 how to normalize DN values (e.g.
-\fB"<upper_func>(ldap_entries.dn) LIKE CONCAT('%',?)"\fP).
+\fB"<upper_func>(ldap_entries.dn) LIKE CONCAT('%',?)"\fP);
+see \fBupper_func\fP, \fBupper_needs_cast\fP, \fBconcat_pattern\fP
+and \fBstrcast_func\fP in "HELPER CONFIGURATION" for details.
 
 .TP
 .B children_cond <SQL expression>
@@ -93,12 +95,15 @@ Specifies a where-clause template used to form a children search condition
 It may differ from one SQL dialect to another (see samples).
 By default, it is constructed based on the knowledge about
 how to normalize DN values (e.g.
-\fB"<upper_func>(ldap_entries.dn) LIKE CONCAT('%,',?)"\fP).
+\fB"<upper_func>(ldap_entries.dn) LIKE CONCAT('%,',?)"\fP);
+see \fBupper_func\fP, \fBupper_needs_cast\fP, \fBconcat_pattern\fP
+and \fBstrcast_func\fP in "HELPER CONFIGURATION" for details.
 
 .TP
 .B use_subtree_shortcut { NO | yes }
 Do not use the subtree condition when the searchBase is the database
 suffix, and the scope is subtree; rather collect all entries.
+
 .RE
 .SH STAMEMENT CONFIGURATION
 These options specify SQL query templates for loading schema mapping
@@ -132,8 +137,9 @@ The default is
 \fB"SELECT id,keyval,oc_map_id,dn FROM ldap_entries WHERE <DN match expr>"\fP,
 where \fB<DN match expr>\fP is constructed based on the knowledge about
 how to normalize DN values (e.g. \fB"dn=?"\fP if no means to uppercase
-strings are available; typically, \fB"<upper_func>(dn)=?"\fP
-is used).
+strings are available; typically, \fB"<upper_func>(dn)=?"\fP is used);
+see \fBupper_func\fP, \fBupper_needs_cast\fP, \fBconcat_pattern\fP
+and \fBstrcast_func\fP in "HELPER CONFIGURATION" for details.
 
 .TP
 .B insentry_stmt <SQL expression>
@@ -166,6 +172,21 @@ The default is
 
 .RE
 .SH HELPER CONFIGURATION
+These statements are used to modify the default behavior of the backend
+according to issues of the dialect of the RDBMS.
+The first options essentially refer to string and DN normalization
+when building filters.
+LDAP normalization is more than upper- (or lower-)casing everything;
+however, as a reasonable trade-off, for case-sensitive RDBMSes the backend
+can be instructed to uppercase strings and DNs by providing
+the \fBupper_func\fP directive.
+Some RDBMSes, to use functions on arbitrary data types, e.g. string
+constants, requires a cast, which is triggered
+by the \fBupper_needs_cast\fP directive.
+If required, a string cast function can be provided as well,
+by using the \fBstrcast_func\fP directive.
+Finally, a custom string concatenation pattern may be required;
+it is provided by the \fBconcat_pattern\fP directive.
 
 .TP
 .B upper_func <SQL function name>
@@ -194,6 +215,14 @@ is set to 8192).
 This is \fIexperimental\fP and may change in future releases.
 
 .TP
+.TP
+.B strcast_func <SQL function name>
+Specifies the name of a function that converts a given value to a string
+for appropriate ordering.  This is used in "SELECT DISTINCT" statements
+for strongly typed RDBMSes with little implicit casting (like PostgreSQL),
+when a literal string is specified.
+This is \fIexperimental\fP and may change in future releases.
+
 .B concat_pattern <pattern>
 This statement defines the
 .B pattern 
@@ -211,14 +240,6 @@ On some RDBMSes (IBM db2, MSSQL) the form
 is known to work as well.
 Carefully check the documentation of your RDBMS or stay with the examples
 for supported ones.
-This is \fIexperimental\fP and may change in future releases.
-
-.TP
-.B strcast_func <SQL function name>
-Specifies the name of a function that converts a given value to a string
-for appropriate ordering.  This is used in "SELECT DISTINCT" statements
-for strongly typed RDBMSes with little implicit casting (like PostgreSQL),
-when a literal string is specified.
 This is \fIexperimental\fP and may change in future releases.
 
 .TP
@@ -256,14 +277,14 @@ in conjunction with some special rule on the RDBMS side that
 dynamically creates the missing parent.
 
 .TP
-.B baseObject [filename]
+.B baseObject [ <filename> ]
 Instructs the database to create and manage an in-memory baseObject
 entry instead of looking for one in the RDBMS.
 If the (optional) 
-.B filename
+.B <filename>
 argument is given, the entry is read from that file in
 .BR LDIF (5)
-form; otherwise, an entry with objectClass \fBextensibleObject\fP
+format; otherwise, an entry with objectClass \fBextensibleObject\fP
 is created based on the contents of the RDN of the \fIbaseObject\fP.
 This is particularly useful when \fIldap_entries\fP
 information is stored in a view rather than in a table, and 
@@ -275,9 +296,10 @@ This is \fIexperimental\fP and may change in future releases.
 
 .TP
 .B create_needs_select { NO | yes }
-Instructs the database whether entry creation in table \fIldap_entries\fP
-needs a subsequent select to collect the automatically assigned ID, 
-instead of being returned by a stored procedure.
+Instructs the database whether or not entry creation
+in table \fIldap_entries\fP needs a subsequent select to collect 
+the automatically assigned ID, instead of being returned 
+by a stored procedure.
 
 .TP
 .B sqllayer <name> [...]
