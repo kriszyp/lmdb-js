@@ -19,7 +19,6 @@
 #include <ldap_cdefs.h>
 #include <ac/bytes.h>
 
-#undef AC_INT4_TYPE
 #ifdef AC_INT4_TYPE
 
 LDAP_BEGIN_DECL
