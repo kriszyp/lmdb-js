@@ -343,12 +343,12 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 	fi
 fi
 
-if test $ol_link_kerberos = yes ; then
-	save_LIBS=$LIBS
-	$LIBS="$KRB_LIBS $LIBS"
-	AC_CHECK_FUNCS(des_string_to_key)
-	LIBS=$save_LIBS
-fi
+dnl	if test $ol_link_kerberos = yes ; then
+dnl		save_LIBS=$LIBS
+dnl		LIBS="$KRB_LIBS $LIBS"
+dnl		AC_CHECK_FUNCS(des_string_to_key)
+dnl		LIBS=$save_LIBS
+dnl fi
 
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
