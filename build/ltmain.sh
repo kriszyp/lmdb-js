@@ -967,6 +967,16 @@ if test -z "$show_help"; then
         versuffix="$current.$revision"
         ;;
 
+      freebsd)
+        version_vars="$version_vars major versuffix"
+        major="$current"
+	if [ $PORTOBJFORMAT = elf ]; then
+        versuffix="$current";
+	else
+        versuffix="$current.$revision";
+	fi
+        ;;
+
       *)
         $echo "$modename: unknown library version type \`$version_type'" 1>&2
         echo "Fatal configuration error.  See the $PACKAGE docs for more information." 1>&2
