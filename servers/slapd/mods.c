@@ -675,13 +675,14 @@ slap_mod_free(
 )
 {
 	if ( mod->sm_values != NULL ) ber_bvarray_free( mod->sm_values );
+	mod->sm_values = NULL;
 
 #ifdef SLAP_NVALUES
 	if ( mod->sm_nvalues != NULL ) ber_bvarray_free( mod->sm_nvalues );
+	mod->sm_nvalues = NULL;
 #endif
 
-	if( freeit )
-		free( mod );
+	if( freeit ) free( mod );
 }
 
 void

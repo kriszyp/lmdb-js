@@ -309,7 +309,6 @@ value_validate_normalize(
 	return LDAP_SUCCESS;
 }
 
-
 int
 value_match(
 	int *match,

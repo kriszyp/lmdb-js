@@ -613,7 +613,7 @@ int slap_mods_check(
 				ad->ad_type->sat_syntax->ssyn_normalize )
 			{
 				ml->sml_nvalues = ch_malloc( (nvals+1)*sizeof(struct berval) );
-				for( nvals = 0; ml->sml_nvalues[nvals].bv_val; nvals++ ) {
+				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 					rc = ad->ad_type->sat_syntax->ssyn_normalize(
 						ad->ad_type->sat_syntax,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals] );
@@ -665,6 +665,9 @@ int slap_mods_opattrs(
 	char *textbuf, size_t textlen )
 {
 	struct berval name, timestamp, csn;
+#ifdef SLAP_NVALUES
+	struct berval nname;
+#endif
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Modifications *mod;
@@ -693,8 +696,14 @@ int slap_mods_opattrs(
 		if( op->o_dn.bv_len == 0 ) {
 			name.bv_val = SLAPD_ANONYMOUS;
 			name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
+#ifdef SLAP_NVALUES
+			nname = name;
+#endif
 		} else {
 			name = op->o_dn;
+#ifdef SLAP_NVALUES
+			nname = op->o_ndn;
+#endif
 		}
 	}
 
@@ -712,13 +721,20 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
-#ifdef SLAP_NVALUES
-			mod->sml_nvalues = NULL;
-#endif
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &tmpval );
+			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
 			assert( mod->sml_values[0].bv_val );
+#ifdef SLAP_NVALUES
+			mod->sml_nvalues =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_nvalues[0], &tmpval );
+			mod->sml_nvalues[1].bv_len = 0;
+			mod->sml_nvalues[1].bv_val = NULL;
+			assert( mod->sml_nvalues[0].bv_val );
+#endif
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -733,13 +749,15 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_values[0], &tmpval );
+			mod->sml_values[1].bv_len = 0;
+			mod->sml_values[1].bv_val = NULL;
+			assert( mod->sml_values[0].bv_val );
 #ifdef SLAP_NVALUES
 			mod->sml_nvalues = NULL;
 #endif
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-			ber_dupbv( &mod->sml_values[0], &tmpval );
-			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
@@ -747,13 +765,19 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_creatorsName;
-#ifdef SLAP_NVALUES
-			mod->sml_nvalues = NULL;
-#endif
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &name );
+			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
 			assert( mod->sml_values[0].bv_val );
+#ifdef SLAP_NVALUES
+			mod->sml_nvalues =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_nvalues[0], &nname );
+			mod->sml_nvalues[1].bv_len = 0;
+			mod->sml_nvalues[1].bv_val = NULL;
+			assert( mod->sml_nvalues[0].bv_val );
+#endif
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
@@ -761,13 +785,14 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_createTimestamp;
+			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_values[0], &timestamp );
+			mod->sml_values[1].bv_len = 0;
+			mod->sml_values[1].bv_val = NULL;
+			assert( mod->sml_values[0].bv_val );
 #ifdef SLAP_NVALUES
 			mod->sml_nvalues = NULL;
 #endif
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-			ber_dupbv( &mod->sml_values[0], &timestamp );
-			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -778,13 +803,14 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_entryCSN;
+		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		ber_dupbv( &mod->sml_values[0], &csn );
+		mod->sml_values[1].bv_len = 0;
+		mod->sml_values[1].bv_val = NULL;
+		assert( mod->sml_values[0].bv_val );
 #ifdef SLAP_NVALUES
 		mod->sml_nvalues = NULL;
 #endif
-		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-		ber_dupbv( &mod->sml_values[0], &csn );
-		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
@@ -792,13 +818,19 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_modifiersName;
-#ifdef SLAP_NVALUES
-		mod->sml_nvalues = NULL;
-#endif
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_values[0], &name );
+		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
 		assert( mod->sml_values[0].bv_val );
+#ifdef SLAP_NVALUES
+		mod->sml_nvalues =
+			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		ber_dupbv( &mod->sml_nvalues[0], &nname );
+		mod->sml_nvalues[1].bv_len = 0;
+		mod->sml_nvalues[1].bv_val = NULL;
+		assert( mod->sml_nvalues[0].bv_val );
+#endif
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
@@ -806,13 +838,14 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
+		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		ber_dupbv( &mod->sml_values[0], &timestamp );
+		mod->sml_values[1].bv_len = 0;
+		mod->sml_values[1].bv_val = NULL;
+		assert( mod->sml_values[0].bv_val );
 #ifdef SLAP_NVALUES
 		mod->sml_nvalues = NULL;
 #endif
-		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-		ber_dupbv( &mod->sml_values[0], &timestamp );
-		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}

@@ -89,6 +89,7 @@ syn_insert(
 {
 	struct sindexrec	*sir;
 
+	LDAP_SLIST_NEXT( ssyn, ssyn_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &syn_list, ssyn, ssyn_next );
  
 	if ( ssyn->ssyn_oid ) {

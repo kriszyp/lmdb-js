@@ -97,6 +97,7 @@ mr_insert(
 	struct mindexrec	*mir;
 	char			**names;
 
+	LDAP_SLIST_NEXT( smr, smr_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD(&mr_list, smr, smr_next);
 
 	if ( smr->smr_oid ) {

@@ -1065,11 +1065,11 @@ LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * value.c
  */
-LDAP_SLAPD_F (int) value_validate LDAP_P((
+LDAP_SLAPD_F (int) assertion_value_validate LDAP_P((
 	MatchingRule *mr,
 	struct berval *in,
 	const char ** text ));
-LDAP_SLAPD_F (int) value_normalize LDAP_P((
+LDAP_SLAPD_F (int) attribute_value_normalize LDAP_P((
 	AttributeDescription *ad,
 	unsigned usage,
 	struct berval *in,

@@ -355,6 +355,7 @@ oc_insert(
 	struct oindexrec	*oir;
 	char			**names;
 
+	LDAP_SLIST_NEXT( soc, soc_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &oc_list, soc, soc_next );
 
 	if ( soc->soc_oid ) {

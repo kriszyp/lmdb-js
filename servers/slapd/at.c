@@ -261,6 +261,7 @@ at_insert(
 	struct aindexrec	*air;
 	char			**names;
 
+	LDAP_SLIST_NEXT( sat, sat_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &attr_list, sat, sat_next );
 
 	if ( sat->sat_oid ) {

@@ -116,6 +116,7 @@ cr_insert(
 	struct cindexrec	*cir;
 	char			**names;
 
+	LDAP_SLIST_NEXT( scr, scr_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD(&cr_list, scr, scr_next);
 
 	if ( scr->scr_oid ) {

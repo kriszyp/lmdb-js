@@ -65,30 +65,23 @@ Attribute *attr_dup( Attribute *a )
 		}
 
 		tmp->a_vals = ch_malloc((i+1) * sizeof(struct berval));
-#ifdef SLAP_NVALUES
-		if( a->a_nvals != NULL ) {
-			tmp->a_nvals = ch_malloc((i+1) * sizeof(struct berval));
-		}
-#endif
-
 		for( i=0; a->a_vals[i].bv_val != NULL; i++ ) {
 			ber_dupbv( &tmp->a_vals[i], &a->a_vals[i] );
 			if( tmp->a_vals[i].bv_val == NULL ) break;
+		}
+		tmp->a_vals[i].bv_val = NULL;
 
 #ifdef SLAP_NVALUES
-			if( a->a_nvals ) {
+		if( a->a_nvals != NULL ) {
+			tmp->a_nvals = ch_malloc((i+1) * sizeof(struct berval));
+			for( i=0; a->a_nvals[i].bv_val != NULL; i++ ) {
 				ber_dupbv( &tmp->a_nvals[i], &a->a_nvals[i] );
 				if( tmp->a_nvals[i].bv_val == NULL ) break;
-			} else {
-				tmp->a_nvals = NULL;
 			}
-#endif
-		}
-
-		tmp->a_vals[i].bv_val = NULL;
-#ifdef SLAP_NVALUES
-		if( tmp->a_nvals != NULL ) {
 			tmp->a_nvals[i].bv_val = NULL;
+
+		} else {
+			tmp->a_nvals = NULL;
 		}
 #endif
 

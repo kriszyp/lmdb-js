@@ -90,8 +90,7 @@ parse_oidm(
     const char	*fname,
     int		lineno,
     int		argc,
-    char 	**argv
-)
+    char 	**argv )
 {
 	char *oid;
 	OidMacro *om;
@@ -122,6 +121,7 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 		return 1;
 	}
 
+	LDAP_SLIST_NEXT( om, som_next ) = NULL;
 	om->som_names = NULL;
 	ldap_charray_add( &om->som_names, argv[1] );
 	om->som_oid.bv_val = oidm_find( argv[2] );
@@ -139,6 +139,5 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
 
 	LDAP_SLIST_INSERT_HEAD( &om_list, om, som_next );
-
 	return 0;
 }
