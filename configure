@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.339 2000/10/16 02:10:27 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.340 2000/12/31 01:32:49 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -644,13 +644,13 @@ fi
 
 
 # set unset (borrowed from autoconf 2.14a)
-if (unset FOO) >/dev/null 2>&1; then
+if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
   ol_unset=unset
 else
   ol_unset=false
 fi
 # unset CDPATH
-$ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; && export CDPATH; }
 
 ac_aux_dir=
 for ac_dir in build $srcdir/build; do

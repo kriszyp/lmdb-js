@@ -34,13 +34,13 @@ dnl Configure.in for OpenLDAP
 AC_INIT(build/version.sh)dnl
 
 # set unset (borrowed from autoconf 2.14a)
-if (unset FOO) >/dev/null 2>&1; then
+if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
   ol_unset=unset
 else
   ol_unset=false
 fi
 # unset CDPATH
-$ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; && export CDPATH; }
 
 AC_CONFIG_AUX_DIR(build)dnl
 
