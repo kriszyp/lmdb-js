@@ -69,6 +69,59 @@ list of hosts may be provided.
 .B PORT <port>
 Specifies the default port used when connecting to LDAP servers(s).
 The port may be specified as a number.
+.B PORT
+is deprecated in favor of
+.BR URI.
+.TP
+.B SIZELIMIT <integer>
+Specifies a size limit to use when performing searches.  The
+number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies unlimited search size.
+.TP
+.B TIMELIMIT <integer>
+Specifies a time limit to use when performing searches.  The
+number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.
+.TP
+.B DEREF <when>
+Specifies how alias dereferencing is done when performing a search. The
+.B <when>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+Aliases are never dereferenced. This is the default.
+.TP
+.B searching
+Aliases are dereferenced in subordinates of the base object, but
+not in locating the base object of the search.
+.TP
+.B finding
+Aliases are only dereferenced when locating the base object of the search.
+.TP
+.B always
+Aliases are dereferenced both in searching and in locating the base object
+of the search.
+.RE
+.SH SASL OPTIONS
+If OpenLDAP is built with Simple Authentication and Security Layer support,
+there are more options you can specify.
+.TP
+.B SASL_MECH <mechanism>
+Specifies the SASL mechanism to use.
+This is a user\-only option.
+.TP
+.B SASL_REALM <realm>
+Specifies the SASL realm.
+This is a user\-only option.
+.TP
+.B SASL_AUTHCID <authcid>
+Specifies the authentication identity.
+This is a user\-only option.
+.TP
+.B SASL_AUTHZID <authcid>
+Specifies the proxy authorization identity.
+This is a user\-only option.
 .TP
 .B SASL_SECPROPS <properties>
 Specifies Cyrus SASL security properties. The 
@@ -223,6 +276,7 @@ the session is immediately terminated.
 These keywords are equivalent. The server certificate is requested. If no
 certificate is provided, or a bad certificate is provided, the session
 is immediately terminated. This is the default setting.
+.RE
 .SH "ENVIRONMENT VARIABLES"
 .TP
 LDAPNOINIT
