@@ -578,9 +578,6 @@
 /* Define if you have the <syslog.h> header file.  */
 #undef HAVE_SYSLOG_H
 
-/* Define if you have the <tcl.h> header file.  */
-#undef HAVE_TCL_H
-
 /* Define if you have the <tcpd.h> header file.  */
 #undef HAVE_TCPD_H
 
@@ -1027,12 +1024,6 @@
 
 /* define to support dynamic SHELL backend */
 #undef SLAPD_SHELL_DYNAMIC
-
-/* define to support TCL backend */
-#undef SLAPD_TCL
-
-/* define to support dynamic TCL backend */
-#undef SLAPD_TCL_DYNAMIC
 
 /* define to support SQL backend */
 #undef SLAPD_SQL

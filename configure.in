@@ -238,9 +238,6 @@ OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic],
 OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
 OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static,
 	[static dynamic])
-OL_ARG_ENABLE(tcl,[    --enable-tcl	  enable tcl backend], no)dnl
-OL_ARG_WITH(tcl_module,[    --with-tcl-module	  module type static|dynamic], static,
-	[static dynamic])
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
@@ -305,9 +302,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_shell = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-shell argument])
 	fi
-	if test $ol_enable_tcl = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-tcl argument])
-	fi
 	if test $ol_enable_sql = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-sql argument])
 	fi
@@ -365,9 +359,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_shell_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-shell-module argument])
 	fi
-	if test $ol_with_tcl_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-tcl-module argument])
-	fi
 	if test $ol_with_sql_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-sql-module argument])
 	fi
@@ -397,7 +388,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_passwd=no
 	ol_enable_perl=no
 	ol_enable_shell=no
-	ol_enable_tcl=no
 	ol_enable_sql=no
 
 	ol_enable_modules=no
@@ -421,7 +411,6 @@ if test $ol_enable_slapd = no ; then
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
-	ol_with_tcl_module=static
 	ol_with_sql_module=static
 
 	ol_enable_slurpd=no
@@ -457,8 +446,7 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
-		$ol_enable_sql = no -a \
-		$ol_enable_tcl = no ; then
+		$ol_enable_sql = no -a ; then
 
 		if test $ol_enable_slapd = yes ; then
 			AC_MSG_ERROR([slapd requires a backend])
@@ -575,7 +563,6 @@ BUILD_PASSWD=no
 BUILD_PERL=no
 BUILD_SHELL=no
 BUILD_SQL=no
-BUILD_TCL=no
 
 BUILD_BDB_DYNAMIC=static
 BUILD_DNSSRV_DYNAMIC=static
@@ -588,7 +575,6 @@ BUILD_NULL_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
-BUILD_TCL_DYNAMIC=static
 BUILD_SQL_DYNAMIC=static
 
 BUILD_DYNGROUP=no
@@ -610,7 +596,6 @@ SLAPD_SQL_LDFLAGS=
 SLAPD_SQL_LIBS=
 SLAPD_SQL_INCLUDES=
 
-MOD_TCL_LIB=
 KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
@@ -822,7 +807,6 @@ else
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
-	ol_with_tcl_module=static
 	ol_with_sql_module=static
 	if test $ol_with_dyngroup = mod ; then
 		AC_MSG_WARN([building static dyngroup overlay])
@@ -2176,35 +2160,6 @@ if test $ol_enable_sql != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl TCL
-if test $ol_enable_tcl != no ; then
-	AC_CHECK_HEADERS(tcl.h)
-
-	if test $ac_cv_header_tcl_h != yes ; then
-		have_tcl=no
-	else
-		for lib in tcl tcl7.6 tcl8.0 tcl8.2 ; do
-			AC_CHECK_LIB($lib,main,
-			  [have_tcl=yes
-			   if test x"$ol_with_tcl_module" = "xstatic" ; then
-					SLAPD_LIBS="$SLAPD_LIBS -l${lib}"
-			   else
-					MOD_TCL_LIB="-l${lib}"
-			   fi;break],[have_tcl=no])
-		done
-	fi
-
-	if test $have_tcl != yes ; then
-		AC_MSG_WARN([could not find -ltcl])
-		if test $ol_enable_tcl = yes ; then
-			AC_MSG_ERROR([could not find tcl, select appropriate options or disable])
-		fi
-
-		ol_enable_tcl=no
-	fi
-fi
-
-dnl ----------------------------------------------------------------
 dnl ud needs termcap (should insert check here)
 ol_link_termcap=no
 AC_CHECK_HEADERS(termcap.h ncurses.h)
@@ -2804,21 +2759,6 @@ if test "$ol_enable_shell" != no ; then
 	fi
 fi
 
-if test "$ol_enable_tcl" != no ; then
-	AC_DEFINE(SLAPD_TCL,1,[define to support TCL backend])
-	BUILD_SLAPD=yes
-	BUILD_TCL=yes
-	if test "$ol_with_tcl_module" != static; then
-		AC_DEFINE(SLAPD_TCL_DYNAMIC,1,
-			[define to support dynamic TCL backend])
-		BUILD_TCL=mod
-		BUILD_TCL_DYNAMIC=shared
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-tcl"
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-tcl"
-	fi
-fi
-
 if test "$ol_link_sql" != no ; then
 	AC_DEFINE(SLAPD_SQL,1,[define to support SQL backend])
 	BUILD_SLAPD=yes
@@ -2912,7 +2852,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SQL)
-  AC_SUBST(BUILD_TCL)
   AC_SUBST(BUILD_BDB_DYNAMIC)
   AC_SUBST(BUILD_DNSSRV_DYNAMIC)
   AC_SUBST(BUILD_HDB_DYNAMIC)
@@ -2925,7 +2864,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
-  AC_SUBST(BUILD_TCL_DYNAMIC)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_PROXYCACHE)
 AC_SUBST(BUILD_SLURPD)
@@ -2937,7 +2875,6 @@ AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
-AC_SUBST(MOD_TCL_LIB)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
@@ -3009,7 +2946,6 @@ servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefi
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
 servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
-servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
 servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk:build/lib-shared.mk  \
