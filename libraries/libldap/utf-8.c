@@ -33,15 +33,15 @@
  */
 ber_len_t ldap_utf8_bytes( const char * p )
 {
-	ber_len_t bytes;
+	ber_len_t bytes = 0;
 
-	if( p == NULL ) return 0;
+	if( p == NULL ) return bytes;
 
-	for( bytes=0; p[bytes] ; bytes++ ) {
+	while( p[bytes++] ) {
 		/* EMPTY */ ;
 	}
 
-	return ++bytes;
+	return bytes;
 }
 
 ber_len_t ldap_utf8_chars( const char * p )
@@ -326,4 +326,89 @@ char* ldap_utf8_fgetc( FILE *s, char *buf )
 	}
 
 	return buf;
+}
+
+ber_len_t (ldap_utf8_strcspn)( const char *str, const char *set )
+{
+	int len;
+	const char *cstr;
+
+	for( cstr = str; *cstr != '\0'; cstr += len ) {
+		const char *cset;
+
+		for( cset = set; ; cset += len ) {
+			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
+				return cstr - str;
+			} 
+
+			len = ldap_utf8_charlen(cset);
+			if( !len ) break;
+		}
+
+		len = ldap_utf8_charlen(cstr);
+		if( !len ) break;
+	}
+
+	return cstr - str;
+}
+
+ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
+{
+	int len;
+	const char *cstr;
+
+	for( cstr = str; *cstr != '\0'; cstr += len ) {
+		const char *cset;
+
+		for( cset = set; ; cset += len ) {
+			if( *cset == '\0' ) {
+				return cstr - str;
+			}
+
+			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
+				break;
+			} 
+
+			len = ldap_utf8_charlen(cset);
+			if( !len ) break;
+		}
+
+		len = ldap_utf8_charlen(cstr);
+		if( !len ) break;
+	}
+
+	return cstr - str;
+}
+
+char *(ldap_utf8_strtok)(char *str, const char *sep, char **last)
+{
+	char *begin;
+	char *end;
+
+	if( last == NULL ) return NULL;
+
+	begin = str ? str : *last;
+
+	begin += ldap_utf8_strspn( begin, sep );
+
+	if( *begin == '\0' ) {
+		*last = NULL;
+		return NULL;
+	}
+
+	end = &begin[ ldap_utf8_strcpn( begin, sep ) ];
+
+	if( *end != '\0' ) {
+		int len = ldap_utf8_charlen( end );
+		*end = '\0';
+
+		if( len ) {
+			end += len;
+		} else {
+			end = NULL;
+		}
+	}
+
+	*last = end;
+	return begin;
 }
