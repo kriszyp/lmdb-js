@@ -5,69 +5,29 @@
  *  os-ip.c -- platform-specific TCP & UDP related code
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 
-#ifdef _WIN32
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_IO_H
 #include <io.h>
-#include "msdos.h"
-#else /* _WIN32 */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#endif /* _WIN32 */
-#ifdef _AIX
-#include <sys/select.h>
-#endif /* _AIX */
-#ifdef VMS
-#include "ucx_select.h"
-#endif /* VMS */
+#endif /* HAVE_IO_H */
 
-#include "portable.h"
+#if defined( HAVE_SYS_FILIO_H )
+#include <sys/filio.h>
+#elif defined( HAVE_SYS_IOCTL_H )
+#include <sys/ioctl.h>
+#endif
+
 #include "lber.h"
 #include "ldap.h"
-
-#ifdef LDAP_REFERRALS
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
-#ifdef notyet
-#ifdef NEED_FILIO
-#include <sys/filio.h>
-#else /* NEED_FILIO */
-#include <sys/ioctl.h>
-#endif /* NEED_FILIO */
-#endif /* notyet */
-#endif /* LDAP_REFERRALS */
-
-#ifdef MACOS
-#define tcp_close( s )		tcpclose( s )
-#else /* MACOS */
-#ifdef DOS
-#ifdef PCNFS
-#define tcp_close( s )		close( s )
-#endif /* PCNFS */
-#ifdef NCSA
-#define tcp_close( s )		netclose( s ); netshut()
-#endif /* NCSA */
-#ifdef WINSOCK
-#define tcp_close( s )		closesocket( s ); WSACleanup();
-#endif /* WINSOCK */
-#else /* DOS */
-#define tcp_close( s )		close( s )
-#endif /* DOS */
-#endif /* MACOS */
-
 #include "ldap-int.h"
 
 int
@@ -92,13 +52,17 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 #endif /* notyet */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
-	    ( host == NULL ) ? "(by address)" : host, ntohs( port ), 0 );
+	    ( host == NULL ) ? "(by address)" : host, (int) ntohs( (short) port ), 0 );
 
 	connected = use_hp = 0;
 
 	if ( host != NULL && ( address = inet_addr( host )) == -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
+#ifdef HAVE_WINSOCK
+			errno = WSAGetLastError();
+#else
 			errno = EHOSTUNREACH;	/* not exactly right, but... */
+#endif
 			return( -1 );
 		}
 		use_hp = 1;
@@ -131,6 +95,9 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 			rc = 0;
 			break;
 		} else {
+#ifdef HAVE_WINSOCK
+			errno = WSAGetLastError();
+#endif
 #ifdef notyet
 #ifdef LDAP_REFERRALS
 #ifdef EAGAIN
@@ -151,7 +118,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 				perror( (char *)inet_ntoa( sin.sin_addr ));
 			}
 #endif
-			close( s );
+			tcp_close( s );
 			if ( !use_hp ) {
 				break;
 			}
@@ -172,7 +139,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 #endif /* notyet */
 
 		Debug( LDAP_DEBUG_TRACE, "sd %d connected to: %s\n",
-		    s, inet_ntoa( sin.sin_addr ), 0 );
+		    s, (char *) inet_ntoa( sin.sin_addr ), 0 );
 	}
 
 	return( rc );
@@ -186,7 +153,7 @@ ldap_close_connection( Sockbuf *sb )
 }
 
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
@@ -215,7 +182,7 @@ ldap_host_connected_to( Sockbuf *sb )
 
 	return( NULL );
 }
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 
 #ifdef LDAP_REFERRALS
@@ -236,7 +203,7 @@ ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	if ( !FD_ISSET( sb->sb_sd, &sip->si_writefds )) {
-		FD_SET( sb->sb_sd, &sip->si_writefds );
+		FD_SET( (u_int) sb->sb_sd, &sip->si_writefds );
 	}
 }
 
@@ -249,7 +216,7 @@ ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	if ( !FD_ISSET( sb->sb_sd, &sip->si_readfds )) {
-		FD_SET( sb->sb_sd, &sip->si_readfds );
+		FD_SET( (u_int) sb->sb_sd, &sip->si_readfds );
 	}
 }
 
@@ -261,8 +228,8 @@ ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	FD_CLR( sb->sb_sd, &sip->si_writefds );
-	FD_CLR( sb->sb_sd, &sip->si_readfds );
+	FD_CLR( (u_int) sb->sb_sd, &sip->si_writefds );
+	FD_CLR( (u_int) sb->sb_sd, &sip->si_readfds );
 }
 
 
@@ -319,9 +286,9 @@ do_ldap_select( LDAP *ld, struct timeval *timeout )
 	Debug( LDAP_DEBUG_TRACE, "do_ldap_select\n", 0, 0, 0 );
 
 	if ( tblsize == 0 ) {
-#ifdef USE_SYSCONF
+#if defined( HAVE_SYSCONF )
 		tblsize = sysconf( _SC_OPEN_MAX );
-#else /* !USE_SYSCONF */
+#elif defined( HAVE_GETDTABLESIZE )
 		tblsize = getdtablesize();
 #endif /* !USE_SYSCONF */
 
