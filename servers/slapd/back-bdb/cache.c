@@ -149,6 +149,17 @@ bdb_cache_entry_db_lock
 	lockobj.size = e->e_nname.bv_len;
 	rc = LOCK_GET(env, locker, flags | DB_LOCK_NOWAIT,
 					&lockobj, db_rw, lock);
+	if (rc) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_entry_db_lock: entry %s, rw %d, rc %d\n",
+			e->e_nname.bv_val, rw, rc );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_cache_entry_db_lock: entry %s, rw %d, rc %d\n",
+			e->e_nname.bv_val, rw, rc );
+#endif
+	}
 	return rc;
 }
 
