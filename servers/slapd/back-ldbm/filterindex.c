@@ -45,6 +45,7 @@ filter_candidates(
     Filter	*f
 )
 {
+	char *sub = "SUBTREE";
 	ID_BLOCK	*result;
 
 #ifdef NEW_LOGGING
@@ -88,12 +89,15 @@ filter_candidates(
 		}
 		break;
 
+	case SLAPD_FILTER_DN_CHILDREN:
+		sub = "CHILDREN";
 	case SLAPD_FILTER_DN_SUBTREE:
 #ifdef NEW_LOGGING
 		LDAP_LOG( FILTER, DETAIL1, 
-			   "filter_candidates:  DN SUBTREE (%s)\n", f->f_dn, 0, 0 );
+		   "filter_candidates:  DN %s (%s)\n", sub, f->f_dn, 0 );
 #else
-		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER,
+			"\tDN %s\n", sub, 0, 0 );
 #endif
 
 		/* an error is treated as an empty list */

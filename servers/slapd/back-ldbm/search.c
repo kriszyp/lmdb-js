@@ -48,7 +48,6 @@ ldbm_back_search(
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		manageDSAit = get_manageDSAit( op );
-	int		cscope = LDAP_SCOPE_DEFAULT;
 
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
@@ -70,14 +69,15 @@ ldbm_back_search(
 		ber_dupbv( &realbase, &e->e_nname );
 
 		candidates = search_candidates( op, e, op->oq_search.rs_filter,
-	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
-				manageDSAit || get_domainScope(op) );
+			op->oq_search.rs_scope, op->oq_search.rs_deref,
+			manageDSAit || get_domainScope(op) );
 
 		goto searchit;
 		
 	} else if ( op->oq_search.rs_deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( op->o_bd, &op->o_req_ndn, &rs->sr_err, &matched, &rs->sr_text );
+		e = deref_dn_r( op->o_bd, &op->o_req_ndn,
+			&rs->sr_err, &matched, &rs->sr_text );
 
 		if( rs->sr_err == LDAP_NO_SUCH_OBJECT ) rs->sr_err = LDAP_REFERRAL;
 
@@ -177,12 +177,9 @@ ldbm_back_search(
 	}
 
 	if ( op->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
-		cscope = LDAP_SCOPE_BASE;
 		candidates = base_candidate( op->o_bd, e );
 
 	} else {
-		cscope = ( op->oq_search.rs_scope != LDAP_SCOPE_SUBTREE )
-			? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE;
 		candidates = search_candidates( op, e, op->oq_search.rs_filter,
 		    op->oq_search.rs_scope, op->oq_search.rs_deref, manageDSAit );
 	}
@@ -335,25 +332,27 @@ searchit:
 		rs->sr_entry = e;
 
 #ifdef LDBM_SUBENTRIES
-	if ( is_entry_subentry( e ) ) {
-		if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
-			if(!get_subentries_visibility( op )) {
+		if ( is_entry_subentry( e ) ) {
+			if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+				if(!get_subentries_visibility( op )) {
+					/* only subentries are visible */
+					goto loop_continue;
+				}
+			} else if ( get_subentries( op ) &&
+				!get_subentries_visibility( op ))
+			{
 				/* only subentries are visible */
 				goto loop_continue;
 			}
-		} else if ( get_subentries( op ) &&
-			!get_subentries_visibility( op ))
-		{
+		} else if ( get_subentries_visibility( op )) {
 			/* only subentries are visible */
 			goto loop_continue;
 		}
-	} else if ( get_subentries_visibility( op )) {
-		/* only subentries are visible */
-		goto loop_continue;
-	}
 #endif
 
-		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
+		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING &&
+			is_entry_alias( e ) )
+		{
 			Entry *matched;
 			int err;
 			const char *text;
@@ -371,7 +370,7 @@ searchit:
 			}
 
 			/* need to skip alias which deref into scope */
-			if( op->oq_search.rs_scope & LDAP_SCOPE_ONELEVEL ) {
+			if( op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
 				struct berval pdn;
 				dnParent( &e->e_nname, &pdn );
 				if ( ber_bvcmp( &pdn, &realbase ) ) {
@@ -382,7 +381,8 @@ searchit:
 				/* alias is within scope */
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, DETAIL1,
-					"ldbm_search: alias \"%s\" in subtree\n", e->e_dn, 0, 0 );
+					"ldbm_search: alias \"%s\" in subtree\n",
+					e->e_dn, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: alias \"%s\" in subtree\n",
@@ -398,9 +398,10 @@ searchit:
 		}
 
 		/*
-		 * if it's a referral, add it to the list of referrals. only do
-		 * this for non-base searches, and don't check the filter
-		 * explicitly here since it's only a candidate anyway.
+		 * If it's a referral, add it to the list of referrals.
+		 * Only do this for non-base searches, and don't check
+		 * the filter explicitly here since it's only a candidate
+		 * anyway.
 		 */
 		if ( !manageDSAit && op->oq_search.rs_scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
@@ -416,8 +417,16 @@ searchit:
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok
+				&& op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE )
+			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else if ( !scopeok
+				&& op->oq_search.rs_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -427,9 +436,9 @@ searchit:
 				BerVarray erefs = get_entry_referrals( op, e );
 				rs->sr_ref = referral_rewrite( erefs,
 					&e->e_name, NULL,
-					op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
-						? LDAP_SCOPE_SUBTREE
-						: LDAP_SCOPE_BASE );
+					op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
+						? LDAP_SCOPE_BASE
+						: LDAP_SCOPE_SUBTREE );
 
 				send_search_reference( op, rs );
 
@@ -470,8 +479,16 @@ searchit:
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok &&
+				op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE )
+			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else if ( !scopeok &&
+				op->oq_search.rs_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -488,7 +505,6 @@ searchit:
 				}
 
 				if (e) {
-
 					result = send_search_entry( op, rs );
 
 					switch (result) {
@@ -502,6 +518,7 @@ searchit:
 						goto done;
 					}
 				}
+
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, DETAIL2,
@@ -595,8 +612,8 @@ search_candidates(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1,
-		   "search_candidates: base (%s) scope %d deref %d\n",
-		   e->e_ndn, scope, deref );
+		"search_candidates: base (%s) scope %d deref %d\n",
+		e->e_ndn, scope, deref );
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" s=%d d=%d\n",
@@ -631,9 +648,9 @@ search_candidates(
 	f.f_next = NULL;
 	f.f_choice = LDAP_FILTER_AND;
 	f.f_and = &fand;
-	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
-		? SLAPD_FILTER_DN_SUBTREE
-		: SLAPD_FILTER_DN_ONE;
+	fand.f_choice = scope == LDAP_SCOPE_ONELEVEL
+		? SLAPD_FILTER_DN_ONE
+		: SLAPD_FILTER_DN_SUBTREE;
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
@@ -650,6 +667,5 @@ search_candidates(
 #endif
 
 	candidates = filter_candidates( op, &f );
-
 	return( candidates );
 }
