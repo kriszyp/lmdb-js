@@ -196,6 +196,13 @@ Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
 int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access );
 int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f );
+typedef int (*FILTER_APPLY_FN)( Slapi_Filter *f, void *arg );
+int slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_code );
+#define SLAPI_FILTER_SCAN_STOP			-1
+#define SLAPI_FILTER_SCAN_ERROR			-2
+#define SLAPI_FILTER_SCAN_NOMORE		0
+#define SLAPI_FILTER_SCAN_CONTINUE		1
+#define SLAPI_FILTER_UNKNOWN_FILTER_TYPE	2 /* set by slapi_filter_apply() */
 
 /* internal add/delete/search/modify routines */
 Slapi_PBlock *slapi_search_internal( char *base, int scope, char *filter, 
