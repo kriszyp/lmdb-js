@@ -11,6 +11,10 @@ Current contributions:
 		LDAP C++ API
 		Contributed by SuSE Gmbh.
 
+	ldapsasl
+		LDAP SASL auxprop plugin
+		Contributed by Symas Corp.
+
 	ldaptcl
 		LDAP TCL API
 		Contributed by NeoSoft
