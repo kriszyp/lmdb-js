@@ -97,6 +97,10 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 #ifdef PTHREAD_CREATE_DETACHED
 	} else {
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#elif HAVE_PTHREAD_OS390
+	} else {
+		int st = __DETACHED;
+		pthread_attr_setdetachstate(&attr, &st);
 #endif
 	}
 #endif
@@ -107,6 +111,9 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 #endif
 
 	rtn = pthread_create( thread, &attr, start_routine, arg );
+#ifdef HAVE_PTHREAD_OS390
+	if ( rtn == -1 ) rtn = errno;
+#endif
 
 #if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
 	if( detach ) {
@@ -141,14 +148,26 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 	if (thread_return==NULL)
 	  thread_return=&dummy;
 #endif	
+#ifdef HAVE_PTHREAD_OS390
+	int st = pthread_join( thread, thread_return ); 
+	if ( st == -1 ) st = errno;
+	return st;
+#else
 	return pthread_join( thread, thread_return );
+#endif
 }
 
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 #ifdef HAVE_PTHREAD_KILL
+#ifdef HAVE_PTHREAD_OS390
+	int st = pthread_kill( thread, signo );
+	if ( st == -1 ) st = errno;
+	return st;
+#else
 	return pthread_kill( thread, signo );
+#endif
 #else
 	/* pthread package with DCE */
 	if (kill( getpid(), signo )<0)
@@ -168,7 +187,11 @@ ldap_pvt_thread_yield( void )
 	return sched_yield();
 
 #elif HAVE_PTHREAD_YIELD
+#if HAVE_PTHREAD_OS390
+	pthread_yield(NULL);
+#else
 	pthread_yield();
+#endif
 	return 0;
 
 #elif HAVE_THR_YIELD
