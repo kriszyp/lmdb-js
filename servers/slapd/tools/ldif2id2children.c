@@ -282,6 +282,8 @@ main( int argc, char **argv )
 						}
 						(void) memcpy( (char *) &pid,
 						    data.dptr, sizeof(ID) );
+
+						ldbm_datum_free( db->dbc_db, data);
 					}
 
 					sprintf( buf2, "%c%ld", EQ_PREFIX, pid );
