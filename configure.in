@@ -200,9 +200,10 @@ dnl SLAPD Backend Options
 Backends="bdb dnssrv hdb ldap ldbm meta monitor null \
 	passwd perl relay shell sql"
 
-AC_ARG_WITH(xxslapoverlays,[
+AC_ARG_WITH(xxslapbackends,[
 SLAPD Backend Options:])
 
+OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod], yes, [no yes mod])dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod], no, [no yes mod])dnl
@@ -229,6 +230,7 @@ Overlays="chain denyop dyngroup lastmod ppolicy proxycache rwm \
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
 
+OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod], no,
 	[no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod], no,
@@ -261,11 +263,34 @@ AC_ENABLE_SHARED
 dnl ----------------------------------------------------------------
 
 dnl General "enable" options
+# Activate any backends that were not explicitly enabled.
+# Note that back_bdb defaults to "yes" so this loop won't touch it.
+if test $ol_enable_backends != no ; then
+	for i in $Backends; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp = no ; then
+			eval "ol_enable_$i=$ol_enable_backends"
+		fi
+	done
+fi
+# Activate the overlays
+if test $ol_enable_overlays != no ; then
+	for i in $Overlays; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp = no ; then
+			eval "ol_enable_$i=$ol_enable_overlays"
+		fi
+	done
+fi
+
 # validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_slapi = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
+	fi
+	if test $ol_enable_backends != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-backends argument])
 	fi
 	for i in $Backends; do
 		eval "ol_tmp=\$ol_enable_$i"
@@ -302,6 +327,9 @@ if test $ol_enable_slapd = no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
 	dnl overlays
+	if test $ol_enable_overlays != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-overlays argument])
+	fi
 	for i in $Overlays; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
@@ -313,6 +341,8 @@ if test $ol_enable_slapd = no ; then
 	# force settings to no
 	ol_enable_slapi=no
 
+	ol_enable_backends=no
+	ol_enable_overlays=no
 	ol_enable_modules=no
 	ol_enable_multimaster=no
 	ol_enable_rlookups=no
