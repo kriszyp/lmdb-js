@@ -174,7 +174,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	 * FIXME: we prefer efficiency over checking if the _ENTIRE_
 	 * dn can be parsed
 	 */
-	if ( ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP ) 
+	if ( ldap_str2rdn( rdn, &tmpRDN, (char **) &p, LDAP_DN_FORMAT_LDAP ) 
 			!= LDAP_SUCCESS ) {
 		return( NULL );
 	}
@@ -299,7 +299,8 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
 int
-ldap_dn_normalize( const char *dnin, unsigned fin, char **dnout, unsigned fout )
+ldap_dn_normalize( LDAP_CONST char *dnin,
+	unsigned fin, char **dnout, unsigned fout )
 {
 	int	rc;
 	LDAPDN	*tmpDN = NULL;
@@ -589,7 +590,7 @@ ldap_dnfree( LDAPDN *dn )
 #define	TMP_SLOTS	1024
 
 int
-ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
+ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 {
 	const char 	*p;
 	int		rc = LDAP_DECODING_ERROR;
@@ -651,7 +652,7 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 	for ( ; p[ 0 ]; p++ ) {
 		int		err;
 		
-		err = ldap_str2rdn( p, &newRDN, &p, flags );
+		err = ldap_str2rdn( p, &newRDN, (char **) &p, flags );
 		if ( err != LDAP_SUCCESS ) {
 			goto parsing_error;
 		}
@@ -757,8 +758,10 @@ return_result:;
  * corresponds to the rdn separator or to '\0' in case the string is over.
  */
 int
-ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
+ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
+	char **n_in, unsigned flags )
 {
+	const char  **n = (const char **) n_in;
 	const char 	*p;
 	int		navas = 0;
 	int 		state = B4AVA;

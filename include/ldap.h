@@ -578,7 +578,7 @@ ldap_set_rebind_proc LDAP_P((
  */
 LDAP_F( int )
 ldap_create_control LDAP_P((
-	const char *requestOID,
+	LDAP_CONST char *requestOID,
 	BerElement *ber,
 	int iscritical,
 	LDAPControl **ctrlp ));
@@ -1221,9 +1221,9 @@ ldap_dn2str LDAP_P((
 
 LDAP_F( int )
 ldap_str2rdn LDAP_P((
-	const char *str,
+	LDAP_CONST char *str,
 	LDAPRDN **rdn,
-	const char **next,
+	char **next,
 	unsigned flags ));
 
 LDAP_F( int )
