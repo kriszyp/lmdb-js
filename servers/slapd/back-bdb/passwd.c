@@ -195,6 +195,13 @@ retry:	/* transaction retry */
 		}
 		*text = "entry update failed";
 		rc = LDAP_OTHER;
+	} else
+	{
+		rc = txn_commit( ltid, 0 );
+		ltid = NULL;
+		op->o_private = NULL;
+		if (rc)
+			*text = "commit failed";
 	}
 
 done:

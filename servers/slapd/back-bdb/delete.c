@@ -265,7 +265,8 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from id2entry */
-	if ( bdb_id2entry_delete( be, ltid, e->e_id ) != 0 ) {
+	rc = bdb_id2entry_delete( be, ltid, e->e_id );
+	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

@@ -258,7 +258,8 @@ retry:	rc = txn_abort( ltid );
 	}
 
 	/* attribute indexes */
-	if ( bdb_index_entry_add( be, ltid, e, e->e_attrs ) != LDAP_SUCCESS ) {
+	rc = bdb_index_entry_add( be, ltid, e, e->e_attrs );
+	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: index_entry_add failed\n",
 			0, 0, 0 );
 		switch( rc ) {
