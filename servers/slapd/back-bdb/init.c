@@ -242,20 +242,20 @@ bdb_db_destroy( BackendDB *be )
 
 #ifdef SLAPD_BDB_DYNAMIC
 int back_bdb_LTX_init_module( int argc, char *argv[] ) {
-    BackendInfo bi;
+	BackendInfo bi;
 
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "bdb";
-    bi.bi_init = bdb_initialize;
+	memset( &bi, '\0', sizeof(bi) );
+	bi.bi_type = "bdb";
+	bi.bi_init = bdb_initialize;
 
-    backend_add( &bi );
-    return 0;
+	backend_add( &bi );
+	return 0;
 }
 #endif /* SLAPD_BDB_DYNAMIC */
 
 int
 bdb_initialize(
-    BackendInfo	*bi
+	BackendInfo	*bi
 )
 {
 	static char *controls[] = {
@@ -305,12 +305,12 @@ bdb_initialize(
 	bi->bi_op_bind = bdb_bind;
 	bi->bi_op_compare = bdb_compare;
 	bi->bi_op_delete = bdb_delete;
+	bi->bi_op_modify = bdb_modify;
+	bi->bi_op_modrdn = bdb_modrdn;
 	bi->bi_op_search = bdb_search;
 
 #if 0
 	bi->bi_op_unbind = bdb_unbind;
-	bi->bi_op_modify = bdb_modify;
-	bi->bi_op_modrdn = bdb_modrdn;
 	bi->bi_op_abandon = bdb_abandon;
 
 	bi->bi_extended = bdb_extended;
@@ -318,8 +318,8 @@ bdb_initialize(
 	bi->bi_acl_group = bdb_group;
 	bi->bi_acl_attribute = bdb_attribute;
 
-	bi->bi_chk_referrals = bdb_referrals;
 #endif
+	bi->bi_chk_referrals = bdb_referrals;
 
 	bi->bi_entry_release_rw = 0;
 

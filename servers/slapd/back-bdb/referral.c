@@ -14,11 +14,11 @@
 
 int
 bdb_referrals(
-    BackendDB	*be,
-    Connection	*conn,
-    Operation	*op,
-    const char *dn,
-    const char *ndn,
+	BackendDB	*be,
+	Connection	*conn,
+	Operation	*op,
+	const char *dn,
+	const char *ndn,
 	const char **text )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -35,8 +35,8 @@ bdb_referrals(
 		return rc;
 	} 
 
-	/* fetch entry */
-	rc = dn2entry_r( be, NULL, ndn, &e, &matched );
+	/* get entry */
+	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -44,7 +44,7 @@ bdb_referrals(
 		break;
 	default:
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
-		    NULL, "internal error", NULL, NULL );
+			NULL, "internal error", NULL, NULL );
 		return rc;
 	}
 
@@ -91,7 +91,7 @@ bdb_referrals(
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-		    	e->e_dn, NULL, refs, NULL );
+				e->e_dn, NULL, refs, NULL );
 		}
 
 		ber_bvecfree( refs );

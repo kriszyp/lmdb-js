@@ -27,6 +27,7 @@ bdb_add(
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
+	struct bdb_op_info opinfo;
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
 
@@ -76,7 +77,10 @@ retry:	rc = txn_abort( ltid );
 		goto return_results;
 	}
 
-	op->o_private = ltid;
+	opinfo.boi_bdb = be;
+	opinfo.boi_txn = ltid;
+	opinfo.boi_err = 0;
+	op->o_private = &opinfo;
 	
 	/*
 	 * Get the parent dn and see if the corresponding entry exists.
@@ -88,8 +92,8 @@ retry:	rc = txn_abort( ltid );
 	if( pdn != NULL && *pdn != '\0' ) {
 		Entry *matched = NULL;
 
-		/* get parent with reader lock */
-		rc = dn2entry_r( be, ltid, pdn, &p, &matched );
+		/* get parent */
+		rc = bdb_dn2entry( be, ltid, pdn, &p, &matched, 0 );
 		ch_free( pdn );
 
 		switch( rc ) {
@@ -125,7 +129,7 @@ retry:	rc = txn_abort( ltid );
 				0, 0, 0 );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			    matched_dn, NULL, refs, NULL );
+				matched_dn, NULL, refs, NULL );
 
 			if( matched != NULL ) {
 				ber_bvecfree( refs );
@@ -165,7 +169,7 @@ retry:	rc = txn_abort( ltid );
 				0, 0, 0 );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			    matched_dn, NULL, refs, NULL );
+				matched_dn, NULL, refs, NULL );
 
 			ber_bvecfree( refs );
 			free( matched_dn );

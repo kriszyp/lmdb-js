@@ -14,14 +14,14 @@
 #include "external.h"
 
 static int base_candidate(
-    BackendDB	*be,
+	BackendDB	*be,
 	Entry	*e,
 	ID		*ids );
 static int search_candidates(
 	BackendDB *be,
 	Entry *e,
 	Filter *filter,
-    int scope,
+	int scope,
 	int deref,
 	int manageDSAit,
 	ID	*ids );
@@ -31,19 +31,19 @@ static ID idl_next( ID *ids, ID *cursor );
 
 int
 bdb_search(
-    BackendDB	*be,
-    Connection	*conn,
-    Operation	*op,
-    const char	*base,
-    const char	*nbase,
-    int		scope,
-    int		deref,
-    int		slimit,
-    int		tlimit,
-    Filter	*filter,
-    const char	*filterstr,
-    char	**attrs,
-    int		attrsonly )
+	BackendDB	*be,
+	Connection	*conn,
+	Operation	*op,
+	const char	*base,
+	const char	*nbase,
+	int		scope,
+	int		deref,
+	int		slimit,
+	int		tlimit,
+	Filter	*filter,
+	const char	*filterstr,
+	char	**attrs,
+	int		attrsonly )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int		 abandon;
@@ -72,8 +72,7 @@ bdb_search(
 	} else
 #endif
 	{
-		/* obtain entry */
-		rc = dn2entry_r( be, NULL, nbase, &e, &matched );
+		rc = bdb_dn2entry( be, NULL, nbase, &e, &matched, 0 );
 	}
 
 	switch(rc) {
@@ -82,7 +81,7 @@ bdb_search(
 		break;
 	default:
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
-		    NULL, "internal error", NULL, NULL );
+			NULL, "internal error", NULL, NULL );
 		return rc;
 	}
 
@@ -125,7 +124,7 @@ bdb_search(
 			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    matched_dn, NULL, refs, NULL );
+			matched_dn, NULL, refs, NULL );
 
 		ber_bvecfree( refs );
 		free( matched_dn );
@@ -137,7 +136,7 @@ bdb_search(
 		tlimit = -1;	/* allow root to set no limit */
 	} else {
 		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
-		    be->be_timelimit : tlimit;
+			be->be_timelimit : tlimit;
 		stoptime = op->o_time + tlimit;
 	}
 
@@ -145,7 +144,7 @@ bdb_search(
 		slimit = -1;	/* allow root to set no limit */
 	} else {
 		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
-		    be->be_sizelimit : slimit;
+			be->be_sizelimit : slimit;
 	}
 
 	if ( scope == LDAP_SCOPE_BASE ) {
@@ -153,7 +152,7 @@ bdb_search(
 
 	} else {
 		rc = search_candidates( be, e, filter,
-		    scope, deref, manageDSAit, candidates );
+			scope, deref, manageDSAit, candidates );
 	}
 
 	/* need normalized dn below */
@@ -178,7 +177,7 @@ bdb_search(
 
 	for ( id = idl_first( candidates, &cursor );
 		id != NOID;
-	    id = idl_next( candidates, &cursor ) )
+		id = idl_next( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
 
@@ -357,7 +356,7 @@ done:
 
 
 static int base_candidate(
-    BackendDB	*be,
+	BackendDB	*be,
 	Entry	*e,
 	ID		*ids )
 {
@@ -373,20 +372,72 @@ static int search_candidates(
 	BackendDB *be,
 	Entry *e,
 	Filter *filter,
-    int scope,
+	int scope,
 	int deref,
 	int manageDSAit,
 	ID	*ids )
 {
-	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" (0x%08lx)\n",
-		e->e_dn, (long) e->e_id, 0);
+	int rc;
+	Filter		f, fand, rf, af, xf;
+	AttributeAssertion aa_ref, aa_alias;
 
-	/* return a RANGE IDL for now */
+	Debug(LDAP_DEBUG_TRACE,
+		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
+		e->e_dn, (long) e->e_id, scope );
+
+	xf.f_or = filter;
+	xf.f_choice = LDAP_FILTER_OR;
+	xf.f_next = NULL;
+
+	if( !manageDSAit ) {
+		/* match referrals */
+		static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+		rf.f_choice = LDAP_FILTER_EQUALITY;
+		rf.f_ava = &aa_ref;
+		rf.f_av_desc = slap_schema.si_ad_objectClass;
+		rf.f_av_value = &bv_ref;
+		rf.f_next = xf.f_or;
+		xf.f_or = &rf;
+	}
+
+#ifdef BDB_ALIASES
+	if( deref & LDAP_DEREF_SEARCHING ) {
+		/* match aliases */
+		static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+		af.f_choice = LDAP_FILTER_EQUALITY;
+		af.f_ava = &aa_alias;
+		af.f_av_desc = slap_schema.si_ad_objectClass;
+		af.f_av_value = &bv_alias;
+		af.f_next = xf.f_or;
+		xf.f_or = &af;
+	}
+#endif
+
+	f.f_next = NULL;
+	f.f_choice = LDAP_FILTER_AND;
+	f.f_and = &fand;
+	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
+		? SLAPD_FILTER_DN_SUBTREE
+		: SLAPD_FILTER_DN_ONE;
+	fand.f_dn = e->e_ndn;
+	fand.f_next = xf.f_or == filter ? filter : &xf ;
+
+#if 0
+	rc = bdb_filter_candidates( be, &f, ids );
+#else
+	/* a quick hack */
 	ids[0] = NOID;
 	ids[1] = e->e_id;
 	ids[2] = e->e_id+128;
+	rc = 0;
+#endif
 
-	return 0;
+	Debug(LDAP_DEBUG_TRACE,
+		"search_candidates: id=%ld first=%ld last=%ld\n",
+		ids[0], ids[1],
+		BDB_IDL_IS_RANGE( ids ) ? ids[2] : ids[ids[0]] );
+
+	return rc;
 }
 
 static ID idl_first( ID *ids, ID *cursor )

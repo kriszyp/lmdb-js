@@ -14,18 +14,18 @@
 
 int
 bdb_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv )
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char	**argv )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	if ( bdb == NULL ) {
 		fprintf( stderr, "%s: line %d: "
 			"bdb database info is null!\n",
-		    fname, lineno );
+			fname, lineno );
 		return 1;
 	}
 
@@ -34,7 +34,7 @@ bdb_db_config(
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: "
 				"missing dir in \"directory <dir>\" line\n",
-			    fname, lineno );
+				fname, lineno );
 			return 1;
 		}
 		if ( bdb->bi_dbenv_home ) {
@@ -47,7 +47,7 @@ bdb_db_config(
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: "
 				"missing mode in \"mode <mode>\" line\n",
-			    fname, lineno );
+				fname, lineno );
 			return 1;
 		}
 		bdb->bi_dbenv_mode = strtol( argv[1], NULL, 0 );
@@ -59,13 +59,13 @@ bdb_db_config(
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: "
 				"missing attr in \"index <attr> [pres,eq,approx,sub]\" line\n",
-			    fname, lineno );
+				fname, lineno );
 			return 1;
 		} else if ( argc > 3 ) {
 			fprintf( stderr, "%s: line %d: "
 				"extra junk after \"index <attr> [pres,eq,approx,sub]\" "
 				"line (ignored)\n",
-			    fname, lineno );
+				fname, lineno );
 		}
 		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
 
@@ -76,7 +76,7 @@ bdb_db_config(
 	} else {
 		fprintf( stderr, "%s: line %d: "
 			"unknown directive \"%s\" in bdb database definition (ignored)\n",
-		    fname, lineno, argv[0] );
+			fname, lineno, argv[0] );
 	}
 
 	return 0;

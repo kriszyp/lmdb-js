@@ -41,6 +41,35 @@ int bdb_id2entry_add(
 	return rc;
 }
 
+int bdb_id2entry_update(
+	BackendDB *be,
+	DB_TXN *tid,
+	Entry *e )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_id2entry->bdi_db;
+	DBT key, data;
+	struct berval *bv;
+	int rc;
+
+	DBTzero( &key );
+	key.data = (char *) &e->e_id;
+	key.size = sizeof(ID);
+
+	rc = entry_encode( e, &bv );
+	if( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	DBTzero( &data );
+	bv2DBT( bv, &data );
+
+	rc = db->put( db, tid, &key, &data, 0 );
+
+	ber_bvfree( bv );
+	return rc;
+}
+
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,

@@ -74,6 +74,12 @@ struct bdb_info {
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]
 
+struct bdb_op_info {
+	BackendDB*	boi_bdb;
+	DB_TXN*		boi_txn;
+	int			boi_err;
+};
+
 LDAP_END_DECL
 
 #include "proto-bdb.h"

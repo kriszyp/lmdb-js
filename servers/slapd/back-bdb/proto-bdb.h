@@ -31,12 +31,6 @@ Entry *bdb_deref_internal_r LDAP_P((
 int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
 	const char *dn, Entry **e, Entry **matched, int flags ));
 
-#define dn2entry_r(be, tid, dn, p, m) \
-	bdb_dn2entry((be), (tid), (dn), (p), (m), 0 )
-
-#define dn2entry_w(be, tid, dn, p, m) \
-	bdb_dn2entry((be), (tid), (dn), (p), (m), DB_RMW )
-
 /*
  * dn2id.c
  */
@@ -88,6 +82,11 @@ int bdb_id2entry_add(
 	DB_TXN *tid,
 	Entry *e );
 
+int bdb_id2entry_update(
+	BackendDB *be,
+	DB_TXN *tid,
+	Entry *e );
+
 int bdb_id2entry_delete(
 	BackendDB *be,
 	DB_TXN *tid,
@@ -122,6 +121,35 @@ int bdb_idl_delete_key(
  * nextid.c
  */
 int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *id );
+
+/*
+ * modify.c
+ */
+int bdb_modify_internal(
+	BackendDB *be,
+	Connection *conn,
+	Operation *op,
+	DB_TXN *tid,
+	const char *dn,
+	Modifications *modlist,
+	Entry *e,
+	const char **text );
+
+/*
+ * passwd.c
+ */
+int
+bdb_exop_passwd(
+	Backend		*be,
+	Connection		*conn,
+	Operation		*op,
+	const char		*reqoid,
+	struct berval	*reqdata,
+	char			**rspoid,
+	struct berval	**rspdata,
+	LDAPControl		*** rspctrls,
+	const char		**text,
+	struct berval	*** refs );
 
 /*
  * tools.c

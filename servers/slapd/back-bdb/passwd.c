@@ -15,23 +15,23 @@
 
 int
 bdb_exop_passwd(
-    Backend		*be,
-    Connection		*conn,
-    Operation		*op,
+	Backend		*be,
+	Connection		*conn,
+	Operation		*op,
 	const char		*reqoid,
-    struct berval	*reqdata,
+	struct berval	*reqdata,
 	char			**rspoid,
-    struct berval	**rspdata,
+	struct berval	**rspdata,
 	LDAPControl		*** rspctrls,
 	const char		**text,
-    struct berval	*** refs
-)
+	struct berval	*** refs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
 	Entry *e = NULL;
 	struct berval *hash = NULL;
-	DB_TXN *ltid;
+	DB_TXN *ltid = NULL;
+	struct bdb_op_info opinfo;
 
 	struct berval *id = NULL;
 	struct berval *new = NULL;
@@ -82,17 +82,48 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	/* fetch entry */
-	rc = dn2entry_w( be, NULL, dn, &e, NULL );
+	if (0) {
+		/* transaction retry */
+retry:	rc = txn_abort( ltid );
+		ltid = NULL;
+		op->o_private = NULL;
+		if( rc != 0 ) {
+			rc = LDAP_OTHER;
+			*text = "internal error";
+			goto done;
+		}
+	}
+
+	/* begin transaction */
+	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_exop_passwd: txn_begin failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		rc = LDAP_OTHER;
+		*text = "internal error";
+		goto done;
+	}
+
+	opinfo.boi_bdb = be;
+	opinfo.boi_txn = ltid;
+	opinfo.boi_err = 0;
+	op->o_private = &opinfo;
+
+	/* get entry */
+	rc = bdb_dn2entry( be, ltid, dn, &e, NULL, 0 );
 
 	switch(rc) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
 	case DB_NOTFOUND:
 	case 0:
 		break;
 	default:
-		send_ldap_result( conn, op, rc=LDAP_OTHER,
-		    NULL, "internal error", NULL, NULL );
-		return rc;
+		rc = LDAP_OTHER;
+		*text = "internal error";
+		goto done;
 	}
 
 	if( e == NULL ) {
@@ -108,11 +139,11 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	rc = LDAP_OPERATIONS_ERROR;
 
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
 		*text = "authorization entry is referral";
+		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
@@ -128,19 +159,39 @@ bdb_exop_passwd(
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
 
-		rc = bdb_modify_internal( be,
-			conn, op, op->o_ndn, &ml, e, text );
+		rc = bdb_modify_internal( be, conn, op, ltid,
+			op->o_ndn, &ml, e, text );
 
-	}
-
-	if( rc == LDAP_SUCCESS ) {
-		/* change the entry itself */
-		if( bdb_id2entry_add( be, ltid, e ) != 0 ) {
-			*text = "entry update failed";
+		switch(rc) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			bdb_entry_return( be, e );
+			e = NULL;
+			goto retry;
+		case 0:
+			break;
+		default:
 			rc = LDAP_OTHER;
+			*text = "entry modify failed";
+			goto done;
 		}
+
 	}
-	
+
+	/* change the entry itself */
+	rc = bdb_id2entry_update( be, ltid, e );
+	if( rc != 0 ) {
+		switch(rc) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			bdb_entry_return( be, e );
+			goto retry;
+		}
+		*text = "entry update failed";
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
 done:
 	if( e != NULL ) {
 		bdb_entry_return( be, e );
@@ -156,6 +207,11 @@ done:
 
 	if( hash != NULL ) {
 		ber_bvfree( hash );
+	}
+
+	if( ltid != NULL ) {
+		txn_abort( ltid );
+		op->o_private = NULL;
 	}
 
 	return rc;

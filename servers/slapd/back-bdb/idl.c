@@ -128,11 +128,11 @@ static int idl_delete( ID *ids, ID id )
 
 int
 bdb_idl_insert_key(
-    BackendDB	*be,
-    DB			*db,
+	BackendDB	*be,
+	DB			*db,
 	DB_TXN		*tid,
-    DBT			*key,
-    ID			id )
+	DBT			*key,
+	ID			id )
 {
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];
@@ -216,11 +216,11 @@ bdb_idl_insert_key(
 
 int
 bdb_idl_delete_key(
-    BackendDB	*be,
-    DB			*db,
+	BackendDB	*be,
+	DB			*db,
 	DB_TXN		*tid,
-    DBT			*key,
-    ID			id )
+	DBT			*key,
+	ID			id )
 {
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];

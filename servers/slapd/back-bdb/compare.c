@@ -15,11 +15,11 @@
 
 int
 bdb_compare(
-    BackendDB	*be,
-    Connection	*conn,
-    Operation	*op,
-    const char	*dn,
-    const char	*ndn,
+	BackendDB	*be,
+	Connection	*conn,
+	Operation	*op,
+	const char	*dn,
+	const char	*ndn,
 	AttributeAssertion *ava
 )
 {
@@ -32,7 +32,7 @@ bdb_compare(
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* get entry */
-	rc = dn2entry_r( be, NULL, ndn, &e, &matched );
+	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
 
 	switch( rc ) {
 	case DB_NOTFOUND:
@@ -74,10 +74,10 @@ bdb_compare(
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-		    0, 0 );
+			0, 0 );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-		    e->e_dn, NULL, refs, NULL );
+			e->e_dn, NULL, refs, NULL );
 
 		ber_bvecfree( refs );
 		goto done;

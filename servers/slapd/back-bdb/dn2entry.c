@@ -19,11 +19,11 @@
 
 int
 bdb_dn2entry(
-    BackendDB	*be,
+	BackendDB	*be,
 	DB_TXN *tid,
-    const char *dn,
+	const char *dn,
 	Entry **e,
-    Entry **matched,
+	Entry **matched,
 	int flags )
 {
 	int rc;

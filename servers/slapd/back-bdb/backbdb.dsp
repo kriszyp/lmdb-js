@@ -163,6 +163,10 @@ SOURCE=.\error.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\extended.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\external.h
 # End Source File
 # Begin Source File
@@ -179,7 +183,19 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\modify.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\modrdn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\nextid.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
 

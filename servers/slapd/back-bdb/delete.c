@@ -15,11 +15,11 @@
 
 int
 bdb_delete(
-    BackendDB	*be,
-    Connection	*conn,
-    Operation	*op,
-    const char	*dn,
-    const char	*ndn
+	BackendDB	*be,
+	Connection	*conn,
+	Operation	*op,
+	const char	*dn,
+	const char	*ndn
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -31,6 +31,7 @@ bdb_delete(
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
+	struct bdb_op_info opinfo;
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n", dn, 0, 0);
 
@@ -57,13 +58,62 @@ retry:	rc = txn_abort( ltid );
 		goto return_results;
 	}
 
-	op->o_private = ltid;
+	opinfo.boi_bdb = be;
+	opinfo.boi_txn = ltid;
+	opinfo.boi_err = 0;
+	op->o_private = &opinfo;
 
-	pdn = dn_parent( be, e->e_ndn );
+	/* get entry for read/modify/write */
+	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
+
+	switch( rc ) {
+	case 0:
+	case DB_NOTFOUND:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	default:
+		rc = LDAP_OTHER;
+		text = "internal error";
+		goto return_results;
+	}
+
+	if ( e == NULL ) {
+		char *matched_dn = NULL;
+		struct berval **refs = NULL;
+
+		Debug( LDAP_DEBUG_ARGS,
+			"<=- bdb_delete: no such object %s\n",
+			dn, 0, 0);
+
+		if ( matched != NULL ) {
+			matched_dn = ch_strdup( matched->e_dn );
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+			bdb_entry_return( be, matched );
+		} else {
+			refs = default_referral;
+		}
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			matched_dn, NULL, refs, NULL );
+
+		if ( matched != NULL ) {
+			ber_bvecfree( refs );
+			free( matched_dn );
+		}
+
+		rc = -1;
+		goto done;
+	}
+
+	pdn = dn_parent( be, ndn );
 
 	if( pdn != NULL && *pdn != '\0' ) {
-		/* get parent with reader lock */
-		rc = dn2entry_r( be, ltid, pdn, &p, NULL );
+		/* get parent */
+		rc = bdb_dn2entry( be, ltid, pdn, &p, NULL, 0 );
 
 		ch_free( pdn );
 
@@ -116,53 +166,7 @@ retry:	rc = txn_abort( ltid );
 		}
 	}
 
-	/* get entry */
-	rc = dn2entry_w( be, ltid, ndn, &e, &matched );
-
-	switch( rc ) {
-	case 0:
-	case DB_NOTFOUND:
-		break;
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	default:
-		rc = LDAP_OTHER;
-		text = "internal error";
-		goto return_results;
-	}
-
-	if ( e == NULL ) {
-		char *matched_dn = NULL;
-		struct berval **refs = NULL;
-
-		Debug( LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: no such object %s\n",
-			dn, 0, 0);
-
-		if ( matched != NULL ) {
-			matched_dn = ch_strdup( matched->e_dn );
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
-				: NULL;
-			bdb_entry_return( be, matched );
-		} else {
-			refs = default_referral;
-		}
-
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn, NULL, refs, NULL );
-
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
-
-		rc = -1;
-		goto done;
-	}
-
-    if ( !manageDSAit && is_entry_referral( e ) ) {
+	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
@@ -173,7 +177,7 @@ retry:	rc = txn_abort( ltid );
 			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    e->e_dn, NULL, refs, NULL );
+			e->e_dn, NULL, refs, NULL );
 
 		ber_bvecfree( refs );
 

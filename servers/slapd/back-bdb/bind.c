@@ -17,13 +17,13 @@
 
 int
 bdb_bind(
-    Backend		*be,
-    Connection		*conn,
-    Operation		*op,
-    const char		*dn,
-    const char		*ndn,
-    int			method,
-    struct berval	*cred,
+	Backend		*be,
+	Connection		*conn,
+	Operation		*op,
+	const char		*dn,
+	const char		*ndn,
+	int			method,
+	struct berval	*cred,
 	char**	edn
 )
 {
@@ -44,8 +44,8 @@ bdb_bind(
 
 	*edn = NULL;
 
-	/* fetch entry */
-	rc = dn2entry_r( be, NULL, ndn, &e, &matched );
+	/* get entry */
+	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -53,7 +53,7 @@ bdb_bind(
 		break;
 	default:
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
-		    NULL, "internal error", NULL, NULL );
+			NULL, "internal error", NULL, NULL );
 		return rc;
 	}
 
@@ -114,10 +114,10 @@ bdb_bind(
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
-		    0, 0 );
+			0, 0 );
 
 		send_ldap_result( conn, op, rc = LDAP_ALIAS_PROBLEM,
-		    NULL, "entry is alias", NULL, NULL );
+			NULL, "entry is alias", NULL, NULL );
 
 		goto done;
 	}
@@ -128,7 +128,7 @@ bdb_bind(
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-		    0, 0 );
+			0, 0 );
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
@@ -165,7 +165,7 @@ bdb_bind(
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_INAPPROPRIATE_AUTH,
-			    NULL, NULL, NULL, NULL );
+				NULL, NULL, NULL, NULL );
 			goto done;
 		}
 
@@ -182,7 +182,7 @@ bdb_bind(
 	case LDAP_AUTH_KRBV41:
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
-			    NULL, NULL, NULL, NULL );
+				NULL, NULL, NULL, NULL );
 			goto done;
 		}
 
@@ -195,7 +195,7 @@ bdb_bind(
 		}
 
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
-		    : "", ad.pinst, ad.prealm );
+			: "", ad.pinst, ad.prealm );
 
 		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
 			/*
@@ -206,7 +206,7 @@ bdb_bind(
 				break;
 			}
 			send_ldap_result( conn, op, rc = LDAP_INAPPROPRIATE_AUTH,
-			    NULL, NULL, NULL, NULL );
+				NULL, NULL, NULL, NULL );
 			goto done;
 
 		} else {	/* look for krbname match */
@@ -217,7 +217,7 @@ bdb_bind(
 
 			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
 				send_ldap_result( conn, op,
-				    rc = LDAP_INVALID_CREDENTIALS,
+					rc = LDAP_INVALID_CREDENTIALS,
 					NULL, NULL, NULL, NULL );
 				goto done;
 			}
@@ -234,7 +234,7 @@ bdb_bind(
 
 	default:
 		send_ldap_result( conn, op, rc = LDAP_STRONG_AUTH_NOT_SUPPORTED,
-		    NULL, "authentication method not supported", NULL, NULL );
+			NULL, "authentication method not supported", NULL, NULL );
 		goto done;
 	}
 
