@@ -76,34 +76,35 @@ build-chlog2replog: FORCE
 		echo "run configure with --with-isode to build chlog2replog"; \
 	fi
 
-chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o
+chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
-ldif2index:	ldif2index.o ../libbackends.a $(OBJS2)
+ldif2index:	ldif2index.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
 
-ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2)
+ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
 
-ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2)
+ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
 
-ldif2id2children:	ldif2id2children.o ../libbackends.a $(OBJS2)
+ldif2id2children:	ldif2id2children.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
 
-ldbmcat:	ldbmcat.o
+ldbmcat:	ldbmcat.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldbmcat.o $(LIBS)
 
-ldif:		ldif.o
+ldif:		ldif.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif.o $(LIBS)
 
-centipede:	centipede.o 
+centipede:	centipede.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ centipede.o $(LIBS)
 
-sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o
+sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
 
-ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2)
+ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
 
 clean-local: FORCE

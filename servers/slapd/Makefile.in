@@ -75,12 +75,7 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a
 
-version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
-		$(LDAP_LIBDIR)/libldbm.a \
-		$(LDAP_LIBDIR)/libavl.a \
-		$(LDAP_LIBDIR)/libldif.a \
-		$(LDAP_LIBDIR)/liblutil.a \
-		$(LDAP_LIBDIR)/liblthread.a 
+version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
