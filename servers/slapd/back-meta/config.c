@@ -50,6 +50,27 @@ new_target( void )
                 return NULL;
 	}
 
+	{
+		char	*rargv[3];
+
+		/*
+		 * the filter rewrite as a string must be disabled
+		 * by default; it can be re-enabled by adding rules;
+		 * this creates an empty rewriteContext
+		 */
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "searchFilter";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( lt->rwmap.rwm_rw, "<suffix massage>", 
+				1, 2, rargv );
+
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "default";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( lt->rwmap.rwm_rw, "<suffix massage>", 
+				1, 2, rargv );
+	}
+
 	ldap_back_map_init( &lt->rwmap.rwm_at, &mapping );
 
 	return lt;

@@ -691,16 +691,18 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
 	int		i;
 	Filter		*p;
-	struct berval	tmp,
+	struct berval	tmp;
+	static struct berval
 			ber_bvfalse = BER_BVC( "(?=false)" ),
 			ber_bvtrue = BER_BVC( "(?=true)" ),
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
 			ber_bverror = BER_BVC( "(?=error)" ),
-			ber_bvunknown = BER_BVC( "(?=unknown)" );
+			ber_bvunknown = BER_BVC( "(?=unknown)" ),
+			ber_bvnone = BER_BVC( "(?=none)" );
 	ber_len_t	len;
 
 	if ( f == NULL ) {
-		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
+		ber_dupbv_x( fstr, &ber_bvnone, op->o_tmpmemctx );
 		return;
 	}
 

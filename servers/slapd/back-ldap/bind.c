@@ -62,7 +62,7 @@ ldap_back_bind(
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "bindDn";
+	dc.ctx = "bindDN";
 #else
 	dc.tofrom = 1;
 	dc.normalized = 0;
@@ -303,7 +303,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 #ifdef ENABLE_REWRITE
 				dc.conn = op->o_conn;
 				dc.rs = rs;
-				dc.ctx = "bindDn";
+				dc.ctx = "bindDN";
 #else
 				dc.tofrom = 1;
 				dc.normalized = 0;
@@ -532,7 +532,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 #ifdef ENABLE_REWRITE
 			dc.conn = op->o_conn;
 			dc.rs = rs;
-			dc.ctx = "matchedDn";
+			dc.ctx = "matchedDN";
 #else
 			dc.tofrom = 0;
 			dc.normalized = 0;

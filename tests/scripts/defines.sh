@@ -70,9 +70,9 @@ CLIENTDIR=../clients/tools
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
 
-SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
-SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
-SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
+SLAPADD="../servers/slapd/slapd -Ta $LDAP_VERBOSE"
+SLAPCAT="../servers/slapd/slapd -Tc $LDAP_VERBOSE"
+SLAPINDEX="../servers/slapd/slapd -Ti $LDAP_VERBOSE"
 
 unset DIFF_OPTIONS
 DIFF="diff -iu"

@@ -888,6 +888,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	for ( a = rs->sr_entry->e_attrs, j = 0; a != NULL; a = a->a_next, j++ ) {
 		AttributeDescription *desc = a->a_desc;
+		int finish = 0;
 
 		if ( rs->sr_attrs == NULL ) {
 			/* all attrs request, skip operational attributes */
@@ -909,39 +910,42 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( ! access_allowed( op, rs->sr_entry, desc, NULL,
-			ACL_READ, &acl_state ) )
-		{
+		if ( op->ors_attrsonly ) {
+			if ( ! access_allowed( op, rs->sr_entry, desc, NULL,
+				ACL_READ, &acl_state ) )
+			{
 #ifdef NEW_LOGGING
-			LDAP_LOG( ACL, INFO, 
-				"send_search_entry: conn %lu  access to attribute %s not "
-				"allowed\n", op->o_connid, desc->ad_cname.bv_val, 0 );
+				LDAP_LOG( ACL, INFO, 
+					"send_search_entry: conn %lu  access to attribute %s not "
+					"allowed\n", op->o_connid, desc->ad_cname.bv_val, 0 );
 #else
-			Debug( LDAP_DEBUG_ACL, "acl: "
-				"access to attribute %s not allowed\n",
-			    desc->ad_cname.bv_val, 0, 0 );
+				Debug( LDAP_DEBUG_ACL, "acl: "
+					"access to attribute %s not allowed\n",
+				    desc->ad_cname.bv_val, 0, 0 );
 #endif
-			continue;
-		}
+				continue;
+			}
 
-		if (( rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname )) == -1 ) {
+			if (( rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname )) == -1 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"send_search_entry: conn %lu  ber_printf failed\n", 
-				op->o_connid, 0, 0 );
+				LDAP_LOG( OPERATION, ERR, 
+					"send_search_entry: conn %lu  ber_printf failed\n", 
+					op->o_connid, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 #endif
 
-			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER, "encoding description error");
-			goto error_return;
-		}
+				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
+				send_ldap_error( op, rs, LDAP_OTHER, "encoding description error");
+				goto error_return;
+			}
+			finish = 1;
 
-		if ( ! op->ors_attrsonly ) {
-			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
+		} else {
+			int first = 1;
+			for ( i = 0; a->a_nvals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( op, rs->sr_entry,
-					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
+					desc, &a->a_nvals[i], ACL_READ, &acl_state ) )
 				{
 #ifdef NEW_LOGGING
 					LDAP_LOG( ACL, INFO, 
@@ -962,6 +966,23 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					continue;
 				}
 
+				if ( first ) {
+					first = 0;
+					finish = 1;
+					if (( rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname )) == -1 ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( OPERATION, ERR, 
+							"send_search_entry: conn %lu  ber_printf failed\n", 
+							op->o_connid, 0, 0 );
+#else
+						Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
+						if ( op->o_res_ber == NULL ) ber_free_buf( ber );
+						send_ldap_error( op, rs, LDAP_OTHER, "encoding description error");
+						goto error_return;
+					}
+				}
 				if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR, 
@@ -980,7 +1001,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
+		if ( finish && ( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, 
 				"send_search_entry: conn %lu ber_printf failed\n", 

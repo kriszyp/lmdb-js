@@ -243,7 +243,7 @@ init_one_conn(
 		dc.rwmap = &lt->rwmap;
 		dc.conn = op->o_conn;
 		dc.rs = rs;
-		dc.ctx = "bindDn";
+		dc.ctx = "bindDN";
 		
 		/*
 		 * Rewrite the bind dn if needed
@@ -252,6 +252,11 @@ init_one_conn(
 					&lsc->bound_dn) ) {
 			send_ldap_result( op, rs );
 			return rs->sr_err;
+		}
+
+		/* copy the DN idf needed */
+		if ( lsc->bound_dn.bv_val == op->o_conn->c_dn.bv_val ) {
+			ber_dupbv( &lsc->bound_dn, &op->o_conn->c_dn );
 		}
 
 		assert( lsc->bound_dn.bv_val );

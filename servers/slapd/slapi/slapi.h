@@ -25,7 +25,7 @@
 #ifndef _SLAPI_H
 #define _SLAPI_H
 
-#include <ibm_pblock_params.h> 
+#include "ibm_pblock_params.h"
 
 LDAP_BEGIN_DECL
 

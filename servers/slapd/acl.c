@@ -62,6 +62,12 @@ static struct berval
 	aci_bv_set_ref		= BER_BVC("set-ref"),
 	aci_bv_grant		= BER_BVC("grant"),
 	aci_bv_deny		= BER_BVC("deny"),
+
+	aci_bv_ip_eq		= BER_BVC("IP="),
+#ifdef LDAP_PF_LOCAL
+	aci_bv_path_eq		= BER_BVC("PATH="),
+	aci_bv_dirsep		= BER_BVC(LDAP_DIRSEP),
+#endif /* LDAP_PF_LOCAL */
 	
 	aci_bv_group_class 	= BER_BVC(SLAPD_GROUP_CLASS),
 	aci_bv_group_attr 	= BER_BVC(SLAPD_GROUP_ATTR),
@@ -74,7 +80,8 @@ static AccessControl * acl_get(
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
-	int nmatches, regmatch_t *matches );
+	int nmatches, regmatch_t *matches,
+	AccessControlState *state );
 
 static slap_control_t acl_mask(
 	AccessControl *ac, slap_mask_t *mask,
@@ -150,7 +157,6 @@ access_allowed(
 	const char *attr;
 	regmatch_t matches[MAXREMATCHES];
 	int        st_same_attr = 0;
-	int        st_initialized = 0;
 	static AccessControlState state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
@@ -167,21 +173,24 @@ access_allowed(
 		access = ACL_AUTH;
 	}
 
-	if( state && state->as_recorded && state->as_vd_ad==desc) { 
-		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
-			val == NULL )
-		{
-			return state->as_result;
-
-		} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
-			val != NULL && state->as_vd_acl == NULL )
-		{
-			return state->as_result;
-		}
-		st_same_attr = 1;
-	}
-
 	if( state ) {
+		if ( state->as_vd_ad==desc) {
+			if ( state->as_recorded ) {
+				if( state->as_recorded & ACL_STATE_RECORDED_NV &&
+					val == NULL )
+				{
+					return state->as_result;
+				} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
+					val != NULL && state->as_vd_acl == NULL )
+				{
+					return state->as_result;
+				}
+			}
+			st_same_attr = 1;
+		} else {
+			*state = state_init;
+		}
+
 		state->as_vd_ad=desc;
 	}
 
@@ -299,10 +308,12 @@ access_allowed(
 		assert( state->as_vd_acl != NULL );
 
 		a = state->as_vd_acl;
-		mask = state->as_vd_acl_mask;
 		count = state->as_vd_acl_count;
-		AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
-		goto vd_access;
+		if ( !ACL_IS_INVALID( state->as_vd_acl_mask )) {
+			mask = state->as_vd_acl_mask;
+			AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
+			goto vd_access;
+		}
 
 	} else {
 		if ( state ) state->as_vi_acl = NULL;
@@ -313,7 +324,7 @@ access_allowed(
 	}
 
 	while((a = acl_get( a, &count, op, e, desc, val,
-		MAXREMATCHES, matches )) != NULL)
+		MAXREMATCHES, matches, state )) != NULL)
 	{
 		int i;
 
@@ -344,11 +355,8 @@ access_allowed(
 				Debug( LDAP_DEBUG_ACL, "access_allowed: result from state (%s)\n", attr, 0, 0 );
 				ret = state->as_result;
 				goto done;
-			} else if (!st_initialized) {
+			} else {
 				Debug( LDAP_DEBUG_ACL, "access_allowed: no res from state (%s)\n", attr, 0, 0);
-			    *state = state_init;
-				state->as_vd_ad=desc;
-				st_initialized=1;
 			}
 		}
 
@@ -415,6 +423,7 @@ done:
 	return ret;
 }
 
+
 /*
  * acl_get - return the acl applicable to entry e, attribute
  * attr.  the acl returned is suitable for use in subsequent calls to
@@ -430,10 +439,12 @@ acl_get(
 	AttributeDescription *desc,
 	struct berval	*val,
 	int			nmatch,
-	regmatch_t	*matches )
+	regmatch_t	*matches,
+	AccessControlState *state )
 {
 	const char *attr;
 	int dnlen, patlen;
+	AccessControl *prev;
 
 	assert( e != NULL );
 	assert( count != NULL );
@@ -449,10 +460,12 @@ acl_get(
 		} else {
 			a = op->o_bd->be_acl;
 		}
+		prev = NULL;
 
 		assert( a != NULL );
 
 	} else {
+		prev = a;
 		a = a->acl_next;
 	}
 
@@ -529,6 +542,99 @@ acl_get(
 #endif
 		}
 
+		if ( a->acl_attrs && !ad_inlist( desc, a->acl_attrs ) ) {
+			matches[0].rm_so = matches[0].rm_eo = -1;
+			continue;
+		}
+
+		/* Is this ACL only for a specific value? */
+		if ( a->acl_attrval.bv_len ) {
+			if ( val == NULL ) {
+				continue;
+			}
+
+			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
+				state->as_recorded |= ACL_STATE_RECORDED_VD;
+				state->as_vd_acl = prev;
+				state->as_vd_acl_count = *count;
+				state->as_vd_access = a->acl_access;
+				state->as_vd_access_count = 1;
+				ACL_INVALIDATE( state->as_vd_acl_mask );
+			}
+
+			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( ACL, DETAIL1, 
+					"acl_get: valpat %s\n",
+					a->acl_attrval.bv_val, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ACL,
+					"acl_get: valpat %s\n",
+					a->acl_attrval.bv_val, 0, 0 );
+#endif
+				if (regexec(&a->acl_attrval_re, val->bv_val, 0, NULL, 0))
+					continue;
+			} else {
+				int match = 0;
+				const char *text;
+#ifdef NEW_LOGGING
+				LDAP_LOG( ACL, DETAIL1, 
+					"acl_get: val %s\n",
+					a->acl_attrval.bv_val, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ACL,
+					"acl_get: val %s\n",
+					a->acl_attrval.bv_val, 0, 0 );
+#endif
+	
+				if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
+					if (value_match( &match, desc,
+						desc->ad_type->sat_equality, 0,
+						val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
+							match )
+						continue;
+					
+				} else {
+					int		patlen, vdnlen;
+	
+					patlen = a->acl_attrval.bv_len;
+					vdnlen = val->bv_len;
+	
+					if ( vdnlen < patlen )
+						continue;
+	
+					if ( a->acl_dn_style == ACL_STYLE_BASE ) {
+						if ( vdnlen > patlen )
+							continue;
+	
+					} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
+						int rdnlen = -1;
+	
+						if ( !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+							continue;
+	
+						rdnlen = dn_rdnlen( NULL, val );
+						if ( rdnlen != vdnlen - patlen - 1 )
+							continue;
+	
+					} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
+						if ( vdnlen > patlen && !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+							continue;
+	
+					} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
+						if ( vdnlen <= patlen )
+							continue;
+	
+						if ( !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+							continue;
+					}
+	
+					if ( strcmp( a->acl_attrval.bv_val, val->bv_val + vdnlen - patlen ))
+						continue;
+				}
+			}
+		}
+
 		if ( a->acl_filter != NULL ) {
 			ber_int_t rc = test_filter( NULL, e, a->acl_filter );
 			if ( rc != LDAP_COMPARE_TRUE ) {
@@ -538,25 +644,12 @@ acl_get(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
-			"acl_get: [%d] check attr %s\n", *count, attr ,0 );
+			"acl_get: [%d] attr %s\n", *count, attr ,0 );
 #else
-		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] check attr %s\n",
+		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] attr %s\n",
 		       *count, attr, 0);
 #endif
-		if ( a->acl_attrs == NULL ||
-			ad_inlist( desc, a->acl_attrs ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG( ACL, DETAIL1, 
-				"acl_get:  [%d] acl %s attr: %s\n", *count, e->e_dn, attr );
-#else
-			Debug( LDAP_DEBUG_ACL,
-				"<= acl_get: [%d] acl %s attr: %s\n",
-				*count, e->e_dn, attr );
-#endif
-			return a;
-		}
-		matches[0].rm_so = matches[0].rm_eo = -1;
+		return a;
 	}
 
 #ifdef NEW_LOGGING
@@ -640,106 +733,6 @@ acl_mask(
 		accessmask2str( *mask, accessmaskbuf ) );
 #endif
 
-	/* Is this ACL only for a specific value? */
-	if ( a->acl_attrval.bv_len ) {
-		if ( state && !state->as_vd_acl ) {
-			state->as_vd_acl = a;
-			state->as_vd_access = a->acl_access;
-			state->as_vd_access_count = 1;
-		}
-		if ( val == NULL ) {
-			return ACL_BREAK;
-		}
-		if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( ACL, DETAIL1, 
-				"acl_get: valpat %s\n",
-				a->acl_attrval.bv_val, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ACL,
-				"acl_get: valpat %s\n",
-				a->acl_attrval.bv_val, 0, 0 );
-#endif
-			if (regexec(&a->acl_attrval_re, val->bv_val, 0, NULL, 0))
-				return ACL_BREAK;
-		} else {
-			int match = 0;
-			const char *text;
-#ifdef NEW_LOGGING
-			LDAP_LOG( ACL, DETAIL1, 
-				"acl_get: val %s\n",
-				a->acl_attrval.bv_val, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ACL,
-				"acl_get: val %s\n",
-				a->acl_attrval.bv_val, 0, 0 );
-#endif
-
-			if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
-				if (value_match( &match, desc,
-					desc->ad_type->sat_equality, 0,
-					val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
-						match )
-					return ACL_BREAK;
-				
-			} else {
-				int		patlen, vdnlen, rc, got_match = 0;
-				struct berval	vdn = { 0, NULL };
-
-				/* it is a DN */
-				assert( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName );
-
-				rc = dnNormalize( 0, NULL, NULL, val, &vdn,
-					       	op->o_tmpmemctx );
-				if ( rc != LDAP_SUCCESS ) {
-					/* error */
-					return ACL_BREAK;
-				}
-
-				patlen = a->acl_attrval.bv_len;
-				vdnlen = vdn.bv_len;
-
-				if ( vdnlen < patlen )
-					goto attrval_cleanup;
-
-				if ( a->acl_dn_style == ACL_STYLE_BASE ) {
-					if ( vdnlen > patlen )
-						goto attrval_cleanup;
-
-				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
-					int rdnlen = -1;
-
-					if ( !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
-						goto attrval_cleanup;
-
-					rdnlen = dn_rdnlen( NULL, &vdn );
-					if ( rdnlen != vdnlen - patlen - 1 )
-						goto attrval_cleanup;
-
-				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( vdnlen > patlen && !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
-						goto attrval_cleanup;
-
-				} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
-					if ( vdnlen <= patlen )
-						goto attrval_cleanup;
-
-					if ( !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
-						goto attrval_cleanup;
-				}
-
-				got_match = strcmp( a->acl_attrval.bv_val, vdn.bv_val + vdnlen - patlen );
-
-attrval_cleanup:;
-				if ( vdn.bv_val )
-					free( vdn.bv_val );
-
-				if ( !got_match )
-					return ACL_BREAK;
-				
-			}
-		}
-	}
 
 	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
 		&& state->as_vd_acl == a )
@@ -902,6 +895,19 @@ dn_match_cleanup:;
 					{
 						continue;
 					}
+
+				} else if ( b->a_sockurl_style == ACL_STYLE_EXPAND ) {
+					struct berval	bv;
+					char buf[ACL_BUF_SIZE];
+
+					bv.bv_len = sizeof( buf ) - 1;
+					bv.bv_val = buf;
+					string_expand( &bv, &b->a_sockurl_pat, e->e_ndn, matches );
+
+					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_listener_url ) != 0 ) {
+						continue;
+					}
+
 				} else {
 					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &op->o_conn->c_listener_url ) != 0 )
 						continue;
@@ -979,15 +985,99 @@ dn_match_cleanup:;
 				b->a_peername_pat.bv_val, 0, 0 );
 #endif
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
-				if ( b->a_peername_style == ACL_STYLE_REGEX) {
+				if ( b->a_peername_style == ACL_STYLE_REGEX ) {
 					if (!regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
+
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 )
-						continue;
+					/* try exact match */
+					if ( b->a_peername_style == ACL_STYLE_BASE ) {
+						if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 ) {
+							continue;
+						}
+
+					} else if ( b->a_peername_style == ACL_STYLE_EXPAND ) {
+						struct berval	bv;
+						char buf[ACL_BUF_SIZE];
+
+						bv.bv_len = sizeof( buf ) - 1;
+						bv.bv_val = buf;
+						string_expand( &bv, &b->a_peername_pat, e->e_ndn, matches );
+
+						if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_peer_name ) != 0 ) {
+							continue;
+						}
+
+					/* extract IP and try exact match */
+					} else if ( b->a_peername_style == ACL_STYLE_IP ) {
+						char		*port;
+						char		buf[] = "255.255.255.255";
+						struct berval	ip;
+						unsigned long	addr;
+						int		port_number = -1;
+						
+						if ( strncasecmp( op->o_conn->c_peer_name.bv_val, 
+									aci_bv_ip_eq.bv_val, aci_bv_ip_eq.bv_len ) != 0 ) 
+							continue;
+
+						ip.bv_val = op->o_conn->c_peer_name.bv_val + aci_bv_ip_eq.bv_len;
+						ip.bv_len = op->o_conn->c_peer_name.bv_len - aci_bv_ip_eq.bv_len;
+
+						port = strrchr( ip.bv_val, ':' );
+						if ( port ) {
+							char	*next;
+							
+							ip.bv_len = port - ip.bv_val;
+							++port;
+							port_number = strtol( port, &next, 10 );
+							if ( next[0] != '\0' )
+								continue;
+						}
+						
+						/* the port check can be anticipated here */
+						if ( b->a_peername_port != -1 && port_number != b->a_peername_port )
+							continue;
+						
+						/* address longer than expected? */
+						if ( ip.bv_len >= sizeof(buf) )
+							continue;
+
+						AC_MEMCPY( buf, ip.bv_val, ip.bv_len );
+						buf[ ip.bv_len ] = '\0';
+
+						addr = inet_addr( buf );
+
+						/* unable to convert? */
+						if ( addr == (unsigned long)(-1) )
+							continue;
+
+						if ( (addr & b->a_peername_mask) != b->a_peername_addr )
+							continue;
+
+#ifdef LDAP_PF_LOCAL
+					/* extract path and try exact match */
+					} else if ( b->a_peername_style == ACL_STYLE_PATH ) {
+						struct berval path;
+						
+						if ( strncmp( op->o_conn->c_peer_name.bv_val,
+									aci_bv_path_eq.bv_val, aci_bv_path_eq.bv_len ) != 0 )
+							continue;
+
+						path.bv_val = op->o_conn->c_peer_name.bv_val + aci_bv_path_eq.bv_len;
+						path.bv_len = op->o_conn->c_peer_name.bv_len - aci_bv_path_eq.bv_len;
+
+						if ( ber_bvcmp( &b->a_peername_pat, &path ) != 0 )
+							continue;
+
+#endif /* LDAP_PF_LOCAL */
+
+					/* exact match (very unlikely...) */
+					} else if ( ber_bvcmp( &op->o_conn->c_peer_name, &b->a_peername_pat ) != 0 ) {
+							continue;
+					}
 				}
 			}
 		}
@@ -1011,6 +1101,19 @@ dn_match_cleanup:;
 					{
 						continue;
 					}
+
+				} else if ( b->a_sockname_style == ACL_STYLE_EXPAND ) {
+					struct berval	bv;
+					char buf[ACL_BUF_SIZE];
+
+					bv.bv_len = sizeof( buf ) - 1;
+					bv.bv_val = buf;
+					string_expand( &bv, &b->a_sockname_pat, e->e_ndn, matches );
+
+					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_sock_name ) != 0 ) {
+						continue;
+					}
+
 				} else {
 					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &op->o_conn->c_sock_name ) != 0 )
 						continue;
@@ -1116,7 +1219,7 @@ dn_match_cleanup:;
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
-			if ( b->a_group_style == ACL_STYLE_REGEX ) {
+			if ( b->a_group_style == ACL_STYLE_EXPAND ) {
 				char buf[ACL_BUF_SIZE];
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf; 

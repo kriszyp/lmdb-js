@@ -60,7 +60,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	dc.rwmap = &li->targets[ candidate ]->rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "deleteDn";
+	dc.ctx = "deleteDN";
 
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		send_ldap_result( op, rs );

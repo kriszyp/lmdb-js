@@ -627,14 +627,16 @@ LDAP_SLAPD_F (int) slap_build_syncUUID_set LDAP_P((
 /*
  * limits.c
  */
-LDAP_SLAPD_F (int) get_limits LDAP_P((
+LDAP_SLAPD_F (int) limits_get LDAP_P((
 	Operation *op, struct berval *ndn,
 	struct slap_limits_set **limit ));
-LDAP_SLAPD_F (int) parse_limits LDAP_P((
+LDAP_SLAPD_F (int) limits_parse LDAP_P((
 	Backend *be, const char *fname, int lineno,
 	int argc, char **argv ));
-LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg, 
+LDAP_SLAPD_F (int) limits_parse_one LDAP_P(( const char *arg, 
 	struct slap_limits_set *limit ));
+LDAP_SLAPD_F (int) limits_check LDAP_P((
+	Operation *op, SlapReply *rs ));
 
 /*
  * lock.c
@@ -862,6 +864,7 @@ LDAP_SLAPD_F (int) slap_passwd_check(
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
 LDAP_SLAPD_F (void) slap_passwd_hash(
+	char			*type,
 	struct berval		*cred,
 	struct berval		*hash,
 	const char		**text );
@@ -1210,7 +1213,7 @@ LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
-LDAP_SLAPD_V (char *)	default_passwd_hash;
+LDAP_SLAPD_V (char **)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;

@@ -69,11 +69,11 @@ passwd_back_search(
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 
-	op->oq_search.rs_tlimit = (op->oq_search.rs_tlimit > op->o_bd->be_timelimit || op->oq_search.rs_tlimit < 1) ? op->o_bd->be_timelimit
-	    : op->oq_search.rs_tlimit;
-	stoptime = op->o_time + op->oq_search.rs_tlimit;
-	op->oq_search.rs_slimit = (op->oq_search.rs_slimit > op->o_bd->be_sizelimit || op->oq_search.rs_slimit < 1) ? op->o_bd->be_sizelimit
-	    : op->oq_search.rs_slimit;
+	op->ors_tlimit = (op->ors_tlimit > op->o_bd->be_timelimit || op->ors_tlimit < 1) ? op->o_bd->be_timelimit
+	    : op->ors_tlimit;
+	stoptime = op->o_time + op->ors_tlimit;
+	op->ors_slimit = (op->ors_slimit > op->o_bd->be_sizelimit || op->ors_slimit < 1) ? op->o_bd->be_sizelimit
+	    : op->ors_slimit;
 
 	/* Handle a query for the base of this backend */
 	if ( be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
@@ -83,7 +83,7 @@ passwd_back_search(
 
 		rs->sr_matched = op->o_req_dn.bv_val;
 
-		if( op->oq_search.rs_scope != LDAP_SCOPE_ONELEVEL ) {
+		if( op->ors_scope != LDAP_SCOPE_ONELEVEL ) {
 			AttributeDescription *desc = NULL;
 
 			/* Create an entry corresponding to the base DN */
@@ -128,14 +128,14 @@ passwd_back_search(
 			vals[0].bv_len = sizeof("organizationalUnit")-1;
 			attr_mergeit( e, ad_objectClass, vals );
 	
-			if ( test_filter( op, e, op->oq_search.rs_filter ) == LDAP_COMPARE_TRUE ) {
+			if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 				rs->sr_entry = e;
-				rs->sr_attrs = op->oq_search.rs_attrs;
+				rs->sr_attrs = op->ors_attrs;
 				send_search_entry( op, rs );
 			}
 		}
 
-		if ( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+		if ( op->ors_scope != LDAP_SCOPE_BASE ) {
 			/* check all our "children" */
 
 			ldap_pvt_thread_mutex_lock( &passwd_mutex );
@@ -163,9 +163,9 @@ passwd_back_search(
 					goto done;
 				}
 
-				if ( test_filter( op, e, op->oq_search.rs_filter ) == LDAP_COMPARE_TRUE ) {
+				if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 					/* check size limit */
-					if ( --op->oq_search.rs_slimit == -1 ) {
+					if ( --op->ors_slimit == -1 ) {
 						send_ldap_error( op, rs, LDAP_SIZELIMIT_EXCEEDED, NULL );
 						endpwent();
 						ldap_pvt_thread_mutex_unlock( &passwd_mutex );
@@ -173,7 +173,7 @@ passwd_back_search(
 					}
 
 					rs->sr_entry = e;
-					rs->sr_attrs = op->oq_search.rs_attrs;
+					rs->sr_attrs = op->ors_attrs;
 					send_search_entry( op, rs );
 				}
 
@@ -203,7 +203,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		if( op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+		if( op->ors_scope == LDAP_SCOPE_ONELEVEL ) {
 			goto done;
 		}
 
@@ -230,9 +230,9 @@ passwd_back_search(
 			goto done;
 		}
 
-		if ( test_filter( op, e, op->oq_search.rs_filter ) == LDAP_COMPARE_TRUE ) {
+		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
-			rs->sr_attrs = op->oq_search.rs_attrs;
+			rs->sr_attrs = op->ors_attrs;
 			send_search_entry( op, rs );
 		}
 

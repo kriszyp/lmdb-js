@@ -92,6 +92,8 @@ static ldap_pvt_thread_start_t connection_operation;
  */
 int connections_init(void)
 {
+	int i;
+
 	assert( connections == NULL );
 
 	if( connections != NULL) {
@@ -125,6 +127,8 @@ int connections_init(void)
 
 	assert( connections[0].c_struct_state == SLAP_C_UNINITIALIZED );
 	assert( connections[dtblsize-1].c_struct_state == SLAP_C_UNINITIALIZED );
+
+	for (i=0; i<dtblsize; i++) connections[i].c_conn_idx = i;
 
 	/*
 	 * per entry initialization of the Connection array initialization
@@ -1626,7 +1630,7 @@ connection_input(
 		defer = "awaiting write";
 	} else if (conn->c_n_ops_executing >= connection_pool_max/2) {
 		defer = "too many executing";
-	} else if (conn->c_conn_state == SLAP_C_BINDING ) {
+	} else if (conn->c_conn_state == SLAP_C_BINDING) {
 		defer = "binding";
 	} else if (tag != LDAP_REQ_ABANDON && conn->c_n_ops_pending) {
 		defer = "pending operations";

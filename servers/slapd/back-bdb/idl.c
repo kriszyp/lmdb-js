@@ -59,7 +59,7 @@ bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
 	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;
 	int rc;
 
-	if ((rc = idl1->db - idl2->db )) return rc;
+	if ((rc = SLAP_PTRCMP( idl1->db, idl2->db ))) return rc;
 	if ((rc = idl1->kstr.bv_len - idl2->kstr.bv_len )) return rc;
 	return ( memcmp ( idl1->kstr.bv_val, idl2->kstr.bv_val , idl1->kstr.bv_len ) );
 }

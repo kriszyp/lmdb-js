@@ -33,6 +33,7 @@
 #define LDAP_X_SCOPE_REGEX	((ber_int_t) 0x0020)
 #define LDAP_X_SCOPE_CHILDREN	((ber_int_t) 0x0030)
 #define LDAP_X_SCOPE_SUBTREE	((ber_int_t) 0x0040)
+#define LDAP_X_SCOPE_ONELEVEL	((ber_int_t) 0x0050)
 
 /*
  * IDs in DNauthzid form can now have a type specifier, that
@@ -225,6 +226,10 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 				bv.bv_val += sizeof( "subtree" ) - 1;
 				*scope = LDAP_X_SCOPE_SUBTREE;
 
+			} else if ( !strncasecmp( bv.bv_val, "onelevel:", sizeof( "onelevel:" ) - 1 ) ) {
+				bv.bv_val += sizeof( "onelevel" ) - 1;
+				*scope = LDAP_X_SCOPE_ONELEVEL;
+
 			} else {
 				return LDAP_PROTOCOL_ERROR;
 			}
@@ -244,6 +249,7 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		case LDAP_X_SCOPE_EXACT:
 		case LDAP_X_SCOPE_CHILDREN:
 		case LDAP_X_SCOPE_SUBTREE:
+		case LDAP_X_SCOPE_ONELEVEL:
 			rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
 			if( rc != LDAP_SUCCESS ) {
 				*scope = -1;
@@ -639,6 +645,7 @@ exact_match:
 
 	case LDAP_X_SCOPE_CHILDREN:
 	case LDAP_X_SCOPE_SUBTREE:
+	case LDAP_X_SCOPE_ONELEVEL:
 	{
 		int	d = assertDN->bv_len - op.o_req_ndn.bv_len;
 
@@ -654,7 +661,29 @@ exact_match:
 			bv.bv_val = assertDN->bv_val + d;
 
 			if ( bv.bv_val[ -1 ] == ',' && dn_match( &op.o_req_ndn, &bv ) ) {
-				rc = LDAP_SUCCESS;
+				switch ( op.oq_search.rs_scope ) {
+				case LDAP_X_SCOPE_CHILDREN:
+					rc = LDAP_SUCCESS;
+					break;
+
+				case LDAP_X_SCOPE_ONELEVEL:
+				{
+					struct berval	pdn;
+
+					dnParent( assertDN, &pdn );
+					/* the common portion of the DN
+					 * already matches, so only check
+					 * if parent DN of assertedDN 
+					 * is all the pattern */
+					if ( pdn.bv_len == op.o_req_ndn.bv_len ) {
+						rc = LDAP_SUCCESS;
+					}
+					break;
+				}
+				default:
+					/* at present, impossible */
+					assert( 0 );
+				}
 			}
 		}
 		goto CONCLUDED;
@@ -863,6 +892,7 @@ void slap_sasl2dn( Operation *opx,
 	case LDAP_X_SCOPE_REGEX:
 	case LDAP_X_SCOPE_SUBTREE:
 	case LDAP_X_SCOPE_CHILDREN:
+	case LDAP_X_SCOPE_ONELEVEL:
 		/* correctly parsed, but illegal */
 		goto FINISHED;
 

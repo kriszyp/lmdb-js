@@ -1076,11 +1076,14 @@ typedef enum slap_control_e {
 
 typedef enum slap_style_e {
 	ACL_STYLE_REGEX = 0,
+	ACL_STYLE_EXPAND,
 	ACL_STYLE_BASE,
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
 	ACL_STYLE_CHILDREN,
-	ACL_STYLE_ATTROF
+	ACL_STYLE_ATTROF,
+	ACL_STYLE_IP,
+	ACL_STYLE_PATH
 } slap_style_t;
 
 typedef struct slap_authz_info {
@@ -1169,6 +1172,10 @@ typedef struct slap_access {
 
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
+	unsigned long	a_peername_addr,
+			a_peername_mask;
+	int		a_peername_port;
+
 	slap_style_t a_sockname_style;
 	struct berval	a_sockname_pat;
 
@@ -1529,7 +1536,7 @@ struct slap_backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 
 	void    *be_pb;         /* Netscape plugin */
-	LDAP_TAILQ_HEAD( pcl, slap_csn_entry )	be_pending_csn_list;
+	LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry )	be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
@@ -1568,6 +1575,8 @@ typedef struct req_search_s {
 	int rs_deref;
 	int rs_slimit;
 	int rs_tlimit;
+	/* NULL means be_isroot evaluated to TRUE */
+	struct slap_limits_set *rs_limit;
 	int rs_attrsonly;
 	AttributeName *rs_attrs;
 	Filter *rs_filter;
@@ -1602,6 +1611,14 @@ typedef struct req_extended_s {
 	struct berval rs_reqoid;
 	struct berval *rs_reqdata;
 } req_extended_s;
+
+typedef struct req_pwdexop_s {
+	struct berval rs_reqoid;
+	struct berval rs_old;
+	struct berval rs_new;
+	Modifications *rs_mods;
+	Modifications **rs_modtail;
+} req_pwdexop_s;
 
 typedef enum slap_reply_e {
 	REP_RESULT,
@@ -1930,6 +1947,7 @@ typedef struct slap_op {
 		req_abandon_s oq_abandon;
 		req_abandon_s oq_cancel;
 		req_extended_s oq_extended;
+		req_pwdexop_s oq_pwdexop;
 	} o_request;
 
 /* short hands for union members */
@@ -1942,6 +1960,7 @@ typedef struct slap_op {
 #define oq_abandon o_request.oq_abandon
 #define oq_cancel o_request.oq_cancel
 #define oq_extended o_request.oq_extended
+#define oq_pwdexop o_request.oq_pwdexop
 
 /* short hands for inner request members */
 #define orb_method oq_bind.rb_method
@@ -1953,6 +1972,7 @@ typedef struct slap_op {
 #define ors_deref oq_search.rs_deref
 #define ors_slimit oq_search.rs_slimit
 #define ors_tlimit oq_search.rs_tlimit
+#define ors_limit oq_search.rs_limit
 #define ors_attrsonly oq_search.rs_attrsonly
 #define ors_attrs oq_search.rs_attrs
 #define ors_filter oq_search.rs_filter
@@ -2016,6 +2036,13 @@ typedef struct slap_op {
 #define get_domainScope(op)				((int)(op)->o_domain_scope)
 #else
 #define get_domainScope(op)				(0)
+#endif
+
+#ifdef LDAP_CONTROL_X_TREE_DELETE
+	char o_tree_delete;
+#define get_treeDelete(op)				((int)(op)->o_tree_delete)
+#else
+#define get_treeDelete(op)				(0)
 #endif
 
 	char o_preread;
@@ -2119,6 +2146,7 @@ typedef struct slap_listener Listener;
 typedef struct slap_conn {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */
+	int			c_conn_idx;		/* slot in connections array */
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		*c_sb;			/* ber connection stuff		  */

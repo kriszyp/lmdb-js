@@ -64,6 +64,20 @@ static struct sockaddr_in	bind_addr;
 #define MAIN_RETURN(x) return(x)
 #endif
 
+typedef int (MainFunc) LDAP_P(( int argc, char *argv[] ));
+extern MainFunc slapadd, slapcat, slapindex, slappasswd;
+
+static struct {
+	char *name;
+	MainFunc *func;
+} tools[] = {
+	{"slapadd", slapadd},
+	{"slapcat", slapcat},
+	{"slapindex", slapindex},
+	{"slappasswd", slappasswd},
+	{NULL, NULL}
+};
+
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
@@ -113,6 +127,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
+		"\t-T (a|c|i|p)\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
@@ -164,7 +179,7 @@ int main( int argc, char **argv )
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
 #endif
-	char	    *serverName = NULL;
+	char	    *serverName;
 	int	    serverMode = SLAP_SERVER_MODE;
 
 	struct berval cookie = { 0, NULL };
@@ -180,6 +195,17 @@ int main( int argc, char **argv )
 
 	sl_mem_init();
 
+	serverName = lutil_progname( "slapd", argc, argv );
+
+	if ( strcmp( serverName, "slapd" ) ) {
+		for (i=0; tools[i].name; i++) {
+			if ( !strcmp( serverName, tools[i].name ) ) {
+				rc = tools[i].func(argc, argv);
+				MAIN_RETURN(rc);
+			}
+		}
+	}
+
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
 		int *i;
@@ -188,7 +214,6 @@ int main( int argc, char **argv )
 		char *regService = NULL;
 
 		if ( is_NT_Service ) {
-			serverName = argv[0];
 			lutil_CommenceStartupProcessing( serverName, slap_sig_shutdown );
 			if ( strcmp(serverName, SERVICE_NAME) )
 			    regService = serverName;
@@ -241,7 +266,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:s:n:t:V"
+			     "c:d:f:h:s:n:t:T:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -341,7 +366,6 @@ int main( int argc, char **argv )
 #endif /* SETUID && GETUID */
 
 		case 'n':  /* NT service name */
-			if( serverName != NULL ) free( serverName );
 			serverName = ch_strdup( optarg );
 			break;
 
@@ -352,6 +376,14 @@ int main( int argc, char **argv )
 			version++;
 			break;
 
+		case 'T':
+			for (i=0; tools[i].name; i++) {
+				if ( optarg[0] == tools[i].name[4] ) {
+					rc = tools[i].func(argc, argv);
+					MAIN_RETURN(rc);
+				}
+			}
+			/* FALLTHRU */
 		default:
 			usage( argv[0] );
 			rc = 1;
@@ -372,14 +404,6 @@ int main( int argc, char **argv )
 	if ( version ) {
 		fprintf( stderr, "%s\n", Versionstr );
 		if ( version > 1 ) goto stop;
-	}
-
-	if( serverName == NULL ) {
-		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
-			serverName = argv[0];
-		} else {
-			serverName = serverName + 1;
-		}
 	}
 
 	{

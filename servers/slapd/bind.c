@@ -46,7 +46,6 @@ do_bind(
 {
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
-	ber_tag_t method;
 	struct berval mech = { 0, NULL };
 	struct berval dn = { 0, NULL };
 	ber_tag_t tag;
@@ -107,7 +106,7 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
+	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &op->orb_method );
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -123,7 +122,7 @@ do_bind(
 
 	op->o_protocol = version;
 
-	if( method != LDAP_AUTH_SASL ) {
+	if( op->orb_method != LDAP_AUTH_SASL ) {
 		tag = ber_scanf( ber, /*{*/ "m}", &op->orb_cred );
 
 	} else {
@@ -182,7 +181,7 @@ do_bind(
 		goto cleanup;
 	}
 
-	if( method == LDAP_AUTH_SASL ) {
+	if( op->orb_method == LDAP_AUTH_SASL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION,	 DETAIL1, 
 			"do_sasl_bind: conn %d  dn (%s) mech %s\n", 
@@ -197,17 +196,17 @@ do_bind(
 		LDAP_LOG( OPERATION, DETAIL1, 
 			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
 			(unsigned long) version, op->o_req_dn.bv_val,
-			(unsigned long) method );
+			(unsigned long) op->orb_method );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
 			(unsigned long) version, op->o_req_dn.bv_val,
-			(unsigned long) method );
+			(unsigned long) op->orb_method );
 #endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu BIND dn=\"%s\" method=%ld\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, (unsigned long) method,
+	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, (unsigned long) op->orb_method,
 		0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
@@ -249,7 +248,7 @@ do_bind(
 	/* Set the bindop for the benefit of in-directory SASL lookups */
 	op->o_conn->c_sasl_bindop = op;
 
-	if ( method == LDAP_AUTH_SASL ) {
+	if ( op->orb_method == LDAP_AUTH_SASL ) {
 		if ( version < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, 
@@ -370,7 +369,7 @@ do_bind(
 		if ( pb ) {
 			slapi_int_pblock_set_operation( pb, op );
 			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
-			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
 			slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 			slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 			(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
@@ -396,7 +395,7 @@ do_bind(
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
 
-	if ( method == LDAP_AUTH_SIMPLE ) {
+	if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
 		ber_str2bv( "SIMPLE", sizeof("SIMPLE")-1, 0, &mech );
 		/* accept "anonymous" binds */
 		if ( op->orb_cred.bv_len == 0 || op->o_req_ndn.bv_len == 0 ) {
@@ -459,7 +458,7 @@ do_bind(
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else if ( method == LDAP_AUTH_KRBV41 || method == LDAP_AUTH_KRBV42 ) {
+	} else if ( op->orb_method == LDAP_AUTH_KRBV41 || op->orb_method == LDAP_AUTH_KRBV42 ) {
 		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
 			/* disallow simple authentication */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -487,11 +486,11 @@ do_bind(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"do_bind: conn %ld  v%d unknown authentication method (%ld)\n",
-			op->o_connid, version, method );
+			op->o_connid, version, op->orb_method );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d unknown authentication method (%ld)\n",
-			version, method, 0 );
+			version, op->orb_method, 0 );
 #endif
 		goto cleanup;
 	}
@@ -533,7 +532,7 @@ do_bind(
 		int rc;
 		slapi_int_pblock_set_operation( pb, op );
 		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
 		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 		slapi_pblock_set( pb, SLAPI_CONN_DN, (void *)(0) );
@@ -614,7 +613,6 @@ do_bind(
 #endif /* defined( LDAP_SLAPI ) */
 
 	if( op->o_bd->be_bind ) {
-		op->orb_method = method;
 		rs->sr_err = (op->o_bd->be_bind)( op, rs );
 
 		if ( rs->sr_err == 0 ) {
@@ -685,10 +683,10 @@ do_bind(
 
 cleanup:
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		if ( method != LDAP_AUTH_SASL ) {
+		if ( op->orb_method != LDAP_AUTH_SASL ) {
 			ber_dupbv( &op->o_conn->c_authmech, &mech );
 		}
-		op->o_conn->c_authtype = method;
+		op->o_conn->c_authtype = op->orb_method;
 	}
 
 	op->o_conn->c_sasl_bindop = NULL;

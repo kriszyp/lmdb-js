@@ -48,11 +48,7 @@ ldbm_back_search(
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		manageDSAit = get_manageDSAit( op );
-	int		cscope = LDAP_SCOPE_DEFAULT;
 
-	struct slap_limits_set *limit = NULL;
-	int isroot = 0;
-		
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_search: enter\n", 0, 0, 0 );
 #else
@@ -69,15 +65,16 @@ ldbm_back_search(
 		/* need normalized dn below */
 		ber_dupbv( &realbase, &e->e_nname );
 
-		candidates = search_candidates( op, e, op->oq_search.rs_filter,
-	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
-				manageDSAit || get_domainScope(op) );
+		candidates = search_candidates( op, e, op->ors_filter,
+			op->ors_scope, op->ors_deref,
+			manageDSAit || get_domainScope(op) );
 
 		goto searchit;
 		
-	} else if ( op->oq_search.rs_deref & LDAP_DEREF_FINDING ) {
+	} else if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( op->o_bd, &op->o_req_ndn, &rs->sr_err, &matched, &rs->sr_text );
+		e = deref_dn_r( op->o_bd, &op->o_req_ndn,
+			&rs->sr_err, &matched, &rs->sr_text );
 
 		if( rs->sr_err == LDAP_NO_SUCH_OBJECT ) rs->sr_err = LDAP_REFERRAL;
 
@@ -103,14 +100,14 @@ ldbm_back_search(
 
 			if( erefs ) {
 				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
-					&op->o_req_dn, op->oq_search.rs_scope );
+					&op->o_req_dn, op->ors_scope );
 
 				ber_bvarray_free( erefs );
 			}
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, op->oq_search.rs_scope );
+				NULL, &op->o_req_dn, op->ors_scope );
 		}
 
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
@@ -149,7 +146,7 @@ ldbm_back_search(
 
 		if( erefs ) {
 			rs->sr_ref = referral_rewrite( erefs, &matched_dn,
-				&op->o_req_dn, op->oq_search.rs_scope );
+				&op->o_req_dn, op->ors_scope );
 
 			ber_bvarray_free( erefs );
 		}
@@ -173,18 +170,15 @@ ldbm_back_search(
 
 	if ( is_entry_alias( e ) ) {
 		/* don't deref */
-		op->oq_search.rs_deref = LDAP_DEREF_NEVER;
+		op->ors_deref = LDAP_DEREF_NEVER;
 	}
 
-	if ( op->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
-		cscope = LDAP_SCOPE_BASE;
+	if ( op->ors_scope == LDAP_SCOPE_BASE ) {
 		candidates = base_candidate( op->o_bd, e );
 
 	} else {
-		cscope = ( op->oq_search.rs_scope != LDAP_SCOPE_SUBTREE )
-			? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE;
-		candidates = search_candidates( op, e, op->oq_search.rs_filter,
-		    op->oq_search.rs_scope, op->oq_search.rs_deref, manageDSAit );
+		candidates = search_candidates( op, e, op->ors_filter,
+		    op->ors_scope, op->ors_deref, manageDSAit );
 	}
 
 	/* need normalized dn below */
@@ -210,91 +204,19 @@ searchit:
 		goto done;
 	}
 
-	/* if not root, get appropriate limits */
-	if ( be_isroot( op->o_bd, &op->o_ndn ) )
-	{
-		/*
-		 * FIXME: I'd consider this dangerous if someone
-		 * uses isroot for anything but handling limits
-		 */
-		isroot = 1;
-	} else {
-		( void ) get_limits( op, &op->o_ndn, &limit );
-	}
-
 	/* if candidates exceed to-be-checked entries, abort */
-	if ( !isroot && limit->lms_s_unchecked != -1 ) {
-		if ( ID_BLOCK_NIDS( candidates ) > (unsigned) limit->lms_s_unchecked ) {
-			send_ldap_error( op, rs, LDAP_ADMINLIMIT_EXCEEDED,
-					NULL );
-			rc = LDAP_SUCCESS;
-			goto done;
-		}
+	if ( op->ors_limit	/* isroot == TRUE */
+			&& op->ors_limit->lms_s_unchecked != -1
+			&& ID_BLOCK_NIDS( candidates ) > (unsigned) op->ors_limit->lms_s_unchecked )
+	{
+		send_ldap_error( op, rs, LDAP_ADMINLIMIT_EXCEEDED, NULL );
+		rc = LDAP_SUCCESS;
+		goto done;
 	}
 	
-	/* if root an no specific limit is required, allow unlimited search */
-	if ( isroot ) {
-		if ( op->oq_search.rs_tlimit == 0 ) {
-			op->oq_search.rs_tlimit = -1;
-		}
-
-		if ( op->oq_search.rs_slimit == 0 ) {
-			op->oq_search.rs_slimit = -1;
-		}
-
-	} else {
-		/* if no limit is required, use soft limit */
-		if ( op->oq_search.rs_tlimit <= 0 ) {
-			op->oq_search.rs_tlimit = limit->lms_t_soft;
-		
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->oq_search.rs_tlimit > limit->lms_t_hard ) {
-			/* no hard limit means use soft instead */
-			if ( limit->lms_t_hard == 0
-					&& limit->lms_t_soft > -1
-					&& op->oq_search.rs_tlimit > limit->lms_t_soft ) {
-				op->oq_search.rs_tlimit = limit->lms_t_soft;
-			
-			/* positive hard limit means abort */
-			} else if ( limit->lms_t_hard > 0 ) {
-				send_ldap_error( op, rs,
-						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL );
-				rc = LDAP_SUCCESS; 
-				goto done;
-			}
-
-			/* negative hard limit means no limit */
-		}
-
-		/* if no limit is required, use soft limit */
-		if ( op->oq_search.rs_slimit <= 0 ) {
-			op->oq_search.rs_slimit = limit->lms_s_soft;
-
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->oq_search.rs_slimit > limit->lms_s_hard ) {
-			/* no hard limit means use soft instead */
-			if ( limit->lms_s_hard == 0
-					&& limit->lms_s_soft > -1
-					&& op->oq_search.rs_slimit > limit->lms_s_soft ) {
-				op->oq_search.rs_slimit = limit->lms_s_soft;
-
-			/* positive hard limit means abort */
-			} else if ( limit->lms_s_hard > 0 ) {
-				send_ldap_error( op, rs,
-						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL );
-				rc = LDAP_SUCCESS;
-				goto done;
-			}
-
-			/* negative hard limit means no limit */
-		}
-	}
-
 	/* compute it anyway; root does not use it */
-	stoptime = op->o_time + op->oq_search.rs_tlimit;
-	rs->sr_attrs = op->oq_search.rs_attrs;
+	stoptime = op->o_time + op->ors_tlimit;
+	rs->sr_attrs = op->ors_attrs;
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
 	    id = idl_nextid( candidates, &cursor ) )
@@ -309,7 +231,7 @@ searchit:
 		}
 
 		/* check time limit */
-		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
+		if ( op->ors_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			send_ldap_result( op, rs );
 			rc = LDAP_SUCCESS;
@@ -335,25 +257,27 @@ searchit:
 		rs->sr_entry = e;
 
 #ifdef LDBM_SUBENTRIES
-	if ( is_entry_subentry( e ) ) {
-		if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
-			if(!get_subentries_visibility( op )) {
+		if ( is_entry_subentry( e ) ) {
+			if( op->ors_scope != LDAP_SCOPE_BASE ) {
+				if(!get_subentries_visibility( op )) {
+					/* only subentries are visible */
+					goto loop_continue;
+				}
+			} else if ( get_subentries( op ) &&
+				!get_subentries_visibility( op ))
+			{
 				/* only subentries are visible */
 				goto loop_continue;
 			}
-		} else if ( get_subentries( op ) &&
-			!get_subentries_visibility( op ))
-		{
+		} else if ( get_subentries_visibility( op )) {
 			/* only subentries are visible */
 			goto loop_continue;
 		}
-	} else if ( get_subentries_visibility( op )) {
-		/* only subentries are visible */
-		goto loop_continue;
-	}
 #endif
 
-		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
+		if ( op->ors_deref & LDAP_DEREF_SEARCHING &&
+			is_entry_alias( e ) )
+		{
 			Entry *matched;
 			int err;
 			const char *text;
@@ -371,7 +295,7 @@ searchit:
 			}
 
 			/* need to skip alias which deref into scope */
-			if( op->oq_search.rs_scope & LDAP_SCOPE_ONELEVEL ) {
+			if( op->ors_scope == LDAP_SCOPE_ONELEVEL ) {
 				struct berval pdn;
 				dnParent( &e->e_nname, &pdn );
 				if ( ber_bvcmp( &pdn, &realbase ) ) {
@@ -382,7 +306,8 @@ searchit:
 				/* alias is within scope */
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, DETAIL1,
-					"ldbm_search: alias \"%s\" in subtree\n", e->e_dn, 0, 0 );
+					"ldbm_search: alias \"%s\" in subtree\n",
+					e->e_dn, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: alias \"%s\" in subtree\n",
@@ -398,17 +323,18 @@ searchit:
 		}
 
 		/*
-		 * if it's a referral, add it to the list of referrals. only do
-		 * this for non-base searches, and don't check the filter
-		 * explicitly here since it's only a candidate anyway.
+		 * If it's a referral, add it to the list of referrals.
+		 * Only do this for non-base searches, and don't check
+		 * the filter explicitly here since it's only a candidate
+		 * anyway.
 		 */
-		if ( !manageDSAit && op->oq_search.rs_scope != LDAP_SCOPE_BASE &&
+		if ( !manageDSAit && op->ors_scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
 			struct berval	dn;
 
 			/* check scope */
-			if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+			if ( !scopeok && op->ors_scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( !be_issuffix( op->o_bd, &e->e_nname ) ) {
 					dnParent( &e->e_nname, &dn );
 					scopeok = dn_match( &dn, &realbase );
@@ -416,8 +342,16 @@ searchit:
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok
+				&& op->ors_scope == LDAP_SCOPE_SUBTREE )
+			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else if ( !scopeok
+				&& op->ors_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -427,9 +361,9 @@ searchit:
 				BerVarray erefs = get_entry_referrals( op, e );
 				rs->sr_ref = referral_rewrite( erefs,
 					&e->e_name, NULL,
-					op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
-						? LDAP_SCOPE_SUBTREE
-						: LDAP_SCOPE_BASE );
+					op->ors_scope == LDAP_SCOPE_ONELEVEL
+						? LDAP_SCOPE_BASE
+						: LDAP_SCOPE_SUBTREE );
 
 				send_search_reference( op, rs );
 
@@ -456,13 +390,13 @@ searchit:
 		}
 
 		/* if it matches the filter and scope, send it */
-		result = test_filter( op, e, op->oq_search.rs_filter );
+		result = test_filter( op, e, op->ors_filter );
 
 		if ( result == LDAP_COMPARE_TRUE ) {
 			struct berval	dn;
 
 			/* check scope */
-			if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+			if ( !scopeok && op->ors_scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( !be_issuffix( op->o_bd, &e->e_nname ) ) {
 					dnParent( &e->e_nname, &dn );
 					scopeok = dn_match( &dn, &realbase );
@@ -470,8 +404,16 @@ searchit:
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok &&
+				op->ors_scope == LDAP_SCOPE_SUBTREE )
+			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else if ( !scopeok &&
+				op->ors_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -479,7 +421,7 @@ searchit:
 
 			if ( scopeok ) {
 				/* check size limit */
-				if ( --op->oq_search.rs_slimit == -1 ) {
+				if ( --op->ors_slimit == -1 ) {
 					cache_return_entry_r( &li->li_cache, e );
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
@@ -488,7 +430,6 @@ searchit:
 				}
 
 				if (e) {
-
 					result = send_search_entry( op, rs );
 
 					switch (result) {
@@ -502,6 +443,7 @@ searchit:
 						goto done;
 					}
 				}
+
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, DETAIL2,
@@ -595,8 +537,8 @@ search_candidates(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1,
-		   "search_candidates: base (%s) scope %d deref %d\n",
-		   e->e_ndn, scope, deref );
+		"search_candidates: base (%s) scope %d deref %d\n",
+		e->e_ndn, scope, deref );
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" s=%d d=%d\n",
@@ -631,9 +573,9 @@ search_candidates(
 	f.f_next = NULL;
 	f.f_choice = LDAP_FILTER_AND;
 	f.f_and = &fand;
-	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
-		? SLAPD_FILTER_DN_SUBTREE
-		: SLAPD_FILTER_DN_ONE;
+	fand.f_choice = scope == LDAP_SCOPE_ONELEVEL
+		? SLAPD_FILTER_DN_ONE
+		: SLAPD_FILTER_DN_SUBTREE;
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
@@ -650,6 +592,5 @@ search_candidates(
 #endif
 
 	candidates = filter_candidates( op, &f );
-
 	return( candidates );
 }

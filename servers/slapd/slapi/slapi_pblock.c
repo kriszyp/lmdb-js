@@ -321,8 +321,13 @@ set( Slapi_PBlock *pb, int param, void *val )
 		LDAPControl **ctrls = pb->curVals[i];
 		int j;
 
-		for (j=0; ctrls[j]; j++);
-		ctrls = ch_realloc( ctrls, (j+2)*sizeof(LDAPControl *) );
+		if ( ctrls ) {
+			for (j=0; ctrls[j]; j++);
+			ctrls = ch_realloc( ctrls, (j+2)*sizeof(LDAPControl *) );
+		} else {
+			ctrls = ch_malloc( 2 * sizeof(LDAPControl *) );
+			j = 0;
+		}
 		ctrls[j] = val;
 		ctrls[j+1] = NULL;
 		pb->curVals[i] = ctrls;

@@ -24,7 +24,7 @@
 #include "slap.h"
 
 int
-get_limits( 
+limits_get( 
 	Operation		*op,
 	struct berval		*ndn, 
 	struct slap_limits_set 	**limit
@@ -165,7 +165,7 @@ get_limits(
 }
 
 static int
-add_limits(
+limits_add(
 	Backend 	        *be,
 	unsigned		flags,
 	const char		*pattern,
@@ -267,7 +267,7 @@ add_limits(
 }
 
 int
-parse_limits(
+limits_parse(
 	Backend     *be,
 	const char  *fname,
 	int         lineno,
@@ -310,18 +310,19 @@ parse_limits(
 	 * 
 	 * "anonymous"
 	 * "users"
-	 * [ "dn" [ "." { "exact" | "base" | "one" | "sub" | children" 
+	 * [ "dn" [ "." { "exact" | "base" | "onelevel" | "subtree" | children"
 	 *	| "regex" | "anonymous" } ] "=" ] <dn pattern>
 	 *
 	 * Note:
 	 *	"exact" and "base" are the same (exact match);
-	 *	"one" means exactly one rdn below, NOT including the pattern
-	 *	"sub" means any rdn below, including the pattern
-	 *	"children" means any rdn below, NOT including the pattern
+	 *	"onelevel" means exactly one rdn below, NOT including pattern
+	 *	"subtree" means any rdn below, including pattern
+	 *	"children" means any rdn below, NOT including pattern
 	 *	
 	 *	"anonymous" may be deprecated in favour 
 	 *	of the pattern = "anonymous" form
 	 *
+	 * "group[/objectClass[/attributeType]]" "=" "<dn pattern>"
 	 *
 	 * <limit>:
 	 *
@@ -355,10 +356,42 @@ parse_limits(
 			} else if ( strncasecmp( pattern, "one", sizeof( "one" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_ONE;
 				pattern += sizeof( "one" ) - 1;
+				if ( strncasecmp( pattern, "level", sizeof( "level" ) - 1 ) == 0 ) {
+					pattern += sizeof( "level" ) - 1;
 
-			} else if ( strncasecmp( pattern, "subtree", sizeof( "subtree" ) - 1 ) == 0 ) {
+				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, WARNING , 
+						"%s : line %d: deprecated \"one\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"onelevel\" instead.\n", fname, lineno, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s : line %d: deprecated \"one\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"onelevel\" instead.\n", fname, lineno, 0 );
+#endif
+				}
+
+			} else if ( strncasecmp( pattern, "sub", sizeof( "sub" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_SUBTREE;
-				pattern += sizeof( "subtree" ) - 1;
+				pattern += sizeof( "sub" ) - 1;
+				if ( strncasecmp( pattern, "tree", sizeof( "tree" ) - 1 ) == 0 ) {
+					pattern += sizeof( "tree" ) - 1;
+
+				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, WARNING , 
+						"%s : line %d: deprecated \"sub\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"subtree\" instead.\n", fname, lineno, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s : line %d: deprecated \"sub\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"subtree\" instead.\n", fname, lineno, 0 );
+#endif
+				}
 
 			} else if ( strncasecmp( pattern, "children", sizeof( "children" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_CHILDREN;
@@ -392,13 +425,13 @@ parse_limits(
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
 					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|one|subtree"
+					"\"dn[.{exact|base|onelevel|subtree"
 					"|children|regex|anonymous}]" "=<pattern>\" in "
 					"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|one|subtree"
+					"\"dn[.{exact|base|onelevel|subtree"
 					"|children|regex|anonymous}]"
 					"=<pattern>\" in "
 					"\"limits <pattern> <limits>\" "
@@ -506,7 +539,7 @@ no_ad:;
 
 	/* get the limits */
 	for ( i = 2; i < argc; i++ ) {
-		if ( parse_limit( argv[i], &limit ) ) {
+		if ( limits_parse_one( argv[i], &limit ) ) {
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONFIG, CRIT, 
@@ -539,7 +572,7 @@ no_ad:;
 		limit.lms_s_hard = limit.lms_s_soft;
 	}
 	
-	rc = add_limits( be, flags, pattern, group_oc, group_ad, &limit );
+	rc = limits_add( be, flags, pattern, group_oc, group_ad, &limit );
 	if ( rc ) {
 
 #ifdef NEW_LOGGING
@@ -559,7 +592,7 @@ no_ad:;
 }
 
 int
-parse_limit(
+limits_parse_one(
 	const char 		*arg,
 	struct slap_limits_set 	*limit
 )
@@ -731,6 +764,87 @@ parse_limit(
 			
 		} else {
 			return( 1 );
+		}
+	}
+
+	return 0;
+}
+
+
+int
+limits_check( Operation *op, SlapReply *rs )
+{
+	assert( op );
+	assert( rs );
+	/* FIXME: should this be always true? */
+	assert( op->o_tag == LDAP_REQ_SEARCH);
+	
+	/* allow root to set no limit */
+	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
+		op->ors_limit = NULL;
+
+		if ( op->ors_tlimit == 0 ) {
+			op->ors_tlimit = -1;
+		}
+
+		if ( op->ors_slimit == 0 ) {
+			op->ors_slimit = -1;
+		}
+
+	/* if not root, get appropriate limits */
+	} else {
+		( void ) limits_get( op, &op->o_ndn, &op->ors_limit );
+
+		assert( op->ors_limit != NULL );
+
+		/* if no limit is required, use soft limit */
+		if ( op->ors_tlimit <= 0 ) {
+			op->ors_tlimit = op->ors_limit->lms_t_soft;
+
+		/* if requested limit higher than hard limit, abort */
+		} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+			/* no hard limit means use soft instead */
+			if ( op->ors_limit->lms_t_hard == 0
+					&& op->ors_limit->lms_t_soft > -1
+					&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
+				op->ors_tlimit = op->ors_limit->lms_t_soft;
+
+			/* positive hard limit means abort */
+			} else if ( op->ors_limit->lms_t_hard > 0 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				return -1;
+			}
+	
+			/* negative hard limit means no limit */
+		}
+	
+		/* if no limit is required, use soft limit */
+		if ( op->ors_slimit <= 0 ) {
+			if ( get_pagedresults( op ) && op->ors_limit->lms_s_pr != 0 ) {
+				op->ors_slimit = op->ors_limit->lms_s_pr;
+			} else {
+				op->ors_slimit = op->ors_limit->lms_s_soft;
+			}
+
+		/* if requested limit higher than hard limit, abort */
+		} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+			/* no hard limit means use soft instead */
+			if ( op->ors_limit->lms_s_hard == 0
+					&& op->ors_limit->lms_s_soft > -1
+					&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
+				op->ors_slimit = op->ors_limit->lms_s_soft;
+
+			/* positive hard limit means abort */
+			} else if ( op->ors_limit->lms_s_hard > 0 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;	
+				return -1;
+			}
+		
+			/* negative hard limit means no limit */
 		}
 	}
 

@@ -115,6 +115,20 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	SQLAllocStmt( dbh, &sth );
+
+	rc = backsql_Prepare( dbh, &sth, oc->bom_delete_proc, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_delete(): "
+			"error preparing delete query\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
 	if ( BACKSQL_IS_DEL( oc->bom_expect_return ) ) {
 		pno = 1;
 		SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT, SQL_C_ULONG,
@@ -126,9 +140,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLBindParameter( sth, pno + 1, SQL_PARAM_INPUT, 
 			SQL_C_ULONG, SQL_INTEGER, 0, 0, &e_id.keyval, 0, 0 );
 
-	Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): executing \"%s\"\n",
-			oc->bom_delete_proc, 0, 0 );
-	rc = SQLExecDirect( sth, oc->bom_delete_proc, SQL_NTS );
+	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"delete_proc execution failed\n", 0, 0, 0 );
@@ -145,9 +157,22 @@ backsql_delete( Operation *op, SlapReply *rs )
 	SQLAllocStmt( dbh, &sth );
 #endif /* BACKSQL_REALLOC_STMT */
 
+	rc = backsql_Prepare( dbh, &sth, bi->delentry_query, 0 );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_delete(): "
+			"error preparing ldap_entries delete query\n", 
+			0, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, sth, rc );
+
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
 	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
 			0, 0, &e_id.id, 0, 0 );
-	rc = SQLExecDirect( sth, bi->delentry_query, SQL_NTS );
+	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"failed to delete record from ldap_entries\n", 
@@ -158,8 +183,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 		rs->sr_text = "SQL-backend error";
 		goto done;
 	}
-	
-	SQLFreeStmt( sth, SQL_DROP );
 
 	/*
 	 * Commit only if all operations succeed

@@ -409,6 +409,21 @@ int backend_startup(Backend *be)
 
 		if ( !LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo )) {
 			syncinfo_t *si;
+
+			if ( !( backendDB[i].be_search && backendDB[i].be_add &&
+				backendDB[i].be_modify && backendDB[i].be_delete )) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( BACKEND, CRIT, 
+					"backend_startup: database(%d) does not support "
+					"operations required for syncrepl", i, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"backend_startup: database(%d) does not support "
+					"operations required for syncrepl", i, 0, 0 );
+#endif
+				continue;
+			}
+
 			LDAP_STAILQ_FOREACH( si, &backendDB[i].be_syncinfo, si_next ) {
 				si->si_be = &backendDB[i];
 				init_syncrepl( si );

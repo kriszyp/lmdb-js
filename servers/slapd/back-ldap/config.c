@@ -586,96 +586,9 @@ suffix_massage_config(
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
-#if 0
-	/*
-	 * FIXME: this is no longer required since now we map filters
-	 * based on the parsed filter structure, so we can deal directly
-	 * with attribute types and values.  The rewriteContext 
-	 * "searchFilter" now refers to the value of attrbutes
-	 * with DN syntax.
-	 */
-
-	/*
-	 * the filter should be rewritten as
-	 * 
-	 * rewriteRule
-	 * 	"(.*)member=([^)]+),o=Foo Bar,[ ]?c=US(.*)"
-	 * 	"%1member=%2,dc=example,dc=com%3"
-	 *
-	 * where "o=Foo Bar, c=US" is the virtual naming context,
-	 * and "dc=example, dc=com" is the real naming context
-	 */
-	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "searchFilter";
-	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
-
-#if 1 /* rewrite filters */
-	{
-		/*
-		 * Note: this is far more optimistic than desirable:
-		 * for any AVA value ending with the virtual naming
-		 * context the terminal part will be replaced by the
-		 * real naming context; a better solution would be to
-		 * walk the filter looking for DN-valued attributes,
-		 * and only rewrite those that require rewriting
-		 */
-		char 	vbuf_[BUFSIZ], *vbuf = vbuf_,
-			rbuf_[BUFSIZ], *rbuf = rbuf_;
-		int 	len;
-
-		len = snprintf( vbuf, sizeof( vbuf_ ), 
-				"(.*)%s\\)(.*)", nvnc->bv_val );
-		if ( len == -1 ) {
-			/* 
-			 * traditional behavior: snprintf returns -1 
-			 * if buffer is insufficient
-			 */
-			return -1;
-
-		} else if ( len >= (int)sizeof( vbuf_ ) ) {
-			/* 
-			 * C99: snprintf returns the required size 
-			 */
-			vbuf = ch_malloc( len + 1 );
-			len = snprintf( vbuf, len,
-					"(.*)%s\\)(.*)", nvnc->bv_val );
-			assert( len > 0 );
-		}
-
-		len = snprintf( rbuf, sizeof( rbuf_ ), "%%1%s)%%2", 
-				nrnc->bv_val );
-		if ( len == -1 ) {
-			return -1;
-
-		} else if ( len >= (int)sizeof( rbuf_ ) ) {
-			rbuf = ch_malloc( len + 1 );
-			len = snprintf( rbuf, sizeof( rbuf_ ), "%%1%s)%%2", 
-					nrnc->bv_val );
-			assert( len > 0 );
-		}
-		
-		rargv[ 0 ] = "rewriteRule";
-		rargv[ 1 ] = vbuf;
-		rargv[ 2 ] = rbuf;
-		rargv[ 3 ] = ":";
-		rargv[ 4 ] = NULL;
-		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
-
-		if ( vbuf != vbuf_ ) {
-			ch_free( vbuf );
-		}
-
-		if ( rbuf != rbuf_ ) {
-			ch_free( rbuf );
-		}
-	}
-#endif /* rewrite filters */
-#endif
-
 #if 0 /*  "matched" is not normalized */
 	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "matchedDn";
+	rargv[ 1 ] = "matchedDN";
 	rargv[ 2 ] = "alias";
 	rargv[ 3 ] = "searchResult";
 	rargv[ 4 ] = NULL;
