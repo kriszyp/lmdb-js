@@ -109,10 +109,10 @@ int ldap_utf8_charlen( const char * p )
 }
 
 /* conv UTF-8 to UCS-4, useful for comparisons */
-ber_int_t ldap_utf8_to_ucs4( const char * p )
+ldap_ucs4_t ldap_utf8_to_ucs4( const char * p )
 {
     const unsigned char *c = p;
-    ber_int_t ch;
+    ldap_ucs4_t ch;
 	int len, i;
 	static unsigned char mask[] = {
 		0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
@@ -136,7 +136,7 @@ ber_int_t ldap_utf8_to_ucs4( const char * p )
 }
 
 /* conv UCS-4 to UTF-8, not used */
-int ldap_ucs4_to_utf8( ber_int_t c, char *buf )
+int ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
 {
 	int len=0;
 	unsigned char* p = buf;
