@@ -31,8 +31,3 @@ LDAP_SENDMAIL=/usr/sbin/sendmail
 LDAP_EDITOR=/usr/bin/vi
 LDAP_FINGER=/usr/bin/finger                                          
 
-LDAP_CRYPT=-DLDAP_CRYPT -DLDAP_SHA
-
-LDAP_TCP_WRAPPERS=-DTCP_WRAPPERS
-LDAP_TCP_WRAPPERS_LIB=-lwrap
-
