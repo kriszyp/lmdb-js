@@ -59,7 +59,7 @@ va_dcl
 #ifdef HAVE_VSNPRINTF
 	buf[sizeof(buf) - 1] = '\0';
 	vsnprintf( buf, sizeof(buf)-1, fmt, ap );
-#elif
+#elif HAVE_VSPRINTF
 	vsprintf( buf, fmt, ap ); /* hope it's not too long */
 #else
 	/* use doprnt() */
