@@ -1116,7 +1116,13 @@ static int process_response(
 	LDAPMessage *res;
 	int rc = LDAP_OTHER;
 
-	if( ldap_result( ld, msgid, txn ? 0 : 1, NULL, &res ) == -1 ) {
+	if( ldap_result( ld, msgid,
+#ifdef LDAP_GROUP_TRANSACTION
+		txn ? 0 : 1,
+#else
+		1,
+#endif
+		NULL, &res ) == -1 ) {
 		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
 		return rc;
 	}
