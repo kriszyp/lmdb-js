@@ -70,7 +70,7 @@ bdb2i_index_add_mods(
 			rc = bdb2i_index_add_values( be, mod->mod_type,
 			    mod->mod_bvalues, id );
 			break;
-
+		case LDAP_MOD_SOFTADD:
 		case LDAP_MOD_DELETE:
 			rc = 0;
 			break;
@@ -224,7 +224,7 @@ bdb2i_index_add_values(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_add_values( \"%s\", %ld )\n", type,
 	    id, 0 );
-
+	attr_normalize( type );
 	bdb2i_attr_masks( be->be_private, type, &indexmask, &syntax );
 	if ( indexmask == 0 ) {
 		return( 0 );
