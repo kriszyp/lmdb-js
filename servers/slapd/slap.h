@@ -246,7 +246,7 @@ typedef int slap_syntax_validate_func LDAP_P((
 typedef int slap_syntax_transform_func LDAP_P((
 	struct slap_syntax *syntax,
 	struct berval * in,
-	struct berval ** out));
+	struct berval * out));
 
 typedef struct slap_syntax {
 	LDAPSyntax			ssyn_syn;
@@ -285,7 +285,7 @@ typedef struct slap_syntax {
 /* X -> Y Converter */
 typedef int slap_mr_convert_func LDAP_P((
 	struct berval * in,
-	struct berval ** out ));
+	struct berval * out ));
 
 /* Normalizer */
 typedef int slap_mr_normalize_func LDAP_P((
@@ -293,7 +293,7 @@ typedef int slap_mr_normalize_func LDAP_P((
 	struct slap_syntax *syntax, /* NULL if in is asserted value */
 	struct slap_matching_rule *mr,
 	struct berval * in,
-	struct berval ** out ));
+	struct berval * out ));
 
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
@@ -312,7 +312,7 @@ typedef int slap_mr_indexer_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keys ));
+	struct berval **keys ));
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
@@ -322,7 +322,7 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keys ));
+	struct berval **keys ));
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
@@ -532,22 +532,22 @@ struct slap_internal_schema {
 
 typedef struct slap_attr_assertion {
 	AttributeDescription	*aa_desc;
-	struct berval *aa_value;
+	struct berval aa_value;
 } AttributeAssertion;
 
 typedef struct slap_ss_assertion {
 	AttributeDescription	*sa_desc;
-	struct berval			*sa_initial;
-	struct berval			**sa_any;
-	struct berval			*sa_final;
+	struct berval		sa_initial;
+	struct berval		*sa_any;
+	struct berval		sa_final;
 } SubstringsAssertion;
 
 typedef struct slap_mr_assertion {
-	MatchingRule				*ma_rule;	/* optional */
-	struct berval				ma_rule_text;  /* optional */
+	MatchingRule		*ma_rule;	/* optional */
+	struct berval		ma_rule_text;  /* optional */
 	AttributeDescription	*ma_desc;	/* optional */
 	int						ma_dnattrs; /* boolean */
-	struct berval			*ma_value;	/* required */
+	struct berval		ma_value;	/* required */
 } MatchingRuleAssertion;
 
 /*

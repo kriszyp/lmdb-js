@@ -555,8 +555,8 @@ search_candidates(
 	ID_BLOCK		*candidates;
 	Filter		f, fand, rf, af, xf;
     AttributeAssertion aa_ref, aa_alias;
-	static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
-	static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+	struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+	struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -578,7 +578,7 @@ search_candidates(
 		rf.f_choice = LDAP_FILTER_EQUALITY;
 		rf.f_ava = &aa_ref;
 		rf.f_av_desc = slap_schema.si_ad_objectClass;
-		rf.f_av_value = &bv_ref;
+		rf.f_av_value = bv_ref;
 		rf.f_next = xf.f_or;
 		xf.f_or = &rf;
 	}
@@ -588,7 +588,7 @@ search_candidates(
 		af.f_choice = LDAP_FILTER_EQUALITY;
 		af.f_ava = &aa_alias;
 		af.f_av_desc = slap_schema.si_ad_objectClass;
-		af.f_av_value = &bv_alias;
+		af.f_av_value = bv_alias;
 		af.f_next = xf.f_or;
 		xf.f_or = &af;
 	}

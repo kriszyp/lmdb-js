@@ -138,7 +138,7 @@ static int indexer(
 	const char *text;
     DBCache	*db;
 	AttributeDescription *ad = NULL;
-	struct berval **keys;
+	struct berval *keys;
 
 	assert( mask );
 
@@ -175,10 +175,10 @@ static int indexer(
 			atname, vals, &keys );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+			for( i=0; keys[i].bv_val != NULL; i++ ) {
+				key_change( be, db, &keys[i], id, op );
 			}
-			ber_bvecfree( keys );
+			bvarray_free( keys );
 		}
 	}
 
@@ -191,10 +191,10 @@ static int indexer(
 			atname, vals, &keys );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+			for( i=0; keys[i].bv_val != NULL; i++ ) {
+				key_change( be, db, &keys[i], id, op );
 			}
-			ber_bvecfree( keys );
+			bvarray_free( keys );
 		}
 	}
 
@@ -207,10 +207,10 @@ static int indexer(
 			atname, vals, &keys );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+			for( i=0; keys[i].bv_val != NULL; i++ ) {
+				key_change( be, db, &keys[i], id, op );
 			}
-			ber_bvecfree( keys );
+			bvarray_free( keys );
 		}
 	}
 

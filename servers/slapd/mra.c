@@ -22,7 +22,7 @@ mra_free(
 )
 {
 	ch_free( mra->ma_rule_text.bv_val );
-	ber_bvfree( mra->ma_value );
+	ch_free( mra->ma_value.bv_val );
 	if ( freeit ) {
 		ch_free( (char *) mra );
 	}
@@ -37,7 +37,7 @@ get_mra(
 {
 	int rc, tag;
 	ber_len_t length;
-	struct berval type, value, *nvalue;
+	struct berval type, value;
 	MatchingRuleAssertion *ma;
 
 	ma = ch_malloc( sizeof( MatchingRuleAssertion ) );
@@ -46,7 +46,7 @@ get_mra(
 	ma->ma_rule_text.bv_len = 0;
 	ma->ma_desc = NULL;
 	ma->ma_dnattrs = 0;
-	ma->ma_value = NULL;
+	ma->ma_value.bv_val = NULL;
 
 	rc = ber_scanf( ber, "{t", &tag );
 
@@ -165,15 +165,13 @@ get_mra(
 	 * OK, if no matching rule, normalize for equality, otherwise
 	 * normalize for the matching rule.
 	 */
-	rc = value_normalize( ma->ma_desc, SLAP_MR_EQUALITY, &value, &nvalue, text );
+	rc = value_normalize( ma->ma_desc, SLAP_MR_EQUALITY, &value, &ma->ma_value, text );
 	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
 		mra_free( ma, 1 );
 		return rc;
 	}
-
-	ma->ma_value = nvalue;
 
 	tag = ber_peek_tag( ber, &length );
 

@@ -232,7 +232,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			AttributeDescription	*ad;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
-			struct berval		*bv = NULL;
+			struct berval		bv;
 
 			assert( ava );
 
@@ -274,18 +274,17 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			}
 
 			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
-				struct berval *s = bv;
+				char *s = bv.bv_val;
 
-				bv = ber_bvstr( UTF8normalize( bv ? bv : &ava->la_value, 
-					UTF8_CASEFOLD ) );
-
-				ber_bvfree( s );
+				ber_str2bv( UTF8normalize( bv.bv_val ? &bv
+					: &ava->la_value, UTF8_CASEFOLD ),
+					0, 0, &bv );
+				free( s );
 			}
 
-			if( bv ) {
+			if( bv.bv_val ) {
 				free( ava->la_value.bv_val );
-				ava->la_value = *bv;
-				free( bv );
+				ava->la_value = bv;
 			}
 
 			AVA_Sort( rdn, iAVA );

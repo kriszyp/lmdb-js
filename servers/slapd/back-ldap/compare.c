@@ -105,7 +105,7 @@ ldap_back_compare(
 	if (mapped_oc == NULL)
 		return( -1 );
 
-	mapped_at = ldap_back_map(&li->at_map, ava->aa_value->bv_val, 0);
+	mapped_at = ldap_back_map(&li->at_map, ava->aa_value.bv_val, 0);
 	if (mapped_at == NULL)
 		return( -1 );
 

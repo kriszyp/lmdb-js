@@ -56,7 +56,7 @@ value_normalize(
 	AttributeDescription *ad,
 	unsigned usage,
 	struct berval *in,
-	struct berval **out,
+	struct berval *out,
 	const char **text )
 {
 	int rc;
@@ -113,7 +113,7 @@ value_normalize(
 		}
 
 	} else {
-		*out = ber_bvdup( in );
+		ber_dupbv( out, in );
 	}
 
 	return LDAP_SUCCESS;
@@ -131,8 +131,8 @@ value_match(
 	const char ** text )
 {
 	int rc;
-	struct berval *nv1 = NULL;
-	struct berval *nv2 = NULL;
+	struct berval nv1;
+	struct berval nv2;
 
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -162,11 +162,11 @@ value_match(
 	rc = (mr->smr_match)( match, flags,
 		ad->ad_type->sat_syntax,
 		mr,
-		nv1 != NULL ? nv1 : v1,
-		nv2 != NULL ? nv2 : v2 );
+		nv1.bv_val != NULL ? &nv1 : v1,
+		nv2.bv_val != NULL ? &nv2 : v2 );
 	
-	ber_bvfree( nv1 );
-	ber_bvfree( nv2 );
+	free( nv1.bv_val );
+	free( nv2.bv_val );
 	return rc;
 }
 
@@ -179,8 +179,8 @@ int value_find_ex(
 {
 	int	i;
 	int rc;
-	struct berval *nval = NULL;
-	struct berval *nval_tmp = NULL;
+	struct berval nval;
+	struct berval nval_tmp;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {
@@ -202,12 +202,12 @@ int value_find_ex(
 
 	if( mr->smr_syntax->ssyn_normalize ) {
 		rc = mr->smr_syntax->ssyn_normalize(
-			mr->smr_syntax, nval == NULL ? val : nval, &nval_tmp );
+			mr->smr_syntax, nval.bv_val == NULL ? val : &nval, &nval_tmp );
 
-		ber_bvfree(nval);
+		free(nval.bv_val);
 		nval = nval_tmp;
 		if( rc != LDAP_SUCCESS ) {
-			ber_bvfree(nval);
+			free(nval.bv_val);
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
@@ -217,14 +217,14 @@ int value_find_ex(
 		const char *text;
 
 		rc = value_match( &match, ad, mr, flags,
-			vals[i], nval == NULL ? val : nval, &text );
+			vals[i], nval.bv_val == NULL ? val : &nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
-			ber_bvfree( nval );
+			free( nval.bv_val );
 			return LDAP_SUCCESS;
 		}
 	}
 
-	ber_bvfree( nval );
+	free( nval.bv_val );
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }

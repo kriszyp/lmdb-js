@@ -263,7 +263,7 @@ equality_candidates(
 	int rc;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_equality_candidates\n", 0, 0, 0 );
@@ -299,7 +299,7 @@ equality_candidates(
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		&prefix,
-		ava->aa_value,
+		&ava->aa_value,
 		&keys );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -316,8 +316,8 @@ equality_candidates(
 		return 0;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
+		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -340,7 +340,7 @@ equality_candidates(
 			break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= bdb_equality_candidates id=%ld, first=%ld, last=%ld\n",
@@ -363,7 +363,7 @@ approx_candidates(
 	int rc;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_approx_candidates\n", 0, 0, 0 );
@@ -404,7 +404,7 @@ approx_candidates(
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		&prefix,
-		ava->aa_value,
+		&ava->aa_value,
 		&keys );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -421,8 +421,8 @@ approx_candidates(
 		return 0;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
+		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates key read failed (%d)\n",
@@ -443,7 +443,7 @@ approx_candidates(
 			break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates %ld, first=%ld, last=%ld\n",
 		(long) ids[0],
@@ -465,7 +465,7 @@ substring_candidates(
 	int rc;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_substring_candidates\n", 0, 0, 0 );
@@ -520,8 +520,8 @@ substring_candidates(
 		return 0;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
+		rc = bdb_key_read( be, db, NULL, &keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates key read failed (%d)\n",
@@ -542,7 +542,7 @@ substring_candidates(
 			break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates %ld, first=%ld, last=%ld\n",
 		(long) ids[0],

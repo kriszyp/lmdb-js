@@ -579,7 +579,7 @@ cache_find_entry_dn2id(
 	struct berval ndn;
 	ID id;
 
-	bv.bv_val = dn;
+	bv.bv_val = (char *)dn;
 	bv.bv_len = strlen( dn );
 
 	rc = dnNormalize2( NULL, &bv, &ndn );

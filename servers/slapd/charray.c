@@ -295,3 +295,40 @@ slap_strcopy(
 	while (*a++ = *b++) ;
 	return a-1;
 }
+
+void
+bvarray_add(
+    struct berval **a,
+    struct berval *bv
+)
+{
+	int	n;
+
+	if ( *a == NULL ) {
+		*a = (struct berval *) ch_malloc( 2 * sizeof(struct berval) );
+		n = 0;
+	} else {
+		for ( n = 0; *a != NULL && (*a)[n].bv_val != NULL; n++ ) {
+			;	/* NULL */
+		}
+
+		*a = (struct berval *) ch_realloc( (char *) *a,
+		    (n + 2) * sizeof(struct berval) );
+	}
+
+	ber_dupbv( (*a)+n, bv );
+	n++;
+	(*a)[n].bv_val = NULL;
+}
+
+void
+bvarray_free(
+    struct berval *a
+)
+{
+	int i;
+
+	for (i=0; a[i].bv_val; i++)
+		free(a[i].bv_val);
+	free(a);
+}

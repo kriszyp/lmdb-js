@@ -318,7 +318,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			int rc;
 			int j;
 			const char *text = NULL;
-			struct berval *asserted = NULL;
+			struct berval asserted;
 
 			rc = value_normalize( mod->sm_desc,
 					SLAP_MR_EQUALITY,
@@ -334,15 +334,15 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_VALUE_SYNTAX_MATCH,
-						a->a_vals[j], asserted, &text );
+						a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
-					ber_bvfree( asserted );
+					free( asserted.bv_val );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 			}
 
-			ber_bvfree( asserted );
+			free( asserted.bv_val );
 		}
 	}
 
@@ -398,7 +398,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		int rc;
 		const char *text = NULL;
 
-		struct berval *asserted = NULL;
+		struct berval asserted;
 
 		rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
@@ -413,7 +413,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
-					a->a_vals[j], asserted, &text );
+					a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
@@ -432,7 +432,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 			break;
 		}
 
-		ber_bvfree( asserted );
+		free( asserted.bv_val );
 
 		/* looked through them all w/o finding it */
 		if ( ! found ) {

@@ -229,7 +229,7 @@ static int test_mra_filter(
 	Attribute	*a;
 
 	if( !access_allowed( be, conn, op, e,
-		mra->ma_desc, mra->ma_value, ACL_SEARCH ) )
+		mra->ma_desc, &mra->ma_value, ACL_SEARCH ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -256,7 +256,7 @@ static int test_mra_filter(
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				a->a_vals[i], mra->ma_value,
+				a->a_vals[i], &mra->ma_value,
 				&text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -286,7 +286,7 @@ test_ava_filter(
 	Attribute	*a;
 
 	if ( !access_allowed( be, conn, op, e,
-		ava->aa_desc, ava->aa_value, ACL_SEARCH ) )
+		ava->aa_desc, &ava->aa_value, ACL_SEARCH ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -328,7 +328,7 @@ test_ava_filter(
 
 			rc = value_match( &ret, a->a_desc, mr,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				a->a_vals[i], ava->aa_value,
+				a->a_vals[i], &ava->aa_value,
 				&text );
 
 			if( rc != LDAP_SUCCESS ) {

@@ -21,7 +21,7 @@ ava_free(
     int	freeit
 )
 {
-	ber_bvfree( ava->aa_value );
+	free( ava->aa_value.bv_val );
 	if ( freeit ) {
 		ch_free( (char *) ava );
 	}
@@ -36,7 +36,7 @@ get_ava(
 )
 {
 	int rc;
-	struct berval type, value, *nvalue;
+	struct berval type, value;
 	AttributeAssertion *aa;
 
 	rc = ber_scanf( ber, "{oo}", &type, &value );
@@ -54,7 +54,7 @@ get_ava(
 
 	aa = ch_malloc( sizeof( AttributeAssertion ) );
 	aa->aa_desc = NULL;
-	aa->aa_value = NULL;
+	aa->aa_value.bv_val = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 	ch_free( type.bv_val );
@@ -65,7 +65,7 @@ get_ava(
 		return rc;
 	}
 
-	rc = value_normalize( aa->aa_desc, usage, &value, &nvalue, text );
+	rc = value_normalize( aa->aa_desc, usage, &value, &aa->aa_value, text );
 	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -73,9 +73,7 @@ get_ava(
 		return rc;
 	}
 
-	aa->aa_value = nvalue;
 	*ava = aa;
 
 	return LDAP_SUCCESS;
 }
-

@@ -41,7 +41,6 @@ do_compare(
 	struct berval ndn = { 0, NULL };
 	struct berval desc = { 0, NULL };
 	struct berval value = { 0, NULL };
-	struct berval *nvalue;
 	AttributeAssertion ava;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
@@ -137,23 +136,21 @@ do_compare(
 		goto cleanup;
 	}
 
-	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
+	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &ava.aa_value, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
 		goto cleanup;
 	}
-
-	ava.aa_value = nvalue;
 
 	if( strcasecmp( ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
 			conn->c_connid, pdn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val ));
+			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
@@ -178,10 +175,10 @@ do_compare(
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
 			conn->c_connid, pdn.bv_val, ava.aa_desc->ad_cname.bv_val,
-			ava.aa_value->bv_val ));
+			ava.aa_value.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+			pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
@@ -254,10 +251,10 @@ do_compare(
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 		"do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
 		conn->c_connid, pdn.bv_val, ava.aa_desc->ad_cname.bv_val,
-		ava.aa_value->bv_val ));
+		ava.aa_value.bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+	    pdn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 #endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
@@ -296,7 +293,7 @@ static int compare_entry(
 	Attribute *a;
 
 	if ( ! access_allowed( NULL, conn, op, e,
-		ava->aa_desc, ava->aa_value, ACL_COMPARE ) )
+		ava->aa_desc, &ava->aa_value, ACL_COMPARE ) )
 	{	
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -307,7 +304,7 @@ static int compare_entry(
 	{
 		rc = LDAP_COMPARE_FALSE;
 
-		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 ) {
+		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 ) {
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}

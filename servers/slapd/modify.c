@@ -515,7 +515,7 @@ int slap_modlist2mods(
 			 *	and pretty if appropriate
 			 */
 			for( nvals = 0; ml->ml_bvalues[nvals]; nvals++ ) {
-				struct berval *pval = NULL;
+				struct berval pval;
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
 						ml->ml_bvalues[nvals], &pval );
@@ -535,8 +535,7 @@ int slap_modlist2mods(
 
 				if( pretty ) {
 					ber_memfree( ml->ml_bvalues[nvals]->bv_val );
-					*ml->ml_bvalues[nvals] = *pval;
-					free( pval );
+					*ml->ml_bvalues[nvals] = pval;
 				}
 			}
 

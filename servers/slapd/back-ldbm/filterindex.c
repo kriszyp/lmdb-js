@@ -331,7 +331,7 @@ equality_candidates(
 	char *dbname;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
@@ -389,7 +389,7 @@ equality_candidates(
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		&prefix,
-		ava->aa_value,
+		&ava->aa_value,
 		&keys );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -436,11 +436,11 @@ equality_candidates(
 		return idl;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( be, db, keys[i], &tmp );
+		rc = key_read( be, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
@@ -480,7 +480,7 @@ equality_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 
@@ -510,7 +510,7 @@ approx_candidates(
 	char *dbname;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
@@ -573,7 +573,7 @@ approx_candidates(
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
 		&prefix,
-		ava->aa_value,
+		&ava->aa_value,
 		&keys );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -620,11 +620,11 @@ approx_candidates(
 		return idl;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( be, db, keys[i], &tmp );
+		rc = key_read( be, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
@@ -662,7 +662,7 @@ approx_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 
@@ -751,7 +751,7 @@ substring_candidates(
 	char *dbname;
 	slap_mask_t mask;
 	struct berval prefix = {0};
-	struct berval **keys = NULL;
+	struct berval *keys = NULL;
 	MatchingRule *mr;
 
 #ifdef NEW_LOGGING
@@ -857,11 +857,11 @@ substring_candidates(
 		return idl;
 	}
 
-	for ( i= 0; keys[i] != NULL; i++ ) {
+	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( be, db, keys[i], &tmp );
+		rc = key_read( be, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
@@ -900,7 +900,7 @@ substring_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvecfree( keys );
+	bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 

@@ -276,6 +276,9 @@ LDAP_SLAPD_F (struct berval **) str2bvec LDAP_P(( struct berval **vec,
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
+LDAP_SLAPD_F (void) bvarray_add LDAP_P(( struct berval **a, struct berval *bv ));
+LDAP_SLAPD_F (void) bvarray_free LDAP_P(( struct berval *a ));
+
 LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
 	char *dst, const char *src ));
 LDAP_SLAPD_F (int) bvec_inlist LDAP_P((
@@ -879,7 +882,7 @@ LDAP_SLAPD_F (int) value_normalize LDAP_P((
 	AttributeDescription *ad,
 	unsigned usage,
 	struct berval *in,
-	struct berval **out,
+	struct berval *out,
 	const char ** text ));
 LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,

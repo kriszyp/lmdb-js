@@ -124,11 +124,11 @@ static int octetStringIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -142,7 +142,7 @@ static int octetStringIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -161,10 +161,10 @@ static int octetStringIndexer(
 			values[i]->bv_val, values[i]->bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[i] = ber_bvdup( &digest );
+		ber_dupbv( &keys[i], &digest );
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 
 	*keysp = keys;
 
@@ -179,10 +179,10 @@ static int octetStringFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value = (struct berval *) assertValue;
@@ -193,7 +193,7 @@ static int octetStringFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -208,8 +208,8 @@ static int octetStringFilter(
 		value->bv_val, value->bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
-	keys[0] = ber_bvdup( &digest );
-	keys[1] = NULL;
+	ber_dupbv( keys, &digest );
+	keys[1].bv_val = NULL;
 
 	*keysp = keys;
 
@@ -261,59 +261,60 @@ static int
 nameUIDNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
-	struct berval *out = ber_bvdup( val );
+	struct berval out;
 	int rc;
 
-	if( out->bv_len != 0 ) {
+	ber_dupbv( &out, val );
+	if( out.bv_len != 0 ) {
 		ber_len_t dnlen;
 		char *uid = NULL;
 		ber_len_t uidlen = 0;
 
-		if( out->bv_val[out->bv_len-1] == '\'' ) {
+		if( out.bv_val[out.bv_len-1] == '\'' ) {
 			/* assume presence of optional UID */
-			uid = strrchr( out->bv_val, '#' );
+			uid = strrchr( out.bv_val, '#' );
 
 			if( uid == NULL ) {
-				ber_bvfree( out );
+				free( out.bv_val );
 				return LDAP_INVALID_SYNTAX;
 			}
 
-			uidlen = out->bv_len - (uid - out->bv_val);
+			uidlen = out.bv_len - (uid - out.bv_val);
 			/* temporarily trim the UID */
 			*uid = '\0';
-			out->bv_len -= uidlen;
+			out.bv_len -= uidlen;
 		}
 
 #ifdef USE_DN_NORMALIZE
-		rc = dnNormalize( NULL, out, normalized );
+		rc = dnNormalize2( NULL, &out, normalized );
 #else
-		rc = dnPretty( NULL, out, normalized );
+		rc = dnPretty2( NULL, &out, normalized );
 #endif
 
 		if( rc != LDAP_SUCCESS ) {
-			ber_bvfree( out );
+			free( out.bv_val );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		dnlen = (*normalized)->bv_len;
+		dnlen = normalized->bv_len;
 
 		if( uidlen ) {
-			struct berval *b2 = ch_malloc(sizeof(struct berval));
-			b2->bv_val = ch_malloc(dnlen + uidlen + 1);
-			SAFEMEMCPY( b2->bv_val, (*normalized)->bv_val, dnlen );
+			struct berval b2;
+			b2.bv_val = ch_malloc(dnlen + uidlen + 1);
+			SAFEMEMCPY( b2.bv_val, normalized->bv_val, dnlen );
 
 			/* restore the separator */
 			*uid = '#';
 			/* shift the UID */
-			SAFEMEMCPY( (*normalized)->bv_val+dnlen, uid, uidlen );
-			b2->bv_len = dnlen + uidlen;
-			(*normalized)->bv_val[dnlen+uidlen] = '\0';
-			ber_bvfree(*normalized);
+			SAFEMEMCPY( normalized->bv_val+dnlen, uid, uidlen );
+			b2.bv_len = dnlen + uidlen;
+			normalized->bv_val[dnlen+uidlen] = '\0';
+			free(normalized->bv_val);
 			*normalized = b2;
 		}
-		ber_bvfree( out );
+		free( out.bv_val );
 	}
 
 	return LDAP_SUCCESS;
@@ -378,14 +379,13 @@ static int
 bitStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
 	/*
-     * A normalized bitString is has no extaneous (leading) zero bits.
+	 * A normalized bitString is has no extaneous (leading) zero bits.
 	 * That is, '00010'B is normalized to '10'B
 	 * However, as a special case, '0'B requires no normalization.
-     */
-	struct berval *newval;
+	 */
 	char *p;
 
 	/* start at the first bit */
@@ -394,28 +394,24 @@ bitStringNormalize(
 	/* Find the first non-zero bit */
 	while ( *p == '0' ) p++;
 
-	newval = (struct berval *) ch_malloc( sizeof(struct berval) );
-
 	if( *p == '\'' ) {
 		/* no non-zero bits */
-		newval->bv_val = ch_strdup("\'0\'B");
-		newval->bv_len = sizeof("\'0\'B") - 1;
+		ber_str2bv( "\'0\'B", sizeof("\'0\'B") - 1, 1, normalized );
 		goto done;
 	}
 
-	newval->bv_val = ch_malloc( val->bv_len + 1 );
+	normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
-	newval->bv_val[0] = '\'';
-	newval->bv_len = 1;
+	normalized->bv_val[0] = '\'';
+	normalized->bv_len = 1;
 
 	for( ; *p != '\0'; p++ ) {
-		newval->bv_val[newval->bv_len++] = *p;
+		normalized->bv_val[normalized->bv_len++] = *p;
 	}
 
-	newval->bv_val[newval->bv_len] = '\0';
+	normalized->bv_val[normalized->bv_len] = '\0';
 
 done:
-	*normalized = newval;
 	return LDAP_SUCCESS;
 }
 
@@ -494,12 +490,9 @@ static int
 UTF8StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
-	struct berval *newval;
 	char *p, *q, *s;
-
-	newval = ch_malloc( sizeof( struct berval ) );
 
 	p = val->bv_val;
 
@@ -509,12 +502,14 @@ UTF8StringNormalize(
 	}
 
 	if( *p == '\0' ) {
-		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	newval->bv_val = ch_strdup( p );
-	p = q = newval->bv_val;
+	ber_str2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
+
+	assert( normalized->bv_val );
+
+	p = q = normalized->bv_val;
 	s = NULL;
 
 	while ( *p ) {
@@ -538,12 +533,11 @@ UTF8StringNormalize(
 		}
 	}
 
-	assert( *newval->bv_val );
-	assert( newval->bv_val < p );
+	assert( normalized->bv_val < p );
 	assert( q <= p );
 
 	/* cannot start with a space */
-	assert( !ldap_utf8_isspace(newval->bv_val) );
+	assert( !ldap_utf8_isspace(normalized->bv_val) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -561,8 +555,7 @@ UTF8StringNormalize(
 	/* null terminate */
 	*q = '\0';
 
-	newval->bv_len = q - newval->bv_val;
-	*normalized = newval;
+	normalized->bv_len = q - normalized->bv_val;
 
 	return LDAP_SUCCESS;
 }
@@ -582,30 +575,33 @@ UTF8SubstringsassertionNormalize(
 		return NULL;
 	}
 
-	if( sa->sa_initial != NULL ) {
-		nsa->sa_initial = ber_bvstr( UTF8normalize( sa->sa_initial, casefold ) );
-		if( nsa->sa_initial == NULL ) {
+	if( sa->sa_initial.bv_val != NULL ) {
+		ber_str2bv( UTF8normalize( &sa->sa_initial, casefold ), 0,
+			0, &nsa->sa_initial );
+		if( nsa->sa_initial.bv_val == NULL ) {
 			goto err;
 		}
 	}
 
 	if( sa->sa_any != NULL ) {
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
 			/* empty */
 		}
-		nsa->sa_any = (struct berval **)ch_malloc( (i + 1) * sizeof(struct berval *) );
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			nsa->sa_any[i] = ber_bvstr( UTF8normalize( sa->sa_any[i], casefold ) );
-			if( nsa->sa_any[i] == NULL ) {
+		nsa->sa_any = (struct berval *)ch_malloc( (i + 1) * sizeof(struct berval) );
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			ber_str2bv( UTF8normalize( &sa->sa_any[i], casefold ),
+				0, 0, &nsa->sa_any[i] );
+			if( nsa->sa_any[i].bv_val == NULL ) {
 				goto err;
 			}
 		}
-		nsa->sa_any[i] = NULL;
+		nsa->sa_any[i].bv_val = NULL;
 	}
 
-	if( sa->sa_final != NULL ) {
-		nsa->sa_final = ber_bvstr( UTF8normalize( sa->sa_final, casefold ) );
-		if( nsa->sa_final == NULL ) {
+	if( sa->sa_final.bv_val != NULL ) {
+		ber_str2bv( UTF8normalize( &sa->sa_final, casefold ), 0,
+			0, &nsa->sa_final );
+		if( nsa->sa_final.bv_val == NULL ) {
 			goto err;
 		}
 	}
@@ -613,9 +609,9 @@ UTF8SubstringsassertionNormalize(
 	return nsa;
 
 err:
-	ber_bvfree( nsa->sa_final );
-	ber_bvecfree( nsa->sa_any );
-	ber_bvfree( nsa->sa_initial );
+	free( nsa->sa_final.bv_val );
+	bvarray_free( nsa->sa_any );
+	free( nsa->sa_initial.bv_val );
 	ch_free( nsa );
 	return NULL;
 }
@@ -774,11 +770,11 @@ approxIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	char *val, *c;
 	int i,j, len, wordcount, keycount=0;
-	struct berval **newkeys, **keys=NULL;
+	struct berval *newkeys, *keys=NULL;
 
 	for( j=0; values[j] != NULL; j++ ) {
 		/* Yes, this is necessary */
@@ -795,9 +791,9 @@ approxIndexer(
 		}
 
 		/* Allocate/increase storage to account for new keys */
-		newkeys = (struct berval **)ch_malloc( (keycount + wordcount + 1) 
-			* sizeof(struct berval *) );
-		memcpy( newkeys, keys, keycount * sizeof(struct berval *) );
+		newkeys = (struct berval *)ch_malloc( (keycount + wordcount + 1) 
+			* sizeof(struct berval) );
+		memcpy( newkeys, keys, keycount * sizeof(struct berval) );
 		if( keys ) ch_free( keys );
 		keys = newkeys;
 
@@ -805,16 +801,14 @@ approxIndexer(
 		for( c=val,i=0;	 i<wordcount;  c+=len+1	 ) {
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
-			keys[keycount] = (struct berval *)ch_malloc( sizeof(struct berval) );
-			keys[keycount]->bv_val = phonetic( c );
-			keys[keycount]->bv_len = strlen( keys[keycount]->bv_val );
+			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
 			keycount++;
 			i++;
 		}
 
 		free( val );
 	}
-	keys[keycount] = NULL;
+	keys[keycount].bv_val = NULL;
 	*keysp = keys;
 
 	return LDAP_SUCCESS;
@@ -828,18 +822,18 @@ approxFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	char *val, *c;
 	int i, count, len;
-	struct berval **keys;
+	struct berval *keys;
 
 	/* Yes, this is necessary */
 	val = UTF8normalize( ((struct berval *)assertValue),
 			     UTF8_NOCASEFOLD );
 	if( val == NULL ) {
-		keys = (struct berval **)ch_malloc( sizeof(struct berval *) );
-		keys[0] = NULL;
+		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
+		keys[0].bv_val = NULL;
 		*keysp = keys;
 		return LDAP_SUCCESS;
 	}
@@ -855,19 +849,19 @@ approxFilter(
 	}
 
 	/* Allocate storage for new keys */
-	keys = (struct berval **)ch_malloc( (count + 1) * sizeof(struct berval *) );
+	keys = (struct berval *)ch_malloc( (count + 1) * sizeof(struct berval) );
 
 	/* Get a phonetic copy of each word */
 	for( c=val,i=0;	 i<count; c+=len+1 ) {
 		len = strlen(c);
 		if( len < SLAPD_APPROX_WORDLEN ) continue;
-		keys[i] = ber_bvstr( phonetic( c ) );
+		ber_str2bv( phonetic( c ), 0, 0, &keys[i] );
 		i++;
 	}
 
 	free( val );
 
-	keys[count] = NULL;
+	keys[count].bv_val = NULL;
 	*keysp = keys;
 
 	return LDAP_SUCCESS;
@@ -927,10 +921,10 @@ approxIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
-	struct berval **keys;
+	struct berval *keys;
 	char *s;
 
 	for( i=0; values[i] != NULL; i++ ) {
@@ -940,7 +934,7 @@ approxIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = (struct berval *)ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	/* Copy each value and run it through phonetic() */
 	for( i=0; values[i] != NULL; i++ ) {
@@ -948,10 +942,10 @@ approxIndexer(
 		s = UTF8normalize( values[i], UTF8_NOCASEFOLD );
 
 		/* strip 8-bit chars and run through phonetic() */
-		keys[i] = ber_bvstr( phonetic( strip8bitChars( s ) ) );
+		ber_str2bv( phonetic( strip8bitChars( s ) ), 0, 0, &keys[i] );
 		free( s );
 	}
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 
 	*keysp = keys;
 	return LDAP_SUCCESS;
@@ -966,12 +960,12 @@ approxFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
-	struct berval **keys;
+	struct berval *keys;
 	char *s;
 
-	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = (struct berval *)ch_malloc( sizeof( struct berval * ) * 2 );
 
 	/* Yes, this is necessary */
 	s = UTF8normalize( ((struct berval *)assertValue),
@@ -1040,56 +1034,56 @@ caseExactIgnoreSubstringsMatch(
 	}
 
 	/* Add up asserted input length */
-	if( sub->sa_initial ) {
-		inlen += sub->sa_initial->bv_len;
+	if( sub->sa_initial.bv_val ) {
+		inlen += sub->sa_initial.bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i] != NULL; i++) {
-			inlen += sub->sa_any[i]->bv_len;
+		for(i=0; sub->sa_any[i].bv_val != NULL; i++) {
+			inlen += sub->sa_any[i].bv_len;
 		}
 	}
-	if( sub->sa_final ) {
-		inlen += sub->sa_final->bv_len;
+	if( sub->sa_final.bv_val ) {
+		inlen += sub->sa_final.bv_len;
 	}
 
-	if( sub->sa_initial ) {
+	if( sub->sa_initial.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
-			sub->sa_initial->bv_len );
+		match = strncmp( sub->sa_initial.bv_val, left.bv_val,
+			sub->sa_initial.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_val += sub->sa_initial->bv_len;
-		left.bv_len -= sub->sa_initial->bv_len;
-		inlen -= sub->sa_initial->bv_len;
+		left.bv_val += sub->sa_initial.bv_len;
+		left.bv_len -= sub->sa_initial.bv_len;
+		inlen -= sub->sa_initial.bv_len;
 	}
 
-	if( sub->sa_final ) {
+	if( sub->sa_final.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncmp( sub->sa_final->bv_val,
-			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
-			sub->sa_final->bv_len );
+		match = strncmp( sub->sa_final.bv_val,
+			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
+			sub->sa_final.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_len -= sub->sa_final->bv_len;
-		inlen -= sub->sa_final->bv_len;
+		left.bv_len -= sub->sa_final.bv_len;
+		inlen -= sub->sa_final.bv_len;
 	}
 
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
+		for(i=0; sub->sa_any[i].bv_val; i++) {
 			ber_len_t idx;
 			char *p;
 
@@ -1100,11 +1094,11 @@ retry:
 				goto done;
 			}
 
-			if( sub->sa_any[i]->bv_len == 0 ) {
+			if( sub->sa_any[i].bv_len == 0 ) {
 				continue;
 			}
 
-			p = strchr( left.bv_val, *sub->sa_any[i]->bv_val );
+			p = strchr( left.bv_val, *sub->sa_any[i].bv_val );
 
 			if( p == NULL ) {
 				match = 1;
@@ -1117,9 +1111,9 @@ retry:
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				free( nav );
-				ch_free( sub->sa_final );
-				ber_bvecfree( sub->sa_any );
-				ch_free( sub->sa_initial );
+				ch_free( sub->sa_final.bv_val );
+				bvarray_free( sub->sa_any );
+				ch_free( sub->sa_initial.bv_val );
 				ch_free( sub );
 				return LDAP_OTHER;
 			}
@@ -1127,15 +1121,15 @@ retry:
 			left.bv_val = p;
 			left.bv_len -= idx;
 
-			if( sub->sa_any[i]->bv_len > left.bv_len ) {
+			if( sub->sa_any[i].bv_len > left.bv_len ) {
 				/* not enough left */
 				match = 1;
 				goto done;
 			}
 
 			match = strncmp( left.bv_val,
-				sub->sa_any[i]->bv_val,
-				sub->sa_any[i]->bv_len );
+				sub->sa_any[i].bv_val,
+				sub->sa_any[i].bv_len );
 
 			if( match != 0 ) {
 				left.bv_val++;
@@ -1143,18 +1137,18 @@ retry:
 				goto retry;
 			}
 
-			left.bv_val += sub->sa_any[i]->bv_len;
-			left.bv_len -= sub->sa_any[i]->bv_len;
-			inlen -= sub->sa_any[i]->bv_len;
+			left.bv_val += sub->sa_any[i].bv_len;
+			left.bv_len -= sub->sa_any[i].bv_len;
+			inlen -= sub->sa_any[i].bv_len;
 		}
 	}
 
 done:
 	free( nav );
 	if( sub != NULL ) {
-		ber_bvfree( sub->sa_final );
-		ber_bvecfree( sub->sa_any );
-		ber_bvfree( sub->sa_initial );
+		free( sub->sa_final.bv_val );
+		bvarray_free( sub->sa_any );
+		free( sub->sa_initial.bv_val );
 		ch_free( sub );
 	}
 	*matchp = match;
@@ -1169,12 +1163,12 @@ static int caseExactIgnoreIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
 	char casefold;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -1188,7 +1182,7 @@ static int caseExactIgnoreIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -1197,9 +1191,9 @@ static int caseExactIgnoreIndexer(
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
 
 	for( i=0; values[i] != NULL; i++ ) {
-		struct berval *value;
-		value = ber_bvstr( UTF8normalize( values[i],
-			casefold ) );
+		struct berval value;
+		ber_str2bv( UTF8normalize( values[i], casefold ), 0, 0,
+			&value );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1211,15 +1205,15 @@ static int caseExactIgnoreIndexer(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value->bv_val, value->bv_len );
+			value.bv_val, value.bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_bvfree( value );
+		free( value.bv_val );
 
-		keys[i] = ber_bvdup( &digest );
+		ber_dupbv( &keys[i], &digest );
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
@@ -1232,14 +1226,14 @@ static int caseExactIgnoreFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	char casefold;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval *value;
+	struct berval value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -1250,16 +1244,16 @@ static int caseExactIgnoreFilter(
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
 
-	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue),
-		casefold ) );
+	ber_str2bv( UTF8normalize( ((struct berval *) assertValue), casefold ),
+		0, 0, &value );
 	/* This usually happens if filter contains bad UTF8 */
-	if( value == NULL ) {
-		keys = ch_malloc( sizeof( struct berval * ) );
-		keys[0] = NULL;
+	if( value.bv_val == NULL ) {
+		keys = ch_malloc( sizeof( struct berval ) );
+		keys[0].bv_val = NULL;
 		return LDAP_SUCCESS;
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1271,13 +1265,13 @@ static int caseExactIgnoreFilter(
 	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
 	HASH_Update( &HASHcontext,
-		value->bv_val, value->bv_len );
+		value.bv_val, value.bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
-	keys[0] = ber_bvdup( &digest );
-	keys[1] = NULL;
+	ber_dupbv( keys, &digest );
+	keys[1].bv_val = NULL;
 
-	ber_bvfree( value );
+	free( value.bv_val );
 
 	*keysp = keys;
 	return LDAP_SUCCESS;
@@ -1291,12 +1285,12 @@ static int caseExactIgnoreSubstringsIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	char casefold;
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	struct berval **nvalues;
 
 	HASH_CONTEXT   HASHcontext;
@@ -1319,8 +1313,8 @@ static int caseExactIgnoreSubstringsIndexer(
 
 	nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
 	for( i=0; values[i] != NULL; i++ ) {
-		nvalues[i] = ber_bvstr( UTF8normalize( values[i],
-			casefold ) );
+		nvalues[i] = ber_str2bv( UTF8normalize( values[i], casefold ),
+			0, 0, NULL );
 	}
 	nvalues[i] = NULL;
 	values = nvalues;
@@ -1363,7 +1357,7 @@ static int caseExactIgnoreSubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -1371,17 +1365,14 @@ static int caseExactIgnoreSubstringsIndexer(
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		ber_len_t j,max;
-		struct berval *value;
 
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		value = values[i];
-
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
 				HASH_Init( &HASHcontext );
@@ -1397,16 +1388,16 @@ static int caseExactIgnoreSubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[j],
+					&values[i]->bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		max = SLAP_INDEX_SUBSTR_MAXLEN < values[i]->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : values[i]->bv_len;
 
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
@@ -1425,10 +1416,10 @@ static int caseExactIgnoreSubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					value->bv_val, j );
+					values[i]->bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
@@ -1445,10 +1436,10 @@ static int caseExactIgnoreSubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[value->bv_len-j], j );
+					&values[i]->bv_val[values[i]->bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 		}
@@ -1456,7 +1447,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -1475,13 +1466,13 @@ static int caseExactIgnoreSubstringsFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	SubstringsAssertion *sa;
 	char pre, casefold;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
@@ -1496,33 +1487,33 @@ static int caseExactIgnoreSubstringsFilter(
 		return LDAP_SUCCESS;
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				/* don't bother accounting for stepping */
-				nkeys += sa->sa_any[i]->bv_len -
+				nkeys += sa->sa_any[i].bv_len -
 					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
 	if( nkeys == 0 ) {
-		ber_bvfree( sa->sa_final );
-		ber_bvecfree( sa->sa_any );
-		ber_bvfree( sa->sa_initial );
+		free( sa->sa_final.bv_val );
+		bvarray_free( sa->sa_any );
+		free( sa->sa_initial.bv_val );
 		ch_free( sa );
 		*keysp = NULL;
 		return LDAP_SUCCESS;
@@ -1534,14 +1525,14 @@ static int caseExactIgnoreSubstringsFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-		value = sa->sa_initial;
+		value = &sa->sa_initial;
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1561,7 +1552,7 @@ static int caseExactIgnoreSubstringsFilter(
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[nkeys++] = ber_bvdup( &digest );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
@@ -1569,12 +1560,12 @@ static int caseExactIgnoreSubstringsFilter(
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = SLAP_INDEX_SUBSTR_MAXLEN;
 
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
 				continue;
 			}
 
-			value = sa->sa_any[i];
+			value = &sa->sa_any[i];
 
 			for(j=0;
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -1595,17 +1586,17 @@ static int caseExactIgnoreSubstringsFilter(
 					&value->bv_val[j], klen ); 
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-		value = sa->sa_final;
+		value = &sa->sa_final;
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1625,19 +1616,19 @@ static int caseExactIgnoreSubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[nkeys++] = ber_bvdup( &digest );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
 		*keysp = NULL;
 	}
-	ber_bvfree( sa->sa_final );
-	ber_bvecfree( sa->sa_any );
-	ber_bvfree( sa->sa_initial );
+	free( sa->sa_final.bv_val );
+	bvarray_free( sa->sa_any );
+	free( sa->sa_initial.bv_val );
 	ch_free( sa );
 
 	return LDAP_SUCCESS;
@@ -1815,11 +1806,10 @@ static int
 integerNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
 	char *p;
 	int negative=0;
-	struct berval *newval;
 	ber_len_t len;
 
 
@@ -1847,24 +1837,21 @@ integerNormalize(
 		len--;
 	}
 
-	newval = (struct berval *) ch_malloc( sizeof(struct berval) );
-
 	/* If there are no non-zero digits left, the number is zero, otherwise
 	   allocate space for the number and copy it into the buffer */
 	if( len == 0 ) {
-		newval->bv_val = ch_strdup("0");
-		newval->bv_len = 1;
+		normalized->bv_val = ch_strdup("0");
+		normalized->bv_len = 1;
 	}
 	else {
-		newval->bv_len = len+negative;
-		newval->bv_val = ch_malloc( newval->bv_len );
+		normalized->bv_len = len+negative;
+		normalized->bv_val = ch_malloc( normalized->bv_len );
 		if( negative ) {
-			newval->bv_val[0] = '-';
+			normalized->bv_val[0] = '-';
 		}
-		memcpy( newval->bv_val + negative, p, len );
+		memcpy( normalized->bv_val + negative, p, len );
 	}
 
-	*normalized = newval;
 	return LDAP_SUCCESS;
 }
 
@@ -1876,10 +1863,10 @@ static int integerIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
-	struct berval **keys;
+	struct berval *keys;
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -1888,13 +1875,13 @@ static int integerIndexer(
 		/* empty -- just count them */
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	for( i=0; values[i] != NULL; i++ ) {
 		integerNormalize( syntax, values[i], &keys[i] );
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
@@ -1907,13 +1894,13 @@ static int integerFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
-	struct berval **keys;
+	struct berval *keys;
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 	integerNormalize( syntax, assertValue, &keys[0] );
-	keys[1] = NULL;
+	keys[1].bv_val = NULL;
 	*keysp = keys;
 
 	return LDAP_SUCCESS;
@@ -1993,12 +1980,9 @@ static int
 IA5StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
-	struct berval *newval;
 	char *p, *q;
-
-	newval = ch_malloc( sizeof( struct berval ) );
 
 	p = val->bv_val;
 
@@ -2008,12 +1992,11 @@ IA5StringNormalize(
 	}
 
 	if( *p == '\0' ) {
-		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	newval->bv_val = ch_strdup( p );
-	p = q = newval->bv_val;
+	normalized->bv_val = ch_strdup( p );
+	p = q = normalized->bv_val;
 
 	while ( *p ) {
 		if ( ASCII_SPACE( *p ) ) {
@@ -2028,12 +2011,11 @@ IA5StringNormalize(
 		}
 	}
 
-	assert( *newval->bv_val );
-	assert( newval->bv_val < p );
+	assert( normalized->bv_val < p );
 	assert( q <= p );
 
 	/* cannot start with a space */
-	assert( !ASCII_SPACE(*newval->bv_val) );
+	assert( !ASCII_SPACE(*normalized->bv_val) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -2051,8 +2033,7 @@ IA5StringNormalize(
 	/* null terminate */
 	*q = '\0';
 
-	newval->bv_len = q - newval->bv_val;
-	*normalized = newval;
+	normalized->bv_len = q - normalized->bv_val;
 
 	return LDAP_SUCCESS;
 }
@@ -2094,56 +2075,56 @@ caseExactIA5SubstringsMatch(
 	ber_len_t inlen=0;
 
 	/* Add up asserted input length */
-	if( sub->sa_initial ) {
-		inlen += sub->sa_initial->bv_len;
+	if( sub->sa_initial.bv_val ) {
+		inlen += sub->sa_initial.bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i] != NULL; i++) {
-			inlen += sub->sa_any[i]->bv_len;
+		for(i=0; sub->sa_any[i].bv_val != NULL; i++) {
+			inlen += sub->sa_any[i].bv_len;
 		}
 	}
-	if( sub->sa_final ) {
-		inlen += sub->sa_final->bv_len;
+	if( sub->sa_final.bv_val ) {
+		inlen += sub->sa_final.bv_len;
 	}
 
-	if( sub->sa_initial ) {
+	if( sub->sa_initial.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
-			sub->sa_initial->bv_len );
+		match = strncmp( sub->sa_initial.bv_val, left.bv_val,
+			sub->sa_initial.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_val += sub->sa_initial->bv_len;
-		left.bv_len -= sub->sa_initial->bv_len;
-		inlen -= sub->sa_initial->bv_len;
+		left.bv_val += sub->sa_initial.bv_len;
+		left.bv_len -= sub->sa_initial.bv_len;
+		inlen -= sub->sa_initial.bv_len;
 	}
 
-	if( sub->sa_final ) {
+	if( sub->sa_final.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncmp( sub->sa_final->bv_val,
-			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
-			sub->sa_final->bv_len );
+		match = strncmp( sub->sa_final.bv_val,
+			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
+			sub->sa_final.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_len -= sub->sa_final->bv_len;
-		inlen -= sub->sa_final->bv_len;
+		left.bv_len -= sub->sa_final.bv_len;
+		inlen -= sub->sa_final.bv_len;
 	}
 
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
+		for(i=0; sub->sa_any[i].bv_val; i++) {
 			ber_len_t idx;
 			char *p;
 
@@ -2154,11 +2135,11 @@ retry:
 				goto done;
 			}
 
-			if( sub->sa_any[i]->bv_len == 0 ) {
+			if( sub->sa_any[i].bv_len == 0 ) {
 				continue;
 			}
 
-			p = strchr( left.bv_val, *sub->sa_any[i]->bv_val );
+			p = strchr( left.bv_val, *sub->sa_any[i].bv_val );
 
 			if( p == NULL ) {
 				match = 1;
@@ -2176,15 +2157,15 @@ retry:
 			left.bv_val = p;
 			left.bv_len -= idx;
 
-			if( sub->sa_any[i]->bv_len > left.bv_len ) {
+			if( sub->sa_any[i].bv_len > left.bv_len ) {
 				/* not enough left */
 				match = 1;
 				goto done;
 			}
 
 			match = strncmp( left.bv_val,
-				sub->sa_any[i]->bv_val,
-				sub->sa_any[i]->bv_len );
+				sub->sa_any[i].bv_val,
+				sub->sa_any[i].bv_len );
 
 			if( match != 0 ) {
 				left.bv_val++;
@@ -2192,9 +2173,9 @@ retry:
 				goto retry;
 			}
 
-			left.bv_val += sub->sa_any[i]->bv_len;
-			left.bv_len -= sub->sa_any[i]->bv_len;
-			inlen -= sub->sa_any[i]->bv_len;
+			left.bv_val += sub->sa_any[i].bv_len;
+			left.bv_len -= sub->sa_any[i].bv_len;
+			inlen -= sub->sa_any[i].bv_len;
 		}
 	}
 
@@ -2211,11 +2192,11 @@ static int caseExactIA5Indexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -2229,7 +2210,7 @@ static int caseExactIA5Indexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -2250,10 +2231,10 @@ static int caseExactIA5Indexer(
 			value->bv_val, value->bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[i] = ber_bvdup( &digest );
+		ber_dupbv( &keys[i], &digest );
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
@@ -2266,10 +2247,10 @@ static int caseExactIA5Filter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
@@ -2282,7 +2263,7 @@ static int caseExactIA5Filter(
 
 	value = (struct berval *) assertValue;
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2297,8 +2278,8 @@ static int caseExactIA5Filter(
 		value->bv_val, value->bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
-	keys[0] = ber_bvdup( &digest );
-	keys[1] = NULL;
+	ber_dupbv( &keys[0], &digest );
+	keys[1].bv_val = NULL;
 
 	*keysp = keys;
 	return LDAP_SUCCESS;
@@ -2312,11 +2293,11 @@ static int caseExactIA5SubstringsIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -2364,7 +2345,7 @@ static int caseExactIA5SubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -2401,7 +2382,7 @@ static int caseExactIA5SubstringsIndexer(
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 		}
 
@@ -2428,7 +2409,7 @@ static int caseExactIA5SubstringsIndexer(
 					value->bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
@@ -2448,14 +2429,14 @@ static int caseExactIA5SubstringsIndexer(
 					&value->bv_val[value->bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 		}
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -2472,37 +2453,37 @@ static int caseExactIA5SubstringsFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	SubstringsAssertion *sa = assertValue;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				/* don't bother accounting for stepping */
-				nkeys += sa->sa_any[i]->bv_len -
+				nkeys += sa->sa_any[i].bv_len -
 					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
@@ -2518,14 +2499,14 @@ static int caseExactIA5SubstringsFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-		value = sa->sa_initial;
+		value = &sa->sa_initial;
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -2545,7 +2526,7 @@ static int caseExactIA5SubstringsFilter(
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[nkeys++] = ber_bvdup( &digest );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
@@ -2553,12 +2534,12 @@ static int caseExactIA5SubstringsFilter(
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = SLAP_INDEX_SUBSTR_MAXLEN;
 
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
 				continue;
 			}
 
-			value = sa->sa_any[i];
+			value = &sa->sa_any[i];
 
 			for(j=0;
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -2579,16 +2560,16 @@ static int caseExactIA5SubstringsFilter(
 					&value->bv_val[j], klen ); 
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-		value = sa->sa_final;
+		value = &sa->sa_final;
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -2608,11 +2589,11 @@ static int caseExactIA5SubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		keys[nkeys++] = ber_bvdup( &digest );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -2659,56 +2640,56 @@ caseIgnoreIA5SubstringsMatch(
 	ber_len_t inlen=0;
 
 	/* Add up asserted input length */
-	if( sub->sa_initial ) {
-		inlen += sub->sa_initial->bv_len;
+	if( sub->sa_initial.bv_val ) {
+		inlen += sub->sa_initial.bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i] != NULL; i++) {
-			inlen += sub->sa_any[i]->bv_len;
+		for(i=0; sub->sa_any[i].bv_val != NULL; i++) {
+			inlen += sub->sa_any[i].bv_len;
 		}
 	}
-	if( sub->sa_final ) {
-		inlen += sub->sa_final->bv_len;
+	if( sub->sa_final.bv_val ) {
+		inlen += sub->sa_final.bv_len;
 	}
 
-	if( sub->sa_initial ) {
+	if( sub->sa_initial.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
-			sub->sa_initial->bv_len );
+		match = strncasecmp( sub->sa_initial.bv_val, left.bv_val,
+			sub->sa_initial.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_val += sub->sa_initial->bv_len;
-		left.bv_len -= sub->sa_initial->bv_len;
-		inlen -= sub->sa_initial->bv_len;
+		left.bv_val += sub->sa_initial.bv_len;
+		left.bv_len -= sub->sa_initial.bv_len;
+		inlen -= sub->sa_initial.bv_len;
 	}
 
-	if( sub->sa_final ) {
+	if( sub->sa_final.bv_val ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
 
-		match = strncasecmp( sub->sa_final->bv_val,
-			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
-			sub->sa_final->bv_len );
+		match = strncasecmp( sub->sa_final.bv_val,
+			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
+			sub->sa_final.bv_len );
 
 		if( match != 0 ) {
 			goto done;
 		}
 
-		left.bv_len -= sub->sa_final->bv_len;
-		inlen -= sub->sa_final->bv_len;
+		left.bv_len -= sub->sa_final.bv_len;
+		inlen -= sub->sa_final.bv_len;
 	}
 
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
+		for(i=0; sub->sa_any[i].bv_val; i++) {
 			ber_len_t idx;
 			char *p;
 
@@ -2719,11 +2700,11 @@ retry:
 				goto done;
 			}
 
-			if( sub->sa_any[i]->bv_len == 0 ) {
+			if( sub->sa_any[i].bv_len == 0 ) {
 				continue;
 			}
 
-			p = strcasechr( left.bv_val, *sub->sa_any[i]->bv_val );
+			p = strcasechr( left.bv_val, *sub->sa_any[i].bv_val );
 
 			if( p == NULL ) {
 				match = 1;
@@ -2741,15 +2722,15 @@ retry:
 			left.bv_val = p;
 			left.bv_len -= idx;
 
-			if( sub->sa_any[i]->bv_len > left.bv_len ) {
+			if( sub->sa_any[i].bv_len > left.bv_len ) {
 				/* not enough left */
 				match = 1;
 				goto done;
 			}
 
 			match = strncasecmp( left.bv_val,
-				sub->sa_any[i]->bv_val,
-				sub->sa_any[i]->bv_len );
+				sub->sa_any[i].bv_val,
+				sub->sa_any[i].bv_len );
 
 			if( match != 0 ) {
 				left.bv_val++;
@@ -2758,9 +2739,9 @@ retry:
 				goto retry;
 			}
 
-			left.bv_val += sub->sa_any[i]->bv_len;
-			left.bv_len -= sub->sa_any[i]->bv_len;
-			inlen -= sub->sa_any[i]->bv_len;
+			left.bv_val += sub->sa_any[i].bv_len;
+			left.bv_len -= sub->sa_any[i].bv_len;
+			inlen -= sub->sa_any[i].bv_len;
 		}
 	}
 
@@ -2777,11 +2758,11 @@ static int caseIgnoreIA5Indexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -2795,14 +2776,15 @@ static int caseIgnoreIA5Indexer(
 		/* just count them */
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
 	for( i=0; values[i] != NULL; i++ ) {
-		struct berval *value = ber_bvdup( values[i] );
-		ldap_pvt_str2upper( value->bv_val );
+		struct berval value;
+		ber_dupbv( &value, values[i] );
+		ldap_pvt_str2upper( value.bv_val );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2814,15 +2796,15 @@ static int caseIgnoreIA5Indexer(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value->bv_val, value->bv_len );
+			value.bv_val, value.bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_bvfree( value );
+		free( value.bv_val );
 
-		keys[i] = ber_bvdup( &digest );
+		ber_dupbv( &keys[i], &digest );
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
@@ -2835,13 +2817,13 @@ static int caseIgnoreIA5Filter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval *value;
+	struct berval value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -2849,10 +2831,10 @@ static int caseIgnoreIA5Filter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	value = ber_bvdup( (struct berval *) assertValue );
-	ldap_pvt_str2upper( value->bv_val );
+	ber_dupbv( &value, (struct berval *) assertValue );
+	ldap_pvt_str2upper( value.bv_val );
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2864,13 +2846,13 @@ static int caseIgnoreIA5Filter(
 	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
 	HASH_Update( &HASHcontext,
-		value->bv_val, value->bv_len );
+		value.bv_val, value.bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
-	keys[0] = ber_bvdup( &digest );
-	keys[1] = NULL;
+	ber_dupbv( &keys[0], &digest );
+	keys[1].bv_val = NULL;
 
-	ber_bvfree( value );
+	free( value.bv_val );
 
 	*keysp = keys;
 
@@ -2885,11 +2867,11 @@ static int caseIgnoreIA5SubstringsIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -2937,7 +2919,7 @@ static int caseIgnoreIA5SubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
@@ -2945,18 +2927,18 @@ static int caseIgnoreIA5SubstringsIndexer(
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		int j,max;
-		struct berval *value;
+		struct berval value;
 
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		value = ber_bvdup( values[i] );
-		ldap_pvt_str2upper( value->bv_val );
+		ber_dupbv( &value, values[i] );
+		ldap_pvt_str2upper( value.bv_val );
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( value.bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = value.bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
 				HASH_Init( &HASHcontext );
@@ -2972,16 +2954,16 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[j],
+					&value.bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		max = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
 
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
@@ -3000,10 +2982,10 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					value->bv_val, j );
+					value.bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
@@ -3020,19 +3002,19 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[value->bv_len-j], j );
+					&value.bv_val[value.bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 		}
 
-		ber_bvfree( value );
+		free( value.bv_val );
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -3049,37 +3031,37 @@ static int caseIgnoreIA5SubstringsFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	SubstringsAssertion *sa = assertValue;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
-	struct berval **keys;
+	struct berval *keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval *value;
+	struct berval value;
 	struct berval digest;
 
-	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
 
 	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
 		ber_len_t i;
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				/* don't bother accounting for stepping */
-				nkeys += sa->sa_any[i]->bv_len -
+				nkeys += sa->sa_any[i].bv_len -
 					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 	}
 
-	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
@@ -3095,18 +3077,18 @@ static int caseIgnoreIA5SubstringsFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
 	nkeys = 0;
 
-	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial.bv_val != NULL &&
+		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-		value = ber_bvdup( sa->sa_initial );
-		ldap_pvt_str2upper( value->bv_val );
+		ber_dupbv( &value, &sa->sa_initial );
+		ldap_pvt_str2upper( value.bv_val );
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -3120,11 +3102,11 @@ static int caseIgnoreIA5SubstringsFilter(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value->bv_val, klen );
+			value.bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_bvfree( value );
-		keys[nkeys++] = ber_bvdup( &digest );
+		free( value.bv_val );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
@@ -3132,16 +3114,16 @@ static int caseIgnoreIA5SubstringsFilter(
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = SLAP_INDEX_SUBSTR_MAXLEN;
 
-		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
 				continue;
 			}
 
-			value = ber_bvdup( sa->sa_any[i] );
-			ldap_pvt_str2upper( value->bv_val );
+			ber_dupbv( &value, &sa->sa_any[i] );
+			ldap_pvt_str2upper( value.bv_val );
 
 			for(j=0;
-				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
+				j <= value.bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
 				j += SLAP_INDEX_SUBSTR_STEP )
 			{
 				HASH_Init( &HASHcontext );
@@ -3156,25 +3138,25 @@ static int caseIgnoreIA5SubstringsFilter(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[j], klen );
+					&value.bv_val[j], klen );
 				HASH_Final( HASHdigest, &HASHcontext );
 
-				keys[nkeys++] = ber_bvdup( &digest );
+				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
-			ber_bvfree( value );
+			free( value.bv_val );
 		}
 	}
 
-	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final.bv_val != NULL &&
+		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-		value = ber_bvdup( sa->sa_final );
-		ldap_pvt_str2upper( value->bv_val );
+		ber_dupbv( &value, &sa->sa_final );
+		ldap_pvt_str2upper( value.bv_val );
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -3188,15 +3170,15 @@ static int caseIgnoreIA5SubstringsFilter(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			&value->bv_val[value->bv_len-klen], klen );
+			&value.bv_val[value.bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-		ber_bvfree( value );
-		keys[nkeys++] = ber_bvdup( &digest );
+		free( value.bv_val );
+		ber_dupbv( &keys[nkeys++], &digest );
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys] = NULL;
+		keys[nkeys].bv_val = NULL;
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -3226,17 +3208,15 @@ static int
 numericStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
 	/* removal all spaces */
-	struct berval *newval;
 	char *p, *q;
 
-	newval = ch_malloc( sizeof( struct berval ) );
-	newval->bv_val = ch_malloc( val->bv_len + 1 );
+	normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
 	p = val->bv_val;
-	q = newval->bv_val;
+	q = normalized->bv_val;
 
 	while ( *p ) {
 		if ( ASCII_SPACE( *p ) ) {
@@ -3248,13 +3228,12 @@ numericStringNormalize(
 	}
 
 	/* we should have copied no more then is in val */
-	assert( (q - newval->bv_val) <= (p - val->bv_val) );
+	assert( (q - normalized->bv_val) <= (p - val->bv_val) );
 
 	/* null terminate */
 	*q = '\0';
 
-	newval->bv_len = q - newval->bv_val;
-	*normalized = newval;
+	normalized->bv_len = q - normalized->bv_val;
 
 	return LDAP_SUCCESS;
 }
@@ -3500,7 +3479,7 @@ dn_openssl2ldap(X509_NAME *name)
 static int
 certificateExactConvert(
 	struct berval * in,
-	struct berval ** out )
+	struct berval * out )
 {
 	X509 *xcert;
 	unsigned char *p = in->bv_val;
@@ -3546,10 +3525,9 @@ certificateExactConvert(
 
 	X509_free(xcert);
 
-	*out = ch_malloc(sizeof(struct berval));
-	(*out)->bv_len = serial->bv_len + 3 + issuer_dn->bv_len + 1;
-	(*out)->bv_val = ch_malloc((*out)->bv_len);
-	p = (*out)->bv_val;
+	out->bv_len = serial->bv_len + 3 + issuer_dn->bv_len + 1;
+	out->bv_val = ch_malloc(out->bv_len);
+	p = out->bv_val;
 	AC_MEMCPY(p, serial->bv_val, serial->bv_len);
 	p += serial->bv_len;
 	AC_MEMCPY(p, " $ ", 3);
@@ -3561,11 +3539,11 @@ certificateExactConvert(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 		   "certificateExactConvert: \n	%s\n",
-		   (*out)->bv_val));
+		   out->bv_val));
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert "
 		"\n\t\"%s\"\n",
-		(*out)->bv_val, NULL, NULL );
+		out->bv_val, NULL, NULL );
 #endif
 
 	ber_bvfree(serial);
@@ -3713,10 +3691,10 @@ static int certificateExactIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
 	int i;
-	struct berval **keys;
+	struct berval *keys;
 	X509 *xcert;
 	unsigned char *p;
 	struct berval * serial;
@@ -3728,7 +3706,7 @@ static int certificateExactIndexer(
 		/* empty -- just count them */
 	}
 
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
 	for( i=0; values[i] != NULL; i++ ) {
 		p = values[i]->bv_val;
@@ -3757,16 +3735,16 @@ static int certificateExactIndexer(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 			   "certificateExactIndexer: returning: %s\n",
-			   keys[i]->bv_val));
+			   keys[i].bv_val));
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
 		       "returning: %s\n",
-		       keys[i]->bv_val,
+		       keys[i].bv_val,
 		       NULL, NULL );
 #endif
 	}
 
-	keys[i] = NULL;
+	keys[i].bv_val = NULL;
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
@@ -3780,9 +3758,9 @@ static int certificateExactFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval ***keysp )
+	struct berval **keysp )
 {
-	struct berval **keys;
+	struct berval *keys;
 	struct berval *asserted_serial;
 	struct berval *asserted_issuer_dn;
 
@@ -3790,9 +3768,9 @@ static int certificateExactFilter(
 				&asserted_serial,
 				&asserted_issuer_dn);
 
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	keys = ch_malloc( sizeof( struct berval ) * 2 );
 	integerNormalize( syntax, asserted_serial, &keys[0] );
-	keys[1] = NULL;
+	keys[1].bv_val = NULL;
 	*keysp = keys;
 
 	ber_bvfree(asserted_serial);
@@ -3970,9 +3948,8 @@ static int
 utcTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
-	struct berval *out;
 	int parts[9], rc;
 
 	rc = check_time_syntax(val, 1, parts);
@@ -3980,23 +3957,15 @@ utcTimeNormalize(
 		return rc;
 	}
 
-	*normalized = NULL;
-	out = ch_malloc( sizeof(struct berval) );
-	if( out == NULL ) {
+	normalized->bv_val = ch_malloc( 14 );
+	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}
 
-	out->bv_val = ch_malloc( 14 );
-	if ( out->bv_val == NULL ) {
-		ch_free( out );
-		return LBER_ERROR_MEMORY;
-	}
-
-	sprintf( out->bv_val, "%02d%02d%02d%02d%02d%02dZ",
+	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02dZ",
 		parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
-	out->bv_len = 13;
-	*normalized = out;
+	normalized->bv_len = 13;
 
 	return LDAP_SUCCESS;
 }
@@ -4025,9 +3994,8 @@ static int
 generalizedTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized )
+	struct berval *normalized )
 {
-	struct berval *out;
 	int parts[9], rc;
 
 	rc = check_time_syntax(val, 0, parts);
@@ -4035,23 +4003,15 @@ generalizedTimeNormalize(
 		return rc;
 	}
 
-	*normalized = NULL;
-	out = ch_malloc( sizeof(struct berval) );
-	if( out == NULL ) {
+	normalized->bv_val = ch_malloc( 16 );
+	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}
 
-	out->bv_val = ch_malloc( 16 );
-	if ( out->bv_val == NULL ) {
-		ch_free( out );
-		return LBER_ERROR_MEMORY;
-	}
-
-	sprintf( out->bv_val, "%02d%02d%02d%02d%02d%02d%02dZ",
+	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02d%02dZ",
 		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
-	out->bv_len = 15;
-	*normalized = out;
+	normalized->bv_len = 15;
 
 	return LDAP_SUCCESS;
 }
@@ -4185,7 +4145,7 @@ static struct syntax_defs_rec {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, countryStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnNormalize, dnPretty},
+		0, dnValidate, dnNormalize2, dnPretty2},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",

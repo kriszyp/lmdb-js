@@ -273,7 +273,7 @@ str2simple( const char *str )
 
 		tmp = ch_strdup( value );
 		ldap_pvt_filter_value_unescape( tmp );
-		f->f_av_value = ber_bvstr( tmp );
+		ber_str2bv( tmp, 0, 0, &f->f_av_value );
 	}
 
 	*s = savechar;
@@ -308,10 +308,10 @@ str2subvals( const char *in, Filter *f )
 		ldap_pvt_filter_value_unescape( val );
 
 		if ( gotstar == 0 ) {
-			f->f_sub_initial = ber_bvstrdup( val );
+			ber_str2bv( val, 0, 1, &f->f_sub_initial );
 
 		} else if ( nextstar == NULL ) {
-			f->f_sub_final = ber_bvstrdup( val );
+			ber_str2bv( val, 0, 1, &f->f_sub_final );
 
 		} else {
 			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
