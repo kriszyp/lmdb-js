@@ -4647,6 +4647,7 @@ schema_init( void )
 void
 schema_destroy( void )
 {
+	oidm_destroy();
 	oc_destroy();
 	at_destroy();
 	mr_destroy();

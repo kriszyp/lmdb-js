@@ -116,8 +116,8 @@ find_oidm(char *oid)
 
 			if( pos ) {
 				int suflen = strlen(oid + pos);
-				char *new = ch_calloc(1,
-					om->som_oid.bv_len + suflen + 1);
+				char *new = ch_malloc( om->som_oid.bv_len
+					+ suflen + 1);
 				strcpy(new, om->som_oid.bv_val);
 
 				if( suflen ) {
@@ -130,6 +130,19 @@ find_oidm(char *oid)
 		}
 	}
 	return NULL;
+}
+
+void
+oidm_destroy()
+{
+	OidMacro *om, *n;
+
+	for (om = om_list; om; om = n) {
+		n = om->som_next;
+		charray_free(om->som_names);
+		free(om->som_oid.bv_val);
+		free(om);
+	}
 }
 
 int
