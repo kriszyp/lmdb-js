@@ -1006,12 +1006,12 @@ if test $have_uuid = no ; then
 	save_LIBS="$LIBS"
 	LIBS="$LIBS -lrpcrt4"
 	AC_TRY_LINK([
-		char UuidCreate@4();
-		char UuidToStringA@8();
+		int __stdcall UuidCreate(void *);
+		int __stdcall UuidToStringA(void *,void **);
 		],
 		[
-		UuidCreate@4();
-		UuidToStringA@8();
+		UuidCreate(0);
+		UuidToStringA(0,0);
 		],
 		need_rpcrt=yes, need_rpcrt=no)
 	if test $need_rpcrt = yes; then

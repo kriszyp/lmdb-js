@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.508 2004/01/01 18:15:21 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.509 2004/01/15 03:21:20 hyc Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -9923,13 +9923,13 @@ echo "configure:9920: checking to see if -lrpcrt4 is needed for win32 UUID suppo
 #line 9924 "configure"
 #include "confdefs.h"
 
-		char UuidCreate@4();
-		char UuidToStringA@8();
+		int __stdcall UuidCreate(void *);
+		int __stdcall UuidToStringA(void *,void **);
 		
 int main() {
 
-		UuidCreate@4();
-		UuidToStringA@8();
+		UuidCreate(0);
+		UuidToStringA(0,0);
 		
 ; return 0; }
 EOF
