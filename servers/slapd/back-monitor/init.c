@@ -251,7 +251,7 @@ monitor_back_db_init(
 	be_monitor = be;
 
 	/* indicate system schema supported */
-	SLAP_DBFLAGS(be) |= SLAP_BFLAG_MONITOR;
+	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
 
 	dn.bv_val = SLAPD_MONITOR_DN;
 	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
