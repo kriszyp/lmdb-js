@@ -333,7 +333,7 @@ ldap_build_search_req(
 	return( ber );
 }
 
-static int ldap_is_attr_oid LDAP_P(( const char *attr ))
+static int ldap_is_attr_oid ( const char *attr )
 {
 	int i, c, digit=0;
 
@@ -359,7 +359,7 @@ static int ldap_is_attr_oid LDAP_P(( const char *attr ))
 
 }
 
-static int ldap_is_attr_desc LDAP_P(( const char *attr ))
+static int ldap_is_attr_desc ( const char *attr )
 {
 	/* cheap attribute description check */
 	int i, c;
