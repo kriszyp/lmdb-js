@@ -1301,6 +1301,18 @@ ldap_dcedn2dn LDAP_P(( LDAP_CONST char *dce ));	/* deprecated */
 LDAP_F( char * )
 ldap_dn2ad_canonical LDAP_P(( LDAP_CONST char *dn ));	/* deprecated */
 
+LDAP_F( int )
+ldap_get_dn_ber LDAP_P((
+	LDAP *ld, LDAPMessage *e, BerElement **berout, struct berval *dn ));
+
+LDAP_F( int )
+ldap_get_attribute_ber LDAP_P((
+	LDAP *ld, LDAPMessage *e, BerElement *ber, struct berval *attr ));
+
+LDAP_F( int )
+ldap_get_values_ber LDAP_P((
+	LDAP *ld, LDAPMessage *e, BerElement *ber, struct berval **bv ));
+
 /*
  * in getattr.c
  */

@@ -103,6 +103,57 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	return( dn );
 }
 
+int
+ldap_get_dn_ber( LDAP *ld, LDAPMessage *entry, BerElement **berout,
+	BerValue *dn )
+{
+	BerElement	tmp, *ber;
+	ber_len_t	len = 0;
+	int rc = LDAP_SUCCESS;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_dn_ber\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_dn_ber\n", 0, 0, 0 );
+#endif
+
+	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
+	assert( entry != NULL );
+	assert( dn != NULL );
+
+	dn->bv_val = NULL;
+	dn->bv_len = 0;
+
+	if ( berout ) {
+		*berout = NULL;
+		ber = ldap_alloc_ber_with_options( ld );
+		if( ber == NULL ) {
+			return LDAP_NO_MEMORY;
+		}
+		*berout = ber;
+	} else {
+		ber = &tmp;
+	}
+		
+	*ber = *entry->lm_ber;	/* struct copy */
+	if ( ber_scanf( ber, "{ml{" /*}*/, dn, &len ) == LBER_ERROR ) {
+		rc = ld->ld_errno = LDAP_DECODING_ERROR;
+	}
+	if ( rc == LDAP_SUCCESS ) {
+		/* set the length to avoid overrun */
+		rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
+		if( rc != LBER_OPT_SUCCESS ) {
+			rc = ld->ld_errno = LDAP_LOCAL_ERROR;
+		}
+	}
+	if ( rc != LDAP_SUCCESS && berout ) {
+		ber_free( ber, 0 );
+		*berout = NULL;
+	}
+	return rc;
+}
+
 /*
  * RFC 1823 ldap_dn2ufn
  */
