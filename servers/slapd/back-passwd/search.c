@@ -16,7 +16,7 @@
 #include "back-passwd.h"
 #include <ldap_pvt.h>
 
-stativ void pw_start( Backend *be );
+static void pw_start( Backend *be );
 
 static Entry *pw2entry(
 	Backend *be,
