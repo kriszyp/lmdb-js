@@ -107,7 +107,8 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 int
 ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-	SetEvent( *cond );
+	while ( WaitForSingleObject( *cond, 0 ) == WAIT_TIMEOUT )
+		SetEvent( *cond );
 	return( 0 );
 }
 
