@@ -685,7 +685,7 @@ AC_MINGW32
 AC_EXEEXT
 AC_OBJEXT
 
-AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
+AC_DEFINE_UNQUOTED(EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
 dnl ----------------------------------------------------------------
 dnl BeOS requires -lbe -lroot -lnet
