@@ -26,10 +26,10 @@
 class LDAPConstraints{
         
 	public :
-        const static int DEREF_NEVER = 0x00;   
-        const static int DEREF_SEARCHING = 0x01;   
-        const static int DEREF_FINDING = 0x02;   
-        const static int DEREF_ALWAYS = 0x04;   
+        static const int DEREF_NEVER = 0x00;   
+        static const int DEREF_SEARCHING = 0x01;   
+        static const int DEREF_FINDING = 0x02;   
+        static const int DEREF_ALWAYS = 0x04;   
         
 		//* Constructs a LDAPConstraints object with default values
 		LDAPConstraints();

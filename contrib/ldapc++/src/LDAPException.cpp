@@ -12,6 +12,8 @@
 
 #include "LDAPAsynConnection.h"
 
+using namespace std;
+
 LDAPException::LDAPException(int res_code, const string& err_string){
 	m_res_code=res_code;
 	m_res_string=string(ldap_err2string(res_code));

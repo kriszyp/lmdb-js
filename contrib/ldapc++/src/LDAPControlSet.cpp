@@ -6,6 +6,8 @@
 #include "debug.h"
 #include "LDAPControlSet.h"
 
+using namespace std;
+
 LDAPControlSet::LDAPControlSet(){
 }
 

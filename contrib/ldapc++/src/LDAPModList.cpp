@@ -7,6 +7,8 @@
 #include "LDAPModList.h"
 #include "debug.h"
 
+using namespace std;
+
 LDAPModList::LDAPModList(){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPModList::LDAPModList()" << endl);
 }

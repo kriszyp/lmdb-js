@@ -12,6 +12,8 @@
 #include "LDAPResult.h"
 #include "LDAPUrlList.h"
 
+using namespace std;
+
 LDAPModDNRequest::LDAPModDNRequest(const LDAPModDNRequest& req) :
         LDAPRequest(req){
     DEBUG(LDAP_DEBUG_CONSTRUCT, 

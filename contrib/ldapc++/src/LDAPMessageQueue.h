@@ -16,8 +16,8 @@ class LDAPMsg;
 class LDAPRequest;
 class LDAPSearchRequest;
 class LDAPUrl;
-typedef stack<LDAPRequest*> LDAPRequestStack;
-typedef list<LDAPRequest*> LDAPRequestList;
+typedef std::stack<LDAPRequest*> LDAPRequestStack;
+typedef std::list<LDAPRequest*> LDAPRequestList;
 
 /**
  * This class is created for the asynchronous LDAP-operations. And can be

@@ -9,7 +9,7 @@
 #include <list>
 #include <LDAPUrl.h>
 
-typedef list<LDAPUrl> UrlList;
+typedef std::list<LDAPUrl> UrlList;
 
 /**
  * This container class is used to store multiple LDAPUrl-objects.
@@ -19,7 +19,7 @@ class LDAPUrlList{
 	typedef UrlList::const_iterator const_iterator;
 
         /**
-         * Constructs an empty list.
+         * Constructs an empty std::list.
          */   
         LDAPUrlList();
 
@@ -32,7 +32,7 @@ class LDAPUrlList{
          * For internal use only
          *
          * This constructor is used by the library internally to create a
-         * list of URLs from a array of C-strings that was return by
+         * std::list of URLs from a array of C-std::strings that was return by
          * the C-API
          */
         LDAPUrlList(char** urls);

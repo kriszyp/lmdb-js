@@ -10,7 +10,7 @@
 #include <ldap.h>
 #include <LDAPControl.h>
 
-typedef list<LDAPCtrl> CtrlList;
+typedef std::list<LDAPCtrl> CtrlList;
 
 /**
  * This container class is used to store multiple LDAPCtrl-objects.
@@ -19,7 +19,7 @@ class LDAPControlSet {
     typedef CtrlList::const_iterator const_iterator;
     public :
         /**
-         * Constructs an empty list
+         * Constructs an empty std::list
          */
         LDAPControlSet();   
 

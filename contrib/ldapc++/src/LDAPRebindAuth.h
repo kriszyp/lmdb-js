@@ -23,7 +23,7 @@ class LDAPRebindAuth{
          * @param dn  The DN that should be used for the authentication 
          * @param pwd   The password that belongs to the DN
          */
-        LDAPRebindAuth(const string& dn="", const string& pwd="");
+        LDAPRebindAuth(const std::string& dn="", const std::string& pwd="");
         
         /**
          * Copy-constructor
@@ -38,16 +38,16 @@ class LDAPRebindAuth{
         /**
          * @return The DN that was set in the constructor
          */
-        const string& getDN() const;
+        const std::string& getDN() const;
 
         /**
          * @return The password that was set in the constructor
          */
-        const string& getPassword() const;
+        const std::string& getPassword() const;
         
     private:
-        string m_dn;
-        string m_password;
+        std::string m_dn;
+        std::string m_password;
 };
 
 #endif //LDAP_REBIND_AUTH_H

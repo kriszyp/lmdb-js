@@ -12,6 +12,8 @@
 #include "LDAPMessageQueue.h"
 #include "LDAPResult.h"
 
+using namespace std;
+
 LDAPCompareRequest::LDAPCompareRequest(const LDAPCompareRequest& req){
     DEBUG(LDAP_DEBUG_CONSTRUCT, 
             "LDAPCompareRequest::LDAPCompareRequest(&)" << endl);

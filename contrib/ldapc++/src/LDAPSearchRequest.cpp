@@ -13,6 +13,8 @@
 #include "LDAPRequest.h"
 #include "LDAPUrl.h"
 
+using namespace std;
+
 LDAPSearchRequest::LDAPSearchRequest(const LDAPSearchRequest& req ) :
         LDAPRequest (req){
     DEBUG(LDAP_DEBUG_CONSTRUCT, 

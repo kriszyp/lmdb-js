@@ -22,10 +22,10 @@ class LDAPException{
         /**
          * Constructs a LDAPException-object from the parameters
          * @param res_code A valid LDAP result code.
-         * @param err_string    An addional error message for the error
+         * @param err_std::string    An addional error message for the error
          *                      that happend (optional)
          */
-		LDAPException(int res_code, const string& err_string=string());
+		LDAPException(int res_code, const std::string& err_string=std::string());
 		
         /**
          * Constructs a LDAPException-object from the error state of a
@@ -50,22 +50,22 @@ class LDAPException{
          * @return The error message that is corresponding to the result
          *          code .
          */
-		const string& getResultMsg() const;
+		const std::string& getResultMsg() const;
         
         /**
          * @return The addional error message of the error (if it was set)
          */
-        const string& getServerMsg() const;
+        const std::string& getServerMsg() const;
 
         /**
          * This method can be used to dump the data of a LDAPResult-Object.
          * It is only useful for debugging purposes at the moment
          */
-		friend ostream& operator << (ostream &s, LDAPException e);
+		friend std::ostream& operator << (std::ostream &s, LDAPException e);
 
 	private :
 		int m_res_code;
-		string m_res_string;
-		string m_err_string;
+		std::string m_res_string;
+		std::string m_err_string;
 };
 #endif //LDAP_EXCEPTION_H

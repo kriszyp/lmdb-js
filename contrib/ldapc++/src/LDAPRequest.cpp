@@ -7,6 +7,8 @@
 #include "debug.h"
 #include "LDAPRequest.h"
 
+using namespace std;
+
 LDAPRequest::LDAPRequest(){
     DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPRequest::LDAPRequest()" << endl);
 }

@@ -15,6 +15,8 @@ const int LDAPConnection::SEARCH_BASE = LDAPAsynConnection::SEARCH_BASE;
 const int LDAPConnection::SEARCH_ONE = LDAPAsynConnection::SEARCH_ONE;
 const int LDAPConnection::SEARCH_SUB = LDAPAsynConnection::SEARCH_SUB;
 
+using namespace std;
+
 LDAPConnection::LDAPConnection(const string& hostname, int port, 
         LDAPConstraints* cons) :
         LDAPAsynConnection(hostname, port, cons){
@@ -333,24 +335,20 @@ const LDAPConstraints* LDAPConnection::getConstraints() const{
     return LDAPAsynConnection::getConstraints();
 }
 
-int LDAPConnection::enableCache(long timeout, long maxmem)
-{
+int LDAPConnection::enableCache(long timeout, long maxmem) {
     return LDAPAsynConnection::enableCache(timeout, maxmem);
 }
 
 
-void LDAPConnection::disableCache()
-{
+void LDAPConnection::disableCache() {
     LDAPAsynConnection::disableCache();
 }
 
-bool LDAPConnection::getCacheEnabled()
-{ 
+bool LDAPConnection::getCacheEnabled() { 
     return LDAPAsynConnection::getCacheEnabled();
 }
 
-void LDAPConnection::uncache_entry(string &dn)
-{
+void LDAPConnection::uncache_entry(string &dn) {
     LDAPAsynConnection::uncache_entry(dn);
 }
 

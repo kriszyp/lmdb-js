@@ -10,12 +10,12 @@
 
 class LDAPEntry;
    
-typedef list<LDAPEntry> EntryList;
+typedef std::list<LDAPEntry> EntryList;
 
 /**
  * For internal use only.
  * 
- * This class is used by LDAPSearchResults to store a list of
+ * This class is used by LDAPSearchResults to store a std::list of
  * LDAPEntry-Objects
  */
 class LDAPEntryList{

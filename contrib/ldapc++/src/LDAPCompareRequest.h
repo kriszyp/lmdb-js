@@ -13,7 +13,7 @@ class LDAPMessageQueue;
 class LDAPCompareRequest : public LDAPRequest {
     public :
         LDAPCompareRequest(const LDAPCompareRequest& req);
-        LDAPCompareRequest(const string& dn, const LDAPAttribute& attr, 
+        LDAPCompareRequest(const std::string& dn, const LDAPAttribute& attr, 
                 LDAPAsynConnection *connect, const LDAPConstraints *cons,
                 bool isReferral=false, const LDAPRequest* parent=0);
         virtual ~LDAPCompareRequest();
@@ -21,7 +21,7 @@ class LDAPCompareRequest : public LDAPRequest {
         virtual LDAPRequest* followReferral(LDAPMsg* urls);
     
     private :
-        string m_dn;
+        std::string m_dn;
         LDAPAttribute m_attr;
         
 };

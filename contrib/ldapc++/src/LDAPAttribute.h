@@ -33,16 +33,16 @@ class LDAPAttribute{
         LDAPAttribute(const LDAPAttribute& attr);
 
         /**
-         * Construct an Attribute with a single string value
+         * Construct an Attribute with a single std::string value
          * @param name      The attribute's name (type)
-         * @param value     The string value of the attribute, if "" the
+         * @param value     The std::string value of the attribute, if "" the
          *                  attribute will have no values, for LDAPv3 
          *                  this values must be UTF-8 encoded
          */
-        LDAPAttribute(const string& name, const string& value="");
+        LDAPAttribute(const std::string& name, const std::string& value="");
 
         /** 
-         * Construct an attribute with multiple string values
+         * Construct an attribute with multiple std::string values
          * @param name      The attribute's name (type)
          * @param values    A 0-terminated array of char*. Each char* specifies
          *                  one value of the attribute (UTF-8 encoded)
@@ -50,13 +50,13 @@ class LDAPAttribute{
         LDAPAttribute(const char* name, char **values);
         
         /** 
-         * Construct an attribute with multiple string values
+         * Construct an attribute with multiple std::string values
          * @param name      The attribute's name (type)
-         * @param values    A list of strings. Each element specifies
+         * @param values    A std::list of std::strings. Each element specifies
          *                  one value of the attribute (UTF-8 or binary 
          *                  encoded)
          */
-        LDAPAttribute(const string& name, const StringList& values);
+        LDAPAttribute(const std::string& name, const StringList& values);
 
         /**
          * Construct an attribute with multiple binary coded values
@@ -76,11 +76,11 @@ class LDAPAttribute{
         ~LDAPAttribute();
 
         /**
-         * Add a single string value(bin/char) to the Attribute
+         * Add a single std::string value(bin/char) to the Attribute
          * @param value Value that should be added, it is copied inside the
          *              object
          */
-        void addValue(const string& value);
+        void addValue(const std::string& value);
 
         /**
          * Add a single binary value to the Attribute
@@ -95,7 +95,7 @@ class LDAPAttribute{
          * Set the values of the attribute. If the object contains some values
          * already, they are deleted
          * @param values    0-terminated array of char*, each char* 
-         *                  representing a string value to add to the entry
+         *                  representing a std::string value to add to the entry
          * 
          * @return  0  no problem <BR>
          *          -1 failure (mem. allocation problem)
@@ -116,8 +116,8 @@ class LDAPAttribute{
         /**
          * Set the values of the attribute. If the object does already contain
          * some values, they will be deleted
-         * @param values    A list of string-Objects. Each string is 
-         *                  representing a string or binary value to add to
+         * @param values    A std::list of std::string-Objects. Each std::string is 
+         *                  representing a std::string or binary value to add to
          *                  the entry
          */
         void setValues(const StringList& values); 
@@ -134,7 +134,7 @@ class LDAPAttribute{
         BerValue** getBerValues() const;
 
         /**
-         * @return The values of the array as a list of strings
+         * @return The values of the array as a std::list of std::strings
          */
         const StringList& getValues() const;
         
@@ -146,13 +146,13 @@ class LDAPAttribute{
         /**
          * @return The name(type) of the attribute
          */
-        const string& getName() const ;
+        const std::string& getName() const ;
 
         /**
          * Sets the Attribute's name (type) 
          * @param the new name of the object  
          */
-        void setName(const string& name);
+        void setName(const std::string& name);
 
         /**
          * For internal use only.
@@ -168,13 +168,13 @@ class LDAPAttribute{
         bool isNotPrintable() const ;
 
     private :
-        string m_name;
+        std::string m_name;
         StringList m_values;
 
     /**
      * This method can be used to dump the data of a LDAPResult-Object.
      * It is only useful for debugging purposes at the moment
      */
-    friend ostream& operator << (ostream& s, const LDAPAttribute& attr);
+    friend std::ostream& operator << (std::ostream& s, const LDAPAttribute& attr);
 };
 #endif //#ifndef LDAP_ATTRIBUTE_H

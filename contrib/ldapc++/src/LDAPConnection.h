@@ -47,7 +47,7 @@ class LDAPConnection : private LDAPAsynConnection {
          * @param cons Default constraints to use with operations over 
          *      this connection
          */
-        LDAPConnection(const string& hostname="localhost", int port=389,
+        LDAPConnection(const std::string& hostname="localhost", int port=389,
                 LDAPConstraints* cons=new LDAPConstraints());
         
         /**
@@ -66,7 +66,7 @@ class LDAPConnection : private LDAPAsynConnection {
          *             LDAP-Server
          * @param port      The Network Port the server is running on
          */
-        void init(const string& hostname, int port);
+        void init(const std::string& hostname, int port);
         
         /**
          * Start TLS on this connection.  This isn't in the constructor,
@@ -85,7 +85,7 @@ class LDAPConnection : private LDAPAsynConnection {
          * @param dn    The name of the entry to bind as
          * @param passwd    The cleartext password for the entry
          */
-        void bind(const string& dn="", const string& passwd="",
+        void bind(const std::string& dn="", const std::string& passwd="",
                 LDAPConstraints* cons=0);
         
         /**
@@ -112,7 +112,7 @@ class LDAPConnection : private LDAPAsynConnection {
          *      attr-parameter matched an Attribute of the entry. false if it
          *      did not match
          */
-        bool compare(const string& dn, const LDAPAttribute& attr,
+        bool compare(const std::string& dn, const LDAPAttribute& attr,
                 LDAPConstraints* cons=0);
        
         /**
@@ -126,7 +126,7 @@ class LDAPConnection : private LDAPAsynConnection {
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        void del(const string& dn, const LDAPConstraints* cons=0);
+        void del(const std::string& dn, const LDAPConstraints* cons=0);
         
         /**
          * Use this method to perform the ADD-operation
@@ -151,7 +151,7 @@ class LDAPConnection : private LDAPAsynConnection {
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        void modify(const string& dn, const LDAPModList* mods, 
+        void modify(const std::string& dn, const LDAPModList* mods, 
                 const LDAPConstraints* cons=0); 
 
         /**
@@ -174,8 +174,8 @@ class LDAPConnection : private LDAPAsynConnection {
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        void rename(const string& dn, const string& newRDN, 
-                bool delOldRDN=false, const string& newParentDN="",
+        void rename(const std::string& dn, const std::string& newRDN, 
+                bool delOldRDN=false, const std::string& newParentDN="",
                 const LDAPConstraints* cons=0);
         
         /**
@@ -190,7 +190,7 @@ class LDAPConnection : private LDAPAsynConnection {
          *      LDAPAsynConnection::SEARCH_BASE, <BR> 
          *      LDAPAsynConnection::SEARCH_ONE, <BR>
          *      LDAPAsynConnection::SEARCH_SUB
-         * @param filter The string representation of a search filter to
+         * @param filter The std::string representation of a search filter to
          *      use with this operation
          * @param attrsOnly true if only the attributes names (no values) 
          *      should be returned
@@ -199,8 +199,8 @@ class LDAPConnection : private LDAPAsynConnection {
          * @returns A pointer to a LDAPSearchResults-object that can be
          *      used to read the results of the search.
          */
-        LDAPSearchResults* search(const string& base, int scope=0, 
-                const string& filter="objectClass=*", 
+        LDAPSearchResults* search(const std::string& base, int scope=0, 
+                const std::string& filter="objectClass=*", 
                 const StringList& attrs=StringList(), bool attrsOnly=false,
                 const LDAPConstraints* cons=0);
        
@@ -219,10 +219,10 @@ class LDAPConnection : private LDAPAsynConnection {
          * @returns The result of the Extended Operation as an
          *      pointer to a LDAPExtResult-object.
          */
-        LDAPExtResult* extOperation(const string& oid, const string&
+        LDAPExtResult* extOperation(const std::string& oid, const std::string&
                 value="", const LDAPConstraints *const = 0);
         
-        const string& getHost() const;
+        const std::string& getHost() const;
 
         int getPort() const;
         
@@ -240,7 +240,7 @@ class LDAPConnection : private LDAPAsynConnection {
         /// is cacheEnabled?
         bool getCacheEnabled();
         /// uncache a specific dn.  Used internally by methods that write.
-        void uncache_entry(string &dn);
+        void uncache_entry(std::string &dn);
         /// used to clear the cache.  Probably should be used after creating
         /// an object that a cached search should find.
         void flush_cache();

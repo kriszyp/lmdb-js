@@ -7,6 +7,8 @@
 #include "LDAPModification.h"
 #include "debug.h"
 
+using namespace std;
+
 LDAPModification::LDAPModification(const LDAPAttribute& attr, mod_op op){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPModification::LDAPModification()" << endl);
     DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,

@@ -38,8 +38,8 @@ class LDAPCtrl{
          *                  critical by the server.
          * @param data: If there is data for the control, put it here.
          */
-        LDAPCtrl(const string& oid, bool critical=false,
-                const string& data=string());
+        LDAPCtrl(const std::string& oid, bool critical=false,
+                const std::string& data=std::string());
 
         /**
          * Creates a copy of the Control that "ctrl is pointing to
@@ -54,12 +54,12 @@ class LDAPCtrl{
         /**
          * @return The OID of the control
          */
-        string getOID() const;
+        std::string getOID() const;
 
         /**
-         * @return The Data of the control as a string-Objekt
+         * @return The Data of the control as a std::string-Objekt
          */
-        string getData() const;
+        std::string getData() const;
 
         /**
          * @return "true" if the control is critical
@@ -75,8 +75,8 @@ class LDAPCtrl{
         LDAPControl* getControlStruct() const;
     
     private :
-        string m_oid;
-        string m_data;
+        std::string m_oid;
+        std::string m_data;
         bool m_isCritical;
 };
 

@@ -33,17 +33,17 @@ class LDAPExtResult : public LDAPResult {
          * @returns The OID of the Extended Operation that has returned
          *          this result. 
          */
-        const string& getResponseOid() const;
+        const std::string& getResponseOid() const;
 
         /**
          * @returns If the result contained data this method will return
-         *          the data to the caller as a string.
+         *          the data to the caller as a std::string.
          */
-        const string& getResponse() const;
+        const std::string& getResponse() const;
 
     private:
-        string m_oid;
-        string m_data;
+        std::string m_oid;
+        std::string m_data;
 };
 
 #endif // LDAP_EXT_RESULT_H

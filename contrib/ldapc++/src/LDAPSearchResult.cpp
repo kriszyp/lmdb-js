@@ -10,9 +10,12 @@
 #include "LDAPSearchResult.h"
 #include "LDAPRequest.h"
 
+using namespace std;
+
 LDAPSearchResult::LDAPSearchResult(const LDAPRequest *req,
         LDAPMessage *msg) : LDAPMsg(msg){
-	DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPSearchResult::LDAPSearchResult()" << endl);
+	DEBUG(LDAP_DEBUG_CONSTRUCT,
+		"LDAPSearchResult::LDAPSearchResult()" << endl);
     entry = new LDAPEntry(req->getConnection(), msg);
     //retrieve the controls here
     LDAPControl** srvctrls=0;

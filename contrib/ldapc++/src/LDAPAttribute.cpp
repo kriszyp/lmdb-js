@@ -19,6 +19,7 @@
 
 #include "LDAPAttribute.h"
 
+using namespace std;
 
 LDAPAttribute::LDAPAttribute(){
     DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute( )" << endl);

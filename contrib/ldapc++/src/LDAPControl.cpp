@@ -6,6 +6,9 @@
 
 #include "LDAPControl.h"
 #include "debug.h"
+
+using namespace std;
+
 LDAPCtrl::LDAPCtrl(const LDAPCtrl& c){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPCtrl::LDAPCtrl(&)" << endl);
     m_oid=c.m_oid;

@@ -19,7 +19,7 @@
 class LDAPRebind{
     public:
         virtual ~LDAPRebind() {}
-        virtual LDAPRebindAuth* getRebindAuth(const string& hostname, 
+        virtual LDAPRebindAuth* getRebindAuth(const std::string& hostname, 
                 int port) const = 0;
 };
 #endif //LDAP_REBIND_H

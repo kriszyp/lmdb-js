@@ -9,6 +9,8 @@
 #include <ldap.h>
 #include "debug.h"
 
+using namespace std;
+
 LDAPUrl::LDAPUrl(const char *url){
     DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPUrl::LDAPUrl()" << endl);
     DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,

@@ -12,6 +12,8 @@
 #include "LDAPException.h"
 #include "LDAPResult.h"
 
+using namespace std;
+
 LDAPExtRequest::LDAPExtRequest(const LDAPExtRequest& req) :
         LDAPRequest(req){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPExtRequest::LDAPExtRequest(&)" << endl);

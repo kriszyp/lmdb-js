@@ -10,14 +10,14 @@
 
 class LDAPBindRequest : LDAPRequest {
     private:
-        string m_dn;
-        string m_cred;
-        string m_mech;
+        std::string m_dn;
+        std::string m_cred;
+        std::string m_mech;
 
     public:
         LDAPBindRequest(const LDAPBindRequest& req);
         //just for simple authentication
-        LDAPBindRequest(const string&, const string& passwd, 
+        LDAPBindRequest(const std::string&, const std::string& passwd, 
                 LDAPAsynConnection *connect, const LDAPConstraints *cons, 
                 bool isReferral=false);
         virtual ~LDAPBindRequest();

@@ -6,6 +6,8 @@
 #include "LDAPUrlList.h"
 #include "debug.h"
 
+using namespace std;
+
 LDAPUrlList::LDAPUrlList(){
     DEBUG(LDAP_DEBUG_CONSTRUCT," LDAPUrlList::LDAPUrlList()" << endl);
     m_urls=UrlList();

@@ -12,8 +12,8 @@ class LDAPModDNRequest : LDAPRequest {
 
     public:
         LDAPModDNRequest(const LDAPModDNRequest& req); 
-        LDAPModDNRequest(const string& dn, const string& newRDN,
-                bool deleteOld, const string& newParentDN,
+        LDAPModDNRequest(const std::string& dn, const std::string& newRDN,
+                bool deleteOld, const std::string& newParentDN,
                 LDAPAsynConnection *connect, const LDAPConstraints *cons,
                 bool isReferral=false, const LDAPRequest* parent=0); 
         virtual ~LDAPModDNRequest(); 
@@ -22,9 +22,9 @@ class LDAPModDNRequest : LDAPRequest {
         virtual LDAPRequest* followReferral(LDAPMsg*  urls);
     
     private:
-        string m_dn;
-        string m_newRDN;
-        string m_newParentDN;
+        std::string m_dn;
+        std::string m_newRDN;
+        std::string m_newParentDN;
         bool m_deleteOld;
 };    
 

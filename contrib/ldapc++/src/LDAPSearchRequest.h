@@ -18,7 +18,7 @@ class LDAPSearchRequest : public LDAPRequest{
     public :
         LDAPSearchRequest(const LDAPSearchRequest& req);
 
-        LDAPSearchRequest(const string& base, int scope, const string& filter,
+        LDAPSearchRequest(const std::string& base, int scope, const std::string& filter,
                           const StringList& attrs, bool attrsOnly, 
                           LDAPAsynConnection *connect,
                           const LDAPConstraints* cons, bool isReferral=false,
@@ -29,9 +29,9 @@ class LDAPSearchRequest : public LDAPRequest{
         virtual bool equals(const LDAPRequest* req) const;
     
     private :
-        string m_base;
+        std::string m_base;
         int m_scope;
-        string m_filter;
+        std::string m_filter;
         StringList m_attrs;
         bool m_attrsOnly;
 

@@ -118,16 +118,16 @@ class LDAPResult : public LDAPMsg{
         /**
          * This method transforms the result code to a human-readable
          * result message.
-         * @returns A string containing the result message.
+         * @returns A std::string containing the result message.
          */
-        string resToString() const;
+        std::string resToString() const;
 
         /**
          * In some case of error the server may return addional error
          * messages.
          * @returns The additional error message returned by the server.
          */
-        const string& getErrMsg() const;
+        const std::string& getErrMsg() const;
 
         /**
          * For messages with a result code of: NO_SUCH_OBJECT,
@@ -136,7 +136,7 @@ class LDAPResult : public LDAPMsg{
          * be found for this operation.
          * @returns The Matched-DN value that was returned by the server.
          */
-        const string& getMatchedDN() const;
+        const std::string& getMatchedDN() const;
 
         /**
          * @returns If the result code is REFERRAL this methode returns the
@@ -146,15 +146,15 @@ class LDAPResult : public LDAPMsg{
 
     private :
         int m_resCode;
-        string m_matchedDN;
-        string m_errMsg;
+        std::string m_matchedDN;
+        std::string m_errMsg;
         LDAPUrlList m_referrals;    
 
     /**
      * This method can be used to dump the data of a LDAPResult-Object.
      * It is only useful for debugging purposes at the moment
      */
-    friend  ostream& operator<<(ostream &s,LDAPResult &l);
+    friend  std::ostream& operator<<(std::ostream &s,LDAPResult &l);
 };
 #endif //LDAP_RESULT_H
 

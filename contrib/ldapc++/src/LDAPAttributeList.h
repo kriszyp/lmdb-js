@@ -7,12 +7,13 @@
 #ifndef LDAP_ATTRIBUTE_LIST_H
 #define LDAP_ATTRIBUTE_LIST_H
 
+#include <ldap.h>
 #include <list>
 class LDAPAttribute;
 class LDAPAsynConnection;
 class LDAPMsg;
 
-typedef list<LDAPAttribute> AttrList;
+typedef std::list<LDAPAttribute> AttrList;
 
 /**
  * This container class is used to store multiple LDAPAttribute-objects.
@@ -88,7 +89,8 @@ class LDAPAttributeList{
          * This method can be used to dump the data of a LDAPResult-Object.
          * It is only useful for debugging purposes at the moment
          */
-        friend ostream& operator << (ostream& s, const LDAPAttributeList& al);
+        friend std::ostream& operator << (std::ostream& s, 
+					  const LDAPAttributeList& al);
 };
 #endif // LDAP_ATTRIBUTE_LIST_H
 

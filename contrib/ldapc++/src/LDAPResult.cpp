@@ -10,6 +10,8 @@
 #include "LDAPRequest.h"
 #include "LDAPException.h"
 
+using namespace std;
+
 LDAPResult::LDAPResult(const LDAPRequest *req, LDAPMessage *msg) : 
         LDAPMsg(msg){
     if(msg != 0){

@@ -70,7 +70,7 @@ class LDAPAsynConnection{
          * @param cons Default constraints to use with operations over 
          *      this connection
          */
-        LDAPAsynConnection(const string& hostname=string("localhost"),
+        LDAPAsynConnection(const std::string& hostname=std::string("localhost"),
                 int port=389, LDAPConstraints *cons=new LDAPConstraints() );
 
         //* Destructor
@@ -87,7 +87,7 @@ class LDAPAsynConnection{
          *             LDAP-Server
          * @param port      The Network Port the server is running on
          */
-        void init(const string& hostname, int port);
+        void init(const std::string& hostname, int port);
 
         /**
          * Start TLS on this connection.  This isn't in the constructor,
@@ -107,7 +107,7 @@ class LDAPAsynConnection{
          * @param dn the distiguished name to bind as
          * @param passwd cleartext password to use
          */
-        LDAPMessageQueue* bind(const string& dn="", const string& passwd="",
+        LDAPMessageQueue* bind(const std::string& dn="", const std::string& passwd="",
                 const LDAPConstraints *cons=0);
 
         /** Performing a search on a directory tree.
@@ -122,15 +122,15 @@ class LDAPAsynConnection{
          *      LDAPAsynConnection::SEARCH_BASE, <BR> 
          *      LDAPAsynConnection::SEARCH_ONE, <BR>
          *      LDAPAsynConnection::SEARCH_SUB
-         * @param filter The string representation of a search filter to
+         * @param filter The std::string representation of a search filter to
          *      use with this operation
          * @param attrsOnly true if only the attributes names (no values) 
          *      should be returned
          * @param cons A set of constraints that should be used with this
          *      request
          */
-        LDAPMessageQueue* search(const string& base="", int scope=0, 
-                                 const string& filter="objectClass=*", 
+        LDAPMessageQueue* search(const std::string& base="", int scope=0, 
+                                 const std::string& filter="objectClass=*", 
                                  const StringList& attrs=StringList(), 
                                  bool attrsOnly=false,
                                  const LDAPConstraints *cons=0);
@@ -145,7 +145,7 @@ class LDAPAsynConnection{
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* del(const string& dn, const LDAPConstraints *cons=0);
+        LDAPMessageQueue* del(const std::string& dn, const LDAPConstraints *cons=0);
         
         /** 
          * Perform the COMPARE-operation on an attribute 
@@ -160,7 +160,7 @@ class LDAPAsynConnection{
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* compare(const string& dn, const LDAPAttribute& attr, 
+        LDAPMessageQueue* compare(const std::string& dn, const LDAPAttribute& attr, 
                 const LDAPConstraints *cons=0);
 
         /** Add an entry to the directory
@@ -179,12 +179,12 @@ class LDAPAsynConnection{
          *      destination server, a LDAPException-object contains the
          *      error that occured.
          * @param dn Distiguished Name of the Entry to modify
-         * @param modlist A set of modification that should be applied
+         * @param modstd::list A set of modification that should be applied
          *      to the Entry
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* modify(const string& dn, const LDAPModList *modlist,
+        LDAPMessageQueue* modify(const std::string& dn, const LDAPModList *modlist,
                 const LDAPConstraints *cons=0);
 
         /** modify the DN of an entry
@@ -201,8 +201,8 @@ class LDAPAsynConnection{
          * @param newParentDN   The DN of the new parent entry of the entry
          *                      0 to keep the old one
          */
-        LDAPMessageQueue* rename(const string& dn, const string& newRDN,
-                bool delOldRDN=false, const string& newParentDN="",
+        LDAPMessageQueue* rename(const std::string& dn, const std::string& newRDN,
+                bool delOldRDN=false, const std::string& newParentDN="",
                 const LDAPConstraints* cons=0);
         
         /** Perform a LDAP extended Operation
@@ -216,8 +216,8 @@ class LDAPAsynConnection{
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* extOperation(const string& oid, 
-                const string& value="", const LDAPConstraints *cons=0);
+        LDAPMessageQueue* extOperation(const std::string& oid, 
+                const std::string& value="", const LDAPConstraints *cons=0);
         
         /** End an outstanding request
          *
@@ -243,7 +243,7 @@ class LDAPAsynConnection{
          * @returns The Hostname of the destination server of the
          *      connection. 
          */
-        const string& getHost() const;
+        const std::string& getHost() const;
 
         /**
          * @returns The Port to which this connection is connecting to on
@@ -270,7 +270,7 @@ class LDAPAsynConnection{
          * referral.
          *
          * @throws LDAPException in any case of an error
-         * @param urls Contains a list of LDAP-Urls that indicate the
+         * @param urls Contains a std::list of LDAP-Urls that indicate the
          *      destinations of a referral
          * @param usedUrl After this method has successfully bind to one of
          *      the Destination URLs this parameter contains the URLs 
@@ -293,7 +293,7 @@ class LDAPAsynConnection{
         /// is cacheEnabled?
         bool getCacheEnabled() { return m_cacheEnabled;};
         /// uncache a specific dn.  Used internally by methods that write.
-        void uncache_entry(string &dn);
+        void uncache_entry(std::string &dn);
         /// used to clear the cache.  Probably should be used after creating
         /// an object that a cached search should find.
         void flush_cache();
@@ -321,7 +321,7 @@ class LDAPAsynConnection{
         /**
          * The name of the destination host
          */
-        string m_host;
+        std::string m_host;
 
         /**
          * The port the destination server is running on.

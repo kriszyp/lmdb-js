@@ -12,12 +12,12 @@ class LDAPMessageQueue;
 
 class LDAPModifyRequest : LDAPRequest {
     private :
-        string m_dn;
+        std::string m_dn;
         LDAPModList *m_modList;
 
     public:
         LDAPModifyRequest(const LDAPModifyRequest& mod);
-        LDAPModifyRequest(const string& dn, const LDAPModList *modList,
+        LDAPModifyRequest(const std::string& dn, const LDAPModList *modList,
                 LDAPAsynConnection *connect, const LDAPConstraints *cons,
                 bool isReferral=false, const LDAPRequest* req=0);
         virtual ~LDAPModifyRequest();

@@ -8,6 +8,8 @@
 #include "LDAPRebindAuth.h"
 #include "debug.h"
 
+using namespace std;
+
 LDAPRebindAuth::LDAPRebindAuth(const string& dn, const string& pwd){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPRebindAuth::LDAPRebindAuth()" << endl);
     DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,"   dn:" << dn << endl 

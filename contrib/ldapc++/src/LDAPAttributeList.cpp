@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#include <ldap.h>
 
 #include "debug.h"
 
@@ -13,6 +12,8 @@
 #include "LDAPAttribute.h"
 #include "LDAPAsynConnection.h"
 #include "LDAPMessage.h"
+
+using namespace std;
 
 LDAPAttributeList::LDAPAttributeList(){
     DEBUG(LDAP_DEBUG_CONSTRUCT,

@@ -12,7 +12,7 @@ class LDAPExtRequest : LDAPRequest {
 
     public:
         LDAPExtRequest(const LDAPExtRequest& req);
-        LDAPExtRequest(const string& oid, const string& data, 
+        LDAPExtRequest(const std::string& oid, const std::string& data, 
                 LDAPAsynConnection *connect, const LDAPConstraints *cons,
                 bool isReferral=false, const LDAPRequest* parent=0);
         virtual ~LDAPExtRequest();
@@ -20,8 +20,8 @@ class LDAPExtRequest : LDAPRequest {
         virtual LDAPRequest* followReferral(LDAPMsg* urls);
     
     private:
-        string m_oid;
-        string m_data;
+        std::string m_oid;
+        std::string m_data;
 };
 
 #endif // LDAP_EXT_REQUEST_H

@@ -9,6 +9,8 @@
 
 #include "LDAPException.h"
 
+using namespace std;
+
 LDAPEntry::LDAPEntry(const LDAPEntry& entry){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry(&)" << endl);
     m_dn=entry.m_dn;

@@ -17,12 +17,12 @@
 #define DEBUGLEVEL LDAP_DEBUG_ANY
 
 #define PRINT_FILE	\
-	cerr << "file: " __FILE__  << " line: " << __LINE__ 
+	std::cerr << "file: " __FILE__  << " line: " << __LINE__ 
 
 #ifdef WITH_DEBUG
 #define DEBUG(level, arg)       \
     if((level) & DEBUGLEVEL){     \
-        cerr  << arg ;          \
+        std::cerr  << arg ;          \
     } 
 #else
 #undef DEBUG

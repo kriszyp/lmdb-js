@@ -12,6 +12,8 @@
 #include "LDAPMessageQueue.h"
 #include "LDAPResult.h"
 
+using namespace std;
+
 LDAPDeleteRequest::LDAPDeleteRequest( const LDAPDeleteRequest& req) :
         LDAPRequest(req){
 	DEBUG(LDAP_DEBUG_CONSTRUCT, 

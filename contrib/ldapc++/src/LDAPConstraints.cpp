@@ -10,6 +10,8 @@
 #include "LDAPConstraints.h"
 #include "LDAPControlSet.h"
 
+using namespace std;
+
 LDAPConstraints::LDAPConstraints(){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPConstraints::LDAPConstraints()" << endl);
     m_aliasDeref=LDAPConstraints::DEREF_NEVER;

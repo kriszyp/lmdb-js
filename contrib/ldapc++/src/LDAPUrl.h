@@ -22,7 +22,7 @@ class LDAPUrl{
 
     public : 
         /**
-         * Create a new object from a c-string that contains a LDAP-Url
+         * Create a new object from a c-std::string that contains a LDAP-Url
          */
         LDAPUrl(const char *url);
 
@@ -43,25 +43,25 @@ class LDAPUrl{
         int getScope() const;
 
         /**
-         * @return The complete URL as a string
+         * @return The complete URL as a std::string
          */
-        const string& getURLString() const;
+        const std::string& getURLString() const;
 
         /**
          * @return The hostname or IP-Address of the destination host.
          */
-        const string& getHost() const;
+        const std::string& getHost() const;
 
         /**
          * @return The Base-DN part of the URL
          */
-        const string& getDN() const;
+        const std::string& getDN() const;
 
         
         /**
          * @return The Filter part of the URL
          */
-        const string& getFilter() const;
+        const std::string& getFilter() const;
 
         /**
          * @return The List of attributes  that was in the URL
@@ -71,12 +71,12 @@ class LDAPUrl{
     protected :
         int m_Port;
         int m_Scope;
-        string m_Host;
-        string m_DN;
-        string m_Filter;
+        std::string m_Host;
+        std::string m_DN;
+        std::string m_Filter;
         StringList m_Attrs;
         LDAPURLDesc *m_urlDesc;
-        string m_urlString;
+        std::string m_urlString;
 };
 
 #endif //LDAP_URL_H

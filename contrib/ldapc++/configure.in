@@ -5,8 +5,8 @@ dnl COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 dnl Process this file with autoconf to produce a configure script.
 
 dnl disable config.cache
-define([AC_CACHE_LOAD], )
-define([AC_CACHE_SAVE], )
+dnl define([AC_CACHE_LOAD], )
+dnl define([AC_CACHE_SAVE], )
 
 AC_INIT(src/main.cpp)
 AM_INIT_AUTOMAKE(main, 0.0.1)
@@ -17,7 +17,7 @@ dnl Checks for programs.
 AC_PROG_INSTALL
 dnl AC_PROG_CC
 AC_PROG_CXX
-AC_PROG_RANLIB
+dnl AC_PROG_RANLIB
 dnl AM_DISABLE_SHARED
 AM_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
@@ -45,6 +45,8 @@ AC_ARG_WITH(ldap-includes,[  --with-ldap-includes=DIR    Path to the libldap inc
 dnl Checks for libraries.
 AC_CHECK_LIB(resolv,main)
 AC_CHECK_LIB(lber,ber_strdup,[
+dnl NOOP
+        :
     ],[
         echo "        didn't find ber_strdup in liblber !";
         echo "        Check for the right version (>= 2.0) of the OpenLDAP libraries";
@@ -52,6 +54,8 @@ AC_CHECK_LIB(lber,ber_strdup,[
         exit
     ])
 AC_CHECK_LIB(ldap,ldap_add_ext,[
+dnl NOOP
+        :
     ],[
         echo "        didn't find ldap_add_ext in libldap !";
         echo "        Check for the right version (>= 2.0) of the OpenLDAP libraries";
@@ -64,6 +68,8 @@ dnl Checks for header files.
 AC_HEADER_TIME
 AC_CHECK_HEADER(ldap.h)
 AC_EGREP_HEADER(ldap_add_ext,ldap.h,[
+dnl NOOP
+        :
     ],[
         echo "        didn't find ldap_add_ext in ldap.h!";
         echo "        Check for the right version (>= 2.0) of the OpenLDAP includes";
@@ -72,6 +78,8 @@ AC_EGREP_HEADER(ldap_add_ext,ldap.h,[
     ])
 AC_CHECK_HEADER(lber.h)
 AC_EGREP_HEADER(ber_strdup,lber.h,[
+dnl NOOP
+        :
     ],[
         echo "        didn't find ber_strdup in lber.h!";
         echo "        Check for the right version (>= 2.0) of the OpenLDAP includes";

@@ -47,6 +47,7 @@ include_HEADERS = LDAPAsynConnection.h \
                         LDAPConnection.h \
                         LDAPConstraints.h \
                         LDAPControl.h \
+			LDAPControlSet.h \
                         LDAPEntry.h \
                         LDAPEntryList.h \
                         LDAPException.h \
@@ -62,6 +63,7 @@ include_HEADERS = LDAPAsynConnection.h \
                         LDAPResult.h \
                         LDAPSearchReference.h \
                         LDAPSearchResult.h \
+                        LDAPSearchResults.h \
                         LDAPUrl.h \
                         LDAPUrlList.h \
                         StringList.h 

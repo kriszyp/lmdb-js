@@ -22,6 +22,8 @@
 #include "LDAPRebindAuth.h"
 #include "LDAPSearchRequest.h"
 
+using namespace std;
+
 LDAPAsynConnection::LDAPAsynConnection(const string& hostname, int port,
                                LDAPConstraints *cons ){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPAsynConnection::LDAPAsynConnection()"

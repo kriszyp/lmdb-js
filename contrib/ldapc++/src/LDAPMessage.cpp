@@ -14,6 +14,8 @@
 #include "debug.h"
 #include <iostream>
 
+using namespace std;
+
 LDAPMsg::LDAPMsg(LDAPMessage *msg){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPMsg::LDAPMsg()" << endl);
     msgType=ldap_msgtype(msg);

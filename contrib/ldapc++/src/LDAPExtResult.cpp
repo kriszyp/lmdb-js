@@ -11,6 +11,8 @@
 #include "LDAPResult.h"
 #include "LDAPExtResult.h"
 
+using namespace std;
+
 LDAPExtResult::LDAPExtResult(const LDAPRequest* req, LDAPMessage* msg) :
         LDAPResult(req, msg){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPExtResult::LDAPExtResult()" << endl);

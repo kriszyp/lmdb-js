@@ -8,10 +8,10 @@
 
 #include <string>
 #include <list>
-typedef list<string> ListType;
+typedef std::list<std::string> ListType;
 
 /**
- * Container class to store multiple string-objects
+ * Container class to store multiple std::string-objects
  */
 class StringList{
     private:
@@ -21,7 +21,7 @@ class StringList{
 	typedef ListType::const_iterator const_iterator;
    
         /**
-         * Constructs an empty list.
+         * Constructs an empty std::list.
          */   
         StringList();
 
@@ -34,7 +34,7 @@ class StringList{
          * For internal use only
          *
          * This constructor is used by the library internally to create a
-         * list of string from a array for c-Strings (char*)thar was
+         * std::list of std::string from a array for c-Strings (char*)thar was
          * returned by the C-API
          */
         StringList(char** values);
@@ -54,7 +54,7 @@ class StringList{
          * Adds one element to the end of the list.
          * @param attr The attribute to add to the list.
          */
-        void add(const string& value);
+        void add(const std::string& value);
 
         /**
          * @return The number of strings that are currently

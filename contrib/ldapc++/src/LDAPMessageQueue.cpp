@@ -18,6 +18,8 @@
 #include "LDAPUrlList.h"
 #include "LDAPException.h"
 
+using namespace std;
+
 // TODO: How to handle unsolicited notifications, like notice of
 //       disconnection
 

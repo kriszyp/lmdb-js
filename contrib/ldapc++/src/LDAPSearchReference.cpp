@@ -12,6 +12,8 @@
 #include "LDAPRequest.h"
 #include "LDAPUrl.h"
 
+using namespace std;
+
 LDAPSearchReference::LDAPSearchReference(const LDAPRequest *req,
         LDAPMessage *msg) : LDAPMsg(msg){
     DEBUG(LDAP_DEBUG_CONSTRUCT,

@@ -28,7 +28,7 @@ class LDAPEntry{
          * @param dn    The Distinguished Name for the new entry.
          * @param attrs The attributes for the new entry.
          */
-		LDAPEntry(const string& dn=string(), 
+		LDAPEntry(const std::string& dn=std::string(), 
                 const LDAPAttributeList *attrs=new LDAPAttributeList());
 
         /**
@@ -48,18 +48,18 @@ class LDAPEntry{
          * Sets the DN-attribute.
          * @param dn: The new DN for the entry.
          */
-		void setDN(const string& dn);
+		void setDN(const std::string& dn);
 
         /**
          * Sets the attributes of the entry.
-         * @param attr: A pointer to a list of the new attributes.
+         * @param attr: A pointer to a std::list of the new attributes.
          */
 		void setAttributes(LDAPAttributeList *attrs);
 
         /**
          * @returns The current DN of the entry.
          */
-		const string getDN() const ;
+		const std::string getDN() const ;
 
         /**
          * @returns A const pointer to the attributes of the entry.  
@@ -70,11 +70,11 @@ class LDAPEntry{
          * This method can be used to dump the data of a LDAPResult-Object.
          * It is only useful for debugging purposes at the moment
          */
-		friend ostream& operator << (ostream& s, const LDAPEntry& le);
+		friend std::ostream& operator << (std::ostream& s, const LDAPEntry& le);
 	
     private :
 
 		LDAPAttributeList *m_attrs;
-		string m_dn;
+		std::string m_dn;
 };
 #endif  //LDAP_ENTRY_H
