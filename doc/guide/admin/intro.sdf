@@ -132,10 +132,10 @@ be useful to you.
 
 {{How is the information protected from unauthorized access?}} Some
 directory services provide no protection, allowing anyone to see
-the information. LDAP provides a mechanism for a client to
-authenticate, or prove its identity to a directory server, paving
-the way for rich access control to protect the information the
-server contains.  LDAP also supports privacy and integrity security
+the information. LDAP provides a mechanism for a client to authenticate,
+or prove its identity to a directory server, paving the way for
+rich access control to protect the information the server contains.
+LDAP also supports data security (integrity and confidentiality)
 services.
 
 
@@ -172,8 +172,8 @@ servers.
 
 The stand-alone LDAP daemon, or {{slapd}}(8), can be viewed as a
 {{lightweight}} X.500 directory server.  That is, it does not
-implement the X.500's DAP.  As a {{lightweight directory}} server,
-{{slapd}}(8) implements only a subset of the X.500 models.
+implement the X.500's DAP nor does it support the complete X.500
+models.
 
 If you are already running a X.500 DAP service and you want to
 continue to do so, you can probably stop reading this guide.  This
@@ -223,12 +223,14 @@ interesting features and capabilities include:
 {{slapd}} supports LDAP over both IPv4 and IPv6 and Unix IPC.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports strong authentication
-services through the use of SASL.  {{slapd}}'s SASL implementation
-utilizes {{PRD:Cyrus}} {{PRD:SASL}} software which supports a number
-of mechanisms including DIGEST-MD5, EXTERNAL, and GSSAPI.
+and data security (integrity and confidentiality) services through
+the use of SASL.  {{slapd}}'s SASL implementation utilizes {{PRD:Cyrus}}
+{{PRD:SASL}} software which supports a number of mechanisms including
+DIGEST-MD5, EXTERNAL, and GSSAPI.
 
-{{B:{{TERM[expand]TLS}}}}: {{slapd}} provides privacy and integrity
-protections through the use of TLS (or SSL).  {{slapd}}'s TLS
+{{B:{{TERM[expand]TLS}}}}: {{slapd}} supports certificate-based
+authentication and data security (integrity and confidentiality)
+services through the use of TLS (or SSL).  {{slapd}}'s TLS
 implementation utilizes {{PRD:OpenSSL}} software.
 
 {{B:Topology control}}: {{slapd}} can be configured to restrict

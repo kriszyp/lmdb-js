@@ -321,10 +321,10 @@ depending on whether simple password-based authentication or Kerberos
 authentication or {{TERM:SASL}} authentication is to be used when connecting
 to the slave slapd.
 
-Simple authentication should not be used unless adequate integrity
-and privacy protections are in place (e.g. TLS or IPSEC).  Simple
-authentication requires specification of {{EX:binddn}} and
-{{EX:credentials}} parameters.
+Simple authentication should not be used unless adequate data
+integrity and confidentiality protections are in place (e.g. TLS
+or IPSEC).  Simple authentication requires specification of
+{{EX:binddn}} and {{EX:credentials}} parameters.
 
 Kerberos authentication is deprecated in favor of SASL authentication
 mechanisms, in particular the {{EX:KERBEROS_V4}} and {{EX:GSSAPI}}
@@ -516,10 +516,10 @@ depending on whether simple password-based authentication or
 {{TERM:SASL}} authentication is to be used when connecting
 to the provider slapd.
 
-Simple authentication should not be used unless adequate integrity
-and privacy protections are in place (e.g. TLS or IPSEC). Simple
-authentication requires specification of {{EX:binddn}} and
-{{EX:credentials}} parameters.
+Simple authentication should not be used unless adequate data
+integrity and confidentiality protections are in place (e.g. TLS
+or IPSEC). Simple authentication requires specification of {{EX:binddn}}
+and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
 requires specification of a mechanism using the {{EX:saslmech}} parameter.
