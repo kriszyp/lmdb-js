@@ -20,7 +20,7 @@
 int ldap_parse_passwd(
 	LDAP *ld,
 	LDAPMessage *res,
-	struct berval **newpasswd )
+	struct berval *newpasswd )
 {
 	int rc;
 	char *retoid = NULL;
@@ -31,7 +31,8 @@ int ldap_parse_passwd(
 	assert( res != NULL );
 	assert( newpasswd != NULL );
 
-	*newpasswd = NULL;
+	newpasswd->bv_val = NULL;
+	newpasswd->bv_len = 0;
 
 	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 0 );
 
@@ -90,17 +91,17 @@ ldap_passwd( LDAP *ld,
 		ber_printf( ber, "{" /*}*/ );
 
 		if( user != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_ID, user );
 		}
 
 		if( oldpw != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, oldpw );
 		}
 
 		if( newpw != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, newpw );
 		}
 
@@ -129,7 +130,7 @@ ldap_passwd_s(
 	struct berval	*user,
 	struct berval	*oldpw,
 	struct berval	*newpw,
-	struct berval **newpasswd,
+	struct berval *newpasswd,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
