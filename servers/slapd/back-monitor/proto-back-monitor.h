@@ -75,6 +75,11 @@ int monitor_subsys_ops_init LDAP_P(( BackendDB *be ));
 int monitor_subsys_ops_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
+ * overlay
+ */
+int monitor_subsys_overlay_init LDAP_P(( BackendDB *be ));
+
+/*
  * sent
  */
 int monitor_subsys_sent_init LDAP_P(( BackendDB *be ));

@@ -136,6 +136,14 @@ struct monitorsubsys monitor_subsys[] = {
 		monitor_subsys_time_update,
 		NULL,   /* create */
 		NULL,	/* modify */
+       	}, { 
+		SLAPD_MONITOR_OVERLAY, SLAPD_MONITOR_OVERLAY_NAME,
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_overlay_init,
+		NULL,	/* update */
+		NULL,   /* create */
+		NULL,	/* modify */
 	}, { -1, NULL }
 };
 
