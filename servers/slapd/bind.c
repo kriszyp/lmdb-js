@@ -546,20 +546,54 @@ do_bind(
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
 	if ( rc != SLAPI_BIND_SUCCESS ) {
-		/* XXX: we should support SLAPI_BIND_ANONYMOUS being returned */
 		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
+		 * Binding is a special case for SLAPI plugins. It is
+		 * possible for a bind plugin to be successful *and*
+		 * abort further processing; this means it has handled
+		 * a bind request authoritatively. If we have reached
+		 * here, a result has been sent to the client (XXX
+		 * need to check with Sun whether SLAPI_BIND_ANONYMOUS
+		 * means a result has been sent).
 		 */
+		int ldapRc;
+
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 )
+			ldapRc = LDAP_OPERATIONS_ERROR;
+
+		edn.bv_val = NULL;
+		edn.bv_len = 0;
+		if ( rc != SLAPI_BIND_FAIL && ldapRc == LDAP_SUCCESS ) {
+			/* Set the new connection DN. */
+			if ( rc != SLAPI_BIND_ANONYMOUS ) {
+				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&edn.bv_val );
+			}
+			rc = dnPrettyNormal( NULL, &edn, &pdn, &ndn );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+			conn->c_dn = pdn;
+			conn->c_ndn = ndn;
+			pdn.bv_val = NULL;
+			pdn.bv_len = 0;
+			ndn.bv_val = NULL;
+			ndn.bv_len = 0;
+			if ( conn->c_dn.bv_len != 0 ) {
+				ber_len_t max = sockbuf_max_incoming_auth;
+				ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+			}
+			/* log authorization identity */
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
+				op->o_connid, op->o_opid,
+				conn->c_dn.bv_val, 0, 0 );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		}
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin failed\n",
-				0, 0, 0);
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin returned %d\n",
+				rc, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin failed.\n",
-				0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin returned %d.\n",
+				rc, 0, 0);
 #endif
-		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
-			rc = LDAP_OPERATIONS_ERROR;
+		rc = ldapRc;
 		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
