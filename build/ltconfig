@@ -541,7 +541,7 @@ if test -n "$pic_flag"; then
   # Check to make sure the pic_flag actually works.
   echo $ac_n "checking if $compiler PIC flag $pic_flag works... $ac_c" 1>&6
   $rm conftest*
-  echo > conftest.c
+  echo "int __my_integer = 0" \; > conftest.c
   save_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pic_flag -DPIC"
   echo "$progname:547: checking if $compiler PIC flag $pic_flag works" >&5
@@ -1133,8 +1133,8 @@ freebsd2*)
 freebsd3*)
   version_type=freebsd
   library_names_spec='${libname}${release}.so.$versuffix $libname.so'
-  if [ $PORTOBJFORMAT = elf ]; then
-  finish_cmds='PATH="$PATH:/sbin" OBJFORMAT="$PORTOBJFORMAT" ldconfig -m $libdir'
+  if [ -x `/usr/bin/objformat` ]; then
+  finish_cmds='PATH="$PATH:/sbin" OBJFORMAT=`objformat` ldconfig -m $libdir'
   else
   finish_cmds='PATH="$PATH:/sbin" ldconfig -m $libdir'
   fi
