@@ -54,7 +54,6 @@ do_modify(
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 #endif
 
-
 	/*
 	 * Parse the modify request.  It looks like this:
 	 *
@@ -352,7 +351,8 @@ int slap_modlist2mods(
 	int update,
 	Modifications **mods,
 	const char **text,
-	char *textbuf, size_t textlen )
+	char *textbuf,
+	size_t textlen )
 {
 	int rc;
 	Modifications **modtail = mods;
@@ -425,12 +425,12 @@ int slap_modlist2mods(
 			if( !validate ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					   "modlist2mods: Attribute %s, no validator for syntax %s\n",
-					   ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid ));
+					"modlist2mods: %s: no validator for syntax %s\n",
+					ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
-					"modlist2mods: no validator for syntax %s\n",
-					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+					"modlist2mods: %s: no validator for syntax %s\n",
+					ml->ml_type, ad->ad_type->sat_syntax->ssyn_oid, 0 );
 #endif
 
 				slap_mods_free( mod );
