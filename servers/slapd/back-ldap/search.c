@@ -658,6 +658,7 @@ ldap_back_entry_get(
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;    
 	struct ldapconn *lc;
 	int rc = 1, is_oc;
+	struct berval mapped = { 0, NULL }, bdn, mdn;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[3];
 	char *filter;
