@@ -218,12 +218,12 @@ str2entry( char *s )
 			if( rc != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"str2entry:  invalid value for syntax %s\n",
-					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+					"str2entry:  invalid value for attribute %s (syntax %s)\n",
+					ad->ad_cname.bv_val, ad->ad_type->sat_syntax->ssyn_oid, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"str2entry: invalid value for syntax %s\n",
-					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+					"str2entry: invalid value for attribute %s (syntax %s)\n",
+					ad->ad_cname.bv_val, ad->ad_type->sat_syntax->ssyn_oid, 0 );
 #endif
 				entry_free( e );
 				free( vals[0].bv_val );
