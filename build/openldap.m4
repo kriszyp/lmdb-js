@@ -143,6 +143,23 @@ ac_cv_header_stdc=disable
 ])
 dnl
 dnl ====================================================================
+dnl Check if struct passwd has pw_gecos
+AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
+AC_MSG_CHECKING([struct passwd for pw_gecos])
+AC_CACHE_VAL(ol_cv_struct_passwd_pw_gecos,[
+	AC_TRY_COMPILE([#include <pwd.h>],[
+	struct passwd pwd;
+	pwd.pw_gecos = pwd.pw_name;
+],
+	[ol_cv_struct_passwd_pw_gecos=yes],
+	[ol_cv_struct_passwd_pw_gecos=no])])
+AC_MSG_RESULT($ol_cv_struct_passwd_pw_gecos)
+if test $ol_cv_struct_passwd_pw_gecos = yes ; then
+	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
+fi
+])
+dnl
+dnl ====================================================================
 dnl Check if db.h is Berkeley DB2
 dnl
 dnl defines ol_cv_header_db2 to 'yes' or 'no'

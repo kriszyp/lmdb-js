@@ -660,6 +660,9 @@
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 
+/* define if struct passwd has pw_gecos */
+#undef HAVE_PW_GECOS
+
 /* define if toupper() requires islower() */
 #undef C_UPPER_LOWER
 
