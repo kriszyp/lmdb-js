@@ -801,6 +801,9 @@ static int parseProxyAuthz (
 	op->o_dn.bv_val = NULL;
 	op->o_ndn = dn;
 
+	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu PROXYAUTHZ dn=\"%s\"\n",
+	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+
 	/*
 	 * NOTE: since slap_sasl_getdn() returns a normalized dn,
 	 * from now on op->o_dn is normalized
