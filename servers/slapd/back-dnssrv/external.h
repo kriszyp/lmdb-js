@@ -33,9 +33,15 @@ extern int	dnssrv_back_search LDAP_P(( BackendDB *bd,
 	char *nbase, int scope, int deref, int sizelimit, int timelimit,
 	Filter *filter, char *filterstr, char **attrs, int attrsonly ));
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, Ava 	*ava ));
+	char *dn, char *ndn, AttributeAssertion *ava ));
+#else
+extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
+	Connection *conn, Operation *op,
+	char *dn, char *ndn, Ava *ava ));
+#endif
 
 extern int	dnssrv_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,

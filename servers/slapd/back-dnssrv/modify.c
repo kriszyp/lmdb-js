@@ -23,7 +23,7 @@ dnssrv_back_modify(
     Operation	*op,
     char	*dn,
     char	*ndn,
-    LDAPModList	*ml
+    Modifications	*ml
 )
 {
 	return dnssrv_back_request( be, conn, op, dn, ndn );
