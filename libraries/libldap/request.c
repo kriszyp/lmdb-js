@@ -725,7 +725,6 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	char		**refarray = NULL;
 	LDAPConn	*lc;
 	int			 rc, count, i, j, id;
-	int			 parent_was_reference;
 	LDAPreqinfo  rinfo;
 
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
@@ -761,11 +760,6 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		goto done;
 	}
 
-	/* check if parent request was a search reference */
-	parent_was_reference = ( lr->lr_parent &&
-		lr->lr_parent->lr_res_msgtype == LDAP_RES_SEARCH_REFERENCE ) ?
-		1 : 0;
-		
 	/* find original request */
 	for ( origreq = lr;
 		origreq->lr_parent != NULL;
@@ -896,8 +890,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-			(sref && !parent_was_reference) ? origreq : lr,
-		    	srv, NULL, &rinfo );
+		    	origreq, srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
