@@ -593,7 +593,6 @@ bdb_cache_find_id(
 	Entry	*ep = NULL;
 	int	rc = 0;
 	EntryInfo ei;
-	int lru_del = 0;
 
 	ei.bei_id = id;
 
@@ -673,6 +672,11 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 						if ( (*eip)->bei_e ) {
 							bdb_entry_return( ep );
 							ep = NULL;
+#ifdef BDB_HIER
+							/* Check for subtree renames */
+							rc = bdb_fix_dn( (*eip)->bei_e, 1 );
+							if ( rc ) rc = bdb_fix_dn( (*eip)->bei_e, 2 );
+#endif
 						} else {
 							ep->e_private = *eip;
 #ifdef BDB_HIER
@@ -683,12 +687,10 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 							*eip, 0, 0, lock );
 					}
-				} else {
-					/* If we had the entry already, this item
-					 * is on the LRU list.
-					 */
-					lru_del = 1;
 #ifdef BDB_HIER
+				} else {
+					/* Check for subtree renames
+					 */
 					rc = bdb_fix_dn( (*eip)->bei_e, 1 );
 					if ( rc ) {
 						bdb_cache_entry_db_relock( bdb->bi_dbenv,
@@ -708,8 +710,8 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	if ( rc == 0 ) {
 		/* set lru mutex */
 		ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
-		/* if entry is old, remove from old spot on LRU list */
-		if ( lru_del ) {
+		/* if entry is on LRU list, remove from old spot */
+		if ( (*eip)->bei_lrunext || (*eip)->bei_lruprev ) {
 			LRU_DELETE( &bdb->bi_cache, *eip );
 		} else {
 		/* if entry is new, bump cache size */
@@ -785,7 +787,10 @@ bdb_cache_add(
 
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	/* bdb_csn_commit can cause this when adding the database root entry */
-	if ( new->bei_e ) bdb_entry_return( new->bei_e );
+	if ( new->bei_e ) {
+		new->bei_e->e_private = NULL;
+		bdb_entry_return( new->bei_e );
+	}
 	new->bei_e = e;
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
