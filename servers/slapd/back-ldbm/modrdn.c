@@ -291,8 +291,7 @@ ldbm_back_modrdn(
 		np_ndn = nnewSuperior;
 
 		/* newSuperior == oldParent? */
-		if ( p_ndn.bv_len == np_ndn->bv_len &&
-			strcmp( p_ndn.bv_val, np_ndn->bv_val ) == 0 ) {
+		if ( dn_match( &p_ndn, np_ndn ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO, "ldbm_back_modrdn: "
 				"new parent\"%s\" seems to be the same as the "

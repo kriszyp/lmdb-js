@@ -69,7 +69,7 @@ bdb_group(
 		target->e_ndn, 0, 0 ); 
 #endif
 
-	if (strcmp(target->e_ndn, gr_ndn->bv_val) == 0) {
+	if (dn_match(&target->e_name, gr_ndn)) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING

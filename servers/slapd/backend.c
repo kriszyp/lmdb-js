@@ -606,7 +606,7 @@ be_isroot( Backend *be, struct berval *ndn )
 		return( 0 );
 	}
 
-	return strcmp( be->be_rootndn.bv_val, ndn->bv_val ) ? 0 : 1;
+	return dn_match( &be->be_rootndn, ndn );
 }
 
 int
@@ -620,7 +620,7 @@ be_isupdate( Backend *be, struct berval *ndn )
 		return( 0 );
 	}
 
-	return strcmp( be->be_update_ndn.bv_val, ndn->bv_val ) ? 0 : 1;
+	return dn_match( &be->be_update_ndn, ndn );
 }
 
 struct berval *
@@ -994,8 +994,7 @@ backend_group(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	if (i) return SLAPD_ABANDON;
 
-	if( target->e_nname.bv_len != gr_ndn->bv_len ||
-		strcmp( target->e_nname.bv_val, gr_ndn->bv_val ) != 0 ) {
+	if ( !dn_match( &target->e_nname, gr_ndn ) ) {
 		/* we won't attempt to send it to a different backend */
 		
 		be = select_backend( gr_ndn, 0,
@@ -1054,9 +1053,7 @@ backend_attribute(
 	BVarray *vals
 )
 {
-	if( target == NULL || target->e_nname.bv_len != edn->bv_len ||
-		strcmp( target->e_ndn, edn->bv_val ) != 0 )
-	{
+	if ( target == NULL || !dn_match( &target->e_nname, edn ) ) {
 		/* we won't attempt to send it to a different backend */
 		
 		be = select_backend( edn, 0,

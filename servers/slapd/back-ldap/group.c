@@ -54,8 +54,7 @@ ldap_back_group(
 	if (group_oc_name.bv_val)
 		group_oc_name.bv_len = strlen(group_oc_name.bv_val);
 
-	if (target != NULL && target->e_nname.bv_len == gr_ndn->bv_len &&
-		strcmp(target->e_nname.bv_val, gr_ndn->bv_val) == 0) {
+	if (target != NULL && dn_match( &target->e_nname, gr_ndn ) ) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 

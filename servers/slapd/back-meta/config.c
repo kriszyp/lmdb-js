@@ -235,8 +235,8 @@ meta_back_db_config(
 		 * or worked out, at least, in some manner
 		 */
 		for ( j = 0; j < i-1; j++ ) {
-			if ( strcmp( li->targets[ i ]->suffix.bv_val,
-					li->targets[ j ]->suffix.bv_val ) == 0 ) {
+			if ( dn_match( &li->targets[ i ]->suffix,
+					&li->targets[ j ]->suffix ) ) {
 				fprintf( stderr,
 	"%s: line %d: naming context \"%s\" already used"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",

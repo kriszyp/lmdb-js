@@ -40,7 +40,7 @@ get_limits(
 			if ( ndn->bv_len == 0 ) {
 				break;
 			}
-			if ( strcmp( lm[0]->lm_dn_pat.bv_val, ndn->bv_val ) == 0 ) {
+			if ( dn_match( &lm[0]->lm_dn_pat, ndn ) ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -76,7 +76,8 @@ get_limits(
 			}
 
 			/* in case of (sub)match ... */
-			if ( strcmp( lm[0]->lm_dn_pat.bv_val, &ndn->bv_val[d] ) == 0 ) {
+			if ( lm[0]->lm_dn_pat.bv_len == ( ndn->bv_len - d )
+					&& strcmp( lm[0]->lm_dn_pat.bv_val, &ndn->bv_val[d] ) == 0 ) {
 				/* check for exactly one rdn in case of ONE */
 				if ( lm[0]->lm_type == SLAP_LIMITS_ONE ) {
 					/*

@@ -59,7 +59,7 @@ ldbm_back_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
-	if (target != NULL && strcmp(target->e_ndn, entry_ndn->bv_val) == 0) {
+	if (target != NULL && dn_match( &target->e_nname, entry_ndn) ) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING

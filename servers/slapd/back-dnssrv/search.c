@@ -123,7 +123,7 @@ dnssrv_back_search(
 		}
 	}
 
-	if( strcmp( nrefdn.bv_val, ndn->bv_val ) != 0 ) {
+	if( !dn_match( &nrefdn, ndn ) ) {
 		/* requested dn is subordinate */
 
 		Debug( LDAP_DEBUG_TRACE,

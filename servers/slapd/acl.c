@@ -1602,7 +1602,7 @@ aci_mask(
 	}
 
 	if (aci_strbvcmp( "self", &bv ) == 0) {
-		if (strcmp(op->o_ndn.bv_val, e->e_ndn) == 0)
+		if (dn_match(&op->o_ndn, &e->e_nname))
 			return(1);
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
