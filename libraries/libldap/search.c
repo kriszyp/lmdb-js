@@ -60,6 +60,7 @@ ldap_search_ext(
 	int rc;
 	BerElement	*ber;
 	int timelimit;
+	ber_int_t id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_search_ext\n", 0, 0, 0 );
@@ -92,7 +93,7 @@ ldap_search_ext(
 	}
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly, sctrls, cctrls, timelimit, sizelimit ); 
+	    attrsonly, sctrls, cctrls, timelimit, sizelimit, &id ); 
 
 	if ( ber == NULL ) {
 		return ld->ld_errno;
@@ -100,7 +101,7 @@ ldap_search_ext(
 
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber, id );
 
 	if( *msgidp < 0 )
 		return ld->ld_errno;
@@ -171,6 +172,7 @@ ldap_search(
 	char **attrs, int attrsonly )
 {
 	BerElement	*ber;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_search\n", 0, 0, 0 );
@@ -182,7 +184,7 @@ ldap_search(
 	assert( LDAP_VALID( ld ) );
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly, NULL, NULL, -1, -1 ); 
+	    attrsonly, NULL, NULL, -1, -1, &id ); 
 
 	if ( ber == NULL ) {
 		return( -1 );
@@ -190,7 +192,7 @@ ldap_search(
 
 
 	/* send the message */
-	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber, id ));
 }
 
 
@@ -205,10 +207,11 @@ ldap_build_search_req(
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	ber_int_t timelimit,
-	ber_int_t sizelimit )
+	ber_int_t sizelimit,
+	ber_int_t *idp)
 {
 	BerElement	*ber;
-	int		err;
+	int		err, id;
 
 	/*
 	 * Create the search request.  It looks like this:
@@ -249,6 +252,7 @@ ldap_build_search_req(
 		}
 	}
 
+	LDAP_NEXT_MSGID( ld, *idp );
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
 	    err = ber_write( ber, ld->ld_options.ldo_peer,
@@ -257,7 +261,7 @@ ldap_build_search_req(
 	if ( LDAP_IS_UDP(ld) && ld->ld_options.ldo_version == LDAP_VERSION2) {
 	    char *dn = ld->ld_options.ldo_cldapdn;
 	    if (!dn) dn = "";
-	    err = ber_printf( ber, "{ist{seeiib", ++ld->ld_msgid, dn,
+	    err = ber_printf( ber, "{ist{seeiib", *idp, dn,
 		LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
 		(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
 		(timelimit < 0) ? ld->ld_timelimit : timelimit,
@@ -265,7 +269,7 @@ ldap_build_search_req(
 	} else
 #endif
 	{
-	    err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
+	    err = ber_printf( ber, "{it{seeiib", *idp,
 		LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
 		(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
 		(timelimit < 0) ? ld->ld_timelimit : timelimit,

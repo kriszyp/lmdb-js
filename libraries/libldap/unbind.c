@@ -193,6 +193,7 @@ ldap_send_unbind(
 	LDAPControl **cctrls )
 {
 	BerElement	*ber;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_send_unbind\n", 0, 0, 0 );
@@ -209,8 +210,9 @@ ldap_send_unbind(
 		return( ld->ld_errno );
 	}
 
+	LDAP_NEXT_MSGID( ld, id );
 	/* fill it in */
-	if ( ber_printf( ber, "{itn" /*}*/, ++ld->ld_msgid,
+	if ( ber_printf( ber, "{itn" /*}*/, id,
 	    LDAP_REQ_UNBIND ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

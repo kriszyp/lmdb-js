@@ -327,6 +327,15 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
 #endif
 #endif
 
+#ifdef LDAP_R_COMPILE
+#define	LDAP_NEXT_MSGID(ld, id) \
+	ldap_pvt_thread_mutex_lock( &(ld)->ld_req_mutex ); \
+	id = ++(ld)->ld_msgid; \
+	ldap_pvt_thread_mutex_unlock( &(ld)->ld_req_mutex )
+#else
+#define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
+#endif
+
 /*
  * in init.c
  */
@@ -449,7 +458,7 @@ LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb,
  * in request.c
  */
 LDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
-	const char *dn, BerElement *ber );
+	const char *dn, BerElement *ber, ber_int_t msgid );
 LDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
 LDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
@@ -485,7 +494,8 @@ LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	ber_int_t timelimit,
-	ber_int_t sizelimit ));
+	ber_int_t sizelimit,
+	ber_int_t *msgidp));
 
 
 /*

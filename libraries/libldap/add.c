@@ -98,6 +98,7 @@ ldap_add_ext(
 {
 	BerElement	*ber;
 	int		i, rc;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_add_ext\n", 0, 0, 0 );
@@ -119,8 +120,9 @@ ldap_add_ext(
 		return ld->ld_errno;
 	}
 
+	LDAP_NEXT_MSGID(ld, id);
 	rc = ber_printf( ber, "{it{s{", /* '}}}' */
-		++ld->ld_msgid, LDAP_REQ_ADD, dn );
+		id, LDAP_REQ_ADD, dn );
 
 	if ( rc == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -163,7 +165,7 @@ ldap_add_ext(
 	}
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber, id );
 
 	if(*msgidp < 0)
 		return ld->ld_errno;

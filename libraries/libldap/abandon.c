@@ -32,8 +32,7 @@ static int do_abandon LDAP_P((
 	ber_int_t origid,
 	ber_int_t msgid,
 	LDAPControl **sctrls,
-	LDAPControl **cctrls,
-	int lock));
+	LDAPControl **cctrls));
 
 /*
  * ldap_abandon_ext - perform an ldap extended abandon operation.
@@ -65,10 +64,17 @@ ldap_abandon_ext(
 #endif
 
 	/* check client controls */
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	rc = ldap_int_client_controls( ld, cctrls );
-	if( rc != LDAP_SUCCESS ) return rc;
+	if( rc == LDAP_SUCCESS )
+		rc = do_abandon( ld, msgid, msgid, sctrls, cctrls );
 
-	return do_abandon( ld, msgid, msgid, sctrls, cctrls, 1 );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	return rc;
 }
 
 
@@ -102,8 +108,7 @@ do_abandon(
 	ber_int_t origid,
 	ber_int_t msgid,
 	LDAPControl **sctrls,
-	LDAPControl **cctrls,
-	int lock)
+	LDAPControl **cctrls)
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
@@ -120,9 +125,6 @@ do_abandon(
 
 	sendabandon = 1;
 
-#ifdef LDAP_R_COMPILE
-	if ( lock ) ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 	/* find the request that we are abandoning */
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
 		if ( lr->lr_msgid == msgid ) {	/* this message */
@@ -130,12 +132,9 @@ do_abandon(
 		}
 		if ( lr->lr_origid == msgid ) {/* child:  abandon it */
 			(void) do_abandon( ld,
-				msgid, lr->lr_msgid, sctrls, cctrls, 0 );
+				msgid, lr->lr_msgid, sctrls, cctrls );
 		}
 	}
-#ifdef LDAP_R_COMPILE
-	if ( lock ) ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 
 	if ( lr != NULL ) {
 		if ( origid == msgid && lr->lr_parent != NULL ) {
@@ -149,7 +148,17 @@ do_abandon(
 		}
 	}
 
-	if ( ldap_msgdelete( ld, msgid ) == 0 ) {
+/* ldap_msgdelete locks the res_mutex. Give up the req_mutex
+ * while we're in there.
+ */
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	err = ldap_msgdelete( ld, msgid );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+	if ( err == 0 ) {
 		ld->ld_errno = LDAP_SUCCESS;
 		return LDAP_SUCCESS;
 	}
@@ -167,6 +176,7 @@ do_abandon(
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
+			LDAP_NEXT_MSGID(ld, i);
 #ifdef LDAP_CONNECTIONLESS
 			if ( LDAP_IS_UDP(ld) ) {
 			    err = ber_write( ber, ld->ld_options.ldo_peer,
@@ -177,14 +187,14 @@ do_abandon(
 			    char *dn = ld->ld_options.ldo_cldapdn;
 			    if (!dn) dn = "";
 			    err = ber_printf( ber, "{isti",  /* '}' */
-				++ld->ld_msgid, dn,
+				i, dn,
 				LDAP_REQ_ABANDON, msgid );
 			} else
 #endif
 			{
 			    /* create a message to send */
 			    err = ber_printf( ber, "{iti",  /* '}' */
-				++ld->ld_msgid,
+				i,
 				LDAP_REQ_ABANDON, msgid );
 			}
 
@@ -221,18 +231,12 @@ do_abandon(
 					sb = ld->ld_sb;
 				}
 
-#ifdef LDAP_R_COMPILE
-	if ( lock ) ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 				if ( ber_flush( sb, ber, 1 ) != 0 ) {
 					ld->ld_errno = LDAP_SERVER_DOWN;
 					err = -1;
 				} else {
 					err = 0;
 				}
-#ifdef LDAP_R_COMPILE
-	if ( lock ) ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 			}
 		}
 	}

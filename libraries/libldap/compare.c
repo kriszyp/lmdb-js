@@ -54,6 +54,7 @@ ldap_compare_ext(
 {
 	int rc;
 	BerElement	*ber;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_compare\n", 0, 0, 0 );
@@ -76,9 +77,11 @@ ldap_compare_ext(
 		return( LDAP_NO_MEMORY );
 	}
 
-	if ( ber_printf( ber, "{it{s{sON}N}", /* '}' */
-		++ld->ld_msgid,
-		LDAP_REQ_COMPARE, dn, attr, bvalue ) == -1 )
+	LDAP_NEXT_MSGID(ld, id);
+	rc = ber_printf( ber, "{it{s{sON}N}", /* '}' */
+		id,
+		LDAP_REQ_COMPARE, dn, attr, bvalue );
+	if ( rc == -1 )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
@@ -99,7 +102,7 @@ ldap_compare_ext(
 
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber, id );
 	return ( *msgidp < 0 ? ld->ld_errno : LDAP_SUCCESS );
 }
 

@@ -67,6 +67,7 @@ ldap_rename(
 {
 	BerElement	*ber;
 	int rc;
+	ber_int_t id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_rename\n", 0, 0, 0 );
@@ -83,6 +84,7 @@ ldap_rename(
 		return( LDAP_NO_MEMORY );
 	}
 
+	LDAP_NEXT_MSGID( ld, id );
 	if( newSuperior != NULL ) {
 		/* must be version 3 (or greater) */
 		if ( ld->ld_version < LDAP_VERSION3 ) {
@@ -90,15 +92,14 @@ ldap_rename(
 			ber_free( ber, 1 );
 			return( ld->ld_errno );
 		}
-
 		rc = ber_printf( ber, "{it{ssbtsN}", /* '}' */ 
-			++ld->ld_msgid, LDAP_REQ_MODDN,
+			id, LDAP_REQ_MODDN,
 			dn, newrdn, (ber_int_t) deleteoldrdn,
 			LDAP_TAG_NEWSUPERIOR, newSuperior );
 
 	} else {
 		rc = ber_printf( ber, "{it{ssbN}", /* '}' */ 
-			++ld->ld_msgid, LDAP_REQ_MODDN,
+			id, LDAP_REQ_MODDN,
 			dn, newrdn, (ber_int_t) deleteoldrdn );
 	}
 
@@ -122,7 +123,7 @@ ldap_rename(
 	}
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber, id );
 	
 	if( *msgidp < 0 ) {
 		return( ld->ld_errno );

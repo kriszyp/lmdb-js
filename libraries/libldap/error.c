@@ -283,6 +283,9 @@ ldap_parse_result(
 	if(referralsp != NULL) *referralsp = NULL;
 	if(serverctrls != NULL) *serverctrls = NULL;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	/* Find the next result... */
 	for ( lm = r; lm != NULL; lm = lm->lm_chain ) {
 		/* skip over entries and references */
@@ -296,6 +299,9 @@ ldap_parse_result(
 
 	if( lm == NULL ) {
 		ld->ld_errno = LDAP_NO_RESULTS_RETURNED;
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 		return ld->ld_errno;
 	}
 
@@ -410,6 +416,9 @@ ldap_parse_result(
 	if ( freeit ) {
 		ldap_msgfree( r );
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 
 	return( errcode );
 }

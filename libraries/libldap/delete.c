@@ -47,6 +47,7 @@ ldap_delete_ext(
 {
 	int rc;
 	BerElement	*ber;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_delete_ext\n", 0,0,0 );
@@ -69,8 +70,10 @@ ldap_delete_ext(
 		return( ld->ld_errno );
 	}
 
-	if ( ber_printf( ber, "{its", /* '}' */
-		++ld->ld_msgid, LDAP_REQ_DELETE, dn ) == -1 )
+	LDAP_NEXT_MSGID( ld, id );
+	rc = ber_printf( ber, "{its", /* '}' */
+		id, LDAP_REQ_DELETE, dn );
+	if ( rc == -1 )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
@@ -90,7 +93,7 @@ ldap_delete_ext(
 	}
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_DELETE, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_DELETE, dn, ber, id );
 
 	if(*msgidp < 0)
 		return ld->ld_errno;

@@ -52,6 +52,7 @@ ldap_modify_ext( LDAP *ld,
 {
 	BerElement	*ber;
 	int		i, rc;
+	ber_int_t	id;
 
 	/*
 	 * A modify request looks like this:
@@ -86,8 +87,9 @@ ldap_modify_ext( LDAP *ld,
 		return( LDAP_NO_MEMORY );
 	}
 
-	if ( ber_printf( ber, "{it{s{" /*}}}*/, ++ld->ld_msgid, LDAP_REQ_MODIFY, dn )
-	    == -1 ) {
+	LDAP_NEXT_MSGID( ld, id );
+	rc = ber_printf( ber, "{it{s{" /*}}}*/, id, LDAP_REQ_MODIFY, dn );
+	if ( rc == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );
@@ -131,7 +133,7 @@ ldap_modify_ext( LDAP *ld,
 	}
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber, id );
 	return( *msgidp < 0 ? ld->ld_errno : LDAP_SUCCESS );
 }
 

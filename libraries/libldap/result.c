@@ -97,6 +97,7 @@ ldap_result(
 	LDAPMessage **result )
 {
 	LDAPMessage	*lm;
+	int	rc;
 
 	assert( ld != NULL );
 	assert( result != NULL );
@@ -107,15 +108,22 @@ ldap_result(
 	Debug( LDAP_DEBUG_TRACE, "ldap_result msgid %d\n", msgid, 0, 0 );
 #endif
 
-    lm = chkResponseList(ld, msgid, all);
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
+	lm = chkResponseList(ld, msgid, all);
 
 	if ( lm == NULL ) {
-		return( wait4msg( ld, msgid, all, timeout, result ) );
+		rc = wait4msg( ld, msgid, all, timeout, result );
+	} else {
+		*result = lm;
+		ld->ld_errno = LDAP_SUCCESS;
+		rc = lm->lm_msgtype;
 	}
-
-	*result = lm;
-	ld->ld_errno = LDAP_SUCCESS;
-	return( lm->lm_msgtype );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
+	return( rc );
 }
 
 static LDAPMessage *
@@ -141,9 +149,6 @@ chkResponseList(
 	    msgid, all, 0 );
 #endif
 	lastlm = NULL;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
 
@@ -210,9 +215,6 @@ chkResponseList(
 	    }
 	    lm->lm_next = NULL;
     }
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
 
 #ifdef LDAP_DEBUG
 	if( lm == NULL) {
@@ -314,15 +316,12 @@ wait4msg(
 	        }
 
 		    if ( lc == NULL ) {
-#ifdef LDAP_R_COMPILE
-			    ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
 			    rc = ldap_int_select( ld, tvp );
 #ifdef LDAP_R_COMPILE
 			    ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+			    ldap_pvt_thread_yield();
+			    ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
-
-
 #ifdef LDAP_DEBUG
 			    if ( rc == -1 ) {
 #ifdef NEW_LOGGING
@@ -435,16 +434,10 @@ try_read1msg(
 #endif
 
 retry:
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
 	if ( lc->lconn_ber == NULL ) {
 		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
 
 		if( lc->lconn_ber == NULL ) {
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
 			return -1;
 		}
 	}
@@ -468,9 +461,6 @@ retry:
 	 	 */
 		lc->lconn_ber = NULL;
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
 	if ( tag != LDAP_TAG_MESSAGE ) {
 		if ( tag == LBER_DEFAULT) {
 #ifdef LDAP_DEBUG		   
@@ -857,9 +847,6 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	 * search response.
 	 */
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
-#endif
 	prev = NULL;
 	for ( l = ld->ld_responses; l != NULL; l = l->lm_next ) {
 		if ( l->lm_msgid == new->lm_msgid )
@@ -907,9 +894,6 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 
 leave:
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
 	if ( foundit ) {
 		ld->ld_errno = LDAP_SUCCESS;
 		return( tag );

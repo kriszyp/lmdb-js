@@ -82,7 +82,8 @@ ldap_send_initial_request(
 	LDAP *ld,
 	ber_tag_t msgtype,
 	const char *dn,
-	BerElement *ber )
+	BerElement *ber,
+	ber_int_t msgid)
 {
 	LDAPURLDesc	*servers;
 	int rc;
@@ -133,8 +134,14 @@ ldap_send_initial_request(
 			return LDAP_PARAM_ERROR;
 	}
 #endif
-	rc = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL,
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+	rc = ldap_send_server_request( ld, ber, msgid, NULL,
 									servers, NULL, NULL );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 	if (servers)
 		ldap_free_urllist(servers);
 	return(rc);
@@ -233,17 +240,11 @@ ldap_send_server_request(
 	 * request to be in WRITING state.
 	 */
 	rc = 0;
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 	if ( ld->ld_requests &&
 		ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
 		ldap_int_flush_request( ld, ld->ld_requests ) < 0 ) {
 		rc = -1;
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 	if ( rc ) return rc;
 
 	if (( lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ))) ==
@@ -276,9 +277,6 @@ ldap_send_server_request(
 		lr->lr_origid = lr->lr_msgid;
 	}
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 	if (( lr->lr_next = ld->ld_requests ) != NULL ) {
 		lr->lr_next->lr_prev = lr;
 	}
@@ -289,9 +287,6 @@ ldap_send_server_request(
 	if ( ldap_int_flush_request( ld, lr ) == -1 ) {
 		msgid = -1;
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 
 	return( msgid );
 }
@@ -606,7 +601,6 @@ ldap_dump_requests_and_responses( LDAP *ld )
 	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
 	fprintf( stderr, "** Response Queue:\n" );
 	if (( lm = ld->ld_responses ) == NULL ) {
@@ -625,9 +619,6 @@ ldap_dump_requests_and_responses( LDAP *ld )
 			}
 		}
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
-#endif
 }
 #endif /* LDAP_DEBUG */
 
@@ -849,7 +840,8 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			srv->lud_dn = LDAP_STRDUP( "" );
 		}
 
-		ber = re_encode_request( ld, origreq->lr_ber, ++ld->ld_msgid,
+		LDAP_NEXT_MSGID( ld, rc );
+		ber = re_encode_request( ld, origreq->lr_ber, rc,
 			sref, srv, &rinfo.ri_request );
 
 		if( ber == NULL ) {
@@ -871,8 +863,15 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		/* Send the new request to the server - may require a bind */
 		rinfo.ri_msgid = origreq->lr_origid;
 		rinfo.ri_url = refarray[i];
-		if ( (rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
-		    	origreq, srv, NULL, &rinfo )) < 0 ) {
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+		rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
+		    	origreq, srv, NULL, &rinfo );
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+		if ( rc < 0 ) {
 			/* Failure, try next referral in the list */
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
@@ -1047,8 +1046,9 @@ ldap_chase_referrals( LDAP *ld,
 
 		*hadrefp = 1;
 
+		LDAP_NEXT_MSGID( ld, rc );
 		ber = re_encode_request( ld, origreq->lr_ber,
-		    ++ld->ld_msgid, sref, srv, &rinfo.ri_request );
+		    rc, sref, srv, &rinfo.ri_request );
 
 		if( ber == NULL ) {
 			return -1 ;
@@ -1059,8 +1059,14 @@ ldap_chase_referrals( LDAP *ld,
 
 		rinfo.ri_msgid = origreq->lr_origid;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 		rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
 		    lr, srv, NULL, &rinfo );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 
 		LDAP_FREE( rinfo.ri_url );
 

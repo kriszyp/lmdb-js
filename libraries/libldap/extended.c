@@ -43,6 +43,7 @@ ldap_extended_operation(
 {
 	BerElement *ber;
 	int rc;
+	ber_int_t id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_extended_operation\n", 0,0,0 );
@@ -67,15 +68,16 @@ ldap_extended_operation(
 		return( ld->ld_errno );
 	}
 
+	LDAP_NEXT_MSGID( ld, id );
 	if ( reqdata != NULL ) {
 		rc = ber_printf( ber, "{it{tstON}", /* '}' */
-			++ld->ld_msgid, LDAP_REQ_EXTENDED,
+			id, LDAP_REQ_EXTENDED,
 			LDAP_TAG_EXOP_REQ_OID, reqoid,
 			LDAP_TAG_EXOP_REQ_VALUE, reqdata );
 
 	} else {
 		rc = ber_printf( ber, "{it{tsN}", /* '}' */
-			++ld->ld_msgid, LDAP_REQ_EXTENDED,
+			id, LDAP_REQ_EXTENDED,
 			LDAP_TAG_EXOP_REQ_OID, reqoid );
 	}
 
@@ -98,7 +100,7 @@ ldap_extended_operation(
 	}
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_EXTENDED, NULL, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_EXTENDED, NULL, ber, id );
 
 	return( *msgidp < 0 ? ld->ld_errno : LDAP_SUCCESS );
 }

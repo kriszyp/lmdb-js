@@ -60,6 +60,7 @@ ldap_sasl_bind(
 {
 	BerElement	*ber;
 	int rc;
+	ber_int_t id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_sasl_bind\n", 0, 0, 0 );
@@ -98,24 +99,25 @@ ldap_sasl_bind(
 
 	assert( LBER_VALID( ber ) );
 
+	LDAP_NEXT_MSGID( ld, id );
 	if( mechanism == LDAP_SASL_SIMPLE ) {
 		/* simple bind */
 		rc = ber_printf( ber, "{it{istON}" /*}*/,
-			++ld->ld_msgid, LDAP_REQ_BIND,
+			id, LDAP_REQ_BIND,
 			ld->ld_version, dn, LDAP_AUTH_SIMPLE,
 			cred );
 		
 	} else if ( cred == NULL || cred->bv_val == NULL ) {
 		/* SASL bind w/o creditials */
 		rc = ber_printf( ber, "{it{ist{sN}N}" /*}*/,
-			++ld->ld_msgid, LDAP_REQ_BIND,
+			id, LDAP_REQ_BIND,
 			ld->ld_version, dn, LDAP_AUTH_SASL,
 			mechanism );
 
 	} else {
 		/* SASL bind w/ creditials */
 		rc = ber_printf( ber, "{it{ist{sON}N}" /*}*/,
-			++ld->ld_msgid, LDAP_REQ_BIND,
+			id, LDAP_REQ_BIND,
 			ld->ld_version, dn, LDAP_AUTH_SASL,
 			mechanism, cred );
 	}
@@ -140,7 +142,7 @@ ldap_sasl_bind(
 
 
 	/* send the message */
-	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber );
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber, id );
 
 	if(*msgidp < 0)
 		return ld->ld_errno;

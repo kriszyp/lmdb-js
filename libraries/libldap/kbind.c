@@ -62,6 +62,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
+	ber_int_t	id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind1\n", 0, 0, 0 );
@@ -88,8 +89,9 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
+	LDAP_NEXT_MSGID( ld, id );
 	/* fill it in */
-	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", id, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
 
 	if ( rc == -1 ) {
@@ -103,7 +105,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 
 
 	/* send the message */
-	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber, id ));
 }
 
 int
@@ -148,6 +150,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
+	ber_int_t id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind2\n", 0, 0, 0 );
@@ -174,10 +177,10 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
+	LDAP_NEXT_MSGID( ld, id );
 	/* fill it in */
-	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", id, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
-
 
 	LDAP_FREE( cred );
 
@@ -188,7 +191,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* send the message */
-	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber, id ));
 }
 
 /* synchronous bind to DSA using kerberos */
