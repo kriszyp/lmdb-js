@@ -13,12 +13,12 @@
 #include "lber.h"
 #include "ldap.h"
 
-void
+int
 main(int argc, char **argv)
 {
 	LDAPAPIInfo api;
 	int ival;
-	int sval;
+	char *sval;
 
 #ifdef LDAP_API_INFO_VERSION
 	api.ldapai_info_version = LDAP_API_INFO_VERSION;
@@ -56,7 +56,7 @@ main(int argc, char **argv)
 #endif
 
 	if(ldap_get_option(NULL, LDAP_OPT_API_INFO, &api) != LDAP_SUCCESS) {
-		fprintf(stderr, "%s: ldap_get_option(api) failed", argv[0]);
+		fprintf(stderr, "%s: ldap_get_option(api) failed\n", argv[0]);
 		exit(-1);
 	}
 
@@ -64,7 +64,7 @@ main(int argc, char **argv)
 	printf("  API Info version:  %d\n", api.ldapai_info_version);
 
 	if (api.ldapai_info_version != LDAP_API_INFO_VERSION) {
-		printf(" API INFO version mismatch!");
+		printf(" API INFO version mismatch!\n");
 		exit(-1);
 	}
 
@@ -76,11 +76,12 @@ main(int argc, char **argv)
 
 	} else {
 		int i;
+		for(i=0; api.ldapai_extensions[i] != NULL; i++) /* empty */;
+		printf("  Extensions:        %d\n", i);
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) {
 			printf("                     %s\n",
 				api.ldapai_extensions[i]);
 		}
-		printf("  #Extensions:       %d\n", i);
 	}
 
 	printf("  Vendor Name:       %s\n", api.ldapai_vendor_name);
@@ -89,22 +90,49 @@ main(int argc, char **argv)
 	printf("\nExecution time Default Options\n");
 
 	if(ldap_get_option(NULL, LDAP_OPT_DEREF, &ival) != LDAP_SUCCESS) {
-		fprintf(stderr, "%s: ldap_get_option(api) failed", argv[0]);
+		fprintf(stderr, "%s: ldap_get_option(api) failed\n", argv[0]);
 		exit(-1);
 	}
 	printf("  DEREF:             %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_SIZELIMIT, &ival) != LDAP_SUCCESS) {
-		fprintf(stderr, "%s: ldap_get_option(sizelimit) failed", argv[0]);
+		fprintf(stderr, "%s: ldap_get_option(sizelimit) failed\n", argv[0]);
 		exit(-1);
 	}
 	printf("  SIZELIMIT:         %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_TIMELIMIT, &ival) != LDAP_SUCCESS) {
-		fprintf(stderr, "%s: ldap_get_option(timelimit) failed", argv[0]);
+		fprintf(stderr, "%s: ldap_get_option(timelimit) failed\n", argv[0]);
 		exit(-1);
 	}
 	printf("  TIMELIMIT:         %d\n", ival);
 
+	if(ldap_get_option(NULL, LDAP_OPT_REFERRALS, &ival) != LDAP_SUCCESS) {
+		fprintf(stderr, "%s: ldap_get_option(referrals) failed\n", argv[0]);
+		exit(-1);
+	}
+	printf("  REFERRALS:         %s\n",
+		ival == (int) LDAP_OPT_ON ? "on" : "off");
+
+	if(ldap_get_option(NULL, LDAP_OPT_RESTART, &ival) != LDAP_SUCCESS) {
+		fprintf(stderr, "%s: ldap_get_option(restart) failed\n", argv[0]);
+		exit(-1);
+	}
+	printf("  RESTART:           %s\n",
+		ival == (int) LDAP_OPT_ON ? "on" : "off");
+
+	if(ldap_get_option(NULL, LDAP_OPT_PROTOCOL_VERSION, &ival) != LDAP_SUCCESS) {
+		fprintf(stderr, "%s: ldap_get_option(protocol version) failed\n", argv[0]);
+		exit(-1);
+	}
+	printf("  PROTOCOL VERSION:  %d\n", ival);
+
+	if(ldap_get_option(NULL, LDAP_OPT_HOST_NAME, &sval) != LDAP_SUCCESS) {
+		fprintf(stderr, "%s: ldap_get_option(host name) failed\n", argv[0]);
+		exit(-1);
+	}
+	printf("  HOST NAME:         %s\n", sval);
+
 	exit(0);
+	return 0;
 }
