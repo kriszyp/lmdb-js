@@ -54,7 +54,13 @@ dn2entry_retry:
 	/* get entry */
 	rc = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1, locker, &lock );
 
-	e = ei->bei_e;
+	/* bdb_dn2entry() may legally leave ei == NULL
+	 * if rc != 0 and rc != DB_NOTFOUND
+	 */
+	if ( ei ) {
+		e = ei->bei_e;
+	}
+
 	switch(rc) {
 	case DB_NOTFOUND:
 	case 0:
