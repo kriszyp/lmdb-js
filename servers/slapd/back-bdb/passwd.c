@@ -47,8 +47,13 @@ bdb_exop_passwd(
 	rc = slap_passwd_parse( reqdata,
 		&id, NULL, &new, text );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "passwd", LDAP_LEVEL_ENTRY, "==>bdb_exop_passwd: \"%s\"\n",
+		id.bv_val ? id.bv_val : "" ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_exop_passwd: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
+#endif
 
 	if( rc != LDAP_SUCCESS ) {
 		goto done;
@@ -80,8 +85,13 @@ bdb_exop_passwd(
 		dn = op->o_dn;
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "passwd", LDAP_LEVEL_DETAIL1, "bdb_exop_passwd: \"%s\"%s\"\n",
+		dn.bv_val, id.bv_len ? " (proxy)" : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
 		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
+#endif
 
 	if( dn.bv_len == 0 ) {
 		*text = "No password is associated with the Root DSE";
@@ -101,7 +111,11 @@ retry:	/* transaction retry */
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
 			bdb_cache_return_entry_w(&bdb->bi_cache, e);
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "passwd", LDAP_LEVEL_DETAIL1, "bdb_exop_passwd: retrying...\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
+#endif
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -118,9 +132,13 @@ retry:	/* transaction retry */
 		bdb->bi_db_opflags );
 	*text = NULL;
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "passwd", LDAP_LEVEL_ERR, "bdb_exop_passwd: txn_begin failed: %s (%d)\n", db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 		*text = "internal error";
 		goto done;
