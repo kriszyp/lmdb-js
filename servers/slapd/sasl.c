@@ -25,7 +25,11 @@
 # endif
 
 # if SASL_VERSION_MAJOR >= 2
+# ifdef HAVE_SASL_SASL_H
 #  include <sasl/saslplug.h>
+# else
+#  include <saslplug.h>
+# endif
 #  define	SASL_CONST const
 # else
 #  define	SASL_CONST
