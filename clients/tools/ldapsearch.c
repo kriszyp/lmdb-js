@@ -526,14 +526,12 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
-#ifndef LDAP_CLIENT_UPDATE
 	if ( manageDSAit || noop || subentries
-		|| valuesReturnFilter || pageSize )
-#else
-	if ( manageDSAit || noop || subentries
-		|| valuesReturnFilter || pageSize || lcup )
-#endif
-	{
+			|| valuesReturnFilter || pageSize
+#ifdef LDAP_CLIENT_UPDATE
+			|| lcup
+#endif /* LDAP_CLIENT_UPDATE */
+			) {
 		int err;
 		int i=0;
 		LDAPControl c[3];
