@@ -92,8 +92,8 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 			ret = 1;
 			break;
 		case LBER_SB_OPT_SET_NONBLOCK:
-			ret = ( ber_pvt_socket_set_nonblock( sb->sb_fd,
-				(int)arg ) ? -1 : 1 );
+			ret = ber_pvt_socket_set_nonblock( sb->sb_fd, arg != NULL)
+				? -1 : 1;
 			break;
 		case LBER_SB_OPT_DRAIN:
 			/* Drain the data source to enable possible errors (e.g.
