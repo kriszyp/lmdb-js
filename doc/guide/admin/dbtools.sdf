@@ -91,18 +91,18 @@ using the {{I:ldapadd}} tool, you could create an {{TERM:LDIF}} file
 called {{EX:entries.ldif}} with the contents:
 
 >	# Organization for Example Corporation
->	dc=example, dc=com
->	objectClass=dcObject
->	objectClass=organization
->	dc=example
->	o=Example Corporation
->	description=The Example Corporation
+>	dn: dc=example, dc=com
+>	objectClass: dcObject
+>	objectClass: organization
+>	dc: example
+>	o: Example Corporation
+>	description: The Example Corporation
 >
 >	# Organizational Role for Directory Manager
->	cn=Manager, dc=example, dc=com
->	objectClass=organizationalRole
->	cn=Manager
->	description=Directory Manager
+>	dn: cn=Manager, dc=example, dc=com
+>	objectClass: organizationalRole
+>	cn: Manager
+>	description: Directory Manager
 
 and then use a command like this to actually create the entry:
 
