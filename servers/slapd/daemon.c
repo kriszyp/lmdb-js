@@ -1568,7 +1568,7 @@ slapd_daemon_task(
 								"cn=peercred,cn=external,cn=auth"));
 						sprintf(authid, "uidNumber=%d+gidNumber=%d,"
 							"cn=peercred,cn=external,cn=auth",
-							uid, gid);
+							(int) uid, (int) gid);
 					}
 				}
 				dnsname = "local";

@@ -477,13 +477,13 @@ static int parseProxyAuthz (
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
-		"parseProxyAuthz: conn %d authzid=\"%s\"\n", 
+		"parseProxyAuthz: conn %lu authzid=\"%s\"\n", 
 		conn->c_connid,
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
 #else
 	Debug( LDAP_DEBUG_ARGS,
-		"parseProxyAuthz: conn %d authzid=\"%s\"\n", 
+		"parseProxyAuthz: conn %lu authzid=\"%s\"\n", 
 		conn->c_connid,
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
@@ -492,11 +492,11 @@ static int parseProxyAuthz (
 	if( ctrl->ldctl_value.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, RESULTS, 
-			"parseProxyAuthz: conn=%d anonymous\n", 
+			"parseProxyAuthz: conn=%lu anonymous\n", 
 			conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"parseProxyAuthz: conn=%d anonymous\n", 
+			"parseProxyAuthz: conn=%lu anonymous\n", 
 			conn->c_connid, 0, 0 );
 #endif
 
@@ -523,12 +523,12 @@ static int parseProxyAuthz (
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, RESULTS, 
-		"parseProxyAuthz: conn=%d \"%s\"\n", 
+		"parseProxyAuthz: conn=%lu \"%s\"\n", 
 		conn->c_connid,
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"parseProxyAuthz: conn=%d \"%s\"\n", 
+		"parseProxyAuthz: conn=%lu \"%s\"\n", 
 		conn->c_connid,
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
 #endif

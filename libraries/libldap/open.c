@@ -358,7 +358,7 @@ ldap_int_open_connection(
 			"cn=peercred,cn=external,cn=auth")];
 		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
-			geteuid(), getegid() );
+			(int) geteuid(), (int) getegid() );
 		ldap_int_sasl_external( ld, conn, authid, LDAP_PVT_SASL_LOCAL_SSF);
 	}
 #endif
