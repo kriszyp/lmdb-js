@@ -762,37 +762,42 @@ send_search_entry(
 	 * to ValuesReturnFilter or 0 if not
 	 */	
 	if ( op->vrFilter != NULL ) {
-		int k = 0;
-		char *a_flags;
+		int	k = 0;
+		size_t	size;
 
 		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
-		e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
-		a_flags = (char *)(e_flags + i);
-		memset( a_flags, 0, k );
-		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
-			e_flags[i] = a_flags;
-			a_flags += j;
-		}
 
-		rc = filter_matched_values(be, conn, op, e->e_attrs, &e_flags) ; 
-		if ( rc == -1 ) {
+		size = i * sizeof(char *) + k;
+		if ( size > 0 ) {
+			char	*a_flags;
+			e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
+			a_flags = (char *)(e_flags + i);
+			memset( a_flags, 0, k );
+			for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+				e_flags[i] = a_flags;
+				a_flags += j;
+			}
+	
+			rc = filter_matched_values(be, conn, op, e->e_attrs, &e_flags) ; 
+			if ( rc == -1 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"send_search_entry: conn %lu matched values filtering failed\n",
-				conn ? conn->c_connid : 0, 0, 0 );
+				LDAP_LOG( OPERATION, ERR, 
+					"send_search_entry: conn %lu matched values filtering failed\n",
+					conn ? conn->c_connid : 0, 0, 0 );
 #else
-	    	Debug( LDAP_DEBUG_ANY,
-				"matched values filtering failed\n", 0, 0, 0 );
+		    	Debug( LDAP_DEBUG_ANY,
+					"matched values filtering failed\n", 0, 0, 0 );
 #endif
-			ber_free( ber, 1 );
-
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "matched values filtering error", 
-				NULL, NULL );
-			goto error_return;
+				ber_free( ber, 1 );
+	
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "matched values filtering error", 
+					NULL, NULL );
+				goto error_return;
+			}
 		}
 	}
 
@@ -915,63 +920,69 @@ send_search_entry(
 	aa = backend_operational( be, conn, op, e, attrs, opattrs );
 
 	if ( aa != NULL && op->vrFilter != NULL ) {
-		int k = 0;
-		char *a_flags, **tmp;
+		int	k = 0;
+		size_t	size;
 
 		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
-		/*
-		 * Reuse previous memory - we likely need less space
-		 * for operational attributes
-		 */
-		tmp = ch_realloc ( e_flags, i * sizeof(char *) + k );
-		if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"send_search_entry: conn %lu "
-				"not enough memory "
-				"for matched values filtering\n", 
-				conn ? conn->c_connid : 0, 0, 0);
-#else
-		    	Debug( LDAP_DEBUG_ANY,
-				"send_search_entry: conn %lu "
-				"not enough memory "
-				"for matched values filtering\n",
-				conn ? conn->c_connid : 0, 0, 0 );
-#endif
-			ber_free( ber, 1 );
 
-			send_ldap_result( conn, op, LDAP_NO_MEMORY,
-				NULL, NULL, NULL, NULL );
-			goto error_return;
-		}
-		e_flags = tmp;
-		a_flags = (char *)(e_flags + i);
-		memset( a_flags, 0, k );
-		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
-			e_flags[i] = a_flags;
-			a_flags += j;
-		}
-		rc = filter_matched_values(be, conn, op, aa, &e_flags) ; 
-	    
-		if ( rc == -1 ) {
+		size = i * sizeof(char *) + k;
+		if ( size > 0 ) {
+			char	*a_flags, **tmp;
+		
+			/*
+			 * Reuse previous memory - we likely need less space
+			 * for operational attributes
+			 */
+			tmp = ch_realloc ( e_flags, i * sizeof(char *) + k );
+			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"send_search_entry: conn %lu "
-				"matched values filtering failed\n", 
-				conn ? conn->c_connid : 0, 0, 0);
+				LDAP_LOG( OPERATION, ERR, 
+					"send_search_entry: conn %lu "
+					"not enough memory "
+					"for matched values filtering\n", 
+					conn ? conn->c_connid : 0, 0, 0);
 #else
-		    	Debug( LDAP_DEBUG_ANY,
-				"matched values filtering failed\n", 0, 0, 0 );
+			    	Debug( LDAP_DEBUG_ANY,
+					"send_search_entry: conn %lu "
+					"not enough memory "
+					"for matched values filtering\n",
+					conn ? conn->c_connid : 0, 0, 0 );
 #endif
-			ber_free( ber, 1 );
-
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "matched values filtering error", 
-				NULL, NULL );
-			goto error_return;
+				ber_free( ber, 1 );
+	
+				send_ldap_result( conn, op, LDAP_NO_MEMORY,
+					NULL, NULL, NULL, NULL );
+				goto error_return;
+			}
+			e_flags = tmp;
+			a_flags = (char *)(e_flags + i);
+			memset( a_flags, 0, k );
+			for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
+				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+				e_flags[i] = a_flags;
+				a_flags += j;
+			}
+			rc = filter_matched_values(be, conn, op, aa, &e_flags) ; 
+		    
+			if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR, 
+					"send_search_entry: conn %lu "
+					"matched values filtering failed\n", 
+					conn ? conn->c_connid : 0, 0, 0);
+#else
+			    	Debug( LDAP_DEBUG_ANY,
+					"matched values filtering failed\n", 0, 0, 0 );
+#endif
+				ber_free( ber, 1 );
+	
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "matched values filtering error", 
+					NULL, NULL );
+				goto error_return;
+			}
 		}
 	}
 
