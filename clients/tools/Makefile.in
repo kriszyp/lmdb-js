@@ -14,10 +14,11 @@ XLIBS =  -llutil -lldif -lldap -llber
 XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
-	ldpversion.c ldwversion.c
+	ldpversion.c ldwversion.c ldcversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd \
-	ldappasswd ldapwhoami
+	ldappasswd ldapwhoami ldapcompare
+
 
 ldapsearch:	ldsversion.o
 	$(LTLINK) -o $@ ldapsearch.o ldsversion.o $(LIBS)
@@ -37,9 +38,13 @@ ldappasswd:	ldpversion.o
 ldapwhoami:	ldwversion.o
 	$(LTLINK) -o $@ ldapwhoami.o ldwversion.o $(LIBS)
 
+ldapcompare: ldcversion.o
+	$(LTLINK) -o $@ ldapcompare.o ldcversion.o $(LIBS)
+
 ldapadd:	ldapmodify
 	@-$(RM) $@$(EXEEXT)
 	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
+
 
 ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
@@ -64,6 +69,11 @@ ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 ldwversion.c: ldapwhoami.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
 	$(MKVERSION) ldapwhoami > $@
+
+ldcversion.c: ldapcompare.o $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) ldapcompare > $@
+
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)

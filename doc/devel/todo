@@ -42,7 +42,8 @@ Implement dNSReferral <draft-zeilenga-ldap-dnsref-xx.txt>
 Implement authPassword (RFC 3112)
 Implement localization
 Implement LDAP Transactions
-Implement Proxy Group extension
+Implement Proxy Authorization Group extension
+Implement Proxy Authorization Control extension
 
 
 Small projects
@@ -50,12 +51,10 @@ Small projects
 Implement -E/-e extensions options
 Implement -V version options
 Implement simple paged results control
-Implement whoami? (get-authzid) operation
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
+Add support for Cyrus SASL v2
 Add support for Cyrus pwcheckd/saslauthd
-Add support for Cyrus SASL v2-beta
-Create ldapbind (from ldappasswd?) to support bind operations
-Create ldapcompare (from ldapsearch) to support compare operations
+Create ldapbind (from ldapcompare?) to support bind operations
 Update any manual page
 
 
