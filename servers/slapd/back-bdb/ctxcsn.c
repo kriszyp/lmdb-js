@@ -263,20 +263,88 @@ bdb_get_commit_csn(
 	int			ctxcsn_added = 0;
 	int			rc;
 	struct sync_cookie syncCookie = { NULL, -1, NULL};
+	syncinfo_t	*si;
 
-	if ( op->o_sync_mode != SLAP_SYNC_NONE ) {
-		if ( op->o_bd->be_syncinfo ) {
-			char substr[67];
-			struct berval bv;
-			sprintf( substr, "cn=syncrepl%d", op->o_bd->be_syncinfo->si_id );
+	if ( op->o_sync_mode != SLAP_SYNC_NONE &&
+		 !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+		char substr[67];
+		struct berval bv;
+
+		LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+			sprintf( substr, "cn=syncrepl%d", si->si_id );
 			ber_str2bv( substr, 0, 0, &bv );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
-		} else {
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
-						(struct berval *)&slap_ldapsync_cn_bv, NULL );
-		}
 
-ctxcsn_retry :
+consumer_ctxcsn_retry :
+			rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+										0, locker, ctxcsn_lock );
+			switch(rs->sr_err) {
+			case 0:
+				ch_free( ctxcsn_ndn.bv_val );
+				ctxcsn_ndn.bv_val = NULL;
+				if ( ctxcsn_ei ) {
+					ctxcsn_e = ctxcsn_ei->bei_e;
+				}
+				break;
+			case LDAP_BUSY:
+				ch_free( ctxcsn_ndn.bv_val );
+				LOCK_ID_FREE (bdb->bi_dbenv, locker );
+				return LDAP_BUSY;
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto consumer_ctxcsn_retry;
+			case DB_NOTFOUND:
+				ch_free( ctxcsn_ndn.bv_val );
+				LOCK_ID_FREE( bdb->bi_dbenv, locker );
+				return LDAP_OTHER;
+			default:
+				ch_free( ctxcsn_ndn.bv_val );
+				ctxcsn_ndn.bv_val = NULL;
+				LOCK_ID_FREE (bdb->bi_dbenv, locker );
+				return LDAP_OTHER;
+			}
+
+			if ( ctxcsn_e ) {
+				csn_a = attr_find( ctxcsn_e->e_attrs,
+							slap_schema.si_ad_syncreplCookie );
+				if ( csn_a ) {
+					struct berval cookie;
+					const char *text;
+					int match = -1;
+					ber_dupbv( &cookie, &csn_a->a_vals[0] );
+					ber_bvarray_add( &syncCookie.octet_str, &cookie );
+					slap_parse_sync_cookie( &syncCookie );
+					if ( *search_context_csn &&
+						 (*search_context_csn)->bv_val != NULL ) {
+						value_match( &match, slap_schema.si_ad_entryCSN,
+							slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							&syncCookie.ctxcsn, *search_context_csn, &text );
+					}
+					if ( match < 0 ) {
+						/* set search_context_csn to the
+						   smallest syncrepl cookie value */
+						if ( *search_context_csn ) {
+							ch_free( (*search_context_csn)->bv_val );
+							ch_free( *search_context_csn );
+						}
+						*search_context_csn = ber_dupbv( NULL,
+												syncCookie.ctxcsn );
+					}
+					slap_sync_cookie_free( &syncCookie, 0 );
+				} else {
+					*search_context_csn = NULL;
+				} 
+			} else {
+				*search_context_csn = NULL;
+			}
+		}
+	} else if ( op->o_sync_mode != SLAP_SYNC_NONE &&
+		 LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+		build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
+					(struct berval *)&slap_ldapsync_cn_bv, NULL );
+
+provider_ctxcsn_retry :
 		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
 									0, locker, ctxcsn_lock );
 		switch(rs->sr_err) {
@@ -286,102 +354,83 @@ ctxcsn_retry :
 				ctxcsn_e = ctxcsn_ei->bei_e;
 			}
 			break;
-        case LDAP_BUSY:
+		case LDAP_BUSY:
 			ch_free( ctxcsn_ndn.bv_val );
 			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 			return LDAP_BUSY;
-        case DB_LOCK_DEADLOCK:
-        case DB_LOCK_NOTGRANTED:
-			goto ctxcsn_retry;
-        case DB_NOTFOUND:
-			if ( !op->o_bd->be_syncinfo ) {
-				snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
-					bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto consumer_ctxcsn_retry;
+		case DB_NOTFOUND:
+			snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
+				bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 
-				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+			slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 
-				if ( 0 ) {
+			if ( 0 ) {
 txn_retry:
-					rs->sr_err = TXN_ABORT( ltid );
-					if ( rs->sr_err != 0 ) {
-						rs->sr_err = LDAP_OTHER;
-						return rs->sr_err;
-					}
-					ldap_pvt_thread_yield();
-					bdb_trans_backoff( ++num_retries );
-				}
-				rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, bdb->bi_db_opflags );
+				rs->sr_err = TXN_ABORT( ltid );
 				if ( rs->sr_err != 0 ) {
 					rs->sr_err = LDAP_OTHER;
 					return rs->sr_err;
 				}
+				ldap_pvt_thread_yield();
+				bdb_trans_backoff( ++num_retries );
+			}
+			rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL,
+								&ltid, bdb->bi_db_opflags );
+			if ( rs->sr_err != 0 ) {
+				rs->sr_err = LDAP_OTHER;
+				return rs->sr_err;
+			}
 
-				rs->sr_err = bdb_csn_commit( op, rs, ltid, NULL, &suffix_ei,
-										&ctxcsn_e, &ctxcsn_added, locker );
-				switch( rs->sr_err ) {
-				case BDB_CSN_ABORT:
-					LOCK_ID_FREE( bdb->bi_dbenv, locker );
-					return LDAP_OTHER;
-				case BDB_CSN_RETRY:
-					goto txn_retry;
-				}
-
-				rs->sr_err = TXN_PREPARE( ltid, gid );
-				if ( rs->sr_err != 0 ) {
-					rs->sr_err = LDAP_OTHER;
-					return rs->sr_err;
-				}
-
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-						(struct berval *)&slap_ldapsync_cn_bv, locker );
-
-				rs->sr_err = TXN_COMMIT( ltid, 0 );
-				if ( rs->sr_err != 0 ) {
-					rs->sr_err = LDAP_OTHER;
-					return rs->sr_err;
-				}
-
-				ctxcsn_ei = NULL;
-				rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
-										0, locker, ctxcsn_lock );
-				ch_free( ctxcsn_ndn.bv_val );
-
-				if ( ctxcsn_ei ) {
-					ctxcsn_e = ctxcsn_ei->bei_e;
-				}
-			} else {
+			rs->sr_err = bdb_csn_commit( op, rs, ltid, NULL, &suffix_ei,
+									&ctxcsn_e, &ctxcsn_added, locker );
+			switch( rs->sr_err ) {
+			case BDB_CSN_ABORT:
 				LOCK_ID_FREE( bdb->bi_dbenv, locker );
 				return LDAP_OTHER;
+			case BDB_CSN_RETRY:
+				goto txn_retry;
+			}
+
+			rs->sr_err = TXN_PREPARE( ltid, gid );
+			if ( rs->sr_err != 0 ) {
+				rs->sr_err = LDAP_OTHER;
+				return rs->sr_err;
+			}
+
+			bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
+					(struct berval *)&slap_ldapsync_cn_bv, locker );
+
+			rs->sr_err = TXN_COMMIT( ltid, 0 );
+			if ( rs->sr_err != 0 ) {
+				rs->sr_err = LDAP_OTHER;
+				return rs->sr_err;
+			}
+
+			rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+                                    0, locker, ctxcsn_lock );
+			ch_free( ctxcsn_ndn.bv_val );
+
+			if ( ctxcsn_ei ) {
+				ctxcsn_e = ctxcsn_ei->bei_e;
 			}
 			break;
 
 		default:
+			ch_free( ctxcsn_ndn.bv_val );
 			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 			return LDAP_OTHER;
 		}
 
 		if ( ctxcsn_e ) {
-			if ( op->o_bd->be_syncinfo ) {
-				csn_a = attr_find( ctxcsn_e->e_attrs,
-					slap_schema.si_ad_syncreplCookie );
-				if ( csn_a ) {
-					struct berval cookie;
-					ber_dupbv( &cookie, &csn_a->a_vals[0] );
-					ber_bvarray_add( &syncCookie.octet_str, &cookie );
-					slap_parse_sync_cookie( &syncCookie );
-					*search_context_csn = ber_dupbv( NULL, syncCookie.ctxcsn );
-					slap_sync_cookie_free( &syncCookie, 0 );
-				} else {
-					*search_context_csn = NULL;
-				}
+			csn_a = attr_find( ctxcsn_e->e_attrs,
+						slap_schema.si_ad_contextCSN );
+			if ( csn_a ) {
+				*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
 			} else {
-				csn_a = attr_find( ctxcsn_e->e_attrs,
-					slap_schema.si_ad_contextCSN );
-				if ( csn_a ) {
-					*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
-				} else {
-					*search_context_csn = NULL;
-				}
+				*search_context_csn = NULL;
 			}
 		} else {
 			*search_context_csn = NULL;

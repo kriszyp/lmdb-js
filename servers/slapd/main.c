@@ -146,6 +146,8 @@ int main( int argc, char **argv )
 	int	    serverMode = SLAP_SERVER_MODE;
 
 	struct berval cookie = { 0, NULL };
+	struct sync_cookie *scp = NULL;
+	struct sync_cookie *scp_entry = NULL;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -244,16 +246,31 @@ int main( int argc, char **argv )
 		case 'h':	/* listen URLs */
 			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
-	    break;
+			break;
 
 		case 'c':	/* provide sync cookie, override if exist in replica */
-			if ( slap_sync_cookie ) {
-				slap_sync_cookie_free( slap_sync_cookie, 1 );
-			}
-			slap_sync_cookie = (struct sync_cookie *) ch_calloc( 1,
-								sizeof( struct sync_cookie ));
+			scp = (struct sync_cookie *) ch_calloc( 1,
+										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, strlen( optarg ), 1, &cookie );
-			ber_bvarray_add( &slap_sync_cookie->octet_str, &cookie );
+			ber_bvarray_add( &scp->octet_str, &cookie );
+			slap_parse_sync_cookie( scp );
+
+			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {
+				if ( scp->rid == scp_entry->rid ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, CRIT,
+							"main: duplicated replica id in cookies\n",
+							0, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						    "main: duplicated replica id in cookies\n",
+							0, 0, 0 );
+#endif
+					slap_sync_cookie_free( scp, 1 );
+					goto destroy;
+				}
+			}
+			LDAP_STAILQ_INSERT_TAIL( &slap_sync_cookie, scp, sc_next );
 			break;
 
 		case 'd':	/* set debug level and 'do not detach' flag */
@@ -604,6 +621,12 @@ shutdown:
 destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
+
+	while ( !LDAP_STAILQ_EMPTY( &slap_sync_cookie )) {
+		scp = LDAP_STAILQ_FIRST( &slap_sync_cookie );
+		LDAP_STAILQ_REMOVE_HEAD( &slap_sync_cookie, sc_next );
+		ch_free( scp );
+	}
 
 #ifdef SLAPD_MODULES
 	module_kill();

@@ -306,23 +306,46 @@ slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
 	struct berval *csn,
-	int sid )
+	int sid,
+	int rid )
 {
-	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 10 ];
+	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 
 	if ( csn->bv_val == NULL ) {
 		if ( sid == -1 ) {
-			cookiestr[0] = '\0';
+			if ( rid == -1 ) {
+				cookiestr[0] = '\0';
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"rid=%03d", rid );
+			}
 		} else {
-			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
 						"sid=%03d", sid );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"sid=%03d,rid=%03d", sid, rid );
+			}
 		}
-	} else if ( sid == -1 ) {
-		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
-						"csn=%s", csn->bv_val );
 	} else {
-		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+		if ( sid == -1 ) {
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s", csn->bv_val );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s,rid=%03d", csn->bv_val, rid );
+			}
+		} else {
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
 						"csn=%s,sid=%03d", csn->bv_val, sid );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s,sid=%03d,rid=%03d", csn->bv_val, sid, rid );
+			}
+		}
 	}
 	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
 }
@@ -363,6 +386,8 @@ slap_parse_sync_cookie(
 	int csn_str_len;
 	char *sid_ptr;
 	char *sid_str;
+	char *rid_ptr;
+	char *rid_str;
 	char *cval;
 	struct berval *ctxcsn;
 
@@ -398,6 +423,18 @@ slap_parse_sync_cookie(
 		ch_free( sid_str );
 	} else {
 		cookie->sid = -1;
+	}
+
+	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
+		rid_str = (char *) SLAP_STRNDUP( rid_ptr,
+							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
+		if ( cval = strchr( rid_str, ',' )) {
+			*cval = '\0';
+		}
+		cookie->rid = atoi( rid_str + sizeof("rid=") - 1 );
+		ch_free( rid_str );
+	} else {
+		cookie->rid = -1;
 	}
 }
 
@@ -457,6 +494,7 @@ slap_dup_sync_cookie(
 	}
 
 	new->sid = src->sid;
+	new->rid = src->rid;
 
 	if ( src->ctxcsn ) {
 		for ( i=0; src->ctxcsn[i].bv_val; i++ ) {

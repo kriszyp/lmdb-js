@@ -2755,21 +2755,11 @@ add_syncrepl(
 )
 {
 	syncinfo_t *si;
+	syncinfo_t *si_entry;
+	int	rc = 0;
+	int duplicated_replica_id = 0;
 
-	if ( be->be_syncinfo ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, INFO, 
-			    "add_syncrepl: multiple syncrepl lines in a database "
-				"definition are yet to be supported.\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			    "add_syncrepl: multiple syncrepl lines in a database "
-				"definition are yet to be supported.\n", 0, 0, 0 );
-#endif
-		return 1;
-	}
-
-	si = be->be_syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
+	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
 	if ( si == NULL ) {
 #ifdef NEW_LOGGING
@@ -2807,15 +2797,55 @@ add_syncrepl(
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
 
-	if ( parse_syncrepl_line( cargv, cargc, si ) < 0 ) {
+	rc = parse_syncrepl_line( cargv, cargc, si );
+
+	LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
+		if ( si->si_id == si_entry->si_id ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, ERR,
+					"add_syncrepl: duplicaetd replica id\n", 0, 0,0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+					"add_syncrepl: duplicated replica id\n",0, 0, 0 );
+#endif
+			duplicated_replica_id = 1;
+			break;
+		}
+	}
+
+	if ( rc < 0 || duplicated_replica_id ) {
+		syncinfo_t *si_entry;
 		/* Something bad happened - back out */
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ERR, "failed to add syncinfo\n", 0, 0,0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 #endif
-		free( si );
-		be->be_syncinfo = NULL;
+
+		/* If error, remove all syncinfo */
+		LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
+			if ( si_entry->si_updatedn.bv_val ) {
+				ch_free( si->si_updatedn.bv_val );
+			}
+			if ( si_entry->si_filterstr.bv_val ) {
+				ch_free( si->si_filterstr.bv_val );
+			}
+			if ( si_entry->si_attrs ) {
+				int i;
+				while ( si_entry->si_attrs[i] != NULL ) {
+					ch_free( si_entry->si_attrs[i] );
+					i++;
+				}
+				ch_free( si_entry->si_attrs );
+			}
+		}
+
+		while ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
+			si_entry = LDAP_STAILQ_FIRST( &be->be_syncinfo );
+			LDAP_STAILQ_REMOVE_HEAD( &be->be_syncinfo, si_next );
+			ch_free( si_entry );
+		}
+		LDAP_STAILQ_INIT( &be->be_syncinfo );
 		return 1;
 	} else {
 #ifdef NEW_LOGGING
@@ -2831,6 +2861,7 @@ add_syncrepl(
 			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
 		}
 		si->si_be = be;
+		LDAP_STAILQ_INSERT_TAIL( &be->be_syncinfo, si, si_next );
 		return 0;
 	}
 }

@@ -551,7 +551,7 @@ LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
 LDAP_SLAPD_V( const struct berval ) slap_true_bv;
 LDAP_SLAPD_V( const struct berval ) slap_false_bv;
-LDAP_SLAPD_V( struct sync_cookie * ) slap_sync_cookie;
+LDAP_SLAPD_V( struct slap_sync_cookie_s ) slap_sync_cookie;
 
 /*
  * index.c
@@ -592,7 +592,7 @@ LDAP_SLAPD_F (int) slap_send_syncinfo LDAP_P((
 				Operation *, SlapReply *, int,
 				struct berval *, int, BerVarray, int ));
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
-				Operation *, struct berval *, struct berval *, int ));
+				Operation *, struct berval *, struct berval *, int, int ));
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
 				struct sync_cookie *, int free_cookie ));
 LDAP_SLAPD_F (int) slap_parse_sync_cookie LDAP_P((

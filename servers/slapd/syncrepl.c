@@ -187,9 +187,11 @@ do_syncrep1(
 	syncinfo_t *si )
 {
 	int	rc;
+	int cmdline_cookie_found = 0;
 
 	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
 	struct berval syncrepl_cn_bv;
+	struct sync_cookie	*sc = NULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
 
 	/* Init connection to master */
@@ -313,14 +315,20 @@ do_syncrep1(
 		op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
-	if ( slap_sync_cookie != NULL ) {
-		/* cookie is supplied in the command line */
+	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
+		if ( si->si_id == sc->rid ) {
+			cmdline_cookie_found = 1;
+			break;
+		}
+	}
 
+	if ( cmdline_cookie_found ) {
+		/* cookie is supplied in the command line */
 		BerVarray cookie = NULL;
 		struct berval cookie_bv;
 
+		LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
-		slap_parse_sync_cookie( slap_sync_cookie );
 
 		/* read stored cookie if it exists */
 		backend_attribute( op, NULL, &op->o_req_ndn,
@@ -328,36 +336,40 @@ do_syncrep1(
 
 		if ( !cookie ) {
 			/* no stored cookie */
-			if ( slap_sync_cookie->ctxcsn == NULL ||
-				 slap_sync_cookie->ctxcsn->bv_val == NULL ) {
-				/* if slap_sync_cookie does not have ctxcsn component */
-				/* set it to an initial value */
-				slap_init_sync_cookie_ctxcsn( slap_sync_cookie );
+			if ( sc->ctxcsn == NULL ||
+				 sc->ctxcsn->bv_val == NULL ) {
+				/* if cmdline cookie does not have ctxcsn */
+				/* component, set it to an initial value */
+				slap_init_sync_cookie_ctxcsn( sc );
 			}
-			slap_dup_sync_cookie( &si->si_syncCookie, slap_sync_cookie );
-			slap_sync_cookie_free( slap_sync_cookie, 1 );
-			slap_sync_cookie = NULL;
+			slap_dup_sync_cookie( &si->si_syncCookie, sc );
+			slap_sync_cookie_free( sc, 1 );
+			sc = NULL;
 		} else {
 			/* stored cookie */
 			ber_dupbv( &cookie_bv, &cookie[0] );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
 			slap_parse_sync_cookie( &si->si_syncCookie );
 			ber_bvarray_free_x( cookie, op->o_tmpmemctx );
-			if ( slap_sync_cookie->sid != -1 ) {
+			if ( sc->sid != -1 ) {
 				/* command line cookie wins */
-				si->si_syncCookie.sid = slap_sync_cookie->sid;
+				si->si_syncCookie.sid = sc->sid;
 			}
-			if ( slap_sync_cookie->ctxcsn != NULL ) {
+			if ( sc->ctxcsn != NULL ) {
 				/* command line cookie wins */
 				if ( si->si_syncCookie.ctxcsn ) {
 					ber_bvarray_free( si->si_syncCookie.ctxcsn );
 					si->si_syncCookie.ctxcsn = NULL;
 				}
-				ber_dupbv( &cookie_bv, &slap_sync_cookie->ctxcsn[0] );
+				ber_dupbv( &cookie_bv, &sc->ctxcsn[0] );
 				ber_bvarray_add( &si->si_syncCookie.ctxcsn, &cookie_bv );
 			}
-			slap_sync_cookie_free( slap_sync_cookie, 1 );
-			slap_sync_cookie = NULL;
+			if ( sc->rid != -1 ) {
+				/* command line cookie wins */
+				si->si_syncCookie.rid = sc->rid;
+			}
+			slap_sync_cookie_free( sc, 1 );
+			sc = NULL;
 		}
 	} else {
 		/* no command line cookie is specified */

@@ -1292,6 +1292,7 @@ typedef BackendDB Backend;
  */
 
 #define SLAP_SYNC_SID_SIZE	3
+#define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 struct nonpresent_entry {
@@ -1304,11 +1305,15 @@ struct sync_cookie {
 	struct berval *ctxcsn;
 	long sid;
 	struct berval *octet_str;
+	long rid;
+	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
+
+LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
-        unsigned int		si_id;
+        long				si_id;
         char				*si_provideruri;
         BerVarray			si_provideruri_bv;
 #define SYNCINFO_TLS_OFF		0
@@ -1341,6 +1346,7 @@ typedef struct syncinfo_s {
         Avlnode				*si_presentlist;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
 } syncinfo_t;
 
 struct slap_backend_db {
@@ -1495,7 +1501,7 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
-	syncinfo_t	*be_syncinfo;	/* For syncrepl */
+	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
 };
 
 struct slap_conn;

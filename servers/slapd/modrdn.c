@@ -353,10 +353,10 @@ do_modrdn(
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->be_syncinfo &&
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ) &&
 			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->be_syncinfo )
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
@@ -370,8 +370,13 @@ do_modrdn(
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-			if ( op->o_bd->be_syncinfo ) {
-				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &defref, &tmpbv );
+				}
 			} else {
 				defref = op->o_bd->be_update_refs
 					? op->o_bd->be_update_refs : default_referral;

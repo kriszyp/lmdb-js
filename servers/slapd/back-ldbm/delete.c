@@ -60,10 +60,19 @@ ldbm_back_delete(
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
-			BerVarray deref = op->o_bd->be_syncinfo ?
-				op->o_bd->be_syncinfo->si_provideruri_bv : default_referral;
+			BerVarray deref = NULL;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &deref, &tmpbv );
+				}
+			} else {
+				deref = default_referral;
+			}
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-				LDAP_SCOPE_DEFAULT );
+								LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

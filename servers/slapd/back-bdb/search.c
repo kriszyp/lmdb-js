@@ -1243,7 +1243,8 @@ id2entry_retry:
 							struct berval cookie;
 							slap_compose_sync_cookie( sop, &cookie,
 										search_context_csn,
-										sop->o_sync_state.sid );
+										sop->o_sync_state.sid,
+										sop->o_sync_state.rid );
 							rs->sr_err = slap_build_sync_state_ctrl( sop,
 								rs, e, entry_sync_state, ctrls,
 								num_ctrls++, 1, &cookie );
@@ -1388,7 +1389,8 @@ nochange:
 				struct berval cookie;
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
-										  sop->o_sync_state.sid );
+										  sop->o_sync_state.sid,
+										  sop->o_sync_state.rid );
 
 				if ( sync_send_present_mode ) {
 					rs->sr_err = LDAP_SUCCESS;
@@ -1432,7 +1434,8 @@ nochange:
 				struct berval cookie;
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
-										  sop->o_sync_state.sid );
+										  sop->o_sync_state.sid,
+										  sop->o_sync_state.rid );
 
 				if ( sync_send_present_mode ) {
 					slap_build_sync_done_ctrl( sop, rs, ctrls,
