@@ -2770,13 +2770,14 @@ read_config(const char *fname, const char *dir) {
 	if ( !be )
 		return 1;
 
+	cfb = be->be_private;
+
 	/* Setup the underlying back-ldif backend */
 	if ( config_setup_ldif( be, dir ))
 		return 1;
 
-#if 0	/* not yet
+#if 0	/* not yet */
 	/* If we read the config from back-ldif, nothing to do here */
-	cfb = be->be_private;
 	if ( cfb->cb_got_ldif )
 		return 0;
 #endif
