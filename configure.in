@@ -570,7 +570,6 @@ BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
-BUILD_CACHE=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -2716,10 +2715,6 @@ if test "$ol_enable_meta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_META=yes
 	BUILD_REWRITE=yes
-        if test $ol_enable_ldbm = yes -o \
-		$ol_enable_bdb = yes ; then 
-                BUILD_CACHE=yes
-        fi
 	if test "$ol_with_meta_module" != static ; then
 		AC_DEFINE(SLAPD_META_DYNAMIC,1,
 			[define to support dynamic LDAP Metadirectory backend])
@@ -2912,7 +2907,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
-  AC_SUBST(BUILD_CACHE)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
