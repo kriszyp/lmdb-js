@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 
@@ -3223,6 +3224,54 @@ objectIdentifierFirstComponentMatch(
 }
 
 static int
+integerBitAndMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	long lValue, lAssertedValue;
+
+	/* safe to assume integers are NUL terminated? */
+	lValue = strtoul(value->bv_val, NULL, 10);
+	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
+	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	*matchp = (lValue & lAssertedValue);
+	return LDAP_SUCCESS;
+}
+
+static int
+integerBitOrMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	long lValue, lAssertedValue;
+
+	/* safe to assume integers are NUL terminated? */
+	lValue = strtoul(value->bv_val, NULL, 10);
+	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
+	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	*matchp = (lValue | lAssertedValue);
+	return LDAP_SUCCESS;
+}
+
+static int
 check_time_syntax (struct berval *val,
 	int start,
 	int *parts)
@@ -4008,6 +4057,20 @@ struct mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_EQUALITY,
 		NULL, NULL,
 		OpenLDAPaciMatch, NULL, NULL,
+		NULL},
+
+	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		SLAP_MR_EXT,
+		NULL, NULL,
+		integerBitAndMatch, NULL, NULL,
+		NULL},
+
+	{"( 1.2.840.113556.1.4.804 NAME 'integerBitOrMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		SLAP_MR_EXT,
+		NULL, NULL,
+		integerBitOrMatch, NULL, NULL,
 		NULL},
 
 	{NULL, SLAP_MR_NONE, NULL, NULL, NULL, NULL}
