@@ -647,15 +647,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ERR, 
-		"bdb_modrdn: new ndn=%s does not exist\n", new_ndn.bv_val, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE,
-		"bdb_modrdn: new ndn=%s does not exist\n",
-		new_ndn.bv_val, 0, 0 );
-#endif
-
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
