@@ -20,8 +20,8 @@ openldap.schema         OpenLDAP Project (FYI)
 
 Additional "generally useful" schema definitions can be submitted
 using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
-Such submissions should include a stable reference (e.g. a URL) to
-a mature, open specification (e.g., an RFC) describing the schema.
+Submissions should include a stable reference to a mature, open
+technical specification (e.g., an RFC) for the schema.
 
 ---
 $OpenLDAP$
