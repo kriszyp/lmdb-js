@@ -169,8 +169,19 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	DB_INFO dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
+
+#if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
+    DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR == 4
+	/*
+	 * BerkeleyDB 2.4 do not allow db_cachesize
+	 * to be specified if an DB_ENV is.
+	 */
+#else
+	/* set db_cachesize of MPOOL is NOT being used. */
 	if (( ldbm_Env == NULL ) || ( ldbm_Env->mp_info == NULL ))
 		dbinfo.db_cachesize = dbcachesize;
+#endif
+
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
