@@ -2025,6 +2025,9 @@ fp_getline( FILE *fp, int *lineno )
 			return( line );
 		}
 
+		/* change leading whitespace to a space */
+		buf[0] = ' ';
+
 		CATLINE( buf );
 		(*lineno)++;
 	}
