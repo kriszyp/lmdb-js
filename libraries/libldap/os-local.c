@@ -98,7 +98,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 {
 	int so_errno;
 	int dummy = sizeof(so_errno);
-	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy ) == -1 ) {
+	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
+		== SOCKET_ERROR )
+	{
 		return -1;
 	}
 	if ( so_errno ) {
@@ -114,7 +116,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	struct sockaddr_un sa;
 	char ch;
 	int dummy = sizeof(sa);
-	if ( getpeername( s, (struct sockaddr *) &sa, &dummy ) == -1 ) {
+	if ( getpeername( s, (struct sockaddr *) &sa, &dummy )
+		== SOCKET_ERROR )
+	{
 		/* XXX: needs to be replace with ber_stream_read() */
 		read(s, &ch, 1);
 		TRACE;
@@ -144,10 +148,12 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
-	if ( connect(s, (struct sockaddr *) sa, sizeof(struct sockaddr_un)) == 0 )
+	if ( connect(s, (struct sockaddr *) sa, sizeof(struct sockaddr_un))
+		!= SOCKET_ERROR )
 	{
-		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
+		if ( ldap_pvt_ndelay_off(ld, s) == -1 ) {
 			return ( -1 );
+		}
 		return ( 0 );
 	}
 
@@ -162,8 +168,11 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
-	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
+	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL)
+		== SOCKET_ERROR )
+	{
 		return ( -1 );
+	}
 
 	if ( FD_ISSET(s, &wfds) ) {
 		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
@@ -181,12 +190,13 @@ int
 ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 {
 	struct sockaddr_un	server;
-	ber_socket_t		s = AC_SOCKET_INVALID;
+	ber_socket_t		s;
 	int			rc;
 
 	oslocal_debug(ld, "ldap_connect_to_path\n",0,0,0);
 
-	if ( (s = ldap_pvt_socket( ld )) == -1 ) {
+	s = ldap_pvt_socket( ld );
+	if ( s == AC_SOCKET_INVALID ) {
 		return -1;
 	}
 

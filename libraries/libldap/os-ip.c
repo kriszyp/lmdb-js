@@ -151,7 +151,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 {
 	int so_errno;
 	int dummy = sizeof(so_errno);
-	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy ) == -1 ) {
+	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
+		== SOCKET_ERROR )
+	{
 		return -1;
 	}
 	if ( so_errno ) {
@@ -167,7 +169,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	struct sockaddr_in sin;
 	char ch;
 	int dummy = sizeof(sin);
-	if ( getpeername( s, (struct sockaddr *) &sin, &dummy ) == -1 ) {
+	if ( getpeername( s, (struct sockaddr *) &sin, &dummy )
+		== SOCKET_ERROR )
+	{
 		/* XXX: needs to be replace with ber_stream_read() */
 		read(s, &ch, 1);
 #ifdef HAVE_WINSOCK
@@ -205,7 +209,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
-	if ( connect(s, sin, addrlen) == 0 )
+	if ( connect(s, sin, addrlen) != SOCKET_ERROR )
 	{
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
@@ -238,13 +242,14 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 #else
 		    z,
 #endif
-		    opt_tv ? &tv : NULL) == -1)
+		    opt_tv ? &tv : NULL) == SOCKET_ERROR )
+	{
 		return ( -1 );
+	}
 
 #ifdef HAVE_WINSOCK
 	/* This means the connection failed */
-	if (FD_ISSET(s, &efds))
-	{
+	if ( FD_ISSET(s, &efds) ) {
 	    ldap_pvt_set_errno(WSAECONNREFUSED);
 	    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
 		       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
@@ -310,7 +315,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		do {
 			/* we assume AF_x and PF_x are equal for all x */
 			s = ldap_int_socket( ld, sai->ai_family, SOCK_STREAM );
-			if ( s == -1 ) {
+			if ( s == AC_SOCKET_INVALID ) {
 				continue;
 			}
 
@@ -377,7 +382,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
 
 		s = ldap_int_socket( ld, PF_INET, SOCK_STREAM );
-		if ( s == -1 ) {
+		if ( s == AC_SOCKET_INVALID ) {
 			/* use_hp ? continue : break; */
 			break;
 		}
