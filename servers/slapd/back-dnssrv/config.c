@@ -21,8 +21,7 @@ dnssrv_back_db_config(
     const char	*fname,
     int		lineno,
     int		argc,
-    char	**argv
-)
+    char	**argv )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	char *port;
@@ -36,7 +35,8 @@ dnssrv_back_db_config(
 	/* no configuration options (yet) */
 	{
 		fprintf( stderr,
-"%s: line %d: unknown directive \"%s\" in DNSSRV database definition (ignored)\n",
+			"%s: line %d: unknown directive \"%s\""
+			" in DNSSRV database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
 	return 0;

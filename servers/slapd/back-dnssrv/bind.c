@@ -25,8 +25,7 @@ dnssrv_back_bind(
     const char		*ndn,
     int			method,
     struct berval	*cred,
-	char		**edn
-)
+	char		**edn )
 {
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d)\n",
 		dn == NULL ? "" : dn, 
