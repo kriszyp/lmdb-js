@@ -1,4 +1,4 @@
-/* referral.c - LDBM backend referral handler */
+/* referral.c - BDB backend referral handler */
 /* $OpenLDAP$ */
 /*
  * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -23,7 +23,7 @@ bdb_referrals(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc = LDAP_SUCCESS;
-	Entry *e, *matched;
+	Entry *e = NULL, *matched;
 
 	if( op->o_tag == LDAP_REQ_SEARCH ) {
 		/* let search take care of itself */
@@ -43,6 +43,9 @@ bdb_referrals(
 	case 0:
 		break;
 	default:
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_referrals: dn2entry failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 ); 
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
 		return rc;
@@ -56,7 +59,7 @@ bdb_referrals(
 			matched_dn = ch_strdup( matched->e_dn );
 
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				op->o_tag, dn, matched_dn );
 
 			refs = is_entry_referral( matched )
@@ -70,6 +73,8 @@ bdb_referrals(
 			/* send referrals */
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
+		} else {
+			rc = LDAP_SUCCESS;
 		}
 
 		if( matched != NULL ) {
@@ -86,7 +91,7 @@ bdb_referrals(
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			op->o_tag, dn, e->e_dn );
 
 		if( refs != NULL ) {
