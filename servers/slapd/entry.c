@@ -21,7 +21,7 @@ static int		emaxsize;/* max size of ebuf	     		 */
 
 int entry_destroy(void)
 {
-	free( *ebuf );
+	free( ebuf );
 	ebuf = NULL;
 	ecur = NULL;
 	emaxsize = 0;
