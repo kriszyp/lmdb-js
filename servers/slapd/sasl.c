@@ -555,8 +555,7 @@ slap_auxprop_store(
 		for (j=0; j<pr[i].nvalues; j++) {
 			ber_str2bv( pr[i].values[j], 0, 1, &mod->sml_values[j]);
 		}
-		mod->sml_values[j].bv_val = NULL;
-		mod->sml_values[j].bv_len = 0;
+		BER_BVZERO( &mod->sml_values[j] );
 		mod->sml_nvalues = NULL;
 		mod->sml_desc = NULL;
 		*modtail = mod;
@@ -650,6 +649,7 @@ slap_sasl_canonicalize(
 	struct berval dn;
 	int rc, which;
 	const char *names[2];
+	struct berval	bvin;
 
 	*out_len = 0;
 
@@ -725,7 +725,9 @@ slap_sasl_canonicalize(
 		if ( !rc ) goto done;
 	}
 
-	rc = slap_sasl_getdn( conn, NULL, (char *)in, inlen, (char *)user_realm, &dn,
+	bvin.bv_val = (char *)in;
+	bvin.bv_len = inlen;
+	rc = slap_sasl_getdn( conn, NULL, &bvin, (char *)user_realm, &dn,
 		(flags & SASL_CU_AUTHID) ? SLAP_GETDN_AUTHCID : SLAP_GETDN_AUTHZID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
@@ -789,8 +791,7 @@ slap_sasl_authorize(
 #endif
 	if ( conn->c_sasl_dn.bv_val ) {
 		ch_free( conn->c_sasl_dn.bv_val );
-		conn->c_sasl_dn.bv_val = NULL;
-		conn->c_sasl_dn.bv_len = 0;
+		BER_BVZERO( &conn->c_sasl_dn );
 	}
 
 	/* Skip PROP_CONN */
@@ -864,12 +865,12 @@ slap_sasl_authorize(
 	int rc;
 	Connection *conn = context;
 	char *realm;
+	struct berval	bvauthcid, bvauthzid;
 
 	*user = NULL;
 	if ( conn->c_sasl_dn.bv_val ) {
 		ch_free( conn->c_sasl_dn.bv_val );
-		conn->c_sasl_dn.bv_val = NULL;
-		conn->c_sasl_dn.bv_len = 0;
+		BER_BVZERO( &conn->c_sasl_dn );
 	}
 
 #ifdef NEW_LOGGING
@@ -901,13 +902,15 @@ slap_sasl_authorize(
 
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
-	rc = slap_sasl_getdn( conn, NULL, (char *)authcid, 0, realm,
+	bvauthcid.bv_val = authcid;
+	bvauthcid.bv_len = authcid ? strlen( authcid ) : 0;
+	rc = slap_sasl_getdn( conn, NULL, &bvauthcid, realm,
 		&authcDN, SLAP_GETDN_AUTHCID );
 	if( rc != LDAP_SUCCESS ) {
 		*errstr = ldap_err2string( rc );
 		return SASL_NOAUTHZ;
 	}
-	if( ( authzid == NULL ) || !strcmp( authcid,authzid ) ) {
+	if( ( authzid == NULL ) || !strcmp( authcid, authzid ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, ENTRY, 
 			"slap_sasl_authorize: conn %d  Using authcDN=%s\n",
@@ -920,7 +923,10 @@ slap_sasl_authorize(
 		conn->c_sasl_dn = authcDN;
 		goto ok;
 	}
-	rc = slap_sasl_getdn( conn, NULL, (char *)authzid, 0, realm,
+
+	bvauthzid.bv_val = authzid;
+	bvauthzid.bv_len = authzid ? strlen( authzid ) : 0;
+	rc = slap_sasl_getdn( conn, NULL, &bvauthzid, realm,
 		&authzDN, SLAP_GETDN_AUTHZID );
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( authcDN.bv_val );
@@ -1260,8 +1266,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 	if( ctx == NULL ) return -1;
 
 	ctx->sc_external_ssf = 0;
-	ctx->sc_external_id.bv_len = 0;
-	ctx->sc_external_id.bv_val = NULL;
+	BER_BVZERO( &ctx->sc_external_id );
 
 	conn->c_sasl_authctx = ctx;
 #endif
@@ -1322,11 +1327,9 @@ int slap_sasl_external(
 	ctx->sc_external_ssf = ssf;
 	if( auth_id ) {
 		ctx->sc_external_id = *auth_id;
-		auth_id->bv_len = 0;
-		auth_id->bv_val = NULL;
+		BER_BVZERO( auth_id );
 	} else {
-		ctx->sc_external_id.bv_len = 0;
-		ctx->sc_external_id.bv_val = NULL;
+		BER_BVZERO( &ctx->sc_external_id );
 	}
 #endif
 
@@ -1412,7 +1415,7 @@ int slap_sasl_close( Connection *conn )
 	if( ctx ) {
 		if( ctx->sc_external_id.bv_val ) {
 			free( ctx->sc_external_id.bv_val );
-			ctx->sc_external_id.bv_val = NULL;
+			BER_BVZERO( &ctx->sc_external_id );
 		}
 		free( ctx );
 		conn->c_sasl_authctx = NULL;
@@ -1506,8 +1509,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		sasl_ssf_t *ssf = NULL;
 
 		op->orb_edn = op->o_conn->c_sasl_dn;
-		op->o_conn->c_sasl_dn.bv_val = NULL;
-		op->o_conn->c_sasl_dn.bv_len = 0;
+		BER_BVZERO( &op->o_conn->c_sasl_dn );
 		op->o_conn->c_sasl_done = 1;
 
 		rs->sr_err = LDAP_SUCCESS;
@@ -1709,43 +1711,48 @@ done:
 #define	SET_DN		1
 #define	SET_U		2
 
-int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
+int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	char *user_realm, struct berval *dn, int flags )
 {
 	int rc, is_dn = SET_NONE, do_norm = 1;
 	struct berval dn2, *mech;
 
 	assert( conn );
+	assert( id );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_getdn: conn %d id=%s [len=%d]\n",
-		conn->c_connid, id ? (*id ? id : "<empty>") : "NULL", len );
+		conn->c_connid,
+		BER_BVISNULL( id ) ? "NULL" : ( BER_BVISEMPTY( id ) ? "<empty>" : id->bv_val ),
+		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 : id->bv_len ) );
 #else
-	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s [len=%d]\n", 
-		id ? ( *id ? id : "<empty>" ) : "NULL", len, 0 );
+	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %d id=%s [len=%d]\n", 
+		conn->c_connid,
+		BER_BVISNULL( id ) ? "NULL" : ( BER_BVISEMPTY( id ) ? "<empty>" : id->bv_val ),
+		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 : id->bv_len ) );
 #endif
 
 	if ( !op ) {
 		op = conn->c_sasl_bindop;
 	}
 
-	dn->bv_val = NULL;
-	dn->bv_len = 0;
+	BER_BVZERO( dn );
 
-	if ( id ) {
-		if ( len == 0 ) len = strlen( id );
-
+	if ( !BER_BVISNULL( id ) ) {
 		/* Blatantly anonymous ID */
-		if ( len == sizeof("anonymous") - 1 &&
-			!strcasecmp( id, "anonymous" ) ) {
+		static struct berval bv_anonymous = BER_BVC( "anonymous" );
+
+		if ( ber_bvstrcasecmp( id, &bv_anonymous ) == 0 ) {
 			return( LDAP_SUCCESS );
 		}
+
 	} else {
-		len = 0;
+		/* FIXME: if empty, should we stop? */
+		BER_BVSTR( id, "" );
 	}
 
-	if ( conn->c_sasl_bind_mech.bv_len ) {
+	if ( !BER_BVISEMPTY( &conn->c_sasl_bind_mech ) ) {
 		mech = &conn->c_sasl_bind_mech;
 	} else {
 		mech = &conn->c_authmech;
@@ -1759,33 +1766,35 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	if( flags & SLAP_GETDN_AUTHCID ) {
 		if( bvmatch( mech, &ext_bv )) {
 			/* EXTERNAL DNs are already normalized */
+			assert( !BER_BVISNULL( id ) );
+
 			do_norm = 0;
 			is_dn = SET_DN;
-			ber_str2bv_x( id, len, 1, dn, op->o_tmpmemctx );
+			ber_dupbv_x( dn, id, op->o_tmpmemctx );
 
 		} else {
 			/* convert to u:<username> form */
 			is_dn = SET_U;
-			dn->bv_val = id;
-			dn->bv_len = len;
+			*dn = *id;
 		}
 	}
+
 	if( is_dn == SET_NONE ) {
-		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
+		if( !strncasecmp( id->bv_val, "u:", STRLENOF( "u:" ) ) ) {
 			is_dn = SET_U;
-			dn->bv_val = id+2;
-			dn->bv_len = len-2;
-		} else if ( !strncasecmp( id, "dn:", sizeof("dn:")-1) ) {
+			dn->bv_val = id->bv_val + STRLENOF( "u:" );
+			dn->bv_len = id->bv_len - STRLENOF( "u:" );
+
+		} else if ( !strncasecmp( id->bv_val, "dn:", STRLENOF( "dn:" ) ) ) {
 			is_dn = SET_DN;
-			dn->bv_val = id+3;
-			dn->bv_len = len-3;
+			dn->bv_val = id->bv_val + STRLENOF( "dn:" );
+			dn->bv_len = id->bv_len - STRLENOF( "dn:" );
 		}
 	}
 
 	/* No other possibilities from here */
 	if( is_dn == SET_NONE ) {
-		dn->bv_val = NULL;
-		dn->bv_len = 0;
+		BER_BVZERO( dn );
 		return( LDAP_INAPPROPRIATE_AUTH );
 	}
 
@@ -1793,21 +1802,21 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	if( is_dn == SET_U ) {
 		char		*p;
 		struct berval	realm = BER_BVNULL, c1 = *dn;
+		ber_len_t	len;
 
-		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
+		len = dn->bv_len + STRLENOF( "uid=" ) + STRLENOF( ",cn=auth" );
 
 		if( user_realm && *user_realm ) {
-			realm.bv_val = user_realm;
-			realm.bv_len = strlen( user_realm );
- 			len += realm.bv_len + sizeof(",cn=") - 1;
+			ber_str2bv( user_realm, 0, 0, &realm );
+ 			len += realm.bv_len + STRLENOF( ",cn=" );
 		}
 
 		if( mech->bv_len ) {
-			len += mech->bv_len + sizeof(",cn=")-1;
+			len += mech->bv_len + STRLENOF( ",cn=" );
 		}
 
 		/* Build the new dn */
-		dn->bv_val = sl_malloc( len+1, op->o_tmpmemctx );
+		dn->bv_val = sl_malloc( len + 1, op->o_tmpmemctx );
 		if( dn->bv_val == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( TRANSPORT, ERR, 
@@ -1856,8 +1865,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		sl_free( dn->bv_val, op->o_tmpmemctx );
 
 		if ( rc != LDAP_SUCCESS ) {
-			dn->bv_val = NULL;
-			dn->bv_len = 0;
+			BER_BVZERO( dn );
 			return rc;
 		}
 		*dn = dn2;

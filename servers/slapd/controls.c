@@ -762,8 +762,7 @@ static int parseProxyAuthz (
 		return LDAP_SUCCESS;
 	}
 
-	rc = slap_sasl_getdn( op->o_conn, op,
-			ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
+	rc = slap_sasl_getdn( op->o_conn, op, &ctrl->ldctl_value,
 			NULL, &dn, SLAP_GETDN_AUTHZID );
 
 	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
