@@ -3,7 +3,7 @@
 # 
 
 # document's copyright
-!include "copyright.sdf"
+# !include "copyright.sdf"
 
 # acknowledge U-M.  Probably should be placed in a separate file.
 H1: Acknowledgements
