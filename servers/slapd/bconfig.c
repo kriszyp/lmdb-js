@@ -2075,15 +2075,22 @@ config_tls_config(ConfigArgs *c) {
 		{ BER_BVNULL, 0 }
 	}, *keys;
 	switch(c->type) {
+	case CFG_TLS_CRLCHECK:
 #ifdef HAVE_OPENSSL_CRL
-	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
-		break;
+		flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
+#else
+		Debug(LDAP_DEBUG_ANY, "%s: "
+				"disabled tls_option \"TLSCRLCheck\"\n",
+				c->log, c->type, 0);
 #endif
-	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT; keys = vfykeys;
 		break;
-	default:		Debug(LDAP_DEBUG_ANY, "%s: "
-					"unknown tls_option <%x>\n",
-					c->log, c->type, 0);
+	case CFG_TLS_VERIFY:
+		flag = LDAP_OPT_X_TLS_REQUIRE_CERT; keys = vfykeys;
+		break;
+	default:
+		Debug(LDAP_DEBUG_ANY, "%s: "
+				"unknown tls_option <%x>\n",
+				c->log, c->type, 0);
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
 		ldap_pvt_tls_get_option( NULL, flag, &c->value_int );
