@@ -243,7 +243,7 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="denyop dyngroup glue lastmod ppolicy proxycache rwm \
-	refint syncprov unique"
+	refint syncprov translucent unique"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
@@ -268,6 +268,8 @@ OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(syncprov,[    --enable-syncprov       	  Syncrepl Provider overlay no|yes|mod],
 	yes, [no yes mod])
+OL_ARG_ENABLE(translucent,[    --enable-translucent       	  Translucent Proxy overlay no|yes|mod],
+	no, [no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
 	no, [no yes mod])
 
