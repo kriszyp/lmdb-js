@@ -1490,6 +1490,8 @@ typedef struct slap_op {
 
 	volatile sig_atomic_t o_abandon;	/* abandon flag */
 
+	char o_do_not_cache;	/* don't cache from this op */
+
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2

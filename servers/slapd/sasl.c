@@ -780,7 +780,7 @@ slap_sasl_authorize(
 	
 	AC_MEMCPY( &authzDN, auxvals[1].values[0], sizeof(authzDN) );
 
-	rc = slap_sasl_authorized( &authcDN, &authzDN );
+	rc = slap_sasl_authorized( conn, &authcDN, &authzDN );
 	ch_free( authcDN.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -887,7 +887,7 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	rc = slap_sasl_authorized( &authcDN, &authzDN );
+	rc = slap_sasl_authorized(conn, &authcDN, &authzDN );
 	ch_free( authcDN.bv_val );
 	if( rc ) {
 #ifdef NEW_LOGGING

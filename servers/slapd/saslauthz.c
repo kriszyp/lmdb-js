@@ -489,8 +489,9 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 	op.o_ndn = *saslname;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
+	op.o_do_not_cache = 1;
 
-	(*be->be_search)( be, NULL, &op, NULL, &uri.dn,
+	(*be->be_search)( be, conn, &op, NULL, &uri.dn,
 		uri.scope, LDAP_DEREF_NEVER, 1, 0,
 		filter, NULL, NULL, 1 );
 	
@@ -542,7 +543,7 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
  */
 
 static
-int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval *authc )
+int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assertDN, struct berval *authc )
 {
 	struct berval searchbase = {0, NULL};
 	int rc, scope;
@@ -609,8 +610,9 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	op.o_ndn = *authc;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
+	op.o_do_not_cache = 1;
 
-	(*be->be_search)( be, /*conn=*/NULL, &op, /*base=*/NULL, &searchbase,
+	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
@@ -643,7 +645,11 @@ CONCLUDED:
  * The DNs should not have the dn: prefix
  */
 static int
-slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, AttributeDescription *ad, struct berval *authc)
+slap_sasl_check_authz( Connection *conn,
+	struct berval *searchDN,
+	struct berval *assertDN,
+	AttributeDescription *ad,
+	struct berval *authc )
 {
 	int i, rc;
 	BerVarray vals=NULL;
@@ -664,7 +670,7 @@ slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, Attribut
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( &vals[i], assertDN, authc );
+		rc = slap_sasl_match( conn, &vals[i], assertDN, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
@@ -691,7 +697,8 @@ COMPLETE:
  * The DNs should not have the dn: prefix
  */
 
-int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
+int slap_sasl_authorized( Connection *conn,
+	struct berval *authcDN, struct berval *authzDN )
 {
 	int rc = LDAP_INAPPROPRIATE_AUTH;
 
@@ -719,7 +726,7 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 
 	/* Check source rules */
 	if( authz_policy & SASL_AUTHZ_TO ) {
-		rc = slap_sasl_check_authz( authcDN, authzDN,
+		rc = slap_sasl_check_authz( conn, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;
@@ -728,7 +735,7 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 
 	/* Check destination rules */
 	if( authz_policy & SASL_AUTHZ_FROM ) {
-		rc = slap_sasl_check_authz( authzDN, authcDN,
+		rc = slap_sasl_check_authz( conn, authzDN, authcDN,
 			slap_schema.si_ad_saslAuthzFrom, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;

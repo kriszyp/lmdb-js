@@ -1046,7 +1046,7 @@ backend_group(
 			target, gr_ndn, op_ndn,
 			group_oc, group_at );
 		
-		if (op->o_tag != LDAP_REQ_BIND) {
+		if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
 			g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
 			g->ga_be = be;
 			g->ga_oc = group_oc;
