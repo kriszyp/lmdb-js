@@ -28,6 +28,32 @@
 #include "slap.h"
 #include "lutil.h"
 
+static AttributeName anlist_no_attrs[] = {
+	{ BER_BVC( LDAP_NO_ATTRS ), NULL, 0, NULL },
+	{ BER_BVNULL, NULL, 0, NULL }
+};
+
+static AttributeName anlist_all_user_attributes[] = {
+	{ BER_BVC( LDAP_ALL_USER_ATTRIBUTES ), NULL, 0, NULL },
+	{ BER_BVNULL, NULL, 0, NULL }
+};
+
+static AttributeName anlist_all_operational_attributes[] = {
+	{ BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES ), NULL, 0, NULL },
+	{ BER_BVNULL, NULL, 0, NULL }
+};
+
+static AttributeName anlist_all_attributes[] = {
+	{ BER_BVC( LDAP_ALL_USER_ATTRIBUTES ), NULL, 0, NULL },
+	{ BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES ), NULL, 0, NULL },
+	{ BER_BVNULL, NULL, 0, NULL }
+};
+
+AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
+AttributeName *slap_anlist_all_user_attributes = anlist_all_user_attributes;
+AttributeName *slap_anlist_all_operational_attributes = anlist_all_operational_attributes;
+AttributeName *slap_anlist_all_attributes = anlist_all_attributes;
+
 typedef struct Attr_option {
 	struct berval name;	/* option name or prefix */
 	int           prefix;	/* NAME is a tag and range prefix */
