@@ -127,15 +127,18 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_REFERRALS:
-		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS);
+		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS) ==
+				      LDAP_OPT_ON);
 		return 0;
 		
 	case LDAP_OPT_RESTART:
-		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART);
+		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART) ==
+				      LDAP_OPT_ON);
 		return 0;
 
 	case LDAP_OPT_DNS:	/* LDAPv2 */
-		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_DNS);
+		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_DNS) ==
+				      LDAP_OPT_ON);
 		return 0;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
