@@ -31,6 +31,8 @@ extern BI_op_extended	bdb_extended;
 
 extern BI_chk_referrals	bdb_referrals;
 
+extern BI_operational	bdb_operational;
+
 /* tools.c */
 extern BI_tool_entry_open	bdb_tool_entry_open;
 extern BI_tool_entry_close	bdb_tool_entry_close;

@@ -562,6 +562,7 @@ bdb_initialize(
 #endif
 
 	bi->bi_chk_referrals = bdb_referrals;
+	bi->bi_operational = bdb_operational;
 	bi->bi_entry_release_rw = bdb_entry_release;
 
 	/*
