@@ -880,7 +880,7 @@ dnl
 dnl ====================================================================
 dnl Look for fetch(3)
 AC_DEFUN([OL_LIB_FETCH],
-[ol=$LIBS
+[ol_LIBS=$LIBS
 LIBS="-lfetch -lcom_err $LIBS"
 AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
 	AC_TRY_LINK([
