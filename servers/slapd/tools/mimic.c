@@ -148,14 +148,13 @@ int slap_sasl_destroy(void)
 
 char * slap_sasl_secprops( const char *in )
 {
-	assert(0);
 	return NULL;
 }
 
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-  return(0);
+	return(0);
 }
 
 
