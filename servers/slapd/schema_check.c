@@ -684,6 +684,8 @@ int structural_class(
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
+	*text = NULL;
+
 	return LDAP_SUCCESS;
 }
 

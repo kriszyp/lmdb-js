@@ -583,6 +583,8 @@ slap_mods2entry(
 		tail = &attr->a_next;
 	}
 
+	*text = NULL;
+
 	return LDAP_SUCCESS;
 }
 
