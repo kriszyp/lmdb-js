@@ -314,7 +314,8 @@ long connection_init(
     assert( c->c_pending_ops == NULL );
 
     c->c_client_name = ch_strdup( name == NULL ? "" : name );
-    c->c_client_addr = ch_strdup( addr );
+	if ( addr != NULL )
+		c->c_client_addr = ch_strdup( addr );
 
     c->c_n_ops_received = 0;
 #ifdef LDAP_COUNTERS
