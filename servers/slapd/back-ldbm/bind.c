@@ -20,7 +20,7 @@ extern char *crypt (char *key, char *salt);
 #endif /* LDAP_CRYPT */
 
 #ifdef LDAP_SHA1
-#include <sha1.h>
+#include <lutil_sha1.h>
 #endif /* LDAP_SHA1 */
 #ifdef LDAP_MD5
 #include <lutil_md5.h>
@@ -91,9 +91,9 @@ crypted_value_find(
 
 				char *userpassword = vals[i]->bv_val + sizeof("{SHA}") - 1;
 
-				SHA1Init(&SHA1context);
-				SHA1Update(&SHA1context, cred->bv_val, strlen(cred->bv_val));
-				SHA1Final(SHA1digest, &SHA1context);
+				ldap_SHA1Init(&SHA1context);
+				ldap_SHA1Update(&SHA1context, cred->bv_val, strlen(cred->bv_val));
+				ldap_SHA1Final(SHA1digest, &SHA1context);
 
 				if (b64_ntop(SHA1digest, sizeof(SHA1digest),
 					base64digest, sizeof(base64digest)) < 0)

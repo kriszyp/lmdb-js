@@ -9,7 +9,10 @@
    important.  ANSI guarantees that "unsigned long" will be big enough,
    and always using it seems to have few disadvantages.  */
 
+#ifndef LDAP_UINT32
+#define LDAP_UINT32
 typedef unsigned long uint32;
+#endif
 
 struct MD5Context {
 	uint32 buf[4];
@@ -17,10 +20,10 @@ struct MD5Context {
 	unsigned char in[64];
 };
 
-void MD5Init(struct MD5Context *context);
-void MD5Update(struct MD5Context *context, unsigned char const *buf, unsigned len);
-void MD5Final(unsigned char digest[16], struct MD5Context *context);
-void MD5Transform(uint32 buf[4], const unsigned char in[64]);
+void ldap_MD5Init(struct MD5Context *context);
+void ldap_MD5Update(struct MD5Context *context, unsigned char const *buf, unsigned len);
+void ldap_MD5Final(unsigned char digest[16], struct MD5Context *context);
+void ldap_MD5Transform(uint32 buf[4], const unsigned char in[64]);
 
 /*
  * This is needed to make RSAREF happy on some MS-DOS compilers.
