@@ -562,6 +562,26 @@ parse_limit(
 						return( 1 );
 					}
 				}
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			} else if ( strncasecmp( arg, "pr", sizeof( "pr" ) - 1 ) == 0 ) {
+				arg += sizeof( "pr" ) - 1;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				if ( strcasecmp( arg, "noEntriesLeft" ) == 0 ) {
+					limit->lms_s_pr_hide = 1;
+				} else {
+					char	*next = NULL;
+
+					limit->lms_s_pr = 
+						strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_s_pr < -1 ) {
+						return( 1 );
+					}
+				}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 				
 			} else {
 				return( 1 );

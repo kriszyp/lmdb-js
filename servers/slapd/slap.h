@@ -1154,6 +1154,10 @@ struct slap_limits_set {
 	int	lms_s_soft;
 	int	lms_s_hard;
 	int	lms_s_unchecked;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	int	lms_s_pr;
+	int	lms_s_pr_hide;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 };
 
 struct slap_limits {

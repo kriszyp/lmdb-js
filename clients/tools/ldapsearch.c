@@ -183,6 +183,7 @@ static int	verbose, not, includeufn, vals2tmp, ldif;
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 static int pageSize = 0;
 static ber_int_t searchControlSize = 0;
+static ber_int_t entriesLeft = 0;
 static ber_int_t morePagedResults = 1;
 static struct berval cookie = { 0, NULL };
 static int npagedresponses;
@@ -1266,6 +1267,9 @@ getNextPage:
 		/* Loop to get the next pages when 
 		 * enter is pressed on the terminal.
 		 */
+		if ( entriesLeft > 0 ) {
+			printf( "Estimate entries: %d\n", entriesLeft );
+		}
 		printf( "Press [size] Enter for the next {%d|size} entries.\n",
 			(int)searchControlSize ); 
 		i = 0;
@@ -1948,7 +1952,6 @@ parse_page_control(
 	LDAPControl *ctrlp = NULL;
 	BerElement *ber;
 	ber_tag_t tag;
-	ber_int_t entriesLeft;
 	struct berval servercookie = { 0, NULL };
 
 

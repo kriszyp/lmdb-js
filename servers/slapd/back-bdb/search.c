@@ -31,7 +31,8 @@ static void send_pagerequest_response(
 	Connection	*conn,
 	Operation *op,
 	ID  lastid,
-	int nentries );			
+	int nentries,
+	int tentries );			
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 int
@@ -64,6 +65,7 @@ bdb_search(
 	int		manageDSAit;
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	int		pagedresults;
+	int		tentries = 0;
 	ID		lastid = NOID;
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
@@ -281,7 +283,15 @@ dn2entry_retry:
 		
 		/* if no limit is required, use soft limit */
 		if ( slimit <= 0 ) {
-			slimit = limit->lms_s_soft;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( pagedresults && limit->lms_s_pr != 0 ) {
+				slimit = limit->lms_s_pr;
+			} else {
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+				slimit = limit->lms_s_soft;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 		/* if requested limit higher than hard limit, abort */
 		} else if ( slimit > limit->lms_s_hard ) {
@@ -358,6 +368,12 @@ dn2entry_retry:
 	}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( isroot || !limit->lms_s_pr_hide ) {
+		tentries = BDB_IDL_N(candidates);
+	}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( pagedresults ) {
 		if ( op->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
@@ -382,7 +398,7 @@ dn2entry_retry:
 				"bdb_search: no paged results candidates\n",
 				0, 0, 0 );
 #endif
-			send_pagerequest_response( conn, op, lastid, 0 );
+			send_pagerequest_response( conn, op, lastid, 0, 0 );
 
 			rc = 1;
 			goto done;
@@ -634,7 +650,7 @@ id2entry_retry:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 				if ( pagedresults ) {
 					if ( nentries >= op->o_pagedresults_size ) {
-						send_pagerequest_response( conn, op, lastid, nentries );
+						send_pagerequest_response( conn, op, lastid, nentries, tentries );
 						goto done;
 					}
 					lastid = id;
@@ -1096,7 +1112,8 @@ send_pagerequest_response(
 	Connection	*conn,
 	Operation	*op,
 	ID		lastid,
-	int		nentries )
+	int		nentries,
+	int		tentries )
 {
 	LDAPControl	ctrl, *ctrls[2];
 	BerElement	*ber;
@@ -1130,7 +1147,7 @@ send_pagerequest_response(
 	 * FIXME: we should consider sending an estimate of the entries
 	 * left, after appropriate security check is done
 	 */
-	ber_printf( ber, "{iO}", 0, &cookie ); 
+	ber_printf( ber, "{iO}", tentries, &cookie ); 
 
 	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
 		goto done;
