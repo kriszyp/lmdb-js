@@ -304,7 +304,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 			lc->cred.bv_val = NULL;
 			lc->bound_dn.bv_val = NULL;
 			lc->bound_dn.bv_len = 0;
-			if ( op->o_conn->c_dn.bv_len != 0
+			if ( op->o_conn && op->o_conn->c_dn.bv_len != 0
 					&& ( op->o_bd == op->o_conn->c_authz_backend ) ) {
 				
 				dncookie dc;
@@ -324,7 +324,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 #endif
 
 				if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn, &bv ) ) {
-					if (op->o_conn) send_ldap_result( op, rs );
+					send_ldap_result( op, rs );
 					return NULL;
 				}
 

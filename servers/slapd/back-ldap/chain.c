@@ -47,6 +47,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	int cache = op->o_do_not_cache;
 	char *authzid = NULL;
 	BerVarray ref;
+	struct berval ndn = op->o_ndn;
 
 	if ( rs->sr_err != LDAP_REFERRAL )
 		return SLAP_CB_CONTINUE;
@@ -60,6 +61,10 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	op->o_bd->be_private = on->on_bi.bi_private;
 	op->o_callback = NULL;
 
+	/* Chaining is performed by a privileged user on behalf
+	 * of a normal user, using the ProxyAuthz control. However,
+	 * Binds are done separately, on an anonymous session.
+	 */
 	if ( op->o_tag != LDAP_REQ_BIND ) {
 		for (i=0; prev && prev[i]; i++);
 		nctrls = i;
@@ -85,16 +90,19 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			authz.ldctl_value.bv_val = authzid;
 		}
 		op->o_ctrls = ctrls;
+		op->o_ndn = op->o_bd->be_rootndn;
 	}
 
-	/* Chaining is performed by a privileged user on behalf
-	 * of a normal user
-	 */
-	op->o_do_not_cache = 1;
-
 	switch( op->o_tag ) {
-	case LDAP_REQ_BIND:
+	case LDAP_REQ_BIND: {
+		struct berval rndn = op->o_req_ndn;
+		Connection *conn = op->o_conn;
+		op->o_req_ndn = slap_empty_bv;
+		op->o_conn = NULL;
 		rc = ldap_back_bind( op, rs );
+		op->o_req_ndn = rndn;
+		op->o_conn = conn;
+		}
 		break;
 	case LDAP_REQ_ADD:
 		rc = ldap_back_add( op, rs );
@@ -125,6 +133,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	op->o_ctrls = prev;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
+	op->o_ndn = ndn;
 	if ( ctrls ) op->o_tmpfree( ctrls, op->o_tmpmemctx );
 	if ( authzid ) op->o_tmpfree( authzid, op->o_tmpmemctx );
 	rs->sr_ref = ref;
