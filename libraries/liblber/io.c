@@ -133,13 +133,14 @@ ber_realloc( BerElement *ber, ber_len_t len )
 
 	assert( BER_VALID( ber ) );
 
-	have = (ber->ber_end - ber->ber_buf) / EXBUFSIZ;
+	total = ber_pvt_ber_total( ber );
+	have = total / EXBUFSIZ;
 	need = (len < EXBUFSIZ ? 1 : (len + (EXBUFSIZ - 1)) / EXBUFSIZ);
 	total = have * EXBUFSIZ + need * EXBUFSIZ;
 
 	oldbuf = ber->ber_buf;
 
-	ber->ber_buf = (char *) LBER_REALLOC( ber->ber_buf, total );
+	ber->ber_buf = (char *) LBER_REALLOC( oldbuf, total );
 	
 	if ( ber->ber_buf == NULL ) {
 		ber->ber_buf = oldbuf;
@@ -259,8 +260,9 @@ ber_alloc_t( int options )
 
 	ber = (BerElement *) LBER_CALLOC( 1, sizeof(BerElement) );
 
-	if ( ber == NULL )
-		return( NULL );
+	if ( ber == NULL ) {
+		return NULL;
+	}
 
 	ber->ber_valid = LBER_VALID_BERELEMENT;
 	ber->ber_tag = LBER_DEFAULT;
@@ -268,19 +270,19 @@ ber_alloc_t( int options )
 	ber->ber_debug = ber_int_debug;
 
 	assert( BER_VALID( ber ) );
-	return( ber );
+	return ber;
 }
 
 BerElement *
 ber_alloc( void )	/* deprecated */
 {
-	return( ber_alloc_t( 0 ) );
+	return ber_alloc_t( 0 );
 }
 
 BerElement *
 der_alloc( void )	/* deprecated */
 {
-	return( ber_alloc_t( LBER_USE_DER ) );
+	return ber_alloc_t( LBER_USE_DER );
 }
 
 BerElement *
@@ -292,7 +294,7 @@ ber_dup( BerElement *ber )
 	assert( BER_VALID( ber ) );
 
 	if ( (new = ber_alloc_t( ber->ber_options )) == NULL ) {
-		return( NULL );
+		return NULL;
 	}
 
 	*new = *ber;
@@ -375,7 +377,7 @@ int ber_flatten(
 		return -1;
 	}
 
-	bv = LBER_MALLOC( sizeof(struct berval));
+	bv = LBER_MALLOC( sizeof(struct berval) );
 	if ( bv == NULL ) {
 		return -1;
 	}
@@ -387,7 +389,7 @@ int ber_flatten(
 
 	} else {
 		/* copy the berval */
-		ber_len_t len = ber->ber_ptr - ber->ber_buf;
+		ber_len_t len = ber_pvt_ber_write( ber );
 
 		bv->bv_val = (char *) LBER_MALLOC( len + 1 );
 		if ( bv->bv_val == NULL ) {
@@ -413,6 +415,7 @@ ber_reset( BerElement *ber, int was_writing )
 	if ( was_writing ) {
 		ber->ber_end = ber->ber_ptr;
 		ber->ber_ptr = ber->ber_buf;
+
 	} else {
 		ber->ber_ptr = ber->ber_end;
 	}
@@ -475,8 +478,10 @@ ber_get_next(
 		if (ber->ber_rwptr == (char *) &ber->ber_tag) {
 			if (ber_int_sb_read( sb, ber->ber_rwptr, 1)<=0)
 				return LBER_DEFAULT;
+
 			if ((ber->ber_rwptr[0] & LBER_BIG_TAG_MASK)
-				!= LBER_BIG_TAG_MASK) {
+				!= LBER_BIG_TAG_MASK)
+			{
 				ber->ber_tag = ber->ber_rwptr[0];
 				ber->ber_rwptr = (char *) &ber->ber_usertag;
 				goto get_lenbyte;
@@ -504,17 +509,21 @@ ber_get_next(
 get_lenbyte:
 	if (ber->ber_rwptr==(char *) &ber->ber_usertag) {
 		unsigned char c;
-		if (ber_int_sb_read( sb, (char *) &c, 1)<=0)
+		if (ber_int_sb_read( sb, (char *) &c, 1)<=0) {
 			return LBER_DEFAULT;
+		}
+
 		if (c & 0x80U) {
 			int len = c & 0x7fU;
 			if ( (len==0) || ( len>sizeof( ber->ber_len ) ) ) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
+
 			ber->ber_rwptr = (char *) &ber->ber_len +
 				sizeof(ber->ber_len) - len;
 			ber->ber_len = 0;
+
 		} else {
 			ber->ber_len = c;
 			goto fill_buffer;
@@ -529,6 +538,7 @@ get_lenbyte:
 		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
 			ber->ber_rwptr;
 		assert( to_go > 0 );
+
 		res = BerRead( sb, netlen, to_go );
 		if (res <= 0) {
 			return LBER_DEFAULT;
@@ -540,8 +550,10 @@ get_lenbyte:
 			ber->ber_len <<= 8;
 			ber->ber_len |= netlen[to_go];
 		}
-		if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len))
+
+		if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len)) {
 			return LBER_DEFAULT;
+		}
 	}
 
 fill_buffer:	
@@ -603,6 +615,7 @@ fill_buffer:
 		}
 		return (ber->ber_tag);
 	}
+
 	assert( 0 ); /* ber structure is messed up ?*/
 	return LBER_DEFAULT;
 }
