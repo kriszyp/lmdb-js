@@ -106,6 +106,11 @@ parse_acl(
 				acl_usage();
 			}
 			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
+			a->acl_filter = NULL;
+			a->acl_dn_pat = NULL;
+			a->acl_attrs  = NULL;
+			a->acl_access = NULL;
+			a->acl_next   = NULL;
 			for ( ++i; i < argc; i++ ) {
 				if ( strcasecmp( argv[i], "by" ) == 0 ) {
 					i--;
@@ -135,20 +140,7 @@ parse_acl(
 					}
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
-					int e;
-
-					if ((e = regcomp(&a->acl_dn_re, right,
-						REG_EXTENDED|REG_ICASE))) {
-						char buf[512];
-						regerror(e, &a->acl_dn_re, buf, sizeof(buf));
-						fprintf( stderr,
-				"%s: line %d: regular expression \"%s\" bad because of %s\n",
-							fname, lineno, right, buf );
-						acl_usage();
-
-					} else {
 						a->acl_dn_pat = ch_strdup( right );
-					}
 
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
 					char	**alist;
@@ -161,6 +153,19 @@ parse_acl(
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
 					    fname, lineno, left );
+					acl_usage();
+				}
+			}
+
+			if ( a->acl_dn_pat != NULL ) {
+				int e = regcomp( &a->acl_dn_re, a->acl_dn_pat,
+				                 REG_EXTENDED | REG_ICASE );
+				if ( e ) {
+					char buf[512];
+					regerror( e, &a->acl_dn_re, buf, sizeof(buf) );
+					fprintf( stderr,
+				"%s: line %d: regular expression \"%s\" bad because of %s\n",
+					         fname, lineno, right, buf );
 					acl_usage();
 				}
 			}
