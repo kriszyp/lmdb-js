@@ -14,6 +14,10 @@
 
 #include "slap.h"
 #include "back-bdb.h"
+#include "lutil_hash.h"
+
+static char presence_keyval[LUTIL_HASH_BYTES] = {0,0,0,1};
+struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
 
 static slap_mask_t index_mask(
 	Backend *be,
@@ -169,7 +173,7 @@ static int indexer(
 	if( rc != LDAP_SUCCESS ) return rc;
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		rc = bdb_key_change( be, db, txn, atname, id, op );
+		rc = bdb_key_change( be, db, txn, &presence_key, id, op );
 		if( rc ) {
 			goto done;
 		}
