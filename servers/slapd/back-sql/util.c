@@ -312,12 +312,7 @@ backsql_get_table_spec( char **p )
 	}
 
 	/* oracle doesn't understand "AS" :( and other RDBMSes don't need it */
-#ifdef BACKSQL_ALIASING_QUOTE
-	backsql_strfcat( &res, "scsc", " " BACKSQL_ALIASING,
-			BACKSQL_ALIASING_QUOTE, s, BACKSQL_ALIASING_QUOTE );
-#else /* ! BACKSQL_ALIASING */
-	backsql_strcat( &res, " " BACKSQL_ALIASING, s, NULL );
-#endif /* ! BACKSQL_ALIASING */
+	backsql_strcat( &res, " " BACKSQL_ALIASING BACKSQL_ALIASING_QUOTE, s, BACKSQL_ALIASING_QUOTE, NULL );
 
 	return res.bb_val.bv_val;
 }
