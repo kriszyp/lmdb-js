@@ -1147,13 +1147,6 @@ LDAP_SLAPD_F (int) slap_sasl_setpass(
 	Operation       *op,
 	SlapReply	*rs );
 
-LDAP_SLAPD_F (int) slap_sasl_config(
-	int cargc,
-	char **cargv,
-	char *line,
-	const char *fname,
-	int lineno );
-
 LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
 	struct berval *id, char *user_realm, struct berval *dn, int flags );
 

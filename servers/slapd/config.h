@@ -17,11 +17,11 @@
 
 typedef struct config_table_s {
 	char *name;
+	char *what;
 	int min_args;
 	int max_args;
 	int length;
-	char *what;
-	unsigned long arg_type;
+	unsigned int arg_type;
 	void *arg_item;
 	char *attribute;
 	AttributeDescription *ad;
@@ -37,7 +37,7 @@ typedef struct config_table_s {
 #define ARG_BER_LEN_T	0x00040000
 #define ARG_ON_OFF	0x00080000
 #define ARG_STRING	0x00100000
-#define ARG_BERVAL	0x00200000	/* XXX not yet */
+#define ARG_DN		0x00200000
 #define ARG_EXISTS	0x00400000	/* XXX not yet */
 #define ARG_IGNORED	0x00800000
 
@@ -46,7 +46,7 @@ typedef struct config_table_s {
 #define ARG_PRE_DB	0x02000000
 #define ARG_PAREN	0x04000000
 #define ARG_NONZERO	0x08000000
-#define ARG_UNIQUE	0x10000000	/* XXX not yet */
+#define ARG_UNIQUE	0x10000000
 #define ARG_SPECIAL	0x20000000	/* one special case */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
@@ -67,6 +67,8 @@ typedef struct config_args_s {
 	long value_long; /* for simple cases */
 	ber_len_t value_ber_t;
 	char *value_string;
+	struct berval value_dn;
+	struct berval value_ndn;
 	int emit;	/* emit instead of setting */
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;

@@ -128,8 +128,8 @@ int config_plugin(ConfigArgs *c);
 int config_pluginlog(ConfigArgs *c);
 
 enum {
-	CFG_DATABASE = 1,
-	CFG_BACKEND,
+	CFG_BACKEND = 1,
+	CFG_DATABASE,
 	CFG_TLS_RAND,
 	CFG_TLS_CIPHER,
 	CFG_TLS_CERT_FILE,
@@ -145,7 +145,6 @@ enum {
 	CFG_SALT,
 	CFG_LIMITS,
 	CFG_RO,
-	CFG_SASLOPT,
 	CFG_REWRITE,
 	CFG_DEPTH,
 	CFG_OID,
@@ -162,111 +161,126 @@ enum {
 	CFG_PLUGIN,
 	CFG_MODLOAD,
 	CFG_MODPATH,
-	CFG_LASTMOD
+	CFG_LASTMOD,
+	CFG_AZPOLICY,
+	CFG_AZREGEXP,
+	CFG_SASLSECP
 };
 
 /* original config.c ordering */
 
 ConfigTable SystemConfiguration[] = {
-  { "backend",			2,  2,  0,  "type",	ARG_PRE_DB|ARG_MAGIC|CFG_BACKEND, &config_generic,	NULL, NULL, NULL },
-  { "database",			2,  2,  0,  "type",	ARG_MAGIC|CFG_DATABASE,	&config_generic,		NULL, NULL, NULL },
-  { "localSSF",			2,  2,  0,  "ssf",	ARG_LONG,		&local_ssf,			NULL, NULL, NULL },
-  { "concurrency",		2,  2,  0,  "level",	ARG_LONG|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR, &config_generic, NULL, NULL, NULL },
-  { "index_substr_if_minlen",	2,  2,  0,  "min",	ARG_INT|ARG_NONZERO,	&index_substr_if_minlen,	NULL, NULL, NULL },
-  { "index_substr_if_maxlen",	2,  2,  0,  "max",	ARG_INT|ARG_NONZERO|ARG_SPECIAL, &index_substr_if_maxlen, NULL, NULL, NULL },
-  { "index_substr_any_len",	2,  2,  0,  "len",	ARG_INT|ARG_NONZERO,	&index_substr_any_len,		NULL, NULL, NULL },
-  { "index_substr_step",	2,  2,  0,  "step",	ARG_INT|ARG_NONZERO,	&index_substr_any_step,		NULL, NULL, NULL },
-  { "sockbuf_max_incoming",	2,  2,  0,  "max",	ARG_LONG,		&sockbuf_max_incoming,		NULL, NULL, NULL },
-  { "sockbuf_max_incoming_auth",2,  2,  0,  "max",	ARG_LONG,		&sockbuf_max_incoming_auth, 	NULL, NULL, NULL },
-  { "conn_max_pending",		2,  2,  0,  "max",	ARG_LONG,		&slap_conn_max_pending,		NULL, NULL, NULL },
-  { "conn_max_pending_auth",	2,  2,  0,  "max",	ARG_LONG,		&slap_conn_max_pending_auth,	NULL, NULL, NULL },
-  { "defaultSearchBase",	2,  2,  0,  "dn",	ARG_MAGIC,		&config_search_base,		NULL, NULL, NULL },
-  { "threads",			2,  2,  0,  "count",	ARG_INT|ARG_MAGIC|CFG_THREADS, &config_generic,		NULL, NULL, NULL },
-  { "pidfile",			2,  2,  0,  "file",	ARG_STRING,		&slapd_pid_file,		NULL, NULL, NULL },
-  { "argsfile",			2,  2,  0,  "file",	ARG_STRING,		&slapd_args_file,		NULL, NULL, NULL },
-  { "password-hash",		2,  2,  0,  "hash",	ARG_MAGIC,		&config_passwd_hash,		NULL, NULL, NULL },
-  { "password-crypt-salt-format",2, 2,  0,  "salt",	ARG_MAGIC|CFG_SALT,	&config_generic,		NULL, NULL, NULL },
+  { "backend", "type",	2,  2,  0,  ARG_PRE_DB|ARG_MAGIC|CFG_BACKEND, &config_generic,	NULL, NULL, NULL },
+  { "database", "type",		2,  2,  0,  ARG_MAGIC|CFG_DATABASE,	&config_generic,		NULL, NULL, NULL },
+  { "localSSF",	"ssf",			2,  2,  0,  ARG_LONG,		&local_ssf,			NULL, NULL, NULL },
+  { "concurrency",	"level",		2,  2,  0,  ARG_LONG|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR, &config_generic, NULL, NULL, NULL },
+  { "index_substr_if_minlen","min",		2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_if_minlen,	NULL, NULL, NULL },
+  { "index_substr_if_maxlen","max",		2,  2,  0,  ARG_INT|ARG_NONZERO|ARG_SPECIAL, &index_substr_if_maxlen, NULL, NULL, NULL },
+  { "index_substr_any_len",	"len",	2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_any_len,		NULL, NULL, NULL },
+  { "index_substr_step",	"step",	2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_any_step,		NULL, NULL, NULL },
+  { "sockbuf_max_incoming",	"max",	2,  2,  0,  ARG_LONG,		&sockbuf_max_incoming,		NULL, NULL, NULL },
+  { "sockbuf_max_incoming_auth","max",	2,  2,  0,  ARG_LONG,		&sockbuf_max_incoming_auth, 	NULL, NULL, NULL },
+  { "conn_max_pending",	"max",		2,  2,  0,  ARG_LONG,		&slap_conn_max_pending,		NULL, NULL, NULL },
+  { "conn_max_pending_auth",	"max",	2,  2,  0,  ARG_LONG,		&slap_conn_max_pending_auth,	NULL, NULL, NULL },
+  { "defaultSearchBase",	"dn",	2,  2,  0,  ARG_DN|ARG_MAGIC,		&config_search_base,		NULL, NULL, NULL },
+  { "threads",	"count",			2,  2,  0,  ARG_INT|ARG_MAGIC|CFG_THREADS, &config_generic,		NULL, NULL, NULL },
+  { "pidfile",	"file",			2,  2,  0,  ARG_STRING,		&slapd_pid_file,		NULL, NULL, NULL },
+  { "argsfile",	"file",			2,  2,  0,  ARG_STRING,		&slapd_args_file,		NULL, NULL, NULL },
+  { "password-hash",	"hash",		2,  2,  0,  ARG_MAGIC,		&config_passwd_hash,		NULL, NULL, NULL },
+  { "password-crypt-salt-format","salt",	2, 2,  0,  ARG_MAGIC|CFG_SALT,	&config_generic,		NULL, NULL, NULL },
 #ifdef SLAP_AUTH_REWRITE
-  { "auth-rewrite",		2,  2, 14,  NULL,	ARG_MAGIC|CFG_REWRITE,	&config_generic,		NULL, NULL, NULL },
+  { "auth-rewrite",	NULL,		2,  2, 14,  ARG_MAGIC|CFG_REWRITE,	&config_generic,		NULL, NULL, NULL },
 #endif
-  { "sasl",			2,  0,  4,  NULL,	ARG_MAGIC|CFG_SASLOPT,	&config_generic,		NULL, NULL, NULL },	/* XXX */
-  { "auth",			2,  2,  4,  NULL,	ARG_MAGIC|CFG_SASLOPT,	&config_generic,		NULL, NULL, NULL },
-  { "schemadn",			2,  2,  0,  "dn",	ARG_MAGIC,		&config_schema_dn,		NULL, NULL, NULL },
-  { "ucdata-path",		2,  2,  0,  "path",	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "sizelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
-  { "timelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
-  { "limits",			2,  0,  0,  "limits",	ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
-  { "overlay",			2,  2,  0,  "overlay",	ARG_MAGIC,		&config_overlay,		NULL, NULL, NULL },
-  { "suffix",			2,  2,  0,  "suffix",	ARG_DB|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
-  { "maxDerefDepth",		2,  2,  0,  "depth",	ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
-  { "rootdn",			2,  2,  0,  "dn",	ARG_DB|ARG_MAGIC,	&config_rootdn,			NULL, NULL, NULL },
-  { "rootpw",			2,  2,  0,  "password",	ARG_DB|ARG_MAGIC,	&config_rootpw,			NULL, NULL, NULL },
-  { "readonly",			2,  2,  0,  "on|off",	ARG_ON_OFF|ARG_MAGIC|CFG_RO, &config_generic,		NULL, NULL, NULL },
-  { "restrict",			2,  0,  0,  "op_list",	ARG_MAGIC,		&config_restrict,		NULL, NULL, NULL },
-  { "allows",			2,  0,  5,  "features",	ARG_PRE_DB|ARG_MAGIC,	&config_allows,			NULL, NULL, NULL },
-  { "disallows",		2,  0,  8,  "features",	ARG_PRE_DB|ARG_MAGIC,	&config_disallows,		NULL, NULL, NULL },
-  { "require",			2,  0,  7,  "features",	ARG_MAGIC,		&config_requires,		NULL, NULL, NULL },
-  { "security",			2,  0,  0,  "factors",	ARG_MAGIC,		&config_security,		NULL, NULL, NULL },
-  { "referral",			2,  2,  0,  "url",	ARG_MAGIC,		&config_referral,		NULL, NULL, NULL },
-  { "logfile",			2,  2,  0,  "file",	ARG_MAGIC|CFG_LOGFILE,	&config_generic,		NULL, NULL, NULL },
-  { "objectidentifier",		0,  0,  0,  NULL,	ARG_MAGIC|CFG_OID,	&config_generic, 		NULL, NULL, NULL },
-  { "objectclass",		2,  0,  0,  "objectclass", ARG_PAREN|ARG_MAGIC|CFG_OC, &config_generic,		NULL, NULL, NULL },
-  { "ditcontentrule",		0,  0,  0,  NULL,	ARG_MAGIC|CFG_DIT,	&config_generic,		NULL, NULL, NULL },
-  { "attribute",		2,  0,  9,  "attribute", ARG_PAREN|ARG_MAGIC|CFG_ATTR, &config_generic,		NULL, NULL, NULL },
-  { "attributeoptions",		0,  0,  0,  NULL,	ARG_MAGIC|CFG_ATOPT,	&config_generic, 		NULL, NULL, NULL },
-  { "schemacheck",		2,  2,  0,  "on|off",	ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,	&config_generic,	NULL, NULL, NULL },
-  { "access",			0,  0,  0,  NULL,	ARG_MAGIC|CFG_ACL,	&config_generic,		NULL, NULL, NULL },
-  { "loglevel",			2,  0,  0,  "level",	ARG_MAGIC,		&config_loglevel,		NULL, NULL, NULL },
-  { "syncrepl",			0,  0,  0,  NULL,	ARG_DB|ARG_MAGIC,	&config_syncrepl,		NULL, NULL, NULL },
-  { "replica",			2,  0,  0,  "host or uri", ARG_DB|ARG_MAGIC,	&config_replica,		NULL, NULL, NULL },
-  { "replicationInterval",	0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "updatedn",			2,  2,  0,  "dn",	ARG_DB|ARG_MAGIC,	&config_updatedn,		NULL, NULL, NULL },
-  { "updateref",		2,  2,  0,  "url",	ARG_DB|ARG_MAGIC,	&config_updateref,		NULL, NULL, NULL },
-  { "replogfile",		2,  2,  0,  "filename", ARG_MAGIC|ARG_STRING|CFG_REPLOG,	&config_generic,		NULL, NULL, NULL },
-  { "rootDSE",			2,  2,  0,  "filename", ARG_MAGIC|CFG_ROOTDSE,	&config_generic,		NULL, NULL, NULL },
-  { "lastmod",			2,  2,  0,  "on|off",	ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD, &config_generic, NULL, NULL, NULL },
-#ifdef SIGHUP
-  { "gentlehup",		2,  2,  0,  "on|off",	ARG_ON_OFF,		&global_gentlehup,		NULL, NULL, NULL },
+  { "authz-policy", "policy",		2,  2,  0,  ARG_MAGIC|CFG_AZPOLICY,	&config_generic,		NULL, NULL, NULL },
+  { "authz-regexp",	NULL,			3,  3,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
+  { "sasl-authz-policy",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZPOLICY,	&config_generic,		NULL, NULL, NULL },
+  { "sasl-regexp",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
+  { "saslRegexp",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
+#ifdef HAVE_CYRUS_SASL
+  { "sasl-host", "host",			2,  2,  0,  ARG_STRING|ARG_UNIQUE,	&global_host,		NULL, NULL, NULL },
+  { "sasl-realm", "realm",			2,  2,  0,  ARG_STRING|ARG_UNIQUE,	&global_realm,		NULL, NULL, NULL },
+  { "sasl-secprops", "properties",	2,  2,  0,  ARG_MAGIC|CFG_SASLSECP,	&config_generic,		NULL, NULL, NULL },
 #else
-  { "gentlehup",		2,  2,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "sasl-host",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "sasl-realm",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "sasl-secprops",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
 #endif
-  { "idletimeout",		2,  2,  0,  "timeout",	ARG_INT,		&global_idletimeout,		NULL, NULL, NULL },
+  { "schemadn",		"dn",		2,  2,  0,  ARG_DN|ARG_MAGIC,		&config_schema_dn,		NULL, NULL, NULL },
+  { "ucdata-path",	"path",		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "sizelimit",	"limit",		2,  2,  0,  ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
+  { "timelimit",	"limit",		2,  2,  0,  ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
+  { "limits",	"limits",			2,  0,  0,  ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
+  { "overlay",	"overlay",			2,  2,  0,  ARG_MAGIC,		&config_overlay,		NULL, NULL, NULL },
+  { "suffix",	"suffix",			2,  2,  0,  ARG_DB|ARG_DN|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
+  { "maxDerefDepth",	"depth",		2,  2,  0,  ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
+  { "rootdn",	"dn",			2,  2,  0,  ARG_DB|ARG_DN|ARG_MAGIC,	&config_rootdn,			NULL, NULL, NULL },
+  { "rootpw",	"password",			2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_rootpw,			NULL, NULL, NULL },
+  { "readonly",		"on|off",		2,  2,  0,  ARG_ON_OFF|ARG_MAGIC|CFG_RO, &config_generic,		NULL, NULL, NULL },
+  { "restrict",	"op_list",			2,  0,  0,  ARG_MAGIC,		&config_restrict,		NULL, NULL, NULL },
+  { "allows",	"features",			2,  0,  5,  ARG_PRE_DB|ARG_MAGIC,	&config_allows,			NULL, NULL, NULL },
+  { "disallows",	"features",		2,  0,  8,  ARG_PRE_DB|ARG_MAGIC,	&config_disallows,		NULL, NULL, NULL },
+  { "require",	"features",			2,  0,  7,  ARG_MAGIC,		&config_requires,		NULL, NULL, NULL },
+  { "security",	"factors",			2,  0,  0,  ARG_MAGIC,		&config_security,		NULL, NULL, NULL },
+  { "referral",		"url",	2,  2,  0,  ARG_MAGIC,	&config_referral,		NULL, NULL, NULL },
+  { "logfile",	"file",			2,  2,  0,  ARG_MAGIC|CFG_LOGFILE,	&config_generic,		NULL, NULL, NULL },
+  { "objectidentifier",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_OID,	&config_generic, 		NULL, NULL, NULL },
+  { "objectclass",	"objectclass", 	2,  0,  0,  ARG_PAREN|ARG_MAGIC|CFG_OC, &config_generic,		NULL, NULL, NULL },
+  { "ditcontentrule",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_DIT,	&config_generic,		NULL, NULL, NULL },
+  { "attribute",	"attribute", 	2,  0,  9,  ARG_PAREN|ARG_MAGIC|CFG_ATTR, &config_generic,		NULL, NULL, NULL },
+  { "attributeoptions",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_ATOPT,	&config_generic, 		NULL, NULL, NULL },
+  { "schemacheck",	"on|off",		2,  2,  0,  ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,	&config_generic,	NULL, NULL, NULL },
+  { "access",	NULL,			0,  0,  0,  ARG_MAGIC|CFG_ACL,	&config_generic,		NULL, NULL, NULL },
+  { "loglevel",	"level",			2,  0,  0,  ARG_MAGIC,		&config_loglevel,		NULL, NULL, NULL },
+  { "syncrepl",	NULL,			0,  0,  0,  ARG_DB|ARG_MAGIC,	&config_syncrepl,		NULL, NULL, NULL },
+  { "replica",	"host or uri", 		2,  0,  0,  ARG_DB|ARG_MAGIC,	&config_replica,		NULL, NULL, NULL },
+  { "replicationInterval",	NULL,	0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "updatedn",	"dn",			2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_updatedn,		NULL, NULL, NULL },
+  { "updateref",	"url",		2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_updateref,		NULL, NULL, NULL },
+  { "replogfile",	"filename", 	2,  2,  0,  ARG_MAGIC|ARG_STRING|CFG_REPLOG,	&config_generic,		NULL, NULL, NULL },
+  { "rootDSE",	"filename", 		2,  2,  0,  ARG_MAGIC|CFG_ROOTDSE,	&config_generic,		NULL, NULL, NULL },
+  { "lastmod",	"on|off",			2,  2,  0,  ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD, &config_generic, NULL, NULL, NULL },
+#ifdef SIGHUP
+  { "gentlehup",	"on|off",		2,  2,  0,  ARG_ON_OFF,		&global_gentlehup,		NULL, NULL, NULL },
+#else
+  { "gentlehup",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+#endif
+  { "idletimeout",	"timeout",		2,  2,  0,  ARG_INT,		&global_idletimeout,		NULL, NULL, NULL },
 /* XXX -- special case? */
-  { "include",			2,  2,  0,  "filename",	ARG_MAGIC,		&config_include,		NULL, NULL, NULL },
-  { "srvtab",			2,  2,  0,  "filename",	ARG_STRING,		&ldap_srvtab,			NULL, NULL, NULL },
+  { "include",	"filename",			2,  2,  0,  ARG_MAGIC,		&config_include,		NULL, NULL, NULL },
+  { "srvtab",	"filename",			2,  2,  0,  ARG_STRING,		&ldap_srvtab,			NULL, NULL, NULL },
 #ifdef SLAPD_MODULES
-  { "moduleload",		2,  2,  0,  "filename",	ARG_MAGIC|CFG_MODLOAD,	&config_generic,		NULL, NULL, NULL },
-  { "modulepath",		2,  2,  0,  "path",	ARG_MAGIC|CFG_MODPATH,	&config_generic,		NULL, NULL, NULL },
+  { "moduleload",	"filename",		2,  2,  0,  ARG_MAGIC|CFG_MODLOAD,	&config_generic,		NULL, NULL, NULL },
+  { "modulepath",	"path",		2,  2,  0,  ARG_MAGIC|CFG_MODPATH,	&config_generic,		NULL, NULL, NULL },
 #endif
 #ifdef HAVE_TLS
-  { "TLSRandFile",		0,  0,  0,  NULL,	CFG_TLS_RAND|ARG_MAGIC,		&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCipherSuite",		0,  0,  0,  NULL,	CFG_TLS_CIPHER|ARG_MAGIC, 	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificateFile",	0,  0,  0,  NULL,	CFG_TLS_CERT_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificateKeyFile",	0,  0,  0,  NULL,	CFG_TLS_CERT_KEY|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificatePath",	0,  0,  0,  NULL,	CFG_TLS_CERT_PATH|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCACertificateFile",	0,  0,  0,  NULL,	CFG_TLS_CA_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSRandFile",	NULL,		0,  0,  0,  CFG_TLS_RAND|ARG_MAGIC,		&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCipherSuite",	NULL,		0,  0,  0,  CFG_TLS_CIPHER|ARG_MAGIC, 	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCertificateFile",	NULL,	0,  0,  0,  CFG_TLS_CERT_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCertificateKeyFile",	NULL,	0,  0,  0,  CFG_TLS_CERT_KEY|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCertificatePath",	NULL,	0,  0,  0,  CFG_TLS_CERT_PATH|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCACertificateFile",	NULL,	0,  0,  0,  CFG_TLS_CA_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
 #ifdef HAVE_OPENSSL_CRL
-  { "TLSCRLCheck",		0,  0,  0,  NULL,	CFG_TLS_CRLCHECK|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
+  { "TLSCRLCheck",	NULL,		0,  0,  0,  CFG_TLS_CRLCHECK|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
 #else
-  { "TLSCRLCheck",		0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "TLSCRLCheck",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
 #endif
-  { "TLSVerifyClient",		0,  0,  0,  NULL,	CFG_TLS_VERIFY|ARG_MAGIC,	&config_tls_verify,	NULL, NULL, NULL },
+  { "TLSVerifyClient",	NULL,		0,  0,  0,  CFG_TLS_VERIFY|ARG_MAGIC,	&config_tls_verify,	NULL, NULL, NULL },
 #endif
 #ifdef SLAPD_RLOOKUPS
-  { "reverse-lookup",		2,  2,  0,  "on|off",	ARG_ON_OFF,		&use_reverse_lookup,		NULL, NULL, NULL },
+  { "reverse-lookup",	"on|off",		2,  2,  0,  ARG_ON_OFF,		&use_reverse_lookup,		NULL, NULL, NULL },
 #else
-  { "reverse-lookup",		2,  2,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "reverse-lookup",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
 #endif
 #ifdef LDAP_SLAPI
-  { "plugin",			0,  0,  0,  NULL,	ARG_MAGIC|CFG_PLUGIN,	&config_generic,		NULL, NULL, NULL },
-  { "pluginlog",		2,  2,  0,  "filename",	ARG_STRING,		&slapi_log_file,		NULL, NULL, NULL },
+  { "plugin",	NULL,			0,  0,  0,  ARG_MAGIC|CFG_PLUGIN,	&config_generic,		NULL, NULL, NULL },
+  { "pluginlog",	"filename",		2,  2,  0,  ARG_STRING,		&slapi_log_file,		NULL, NULL, NULL },
 #else
-  { "plugin",			0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "pluginlog",		0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "plugin",	NULL,			0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "pluginlog",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
 #endif
-  { "replica-pidfile",		0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "replica-argsfile",		0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { NULL,			0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL }
+  { "replica-pidfile",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { "replica-argsfile",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+  { NULL,	NULL,			0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL }
 };
 
 
@@ -331,6 +345,8 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 	c->type = arg_user = (arg_type & ARGS_USERLAND);
 	c->value_int = c->value_long = c->value_ber_t = 0;
 	c->value_string = NULL;
+	BER_BVZERO( &c->value_dn );
+	BER_BVZERO( &c->value_ndn );
 	if(arg_type & ARGS_NUMERIC) {
 		int j;
 		iarg = 0; larg = 0; barg = 0;
@@ -364,6 +380,17 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		c->value_ber_t = barg;
 	}
 	if(arg_type & ARG_STRING) c->value_string = ch_strdup(c->argv[1]);
+	if(arg_type & ARG_DN) {
+		struct berval bv;
+		ber_str2bv( c->argv[1], 0, 0, &bv );
+		rc = dnPrettyNormal( NULL, &bv, &c->value_dn, &c->value_ndn, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
+			Debug(LDAP_DEBUG_CONFIG, "%s DN is invalid %d (%s)\n",
+				Conf[i].name, rc, ldap_err2string( rc ));
+			return(ARG_BAD_CONF);
+		}
+	}
 	if(arg_type & ARG_MAGIC) {
 		if(!c->be) c->be = frontendDB;
 		rc = (*((ConfigDriver*)Conf[i].arg_item))(c);
@@ -382,7 +409,14 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_BER_LEN_T: 	*((ber_len_t*)Conf[i].arg_item)		= barg;			break;
 			case ARG_STRING: {
 				char *cc = *((char**)Conf[i].arg_item);
-				if(cc) ch_free(cc);	/* potential memory leak */
+				if(cc) {
+					if (arg_type & ARG_UNIQUE) {
+						Debug(LDAP_DEBUG_CONFIG, "%s: already set %s!\n",
+							c->log, Conf[i].name, 0 );
+						return(ARG_BAD_CONF);
+					}
+					ch_free(cc);	/* potential memory leak */
+				}
 				*(char **)Conf[i].arg_item = c->value_string;
 				break;
 				}
@@ -590,11 +624,31 @@ config_generic(ConfigArgs *c) {
 				c->be->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
 			break;
 
-		case CFG_SASLOPT:
-			/* XXX slap_sasl_config doesn't actually use the line argument */
-			if(slap_sasl_config(c->argc, c->argv, c->line, c->fname, c->lineno))
+		case CFG_AZPOLICY:
+			if (slap_sasl_setpolicy( c->argv[1] )) {
+				Debug(LDAP_DEBUG_ANY, "%s: unable to parse value \"%s\" in"
+					" \"authz-policy <policy>\"\n",
+					c->log, c->argv[1], 0 );
+				return(1);
+			}
+			break;
+		
+		case CFG_AZREGEXP:
+			if (slap_sasl_regexp_config( c->argv[1], c->argv[2] ))
 				return(1);
 			break;
+				
+#ifdef HAVE_CYRUS_SASL
+		case CFG_SASLSECP:
+			{
+			char *txt = slap_sasl_secprops( c->argv[1] );
+			if ( txt ) {
+				Debug(LDAP_DEBUG_ANY, "%s: sasl-secprops: %s\n",
+					c->log, txt, 0 );
+				return(1);
+			}
+			break;
+#endif
 
 		case CFG_DEPTH:
 			c->be->be_max_deref_depth = c->value_int;
@@ -736,15 +790,8 @@ config_search_base(ConfigArgs *c) {
 		free(default_search_nbase.bv_val);
 	}
 
-	ber_str2bv(c->argv[1], 0, 1, &dn);
-	rc = dnPrettyNormal(NULL, &dn, &default_search_base, &default_search_nbase, NULL);
-
-	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY,
-			"%s: defaultSearchBase DN is invalid: %d (%s)\n",
-			c->log, rc, ldap_err2string( rc ));
-		return(1);
-	}
+	default_search_base = c->value_dn;
+	default_search_nbase = c->value_ndn;
 	return(0);
 }
 
@@ -778,14 +825,8 @@ int
 config_schema_dn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
-	ber_str2bv(c->argv[1], 0, 1, &dn);
-	rc = dnPrettyNormal(NULL, &dn, &c->be->be_schemadn, &c->be->be_schemandn, NULL);
-	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: "
-			"schema DN is invalid: %d (%s)\n",
-			c->log, rc, ldap_err2string( rc ));
-		return(1);
-	}
+	c->be->be_schemadn = c->value_dn;
+	c->be->be_schemandn = c->value_ndn;
 	return(0);
 }
 
@@ -876,7 +917,7 @@ config_overlay(ConfigArgs *c) {
 int
 config_suffix(ConfigArgs *c) {
 	Backend *tbe;
-	struct berval dn, pdn, ndn;
+	struct berval pdn, ndn;
 	int rc;
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
@@ -886,15 +927,9 @@ config_suffix(ConfigArgs *c) {
 		return(1);
 	}
 #endif
-	ber_str2bv(c->argv[1], 0, 1, &dn);
 
-	rc = dnPrettyNormal(NULL, &dn, &pdn, &ndn, NULL);
-	if(rc != LDAP_SUCCESS) {
-		Debug( LDAP_DEBUG_ANY,
-			"%s: suffix DN is invalid: %d (%s)\n",
-			c->log, rc, ldap_err2string( rc ));
-		return(1);
-	}
+	pdn = c->value_dn;
+	ndn = c->value_ndn;
 	tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
 		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend! (ignored)\n",
@@ -919,19 +954,8 @@ config_suffix(ConfigArgs *c) {
 
 int
 config_rootdn(ConfigArgs *c) {
-	struct berval dn;
-	int rc;
-
-	ber_str2bv(c->argv[1], 0, 1, &dn);
-
-	rc = dnPrettyNormal(NULL, &dn, &c->be->be_rootdn, &c->be->be_rootndn, NULL);
-
-	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: "
-			"rootdn DN is invalid: %d (%s)\n",
-			c->log, rc, ldap_err2string( rc ));
-		return(1);
-	}
+	c->be->be_rootdn = c->value_dn;
+	c->be->be_rootndn = c->value_ndn;
 	return(0);
 }
 
