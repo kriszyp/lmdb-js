@@ -12,8 +12,10 @@ H1: OpenLDAP Software Copyright Notices
 
 H2: OpenLDAP Copyright Notice
 
-[[copyright]] 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
-All rights reserved.
+!block nofill
+[[copyright]] 1998-2003 The OpenLDAP Foundation.
+{{All rights reserved.}}
+!endblock
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted {{only as authorized}} by the {{SECT:OpenLDAP
@@ -40,20 +42,24 @@ Additional information about OpenLDAP software can be obtained at
 
 H2: Additional Copyright Notice
 
+!block nofill
 Portions [[copyright]] 1998-2003 Kurt D. Zeilenga.
 Portions [[copyright]] 1998-2003 Net Boolean Incorporated.
 Portions [[copyright]] 2001-2003 IBM Corporation.
-All rights reserved.
+{{All rights reserved.}}
+!endblock
 
 Redistribution and use in source and binary forms, with or without
-modification, are permitted only as authorized by the OpenLDAP
-Public License.
+modification, are permitted only as authorized by the {{SECT:OpenLDAP
+Public License}}.
 
 
+!block nofill
 Portions [[copyright]] 1999-2003 Howard Y.H. Chu.
 Portions [[copyright]] 1999-2003 Symas Corporation.
 Portions [[copyright]] 1998-2003 Hallvard B. Furuseth.
-All rights reserved.
+{{All rights reserved.}}
+!endblock
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that this notice is preserved.
@@ -65,8 +71,10 @@ without express or implied warranty.
 
 H2: University of Michigan Copyright Notice
 
+!block nofill
 Portions [[copyright]] 1992-1996 Regents of the University of Michigan.
-All rights reserved.
+{{All rights reserved.}}
+!endblock
 
 Redistribution and use in source and binary forms are permitted
 provided that this notice is preserved and that due credit is given
