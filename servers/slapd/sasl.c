@@ -1238,10 +1238,10 @@ int slap_sasl_external(
 int slap_sasl_reset( Connection *conn )
 {
 	int rc = LDAP_SUCCESS;
+#ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = conn->c_sasl_context;
 	slap_ssf_t ssf = 0;
 	const char *authid = NULL;
-#ifdef HAVE_CYRUS_SASL
 #if SASL_VERSION_MAJOR >= 2
 	sasl_getprop( ctx, SASL_SSF_EXTERNAL, &ssf );
 	sasl_getprop( ctx, SASL_AUTH_EXTERNAL, &authid );
