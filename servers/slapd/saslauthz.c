@@ -515,6 +515,8 @@ int slap_sasl_match( char *rule, struct berval *assertDN, char *authc )
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
+	ldap_pvt_thread_mutex_destroy( &op.o_abandonmutex );
+
 	if (sm.match)
 		rc = LDAP_SUCCESS;
 	else
