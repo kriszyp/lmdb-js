@@ -9,7 +9,8 @@ OpenLDAP 2.1.9 Engineering
 	Fixed slapd referral/alias normalization bug
 	Fixed slapd logging bugs (ITS#2170)
 	Fixed slapd rootdse entry_free bug (ITS#2172)
-	Added "allow update_anon" feature (ITS#2155)
+	Added slapd allow update_anon feature (ITS#2155)
+	Added slapd authz stats logging feature (ITS#2165)
 	Removed lint
 	Build Environment
 		Add subordinate referral test
