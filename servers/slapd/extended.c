@@ -110,9 +110,9 @@ do_extended(
  	Slapi_PBlock    *pb = op->o_pb;
  	SLAPI_FUNC      funcAddr = NULL;
  	int             extop_rc;
- 	int             msg_sent=FALSE;
- 	char            *result_msg="";
- #endif /* defined(LDAP_SLAPI) */
+ 	int             msg_sent = FALSE;
+ 	char            *result_msg = "";
+#endif /* defined(LDAP_SLAPI) */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_extended: conn %d\n", conn->c_connid, 0, 0 );
@@ -253,36 +253,68 @@ do_extended(
 		goto done;  /* end of OpenLDAP extended operation */
 
 	} else { /* start of Netscape extended operation */
-		if ( ( rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_OID,(void *)reqoid.bv_val) ) == 0 &&
-				( rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_VALUE,(void *)&reqdata) ) == 0 &&
-				( rc = slapi_pblock_set( pb, SLAPI_CONNECTION,(void *)conn) ) == 0  &&
-				( rc = slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op) ) == 0) {
-			extop_rc = (*funcAddr)( pb );
-			if ( extop_rc == SLAPI_PLUGIN_EXTENDED_SENT_RESULT ) {
-				msg_sent = TRUE;
-			} else if ( extop_rc == SLAPI_PLUGIN_EXTENDED_NOT_HANDLED ) {
-				rc = LDAP_PROTOCOL_ERROR;
-				result_msg = UNSUPPORTED_EXTENDEDOP;
-			} else {
-				if ( ( rc = slapi_pblock_get(pb, SLAPI_EXT_OP_RET_OID,&rspoid) ) == 0 &&
-						  ( rc = slapi_pblock_get(pb, SLAPI_EXT_OP_RET_VALUE,&rspdata) ) == 0 ) {
-					send_ldap_extended( conn, op, extop_rc, NULL, text, refs,
-                                                        rspoid, rspdata, rspctrls );
-					msg_sent = TRUE;
-				} else {
-					rc = LDAP_OPERATIONS_ERROR;
-				}
-			}
-		} else {
+		rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_OID,
+				(void *)reqoid.bv_val);
+		if ( rc != LDAP_SUCCESS ) {
 			rc = LDAP_OPERATIONS_ERROR;
+			goto done;
 		}
 
-		if ( rc != LDAP_SUCCESS && msg_sent == FALSE ) {
-			send_ldap_result( conn, op, rc, NULL, result_msg, NULL, NULL );
+		rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_VALUE,
+				(void *)&reqdata);
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_OPERATIONS_ERROR;
+			goto done;
 		}
+
+		rc = slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_OPERATIONS_ERROR;
+			goto done;
+		}
+
+		rc = slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op);
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_OPERATIONS_ERROR;
+			goto done;
+		}
+
+		extop_rc = (*funcAddr)( pb );
+		if ( extop_rc == SLAPI_PLUGIN_EXTENDED_SENT_RESULT ) {
+			msg_sent = TRUE;
+
+		} else if ( extop_rc == SLAPI_PLUGIN_EXTENDED_NOT_HANDLED ) {
+			rc = LDAP_PROTOCOL_ERROR;
+			result_msg = UNSUPPORTED_EXTENDEDOP;
+
+		} else {
+			rc = slapi_pblock_get( pb, SLAPI_EXT_OP_RET_OID,
+					&rspoid);
+			if ( rc != LDAP_SUCCESS ) {
+				goto done2;
+			}
+
+			rc = slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE,
+					&rspdata);
+			if ( rc != LDAP_SUCCESS ) {
+				goto done2;
+			}
+
+			send_ldap_extended( conn, op, extop_rc, NULL, text,
+					refs, rspoid, rspdata, rspctrls );
+			msg_sent = TRUE;
+		}
+
+done2:;
+		if ( rc != LDAP_SUCCESS && msg_sent == FALSE ) {
+			send_ldap_result( conn, op, rc, NULL, result_msg,
+					NULL, NULL );
+		}
+
 		if ( rspoid != NULL ) {
 			free( rspoid );
 		}
+
 		if ( rspdata != NULL ) {
 			ber_bvfree( rspdata );
 		}
