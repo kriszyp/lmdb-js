@@ -18,15 +18,31 @@ AC_PREFIX_DEFAULT(/usr/local)
 dnl general options
 CF_ARG_OPTION(debug,[  --enable-debug	enable debugging (yes)],[
 	LDAP_DEBUG=no],[LDAP_DEBUG=yes],yes)dnl
+CF_ARG_OPTION(libui,[  --enable-libui	enable library user interface (yes)],[
+	LDAP_LIBUI=no],[LDAP_LIBUI=yes],yes)dnl
 CF_ARG_OPTION(cache,[  --enable-cache	enable caching (yes)],[
 	LDAP_CACHE=no],[LDAP_CACHE=yes],yes)dnl
+CF_ARG_OPTION(rlookups,[  --enable-rlookups	enable reverse lookups (yes)],[
+	LDAP_RLOOKUP=no],[LDAP_RLOOKUP=yes],yes)dnl
 CF_ARG_OPTION(referrals,[  --enable-referrals	enable referrals (yes)],[
 	LDAP_REFERRALS=no],[LDAP_REFERRALS=yes],yes)dnl
+CF_ARG_OPTION(aclgroup,[  --enable-aclgroup	enable ACL group support (yes)],[
+	LDAP_ACLGROUP=no],[LDAP_ALCGROUP=yes],yes)dnl
 
 CF_ARG_OPTION(cldap,[  --enable-clapd	enable connectionless ldap (no)],[
 	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
 CF_ARG_OPTION(phonetic,[  --enable-phonetic	enable phonetic/soundex  (no)],[
 	LDAP_PHONETIC=yes],[LDAP_PHONETIC=no],no)dnl
+
+CF_ARG_OPTION(crypt,[  --enable-crypt	enable crypt(3) passwords (yes)],[
+	LDAP_CRYPT=no],[LDAP_CRYPT=yes],yes)dnl
+CF_ARG_OPTION(md5,[  --enable-md5		enable MD5 passwords (yes)],[
+	LDAP_MD5=no],[LDAP_MD5=yes],yes)dnl
+CF_ARG_OPTION(sha1,[  --enable-sha1		enable SHA1 passwords (yes)],[
+	LDAP_SHA1=no],[LDAP_SHA1=yes],yes)dnl
+
+CF_ARG_OPTION(tcpwrappers,[  --enable-tcpwrappers	enable tcp wrapper support (no)],[
+	LDAP_TCP_WRAPPERS=yes],[LDAP_TCP_WRAPPERS=no],no)dnl
 
 dnl server options
 CF_ARG_OPTION(ldapd,[  --enable-ldapd	enable building ldapd (no)],[
@@ -322,5 +338,6 @@ dnl tests/Makefile:build/top.mk:tests/Makefile.in \
 dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
-AC_OUTPUT(
-	,[date > stamp-h])
+AC_OUTPUT( \
+Makefile:build/top.mk:Makefile.in:build/dir.mk \
+,[date > stamp-h])
