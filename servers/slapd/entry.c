@@ -544,7 +544,7 @@ int entry_encode(Entry *e, struct berval *bv)
 		}
 		len += entry_lenlen(i);
 		siz += sizeof(struct berval);	/* empty berval at end */
-#ifdef SLAP_NVALUES_ON_DISK
+#ifdef SLAP_NVALUES
 		if (a->a_nvals != a->a_vals) {
 			for (i=0; a->a_nvals[i].bv_val; i++) {
 				siz += sizeof(struct berval);
@@ -589,7 +589,7 @@ int entry_encode(Entry *e, struct berval *bv)
 			ptr += a->a_vals[i].bv_len;
 			*ptr++ = '\0';
 		    }
-#ifdef SLAP_NVALUES_ON_DISK
+#ifdef SLAP_NVALUES
 		    if (a->a_nvals != a->a_vals) {
 		    	entry_putlen(&ptr, i);
 			for (i=0; a->a_nvals[i].bv_val; i++) {
@@ -709,7 +709,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr->bv_len = 0;
 		bptr++;
 
-#ifdef SLAP_NVALUES_ON_DISK
+#ifdef SLAP_NVALUES
 		j = entry_getlen(&ptr);
 		if (j) {
 			a->a_nvals = bptr;
@@ -727,40 +727,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		} else {
 			a->a_nvals = a->a_vals;
 		}
-#elif defined(SLAP_NVALUES)
-		if( count && ad->ad_type->sat_equality &&
-			ad->ad_type->sat_equality->smr_normalize )
-		{
-			a->a_nvals = ch_malloc((count+1)*sizeof(struct berval));
-
-			for(j=0; j<count; j++) {
-				rc = ad->ad_type->sat_equality->smr_normalize(
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					ad->ad_type->sat_syntax,
-					ad->ad_type->sat_equality,
-					&a->a_vals[j], &a->a_nvals[j] );
-
-				if( rc ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, DETAIL1,
-						"entry_decode: NULL (smr_normalize %d)\n",
-						rc, 0, 0 );
-#else
-					Debug( LDAP_DEBUG_ANY,
-				   		"<= entry_decode NULL (smr_normalize %d)\n",
-						rc, 0, 0 );
 #endif
-
-					return rc;
-				}
-			}
-			a->a_nvals[j].bv_val = NULL;
-			a->a_nvals[j].bv_len = 0;
-		} else {
-			a->a_nvals = a->a_vals;
-		}
-#endif
-
 	}
 
 	if (a) a->a_next = NULL;
