@@ -16,6 +16,7 @@ test-bdb2:	FORCE
 		echo "run configure with --enable-bdb2" ; \
 	fi
 
+tests:		test-ldbm
 test:		test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
