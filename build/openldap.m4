@@ -442,7 +442,7 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MINOR 0
 #endif
 
-/* require 4.0 or later */
+/* require 4.1 or later */
 #if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 1)
 	__db_version_compat
 #endif
