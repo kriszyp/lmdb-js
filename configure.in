@@ -1594,7 +1594,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 	dnl check for Mach CThreads
 	AC_CHECK_HEADERS(mach/cthreads.h cthread.h)
-	if test "${ac_cv_header_mach_cthreads_h}" = yes -o
+	if test "${ac_cv_header_mach_cthreads_h}" = yes -o \
 		"${ac_cv_header_cthreads_h}" = yes ; then
 		ol_with_threads=found
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.389 2002/01/15 16:26:50 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.390 2002/01/20 21:25:11 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -12027,7 +12027,7 @@ else
 fi
 done
 
-	if test "${ac_cv_header_mach_cthreads_h}" = yes -o
+	if test "${ac_cv_header_mach_cthreads_h}" = yes -o \
 		"${ac_cv_header_cthreads_h}" = yes ; then
 		ol_with_threads=found
 
