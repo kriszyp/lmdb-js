@@ -43,7 +43,7 @@ these steps:
 
 	These environment variables are used: 
 		CC			C Compiler	(cc, ecgs)
-		CFLAGS		C Flags		(-ansi)
+		CFLAGS		C Flags		(-O -g)
 		CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
 		LDFLAGS		LDFLAGS		(-L/path/lib)
 		LIBS		LIBS		(-llib)
@@ -159,7 +159,7 @@ WARNING: Executables built in your environment may not run
 
 Supported Environmental Variables
 	CC			C compiler		(cc, egcc)
-	CFLAGS		C flags			(-ansi)
+	CFLAGS		C flags			(-O -g)
 	CPPFLAGS	cpp flags		(-I/path/include -Ddef)
 	LDFLAGS		ld flags		(-L/usr/local/lib)
 	LIBS		libraries		(-llib)
