@@ -24,7 +24,7 @@ int is_object_subclass(
 
 	if( sub == NULL || sup == NULL ) return 0;
 
-#if 0
+#if 1
 	Debug( LDAP_DEBUG_TRACE, "is_object_subclass(%s,%s) %d\n",
 		sub->soc_oid, sup->soc_oid, sup == sub );
 #endif

@@ -34,6 +34,17 @@ objectClassMatch(
 	ObjectClass *oc = oc_bvfind( value );
 	ObjectClass *asserted = oc_bvfind( a );
 
+#if 1
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "> objectClassMatch(%s, %s)\n",
+		   value->bv_val, a->bv_val ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "> objectClassMatch(%s,%s)\n",
+		value->bv_val, a->bv_val, 0 );
+#endif
+#endif
+
 	if( asserted == NULL ) {
 		if( OID_LEADCHAR( *a->bv_val ) ) {
 			/* OID form, return FALSE */
@@ -56,13 +67,13 @@ objectClassMatch(
 		*matchp = !is_object_subclass( asserted, oc );
 	}
 
-#if 0
+#if 1
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "objectClassMatch(%s, %s) = %d\n",
+		   "< objectClassMatch(%s, %s) = %d\n",
 		   value->bv_val, a->bv_val, *matchp ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "objectClassMatch(%s,%s) = %d\n",
+	Debug( LDAP_DEBUG_TRACE, "< objectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
 #endif
 #endif
@@ -70,6 +81,9 @@ objectClassMatch(
 	return LDAP_SUCCESS;
 }
 
+#if 1
+#define structuralObjectClassMatch objectClassMatch
+#else
 static int
 structuralObjectClassMatch(
 	int *matchp,
@@ -82,6 +96,17 @@ structuralObjectClassMatch(
 	struct berval *a = (struct berval *) assertedValue;
 	ObjectClass *oc = oc_bvfind( value );
 	ObjectClass *asserted = oc_bvfind( a );
+
+#if 1
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "> structuralObjectClassMatch(%s, %s)\n",
+		   value->bv_val, a->bv_val ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "> structuralObjectClassMatch(%s,%s)\n",
+		value->bv_val, a->bv_val, 0 );
+#endif
+#endif
 
 	if( asserted == NULL ) {
 		if( OID_LEADCHAR( *a->bv_val ) ) {
@@ -101,19 +126,20 @@ structuralObjectClassMatch(
 
 	*matchp = ( asserted != oc );
 
-#if 0
+#if 1
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "structuralObjectClassMatch( %s, %s ) = %d\n",
+		   "< structuralObjectClassMatch( %s, %s ) = %d\n",
 		   value->bv_val, a->bv_val, *matchp ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "structuralObjectClassMatch(%s,%s) = %d\n",
+	Debug( LDAP_DEBUG_TRACE, "< structuralObjectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
 #endif
 #endif
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 static ObjectClassSchemaCheckFN rootDseObjectClass;
 static ObjectClassSchemaCheckFN aliasObjectClass;
@@ -207,8 +233,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256: object classes of the entity' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, 0,
-		objectClassMatch, NULL, NULL,
+		NULL, 0, objectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
 	/* user entry operational attributes */
