@@ -930,15 +930,6 @@ hdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )
 {
-	if ( cx->bdb->bi_idl_cache_size ) {
-		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
-		if ( cx->rc == DB_NOTFOUND ) {
-			return cx->rc;
-		}
-		if ( cx->rc == LDAP_SUCCESS ) {
-			goto gotit;
-		}
-	}
 	BDB_IDL_ZERO( cx->tmp );
 
 	if ( !cx->ei ) {
@@ -946,6 +937,16 @@ hdb_dn2idl_internal(
 		if ( !cx->ei ) {
 			cx->rc = DB_NOTFOUND;
 			goto saveit;
+		}
+	}
+
+	if ( cx->bdb->bi_idl_cache_size ) {
+		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
+		if ( cx->rc == DB_NOTFOUND ) {
+			return cx->rc;
+		}
+		if ( cx->rc == LDAP_SUCCESS ) {
+			goto gotit;
 		}
 	}
 
