@@ -98,9 +98,9 @@ St_write (
 		&(st->st_lfp))) < 0 ) {
 	    if ( !st->st_err_logged ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "st", LDAP_LEVEL_ERR, "St_write: "
+		LDAP_LOG ( SLURPD, ERR, "St_write: "
 			"Error: cannot open status file \"%s\":%s\n",
-			sglob->slurpd_status_file, sys_errlist[ errno ] ));
+			sglob->slurpd_status_file, sys_errlist[ errno ], 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: cannot open status file \"%s\": %s\n",
@@ -184,9 +184,9 @@ St_read(
 	 */
 	if (( fp = fopen( sglob->slurpd_status_file, "w" )) == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "st", LDAP_LEVEL_ERR, "St_write: "
+		LDAP_LOG ( SLURPD, ERR, "St_write: "
 			"Error: cannot create status file \"%s\"\n",
-		    sglob->slurpd_status_file ));
+		    sglob->slurpd_status_file, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ANY, "Error: cannot create status file \"%s\"\n",
 		    sglob->slurpd_status_file, 0, 0 );
@@ -197,8 +197,8 @@ St_read(
 	(void) fclose( fp );
 	ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "st", LDAP_LEVEL_DETAIL1, "St_write: "
-		"No status file found, defaulting values\n" ));
+	LDAP_LOG ( SLURPD, DETAIL1, "St_write: "
+		"No status file found, defaulting values\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "No status file found, defaulting values\n",
 		0, 0, 0 );
@@ -248,17 +248,17 @@ St_read(
 	    sprintf( tbuf, "%s:%s (timestamp %s.%s)", hostname, port,
 		    timestamp, seq );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "st", LDAP_LEVEL_DETAIL1, "St_write: "
-			"Retrieved state information for %s\n", tbuf ));
+		LDAP_LOG ( SLURPD, DETAIL1, "St_write: "
+			"Retrieved state information for %s\n", tbuf, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ARGS,
 		    "Retrieved state information for %s\n", tbuf, 0, 0 );
 #endif
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "st", LDAP_LEVEL_WARNING, "St_write: "
+		LDAP_LOG ( SLURPD, WARNING, "St_write: "
 			"Warning: saved state for %s:%s, not a known replica\n", 
-			hostname, port ));
+			hostname, port, 0 );
 #else
 	    Debug(  LDAP_DEBUG_ANY,
 		    "Warning: saved state for %s:%s, not a known replica\n",

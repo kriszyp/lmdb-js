@@ -113,15 +113,16 @@ doargs(
 	    g->one_shot_mode = 1;
 	    break;
 	case 'r':	/* slapd replog file */
-	    strncpy( g->slapd_replogfile, optarg,
-			sizeof(g->slapd_replogfile)-1 );
-		g->slapd_replogfile[sizeof(g->slapd_replogfile)-1] = '\0';
+		snprintf( g->slapd_replogfile, sizeof g->slapd_replogfile,
+			"%s", optarg );
 	    rflag++;
 	    break;
-	case 't':	/* dir to use for our copies of replogs */
-	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + sizeof("/replica"));
-	    sprintf(g->slurpd_rdir, "%s" LDAP_DIRSEP "replica", optarg);
-	    break;
+	case 't': {	/* dir to use for our copies of replogs */
+		size_t sz;
+	    g->slurpd_rdir = (char *)malloc (sz = (strlen(optarg) + sizeof("/replica")));
+	    snprintf(g->slurpd_rdir, sz,
+			"%s" LDAP_DIRSEP "replica", optarg);
+	    } break;
 	default:
 	    usage( g->myname );
 	    return( -1 );
@@ -135,11 +136,13 @@ doargs(
     }
 
     /* Set location/name of our private copy of the slapd replog file */
-    sprintf( g->slurpd_replogfile, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
+    snprintf( g->slurpd_replogfile, sizeof g->slurpd_replogfile,
+		"%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_REPLOGFILE );
 
     /* Set location/name of the slurpd status file */
-    sprintf( g->slurpd_status_file, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
+    snprintf( g->slurpd_status_file, sizeof g->slurpd_status_file,
+		"%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_STATUS_FILE );
 
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);

@@ -92,8 +92,8 @@ fm(
 	if ( file_nonempty( sglob->slapd_replogfile )) {
 	    /* New work found - copy to slurpd replog file */
 #ifdef NEW_LOGGING
-    	LDAP_LOG (( "fm", LDAP_LEVEL_ARGS, 
-			"fm: new work in %s\n", sglob->slapd_replogfile ));
+    	LDAP_LOG ( SLURPD, ARGS, 
+			"fm: new work in %s\n", sglob->slapd_replogfile, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ARGS, "new work in %s\n",
 		    sglob->slapd_replogfile, 0, 0 );
@@ -104,8 +104,8 @@ fm(
 	    } else {
 		if ( rc < 0 ) {
 #ifdef NEW_LOGGING
-    		LDAP_LOG (( "fm", LDAP_LEVEL_CRIT, 
-			"fm: Fatal error while copying replication log\n" ));
+    		LDAP_LOG ( SLURPD, CRIT, 
+				"fm: Fatal error while copying replication log\n" , 0, 0, 0);
 #else
 		    Debug( LDAP_DEBUG_ANY,
 			    "Fatal error while copying replication log\n",
@@ -127,9 +127,9 @@ fm(
 	    if (( rc = acquire_lock( sglob->slurpd_replogfile, &fp,
 		    &lfp )) < 0 ) {
 #ifdef NEW_LOGGING
-   		LDAP_LOG (( "fm", LDAP_LEVEL_ERR, 
+   		LDAP_LOG ( SLURPD, ERR, 
 			"fm: Error: cannot acquire lock on \"%s\" for trimming\n",
-			sglob->slurpd_replogfile ));
+			sglob->slurpd_replogfile, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: cannot acquire lock on \"%s\" for trimming\n",
@@ -142,7 +142,7 @@ fm(
 	}
     }
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "fm", LDAP_LEVEL_RESULTS, "fm: exiting\n" ));
+	LDAP_LOG ( SLURPD, RESULTS, "fm: exiting\n", 0, 0, 0 );
 #else
     Debug( LDAP_DEBUG_ARGS, "fm: exiting\n", 0, 0, 0 );
 #endif
@@ -200,9 +200,9 @@ populate_queue(
 
     if ( acquire_lock( f, &fp, &lfp ) < 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "fm", LDAP_LEVEL_ERR, 
+	LDAP_LOG ( SLURPD, ERR, 
 		"populate_queue: error: can't lock file \"%s\": %s\n", 
-		f, sys_errlist[ errno ] ));
+		f, sys_errlist[ errno ], 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
 		"error: can't lock file \"%s\": %s\n",
@@ -217,9 +217,9 @@ populate_queue(
      */
     if ( fseek( fp, sglob->srpos, 0 ) < 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "fm", LDAP_LEVEL_ERR, 
+	LDAP_LOG ( SLURPD, ERR, 
 		"populate_queue: error: can't seek to offset %ld in file \"%s\"\n", 
-		sglob->srpos, f ));
+		sglob->srpos, f, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
 		"error: can't seek to offset %ld in file \"%s\"\n",
@@ -234,9 +234,9 @@ populate_queue(
 		*t = '\0';
 	    }
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "fm", LDAP_LEVEL_ERR, 
+		LDAP_LOG ( SLURPD, ERR, 
 			"populate_queue: error: malformed replog entry "
-			"(begins with \"%s\")\n", p ));
+			"(begins with \"%s\")\n", p, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ANY,
 		    "error: malformed replog entry (begins with \"%s\")\n",

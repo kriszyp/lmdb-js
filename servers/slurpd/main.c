@@ -22,9 +22,9 @@
 
 #include "portable.h"
 
-#include <ac/stdlib.h>
-
 #include <stdio.h>
+#include <sys/stat.h>
+#include <ac/stdlib.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -123,8 +123,8 @@ main(
 		0, fm, (void *) NULL ) != 0 )
 	{
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "main", LDAP_LEVEL_ERR,
-		"main: file manager ldap_pvt_thread_create failed\n" ));
+	LDAP_LOG ( SLURPD, ERR,
+		"main: file manager ldap_pvt_thread_create failed\n" , 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "file manager ldap_pvt_thread_create failed\n",
 		0, 0, 0 );
@@ -165,8 +165,7 @@ main(
     ldap_pvt_thread_destroy();
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "main", LDAP_LEVEL_RESULTS,
-		"main: slurpd terminated\n" ));
+	LDAP_LOG ( SLURPD, RESULTS, "main: slurpd terminated\n", 0, 0, 0 );
 #else
     Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
 #endif
