@@ -412,7 +412,8 @@ acl_append( struct acl **l, struct acl *a )
 static void
 print_access( struct access *b )
 {
-	printf( "\tby" );
+	fprintf( stderr, "\tby" );
+
 	if ( b->a_dnpat != NULL ) {
 		fprintf( stderr, " dn=%s", b->a_dnpat );
 	} else if ( b->a_addrpat != NULL ) {
