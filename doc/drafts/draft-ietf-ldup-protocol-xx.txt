@@ -1,0 +1,895 @@
+
+LDUP Replication Update Protocol
+Internet-Draft
+Intended Category: Standards Track
+Expires: September 10, 2000
+
+
+                                                            Ellen Stokes
+                                                         IBM Corporation
+
+                                                             Gordon Good
+                                           Netscape Communications Corp.
+
+                                                           March 10 2000
+
+                  The LDUP Replication Update Protocol
+               Filename: draft-ietf-ldup-protocol-01.txt
+
+Table of Contents
+
+1.    Status of this Memo.............................................2
+2.    Abstract........................................................2
+3.    Overview of Protocol............................................2
+4.    High-level Description of Protocol Flow.........................3
+4.1   Supplier-initiated incremental replication protocol.............3
+4.2.     Consumer-initiated replication protocol......................4
+5.    Replication protocol element definitions........................5
+5.1   StartFramedProtocolRequest Extended Operation...................5
+5.2   StartFramedProtocolResponse Extended Operation..................6
+5.3   ReplicationUpdate Extended Operation............................7
+5.3.1    UniqueIdentifier.............................................8
+5.3.2    ReplicationPrimitive.........................................8
+5.3.2.1     AddEntryPrimitive.........................................8
+5.3.2.2     MoveEntryPrimitive........................................9
+5.3.2.3     RenameEntryPrimitive......................................9
+5.3.2.4     RemoveEntryPrimitive......................................9
+5.3.2.5     AddAttributeValuePrimitive................................10
+5.3.2.6     RemoveAttributeValuePrimitive.............................10
+5.3.2.7     RemoveAttributePrimitive..................................10
+5.4   EndFramedProtocolRequest Extended Operation.....................11
+5.5   EndFramedProtocolResponse Extended Operation....................11
+5.6   ReplicationUpdateResponse Extended Operation....................12
+6.    Semantics of Full and Incremental Update protocols..............13
+7.    Summary of response codes.......................................13
+8.    Implications for log-based and state-based servers..............13
+9.    Replication of access control and schema information............13
+10.   Security Considerations.........................................14
+11.   Glossary of Terms...............................................14
+12.   Acknowledgments.................................................14
+13.   References......................................................14
+14.   Author's Addresses..............................................15
+
+
+
+Stokes and Good                                                 [Page 1]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+1. Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that other
+   groups may also distribute working documents as Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   To view the list Internet-Draft Shadow Directories, see
+   http://www.ietf.org/shadow.html.
+
+   This Internet Draft expires September 10, 2000.
+
+
+2. Abstract
+
+   The protocol described in this document is designed to allow one LDAP
+   server to replicate its directory content to another LDAP server. The
+   protocol is designed to be used in a replication configuration where
+   multiple updatable servers are present. Provisions are made in the
+   protocol to carry information that allows the server receiving
+   updates to apply a total ordering to all updates in the replicated
+   system. This total ordering allows all replicas to correctly resolve
+   conflicts that arise when LDAP clients submit changes to different
+   servers that later replicate to one another.
+
+   All protocol elements described here are LDAP Version 3 extended
+   operations. LDAP Version 3 is described in RFC 2251 [LDAPv3].
+
+   Certain terms used in this document are defined in the document "LDAP
+   Replication Architecture" (draft-ietf-ldup-model-00.txt).
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", and "MAY" in this document are
+   to be interpreted as described in RFC 2119 [KEYWORDS].
+
+3. Overview of Protocol
+
+   The LDAP Replication Architecture [ARCHITECTURE] describes the
+   overall approach used in ensuring consistency of multiple updatable
+   replicas of directory content. The protocol described in this
+   document implements the approach desribed in that document.
+
+
+
+Stokes and Good                                                 [Page 2]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+   LDAP Version 3 extended operations are used to carry replicated
+   content from one server to another. The extended operations defined
+   in this document are used to initiate and end a replication session,
+   and to exchange updates. These updates carry with them information
+   that allows the receiving server to apply a total ordering to all of
+   the updates in a replicated system. All servers that receive
+   replication updates apply a consistent set of update resolution
+   policies, described in [URP]. Consistent application of the update
+   resolution policies ensures that all replicas eventually converge and
+   contain the same directory data.
+
+   This protocol is based upon the extended operations defined in
+   [FRAMING].
+
+   This protocol is intended to meet the requirements set forth in
+   [REQ].
+
+4. High-level Description of Protocol Flow
+
+   The following section provides a high-level overview of the
+   replication protocol. Throughout this section, the supplier server is
+   indicated by the letter "S" and the consumer server by the letter
+   "C". The construct "S -> C" indicates that the supplier is sending an
+   LDAPv3 extended operation to the consumer, and "C -> S" indicates
+   that the consumer is sending an LDAPv3 extended operation to the
+   supplier.
+
+4.1 Supplier-initiated incremental replication protocol
+
+      S -> C: LDAP bind operation (identity and credentials
+             used are implementation-defined)
+
+      C -> S: Bind response
+
+      S -> C: StartFramedProtocolRequest LDAPv3 extended
+              operation. The parameters are:
+
+                1) The OID for the LDUP incremental replication protocol or the
+                   LDUP total update protocol, depending on whether an incremental
+                   or complete refresh of the replica is to be performed.
+                2) A protocol-specific payload containing:
+                  a) The root of replicated area (unambiguously
+                     identifies the replicated area)
+                  b) The supplier's replicaID
+                  c) The protocol initiation type - Supplier-Initiated
+                     in this case.
+
+      C -> S: StartFramedProtocolResponse LDAPv3 extended operation. The
+
+
+
+Stokes and Good                                                 [Page 3]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+              parameters are:
+
+                1) A protocol-specific payload containing:
+                  a) A response code (see section 7)
+                  b) An optional update vector that is included
+                     if and only if the response code is REPL_SUCCESS.
+
+      S -> C: The supplier may send zero or more ReplicationUpdate LDAPv3
+              extended operations. The parameters are:
+
+                1) The UUID of the entry being updated
+                2) One or more Replication Primitives (The supplier
+                   may send as many of these as required to bring
+                   the consumer up to date)
+
+      C -> S: At any time, the consumer may send an unsolicited
+              ReplicationUpdateResponse LDAPv3 extended operation. The
+              parameters are:
+
+                1) An optional update vector.  If sent, this indicates that
+                   the consumer has committed all updates whose CSNs are
+                   covered by the transmitted update vector [see glossary
+                   for a definition of "covered by"].
+                2) An optional AbortUpdate boolean flag.  If a supplier
+                   receives a ReplicationUpdateResponse from a consumer with
+                   the AbortUpdate flag set to true, the supplier server MUST
+                   immediately cease sending updates and terminate its
+                   connection to the consumer.
+
+      S -> C: After all required updates have been sent to the consumer, the
+              supplier sends an EndFramedProtocolRequest LDAPv3 extended
+              operation.
+
+      C -> S: The consumer responds by sending an EndFramedProtocolResponse
+              LDAPv3 extended operation, and then closes the connection.
+
+4.2. Consumer-initiated replication protocol
+
+   C -> S: LDAP bind operation (identity and credentials
+          used are implementation-defined)
+
+   S -> C: Bind response
+
+   C -> S: StartFramedProtocolRequest LDAPv3 extended
+           operation. The parameters are:
+
+             1) The OID for the LDUP incremental replication protocol or the
+                LDUP total update protocol, depending on whether an incremental
+
+
+
+Stokes and Good                                                 [Page 4]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+                or complete refresh of the replica is to be performed.
+             2) A protocol-specific payload containing:
+               a) The root of replicated area (unambiguously
+                  identifies the replicated area)
+               b) The consumer's replicaID
+               c) The protocol initiation type - Consumer-Initiated
+                  in this case.
+
+   S -> C: StartFramedProtocolResponse LDAPv3 extended operation. The
+           parameters are:
+
+             1) A protocol-specific payload containing:
+               a) A response code (see section 7)
+
+   S -> C: The supplier server disconnects from the consumer server,
+           and then connects to the consumer, beginning a Supplier-
+           Initiated protocol session (see section 4.1).
+
+
+5. Replication protocol element definitions
+
+5.1 StartFramedProtocolRequest Extended Operation
+
+   The StartFramedProtocolRequest extended operation is sent by a replication
+   initiator to a server to indicate that a replication session should
+   commence. For supplier-initiated replication, the supplier sends this
+   extended operation to the replication consumer to indicate that a
+   replication session should commence. For consumer-initiated
+   replication, the consumer sends this extended operation to the
+   replication supplier to indicate that the supplier should initiate a
+   replication session to the consumer as soon as possible.
+
+   The StartFramedProtocolRequest extended operation is defined
+   in [FRAMING]. When signaling the beginning of a replication
+   session, then requestValue of the StartFramedProtocolRequest
+   is set to the following:
+
+      requestValue ::= SEQUENCE {
+          framedProtocolOID LDAPOID,
+          framedProtocolPayload OPTIONAL OCTET STRING
+      }
+
+   The framedProtocolOID of the StartReplicationRequest must be the OID
+   for the LDUP incremental replication protocol,
+   2.16.840.1.113719.1.142.1.4.3, or the LDUP total update protocol,
+   2.16.840.1.113719.1.142.1.4.4.  See section 7 for information on the
+   semantic behavior of these update protocols.  Implementations MUST
+   support the two update protocols defined in this document.
+
+
+
+Stokes and Good                                                 [Page 5]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+   The framedProtocolPayload of the StartFramedProtocolRequestValue must
+   be set to the BER-encoding of the following:
+
+      framedProtocolPayload ::= SEQUENCE {
+          replicaRoot            LDAPDN,
+          replicaID              LDAPString,
+          replicationInitiator   ENUMERATED {
+              supplier (0),
+              consumer (1)
+          }
+      }
+
+   The parameters in the framedProtocolPayload of the
+   StartFramedProtocolRequestValue are:
+
+      - replicaRoot: the distinguished name of the entry at the top of
+      the replicated area, and uniquely identifies the unit of
+      replication.
+
+      - replicaID: the replica identifier of the replication initiator.
+      Each replica of a given replicated area is identified by a unique
+      identifier, described in [ARCHITECTURE].
+
+      - replicationInitiator: used to differentiate between a supplier-
+      initiated session and a consumer-initiated session.  If the
+      replicationInitiator contains the enumerated value <supplier>,
+      then the initiator is the supplier, and the receiver of this
+      operation should prepare to receive a set of replication updates
+      (or should reject the operation is replication updates are not
+      permitted for some reasonm, perhaps due to access control
+      restrictions).  If the replicationInitiator contains the
+      enumerated value <consumer>, then the receiver should prepare to
+      establish a supplier-initiated replication session with the
+      consumer as soon as possible, updating the replicated are given by
+      replicaRoot and using the update protocol given by
+      replicationProtocolOID.
+
+5.2 StartFramedProtocolResponse Extended Operation
+
+   The StartFramedProtocolResponse extended operation is sent in
+   response to a StartFramedProtocolRequest extended operation.
+
+   For a supplier-initiated session, the response field of the
+   StartFramedProtocolResponse extended response indicates that the
+   consumer is or is not prepared to accept a set of updates. If the
+   consumer is prepared to accept updates, it sends a response field
+   containing a success code and the consumer's replica update vector.
+   If the consumer is unwilling or unable to accept updates, it sends a
+
+
+
+Stokes and Good                                                 [Page 6]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+   response field containing an error code.
+
+   For a consumer-initiated session, the response field of the
+   StartFramedProtocolResponse extended respons indicates that the
+   supplier is or is not prepared to send a set of updates to the
+   consumer. If the supplier is prepared to send updates to the
+   consumer, it sends a response field containing a success code. If the
+   supplier is unwilling or unable to send updates to the consumer, it
+   sends a response field containing an error code. In both cases, the
+   supplier disconnects from the consumer. If the supplier sent a
+   success code to the consumer, it opens a connection to the consumer
+   as soon as possible and initiates a supplier-initiated replication
+   session.
+
+   The StartFramedProtocolResponse extended operation is defined in
+   [FRAMING]. When responding to a StartFramedProtocolRequest signaling
+   the beginning of an LDUP replication session, the response field of
+   the StartFramedProtocolResponse is set to the following:
+
+      StartFramedProtocolResponseValue ::= SEQUENCE {
+          responseCode           LDUPResponseCode,
+          replicaUpdateVector    Attribute,
+      }
+
+   LDUPResponseCodes are defined in section 8.
+
+   The replicaUpdateVector contains a replica update vector, as defined
+   in [INFOMOD]. The update vector is encoded as a normal LDAP
+   attribute, defined in [LDAPv3].
+
+
+5.3 ReplicationUpdate Extended Operation
+
+The ReplicationUpdate extended operation carries a set of replication
+primitives that represent the desired final state of a single entry.
+
+The ReplicationUpdate extended operation is defined as follows:
+
+An LDAPv3 Extended Request is defined in [LDAPv3] as follows:
+
+   ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+       requestName  [0] LDAPOID
+       requestValue [1] OCTET STRING OPTIONAL
+   }
+
+The requestName of the ReplicationUpdate must be the OID
+2.16.840.1.113719.1.142.100.3.
+
+
+
+
+Stokes and Good                                                 [Page 7]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+The requestValue of the ReplicationUpdate must be set to the BER-
+encoding of the following:
+
+   requestValue ::= SEQUENCE {
+       uniqueID     UniqueIdentifier,
+       updates      SET OF ReplicationPrimitive
+   }
+
+5.3.1 UniqueIdentifier
+
+   The Distinguished Name of an entry may be changed (by renaming the
+   entry), or the entry may not have a distinguished name (if it was
+   deleted).  The Unique Identifier provides an immutable name,
+   independent of the current name or deletion status, for an entry. All
+   replicated operations address entries by their Unique Identifiers.
+
+      UniqueIdentifier ::= LDAPString
+
+
+5.3.2 ReplicationPrimitive
+
+   A ReplicationPrimitive carries a single assertion about the the final
+   state of an entry, attribute, or attribute value. There are seven
+   types of primitives.
+
+      ReplicationPrimitive ::= CHOICE {
+          addEntryPrimitive                AddEntryPrimitive,
+          moveEntryPrimitive               MoveEntryPrimitive,
+          renameEntryPrimitive             RenameEntryPrimitive,
+          removeEntryPrimitive             RemoveEntryPrimitive,
+          addAttributeValuePrimitive       AddAttributeValuePrimitive,
+          removeAttributeValuePrimitive    RemoveAttributeValuePrimitive,
+          removeAttributePrimitive         RemoveAttributePrimitive
+      }
+
+   Each primitive applies to the entry referred to by the
+   uniqueIdentifier in the enclosing ReplicationUpdate extended
+   operation.
+
+   Each primitive carries an lLDAPChangeSequenceNumber that is used by
+   the consumer server to correctly resolve update conflicts. [URP]
+   describes the update reconciliation procedures.
+
+5.3.2.1 AddEntryPrimitive
+
+   The AddEntryPrimitive is used to add a new entry.
+
+      AddEntryPrimitive ::= [APPLICATION 0] SEQUENCE {
+
+
+
+Stokes and Good                                                 [Page 8]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+          csn       lDAPChangeSequenceNumber,
+          superior  UniqueIdentifier,
+          rdn       RelativeLDAPDN
+      }
+
+   Parameters of the AddEntryPrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - superior: The unique identifier of the superior (parent) entry.
+
+      - rdn: The relative distinguished name of the new entry.
+
+5.3.2.2 MoveEntryPrimitive
+
+   The MoveEntryPrimitive is used to move an entry to a new location in
+   the DIT.
+
+      MoveEntryPrimitive ::= [APPLICATION 1] SEQUENCE {
+          csn      lDAPChangeSequenceNumber,
+          superior UniqueIdentifier
+      }
+
+   Parameters of the MoveEntryPrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - superior: The unique identifier of the new superior (parent)
+      entry.
+
+5.3.2.3 RenameEntryPrimitive
+
+   The RenameEntryPrimitive is used to change the RDN of an entry.
+
+      RenameEntryPrimitive ::= [APPLICATION 2] SEQUENCE {
+          csn lDAPChangeSequenceNumber,
+          rdn RelativeLDAPDN
+      }
+
+   Parameters of the RenameEntryPrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - rdn: The new relative distinguished name of the entry.
+
+5.3.2.4 RemoveEntryPrimitive
+
+   The RemoveEntryPrimitive is used to delete an entry from the DIT.
+
+
+
+Stokes and Good                                                 [Page 9]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+      RemoveEntryPrimitive ::= [APPLICATION 3] SEQUENCE {
+          csn lDAPChangeSequenceNumber
+      }
+
+   Parameters of the RemoveEntryPrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+5.3.2.5 AddAttributeValuePrimitive
+
+   The AddAttributeValuePrimitive is use to add a new attribute value to
+   an entry.
+
+      AddAttributeValuePrimitive ::= [APPLICATION 4] SEQUENCE {
+          csn     lDAPChangeSequenceNumber,
+          type    AttributeDescription,
+          value   AttributeValue
+      }
+
+   Parameters of the AddAttributeValuePrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - type: The type of the attribute being added.
+
+      - value: The value being added. Multiple values are not permitted.
+
+5.3.2.6 RemoveAttributeValuePrimitive
+
+   The RemoveAttributeValuePrimitive is used to remove a particular
+   attribute value from an entry.
+
+      RemoveAttributeValuePrimitive ::= [APPLICATION 5] SEQUENCE {
+          csn   lDAPChangeSequenceNumber,
+          type  AttributeDescription,
+          value AttributeValue
+      }
+
+   Parameters of the RemoveAttributeValuePrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - type: The type of the attribute being removed.
+
+      - value: The value being removed. Multiple values are not
+      permitted.
+
+5.3.2.7 RemoveAttributePrimitive
+
+
+
+Stokes and Good                                                [Page 10]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+   The RemoveAttributePrimitive is used to remove an attribute and all
+   its values from an entry.
+
+      RemoveAttributePrimitive ::= [APPLICATION 6] SEQUENCE {
+          csn  lDAPChangeSequenceNumber,
+          type AttributeDescription
+      }
+
+   Parameters of the RemoveAttributePrimitive are:
+
+      - csn: The change sequence number of the primitive.
+
+      - type: The type of the attribute being removed.
+
+
+5.4 EndFramedProtocolRequest Extended Operation
+
+   The EndFramedProtocolRequest extended operation is sent from the
+   replication supplier to the replication consumer to indicate the end
+   of the sequence of replication updates. In the event that the
+   supplier is sending a total update, the requestValue field of the
+   EndFramedProtocolRequest extended operation contains a replica update
+   vector. The consumer server must replace its replica update vector,
+   if present, with the one provided by the supplier. In the event that
+   the supplier is sending an incremental update, the replica update
+   vector is absent.
+
+   The EndFramedProtocolRequest extended operation is defined in
+   [FRAMING]. When used to signal the termination of an LDUP incremental
+   or total update session, the requestValue field of the
+   EndFramedProtocolRequest is set to the following:
+
+      requestValue ::= SEQUENCE {
+          replicaUpdateVector    Attribute OPTIONAL,
+          returnConsumerUpdateVector BOOLEAN
+      }
+
+   If returnConsumerUpdateVector is TRUE, the consumer server must
+   return its current update vector to the supplier in the response
+   field of the EndFramedProtocolResponse extended response (defined in
+   section 5.5).  Typically, the supplier will request the consumer's
+   update vector for read-only replicas, since the read-only replica
+   will never initiate a replication session, and will therefore never
+   have the opportunity to provide its update vector to other servers.
+
+
+5.5 EndFramedProtocolResponse Extended Operation
+
+
+
+
+Stokes and Good                                                [Page 11]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+   The EndFramedProtocolResponse extended operation is defined in
+   [FRAMING]. It is used to respond to a EndFramedProtocolRequest.  The
+   response field of the EndFramedProtocolResponse extended operation is
+   set to the following:
+
+      response ::= SEQUENCE {
+          replicaUpdateVector    Attribute OPTIONAL
+      }
+
+   The replicaUpdateVector contains the consumer's current replica
+   update vector, and is optional. The consumer server should only send
+   the replicaUpdateVector if requested by the supplier server in the
+   EndReplicationRequest extended operation.
+
+5.6 ReplicationUpdateResponse Extended Operation
+
+The ReplicationUpdateResponse extended operation is sent, unsolicited,
+by a consumer to a supplier when the consumer wishes the supplier to
+stop sending updates.
+
+An LDAPv3 extended response is defined in [LDAPv3] as follows:
+
+   ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+       COMPONENTS of LDAPResult,
+       responseName  [10] LDAPOID OPTIONAL,
+       response      [11] OCTET STRING OPTIONAL
+   }
+
+The responseName of the ReplicationUpdateResponse must be the OID [OID
+to be assigned].
+
+The response field of the ReplicationUpdateResponse must be set to the
+BER-encoding of the following:
+
+   response ::= SEQUENCE {
+       replicaUpdateVector  Attribute OPTIONAL
+       abortUpdate          BOOLEAN
+   }
+
+The parameters of the ReplicationUpdateResponse are:
+
+- An optional update vector.  If sent, this indicates that the consumer
+has committed all updates whose CSNs are covered by the transmitted
+update vector [see glossary for a definition of "covered by"].  - An
+optional AbortUpdate boolean flag.  If a supplier receives a
+ReplicationUpdateResponse from a consumer with the AbortUpdate flag set
+to true, the supplier server MUST immediately cease sending updates and
+terminate its connection to the consumer.
+
+
+
+Stokes and Good                                                [Page 12]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+6. Semantics of Full and Incremental Update protocols
+
+[To be written]
+
+7. Summary of response codes
+
+The following list describes the response codes that may be included in
+the StartFramedProtocolResponse, EndFramedProtocolResponse, and
+ReplicationUpdateResponse extended operations.
+
+   LDUPResponseCode  ::= SEQUENCE {
+       resultCode  ENUMERATED {
+                 success                   (0),
+                 operationsError           (1),
+                 protocolError             (2),
+                 insufficientAccessRights (50),
+                 busy                     (51),
+                 excessiveCSNSkew        (200),
+
+                 other              (80) },
+       errorMessage LDAPString }
+
+The meanings of the response codes are as follows:
+
+   success..................... As defined in [LDAPv3].
+   operationsError............. As defined in [LDAPv3].
+   protocolError............... As defined in [LDAPv3].
+   insufficientAccessRights.... Access denied. The identity that the
+                                initiator provided in the bind request does
+                                not have sufficient privileges to perform
+                                the operation.
+   busy........................ The replica is temporarily unable to accept
+                                updates.
+   excessiveCSNSkew............ The consumer server has detected that the
+                                CSNs being generated by the supplier are
+                                too small (perhaps because the supplier's
+                                clock was set back). Updates from the
+                                supplier will not be applied.
+   other....................... Some other error occurred.
+
+8. Implications for log-based and state-based servers
+
+To be written, or possibly incorporated into [ARCHITECTURE].
+
+9. Replication of access control and schema information
+
+To be written, or possibly incorporated into [ARCHITECTURE].
+
+
+
+
+Stokes and Good                                                [Page 13]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+10. Security Considerations
+
+To be written.
+
+11. Glossary of Terms
+
+   Covered by: We say that a CSN is "covered by" an update vector if and
+   only if the CSN is less than or equal to the component of the update
+   vector corresponding to the replica ID in the CSN. In other words,
+   given a CSN with components <t,S,r,s> and an update vector with CSNs
+   <t0,S0,r0,s0>,<t1,S1,r1,s1>...<tn,Sn,Rn,sn>, then the CSN is covered
+   by the RUV if and only if one of the following holds for some value
+   i:
+      a) r = ri and t < ti
+      b) r = ri and t = ti and S < Si
+      c) r = ri and t = ti and S = Si and s < si
+
+
+12. Acknowledgments
+
+To be written.
+
+13. References
+
+
+[ARCHITECTURE]
+     J. Merrells, E. Reed, U. Srinivasan, "LDAP Replication Architec-
+     ture", Internet-Draft, draft-ietf-ldup-model-02.txt, October 1999.
+
+
+[FRAMING]
+     E. Stokes, G. Good, "Extended Operations for Framing LDAP Bulk
+     Update Operations", Internet-Draft, draft-ietf-ldup-framing-00.txt,
+     March 2000.
+
+
+[INFOMOD]
+     E. Reed, "LDAP Replication Information Model", Internet-Draft,
+     draft-reed-ldup-infomod-00.txt, June 1999.
+
+
+[KEYWORDS]
+     S. Bradner, "Key Words for use in RFCs to Indicate Requirement Lev-
+     els", Harvard University, RFC 2119, March 1997.
+
+
+[LDAPv3]
+     M. Wahl, S. Kille, T. Howes, "Lightweight Directory Access Protocol
+
+
+
+Stokes and Good                                                [Page 14]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+     (v3)", RFC 2251, December 1997.
+
+
+[REQ]R. Weiser, E. Stokes, "LDAP V3 Replication Requirements",
+     Internet-Draft, draft-ietf-ldup-replica-req-02.txt, October 1999.
+
+
+[URP]S. Legg, A. Payne, "LDUP Update Reconciliation Procedures",
+     Internet-Draft, draft-ietf-ldup-urp-02.txt, October 1999.
+
+14. Author's Addresses
+
+   Ellen Stokes
+   IBM
+   11400 Burnet Rd
+   Austin, TX 78758
+   USA
+   EMail: stokes@austin.ibm.com
+   phone: +1 512 838 3725
+   fax:   +1 512 838 0156
+
+   Gordon Good
+   Netscape Communications Corp.
+   501 E. Middlefield Rd.
+   Mailstop MV068
+   Mountain View, CA 94043
+   USA
+   EMail:  ggood@netscape.com
+   Phone:  +1 650 937-3825
+
+   15. Document Revision History
+   (This section will be removed prior to this document's publication
+   as a proposed standard)
+
+   Differences between draft-ietf-ldup-protocol-00.txt and
+   draft-ietf-ldup-protocol-01.txt:
+
+   1) The document was reworked to use the ldup framed protocol
+   draft [FRAMING].
+
+
+Appendix A - Complete ASN.1 Definition
+
+To be written.
+
+Full Copyright Statement
+
+Copyright (C) The Internet Society (1999).  All Rights Reserved.
+
+
+
+Stokes and Good                                                [Page 15]
+
+Internet-Draft               LDUP Workgroup                March 10 2000
+
+
+This document and translations of it may be copied and furnished to oth-
+ers, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Stokes and Good                                                [Page 16]
