@@ -66,18 +66,23 @@ int slap_sasl_setpolicy( const char *arg )
 
 /* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
-static int slap_parseURI( struct berval *uri,
-	struct berval *searchbase, int *scope, Filter **filter )
+static int slap_parseURI( struct berval *uri, struct berval *base,
+	struct berval *searchbase, int *scope, Filter **filter,
+	struct berval *fstr )
 {
 	struct berval bv;
 	int rc;
 	LDAPURLDesc *ludp;
 
 	assert( uri != NULL && uri->bv_val != NULL );
+	base->bv_val = NULL;
+	base->bv_len = 0;
 	searchbase->bv_val = NULL;
 	searchbase->bv_len = 0;
 	*scope = -1;
 	*filter = NULL;
+	fstr->bv_val = NULL;
+	fstr->bv_len = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -128,16 +133,20 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 			rc = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
+		ber_str2bv( ludp->lud_filter, 0, 0, fstr );
 	}
 
 	/* Grab the searchbase */
-	bv.bv_val = ludp->lud_dn;
-	bv.bv_len = strlen( bv.bv_val );
-	rc = dnNormalize2( NULL, &bv, searchbase );
+	ber_str2bv( ludp->lud_dn, 0, 0, base );
+	rc = dnNormalize2( NULL, base, searchbase );
 
 done:
 	if( rc != LDAP_SUCCESS ) {
 		if( *filter ) filter_free( *filter );
+	} else {
+		/* Don't free these, they're returned to caller */
+		ludp->lud_filter = NULL;
+		ludp->lud_dn = NULL;
 	}
 
 	ldap_free_urldesc( ludp );
@@ -403,7 +412,7 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
 static
 int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assertDN, struct berval *authc )
 {
-	struct berval searchbase = {0, NULL};
+	struct berval base, searchbase, fstr;
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
@@ -427,7 +436,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
+	rc = slap_parseURI( rule, &base, &searchbase, &scope, &filter, &fstr );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
@@ -478,8 +487,8 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx :
 		ldap_pvt_thread_pool_context( &connection_pool );
 
-	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
-	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
+	(*be->be_search)( be, conn, &op, &base, &searchbase,
+	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, &fstr,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
 	if (sm.match) {
@@ -489,7 +498,9 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	}
 
 CONCLUDED:
+	if( base.bv_len ) ch_free( base.bv_val );
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
+	if( fstr.bv_len ) ch_free( fstr.bv_val );
 	if( filter ) filter_free( filter );
 
 #ifdef NEW_LOGGING
@@ -572,7 +583,7 @@ void slap_sasl2dn( Connection *conn,
 {
 	int rc;
 	Backend *be = NULL;
-	struct berval dn = { 0, NULL };
+	struct berval base = { 0, NULL }, dn = { 0, NULL }, fstr = { 0, NULL };
 	int scope = LDAP_SCOPE_BASE;
 	Filter *filter = NULL;
 	slap_callback cb = { slap_cb_null_response,
@@ -599,7 +610,7 @@ void slap_sasl2dn( Connection *conn,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( &regout, &dn, &scope, &filter );
+	rc = slap_parseURI( &regout, &base, &dn, &scope, &filter, &fstr );
 	if( regout.bv_val ) ch_free( regout.bv_val );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
@@ -640,15 +651,17 @@ void slap_sasl2dn( Connection *conn,
 	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx :
 		ldap_pvt_thread_pool_context( &connection_pool );
 
-	(*be->be_search)( be, conn, &op, NULL, &dn,
+	(*be->be_search)( be, conn, &op, &base, &dn,
 		scope, LDAP_DEREF_NEVER, 1, 0,
-		filter, NULL, NULL, 1 );
+		filter, &fstr, NULL, 1 );
 	
 FINISHED:
 	if( sasldn->bv_len ) {
 		conn->c_authz_backend = be;
 	}
+	if( base.bv_len ) ch_free( base.bv_val );
 	if( dn.bv_len ) ch_free( dn.bv_val );
+	if( fstr.bv_len ) ch_free( fstr.bv_val );
 	if( filter ) filter_free( filter );
 
 #ifdef NEW_LOGGING

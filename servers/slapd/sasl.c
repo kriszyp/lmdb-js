@@ -297,6 +297,7 @@ static const char *slap_propnames[] = {
 	"*slapConn", "*authcDN", "*authzDN", NULL };
 
 static Filter *generic_filter;
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
 #define	PROP_CONN	0
 #define	PROP_AUTHC	1
@@ -448,9 +449,9 @@ slap_auxprop_lookup(
 			op.o_is_auth_check = 1;
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
-			(*be->be_search)( be, conn, &op, NULL, &dn,
+			(*be->be_search)( be, conn, &op, &dn, &dn,
 				LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
-				generic_filter, NULL, NULL, 0 );
+				generic_filter, &generic_filterstr, NULL, 0 );
 		}
 	}
 }
@@ -575,9 +576,9 @@ slap_sasl_checkpass(
 		op.o_is_auth_check = 1;
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
-		(*be->be_search)( be, conn, &op, NULL, &dn,
+		(*be->be_search)( be, conn, &op, &dn, &dn,
 			LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
-			generic_filter, NULL, NULL, 0 );
+			generic_filter, &generic_filterstr, NULL, 0 );
 	}
 	if ( ci.rc != SASL_OK ) {
 		sasl_seterror( sconn, 0,
@@ -1114,7 +1115,7 @@ int slap_sasl_open( Connection *conn )
 	/* create new SASL context */
 #if SASL_VERSION_MAJOR >= 2
 	if ( generic_filter == NULL ) {
-		generic_filter = str2filter( "(objectclass=*)" );
+		generic_filter = str2filter( generic_filterstr.bv_val );
 	}
 	if ( conn->c_sock_name.bv_len != 0 &&
 	     strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0) {
