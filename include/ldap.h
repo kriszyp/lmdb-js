@@ -23,9 +23,7 @@
 #ifndef _LDAP_H
 #define _LDAP_H
 
-#include <ldap_cdefs.h>
-
-/* draft spec requires ldap.h include lber declarations */
+/* pull in lber */
 #include <lber.h>
 
 LDAP_BEGIN_DECL
