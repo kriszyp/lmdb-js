@@ -47,9 +47,6 @@
 /* is threadsafe version of -lldap (ie: -lldap_r) *available* or not */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 
-/* LDAP v2 DNS */
-#undef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-
 /* LDAP v2 Kerberos Bind */
 #undef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 

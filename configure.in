@@ -94,7 +94,6 @@ OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DX Referrals extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(kbind,[  --enable-kbind	enable V2 Kerberos IV bind], auto)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
@@ -190,16 +189,6 @@ dnl ----------------------------------------------------------------
 
 dnl General "enable" options
 # validate options
-if test $ol_enable_dns = yes ; then
-	if test $ol_enable_referrals = no ; then
-		AC_MSG_ERROR([DNS requires --enable-referrals])
-	fi
-	if test $ol_enable_referrals = auto ; then
-		AC_MSG_WARN([DNS requires referrals, adding --enable-referrals])
-		ol_enable_referrals=yes
-	fi
-fi
-
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_bdb2 = yes ; then
@@ -818,10 +807,6 @@ fi
 if test "$ac_cv_func_res_search" = yes ; then
 	AC_DEFINE(HAVE_RES_SEARCH,1,
 		[define if you have res_search()])
-elif test $ol_enable_dns = yes ; then
-	AC_MSG_ERROR([--enable-dns requires res_search])
-elif test $ol_enable_dns != no ; then
-	AC_MSG_WARN([no res_search, disabling DNS support])
 fi
 
 
@@ -2155,9 +2140,6 @@ if test "$ol_enable_cache" = no ; then
 fi
 if test "$ol_link_kbind" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
-fi
-if test "$ol_enable_dns" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1,

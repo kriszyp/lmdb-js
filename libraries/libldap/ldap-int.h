@@ -50,10 +50,6 @@ LDAP_BEGIN_DECL
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
 #define LDAP_LDAP_REF_STR_LEN	(sizeof(LDAP_LDAP_REF_STR)-1)
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-#define LDAP_DX_REF_STR		"dx://"
-#define LDAP_DX_REF_STR_LEN	(sizeof(LDAP_DX_REF_STR)-1)
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 #define LDAP_DEFAULT_REFHOPLIMIT 5
 
@@ -501,12 +497,6 @@ LIBLDAP_F (void) ldap_free_urllist LDAP_P((
 	LDAPURLDesc *ludlist ));
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-/*
- * in getdxbyname.c
- */
-LIBLDAP_F (char **) ldap_getdxbyname( const char *domain );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 /*

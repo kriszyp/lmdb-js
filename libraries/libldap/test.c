@@ -782,13 +782,6 @@ main( int argc, char **argv )
 			}
 #endif /* STR_TRANSLATION */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-			getline( line, sizeof(line), stdin,
-				"Use DN & DNS to determine where to send requests (0=no, 1=yes)?" );
-			if ( atoi( line ) != 0 ) {
-				LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_DNS);
-			}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );

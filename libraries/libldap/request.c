@@ -45,9 +45,6 @@
 static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPURLDesc *srv, int any ));
 static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-static LDAPURLDesc *dn2servers LDAP_P(( LDAP *ld, const char *dn ));
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 static BerElement *re_encode_request LDAP_P((
 	LDAP *ld,
@@ -114,33 +111,6 @@ ldap_send_initial_request(
 			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS )
-		&& ldap_is_dns_dn( dn ) )
-	{
-		if (( servers = dn2servers( ld, dn )) == NULL ) {
-			ber_free( ber, 1 );
-			return( -1 );
-		}
-
-#ifdef LDAP_DEBUG
-		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
-			LDAPURLDesc	*srv;
-
-			for (	srv = servers;
-					srv != NULL;
-			    	srv = srv->lud_next )
-			{
-				fprintf( stderr,
-				    "LDAP server %s:  dn %s, port %d\n",
-				    srv->lud_host, ( srv->lud_dn == NULL ) ?
-				    "(default)" : srv->lud_dn,
-				    srv->lud_port );
-			}
-		}
-#endif /* LDAP_DEBUG */
-	} else
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 	{
 		/*
 		 * use of DNS is turned off or this is an X.500 DN...
@@ -810,9 +780,6 @@ int
 ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 {
 	int		rc, count, len, newdn;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	int		ldapref;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 	char		*p, *ports, *ref, *tmpref, *refdn, *unfollowed;
 	LDAPRequest	*origreq;
 	LDAPURLDesc	*srv;
@@ -861,9 +828,6 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 	/* parse out & follow referrals */
 	for ( ref = p; rc == 0 && ref != NULL; ref = p ) {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-		ldapref = 0;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 		if (( p = strchr( ref, '\n' )) != NULL ) {
 			*p++ = '\0';
@@ -878,17 +842,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		    LDAP_LDAP_REF_STR, LDAP_LDAP_REF_STR_LEN ) == 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "chasing LDAP referral: <%s>\n", ref, 0, 0 );
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-			ldapref = 1;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 			tmpref = ref + LDAP_LDAP_REF_STR_LEN;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-		} else if ( len > LDAP_DX_REF_STR_LEN && strncasecmp( ref,
-		    LDAP_DX_REF_STR, LDAP_DX_REF_STR_LEN ) == 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-			    "chasing DX referral: <%s>\n", ref, 0, 0 );
-			tmpref = ref + LDAP_DX_REF_STR_LEN;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
@@ -915,9 +869,6 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			return( -1 );
 		}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-		if ( ldapref ) {
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 			if (( srv = (LDAPURLDesc *)LDAP_CALLOC( 1,
 			    sizeof( LDAPURLDesc ))) == NULL ) {
 				ber_free( ber, 1 );
@@ -938,11 +889,6 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			} else {
 				srv->lud_port = ldap_int_global_options.ldo_defport;
 			}
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-		} else {
-			srv = dn2servers( ld, tmpref );
-		}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 		rinfo.ri_msgid = origreq->lr_origid;
 		if ( srv != NULL && ldap_send_server_request( ld, ber, ld->ld_msgid,
@@ -1118,47 +1064,3 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 }
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-static LDAPURLDesc *
-dn2servers( LDAP *ld, const char *dn )	/* dn can also be a domain.... */
-{
-	char		*p, *host, *server_dn, **dxs;
-	const char *domain;
-	int		i, port;
-	LDAPURLDesc	*srvlist, *prevsrv, *srv;
-
-	if (( domain = strrchr( dn, '@' )) != NULL ) {
-		++domain;
-	} else {
-		domain = dn;
-	}
-
-	if (( dxs = ldap_getdxbyname( domain )) == NULL ) {
-		ld->ld_errno = LDAP_NO_MEMORY;
-		return( NULL );
-	}
-
-	srvlist = NULL;
-	for ( i = 0; dxs[ i ] != NULL; ++i ) {
-		if (ldap_url_parselist(&srv, dxs[i]) == LDAP_SUCCESS
-			|| ldap_url_parsehosts(&srv, dxs[i]) == LDAP_SUCCESS)
-		{
-			/* add to end of list of servers */
-			if ( srvlist == NULL ) {
-				srvlist = srv;
-			} else {
-				prevsrv->lud_next = srv;
-			}
-			prevsrv = srv;
-		}
-	}
-
-	ldap_value_free( dxs );
-
-	if ( srvlist == NULL ) {
-		ld->ld_errno = LDAP_SERVER_DOWN;
-	}
-
-	return( srvlist );
-}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */

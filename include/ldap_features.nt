@@ -47,9 +47,6 @@
 /* is threadsafe version of -lldap (ie: -lldap_r) *available* or not */
 #define LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE LDAP_VENDOR_VERSION
 
-/* LDAP v2 DNS */
-/* #undef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
-
 /* LDAP v2 Referrals */
 #define LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS LDAP_VENDOR_VERSION
 
