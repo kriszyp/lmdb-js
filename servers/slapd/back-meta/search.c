@@ -123,6 +123,7 @@ meta_back_search(
 	char *match = NULL, *err = NULL;
 	char *mbase = NULL, *mmatch = NULL;
 	struct berval mfilter;
+	BerVarray v2refs = NULL;
 		
 	int i, last = 0, candidates = 0, op_type;
 	struct slap_limits_set *limit = NULL;
@@ -134,6 +135,12 @@ meta_back_search(
 		op_type = META_OP_ALLOW_MULTIPLE;
 	}
 	
+	/*
+	 * controls are set in ldap_back_dobind()
+	 * 
+	 * FIXME: in case of values return filter, we might want
+	 * to map attrs and maybe rewrite value
+	 */
 	lc = meta_back_getconn( li, conn, op, op_type, nbase, NULL );
 	if ( !lc || !meta_back_dobind( lc, op ) ) {
 		return -1;
@@ -144,8 +151,8 @@ meta_back_search(
 	 */
 	msgid = ch_calloc( sizeof( int ), li->ntargets );
 	if ( msgid == NULL ) {
-		send_search_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL, 0 );
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 	
@@ -165,8 +172,8 @@ meta_back_search(
 			
 		/* positive hard limit means abort */
 		} else if ( limit->lms_t_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL );
 			rc = 0;
 			goto finish;
 		}
@@ -183,8 +190,8 @@ meta_back_search(
 			
 		/* positive hard limit means abort */
 		} else if ( limit->lms_s_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL );
 			rc = 0;
 			goto finish;
 		}
@@ -205,6 +212,7 @@ meta_back_search(
 			continue;
 		}
 
+		/* should we check return values? */
 		if ( deref != -1 ) {
 			ldap_set_option( lsc->ld, LDAP_OPT_DEREF,
 					( void * )&deref);
@@ -288,15 +296,13 @@ meta_back_search(
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
-					NULL, NULL );
+					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
 			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, "Rewrite error",
-					NULL, NULL );
+					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
@@ -403,6 +409,9 @@ meta_back_search(
 
 	/*
 	 * In case there are no candidates, no cycle takes place...
+	 *
+	 * FIXME: we might use a queue, to balance the load 
+	 * among the candidates
 	 */
 	for ( count = 0, rc = 0; candidates > 0; ) {
 		int ab, gotit = 0;
@@ -424,25 +433,35 @@ meta_back_search(
 			if ( slimit > 0 && count == slimit ) {
 				send_search_result( conn, op,
 						LDAP_SIZELIMIT_EXCEEDED,
-						NULL, NULL, NULL, NULL, count );
+						NULL, NULL, v2refs, NULL, 
+						count );
 				goto finish;
 			}
 
+			/*
+			 * FIXME: handle time limit as well?
+			 * Note that target servers are likely 
+			 * to handle it, so at some time we'll
+			 * get a LDAP_TIMELIMIT_EXCEEDED from
+			 * one of them ...
+			 */
 			rc = ldap_result( lsc->ld, msgid[ i ],
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
 				continue;
+
 			} else if ( rc == -1 ) {
 				/* something REALLY bad happened! */
 				( void )meta_clear_unused_candidates( li,
 						lc, -1, 0 );
-				send_search_result( conn, op,
-						LDAP_OTHER,
-						"", "", NULL, NULL, count );
+				send_search_result( conn, op, LDAP_OTHER,
+						NULL, NULL, v2refs, NULL, 
+						count );
 				
 				/* anything else needs be done? */
 				goto finish;
+
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				e = ldap_first_entry( lsc->ld, res );
 				if ( meta_send_entry( be, op, lc, i, e, attrs,
@@ -451,6 +470,53 @@ meta_back_search(
 				}
 				ldap_msgfree( res );
 				gotit = 1;
+
+			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
+				char		**references = NULL;
+				LDAPControl	**ctrls = NULL;
+				BerVarray	refs;
+				int		cnt;
+
+				/*
+				 * FIXME: should we collect references
+				 * and send them alltogether at the end?
+				 */
+
+				rc = ldap_parse_reference( lsc->ld, res,
+						&references, &ctrls, 1 );
+
+				if ( rc != LDAP_SUCCESS ) {
+					continue;
+				}
+
+				if ( references == NULL ) {
+					continue;
+				}
+
+				for ( cnt = 0; references[ cnt ]; cnt++ )
+					/* NO OP */ ;
+				
+				refs = ch_calloc( cnt + 1, sizeof( struct berval ) );
+
+				for ( cnt = 0; references[ cnt ]; cnt++ ) {
+					refs[ cnt ].bv_val = references[ cnt ];
+					refs[ cnt ].bv_len = strlen( references[ cnt ] );
+				}
+
+				/* ignore return value by now */
+				( void )send_search_reference( be, conn, op, 
+						NULL, refs, ctrls, &v2refs );
+
+				/* cleanup */
+				if ( references ) {
+					ldap_value_free( references );
+					ch_free( refs );
+				}
+
+				if ( ctrls ) {
+					ldap_controls_free( ctrls );
+				}
+
 			} else {
 				sres = ldap_result2error( lsc->ld,
 						res, 1 );
@@ -548,8 +614,17 @@ meta_back_search(
 		}
 	}
 
-	send_search_result( conn, op, sres,
-		mmatch, err, NULL, NULL, count );
+	/*
+	 * In case we returned at least one entry, we return LDAP_SUCCESS
+	 * otherwise, the latter error code we got
+	 *
+	 * FIXME: we should handle error codes and return the more 
+	 * important/reasonable
+	 */
+	if ( sres == LDAP_SUCCESS && v2refs ) {
+		sres = LDAP_REFERRAL;
+	}
+	send_search_result( conn, op, sres, mmatch, err, v2refs, NULL, count );
 
 finish:;
 	if ( match ) {

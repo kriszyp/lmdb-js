@@ -1207,21 +1207,22 @@ send_search_reference(
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
 		"send_search_reference: conn %lu  dn=\"%s\"\n", 
-		op->o_connid, e->e_dn, 0 );
+		op->o_connid, e ? e->e_dn : "(null)", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
-		e->e_dn, 0, 0 );
+		e ? e->e_dn : "(null)", 0, 0 );
 #endif
 
 
-	if ( ! access_allowed( be, conn, op, e,
+	if (  e && ! access_allowed( be, conn, op, e,
 		ad_entry, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
 			"send_search_reference: conn %lu	"
-			"access to entry %s not allowed\n", op->o_connid, e->e_dn, 0 );
+			"access to entry %s not allowed\n",
+			op->o_connid, e->e_dn, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to entry not allowed\n",
@@ -1231,7 +1232,7 @@ send_search_reference(
 		return( 1 );
 	}
 
-	if ( ! access_allowed( be, conn, op, e,
+	if ( e && ! access_allowed( be, conn, op, e,
 		ad_ref, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
@@ -1252,11 +1253,11 @@ send_search_reference(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"send_search_reference: conn %lu null ref in (%s).\n",
-			op->o_connid, e->e_dn, 0 );
+			op->o_connid, e ? e->e_dn : "(null)", 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: null ref in (%s)\n", 
-			e->e_dn, 0, 0 );
+			e ? e->e_dn : "(null)", 0, 0 );
 #endif
 
 		return( 1 );
@@ -1310,7 +1311,7 @@ send_search_reference(
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
 	Statslog( LDAP_DEBUG_STATS2, "conn=%lu op=%lu REF dn=\"%s\"\n",
-		conn->c_connid, op->o_opid, e->e_dn, 0, 0 );
+		conn->c_connid, op->o_opid, e ? e->e_dn : "(null)", 0, 0 );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
