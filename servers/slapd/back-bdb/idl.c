@@ -230,31 +230,58 @@ bdb_idl_fetch_key(
 
 #ifdef BDB_IDL_MULTI
 	{
+		DBC *cursor;
 		ID buf[BDB_IDL_UM_SIZE];
 		ID *i, *j;
 		void *ptr;
 		size_t len;
+		int rc2;
 		data.data = buf;
 		data.ulen = BDB_IDL_UM_SIZEOF;
 		data.flags = DB_DBT_USERMEM;
-		rc = db->get( db, tid, key, &data, bdb->bi_db_opflags |
-			DB_MULTIPLE );
+
+		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
+			return rc;
+		}
+		rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
+			DB_SET | DB_MULTIPLE );
 		if (rc == 0) {
-			DB_MULTIPLE_INIT( ptr, &data );
 			i = ids;
-			while (ptr) {
-				DB_MULTIPLE_NEXT(ptr, &data, j, len);
-				if (j) {
-					++i;
-					AC_MEMCPY( i, j, sizeof(ID) );
+			while (rc == 0) {
+				DB_MULTIPLE_INIT( ptr, &data );
+				while (ptr) {
+					DB_MULTIPLE_NEXT(ptr, &data, j, len);
+					if (j) {
+						++i;
+						AC_MEMCPY( i, j, sizeof(ID) );
+					}
 				}
+				rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
+					DB_NEXT_DUP | DB_MULTIPLE );
 			}
+			if ( rc == DB_NOTFOUND ) rc = 0;
+			ids[0] = i - ids;
+			/* On disk, a range is denoted by 0 in the first element */
 			if (ids[1] == 0) {
+				if (ids[0] != BDB_IDL_RANGE_SIZE) {
+					Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+						"range size mismatch: expected %ld, got %ld\n",
+						BDB_IDL_RANGE_SIZE, ids[0], 0 );
+					cursor->c_close( cursor );
+					return -1;
+				}
 				BDB_IDL_RANGE( ids, ids[2], ids[3] );
-			} else {
-				ids[0] = (i - ids);
 			}
 			data.size = BDB_IDL_SIZEOF(ids);
+		}
+		rc2 = cursor->c_close( cursor );
+		if (rc2) {
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+				"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 );
+			return rc2;
 		}
 	}
 #else
@@ -316,22 +343,114 @@ bdb_idl_insert_key(
 
 	DBTzero( &data );
 #ifdef BDB_IDL_MULTI
-	/* FIXME: We really ought to count how many data items currently exist
-	 * for this key, and cap off with a range when we hit the max. We need
-	 * to use a 0 in the first slot to denote a range - since the data are
-	 * sorted in ascending order, the only way to get a flag into the
-	 * first slot is to use the smallest possible ID value. The fetch
-	 * function above can turn it into a "memory-format" range. We also
-	 * have to delete all of the existing data items when converting from
-	 * a list to a range. And of course, if it's already a range, we need
-	 * to read it in and process it instead of just doing the blind put
-	 * that we do right now...
-	 */
-	data.data = &id;
-	data.size = sizeof(id);
-	data.flags = DB_DBT_USERMEM;
+	{
+		ID buf[BDB_IDL_DB_MAX];
+		DBC *cursor;
+		ID lo, hi;
+		char *err;
 
-	rc = db->put( db, tid, key, &data, DB_NODUPDATA );
+		data.size = sizeof( ID );
+		data.ulen = data.size;
+		data.flags = DB_DBT_USERMEM;
+
+		rc = bdb_idl_fetch_key( be, db, tid, key, buf );
+		if ( rc && rc != DB_NOTFOUND )
+			return rc;
+
+		/* If it never existed, or there's room in the current key,
+		 * just store it.
+		 */
+		if ( rc == DB_NOTFOUND || ( !BDB_IDL_IS_RANGE(buf) &&
+			BDB_IDL_N(buf) < BDB_IDL_DB_MAX ) ) {
+			data.data = &id;
+			rc = db->put( db, tid, key, &data, DB_NODUPDATA );
+		} else if ( BDB_IDL_IS_RANGE(buf) ) {
+			/* If it's a range and we're outside the boundaries,
+			 * rewrite the range boundaries.
+			 */
+			if ( id < BDB_IDL_RANGE_FIRST(buf) ||
+				id > BDB_IDL_RANGE_LAST(buf) ) {
+				rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+				if ( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+						"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
+					return rc;
+				}
+				if ( id < BDB_IDL_RANGE_FIRST(buf) ) {
+					data.data = buf+1;
+				} else {
+					data.data = buf+2;
+				}
+				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
+				if ( rc != 0 ) {
+					err = "c_get";
+fail:				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+						"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
+					if ( cursor ) cursor->c_close( cursor );
+					return rc;
+				}
+				data.data = &id;
+				/* We should have been able to just overwrite the old
+				 * value with the new, but apparently we have to delete
+				 * it first.
+				 */
+				rc = cursor->c_del( cursor, 0 );
+				if ( rc ) {
+					err = "c_del";
+					goto fail;
+				}
+				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+				if ( rc ) {
+					err = "c_put";
+					goto fail;
+				}
+				rc = cursor->c_close( cursor );
+				if ( rc ) {
+					cursor = NULL;
+					err = "c_close";
+					goto fail;
+				}
+			}
+		} else {		/* convert to a range */
+			lo = BDB_IDL_FIRST(buf);
+			hi = BDB_IDL_LAST(buf);
+
+			if (id < lo)
+				lo = id;
+			else if (id > hi)
+				hi = id;
+
+			cursor = NULL;
+
+			/* Delete all of the old IDL so we can replace with a range */
+			rc = db->del( db, tid, key, 0 );
+			if ( rc ) {
+				err = "del";
+				goto fail;
+			}
+
+			/* Write the range */
+			data.data = &id;
+			id = 0;
+			rc = db->put( db, tid, key, &data, 0 );
+			if ( rc ) {
+				err = "put #1";
+				goto fail;
+			}
+			id = lo;
+			rc = db->put( db, tid, key, &data, 0 );
+			if ( rc ) {
+				err = "put #2";
+				goto fail;
+			}
+			id = hi;
+			rc = db->put( db, tid, key, &data, 0 );
+			if ( rc ) {
+				err = "put #3";
+				goto fail;
+			}
+		}
+	}
 #else
 	data.data = ids;
 	data.ulen = sizeof ids;
