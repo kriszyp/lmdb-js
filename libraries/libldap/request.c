@@ -29,7 +29,7 @@ static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
 static void free_servers LDAP_P(( LDAPServer *srvlist ));
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-static LDAPServer *dn2servers LDAP_P(( LDAP *ld, char *dn ));
+static LDAPServer *dn2servers LDAP_P(( LDAP *ld, const char *dn ));
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 static BerElement *re_encode_request LDAP_P((
@@ -114,7 +114,7 @@ ldap_send_initial_request(
 
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS ))
+	if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS )
 		&& ldap_is_dns_dn( dn ) )
 	{
 		if (( servers = dn2servers( ld, dn )) == NULL ) {
@@ -885,9 +885,10 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 static LDAPServer *
-dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
+dn2servers( LDAP *ld, const char *dn )	/* dn can also be a domain.... */
 {
-	char		*p, *domain, *host, *server_dn, **dxs;
+	char		*p, *host, *server_dn, **dxs;
+	const char *domain;
 	int		i, port;
 	LDAPServer	*srvlist, *prevsrv, *srv;
 
@@ -905,7 +906,7 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 	srvlist = NULL;
 
 	for ( i = 0; dxs[ i ] != NULL; ++i ) {
-		port = openldap_ldap_global_options.ldo_defport;
+		port = ldap_int_global_options.ldo_defport;
 		server_dn = NULL;
 		if ( strchr( dxs[ i ], ':' ) == NULL ) {
 			host = dxs[ i ];

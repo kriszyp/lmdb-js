@@ -33,7 +33,7 @@ static char ** decode_answer LDAP_P(( unsigned char *answer, ber_len_t len ));
  *	array.
  */
 char **
-ldap_getdxbyname( char *domain )
+ldap_getdxbyname( const char *domain )
 {
     unsigned char	buf[ PACKETSZ ];
     char		**dxs;
@@ -64,7 +64,7 @@ ldap_getdxbyname( char *domain )
 
 
 static char **
-decode_answer( unsigned char *answer, int len )
+decode_answer( unsigned char *answer, ber_len_t len )
 {
     HEADER		*hp;
     char		buf[ 256 ], **dxs;
