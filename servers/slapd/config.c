@@ -2496,7 +2496,16 @@ read_config( const char *fname, int depth )
 #endif /* notdef */
 
 			if ( slapi_int_read_config( be, fname, lineno, cargc, cargv ) 
-					!= LDAP_SUCCESS ) {
+					!= LDAP_SUCCESS )
+			{
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO,
+						"%s: line %d: SLAPI config read failed.\n",
+						fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: SLAPI "
+						"config read failed.\n", fname, lineno, 0 );
+#endif
 				return( 1 );
 			}
 			slapi_plugins_used++;
