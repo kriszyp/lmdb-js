@@ -924,8 +924,6 @@ int
 schema_init( void )
 {
 	int		res;
-	int		code;
-	const char	*err;
 	int		i;
 	static int	schema_init_done = 0;
 

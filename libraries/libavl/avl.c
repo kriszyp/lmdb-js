@@ -622,7 +622,7 @@ avl_free( Avlnode *root, AVL_FREE dfree )
  */
 
 void*
-avl_find( Avlnode *root, void* data, AVL_CMP fcmp )
+avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
 	int	cmp;
 
@@ -644,7 +644,7 @@ avl_find( Avlnode *root, void* data, AVL_CMP fcmp )
  */
 
 void*
-avl_find_lin( Avlnode *root, void* data, AVL_CMP fcmp )
+avl_find_lin( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
 	void*	res;
 

@@ -15,13 +15,17 @@
 #if LDAP_MEMORY_DEBUG
 struct ber_mem_hdr {
 	union bmu_align_u {
+		ber_len_t	bmu_len_t;
+		ber_tag_t	bmu_tag_t;
+		ber_int_t	bmu_int_t;
+
 		size_t	bmu_size_t;
 		void *	bmu_voidp;
 		double	bmu_double;
 		long	bmu_long;
 		char	bmu_char[4];
 	} ber_align;
-#define bm_junk	ber_align.bmu_size_t
+#define bm_junk	ber_align.bmu_len_t
 #define bm_data	ber_align.bmu_char[1]
 };
 #define BER_MEM_JUNK 0xddeeddeeU
@@ -104,7 +108,7 @@ ber_memvfree( void **vec )
 
 
 void *
-ber_memalloc( size_t s )
+ber_memalloc( ber_len_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
@@ -138,7 +142,7 @@ ber_memalloc( size_t s )
 
 
 void *
-ber_memcalloc( size_t n, size_t s )
+ber_memcalloc( ber_len_t n, ber_len_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
@@ -171,7 +175,7 @@ ber_memcalloc( size_t n, size_t s )
 
 
 void *
-ber_memrealloc( void* p, size_t s )
+ber_memrealloc( void* p, ber_len_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
@@ -280,7 +284,7 @@ ber_bvdup(
 		return NULL;
 	}
 
-	SAFEMEMCPY( new->bv_val, bv->bv_val, (size_t) bv->bv_len );
+	SAFEMEMCPY( new->bv_val, bv->bv_val, bv->bv_len );
 	new->bv_val[bv->bv_len] = '\0';
 	new->bv_len = bv->bv_len;
 

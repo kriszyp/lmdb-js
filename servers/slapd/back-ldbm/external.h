@@ -38,7 +38,7 @@ extern int	ldbm_back_modify LDAP_P(( BackendDB *bd,
 
 extern int	ldbm_back_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char*newrdn, int deleteoldrdn,
+	char *dn, char* newrdn, int deleteoldrdn,
 	char *newSuperior ));
 
 extern int	ldbm_back_add LDAP_P(( BackendDB *bd,
@@ -48,7 +48,7 @@ extern int	ldbm_back_delete LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, char *dn ));
 
 extern int	ldbm_back_abandon LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, int msgid ));
+	Connection *conn, Operation *op, ber_int_t msgid ));
 
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
 	Entry *target, char* gr_ndn, char* op_ndn,

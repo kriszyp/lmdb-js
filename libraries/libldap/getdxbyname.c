@@ -23,7 +23,7 @@
 
 #include "ldap-int.h"
 
-static char ** decode_answer LDAP_P(( unsigned char *answer, int len ));
+static char ** decode_answer LDAP_P(( unsigned char *answer, ber_len_t len ));
 
 #define MAX_TO_SORT	32
 

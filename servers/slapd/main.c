@@ -13,9 +13,7 @@
 
 #include "ldap_defaults.h"
 #include "slap.h"
-#include "lutil.h"			/* Get lutil_detach() */
-
-int set_socket( struct sockaddr_in *addr );
+#include "lutil.h"
 
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );
@@ -96,7 +94,7 @@ usage( char *name )
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]", name );
     fprintf( stderr, "\n        [-a bind-address] [-i] [-u]" );
 #ifdef HAVE_WINSOCK
-	fprintf( stderr, " [-v NTserviceName]" );
+	fprintf( stderr, " [-n NTserviceName]" );
 #endif
 #if LDAP_CONNECTIONLESS
 	fprintf( stderr, " [-c]" );
@@ -115,16 +113,14 @@ usage( char *name )
 
 time_t starttime;
 struct sockaddr_in	bind_addr;
-int tcps;
+ber_int_t tcps;
 
 #ifdef HAVE_WINSOCK
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
-{
 #else
 int main( int argc, char **argv )
-{
 #endif
-
+{
 	int		i;
 	int		inetd = 0;
 	int		rc;
@@ -181,7 +177,6 @@ int main( int argc, char **argv )
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
 		}
 	}
-		
 #endif
 
 	while ( (i = getopt( argc, argv,
@@ -199,7 +194,7 @@ int main( int argc, char **argv )
 				 "c"
 #endif
 #ifdef HAVE_WINSOCK
-				 "v:"
+				 "n:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -308,7 +303,7 @@ int main( int argc, char **argv )
 			break;
 #endif /* SETUID && GETUID */
 #ifdef HAVE_WINSOCK
-		case 'v':  /* NT service name */
+		case 'n':  /* NT service name */
 			NTservice = ch_strdup( optarg );
 			break;
 #endif
@@ -355,7 +350,6 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-
 	tcps = set_socket( inetd ? NULL : &bind_addr );
 	if ( tcps == -1 )
 		goto destroy;
@@ -373,7 +367,7 @@ int main( int argc, char **argv )
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
-#ifdef HAVE_WINSOCK
+#ifdef SIGBREAK
 	/* SIGBREAK is generated when Ctrl-Break is pressed. */
 	(void) SIGNAL( SIGBREAK, slap_set_shutdown );
 #endif
@@ -435,7 +429,6 @@ int main( int argc, char **argv )
 	if ( is_NT_Service )
 		ldap_pvt_thread_cond_destroy( &started_event );
 #endif
-
 
 shutdown:
 	/* remember an error during shutdown */

@@ -60,7 +60,8 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
-	int		rc, credlen;
+	int		rc;
+	ber_len_t credlen;
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
@@ -76,7 +77,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		LDAP_FREE( cred );
 		return( -1 );
 	}
@@ -153,7 +154,8 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
-	int		rc, credlen;
+	int		rc;
+	ber_len_t credlen;
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
@@ -169,7 +171,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		LDAP_FREE( cred );
 		return( -1 );
 	}
@@ -253,7 +255,7 @@ ldap_get_kerberosv4_credentials(
 	LDAP *ld,
 	LDAP_CONST char *who,
 	LDAP_CONST char *service,
-	int *len )
+	ber_len_t *len )
 {
 	KTEXT_ST	ktxt;
 	int		err;

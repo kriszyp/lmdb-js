@@ -31,13 +31,14 @@
  */
 void *
 ch_malloc(
-    unsigned long	size
+    ber_len_t	size
 )
 {
 	void	*new;
 
 	if ( (new = (void *) malloc( size )) == NULL ) {
-		fprintf( stderr, "malloc of %lu bytes failed\n", size );
+		fprintf( stderr, "malloc of %lu bytes failed\n",
+			(long) size );
 		exit( 1 );
 	}
 
@@ -54,7 +55,7 @@ ch_malloc(
 void *
 ch_realloc(
     void		*block,
-    unsigned long	size
+    ber_len_t	size
 )
 {
 	void	*new;
@@ -64,7 +65,8 @@ ch_realloc(
 	}
 
 	if ( (new = (void *) realloc( block, size )) == NULL ) {
-		fprintf( stderr, "realloc of %lu bytes failed\n", size );
+		fprintf( stderr, "realloc of %lu bytes failed\n",
+			(long) size );
 		exit( 1 );
 	}
 
@@ -80,15 +82,15 @@ ch_realloc(
  */
 void *
 ch_calloc(
-    unsigned long	nelem,
-    unsigned long	size
+    ber_len_t	nelem,
+    ber_len_t	size
 )
 {
 	void	*new;
 
 	if ( (new = (void *) calloc( nelem, size )) == NULL ) {
 		fprintf( stderr, "calloc of %lu elems of %lu bytes failed\n",
-		    nelem, size );
+		    (long) nelem, (long) size );
 		exit( 1 );
 	}
 

@@ -33,7 +33,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	assert( entry != NULL );
 	assert( ber != NULL );
 
-	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		*ber = NULL;
 		return( NULL );
 	}

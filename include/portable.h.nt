@@ -21,6 +21,7 @@
 #define OPENLDAP_PACKAGE "OpenLDAP"
 #define OPENLDAP_VERSION "-devel"
 #define EXEEXT ".exe"
+#define LDAP_DIRSEP "\\"
 
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
 /* #define LDAP_MEMORY_DEBUG 1 */
@@ -47,6 +48,8 @@
 
 /* define type for caddr_t */
 typedef char * caddr_t;
+
+#define ssize_t signed int
 
 #define LOG_DEBUG 0
 #define openlog( a, b )

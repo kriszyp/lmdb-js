@@ -28,8 +28,8 @@
 
 static int do_abandon LDAP_P((
 	LDAP *ld,
-	int origid,
-	int msgid,
+	ber_int_t origid,
+	ber_int_t msgid,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls));
 
@@ -84,14 +84,14 @@ ldap_abandon( LDAP *ld, int msgid )
 static int
 do_abandon(
 	LDAP *ld,
-	int origid,
-	int msgid,
+	ber_int_t origid,
+	ber_int_t msgid,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls)
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
-	unsigned int *old_abandon;
+	ber_int_t *old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
@@ -131,20 +131,20 @@ do_abandon(
 	err = 0;
 	if ( sendabandon ) {
 		/* create a message to send */
-		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
 #ifdef LDAP_CONNECTIONLESS
 			if ( ld->ld_cldapnaddr > 0 ) {
-				err = ber_printf( ber, "{isti", /* leave open '}' */
+				err = ber_printf( ber, "{isti", /* '}' */
 				    ++ld->ld_msgid, ld->ld_cldapdn,
 				    LDAP_REQ_ABANDON, msgid );
 			} else
 #endif /* LDAP_CONNECTIONLESS */
 			{
-				err = ber_printf( ber, "{iti",  /* leave open '}' */
+				err = ber_printf( ber, "{iti",  /* '}' */
 					++ld->ld_msgid,
 				    LDAP_REQ_ABANDON, msgid );
 			}
@@ -162,7 +162,7 @@ do_abandon(
 
 				} else {
 					/* close '{' */
-					err = ber_printf( ber, "}" );
+					err = ber_printf( ber, /*{*/ "}" );
 
 					if( err == -1 ) {
 						/* encoding error */
@@ -209,8 +209,8 @@ do_abandon(
 
 	old_abandon = ld->ld_abandoned;
 
-	ld->ld_abandoned = (int *) LDAP_REALLOC( (char *)
-		ld->ld_abandoned, (i + 2) * sizeof(int) );
+	ld->ld_abandoned = (ber_int_t *) LDAP_REALLOC( (char *)
+		ld->ld_abandoned, (i + 2) * sizeof(ber_int_t) );
 		
 	if ( ld->ld_abandoned == NULL ) {
 		ld->ld_abandoned = old_abandon;

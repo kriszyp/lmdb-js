@@ -417,8 +417,10 @@ photo2ldif( PS ps, AttributeValue av )
 	if (( phber = der_alloc()) == NULLBER ) {
 	    return( -1 );
 	}
-	if ( ber_printf( phber, "t{[tB]{B}}", 0xA3, 0x81, faxparamset,
-		31, (char *)pe->pe_prim, len * 8 ) == -1 ) {
+	if ( ber_printf( phber, "t{[tB]{B}}",
+		(ber_tag_t) 0xA3, (ber_tag_t) 0x81, faxparamset, (ber_len_t) 31,
+		(char *)pe->pe_prim, (ber_len_t) (len * 8) ) == -1 )
+	{
 	    ber_free( phber, 1 );
 	    return( -1 );
 	}

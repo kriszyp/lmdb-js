@@ -426,7 +426,7 @@ do_entry2text_search(
     struct ldap_disptmpl	*tmpl;
     struct timeval		timeout;
 
-    if ( dn == NULL && entry == NULLMSG ) {
+    if ( dn == NULL && entry == NULL ) {
 	ld->ld_errno = LDAP_PARAM_ERROR;
 	return( ld->ld_errno );
     }
@@ -467,7 +467,7 @@ do_entry2text_search(
 
 
     if ( tmpllist != NULL ) {
-	ldmp = NULLMSG;
+	ldmp = NULL;
 
 	if ( entry == NULL ) {
 	    char	*ocattrs[2];

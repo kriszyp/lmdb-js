@@ -34,13 +34,13 @@
 
 #include "ldap-int.h"
 
-static int next_line LDAP_P(( char **bufp, long *blenp, char **linep ));
+static int next_line LDAP_P(( char **bufp, ber_len_t *blenp, char **linep ));
 static char *next_token LDAP_P(( char ** sp ));
 
 
 
 int
-next_line_tokens( char **bufp, long *blenp, char ***toksp )
+next_line_tokens( char **bufp, ber_len_t *blenp, char ***toksp )
 {
     char	*p, *line, *token, **toks;
     int		rc, tokcnt;
@@ -90,10 +90,10 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 
 
 static int
-next_line( char **bufp, long *blenp, char **linep )
+next_line( char **bufp, ber_len_t *blenp, char **linep )
 {
     char	*linestart, *line, *p;
-    long	plen;
+    ber_slen_t	plen;
 
     linestart = *bufp;
     p = *bufp;

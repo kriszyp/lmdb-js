@@ -62,13 +62,13 @@ int ldap_int_put_controls(
 	}
 
 	/* Controls are encoded as a sequence of sequences */
-	if( ber_printf( ber, "t{", LDAP_TAG_CONTROLS ) == -1 ) {
+	if( ber_printf( ber, "t{"/*}*/, LDAP_TAG_CONTROLS ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return ld->ld_errno;
 	}
 
 	for( c = ctrls ; *c != NULL; c++ ) {
-		if ( ber_printf( ber, "{s",
+		if ( ber_printf( ber, "{s" /*}*/,
 			(*c)->ldctl_oid ) == -1 )
 		{
 			ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -77,7 +77,7 @@ int ldap_int_put_controls(
 
 		if( (*c)->ldctl_iscritical /* only if true */
 			&&  ( ber_printf( ber, "b",
-				(*c)->ldctl_iscritical ) == -1 ) )
+				(ber_int_t) (*c)->ldctl_iscritical ) == -1 ) )
 		{
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			return ld->ld_errno;
@@ -92,14 +92,14 @@ int ldap_int_put_controls(
 		}
 
 
-		if( ber_printf( ber, "}" ) == -1 ) {
+		if( ber_printf( ber, /*{*/"}" ) == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			return ld->ld_errno;
 		}
 	}
 
 
-	if( ber_printf( ber, "}" ) == -1 ) {
+	if( ber_printf( ber, /*{*/"}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return ld->ld_errno;
 	}
@@ -112,7 +112,8 @@ int ldap_int_get_controls(
 	LDAPControl ***ctrls )
 {
 	int nctrls;
-	unsigned long tag, len;
+	ber_tag_t tag;
+	ber_len_t len;
 	char *opaque;
 
 	assert( ber != NULL );
@@ -179,14 +180,16 @@ int ldap_int_get_controls(
 		tctrls[nctrls++] = tctrl;
 		tctrls[nctrls] = NULL;
 
-		tag = ber_scanf( ber, "{a", &tctrl->ldctl_oid );
+		tag = ber_scanf( ber, "{a" /*}*/, &tctrl->ldctl_oid );
 
 		if( tag != LBER_ERROR ) {
 			tag = ber_peek_tag( ber, &len );
 		}
 
 		if( tag == LBER_BOOLEAN ) {
-			tag = ber_scanf( ber, "b", &tctrl->ldctl_iscritical );
+			ber_int_t crit;
+			tag = ber_scanf( ber, "b", &crit );
+			tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
 		}
 
 		if( tag != LBER_ERROR ) {
@@ -255,7 +258,7 @@ ldap_controls_free( LDAPControl **controls )
 /*
  * Duplicate an array of LDAPControl
  */
-LDAPControl **ldap_controls_dup( const LDAPControl **controls )
+LDAPControl **ldap_controls_dup( LDAPControl **controls )
 {
 	LDAPControl **new;
 	int i;
@@ -297,7 +300,7 @@ LDAPControl **ldap_controls_dup( const LDAPControl **controls )
 /*
  * Duplicate a LDAPControl
  */
-LDAPControl *ldap_control_dup( const LDAPControl *c )
+LDAPControl *ldap_control_dup( LDAPControl *c )
 {
 	LDAPControl *new;
 

@@ -56,7 +56,7 @@ struct avlnode {
 #endif /* AVL_INTERNALS */
 
 typedef int		(*AVL_APPLY) LDAP_P((void *, void*));
-typedef int		(*AVL_CMP) LDAP_P((void*, void*));
+typedef int		(*AVL_CMP) LDAP_P((const void*, const void*));
 typedef int		(*AVL_DUP) LDAP_P((void*, void*));
 typedef void	(*AVL_FREE) LDAP_P((void*));
 
@@ -70,10 +70,10 @@ LDAP_F( void* )
 avl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
 
 LDAP_F( void* )
-avl_find LDAP_P((Avlnode *, void*, AVL_CMP));
+avl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
 
 LDAP_F( void* )
-avl_find_lin LDAP_P((Avlnode *, void*, AVL_CMP));
+avl_find_lin LDAP_P((Avlnode *, const void*, AVL_CMP));
 
 #ifdef AVL_NONREENTRANT
 LDAP_F( void* )

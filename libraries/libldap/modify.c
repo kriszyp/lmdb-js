@@ -73,11 +73,11 @@ ldap_modify_ext( LDAP *ld,
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( LDAP_NO_MEMORY );
 	}
 
-	if ( ber_printf( ber, "{it{s{", ++ld->ld_msgid, LDAP_REQ_MODIFY, dn )
+	if ( ber_printf( ber, "{it{s{" /*}}}*/, ++ld->ld_msgid, LDAP_REQ_MODIFY, dn )
 	    == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
@@ -88,10 +88,11 @@ ldap_modify_ext( LDAP *ld,
 	for ( i = 0; mods[i] != NULL; i++ ) {
 		if (( mods[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
 			rc = ber_printf( ber, "{e{s[V]}}",
-			    mods[i]->mod_op & ~LDAP_MOD_BVALUES,
+			    (ber_int_t) ( mods[i]->mod_op & ~LDAP_MOD_BVALUES ),
 			    mods[i]->mod_type, mods[i]->mod_bvalues );
 		} else {
-			rc = ber_printf( ber, "{e{s[v]}}", mods[i]->mod_op,
+			rc = ber_printf( ber, "{e{s[v]}}",
+				(ber_int_t) mods[i]->mod_op,
 			    mods[i]->mod_type, mods[i]->mod_values );
 		}
 
@@ -102,7 +103,7 @@ ldap_modify_ext( LDAP *ld,
 		}
 	}
 
-	if ( ber_printf( ber, "}}" ) == -1 ) {
+	if ( ber_printf( ber, /*{{*/ "}}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );
@@ -114,7 +115,7 @@ ldap_modify_ext( LDAP *ld,
 		return ld->ld_errno;
 	}
 
-	if ( ber_printf( ber, "}" ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );

@@ -242,6 +242,13 @@
 	LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 	LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 */
+/* These are defined in lber_types.h */
+/*
+	LBER_INT_T
+	LBER_LEN_T
+	LBER_SOCKET_T
+	LBER_TAG_T
+*/
 
 
 /* Leave that blank line there!!  Autoheader needs it. */

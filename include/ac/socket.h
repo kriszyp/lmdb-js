@@ -67,6 +67,7 @@
 #	define tcp_close( s )		closesocket( s );
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
 #	define ioctl_t				u_long
+#	define AC_SOCKET_INVALID	((unsigned int) ~0)
 
 #define EWOULDBLOCK WSAEWOULDBLOCK
 
@@ -92,12 +93,16 @@
 #	define ioctl_t				int
 #endif
 
+#ifndef AC_SOCKET_INVALID
+#	define AC_SOCKET_INVALID	(-1)
+#endif
+
 #if	defined(__WIN32) && defined(_ALPHA)
 /* NT on Alpha is hosed. */
 #define AC_HTONL( l ) \
         ((((l)&0xff)<<24) + (((l)&0xff00)<<8) + \
          (((l)&0xff0000)>>8) + (((l)&0xff000000)>>24))
-#define AC_NTOHL(l) LBER_HTONL(l)
+#define AC_NTOHL(l) AC_HTONL(l)
 
 #elif defined(__alpha) && !defined(VMS)
 /*
@@ -115,6 +120,10 @@
 #define AC_HTONL( l ) htonl( l )
 #define AC_NTOHL( l ) ntohl( l )
 #endif
+
+/* htons()/ntohs() may be broken much like htonl()/ntohl() */
+#define AC_HTONS( s ) htons( s )
+#define AC_NTOHS( s ) ntohs( s )
 
 
 #endif /* _AC_SOCKET_H_ */

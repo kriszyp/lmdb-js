@@ -569,7 +569,7 @@ do_search( LDAP *ld, FILE *fp, char *buf )
 }
 
 static int
-entry2textwrite( void *fp, char *buf, int len )
+entry2textwrite( void *fp, char *buf, ber_len_t len )
 {
 	return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }

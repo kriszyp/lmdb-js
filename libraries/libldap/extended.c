@@ -60,12 +60,12 @@ ldap_extended_operation(
 	}
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( ld->ld_errno );
 	}
 
-	if ( ber_printf( ber, "{it{tstO}", /* leave '}' for later */
+	if ( ber_printf( ber, "{it{tstO}", /* '}' */
 		++ld->ld_msgid, LDAP_REQ_EXTENDED, LDAP_TAG_EXOP_REQ_OID,
 			reqoid, LDAP_TAG_EXOP_REQ_VALUE, reqdata ) == -1 )
 	{
@@ -152,10 +152,11 @@ ldap_parse_extended_result (
 	int				freeit )
 {
 	BerElement *ber;
-	int rc;
-	unsigned long tag, len;
+	ber_tag_t rc;
+	ber_tag_t tag;
+	ber_len_t len;
 	struct berval *resdata;
-	long errcode;
+	ber_int_t errcode;
 	char *resoid;
 
 	assert( ld != NULL );
@@ -184,7 +185,7 @@ ldap_parse_extended_result (
 		ld->ld_matched = NULL;
 	}
 
-	rc = ber_scanf( ber, "{iaa", &errcode,
+	rc = ber_scanf( ber, "{iaa" /*}*/, &errcode,
 		&ld->ld_matched, &ld->ld_matched );
 
 	if( rc == LBER_ERROR ) {

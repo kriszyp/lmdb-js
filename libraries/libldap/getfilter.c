@@ -83,7 +83,7 @@ ldap_init_getfilter( LDAP_CONST char *fname )
 
 
 LDAPFiltDesc *
-ldap_init_getfilter_buf( char *buf, long buflen )
+ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 {
     LDAPFiltDesc	*lfdp;
     LDAPFiltList	*flp, *nextflp;
@@ -314,7 +314,7 @@ ldap_getnextfilter( LDAPFiltDesc *lfdp )
 void
 ldap_build_filter(
 	char *filtbuf,
-	unsigned long buflen,
+	ber_len_t buflen,
 	LDAP_CONST char *pattern,
 	LDAP_CONST char *prefix,
 	LDAP_CONST char *suffix,

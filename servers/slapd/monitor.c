@@ -129,7 +129,7 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "totalconnections", vals );
 
-	sprintf( buf, "%d", dtblsize );
+	sprintf( buf, "%ld", (long) dtblsize );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "dtablesize", vals );

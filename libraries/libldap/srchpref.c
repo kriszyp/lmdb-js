@@ -99,7 +99,9 @@ ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp )
 
 
 int
-ldap_init_searchprefs_buf( char *buf, long buflen,
+ldap_init_searchprefs_buf(
+	char *buf,
+	ber_len_t buflen,
 	struct ldap_searchobj **solistp )
 {
     int				rc = -1, version;

@@ -187,7 +187,8 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 {
 	Filter		**new;
 	int		err;
-	unsigned long	tag, len;
+	ber_tag_t	tag;
+	ber_len_t	len;
 	char		*last, *ftmp;
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
@@ -227,7 +228,9 @@ get_substring_filter(
     char	**fstr
 )
 {
-	unsigned long	tag, len, rc;
+	ber_tag_t	tag;
+	ber_len_t	len;
+	ber_tag_t	rc;
 	char		*val, *last;
 	int		syntax;
 
@@ -238,7 +241,7 @@ get_substring_filter(
 		(void) ber_skip_tag( ber, &len );
 	}
 #endif
-	if ( ber_scanf( ber, "{a", &f->f_sub_type ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{a" /*}*/, &f->f_sub_type ) == LBER_ERROR ) {
 		return( LDAP_PROTOCOL_ERROR );
 	}
 	attr_normalize( f->f_sub_type );

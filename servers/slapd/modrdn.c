@@ -39,13 +39,13 @@ do_modrdn(
 )
 {
 	char	*ndn, *newrdn;
-	int	deloldrdn;
+	ber_int_t	deloldrdn;
 	Backend	*be;
 	/* Vars for LDAP v3 newSuperior support */
 	char	*newSuperior = NULL;
 	char    *nnewSuperior = NULL;
 	Backend	*newSuperior_be = NULL;
-	unsigned long	length;
+	ber_len_t	length;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -100,7 +100,7 @@ do_modrdn(
 		}/* else if ( conn->c_protocol ==  0 ) */
 
 
-		if ( ber_scanf( op->o_ber, "a}", &newSuperior ) 
+		if ( ber_scanf( op->o_ber, /*{*/ "a}", &newSuperior ) 
 		     == LBER_ERROR ) {
 
 		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
@@ -109,7 +109,7 @@ do_modrdn(
 				      "" );
 		    return;
 
-		}/* if ( ber_scanf( ber, "a}", &newSuperior ) == ... ) */
+		}/* if ( ber_scanf( ber, { "a}", &newSuperior ) == ... ) */
 
 
 		Debug( LDAP_DEBUG_ARGS, "do_modrdn: newSuperior=(%s)\n",

@@ -279,7 +279,8 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
     Sockbuf 		*sb = &ld->ld_sb;
     BerElement		ber;
     char		*logdn;
-    int			ret, id, fromaddr, i;
+    int			ret, fromaddr, i;
+	ber_int_t	id;
     struct timeval	tv;
 
     fromaddr = -1;
@@ -406,8 +407,10 @@ static int
 cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	LDAPMessage **res, char *base )
 {
-    unsigned long	tag, len;
-    int			baselen, slen, rc;
+    ber_tag_t	tag;
+	ber_len_t	len;
+    int			baselen, slen;
+	ber_tag_t	rc;
     char		*dn, *p, *cookie;
     LDAPMessage		*chain, *prev, *ldm;
     struct berval	*bv;
@@ -422,7 +425,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	    tag = ber_next_element( ber, &len, cookie )) {
 	if (( ldm = (LDAPMessage *)LDAP_CALLOC( 1, sizeof(LDAPMessage)))
 		== NULL || ( ldm->lm_ber = ldap_alloc_ber_with_options( ld ))
-		== NULLBER ) {
+		== NULL ) {
 	    rc = LDAP_NO_MEMORY;
 	    break;	/* return w/error*/
 	}
@@ -437,8 +440,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 		break;	/* return w/error */
 	    }
 
-	    if ( ber_printf( ldm->lm_ber, "to", tag, bv->bv_val,
-		    bv->bv_len ) == -1 ) {
+	    if ( ber_printf( ldm->lm_ber, "tO", tag, bv ) == -1 ) {
 		break;	/* return w/error */
 	    }
 	    ber_bvfree( bv );
@@ -446,7 +448,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	    rc = LDAP_SUCCESS;
 
 	} else if ( tag == LDAP_RES_SEARCH_ENTRY ) {
-	    if ( ber_scanf( ber, "{aO", &dn, &bv ) == LBER_ERROR ) {
+	    if ( ber_scanf( ber, "{aO" /*}*/, &dn, &bv ) == LBER_ERROR ) {
 		break;	/* return w/error */
 	    }
 	    Debug( LDAP_DEBUG_TRACE, "cldap_parsemsg entry %s\n", dn, 0, 0 );
@@ -513,7 +515,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 
     /* dispose of any leftovers */
     if ( ldm != NULL ) {
-	if ( ldm->lm_ber != NULLBER ) {
+	if ( ldm->lm_ber != NULL ) {
 	    ber_free( ldm->lm_ber, 1 );
 	}
 	LDAP_FREE( ldm );

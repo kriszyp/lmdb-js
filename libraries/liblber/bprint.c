@@ -105,7 +105,7 @@ int
 ber_log_bprint(int errlvl,
 	int loglvl,
 	const char *data,
-	int len )
+	ber_len_t len )
 {
 	assert( data != NULL );
 
@@ -120,7 +120,7 @@ ber_log_bprint(int errlvl,
 void
 ber_bprint(
 	LDAP_CONST char *data,
-	int len )
+	ber_len_t len )
 {
     static const char	hexdig[] = "0123456789abcdef";
 #define BPLEN	48
@@ -239,9 +239,11 @@ ber_sos_dump(
 
 	(*ber_pvt_log_print)( "*** sos dump ***\n" );
 
-	while ( sos != NULLSEQORSET ) {
+	while ( sos != NULL ) {
 		sprintf( buf, "ber_sos_dump: clen %ld first 0x%lx ptr 0x%lx\n",
-		    (long) sos->sos_clen, (long) sos->sos_first, (long) sos->sos_ptr );
+		    (long) sos->sos_clen,
+			(long) sos->sos_first,
+			(long) sos->sos_ptr );
 		(*ber_pvt_log_print)( buf );
 
 		sprintf( buf, "              current len %ld contents:\n",

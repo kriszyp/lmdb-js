@@ -12,9 +12,9 @@ RETSIGTYPE do_admin	LDAP_P((int sig));
 int doargs	LDAP_P((int argc, char **argv, struct globals *g));
 
 /* ch_malloc.c */
-void *ch_malloc	LDAP_P((unsigned long size));
-void *ch_realloc	LDAP_P((void *block, unsigned long size));
-void *ch_calloc	LDAP_P((unsigned long nelem, unsigned long size));
+void *ch_malloc	LDAP_P((ber_len_t size));
+void *ch_realloc	LDAP_P((void *block, ber_len_t size));
+void *ch_calloc	LDAP_P((ber_len_t nelem, ber_len_t size));
 void ch_free	LDAP_P((void *p));
 
 /* config.c */

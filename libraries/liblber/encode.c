@@ -30,27 +30,32 @@
 
 #include "lber-int.h"
 
-static int ber_put_len LDAP_P(( BerElement *ber,
-	unsigned long len, int nosos ));
+static int ber_put_len LDAP_P((
+	BerElement *ber,
+	ber_len_t len,
+	int nosos ));
 
-static int ber_start_seqorset LDAP_P(( BerElement *ber,
-	unsigned long tag ));
+static int ber_start_seqorset LDAP_P((
+	BerElement *ber,
+	ber_tag_t tag ));
 
 static int ber_put_seqorset LDAP_P(( BerElement *ber ));
 
-static int ber_put_int_or_enum LDAP_P(( BerElement *ber,
-	long num, unsigned long tag ));
+static int ber_put_int_or_enum LDAP_P((
+	BerElement *ber,
+	ber_int_t num,
+	ber_tag_t tag ));
 
 
-static int
-ber_calc_taglen( unsigned long tag )
+static ber_len_t
+ber_calc_taglen( ber_tag_t tag )
 {
 	int	i;
-	unsigned long	mask;
+	ber_tag_t	mask;
 
 	/* find the first non-all-zero byte in the tag */
-	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffUL << (i * 8));
+	for ( i = sizeof(ber_tag_t) - 1; i > 0; i-- ) {
+		mask = ((ber_tag_t)0xffU << (i * 8));
 		/* not all zero */
 		if ( tag & mask )
 			break;
@@ -60,31 +65,38 @@ ber_calc_taglen( unsigned long tag )
 }
 
 static int
-ber_put_tag( BerElement	*ber, unsigned long tag, int nosos )
+ber_put_tag(
+	BerElement	*ber,
+	ber_tag_t tag,
+	int nosos )
 {
-	int		taglen;
-	unsigned long	ntag;
+	int rc;
+	ber_len_t	taglen;
+	ber_tag_t	ntag;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
 	taglen = ber_calc_taglen( tag );
 
-	ntag = AC_HTONL( tag );
+	ntag = LBER_TAG_HTON( tag );
 
-	return( ber_write( ber, ((char *) &ntag) + sizeof(long) - taglen,
-	    taglen, nosos ) );
+	rc = ber_write( ber,
+		((char *) &ntag) + sizeof(ber_tag_t) - taglen,
+	    taglen, nosos );
+
+	return rc;
 }
 
-static int
-ber_calc_lenlen( unsigned long len )
+static ber_len_t
+ber_calc_lenlen( ber_len_t len )
 {
 	/*
 	 * short len if it's less than 128 - one byte giving the len,
 	 * with bit 8 0.
 	 */
 
-	if ( len <= 0x7FUL )
+	if ( len <= (ber_len_t) 0x7FU )
 		return( 1 );
 
 	/*
@@ -92,23 +104,23 @@ ber_calc_lenlen( unsigned long len )
 	 * length of the length, followed by the length itself.
 	 */
 
-	if ( len <= 0xffUL )
+	if ( len <= (ber_len_t) 0xffU )
 		return( 2 );
-	if ( len <= 0xffffUL )
+	if ( len <= (ber_len_t) 0xffffU )
 		return( 3 );
-	if ( len <= 0xffffffUL )
+	if ( len <= (ber_len_t) 0xffffffU )
 		return( 4 );
 
 	return( 5 );
 }
 
 static int
-ber_put_len( BerElement *ber, unsigned long len, int nosos )
+ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 {
 	int		i;
 	char		lenlen;
-	unsigned long	mask;
-	unsigned long	netlen;
+	ber_len_t	mask;
+	ber_len_t	netlen;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -119,7 +131,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 	 */
 
 	if ( len <= 127 ) {
-		netlen = AC_HTONL( len );
+		netlen = LBER_LEN_HTON( len );
 		return( ber_write( ber, (char *) &netlen + sizeof(long) - 1,
 		    1, nosos ) );
 	}
@@ -130,8 +142,8 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 	 */
 
 	/* find the first non-all-zero byte */
-	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffUL << (i * 8));
+	for ( i = sizeof(ber_len_t) - 1; i > 0; i-- ) {
+		mask = (0xffU << (i * 8));
 		/* not all zero */
 		if ( len & mask )
 			break;
@@ -146,8 +158,8 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 		return( -1 );
 
 	/* write the length itself */
-	netlen = AC_HTONL( len );
-	if ( ber_write( ber, (char *) &netlen + (sizeof(long) - i), i, nosos )
+	netlen = LBER_LEN_HTON( len );
+	if ( ber_write( ber, (char *) &netlen + (sizeof(ber_len_t) - i), i, nosos )
 	    != i )
 		return( -1 );
 
@@ -155,11 +167,14 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 }
 
 static int
-ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
+ber_put_int_or_enum(
+	BerElement *ber,
+	ber_int_t num,
+	ber_tag_t tag )
 {
-	int	i, sign, taglen;
-	int	len, lenlen;
-	long	netnum, mask;
+	int	i, sign;
+	ber_len_t	len, lenlen, taglen;
+	ber_int_t	netnum, mask;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -170,8 +185,8 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	 * high bit is set - look for first non-all-one byte
 	 * high bit is clear - look for first non-all-zero byte
 	 */
-	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffUL << (i * 8));
+	for ( i = sizeof(ber_int_t) - 1; i > 0; i-- ) {
+		mask = (0xffU << (i * 8));
 
 		if ( sign ) {
 			/* not all ones */
@@ -188,7 +203,7 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	 * we now have the "leading byte".  if the high bit on this
 	 * byte matches the sign bit, we need to "back up" a byte.
 	 */
-	mask = (num & (0x80UL << (i * 8)));
+	mask = (num & (0x80U << (i * 8)));
 	if ( (mask && !sign) || (sign && !mask) )
 		i++;
 
@@ -200,8 +215,8 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = AC_HTONL( num );
-	if ( ber_write( ber, (char *) &netnum + (sizeof(long) - i), i, 0 )
+	netnum = LBER_INT_HTON( num );
+	if ( ber_write( ber, (char *) &netnum + (sizeof(ber_int_t) - i), i, 0 )
 	   != i )
 		return( -1 );
 
@@ -210,7 +225,10 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 }
 
 int
-ber_put_enum( BerElement *ber, long num, unsigned long tag )
+ber_put_enum(
+	BerElement *ber,
+	ber_int_t num,
+	ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -222,7 +240,10 @@ ber_put_enum( BerElement *ber, long num, unsigned long tag )
 }
 
 int
-ber_put_int( BerElement *ber, long num, unsigned long tag )
+ber_put_int(
+	BerElement *ber,
+	ber_int_t num,
+	ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -237,10 +258,11 @@ int
 ber_put_ostring(
 	BerElement *ber,
 	LDAP_CONST char *str,
-	unsigned long len,
-	unsigned long tag )
+	ber_len_t len,
+	ber_tag_t tag )
 {
-	int	taglen, lenlen, rc;
+	ber_len_t	taglen, lenlen;
+	int rc;
 #ifdef STR_TRANSLATION
 	int	free_str;
 #endif /* STR_TRANSLATION */
@@ -285,11 +307,12 @@ ber_put_ostring(
 
 	return( rc );
 }
+
 int
 ber_put_berval(
 	BerElement *ber,
 	LDAP_CONST struct berval *bv,
-	unsigned long tag )
+	ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( bv != NULL );
@@ -307,7 +330,7 @@ int
 ber_put_string(
 	BerElement *ber,
 	LDAP_CONST char *str,
-	unsigned long tag )
+	ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( str != NULL );
@@ -321,10 +344,10 @@ int
 ber_put_bitstring(
 	BerElement *ber,
 	LDAP_CONST char *str,
-	unsigned long blen /* in bits */,
-	unsigned long tag )
+	ber_len_t blen /* in bits */,
+	ber_tag_t tag )
 {
-	int		taglen, lenlen, len;
+	ber_len_t		taglen, lenlen, len;
 	unsigned char	unusedbits;
 
 	assert( ber != NULL );
@@ -346,7 +369,7 @@ ber_put_bitstring(
 	if ( ber_write( ber, (char *)&unusedbits, 1, 0 ) != 1 )
 		return( -1 );
 
-	if ( ber_write( ber, str, len, 0 ) != len )
+	if ( (ber_len_t) ber_write( ber, str, len, 0 ) != len )
 		return( -1 );
 
 	/* return length of tag + length + unused bit count + contents */
@@ -354,9 +377,9 @@ ber_put_bitstring(
 }
 
 int
-ber_put_null( BerElement *ber, unsigned long tag )
+ber_put_null( BerElement *ber, ber_tag_t tag )
 {
-	int	taglen;
+	ber_len_t	taglen;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -374,10 +397,13 @@ ber_put_null( BerElement *ber, unsigned long tag )
 }
 
 int
-ber_put_boolean( BerElement *ber, int boolval, unsigned long tag )
+ber_put_boolean(
+	BerElement *ber,
+	ber_int_t boolval,
+	ber_tag_t tag )
 {
-	int		taglen;
-	unsigned char	trueval = 0xffU;
+	ber_len_t		taglen;
+	unsigned char	trueval = 0xFFU;
 	unsigned char	falseval = 0x00U;
 
 	assert( ber != NULL );
@@ -402,7 +428,9 @@ ber_put_boolean( BerElement *ber, int boolval, unsigned long tag )
 #define FOUR_BYTE_LEN	5
 
 static int
-ber_start_seqorset( BerElement *ber, unsigned long tag )
+ber_start_seqorset(
+	BerElement *ber,
+	ber_tag_t tag )
 {
 	Seqorset	*new;
 
@@ -411,11 +439,11 @@ ber_start_seqorset( BerElement *ber, unsigned long tag )
 
 	new = (Seqorset *) LBER_CALLOC( 1, sizeof(Seqorset) );
 
-	if ( new == NULLSEQORSET )
+	if ( new == NULL )
 		return( -1 );
 
 	new->sos_ber = ber;
-	if ( ber->ber_sos == NULLSEQORSET )
+	if ( ber->ber_sos == NULL )
 		new->sos_first = ber->ber_ptr;
 	else
 		new->sos_first = ber->ber_sos->sos_ptr;
@@ -431,7 +459,7 @@ ber_start_seqorset( BerElement *ber, unsigned long tag )
 }
 
 int
-ber_start_seq( BerElement *ber, unsigned long tag )
+ber_start_seq( BerElement *ber, ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -443,7 +471,7 @@ ber_start_seq( BerElement *ber, unsigned long tag )
 }
 
 int
-ber_start_set( BerElement *ber, unsigned long tag )
+ber_start_set( BerElement *ber, ber_tag_t tag )
 {
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -457,8 +485,8 @@ ber_start_set( BerElement *ber, unsigned long tag )
 static int
 ber_put_seqorset( BerElement *ber )
 {
-	unsigned long	len, netlen;
-	int		taglen, lenlen;
+	ber_len_t	len, netlen;
+	ber_len_t	taglen, lenlen;
 	unsigned char	ltag = 0x80U + FOUR_BYTE_LEN - 1;
 	Seqorset	*next;
 	Seqorset	**sos = &ber->ber_sos;
@@ -475,8 +503,8 @@ ber_put_seqorset( BerElement *ber )
 	 */
 
 	len = (*sos)->sos_clen;
-	netlen = AC_HTONL( len );
-	if ( sizeof(long) > 4 && len > 0xffffffffUL )
+	netlen = LBER_LEN_HTON( len );
+	if ( sizeof(ber_len_t) > 4 && len > 0xffffffffUL )
 		return( -1 );
 
 	if ( ber->ber_options & LBER_USE_DER ) {
@@ -485,7 +513,7 @@ ber_put_seqorset( BerElement *ber )
 		lenlen = FOUR_BYTE_LEN;
 	}
 
-	if ( (next = (*sos)->sos_next) == NULLSEQORSET ) {
+	if ( (next = (*sos)->sos_next) == NULL ) {
 		/* write the tag */
 		if ( (taglen = ber_put_tag( ber, (*sos)->sos_tag, 1 )) == -1 )
 			return( -1 );
@@ -520,18 +548,18 @@ ber_put_seqorset( BerElement *ber )
 		/* The ber_ptr is at the set/seq start - move it to the end */
 		(*sos)->sos_ber->ber_ptr += len;
 	} else {
-		unsigned long	ntag;
+		ber_tag_t	ntag;
 
 		/* the tag */
 		taglen = ber_calc_taglen( (*sos)->sos_tag );
-		ntag = AC_HTONL( (*sos)->sos_tag );
+		ntag = LBER_TAG_HTON( (*sos)->sos_tag );
 		SAFEMEMCPY( (*sos)->sos_first, (char *) &ntag +
-		    sizeof(long) - taglen, taglen );
+		    sizeof(ber_tag_t) - taglen, taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
 				? (unsigned char) len
-				: (unsigned char) (0x80UL + (lenlen - 1));
+				: (unsigned char) (0x80U + (lenlen - 1));
 		}
 
 		/* one byte of length length */
@@ -541,7 +569,7 @@ ber_put_seqorset( BerElement *ber )
 			if (lenlen > 1) {
 				/* Write the length itself */
 				SAFEMEMCPY( (*sos)->sos_first + 2,
-				    (char *)&netlen + sizeof(unsigned long) -
+				    (char *)&netlen + sizeof(ber_len_t) -
 				    (lenlen - 1),
 				    lenlen - 1 );
 			}
@@ -558,7 +586,7 @@ ber_put_seqorset( BerElement *ber )
 		} else {
 			/* the length itself */
 			SAFEMEMCPY( (*sos)->sos_first + taglen + 1,
-			    (char *) &netlen + sizeof(long) -
+			    (char *) &netlen + sizeof(ber_len_t) -
 			    (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1 );
 		}
 
@@ -610,8 +638,9 @@ va_dcl
 #endif
 	char		*s, **ss;
 	struct berval	*bv, **bvp;
-	int		rc, i;
-	unsigned long	len;
+	int		rc;
+	ber_int_t	i;
+	ber_len_t	len;
 
 #ifdef HAVE_STDARG
 	va_start( ap, fmt );
@@ -639,17 +668,17 @@ va_dcl
 			} break;
 
 		case 'b':	/* boolean */
-			i = va_arg( ap, int );
+			i = va_arg( ap, ber_int_t );
 			rc = ber_put_boolean( ber, i, ber->ber_tag );
 			break;
 
 		case 'i':	/* int */
-			i = va_arg( ap, int );
+			i = va_arg( ap, ber_int_t );
 			rc = ber_put_int( ber, i, ber->ber_tag );
 			break;
 
 		case 'e':	/* enumeration */
-			i = va_arg( ap, int );
+			i = va_arg( ap, ber_int_t );
 			rc = ber_put_enum( ber, i, ber->ber_tag );
 			break;
 
@@ -659,7 +688,7 @@ va_dcl
 
 		case 'o':	/* octet string (non-null terminated) */
 			s = va_arg( ap, char * );
-			len = va_arg( ap, int );
+			len = va_arg( ap, ber_len_t );
 			rc = ber_put_ostring( ber, s, len, ber->ber_tag );
 			break;
 
@@ -681,7 +710,7 @@ va_dcl
 			break;
 
 		case 't':	/* tag for the next element */
-			ber->ber_tag = va_arg( ap, unsigned long );
+			ber->ber_tag = va_arg( ap, ber_tag_t );
 			ber->ber_usertag = 1;
 			break;
 

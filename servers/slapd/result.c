@@ -20,7 +20,7 @@ static void
 send_ldap_result2(
     Connection	*conn,
     Operation	*op,
-    int		err,
+    ber_int_t	err,
     char	*matched,
     char	*text,
     int		nentries
@@ -28,7 +28,8 @@ send_ldap_result2(
 {
 	BerElement	*ber;
 	int		rc;
-	unsigned long	tag, bytes;
+	ber_tag_t	tag;
+	ber_len_t	bytes;
 
 	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
 		err = LDAP_NO_SUCH_OBJECT;
@@ -57,12 +58,11 @@ send_ldap_result2(
 
 
 #ifdef LDAP_COMPAT30
-	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
-	    == NULLBER )
+	ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER );
 #else
-	if ( (ber = der_alloc()) == NULLBER )
+	ber = der_alloc();
 #endif
-	{
+	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		return;
 	}
@@ -145,8 +145,9 @@ send_ldap_result2(
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%d op=%d RESULT err=%d tag=%lu nentries=%d\n", conn->c_connid,
-	    op->o_opid, err, tag, nentries );
+	    "conn=%ld op=%ld RESULT err=%ld tag=%lu nentries=%d\n",
+		(long) conn->c_connid, (long) op->o_opid,
+		(long) err, (long) tag, nentries );
 
 	return;
 }
@@ -155,7 +156,7 @@ void
 send_ldap_result(
     Connection	*conn,
     Operation	*op,
-    int		err,
+    ber_int_t	err,
     char	*matched,
     char	*text
 )
@@ -177,7 +178,7 @@ void
 send_ldap_search_result(
     Connection	*conn,
     Operation	*op,
-    int		err,
+    ber_int_t	err,
     char	*matched,
     char	*text,
     int		nentries
@@ -215,12 +216,12 @@ send_search_entry(
 	edn = e->e_ndn;
 
 #ifdef LDAP_COMPAT30
-	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
-		== NULLBER )
+	ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER );
 #else
-	if ( (ber = der_alloc()) == NULLBER )
+	ber = der_alloc();
 #endif
-	{
+
+	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 			"ber_alloc" );
@@ -273,7 +274,7 @@ send_search_entry(
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[", a->a_type )) == -1 ) {
+		if (( rc = ber_printf( ber, "{s[" /*]}*/ , a->a_type )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -290,10 +291,7 @@ send_search_entry(
 					continue;
 				}
 
-				if (( rc = ber_printf( ber, "o",
-				    a->a_vals[i]->bv_val,
-				    a->a_vals[i]->bv_len )) == -1 )
-				{
+				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
 					ber_free( ber, 1 );
@@ -305,7 +303,7 @@ send_search_entry(
 			}
 		}
 
-		if (( rc = ber_printf( ber, "]}" )) == -1 ) {
+		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -316,10 +314,10 @@ send_search_entry(
 
 #ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
-		rc = ber_printf( ber, "}}}}" );
+		rc = ber_printf( ber, /*{{{{{*/ "}}}}" );
 	} else
 #endif
-		rc = ber_printf( ber, "}}}" );
+		rc = ber_printf( ber, /*{{{{*/ "}}}" );
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
@@ -387,8 +385,8 @@ send_search_entry(
 	num_entries_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
-	Statslog( LDAP_DEBUG_STATS2, "conn=%d op=%d ENTRY dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, e->e_dn, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld ENTRY dn=\"%s\"\n",
+	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 

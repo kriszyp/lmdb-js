@@ -54,7 +54,7 @@ ldap_enable_translation( LDAP *ld, LDAPMessage *entry, int enable )
 
 
 int
-ldap_translate_from_t61( LDAP *ld, char **bufp, unsigned long *lenp,
+ldap_translate_from_t61( LDAP *ld, char **bufp, ber_len_t *lenp,
     int free_input )
 {
 	if ( ld->ld_lber_decode_translate_proc == 0 ) {
@@ -66,7 +66,7 @@ ldap_translate_from_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 
 
 int
-ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
+ldap_translate_to_t61( LDAP *ld, char **bufp, ber_len_t *lenp,
     int free_input )
 {
 	if ( ld->ld_lber_encode_translate_proc == 0 ) {
@@ -1022,12 +1022,12 @@ c_to_cc( Byte *o, const Couple *cc, Byte c )
 /* --- routine to convert from T.61 to ISO 8859-n --- */
 
 int
-ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
+ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input )
 {
   Byte		*s, *oo, *o;
   unsigned int  n;
   int           c;
-  unsigned long len;
+  ber_len_t len;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_t61_to_8859 input length: %ld\n",
 	*buflenp, 0, 0 );
@@ -1559,11 +1559,11 @@ cc_to_t61( Byte *o, const Byte *s )
 /* --- routine to convert from ISO 8859-n to T.61 --- */
 
 int
-ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
+ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input )
 {
   Byte		*s, *oo, *o, *aux;
   int		c;
-  unsigned long len; 
+  ber_len_t len; 
   const Couple	*cc;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_8859_to_t61 input length: %ld\n",

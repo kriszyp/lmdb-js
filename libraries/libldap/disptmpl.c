@@ -36,7 +36,7 @@
 #include "disptmpl.h"
 
 static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
-static int read_next_tmpl LDAP_P(( char **bufp, long *blenp,
+static int read_next_tmpl LDAP_P(( char **bufp, ber_len_t *blenp,
 	struct ldap_disptmpl **tmplp, int dtversion ));
 
 static const char *const	tmploptions[] = {
@@ -139,7 +139,7 @@ ldap_init_templates( char *file, struct ldap_disptmpl **tmpllistp )
 
 
 int
-ldap_init_templates_buf( char *buf, long buflen,
+ldap_init_templates_buf( char *buf, ber_len_t buflen,
 	struct ldap_disptmpl **tmpllistp )
 {
     int				rc=-1, version;
@@ -441,7 +441,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 
 
 static int
-read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
+read_next_tmpl( char **bufp, ber_len_t *blenp, struct ldap_disptmpl **tmplp,
 	int dtversion )
 {
     int				i, j, tokcnt, samerow, adsource;

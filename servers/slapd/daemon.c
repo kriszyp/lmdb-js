@@ -21,12 +21,13 @@ int deny_severity = LOG_NOTICE;
 #endif /* TCP Wrappers */
 
 /* globals */
-int dtblsize;
-static int tcps;
+ber_socket_t dtblsize;
+static ber_socket_t tcps;
 
 #ifdef HAVE_WINSOCK2
 /* in nt_main.c */
 extern ldap_pvt_thread_cond_t			started_event;
+
 /* forward reference */
 void hit_socket();
 /* In wsa_err.c */
@@ -78,7 +79,7 @@ struct slap_daemon {
 /*
  * Add a descriptor to daemon control
  */
-static void slapd_add(int s) {
+static void slapd_add(ber_socket_t s) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( !FD_ISSET( s, &slap_daemon.sd_actives ));
@@ -91,10 +92,11 @@ static void slapd_add(int s) {
 	}
 #endif
 
-	FD_SET( (unsigned) s, &slap_daemon.sd_actives );
-	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
+	FD_SET( s, &slap_daemon.sd_actives );
+	FD_SET( s, &slap_daemon.sd_readers );
 
-	Debug( LDAP_DEBUG_CONNS, "daemon: added %d%s%s\n", s,
+	Debug( LDAP_DEBUG_CONNS, "daemon: added %ld%s%s\n",
+		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
 
@@ -104,27 +106,28 @@ static void slapd_add(int s) {
 /*
  * Remove the descriptor from daemon control
  */
-void slapd_remove(int s, int wake) {
+void slapd_remove(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
 
-	Debug( LDAP_DEBUG_CONNS, "daemon: removing %d%s%s\n", s,
+	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
+		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
 
-	FD_CLR( (unsigned) s, &slap_daemon.sd_actives );
-	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
-	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
+	FD_CLR( s, &slap_daemon.sd_actives );
+	FD_CLR( s, &slap_daemon.sd_readers );
+	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 }
 
-void slapd_clr_write(int s, int wake) {
+void slapd_clr_write(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
 
-	assert( FD_ISSET( (unsigned) s, &slap_daemon.sd_actives) );
-	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
+	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
+	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -133,7 +136,7 @@ void slapd_clr_write(int s, int wake) {
 	}
 }
 
-void slapd_set_write(int s, int wake) {
+void slapd_set_write(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
     WAKE_LISTENER(wake);
 
@@ -147,12 +150,12 @@ void slapd_set_write(int s, int wake) {
 	}
 }
 
-void slapd_clr_read(int s, int wake) {
+void slapd_clr_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
     WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
+	FD_CLR( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -161,12 +164,12 @@ void slapd_clr_read(int s, int wake) {
 	}
 }
 
-void slapd_set_read(int s, int wake) {
+void slapd_set_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
     WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
+	FD_SET( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -175,8 +178,9 @@ void slapd_set_read(int s, int wake) {
 	}
 }
 
-static void slapd_close(int s) {
-	Debug( LDAP_DEBUG_CONNS, "daemon: closing %d\n", s, 0, 0 );
+static void slapd_close(ber_socket_t s) {
+	Debug( LDAP_DEBUG_CONNS, "daemon: closing %ld\n",
+		(long) s, 0, 0 );
 	tcp_close(s);
 }
 
@@ -185,7 +189,8 @@ static void slapd_close(int s) {
 int
 set_socket( struct sockaddr_in *addr )
 {
-	int	tcps = -1;
+	ber_socket_t	tcps = AC_SOCKET_INVALID;
+
     if ( !daemon_initialized ) sockinit();
 
 #ifdef HAVE_SYSCONF
@@ -205,7 +210,7 @@ set_socket( struct sockaddr_in *addr )
 	if( addr != NULL ) {
 		int	tmp;
 
-		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
+		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID ) {
 #ifndef HAVE_WINSOCK
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
@@ -224,9 +229,9 @@ set_socket( struct sockaddr_in *addr )
 #ifndef HAVE_WINSOCK
 		if ( tcps >= dtblsize ) {
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: listener descriptor %d is too great\n",
-				tcps, dtblsize, 0 );
-			return -1;
+				"daemon: listener descriptor %ld is too great %ld\n",
+				(long) tcps, (long) dtblsize, 0 );
+			return( -1);
 		}
 #endif
 
@@ -237,8 +242,8 @@ set_socket( struct sockaddr_in *addr )
 		{
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
-			       "slapd(%d): setsockopt() failed errno %d (%s)\n",
-		    	tcps, err,
+			       "slapd(%ld): setsockopt() failed errno %d (%s)\n",
+		    	(long) tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
 		}
@@ -250,8 +255,8 @@ set_socket( struct sockaddr_in *addr )
 		{
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
-				"slapd(%d): setsockopt(KEEPALIVE) failed errno %d (%s)\n",
-		    	tcps, err,
+				"slapd(%ld): setsockopt(KEEPALIVE) failed errno %d (%s)\n",
+		    	(long) tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
 		}
@@ -260,8 +265,8 @@ set_socket( struct sockaddr_in *addr )
 
 		if ( bind( tcps, (struct sockaddr *) addr, sizeof(*addr) ) == -1 ) {
 			int err = errno;
-			Debug( LDAP_DEBUG_ANY, "daemon: bind(%d) failed errno %d (%s)\n",
-		    	tcps, err,
+			Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno %d (%s)\n",
+		    	(long) tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
 			return -1;
@@ -281,7 +286,6 @@ slapd_daemon_task(
 	struct sockaddr_in *slapd_addr = args->addr;
 
 	tcps  = args->tcps;
-	/*free( ptr );  This seems to be wrong unless I hosed something */
 
 	inetd = ( slapd_addr == NULL);
     if ( !daemon_initialized ) sockinit();
@@ -296,8 +300,8 @@ slapd_daemon_task(
 		if ( listen( tcps, 5 ) == -1 ) {
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: listen(%d, 5) failed errno %d (%s)\n",
-			    tcps, err,
+				"daemon: listen(%ld, 5) failed errno %d (%s)\n",
+			    (long) tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
 			return( (void*)-1 );
@@ -306,7 +310,7 @@ slapd_daemon_task(
 		slapd_add( tcps );
 
 	} else {
-		if( connection_init( 0, NULL, NULL ) ) {
+		if( connection_init( (ber_socket_t) 0, NULL, NULL ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"connection_init(%d) failed.\n",
 				0, 0, 0 );
@@ -321,9 +325,11 @@ slapd_daemon_task(
 		ldap_pvt_thread_cond_signal( &started_event );
 #endif
 	/* initialization complete. Here comes the loop. */
+
 	while ( !slapd_shutdown ) {
-		unsigned int i;
-		int ns, nfds;
+		ber_socket_t i;
+		int ns;
+		ber_socket_t nfds;
 		int ebadf = 0;
 #define SLAPD_EBADF_LIMIT 10
 
@@ -428,17 +434,17 @@ slapd_daemon_task(
 		}
 
 		if ( FD_ISSET( tcps, &readfds ) ) {
-			int s;
+			ber_int_t s;
 			int len = sizeof(from);
 			long id;
 
 			if ( (s = accept( tcps,
-				(struct sockaddr *) &from, &len )) == -1 )
+				(struct sockaddr *) &from, &len )) == AC_SOCKET_INVALID )
 			{
 				int err = errno;
 				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%d) failed errno %d (%s)\n", err,
-				    tcps, err >= 0 && err < sys_nerr ?
+				    "daemon: accept(%ld) failed errno %d (%s)\n", err,
+				    (long) tcps, err >= 0 && err < sys_nerr ?
 				    sys_errlist[err] : "unknown");
 				continue;
 			}
@@ -459,15 +465,15 @@ slapd_daemon_task(
 			/* make sure descriptor number isn't too great */
 			if ( s >= dtblsize ) {
 				Debug( LDAP_DEBUG_ANY,
-					"daemon: %d beyond descriptor table size %d\n",
-					s, dtblsize, 0 );
+					"daemon: %ld beyond descriptor table size %ld\n",
+					(long) s, (long) dtblsize, 0 );
 				slapd_close(s);
 				continue;
 			}
 #endif
 		   
-			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %d\n",
-				s, 0, 0 );
+			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
+				(long) s, 0, 0 );
 
 			len = sizeof(from);
 			if ( getpeername( s, (struct sockaddr *) &from, &len ) == 0 ) {
@@ -507,8 +513,8 @@ slapd_daemon_task(
 			{
 				/* DENY ACCESS */
 				Statslog( LDAP_DEBUG_ANY,
-			   	 "fd=%d connection from %s (%s) denied.\n",
-			   	 	s,
+			   	 "fd=%ld connection from %s (%s) denied.\n",
+			   	 	(long) s,
 					client_name == NULL ? "unknown" : client_name,
 					client_addr == NULL ? "unknown" : client_addr,
 			   	  0, 0 );
@@ -520,8 +526,8 @@ slapd_daemon_task(
 
 			if( (id = connection_init(s, client_name, client_addr)) < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-					"daemon: connection_init(%d, %s, %s) failed.\n",
-					s,
+					"daemon: connection_init(%ld, %s, %s) failed.\n",
+					(long) s,
 					client_name == NULL ? "unknown" : client_name,
 					client_addr == NULL ? "unknown" : client_addr);
 				slapd_close(s);
@@ -529,8 +535,8 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"daemon: conn=%d fd=%d connection from %s (%s) accepted.\n",
-				id, s,
+				"daemon: conn=%d fd=%ld connection from %s (%s) accepted.\n",
+				id, (long) s,
 				client_name == NULL ? "unknown" : client_name,
 				client_addr == NULL ? "unknown" : client_addr,
 				0 );
@@ -570,7 +576,7 @@ slapd_daemon_task(
 		for ( i = 0; i < nfds; i++ )
 #endif
 		{
-			int wd;
+			ber_socket_t wd;
 
 #ifdef HAVE_WINSOCK
 			wd = writefds.fd_array[i];
@@ -607,7 +613,7 @@ slapd_daemon_task(
 		for ( i = 0; i < nfds; i++ )
 #endif
 		{
-			int rd;
+			ber_socket_t rd;
 
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];
@@ -747,11 +753,12 @@ void sockinit()
 
 void hit_socket()
 {
-	int s, on = 1;
+	ber_socket_t s;
+	int on = 1;
 	extern struct sockaddr_in	bind_addr;
 
 	/* throw something at the socket to terminate the select() in the daemon thread. */
-	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == INVALID_SOCKET )
+	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID )
 		Debug( LDAP_DEBUG_ANY,
 			"slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n",
 			WSAGetLastError(), WSAGetLastErrorString(), 0 );
@@ -784,7 +791,6 @@ void sockinit()
 void sockinit()
 {
     daemon_initialized = 1;
-    return;
 }
 #endif
 

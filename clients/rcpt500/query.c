@@ -30,7 +30,7 @@ static char *errpreface = "Your query failed: ";
 
 static void close_ldap(LDAP *ld);
 static void append_entry_list(char *rep, char *qu, LDAP *ld, LDAPMessage *msg);
-static int  append_text(void *reply, char *text, int len);
+static int  append_text(void *reply, char *text, ber_len_t len);
 static int  do_read (LDAP *ld, char *dn, char *rep, struct ldap_disptmpl *tmp);
 static void report_ldap_err (LDAP *ldp, char *reply);
 static void remove_trailing_space (char *s);
@@ -290,7 +290,7 @@ append_entry_list( char *reply, char *query, LDAP *ldp, LDAPMessage *ldmsgp )
 
 
 static int
-append_text( void *reply, char *text, int len )
+append_text( void *reply, char *text, ber_len_t len )
 {
     strcat( (char *) reply, text );
     return( len );

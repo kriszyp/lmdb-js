@@ -152,7 +152,7 @@ ldap_get_option(
 			break;
 		} 
 
-		* (int *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
+		* (ber_socket_t *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DEREF:

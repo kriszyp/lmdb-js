@@ -67,7 +67,7 @@ ldap_simple_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 		passwd = "";
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( -1 );
 	}
 

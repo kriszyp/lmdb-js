@@ -267,7 +267,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	    ludp->lud_filter, ludp->lud_attrs, attrsonly, NULL, NULL,
 		-1, -1 );
 
-	if ( ber == NULLBER ) {
+	if ( ber == NULL ) {
 		return( -1 );
 	}
 

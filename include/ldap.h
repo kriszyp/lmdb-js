@@ -42,7 +42,7 @@ LDAP_BEGIN_DECL
  * As such, the number will be above the old RFC but below 
  * whatever number does finally get assigned
  */
-#define LDAP_API_VERSION	2002
+#define LDAP_API_VERSION	2003
 #define LDAP_VENDOR_NAME	"OpenLDAP"
 /* We'll eventually release as 200 */
 #define LDAP_VENDOR_VERSION	192
@@ -175,164 +175,164 @@ typedef struct ldapcontrol {
  */
 
 /* general stuff */
-#define LDAP_TAG_MESSAGE	0x30UL	/* constructed + 16 */
-#define OLD_LDAP_TAG_MESSAGE	0x10UL	/* forgot the constructed bit  */
-#define LDAP_TAG_MSGID		0x02UL	/* integer */
-#define LDAP_TAG_LDAPDN		0x04UL	/* octect string */
-#define LDAP_TAG_CONTROLS	0xa0UL	/* context specific + constructed + 0 */
-#define LDAP_TAG_REFERRAL	0xa3UL	/* context specific + constructed + 3 */
+#define LDAP_TAG_MESSAGE	(ber_tag_t) 0x30U	/* constructed + 16 */
+#define OLD_LDAP_TAG_MESSAGE	(ber_tag_t) 0x10U	/* forgot the constructed bit  */
+#define LDAP_TAG_MSGID		(ber_tag_t) 0x02U	/* integer */
+#define LDAP_TAG_LDAPDN		(ber_tag_t) 0x04U	/* octect string */
+#define LDAP_TAG_CONTROLS	(ber_tag_t) 0xa0U	/* context specific + constructed + 0 */
+#define LDAP_TAG_REFERRAL	(ber_tag_t) 0xa3U	/* context specific + constructed + 3 */
 
-#define LDAP_TAG_NEWSUPERIOR	0x80UL	/* context-specific + primitive + 0 */
+#define LDAP_TAG_NEWSUPERIOR	(ber_tag_t) 0x80U	/* context-specific + primitive + 0 */
 
-#define LDAP_TAG_EXOP_REQ_OID   0x80UL	/* context specific + primitive */
-#define LDAP_TAG_EXOP_REQ_VALUE 0x81UL	/* context specific + primitive */
-#define LDAP_TAG_EXOP_RES_OID   0x8aUL	/* context specific + primitive */
-#define LDAP_TAG_EXOP_RES_VALUE 0x8bUL	/* context specific + primitive */
+#define LDAP_TAG_EXOP_REQ_OID   (ber_tag_t) 0x80U	/* context specific + primitive */
+#define LDAP_TAG_EXOP_REQ_VALUE (ber_tag_t) 0x81U	/* context specific + primitive */
+#define LDAP_TAG_EXOP_RES_OID   (ber_tag_t) 0x8aU	/* context specific + primitive */
+#define LDAP_TAG_EXOP_RES_VALUE (ber_tag_t) 0x8bU	/* context specific + primitive */
 
-#define LDAP_TAG_SASL_RES_CREDS	0x87UL	/* context specific + primitive */
+#define LDAP_TAG_SASL_RES_CREDS	(ber_tag_t) 0x87U	/* context specific + primitive */
 
 
 
 
 /* possible operations a client can invoke */
-#define LDAP_REQ_BIND			0x60UL	/* application + constructed */
-#define LDAP_REQ_UNBIND			0x42UL	/* application + primitive   */
-#define LDAP_REQ_SEARCH			0x63UL	/* application + constructed */
-#define LDAP_REQ_MODIFY			0x66UL	/* application + constructed */
-#define LDAP_REQ_ADD			0x68UL	/* application + constructed */
-#define LDAP_REQ_DELETE			0x4aUL	/* application + primitive   */
-#define LDAP_REQ_MODRDN			0x6cUL	/* application + constructed */
+#define LDAP_REQ_BIND			(ber_tag_t) 0x60U	/* application + constructed */
+#define LDAP_REQ_UNBIND			(ber_tag_t) 0x42U	/* application + primitive   */
+#define LDAP_REQ_SEARCH			(ber_tag_t) 0x63U	/* application + constructed */
+#define LDAP_REQ_MODIFY			(ber_tag_t) 0x66U	/* application + constructed */
+#define LDAP_REQ_ADD			(ber_tag_t) 0x68U	/* application + constructed */
+#define LDAP_REQ_DELETE			(ber_tag_t) 0x4aU	/* application + primitive   */
+#define LDAP_REQ_MODRDN			(ber_tag_t) 0x6cU	/* application + constructed */
 #define LDAP_REQ_MODDN			LDAP_REQ_MODRDN	
 #define LDAP_REQ_RENAME			LDAP_REQ_MODRDN	
-#define LDAP_REQ_COMPARE		0x6eUL	/* application + constructed */
-#define LDAP_REQ_ABANDON		0x50UL	/* application + primitive   */
-#define LDAP_REQ_EXTENDED		0x77UL	/* application + constructed */
+#define LDAP_REQ_COMPARE		(ber_tag_t) 0x6eU	/* application + constructed */
+#define LDAP_REQ_ABANDON		(ber_tag_t) 0x50U	/* application + primitive   */
+#define LDAP_REQ_EXTENDED		(ber_tag_t) 0x77U	/* application + constructed */
 
 /* U-Mich version 3.0 compatibility stuff */
-#define LDAP_REQ_UNBIND_30		0x62UL
-#define LDAP_REQ_DELETE_30		0x6aUL
-#define LDAP_REQ_ABANDON_30		0x70UL
+#define LDAP_REQ_UNBIND_30		(ber_tag_t) 0x62U
+#define LDAP_REQ_DELETE_30		(ber_tag_t) 0x6aU
+#define LDAP_REQ_ABANDON_30		(ber_tag_t) 0x70U
 
 /* 
  * old broken stuff for backwards compatibility - forgot application tag
  * and constructed/primitive bit
  */
-#define OLD_LDAP_REQ_BIND		0x00UL
-#define OLD_LDAP_REQ_UNBIND		0x02UL
-#define OLD_LDAP_REQ_SEARCH		0x03UL
-#define OLD_LDAP_REQ_MODIFY		0x06UL
-#define OLD_LDAP_REQ_ADD		0x08UL
-#define OLD_LDAP_REQ_DELETE		0x0aUL
-#define OLD_LDAP_REQ_MODRDN		0x0cUL
-#define OLD_LDAP_REQ_COMPARE		0x0eUL
-#define OLD_LDAP_REQ_ABANDON		0x10UL
+#define OLD_LDAP_REQ_BIND		(ber_tag_t) 0x00U
+#define OLD_LDAP_REQ_UNBIND		(ber_tag_t) 0x02U
+#define OLD_LDAP_REQ_SEARCH		(ber_tag_t) 0x03U
+#define OLD_LDAP_REQ_MODIFY		(ber_tag_t) 0x06U
+#define OLD_LDAP_REQ_ADD		(ber_tag_t) 0x08U
+#define OLD_LDAP_REQ_DELETE		(ber_tag_t) 0x0aU
+#define OLD_LDAP_REQ_MODRDN		(ber_tag_t) 0x0cU
+#define OLD_LDAP_REQ_COMPARE		(ber_tag_t) 0x0eU
+#define OLD_LDAP_REQ_ABANDON		(ber_tag_t) 0x10U
 
 /* possible result types a server can return */
-#define LDAP_RES_BIND			0x61UL	/* application + constructed */
-#define LDAP_RES_SEARCH_ENTRY		0x64UL	/* application + constructed */
-#define LDAP_RES_SEARCH_REFERENCE	0x73UL	/* V3: application + constructed */
-#define LDAP_RES_SEARCH_RESULT		0x65UL	/* application + constructed */
-#define LDAP_RES_MODIFY			0x67UL	/* application + constructed */
-#define LDAP_RES_ADD			0x69UL	/* application + constructed */
-#define LDAP_RES_DELETE			0x6bUL	/* application + constructed */
-#define LDAP_RES_MODRDN			0x6dUL	/* application + constructed */
+#define LDAP_RES_BIND			(ber_tag_t) 0x61U	/* application + constructed */
+#define LDAP_RES_SEARCH_ENTRY		(ber_tag_t) 0x64U	/* application + constructed */
+#define LDAP_RES_SEARCH_REFERENCE	(ber_tag_t) 0x73U	/* V3: application + constructed */
+#define LDAP_RES_SEARCH_RESULT		(ber_tag_t) 0x65U	/* application + constructed */
+#define LDAP_RES_MODIFY			(ber_tag_t) 0x67U	/* application + constructed */
+#define LDAP_RES_ADD			(ber_tag_t) 0x69U	/* application + constructed */
+#define LDAP_RES_DELETE			(ber_tag_t) 0x6bU	/* application + constructed */
+#define LDAP_RES_MODRDN			(ber_tag_t) 0x6dU	/* application + constructed */
 #define LDAP_RES_MODDN			LDAP_RES_MODRDN	/* application + constructed */
 #define LDAP_RES_RENAME			LDAP_RES_MODRDN	/* application + constructed */
-#define LDAP_RES_COMPARE		0x6fUL	/* application + constructed */
-#define LDAP_RES_EXTENDED		0x78UL	/* V3: application + constructed */
-#define LDAP_RES_ANY			((unsigned long)(-1))
+#define LDAP_RES_COMPARE		(ber_tag_t) 0x6fU	/* application + constructed */
+#define LDAP_RES_EXTENDED		(ber_tag_t) 0x78U	/* V3: application + constructed */
+#define LDAP_RES_ANY			((ber_tag_t)(~0))
 
 /* old broken stuff for backwards compatibility */
-#define OLD_LDAP_RES_BIND		0x01UL
-#define OLD_LDAP_RES_SEARCH_ENTRY	0x04UL
-#define OLD_LDAP_RES_SEARCH_RESULT	0x05UL
-#define OLD_LDAP_RES_MODIFY		0x07UL
-#define OLD_LDAP_RES_ADD		0x09UL
-#define OLD_LDAP_RES_DELETE		0x0bUL
-#define OLD_LDAP_RES_MODRDN		0x0dUL
+#define OLD_LDAP_RES_BIND		(ber_tag_t) 0x01UL
+#define OLD_LDAP_RES_SEARCH_ENTRY	(ber_tag_t) 0x04UL
+#define OLD_LDAP_RES_SEARCH_RESULT	(ber_tag_t) 0x05U
+#define OLD_LDAP_RES_MODIFY		(ber_tag_t) 0x07U
+#define OLD_LDAP_RES_ADD		(ber_tag_t) 0x09U
+#define OLD_LDAP_RES_DELETE		(ber_tag_t) 0x0bU
+#define OLD_LDAP_RES_MODRDN		(ber_tag_t) 0x0dU
 #define OLD_LDAP_RES_MODDN		OLD_LDAP_RES_MODRDN
-#define OLD_LDAP_RES_COMPARE		0x0fUL
+#define OLD_LDAP_RES_COMPARE	(ber_tag_t) 0x0fU
 
 /* sasl methods */
 #define LDAP_SASL_SIMPLE			NULL
 
 /* authentication methods available */
-#define LDAP_AUTH_NONE		0x00UL	/* no authentication		  */
-#define LDAP_AUTH_SIMPLE	0x80UL	/* context specific + primitive   */
-#define LDAP_AUTH_SASL		0xa3UL	/* context specific + primitive   */
-#define LDAP_AUTH_KRBV4		0xffUL	/* means do both of the following */
-#define LDAP_AUTH_KRBV41	0x81UL	/* context specific + primitive   */
-#define LDAP_AUTH_KRBV42	0x82UL	/* context specific + primitive   */
+#define LDAP_AUTH_NONE		(ber_tag_t) 0x00U	/* no authentication		  */
+#define LDAP_AUTH_SIMPLE	(ber_tag_t) 0x80U	/* context specific + primitive   */
+#define LDAP_AUTH_SASL		(ber_tag_t) 0xa3U	/* context specific + primitive   */
+#define LDAP_AUTH_KRBV4		(ber_tag_t) 0xffU	/* means do both of the following */
+#define LDAP_AUTH_KRBV41	(ber_tag_t) 0x81U	/* context specific + primitive   */
+#define LDAP_AUTH_KRBV42	(ber_tag_t) 0x82U	/* context specific + primitive   */
 
 /* U-Mich version 3.0 compatibility auth methods */
-#define LDAP_AUTH_SIMPLE_30	0xa0UL	/* context specific + constructed */
-#define LDAP_AUTH_KRBV41_30	0xa1UL	/* context specific + constructed */
-#define LDAP_AUTH_KRBV42_30	0xa2UL	/* context specific + constructed */
+#define LDAP_AUTH_SIMPLE_30	(ber_tag_t) 0xa0U	/* context specific + constructed */
+#define LDAP_AUTH_KRBV41_30	(ber_tag_t) 0xa1U	/* context specific + constructed */
+#define LDAP_AUTH_KRBV42_30	(ber_tag_t) 0xa2U	/* context specific + constructed */
 
 /* old broken stuff */
-#define OLD_LDAP_AUTH_SIMPLE	0x00UL
-#define OLD_LDAP_AUTH_KRBV4	0x01UL
-#define OLD_LDAP_AUTH_KRBV42	0x02UL
+#define OLD_LDAP_AUTH_SIMPLE	(ber_tag_t) 0x00U
+#define OLD_LDAP_AUTH_KRBV4	(ber_tag_t) 0x01U
+#define OLD_LDAP_AUTH_KRBV42	(ber_tag_t) 0x02U
 
 /* filter types */
-#define LDAP_FILTER_AND		0xa0UL	/* context specific + constructed */
-#define LDAP_FILTER_OR		0xa1UL	/* context specific + constructed */
-#define LDAP_FILTER_NOT		0xa2UL	/* context specific + constructed */
-#define LDAP_FILTER_EQUALITY	0xa3UL	/* context specific + constructed */
-#define LDAP_FILTER_SUBSTRINGS	0xa4UL	/* context specific + constructed */
-#define LDAP_FILTER_GE		0xa5UL	/* context specific + constructed */
-#define LDAP_FILTER_LE		0xa6UL	/* context specific + constructed */
-#define LDAP_FILTER_PRESENT	0x87UL	/* context specific + primitive   */
-#define LDAP_FILTER_APPROX	0xa8UL	/* context specific + constructed */
-#define LDAP_FILTER_EXTENDED	0xa9UL	/* context specific + constructed */
+#define LDAP_FILTER_AND		(ber_tag_t) 0xa0U	/* context specific + constructed */
+#define LDAP_FILTER_OR		(ber_tag_t) 0xa1U	/* context specific + constructed */
+#define LDAP_FILTER_NOT		(ber_tag_t) 0xa2U	/* context specific + constructed */
+#define LDAP_FILTER_EQUALITY	(ber_tag_t) 0xa3U	/* context specific + constructed */
+#define LDAP_FILTER_SUBSTRINGS	(ber_tag_t) 0xa4U	/* context specific + constructed */
+#define LDAP_FILTER_GE		(ber_tag_t) 0xa5U	/* context specific + constructed */
+#define LDAP_FILTER_LE		(ber_tag_t) 0xa6U	/* context specific + constructed */
+#define LDAP_FILTER_PRESENT	(ber_tag_t) 0x87U	/* context specific + primitive   */
+#define LDAP_FILTER_APPROX	(ber_tag_t) 0xa8U	/* context specific + constructed */
+#define LDAP_FILTER_EXTENDED	(ber_tag_t) 0xa9U	/* context specific + constructed */
 
 /* U-Mich version 3.0 compatibility filter types */
-#define LDAP_FILTER_PRESENT_30	0xa7UL	/* context specific + constructed */
+#define LDAP_FILTER_PRESENT_30	(ber_tag_t) 0xa7U	/* context specific + constructed */
 
 /* old broken stuff */
-#define OLD_LDAP_FILTER_AND		0x00UL
-#define OLD_LDAP_FILTER_OR		0x01UL
-#define OLD_LDAP_FILTER_NOT		0x02UL
-#define OLD_LDAP_FILTER_EQUALITY	0x03UL
-#define OLD_LDAP_FILTER_SUBSTRINGS	0x04UL
-#define OLD_LDAP_FILTER_GE		0x05UL
-#define OLD_LDAP_FILTER_LE		0x06UL
-#define OLD_LDAP_FILTER_PRESENT		0x07UL
-#define OLD_LDAP_FILTER_APPROX		0x08UL
+#define OLD_LDAP_FILTER_AND		(ber_tag_t) 0x00U
+#define OLD_LDAP_FILTER_OR		(ber_tag_t) 0x01U
+#define OLD_LDAP_FILTER_NOT		(ber_tag_t) 0x02U
+#define OLD_LDAP_FILTER_EQUALITY	(ber_tag_t) 0x03U
+#define OLD_LDAP_FILTER_SUBSTRINGS	(ber_tag_t) 0x04U
+#define OLD_LDAP_FILTER_GE		(ber_tag_t) 0x05U
+#define OLD_LDAP_FILTER_LE		(ber_tag_t) 0x06U
+#define OLD_LDAP_FILTER_PRESENT		(ber_tag_t) 0x07U
+#define OLD_LDAP_FILTER_APPROX		(ber_tag_t) 0x08U
 
 /* extended filter component types */
-#define LDAP_FILTER_EXTENDED_OID	0x81UL	/* context specific */
-#define LDAP_FILTER_EXTENDED_TYPE	0x82UL	/* context specific */
-#define LDAP_FILTER_EXTENDED_VALUE	0x83UL	/* context specific */
-#define LDAP_FILTER_EXTENDED_DNATTRS	0x84UL	/* context specific */
+#define LDAP_FILTER_EXTENDED_OID	(ber_tag_t) 0x81U	/* context specific */
+#define LDAP_FILTER_EXTENDED_TYPE	(ber_tag_t) 0x82U	/* context specific */
+#define LDAP_FILTER_EXTENDED_VALUE	(ber_tag_t) 0x83U	/* context specific */
+#define LDAP_FILTER_EXTENDED_DNATTRS	(ber_tag_t) 0x84U	/* context specific */
 
 /* substring filter component types */
-#define LDAP_SUBSTRING_INITIAL	0x80UL	/* context specific */
-#define LDAP_SUBSTRING_ANY	0x81UL	/* context specific */
-#define LDAP_SUBSTRING_FINAL	0x82UL	/* context specific */
+#define LDAP_SUBSTRING_INITIAL	(ber_tag_t) 0x80U	/* context specific */
+#define LDAP_SUBSTRING_ANY	(ber_tag_t) 0x81U	/* context specific */
+#define LDAP_SUBSTRING_FINAL	(ber_tag_t) 0x82U	/* context specific */
 
 /* U-Mich version 3.0 compatibility substring filter component types */
-#define LDAP_SUBSTRING_INITIAL_30	0xa0UL	/* context specific */
-#define LDAP_SUBSTRING_ANY_30		0xa1UL	/* context specific */
-#define LDAP_SUBSTRING_FINAL_30		0xa2UL	/* context specific */
+#define LDAP_SUBSTRING_INITIAL_30	(ber_tag_t) 0xa0U	/* context specific */
+#define LDAP_SUBSTRING_ANY_30		(ber_tag_t) 0xa1U	/* context specific */
+#define LDAP_SUBSTRING_FINAL_30		(ber_tag_t) 0xa2U	/* context specific */
 
 /* old broken stuff */
-#define OLD_LDAP_SUBSTRING_INITIAL	0x00UL
-#define OLD_LDAP_SUBSTRING_ANY		0x01UL
-#define OLD_LDAP_SUBSTRING_FINAL	0x02UL
+#define OLD_LDAP_SUBSTRING_INITIAL	(ber_tag_t) 0x00U
+#define OLD_LDAP_SUBSTRING_ANY		(ber_tag_t) 0x01U
+#define OLD_LDAP_SUBSTRING_FINAL	(ber_tag_t) 0x02U
 
 /* search scopes */
-#define LDAP_SCOPE_BASE		0x0000
-#define LDAP_SCOPE_ONELEVEL	0x0001
-#define LDAP_SCOPE_SUBTREE	0x0002
+#define LDAP_SCOPE_BASE		(ber_int_t) 0x0000
+#define LDAP_SCOPE_ONELEVEL	(ber_int_t) 0x0001
+#define LDAP_SCOPE_SUBTREE	(ber_int_t) 0x0002
 
 /* for modifications */
 typedef struct ldapmod {
 	int		mod_op;
-#define LDAP_MOD_ADD		0x0000
-#define LDAP_MOD_DELETE		0x0001
-#define LDAP_MOD_REPLACE	0x0002
-#define LDAP_MOD_BVALUES	0x0080
+#define LDAP_MOD_ADD		(ber_int_t) 0x0000
+#define LDAP_MOD_DELETE		(ber_int_t) 0x0001
+#define LDAP_MOD_REPLACE	(ber_int_t) 0x0002
+#define LDAP_MOD_BVALUES	(ber_int_t) 0x0080
 /* IMPORTANT: do not use code 0x1000 (or above),
  * it is used internally by the backends!
  * (see ldap/servers/slapd/slap.h)
@@ -732,7 +732,7 @@ ldap_kerberos_bind2_s LDAP_P((
  * (deprecated)
  */
 LDAP_F( int )
-ldap_enable_cache LDAP_P(( LDAP *ld, long timeout, long maxmem ));
+ldap_enable_cache LDAP_P(( LDAP *ld, long timeout, ber_len_t maxmem ));
 
 LDAP_F( void )
 ldap_disable_cache LDAP_P(( LDAP *ld ));
@@ -1311,7 +1311,7 @@ ldap_init_getfilter LDAP_P((
 LDAP_F( LDAPFiltDesc *)
 ldap_init_getfilter_buf LDAP_P((
 	/* LDAP_CONST */ char *buf,
-	long buflen ));
+	ber_len_t buflen ));
 
 LDAP_F( LDAPFiltInfo *)
 ldap_getfirstfilter LDAP_P((
@@ -1332,7 +1332,7 @@ ldap_setfilteraffixes LDAP_P((
 LDAP_F( void )
 ldap_build_filter LDAP_P((
 	char *buf,
-	unsigned long buflen,
+	ber_len_t buflen,
 	LDAP_CONST char *pattern,
 	LDAP_CONST char *prefix,
 	LDAP_CONST char *suffix,
@@ -1347,17 +1347,17 @@ ldap_build_filter LDAP_P((
 
 LDAP_F( void * )
 ldap_memalloc LDAP_P((
-	size_t s ));
+	ber_len_t s ));
 
 LDAP_F( void * )
 ldap_memrealloc LDAP_P((
 	void* p,
-	size_t s ));
+	ber_len_t s ));
 
 LDAP_F( void * )
 ldap_memcalloc LDAP_P((
-	size_t n,
-	size_t s ));
+	ber_len_t n,
+	ber_len_t s ));
 
 LDAP_F( void )
 ldap_memfree LDAP_P((
@@ -1499,14 +1499,15 @@ LDAP_F( int )
 ldap_translate_from_t61 LDAP_P((
 	LDAP *ld,
 	char **bufp,
-	unsigned long *lenp,
+	ber_len_t *lenp,
 	int free_input ));
 
 LDAP_F( int )
 ldap_translate_to_t61 LDAP_P((
 	LDAP *ld,
 	char **bufp,
-	unsigned long *lenp, int free_input ));
+	ber_len_t *lenp,
+	int free_input ));
 
 LDAP_F( void )
 ldap_enable_translation LDAP_P((
@@ -1517,13 +1518,13 @@ ldap_enable_translation LDAP_P((
 LDAP_F( int )
 ldap_t61_to_8859 LDAP_P((
 	char **bufp,
-	unsigned long *buflenp,
+	ber_len_t *buflenp,
 	int free_input ));
 
 LDAP_F( int )
 ldap_8859_to_t61 LDAP_P((
 	char **bufp,
-	unsigned long *buflenp,
+	ber_len_t *buflenp,
 	int free_input ));
 
 LDAP_END_DECL

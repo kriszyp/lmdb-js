@@ -35,7 +35,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	ber = *entry->lm_ber;
 
 	/* skip sequence, dn, sequence of, and snag the first attr */
-	if ( ber_scanf( &ber, "{x{{a", &attr ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{x{{a" /*}}}*/, &attr ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -48,7 +48,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 		LDAP_FREE(attr);
 		attr = NULL;
 
-		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
+		if ( ber_scanf( &ber, /*{*/ "x}{a" /*}*/, &attr ) == LBER_ERROR ) {
 			ld->ld_errno = LDAP_DECODING_ERROR;
 			return( NULL );
 		}
@@ -87,7 +87,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	ber = *entry->lm_ber;
 
 	/* skip sequence, dn, sequence of, and snag the first attr */
-	if ( ber_scanf( &ber, "{x{{a", &attr ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{x{{a" /* }}} */, &attr ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -100,7 +100,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 		LDAP_FREE( attr );
 		attr = NULL;
 
-		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
+		if ( ber_scanf( &ber, /*{*/ "x}{a" /*}*/, &attr ) == LBER_ERROR ) {
 			ld->ld_errno = LDAP_DECODING_ERROR;
 			return( NULL );
 		}

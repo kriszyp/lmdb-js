@@ -221,14 +221,15 @@ struct ldap_disptmpl {
 #define LDAP_DTMPL_BUFSIZ	8192
 
 
-typedef int (*ldap_writeptype) LDAP_P(( void *writeparm, char *p, int len ));
+typedef int (*ldap_writeptype) LDAP_P((
+	void *writeparm, char *p, ber_len_t len ));
 
 LDAP_F( int )
 ldap_init_templates LDAP_P(( char *file, struct ldap_disptmpl **tmpllistp ));
 
 LDAP_F( int )
 ldap_init_templates_buf LDAP_P(( char *buf,
-	long buflen,
+	ber_len_t buflen,
 	struct ldap_disptmpl **tmpllistp ));
 
 LDAP_F( void )

@@ -70,14 +70,14 @@ LDAP_BEGIN_DECL
  */
 
 struct ldapmsg {
-	int		lm_msgid;	/* the message id */
-	int		lm_msgtype;	/* the message type */
+	ber_int_t		lm_msgid;	/* the message id */
+	ber_tag_t		lm_msgtype;	/* the message type */
 	BerElement	*lm_ber;	/* the ber encoded message contents */
 	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
 	struct ldapmsg	*lm_next;	/* next response */
 	time_t	lm_time;	/* used to maintain cache */
 };
-#define NULLMSG ((LDAPMessage *)NULL)
+
 /*
  * structure representing get/set'able options
  * which have global defaults.
@@ -90,10 +90,10 @@ struct ldapoptions {
 
 	int		ldo_debug;
 
-	int		ldo_version;	/* version to connect at */
-	int		ldo_deref;
-	int		ldo_timelimit;
-	int		ldo_sizelimit;
+	ber_int_t		ldo_version;	/* version to connect at */
+	ber_int_t		ldo_deref;
+	ber_int_t		ldo_timelimit;
+	ber_int_t		ldo_sizelimit;
 
 	int		ldo_defport;
 	char*	ldo_defbase;
@@ -146,17 +146,17 @@ typedef struct ldap_conn {
  * structure used to track outstanding requests
  */
 typedef struct ldapreq {
-	int		lr_msgid;	/* the message id */
+	ber_int_t		lr_msgid;	/* the message id */
 	int		lr_status;	/* status of request */
 #define LDAP_REQST_INPROGRESS	1
 #define LDAP_REQST_CHASINGREFS	2
 #define LDAP_REQST_NOTCONNECTED	3
 #define LDAP_REQST_WRITING	4
 	int		lr_outrefcnt;	/* count of outstanding referrals */
-	int		lr_origid;	/* original request's message id */
+	ber_int_t		lr_origid;	/* original request's message id */
 	int		lr_parentcnt;	/* count of parent requests */
-	int		lr_res_msgtype;	/* result message type */
-	int		lr_res_errno;	/* result LDAP errno */
+	ber_tag_t		lr_res_msgtype;	/* result message type */
+	ber_int_t		lr_res_errno;	/* result LDAP errno */
 	char		*lr_res_error;	/* result error string */
 	char		*lr_res_matched;/* result matched DN string */
 	BerElement	*lr_ber;	/* ber encoded request contents */
@@ -175,14 +175,13 @@ typedef struct ldapcache {
 	LDAPMessage	*lc_buckets[LDAP_CACHE_BUCKETS];/* hash table */
 	LDAPMessage	*lc_requests;			/* unfulfilled reqs */
 	long		lc_timeout;			/* request timeout */
-	long		lc_maxmem;			/* memory to use */
-	long		lc_memused;			/* memory in use */
+	ber_len_t		lc_maxmem;			/* memory to use */
+	ber_len_t		lc_memused;			/* memory in use */
 	int		lc_enabled;			/* enabled? */
 	unsigned long	lc_options;			/* options */
 #define LDAP_CACHE_OPT_CACHENOERRS	0x00000001
 #define LDAP_CACHE_OPT_CACHEALLERRS	0x00000002
 }  LDAPCache;
-#define NULLLDCACHE ((LDAPCache *)NULL)
 
 /*
  * handy macro for checking if handle is connectionless
@@ -217,7 +216,7 @@ struct ldap {
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
 
-	int		ld_version;		/* version connected at */
+	ber_int_t		ld_version;		/* version connected at */
 	char	*ld_host;
 	int		ld_port;
 
@@ -226,16 +225,16 @@ struct ldap {
 	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
 	char		*ld_ufnprefix;	/* for incomplete ufn's */
 
-	int		ld_errno;
+	ber_int_t	ld_errno;
 	char	*ld_error;
 	char	*ld_matched;
-	int		ld_msgid;
+	ber_len_t		ld_msgid;
 
 	/* do not mess with these */
 	LDAPRequest	*ld_requests;	/* list of outstanding requests */
 	LDAPMessage	*ld_responses;	/* list of outstanding responses */
 
-	int		*ld_abandoned;	/* array of abandoned requests */
+	ber_int_t		*ld_abandoned;	/* array of abandoned requests */
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 	/* stuff used by connectionless searches. */
@@ -295,19 +294,19 @@ int ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...));
 /*
  * in cache.c
  */
-void ldap_add_request_to_cache LDAP_P(( LDAP *ld, unsigned long msgtype,
+void ldap_add_request_to_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype,
         BerElement *request ));
 void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
-int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
+int ldap_check_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype, BerElement *request ));
 
 /*
  * in controls.c
  */
 LDAPControl *ldap_control_dup LDAP_P((
-	const LDAPControl *ctrl ));
+	LDAPControl *ctrl ));
 
 LDAPControl **ldap_controls_dup LDAP_P((
-	const LDAPControl **ctrls ));
+	LDAPControl **ctrls ));
 
 int ldap_int_get_controls LDAP_P((
 	BerElement *be,
@@ -321,7 +320,7 @@ int ldap_int_put_controls LDAP_P((
 /*
  * in dsparse.c
  */
-int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+int next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
 void free_strarray LDAP_P(( char **sap ));
 
 #ifdef HAVE_KERBEROS
@@ -332,7 +331,7 @@ char *ldap_get_kerberosv4_credentials LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *who,
 	LDAP_CONST char *service,
-	int *len ));
+	ber_len_t *len ));
 
 #endif /* HAVE_KERBEROS */
 
@@ -368,17 +367,17 @@ int ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 /*
  * in request.c
  */
-int ldap_send_initial_request( LDAP *ld, unsigned long msgtype,
+ber_int_t ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 	const char *dn, BerElement *ber );
 BerElement *ldap_alloc_ber_with_options( LDAP *ld );
 void ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-int ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid,
+int ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid,
 	LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc,
 	int bind );
 LDAPConn *ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 	int connect, int bind );
-LDAPRequest *ldap_find_request_by_msgid( LDAP *ld, int msgid );
+LDAPRequest *ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
 void ldap_free_request( LDAP *ld, LDAPRequest *lr );
 void ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 void ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
@@ -399,12 +398,15 @@ LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
  */
 BerElement *ldap_build_search_req LDAP_P((
 	LDAP *ld,
-	const char *base, int scope,
-	const char *filter, char **attrs, int attrsonly,
+	const char *base,
+	ber_int_t scope,
+	const char *filter,
+	char **attrs,
+	ber_int_t attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	int timelimit,
-	int sizelimit ));
+	ber_int_t timelimit,
+	ber_int_t sizelimit ));
 
 /*
  * in string.c
@@ -443,9 +445,9 @@ char **ldap_getdxbyname( const char *domain );
  */
 #if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
 extern 
-int ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input );
+int ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input );
 extern 
-int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
+int ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 

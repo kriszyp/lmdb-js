@@ -44,7 +44,8 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
  * XXX async is not used yet!
  */
 {
-	int			rc, i, s = 0;
+	int			rc, i;
+	ber_socket_t s = AC_SOCKET_INVALID;
 	int			connected, use_hp;
 	struct sockaddr_in	sin;
 	struct hostent		*hp = NULL;

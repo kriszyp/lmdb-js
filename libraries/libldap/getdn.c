@@ -38,7 +38,7 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	}
 
 	tmp = *entry->lm_ber;	/* struct copy */
-	if ( ber_scanf( &tmp, "{a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( &tmp, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}

@@ -70,7 +70,7 @@ ldap_rename(
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( LDAP_NO_MEMORY );
 	}
 
@@ -82,15 +82,15 @@ ldap_rename(
 			return( ld->ld_errno );
 		}
 
-		rc = ber_printf( ber, "{it{ssbts}", /* leave '}' for later */ 
+		rc = ber_printf( ber, "{it{ssbts}", /* '}' */ 
 			++ld->ld_msgid, LDAP_REQ_MODDN,
-			dn, newrdn, deleteoldrdn,
+			dn, newrdn, (ber_int_t) deleteoldrdn,
 			LDAP_TAG_NEWSUPERIOR, newSuperior );
 
 	} else {
-		rc = ber_printf( ber, "{it{ssb}", /* leave '}' for later */ 
+		rc = ber_printf( ber, "{it{ssb}", /* '}' */ 
 			++ld->ld_msgid, LDAP_REQ_MODDN,
-			dn, newrdn, deleteoldrdn );
+			dn, newrdn, (ber_int_t) deleteoldrdn );
 	}
 
 	if ( rc < 0 ) {
@@ -105,8 +105,7 @@ ldap_rename(
 		return ld->ld_errno;
 	}
 
-	/* close the '{' */
-	rc = ber_printf( ber, "}" );
+	rc = ber_printf( ber, /*{*/ "}" );
 	if ( rc < 0 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

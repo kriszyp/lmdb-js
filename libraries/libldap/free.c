@@ -37,19 +37,19 @@ ldap_memvfree( void **v )
 }
 
 void *
-ldap_memalloc( size_t s )
+ldap_memalloc( ber_len_t s )
 {
 	return LDAP_MALLOC( s );
 }
 
 void *
-ldap_memcalloc( size_t n, size_t s )
+ldap_memcalloc( ber_len_t n, ber_len_t s )
 {
 	return LDAP_CALLOC( n, s );
 }
 
 void *
-ldap_memrealloc( void* p, size_t s )
+ldap_memrealloc( void* p, ber_len_t s )
 {
 	return LDAP_REALLOC( p, s );
 }

@@ -55,7 +55,7 @@ ldbm_back_startup(
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, LDAP_DIRSEP, li->li_directory );
+		sprintf( cwd, "%s" LDAP_DIRSEP "%s", cwd, li->li_directory );
 		free( li->li_directory );
 		li->li_directory = strdup( cwd );
 

@@ -28,7 +28,7 @@ static char *find_right_paren LDAP_P((
 static char *put_complex_filter LDAP_P((
 	BerElement *ber,
 	char *str,
-	unsigned long tag,
+	ber_tag_t tag,
 	int not ));
 
 static int put_filter LDAP_P((
@@ -98,7 +98,7 @@ ldap_search_ext(
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
 	    attrsonly, sctrls, cctrls, timelimit, sizelimit ); 
 
-	if ( ber == NULLBER ) {
+	if ( ber == NULL ) {
 		return ld->ld_errno;
 	}
 
@@ -184,7 +184,7 @@ ldap_search(
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
 	    attrsonly, NULL, NULL, -1, -1 ); 
 
-	if ( ber == NULLBER ) {
+	if ( ber == NULL ) {
 		return( -1 );
 	}
 
@@ -208,14 +208,14 @@ BerElement *
 ldap_build_search_req(
 	LDAP *ld,
 	LDAP_CONST char *base_in,
-	int scope,
+	ber_int_t scope,
 	LDAP_CONST char *filter_in,
 	char **attrs,
-	int attrsonly,
+	ber_int_t attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	int timelimit,
-	int sizelimit )
+	ber_int_t timelimit,
+	ber_int_t sizelimit )
 {
 	BerElement	*ber;
 	int		err;
@@ -247,8 +247,8 @@ ldap_build_search_req(
 	 */
 
 	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( NULLBER );
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		return( NULL );
 	}
 
 	if ( base_in == NULL ) {
@@ -273,7 +273,7 @@ ldap_build_search_req(
 	} else {
 #endif /* LDAP_CONNECTIONLESS */
 		err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
-		    LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
+		    LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
 			(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
 			(timelimit < 0) ? ld->ld_timelimit : timelimit,
 		    attrsonly );
@@ -284,7 +284,7 @@ ldap_build_search_req(
 	if ( err == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( NULLBER );
+		return( NULL );
 	}
 
 	filter = LDAP_STRDUP( filter_in );
@@ -294,25 +294,25 @@ ldap_build_search_req(
 	if ( err  == -1 ) {
 		ld->ld_errno = LDAP_FILTER_ERROR;
 		ber_free( ber, 1 );
-		return( NULLBER );
+		return( NULL );
 	}
 
-	if ( ber_printf( ber, "{v}}", attrs ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "{v}}", attrs ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( NULLBER );
+		return( NULL );
 	}
 
 	/* Put Server Controls */
 	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
 		ber_free( ber, 1 );
-		return( NULLBER );
+		return( NULL );
 	}
 
-	if ( ber_printf( ber, "}", attrs ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "}", attrs ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( NULLBER );
+		return( NULL );
 	}
 
 	return( ber );
@@ -344,7 +344,7 @@ find_right_paren( char *s )
 }
 
 static char *
-put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
+put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 {
 	char	*next;
 
@@ -356,7 +356,7 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	 */
 
 	/* put explicit tag */
-	if ( ber_printf( ber, "t{", tag ) == -1 )
+	if ( ber_printf( ber, "t{" /*}*/, tag ) == -1 )
 		return( NULL );
 
 	str++;
@@ -369,7 +369,7 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	*next++ = ')';
 
 	/* flush explicit tagged thang */
-	if ( ber_printf( ber, "}" ) == -1 )
+	if ( ber_printf( ber, /*{*/ "}" ) == -1 )
 		return( NULL );
 
 	return( next );
@@ -509,7 +509,7 @@ put_filter( BerElement *ber, char *str )
 		case ')':
 			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n", 0, 0,
 			    0 );
-			if ( ber_printf( ber, "]" ) == -1 )
+			if ( ber_printf( ber, /*[*/ "]" ) == -1 )
 				return( -1 );
 			str++;
 			parens--;
@@ -590,7 +590,7 @@ put_simple_filter(
 {
 	char		*s;
 	char		*value, savechar;
-	unsigned long	ftype;
+	ber_tag_t	ftype;
 	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, "put_simple_filter \"%s\"\n", str, 0, 0 );
@@ -646,12 +646,12 @@ static int
 put_substring_filter( BerElement *ber, char *type, char *val )
 {
 	char		*nextstar, gotstar = 0;
-	unsigned long	ftype;
+	ber_tag_t	ftype = LDAP_FILTER_SUBSTRINGS;
 
 	Debug( LDAP_DEBUG_TRACE, "put_substring_filter \"%s=%s\"\n", type,
 	    val, 0 );
 
-	if ( ber_printf( ber, "t{s{", LDAP_FILTER_SUBSTRINGS, type ) == -1 )
+	if ( ber_printf( ber, "t{s{", ftype, type ) == -1 )
 		return( -1 );
 
 	while ( val != NULL ) {
@@ -676,7 +676,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		val = nextstar;
 	}
 
-	if ( ber_printf( ber, "}}" ) == -1 )
+	if ( ber_printf( ber, /* {{ */ "}}" ) == -1 )
 		return( -1 );
 
 	return( 0 );

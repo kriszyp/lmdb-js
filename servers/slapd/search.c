@@ -28,8 +28,8 @@ do_search(
 )
 {
 	int		i, err;
-	int		scope, deref, attrsonly;
-	int		sizelimit, timelimit;
+	ber_int_t		scope, deref, attrsonly;
+	ber_int_t		sizelimit, timelimit;
 	char		*base = NULL, *fstr = NULL;
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
@@ -88,7 +88,7 @@ do_search(
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr, 0, 0 );
 
 	/* attributes */
-	if ( ber_scanf( op->o_ber, "{v}}", &attrs ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		goto return_results;
 	}

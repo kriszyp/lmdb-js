@@ -29,8 +29,8 @@
 
 typedef struct safe_string {
 	char * val;
-	int size;
-	int pos;
+	ber_len_t size;
+	ber_len_t pos;
 	int at_whsp;
 } safe_string;
 

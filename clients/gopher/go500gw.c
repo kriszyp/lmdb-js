@@ -75,7 +75,7 @@ static void do_list	(LDAP *ld, FILE *fp, char *dn);
 static int  isoc	( char **ocl, char *oc );
 static int  make_scope	( LDAP *ld, char *dn );
 static void do_search	(LDAP *ld, FILE *fp, char *query);
-static int  entry2textwrite( void *fp, char *buf, int len );
+static int  entry2textwrite( void *fp, char *buf, ber_len_t len );
 static void do_read	(LDAP *ld, FILE *fp, char *dn);
 static void do_help	(FILE *op);
 static void do_sizelimit(FILE *fp, char type);
@@ -851,7 +851,7 @@ do_search( LDAP *ld, FILE *fp, char *query )
 
 
 static int
-entry2textwrite( void *fp, char *buf, int len )
+entry2textwrite( void *fp, char *buf, ber_len_t len )
 {
         return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }

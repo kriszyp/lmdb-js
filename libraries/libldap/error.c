@@ -163,8 +163,8 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 {
 	LDAPMessage	*lm;
 	BerElement	ber;
-	long		along;
-	unsigned long	rc;
+	ber_int_t	along;
+	ber_tag_t	rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_result2error\n", 0, 0, 0 );
 
@@ -172,7 +172,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	assert( LDAP_VALID( ld ) );
 	assert( r != NULL );
 
-	if ( ld == NULL || r == NULLMSG )
+	if ( ld == NULL || r == NULL )
 		return( LDAP_PARAM_ERROR );
 
 	for ( lm = r; lm->lm_chain != NULL; lm = lm->lm_chain )

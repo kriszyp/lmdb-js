@@ -23,6 +23,15 @@
 
 LDAP_BEGIN_DECL
 
+/* these have to match lber types settings */
+#define LBER_INT_HTON(i)	AC_HTONL(i)
+#define LBER_INT_NTOH(i)	AC_NTOHL(i)
+#define LBER_LEN_HTON(l)	AC_HTONL(l)
+#define LBER_LEN_NTOH(l)	AC_NTOHL(l)
+#define LBER_TAG_HTON(t)	AC_HTONL(t)
+#define LBER_TAG_NTOH(t)	AC_NTOHL(t)
+
+
 struct lber_options {
 	short lbo_valid;
 #define LBER_UNINITIALIZED		0x0
@@ -43,10 +52,10 @@ struct berelement {
 #define ber_options		ber_opts.lbo_options
 #define ber_debug		ber_opts.lbo_debug
 
-	int			ber_usertag;
+	ber_tag_t	ber_usertag;
 
-	unsigned long	ber_tag;
-	unsigned long	ber_len;
+	ber_tag_t	ber_tag;
+	ber_len_t	ber_len;
 
 	char		*ber_buf;
 	char		*ber_ptr;
@@ -58,7 +67,7 @@ struct berelement {
 	BERTranslateProc ber_decode_translate_proc;
 };
 #define BER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
-#define NULLBER	((BerElement *) 0)
+
 
 #define ber_pvt_ber_bytes(ber)		((ber)->ber_ptr - (ber)->ber_buf)
 #define ber_pvt_ber_remaining(ber)	((ber)->ber_end - (ber)->ber_ptr)
@@ -69,8 +78,8 @@ struct sockbuf_io {
 	int	(*sbi_setup)( struct sockbuf * sb, void *arg );
 	int	(*sbi_remove)( struct sockbuf *sb );
 	
-	long	(*sbi_read)( struct sockbuf *sb, void *buf, long len );
-	long	(*sbi_write)( struct sockbuf *sb, void *buf, long len );
+	ber_slen_t	(*sbi_read)( struct sockbuf *sb, void *buf, ber_len_t len );
+	ber_slen_t	(*sbi_write)( struct sockbuf *sb, void *buf, ber_len_t len );
 	int	(*sbi_close)( struct sockbuf *sb );
 };
 
@@ -85,9 +94,9 @@ struct sockbuf_sec {
 };
 
 struct sockbuf_buf {
-	long	buf_size;
-	long	buf_ptr;
-	long	buf_end;
+	ber_len_t	buf_size;
+	ber_len_t	buf_ptr;
+	ber_len_t	buf_end;
 	char	*buf_base;
 };
 
@@ -121,12 +130,9 @@ struct sockbuf {
    	void		*sb_sdata;	/* security-layer data pointer */
 	Sockbuf_Sec	*sb_sec;
 #endif	
-	
-#ifndef MACOS
-	int		sb_sd;
-#else /* MACOS */
-	void		*sb_sd;
-#endif /* MACOS */
+
+	ber_socket_t	sb_sd;
+
 #ifdef DEADWOOD
 	long		sb_max_incoming;
 #endif
@@ -134,7 +140,7 @@ struct sockbuf {
 #ifdef LDAP_SASL   
 	Sockbuf_Buf	sb_sec_buf_in;
 	Sockbuf_Buf	sb_sec_buf_out;
-	long		sb_sec_prev_len;
+	ber_len_t	sb_sec_prev_len;
 #endif   
 };
 #define SOCKBUF_VALID(ber)	((sb)->sb_valid==LBER_VALID_SOCKBUF)
@@ -143,7 +149,7 @@ struct sockbuf {
 #define	ber_pvt_sb_get_desc( sb ) ((sb)->sb_sd)
 #define ber_pvt_sb_set_desc( sb, val ) ((sb)->sb_sd =(val))
 
-#define ber_pvt_sb_in_use( sb ) ((sb)->sb_sd!=-1)
+#define ber_pvt_sb_in_use( sb ) ((sb)->sb_sd != AC_SOCKET_INVALID)
 
 #ifdef USE_SASL
 #define ber_pvt_sb_data_ready( sb ) \
@@ -157,13 +163,13 @@ struct sockbuf {
 
 struct seqorset {
 	BerElement	*sos_ber;
-	unsigned long	sos_clen;
-	unsigned long	sos_tag;
+	ber_len_t	sos_clen;
+	ber_tag_t	sos_tag;
 	char		*sos_first;
 	char		*sos_ptr;
 	struct seqorset	*sos_next;
 };
-#define NULLSEQORSET	((Seqorset *) 0)
+
 
 /*
  * bprint.c
@@ -175,7 +181,7 @@ ber_log_bprint LDAP_P((
 	int errlvl,
 	int loglvl,
 	const char *data,
-	int len ));
+	ber_len_t len ));
 
 LDAP_F( int )
 ber_log_dump LDAP_P((
@@ -242,11 +248,11 @@ ber_pvt_sb_set_nonblock LDAP_P(( Sockbuf *sb, int nb ));
 LDAP_F( int )
 ber_pvt_sb_set_readahead LDAP_P(( Sockbuf *sb, int rh ));
 
-LDAP_F( long )
-ber_pvt_sb_read LDAP_P(( Sockbuf *sb, void *buf, long len ));
+LDAP_F( ber_slen_t )
+ber_pvt_sb_read LDAP_P(( Sockbuf *sb, void *buf, ber_len_t len ));
 
-LDAP_F( long )
-ber_pvt_sb_write LDAP_P(( Sockbuf *sb, void *buf, long len ));
+LDAP_F( ber_slen_t )
+ber_pvt_sb_write LDAP_P(( Sockbuf *sb, void *buf, ber_len_t len ));
 
 LDAP_F(	int )
 ber_pvt_sb_udp_set_dst LDAP_P((Sockbuf *sb, void *addr ));

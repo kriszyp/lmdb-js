@@ -3,6 +3,8 @@
 
 #include <ldap_cdefs.h>
 
+LDAP_BEGIN_DECL
+
 /*
  * acl.c
  */
@@ -96,10 +98,12 @@ extern int	backend_group LDAP_P((Backend *be,
  * ch_malloc.c
  */
 
-void * ch_malloc LDAP_P(( unsigned long size ));
-void * ch_realloc LDAP_P(( void *block, unsigned long size ));
-void * ch_calloc LDAP_P(( unsigned long nelem, unsigned long size ));
+void * ch_malloc LDAP_P(( ber_len_t size ));
+void * ch_realloc LDAP_P(( void *block, ber_len_t size ));
+void * ch_calloc LDAP_P(( ber_len_t nelem, ber_len_t size ));
 char * ch_strdup LDAP_P(( const char *string ));
+void   ch_free LDAP_P(( void * ));
+#define free ch_free
 
 /*
  * charray.c
@@ -126,19 +130,19 @@ int connections_shutdown LDAP_P((void));
 int connections_destroy LDAP_P((void));
 
 long connection_init LDAP_P((
-	int s,
+	ber_socket_t s,
 	const char* name, const char* addr));
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
 
-int connection_write LDAP_P((int s));
-int connection_read LDAP_P((int s));
+int connection_write LDAP_P((ber_socket_t s));
+int connection_read LDAP_P((ber_socket_t s));
 
-long connections_nextid(void);
+unsigned long connections_nextid(void);
 
-Connection* connection_first LDAP_P((int *));
-Connection* connection_next LDAP_P((Connection *, int *));
+Connection* connection_first LDAP_P((ber_socket_t *));
+Connection* connection_next LDAP_P((Connection *, ber_socket_t *));
 void connection_done LDAP_P((Connection *));
 
 /*
@@ -202,8 +206,8 @@ void monitor_info LDAP_P(( Connection *conn, Operation *op ));
 
 void slap_op_free LDAP_P(( Operation *op ));
 Operation * slap_op_alloc LDAP_P((
-	BerElement *ber, unsigned long msgid,
-	unsigned long tag, long id ));
+	BerElement *ber, ber_int_t msgid,
+	ber_tag_t tag, ber_int_t id ));
 
 int slap_op_add LDAP_P(( Operation **olist, Operation *op ));
 int slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
@@ -344,14 +348,16 @@ struct slapd_args {
 	struct sockaddr_in *addr;
 	int tcps;
 };
+
 extern int	slapd_daemon LDAP_P((struct slapd_args *args));
+extern int	set_socket LDAP_P((struct sockaddr_in *addr));
 
-extern void slapd_set_write LDAP_P((int s, int wake));
-extern void slapd_clr_write LDAP_P((int s, int wake));
-extern void slapd_set_read LDAP_P((int s, int wake));
-extern void slapd_clr_read LDAP_P((int s, int wake));
+extern void slapd_set_write LDAP_P((ber_socket_t s, int wake));
+extern void slapd_clr_write LDAP_P((ber_socket_t s, int wake));
+extern void slapd_set_read LDAP_P((ber_socket_t s, int wake));
+extern void slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
-extern void slapd_remove LDAP_P((int s, int wake));
+extern void slapd_remove LDAP_P((ber_socket_t s, int wake));
 
 extern void	slap_set_shutdown LDAP_P((int sig));
 extern void	slap_do_nothing   LDAP_P((int sig));
@@ -371,7 +377,9 @@ extern void	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int send_search_entry LDAP_P((Backend *be, Connection *conn, Operation *op, Entry *e, char **attrs, int attrsonly));
 extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));
 
-extern int dtblsize;
+extern ber_socket_t dtblsize;
+
+LDAP_END_DECL
 
 #endif /* _proto_slap */
 

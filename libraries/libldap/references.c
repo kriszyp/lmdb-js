@@ -26,8 +26,8 @@ ldap_first_reference( LDAP *ld, LDAPMessage *chain )
 	assert( ld != NULL );
 	assert( chain !=  NULL );
 
-	if ( ld == NULL || chain == NULLMSG ) {
-		return NULLMSG;
+	if ( ld == NULL || chain == NULL ) {
+		return NULL;
 	}
 
 	return chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE
@@ -41,13 +41,13 @@ ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 	assert( ld != NULL );
 	assert( ref !=  NULL );
 
-	if ( ld == NULL || ref == NULLMSG ) {
-		return NULLMSG;
+	if ( ld == NULL || ref == NULL ) {
+		return NULL;
 	}
 
 	for (
 		ref = ref->lm_chain;
-		ref != NULLMSG;
+		ref != NULL;
 		ref = ref->lm_chain )
 	{
 		if( ref->lm_msgtype == LDAP_RES_SEARCH_REFERENCE ) {
@@ -55,7 +55,7 @@ ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 		}
 	}
 
-	return( NULLMSG );
+	return( NULL );
 }
 
 int

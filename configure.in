@@ -35,7 +35,7 @@ dnl We use autoconf features new to 2.13.
 dnl 	aclocal.m4 should be built using aclocal from automake 1.4
 AC_PREREQ(2.13)dnl Required Autoconf version
 
-AC_CONFIG_HEADER(include/portable.h include/ldap_features.h)dnl
+AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
 dnl
 dnl Start Args
@@ -1621,6 +1621,11 @@ OL_C_VOLATILE
 
 if test $cross_compiling = yes ; then
 	AC_DEFINE(CROSS_COMPILING, 1, [define if cross compiling])
+
+	AC_DEFINE(LBER_INT_T,long)
+	AC_DEFINE(LBER_TAG_T,long)
+	AC_DEFINE(LBER_SOCKET_T,int)
+
 else
 	AC_C_BIGENDIAN
 	AC_CHECK_SIZEOF(short) 
@@ -1629,8 +1634,18 @@ else
 
 	if test "$ac_cv_sizeof_int" -lt 4 ; then
 		AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
+
+		AC_DEFINE(LBER_INT_T,long)
+		AC_DEFINE(LBER_TAG_T,long)
+		AC_DEFINE(LBER_SOCKET_T,int)
+	else
+		AC_DEFINE(LBER_INT_T,int)
+		AC_DEFINE(LBER_TAG_T,long)
+		AC_DEFINE(LBER_SOCKET_T,int)
 	fi
 fi
+
+AC_DEFINE(LBER_LEN_T,long)
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.

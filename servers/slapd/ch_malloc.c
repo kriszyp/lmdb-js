@@ -13,13 +13,14 @@
 
 void *
 ch_malloc(
-    unsigned long	size
+    ber_len_t	size
 )
 {
 	void	*new;
 
-	if ( (new = (void *) malloc( size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "malloc of %lu bytes failed\n", size, 0, 0 );
+	if ( (new = (void *) ber_memalloc( size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_malloc of %lu bytes failed\n",
+			(long) size, 0, 0 );
 		exit( 1 );
 	}
 
@@ -29,7 +30,7 @@ ch_malloc(
 void *
 ch_realloc(
     void		*block,
-    unsigned long	size
+    ber_len_t	size
 )
 {
 	void	*new;
@@ -38,8 +39,13 @@ ch_realloc(
 		return( ch_malloc( size ) );
 	}
 
-	if ( (new = (void *) realloc( block, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "realloc of %lu bytes failed\n", size, 0, 0 );
+	if( size == 0 ) {
+		ch_free( block );
+	}
+
+	if ( (new = (void *) ber_memrealloc( block, size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
+			(long) size, 0, 0 );
 		exit( 1 );
 	}
 
@@ -48,15 +54,15 @@ ch_realloc(
 
 void *
 ch_calloc(
-    unsigned long	nelem,
-    unsigned long	size
+    ber_len_t	nelem,
+    ber_len_t	size
 )
 {
 	void	*new;
 
-	if ( (new = (void *) calloc( nelem, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "calloc of %lu elems of %lu bytes failed\n",
-		  nelem, size, 0 );
+	if ( (new = (void *) ber_memcalloc( nelem, size )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_calloc of %lu elems of %lu bytes failed\n",
+		  (long) nelem, (long) size, 0 );
 		exit( 1 );
 	}
 
@@ -70,11 +76,16 @@ ch_strdup(
 {
 	char	*new;
 
-	if ( (new = strdup( string )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "strdup(%s) failed\n", string, 0, 0 );
+	if ( (new = ber_strdup( string )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "ch_strdup(%s) failed\n", string, 0, 0 );
 		exit( 1 );
 	}
 
 	return( new );
 }
 
+void
+ch_free( void *ptr )
+{
+	ber_memfree( ptr );
+}

@@ -83,7 +83,7 @@ ldap_init_searchprefs LDAP_P(( char *file,
 
 LDAP_F( int )
 ldap_init_searchprefs_buf LDAP_P(( char *buf,
-	long buflen,
+	ber_len_t buflen,
 	struct ldap_searchobj **solistp ));
 
 LDAP_F( void )

@@ -28,10 +28,10 @@ do_bind(
 )
 {
 	BerElement	*ber = op->o_ber;
-	int		version;
-	unsigned long method;
+	ber_int_t		version;
+	ber_tag_t method;
 	char		*cdn, *ndn;
-	unsigned long	rc;
+	ber_tag_t	rc;
 	struct berval	cred;
 	Backend		*be;
 
@@ -59,7 +59,8 @@ do_bind(
 
 	{
 	BerElement	*tber;
-	unsigned long	tlen, ttag;
+	ber_len_t	tlen;
+	ber_tag_t	ttag;
 
 	tber = ber_dup( op->o_ber );
 	ttag = ber_skip_tag( tber, &tlen );

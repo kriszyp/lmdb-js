@@ -45,8 +45,8 @@
 #define sockbuf_io_read( sb, buf, len ) \
 ((sb)->sb_io->sbi_read( (sb), (buf), (len) ))
 
-static long have_no_read( Sockbuf *sb, void *buf, long len );
-static long have_no_write( Sockbuf *sb, void *buf, long len );
+static ber_slen_t have_no_read( Sockbuf *sb, void *buf, ber_len_t len );
+static ber_slen_t have_no_write( Sockbuf *sb, void *buf, ber_len_t len );
 static int have_no_close( Sockbuf *sb );
 
 static Sockbuf_IO sb_IO_None=
@@ -103,17 +103,17 @@ status_is_ok( Sockbuf *sb )
 #endif
 
 #ifdef USE_SASL
-static long
+static ber_len_t
 packet_length( char *buf )
 {
-   long size;
+   ber_len_t size;
 
    assert( buf != NULL );
 
-   size = (((unsigned long)buf[0])<<24)|
-     (((unsigned long)buf[1])<<16)|
-     (((unsigned long)buf[2])<<8)|
-     (((unsigned long)buf[3]));
+   size = (((ber_len_t)buf[0])<<24)|
+     (((ber_len_t)buf[1])<<16)|
+     (((ber_len_t)buf[2])<<8)|
+     (((ber_len_t)buf[3]));
    
    if ((size<0) || (size>MAX_BUF_SIZE))	{
       /* somebody is trying to mess me up. */
@@ -128,9 +128,9 @@ packet_length( char *buf )
 #endif
 
 static int
-grow_buffer( Sockbuf_Buf * buf, long minsize )
+grow_buffer( Sockbuf_Buf * buf, ber_len_t minsize )
 {
-   long pw;;
+   ber_len_t pw;;
    
    assert( buf != NULL );
 
@@ -165,8 +165,8 @@ grow_buffer( Sockbuf_Buf * buf, long minsize )
 }
 
 #ifdef USE_SASL
-static long
-sockbuf_sec_release( Sockbuf *sb, char *buf, long len )
+static ber_slen_t
+sockbuf_sec_release( Sockbuf *sb, char *buf, ber_len_t len )
 {
    /* when this is called:
     *  sb->sb_sec_buf_in.buf_base  points to a packet.
@@ -304,10 +304,10 @@ sockbuf_sec_protect( Sockbuf *sb, char *buf, long len )
 }
 #endif
 
-static long 
-sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
+static ber_len_t 
+sockbuf_copy_out( Sockbuf *sb, char **buf, ber_len_t len )
 {
-   long blen = (sb->sb_buf.buf_end - sb->sb_buf.buf_ptr );
+   ber_len_t blen = (sb->sb_buf.buf_end - sb->sb_buf.buf_ptr );
 
    assert( buf != NULL );
 
@@ -316,7 +316,7 @@ sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
    assert( status_is_ok(sb) );
 
    if (blen) {
-      long rlen = (blen<len) ? blen : len;
+      ber_len_t rlen = (blen<len) ? blen : len;
       memcpy( *buf, sb->sb_buf.buf_base + sb->sb_buf.buf_ptr, rlen );
       sb->sb_buf.buf_ptr+=rlen;
       *buf+=rlen;
@@ -346,7 +346,7 @@ Sockbuf *ber_sockbuf_alloc( void )
 	return sb;
 }
 
-Sockbuf *ber_sockbuf_alloc_fd( int fd )
+Sockbuf *ber_sockbuf_alloc_fd( ber_socket_t fd )
 {
 	Sockbuf *sb = ber_sockbuf_alloc();
 
@@ -365,11 +365,11 @@ void ber_sockbuf_free( Sockbuf *sb )
 	LBER_FREE(sb);
 }
 
-long 
-ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
+ber_slen_t 
+ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, ber_len_t len )
 {
    char *buf;
-   long ret;
+   ber_slen_t ret;
    
    assert( buf_arg != NULL );
    assert( sb != NULL );
@@ -400,7 +400,7 @@ ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
 
 #ifdef USE_SASL
    if (sb->sb_sec) {
-      int max;
+      ber_slen_t max;
       assert( sb->sb_sec->sbs_release );
       assert( sb->sb_sec_buf_in.buf_base );
       if (sb->sb_read_ahead) {
@@ -477,9 +477,9 @@ decode_packet:
    } else {
 #endif
       if (sb->sb_read_ahead) {
-	 long max;
+	 ber_slen_t max;
 	 max = sb->sb_buf.buf_size - sb->sb_buf.buf_end;
-	 if (max>len) {
+	 if (max> (ber_slen_t) len) {
 	    for(;;) {
 	       ret = sockbuf_io_read( sb, 
 				     sb->sb_buf.buf_base +
@@ -556,10 +556,10 @@ long sockbuf_do_write( Sockbuf *sb )
 }
 #endif
 
-long ber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
+ber_slen_t ber_pvt_sb_write( Sockbuf *sb, void *buf, ber_len_t len_arg )
 {
-   long ret;
-   long len = len_arg;
+   ber_slen_t ret;
+   ber_len_t len = len_arg;
 
 	assert( buf != NULL );
 	assert( sb != NULL );
@@ -849,8 +849,8 @@ int ber_pvt_sb_clear_io( Sockbuf *sb )
  * Support for TCP
  */
 
-static long
-stream_read( Sockbuf *sb, void *buf, long len )
+static ber_slen_t
+stream_read( Sockbuf *sb, void *buf, ber_len_t len )
 {
 	assert( sb != NULL);
 	assert( SOCKBUF_VALID( sb ) );
@@ -892,8 +892,8 @@ stream_read( Sockbuf *sb, void *buf, long len )
 #endif
 }
 
-static long
-stream_write( Sockbuf *sb, void *buf, long len )
+static ber_slen_t
+stream_write( Sockbuf *sb, void *buf, ber_len_t len )
 {
 	assert( sb != NULL);
 	assert( SOCKBUF_VALID( sb ) );
@@ -994,11 +994,11 @@ dgram_release( Sockbuf *sb )
    return 0;
 }
 
-static long
-dgram_read( Sockbuf *sb, void *buf, long len )
+static ber_slen_t
+dgram_read( Sockbuf *sb, void *buf, ber_len_t len )
 {
 #ifdef LDAP_CONNECTIONLESS
-   long rc;
+   ber_slen_t rc;
    int addrlen;
    struct dgram_data *dd;
    
@@ -1025,11 +1025,11 @@ dgram_read( Sockbuf *sb, void *buf, long len )
 # endif /* LDAP_CONNECTIONLESS */
 }
 
-static long 
-dgram_write( Sockbuf *sb, void *buf, long len )
+static ber_slen_t 
+dgram_write( Sockbuf *sb, void *buf, ber_len_t len )
 {
 #ifdef LDAP_CONNECTIONLESS
-   int rc;
+   ber_slen_t rc;
    struct dgram_data *dd;
    
 	assert( sb != NULL );
@@ -1106,8 +1106,8 @@ void *ber_pvt_sb_udp_get_src( Sockbuf *sb )
  * break the servers.
  */
 
-static long
-have_no_read( Sockbuf *sb, void *buf, long len )
+static ber_slen_t
+have_no_read( Sockbuf *sb, void *buf, ber_len_t len )
 {
 	assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );
@@ -1118,8 +1118,8 @@ have_no_read( Sockbuf *sb, void *buf, long len )
    return -1;
 }
 
-static long
-have_no_write( Sockbuf *sb, void *buf, long len )
+static ber_slen_t
+have_no_write( Sockbuf *sb, void *buf, ber_len_t len )
 {
 	assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );

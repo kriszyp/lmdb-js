@@ -25,7 +25,7 @@ do_abandon(
     Operation	*op
 )
 {
-	int		id;
+	ber_int_t		id;
 	Operation	*o;
 	Operation	**oo;
 

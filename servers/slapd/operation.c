@@ -33,9 +33,9 @@ slap_op_free( Operation *op )
 Operation *
 slap_op_alloc(
     BerElement		*ber,
-    unsigned long	msgid,
-    unsigned long	tag,
-    long			id
+    ber_int_t	msgid,
+    ber_tag_t	tag,
+    ber_int_t	id
 )
 {
 	Operation	*op;
