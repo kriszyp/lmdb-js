@@ -35,6 +35,7 @@ static char *tls_opt_keyfile = NULL;
 static char *tls_opt_cacertfile = NULL;
 static char *tls_opt_cacertdir = NULL;
 static int  tls_opt_require_cert = 0;
+static char *tls_opt_ciphersuite = NULL;
 
 #define HAS_TLS( sb ) ((sb)->sb_io==&tls_io)
 
@@ -127,10 +128,12 @@ ldap_pvt_tls_init_def_ctx( void )
 			       "TLS: could not allocate default ctx.\n",0,0,0);
 			goto error_exit;
 		}
-		if ( !SSL_CTX_set_cipher_list( tls_def_ctx,
-			"RC4+RSA:HIGH:MEDIUM:LOW:EXP:+SSLv2:+EXP" ) ) {
+		if ( tls_opt_ciphersuite &&
+		     !SSL_CTX_set_cipher_list( tls_def_ctx,
+			tls_opt_ciphersuite ) ) {
 			Debug( LDAP_DEBUG_ANY,
-			       "TLS: could not set cipher list.\n", 0, 0, 0 );
+			       "TLS: could not set cipher list %s.\n",
+			       tls_opt_ciphersuite, 0, 0 );
 			tls_report_error();
 			goto error_exit;
 		}
@@ -141,6 +144,7 @@ ldap_pvt_tls_init_def_ctx( void )
 			Debug( LDAP_DEBUG_ANY,
 	 	"TLS: could not load verify locations (file:`%s',dir:`%s').\n",
 			       tls_opt_cacertfile,tls_opt_cacertdir,0);
+			tls_report_error();
 			goto error_exit;
 		}
 		if ( tls_opt_keyfile &&
@@ -150,6 +154,7 @@ ldap_pvt_tls_init_def_ctx( void )
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not use key file `%s'.\n",
 			       tls_opt_keyfile,0,0);
+			tls_report_error();
 			goto error_exit;
 		}
 		if ( tls_opt_certfile &&
@@ -159,6 +164,15 @@ ldap_pvt_tls_init_def_ctx( void )
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not use certificate `%s'.\n",
 			       tls_opt_certfile,0,0);
+			tls_report_error();
+			goto error_exit;
+		}
+		if ( ( tls_opt_certfile || tls_opt_keyfile ) &&
+		     !SSL_CTX_check_private_key( tls_def_ctx ) ) {
+			Debug( LDAP_DEBUG_ANY,
+			       "TLS: private key mismatch.\n",
+			       0,0,0);
+			tls_report_error();
 			goto error_exit;
 		}
 		SSL_CTX_set_verify( tls_def_ctx, (tls_opt_require_cert) ?
@@ -433,6 +447,11 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		tls_opt_require_cert = * (int *) arg;
+		break;
+	case LDAP_OPT_X_TLS_CIPHER_SUITE:
+		if ( tls_opt_ciphersuite ) free( tls_opt_ciphersuite );
+		tls_opt_ciphersuite = arg ? strdup( (char *) arg ) : NULL;
+		break;
 	default:
 		return -1;
 	}
