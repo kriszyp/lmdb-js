@@ -72,11 +72,21 @@ static LDAP	*ld;
 
 static void usage LDAP_P(( const char *prog )) LDAP_GCCATTR((noreturn));
 static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
-static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
-	char *value, int vlen ));
-static int domodify LDAP_P(( char *dn, LDAPMod **pmods, int newentry ));
-static int dodelete LDAP_P(( char *dn ));
-static int domodrdn LDAP_P(( char *dn, char *newrdn, int deleteoldrdn ));
+static void addmodifyop LDAP_P((
+	LDAPMod ***pmodsp, int modop,
+	const char *attr,
+	struct berval *value ));
+static int domodify LDAP_P((
+	const char *dn,
+	LDAPMod **pmods,
+	int newentry ));
+static int dodelete LDAP_P((
+	const char *dn ));
+static int dorename LDAP_P((
+	const char *dn,
+	const char *newrdn,
+	const char *newsup,
+	int deleteoldrdn ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
 static void
@@ -493,14 +503,14 @@ main( int argc, char **argv )
 static int
 process_ldif_rec( char *rbuf, int count )
 {
-    char	*line, *dn, *type, *value, *newrdn, *newsup, *p;
+    char	*line, *dn, *type, *newrdn, *newsup, *p;
     int		rc, linenum, modop, replicaport;
-	ber_len_t vlen;
     int		expect_modop, expect_sep, expect_ct, expect_newrdn, expect_newsup;
     int		expect_deleteoldrdn, deleteoldrdn;
     int		saw_replica, use_record, new_entry, delete_entry, got_all;
     LDAPMod	**pmods;
 	int version;
+	struct berval val;
 
     new_entry = ldapadd;
 
@@ -523,7 +533,7 @@ process_ldif_rec( char *rbuf, int count )
 	    continue;
 	}
 	
-	if ( ldif_parse_line( line, &type, &value, &vlen ) < 0 ) {
+	if ( ldif_parse_line( line, &type, &val.bv_val, &val.bv_len ) < 0 ) {
 	    fprintf( stderr, "%s: invalid format (line %d) entry: \"%s\"\n",
 		    prog, linenum, dn == NULL ? "" : dn );
 	    rc = LDAP_PARAM_ERROR;
@@ -533,27 +543,27 @@ process_ldif_rec( char *rbuf, int count )
 	if ( dn == NULL ) {
 	    if ( !use_record && strcasecmp( type, T_REPLICA_STR ) == 0 ) {
 		++saw_replica;
-		if (( p = strchr( value, ':' )) == NULL ) {
+		if (( p = strchr( val.bv_val, ':' )) == NULL ) {
 		    replicaport = 0;
 		} else {
 		    *p++ = '\0';
 		    replicaport = atoi( p );
 		}
-		if ( ldaphost != NULL && strcasecmp( value, ldaphost ) == 0 &&
+		if ( ldaphost != NULL && strcasecmp( val.bv_val, ldaphost ) == 0 &&
 			replicaport == ldapport ) {
 		    use_record = 1;
 		}
 	    } else if ( count == 1 && linenum == 1 && 
 			strcasecmp( type, T_VERSION_STR ) == 0 )
 		{
-			if( vlen == 0 || atoi(value) != 1 ) {
+			if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
 		    	fprintf( stderr, "%s: invalid version %s, line %d (ignored)\n",
-			   	prog, value == NULL ? "(null)" : value, linenum );
+			   	prog, val.bv_val == NULL ? "(null)" : val.bv_val, linenum );
 			}
 			version++;
 
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
-		if (( dn = strdup( value ? value : "" )) == NULL ) {
+		if (( dn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -570,27 +580,27 @@ process_ldif_rec( char *rbuf, int count )
 			prog, dn );
 		free( dn );
 		ber_memfree( type );
-		ber_memfree( value );
+		ber_memfree( val.bv_val );
 		return( 0 );
 	    }
 
 	    if ( strcasecmp( type, T_CHANGETYPESTR ) == 0 ) {
-		if ( strcasecmp( value, T_MODIFYCTSTR ) == 0 ) {
+		if ( strcasecmp( val.bv_val, T_MODIFYCTSTR ) == 0 ) {
 			new_entry = 0;
 			expect_modop = 1;
-		} else if ( strcasecmp( value, T_ADDCTSTR ) == 0 ) {
+		} else if ( strcasecmp( val.bv_val, T_ADDCTSTR ) == 0 ) {
 			new_entry = 1;
-		} else if ( strcasecmp( value, T_MODRDNCTSTR ) == 0
-			|| strcasecmp( value, T_MODDNCTSTR ) == 0
-			|| strcasecmp( value, T_RENAMECTSTR ) == 0)
+		} else if ( strcasecmp( val.bv_val, T_MODRDNCTSTR ) == 0
+			|| strcasecmp( val.bv_val, T_MODDNCTSTR ) == 0
+			|| strcasecmp( val.bv_val, T_RENAMECTSTR ) == 0)
 		{
 		    expect_newrdn = 1;
-		} else if ( strcasecmp( value, T_DELETECTSTR ) == 0 ) {
+		} else if ( strcasecmp( val.bv_val, T_DELETECTSTR ) == 0 ) {
 		    got_all = delete_entry = 1;
 		} else {
 		    fprintf( stderr,
 			    "%s:  unknown %s \"%s\" (line %d of entry \"%s\")\n",
-			    prog, T_CHANGETYPESTR, value, linenum, dn );
+			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
 		    rc = LDAP_PARAM_ERROR;
 		}
 		goto end_line;
@@ -610,11 +620,11 @@ process_ldif_rec( char *rbuf, int count )
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPREPLACESTR ) == 0 ) {
 		modop = LDAP_MOD_REPLACE;
-		addmodifyop( &pmods, modop, value, NULL, 0 );
+		addmodifyop( &pmods, modop, val.bv_val, NULL );
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;
-		addmodifyop( &pmods, modop, value, NULL, 0 );
+		addmodifyop( &pmods, modop, val.bv_val, NULL );
 		goto end_line;
 	    } else {	/* no modify op:  use default */
 		modop = replace ? LDAP_MOD_REPLACE : LDAP_MOD_ADD;
@@ -623,7 +633,7 @@ process_ldif_rec( char *rbuf, int count )
 
 	if ( expect_newrdn ) {
 	    if ( strcasecmp( type, T_NEWRDNSTR ) == 0 ) {
-		if (( newrdn = strdup( value )) == NULL ) {
+			if (( newrdn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -636,7 +646,7 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 	} else if ( expect_deleteoldrdn ) {
 	    if ( strcasecmp( type, T_DELETEOLDRDNSTR ) == 0 ) {
-		deleteoldrdn = ( *value == '0' ) ? 0 : 1;
+		deleteoldrdn = ( *val.bv_val == '0' ) ? 0 : 1;
 		expect_deleteoldrdn = 0;
 		expect_newsup = 1;
 		got_all = 1;
@@ -647,7 +657,7 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 	} else if ( expect_newsup ) {
 	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
-		if (( newsup = strdup( value )) == NULL ) {
+		if (( newsup = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -663,12 +673,12 @@ process_ldif_rec( char *rbuf, int count )
 		    prog, linenum, dn );
 	    rc = LDAP_PARAM_ERROR;
 	} else {
-	    addmodifyop( &pmods, modop, type, value, vlen );
+		addmodifyop( &pmods, modop, type, val.bv_val == NULL ? NULL : &val );
 	}
 
 end_line:
 	ber_memfree( type );
-	ber_memfree( value );
+	ber_memfree( val.bv_val );
     }
 
 	if( linenum == 0 ) {
@@ -683,7 +693,7 @@ end_line:
 	if ( delete_entry ) {
 	    rc = dodelete( dn );
 	} else if ( newrdn != NULL ) {
-	    rc = domodrdn( dn, newrdn, deleteoldrdn );
+	    rc = dorename( dn, newrdn, newsup, deleteoldrdn );
 	} else {
 	    rc = domodify( dn, pmods, new_entry );
 	}
@@ -708,11 +718,14 @@ end_line:
 
 
 static void
-addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
+addmodifyop(
+	LDAPMod ***pmodsp,
+	int modop,
+	const char *attr,
+	struct berval *val )
 {
 	LDAPMod		**pmods;
 	int			i, j;
-	struct berval	*bvp;
 
 	pmods = *pmodsp;
 	modop |= LDAP_MOD_BVALUES;
@@ -753,7 +766,7 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 		}
 	}
 
-	if ( value != NULL ) {
+	if ( val != NULL ) {
 		j = 0;
 		if ( pmods[ i ]->mod_bvalues != NULL ) {
 			for ( ; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
@@ -769,28 +782,20 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 		}
 
 		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
-		bvp = (struct berval *)ber_memalloc( sizeof( struct berval ));
-		if ( bvp == NULL ) {
-			perror( "ber_memalloc" );
+		pmods[ i ]->mod_bvalues[ j ] = ber_bvdup( val );
+		if ( pmods[ i ]->mod_bvalues[ j ] == NULL ) {
+			perror( "ber_bvdup" );
 			exit( EXIT_FAILURE );
 		}
-		pmods[ i ]->mod_bvalues[ j ] = bvp;
-
-		bvp->bv_len = vlen;
-		bvp->bv_val = (char *)ber_memalloc( vlen + 1 );
-		if ( bvp->bv_val == NULL ) {
-			perror( "malloc" );
-			exit( EXIT_FAILURE );
-		}
-
-		SAFEMEMCPY( bvp->bv_val, value, vlen );
-		bvp->bv_val[ vlen ] = '\0';
 	}
 }
 
 
 static int
-domodify( char *dn, LDAPMod **pmods, int newentry )
+domodify(
+	const char *dn,
+	LDAPMod **pmods,
+	int newentry )
 {
     int			i, j, k, notascii, op;
     struct berval	*bvp;
@@ -855,7 +860,8 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 
 
 static int
-dodelete( char *dn )
+dodelete(
+	const char *dn )
 {
     int	rc;
 
@@ -877,7 +883,11 @@ dodelete( char *dn )
 
 
 static int
-domodrdn( char *dn, char *newrdn, int deleteoldrdn )
+dorename(
+	const char *dn,
+	const char *newrdn,
+	const char* newsup,
+	int deleteoldrdn )
 {
     int	rc;
 
@@ -888,7 +898,7 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 		newrdn, deleteoldrdn ? "do not " : "" );
     }
     if ( !not ) {
-	if (( rc = ldap_modrdn2_s( ld, dn, newrdn, deleteoldrdn ))
+	if (( rc = ldap_rename2_s( ld, dn, newrdn, newsup, deleteoldrdn ))
 		!= LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_modrdn" );
 	} else {
