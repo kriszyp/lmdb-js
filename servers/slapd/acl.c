@@ -24,6 +24,7 @@
  */
 static struct berval 
 	aci_bv_entry 		= BER_BVC("entry"),
+	aci_bv_children 	= BER_BVC("children"),
 	aci_bv_br_entry		= BER_BVC("[entry]"),
 	aci_bv_br_all		= BER_BVC("[all]"),
 	aci_bv_access_id 	= BER_BVC("access-id"),
@@ -68,7 +69,8 @@ static int aci_mask(
 	struct berval *aci,
 	regmatch_t *matches,
 	slap_access_t *grant,
-	slap_access_t *deny );
+	slap_access_t *deny,
+	struct berval *scope);
 #endif
 
 static int	regex_matches(
@@ -576,6 +578,7 @@ acl_mask(
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
+	char accessmaskbuf1[ACCESSMASK_MAXLEN];
 #endif
 	const char *attr;
 
@@ -1092,6 +1095,9 @@ dn_match_cleanup:;
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;
 			slap_access_t grant, deny, tgrant, tdeny;
+			struct berval parent_ndn, old_parent_ndn;
+			BerVarray bvals = NULL;
+			int ret,stop;
 
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
@@ -1109,33 +1115,89 @@ dn_match_cleanup:;
 			if ( ! ACL_GRANT( b->a_access_mask, *mask ) ) {
 				continue;
 			}
-
-			/* get the aci attribute */
-			at = attr_find( e->e_attrs, b->a_aci_at );
-			if ( at == NULL ) {
-				continue;
-			}
-
-			ACL_RECORD_VALUE_STATE;
-
 			/* start out with nothing granted, nothing denied */
 			ACL_INIT(tgrant);
 			ACL_INIT(tdeny);
 
-			/* the aci is an multi-valued attribute.  The
-			 * rights are determined by OR'ing the individual
-			 * rights given by the acis.
+			/* get the aci attribute */
+			at = attr_find( e->e_attrs, b->a_aci_at );
+			if ( at != NULL ) {
+				ACL_RECORD_VALUE_STATE;
+				/* the aci is an multi-valued attribute.  The
+				* rights are determined by OR'ing the individual
+				* rights given by the acis.
+				*/
+				for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
+					if (aci_mask( op,
+						e, desc, val,
+						&at->a_nvals[i],
+						matches, &grant, &deny,  &aci_bv_entry ) != 0)
+					{
+						tgrant |= grant;
+						tdeny |= deny;
+					}
+				}
+				Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
+					  accessmask2str(tgrant,accessmaskbuf), 
+					  accessmask2str(tdeny, accessmaskbuf1), 0);
+
+			}
+			/* If the entry level aci didn't contain anything valid for the 
+			 * current operation, climb up the tree and evaluate the
+			 * acis with scope set to subtree
 			 */
-			for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
-				if (aci_mask( op,
-					e, desc, val,
-					&at->a_nvals[i],
-					matches, &grant, &deny ) != 0)
-				{
-					tgrant |= grant;
-					tdeny |= deny;
+			if( (tgrant == ACL_PRIV_NONE) && (tdeny == ACL_PRIV_NONE) ){
+				dnParent(&(e->e_nname), &parent_ndn);
+				while ( parent_ndn.bv_val != old_parent_ndn.bv_val ){
+					old_parent_ndn = parent_ndn;
+					Debug(LDAP_DEBUG_ACL, "checking ACI of %s\n", parent_ndn.bv_val, 0, 0);
+					ret=backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals);
+					switch(ret){
+						case LDAP_SUCCESS :
+							if(bvals){
+								for( i = 0; bvals[i].bv_val != NULL; i++){
+									ACL_RECORD_VALUE_STATE;
+									if (aci_mask(op, e, desc, val, &bvals[i], matches,
+											&grant, &deny, &aci_bv_children) != 0) {
+										tgrant |= grant;
+										tdeny |= deny;
+										/* evaluation stops as soon as either a "deny" or a 
+										 * "grant" directive matches.
+										 */
+										if( (tgrant != ACL_PRIV_NONE) || (tdeny != ACL_PRIV_NONE) ){
+											stop=1;
+										}
+									}
+									Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
+										accessmask2str(tgrant,accessmaskbuf),
+										accessmask2str(tdeny, accessmaskbuf1), 0);
+								}
+							}
+							stop=0;
+							break;
+						case LDAP_NO_SUCH_ATTRIBUTE:
+							/* just go on if the aci-Attribute is not present in
+							 * the current entry 
+							 */
+							Debug(LDAP_DEBUG_ACL, "no such attribute\n", 0, 0, 0);
+							stop=0;
+							break;
+						case LDAP_NO_SUCH_OBJECT:
+							/* We have reached the base object */
+							Debug(LDAP_DEBUG_ACL, "no such object\n", 0, 0, 0);
+							stop=1;
+							break;
+						default:
+							stop=1;
+							break;
+					}
+					if(stop){
+						break;
+					}
+					dnParent(&old_parent_ndn, &parent_ndn);
 				}
 			}
+
 
 			/* remove anything that the ACL clause does not allow */
 			tgrant &= b->a_access_mask & ACL_PRIV_MASK;
@@ -1751,7 +1813,8 @@ aci_mask(
     struct berval	*aci,
 	regmatch_t		*matches,
 	slap_access_t	*grant,
-	slap_access_t	*deny
+	slap_access_t	*deny,
+	struct berval	*scope
 )
 {
     struct berval bv, perms, sdn;
@@ -1770,7 +1833,6 @@ aci_mask(
 
 	   For now, this routine only supports scope=entry.
 	 */
-
 	/* check that the aci has all 5 components */
 	if (aci_get_part(aci, 4, '#', NULL) < 0)
 		return(0);
@@ -1779,9 +1841,9 @@ aci_mask(
 	if (aci_get_part(aci, 0, '#', &bv) < 0)
 		return(0);
 
-	/* check that the scope is "entry" */
+	/* check that the scope matches */
 	if (aci_get_part(aci, 1, '#', &bv) < 0
-		|| ber_bvstrcasecmp( &aci_bv_entry, &bv ) != 0)
+		|| ber_bvstrcasecmp( scope, &bv ) != 0)
 	{
 		return(0);
 	}
