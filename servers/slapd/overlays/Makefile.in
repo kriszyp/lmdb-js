@@ -14,9 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS = overlays.c dyngroup.c pcache.c \
-	rwm.c rwmconf.c rwmdn.c rwmmap.c
+	rwm.c rwmconf.c rwmdn.c rwmmap.c denyop.c
 OBJS = overlays.lo dyngroup.lo pcache.lo \
-	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
+	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo denyop.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -41,6 +41,9 @@ pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
+
+denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
 	@if test -n "$?" ; then \
