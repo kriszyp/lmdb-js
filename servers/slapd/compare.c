@@ -44,7 +44,7 @@ do_compare(
 	struct berval ndn = { 0, NULL };
 	struct berval desc = { 0, NULL };
 	struct berval value = { 0, NULL };
-	AttributeAssertion ava = { 0 };
+	AttributeAssertion ava = { NULL, { 0, NULL } };
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;

@@ -295,7 +295,7 @@ glue_back_search (
 	BackendDB *be;
 	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
-	glue_state gs = {0};
+	glue_state gs = {0, 0, 0, NULL, 0, NULL, NULL};
 	slap_callback cb;
 
 	cb.sc_response = glue_back_response;

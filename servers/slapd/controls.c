@@ -97,7 +97,7 @@ static struct slap_control {
 		SLAP_CTRL_SEARCH, NULL,
 		parseClientUpdate },
 #endif /* LDAP_CLIENT_UPDATE */
-	{ NULL }
+	{ NULL, 0, NULL, 0 }
 };
 
 char *

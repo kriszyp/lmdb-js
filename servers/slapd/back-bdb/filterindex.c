@@ -274,7 +274,7 @@ presence_candidates(
 	DB *db;
 	int rc;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, ENTRY, "=> bdb_presence_candidates\n", 0, 0, 0 );
@@ -371,7 +371,7 @@ equality_candidates(
 	int i;
 	int rc;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 
@@ -516,7 +516,7 @@ approx_candidates(
 	int i;
 	int rc;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 
@@ -663,7 +663,7 @@ substring_candidates(
 	int i;
 	int rc;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 

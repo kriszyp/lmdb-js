@@ -126,7 +126,7 @@ main( int argc, char *argv[] )
 	char	*user = NULL;
 
 	LDAP	       *ld = NULL;
-	struct berval bv = {0};
+	struct berval bv = {0, NULL};
 	BerElement  *ber = NULL;
 
 	int id, code = LDAP_OTHER;

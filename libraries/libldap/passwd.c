@@ -71,7 +71,7 @@ ldap_passwd( LDAP *ld,
 	int				*msgidp )
 {
 	int rc;
-	struct berval bv = {0};
+	struct berval bv = {0, NULL};
 	BerElement *ber = NULL;
 
 	assert( ld != NULL );

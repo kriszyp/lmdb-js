@@ -84,7 +84,7 @@ static STRDISP	syslog_types[] = {
 	{ "LOCAL5", sizeof("LOCAL5"), LOG_LOCAL5 },
 	{ "LOCAL6", sizeof("LOCAL6"), LOG_LOCAL6 },
 	{ "LOCAL7", sizeof("LOCAL7"), LOG_LOCAL7 },
-	{ NULL }
+	{ NULL, 0, 0 }
 };
 
 static int   cnvt_str2int( char *, STRDISP_P, int );

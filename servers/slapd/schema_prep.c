@@ -764,13 +764,13 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
-	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, 0 }
+	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
 static AttributeType slap_at_undefined = {
 	{ "1.1.1", NULL, NULL, 1, NULL,
 		NULL, NULL, NULL, NULL,
-		0, 0, 0, 1, 3 }, /* LDAPAttributeType */
+		0, 0, 0, 1, 3, NULL }, /* LDAPAttributeType */
 	{ sizeof("UNDEFINED")-1, "UNDEFINED" }, /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
