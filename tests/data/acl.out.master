@@ -122,7 +122,7 @@ dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
 objectclass: top
 objectclass: organizationalUnit
-ou: Information Technology Divisio
+ou: Information Technology Division
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
 owner: cn=Manager, o=University of Michigan, c=US
