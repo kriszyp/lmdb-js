@@ -719,6 +719,7 @@ meta_send_entry(
 	}
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
+	rs->sr_flags = 0;
 	send_search_entry( op, rs );
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;

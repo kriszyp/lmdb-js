@@ -430,6 +430,7 @@ searchit:
 				}
 
 				if (e) {
+					rs->sr_flags = 0;
 					result = send_search_entry( op, rs );
 
 					switch (result) {

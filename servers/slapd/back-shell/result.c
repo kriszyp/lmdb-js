@@ -99,6 +99,7 @@ read_and_send_results(
 				    buf, 0, 0 );
 			} else {
 				rs->sr_attrs = op->oq_search.rs_attrs;
+				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				send_search_entry( op, rs );
 				entry_free( rs->sr_entry );
 			}

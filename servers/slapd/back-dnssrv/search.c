@@ -221,6 +221,7 @@ dnssrv_back_search(
 		if( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			rs->sr_attrs = op->oq_search.rs_attrs;
+			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;

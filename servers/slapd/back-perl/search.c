@@ -100,6 +100,7 @@ perl_back_search(
 					if (send_entry) {
 						rs->sr_entry = e;
 						rs->sr_attrs = op->ors_attrs;
+						rs->sr_flags = REP_ENTRY_MODIFIABLE;
 						send_search_entry( op, rs );
 					}
 
