@@ -19,10 +19,6 @@ Current contributions:
 
 	ldaptcl	TCL LDAP API
 
-    web500gw	HTTP gateway for X.500, modeled after go500gw.
-		Contributed by Frank Richter.  See web500gw/README
-		for more information.
-
     whois++	WHOIS++ gateway to X.500.  Contributed by Mark Prior.
 		See whois++/README for more information.
 
