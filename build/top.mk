@@ -19,19 +19,19 @@ top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
-
 ldap_subdir = @ldap_subdir@
-bindir = @bindir@
-datadir = @datadir@/$(ldap_subdir)
-includedir = @includedir@
-infodir = @infodir@
-libdir = @libdir@
-libexecdir = @libexecdir@
-localstatedir = @localstatedir@
-mandir = @mandir@
-sbindir = @sbindir@
-sharedstatedir = @sharedstatedir@
-sysconfdir = @sysconfdir@/$(ldap_subdir)
+
+bindir = $(TMPROOT)@bindir@
+datadir = $(TMPROOT)@datadir@/$(ldap_subdir)
+includedir = $(TMPROOT)@includedir@
+infodir = $(TMPROOT)@infodir@
+libdir = $(TMPROOT)@libdir@
+libexecdir = $(TMPROOT)@libexecdir@
+localstatedir = $(TMPROOT)@localstatedir@
+mandir = $(TMPROOT)@mandir@
+sbindir = $(TMPROOT)@sbindir@
+sharedstatedir = $(TMPROOT)@sharedstatedir@
+sysconfdir = $(TMPROOT)@sysconfdir@/$(ldap_subdir)
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
