@@ -401,6 +401,7 @@ get_ssa(
 	SubstringsAssertion ssa;
 
 	*text = "error decoding filter";
+	*out = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( FILTER, ENTRY, 
@@ -589,7 +590,7 @@ return_error:
 	Debug( LDAP_DEBUG_FILTER, "end get_ssa\n", 0, 0, 0 );
 #endif
 
-	return LDAP_SUCCESS;
+	return rc /* LDAP_SUCCESS */ ;
 }
 
 void
@@ -666,10 +667,15 @@ filter_free( Filter *f )
 void
 filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
-	int	i;
-	Filter	*p;
-	struct berval tmp;
-	ber_len_t len;
+	int		i;
+	Filter		*p;
+	struct berval	tmp,
+			ber_bvfalse = BER_BVC( "(?=false)" ),
+			ber_bvtrue = BER_BVC( "(?=true)" ),
+			ber_bvundefined = BER_BVC( "(?=undefined)" ),
+			ber_bverror = BER_BVC( "(?=error)" ),
+			ber_bvunknown = BER_BVC( "(?=unknown)" );
+	ber_len_t	len;
 
 	if ( f == NULL ) {
 		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
@@ -849,21 +855,29 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 		} break;
 
 	case SLAPD_FILTER_COMPUTED:
-		ber_str2bv_x(
-			f->f_result == LDAP_COMPARE_FALSE ? "(?=false)" :
-			f->f_result == LDAP_COMPARE_TRUE ? "(?=true)" :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? "(?=undefined)" :
-			"(?=error)",
-			f->f_result == LDAP_COMPARE_FALSE ? sizeof("(?=false)")-1 :
-			f->f_result == LDAP_COMPARE_TRUE ? sizeof("(?=true)")-1 :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
-			sizeof("(?=error)")-1,
-			1, fstr, op->o_tmpmemctx );
-		break;
+		switch ( f->f_result ) {
+		case LDAP_COMPARE_FALSE:
+			tmp = ber_bvfalse;
+			break;
 
+		case LDAP_COMPARE_TRUE:
+			tmp = ber_bvtrue;
+			break;
+			
+		case SLAPD_COMPARE_UNDEFINED:
+			tmp = ber_bvundefined;
+			break;
+			
+		default:
+			tmp = ber_bverror;
+			break;
+		}
+
+		ber_dupbv_x( fstr, &tmp, op->o_tmpmemctx );
+		break;
+		
 	default:
-		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1,
-			1, fstr, op->o_tmpmemctx );
+		ber_dupbv_x( fstr, &ber_bvunknown, op->o_tmpmemctx );
 		break;
 	}
 }
