@@ -148,7 +148,7 @@ int slap_sasl_destroy(void)
 
 char * slap_sasl_secprops( const char *in )
 {
-	return "";
+	return NULL;
 }
 
 void connection2anonymous( Connection *c )
