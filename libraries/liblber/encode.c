@@ -83,7 +83,7 @@ ber_put_tag(
 	taglen = ber_calc_taglen( tag );
 
 	for( i=0; i<taglen; i++ ) {
-		nettag[(sizeof(ber_tag_t)-1) - i] = tag & 0xffU;
+		nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tag & 0xffU);
 		tag >>= 8;
 	}
 
@@ -166,7 +166,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 		return( -1 );
 
 	for( j=0; j<i; j++) {
-		netlen[(sizeof(ber_len_t)-1) - j] = len & 0xffU;
+		netlen[(sizeof(ber_len_t)-1) - j] = (unsigned char)(len & 0xffU);
 		len >>= 8;
 	}
 
@@ -187,7 +187,7 @@ ber_put_int_or_enum(
 	int rc;
 	int	i, j, sign;
 	ber_len_t	len, lenlen, taglen;
-	ber_uint_t	unum, xnum, mask;
+	ber_uint_t	unum, mask;
 	unsigned char netnum[sizeof(ber_uint_t)];
 
 	assert( ber != NULL );
@@ -232,7 +232,7 @@ ber_put_int_or_enum(
 	i++;
 
 	for( j=0; j<i; j++ ) {
-		netnum[(sizeof(ber_int_t)-1) - j] = unum & 0xffU;
+		netnum[(sizeof(ber_int_t)-1) - j] = (unsigned char)(unum & 0xffU);
 		unum >>= 8;
 	}
 
@@ -503,7 +503,7 @@ ber_start_set( BerElement *ber, ber_tag_t tag )
 static int
 ber_put_seqorset( BerElement *ber )
 {
-	int rc, i;
+	int rc;
 	ber_len_t	len;
 	unsigned char netlen[sizeof(ber_len_t)];
 	ber_len_t	taglen, lenlen;
@@ -535,11 +535,13 @@ ber_put_seqorset( BerElement *ber )
 	}
 
 	if( lenlen > 1 ) {
+		ber_len_t i;
 		for( i=0; i < lenlen-1; i++ ) {
-			netlen[(sizeof(ber_len_t)-1) - i] = (len >> i*8) & 0xffU;
+			netlen[(sizeof(ber_len_t)-1) - i] = 
+				(unsigned char)((len >> i*8) & 0xffU);
 		}
 	} else {
-		netlen[sizeof(ber_len_t)-1] = len & 0x7fU;
+		netlen[sizeof(ber_len_t)-1] = (unsigned char)(len & 0x7fU);
 	}
 
 	if ( (next = (*sos)->sos_next) == NULL ) {
@@ -581,7 +583,7 @@ ber_put_seqorset( BerElement *ber )
 		(*sos)->sos_ber->ber_ptr += len;
 
 	} else {
-		int i;
+		ber_len_t i;
 		unsigned char nettag[sizeof(ber_tag_t)];
 		ber_tag_t tmptag = (*sos)->sos_tag;
 
@@ -589,7 +591,7 @@ ber_put_seqorset( BerElement *ber )
 		taglen = ber_calc_taglen( tmptag );
 
 		for( i = 0; i < taglen; i++ ) {
-			nettag[(sizeof(ber_tag_t)-1) - i] = tmptag & 0xffU;
+			nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tmptag & 0xffU);
 			tmptag >>= 8;
 		}
 
