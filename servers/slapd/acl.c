@@ -1125,7 +1125,7 @@ dn_match_cleanup:;
 				if (aci_mask( be, conn, op,
 					e, desc, val,
 #ifdef SLAP_NVALUES
-					at->a_vals ? &at->a_nvals[i] : &at->a_vals[i],
+					at->a_nvals ? &at->a_nvals[i] : &at->a_vals[i],
 #else
 					&at->a_vals[i],
 #endif
