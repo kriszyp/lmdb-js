@@ -86,7 +86,7 @@ retry:	if( tid != NULL ) {
 		goto done;
 	}
 
-	if( bdb->bi_lastid > id ) id = bdb_lastid;
+	if( bdb->bi_lastid > id ) id = bdb->bi_lastid;
 
 	id++;
 	data.size = sizeof( id );
