@@ -58,7 +58,7 @@ static const unsigned char crypt64[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
 
 #ifdef SLAPD_CRYPT
-static const char *salt_format = NULL;
+static char *salt_format = NULL;
 #endif
 
 struct pw_scheme;
@@ -1065,12 +1065,12 @@ static struct berval *hash_crypt(
 }
 #endif
 
-int lutil_salt_format(const char *format)
+int lutil_salt_format( const char *format)
 {
 #ifdef SLAPD_CRYPT
-	free(salt_format);
+	free( salt_format );
 
-	salt_format = format != NULL ? strdup(format) : NULL;
+	salt_format = format != NULL ? strdup( format ) : NULL;
 #endif
 
 	return 0;
