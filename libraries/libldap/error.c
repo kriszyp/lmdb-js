@@ -161,22 +161,90 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 int
 ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 {
-	LDAPMessage	*lm;
-	BerElement	ber;
-	ber_int_t	along;
-	ber_tag_t	rc;
+	int rc, err;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_result2error\n", 0, 0, 0 );
+	rc = ldap_parse_result( ld, r, &err,
+		NULL, NULL, NULL, NULL, freeit );
+
+	return rc != LDAP_SUCCESS ? err : rc;
+}
+
+/*
+ * Parse LDAPResult Messages:
+ *
+ *   LDAPResult ::= SEQUENCE {
+ *     resultCode      ENUMERATED,
+ *     matchedDN       LDAPDN,
+ *     errorMessage    LDAPString,
+ *     referral        [3] Referral OPTIONAL }
+ *
+ * including Bind results:
+ *
+ *   BindResponse ::= [APPLICATION 1] SEQUENCE {
+ *     COMPONENTS OF LDAPResult,
+ *     serverSaslCreds  [7] OCTET STRING OPTIONAL }
+ * 
+ * and ExtendedOp results:
+ *
+ *   ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+ *     COMPONENTS OF LDAPResult,
+ *     responseName     [10] LDAPOID OPTIONAL,
+ *     response         [11] OCTET STRING OPTIONAL }
+ *
+ */
+int
+ldap_parse_result(
+	LDAP			*ld,
+	LDAPMessage		*r,
+	int				*errcodep,
+	char			**matcheddnp,
+	char			**errmsgp,
+	char			***referralsp,
+	LDAPControl		***serverctrls,
+	int				freeit )
+{
+	LDAPMessage	*lm;
+	ber_int_t errcode;
+	char* matcheddn;
+	char* errmsg;
+
+	int rc;
+	ber_tag_t tag;
+	BerElement	*ber;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_parse_result\n", 0, 0, 0 );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( r != NULL );
 
-	if ( ld == NULL || r == NULL )
-		return( LDAP_PARAM_ERROR );
+	if ( ld == NULL || r == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
 
-	for ( lm = r; lm->lm_chain != NULL; lm = lm->lm_chain )
-		;	/* NULL */
+	if(matcheddnp != NULL) *matcheddnp = NULL;
+	if(errmsgp != NULL) *errmsgp = NULL;
+	if(referralsp != NULL) *referralsp = NULL;
+	if(serverctrls != NULL) *serverctrls = NULL;
+
+	/* Find the next result... */
+	for ( lm = r; lm->lm_chain != NULL; lm = lm->lm_chain ) {
+		/* skip over entries and references */
+		if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
+			lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE )
+		{
+			break;
+		}
+	}
+
+	if( lm == NULL ) {
+		ld->ld_errno = LDAP_NO_RESULTS_RETURNED;
+		return ld->ld_errno;
+	}
+
+	errcode = LDAP_SUCCESS;
+	matcheddn = NULL;
+	errmsg = NULL;
 
 	if ( ld->ld_error ) {
 		LDAP_FREE( ld->ld_error );
@@ -187,23 +255,106 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 		ld->ld_matched = NULL;
 	}
 
-	ber = *(lm->lm_ber);
+	/* parse results */
+
+	ber = ber_dup( lm->lm_ber );
 
 	if ( ld->ld_version < LDAP_VERSION2 ) {
-		rc = ber_scanf( &ber, "{ia}", &along, &ld->ld_error );
+		tag = ber_scanf( ber, "{ia}",
+			&errcode, &ld->ld_error );
 	} else {
-		rc = ber_scanf( &ber, "{iaa}", &along, &ld->ld_matched,
-		    &ld->ld_error );
+		ber_len_t len;
+		tag = ber_scanf( ber, "{iaa" /*}*/,
+			&errcode, &ld->ld_matched, &ld->ld_error );
+
+		if( tag != LBER_ERROR ) {
+			/* peek for referrals */
+			if( ber_peek_tag(ber, &len) == LDAP_TAG_REFERRAL ) {
+				if( referralsp != NULL ) {
+					tag = ber_scanf( ber, "v", referralsp );
+
+				} else {
+					/* no place to put them so skip 'em */
+					tag = ber_scanf( ber, "x" );
+				}
+			}
+		}
+
+		/* need to clean out misc items */
+		if( tag != LBER_ERROR ) {
+			if( lm->lm_msgtype == LDAP_RES_BIND ) {
+				/* look for sasl result creditials */
+				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SASL_RES_CREDS ) {
+					/* skip 'em */
+					tag = ber_scanf( ber, "x" );
+				}
+
+			} else if( lm->lm_msgtype == LDAP_RES_EXTENDED ) {
+				/* look for exop result oid or value */
+				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_EXOP_RES_OID ) {
+					/* skip 'em */
+					tag = ber_scanf( ber, "x" );
+				}
+
+				if ( tag != LBER_ERROR &&
+					ber_peek_tag( ber, &len ) == LDAP_TAG_EXOP_RES_VALUE )
+				{
+					/* skip 'em */
+					tag = ber_scanf( ber, "x" );
+				}
+			}
+		}
+
+		if( tag != LBER_ERROR ) {
+			rc = ldap_int_get_controls( ber, serverctrls );
+
+			if( rc != LDAP_SUCCESS ) {
+				tag = LBER_ERROR;
+			}
+		}
+
+		if( tag != LBER_ERROR ) {
+			tag = ber_scanf( ber, /*{*/"}" );
+		}
 	}
 
-	if ( rc == LBER_ERROR ) {
-		ld->ld_errno = LDAP_DECODING_ERROR;
-	} else {
-		ld->ld_errno = (int) along;
+	if ( tag == LBER_ERROR ) {
+		errcode = LDAP_DECODING_ERROR;
 	}
 
-	if ( freeit )
+	if( ber != NULL ) {
+		ber_free( ber, 0 );
+	}
+
+	/* return */
+	if ( errcode == LDAP_SUCCESS ) {
+		if( errcodep != NULL ) {
+			*errcodep = ld->ld_errno;
+		}
+		if( matcheddnp != NULL ) {
+			*matcheddnp = LDAP_STRDUP( ld->ld_matched );
+		}
+		if( errmsgp != NULL ) {
+			*errmsgp = LDAP_STRDUP( ld->ld_error );
+		}
+
+		/* Find the next result... */
+		for ( lm = lm->lm_chain; lm != NULL; lm = lm->lm_chain ) {
+			/* skip over entries and references */
+			if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
+				lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE )
+			{
+				/* more results to return */
+				errcode = LDAP_MORE_RESULTS_TO_RETURN;
+				break;
+			}
+		}
+	}
+
+	if ( freeit ) {
 		ldap_msgfree( r );
+	}
 
+	ld->ld_errno = errcode;
 	return( ld->ld_errno );
 }
