@@ -12,8 +12,7 @@
 #define BDB_HIER
 #endif
 
-#undef _BDB_EXTERNAL_H
-#undef BDB_SYMBOL
+extern BI_init	hdb_initialize;
 
 #include "../back-bdb/external.h"
 
