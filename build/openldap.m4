@@ -313,10 +313,14 @@ AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
 OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
 OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
 OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_2,[-ldb-2])
 OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_1,[-ldb-1])
 ])
 dnl
 dnl --------------------------------------------------------------------
