@@ -248,6 +248,7 @@ struct rewrite_session {
  */
 struct rewrite_var {
 	char                           *lv_name;
+	int				lv_flags;
 	struct berval                   lv_value;
 };
 
@@ -459,11 +460,12 @@ rewrite_session_find(
  * Defines and inits a variable with session scope
  */
 LDAP_REWRITE_F (int)
-rewrite_session_var_set(
+rewrite_session_var_set_f(
                 struct rewrite_info *info,
                 const void *cookie,
                 const char *name,
-                const char *value
+                const char *value,
+		int flags
 );
 
 /*
@@ -509,25 +511,44 @@ rewrite_var_find(
 );
 
 /*
+ * Replaces the value of a variable
+ */
+LDAP_REWRITE_F (int)
+rewrite_var_replace(
+		struct rewrite_var *var,
+		const char *value,
+		int flags
+);
+
+/*
  * Inserts a newly created var
  */
 LDAP_REWRITE_F (struct rewrite_var *)
-rewrite_var_insert(
+rewrite_var_insert_f(
                 Avlnode **tree,
                 const char *name,
-                const char *value
+                const char *value,
+		int flags
 );
+
+#define rewrite_var_insert(tree, name, value) \
+	rewrite_var_insert_f((tree), (name), (value), \
+			REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE)
 
 /*
  * Sets/inserts a var
  */
 LDAP_REWRITE_F (struct rewrite_var *)
-rewrite_var_set(
+rewrite_var_set_f(
                 Avlnode **tree,
                 const char *name,
                 const char *value,
-                int insert
+                int flags
 );
+
+#define rewrite_var_set(tree, name, value, insert) \
+	rewrite_var_set_f((tree), (name), (value), \
+			REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE|((insert)? REWRITE_VAR_INSERT : 0))
 
 /*
  * Deletes a var tree

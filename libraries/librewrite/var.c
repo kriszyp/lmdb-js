@@ -66,6 +66,39 @@ rewrite_var_dup(
 }
 
 /*
+ * Frees a var
+ */
+static void 
+rewrite_var_free(
+		void *v_var
+)
+{
+	struct rewrite_var *var = v_var;
+	assert( var != NULL );
+
+	assert( var->lv_name != NULL );
+	assert( var->lv_value.bv_val != NULL );
+
+	if ( var->lv_flags & REWRITE_VAR_COPY_NAME )
+		free( var->lv_name );
+	if ( var->lv_flags & REWRITE_VAR_COPY_VALUE )
+		free( var->lv_value.bv_val );
+	free( var );
+}
+
+/*
+ * Deletes a var tree
+ */
+int
+rewrite_var_delete(
+		Avlnode *tree
+)
+{
+	avl_free( tree, rewrite_var_free );
+	return REWRITE_SUCCESS;
+}
+
+/*
  * Finds a var
  */
 struct rewrite_var *
@@ -83,51 +116,112 @@ rewrite_var_find(
 			( caddr_t )&var, rewrite_var_cmp );
 }
 
+int
+rewrite_var_replace(
+		struct rewrite_var *var,
+		const char *value,
+		int flags
+)
+{
+	ber_len_t	len = strlen( value );
+
+	if ( var->lv_flags & REWRITE_VAR_COPY_VALUE ) {
+		if ( flags & REWRITE_VAR_COPY_VALUE ) {
+			if ( len <= var->lv_value.bv_len ) {
+				AC_MEMCPY(var->lv_value.bv_val, value, len + 1);
+
+			} else {
+				free( var->lv_value.bv_val );
+				var->lv_value.bv_val = strdup( value );
+			}
+
+		} else {
+			free( var->lv_value.bv_val );
+			var->lv_value.bv_val = (char *)value;
+			var->lv_flags &= ~REWRITE_VAR_COPY_VALUE;
+		}
+
+	} else {
+		if ( flags & REWRITE_VAR_COPY_VALUE ) {
+			var->lv_value.bv_val = strdup( value );
+			var->lv_flags |= REWRITE_VAR_COPY_VALUE;
+
+		} else {
+			var->lv_value.bv_val = (char *)value;
+		}
+	}
+
+	var->lv_value.bv_len = len;
+
+	return 0;
+}
+
 /*
  * Inserts a newly created var
  */
 struct rewrite_var *
-rewrite_var_insert(
+rewrite_var_insert_f(
 		Avlnode **tree,
 		const char *name,
-		const char *value
+		const char *value,
+		int flags
 )
 {
 	struct rewrite_var *var;
-	int rc;
+	int rc = 0;
 
 	assert( tree != NULL );
 	assert( name != NULL );
 	assert( value != NULL );
 	
-	var = calloc( sizeof( struct rewrite_var ), 1 );
-	if ( var == NULL ) {
-		return NULL;
-	}
-	memset( var, 0, sizeof( struct rewrite_var ) );
-	var->lv_name = strdup( name );
-	if ( var->lv_name == NULL ) {
-		rc = -1;
-		goto cleanup;
-	}
-	var->lv_value.bv_val = strdup( value );
-	if ( var->lv_value.bv_val == NULL ) {
-		rc = -1;
-		goto cleanup;
-	}
-	var->lv_value.bv_len = strlen( value );
-	rc = avl_insert( tree, ( caddr_t )var,
-			rewrite_var_cmp, rewrite_var_dup );
-	if ( rc != 0 ) { 
+	var = rewrite_var_find( *tree, name );
+	if ( var != NULL ) {
+		if ( flags & REWRITE_VAR_UPDATE ) {
+			(void)rewrite_var_replace( var, value, flags );
+			goto cleanup;
+		}
 		rc = -1;
 		goto cleanup;
 	}
 
+	var = calloc( sizeof( struct rewrite_var ), 1 );
+	if ( var == NULL ) {
+		return NULL;
+	}
+
+	memset( var, 0, sizeof( struct rewrite_var ) );
+
+	if ( flags & REWRITE_VAR_COPY_NAME ) {
+		var->lv_name = strdup( name );
+		if ( var->lv_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
+		var->lv_flags |= REWRITE_VAR_COPY_NAME;
+
+	} else {
+		var->lv_name = (char *)name;
+	}
+
+	if ( flags & REWRITE_VAR_COPY_VALUE ) {
+		var->lv_value.bv_val = strdup( value );
+		if ( var->lv_value.bv_val == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
+		var->lv_flags |= REWRITE_VAR_COPY_VALUE;
+		
+	} else {
+		var->lv_value.bv_val = (char *)value;
+	}
+	var->lv_value.bv_len = strlen( value );
+	rc = avl_insert( tree, ( caddr_t )var,
+			rewrite_var_cmp, rewrite_var_dup );
+
 cleanup:;
-	if ( rc != 0 ) {
-		free( var->lv_name );
-		free( var->lv_value.bv_val );
-		free( var );
+	if ( rc != 0 && var ) {
+		avl_delete( tree, ( caddr_t )var, rewrite_var_cmp );
+		rewrite_var_free( var );
 		var = NULL;
 	}
 
@@ -138,11 +232,11 @@ cleanup:;
  * Sets/inserts a var
  */
 struct rewrite_var *
-rewrite_var_set(
+rewrite_var_set_f(
 		Avlnode **tree,
 		const char *name,
 		const char *value,
-		int insert
+		int flags
 )
 {
 	struct rewrite_var *var;
@@ -153,50 +247,19 @@ rewrite_var_set(
 	
 	var = rewrite_var_find( *tree, name );
 	if ( var == NULL ) {
-		if ( insert ) {
-			return rewrite_var_insert( tree, name, value );
+		if ( flags & REWRITE_VAR_INSERT ) {
+			return rewrite_var_insert_f( tree, name, value, flags );
+
 		} else {
 			return NULL;
 		}
+
 	} else {
 		assert( var->lv_value.bv_val != NULL );
 
-		free( var->lv_value.bv_val );
-		var->lv_value.bv_val = strdup( value );
-		var->lv_value.bv_len = strlen( value );
+		(void)rewrite_var_replace( var, value, flags );
 	}
 
 	return var;
-}
-
-/*
- * Frees a var
- */
-static void 
-rewrite_var_free(
-		void *v_var
-)
-{
-	struct rewrite_var *var = v_var;
-	assert( var != NULL );
-
-	assert( var->lv_name != NULL );
-	assert( var->lv_value.bv_val != NULL );
-
-	free( var->lv_name );
-	free( var->lv_value.bv_val );
-	free( var );
-}
-
-/*
- * Deletes a var tree
- */
-int
-rewrite_var_delete(
-		Avlnode *tree
-)
-{
-	avl_free( tree, rewrite_var_free );
-	return REWRITE_SUCCESS;
 }
 

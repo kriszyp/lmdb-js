@@ -75,6 +75,30 @@
 #define REWRITE_REGEXEC_UNWILLING       0x0004
 
 /*
+ * Rewrite variable flags
+ *	REWRITE_VAR_INSERT		insert mode (default) when adding
+ *					a variable; if not set during value
+ *					update, the variable is not inserted
+ *					if not present
+ *	REWRITE_VAR_UPDATE		update mode (default) when updating
+ *					a variable; if not set during insert,
+ *					the value is not updated if the
+ *					variable already exists
+ *	REWRITE_VAR_COPY_NAME		copy the variable name; if not set,
+ *					the name is not copied; be sure the
+ *					referenced string is available for
+ *					the entire life scope of the variable.
+ *	REWRITE_VAR_COPY_VALUE		copy the variable value; if not set,
+ *					the value is not copied; be sure the
+ *					referenced string is available for
+ *					the entire life scope of the variable.
+ */
+#define REWRITE_VAR_INSERT		0x0001
+#define REWRITE_VAR_UPDATE		0x0002
+#define REWRITE_VAR_COPY_NAME		0x0004
+#define REWRITE_VAR_COPY_VALUE		0x0008
+
+/*
  * Rewrite info
  */
 struct rewrite_info;
@@ -177,12 +201,17 @@ rewrite_session_init(
  * Defines and inits a variable with session scope
  */
 LDAP_REWRITE_F (int)
-rewrite_session_var_set(
+rewrite_session_var_set_f(
 		struct rewrite_info *info,
 		const void *cookie,
 		const char *name,
-		const char *value
+		const char *value,
+		int flags
 );
+
+#define rewrite_session_var_set(info, cookie, name, value) \
+	rewrite_session_var_set_f((info), (cookie), (name), (value), \
+			REWRITE_VAR_INSERT|REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE)
 
 /*
  * Deletes a session
