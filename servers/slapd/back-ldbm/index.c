@@ -279,6 +279,9 @@ index_add_values(
 
 		value_normalize( val, syntax );
 
+		/* val length could change */
+		len = strlen( val );
+
 		/*
 		 * equality index entry
 		 */
