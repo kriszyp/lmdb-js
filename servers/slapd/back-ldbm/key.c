@@ -62,6 +62,7 @@ key_change(
 	key.dptr = k->bv_val;
 	key.dsize = k->bv_len;
 
+	ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 	if (op == SLAP_INDEX_ADD_OP) {
 	    /* Add values */
 	    rc = idl_insert_key( be, db, key, id );
@@ -70,6 +71,7 @@ key_change(
 	    /* Delete values */
 	    rc = idl_delete_key( be, db, key, id );
 	}
+	ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 
 	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );

@@ -60,7 +60,9 @@ dn2id_add(
 			key.dsize = strlen( pdn ) + 2;
 			key.dptr = ch_malloc( key.dsize );
 			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 			rc = idl_insert_key( be, db, key, id );
+			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 			free( key.dptr );
 			free( pdn );
 		}
@@ -77,9 +79,9 @@ dn2id_add(
 				key.dptr = ch_malloc( key.dsize );
 				sprintf( key.dptr, "%c%s",
 					DN_SUBTREE_PREFIX, subtree[i] );
-
+				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 				rc = idl_insert_key( be, db, key, id );
-
+				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 				free( key.dptr );
 
 				if(rc == -1) break;
@@ -230,7 +232,9 @@ dn2id_delete(
 			key.dptr = ch_malloc( key.dsize );
 			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
 
+			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 			(void) idl_delete_key( be, db, key, id );
+			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 			free( key.dptr );
 			free( pdn );
@@ -249,7 +253,9 @@ dn2id_delete(
 				sprintf( key.dptr, "%c%s",
 					DN_SUBTREE_PREFIX, subtree[i] );
 
+				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 				(void) idl_delete_key( be, db, key, id );
+				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 				free( key.dptr );
 			}

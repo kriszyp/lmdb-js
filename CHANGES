@@ -1,8 +1,10 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.16 Engineering
+	Fixed ITS indexing bug (ITS#1359, others)
 	Fixed slapd/slurpd maxargs bug (ITS#1343)
 	Fixed slapd ManageDSAIT warning
+	Fixed slapd no OID schema bug
 	Fixed slurpd server down reject bug (ITS#1183)
 	Fixed slurpd moddn newsup bug (ITS#1379)
 	Fixed -llber ber_realloc bug (ITS#1346)

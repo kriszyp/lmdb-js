@@ -97,6 +97,7 @@ typedef struct ldbm_dbcache {
 	long	dbc_blksize;
 	char	*dbc_name;
 	LDBM	dbc_db;
+	ldap_pvt_thread_mutex_t	dbc_write_mutex;
 } DBCache;
 
 #define MAXDBCACHE	128
