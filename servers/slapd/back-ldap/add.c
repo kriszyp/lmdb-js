@@ -146,6 +146,12 @@ ldap_back_add(
 				}
 				j++;
 			}
+
+			if ( j == 0 ) {
+				ch_free( attrs[ i ]->mod_bvalues );
+				continue;
+			}
+
 			attrs[ i ]->mod_bvalues[ j ] = NULL;
 
 		} else {
@@ -158,7 +164,6 @@ ldap_back_add(
 				 */
 				(void)ldap_dnattr_rewrite( &dc, a->a_vals );
 				if ( a->a_vals == NULL || BER_BVISNULL( &a->a_vals[0] ) ) {
-					ch_free( attrs );
 					continue;
 				}
 			}

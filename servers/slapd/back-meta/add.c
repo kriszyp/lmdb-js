@@ -87,16 +87,24 @@ meta_back_add( Operation *op, SlapReply *rs )
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
 	for ( i = 0, a = op->oq_add.rs_e->e_attrs; a; a = a->a_next ) {
-		int j;
+		int	j, is_oc = 0;
 
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
-				&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
-		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
-			continue;
+		if ( a->a_desc == slap_schema.si_ad_objectClass
+				|| a->a_desc == slap_schema.si_ad_structuralObjectClass )
+		{
+			is_oc = 1;
+			mapped = a->a_desc->ad_cname;
+
+		} else {
+			ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
+					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
+			if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
+				continue;
+			}
 		}
 
 		attrs[ i ] = ch_malloc( sizeof( LDAPMod ) );
@@ -106,29 +114,66 @@ meta_back_add( Operation *op, SlapReply *rs )
 		attrs[ i ]->mod_op = LDAP_MOD_BVALUES;
 		attrs[ i ]->mod_type = mapped.bv_val;
 
-		/*
-		 * FIXME: dn-valued attrs should be rewritten
-		 * to allow their use in ACLs at the back-ldap
-		 * level.
-		 */
-		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
-			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
-		}
+		if ( is_oc ) {
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ )
+				;
 
-		for ( j = 0; a->a_vals[ j ].bv_val; j++ );
-		attrs[ i ]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
-		for ( j = 0; a->a_vals[ j ].bv_val; j++ ) {
-			attrs[ i ]->mod_vals.modv_bvals[ j ] = &a->a_vals[ j ];
+			attrs[ i ]->mod_bvalues =
+				(struct berval **)ch_malloc( ( j + 1 ) *
+				sizeof( struct berval * ) );
+
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
+				struct ldapmapping	*mapping;
+
+				ldap_back_mapping( &li->targets[ candidate ]->rwmap.rwm_oc,
+						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
+
+				if ( mapping == NULL ) {
+					if ( li->targets[ candidate ]->rwmap.rwm_oc.drop_missing ) {
+						continue;
+					}
+					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
+
+				} else {
+					attrs[ i ]->mod_bvalues[ j ] = &mapping->dst;
+				}
+				j++;
+			}
+
+			if ( j == 0 ) {
+				ch_free( attrs[ i ]->mod_bvalues );
+				continue;
+			}
+
+			attrs[ i ]->mod_bvalues[ j ] = NULL;
+
+		} else {
+			/*
+			 * FIXME: dn-valued attrs should be rewritten
+			 * to allow their use in ACLs at the back-ldap
+			 * level.
+			 */
+			if ( a->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+				(void)ldap_dnattr_rewrite( &dc, a->a_vals );
+				if ( a->a_vals == NULL ) {
+					continue;
+				}
+			}
+
+			for ( j = 0; a->a_vals[ j ].bv_val; j++ );
+			attrs[ i ]->mod_bvalues = ch_malloc((j+1)*sizeof(struct berval *));
+			for ( j = 0; a->a_vals[ j ].bv_val; j++ ) {
+				attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
+			}
+			attrs[ i ]->mod_bvalues[ j ] = NULL;
 		}
-		attrs[ i ]->mod_vals.modv_bvals[ j ] = NULL;
 		i++;
 	}
 	attrs[ i ] = NULL;
 
 	ldap_add_s( lc->conns[ candidate ].ld, mdn.bv_val, attrs );
 	for ( --i; i >= 0; --i ) {
-		free( attrs[ i ]->mod_vals.modv_bvals );
+		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );
 	}
 	free( attrs );

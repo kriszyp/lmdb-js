@@ -9,6 +9,7 @@ OpenLDAP 2.2.21 Release
 	Fixed back-bdb retcode on referral (ITS#3475)
 	Fixed back-bdb detecting deadlock in indexer (ITS#3481)
 	Fixed back-bdb cache deadlock (ITS#3494)
+	Fixed back-ldap/meta objectClass mapping in updates (ITS#3499)
 	Fixed back-meta DN-valued attribute delete (ITS#3498)
 	Fixed back-sql access checking on search (ITS#3488)
 	Build Environment

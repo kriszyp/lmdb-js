@@ -141,6 +141,12 @@ ldap_back_modify(
 					}
 					j++;
 				}
+
+				if ( j == 0 ) {
+					ch_free( mods[i].mod_bvalues );
+					continue;
+				}
+
 				mods[i].mod_bvalues[j] = NULL;
 
 			} else {

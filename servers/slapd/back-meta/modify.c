@@ -126,15 +126,29 @@ meta_back_modify( Operation *op, SlapReply *rs )
 				for (j = 0; ml->sml_values[j].bv_val; j++);
 				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
 					sizeof(struct berval *));
-				for (j = 0; ml->sml_values[j].bv_val; j++) {
-					ldap_back_map(&li->targets[ candidate ]->rwmap.rwm_oc,
+				for (j = 0; ml->sml_values[j].bv_val; ) {
+					struct ldapmapping	*mapping = NULL;
+					
+					ldap_back_mapping(&li->targets[ candidate ]->rwmap.rwm_oc,
 							&ml->sml_values[j],
-							&mapped, BACKLDAP_MAP);
-					if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-						continue;
+							&mapping, BACKLDAP_MAP);
+					if ( mapping == NULL ) {
+						if ( li->targets[ candidate ]->rwmap.rwm_oc.drop_missing ) {
+							continue;
+						}
+						mods[i].mod_bvalues[j] = &ml->sml_values[j];
+						
+					} else {
+						mods[i].mod_bvalues[j] = &mapping->dst;
 					}
-					mods[i].mod_bvalues[j] = &mapped;
+					j++;
 				}
+
+				if ( j == 0 ) {
+					ch_free( mods[i].mod_bvalues );
+					continue;
+				}
+
 				mods[i].mod_bvalues[j] = NULL;
 
 			} else {
