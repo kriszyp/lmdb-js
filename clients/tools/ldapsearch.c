@@ -1044,8 +1044,12 @@ static int dosearch(
 			case LDAP_RES_SEARCH_RESULT:
 				rc = print_result( ld, msg, 1 );
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-				if ( rc == LDAP_SUCCESS && pageSize != 0 ) { 
-					rc = parse_page_control( ld, msg, &cookie );
+				if ( pageSize != 0 ) {
+					if ( rc == LDAP_SUCCESS ) {
+						rc = parse_page_control( ld, msg, &cookie );
+					} else {
+						morePagedResults = 0;
+					}
 				}
 #endif
 
