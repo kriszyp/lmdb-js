@@ -36,13 +36,13 @@
  * I got the idea of expanding during the round function from SSLeay
  */
 #if BYTE_ORDER == LITTLE_ENDIAN
-# define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \
-    |(rol(block->l[i],8)&0x00FF00FF))
+# define blk0(i) (block[i] = (rol(block[i],24)&0xFF00FF00) \
+    |(rol(block[i],8)&0x00FF00FF))
 #else
-# define blk0(i) block->l[i]
+# define blk0(i) block[i]
 #endif
-#define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-    ^block->l[(i+2)&15]^block->l[i&15],1))
+#define blk(i) (block[i&15] = rol(block[(i+13)&15]^block[(i+8)&15] \
+    ^block[(i+2)&15]^block[i&15],1))
 
 /*
  * (R0+R1), R2, R3, R4 are the different operations (rounds) used in SHA1
@@ -61,16 +61,14 @@ void
 lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
-    typedef union char64long16_u {
-	unsigned char c[64];
-	u_int l[16];
-    } CHAR64LONG16;
 
+	/* Assumes u_int is 32 bits and char 8 bits.
+	 * I don't know why uint32 isn't used (or what the difference is). */
 #ifdef SHA1HANDSOFF
-    CHAR64LONG16 block[1];
+    u_int block[16];
     (void)memcpy(block, buffer, 64);
 #else
-    CHAR64LONG16 *block = (CHAR64LONG16 *)buffer;
+    u_int *block = (u_int *)buffer;
 #endif
 
     /* Copy context->state[] to working vars */
