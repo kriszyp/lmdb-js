@@ -20,6 +20,7 @@ public:
 	Gtk_Button *display_button;
 	Gtk_Paned *pane;
 	My_Window(GtkWindowType t);
+	~My_Window();
 	void do_display();
 	void expand(Gtk_TreeItem *t);
 	gint delete_event_impl(GdkEventAny *);

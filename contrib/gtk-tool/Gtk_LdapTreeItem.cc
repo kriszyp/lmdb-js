@@ -2,45 +2,66 @@
 #include <gtk--/base.h>
 
 Gtk_LdapTreeItem::Gtk_LdapTreeItem() : Gtk_TreeItem() {
+	this->objectClass = NULL;
 }
 
 Gtk_LdapTreeItem::Gtk_LdapTreeItem(char *c, My_Window *w) : Gtk_TreeItem() {
 	this->rdn = c;
 	this->par = w;
+	this->objectClass = NULL;
 }
 
 Gtk_LdapTreeItem::Gtk_LdapTreeItem(GtkTreeItem *t) : Gtk_TreeItem(t) {
 }
 
+Gtk_LdapTreeItem::~Gtk_LdapTreeItem() {
+	cout << "Bye" << endl;
+	delete this;
+}
+
 void Gtk_LdapTreeItem::setType(int t) {
-//	printf("Gtk_LdapTreeItem::setType(%d)\n", t);
+	cout << "Gtk_LdapTreeItem::setType(" << t << ")" << endl;
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	if (this->getchild() != NULL) {
-	//	printf("There's a label in here - removing");
 		xpm_label = new Gtk_HBox(GTK_HBOX(this->getchild()->gtkobj()));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
-	//	xpm_label->remove_c(GTK_WIDGET(xpm_icon->gtkobj()));
-	//	printf("done\n");
 	}
 	else xpm_label = new Gtk_HBox();
-	switch (t) {
-		case 1: xpm_icon = new Gtk_Pixmap(*xpm_label, "root_node.xpm"); break;
-		case 2: xpm_icon = new Gtk_Pixmap(*xpm_label, "branch_node.xpm"); break;
-		default: xpm_icon = new Gtk_Pixmap(*xpm_label, "leaf_node.xpm"); break;
-	}
+	if (strcasecmp(this->objectClass,"organization") == 0)
+		xpm_icon=new Gtk_Pixmap(*xpm_label, root_node);
+	else if (strcasecmp(this->objectClass,"organizationalunit") == 0)
+		xpm_icon=new Gtk_Pixmap(*xpm_label, branch_node);
+	else if (strcasecmp(this->objectClass,"person") == 0)
+		xpm_icon=new Gtk_Pixmap(*xpm_label, leaf_node);
+	else xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
 	label = new Gtk_Label(this->rdn);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
-	xpm_icon->show();
+	if (this->getchild() == NULL) this->add(xpm_label);
 	label->show();
 	xpm_label->show();
-	if (this->getchild() == NULL) this->add(xpm_label);
-	else printf("There's still a child here!\n");
+	xpm_icon->show();
+}
+
+int Gtk_LdapTreeItem::showDetails() {
+	cout << "Gtk_LdapTreeItem::showDetails()" << endl;
+	if (this->notebook != NULL) {
+		if (par->viewport->getchild() != NULL) {
+			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
+		}
+		par->viewport->add(this->notebook);
+		this->notebook->show();
+		par->viewport->show();
+		return 0;
+	}
+	else this->getDetails();
+	this->showDetails();
 }
 
 int Gtk_LdapTreeItem::getDetails() {
+	cout << "Gtk_LdapTreeItem::getDetails()" << endl;
 	int error, entriesCount;
 	BerElement *ber;
 	LDAPMessage *entry;
@@ -50,18 +71,6 @@ int Gtk_LdapTreeItem::getDetails() {
 	GList *child_list;
 	Gtk_Notebook *g;
 	Gtk_Viewport *viewport;
-	viewport = new Gtk_Viewport();
-	if (this->notebook != NULL) {
-		printf("Data on %s available\n", this->rdn);
-		if (par->viewport->getchild() != NULL) {
-			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
-		}
-		par->viewport->add(this->notebook);
-		this->notebook->show();
-		par->viewport->show();
-	//	par->scroller2->show();
-		return 0;
-	}
 	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &result_identifier);
 	entriesCount = ldap_count_entries(ld, result_identifier);
 	if (entriesCount == 0) return 0;
@@ -71,8 +80,13 @@ int Gtk_LdapTreeItem::getDetails() {
 	
 	for (entry = ldap_first_entry(ld, result_identifier); entry != NULL; entry = ldap_next_entry(ld, result_identifier)) {
 		for (attribute = ldap_first_attribute(ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(ld, entry, ber)) {
-			table = new Gtk_CList(1, titles);
 			values = ldap_get_values(ld, entry, attribute);
+			if (strcasecmp(attribute, "objectclass") == 0) {
+				if (strcasecmp(values[0],"top") == 0)
+					this->objectClass = strdup(values[1]);
+				else this->objectClass = values[0];
+			}
+			table = new Gtk_CList(1, titles);
 			for (int i=0; i<ldap_count_values(values); i++) {
 				const gchar *t[] = { values[i] };
 				table->append(t);
@@ -84,16 +98,8 @@ int Gtk_LdapTreeItem::getDetails() {
 			label->show();
 		}
 	}
-	if (par->scroller2 != NULL) {
-		if (par->viewport->getchild() != NULL) {
-			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
-		}
-		par->viewport->add(this->notebook);
-		this->notebook->show();
-		par->viewport->show();
-	//	par->scroller2->show();
-		cout << "Added details for " << this->rdn << endl;
-	}
+	this->setType(1);
+	cout << ".";
 	return 0;
 }
 void Gtk_LdapTreeItem::select_impl() {
@@ -102,7 +108,7 @@ void Gtk_LdapTreeItem::select_impl() {
 	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
 	if (!sig->select) return;
 	sig->select(GTK_ITEM(gtkobj()));
-	this->getDetails();
+	this->showDetails();
 }
 
 void Gtk_LdapTreeItem::collapse_impl() {

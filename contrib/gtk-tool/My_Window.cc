@@ -37,6 +37,12 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->add(main_hbox);
 	main_hbox->show();
 }
+
+My_Window::~My_Window() {
+	cout << "~My_Window()" << endl;
+	delete this;
+}
+
 void My_Window::do_display() {
 	cout << this->urlfield->get_text() << endl;
 }
@@ -75,8 +81,9 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 	treeitem = new Gtk_LdapTreeItem(c, p);
 	treeitem->dn = b_d; treeitem->ld = l_i;
 	treeresult = new Gtk_LdapItem();
+	treeitem->getDetails();
 	if (entriesCount == 0) { 
-		treeitem->setType(LEAF_NODE);
+	//	treeitem->setType(LEAF_NODE);
 		treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
 		treeresult->tree = NULL;
 		return treeresult;
@@ -103,7 +110,7 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 	//	printf("\n");
 		entry = ldap_next_entry(l_i, entry);
 	}
-	treeitem->setType(BRANCH_NODE);
+//	treeitem->setType(BRANCH_NODE);
 	treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
 	treeresult->tree = new Gtk_Tree(*subtree);
 	return treeresult;

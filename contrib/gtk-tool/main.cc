@@ -33,8 +33,10 @@ int main(int argc, char **argv) {
 		}
 	}
 
+//	if (base_dn == NULL) base_dn = ldap_get_option(NULL, LDAP_OPT_BASE);
 	if (base_dn == NULL) base_dn = "o=University of Michigan, c=US";
-	if (host == NULL) host = "localhost";
+	if (host == NULL) ldap_get_option(NULL, LDAP_OPT_HOST_NAME, host);
+	//host = "localhost";
 	if (port == 0) port = LDAP_PORT;
 
 	Gtk_Main m(&argc, &argv);
@@ -48,13 +50,11 @@ int main(int argc, char **argv) {
 	tree = new Gtk_Tree();
 	treeresult = window->make_tree(window, ld, base_dn);
 	treeitem = new Gtk_LdapTreeItem(*treeresult->treeitem);
-//	treeitem->remove_c(treeitem->getchild()->gtkobj());
-//	gtk_widget_destroy(GTK_WIDGET(treeitem->xpm_label->gtkobj()));
-	treeresult->treeitem->setType(ROOT_NODE);
+//	treeresult->treeitem->setType(ROOT_NODE);
 	tree->append(*treeitem);
 	if (treeresult->tree != NULL) {
 		subtree = new Gtk_Tree(*treeresult->tree);
-		printf("inserting %s into root\n", base_dn);
+	//	cout << "Inserting " << base_dn << " into root" << endl;
 		treeitem->set_subtree(*subtree);
 	}
 	treeitem->show();
@@ -64,7 +64,8 @@ int main(int argc, char **argv) {
 	tree->show();
 	viewport->show();
 	window->scroller->show();
-	treeitem->getDetails();
+	treeitem->showDetails();
+//	treeitem->select();
 	window->set_title("Hello");
 	window->activate();
 

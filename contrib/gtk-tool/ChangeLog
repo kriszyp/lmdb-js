@@ -1,5 +1,11 @@
 ChangeLog for gtk-tool
 
+28/11/1998 - Pele
+	* Fixes, enhancements, started using ldap utility api
+	* It now traverses the whole tree at startup, not sure if it's smart
+	but I did it because of something that has no relevance to network
+	traffic
+
 27/11/1998 - Pele
 	* Added viewports, both sides now scroll automatically
 	* Brought back the "cache" stuff, now data gets reused if it's allready

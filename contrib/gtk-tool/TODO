@@ -3,8 +3,6 @@ LOADS!!!
 Priorities:
 	Make it useful!
 	Implement searches
-	Some sort of config-file parsing (not new files, but existing
-	slapd-config stuff)
 	port to autoconf (anyone? it should be easy)
 
 Optional:

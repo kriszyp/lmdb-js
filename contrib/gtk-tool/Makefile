@@ -3,7 +3,7 @@ CC=	gcc
 CPLUS=	g++
 OPTS=-g -DmyDEBUG
 INCLUDES=`gtkmm-config --cflags` -I.
-LDFLAGS=`gtkmm-config --libs` -L/usr/lib -L/usr/X11/lib -L/usr/local/gnome/lib -L/usr/local/ldap/lib -lldap -llber
+LDFLAGS=`gtkmm-config --libs` -L/usr/lib -L/usr/X11/lib -L/usr/local/gnome/lib -L/usr/local/ldap/lib -lldap -llber -L/usr/local/kerberos/lib -lkrb5 -lkrb4
 LIBS=-lXext -lgtkmm -lX11 -lXt -lXxf86dga
 
 .EXPORT_ALL_VARIABLES:
