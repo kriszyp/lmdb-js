@@ -223,6 +223,21 @@ int octetStringFilter(
 
 #ifdef USE_LDAP_DN_PARSING
 
+/*
+ * The DN syntax-related functions take advantage of the dn representation
+ * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
+ * aware, so the attributes and their values need be validated (and possibly
+ * normalized).  In the current implementation the required validation/nor-
+ * malization/"pretty"ing are done on newly created DN structural represen-
+ * tations; however the idea is to move towards DN handling in structural
+ * representation instead of the current string representation.  To this
+ * purpose, we need to do only the required operations and keep track of
+ * what has been done to minimize their impact on performances.
+ *
+ * Developers are strongly encouraged to use this feature, to speed-up
+ * its stabilization.
+ */
+
 #define	AVA_PRIVATE( ava ) ( ( AttributeDescription * )(ava)->la_private )
 
 /*
@@ -241,10 +256,14 @@ LDAPDN_validate( LDAPDN *dn )
 		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
 		int		iAVA;
 
+		assert( rdn );
+
 		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validate = NULL;
+
+			assert( ava );
 			
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
@@ -282,6 +301,9 @@ LDAPDN_validate( LDAPDN *dn )
 	return LDAP_SUCCESS;
 }
 
+/*
+ * dn validate routine
+ */
 static int
 dnValidate(
 	Syntax *syntax,
@@ -289,6 +311,8 @@ dnValidate(
 {
 	int		rc;
 	LDAPDN		*dn = NULL;
+
+	assert( in );
 
 	if ( in->bv_len == 0 ) {
 		return( LDAP_SUCCESS );
@@ -312,15 +336,31 @@ dnValidate(
 	return( LDAP_SUCCESS );
 }
 
+/*
+ * AVA sorting inside a RDN
+ *
+ * rule: sort attributeTypes in alphabetical order; in case of multiple
+ * occurrences of the same attributeType, sort values in byte order
+ * (use memcmp, which implies alphabetical order in case of IA5 value;
+ * this should guarantee the repeatability of the operation).
+ *
+ * uses a linear search; should be fine since the number of AVAs in
+ * a RDN should be limited.
+ */
 static void
 AVA_Sort( LDAPRDN *rdn, int iAVA )
 {
 	int		i;
 	LDAPAVA		*ava_in = rdn[ iAVA ][ 0 ];
+
+	assert( rdn );
+	assert( ava_in );
 	
 	for ( i = 0; i < iAVA; i++ ) {
 		LDAPAVA		*ava = rdn[ i ][ 0 ];
 		int		a, j;
+
+		assert( ava );
 
 		a = strcmp( ava_in->la_attr->bv_val, ava->la_attr->bv_val );
 
@@ -389,12 +429,16 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
 		int		iAVA;
 
+		assert( rdn );
+
 		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
 			AttributeDescription	*ad;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
 			struct berval		*bv = NULL;
+
+			assert( ava );
 
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
@@ -454,6 +498,9 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 	return LDAP_SUCCESS;
 }
 
+/*
+ * dn normalize routine
+ */
 int
 dnNormalize(
 	Syntax *syntax,
@@ -463,6 +510,9 @@ dnNormalize(
 	struct berval *out = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
+
+	assert( val );
+	assert( normalized );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -509,6 +559,9 @@ dnNormalize(
 	return LDAP_SUCCESS;
 }
 
+/*
+ * dn "pretty"ing routine
+ */
 int
 dnPretty(
 	Syntax *syntax,
@@ -518,6 +571,9 @@ dnPretty(
 	struct berval *out = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
+
+	assert( val );
+	assert( pretty );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -539,6 +595,9 @@ dnPretty(
 		}
 
 		/* FIXME: not sure why the default isn't pretty */
+		/* RE: the default is the form that is used as
+		 * an internal representation; the pretty form
+		 * is a variant */
 		rc = ldap_dn2str( dn, &dn_out,
 			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
@@ -561,6 +620,12 @@ dnPretty(
 	return LDAP_SUCCESS;
 }
 
+/*
+ * dn match routine
+ *
+ * note: uses exact string match (strcmp) because it is supposed to work
+ * on normalized DNs.
+ */
 int
 dnMatch(
 	int *matchp,
@@ -572,6 +637,10 @@ dnMatch(
 {
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
+
+	assert( matchp );
+	assert( value );
+	assert( assertedValue );
 	
 	match = value->bv_len - asserted->bv_len;
 
