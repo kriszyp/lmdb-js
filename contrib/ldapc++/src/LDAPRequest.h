@@ -13,7 +13,14 @@
 
 class LDAPUrl;
 
-//!virtual class for Requests
+/**
+ * For internal use only
+ * 
+ * Each request that is sent to a LDAP-server by this library is
+ * represented by a special object that contains the parameters and some
+ * other info of the request. This virtual class is the common base classe
+ * for these specialized request classes.
+ */
 class LDAPRequest{
 
     public :
@@ -36,13 +43,34 @@ class LDAPRequest{
         int getType()const;
         int getMsgID() const;
         int getHopCount() const;
+
+        /**
+         * @return The LDAPRequest that has created this object. Or 0 if
+         * this object was not created by another request.
+         */
         const LDAPRequest* getParent() const;
 
+        /**
+         * @return true if this object was created during the automatic
+         * chasing of referrals. Otherwise false
+         */
         bool isReferral() const;
+        
         void unbind() const; 
+
+        /**
+         * This method encodes the request an calls the apprpriate
+         * functions of the C-API to send the Request to a LDAP-Server
+         */
         virtual LDAPMessageQueue* sendRequest()=0;
         virtual LDAPRequest* followReferral(LDAPMsg* ref)=0;
+
+        /**
+         * Compare this request with another on. And returns true if they
+         * have the same parameters.
+         */
         virtual bool equals(const LDAPRequest* req) const;
+
         bool isCycle() const;
         
     protected :

@@ -11,20 +11,53 @@
 class LDAPEntry;
    
 typedef list<LDAPEntry> EntryList;
+
+/**
+ * For internal use only.
+ * 
+ * This class is used by LDAPSearchResults to store a list of
+ * LDAPEntry-Objects
+ */
 class LDAPEntryList{
     typedef EntryList::const_iterator const_iterator;
 
-    private:
-        EntryList m_entries;
-
     public:
+        /**
+         * Copy-Constructor
+         */
         LDAPEntryList(const LDAPEntryList& el);
+
+        /**
+         * Default-Constructor
+         */
         LDAPEntryList();
+
+        /**
+         * Destructor
+         */
         ~LDAPEntryList();
 
+        /**
+         * @return The number of entries currently stored in the list.
+         */
         size_t size() const;
+
+        /**
+         * @return An iterator pointing to the first element of the list.
+         */
         const_iterator begin() const;
+
+        /**
+         * @return An iterator pointing to the end of the list
+         */
         const_iterator end() const;
+
+        /**
+         * Adds an Entry to the end of the list.
+         */
         void addEntry(const LDAPEntry& e);
+
+    private:
+        EntryList m_entries;
 };
 #endif // LDAP_ENTRY_LIST_H

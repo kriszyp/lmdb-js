@@ -13,15 +13,30 @@
 
 class LDAPUrlList;
 
+/**
+ * This class extends LDAPException and is used to signalize Referrals
+ * there were received during synchronous LDAP-operations
+ */
 class LDAPReferralException : public LDAPException{
+
+    public :
+        /**
+         * Creates an object that is initialized with a list of URLs
+         */
+        LDAPReferralException(const LDAPUrlList& urls);
+
+        /**
+         * Destructor
+         */
+        ~LDAPReferralException();
+
+        /**
+         * @return The List of URLs of the Referral/Search Reference
+         */
+        const LDAPUrlList& getUrls();
 
     private :
         LDAPUrlList m_urlList;
-
-    public :
-        LDAPReferralException(const LDAPUrlList& urls);
-        ~LDAPReferralException();
-        const LDAPUrlList& getUrls();
 };
 
 #endif //LDAP_REFERRAL_EXCEPTION_H

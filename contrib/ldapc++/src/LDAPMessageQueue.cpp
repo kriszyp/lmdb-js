@@ -123,9 +123,6 @@ LDAPMsg *LDAPMessageQueue::getNext(){
                 LDAPResult* res_p=(LDAPResult*)ret;
                 switch (res_p->getResultCode()) {
                     case LDAPResult::REFERRAL :
-                        DEBUG(LDAP_DEBUG_TRACE, 
-                               "referral chasing to be implemented" 
-                                << endl);
                         if(constr->getReferralChase()){
                             //throws Exception (limit Exceeded)
                             LDAPRequest *refReq=chaseReferral(ret);

@@ -9,22 +9,71 @@
 #include <string>
 #include <ldap.h>
 
-
+/**
+ * This class is used to store Controls. Controls are a mechanism to extend
+ * and modify LDAP-Operations.
+ */
 class LDAPCtrl{
-	public :
+    public :
+        /**
+         * Copy-constructor
+         */
         LDAPCtrl(const LDAPCtrl& c);
-		LDAPCtrl(const char *oid, bool critical, const char *data=0, 
+
+        /**
+         * Constructor.
+         * @param oid:  The Object Identifier of the Control
+         * @param critical: "true" if the Control should be handled
+         *                  critical by the server.
+         * @param data: If there is data for the control, put it here.
+         * @param length: The length of the data field
+         */
+        LDAPCtrl(const char *oid, bool critical, const char *data=0, 
                 int length=0);
+
+        /**
+         * Constructor.
+         * @param oid:  The Object Identifier of the Control
+         * @param critical: "true" if the Control should be handled
+         *                  critical by the server.
+         * @param data: If there is data for the control, put it here.
+         */
         LDAPCtrl(const string& oid, bool critical=false,
                 const string& data=string());
+
+        /**
+         * Creates a copy of the Control that "ctrl is pointing to
+         */
         LDAPCtrl(const LDAPControl* ctrl);
+
+        /**
+         * Destructor
+         */
         ~LDAPCtrl();
-        
+       
+        /**
+         * @return The OID of the control
+         */
         string getOID() const;
+
+        /**
+         * @return The Data of the control as a string-Objekt
+         */
         string getData() const;
+
+        /**
+         * @return "true" if the control is critical
+         */
         bool isCritical() const;
+
+        /**
+         * For internal use only.
+         *
+         * Translates the control to a LDAPControl-structure as needed by
+         * the C-API
+         */
         LDAPControl* getControlStruct() const;
-	
+    
     private :
         string m_oid;
         string m_data;

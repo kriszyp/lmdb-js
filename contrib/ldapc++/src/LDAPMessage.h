@@ -11,14 +11,16 @@
 #include "LDAPControlSet.h"
 
 class LDAPRequest;
-//! Represents an LDAPMsg returned from the server
-/*!
- * This class is normally not instantiated directly. Normally only
+/**
+ * This class represents any type of LDAP- Message returned 
+ * from the server.
+ *
+ * This class is never not instantiated directly. Only
  * its subclasses are used. The main feature of this class is the
  * static method create() (see below)
  */
 class LDAPMsg{
-	public:
+    public:
         //public Constants defining the Message types
         static const int BIND_RESPONSE=LDAP_RES_BIND;
         static const int SEARCH_ENTRY=LDAP_RES_SEARCH_ENTRY;
@@ -30,29 +32,83 @@ class LDAPMsg{
         static const int MODDN_RESPONSE=LDAP_RES_MODDN;
         static const int COMPARE_RESPONSE=LDAP_RES_COMPARE;
         static const int EXTENDED_RESPONSE=LDAP_RES_EXTENDED;
-        
-		virtual ~LDAPMsg() {}
+       
+        /**
+         * The destructor has no implemenation, because this is an abstract
+         * class.
+         */
+        virtual ~LDAPMsg() {}
 
-		/*!
-		 * Based on msgtype-Value of the *msg-Parameter this method creates
-		 * an Object of one of the subtypes of LDAPMsg (e.g. LDAPSearchResult
+        /**
+         * This method is used by the library to parse the results returned
+         * by the C-API.
+         *
+         * Based on msgtype-Value of the *msg-Parameter this method creates
+         * an Object of one of the subtypes of LDAPMsg (e.g. LDAPSearchResult
          * or LDAPResult) that represents the same Message as the
          * *msg-Parameter. *msg is e.g. a Message returned by the C-API's
          * ldap_result call.
-		 */
-		static LDAPMsg* create(const LDAPRequest *req, LDAPMessage *msg);	
-		int getMessageType();
+         * @param req   The LDAPRequest-object this result message is
+         *          associated with.
+         * @param msg   The LDAPMessage-structure from the C-API that
+         *          contains the LDAP-message to parse.
+         * @return An Object of one of the subtypes of this class. It
+         *          contains the parsed LDAP-message.
+         */
+        static LDAPMsg* create(const LDAPRequest *req, LDAPMessage *msg);   
+        
+        /**
+         * @returns The Type of message that this object contains. Possible
+         *          values are: <BR>
+         *          BIND_RESPONSE <BR>
+         *          SEARCH_ENTRY  <BR>       
+         *          SEARCH_DONE   <BR>      
+         *          SEARCH_REFERENCE   <BR>      
+         *          MODIFY_RESPONSE     <BR>    
+         *          ADD_RESPONSE       <BR>  
+         *          DEL_RESPONSE       <BR>  
+         *          MODDN_RESPONSE     <BR>    
+         *          COMPARE_RESPONSE   <BR>
+         *          EXTENDED_REPONSE   <BR>      
+         */
+        int getMessageType();
+        
+        /**
+         * @returns The message-ID that the C-API return for the
+         *      Result-message. 
+         */
         int getMsgID();
+
+        /**
+         * @returns If any Control was sent back by the server this method
+         *       returns true. Otherwise false is returned.
+         */
         bool hasControls() const;
+
+        /**
+         * @returns Server controls that were sent back by the server.
+         * @note This feature is not test well yet.
+         */
         const LDAPControlSet& getSrvControls() const;
-	
+    
     protected:
-		LDAPMsg(LDAPMessage *msg);
+        /**
+         * This constructor make a copy of a LDAPMsg-pointer. The object
+         * itself (no the pointer) is copied.
+         * Only for internal use.
+         */
+        LDAPMsg(LDAPMessage *msg);
+       
+        /**
+         * This attribute stores Server-Control that were returned with the
+         * message.
+         */
         LDAPControlSet m_srvControls;
+        
         bool m_hasControls;
 
-	private:
-		int msgType;
-		int msgID;
+    private:
+        int msgType;
+        int msgID;
 };
 #endif //ifndef LDAP_MSG_H

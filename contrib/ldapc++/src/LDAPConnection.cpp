@@ -276,6 +276,39 @@ LDAPSearchResults* LDAPConnection::search(const string& base, int scope,
     return 0;
 }
 
+LDAPExtResult* LDAPConnection::extOperation(const string& oid, 
+        const string& value, const LDAPConstraints *cons = 0){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPConnection::extOperation" << endl);
+    LDAPMessageQueue* msg=0;
+    LDAPExtResult* res=0;
+    try{
+        msg = LDAPAsynConnection::extOperation(oid,value,cons);
+        res = (LDAPExtResult*)msg->getNext();
+    }catch(LDAPException e){
+        delete msg;
+        delete res;
+        throw;
+    }
+    int resCode=res->getResultCode();
+    switch (resCode){
+        case LDAPResult::SUCCESS :
+            delete msg;
+            return res;
+        case LDAPResult::REFERRAL :
+        {
+            LDAPUrlList urls = res->getReferralUrls();
+            delete res;
+            delete msg;
+            throw LDAPReferralException(urls);
+        }
+        break;
+        default :
+            delete res;
+            delete msg;
+            throw LDAPException(resCode);
+    }
+}
+
 const string& LDAPConnection::getHost() const{
     return LDAPAsynConnection::getHost();
 }

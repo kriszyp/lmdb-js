@@ -4,8 +4,8 @@
  */
 
 
-#ifndef LDAP_RESPNSE_H
-#define LDAP_RESPONSE_H
+#ifndef LDAP_RESULT_H
+#define LDAP_RESULT_H
 
 #include<iostream>
 #include<ldap.h>
@@ -16,6 +16,16 @@
 class LDAPRequest;
 class LDAPAsynConnection;
 
+/**
+ * This class is for representing LDAP-Result-Messages.
+ *
+ * It represents all Messages that were returned
+ * from LDAP-Operations except for Messages of the Type 
+ * LDAPMsg::SEARCH_ENTRY, LDAPMsg::SEARCH_REFERENCE and
+ * LDAPMsg::EXTENDED_RESPONSE. <BR>
+ * It defines a integer constant for every possible result type that can be
+ * returned by the server.
+ */
 class LDAPResult : public LDAPMsg{
     public :
         //Error codes from RFC 2251
@@ -85,12 +95,53 @@ class LDAPResult : public LDAPMsg{
         static const int CLIENT_LOOP                    = 96;
         static const int REFERRAL_LIMIT_EXCEEDED        = 97;
 
+        /**
+         * This constructor is called by the LDAPMsg::create method in
+         * order to parse a LDAPResult-Message 
+         * @param req   The request the result is associated with.
+         * @param msg   The LDAPMessage-structure that contains the
+         *              Message.
+         */
         LDAPResult(const LDAPRequest *req, LDAPMessage *msg);
+        
+        /**
+         * The destructor.
+         */
         virtual ~LDAPResult();
+
+        /**
+         * @returns The result code of the Message. Possible values are the
+         *      integer constants defined in this class.
+         */
         int getResultCode() const;
+
+        /**
+         * This method transforms the result code to a human-readable
+         * result message.
+         * @returns A string containing the result message.
+         */
         string resToString() const;
+
+        /**
+         * In some case of error the server may return addional error
+         * messages.
+         * @returns The additional error message returned by the server.
+         */
         const string& getErrMsg() const;
+
+        /**
+         * For messages with a result code of: NO_SUCH_OBJECT,
+         * ALIAS_PROBLEM, ALIAS_DEREFERENCING_PROBLEM or INVALID_DN_SYNTAX
+         * the server returns the DN of deepest entry in the DIT that could
+         * be found for this operation.
+         * @returns The Matched-DN value that was returned by the server.
+         */
         const string& getMatchedDN() const;
+
+        /**
+         * @returns If the result code is REFERRAL this methode returns the
+         *      URLs of the referral that was sent by the server.
+         */
         const LDAPUrlList& getReferralUrls() const;
 
     private :
@@ -99,7 +150,11 @@ class LDAPResult : public LDAPMsg{
         string m_errMsg;
         LDAPUrlList m_referrals;    
 
+    /**
+     * This method can be used to dump the data of a LDAPResult-Object.
+     * It is only useful for debugging purposes at the moment
+     */
     friend  ostream& operator<<(ostream &s,LDAPResult &l);
 };
-#endif //LDAP_RESPONSE_H
+#endif //LDAP_RESULT_H
 

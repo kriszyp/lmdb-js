@@ -9,7 +9,64 @@
 
 #include <ldap.h>
 #include "StringList.h"
+
+/**
+ * This class is used to analyze and store LDAP-Urls as returned by a
+ * LDAP-Server as Referrals and Search References. LDAP-URLs are defined
+ * in RFC1959 and have the following format: <BR>
+ * <code>
+ * ldap://host:port/baseDN[?attr[?scope[?filter]]] <BR>
+ * </code>
+ */
 class LDAPUrl{
+
+    public : 
+        /**
+         * Create a new object from a c-string that contains a LDAP-Url
+         */
+        LDAPUrl(const char *url);
+
+        /**
+         * Destructor
+         */
+        ~LDAPUrl();
+
+        /**
+         * @return The part of the URL that is representing the network
+         * port
+         */
+        int getPort() const;
+
+        /**
+         * @return The scope part of the URL is returned. 
+         */
+        int getScope() const;
+
+        /**
+         * @return The complete URL as a string
+         */
+        const string& getURLString() const;
+
+        /**
+         * @return The hostname or IP-Address of the destination host.
+         */
+        const string& getHost() const;
+
+        /**
+         * @return The Base-DN part of the URL
+         */
+        const string& getDN() const;
+
+        
+        /**
+         * @return The Filter part of the URL
+         */
+        const string& getFilter() const;
+
+        /**
+         * @return The List of attributes  that was in the URL
+         */
+        const StringList& getAttrs() const;
     
     protected :
         int m_Port;
@@ -20,18 +77,6 @@ class LDAPUrl{
         StringList m_Attrs;
         LDAPURLDesc *m_urlDesc;
         string m_urlString;
-
-    public : 
-        LDAPUrl(const char *url);
-        ~LDAPUrl();
-
-        int getPort() const;
-        int getScope() const;
-        const string& getURLString() const;
-        const string& getHost() const;
-        const string& getDN() const;
-        const string& getFilter() const;
-        const StringList& getAttrs() const;
 };
 
 #endif //LDAP_URL_H

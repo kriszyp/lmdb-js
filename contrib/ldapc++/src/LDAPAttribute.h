@@ -14,41 +14,52 @@
 
 #include "StringList.h"
 
-//! Represents the name an value(s) of an Attribute 
+/**
+ * Represents the name an value(s) of an Attribute 
+ */
 class LDAPAttribute{
     public :
-        //! Default constructor
-        /*!
-         * initializes an empty object
+        /** 
+         * Default constructor.
+         * initializes an empty object.
          */
         LDAPAttribute();
 
-        //!Copy constructor
-        /*!
+        /**
+         * Copy constructor.
          * Copies all values of an Attribute to a new one
          * @param attr   The Attribute that should be copied
          */
         LDAPAttribute(const LDAPAttribute& attr);
 
-        //! Construct an Attribute with a single string value
-        /*!
+        /**
+         * Construct an Attribute with a single string value
          * @param name      The attribute's name (type)
-         * @param value     The string value of the attribute, if 0 the 
-         *                  will have no values, for LDAPv3 this values must
-         *                  be UTF-8 encoded
+         * @param value     The string value of the attribute, if "" the
+         *                  attribute will have no values, for LDAPv3 
+         *                  this values must be UTF-8 encoded
          */
         LDAPAttribute(const string& name, const string& value="");
 
-        //! Construct an attribute with multiple string values
-        /*!
+        /** 
+         * Construct an attribute with multiple string values
          * @param name      The attribute's name (type)
          * @param values    A 0-terminated array of char*. Each char* specifies
          *                  one value of the attribute (UTF-8 encoded)
          */
         LDAPAttribute(const char* name, char **values);
+        
+        /** 
+         * Construct an attribute with multiple string values
+         * @param name      The attribute's name (type)
+         * @param values    A list of strings. Each element specifies
+         *                  one value of the attribute (UTF-8 or binary 
+         *                  encoded)
+         */
         LDAPAttribute(const string& name, const StringList& values);
-        //! Construct an attribute with multiple binary coded values
-        /*!
+
+        /**
+         * Construct an attribute with multiple binary coded values
          * @param name      The attribute's name (type)
          * @param values    0-terminated array of binary attribute values
          *                  The BerValue struct is declared as:<BR>
@@ -59,30 +70,28 @@ class LDAPAttribute{
          */         
         LDAPAttribute(const char* name, BerValue **values);
         
-        //! Destructor
+        /**
+         * Destructor
+         */
         ~LDAPAttribute();
 
-        //! Add a single string value(bin/char) to the Attribute
-        /*!
+        /**
+         * Add a single string value(bin/char) to the Attribute
          * @param value Value that should be added, it is copied inside the
          *              object
-         * 
-         * @return  0  no problem <BR>
-         *          -1 failure (mem. allocation problem)
          */
         void addValue(const string& value);
 
-        //! Add a single binary value to the Attribute
-        /*!
+        /**
+         * Add a single binary value to the Attribute
          * @param value The binary coded value that should be added to the
          *              Attribute.
-         * 
          * @return  0  no problem <BR>
          *          -1 failure (mem. allocation problem)
          */
         int addValue(const BerValue *value);
 
-        /*!
+        /**
          * Set the values of the attribute. If the object contains some values
          * already, they are deleted
          * @param values    0-terminated array of char*, each char* 
@@ -93,7 +102,7 @@ class LDAPAttribute{
          */
         int setValues(char** values);
 
-        /*!
+        /**
          * Set the values of the attribute. If the object does already contain
          * some values, they will be deleted
          * @param values    0-terminated array of BerValue*, each BerValue
@@ -103,53 +112,69 @@ class LDAPAttribute{
          *          -1 failure (mem. allocation problem)
          */
         int setValues(BerValue** values);
+
+        /**
+         * Set the values of the attribute. If the object does already contain
+         * some values, they will be deleted
+         * @param values    A list of string-Objects. Each string is 
+         *                  representing a string or binary value to add to
+         *                  the entry
+         */
         void setValues(const StringList& values); 
-        /*!
+
+        /**
+         * For interal use only.
+         * This method is used to translate the values of the Attribute to
+         * 0-terminated Array of BerValue-structs as used by the C-API
          * @return  The Values of the Attribute as an 0-terminated Array of 
          *          BerValue* (is dynamically allocated, delete it after usage) 
          *          <BR>
          *          0-pointer in case of error
          */
         BerValue** getBerValues() const;
+
+        /**
+         * @return The values of the array as a list of strings
+         */
         const StringList& getValues() const;
-        /*!
-         * @return The Number of values of the attribute
+        
+        /**
+         * @return The number of values of the attribute
          */
         int getNumValues() const;
 
-        /*!
+        /**
          * @return The name(type) of the attribute
-         *         <BR>
-         *         0-pointer in case of error
          */
         const string& getName() const ;
 
-        /*!
+        /**
+         * Sets the Attribute's name (type) 
          * @param the new name of the object  
-         * 
-         * @return  0  no problem <BR>
-         *          -1 failure (mem. allocation problem)
          */
         void setName(const string& name);
 
-        /*!
-         * for internal use only
+        /**
+         * For internal use only.
+         *
+         * This method translate the attribute of the object into a
+         * LDAPMod-Structure as used by the C-API
          */
         LDAPMod* toLDAPMod() const ;
 
+        /**
+         * @return true If the attribute contains non-printable attributes
+         */
         bool isNotPrintable() const ;
 
     private :
         string m_name;
         StringList m_values;
-        /*!
-         * @return true if the values contains nonprintable characters, 
-         *      otherwise false
-         */
 
-        /*!
-         * just for debugging at the moment
-         */
+    /**
+     * This method can be used to dump the data of a LDAPResult-Object.
+     * It is only useful for debugging purposes at the moment
+     */
     friend ostream& operator << (ostream& s, const LDAPAttribute& attr);
 };
 #endif //#ifndef LDAP_ATTRIBUTE_H

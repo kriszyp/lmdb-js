@@ -12,14 +12,33 @@
 
 class LDAPRequest;
 
+/**
+ * This class is used to represent the result entries of a
+ * SEARCH-operation.
+ */
 class LDAPSearchResult : public LDAPMsg{
-	public:
-		LDAPSearchResult(const LDAPRequest *req, LDAPMessage *msg);
+    public:
+        /**
+         * Constructor that create an object from the C-API structures
+         */
+        LDAPSearchResult(const LDAPRequest *req, LDAPMessage *msg);
+
+        /**
+         * Copy-Constructor
+         */
         LDAPSearchResult(const LDAPSearchResult& res);
-		virtual ~LDAPSearchResult();
-		const LDAPEntry* getEntry() const;
-	
+
+        /**
+         * The Destructor
+         */
+        virtual ~LDAPSearchResult();
+
+        /**
+         * @returns The entry that has been sent with this result message. 
+         */
+        const LDAPEntry* getEntry() const;
+    
     private:
-		LDAPEntry *entry;
+        LDAPEntry *entry;
 };
 #endif //LDAP_SEARCH_RESULT_H

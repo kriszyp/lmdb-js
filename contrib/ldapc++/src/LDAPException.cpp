@@ -40,6 +40,10 @@ const string& LDAPException::getResultMsg() const{
 	return m_res_string;
 }
 
+const string& LDAPException::getServerMsg() const{
+    return m_err_string;
+}
+
 ostream& operator << (ostream& s, LDAPException e){
 	s << "Error " << e.m_res_code << ": " << e.m_res_string;
 	if (e.m_err_string.size() > 0) {

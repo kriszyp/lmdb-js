@@ -13,11 +13,26 @@
 class LDAPRequest;
 class LDAPUrl;
 
+/**
+ * This class is used to represent Continuation References that were
+ * returned during a SEARCH-Operation.
+ */
 class LDAPSearchReference : public LDAPMsg{
 
     public :
+        /**
+         * Constructor that create an object from the C-API structures
+         */
         LDAPSearchReference(const LDAPRequest* req, LDAPMessage* msg);
+
+        /**
+         * The Destructor
+         */
         ~LDAPSearchReference();
+
+        /**
+         * @returns The destination URLs that were send with this message
+         */
         const LDAPUrlList& getUrls() const;
 
     private :

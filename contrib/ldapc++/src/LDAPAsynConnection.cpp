@@ -248,6 +248,7 @@ LDAPAsynConnection* LDAPAsynConnection::referralConnect(
         int port= conUrl->getPort();
         DEBUG(LDAP_DEBUG_TRACE,"   connecting to: " << host << ":" <<
                 port << endl);
+        //Set the new connection's constraints-object ?
         tmpConn=new LDAPAsynConnection(host.c_str(),port);
         int err=0;
 

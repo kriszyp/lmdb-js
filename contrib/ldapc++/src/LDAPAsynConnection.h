@@ -43,15 +43,28 @@ class LDAPAttribute;
  */
 class LDAPAsynConnection{
     public :
+        /** 
+         * Constant for the Search-Operation to indicate a Base-Level
+         * Search
+         */
         static const int SEARCH_BASE=0;
+        
+        /** 
+         * Constant for the Search-Operation to indicate a One-Level
+         * Search
+         */
         static const int SEARCH_ONE=1;
+        
+        /** 
+         * Constant for the Search-Operation to indicate a subtree 
+         * Search
+         */
         static const int SEARCH_SUB=2;
 //        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
 //        static const int SEARCH_ONE=LDAP_SCOPE_ONELEVEL;
 //        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
 
-        //* Construtor that initializes a connection to a server
-        /**
+        /** Construtor that initializes a connection to a server
          * @param hostname Name (or IP-Adress) of the destination host
          * @param port Port the LDAP server is running on
          * @param cons Default constraints to use with operations over 
@@ -64,15 +77,23 @@ class LDAPAsynConnection{
         virtual ~LDAPAsynConnection();
 
         /** 
-         * Initzializes a connection to a server. There actually no
+         * Initzializes a connection to a server. 
+         * 
+         * There actually no
          * communication to the server. Just the object is initialized
-         * (e.g. this method is called with the 
+         * (e.g. this method is called within the 
          * LDAPAsynConnection(char*,int,LDAPConstraints) constructor.)
+         * @param hostname  The Name or IP-Address of the destination
+         *             LDAP-Server
+         * @param port      The Network Port the server is running on
          */
         void init(const string& hostname, int port);
 
-        //* Simple authentication to a LDAP-Server
-        /**
+        /** Simple authentication to a LDAP-Server
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * This method does a simple (username, password) bind to the server.
          * Other, saver, authentcation methods are provided later
          * @param dn the distiguished name to bind as
@@ -81,15 +102,20 @@ class LDAPAsynConnection{
         LDAPMessageQueue* bind(const string& dn="", const string& passwd="",
                 const LDAPConstraints *cons=0);
 
-        //* Performing a search on a directory tree.
-        /**
+        /** Performing a search on a directory tree.
+         *
          * Use the search method to perform a search on the LDAP-Directory
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param base The distinguished name of the starting point for the
          *      search operation
          * @param scope The scope of the search. Possible values: <BR> 
          *      LDAPAsynConnection::SEARCH_BASE, <BR> 
          *      LDAPAsynConnection::SEARCH_ONE, <BR>
          *      LDAPAsynConnection::SEARCH_SUB
+         * @param filter The string representation of a search filter to
+         *      use with this operation
          * @param attrsOnly true if only the attributes names (no values) 
          *      should be returned
          * @param cons A set of constraints that should be used with this
@@ -101,17 +127,24 @@ class LDAPAsynConnection{
                                  bool attrsOnly=false,
                                  const LDAPConstraints *cons=0);
         
-        //* Delete an entry from the directory
-        /**
+        /** Delete an entry from the directory
+         *
          * This method sends a delete request to the server
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param dn    Distinguished name of the entry that should be deleted
          * @param cons  A set of constraints that should be used with this
          *              request
          */
         LDAPMessageQueue* del(const string& dn, const LDAPConstraints *cons=0);
         
-        //* Perform the compare operation on an attribute 
-        /**
+        /** 
+         * Perform the COMPARE-operation on an attribute 
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param dn    Distinguished name of the entry for which the compare
          *              should be performed
          * @param attr  An Attribute (one (!) value) to use for the
@@ -122,16 +155,21 @@ class LDAPAsynConnection{
         LDAPMessageQueue* compare(const string& dn, const LDAPAttribute& attr, 
                 const LDAPConstraints *cons=0);
 
-        //* Add an entry to the directory
-        /**
-         * @see LDAPEntry
+        /** Add an entry to the directory
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param le The entry that will be added to the directory
          */
         LDAPMessageQueue* add( const LDAPEntry* le,
                 const LDAPConstraints *const=0);
 
-        //* Apply modifications to attributes of an entry
-        /**
+        /** Apply modifications to attributes of an entry
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param dn Distiguished Name of the Entry to modify
          * @param modlist A set of modification that should be applied
          *      to the Entry
@@ -141,8 +179,11 @@ class LDAPAsynConnection{
         LDAPMessageQueue* modify(const string& dn, const LDAPModList *modlist,
                 const LDAPConstraints *cons=0);
 
-        //* modify the DN of an entry
-        /**
+        /** modify the DN of an entry
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param dn            DN to modify
          * @param newRDN        The new relative DN for the entry
          * @param delOldRDN     true=The old RDN will be removed from the 
@@ -156,9 +197,11 @@ class LDAPAsynConnection{
                 bool delOldRDN=false, const string& newParentDN="",
                 const LDAPConstraints* cons=0);
         
-        //* Perform a LDAP extended Operation
-        /**
-         * e.g. requesting TLS security features
+        /** Perform a LDAP extended Operation
+         *
+         * @throws LDAPException If the Request could not be sent to the
+         *      destination server, a LDAPException-object contains the
+         *      error that occured.
          * @param oid The dotted decimal representation of the extended 
          *      Operation that should be performed
          * @param value The data asociated with this operation
@@ -168,42 +211,98 @@ class LDAPAsynConnection{
         LDAPMessageQueue* extOperation(const string& oid, 
                 const string& value="", const LDAPConstraints *cons=0);
         
-        //* End an outstanding request
-        /**
+        /** End an outstanding request
+         *
          * @param q All outstanding request related to this LDAPMessageQueue 
          *      will be abandoned
          */
         void abandon(LDAPMessageQueue *q);
+        
+        /**
+         * Performs the UNBIND-operation on the destination server
+         * 
+         * @throws LDAPException in any case of an error
+         */
         void unbind();
+
+        /**
+         * @returns The C-APIs LDAP-structure that is associated with the
+         *      current connection 
+         */
         LDAP* getSessionHandle() const ;
+
+        /**
+         * @returns The Hostname of the destination server of the
+         *      connection. 
+         */
         const string& getHost() const;
+
+        /**
+         * @returns The Port to which this connection is connecting to on
+         *      the remote server. 
+         */
         int getPort() const;
         
-        //* Change the default constraints of the connection
-        /**
-         * @cons cons New LDAPConstraints to use with the connection
+        /** Change the default constraints of the connection
+         *
+         * @parameter cons cons New LDAPConstraints to use with the connection
          */
         void setConstraints(LDAPConstraints *cons);
         
-        //* Get the default constraints of the connection
-        /**
+        /** Get the default constraints of the connection
+         *
          * @return Pointer to the LDAPConstraints-Object that is currently
          *      used with the Connection
          */
         const LDAPConstraints* getConstraints() const;
 
-        //* used internally only for automatic referral chasing
+        /**
+         * This method is used internally for automatic referral chasing.
+         * It tries to bind to a destination server of the URLs of a
+         * referral.
+         *
+         * @throws LDAPException in any case of an error
+         * @param urls Contains a list of LDAP-Urls that indicate the
+         *      destinations of a referral
+         * @param usedUrl After this method has successfully bind to one of
+         *      the Destination URLs this parameter contains the URLs 
+         *      which was contacted.
+         * @param cons An LDAPConstraints-Object that should be used for
+         *      the new connection. If this object contains a 
+         *      LDAPRebind-object it is used to bind to the new server
+         */ 
         LDAPAsynConnection* referralConnect(const LDAPUrlList& urls,
                 LDAPUrlList::const_iterator& usedUrl,
                 const LDAPConstraints* cons) const;
 
 
     private :
-        // no copy constructor
+        /**
+         * Private copy constructor. So nobody can call it.
+         */
         LDAPAsynConnection(const LDAPAsynConnection& lc){};
+        
+        /**
+         * A pointer to the C-API LDAP-structure that is associated with
+         * this connection
+         */
         LDAP *cur_session;
+
+        /**
+         * A pointer to the default LDAPConstrains-object that is used when
+         * no LDAPConstraints-parameter is provided with a call for a
+         * LDAP-operation
+         */
         LDAPConstraints *m_constr;
+
+        /**
+         * The name of the destination host
+         */
         string m_host;
+
+        /**
+         * The port the destination server is running on.
+         */
         int m_port;
 
 };

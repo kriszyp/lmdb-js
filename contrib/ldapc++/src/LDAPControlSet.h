@@ -12,21 +12,68 @@
 
 typedef list<LDAPCtrl> CtrlList;
 
-
+/**
+ * This container class is used to store multiple LDAPCtrl-objects.
+ */
 class LDAPControlSet {
     typedef CtrlList::const_iterator const_iterator;
     public :
-        LDAPControlSet();
+        /**
+         * Constructs an empty list
+         */
+        LDAPControlSet();   
+
+
+        /**
+         * Copy-constructor
+         */
         LDAPControlSet(const LDAPControlSet& cs);
-        //!for internal use only
-        //untested til now. Due to lack of server that return Controls
+        
+        /**
+         * For internal use only
+         *
+         * This constructor creates a new LDAPControlSet for a
+         * 0-terminiated array of LDAPControl-structures as used by the
+         * C-API
+         * @param controls: pointer to a 0-terminated array of pointers to 
+         *                  LDAPControll-structures
+         * @note: untested til now. Due to lack of server that return 
+         *          Controls
+         */
         LDAPControlSet(LDAPControl** controls);
+
+        /**
+         * Destructor
+         */
         ~LDAPControlSet();
+
+        /**
+         * @return The number of LDAPCtrl-objects that are currently
+         * stored in this list.
+         */
         size_t size() const ;
+        
+        /**
+         * @return A iterator that points to the first element of the list.
+         */
         const_iterator begin() const;
+
+        /**
+         * @return A iterator that points to the element after the last
+         * element of the list.
+         */
         const_iterator end() const;
+       
+        /**
+         * Adds one element to the end of the list.
+         * @param ctrl The Control to add to the list.
+         */
         void add(const LDAPCtrl& ctrl); 
         
+        /**
+         * Translates the list to a 0-terminated array of pointers to
+         * LDAPControl-structures as needed by the C-API
+         */
         LDAPControl** toLDAPControlArray()const ;
 
     private :
