@@ -1,4 +1,4 @@
-.TH LDAP 3 "21 July 2000" "OpenLDAP LDVERSION"
+.TH LDAP 3 "1 August 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -14,11 +14,11 @@ ldap - OpenLDAP Lightweight Directory Access Protocol API
 .LP
 The Lightweight Directory Access Protocol provides access to
 X.500 directory services.  The services may be stand\-alone
-part of a distributed directory service.  This API supports
-LDAP over TCP, LDAP over SSL, and LDAP over IPC (UNIX domain
-sockets).
+or part of a distributed directory service.  This API supports
+LDAP over TCP (RFC2251), LDAP over SSL, and LDAP over IPC (UNIX domain
+sockets).  This API supports SASL (RFC2829) and Start TLS (RFC2830).
 .LP
-The OpenLDAP LDAP package includes a stand-alone server in
+The OpenLDAP Software package includes a stand-alone server in
 .BR slapd (8),
 various LDAP clients, and an LDAP client library used to provide
 programmatic access to the LDAP protocol. This man page gives an
@@ -96,6 +96,7 @@ The
 .BR ldap_cache (3)
 routines implement a local client caching scheme,
 providing a substantial performance increase for repeated queries.
+Caching is experiemental.
 .SH UTILITY ROUTINES
 Also provided are various utility routines.  The
 .BR ldap_sort (3)
@@ -110,7 +111,7 @@ Also included in the distribution is a set of lightweight Basic
 Encoding Rules routines.  These routines are used by the LDAP library
 routines to encode and decode LDAP protocol elements using the
 (slightly simplified) Basic Encoding Rules defined by LDAP.  They are
-not normally used directly by an LDAP application program excepting
+not normally used directly by an LDAP application program except
 in the handling of controls and extended operations.  The
 routines provide a printf and scanf-like interface, as well as
 lower-level access.  These routines are found in the -llber
@@ -146,21 +147,6 @@ asynchronously bind to the directory using simple authentication
 .TP
 .SM ldap_simple_bind_s(3)
 synchronously bind to the directory using simple authentication
-.TP
-.SM ldap_kerberos_bind_s(3)
-synchronously bind to the directory using kerberos authentication
-.TP
-.SM ldap_kerberos_bind1(3)
-asynchronously bind to the LDAP server using kerberos authentication
-.TP
-.SM ldap_kerberos_bind1_s(3)
-synchronously bind to the LDAP server using kerberos authentication
-.TP
-.SM ldap_kerberos_bind2(3)
-asynchronously bind to the DSA using kerberos authentication
-.TP
-.SM ldap_kerberos_bind2_s(3)
-synchronously bind to the DSA using kerberos authentication
 .TP
 .SM ldap_unbind(3)
 synchronously unbind from the LDAP server and close the connection
@@ -387,15 +373,6 @@ check a URL string to see if it is an LDAP URL
 .TP
 .SM ldap_url_parse(3)
 break up an LDAP URL string into its components
-.TP
-.SM ldap_url_search(3)
-asynchronously search using an LDAP URL
-.TP
-.SM ldap_url_search_s(3)
-synchronously search using an LDAP URL
-.TP
-.SM ldap_url_search_st(3)
-synchronously search using an LDAP URL and a timeout
 .TP
 .SM ldap_init_searchprefs(3)
 initialize searchprefs routines from a file
