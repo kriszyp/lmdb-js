@@ -154,9 +154,6 @@ sb_sasl_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF,
 		(SASL_CONST void **) &p->sasl_maxbuf );
 	    
-	if ( p->sasl_maxbuf == 0 )
-		p->sasl_maxbuf = SASL_MAX_BUFF_SIZE;
-
 	sbiod->sbiod_pvt = p;
 
 	return 0;
