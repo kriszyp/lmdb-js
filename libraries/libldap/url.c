@@ -563,8 +563,10 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 		p = strchr(ludp->lud_host, ':');
 		if (p != NULL) {
 			*p++ = 0;
+			ldap_pvt_hex_unescape(p);
 			ludp->lud_port = atoi(p);
 		}
+		ldap_pvt_hex_unescape(ludp->lud_host);
 		ludp->lud_ldaps = -1;	/* unknown (use TLS default) */
 		ludp->lud_next = *ludlist;
 		*ludlist = ludp;
