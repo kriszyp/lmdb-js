@@ -149,7 +149,6 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "bytessent", vals );
 #endif
 
-	slap_set_time();
 	currenttime = slap_get_time();
 
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );

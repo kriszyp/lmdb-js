@@ -764,7 +764,6 @@ bdb2i_set_txn_checkpoint( DB_TXNMGR *txmgr, int forced )
 		logsize = forced ? (u_int32_t) 0 : txn_max_pending_log;
 		mins    = forced ? (u_int32_t) 0 : txn_max_pending_time;
 
-		slap_set_time();
 		now = slap_get_time();
 
 		rc = txn_checkpoint( txmgr, logsize, mins );
