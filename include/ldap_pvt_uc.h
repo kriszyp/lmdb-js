@@ -126,6 +126,10 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 	ldap_unicode_t *,
 	ber_len_t );
 
+LDAP_LUNICODE_F(char *) UTF8normalize(
+	const char *,
+	char casefold );
+
 LDAP_END_DECL
 
 #endif
