@@ -278,6 +278,11 @@ void slap_tool_destroy( void )
 {
 	slap_shutdown( be );
 	slap_destroy();
+	schema_destroy();
+#ifdef HAVE_TLS
+	ldap_pvt_tls_destroy();
+#endif
+	config_destroy();
 
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
