@@ -562,6 +562,9 @@
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
+/* Define if you have the <sysexits.h> header file.  */
+#undef HAVE_SYSEXITS_H
+
 /* Define if you have the <syslog.h> header file.  */
 #undef HAVE_SYSLOG_H
 

@@ -18,10 +18,11 @@
 #include <ac/ctype.h>
 #include <ac/signal.h>
 #include <ac/string.h>
+#include <ac/sysexits.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
-#include <ac/wait.h>
 #include <ac/unistd.h>
+#include <ac/wait.h>
 
 #include <sys/stat.h>
 
@@ -32,8 +33,6 @@
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
-
-#include <sysexits.h>
 
 #include "lber.h"
 #include "ldap.h"

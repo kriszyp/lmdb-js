@@ -15,15 +15,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
-#include <ac/ctype.h>
+#include <ac/sysexits.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
-#include <ac/wait.h>
 #include <ac/unistd.h>
-#include <ac/errno.h>
+#include <ac/wait.h>
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -31,8 +32,6 @@
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
-
-#include <sysexits.h>
 
 #include "lber.h"
 #include "ldap.h"

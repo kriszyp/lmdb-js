@@ -1211,6 +1211,7 @@ AC_CHECK_HEADERS(	\
 	stddef.h		\
 	string.h		\
 	strings.h		\
+	sysexits.h		\
 	sys/file.h		\
 	sys/filio.h		\
 	sys/errno.h		\
@@ -1349,13 +1350,13 @@ if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1)
 fi
 if test "$ol_enable_dns" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_API_VENDOR_VERSION,1)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION,1)
 fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1)
 fi
 if test "$ol_enable_referrals" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_API_VENDOR_VERSION,1)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION,1)
 fi
 if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
