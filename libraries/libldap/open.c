@@ -170,10 +170,17 @@ ldap_init( char *defhost, int defport )
 		return( NULL );
 	}
 
+	if ( openldap_ldap_global_options.ldo_defbase != NULL ) {
+		ld->ld_options.ldo_defbase = ldap_strdup(
+			openldap_ldap_global_options.ldo_defbase);
+	}
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*) ld->ld_options.ldo_defhost );
-		free( (char*) ld->ld_options.ldo_defbase );
+		if ( ld->ld_options.ldo_defbase == NULL ) {
+			free( (char*) ld->ld_options.ldo_defbase );
+		}
 		free( (char*) ld );
 	    WSACleanup( );
 		return( NULL );

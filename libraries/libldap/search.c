@@ -112,6 +112,12 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	}
 
 	if ( base == NULL ) {
+		/* no base provided, use session default base */
+		base = ld->ld_options.ldo_defbase;
+	}
+
+	if ( base == NULL ) {
+		/* no session default base, use top */
 	    base = "";
 	}
 
