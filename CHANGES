@@ -1,5 +1,24 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.4 Engineering
+	Fixed slapd bootParameter validation bug (ITS#1957)
+	Updated new logging
+	Added LDAP SASL auxprop plugin to contrib
+	Added buffer overrun checks (ITS#1965, ITS#1936)
+	Fixed slapd saslRegex bug (ITS#1978)
+	Fixed back-monitor time stats (ITS#1984)
+	Fixed back-meta undef DN attr bug (ITS#1953)
+	Updated slapd anon update error code (ITS#1987)
+	Build Environment
+		Added OS/390 port
+		Fixed krbName schema (ITS#1948)
+		Fixed pkiUser schema (ITS#1959)
+		Disabled back-sql (ITS#1966)
+		Fixed back-shell builds (ITS#1985)
+	Documentation
+		Replaced namedref with RFC 3296
+		Misc manual page updates
+
 OpenLDAP 2.1.3 Release
 	Fixed slapd access to dn="" bug (ITS#1921)
 	Fixed slapd structuralObjectClass lastmod bug (ITS#1904)
@@ -11,7 +30,7 @@ OpenLDAP 2.1.3 Release
 	Updated slapd SASL proxy policy code
 	Updated slapd require "strong" check
 	Added slapd disallow bind_simple_unprotected directive
-	Added slapd SASL setpass support
+	Added slapd SASL setpass support (ITS#1943)
 	Added slapd IPv4/v6 only options
 	Updated back-bdb entry locking
 	Fixed liblutil passwd cleartext bug
