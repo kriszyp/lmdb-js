@@ -556,6 +556,7 @@ int hdb_fix_dn(
 		}
 		/* checkit == 2. do the fix. */
 		free( e->e_name.bv_val );
+		free( e->e_nname.bv_val );
 	}
 
 	e->e_name.bv_len = rlen - 1;
