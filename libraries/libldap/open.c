@@ -266,7 +266,7 @@ ldap_int_open_connection(
 
 	switch ( proto = ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
-			port = htons( (short) srv->lud_port );
+			port = srv->lud_port;
 
 			addr = 0;
 			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
@@ -294,7 +294,7 @@ ldap_int_open_connection(
 			break;
 #ifdef LDAP_CONNECTIONLESS
 		case LDAP_PROTO_UDP:
-			port = htons( (short) srv->lud_port );
+			port = srv->lud_port;
 
 			addr = 0;
 			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
