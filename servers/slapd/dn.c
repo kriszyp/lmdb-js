@@ -342,3 +342,101 @@ dn_upcase( char *dn )
 
 	return( dn );
 }
+
+
+/*
+ * get_next_substring(), rdn_attr_type(), and rdn_attr_value()
+ * 
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
+/* get_next_substring:
+ *
+ * Gets next substring in s, using d (or the end of the string '\0') as a 
+ * string delimiter, and places it in a duplicated memory space. Leading 
+ * spaces are ignored. String s **must** be null-terminated.
+ */ 
+
+static char * 
+get_next_substring( char * s, char d )
+{
+
+	char	*str, *r;
+
+	r = str = ch_malloc( strlen(s) + 1 );
+
+	/* Skip leading spaces */
+	
+	while ( *s && SPACE(*s) ) {
+	    
+		s++;
+	    
+	}/* while ( *s && SPACE(*s) ) */
+	
+	/* Copy word */
+
+	while ( *s && (*s != d) ) {
+
+		/* Don't stop when you see trailing spaces may be a multi-word
+		* string, i.e. name=John Doe!
+		*/
+
+		*str++ = *s++;
+	    
+	}/* while ( *s && (*s != d) ) */
+	
+	*str = '\0';
+	
+	return r;
+	
+}/* char * get_word() */
+
+
+/* rdn_attr_type:
+ *
+ * Given a string (i.e. an rdn) of the form:
+ *	 "attribute_type = attribute_value"
+ * this function returns the type of an attribute, that is the 
+ * string "attribute_type" which is placed in newly allocated 
+ * memory. The returned string will be null-terminated.
+ */
+
+char * rdn_attr_type( char * s )
+{
+
+	return get_next_substring( s, '=' );
+
+}/* char * rdn_attr_type() */
+
+
+/* rdn_attr_value:
+ *
+ * Given a string (i.e. an rdn) of the form:
+ *	 "attribute_type = attribute_value"
+ * this function returns "attribute_type" which is placed in newly allocated 
+ * memory. The returned string will be null-terminated and may contain 
+ * spaces (i.e. "John Doe\0").
+ */
+
+char * 
+rdn_attr_value( char * rdn )
+{
+
+	char	*str;
+
+	if ( (str = strchr( rdn, '=' )) != NULL ) {
+
+		return get_next_substring(++str, '\0');
+
+	}/* if ( (str = strpbrk( rdn, "=" )) != NULL ) */
+
+	return NULL;
+
+}/* char * rdn_attr_value() */
