@@ -357,7 +357,19 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		hints.ai_socktype = socktype;
 
 		snprintf(serv, sizeof serv, "%d", port );
-		if ( ( err = getaddrinfo(host, serv, &hints, &res) ) ) {
+
+#ifdef LDAP_R_COMPILE
+		/* most getaddrinfo(3) use non-threadsafe resolver libraries */
+		ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
+#endif
+
+		err = getaddrinfo( host, serv, &hints, &res );
+
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
+#endif
+
+		if ( err != 0 ) {
 			osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
