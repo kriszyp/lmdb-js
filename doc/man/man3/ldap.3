@@ -52,13 +52,8 @@ The LDAP association and underlying connection is terminated by calling
 Errors can be interpreted by calling
 .BR ldap_err2string (3).
 .SH SEARCH FILTERS
-Search filters to be passed to the ldap search routines can be
-constructed by hand, or by calling the
-.BR ldap_getfilter (3)
-routines, which use the
-.BR ldapgetfilter.conf (5)
-file to turn a string (presumably that a user has typed) into a series
-of search filters.
+Search filters to be passed to the ldap search routines are to be
+constructed by hand.
 .SH DISPLAYING RESULTS
 Results obtained from the ldap search routines can be output by hand,
 by calling
@@ -74,19 +69,6 @@ to step through an entry's attributes, and
 .BR ldap_get_values (3)
 to retrieve a given attribute's value.  Attribute values
 may or may not be displayable.
-.LP
-Alternatively, the entry can be output automatically by calling
-the
-.BR ldap_entry2text (3),
-.BR ldap_entry2text_search (3),
-.BR ldap_entry2html (3),
-or
-.BR ldap_entry2html_search (3)
-routines.  These routines look up the object
-class of the entry they are passed in the
-.BR ldaptemplates.conf (5)
-file to decide which attributes to display and how to display them.
-Output is handled via a routine passed in as a parameter.
 .SH UNIFORM RESOURCE LOCATORS (URLS)
 The
 .BR ldap_url (3)
@@ -103,11 +85,7 @@ Caching is experiemental.
 Also provided are various utility routines.  The
 .BR ldap_sort (3)
 routines are used to sort the entries and values returned via
-the ldap search routines.  The
-.BR ldap_friendly (3)
-routines are
-used to map from short two letter country codes (or other strings)
-to longer "friendlier" names.
+the ldap search routines. 
 .SH BER LIBRARY
 Also included in the distribution is a set of lightweight Basic
 Encoding Rules routines.  These routines are used by the LDAP library
@@ -193,60 +171,6 @@ asynchronously delete an entry
 .SM ldap_delete_s(3)
 synchronously delete an entry
 .TP
-.SM ldap_init_templates(3)
-initialize display template routines from a file
-.TP
-.SM ldap_init_templates_buf(3)
-initialize display template routines from a buffer
-.TP
-.SM ldap_free_templates(3)
-free display template routine memory
-.TP
-.SM ldap_first_disptmpl(3)
-get first display template
-.TP
-.SM ldap_next_disptmpl(3)
-get next display template
-.TP
-.SM ldap_oc2template(3)
-return template appropriate for objectclass
-.TP
-.SM ldap_name2template(3)
-return named template
-.TP
-.SM ldap_tmplattrs(3)
-return attributes needed by template
-.TP
-.SM ldap_first_tmplrow(3)
-return first row of displayable items in a template
-.TP
-.SM ldap_next_tmplrow(3)
-return next row of displayable items in a template
-.TP
-.SM ldap_first_tmplcol(3)
-return first column of displayable items in a template
-.TP
-.SM ldap_next_tmplcol(3)
-return next column of displayable items in a template
-.TP
-.SM ldap_entry2text(3)
-display an entry as text using a display template
-.TP
-.SM ldap_entry2text_search(3)
-search for and display an entry as text using a display template
-.TP
-.SM ldap_vals2text(3)
-display values as text
-.TP
-.SM ldap_entry2html(3)
-display an entry as HTML (HyperText Markup Language) using a display template
-.TP
-.SM ldap_entry2html_search(3)
-search for and display an entry as HTML using a display template
-.TP
-.SM ldap_vals2html(3)
-display values as HTML
-.TP
 .SM ldap_perror(3)
 print an LDAP error indication to standard error
 .TP
@@ -277,12 +201,6 @@ return next entry in a chain of search results
 .SM ldap_count_entries(3)
 return number of entries in a search result
 .TP
-.SM ldap_friendly_name(3)
-map from unfriendly to friendly names
-.TP
-.SM ldap_free_friendlymap(3)
-free resources used by ldap_friendly(3)
-.TP
 .SM ldap_get_dn(3)
 extract the DN from an entry
 .TP
@@ -309,27 +227,6 @@ return number of values
 .TP
 .SM ldap_count_values_len(3)
 return number of values
-.TP
-.SM ldap_init_getfilter(3)
-initialize getfilter routines from a file
-.TP
-.SM ldap_init_getfilter_buf(3)
-initialize getfilter routines from a buffer
-.TP
-.SM ldap_getfilter_free(3)
-free resources allocated by ldap_init_getfilter(3)
-.TP
-.SM ldap_getfirstfilter(3)
-return first search filter
-.TP
-.SM ldap_getnextfilter(3)
-return next search filter
-.TP
-.SM ldap_build_filter(3)
-construct an LDAP search filter from a pattern
-.TP
-.SM ldap_setfilteraffixes(3)
-set prefix and suffix for search filters
 .TP
 .SM ldap_modify(3)
 asynchronously modify an entry
@@ -375,21 +272,6 @@ check a URL string to see if it is an LDAP URL
 .TP
 .SM ldap_url_parse(3)
 break up an LDAP URL string into its components
-.TP
-.SM ldap_init_searchprefs(3)
-initialize searchprefs routines from a file
-.TP
-.SM ldap_init_searchprefs_buf(3)
-initialize searchprefs routines from a buffer
-.TP
-.SM ldap_free_searchprefs(3)
-free memory allocated by searchprefs routines
-.TP
-.SM ldap_first_searchobj(3)
-return first searchpref object
-.TP
-.SM ldap_next_searchobj(3)
-return next searchpref object
 .TP
 .SM ldap_sort_entries(3)
 sort a list of search results
