@@ -33,10 +33,12 @@
 
 #include "ldap-int.h"
 
+#ifndef h_errno
 /* newer systems declare this in <netdb.h> for you, older ones don't.
- * harmless to declare it again.
+ * harmless to declare it again (unless defined by a macro).
  */
 extern int h_errno;
+#endif
 
 #ifndef LDAP_R_COMPILE
 # undef HAVE_REENTRANT_FUNCTIONS
