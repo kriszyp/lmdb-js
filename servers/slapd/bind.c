@@ -221,6 +221,15 @@ do_bind(
 	conn->c_protocol = version;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
+	/* check for inappropriate controls */
+	if( get_manageDSAit( op ) == SLAP_CRITICAL_CONTROL ) {
+		send_ldap_result( conn, op,
+			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
+			NULL, "manageDSAit control inappropriate",
+			NULL, NULL );
+		goto cleanup;
+	}
+
 	if ( method == LDAP_AUTH_SASL ) {
 		char *edn;
 		slap_ssf_t ssf = 0;

@@ -57,7 +57,7 @@ int get_ctrls(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "get_ctrls: conn %d\n", conn->c_connid ));
+		"get_ctrls: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
 #endif
@@ -122,8 +122,8 @@ int get_ctrls(
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "get_ctrls: conn %d  get OID failed.\n",
-				   conn->c_connid ));
+				"get_ctrls: conn %d  get OID failed.\n",
+				conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
@@ -144,8 +144,8 @@ int get_ctrls(
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "get_ctrls: conn %d  get crit failed.\n",
-					   conn->c_connid ));
+					"get_ctrls: conn %d  get crit failed.\n",
+					conn->c_connid ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
@@ -163,9 +163,9 @@ int get_ctrls(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "get_ctrls: conn %d oid=\"%s\" (%scritical)\n",
-			   conn->c_connid, tctrl->ldctl_oid,
-			   tctrl->ldctl_iscritical ? "" : "non" ));
+			"get_ctrls: conn %d oid=\"%s\" (%scritical)\n",
+			conn->c_connid, tctrl->ldctl_oid,
+			tctrl->ldctl_iscritical ? "" : "non" ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
 			tctrl->ldctl_oid, 
@@ -178,7 +178,7 @@ int get_ctrls(
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "get_ctrls: conn %d  get value failed.\n", conn->c_connid ));
+					"get_ctrls: conn %d  get value failed.\n", conn->c_connid ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get value failed.\n",
 					0, 0, 0 );
@@ -205,8 +205,8 @@ int get_ctrls(
 return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_RESULTS,
-		   "get_ctrls: conn %d	%d %d %s\n",
-		   conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
+		"get_ctrls: conn %d	%d %d %s\n",
+		conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: %d %d %s\n",
 		nctrls, rc, errmsg ? errmsg : "");
@@ -229,16 +229,18 @@ int get_manageDSAit( Operation *op )
 {
 	int i;
 	if( op == NULL || op->o_ctrls == NULL ) {
-		return 0;
+		return SLAP_NO_CONTROL;
 	}
 
 	for( i=0; op->o_ctrls[i] != NULL; i++ ) {
-		if( strcmp( LDAP_CONTROL_MANAGEDSAIT, op->o_ctrls[i]->ldctl_oid )
-			== 0 )
+		if( strcmp( LDAP_CONTROL_MANAGEDSAIT,
+			op->o_ctrls[i]->ldctl_oid )	== 0 )
 		{
-			return 1;
+			return op->o_ctrls[i]->ldctl_iscritical
+				? SLAP_CRITICAL_CONTROL
+				: SLAP_NONCRITICAL_CONTROL;
 		}
 	}
 
-	return 0;
+	return SLAP_NO_CONTROL;
 }

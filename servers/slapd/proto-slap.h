@@ -287,6 +287,10 @@ LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
 /*
  * controls.c
  */
+#define SLAP_NO_CONTROL 0
+#define SLAP_NONCRITICAL_CONTROL 1
+#define SLAP_CRITICAL_CONTROL 2
+
 LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	Connection *co,
 	Operation *op,

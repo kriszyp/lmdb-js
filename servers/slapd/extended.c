@@ -32,47 +32,47 @@
 
 #include "slap.h"
 
-#define MAX_OID_LENGTH	128
-
-typedef struct extop_list_t {
-	struct extop_list_t *next;
+static struct extop_list {
+	struct extop_list *next;
 	char *oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
-} extop_list_t;
-
-extop_list_t *supp_ext_list = NULL;
+} *supp_ext_list = NULL;
 
 /* this list of built-in extops is for extops that are not part
  * of backends or in external modules.	essentially, this is
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
-struct {
+static struct {
 	char *oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
 #ifdef HAVE_TLS
-		{ LDAP_EXOP_START_TLS, starttls_extop },
+	{ LDAP_EXOP_START_TLS, starttls_extop },
 #endif
-		{ LDAP_EXOP_X_MODIFY_PASSWD, passwd_extop },
-		{ NULL, NULL }
-	};
+	{ LDAP_EXOP_X_MODIFY_PASSWD, passwd_extop },
+	{ NULL, NULL }
+};
 
 
-static extop_list_t *find_extop( extop_list_t *list, char *oid );
+static struct extop_list *find_extop(
+	struct extop_list *list, char *oid );
 
 char *
 get_supported_extop (int index)
 {
-	extop_list_t *ext;
+	struct extop_list *ext;
 
 	/* linear scan is slow, but this way doesn't force a
 	 * big change on root_dse.c, where this routine is used.
 	 */
-	for (ext = supp_ext_list; ext != NULL && --index >= 0; ext = ext->next) ;
-	if (ext == NULL)
-		return(NULL);
-	return(ext->oid);
+	for (ext = supp_ext_list; ext != NULL && --index >= 0; ext = ext->next) {
+		; /* empty */
+	}
+
+	if (ext == NULL) return NULL;
+
+	return ext->oid ;
 }
 
 int
@@ -86,7 +86,7 @@ do_extended(
 	struct berval *reqdata;
 	ber_tag_t tag;
 	ber_len_t len;
-	extop_list_t *ext;
+	struct extop_list *ext;
 	const char *text;
 	BVarray refs;
 	char *rspoid;
@@ -95,7 +95,7 @@ do_extended(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_extended: conn %d\n", conn->c_connid ));
+		"do_extended: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 #endif
@@ -105,9 +105,11 @@ do_extended(
 	if( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_extended: protocol version (%d) too low.\n", op->o_protocol ));
+			"do_extended: protocol version (%d) too low.\n",
+			op->o_protocol ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_extended: protocol version (%d) too low\n",
+		Debug( LDAP_DEBUG_ANY,
+			"do_extended: protocol version (%d) too low\n",
 			op->o_protocol, 0 ,0 );
 #endif
 		send_ldap_disconnect( conn, op,
@@ -119,7 +121,7 @@ do_extended(
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+			"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -132,8 +134,8 @@ do_extended(
 	if( !(ext = find_extop(supp_ext_list, reqoid)) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_extended: conn %d  unsupported operation \"%s\"\n",
-			   conn->c_connid, reqoid ));
+			"do_extended: conn %d  unsupported operation \"%s\"\n",
+			conn->c_connid, reqoid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			reqoid, 0 ,0 );
@@ -149,7 +151,7 @@ do_extended(
 		if( ber_scanf( op->o_ber, "O", &reqdata ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+				"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -163,19 +165,29 @@ do_extended(
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
+			"do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
 #endif
 		return rc;
 	} 
 
+	/* check for controls inappropriate for all extended operations */
+	if( get_manageDSAit( op ) == SLAP_CRITICAL_CONTROL ) {
+		send_ldap_result( conn, op,
+			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
+			NULL, "manageDSAit control inappropriate",
+			NULL, NULL );
+		goto done;
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
+		"do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid, 0 ,0 );
 #endif
+
 	rspoid = NULL;
 	rspdata = NULL;
 	rspctrls = NULL;
@@ -221,12 +233,12 @@ load_extop(
 	const char *ext_oid,
 	SLAP_EXTOP_MAIN_FN *ext_main )
 {
-	extop_list_t *ext;
+	struct extop_list *ext;
 
 	if( ext_oid == NULL || *ext_oid == '\0' ) return -1; 
 	if(!ext_main) return -1; 
 
-	ext = ch_calloc(1, sizeof(extop_list_t));
+	ext = ch_calloc(1, sizeof(struct extop_list));
 	if (ext == NULL)
 		return(-1);
 
@@ -258,7 +270,7 @@ extops_init (void)
 int
 extops_kill (void)
 {
-	extop_list_t *ext;
+	struct extop_list *ext;
 
 	/* we allocated the memory, so we have to free it, too. */
 	while ((ext = supp_ext_list) != NULL) {
@@ -270,10 +282,10 @@ extops_kill (void)
 	return(0);
 }
 
-static extop_list_t *
-find_extop( extop_list_t *list, char *oid )
+static struct extop_list *
+find_extop( struct extop_list *list, char *oid )
 {
-	extop_list_t *ext;
+	struct extop_list *ext;
 
 	for (ext = list; ext; ext = ext->next) {
 		if (strcmp(ext->oid, oid) == 0)
