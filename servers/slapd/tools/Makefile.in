@@ -54,16 +54,16 @@ all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
 build-ldbm: FORCE
 	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
 		$(MAKE) $(MFLAGS) ldbm-tools; \
-    else \
+	else \
 		echo "run configure with --with-ldbm to build LDBM tools"; \
-    fi
+	fi
 
 build-bdb2: FORCE
 	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
 		$(MAKE) $(MFLAGS) bdb2-tools; \
-    else \
+	else \
 		echo "run configure with --enable-bdb2 to build BDB2 tools"; \
-    fi
+	fi
 
 ldbm-tools: $(PROGRAMS)
 
@@ -72,9 +72,9 @@ bdb2-tools: $(PROGRAMS2)
 build-edb2ldif:	FORCE
 	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
 		$(MAKE) $(MFLAGS) edb2ldif; \
-    else \
+	else \
 		echo "run configure with --with-isode to build edb2ldif"; \
-    fi
+	fi
 
 edb2ldif:	edb2-vers.o
 	$(CC) $(LDFLAGS) -o $@ $(EDB2LDIFOBJS) edb2-vers.o $(LIBS)
@@ -147,19 +147,19 @@ clean-local: FORCE
 depend-local: FORCE
 	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_ISODE= ; \
 	if [ "$(BUILD_LDBM)" = "yes" ]; then \
-        DEPEND_LDBM="$(SRCS)"; \
+		DEPEND_LDBM="$(SRCS)"; \
 		DEPEND=yes ; \
-    fi; \
+	fi; \
 	if [ "$(BUILD_BDB2)" = "yes" ]; then \
-        DEPEND_BDB2="$(SRCS2)"; \
+		DEPEND_BDB2="$(SRCS2)"; \
 		DEPEND=yes ; \
-    fi; \
+	fi; \
 	if [ "$(HAVE_ISODE)" = "yes" ]; then \
-        DEPEND_ISODE="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
+		DEPEND_ISODE="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
 		DEPEND=yes ; \
-    fi; \
+	fi; \
 	if [ "$$DEPEND" = "yes" ]; then \
-    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE \
+	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE \
 			$$DEPEND_LDBM $$DEPEND_BDB2; \
 	else \
 		echo "slapd-tools: no dependencies to make"; \
