@@ -44,7 +44,7 @@ ldap_sort_strcasecmp(
 	const void	*b
 )
 {
-	return( strcasecmp( (const char *)a, (const char *)b ) );
+	return( strcasecmp( *(char *const *)a, *(char *const *)b ) );
 }
 
 static int
