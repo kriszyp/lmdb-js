@@ -186,7 +186,8 @@ const char * connection_state2str( int state )
 	return NULL;
 }
 
-void replog( Backend *be, Operation *op, char *dn, char *ndn, void *change)
+void replog( Backend *be, Operation *op,
+	struct berval *dn, struct berval *ndn, void *change)
 {
 	assert(0);
 }

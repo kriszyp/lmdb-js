@@ -184,27 +184,30 @@ retry:	/* transaction retry */
 			goto done;
 		}
 
-	}
-
-	/* change the entry itself */
-	rc = bdb_id2entry_update( be, ltid, e );
-	if( rc != 0 ) {
-		switch(rc) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			bdb_entry_return( be, e );
-			e = NULL;
-			goto retry;
+		/* change the entry itself */
+		rc = bdb_id2entry_update( be, ltid, e );
+		if( rc != 0 ) {
+			switch(rc) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				bdb_entry_return( be, e );
+				e = NULL;
+				goto retry;
+			}
+			*text = "entry update failed";
+			rc = LDAP_OTHER;
 		}
-		*text = "entry update failed";
-		rc = LDAP_OTHER;
-	}
 
-	if( bdb->bi_txn && rc == 0 ) {
-		rc = txn_commit( ltid, 0 );
-		ltid = NULL;
+		if( bdb->bi_txn && rc == 0 ) {
+			rc = txn_commit( ltid, 0 );
+			ltid = NULL;
+		}
+		op->o_private = NULL;
+
+		if( rc == LDAP_SUCCESS ) {
+			replog( be, op, &e->e_name, &e->e_nname, &ml );
+		}
 	}
-	op->o_private = NULL;
 
 done:
 	if( e != NULL ) {

@@ -162,9 +162,11 @@ ldbm_back_exop_passwd(
 			rc = LDAP_OTHER;
 		}
 
-		replog( be, op, e->e_dn, e->e_ndn, &ml );
+		if( rc == LDAP_SUCCESS ) {
+			replog( be, op, &e->e_name, &e->e_nname, &ml );
+		}
 	}
-	
+
 done:
 	if( e != NULL ) {
 		cache_return_entry_w( &li->li_cache, e );
