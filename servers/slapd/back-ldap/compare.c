@@ -54,7 +54,6 @@ ldap_back_compare(
 	struct ldapconn *lc;
 	struct berval mapped_oc, mapped_at;
 	struct berval mdn = { 0, NULL };
-	int rc;
 	ber_int_t msgid;
 
 	lc = ldap_back_getconn(op, rs);

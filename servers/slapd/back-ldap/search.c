@@ -242,17 +242,21 @@ fail:;
 			e = ldap_first_entry(lc->ld,res);
 			if ( ldap_build_entry(op, e, &ent, &bdn,
 						LDAP_BUILD_ENTRY_PRIVATE) == LDAP_SUCCESS ) {
-				Attribute *a;
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				send_search_entry( op, rs );
 				while (ent.e_attrs) {
+					Attribute *a;
+					BerVarray v;
+
 					a = ent.e_attrs;
 					ent.e_attrs = a->a_next;
+
+					v = a->a_vals;
 					if (a->a_vals != &dummy)
 						ber_bvarray_free(a->a_vals);
 #ifdef SLAP_NVALUES
-					if (a->a_nvals != a->a_vals)
+					if (a->a_nvals != v)
 						ber_bvarray_free(a->a_nvals);
 #endif
 					ch_free(a);
@@ -499,13 +503,7 @@ ldap_build_entry(
 			 * later, the local subschemaSubentry is
 			 * added.
 			 */
-			if ( ber_scanf( &ber, "[W]", &vals ) != LBER_ERROR
-					&& vals != NULL ) {
-				for ( bv = vals; bv->bv_val; bv++ ) {
-					LBER_FREE( bv->bv_val );
-				}
-				LBER_FREE( vals );
-			}
+			( void )ber_scanf( &ber, "x" /* [W] */ );
 
 			ch_free(attr);
 			continue;
@@ -678,7 +676,7 @@ ldap_back_entry_get(
 	struct berval mapped = { 0, NULL }, bdn, mdn;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[3];
-	char *filter;
+	char *filter = NULL;
 	Connection *oconn;
 	SlapReply rs;
 
@@ -730,7 +728,8 @@ ldap_back_entry_get(
 
 	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
 	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-		return 1;
+		rc = 1;
+		goto cleanup;
 	}
 
 	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
@@ -751,8 +750,6 @@ ldap_back_entry_get(
 		ptr = lutil_strcopy(ptr, mapped.bv_val);
 		*ptr++ = ')';
 		*ptr++ = '\0';
-	} else {
-		filter = "(objectclass=*)";
 	}
 		
 	if (ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
@@ -778,6 +775,10 @@ ldap_back_entry_get(
 cleanup:
 	if (result) {
 		ldap_msgfree(result);
+	}
+
+	if ( filter ) {
+		ch_free( filter );
 	}
 
 	if ( mdn.bv_val != ndn->bv_val ) {

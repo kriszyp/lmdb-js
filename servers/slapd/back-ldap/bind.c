@@ -123,6 +123,8 @@ ldap_back_bind(
 		} else {
 			ber_dupbv( &lc->bound_dn, &op->o_req_dn );
 		}
+		mdn.bv_val = NULL;
+
 		if ( li->savecred ) {
 			if ( lc->cred.bv_val )
 				ch_free( lc->cred.bv_val );
@@ -147,6 +149,10 @@ ldap_back_bind(
 		if ( lerr == -1 ) {
 			ldap_back_conn_free( lc );
 		}
+	}
+
+	if ( mdn.bv_val && mdn.bv_val != op->o_req_dn.bv_val ) {
+		free( mdn.bv_val );
 	}
 
 	return( rc );
@@ -262,6 +268,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 	} else {
 		lc_curr.local_dn = op->o_ndn;
 	}
+
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 		(caddr_t)&lc_curr, ldap_back_conn_cmp );
@@ -278,6 +285,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 				rs->sr_text = "ldap_initialize() failed";
 			}
 			send_ldap_result( op, rs );
+			rs->sr_text = NULL;
 			return( NULL );
 		}
 		/* Set LDAP version. This will always succeed: If the client
@@ -516,7 +524,6 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	char *match = NULL;
 	LDAPMessage *res;
-	int rc;
 	char *text = NULL;
 
 	rs->sr_text = NULL;
@@ -527,8 +534,8 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err);
 		} else {
-			rc = ldap_parse_result(lc->ld, res, &rs->sr_err, &match,
-				&text, NULL, NULL, 1);
+			int rc = ldap_parse_result(lc->ld, res, &rs->sr_err,
+					&match, &text, NULL, NULL, 1);
 			rs->sr_text = text;
 			if (rc != LDAP_SUCCESS) rs->sr_err = rc;
 		}
@@ -564,9 +571,13 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	if (op->o_conn && (sendok || rs->sr_err != LDAP_SUCCESS)) {
 		send_ldap_result( op, rs );
 	}
-	if (rs->sr_matched != match) free((char *)rs->sr_matched);
-	rs->sr_matched = NULL;
-	if ( match ) ldap_memfree( match );
+	if ( match ) {
+		if ( rs->sr_matched != match ) {
+			free( (char *)rs->sr_matched );
+		}
+		rs->sr_matched = NULL;
+		ldap_memfree( match );
+	}
 	if ( text ) {
 		ldap_memfree( text );
 	}
