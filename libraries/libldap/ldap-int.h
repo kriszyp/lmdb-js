@@ -346,6 +346,8 @@ int open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
 /*
  * in os-ip.c
  */
+extern int ldap_int_tblsize;
+
 int ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address, int port,
 	int async );
 void ldap_close_connection( Sockbuf *sb );
@@ -354,6 +356,7 @@ void ldap_close_connection( Sockbuf *sb );
 char *ldap_host_connected_to( Sockbuf *sb );
 #endif /* HAVE_KERBEROS */
 
+void ldap_int_ip_init( void );
 int do_ldap_select( LDAP *ld, struct timeval *timeout );
 void *ldap_new_select_info( void );
 void ldap_free_select_info( void *sip );
