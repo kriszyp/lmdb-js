@@ -379,21 +379,19 @@ ldap_pvt_tls_config( struct ldapoptions *lo, int option, const char *arg )
 		      ( strcasecmp( arg, "true" ) == 0 ) );
 		return ldap_pvt_tls_set_option( NULL, option, (void *) &i );
 	case LDAP_OPT_X_TLS:
+		i = -1;
 		if ( strcasecmp( arg, "never" ) == 0 )
-			return ldap_pvt_tls_set_option( lo, option,
-				LDAP_OPT_X_TLS_NEVER );
+			i = LDAP_OPT_X_TLS_NEVER ;
 		if ( strcasecmp( arg, "demand" ) == 0 )
-			return ldap_pvt_tls_set_option( lo, option,
-				LDAP_OPT_X_TLS_DEMAND );
+			i = LDAP_OPT_X_TLS_DEMAND ;
 		if ( strcasecmp( arg, "allow" ) == 0 )
-			return ldap_pvt_tls_set_option( lo, option,
-				LDAP_OPT_X_TLS_ALLOW );
+			i = LDAP_OPT_X_TLS_ALLOW ;
 		if ( strcasecmp( arg, "try" ) == 0 )
-			return ldap_pvt_tls_set_option( lo, option,
-				LDAP_OPT_X_TLS_TRY );
+			i = LDAP_OPT_X_TLS_TRY ;
 		if ( strcasecmp( arg, "hard" ) == 0 )
-			return ldap_pvt_tls_set_option( lo, option,
-				LDAP_OPT_X_TLS_HARD );
+			i = LDAP_OPT_X_TLS_HARD ;
+		if (i >= 0)
+			return ldap_pvt_tls_set_option( lo, option, &i );
 		return -1;
 	default:
 		return -1;
