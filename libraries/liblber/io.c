@@ -221,7 +221,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	assert( sb != NULL );
 	assert( ber != NULL );
 
-	assert( SOCKBUF_VALID( ber ) );
+	assert( SOCKBUF_VALID( sb ) );
 	assert( BER_VALID( ber ) );
 
 	if ( ber->ber_rwptr == NULL ) {
