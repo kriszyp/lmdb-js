@@ -332,7 +332,6 @@ dn2entry_retry:
 		ndn->bv_val, 0, 0 ); 
 #endif
 
-#ifdef BDB_ALIASES
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
@@ -345,7 +344,6 @@ dn2entry_retry:
 		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
-#endif
 
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING

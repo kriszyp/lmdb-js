@@ -107,13 +107,9 @@ bdb_csn_commit(
 									&rs->sr_text, textbuf, textlen );						       
 			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			if ( ret != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, ERR,
-						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-#endif
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				switch( ret ) {
 				case DB_LOCK_DEADLOCK:
 				case DB_LOCK_NOTGRANTED:
@@ -129,13 +125,23 @@ bdb_csn_commit(
 				break;
 			case DB_LOCK_DEADLOCK :
 			case DB_LOCK_NOTGRANTED :
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				goto rewind;
 			default :
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				rs->sr_err = ret;
 				rs->sr_text = "context csn update failed";
 				return BDB_CSN_ABORT;
 			}
-			bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
+			ret = bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
+			if ( ret != LDAP_SUCCESS ) {
+				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
+				switch( ret ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					goto rewind;
+				}
+			}
 		}
 		break;
 	case DB_NOTFOUND:
@@ -151,13 +157,9 @@ bdb_csn_commit(
 		/* This serializes add. But this case is very rare : only once. */
 		rs->sr_err = bdb_next_id( op->o_bd, tid, &ctxcsn_id );
 		if ( rs->sr_err != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR,
-				"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
-#endif
+				"bdb_csn_commit: next_id failed (%d)\n",
+				rs->sr_err, 0, 0 );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
 			return BDB_CSN_ABORT;
@@ -216,13 +218,8 @@ bdb_csn_commit(
 		break;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
-#endif
 		goto rewind;
 	case LDAP_BUSY:
 		rs->sr_err = rc;

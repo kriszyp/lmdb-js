@@ -73,7 +73,8 @@ dn2entry_retry:
 			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_referrals: dn2entry failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_referrals)
+			": dn2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 ); 
 #endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
@@ -91,7 +92,8 @@ dn2entry_retry:
 			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+				LDAP_XSTRING(bdb_referrals)
+				": op=%ld target=\"%s\" matched=\"%s\"\n",
 				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #endif
 
@@ -144,7 +146,8 @@ dn2entry_retry:
 			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+			LDAP_XSTRING(bdb_referrals)
+			": op=%ld target=\"%s\" matched=\"%s\"\n",
 			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 #endif
 

@@ -76,7 +76,8 @@ retry:
 			db_strerror(rc), rc, 0 );
 #else
 		Debug(LDAP_DEBUG_ARGS, 
-			"<=- bdb_hasSubordinates: has_children failed: %s (%d)\n", 
+			"<=- " LDAP_XSTRING(bdb_hasSubordinates)
+			": has_children failed: %s (%d)\n", 
 			db_strerror(rc), rc, 0 );
 #endif
 		rc = LDAP_OTHER;

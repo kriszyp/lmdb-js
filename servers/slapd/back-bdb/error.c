@@ -22,17 +22,17 @@
 #include "slap.h"
 #include "back-bdb.h"
 
+#if DB_VERSION_FULL < 0x04030000
 void bdb_errcall( const char *pfx, char * msg )
+#else
+void bdb_errcall( const DB_ENV *env, const char *pfx, char * msg )
+#endif
 {
 #ifdef HAVE_EBCDIC
 	if ( msg[0] > 0x7f )
 		__etoa( msg );
 #endif
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, INFO, "bdb(%s): %s\n", pfx, msg, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
-#endif
 }
 
 #ifdef HAVE_EBCDIC

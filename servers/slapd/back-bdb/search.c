@@ -483,11 +483,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 
 	void *memctx_null = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n", 0, 0, 0);
-#endif
+	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_search) "\n", 0, 0, 0);
 	attrs = sop->oq_search.rs_attrs;
 
 	opinfo = (struct bdb_op_info *) op->o_private;
@@ -712,13 +708,9 @@ dn2entry_retry:
 			ber_bvarray_free( erefs );
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_search: entry is referral\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_search) ": entry is referral\n",
 			0, 0, 0 );
-#endif
 
 		if (!rs->sr_ref) rs->sr_text = "bad_referral object";
 		rs->sr_err = LDAP_REFERRAL;
@@ -818,13 +810,9 @@ dn2entry_retry:
 	}
 
 	if ( candidates[0] == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS,
-			"bdb_search: no candidates\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_search) ": no candidates\n",
 			0, 0, 0 );
-#endif
 
 		goto nochange;
 	}
@@ -867,15 +855,10 @@ dn2entry_retry:
 		}
 
 		if ( cursor == NOID ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, RESULTS, 
-				"bdb_search: no paged results candidates\n", 
-				0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, 
-				"bdb_search: no paged results candidates\n",
+				LDAP_XSTRING(bdb_search)
+				": no paged results candidates\n",
 				0, 0, 0 );
-#endif
 			send_paged_response( sop, rs, &lastid, 0 );
 
 			rs->sr_err = LDAP_OTHER;
@@ -1010,15 +993,10 @@ id2entry_retry:
 			if ( e == NULL ) {
 				if( !BDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
-#ifdef NEW_LOGGING
-					LDAP_LOG ( OPERATION, RESULTS,
-						"bdb_search: candidate %ld not found\n",
-						(long) id, 0, 0);
-#else
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_search: candidate %ld not found\n",
+						LDAP_XSTRING(bdb_search)
+						": candidate %ld not found\n",
 						(long) id, 0, 0 );
-#endif
 				}
 
 				goto loop_continue;
@@ -1092,7 +1070,6 @@ id2entry_retry:
 			} break;
 		}
 
-#ifdef BDB_ALIASES
 		/* aliases were already dereferenced in candidate list */
 		if ( sop->ors_deref & LDAP_DEREF_SEARCHING ) {
 			/* but if the search base is an alias, and we didn't
@@ -1124,19 +1101,12 @@ id2entry_retry:
 				}
 			}
 		}
-#endif
 
 		/* Not in scope, ignore it */
 		if ( !scopeok ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, RESULTS,
-				"bdb_search: %ld scope not okay\n",
-				(long) id, 0, 0);
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_search: %ld scope not okay\n",
 				(long) id, 0, 0 );
-#endif
 			goto loop_continue;
 		}
 
@@ -1181,15 +1151,10 @@ id2entry_retry:
 				if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 					if ( rc_sync == LDAP_COMPARE_TRUE ) {
 						if ( no_sync_state_change ) {
-#ifdef NEW_LOGGING
-							LDAP_LOG ( OPERATION, RESULTS,
-								"bdb_search: error in context csn management\n",
-								0, 0, 0 );
-#else
 							Debug( LDAP_DEBUG_TRACE,
-								"bdb_search: error in context csn management\n",
+								LDAP_XSTRING(bdb_search) ": "
+								"error in context csn management\n",
 								0, 0, 0 );
-#endif
 						}
 						entry_sync_state = LDAP_SYNC_ADD;
 
@@ -1314,15 +1279,10 @@ id2entry_retry:
 							psid_e, ps_link );
 
 					} else {
-#ifdef NEW_LOGGING
-						LDAP_LOG ( OPERATION, RESULTS,
-							"bdb_search: invalid ps_type (%d) \n",
-							ps_type, 0, 0);
-#else
 						Debug( LDAP_DEBUG_TRACE,
-							"bdb_search: invalid ps_type (%d) \n",
+							LDAP_XSTRING(bdb_search)
+							": invalid ps_type (%d) \n",
 							ps_type, 0, 0);
-#endif
 					}
 
 				} else {
@@ -1401,14 +1361,10 @@ id2entry_retry:
 			}
 
 		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, RESULTS,
-				"bdb_search: %ld does not match filter\n", (long) id, 0, 0);
-#else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld does not match filter\n",
+				LDAP_XSTRING(bdb_search)
+				": %ld does not match filter\n",
 				(long) id, 0, 0 );
-#endif
 		}
 
 loop_continue:
@@ -1580,14 +1536,8 @@ static int base_candidate(
 	Entry	*e,
 	ID		*ids )
 {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY,
-		"base_candidate: base: \"%s\" (0x%08lx)\n",
-		e->e_nname.bv_val, (long) e->e_id, 0);
-#else
 	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_nname.bv_val, (long) e->e_id, 0);
-#endif
 
 	ids[0] = 1;
 	ids[1] = e->e_id;
@@ -1685,15 +1635,9 @@ static int search_candidates(
 	 *		(|[(objectClass=referral)(objectClass=alias)](user-filter))
 	 */
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY,
-		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n", 
-		e->e_nname.bv_val, (long) e->e_id, op->oq_search.rs_scope);
-#else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
 		e->e_nname.bv_val, (long) e->e_id, op->oq_search.rs_scope );
-#endif
 
 	xf.f_or = op->oq_search.rs_filter;
 	xf.f_choice = LDAP_FILTER_OR;
@@ -1732,7 +1676,7 @@ static int search_candidates(
 
 #ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
-		struct berval bv_subentry = BER_BVC( "SUBENTRY" );
+		struct berval bv_subentry = BER_BVC( "subentry" );
 		sf.f_choice = LDAP_FILTER_EQUALITY;
 		sf.f_ava = &aa_subentry;
 		sf.f_av_desc = slap_schema.si_ad_objectClass;
@@ -1765,28 +1709,16 @@ static int search_candidates(
 	}
 
 	if( rc ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1,
-			"bdb_search_candidates: failed (rc=%d)\n", rc, 0, 0  );
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: failed (rc=%d)\n",
 			rc, NULL, NULL );
-#endif
 
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1,
-			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
-			(long) ids[0], (long) BDB_IDL_FIRST(ids), 
-			(long) BDB_IDL_LAST(ids));
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
 			(long) ids[0],
 			(long) BDB_IDL_FIRST(ids),
 			(long) BDB_IDL_LAST(ids) );
-#endif
 	}
 
 	return rc;
@@ -1805,15 +1737,9 @@ send_paged_response(
 	PagedResultsCookie respcookie;
 	struct berval cookie;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY,
-		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
-		lastid ? *lastid : 0, rs->sr_nentries, NULL );
-#else
 	Debug(LDAP_DEBUG_ARGS,
 		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
 		lastid ? *lastid : 0, rs->sr_nentries, NULL );
-#endif
 
 	BER_BVZERO( &ctrl.ldctl_value );
 	ctrls[0] = &ctrl;

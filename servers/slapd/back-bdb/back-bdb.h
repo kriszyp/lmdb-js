@@ -23,6 +23,8 @@
 
 LDAP_BEGIN_DECL
 
+#define DB_VERSION_FULL ((DB_VERSION_MAJOR << 24) | (DB_VERSION_MINOR << 16) | DB_VERSION_PATCH)
+
 #define BDB_SUBENTRIES 1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
@@ -38,8 +40,6 @@ LDAP_BEGIN_DECL
 #define BDB_TXN_RETRIES		16
 
 #define BDB_MAX_ADD_LOOP	30
-
-#define	BDB_ALIASES	1
 
 #ifdef BDB_SUBDIRS
 #define BDB_TMP_SUBDIR	"tmp"
@@ -124,6 +124,7 @@ typedef struct bdb_entry_info {
 typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
+	int		c_eiused;	/* EntryInfo's in use */
 	EntryInfo	c_dntree;
 	EntryInfo	*c_eifree;	/* free list */
 	Avlnode         *c_idtree;

@@ -20,8 +20,10 @@ LDAP_BEGIN_DECL
 
 #ifdef BDB_HIER
 #define	BDB_SYMBOL(x)	LDAP_CONCAT(hdb_,x)
+#define BDB_UCTYPE	"HDB"
 #else
 #define BDB_SYMBOL(x)	LDAP_CONCAT(bdb_,x)
+#define BDB_UCTYPE	"BDB"
 #endif
 
 /*
@@ -139,7 +141,11 @@ int bdb_fix_dn( Entry *e, int checkit );
  */
 #define bdb_errcall					BDB_SYMBOL(errcall)
 
+#if DB_VERSION_FULL < 0x04030000
 void bdb_errcall( const char *pfx, char * msg );
+#else
+void bdb_errcall( const DB_ENV *env, const char *pfx, char * msg );
+#endif
 
 #ifdef HAVE_EBCDIC
 #define ebcdic_dberror				BDB_SYMBOL(ebcdic_dberror)
@@ -482,7 +488,7 @@ int bdb_cache_delete(
 );
 void bdb_cache_delete_cleanup(
 	Cache	*cache,
-	Entry	*e
+	EntryInfo *ei
 );
 void bdb_cache_release_all( Cache *cache );
 void bdb_cache_delete_entry(

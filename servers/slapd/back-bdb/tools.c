@@ -138,13 +138,9 @@ ID bdb_tool_dn2id_get(
 	rc = db->get( db, NULL, &key, &data, bdb->bi_db_opflags );
 
     if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, "bdb_tool_dn2id_get: get failed %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "bdb_tool_dn2id_get: get failed: %s (%d)\n",
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_dn2id_get)
+				": get failed: %s (%d)\n",
 				db_strerror( rc ), rc, 0 );
-#endif
 		id = NOID;
 	}
 
@@ -232,13 +228,8 @@ static int bdb_tool_next_id(
 			snprintf( text->bv_val, text->bv_len,
 				"next_id failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
-#endif
 			return rc;
 		}
 		rc = bdb_dn2id_add( op, tid, ei, e );
@@ -246,13 +237,8 @@ static int bdb_tool_next_id(
 			snprintf( text->bv_val, text->bv_len, 
 				"dn2id_add failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_next_id: %s\n", text->bv_val, 0, 0 );
-#endif
 		} else if ( hole ) {
 			if ( nholes == nhmax - 1 ) {
 				if ( holes == hbuf ) {
@@ -304,13 +290,8 @@ ID bdb_tool_entry_put(
 	assert( text->bv_val );
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ARGS, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
-		(long) e->e_id, e->e_dn, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
-		(long) e->e_id, e->e_dn, 0 );
-#endif
+	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_tool_entry_put)
+		"( %ld, \"%s\" )\n", (long) e->e_id, e->e_dn, 0 );
 
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
@@ -318,13 +299,9 @@ ID bdb_tool_entry_put(
 		snprintf( text->bv_val, text->bv_len,
 			"txn_begin failed: %s (%d)",
 			db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ERR, "=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			 text->bv_val, 0, 0 );
-#endif
 		return NOID;
 	}
 
@@ -344,13 +321,9 @@ ID bdb_tool_entry_put(
 		snprintf( text->bv_val, text->bv_len,
 				"id2entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
+			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
+			text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -359,13 +332,9 @@ ID bdb_tool_entry_put(
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
+			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
+			text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -376,14 +345,9 @@ done:
 			snprintf( text->bv_val, text->bv_len,
 					"txn_commit failed: %s (%d)",
 					db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-			LDAP_LOG ( TOOLS, ERR, 
-				"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_tool_entry_put: %s\n",
+				"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 				text->bv_val, 0, 0 );
-#endif
 			e->e_id = NOID;
 		}
 
@@ -392,14 +356,9 @@ done:
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
 			db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			text->bv_val, 0, 0 );
-#endif
 		e->e_id = NOID;
 	}
 
@@ -416,40 +375,26 @@ int bdb_tool_entry_reindex(
 	DB_TXN *tid = NULL;
 	Operation op = {0};
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ARGS, 
-		"=> bdb_tool_entry_reindex( %ld )\n", (long) id, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
+	Debug( LDAP_DEBUG_ARGS,
+		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld )\n",
 		(long) id, 0, 0 );
-#endif
 
 	e = bdb_tool_entry_get( be, id );
 
 	if( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, DETAIL1, 
-			"bdb_tool_entry_reindex:: could not locate id=%ld\n", 
-			(long) id, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_tool_entry_reindex:: could not locate id=%ld\n",
+			LDAP_XSTRING(bdb_tool_entry_reindex)
+			": could not locate id=%ld\n",
 			(long) id, 0, 0 );
-#endif
 		return -1;
 	}
 
 	rc = TXN_BEGIN( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_reindex) ": "
+			"txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		goto done;
 	}
  	
@@ -460,13 +405,9 @@ int bdb_tool_entry_reindex(
 	 *
 	 */
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ERR, 
-		"=> bdb_tool_entry_reindex( %ld, \"%s\" )\n", (long) id, e->e_dn, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_reindex( %ld, \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld, \"%s\" )\n",
 		(long) id, e->e_dn, 0 );
-#endif
 
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
@@ -476,15 +417,10 @@ int bdb_tool_entry_reindex(
 	/* add dn2id indices */
 	rc = bdb_dn2id_add( &op, tid, NULL, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_reindex)
+			": dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		goto done;
 	}
 #endif
@@ -495,29 +431,19 @@ done:
 	if( rc == 0 ) {
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( TOOLS, ERR, 
-				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n", 
-				db_strerror(rc), rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n",
+				"=> " LDAP_XSTRING(bdb_tool_entry_reindex)
+				": txn_commit failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
-#endif
 			e->e_id = NOID;
 		}
 
 	} else {
 		TXN_ABORT( tid );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, DETAIL1, 
-			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_reindex)
+			": txn_aborted! %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		e->e_id = NOID;
 	}
 	bdb_entry_release( &op, e, 0 );
@@ -545,13 +471,9 @@ ID bdb_tool_entry_modify(
 	assert ( e->e_id != NOID );
 	assert ( e->e_id != 0 );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ARGS, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"=> " LDAP_XSTRING(bdb_tool_entry_modify) "( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
-		(long) e->e_id, e->e_dn, 0 );
-#endif
 
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
@@ -559,13 +481,9 @@ ID bdb_tool_entry_modify(
 		snprintf( text->bv_val, text->bv_len,
 			"txn_begin failed: %s (%d)",
 			db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TOOLS, ERR, "=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
 			 text->bv_val, 0, 0 );
-#endif
 		return NOID;
 	}
 
@@ -579,13 +497,9 @@ ID bdb_tool_entry_modify(
 		snprintf( text->bv_val, text->bv_len,
 				"id2entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
+			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
+			text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -594,13 +508,9 @@ ID bdb_tool_entry_modify(
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_del failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
+			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
+			text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -609,13 +519,9 @@ ID bdb_tool_entry_modify(
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
+			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
+			text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -626,14 +532,9 @@ done:
 			snprintf( text->bv_val, text->bv_len,
 					"txn_commit failed: %s (%d)",
 					db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-			LDAP_LOG ( TOOLS, ERR, 
-				"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_tool_entry_put: %s\n",
-				text->bv_val, 0, 0 );
-#endif
+				"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": "
+				"%s\n", text->bv_val, 0, 0 );
 			e->e_id = NOID;
 		}
 
@@ -642,14 +543,9 @@ done:
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
 			db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n",
+			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
 			text->bv_val, 0, 0 );
-#endif
 		e->e_id = NOID;
 	}
 
