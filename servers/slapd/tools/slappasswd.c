@@ -31,6 +31,7 @@ usage(const char *s)
 		"Usage: %s [options]\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
+		"  -u\t\tgenerate RFC2307 values\n"
 		"  -v\t\tincrease verbosity\n"
 		, s );
 
@@ -50,7 +51,7 @@ main( int argc, char *argv[] )
 	struct berval *hash = NULL;
 
 	while( (i = getopt( argc, argv,
-		"d:h:s:v" )) != EOF )
+		"d:h:s:vu" )) != EOF )
 	{
 		switch (i) {
 		case 'h':	/* scheme */
@@ -66,6 +67,9 @@ main( int argc, char *argv[] )
 					*p = '\0';
 				}
 			}
+			break;
+
+		case 'u':	/* RFC2307 userPassword */
 			break;
 
 		case 'v':	/* verbose */
@@ -88,7 +92,7 @@ main( int argc, char *argv[] )
 		cknewpw = getpassphrase("Re-enter new password: ");
 
 		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
-			fprintf( stderr, "passwords do not match\n" );
+			fprintf( stderr, "Password values do not match\n" );
 			return EXIT_FAILURE;
 		}
 	}
@@ -104,7 +108,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( lutil_passwd( hash, &passwd, NULL ) ) {
-		fprintf( stderr, "Password verificaiton failed.\n");
+		fprintf( stderr, "Password verification failed.\n");
 		return EXIT_FAILURE;
 	}
 

@@ -291,7 +291,7 @@ long connection_init(
 	const char* peername,
 	const char* sockname,
 	int use_tls,
-	unsigned ssf,
+	slap_ssf_t ssf,
 	char *authid )
 {
 	unsigned long id;
@@ -922,14 +922,14 @@ int connection_read(ber_socket_t s)
 
 		} else if ( rc == 0 ) {
 			void *ssl;
-			unsigned ssf;
+			slap_ssf_t ssf;
 			char *authid;
 
 			c->c_needs_tls_accept = 0;
 
 			/* we need to let SASL know */
 			ssl = (void *)ldap_pvt_tls_sb_handle( c->c_sb );
-			ssf = (unsigned)ldap_pvt_tls_get_strength( ssl );
+			ssf = (slap_ssf_t) ldap_pvt_tls_get_strength( ssl );
 			authid = (char *)ldap_pvt_tls_get_peer( ssl );
 			slap_sasl_external( c, ssf, authid );
 		}

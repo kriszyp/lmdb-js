@@ -61,10 +61,6 @@ struct {
 
 static extop_list_t *find_extop( extop_list_t *list, char *oid );
 
-static int extop_callback(
-	Connection *conn, Operation *op,
-	int msg, int arg, void *argp);
-
 char *
 get_supported_extop (int index)
 {
@@ -152,7 +148,7 @@ do_extended(
 	text = NULL;
 	refs = NULL;
 
-	rc = (ext->ext_main)( extop_callback, conn, op,
+	rc = (ext->ext_main)( conn, op,
 		reqoid, reqdata,
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
@@ -247,46 +243,4 @@ find_extop( extop_list_t *list, char *oid )
 			return(ext);
 	}
 	return(NULL);
-}
-
-int
-extop_callback(
-	Connection *conn, Operation *op,
-	int msg, int arg, void *argp)
-{
-	if (argp == NULL)
-		return(-1);
-
-	switch (msg) {
-	case SLAPD_EXTOP_GETVERSION:
-		*(int *)argp = 1;
-		return(0);
-
-	case SLAPD_EXTOP_GETPROTO:
-		*(int *)argp = op->o_protocol;
-		return(0);
-	
-	case SLAPD_EXTOP_GETAUTH:
-		*(int *)argp = op->o_authtype;
-		return(0);
-	
-	case SLAPD_EXTOP_GETDN:
-		*(char **)argp = op->o_dn;
-		return(0);
-	
-	case SLAPD_EXTOP_GETCLIENT:
-		if (conn->c_peer_domain != NULL && *conn->c_peer_domain != 0) {
-			*(char **)argp = conn->c_peer_domain;
-			return(0);
-		}
-		if (conn->c_peer_name != NULL && *conn->c_peer_name != 0) {
-			*(char **)argp = conn->c_peer_name;
-			return(0);
-		}
-		break;
-	
-	default:
-		break;
-	}
-	return(-1);
 }

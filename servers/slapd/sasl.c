@@ -290,7 +290,7 @@ int slap_sasl_open( Connection *conn )
 
 int slap_sasl_external(
 	Connection *conn,
-	unsigned ssf,
+	slap_ssf_t ssf,
 	char *auth_id )
 {
 #ifdef HAVE_CYRUS_SASL
@@ -302,7 +302,7 @@ int slap_sasl_external(
 		return LDAP_UNAVAILABLE;
 	}
 
-	memset( &extprops, 0L, sizeof(extprops) );
+	memset( &extprops, '\0', sizeof(extprops) );
 	extprops.ssf = ssf;
 	extprops.auth_id = auth_id;
 
@@ -385,7 +385,7 @@ int slap_sasl_bind(
     const char          *mech,
     struct berval       *cred,
 	char				**edn,
-	unsigned long		*ssfp )
+	slap_ssf_t			*ssfp )
 {
 	int rc = 1;
 

@@ -19,7 +19,6 @@
 #include <lutil.h>
 
 int passwd_extop(
-	SLAP_EXTOP_CALLBACK_FN ext_callback,
 	Connection *conn, Operation *op,
 	const char *reqoid,
 	struct berval *reqdata,
