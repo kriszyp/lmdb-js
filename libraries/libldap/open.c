@@ -228,7 +228,9 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 }
 
 int
-ldap_start_tls ( LDAP *ld )
+ldap_start_tls ( LDAP *ld,
+				LDAPControl **serverctrls,
+				LDAPControl **clientctrls )
 {
 #ifdef HAVE_TLS
 	LDAPConn *lc;
@@ -246,7 +248,7 @@ ldap_start_tls ( LDAP *ld )
 		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
 			return LDAP_OPERATIONS_ERROR;
 		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
-							NULL, NULL, NULL, &rspoid, &rspdata);
+							NULL, serverctrls, clientctrls, &rspoid, &rspdata);
 		if (rc != LDAP_SUCCESS)
 			return rc;
 		rc = ldap_pvt_tls_start( lc->lconn_sb, ld->ld_options.ldo_tls_ctx );

@@ -995,7 +995,9 @@ ldap_initialize LDAP_P((
 
 LIBLDAP_F( int )
 ldap_start_tls LDAP_P((
-	LDAP *ld ));
+	LDAP *ld,
+	LDAPControl **serverctrls,
+	LDAPControl **clientctrls ));
 
 /*
  * in messages.c:
