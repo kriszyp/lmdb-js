@@ -144,7 +144,7 @@ make_salt (Salt * salt, unsigned int len)
 char *
 gen_pass (unsigned int len)
 {
-	const unsigned char autogen[] =
+	static const unsigned char autogen[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.,";
 	int		i;
 	Salt		salt;
@@ -171,7 +171,7 @@ hash_none (const char *pw_in, Salt * salt)
 char *
 hash_crypt (const char *pw_in, Salt * salt)
 {
-	const unsigned char crypt64[] =
+	static const unsigned char crypt64[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
 	char   *crypted_pw = NULL;
 	Salt	lsalt;
@@ -614,9 +614,11 @@ main (int argc, char *argv[])
 	if (filtpattern)
 	{
 		char		filter[BUFSIZ];
-		LDAPMessage    *result = NULL, *e = NULL;
-		char	       *attrs[3] = {"dn", NULL, NULL};
+		LDAPMessage	*result = NULL, *e;
+		char		*attrs[3];
+		attrs[0] = "dn";
 		attrs[1] = pwattr;
+		attrs[2] = NULL;
 
 		/* search */
 		sprintf (filter, "%s", filtpattern);
