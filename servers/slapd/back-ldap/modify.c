@@ -39,13 +39,14 @@ ldap_back_modify(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
-    LDAPModList	*ml
+    Modifications	*modlist
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
-	LDAPMod **mods;
-	LDAPModList *m;
+	LDAPMod **modv;
+	LDAPMod *mods;
+	Modifications *ml;
 	int i;
 
 	lc = ldap_back_getconn(li, conn, op);
@@ -58,15 +59,29 @@ ldap_back_modify(
 			return( -1 );
 	}
 
-	for (i=1, m=ml->ml_next; m; i++,m=m->ml_next)
+	for (i=0, ml=modlist; ml; i++,ml=ml->sml_next)
 		;
-	mods = (LDAPMod **)ch_malloc((i+1)*sizeof(LDAPMod *));
-	mods[i] = 0;
 
-	for (i=0, m=ml; m; i++, m=m->ml_next)
-		mods[i] = &m->ml_mod;
+	mods = (LDAPMod *)ch_malloc(i*sizeof(LDAPMod));
+	if (mods == NULL)
+		return( -1 );
+	modv = (LDAPMod **)ch_malloc((i+1)*sizeof(LDAPMod *));
+	if (modv == NULL) {
+		free(mods);
+		return( -1 );
+	}
 
-	ldap_modify_s( lc->ld, dn, mods );
+	modv[i] = 0;
+
+	for (i=0, ml=modlist; ml; i++, ml=ml->sml_next) {
+		modv[i] = &mods[i];
+		mods[i].mod_op = ml->sml_op;
+		mods[i].mod_type = ml->sml_desc->ad_cname->bv_val;
+		mods[i].mod_bvalues = ml->sml_bvalues;
+	}
+
+	ldap_modify_s( lc->ld, dn, modv );
 	free(mods);	
+	free(modv);	
 	return( ldap_back_op_result( lc, op ));
 }
