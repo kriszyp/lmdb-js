@@ -1510,6 +1510,24 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
 			return rs->sr_err;
 		}
+		/* If just Refreshing and nothing has changed, shortcut it */
+		if ( bvmatch( srs->sr_state.ctxcsn, &si->si_ctxcsn )) {
+			nochange = 1;
+			if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
+				LDAPControl	*ctrls[2];
+
+				ctrls[0] = NULL;
+				ctrls[1] = NULL;
+				syncprov_done_ctrl( op, rs, ctrls, 0, 0,
+					NULL, LDAP_SYNC_REFRESH_DELETES );
+				rs->sr_ctrls = ctrls;
+				rs->sr_err = LDAP_SUCCESS;
+				send_ldap_result( op, rs );
+				rs->sr_ctrls = NULL;
+				return rs->sr_err;
+			}
+			goto shortcut;
+		}
 		/* Is the CSN still present in the database? */
 		if ( syncprov_findcsn( op, FIND_CSN ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
@@ -1521,24 +1539,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 #endif
 		} else {
 			gotstate = 1;
-			/* If just Refreshing and nothing has changed, shortcut it */
-			if ( bvmatch( srs->sr_state.ctxcsn, &si->si_ctxcsn )) {
-				nochange = 1;
-				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
-					LDAPControl	*ctrls[2];
-
-					ctrls[0] = NULL;
-					ctrls[1] = NULL;
-					syncprov_done_ctrl( op, rs, ctrls, 0, 0,
-						NULL, LDAP_SYNC_REFRESH_DELETES );
-					rs->sr_ctrls = ctrls;
-					rs->sr_err = LDAP_SUCCESS;
-					send_ldap_result( op, rs );
-					rs->sr_ctrls = NULL;
-					return rs->sr_err;
-				}
-				goto shortcut;
-			} else
 			/* If context has changed, check for Present UUIDs */
 			if ( syncprov_findcsn( op, FIND_PRESENT ) != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
