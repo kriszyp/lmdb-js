@@ -263,7 +263,7 @@ struct berval * slap_passwd_return(
 		(void) ber_flatten( ber, &bv );
 	}
 
-	ber_free_buf( ber, 1 );
+	ber_free_buf( ber );
 
 	return bv;
 }
