@@ -534,7 +534,7 @@ IA5StringNormalize(
 		p++;
 	}
 
-	if( *p != '\0' ) {
+	if( *p == '\0' ) {
 		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -1112,7 +1112,7 @@ numericStringNormalize(
 		p++;
 	}
 
-	if( *p != '\0' ) {
+	if( *p == '\0' ) {
 		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
