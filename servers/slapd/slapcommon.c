@@ -580,7 +580,7 @@ startup:;
 
 void slap_tool_destroy( void )
 {
-	if ( !dryrun && be != NULL ) {
+	if ( !dryrun ) {
 		slap_shutdown( be );
 	}
 	slap_destroy();
