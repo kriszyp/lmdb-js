@@ -2,6 +2,7 @@
  * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
+/* $OpenLDAP$
 
 #include "portable.h"
 
@@ -49,9 +50,7 @@ usage( const char *s )
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
-#ifdef LDAP_CONTROL_NOOP
 "             [!]noop\n"
-#endif
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
@@ -110,18 +109,15 @@ main( int argc, char **argv )
 {
 	char	*compdn = NULL, *attrs = NULL;
 	char	*sep;
-	int		rc, i, crit, manageDSAit, quiet;
+	int		rc, i, crit, manageDSAit, noop, quiet;
 	int		referrals, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP	*ld = NULL;
 	struct berval bvalue = { 0, NULL };
 	char	*pw_file = NULL;
 	char	*control, *cvalue;
-#ifdef LDAP_CONTROL_NOOP
-	int noop=0;
-#endif
 
-	debug = verbose = not = referrals =
+	debug = verbose = not = referrals = noop =
 		manageDSAit = want_bindpw = quiet = 0;
 
 	version = -1;
@@ -209,7 +205,6 @@ main( int argc, char **argv )
 			free( control );
 			break;
 			
-#ifdef LDAP_CONTROL_NOOP
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
@@ -220,7 +215,6 @@ main( int argc, char **argv )
 			noop = 1 + crit;
 			free( control );
 			break;
-#endif
 
 		} else {
 			fprintf( stderr, "Invalid general control name: %s\n", control );
@@ -733,11 +727,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( manageDSAit
-#ifdef LDAP_CONTROL_NOOP
-		|| noop
-#endif
-	) {
+	if ( manageDSAit || noop ) {
 		int err, i = 0;
 		LDAPControl c1, c2;
 		LDAPControl *ctrls[3];
@@ -751,7 +741,6 @@ main( int argc, char **argv )
 			c1.ldctl_iscritical = manageDSAit > 1;
 		}
 
-#ifdef LDAP_CONTROL_NOOP
 		if ( noop ) {
 			ctrls[i++] = &c2;
 			ctrls[i] = NULL;
@@ -761,7 +750,6 @@ main( int argc, char **argv )
 			c2.ldctl_value.bv_len = 0;
 			c2.ldctl_iscritical = noop > 1;
 		}
-#endif
 	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
