@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.8 Release
+	Build Enviroment
+		Updated configure script
+
 OpenLDAP 2.1.7 Release
 	Fixed liblber bvarray_add bug (ITS#2142)
 	Added libldap additional schema routines
