@@ -32,7 +32,7 @@ do_abandon(
 {
 	ber_int_t		id;
 	Operation	*o;
-	int rc, notfound;
+	int rc;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "conn: %d do_abandon\n",
