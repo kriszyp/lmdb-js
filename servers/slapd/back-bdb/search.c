@@ -75,7 +75,7 @@ bdb_search(
 
 #ifdef LDAP_SYNC
 	int		rc_sync = 0;
-	int		entry_sync_state;
+	int		entry_sync_state = -1;
 	AttributeName	null_attr;
 #endif
 

@@ -108,7 +108,7 @@ do_extended(
 	struct berval reqdata = {0, NULL};
 	ber_tag_t tag;
 	ber_len_t len;
-	struct extop_list *ext;
+	struct extop_list *ext = NULL;
 	const char *text;
 	BerVarray refs;
 	char *rspoid;
