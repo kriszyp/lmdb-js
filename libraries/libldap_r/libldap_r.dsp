@@ -172,6 +172,10 @@ SOURCE=..\libldap\dnssrv.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\dsparse.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\error.c
 # End Source File
 # Begin Source File
