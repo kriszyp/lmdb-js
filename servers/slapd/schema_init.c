@@ -1048,7 +1048,6 @@ int caseExactIA5SubstringsFilter(
 			value->bv_val, klen );
 		lutil_MD5Final( MD5digest, &MD5context );
 
-		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -1076,7 +1075,6 @@ int caseExactIA5SubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		lutil_MD5Final( MD5digest, &MD5context );
 
-		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
