@@ -104,7 +104,7 @@ entry_schema_check(
 	if( sc == NULL ) {
 		snprintf( textbuf, textlen, 
 			"unrecognized structuralObjectClass '%s'",
-			aoc->a_vals[0].bv_val );
+			asc->a_vals[0].bv_val );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
@@ -122,7 +122,7 @@ entry_schema_check(
 	if( sc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
 		snprintf( textbuf, textlen, 
 			"structuralObjectClass '%s' is not STRUCTURAL",
-			aoc->a_vals[0].bv_val );
+			asc->a_vals[0].bv_val );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
@@ -156,7 +156,7 @@ entry_schema_check(
 	assert( aoc->a_vals != NULL );
 	assert( aoc->a_vals[0].bv_val != NULL );
 
-	rc = structural_class( aoc->a_vals, &nsc, text, textbuf, textlen );
+	rc = structural_class( aoc->a_vals, &nsc, &oc, text, textbuf, textlen );
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	} else if ( nsc.bv_len == 0 ) {
@@ -165,11 +165,10 @@ entry_schema_check(
 
 	*text = textbuf;
 
-	oc = oc_bvfind( &nsc );
 	if ( oc == NULL ) {
 		snprintf( textbuf, textlen, 
 			"unrecognized objectClass '%s'",
-			aoc->a_vals[i].bv_val );
+			aoc->a_vals[0].bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 
 	} else if ( sc != oc ) {
@@ -448,6 +447,7 @@ int oc_check_allowed(
 int structural_class(
 	BVarray ocs,
 	struct berval *scbv,
+	ObjectClass **scp,
 	const char **text,
 	char *textbuf, size_t textlen )
 {
@@ -518,6 +518,9 @@ int structural_class(
 		}
 	}
 
+	if( scp )
+		*scp = sc;
+
 	if( sc == NULL ) {
 		*text = "no structural object classes provided";
 		return LDAP_OBJECT_CLASS_VIOLATION;
@@ -558,6 +561,6 @@ int mods_structural_class(
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
-	return structural_class( ocmod->sml_bvalues, sc,
+	return structural_class( ocmod->sml_bvalues, sc, NULL,
 		text, textbuf, textlen );
 }

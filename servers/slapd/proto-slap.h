@@ -818,6 +818,7 @@ LDAP_SLAPD_F( int ) oc_check_allowed(
 LDAP_SLAPD_F( int ) structural_class(
 	BVarray ocs,
 	struct berval *scbv,
+	ObjectClass **sc,
 	const char **text,
 	char *textbuf, size_t textlen );
 
