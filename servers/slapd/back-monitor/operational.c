@@ -25,7 +25,7 @@ monitor_back_operational(
 	Connection	*conn, 
 	Operation	*op,
 	Entry		*e,
-	char		**attrs,
+	struct berval	**attrs,
 	int		opattrs,
 	Attribute	**a )
 {
