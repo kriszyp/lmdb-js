@@ -32,8 +32,8 @@ enum ldap_int_thread_pool_state {
 
 typedef struct ldap_int_thread_ctx_s {
 	union {
-	SLIST_ENTRY(ldap_int_thread_ctx_s) l;
 	STAILQ_ENTRY(ldap_int_thread_ctx_s) q;
+	SLIST_ENTRY(ldap_int_thread_ctx_s) l;
 	} ltc_next;
 	void *(*ltc_start_routine)( void *);
 	void *ltc_arg;
@@ -44,6 +44,7 @@ struct ldap_int_thread_pool_s {
 	ldap_pvt_thread_mutex_t ltp_mutex;
 	ldap_pvt_thread_cond_t ltp_cond;
 	STAILQ_HEAD(tcq, ldap_int_thread_ctx_s) ltp_pending_list;
+	SLIST_HEAD(tcl, ldap_int_thread_ctx_s) ltp_free_list;
 	long ltp_state;
 	long ltp_max_count;
 	long ltp_max_pending;
@@ -57,12 +58,7 @@ static STAILQ_HEAD(tpq, ldap_int_thread_pool_s)
 	ldap_int_thread_pool_list =
 	STAILQ_HEAD_INITIALIZER(ldap_int_thread_pool_list);
 
-static SLIST_HEAD(tcl, ldap_int_thread_ctx_s)
-	ldap_int_ctx_free_list = 
-	SLIST_HEAD_INITIALIZER(ldap_int_ctx_free_list);
-
 static ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
-static ldap_pvt_thread_mutex_t ldap_pvt_ctx_free_mutex;
 
 static void *ldap_int_thread_pool_wrapper(
 	struct ldap_int_thread_pool_s *pool );
@@ -70,10 +66,7 @@ static void *ldap_int_thread_pool_wrapper(
 int
 ldap_int_thread_pool_startup ( void )
 {
-	int rc = ldap_pvt_thread_mutex_init(&ldap_pvt_thread_pool_mutex);
-	if (rc == 0)
-		rc = ldap_pvt_thread_mutex_init(&ldap_pvt_ctx_free_mutex);
-	return rc;
+	return ldap_pvt_thread_mutex_init(&ldap_pvt_thread_pool_mutex);
 }
 
 int
@@ -86,11 +79,6 @@ ldap_int_thread_pool_shutdown ( void )
 		STAILQ_REMOVE_HEAD(&ldap_int_thread_pool_list, ltp_next);
 		ldap_pvt_thread_pool_destroy( &pool, 0);
 	}
-	while ((ctx = SLIST_FIRST(&ldap_int_ctx_free_list))) {
-		SLIST_REMOVE_HEAD(&ldap_int_ctx_free_list, ltc_next.l);
-		free(ctx);
-	}
-	ldap_pvt_thread_mutex_destroy(&ldap_pvt_ctx_free_mutex);
 	ldap_pvt_thread_mutex_destroy(&ldap_pvt_thread_pool_mutex);
 	return(0);
 }
@@ -120,6 +108,7 @@ ldap_pvt_thread_pool_init (
 	pool->ltp_max_count = max_threads;
 	pool->ltp_max_pending = max_pending;
 	STAILQ_INIT(&pool->ltp_pending_list);
+	SLIST_INIT(&pool->ltp_free_list);
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
@@ -188,13 +177,10 @@ ldap_pvt_thread_pool_submit (
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 		return(-1);
 	}
-	ldap_pvt_thread_mutex_lock(&ldap_pvt_ctx_free_mutex);
-	ctx = SLIST_FIRST(&ldap_int_ctx_free_list);
+	ctx = SLIST_FIRST(&pool->ltp_free_list);
 	if (ctx) {
-		SLIST_REMOVE_HEAD(&ldap_int_ctx_free_list, ltc_next.l);
-		ldap_pvt_thread_mutex_unlock(&ldap_pvt_ctx_free_mutex);
+		SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
 	} else {
-		ldap_pvt_thread_mutex_unlock(&ldap_pvt_ctx_free_mutex);
 		ctx = (ldap_int_thread_ctx_t *) LDAP_MALLOC(
 			sizeof(ldap_int_thread_ctx_t));
 		if (ctx == NULL) {
@@ -354,6 +340,12 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		free(ctx);
 	}
 
+	while ((ctx = SLIST_FIRST(&pool->ltp_free_list)) != NULL)
+	{
+		SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
+		free(ctx);
+	}
+
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	free(pool);
@@ -409,9 +401,7 @@ ldap_int_thread_pool_wrapper (
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 		(ctx->ltc_start_routine)(ctx->ltc_arg);
-		ldap_pvt_thread_mutex_lock(&ldap_pvt_ctx_free_mutex);
-		SLIST_INSERT_HEAD(&ldap_int_ctx_free_list, ctx, ltc_next.l);
-		ldap_pvt_thread_mutex_unlock(&ldap_pvt_ctx_free_mutex);
+		SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
 		ldap_pvt_thread_yield();
 
 		/* if we use an idle timer, here's
