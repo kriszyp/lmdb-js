@@ -1059,7 +1059,7 @@ typedef enum slap_style_e {
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
 	ACL_STYLE_CHILDREN,
-	ACL_STYLE_ATTROF,
+	ACL_STYLE_ATTROF
 } slap_style_t;
 
 typedef struct slap_authz_info {
