@@ -405,7 +405,7 @@ get_substring_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	f->f_sub = ch_calloc( 1, sizeof(SubstringAssertion) );
+	f->f_sub = ch_calloc( 1, sizeof(SubstringsAssertion) );
 	f->f_sub_desc = NULL;
 	rc = slap_bv2ad( &type, &f->f_sub_desc, text );
 

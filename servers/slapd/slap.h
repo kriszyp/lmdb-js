@@ -398,7 +398,7 @@ typedef struct slap_ss_assertion {
 	struct berval			*sa_initial;
 	struct berval			**sa_any;
 	struct berval			*sa_final;
-} SubstringAssertion;
+} SubstringsAssertion;
 
 typedef struct slap_mr_assertion {
 	char					*ma_rule;	/* optional */
@@ -455,7 +455,7 @@ typedef struct slap_filter {
 		AttributeAssertion *f_un_ava;
 
 		/* substring assertion */
-		SubstringAssertion *f_un_ssa;
+		SubstringsAssertion *f_un_ssa;
 
 		/* matching rule assertion */
 		MatchingRuleAssertion *f_un_mra;
