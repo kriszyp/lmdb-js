@@ -883,7 +883,7 @@ dnl check to see if system call automatically restart
 dnl AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl ----------------------------------------------------------------
-AC_CHECK_FUNCS( poll )
+dnl AC_CHECK_FUNCS( poll )
 AC_CHECK_HEADERS( poll.h )
 
 dnl ----------------------------------------------------------------
