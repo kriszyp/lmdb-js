@@ -87,21 +87,33 @@ ldbm_back_bind(
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
 		/* allow noauth binds */
-		if ( method == LDAP_AUTH_SIMPLE && cred->bv_len == 0 ) {
-			/*
-			 * bind successful, but return 1 so we don't
-			 * authorize based on noauth credentials
-			 */
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
-			rc = 1;
-		} else if ( be_isroot_pw( be, dn, cred ) ) {
-			/* front end will send result */
-			*edn = ch_strdup( be_root_dn( be ) );
-			rc = 0;
+		rc = 1;
+		if ( method == LDAP_AUTH_SIMPLE ) {
+			if( cred->bv_len == 0 ) {
+				/* SUCCESS */
+				send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+
+			} else if ( be_isroot_pw( be, dn, cred ) ) {
+				*edn = ch_strdup( be_root_dn( be ) );
+				rc = 0; /* front end will send result */
+
+			} else {
+				send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
+			}
+
+		} else if ( method == LDAP_AUTH_SASL ) {
+			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") ) {
+				/* insert DIGEST calls here */
+				send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH, NULL, NULL );
+				
+			} else {
+				send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH, NULL, NULL );
+			}
+
 		} else {
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
-			rc = 1;
 		}
+
 		if ( matched != NULL ) {
 			free( matched );
 		}
