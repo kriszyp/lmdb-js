@@ -400,7 +400,7 @@ LDAPModToEntry(
 		} /* for each LDAPMod */
 	}
 
-	be = select_backend(&dn, 0, 0);
+	be = select_backend(&pEntry->e_nname, 0, 0);
 	if ( be == NULL ) {
 		rc =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -516,7 +516,7 @@ slapi_delete_internal(
 		manageDsaIt = 1; 
 	}
 
-	be = select_backend( &dn, manageDsaIt, 0 );
+	be = select_backend( &ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
 		rc =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -801,7 +801,7 @@ slapi_modrdn_internal(
 		manageDsaIt = 1;
 	}
 
-	be = select_backend( &dn, manageDsaIt, 0 );
+	be = select_backend( &ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
 		rc =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -937,7 +937,7 @@ slapi_modify_internal(
         	manageDsaIt = 1;
 	}
 
-	be = select_backend( &dn, manageDsaIt, 0 );
+	be = select_backend( &ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
 		rc =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
