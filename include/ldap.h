@@ -43,10 +43,10 @@ LDAP_BEGIN_DECL
  * As such, the number will be above the old RFC but below 
  * whatever number does finally get assigned
  */
-#define LDAP_API_VERSION	2003
+#define LDAP_API_VERSION	2004
 #define LDAP_VENDOR_NAME	"OpenLDAP"
 /* We'll eventually release as 200 */
-#define LDAP_VENDOR_VERSION	192
+#define LDAP_VENDOR_VERSION	193
 
 /* OpenLDAP API Features */
 #define LDAP_API_FEATURE_X_OPENLDAP LDAP_VENDOR_VERSION
@@ -73,7 +73,7 @@ LDAP_BEGIN_DECL
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
-#define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+"
+#define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+" /* OpenLDAP extension */
 
 /*
  * LDAP_OPTions defined by draft-ldapext-ldap-c-api-02
@@ -82,7 +82,7 @@ LDAP_BEGIN_DECL
  * 0x4000 - 0x7fff reserved for private and experimental options
  */
 #define LDAP_OPT_API_INFO			0x0000
-#define LDAP_OPT_DESC				0x0001
+#define LDAP_OPT_DESC				0x0001 /* deprecated */
 #define LDAP_OPT_DEREF				0x0002
 #define LDAP_OPT_SIZELIMIT			0x0003
 #define LDAP_OPT_TIMELIMIT			0x0004
@@ -100,8 +100,9 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_HOST_NAME			0x0030
 #define	LDAP_OPT_ERROR_NUMBER		0x0031
 #define LDAP_OPT_ERROR_STRING		0x0032
+#define LDAP_OPT_MATCHED_DN			0x0033
 
-/* 0x33 - 0x0fff not defined by current draft */
+/* 0x34 - 0x0fff not defined by current draft */
 
 /* extended options - none */
 
@@ -112,7 +113,6 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_DEBUG_LEVEL		0x5001	/* debug level */
 #define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
 #define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
-#define LDAP_OPT_MATCHED_DN			0x5004	/* should have been in draft */
 #define LDAP_OPT_NETWORK_TIMEOUT        0x5005  /* socket level timeout */
 
 /* TLS options */
@@ -165,13 +165,14 @@ typedef struct ldapcontrol {
 /* LDAP Controls */
 	/* chase referrals controls */
 #define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
-#define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020
-#define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040
+#define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020U
+#define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040U
 
 #define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.4.2"
 
 /* LDAP Unsolicited Notifications */
-#define	LDAP_NOTICE_DISCONNECT	"1.3.6.1.4.1.1466.20036"
+#define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
+#define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
 
 /* LDAP Extended Operations */
 
@@ -244,7 +245,9 @@ typedef struct ldapcontrol {
 #define LDAP_RES_RENAME			LDAP_RES_MODRDN	/* application + constructed */
 #define LDAP_RES_COMPARE		(ber_tag_t) 0x6fU	/* application + constructed */
 #define LDAP_RES_EXTENDED		(ber_tag_t) 0x78U	/* V3: application + constructed */
-#define LDAP_RES_ANY			((ber_tag_t)(~0))
+
+#define LDAP_RES_ANY			((ber_tag_t)(-1))
+#define LDAP_RES_UNSOLICITED	((ber_tag_t)(0))
 
 
 /* sasl methods */
@@ -290,6 +293,7 @@ typedef struct ldapcontrol {
 /* for modifications */
 typedef struct ldapmod {
 	int		mod_op;
+
 #define LDAP_MOD_ADD		(ber_int_t) 0x0000
 #define LDAP_MOD_DELETE		(ber_int_t) 0x0001
 #define LDAP_MOD_REPLACE	(ber_int_t) 0x0002
@@ -297,8 +301,8 @@ typedef struct ldapmod {
 /* IMPORTANT: do not use code 0x1000 (or above),
  * it is used internally by the backends!
  * (see ldap/servers/slapd/slap.h)
- * JCG 05/1999 (gomez@engr.sgi.com)
  */
+
 	char		*mod_type;
 	union mod_vals_u {
 		char		**modv_strvals;
@@ -496,7 +500,7 @@ typedef struct ldap_url_desc {
 
 /*
  * The API draft spec says we should declare (or cause to be declared)
- * 'struct timeval'.   We don't.  See LDAPext discussions.
+ * 'struct timeval'.   We don't.  See IETF LDAPext discussions.
  */
 struct timeval;
 
@@ -505,7 +509,7 @@ struct timeval;
  */
 LDAP_F( int )
 ldap_get_option LDAP_P((
-	LDAP_CONST LDAP *ld,
+	LDAP *ld,
 	int option,
 	void *outvalue));
 

@@ -28,7 +28,7 @@
 
 LDAP_BEGIN_DECL
 
-/* boolean, enumerations, and integers */
+/* booleans, enumerations, and integers */
 typedef LBER_INT_T ber_int_t;
 
 /* signed and unsigned versions */
@@ -36,7 +36,7 @@ typedef signed LBER_INT_T ber_sint_t;
 typedef unsigned LBER_INT_T ber_uint_t;
 
 /* tags */
-typedef LBER_TAG_T ber_tag_t;
+typedef unsigned LBER_TAG_T ber_tag_t;
 
 /* "socket" descriptors */
 typedef LBER_SOCKET_T ber_socket_t;
@@ -45,7 +45,7 @@ typedef LBER_SOCKET_T ber_socket_t;
 typedef unsigned LBER_LEN_T ber_len_t;
 
 /* signed lengths */
-typedef LBER_LEN_T ber_slen_t;
+typedef signed LBER_LEN_T ber_slen_t;
 
 
 /* Overview of LBER tag construction
@@ -176,11 +176,11 @@ ber_bprint LDAP_P((
 
 LDAP_F( void )
 ber_dump LDAP_P((
-	LDAP_CONST BerElement *ber, int inout ));
+	BerElement *ber, int inout ));
 
 LDAP_F( void )
 ber_sos_dump LDAP_P((
-	LDAP_CONST Seqorset *sos ));
+	Seqorset *sos ));
 
 
 /*
@@ -202,7 +202,7 @@ ber_skip_tag LDAP_P((
 
 LDAP_F( ber_tag_t )
 ber_peek_tag LDAP_P((
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	ber_len_t *len ));
 
 LDAP_F( ber_tag_t )
@@ -386,7 +386,7 @@ ber_alloc_t LDAP_P((
 
 LDAP_F( BerElement * )
 ber_dup LDAP_P((
-	LDAP_CONST BerElement *ber ));
+	BerElement *ber ));
 
 LDAP_F( ber_tag_t )
 ber_get_next LDAP_P((
@@ -410,7 +410,7 @@ ber_init LDAP_P((
 
 LDAP_F( int )
 ber_flatten LDAP_P((
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	struct berval **bvPtr ));
 
 /*
@@ -419,7 +419,7 @@ ber_flatten LDAP_P((
 
 LDAP_F( int )
 ber_get_option LDAP_P((
-	LDAP_CONST void *item,
+	void *item,
 	int option,
 	void *outvalue));
 

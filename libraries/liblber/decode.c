@@ -132,7 +132,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 
 ber_tag_t
 ber_peek_tag(
-	LDAP_CONST BerElement *ber_in,
+	BerElement *ber_in,
 	ber_len_t *len )
 {
 	ber_tag_t	tag;

@@ -299,7 +299,7 @@ der_alloc( void )	/* deprecated */
 }
 
 BerElement *
-ber_dup( LDAP_CONST BerElement *ber )
+ber_dup( BerElement *ber )
 {
 	BerElement	*new;
 
@@ -376,7 +376,7 @@ ber_init( struct berval *bv )
 ** the returned berval.
 */
 int ber_flatten(
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	struct berval **bvPtr)
 {
 	struct berval *bv;

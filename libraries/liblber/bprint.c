@@ -153,7 +153,7 @@ int
 ber_log_dump(
 	int errlvl,
 	int loglvl,
-	const BerElement *ber,
+	BerElement *ber,
 	int inout )
 {
 	assert( ber != NULL );
@@ -169,7 +169,7 @@ ber_log_dump(
 
 void
 ber_dump(
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	int inout )
 {
 	char buf[132];
@@ -201,7 +201,7 @@ int
 ber_log_sos_dump(
 	int errlvl,
 	int loglvl,
-	const Seqorset *sos )
+	Seqorset *sos )
 {
 	assert( sos != NULL );
 
@@ -215,7 +215,7 @@ ber_log_sos_dump(
 
 void
 ber_sos_dump(
-	LDAP_CONST Seqorset *sos )
+	Seqorset *sos )
 {
 	char buf[132];
 

@@ -198,14 +198,14 @@ LDAP_F( int )
 ber_log_dump LDAP_P((
 	int errlvl,
 	int loglvl,
-	const BerElement *ber,
+	BerElement *ber,
 	int inout ));
 
 LDAP_F( int )
 ber_log_sos_dump LDAP_P((
 	int errlvl,
 	int loglvl,
-	const Seqorset *sos ));
+	Seqorset *sos ));
 
 
 /* memory.c */
