@@ -3085,52 +3085,71 @@ static int caseIgnoreIA5SubstringsIndexer(
 {
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
-	BerVarray keys;
+	BerVarray keys, nvals;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
+	int rc = LDAP_SUCCESS;
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0].bv_val != NULL );
 
+	/* count values, create new array for normalized copy */
+	for( i=0; values[i].bv_val != NULL; i++ ) ;
+	nvals = ch_malloc( sizeof( struct berval ) * (i+1) );
+	nvals[i].bv_val = NULL;
+
 	nkeys=0;
 	for( i=0; values[i].bv_val != NULL; i++ ) {
+		if( mr->smr_normalize ) {
+			rc = (mr->smr_normalize)( use, syntax, mr, &values[i], &nvals[i] );
+			if( rc != LDAP_SUCCESS ) {
+				break;
+			}
+		} else if ( syntax->ssyn_normalize ) {
+			rc = (syntax->ssyn_normalize)( syntax, &values[i], &nvals[i] );
+			if( rc != LDAP_SUCCESS ) {
+				break;
+			}
+		} else {
+			ber_dupbv( &nvals[i], &values[i] );
+		}
 		/* count number of indices to generate */
-		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
+		if( nvals[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
 			continue;
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( nvals[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += nvals[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			if( nvals[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += nvals[i].bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( nvals[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += nvals[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 	}
 
-	if( nkeys == 0 ) {
+	if( nkeys == 0 || rc != LDAP_SUCCESS ) {
 		/* no keys to generate */
 		*keysp = NULL;
-		return LDAP_SUCCESS;
+		goto done;
 	}
 
 	keys = ch_malloc( sizeof( struct berval ) * (nkeys+1) );
@@ -3139,20 +3158,18 @@ static int caseIgnoreIA5SubstringsIndexer(
 	mlen = mr->smr_oidlen;
 
 	nkeys=0;
-	for( i=0; values[i].bv_val != NULL; i++ ) {
+	for( i=0; nvals[i].bv_val != NULL; i++ ) {
 		int j,max;
-		struct berval value;
 
-		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+		if( nvals[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		ber_dupbv( &value, &values[i] );
-		ldap_pvt_str2lower( value.bv_val );
+		ldap_pvt_str2lower( nvals[i].bv_val );
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( value.bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( nvals[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = value.bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = nvals[i].bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
 				HASH_Init( &HASHcontext );
@@ -3168,7 +3185,7 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value.bv_val[j],
+					&nvals[i].bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
@@ -3176,8 +3193,8 @@ static int caseIgnoreIA5SubstringsIndexer(
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
+		max = SLAP_INDEX_SUBSTR_MAXLEN < nvals[i].bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : nvals[i].bv_len;
 
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
@@ -3196,7 +3213,7 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					value.bv_val, j );
+					nvals[i].bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv( &keys[nkeys++], &digest );
@@ -3216,15 +3233,13 @@ static int caseIgnoreIA5SubstringsIndexer(
 				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value.bv_val[value.bv_len-j], j );
+					&nvals[i].bv_val[nvals[i].bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv( &keys[nkeys++], &digest );
 			}
 
 		}
-
-		free( value.bv_val );
 	}
 
 	if( nkeys > 0 ) {
@@ -3235,7 +3250,11 @@ static int caseIgnoreIA5SubstringsIndexer(
 		*keysp = NULL;
 	}
 
-	return LDAP_SUCCESS;
+done:
+	for( i=0; nvals[i].bv_val != NULL; i++ ) ch_free( nvals[i].bv_val );
+	ch_free( nvals );
+
+	return rc;
 }
 
 static int caseIgnoreIA5SubstringsFilter(
