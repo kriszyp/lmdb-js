@@ -283,10 +283,12 @@ searchit:
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					(void) dn_normalize( dn );
-					scopeok = (dn == realbase)
-						? 1
-						: (strcmp( dn, realbase ) ? 0 : 1 );
+					char *newdn = dn;
+					while ( ASCII_SPACE( newdn[ 0 ] ) ) {
+						newdn++;
+					}
+					scopeok = ( strcmp( newdn, realbase ) 
+							? 0 : 1 );
 					free( dn );
 
 				} else {
