@@ -13,6 +13,15 @@ is not an actual database; instead it acts as a proxy to forward incoming
 requests to another LDAP server. While processing requests it will also
 chase referrals, so that referrals are fully processed instead of being
 returned to the slapd client.
+
+Sessions that explicitly Bind to the back-ldap database always create their
+own private connection to the remote LDAP server. Anonymous sessions will
+share a single anonymous connection to the remote server. For sessions bound
+through other mechanisms, all sessions with the same DN will share the
+same connection. This connection pooling strategy can enhance the proxy's
+efficiency by reducing the overhead of repeatedly making/breaking multiple
+connections.
+
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -58,6 +67,14 @@ check permissions.
 .TP
 .B bindpw <password>
 Password used with the bind DN above.
+.TP
+.B proxy-whoami
+Turns on proxying of the WhoAmI extended operation. If this option is
+given, back-ldap will replace slapd's original WhoAmI routine with its
+own. On slapd sessions that were authenticated by back-ldap, the WhoAmI
+request will be forwarded to the remote LDAP server. Other sessions will
+be handled by the local slapd, as before. This option is mainly useful
+in conjunction with Proxy Authorization.
 .TP
 .B rebind-as-user
 If this option is given, the client's bind credentials are remembered
