@@ -314,6 +314,8 @@ slapd_daemon_task(
 
 	if( !inetd ) {
 		for ( l = 0; l < N_LISTENERS; l++ ) {
+			if ( listeners[l].tcps < 0 )
+				continue;
 			if ( listen( listeners[l].tcps, 5 ) == -1 ) {
 				int err = errno;
 				Debug( LDAP_DEBUG_ANY,
@@ -400,6 +402,8 @@ slapd_daemon_task(
 #endif
 
 		for ( l = 0; l < N_LISTENERS; l++ ) {
+			if ( listeners[l].tcps < 0 )
+				continue;
 			FD_SET( (unsigned) listeners[l].tcps, &readfds );
 		}
 
@@ -422,6 +426,8 @@ slapd_daemon_task(
 #endif
 
 		for ( i = 0; i < N_LISTENERS; i++ ) {
+			if ( listeners[l].tcps < 0 )
+				continue;
 			Debug( LDAP_DEBUG_CONNS,
 			"daemon: select: tcps=%d active_threads=%d tvp=%s\n",
 			       listeners[i].tcps, at,
@@ -481,6 +487,8 @@ slapd_daemon_task(
 			int len = sizeof(from);
 			long id;
 
+			if ( listeners[l].tcps < 0 )
+				continue;
 			if ( !FD_ISSET( listeners[l].tcps, &readfds ) )
 				continue;
 

@@ -148,6 +148,7 @@ int main( int argc, char **argv )
 #endif
 	char        *serverName;
 	int         serverMode = SLAP_SERVER_MODE;
+	int		use_tls_port = 0;
 
 	(void) memset( (void*) &bind_addr, '\0', sizeof(bind_addr));
 	bind_addr.sin_family = AF_INET;
@@ -209,7 +210,7 @@ int main( int argc, char **argv )
 				 "n:"
 #endif
 #ifdef HAVE_TLS
-			     "P:"
+			     "P:T"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -340,6 +341,10 @@ int main( int argc, char **argv )
 			NTservice = ch_strdup( optarg );
 			break;
 #endif
+#ifdef HAVE_TLS
+		case 'T':  /* Bind on TLS port */
+			use_tls_port = 1;
+#endif
 		default:
 			usage( argv[0] );
 			rc = 1;
@@ -387,9 +392,13 @@ int main( int argc, char **argv )
 	if ( tcps == -1 )
 		goto destroy;
 #ifdef HAVE_TLS
-	tls_tcps = set_socket( inetd ? NULL : &tls_bind_addr );
-	if ( tls_tcps == -1 )
-		goto destroy;
+	if ( use_tls_port ) {
+		tls_tcps = set_socket( inetd ? NULL : &tls_bind_addr );
+		if ( tls_tcps == -1 )
+			goto destroy;
+	} else {
+		tls_tcps = -1;
+	}
 #endif
 
 	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
