@@ -146,7 +146,26 @@ mr_add(
 {
 	MatchingRule	*smr;
 	Syntax		*syn;
+	Syntax		**compat_syn = NULL;
 	int		code;
+
+	if( def->mrd_compat_syntaxes ) {
+		int i;
+		for( i=0; def->mrd_compat_syntaxes[i]; i++ ) {
+			/* just count em */
+		}
+
+		compat_syn = ch_malloc( sizeof(Syntax *) * (i+1) );
+
+		for( i=0; def->mrd_compat_syntaxes[i]; i++ ) {
+			compat_syn[i] = syn_find( def->mrd_compat_syntaxes[i] );
+			if( compat_syn[i] == NULL ) {
+				return SLAP_SCHERR_SYN_NOT_FOUND;
+			}
+		}
+
+		compat_syn[i] = NULL;
+	}
 
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
@@ -158,6 +177,7 @@ mr_add(
 	smr->smr_bvoid.bv_val = smr->smr_mrule.mr_oid;
 	smr->smr_oidlen = strlen( mr->mr_oid );
 	smr->smr_usage = def->mrd_usage;
+	smr->smr_compat_syntaxes = compat_syn;
 	smr->smr_convert = def->mrd_convert;
 	smr->smr_normalize = def->mrd_normalize;
 	smr->smr_match = def->mrd_match;
@@ -189,7 +209,9 @@ register_matching_rule(
 	int		code;
 	const char	*err;
 
-	if( def->mrd_usage == SLAP_MR_NONE ) {
+	if( def->mrd_usage == SLAP_MR_NONE &&
+		def->mrd_compat_syntaxes == NULL )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"register_matching_rule: %s not usable\n", def->mrd_desc, 0, 0 );
@@ -211,7 +233,8 @@ register_matching_rule(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
 			   "register_matching_rule: could not locate associated "
-			   "matching rule %s for %s\n",  def->mrd_associated, def->mrd_desc, 0 );
+			   "matching rule %s for %s\n",
+				def->mrd_associated, def->mrd_desc, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
 				"associated matching rule %s for %s\n",
@@ -221,17 +244,18 @@ register_matching_rule(
 			return -1;
 		}
 #endif
-
 	}
 
-	mr = ldap_str2matchingrule( def->mrd_desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
+	mr = ldap_str2matchingrule( def->mrd_desc, &code, &err,
+		LDAP_SCHEMA_ALLOW_ALL );
 	if ( !mr ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"register_matching_rule: %s before %s in %s.\n",
 			ldap_scherr2str(code), err, def->mrd_desc );
 #else
-		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
+		Debug( LDAP_DEBUG_ANY,
+			"Error in register_matching_rule: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, def->mrd_desc );
 #endif
 
@@ -248,7 +272,8 @@ register_matching_rule(
 			"register_matching_rule: %s for %s in %s.\n",
 			scherr2str(code), err, def->mrd_desc );
 #else
-		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s for %s in %s\n",
+		Debug( LDAP_DEBUG_ANY,
+			"Error in register_matching_rule: %s for %s in %s\n",
 		    scherr2str(code), err, def->mrd_desc );
 #endif
 
@@ -325,7 +350,9 @@ matching_rule_use_init( void )
 		 * Framework doesn't support this (yet).
 		 */
 
-		if (!( mr->smr_usage & SLAP_MR_EXT )) {
+		if (!( ( mr->smr_usage & SLAP_MR_EXT )
+			|| mr->smr_compat_syntaxes ) )
+		{
 			continue;
 		}
 
@@ -355,11 +382,21 @@ matching_rule_use_init( void )
 
 		at = NULL;
 		for ( at_start( &at ); at; at_next( &at ) ) {
-			if( mr->smr_syntax == at->sat_syntax ||
+			if( mr->smr_usage & SLAP_MR_EXT && ( 
+				mr->smr_syntax == at->sat_syntax ||
 				mr == at->sat_equality ||
-				mr == at->sat_approx )
+				mr == at->sat_approx ) )
 			{
 				ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
+
+			} else if ( mr->smr_compat_syntaxes ) {
+				int i;
+				for( i=0; mr->smr_compat_syntaxes[i]; i++ ) {
+					if( at->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+						ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
+						break;
+					}
+				}
 			}
 		}
 
@@ -372,13 +409,13 @@ matching_rule_use_init( void )
 			mru->smru_applies_oids = applies_oids;
 #ifdef NEW_LOGGING
 			{
-				char	*str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
+				char *str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
 				LDAP_LOG( OPERATION, INFO, "matchingRuleUse: %s\n", str, 0, 0 );
 				ldap_memfree( str );
 			}
 #else
 			{
-				char	*str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
+				char *str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
 				Debug( LDAP_DEBUG_TRACE, "matchingRuleUse: %s\n", str, 0, 0 );
 				ldap_memfree( str );
 			}

@@ -400,7 +400,7 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_EQUALITY		0x0100U
 #define SLAP_MR_ORDERING		0x0200U
 #define SLAP_MR_SUBSTR			0x0400U
-#define SLAP_MR_EXT				0x0800U
+#define SLAP_MR_EXT				0x0800U /* implicitly extensible */
 
 #define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
 #define SLAP_MR_DN_FOLD			0x0008U
@@ -439,6 +439,13 @@ typedef struct slap_matching_rule {
 	slap_mr_indexer_func	*smr_indexer;
 	slap_mr_filter_func		*smr_filter;
 
+	/*
+	 * null terminated list of syntaxes compatible with this syntax
+	 * note: when MS_EXT is set, this MUST NOT contain the assertion
+     * syntax of the rule.  When MS_EXT is not set, it MAY.
+	 */
+	Syntax					**smr_compat_syntaxes;
+
 	struct slap_matching_rule	*smr_associated;
 	struct slap_matching_rule	*smr_next;
 
@@ -470,6 +477,7 @@ struct slap_matching_rule_use {
 typedef struct slap_mrule_defs_rec {
 	char *						mrd_desc;
 	slap_mask_t					mrd_usage;
+	char **						mrd_compat_syntaxes;
 	slap_mr_convert_func *		mrd_convert;
 	slap_mr_normalize_func *	mrd_normalize;
 	slap_mr_match_func *		mrd_match;

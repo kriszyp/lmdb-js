@@ -4427,6 +4427,11 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{NULL, 0, NULL, NULL, NULL}
 };
 
+#ifdef HAVE_TLS
+char *certificateExactMatchSyntaxes[] = {
+	"1.3.6.1.4.1.1466.115.121.1.8", NULL };
+#endif
+
 /*
  * Other matching rules in X.520 that we do not use (yet):
  *
@@ -4456,7 +4461,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	 */
 	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		directoryStringApproxMatch,
 		directoryStringApproxIndexer, 
@@ -4465,7 +4470,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		IA5StringApproxMatch,
 		IA5StringApproxIndexer, 
@@ -4478,35 +4483,35 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		objectIdentifierMatch, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
 		NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		dnMatch, dnIndexer, dnFilter,
 		NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
 		NULL, NULL,
 		caseIgnoreMatch, caseExactIgnoreIndexer, caseExactIgnoreFilter,
 		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_ORDERING,
+		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		caseIgnoreOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseExactIgnoreSubstringsMatch,
 		caseExactIgnoreSubstringsIndexer,
@@ -4515,21 +4520,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		caseExactMatch, caseExactIgnoreIndexer, caseExactIgnoreFilter,
 		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_ORDERING,
+		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		caseExactOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseExactIgnoreSubstringsMatch,
 		caseExactIgnoreSubstringsIndexer,
@@ -4538,7 +4543,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
 		NULL, NULL,
 		caseIgnoreIA5Match,
 		caseIgnoreIA5Indexer,
@@ -4547,7 +4552,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseIgnoreIA5SubstringsMatch,
 		caseIgnoreIA5SubstringsIndexer,
@@ -4556,56 +4561,56 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
 		NULL, NULL,
 		caseIgnoreListMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseIgnoreListSubstringsMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.13 NAME 'booleanMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		booleanMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		integerMatch, integerIndexer, integerFilter,
 		NULL},
 
 	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_ORDERING,
+		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		integerOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		bitStringMatch, bitStringIndexer, bitStringFilter,
 		NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		octetStringMatch, octetStringIndexer, octetStringFilter,
 		NULL},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
 		NULL, NULL,
 		telephoneNumberMatch,
 		telephoneNumberIndexer,
@@ -4614,7 +4619,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		telephoneNumberSubstringsMatch,
 		telephoneNumberSubstringsIndexer,
@@ -4623,49 +4628,49 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		NULL, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		uniqueMemberMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		protocolInformationMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		generalizedTimeMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		SLAP_MR_ORDERING,
+		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		generalizedTimeOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		integerFirstComponentMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		objectIdentifierFirstComponentMatch, NULL, NULL,
 		NULL},
@@ -4673,7 +4678,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
 		certificateExactConvert, NULL,
 		certificateExactMatch,
 		certificateExactIndexer, certificateExactFilter,
@@ -4682,21 +4687,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
 		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
 		NULL, NULL,
 		caseIgnoreIA5Match, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
 		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseIgnoreIA5SubstringsMatch,
 		caseIgnoreIA5SubstringsIndexer,
@@ -4705,7 +4710,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.4.1.4203.1.2.1 NAME 'caseExactIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_SUBSTR,
+		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseExactIA5SubstringsMatch,
 		caseExactIA5SubstringsIndexer,
@@ -4716,7 +4721,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		SLAP_MR_EQUALITY,
+		SLAP_MR_EQUALITY, NULL,
 		NULL, NULL,
 		authPasswordMatch, NULL, NULL,
 		NULL},
@@ -4725,7 +4730,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #ifdef SLAPD_ACI_ENABLED
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
-		SLAP_MR_EQUALITY,
+		SLAP_MR_EQUALITY, NULL,
 		NULL, NULL,
 		OpenLDAPaciMatch, NULL, NULL,
 		NULL},
@@ -4733,19 +4738,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EXT,
+		SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		integerBitAndMatch, NULL, NULL,
 		NULL},
 
 	{"( 1.2.840.113556.1.4.804 NAME 'integerBitOrMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EXT,
+		SLAP_MR_EXT, NULL,
 		NULL, NULL,
 		integerBitOrMatch, NULL, NULL,
 		NULL},
 
-	{NULL, SLAP_MR_NONE, NULL, NULL, NULL, NULL}
+	{NULL, SLAP_MR_NONE, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		NULL }
 };
 
 int
@@ -4768,7 +4775,9 @@ slap_schema_init( void )
 	}
 
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
-		if( mrule_defs[i].mrd_usage == SLAP_MR_NONE ) {
+		if( mrule_defs[i].mrd_usage == SLAP_MR_NONE &&
+			mrule_defs[i].mrd_compat_syntaxes == NULL )
+		{
 			fprintf( stderr,
 				"slap_schema_init: Ingoring unusable matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
