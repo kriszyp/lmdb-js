@@ -115,6 +115,7 @@ slap_init( int mode, const char *name )
 			ldap_pvt_thread_mutex_init( &num_ops_mutex );
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
 
+#ifdef SLAPD_MONITOR
 			{
 				int i;
 				for ( i = 0; i < SLAP_OP_LAST; i++ ) {
@@ -122,6 +123,7 @@ slap_init( int mode, const char *name )
 					num_ops_completed_[ i ] = 0;
 				}
 			}
+#endif
 
 			ldap_pvt_thread_mutex_init( &gmtime_mutex );
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
