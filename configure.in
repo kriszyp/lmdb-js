@@ -948,6 +948,12 @@ AC_STRUCT_TM
 OL_C_UPPER_LOWER
 AC_C_CONST
 
+if test $cross_compiling = yes ; then
+	AC_MSG_WARN([Assuming BYTE_ORDER is defined])
+else
+	AC_C_BIGENDIAN
+fi
+
 dnl AC_CHECK_SIZEOF(short) 
 dnl AC_CHECK_SIZEOF(int) 
 dnl AC_CHECK_SIZEOF(long)
