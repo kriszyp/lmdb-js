@@ -13,42 +13,43 @@
 
 #define DEFSEP		"="
 
-
 static void
-usage( char *s )
+usage(char *s)
 {
     fprintf( stderr, "usage: %s [options] filter [attributes...]\nwhere:\n", s );
-    fprintf( stderr, "    filter\tRFC-1558 compliant LDAP search filter\n" );
-    fprintf( stderr, "    attributes\twhitespace-separated list of attributes to retrieve\n" );
+    fprintf( stderr, "  filter\tRFC-1558 compliant LDAP search filter\n" );
+    fprintf( stderr, "  attributes\twhitespace-separated list of attributes to retrieve\n" );
     fprintf( stderr, "\t\t(if no attribute list is given, all are retrieved)\n" );
     fprintf( stderr, "options:\n" );
-    fprintf( stderr, "    -n\t\tshow what would be done but don't actually search\n" );
-    fprintf( stderr, "    -v\t\trun in verbose mode (diagnostics to standard output)\n" );
-    fprintf( stderr, "    -t\t\twrite values to files in /tmp\n" );
-    fprintf( stderr, "    -u\t\tinclude User Friendly entry names in the output\n" );
-    fprintf( stderr, "    -A\t\tretrieve attribute names only (no values)\n" );
-    fprintf( stderr, "    -B\t\tdo not suppress printing of non-ASCII values\n" );
-    fprintf( stderr, "    -L\t\tprint entries in LDIF format (-B is implied)\n" );
+    fprintf( stderr, "  -n\t\tshow what would be done but don't actually search\n" );
+    fprintf( stderr, "  -v\t\trun in verbose mode (diagnostics to standard output)\n" );
+    fprintf( stderr, "  -t\t\twrite values to files in /tmp\n" );
+    fprintf( stderr, "  -u\t\tinclude User Friendly entry names in the output\n" );
+    fprintf( stderr, "  -A\t\tretrieve attribute names only (no values)\n" );
+    fprintf( stderr, "  -B\t\tdo not suppress printing of non-ASCII values\n" );
+    fprintf( stderr, "  -L\t\tprint entries in LDIF format (-B is implied)\n" );
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-    fprintf( stderr, "    -R\t\tdo not automatically follow referrals\n" );
+    fprintf( stderr, "  -R\t\tdo not automatically follow referrals\n" );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-    fprintf( stderr, "    -d level\tset LDAP debugging level to `level'\n" );
-    fprintf( stderr, "    -F sep\tprint `sep' instead of `=' between attribute names and values\n" );
-    fprintf( stderr, "    -S attr\tsort the results by attribute `attr'\n" );
-    fprintf( stderr, "    -f file\tperform sequence of searches listed in `file'\n" );
-    fprintf( stderr, "    -b basedn\tbase dn for search\n" );
-    fprintf( stderr, "    -s scope\tone of base, one, or sub (search scope)\n" );
-    fprintf( stderr, "    -a deref\tone of never, always, search, or find (alias dereferencing)\n" );
-    fprintf( stderr, "    -l time lim\ttime limit (in seconds) for search\n" );
-    fprintf( stderr, "    -z size lim\tsize limit (in entries) for search\n" );
-    fprintf( stderr, "    -D binddn\tbind dn\n" );
-    fprintf( stderr, "    -w passwd\tbind passwd (for simple authentication)\n" );
+    fprintf( stderr, "  -d level\tset LDAP debugging level to `level'\n" );
+    fprintf( stderr, "  -F sep\tprint `sep' instead of `=' between attribute names and values\n" );
+    fprintf( stderr, "  -S attr\tsort the results by attribute `attr'\n" );
+    fprintf( stderr, "  -f file\tperform sequence of searches listed in `file'\n" );
+    fprintf( stderr, "  -b basedn\tbase dn for search\n" );
+    fprintf( stderr, "  -s scope\tone of base, one, or sub (search scope)\n" );
+    fprintf( stderr, "  -a deref\tone of never, always, search, or find (alias dereferencing)\n" );
+    fprintf( stderr, "  -l time lim\ttime limit (in seconds) for search\n" );
+    fprintf( stderr, "  -z size lim\tsize limit (in entries) for search\n" );
+    fprintf( stderr, "  -D binddn\tbind dn\n" );
+    fprintf( stderr, "  -W \t\tprompt for bind passwd\n" );
+    fprintf( stderr, "  -w passwd\tbind passwd (for simple authentication)\n" );
 #ifdef HAVE_KERBEROS
-    fprintf( stderr, "    -k\t\tuse Kerberos instead of Simple Password authentication\n" );
+    fprintf( stderr, "  -k\t\tuse Kerberos instead of Simple Password authentication\n" );
+    fprintf( stderr, "  -K\t\tuse Kerberos step 1\n" );
 #endif
-    fprintf( stderr, "    -h host\tldap server\n" );
-    fprintf( stderr, "    -p port\tport on ldap server\n" );
-    exit( 1 );
+    fprintf( stderr, "  -h host\tldap server\n" );
+    fprintf( stderr, "  -p port\tport on ldap server\n" );
+    exit(1);
 }
 
 static void print_entry LDAP_P((
@@ -70,46 +71,71 @@ static int dosearch LDAP_P((
     char	*filtpatt,
     char	*value));
 
-static char	*binddn = NULL;
-static char	*passwd = NULL;
-static char	*base = NULL;
-static char	*ldaphost = NULL;
-static int	ldapport = 0;
-static char	*sep = DEFSEP;
-static char	*sortattr = NULL;
 static int	skipsortattr = 0;
 static int	verbose, not, includeufn, allow_binary, vals2tmp, ldif;
+static char	*sortattr = NULL;
+static char	*sep = DEFSEP;
 
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-    char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
-    FILE		*fp;
-    int			rc, i, first, scope, kerberos, deref, attrsonly;
-    int			referrals, timelimit, sizelimit, authmethod;
-    LDAP		*ld;
+    FILE	*fp = NULL;
+    LDAP        *ld = NULL;
+    char	*infile = NULL;
+    char        *filtpattern, **attrs, line[ BUFSIZ ];
+    char	*binddn = NULL;
+    char	*passwd = NULL;
+    char	*base = NULL;
+    char	*ldaphost = NULL;
+    int		rc, i, first, deref, attrsonly;
+    int	        referrals, timelimit, sizelimit, want_passwd;
+    int         authmethod = LDAP_AUTH_SIMPLE;
+    int         scope = LDAP_SCOPE_SUBTREE;
+    int         ldapport = LDAP_PORT;
 
-    infile = NULL;
-    deref = verbose = allow_binary = not = kerberos = vals2tmp =
-	    attrsonly = ldif = 0;
-    referrals = (int) LDAP_OPT_ON;
+    deref = verbose = allow_binary = not = vals2tmp =
+	    attrsonly = ldif = want_passwd = 0;
+    referrals = (int)LDAP_OPT_ON;
     sizelimit = timelimit = 0;
-    scope = LDAP_SCOPE_SUBTREE;
 
-    while (( i = getopt( argc, argv,
-#ifdef HAVE_KERBEROS
-	    "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
-#else
-	    "nuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
-#endif
-	    )) != EOF ) {
-	switch( i ) {
-	case 'n':	/* do Not do any searches */
-	    ++not;
+    while ((i = getopt(argc, argv, "Aa:Bb:D:d:h:f:F:KkLl:np:RS:s:tuvWw:z:")) != EOF)
+    {
+        switch(i)
+        {
+        case 'A':	/* retrieve attribute names only -- no values */
+	    attrsonly++;
 	    break;
-	case 'v':	/* verbose mode */
-	    ++verbose;
+
+	case 'a':	/* set alias deref option */
+	    if (strncasecmp(optarg, "never", 5) == 0) {
+		deref = LDAP_DEREF_NEVER;
+	    } else if (strncasecmp( optarg, "search", 5) == 0) {
+		deref = LDAP_DEREF_SEARCHING;
+	    } else if (strncasecmp( optarg, "find", 4) == 0) {
+		deref = LDAP_DEREF_FINDING;
+	    } else if (strncasecmp( optarg, "always", 6) == 0) {
+		deref = LDAP_DEREF_ALWAYS;
+	    } else {
+		fprintf( stderr, "alias deref should be never, search, find, or always\n" );
+		usage( argv[ 0 ] );
+	    }
 	    break;
+
+        case 'L':	/* print entries in LDIF format */
+	    ++ldif;
+	    /* fall through -- always allow binary when outputting LDIF */
+	case 'B':	/* allow binary values to be printed */
+	    ++allow_binary;
+	    break;
+
+        case 'b':	/* searchbase */
+	    base = strdup( optarg );
+	    break;
+
+	case 'D':	/* bind DN */
+	    binddn = strdup( optarg );
+	    break;
+
 	case 'd':
 #ifdef LDAP_DEBUG
 	    ldap_debug = lber_debug = atoi( optarg );	/* */
@@ -117,32 +143,55 @@ main( int argc, char **argv )
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
 	    break;
-#ifdef HAVE_KERBEROS
-	case 'k':	/* use kerberos bind */
-	    kerberos = 2;
+
+	case 'F':	/* field separator */
+	    sep = strdup( optarg );
 	    break;
+
+        case 'f':	/* input file */
+	    infile = strdup( optarg );
+	    break;
+
+        case 'h':	/* ldap host */
+	    ldaphost = strdup( optarg );
+	    break;
+
 	case 'K':	/* use kerberos bind, 1st part only */
-	    kerberos = 1;
-	    break;
+#ifdef HAVE_KERBEROS
+            authmethod = LDAP_AUTH_KRBV41;
+#else
+            fprintf(stderr, "%s was not compiled with Kerberos support\n", argv[0]);
 #endif
-	case 'u':	/* include UFN */
-	    ++includeufn;
 	    break;
-	case 't':	/* write attribute values to /tmp files */
-	    ++vals2tmp;
+
+        case 'k':	/* use kerberos bind */
+#ifdef HAVE_KERBEROS
+            authmethod =  LDAP_AUTH_KRBV4;
+#else
+            fprintf(stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
-	case 'R':	/* don't automatically chase referrals */
-		referrals = (int) LDAP_OPT_OFF;
+
+        case 'l':	/* time limit */
+	    timelimit = atoi( optarg );
 	    break;
-	case 'A':	/* retrieve attribute names only -- no values */
-	    ++attrsonly;
+
+	case 'n':	/* do Not do any searches */
+	    ++not;
 	    break;
-	case 'L':	/* print entries in LDIF format */
-	    ++ldif;
-	    /* fall through -- always allow binary when outputting LDIF */
-	case 'B':	/* allow binary values to be printed */
-	    ++allow_binary;
+
+        case 'p':	/* ldap port */
+	    ldapport = atoi( optarg );
 	    break;
+
+        case 'R':	/* don't automatically chase referrals */
+            referrals = (int) LDAP_OPT_OFF;
+	    break;
+
+        case 'S':	/* sort attribute */
+	    sortattr = strdup( optarg );
+	    break;
+
 	case 's':	/* search scope */
 	    if ( strncasecmp( optarg, "base", 4 ) == 0 ) {
 		scope = LDAP_SCOPE_BASE;
@@ -156,53 +205,32 @@ main( int argc, char **argv )
 	    }
 	    break;
 
-	case 'a':	/* set alias deref option */
-	    if ( strncasecmp( optarg, "never", 5 ) == 0 ) {
-		deref = LDAP_DEREF_NEVER;
-	    } else if ( strncasecmp( optarg, "search", 5 ) == 0 ) {
-		deref = LDAP_DEREF_SEARCHING;
-	    } else if ( strncasecmp( optarg, "find", 4 ) == 0 ) {
-		deref = LDAP_DEREF_FINDING;
-	    } else if ( strncasecmp( optarg, "always", 6 ) == 0 ) {
-		deref = LDAP_DEREF_ALWAYS;
-	    } else {
-		fprintf( stderr, "alias deref should be never, search, find, or always\n" );
-		usage( argv[ 0 ] );
-	    }
+	case 't':	/* write attribute values to /tmp files */
+	    ++vals2tmp;
 	    break;
-	    
-	case 'F':	/* field separator */
-	    sep = strdup( optarg );
+
+        case 'u':	/* include UFN */
+	    ++includeufn;
 	    break;
-	case 'f':	/* input file */
-	    infile = strdup( optarg );
+
+        case 'v':	/* verbose mode */
+	    ++verbose;
 	    break;
-	case 'h':	/* ldap host */
-	    ldaphost = strdup( optarg );
-	    break;
-	case 'b':	/* searchbase */
-	    base = strdup( optarg );
-	    break;
-	case 'D':	/* bind DN */
-	    binddn = strdup( optarg );
-	    break;
-	case 'p':	/* ldap port */
-	    ldapport = atoi( optarg );
-	    break;
-	case 'w':	/* bind password */
+
+        case 'W':
+            want_passwd++;
+            break;
+
+        case 'w':	/* bind password */
 	    passwd = strdup( optarg );
 	    break;
-	case 'l':	/* time limit */
-	    timelimit = atoi( optarg );
-	    break;
-	case 'z':	/* size limit */
+
+        case 'z':	/* size limit */
 	    sizelimit = atoi( optarg );
 	    break;
-	case 'S':	/* sort attribute */
-	    sortattr = strdup( optarg );
-	    break;
-	default:
-	    usage( argv[0] );
+
+        default:
+	    usage(argv[0]);
 	}
     }
 
@@ -229,47 +257,42 @@ main( int argc, char **argv )
         attrs = &argv[ optind ];
     }
 
+    if (want_passwd && !passwd)
+        passwd = strdup(getpass("Enter LDAP password: "));
+
     if ( infile != NULL ) {
 	if ( infile[0] == '-' && infile[1] == '\0' ) {
 	    fp = stdin;
-	} else if (( fp = fopen( infile, "r" )) == NULL ) {
-	    perror( infile );
-	    exit( 1 );
+	} else if ((fp = fopen(infile, "r")) == NULL) {
+	    perror(infile);
+	    exit(1);
 	}
     }
 
-    if ( verbose ) {
-	printf( "ldap_open( %s, %d )\n", ldaphost, ldapport );
+    if (verbose)
+	printf("ldap_open(%s, %d)\n", ldaphost, ldapport);
+
+    if ((ld = ldap_open(ldaphost, ldapport)) == NULL) {
+	perror(ldaphost);
+	return(1);
     }
 
-    if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	perror( ldaphost );
-	exit( 1 );
+    if (ldap_set_option(ld, LDAP_OPT_DEREF, (void *)&deref) == -1 ) {
+        /* set option error */
+    }
+    if (ldap_set_option(ld, LDAP_OPT_TIMELIMIT, (void *)&timelimit) == -1 ) {
+        /* set option error */
+    }
+    if (ldap_set_option(ld, LDAP_OPT_SIZELIMIT, (void *)&sizelimit) == -1 ) {
+        /* set option error */
+    }
+    if (ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)referrals) == -1 ) {
+        /* set option error */
     }
 
-	if (ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == -1 ) {
-		/* set option error */
-	}
-	if (ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == -1 ) {
-		/* set option error */
-	}
-	if (ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == -1 ) {
-		/* set option error */
-	}
-	if (ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 ) {
-		/* set option error */
-	}
-
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod =  LDAP_AUTH_KRBV4;
-    }
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
-	exit( 1 );
+	return(1);
     }
 
     if ( verbose ) {
