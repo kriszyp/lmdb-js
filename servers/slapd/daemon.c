@@ -484,7 +484,7 @@ slapd_daemon_task(
 
 		for ( l = 0; l < N_LISTENERS; l++ ) {
 			ber_int_t s;
-			int len = sizeof(from);
+			socklen_t len = sizeof(from);
 			long id;
 
 			if ( listeners[l].tcps < 0 )
