@@ -57,7 +57,10 @@ MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 LIBTOOL = @LIBTOOL@
 LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -version-info $(LIBVERSION)
-LTLINK  = $(LIBTOOL) --mode=link $(CC) -rpath $(libdir) \
+#We don't use our own shared libraries (yet)
+#LTLINK  = $(LIBTOOL) --mode=link $(CC) -rpath $(libdir) \
+#	$(CFLAGS) $(LDFLAGS)
+LTLINK  = $(LIBTOOL) --mode=link $(CC) \
 	$(CFLAGS) $(LDFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
