@@ -963,19 +963,20 @@ type of backend.
 .B backend <databasetype>
 Mark the beginning of a backend definition. <databasetype>
 should be one of
-.B bdb,
-.B dnssrv,
-.B ldap,
-.B ldbm,
-.B meta,
-.B monitor,
-.B null,
-.B passwd,
-.B perl,
-.B shell,
-.B sql,
+.BR bdb ,
+.BR dnssrv ,
+.BR ldap ,
+.BR ldbm ,
+.BR meta ,
+.BR monitor ,
+.BR null ,
+.BR passwd ,
+.BR perl ,
+.BR relay ,
+.BR shell ,
+.BR sql ,
 or
-.B tcl,
+.BR tcl ,
 depending on which backend will serve the database.
 
 .SH GENERAL DATABASE OPTIONS
@@ -990,19 +991,20 @@ option are mandatory for each database.
 .B database <databasetype>
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
-.B bdb,
-.B dnssrv,
-.B ldap,
-.B ldbm,
-.B meta,
-.B monitor,
-.B null,
-.B passwd,
-.B perl,
-.B shell,
-.B sql,
+.BR bdb ,
+.BR dnssrv ,
+.BR ldap ,
+.BR ldbm ,
+.BR meta ,
+.BR monitor ,
+.BR null ,
+.BR passwd ,
+.BR perl ,
+.BR relay ,
+.BR shell ,
+.BR sql ,
 or
-.B tcl,
+.BR tcl ,
 depending on which backend will serve the database.
 .TP
 .B lastmod on | off
@@ -1594,9 +1596,20 @@ This backend embeds a
 interpreter into slapd.
 It runs Perl subroutines to implement LDAP operations.
 .TP
+.B relay
+This backend redirects LDAP operations to another database
+in the same server, based on the naming context of the request.
+Its use requires the 
+.B rwm
+overlay (see
+.BR slapo-rwm (5)
+for details) to rewrite the naming context of the request.
+It is is primarily intended to implement virtual views on databases
+that actually store data.
+.TP
 .B shell
 This backend executes external programs to implement LDAP operations.
-It is is primarily intended to be used in prototypes.
+It is primarily intended to be used in prototypes.
 .TP
 .B sql
 This backend is experimental.
@@ -1651,18 +1664,19 @@ ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR ldap (3),
-.BR slapd-bdb (5),
-.BR slapd-dnssrv (5),
-.BR slapd-ldap (5),
-.BR slapd-ldbm (5),
-.BR slapd-meta (5),
-.BR slapd-monitor (5),
-.BR slapd-null (5),
-.BR slapd-passwd (5),
-.BR slapd-perl (5),
-.BR slapd-shell (5),
-.BR slapd-sql (5),
-.BR slapd-tcl (5),
+.BR slapd\-bdb (5),
+.BR slapd\-dnssrv (5),
+.BR slapd\-ldap (5),
+.BR slapd\-ldbm (5),
+.BR slapd\-meta (5),
+.BR slapd\-monitor (5),
+.BR slapd\-null (5),
+.BR slapd\-passwd (5),
+.BR slapd\-perl (5),
+.BR slapd\-relay (5),
+.BR slapd\-shell (5),
+.BR slapd\-sql (5),
+.BR slapd\-tcl (5),
 .BR slapd.access (5),
 .BR slapd.plugin (5),
 .BR slapd.replog (5),
@@ -1675,7 +1689,15 @@ default slapd configuration file
 .BR slapindex (8),
 .BR slappasswd (8),
 .BR slaptest (8),
-.BR slurpd (8),
+.BR slurpd (8).
+
+Known overlays are documented in
+.BR slapo\-lastmod (5),
+.BR slapo\-pcache (5),
+.BR slapo\-ppolicy (5),
+.BR slapo\-refint (5),
+.BR slapo\-rwm (5),
+.BR slapo\-unique (5).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
