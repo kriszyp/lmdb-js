@@ -172,37 +172,36 @@ test_ava_vrFilter(
 
 		bv = a->a_nvals;
 		for ( j=0; bv->bv_val != NULL; bv++, j++ ) {
-			int ret;
-			int rc;
+			int rc, match;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr, 0,
+			rc = value_match( &match, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
 			if( rc != LDAP_SUCCESS ) return rc;
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
 			case LDAP_FILTER_APPROX:
-				if ( ret == 0 ) {
+				if ( match == 0 ) {
 					(*e_flags)[i][j] = 1;
 				}
 				break;
 	
 			case LDAP_FILTER_GE:
-				if ( ret >= 0 ) {
+				if ( match >= 0 ) {
 					(*e_flags)[i][j] = 1;
 				}
 				break;
 	
 			case LDAP_FILTER_LE:
-				if ( ret <= 0 ) {
+				if ( match <= 0 ) {
 					(*e_flags)[i][j] = 1;
 				}
 				break;
 			}
 		}
 	}
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -247,18 +246,15 @@ test_substrings_vrFilter(
 
 		bv = a->a_nvals;
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
-			int ret;
-			int rc;
+			int rc, match;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr, 0,
+			rc = value_match( &match, a->a_desc, mr, 0,
 				bv, vrf->vrf_sub, &text );
 
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
 
-			if ( ret == 0 ) {
+			if ( match == 0 ) {
 				(*e_flags)[i][j] = 1;
 			}
 		}
@@ -309,15 +305,14 @@ test_mra_vrFilter(
 		}
 					
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
-			int ret;
-			int rc;
+			int rc, match;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+			rc = value_match( &match, a->a_desc, mra->ma_rule, 0,
 				bv, &assertedValue, &text );
 			if( rc != LDAP_SUCCESS ) return rc;
 
-			if ( ret == 0 ) {
+			if ( match == 0 ) {
 				(*e_flags)[i][j] = 1;
 			}
 		}

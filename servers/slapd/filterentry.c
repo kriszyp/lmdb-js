@@ -403,7 +403,7 @@ test_ava_filter(
 
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		MatchingRule *mr;
-		int rc, ret;
+		int rc, match;
 		const char *text;
 
 		if( type != LDAP_FILTER_EQUALITY &&
@@ -416,11 +416,11 @@ test_ava_filter(
 		mr = slap_schema.si_ad_entryDN->ad_type->sat_equality;
 		assert( mr );
 
-		rc = value_match( &ret, slap_schema.si_ad_entryDN, mr, 0,
+		rc = value_match( &match, slap_schema.si_ad_entryDN, mr, 0,
 			&e->e_nname, &ava->aa_value, &text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
-		if( ret == 0 ) return LDAP_COMPARE_TRUE;
+		if( match == 0 ) return LDAP_COMPARE_TRUE;
 		return LDAP_COMPARE_FALSE;
 	}
 
@@ -466,30 +466,29 @@ test_ava_filter(
 		}
 
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
-			int ret;
-			int tmprc;
+			int ret, match;
 			const char *text;
 
-			tmprc = value_match( &ret, a->a_desc, mr, 0,
+			ret = value_match( &match, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
 
-			if( tmprc != LDAP_SUCCESS ) {
-				rc = tmprc;
+			if( ret != LDAP_SUCCESS ) {
+				rc = ret;
 				break;
 			}
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
 			case LDAP_FILTER_APPROX:
-				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
+				if ( match == 0 ) return LDAP_COMPARE_TRUE;
 				break;
 
 			case LDAP_FILTER_GE:
-				if ( ret >= 0 ) return LDAP_COMPARE_TRUE;
+				if ( match >= 0 ) return LDAP_COMPARE_TRUE;
 				break;
 
 			case LDAP_FILTER_LE:
-				if ( ret <= 0 ) return LDAP_COMPARE_TRUE;
+				if ( match <= 0 ) return LDAP_COMPARE_TRUE;
 				break;
 			}
 		}
@@ -656,18 +655,17 @@ test_substrings_filter(
 		}
 
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
-			int ret;
-			int tmprc;
+			int ret, match;
 			const char *text;
 
-			tmprc = value_match( &ret, a->a_desc, mr, 0,
+			ret = value_match( &match, a->a_desc, mr, 0,
 				bv, f->f_sub, &text );
 
-			if( tmprc != LDAP_SUCCESS ) {
-				rc = tmprc;
+			if( ret != LDAP_SUCCESS ) {
+				rc = ret;
 				break;
 			}
-			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
+			if ( match == 0 ) return LDAP_COMPARE_TRUE;
 		}
 	}
 
