@@ -47,7 +47,7 @@ set_join (BerVarray lset, int op, BerVarray rset)
 		if (lset == NULL || lset->bv_val == NULL) {
 			if (rset == NULL) {
 				if (lset == NULL)
-					return(ch_calloc(1, sizeof(struct berval)));
+					return(SLAP_CALLOC(1, sizeof(struct berval)));
 				return(lset);
 			}
 			slap_set_dispose(lset);
@@ -59,7 +59,7 @@ set_join (BerVarray lset, int op, BerVarray rset)
 		}
 
 		i = slap_set_size(lset) + slap_set_size(rset) + 1;
-		set = ch_calloc(i, sizeof(struct berval));
+		set = SLAP_CALLOC(i, sizeof(struct berval));
 		if (set != NULL) {
 			/* set_chase() depends on this routine to
 			 * keep the first elements of the result
@@ -87,7 +87,7 @@ set_join (BerVarray lset, int op, BerVarray rset)
 
 	if (op == '&') {
 		if (lset == NULL || lset->bv_val == NULL || rset == NULL || rset->bv_val == NULL) {
-			set = ch_calloc(1, sizeof(struct berval));
+			set = SLAP_CALLOC(1, sizeof(struct berval));
 		} else {
 			set = lset;
 			lset = NULL;
@@ -126,7 +126,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 	bv.bv_val = attrstr;
 
 	if (set == NULL)
-		return(ch_calloc(1, sizeof(struct berval)));
+		return(SLAP_CALLOC(1, sizeof(struct berval)));
 
 	if (set->bv_val == NULL)
 		return(set);
@@ -138,7 +138,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 	AC_MEMCPY(attrstr, attr->bv_val, attr->bv_len);
 	attrstr[attr->bv_len] = 0;
 
-	nset = ch_calloc(1, sizeof(struct berval));
+	nset = SLAP_CALLOC(1, sizeof(struct berval));
 	if (nset == NULL) {
 		slap_set_dispose(set);
 		return(NULL);
@@ -287,10 +287,10 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 			if (c == 0)
 				SF_ERROR(syntax);
 			
-			set = ch_calloc(2, sizeof(struct berval));
+			set = SLAP_CALLOC(2, sizeof(struct berval));
 			if (set == NULL)
 				SF_ERROR(memory);
-			set->bv_val = ch_calloc(len + 1, sizeof(char));
+			set->bv_val = SLAP_CALLOC(len + 1, sizeof(char));
 			if (set->bv_val == NULL)
 				SF_ERROR(memory);
 			AC_MEMCPY(set->bv_val, &filter[-len - 1], len);
@@ -331,7 +331,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 			{
 				if ((SF_TOP() == (void *)'/') || IS_SET(SF_TOP()))
 					SF_ERROR(syntax);
-				set = ch_calloc(2, sizeof(struct berval));
+				set = SLAP_CALLOC(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
 				ber_dupbv( set, this );
@@ -342,7 +342,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 			{
 				if ((SF_TOP() == (void *)'/') || IS_SET(SF_TOP()))
 					SF_ERROR(syntax);
-				set = ch_calloc(2, sizeof(struct berval));
+				set = SLAP_CALLOC(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
 				ber_dupbv( set, user );
