@@ -5,6 +5,7 @@ OpenLDAP 2.1.9 Engineering
 	Fixed libldap try_read1msg drain bug (ITS#2153)
 	Fixed slapd unix socket unlink bug (ITS#2157)
 	Fixed slapd empty SASL cred bug
+	Fixed slapd referral/alias normalization bug
 	Added "allow update_anon" feature (ITS#2155)
 	Build Environment
 		Add subordinate referral test
