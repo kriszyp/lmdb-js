@@ -726,9 +726,8 @@ dnExtractRdn(
 int 
 dn_rdnlen(
 	Backend		*be,
-	const char	*dn_in )
+	struct berval	*dn_in )
 {
-	struct berval bv;
 	struct berval	*rdn = NULL;
 	int		retval = 0;
 
@@ -738,23 +737,15 @@ dn_rdnlen(
 		return 0;
 	}
 
-	while ( dn_in[ 0 ] && ASCII_SPACE( dn_in[ 0 ] ) ) {
-		dn_in++;
-	}
-
-	if ( dn_in[ 0 ] == '\0' ) {
+	if ( !dn_in->bv_len ) {
 		return 0;
 	}
 
-	if ( be != NULL && be_issuffix( be, dn_in ) ) {
+	if ( be != NULL && be_issuffix( be, dn_in->bv_val ) ) {
 		return 0;
 	}
 
-	bv.bv_val = (char *) dn_in;
-	bv.bv_len = strlen( bv.bv_val );
-
-	if ( dnExtractRdn( &bv, &rdn ) != LDAP_SUCCESS ) {
-		ber_bvfree( rdn );
+	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
 		return 0;
 	}
 
@@ -769,9 +760,8 @@ dn_rdnlen(
  */
 char * dn_rdn(
 	Backend	*be,
-	const char	*dn_in )
+	struct berval	*dn_in )
 {
-	struct berval	bv;
 	struct berval	*rdn = NULL;
 	char		*retval;
 
@@ -781,23 +771,15 @@ char * dn_rdn(
 		return NULL;
 	}
 
-	while ( dn_in[ 0 ] && ASCII_SPACE( dn_in[ 0 ] ) ) {
-		dn_in++;
-	}
-
-	if ( dn_in[ 0 ] == '\0' ) {
+	if ( !dn_in->bv_len ) {
 		return NULL;
 	}
 
-	if ( be != NULL && be_issuffix( be, dn_in ) ) {
+	if ( be != NULL && be_issuffix( be, dn_in->bv_val ) ) {
 		return NULL;
 	}
 
-	bv.bv_val = (char *) dn_in;
-	bv.bv_len = strlen( bv.bv_val );
-
-	if ( dnExtractRdn( &bv, &rdn ) != LDAP_SUCCESS ) {
-		ber_bvfree( rdn );
+	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 

@@ -361,7 +361,7 @@ acl_get(
 					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) || DN_ESCAPE( e->e_ndn[dnlen - patlen - 2] ) )
 						continue;
 
-					rdnlen = dn_rdnlen( NULL, e->e_ndn );
+					rdnlen = dn_rdnlen( NULL, &e->e_nname );
 					if ( rdnlen != dnlen - patlen - 1 )
 						continue;
 
@@ -567,7 +567,7 @@ acl_mask(
 					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) )
 						continue;
 
-					rdnlen = dn_rdnlen( NULL, op->o_ndn.bv_val );
+					rdnlen = dn_rdnlen( NULL, &op->o_ndn );
 					if ( rdnlen != odnlen - patlen - 1 )
 						continue;
 

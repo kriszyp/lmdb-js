@@ -435,7 +435,7 @@ retry:	/* transaction retry */
 		new_rdn_vals[0], new_rdn_types[0], 0 );
 
 	/* Retrieve the old rdn from the entry's dn */
-	if ( ( old_rdn = dn_rdn( be, dn->bv_val ) ) == NULL ) {
+	if ( ( old_rdn = dn_rdn( be, dn ) ) == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out old_rdn from dn\n",
 			0, 0, 0 );

@@ -92,7 +92,7 @@ passwd_back_search(
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
-			rdn = dn_rdn(NULL, base->bv_val);
+			rdn = dn_rdn(NULL, base);
 
 			if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
 				err = LDAP_INVALID_DN_SYNTAX;
@@ -204,7 +204,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		rdn = dn_rdn( NULL, base->bv_val );
+		rdn = dn_rdn( NULL, base );
 
 		if ( (user = rdn_attr_value(rdn)) == NULL) {
 			err = LDAP_OPERATIONS_ERROR;

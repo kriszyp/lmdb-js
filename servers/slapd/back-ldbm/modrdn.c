@@ -527,7 +527,7 @@ ldbm_back_modrdn(
 #endif
 
 	/* Retrieve the old rdn from the entry's dn */
-	if ( (old_rdn = dn_rdn( be, dn->bv_val )) == NULL ) {
+	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 			   "ldbm_back_modrdn: can't figure out old_rdn from dn (%s)\n",

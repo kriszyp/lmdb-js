@@ -646,9 +646,9 @@ bdb_dn2id_add(
 	diskNode *d;
 	idNode *n;
 
-	nrlen = dn_rdnlen( be, e->e_ndn );
+	nrlen = dn_rdnlen( be, &e->e_nname );
 	if (nrlen) {
-		rlen = dn_rdnlen( be, e->e_dn );
+		rlen = dn_rdnlen( be, &e->e_name );
 	} else {
 		rlen = 0;
 	}
