@@ -308,7 +308,6 @@ int ldap_utf8_isupper( const char * p )
 
 	return ( c >= 'A' && c <= 'Z' );
 }
-#endif
 
 /*
  * get one UTF-8 character
@@ -352,6 +351,7 @@ char* ldap_utf8_fgetc( FILE *s, char *buf )
 
 	return buf;
 }
+#endif
 
 
 /*
@@ -423,7 +423,7 @@ char *(ldap_utf8_strpbrk)( const char *str, const char *set )
 
 		for( cset = set; ; cset += len ) {
 			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
-				return cstr;
+				return (char *) cstr;
 			} 
 
 			len = ldap_utf8_charlen(cset);
