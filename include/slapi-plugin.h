@@ -73,6 +73,8 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *dn );
 char *slapi_dn_parent( const char *dn );
 int slapi_dn_isparent( const char *parentdn, const char *childdn );
 char *slapi_dn_ignore_case( char *dn );
+int slapi_rdn2typeval( char *rdn, char **type, struct berval *bv );
+char *slapi_dn_plus_rdn(const char *dn, const char *rdn);
 
 /* DS 5.x SLAPI */
 int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr, struct berval *val, int access );
