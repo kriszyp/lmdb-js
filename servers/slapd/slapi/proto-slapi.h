@@ -37,9 +37,9 @@ extern int slapi_entry_attr_find( Slapi_Entry *e, char *type, Slapi_Attr **attr 
 extern char *slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type );
 extern int slapi_entry_attr_delete( Slapi_Entry *e, char *type );
 extern int slapi_entry_attr_get_int( const Slapi_Entry *e, const char *type );
-extern int slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type );
-extern int slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type );
-extern int slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type );
+extern long slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type );
+extern unsigned int slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type );
+extern unsigned long slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type );
 extern int slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value );
 extern int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 extern void slapi_entry_attr_set_charptr(Slapi_Entry* e, const char *type, const char *value);
