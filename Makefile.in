@@ -1,0 +1,25 @@
+# Master Makefile for OpenLDAP
+# Copyright 1998 The OpenLDAP Foundation,  All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, See COPYRIGHT file
+
+SUBDIRS= include libraries clients servers # contrib
+
+makefiles:	FORCE
+	./config.status
+
+configure: configure.in aclocal.m4
+	autoconf
+
+# autoheader might not change config.h.in, so touch a stamp file
+${srcdir}/include/portable.h.in:	stamp-h.in
+${srcdir}/stamp-h.in: configure.in aclocal.m4 acconfig.h
+	cd ${srcdir} && autoheader
+	@echo timestamp > ${srcdir}/stamp-h.in
+
+config.h: stamp-h
+stamp-h: config.h.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
+
