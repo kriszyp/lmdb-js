@@ -203,7 +203,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 					      attributeDataObj, 
 					      singleAttributeValueObj) 
 		  == TCL_ERROR) {
-		    ldap_ber_free(ber, 0);
+		    ber_free(ber, 0);
 		    return TCL_ERROR;
 		}
 	    }
@@ -220,7 +220,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 	    Tcl_DecrRefCount (attributeNameObj);
 	}
     }
-    ldap_ber_free(ber, 0);
+    ber_free(ber, 0);
     return Tcl_EvalObj (interp, evalCodeObj);
 }
 
