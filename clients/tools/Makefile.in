@@ -31,7 +31,7 @@ ldappasswd:	ldpversion.o
 
 ldapadd:	ldapmodify
 	@-$(RM) $@
-	$(LN_H) ldapmodify ldapadd
+	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
 
 ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
@@ -60,5 +60,5 @@ install-local:	FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldappasswd $(bindir)
-	$(RM) $(bindir)/ldapadd
-	$(LN) $(bindir)/ldapmodify $(bindir)/ldapadd
+	$(RM) $(bindir)/ldapadd$(EXEEXT)
+	$(LN) $(bindir)/ldapmodify$(EXEEXT) $(bindir)/ldapadd$(EXEEXT)
