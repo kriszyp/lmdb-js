@@ -563,7 +563,7 @@ static void doPostAddPluginFNs( Operation *op )
 		LDAP_LOG( OPERATION, INFO, "do_add: add postoperation plugin failed\n",
 				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
+		Debug(LDAP_DEBUG_TRACE, "do_add: add postoperation plugin failed.\n",
 				0, 0, 0);
 #endif
 	}
