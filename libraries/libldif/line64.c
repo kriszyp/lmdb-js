@@ -571,7 +571,7 @@ ldif_read_record(
 {
 	char        linebuf[BUFSIZ], *line, *nbufp;
 	ber_len_t   lcur = 0, len, linesize;
-	int         last_ch = '\n', found_entry = 0, stop;
+	int         last_ch = '\n', found_entry = 0, stop, top_comment = 0;
 
 	line     = linebuf;
 	linesize = sizeof( linebuf );
@@ -588,18 +588,25 @@ ldif_read_record(
 			(*lno)++;
 
 			if ( line[0] == '\n' ) {
-				if ( !found_entry )
+				if ( !found_entry ) {
+					lcur = 0;
+					top_comment = 0;
 					continue;
+				}
 				break;
 			}
 
 			if ( !found_entry ) {
-				/* Found a new entry */
-				found_entry = 1;
+				if ( line[0] == '#' ) {
+					top_comment = 1;
+				} else if ( ! ( top_comment && line[0] == ' ' ) ) {
+					/* Found a new entry */
+					found_entry = 1;
 
-				if ( isdigit( (unsigned char) line[0] ) ) {
-					/* skip index */
-					continue;
+					if ( isdigit( (unsigned char) line[0] ) ) {
+						/* skip index */
+						continue;
+					}
 				}
 			}			
 		}
