@@ -63,20 +63,22 @@ int bdb_dn2id(
 	BackendDB *be,
 	DB_TXN *tid,
 	struct berval *dn,
-	ID *id,
+	EntryInfo *ei,
 	void *ctx );
 
 int bdb_dn2id_add(
 	BackendDB *be,
 	DB_TXN *tid,
 	struct berval *pdn,
-	Entry *e );
+	Entry *e,
+	void *ctx );
 
 int bdb_dn2id_delete(
 	BackendDB *be,
 	DB_TXN *tid,
 	char *pdn,
-	Entry *e );
+	Entry *e,
+	void *ctx );
 
 int bdb_dn2id_children(
 	Operation *op,

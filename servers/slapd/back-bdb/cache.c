@@ -314,7 +314,6 @@ bdb_cache_find_entry_ndn2id(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	EntryInfo	ei, *eip, *ei2;
-	ID			id;
 	int rc = 0;
 	char *ptr;
 
@@ -340,7 +339,7 @@ bdb_cache_find_entry_ndn2id(
 			ei.bei_nrdn.bv_len = ndn->bv_len - (ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-			rc = bdb_dn2id( be, txn, &ei.bei_nrdn, &id, ctx );
+			rc = bdb_dn2id( be, txn, &ei.bei_nrdn, &ei, ctx );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
 				*res = eip;
@@ -350,7 +349,7 @@ bdb_cache_find_entry_ndn2id(
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;
 			rc = bdb_entryinfo_add_internal( bdb,
-				eip, id, &ei.bei_nrdn, &ei2, locker );
+				eip, ei.bei_id, &ei.bei_nrdn, &ei2, locker );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 			if ( rc ) {

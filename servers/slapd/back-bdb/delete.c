@@ -358,7 +358,8 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, pdn.bv_val, e );
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, pdn.bv_val, e,
+		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:

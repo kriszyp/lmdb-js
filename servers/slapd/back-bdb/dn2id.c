@@ -20,7 +20,8 @@ bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
 	struct berval	*pbv,
-	Entry		*e )
+	Entry		*e,
+	void *ctx )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
@@ -42,7 +43,7 @@ bdb_dn2id_add(
 	key.size = e->e_nname.bv_len + 2;
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
-	buf = ch_malloc( key.size );
+	buf = sl_malloc( key.size, ctx );
 	key.data = buf;
 	buf[0] = DN_BASE_PREFIX;
 	ptr.bv_val = buf + 1;
@@ -148,7 +149,7 @@ bdb_dn2id_add(
 #endif
 
 done:
-	ch_free( buf );
+	sl_free( buf, ctx );
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
 #else
@@ -162,7 +163,8 @@ bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
 	char	*pdnc,
-	Entry		*e )
+	Entry		*e,
+	void *ctx )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
@@ -181,7 +183,7 @@ bdb_dn2id_delete(
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
-	buf = ch_malloc( key.size );
+	buf = sl_malloc( key.size, ctx );
 	key.data = buf;
 	key.flags = DB_DBT_USERMEM;
 	buf[0] = DN_BASE_PREFIX;
@@ -284,7 +286,7 @@ bdb_dn2id_delete(
 #endif
 
 done:
-	ch_free( buf );
+	sl_free( buf, ctx );
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
 #else
@@ -298,7 +300,7 @@ bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
 	struct berval	*dn,
-	ID *id,
+	EntryInfo *ei,
 	void *ctx )
 {
 	int		rc;
@@ -312,8 +314,6 @@ bdb_dn2id(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 #endif
 
-	assert (id);
- 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = sl_malloc( key.size, ctx );
@@ -322,7 +322,7 @@ bdb_dn2id(
 
 	/* store the ID */
 	DBTzero( &data );
-	data.data = id;
+	data.data = &ei->bei_id;
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
 
@@ -340,10 +340,10 @@ bdb_dn2id(
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( INDEX, RESULTS, 
-			"<= bdb_dn2id: got id=0x%08lx\n", *id, 0, 0 );
+			"<= bdb_dn2id: got id=0x%08lx\n", ei->bei_id, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
-			*id, 0, 0 );
+			ei->bei_id, 0, 0 );
 #endif
 	}
 

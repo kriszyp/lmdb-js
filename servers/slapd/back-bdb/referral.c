@@ -75,11 +75,10 @@ dn2entry_retry:
 
 	if ( rc == DB_NOTFOUND ) {
 		rc = 0;
+		rs->sr_matched = NULL;
 		if ( e != NULL ) {
-			rs->sr_matched = ch_strdup( e->e_name.bv_val );
-
 #ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, 
+			LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			(long) op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
 #else
@@ -91,6 +90,10 @@ dn2entry_retry:
 			if( is_entry_referral( e ) ) {
 				rc = LDAP_OTHER;
 				rs->sr_ref = get_entry_referrals( op, e );
+				if ( rs->sr_ref ) {
+					rs->sr_matched = ber_strdup_x(
+					e->e_name.bv_val, op->o_tmpmemctx );
+				}
 			}
 
 			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
@@ -114,8 +117,10 @@ dn2entry_retry:
 		}
 
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
-		free( (char *)rs->sr_matched );
-		rs->sr_matched = NULL;
+		if (rs->sr_matched) {
+			sl_free( (char *)rs->sr_matched, op->o_tmpmemctx );
+			rs->sr_matched = NULL;
+		}
 		return rc;
 	}
 

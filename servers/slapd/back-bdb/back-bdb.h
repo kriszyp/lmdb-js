@@ -176,11 +176,7 @@ struct bdb_info {
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
-#ifdef BDB_HIER
-#define bi_id2parent	bi_databases[BDB_ID2PARENT]
-#else
 #define bi_dn2id	bi_databases[BDB_DN2ID]
-#endif
 
 struct bdb_op_info {
 	BackendDB*	boi_bdb;

@@ -170,7 +170,7 @@ int bdb_tool_next_id(
 			return rc;
 		}
 		e->e_nname = dn;
-		rc = bdb_dn2id_add( be, tid, &pdn, e );
+		rc = bdb_dn2id_add( be, tid, &pdn, e, NULL );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len, 
 				"dn2id_add failed: %s (%d)",
@@ -404,7 +404,7 @@ int bdb_tool_entry_reindex(
 	} else {
 		dnParent( &e->e_nname, &pdn );
 	}
-	rc = bdb_dn2id_add( be, tid, &pdn, e );
+	rc = bdb_dn2id_add( be, tid, &pdn, e, NULL );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( TOOLS, ERR, 

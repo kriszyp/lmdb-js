@@ -23,11 +23,7 @@ static struct bdbi_database {
 	int flags;
 } bdbi_databases[] = {
 	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
-#ifdef BDB_HIER
-	{ "id2parent" BDB_SUFFIX, "id2parent", DB_BTREE, 0 },
-#else
 	{ "dn2id" BDB_SUFFIX, "dn2id", DB_BTREE, 0 },
-#endif
 	{ NULL, NULL, 0, 0 }
 };
 
@@ -101,9 +97,6 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
-#ifdef BDB_HIER
-	ldap_pvt_thread_rdwr_init( &bdb->bi_tree_rdwr );
-#endif
 
 	be->be_private = bdb;
 
@@ -437,9 +430,6 @@ bdb_db_open( BackendDB *be )
 	}
 
 	/* <insert> open (and create) index databases */
-#ifdef BDB_HIER
-	rc = bdb_build_tree( be );
-#endif
 	return 0;
 }
 
@@ -527,9 +517,6 @@ bdb_db_destroy( BackendDB *be )
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 
-#ifdef BDB_HIER
-	ldap_pvt_thread_rdwr_destroy( &bdb->bi_tree_rdwr );
-#endif
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );

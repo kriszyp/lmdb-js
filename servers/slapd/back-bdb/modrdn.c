@@ -775,7 +775,8 @@ retry:	/* transaction retry */
 	e = &dummy;
 
 	/* delete old one */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, p_ndn.bv_val, e );
+	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, p_ndn.bv_val, e,
+		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -811,7 +812,8 @@ retry:	/* transaction retry */
 	new_ndn.bv_val = NULL;
 #endif
 	/* add new one */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, np_ndn, e );
+	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, np_ndn, e,
+		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
