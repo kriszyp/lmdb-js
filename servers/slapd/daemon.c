@@ -1624,7 +1624,7 @@ slapd_daemon_task(
 						SLAP_STRING_UNKNOWN ))
 				{
 					/* DENY ACCESS */
-					Statslog( LDAP_DEBUG_ANY,
+					Statslog( LDAP_DEBUG_STATS,
 						"fd=%ld host access from %s (%s) denied.\n",
 						(long) s,
 						dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
