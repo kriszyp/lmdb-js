@@ -69,6 +69,7 @@ str2entry( char *s )
 	const char *text;
 	char	*next;
 	int		attr_cnt;
+	int		freeval;
 
 	/*
 	 * LDIF is used as the string format.
@@ -114,34 +115,33 @@ str2entry( char *s )
 			break;
 		}
 
-		if ( ldif_parse_line( s, &type, &vals[0].bv_val, &vals[0].bv_len ) != 0 ) {
+		if ( ldif_parse_line2( s, &type, &vals[0].bv_val, &vals[0].bv_len,
+			&freeval ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
-			free( type );
 
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 					(long) e->e_id, e->e_dn, vals[0].bv_val );
-				free( vals[0].bv_val );
+				if ( freeval ) free( vals[0].bv_val );
 				entry_free( e );
 				return NULL;
 			}
 
 			rc = dnPrettyNormal( NULL, &vals[0], &e->e_name, &e->e_nname, NULL );
+			if ( freeval ) free( vals[0].bv_val );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
 					(long) e->e_id, vals[0].bv_val, 0 );
 				entry_free( e );
-				free( vals[0].bv_val );
 				return NULL;
 			}
-			free( vals[0].bv_val );
 			continue;
 		}
 
@@ -155,8 +155,7 @@ str2entry( char *s )
 				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
 			if( slapMode & SLAP_TOOL_MODE ) {
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
@@ -166,8 +165,7 @@ str2entry( char *s )
 					"<= str2entry: str2undef_ad(%s): %s\n",
 						type, text, 0 );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 		}
@@ -200,8 +198,7 @@ str2entry( char *s )
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
@@ -212,14 +209,14 @@ str2entry( char *s )
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
 			if( pretty ) {
-				free( vals[0].bv_val );
+				if ( freeval ) free( vals[0].bv_val );
 				vals[0] = pval;
+				freeval = 1;
 			}
 		}
 
@@ -240,8 +237,7 @@ str2entry( char *s )
 			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
 
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
@@ -256,13 +252,11 @@ str2entry( char *s )
 			Debug( LDAP_DEBUG_ANY,
 				"<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 			entry_free( e );
-			free( vals[0].bv_val );
-			free( type );
+			if ( freeval ) free( vals[0].bv_val );
 			return( NULL );
 		}
 
-		free( type );
-		free( vals[0].bv_val );
+		if ( freeval ) free( vals[0].bv_val );
 		free( nvals[0].bv_val );
 
 		attr_cnt++;
