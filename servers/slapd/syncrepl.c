@@ -310,24 +310,25 @@ do_syncrep1(
 #ifdef HAVE_CYRUS_SASL
 		void *defaults;
 
-		if ( si->si_secprops != NULL ) {
+		if ( si->si_bindconf.sb_secprops != NULL ) {
 			rc = ldap_set_option( si->si_ld,
-				LDAP_OPT_X_SASL_SECPROPS, si->si_secprops);
+				LDAP_OPT_X_SASL_SECPROPS, si->si_bindconf.sb_secprops);
 
 			if( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_provideruri.bv_val, si->si_secprops, 0 );
+					si->si_provideruri.bv_val, si->si_bindconf.sb_secprops, 0 );
 				goto done;
 			}
 		}
 
-		defaults = lutil_sasl_defaults( si->si_ld, si->si_saslmech,
-			si->si_realm, si->si_authcId, si->si_passwd, si->si_authzId );
+		defaults = lutil_sasl_defaults( si->si_ld, si->si_bindconf.sb_saslmech,
+			si->si_bindconf.sb_realm, si->si_bindconf.sb_authcId,
+			si->si_bindconf.sb_cred, si->si_bindconf.sb_authzId );
 
 		rc = ldap_sasl_interactive_bind_s( si->si_ld,
-				si->si_binddn,
-				si->si_saslmech,
+				si->si_bindconf.sb_binddn,
+				si->si_bindconf.sb_saslmech,
 				NULL, NULL,
 				LDAP_SASL_QUIET,
 				lutil_sasl_interact,
@@ -346,7 +347,7 @@ do_syncrep1(
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
-			if ( strcmp( si->si_saslmech, "GSSAPI" ) == 0 &&
+			if ( strcmp( si->si_bindconf.sb_saslmech, "GSSAPI" ) == 0 &&
 				rc == LDAP_LOCAL_ERROR )
 			{
 				rc = LDAP_SERVER_DOWN;
@@ -363,8 +364,8 @@ do_syncrep1(
 #endif
 
 	} else {
-		rc = ldap_bind_s( si->si_ld,
-			si->si_bindconf.sb_binddn, si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
+		rc = ldap_bind_s( si->si_ld, si->si_bindconf.sb_binddn,
+			si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_bind_s failed (%d)\n", rc, 0, 0 );

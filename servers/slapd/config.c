@@ -60,8 +60,6 @@ char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
-char	*passwd_salt;
-char	*logfileName;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;
 
@@ -83,6 +81,9 @@ int use_reverse_lookup = 0;
  */
 static char *replica_pidFile, *replica_argsFile;
 static int replicationInterval;
+
+static char	*passwd_salt;
+static char	*logfileName;
 
 #ifdef LDAP_SLAPI
 int slapi_plugins_used = 0;
@@ -227,13 +228,13 @@ static ConfigTable SystemConfiguration[] = {
 		&config_generic, "( OLcfgAt:5 NAME 'olcAttributeOptions' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "auth-rewrite", NULL, 2, 2, 14,
+	{ "authid-rewrite", NULL, 2, 0, 0,
 #ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
-		 "( OLcfgAt:6 NAME 'olcAuthRewrite' "
+		 "( OLcfgAt:6 NAME 'olcAuthIDRewrite' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "authz-policy", "policy", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_AZPOLICY,
@@ -429,7 +430,7 @@ static ConfigTable SystemConfiguration[] = {
 #endif
 		"( OLcfgAt:54 NAME 'olcSaslRealm' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sasl-regexp", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
+	{ "sasl-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
 	{ "sasl-secprops", "properties", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
@@ -439,7 +440,7 @@ static ConfigTable SystemConfiguration[] = {
 #endif
 		"( OLcfgAt:56 NAME 'olcSaslSecProps' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "saslRegexp",	NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
+	{ "saslRegexp",	NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
 	{ "schemacheck", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,
 		&config_generic, "( OLcfgAt:57 NAME 'olcSchemaCheck' "
@@ -980,7 +981,7 @@ config_generic(ConfigArgs *c) {
 			else
 				rc = 1;
 			break;
-		case CFG_LIMITS:
+		case CFG_LIMITS:	/* FIXME */
 			rc = 1;
 			break;
 		case CFG_RO:
@@ -993,14 +994,14 @@ config_generic(ConfigArgs *c) {
 			rc = 1;
 			break;
 #ifdef HAVE_CYRUS_SASL
-		case CFG_SASLSECP:
+		case CFG_SASLSECP:	/* FIXME */
 			rc = 1;
 			break;
 #endif
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
 			break;
-		case CFG_OID:
+		case CFG_OID:	/* FIXME */
 			rc = 1;
 			break;
 		case CFG_CHECK:
@@ -1060,18 +1061,18 @@ config_generic(ConfigArgs *c) {
 			c->value_int = index_substr_if_minlen;
 			break;
 #ifdef SLAPD_MODULES
-		case CFG_MODLOAD:
+		case CFG_MODLOAD:	/* FIXME */
 		case CFG_MODPATH:
 			rc = 1;
 			break;
 #endif
 #ifdef LDAP_SLAPI
-		case CFG_PLUGIN:
+		case CFG_PLUGIN:	/* FIXME */
 			rc = 1;
 			break;
 #endif
 #ifdef SLAP_AUTH_REWRITE
-		case CFG_REWRITE:
+		case CFG_REWRITE:	/* FIXME */
 			rc = 1;
 			break;
 #endif
@@ -1420,7 +1421,7 @@ config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
-	if (c->emit) {
+	if (c->emit) {	/* FIXME */
 		return 1;
 	}
 	for(i = 1; i < c->argc; i++) {
@@ -1460,7 +1461,7 @@ config_timelimit(ConfigArgs *c) {
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->emit) {
-		return 1;
+		return 1;	/* FIXME */
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
@@ -2059,14 +2060,16 @@ anlist_unparse( AttributeName *an, char *ptr ) {
 }
 
 static void
-replica_unparse( struct slap_replica_info *ri, struct berval *bv )
+replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 {
 	int len;
-	int i;
 	char *ptr;
 	struct berval bc = {0};
+	char numbuf[32];
 
-	len = strlen( ri->ri_uri ) + STRLENOF("replica uri=");
+	len = sprintf(numbuf, "{%d}", i );
+
+	len += strlen( ri->ri_uri ) + STRLENOF("uri=");
 	if ( ri->ri_nsuffix ) {
 		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
 			len += ri->ri_nsuffix[i].bv_len + STRLENOF(" suffix=\"\"");
@@ -2085,7 +2088,8 @@ replica_unparse( struct slap_replica_info *ri, struct berval *bv )
 	bv->bv_val = ch_malloc(len + 1);
 	bv->bv_len = len;
 
-	ptr = lutil_strcopy( bv->bv_val, "replica uri=" );
+	ptr = lutil_strcopy( bv->bv_val, numbuf );
+	ptr = lutil_strcopy( ptr, "uri=" );
 	ptr = lutil_strcopy( ptr, ri->ri_uri );
 
 	if ( ri->ri_nsuffix ) {
@@ -2117,7 +2121,7 @@ config_replica(ConfigArgs *c) {
 		if (c->be->be_replica) {
 			struct berval bv;
 			for (i=0;c->be->be_replica[i]; i++) {
-				replica_unparse( c->be->be_replica[i], &bv );
+				replica_unparse( c->be->be_replica[i], i, &bv );
 				ber_bvarray_add( &c->rvalue_vals, &bv );
 			}
 			return 0;
@@ -2343,7 +2347,7 @@ config_tls_config(ConfigArgs *c) {
 		{ "never",	LDAP_OPT_X_TLS_NEVER },
 		{ "demand",	LDAP_OPT_X_TLS_DEMAND },
 		{ "try",	LDAP_OPT_X_TLS_TRY },
-		{ "hard",	LDAP_OPT_X_TLS_HARD }
+		{ "hard",	LDAP_OPT_X_TLS_HARD },
 		{ NULL, 0 }
 	}, *keys;
 	switch(c->type) {
@@ -2362,7 +2366,7 @@ config_tls_config(ConfigArgs *c) {
 		for (i=0; keys[i].word; i++) {
 			if (keys[i].mask == c->value_int) {
 				c->value_string = ch_strdup( keys[i].word );
-				rc = 0;
+				return 0;
 			}
 		}
 		return 1;
@@ -2975,7 +2979,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	bindconf_unparse( &si->si_bindconf, &bc );
 	ptr = buf;
-	ptr += sprintf( ptr, "syncrepl " IDSTR "=%03d " PROVIDERSTR "=%s",
+	ptr += sprintf( ptr, IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_provideruri.bv_val );
 	if ( !BER_BVISNULL( &bc )) {
 		ptr = lutil_strcopy( ptr, bc.bv_val );
