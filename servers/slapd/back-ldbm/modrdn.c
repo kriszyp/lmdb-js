@@ -38,7 +38,6 @@ ldbm_back_modrdn(
 		return( -1 );
 	}
 
-#define SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL 1
 #ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check parent for "children" acl */
 	if ( ! access_allowed( be, conn, op, e, "entry", NULL,
