@@ -188,5 +188,47 @@ main(int argc, char **argv)
 		puts("  HOST NAME:         <not set>");
 	}
 
+#if 0
+	/* API tests */
+	{	/* bindless unbind */
+		LDAP *ld;
+		int rc;
+
+		ld = ldap_init( "localhost", 389 );
+		if( ld == NULL ) {
+			perror("ldap_init");
+			return EXIT_FAILURE;
+		}
+
+		rc = ldap_unbind( ld );
+		if( rc != LDAP_SUCCESS ) {
+			perror("ldap_unbind");
+			return EXIT_FAILURE;
+		}
+	}
+	{	/* bindless unbind */
+		LDAP *ld;
+		int rc;
+
+		ld = ldap_init( "localhost", 389 );
+		if( ld == NULL ) {
+			perror("ldap_init");
+			return EXIT_FAILURE;
+		}
+
+		rc = ldap_abandon_ext( ld, 0, NULL, NULL );
+		if( rc != LDAP_SERVER_DOWN ) {
+			ldap_perror( ld, "ldap_abandon");
+			return EXIT_FAILURE;
+		}
+
+		rc = ldap_unbind( ld );
+		if( rc != LDAP_SUCCESS ) {
+			perror("ldap_unbind");
+			return EXIT_FAILURE;
+		}
+	}
+#endif
+
 	return EXIT_SUCCESS;
 }
