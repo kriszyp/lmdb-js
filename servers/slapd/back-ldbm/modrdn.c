@@ -153,7 +153,10 @@ ldbm_back_modrdn(
 	}
 
 	p_ndn.bv_val = dn_parent( be, e->e_ndn );
-	p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+	if ( p_ndn.bv_val )
+		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+	else
+		p_ndn.bv_len = 0;
 
 	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
@@ -203,7 +206,10 @@ ldbm_back_modrdn(
 #endif
 
 		p_dn.bv_val = dn_parent( be, e->e_dn );
-		p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
+		if ( p_dn.bv_val )
+			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
+		else
+			p_dn.bv_len = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,

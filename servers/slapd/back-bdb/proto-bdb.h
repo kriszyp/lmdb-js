@@ -79,7 +79,7 @@ int bdb_dn2id_matched(
 int bdb_dn2id_add(
 	BackendDB *be,
 	DB_TXN *tid,
-	char *pdn,
+	struct berval *pdn,
 	Entry *e );
 
 int bdb_dn2id_delete(

@@ -117,7 +117,7 @@ ID bdb_tool_entry_put(
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
-	char *pdn;
+	struct berval pdn;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -145,8 +145,12 @@ ID bdb_tool_entry_put(
 	}
 
 	/* add dn2id indices */
-	pdn = dn_parent( be, e->e_ndn );
-	rc = bdb_dn2id_add( be, tid, pdn, e );
+	pdn.bv_val = dn_parent( be, e->e_ndn );
+	if (pdn.bv_val)
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
+	else
+		pdn.bv_len = 0;
+	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: dn2id_add failed: %s (%d)\n",
@@ -202,7 +206,7 @@ int bdb_tool_entry_reindex(
 	int rc;
 	Entry *e;
 	DB_TXN *tid = NULL;
-	char *pdn;
+	struct berval pdn;
 
 	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
@@ -237,8 +241,12 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 
 	/* add dn2id indices */
-	pdn = dn_parent( be, e->e_ndn );
-	rc = bdb_dn2id_add( be, tid, pdn, e );
+	pdn.bv_val = dn_parent( be, e->e_ndn );
+	if (pdn.bv_val)
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
+	else
+		pdn.bv_len = 0;
+	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n",

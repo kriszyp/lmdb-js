@@ -18,14 +18,14 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	char *pdn,
+	struct berval	*pbv,
 	Entry		*e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	int		rc;
 	DBT		key, data;
-	char		*buf, *ptr;
+	char		*buf, *ptr, *pdn;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
 		e->e_ndn, (long) e->e_id, 0 );
@@ -636,7 +636,7 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	char	*pdn,
+	struct berval	*pdn,
 	Entry		*e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;

@@ -21,7 +21,7 @@ bdb_add(
 	Entry	*e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	char		*pdn = NULL;
+	struct berval	pdn;
 	Entry		*p = NULL;
 	int			rc; 
 	const char	*text;
@@ -93,17 +93,17 @@ retry:	rc = txn_abort( ltid );
 	 * If the parent does not exist, only allow the "root" user to
 	 * add the entry.
 	 */
-	pdn = dn_parent( be, e->e_nname.bv_val );
+	pdn.bv_val = dn_parent( be, e->e_nname.bv_val );
+	if (pdn.bv_val == NULL)
+		pdn.bv_len = 0;
+	else
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_nname.bv_val);
 
-	if( pdn != NULL && *pdn != '\0' ) {
+	if( pdn.bv_len != 0 ) {
 		Entry *matched = NULL;
-		struct berval pbv;
-
-		pbv.bv_val = pdn;
-		pbv.bv_len = e->e_nname.bv_len - (pdn - e->e_nname.bv_val);
 
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, &pbv, &p, &matched, 0 );
+		rc = bdb_dn2entry( be, ltid, &pdn, &p, &matched, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -214,7 +214,7 @@ retry:	rc = txn_abort( ltid );
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE, "bdb_add: %s denied\n",
-					pdn == NULL ? "suffix" : "entry at root",
+					pdn.bv_len == 0 ? "suffix" : "entry at root",
 					0, 0 );
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
@@ -223,7 +223,7 @@ retry:	rc = txn_abort( ltid );
 	}
 
 	/* dn2id index */
-	rc = bdb_dn2id_add( be, ltid, pdn, e );
+	rc = bdb_dn2id_add( be, ltid, &pdn, e );
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );

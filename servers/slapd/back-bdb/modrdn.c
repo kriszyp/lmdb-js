@@ -163,7 +163,10 @@ retry:	/* transaction retry */
 	}
 
 	p_ndn.bv_val = dn_parent( be, e->e_ndn );
-	p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+	if (p_ndn.bv_val)
+		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+	else
+		p_ndn.bv_len = 0;
 	np_ndn = &p_ndn;
 	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
@@ -207,7 +210,10 @@ retry:	/* transaction retry */
 			p_ndn.bv_val, 0, 0 );
 		
 		p_dn.bv_val = dn_parent( be, e->e_dn );
-		p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
+		if (p_dn.bv_val)
+			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
+		else
+			p_dn.bv_len = 0;
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",
@@ -572,7 +578,7 @@ retry:	/* transaction retry */
 	e->e_nname = *new_ndn;
 
 	/* add new one */
-	rc = bdb_dn2id_add( be, ltid, np_ndn->bv_val, e );
+	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
