@@ -137,7 +137,10 @@ meta_back_db_config(
 
 	/* URI of server to query */
 	if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
-		int j, i = li->ntargets;
+		int i = li->ntargets;
+#if 0
+		int j;
+#endif /* uncomment if uri MUST be a branch of suffix */
 		LDAPURLDesc *ludp;
 		char *last;
 		

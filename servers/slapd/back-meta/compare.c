@@ -281,7 +281,7 @@ meta_back_compare(
 		}
 	}
 
-finish:
+finish:;
 
 	/*
 	 * Rewrite the matched portion of the search base, if required
@@ -342,7 +342,7 @@ finish:
 
 	send_ldap_result( conn, op, rres, mmatch, err, NULL, NULL );
 
-cleanup:
+cleanup:;
 	if ( match != NULL ) {
 		if ( mmatch != match ) {
 			free( mmatch );

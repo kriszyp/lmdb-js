@@ -201,8 +201,10 @@ meta_back_search(
 				 */
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 				continue;
-				// rc = meta_back_op_result(lc, op);
-				// goto finish;
+				/*
+				rc = meta_back_op_result(lc, op);
+				goto finish;
+				 */
 			}
 
 		}
@@ -474,7 +476,7 @@ meta_back_search(
 	send_search_result( conn, op, sres,
 		mmatch, err, NULL, NULL, count );
 
-finish:
+finish:;
 	if ( match ) {
 		if ( mmatch != match ) {
 			free( mmatch );

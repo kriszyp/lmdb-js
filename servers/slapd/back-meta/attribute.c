@@ -102,7 +102,6 @@ meta_back_attribute(
 	LDAPMessage	*result, *e;
 	char *gattr[ 2 ];
 	LDAP *ld;
-	char *me_ndn;
 
 	*vals = NULL;
 	if ( target != NULL && strcmp( target->e_ndn, e_ndn ) == 0 ) {

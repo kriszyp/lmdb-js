@@ -95,7 +95,7 @@ meta_back_add(
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "meta_back_add: %s\n",
 			e->e_dn ));
 #else /* !NEW_LOGGING */
-	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n", e->e_dn, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n%s%s", e->e_dn, "", "");
 #endif /* !NEW_LOGGING */
 
 	/*
