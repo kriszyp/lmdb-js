@@ -1093,6 +1093,7 @@ syncrepl_entry(
 		syncUUID->bv_val, syncUUID->bv_len );
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
+	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 
 	/* get syncrepl cookie of shadow replica from subentry */
@@ -1106,7 +1107,9 @@ syncrepl_entry(
 
 	si->si_syncUUID_ndn.bv_val = NULL;
 
-	rc = be->be_search( op, &rs );
+	if ( limits_check( op, &rs ) == 0 ) {
+		rc = be->be_search( op, &rs );
+	}
 
 	if ( op->ors_filterstr.bv_val ) {
 		sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -1336,7 +1339,11 @@ syncrepl_del_nonpresent(
 
 	op->o_nocaching = 1;
 	op->o_managedsait = 0;
-	be->be_search( op, &rs );
+
+	if ( limits_check( op, &rs ) == 0 ) {
+		be->be_search( op, &rs );
+	}
+
 	op->o_managedsait = 1;
 	op->o_nocaching = 0;
 
