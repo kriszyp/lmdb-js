@@ -50,6 +50,7 @@ rfc2891.txt LDAPv3: Server Side Sorting of Search Results (PS)
 rfc3045.txt Storing Vendor Information in the LDAP root DSE (I)
 rfc3062.txt LDAP Password Modify Extended Operation (PS)
 rfc3088.txt OpenLDAP Root Service (E)
+rfc3112.txt LDAPv3 authpassword schema (I)
 
 Legend:
 STD	Standard
