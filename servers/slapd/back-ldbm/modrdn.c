@@ -113,7 +113,7 @@ ldbm_back_modrdn(
 		new_dn = ch_strdup( newrdn );
 	}
 
-	new_ndn = dn_normalize( ch_strdup( new_dn ) );
+	new_ndn = dn_normalize_case( ch_strdup( new_dn ) );
 
 	if ( (dn2id ( be, new_ndn ) ) != NOID ) {
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
