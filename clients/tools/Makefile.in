@@ -1,0 +1,88 @@
+# $OpenLDAP$
+##
+## Makefile for LDAP tools
+##
+SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
+		ldappasswd.c ldapwhoami.c ldapcompare.c
+OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
+		ldappasswd.o ldapwhoami.o ldapcompare.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+XLIBS =  $(LDAP_LIBLDIF_A) $(LDAP_L)
+XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
+
+XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
+	ldpversion.c ldwversion.c ldcversion.c
+
+PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd \
+	ldappasswd ldapwhoami ldapcompare
+
+
+ldapsearch:	ldsversion.o
+	$(LTLINK) -o $@ ldapsearch.o ldsversion.o $(LIBS)
+
+ldapmodify:	ldmversion.o
+	$(LTLINK) -o $@ ldapmodify.o ldmversion.o $(LIBS)
+
+ldapdelete:	lddversion.o
+	$(LTLINK) -o $@ ldapdelete.o lddversion.o $(LIBS)
+
+ldapmodrdn:	ldrversion.o
+	$(LTLINK) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
+
+ldappasswd:	ldpversion.o
+	$(LTLINK) -o $@ ldappasswd.o ldpversion.o $(LIBS)
+
+ldapwhoami:	ldwversion.o
+	$(LTLINK) -o $@ ldapwhoami.o ldwversion.o $(LIBS)
+
+ldapcompare: ldcversion.o
+	$(LTLINK) -o $@ ldapcompare.o ldcversion.o $(LIBS)
+
+ldapadd:	ldapmodify
+	@-$(RM) $@$(EXEEXT)
+	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
+
+
+ldsversion.c: ldapsearch.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapsearch > $@
+
+ldmversion.c: ldapmodify.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapmodify > $@
+
+lddversion.c: ldapdelete.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapdelete > $@
+
+ldpversion.c: ldappasswd.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldappasswd > $@
+
+ldrversion.c: ldapmodrdn.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapmodrdn > $@
+
+ldwversion.c: ldapwhoami.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapwhoami > $@
+
+ldcversion.c: ldapcompare.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) ldapcompare > $@
+
+
+install-local:	FORCE
+	-$(MKDIR) $(DESTDIR)$(bindir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(bindir);				\
+	    done							\
+	)
+	$(RM) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
+	$(LN) $(DESTDIR)$(bindir)/ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
+
