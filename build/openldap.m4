@@ -55,6 +55,32 @@ dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 ])dnl
 dnl
 dnl ====================================================================
+dnl
+dnl check if hard links are supported.
+dnl
+AC_DEFUN([OL_PROG_LN_H], [# test for ln hardlink support
+AC_MSG_CHECKING(whether ln works)
+AC_CACHE_VAL(ol_cv_prog_LN_H,
+[rm -f conftest.src conftest.dst
+echo "conftest" > conftest.src
+if ln conftest.src conftest.dst 2>/dev/null
+then
+  ol_cv_prog_LN_H="ln"
+else
+  ol_cv_prog_LN_H="cp"
+fi
+rm -f conftest.src conftest.dst
+])dnl
+LN_H="$ol_cv_prog_LN_H"
+if test "$ol_cv_prog_LN_H" = "ln"; then
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+AC_SUBST(LN_H)dnl
+])dnl
+dnl
+dnl ====================================================================
 dnl Check if db.h is Berkeley DB2
 dnl
 dnl defines ol_cv_header_db2 to 'yes' or 'no'

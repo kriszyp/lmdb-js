@@ -275,27 +275,14 @@ AC_PROG_INSTALL
 dnl The default compiler is cc (NOT gcc)
 CC=${CC-"cc"}
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
-CFLAGS=${CFLAGS-""}
+dnl CFLAGS=${CFLAGS-""}
 
 AM_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
 
 AC_PROG_AWK
+OL_PROG_LN_H
 AC_PROG_LN_S
-
-dnl Let's test for a way to hardlink (cp or ln)
-AC_MSG_CHECKING(if ln supports hardlinks)
-touch link_test.hard
-if ln link_test.hard link_test.linked > /dev/null 2>&1 ; then
-	LN_H="ln"
-	AC_MSG_RESULT(yes)
-	rm -f link_test.linked
-else
-	LN_H="cp"
-	AC_MSG_RESULT(no...using cp)
-fi
-rm -f link_test.hard
-AC_SUBST(LN_H)
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
