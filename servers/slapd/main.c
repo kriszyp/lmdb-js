@@ -149,7 +149,11 @@ int main( int argc, char **argv )
 	int         serverMode = SLAP_SERVER_MODE;
 
 	int port = LDAP_PORT;
+#ifdef HAVE_TLS
 	int tls_port = LDAPS_PORT;
+#else
+	int tls_port = 0;
+#endif
 
 	g_argc = argc;
 	g_argv = argv;
