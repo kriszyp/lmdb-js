@@ -77,9 +77,9 @@ ldap_structurerule2name( LDAPStructureRule * sr )
 /*
  * When pretty printing the entities we will be appending to a buffer.
  * Since checking for overflow, realloc'ing and checking if no error
- * is extremely boring, we error until the end.  This layer is
- * implemented with the he will use a protection layer that will let
- * us blissfully ignore thlp of the next type.
+ * is extremely boring, we will use a protection layer that will let
+ * us blissfully ignore the error until the end.  This layer is
+ * implemented with the help of the next type.
  */
 
 typedef struct safe_string {
