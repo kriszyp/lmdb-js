@@ -37,10 +37,12 @@ if test ! -d $RELNAME ; then
 	exit 1
 fi
 
-if test ! -e $RELNAME/build/version ; then
+if test ! -e $RELNAME/build/version.sh ; then
 	echo "No build version"
 	exit 1
 fi
+
+$RELNAME/build/version.sh
 
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz

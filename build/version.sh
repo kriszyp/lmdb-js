@@ -8,7 +8,7 @@ ol_package=OpenLDAP
 ol_major=2
 ol_minor=X
 ol_patch=X
-ol_api_inc=200000
+ol_api_inc=000000
 ol_api_lib=0:0:0
 
 if test $ol_patch != X ; then

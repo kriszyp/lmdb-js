@@ -26,6 +26,9 @@
 /* pull in lber */
 #include <lber.h>
 
+/* include version and API feature defines */
+#include <ldap_features.h>
+
 LDAP_BEGIN_DECL
 
 #define LDAP_VERSION1	1
@@ -44,13 +47,9 @@ LDAP_BEGIN_DECL
 #define LDAP_API_VERSION	2004
 #define LDAP_VENDOR_NAME	"OpenLDAP"
 /* We'll eventually release as 20000 */
-#define LDAP_VENDOR_VERSION	19910
 
 /* OpenLDAP API Features */
 #define LDAP_API_FEATURE_X_OPENLDAP LDAP_VENDOR_VERSION
-
-/* include LDAP_API_FEATURE defines */
-#include <ldap_features.h>
 
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_REENTRANT ) || \
 	( defined( LDAP_THREAD_SAFE ) && \

@@ -14,6 +14,12 @@
 #ifndef _LDAP_FEATURES_H
 #define _LDAP_FEATURES_H 1
 
+/* OpenLDAP API version macros */
+#undef LDAP_VENDOR_VERSION
+#undef LDAP_VENDOR_VERSION_MAJOR
+#undef LDAP_VENDOR_VERSION_MINOR
+#undef LDAP_VENDOR_VERSION_PATCH
+
 /*
 ** OpenLDAP reentrancy/thread-safeness should be dynamically
 ** checked using ldap_get_option().

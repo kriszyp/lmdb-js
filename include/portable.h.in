@@ -594,6 +594,18 @@
 /* Version */
 #undef OPENLDAP_VERSION
 
+/* Version */
+#undef LDAP_VENDOR_VERSION
+
+/* Major */
+#undef LDAP_VENDOR_VERSION_MAJOR
+
+/* Minor */
+#undef LDAP_VENDOR_VERSION_MINOR
+
+/* Patch */
+#undef LDAP_VENDOR_VERSION_PATCH
+
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION
 
