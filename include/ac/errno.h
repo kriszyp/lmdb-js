@@ -20,8 +20,8 @@
 
 #ifdef DECL_SYS_ERRLIST 
 #ifndef HAVE_SYS_ERRLIST
-int             sys_nerr;
-char            **sys_errlist;
+#define		sys_nerr	0
+#define		sys_errlist	((char **)0)
 #else
 extern int      sys_nerr;
 extern char     *sys_errlist[];
