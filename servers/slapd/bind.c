@@ -444,27 +444,6 @@ do_bind(
 				version, ndn.bv_val, 0 );
 #endif
 			goto cleanup;
-
-		} else if (( global_disallows & SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED )
-			&& ( op->o_ssf <= 1 ))
-		{
-			rc = LDAP_CONFIDENTIALITY_REQUIRED;
-			text = "unwilling to perform simple authentication "
-				"without confidentilty protection";
-
-			send_ldap_result( conn, op, rc,
-				NULL, text, NULL, NULL );
-
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_bind: conn %d  "
-				"v%d unprotected simple bind(%s) disallowed\n",
-				conn->c_connid, version, ndn.bv_val );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: v%d unprotected simple bind(%s) disallowed\n",
-				version, ndn.bv_val, 0 );
-#endif
-			goto cleanup;
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
