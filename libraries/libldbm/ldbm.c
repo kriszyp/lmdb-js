@@ -114,7 +114,7 @@ DB_ENV           *ldbm_Env = NULL;
 int ldbm_initialize( void )
 {
 	int     err;
-	int     envFlags;
+	u_int32_t	envFlags;
 
 	if(ldbm_initialized++) return 1;
 
