@@ -83,7 +83,7 @@ allow (default none).
 .B bind_v2
 allows acceptance of LDAPv2 bind requests.  Note that
 .BR slapd (8)
-does not truely implement LDAPv2 (RFC 1777), now Historic (RFC 3494).
+does not truly implement LDAPv2 (RFC 1777), now Historic (RFC 3494).
 .B bind_anon_cred
 allows anonymous bind when credentials are not empty (e.g.
 when DN is empty).
@@ -316,7 +316,7 @@ with
 .B exact
 or
 .B base
-(which are synonims), to require an exact match; with
+(which are synonyms), to require an exact match; with
 .BR one, 
 to require exactly one level of depth match; with
 .BR subtree,
@@ -350,7 +350,7 @@ where
 is the number of seconds slapd will spend answering a search request.
 If no time limit is explicitly requested by the client, the 
 .BR soft
-limit is used; if the requested time limit exceedes the
+limit is used; if the requested time limit exceeds the
 .BR hard
 limit, an "Administrative limit exceeded" is returned.
 If the
@@ -375,7 +375,7 @@ is the maximum number of entries slapd will return answering a search
 request.
 If no size limit is explicitly requested by the client, the
 .BR soft
-limit is used; if the requested size limit exceedes the
+limit is used; if the requested size limit exceeds the
 .BR hard
 limit, an "Administrative limit exceeded" is returned.
 If the 
@@ -729,7 +729,7 @@ appear in the file, stopping at the first successful match.
 Used to specify Cyrus SASL security properties.
 The
 .B none
-flag (without any other properities) causes the flag properites
+flag (without any other properties) causes the flag properties
 default, "noanonymous,noplain", to be cleared.
 The
 .B noplain
@@ -999,7 +999,7 @@ createTimestamp attributes for entries.  By default, lastmod is on.
 .TP
 .B maxderefdepth <depth>
 Specifies the maximum number of aliases to dereference when trying to
-resolve an entry, used to avoid inifinite alias loops. The default is 1.
+resolve an entry, used to avoid infinite alias loops. The default is 1.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
@@ -1098,7 +1098,7 @@ password can only be set if the rootdn is within the namingContext
 This option accepts all RFC 2307 userPassword formats known to
 the server (see 
 .B password-hash
-desription) as well as cleartext.
+description) as well as cleartext.
 .BR slappasswd (8) 
 may be used to generate a hash of a password.  Cleartext
 and \fB{CRYPT}\fP passwords are not recommended.  If empty
@@ -1123,6 +1123,123 @@ associated with a single namingContext should have identical rootdns.
 Behavior of other LDAP operations is unaffected by this setting. In
 particular, it is not possible to use moddn to move an entry from
 one subordinate to another subordinate within the namingContext.
+.HP
+.hy 0
+.B syncrepl id=<replica ID>
+.B provider=ldap[s]://<hostname>[:port]
+.B [type=refreshOnly|refreshAndPersist]
+.B [interval=dd:hh:mm:ss]
+.B [searchbase=<base DN>]
+.B [filter=<filter str>]
+.B [scope=sub|one|base]
+.B [attrs=<attr list>]
+.B [attrsonly]
+.B [sizelimit=<limit>]
+.B [timelimit=<limit>]
+.B [schemachecking=on|off]
+.B [updatedn=<dn>]
+.B [bindmethod=simple|sasl]
+.B [binddn=<dn>]
+.B [saslmech=<mech>]
+.B [authcid=<identity>]
+.B [authzid=<identity>]
+.B [credentials=<passwd>]
+.B [realm=<realm>]
+.B [secprops=<properties>]
+.RS
+Specify the current database as a replica which is kept up-to-date with the 
+master content by establishing the current
+.BR slapd (8)
+as a replication consumer site running a
+.B syncrepl
+replication engine.
+The replica content is kept synchronized to the master content using
+the LDAP Content Synchronization protocol. Refer to the
+"OpenLDAP Administrator's Guide" for detailed information on
+setting up a replicated
+.B slapd
+directory service using the 
+.B syncrepl
+replication engine.
+.B id
+identifies the current
+.B syncrepl
+directive within the database.
+It is a non-negative integer having no more than three digits.
+.B provider
+specifies the replication provider site containing the master content
+as an LDAP URI. If <port> is not given, the standard LDAP port number
+(389 or 636) is used. The content of the
+.B syncrepl
+replica is defined using a search
+specification as its result set. The consumer
+.B slapd
+will send search requests to the provider
+.B slapd
+according to the search specification. The search specification includes
+.B searchbase, scope, filter, attrs, attrsonly, sizelimit,
+and
+.B timelimit
+parameters as in the normal search specification.
+The search specification for the LDAP Content Synchronization operation
+has the same value syntax and the same default values as in the
+.BR ldapsearch (1)
+client search tool.
+The LDAP Content Synchronization protocol has two operation types.
+In the
+.B refreshOnly
+operation, the next synchronization search operation
+is periodically rescheduled at an interval time (specified by 
+.B interval
+parameter; 1 day by default)
+after each synchronization operation finishes.
+In the
+.B refreshAndPersist
+operation, a synchronization search remains persistent in the provider slapd.
+Further updates to the master replica will generate
+.B searchResultEntry
+to the consumer slapd as the search responses to the persistent
+synchronization search. The schema checking can be enforced at the LDAP Sync
+consumer site by turning on the
+.B schemachecking
+parameter. The default is off.
+The
+.B updatedn
+parameter specifies the DN in the consumer site
+which is allowed to make changes to the replica.
+The DN should have read/write access to the replica database.
+A
+.B bindmethod
+of 
+.B simple
+requires the options 
+.B binddn
+and 
+.B credentials
+and should only be used when adequate security services
+(e.g. TLS or IPSEC) are in place.
+A
+.B bindmethod
+of
+.B sasl
+requires the option
+.B saslmech.
+Depending on the mechanism, an authentication identity and/or
+credentials can be specified using
+.B authcid
+and
+.B credentials.
+The
+.B authzid
+parameter may be used to specify an authorization identity.
+Specific security properties (as with the
+.B sasl-secprops
+keyword above) for a SASL bind can be set with the
+.B secprops
+option. A non default SASL realm can be set with the
+.B realm 
+option.
+.RE
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
@@ -1137,104 +1254,7 @@ Specify the referral to pass back when
 .BR slapd (8)
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
-.HP
-.hy 0
-.B syncrepl id=<replica ID>
-.B provider=ldap[s]://<hostname>[:port]
-.B [updatedn=<dn>]
-.B [binddn=<dn>]
-.B [bindmethod=simple|sasl] [binddn=<simple DN>] [credentials=<simple passwd>]
-.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
-.B [authcId=<authentication ID>] [authzId=<authorization ID>]
-.B [searchbase=<base DN>]
-.B [filter=<filter str>]
-.B [attrs=<attr list>]
-.B [schemachecking=on|off]
-.B [scope=sub|one|base]
-.B [type=refreshOnly|refreshAndPersist]
-.B [interval=dd:hh:mm]
-.RS
-Specify an LDAP Sync replication session between the specified replication provider
-site and this database (a replication consumer).
-The replication consumer communicates with the replication provider to perform
-an initial population and the following periodic or persistent synchronizations.
-The LDAP Sync replication engine is based on the LDAP Content Sync protocol :
-a stateful, pull, incremental, and partial synchronization protocol which
-supports both polling and listening modes of operations.
-It currently supports entry-level synchronization.
-A directory server wide
-.B id
-uniquely identifies this LDAP Sync replication specification
-in the directory server instance. The specification of an LDAP Sync replication
-session is based on the search specification which defines the replica content.
-The replicated entries are those directory entries of the subtree under the
-.B searchbase
-with the
-.B scope
-that match the
-.B filter.
-Only the attributes specified in the
-.B attrs 
-are included in the replica content.
-There are two synchronization modes depending on the incremental
-synchronization semantics after the intial content population.
-The incremental synchronization is performed periodically with
-the
-.B interval
-when the sync
-.B type
-is
-.B refreshOnly.
-Alternatively, the provider sends synchronization messages to the consumer
-upon updates to the replicated contents when the sync
-.B type
-is
-.B refreshAndPersist.
-The replication provider site is specified by
-.B provider
-as an LDAP URI.
-If 
-.B schemachecking
-is
-.B on,
-every replicated entry will be checked for its schema
-when it is stored in the consumer replica.
-The consumer slapd should retrieve attributes of an entry
-that are required by the schema definition.
-If 
-.B schemachecking
-is
-.B off,
-entries will be stored without checking the schema conformance.
-A
-.B bindmethod
-of 
-.B simple
-requires the options 
-.B binddn
-and 
-.B credentials
-and should only be used when adequate security services (e.g. TLS or IPSEC) are in place.
-A
-.B bindmethod
-of
-.B sasl
-requires the option
-.B saslmech.
-Specific security properties (as with the
-.B sasl secprops
-keyword above) for a SASL bind can be set with the
-.B secprops
-option. A non default SASL realm can be set with the
-.B realm 
-option.
-If the 
-.B mechanism
-will use Kerberos, a kerberos instance should be given in
-.B authcId.
-.B updatedn
-specifies the DN used to update (subject to access controls) the
-replica at the consumer replica.
+
 .SH DATABASE-SPECIFIC OPTIONS
 Each database may allow specific configuration options; they are
 documented separately in the backends' manual pages.

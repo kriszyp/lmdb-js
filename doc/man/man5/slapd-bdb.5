@@ -114,7 +114,7 @@ The default is 0600.
 .TP
 .B searchstack <depth>
 Specify the depth of the stack used for search filter evaluation.
-Search filters are evaluated on a stack to accomodate nested AND / OR
+Search filters are evaluated on a stack to accommodate nested AND / OR
 clauses. An individual stack is assigned to each server thread.
 The depth of the stack determines how complex a filter can be
 evaluated without requiring any additional memory allocation. Filters that
@@ -130,6 +130,19 @@ Specify a key for a shared memory BDB environment. By default the
 BDB environment uses memory mapped files. If a non-zero value is
 specified, it will be used as the key to identify a shared memory
 region that will house the environment.
+.TP
+.B sessionlog <sid> <limit>
+Specify a session log store for the syncrepl replication provider
+site which contains information on the entries that have been scoped
+out of the content of the replication session identified by {{EX:<sid>}}.
+The number of entries in the session log store is limited
+by {{EX:<limit>}}. Excessive entries are removed from the store
+in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are
+non-negative integers. {{EX:<sid>}} has no more than three digits.
+Refer to the "OpenLDAP Administrator's Guide" for detailed information
+on setting up a replicated slapd directory service using the syncrepl
+replication engine and the session log store.
+.B
 .SH FILES
 .TP
 ETCDIR/slapd.conf
