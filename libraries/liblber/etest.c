@@ -7,29 +7,28 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/socket.h>
 #include <ac/string.h>
 
 #ifdef MACOS
-#include <stdlib.h>
-#include <unix.h>
-#include <fcntl.h>
 #include <console.h>
-#else /* MACOS */
-#include <sys/types.h>
-#include <sys/socket.h>
 #endif /* MACOS */
 
 #include "lber.h"
 
-static usage( char *name )
+static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmtstring\n", name );
 }
 
 main( int argc, char **argv )
 {
-	int		i, num, len;
-	char		*s, *p;
+#ifdef notdef
+	int		i, len;
+	char	*s, *p;
+#endif
+	int		num;
 	Seqorset	*sos = NULLSEQORSET;
 	BerElement	*ber;
 	Sockbuf		sb;
@@ -40,7 +39,7 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 
-	bzero( &sb, sizeof(sb) );
+	memset( &sb, 0, sizeof(sb) );
 	sb.sb_sd = 1;
 	sb.sb_ber.ber_buf = NULL;
 

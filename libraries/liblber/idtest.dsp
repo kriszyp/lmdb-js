@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="testavl" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="idtest" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 5.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=testavl - Win32 Debug
+CFG=idtest - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "testavl.mak".
+!MESSAGE NMAKE /f "idtest.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "testavl.mak" CFG="testavl - Win32 Debug"
+!MESSAGE NMAKE /f "idtest.mak" CFG="idtest - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "testavl - Win32 Release" (based on "Win32 (x86) Console Application")
-!MESSAGE "testavl - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE "idtest - Win32 Release" (based on "Win32 (x86) Console Application")
+!MESSAGE "idtest - Win32 Debug" (based on "Win32 (x86) Console Application")
 !MESSAGE 
 
 # Begin Project
@@ -27,7 +27,7 @@ CFG=testavl - Win32 Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "testavl - Win32 Release"
+!IF  "$(CFG)" == "idtest - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -36,11 +36,12 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release\testavl"
-# PROP Intermediate_Dir "Release\testavl"
+# PROP Output_Dir "Release\idtest"
+# PROP Intermediate_Dir "Release\idtest"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -48,19 +49,20 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 liblber.lib ws2_32.lib /nologo /subsystem:console /machine:I386
 
-!ELSEIF  "$(CFG)" == "testavl - Win32 Debug"
+!ELSEIF  "$(CFG)" == "idtest - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "testavl_"
-# PROP BASE Intermediate_Dir "testavl_"
+# PROP BASE Output_Dir "idtest___"
+# PROP BASE Intermediate_Dir "idtest___"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug\testavl"
-# PROP Intermediate_Dir "Debug\testavl"
+# PROP Output_Dir "Debug\idtest"
+# PROP Intermediate_Dir "Debug\idtest"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -71,17 +73,17 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 liblber.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\Debug"
 
 !ENDIF 
 
 # Begin Target
 
-# Name "testavl - Win32 Release"
-# Name "testavl - Win32 Debug"
+# Name "idtest - Win32 Release"
+# Name "idtest - Win32 Debug"
 # Begin Source File
 
-SOURCE=.\testavl.c
+SOURCE=.\idtest.c
 # End Source File
 # End Target
 # End Project
