@@ -1,15 +1,17 @@
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
-	BDB2=$1; shift
+if test $# -eq 0 ; then
+	BACKEND=ldbm
+else
+	BACKEND=$1; shift
 fi
 
 DATADIR=$SRCDIR/data
 
-if [ $BDB2 == "bdb2" ]; then
+if test "$BACKEND" = "bdb2" ; then
 	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm-bdb2
 	CONF=$DATADIR/slapd-bdb2-master.conf
 	ACLCONF=$DATADIR/slapd-bdb2-acl.conf

@@ -5,25 +5,25 @@ LDAPNOINIT=true; export LDAPNOINIT
 
 echo ">>>>> Executing all LDAP tests..."
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
+
 echo ">>>>> Test Directory: $SRCDIR"
 
-if [ $# -eq 1 ]; then
-	BDB2=$1; shift
-	if [ "$BDB2" == "ldbm" ]; then
-		echo ">>>>> LDBM mode"
-	else
-		echo ">>>>> BDB2 mode"
-	fi
+if test $# -eq 0 ; then
+	BACKEND=ldbm
+else
+	BACKEND=$1; shift
 fi
+
+echo ">>>>> Backend: $BACKEND"
 
 for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting `basename $CMD` ..."
-	$CMD $SRCDIR $BDB2
+	$CMD $SRCDIR $BACKEND
 	RC=$?
 	if [ $RC -eq 0 ]; then
 		echo ">>>>> $CMD completed OK."
