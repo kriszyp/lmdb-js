@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id: neoXldap.c,v 1.4 1999/07/27 05:29:27 kunkee Exp $
+ * $Id: neoXldap.c,v 1.5 1999/08/03 05:23:03 kunkee Exp $
  *
  */
 
@@ -107,8 +107,12 @@
 
 typedef struct ldaptclobj {
     LDAP	*ldap;
-    int		flags
+    int		caching;	/* flag 1/0 if caching is enabled */
+    long	timeout;	/* timeout from last cache enable */
+    long	maxmem;		/* maxmem from last cache enable */
+    int		flags;
 } LDAPTCL;
+
 
 #define LDAPTCL_INTERRCODES	0x001
 
@@ -149,7 +153,7 @@ LDAP_SetErrorCode(LDAPTCL *ldaptcl, int code, Tcl_Interp *interp)
  *   o TCL_ERROR if an error occured, with error message in interp.
  *-----------------------------------------------------------------------------
  */
-static int
+int
 LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
     Tcl_Interp     *interp;
     LDAP           *ldap;
@@ -244,8 +248,9 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
  *   o TCL_ERROR if an error occured, with error message in interp.
  *-----------------------------------------------------------------------------
  */
-static int 
-LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destArrayNameObj, evalCodeObj, timeout_p)
+int 
+LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value,
+	destArrayNameObj, evalCodeObj, timeout_p, all, sortattr)
     Tcl_Interp     *interp;
     LDAPTCL        *ldaptcl;
     char           *base;
@@ -256,6 +261,8 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destAr
     Tcl_Obj        *destArrayNameObj;
     Tcl_Obj        *evalCodeObj;
     struct timeval *timeout_p;
+    int		    all;
+    char	   *sortattr;
 {
     LDAP	 *ldap = ldaptcl->ldap;
     char          filter[BUFSIZ];
@@ -266,6 +273,7 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destAr
     int		  msgid;
     LDAPMessage  *resultMessage;
     LDAPMessage  *entryMessage;
+    char	  *sortKey;
 
     Tcl_Obj      *resultObj;
     int		  lderrno;
@@ -274,6 +282,7 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destAr
 
     sprintf(filter, filtpatt, value);
 
+    fflush(stderr);
     if ((msgid = ldap_search (ldap, base, scope, filter, attrs, 0)) == -1) {
 	Tcl_AppendStringsToObj (resultObj,
 			        "LDAP start search error: ",
@@ -284,73 +293,87 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destAr
     }
 
     abandon = 0;
-    while ((resultCode = ldap_result (ldap, 
-			      msgid, 
-			      0,
-			      timeout_p,
-			      &resultMessage)) == LDAP_RES_SEARCH_ENTRY) {
+    if (sortattr)
+	all = 1;
+    tclResult = TCL_OK;
+    while (!abandon) {
+	resultCode = ldap_result (ldap, msgid, all, timeout_p, &resultMessage);
+	if (resultCode != LDAP_RES_SEARCH_RESULT &&
+	    resultCode != LDAP_RES_SEARCH_ENTRY)
+		break;
 
+	if (sortattr) {
+	    sortKey = (strcasecmp(sortattr, "dn") == 0) ? NULL : sortattr;
+	    ldap_sort_entries(ldap, &resultMessage, sortKey, strcasecmp);
+	}
 	entryMessage = ldap_first_entry(ldap, resultMessage);
 
-	tclResult = LDAP_ProcessOneSearchResult  (interp, 
-				ldap, 
-				entryMessage,
-				destArrayNameObj,
-				evalCodeObj);
+	while (entryMessage) {
+	    tclResult = LDAP_ProcessOneSearchResult  (interp, 
+				    ldap, 
+				    entryMessage,
+				    destArrayNameObj,
+				    evalCodeObj);
+	    if (tclResult != TCL_OK) {
+		if (tclResult == TCL_CONTINUE) {
+		    tclResult = TCL_OK;
+		} else if (tclResult == TCL_BREAK) {
+		    tclResult = TCL_OK;
+		    abandon = 1;
+		    break;
+		} else if (tclResult == TCL_ERROR) {
+		    char msg[100];
+		    sprintf(msg, "\n    (\"search\" body line %d)",
+			    interp->errorLine);
+		    Tcl_AddObjErrorInfo(interp, msg, -1);
+		    abandon = 1;
+		    break;
+		} else {
+		    abandon = 1;
+		    break;
+		}
+	    }
+	    entryMessage = ldap_next_entry(ldap, entryMessage);
+	}
+	if (resultCode == LDAP_RES_SEARCH_RESULT || all)
+	    break;
+ 	ldap_msgfree(resultMessage);
+    }
+    if (abandon) {
 	ldap_msgfree(resultMessage);
-	if (tclResult != TCL_OK) {
-	    if (tclResult == TCL_CONTINUE) {
-		tclResult = TCL_OK;
-	    } else if (tclResult == TCL_BREAK) {
-		tclResult = TCL_OK;
-		abandon = 1;
-		break;
-	    } else if (tclResult == TCL_ERROR) {
-		char msg[100];
-		sprintf(msg, "\n    (\"search\" body line %d)",
-			interp->errorLine);
-		Tcl_AddObjErrorInfo(interp, msg, -1);
-		abandon = 1;
-		break;
-	    } else {
-		abandon = 1;
-		break;
-	    }
-	}
+	if (resultCode == LDAP_RES_SEARCH_ENTRY)
+	    ldap_abandon(ldap, msgid);
+	return tclResult;
     }
-    if (abandon || resultCode == 0) {
-	ldap_abandon(ldap, msgid);
-	if (resultCode == 0) {
-	    Tcl_SetErrorCode (interp, "TIMEOUT", (char*) NULL);
-	    Tcl_SetStringObj (resultObj, "LDAP timeout retrieving results", -1);
-	    return TCL_ERROR;
-	}
-    } else {
-	if (resultCode == LDAP_RES_SEARCH_RESULT) {
-	    if ((errorCode = ldap_result2error (ldap, resultMessage, 0))
-	      != LDAP_SUCCESS) {
-	      Tcl_AppendStringsToObj (resultObj,
-				      "LDAP search error: ",
-				      ldap_err2string(errorCode),
-				      (char *)NULL);
-	      ldap_msgfree(resultMessage);
-	      LDAP_SetErrorCode(ldaptcl, errorCode, interp);
-	      return TCL_ERROR;
-	    }
-	}
-
-
-	if (resultCode == -1) {
-	    Tcl_AppendStringsToObj (resultObj,
-				    "LDAP result search error: ",
-				    LDAP_ERR_STRING(ldap),
-				    (char *)NULL);
-	    LDAP_SetErrorCode(ldaptcl, -1, interp);
-	    return TCL_ERROR;
-	} else
-	    ldap_msgfree(resultMessage);
+    if (resultCode == -1) {
+	Tcl_AppendStringsToObj (resultObj,
+				"LDAP result search error: ",
+				LDAP_ERR_STRING(ldap),
+				(char *)NULL);
+	LDAP_SetErrorCode(ldaptcl, -1, interp);
+	return TCL_ERROR;
     }
+    if (resultCode == 0) {
+	Tcl_SetErrorCode (interp, "TIMEOUT", (char*) NULL);
+	Tcl_SetStringObj (resultObj, "LDAP timeout retrieving results", -1);
+	return TCL_ERROR;
+    }
+    /*
+    if (resultCode == LDAP_RES_SEARCH_RESULT || 
+	(all && resultCode == LDAP_RES_SEARCH_ENTRY))
+	    return tclResult;
+    */
 
+    if ((errorCode = ldap_result2error (ldap, resultMessage, 0))
+      != LDAP_SUCCESS) {
+      Tcl_AppendStringsToObj (resultObj,
+			      "LDAP search error: ",
+			      ldap_err2string(errorCode),
+			      (char *)NULL);
+      ldap_msgfree(resultMessage);
+      LDAP_SetErrorCode(ldaptcl, errorCode, interp);
+      return TCL_ERROR;
+    }
     return tclResult;
 }
 
@@ -366,7 +389,7 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destAr
  *      See the user documentation.
  *-----------------------------------------------------------------------------
  */     
-static int
+int
 NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
     ClientData    clientData;
     Tcl_Interp   *interp;
@@ -383,6 +406,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
     int           mod_op = 0;
     char	 *m, *s, *errmsg;
     int		 errcode;
+    int		 tclResult;
 
     Tcl_Obj      *resultObj = Tcl_GetObjResult (interp);
 
@@ -620,6 +644,8 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    result = ldap_add_s (ldap, dn, modArray);
 	} else {
 	    result = ldap_modify_s (ldap, dn, modArray);
+	    if (ldaptcl->caching)
+		ldap_uncache_entry (ldap, dn);
 	}
 
         /* free the modArray elements, then the modArray itself. */
@@ -665,6 +691,12 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	char	    *timeoutString;
 	double 	     timeoutTime;
 	struct timeval timeout, *timeout_p;
+
+	char	    *paramString;
+	int	     cacheThis = -1;
+	int	     all = 0;
+
+	char	    *sortattr;
 
 	Tcl_Obj     *destArrayNameObj;
 	Tcl_Obj     *evalCodeObj;
@@ -795,6 +827,20 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    timeout_p = &timeout;
 	}
 
+	paramString = Tcl_GetVar2 (interp, controlArrayName, "cache", 0);
+	if (paramString) {
+	    if (Tcl_GetInt(interp, paramString, &cacheThis) == TCL_ERROR)
+		return TCL_ERROR;
+	}
+
+	paramString = Tcl_GetVar2 (interp, controlArrayName, "all", 0);
+	if (paramString) {
+	    if (Tcl_GetInt(interp, paramString, &all) == TCL_ERROR)
+		return TCL_ERROR;
+	}
+
+	sortattr = Tcl_GetVar2 (interp, controlArrayName, "sort", 0);
+
 #ifdef UMICH_LDAP
 	ldap->ld_deref = deref; 
 	ldap->ld_timelimit = 0;
@@ -802,7 +848,21 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	ldap->ld_options = 0;
 #endif
 
-	 return LDAP_PerformSearch (interp, 
+	/* Caching control within the search: if the "cache" control array */
+	/* value is set, disable/enable caching accordingly */
+
+	if (cacheThis >= 0 && ldaptcl->caching != cacheThis) {
+	    if (cacheThis) {
+		if (ldaptcl->timeout == 0) {
+		    Tcl_SetStringObj(resultObj, "Caching never before enabled, I have no timeout value to use", -1);
+		    return TCL_ERROR;
+		}
+		ldap_enable_cache(ldap, ldaptcl->timeout, ldaptcl->maxmem);
+	    }
+	    else
+		ldap_disable_cache(ldap);
+	}
+	tclResult = LDAP_PerformSearch (interp, 
 			            ldaptcl, 
 			            baseString, 
 			            scope, 
@@ -811,7 +871,18 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 			            "",
 			            destArrayNameObj,
 			            evalCodeObj,
-				    timeout_p);
+				    timeout_p,
+				    all,
+				    sortattr);
+	/* Following the search, if we changed the caching behavior, change */
+	/* it back. */
+	if (cacheThis >= 0 && ldaptcl->caching != cacheThis) {
+	    if (cacheThis)
+		ldap_disable_cache(ldap);
+	    else
+		ldap_enable_cache(ldap, ldaptcl->timeout, ldaptcl->maxmem);
+	}
+	return tclResult;
     }
 
 #if defined(UMICH_LDAP) || (defined(OPEN_LDAP) && !defined(LDAP_API_VERSION))
@@ -840,19 +911,28 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	}
 
 	if (STREQU (cacheCommand, "enable")) {
-	    long   timeout;
-	    long   maxmem;
+	    long   timeout = ldaptcl->timeout;
+	    long   maxmem = ldaptcl->maxmem;
 
-	    if (objc != 5)
+	    if (objc > 5)
 		return TclX_WrongArgs (interp, 
 				       objv [0],
-				       "cache enable timeout maxmem");
+				       "cache enable ?timeout? ?maxmem?");
 
-            if (Tcl_GetLongFromObj (interp, objv [3], &timeout) == TCL_ERROR)
+	    if (objc > 3) {
+		if (Tcl_GetLongFromObj (interp, objv [3], &timeout) == TCL_ERROR)
+		    return TCL_ERROR;
+	    }
+	    if (timeout == 0) {
+		Tcl_SetStringObj(resultObj,
+		    objc > 3 ? "timeouts must be greater than 0" : 
+		    "no previous timeout to reference", -1);
 		return TCL_ERROR;
+	    }
 
-            if (Tcl_GetLongFromObj (interp, objv [4], &maxmem) == TCL_ERROR)
-		return TCL_ERROR;
+	    if (objc > 4)
+		if (Tcl_GetLongFromObj (interp, objv [4], &maxmem) == TCL_ERROR)
+		    return TCL_ERROR;
 
 	    if (ldap_enable_cache (ldap, timeout, maxmem) == -1) {
 		Tcl_AppendStringsToObj (resultObj,
@@ -862,6 +942,9 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		LDAP_SetErrorCode(ldaptcl, -1, interp);
 		return TCL_ERROR;
 	    }
+	    ldaptcl->caching = 1;
+	    ldaptcl->timeout = timeout;
+	    ldaptcl->maxmem = maxmem;
 	    return TCL_OK;
 	}
 
@@ -869,11 +952,13 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 
 	if (STREQU (cacheCommand, "disable")) {
 	    ldap_disable_cache (ldap);
+	    ldaptcl->caching = 0;
 	    return TCL_OK;
 	}
 
 	if (STREQU (cacheCommand, "destroy")) {
 	    ldap_destroy_cache (ldap);
+	    ldaptcl->caching = 0;
 	    return TCL_OK;
 	}
 
@@ -1083,6 +1168,9 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
 
     ldaptcl = (LDAPTCL *) ckalloc(sizeof(LDAPTCL));
     ldaptcl->ldap = ldap;
+    ldaptcl->caching = 0;
+    ldaptcl->timeout = 0;
+    ldaptcl->maxmem = 0;
     ldaptcl->flags = 0;
 
     Tcl_CreateObjCommand (interp,
