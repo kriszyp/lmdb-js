@@ -46,7 +46,7 @@ XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
 
-.links :
+.links : Makefile
 	@for i in $(XXSRCS); do \
 		$(RM) $$i ; \
 		$(LN_S) $(XXDIR)/$$i . ; \
