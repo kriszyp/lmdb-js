@@ -4,6 +4,7 @@ Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed slapd/back-ldbm/cache entry lock assert bugs
 	Fixed slapd uncaught signals in main thread problem 
+	Fixed slapd/back-ldbm/modrdn extra space bug
 	Build environment
 		Fixed detections requiring AC_TRY_LINK
 		Fixed build/man.mk "ln -sf" bug
