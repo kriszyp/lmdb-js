@@ -94,7 +94,7 @@ static void
 ldbm_db_errcall( const char *prefix, char *message )
 {
 #ifdef LDAP_SYSLOG
-	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
+	syslog( LOG_INFO, "ldbm: %s %s", prefix, message );
 #endif
 }
 
