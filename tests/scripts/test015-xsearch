@@ -121,14 +121,39 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing extended RFC2254 searching..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+	'(:dn:caseExactMatch:=University of Michigan)' >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing values return filter searching..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+	-E '!mv=(o=University of Michigan)' \
+	'(o=University of Michigan)' >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+
 kill -HUP $PID
 
 LDIF=$SEARCHOUTMASTER
+LDIF2=$SEARCHOUTX
 
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
 . $LDIFFILTER < $LDIF > $LDIFFLT
+. $LDIFFILTER < $LDIF2 >> $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
