@@ -446,6 +446,17 @@ LDAP_SLAPD_F (int) monitor_info LDAP_P((
 	Entry **entry, const char **text ));
 
 /*
+ * mra.c
+ */
+LDAP_SLAPD_F (int) get_mra LDAP_P((
+	BerElement *ber,
+	MatchingRuleAssertion **mra,
+	const char **text ));
+LDAP_SLAPD_F (void) mra_free LDAP_P((
+	MatchingRuleAssertion *mra,
+	int freeit ));
+
+/*
  * operation.c
  */
 
