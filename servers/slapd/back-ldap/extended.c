@@ -139,10 +139,11 @@ ldap_back_exop_passwd(
 
 	rc = ldap_passwd(lc->ld, id.bv_len ? &mdn : NULL, old.bv_len ? &old : NULL,
 		new.bv_len ? &new : NULL, op->o_ctrls, NULL, &msgid);
-#ifdef ENABLE_REWRITE
-	if (mdn.bv_val != dn.bv_val)
-#endif
+
+	if (mdn.bv_val != dn.bv_val) {
 		free(mdn.bv_val);
+	}
+
 	if (rc == LDAP_SUCCESS) {
 		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &rc);
