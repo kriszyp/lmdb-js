@@ -20,7 +20,7 @@ Gtk_LdapTreeItem::~Gtk_LdapTreeItem() {
 }
 
 void Gtk_LdapTreeItem::setType(int t) {
-	cout << "Gtk_LdapTreeItem::setType(" << t << ")" << endl;
+//	cout << "Gtk_LdapTreeItem::setType(" << t << ")" << endl;
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	if (this->getchild() != NULL) {
@@ -46,7 +46,7 @@ void Gtk_LdapTreeItem::setType(int t) {
 }
 
 int Gtk_LdapTreeItem::showDetails() {
-	cout << "Gtk_LdapTreeItem::showDetails()" << endl;
+//	cout << "Gtk_LdapTreeItem::showDetails()" << endl;
 	if (this->notebook != NULL) {
 		if (par->viewport->getchild() != NULL) {
 			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
@@ -58,10 +58,11 @@ int Gtk_LdapTreeItem::showDetails() {
 	}
 	else this->getDetails();
 	this->showDetails();
+	return 0;
 }
 
 int Gtk_LdapTreeItem::getDetails() {
-	cout << "Gtk_LdapTreeItem::getDetails()" << endl;
+//	cout << "Gtk_LdapTreeItem::getDetails()" << endl;
 	int error, entriesCount;
 	BerElement *ber;
 	LDAPMessage *entry;
@@ -99,7 +100,7 @@ int Gtk_LdapTreeItem::getDetails() {
 		}
 	}
 	this->setType(1);
-	cout << ".";
+//	cout << ".";
 	return 0;
 }
 void Gtk_LdapTreeItem::select_impl() {

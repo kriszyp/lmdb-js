@@ -4,16 +4,15 @@
 #include <ldap.h>
 #include <My_Window.h>
 #include <Gtk_LdapItem.h>
-#include <Gtk_LdapTreeItem.h>
+#include <Gtk_LdapServer.h>
 
 int main(int argc, char **argv) {
 	My_Window *window;
 	Gtk_LdapItem *treeresult;
 	Gtk_Tree *tree, *subtree;
-	Gtk_LdapTreeItem *treeitem;
+	Gtk_Tree *machine, *machinetree;
+	Gtk_LdapServer *treeitem;
 	Gtk_Viewport *viewport;
-	LDAPMessage **thing;
-	LDAP *ld;
 	char *host = NULL;
 	char *base_dn = NULL;
 	int c, port = 0;
@@ -33,30 +32,19 @@ int main(int argc, char **argv) {
 		}
 	}
 
-//	if (base_dn == NULL) base_dn = ldap_get_option(NULL, LDAP_OPT_BASE);
-	if (base_dn == NULL) base_dn = "o=University of Michigan, c=US";
+//	if (base_dn == NULL) base_dn = "o=University of Michigan, c=US";
 	if (host == NULL) ldap_get_option(NULL, LDAP_OPT_HOST_NAME, host);
 	//host = "localhost";
+	cout << host << endl;
 	if (port == 0) port = LDAP_PORT;
 
 	Gtk_Main m(&argc, &argv);
 
 	window = new My_Window(GTK_WINDOW_TOPLEVEL);
 
-	if ((ld = ldap_open(host, port)) == NULL) {
-		perror("connection");
-	}
-
 	tree = new Gtk_Tree();
-	treeresult = window->make_tree(window, ld, base_dn);
-	treeitem = new Gtk_LdapTreeItem(*treeresult->treeitem);
-//	treeresult->treeitem->setType(ROOT_NODE);
+	treeitem = new Gtk_LdapServer(window, host, port);
 	tree->append(*treeitem);
-	if (treeresult->tree != NULL) {
-		subtree = new Gtk_Tree(*treeresult->tree);
-	//	cout << "Inserting " << base_dn << " into root" << endl;
-		treeitem->set_subtree(*subtree);
-	}
 	treeitem->show();
 	viewport = new Gtk_Viewport();
 	viewport->add(tree);
