@@ -184,7 +184,7 @@ main(int argc, char **argv)
 		printf("  HOST NAME:         %s\n", sval);
 		ldap_memfree(sval);
 	} else {
-		printf("  HOST NAME:         <not set>\n", sval);
+		puts("  HOST NAME:         <not set>");
 	}
 
 	return EXIT_SUCCESS;

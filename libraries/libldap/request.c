@@ -518,14 +518,15 @@ ldap_dump_requests_and_responses( LDAP *ld )
 		fprintf( stderr, "   Empty\n" );
 	}
 	for ( ; lm != NULL; lm = lm->lm_next ) {
-		fprintf( stderr, " * msgid %d,  type %d\n",
-		    lm->lm_msgid, lm->lm_msgtype );
+		fprintf( stderr, " * msgid %d,  type %lu\n",
+		    lm->lm_msgid, (unsigned long) lm->lm_msgtype );
 		if (( l = lm->lm_chain ) != NULL ) {
 			fprintf( stderr, "   chained responses:\n" );
 			for ( ; l != NULL; l = l->lm_chain ) {
 				fprintf( stderr,
-				    "  * msgid %d,  type %d\n",
-				    l->lm_msgid, l->lm_msgtype );
+				    "  * msgid %d,  type %lu\n",
+				    l->lm_msgid,
+				    (unsigned long) l->lm_msgtype );
 			}
 		}
 	}

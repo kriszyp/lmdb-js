@@ -889,7 +889,8 @@ handle_result( LDAP *ld, LDAPMessage *lm )
 		break;
 
 	default:
-		printf( "Unknown result type 0x%x\n", lm->lm_msgtype );
+		printf( "Unknown result type 0x%lx\n",
+		        (unsigned long) lm->lm_msgtype );
 		print_ldap_result( ld, lm, "unknown" );
 	}
 }
