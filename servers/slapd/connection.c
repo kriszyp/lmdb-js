@@ -1061,27 +1061,11 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-#if 0	/* DELETE ME */
-	if ( op->o_cancel != SLAP_CANCEL_ACK &&
-		( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
-	{
-		slap_sl_mem_detach( ctx, memctx );
-	} else if ( op->o_sync_slog_size != -1 ) {
-		slap_sl_mem_detach( ctx, memctx );
-		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-		LDAP_STAILQ_NEXT(op, o_next) = NULL;
-		conn->c_n_ops_executing--;
-		conn->c_n_ops_completed++;
-
-	} else
-#endif
-	{
-		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-		LDAP_STAILQ_NEXT(op, o_next) = NULL;
-		slap_op_free( op );
-		conn->c_n_ops_executing--;
-		conn->c_n_ops_completed++;
-	}
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+	LDAP_STAILQ_NEXT(op, o_next) = NULL;
+	slap_op_free( op );
+	conn->c_n_ops_executing--;
+	conn->c_n_ops_completed++;
 
 	switch( tag ) {
 	case LBER_ERROR:

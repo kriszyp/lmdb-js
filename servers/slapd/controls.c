@@ -830,13 +830,6 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-#if 0	/* DELETE ME */
-	if ( op->o_sync != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "paged results control specified with sync control";
-		return LDAP_PROTOCOL_ERROR;
-	}
-#endif
-
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "paged results control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;

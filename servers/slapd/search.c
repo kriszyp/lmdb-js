@@ -223,14 +223,6 @@ do_search(
 	rs->sr_err = frontendDB->be_search( op, rs );
 
 return_results:;
-#if 0	/* DELETE ME */
-	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
-		return rs->sr_err;
-	}
-	if ( ( op->o_sync_slog_size != -1 ) ) {
-		return rs->sr_err;
-	}
-#endif
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	}
@@ -352,21 +344,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 	 * if we don't hold it.
 	 */
 
-#if 0	/* DELETE ME */
-	/* Sync control overrides manageDSAit */
-
-	if ( manageDSAit != SLAP_CONTROL_NONE ) {
-		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
-			be_manageDSAit = SLAP_CONTROL_NONE;
-		} else {
-			be_manageDSAit = manageDSAit;
-		}
-	} else {
-		be_manageDSAit = manageDSAit;
-	}
-#else
-		be_manageDSAit = manageDSAit;
-#endif
+	be_manageDSAit = manageDSAit;
 
 	op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {

@@ -2068,35 +2068,6 @@ typedef struct slap_paged_state {
 	int ps_count;
 } PagedResultsState;
 
-#define LDAP_PSEARCH_BY_ADD			0x01
-#define LDAP_PSEARCH_BY_DELETE		0x02
-#define LDAP_PSEARCH_BY_PREMODIFY	0x03
-#define LDAP_PSEARCH_BY_MODIFY		0x04
-#define LDAP_PSEARCH_BY_SCOPEOUT	0x05
-#define LDAP_PSEARCH_BY_PREDELETE	0x06
-
-struct psid_entry {		/* DELETE ME */
-	struct slap_op *ps_op;
-	LDAP_LIST_ENTRY(psid_entry) ps_link;
-};
-
-#if 0	/* DELETE ME */
-struct slog_entry {
-	struct berval sl_uuid;
-	struct berval sl_name;
-	struct berval sl_csn;
-	LDAP_STAILQ_ENTRY(slog_entry) sl_link;
-};
-
-/* session lists */
-struct slap_session_entry {
-	int se_id;
-	int se_size;
-	struct berval se_spec;
-	LDAP_LIST_ENTRY( slap_session_entry ) se_link;
-};
-#endif
-
 struct slap_csn_entry {
 	struct berval ce_csn;
 	unsigned long ce_opid;
@@ -2105,16 +2076,6 @@ struct slap_csn_entry {
 #define SLAP_CSN_COMMIT		2
 	long ce_state;
 	LDAP_TAILQ_ENTRY (slap_csn_entry) ce_csn_link;
-};
-
-struct pc_entry {
-	ID pc_id;
-	int pc_sent;
-	struct berval pc_csn;
-	struct berval pc_entryUUID;
-	struct berval pc_ename;
-	struct berval pc_enname;
-	LDAP_TAILQ_ENTRY( pc_entry ) pc_link;
 };
 
 /*
@@ -2352,29 +2313,6 @@ typedef struct slap_op {
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
 
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
-
-#ifdef BDB_PSEARCH
-	struct sync_cookie	o_sync_state;
-	int					o_sync_rhint;
-	struct berval		o_sync_cid;
-	int					o_sync_slog_size;
-	struct berval		o_sync_csn;
-	struct berval		o_sync_slog_omitcsn;
-	int					o_sync_slog_len;
-	LDAP_STAILQ_HEAD(sl, slog_entry) o_sync_slog_list;
-
-	int o_ps_entries;
-	int	o_no_psearch;
-	LDAP_LIST_ENTRY(slap_op) o_ps_link;
-	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
-
-	int o_refresh_in_progress;
-	LDAP_TAILQ_HEAD(pc_pre, pc_entry) o_ps_pre_candidates;
-	LDAP_TAILQ_HEAD(pc_post, pc_entry) o_ps_post_candidates;
-	Avlnode *o_psearch_finished;
-	struct pc_entry *o_ps_send_wait;
-	ldap_pvt_thread_mutex_t	o_pcmutex;
-#endif
 
 	AuthorizationInformation o_authz;
 
