@@ -58,7 +58,11 @@ replog(
 	struct replog_moddn *moddn;
 	char *tmp;
 	FILE	*fp, *lfp;
-	int	len, i, count = 0;
+	int	len, i;
+/* undef NO_LOG_WHEN_NO_REPLICAS */
+#ifdef NO_LOG_WHEN_NO_REPLICAS
+	int     count = 0;
+#endif
 
 	if ( be->be_replogfile == NULL && replogfile == NULL ) {
 		return;
@@ -100,10 +104,13 @@ replog(
 		}
 
 		fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
+#ifdef NO_LOG_WHEN_NO_REPLICAS
 		++count;
+#endif
 	}
 
 	ch_free( tmp );
+#ifdef NO_LOG_WHEN_NO_REPLICAS
 	if ( count == 0 ) {
 		/* if no replicas matched, drop the log 
 		 * (should we log it anyway?) */
@@ -112,6 +119,7 @@ replog(
 
 		return;
 	}
+#endif
 
 	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
