@@ -205,7 +205,7 @@ int slap_sasl_init( void )
 
 	/* default security properties */
 	memset( &sasl_secprops, '\0', sizeof(sasl_secprops) );
-    sasl_secprops.max_ssf = UINT_MAX;
+    sasl_secprops.max_ssf = INT_MAX;
     sasl_secprops.maxbufsize = 65536;
     sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
 
