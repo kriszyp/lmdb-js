@@ -292,8 +292,11 @@ do_addel(
 
 		}
 
+#if 0
 		/* wait a second for the add to really complete */
+		/* This masks some race conditions though. */
 		sleep( 1 );
+#endif
 
 		/* now delete the entry again */
 		if ( ldap_delete_s( ld, entry ) != LDAP_SUCCESS ) {
