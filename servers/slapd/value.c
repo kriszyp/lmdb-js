@@ -176,7 +176,8 @@ value_normalize(
 		mr = ad->ad_type->sat_ordering;
 		break;
 	case SLAP_MR_SUBSTR:
-		mr = ad->ad_type->sat_substr;
+		/* normalize substrings per the the equality rule */
+		mr = ad->ad_type->sat_equality;
 		break;
 	case SLAP_MR_EXT:
 	default:
@@ -244,7 +245,8 @@ value_validate_normalize(
 		mr = ad->ad_type->sat_ordering;
 		break;
 	case SLAP_MR_SUBSTR:
-		mr = ad->ad_type->sat_substr;
+		/* normalize substrings per the the equality rule */
+		mr = ad->ad_type->sat_equality;
 		break;
 	case SLAP_MR_EXT:
 	default:
