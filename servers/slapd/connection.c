@@ -1059,8 +1059,11 @@ operations_error:
 		INCR_OP_COMPLETED(SLAP_OP_EXTENDED);
 		break;
 	default:
+		/* this is reachable */
+#if 0
 		/* not reachable */
 		assert( 0 );
+#endif
 	}
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
