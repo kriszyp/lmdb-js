@@ -7,15 +7,12 @@
 all-local: ldap_config.h FORCE
 
 install-local: FORCE
-		-$(MKDIR) -p $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/lber.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 lber_types.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap_cdefs.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap_features.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldap_schema.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/disptmpl.h $(includedir)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/srchpref.h $(includedir)
+	-$(MKDIR) $(DESTDIR)$(includedir)
+	for header in $(srcdir)/lber.h lber_types.h $(srcdir)/ldap.h \
+	  $(srcdir)/ldap_cdefs.h ldap_features.h $(srcdir)/ldap_schema.h \
+	  $(srcdir)/disptmpl.h $(srcdir)/srchpref.h; do \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$header $(DESTDIR)$(includedir); \
+	done
 
 clean-local: FORCE 
 	$(RM) ldap_config.h

@@ -113,9 +113,9 @@ veryclean-local-srv: FORCE
 install-local-srv: install-slapd install-conf install-tools
 
 install-slapd: FORCE
-	@-$(MKDIR) $(libexecdir)
-	@-$(MKDIR) $(localstatedir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(localstatedir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(DESTDIR)$(libexecdir)
 	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
 	    for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \
@@ -138,7 +138,7 @@ all-cffiles: slapd
 	touch all-cffiles
 
 install-conf: FORCE
-	@-$(MKDIR) $(sysconfdir)
+	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@for i in $(CFFILES); do \
 		tmpcf=$$i.tmp ; \
 		if test $$i = slapd.conf ; then \
@@ -146,17 +146,17 @@ install-conf: FORCE
 		else \
 			mode=644 ; \
 		fi ; \
-		if test ! -f $(sysconfdir)/$$i; then \
+		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i; \
 		else \
-			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
+			echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/$$i" ; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i.default ; \
+		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i.default ; \
 	done
 
 install-tools: FORCE
-	@-$(MKDIR) $(sbindir)
+	@-$(MKDIR) $(DESTDIR)$(sbindir)
 	(cd tools; $(MAKE) $(MFLAGS) install)
 

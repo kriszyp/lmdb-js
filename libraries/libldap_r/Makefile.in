@@ -61,5 +61,5 @@ ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
 install-local: $(CFFILES) FORCE
-	-$(MKDIR) $(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)

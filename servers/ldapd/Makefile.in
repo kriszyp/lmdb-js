@@ -48,5 +48,5 @@ LDAP_tables.c:	ldap.py
 LDAP-types.h: LDAP_tables.c
 
 install-local-srv: FORCE
-	@-$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(DESTDIR)$(libexecdir)

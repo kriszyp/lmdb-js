@@ -30,6 +30,6 @@ idtest:  $(LIBRARY) idtest.o
 	$(LTLINK) $(LDFLAGS) -o $@ idtest.o $(LIBS)
 
 install-local: FORCE
-	-$(MKDIR) $(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
 

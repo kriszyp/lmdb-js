@@ -40,5 +40,5 @@ version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
 	$(MKVERSION) slurpd > $@
 
 install-local-srv: FORCE
-	@-$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slurpd $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slurpd $(DESTDIR)$(libexecdir)

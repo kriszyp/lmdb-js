@@ -22,6 +22,6 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	$(MKVERSION) -s -c -n Version UserDirectory > $@
 
 install-local: FORCE
-	-$(MKDIR) $(bindir)
-	-mv -f $(bindir)/ud $(bindir)/ud-
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ud $(bindir)
+	-$(MKDIR) $(DESTDIR)$(bindir)
+	-mv -f $(DESTDIR)$(bindir)/ud $(DESTDIR)$(bindir)/ud-
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ud $(DESTDIR)$(bindir)

@@ -21,24 +21,24 @@ exec_prefix =       @exec_prefix@
 # The following definition can be set to non-null for special systems
 # like AFS with replication.  It allows the pathnames used for installation
 # to be different than those used for actually reference files at
-# run-time.  INSTALL_ROOT is prepended to $prefix and $exec_prefix
+# run-time.  DESTDIR is prepended to $prefix and $exec_prefix
 # when installing files.
-INSTALL_ROOT =
+DESTDIR =
 
 # Directory in which to search for tcl libraries
 NEO_LIBRARY	= $(exec_prefix)/lib/ldaptcl$(VERSION)
 
 # Directory in which to install the ldaptcl binary:
-BIN_INSTALL_DIR = $(INSTALL_ROOT)$(exec_prefix)/bin
+BIN_INSTALL_DIR = $(DESTDIR)$(exec_prefix)/bin
 
 # Directory in which to install the .a or .so binary for the Neo library:
-LIB_INSTALL_DIR = $(INSTALL_ROOT)$(exec_prefix)/lib
+LIB_INSTALL_DIR = $(DESTDIR)$(exec_prefix)/lib
 
 # Path to use at runtime to refer to LIB_INSTALL_DIR:
 LIB_RUNTIME_DIR =	$(exec_prefix)/lib
 
 # Top-level directory for man entries:
-MANN_INSTALL_DIR =	$(INSTALL_ROOT)$(prefix)/man/mann
+MANN_INSTALL_DIR =	$(DESTDIR)$(prefix)/man/mann
 
 
 # The symbols below provide support for dynamic loading and shared

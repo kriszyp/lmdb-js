@@ -142,17 +142,16 @@ install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
 install-ldbm-no install-bdb2-no install-quipu-no:
 
 install-ldbm-yes install-ldbm-mod: FORCE
-	@-$(MKDIR) $(sbindir) 
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapadd $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapcat $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapindex $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)
+	-$(MKDIR) $(DESTDIR)$(sbindir) 
+	for bin in slapadd slapcat slapindex centipede ldif; do \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin $(DESTDIR)$(sbindir); \
+	done
 
 install-bdb2-yes install-bdb2-mod: FORCE
-	@-$(MKDIR) $(sbindir) 
+	@-$(MKDIR) $(DESTDIR)$(sbindir) 
 
 install-quipu-yes: FORCE
-	@-$(MKDIR) $(sbindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir)
+	@-$(MKDIR) $(DESTDIR)$(sbindir)
+	for bin in edb2ldif chlog2replog; do \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin $(DESTDIR)$(sbindir); \
+	done

@@ -32,7 +32,7 @@ xrpcomp.tmp: xrpcomp
 	$(SED) -e 's|%LIBEXECDIR%|$(libexecdir)|' $(srcdir)/xrpcomp > xrpcomp.tmp
 
 install-local: $(PROGRAMS) FORCE
-	-$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rp500 $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 fax500 $(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 xrpcomp.tmp $(libexecdir)/xrpcomp
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rp500 $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 fax500 $(DESTDIR)$(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 xrpcomp.tmp $(DESTDIR)$(libexecdir)/xrpcomp

@@ -19,5 +19,5 @@ version.c: ${OBJS} ${LDAP_LIBDEPEND}
 	$(MKVERSION) in.xfingerd > $@
 
 install-local: $(PROGRAMS) FORCE
-	-$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(DESTDIR)$(libexecdir)

@@ -26,17 +26,17 @@ all-common:
 	done
 
 install-common:
-	-$(MKDIR) $(MANDIR)
+	-$(MKDIR) $(DESTDIR)$(MANDIR)
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
 		echo "installing $(MANDIR)/$$page"; \
-		$(RM) $(MANDIR)/$$page; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(MANDIR)/$$page; \
+		$(RM) $(DESTDIR)$(MANDIR)/$$page; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(DESTDIR)$(MANDIR)/$$page; \
 		if test -f "$(srcdir)/$$page.links" ; then \
 			for link in `$(CAT) $(srcdir)/$$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
-				$(RM) $(MANDIR)/$$link ; \
-				$(LN_S) $$page $(MANDIR)/$$link; \
+				$(RM) $(DESTDIR)$(MANDIR)/$$link ; \
+				$(LN_S) $$page $(DESTDIR)$(MANDIR)/$$link; \
 			done; \
 		fi; \
 	done

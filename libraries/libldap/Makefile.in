@@ -44,20 +44,20 @@ ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
 
 install-local: $(CFFILES) FORCE
-	-$(MKDIR) $(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
-	-$(MKDIR) $(sysconfdir)
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+	-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@for i in $(CFFILES); do \
-		if test ! -f $(sysconfdir)/$$i; then \
+		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m 644  $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i; \
 		else \
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i.default; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i.default; \
 	done
-	-$(MKDIR) $(datadir)
-	-$(MV) $(datadir)/ldapfriendly $(datadir)/ldapfriendly-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldapfriendly $(datadir)/ldapfriendly
+	-$(MKDIR) $(DESTDIR)$(datadir)
+	-$(MV) $(DESTDIR)$(datadir)/ldapfriendly $(DESTDIR)$(datadir)/ldapfriendly-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldapfriendly $(DESTDIR)$(datadir)/ldapfriendly
 
