@@ -149,6 +149,8 @@ main( int argc, char **argv )
 		}
 	}
 
+	closedir( datadir );
+
 	/* look for search requests */
 	if ( sfile ) {
 		snum = get_search_filters( sfile, sreqs );
