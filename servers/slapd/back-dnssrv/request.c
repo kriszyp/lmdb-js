@@ -30,7 +30,7 @@ dnssrv_back_request(
 	char **hosts = NULL;
 	struct berval **urls = NULL;
 
-	if( ndn == NULL && *ndn == '\0' ) ) {
+	if( ndn == NULL && *ndn == '\0' ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation upon null (empty) DN disallowed",
 			NULL, NULL );
