@@ -85,13 +85,21 @@ LINK32=link.exe
 
 # Name "ldapmodify - Win32 Single Debug"
 # Name "ldapmodify - Win32 Single Release"
+# Begin Group "Source"
+
+# PROP Default_Filter ".c"
 # Begin Source File
 
 SOURCE=.\ldapmodify.c
 # End Source File
+# End Group
+# Begin Group "Headers"
+
+# PROP Default_Filter ".h"
 # Begin Source File
 
 SOURCE=..\..\include\portable.h
 # End Source File
+# End Group
 # End Target
 # End Project
