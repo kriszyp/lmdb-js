@@ -491,12 +491,14 @@ pthread_kill( pthread_t tid, int sig )
 
 #if defined ( POSIX_THREADS )
 
+#ifndef SCHED_YIELD_MISSING
 #include <sched.h>
 
 void pthread_yield( void )
 {
 	sched_yield();
 }
+#endif
 
 #endif /* posix threads */
 #endif /* dce pthreads */
