@@ -32,6 +32,7 @@ Large projects
 --------------
 Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
+Implement localization
 
 
 Medium projects
@@ -40,7 +41,6 @@ Implement LDAP Transactions extension
 Implement Proxy Authorization Control extension
 Implement LDAP Cancel extension
 Implement authPassword (RFC 3112)
-Implement localization
 Update to latest autoconf and friends
 
 
