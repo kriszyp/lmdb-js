@@ -255,7 +255,6 @@ oc_create_required(
 )
 {
 	char		**attrs1;
-	int		nattrs;
 	AttributeType	*sat;
 	AttributeType	**satp;
 	int		i;
@@ -295,10 +294,7 @@ oc_create_allowed(
 )
 {
 	char		**attrs1;
-	int		nattrs;
 	AttributeType	*sat;
-	AttributeType	**satp;
-	int		i;
 
 	if ( attrs ) {
 		attrs1 = attrs;
