@@ -87,8 +87,15 @@ init_syncrepl(syncinfo_t *si)
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
 #endif
 		}
+
+		/* Add Attributes */
+		for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
+			tmp[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
+			tmp[ n ] = NULL;
+		}
+
 	} else {
-		tmp = ( char ** ) ch_realloc( si->si_attrs, 5 * sizeof( char * ));
+		tmp = ( char ** ) ch_realloc( si->si_attrs, 3 * sizeof( char * ));
 		if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
@@ -97,16 +104,11 @@ init_syncrepl(syncinfo_t *si)
 #endif
 		}
 		tmp[ n++ ] = ch_strdup( "*" );
+		tmp[ n++ ] = ch_strdup( "+" );
+		tmp[ n ] = NULL;
 	}
 	
 	si->si_attrs = tmp;
-
-	/* Add Attributes */
-
-	for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
-		si->si_attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
-		si->si_attrs[ n ] = NULL;
-	}
 }
 
 static int
@@ -308,15 +310,17 @@ do_syncrep1(
 	/* Set SSF to strongest of TLS, SASL SSFs */
 	op->o_sasl_ssf = 0;
 	op->o_tls_ssf = 0;
+	op->o_transport_ssf = 0;
 #ifdef HAVE_TLS
-	if ( ldap_get_option( si->si_ld, LDAP_OPT_X_TLS_SSL_CTX, &ssl ) == LDAP_SUCCESS &&
-	     ssl != NULL ) {
+	if ( ldap_get_option( si->si_ld, LDAP_OPT_X_TLS_SSL_CTX, &ssl )
+		== LDAP_SUCCESS && ssl != NULL )
+	{
 		op->o_tls_ssf = ldap_pvt_tls_get_strength( ssl );
 	}
 #endif /* HAVE_TLS */
 	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_sasl_ssf );
-	op->o_transport_ssf = op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf ) ?
-		op->o_sasl_ssf : op->o_tls_ssf;
+	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
+		?  op->o_sasl_ssf : op->o_tls_ssf;
 
 	/* get syncrepl cookie of shadow replica from subentry */
 
@@ -546,8 +550,8 @@ do_syncrep2(
 				}
 				if ( rc_efree && entry ) {
 					entry_free( entry );
-					entry = NULL;
 				}
+				entry = NULL;
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
@@ -836,6 +840,10 @@ do_syncrepl(
 
 	connection_fake_init( &conn, &op, ctx );
 
+	/* use global malloc for now */
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
 	op.o_dn = si->si_updatedn;
 	op.o_ndn = si->si_updatedn;
 	op.o_managedsait = 1;
@@ -986,8 +994,9 @@ syncrepl_message_to_entry(
 	sl_free( ndn.bv_val, op->o_tmpmemctx );
 	sl_free( dn.bv_val, op->o_tmpmemctx );
 
-	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE )
-	{
+	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
+		if ( entry )
+			*entry = NULL;
 		return LDAP_SUCCESS;
 	}
 
@@ -1028,6 +1037,8 @@ syncrepl_message_to_entry(
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: no attributes\n",
 				0, 0, 0 );
 #endif
+		rc = -1;
+		goto done;
 	}
 
 	rc = slap_mods_check( *modlist, 1, &text, txtbuf, textlen, NULL );
@@ -1041,6 +1052,18 @@ syncrepl_message_to_entry(
 				text, 0, 0 );
 #endif
 		goto done;
+	}
+
+	/* Strip out dynamically generated attrs */
+	for ( modtail = modlist; *modtail ; ) {
+		mod = *modtail;
+		if ( mod->sml_desc->ad_type->sat_flags & SLAP_AT_DYNAMIC ) {
+			*modtail = mod->sml_next;
+			slap_mod_free( &mod->sml_mod, 0 );
+			free( mod );
+		} else {
+			modtail = &mod->sml_next;
+		}
 	}
 	
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
@@ -1057,8 +1080,10 @@ syncrepl_message_to_entry(
 done:
 	ber_free ( ber, 0 );
 	if ( rc != LDAP_SUCCESS ) {
-		entry_free( e );
-		e = NULL;
+		if ( e ) {
+			entry_free( e );
+			*entry = e = NULL;
+		}
 	}
 
 	return rc;
@@ -1068,7 +1093,7 @@ int
 syncrepl_entry(
 	syncinfo_t* si,
 	Operation *op,
-	Entry* e,
+	Entry* entry,
 	Modifications* modlist,
 	int syncstate,
 	struct berval* syncUUID,
@@ -1106,7 +1131,11 @@ syncrepl_entry(
 	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT ) {
-		return e ? 1 : 0;
+		return 0;
+	} else if ( syncstate != LDAP_SYNC_DELETE ) {
+		if ( entry == NULL ) {
+			return 0;
+		}
 	}
 
 	f.f_choice = LDAP_FILTER_EQUALITY;
@@ -1214,14 +1243,14 @@ syncrepl_entry(
 			 rs_search.sr_err == LDAP_NO_SUCH_OBJECT ||
 			 rs_search.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF )
 		{
-			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
-			attr_merge_one( e, slap_schema.si_ad_entryUUID,
+			attr_delete( &entry->e_attrs, slap_schema.si_ad_entryUUID );
+			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
 				&syncUUID_strrep, syncUUID );
 
 			op->o_tag = LDAP_REQ_ADD;
-			op->ora_e = e;
-			op->o_req_dn = e->e_name;
-			op->o_req_ndn = e->e_nname;
+			op->ora_e = entry;
+			op->o_req_dn = entry->e_name;
+			op->o_req_ndn = entry->e_nname;
 
 			rc = be->be_add( op, &rs_add );
 
@@ -1247,8 +1276,8 @@ syncrepl_entry(
 					
 					op->o_tag = LDAP_REQ_MODIFY;
 					op->orm_modlist = modlist;
-					op->o_req_dn = e->e_name;
-					op->o_req_ndn = e->e_nname;
+					op->o_req_dn = entry->e_name;
+					op->o_req_ndn = entry->e_nname;
 
 					rc = be->be_modify( op, &rs_modify );
 					if ( rs_modify.sr_err != LDAP_SUCCESS ) {
@@ -1266,7 +1295,7 @@ syncrepl_entry(
 					goto done;
 				} else if ( rs_modify.sr_err == LDAP_REFERRAL ||
 							rs_modify.sr_err == LDAP_NO_SUCH_OBJECT ) {
-					syncrepl_add_glue( op, e );
+					syncrepl_add_glue( op, entry );
 					ret = 0;
 					goto done;
 				} else {
@@ -1283,7 +1312,7 @@ syncrepl_entry(
 					goto done;
 				}
 			} else {
-				be_entry_release_w( op, e );
+				be_entry_release_w( op, entry );
 				ret = 0;
 				goto done;
 			}
