@@ -86,7 +86,8 @@ DB_ENV *ldbm_Env = NULL;	/* real or fake, depending on db and version */
 void *
 ldbm_malloc( size_t size )
 {
-	return( calloc( 1, size ));
+	/* likely should use ber_mem* routines */
+	return( calloc( 1, size ) );
 }
 
 #ifdef LDAP_SYSLOG
@@ -340,7 +341,14 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	}
 
 	ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
+
+	/* likely should use ber_mem* routines */
+#if DB_VERSION_MINOR >= 3
+	ret->set_alloc( ret, ldbm_malloc, NULL, NULL );
+#else
 	ret->set_malloc( ret, ldbm_malloc );
+#endif
+
 	/* ret->set_cachesize( ret, 0, dbcachesize, 0 ); */
 
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
