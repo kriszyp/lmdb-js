@@ -20,14 +20,14 @@ static int set_samedn (char *dn1, char *dn2);
 long
 slap_set_size (BerVarray set)
 {
-	int i;
+	long	i;
 
 	i = 0;
 	if (set != NULL) {
 		while (set[i].bv_val)
 			i++;
 	}
-	return(i);
+	return i;
 }
 
 void
@@ -384,7 +384,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 		SF_ERROR(syntax);
 	}
 
-	rc = slap_set_size(set);
+	rc = slap_set_size(set) > 0 ? 1 : 0;
 	if (results) {
 		*results = set;
 		set = NULL;

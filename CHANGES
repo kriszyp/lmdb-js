@@ -3,10 +3,10 @@ OpenLDAP 2.1 Change Log
 OpenLDAP 2.1.10 Release
 	Fixed slapd acl/group value_find_ex() bug (ITS#2227)
 	Fixed slapd empty values return filter control bug (ITS#2219)
-	Fixed slapd empty oid control bug
 	Fixed slapd NameAndOptionalUID bug
 	Fixed slapd reentant gethostbyname bug
-	Fixed slapd SASL/EXTERNAL handling
+	Fixed slapd SASL/EXTERNAL handling (ITS#2234)
+	Fixed ldbm/bdb modrdn replog bug (ITS#2235)
 	Fixed ldapsearch empty baseObject bug
 	Fixed libldap_r thread stack size
 	Fixed libldap SASL/EXTERNAL handling

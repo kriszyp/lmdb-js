@@ -62,9 +62,9 @@ ldbm_back_modrdn(
 	int		rc = CAN_ROLLBACK;
 	int 		rc_id = 0;
 	ID              id = NOID;
-	const char *text = NULL;
-	char textbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof textbuf;
+	const char	*text = NULL;
+	char		textbuf[SLAP_TEXT_BUFLEN];
+	size_t		textlen = sizeof textbuf;
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
 	struct berval	*np_ndn = NULL; /* newSuperior ndn */
@@ -245,14 +245,15 @@ ldbm_back_modrdn(
 		isroot = be_isroot( be, &op->o_ndn );
 		if ( ! isroot ) {
 			if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
+				int	can_access;
 				p = (Entry *)&slap_entry_root;
 				
-				rc = access_allowed( be, conn, op, p,
+				can_access = access_allowed( be, conn, op, p,
 						children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 								
 				/* check parent for "children" acl */
-				if ( ! rc ) {
+				if ( ! can_access ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( BACK_LDBM, ERR,
 						"ldbm_back_modrdn: no access to parent \"\"\n", 0,0,0 );
@@ -419,14 +420,15 @@ ldbm_back_modrdn(
 
 			if ( ! isroot ) {
 				if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
+					int	can_access;
 					np = (Entry *)&slap_entry_root;
 				
-					rc = access_allowed( be, conn, op, np,
+					can_access = access_allowed( be, conn, op, np,
 							children, NULL, ACL_WRITE, NULL );
 					np = NULL;
 								
 					/* check parent for "children" acl */
-					if ( ! rc ) {
+					if ( ! can_access ) {
 #ifdef NEW_LOGGING
 						LDAP_LOG( BACK_LDBM, ERR,
 							"ldbm_back_modrdn: no access "
@@ -526,8 +528,6 @@ ldbm_back_modrdn(
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
 #endif
-		rc = LDAP_INVALID_DN_SYNTAX;
-		text = "unknown type(s) used in RDN";
 		goto return_results;		
 	}
 
@@ -560,8 +560,6 @@ ldbm_back_modrdn(
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
 #endif
-			rc = LDAP_OTHER;
-			text = "cannot parse RDN from old DN";
 			goto return_results;		
 		}
 	}
@@ -573,9 +571,8 @@ ldbm_back_modrdn(
 	       0, 0, 0 );
 #endif
 	
-	rc = slap_modrdn2mods( be, conn, op, e, old_rdn, new_rdn, 
-			deleteoldrdn, &mod );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( slap_modrdn2mods( be, conn, op, e, old_rdn, new_rdn, 
+			deleteoldrdn, &mod ) != LDAP_SUCCESS ) {
 		goto return_results;
 	}
 
@@ -604,6 +601,10 @@ ldbm_back_modrdn(
 	new_dn.bv_val = NULL;
 	new_ndn.bv_val = NULL;
 
+	/* NOTE: after this you must not free new_dn or new_ndn!
+	 * They are used by cache.
+	 */
+
 	/* add new one */
 	if ( dn2id_add( be, &e->e_nname, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
@@ -612,29 +613,27 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	rc = ldbm_modify_internal( be, conn, op, dn->bv_val, &mod[0], e,
+	rc_id = ldbm_modify_internal( be, conn, op, dn->bv_val, &mod[0], e,
 		&text, textbuf, textlen );
+	switch ( rc_id ) {
+	case LDAP_SUCCESS:
+		break;
 
-	if( rc != LDAP_SUCCESS ) {
-		if( rc != SLAPD_ABANDON ) {
-			send_ldap_result( conn, op, rc,
-				NULL, text, NULL, NULL );
-		}
-
+	case SLAPD_ABANDON:
+		/* too late ... */
+		send_ldap_result( conn, op, rc_id, NULL, text, NULL, NULL );
+		goto return_results;
+	
+	default:
 		/* here we may try to delete the newly added dn */
 		if ( dn2id_delete( be, &e->e_nname, e->e_id ) != 0 ) {
 			/* we already are in trouble ... */
 			;
 		}
-	    
     		goto return_results;
 	}
 	
 	(void) cache_update_entry( &li->li_cache, e );
-
-	/* NOTE: after this you must not free new_dn or new_ndn!
-	 * They are used by cache.
-	 */
 
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {

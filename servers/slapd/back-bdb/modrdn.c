@@ -38,7 +38,7 @@ bdb_modrdn(
 	/* LDAP v2 supporting correct attribute handling. */
 	LDAPRDN		*new_rdn = NULL;
 	LDAPRDN		*old_rdn = NULL;
-	int			rc;
+	int		rc;
 	const char *text;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -188,8 +188,7 @@ retry:	/* transaction retry */
 	}
 
 	/* check write on old entry */
-	rc = access_allowed( be, conn, op, e,
-		entry, NULL, ACL_WRITE, NULL );
+	rc = access_allowed( be, conn, op, e, entry, NULL, ACL_WRITE, NULL );
 
 	switch( opinfo.boi_err ) {
 	case DB_LOCK_DEADLOCK:
@@ -205,6 +204,7 @@ retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
 			0, 0 );
 #endif
+		text = "no write access to old entry";
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
 	}
@@ -267,13 +267,16 @@ retry:	/* transaction retry */
 				0, 0, 0);
 #endif
 			rc = LDAP_OTHER;
+			text = "old entry's parent does not exist";
 			goto return_results;
 		}
 
 		/* check parent for "children" acl */
-		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE, NULL ) )
-		{
+		rc = access_allowed( be, conn, op, p,
+			children, NULL, ACL_WRITE, NULL );
+
+		if ( ! rc ) {
+			rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
 				"==>bdb_modrdn: no access to parent\n", 0, 0, 0 );
@@ -281,8 +284,7 @@ retry:	/* transaction retry */
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
 #endif
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
+			text = "no write access to old parent's children";
 			goto return_results;
 		}
 
@@ -325,8 +327,8 @@ retry:	/* transaction retry */
 
 				p = NULL;
 
-				if ( ! rc )
-				{
+				if ( ! rc ) {
+					rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 					LDAP_LOG ( OPERATION, ERR, 
 						"==>bdb_modrdn: no access to parent\n", 0, 0, 0 );
@@ -335,9 +337,7 @@ retry:	/* transaction retry */
 						"no access to parent\n", 
 						0, 0, 0 );
 #endif
-					send_ldap_result( conn, op, 
-						LDAP_INSUFFICIENT_ACCESS,
-						NULL, NULL, NULL, NULL );
+					text = "no write access to old parent";
 					goto return_results;
 				}
 
@@ -374,6 +374,7 @@ retry:	/* transaction retry */
 					"& \"\" is not suffix\n",
 					0, 0, 0);
 #endif
+				text = "no write access to old parent";
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -407,6 +408,7 @@ retry:	/* transaction retry */
 			newSuperior = NULL; /* ignore newSuperior */
 		}
 	}
+
 	if ( newSuperior != NULL ) {
 		if ( newSuperior->bv_len ) {
 			np_dn = newSuperior;
@@ -445,6 +447,7 @@ retry:	/* transaction retry */
 					"bdb_modrdn: newSup(ndn=%s) not here!\n",
 					np_ndn->bv_val, 0, 0);
 #endif
+				text = "new superior not found";
 				rc = LDAP_OTHER;
 				goto return_results;
 			}
@@ -460,7 +463,10 @@ retry:	/* transaction retry */
 #endif
 
 			/* check newSuperior for "children" acl */
-			if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE, NULL ) ) {
+			rc = access_allowed( be, conn, op, np, children,
+				NULL, ACL_WRITE, NULL );
+
+			if( ! rc ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, 
 					"==>bdb_modrdn: no wr to newSup children\n", 0, 0, 0 );
@@ -469,6 +475,7 @@ retry:	/* transaction retry */
 					"bdb_modrdn: no wr to newSup children\n",
 					0, 0, 0 );
 #endif
+				text = "no write access to new superior's children";
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -483,7 +490,7 @@ retry:	/* transaction retry */
 				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is alias\n",
 					0, 0, 0 );
 #endif
-
+				text = "new superior is an alias";
 				rc = LDAP_ALIAS_PROBLEM;
 				goto return_results;
 			}
@@ -498,7 +505,7 @@ retry:	/* transaction retry */
 				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is referral\n",
 					0, 0, 0 );
 #endif
-
+				text = "new superior is a referral";
 				rc = LDAP_OTHER;
 				goto return_results;
 			}
@@ -522,8 +529,8 @@ retry:	/* transaction retry */
 
 					np = NULL;
 
-					if ( ! rc )
-					{
+					if ( ! rc ) {
+						rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 						LDAP_LOG ( OPERATION, ERR, 
 							"==>bdb_modrdn: no access to superior\n", 0, 0, 0 );
@@ -532,9 +539,7 @@ retry:	/* transaction retry */
 							"no access to new superior\n", 
 							0, 0, 0 );
 #endif
-						send_ldap_result( conn, op, 
-							LDAP_INSUFFICIENT_ACCESS,
-							NULL, NULL, NULL, NULL );
+						text = "no write access to new superior's children";
 						goto return_results;
 					}
 
@@ -558,6 +563,7 @@ retry:	/* transaction retry */
 						"& \"\" is not suffix\n",
 						0, 0, 0);
 #endif
+					text = "no write access to new superior's children";
 					rc = LDAP_INSUFFICIENT_ACCESS;
 					goto return_results;
 				}

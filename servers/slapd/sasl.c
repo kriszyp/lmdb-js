@@ -949,8 +949,8 @@ slap_sasl_authorize(
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
-	    		"conn=%lu op=%lu BIND authcid=\"%s\"\n",
-	    		conn->c_connid, conn->c_sasl_bindop->o_opid, 
+			"conn=%lu op=%lu BIND authcid=\"%s\"\n",
+			conn->c_connid, conn->c_sasl_bindop->o_opid, 
 			auth_identity, 0, 0);
 	}
 
