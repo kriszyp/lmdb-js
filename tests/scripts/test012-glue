@@ -19,9 +19,9 @@ echo "running defines.sh"
 
 echo "Cleaning up in $DBDIR..."
 
-mkdir $DBDIR/1 $DBDIR/2 $DBDIR/3
+mkdir $DBDIR/C_db1 $DBDIR/C_db2 $DBDIR/C_db3
 
-rm -f $DBDIR/[!C]* $DBDIR/?/*
+rm -f $DBDIR/[!C]* $DBDIR/C_db?/*
 
 echo "Running slapadd to build glued slapd databases..."
 . $CONFFILTER $BACKEND < $GLUECONF > $DBCONF
@@ -75,7 +75,7 @@ fi
 
 echo "OK...  Cleaning up in $DBDIR..."
 
-rm -f $DBDIR/?/*
+rm -f $DBDIR/C_db?/*
 
 echo "Starting slapd on TCP/IP port $PORT..."
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
