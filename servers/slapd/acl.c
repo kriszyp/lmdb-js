@@ -1131,6 +1131,10 @@ acl_check_modlist(
 				}
 			}
 			break;
+
+		default:
+			assert( 0 );
+			return( 0 );
 		}
 	}
 
