@@ -64,7 +64,7 @@ main(int argc, char **argv)
 	printf("  Protocol Max:      unknown\n");
 #endif
 #ifdef LDAP_VENDOR_NAME
-	printf("  Vendor Name:       %s\n", (int) LDAP_VENDOR_NAME);
+	printf("  Vendor Name:       %s\n", LDAP_VENDOR_NAME);
 #else
 	printf("  Vendor Name:       unknown\n");
 #endif
@@ -75,7 +75,7 @@ main(int argc, char **argv)
 #endif
 
 	if(ldap_get_option(NULL, LDAP_OPT_API_INFO, &api) != LDAP_SUCCESS) {
-		fprintf(stderr, "%s: ldap_get_option(api) failed\n", argv[0]);
+		fprintf(stderr, "%s: ldap_get_option(API_INFO) failed\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -126,11 +126,16 @@ main(int argc, char **argv)
 #else
 			printf("                     %s\n",
 				api.ldapai_extensions[i]);
+
 #endif
+			ldap_memfree(api.ldapai_extensions[i]);
 		}
+		ldap_memfree(api.ldapai_extensions);
 	}
 
 	printf("  Vendor Name:       %s\n", api.ldapai_vendor_name);
+	ldap_memfree(api.ldapai_vendor_name);
+
 	printf("  Vendor Version:    %d\n", api.ldapai_vendor_version);
 
 	printf("\nExecution time Default Options\n");
@@ -177,7 +182,12 @@ main(int argc, char **argv)
 		fprintf(stderr, "%s: ldap_get_option(host name) failed\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	printf("  HOST NAME:         %s\n", sval);
+	if( sval != NULL ) {
+		printf("  HOST NAME:         %s\n", sval);
+		ldap_memfree(sval);
+	} else {
+		printf("  HOST NAME:         <not set>\n", sval);
+	}
 
 	return EXIT_SUCCESS;
 }
