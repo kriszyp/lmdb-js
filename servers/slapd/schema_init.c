@@ -2987,8 +2987,8 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, numericStringNormalize, octetStringSubstringsMatch,
-		octetStringSubstringsIndexer, octetStringSubstringsFilter,
+		NULL, numericStringNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
