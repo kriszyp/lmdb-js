@@ -303,27 +303,32 @@ LDAPMessage	*entry;
 	ldap_value_free( val );
 }
 
-printFormatted( lineLength, systemMessage, output, format, va_alist )
-int	lineLength, systemMessage;
-FILE	*output;
-char	*format;
+printFormatted( va_alist )
 va_dcl
-
 {
+	int	lineLength, systemMessage;
+	FILE	*output;
+	char	*format;
 	va_list	ap;
+
 	char	buffer[BUFSIZ];
 	char	*head, *p, *q;
 	char	*tag;
 	int	count;
 
+	va_start( ap );
+	lineLength =	va_arg( ap, int );
+	systemMessage =	va_arg( ap, int );
+	output =	va_arg( ap, FILE * );
+	format =	va_arg( ap, char * );
 	if ( systemMessage ) {
 		lineLength--;
 		tag = "% ";
 	} else
 		tag = "";
-	va_start( ap );
 	vsprintf( buffer, format, ap );
 	va_end( ap );
+
 	if ( strlen( buffer ) < lineLength )
 		fprintf( output, "%s%s\r\n", tag, buffer );
 	else {

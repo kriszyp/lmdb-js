@@ -34,8 +34,7 @@ void setproctitle
 #if defined( HAVE_STDARG )
 	( const char *fmt, ... )
 #else
-	( fmt, va_alist )
-const char *fmt;
+	( va_alist )
 va_dcl
 #endif
 {
@@ -48,7 +47,10 @@ va_dcl
 #if defined( HAVE_STDARG )
 	va_start(ap, fmt);
 #else
+	const char *fmt;
+
 	va_start(ap);
+	fmt = va_arg(ap, const char *);
 #endif
 
 #ifdef HAVE_VSNPRINTF
