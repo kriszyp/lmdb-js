@@ -269,9 +269,9 @@ bdb_get_commit_csn(
 			struct berval bv;
 			sprintf( substr, "cn=syncrepl%d", op->o_bd->syncinfo->id );
 			ber_str2bv( substr, 0, 0, &bv );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, op->o_tmpmemctx );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
 		} else {
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, NULL );
 		}
 
 ctxcsn_retry :
