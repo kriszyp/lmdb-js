@@ -1228,7 +1228,7 @@ static int
 str2strval( const char *str, struct berval *val, const char **next, unsigned flags, unsigned *retFlags )
 {
 	const char 	*p, *startPos, *endPos = NULL;
-	ber_len_t	len, escapes, unescapes;
+	ber_len_t	len, escapes;
 
 	assert( str );
 	assert( val );
@@ -1236,7 +1236,7 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 
 	*next = NULL;
 
-	for ( startPos = p = str, escapes = 0, unescapes = 0; p[ 0 ]; p++ ) {
+	for ( startPos = p = str, escapes = 0; p[ 0 ]; p++ ) {
 		if ( LDAP_DN_ESCAPE( p[ 0 ] ) ) {
 			p++;
 			if ( p[ 0 ] == '\0' ) {
@@ -1255,6 +1255,11 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 				hexstr2bin( p, &c );
 				escapes += 2;
 
+				if ( c == 0 ) {
+					/* do not accept zero, right? */
+					return( 1 );
+				}
+
 				if ( !LDAP_DN_ASCII_PRINTABLE( c ) ) {
 
 					/*
@@ -1271,14 +1276,12 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 				return( 1 );
 			}
 			/* 
-			 * FIXME: we allow escaping 
+			 * we do not allow escaping 
 			 * of chars that don't need 
 			 * to and do not belong to 
-			 * HEXDIGITS (we also allow
-			 * single hexdigit; maybe we 
-			 * shouldn't).
+			 * HEXDIGITS
 			 */
-			unescapes++;
+			return( 1 );
 
 		} else if (!LDAP_DN_ASCII_PRINTABLE( p[ 0 ] ) ) {
 			*retFlags = LDAP_AVA_NONPRINTABLE;
@@ -1324,10 +1327,10 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 	/*
 	 * FIXME: test memory?
 	 */
-	len = ( endPos ? endPos : p ) - startPos - escapes - unescapes;
+	len = ( endPos ? endPos : p ) - startPos - escapes;
 	val->bv_len = len;
 
-	if ( escapes == 0 && unescapes == 0 ) {
+	if ( escapes == 0 ) {
 		val->bv_val = LDAP_STRNDUP( startPos, len );
 
 	} else {
@@ -1351,12 +1354,8 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 					s += 2;
 					
 				} else {
-					/*
-					 * we allow escaping of chars
-					 * that do not need to 
-					 */
-					val->bv_val[ d++ ] = 
-						startPos[ s++ ];
+					/* we should never get here */
+					assert( 0 );
 				}
 
 			} else {
