@@ -271,7 +271,7 @@ do_syncrepl(
 			"do_syncrepl: ldap_initialize failed (%s)\n",
 			si->si_provideruri, 0, 0 );
 #endif
-		return NULL;
+		goto done;
 	}
 
 	op.o_protocol = LDAP_VERSION3;
@@ -293,7 +293,7 @@ do_syncrepl(
 				si->si_tls == SYNCINFO_TLS_CRITICAL ? "Error" : "Warning",
 				rc, 0 );
 #endif
-			if( si->si_tls == SYNCINFO_TLS_CRITICAL ) return NULL;
+			if( si->si_tls == SYNCINFO_TLS_CRITICAL ) goto done;
 		}
 	}
 
@@ -347,9 +347,10 @@ do_syncrepl(
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
 #endif
-			return NULL;
+			goto done;
 		}
 #else /* HAVE_CYRUS_SASL */
+		/* Should never get here, we trapped this at config time */
 		fprintf( stderr, "not compiled with SASL support\n" );
 		return NULL;
 #endif
@@ -363,7 +364,7 @@ do_syncrepl(
 			Debug( LDAP_DEBUG_ANY, "do_syncrepl: "
 				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
 #endif
-			return NULL;
+			goto done;
 		}
 	}
 
@@ -428,7 +429,7 @@ do_syncrepl(
 		Debug( LDAP_DEBUG_ANY, "do_syncrepl: "
 			"ldap_search_ext: %s (%d)\n", ldap_err2string( rc ), rc, 0 );
 #endif
-		return NULL;
+		goto done;
 	}
 
 	if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ){
@@ -622,6 +623,7 @@ do_syncrepl(
 			}
 		}
 		ldap_msgfree( res );
+		res = NULL;
 	}
 
 	if ( rc == -1 ) {
@@ -642,8 +644,10 @@ do_syncrepl(
 
 done:
 #if defined( LDAP_SLAPI )
-	if ( op.o_pb ) slapi_pblock_destroy( op.o_pb );
-	slapi_x_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	if ( op.o_pb ) {
+		slapi_pblock_destroy( op.o_pb );
+		slapi_x_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 	if ( syncCookie.bv_val )
@@ -655,18 +659,16 @@ done:
 
 	if ( res ) ldap_msgfree( res );
 
-	ldap_unbind( ld );
+	if ( ld ) ldap_unbind( ld );
 
-	ber_bvarray_free_x( si->si_syncCookie, op.o_tmpmemctx );
-	si->si_syncCookie = NULL;
+	if ( si->si_syncCookie ) {
+		ber_bvarray_free_x( si->si_syncCookie, op.o_tmpmemctx );
+		si->si_syncCookie = NULL;
+	}
 
 	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
-	if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
-	} else {
-		ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
-	}
+	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask );
 	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 
 	return NULL;
@@ -869,6 +871,8 @@ syncrepl_entry(
 	struct berval	*syncuuid_bv = NULL;
 
 	SlapReply	rs = {REP_RESULT};
+	Filter f;
+	AttributeAssertion ava;
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
 
@@ -895,7 +899,11 @@ syncrepl_entry(
 	si->si_e = e;
 	si->si_syncUUID_ndn = NULL;
 
-	op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
+	f.f_choice = LDAP_FILTER_EQUALITY;
+	f.f_ava = &ava;
+	ava.aa_desc = slap_schema.si_ad_entryUUID;
+	ava.aa_value = *syncUUID;
+	op->ors_filter = &f;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 
 	/* get syncrepl cookie of shadow replica from subentry */
@@ -911,7 +919,6 @@ syncrepl_entry(
 
 	rc = be->be_search( op, &rs );
 
-	if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
 	if ( op->ors_filterstr.bv_val ) {
 		sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}

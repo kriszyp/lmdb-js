@@ -2935,8 +2935,14 @@ parse_syncrepl_line(
 				si->si_bindmethod = LDAP_AUTH_SIMPLE;
 				gots |= GOT_METHOD;
 			} else if ( !strcasecmp( val, SASLSTR )) {
+#ifdef HAVE_CYRUS_SASL
 				si->si_bindmethod = LDAP_AUTH_SASL;
 				gots |= GOT_METHOD;
+#else /* HAVE_CYRUS_SASL */
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"not compiled with SASL support\n" );
+				return 1;
+#endif /* HAVE_CYRUS_SASL */
 			} else {
 				si->si_bindmethod = -1;
 			}
@@ -3034,7 +3040,7 @@ parse_syncrepl_line(
 				sizeof("refreshAndPersist")-1 ))
 			{
 				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
-				si->si_interval = 0;
+				si->si_interval = 60;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"unknown sync type \"%s\"\n", val);
@@ -3043,31 +3049,28 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 			INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) )
 		{
+			char *hstr;
+			char *mstr;
+			char *dstr;
 			val = cargv[ i ] + sizeof( INTERVALSTR );
-			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
-				si->si_interval = 0;
-			} else {
-				char *dstr;
-				char *hstr;
-				char *mstr;
-				dstr = val;
-				hstr = strchr( dstr, ':' );
-				if ( hstr == NULL ) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
-					return 1;
-				}
-				*hstr++ = '\0';
-				mstr = strchr( hstr, ':' );
-				if ( mstr == NULL ) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
-					return 1;
-				}
-				*mstr++ = '\0';
-				si->si_interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
-					+ atoi( mstr )) * 60;
+			dstr = val;
+			hstr = strchr( dstr, ':' );
+			if ( hstr == NULL ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"invalid interval \"%s\"\n", val );
+				return 1;
 			}
+			*hstr++ = '\0';
+			mstr = strchr( hstr, ':' );
+			if ( mstr == NULL ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"invalid interval \"%s\"\n", val );
+				return 1;
+			}
+			*mstr++ = '\0';
+			si->si_interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
+				+ atoi( mstr )) * 60;
+
 			if ( si->si_interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"invalid interval \"%ld\"\n",
