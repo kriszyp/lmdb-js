@@ -274,10 +274,10 @@ bdb_dn2id(
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
 	} else {
+		BDB_DISK2ID( &nid, &ei->bei_id );
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
 			ei->bei_id, 0, 0 );
 	}
-	BDB_DISK2ID( &nid, &ei->bei_id );
 
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
