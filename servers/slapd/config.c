@@ -260,11 +260,11 @@ read_config( const char *fname )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes\" line\n",
+					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes>\" line\n",
 					   fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY,
-					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes\" line\n",
+					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
