@@ -36,6 +36,12 @@
 
 #include "ucdata.h"
 
+#ifdef WIN32
+#define UC_DIRSEP	'\\'
+#else
+#define UC_DIRSEP	'/'
+#endif
+
 /**************************************************************************
  *
  * Miscellaneous types, data, and support functions.
@@ -83,7 +89,7 @@ _ucopenfile(char *paths, char *filename, char *mode)
         pp = path;
         while (*dp && *dp != ':')
           *pp++ = *dp++;
-        *pp++ = '/';
+        *pp++ = UC_DIRSEP;
 
         fp = filename;
         while (*fp)
@@ -222,6 +228,9 @@ static int
 _ucprop_lookup(unsigned long code, unsigned long n)
 {
     long l, r, m;
+
+    if (_ucprop_size == 0)
+      return 0;
 
     /*
      * There is an extra node on the end of the offsets to allow this routine
