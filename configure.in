@@ -24,10 +24,14 @@ AC_PREFIX_DEFAULT(/usr/local)
 dnl General "enable" options
 CF_ARG_OPTION(debug,[  --enable-debug	enable debugging (yes)],[
 	LDAP_DEBUG=no],[LDAP_DEBUG=yes],yes)dnl
+CF_ARG_OPTION(syslog,[  --enable-syslog	enable syslog support (no)],[
+	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
 CF_ARG_OPTION(libui,[  --enable-libui	enable library user interface (yes)],[
 	LDAP_LIBUI=no],[LDAP_LIBUI=yes],yes)dnl
 CF_ARG_OPTION(cache,[  --enable-cache	enable caching (yes)],[
 	LDAP_CACHE=no],[LDAP_CACHE=yes],yes)dnl
+CF_ARG_OPTION(dns,[  --enable-dns	enable dns support (no)],[
+	LDAP_DNS=yes],[LDAP_DNS=no],no)dnl
 CF_ARG_OPTION(referrals,[  --enable-referrals	enable referrals (yes)],[
 	LDAP_REFERRALS=no],[LDAP_REFERRALS=yes],yes)dnl
 
@@ -119,12 +123,23 @@ fi
 ## general LDAP arguments
 LDAP_DEFS=
 LDAP_LIBS=
+LDBM_DEFS=
+LDBM_LIBS=
+LUTIL_DEFS=
+LUTIL_LIBS=
 
 if test "$LDAP_DEBUG" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
 fi
+if test "$LDAP_SYSLOG" = "yes" ; then
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
+fi
+if test "$LDAP_DNS" = "yes" ; then
+dnl	AC_DEFINE(LDAP_DNS,1)
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_DNS"
+fi
 if test "$LDAP_REFERRALS" = "yes" ; then
-	AC_DEFINE(LDAP_REFERRALS,1)
+dnl	AC_DEFINE(LDAP_REFERRALS,1)
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
 fi
 if test "$LDAP_CACHE" = "no" ; then
@@ -143,7 +158,6 @@ LDAPD_LIBS=
 ## slapd arguments
 SLAPD_DEFS=
 SLAPD_LIBS=
-LUTIL_DEFS=
 if test "$SLAPD_PHONETIC" = "yes" ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
 	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
@@ -159,9 +173,11 @@ dnl	AC_DEFINE(SLAPD_SHA1,1)
 	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
 fi
 
+BUILD_LDBM=no
 if test "$SLAPD_LDBM" = "yes" ; then
 dnl	AC_DEFINE(SLAPD_LDBM,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_LDBM"
+	BUILD_LDBM=yes
+	LDBM_DEFS="$LDBM_DEFS -DLDAP_LDBM"
 fi
 if test "$SLAPD_PASSWD" = "yes" ; then
 dnl	AC_DEFINE(SLAPD_PASSWD,1)
@@ -313,12 +329,13 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 	fi
 fi
 
-# check for strtok_r
+# check for strtok_r (and presumely other reentrant functions)
 save_LIBS="$LIBS"
 LIBS="$save_LIBS $LTHREAD_LIBS"
 AC_CHECK_LIB(pthread,strtok_r)
 
 if test $ac_cv_lib_pthread_strtok_r = no ; then
+	LIBS="$save_LIBS $LTHREAD_LIBS"
 	AC_CHECK_LIB(c_r,strtok_r)
 	AC_CHECK_FUNCS(strtok_r sched_yield)
 	if test $ac_cv_lib_c_r_strtok_r = yes ; then
@@ -332,9 +349,6 @@ LIBS="$save_LIBS"
 
 
 ldbm_use="none"
-LDBM_DEFS=
-LDBM_LIBS=
-
 if test "$SLAPD_LDBM" = "yes" ; then
 	if test $ldbm_prefer = any -o $ldbm_prefer = dbbtree \
 			-o $ldbm_prefer = dbhash ; then
@@ -502,20 +516,20 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 )
 
-AC_REPLACE_FUNCS(strsep strdup)
+AC_REPLACE_FUNCS(strdup)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
 CF_SYS_ERRLIST
 
+dnl ----------------------------------------------------------------
 AC_SUBST(BUILD_LDAPD)
-
 AC_SUBST(BUILD_SLAPD)
-  AC_SUBST(SLAPD_LDBM)
-  AC_SUBST(SLAPD_PASSWD)
-  AC_SUBST(SLAPD_SHELL)
-
+  AC_SUBST(BUILD_LDBM)
+  AC_SUBST(BUILD_PASSWD)
+  AC_SUBST(BUILD_SHELL)
 AC_SUBST(BUILD_SLURPD)
+
 
 AC_SUBST(LDAP_DEFS)
 AC_SUBST(LDAP_LIBS)
@@ -523,6 +537,9 @@ AC_SUBST(LDAPD_DEFS)
 AC_SUBST(LDAPD_LIBS)
 AC_SUBST(SLAPD_DEFS)
 AC_SUBST(SLAPD_LIBS)
+  AC_SUBST(SLAPD_LDBM)
+  AC_SUBST(SLAPD_PASSWD)
+  AC_SUBST(SLAPD_SHELL)
 AC_SUBST(SLURPD_DEFS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_DEFS)
@@ -531,6 +548,10 @@ AC_SUBST(LTHREAD_DEFS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_DEFS)
 AC_SUBST(LUTIL_LIBS)
+
+dnl ----------------------------------------------------------------
+dnl final output
+dnl
 
 dnl AC_OUTPUT( \
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \

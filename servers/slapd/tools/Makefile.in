@@ -30,7 +30,16 @@ OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../schemaparse.o ../strdup.o
 
-all-local: build-edb2ldif build-chlog2replog $(PROGRAMS)
+all-local: build-ldbm build-edb2ldif build-chlog2replog
+
+build-ldbm: FORCE
+	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) ldbm-tools; \
+    else \
+		echo "run configure with --with-ldbm to build LDBM tools"; \
+    fi
+
+ldbm-tools: $(PROGRAMS)
 
 XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@
 XLIBS = @SLAPD_LIBS@ -lavl -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ -llutil @LUTIL_LIBS@
@@ -95,21 +104,37 @@ clean-local: FORCE
 	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c *.o a.out core
 
 depend-local: FORCE
-	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
-        DEPENDEXTRAS="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
+	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ;\
+	if [ "$(BUILD_LDBM)" = "yes" ]; then \
+        DEPEND_LDBM="$(SRCS)"; \
+		DEPEND=yes ; \
     fi; \
-    $(MKDEP) $(DEFS) $(DEFINES) $$DEPENDEXTRAS $(SRCS)
+	if [ "$(HAVE_ISODE)" = "yes" ]; then \
+        DEPEND_ISODE="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
+		DEPEND=yes ; \
+    fi; \
+	if [ "$$DEPEND" = "yes" ]; then \
+    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE $$DEPEND_LDBM \
+	else \
+		exit 0 ; \
+	fi
 
-install-local: install-isode FORCE
+install-local: install-ldbm install-isode FORCE
+
+install-ldbm: FORCE
 	@-$(MKDIR) -p $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)
+	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	\
+	else \
+		exit 0; \
+	fi
 
 install-isode: FORCE
 	@-$(MKDIR) -p $(sbindir)

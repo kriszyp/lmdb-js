@@ -1,5 +1,13 @@
 /* ldbm.c - ldap dbm compatibility routines */
 
+/* Patched for Berkeley DB version 2.0; /KSp; 98/02/23
+ *
+ *   - basic implementation; 1998/02/23, /KSp
+ *   - DB_DBT_MALLOC       ; 1998/03/22, /KSp
+ */
+
+#ifdef LDAP_LDBM
+
 #include <stdio.h>
 #include "ldbm.h"
 
@@ -121,10 +129,41 @@ ldbm_errno( LDBM ldbm )
  *                                                               *
  *****************************************************************/
 
+#ifdef LDBM_USE_DB2
+/*************************************************
+ *                                               *
+ *  A malloc routine for use with DB_DBT_MALLOC  *
+ *                                               *
+ *************************************************/
+
+#include <stdlib.h>
+
+
+void *
+ldbm_malloc( size_t size )
+{
+	return( calloc( 1, size ));
+}
+
+#endif
+
+
 LDBM
 ldbm_open( char *name, int rw, int mode, int dbcachesize )
 {
-	LDBM		ret;
+	LDBM		ret = NULL;
+
+#ifdef LDBM_USE_DB2
+	DB_INFO  	dbinfo;
+
+	memset( &dbinfo, 0, sizeof( dbinfo ));
+	dbinfo.db_cachesize = dbcachesize;
+	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
+	dbinfo.db_malloc    = ldbm_malloc;
+
+	db_open( name, DB_TYPE, rw, mode, NULL, &dbinfo, &ret );
+
+#else
 	void		*info;
 	BTREEINFO	binfo;
 	HASHINFO	hinfo;
@@ -140,14 +179,22 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	} else {
 		info = NULL;
 	}
+
 	ret = dbopen( name, rw, mode, DB_TYPE, info );
+
+#endif
+
 	return( ret );
 }
 
 void
 ldbm_close( LDBM ldbm )
 {
+#ifdef LDBM_USE_DB2
+	(*ldbm->close)( ldbm, 0 );
+#else
 	(*ldbm->close)( ldbm );
+#endif
 }
 
 void
@@ -166,6 +213,10 @@ Datum
 ldbm_datum_dup( LDBM ldbm, Datum data )
 {
 	Datum	dup;
+
+#ifdef LDBM_USE_DB2
+	memset( &dup, 0, sizeof( dup ));
+#endif
 
 	if ( data.dsize == 0 ) {
 		dup.dsize = 0;
@@ -186,9 +237,18 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	Datum	data;
 	int	rc;
 
+#ifdef LDBM_USE_DB2
+	memset( &data, 0, sizeof( data ));
+
+	data.flags = DB_DBT_MALLOC;
+
+	if ( (rc = (*ldbm->get)( ldbm, NULL, &key, &data, 0 )) != 0 ) {
+		if ( data.dptr ) free( data.dptr );
+#else
 	if ( (rc = (*ldbm->get)( ldbm, &key, &data, 0 )) == 0 ) {
 		data = ldbm_datum_dup( ldbm, data );
 	} else {
+#endif
 		data.dptr = NULL;
 		data.dsize = 0;
 	}
@@ -201,7 +261,12 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int	rc;
 
+#ifdef LDBM_USE_DB2
+	rc = (*ldbm->put)( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
+	rc = (-1 ) * rc;
+#else
 	rc = (*ldbm->put)( ldbm, &key, &data, flags & ~LDBM_SYNC );
+#endif
 	if ( flags & LDBM_SYNC )
 		(*ldbm->sync)( ldbm, 0 );
 	return( rc );
@@ -212,38 +277,88 @@ ldbm_delete( LDBM ldbm, Datum key )
 {
 	int	rc;
 
+#ifdef LDBM_USE_DB2
+	rc = (*ldbm->del)( ldbm, NULL, &key, 0 );
+	rc = (-1 ) * rc;
+#else
 	rc = (*ldbm->del)( ldbm, &key, 0 );
+#endif
 	(*ldbm->sync)( ldbm, 0 );
 	return( rc );
 }
 
 Datum
+#ifdef LDBM_USE_DB2
+ldbm_firstkey( LDBM ldbm, DBC **dbch )
+#else
 ldbm_firstkey( LDBM ldbm )
+#endif
 {
 	Datum	key, data;
 	int	rc;
 
+#ifdef LDBM_USE_DB2
+	DBC  *dbci;
+
+	memset( &key, 0, sizeof( key ));
+	memset( &data, 0, sizeof( data ));
+
+	key.flags = data.flags = DB_DBT_MALLOC;
+
+	/* acquire a cursor for the DB */
+	if ( (*ldbm->cursor)( ldbm, NULL, &dbci )) {
+		return( key );
+	} else {
+		*dbch = dbci;
+		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
+			if ( data.dptr ) free( data.dptr );
+#else
 	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_FIRST )) == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
+#endif
 	} else {
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
+
+#ifdef LDBM_USE_DB2
+	}
+#endif
+
 	return( key );
 }
 
 Datum
+#ifdef LDBM_USE_DB2
+ldbm_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
+#else
 ldbm_nextkey( LDBM ldbm, Datum key )
+#endif
 {
 	Datum	data;
 	int	rc;
 
+#ifdef LDBM_USE_DB2
+	void *oldKey = key.dptr;
+
+	memset( &data, 0, sizeof( data ));
+
+	data.flags = DB_DBT_MALLOC;
+
+	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
+		if ( data.dptr ) free( data.dptr );
+#else
 	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_NEXT )) == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
+#endif
 	} else {
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
+#ifdef LDBM_USE_DB2
+	if ( oldKey ) free( oldKey );
+#endif
+
 	return( key );
 }
 
@@ -346,3 +461,4 @@ ldbm_errno( LDBM ldbm )
 #endif /* ndbm */
 #endif /* db */
 #endif /* gdbm */
+#endif /* ldbm */
