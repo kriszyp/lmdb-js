@@ -1,17 +1,36 @@
 dnl
-dnl Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
+dnl Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms are permitted only
 dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl
+dnl ----------------------------------------------------------------
+dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
+dnl at top of generated configure script.  Prints simple copyright.
+define([AC_INIT_BINSH],
+[[#! /bin/sh
+# $]OpenLDAP[$
+# from] translit([$OpenLDAP$], $")] [
 
+# Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
+#
+# Redistribution and use in source and binary forms are permitted only
+# as authorized by the OpenLDAP Public License.  A copy of this
+# license is available at http://www.OpenLDAP.org/license.html or
+# in file LICENSE in the top-level directory of the distribution.
+
+echo "Copyright 1998-2001 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Restrictions apply, see COPYRIGHT and LICENSE files."
+])dnl
+dnl ----------------------------------------------------------------
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
+dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_INIT(include/ldap.h)dnl
+AC_INIT(build/version)dnl
 
 # set unset (borrowed from autoconf 2.14a)
 if (unset FOO) >/dev/null 2>&1; then
@@ -23,6 +42,15 @@ fi
 $ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
 
 AC_CONFIG_AUX_DIR(build)dnl
+
+OL_VERSION=`cat $ac_aux_dir/version`
+if test -z "$OL_VERSION"; then
+    AC_MSG_ERROR([could not determine version])
+fi
+
+echo "Configuring OpenLDAP $OL_VERSION ..."
+
+
 AM_INIT_AUTOMAKE(openldap,[1.2], [no ac_define])dnl
 
 dnl We use autoconf features new to 2.13.1

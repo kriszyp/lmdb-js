@@ -1,6 +1,6 @@
 OpenLDAP 1.x Change Log
 
-Changes included in OpenLDAP 1.2.12 Engineering
+Changes included in OpenLDAP 1.2.12
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed slapd sb_max_incoming bug
 	Fixed ldapmodify ldaphost NULL bug
