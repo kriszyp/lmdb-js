@@ -1,0 +1,11 @@
+# Copyright 1999-2001, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: Security Considerations
+
+OpenLDAP Software is designed to run in a wide variety of computing
+environments from tightly-controlled closed networks to the global
+Internet.  Hence, OpenLDAP Software provides many different security
+mechanisms.  This chapter discusses security considerations for
+using OpenLDAP Software.
+
