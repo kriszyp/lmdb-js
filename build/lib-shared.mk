@@ -6,8 +6,6 @@
 ## Makefile Template for Shared Libraries
 ##
 
-LTVERSION = -version-info $(LIBVERSION)
-LINK    = $(LTLINK)
 COMPILE = $(LIBTOOL) --mode=compile $(CC) $(CFLAGS) -c
 MKDEPFLAG = -l
 
@@ -17,7 +15,7 @@ MKDEPFLAG = -l
 	$(COMPILE) $<
 
 $(LIBRARY):  version.lo
-	$(LINK) -rpath $(libdir) -o $@ $(OBJS) version.lo
+	$(LTLIBLINK) -rpath $(libdir) -o $@ $(OBJS) version.lo
 	$(RM) ../$@;	\
 	(d=`$(PWD)` ; $(LN_S) `$(BASENAME) $$d`/$@ ../$@)
 	$(RM) ../`$(BASENAME) $@ .la`.a;	\

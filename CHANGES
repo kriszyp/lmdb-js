@@ -9,6 +9,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Updated to latest Autoconf (AnonCVS)
 		Updated to latest aclocal from Automake (AnonCVS)
 		Updated to libtool-1.3.3.
+		Updated libtool -version-info handling
 		Don't use "ln -s -f file link" (ITS#227)
 	Documentation
 		Added -n option to ldif2ldbm(8) (ITS#59)
