@@ -22,12 +22,6 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#ifdef LDAP_DEBUG
-static void at_index_print( void ) 
-{
-}
-#endif
-
 void
 attr_free( Attribute *a )
 {
