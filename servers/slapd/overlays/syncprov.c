@@ -1514,10 +1514,16 @@ syncprov_detach_op( Operation *op, syncops *so )
 		op->o_req_ndn.bv_len + 1 +
 		op->o_ndn.bv_len + 1 +
 		so->s_filterstr.bv_len + 1;
-	op2 = (Operation *)ch_malloc( size );
-	*op2 = *op;
+	op2 = (Operation *)ch_calloc( 1, size );
 	op2->o_hdr = (Opheader *)(op2+1);
+
+	/* Copy the fields we care about explicitly, leave the rest alone */
 	*op2->o_hdr = *op->o_hdr;
+	op2->o_tag = op->o_tag;
+	op2->o_time = op->o_time;
+	op2->o_bd = op->o_bd;
+	op2->o_request = op->o_request;
+
 	if ( i ) {
 		op2->ors_attrs = (AttributeName *)(op2->o_hdr + 1);
 		ptr = (char *)(op2->ors_attrs+i+1);
@@ -1541,8 +1547,6 @@ syncprov_detach_op( Operation *op, syncops *so )
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
 	op2->ors_filter = str2filter( ptr );
-	op2->o_controls = NULL;
-	op2->o_callback = NULL;
 	so->s_op = op2;
 
 	/* Copy any cached group ACLs individually */
