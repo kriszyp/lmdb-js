@@ -105,3 +105,35 @@ sn: User
 uid: special
 userpassword:: c2VjcmV0
 
+dn: ou=Paged Results Users,o=University of Michigan,c=US
+objectclass: organizationalUnit
+ou: Paged Results Users
+
+dn: cn=Unlimited User,ou=Paged Results Users,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Unlimited User
+sn: User
+uid: unlimited
+userpassword:: c2VjcmV0
+
+dn: cn=Page Size Limited User,ou=Paged Results Users,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Page Size Limited User
+sn: User
+uid: pagesizelimited
+userpassword:: c2VjcmV0
+
+dn: cn=Paged Results Disabled User,ou=Paged Results Users,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Paged Results Disabled User
+sn: User
+uid: pagedresultsdisabled
+userpassword:: c2VjcmV0
+
+dn: cn=Paged Results Limited User,ou=Paged Results Users,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Paged Results Limited User
+sn: User
+uid: pagedresultslimited
+userpassword:: c2VjcmV0
+
