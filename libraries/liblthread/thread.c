@@ -1,6 +1,9 @@
 /* thread.c - glue routines to provide a consistent thread interface */
-#include <stdio.h>
-#include "lthread.h"
+
+#define DISABLE_BRIDGE
+#include "portable.h"
+
+#include <lthread.h>
 
 #if defined( THREAD_NEXT_CTHREADS )
 

@@ -3,6 +3,10 @@
 #ifndef _LTHREAD_H
 #define _LTHREAD_H
 
+#include <portable.h>
+
+LDAP_BEGIN_DECL
+
 #if defined ( THREAD_NEXT_CTHREADS )
 
 #define _THREAD
@@ -222,4 +226,7 @@ typedef int     pthread_condattr_t;
 typedef int	pthread_cond_t;
 
 #endif /* no threads support */
+
+LDAP_END_DECL
+
 #endif /* _LTHREAD_H */
