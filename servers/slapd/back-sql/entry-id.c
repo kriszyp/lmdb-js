@@ -585,7 +585,7 @@ next:;
 			return rc;
 		}
 
-		if ( ( bsi->bsi_flags | BSQL_SF_ALL_OPER )
+		if ( ( bsi->bsi_flags & BSQL_SF_ALL_OPER )
 				|| an_find( bsi->bsi_attrs, &AllOper ) ) {
 			rc = attr_merge_normalize_one( bsi->bsi_e,
 					slap_schema.si_ad_structuralObjectClass,
