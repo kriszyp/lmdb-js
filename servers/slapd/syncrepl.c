@@ -1028,11 +1028,6 @@ done:
 	return rc;
 }
 
-static struct berval uuidbva[] = {
-	BER_BVNULL,
-	BER_BVNULL
-};
-
 int
 syncrepl_entry(
 	syncinfo_t* si,
@@ -1048,6 +1043,7 @@ syncrepl_entry(
 	slap_callback	cb = { NULL };
 	struct berval	*syncuuid_bv = NULL;
 	struct berval	syncUUID_strrep = { 0, NULL };
+	struct berval	uuid_bv = { 0, NULL };
 
 	SlapReply	rs = {REP_RESULT};
 	Filter f = {0};
@@ -1197,11 +1193,11 @@ syncrepl_entry(
 					}
 
 					mod = (Modifications *)ch_calloc(1, sizeof(Modifications));
-					ber_dupbv( &uuidbva[0], syncUUID );
+					ber_dupbv( &uuid_bv, syncUUID );
 					mod->sml_op = LDAP_MOD_REPLACE;
 					mod->sml_desc = slap_schema.si_ad_entryUUID;
 					mod->sml_type = mod->sml_desc->ad_cname;
-					mod->sml_bvalues = uuidbva;
+					ber_bvarray_add( &mod->sml_bvalues, &uuid_bv );
 					modtail->sml_next = mod;
 					
 					op->o_tag = LDAP_REQ_MODIFY;
