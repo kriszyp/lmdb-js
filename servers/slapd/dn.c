@@ -844,9 +844,10 @@ dnX509normalize( void *x509_name, struct berval *out )
 /*
  * Get the TLS session's peer's DN into a normalized LDAP DN
  */
-char *
-dnX509peerNormalize( void *ssl )
+int
+dnX509peerNormalize( void *ssl, struct berval *dn )
 {
-	return ldap_pvt_tls_get_peer_dn( ssl, (LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
+
+	return ldap_pvt_tls_get_peer_dn( ssl, dn, (LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
 }
 #endif

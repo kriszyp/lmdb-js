@@ -406,7 +406,7 @@ LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
 LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out ));
 
-LDAP_SLAPD_F (char *) dnX509peerNormalize LDAP_P(( void *ssl ));
+LDAP_SLAPD_F (int) dnX509peerNormalize LDAP_P(( void *ssl, struct berval *dn ));
 
 /*
  * entry.c
