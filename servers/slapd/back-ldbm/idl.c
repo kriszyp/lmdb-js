@@ -56,12 +56,7 @@ idl_fetch_one(
 	Datum	data;
 	IDList	*idl;
 
-#ifdef HAVE_BERKELEY_DB2
-	Datum	k2;
-
 	ldbm_datum_init( data );
-	ldbm_datum_init( k2 );
-#endif
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
 

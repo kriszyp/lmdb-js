@@ -70,12 +70,12 @@ main( int argc, char **argv )
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
+#endif
 
 	ldbm_datum_init( savekey );
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 	ldbm_datum_init( last );
-#endif
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	while ( (i = getopt( argc, argv, "d:f:" )) != EOF ) {

@@ -28,11 +28,11 @@ main( int argc, char **argv )
 
 #ifdef HAVE_BERKELEY_DB2
         DBC        *cursorp;
+#endif
 
         ldbm_datum_init( key );
         ldbm_datum_init( last );
         ldbm_datum_init( data );
-#endif
 
         if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )
             != 0 )) {
