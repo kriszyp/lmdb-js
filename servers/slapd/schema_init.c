@@ -310,8 +310,8 @@ inValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
-	/* any value allowed */
-	return LDAP_OTHER;
+	/* no value allowed */
+	return LDAP_INVALID_SYNTAX;
 }
 
 static int
@@ -776,7 +776,8 @@ approxMatch(
 	}
 
 	/* Yes, this is necessary */
-	assertv = UTF8bvnormalize( ((struct berval *)assertedValue), NULL, LDAP_UTF8_APPROX );
+	assertv = UTF8bvnormalize( ((struct berval *)assertedValue),
+		NULL, LDAP_UTF8_APPROX );
 	if( assertv == NULL ) {
 		ber_bvfree( nval );
 		*matchp = 1;
@@ -933,7 +934,8 @@ approxFilter(
 	BerVarray keys;
 
 	/* Yes, this is necessary */
-	val = UTF8bvnormalize( ((struct berval *)assertValue), NULL, LDAP_UTF8_APPROX );
+	val = UTF8bvnormalize( ((struct berval *)assertValue),
+		NULL, LDAP_UTF8_APPROX );
 	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
