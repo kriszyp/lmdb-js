@@ -227,7 +227,7 @@ if test $ac_cv_header_db_h = yes ; then
 			/* this check could be improved */
 #			ifdef DB_VERSION_MAJOR
 #				if DB_VERSION_MAJOR == 2
-					__db_version_2
+					__db_version_2;
 #				endif
 #			endif
 		], ol_cv_header_db2=yes, ol_cv_header_db2=no)])
@@ -507,7 +507,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef PTHREAD_ONCE_INIT
-			pthread_version_final
+			pthread_version_final;
 #		endif
 	], ol_pthread_final=yes, ol_pthread_final=no)
 
@@ -515,7 +515,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef pthread_once_init
-			pthread_version_draft4
+			pthread_version_draft4;
 #		endif
 	], ol_pthread_draft4=yes, ol_pthread_draft4=no)
 
@@ -620,7 +620,7 @@ AC_DEFUN([OL_HEADER_GNU_PTH_PTHREAD_H], [
 		[AC_EGREP_CPP(__gnu_pth__,
 			[#include <pthread.h>
 #ifdef _POSIX_THREAD_IS_GNU_PTH
-	__gnu_pth__
+	__gnu_pth__;
 #endif
 ],
 			[ol_cv_header_gnu_pth_pthread_h=yes],
