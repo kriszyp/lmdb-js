@@ -231,83 +231,11 @@ monitor_back_db_init(
 )
 {
 	struct monitorinfo 	*mi;
-	int			rc;
+	int			i, rc;
 	struct berval		dn, ndn;
 	struct berval		bv;
+	const char		*text;
 
-	/*
-	 * database monitor can be defined once only
-	 */
-	if ( be_monitor ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"only one monitor backend is allowed\n", 0, 0, 0);
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"only one monitor backend is allowed\n", 0, 0, 0 );
-#endif
-		return( -1 );
-	}
-	be_monitor = be;
-
-	/* indicate system schema supported */
-	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
-
-	dn.bv_val = SLAPD_MONITOR_DN;
-	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
-
-	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
-	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to normalize monitor DN \"%s\"\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"unable to normalize monitor DN \"%s\"\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#endif
-		return -1;
-	}
-
-	ber_dupbv( &bv, &dn );
-	ber_bvarray_add( &be->be_suffix, &bv );
-	ber_bvarray_add( &be->be_nsuffix, &ndn );
-
-	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
-	if ( mi == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to initialize monitor backend\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"unable to initialize monitor backend\n", 0, 0, 0 );
-#endif
-		return -1;
-	}
-
-	memset( mi, 0, sizeof( struct monitorinfo ) );
-
-	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
-
-	be->be_private = mi;
-	
-	return 0;
-}
-
-int
-monitor_back_db_open(
-	BackendDB	*be
-)
-{
-	struct monitorinfo 	*mi = (struct monitorinfo *)be->be_private;
-	struct monitorsubsys	*ms;
-	Entry 			*e, *e_tmp;
-	struct monitorentrypriv	*mp;
-	int			i, k;
-	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
-	const char 		*text;
-	struct berval		bv;
 	struct m_s {
 		char	*name;
 		char	*schema;
@@ -499,40 +427,63 @@ monitor_back_db_open(
 		{ NULL, NULL, 0, -1 }
 	};
 	
-	struct tm		*tms;
-#ifdef HAVE_GMTIME_R
-	struct tm		tm_buf;
-#endif
-	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-
 	/*
-	 * Start
+	 * database monitor can be defined once only
 	 */
-#ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	if ( be_monitor ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"only one monitor backend is allowed\n", 0, 0, 0);
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"only one monitor backend is allowed\n", 0, 0, 0 );
 #endif
-#ifdef HACK_LOCAL_TIME
-# ifdef HAVE_LOCALTIME_R
-	tms = localtime_r( &starttime, &tm_buf );
-# else
-	tms = localtime( &starttime );
-# endif /* HAVE_LOCALTIME_R */
-	lutil_localtime( tmbuf, sizeof(tmbuf), tms, -timezone );
-#else /* !HACK_LOCAL_TIME */
-# ifdef HAVE_GMTIME_R
-	tms = gmtime_r( &starttime, &tm_buf );
-# else
-	tms = gmtime( &starttime );
-# endif /* HAVE_GMTIME_R */
-	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
-#endif /* !HACK_LOCAL_TIME */
-#ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+		return( -1 );
+	}
+	be_monitor = be;
+
+	/* indicate system schema supported */
+	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
+
+	dn.bv_val = SLAPD_MONITOR_DN;
+	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
+
+	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"unable to normalize monitor DN \"%s\"\n",
+			SLAPD_MONITOR_DN, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"unable to normalize monitor DN \"%s\"\n",
+			SLAPD_MONITOR_DN, 0, 0 );
 #endif
+		return -1;
+	}
 
-	mi->mi_startTime.bv_val = tmbuf;
-	mi->mi_startTime.bv_len = strlen( tmbuf );
+	ber_dupbv( &bv, &dn );
+	ber_bvarray_add( &be->be_suffix, &bv );
+	ber_bvarray_add( &be->be_nsuffix, &ndn );
 
+	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
+	if ( mi == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"unable to initialize monitor backend\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"unable to initialize monitor backend\n", 0, 0, 0 );
+#endif
+		return -1;
+	}
+
+	memset( mi, 0, sizeof( struct monitorinfo ) );
+
+	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
+
+	be->be_private = mi;
+	
 #ifdef INTEGRATE_CORE_SCHEMA
 	/* prepare for schema integration */
 	for ( k = 0; mat[k].name != NULL; k++ );
@@ -706,6 +657,55 @@ monitor_back_db_open(
 
 		((ObjectClass **)&(((char *)mi)[moc[i].offset]))[0] = Oc;
 	}
+
+	return 0;
+}
+
+int
+monitor_back_db_open(
+	BackendDB	*be
+)
+{
+	struct monitorinfo 	*mi = (struct monitorinfo *)be->be_private;
+	struct monitorsubsys	*ms;
+	Entry 			*e, *e_tmp;
+	struct monitorentrypriv	*mp;
+	int			i;
+	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
+	struct berval		bv;
+	struct tm		*tms;
+#ifdef HAVE_GMTIME_R
+	struct tm		tm_buf;
+#endif
+	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+
+	/*
+	 * Start
+	 */
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
+#ifdef HACK_LOCAL_TIME
+# ifdef HAVE_LOCALTIME_R
+	tms = localtime_r( &starttime, &tm_buf );
+# else
+	tms = localtime( &starttime );
+# endif /* HAVE_LOCALTIME_R */
+	lutil_localtime( tmbuf, sizeof(tmbuf), tms, -timezone );
+#else /* !HACK_LOCAL_TIME */
+# ifdef HAVE_GMTIME_R
+	tms = gmtime_r( &starttime, &tm_buf );
+# else
+	tms = gmtime( &starttime );
+# endif /* HAVE_GMTIME_R */
+	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
+#endif /* !HACK_LOCAL_TIME */
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
+
+	mi->mi_startTime.bv_val = tmbuf;
+	mi->mi_startTime.bv_len = strlen( tmbuf );
 
 	/*	
 	 * Create all the subsystem specific entries
