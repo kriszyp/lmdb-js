@@ -439,13 +439,26 @@ and
 .BR {CLEARTEXT} .
 The default is
 .BR {SSHA} .
-
-Note that
+.TP
+.B {SHA}
+and
+.B {SSHA}
+use the SHA-1 algorithm (FIPS 160-1), the latter with a seed.
+.TP
+.B {MD5}
+and
+.B {SMD5}
+use the MD5 algorithm (RFC 1321), the latter with a seed.
+.TP
+.B {CRYPT}
+uses the
+.BR crypt (3).
+.TP
 .B {CLEARTEXT}
 indicates that the new password should be
 added to userPassword as clear text.
-
-Also, note that this option does not alter the normal user applications
+.TP
+Note that this option does not alter the normal user applications
 handling of userPassword during LDAP Add, Modify, or other LDAP operations.
 .TP
 .B password\-crypt\-salt\-format <format>
