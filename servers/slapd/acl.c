@@ -97,10 +97,17 @@ access_allowed(
 	    access2str( access ),
 		e->e_dn, attr );
 
-	assert( be != NULL );
 	assert( e != NULL );
 	assert( attr != NULL );
 	assert( access > ACL_NONE );
+
+	if ( op == NULL ) {
+		/* no-op call */
+		return 1;
+	}
+
+	if ( be == NULL ) be = &backends[0];
+	assert( be != NULL );
 
 	/* grant database root access */
 	if ( be != NULL && be_isroot( be, op->o_ndn ) ) {
