@@ -86,6 +86,11 @@ monitor_subsys_database_init(
 
 		be = &backendDB[i];
 
+		/* Subordinates are not exposed as their own naming context */
+		if ( be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
+			continue;
+		}
+
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Database %d,%s\n"
 				SLAPD_MONITOR_OBJECTCLASSES
@@ -123,21 +128,15 @@ monitor_subsys_database_init(
 		}
 
 		for ( j = nBackendInfo; j--; ) {
-			if ( &backendInfo[ j ] == be->bd_info ) {
-				struct berval 		bv[ 2 ];
-
-				/* we check the pointer; the test on the
-				 * string should be more reliable */
-				assert( strcasecmp( backendInfo[ j ].bi_type,
-					be->bd_info->bi_type ) == 0 );
+			if ( backendInfo[ j ].bi_type == be->bd_info->bi_type ) {
+				struct berval 		bv;
 
 				snprintf( buf, sizeof( buf ), 
 					"cn=Backend %d,%s", 
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
-				bv[ 0 ].bv_val = buf;
-				bv[ 0 ].bv_len = strlen( buf );
-				bv[ 1 ].bv_val = NULL;
-				attr_merge( e, ad_seeAlso, bv );
+				bv.bv_val = buf;
+				bv.bv_len = strlen( buf );
+				attr_merge_one( e, ad_seeAlso, &bv );
 				break;
 			}
 		}
