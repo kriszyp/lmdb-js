@@ -257,10 +257,6 @@ char	**argv;
 	}
     }
 
-    if ( verbose ) {
-	printf( "ldap_open( %s, %d )\n", ldaphost, ldapport );
-    }
-
 	if ( debug ) {
 		lber_debug = ldap_debug = debug;
 	}
@@ -269,8 +265,12 @@ char	**argv;
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 
-    if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	perror( ldaphost );
+    if ( verbose ) {
+	printf( "ldap_init( %s, %d )\n", ldaphost, ldapport );
+    }
+
+    if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+	perror( "ldap_init" );
 	exit( 1 );
     }
 

@@ -567,9 +567,9 @@ main (int argc, char *argv[])
 #endif
 
 	/* connect to server */
-	if ((ld = ldap_open (ldaphost, ldapport)) == NULL)
+	if ((ld = ldap_init (ldaphost, ldapport)) == NULL)
 	{
-		perror (ldaphost);
+		perror ("ldap_init");
 		exit (1);
 	}
 

@@ -77,12 +77,54 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 	BerElement *ber )
 {
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
-	LDAPServer	*servers;
+	LDAPServer	*servers, *srv;
 #endif /* LDAP_REFERRALS || LDAP_DNS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
+	if ( ld->ld_sb.sb_sd == -1 ) {
+		/* not connected yet */
+
+#if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
+		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
+		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
+		    strdup( ld->ld_defhost )) == NULL ))
+		{
+			if (srv != NULL) free( srv );
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return( -1 );
+		}
+
+		srv->lsrv_port = ld->ld_defport;
+
+		if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 ))
+			== NULL )
+		{
+			if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
+			free( (char *)srv );
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			return( -1 );
+		}
+		++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+
+#else /* LDAP_REFERRALS */
+		if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
+		    ld->ld_defport, &ld->ld_host, 0 ) < 0 )
+		{
+			ldap_ld_free( ld, 0 );
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			return( -1 );
+		}
+#endif /* LDAP_REFERRALS */
+
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_delayed_open successful, ld_host is %s\n",
+			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
+	}
+
+
 #if !defined( LDAP_REFERRALS ) && !defined( LDAP_DNS )
+
 	if ( ber_flush( &ld->ld_sb, ber, 1 ) != 0 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		return( -1 );

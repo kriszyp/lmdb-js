@@ -24,7 +24,7 @@ struct co_arg {
 static void *
 connection_operation( void *arg_v )
 {
-	struct co_arg	*arg = arg_v;
+	struct co_arg	*arg = (struct co_arg *) arg_v;
 	unsigned long	len;
 
 	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
@@ -104,6 +104,7 @@ connection_operation( void *arg_v )
 		ldap_pvt_thread_cond_signal(&active_threads_cond);
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+
 	return NULL;
 }
 
