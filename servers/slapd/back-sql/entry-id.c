@@ -425,7 +425,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		int rc;
 
 		bv[ 0 ] = bsi->oc->oc->soc_cname;
-		bv[ 0 ].bv_val = NULL;
+		bv[ 1 ].bv_val = NULL;
 
 		rc = structural_class( bv, &soc, NULL, 
 				&text, textbuf, textlen );
