@@ -78,10 +78,10 @@ its use.
 
 H3: Global Directives
 
-Directives described in this section apply to all backends,
-unless specifically overridden in a backend definition. 
-Arguments to directives should be replaced by actual text are
-shown in brackets {{EX:<>}}.
+Directives described in this section apply to all backends
+and databases, unless specifically overridden in a backend or
+database definition. Arguments to directives should be replaced
+by actual text are shown in brackets {{EX:<>}}.
 
 
 H4: access to <what> [ by <who> <accesslevel> <control> ]+
@@ -89,13 +89,19 @@ H4: access to <what> [ by <who> <accesslevel> <control> ]+
 This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
 more requesters (specified by <who>).
-See the {{SECT:Access Control}} section of this chapter for more
-details and examples.
+See the {{SECT:Access Control}} section of this chapter for a
+summary of basic usage.
+!if 0
+More details discussion of this directive can be found in the
+{{SECT:Advanced Access Control}} chapter.
+!endif
 
 
-H4: attributetype <RFC2252 Attribute Type Description>
+H4: attributetype <{{REF:RFC2252}} Attribute Type Description>
 
 This directive defines an attribute type.
+Please see the {{SECT:Schema Specification}} section of this
+chapter for information regarding how to use this directive.
 
 
 H4: defaultaccess { none | compare | search | read | write }
@@ -126,6 +132,7 @@ used to include files containing schema specifications.
 Note: You should be careful when using this directive - there is
 no small limit on the number of nested include directives, and no
 loop detection is done.
+
 
 H4: loglevel <integer>
 
@@ -168,9 +175,13 @@ logged.
 
 E: loglevel 256
 
-H4: objectclass <RFC2252 Object Class Description>
+
+H4: objectclass <{{REF:RFC2252}} Object Class Description>
 
 This directive defines an object class.
+Please see the {{SECT:Schema Specification}} section of this
+chapter for information regarding how to use this directive.
+
 
 H4: referral <URI>
 
@@ -292,7 +303,8 @@ given. Kerberos authentication requires a valid srvtab file.
 
 The {{EX:credentials=}} parameter, which is only required if using
 simple authentication, gives the password for {{EX:binddn}} on the
-slave slapd.
+slave slapd.  Simple authentication is deprecated in favor of
+SASL based authentication services.
 
 The {{EX:srvtab=}} parameter is deprecated in favor of SASL
 based authentication services.
@@ -721,8 +733,6 @@ examples given below should help make this clear.
 
 H3: Access Control Examples
 
-
-
 The access control facility described above is quite powerful.
 This section shows some examples of its use. First, some
 simple examples:
@@ -872,13 +882,15 @@ H3: AttributeType Specification
 
 {{B:To be specified.}}
 
+>	attributetype <{{REF:RFC2252}} Attribute Type Description>
+
 H3: ObjectClass Specification
 
 The schema rules are defined by one or more
 objectclass lines, and enforcement is turned on or off via the
 schemacheck directives. The format of an {{EX:objectclass}} line is:
 
->	objectclass <RFC2252 Object Class Description>
+>	objectclass <{{REF:RFC2252}} Object Class Description>
 
 This directive defines the schema rules for the object class
 given by {{EX:<name>}}. Schema rules consist of the attributes the
