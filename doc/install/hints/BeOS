@@ -1,6 +1,6 @@
 BeOS Hints
 
-Latest: http://www.openldap.org/faq/index.cgi?file=18
+Latest: http://www.openldap.org/faq/index.cgi?file=96
 
 OpenLDAP has been tested with BeOS R4 x86 using GDBM (downloadable from a
 geekgadgets mirror). All tools, daemons and libraries build and work,
