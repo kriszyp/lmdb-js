@@ -1,3 +1,5 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: The {{I: slapd}} Configuration File
 
 Once the software has been built and installed, you are ready to configure it

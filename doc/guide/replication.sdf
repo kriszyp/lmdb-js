@@ -1,3 +1,5 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Replication with slurpd
 
 In certain configurations, a single slapd instance may be

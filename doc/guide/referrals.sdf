@@ -1,3 +1,5 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Distributing {{I: slapd}} DATA
 
 For many sites, running one or more {{I: slapds}} that hold an
