@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "slap.h"
 #include "back-monitor.h"
@@ -32,9 +33,18 @@
 static int monitor_back_add_plugin( Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 
+#if defined(SLAPD_BDB)
+#include "../back-bdb/back-bdb.h"
+#endif /* defined(SLAPD_BDB) */
+#if defined(SLAPD_HDB)
+#include "../back-hdb/back-bdb.h"
+#endif /* defined(SLAPD_HDB) */
 #if defined(SLAPD_LDAP) 
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
+#if 0 && defined(SLAPD_LDBM) 
+#include "../back-ldbm/back-ldbm.h"
+#endif /* defined(SLAPD_LDBM) */
 
 static struct restricted_ops_t {
 	struct berval	op;
@@ -197,7 +207,7 @@ monitor_subsys_database_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to create entry \"cn=Database %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_dn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -206,6 +216,7 @@ monitor_subsys_database_init(
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_monitorContext,
 					be->be_suffix, be->be_nsuffix );
+
 		} else {
 			attr_merge( e, slap_schema.si_ad_namingContexts,
 					be->be_suffix, be->be_nsuffix );
@@ -257,6 +268,72 @@ monitor_subsys_database_init(
 			}
 		}
 
+#if defined(SLAPD_BDB) || defined(SLAPD_HDB) 
+		if ( strcmp( bi->bi_type, "bdb" ) == 0
+				|| strcmp( bi->bi_type, "hdb" ) == 0 )
+		{
+			struct berval	bv;
+			ber_len_t	pathlen = 0, len = 0;
+			char		path[ PATH_MAX ] = { '\0' };
+			char		*fname = NULL;
+
+			if ( strcmp( bi->bi_type, "bdb" ) == 0
+					|| strcmp( bi->bi_type, "hdb" ) == 0 )
+			{
+				struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+				fname = bdb->bi_dbenv_home;
+#if 0
+			} else if ( strcmp( bi->bi_type, "ldbm" ) == 0 ) {
+				struct ldbminfo *ldbm = (struct ldbminfo *) be->be_private;
+
+				/* FIXME: there's a conflict
+				 * between back-bdb.h and back.ldbm.h;
+				 * anyway, this code will be moved
+				 * to the backends as soon as the
+				 * issue with filtering on namingContexts
+				 * is fixed */
+				fname = ldbm->li_directory;
+#endif
+			}
+
+			len = strlen( fname );
+			if ( fname[ 0 ] != '/' ) {
+				/* get full path name */
+				getcwd( path, sizeof( path ) );
+				pathlen = strlen( path );
+
+				if ( fname[ 0 ] == '.' && fname[ 1 ] == '/' ) {
+					fname += 2;
+					len -= 2;
+				}
+			}
+
+			bv.bv_len = STRLENOF( "file://" ) + pathlen
+				+ STRLENOF( "/" ) + len;
+			bv.bv_val = ch_malloc( bv.bv_len + STRLENOF( "/" ) + 1 );
+			AC_MEMCPY( bv.bv_val, "file://", STRLENOF( "file://" ) );
+			if ( pathlen ) {
+				AC_MEMCPY( &bv.bv_val[ STRLENOF( "file://" ) ],
+						path, pathlen );
+				bv.bv_val[ STRLENOF( "file://" ) + pathlen ] = '/';
+				pathlen++;
+			}
+			AC_MEMCPY( &bv.bv_val[ STRLENOF( "file://" ) + pathlen ],
+					fname, len );
+			if ( bv.bv_val[ bv.bv_len - 1 ] != '/' ) {
+				bv.bv_val[ bv.bv_len ] = '/';
+				bv.bv_len++;
+			}
+			bv.bv_val[ bv.bv_len ] = '\0';
+
+			attr_merge_normalize_one( e, slap_schema.si_ad_labeledURI,
+					&bv, NULL );
+
+			ch_free( bv.bv_val );
+		}
+#endif /* defined(SLAPD_LDAP) || defined(SLAPD_HDB) */
+
 #if defined(SLAPD_LDAP) 
 		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			struct ldapinfo		*li = (struct ldapinfo *)be->be_private;
@@ -299,13 +376,91 @@ monitor_subsys_database_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to add entry \"cn=Database %d,%s\"\n",
-				i, ms->mss_ndn.bv_val, 0 );
+				i, ms->mss_dn.bv_val, 0 );
 			return( -1 );
 		}
 
 #if defined(LDAP_SLAPI)
 		monitor_back_add_plugin( be, e );
 #endif /* defined(LDAP_SLAPI) */
+
+		if ( oi != NULL ) {
+			Entry		**ep_overlay = &mp->mp_children;
+			monitor_entry_t	*mp_overlay;
+			slap_overinst	*on = oi->oi_list;
+			int		o;
+
+			for ( o = 0; on; o++, on = on->on_next ) {
+				Entry			*e_overlay;
+				slap_overinst		*on2;
+
+				/* find the overlay number, j */
+				for ( on2 = overlay_next( NULL ), j = 0; on2; on2 = overlay_next( on2 ), j++ ) {
+					if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
+						break;
+					}
+				}
+				assert( on2 );
+
+				snprintf( buf, sizeof( buf ),
+						"dn: cn=Overlay %d,cn=Database %d,%s\n"
+						"objectClass: %s\n"
+						"structuralObjectClass: %s\n"
+						"cn: Overlay %d\n"
+						"description: This object contains the type of the overlay.\n"
+						"%s: %s\n"
+						"seeAlso: cn=Overlay %d,%s\n"
+						"creatorsName: %s\n"
+						"modifiersName: %s\n"
+						"createTimestamp: %s\n"
+						"modifyTimestamp: %s\n",
+						o,
+						i,
+						ms->mss_dn.bv_val,
+						mi->mi_oc_monitoredObject->soc_cname.bv_val,
+						mi->mi_oc_monitoredObject->soc_cname.bv_val,
+						o,
+						mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+						on->on_bi.bi_type,
+						j,
+						ms_overlay->mss_dn.bv_val,
+						mi->mi_creatorsName.bv_val,
+						mi->mi_creatorsName.bv_val,
+						mi->mi_startTime.bv_val,
+						mi->mi_startTime.bv_val );
+				
+				e_overlay = str2entry( buf );
+				if ( e_overlay == NULL ) {
+					Debug( LDAP_DEBUG_ANY,
+						"monitor_subsys_database_init: "
+						"unable to create entry "
+						"\"cn=Overlay %d,cn=Database %d,%s\"\n",
+						o, i, ms->mss_dn.bv_val );
+					return( -1 );
+				}
+
+				mp_overlay = monitor_entrypriv_create();
+				if ( mp_overlay == NULL ) {
+					return -1;
+				}
+				e_overlay->e_private = ( void * )mp_overlay;
+				mp_overlay->mp_info = ms;
+				mp_overlay->mp_flags = ms->mss_flags
+					| MONITOR_F_SUB;
+		
+				if ( monitor_cache_add( mi, e_overlay ) ) {
+					Debug( LDAP_DEBUG_ANY,
+						"monitor_subsys_database_init: "
+						"unable to add entry "
+						"\"cn=Overlay %d,cn=Database %d,%s\"\n",
+						o, i, ms->mss_dn.bv_val );
+					return( -1 );
+				}
+
+				*ep_overlay = e_overlay;
+				ep_overlay = &mp_overlay->mp_next;
+			}
+		}
 
 		*ep = e;
 		ep = &mp->mp_next;
