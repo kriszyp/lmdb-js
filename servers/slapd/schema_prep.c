@@ -778,7 +778,7 @@ static AttributeType slap_at_undefined = {
 	NULL, /* syntax (this may need to be defined) */
 	(AttributeTypeSchemaCheckFN *) 0, /* schema check function */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
-	NULL, /* next */
+	{ NULL }, /* next */
 	NULL /* attribute description */
 	/* mutex (don't know how to initialize it :) */
 };
