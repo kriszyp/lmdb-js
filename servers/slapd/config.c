@@ -843,7 +843,6 @@ read_config( const char *fname, int depth )
 #endif
 						}
 					}
-					lim->lms_s_hard = 0;
 				}
 			}
 
@@ -923,7 +922,6 @@ read_config( const char *fname, int depth )
 #endif
 						}
 					}
-					lim->lms_t_hard = 0;
 				}
 			}
 
