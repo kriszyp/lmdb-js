@@ -334,7 +334,7 @@ main ( int argc, char **argv )
 			free( localpart );
 			free( domainpart );
 		} else {
-			sprintf( address, "%s@%s", localpart, domainpart );
+			sprintf( address, "%s", localpart );
 			free( localpart );
 		}
 		do_address( address, &tolist, &numto, &togroups, &ngroups,
