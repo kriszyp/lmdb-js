@@ -720,7 +720,7 @@ try_again:
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "caceh", LDAP_LEVEL_INFO,
+			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
 				   "cache_find_entry_id: (%ld)->%ld not ready (%d).\n",
 				   id, ep_id, state ));
 				   
