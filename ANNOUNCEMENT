@@ -1,9 +1,9 @@
 	A N N O U N C E M E N T
 
-	OpenLDAP 1.1
+	OpenLDAP 1.2
 
 	The OpenLDAP Project is pleased to announce the availability
-	of OpenLDAP release 1.1, a suite of the Lightweight Weight
+	of OpenLDAP release 1.2, a suite of the Lightweight Weight
 	Directory Protocol servers, clients, utilities, and development tools.
 
 	OpenLDAP is derived from University of Michigan LDAP release 3.3.
@@ -33,6 +33,11 @@
 	- whois++d - a WHOIS++-to-LDAP gateway
 
 CHANGES
+	Changes from OpenLDAP 1.1
+	- ldappasswd tool, password prompting, salted MD5/SHA1 support
+	- platforms updates, and
+	- numerous bug fixes and build changes.
+
 	Changes from OpenLDAP 1.0
 	- improved build environment with dynamic library support,
 	- externally configurable client library support: ldap.conf(5),

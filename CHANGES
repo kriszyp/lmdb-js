@@ -30,6 +30,7 @@ Changes included in OpenLDAP 1.1.3
 	Updated slapd to use pthread_detach()
 	Updated slapd thread initialization
 	Updated slapd shutdown code to use condition wait
+	Updated slapd alias deref to be optional
 	Build environment
 		Added DB2 patch information
 		Added distclean target
