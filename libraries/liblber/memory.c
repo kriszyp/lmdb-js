@@ -27,6 +27,12 @@ struct ber_mem_hdr {
 #define BER_MEM_JUNK 0xddeeddeeU
 static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK };
 #define BER_MEM_BADADDR	((void *) &ber_int_mem_hdr.bm_data)
+#define BER_MEM_VALID(p)	do { \
+		assert( (p) != BER_MEM_BADADDR );	\
+		assert( (p) != (void *) &ber_int_mem_hdr );	\
+	} while(1)
+#else
+#define BER_MEM_VALID(p)	/* no-op */
 #endif
 
 BerMemoryFunctions *ber_int_memory_fns = NULL;
@@ -36,7 +42,7 @@ void
 ber_int_memfree( void **p )
 {
 	assert( p != NULL );
-	assert( *p != BER_MEM_BADADDR );
+	BER_MEM_VALID( *p )
 
 	ber_memfree( p );
 
@@ -49,15 +55,12 @@ ber_memfree( void *p )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-#ifdef LDAP_MEMORY_DEBUG
-	/* catch p == NULL when debugging */
-	assert( p != NULL );
-#endif
-
 	/* ignore p == NULL when not debugging */
 	if( p == NULL ) {
 		return;
 	}
+
+	BER_MEM_VALID( p )
 
 	if( ber_int_memory_fns == NULL ) {
 #ifdef LDAP_MEMORY_DEBUG
@@ -85,13 +88,13 @@ ber_memvfree( void **vec )
 {
 	int	i;
 
-#ifdef LDAP_MEMORY_DEBUG
-	assert(vec != NULL);	/* vec damn better point to something */
-#endif
+    ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( vec == NULL ) {
 		return;
 	}
+
+	BER_MEM_VALID( vec )
 
 	for ( i = 0; vec[i] != NULL; i++ ) {
 		LBER_FREE( vec[i] );
@@ -124,6 +127,7 @@ ber_memalloc( size_t s )
 
 		mh->bm_junk = BER_MEM_JUNK;
 
+		BER_MEM_VALID( &mh[1] )
 		return &mh[1];
 #else
 		return malloc( s );
@@ -157,6 +161,8 @@ ber_memcalloc( size_t n, size_t s )
 			(n * s) + sizeof(struct ber_mem_hdr) );
 
 		mh->bm_junk = BER_MEM_JUNK;
+
+		BER_MEM_VALID( &mh[1] )
 		return &mh[1];
 #else
 		return calloc( n, s );
@@ -185,6 +191,8 @@ ber_memrealloc( void* p, size_t s )
 		return NULL;
 	}
 
+	BER_MEM_VALID( p )
+
 	if( ber_int_memory_fns == NULL ) {
 #ifdef LDAP_MEMORY_DEBUG
 		struct ber_mem_hdr *mh = (struct ber_mem_hdr *)
@@ -199,6 +207,7 @@ ber_memrealloc( void* p, size_t s )
 
 		assert( mh->bm_junk == BER_MEM_JUNK );
 
+		BER_MEM_VALID( &mh[1] )
 		return &mh[1];
 #else
 		return realloc( p, s );
@@ -214,15 +223,13 @@ ber_memrealloc( void* p, size_t s )
 void
 ber_bvfree( struct berval *bv )
 {
-#ifdef LDAP_MEMORY_DEBUG
-	assert(bv != NULL);			/* bv damn better point to something */
-#endif
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
 		return;
 	}
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
+	BER_MEM_VALID( bv )
 
 	if ( bv->bv_val != NULL )
 		LBER_FREE( bv->bv_val );
@@ -236,15 +243,13 @@ ber_bvecfree( struct berval **bv )
 {
 	int	i;
 
-#ifdef LDAP_MEMORY_DEBUG
-	assert(bv != NULL);			/* bv damn better point to something */
-#endif
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
 		return;
 	}
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
+	BER_MEM_VALID( bv )
 
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
@@ -258,10 +263,6 @@ ber_bvdup(
 	LDAP_CONST struct berval *bv )
 {
 	struct berval *new;
-
-#ifdef LDAP_MEMORY_DEBUG
-	assert(bv != NULL);			/* bv damn better point to something */
-#endif
 
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
@@ -297,6 +298,8 @@ ber_strdup( LDAP_CONST char *s )
 	char    *p;
 	size_t	len;
 	
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
 #ifdef LDAP_MEMORY_DEBUG
 	assert(s != NULL);			/* bv damn better point to something */
 #endif
