@@ -57,8 +57,8 @@ bdb2i_back_modrdn_internal(
 	char		*np_ndn = NULL; /* newSuperior ndn */
 	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 
-	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",\
-	       (newSuperior ? newSuperior : "NULL"),\
+	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
+	       (newSuperior ? newSuperior : "NULL"),
 	       0, 0 );
 
 	/* get entry with writer lock */
@@ -247,8 +247,8 @@ bdb2i_back_modrdn_internal(
 
 	}
 
-	Debug( LDAP_DEBUG_TRACE,\
-	       "ldbm_back_modrdn: new_rdn_val=%s, new_rdn_type=%s\n",\
+	Debug( LDAP_DEBUG_TRACE,
+	       "ldbm_back_modrdn: new_rdn_val=%s, new_rdn_type=%s\n",
 	       new_rdn_val, new_rdn_type, 0 );
 
 	/* Retrieve the old rdn from the entry's dn */
@@ -276,8 +276,8 @@ bdb2i_back_modrdn_internal(
 	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
 
 	    /* Not a big deal but we may say something */
-	    Debug( LDAP_DEBUG_TRACE,\
-		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",\
+	    Debug( LDAP_DEBUG_TRACE,
+		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",
 		   old_rdn_type, new_rdn_type, 0 );
 	    
 	}		
@@ -341,8 +341,8 @@ bdb2i_back_modrdn_internal(
 
 			}
 
-			Debug( LDAP_DEBUG_TRACE,\
-			       "ldbm_back_modrdn: removed old_rdn_val=%s\n",\
+			Debug( LDAP_DEBUG_TRACE,
+			       "ldbm_back_modrdn: removed old_rdn_val=%s\n",
 			       old_rdn_val, 0, 0 );
 		
 		}/* if (deleteoldrdn) */
@@ -368,7 +368,7 @@ bdb2i_back_modrdn_internal(
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DNS DN\n",
 		       0, 0, 0 );
 		/* XXXV3: not sure of what to do here */
-		Debug( LDAP_DEBUG_TRACE,\
+		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: not fully implemented...\n",
 		       0, 0, 0 );  
 

@@ -131,8 +131,8 @@ main(int argc, char **argv)
 
     if ((newSuperior != NULL) && (version != LDAP_VERSION3))
     {
-	fprintf( stderr,\
-		 "%s: version conflict!, -s newSuperior requires LDAP v3\n",\
+	fprintf( stderr,
+		 "%s: version conflict!, -s newSuperior requires LDAP v3\n",
 		 myname);
 	fprintf( stderr, usage, argv[0] );
 	exit( 1 );
