@@ -96,8 +96,8 @@ del_msg( struct msg *m )
 	}
 
 	if ( cur == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "delmsg: cannot find msg %x\n", m,
-		    0, 0 );
+		Debug( LDAP_DEBUG_ANY, "delmsg: cannot find msg %lx\n",
+		       (unsigned long) m, 0, 0 );
 		return( -1 );
 	}
 

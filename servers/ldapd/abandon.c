@@ -27,6 +27,7 @@
 #include "ldap.h"
 #include "common.h"
 
+int
 do_abandon(
     struct conn	*dsaconn,
     BerElement	*ber,

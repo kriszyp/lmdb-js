@@ -135,8 +135,8 @@ client_request(
 			ttag = ber_skip_tag( &tber, &tlen );
 			ttag = ber_peek_tag( &tber, &tlen );
 
-			Debug( LDAP_DEBUG_ANY, "checking for 3.0 tag 0x%x\n",
-			    ttag, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "checking for 3.0 tag 0x%lx\n",
+			       ttag, 0, 0 );
 			if ( ttag == LBER_SEQUENCE ) {
 				Debug( LDAP_DEBUG_ANY, "version 3.0 detected\n",
 				    0, 0, 0 );

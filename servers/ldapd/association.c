@@ -220,7 +220,8 @@ conn_add( struct conn *new )
 	conns = new;
 }
 
-static psap_cmp( struct PSAPaddr *a, struct PSAPaddr *b )
+static int
+psap_cmp( struct PSAPaddr *a, struct PSAPaddr *b )
 {
 	return( bcmp( (char *) a, (char *) b, sizeof(struct PSAPaddr) ) );
 }

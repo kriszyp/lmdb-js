@@ -29,9 +29,9 @@
 #include "ldap.h"
 #include "common.h"
 
-static get_filter();
-static get_filter_list();
-static get_substring_filter();
+static int	get_filter();
+static int	get_filter_list();
+static int	get_substring_filter();
 
 #ifdef LDAP_COMPAT
 extern int	version;
@@ -206,7 +206,8 @@ do_search(
 	return( 1 );
 }
 
-static get_filter( BerElement *ber, Filter *filt )
+static int
+get_filter( BerElement *ber, Filter *filt )
 {
 	unsigned long	tag, len;
 	int		err;
@@ -375,7 +376,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %d\n", tag, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n", tag, 0, 0 );
 		free( f );
 		return( LDAP_PROTOCOL_ERROR );
 		break;
@@ -385,7 +386,8 @@ static get_filter( BerElement *ber, Filter *filt )
 	return( err );
 }
 
-static get_filter_list( BerElement *ber, Filter f )
+static int
+get_filter_list( BerElement *ber, Filter f )
 {
 	Filter		new, tail;
 	int		err;
@@ -416,7 +418,8 @@ static get_filter_list( BerElement *ber, Filter f )
 	return( 0 );
 }
 
-static get_substring_filter( BerElement *ber, Filter f )
+static int
+get_substring_filter( BerElement *ber, Filter f )
 {
 	unsigned long	tag, len;
 	char		typestr[64];

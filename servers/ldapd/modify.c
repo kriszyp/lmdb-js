@@ -43,6 +43,7 @@ extern short	ldap_rts_cred_syntax;
 extern short	ldap_rtl_syntax;
 extern short	ldap_octetstring_syntax;
 
+static int replace_mod( struct entrymod *, Attr_Sequence, Attr_Sequence );
 
 #ifdef LDAP_COMPAT20
 extern int 	ldap_compat;
@@ -522,7 +523,7 @@ modlist_free( LDAPMod *mods )
  * that are not in the new set and by only adding what isn't in old set
  */
 
-int
+static int
 replace_mod(
     struct entrymod	*rem,
     Attr_Sequence	oas,

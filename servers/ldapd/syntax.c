@@ -57,7 +57,8 @@ short	ldap_dLSubmitPermission_syntax;
 static void	de_t61( char *s, int t61mark );
 static int	syntax_is_string( short syntax );
 
-static get_one_syntax( char *attrib, int required )
+static int
+get_one_syntax( char *attrib, int required )
 {
 	oid_table_attr	*p, *name2attr();
 
@@ -337,7 +338,8 @@ encode_dn(
 	return( rc );
 }
 
-static put_jpeg_value( BerElement *ber, AttributeValue av )
+static int
+put_jpeg_value( BerElement *ber, AttributeValue av )
 {
 	PE	pe;
 	int	len;
@@ -380,7 +382,8 @@ static put_jpeg_value( BerElement *ber, AttributeValue av )
 	return( 0 );
 }
 
-static put_audio_value( BerElement *ber, AttributeValue av )
+static int
+put_audio_value( BerElement *ber, AttributeValue av )
 {
 	struct qbuf	*qb, *p;
 	int		rc, len;
@@ -417,7 +420,8 @@ static put_audio_value( BerElement *ber, AttributeValue av )
 	return( rc );
 }
 
-static put_photo_value( BerElement *ber, AttributeValue av )
+static int
+put_photo_value( BerElement *ber, AttributeValue av )
 {
 	PE		pe;
 	PS		ps;
@@ -479,7 +483,8 @@ static put_photo_value( BerElement *ber, AttributeValue av )
 	return( 0 );
 }
 
-static put_values(
+static int
+put_values(
     BerElement	*ber,
     PS		ps,
     short	syntax,
