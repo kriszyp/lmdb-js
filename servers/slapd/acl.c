@@ -1348,22 +1348,18 @@ aci_match_set (
 		/* format of string is "entry/setAttrName" */
 		if (aci_get_part(subj, 0, '/', &subjdn) < 0) {
 			return(0);
-		} else {
-			/* FIXME: If dnNormalize was based on ldap_bv2dn
-			 * instead of ldap_str2dn and would honor the bv_len
-			 * we could skip this step and not worry about the
-			 * unterminated string.
-			 */
-			char *s = ch_malloc(subjdn.bv_len + 1);
-			AC_MEMCPY(s, subjdn.bv_val, subjdn.bv_len);
-			subjdn.bv_val = s;
 		}
 
 		if ( aci_get_part(subj, 1, '/', &setat) < 0 ) {
 			setat.bv_val = SLAPD_ACI_SET_ATTR;
 			setat.bv_len = sizeof(SLAPD_ACI_SET_ATTR)-1;
 		}
+
 		if ( setat.bv_val != NULL ) {
+			/*
+			 * NOTE: dnNormalize2 honors the ber_len field
+			 * as the length of the dn to be normalized
+			 */
 			if ( dnNormalize2(NULL, &subjdn, &ndn) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
@@ -1384,7 +1380,6 @@ aci_match_set (
 			if (ndn.bv_val)
 				free(ndn.bv_val);
 		}
-		ch_free(subjdn.bv_val);
 	}
 
 	if (set.bv_val != NULL) {

@@ -621,6 +621,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 	LDAPRDN		*newRDN = NULL, *tmpDN_[TMP_RDN_SLOTS], **tmpDN = tmpDN_;
 	int		num_slots = TMP_RDN_SLOTS;
 	char		*str = bv->bv_val;
+	char		*end = str + bv->bv_len;
 	
 	assert( bv );
 	assert( bv->bv_val );
@@ -679,7 +680,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 #endif
 	}
 
-	for ( ; p[ 0 ]; p++ ) {
+	for ( ; p < end; p++ ) {
 		int		err;
 		struct berval 	tmpbv = { bv->bv_len - ( p - str ), (char *)p };
 		
@@ -691,7 +692,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 		/* 
 		 * We expect a rdn separator
 		 */
-		if ( p[ 0 ] ) {
+		if ( p < end && p[ 0 ] ) {
 			switch ( LDAP_DN_FORMAT( flags ) ) {
 			case LDAP_DN_FORMAT_LDAPV3:
 				if ( !LDAP_DN_RDN_SEP( p[ 0 ] ) ) {
@@ -747,7 +748,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 			num_slots *= 2;
 		}
 				
-		if ( p[ 0 ] == '\0' ) {
+		if ( p >= end || p[ 0 ] == '\0' ) {
 			/* 
 			 * the DN is over, phew
 			 */
