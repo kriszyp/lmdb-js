@@ -33,6 +33,7 @@
 
 #include <ldap.h>
 #include <lutil.h>
+#include <lutil_sha1.h>
 
 #include "ldap_defaults.h"
 
@@ -57,7 +58,12 @@ usage(const char *s)
 int
 slappasswd( int argc, char *argv[] )
 {
+#ifdef LUTIL_SHA1_BYTES
 	char	*scheme = "{SSHA}";
+#else
+	char	*scheme = "{SMD5}";
+#endif
+
 	char	*newpw = NULL;
 	char	*pwfile = NULL;
 	const char *text;

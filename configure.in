@@ -813,13 +813,16 @@ AC_CHECK_HEADERS(	\
 	winsock2.h		\
 )
 
-
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+AC_CHECK_FUNCS( sigaction sigset )
+
 dnl HP-UX requires -lV3
 dnl this is not needed on newer versions of HP-UX
-AC_CHECK_LIB(V3, sigset)
+if test $ac_cv_func_sigaction = no && test $ac_cv_func_sigaction = no ; then
+	AC_CHECK_LIB(V3, sigset)
+fi
 
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
@@ -2477,9 +2480,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	setuid			\
 	seteuid			\
-	sigaction		\
 	signal			\
-	sigset			\
 	strdup			\
 	strpbrk			\
 	strrchr			\
