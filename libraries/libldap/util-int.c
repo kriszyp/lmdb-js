@@ -114,15 +114,15 @@ int ldap_pvt_gethostbyname_a(
 			return r;
 
 #if (GETHOSTBYNAME_R_NARGS < 6)
-		r = ((*result=gethostbyname_r( name, resbuf, *buf,\
-					       buflen, herrno_ptr ))== NULL) ?\
+		r = ((*result=gethostbyname_r( name, resbuf, *buf,
+					       buflen, herrno_ptr ))== NULL) ?
 		    -1 : 0;
 #else
 		r = gethostbyname_r( name, resbuf, *buf,
 			buflen, result, herrno_ptr );
 #endif
 
-		Debug( LDAP_DEBUG_TRACE, "ldap_pvt_gethostbyname_a: host=%s, r=%d\n",\
+		Debug( LDAP_DEBUG_TRACE, "ldap_pvt_gethostbyname_a: host=%s, r=%d\n",
 		       name, r, 0 );
 
 #ifdef NETDB_INTERNAL
@@ -195,7 +195,7 @@ int ldap_pvt_gethostbyaddr_a(
 #if (GETHOSTBYADDR_R_NARGS < 8)
 		r = ((*result=gethostbyaddr_r( addr, len, type,
 					       resbuf, *buf, buflen, 
-					       herrno_ptr )) == NULL) ?\
+					       herrno_ptr )) == NULL) ?
 		    -1 : 0;
 #else
 		r = gethostbyaddr_r( addr, len, type,

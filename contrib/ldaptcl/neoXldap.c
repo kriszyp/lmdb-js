@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id: neoXldap.c,v 1.1 1999/02/10 22:56:49 kunkee Exp $
+ * $Id: neoXldap.c,v 1.2 1999/04/29 22:14:57 hallvard Exp $
  *
  */
 
@@ -555,7 +555,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		return TCL_ERROR;
 	    }
 
-	    valPtrs = mod->mod_vals.modv_strvals = \
+	    valPtrs = mod->mod_vals.modv_strvals =
 	        (char **)ckalloc (sizeof (char *) * (valuesObjc + 1));
 	    valPtrs[valuesObjc] = (char *)NULL;
 
