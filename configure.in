@@ -884,6 +884,26 @@ if test "$ol_cv_c_posix_regex" = no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl For windows, check for the need of RPCRT for UUID function support
+AC_MSG_CHECKING(to see if -lrpcrt4 is needed for win32 UUID support)
+save_LIBS="$LIBS"
+LIBS="$LIBS -lrpcrt4"
+AC_TRY_LINK([
+		char UuidCreate@4();
+		char UuidToStringA@8();
+		],
+		[
+		UuidCreate@4();
+		UuidToStringA@8();
+		],
+		need_rpcrt=yes, need_rpcrt=no)
+if test $need_rpcrt = yes; then
+	SLAPD_LIBS="$SLAPD_LIBS -lrpcrt4"
+fi
+LIBS="$save_LIBS"
+AC_MSG_RESULT($need_rpcrt)
+
+dnl ----------------------------------------------------------------
 dnl Check for resolver routines
 dnl	  need to check for both res_query and __res_query
 dnl   need to check -lc, -lbind, and -lresolv
