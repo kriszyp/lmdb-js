@@ -229,8 +229,18 @@ int bdb_tool_entry_reindex(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_reindex( %ld, \"%s\" )\n",
 		(long) id, e->e_dn, 0 );
 
+	/* add dn2id indices */
+	rc = bdb_dn2id_add( be, tid, e->e_ndn, e->e_id );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		goto done;
+	}
+
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 
+done:
 	if( bi->bi_txn ) {
 		if( rc == 0 ) {
 			rc = txn_commit( tid, 0 );
@@ -250,6 +260,5 @@ int bdb_tool_entry_reindex(
 		}
 	}
 
-done:
 	return rc;
 }
