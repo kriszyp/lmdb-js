@@ -55,6 +55,7 @@ static struct berval
 	aci_bv_public		= BER_BVC("public"),
 	aci_bv_users		= BER_BVC("users"),
 	aci_bv_self 		= BER_BVC("self"),
+	aci_bv_creator 		= BER_BVC("creator"),
 	aci_bv_dnattr 		= BER_BVC("dnattr"),
 	aci_bv_group		= BER_BVC("group"),
 	aci_bv_role		= BER_BVC("role"),
@@ -688,7 +689,7 @@ acl_mask(
 		ACL_INVALIDATE( modmask );
 
 		/* AND <who> clauses */
-		if ( b->a_dn_pat.bv_len != 0 ) {
+		if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_pat: %s\n",
 				b->a_dn_pat.bv_val, 0, 0);
 			/*
@@ -696,22 +697,42 @@ acl_mask(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( bvmatch( &b->a_dn_pat, &aci_bv_anonymous ) ) {
+			/*
+			 * NOTE: styles "anonymous", "users", "self" 
+			 * and "creator" have been moved to an enumeration,
+			 * whose value is set in a_dn_style; however,
+			 * the string is maintaned in a_dn_pat.
+			 */
+			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS /* bvmatch( &b->a_dn_pat, &aci_bv_anonymous ) */ ) {
 				if ( op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( bvmatch( &b->a_dn_pat, &aci_bv_users ) ) {
+			} else if ( b->a_dn_style == ACL_STYLE_USERS /* bvmatch( &b->a_dn_pat, &aci_bv_users ) */ ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( bvmatch( &b->a_dn_pat, &aci_bv_self ) ) {
+			} else if ( b->a_dn_style == ACL_STYLE_SELF /* bvmatch( &b->a_dn_pat, &aci_bv_self ) */ ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 				
 				if ( e->e_dn == NULL || !dn_match( &e->e_nname, &op->o_ndn ) ) {
+					continue;
+				}
+
+			} else if ( b->a_dn_style == ACL_STYLE_CREATOR /* bvmatch ( &b->a_dn_pat, &aci_bv_creator ) */ ) {
+				/* creator */
+				Attribute	*a;
+
+				for ( a = e->e_attrs; a; a = a->a_next ) {
+					if ( a->a_desc == slap_schema.si_ad_creatorsName ) {
+						break;
+					}
+				}
+
+				if ( a == NULL || !dn_match( &a->a_nvals[ 0 ], &op->o_ndn ) ) {
 					continue;
 				}
 
@@ -2321,11 +2342,11 @@ aci_mask(
 	struct berval		*scope
 )
 {
-    struct berval bv, perms, sdn;
-	int rc;
+	struct berval	bv, perms, sdn;
+	int		rc;
 		
 
-	assert( desc->ad_cname.bv_val != NULL );
+	assert( !BER_BVISNULL( &desc->ad_cname ) );
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
@@ -2338,57 +2359,79 @@ aci_mask(
 	   For now, this routine only supports scope=entry.
 	 */
 	/* check that the aci has all 5 components */
-	if (aci_get_part(aci, 4, '#', NULL) < 0)
-		return(0);
+	if ( aci_get_part( aci, 4, '#', NULL ) < 0 ) {
+		return 0;
+	}
 
 	/* check that the aci family is supported */
-	if (aci_get_part(aci, 0, '#', &bv) < 0)
-		return(0);
+	if ( aci_get_part( aci, 0, '#', &bv ) < 0 ) {
+		return 0;
+	}
 
 	/* check that the scope matches */
-	if (aci_get_part(aci, 1, '#', &bv) < 0
-		|| ber_bvstrcasecmp( scope, &bv ) != 0)
+	if ( aci_get_part( aci, 1, '#', &bv ) < 0
+		|| ber_bvstrcasecmp( scope, &bv ) != 0 )
 	{
-		return(0);
+		return 0;
 	}
 
 	/* get the list of permissions clauses, bail if empty */
-	if (aci_get_part(aci, 2, '#', &perms) <= 0)
-		return(0);
+	if ( aci_get_part( aci, 2, '#', &perms ) <= 0 ) {
+		return 0;
+	}
 
 	/* check if any permissions allow desired access */
-	if (aci_list_get_rights(&perms, &desc->ad_cname, val, grant, deny) == 0)
-		return(0);
+	if ( aci_list_get_rights( &perms, &desc->ad_cname, val, grant, deny ) == 0 ) {
+		return 0;
+	}
 
 	/* see if we have a DN match */
-	if (aci_get_part(aci, 3, '#', &bv) < 0)
-		return(0);
+	if ( aci_get_part( aci, 3, '#', &bv ) < 0 ) {
+		return 0;
+	}
 
-	if (aci_get_part(aci, 4, '#', &sdn) < 0)
-		return(0);
+	if ( aci_get_part( aci, 4, '#', &sdn ) < 0 ) {
+		return 0;
+	}
 
-	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
+	if ( ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0 ) {
 		struct berval ndn;
+		
 		rc = 0;
-		if ( dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+		if ( dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS )
+		{
 			if ( dn_match( &op->o_ndn, &ndn ) ) {
 				rc = 1;
 			}
 			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 		}
-		return (rc);
+		return rc;
 
-	} else if (ber_bvstrcasecmp( &aci_bv_public, &bv ) == 0) {
-		return(1);
+	} else if ( ber_bvstrcasecmp( &aci_bv_public, &bv ) == 0 ) {
+		return 1;
 
-	} else if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
-		if (dn_match(&op->o_ndn, &e->e_nname))
-			return(1);
+	} else if ( ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0 ) {
+		if ( dn_match( &op->o_ndn, &e->e_nname ) ) {
+			return 1;
+		}
 
-	} else if (ber_bvstrcasecmp( &aci_bv_dnattr, &bv ) == 0) {
-		Attribute *at;
-		AttributeDescription *ad = NULL;
-		const char *text;
+	} else if ( ber_bvstrcasecmp( &aci_bv_creator, &bv ) == 0 ) {
+		Attribute	*a;
+
+		for ( a = e->e_attrs; a; a = a->a_next ) {
+			if ( a->a_desc == slap_schema.si_ad_creatorsName ) {
+				break;
+			}
+		}
+		
+		if ( a != NULL && dn_match( &op->o_ndn, &a->a_nvals[ 0 ] ) ) {
+			return 1;
+		}
+
+	} else if ( ber_bvstrcasecmp( &aci_bv_dnattr, &bv ) == 0 ) {
+		Attribute		*at;
+		AttributeDescription	*ad = NULL;
+		const char		*text;
 
 		rc = slap_bv2ad( &sdn, &ad, &text );
 
@@ -2400,15 +2443,15 @@ aci_mask(
 
 		bv = op->o_ndn;
 
-		for(at = attrs_find( e->e_attrs, ad );
-			at != NULL;
-			at = attrs_find( at->a_next, ad ) )
+		for ( at = attrs_find( e->e_attrs, ad );
+				at != NULL;
+				at = attrs_find( at->a_next, ad ) )
 		{
-			if (value_find_ex( ad,
+			if ( value_find_ex( ad,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				at->a_nvals,
-				&bv, op->o_tmpmemctx) == 0 )
+				&bv, op->o_tmpmemctx ) == 0 )
 			{
 				rc = 1;
 				break;
@@ -2418,27 +2461,32 @@ aci_mask(
 		return rc;
 
 
-	} else if (ber_bvstrcasecmp( &aci_bv_group, &bv ) == 0) {
-		if (aci_group_member(&sdn, &aci_bv_group_class,
-				&aci_bv_group_attr, op, e, nmatch, matches))
-			return(1);
+	} else if ( ber_bvstrcasecmp( &aci_bv_group, &bv ) == 0 ) {
+		if ( aci_group_member( &sdn, &aci_bv_group_class,
+				&aci_bv_group_attr, op, e, nmatch, matches ) )
+		{
+			return 1;
+		}
 
-	} else if (ber_bvstrcasecmp( &aci_bv_role, &bv ) == 0) {
-		if (aci_group_member(&sdn, &aci_bv_role_class,
-				&aci_bv_role_attr, op, e, nmatch, matches))
-			return(1);
+	} else if ( ber_bvstrcasecmp( &aci_bv_role, &bv ) == 0 ) {
+		if ( aci_group_member( &sdn, &aci_bv_role_class,
+				&aci_bv_role_attr, op, e, nmatch, matches ) )
+		{
+			return 1;
+		}
 
-	} else if (ber_bvstrcasecmp( &aci_bv_set, &bv ) == 0) {
-		if (aci_match_set(&sdn, op, e, 0))
-			return(1);
+	} else if ( ber_bvstrcasecmp( &aci_bv_set, &bv ) == 0 ) {
+		if ( aci_match_set( &sdn, op, e, 0 ) ) {
+			return 1;
+		}
 
-	} else if (ber_bvstrcasecmp( &aci_bv_set_ref, &bv ) == 0) {
-		if (aci_match_set(&sdn, op, e, 1))
-			return(1);
-
+	} else if ( ber_bvstrcasecmp( &aci_bv_set_ref, &bv ) == 0 ) {
+		if ( aci_match_set( &sdn, op, e, 1 ) ) {
+			return 1;
+		}
 	}
 
-	return(0);
+	return 0;
 }
 
 #endif	/* SLAPD_ACI_ENABLED */
