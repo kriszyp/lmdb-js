@@ -2,7 +2,9 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2.9
 	CVS Tag: OPENLDAP_REL_ENG_1_2_9
+	Fixed lutil/password bogus crypt password bug (ITS#423)
 	Fixed slapd/back-ldbm indexing bug (ITS#402)
+	Added UD support for creators/modifiers attributes (ITS#422)
 	Build Environment
 		Rebuild configure
 
