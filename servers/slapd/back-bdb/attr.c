@@ -18,7 +18,7 @@
 #if BDB_CONFIG_INDICES
 
 /* for the cache of attribute information (which are indexed, etc.) */
-typedef struct ldbm_attrinfo {
+typedef struct bdb_attrinfo {
 #ifdef SLAPD_USE_AD
 	AttributeDescription *ai_desc; /* attribute description cn;lang-en	*/
 #else

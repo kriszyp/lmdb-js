@@ -173,14 +173,31 @@ ID bdb_idl_next( ID *ids, ID *cursor );
  * index.c
  */
 extern int
-bdb_index_param(
+bdb_index_param LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,
 	int ftype,
-	DB **db,
+	char **dbname,
 	slap_mask_t *mask,
-	struct berval **prefix );
-	
+	struct berval **prefix ));
+
+extern int
+bdb_index_values LDAP_P((
+	Backend *be,
+	DB_TXN *txn,
+	AttributeDescription *desc,
+	struct berval **vals,
+	ID id,
+	int op ));
+
+int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t,
+	int r, Entry *e, Attribute *ap ));
+
+#define bdb_index_entry_add(be,t,e,ap) \
+	index_entry((be),(t),SLAP_INDEX_ADD_OP,(e),(ap))
+#define bdb_index_entry_del(be,t,e,ap) \
+	index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e),(ap))
+
 /*
  * key.c
  */

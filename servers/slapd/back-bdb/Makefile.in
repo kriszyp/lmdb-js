@@ -3,12 +3,12 @@
 SRCS = init.c tools.c config.c \
 	add.c bind.c compare.c delete.c modify.c modrdn.c search.c \
 	extended.c passwd.c referral.c \
-	attr.c \
+	attr.c index.c \
 	dn2entry.c dn2id.c error.c id2entry.c idl.c nextid.c
 OBJS = init.lo tools.lo config.lo \
 	add.lo bind.lo compare.lo delete.lo modify.lo modrdn.lo search.lo \
 	extended.lo passwd.lo referral.lo \
-	attr.lo \
+	attr.lo index.lo \
 	dn2entry.lo dn2id.lo error.lo id2entry.lo idl.lo nextid.lo
 
 LDAP_INCDIR= ../../../include       
