@@ -137,10 +137,26 @@ monitor_subsys_database_init(
 
 			for ( ; on; on = on->on_next ) {
 				struct berval		bv;
+				slap_overinst		*on2;
 				
 				bv.bv_val = on->on_bi.bi_type;
 				bv.bv_len = strlen( bv.bv_val );
 				attr_merge_normalize_one( e, mi->mi_ad_monitorOverlay,
+						&bv, NULL );
+
+				for ( on2 = overlay_next( NULL ), j = 0; on2; on2 = overlay_next( on2 ), j++ ) {
+					if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
+						break;
+					}
+				}
+				assert( on2 );
+
+				snprintf( buf, sizeof( buf ), 
+					"cn=Overlay %d,%s", 
+					j, monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_dn.bv_val );
+				bv.bv_val = buf;
+				bv.bv_len = strlen( buf );
+				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
 						&bv, NULL );
 			}
 		}
