@@ -84,6 +84,7 @@ mr_destroy( void )
 		m = LDAP_SLIST_FIRST(&mr_list);
 		LDAP_SLIST_REMOVE_HEAD(&mr_list, smr_next);
 		ch_free( m->smr_str.bv_val );
+		ch_free( m->smr_compat_syntaxes );
 		ldap_matchingrule_free((LDAPMatchingRule *)m);
 	}
 }
