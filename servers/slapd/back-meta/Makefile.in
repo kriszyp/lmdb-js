@@ -14,13 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
-		cache-query.c cache-search.c cache-config.c cache-merge.c \
-		cache-template.c cache-substring.c cache-remove.c \
 		delete.c modify.c modrdn.c \
 		conn.c candidates.c dncache.c
 OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
-		cache-query.lo cache-search.lo cache-config.lo cache-merge.lo \
-		cache-template.lo cache-substring.lo cache-remove.lo \
 		delete.lo modify.lo modrdn.lo \
 		conn.lo candidates.lo dncache.lo
 

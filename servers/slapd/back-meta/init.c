@@ -154,69 +154,24 @@ meta_back_db_init(
 	struct metainfo	*li;
 
 	struct rewrite_info	*rwinfo;
-	cache_manager		*cm;
-	query_manager		*qm;
 
 	rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( rwinfo == NULL ) {
 		return -1;
 	}
-		
-	cm = (cache_manager *)ch_malloc(sizeof(cache_manager)); 
-	if ( cm == NULL ) {
-		rewrite_info_delete( &rwinfo );
-		return -1;
-	}
-
-	qm = (query_manager*)ch_malloc(sizeof(query_manager)); 
-	if ( qm == NULL ) {
-		rewrite_info_delete( &rwinfo );
-		ch_free( cm );
-		return -1;
-	}
-
-	cm->caching = 0; 
-	cm->qm = qm; 
-	cm->numattrsets = 0; 
-	cm->numtemplates = 0; 	
-	cm->num_entries_limit = 5;
-	cm->cache_size = 0;
-	cm->thresh_hi = 500000;
-	cm->thresh_lo = 700000;
-	cm->num_cached_queries = 0; 
-	cm->total_entries = 0; 
-	cm->max_queries = 10000; 
-	cm->threads = 0; 
-	cm->cc_thread_started = 0; 
-	cm->cc_period = 1000; 
-       
-	qm->attr_sets = NULL; 
-	qm->templates = NULL; 
-	qm->lru_top = NULL;
-	qm->lru_bottom = NULL;
-
-	qm->qcfunc = query_containment; 
-	qm->crfunc = cache_replacement; 
-	qm->addfunc = add_query; 
-	ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
-        
-	ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
-	ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
-	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
 
 	li = ch_calloc( 1, sizeof( struct metainfo ) );
 	if ( li == NULL ) {
+		rewrite_info_delete( &rwinfo );
  		return -1;
  	}
-	
+
 	/*
 	 * At present the default is no default target;
 	 * this may change
 	 */
 	li->defaulttarget = META_DEFAULT_TARGET_NONE;
-	li->cm = cm; 
 	li->rwinfo = rwinfo;
-	/* FIXME: what about qm ? */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 	ldap_pvt_thread_mutex_init( &li->cache.mutex );
