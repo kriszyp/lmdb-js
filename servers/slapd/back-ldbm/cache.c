@@ -543,13 +543,32 @@ cache_find_entry_dn2id(
     const char		*dn
 )
 {
+	char 			*ndn;
+	ID			id;
+
+	ndn = ch_strdup( dn );
+	(void) dn_normalize( ndn );
+
+	id = cache_find_entry_ndn2id( be, cache, ndn );
+
+	free( ndn );
+
+	return ( id );
+}
+
+ID
+cache_find_entry_ndn2id(
+	Backend		*be,
+    Cache	*cache,
+    const char		*ndn
+)
+{
 	Entry		e, *ep;
 	ID			id;
 	int count = 0;
 
-	e.e_dn = (char *) dn;
-	e.e_ndn = ch_strdup( dn );
-	(void) dn_normalize( e.e_ndn );
+	/* this function is always called with normalized DN */
+	e.e_ndn = (char *)ndn;
 
 try_again:
 	/* set cache mutex */
@@ -589,7 +608,7 @@ try_again:
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
-				dn, id, state);
+				ndn, id, state);
 #endif
 
 
@@ -611,7 +630,7 @@ try_again:
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id(\"%s\"): %ld (%d tries)\n",
-			dn, id, count);
+			ndn, id, count);
 #endif
 
 
@@ -621,8 +640,6 @@ try_again:
 
 		id = NOID;
 	}
-
-	free(e.e_ndn);
 
 	return( id );
 }

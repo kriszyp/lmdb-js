@@ -134,7 +134,7 @@ dn2id(
 	assert( idp );
 
 	/* first check the cache */
-	if ( (*idp = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
+	if ( (*idp = cache_find_entry_ndn2id( be, &li->li_cache, dn )) != NOID ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			   "dn2id: (%s)%ld in cache.\n", dn, *idp ));
