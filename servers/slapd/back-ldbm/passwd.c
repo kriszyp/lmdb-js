@@ -84,6 +84,12 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
+	if( dn_normalize( dn ) == NULL ) {
+		*text = "Invalid DN";
+		rc = LDAP_INVALID_DN;
+		goto done;
+	}
+
 	e = dn2entry_w( be, dn, NULL );
 
 	if( e == NULL ) {
