@@ -30,7 +30,8 @@ KILLPIDS="$PID"
 
 echo "Using ldapsearch to retrieve the root DSE..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 '+extensibleObject' > $SEARCHOUT 2>&1
+	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 \
+		'+extensibleObject' > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -39,9 +40,18 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+if test $RC = 0 ; then
+	echo "Using ldapsearch to retrieve the cn=Subschema..."
+	$LDAPSEARCH -b "cn=Subschema" -s base -h $LOCALHOST -p $PORT1 \
+		 '(objectClasses=2.5.6.0)' cn objectClass >> $SEARCHOUT  2>&1
+	RC=$?
+
+fi
+
 if test $RC = 0 -a $MONITORDB = yes ; then
 	echo "Using ldapsearch to retrieve the cn=Monitor..."
-	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 '+extensibleObject' >> $SEARCHOUT 2>&1
+	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
+		'+extensibleObject' >> $SEARCHOUT 2>&1
 	RC=$?
 fi
 
@@ -49,13 +59,17 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 cat $SEARCHOUT
 
+
 if test $RC != 0 ; then
 	echo ">>>>> Test failed"
 else
-	if grep "TLS:" $SEARCHOUT; then
-		RC=-1
+	RC=`grep '^dn:' $SEARCHOUT | wc -l`
+	if test $RC != 3 ; then
+		echo ">>>>> Test failed: expected 3 entries, got" $RC
+		RC=1
 	else
-	    echo ">>>>> Test succeeded"
+		echo ">>>>> Test succeeded"
+		RC=0
 	fi
 fi
 

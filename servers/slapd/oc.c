@@ -501,12 +501,13 @@ oc_schema_info( Entry *e )
 			return -1;
 		}
 
-#if 0
-		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
-	       (long) val.bv_len, val.bv_val, 0 );
-#endif
 		nval.bv_val = oc->soc_oid;
 		nval.bv_len = strlen(oc->soc_oid);
+
+#if 0
+		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s (%s)\n",
+	       (long) val.bv_len, val.bv_val, nval.bv_val );
+#endif
 
 		if( attr_merge_one( e, ad_objectClasses, &val, &nval ) )
 		{
