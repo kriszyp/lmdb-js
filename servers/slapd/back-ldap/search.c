@@ -639,17 +639,12 @@ ldap_back_entry_get(
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;    
 	struct ldapconn *lc;
 	int rc = 1, is_oc;
-	struct berval mapped = { 0, NULL }, bdn;
+	struct berval mapped = { 0, NULL }, bdn, mdn;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[3];
 	char *filter;
 	Connection *oconn;
 	SlapReply rs;
-
-	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
-	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-		return 1;
-	}
 
 	/* Tell getconn this is a privileged op */
 	is_oc = op->o_do_not_cache;
@@ -664,6 +659,44 @@ ldap_back_entry_get(
 	}
 	op->o_do_not_cache = is_oc;
 	op->o_conn = oconn;
+
+	/*
+	 * Rewrite the search base, if required
+	 */
+#ifdef ENABLE_REWRITE
+ 	switch ( rewrite_session( li->rwinfo, "searchBase",
+ 				ndn->bv_val, op->o_conn, &mdn.bv_val ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( mdn.bv_val == NULL ) {
+			mdn = *ndn;
+		} else {
+			mdn.bv_len = strlen( mdn.bv_val );
+		}
+			
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] searchBase: \"%s\" -> \"%s\"\n", 
+			ndn->bv_val, mdn.bv_val, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n",
+				ndn->bv_val, mdn.bv_val, 0 );
+#endif /* !NEW_LOGGING */
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+	case REWRITE_REGEXEC_ERR:
+		rc = -1;
+		goto cleanup;
+	}
+
+#else /* !ENABLE_REWRITE */
+	ldap_back_dn_massage( li, ndn, &mdn, 0, 1 );
+#endif /* !ENABLE_REWRITE */
+
+	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
+	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+		return 1;
+	}
 
 	is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
 	if (oc && !is_oc) {
@@ -685,7 +718,7 @@ ldap_back_entry_get(
 		filter = "(objectclass=*)";
 	}
 		
-	if (ldap_search_ext_s(lc->ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
+	if (ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)
 	{
@@ -708,6 +741,10 @@ ldap_back_entry_get(
 cleanup:
 	if (result) {
 		ldap_msgfree(result);
+	}
+
+	if ( mdn.bv_val != ndn->bv_val ) {
+		free( mdn.bv_val );
 	}
 
 	return(rc);
