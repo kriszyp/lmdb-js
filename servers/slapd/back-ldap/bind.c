@@ -74,8 +74,10 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if (!lc) {
-		if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
-			send_ldap_result( conn, op, LDAP_OTHER,
+		int err = ldap_initialize(&ld, li->url);
+		if (err != LDAP_SUCCESS) {
+			err = ldap_back_map_result(err);
+			send_ldap_result( conn, op, err,
 				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );
 		}
@@ -104,6 +106,53 @@ ldap_back_dobind(struct ldapconn *lc, Operation *op)
 		lc->bound = 1;
 }
 
+/* Map API errors to protocol errors... */
+
+int
+ldap_back_map_result(int err)
+{
+	switch(err)
+	{
+	case LDAP_SERVER_DOWN:
+		return LDAP_UNAVAILABLE;
+	case LDAP_LOCAL_ERROR:
+		return LDAP_OPERATIONS_ERROR;
+	case LDAP_ENCODING_ERROR:
+	case LDAP_DECODING_ERROR:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_TIMEOUT:
+		return LDAP_UNAVAILABLE;
+	case LDAP_AUTH_UNKNOWN:
+		return LDAP_AUTH_METHOD_NOT_SUPPORTED;
+	case LDAP_FILTER_ERROR:
+		return LDAP_OPERATIONS_ERROR;
+	case LDAP_USER_CANCELLED:
+		return LDAP_OPERATIONS_ERROR;
+	case LDAP_PARAM_ERROR:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_NO_MEMORY:
+		return LDAP_OPERATIONS_ERROR;
+	case LDAP_CONNECT_ERROR:
+		return LDAP_UNAVAILABLE;
+	case LDAP_NOT_SUPPORTED:
+		return LDAP_UNWILLING_TO_PERFORM;
+	case LDAP_CONTROL_NOT_FOUND:
+		return LDAP_PROTOCOL_ERROR;
+	case LDAP_NO_RESULTS_RETURNED:
+		return LDAP_NO_SUCH_OBJECT;
+	case LDAP_MORE_RESULTS_TO_RETURN:
+		return LDAP_OTHER;
+	case LDAP_CLIENT_LOOP:
+	case LDAP_REFERRAL_LIMIT_EXCEEDED:
+		return LDAP_LOOP_DETECT;
+	default:
+		if LDAP_API_ERROR(err)
+			return LDAP_OTHER;
+		else
+			return err;
+	}
+}
+
 int
 ldap_back_op_result(struct ldapconn *lc, Operation *op)
 {
@@ -114,6 +163,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
 	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
+	err = ldap_back_map_result(err);
 	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
 	free(match);
 	free(msg);

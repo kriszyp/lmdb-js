@@ -108,6 +108,7 @@ fail:		return( ldap_back_op_result(lc, op) );
 			ldap_msgfree(res);
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
+			sres = ldap_back_map_result(sres);
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &err);
 			ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 			rc = 0;
