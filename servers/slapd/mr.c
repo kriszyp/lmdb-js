@@ -176,12 +176,16 @@ register_matching_rule(
 		return( -1 );
 	}
 
-	code = mr_add( mr, usage, convert, normalize, match, indexer, filter, &err );
+	code = mr_add( mr, usage,
+		convert, normalize, match, indexer, filter,
+		&err );
+
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );
 		return( -1 );
 	}
+
 	return( 0 );
 }
 

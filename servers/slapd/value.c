@@ -48,7 +48,7 @@ value_add(
 	}
 	(*vals)[n + j] = NULL;
 
-	return( 0 );
+	return LDAP_SUCCESS;
 }
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -289,7 +289,7 @@ value_find(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
-	if( mr == NULL ) {
+	if( mr == NULL || !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 #endif

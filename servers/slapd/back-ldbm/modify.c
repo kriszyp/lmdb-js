@@ -60,6 +60,8 @@ int ldbm_modify_internal(
 			err = add_values( e, mod, op->o_ndn );
 
 			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+					err, text, 0);
 				*text = "modify: add values failed";
 			}
 			break;
@@ -69,6 +71,8 @@ int ldbm_modify_internal(
 			err = delete_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+					err, text, 0);
 				*text = "modify: delete values failed";
 			}
 			break;
@@ -78,6 +82,8 @@ int ldbm_modify_internal(
 			err = replace_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+					err, text, 0);
 				*text = "modify: replace values failed";
 			}
 			break;
@@ -95,6 +101,8 @@ int ldbm_modify_internal(
  			}
 
 			if( err != LDAP_SUCCESS ) {
+				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+					err, text, 0);
 				*text = "modify: (soft)add values failed";
 			}
  			break;
@@ -104,6 +112,8 @@ int ldbm_modify_internal(
 				mod->sm_op, 0, 0);
 			*text = "Invalid modify operation";
 			err = LDAP_OTHER;
+			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				err, text, 0);
 		}
 
 		if ( err != LDAP_SUCCESS ) {
@@ -331,34 +341,50 @@ add_values(
 	Attribute	*a;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *desc = mod->sm_desc;
+	/* char *desc = mod->sm_desc->ad_cname->bv_val; */
+	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
+
+	if( mr == NULL ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
 #else
-	char *desc = mod->mod_type;
+	/* char *desc = mod->mod_type; */
 #endif
 
-	a = attr_find( e->e_attrs, desc );
+	a = attr_find( e->e_attrs, mod->sm_desc );
 
 	/* check if the values we're adding already exist */
 	if ( a != NULL ) {
 		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			if ( value_find( desc, a->a_vals, mod->sm_bvalues[i] ) == 0 )
+			int j;
+			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+				int match;
+				const char *text = NULL;
+				int rc = value_match( &match, mod->sm_desc, mr,
+					mod->sm_bvalues[i], a->a_vals[j], &text );
+
+				if( rc == LDAP_SUCCESS && match == 0 ) {
+					return LDAP_TYPE_OR_VALUE_EXISTS;
+				}
+			}
 #else
 			if ( value_find( a->a_vals, mod->sm_bvalues[i],
-			    a->a_syntax, 3 ) == 0 )
-#endif
-			{
+			    a->a_syntax, 3 ) == 0 ) {
 				return( LDAP_TYPE_OR_VALUE_EXISTS );
 			}
+#endif
 		}
 	}
 
 	/* no - add them */
-	if( attr_merge( e, desc, mod->sm_bvalues ) != 0 ) {
-		return( LDAP_CONSTRAINT_VIOLATION );
+	if( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+		/* this should return result return of attr_merge */
+		return LDAP_OTHER;
 	}
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -372,6 +398,11 @@ delete_values(
 	Attribute	*a;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char *desc = mod->sm_desc->ad_cname->bv_val;
+	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
+
+	if( mr == NULL || !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
 #else
 	char *desc = mod->mod_type;
 #endif
@@ -399,7 +430,7 @@ delete_values(
 			int match;
 			const char *text = NULL;
 			int rc = value_match( &match, mod->sm_desc,
-				mod->sm_desc->ad_type->sat_equality,
+				mr,
 				mod->sm_bvalues[i], a->a_vals[j], &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 )
@@ -441,7 +472,7 @@ delete_values(
 		}
 	}
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -451,13 +482,17 @@ replace_values(
     char	*dn
 )
 {
-	(void) attr_delete( &e->e_attrs, mod->sm_desc );
+	int rc = attr_delete( &e->e_attrs, mod->sm_desc );
+
+	if( rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+		return rc;
+	}
 
 	if ( mod->sm_bvalues != NULL &&
 		attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 )
 	{
-		return( LDAP_CONSTRAINT_VIOLATION );
+		return LDAP_OTHER;
 	}
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }

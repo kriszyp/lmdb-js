@@ -290,10 +290,10 @@ attr_delete(
 			*a = (*a)->a_next;
 			attr_free( save );
 
-			return 0;
+			return LDAP_SUCCESS;
 		}
 	}
 
-	return 1;
+	return LDAP_NO_SUCH_ATTRIBUTE;
 }
 
