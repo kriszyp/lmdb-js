@@ -1,5 +1,10 @@
+FreeBSD Hints
+
+Lastest FreeBSD hints are available at:
+	http://www.openldap.org/faq/index.cgi?file=15
+
 The following FreeBSD ports and packages may be useful:
-	databases/db		Berkeley DB2
+	databases/db		Berkeley DB 2.3.16
 	databases/gdbm		GNU Database Manager
 	devel/autoconf		GNU Autoconf
 	devel/libtool		GNU Autoconf
