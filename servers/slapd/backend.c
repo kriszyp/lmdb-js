@@ -513,7 +513,7 @@ be_isroot_pw( Backend *be,
 		return 0;
 	}
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = conn->c_sasl_context;
@@ -522,7 +522,7 @@ be_isroot_pw( Backend *be,
 
 	result = lutil_passwd( &be->be_root_pw, cred, NULL );
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = NULL;
 #endif
