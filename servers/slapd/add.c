@@ -523,7 +523,7 @@ static int doPreAddPluginFNs( Operation *op )
 	int rc;
 
 	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_ADD_FN, op->o_pb );
-	if ( rc != 0 ) {
+	if ( rc < 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
@@ -549,7 +549,7 @@ static void doPostAddPluginFNs( Operation *op )
 	int rc;
 
 	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
-	if ( rc != 0 ) {
+	if ( rc < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_add: add postoperation plugin failed\n",
 				0, 0, 0);

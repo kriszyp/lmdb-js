@@ -637,6 +637,8 @@ doPluginFNs(
 		 * failure (confirmed with SLAPI specification).
 		 */
 		if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
+			/* make sure errors are negative */
+			if ( rc > 0 ) rc = 0 - rc;
 			break;
 		}
 	}

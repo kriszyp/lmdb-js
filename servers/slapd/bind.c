@@ -528,7 +528,7 @@ do_bind(
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 
 	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
-	if ( rs->sr_err != SLAPI_BIND_SUCCESS ) {
+	if ( rs->sr_err < 0 ) {
 		/*
 		 * Binding is a special case for SLAPI plugins. It is
 		 * possible for a bind plugin to be successful *and*
@@ -641,7 +641,7 @@ do_bind(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) != 0 ) {
+	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_bind: Bind postoperation plugins failed\n",
 				0, 0, 0);

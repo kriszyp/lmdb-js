@@ -448,7 +448,7 @@ static int doPreSearchPluginFNs( Operation *op )
 	int rc;
 
 	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_SEARCH_FN, op->o_pb );
-	if ( rc != 0 ) {
+	if ( rc < 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
@@ -494,7 +494,7 @@ static int doSearchRewriteFNs( Operation *op )
 
 static void doPostSearchPluginFNs( Operation *op )
 {
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) != 0 ) {
+	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "doPostSearchPluginFNs: search postoperation plugins "
 				"failed\n", 0, 0, 0 );

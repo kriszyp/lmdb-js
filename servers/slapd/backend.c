@@ -694,7 +694,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 		slapi_pblock_set( pb, SLAPI_BACKEND, (void *)&backends[i] );
 		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
 				(Slapi_PBlock *)pb );
-		if ( rc != 0 ) {
+		if ( rc < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
@@ -717,7 +717,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 
 #if defined( LDAP_SLAPI )
 		if ( doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
-				(Slapi_PBlock *)pb ) != 0 ) {
+				(Slapi_PBlock *)pb ) < 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "
 					"failed\n", 0, 0, 0);
