@@ -122,7 +122,6 @@ regtest(const char *fname, int lineno, char *pat) {
 }
 
 #ifdef LDAP_DEVEL
-
 /*
  * Experimental
  *
@@ -141,22 +140,22 @@ check_scope( BackendDB *be, AccessControl *a )
 	int		patlen;
 	struct berval	dn;
 
-	dn = be->be_nsuffix[ 0 ];
+	dn = be->be_nsuffix[0];
 
 	if ( a->acl_dn_pat.bv_len || a->acl_dn_style != ACL_STYLE_REGEX ) {
 		slap_style_t	style = a->acl_dn_style;
 
 		if ( style == ACL_STYLE_REGEX ) {
-			char	dnbuf[ SLAP_LDAPDN_MAXLEN + 2 ];
-			char	rebuf[ SLAP_LDAPDN_MAXLEN + 1 ];
+			char	dnbuf[SLAP_LDAPDN_MAXLEN + 2];
+			char	rebuf[SLAP_LDAPDN_MAXLEN + 1];
 			regex_t	re;
 			int	rc;
 			
 			/* add trailing '$' */
-			AC_MEMCPY( dnbuf, be->be_nsuffix[ 0 ].bv_val,
-					be->be_nsuffix[ 0 ].bv_len );
-			dnbuf[ be->be_nsuffix[ 0 ].bv_len ] = '$';
-			dnbuf[ be->be_nsuffix[ 0 ].bv_len + 1 ] = '\0';
+			AC_MEMCPY( dnbuf, be->be_nsuffix[0].bv_val,
+				be->be_nsuffix[0].bv_len );
+			dnbuf[be->be_nsuffix[0].bv_len] = '$';
+			dnbuf[be->be_nsuffix[0].bv_len + 1] = '\0';
 
 			if ( regcomp( &re, dnbuf, REG_EXTENDED|REG_ICASE ) ) {
 				return ACL_SCOPE_WARN;
@@ -164,9 +163,9 @@ check_scope( BackendDB *be, AccessControl *a )
 
 			/* remove trailing '$' */
 			AC_MEMCPY( rebuf, a->acl_dn_pat.bv_val,
-					a->acl_dn_pat.bv_len + 1 );
-			if ( a->acl_dn_pat.bv_val[ a->acl_dn_pat.bv_len - 1 ] == '$' ) {
-				rebuf[ a->acl_dn_pat.bv_len - 1 ] = '\0';
+				a->acl_dn_pat.bv_len + 1 );
+			if ( a->acl_dn_pat.bv_val[a->acl_dn_pat.bv_len - 1] == '$' ) {
+				rebuf[a->acl_dn_pat.bv_len - 1] = '\0';
 			}
 
 			/* not a clear indication of scoping error, though */
@@ -174,7 +173,6 @@ check_scope( BackendDB *be, AccessControl *a )
 				? ACL_SCOPE_WARN : ACL_SCOPE_OK;
 
 			regfree( &re );
-
 			return rc;
 		}
 
@@ -185,9 +183,7 @@ check_scope( BackendDB *be, AccessControl *a )
 		 * match */
 		if ( dn.bv_len > patlen ) {
 			/* base is blatantly wrong */
-			if ( style == ACL_STYLE_BASE ) {
-				return ACL_SCOPE_ERR;
-			}
+			if ( style == ACL_STYLE_BASE ) return ACL_SCOPE_ERR;
 
 			/* one can be wrong if there is more
 			 * than one level between the suffix
@@ -196,8 +192,9 @@ check_scope( BackendDB *be, AccessControl *a )
 				int	rdnlen = -1, sep = 0;
 
 				if ( patlen > 0 ) {
-					if ( !DN_SEPARATOR( dn.bv_val[ dn.bv_len - patlen - 1 ] ) )
+					if ( !DN_SEPARATOR( dn.bv_val[dn.bv_len - patlen - 1] )) {
 						return ACL_SCOPE_ERR;
+					}
 					sep = 1;
 				}
 
@@ -208,7 +205,9 @@ check_scope( BackendDB *be, AccessControl *a )
 
 			/* if the trailing part doesn't match,
 			 * then it's an error */
-			if ( strcmp( a->acl_dn_pat.bv_val, &dn.bv_val[ dn.bv_len - patlen ] ) != 0 ) {
+			if ( strcmp( a->acl_dn_pat.bv_val,
+				&dn.bv_val[dn.bv_len - patlen] ) != 0 )
+			{
 				return ACL_SCOPE_ERR;
 			}
 
@@ -227,11 +226,14 @@ check_scope( BackendDB *be, AccessControl *a )
 			break;
 		}
 
-		if ( dn.bv_len < patlen && !DN_SEPARATOR( a->acl_dn_pat.bv_val[ patlen -dn.bv_len - 1 ] ) ) {
+		if ( dn.bv_len < patlen &&
+			!DN_SEPARATOR( a->acl_dn_pat.bv_val[patlen -dn.bv_len - 1] )) {
 			return ACL_SCOPE_ERR;
 		}
 
-		if ( strcmp( &a->acl_dn_pat.bv_val[ patlen - dn.bv_len ], dn.bv_val ) != 0 ) {
+		if ( strcmp( &a->acl_dn_pat.bv_val[patlen - dn.bv_len], dn.bv_val )
+			!= 0 )
+		{
 			return ACL_SCOPE_ERR;
 		}
 
@@ -314,19 +316,21 @@ parse_acl(
 					}
 
 					if ( style == NULL || *style == '\0' ||
-						( strcasecmp( style, "base" ) == 0 ) ||
-						( strcasecmp( style, "exact" ) == 0 ))
+						strcasecmp( style, "baseObject" ) == 0 ||
+						strcasecmp( style, "base" ) == 0 ||
+						strcasecmp( style, "exact" ) == 0 )
 					{
 						a->acl_dn_style = ACL_STYLE_BASE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
-					} else if ( strcasecmp( style, "onelevel" ) == 0
-						|| strcasecmp( style, "one" ) == 0 ) {
+					} else if ( strcasecmp( style, "oneLevel" ) == 0 ||
+						strcasecmp( style, "one" ) == 0 )
+					{
 						a->acl_dn_style = ACL_STYLE_ONE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
-					} else if ( strcasecmp( style, "subtree" ) == 0
-						|| strcasecmp( style, "sub" ) == 0 )
+					} else if ( strcasecmp( style, "subtree" ) == 0 ||
+						strcasecmp( style, "sub" ) == 0 )
 					{
 						if( *right == '\0' ) {
 							a->acl_dn_pat.bv_val = ch_strdup( "*" );
@@ -420,24 +424,33 @@ parse_acl(
 						}
 						a->acl_attrval_style = ACL_STYLE_REGEX;
 					} else {
-						/* FIXME: if the attribute has DN syntax,
-						 * we might allow one, subtree and children styles as well */
+						/* FIXME: if the attribute has DN syntax, we might
+						 * allow one, subtree and children styles as well */
 						if ( !strcasecmp( style, "exact" ) ) {
 							a->acl_attrval_style = ACL_STYLE_BASE;
 
-						} else if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
-							if ( !strcasecmp( style, "base" ) ) {
+						} else if ( a->acl_attrs[0].an_desc->ad_type->
+							sat_syntax == slap_schema.si_syn_distinguishedName )
+						{
+							if ( !strcasecmp( style, "baseObject" ) ||
+								!strcasecmp( style, "base" ) )
+							{
 								a->acl_attrval_style = ACL_STYLE_BASE;
-							} else if ( !strcasecmp( style, "onelevel" ) || !strcasecmp( style, "one" ) ) {
+							} else if ( !strcasecmp( style, "onelevel" ) ||
+								!strcasecmp( style, "one" ) )
+							{
 								a->acl_attrval_style = ACL_STYLE_ONE;
-							} else if ( !strcasecmp( style, "subtree" ) || !strcasecmp( style, "sub" ) ) {
+							} else if ( !strcasecmp( style, "subtree" ) ||
+								!strcasecmp( style, "sub" ) )
+							{
 								a->acl_attrval_style = ACL_STYLE_SUBTREE;
 							} else if ( !strcasecmp( style, "children" ) ) {
 								a->acl_attrval_style = ACL_STYLE_CHILDREN;
 							} else {
 								fprintf( stderr, 
 									"%s: line %d: unknown val.<style> \"%s\" "
-									"for attributeType \"%s\" with DN syntax; using \"base\"\n",
+									"for attributeType \"%s\" with DN syntax; "
+									"using \"base\"\n",
 									fname, lineno, style,
 									a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								a->acl_attrval_style = ACL_STYLE_BASE;
@@ -535,12 +548,14 @@ parse_acl(
 
 				if ( style == NULL || *style == '\0' ||
 					strcasecmp( style, "exact" ) == 0 ||
+					strcasecmp( style, "baseObject" ) == 0 ||
 					strcasecmp( style, "base" ) == 0 )
 				{
 					sty = ACL_STYLE_BASE;
 
 				} else if ( strcasecmp( style, "onelevel" ) == 0 ||
-					strcasecmp( style, "one" ) == 0 ) {
+					strcasecmp( style, "one" ) == 0 )
+				{
 					sty = ACL_STYLE_ONE;
 
 				} else if ( strcasecmp( style, "subtree" ) == 0 ||
@@ -718,9 +733,10 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "dnattr" ) == 0 ) {
-					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+					if ( right == NULL || right[0] == '\0' ) {
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
@@ -794,7 +810,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( right == NULL || right[ 0 ] == '\0' ) {
+					if ( right == NULL || right[0] == '\0' ) {
 						fprintf( stderr, "%s: line %d: "
 							"missing \"=\" in (or value after) \"%s\" "
 							"in by clause\n",
@@ -958,7 +974,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( right == NULL || right[ 0 ] == '\0' ) {
+					if ( right == NULL || right[0] == '\0' ) {
 						fprintf( stderr, "%s: line %d: "
 							"missing \"=\" in (or value after) \"%s\" "
 							"in by clause\n",
@@ -1004,10 +1020,13 @@ parse_acl(
 							b->a_peername_mask = (unsigned long)(-1);
 							if ( mask != NULL ) {
 								b->a_peername_mask = inet_addr( mask );
-								if ( b->a_peername_mask == (unsigned long)(-1)) {
+								if ( b->a_peername_mask ==
+									(unsigned long)(-1))
+								{
 									/* illegal mask */
 									fprintf( stderr, "%s: line %d: "
-										"illegal peername address mask \"%s\".\n",
+										"illegal peername address mask "
+										"\"%s\".\n",
 										fname, lineno, mask );
 									acl_usage();
 								}
@@ -1018,10 +1037,11 @@ parse_acl(
 								char	*end = NULL;
 
 								b->a_peername_port = strtol( port, &end, 10 );
-								if ( end[ 0 ] != '}' ) {
+								if ( end[0] != '}' ) {
 									/* illegal port */
 									fprintf( stderr, "%s: line %d: "
-										"illegal peername port specification \"{%s}\".\n",
+										"illegal peername port specification "
+										"\"{%s}\".\n",
 										fname, lineno, port );
 									acl_usage();
 								}
@@ -1048,7 +1068,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( right == NULL || right[ 0 ] == '\0' ) {
+					if ( right == NULL || right[0] == '\0' ) {
 						fprintf( stderr, "%s: line %d: "
 							"missing \"=\" in (or value after) \"%s\" "
 							"in by clause\n",
@@ -1098,15 +1118,16 @@ parse_acl(
 
 					default:
 						/* unknown */
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
-					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+					if ( right == NULL || right[0] == '\0' ) {
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
@@ -1149,9 +1170,10 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( right == NULL || right[ 0 ] == '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+					if ( right == NULL || right[0] == '\0' ) {
+						fprintf( stderr, "%s: line %d: "
+							"missing \"=\" in (or value after) \"%s\" "
+							"in by clause\n",
 							fname, lineno, left );
 						acl_usage();
 					}
@@ -1178,8 +1200,8 @@ parse_acl(
 
 				if ( strcasecmp( left, "set" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
@@ -1207,8 +1229,8 @@ parse_acl(
 #ifdef SLAPD_ACI_ENABLED
 				if ( strcasecmp( left, "aci" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
@@ -1237,8 +1259,8 @@ parse_acl(
 					if( !is_at_syntax( b->a_aci_at->ad_type,
 						SLAPD_ACI_SYNTAX) )
 					{
-						fprintf( stderr,
-							"%s: line %d: aci \"%s\": inappropriate syntax: %s\n",
+						fprintf( stderr, "%s: line %d: "
+							"aci \"%s\": inappropriate syntax: %s\n",
 							fname, lineno, right,
 							b->a_aci_at->ad_type->sat_syntax_oid );
 						acl_usage();
@@ -1250,8 +1272,8 @@ parse_acl(
 
 				if ( strcasecmp( left, "ssf" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
@@ -1289,15 +1311,15 @@ parse_acl(
 
 				if ( strcasecmp( left, "transport_ssf" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if( b->a_authz.sai_transport_ssf ) {
-						fprintf( stderr,
-							"%s: line %d: transport_ssf attribute already specified.\n",
+						fprintf( stderr, "%s: line %d: "
+							"transport_ssf attribute already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
@@ -1311,8 +1333,8 @@ parse_acl(
 
 					b->a_authz.sai_transport_ssf = strtol( right, &next, 10 );
 					if ( next == NULL || next[0] != '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: unable to parse transport_ssf value (%s)\n",
+						fprintf( stderr, "%s: line %d: "
+							"unable to parse transport_ssf value (%s)\n",
 							fname, lineno, right );
 						acl_usage();
 					}
@@ -1328,15 +1350,15 @@ parse_acl(
 
 				if ( strcasecmp( left, "tls_ssf" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if( b->a_authz.sai_tls_ssf ) {
-						fprintf( stderr,
-							"%s: line %d: tls_ssf attribute already specified.\n",
+						fprintf( stderr, "%s: line %d: "
+							"tls_ssf attribute already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
@@ -1350,8 +1372,8 @@ parse_acl(
 
 					b->a_authz.sai_tls_ssf = strtol( right, &next, 10 );
 					if ( next == NULL || next[0] != '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: unable to parse tls_ssf value (%s)\n",
+						fprintf( stderr, "%s: line %d: "
+							"unable to parse tls_ssf value (%s)\n",
 							fname, lineno, right );
 						acl_usage();
 					}
@@ -1367,15 +1389,15 @@ parse_acl(
 
 				if ( strcasecmp( left, "sasl_ssf" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}
 
 					if( b->a_authz.sai_sasl_ssf ) {
-						fprintf( stderr,
-							"%s: line %d: sasl_ssf attribute already specified.\n",
+						fprintf( stderr, "%s: line %d: "
+							"sasl_ssf attribute already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
@@ -1389,8 +1411,8 @@ parse_acl(
 
 					b->a_authz.sai_sasl_ssf = strtol( right, &next, 10 );
 					if ( next == NULL || next[0] != '\0' ) {
-						fprintf( stderr,
-							"%s: line %d: unable to parse sasl_ssf value (%s)\n",
+						fprintf( stderr, "%s: line %d: "
+							"unable to parse sasl_ssf value (%s)\n",
 							fname, lineno, right );
 						acl_usage();
 					}
@@ -1500,19 +1522,18 @@ parse_acl(
 
 	/* if we have no real access clause, complain and do nothing */
 	if ( a == NULL ) {
-			fprintf( stderr,
-				"%s: line %d: warning: no access clause(s) specified in access line\n",
-			    fname, lineno );
+		fprintf( stderr, "%s: line %d: "
+			"warning: no access clause(s) specified in access line\n",
+			fname, lineno );
 
 	} else {
 #ifdef LDAP_DEBUG
-		if (ldap_debug & LDAP_DEBUG_ACL)
-			print_acl(be, a);
+		if (ldap_debug & LDAP_DEBUG_ACL) print_acl(be, a);
 #endif
 	
 		if ( a->acl_access == NULL ) {
-			fprintf( stderr,
-		    	"%s: line %d: warning: no by clause(s) specified in access line\n",
+			fprintf( stderr, "%s: line %d: "
+				"warning: no by clause(s) specified in access line\n",
 			    fname, lineno );
 		}
 
@@ -1521,34 +1542,29 @@ parse_acl(
 			switch ( check_scope( be, a ) ) {
 			case ACL_SCOPE_UNKNOWN:
 				fprintf( stderr, "%s: line %d: warning: "
-						"cannot assess the validity "
-						"of the ACL scope within "
-						"backend naming context\n",
-						fname, lineno );
+					"cannot assess the validity of the ACL scope within "
+					"backend naming context\n",
+					fname, lineno );
 				break;
 
 			case ACL_SCOPE_WARN:
 				fprintf( stderr, "%s: line %d: warning: "
-						"ACL could be out of "
-						"scope within "
-						"backend naming context\n",
-						fname, lineno );
+					"ACL could be out of scope within backend naming context\n",
+					fname, lineno );
 				break;
 
 			case ACL_SCOPE_PARTIAL:
 				fprintf( stderr, "%s: line %d: warning: "
-						"ACL appears to be partially "
-						"out of scope within "
-						"backend naming context\n",
-						fname, lineno );
+					"ACL appears to be partially out of scope within "
+					"backend naming context\n",
+					fname, lineno );
 				break;
 
 			case ACL_SCOPE_ERR:
 				fprintf( stderr, "%s: line %d: warning: "
-						"ACL appears to be out of "
-						"scope within "
-						"backend naming context\n",
-						fname, lineno );
+					"ACL appears to be out of scope within "
+					"backend naming context\n",
+					fname, lineno );
 				break;
 
 			default:
@@ -1744,10 +1760,11 @@ acl_usage( void )
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
-		"<dnstyle> ::= base | exact | one(level) | sub(tree) | children | regex\n"
-		"<style> ::= regex | base | exact\n"
-		"<peernamestyle> ::= regex | exact | ip | path\n"
-		"<domainstyle> ::= regex | base | exact | sub(tree)\n"
+		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
+			"exact | regex\n"
+		"<style> ::= exact | regex | base(Object)\n"
+		"<peernamestyle> ::= exact | regex | ip | path\n"
+		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
 		"<priv> ::= {=|+|-}{w|r|s|c|x|0}+\n"
@@ -1765,8 +1782,7 @@ acl_usage( void )
 static void
 acl_regex_normalized_dn(
 	const char *src,
-	struct berval *pattern
-)
+	struct berval *pattern )
 {
 	char *str, *p;
 	ber_len_t len;
@@ -1774,9 +1790,9 @@ acl_regex_normalized_dn(
 	str = ch_strdup( src );
 	len = strlen( src );
 
-	for ( p = str; p && p[ 0 ]; p++ ) {
+	for ( p = str; p && p[0]; p++ ) {
 		/* escape */
-		if ( p[ 0 ] == '\\' && p[ 1 ] ) {
+		if ( p[0] == '\\' && p[1] ) {
 			/* 
 			 * if escaping a hex pair we should
 			 * increment p twice; however, in that 
@@ -1786,19 +1802,16 @@ acl_regex_normalized_dn(
 			p++;
 		}
 
-		if ( p[ 0 ] == ',' ) {
-			if ( p[ 1 ] == ' ' ) {
-				char *q;
+		if ( p[0] == ',' && p[1] == ' ' ) {
+			char *q;
 			
-				/*
-				 * too much space should be 
-				 * an error if we are pedantic
-				 */
-				for ( q = &p[ 2 ]; q[ 0 ] == ' '; q++ ) {
-					/* DO NOTHING */ ;
-				}
-				AC_MEMCPY( p+1, q, len-(q-str)+1);
+			/*
+			 * too much space should be an error if we are pedantic
+			 */
+			for ( q = &p[2]; q[0] == ' '; q++ ) {
+				/* DO NOTHING */ ;
 			}
+			AC_MEMCPY( p+1, q, len-(q-str)+1);
 		}
 	}
 	pattern->bv_val = str;
@@ -1812,8 +1825,7 @@ split(
     char	*line,
     int		splitchar,
     char	**left,
-    char	**right
-)
+    char	**right )
 {
 	*left = line;
 	if ( (*right = strchr( line, splitchar )) != NULL ) {
@@ -1824,8 +1836,9 @@ split(
 static void
 access_append( Access **l, Access *a )
 {
-	for ( ; *l != NULL; l = &(*l)->a_next )
-		;	/* NULL */
+	for ( ; *l != NULL; l = &(*l)->a_next ) {
+		;	/* Empty */
+	}
 
 	*l = a;
 }
@@ -1833,8 +1846,9 @@ access_append( Access **l, Access *a )
 void
 acl_append( AccessControl **l, AccessControl *a )
 {
-	for ( ; *l != NULL; l = &(*l)->acl_next )
-		;	/* NULL */
+	for ( ; *l != NULL; l = &(*l)->acl_next ) {
+		;	/* Empty */
+	}
 
 	*l = a;
 }
@@ -1842,20 +1856,13 @@ acl_append( AccessControl **l, AccessControl *a )
 static void
 access_free( Access *a )
 {
-	if ( a->a_dn_pat.bv_val )
-		free ( a->a_dn_pat.bv_val );
-	if ( a->a_peername_pat.bv_val )
-		free ( a->a_peername_pat.bv_val );
-	if ( a->a_sockname_pat.bv_val )
-		free ( a->a_sockname_pat.bv_val );
-	if ( a->a_domain_pat.bv_val )
-		free ( a->a_domain_pat.bv_val );
-	if ( a->a_sockurl_pat.bv_val )
-		free ( a->a_sockurl_pat.bv_val );
-	if ( a->a_set_pat.bv_len )
-		free ( a->a_set_pat.bv_val );
-	if ( a->a_group_pat.bv_len )
-		free ( a->a_group_pat.bv_val );
+	if ( a->a_dn_pat.bv_val ) free ( a->a_dn_pat.bv_val );
+	if ( a->a_peername_pat.bv_val ) free ( a->a_peername_pat.bv_val );
+	if ( a->a_sockname_pat.bv_val ) free ( a->a_sockname_pat.bv_val );
+	if ( a->a_domain_pat.bv_val ) free ( a->a_domain_pat.bv_val );
+	if ( a->a_sockurl_pat.bv_val ) free ( a->a_sockurl_pat.bv_val );
+	if ( a->a_set_pat.bv_len ) free ( a->a_set_pat.bv_val );
+	if ( a->a_group_pat.bv_len ) free ( a->a_group_pat.bv_val );
 	free( a );
 }
 
@@ -1865,10 +1872,8 @@ acl_free( AccessControl *a )
 	Access *n;
 	AttributeName *an;
 
-	if ( a->acl_filter )
-		filter_free( a->acl_filter );
-	if ( a->acl_dn_pat.bv_len )
-		free ( a->acl_dn_pat.bv_val );
+	if ( a->acl_filter ) filter_free( a->acl_filter );
+	if ( a->acl_dn_pat.bv_len ) free ( a->acl_dn_pat.bv_val );
 	if ( a->acl_attrs ) {
 		for ( an = a->acl_attrs; an->an_name.bv_val; an++ ) {
 			free( an->an_name.bv_val );
@@ -1960,10 +1965,10 @@ print_access( Access *b )
 	fprintf( stderr, "\tby" );
 
 	if ( b->a_dn_pat.bv_len != 0 ) {
-		if( strcmp(b->a_dn_pat.bv_val, "*") == 0
-			|| strcmp(b->a_dn_pat.bv_val, "users") == 0 
-			|| strcmp(b->a_dn_pat.bv_val, "anonymous") == 0 
-			|| strcmp(b->a_dn_pat.bv_val, "self") == 0 )
+		if( strcmp(b->a_dn_pat.bv_val, "*") == 0 ||
+			strcmp(b->a_dn_pat.bv_val, "users") == 0 ||
+			strcmp(b->a_dn_pat.bv_val, "anonymous") == 0 ||
+			strcmp(b->a_dn_pat.bv_val, "self") == 0 )
 		{
 			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
 
@@ -2077,9 +2082,7 @@ print_acl( Backend *be, AccessControl *a )
 
 		fprintf( stderr, " attrs=" );
 		for ( an = a->acl_attrs; an && an->an_name.bv_val; an++ ) {
-			if ( ! first ) {
-				fprintf( stderr, "," );
-			}
+			if ( ! first ) fprintf( stderr, "," );
 			if (an->an_oc) {
 				fputc( an->an_oc_exclude ? '!' : '@', stderr);
 			}
@@ -2096,9 +2099,7 @@ print_acl( Backend *be, AccessControl *a )
 
 	}
 
-	if( !to ) {
-		fprintf( stderr, " *\n" );
-	}
+	if( !to ) fprintf( stderr, " *\n" );
 
 	for ( b = a->acl_access; b != NULL; b = b->a_next ) {
 		print_access( b );
@@ -2106,5 +2107,4 @@ print_acl( Backend *be, AccessControl *a )
 
 	fprintf( stderr, "\n" );
 }
-
 #endif /* LDAP_DEBUG */
