@@ -58,6 +58,15 @@ bdb_csn_commit(
 
 	rc =  bdb_dn2entry( op, tid, &op->o_bd->be_context_csn, &ctxcsn_ei,
 			1, locker, &ctxcsn_lock );
+	switch( rc ) {
+	case 0:
+		break;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		return BDB_CSN_RETRY;
+	default:
+		return BDB_CSN_ABORT;
+	}
 	
 	*ctxcsn_e = ctxcsn_ei->bei_e;
 
