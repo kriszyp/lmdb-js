@@ -173,12 +173,15 @@ int lutil_tm2time( struct lutil_tm *tm, struct lutil_timet *tt )
 	/* add in days in this month */ 
 	tt->tt_sec += (tm->tm_mday - 1); 
 
+	/* this function can handle a range of about 17408 years... */
 	/* 86400 seconds in a day, divided by 128 = 675 */
 	tt->tt_sec *= 675;
+
+	/* move high 7 bits into tt_gsec */
 	tt->tt_gsec = tt->tt_sec >> 25;
 	tt->tt_sec -= tt->tt_gsec << 25;
 
-	/* convert to hours */ 
+	/* get hours */ 
 	sec = tm->tm_hour; 
 
 	/* convert to minutes */ 
@@ -189,6 +192,7 @@ int lutil_tm2time( struct lutil_tm *tm, struct lutil_timet *tt )
 	sec *= 60L; 
 	sec += tm->tm_sec; 
 	
+	/* add remaining seconds */
 	tt->tt_sec <<= 7;
 	tt->tt_sec += sec;
 
