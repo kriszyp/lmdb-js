@@ -119,9 +119,10 @@ LDAP_F (int) ldap_pvt_unhex( int c );
 
 #ifdef HAVE_CYRUS_SASL
 /* sasl.c */
-
+LDAP_END_DECL
 #include <sasl.h>
 #include <ldap.h> 
+LDAP_BEGIN_DECL
 
 LDAP_F (int) ldap_pvt_sasl_init LDAP_P(( void )); /* clientside init */
 LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( Sockbuf *, void * ));
