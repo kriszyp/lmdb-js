@@ -142,19 +142,20 @@ load_editor( void )
 		printf("->load_editor()\n");
 #endif
 
-	/* write the entry into a temp file */
-	if (tmpnam(entry_temp_file) == NULL) {
-		perror("tmpnam");
+	sprintf(entry_temp_file, "/tmp/udXXXXXX");
+
+	tmpfd = mkstemp(entry_temp_file);
+
+	if( tmpfd < 0 ) {
+		perror("mkstemp");
 		return -1;
 	}
-	if ((tmpfd = open(entry_temp_file, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1) {
-		perror(entry_temp_file);
-		return -1;
-	}
+
 	if ((fp = fdopen(tmpfd, "w")) == NULL) {
 		perror("fdopen");
 		return(-1);
 	}
+
 	fprintf(fp, "## Directory entry of %s\n", Entry.name);
 	fprintf(fp, "##\n");
 	fprintf(fp, "## Syntax is:\n");

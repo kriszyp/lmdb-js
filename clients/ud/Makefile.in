@@ -1,10 +1,10 @@
 # $OpenLDAP$
 
 SRCS=	main.c find.c mod.c print.c auth.c util.c help.c \
-	string_to_key.c group.c edit.c globals.c
+	group.c edit.c globals.c
 XSRCS= version.c
 OBJS=	main.o find.o mod.o print.o auth.o util.o help.o \
-	string_to_key.o group.o globals.o edit.o
+	group.o globals.o edit.o
 HDRS=	ud.h
 PROGRAMS= ud
 

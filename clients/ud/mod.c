@@ -466,9 +466,8 @@ mail_is_good:
 		 *  If the attribute which we are gathering is a "owner"
 		 *  then we should lookup the name.  The user is going to
 		 *  either have to change the search base before doing the
-		 *  modify, or the person is going to have to be within the
-		 *  scope of the current search base, or they will need to
-		 *  type in a UFN.
+		 *  modify or the person is going to have to be within the
+		 *  scope of the current search base.
 		 */
 		if (!strcmp(id, "owner")) {
 			LDAPMessage *lmp, *elmp;
