@@ -608,7 +608,7 @@ slap_auxprop_init(
 	sasl_auxprop_plug_t **plug,
 	const char *plugname)
 {
-	if ( !out_version | !plug ) return SASL_BADPARAM;
+	if ( !out_version || !plug ) return SASL_BADPARAM;
 
 	if ( max_version < SASL_AUXPROP_PLUG_VERSION ) return SASL_BADVERS;
 
