@@ -75,7 +75,9 @@ to step through an entry's attributes, and
 to retrieve a given attribute's values.  Attribute values
 may or may not be displayable.
 .SH CONTROLS
-LDAP operations can be extended through the use of controls. Controls
+This library supports both LDAP Version 2 and Version 3, with the Version 2
+protocol selected by default.
+LDAP Version 3 operations can be extended through the use of controls. Controls
 can be sent to a server or returned to the client with any LDAP message.
 Extended versions of the standard routines are available for use with
 controls. These routines are generally named by adding
