@@ -944,7 +944,7 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 }
 
 int
-ldap_pvt_tls_check_hostname( void *s, const char *name_in )
+ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 {
 	int i, ret = LDAP_LOCAL_ERROR;
 	X509 *x;
@@ -1047,6 +1047,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 				"TLS: unable to get common name from peer certificate.\n",
 				0, 0, 0 );
 #endif
+			ld->ld_error = LDAP_STRDUP("TLS: unable to get CN from peer certificate");
 
 		} else if (strcasecmp(name, buf)) {
 #ifdef NEW_LOGGING
@@ -1059,6 +1060,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 				name, buf, 0 );
 #endif
 			ret = LDAP_CONNECT_ERROR;
+			ld->ld_error = LDAP_STRDUP("TLS: hostname does not match CN in peer certificate");
 
 		} else {
 			ret = LDAP_SUCCESS;
@@ -1336,7 +1338,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	/* 
 	 * compare host with name(s) in certificate
 	 */
-	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
+	ld->ld_errno = ldap_pvt_tls_check_hostname( ld, ssl, host );
 	if (ld->ld_errno != LDAP_SUCCESS) {
 		return ld->ld_errno;
 	}
