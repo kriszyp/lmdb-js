@@ -572,7 +572,8 @@ dnMatch(
 	match = value->bv_len - asserted->bv_len;
 
 	if ( match == 0 ) {
-		match = strcmp( value->bv_val, asserted->bv_val );
+		match = memcmp( value->bv_val, asserted->bv_val, 
+				value->bv_len );
 	}
 
 #ifdef NEW_LOGGING
