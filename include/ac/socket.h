@@ -72,6 +72,7 @@
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
+
 #elif DOS
 #	ifdef PCNFS
 #		define tcp_close( s )	close( s )
@@ -79,6 +80,10 @@
 #	ifdef NCSA
 #		define tcp_close( s )	do { netclose( s ); netshut() } while(0)
 #	endif /* NCSA */
+
+#elif HAVE_CLOSESOCKET
+#	define tcp_close( s )		closesocket( s )
+
 #else
 #	define tcp_close( s )		close( s )
 #endif /* MACOS */

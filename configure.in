@@ -1635,6 +1635,7 @@ fi
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
+	closesocket		\
 	endgrent		\
 	endpwent		\
 	flock			\

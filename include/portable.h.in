@@ -225,6 +225,9 @@
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
+/* Define if you have the closesocket function.  */
+#undef HAVE_CLOSESOCKET
+
 /* Define if you have the ctime_r function.  */
 #undef HAVE_CTIME_R
 
