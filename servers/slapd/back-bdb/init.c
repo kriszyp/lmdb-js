@@ -78,9 +78,9 @@ bdb_db_init( BackendDB *be )
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
 
 	/* DBEnv parameters */
-	bdb->bi_dbenv_home = ch_strdup( BDB_DBENV_HOME );
+	bdb->bi_dbenv_home = ch_strdup( SLAPD_DEFAULT_DB_DIR );
 	bdb->bi_dbenv_xflags = 0;
-	bdb->bi_dbenv_mode = DEFAULT_MODE;
+	bdb->bi_dbenv_mode = SLAPD_DEFAULT_DB_MODE;
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
 
