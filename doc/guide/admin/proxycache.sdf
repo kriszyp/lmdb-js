@@ -49,31 +49,35 @@ expired queries and removes them.
 
 The Proxy Cache paper
 ({{URL:http://www.openldap.org/pub/kapurva/proxycaching.pdf}}) provides
-design/implementation details.
+design and implementation details.
 
 
 H2: Proxy Cache Configuration
 
 The cache configuration specific directives described below must
-appear after the {{EX:"database meta"}} directive and before any other
-{{EX:"database"}} declaration in {{slapd.conf}}(5).
+appear after {{EX:overlay proxycache}} directive within a
+{{EX:"database meta"}} or {{EX:database ldap}} section of
+the server's {{slapd.conf}}(5) file.
 
 H3: Setting cache parameters
 
->	cacheparams <lo_thresh> <hi_thresh> <numattrsets> <max_entries> <cc_period>
+> proxyCache <DB> <maxentries> <nattrsets> <entrylimit> <period>
 
 The directive enables proxy caching and sets general cache parameters.
-Cache replacement is invoked when the cache size crosses the
-<hi_thresh> bytes and continues till the cache size is greater than
-<lo_thresh> bytes. Total number of attributes sets (as specified
-by the attrset directive) is given by <numattrsets>. The entry
-restriction for cacheable queries is specified by <max_entries>.
-Consistency check is performed every <cc_period> duration (specified
-in secs). In each cycle queries with expired TTLs are removed.
+The <DB> parameter specifies which underlying database is to be
+used to hold cached entries.  It should be set to {{EX:bdb}},
+{{EX:hdb}}, or {{EX:ldbm}}.  The <maxentries> parameter specifies
+the total number of entries which may be held in the cache.  The
+<nattrsets> parameter specifies the total number of attribute sets
+(as specified by the {{EX:proxyAttrSet}} directive) may be defined.
+The <entrylimit> parameter specifies the maximum number of entries
+in a cachable query.  The <period> specifies the duration consistency
+check period (in seconds).  In each period, queries with expired
+TTLs are removed.
 
 H3: Defining attribute sets
 
-> attrset <index> <attrs...>
+> proxyAttrset <index> <attrs...>
 
 Used to associate a set of attributes to an index. Each attribute
 set is associated with an index number from 0 to <numattrsets>-1.
@@ -82,52 +86,33 @@ cacheable templates.
 
 H3: Specifying cacheable templates 
 
-> addtemplate <prototype_string> <attrset_index> <TTL>
+> proxyTemplate <prototype_string> <attrset_index> <TTL>
 
 Specifies a cacheable template and the "time to live" (in sec) <TTL>
 for queries belonging to the template. A template is described by
 its prototype filter string and set of required attributes identified
 by <attrset_index>.
 
+
 H3: Example
 
-An example {{slapd.conf}}(5) for a caching server which proxies for
-the backend server {{EX:ldap://server.mydomain.com}} and caches
-queries with base object in the {{EX:"dc=example,dc=com"}} subtree
-is described below,
+An example {{slapd.conf}}(5) database section for a caching server
+which proxies for the {{EX:"dc=example,dc=com"}} subtree held
+at server {{EX:ldap.example.com}}.
  
->	database 	meta
+>	database 	ldap
 >	suffix 		"dc=example,dc=com" 
->	uri    		ldap://server.mydomain.com/dc=example,dc=com
->	cacheparams 	100000 150000 1 50 100
->	attrset 0 mail postaladdress telephonenumber 
->	addtemplate (sn=) 0 3600
->	addtemplate (&(sn=)(givenName=)) 0 3600
->	addtemplate (&(departmentNumber=)(secretary=*)) 0 3600
-    
-A different name space is associated with the local cache database.
-E.g if the local database suffix is {{EX:"dc=example,dc=com,cn=cache"}},
-then following rewriting rules need to be defined to translate
-between master and cache database naming contexts.
-
->	rewriteEngine 	on
->	rewriteContext  cacheResult 
->	rewriteRule	"(.*)dc=example,dc=com" "%1dc=example,dc=com,cn=cache" ":"
->	rewriteContext  cacheBase
->	rewriteRule     "(.*)dc=example,dc=com" "%1dc=example,dc=com,cn=cache" ":"
->	rewriteContext  cacheReturn 
->	rewriteRule     "(.*)dc=example,dc=com,cn=cache" "%1dc=example,dc=com" ":"
-    
-Finally, the local database for storing cached entries can be declared
-as follows:
- 
->	database 	ldbm
->	suffix 		"dc=example,dc=com,cn=cache" 
->	#other database specific directives
-
-The proxy cache database instance could be either {{TERM:BDB}} or
-{{TERM:LDBM}}. A script for demonstrating the proxy cache
-({{FILE:test019-proxycaching}}) functionality is provided in the
-tests/scripts directory of the distribution.
+>	uri    		ldap://ldap.example.com/dc=example,dc=com
+>	overlay proxycache
+>	proxycache    bdb 100000 1 1000 100
+>	proxyAttrset  0 mail postaladdress telephonenumber 
+>	proxyTemplate (sn=) 0 3600
+>	proxyTemplate (&(sn=)(givenName=)) 0 3600
+>	proxyTemplate (&(departmentNumber=)(secretary=*)) 0 3600
+>
+>	cachesize 20
+>	directory ./testrun/db.2.a
+>	index       objectClass eq
+>	index       cn,sn,uid,mail  pres,eq,sub
 
 
