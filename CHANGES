@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.14 Engineering
+OpenLDAP 2.0.14 Release
 	Fixed slurpd millionth second bug (ITS#1323)
 
 OpenLDAP 2.0.13 Release
@@ -41,7 +41,7 @@ OpenLDAP 2.0.12 Release
 	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
 	Updated ldbm error handling
 	Updated ldaptcl API (contrib)
-	Updated -lldap sasl/tls referral handling
+	Updated -lldap SASL/TLS referral handling
 	Updated -lldap pthread code
 	Removed -lldap UFN search support
 	Build environment
