@@ -92,7 +92,7 @@ void ldbm_initialize( void )
 	static int initialized = 0;
 
 	int     err;
-	int		envFlags;
+	u_int32_t envFlags;
 
 	if(initialized++) return;
 
