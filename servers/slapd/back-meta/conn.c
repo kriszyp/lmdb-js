@@ -275,27 +275,27 @@ init_one_conn(
 	/*
 	 * If the connection dn is not null, an attempt to rewrite it is made
 	 */
-	if ( conn->c_cdn.bv_len != 0 ) {
+	if ( conn->c_dn.bv_len != 0 ) {
 		
 		/*
 		 * Rewrite the bind dn if needed
 		 */
 		lsc->bound_dn.bv_val = NULL;
 		switch ( rewrite_session( lt->rwinfo, "bindDn",
-					conn->c_cdn.bv_val, conn, 
+					conn->c_dn.bv_val, conn, 
 					&lsc->bound_dn.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:
 			if ( lsc->bound_dn.bv_val == NULL ) {
-				ber_dupbv( &lsc->bound_dn, &conn->c_cdn );
+				ber_dupbv( &lsc->bound_dn, &conn->c_dn );
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_cdn.bv_val, lsc->bound_dn.bv_val ));
+					conn->c_dn.bv_val, lsc->bound_dn.bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_cdn.bv_val, lsc->bound_dn.bv_val, 0 );
+					conn->c_dn.bv_val, lsc->bound_dn.bv_val, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 			

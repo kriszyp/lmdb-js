@@ -322,7 +322,7 @@ conn_create(
 		connection_state2str( c->c_conn_state ),
 		c->c_sasl_bind_in_progress ? "S" : "",
 		
-		c->c_cdn.bv_len ? c->c_cdn.bv_val : SLAPD_ANONYMOUS,
+		c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
 		
 		c->c_listener_url.bv_val,
 		c->c_peer_domain.bv_val,

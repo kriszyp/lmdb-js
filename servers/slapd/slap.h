@@ -1550,7 +1550,6 @@ typedef struct slap_conn {
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	struct berval	c_sasl_bind_mech;			/* mech in progress */
 	struct berval	c_sasl_dn;	/* temporary storage */
-	struct berval	c_cdn;
 
 	/* authorization backend */
 	Backend *c_authz_backend;

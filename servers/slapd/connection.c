@@ -417,8 +417,6 @@ long connection_init(
 		c->c_dn.bv_len = 0;
 		c->c_ndn.bv_val = NULL;
 		c->c_ndn.bv_len = 0;
-		c->c_cdn.bv_val = NULL;
-		c->c_cdn.bv_len = 0;
 		c->c_groups = NULL;
 
 		c->c_listener_url.bv_val = NULL;
@@ -461,7 +459,6 @@ long connection_init(
     assert( c->c_authmech.bv_val == NULL );
     assert( c->c_dn.bv_val == NULL );
     assert( c->c_ndn.bv_val == NULL );
-    assert( c->c_cdn.bv_val == NULL );
     assert( c->c_groups == NULL );
     assert( c->c_listener_url.bv_val == NULL );
     assert( c->c_peer_domain.bv_val == NULL );
@@ -597,12 +594,6 @@ void connection2anonymous( Connection *c )
 		c->c_ndn.bv_val = NULL;
 	}
 	c->c_ndn.bv_len = 0;
-
-	if(c->c_cdn.bv_val != NULL) {
-		free(c->c_cdn.bv_val);
-		c->c_cdn.bv_val = NULL;
-	}
-	c->c_cdn.bv_len = 0;
 
 	c->c_authz_backend = NULL;
 	
