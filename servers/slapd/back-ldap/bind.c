@@ -68,7 +68,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
