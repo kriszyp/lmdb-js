@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
+#include <ac/socket.h>			/* needed by LDAP_CONNECTIONLESS */
 
 #include "avl.h"
 
