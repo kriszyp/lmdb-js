@@ -244,6 +244,5 @@ int bdb_tool_entry_reindex(
 	}
 
 done:
-	entry_free( e );
 	return rc;
 }
