@@ -135,6 +135,9 @@ idl_fetch(
 	ID_BLOCK	*idl;
 	ID_BLOCK	**tmp;
 	int	i, nids;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+	char *kstr;
+#endif
 
 	idl = idl_fetch_one( be, db, key );
 
