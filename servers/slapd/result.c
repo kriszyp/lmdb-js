@@ -18,15 +18,25 @@
 /* we need LBER internals */
 #include "../../libraries/liblber/lber-int.h"
 
-static char *v2ref( struct berval **ref )
+static char *v2ref( struct berval **ref, const char *text )
 {
-	size_t len, i;
+	size_t len = 0, i = 0;
 	char *v2;
 
-	if(ref == NULL) return NULL;
+	if(ref == NULL) return (char *)text;
 
-	len = sizeof("Referral:");
-	v2 = ch_strdup("Referral:");
+	if (text) {
+		len = strlen( text );
+		if (text[len-1] != '\n')
+		    i = 1;
+	}
+	v2 = ch_malloc( len+i+sizeof("Referral:") );
+	if (text) {
+		strcpy(v2, text);
+		if (i)
+			v2[len++] = '\n';
+	}
+	strcpy( v2+len, "Referral:" );
 
 	for( i=0; ref[i] != NULL; i++ ) {
 		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
@@ -384,10 +394,13 @@ send_ldap_result(
 			err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
 			err = LDAP_PARTIAL_RESULTS;
-			tmp = v2ref( ref );
-			text = tmp;
-			ref = NULL;
 		}
+	}
+
+	if ( op->o_protocol < LDAP_VERSION3 ) {
+		tmp = v2ref( ref, text );
+		text = tmp;
+		ref = NULL;
 	}
 
 	tag = req2res( op->o_tag );
@@ -449,11 +462,9 @@ send_search_result(
 			err = LDAP_PARTIAL_RESULTS;
 		}
 
-		tmp = v2ref( refs );
+		tmp = v2ref( refs, text );
+		text = tmp;
 		refs = NULL;
-
-		if( tmp != NULL ) text = tmp;
-
 	} else {
 		/* don't send references in search results */
 		assert( refs == NULL );
