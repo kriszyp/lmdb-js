@@ -1,5 +1,8 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.2 Release Engineering
+	CVS Tag: OPENLDAP_REL_ENG_1_2
+
 Changes included in OpenLDAP 1.2.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_2
 	Fixed ud cp == NULL bug (ITS#48)
