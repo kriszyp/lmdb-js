@@ -454,31 +454,33 @@ typedef struct ldapcontrol {
 
 #define LDAP_OTHER				0x50
 
-/* Expermental result codes -- subject to change */
+/* Expermental result codes */
+#define LDAP_X_ERROR(n)		LDAP_RANGE((n),0x1000,0x3FFF) /* experimental */
+#define LDAP_PVT_ERROR(n)	LDAP_RANGE((n),0x4000,0xFFFF) /* private use */
 
-#define LDAP_SYNC_RESOURCES_EXHAUSTED	0x100
-#define LDAP_SYNC_SECURITY_VIOLATION	0x101
-#define LDAP_SYNC_INVALID_COOKIE		0x102
-#define LDAP_SYNC_UNSUPPORTED_SCHEME	0x103
-#define LDAP_SYNC_CLIENT_DISCONNECT		0x104
-#define LDAP_SYNC_RELOAD_REQUIRED		0x105
+#define LDAP_SYNC_RESOURCES_EXHAUSTED	0x4100
+#define LDAP_SYNC_SECURITY_VIOLATION	0x4101
+#define LDAP_SYNC_INVALID_COOKIE		0x4102
+#define LDAP_SYNC_UNSUPPORTED_SCHEME	0x4103
+#define LDAP_SYNC_CLIENT_DISCONNECT		0x4104
+#define LDAP_SYNC_RELOAD_REQUIRED		0x4105
 
-#define LDAP_ASSERTION_FAILED			0x10f
+#define LDAP_ASSERTION_FAILED			0x410f
 
 /* resultCode for Cancel Response */
-#define LDAP_CANCELLED					0x110
-#define LDAP_NO_SUCH_OPERATION			0x111
-#define LDAP_TOO_LATE					0x112
-#define LDAP_CANNOT_CANCEL				0x113
-
-#define LDAP_API_ERROR(n)		((n)<0)
-#define LDAP_API_RESULT(n)		((n)<=0)
+#define LDAP_CANCELLED					0x4110
+#define LDAP_NO_SUCH_OPERATION			0x4111
+#define LDAP_TOO_LATE					0x4112
+#define LDAP_CANNOT_CANCEL				0x4113
 
 /* API Error Codes
  *
  * Based on draft-ietf-ldap-c-api-xx
  * but with new (negative) codes
  */
+#define LDAP_API_ERROR(n)		((n)<0)
+#define LDAP_API_RESULT(n)		((n)<=0)
+
 #define LDAP_SERVER_DOWN				(-1)
 #define LDAP_LOCAL_ERROR				(-2)
 #define LDAP_ENCODING_ERROR				(-3)
