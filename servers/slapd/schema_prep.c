@@ -44,11 +44,12 @@ objectClassMatch(
 		}
 
 		/* desc form, return undefined */
-		return LDAP_CONSTRAINT_VIOLATION;
+		return SLAPD_COMPARE_UNDEFINED;
 	}
 
 	if ( oc == NULL ) {
-		return LDAP_CONSTRAINT_VIOLATION;
+		/* unrecognized stored value */
+		return SLAPD_COMPARE_UNDEFINED;
 	}
 
 #if 0
