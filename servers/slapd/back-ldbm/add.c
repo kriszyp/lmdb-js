@@ -28,7 +28,8 @@ ldbm_back_add(
 	char		*pdn;
 	Entry		*p = NULL;
 	int			rootlock = 0;
-	int			rc; 
+	int			rc;
+	ID               id = NOID;
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	char textbuf[SLAP_TEXT_BUFLEN];
@@ -36,12 +37,15 @@ ldbm_back_add(
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 
+
 	/* nobody else can add until we lock our parent */
 	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
 
-	if ( ( dn2id( be, e->e_ndn ) ) != NOID ) {
+	if ( ( rc = dn2id( be, e->e_ndn, &id ) ) || id != NOID ) {
+		/* if (rc) something bad happened to ldbm cache */
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+		send_ldap_result( conn, op, 
+			rc ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
@@ -53,6 +57,7 @@ ldbm_back_add(
 
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			text, 0, 0 );
+
 
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
@@ -94,8 +99,10 @@ ldbm_back_add(
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0 );
 
-			send_ldap_result( conn, op, LDAP_REFERRAL,
-			    matched_dn, NULL, refs, NULL );
+
+			send_ldap_result( conn, op, LDAP_REFERRAL, matched_dn,
+				refs == NULL ? "parent does not exist" : "parent is referral",
+				refs, NULL );
 
 			if( matched != NULL ) {
 				ber_bvecfree( refs );
@@ -119,6 +126,7 @@ ldbm_back_add(
 
 			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
 			    0, 0 );
+
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, "no write access to parent", NULL, NULL );
 
@@ -134,6 +142,7 @@ ldbm_back_add(
 
 			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
 			    0, 0 );
+
 
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
 			    NULL, "parent is an alias", NULL, NULL );
@@ -153,6 +162,7 @@ ldbm_back_add(
 
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
 			    0, 0 );
+
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 			    matched_dn, NULL, refs, NULL );
 
@@ -175,6 +185,7 @@ ldbm_back_add(
 					pdn == NULL ? "suffix" : "entry at root",
 					0, 0 );
 
+
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, NULL, NULL, NULL );
 
@@ -190,9 +201,7 @@ ldbm_back_add(
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
 
-	e->e_id = next_id( be );
-
-	if( e->e_id == NOID ) {
+	if ( next_id( be, &e->e_id ) ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
@@ -205,6 +214,7 @@ ldbm_back_add(
 
 		Debug( LDAP_DEBUG_ANY, "ldbm_add: next_id failed\n",
 			0, 0, 0 );
+
 
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "next_id add failed", NULL, NULL );
@@ -231,6 +241,7 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
 
+
 		send_ldap_result( conn, op,
 			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER,
 			NULL, rc > 0 ? NULL : "cache add failed", NULL, NULL );
@@ -244,6 +255,7 @@ ldbm_back_add(
 	if ( index_entry_add( be, e, e->e_attrs ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "index_entry_add failed\n", 0,
 		    0, 0 );
+		
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "index generation failed", NULL, NULL );
 
@@ -254,6 +266,8 @@ ldbm_back_add(
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
 		    0, 0 );
+		/* FIXME: delete attr indices? */
+
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "DN index generation failed", NULL, NULL );
 
@@ -264,7 +278,10 @@ ldbm_back_add(
 	if ( id2entry_add( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "id2entry_add failed\n", 0,
 		    0, 0 );
+
+		/* FIXME: delete attr indices? */
 		(void) dn2id_delete( be, e->e_ndn, e->e_id );
+		
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "entry store failed", NULL, NULL );
 
@@ -273,7 +290,12 @@ ldbm_back_add(
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
+
+	/* marks the entry as committed, so it is added to the cache;
+	 * otherwise it is removed from the cache, but not destroyed;
+	 * it will be destroyed by the caller */
 	rc = 0;
+	cache_entry_commit( e );
 
 return_results:;
 	if (p != NULL) {
@@ -287,7 +309,8 @@ return_results:;
 	}
 
 	if ( rc ) {
-		/* free entry and writer lock */
+		/* in case of error, writer lock is freed 
+		 * and entry's private data is destroyed */
 		cache_return_entry_w( &li->li_cache, e );
 	}
 

@@ -17,6 +17,9 @@
 time_t starttime;
 #endif
 
+/* because Versionstr is used in back-monitor */
+const char Versionstr[] = "";
+
 /* bogus ../results.c */
 int str2result(
 	char* s,
@@ -152,6 +155,16 @@ char * slap_sasl_secprops( const char *in )
 }
 
 void connection2anonymous( Connection *c )
+{
+	assert(0);
+}
+
+void replog( Backend *be, Operation *op, char *dn, void *change)
+{
+	assert(0);
+}
+
+void slap_mods_free( Modifications *ml )
 {
 	assert(0);
 }

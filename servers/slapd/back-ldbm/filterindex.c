@@ -44,12 +44,24 @@ filter_candidates(
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_DN_ONE:
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
-		result = dn2idl( be, f->f_dn, DN_ONE_PREFIX );
+
+		/* an error is treated as an empty list */
+		if ( dn2idl( be, f->f_dn, DN_ONE_PREFIX, &result ) != 0
+				&& result != NULL ) {
+			idl_free( result );
+			result = NULL;
+		}
 		break;
 
 	case SLAPD_FILTER_DN_SUBTREE:
 		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
-		result = dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
+
+		/* an error is treated as an empty list */
+		if ( dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX, &result ) != 0
+				&& result != NULL ) {
+			idl_free( result );
+			result = NULL;
+		}
 		break;
 
 	case LDAP_FILTER_PRESENT:

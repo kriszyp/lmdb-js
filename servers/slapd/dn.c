@@ -460,10 +460,121 @@ rdn_attr_value( const char * rdn )
 }
 
 
-int rdn_validate( const char * rdn )
+/* rdn_attrs:
+ *
+ * Given a string (i.e. an rdn) of the form:
+ *       "attribute_type=attribute_value[+attribute_type=attribute_value[...]]"
+ * this function stores the types of the attributes in ptypes, that is the 
+ * array of strings "attribute_type" which is placed in newly allocated 
+ * memory, and the values of the attributes in pvalues, that is the
+ * array of strings "attribute_value" which is placed in newly allocated
+ * memory. Returns 0 on success, -1 on failure.
+ *
+ * note: got part of the code from dn_validate
+ */
+
+int
+rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 {
-	/* just a simple check for now */
-	return strchr( rdn, '=' ) != NULL;
+	char **parts, **p;
+
+	*ptypes = NULL;
+	*pvalues = NULL;
+
+	/*
+	 * explode the rdn in parts
+	 */
+	parts = ldap_explode_rdn( rdn_in, 0 );
+
+	if ( parts == NULL ) {
+		return( -1 );
+	}
+
+	for ( p = parts; p[0]; p++ ) {
+		char *s, *e, *d;
+		
+		/* split each rdn part in type value */
+		s = strchr( p[0], '=' );
+		if ( s == NULL ) {
+			charray_free( *ptypes );
+			charray_free( *pvalues );
+			charray_free( parts );
+			return( -1 );
+		}
+		
+		/* type should be fine */
+		charray_add_n( ptypes, p[0], ( s-p[0] ) );
+
+		/* value needs to be unescaped 
+		 * (maybe this should be moved to ldap_explode_rdn?) */
+		for ( e = d = s + 1; e[0]; e++ ) {
+			if ( *e != '\\' ) {
+				*d++ = *e;
+			}
+		}
+		d[0] = '\0';
+		charray_add( pvalues, s + 1 );
+	}
+
+	/* free array */
+	charray_free( parts );
+
+	return( 0 );
+}
+
+
+/* rdn_validate:
+ * 
+ * 1 if rdn is a legal rdn; 
+ * 0 otherwise (including a sequence of rdns)
+ *
+ * note: got it from dn_rdn; it should be rewritten 
+ * according to dn_validate
+ */
+int
+rdn_validate( const char * rdn )
+{
+	int	inquote;
+
+	if ( rdn == NULL ) {
+		return( 0 );
+	}
+
+	if ( strchr( rdn, '=' ) == NULL ) {
+		return( 0 );
+	}
+
+	while ( *rdn && ASCII_SPACE( *rdn ) ) {
+		rdn++;
+	}
+
+	if( *rdn == '\0' ) {
+		return( 0 );
+	}
+
+	inquote = 0;
+
+	for ( ; *rdn; rdn++ ) {
+		if ( *rdn == '\\' ) {
+			if ( *(rdn + 1) ) {
+				rdn++;
+			}
+			continue;
+		}
+		if ( inquote ) {
+			if ( *rdn == '"' ) {
+				inquote = 0;
+			}
+		} else {
+			if ( *rdn == '"' ) {
+				inquote = 1;
+			} else if ( DN_SEPARATOR( *rdn ) ) {
+				return( 0 );
+			}
+		}
+	}
+
+	return( 1 );
 }
 
 

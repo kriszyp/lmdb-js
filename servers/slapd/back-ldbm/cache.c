@@ -29,9 +29,10 @@ typedef struct ldbm_entry_info {
 	int		lei_state;	/* for the cache */
 #define	CACHE_ENTRY_UNDEFINED	0
 #define CACHE_ENTRY_CREATING	1
-#define CACHE_ENTRY_READY		2
-#define CACHE_ENTRY_DELETED		3
-
+#define CACHE_ENTRY_READY	2
+#define CACHE_ENTRY_DELETED	3
+#define CACHE_ENTRY_COMMITTED	4
+	
 	int		lei_refcnt;	/* # threads ref'ing this entry */
 	Entry	*lei_lrunext;	/* for cache lru list */
 	Entry	*lei_lruprev;
@@ -113,6 +114,23 @@ cache_entry_private_init( Entry*e )
 	return 0;
 }
 
+/*
+ * marks an entry in CREATING state as committed, so it is really returned
+ * to the cache. Otherwise an entry in CREATING state is removed.
+ * Makes e_private be destroyed at the following cache_return_entry_w,
+ * but lets the entry untouched (owned by someone else)
+ */
+void
+cache_entry_commit( Entry *e )
+{
+	assert( e );
+	assert( e->e_private );
+	assert( LEI(e)->lei_state == CACHE_ENTRY_CREATING );
+	/* assert( LEI(e)->lei_refcnt == 1 ); */
+
+	LEI(e)->lei_state = CACHE_ENTRY_COMMITTED;
+}
+
 static int
 cache_entry_private_destroy( Entry*e )
 {
@@ -129,7 +147,7 @@ void
 cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 {
 	ID id;
-	int refcnt;
+	int refcnt, freeit = 1;
 
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
@@ -141,7 +159,18 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	id = e->e_id;
 	refcnt = --LEI(e)->lei_refcnt;
 
-	if ( LEI(e)->lei_state == CACHE_ENTRY_CREATING ) {
+	/*
+	 * if the entry is returned when in CREATING state, it is deleted
+	 * but not freed because it may belong to someone else (do_add,
+	 * for instance)
+	 */
+	if (  LEI(e)->lei_state == CACHE_ENTRY_CREATING ) {
+		cache_delete_entry_internal( cache, e );
+		freeit = 0;
+		/* now the entry is in DELETED state */
+	}
+
+	if ( LEI(e)->lei_state == CACHE_ENTRY_COMMITTED ) {
 		LEI(e)->lei_state = CACHE_ENTRY_READY;
 
 		/* free cache mutex */
@@ -162,7 +191,9 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 		} else {
 			cache_entry_private_destroy( e );
-			entry_free( e );
+			if ( freeit ) {
+				entry_free( e );
+			}
 
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
@@ -440,13 +471,32 @@ cache_find_entry_dn2id(
     const char		*dn
 )
 {
+	char 			*ndn;
+	ID			id;
+
+	ndn = ch_strdup( dn );
+	(void) dn_normalize( ndn );
+
+	id = cache_find_entry_ndn2id( be, cache, ndn );
+
+	free( ndn );
+
+	return ( id );
+}
+
+ID
+cache_find_entry_ndn2id(
+	Backend		*be,
+    Cache	*cache,
+    const char		*ndn
+)
+{
 	Entry		e, *ep;
 	ID			id;
 	int count = 0;
 
-	e.e_dn = (char *) dn;
-	e.e_ndn = ch_strdup( dn );
-	(void) dn_normalize( e.e_ndn );
+	/* this function is always called with normalized DN */
+	e.e_ndn = (char *)ndn;
 
 try_again:
 	/* set cache mutex */
@@ -481,7 +531,7 @@ try_again:
 
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
-				dn, id, state);
+				ndn, id, state);
 
 			ldap_pvt_thread_yield();
 			goto try_again;
@@ -496,7 +546,7 @@ try_again:
 
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id(\"%s\"): %ld (%d tries)\n",
-			dn, id, count);
+			ndn, id, count);
 
 	} else {
 		/* free cache mutex */
@@ -504,8 +554,6 @@ try_again:
 
 		id = NOID;
 	}
-
-	free(e.e_ndn);
 
 	return( id );
 }

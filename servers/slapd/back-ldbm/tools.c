@@ -156,7 +156,7 @@ ID ldbm_tool_entry_put(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	if( next_id_get( be ) == NOID ) {
+	if ( next_id_get( be, &id ) || id == NOID ) {
 		return NOID;
 	}
 
@@ -165,7 +165,11 @@ ID ldbm_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 
-	id = dn2id( be, e->e_ndn );
+	if ( dn2id( be, e->e_ndn, &id ) ) {
+		/* something bad happened to ldbm cache */
+		return NOID;
+	}
+
 	if( id != NOID ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
@@ -246,7 +250,9 @@ int ldbm_tool_sync( BackendDB *be )
 	assert( slapMode & SLAP_TOOL_MODE );
 
 	if ( li->li_nextid != NOID ) {
-		next_id_write( be, li->li_nextid );
+		if ( next_id_write( be, li->li_nextid ) ) {
+			return( -1 );
+		}
 	}
 
 	return 0;

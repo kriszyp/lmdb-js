@@ -6,12 +6,14 @@ OpenLDAP 2.0.12 Engineering
 	Fixed slapd empty rootdn bug (ITS#1172)
 	Fixed slapd numericString empty value bug (ITS#1182)
 	Fixed slapd acl default clause bug (ITS#1187)
+	Fixed slapd passwd modify replication
 	Added slapadd already exists check (ITS#1191)
 	Added slapd modrdn children check (ITS#1053,1192)
 	Added slapd sb_max_incoming_auth support (ITS#1181)
 	Added slapd crypt salt format support (ITS#1202)
 	Updated slapd schema check handling
 	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
+	Updated ldbm error handling
 	Updated slapd filter checks
 	Updated ldaptcl API (contrib)
 	Build environment

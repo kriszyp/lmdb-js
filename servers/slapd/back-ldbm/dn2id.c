@@ -95,31 +95,38 @@ dn2id_add(
 	return( rc );
 }
 
-ID
+int
 dn2id(
     Backend	*be,
-    const char	*dn
+    const char	*dn,
+    ID          *idp
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	DBCache	*db;
-	ID		id;
 	Datum		key, data;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 
+	assert( idp );
+
 	/* first check the cache */
-	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
-		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", id,
+	if ( (*idp = cache_find_entry_ndn2id( be, &li->li_cache, dn )) != NOID ) {
+		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", *idp,
 			0, 0 );
-		return( id );
+		return( 0 );
 	}
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "<= dn2id could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
-		return( NOID );
+		/*
+		 * return code !0 if ldbm cache open failed;
+		 * callers should handle this
+		 */
+		*idp = NOID;
+		return( -1 );
 	}
 
 	ldbm_datum_init( key );
@@ -136,37 +143,42 @@ dn2id(
 
 	if ( data.dptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
-		return( NOID );
+		*idp = NOID;
+		return( 0 );
 	}
 
-	AC_MEMCPY( (char *) &id, data.dptr, sizeof(ID) );
+	AC_MEMCPY( (char *) idp, data.dptr, sizeof(ID) );
 
-	assert( id != NOID );
+	assert( *idp != NOID );
 
 	ldbm_datum_free( db->dbc_db, data );
 
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
-	return( id );
+	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", *idp, 0, 0 );
+
+	return( 0 );
 }
 
-ID_BLOCK *
+int
 dn2idl(
     Backend	*be,
     const char	*dn,
-	int		prefix
+    int		prefix,
+    ID_BLOCK    **idlp
 )
 {
 	DBCache	*db;
 	Datum		key;
-	ID_BLOCK	*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
+
+	assert( idlp != NULL );
+	*idlp = NULL;
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "<= dn2idl could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
-		return NULL;
+		return -1;
 	}
 
 	ldbm_datum_init( key );
@@ -175,13 +187,13 @@ dn2idl(
 	key.dptr = ch_malloc( key.dsize );
 	sprintf( key.dptr, "%c%s", prefix, dn );
 
-	idl = idl_fetch( be, db, key );
+	*idlp = idl_fetch( be, db, key );
 
 	ldbm_cache_close( be, db );
 
 	free( key.dptr );
 
-	return( idl );
+	return( 0 );
 }
 
 
@@ -287,13 +299,16 @@ dn2entry_rw(
 		*matched = NULL;
 	}
 
-	if ( (id = dn2id( be, dn )) != NOID &&
-		(e = id2entry_rw( be, id, rw )) != NULL )
-	{
-		return( e );
-	}
+	if ( dn2id( be, dn, &id ) ) {
+		/* something bad happened to ldbm cache */
+		return( NULL );
 
-	if ( id != NOID ) {
+	} else if ( id != NOID ) {
+		/* try to return the entry */
+		if ((e = id2entry_rw( be, id, rw )) != NULL ) {
+			return( e );
+		}
+
 		Debug(LDAP_DEBUG_ANY,
 			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
 			rw ? "w" : "r", id, dn);
