@@ -14,6 +14,9 @@
 
 #include <ctype.h>
 
+#undef TOUPPER
+#undef TOLOWER
+
 #ifdef C_UPPER_LOWER
 # define TOUPPER(c)	(islower(c) ? toupper(c) : (c))
 # define TOLOWER(c)	(isupper(c) ? tolower(c) : (c))

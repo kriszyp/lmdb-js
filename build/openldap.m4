@@ -627,25 +627,6 @@ fi
 ])dnl
 dnl
 dnl ====================================================================
-dnl Check to see if we should not declare strdup if we have it
-dnl
-AC_DEFUN([OL_DECL_STRDUP],
-[
-AC_MSG_CHECKING([strdup declaration])
-AC_CACHE_VAL(ol_cv_dcl_strdup,[
-	AC_TRY_COMPILE([
-#include <string.h> ],
-	[extern char *(strdup)();],
-	[ol_cv_dcl_strdup=yes],
-	[ol_cv_dcl_strdup=no])])
-AC_MSG_RESULT($ol_cv_dcl_strdup)
-if test $ol_cv_dcl_strdup = yes ; then
-	AC_DEFINE(DECL_STRDUP,1,
-		[define if you have strdup() but it's not declared])
-fi
-])dnl
-
-dnl ====================================================================
 dnl Early MIPS compilers (used in Ultrix 4.2) don't like
 dnl "int x; int *volatile a = &x; *a = 0;"
 dnl 	-- borrowed from PDKSH

@@ -14,6 +14,7 @@
 
 #include <signal.h>
 
+#undef SIGNAL
 #ifdef HAVE_SIGSET
 #define SIGNAL sigset
 #else

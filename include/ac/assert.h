@@ -12,6 +12,8 @@
 #ifndef _AC_ASSERT_H
 #define _AC_ASSERT_H
 
+#undef assert
+
 #ifdef LDAP_DEBUG
 
 #if defined( HAVE_ASSERT_H ) || defined( STDC_HEADERS )

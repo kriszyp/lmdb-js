@@ -44,9 +44,6 @@ ldap_pvt_gethostbyaddr_a LDAP_P((
 	struct hostent **result,
 	int *herrno_ptr ));
 
-LDAP_F( void )
-ldap_pvt_init_utils LDAP_P(( void ));
-
 LDAP_END_DECL
 
 #endif
