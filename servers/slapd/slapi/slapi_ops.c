@@ -558,6 +558,7 @@ cleanup:
 	if (ndn.bv_val) slapi_ch_free( (void **)&ndn.bv_val );
 
 	if ( pConn != NULL ) {
+		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
 		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
 		if ( op ) slapi_ch_free( (void **)&op );
@@ -641,6 +642,7 @@ cleanup:
 	}
 
 	if ( pConn != NULL ) {
+		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
 		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
 			if ( op->o_ndn.bv_val ) {
@@ -856,6 +858,7 @@ cleanup:
 	if ( nnewrdn.bv_val ) ch_free( newrdn.bv_val );
 
 	if ( pConn != NULL ) {
+		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
 		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
 			if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
@@ -1069,6 +1072,7 @@ cleanup:
 	if ( modlist != NULL ) slap_mods_free( modlist );
 
 	if ( pConn != NULL ) {
+		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
 		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
 			if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
@@ -1247,6 +1251,7 @@ cleanup:
 	if ( an != NULL ) free( an );
 
 	if ( c != NULL ) {
+		if ( c->c_sb != NULL ) ber_sockbuf_free( c->c_sb );
 		if ( c->c_dn.bv_val ) slapi_ch_free( (void **)&c->c_dn.bv_val );
 		if ( op ) {
 			if ( op->o_ndn.bv_val ) slapi_ch_free( (void **)&op->o_ndn.bv_val );
