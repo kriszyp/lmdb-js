@@ -279,7 +279,6 @@ idl_store(
 {
 	int	rc, flags;
 	Datum	data;
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 #ifdef LDBM_DEBUG_IDL
 	idl_check(idl);
@@ -292,13 +291,13 @@ idl_store(
 	data.dptr = (char *) idl;
 	data.dsize = (ID_BLOCK_IDS_OFFSET + ID_BLOCK_NMAXN(idl)) * sizeof(ID);
 	
+	flags = LDBM_REPLACE;
+	rc = ldbm_cache_store( db, key, data, flags );
+
 #ifdef LDBM_DEBUG
 	Statslog( LDAP_DEBUG_STATS, "<= idl_store(): rc=%d\n",
 		rc, 0, 0, 0, 0 );
 #endif
-
-	flags = LDBM_REPLACE;
-	rc = ldbm_cache_store( db, key, data, flags );
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
 	return( rc );
@@ -458,7 +457,7 @@ idl_insert_key(
     ID			id
 )
 {
-	int	i, j, first, rc;
+	int	i, j, first, rc = 0;
 	ID_BLOCK	*idl, *tmp, *tmp2, *tmp3;
 	Datum	k2;
 

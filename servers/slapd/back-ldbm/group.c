@@ -39,7 +39,6 @@ ldbm_back_group(
 	Attribute   *attr;
 	struct berval bv;
 
-	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	const char *group_oc_name = NULL;
 	const char *group_at_name = group_at->ad_cname.bv_val;
 

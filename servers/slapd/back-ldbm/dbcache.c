@@ -13,6 +13,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 #include <sys/stat.h>
 
 #include "slap.h"

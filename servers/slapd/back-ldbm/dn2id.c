@@ -26,7 +26,6 @@ dn2id_add(
 	int		rc, flags;
 	DBCache	*db;
 	Datum		key, data;
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,

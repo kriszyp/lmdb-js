@@ -235,7 +235,6 @@ static int index_at_values(
 {
 	slap_mask_t mask = 0;
 	slap_mask_t tmpmask = 0;
-	int lindex = 0;
 
 	if( type->sat_sup ) {
 		/* recurse */

@@ -103,9 +103,6 @@ ldbm_back_open(
 {
 	int rc;
 
-	struct ldbm_backend_info *lbi
-		= (struct ldbm_backend_info *) bi->bi_private;
-
 	/* initialize the underlying database system */
 	rc = ldbm_initialize( NULL );
 	return rc;

@@ -22,7 +22,6 @@
 int
 id2entry_add( Backend *be, Entry *e )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	DBCache	*db;
 	Datum		key, data;
 	int		len, rc, flags;
