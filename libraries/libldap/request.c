@@ -254,8 +254,6 @@ ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 
 	if ( ber_flush( lc->lconn_sb, ber, 0 ) != 0 ) {
 #ifdef notyet
-		extern int	errno;
-
 		if ( errno == EWOULDBLOCK ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
