@@ -980,7 +980,7 @@ backend_check_restrictions(
 			if ( ! ( conn->c_listener->sl_perms & S_IXUSR ) ) {
 				/* no "x" mode means bind required */
 				*text = "bind required on this listener";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				return LDAP_STRONG_AUTH_REQUIRED;
 			}
 		}
 
