@@ -272,9 +272,10 @@ retry:	/* transaction retry */
 		}
 
 		/* check parent for "children" acl */
-		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE, NULL ) )
-		{
+		rc = access_allowed( be, conn, op, p,
+			children, NULL, ACL_WRITE, NULL ) );
+
+		if ( ! rc ) {
 			rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
@@ -326,8 +327,7 @@ retry:	/* transaction retry */
 
 				p = NULL;
 
-				if ( ! rc )
-				{
+				if ( ! rc ) {
 					rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 					LDAP_LOG ( OPERATION, ERR, 
@@ -408,6 +408,7 @@ retry:	/* transaction retry */
 			newSuperior = NULL; /* ignore newSuperior */
 		}
 	}
+
 	if ( newSuperior != NULL ) {
 		if ( newSuperior->bv_len ) {
 			np_dn = newSuperior;
@@ -462,7 +463,10 @@ retry:	/* transaction retry */
 #endif
 
 			/* check newSuperior for "children" acl */
-			if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE, NULL ) ) {
+			rc = access_allowed( be, conn, op, np, children,
+				NULL, ACL_WRITE, NULL );
+
+			if( ! rc ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, 
 					"==>bdb_modrdn: no wr to newSup children\n", 0, 0, 0 );
@@ -525,8 +529,7 @@ retry:	/* transaction retry */
 
 					np = NULL;
 
-					if ( ! rc )
-					{
+					if ( ! rc ) {
 						rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 						LDAP_LOG ( OPERATION, ERR, 

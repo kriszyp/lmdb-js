@@ -211,9 +211,9 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( ! access_allowed( be, conn, op, e,
-			password, NULL, ACL_AUTH, NULL ) )
-		{
+		rc = access_allowed( be, conn, op, e,
+			password, NULL, ACL_AUTH, NULL );
+		if ( ! rc ) {
 			send_ldap_result( conn, op, rc = LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
 			goto done;
@@ -242,9 +242,9 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( ! access_allowed( be, conn, op, e,
-			krbattr, NULL, ACL_AUTH, NULL ) )
-		{
+		rc = access_allowed( be, conn, op, e,
+			krbattr, NULL, ACL_AUTH, NULL );
+		if ( ! rc ) {
 			send_ldap_result( conn, op, rc = LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
 			goto done;

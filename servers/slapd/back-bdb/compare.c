@@ -110,9 +110,9 @@ dn2entry_retry:
 		goto done;
 	}
 
-	if ( ! access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
-	{
+	rc = access_allowed( be, conn, op, e,
+		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL );
+	if ( ! rc ) {
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
 	}
@@ -129,7 +129,6 @@ dn2entry_retry:
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}
-
 	}
 
 return_results:
