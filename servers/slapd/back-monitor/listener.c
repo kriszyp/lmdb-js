@@ -87,13 +87,14 @@ monitor_subsys_listener_init(
 	}
 
 	e_tmp = NULL;
-	for ( i = 0; l[i]; i++ ) {
+	for ( i = 0; l[i]; i++ );
+	for ( ; i--; ) {
 		char 		buf[1024];
 
 		snprintf( buf, sizeof( buf ),
-				"dn: cn=%d,%s\n"
+				"dn: cn=Listener %d,%s\n"
 				SLAPD_MONITOR_OBJECTCLASSES
-				"cn: %d\n"
+				"cn: Listener %d\n"
 				"description: %s\n"
 				"labeledURI: %s",
 				i,
@@ -108,14 +109,14 @@ monitor_subsys_listener_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"monitor_subsys_listener_init: "
-				"unable to create entry 'cn=%s,%s'\n",
-				l[i]->sl_name,
+				"unable to create entry 'cn=Listener, %d,%s'\n",
+				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
-				"unable to create entry 'cn=%s,%s'\n%s",
-				l[i]->sl_name, 
+				"unable to create entry 'cn=Listener %d,%s'\n%s",
+				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
 				"" );
 #endif
@@ -151,14 +152,14 @@ monitor_subsys_listener_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"monitor_subsys_listener_init: "
-				"unable to add entry 'cn=%s,%s'\n",
-				l[i]->sl_name, 
+				"unable to add entry 'cn=Listener %d,%s'\n",
+				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
-				"unable to add entry 'cn=%s,%s'\n",
-				l[i]->sl_name, 
+				"unable to add entry 'cn=Listener %d,%s'\n",
+				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
 				0 );
 #endif

@@ -48,6 +48,8 @@ monitor_subsys_database_init(
 	int			i;
 	struct monitorentrypriv	*mp;
 	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
+	AttributeDescription 	*ad_seeAlso = NULL;
+	const char		*text = NULL;
 	struct berval 		bv[2];
 
 	assert( be != NULL );
@@ -73,6 +75,10 @@ monitor_subsys_database_init(
 		return( -1 );
 	}
 
+	if ( slap_str2ad( "seeAlso", &ad_seeAlso, &text ) != LDAP_SUCCESS ) {
+		return( -1 );
+	}
+
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
 		char buf[1024];
@@ -81,25 +87,27 @@ monitor_subsys_database_init(
 		be = &backendDB[i];
 
 		snprintf( buf, sizeof( buf ),
-				"dn: cn=%d,%s\n"
+				"dn: cn=Database %d,%s\n"
 				SLAPD_MONITOR_OBJECTCLASSES
-				"cn: %d\n",
+				"cn: Database %d\n"
+				"description: %s",
 				i,
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
-				i );
+				i,
+				be->bd_info->bi_type );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"monitor_subsys_database_init: "
-				"unable to create entry 'cn=%d,%s'\n",
+				"unable to create entry 'cn=Database %d,%s'\n",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
-				"unable to create entry 'cn=%d,%s'\n%s",
+				"unable to create entry 'cn=Database %d,%s'\n%s",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
 				"" );
@@ -107,18 +115,32 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		bv[1].bv_val = NULL;
-		bv[0].bv_val = be->bd_info->bi_type;
-		bv[0].bv_len = strlen( bv[0].bv_val );
-		attr_merge( e, monitor_ad_desc, bv );
-		
 		for ( j = 0; be->be_suffix[j]; j++ ) {
 			bv[0] = *be->be_suffix[j];
 
 			attr_merge( e, ad_nc, bv );
 			attr_merge( e_database, ad_nc, bv );
 		}
-				
+
+		for ( j = nBackendInfo; j--; ) {
+			if ( &backendInfo[ j ] == be->bd_info ) {
+				/* we check the pointer; the test on the
+				 * string should be more reliable */
+				assert( strcasecmp( backendInfo[ j ].bi_type,
+					be->bd_info->bi_type ) == 0 );
+
+				snprintf( buf, sizeof( buf ), 
+					"cn=Backend %d,%s", 
+					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
+				bv->bv_val = buf;
+				bv->bv_len = strlen( buf );
+				attr_merge( e, ad_seeAlso, bv );
+				break;
+			}
+		}
+		/* we must find it! */
+		assert( j >= 0 );
+
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
 		mp->mp_next = e_tmp;
@@ -131,13 +153,13 @@ monitor_subsys_database_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"monitor_subsys_database_init: "
-				"unable to add entry 'cn=%d,%s'\n",
+				"unable to add entry 'cn=Database %d,%s'\n",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
-				"unable to add entry 'cn=%d,%s'\n",
+				"unable to add entry 'cn=Database %d,%s'\n",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
 				0 );

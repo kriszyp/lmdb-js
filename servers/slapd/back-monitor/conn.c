@@ -257,9 +257,9 @@ conn_create(
 	assert( ep != NULL );
 
 	snprintf( buf, sizeof( buf ),
-		"dn: cn=%ld,%s\n"
+		"dn: cn=Connection %ld,%s\n"
 		SLAPD_MONITOR_OBJECTCLASSES
-		"cn: %ld\n",
+		"cn: Connection %ld\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		c->c_connid );
 	e = str2entry( buf );
@@ -269,14 +269,14 @@ conn_create(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=%ld,%s' entry\n",
+			"'cn=Connection %ld,%s' entry\n",
 			c->c_connid, 
 			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=%ld,%s' entry\n",
+			"'cn=Connection %ld,%s' entry\n",
 			c->c_connid, 
 			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val, 0 );
 #endif

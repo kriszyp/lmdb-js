@@ -1313,6 +1313,7 @@ slapd_daemon_task(
 			case AF_LOCAL:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
 				ssf = LDAP_PVT_SASL_LOCAL_SSF;
+				dnsname = "local";
 				break;
 #endif /* LDAP_PF_LOCAL */
 
