@@ -1028,6 +1028,9 @@
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 
+/* define for Password Policy overlay */
+#undef SLAPD_OVER_PPOLICY
+
 /* define for Proxy Cache overlay */
 #undef SLAPD_OVER_PROXYCACHE
 
