@@ -698,8 +698,8 @@ LIBSLAPD_F (struct berval *) slap_passwd_return(
 LIBSLAPD_F (int) slap_passwd_parse(
 	struct berval *reqdata,
 	struct berval **id,
-	struct berval **old,
-	struct berval **new,
+	struct berval **oldpass,
+	struct berval **newpass,
 	char **text );
 
 /*

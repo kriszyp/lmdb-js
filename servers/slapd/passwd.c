@@ -68,8 +68,8 @@ int passwd_extop(
 
 int slap_passwd_parse( struct berval *reqdata,
 	struct berval **id,
-	struct berval **old,
-	struct berval **new,
+	struct berval **oldpass,
+	struct berval **newpass,
 	char **text )
 {
 	int rc = LDAP_SUCCESS;
@@ -117,7 +117,7 @@ int slap_passwd_parse( struct berval *reqdata,
 	}
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD ) {
-		if( old == NULL ) {
+		if( oldpass == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD not allowed.\n",
 				0, 0, 0 );
 			*text = "use bind to verify old password";
@@ -125,7 +125,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "O", old );
+		tag = ber_scanf( ber, "O", oldpass );
 
 		if( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
@@ -137,7 +137,7 @@ int slap_passwd_parse( struct berval *reqdata,
 	}
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW ) {
-		if( new == NULL ) {
+		if( newpass == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW not allowed.\n",
 				0, 0, 0 );
 			*text = "user specified passwords disallowed";
@@ -145,7 +145,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "O", new );
+		tag = ber_scanf( ber, "O", newpass );
 
 		if( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
@@ -173,14 +173,14 @@ done:
 			*id = NULL;
 		}
 
-		if( old != NULL ) {
-			ber_bvfree( *old );
-			*old = NULL;
+		if( oldpass != NULL ) {
+			ber_bvfree( *oldpass );
+			*oldpass = NULL;
 		}
 
-		if( new != NULL ) {
-			ber_bvfree( *new );
-			*new = NULL;
+		if( newpass != NULL ) {
+			ber_bvfree( *newpass );
+			*newpass = NULL;
 		}
 	}
 
