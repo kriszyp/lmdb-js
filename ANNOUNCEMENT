@@ -1,8 +1,9 @@
 A N N O U N C E M E N T -- OpenLDAP 2.1
 
     The OpenLDAP Project is pleased to announce the availability
-    of OpenLDAP 2.1, a suite of the Lightweight Directory Access
-    Protocol servers, clients, utilities, and development tools.
+    of OpenLDAP Software 2.1, a suite of the Lightweight Directory
+    Access Protocol (v3) servers, clients, utilities, and
+    development tools.
 
     This release contains the following major enhancements:
 
@@ -31,7 +32,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.1
         * -lldap - a LDAP client library
         * -llber - a lightweight BER/DER encoding/decoding library
         * LDIF tools - data conversion tools for use with slapd
-        * LDAP tools - A collection of command line LDAP utility programs
+        * LDAP tools - A collection of command line LDAP utilities
 
     In addition, there are some contributed components:
 
@@ -45,26 +46,26 @@ A N N O U N C E M E N T -- OpenLDAP 2.1
 
 ACKNOWLEDGEMENTS
 
-    OpenLDAP is developed by a team of volunteers whose use
+    OpenLDAP Software is developed by a team of volunteers whose use
     the Internet to coordinate their activities.   The project is
     managed by the OpenLDAP Foundation.
 
-    OpenLDAP LDAP implementation is derived from University of
-    Michigan LDAP release 3.3.
+    OpenLDAP Software is derived from University of Michigan LDAP,
+    release 3.3.
 
 
 AVAILABILITY
 
     This software is available under the OpenLDAP Public License,
-    an unrestrictive, "free," OSI-approved open source license.
-    For download information is available at:
+    an unrestrictive, "free", open-source license.  For download
+    information is available at:
 
         http://www.OpenLDAP.org/software/download/
 
 
 SUPPORT
 
-    OpenLDAP software is user supported:
+    OpenLDAP Software is user supported:
 
         http://www.openldap.org/support/
 
@@ -78,7 +79,8 @@ SUPPORT
         http://www.openldap.org/faq/
 
     In addition, there are also a number of discussion lists
-    related OpenLDAP.  A list of mailing lists is available at:
+    related OpenLDAP Software.  A list of mailing lists is
+    available at:
 
         http://www.OpenLDAP.org/lists/
 
@@ -94,8 +96,9 @@ SUPPORT
 
 SUPPORTED PLATFORMS
 
-    This release has been ported to many UNIX (and UNIX-like) platforms
-    including FreeBSD, Linux, NetBSD, OpenBSD and most commercial UNIX
-    systems.  The release has also been ported (in part or in whole) to
-    other platforms including Apple's MacOS and Microsoft's Windows 2000.
+    This release has been ported to many UNIX (and UNIX-like)
+    platforms including Darwin, FreeBSD, Linux, NetBSD, OpenBSD
+    and most commercial UNIX systems.  The release has also been
+    ported (in part or in whole) to other platforms including
+    Apple MacOS X, IBM zOS, and Microsoft Windows 2000.
 
