@@ -54,6 +54,8 @@ new_backend(
 		be->be_config = ldbm_back_config;
 		be->be_init = ldbm_back_init;
 		be->be_close = ldbm_back_close;
+		be->be_startup  = ldbm_back_startup;
+		be->be_shutdown = ldbm_back_shutdown;
 #ifdef SLAPD_ACLGROUPS
 		be->be_group = ldbm_back_group;
 #endif
@@ -269,6 +271,32 @@ be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 
 	return result == 0;
 }
+
+void
+be_startup( void )
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_startup != NULL ) {
+			(*backends[i].be_startup)( &backends[i] );
+		}
+	}
+}
+
+
+void
+be_shutdown( void )
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_shutdown != NULL ) {
+			(*backends[i].be_shutdown)( &backends[i] );
+		}
+	}
+}
+
 
 void
 be_close( void )

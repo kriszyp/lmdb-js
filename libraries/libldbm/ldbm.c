@@ -31,95 +31,56 @@
 
 #ifdef HAVE_BERKELEY_DB2
 
+/*  A malloc routine for use with DB_DBT_MALLOC  */
 void *
 ldbm_malloc( size_t size )
 {
 	return( calloc( 1, size ));
 }
 
-static void
-ldbm_db_errcall( const char *prefix, char *message )
-{
-
-	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
-
-}
-
-/*  a dbEnv for BERKELEYv2  */
-static DB_ENV           ldbm_Env;
-
 /* Berkeley DB 2.x is reentrant */
-#define LDBM_LOCK	((void)0)
-#define LDBM_UNLOCK	((void)0)
-
-void ldbm_initialize( void )
-{
-	static int initialized = 0;
-
-	int     err;
-	int     envFlags;
-
-	if(initialized++) return;
-
-	memset( &ldbm_Env, 0, sizeof( ldbm_Env ));
-
-	ldbm_Env.db_errcall   = ldbm_db_errcall;
-	ldbm_Env.db_errpfx    = "==>";
-
-	envFlags = DB_CREATE | DB_THREAD;
-
-	if ( ( err = db_appinit( NULL, NULL, &ldbm_Env, envFlags )) ) {
-		char  error[BUFSIZ];
-
-		if ( err < 0 ) {
-			sprintf( error, "%ld\n", (long) err );
-		} else {
-			sprintf( error, "%s\n", strerror( err ));
-		}
-
-		syslog( LOG_INFO,
-			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
-			error );
-	 	exit( 1 );
-	}
-}
+#define LDBM_LOCK   ((void)0)
+#define LDBM_UNLOCK ((void)0)
 
 #else
 
 /* DB 1.85 is non-reentrant */
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+#define LDBM_LOCK   (ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK (ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
-void ldbm_initialize( void )
-{
-	static int initialized = 0;
 
-	if(initialized++) return;
-
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
-}
+/*  we need a dummy definition for pre-2.0 DB */
+typedef  void  DB_ENV
 
 #endif
 
 
-
+/*  the old interface for tools and pre-2.0 DB  */
 LDBM
 ldbm_open( char *name, int rw, int mode, int dbcachesize )
+{
+	return( ldbm_open_env( name, rw, mode, dbcachesize, NULL ));
+}
+
+
+/*  an enhanced interface for DB 2.0-slapd  */
+LDBM
+ldbm_open_env( char *name, int rw, int mode, int dbcachesize, DB_ENV *dbEnv )
 {
 	LDBM		ret = NULL;
 
 #ifdef HAVE_BERKELEY_DB2
-	DB_INFO dbinfo;
+	DB_INFO  	dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
 	dbinfo.db_cachesize = dbcachesize;
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
-	LDBM_LOCK;
-    (void) db_open( name, DB_TYPE, rw, mode, &ldbm_Env, &dbinfo, &ret );
-	LDBM_UNLOCK;
+	/*  use the environment, but only if initialized  */
+    (void) db_open( name, DB_TYPE, rw, mode,
+					dbEnv->db_errcall ? dbEnv : NULL, &dbinfo, &ret );
 
 #else
 	void		*info;
@@ -374,17 +335,9 @@ ldbm_errno( LDBM ldbm )
 
 /* GDBM is non-reentrant */
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+#define LDBM_LOCK   (ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK (ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
-void ldbm_initialize( void )
-{
-	static int initialized = 0;
-
-	if(initialized++) return;
-
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
-}
 
 /*****************************************************************
  *                                                               *
@@ -401,7 +354,6 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	LDBM_LOCK;
 
 	if ( (db =  gdbm_open( name, 0, rw | GDBM_FAST, mode, 0 )) == NULL ) {
-		LDBM_UNLOCK;
 		return( NULL );
 	}
 	if ( dbcachesize > 0 && stat( name, &st ) == 0 ) {
@@ -410,6 +362,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	}
 
 	LDBM_UNLOCK;
+
 	return( db );
 }
 
@@ -473,6 +426,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	if ( flags & LDBM_SYNC )
 		gdbm_sync( ldbm );
 	LDBM_UNLOCK;
+
 	return( rc );
 }
 
@@ -485,6 +439,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 	rc = gdbm_delete( ldbm, key );
 	gdbm_sync( ldbm );
 	LDBM_UNLOCK;
+
 	return( rc );
 }
 
@@ -503,7 +458,7 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 {
 	Datum d;
 	LDBM_LOCK;
-	d = gdbm_nextkey( ldbm, key );
+	d = gdbm_nextkey( ldbm );
 	LDBM_UNLOCK;
 	return d;
 }
@@ -513,32 +468,24 @@ ldbm_errno( LDBM ldbm )
 {
 	int err;
 	LDBM_LOCK;
-	err = gdbm_errno;
+	err = (int) gdbm_errno;
 	LDBM_UNLOCK;
 	return( err );
 }
 
 #elif defined( HAVE_NDBM )
 
-/* GDBM is non-reentrant */
-static ldap_pvt_thread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
-
-void ldbm_initialize( void )
-{
-	static int initialized = 0;
-
-	if(initialized++) return;
-
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
-}
-
 /*****************************************************************
  *                                                               *
  * if no gdbm, fall back to using ndbm, the standard unix thing  *
  *                                                               *
  *****************************************************************/
+
+/* NDBM is non-reentrant */
+static ldap_pvt_thread_mutex_t ldbm_big_mutex;
+#define LDBM_LOCK   (ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK (ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+
 
 /* ARGSUSED */
 LDBM
@@ -597,9 +544,11 @@ Datum
 ldbm_fetch( LDBM ldbm, Datum key )
 {
 	Datum d;
+
 	LDBM_LOCK;
 	d = ldbm_datum_dup( ldbm, dbm_fetch( ldbm, key ) );
 	LDBM_UNLOCK;
+
 	return d;
 }
 
@@ -607,9 +556,11 @@ int
 ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int rc;
+
 	LDBM_LOCK;
 	rc = dbm_store( ldbm, key, data, flags );
 	LDBM_UNLOCK;
+
 	return rc;
 }
 
@@ -617,9 +568,11 @@ int
 ldbm_delete( LDBM ldbm, Datum key )
 {
 	int rc;
+
 	LDBM_LOCK;
 	rc = dbm_delete( ldbm, key );
 	LDBM_UNLOCK;
+
 	return rc;
 }
 
@@ -627,9 +580,11 @@ Datum
 ldbm_firstkey( LDBM ldbm )
 {
 	Datum d;
+
 	LDBM_LOCK;
 	d = dbm_firstkey( ldbm );
 	LDBM_UNLOCK;
+
 	return d;
 }
 
@@ -637,9 +592,11 @@ Datum
 ldbm_nextkey( LDBM ldbm, Datum key )
 {
 	Datum d;
+
 	LDBM_LOCK;
 	d = dbm_nextkey( ldbm );
 	LDBM_UNLOCK;
+
 	return d;
 }
 
@@ -647,9 +604,11 @@ int
 ldbm_errno( LDBM ldbm )
 {
 	int err;
+
 	LDBM_LOCK;
 	err = dbm_error( ldbm );
 	LDBM_UNLOCK;
+
 	return err;
 }
 

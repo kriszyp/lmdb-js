@@ -1,4 +1,4 @@
-/* compare.c - ldbm backend compare routine */
+/* group.c - ldbm backend acl group routine */
 
 #include "portable.h"
 

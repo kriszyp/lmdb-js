@@ -202,8 +202,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-void ldbm_initialize( void );
-int	ldbm_errno( LDBM ldbm );
+int		ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
 void	ldbm_close( LDBM ldbm );
 void	ldbm_sync( LDBM ldbm );
@@ -212,6 +211,16 @@ Datum	ldbm_datum_dup( LDBM ldbm, Datum data );
 Datum	ldbm_fetch( LDBM ldbm, Datum key );
 int	ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
 int	ldbm_delete( LDBM ldbm, Datum key );
+
+#ifdef LDBM_USE_DBBTREE
+#  if HAVE_BERKELEY_DB2
+	LDBM	ldbm_open_env( char *name, int rw, int mode,
+							int dbcachesize, DB_ENV *env );
+#  else
+	LDBM	ldbm_open_env( char *name, int rw, int mode,
+							int dbcachesize, void *env );
+#  endif
+#endif
 
 #if HAVE_BERKELEY_DB2
 	void   *ldbm_malloc( size_t size );

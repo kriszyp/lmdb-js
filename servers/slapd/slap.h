@@ -51,6 +51,10 @@ LDAP_BEGIN_DECL
 
 extern int slap_debug;
 
+#ifdef SLAPD_BDB2
+extern int bdb2i_do_timing;
+#endif
+
 struct slap_op;
 struct slap_conn;
 
@@ -271,6 +275,8 @@ struct backend {
 	void	(*be_config) LDAP_P((Backend *be,
 		char *fname, int lineno, int argc, char **argv ));
 	void	(*be_init)   LDAP_P((Backend *be));
+	void	(*be_startup)   LDAP_P((Backend *be));
+	void	(*be_shutdown)  LDAP_P((Backend *be));
 	void	(*be_close)  LDAP_P((Backend *be));
 
 #ifdef SLAPD_ACLGROUPS
