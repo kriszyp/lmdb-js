@@ -1323,7 +1323,7 @@ slapiControlOp2SlapControlMask(unsigned long slapi_mask,
 }
 
 static int
-parseSlapiControl(
+slapi_int_parse_control(
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )
@@ -1344,7 +1344,7 @@ slapi_register_supported_control(
 
 	slapiControlOp2SlapControlMask( controlops, &controlmask );
 
-	register_supported_control( controloid, controlmask, NULL, parseSlapiControl );
+	register_supported_control( controloid, controlmask, NULL, slapi_int_parse_control );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1425,7 +1425,7 @@ slapi_get_supported_extended_ops( void )
 		;
 	}
 	
-	for ( j = 0; ns_get_supported_extop( j ) != NULL; j++ ) {
+	for ( j = 0; slapi_int_get_supported_extop( j ) != NULL; j++ ) {
 		;
 	}
 
@@ -1447,7 +1447,7 @@ slapi_get_supported_extended_ops( void )
 	for ( ; k < j; k++ ) {
 		struct berval	*bv;
 
-		bv = ns_get_supported_extop( k );
+		bv = slapi_int_get_supported_extop( k );
 		assert( bv != NULL );
 
 		ppExtOpOID[ i + k ] = bv->bv_val;
@@ -2148,7 +2148,7 @@ slapi_get_hostname( void )
 /*
  * FIXME: this should go in an appropriate header ...
  */
-extern int vLogError( int level, char *subsystem, char *fmt, va_list arglist );
+extern int slapi_int_log_error( int level, char *subsystem, char *fmt, va_list arglist );
 
 int 
 slapi_log_error(
@@ -2162,7 +2162,7 @@ slapi_log_error(
 	va_list		arglist;
 
 	va_start( arglist, fmt );
-	rc = vLogError( severity, subsystem, fmt, arglist );
+	rc = slapi_int_log_error( severity, subsystem, fmt, arglist );
 	va_end( arglist );
 
 	return rc;
@@ -2275,7 +2275,7 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 /*
  * Internal API to prime a Slapi_PBlock with a Backend.
  */
-static int initBackendPB( Slapi_PBlock *pb, Backend *be )
+static int slapi_int_pblock_set_backend( Slapi_PBlock *pb, Backend *be )
 {
 	int rc;
 	
@@ -2337,7 +2337,7 @@ static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls
 /*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
-static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
+static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 {
 	char *connAuthType;
 	int rc;
@@ -2443,11 +2443,11 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 		isUpdateDn = be_isupdate( op->o_bd, &op->o_ndn );
 	}
 
-	rc = initBackendPB( pb, op->o_bd );
+	rc = slapi_int_pblock_set_backend( pb, op->o_bd );
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = initConnectionPB( pb, op->o_conn );
+	rc = slapi_int_pblock_set_connection( pb, op->o_conn );
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
@@ -3035,7 +3035,7 @@ static int checkBVString(const struct berval *bv)
 
 	return 1;
 }
-#endif
+#endif /* LDAP_SLAPI */
 
 int slapi_value_get_int(const Slapi_Value *value)
 {
@@ -3639,7 +3639,7 @@ int slapi_compute_add_evaluator(slapi_compute_callback_t function)
 		goto done;
 	}
 
-	rc = insertPlugin( NULL, pPlugin );
+	rc = slapi_int_register_plugin( NULL, pPlugin );
 	if ( rc != 0 ) {
 		rc = LDAP_OTHER;
 		goto done;
@@ -3684,7 +3684,7 @@ int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function)
 		goto done;
 	}
 
-	rc = insertPlugin( NULL, pPlugin );
+	rc = slapi_int_register_plugin( NULL, pPlugin );
 	if ( rc != 0 ) {
 		rc = LDAP_OTHER;
 		goto done;
@@ -3713,7 +3713,7 @@ int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slap
 	int rc = 0;
 	slapi_compute_callback_t *pGetPlugin, *tmpPlugin;
 
-	rc = getAllPluginFuncs( NULL, SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN, (SLAPI_FUNC **)&tmpPlugin );
+	rc = slapi_int_get_plugins( NULL, SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN, (SLAPI_FUNC **)&tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* Nothing to do; front-end should ignore. */
 		return 0;
@@ -3750,7 +3750,7 @@ int compute_rewrite_search_filter(Slapi_PBlock *pb)
 		return rc;
 	}
 
-	return doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
+	return slapi_int_call_plugins( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
 #else
 	return -1;
 #endif /* LDAP_SLAPI */
@@ -3917,7 +3917,7 @@ int slapi_int_access_allowed( Operation *op,
 		break;
         }
 
-	rc = getAllPluginFuncs( op->o_bd, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
+	rc = slapi_int_get_plugins( op->o_bd, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* nothing to do; allowed access */
 		return 1;

@@ -266,7 +266,7 @@ do_compare(
 		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
 		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
 
-		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -297,7 +297,7 @@ do_compare(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_compare: compare postoperation plugins "
 				"failed\n", 0, 0, 0 );

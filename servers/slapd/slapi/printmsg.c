@@ -40,7 +40,7 @@ char			*slapi_log_file = NULL;
 int			slapi_log_level = SLAPI_LOG_PLUGIN;
 
 int 
-vLogError(
+slapi_int_log_error(
 	int		level, 	
 	char		*subsystem, 
 	char		*fmt, 

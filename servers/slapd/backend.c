@@ -753,7 +753,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 			int rc;
 			if ( i == 0 ) slapi_int_pblock_set_operation( op->o_pb, op );
 			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
-			rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
+			rc = slapi_int_call_plugins( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
 					(Slapi_PBlock *)op->o_pb );
 			if ( rc < 0 ) {
 				/*
@@ -778,7 +778,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 		}
 
 #if defined( LDAP_SLAPI )
-		if ( op->o_pb && doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
+		if ( op->o_pb != NULL && slapi_int_call_plugins( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
 				(Slapi_PBlock *)op->o_pb ) < 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "

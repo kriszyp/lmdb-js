@@ -474,7 +474,7 @@ int main( int argc, char **argv )
 #endif
 
 #ifdef LDAP_SLAPI
-	if ( slapi_init() != 0 ) {
+	if ( slapi_int_initialize() != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT, "main: slapi initialization error\n", 0, 0, 0 );
 #else

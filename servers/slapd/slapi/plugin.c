@@ -30,7 +30,7 @@
  */
 #include <ltdl.h>
 
-static int loadPlugin( Slapi_PBlock *, const char *, const char *, int, 
+static int slapi_int_load_plugin( Slapi_PBlock *, const char *, const char *, int, 
 	SLAPI_FUNC *, lt_dlhandle * );
 
 /* pointer to link list of extended objects */
@@ -39,7 +39,7 @@ static ExtendedOp *pGExtendedOps = NULL;
 static Slapi_PBlock *pGPlugins = NULL;
 
 /*********************************************************************
- * Function Name:      newPlugin
+ * Function Name:      plugin_pblock_new
  *
  * Description:        This routine creates a new Slapi_PBlock structure,
  *                     loads in the plugin module and executes the init
@@ -61,8 +61,8 @@ static Slapi_PBlock *pGPlugins = NULL;
  * Messages:           None
  *********************************************************************/
 
-Slapi_PBlock *
-newPlugin(
+static Slapi_PBlock *
+plugin_pblock_new(
 	int type, 
 	const char *path, 
 	const char *initfunc, 
@@ -95,14 +95,14 @@ newPlugin(
 		goto done;
 	}
 
-	rc = loadPlugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
+	rc = slapi_int_load_plugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
 	if ( rc != 0 ) {
 		goto done;
 	}
 
 	if ( slapi_pblock_get( pPlugin, SLAPI_PLUGIN_DESCRIPTION, (void **)&pPluginDesc ) == 0 &&
 	     pPluginDesc != NULL ) {
-		slapi_log_error(SLAPI_LOG_TRACE, "newPlugin",
+		slapi_log_error(SLAPI_LOG_TRACE, "plugin_pblock_new",
 				"Registered plugin %s %s [%s] (%s)\n",
 				pPluginDesc->spd_id,
 				pPluginDesc->spd_version,
@@ -120,7 +120,7 @@ done:
 } 
 
 /*********************************************************************
- * Function Name:      insertPlugin
+ * Function Name:      slapi_int_register_plugin
  *
  * Description:        insert the slapi_pblock structure to the end of the plugin
  *                     list 
@@ -136,7 +136,7 @@ done:
  * Messages:           None
  *********************************************************************/
 int 
-insertPlugin(
+slapi_int_register_plugin(
 	Backend *be, 
 	Slapi_PBlock *pPB )
 { 
@@ -174,7 +174,7 @@ insertPlugin(
 }
        
 /*********************************************************************
- * Function Name:      getAllPluginFuncs
+ * Function Name:      slapi_int_get_plugins
  *
  * Description:        get the desired type of function pointers defined 
  *                     in all the plugins 
@@ -190,7 +190,7 @@ insertPlugin(
  * Messages:           None
  *********************************************************************/
 int 
-getAllPluginFuncs(
+slapi_int_get_plugins(
 	Backend *be, 		
 	int functype, 
 	SLAPI_FUNC **ppFuncPtrs )
@@ -331,7 +331,7 @@ createExtendedOp()
 
 
 /*********************************************************************
- * Function Name:      removeExtendedOp
+ * Function Name:      slapi_int_unregister_extop
  *
  * Description:        This routine removes the ExtendedOp structures 
  *					   asscoiated with a particular extended operation 
@@ -349,7 +349,7 @@ createExtendedOp()
  * Messages:           None
  *********************************************************************/
 void
-removeExtendedOp(
+slapi_int_unregister_extop(
 	Backend *pBE, 
 	ExtendedOp **opList, 
 	Slapi_PBlock *pPB )
@@ -398,7 +398,7 @@ removeExtendedOp(
 
 
 /*********************************************************************
- * Function Name:      newExtendedOp
+ * Function Name:      slapi_int_register_extop
  *
  * Description:        This routine creates a new ExtendedOp structure, loads
  *                     in the extended op module and put the extended op function address
@@ -417,7 +417,7 @@ removeExtendedOp(
  * Messages:           None
  *********************************************************************/
 int 
-newExtendedOp(
+slapi_int_register_extop(
 	Backend *pBE, 	
 	ExtendedOp **opList, 
 	Slapi_PBlock *pPB )
@@ -485,7 +485,7 @@ error_return:
 }
 
 /*********************************************************************
- * Function Name:      getPluginFunc
+ * Function Name:      slapi_int_get_extop_plugin
  *
  * Description:        This routine gets the function address for a given function
  *                     name.
@@ -501,7 +501,7 @@ error_return:
  * Messages:           None
  *********************************************************************/
 int 
-getPluginFunc(
+slapi_int_get_extop_plugin(
 	struct berval *reqoid, 		
 	SLAPI_FUNC *pFuncAddr ) 
 {
@@ -532,12 +532,12 @@ getPluginFunc(
 }
 
 /***************************************************************************
- * This function is similar to getPluginFunc above. except it returns one OID
+ * This function is similar to slapi_int_get_extop_plugin above. except it returns one OID
  * per call. It is called from root_dse_info (root_dse.c).
  * The function is a modified version of get_supported_extop (file extended.c).
  ***************************************************************************/
 struct berval *
-ns_get_supported_extop( int index )
+slapi_int_get_supported_extop( int index )
 {
         ExtendedOp	*ext;
 
@@ -554,7 +554,7 @@ ns_get_supported_extop( int index )
 }
 
 /*********************************************************************
- * Function Name:      loadPlugin
+ * Function Name:      slapi_int_load_plugin
  *
  * Description:        This routine loads the specified DLL, gets and executes the init function
  *                     if requested.
@@ -578,7 +578,7 @@ ns_get_supported_extop( int index )
  *********************************************************************/
 
 static int 
-loadPlugin(
+slapi_int_load_plugin(
 	Slapi_PBlock	*pPlugin,
 	const char	*path,
 	const char	*initfunc, 
@@ -624,7 +624,7 @@ loadPlugin(
  * Special support for computed attribute plugins
  */
 int 
-doPluginFNs(
+slapi_int_call_plugins(
 	Backend		*be, 	
 	int		funcType, 
 	Slapi_PBlock	*pPB )
@@ -637,7 +637,7 @@ doPluginFNs(
 		return 1;
 	}
 
-	rc = getAllPluginFuncs( be, funcType, &tmpPlugin );
+	rc = slapi_int_get_plugins( be, funcType, &tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* Nothing to do, front-end should ignore. */
 		return 1;
@@ -672,7 +672,7 @@ doPluginFNs(
 }
 
 int
-netscape_plugin(
+slapi_int_read_config(
 	Backend		*be, 		
 	const char	*fname, 
 	int		lineno, 
@@ -720,24 +720,24 @@ netscape_plugin(
 		int rc;
 		Slapi_PBlock *pPlugin;
 
-		pPlugin = newPlugin( iType, argv[2], argv[3], 
+		pPlugin = plugin_pblock_new( iType, argv[2], argv[3], 
 					numPluginArgc, ppPluginArgv );
 		if (pPlugin == NULL) {
 			return 1;
 		}
 
 		if (iType == SLAPI_PLUGIN_EXTENDEDOP) {
-			rc = newExtendedOp(be, &pGExtendedOps, pPlugin);
+			rc = slapi_int_register_extop(be, &pGExtendedOps, pPlugin);
 			if ( rc != LDAP_SUCCESS ) {
 				slapi_pblock_destroy( pPlugin );
 				return 1;
 			}
 		}
 
-		rc = insertPlugin( be, pPlugin );
+		rc = slapi_int_register_plugin( be, pPlugin );
 		if ( rc != LDAP_SUCCESS ) {
 			if ( iType == SLAPI_PLUGIN_EXTENDEDOP ) {
-				removeExtendedOp( be, &pGExtendedOps, pPlugin );
+				slapi_int_unregister_extop( be, &pGExtendedOps, pPlugin );
 			}
 			slapi_pblock_destroy( pPlugin );
 			return 1;
@@ -748,7 +748,7 @@ netscape_plugin(
 }
 
 int
-slapi_init(void)
+slapi_int_initialize(void)
 {
 	if ( ldap_pvt_thread_mutex_init( &slapi_hn_mutex ) ) {
 		return -1;

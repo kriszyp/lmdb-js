@@ -120,7 +120,7 @@ internal_search_reference(
 }
 
 static Connection *
-slapiConnectionInit(
+slapi_int_init_connection(
 	char *DN, 
 	int OpType ) 
 { 
@@ -225,7 +225,7 @@ slapiConnectionInit(
 	return pConn;
 }
 
-static void slapiConnectionDestroy( Connection **pConn )
+static void slapi_int_connection_destroy( Connection **pConn )
 {
 	Connection *conn = *pConn;
 	Operation *op;
@@ -330,15 +330,15 @@ bvptr2obj_copy(
 }
 
 /*
- * Function : LDAPModToEntry 
+ * Function : slapi_int_ldapmod_to_entry 
  * convert a dn plus an array of LDAPMod struct ptrs to an entry structure
  * with a link list of the correspondent attributes.
  * Return value : LDAP_SUCCESS
  *                LDAP_NO_MEMORY
  *                LDAP_OTHER
 */
-Entry *
-LDAPModToEntry(
+static Entry *
+slapi_int_ldapmod_to_entry(
 	char *ldn, 
 	LDAPMod **mods )
 {
@@ -526,7 +526,7 @@ slapi_delete_internal(
 		goto cleanup;
 	}
 
-	pConn = slapiConnectionInit( NULL, LDAP_REQ_DELETE );
+	pConn = slapi_int_init_connection( NULL, LDAP_REQ_DELETE );
 	if (pConn == NULL) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -582,7 +582,7 @@ cleanup:
 		pSavePB = pPB;
 	}
 
-	slapiConnectionDestroy( &pConn );
+	slapi_int_connection_destroy( &pConn );
 
 	return (pSavePB);
 #else
@@ -592,7 +592,7 @@ cleanup:
 
 #ifdef LDAP_SLAPI
 static Slapi_PBlock * 
-slapi_add_entry_internal_locked(
+slapi_int_add_entry_locked(
 	Slapi_Entry **e, 
 	LDAPControl **controls, 
 	int log_changes ) 
@@ -610,7 +610,7 @@ slapi_add_entry_internal_locked(
 		goto cleanup;
 	}
 	
-	pConn = slapiConnectionInit( NULL, LDAP_REQ_ADD );
+	pConn = slapi_int_init_connection( NULL, LDAP_REQ_ADD );
 	if ( pConn == NULL ) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -661,7 +661,7 @@ cleanup:
 		pSavePB = pPB;
 	}
 
-	slapiConnectionDestroy( &pConn );
+	slapi_int_connection_destroy( &pConn );
 
 	return( pSavePB );
 }
@@ -682,7 +682,7 @@ slapi_add_entry_internal(
 	 * by the caller being placed in the cache.
 	 */
 	entry = slapi_entry_dup( e );
-	pb = slapi_add_entry_internal_locked( &entry, controls, log_changes );
+	pb = slapi_int_add_entry_locked( &entry, controls, log_changes );
 	if ( entry != NULL ) {
 		slapi_entry_free( entry );
 	}
@@ -719,7 +719,7 @@ slapi_add_internal(
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		pEntry = LDAPModToEntry( dn, mods );
+		pEntry = slapi_int_ldapmod_to_entry( dn, mods );
 		if ( pEntry == NULL ) {
 			rc = LDAP_OTHER;
 		}
@@ -729,7 +729,7 @@ slapi_add_internal(
 		pb = slapi_pblock_new();
 		slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
 	} else {
-		pb = slapi_add_entry_internal_locked( &pEntry, controls, log_changes );
+		pb = slapi_int_add_entry_locked( &pEntry, controls, log_changes );
 	}
 
 	if ( pEntry != NULL ) {
@@ -773,7 +773,7 @@ slapi_modrdn_internal(
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
-	pConn = slapiConnectionInit( NULL,  LDAP_REQ_MODRDN);
+	pConn = slapi_int_init_connection( NULL,  LDAP_REQ_MODRDN);
 	if ( pConn == NULL) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -861,7 +861,7 @@ cleanup:
 		pSavePB = pPB;
 	}
 
-	slapiConnectionDestroy( &pConn );
+	slapi_int_connection_destroy( &pConn );
 
 	return( pSavePB );
 #else
@@ -911,7 +911,7 @@ slapi_modify_internal(
 		goto cleanup;
 	}
 
-	pConn = slapiConnectionInit( NULL,  LDAP_REQ_MODIFY );
+	pConn = slapi_int_init_connection( NULL,  LDAP_REQ_MODIFY );
 	if ( pConn == NULL ) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -1066,7 +1066,7 @@ cleanup:
 		pSavePB = pPB;
 	}
 
-	slapiConnectionDestroy( &pConn );
+	slapi_int_connection_destroy( &pConn );
 
 	return ( pSavePB );
 #else
@@ -1075,8 +1075,7 @@ cleanup:
 }
 
 Slapi_PBlock *
-slapi_search_internal_bind(
-	char *bindDN, 
+slapi_search_internal(
 	char *ldn, 
 	int scope, 
 	char *filStr, 
@@ -1101,7 +1100,7 @@ slapi_search_internal_bind(
 
 	SlapReply		rs = { REP_RESULT };
 
-	c = slapiConnectionInit( NULL, LDAP_REQ_SEARCH );
+	c = slapi_int_init_connection( NULL, LDAP_REQ_SEARCH );
 	if ( c == NULL ) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -1251,26 +1250,9 @@ cleanup:
 		pSavePB = ptr;
     	}
 
-	slapiConnectionDestroy( &c );
+	slapi_int_connection_destroy( &c );
 
 	return( pSavePB );
-#else
-	return NULL;
-#endif /* LDAP_SLAPI */
-}
-
-Slapi_PBlock * 
-slapi_search_internal(
-	char *base,
-	int scope,
-	char *filStr, 
-	LDAPControl **controls,
-	char **attrs,
-	int attrsonly ) 
-{
-#ifdef LDAP_SLAPI
-	return slapi_search_internal_bind( NULL, base, scope, filStr,
-			controls, attrs, attrsonly );
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */

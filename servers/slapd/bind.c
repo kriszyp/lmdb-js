@@ -373,7 +373,7 @@ do_bind(
 			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 			slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 			slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
-			(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
+			(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
 		}
 #endif /* LDAP_SLAPI */
 
@@ -538,7 +538,7 @@ do_bind(
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 		slapi_pblock_set( pb, SLAPI_CONN_DN, (void *)(0) );
 
-		rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
+		rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO,
@@ -670,7 +670,7 @@ do_bind(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO,
 			"do_bind: Bind postoperation plugins failed\n",

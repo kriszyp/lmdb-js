@@ -2423,7 +2423,7 @@ read_config( const char *fname, int depth )
 			}
 #endif /* notdef */
 
-			if ( netscape_plugin( be, fname, lineno, cargc, cargv ) 
+			if ( slapi_int_read_config( be, fname, lineno, cargc, cargv ) 
 					!= LDAP_SUCCESS ) {
 				return( 1 );
 			}

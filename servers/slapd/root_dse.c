@@ -153,7 +153,7 @@ root_dse_info(
 
 #ifdef LDAP_SLAPI
 	/* netscape supportedExtension */
-	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
+	for ( i = 0; (bv = slapi_int_get_supported_extop(i)) != NULL; i++ ) {
 		vals[0] = *bv;
 		if( attr_merge( e, ad_supportedExtension, vals, NULL )) {
 			return LDAP_OTHER;

@@ -36,11 +36,12 @@
 
 #ifdef LDAP_SLAPI
 #include "slapi.h"
+
 static char **anlist2charray( Operation *op, AttributeName *an );
-static void initSearchPlugin( Operation *op, char **attrs, int managedsait );
-static int doPreSearchPluginFNs( Operation *op );
-static int doSearchRewriteFNs( Operation *op );
-static void doPostSearchPluginFNs( Operation *op );
+static void init_search_pblock( Operation *op, char **attrs, int managedsait );
+static int call_search_preop_plugins( Operation *op );
+static int call_search_rewrite_plugins( Operation *op );
+static void call_search_postop_plugins( Operation *op );
 #endif /* LDAPI_SLAPI */
 
 int
@@ -276,10 +277,10 @@ do_search(
 #ifdef LDAP_SLAPI
 			if ( op->o_pb ) {
 				attrs = anlist2charray( op, op->ors_attrs );
-				initSearchPlugin( op, attrs, manageDSAit );
-				rs->sr_err = doPreSearchPluginFNs( op );
+				init_search_pblock( op, attrs, manageDSAit );
+				rs->sr_err = call_search_preop_plugins( op );
 				if ( rs->sr_err ) break;
-				doSearchRewriteFNs( op );
+				call_search_rewrite_plugins( op );
 			}
 #endif /* LDAP_SLAPI */
 			rs->sr_err = root_dse_info( op->o_conn, &entry, &rs->sr_text );
@@ -294,10 +295,10 @@ do_search(
 #ifdef LDAP_SLAPI
 			if ( op->o_pb ) {
 				attrs = anlist2charray( op, op->ors_attrs );
-				initSearchPlugin( op, attrs, manageDSAit );
-				rs->sr_err = doPreSearchPluginFNs( op );
+				init_search_pblock( op, attrs, manageDSAit );
+				rs->sr_err = call_search_preop_plugins( op );
 				if ( rs->sr_err ) break;
-				doSearchRewriteFNs( op );
+				call_search_rewrite_plugins( op );
 			}
 #endif /* LDAP_SLAPI */
 			rs->sr_err = schema_info( &entry, &rs->sr_text );
@@ -306,7 +307,7 @@ do_search(
 		if( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 #ifdef LDAP_SLAPI
-			if ( op->o_pb ) doPostSearchPluginFNs( op );
+			if ( op->o_pb ) call_search_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 			goto return_results;
 
@@ -324,7 +325,7 @@ do_search(
 			rs->sr_err = LDAP_SUCCESS;
 			send_ldap_result( op, rs );
 #ifdef LDAP_SLAPI
-			if ( op->o_pb ) doPostSearchPluginFNs( op );
+			if ( op->o_pb ) call_search_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 			goto return_results;
 		}
@@ -386,13 +387,13 @@ do_search(
 #ifdef LDAP_SLAPI
 	if ( op->o_pb ) {
 		attrs = anlist2charray( op, op->ors_attrs );
-		initSearchPlugin( op, attrs, manageDSAit );
-		rs->sr_err = doPreSearchPluginFNs( op );
+		init_search_pblock( op, attrs, manageDSAit );
+		rs->sr_err = call_search_preop_plugins( op );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto return_results;
 		}
 
-		doSearchRewriteFNs( op );
+		call_search_rewrite_plugins( op );
 	}
 #endif /* LDAP_SLAPI */
 
@@ -405,7 +406,7 @@ do_search(
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb ) doPostSearchPluginFNs( op );
+	if ( op->o_pb ) call_search_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 
 return_results:;
@@ -451,7 +452,7 @@ static char **anlist2charray( Operation *op, AttributeName *an )
 	return attrs;
 }
 
-static void initSearchPlugin( Operation *op,
+static void init_search_pblock( Operation *op,
 	char **attrs, int managedsait )
 {
 	slapi_int_pblock_set_operation( op->o_pb, op );
@@ -467,21 +468,21 @@ static void initSearchPlugin( Operation *op,
 	slapi_pblock_set( op->o_pb, SLAPI_MANAGEDSAIT, (void *)managedsait );
 }
 
-static int doPreSearchPluginFNs( Operation *op )
+static int call_search_preop_plugins( Operation *op )
 {
 	int rc;
 
-	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_SEARCH_FN, op->o_pb );
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_SEARCH_FN, op->o_pb );
 	if ( rc < 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "doPreSearchPluginFNs: search preoperation plugin "
+		LDAP_LOG( OPERATION, INFO, "call_search_preop_plugins: search preoperation plugin "
 				"returned %d\n", rc, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "doPreSearchPluginFNs: search preoperation plugin "
+		Debug(LDAP_DEBUG_TRACE, "call_search_preop_plugins: search preoperation plugin "
 				"returned %d.\n", rc, 0, 0);
 #endif
 		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
@@ -495,9 +496,9 @@ static int doPreSearchPluginFNs( Operation *op )
 	return rc;
 }
 
-static int doSearchRewriteFNs( Operation *op )
+static int call_search_rewrite_plugins( Operation *op )
 {
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, op->o_pb ) == 0 ) {
+	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, op->o_pb ) == 0 ) {
 		int rc;
 
 		/*
@@ -530,7 +531,7 @@ static int doSearchRewriteFNs( Operation *op )
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
-			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
+			"call_search_rewrite_plugins: after compute_rewrite_search filter: %s\n", 
 			op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
@@ -541,20 +542,20 @@ static int doSearchRewriteFNs( Operation *op )
 	return LDAP_SUCCESS;
 }
 
-static void doPostSearchPluginFNs( Operation *op )
+static void call_search_postop_plugins( Operation *op )
 {
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) < 0 ) {
+	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "doPostSearchPluginFNs: search postoperation plugins "
+		LDAP_LOG( OPERATION, INFO, "call_search_postop_plugins: search postoperation plugins "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "doPostSearchPluginFNs: search postoperation plugins "
+		Debug(LDAP_DEBUG_TRACE, "call_search_postop_plugins: search postoperation plugins "
 				"failed.\n", 0, 0, 0);
 #endif
 	}
 }
 
-void dummy(void)
+void slapi_int_dummy(void)
 {
 	/*
 	 * XXX slapi_search_internal() was no getting pulled
