@@ -89,7 +89,7 @@ backsql_modify_internal(
 			"mappings for objectClass \"%s\"\n",
 			ad->ad_cname.bv_val, BACKSQL_OC_NAME( oc ), 0 );
 
-		if ( backsql_attr_skip( ad, c_mod->sm_bvalues ) ) {
+		if ( backsql_attr_skip( ad, c_mod->sm_values ) ) {
 			continue;
 		}
 
@@ -304,7 +304,7 @@ add_only:;
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modify_internal(): "
 				"adding new values for attribute \"%s\"\n",
 				at->bam_ad->ad_cname.bv_val, 0, 0 );
-			for ( i = 0, at_val = c_mod->sm_bvalues;
+			for ( i = 0, at_val = c_mod->sm_values;
 					at_val->bv_val != NULL; 
 					i++, at_val++ ) {
 				if ( BACKSQL_IS_ADD( at->bam_expect_return ) ) {
@@ -377,7 +377,7 @@ add_only:;
 				break;
 			}
 
-			if ( c_mod->sm_bvalues == NULL ) {
+			if ( c_mod->sm_values == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
 					"no values given to delete "
@@ -391,7 +391,7 @@ add_only:;
 				"deleting values for attribute \"%s\"\n",
 				at->bam_ad->ad_cname.bv_val, 0, 0 );
 
-			for ( i = 0, at_val = c_mod->sm_bvalues;
+			for ( i = 0, at_val = c_mod->sm_values;
 					at_val->bv_val != NULL;
 					i++, at_val++ ) {
 				if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {

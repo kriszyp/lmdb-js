@@ -1034,7 +1034,6 @@ typedef struct slap_mod {
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
 	BerVarray sm_values;
-#define sm_bvalues sm_values
 	BerVarray sm_nvalues;
 } Modification;
 
@@ -1043,7 +1042,6 @@ typedef struct slap_mod_list {
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
 #define	sml_type	sml_mod.sm_type
-#define sml_bvalues	sml_mod.sm_values
 #define sml_values	sml_mod.sm_values
 #define sml_nvalues	sml_mod.sm_nvalues
 	struct slap_mod_list *sml_next;
@@ -1055,7 +1053,6 @@ typedef struct slap_ldap_modlist {
 #define ml_op		ml_mod.mod_op
 #define ml_type		ml_mod.mod_type
 #define ml_values	ml_mod.mod_values
-#define ml_bvalues	ml_mod.mod_values
 } LDAPModList;
 
 /*

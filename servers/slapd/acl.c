@@ -1632,12 +1632,12 @@ acl_check_modlist(
 				goto done;
 			}
 
-			if ( mlist->sml_bvalues == NULL ) break;
+			if ( mlist->sml_values == NULL ) break;
 
 			/* fall thru to check value to add */
 
 		case LDAP_MOD_ADD:
-			assert( mlist->sml_bvalues != NULL );
+			assert( mlist->sml_values != NULL );
 
 			for ( bv = mlist->sml_nvalues
 					? mlist->sml_nvalues : mlist->sml_values;
@@ -1653,7 +1653,7 @@ acl_check_modlist(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( mlist->sml_bvalues == NULL ) {
+			if ( mlist->sml_values == NULL ) {
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
 				{

@@ -558,12 +558,12 @@ slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
 
 	if ( vals == NULL ) {
 		/* Apparently vals can be NULL
-		 * FIXME: sm_bvalues = NULL ? */
-		mod.sm_bvalues = (BerVarray)ch_malloc( sizeof(struct berval) );
-		mod.sm_bvalues->bv_val = NULL;
+		 * FIXME: sm_values = NULL ? */
+		mod.sm_values = (BerVarray)ch_malloc( sizeof(struct berval) );
+		mod.sm_values->bv_val = NULL;
 
 	} else {
-		rc = bvptr2obj( vals, &mod.sm_bvalues );
+		rc = bvptr2obj( vals, &mod.sm_values );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
@@ -572,7 +572,7 @@ slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
 
 	rc = modify_add_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
-	ch_free( mod.sm_bvalues );
+	ch_free( mod.sm_values );
 
 	return (rc == LDAP_SUCCESS) ? LDAP_SUCCESS : LDAP_CONSTRAINT_VIOLATION;
 #else
@@ -638,7 +638,7 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 		return attr_delete( &e->e_attrs, mod.sm_desc ) ? LDAP_OTHER : LDAP_SUCCESS;
 	}
 
-	rc = bvptr2obj( vals, &mod.sm_bvalues );
+	rc = bvptr2obj( vals, &mod.sm_values );
 	if ( rc != LDAP_SUCCESS ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
@@ -646,7 +646,7 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 
 	rc = modify_delete_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
-	ch_free( mod.sm_bvalues );
+	ch_free( mod.sm_values );
 
 	return rc;
 #else
@@ -3336,7 +3336,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		mp = ml->sml_next;
 
 		/* just free the containing array */
-		slapi_ch_free( (void **)&ml->sml_bvalues );
+		slapi_ch_free( (void **)&ml->sml_values );
 		slapi_ch_free( (void **)&ml );
 	}
 
@@ -3377,22 +3377,22 @@ LDAPMod **slapi_int_modifications2ldapmods(Modifications **pmodlist)
 		modp->mod_type = ml->sml_type.bv_val;
 		ml->sml_type.bv_val = NULL;
 
-		if ( ml->sml_bvalues != NULL ) {
-			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ )
+		if ( ml->sml_values != NULL ) {
+			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ )
 				;
-			modp->mod_bvalues = (struct berval **)ch_malloc( (j + 1) *
+			modp->mod_values = (struct berval **)ch_malloc( (j + 1) *
 				sizeof(struct berval *) );
-			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ ) {
+			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ ) {
 				/* Take ownership of original values. */
-				modp->mod_bvalues[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
-				modp->mod_bvalues[j]->bv_len = ml->sml_bvalues[j].bv_len;
-				modp->mod_bvalues[j]->bv_val = ml->sml_bvalues[j].bv_val;
-				ml->sml_bvalues[j].bv_len = 0;
-				ml->sml_bvalues[j].bv_val = NULL;
+				modp->mod_values[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
+				modp->mod_values[j]->bv_len = ml->sml_values[j].bv_len;
+				modp->mod_values[j]->bv_val = ml->sml_values[j].bv_val;
+				ml->sml_values[j].bv_len = 0;
+				ml->sml_values[j].bv_val = NULL;
 			}
-			modp->mod_bvalues[j] = NULL;
+			modp->mod_values[j] = NULL;
 		} else {
-			modp->mod_bvalues = NULL;
+			modp->mod_values = NULL;
 		}
 		i++;
 	}
@@ -3438,7 +3438,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 		mod->sml_next = NULL;
 
 		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-			for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ )
+			for( i = 0, bvp = (*modp)->mod_values; bvp != NULL && *bvp != NULL; bvp++, i++ )
 				;
 		} else {
 			for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ )
@@ -3446,24 +3446,24 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 		}
 
 		if ( i == 0 ) {
-			mod->sml_bvalues = NULL;
+			mod->sml_values = NULL;
 		} else {
-			mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
+			mod->sml_values = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
 
 			/* NB: This implicitly trusts a plugin to return valid modifications. */
 			if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-				for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
-					mod->sml_bvalues[i].bv_val = (*bvp)->bv_val;
-					mod->sml_bvalues[i].bv_len = (*bvp)->bv_len;
+				for( i = 0, bvp = (*modp)->mod_values; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
+					mod->sml_values[i].bv_val = (*bvp)->bv_val;
+					mod->sml_values[i].bv_len = (*bvp)->bv_len;
 				}
 			} else {
 				for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ ) {
-					mod->sml_bvalues[i].bv_val = *p;
-					mod->sml_bvalues[i].bv_len = strlen( *p );
+					mod->sml_values[i].bv_val = *p;
+					mod->sml_values[i].bv_len = strlen( *p );
 				}
 			}
-			mod->sml_bvalues[i].bv_val = NULL;
-			mod->sml_bvalues[i].bv_len = 0;
+			mod->sml_values[i].bv_val = NULL;
+			mod->sml_values[i].bv_len = 0;
 		}
 		mod->sml_nvalues = NULL;
 
@@ -3497,10 +3497,10 @@ void slapi_int_free_ldapmods (LDAPMod **mods)
 		 * Modification list. Do free the containing array.
 		 */
 		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
-			for ( j = 0; mods[i]->mod_bvalues != NULL && mods[i]->mod_bvalues[j] != NULL; j++ ) {
-				ch_free( mods[i]->mod_bvalues[j] );
+			for ( j = 0; mods[i]->mod_values != NULL && mods[i]->mod_values[j] != NULL; j++ ) {
+				ch_free( mods[i]->mod_values[j] );
 			}
-			ch_free( mods[i]->mod_bvalues );
+			ch_free( mods[i]->mod_values );
 		} else {
 			ch_free( mods[i]->mod_values );
 		}

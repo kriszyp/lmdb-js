@@ -392,11 +392,11 @@ slapi_int_ldapmod_to_entry(
 				 * being passed in may not have been allocated on the
 				 * heap.
 				 */
-				rc = bvptr2obj_copy( pMod->mod_bvalues, &bv );
+				rc = bvptr2obj_copy( pMod->mod_values, &bv );
 				if ( rc != LDAP_SUCCESS ) goto cleanup;
 				tmp.sml_type.bv_val = pMod->mod_type;
 				tmp.sml_type.bv_len = strlen( pMod->mod_type );
-				tmp.sml_bvalues = bv;
+				tmp.sml_values = bv;
 				tmp.sml_nvalues = NULL;
 		
 				mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
@@ -405,7 +405,7 @@ slapi_int_ldapmod_to_entry(
 				mod->sml_next = NULL;
 				mod->sml_desc = NULL;
 				mod->sml_type = tmp.sml_type;
-				mod->sml_bvalues = tmp.sml_bvalues;
+				mod->sml_values = tmp.sml_values;
 				mod->sml_nvalues = tmp.sml_nvalues;
 
 				*modtail = mod;
@@ -421,7 +421,7 @@ slapi_int_ldapmod_to_entry(
 					if ( rc != LDAP_SUCCESS ) goto cleanup;
 					tmp.sml_type.bv_val = pMod->mod_type;
 					tmp.sml_type.bv_len = strlen( pMod->mod_type );
-					tmp.sml_bvalues = bv;
+					tmp.sml_values = bv;
 					tmp.sml_nvalues = NULL;
 		
 					mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
@@ -430,7 +430,7 @@ slapi_int_ldapmod_to_entry(
 					mod->sml_next = NULL;
 					mod->sml_desc = NULL;
 					mod->sml_type = tmp.sml_type;
-					mod->sml_bvalues = tmp.sml_bvalues;
+					mod->sml_values = tmp.sml_values;
 					mod->sml_nvalues = tmp.sml_nvalues;
 
 					*modtail = mod;
@@ -954,12 +954,12 @@ slapi_modify_internal(
 			 * convert an array of pointers to bervals
 			 * to an array of bervals
 			 */
-			rs.sr_err = bvptr2obj_copy( pMod->mod_bvalues, &bv );
+			rs.sr_err = bvptr2obj_copy( pMod->mod_values, &bv );
 			if ( rs.sr_err != LDAP_SUCCESS )
 				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
-			tmp.sml_bvalues = bv;
+			tmp.sml_values = bv;
 			tmp.sml_nvalues = NULL;
 
 			mod  = (Modifications *)ch_malloc( sizeof(Modifications) );
@@ -968,7 +968,7 @@ slapi_modify_internal(
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
-			mod->sml_bvalues = tmp.sml_bvalues;
+			mod->sml_values = tmp.sml_values;
 			mod->sml_nvalues = tmp.sml_nvalues;
 		} else { 
 			rs.sr_err = values2obj_copy( pMod->mod_values, &bv );
@@ -976,7 +976,7 @@ slapi_modify_internal(
 				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
-			tmp.sml_bvalues = bv;
+			tmp.sml_values = bv;
 			tmp.sml_nvalues = NULL;
 
 			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
@@ -985,7 +985,7 @@ slapi_modify_internal(
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
-			mod->sml_bvalues = tmp.sml_bvalues;
+			mod->sml_values = tmp.sml_values;
 			mod->sml_nvalues = tmp.sml_nvalues;
 		}
 		*modtail = mod;
@@ -993,7 +993,7 @@ slapi_modify_internal(
 
 		switch( pMod->mod_op & LDAP_MOD_OP ) {
 		case LDAP_MOD_ADD:
-		if ( mod->sml_bvalues == NULL ) {
+		if ( mod->sml_values == NULL ) {
 			rs.sr_err = LDAP_PROTOCOL_ERROR;
 			goto cleanup;
 		}

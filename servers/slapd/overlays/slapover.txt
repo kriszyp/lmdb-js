@@ -148,3 +148,5 @@ to a back-ldap (or back-meta) backend and allows search results from remote
 servers to be cached locally. In both cases the overlays must provide a bit of
 glue to swap in the appropriate be_private and bd_info pointers before invoking
 the attached backend, which can then be invoked as usual.
+
+---

@@ -300,19 +300,20 @@ replog1(
 				 * in any subset, otherwise drop it.
 				 */
 				if ( ocs && ml->sml_desc == slap_schema.si_ad_objectClass
-					&& ml->sml_bvalues ) {
+					&& ml->sml_values )
+				{
 					int i, first = 1;
 
 					if ( ocs == -1 ) ocs = 0;
 
-					for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
+					for ( i=0; ml->sml_values[i].bv_val; i++ ) {
 						int match = 0;
 						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
 							if ( an->an_oc ) {
 								ocs = 1;
 								match |= an->an_oc_exclude;
-								if ( ml->sml_bvalues[i].bv_len == an->an_name.bv_len
-									&& !strcasecmp(ml->sml_bvalues[i].bv_val,
+								if ( ml->sml_values[i].bv_len == an->an_name.bv_len
+									&& !strcasecmp(ml->sml_values[i].bv_val,
 										an->an_name.bv_val ) ) {
 									match = !an->an_oc_exclude;
 									break;
@@ -357,8 +358,8 @@ replog1(
 				dohdr = 0;
 			}
 			fprintf( fp, "%s: %s\n", did, type );
-			if ( ml->sml_bvalues ) {
-				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
+			if ( ml->sml_values ) {
+				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_values );
 			}
 			fprintf( fp, "-\n" );
 		}

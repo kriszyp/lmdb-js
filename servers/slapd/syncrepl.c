@@ -977,7 +977,7 @@ syncrepl_message_to_entry(
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
-		mod->sml_bvalues = tmp.sml_bvalues;
+		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
 
 		*modtail = mod;
@@ -1197,7 +1197,7 @@ syncrepl_entry(
 					mod->sml_op = LDAP_MOD_REPLACE;
 					mod->sml_desc = slap_schema.si_ad_entryUUID;
 					mod->sml_type = mod->sml_desc->ad_cname;
-					ber_bvarray_add( &mod->sml_bvalues, &uuid_bv );
+					ber_bvarray_add( &mod->sml_values, &uuid_bv );
 					modtail->sml_next = mod;
 					
 					op->o_tag = LDAP_REQ_MODIFY;
@@ -1360,7 +1360,7 @@ syncrepl_del_nonpresent(
 				mod->sml_op = LDAP_MOD_REPLACE;
 				mod->sml_desc = slap_schema.si_ad_objectClass;
 				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_bvalues = &gcbva[0];
+				mod->sml_values = &gcbva[0];
 				*modtail = mod;
 				modtail = &mod->sml_next;
 
@@ -1368,7 +1368,7 @@ syncrepl_del_nonpresent(
 				mod->sml_op = LDAP_MOD_REPLACE;
 				mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_bvalues = &gcbva[1];
+				mod->sml_values = &gcbva[1];
 				*modtail = mod;
 				modtail = &mod->sml_next;
 
@@ -1615,7 +1615,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_objectClass;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = ocbva;
+	mod->sml_values = ocbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1628,7 +1628,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_cn;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = cnbva;
+	mod->sml_values = cnbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1638,7 +1638,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = scbva;
+	mod->sml_values = scbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1646,7 +1646,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = ssbva;
+	mod->sml_values = ssbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 

@@ -114,19 +114,19 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 */
 		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			( void )ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
+			( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
 		}
 
-		if ( ml->sml_bvalues != NULL ){
-			for (j = 0; ml->sml_bvalues[ j ].bv_val; j++);
-			mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+		if ( ml->sml_values != NULL ){
+			for (j = 0; ml->sml_values[ j ].bv_val; j++);
+			mods[ i ].mod_values = (struct berval **)ch_malloc((j+1) *
 				sizeof(struct berval *));
-			for (j = 0; ml->sml_bvalues[ j ].bv_val; j++)
-				mods[ i ].mod_bvalues[ j ] = &ml->sml_bvalues[j];
-			mods[ i ].mod_bvalues[ j ] = NULL;
+			for (j = 0; ml->sml_values[ j ].bv_val; j++)
+				mods[ i ].mod_values[ j ] = &ml->sml_values[j];
+			mods[ i ].mod_values[ j ] = NULL;
 
 		} else {
-			mods[ i ].mod_bvalues = NULL;
+			mods[ i ].mod_values = NULL;
 		}
 
 		i++;
@@ -141,7 +141,7 @@ cleanup:;
 	}
 	if ( modv != NULL ) {
 		for ( i = 0; modv[ i ]; i++) {
-			free( modv[ i ]->mod_bvalues );
+			free( modv[ i ]->mod_values );
 		}
 	}
 	free( mods );

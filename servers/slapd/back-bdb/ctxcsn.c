@@ -90,7 +90,7 @@ bdb_csn_commit(
 			modvals[1].bv_len = 0;
 
 			mod.sml_op = LDAP_MOD_REPLACE;
-			mod.sml_bvalues = modvals;
+			mod.sml_values = modvals;
 			mod.sml_nvalues = NULL;
 			mod.sml_desc = slap_schema.si_ad_contextCSN;
 			mod.sml_type = mod.sml_desc->ad_cname;
