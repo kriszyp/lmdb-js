@@ -5,6 +5,10 @@ SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o
 XLIBS	= -llber -lldap
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd
@@ -31,7 +35,7 @@ ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Versionlds.c > $@)
+	< $(srcdir)/Versionlds.c > $@)
 
 ldmversion.c: ldapmodify.o $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -39,7 +43,7 @@ ldmversion.c: ldapmodify.o $(LDAP_LIBDEPEND)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Versionldm.c > $@)
+	< $(srcdir)/Versionldm.c > $@)
 
 lddversion.c: ldapdelete.o $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -47,7 +51,7 @@ lddversion.c: ldapdelete.o $(LDAP_LIBDEPEND)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Versionldd.c > $@)
+	< $(srcdir)/Versionldd.c > $@)
 
 ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -55,7 +59,7 @@ ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Versionldr.c > $@)
+	< $(srcdir)/Versionldr.c > $@)
 
 installlocal:	ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd FORCE
 	-$(MKDIR) -p $(bindir)

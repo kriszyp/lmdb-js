@@ -3,6 +3,9 @@ XSRCS=fax5version.c rpversion.c
 FAX5OBJS = main.o faxtotpc.o
 RPOBJS =  rp500.o faxtotpc.o
 PROGRAMS= rp500 fax500
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
 
 
 rp500 : rpversion.o
@@ -17,7 +20,7 @@ rpversion.c: ${RPOBJS} $(LDAP_LIBDEPEND)
 	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	    -e "s|%VERSION%|$${v}|" \
-	    < Versionrp.c > $@)
+	    < $(srcdir)/Versionrp.c > $@)
 
 fax5version.c: ${FAX5OBJS} $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -25,7 +28,7 @@ fax5version.c: ${FAX5OBJS} $(LDAP_LIBDEPEND)
 	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	    -e "s|%VERSION%|$${v}|" \
-	    < Version.c > $@)
+	    < $(srcdir)/Version.c > $@)
 
 install: $(PROGRAMS) xrpcomp FORCE
 	-$(MKDIR) -p $(libexecdir)

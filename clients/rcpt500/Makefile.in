@@ -4,6 +4,10 @@ XSRCS= version.c
 OBJS= main.o cmds.o help.o query.o
 HDRS= rcpt500.h
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 rcpt500 : version.o
 	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
 
@@ -13,7 +17,7 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	    -e "s|%VERSION%|$${v}|" \
-	    < Version.c > $@)
+	    < $(srcdir)/Version.c > $@)
 
 install: $(PROGRAMS) rcpt500.help FORCE
 	-$(MKDIR) -p $(libexecdir) $(sysconfdir)

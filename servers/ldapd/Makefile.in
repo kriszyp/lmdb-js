@@ -11,6 +11,10 @@ OBJS	= main.o detach.o setproctitle.o request.o bind.o result.o error.o \
 	abandon.o syntax.o association.o kerberos.o LDAP_tables.o \
 	certificate.o
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 BUILD_OPT = "--enable-ldapd"
 BUILD_SRV = @BUILD_LDAPD@
 
@@ -31,7 +35,7 @@ version.c: $(OBJS) $(LDIR)/liblber/liblber.a
 	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)
 
 request.o:	LDAP-types.h
 

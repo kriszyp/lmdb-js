@@ -11,13 +11,13 @@ $(LIBRARY): version.o
 	$(RM) ../$@;	\
 	(d=`$(PWD)` ; $(LN_S) `$(BASENAME) $$d`/$@ ../$@)
 
-version.c: $(OBJS)
+version.c: $(OBJS) $(srcdir)/Version.c
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` \
 	h=`$(HOSTNAME)` t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)
 
 install-common: all-common install-local
 

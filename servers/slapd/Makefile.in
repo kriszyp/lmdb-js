@@ -18,6 +18,10 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		detach.o strdup.o tempnam.o repl.o lock.o \
 		schema.o schemaparse.o monitor.o configinfo.o
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
@@ -77,7 +81,7 @@ version.c: libbackends.a $(OBJS) \
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)
 
 clean-local: FORCE
 	@for i in back-* tools; do \

@@ -3,6 +3,8 @@ SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
 OBJS	= init.o config.o fork.o search.o bind.o unbind.o add.o delete.o \
 		modify.o modrdn.o compare.o abandon.o result.o
 
+VINCLUDEDIR= -I../../../include
+
 BUILD_OPT = "--enable-shell"
 BUILD_SRV = @BUILD_SHELL@
 
@@ -24,4 +26,4 @@ version.c: $(OBJS)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)

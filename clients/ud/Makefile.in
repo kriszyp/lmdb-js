@@ -6,6 +6,10 @@ OBJS=	main.o find.o mod.o print.o auth.o util.o help.o \
 HDRS=	ud.h
 PROGRAMS= ud
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 XLIBS = $(LIBTERMCAP)
 
 ud : version.o
@@ -17,7 +21,7 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	    -e "s|%VERSION%|$${v}|" \
-	    < Version.c > $@)
+	    < $(srcdir)/Version.c > $@)
 
 install: $(PROGRAMS) FORCE
 	-$(MKDIR) -p $(bindir)

@@ -4,6 +4,8 @@ SRCS = passwd-shell.c shellutil.c
 XSRCS = pwd-version.c
 OBJS = passwd-shell.o shellutil.o
 
+VINCLUDEDIR= -I../../../include
+
 passwd-shell:	pwd-version.o
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) pwd-version.o $(LIBS)
 
@@ -13,4 +15,4 @@ pwd-version.c: $(OBJS)
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< pwd-Version.c > $@)
+	< $(srcdir)/pwd-Version.c > $@)

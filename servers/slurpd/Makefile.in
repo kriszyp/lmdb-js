@@ -12,6 +12,10 @@ OBJS	=	admin.o args.o ch_malloc.o config.o detach.o \
 		reject.o replica.o replog.o ri.o rq.o sanity.o st.o \
 		tsleep.o
 
+VINCLUDEDIR= -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L$(VLIBDIR)
+
 BUILD_OPT = "--enable-slurpd"
 BUILD_SRV = @BUILD_SLURPD@
 
@@ -29,7 +33,7 @@ version.c: $(OBJS) $(LDAP_LIBDIR)/liblber.a $(LDAP_LIBDIR)/libldap.a
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)
 
 install-local: FORCE
 	@-$(MKDIR) -p $(libexecdir)

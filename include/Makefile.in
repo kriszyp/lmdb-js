@@ -18,10 +18,11 @@ clean-local: FORCE
 	$(RM) ldapconfig.h
 
 veryclean-local: clean-local FORCE
+	$(RM) portable.h
 
 depend-local: ldapconfig.h FORCE
 
-ldapconfig.h: ldapconfig.h.edit Makefile
+ldapconfig.h: $(srcdir)/ldapconfig.h.edit Makefile
 	@$(RM) $@
 	@echo "Making ldapconfig.h"
 	@echo "/*" > $@;  \
@@ -39,7 +40,7 @@ ldapconfig.h: ldapconfig.h.edit Makefile
 			-e 's;%EDITOR%;$(EDITOR);' \
 			-e 's;%FINGER%;$(FINGER);' \
 			-e 's;%SENDMAIL%;$(SENDMAIL);' \
-			 ldapconfig.h.edit >> $@; \
+			 $(srcdir)/ldapconfig.h.edit >> $@; \
 	$(CHMOD) 444 $@
 
 all-common:			all-local

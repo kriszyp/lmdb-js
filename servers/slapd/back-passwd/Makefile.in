@@ -1,6 +1,8 @@
 SRCS	= search.c config.c
 OBJS	= search.o config.o
 
+VINCLUDEDIR= -I../../../include
+
 BUILD_OPT = "--enable-passwd"
 BUILD_SRV = @BUILD_PASSWD@
 
@@ -22,4 +24,4 @@ version.c: $(OBJS)
 	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
 	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
 	-e "s|%VERSION%|$${v}|" \
-	< Version.c > $@)
+	< $(srcdir)/Version.c > $@)

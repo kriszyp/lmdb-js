@@ -3,6 +3,9 @@
 ##
 LIBRARY = libldap.a
 PROGRAMS = ltest ttest
+VINCLUDEDIR = -I../../include
+VLIBDIR= ../../libraries
+VLIBS= -L(VLIBDIR)
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	modify.c add.c modrdn.c delete.c abandon.c ufn.c cache.c \
