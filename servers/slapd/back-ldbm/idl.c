@@ -726,11 +726,8 @@ idl_notin(
 	if ( a == NULL ) {
 		return( NULL );
 	}
-	if ( b == NULL ) {
+	if ( b == NULL || ALLIDS( b )) {
 		return( idl_dup( a ) );
-	}
-	if ( ALLIDS( b ) ) {
-		return( NULL );
 	}
 
 	if ( ALLIDS( a ) ) {
