@@ -251,7 +251,7 @@ bdb_dn2id(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id(\"%s\")\n", dn->bv_val, 0, 0 );
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
@@ -291,7 +291,7 @@ bdb_dn2id_children(
 	ID		id;
 	int		rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children(\"%s\")\n",
 		e->e_nname.bv_val, 0, 0 );
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
@@ -317,7 +317,7 @@ bdb_dn2id_children(
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children(\"%s\"): %s (%d)\n",
 		e->e_nname.bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
@@ -339,7 +339,7 @@ bdb_dn2idl(
 	int prefix = ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl(\"%s\")\n",
 		e->e_nname.bv_val, 0, 0 );
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
@@ -977,7 +977,7 @@ hdb_dn2idl(
 	struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
 	struct dn2id_cookie cx;
 
-	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl( \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl(\"%s\")\n",
 		e->e_nname.bv_val, 0, 0 );
 
 #ifndef BDB_MULTIPLE_SUFFIXES
