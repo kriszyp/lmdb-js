@@ -124,51 +124,92 @@ rwm_op_add( Operation *op, SlapReply *rs )
 		struct berval	mapped;
 		Attribute	*a;
 
-		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod ) {
-			goto next_attr;
-		}
-
-		rwm_map( &rwmap->rwm_at, &(*ap)->a_desc->ad_cname,
-				&mapped, RWM_MAP );
-		if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
-			goto cleanup_attr;
-		}
-
-		if ( (*ap)->a_desc->ad_type->sat_syntax
-				== slap_schema.si_syn_distinguishedName )
+		if ( (*ap)->a_desc == slap_schema.si_ad_objectClass ||
+				(*ap)->a_desc == slap_schema.si_ad_structuralObjectClass )
 		{
-			/*
-			 * FIXME: rewrite could fail; in this case
-			 * the operation should give up, right?
-			 */
-#ifdef ENABLE_REWRITE
-			rc = rwm_dnattr_rewrite( op, rs, "addAttrDN",
-					(*ap)->a_vals,
-					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#else /* ! ENABLE_REWRITE */
-			rc = 1;
-			rc = rwm_dnattr_rewrite( op, rs, &rc, (*ap)->a_vals,
-					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#endif /* ! ENABLE_REWRITE */
-			if ( rc ) {
-				goto cleanup_attr;
+			int		j, last;
+
+			for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[ last ] ); last++ )
+					/* count values */ ;
+			last--;
+			for ( j = 0; !BER_BVISNULL( &(*ap)->a_vals[ j ] ); j++ ) {
+				struct ldapmapping	*mapping = NULL;
+
+				( void )rwm_mapping( &rwmap->rwm_oc, &(*ap)->a_vals[ j ],
+						&mapping, RWM_MAP );
+				if ( mapping == NULL ) {
+					if ( rwmap->rwm_at.drop_missing ) {
+						/* FIXME: we allow to remove objectClasses as well;
+						 * if the resulting entry is inconsistent, that's
+						 * the relayed database's business...
+						 */
+						ch_free( (*ap)->a_vals[ j ].bv_val );
+						if ( last > j ) {
+							(*ap)->a_vals[ j ] = (*ap)->a_vals[ last ];
+						}
+						BER_BVZERO( &(*ap)->a_vals[ last ] );
+						last--;
+						j--;
+					}
+
+				} else {
+					ch_free( (*ap)->a_vals[ j ].bv_val );
+					ber_dupbv( &(*ap)->a_vals[ j ], &mapping->m_dst );
+				}
 			}
 
-		} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
+		} else if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+			goto next_attr;
+
+		} else {
+			struct ldapmapping	*mapping = NULL;
+
+			( void )rwm_mapping( &rwmap->rwm_at, &(*ap)->a_desc->ad_cname,
+					&mapping, RWM_MAP );
+			if ( mapping == NULL ) {
+				if ( rwmap->rwm_at.drop_missing ) {
+					goto cleanup_attr;
+				}
+
+			} else {
+				(*ap)->a_desc = mapping->m_dst_ad;
+			}
+
+			if ( (*ap)->a_desc->ad_type->sat_syntax
+					== slap_schema.si_syn_distinguishedName )
+			{
+				/*
+				 * FIXME: rewrite could fail; in this case
+				 * the operation should give up, right?
+				 */
 #ifdef ENABLE_REWRITE
-			rc = rwm_referral_rewrite( op, rs, "referralAttrDN",
-					(*ap)->a_vals,
-					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+				rc = rwm_dnattr_rewrite( op, rs, "addAttrDN",
+						(*ap)->a_vals,
+						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
 #else /* ! ENABLE_REWRITE */
-			rc = 1;
-			rc = rwm_referral_rewrite( op, rs, &rc, (*ap)->a_vals,
-					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+				rc = 1;
+				rc = rwm_dnattr_rewrite( op, rs, &rc, (*ap)->a_vals,
+						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
 #endif /* ! ENABLE_REWRITE */
-			if ( rc != LDAP_SUCCESS ) {
-				goto cleanup_attr;
+				if ( rc ) {
+					goto cleanup_attr;
+				}
+
+			} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
+#ifdef ENABLE_REWRITE
+				rc = rwm_referral_rewrite( op, rs, "referralAttrDN",
+						(*ap)->a_vals,
+						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+#else /* ! ENABLE_REWRITE */
+				rc = 1;
+				rc = rwm_referral_rewrite( op, rs, &rc, (*ap)->a_vals,
+						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+#endif /* ! ENABLE_REWRITE */
+				if ( rc != LDAP_SUCCESS ) {
+					goto cleanup_attr;
+				}
 			}
 		}
-
 
 next_attr:;
 		ap = &(*ap)->a_next;
@@ -363,13 +404,13 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 		int		is_oc = 0;
 		Modifications	*ml;
 
-		if ( !isupdate && (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
-			goto next_mod;
-		}
-
 		if ( (*mlp)->sml_desc == slap_schema.si_ad_objectClass 
-				|| (*mlp)->sml_desc == slap_schema.si_ad_structuralObjectClass ) {
+				|| (*mlp)->sml_desc == slap_schema.si_ad_structuralObjectClass )
+		{
 			is_oc = 1;
+
+		} else if ( !isupdate && (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
+			goto next_mod;
 
 		} else {
 			struct ldapmapping	*m;
@@ -392,33 +433,33 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 			if ( is_oc ) {
 				int	last, j;
 
-				for ( last = 0; !BER_BVISNULL( &(*mlp)->sml_values[last] ); last++ )
+				for ( last = 0; !BER_BVISNULL( &(*mlp)->sml_values[ last ] ); last++ )
 					/* count values */ ;
 				last--;
 
-				for ( j = 0; !BER_BVISNULL( &(*mlp)->sml_values[j] ); j++ ) {
-					struct berval	mapped = BER_BVNULL;
+				for ( j = 0; !BER_BVISNULL( &(*mlp)->sml_values[ j ] ); j++ ) {
+					struct ldapmapping	*mapping = NULL;
 
-					rwm_map( &rwmap->rwm_oc,
-							&(*mlp)->sml_values[j],
-							&mapped, RWM_MAP );
-					if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
-						/* FIXME: we allow to remove objectClasses as well;
-						 * if the resulting entry is inconsistent, that's
-						 * the relayed database's business...
-						 */
-#if 0
-						goto cleanup_mod;
-#endif
-						if ( last > j ) {
-							(*mlp)->sml_values[j] = (*mlp)->sml_values[last];
-							BER_BVZERO( &(*mlp)->sml_values[last] );
+					( void )rwm_mapping( &rwmap->rwm_oc, &(*mlp)->sml_values[ j ],
+							&mapping, RWM_MAP );
+					if ( mapping == NULL ) {
+						if ( rwmap->rwm_at.drop_missing ) {
+							/* FIXME: we allow to remove objectClasses as well;
+							 * if the resulting entry is inconsistent, that's
+							 * the relayed database's business...
+							 */
+							ch_free( (*mlp)->sml_values[ j ].bv_val );
+							if ( last > j ) {
+								(*mlp)->sml_values[ j ] = (*mlp)->sml_values[ last ];
+							}
+							BER_BVZERO( &(*mlp)->sml_values[ last ] );
+							last--;
+							j--;
 						}
-						last--;
-
+	
 					} else {
-						ch_free( (*mlp)->sml_values[j].bv_val );
-						ber_dupbv( &(*mlp)->sml_values[j], &mapped );
+						ch_free( (*mlp)->sml_values[ j ].bv_val );
+						ber_dupbv( &(*mlp)->sml_values[ j ], &mapping->m_dst );
 					}
 				}
 
