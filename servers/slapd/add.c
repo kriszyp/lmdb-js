@@ -137,7 +137,6 @@ do_add( Connection *conn, Operation *op )
 #endif
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for attribute type", NULL, NULL );
-			free( tmp.sml_type.bv_val );
 			goto done;
 		}
 		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
