@@ -1,12 +1,12 @@
 # You will usually NOT need to edit this file at all:  instead, edit the
 # Make-common file.  See the LDAP INSTALL file for more information.
 #-----------------------------------------------------------------------------
-# Copyright 1998 Net Boolean Incorporated, Redwood City, California, USA
+# Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms are permitted only
-# as authorized by the Net Boolean Public License.  A copy of this
-# license is available at http://www.boolean.net/ldap/license.html or
+# as authorized by the OpenLDAP Public License.  A copy of this
+# license is available at http://www.OpenLDAP.org/license.html or
 # in file LICENSE in the top-level directory of the distribution.
 # 
 # This work is derived from the University of Michigan LDAP v3.3

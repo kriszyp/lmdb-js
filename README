@@ -1,4 +1,4 @@
-Net Boolean OpenLDAP 1.0 README
+OpenLDAP 1.0 README
 
     This is the OpenLDAP version 1.0 distribution.
 
@@ -9,7 +9,7 @@ Net Boolean OpenLDAP 1.0 README
 	install the distribution, see the INSTALL file in this directory.
 
 	For more information:
-		http://www.boolean.net/technology/ldap.html.
+		http://www.OpenLDAP.org/
 
 MAKING AND INSTALLING THE DISTRIBUTION
 
@@ -55,12 +55,12 @@ DOCUMENTATION
     LDAP news, releases announcements, pointers to other LDAP resources,
     etc. You can access it at this URL:
 
-	http://www.boolean.net/technology/ldap/
+	http://www.OpenLDAP.org/
 
 FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
     We would appreciate any feedback you can provide.  If you have
     problems, report them to this address:
 
-	ldap-dev@boolean.net
+	OpenLDAP-bugs@OpenLDAP.org
 

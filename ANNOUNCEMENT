@@ -3,7 +3,7 @@
 	OpenLDAP 1.0
 
 
-	Net Boolean Incorporated is pleased to announce the availability
+	The OpenLDAP Project is pleased to announce the availability
 	of OpenLDAP release 1.0, a suite of the Lightweight Weight
 	Directory Protocol servers, clients, utilities, and development tools.
 
@@ -45,9 +45,9 @@ CHANGES
 
 AVAILABILITY
 
-	This software is available under the Net Booloean Public License.
+	This software is available under the OpenLDAP Public License.
 	For download information is available at:
-		http://www.boolean.net/technlogy/ldap.html
+		http://www.OpenLDAP.org/download.html
 
 SUPPORT
 
@@ -55,25 +55,26 @@ SUPPORT
     warranty, but there is a bug reporting mail address which is
     responded to on a best-effort basis:
 
-	ldap-dev@boolean.net
+	OpenLDAP-bugs@OpenLDAP.org
 
     In addition, there is a discussion list for issues relating to this
     implementation of ldap:
 
-	ldap-dev@boolean.net			-- discussion list
-	ldap-dev-request@boolean.net	-- to join the list
+	OpenLDAP-devel@OpenLDAP.org			-- discussion list
+	OpenLDAP-devel-request@OpenLDAP.org	-- to join the list
 
-    An LDAP home page containing lots of interesting information and
-    online documentation is available at this URL:
+    The OpenLDAP home page containing lots of interesting information
+	and online documentation is available at this URL:
 
-        http://www.boolean.net/technlogy/ldap.html
+        http://www.OpenLDAP.org/
 
 SUPPORTED PLATFORMS
 
     This release has been ported to many UNIX platforms, including
     SunOS 4.1.x, Solaris 2.x, Ultrix 4.3, HP-UX 9.05, AIX 3.2.5,
-    SCO, FreeBSD, NetBSD, LINUX, IRIX, Digital Unix (OSF/1), and
+    SCO, FreeBSD, NetBSD, Linux, IRIX, Digital Unix (OSF/1), and
     NeXTSTEP 3.2.  This release has also been ported to VMS.
 
     The client libraries and some clients have also been ported to
     MacOS 7.x, MSDOS (some TCP stacks), and MS Windows 3.1/95/NT.
+

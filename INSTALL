@@ -1,14 +1,11 @@
-Making and Installing the Net Boolean OpenLDAP Distribution
+Making and Installing the OpenLDAP Distribution
 
 ** It is recommended that you read or at least skim through ALL of the
 ** instructions in this file before attempting to build the software.
 
 If you want to build binaries for more than one platform from a single
 source tree, skip ahead to the "Building LDAP For More Than One Platform"
-section near the end of this file. If you are planning to run slapd,
-you should read the "SLAPD and SLURPD Administrator's Guide", found in
-the doc/guides/ directory at:
-	http://www.boolean.net/technology/ldap.html
+section near the end of this file.
 
 If you simply want to build LDAP for a single machine platform, follow
 these steps:
