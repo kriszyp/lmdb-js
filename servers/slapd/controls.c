@@ -1040,7 +1040,9 @@ static int parsePreRead (
 		an[i].an_oc_exclude = 0;
 		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
 		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
-			rs->sr_text = dummy ? dummy : "postread control: unknown attributeType";
+			rs->sr_text = dummy
+				? dummy
+				: "postread control: unknown attributeType";
 			return rc;
 		}
 	}
@@ -1096,7 +1098,9 @@ static int parsePostRead (
 		an[i].an_oc_exclude = 0;
 		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
 		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
-			rs->sr_text = dummy ? dummy : "postread control: unknown attributeType";
+			rs->sr_text = dummy
+				? dummy
+				: "postread control: unknown attributeType";
 			return rc;
 		}
 	}
