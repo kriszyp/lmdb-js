@@ -849,7 +849,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 		new->lm_next = ld->ld_responses;
 		ld->ld_responses = new;
-		goto leave;
+		goto exit;
 	}
 
 #ifdef NEW_LOGGING
@@ -881,7 +881,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		return( tag );
 	}
 
-leave:
+exit:
 	if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
 		goto retry;
 	}
