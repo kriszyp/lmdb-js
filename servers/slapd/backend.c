@@ -870,6 +870,13 @@ backend_check_restrictions(
 			}
 		}
 
+		{
+			struct berval bv = BER_BVC( LDAP_EXOP_X_CANCEL );
+			if ( bvmatch( opdata, &bv ) ) {
+				break;
+			}
+		}
+
 		/* treat everything else as a modify */
 		opflag = SLAP_RESTRICT_OP_MODIFY;
 		updateop++;

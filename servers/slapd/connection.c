@@ -1024,6 +1024,15 @@ operations_error:
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
+	if ( arg->co_op->o_cancel == LDAP_CANCEL_REQ )
+		arg->co_op->o_cancel = LDAP_TOO_LATE;
+
+	while ( arg->co_op->o_cancel != LDAP_CANCEL_NONE &&
+		arg->co_op->o_cancel != LDAP_CANCEL_ACK  &&
+		arg->co_op->o_cancel != LDAP_CANCEL_NOTDONE ) {
+			ldap_pvt_thread_yield();
+	}
+
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	conn->c_n_ops_executing--;

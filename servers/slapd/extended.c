@@ -64,6 +64,7 @@ static struct {
 #endif
 	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
 	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
+	{ BVC(LDAP_EXOP_X_CANCEL), cancel_extop },
 	{ {0,NULL}, NULL }
 };
 

@@ -433,6 +433,15 @@ loop_begin:
 			goto done;
 		}
 
+		if ( op->o_cancel ) {
+			assert( op->o_cancel == LDAP_CANCEL_REQ );
+			rc = 0;
+			send_search_result( conn, op, LDAP_CANCELLED,
+					NULL, NULL, NULL, NULL, 0 );
+			op->o_cancel = LDAP_CANCEL_ACK;
+			goto done;
+		}
+
 		/* check time limit */
 		if ( tlimit != -1 && slap_get_time() > stoptime ) {
 			send_search_result( conn, op, rc = LDAP_TIMELIMIT_EXCEEDED,

@@ -486,6 +486,17 @@ typedef struct ldapcontrol {
 #define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
 #endif /* LDAP_CLIENT_UPDATE */
 
+/* resultCode for Cancel Response */
+#define LDAP_CANCELLED                  0x68
+#define LDAP_NO_SUCH_OPERATION          0x69
+#define LDAP_TOO_LATE                   0x6a
+#define LDAP_CANNOT_CANCEL              0x6b
+
+#define LDAP_CANCEL_NONE                0x00
+#define LDAP_CANCEL_REQ                 0x01
+#define LDAP_CANCEL_ACK                 0x02
+#define LDAP_CANCEL_NOTDONE             0x03
+
 /*
  * This structure represents both ldap messages and ldap responses.
  * These are really the same, except in the case of search responses,
