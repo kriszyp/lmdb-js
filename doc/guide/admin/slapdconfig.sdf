@@ -383,23 +383,20 @@ SASL authentication identities.
 H4: rootpw <password>
 
 This directive can be used to specifies a password for the DN for
-the rootdn.
+the rootdn (when the rootdn is set to a DN within the database).
 
 \Example:
 
 >	rootpw secret
 
-It is also permissible to provide hash of the password in
-RFC 2307 form.  {{slappasswd}}(8) may be used to generate
-the password hash.
+It is also permissible to provide hash of the password in RFC 2307
+form.  {{slappasswd}}(8) may be used to generate the password hash.
 
 \Example:
 
 >	rootpw {SSHA}ZKKuqbEKJfKSXhUbHG3fG8MDn9j1v4QN
 
 The hash was generated using the command {{EX:slappasswd -s secret}}.
-
-This directive is deprecated in favor of SASL based authentication.
 
 
 H4: suffix <dn suffix>
