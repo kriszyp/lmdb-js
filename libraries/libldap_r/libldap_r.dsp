@@ -168,14 +168,6 @@ SOURCE=..\libldap\delete.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\disptmpl.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\disptmpl.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\dnssrv.c
 # End Source File
 # Begin Source File
@@ -310,14 +302,6 @@ SOURCE=..\libldap\sort.c
 # Begin Source File
 
 SOURCE=..\libldap\sortctrl.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libldap\srchpref.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\srchpref.h
 # End Source File
 # Begin Source File
 

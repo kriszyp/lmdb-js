@@ -212,6 +212,10 @@ SOURCE=..\..\include\portable.h
 # End Source File
 # Begin Source File
 
+SOURCE="..\..\include\queue-compat.h"
+# End Source File
+# Begin Source File
+
 SOURCE=.\sasl.c
 # End Source File
 # Begin Source File
