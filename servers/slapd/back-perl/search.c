@@ -66,7 +66,7 @@ perl_back_search(
 		XPUSHs(sv_2mortal(newSViv( timelimit )));
 		XPUSHs(sv_2mortal(newSViv( attrsonly )));
 
-		for ( an = attrs; an; an = an->an_next ) {
+		for ( an = attrs; an && an->an_name.bv_val; an++ ) {
 			XPUSHs(sv_2mortal(newSVpv( an->an_name.bv_val , 0)));
 		}
 		PUTBACK;

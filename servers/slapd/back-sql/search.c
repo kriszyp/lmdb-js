@@ -62,7 +62,7 @@ void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int
  {
   bsi->attrs=(char**)ch_calloc(1,sizeof(char*));
   bsi->attrs[0]=NULL;
-  for(p=attrs;p!=NULL;p=p->an_next)
+  for(p=attrs;p->an_name.bv_val;p++)
    backsql_attrlist_add(bsi,p->an_name.bv_val);
  }
  else

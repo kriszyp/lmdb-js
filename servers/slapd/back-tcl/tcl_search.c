@@ -46,10 +46,10 @@ tcl_back_search (
 		return (-1);
 	}
 
-	for (i = 0, an = attrs; an != NULL; an=an->an_next, i++);
+	for (i = 0, an = attrs; an && an->an_name.bv_val; an++, i++);
 	if (i > 0) {
 		sattrs = ch_malloc( (i+1) * sizeof(char *));
-		for (i = 0, an = attrs; an; an=an->an_next, i++)
+		for (i = 0, an = attrs; an->an_name.bv_val; an++, i++)
 			sattrs[i] = an->an_name.bv_val;
 		sattrs[i] = NULL;
 		attrs_tcl = Tcl_Merge (i, sattrs);
