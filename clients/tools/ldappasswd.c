@@ -591,7 +591,7 @@ main( int argc, char *argv[] )
 	}
 
 	/* LDAPv3 only */
-	version = 3;
+	version = LDAP_VERSION3;
 	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
 	if(rc != LDAP_OPT_SUCCESS ) {

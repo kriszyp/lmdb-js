@@ -723,7 +723,7 @@ main( int argc, char **argv )
 	}
 
 	if (version == -1 ) {
-		version = 3;
+		version = LDAP_VERSION3;
 	}
 
 	if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
