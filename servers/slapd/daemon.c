@@ -390,7 +390,6 @@ slapd_daemon(
 void
 slap_set_shutdown( int sig )
 {
-	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal %d\n", sig, 0, 0 );
 	slapd_shutdown = 1;
 	ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 
@@ -401,8 +400,6 @@ slap_set_shutdown( int sig )
 void
 slap_do_nothing( int sig )
 {
-	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal %d\n", sig, 0, 0 );
-
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_do_nothing );
 }
