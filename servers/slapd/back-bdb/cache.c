@@ -535,6 +535,9 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			if ( ldap_pvt_thread_mutex_trylock(
 					&(*eip)->bei_kids_mutex )) {
 				ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+				if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
+					return DB_NOTFOUND;
+				}
 				ldap_pvt_thread_yield();
 				goto again;
 			}
@@ -571,7 +574,6 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		} else {
 			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
 					*eip, 0, 0, lock );
-
 			if ( !(*eip)->bei_e ) {
 				if (!ep) {
 					rc = bdb_id2entry( op->o_bd, tid, id, &ep );
@@ -803,6 +805,9 @@ bdb_cache_delete(
 	/* Set this early, warn off any queriers */
 	ei->bei_state |= CACHE_ENTRY_DELETED;
 
+	/* Lock the entry's info */
+	bdb_cache_entryinfo_lock( ei );
+
 	/* Get write lock on the data */
 	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
 
@@ -829,6 +834,9 @@ bdb_cache_delete(
 	/* free cache write lock */
 	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	bdb_cache_entryinfo_unlock( ei->bei_parent );
+
+	/* Leave entry info locked */
+
 	return( rc );
 }
 
@@ -837,6 +845,7 @@ bdb_cache_delete_cleanup(
 	Entry *e
 )
 {
+	bdb_cache_entryinfo_unlock( BEI(e) );
 	bdb_cache_entryinfo_destroy( e->e_private );
 	e->e_private = NULL;
 	bdb_entry_return( e );
