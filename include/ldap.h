@@ -232,18 +232,18 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_DELETE				3
 
 #if 0
+/* LDAP Duplicated Entry Control Extension */
 #define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
 #define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
 #define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
 #define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
 #endif
 
-/* Control Requests and Response for password policies */
+/* Password policy Controls */
+#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
+#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
 
-#define LDAP_CONTROL_PASSWORDPOLICYREQUEST "1.3.6.1.4.1.42.2.27.8.5.1"
-#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE "1.3.6.1.4.1.42.2.27.8.5.1"
-
-/* controls for MSAD compatibility */
+/* MS ActiveDirectory controls (for compatibility) */
 #define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
 #define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
@@ -275,6 +275,18 @@ typedef struct ldapcontrol {
 
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
+
+/* LDAP Grouping of Related Operations */
+#define LDAP_X_GROUPING_BASE		"1.3.6.1.4.1.4203.666.10.3"
+#define LDAP_EXOP_GROUPING_CREATE	LDAP_X_GROUPING_BASE ".1"
+#define LDAP_EXOP_GROUPING_END		LDAP_X_GROUPING_BASE ".2"
+#define LDAP_NOTICE_GROUPING_END	LDAP_X_GROUPING_BASE ".3"
+#define LDAP_EXOP_GROUPING_ACTION	LDAP_X_GROUPING_BASE ".4"
+#define LDAP_NOTICE_GROUPING_INFO	LDAP_X_GROUPING_BASE ".5"
+#define LDAP_CONTROL_GROUPING		LDAP_X_GROUPING_BASE ".6"
+
+/* LDAP Grouping Types */
+#define LDAP_GROUP_TRANSACTION		 "1.3.6.1.4.1.4203.666.10.4"
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */
@@ -1330,7 +1342,8 @@ ldap_explode_rdn LDAP_P(( /* deprecated */
 	LDAP_CONST char *rdn,
 	int notypes ));
 
-typedef int LDAPDN_rewrite_func LDAP_P(( LDAPDN dn, unsigned flags, void *ctx ));
+typedef int LDAPDN_rewrite_func
+	LDAP_P(( LDAPDN dn, unsigned flags, void *ctx ));
 
 LDAP_F( int )
 ldap_X509dn2bv LDAP_P(( void *x509_name, struct berval *dn,
