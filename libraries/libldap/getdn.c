@@ -753,6 +753,8 @@ ldapava_new( const struct berval *attr, const struct berval *val,
 	ava->la_value = ( struct berval * )val;
 	ava->la_flags = flags;
 
+	ava->la_private = NULL;
+
 	return( ava );
 }
 

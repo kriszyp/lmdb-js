@@ -223,6 +223,66 @@ int octetStringFilter(
 }
 
 #ifdef USE_LDAP_DN_PARSING
+
+#define	AVA_PRIVATE( ava ) ( ( AttributeDescription * )(ava)->la_private )
+
+/*
+ * In-place, schema-aware validation of the
+ * structural representation of a distinguished name.
+ */
+static int
+LDAPDN_validate( LDAPDN *dn )
+{
+	int 		iRDN;
+	int 		rc;
+
+	assert( dn );
+
+	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+		LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+		int		iAVA;
+
+		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+			AttributeDescription	*ad;
+			slap_syntax_validate_func *validate = NULL;
+			
+			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
+				const char	*text = NULL;
+
+				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+
+				ava->la_private = ( void * )ad;
+			}
+
+			/* 
+			 * Replace attr oid/name with the canonical name
+			 */
+			ber_bvfree( ava->la_attr );
+			ava->la_attr = ber_bvdup( &ad->ad_cname );
+
+			validate = ad->ad_type->sat_syntax->ssyn_validate;
+
+			if ( validate ) {
+				/*
+			 	 * validate value by validate function
+				 */
+				rc = ( *validate )( ad->ad_type->sat_syntax,
+					ava->la_value );
+			
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 static int
 dnValidate(
 	Syntax *syntax,
@@ -238,8 +298,12 @@ dnValidate(
 	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
 
 	/*
-	 * Fixme: should we also validate each DN component?
+	 * Schema-aware validate
 	 */
+	if ( rc == LDAP_SUCCESS ) {
+		rc = LDAPDN_validate( dn );
+	}
+	
 	ldapava_free_dn( dn );
 	
 	if ( rc != LDAP_SUCCESS ) {
@@ -328,15 +392,20 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
-			AttributeDescription	*ad = NULL;
-			const char		*text = NULL;
+			AttributeDescription	*ad;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
 			struct berval		*bv = NULL;
 
-			rc = slap_bv2ad( ava->la_attr, &ad, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				return LDAP_INVALID_SYNTAX;
+			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
+				const char	*text = NULL;
+
+				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+				
+				ava->la_private = ( void * )ad;
 			}
 
 			/* 

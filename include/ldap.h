@@ -1171,6 +1171,8 @@ typedef struct ldap_ava {
 #define LDAP_AVA_STRING		0x0000U
 #define LDAP_AVA_BINARY		0x0001U
 #define LDAP_AVA_NONPRINTABLE	0x0002U
+
+	void *la_private;
 } LDAPAVA;
 
 typedef LDAPAVA** LDAPRDN;
