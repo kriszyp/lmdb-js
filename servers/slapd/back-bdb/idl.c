@@ -351,6 +351,19 @@ bdb_idl_cache_get(
 	return LDAP_NO_SUCH_OBJECT;
 }
 
+/* Replace existing cached IDL with new one, tell caller it was a dup */
+static int
+idl_cache_dup( void *left, void *right )
+{
+	bdb_idl_cache_entry_t *le = left, *re = right;
+
+	ch_free( le->idl );
+	le->idl = re->idl;
+	re->idl = NULL;
+	return -1;
+}
+
+/* add or replace cache entries */
 void
 bdb_idl_cache_put(
 	struct bdb_info	*bdb,
@@ -378,10 +391,10 @@ bdb_idl_cache_put(
 	ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 	if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
-		bdb_idl_entry_cmp, avl_dup_error ))
+		bdb_idl_entry_cmp, idl_cache_dup ))
 	{
+		/* ee->idl has been stored in the tree */
 		ch_free( ee->kstr.bv_val );
-		ch_free( ee->idl );
 		ch_free( ee );
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 		return;
@@ -539,8 +552,13 @@ bdb_idl_fetch_key(
 			while (ptr) {
 				DB_MULTIPLE_NEXT(ptr, &data, j, len);
 				if (j) {
-					++i;
-					AC_MEMCPY( i, j, sizeof(ID) );
+					int k;
+					ID tmp = 0;
+					for (k=0; k<sizeof(ID); k++) {
+						tmp <<= 8;
+						tmp |= *j++;
+					}
+					*++i = tmp;
 				}
 			}
 			rc = cursor->c_get( cursor, key, &data, flags | DB_NEXT_DUP );
@@ -639,10 +657,10 @@ bdb_idl_insert_key(
 	ID			id )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int	rc;
+	int	i, rc;
 	DBT data;
 	ID lo, hi, tmp, idl[BDB_IDL_DB_SIZE];
-	char *err;
+	char *err, buf[sizeof(ID)];
 	int wasrange = 0, isrange = 0;
 
 	{
@@ -680,7 +698,7 @@ bdb_idl_insert_key(
 	data.size = sizeof( ID );
 	data.ulen = data.size;
 	data.flags = DB_DBT_USERMEM;
-	data.data = &tmp;
+	data.data = buf;
 
 	if ( isrange ) {
 		while ( !wasrange ) {
@@ -691,18 +709,29 @@ bdb_idl_insert_key(
 				break;
 			}
 			tmp = 0;
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = 0;
+			}
 			rc = db->put( db, tid, key, &data, 0 );
 			if ( rc != 0 ) {
 				err = "put1";
 				break;
 			}
 			tmp = idl[1];
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = tmp & 0xff;
+				tmp >>= 8;
+			}
 			rc = db->put( db, tid, key, &data, 0 );
 			if ( rc != 0 ) {
 				err = "put2";
 				break;
 			}
 			tmp = idl[2];
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = tmp & 0xff;
+				tmp >>= 8;
+			}
 			rc = db->put( db, tid, key, &data, 0 );
 			if ( rc != 0 ) {
 				err = "put3";
@@ -718,9 +747,11 @@ bdb_idl_insert_key(
 				err = "cursor";
 				break;
 			}
-			data.data = &tmp;
-
 			tmp = (id == idl[1]) ? lo : hi;
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = tmp & 0xff;
+				tmp >>= 8;
+			}
 			rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
 			if ( rc != 0 ) {
 				cursor->c_close( cursor );
@@ -734,6 +765,10 @@ bdb_idl_insert_key(
 				break;
 			}
 			tmp = id;
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = tmp & 0xff;
+				tmp >>= 8;
+			}
 			rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 			if ( rc != 0 ) {
 				cursor->c_close( cursor );
@@ -749,6 +784,10 @@ bdb_idl_insert_key(
 		}
 	} else {
 		tmp = id;
+		for (i=sizeof(ID)-1; i>=0; i--) {
+			buf[i] = tmp & 0xff;
+			tmp >>= 8;
+		}
 		rc = db->put( db, tid, key, &data, DB_NODUPDATA );
 		if ( rc != 0 ) {
 			err = "put4";
@@ -767,7 +806,6 @@ bdb_idl_insert_key(
 	}
 
 	if ( bdb->bi_idl_cache_max_size ) {
-		bdb_idl_cache_del( bdb, db, key );
 		bdb_idl_cache_put( bdb, db, key, idl, 0 );
 	}
 	return rc;
@@ -782,12 +820,12 @@ bdb_idl_delete_key(
 	ID			id )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int	rc;
+	int	i, rc;
 	DBT data;
 	DBC *cursor;
 	ID lo, hi, tmp, idl[BDB_IDL_DB_SIZE];
 	int wasrange, isrange;
-	char *err;
+	char *err, buf[sizeof(ID)];
 
 	{
 		char buf[16];
@@ -820,7 +858,7 @@ bdb_idl_delete_key(
 	}
 
 	DBTzero( &data );
-	data.data = &tmp;
+	data.data = buf;
 	data.size = sizeof( id );
 	data.ulen = data.size;
 	data.flags = DB_DBT_USERMEM;
@@ -844,6 +882,10 @@ bdb_idl_delete_key(
 			err = "del";
 		} else {
 			tmp = idl[1];
+			for (i=sizeof(ID)-1; i>=0; i--) {
+				buf[i] = tmp & 0xff;
+				tmp >>= 8;
+			}
 			rc = db->put( db, tid, key, &data, 0 );
 			if ( rc != 0 ) {
 				err = "put";
@@ -851,6 +893,10 @@ bdb_idl_delete_key(
 		}
 	} else {
 		tmp = id;
+		for (i=sizeof(ID)-1; i>=0; i--) {
+			buf[i] = tmp & 0xff;
+			tmp >>= 8;
+		}
 		rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
 		if ( rc != 0 ) {
 			err = "c_get";
@@ -863,6 +909,10 @@ bdb_idl_delete_key(
 	}
 	if ( isrange && rc == 0 ) {
 		tmp = ( id == lo ) ? idl[1] : idl[2];
+		for (i=sizeof(ID)-1; i>=0; i--) {
+			buf[i] = tmp & 0xff;
+			tmp >>= 8;
+		}
 		rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 		if ( rc != 0 ) {
 			err = "c_put";
@@ -893,7 +943,6 @@ bdb_idl_delete_key(
 		return rc;
 	}
 	if ( bdb->bi_idl_cache_max_size ) {
-		bdb_idl_cache_del( bdb, db, key );
 		bdb_idl_cache_put( bdb, db, key, idl, 0 );
 	}
 
