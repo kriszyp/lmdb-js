@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.440 2002/10/18 19:09:48 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.442 2002/10/25 03:46:56 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -870,10 +870,10 @@ fi
 
 SHTOOL="$ac_cv_shtool"
 
-TB=`($SHTOOL echo -e '%B') 2>/dev/null`
-TN=`($SHTOOL echo -e '%b') 2>/dev/null`
+TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
+TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
 
-echo "Configuring $TB$OL_STRING$TN ..."
+echo "Configuring ${TB}${OL_STRING}${TN} ..."
 
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
