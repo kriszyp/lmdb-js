@@ -84,12 +84,19 @@ export BACKEND WAIT KILLSERVERS PRESERVE USERDATA
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
 fi
+
+SCRIPTDIR="${SRCDIR}/scripts"
 SCRIPTNAME="$1"
-SCRIPT="${SRCDIR}/scripts/${SCRIPTNAME}"
 shift
 
-if test ! -x "${SCRIPT}" ; then
-	echo "run: ${SCRIPT} not found (or not executable)"
+if test -x "${SCRIPTDIR}/${SCRIPTNAME}" ; then
+	SCRIPT="${SCRIPTDIR}/${SCRIPTNAME}"
+elif test -x "`echo ${SCRIPTDIR}/test*-${SCRIPTNAME}`"; then
+	SCRIPT="`echo ${SCRIPTDIR}/test*-${SCRIPTNAME}`"
+elif test -x "`echo ${SCRIPTDIR}/${SCRIPTNAME}-*`"; then
+	SCRIPT="`echo ${SCRIPTDIR}/${SCRIPTNAME}-*`"
+else
+	echo "run: ${SCRIPTNAME} not found (or not executable)"
 	exit 1;
 fi
 
