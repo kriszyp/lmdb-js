@@ -208,8 +208,6 @@ int value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 void value_normalize LDAP_P(( char *s, int syntax ));
 int value_cmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax,
 	int normalize ));
-int value_ncmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax, int len,
-	int normalize ));
 int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
 	int normalize ));
 
