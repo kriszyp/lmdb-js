@@ -878,8 +878,8 @@ default, readonly is off.
 .B replica host=<hostname>[:port] [tls=yes|critical]
 .B [suffix=<suffix> [...]]
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
-.B [saslmech=<SASL mech>] [secopts=<options>] [realm=<realm>]
-.B [authcId=<authentication ID>] [authcId=<authentication ID>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .B [attr[!]=<attr list>]
 .RS
 Specify a replication site for this database.  Refer to the "OpenLDAP 
@@ -903,6 +903,13 @@ of
 .B sasl 
 requires the option
 .B saslmech. 
+Specific security properties (as with the
+.B sasl-secprops
+keyword above) for a SASL bind can be set with the
+.B secprops
+option. A non-default SASL realm can be set with the
+.B realm
+option.
 If the 
 .B mechanism
 will use Kerberos, a kerberos instance should be given in 
