@@ -864,9 +864,14 @@ LDAP_SLAPD_F (int) slap_passwd_check(
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
 LDAP_SLAPD_F (void) slap_passwd_hash(
-	char			*type,
 	struct berval		*cred,
 	struct berval		*hash,
+	const char		**text );
+
+LDAP_SLAPD_F (void) slap_passwd_hash_type(
+	struct berval		*cred,
+	struct berval		*hash,
+	char				*htype,
 	const char		**text );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(
