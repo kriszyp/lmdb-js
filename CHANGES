@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA2
 	Added cross compiling detect and warnings
+	Added ACLGROUP objectclass/attribute enhancement
 	Fixed autoconf detection of threads
 	Fixed SunOS/Solaris autoconf problems
 	Fixed SCO build problems
