@@ -51,12 +51,10 @@ monitor_cache_cmp(
 	struct monitorcache 	*cc1 = ( struct monitorcache * )c1;
 	struct monitorcache 	*cc2 = ( struct monitorcache * )c2;
 
-	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
-	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	return d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
+	return ber_bvcmp( cc1->mc_ndn, cc2->mc_ndn );
 }
 
 /*
@@ -71,19 +69,10 @@ monitor_cache_dup(
 	struct monitorcache *cc1 = ( struct monitorcache * )c1;
 	struct monitorcache *cc2 = ( struct monitorcache * )c2;
 
-	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-#if 0
-	int 			cmp = monitor_cache_cmp( c1, c2 );
-#else
-	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
-	int 			cmp = 
-		d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
-#endif
-
-	return cmp == 0 ? -1 : 0;
+	return ber_bvcmp( cc1->mc_ndn, cc2->mc_ndn ) == 0 ? -1 : 0;
 }
 
 /*
