@@ -92,6 +92,7 @@ OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dn
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb2,[    --enable-bdb2	enable bdb2 backend], no)dnl
+OL_ARG_ENABLE(ldap,[    --enable-ldap	enable ldap backend], no)dnl
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
 	[auto db2 db mdbm gdbm ndbm manual])
@@ -273,6 +274,7 @@ BUILD_SLAPD=no
 BUILD_SLURPD=no
 
 BUILD_BDB2=no
+BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -1655,6 +1657,12 @@ if test "$ol_link_bdb2" != no ; then
 	BUILD_BDB2=yes
 fi
 
+if test "$ol_link_ldap" != no ; then
+	AC_DEFINE(SLAPD_LDAP,1)
+	BUILD_SLAPD=yes
+	BUILD_LDAP=yes
+fi
+
 if test "$ol_link_ldbm" != no ; then
 	AC_DEFINE(SLAPD_LDBM,1)
 	BUILD_SLAPD=yes
@@ -1699,6 +1707,7 @@ dnl ----------------------------------------------------------------
 AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_BDB2)
+  AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
@@ -1758,6 +1767,7 @@ servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/srv.mk \
+servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/srv.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \

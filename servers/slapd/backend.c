@@ -13,6 +13,9 @@
 #include "slap.h"
 #include "lutil.h"
 
+#ifdef SLAPD_LDAP
+#include "back-ldap/external.h"
+#endif
 #ifdef SLAPD_LDBM
 #include "back-ldbm/external.h"
 #endif
@@ -33,6 +36,9 @@
 #endif
 
 static BackendInfo binfo[] = {
+#ifdef SLAPD_LDAP
+	{"ldap",	ldap_back_initialize},
+#endif
 #ifdef SLAPD_LDBM
 	{"ldbm",	ldbm_back_initialize},
 #endif

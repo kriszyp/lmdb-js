@@ -231,6 +231,25 @@ ldap_get_option(
 
 		return 0;
 
+        case LDAP_OPT_MATCH_STRING:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
+
+		/*
+		 * draft-ietf-ldapext-ldap-c-api-01 doesn't require
+		 *	the client to have to free error strings, we do
+		 */
+
+		if( ld->ld_matched == NULL ) {
+			* (char **) outvalue = NULL;
+		} else {
+			* (char **) outvalue = strdup(ld->ld_matched);
+		}
+
+		return 0;
+
 	case LDAP_OPT_API_FEATURE_INFO: {
 			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
 			int i;

@@ -198,6 +198,9 @@
 /* define this for crypt(3) password support */
 #undef SLAPD_CRYPT
 
+/* define this to use SLAPD LDAP backend */
+#undef SLAPD_LDAP
+
 /* define this to use SLAPD LDBM backend */
 #undef SLAPD_LDBM
 
