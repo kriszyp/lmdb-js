@@ -14,7 +14,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 
 #include <ac/ctype.h>
 #include <ac/errno.h>
@@ -23,6 +22,10 @@
 #include <ac/termios.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #ifdef HAVE_CONIO_H
 #include <conio.h>
