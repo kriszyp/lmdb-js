@@ -60,6 +60,9 @@ PB:
 !include "replication.sdf"; chapter
 PB:
 
+!include "sasl.sdf"; chapter
+PB:
+
 # Appendices 
 !include "../release/autoconf.sdf"; appendix
 PB:
