@@ -289,7 +289,7 @@ slapd_daemon(
 			   	 	ns,
 						client_name == NULL ? "unknown" : client_name,
 						client_addr == NULL ? "unknown" : client_addr,
-			   	  0 );
+			   	  0, 0 );
 
 				close(ns);
 				pthread_mutex_unlock( &new_conn_mutex );
