@@ -66,6 +66,11 @@ values (10,2,'documentIdentifier','concat(''document '',documents.id)','document
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (11,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,ldap_entry_objclasses as auxObjectClass',
+	'institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',
+	NULL,NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -73,32 +78,32 @@ values (11,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 --	parent		the "ldap_entries.id" of the parent of this objectClass; 0 if it is the "suffix" of the database
 --	keyval		the value of the "keytbl.keycol" defined for this objectClass
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (1,'o=Example,c=RU',3,0,1);
+values (1,'dc=example,dc=com',3,0,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (2,'cn=Mitya Kovalev,o=Example,c=RU',1,1,1);
+values (2,'cn=Mitya Kovalev,dc=example,dc=com',1,1,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (3,'cn=Torvlobnor Puzdoy,o=Example,c=RU',1,1,2);
+values (3,'cn=Torvlobnor Puzdoy,dc=example,dc=com',1,1,2);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (4,'cn=Akakiy Zinberstein,o=Example,c=RU',1,1,3);
+values (4,'cn=Akakiy Zinberstein,dc=example,dc=com',1,1,3);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (5,'documentTitle=book1,o=Example,c=RU',2,1,1);
+values (5,'documentTitle=book1,dc=example,dc=com',2,1,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
-values (6,'documentTitle=book2,o=Example,c=RU',2,1,2);
+values (6,'documentTitle=book2,dc=example,dc=com',2,1,2);
 	
 
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
 --	entry_id	the "ldap_entries.id" of the entry this objectClass value must be added
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name)
-values (4,'referral');
+values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
-values (2,'posixAccount');
+values (4,'referral');
 
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral

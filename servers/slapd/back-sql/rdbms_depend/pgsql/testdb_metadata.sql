@@ -47,6 +47,8 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (11,3,'o','institutes.name','institutes',NULL,'update institutes set name=? where id=?',NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,ldap_entry_objclasses as auxObjectClass','institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',NULL,NULL,3,0);
+
 
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
@@ -54,25 +56,25 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 --	oc_map_id	the "ldap_oc_mappings.id" of the main objectClass of this entry (view it as the structuralObjectClass)
 --	parent		the "ldap_entries.id" of the parent of this objectClass; 0 if it is the "suffix" of the database
 --	keyval		the value of the "keytbl.keycol" defined for this objectClass
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (1,'o=Example,c=RU',3,0,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (1,'dc=example,dc=com',3,0,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (2,'cn=Mitya Kovalev,o=Example,c=RU',1,1,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (2,'cn=Mitya Kovalev,dc=example,dc=com',1,1,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (3,'cn=Torvlobnor Puzdoy,o=Example,c=RU',1,1,2);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (3,'cn=Torvlobnor Puzdoy,dc=example,dc=com',1,1,2);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (4,'cn=Akakiy Zinberstein,o=Example,c=RU',1,1,3);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (4,'cn=Akakiy Zinberstein,dc=example,dc=com',1,1,3);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (5,'documentTitle=book1,o=Example,c=RU',2,1,1);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (5,'documentTitle=book1,dc=example,dc=com',2,1,1);
 
-insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (6,'documentTitle=book2,o=Example,c=RU',2,1,2);
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (6,'documentTitle=book2,dc=example,dc=com',2,1,2);
 	
 	
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
 --	entry_id	the "ldap_entries.id" of the entry this objectClass value must be added
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
-insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
+insert into ldap_entry_objclasses (entry_id,oc_name) values (1,'dcObject');
 
-insert into ldap_entry_objclasses (entry_id,oc_name) values (2,'posixAccount');
+insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
 
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
@@ -85,7 +87,7 @@ create function create_person () returns int
 as '
 	select setval (''persons_id_seq'', (select case when max(id) is null then 1 else max(id) end from persons));
 	insert into persons (id,name,surname) 
-		values (nextval(''persons_id_seq''),'''','''');
+		values ((select case when max(id) is null then 1 else nextval(''persons_id_seq'') end from persons),'''','''');
 	select max(id) from persons
 ' language 'sql';
 
@@ -110,6 +112,8 @@ as '
 	delete from phones where pers_id = $1;
 	delete from authors_docs where pers_id = $1;
 	delete from persons where id = $1;
+	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=1 and keyval = $1);
+	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=1 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 
@@ -131,13 +135,15 @@ create function create_doc () returns int
 as '
 	select setval (''documents_id_seq'', (select case when max(id) is null then 1 else max(id) end from documents));
 	insert into documents (id,title,abstract) 
-		values (nextval(''documents_id_seq''),'''','''');
+		values ((select case when max(id) is null then 1 else nextval(''documents_id_seq'') end from documents),'''','''');
 	select max(id) from documents
 ' language 'sql';
 
 create function delete_doc (int) returns int
 as '
 	delete from documents where id = $1;
+	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=2 and keyval = $1);
+	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=2 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 
@@ -145,13 +151,15 @@ create function create_o () returns int
 as '
 	select setval (''institutes_id_seq'', (select case when max(id) is null then 1 else max(id) end from institutes));
 	insert into institutes (id,name) 
-		values (nextval(''institutes_id_seq''),'''');
+		values ((select case when max(id) is null then 1 else nextval(''institutes_id_seq'') end from institutes),'''');
 	select max(id) from institutes
 ' language 'sql';
 
 create function delete_o (int) returns int
 as '
 	delete from institutes where id = $1;
+	delete from ldap_entry_objclasses where entry_id=(select id from ldap_entries where oc_map_id=3 and keyval = $1);
+	delete from ldap_referrals where entry_id=(select id from ldap_entries where oc_map_id=3 and keyval = $1);
 	select $1 as return
 ' language 'sql';
 

@@ -33,24 +33,34 @@
 
 #define BACKSQL_DUPLICATE	(-1)
 
+/* NOTE: by default, cannot just compare pointers because
+ * objectClass/attributeType order would be machine-dependent
+ * (and tests would fail!); however, if you don't want to run
+ * tests, or see attributeTypes written in the same order
+ * they are defined, define */
+/* #undef BACKSQL_USE_PTR_CMP */
+
 /*
  * Uses the pointer to the ObjectClass structure
  */
 static int
 backsql_cmp_oc( const void *v_m1, const void *v_m2 )
 {
-	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
+	const backsql_oc_map_rec	*m1 = v_m1,
+					*m2 = v_m2;
 
-#if 0
+#ifdef BACKSQL_USE_PTR_CMP
 	return SLAP_PTRCMP( m1->bom_oc, m2->bom_oc );
-#endif
+#else /* ! BACKSQL_USE_PTR_CMP */
 	return ber_bvcmp( &m1->bom_oc->soc_cname, &m2->bom_oc->soc_cname );
+#endif /* ! BACKSQL_USE_PTR_CMP */
 }
 
 static int
 backsql_cmp_oc_id( const void *v_m1, const void *v_m2 )
 {
-	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
+	const backsql_oc_map_rec	*m1 = v_m1,
+					*m2 = v_m2;
 
 	return ( m1->bom_id < m2->bom_id ? -1 : ( m1->bom_id > m2->bom_id ? 1 : 0 ) );
 }
@@ -61,21 +71,27 @@ backsql_cmp_oc_id( const void *v_m1, const void *v_m2 )
 static int
 backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 {
-	const backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
+	const backsql_at_map_rec	*m1 = v_m1,
+					*m2 = v_m2;
 
-#if 0
+#ifdef BACKSQL_USE_PTR_CMP
 	return SLAP_PTRCMP( m1->bam_ad, m2->bam_ad );
-#endif
+#else /* ! BACKSQL_USE_PTR_CMP */
 	return ber_bvcmp( &m1->bam_ad->ad_cname, &m2->bam_ad->ad_cname );
+#endif /* ! BACKSQL_USE_PTR_CMP */
 }
 
 int
 backsql_dup_attr( void *v_m1, void *v_m2 )
 {
-	backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
+	backsql_at_map_rec		*m1 = v_m1,
+					*m2 = v_m2;
 
 	assert( m1->bam_ad == m2->bam_ad );
-	
+
+	/* duplicate definitions of attributeTypes are appended;
+	 * this allows to define multiple rules for the same 
+	 * attributeType.  Use with care! */
 	for ( ; m1->bam_next ; m1 = m1->bam_next );
 	m1->bam_next = m2;
 	m2->bam_next = NULL;
@@ -103,7 +119,7 @@ backsql_make_attr_query(
 			&oc_map->bom_keycol,
 			(ber_len_t)STRLENOF( "=?" ), "=?" );
 
-	if ( at_map->bam_join_where.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &at_map->bam_join_where ) ) {
 		backsql_strfcat( &bb, "lb",
 				(ber_len_t)STRLENOF( " AND " ), " AND ", 
 				&at_map->bam_join_where );
@@ -140,23 +156,56 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	backsql_merge_from_clause( &bb, &oc_map->bom_keytbl );
 	at_map->bam_from_tbls = bb.bb_val;
 
-	bb.bb_val.bv_val = NULL;
-	bb.bb_val.bv_len = 0;
+	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "lbcblb",
-			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=" ),
-				"ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=",
+			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entries.keyval=" ),
+				"ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
 			'.', 
 			&oc_map->bom_keycol,
 			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
 				" and ldap_entries.oc_map_id=", 
 			&sbv );
+	at_map->bam_join_where = bb.bb_val;
 
 	at_map->bam_oc = oc_map->bom_oc;
-	at_map->bam_join_where = bb.bb_val;
+
 	at_map->bam_add_proc = NULL;
+	{
+		char	tmp[] =
+			"INSERT INTO ldap_entry_objclasses "
+			"(entry_id,oc_name) VALUES "
+			"((SELECT id FROM ldap_entries "
+			"WHERE oc_map_id="
+			"18446744073709551615UL "	/* 64 bit ULONG */
+			"AND keyval=?),?)";
+		snprintf( tmp, sizeof(tmp), 
+			"INSERT INTO ldap_entry_objclasses "
+			"(entry_id,oc_name) VALUES "
+			"((SELECT id FROM ldap_entries "
+			"WHERE oc_map_id=%lu "
+			"AND keyval=?),?)", oc_map->bom_id );
+		at_map->bam_add_proc = ch_strdup( tmp );
+	}
+
 	at_map->bam_delete_proc = NULL;
+	{
+		char	tmp[] =
+			"DELETE FROM ldap_entry_objclasses "
+			"WHERE entry_id=(SELECT id FROM ldap_entries "
+			"WHERE oc_map_id="
+			"18446744073709551615UL "	/* 64 bit ULONG */
+			"AND keyval=?) AND oc_name=?";
+		snprintf( tmp, sizeof(tmp), 
+			"DELETE FROM ldap_entry_objclasses "
+			"WHERE entry_id=(SELECT id FROM ldap_entries "
+			"WHERE oc_map_id=%lu"
+			"AND keyval=?) AND oc_name=?",
+			oc_map->bom_id );
+		at_map->bam_delete_proc = ch_strdup( tmp );
+	}
+
 	at_map->bam_param_order = 0;
 	at_map->bam_expect_return = 0;
 	at_map->bam_next = NULL;
@@ -168,6 +217,22 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				at_map->bam_ad->ad_cname.bv_val,
 				oc_map->bom_oc->soc_cname.bv_val, 0 );
 	}
+
+	/* FIXME: whe need to correct the objectClass join_where 
+	 * after the attribute query is built */
+	ch_free( at_map->bam_join_where.bv_val );
+	BER_BVZERO( &bb.bb_val );
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "lbcblb",
+			(ber_len_t)STRLENOF( "ldap_entries.keyval=" ),
+				"ldap_entries.keyval=",
+			&oc_map->bom_keytbl, 
+			'.', 
+			&oc_map->bom_keycol,
+			(ber_len_t)STRLENOF( " AND ldap_entries.oc_map_id=" ), 
+				" AND ldap_entries.oc_map_id=", 
+			&sbv );
+	at_map->bam_join_where = bb.bb_val;
 
 	/* referral attribute */
 	at_map = (backsql_at_map_rec *)ch_calloc( 1, 
@@ -181,23 +246,57 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	backsql_merge_from_clause( &bb, &oc_map->bom_keytbl );
 	at_map->bam_from_tbls = bb.bb_val;
 
-	bb.bb_val.bv_val = NULL;
-	bb.bb_val.bv_len = 0;
+	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "lbcblb",
-			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=" ),
-				"ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=",
+			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_referrals.entry_id AND ldap_entries.keyval=" ),
+				"ldap_entries.id=ldap_referrals.entry_id AND ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
 			'.', 
 			&oc_map->bom_keycol,
-			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
-				" and ldap_entries.oc_map_id=", 
+			(ber_len_t)STRLENOF( " AND ldap_entries.oc_map_id=" ), 
+				" AND ldap_entries.oc_map_id=", 
 			&sbv );
 
-	at_map->bam_oc = NULL;
 	at_map->bam_join_where = bb.bb_val;
+
+	at_map->bam_oc = NULL;
+
 	at_map->bam_add_proc = NULL;
+	{
+		char	tmp[] =
+			"INSERT INTO ldap_referrals "
+			"(entry_id,url) VALUES "
+			"((SELECT id FROM ldap_entries "
+			"WHERE oc_map_id="
+			"18446744073709551615UL "	/* 64 bit ULONG */
+			"AND keyval=?),?)";
+		snprintf( tmp, sizeof(tmp), 
+			"INSERT INTO ldap_referrals "
+			"(entry_id,url) VALUES "
+			"((SELECT id FROM ldap_entries "
+			"WHERE oc_map_id=%lu "
+			"AND keyval=?),?)", oc_map->bom_id );
+		at_map->bam_add_proc = ch_strdup( tmp );
+	}
+
 	at_map->bam_delete_proc = NULL;
+	{
+		char	tmp[] =
+			"DELETE FROM ldap_referrals "
+			"WHERE entry_id=(SELECT id FROM ldap_entries "
+			"WHERE oc_map_id="
+			"18446744073709551615UL "	/* 64 bit ULONG */
+			"AND keyval=?) and url=?";
+		snprintf( tmp, sizeof(tmp), 
+			"DELETE FROM ldap_referrals "
+			"WHERE entry_id=(SELECT id FROM ldap_entries "
+			"WHERE oc_map_id=%lu"
+			"AND keyval=?) and url=?",
+			oc_map->bom_id );
+		at_map->bam_delete_proc = ch_strdup( tmp );
+	}
+
 	at_map->bam_param_order = 0;
 	at_map->bam_expect_return = 0;
 	at_map->bam_next = NULL;
@@ -295,8 +394,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 
 		ber_str2bv( at_row.cols[ 1 ], 0, 1, &at_map->bam_sel_expr );
 		if ( at_row.value_len[ 8 ] < 0 ) {
-			at_map->bam_sel_expr_u.bv_val = NULL;
-			at_map->bam_sel_expr_u.bv_len = 0;
+			BER_BVZERO( &at_map->bam_sel_expr_u );
 
 		} else {
 			ber_str2bv( at_row.cols[ 8 ], 0, 1, 
@@ -307,8 +405,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		backsql_merge_from_clause( &bb, &bv );
 		at_map->bam_from_tbls = bb.bb_val;
 		if ( at_row.value_len[ 3 ] < 0 ) {
-			at_map->bam_join_where.bv_val = NULL;
-			at_map->bam_join_where.bv_len = 0;
+			BER_BVZERO( &at_map->bam_join_where );
 
 		} else {
 			ber_str2bv( at_row.cols[ 3 ], 0, 1, 
@@ -339,7 +436,9 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 					oc_map->bom_oc->soc_cname.bv_val, 0 );
 		}
 
-		if ( bas->bas_si->upper_func.bv_val && at_map->bam_sel_expr_u.bv_val == NULL ) {
+		if ( !BER_BVISNULL( &bas->bas_si->upper_func ) &&
+				BER_BVISNULL( &at_map->bam_sel_expr_u ) )
+		{
 			struct berbuf	bb = BB_NULL;
 
 			backsql_strfcat( &bb, "bcbc",
@@ -352,6 +451,12 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 	}
 	backsql_FreeRow( &at_row );
 	SQLFreeStmt( bas->bas_sth, SQL_CLOSE );
+
+	Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(\"%s\"): "
+		"autoadding 'objectClass' and 'ref' mappings\n",
+		BACKSQL_OC_NAME( oc_map ), 0, 0 );
+
+	(void)backsql_add_sysmaps( oc_map );
 
 	return BACKSQL_AVL_CONTINUE;
 }
@@ -481,12 +586,6 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 			"add=%d, del=%d; attributes:\n",
 			BACKSQL_IS_ADD( oc_map->bom_expect_return ), 
 			BACKSQL_IS_DEL( oc_map->bom_expect_return ), 0 );
-
-		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-			"autoadding 'objectClass' and 'ref' mappings\n",
-			0, 0, 0 );
-
-		backsql_add_sysmaps( oc_map );
 	}
 
 	backsql_FreeRow( &oc_row );
@@ -736,10 +835,10 @@ backsql_free_attr( void *v_at )
 	Debug( LDAP_DEBUG_TRACE, "==>free_attr(): \"%s\"\n", 
 			at->bam_ad->ad_cname.bv_val, 0, 0 );
 	ch_free( at->bam_sel_expr.bv_val );
-	if ( at->bam_from_tbls.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &at->bam_from_tbls ) ) {
 		ch_free( at->bam_from_tbls.bv_val );
 	}
-	if ( at->bam_join_where.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &at->bam_join_where ) ) {
 		ch_free( at->bam_join_where.bv_val );
 	}
 	if ( at->bam_add_proc != NULL ) {
@@ -753,7 +852,7 @@ backsql_free_attr( void *v_at )
 	}
 
 	/* TimesTen */
-	if ( at->bam_sel_expr_u.bv_val ) {
+	if ( !BER_BVISNULL( &at->bam_sel_expr_u ) ) {
 		ch_free( at->bam_sel_expr_u.bv_val );
 	}
 

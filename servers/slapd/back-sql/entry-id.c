@@ -341,6 +341,18 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		return 1;
 	}
 
+#ifdef BACKSQL_TRACE
+#ifdef BACKSQL_ARBITRARY_KEY
+	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
+		"query=%s keyval=%s\n", at->bam_query,
+		bsi->bsi_c_eid->eid_keyval.bv_val, 0 );
+#else /* !BACKSQL_ARBITRARY_KEY */
+	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
+		"query=%s keyval=%d\n", at->bam_query,
+		bsi->bsi_c_eid->eid_keyval, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+#endif /* BACKSQL_TRACE */
+
 	rc = SQLExecute( sth );
 	if ( ! BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "

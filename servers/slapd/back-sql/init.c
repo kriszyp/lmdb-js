@@ -41,7 +41,7 @@ init_module(
 
 	memset( &bi, '\0', sizeof( bi ) );
 	bi.bi_type = "sql";
-	bi.bi_init = sql_back_initialize;
+	bi.bi_init = backsql_initialize;
 
 	backend_add( &bi );
 	return 0;
@@ -50,7 +50,7 @@ init_module(
 #endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
 
 int
-sql_back_initialize(
+backsql_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
@@ -177,7 +177,7 @@ backsql_db_open(
 	ber_len_t	idq_len;
 	struct berbuf	bb = BB_NULL;
 
-	Operation	otmp;
+	Operation	otmp = { 0 };
 		
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
@@ -383,7 +383,7 @@ backsql_db_open(
 		si->delentry_query = ch_strdup( backsql_def_delentry_query );
 	}
 
-	otmp.o_connid = -1;
+	otmp.o_connid = (unsigned long)(-1);
 	otmp.o_bd = bd;
 	if ( backsql_get_db_conn( &otmp, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
@@ -399,6 +399,7 @@ backsql_db_open(
 
 	if ( si->upper_func.bv_val == NULL ) {
 		backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
+
 	} else {
 		if ( BACKSQL_HAS_LDAPINFO_DN_RU( si ) ) {
 			backsql_strcat( &bb, backsql_id_query,
@@ -461,13 +462,14 @@ backsql_db_close(
 int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
-	Operation o;
+	Operation o = { 0 };
 	o.o_bd = bd;
 	o.o_connid = c->c_connid;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
 	backsql_free_db_conn( &o );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
+
 	return 0;
 }
 

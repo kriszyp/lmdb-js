@@ -145,6 +145,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 #endif /* BACKSQL_TRACE */
 		
 		backsql_PrintErrors( SQL_NULL_HENV, SQL_NULL_HDBC, sth, rc );
+
 	} else {
 #ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
@@ -270,6 +271,7 @@ int
 backsql_init_db_env( backsql_info *si )
 {
 	RETCODE		rc;
+	int		ret = SQL_SUCCESS;
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_init_db_env()\n", 0, 0, 0 );
 	rc = SQLAllocEnv( &si->db_env );
@@ -278,9 +280,10 @@ backsql_init_db_env( backsql_info *si )
 				0, 0, 0 );
 		backsql_PrintErrors( SQL_NULL_HENV, SQL_NULL_HDBC,
 				SQL_NULL_HENV, rc );
+		ret = SQL_ERROR;
 	}
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_init_db_env()\n", 0, 0, 0 );
-	return SQL_SUCCESS;
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_init_db_env()=%d\n", ret, 0, 0 );
+	return ret;
 }
 
 int
@@ -303,7 +306,7 @@ backsql_free_db_env( backsql_info *si )
 }
 
 static int
-backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
+backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn **pdbc )
 {
 	/* TimesTen */
 	char			DBMSName[ 32 ];
@@ -389,7 +392,8 @@ int
 backsql_free_db_conn( Operation *op )
 {
 	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
-	backsql_db_conn		tmp, *conn;
+	backsql_db_conn		tmp = { 0 },
+				*conn;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
 	tmp.ldap_cid = op->o_connid;
@@ -414,8 +418,8 @@ int
 backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 {
 	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
-	backsql_db_conn		*dbc;
-	backsql_db_conn		tmp;
+	backsql_db_conn		*dbc,
+				tmp = { 0 };
 	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_db_conn()\n", 0, 0, 0 );

@@ -173,7 +173,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 			cslen = va_arg( strs, ber_len_t );
 			cstr = va_arg( strs, char * );
 			break;
-			
+
 		/* string */
 		case 's':
 			cstr = va_arg( strs, char * );
