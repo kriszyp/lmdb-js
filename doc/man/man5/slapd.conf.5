@@ -652,6 +652,10 @@ The
 property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
+.B schemadn <dn>
+Specify the distinguished name for the subschema subentry that
+controls the entries on this server.  The default is "cn=Subschema".
+.TP
 .B security <factors>
 Specify a set of factors (separated by white space) to require.
 An integer value is associated with each factor and is roughly
