@@ -3001,10 +3001,31 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 				INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( INTERVALSTR );
-			if ( si->type == LDAP_SYNC_REFRESH_AND_PERSIST )
+			if ( si->type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 				si->interval = 0;
-			else
-				si->interval = atoi( val );
+			} else {
+				char *dstr;
+				char *hstr;
+				char *mstr;
+				dstr = val;
+				hstr = strchr( dstr, ':' );
+				if ( hstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+									 "invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*hstr++ = '\0';
+				mstr = strchr( hstr, ':' );
+				if ( mstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+									 "invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*mstr++ = '\0';
+				si->interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
+								+ atoi( mstr )) * 60;
+				fprintf(stderr, "interval = %d\n", si->interval );
+			}
 			if ( si->interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 								 "invalid interval \"%ld\"\n",
