@@ -754,10 +754,10 @@ ber_scanf ( BerElement *ber,
 			break;
 		}
 
-		case 'w':	/* bvoffarray - must include address of
+		case 'M':	/* bvoffarray - must include address of
 				 * a record len, and record offset.
 				 * number of records will be returned thru
-				 * len ptr on finish.
+				 * len ptr on finish. parsed in-place.
 				 */
 		{
 			bgbvr cookie = { ber, BvOff };
@@ -781,7 +781,7 @@ ber_scanf ( BerElement *ber,
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
 			if ( *(fmt + 1) != 'v' && *(fmt + 1) != 'V'
-				&& *(fmt + 1) != 'W' && *(fmt + 1) != 'w' )
+				&& *(fmt + 1) != 'W' && *(fmt + 1) != 'M' )
 				rc = ber_skip_tag( ber, &len );
 			break;
 
@@ -881,6 +881,8 @@ ber_scanf ( BerElement *ber,
 		case 'v':	/* sequence of strings */
 		case 'V':	/* sequence of strings + lengths */
 		case 'W':	/* BVarray */
+		case 'm':	/* berval in-place */
+		case 'M':	/* BVoff array in-place */
 		case 'n':	/* null */
 		case 'x':	/* skip the next element - whatever it is */
 		case '{':	/* begin sequence */
