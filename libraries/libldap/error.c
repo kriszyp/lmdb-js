@@ -160,6 +160,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 	fflush( stderr );
 }
 
+/* deprecated */
 int
 ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 {
@@ -168,7 +169,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	rc = ldap_parse_result( ld, r, &err,
 		NULL, NULL, NULL, NULL, freeit );
 
-	return rc != LDAP_SUCCESS ? rc : err;
+	return err != LDAP_SUCCESS ? err : rc;
 }
 
 /*
