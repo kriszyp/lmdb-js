@@ -316,7 +316,7 @@ main( int argc, char **argv )
 		)
 	{
 		int err;
-		int i;
+		int i = 0;
 		LDAPControl c[1];
 
 #ifdef LDAP_GROUP_TRANSACTION
