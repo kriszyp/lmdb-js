@@ -140,6 +140,7 @@ OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
 OL_ARG_ENABLE(discreteaci,[    --enable-discreteaci	enable discrete rights in ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(dynamic,[    --enable-dynamic	enable linking built binaries with dynamic libs], no)dnl
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb2,[    --enable-bdb2	enable bdb2 backend], no)dnl
@@ -289,6 +290,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_aci=no
 	ol_enable_discreteaci=no
 	ol_enable_wrappers=no
+	ol_enable_dynamic=no
 
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
@@ -1605,6 +1607,13 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
+	LINK_BINS_DYNAMIC="yes"
+else
+	LINK_BINS_DYNAMIC="no"
+fi
+
+dnl ----------------------------------------------------------------
 if test $ol_enable_wrappers != no ; then
 	AC_CHECK_HEADERS(tcpd.h)
 
@@ -2133,6 +2142,7 @@ AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
 AC_SUBST(MOD_TCL_LIB)
+AC_SUBST(LINK_BINS_DYNAMIC)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
