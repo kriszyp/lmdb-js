@@ -105,4 +105,6 @@ main(int argc, char **argv)
 		exit(-1);
 	}
 	printf("  TIMELIMIT:         %d\n", ival);
+
+	exit(0);
 }
