@@ -1098,57 +1098,39 @@ uniqueMemberMatch(
 	struct berval valueDN = BER_BVNULL;
 	struct berval valueUID = BER_BVNULL;
 
-	if( asserted->bv_len != 0 ) {
+	if( !BER_BVISEMPTY( asserted ) ) {
 		assertedDN = *asserted;
 
-		if( assertedDN.bv_val[assertedDN.bv_len-1] == 'B'
-			&& assertedDN.bv_val[assertedDN.bv_len-2] == '\'' )
-		{
-			/* assume presence of optional UID */
-			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
-
-			if( assertedUID.bv_val == NULL ||
-				assertedUID.bv_val < assertedDN.bv_val ||
-				( assertedUID.bv_val > assertedDN.bv_val &&
-					assertedUID.bv_val[-1] == '\\' ))
-			{
-				return LDAP_INVALID_SYNTAX;
-			}
-
-			assertedUID.bv_len = assertedDN.bv_len -
-				(assertedUID.bv_val - assertedDN.bv_val);
-			assertedDN.bv_len -= assertedUID.bv_len;
-
-			/* trim the separator */
-			assertedUID.bv_len--;
+		assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
+		if ( !BER_BVISNULL( &assertedUID ) ) {
 			assertedUID.bv_val++;
+			assertedUID.bv_len = assertedDN.bv_len
+				- ( assertedUID.bv_val - assertedDN.bv_val );
+
+			if ( bitStringValidate( NULL, &assertedUID ) == LDAP_SUCCESS ) {
+				assertedDN.bv_len -= assertedUID.bv_len + 1;
+
+			} else {
+				BER_BVZERO( &assertedUID );
+			}
 		}
 	}
 
-	if( value->bv_len != 0 ) {
+	if ( !BER_BVISEMPTY( value ) ) {
 		valueDN = *value;
 
-		if( valueDN.bv_val[valueDN.bv_len-1] == 'B'
-			&& valueDN.bv_val[valueDN.bv_len-2] == '\'' )
-		{
-			/* assume presence of optional UID */
-			valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
-
-			if( valueUID.bv_val == NULL ||
-				valueUID.bv_val < valueDN.bv_val ||
-				( valueUID.bv_val > valueDN.bv_val &&
-					valueUID.bv_val[-1] == '\\' ) )
-			{
-				return LDAP_INVALID_SYNTAX;
-			}
-
-			valueUID.bv_len = valueDN.bv_len -
-				(valueUID.bv_val - valueDN.bv_val);
-			valueDN.bv_len -= valueUID.bv_len;
-
-			/* trim the separator */
-			valueUID.bv_len--;
+		valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
+		if ( !BER_BVISNULL( &valueUID ) ) {
 			valueUID.bv_val++;
+			valueUID.bv_len = valueDN.bv_len
+				- ( valueUID.bv_val - valueDN.bv_val );
+
+			if ( bitStringValidate( NULL, &valueUID ) == LDAP_SUCCESS ) {
+				valueDN.bv_len -= valueUID.bv_len + 1;
+
+			} else {
+				BER_BVZERO( &valueUID );
+			}
 		}
 	}
 
