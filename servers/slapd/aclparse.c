@@ -601,11 +601,14 @@ parse_acl(
 						break;
 
 					case ACL_STYLE_EXPAND:
+#if 0
+						/* FIXME: now it's legal... */
 						fprintf( stderr, "%s: line %d: "
 							"\"expand\" style used "
 							"in conjunction with "
 							"\"expand\" modifier (ignored)\n",
 							fname, lineno );
+#endif
 						break;
 
 					default:
@@ -1198,10 +1201,25 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "set" ) == 0 ) {
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+					switch ( sty ) {
+						/* deprecated */
+					case ACL_STYLE_REGEX:
+						fprintf( stderr, "%s: line %d: "
+							"deprecated set style "
+							"\"regex\" in <by> clause; "
+							"use \"expand\" instead\n",
+							fname, lineno );
+						sty = ACL_STYLE_EXPAND;
+						/* FALLTHRU */
+						
+					case ACL_STYLE_BASE:
+					case ACL_STYLE_EXPAND:
+						break;
+
+					default:
 						fprintf( stderr, "%s: line %d: "
 							"inappropriate style \"%s\" in by clause\n",
-						    fname, lineno, style );
+							fname, lineno, style );
 						acl_usage();
 					}
 

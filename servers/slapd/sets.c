@@ -21,7 +21,6 @@
 #include "slap.h"
 #include "sets.h"
 
-static BerVarray set_join (SetCookie *cp, BerVarray lset, int op, BerVarray rset);
 static BerVarray set_chase (SLAP_SET_GATHER gatherer,
 	SetCookie *cookie, BerVarray set, struct berval *attr, int closure);
 static int set_samedn (char *dn1, char *dn2);
@@ -45,8 +44,8 @@ slap_set_dispose (SetCookie *cp, BerVarray set)
 	ber_bvarray_free_x(set, cp->op->o_tmpmemctx);
 }
 
-static BerVarray
-set_join (SetCookie *cp, BerVarray lset, int op, BerVarray rset)
+BerVarray
+slap_set_join (SetCookie *cp, BerVarray lset, int op, BerVarray rset)
 {
 	BerVarray set;
 	long i, j, last;
@@ -156,7 +155,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 	for (i = 0; set[i].bv_val; i++) {
 		vals = (gatherer)(cp, &set[i], &bv);
 		if (vals != NULL)
-			nset = set_join(cp, nset, '|', vals);
+			nset = slap_set_join(cp, nset, '|', vals);
 	}
 	slap_set_dispose(cp, set);
 
@@ -164,7 +163,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 		for (i = 0; nset[i].bv_val; i++) {
 			vals = (gatherer)(cp, &nset[i], &bv);
 			if (vals != NULL) {
-				nset = set_join(cp, nset, '|', vals);
+				nset = slap_set_join(cp, nset, '|', vals);
 				if (nset == NULL)
 					break;
 			}
@@ -255,7 +254,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 				op = (long)SF_POP();
 				lset = SF_POP();
 				SF_POP();
-				set = set_join(cp, lset, op, set);
+				set = slap_set_join(cp, lset, op, set);
 				if (set == NULL)
 					SF_ERROR(memory);
 				SF_PUSH(set);
@@ -276,7 +275,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 			} else if (IS_OP(SF_TOP())) {
 				op = (long)SF_POP();
 				lset = SF_POP();
-				set = set_join(cp, lset, op, set);
+				set = slap_set_join(cp, lset, op, set);
 				if (set == NULL)
 					SF_ERROR(memory);
 				SF_PUSH(set);
@@ -290,10 +289,8 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 		case '[':
 			if ((SF_TOP() == (void *)'/') || IS_SET(SF_TOP()))
 				SF_ERROR(syntax);
-			for (	len = 0;
-					(c = *filter++) && (c != ']');
-					len++)
-			{ }
+			for ( len = 0; (c = *filter++) && (c != ']'); len++ )
+				;
 			if (c == 0)
 				SF_ERROR(syntax);
 			
@@ -365,8 +362,8 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 				SF_POP();
 				fb2.bv_val = filter;
 				fb2.bv_len = len;
-				set = set_chase(gatherer,
-					cp, SF_POP(), &fb2, c == '*');
+				set = set_chase( gatherer,
+					cp, SF_POP(), &fb2, c == '*' );
 				if (set == NULL)
 					SF_ERROR(memory);
 				if (c == '*')
@@ -387,7 +384,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 	} else if (IS_OP(SF_TOP())) {
 		op = (long)SF_POP();
 		lset = SF_POP();
-		set = set_join(cp, lset, op, set);
+		set = slap_set_join(cp, lset, op, set);
 		if (set == NULL)
 			SF_ERROR(memory);
 	} else {

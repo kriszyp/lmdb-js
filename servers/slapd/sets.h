@@ -40,6 +40,9 @@ LDAP_SLAPD_F (int) slap_set_filter(
 	SetCookie *cookie, struct berval *filter,
 	struct berval *user, struct berval *this, BerVarray *results);
 
+LDAP_SLAPD_F (BerVarray) slap_set_join(SetCookie *cp, BerVarray lset,
+	int op, BerVarray rset);
+	
 LDAP_END_DECL
 
 #endif
