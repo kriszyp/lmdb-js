@@ -243,5 +243,5 @@ main( int argc, char **argv )
 	slap_shutdown(dbnum);
 	slap_destroy();
 
-	return( 0 );
+	return( EXIT_SUCCESS );
 }

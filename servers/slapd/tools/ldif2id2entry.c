@@ -135,5 +135,5 @@ main( int argc, char **argv )
 
 	slap_destroy();
 
-	return( 0 );
+	return( EXIT_SUCCESS );
 }

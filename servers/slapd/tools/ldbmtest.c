@@ -368,7 +368,7 @@ main( int argc, char **argv )
 	slap_shutdown(-1);
 	slap_destroy();
 
-	return( 0 );
+	return( EXIT_SUCCESS );
 }
 
 static void

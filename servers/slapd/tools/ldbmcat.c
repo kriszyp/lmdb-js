@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
