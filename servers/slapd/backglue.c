@@ -138,6 +138,7 @@ glue_back_db_open (
 	glueOpened = 1;
 
 	gi->bd.be_acl = be->be_acl;
+	gi->bd.be_pending_csn_list = be->be_pending_csn_list;
 
 	if (gi->bd.bd_info->bi_db_open)
 		rc = gi->bd.bd_info->bi_db_open(&gi->bd);
@@ -284,6 +285,19 @@ glue_back_search ( Operation *op, SlapReply *rs )
 #ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
 #endif
+
+		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
+			op->o_bd = glue_back_select (b0, op->o_req_ndn.bv_val);
+
+			if (op->o_bd && op->o_bd->be_search) {
+				rs->sr_err = op->o_bd->be_search( op, rs );
+			} else {
+				send_ldap_error(op, rs, LDAP_UNWILLING_TO_PERFORM,
+					      "No search target found");
+			}
+			return rs->sr_err;
+		}
+
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
 		scope0 = op->ors_scope;

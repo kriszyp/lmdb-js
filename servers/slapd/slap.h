@@ -1415,6 +1415,8 @@ typedef struct syncinfo_s {
 		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
 } syncinfo_t;
 
+LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
+
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
@@ -1567,7 +1569,7 @@ struct slap_backend_db {
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
-	LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry )	be_pending_csn_list;
+	struct		be_pcl	*be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;

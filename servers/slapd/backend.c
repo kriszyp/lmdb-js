@@ -302,7 +302,9 @@ int backend_startup(Backend *be)
 	if(be != NULL) {
 		/* startup a specific backend database */
 
-		LDAP_TAILQ_INIT( &be->be_pending_csn_list );
+		be->be_pending_csn_list = (struct be_pcl *)
+								ch_calloc( 1, sizeof( struct be_pcl ));
+		LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
@@ -381,7 +383,9 @@ int backend_startup(Backend *be)
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
 
-		LDAP_TAILQ_INIT( &backendDB[i].be_pending_csn_list );
+		backendDB[i].be_pending_csn_list = (struct be_pcl *)
+								ch_calloc( 1, sizeof( struct be_pcl ));
+		LDAP_TAILQ_INIT( backendDB[i].be_pending_csn_list );
 
 		if ( backendDB[i].be_suffix == NULL ) {
 #ifdef NEW_LOGGING

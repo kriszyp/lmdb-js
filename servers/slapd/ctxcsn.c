@@ -41,14 +41,14 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
-	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			csne->ce_state = SLAP_CSN_COMMIT;
 			break;
 		}
 	}
 
-	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_state == SLAP_CSN_COMMIT ) committed_csne = csne;
 		if ( csne->ce_state == SLAP_CSN_PENDING ) break;
 	}
@@ -64,7 +64,7 @@ slap_rewind_commit_csn( Operation *op )
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
-	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			csne->ce_state = SLAP_CSN_PENDING;
 			break;
@@ -84,9 +84,9 @@ slap_graduate_commit_csn( Operation *op )
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
-	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, ce_csn_link ) {
+	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
-			LDAP_TAILQ_REMOVE( &op->o_bd->be_pending_csn_list,
+			LDAP_TAILQ_REMOVE( op->o_bd->be_pending_csn_list,
 				csne, ce_csn_link );
 			ch_free( csne->ce_csn->bv_val );
 			ch_free( csne->ce_csn );
@@ -166,7 +166,7 @@ slap_get_csn(
 		pending->ce_connid = op->o_connid;
 		pending->ce_opid = op->o_opid;
 		pending->ce_state = SLAP_CSN_PENDING;
-		LDAP_TAILQ_INSERT_TAIL( &op->o_bd->be_pending_csn_list,
+		LDAP_TAILQ_INSERT_TAIL( op->o_bd->be_pending_csn_list,
 			pending, ce_csn_link );
 		ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 	}
