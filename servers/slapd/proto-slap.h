@@ -951,6 +951,7 @@ LDAP_SLAPD_F (void) sl_free LDAP_P(( void *, void *ctx ));
 LDAP_SLAPD_F (void *) sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void *) sl_mark LDAP_P(( void *ctx ));
 LDAP_SLAPD_F (void) sl_release LDAP_P(( void *, void *ctx ));
+LDAP_SLAPD_F (void *) sl_context LDAP_P(( void *ptr ));
 
 /*
  * starttls.c

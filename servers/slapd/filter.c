@@ -602,8 +602,8 @@ filter_free( Filter *f )
 {
 	Operation op;
 
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
+	op.o_tmpmemctx = sl_context( f );
+	op.o_tmpmfuncs = &sl_mfuncs;
 	filter_free_x( &op, f );
 }
 

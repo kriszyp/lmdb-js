@@ -45,7 +45,6 @@ do_search(
 	int			manageDSAit;
 #ifdef LDAP_SLAPI
 	char		**attrs = NULL;
-	Operation	ch_op;
 #endif
 
 #ifdef NEW_LOGGING
@@ -136,20 +135,7 @@ do_search(
 #endif
 
 	/* filter - returns a "normalized" version */
-#ifdef LDAP_SLAPI
-	/*
-	 * SLAPI computed search rewriter plugins can reset the search
-	 * filter, and because they have no way to specify the use of
-	 * the thread-local malloc replacement, we must always use
-	 * ch_malloc() to allocate the filter when SLAPI is enabled.
-	 */
-	ch_op = *op; /* struct copy */
-	ch_op.o_tmpmemctx = NULL;
-	ch_op.o_tmpmfuncs = &ch_mfuncs;
-	rs->sr_err = get_filter( &ch_op, op->o_ber, &op->ors_filter, &rs->sr_text );
-#else
 	rs->sr_err = get_filter( op, op->o_ber, &op->ors_filter, &rs->sr_text );
-#endif /* LDAP_SLAPI */
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
@@ -410,11 +396,7 @@ return_results:;
 	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-#ifdef LDAP_SLAPI
-	if( op->ors_filter != NULL) filter_free( op->ors_filter );
-#else
 	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
-#endif
 	if( op->ors_attrs != NULL ) op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
 #ifdef LDAP_SLAPI
 	if( attrs != NULL) op->o_tmpfree( attrs, op->o_tmpmemctx );

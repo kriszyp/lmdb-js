@@ -26,8 +26,8 @@ sl_mem_destroy(
 {
 	struct slab_heap *sh = data;
 
-	ch_free(sh->h_base);
-	ch_free(sh);
+	ber_memfree_x(sh->h_base, NULL);
+	ber_memfree_x(sh, NULL);
 }
 
 BER_MEMALLOC_FN sl_malloc;
@@ -130,18 +130,42 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 
 	/* Not our memory? */
 	if ( !sh || ptr < sh->h_base || ptr >= sh->h_end ) {
-		return ch_realloc( ptr, size );
+		/* duplicate of ch_realloc behavior, oh well */
+		new = ber_memrealloc_x( ptr, size, NULL );
+		if (new ) {
+			return new;
+		}
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, 
+			   "ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
+			(long) size, 0, 0 );
+#endif
+		assert( 0 );
+		exit( EXIT_FAILURE );
 	}
 
-	if ( size == 0 ) return NULL;
+	if ( size == 0 ) {
+		sl_free( ptr, ctx );
+		return NULL;
+	}
 
 	/* round up to doubleword boundary */
 	size += pad + sizeof( ber_len_t );
 	size &= ~pad;
 
-	/* Never shrink blocks, always alloc if growth needed */
+	/* Never shrink blocks */
 	if (size <= p[-1]) {
 		new = p;
+	
+	/* If reallocing the last block, we can grow it */
+	} else if ( (char *)ptr + p[-1] == sh->h_last ) {
+		new = p;
+		sh->h_last += size - p[-1];
+		p[-1] = size;
+	
+	/* Nowhere to grow, need to alloc and copy */
 	} else {
 		new = sl_malloc( size, ctx );
 		AC_MEMCPY( new, ptr, p[-1] );
@@ -153,9 +177,13 @@ void
 sl_free( void *ptr, void *ctx )
 {
 	struct slab_heap *sh = ctx;
+	ber_len_t *p = (ber_len_t *)ptr;
 
 	if ( !sh || ptr < sh->h_base || ptr >= sh->h_end ) {
-		ch_free( ptr );
+		ber_memfree_x( ptr, NULL );
+	} else if ( (char *)ptr + p[-1] == sh->h_last ) {
+		p--;
+		sh->h_last = p;
 	}
 }
 
@@ -178,4 +206,20 @@ sl_mark( void *ctx )
 	if (sh) ret = sh->h_last;
 
 	return ret;
+}
+
+void *
+sl_context( void *ptr )
+{
+	struct slab_heap *sh = NULL;
+	void *ctx;
+
+	ctx = ldap_pvt_thread_pool_context();
+
+	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
+
+	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
+		return sh;
+	}
+	return NULL;
 }

@@ -53,7 +53,7 @@ ch_realloc(
     ber_len_t	size
 )
 {
-	void	*new;
+	void	*new, *ctx;
 
 	if ( block == NULL ) {
 		return( ch_malloc( size ) );
@@ -61,6 +61,11 @@ ch_realloc(
 
 	if( size == 0 ) {
 		ch_free( block );
+	}
+
+	ctx = sl_context( block );
+	if ( ctx ) {
+		return sl_realloc( block, size, ctx );
 	}
 
 	if ( (new = (void *) ber_memrealloc_x( block, size, NULL )) == NULL ) {
@@ -126,6 +131,13 @@ ch_strdup(
 void
 ch_free( void *ptr )
 {
-	ber_memfree_x( ptr, NULL );
+	void *ctx;
+
+	ctx = sl_context( ptr );
+	if (ctx) {
+		sl_free( ptr, ctx );
+	} else {
+		ber_memfree_x( ptr, NULL );
+	}
 }
 
