@@ -97,7 +97,7 @@ LTFLAGS_MOD = $(@PLAT@_LTFLAGS_MOD)
 
 # platform-specific LINK_LIBS defined in various Makefile.in files.
 # LINK_LIBS referenced in library and module link commands.
-LINK_LIBS = $(@PLAT@_LINK_LIBS)
+LINK_LIBS = $(MOD_LIBS) $(@PLAT@_LINK_LIBS)
 
 LTSTATIC = @LTSTATIC@
 

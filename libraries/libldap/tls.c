@@ -880,7 +880,8 @@ tls_get_cert( SSL *s )
 }
 
 int
-ldap_pvt_tls_get_peer_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
+ldap_pvt_tls_get_peer_dn( void *s, struct berval *dn,
+	LDAPDN_rewrite_dummy *func, unsigned flags )
 {
 	X509 *x;
 	X509_NAME *xn;
