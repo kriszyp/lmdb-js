@@ -25,7 +25,6 @@
 #include "ldbm.h"
 #include "ldap_pvt_thread.h"
 
-
 void
 ldbm_datum_free( LDBM ldbm, Datum data )
 {
@@ -59,38 +58,21 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 
 static int ldbm_initialized = 0;
 
-#ifndef HAVE_BERKELEY_DB2_DB_THREAD
-/* Only DB2 with DB_THREAD is thread-free */
+#if defined( HAVE_BERKELEY_DB2_DB_THREAD ) || defined( HAVE_BERKELEY_DB3_DB_THREAD )
+#define LDBM_LOCK	((void)0)
+#define LDBM_UNLOCK	((void)0)
+#else
+
+/* Only DB2 or DB3 with DB_THREAD is thread-free */
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
 #define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
-#else
-#define LDBM_LOCK	((void)0)
-#define LDBM_UNLOCK	((void)0)
 #endif
 
-#ifndef HAVE_BERKELEY_DB2
 
-int ldbm_initialize( void )
-{
-	if(ldbm_initialized++) return 1;
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
-
-	return 0;
-}
-
-int ldbm_shutdown( void )
-{
-	if( !ldbm_initialized ) return 1;
-
-	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
-
-	return 0;
-}
-
-#else
 
 void *
 ldbm_malloc( size_t size )
@@ -128,20 +110,26 @@ int ldbm_initialize( void )
 	ldbm_Env->db_errpfx    = "==>";
 
 	envFlags = DB_CREATE
-#ifdef HAVE_BERKELEY_DB2_DB_THREAD
+#if defined( HAVE_BERKELEY_DB2_DB_THREAD ) || defined( HAVE_BERKELEY_DB3_DB_THREAD )
 		| DB_THREAD
 #endif
-		;
+	;
 
-	if ( ( err = db_appinit( NULL, NULL, ldbm_Env, envFlags )) ) {
-		char  error[BUFSIZ];
+        if (
+#if defined( HAVE_BERKELEY_DB2 )
+            ( err = db_appinit( NULL, NULL, ldbm_Env, envFlags ))
+#elif defined( HAVE_BERKELEY_DB3 )
+            ( err = db_env_create( &ldbm_Env, 0))
+#endif
+            )
+            {
+		char error[BUFSIZ];
 
 		if ( err < 0 ) {
 			sprintf( error, "%ld\n", (long) err );
 		} else {
 			sprintf( error, "%s\n", strerror( err ));
 		}
-
 #ifdef LDAP_SYSLOG
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
@@ -149,6 +137,26 @@ int ldbm_initialize( void )
 #endif
 	 	return( 1 );
 	}
+#if defined( HAVE_BERKELEY_DB3 )
+        envFlags |= DB_INIT_MPOOL;
+        err = ldbm_Env->open( ldbm_Env, NULL, NULL, envFlags, 0 );
+        if ( err != 0 )
+        {
+            char error[BUFSIZ];
+
+            if ( err < 0 ) {
+                sprintf( error, "%ld\n", (long) err );
+            } else {
+                sprintf( error, "%s\n", strerror( err ));
+            }
+#ifdef LDAP_SYSLOG
+            syslog( LOG_INFO,
+                    "ldbm_initialize(): FATAL error in db_appinit() : %s\n",
+                    error );
+#endif
+            return( 1 );
+	}
+#endif
 
 	return 0;
 }
@@ -157,7 +165,31 @@ int ldbm_shutdown( void )
 {
 	if( !ldbm_initialized ) return 1;
 
+# ifdef HAVE_BERKELEY_DB3
+        ldbm_Env->close( ldbm_Env, 0 );
+#else
 	db_appexit( ldbm_Env );
+#endif
+
+	return 0;
+}
+
+#else
+
+int ldbm_initialize( void )
+{
+	if(ldbm_initialized++) return 1;
+
+	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+
+	return 0;
+}
+
+int ldbm_shutdown( void )
+{
+	if( !ldbm_initialized ) return 1;
+
+	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
 
 	return 0;
 }
@@ -177,7 +209,42 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		ret = NULL;
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB3 )
+       int err;
+       LDBM_LOCK;
+       err = db_create( &ret, ldbm_Env, 0 );
+       if ( err != 0 )
+       {
+           char error[BUFSIZ];
+
+           if ( err < 0 ) {
+               sprintf( error, "%ld\n", (long) err );
+           } else {
+               sprintf( error, "%s\n", strerror( err ));
+           }
+           (void)ret->close(ret, 0);
+           return NULL;
+       }
+
+       ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
+       ret->set_malloc( ret, ldbm_malloc );
+       ret->set_cachesize( ret, 0, dbcachesize, 0 );
+       err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
+       LDBM_UNLOCK;
+       if ( err != 0 )
+       {
+           char error[BUFSIZ];
+
+           if ( err < 0 ) {
+               sprintf( error, "%ld\n", (long) err );
+           } else {
+               sprintf( error, "%s\n", strerror( err ));
+           }
+           (void)ret->close(ret, 0);
+           return NULL;
+       }
+ 
+#elif defined( HAVE_BERKELEY_DB2 )
 	DB_INFO dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
@@ -231,7 +298,9 @@ void
 ldbm_close( LDBM ldbm )
 {
 	LDBM_LOCK;
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB3 )
+        ldbm->close( ldbm, 0 );
+#elif defined( HAVE_BERKELEY_DB2 )
 	(*ldbm->close)( ldbm, 0 );
 #else
 	(*ldbm->close)( ldbm );
@@ -254,8 +323,15 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	int	rc;
 
 	LDBM_LOCK;
+#if defined( HAVE_BERKELEY_DB3 )
+        ldbm_datum_init( data );
 
-#ifdef HAVE_BERKELEY_DB2
+        data.flags = DB_DBT_MALLOC;
+
+        if ( (rc = ldbm->get( ldbm, NULL, &key, &data, 0 )) != 0 ) {
+            ldbm_datum_free( ldbm, data );
+
+#elif defined( HAVE_BERKELEY_DB2 )
 	ldbm_datum_init( data );
 
 	data.flags = DB_DBT_MALLOC;
@@ -285,7 +361,21 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 
 	LDBM_LOCK;
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB3 )
+        rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
+       if ( rc != 0 )
+       {
+           char error[BUFSIZ];
+
+           if ( rc < 0 ) {
+               sprintf( error, "%ld\n", (long) rc );
+           } else {
+               sprintf( error, "%s\n", strerror( rc ));
+           }
+       }
+        rc = (-1) * rc;
+
+#elif defined( HAVE_BERKELEY_DB2 )
 	rc = (*ldbm->put)( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
 	rc = (-1 ) * rc;
 #else
@@ -307,7 +397,10 @@ ldbm_delete( LDBM ldbm, Datum key )
 
 	LDBM_LOCK;
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB3 )
+	rc = ldbm->del( ldbm, NULL, &key, 0 );
+	rc = (-1 ) * rc;
+#elif defined( HAVE_BERKELEY_DB2 )
 	rc = (*ldbm->del)( ldbm, NULL, &key, 0 );
 	rc = (-1 ) * rc;
 #else
@@ -325,7 +418,7 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 {
 	Datum	key, data;
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 	LDBMCursor  *dbci;
 
 	ldbm_datum_init( key );
@@ -336,11 +429,12 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 	LDBM_LOCK;
 
 	/* acquire a cursor for the DB */
+# if defined( HAVE_BERKELEY_DB3 )
+        if ( ldbm->cursor( ldbm, NULL, &dbci, 0 ) )
+# elif defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
+    (DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6)
 
-#  if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
-    DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6
-
-	if ( (*ldbm->cursor)( ldbm, NULL, &dbci )) 
+	if ( (*ldbm->cursor)( ldbm, NULL, &dbci ))
 
 #  else
 	if ( (*ldbm->cursor)( ldbm, NULL, &dbci, 0 ))
@@ -368,7 +462,7 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 		key.dsize = 0;
 	}
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 	}
 #endif
 
@@ -382,7 +476,7 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum	data;
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 	ldbm_datum_init( data );
 
 	ldbm_datum_free( ldbm, key );
@@ -418,6 +512,12 @@ ldbm_errno( LDBM ldbm )
 {
 	return( errno );
 }
+
+/******************************************************************
+ *                                                                *
+ *         END Berkeley section                                   *
+ *                                                                *
+ ******************************************************************/
 
 #elif defined( HAVE_GDBM )
 

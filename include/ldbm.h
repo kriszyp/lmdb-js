@@ -35,7 +35,7 @@
 #	else
 #		include <db.h>
 #	endif
-#	ifdef HAVE_BERKELEY_DB2
+#	if defined( HAVE_BERKELEY_DB2 ) || ( HAVE_BERKELEY_DB3 )
 #		define R_NOOVERWRITE DB_NOOVERWRITE
 #		ifndef DEFAULT_DB_PAGE_SIZE
 #			define DEFAULT_DB_PAGE_SIZE 4096
@@ -54,12 +54,12 @@ typedef DB	*LDBM;
 
 
 /* for ldbm_open */
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 typedef DBC	LDBMCursor;
 
 #	define LDBM_READER	DB_RDONLY
 #	define LDBM_WRITER	0x00000      /* hopefully */
-# ifdef HAVE_BERKELEY_DB2_DB_THREAD
+# if defined( HAVE_BERKELEY_DB2_DB_THREAD ) || defined( HAVE_BERKELEY_DB3_DB_THREAD )
 #	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
 #	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
 # else
@@ -246,7 +246,7 @@ LIBLDBM_F (Datum) ldbm_firstkey( LDBM ldbm, LDBMCursor **cursor );
 LIBLDBM_F (Datum) ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
 
 /* initialization of Datum structures */
-#ifdef HAVE_BERKELEY_DB2
+#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
 	LIBLDBM_F (void *) ldbm_malloc( size_t size );
 #   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
 #else
