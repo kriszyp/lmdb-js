@@ -446,11 +446,9 @@ va_dcl
 
 	fmt_reset = fmt;
 
-	if ( ber->ber_debug ) {
-		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
-			"ber_scanf fmt (%s) ber:\n", fmt );
-		ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
-	}
+	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+		"ber_scanf fmt (%s) ber:\n", fmt );
+	ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
 		/* When this is modified, remember to update
@@ -670,7 +668,7 @@ va_dcl
 
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
-			if ( bval->bv_val ) {
+			if ( bval->bv_val != NULL ) {
 				free( bval->bv_val );
 				bval->bv_val = NULL;
 			}

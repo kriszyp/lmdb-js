@@ -84,34 +84,60 @@ ldap_ld_free(
 	}
 
 #ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL )
+	if ( ld->ld_cache != NULL ) {
 		ldap_destroy_cache( ld );
+		ld->ld_cache = NULL;
+	}
 #endif /* !LDAP_NOCACHE */
-	if ( ld->ld_error != NULL )
+
+	if ( ld->ld_error != NULL ) {
 		free( ld->ld_error );
-	if ( ld->ld_matched != NULL )
+		ld->ld_error = NULL;
+	}
+
+	if ( ld->ld_matched != NULL ) {
 		free( ld->ld_matched );
-	if ( ld->ld_host != NULL )
+		ld->ld_matched = NULL;
+	}
+
+	if ( ld->ld_host != NULL ) {
 		free( ld->ld_host );
-	if ( ld->ld_ufnprefix != NULL )
+		ld->ld_host = NULL;
+	}
+
+	if ( ld->ld_ufnprefix != NULL ) {
 		free( ld->ld_ufnprefix );
-	if ( ld->ld_filtd != NULL )
+		ld->ld_ufnprefix = NULL;
+	}
+
+	if ( ld->ld_filtd != NULL ) {
 		ldap_getfilter_free( ld->ld_filtd );
-	if ( ld->ld_abandoned != NULL )
+		ld->ld_filtd = NULL;
+	}
+
+	if ( ld->ld_abandoned != NULL ) {
 		free( ld->ld_abandoned );
+		ld->ld_abandoned = NULL;
+	}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	if ( ld->ld_selectinfo != NULL )
+	if ( ld->ld_selectinfo != NULL ) {
 		ldap_free_select_info( ld->ld_selectinfo );
+		ld->ld_selectinfo = NULL;
+	}
 #else
 	ber_clear( &(ld->ld_ber), 1 );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
-	if ( ld->ld_options.ldo_defbase != NULL )
+	if ( ld->ld_options.ldo_defbase != NULL ) {
 		free( ld->ld_options.ldo_defbase );
+		ld->ld_options.ldo_defbase = NULL;
+	}
 
-	if ( ld->ld_options.ldo_defhost != NULL )
+	if ( ld->ld_options.ldo_defhost != NULL ) {
 		free( ld->ld_options.ldo_defhost );
+		ld->ld_options.ldo_defhost = NULL;
+	}
 
 	ber_pvt_sb_destroy( &(ld->ld_sb) );   
    
