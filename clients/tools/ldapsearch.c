@@ -108,7 +108,7 @@ usage( void )
 #endif
 	fprintf( stderr, _("             [!]mv=<filter>              (matched values filter)\n"));
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	fprintf( stderr, _("             [!]pr=<size>[/true|false]   (paged results/prompt)\n"));
+	fprintf( stderr, _("             [!]pr=<size>[/prompt|noprompt]   (paged results/prompt)\n"));
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
@@ -310,9 +310,9 @@ handle_private_option( int i )
 				promptp = strchr( cvalue, '/' );
 				if ( promptp != NULL ) {
 					*promptp++ = '\0';
-					if ( strcasecmp( promptp, "true" ) == 0 ) {
+					if ( strcasecmp( promptp, "prompt" ) == 0 ) {
 						pagePrompt = 1;
-					} else if ( strcasecmp( promptp, "false" ) == 0) {
+					} else if ( strcasecmp( promptp, "noprompt" ) == 0) {
 						pagePrompt = 0;
 					} else {
 						fprintf( stderr, _("Invalid value for PagedResultsControl, %s/%s.\n"), cvalue, promptp);
