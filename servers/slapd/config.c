@@ -1338,14 +1338,14 @@ int
 config_tls_option(ConfigArgs *c) {
 	int flag;
 	switch(c->type) {
-		CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
-		CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
-		CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
-		CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
-		CFG_TLS_CERT_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
-		CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
+	case CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
+	case CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
+	case CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
+	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
+	case CFG_TLS_CERT_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
+	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
 #ifdef HAVE_OPENSSL_CRL
-		CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
+	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
 #endif
 		default:		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 						"unknown tls_option <%x>\n",
