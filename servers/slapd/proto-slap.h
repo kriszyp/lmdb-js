@@ -372,6 +372,7 @@ LDAP_SLAPD_F (int) allComponentsValidate LDAP_P((
 /*
  * controls.c
  */
+LDAP_SLAPD_V( struct slap_control_ids ) slap_cids;
 LDAP_SLAPD_F (void) slap_free_ctrls LDAP_P((
 	Operation *op,
 	LDAPControl **ctrls ));
@@ -383,7 +384,8 @@ LDAP_SLAPD_F (int) register_supported_control LDAP_P((
 	const char *controloid,
 	slap_mask_t controlmask,
 	char **controlexops,
-	SLAP_CTRL_PARSE_FN *controlparsefn ));
+	SLAP_CTRL_PARSE_FN *controlparsefn,
+	int *controlcid ));
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));

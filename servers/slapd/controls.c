@@ -48,9 +48,14 @@ static SLAP_CTRL_PARSE_FN parseLDAPsync;
 const struct berval slap_pre_read_bv = BER_BVC(LDAP_CONTROL_PRE_READ);
 const struct berval slap_post_read_bv = BER_BVC(LDAP_CONTROL_POST_READ);
 
+struct slap_control_ids slap_cids;
+
 struct slap_control {
 	/* Control OID */
 	char *sc_oid;
+
+	/* The controlID for this control */
+	int sc_cid;
 
 	/* Operations supported by control */
 	slap_mask_t sc_mask;
@@ -71,6 +76,7 @@ static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
  * all known request control OIDs should be added to this list
  */
 char **slap_known_controls = NULL;
+static int num_known_controls;
 
 static char *proxy_authz_extops[] = {
 	LDAP_EXOP_MODIFY_PASSWD,
@@ -79,64 +85,79 @@ static char *proxy_authz_extops[] = {
 };
 
 static struct slap_control control_defs[] = {
-	{ LDAP_CONTROL_ASSERT,
+	{  LDAP_CONTROL_ASSERT,
+ 		(int)offsetof(struct slap_control_ids, sc_assert),
 		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
 		parseAssert, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PRE_READ,
+ 		(int)offsetof(struct slap_control_ids, sc_preRead),
 		SLAP_CTRL_HIDE|SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
 		parsePreRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_POST_READ,
+ 		(int)offsetof(struct slap_control_ids, sc_postRead),
 		SLAP_CTRL_HIDE|SLAP_CTRL_ADD|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
 		parsePostRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
+ 		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PAGEDRESULTS,
+ 		(int)offsetof(struct slap_control_ids, sc_pagedResults),
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
+ 		(int)offsetof(struct slap_control_ids, sc_domainScope),
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
+ 		(int)offsetof(struct slap_control_ids, sc_permissiveModify),
 		SLAP_CTRL_MODIFY, NULL,
 		parsePermissiveModify, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_X_TREE_DELETE
 	{ LDAP_CONTROL_X_TREE_DELETE,
+ 		(int)offsetof(struct slap_control_ids, sc_treeDelete),
 		SLAP_CTRL_DELETE, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
 	{ LDAP_CONTORL_X_SEARCH_OPTIONS,
+ 		(int)offsetof(struct slap_control_ids, sc_searchOptions),
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
+ 		(int)offsetof(struct slap_control_ids, sc_subentries),
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_NOOP,
+ 		(int)offsetof(struct slap_control_ids, sc_noOp),
 		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_SYNC,
+ 		(int)offsetof(struct slap_control_ids, sc_LDAPsync),
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		parseLDAPsync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_CONTROL_MODIFY_INCREMENT
 	{ LDAP_CONTROL_MODIFY_INCREMENT,
+ 		(int)offsetof(struct slap_control_ids, sc_modifyIncrement),
 		SLAP_CTRL_HIDE|SLAP_CTRL_MODIFY, NULL,
 		parseModifyIncrement, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
+ 		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
 		SLAP_CTRL_ACCESS, NULL,
 		parseManageDSAit, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PROXY_AUTHZ,
+ 		(int)offsetof(struct slap_control_ids, sc_proxyAuthz),
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
 		parseProxyAuthz, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-	{ NULL, 0, NULL, 0, LDAP_SLIST_ENTRY_INITIALIZER(next) }
+	{ NULL, 0, 0, NULL, 0, LDAP_SLIST_ENTRY_INITIALIZER(next) }
 };
 
 /*
@@ -149,10 +170,10 @@ int
 register_supported_control(const char *controloid,
 	slap_mask_t controlmask,
 	char **controlexops,
-	SLAP_CTRL_PARSE_FN *controlparsefn)
+	SLAP_CTRL_PARSE_FN *controlparsefn,
+	int *controlcid)
 {
 	struct slap_control *sc;
-	int i;
 
 	if ( controloid == NULL ) return LDAP_PARAM_ERROR;
 
@@ -182,18 +203,12 @@ register_supported_control(const char *controloid,
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
-		slap_known_controls[0] = ch_strdup( sc->sc_oid );
-		slap_known_controls[1] = NULL;
 
 	} else {
 		char **new_known_controls;
 
-		for ( i = 0; slap_known_controls[i] != NULL; i++ ) {
-			/* EMPTY */ ;
-		}
-
 		new_known_controls = (char **)SLAP_REALLOC(
-			slap_known_controls, (i + 2) * sizeof(char *) );
+			slap_known_controls, (num_known_controls + 2) * sizeof(char *) );
 
 		if ( new_known_controls == NULL ) {
 			if ( sc->sc_extendedops != NULL ) {
@@ -203,9 +218,11 @@ register_supported_control(const char *controloid,
 			return LDAP_NO_MEMORY;
 		}
 		slap_known_controls = new_known_controls;
-		slap_known_controls[i++] = ch_strdup( sc->sc_oid );
-		slap_known_controls[i] = NULL;
 	}
+	if ( controlcid ) *controlcid = num_known_controls;
+	sc->sc_cid = num_known_controls;
+	slap_known_controls[num_known_controls++] = ch_strdup( sc->sc_oid );
+	slap_known_controls[num_known_controls] = NULL;
 
 	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &controls_list, sc, sc_next );
@@ -224,9 +241,10 @@ slap_controls_init( void )
 	rc = LDAP_SUCCESS;
 
 	for ( i = 0; control_defs[i].sc_oid != NULL; i++ ) {
+		int *cid = (int *)(((char *)&slap_cids) + control_defs[i].sc_cid );
 		rc = register_supported_control( control_defs[i].sc_oid,
 			control_defs[i].sc_mask, control_defs[i].sc_extendedops,
-			control_defs[i].sc_parse );
+			control_defs[i].sc_parse, cid );
 		if ( rc != LDAP_SUCCESS ) break;
 	}
 
@@ -636,7 +654,7 @@ static int parseModifyIncrement (
 	LDAPControl *ctrl )
 {
 #if 0
-	if ( op->o_modifyIncrement != SLAP_NO_CONTROL ) {
+	if ( op->o_modifyIncrement != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "modifyIncrement control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -649,8 +667,8 @@ static int parseModifyIncrement (
 
 #if 0
 	op->o_modifyIncrement = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 #endif
 
 	return LDAP_SUCCESS;
@@ -661,7 +679,7 @@ static int parseManageDSAit (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_managedsait != SLAP_NO_CONTROL ) {
+	if ( op->o_managedsait != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "manageDSAit control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -672,8 +690,8 @@ static int parseManageDSAit (
 	}
 
 	op->o_managedsait = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -686,14 +704,14 @@ static int parseProxyAuthz (
 	int		rc;
 	struct berval	dn = BER_BVNULL;
 
-	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
+	if ( op->o_proxy_authz != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "proxy authorization control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	op->o_proxy_authz = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	Debug( LDAP_DEBUG_ARGS,
 		"parseProxyAuthz: conn %lu authzid=\"%s\"\n", 
@@ -766,7 +784,7 @@ static int parseNoOp (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_noop != SLAP_NO_CONTROL ) {
+	if ( op->o_noop != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "noop control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -777,8 +795,8 @@ static int parseNoOp (
 	}
 
 	op->o_noop = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -793,13 +811,14 @@ static int parsePagedResults (
 	ber_int_t	size;
 	BerElement	*ber;
 	struct berval	cookie = BER_BVNULL;
+	PagedResultsState	*ps;
 
-	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
+	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "paged results control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( op->o_sync != SLAP_NO_CONTROL ) {
+	if ( op->o_sync != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "paged results control specified with sync control";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -879,7 +898,10 @@ static int parsePagedResults (
 	}
 #endif
 
-	op->o_pagedresults_size = size;
+	ps = op->o_tmpalloc( sizeof(PagedResultsState), op->o_tmpmemctx );
+	*ps = op->o_conn->c_pagedresults_state;
+	ps->ps_size = size;
+	op->o_pagedresults_state = ps;
 
 	/* NOTE: according to RFC 2696 3.:
 
@@ -892,13 +914,13 @@ static int parsePagedResults (
 	 */
 		
 	if ( op->ors_slimit > 0 && size >= op->ors_slimit ) {
-		op->o_pagedresults = SLAP_IGNORED_CONTROL;
+		op->o_pagedresults = SLAP_CONTROL_IGNORED;
 
 	} else if ( ctrl->ldctl_iscritical ) {
-		op->o_pagedresults = SLAP_CRITICAL_CONTROL;
+		op->o_pagedresults = SLAP_CONTROL_CRITICAL;
 
 	} else {
-		op->o_pagedresults = SLAP_NONCRITICAL_CONTROL;
+		op->o_pagedresults = SLAP_CONTROL_NONCRITICAL;
 	}
 
 done:;
@@ -915,7 +937,7 @@ static int parseAssert (
 	struct berval	fstr = BER_BVNULL;
 	const char *err_msg = "";
 
-	if ( op->o_assert != SLAP_NO_CONTROL ) {
+	if ( op->o_assert != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "assert control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -931,7 +953,7 @@ static int parseAssert (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_filter( op, ber, &(op->o_assertion), &rs->sr_text);
+	rs->sr_err = get_filter( op, ber, (Filter **)&(op->o_assertion), &rs->sr_text);
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -956,8 +978,8 @@ static int parseAssert (
 #endif
 
 	op->o_assert = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	rs->sr_err = LDAP_SUCCESS;
 	return LDAP_SUCCESS;
@@ -972,7 +994,7 @@ static int parsePreRead (
 	AttributeName *an = NULL;
 	BerElement	*ber;
 
-	if ( op->o_preread != SLAP_NO_CONTROL ) {
+	if ( op->o_preread != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "preread control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1010,8 +1032,8 @@ static int parsePreRead (
 	}
 
 	op->o_preread = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	op->o_preread_attrs = an;
 
@@ -1028,7 +1050,7 @@ static int parsePostRead (
 	AttributeName *an = NULL;
 	BerElement	*ber;
 
-	if ( op->o_postread != SLAP_NO_CONTROL ) {
+	if ( op->o_postread != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "postread control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1066,8 +1088,8 @@ static int parsePostRead (
 	}
 
 	op->o_postread = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	op->o_postread_attrs = an;
 
@@ -1084,7 +1106,7 @@ int parseValuesReturnFilter (
 	struct berval	fstr = BER_BVNULL;
 	const char *err_msg = "";
 
-	if ( op->o_valuesreturnfilter != SLAP_NO_CONTROL ) {
+	if ( op->o_valuesreturnfilter != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "valuesReturnFilter control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1100,7 +1122,7 @@ int parseValuesReturnFilter (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_vrFilter( op, ber, &(op->o_vrFilter), &rs->sr_text);
+	rs->sr_err = get_vrFilter( op, ber, (ValuesReturnFilter **)&(op->o_vrFilter), &rs->sr_text);
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -1123,8 +1145,8 @@ int parseValuesReturnFilter (
 #endif
 
 	op->o_valuesreturnfilter = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	rs->sr_err = LDAP_SUCCESS;
 	return LDAP_SUCCESS;
@@ -1136,7 +1158,7 @@ static int parseSubentries (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_subentries != SLAP_NO_CONTROL ) {
+	if ( op->o_subentries != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "subentries control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1151,10 +1173,11 @@ static int parseSubentries (
 	}
 
 	op->o_subentries = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
-	op->o_subentries_visibility = (ctrl->ldctl_value.bv_val[2] != 0x00);
+	if ( (void *)(ctrl->ldctl_value.bv_val[2] != 0x00))
+		set_subentries_visibility( op );
 
 	return LDAP_SUCCESS;
 }
@@ -1166,7 +1189,7 @@ static int parsePermissiveModify (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_permissive_modify != SLAP_NO_CONTROL ) {
+	if ( op->o_permissive_modify != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "permissiveModify control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1177,8 +1200,8 @@ static int parsePermissiveModify (
 	}
 
 	op->o_permissive_modify = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -1190,7 +1213,7 @@ static int parseDomainScope (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
+	if ( op->o_domain_scope != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "domainScope control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1201,8 +1224,8 @@ static int parseDomainScope (
 	}
 
 	op->o_domain_scope = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -1214,7 +1237,7 @@ static int parseTreeDelete (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_tree_delete != SLAP_NO_CONTROL ) {
+	if ( op->o_tree_delete != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "treeDelete control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1225,8 +1248,8 @@ static int parseTreeDelete (
 	}
 
 	op->o_tree_delete = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -1260,15 +1283,15 @@ static int parseSearchOptions (
 	(void) ber_free( ber, 1 );
 
 	if ( search_flags & LDAP_SEARCH_FLAG_DOMAIN_SCOPE ) {
-		if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
+		if ( op->o_domain_scope != SLAP_CONTROL_NONE ) {
 			rs->sr_text = "searchOptions control specified multiple times "
 				"or with domainScope control";
 			return LDAP_PROTOCOL_ERROR;
 		}
 
 		op->o_domain_scope = ctrl->ldctl_iscritical
-			? SLAP_CRITICAL_CONTROL
-			: SLAP_NONCRITICAL_CONTROL;
+			? SLAP_CONTROL_CRITICAL
+			: SLAP_CONTROL_NONCRITICAL;
 	}
 
 	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
@@ -1292,12 +1315,12 @@ static int parseLDAPsync (
 	ber_len_t len;
 	struct slap_session_entry *se;
 
-	if ( op->o_sync != SLAP_NO_CONTROL ) {
+	if ( op->o_sync != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "Sync control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
+	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "Sync control specified with pagedResults control";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1370,8 +1393,8 @@ static int parseLDAPsync (
 	op->o_sync_mode = (char) mode;
 
 	op->o_sync = ctrl->ldctl_iscritical
-		? SLAP_CRITICAL_CONTROL
-		: SLAP_NONCRITICAL_CONTROL;
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }

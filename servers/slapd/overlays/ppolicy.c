@@ -62,6 +62,7 @@ typedef struct pw_conn {
 } pw_conn;
 
 static pw_conn *pwcons;
+static int ppolicy_cid;
 
 typedef struct pass_policy {
 	AttributeDescription *ad; /* attribute to which the policy applies */
@@ -1000,13 +1001,8 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		op->o_callback->sc_next = cb;
 
 		/* Did we receive a password policy request control? */
-		for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-			if ( !strcmp( op->o_ctrls[i]->ldctl_oid,
-				LDAP_CONTROL_PASSWORDPOLICYREQUEST ) )
-			{
-				ppb->send_ctrl = 1;
-				break;
-			}
+		if ( op->o_ctrlflag[ppolicy_cid] ) {
+			ppb->send_ctrl = 1;
 		}
 
 		op->o_bd->bd_info = (BackendInfo *)on;
@@ -1047,12 +1043,8 @@ ppolicy_restrict(
 	int i, send_ctrl = 0;
 
 	/* Did we receive a password policy request control? */
-	for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-		if ( !strcmp( op->o_ctrls[i]->ldctl_oid,
-			LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
-			send_ctrl = 1;
-			break;
-		}
+	if ( op->o_ctrlflag[ppolicy_cid] ) {
+		send_ctrl = 1;
 	}
 
 	if ( op->o_conn && pwcons[op->o_conn->c_conn_idx].restrict ) {
@@ -1106,12 +1098,8 @@ ppolicy_add(
 			LDAPPasswordPolicyError pErr = PP_noError;
 
 			/* Did we receive a password policy request control? */
-			for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-				if ( !strcmp( op->o_ctrls[i]->ldctl_oid,
-					LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
-					send_ctrl = 1;
-					break;
-				}
+			if ( op->o_ctrlflag[ppolicy_cid] ) {
+				send_ctrl = 1;
 			}
 			rc = check_password_quality( bv, &pp, &pErr, op->ora_e );
 			if (rc != LDAP_SUCCESS) {
@@ -1206,12 +1194,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
 
 	/* Did we receive a password policy request control? */
-	for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-		if ( !strcmp( op->o_ctrls[i]->ldctl_oid,
-			LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
-			send_ctrl = 1;
-			break;
-		}
+	if ( op->o_ctrlflag[ppolicy_cid] ) {
+		send_ctrl = 1;
 	}
 
 	/* See if this is a pwdModify exop. If so, we can
@@ -1691,6 +1675,7 @@ ppolicy_parseCtrl(
 		rs->sr_text = "passwordPolicyRequest control invalid criticality";
 		return LDAP_PROTOCOL_ERROR;
 	}
+	op->o_ctrlflag[ppolicy_cid] = SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -1821,7 +1806,7 @@ int ppolicy_init()
 
 	code = register_supported_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
 		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY, extops,
-		ppolicy_parseCtrl );
+		ppolicy_parseCtrl, &ppolicy_cid );
 	if ( code != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register control %d\n", code );
 		return code;

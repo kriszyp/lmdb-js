@@ -982,9 +982,10 @@ limits_check( Operation *op, SlapReply *rs )
 		}
 
 		/* if paged results is requested */	
-		if ( get_pagedresults( op ) > SLAP_NO_CONTROL ) {
+		if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED ) {
 			int	slimit = -2;
 			int	pr_total;
+			PagedResultsState *ps = op->o_pagedresults_state;
 
 			/* paged results is not allowed */
 			if ( op->ors_limit->lms_s_pr_total == -2 ) {
@@ -996,7 +997,7 @@ limits_check( Operation *op, SlapReply *rs )
 				return -1;
 			}
 			
-			if ( op->ors_limit->lms_s_pr > 0 && op->o_pagedresults_size > op->ors_limit->lms_s_pr ) {
+			if ( op->ors_limit->lms_s_pr > 0 && ps->ps_size > op->ors_limit->lms_s_pr ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				rs->sr_text = "illegal pagedResults page size";
 				send_ldap_result( op, rs );
@@ -1020,7 +1021,7 @@ limits_check( Operation *op, SlapReply *rs )
 					slimit = -1;
 
 				} else {
-					slimit = op->ors_slimit - op->o_pagedresults_state.ps_count;
+					slimit = op->ors_slimit - ps->ps_count;
 				}
 
 #ifdef ABOVE_HARD_LIMIT_IS_ERROR
@@ -1056,7 +1057,7 @@ limits_check( Operation *op, SlapReply *rs )
 					slimit2 = op->ors_slimit;
 				}
 
-				total = slimit2 - op->o_pagedresults_state.ps_count;
+				total = slimit2 - ps->ps_count;
 
 				if ( total >= 0 ) {
 					if ( op->ors_limit->lms_s_pr > 0 ) {
@@ -1092,7 +1093,7 @@ limits_check( Operation *op, SlapReply *rs )
 					op->ors_slimit = slimit;
 
 				} else if ( slimit > 0 ) {
-					if ( op->ors_slimit - op->o_pagedresults_state.ps_count > slimit ) {
+					if ( op->ors_slimit - ps->ps_count > slimit ) {
 						rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 						send_ldap_result( op, rs );
 						rs->sr_err = LDAP_SUCCESS;

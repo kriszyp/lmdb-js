@@ -169,7 +169,7 @@ do_extended(
 	} 
 
 	/* check for controls inappropriate for all extended operations */
-	if( get_manageDSAit( op ) == SLAP_CRITICAL_CONTROL ) {
+	if( get_manageDSAit( op ) == SLAP_CONTROL_CRITICAL ) {
 		send_ldap_error( op, rs,
 			LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"manageDSAit control inappropriate" );

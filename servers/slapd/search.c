@@ -351,9 +351,9 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 	/* Sync control overrides manageDSAit */
 
-	if ( manageDSAit != SLAP_NO_CONTROL ) {
+	if ( manageDSAit != SLAP_CONTROL_NONE ) {
 		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
-			be_manageDSAit = SLAP_NO_CONTROL;
+			be_manageDSAit = SLAP_CONTROL_NONE;
 		} else {
 			be_manageDSAit = manageDSAit;
 		}

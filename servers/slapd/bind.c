@@ -231,7 +231,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	struct berval	mech = op->orb_tmp_mech;
 
 	/* check for inappropriate controls */
-	if( get_manageDSAit( op ) == SLAP_CRITICAL_CONTROL ) {
+	if( get_manageDSAit( op ) == SLAP_CONTROL_CRITICAL ) {
 		send_ldap_error( op, rs,
 			LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"manageDSAit control inappropriate" );

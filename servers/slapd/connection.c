@@ -1438,15 +1438,10 @@ connection_input(
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
 	op->o_conn = conn;
-	op->o_assertion = NULL;
-	op->o_preread_attrs = NULL;
-	op->o_postread_attrs = NULL;
-	op->o_vrFilter = NULL;
 	/* clear state if the connection is being reused from inactive */
 	if ( conn->c_conn_state == SLAP_C_INACTIVE ) {
 		memset( &conn->c_pagedresults_state, 0, sizeof( conn->c_pagedresults_state ) );
 	}
-	op->o_pagedresults_state = conn->c_pagedresults_state;
 
 	op->o_res_ber = NULL;
 

@@ -1422,7 +1422,7 @@ slapi_register_supported_control(
 
 	slapiControlOp2SlapControlMask( controlops, &controlmask );
 
-	register_supported_control( controloid, controlmask, NULL, slapi_int_parse_control );
+	register_supported_control( controloid, controlmask, NULL, slapi_int_parse_control, NULL );
 #endif /* LDAP_SLAPI */
 }
 

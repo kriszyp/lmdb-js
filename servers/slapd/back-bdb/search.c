@@ -737,12 +737,12 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 
 	/* Sync control overrides manageDSAit */
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-		if ( manageDSAit == SLAP_NO_CONTROL ) {
-			manageDSAit = SLAP_CRITICAL_CONTROL;
+		if ( manageDSAit == SLAP_CONTROL_NONE ) {
+			manageDSAit = SLAP_CONTROL_CRITICAL;
 		}
 	} else if ( IS_PSEARCH ) {
-		if ( manageDSAit == SLAP_NO_CONTROL ) {
-			manageDSAit = SLAP_CRITICAL_CONTROL;
+		if ( manageDSAit == SLAP_CONTROL_NONE ) {
+			manageDSAit = SLAP_CONTROL_CRITICAL;
 		}
 	}
 
@@ -1000,7 +1000,8 @@ dn2entry_retry:
 		tentries = BDB_IDL_N(candidates);
 	}
 
-	if ( get_pagedresults( sop ) > SLAP_NO_CONTROL ) {
+	if ( get_pagedresults( sop ) > SLAP_CONTROL_IGNORED ) {
+		PagedResultsState *ps = sop->o_pagedresults_state;
 		/* deferred cookie parsing */
 		rs->sr_err = parse_paged_cookie( sop, rs );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -1008,11 +1009,11 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( (ID)( sop->o_pagedresults_state.ps_cookie ) == 0 ) {
+		if ( (ID)( ps->ps_cookie ) == 0 ) {
 			id = bdb_idl_first( candidates, &cursor );
 
 		} else {
-			if ( sop->o_pagedresults_size == 0 ) {
+			if ( ps->ps_size == 0 ) {
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_text = "search abandoned by pagedResult size=0";
 				send_ldap_result( sop, rs );
@@ -1020,7 +1021,7 @@ dn2entry_retry:
 			}
 			for ( id = bdb_idl_first( candidates, &cursor );
 				id != NOID &&
-					id <= (ID)( sop->o_pagedresults_state.ps_cookie );
+					id <= (ID)( ps->ps_cookie );
 				id = bdb_idl_next( candidates, &cursor ) )
 			{
 				/* empty */;
@@ -1427,8 +1428,8 @@ id2entry_retry:
 				goto done;
 			}
 
-			if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
-				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
+			if ( get_pagedresults(sop) > SLAP_CONTROL_IGNORED ) {
+				if ( rs->sr_nentries >= ((PagedResultsState *)sop->o_pagedresults_state)->ps_size ) {
 					send_paged_response( sop, rs, &lastid, tentries );
 					goto done;
 				}
@@ -1766,7 +1767,7 @@ nochange:
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
 			rs->sr_rspoid = NULL;
-			if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
+			if ( get_pagedresults(sop) > SLAP_CONTROL_IGNORED ) {
 				send_paged_response( sop, rs, NULL, 0 );
 			} else {
 				send_ldap_result( sop, rs );
@@ -2007,11 +2008,12 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 	ber_int_t	size;
 	BerElement	*ber;
 	struct berval	cookie = BER_BVNULL;
+	PagedResultsState *ps = op->o_pagedresults_state;
 
 	/* this function must be invoked only if the pagedResults
 	 * control has been detected, parsed and partially checked
 	 * by the frontend */
-	assert( get_pagedresults( op ) > SLAP_NO_CONTROL );
+	assert( get_pagedresults( op ) > SLAP_CONTROL_IGNORED );
 
 	/* look for the appropriate ctrl structure */
 	for ( c = op->o_ctrls; c[0] != NULL; c++ ) {
@@ -2061,13 +2063,13 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 
 		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
 
-		if ( reqcookie > op->o_pagedresults_state.ps_cookie ) {
+		if ( reqcookie > ps->ps_cookie ) {
 			/* bad cookie */
 			rs->sr_text = "paged results cookie is invalid";
 			rc = LDAP_PROTOCOL_ERROR;
 			goto done;
 
-		} else if ( reqcookie < op->o_pagedresults_state.ps_cookie ) {
+		} else if ( reqcookie < ps->ps_cookie ) {
 			rs->sr_text = "paged results cookie is invalid or old";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done;
@@ -2085,8 +2087,8 @@ parse_paged_cookie( Operation *op, SlapReply *rs )
 			goto done;
 		}
 #endif
-		op->o_pagedresults_state.ps_cookie = 0;
-		op->o_pagedresults_state.ps_count = 0;
+		ps->ps_cookie = 0;
+		ps->ps_count = 0;
 	}
 
 done:;
@@ -2130,7 +2132,7 @@ send_paged_response(
 
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
 	op->o_conn->c_pagedresults_state.ps_count =
-		op->o_pagedresults_state.ps_count + rs->sr_nentries;
+		((PagedResultsState *)op->o_pagedresults_state)->ps_count + rs->sr_nentries;
 
 	/* return size of 0 -- no estimate */
 	ber_printf( ber, "{iO}", 0, &cookie ); 

@@ -73,6 +73,9 @@ refint.la : refint.lo $(@PLAT@_LINK_LIBS)
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 
+syncprov.la : syncprov.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ syncprov.lo version.lo $(LINK_LIBS)
+
 unique.la : unique.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
 

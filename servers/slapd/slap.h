@@ -2045,6 +2045,7 @@ typedef struct slap_overinfo {
 typedef unsigned long PagedResultsCookie;
 typedef struct slap_paged_state {
 	Backend *ps_be;
+	ber_int_t ps_size;
 	PagedResultsCookie ps_cookie;
 	int ps_count;
 } PagedResultsState;
@@ -2108,6 +2109,28 @@ typedef struct slap_gacl {
 	ber_len_t ga_len;
 	char ga_ndn[1];
 } GroupAssertion;
+
+#ifndef SLAP_MAX_CIDS
+#define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
+#endif
+
+struct slap_control_ids {
+	int sc_assert;
+	int sc_preRead;
+	int sc_postRead;
+	int sc_proxyAuthz;
+	int sc_manageDSAit;
+	int sc_modifyIncrement;
+	int sc_noOp;
+	int sc_pagedResults;
+	int sc_valuesReturnFilter;
+	int sc_permissiveModify;
+	int sc_domainScope;
+	int sc_treeDelete;
+	int sc_searchOptions;
+	int sc_subentries;
+	int sc_LDAPsync;
+};
 
 /*
  * represents an operation pending from an ldap client
@@ -2200,58 +2223,77 @@ typedef struct slap_op {
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
-#define SLAP_IGNORED_CONTROL -1
-#define SLAP_NO_CONTROL 0
-#define SLAP_NONCRITICAL_CONTROL 1
-#define SLAP_CRITICAL_CONTROL 2
-	char o_managedsait;
-#define get_manageDSAit(op)				((int)(op)->o_managedsait)
+#define SLAP_CONTROL_NONE	0
+#define SLAP_CONTROL_IGNORED	1
+#define SLAP_CONTROL_NONCRITICAL 2
+#define SLAP_CONTROL_CRITICAL	3
+#define	SLAP_CONTROL_MASK	3
+#define SLAP_CONTROL_DATA0	0x10
+#define SLAP_CONTROL_DATA1	0x20
+#define SLAP_CONTROL_DATA2	0x40
+#define SLAP_CONTROL_DATA3	0x80
 
-	char o_noop;
-	char o_proxy_authz;
 
-	char o_subentries;
-#define get_subentries(op)				((int)(op)->o_subentries)
-	char o_subentries_visibility;
-#define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
+#define _SCM(x)	((x) & SLAP_CONTROL_MASK)
 
-	char o_assert;
+	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
+	void **o_controls;		/* per-control state */
+
+#define o_managedsait	o_ctrlflag[slap_cids.sc_manageDSAit]
+#define get_manageDSAit(op)				_SCM((op)->o_managedsait)
+
+#define o_noop	o_ctrlflag[slap_cids.sc_noOp]
+#define o_proxy_authz	o_ctrlflag[slap_cids.sc_proxyAuthz]
+#define o_subentries	o_ctrlflag[slap_cids.sc_subentries]
+
+#define get_subentries(op)				_SCM((op)->o_subentries)
+#define	o_subentries_visibility	o_ctrlflag[slap_cids.sc_subentries]
+
+#define set_subentries_visibility(op)	((op)->o_subentries |= SLAP_CONTROL_DATA0)
+#define get_subentries_visibility(op)	((op)->o_subentries & SLAP_CONTROL_DATA0)
+
+#define o_assert	o_ctrlflag[slap_cids.sc_assert]
 #define get_assert(op)					((int)(op)->o_assert)
+#define o_assertion	o_controls[slap_cids.sc_assert]
+#define get_assertion(op)				((op)->o_assertion)
 
-	char o_valuesreturnfilter;
+#define	o_valuesreturnfilter	o_ctrlflag[slap_cids.sc_valuesReturnFilter]
+#define o_vrFilter	o_controls[slap_cids.sc_valuesReturnFilter]
 
 #ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
-	char o_permissive_modify;
+#define o_permissive_modify	o_ctrlflag[slap_cids.sc_permissiveModify]
 #define get_permissiveModify(op)		((int)(op)->o_permissive_modify)
 #else
 #define get_permissiveModify(op)		(0)
 #endif
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
-	char o_domain_scope;
+#define o_domain_scope	o_ctrlflag[slap_cids.sc_domainScope]
 #define get_domainScope(op)				((int)(op)->o_domain_scope)
 #else
 #define get_domainScope(op)				(0)
 #endif
 
 #ifdef LDAP_CONTROL_X_TREE_DELETE
-	char o_tree_delete;
+#define	o_tree_delete	o_ctrlflag[slap_cids.sc_treeDelete]
 #define get_treeDelete(op)				((int)(op)->o_tree_delete)
 #else
 #define get_treeDelete(op)				(0)
 #endif
 
-	char o_preread;
-	char o_postread;
-	AttributeName *o_preread_attrs;
-	AttributeName *o_postread_attrs;
+#define o_preread	o_ctrlflag[slap_cids.sc_preRead]
+#define o_postread	o_ctrlflag[slap_cids.sc_postRead]
 
-	char o_pagedresults;
+#define	o_preread_attrs	o_controls[slap_cids.sc_preRead]
+#define o_postread_attrs	o_controls[slap_cids.sc_postRead]
+
+#define o_pagedresults	o_ctrlflag[slap_cids.sc_pagedResults]
+#define o_pagedresults_state	o_controls[slap_cids.sc_pagedResults]
+
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
-	ber_int_t o_pagedresults_size;
-	PagedResultsState o_pagedresults_state;
 
-	char o_sync;
+#define	o_sync	o_ctrlflag[slap_cids.sc_LDAPsync]
+
 	char o_sync_mode;
 #define SLAP_SYNC_NONE					LDAP_SYNC_NONE
 #define SLAP_SYNC_REFRESH				LDAP_SYNC_REFRESH_ONLY
@@ -2296,10 +2338,6 @@ typedef struct slap_op {
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 
-	Filter *o_assertion; /* Assert control filter */
-#define get_assertion(op)				((op)->o_assertion)
-
-	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
 	int o_nocaching;
 	int	o_delete_glue_parent;
@@ -2308,6 +2346,7 @@ typedef struct slap_op {
 	void    *o_pb;                  /* NS-SLAPI plugin */
 	void	*o_extensions;		/* NS-SLAPI plugin */
 #endif
+
 } Operation;
 
 #define send_ldap_error( op, rs, err, text ) do { \

@@ -53,6 +53,7 @@ void slap_op_destroy(void)
 	while ( (o = LDAP_STAILQ_FIRST( &slap_free_ops )) != NULL) {
 		LDAP_STAILQ_REMOVE_HEAD( &slap_free_ops, o_next );
 		LDAP_STAILQ_NEXT(o, o_next) = NULL;
+		ch_free( o->o_controls );
 		ch_free( o );
 	}
 	ldap_pvt_thread_mutex_destroy( &slap_op_mutex );
@@ -62,6 +63,7 @@ void
 slap_op_free( Operation *op )
 {
 	struct berval slap_empty_bv_dup;
+	void **controls;
 
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
@@ -109,7 +111,10 @@ slap_op_free( Operation *op )
 		ch_free( op->o_sync_csn.bv_val );
 	}
 
+	controls = op->o_controls;
+	memset( controls, 0, sizeof(void *) * SLAP_MAX_CIDS );
 	memset( op, 0, sizeof(Operation) );
+	op->o_controls = controls;
 
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
@@ -138,6 +143,7 @@ slap_op_alloc(
 
 	if (!op) {
 		op = (Operation *) ch_calloc( 1, sizeof(Operation) );
+		op->o_controls = (void **) ch_calloc( SLAP_MAX_CIDS, sizeof( void *));
 	}
 
 	op->o_ber = ber;

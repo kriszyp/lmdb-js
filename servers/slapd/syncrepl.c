@@ -926,7 +926,7 @@ do_syncrepl(
 
 	op.o_dn = si->si_updatedn;
 	op.o_ndn = si->si_updatedn;
-	op.o_managedsait = 1;
+	op.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op.o_bd = be = si->si_be;
 
 	op.o_sync_state.ctxcsn = NULL;
@@ -1326,7 +1326,7 @@ syncrepl_entry(
 		org_managedsait = get_manageDSAit( op );
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
-		op->o_managedsait = 1;
+		op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 		while ( rs_delete.sr_err == LDAP_SUCCESS && op->o_delete_glue_parent ) {
 			op->o_delete_glue_parent = 0;
@@ -1517,13 +1517,13 @@ syncrepl_del_nonpresent(
 	op->ors_filterstr = si->si_filterstr;
 
 	op->o_nocaching = 1;
-	op->o_managedsait = 0;
+	op->o_managedsait = SLAP_CONTROL_NONE;
 
 	if ( limits_check( op, &rs_search ) == 0 ) {
 		rc = be->be_search( op, &rs_search );
 	}
 
-	op->o_managedsait = 1;
+	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op->o_nocaching = 0;
 
 	if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
@@ -1578,7 +1578,7 @@ syncrepl_del_nonpresent(
 			org_managedsait = get_manageDSAit( op );
 			op->o_dn = op->o_bd->be_rootdn;
 			op->o_ndn = op->o_bd->be_rootndn;
-			op->o_managedsait = 1;
+			op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS &&
 					op->o_delete_glue_parent ) {

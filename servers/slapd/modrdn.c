@@ -338,7 +338,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 				org_managedsait = get_manageDSAit( op );
 				op->o_dn = op->o_bd->be_rootdn;
 				op->o_ndn = op->o_bd->be_rootndn;
-				op->o_managedsait = 1;
+				op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 				while ( rs->sr_err == LDAP_SUCCESS &&
 						op->o_delete_glue_parent ) {
