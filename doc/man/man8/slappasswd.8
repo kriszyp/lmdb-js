@@ -3,9 +3,10 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-slappassword \- OpenLDAP password utility
+slappasswd \- OpenLDAP password utility
 .SH SYNOPSIS
 .B SBINDIR/slappasswd
+.B [\-a]
 .B [\-v]
 .B [\-s secret]
 .B [\-h hash]
@@ -20,6 +21,9 @@ as a userPassword value
 .BR rootpw .
 .SH OPTIONS
 .TP
+.B \-a
+generate authPassword values instead of RFC2307 passwords
+.TP
 .B \-v
 enable verbose mode.
 .TP
@@ -27,8 +31,8 @@ enable verbose mode.
 The secret to hash.  If not provided, the user will be prompted
 for the secret to hash.
 .TP
-.BI \-h " hash"
-The hash algorithm to use.  Algorithms supported include
+.BI \-h " scheme"
+The hash scheme to use.  RFC2307 schemes supported include
 .IR {CRYPT} ,
 .IR {MD5} ,
 .IR {SMD5} ,
@@ -36,10 +40,18 @@ The hash algorithm to use.  Algorithms supported include
 .IR {SHA} .
 The default is 
 .IR {SSHA} .
+.LP
+If \-a is specified, the following authPassword schemes
+may be specified:
+.IR MD5 ,
+.IR SHA1 ", and"
+.IR X-CRYPT .
+The default is
+.IR SHA1 .
 .SH LIMITATIONS
 The practice storing hashed passwords in userPassword
 violates Standard Track schema and may hinder
-interoperability.
+interoperability.  authPassword is not yet widely supported.
 .SH "SECURITY CONSIDERATIONS"
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections
@@ -47,7 +59,8 @@ should be inplace before using LDAP simple bind.  The
 hashed password values should be protected as if they
 were clear text passwords.
 .SH "SEE ALSO"
-.BR ldapmodify (3),
+.BR ldappasswd (1),
+.BR ldapmodify (1),
 .BR slapd (8)
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
