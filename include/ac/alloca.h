@@ -23,7 +23,7 @@
 #pragma alloca
 #  else
 #   ifndef alloca /* predefined by HP cc +Olibcalls */
-char *alloca ();
+extern char *alloca ();
 #   endif
 #  endif
 # endif
