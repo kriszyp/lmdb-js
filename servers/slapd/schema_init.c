@@ -2489,8 +2489,7 @@ check_time_syntax (struct berval *val,
 	}
 
 	/* leapyear check for the Gregorian calendar (year>1581) */
-	if (parts[parts[1] == 0 ? 0 : 1] % 4 == 0)
-	{
+	if (parts[parts[1] == 0 ? 0 : 1] % 4 == 0) {
 		leapyear = 1;
 	}
 
@@ -2503,16 +2502,17 @@ check_time_syntax (struct berval *val,
 		fraction->bv_len = 0;
 		if (p < e && (*p == '.' || *p == ',')) {
 			char *end_num;
-			while (++p < e && ASCII_DIGIT(*p))
-				;
+			while (++p < e && ASCII_DIGIT(*p)) {
+				/* EMTPY */;
+			}
 			if (p - fraction->bv_val == 1) {
 				return LDAP_INVALID_SYNTAX;
 			}
-			for (end_num = p; end_num[-1] == '0'; --end_num)
-				;
+			for (end_num = p; end_num[-1] == '0'; --end_num) {
+				/* EMPTY */;
+			}
 			c = end_num - fraction->bv_val;
-			if (c != 1)
-				fraction->bv_len = c;
+			if (c != 1) fraction->bv_len = c;
 		}
 	}
 
