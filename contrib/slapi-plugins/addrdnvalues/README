@@ -1,0 +1,11 @@
+
+This directory contains a SLAPI plugin, addrdnvalues, which will add to
+an entry any attribute values that appear in the entry's RDN but not in
+the entry. This is necessary for compliance with some "broken" clients.
+
+No Makefile is provided. Use a command line similar to:
+
+gcc -shared -I../../../include -Wall -g -o libaddrdnvalues-plugin.so addrdnvalues.c
+
+to compile this plugin.
+
