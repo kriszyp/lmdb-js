@@ -1034,38 +1034,38 @@ ldap_add_result_entry LDAP_P((
 /*
  * in getdn.c
  */
-LDAP_F( char *)
+LDAP_F( char * )
 ldap_get_dn LDAP_P((
 	LDAP *ld,
 	LDAPMessage *entry ));
 
-LDAP_F( char *)
+LDAP_F( char * )
 ldap_dn2ufn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_dn LDAP_P((
 	LDAP_CONST char *dn,
 	int notypes ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_rdn LDAP_P((
 	LDAP_CONST char *rdn,
 	int notypes ));
 
-LDAP_F( char *)
-ldap_parent_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_parent_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char *)
-ldap_relative_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_relative_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char *)
-ldap_normalize_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_normalize_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_dns LDAP_P(( /* deprecated */
 	LDAP_CONST char *dn ));
 
