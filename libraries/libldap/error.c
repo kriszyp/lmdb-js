@@ -325,10 +325,10 @@ ldap_parse_result(
 	}
 
 	/* return */
+	if( errcodep != NULL ) {
+		*errcodep = ld->ld_errno;
+	}
 	if ( errcode == LDAP_SUCCESS ) {
-		if( errcodep != NULL ) {
-			*errcodep = ld->ld_errno;
-		}
 		if( matcheddnp != NULL ) {
 			*matcheddnp = LDAP_STRDUP( ld->ld_matched );
 		}
