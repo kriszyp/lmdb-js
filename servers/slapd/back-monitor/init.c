@@ -162,47 +162,47 @@ monitor_back_initialize(
 
 	bi->bi_controls = controls;
 
-	bi->bi_init = NULL;
+	bi->bi_init = 0;
 	bi->bi_open = monitor_back_open;
 	bi->bi_config = monitor_back_config;
-	bi->bi_close = NULL;
-	bi->bi_destroy = NULL;
+	bi->bi_close = 0;
+	bi->bi_destroy = 0;
 
 	bi->bi_db_init = monitor_back_db_init;
 	bi->bi_db_config = monitor_back_db_config;
-	bi->bi_db_open = NULL;
-	bi->bi_db_close = NULL;
+	bi->bi_db_open = 0;
+	bi->bi_db_close = 0;
 	bi->bi_db_destroy = monitor_back_db_destroy;
 
 	bi->bi_op_bind = monitor_back_bind;
-	bi->bi_op_unbind = NULL;
+	bi->bi_op_unbind = 0;
 	bi->bi_op_search = monitor_back_search;
 	bi->bi_op_compare = monitor_back_compare;
 	bi->bi_op_modify = monitor_back_modify;
-	bi->bi_op_modrdn = NULL;
-	bi->bi_op_add = NULL;
-	bi->bi_op_delete = NULL;
+	bi->bi_op_modrdn = 0;
+	bi->bi_op_add = 0;
+	bi->bi_op_delete = 0;
 	bi->bi_op_abandon = monitor_back_abandon;
 
-	bi->bi_extended = NULL;
+	bi->bi_extended = 0;
 
-	bi->bi_entry_release_rw = NULL;
-	bi->bi_acl_group = NULL;
-	bi->bi_acl_attribute = NULL;
-	bi->bi_chk_referrals = NULL;
+	bi->bi_entry_release_rw = 0;
+	bi->bi_acl_group = 0;
+	bi->bi_acl_attribute = 0;
+	bi->bi_chk_referrals = 0;
 	bi->bi_operational = monitor_back_operational;
 
 	/*
 	 * hooks for slap tools
 	 */
-	bi->bi_tool_entry_open = NULL;
-	bi->bi_tool_entry_close = NULL;
-	bi->bi_tool_entry_first = NULL;
-	bi->bi_tool_entry_next = NULL;
-	bi->bi_tool_entry_get = NULL;
-	bi->bi_tool_entry_put = NULL;
-	bi->bi_tool_entry_reindex = NULL;
-	bi->bi_tool_sync = NULL;
+	bi->bi_tool_entry_open = 0;
+	bi->bi_tool_entry_close = 0;
+	bi->bi_tool_entry_first = 0;
+	bi->bi_tool_entry_next = 0;
+	bi->bi_tool_entry_get = 0;
+	bi->bi_tool_entry_put = 0;
+	bi->bi_tool_entry_reindex = 0;
+	bi->bi_tool_sync = 0;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

@@ -961,7 +961,7 @@ int backend_check_referrals(
 		const char *text;
 
 		rc = be->be_chk_referrals( be,
-			conn, op, dn->bv_val, ndn->bv_val, &text );
+			conn, op, dn, ndn, &text );
 
 		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
 			send_ldap_result( conn, op, rc,

@@ -1086,7 +1086,7 @@ typedef int (BI_entry_release_rw) LDAP_P((BackendDB *bd,
 
 typedef int (BI_chk_referrals) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn,
+		struct berval *dn, struct berval *ndn,
 		const char **text ));
 
 typedef int (BI_acl_group)  LDAP_P((Backend *bd,

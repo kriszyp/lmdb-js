@@ -593,15 +593,15 @@ glue_back_referrals (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	const char **text
 )
 {
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_chk_referrals) {
 		rc = be->be_chk_referrals (be, conn, op, dn, ndn, text);

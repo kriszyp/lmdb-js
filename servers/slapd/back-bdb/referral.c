@@ -17,8 +17,8 @@ bdb_referrals(
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	const char **text )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -36,7 +36,7 @@ bdb_referrals(
 	} 
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, NULL, ndn->bv_val, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -66,7 +66,7 @@ bdb_referrals(
 			if( is_entry_referral( matched ) ) {
 				rc = LDAP_OTHER;
 				refs = get_entry_referrals( be, conn, op,
-					matched, dn, LDAP_SCOPE_DEFAULT );
+					matched, dn->bv_val, LDAP_SCOPE_DEFAULT );
 			}
 
 			bdb_entry_return( be, matched );
@@ -74,7 +74,7 @@ bdb_referrals(
 		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		if( refs != NULL ) {
@@ -95,13 +95,13 @@ bdb_referrals(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		struct berval **rrefs = referral_rewrite(
-			refs, e->e_dn, dn, LDAP_SCOPE_DEFAULT );
+			refs, e->e_dn, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, dn, e->e_dn );
+			(long) op->o_tag, dn->bv_val, e->e_dn );
 
 		if( rrefs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
