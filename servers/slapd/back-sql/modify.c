@@ -150,8 +150,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	}
 
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
-			&bsi.bsi_base_id,
-			op->oq_modify.rs_modlist );
+			&bsi.bsi_base_id, op->oq_modify.rs_modlist );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		e = &m;
 		goto do_transact;

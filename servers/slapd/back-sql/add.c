@@ -408,7 +408,7 @@ backsql_modify_internal(
 
 				goto add_only;
 			}
-			
+
 del_all:
 			rs->sr_err = backsql_modify_delete_all_values( op, rs, dbh, e_id, at );
 			if ( rs->sr_err != LDAP_SUCCESS ) {

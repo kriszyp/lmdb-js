@@ -109,5 +109,5 @@ values (4,'referral');
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
 --	url		the URI of the referral
 insert into ldap_referrals (entry_id,url)
-values (4,'ldap://localhost/');
+values (4,'ldap://localhost:9010/');
 

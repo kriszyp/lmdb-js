@@ -740,11 +740,11 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 				backsql_merge_from_tbls( bsi, &ldap_entry_objclasses );
 
 				backsql_strfcat( &bsi->bsi_flt_where, "lbl",
-						(ber_len_t)STRLENOF( "2=2 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */ ),
-							"2=2 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */,
+						(ber_len_t)STRLENOF( "(2=2 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ')) */ ),
+							"(2=2 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ')) */,
 						&bsi->bsi_oc->bom_oc->soc_cname,
-						(ber_len_t)STRLENOF( /* (' */ "')" ),
-							/* (' */ "')" );
+						(ber_len_t)STRLENOF( /* ((' */ "'))" ),
+							/* ((' */ "'))" );
 				bsi->bsi_status = LDAP_SUCCESS;
 				rc = 1;
 				goto done;
@@ -1787,14 +1787,11 @@ backsql_search( Operation *op, SlapReply *rs )
 	int			sres;
 	Entry			user_entry = { 0 },
 				base_entry = { 0 };
-	int			manageDSAit;
+	int			manageDSAit = get_manageDSAit( op );
 	time_t			stoptime = 0;
 	backsql_srch_info	bsi = { 0 };
 	backsql_entryID		*eid = NULL;
-	struct berval		nbase = BER_BVNULL,
-				realndn = BER_BVNULL;
-
-	manageDSAit = get_manageDSAit( op );
+	struct berval		nbase = BER_BVNULL;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_search(): "
 		"base=\"%s\", filter=\"%s\", scope=%d,", 
@@ -1835,26 +1832,35 @@ backsql_search( Operation *op, SlapReply *rs )
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + op->ors_tlimit;
 
-	realndn = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &realndn ) ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_search(\"%s\"): "
-			"backsql_api_dn2odbc(\"%s\") failed\n", 
-			op->o_req_ndn.bv_val, realndn.bv_val, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		send_ldap_result( op, rs );
-		goto done;
-	}
-
 	/* init search */
 	bsi.bsi_e = &base_entry;
-	rs->sr_err = backsql_init_search( &bsi, &realndn,
+	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			op->ors_scope,
 			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
 			dbh, op, rs, op->ors_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+	switch ( rs->sr_err ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_REFERRAL:
+		if ( !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname )
+				&& manageDSAit )
+		{
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+			break;
+		}
+		/* fall thru */
+
+	default:
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !BER_BVISNULL( &base_entry.e_nname )
 				&& ! access_allowed( op, &base_entry,
@@ -1864,11 +1870,13 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			if ( rs->sr_ref ) {
 				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
 			}
 			rs->sr_matched = NULL;
 			rs->sr_text = NULL;
 		}
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
+
 		send_ldap_result( op, rs );
 		goto done;
 
@@ -1876,7 +1884,7 @@ backsql_search( Operation *op, SlapReply *rs )
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 	/* NOTE: __NEW__ "search" access is required
 	 * on searchBase object */
-	else {
+	{
 		slap_mask_t	mask;
 		
 		if ( get_assert( op ) &&
@@ -2266,10 +2274,6 @@ end_of_search:;
 #endif /* BACKSQL_SYNCPROV */
 
 done:;
-	if ( !BER_BVISNULL( &realndn ) && realndn.bv_val != op->o_req_ndn.bv_val ) {
-		ch_free( realndn.bv_val );
-	}
-
 	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 
 	if ( bsi.bsi_attrs != NULL ) {

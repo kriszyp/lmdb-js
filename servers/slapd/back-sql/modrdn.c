@@ -450,13 +450,51 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		entry_clean( &r );
+		(void)backsql_free_entryID( op, &e_id, 0 );
 
 		bsi.bsi_e = &r;
-		rs->sr_err = backsql_id2entry( &bsi, &e_id );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
+		rs->sr_err = backsql_init_search( &bsi, &new_ndn,
+				LDAP_SCOPE_BASE, 
+				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+				(time_t)(-1), NULL, dbh, op, rs,
+				slap_anlist_all_attributes,
+				( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+		switch ( rs->sr_err ) {
+		case LDAP_SUCCESS:
+			break;
+
+		case LDAP_REFERRAL:
+			if ( !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+					dn_match( &new_ndn, &bsi.bsi_e->e_nname )
+					&& manageDSAit )
+			{
+				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_text = NULL;
+				rs->sr_matched = NULL;
+				if ( rs->sr_ref ) {
+					ber_bvarray_free( rs->sr_ref );
+					rs->sr_ref = NULL;
+				}
+				break;
+			}
 			e = &r;
+			/* fallthru */
+
+		default:
+			Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
+				"could not retrieve modrdnDN ID - no such entry\n", 
+				0, 0, 0 );
+			if ( !BER_BVISNULL( &r.e_nname ) ) {
+				/* FIXME: should always be true! */
+				e = &r;
+
+			} else {
+				e = NULL;
+			}
 			goto done;
 		}
+
+		e_id = bsi.bsi_base_id;
 
 		rs->sr_err = entry_schema_check( op->o_bd, &r,
 				NULL,

@@ -61,8 +61,6 @@ RETCODE
 backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 {
 	RETCODE		rc;
-	char		drv_name[ 30 ];
-	SWORD		len;
 
 	rc = SQLAllocStmt( dbh, sth );
 	if ( rc != SQL_SUCCESS ) {
@@ -73,36 +71,43 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_Prepare()\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
+#ifdef BACKSQL_MSSQL_WORKAROUND
+	{
+		char		drv_name[ 30 ];
+		SWORD		len;
+
+		SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): driver name=\"%s\"\n",
-			drv_name, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): driver name=\"%s\"\n",
+				drv_name, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	ldap_pvt_str2upper( drv_name );
-	if ( !strncmp( drv_name, "SQLSRV32.DLL", sizeof( drv_name ) ) ) {
-		/*
-		 * stupid default result set in MS SQL Server
-		 * does not support multiple active statements
-		 * on the same connection -- so we are trying 
-		 * to make it not to use default result set...
-		 */
-		Debug( LDAP_DEBUG_TRACE, "_SQLprepare(): "
-			"enabling MS SQL Server default result "
-			"set workaround\n", 0, 0, 0 );
-		rc = SQLSetStmtOption( *sth, SQL_CONCURRENCY, 
-				SQL_CONCUR_ROWVER );
-		if ( rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): "
-				"SQLSetStmtOption(SQL_CONCURRENCY,"
-				"SQL_CONCUR_ROWVER) failed:\n", 
-				0, 0, 0 );
-			backsql_PrintErrors( SQL_NULL_HENV, dbh, *sth, rc );
-			SQLFreeStmt( *sth, SQL_DROP );
-			return rc;
+		ldap_pvt_str2upper( drv_name );
+		if ( !strncmp( drv_name, "SQLSRV32.DLL", STRLENOF( "SQLSRV32.DLL" ) ) ) {
+			/*
+			 * stupid default result set in MS SQL Server
+			 * does not support multiple active statements
+			 * on the same connection -- so we are trying 
+			 * to make it not to use default result set...
+			 */
+			Debug( LDAP_DEBUG_TRACE, "_SQLprepare(): "
+				"enabling MS SQL Server default result "
+				"set workaround\n", 0, 0, 0 );
+			rc = SQLSetStmtOption( *sth, SQL_CONCURRENCY, 
+					SQL_CONCUR_ROWVER );
+			if ( rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO ) {
+				Debug( LDAP_DEBUG_TRACE, "backsql_Prepare(): "
+					"SQLSetStmtOption(SQL_CONCURRENCY,"
+					"SQL_CONCUR_ROWVER) failed:\n", 
+					0, 0, 0 );
+				backsql_PrintErrors( SQL_NULL_HENV, dbh, *sth, rc );
+				SQLFreeStmt( *sth, SQL_DROP );
+				return rc;
+			}
 		}
 	}
+#endif /* BACKSQL_MSSQL_WORKAROUND */
 
 	if ( timeout > 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "_SQLprepare(): "

@@ -199,6 +199,11 @@ typedef struct {
 #undef BACKSQL_TRACE
 
 /*
+ * define if using MS SQL and workaround needed (see sql-wrap.c)
+ */
+#undef BACKSQL_MSSQL_WORKAROUND
+
+/*
  * define to enable values counting for attributes
  */
 #define BACKSQL_COUNTQUERY

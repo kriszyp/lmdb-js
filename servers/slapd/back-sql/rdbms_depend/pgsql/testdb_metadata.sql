@@ -79,7 +79,7 @@ insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
 --	url		the URI of the referral
-insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost/');
+insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost:9010/');
 
 -- procedures
 -- these procedures are specific for this RDBMS and are used in mapping objectClass and attributeType creation/modify/deletion
