@@ -113,7 +113,7 @@ OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 OL_ARG_WITH(readline,[  --with-readline	with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
-	auto, [auto posix mach pth lwp yes no manual] )
+	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
@@ -670,12 +670,9 @@ AC_CHECK_HEADERS(	\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
+	winsock.h		\
 )
 
-dnl Check for winsock.h on a Mingw32 system
-if test "$ac_cv_mingw32" = yes ; then
-    AC_CHECK_HEADERS(winsock.h)
-fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
@@ -993,14 +990,18 @@ dnl ----------------------------------------------------------------
 dnl Threads?
 ol_link_threads=no
 
-dnl Not much to check. If we're in mingw32, we assume win32 threads.
-if test "$ac_cv_mingw32" = yes ; then
-    ol_link_threads=nt
-    ol_with_threads=found
-    ol_with_yielding_select=yes
-    AC_MSG_CHECKING(for NT threads)
-    AC_MSG_RESULT(yes)
-    AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT threads])
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = nt ; then
+
+	dnl Not much to check. If we're in mingw32, we assume win32 threads.
+	if test "$ac_cv_mingw32" = yes ; then
+    	ol_link_threads=nt
+    	ol_with_threads=found
+    	ol_with_yielding_select=yes
+    	AC_MSG_CHECKING(for NT threads)
+    	AC_MSG_RESULT(yes)
+    	AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT threads])
+	fi
 fi
 
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
