@@ -113,9 +113,6 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	e.e_attrs = NULL;
-	e.e_name = op->o_req_dn;
-	e.e_nname = op->o_req_ndn;
 	if ( !acl_check_modlist( op, &e, op->oq_modify.rs_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 

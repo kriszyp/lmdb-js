@@ -32,8 +32,8 @@ int
 backsql_bind( Operation *op, SlapReply *rs )
 {
 	SQLHDBC			dbh = SQL_NULL_HDBC;
-	AttributeDescription	*password = slap_schema.si_ad_userPassword;
-	Entry			*e, user_entry;
+	Entry			*e = NULL,
+				user_entry = { 0 };
 	Attribute		*a;
 	backsql_srch_info	bsi;
 	AttributeName		anlist[2];
@@ -72,8 +72,8 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	anlist[0].an_name = password->ad_cname;
-	anlist[0].an_desc = password;
+	anlist[0].an_name = slap_schema.si_ad_userPassword->ad_cname;
+	anlist[0].an_desc = slap_schema.si_ad_userPassword;
 	anlist[1].an_name.bv_val = NULL;
 
 	rc = backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
@@ -100,7 +100,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	}
 	e = &user_entry;
 
-	a = attr_find( e->e_attrs, password );
+	a = attr_find( e->e_attrs, slap_schema.si_ad_userPassword );
 	if ( a == NULL ) {
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto error_return;
@@ -118,12 +118,17 @@ error_return:;
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
+	if ( e ) {
+		entry_clean( e );
+	}
+
 	if ( rs->sr_err ) {
 		send_ldap_result( op, rs );
 		return 1;
 	}
 	
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_bind()\n",0,0,0);
+
 	return 0;
 }
  

@@ -533,7 +533,7 @@ backsql_entryUUID(
 	snprintf( uuidbuf, sizeof( uuidbuf ),
 			"%08x-%04x-%04x-0000-000000000000",
 			( id->eid_oc_id & 0xFFFFFFFF ),
-			( ( id->eid_keyval & 0xFFFF0000 ) >> 16 ),
+			( ( id->eid_keyval & 0xFFFF0000 ) >> 020 /* 16 */ ),
 			( id->eid_keyval & 0xFFFF ) );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
@@ -558,16 +558,17 @@ backsql_entryUUID_decode(
 {
 	fprintf( stderr, "==> backsql_entryUUID_decode()\n" );
 
-	*oc_id = ( entryUUID->bv_val[0] << 3 )
-		+ ( entryUUID->bv_val[1] << 2 )
-		+ ( entryUUID->bv_val[2] << 1 )
+	*oc_id = ( entryUUID->bv_val[0] << 030 /* 24 */ )
+		+ ( entryUUID->bv_val[1] << 020 /* 16 */ )
+		+ ( entryUUID->bv_val[2] << 010 /* 8 */ )
 		+ entryUUID->bv_val[3];
 
 #ifdef BACKSQL_ARBITRARY_KEY
+	/* FIXME */
 #else /* ! BACKSQL_ARBITRARY_KEY */
-	*keyval = ( entryUUID->bv_val[4] << 3 )
-		+ ( entryUUID->bv_val[5] << 2 )
-		+ ( entryUUID->bv_val[6] << 1 )
+	*keyval = ( entryUUID->bv_val[4] << 030 /* 24 */ )
+		+ ( entryUUID->bv_val[5] << 020 /* 16 */ )
+		+ ( entryUUID->bv_val[6] << 010 /* 8 */ )
 		+ entryUUID->bv_val[7];
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 

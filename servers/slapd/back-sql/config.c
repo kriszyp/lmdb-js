@@ -493,7 +493,8 @@ backsql_db_config(
 		}
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"use_subtree_shortcut=%s\n", 
-			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no", 0, 0 );
+			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no",
+			0, 0 );
 
 	} else {
 		return SLAP_CONF_UNKNOWN;
@@ -523,7 +524,8 @@ read_baseObject(
 	fp = fopen( fname, "r" );
 	if ( fp == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"could not open back-sql baseObject attr file \"%s\" - absolute path?\n",
+			"could not open back-sql baseObject "
+			"attr file \"%s\" - absolute path?\n",
 			fname, 0, 0 );
 		perror( fname );
 		return LDAP_OTHER;
@@ -545,8 +547,9 @@ read_baseObject(
 		Attribute	*a;
 
 		if( e == NULL ) {
-			fprintf( stderr, "back-sql baseObject: could not parse entry (line=%d)\n",
-				lineno );
+			fprintf( stderr, "back-sql baseObject: "
+					"could not parse entry (line=%d)\n",
+					lineno );
 			rc = LDAP_OTHER;
 			break;
 		}
@@ -554,8 +557,9 @@ read_baseObject(
 		/* make sure the DN is the database's suffix */
 		if ( !be_issuffix( be, &e->e_nname ) ) {
 			fprintf( stderr,
-				"back-sql: invalid baseObject - dn=\"%s\" (line=%d)\n",
-				e->e_dn, lineno );
+				"back-sql: invalid baseObject - "
+				"dn=\"%s\" (line=%d)\n",
+				e->e_name.bv_val, lineno );
 			entry_free( e );
 			rc = EXIT_FAILURE;
 			break;
@@ -566,8 +570,10 @@ read_baseObject(
 		 * entry, and add each attribute type and description to baseObject
 		 */
 		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			if ( attr_merge( bi->sql_baseObject, a->a_desc, a->a_vals,
-				( a->a_nvals == a->a_vals ) ? NULL : a->a_nvals ) )
+			if ( attr_merge( bi->sql_baseObject, a->a_desc,
+						a->a_vals,
+						( a->a_nvals == a->a_vals ) ?
+						NULL : a->a_nvals ) )
 			{
 				rc = LDAP_OTHER;
 				break;
@@ -589,7 +595,8 @@ read_baseObject(
 
 	fclose( fp );
 
-	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n", fname, 0, 0 );
+	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n",
+			fname, 0, 0 );
 
 	return rc;
 }
@@ -610,9 +617,11 @@ create_baseObject(
 			"dn: %s\n"
 			"objectClass: extensibleObject\n"
 			"description: builtin baseObject for back-sql\n"
-			"description: all entries mapped in the \"ldap_entries\" table\n"
-			"description: must have \"" BACKSQL_BASEOBJECT_IDSTR "\" "
-				"in the \"parent\" column",
+			"description: all entries mapped "
+			"in the \"ldap_entries\" table\n"
+			"description: must have "
+			"\"" BACKSQL_BASEOBJECT_IDSTR "\" "
+			"in the \"parent\" column",
 			be->be_suffix[0].bv_val );
 
 	bi->sql_baseObject = str2entry( buf );
@@ -628,11 +637,14 @@ create_baseObject(
 		return 0;
 	}
 
-	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **) &p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **)&p,
+			LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		snprintf( buf, sizeof(buf),
-			"unable to extract RDN from baseObject DN \"%s\" (%d: %s)",
-			be->be_suffix[ 0 ].bv_val, rc, ldap_err2string( rc ) );
+			"unable to extract RDN "
+			"from baseObject DN \"%s\" (%d: %s)",
+			be->be_suffix[ 0 ].bv_val,
+			rc, ldap_err2string( rc ) );
 		Debug( LDAP_DEBUG_TRACE,
 			"<==backsql_db_config (%s line %d): %s\n",
 			fname, lineno, buf );
@@ -676,12 +688,14 @@ create_baseObject(
 	
 			if ( rc != LDAP_SUCCESS ) {
 				snprintf( buf, sizeof(buf),
-					"prettying of attribute #%d from baseObject "
+					"prettying of attribute #%d "
+					"from baseObject "
 					"DN \"%s\" failed: %d: %s",
 					iAVA, be->be_suffix[ 0 ].bv_val,
 					rc, ldap_err2string( rc ) );
 				Debug( LDAP_DEBUG_TRACE,
-					"<==backsql_db_config (%s line %d): %s\n",
+					"<==backsql_db_config (%s line %d): "
+					"%s\n",
 					fname, lineno, buf );
 				return 1;
 			}

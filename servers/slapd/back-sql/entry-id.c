@@ -506,7 +506,6 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			i;
 	int			rc;
-	AttributeDescription	*ad_oc = slap_schema.si_ad_objectClass;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
 
@@ -527,8 +526,8 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 		goto done;
 	}
 
-	ber_dupbv_x( &bsi->bsi_e->e_name, &eid->eid_dn, bsi->bsi_op->o_tmpmemctx );
-	ber_dupbv_x( &bsi->bsi_e->e_nname, &eid->eid_ndn, bsi->bsi_op->o_tmpmemctx );
+	ber_dupbv( &bsi->bsi_e->e_name, &eid->eid_dn );
+	ber_dupbv( &bsi->bsi_e->e_nname, &eid->eid_ndn );
 
 	bsi->bsi_e->e_attrs = NULL;
 	bsi->bsi_e->e_private = NULL;
@@ -541,9 +540,10 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	bsi->bsi_e->e_id = eid->eid_id;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
  
-	rc = attr_merge_normalize_one( bsi->bsi_e, ad_oc,
-				&bsi->bsi_oc->bom_oc->soc_cname,
-				bsi->bsi_op->o_tmpmemctx );
+	rc = attr_merge_normalize_one( bsi->bsi_e,
+			slap_schema.si_ad_objectClass,
+			&bsi->bsi_oc->bom_oc->soc_cname,
+			bsi->bsi_op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
 		entry_clean( bsi->bsi_e );
 		return rc;
