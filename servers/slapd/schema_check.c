@@ -40,22 +40,19 @@ entry_schema_check(
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "No objectClass for entry (%s)\n",
 		    e->e_dn, 0, 0 );
-		*text = "no objectclass attribute";
-		return oldattrs != NULL
-			? LDAP_OBJECT_CLASS_VIOLATION
-			: LDAP_NO_OBJECT_CLASS_MODS;
+		*text = "no objectClass attribute";
+		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
-
-	ret = LDAP_SUCCESS;
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): objectclass \"%s\" not defined\n",
+				"entry_check_schema(%s): objectClass \"%s\" not defined\n",
 				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
+			return LDAP_OBJECT_CLASS_VIOLATION;
 
 		} else {
 			char *s = oc_check_required( e, aoc->a_vals[i] );
@@ -65,25 +62,22 @@ entry_schema_check(
 					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
 					e->e_dn, aoc->a_vals[i]->bv_val, s );
 				*text = "missing required attribute";
-				ret = LDAP_OBJECT_CLASS_VIOLATION;
-				break;
+				return LDAP_OBJECT_CLASS_VIOLATION;
 			}
 
-			if( oc == slap_schema.si_oc_extensibleObject )
-			{
+			if( oc == slap_schema.si_oc_extensibleObject ) {
 				extensible=1;
 			}
 
 		}
 	}
 
-	if ( ret != LDAP_SUCCESS ) {
-	    return ret;
-	}
-
 	if( extensible ) {
 		return LDAP_SUCCESS;
 	}
+
+	/* optimistic */
+	ret = LDAP_SUCCESS;
 
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
@@ -110,7 +104,7 @@ oc_check_required( Entry *e, struct berval *ocname )
 	Attribute	*a;
 
 	Debug( LDAP_DEBUG_TRACE,
-	       "oc_check_required entry (%s), objectclass \"%s\"\n",
+	       "oc_check_required entry (%s), objectClass \"%s\"\n",
 	       e->e_dn, ocname->bv_val, 0 );
 
 	/* find global oc defn. it we don't know about it assume it's ok */
@@ -152,8 +146,8 @@ int oc_check_allowed(
 		"oc_check_allowed type \"%s\"\n",
 		at->sat_cname, 0, 0 );
 
-	/* always allow objectclass attribute */
-	if ( strcasecmp( at->sat_cname, "objectclass" ) == 0 ) {
+	/* always allow objectClass attribute */
+	if ( strcasecmp( at->sat_cname, "objectClass" ) == 0 ) {
 		return LDAP_SUCCESS;
 	}
 
