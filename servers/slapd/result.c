@@ -624,7 +624,7 @@ send_search_entry(
 )
 {
 	char		berbuf[256];
-	BerElement	*ber = (BerElement *)berbuf;;
+	BerElement	*ber = (BerElement *)berbuf;
 	Attribute	*a, *aa;
 	int		i, rc=-1, bytes;
 	char		*edn;
