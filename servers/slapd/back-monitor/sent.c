@@ -317,26 +317,26 @@ monitor_subsys_sent_update(
 	assert( mi );
 	assert( e );
 	
-	if ( strncasecmp( e->e_ndn, "CN=ENTRIES", 
-				sizeof("CN=ENTRIES")-1 ) == 0 ) {
+	if ( strncasecmp( e->e_ndn, "cn=entries", 
+				sizeof("cn=entries")-1 ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 		n = num_entries_sent;
 		ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 
-	} else if ( strncasecmp( e->e_ndn, "CN=REFERRALS", 
-				sizeof("CN=REFERRALS")-1 ) == 0 ) {
+	} else if ( strncasecmp( e->e_ndn, "cn=referrals", 
+				sizeof("cn=referrals")-1 ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 		n = num_refs_sent;
 		ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 
-	} else if ( strncasecmp( e->e_ndn, "CN=PDU", 
-				sizeof("CN=PDU")-1 ) == 0 ) {
+	} else if ( strncasecmp( e->e_ndn, "cn=pdu", 
+				sizeof("cn=pdu")-1 ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 		n = num_pdu_sent;
 		ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 
-	} else if ( strncasecmp( e->e_ndn, "CN=BYTES", 
-				sizeof("CN=BYTES")-1 ) == 0 ) {
+	} else if ( strncasecmp( e->e_ndn, "cn=bytes", 
+				sizeof("cn=bytes")-1 ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 		n = num_bytes_sent;
 		ldap_pvt_thread_mutex_unlock(&num_sent_mutex);

@@ -210,12 +210,12 @@ monitor_subsys_conn_update(
 	assert( mi );
 	assert( e );
 	
-	if ( strncasecmp( e->e_ndn, "CN=TOTAL", 
-				sizeof("CN=TOTAL")-1 ) == 0 ) {
+	if ( strncasecmp( e->e_ndn, "cn=total", 
+				sizeof("cn=total")-1 ) == 0 ) {
 		n = connections_nextid();
 
-	} else if ( strncasecmp( e->e_ndn, "CN=CURRENT", 
-				sizeof("CN=CURRENT")-1 ) == 0 ) {
+	} else if ( strncasecmp( e->e_ndn, "cn=current", 
+				sizeof("cn=current")-1 ) == 0 ) {
 		Connection	*c;
 		int		connindex;
 
