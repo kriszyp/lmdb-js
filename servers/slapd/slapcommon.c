@@ -69,7 +69,7 @@ usage( int tool, const char *progname )
 
 	case SLAPCAT:
 		options = "\n\t[-n databasenumber | -b suffix]"
-			" [-l ldiffile] [-a filter] [-m] [-k]\n";
+			" [-l ldiffile] [-a filter]\n";
 		break;
 
 	case SLAPDN:
@@ -229,7 +229,7 @@ slap_tool_init(
 			verbose++;
 			break;
 
-		case 'w':	/* write context csn on at the end */
+		case 'w':	/* write context csn at the end */
 			update_ctxcsn++;
 			break;
 
