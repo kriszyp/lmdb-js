@@ -237,14 +237,15 @@ static int test_mra_filter(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
+	/* no matching rule was provided, use the attribute's
+	   equality rule if it supports extensible matching. */
 	if( mra->ma_rule == NULL && 
 		mra->ma_desc->ad_type->sat_equality &&
 		mra->ma_desc->ad_type->sat_equality->smr_usage & SLAP_MR_EXT )
 	{
 		mra->ma_rule = mra->ma_desc->ad_type->sat_equality;
-	}
 
-	if( mra->ma_rule == NULL ) {
+	} else {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
@@ -255,7 +256,7 @@ static int test_mra_filter(
 	if( strcmp(mra->ma_rule->smr_syntax->ssyn_oid,
 		mra->ma_desc->ad_type->sat_syntax->ssyn_oid) != 0)
 	{
-		return LDAP_INVALID_SYNTAX;
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
 	for(a = attrs_find( e->e_attrs, mra->ma_desc );
