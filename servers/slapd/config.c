@@ -517,7 +517,7 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing feature(s) in \"requires <features>\" line\n",
+	    "%s: line %d: missing feature(s) in \"require <features>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
@@ -542,7 +542,7 @@ read_config( const char *fname )
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: unknown feature %s in \"requires <features>\" line\n",
+		    "%s: line %d: unknown feature %s in \"require <features>\" line\n",
 					    fname, lineno, cargv[i] );
 					return( 1 );
 				}
@@ -622,7 +622,7 @@ read_config( const char *fname )
 
 				} else {
 					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: unknown feature %s in \"requires <features>\" line\n",
+		    "%s: line %d: unknown factor %s in \"security <factors>\" line\n",
 					    fname, lineno, cargv[i] );
 					return( 1 );
 				}
