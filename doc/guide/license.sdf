@@ -1,8 +1,8 @@
 H1: The OpenLDAP Public License
 
-E:Version 1.4, 18 January 1999
-E:Copyright 1998-1999, The OpenLDAP Foundation.
-E:All Rights Reserved.
+Version 1.4, 18 January 1999
+Copyright 1998-1999, The OpenLDAP Foundation.
+All Rights Reserved.
 
 . Note: This license is derived from the {{I:Artistic License}}
 as distributed with the {{I:Perl Programming Language}}.
@@ -62,7 +62,7 @@ provided that you insert a prominent notice in each changed file
 stating how and when you changed that file, and provided that you
 do at least ONE of the following:
 
-&& a)
+.. a)
 place your modifications in the Public Domain or otherwise
 make them Freely Available, such as by posting said modifications
 to Usenet or an equivalent medium, or placing the modifications
@@ -70,41 +70,41 @@ on a major archive site such as uunet.uu.net, or by allowing
 the Copyright Holder to include your modifications in the
 Standard Version of the Package.
 
-&& b)
+.. b)
 use the modified Package only within your corporation or
 organization.
 
-&& c)
+.. c)
 rename any non-standard executables so the names do not
 conflict with standard executables, which must also be provided,
 and provide a separate manual page for each non-standard
 executable that clearly documents how it differs from the
 Standard Version.
 
-&& d)
+.. d)
 make other distribution arrangements with the Copyright Holder.
 
 + You may distribute the programs of this Package in object code
 or executable form, provided that you do at least ONE of the
 following:
 
-&& a)
+.. a)
 distribute a Standard Version of the executables and library
 files, together with instructions (in the manual page or
 equivalent) on where to get the Standard Version.
 
-&& b)
+.. b)
 accompany the distribution with the machine-readable source
 of the Package with your modifications.
 
-&& c)
+.. c)
 accompany any non-standard executables with their corresponding
 Standard Version executables, giving the non-standard executables
 non-standard names, and clearly documenting the differences in
 manual pages (or equivalent), together with instructions on
 where to get the Standard Version.
 
-&& d) 
+.. d) 
 make other distribution arrangements with the Copyright Holder.
 
 + You may charge a reasonable copying fee for any distribution of
