@@ -70,12 +70,14 @@ do_modify(
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
+
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
+
 
 	/* collect modifications & save for later */
 
@@ -103,6 +105,7 @@ do_modify(
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: modify/add operation (%ld) requires values\n",
 					(long) mop, 0, 0 );
+
 				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 					NULL, "modify/add operation requires values",
 					NULL, NULL );
@@ -120,6 +123,7 @@ do_modify(
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: invalid modify operation (%ld)\n",
 					(long) mop, 0, 0 );
+
 				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 					NULL, "unrecognized modify operation", NULL, NULL );
 				rc = LDAP_PROTOCOL_ERROR;
@@ -134,6 +138,7 @@ do_modify(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
+
 		goto cleanup;
 	}
 
@@ -141,6 +146,7 @@ do_modify(
 
 	if(	dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
+
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
@@ -148,6 +154,7 @@ do_modify(
 
 	if( ndn == '\0' ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
+
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "modify upon the root DSE not supported", NULL, NULL );
 		goto cleanup;
@@ -155,11 +162,13 @@ do_modify(
 
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
+
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->ml_op == LDAP_MOD_ADD
 				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
 					? "delete" : "replace"), tmp->ml_type, 0 );
+
 	}
 #endif
 
@@ -288,7 +297,8 @@ int slap_modlist2mods(
 	int update,
 	Modifications **mods,
 	const char **text,
-	char *textbuf, size_t textlen )
+	char *textbuf,
+	size_t textlen )
 {
 	int rc;
 	Modifications **modtail = mods;
@@ -308,7 +318,8 @@ int slap_modlist2mods(
 
 		if( rc != LDAP_SUCCESS ) {
 			slap_mods_free( mod );
-			snprintf( textbuf, textlen, "%s: %s", ml->ml_type, text );
+			snprintf( textbuf, textlen, "%s: %s",
+				ml->ml_type, *text );
 			*text = textbuf;
 			return rc;
 		}
