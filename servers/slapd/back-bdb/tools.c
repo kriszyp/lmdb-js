@@ -107,7 +107,7 @@ ID bdb_tool_entry_next(
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
 	int rc;
-	Entry *e;
+	Entry *e = NULL;
 	struct berval bv;
 
 	assert( be != NULL );

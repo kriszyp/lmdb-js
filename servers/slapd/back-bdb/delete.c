@@ -126,6 +126,8 @@ retry:	/* transaction retry */
 		eip = ei->bei_parent;
 		bdb_cache_find_id( op->o_bd, ltid, eip->bei_id, &eip,
 			0, locker, &plock, op->o_tmpmemctx );
+	} else {
+		matched = ei->bei_e;
 	}
 	if ( eip ) {
 		p = eip->bei_e;

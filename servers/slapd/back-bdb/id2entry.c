@@ -232,7 +232,7 @@ int bdb_entry_get(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct bdb_op_info *boi = NULL;
 	DB_TXN *txn = NULL;
-	Entry *e;
+	Entry *e = NULL;
 	EntryInfo *ei;
 	int	rc;
 	const char *at_name = at->ad_cname.bv_val;
