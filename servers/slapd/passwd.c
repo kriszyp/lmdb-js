@@ -20,28 +20,43 @@
 
 int passwd_extop(
 	SLAP_EXTOP_CALLBACK_FN ext_callback,
-	Connection *conn, Operation *op, char *oid,
+	Connection *conn, Operation *op,
+	char *reqoid,
 	struct berval *reqdata,
+	char **rspoid,
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
-	char **text )
+	char **text,
+	struct berval ***refs )
 {
 	int rc;
 
-	assert( oid != NULL );
-	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, oid ) == 0 );
+	assert( reqoid != NULL );
+	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
 	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
 		*text = ch_strdup("only authenicated users may change passwords");
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( conn->c_authz_backend != NULL &&
-		conn->c_authz_backend->be_extended )
+	if( conn->c_authz_backend != NULL && conn->c_authz_backend->be_extended )
 	{
-		rc = conn->c_authz_backend->be_extended(
-			conn->c_authz_backend,
-			conn, op, oid, reqdata, rspdata, rspctrls, text );
+		if( global_readonly || conn->c_authz_backend->be_readonly ) {
+			*text = ch_strdup("authorization database is read only");
+			rc = LDAP_UNWILLING_TO_PERFORM;
+
+		} else if( conn->c_authz_backend->be_update_ndn != NULL ) {
+			/* we SHOULD return a referral in this case */
+			*refs = conn->c_authz_backend->be_update_refs;
+			rc = LDAP_REFERRAL;
+
+		} else {
+			rc = conn->c_authz_backend->be_extended(
+				conn->c_authz_backend, conn, op,
+				reqoid, reqdata,
+				rspoid, rspdata, rspctrls,
+				text, refs );
+		}
 
 	} else {
 		*text = ch_strdup("operation not supported for current user");

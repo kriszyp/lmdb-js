@@ -86,19 +86,20 @@ do_extended(
 )
 {
 	int rc = LDAP_SUCCESS;
-	char* oid;
+	char* reqoid;
 	struct berval *reqdata;
 	ber_tag_t tag;
 	ber_len_t len;
 	extop_list_t *ext;
 	char *text;
 	struct berval **refs;
+	char *rspoid;
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
 
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 
-	oid = NULL;
+	reqoid = NULL;
 	reqdata = NULL;
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
@@ -110,7 +111,7 @@ do_extended(
 		goto done;
 	}
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &oid ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -118,9 +119,9 @@ do_extended(
 		goto done;
 	}
 
-	if( !(ext = find_extop(supp_ext_list, oid)) ) {
+	if( !(ext = find_extop(supp_ext_list, reqoid)) ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
-			oid, 0 ,0 );
+			reqoid, 0 ,0 );
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "unsupported extended operation", NULL, NULL );
 		goto done;
@@ -143,22 +144,29 @@ do_extended(
 		return rc;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", oid, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid, 0 ,0 );
 
+	rspoid = NULL;
 	rspdata = NULL;
 	rspctrls = NULL;
 	text = NULL;
+	refs = NULL;
 
 	rc = (ext->ext_main)( extop_callback, conn, op,
-		oid, reqdata, &rspdata, &rspctrls, &text );
+		reqoid, reqdata,
+		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
-		refs = NULL;
-		if (rc == LDAP_REFERRAL)
+		if (rc == LDAP_REFERRAL) {
 			refs = default_referral;
+		}
 
-		send_ldap_extended( conn, op, rc, NULL, text,
-			refs, oid, rspdata, rspctrls );
+		send_ldap_extended( conn, op, rc, NULL, text, refs,
+			rspoid, rspdata, rspctrls );
+	}
+
+	if ( rspoid != NULL ) {
+		free( rspoid );
 	}
 
 	if ( rspdata != NULL )
@@ -171,8 +179,8 @@ done:
 	if ( reqdata != NULL ) {
 		ber_bvfree( reqdata );
 	}
-	if ( oid != NULL ) {
-		free( oid );
+	if ( reqoid != NULL ) {
+		free( reqoid );
 	}
 
 	return rc;

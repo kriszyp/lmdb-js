@@ -256,11 +256,13 @@ typedef int (*SLAP_EXTOP_CALLBACK_FN) LDAP_P((
 typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * oid,
+	char * reqoid,
 	struct berval * reqdata,
+	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
-	char ** text ));
+	char ** text,
+	struct berval *** refs ));
 
 typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, char *oid, int blen ));
@@ -377,6 +379,7 @@ LIBSLAPD_F (void) send_ldap_sasl LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text,
+	struct berval **refs,
 	LDAPControl **ctrls,
 	struct berval *cred ));
 
@@ -388,6 +391,11 @@ LIBSLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text, struct berval **refs,
+	char *rspoid, struct berval *rspdata,
+	LDAPControl **ctrls ));
+
+LIBSLAPD_F (void) send_ldap_partial LDAP_P((
+	Connection *conn, Operation *op,
 	char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
@@ -465,11 +473,13 @@ LIBSLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char deli
 LIBSLAPD_F (int) starttls_extop LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * oid,
+	char * reqoid,
 	struct berval * reqdata,
+	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl ***rspctrls,
-	char ** text ));
+	char ** text,
+	struct berval *** refs ));
 
 
 /*
@@ -506,11 +516,13 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 LIBSLAPD_F (int) passwd_extop LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * oid,
+	char * reqoid,
 	struct berval * reqdata,
+	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
-	char ** text ));
+	char ** text,
+	struct berval *** refs ));
 
 LIBSLAPD_F (int) slap_passwd_check(
 	Attribute			*attr,

@@ -29,20 +29,23 @@ ldbm_back_extended(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-	char		*oid,
+	char		*reqoid,
     struct berval	*reqdata,
+	char		**rspoid,
     struct berval	**rspdata,
 	LDAPControl *** rspctrls,
-	char**	text
+	char**	text,
+    struct berval *** refs 
 )
 {
 	int i;
 
 	for( i=0; exop_table[i].oid != NULL; i++ ) {
-		if( strcmp( exop_table[i].oid, oid ) == 0 ) {
+		if( strcmp( exop_table[i].oid, reqoid ) == 0 ) {
 			return (exop_table[i].extended)(
-				be, conn, op, oid,
-				reqdata, rspdata, rspctrls, text );
+				be, conn, op,
+				reqoid, reqdata,
+				rspoid, rspdata, rspctrls, text, refs );
 		}
 	}
 

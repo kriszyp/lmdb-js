@@ -148,11 +148,13 @@ int index_change_values LDAP_P(( Backend *be,
  */
 extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *oid,
+	char *reqoid,
 	struct berval *reqdata,
+	char **rspoid,
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
-	char **text ));
+	char **text,
+	struct berval *** refs ));
  
 
 /*

@@ -21,11 +21,13 @@ ldbm_back_exop_passwd(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-	char		*oid,
+	char		*reqoid,
     struct berval	*reqdata,
+	char		**rspoid,
     struct berval	**rspdata,
 	LDAPControl *** rspctrls,
-	char**	text
+	char**	text,
+    struct berval	*** refs
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
@@ -38,8 +40,8 @@ ldbm_back_exop_passwd(
 
 	char *dn;
 
-	assert( oid != NULL );
-	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, oid ) == 0 );
+	assert( reqoid != NULL );
+	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
 	rc = slap_passwd_parse( reqdata,
 		&id, NULL, &new, text );

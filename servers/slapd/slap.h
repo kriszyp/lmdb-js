@@ -535,11 +535,13 @@ typedef int (*SLAP_EXTENDED_FN) LDAP_P((
     Backend		*be,
     struct slap_conn		*conn,
     struct slap_op		*op,
-	char		*oid,
+	char		*reqoid,
     struct berval * reqdata,
+	char		**rspoid,
     struct berval ** rspdata,
-	LDAPControl ***rspctrls,
-	char**	text ));
+	LDAPControl *** rspctrls,
+	char **	text,
+	struct berval *** refs ));
 
 struct slap_backend_info {
 	char	*bi_type;	/* type of backend */

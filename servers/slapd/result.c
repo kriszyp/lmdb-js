@@ -457,6 +457,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+	struct berval **ref,
 	LDAPControl **ctrls,
 	struct berval *cred
 )
@@ -482,7 +483,7 @@ send_ldap_sasl(
 #endif
 
 	send_ldap_response( conn, op, tag, msgid,
-		err, matched, text, NULL,
+		err, matched, text, ref,
 		NULL, NULL, cred, ctrls  );
 }
 

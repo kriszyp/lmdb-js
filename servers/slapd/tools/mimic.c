@@ -62,6 +62,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+	struct berval **refs,
 	LDAPControl **ctrls,
 	struct berval *cred
 )
