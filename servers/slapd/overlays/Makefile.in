@@ -19,6 +19,7 @@ SRCS = overlays.c \
 	dyngroup.c \
 	lastmod.c \
 	pcache.c \
+	ppolicy.c \
 	refint.c \
 	unique.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c
@@ -28,6 +29,7 @@ OBJS = overlays.lo \
 	dyngroup.lo \
 	lastmod.lo \
 	pcache.lo \
+	ppolicy.lo \
 	refint.lo \
 	unique.lo \
 	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
@@ -61,6 +63,9 @@ lastmod.la : lastmod.lo $(@PLAT@_LINK_LIBS)
 
 pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)
+
+ppolicy.la : ppolicy.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ ppolicy.lo version.lo $(LINK_LIBS)
 
 refint.la : refint.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
