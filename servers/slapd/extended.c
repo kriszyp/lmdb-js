@@ -107,6 +107,7 @@ do_extended(
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 #endif
+
 	if( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -200,7 +201,7 @@ do_extended(
 	refs = NULL;
 
 	rc = (ext->ext_main)( conn, op,
-		reqoid.bv_val, &reqdata,
+		reqoid.bv_val, reqdata.bv_val ? &reqdata : NULL,
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
@@ -294,7 +295,7 @@ find_extop( struct extop_list *list, struct berval *oid )
 }
 
 
-int
+static int
 whoami_extop (
 	Connection *conn,
 	Operation *op,
