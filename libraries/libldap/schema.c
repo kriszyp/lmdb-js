@@ -233,7 +233,7 @@ print_noidlen(safe_string *ss, char *s, int l)
 }
 
 char *
-ldap_syntax2str( LDAP_SYNTAX * syn )
+ldap_syntax2str( const LDAP_SYNTAX * syn )
 {
 	safe_string * ss;
 	char * retstring;
@@ -262,7 +262,7 @@ ldap_syntax2str( LDAP_SYNTAX * syn )
 }
 
 char *
-ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
+ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 {
 	safe_string * ss;
 	char * retstring;
@@ -338,7 +338,7 @@ ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 }
 
 char *
-ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
+ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 {
 	safe_string * ss;
 	char * retstring;
@@ -476,11 +476,11 @@ struct token {
 };
 
 static int
-get_token(char ** sp, char ** token_val)
+get_token(const char ** sp, char ** token_val)
 {
 	int kind;
-	char * p;
-	char * q;
+	const char * p;
+	const char * q;
 	char * res;
 
 	switch (**sp) {
@@ -545,7 +545,7 @@ get_token(char ** sp, char ** token_val)
 
 /* Gobble optional whitespace */
 static void
-parse_whsp(char **sp)
+parse_whsp(const char **sp)
 {
 	while (isspace(**sp))
 		(*sp)++;
@@ -561,10 +561,10 @@ parse_whsp(char **sp)
 
 /* Parse a sequence of dot-separated decimal strings */
 static char *
-parse_numericoid(char **sp, int *code)
+parse_numericoid(const char **sp, int *code)
 {
 	char * res;
-	char * start = *sp;
+	const char * start = *sp;
 	int len;
 
 	/* Each iteration of this loop gets one decimal string */
@@ -599,7 +599,7 @@ parse_numericoid(char **sp, int *code)
 
 /* Parse a qdescr or a list of them enclosed in () */
 static char **
-parse_qdescrs(char **sp, int *code)
+parse_qdescrs(const char **sp, int *code)
 {
 	char ** res;
 	char ** res1;
@@ -665,7 +665,7 @@ parse_qdescrs(char **sp, int *code)
 
 /* Parse a woid */
 static char *
-parse_woid(char **sp, int *code)
+parse_woid(const char **sp, int *code)
 {
 	char * sval;
 	int kind;
@@ -682,7 +682,7 @@ parse_woid(char **sp, int *code)
 
 /* Parse a noidlen */
 static char *
-parse_noidlen(char **sp, int *code, int *len, int be_liberal)
+parse_noidlen(const char **sp, int *code, int *len, int be_liberal)
 {
 	char * sval;
 	int kind;
@@ -731,7 +731,7 @@ parse_noidlen(char **sp, int *code, int *len, int be_liberal)
 
 /* Parse a woid or a $-separated list of them enclosed in () */
 static char **
-parse_oids(char **sp, int *code, int be_liberal)
+parse_oids(const char **sp, int *code, const int be_liberal)
 {
 	char ** res;
 	char ** res1;
@@ -823,7 +823,7 @@ parse_oids(char **sp, int *code, int be_liberal)
 }
 
 void
-ldap_syntax_free(LDAP_SYNTAX * syn)
+ldap_syntax_free( LDAP_SYNTAX * syn )
 {
 	LDAP_FREE(syn->syn_oid);
 	LDAP_FREE(syn->syn_desc);
@@ -831,10 +831,10 @@ ldap_syntax_free(LDAP_SYNTAX * syn)
 }
 
 LDAP_SYNTAX *
-ldap_str2syntax( char * s, int * code, char ** errp )
+ldap_str2syntax( const char * s, int * code, const char ** errp )
 {
 	int kind;
-	char * ss = s;
+	const char * ss = s;
 	char * sval;
 	int seen_desc = 0;
 	LDAP_SYNTAX * syn;
@@ -942,10 +942,10 @@ ldap_attributetype_free(LDAP_ATTRIBUTE_TYPE * at)
 }
 
 LDAP_ATTRIBUTE_TYPE *
-ldap_str2attributetype( char * s, int * code, char ** errp )
+ldap_str2attributetype( const char * s, int * code, const char ** errp )
 {
 	int kind;
-	char * ss = s;
+	const char * ss = s;
 	char * sval;
 	int be_liberal = 1;	/* Future additional argument */
 	int seen_name = 0;
@@ -962,7 +962,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	int seen_may = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
 	char ** ssdummy;
-	char * savepos;
+	const char * savepos;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
@@ -1258,10 +1258,10 @@ ldap_objectclass_free(LDAP_OBJECT_CLASS * oc)
 }
 
 LDAP_OBJECT_CLASS *
-ldap_str2objectclass( char * s, int * code, char ** errp )
+ldap_str2objectclass( const char * s, int * code, const char ** errp )
 {
 	int kind;
-	char * ss = s;
+	const char * ss = s;
 	char * sval;
 	int be_liberal = 1;	/* Future additional argument */
 	int seen_name = 0;
@@ -1273,7 +1273,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	int seen_may = 0;
 	LDAP_OBJECT_CLASS * oc;
 	char ** ssdummy;
-	char * savepos;
+	const char * savepos;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
