@@ -1024,6 +1024,18 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(char **)arg = tls_opt_randfile ?
 			LDAP_STRDUP( tls_opt_randfile ) : NULL;
 		break;
+	case LDAP_OPT_X_TLS_SSL_CTX: {
+		void *retval = 0;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				retval = ldap_pvt_tls_sb_ctx( sb );
+			}
+		}
+		*(void **)arg = retval;
+		break;
+	}
 	default:
 		return -1;
 	}
