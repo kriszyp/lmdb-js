@@ -997,8 +997,7 @@ backend_group(
 	if ( !dn_match( &target->e_nname, gr_ndn ) ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend( gr_ndn, 0,
-			(be->be_flags & SLAP_BFLAG_GLUE_INSTANCE));
+		be = select_backend( gr_ndn, 0, 0 );
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;
@@ -1057,8 +1056,7 @@ backend_attribute(
 	if ( target == NULL || !dn_match( &target->e_nname, edn ) ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend( edn, 0,
-			(be->be_flags & SLAP_BFLAG_GLUE_INSTANCE));
+		be = select_backend( edn, 0, 0 );
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;
