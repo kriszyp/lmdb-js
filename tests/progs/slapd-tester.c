@@ -60,6 +60,7 @@ int
 main( int argc, char **argv )
 {
 	int		i, j;
+	char		*uri = NULL;
 	char		*host = "localhost";
 	char		*port = NULL;
 	char		*manager = NULL;
@@ -88,8 +89,12 @@ main( int argc, char **argv )
 	int			aanum;
 	char		acmd[MAXPATHLEN];
 
-	while ( (i = getopt( argc, argv, "h:p:D:w:b:d:j:l:P:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:b:d:j:l:P:" )) != EOF ) {
 		switch( i ) {
+			case 'H':		/* slapd uri */
+				uri = strdup( optarg );
+			break;
+				
 			case 'h':		/* slapd host */
 				host = strdup( optarg );
 			break;
@@ -132,7 +137,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	if (( dirname == NULL ) || ( sbase == NULL ) || ( port == NULL ) ||
+	if (( dirname == NULL ) || ( sbase == NULL ) || ( port == NULL && uri == NULL ) ||
 			( manager == NULL ) || ( passwd == NULL ) || ( progdir == NULL ))
 		usage( argv[0] );
 
@@ -184,10 +189,15 @@ main( int argc, char **argv )
 	snprintf( scmd, sizeof scmd, "%s" LDAP_DIRSEP SEARCHCMD,
 		progdir );
 	sargs[sanum++] = scmd;
-	sargs[sanum++] = "-h";
-	sargs[sanum++] = host;
-	sargs[sanum++] = "-p";
-	sargs[sanum++] = port;
+	if ( uri ) {
+		sargs[sanum++] = "-H";
+		sargs[sanum++] = uri;
+	} else {
+		sargs[sanum++] = "-h";
+		sargs[sanum++] = host;
+		sargs[sanum++] = "-p";
+		sargs[sanum++] = port;
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = sbase;
 	sargs[sanum++] = "-l";
@@ -204,10 +214,15 @@ main( int argc, char **argv )
 	snprintf( rcmd, sizeof rcmd, "%s" LDAP_DIRSEP READCMD,
 		progdir );
 	rargs[ranum++] = rcmd;
-	rargs[ranum++] = "-h";
-	rargs[ranum++] = host;
-	rargs[ranum++] = "-p";
-	rargs[ranum++] = port;
+	if ( uri ) {
+		rargs[ranum++] = "-H";
+		rargs[ranum++] = uri;
+	} else {
+		rargs[ranum++] = "-h";
+		rargs[ranum++] = host;
+		rargs[ranum++] = "-p";
+		rargs[ranum++] = port;
+	}
 	rargs[ranum++] = "-l";
 	rargs[ranum++] = loops;
 	rargs[ranum++] = "-e";
@@ -222,10 +237,15 @@ main( int argc, char **argv )
 	snprintf( acmd, sizeof acmd, "%s" LDAP_DIRSEP ADDCMD,
 		progdir );
 	aargs[aanum++] = acmd;
-	aargs[aanum++] = "-h";
-	aargs[aanum++] = host;
-	aargs[aanum++] = "-p";
-	aargs[aanum++] = port;
+	if ( uri ) {
+		aargs[aanum++] = "-H";
+		aargs[aanum++] = uri;
+	} else {
+		aargs[aanum++] = "-h";
+		aargs[aanum++] = host;
+		aargs[aanum++] = "-p";
+		aargs[aanum++] = port;
+	}
 	aargs[aanum++] = "-D";
 	aargs[aanum++] = manager;
 	aargs[aanum++] = "-w";
