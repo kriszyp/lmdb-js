@@ -167,7 +167,7 @@ LDAP_SLAPD_F( int )	backend_check_restrictions LDAP_P((
 	BackendDB *be,
 	Connection *conn,
 	Operation *op,
-	const char *extoid,
+	const void *opdata,
 	const char **text ));
 
 LDAP_SLAPD_F( int )	backend_check_referrals LDAP_P((

@@ -197,6 +197,28 @@ do_search(
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
+	manageDSAit = get_manageDSAit( op );
+
+	if( scope != LDAP_SCOPE_BASE && nbase[0] == '\0' &&
+		default_search_nbase != NULL )
+	{
+		ch_free( base );
+		ch_free( nbase );
+		base = ch_strdup( default_search_base );
+		nbase = ch_strdup( default_search_nbase );
+	}
+
+	/* Select backend */
+	be = select_backend( nbase, manageDSAit );
+
+	/* check restrictions */
+	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto return_results;
+	}
+
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
@@ -244,32 +266,11 @@ do_search(
 		}
 	}
 
-	if( nbase[0] == '\0' && default_search_nbase != NULL ) {
-		ch_free( base );
-		ch_free( nbase );
-		base = ch_strdup( default_search_base );
-		nbase = ch_strdup( default_search_nbase );
-	}
-
-	manageDSAit = get_manageDSAit( op );
-
-	/*
-	 * We could be serving multiple database backends.  Select the
-	 * appropriate one, or send a referral to our "referral server"
-	 * if we don't hold it.
-	 */
-	if ( (be = select_backend( nbase, manageDSAit )) == NULL ) {
+	if ( be == NULL ) {
+		/* no backend, return a referral (or noSuchObject) */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 
-		goto return_results;
-	}
-
-	/* check restrictions */
-	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
 		goto return_results;
 	}
 

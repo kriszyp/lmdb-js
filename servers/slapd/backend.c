@@ -709,7 +709,7 @@ backend_check_restrictions(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const char *extoid,
+	const void *opdata,
 	const char **text )
 {
 	int rc;
@@ -773,7 +773,9 @@ backend_check_restrictions(
 		return LDAP_OTHER;
 	}
 
-	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) ) ) {
+	if ( op->o_tag != LDAP_REQ_EXTENDED
+		|| strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) )
+	{
 		/* these checks don't apply to StartTLS */
 
 		if( op->o_tag == LDAP_REQ_EXTENDED ) {
@@ -818,10 +820,11 @@ backend_check_restrictions(
 		}
 	}
 
-	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) )
-		|| op->o_tag == LDAP_REQ_BIND )
+	if ( op->o_tag != LDAP_REQ_BIND &&
+		( op->o_tag != LDAP_REQ_EXTENDED ||
+		  strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) ) )
 	{
-		/* these checks don't apply to StartTLS or Bind */
+		/* these checks don't apply to Bind or StartTLS */
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
