@@ -216,10 +216,8 @@ OL_ARG_WITH(perl_module,[    --with-perl-module	  module type static|dynamic], s
 OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
 OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
 	[static dynamic])
-dnl OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
-dnl OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static, [static dynamic])
-ol_enable_sql=${ol_enable_sql-no}
-ol_with_sql_module=${ol_enable_sql-static}
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
+OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static, [static dynamic])
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
