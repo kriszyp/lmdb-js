@@ -30,7 +30,7 @@ static sasl_security_properties_t sasl_secprops;
 
 
 static int
-sasl_cb_log(
+slap_sasl_log(
 	void *context,
 	int priority,
 	const char *message) 
@@ -76,7 +76,8 @@ slap_sasl_authorize(
 	const char **errstr)
 {
 	Connection *conn = context;
-	char *canon = NULL;
+
+	*user = NULL;
 
 	if ( authcid == NULL || *authcid == '\0' ) {
 		*errstr = "empty authentication identity";
@@ -91,17 +92,20 @@ slap_sasl_authorize(
 	if ( authzid == NULL || *authzid == '\0' ||
 		strcmp( authcid, authzid ) == 0 )
 	{
+		char* cuser;
 		size_t len = sizeof("u:") + strlen( authcid );
-		canon = ch_malloc( len );
-		strcpy( canon, "u:" );
-		strcpy( &canon[sizeof("u:")-1], authcid );
 
-		*user = canon;
+		cuser = ch_malloc( len );
+		strcpy( cuser, "u:" );
+		strcpy( &cuser[sizeof("u:")-1], authcid );
+
+		*user = cuser;
 
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 			"\"%s\" as \"%s\"\n", 
 			(long) (conn ? conn->c_connid : -1),
-			authcid, canon );
+			authcid, cuser );
+
 		return SASL_OK;
 	}
 
@@ -111,7 +115,7 @@ slap_sasl_authorize(
 		authcid, authzid );
 
 	*errstr = "no proxy policy";
-    return SASL_BADAUTH;
+    return SASL_NOAUTHZ;
 }
 
 
@@ -159,7 +163,7 @@ int slap_sasl_init( void )
 	int rc;
 	sasl_conn_t *server = NULL;
 	static sasl_callback_t server_callbacks[] = {
-		{ SASL_CB_LOG, &sasl_cb_log, NULL },
+		{ SASL_CB_LOG, &slap_sasl_log, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 
@@ -241,7 +245,7 @@ int slap_sasl_open( Connection *conn )
 	conn->c_sasl_extra = session_callbacks;
 
 	session_callbacks[0].id = SASL_CB_LOG;
-	session_callbacks[0].proc = &sasl_cb_log;
+	session_callbacks[0].proc = &slap_sasl_log;
 	session_callbacks[0].context = conn;
 
 	session_callbacks[1].id = SASL_CB_PROXY_POLICY;
