@@ -84,7 +84,6 @@ bdb_search(
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
-	struct bdb_op_info opinfo;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_back_search\n", 0, 0, 0 );
@@ -135,12 +134,6 @@ bdb_search(
 			NULL, "internal error", NULL, NULL );
 		return rc;
 	}
-
-	opinfo.boi_bdb = be;
-	opinfo.boi_txn = NULL;
-	opinfo.boi_locker = locker;
-	opinfo.boi_err = 0;
-	op->o_private = &opinfo;
 
 	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
