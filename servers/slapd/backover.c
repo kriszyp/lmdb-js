@@ -148,7 +148,25 @@ over_db_close(
 	BackendDB *be
 )
 {
-	return over_db_func( be, db_close );
+	slap_overinfo *oi = be->bd_info->bi_private;
+	slap_overinst *on = oi->oi_list;
+	BackendInfo *bi_orig = be->bd_info;
+	int rc = 0;
+
+	for (; on && rc == 0; on=on->on_next) {
+		be->bd_info = &on->on_bi;
+		if ( be->bd_info->bi_db_close ) {
+			rc = be->bd_info->bi_db_close( be );
+		}
+	}
+
+	if ( be->bd_info->bi_db_close ) {
+		be->bd_info = oi->oi_orig;
+		rc = be->bd_info->bi_db_close( be );
+	}
+
+	be->bd_info = bi_orig;
+	return rc;
 }
 
 static int
