@@ -271,7 +271,7 @@ bdb_show_key(
 	DBT		*key,
 	char		*buf )
 {
-	if ( key->size == sizeof( ID ) ) {
+	if ( key->size == 4 /* LUTIL_HASH_BYTES */ ) {
 		unsigned char *c = key->data;
 		sprintf( buf, "[%02x%02x%02x%02x]", c[0], c[1], c[2], c[3] );
 		return buf;
