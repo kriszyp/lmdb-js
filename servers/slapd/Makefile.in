@@ -58,7 +58,7 @@ all-local-srv: all-cffiles
 NT_SLAPD_DEPENDS = slapd.exp
 NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) version.o
 
-UNIX_SLAPD_DEPENDS = libbackends.a version.o $(SLAP_L)
+UNIX_SLAPD_DEPENDS = libbackends.a version.o $(SLAPD_L)
 UNIX_SLAPD_OBJECTS = $(OBJS) version.o
 
 SLAPD_DEPENDS = $(@PLAT@_SLAPD_DEPENDS)
