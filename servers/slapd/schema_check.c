@@ -52,6 +52,7 @@ entry_schema_check(
 			Debug( LDAP_DEBUG_ANY,
 				"entry_check_schema(%s): objectClass \"%s\" not defined\n",
 				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
+			*text = "unrecognized objectclass";
 			return LDAP_OBJECT_CLASS_VIOLATION;
 
 		} else {
