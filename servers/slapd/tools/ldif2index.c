@@ -8,11 +8,11 @@
 #include "../slap.h"
 
 #include "ldapconfig.h"
+#include "ldif.h"
 
 #define MAXARGS      		100
 
 extern void	attr_index_config();
-extern char	*str_getline();
 extern char	*attr_normalize();
 extern int	nbackends;
 extern Backend	*backends;

@@ -9,15 +9,14 @@
 #include "../back-ldbm/back-ldbm.h"
 
 #include "ldapconfig.h"
+#include "ldif.h"
 
 #define MAXARGS      		100
 
 extern struct dbcache	*ldbm_cache_open();
 extern void		attr_index_config();
-extern char		*str_getline();
 extern char		*dn_parent();
 extern char		*dn_normalize_case();
-extern int		strcasecmp();
 extern int		nbackends;
 extern Backend		*backends;
 extern int		ldap_debug;
@@ -42,8 +41,6 @@ pthread_mutex_t	currenttime_mutex;
 pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
-
-static int	make_index();
 
 static char	*tailorfile;
 static char	*inputfile;

@@ -10,17 +10,15 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 #include "ldapconfig.h"
+#include "ldif.h"
 
 #define INDEXCMD		"ldif2index"
 #define ID2ENTRYCMD		"ldif2id2entry"
 #define ID2CHILDRENCMD		"ldif2id2children"
 #define MAXARGS      		100
 
-extern void		attr_index_config();
-extern char		*str_getline();
-extern int		strcasecmp();
 extern int		nbackends;
-extern Backend		*backends;
+extern Backend	*backends;
 extern int		ldap_debug;
 
 int		ldap_debug;
@@ -43,8 +41,8 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
-static void	fork_child();
-static void	wait4kids();
+static void fork_child( char *prog, char *args[] );
+static void	wait4kids( int nkidval );
 
 static char	*indexcmd;
 static char	*tailorfile;
