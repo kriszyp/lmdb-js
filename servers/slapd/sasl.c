@@ -401,7 +401,7 @@ int slap_sasl_bind(
 
 	Debug(LDAP_DEBUG_ARGS,
 		"==> sasl_bind: dn=\"%s\" mech=%s cred->bv_len=%d\n",
-		dn, mech, cred ? cred->bv_len : 0 );
+		dn, mech ? mech : "<continuing>", cred ? cred->bv_len : 0 );
 
 	if( ctx == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNAVAILABLE,
