@@ -61,7 +61,7 @@ int bdb_tool_entry_close(
 		unsigned i;
 		fprintf( stderr, "Error, entries missing!\n");
 		for (i=0; i<nholes; i++) {
-			fprintf(stderr, "  entry %d: %s\n",
+			fprintf(stderr, "  entry %ld: %s\n",
 				holes[i].id, holes[i].dn.bv_val, 0);
 		}
 		return -1;

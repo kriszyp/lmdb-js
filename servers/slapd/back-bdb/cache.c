@@ -67,11 +67,11 @@ bdb_cache_entry_db_relock(
 	if (rc) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_relock: entry %d, rw %d, rc %d\n",
+			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_cache_entry_db_relock: entry %d, rw %d, rc %d\n",
+			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
 #endif
 	} else {
@@ -106,11 +106,11 @@ bdb_cache_entry_db_lock
 	if (rc) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_lock: entry %d, rw %d, rc %d\n",
+			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_cache_entry_db_lock: entry %d, rw %d, rc %d\n",
+			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
 #endif
 	}
