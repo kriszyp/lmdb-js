@@ -1493,7 +1493,7 @@ slapd_daemon_task(
 			socklen_t len = sizeof(from);
 			long id;
 			slap_ssf_t ssf = 0;
-			char *authid = NULL;
+			struct berval authid = { 0, NULL };
 #ifdef SLAPD_RLOOKUPS
 			char hbuf[NI_MAXHOST];
 #endif
@@ -1501,11 +1501,12 @@ slapd_daemon_task(
 			char	*dnsname = NULL;
 			char	*peeraddr = NULL;
 #ifdef LDAP_PF_LOCAL
-			char	peername[MAXPATHLEN + sizeof("PATH=")];
+			char peername[MAXPATHLEN + sizeof("PATH=")];
 #elif defined(LDAP_PF_INET6)
-			char	peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
+			char peername[sizeof(
+				"IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
 #else
-			char	peername[sizeof("IP=255.255.255.255:65336")];
+			char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
 
 			peername[0] = '\0';
@@ -1523,10 +1524,10 @@ slapd_daemon_task(
 				 * of the slapd.
 				 */
 				if ( slap_listeners[l]->sl_is_udp < 2 ) {
-				    id = connection_init(
-					slap_listeners[l]->sl_sd,
-				    	slap_listeners[l], "", "",
-					CONN_IS_UDP, ssf, authid );
+					id = connection_init(
+						slap_listeners[l]->sl_sd,
+						slap_listeners[l], "", "",
+						CONN_IS_UDP, ssf, NULL );
 				    slap_listeners[l]->sl_is_udp++;
 				}
 				continue;
@@ -1669,10 +1670,11 @@ slapd_daemon_task(
 					gid_t gid;
 
 					if( getpeereid( s, &uid, &gid ) == 0 ) {
-						authid = ch_malloc(
+						authid.bv_val = ch_malloc(
 							sizeof("uidnumber=4294967295+gidnumber=4294967295,"
-								"cn=peercred,cn=external,cn=auth"));
-						sprintf(authid, "uidnumber=%d+gidnumber=%d,"
+							"cn=peercred,cn=external,cn=auth"));
+						authid.bv_len = sprintf( authid.bv_val,
+							"uidnumber=%d+gidnumber=%d,"
 							"cn=peercred,cn=external,cn=auth",
 							(int) uid, (int) gid);
 					}
@@ -1761,9 +1763,9 @@ slapd_daemon_task(
 				0,
 #endif
 				ssf,
-				authid );
+				authid.bv_val ? &authid : NULL );
 
-			if( authid ) ch_free(authid);
+			if( authid.bv_val ) ch_free(authid.bv_val);
 
 			if( id < 0 ) {
 #ifdef NEW_LOGGING

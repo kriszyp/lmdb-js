@@ -72,9 +72,10 @@ static int nSaslRegexp = 0;
 static SaslRegexp_t *SaslRegexp = NULL;
 
 /* What SASL proxy authorization policies are allowed? */
-#define	SASL_AUTHZ_NONE	0
-#define	SASL_AUTHZ_FROM	1
-#define	SASL_AUTHZ_TO	2
+#define	SASL_AUTHZ_NONE	0x00
+#define	SASL_AUTHZ_FROM	0x01
+#define	SASL_AUTHZ_TO	0x02
+#define SASL_AUTHZ_AND	0x10
 
 static int authz_policy = SASL_AUTHZ_NONE;
 
@@ -88,8 +89,10 @@ int slap_sasl_setpolicy( const char *arg )
 		authz_policy = SASL_AUTHZ_FROM;
 	} else if ( strcasecmp( arg, "to" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_TO;
-	} else if ( strcasecmp( arg, "both" ) == 0 ) {
+	} else if ( strcasecmp( arg, "both" ) == 0 || strcasecmp( arg, "any" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_FROM | SASL_AUTHZ_TO;
+	} else if ( strcasecmp( arg, "all" ) == 0 ) {
+		authz_policy = SASL_AUTHZ_FROM | SASL_AUTHZ_TO | SASL_AUTHZ_AND;
 	} else {
 		rc = LDAP_OTHER;
 	}
@@ -487,7 +490,8 @@ static void slap_sasl_rx_exp(
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
 
-static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
+static int slap_sasl_regexp( struct berval *in, struct berval *out,
+		int flags, void *ctx )
 {
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
@@ -804,7 +808,7 @@ COMPLETE:
  * entry, return the DN of that one entry.
  */
 void slap_sasl2dn( Operation *opx,
-	struct berval *saslname, struct berval *sasldn )
+	struct berval *saslname, struct berval *sasldn, int flags )
 {
 	int rc;
 	slap_callback cb = { NULL, sasl_sc_sasl2dn, NULL, NULL };
@@ -827,7 +831,7 @@ void slap_sasl2dn( Operation *opx,
 	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &regout, opx->o_tmpmemctx ) ) {
+	if( !slap_sasl_regexp( saslname, &regout, flags, opx->o_tmpmemctx ) ) {
 		goto FINISHED;
 	}
 
@@ -966,7 +970,7 @@ int slap_sasl_authorized( Operation *op,
 	if( authz_policy & SASL_AUTHZ_TO ) {
 		rc = slap_sasl_check_authz( op, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
-		if( rc == LDAP_SUCCESS ) {
+		if( rc == LDAP_SUCCESS && !(authz_policy & SASL_AUTHZ_AND) ) {
 			goto DONE;
 		}
 	}

@@ -640,9 +640,19 @@ flag will use rules in the
 .I saslAuthzTo
 attribute of the authentication DN.
 The
-.B both
-flag will allow both of the above. The rules are simply regular expressions
-specifying which DNs are allowed to perform proxy authorization. The
+.B any
+flag, an alias for the deprecated value of
+.BR both ,
+will allow any of the above, whatever succeeds first (checked in
+.BR to ,
+.B from
+sequence.
+The
+.B all
+flag requires both authorizations to succeed.
+The rules are simply regular expressions specifying which DNs are allowed 
+to perform proxy authorization.
+The
 .I saslAuthzFrom
 attribute in an entry specifies which other users
 are allowed to proxy login to this entry. The
