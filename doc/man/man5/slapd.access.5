@@ -177,14 +177,14 @@ refers to everybody.
 .LP
 The keyword
 .B anonymous
-means access is granted to unauthenticated users; it is moslty used 
+means access is granted to unauthenticated clients; it is mostly used 
 to limit access to authentication resources (e.g. the
 .B userPassword
-attribute) to unauthenticated users for authentication purposes.
+attribute) to unauthenticated clients for authentication purposes.
 .LP
 The keyword
 .B users
-means access is granted to authenticated users.
+means access is granted to authenticated clients.
 .LP
 The keyword
 .B self
@@ -346,7 +346,7 @@ access means that one is allowed access to an attribute to perform
 authentication/authorization operations (e.g.
 .BR bind )
 with no other access.
-This is useful to grant unauthenticated users the least possible 
+This is useful to grant unauthenticated clients the least possible 
 access level to critical resources, like passwords.
 .LP
 The
@@ -424,7 +424,7 @@ or the (even more silly) example
 .fi
 .LP
 which grants everybody search and compare privileges, and adds read
-privileges to authenticated users.
+privileges to authenticated clients.
 .SH FILES
 .TP
 ETCDIR/slapd.conf

@@ -279,10 +279,12 @@ with
 <style> ::= exact | base | one | subtree | children | regex | anonymous
 
 .RE
-.B Anonymous
-is hit when a search is performed without prior binding;
+The term
+.B anonymous
+matches all unauthenticated clients.
+the term
 .B users
-is hit when a search is performed by a successfully bound user;
+matches all authenticated clients;
 otherwise a
 .B regex
 dn pattern is assumed unless otherwise specified by qualifying 
