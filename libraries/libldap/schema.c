@@ -2687,9 +2687,36 @@ ldap_str2contentrule( LDAP_CONST char * s,
 	savepos = ss;
 	cr->cr_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !cr->cr_oid ) {
-		*errp = ss;
-		ldap_contentrule_free(cr);
-		return NULL;
+		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
+			/* Backtracking */
+			ss = savepos;
+			kind = get_token(&ss,&sval);
+			if ( kind == TK_BAREWORD ) {
+				if ( !strcmp(sval, "NAME") ||
+				     !strcmp(sval, "DESC") ||
+				     !strcmp(sval, "OBSOLETE") ||
+				     !strcmp(sval, "AUX") ||
+				     !strcmp(sval, "MUST") ||
+				     !strcmp(sval, "MAY") ||
+				     !strcmp(sval, "NOT") ||
+				     !strncmp(sval, "X-", 2) ) {
+					/* Missing OID, backtrack */
+					ss = savepos;
+				} else if ( flags &
+					LDAP_SCHEMA_ALLOW_OID_MACRO ) {
+					/* Non-numerical OID, ignore */
+					int len = ss-savepos;
+					cr->cr_oid = LDAP_MALLOC(len+1);
+					strncpy(cr->cr_oid, savepos, len);
+					cr->cr_oid[len] = 0;
+				}
+			}
+			LDAP_FREE(sval);
+		} else {
+			*errp = ss;
+			ldap_contentrule_free(cr);
+			return NULL;
+		}
 	}
 	parse_whsp(&ss);
 
