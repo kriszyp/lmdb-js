@@ -943,11 +943,11 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( manageDSAit || valuesReturnFilter ) {
+	if ( manageDSAit || noop || valuesReturnFilter ) {
 		int err;
 		int i=0;
-		LDAPControl c1,c2;
-		LDAPControl *ctrls[3];
+		LDAPControl c1,c2,c3;
+		LDAPControl *ctrls[4];
 		
 		if ( manageDSAit ) {
 			ctrls[i++]=&c1;
@@ -959,12 +959,22 @@ main( int argc, char **argv )
 			c1.ldctl_iscritical = manageDSAit > 1;
 		}
 
-		if ( valuesReturnFilter ) {
-			ctrls[i++]=&c2;
+		if ( noop ) {
+			ctrls[i++] = &c2;
 			ctrls[i] = NULL;
 
-			c2.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
-			c2.ldctl_iscritical = valuesReturnFilter > 1;
+			c2.ldctl_oid = LDAP_CONTROL_NOOP;
+			c2.ldctl_value.bv_val = NULL;
+			c2.ldctl_value.bv_len = 0;
+			c2.ldctl_iscritical = noop > 1;
+		}
+
+		if ( valuesReturnFilter ) {
+			ctrls[i++]=&c3;
+			ctrls[i] = NULL;
+
+			c3.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
+			c3.ldctl_iscritical = valuesReturnFilter > 1;
 		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -980,7 +990,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 
-			c2.ldctl_value=(*bvalp);
+			c3.ldctl_value=(*bvalp);
 		}
 
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
@@ -997,7 +1007,7 @@ main( int argc, char **argv )
 			}
 		}
 	}
-
+	
 	if ( verbose ) {
 		fprintf( stderr, "filter%s: %s\nrequesting: ",
 			infile != NULL ? " pattern" : "",
