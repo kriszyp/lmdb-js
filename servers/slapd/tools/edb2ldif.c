@@ -863,7 +863,7 @@ print_err( char *msg )
 #endif
 
     if ( errno > sys_nerr ) {
-	fprintf( stderr, "%s: %s: error %d\n", progname, msg, errno );
+	fprintf( stderr, "%s: %s: errno=%d\n", progname, msg, errno );
     } else {
 	fprintf( stderr, "%s: %s: %s\n", progname, msg, sys_errlist[ errno ] );
     }

@@ -196,7 +196,7 @@ main( int argc, char **argv )
 				if ( ldbm_errno( dbc->dbc_db ) == 0 ) {
 					perror( "ldbm_delete" );
 				} else {
-					fprintf( stderr, "db_errno %d",
+					fprintf( stderr, "db_errno=%d",
 					    ldbm_errno( dbc->dbc_db ) );
 				}
 			}
@@ -219,7 +219,7 @@ main( int argc, char **argv )
 				if ( ldbm_errno( dbc->dbc_db ) == 0 ) {
 					perror( "ldbm_fetch" );
 				} else {
-					fprintf( stderr, "db_errno %d\n",
+					fprintf( stderr, "db_errno=%d\n",
 					    ldbm_errno( dbc->dbc_db ) );
 				}
 				free_and_close( dbc, key, data );
@@ -237,7 +237,7 @@ main( int argc, char **argv )
 				if ( ldbm_errno( dbc->dbc_db ) == 0 ) {
 					perror( "ldbm_store" );
 				} else {
-					fprintf( stderr, "db_errno %d\n",
+					fprintf( stderr, "db_errno=%d\n",
 					    ldbm_errno( dbc->dbc_db ) );
 				}
 			}
@@ -259,7 +259,7 @@ main( int argc, char **argv )
 				if ( ldbm_errno( dbc->dbc_db ) == 0 ) {
 					perror( "ldbm_store" );
 				} else {
-					fprintf( stderr, "db_errno %d\n",
+					fprintf( stderr, "db_errno=%d\n",
 					    ldbm_errno( dbc->dbc_db ) );
 				}
 			}
@@ -647,7 +647,7 @@ print_entry(
 		if ( ldbm_errno( dbp ) == 0 )
 			perror( msg );
 		else
-			fprintf( stderr, "%s: db_errno %d\n", msg,
+			fprintf( stderr, "%s: db_errno=%d\n", msg,
 			    ldbm_errno( dbp ) );
 		return;
 	}

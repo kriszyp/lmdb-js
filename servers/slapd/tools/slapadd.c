@@ -99,7 +99,7 @@ main( int argc, char **argv )
 			break;
 
 		} else if ( verbose ) {
-			fprintf( stderr, "added: \"%s\" (%08ld)\n",
+			fprintf( stderr, "added: \"%s\" (%08lx)\n",
 				e->e_dn, (long) id );
 		}
 

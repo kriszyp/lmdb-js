@@ -277,12 +277,12 @@ open_listener(
 #ifndef HAVE_WINSOCK
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-			"daemon: socket() failed errno %d (%s)\n", err,
+			"daemon: socket() failed errno=%d (%s)\n", err,
 	    	err > -1 && err < sys_nerr ? sys_errlist[err] :
 	    	"unknown", 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, 
-			"daemon: socket() failed errno %d (%s)\n",
+			"daemon: socket() failed errno=%d (%s)\n",
 			WSAGetLastError(),
 	    	WSAGetLastErrorString(), 0 );
 #endif
@@ -307,7 +307,7 @@ open_listener(
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno %d (%s)\n",
+	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
@@ -321,7 +321,7 @@ open_listener(
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno %d (%s)\n",
+			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
@@ -335,7 +335,7 @@ open_listener(
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno %d (%s)\n",
+			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
@@ -344,7 +344,7 @@ open_listener(
 
 	if ( bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) ) == -1 ) {
 		int err = errno;
-		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno %d (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
@@ -442,7 +442,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	}
 	slap_listeners[i] = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened.\n",
+	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
 
 	charray_free( u );
@@ -476,7 +476,7 @@ slapd_daemon_task(
 		if ( listen( slap_listeners[l]->sl_sd, 5 ) == -1 ) {
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: listen(%s, 5) failed errno %d (%s)\n",
+				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
 					(long) slap_listeners[l]->sl_url, err,
 					err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
@@ -649,7 +649,7 @@ slapd_daemon_task(
 			{
 				int err = errno;
 				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%ld) failed errno %d (%s)\n", err,
+				    "daemon: accept(%ld) failed errno=%d (%s)\n", err,
 				    (long) slap_listeners[l]->sl_sd,
 				    err >= 0 && err < sys_nerr ?
 				    sys_errlist[err] : "unknown");

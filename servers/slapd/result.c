@@ -184,7 +184,7 @@ static long send_ldap_ber(
 		 * it's a hard error and return.
 		 */
 
-		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno %d msg (%s)\n",
+		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno=%d reason=\"%s\"\n",
 		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
 		    : "unknown", 0 );
 

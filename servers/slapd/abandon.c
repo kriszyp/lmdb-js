@@ -54,7 +54,7 @@ do_abandon(
 		return rc;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_abandon: id %d\n", id, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_abandon: id=%ld\n", (long) id, 0 ,0 );
 
 	if( id <= 0 ) {
 		Debug( LDAP_DEBUG_ANY,

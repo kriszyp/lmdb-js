@@ -155,15 +155,16 @@ do_bind(
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
 			dn, mech, NULL );
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
-			version, dn, method );
+		Debug( LDAP_DEBUG_TRACE, "do_bind: version=%ld dn=\"%s\" method=%ld\n",
+			(unsigned long) version, dn, (unsigned long) method );
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d BIND dn=\"%s\" method=%ld\n",
 	    op->o_connid, op->o_opid, ndn, (unsigned long) method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
-		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
+			(unsigned long) version, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "version not supported", NULL, NULL );
 		goto cleanup;
@@ -171,8 +172,8 @@ do_bind(
 
 	if ( method == LDAP_AUTH_SASL ) {
 		if ( version < LDAP_VERSION3 ) {
-			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%d\n",
-				version, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
+				(unsigned long) version, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "sasl bind requires LDAPv3" );
 			rc = -1;
@@ -182,7 +183,7 @@ do_bind(
 		if( mech == NULL || *mech == '\0' ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
-				version, 0, 0 );
+				0, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, "no sasl mechanism provided", NULL, NULL );
 			goto cleanup;
@@ -190,7 +191,7 @@ do_bind(
 
 		if( !charray_inlist( supportedSASLMechanisms, mech ) ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_bind: sasl mechanism \"%s\" not supported.\n",
+				"do_bind: sasl mechanism=\"%s\" not supported.\n",
 				mech, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, "sasl mechanism not supported", NULL, NULL );

@@ -82,7 +82,7 @@ int connections_init(void)
 
 	if( connections == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"connections_init: allocation (%d*%ld) of connection array failed.\n",
+			"connections_init: allocation (%d*%ld) of connection array failed\n",
 			dtblsize, (long) sizeof(Connection), 0 );
 		return -1;
 	}
@@ -246,8 +246,8 @@ static Connection* connection_get( ber_socket_t s )
 			assert( !ber_pvt_sb_in_use( c->c_sb ) );
 
 			Debug( LDAP_DEBUG_TRACE,
-				"connection_get(%d): connection not used.\n",
-				s, c->c_connid, 0 );
+				"connection_get(%d): connection not used\n",
+				s, 0, 0 );
 
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;
@@ -338,7 +338,7 @@ long connection_init(
 
         if( c == NULL ) {
         	Debug( LDAP_DEBUG_ANY,
-				"connection_init(%d): connection table full (%d/%d).\n",
+				"connection_init(%d): connection table full (%d/%d)\n",
 				s, i, dtblsize);
             ldap_pvt_thread_mutex_unlock( &connections_mutex );
             return -1;
@@ -508,7 +508,7 @@ connection_destroy( Connection *c )
 	   	ber_pvt_sb_close( c->c_sb );
 
 		Statslog( LDAP_DEBUG_STATS,
-		    "conn=%ld fd=%d closed.\n",
+		    "conn=%ld fd=%d closed\n",
 			c->c_connid, sd, 0, 0, 0 );
 	}
 
@@ -566,7 +566,7 @@ void connection_closing( Connection *c )
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
 
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_closing: readying conn=%ld sd=%d for close.\n",
+			"connection_closing: readying conn=%ld sd=%d for close\n",
 			c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 		/* update state to closing */
@@ -597,13 +597,13 @@ static void connection_close( Connection *c )
 
 	if( c->c_ops != NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_close: deferring conn=%ld sd=%d.\n",
+			"connection_close: deferring conn=%ld sd=%d\n",
 			c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 		return;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%ld sd=%d.\n",
+	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%ld sd=%d\n",
 		c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 	connection_destroy( c );
@@ -843,7 +843,7 @@ int connection_read(ber_socket_t s)
 		rc = ldap_pvt_tls_accept( c->c_sb, NULL );
 		if ( rc < 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-			       "connection_read(%d): TLS accept error error=%d id=%ld, closing.\n",
+			       "connection_read(%d): TLS accept error error=%d id=%ld, closing\n",
 			       s, rc, c->c_connid );
 
 			c->c_needs_tls_accept = 0;
@@ -914,7 +914,7 @@ connection_input(
 		int err = errno;
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ber_get_next on fd %d failed errno %d (%s)\n",
+			"ber_get_next on fd %d failed errno=%d (%s)\n",
 			ber_pvt_sb_get_desc( conn->c_sb ), err,
 			err > -1 && err < sys_nerr ?  sys_errlist[err] : "unknown" );
 		Debug( LDAP_DEBUG_TRACE,
@@ -989,7 +989,7 @@ connection_resched( Connection *conn )
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_resched: attempting closing conn=%ld sd=%d.\n",
+			"connection_resched: attempting closing conn=%ld sd=%d\n",
 			conn->c_connid, ber_pvt_sb_get_desc( conn->c_sb ), 0 );
 
 		connection_close( conn );
