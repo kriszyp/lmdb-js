@@ -185,7 +185,7 @@ main( int argc, char **argv )
 	int		authmethod, version, want_bindpw;
 	LDAP		*ld = NULL;
 	int		valuesReturnFilter;
-	BerElement	*ber;
+	BerElement	*ber = NULL;
 	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control  = NULL, *s;
 
@@ -900,7 +900,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 
-	    	if ( err = ldap_put_vrFilter(ber, vrFilter)==-1 ) {
+	    	if ( ( err = ldap_put_vrFilter( ber, vrFilter ) ) == -1 ) {
 				ber_free( ber, 1 );
 				fprintf( stderr, "Bad ValuesReturnFilter: %s\n", vrFilter );
 				return EXIT_FAILURE;
