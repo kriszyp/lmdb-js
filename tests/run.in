@@ -107,7 +107,7 @@ if test ! -e schema/core.schema ; then
 	${LN_S} ${TOPSRCDIR}/servers/slapd/schema schema
 fi
 if test ! -e ucdata/UnicodeData.txt ; then
-	${LN_S} ${TOPSRCDIR}/libraries/lunicode ucdata
+	${LN_S} ${TOPSRCDIR}/libraries/liblunicode ucdata
 fi
 
 if test -d testrun ; then
