@@ -30,13 +30,13 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_COMPARE_FALSE, 			"Compare False" },
 	{LDAP_COMPARE_TRUE, 			"Compare True" },
 	{LDAP_STRONG_AUTH_NOT_SUPPORTED, "Authentication method not supported" },
-	{LDAP_STRONG_AUTH_REQUIRED, 	"Strong authentication required" },
+	{LDAP_STRONG_AUTH_REQUIRED, 	"Strong(er) authentication required" },
 	{LDAP_PARTIAL_RESULTS, 			"Partial results and referral received" },
 
 	{LDAP_REFERRAL,					"Referral"},
 	{LDAP_ADMINLIMIT_EXCEEDED,		"Administrative limit exceeded"},
 	{LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
-									"Criticial extension is unavailable"},
+									"Critical extension is unavailable"},
 	{LDAP_CONFIDENTIALITY_REQUIRED,	"Confidentiality required"},
 	{LDAP_SASL_BIND_IN_PROGRESS,	"SASL bind in progress"},
 
@@ -56,21 +56,21 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_INAPPROPRIATE_AUTH, 		"Inappropriate authentication" },
 	{LDAP_INVALID_CREDENTIALS, 		"Invalid credentials" },
 	{LDAP_INSUFFICIENT_ACCESS, 		"Insufficient access" },
-	{LDAP_BUSY, 					"DSA is busy" },
-	{LDAP_UNAVAILABLE, 				"DSA is unavailable" },
-	{LDAP_UNWILLING_TO_PERFORM, 	"DSA is unwilling to perform" },
+	{LDAP_BUSY, 					"Server is busy" },
+	{LDAP_UNAVAILABLE, 				"Server is unavailable" },
+	{LDAP_UNWILLING_TO_PERFORM, 	"Server is unwilling to perform" },
 	{LDAP_LOOP_DETECT, 				"Loop detected" },
 
 	{LDAP_NAMING_VIOLATION, 		"Naming violation" },
 	{LDAP_OBJECT_CLASS_VIOLATION, 	"Object class violation" },
-	{LDAP_NOT_ALLOWED_ON_NONLEAF, 	"Operation not allowed on nonleaf" },
+	{LDAP_NOT_ALLOWED_ON_NONLEAF, 	"Operation not allowed on non-leaf" },
 	{LDAP_NOT_ALLOWED_ON_RDN,	 	"Operation not allowed on RDN" },
 	{LDAP_ALREADY_EXISTS, 			"Already exists" },
 	{LDAP_NO_OBJECT_CLASS_MODS, 	"Cannot modify object class" },
 	{LDAP_RESULTS_TOO_LARGE,		"Results too large" },
 	{LDAP_AFFECTS_MULTIPLE_DSAS,	"Operation affects multiple DSAs" },
 
-	{LDAP_OTHER, 					"Unknown error" },
+	{LDAP_OTHER, 					"Internal (implementation specific) error" },
 
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				"Can't contact LDAP server" },
