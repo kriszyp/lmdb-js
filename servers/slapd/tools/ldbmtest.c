@@ -664,7 +664,7 @@ print_entry(
 	case 'e':	/* id2entry - key is dnid, data is entry */
 		if ( key != NULL ) {
 			SAFEMEMCPY( (char *) &id, key->dptr, sizeof(ID) );
-			fprintf( fp, "%s %lu\n", klabel, id );
+			fprintf( fp, "%s %ld\n", klabel, id );
 		}
 		if ( data != NULL ) {
 			if ( dlabel ) {

@@ -176,7 +176,7 @@ main( int argc, char **argv )
 				}
 
 				if ( linep == NULL ) {
-					fprintf( stderr, "entry %lu has no dn\n",
+					fprintf( stderr, "entry %ld has no dn\n",
 					    id );
 				} else {
 					key.dptr = dn_normalize_case( val );
@@ -257,7 +257,7 @@ main( int argc, char **argv )
 				}
 
 				if ( linep == NULL ) {
-					fprintf( stderr, "entry %lu has no dn\n",
+					fprintf( stderr, "entry %ld has no dn\n",
 					    id );
 				} else {
 					if ( (dn = dn_parent( be, val ))
