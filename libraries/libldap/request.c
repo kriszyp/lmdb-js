@@ -776,31 +776,33 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
 	tmpber = *origber;
 
 	/*
-	 * all LDAP requests are sequences that start with a message id,
-	 * followed by a sequence that is tagged with the operation code
+	 * all LDAP requests are sequences that start with a message id.
+	 * For all except delete, this is followed by a sequence that is
+	 * tagged with the operation code.  For delete, the provided DN
+	 * is not wrapped by a sequence.
 	 */
-	if ( ber_scanf( &tmpber, "{i", /*}*/ &along ) != LDAP_TAG_MSGID ||
-	    ( tag = ber_skip_tag( &tmpber, &len )) == LBER_DEFAULT ) {
-                ld->ld_errno = LDAP_DECODING_ERROR;
+	rc = ber_scanf( &tmpber, "{it", /*}*/ &along, &tag );
+
+	if ( rc == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
 
-        if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
-                return( NULL );
-        }
+	if ( tag == LDAP_REQ_BIND ) {
+		/* bind requests have a version number before the DN & other stuff */
+		rc = ber_scanf( &tmpber, "{ia" /*}*/, &ver, &orig_dn );
 
-	/* bind requests have a version number before the DN & other stuff */
-	if ( tag == LDAP_REQ_BIND && ber_get_int( &tmpber, &ver ) ==
-	    LBER_DEFAULT ) {
-                ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free( ber, 1 );
-		return( NULL );
+	} else if ( tag == LDAP_REQ_DELETE ) {
+		/* delete requests don't have a DN wrapping sequence */
+		rc = ber_scanf( &tmpber, "a", &orig_dn );
+
+	} else {
+		rc = ber_scanf( &tmpber, "{a" /*}*/, &orig_dn );
 	}
 
-	/* the rest of the request is the DN followed by other stuff */
-	if ( ber_get_stringa( &tmpber, &orig_dn ) == LBER_DEFAULT ) {
-		ber_free( ber, 1 );
-		return( NULL );
+	if( rc == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		return NULL;
 	}
 
 	if ( *dnp == NULL ) {
@@ -809,20 +811,29 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
 		LDAP_FREE( orig_dn );
 	}
 
+	if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		return( NULL );
+	}
+
 	if ( tag == LDAP_REQ_BIND ) {
 		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, *dnp );
+	} else if ( tag == LDAP_REQ_DELETE ) {
+		rc = ber_printf( ber, "{its}", msgid, tag, *dnp );
 	} else {
 		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, *dnp );
 	}
 
 	if ( rc == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULL );
 	}
 
-	if ( ber_write( ber, tmpber.ber_ptr, ( tmpber.ber_end -
-	    tmpber.ber_ptr ), 0 ) != ( tmpber.ber_end - tmpber.ber_ptr ) ||
-	    ber_printf( ber, /*{{*/ "}}" ) == -1 ) {
+	if ( tag != LDAP_REQ_DELETE &&
+		ber_write(ber, tmpber.ber_ptr, ( tmpber.ber_end - tmpber.ber_ptr ), 0)
+		!= ( tmpber.ber_end - tmpber.ber_ptr ) ||
+	    ber_printf( ber, /*{{*/ "}}" ) == -1 )
+	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULL );
