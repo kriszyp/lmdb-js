@@ -1236,7 +1236,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		return (ld->ld_errno);
 	}
 
-	ssl = (void *) ldap_pvt_tls_sb_ctx( sb );
+	ssl = ldap_pvt_tls_sb_ctx( sb );
 	assert( ssl != NULL );
 
 	/* 
