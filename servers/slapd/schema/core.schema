@@ -452,13 +452,6 @@ objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
 	DESC 'RFC2252: extensible object'
 	SUP top AUXILIARY )
 
-objectclass ( 2.5.20.1 NAME 'subschema'
-	DESC 'RFC2252: controlling subschema (sub)entry'
-	AUXILIARY
-	MAY ( dITStructureRules $ nameForms $ ditContentRules $
-		objectClasses $ attributeTypes $ matchingRules $
-		matchingRuleUse ) )
-
 #
 # Standard Track URI label schema from RFC2079
 #

@@ -9,7 +9,6 @@ inetorgperson.schema    InetOrgPerson schema (recommended)
 java.schema             Java Object (RFC 2713) schema
 krb5-kdc.schema         Kerberos V KDC schema
 misc.schema             misc. experimental schema
-nadf.schema             North America Directory Forum schema
 nis.schema              Network Information Service schema
 openldap.schema         OpenLDAP Project schema
 
