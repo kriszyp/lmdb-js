@@ -233,6 +233,16 @@ slapd_daemon(
 				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
+
+			/* make sure descriptor number isn't too great */
+			if ( ns >= dtblsize ) {
+				Debug( LDAP_DEBUG_ANY,
+					"new connection on %d beyond descriptor table size %d\n",
+					ns, dtblsize, 0 );
+				close(ns);
+				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+				continue;
+			}
 		   
 			lber_pvt_sb_set_desc( &c[ns].c_sb, ns );
 			lber_pvt_sb_set_io( &c[ns].c_sb, &lber_pvt_sb_io_tcp, NULL );
