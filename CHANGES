@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
+	Fixed -lldap KBIND typo (ITS#717)
 	Fixed slapd ;binary search request subtyping
 
 OpenLDAP 2.0.2 Release
