@@ -151,7 +151,8 @@ access_allowed_mask(
 	int				ret = 1;
 	int				count;
 	AccessControl			*a = NULL;
-	Backend *be,	*old_be;
+	Backend *be;
+	int	be_null = 0;
 
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -214,15 +215,10 @@ access_allowed_mask(
 		goto done;
 	}
 
-	be = old_be = op->o_bd;
+	be = op->o_bd;
 	if ( be == NULL ) {
-		/*
-		 * FIXME: is this needed by slapi only?  We might find 
-		 * a better way to pass the appropriate information
-		 * that is relevant at this stage, e.g. a fake BackendDB
-		 * with global info
-		 */
 		be = &backends[0];
+		be_null = 1;
 		op->o_bd = be;
 	}
 	assert( be != NULL );
@@ -236,10 +232,9 @@ access_allowed_mask(
 		}
 	}
 #endif /* LDAP_SLAPI */
-	op->o_bd = old_be;
 
 	/* grant database root access */
-	if ( old_be && be_isroot( op ) ) {
+	if ( be != NULL && be_isroot( op ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
 			"access_allowed: conn %lu root access granted\n", 
@@ -278,27 +273,27 @@ access_allowed_mask(
 	}
 
 	/* use backend default access if no backend acls */
-	if( old_be != NULL && old_be->be_acl == NULL ) {
+	if( be != NULL && be->be_acl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"access_allowed: backend default %s access %s to \"%s\"\n",
 		    access2str( access ),
-		    old_be->be_dfltaccess >= access ? "granted" : "denied", 
+		    be->be_dfltaccess >= access ? "granted" : "denied", 
 			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( access ),
-			old_be->be_dfltaccess >= access ? "granted" : "denied",
+			be->be_dfltaccess >= access ? "granted" : "denied",
 			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
 #endif
-		ret = old_be->be_dfltaccess >= access;
+		ret = be->be_dfltaccess >= access;
 
 		if ( maskp ) {
 			int	i;
 
 			mask = ACL_PRIV_LEVEL;
-			for ( i = ACL_NONE; i <= old_be->be_dfltaccess; i++ ) {
+			for ( i = ACL_NONE; i <= be->be_dfltaccess; i++ ) {
 				mask |= ACL_ACCESS2PRIV( i );
 			}
 		}
@@ -308,7 +303,7 @@ access_allowed_mask(
 #ifdef notdef
 	/* be is always non-NULL */
 	/* use global default access if no global acls */
-	} else if ( old_be == NULL && global_acl == NULL ) {
+	} else if ( be == NULL && global_acl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"access_allowed: global default %s access %s to \"%s\"\n",
@@ -454,6 +449,7 @@ done:
 		}
 		state->as_recorded |= ACL_STATE_RECORDED;
 	}
+	if (be_null) op->o_bd = NULL;
 	if ( maskp ) *maskp = mask;
 	return ret;
 }
