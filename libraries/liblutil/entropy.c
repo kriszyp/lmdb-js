@@ -8,6 +8,7 @@
 
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_WINCRYPT_H
 #include <wincrypt.h>
