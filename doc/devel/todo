@@ -7,10 +7,12 @@ based upon your personal priorities.
 
 If you would like to work on any of these projects, please
 coordinate with the listed individual.   If no one is
-listed, contact <project@OpenLDAP.org>.
+listed, post to OpenLDAP Developer's List (you must be subscribed
+to post).
+	http://www.openldap.org/lists
 
 If you have a project you'd like added to the list, talk it up
-on <openldap-devel@OpenLDAP.org> mailing list.
+on Developer's list.
 
 Please read:
 	http://www.OpenLDAP.org/devel/programming.html
@@ -19,16 +21,17 @@ Please read:
 
 OpenLDAP 2.0 Projects
 ---------------------
-	client API update <kurt@openldap.org>
-		schema parsing <jsanchez@openldap.org>
-	SASL support <kurt@openldap.org>
+	client API update
+		schema parsing
+		add TLS/SSL support
+	SASL support
 		DIGEST-MD5/Cyrus SASL Integration
 	SLAPD
-		schema rules <jsanchez@openldap.org>
+		schema rules
 	clients
 		update to use ldap_*_ext routines
 		add -C/-CC/-R referral chasing options
-	SLAPD/SLURD Admin Guide <willb@openldap.org>
+	SLAPD/SLURD Admin Guide
 
 Other projects:
 
