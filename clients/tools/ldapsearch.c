@@ -725,13 +725,9 @@ main( int argc, char **argv )
 		return EXIT_FAILURE;
 	}
 
-	if ( use_tls ) {
-		rc = ldap_start_tls_s( ld, NULL, NULL );
-
-		if ( rc != LDAP_SUCCESS && use_tls > 1 ) {
+	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
+		if ( use_tls > 1 ) {
 			ldap_perror( ld, "ldap_start_tls" );
-			fprintf( stderr, "Could not start TLS %d: %s\n",
-				rc, ldap_err2string( rc ) );
 			return EXIT_FAILURE;
 		}
 		fprintf( stderr, "WARNING: could not start TLS\n" );
