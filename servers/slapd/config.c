@@ -1671,6 +1671,7 @@ add_syncrepl(
 
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
+	ldap_pvt_thread_mutex_init( &si->si_mutex );
 
 	rc = parse_syncrepl_line( cargv, cargc, si );
 

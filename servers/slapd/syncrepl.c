@@ -527,6 +527,10 @@ do_syncrep2(
 			msg != NULL;
 			msg = ldap_next_message( si->si_ld, msg ) )
 		{
+			if ( slapd_shutdown ) {
+				rc = -2;
+				goto done;
+			}
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
 				ldap_get_entry_controls( si->si_ld, msg, &rctrls );
@@ -839,11 +843,14 @@ do_syncrepl(
 	if ( si == NULL )
 		return NULL;
 
+	ldap_pvt_thread_mutex_lock( &si->si_mutex );
+
 	switch( abs( si->si_type )) {
 	case LDAP_SYNC_REFRESH_ONLY:
 	case LDAP_SYNC_REFRESH_AND_PERSIST:
 		break;
 	default:
+		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 		return NULL;
 	}
 
@@ -854,6 +861,7 @@ do_syncrepl(
 			ldap_unbind( si->si_ld );
 			si->si_ld = NULL;
 		}
+		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 		return NULL;
 	}
 
@@ -947,6 +955,7 @@ do_syncrepl(
 	}
 	
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 
 	return NULL;
 }
@@ -2074,6 +2083,7 @@ avl_ber_bvfree( void *v_bv )
 void
 syncinfo_free( syncinfo_t *sie )
 {
+ 	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 	if ( !BER_BVISNULL( &sie->si_provideruri ) ) {
 		ch_free( sie->si_provideruri.bv_val );
 	}
