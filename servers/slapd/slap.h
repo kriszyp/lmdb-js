@@ -1157,7 +1157,7 @@ typedef struct slap_authz_info {
 } AuthorizationInformation;
 
 
-#if 0 /* LDAP_DEVEL */
+#ifdef LDAP_DEVEL
 #define SLAP_DYNACL
 #endif /* LDAP_DEVEL */
 

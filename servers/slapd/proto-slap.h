@@ -46,6 +46,12 @@ LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 
 LDAP_SLAPD_F (void) acl_append( AccessControl **l, AccessControl *a );
 
+#ifdef SLAP_DYNACL
+LDAP_SLAPD_F (int) slap_dynacl_register LDAP_P(( slap_dynacl_t *da ));
+LDAP_SLAPD_F (slap_dynacl_t *) slap_dynacl_get LDAP_P(( const char *name ));
+#endif /* SLAP_DYNACL */
+LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
+
 /*
  * aclparse.c
  */
@@ -61,6 +67,7 @@ LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char* ));
 LDAP_SLAPD_F (slap_mask_t) str2accessmask LDAP_P(( const char *str ));
 LDAP_SLAPD_F (void) acl_destroy LDAP_P(( AccessControl*, AccessControl* ));
 LDAP_SLAPD_F (void) acl_free LDAP_P(( AccessControl *a ));
+
 
 /*
  * ad.c

@@ -2845,28 +2845,11 @@ static slap_dynacl_t	dynacl_aci = {
 	NULL
 };
 
+#endif /* SLAP_DYNACL */
+
 #endif	/* SLAPD_ACI_ENABLED */
 
-int
-aci_init( void )
-{
-	slap_dynacl_t	*known_dynacl[] = {
-#ifdef SLAPD_ACI_ENABLED
-		&dynacl_aci,
-#endif  /* SLAPD_ACI_ENABLED */
-		NULL
-	};
-	int		i, rc;
-
-	for ( i = 0; known_dynacl[ i ]; i++ ) {
-		rc = slap_dynacl_register( known_dynacl[ i ] ); 
-		if ( rc ) {
-			return rc;
-		}
-	}
-	
-	return 0;
-}
+#ifdef SLAP_DYNACL
 
 /*
  * dynamic ACL infrastructure
@@ -2926,22 +2909,25 @@ slap_dynacl_get( const char *name )
 int
 acl_init( void )
 {
+	int		i, rc;
 #ifdef SLAP_DYNACL
-	int		rc;
-
-	da_list = NULL;
-
+	slap_dynacl_t	*known_dynacl[] = {
 #ifdef SLAPD_ACI_ENABLED
-	rc = aci_init();
-	if ( rc ) {
-		return rc;
+		&dynacl_aci,
+#endif  /* SLAPD_ACI_ENABLED */
+		NULL
+	};
+
+	for ( i = 0; known_dynacl[ i ]; i++ ) {
+		rc = slap_dynacl_register( known_dynacl[ i ] ); 
+		if ( rc ) {
+			return rc;
+		}
 	}
-#endif /* SLAPD_ACI_ENABLED */
 #endif /* SLAP_DYNACL */
 
 	return 0;
 }
-
 
 static int
 string_expand(
