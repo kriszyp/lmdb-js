@@ -25,6 +25,7 @@ next_id( Backend *be )
 	sprintf( buf, "%s/NEXTID", li->li_directory );
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
+
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == -1 ) {
 		if ( (fp = fopen( buf, "r" )) == NULL ) {
@@ -32,20 +33,32 @@ next_id( Backend *be )
 			    "next_id %lu: could not open \"%s\"\n",
 			    li->li_nextid, buf, 0 );
 			li->li_nextid = 1;
+
 		} else {
 			if ( fgets( buf2, sizeof(buf2), fp ) != NULL ) {
 				li->li_nextid = atol( buf2 );
+
+				if(li->li_nextid < 1) {
+					/* protect against bad data */
+					Debug( LDAP_DEBUG_ANY,
+					"next_id %lu: atol(%s) return non-positive integer\n",
+						li->li_nextid, buf2, 0 );
+					li->li_nextid = 1;
+				}
+
 			} else {
 				Debug( LDAP_DEBUG_ANY,
 			   "next_id %lu: could not fgets nextid from \"%s\"\n",
 				    li->li_nextid, buf2, 0 );
 				li->li_nextid = 1;
 			}
+
 			fclose( fp );
 		}
 	}
 
-	li->li_nextid++;
+	id = li->li_nextid++;
+
 	if ( (fp = fopen( buf, "w" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "next_id %lu: could not open \"%s\"\n",
 		    li->li_nextid, buf, 0 );
@@ -59,9 +72,8 @@ next_id( Backend *be )
 			    li->li_nextid, 0, 0 );
 		}
 	}
-	id = li->li_nextid - 1;
-	pthread_mutex_unlock( &li->li_nextid_mutex );
 
+	pthread_mutex_unlock( &li->li_nextid_mutex );
 	return( id );
 }
 
@@ -73,6 +85,7 @@ next_id_return( Backend *be, ID id )
 	FILE		*fp;
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
+
 	if ( id != li->li_nextid - 1 ) {
 		pthread_mutex_unlock( &li->li_nextid_mutex );
 		return;
@@ -112,26 +125,39 @@ next_id_get( Backend *be )
 	sprintf( buf, "%s/NEXTID", li->li_directory );
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
+
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == -1 ) {
 		if ( (fp = fopen( buf, "r" )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "next_id %lu: could not open \"%s\"\n",
+			    "next_id_get %lu: could not open \"%s\"\n",
 			    li->li_nextid, buf, 0 );
 			li->li_nextid = 1;
+
 		} else {
 			if ( fgets( buf2, sizeof(buf2), fp ) != NULL ) {
 				li->li_nextid = atol( buf2 );
+
+				if(li->li_nextid < 1) {
+					/* protect against bad data */
+					Debug( LDAP_DEBUG_ANY,
+					"next_id_get %lu: atol(%s) return non-positive integer\n",
+						li->li_nextid, buf2, 0 );
+					li->li_nextid = 1;
+				}
+
 			} else {
 				Debug( LDAP_DEBUG_ANY,
-			    "next_id %lu: cannot fgets nextid from \"%s\"\n",
+			    "next_id_get %lu: cannot fgets nextid from \"%s\"\n",
 				    li->li_nextid, buf2, 0 );
 				li->li_nextid = 1;
 			}
 			fclose( fp );
 		}
 	}
+
 	id = li->li_nextid;
+
 	pthread_mutex_unlock( &li->li_nextid_mutex );
 
 	return( id );
