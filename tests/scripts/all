@@ -31,7 +31,7 @@ for CMD in $SRCDIR/scripts/test*; do
 		echo ">>>>> $CMD failed (exit $RC)"
 		exit $RC
 	fi
-	echo ">>>>> waiting 5 seconds for things to exit"
+	echo ">>>>> waiting 10 seconds for things to exit"
 	sleep 5
 	echo
 done
