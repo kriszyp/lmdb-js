@@ -818,6 +818,9 @@
 /* define if you have -lslp */
 #undef HAVE_SLP
 
+/* define if you have `long long' */
+#undef HAVE_LONG_LONG
+
 /* Define to `int' if <sys/types.h> does not define. */
 #undef mode_t
 
