@@ -81,7 +81,7 @@ dnl --with-subdir
 ldap_subdir="/openldap"
 
 AC_ARG_WITH(subdir,
-[  --with-subdir=DIR change default subdirectory used for installs],
+[  --with-subdir=DIR	  change default subdirectory used for installs],
 [case "$withval" in
 	no) ldap_subdir=""
 		;;
