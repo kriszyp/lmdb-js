@@ -113,7 +113,7 @@ int ldbm_internal_modify(
 	     && (be->be_update_ndn == NULL)) {
 
 	        /* XXX: It may be wrong, it changes mod time even if 
-		 * mod fails!
+		 * mod fails! I also Think this is leaking memory...
 		 */
 		add_lastmods( op, &mods );
 
@@ -137,6 +137,19 @@ int ldbm_internal_modify(
 		case LDAP_MOD_REPLACE:
 			err = replace_values( e, mod, op->o_ndn );
 			break;
+ 		case LDAP_MOD_SOFTADD:
+ 			/* Avoid problems in index_add_mods()
+ 			 * We need to add index if necessary.
+ 			 */
+ 			mod->mod_op = LDAP_MOD_ADD;
+ 			if ( (err = add_values( e, mod, op->o_ndn ))
+ 				==  LDAP_TYPE_OR_VALUE_EXISTS ) {
+ 
+ 				err = LDAP_SUCCESS;
+ 				mod->mod_op = LDAP_MOD_SOFTADD;
+ 
+ 			}
+ 			break;
 		}
 
 		if ( err != LDAP_SUCCESS ) {
