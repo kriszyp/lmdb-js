@@ -35,6 +35,7 @@ usage(const char *s)
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
 "             [!]noop\n"
 "  -f file    read operations from `file'\n"
@@ -95,6 +96,7 @@ main( int argc, char *argv[] )
 	LDAP	       *ld = NULL;
 	int	manageDSAit=0;
 	int noop=0;
+	char *authzid = NULL;
 	char	*control, *cvalue;
 	int		crit;
 
@@ -185,7 +187,6 @@ main( int argc, char *argv[] )
 			}
 
 			manageDSAit = 1 + crit;
-			free( control );
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
@@ -200,7 +201,6 @@ main( int argc, char *argv[] )
 			}
 
 			noop = 1 + crit;
-			free( control );
 			break;
 
 		} else {
@@ -671,42 +671,59 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	if ( manageDSAit || noop ) {
-		int err, i = 0;
-		LDAPControl c1, c2;
-		LDAPControl *ctrls[3];
+	if ( authzid || manageDSAit || noop ) {
+		int err, crit=0, i=0;
+		LDAPControl c[3];
+		LDAPControl *ctrls[4];
+
+		if ( authzid ) {
+			c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+			c[i].ldctl_value.bv_val = authzid;
+			c[i].ldctl_value.bv_len = strlen( authzid );
+			c[i].ldctl_iscritical = 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
+		}
 
 		if ( manageDSAit ) {
-			ctrls[i++] = &c1;
-			ctrls[i] = NULL;
-			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-			c1.ldctl_value.bv_val = NULL;
-			c1.ldctl_value.bv_len = 0;
-			c1.ldctl_iscritical = manageDSAit > 1;
+			c[i].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = manageDSAit > 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 
 		if ( noop ) {
-			ctrls[i++] = &c2;
-			ctrls[i] = NULL;
+			c[i].ldctl_oid = LDAP_CONTROL_NOOP;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = noop > 1;
 
-			c2.ldctl_oid = LDAP_CONTROL_NOOP;
-			c2.ldctl_value.bv_val = NULL;
-			c2.ldctl_value.bv_len = 0;
-			c2.ldctl_iscritical = noop > 1;
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set %scontrols\n",
-				(c1.ldctl_iscritical || c2.ldctl_iscritical)
-				? "critical " : "" );
-			if ( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				crit ? "critical " : "" );
+			if ( crit ) {
 				return EXIT_FAILURE;
 			}
 		}
 	}
 
+#if 1
+	rc = ldap_whoami_s( ld, &retdata, NULL, NULL ); 
+
+#else
 	rc = ldap_extended_operation( ld,
 		LDAP_EXOP_X_WHO_AM_I, NULL, 
 		NULL, NULL, &id );
@@ -731,6 +748,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+#endif
 
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_parse_result" );

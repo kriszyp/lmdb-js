@@ -49,6 +49,7 @@ usage( const char *s )
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
 "             [!]noop\n"
 "  -h host    LDAP server\n"
@@ -116,6 +117,7 @@ main( int argc, char **argv )
 	struct berval bvalue = { 0, NULL };
 	char	*pw_file = NULL;
 	char	*control, *cvalue;
+	char	*authzid = NULL;
 
 	debug = verbose = not = referrals = noop =
 		manageDSAit = want_bindpw = quiet = 0;
@@ -196,7 +198,27 @@ main( int argc, char **argv )
 			*cvalue++ = '\0';
 		}
 
-		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+		if ( strcasecmp( control, "authzid" ) == 0 ) {
+			if( authzid != NULL ) {
+				fprintf( stderr, "authzid control previously specified");
+				return EXIT_FAILURE;
+			}
+			if( cvalue == NULL ) {
+				fprintf( stderr, "authzid: control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+			if( !crit ) {
+				fprintf( stderr, "authzid: must be marked critical" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			assert( authzid == NULL );
+			authzid = control;
+			break;
+			
+		} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( manageDSAit ) {
 				fprintf( stderr, "manageDSAit control previously specified");
 				return EXIT_FAILURE;
@@ -208,7 +230,6 @@ main( int argc, char **argv )
 			}
 
 			manageDSAit = 1 + crit;
-			free( control );
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
@@ -223,7 +244,6 @@ main( int argc, char **argv )
 			}
 
 			noop = 1 + crit;
-			free( control );
 			break;
 
 		} else {
@@ -737,37 +757,50 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( manageDSAit || noop ) {
-		int err, i = 0;
-		LDAPControl c1, c2;
-		LDAPControl *ctrls[3];
+	if ( authzid || manageDSAit || noop ) {
+		int err, crit=0, i=0;
+		LDAPControl c[3];
+		LDAPControl *ctrls[4];
+
+		if ( authzid ) {
+			c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+			c[i].ldctl_value.bv_val = authzid;
+			c[i].ldctl_value.bv_len = strlen( authzid );
+			c[i].ldctl_iscritical = 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
+		}
 
 		if ( manageDSAit ) {
-			ctrls[i++] = &c1;
-			ctrls[i] = NULL;
-			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-			c1.ldctl_value.bv_val = NULL;
-			c1.ldctl_value.bv_len = 0;
-			c1.ldctl_iscritical = manageDSAit > 1;
+			c[i].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = manageDSAit > 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 
 		if ( noop ) {
-			ctrls[i++] = &c2;
-			ctrls[i] = NULL;
+			c[i].ldctl_oid = LDAP_CONTROL_NOOP;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = noop > 1;
 
-			c2.ldctl_oid = LDAP_CONTROL_NOOP;
-			c2.ldctl_value.bv_val = NULL;
-			c2.ldctl_value.bv_len = 0;
-			c2.ldctl_iscritical = noop > 1;
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set %scontrols\n",
-				(c1.ldctl_iscritical || c2.ldctl_iscritical)
-				? "critical " : "" );
-			if ( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				crit ? "critical " : "" );
+			if ( crit ) {
 				return EXIT_FAILURE;
 			}
 		}

@@ -58,7 +58,7 @@ usage( const char *s )
 "             [!]mv=<filter>              (matched values filter)\n"
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 "             [!]pr=<size>                (paged results)\n"
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
+#endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 "             [!]subentries[=true|false]  (subentries)\n"
 #endif
@@ -80,7 +80,8 @@ usage( const char *s )
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
-"             [!]manageDSAit   (alternate form, see -M)\n"
+"             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n"
+"             [!]manageDSAit       (alternate form, see -M)\n"
 "             [!]noop\n"
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
@@ -153,13 +154,6 @@ static int dosearch LDAP_P((
 	struct timeval *timeout,
 	int	sizelimit ));
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-static int parse_page_control(
-	LDAP *ld,
-	LDAPMessage *result,
-	struct berval *cookie );
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
 static char *prog = NULL;
@@ -180,9 +174,10 @@ static char	*sasl_secprops = NULL;
 static int	use_tls = 0;
 static char	*sortattr = NULL;
 static int	verbose, not, includeufn, vals2tmp, ldif;
+
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-static int pageSize = 0;
-static ber_int_t searchControlSize = 0;
+static int pagedResults = 0;
+static ber_int_t pageSize = 0;
 static ber_int_t entriesLeft = 0;
 static ber_int_t morePagedResults = 1;
 static struct berval cookie = { 0, NULL };
@@ -191,6 +186,11 @@ static int npagedentries;
 static int npagedreferences;
 static int npagedextended;
 static int npagedpartial;
+
+static int parse_page_control(
+	LDAP *ld,
+	LDAPMessage *result,
+	struct berval *cookie );
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 static void
@@ -217,13 +217,14 @@ main( int argc, char **argv )
 	LDAP		*ld = NULL;
 	int		subentries, valuesReturnFilter;
 	BerElement	*ber = NULL;
-	struct berval 	*bvalp = NULL;
-	char	*vrFilter  = NULL, *control = NULL, *cvalue;
+	struct berval 	*sebvalp = NULL, *vrbvalp = NULL;
+	char	*vrFilter  = NULL;
+	char	*control = NULL, *cvalue;
 	char	*pw_file = NULL;
+	char	*authzid = NULL;
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	BerElement	*pageber = NULL;
-	struct berval	*bvalptr = NULL;
-	int		num = 0, searchControlCrit = 0;
+	struct berval	*prbvalp = NULL;
+	int		num = 0;
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 
@@ -336,20 +337,21 @@ main( int argc, char **argv )
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		} else if ( strcasecmp( control, "pr" ) == 0 ) {
+			int tmp;
 			/* PagedResults control */
-			if ( pageSize != 0 ) {
+			if ( pagedResults != 0 ) {
 				fprintf( stderr, "PagedResultsControl previously specified" );
 				return EXIT_FAILURE;
 			}
 			
-			num = sscanf( cvalue, "%d", &pageSize );
+			num = sscanf( cvalue, "%d", &tmp );
 			if ( num != 1 ) {
 				fprintf( stderr, "Invalid value for PagedResultsControl, %s.\n", cvalue);
 				return EXIT_FAILURE;
 
 			}
-			searchControlSize = (ber_int_t)pageSize;
-			searchControlCrit = crit;
+			pageSize = (ber_int_t) tmp;
+			pagedResults = 1 + crit;
 			break;
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
@@ -476,7 +478,6 @@ main( int argc, char **argv )
 			}
 
 			manageDSAit = 1 + crit;
-			free( control );
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
@@ -491,7 +492,6 @@ main( int argc, char **argv )
 			}
 
 			noop = 1 + crit;
-			free( control );
 			break;
 
 		} else {
@@ -1026,53 +1026,52 @@ main( int argc, char **argv )
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 getNextPage:
-	if ( manageDSAit || noop || valuesReturnFilter || pageSize ) {
-		int critical = 0;
-#else /* !LDAP_CONTROL_PAGEDRESULTS */
-	if ( manageDSAit || noop || valuesReturnFilter ) {
-#endif /* !LDAP_CONTROL_PAGEDRESULTS */
+	if ( manageDSAit || noop || subentries || valuesReturnFilter || pageSize )
+#else
+	if ( manageDSAit || noop || subentries || valuesReturnFilter )
+#endif
+	{
 		int err;
 		int i=0;
-		LDAPControl c1,c2,c3,c4,c5;
-		LDAPControl *ctrls[6];
+		int crit = 0;
+		LDAPControl c[6];
+		LDAPControl *ctrls[7];
 		
-		if ( manageDSAit ) {
-			ctrls[i++]=&c1;
-			ctrls[i] = NULL;
+		if ( authzid ) {
+			c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+			c[i].ldctl_value.bv_val = authzid;
+			c[i].ldctl_value.bv_len = strlen( authzid );
+			c[i].ldctl_iscritical = 1;
 
-			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-			c1.ldctl_value.bv_val = NULL;
-			c1.ldctl_value.bv_len = 0;
-			c1.ldctl_iscritical = manageDSAit > 1;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-			if ( c1.ldctl_iscritical ) critical = 1;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
+		}
+
+		if ( manageDSAit ) {
+			c[i].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = manageDSAit > 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 
 		if ( noop ) {
-			ctrls[i++] = &c2;
-			ctrls[i] = NULL;
+			c[i].ldctl_oid = LDAP_CONTROL_NOOP;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = noop > 1;
 
-			c2.ldctl_oid = LDAP_CONTROL_NOOP;
-			c2.ldctl_value.bv_val = NULL;
-			c2.ldctl_value.bv_len = 0;
-			c2.ldctl_iscritical = noop > 1;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-			if ( c2.ldctl_iscritical ) critical = 1;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		if ( subentries ) {
-			ctrls[i++]=&c3;
-			ctrls[i] = NULL;
-
-			c3.ldctl_oid = LDAP_CONTROL_SUBENTRIES;
-			c3.ldctl_iscritical = subentries < 1;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-			if ( c3.ldctl_iscritical ) critical = 1;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -1084,24 +1083,21 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+			if ( ber_flatten( ber, &sebvalp ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 
-			c3.ldctl_value=(*bvalp);
+			c[i].ldctl_oid = LDAP_CONTROL_SUBENTRIES;
+			c[i].ldctl_value=(*sebvalp);
+			c[i].ldctl_iscritical = subentries < 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 #endif
 
 		if ( valuesReturnFilter ) {
-			ctrls[i++]=&c4;
-			ctrls[i] = NULL;
-
-			c4.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
-			c4.ldctl_iscritical = valuesReturnFilter > 1;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-			if ( c4.ldctl_iscritical ) critical = 1;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -1112,62 +1108,59 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+			if ( ber_flatten( ber, &vrbvalp ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 
-			c4.ldctl_value=(*bvalp);
+			ber_free( ber, 1 );
+
+			c[i].ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
+			c[i].ldctl_value=(*vrbvalp);
+			c[i].ldctl_iscritical = valuesReturnFilter > 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-		if ( pageSize ) {
-			if (( pageber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+		if ( pagedResults ) {
+			if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
 
-			ber_printf( pageber, "{iO}", searchControlSize, &cookie );
-			if ( ber_flatten( pageber, &bvalptr ) == LBER_ERROR) {
+			ber_printf( ber, "{iO}", pageSize, &cookie );
+			if ( ber_flatten( ber, &prbvalp ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 			
-			ctrls[i++]=&c5;
-			ctrls[i] = NULL;
+			ber_free( ber, 1 );
 
-			c5.ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
-			c5.ldctl_value = ( *bvalptr );
-			c5.ldctl_iscritical = searchControlCrit;
-			if ( c5.ldctl_iscritical ) critical = 1;
+			c[i].ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
+			c[i].ldctl_value=(*prbvalp);
+			c[i].ldctl_iscritical = pagedResults > 1;
+
+			if( c[i].ldctl_iscritical ) crit++;
+			ctrls[i] = &c[i];
+			ctrls[++i] = NULL;
 		}
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
-		ber_bvfree(bvalp);
-		ber_free( ber, 1 );
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-		ber_free( pageber, 1 );
-		ber_bvfree( bvalptr );
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-		if( err != LDAP_OPT_SUCCESS ) {
-			if ( critical ) {
-				fprintf( stderr, "Could not set controls\n");
-				return EXIT_FAILURE;
-			} else {
-				fprintf( stderr, "Could not set critical controls\n" );
-			}
-		}
-#else /* !LDAP_CONTROL_PAGEDRESULTS */
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set %scontrols\n",
-				(c1.ldctl_iscritical || c2.ldctl_iscritical)
-				? "critical " : "" );
-			if( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
+				crit ? "critical " : "" );
+			if( crit ) {
 				return EXIT_FAILURE;
 			}
 		}
-#endif /* !LDAP_CONTROL_PAGEDRESULTS */
+
+		ber_bvfree( sebvalp );
+		ber_bvfree( vrbvalp );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		ber_bvfree( prbvalp );
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 	}
 	
 	if ( verbose ) {
@@ -1230,8 +1223,8 @@ getNextPage:
 		}
 		if ( pageSize ) {
 			printf("\n# with pagedResults %scontrol: size=%d",
-				searchControlCrit ? "critical " : "", 
-				searchControlSize );
+				(pagedResults > 1) ? "critical " : "", 
+				pageSize );
 		}
 
 		printf( "\n#\n\n" );
@@ -1271,7 +1264,7 @@ getNextPage:
 			printf( "Estimate entries: %d\n", entriesLeft );
 		}
 		printf( "Press [size] Enter for the next {%d|size} entries.\n",
-			(int)searchControlSize ); 
+			(int)pageSize ); 
 		i = 0;
 		moreEntries = getchar();
 		while ( moreEntries != EOF && moreEntries != '\n' ) { 
@@ -1290,7 +1283,7 @@ getNextPage:
 				return EXIT_FAILURE;
 
 			}
-			searchControlSize = (ber_int_t)tmpSize;
+			pageSize = (ber_int_t)tmpSize;
 		}
 
 		goto getNextPage;	
@@ -1429,15 +1422,7 @@ static int dosearch(
 
 done:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	if ( pageSize == 0 ) { 
-		if ( ldif < 2 ) {
-			printf( "\n# numResponses: %d\n", nresponses );
-			if( nentries ) printf( "# numEntries: %d\n", nentries );
-			if( nextended ) printf( "# numExtended: %d\n", nextended );
-			if( npartial ) printf( "# numPartial: %d\n", npartial );
-			if( nreferences ) printf( "# numReferences: %d\n", nreferences );
-		}
-	} else {
+	if ( pageSize != 0 ) { 
 		npagedresponses = npagedresponses + nresponses;
 		npagedentries = npagedentries + nentries;
 		npagedreferences = npagedreferences + nreferences;
@@ -1450,8 +1435,8 @@ done:
 			if( npartial ) printf( "# numPartial: %d\n", npagedpartial );
 			if( nreferences ) printf( "# numReferences: %d\n", npagedreferences );
 		}
-	}
-#else /* !LDAP_CONTROL_PAGEDRESULTS */
+	} else
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 	if ( ldif < 2 ) {
 		printf( "\n# numResponses: %d\n", nresponses );
 		if( nentries ) printf( "# numEntries: %d\n", nentries );
@@ -1459,12 +1444,11 @@ done:
 		if( npartial ) printf( "# numPartial: %d\n", npartial );
 		if( nreferences ) printf( "# numReferences: %d\n", nreferences );
 	}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	return( rc );
 }
 
-#if 1
+#if 0
 /* This is the original version, the old way of doing things. */
 static void
 print_entry(
@@ -1574,7 +1558,7 @@ print_entry(
 }
 #else
 /* This is the proposed new way of doing things.
- * It is more * efficient, but the API is non-standard.
+ * It is more efficient, but the API is non-standard.
  */
 static void
 print_entry(
@@ -2019,4 +2003,3 @@ parse_page_control(
 	return err;
 }
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
-

@@ -189,6 +189,7 @@ typedef struct ldapcontrol {
 #define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040U
 #endif
 
+#define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18"
 #define LDAP_CONTROL_MANAGEDSAIT	"2.16.840.1.113730.3.4.2"
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"
 #define LDAP_CONTROL_NOOP			"1.3.6.1.4.1.4203.1.10.2"
@@ -231,6 +232,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
+#define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 
 /* LDAP Features */
@@ -863,6 +865,24 @@ ldap_uncache_entry LDAP_P(( LDAP *ld, LDAP_CONST char *dn ));
 LDAP_F( void )
 ldap_uncache_request LDAP_P(( LDAP *ld, int msgid ));
 
+
+/*
+ * LDAP Cancel Extended Operation <draft-zeilenga-ldap-cancel-xx.txt>
+ */
+
+LDAP_F( int )
+ldap_cancel LDAP_P(( LDAP *ld,
+	int cancelid,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_cancel_s LDAP_P((
+	LDAP *ld,
+	int cancelid,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl ));
 
 /*
  * in compare.c:
@@ -1643,6 +1663,28 @@ ldap_parse_vlv_control LDAP_P((
 	struct berval **contextp,
 	int           *errcodep ));
 
+/*
+ * LDAP Who Am I? (whoami.c)
+ */
+
+LDAP_F( int )
+ldap_parse_whoami LDAP_P((
+	LDAP *ld,
+	LDAPMessage *res,
+	struct berval **authzid ));
+
+LDAP_F( int )
+ldap_whoami LDAP_P(( LDAP *ld,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_whoami_s LDAP_P((
+	LDAP *ld,
+	struct berval **authzid,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

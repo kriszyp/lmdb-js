@@ -619,13 +619,6 @@ ber_scanf ( BerElement *ber,
 	va_list		ap;
 	LDAP_CONST char		*fmt_reset;
 	char		*s, **ss;
-#ifdef TMP_SLOTS
-	char		*last;
-	char ***sss;
-	ber_tag_t tag;
-	struct berval ***bv;
-	int j;
-#endif
 	struct berval	**bvp, *bval;
 	ber_int_t	*i;
 	ber_len_t	*l;
