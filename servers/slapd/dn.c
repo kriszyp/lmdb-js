@@ -76,8 +76,7 @@ LDAPDN_validate( LDAPDN *dn )
 			/* 
 			 * Replace attr oid/name with the canonical name
 			 */
-			free( ava->la_attr.bv_val );
-			ber_dupbv( &ava->la_attr, &ad->ad_cname );
+			ava->la_attr = ad->ad_cname;
 
 			validate = ad->ad_type->sat_syntax->ssyn_validate;
 
