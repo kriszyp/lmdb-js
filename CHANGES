@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed slapd lint
+	Fixed slapd li_nextid_file uninitialized bug
 	Fixed -lldap templates y2k bug (ITS#294)
 	Fixed ldbm db_appinit to use u_int32_t instead of int (ITS#295)
 

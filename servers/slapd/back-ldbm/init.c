@@ -46,6 +46,7 @@ ldbm_back_init(
 
 	/* default database directory */
 	li->li_directory = DEFAULT_DB_DIRECTORY;
+	li->li_nextid_file = DEFAULT_DB_DIRECTORY "/NEXTID";
 
 	/* always index dn, id2children, objectclass (used in some searches) */
 	argv[ 0 ] = "dn";
