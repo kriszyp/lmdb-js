@@ -144,7 +144,7 @@ set_shutdown(int sig)
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
     sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
-    (void) SIGNAL( sig, set_shutdown );	/* reinstall handlers */
+    (void) SIGNAL_REINSTALL( sig, set_shutdown );	/* reinstall handlers */
 }
 
 
@@ -156,7 +156,7 @@ set_shutdown(int sig)
 RETSIGTYPE
 do_nothing(int sig)
 {
-    (void) SIGNAL( sig, do_nothing );
+    (void) SIGNAL_REINSTALL( sig, do_nothing );
 }
 
 

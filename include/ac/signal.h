@@ -16,10 +16,18 @@
 #include <signal.h>
 
 #undef SIGNAL
-#ifdef HAVE_SIGSET
+
+#if defined( HAVE_SIGACTION )
+#define SIGNAL lutil_sigaction
+typedef void (*lutil_sig_t)(int);
+LDAP_LUTIL_F(lutil_sig_t) lutil_sigaction( int sig, sig_t func );
+#define SIGNAL_REINSTALL(sig,act)	(void)0
+#elif defined( HAVE_SIGSET )
 #define SIGNAL sigset
+#define SIGNAL_REINSTALL sigset
 #else
 #define SIGNAL signal
+#define SIGNAL_REINSTALL signal
 #endif
 
 #if !defined( LDAP_SIGUSR1 ) || !defined( LDAP_SIGUSR2 )

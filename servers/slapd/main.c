@@ -515,7 +515,7 @@ wait4child( int sig )
 #else
     (void) wait( NULL );
 #endif
-    (void) SIGNAL( sig, wait4child );
+    (void) SIGNAL_REINSTALL( sig, wait4child );
     errno = save_errno;
 }
 

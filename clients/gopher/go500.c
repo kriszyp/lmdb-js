@@ -345,7 +345,7 @@ wait4child( int sig )
 		;	/* NULL */
 #endif
 
-	(void) SIGNAL( SIGCHLD, wait4child );
+	(void) SIGNAL_REINSTALL ( SIGCHLD, wait4child );
 }
 
 static void

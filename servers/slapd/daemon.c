@@ -1276,7 +1276,7 @@ slap_sig_shutdown( int sig )
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_sig_shutdown );
+	(void) SIGNAL_REINSTALL( sig, slap_sig_shutdown );
 }
 
 RETSIGTYPE
@@ -1285,5 +1285,5 @@ slap_sig_wake( int sig )
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_sig_wake );
+	(void) SIGNAL_REINSTALL( sig, slap_sig_wake );
 }

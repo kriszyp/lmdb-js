@@ -40,5 +40,5 @@ RETSIGTYPE
 do_admin( int sig )
 {
     sglob->rq->rq_dump( sglob->rq );
-    (void) SIGNAL( sig, do_admin );
+    (void) SIGNAL_REINSTALL( sig, do_admin );
 }
