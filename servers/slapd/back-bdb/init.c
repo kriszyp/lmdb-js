@@ -448,7 +448,7 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	bdb->bi_dbenv->lock_id(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+	XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 
 	/* <insert> open (and create) index databases */
 	return 0;
@@ -489,6 +489,8 @@ bdb_db_close( BackendDB *be )
 		}
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
+
+	XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
 
 	return 0;
 }
