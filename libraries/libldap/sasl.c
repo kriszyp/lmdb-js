@@ -70,15 +70,20 @@ ldap_sasl_bind(
 		return ld->ld_errno;
 	}
 
-	if( mechanism != LDAP_SASL_SIMPLE
-		&& ld->ld_version < LDAP_VERSION3)
-	{
+	if( mechanism == LDAP_SASL_SIMPLE ) {
+		if( dn == NULL && cred != NULL ) {
+			/* use default binddn */
+			dn = ld->ld_defbinddn;
+		}
+
+	} else if( ld->ld_version < LDAP_VERSION3 ) {
 		ld->ld_errno = LDAP_NOT_SUPPORTED;
 		return ld->ld_errno;
 	}
 
-	if ( dn == NULL )
+	if ( dn == NULL ) {
 		dn = "";
+	}
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {

@@ -56,6 +56,8 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_sizelimit)},
 	{0, ATTR_INT,		"TIMELIMIT",	NULL,
 		offsetof(struct ldapoptions, ldo_timelimit)},
+	{1, ATTR_STRING,	"BINDDN",		NULL,
+		offsetof(struct ldapoptions, ldo_defbinddn)},
 	{0, ATTR_STRING,	"BASE",			NULL,
 		offsetof(struct ldapoptions, ldo_defbase)},
 	{0, ATTR_INT,		"PORT",			NULL,

@@ -103,6 +103,7 @@ struct ldapoptions {
 	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
+	char*	ldo_defbinddn;	/* simple bind dn */
 
 #ifdef LDAP_CONNECTIONLESS
 	int		ldo_cldaptries;	/* connectionless search retry count */
@@ -216,6 +217,7 @@ struct ldap {
 #define ld_timelimit	ld_options.ldo_timelimit
 #define ld_sizelimit	ld_options.ldo_sizelimit
 
+#define ld_defbinddn	ld_options.ldo_defbinddn
 #define ld_defbase		ld_options.ldo_defbase
 #define ld_defhost		ld_options.ldo_defhost
 #define ld_defport		ld_options.ldo_defport

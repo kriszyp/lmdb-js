@@ -32,12 +32,23 @@ Environmental variables may also be used to augment the file based defaults.
 The name of the option is the as listed but with a prefix of \fBLDAP\fP.
 For example, to define \fBBASE\fP via the environment, define the variable
 \fBLDAPBASE\fP to desired value.
+.LP
+Some options are user\-only.  Such options are ignored if present
+in the
+.IR ldap.conf
+(or file specified by
+.BR LDAPCONF ).
 .SH OPTIONS
 The different configuration options are:
 .TP 1i
 \fBBASE <base>\fP
-Used to specify the default base dn to use when performing ldap operations.
+Used to specify the default base DN to use when performing ldap operations.
 The base must be specified as a Distinguished Name in LDAP format.
+.TP 1i
+\fBBINDDN <dn>\fP
+Used to specify the default bind DN to use when performing ldap operations.
+The bind DN must be specified as a Distinguished Name in LDAP format.
+This is a user\-only option.
 .TP 1i
 \fBHOST <name[:port] ...>\fP
 Used to specify the name(s) of an LDAP server(s) to which 
