@@ -177,7 +177,7 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
 	/* One long-lived TXN per thread, two TXNs per write op */
-	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
+	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, SLAPD_GLOBAL(connection_pool_max) * 3 );
 
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;

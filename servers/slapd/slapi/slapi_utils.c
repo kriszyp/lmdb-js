@@ -134,9 +134,9 @@ slapi_entry2str(
 #ifdef LDAP_SLAPI
 	char		*ret;
 
-	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(entry2str_mutex) );
 	ret = entry2str( e, len );
-	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(entry2str_mutex) );
 
 	return ret;
 #else /* LDAP_SLAPI */

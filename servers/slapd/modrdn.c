@@ -231,15 +231,15 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
 	if ( op->o_bd == NULL ) {
-		rs->sr_ref = referral_rewrite( default_referral,
+		rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-		if (!rs->sr_ref) rs->sr_ref = default_referral;
+		if (!rs->sr_ref) rs->sr_ref = SLAPD_GLOBAL(default_referral);
 
 		if ( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
+			if (rs->sr_ref != SLAPD_GLOBAL(default_referral)) ber_bvarray_free( rs->sr_ref );
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"no global superior knowledge" );
@@ -366,7 +366,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = op->o_bd->be_update_refs
-				? op->o_bd->be_update_refs : default_referral;
+				? op->o_bd->be_update_refs : SLAPD_GLOBAL(default_referral);
 
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,

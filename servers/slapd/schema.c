@@ -135,14 +135,14 @@ schema_info( Entry **entry, const char **text )
 		 */
 
 #ifdef HAVE_GMTIME_R
-		ltm = gmtime_r( &starttime, &ltm_buf );
+		ltm = gmtime_r( &SLAPD_GLOBAL(starttime), &ltm_buf );
 #else
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-		ltm = gmtime( &starttime );
+		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+		ltm = gmtime( &SLAPD_GLOBAL(starttime) );
 #endif /* HAVE_GMTIME_R */
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
 #endif
 
 		vals[0].bv_val = timebuf;

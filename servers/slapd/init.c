@@ -44,18 +44,6 @@
  */
 int		slap_debug = 0;
 
-#ifdef LDAP_DEBUG
-int		ldap_syslog = LDAP_DEBUG_STATS;
-#else
-int		ldap_syslog;
-#endif
-
-#ifdef LOG_DEBUG
-int		ldap_syslog_level = LOG_DEBUG;
-#endif
-
-BerVarray default_referral = NULL;
-
 struct berval AllUser = BER_BVC( LDAP_ALL_USER_ATTRIBUTES );
 struct berval AllOper = BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
@@ -63,24 +51,22 @@ struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
 /*
  * global variables that need mutex protection
  */
-ldap_pvt_thread_pool_t	connection_pool;
-int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
-#ifndef HAVE_GMTIME_R
-ldap_pvt_thread_mutex_t	gmtime_mutex;
-#endif
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-ldap_pvt_thread_mutex_t	passwd_mutex;
+#ifdef LDAP_DEBUG
+int ldap_syslog = LDAP_DEBUG_STATS;
+#else
+int ldap_syslog;
 #endif
 
-slap_counters_t			slap_counters;
+#ifdef LOG_DEBUG
+int ldap_syslog_level = LOG_DEBUG;
+#else
+int ldap_syslog_level;
+#endif
 
 /*
  * these mutexes must be used when calling the entry2str()
  * routine since it returns a pointer to static data.
  */
-ldap_pvt_thread_mutex_t	entry2str_mutex;
-ldap_pvt_thread_mutex_t	replog_mutex;
-
 static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
@@ -113,31 +99,31 @@ slap_init( int mode, const char *name )
 
 		slap_name = name;
 
-		ldap_pvt_thread_pool_init( &connection_pool,
-				connection_pool_max, 0);
+		ldap_pvt_thread_pool_init( &SLAPD_GLOBAL(connection_pool),
+				SLAPD_GLOBAL(connection_pool_max), 0);
 
-		ldap_pvt_thread_mutex_init( &entry2str_mutex );
-		ldap_pvt_thread_mutex_init( &replog_mutex );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(entry2str_mutex) );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(replog_mutex) );
 
-		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );
-		ldap_pvt_thread_mutex_init( &slap_counters.sc_ops_mutex );
-		ldap_pvt_mp_init( slap_counters.sc_bytes );
-		ldap_pvt_mp_init( slap_counters.sc_pdu );
-		ldap_pvt_mp_init( slap_counters.sc_entries );
-		ldap_pvt_mp_init( slap_counters.sc_refs );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(counters).sc_sent_mutex );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(counters).sc_ops_mutex );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_bytes );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_pdu );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_entries );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_refs );
 
-		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
-		ldap_pvt_mp_init( slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_ops_completed );
+		ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_ops_initiated );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_init( slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_init( slap_counters.sc_ops_completed_[ i ] );
+			ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_init( SLAPD_GLOBAL(counters).sc_ops_completed_[ i ] );
 		}
 #endif /* SLAPD_MONITOR */
 
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_init( &gmtime_mutex );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(gmtime_mutex) );
 #endif
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 		ldap_pvt_thread_mutex_init( &passwd_mutex );
@@ -219,8 +205,8 @@ int slap_destroy(void)
 		"%s destroy: freeing system resources.\n",
 		slap_name, 0, 0 );
 
-	if ( default_referral ) {
-		ber_bvarray_free( default_referral );
+	if ( SLAPD_GLOBAL(default_referral) ) {
+		ber_bvarray_free( SLAPD_GLOBAL(default_referral) );
 	}
 
 	rc = backend_destroy();
@@ -233,19 +219,19 @@ int slap_destroy(void)
 	case SLAP_SERVER_MODE:
 	case SLAP_TOOL_MODE:
 
-		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );
-		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_ops_mutex );
-		ldap_pvt_mp_clear( slap_counters.sc_bytes );
-		ldap_pvt_mp_clear( slap_counters.sc_pdu );
-		ldap_pvt_mp_clear( slap_counters.sc_entries );
-		ldap_pvt_mp_clear( slap_counters.sc_refs );
-		ldap_pvt_mp_clear( slap_counters.sc_ops_completed );
-		ldap_pvt_mp_clear( slap_counters.sc_ops_initiated );
+		ldap_pvt_thread_mutex_destroy( &SLAPD_GLOBAL(counters).sc_sent_mutex );
+		ldap_pvt_thread_mutex_destroy( &SLAPD_GLOBAL(counters).sc_ops_mutex );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_bytes );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_pdu );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_entries );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_refs );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_ops_completed );
+		ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_ops_initiated );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_clear( slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_clear( slap_counters.sc_ops_completed_[ i ] );
+			ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_clear( SLAPD_GLOBAL(counters).sc_ops_completed_[ i ] );
 		}
 #endif /* SLAPD_MONITOR */
 		break;

@@ -33,6 +33,7 @@
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/errno.h>
+#include <ac/unistd.h>
 
 #include "slap.h"
 #ifdef LDAP_SLAPI
@@ -45,37 +46,10 @@
 /*
  * defaults for various global variables
  */
-slap_mask_t		global_allows = 0;
-slap_mask_t		global_disallows = 0;
-char		*replogfile;
-int		global_gentlehup = 0;
-int		global_idletimeout = 0;
-char	*global_host = NULL;
-char	*global_realm = NULL;
-char		*ldap_srvtab = "";
-char		**default_passwd_hash = NULL;
 int		cargc = 0, cargv_size = 0;
 char	**cargv;
-struct berval default_search_base = BER_BVNULL;
-struct berval default_search_nbase = BER_BVNULL;
-unsigned		num_subordinates = 0;
-
-ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
-ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
-
-int	slap_conn_max_pending = SLAP_CONN_MAX_PENDING_DEFAULT;
-int	slap_conn_max_pending_auth = SLAP_CONN_MAX_PENDING_AUTH;
-
-char   *slapd_pid_file  = NULL;
-char   *slapd_args_file = NULL;
 
 char   *strtok_quote_ptr;
-
-int use_reverse_lookup = 0;
-
-#ifdef LDAP_SLAPI
-int slapi_plugins_used = 0;
-#endif
 
 static char *fp_getline(FILE *fp, int *lineno);
 static void fp_getline_init(int *lineno);
@@ -86,6 +60,64 @@ static int load_ucdata(char *path);
 
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
+
+Global slap_Configuration;
+extern BackendDB slap_frontendDB, *frontendDB;
+
+void config_init(void) {
+	/* system config defaults */
+	Global *g = &slap_Configuration;
+	memset(g, 0, sizeof(slap_Configuration));
+
+	/* because we need frontendDB* before frontend_init, paint it black */
+	frontendDB = &slap_frontendDB;
+	memset(frontendDB, 0, sizeof(frontendDB));
+
+	g->schemachecking = 1;
+
+	g->connection_pool_max = SLAP_MAX_WORKER_THREADS;
+
+	g->sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
+	g->sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
+
+	g->conn_max_pending = SLAP_CONN_MAX_PENDING_DEFAULT;
+	g->conn_max_pending_auth = SLAP_CONN_MAX_PENDING_AUTH;
+
+	g->local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
+
+	/* XXX scope issue */
+#ifdef notdef
+#ifdef LDAP_DEBUG
+	g->syslog = LDAP_DEBUG_STATS;
+#endif
+
+#ifdef LOG_DEBUG
+	g->syslog_level = LOG_DEBUG;
+#endif
+#endif
+
+#ifdef HAVE_SYSCONF
+        g->dtblsize = sysconf( _SC_OPEN_MAX );
+#elif HAVE_GETDTABLESIZE
+        g->dtblsize = getdtablesize();
+#else
+        g->dtblsize = FD_SETSIZE;
+#endif
+
+#ifdef FD_SETSIZE
+        if(g->dtblsize > FD_SETSIZE) g->dtblsize = FD_SETSIZE;
+#endif  /* !FD_SETSIZE */
+
+	g->index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
+	g->index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
+	g->index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
+	g->index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
+
+	/* XXX when doing mutex, we may have to know slapMode */
+
+	frontendDB->be_private = g;
+}
+
 
 int
 read_config( const char *fname, int depth )
@@ -209,7 +241,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			local_ssf = ssf;
+			SLAPD_GLOBAL(local_ssf) = ssf;
 
 		/* set thread concurrency */
 		} else if ( strcasecmp( cargv[0], "concurrency" ) == 0 ) {
@@ -239,6 +271,7 @@ read_config( const char *fname, int depth )
 			}
 
 			ldap_pvt_thread_set_concurrency( c );
+			SLAPD_GLOBAL(conf_concurrency) = c;
 
 		/* set substring initial/final index minimum length */
 		} else if ( strcasecmp( cargv[0], "index_substr_if_minlen" ) == 0 ) {
@@ -250,14 +283,14 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 			min = atoi( cargv[1] );
-			if( min < 1 || min > index_substr_if_maxlen ) {
+			if( min < 1 || min > SLAPD_GLOBAL(index_substr_if_maxlen) ) {
 				Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: invalid min value (%ld) in "
 				"\"index_substr_if_minlen <length>\" line.\n",
 				fname, lineno, min );
 				return( 1 );
 			}
-			index_substr_if_minlen = min;
+			SLAPD_GLOBAL(index_substr_if_minlen) = min;
 
 		/* set substring initial/final index maximum length */
 		} else if ( strcasecmp( cargv[0], "index_substr_if_maxlen" ) == 0 ) {
@@ -269,14 +302,14 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 			max = atol( cargv[1] );
-			if( max < 1 || max < index_substr_if_minlen ) {
+			if( max < 1 || max < SLAPD_GLOBAL(index_substr_if_minlen) ) {
 				Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: invalid max value (%ld) in "
 				"\"index_substr_maxlen <length>\" line.\n",
 				fname, lineno, max );
 				return( 1 );
 			}
-			index_substr_if_maxlen = max;
+			SLAPD_GLOBAL(index_substr_if_maxlen) = max;
 
 		/* set substring any index len */
 		} else if ( strcasecmp( cargv[0], "index_substr_any_len" ) == 0 ) {
@@ -295,7 +328,7 @@ read_config( const char *fname, int depth )
 				fname, lineno, len );
 				return( 1 );
 			}
-			index_substr_any_len = len;
+			SLAPD_GLOBAL(index_substr_any_len) = len;
 
 		/* set substring any index step */
 		} else if ( strcasecmp( cargv[0], "index_substr_any_step" ) == 0 ) {
@@ -314,7 +347,7 @@ read_config( const char *fname, int depth )
 				fname, lineno, step );
 				return( 1 );
 			}
-			index_substr_any_step = step;
+			SLAPD_GLOBAL(index_substr_any_step) = step;
 
 		/* set sockbuf max */
 		} else if ( strcasecmp( cargv[0], "sockbuf_max_incoming" ) == 0 ) {
@@ -338,7 +371,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			sockbuf_max_incoming = max;
+			SLAPD_GLOBAL(sockbuf_max_incoming) = max;
 
 		/* set sockbuf max authenticated */
 		} else if ( strcasecmp( cargv[0], "sockbuf_max_incoming_auth" ) == 0 ) {
@@ -362,7 +395,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			sockbuf_max_incoming_auth = max;
+			SLAPD_GLOBAL(sockbuf_max_incoming_auth) = max;
 
 		/* set conn pending max */
 		} else if ( strcasecmp( cargv[0], "conn_max_pending" ) == 0 ) {
@@ -386,7 +419,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			slap_conn_max_pending = max;
+			SLAPD_GLOBAL(conn_max_pending) = max;
 
 		/* set conn pending max authenticated */
 		} else if ( strcasecmp( cargv[0], "conn_max_pending_auth" ) == 0 ) {
@@ -410,7 +443,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			slap_conn_max_pending_auth = max;
+			SLAPD_GLOBAL(conn_max_pending_auth) = max;
 
 		/* default search base */
 		} else if ( strcasecmp( cargv[0], "defaultSearchBase" ) == 0 ) {
@@ -437,14 +470,14 @@ read_config( const char *fname, int depth )
 				return 1;
 			}
 
-			if ( default_search_nbase.bv_len ) {
+			if ( SLAPD_GLOBAL(default_search_nbase).bv_len ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"default search base \"%s\" already defined "
 					"(discarding old)\n",
-					fname, lineno, default_search_base.bv_val );
+					fname, lineno, SLAPD_GLOBAL(default_search_base).bv_val );
 
-				free( default_search_base.bv_val );
-				free( default_search_nbase.bv_val );
+				free( SLAPD_GLOBAL(default_search_base).bv_val );
+				free( SLAPD_GLOBAL(default_search_nbase).bv_val );
 			}
 
 			if ( load_ucdata( NULL ) < 0 ) return 1;
@@ -456,8 +489,8 @@ read_config( const char *fname, int depth )
 				dn.bv_len = strlen( dn.bv_val );
 
 				rc = dnPrettyNormal( NULL, &dn,
-					&default_search_base,
-					&default_search_nbase, NULL );
+					&SLAPD_GLOBAL(default_search_base),
+					&SLAPD_GLOBAL(default_search_nbase), NULL );
 
 				if( rc != LDAP_SUCCESS ) {
 					Debug( LDAP_DEBUG_ANY,
@@ -494,10 +527,10 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			ldap_pvt_thread_pool_maxthreads( &connection_pool, c );
+			ldap_pvt_thread_pool_maxthreads( &SLAPD_GLOBAL(connection_pool), c );
 
 			/* save for later use */
-			connection_pool_max = c;
+			SLAPD_GLOBAL(connection_pool_max) = c;
 
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
@@ -509,7 +542,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			slapd_pid_file = ch_strdup( cargv[1] );
+			SLAPD_GLOBAL(pid_file) = ch_strdup( cargv[1] );
 
 		/* get args file name */
 		} else if ( strcasecmp( cargv[0], "argsfile" ) == 0 ) {
@@ -521,7 +554,7 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			slapd_args_file = ch_strdup( cargv[1] );
+			SLAPD_GLOBAL(args_file) = ch_strdup( cargv[1] );
 
 		} else if ( strcasecmp( cargv[0], "replica-pidfile" ) == 0 ) {
 			/* ignore */ ;
@@ -538,7 +571,7 @@ read_config( const char *fname, int depth )
 
 				return( 1 );
 			}
-			if ( default_passwd_hash != NULL ) {
+			if ( SLAPD_GLOBAL(default_passwd_hash) != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set default password_hash!\n",
 					fname, lineno, 0 );
@@ -552,10 +585,10 @@ read_config( const char *fname, int depth )
 						"%s: line %d: password scheme \"%s\" not available\n",
 						fname, lineno, cargv[i] );
 				} else {
-					ldap_charray_add( &default_passwd_hash, cargv[i] );
+					ldap_charray_add( &SLAPD_GLOBAL(default_passwd_hash), cargv[i] );
 				}
 			}
-			if( !default_passwd_hash ) {
+			if( !SLAPD_GLOBAL(default_passwd_hash) ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: no valid hashes found\n",
 					fname, lineno, 0 );
@@ -573,6 +606,7 @@ read_config( const char *fname, int depth )
 			}
 
 			lutil_salt_format( cargv[1] );
+			SLAPD_GLOBAL(conf_salt_format) = ch_strdup(cargv[1]);
 
 #ifdef SLAP_AUTH_REWRITE
 		/* use authid rewrite instead of sasl regexp */
@@ -768,7 +802,7 @@ read_config( const char *fname, int depth )
 
 			} else {
 				SLAP_DBFLAGS(be) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
-				num_subordinates++;
+				SLAPD_GLOBAL(num_subordinates)++;
 			}
 
 		/* add an overlay to this backend */
@@ -857,11 +891,11 @@ read_config( const char *fname, int depth )
 				free( ndn.bv_val );
 				return( 1 );
 
-			} else if( pdn.bv_len == 0 && default_search_nbase.bv_len ) {
+			} else if( pdn.bv_len == 0 && SLAPD_GLOBAL(default_search_nbase).bv_len ) {
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"suffix DN empty and default "
 						"search base provided \"%s\" (assuming okay)\n",
-			    		fname, lineno, default_search_base.bv_val );
+			    		fname, lineno, SLAPD_GLOBAL(default_search_base).bv_val );
 			}
 
 			ber_bvarray_add( &be->be_suffix, &pdn );
@@ -1135,7 +1169,7 @@ restrict_unknown:;
 				}
 			}
 
-			global_allows |= allows;
+			SLAPD_GLOBAL(allows) |= allows;
 
 		/* disallow these features */
 		} else if ( strcasecmp( cargv[0], "disallows" ) == 0 ||
@@ -1183,7 +1217,7 @@ restrict_unknown:;
 				}
 			}
 
-			global_disallows |= disallows;
+			SLAPD_GLOBAL(disallows) |= disallows;
 
 		/* require these features */
 		} else if ( strcasecmp( cargv[0], "requires" ) == 0 ||
@@ -1342,7 +1376,7 @@ restrict_unknown:;
 
 			vals[0].bv_val = cargv[1];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			if( value_add( &default_referral, vals ) )
+			if( value_add( &SLAPD_GLOBAL(default_referral), vals ) )
 				return LDAP_OTHER;
 
 		/* start of a new database definition */
@@ -1438,16 +1472,16 @@ restrict_unknown:;
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: schema checking disabled! your mileage may vary!\n",
 				    fname, lineno, 0 );
-				global_schemacheck = 0;
+				SLAPD_GLOBAL(schemachecking) = 0;
 			} else {
-				global_schemacheck = 1;
+				SLAPD_GLOBAL(schemachecking) = 1;
 			}
 
 		/* specify access control info */
 		} else if ( strcasecmp( cargv[0], "access" ) == 0 ) {
 			parse_acl( be, fname, lineno, cargc, cargv );
 
-		/* debug level to log things to syslog */
+		/* debug level to log things to ldap_syslog */
 		} else if ( strcasecmp( cargv[0], "loglevel" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -1732,7 +1766,7 @@ restrict_unknown:;
 			if ( be ) {
 				be->be_replogfile = ch_strdup( cargv[1] );
 			} else {
-				replogfile = ch_strdup( cargv[1] );
+				frontendDB->be_replogfile = ch_strdup( cargv[1] );
 			}
 
 		/* file from which to read additional rootdse attrs */
@@ -1790,9 +1824,9 @@ restrict_unknown:;
 				return( 1 );
 			}
 			if ( strcasecmp( cargv[1], "off" ) == 0 ) {
-				global_gentlehup = 0;
+				SLAPD_GLOBAL(gentlehup) = 0;
 			} else {
-				global_gentlehup = 1;
+				SLAPD_GLOBAL(gentlehup) = 1;
 			}
 #endif
 
@@ -1817,7 +1851,7 @@ restrict_unknown:;
 				return( 1 );
 			}
 
-			global_idletimeout = i;
+			SLAPD_GLOBAL(idletimeout) = i;
 
 		/* include another config file */
 		} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
@@ -1847,7 +1881,7 @@ restrict_unknown:;
 
 				return( 1 );
 			}
-			ldap_srvtab = ch_strdup( cargv[1] );
+			SLAPD_GLOBAL(ldap_srvtab) = ch_strdup( cargv[1] );
 
 #ifdef SLAPD_MODULES
                 } else if (strcasecmp( cargv[0], "moduleload") == 0 ) {
@@ -1952,9 +1986,9 @@ restrict_unknown:;
 			}
 
 			if ( !strcasecmp( cargv[1], "on" ) ) {
-				use_reverse_lookup = 1;
+				SLAPD_GLOBAL(use_reverse_lookup) = 1;
 			} else if ( !strcasecmp( cargv[1], "off" ) ) {
-				use_reverse_lookup = 0;
+				SLAPD_GLOBAL(use_reverse_lookup) = 0;
 			} else {
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: reverse-lookup: must be \"on\" (default) or \"off\"\n",
@@ -1993,7 +2027,7 @@ restrict_unknown:;
 						"config read failed.\n", fname, lineno, 0 );
 				return( 1 );
 			}
-			slapi_plugins_used++;
+			SLAPD_GLOBAL(slapi_plugins_used)++;
 
 #else /* !defined( LDAP_SLAPI ) */
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: SLAPI "
@@ -2311,14 +2345,15 @@ config_destroy( )
 			free( frontendDB->be_schemadn.bv_val );
 		if ( frontendDB->be_acl )
 			acl_destroy( frontendDB->be_acl, NULL );
+		/* globals are part of frontendDB */
+		if ( SLAPD_GLOBAL(args_file) )
+			free ( SLAPD_GLOBAL(args_file) );
+		if ( SLAPD_GLOBAL(pid_file) )
+			free ( SLAPD_GLOBAL(pid_file) );
+		if ( SLAPD_GLOBAL(default_passwd_hash) )
+			ldap_charray_free( SLAPD_GLOBAL(default_passwd_hash) );
 	}
 	free( line );
-	if ( slapd_args_file )
-		free ( slapd_args_file );
-	if ( slapd_pid_file )
-		free ( slapd_pid_file );
-	if ( default_passwd_hash )
-		ldap_charray_free( default_passwd_hash );
 }
 
 static int

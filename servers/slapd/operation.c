@@ -155,7 +155,7 @@ slap_op_alloc(
 	op->o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST( &op->o_sync_slog_list );
 
 #if defined( LDAP_SLAPI )
-	if ( slapi_plugins_used ) {
+	if ( SLAPD_GLOBAL(slapi_plugins_used) ) {
 		op->o_pb = slapi_pblock_new();
 		slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	}

@@ -169,7 +169,7 @@ root_dse_info(
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
 		char buf[BUFSIZ];
-		if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
+		if (!( SLAPD_GLOBAL(allows) & SLAP_ALLOW_BIND_V2 ) &&
 			( i < LDAP_VERSION3 ) )
 		{
 			/* version 2 and lower are disallowed */
@@ -197,8 +197,8 @@ root_dse_info(
 		ldap_charray_free( supportedSASLMechanisms );
 	}
 
-	if ( default_referral != NULL ) {
-		if( attr_merge( e, ad_ref, default_referral, NULL /* FIXME */ ) ) {
+	if ( SLAPD_GLOBAL(default_referral) != NULL ) {
+		if( attr_merge( e, ad_ref, SLAPD_GLOBAL(default_referral), NULL /* FIXME */ ) ) {
 			return LDAP_OTHER;
 		}
 	}

@@ -102,7 +102,7 @@ ldbm_back_search(
 			}
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
+			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
 				NULL, &op->o_req_dn, op->ors_scope );
 		}
 

@@ -46,7 +46,7 @@ krbv4_ldap_auth(
 
 	strcpy( instance, "*" );
 	if ( (err = krb_rd_req( ktxt, LDAP_KRB_PRINCIPAL, instance, 0L, ad,
-	    ldap_srvtab )) != KSUCCESS ) {
+	    SLAPD_GLOBAL(ldap_srvtab) )) != KSUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "krb_rd_req failed (%s)\n",
 		    krb_err_txt[err], 0, 0 );
 		return( LDAP_INVALID_CREDENTIALS );

@@ -1123,12 +1123,12 @@ proxy_cache_response(
 			 * wake it back up
 			 */
 			if ( cm->cc_paused ) {
-				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 				if ( cm->cc_paused ) {
 					cm->cc_paused = 0;
-					ldap_pvt_runqueue_resched( &syncrepl_rq, cm->cc_arg, 0 );
+					ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), cm->cc_arg, 0 );
 				}
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 			}
 		}
 
@@ -1464,15 +1464,15 @@ consistency_check(
 		}
 		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex);
 	}
-	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
+	if ( ldap_pvt_runqueue_isrunning( &SLAPD_GLOBAL(runqueue), rtask )) {
+		ldap_pvt_runqueue_stoptask( &SLAPD_GLOBAL(runqueue), rtask );
 	}
 	/* If there were no queries, defer processing for a while */
 	cm->cc_paused = pause;
-	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, pause );
+	ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), rtask, pause );
 
-	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 	return NULL;
 }
 
@@ -1730,10 +1730,10 @@ proxy_cache_open(
 
 	/* There is no runqueue in TOOL mode */
 	if ( slapMode & SLAP_SERVER_MODE ) {
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-		ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
+		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
+		ldap_pvt_runqueue_insert( &SLAPD_GLOBAL(runqueue), cm->cc_period,
 			consistency_check, on );
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 
 		/* Cached database must have the rootdn */
 		if ( BER_BVISNULL( &cm->db.be_rootndn )

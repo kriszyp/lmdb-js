@@ -171,28 +171,28 @@ monitor_subsys_sent_update(
 		return 0;
 	}
 
-	ldap_pvt_thread_mutex_lock(&slap_counters.sc_sent_mutex);
+	ldap_pvt_thread_mutex_lock(&SLAPD_GLOBAL(counters).sc_sent_mutex);
 	switch ( i ) {
 	case MONITOR_SENT_ENTRIES:
-		ldap_pvt_mp_init_set( n, slap_counters.sc_entries );
+		ldap_pvt_mp_init_set( n, SLAPD_GLOBAL(counters).sc_entries );
 		break;
 
 	case MONITOR_SENT_REFERRALS:
-		ldap_pvt_mp_init_set( n, slap_counters.sc_refs );
+		ldap_pvt_mp_init_set( n, SLAPD_GLOBAL(counters).sc_refs );
 		break;
 
 	case MONITOR_SENT_PDU:
-		ldap_pvt_mp_init_set( n, slap_counters.sc_pdu );
+		ldap_pvt_mp_init_set( n, SLAPD_GLOBAL(counters).sc_pdu );
 		break;
 
 	case MONITOR_SENT_BYTES:
-		ldap_pvt_mp_init_set( n, slap_counters.sc_bytes );
+		ldap_pvt_mp_init_set( n, SLAPD_GLOBAL(counters).sc_bytes );
 		break;
 
 	default:
 		assert(0);
 	}
-	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_sent_mutex);
+	ldap_pvt_thread_mutex_unlock(&SLAPD_GLOBAL(counters).sc_sent_mutex);
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 	assert( a );

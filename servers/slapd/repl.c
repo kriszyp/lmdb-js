@@ -135,14 +135,14 @@ replog( Operation *op )
 	int	subsets = 0;
 	long now = slap_get_time();
 
-	if ( op->o_bd->be_replogfile == NULL && replogfile == NULL ) {
+	if ( op->o_bd->be_replogfile == NULL && frontendDB->be_replogfile == NULL ) {
 		return;
 	}
 
-	ldap_pvt_thread_mutex_lock( &replog_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(replog_mutex) );
 	if ( (fp = lock_fopen( op->o_bd->be_replogfile ? op->o_bd->be_replogfile :
-	    replogfile, "a", &lfp )) == NULL ) {
-		ldap_pvt_thread_mutex_unlock( &replog_mutex );
+	    frontendDB->be_replogfile, "a", &lfp )) == NULL ) {
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(replog_mutex) );
 		return;
 	}
 
@@ -183,7 +183,7 @@ replog( Operation *op )
 		/* if no replicas matched, drop the log 
 		 * (should we log it anyway?) */
 		lock_fclose( fp, lfp );
-		ldap_pvt_thread_mutex_unlock( &replog_mutex );
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(replog_mutex) );
 
 		return;
 	}
@@ -231,7 +231,7 @@ replog( Operation *op )
 	}
 
 	lock_fclose( fp, lfp );
-	ldap_pvt_thread_mutex_unlock( &replog_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(replog_mutex) );
 }
 
 static void

@@ -55,6 +55,7 @@
 #include "ldap_pvt.h"
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
+#include "ldap_rq.h"
 
 LDAP_BEGIN_DECL
 
@@ -2363,13 +2364,15 @@ typedef struct slap_conn {
 
 } Connection;
 
+#define SLAPD_GLOBAL(x) (((Global*)frontendDB->be_private)->x)
+
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 		if ( ldap_syslog & (level) ) \
-			syslog( ldap_syslog_level, (fmt), (connid), (opid), (arg1), \
+			syslog( (ldap_syslog_level), (fmt), (connid), (opid), (arg1), \
 				(arg2), (arg3) ); \
 	} while (0)
 #define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
@@ -2635,6 +2638,63 @@ typedef struct asntype_to_matchingrule_table {
 } AsnTypetoMatchingRuleTable;
 
 #endif
+
+typedef struct global_configuration {
+	unsigned num_subordinates;
+	ber_len_t sockbuf_max_incoming;
+	ber_len_t sockbuf_max_incoming_auth;
+	int conn_max_pending;
+	int conn_max_pending_auth;
+	slap_mask_t allows;
+	slap_mask_t disallows;
+	int gentlehup;
+	int idletimeout;
+	int schemachecking;
+	char *host;
+	char *realm;
+	char **default_passwd_hash;
+	BerVarray default_referral;
+	struct berval default_search_base;
+	struct berval default_search_nbase;
+	char **known_controls;
+	int schema_init_done;
+	char *pid_file;
+	char *args_file;
+	time_t starttime;
+	char *ldap_srvtab;
+	int connection_pool_max;
+	slap_ssf_t local_ssf;
+	ber_socket_t dtblsize;
+	unsigned int index_substr_if_minlen;
+	unsigned int index_substr_if_maxlen;
+	unsigned int index_substr_any_len;
+	unsigned int index_substr_any_step;
+	int use_reverse_lookup;	/* but ignored if !SLAPD_RLOOKUPS */
+	int slapi_plugins_used;	/* but ignored if !LDAP_SLAPI */
+
+	volatile sig_atomic_t abrupt_shutdown;
+	volatile sig_atomic_t gentle_shutdown;
+	volatile sig_atomic_t shutdown;
+	struct slap_sync_cookie_s sync_cookie;
+	void *tls_ctx;
+	runqueue_t runqueue;
+	slap_counters_t counters;
+	ldap_pvt_thread_pool_t connection_pool;
+	ldap_pvt_thread_mutex_t entry2str_mutex;
+	ldap_pvt_thread_mutex_t replog_mutex;
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_t	gmtime_mutex;
+#endif
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+	ldap_pvt_thread_mutex_t	passwd_mutex;
+#endif
+
+	/* --- these are just copies */
+	int conf_debug;
+	int conf_concurrency;
+	char *conf_salt_format;
+} Global;
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

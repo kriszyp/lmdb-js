@@ -203,14 +203,14 @@ fe_op_add( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &e->e_nname, manageDSAit, 0 );
 	if ( op->o_bd == NULL ) {
-		rs->sr_ref = referral_rewrite( default_referral,
+		rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
 			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
-		if ( !rs->sr_ref ) rs->sr_ref = default_referral;
+		if ( !rs->sr_ref ) rs->sr_ref = SLAPD_GLOBAL(default_referral);
 		if ( rs->sr_ref ) {
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if ( rs->sr_ref != default_referral ) {
+			if ( rs->sr_ref != SLAPD_GLOBAL(default_referral) ) {
 				ber_bvarray_free( rs->sr_ref );
 			}
 		} else {
@@ -329,17 +329,17 @@ fe_op_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 			defref = op->o_bd->be_update_refs
-				? op->o_bd->be_update_refs : default_referral;
+				? op->o_bd->be_update_refs : SLAPD_GLOBAL(default_referral);
 
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 				if ( rs->sr_ref == NULL ) rs->sr_ref = defref;
 				rs->sr_err = LDAP_REFERRAL;
-				if (!rs->sr_ref) rs->sr_ref = default_referral;
+				if (!rs->sr_ref) rs->sr_ref = SLAPD_GLOBAL(default_referral);
 				send_ldap_result( op, rs );
 
-				if ( rs->sr_ref != default_referral ) {
+				if ( rs->sr_ref != SLAPD_GLOBAL(default_referral) ) {
 					ber_bvarray_free( rs->sr_ref );
 				}
 			} else {

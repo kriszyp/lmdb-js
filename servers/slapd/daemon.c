@@ -63,10 +63,6 @@ int slap_inet4or6 = AF_INET;
 #endif
 
 /* globals */
-time_t starttime;
-ber_socket_t dtblsize;
-slap_ssf_t local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
-
 Listener **slap_listeners = NULL;
 
 #define SLAPD_LISTEN 10
@@ -82,9 +78,6 @@ static int waking;
 #define WAKE_LISTENER(w) \
 do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 #endif
-
-volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
-volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -114,7 +107,6 @@ static struct slap_daemon {
 #define LDAPS_SRVTYPE_PREFIX "service:ldaps://"
 static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
-int slapd_register_slp = 0;
 
 void slapd_slp_init( const char* urls ) {
 	int i;
@@ -286,7 +278,7 @@ void slapd_remove(ber_socket_t s, int wasactive, int wake) {
 			emfile = 0;
 	}
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake || slapd_gentle_shutdown == 2);
+	WAKE_LISTENER(wake || SLAPD_GLOBAL(gentle_shutdown) == 2);
 }
 
 void slapd_clr_write(ber_socket_t s, int wake) {
@@ -731,10 +723,10 @@ static int slap_open_listener(
 			continue;
 		}
 #ifndef HAVE_WINSOCK
-		if ( l.sl_sd >= dtblsize ) {
+		if ( l.sl_sd >= SLAPD_GLOBAL(dtblsize) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listener descriptor %ld is too great %ld\n",
-				(long) l.sl_sd, (long) dtblsize, 0 );
+				(long) l.sl_sd, (long) SLAPD_GLOBAL(dtblsize), 0 );
 			tcp_close( l.sl_sd );
 			sal++;
 			continue;
@@ -894,20 +886,6 @@ int slapd_daemon_init( const char *urls )
 		return rc;
 	}
 
-#ifdef HAVE_SYSCONF
-	dtblsize = sysconf( _SC_OPEN_MAX );
-#elif HAVE_GETDTABLESIZE
-	dtblsize = getdtablesize();
-#else
-	dtblsize = FD_SETSIZE;
-#endif
-
-#ifdef FD_SETSIZE
-	if(dtblsize > FD_SETSIZE) {
-		dtblsize = FD_SETSIZE;
-	}
-#endif	/* !FD_SETSIZE */
-
 	/* open a pipe (or something equivalent connected to itself).
 	 * we write a byte on this fd whenever we catch a signal. The main
 	 * loop will be select'ing on this socket, and will wake up when
@@ -962,7 +940,7 @@ int slapd_daemon_init( const char *urls )
 		i, 0, 0 );
 
 #ifdef HAVE_SLP
-	if( slapd_register_slp ) {
+	if( SLAPD_GLOBAL(register_slp) ) {
 		slapd_slp_init( urls );
 		slapd_slp_reg();
 	}
@@ -983,7 +961,7 @@ slapd_daemon_destroy(void)
 	sockdestroy();
 
 #ifdef HAVE_SLP
-	if( slapd_register_slp ) {
+	if( SLAPD_GLOBAL(register_slp) ) {
 		slapd_slp_dereg();
 		slapd_slp_deinit();
 	}
@@ -1032,14 +1010,14 @@ slapd_daemon_task(
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
-	if ( global_idletimeout > 0 ) {
+	if ( SLAPD_GLOBAL(idletimeout) > 0 ) {
 		last_idle_check = slap_get_time();
 		/* Set the select timeout.
 		 * Don't just truncate, preserve the fractions of
 		 * seconds to prevent sleeping for zero time.
 		 */
-		idle.tv_sec = global_idletimeout/SLAPD_IDLE_CHECK_LIMIT;
-		idle.tv_usec = global_idletimeout - idle.tv_sec * SLAPD_IDLE_CHECK_LIMIT;
+		idle.tv_sec = SLAPD_GLOBAL(idletimeout)/SLAPD_IDLE_CHECK_LIMIT;
+		idle.tv_usec = SLAPD_GLOBAL(idletimeout) - idle.tv_sec * SLAPD_IDLE_CHECK_LIMIT;
 		idle.tv_usec *= 1000000 / SLAPD_IDLE_CHECK_LIMIT;
 	} else {
 		idle.tv_sec = 0;
@@ -1111,7 +1089,7 @@ slapd_daemon_task(
 #endif
 	/* initialization complete. Here comes the loop. */
 
-	while ( !slapd_shutdown ) {
+	while ( !SLAPD_GLOBAL(shutdown) ) {
 		ber_socket_t i;
 		int ns;
 		int at;
@@ -1133,30 +1111,30 @@ slapd_daemon_task(
 		struct re_s*		rtask;
 		now = slap_get_time();
 
-		if( ( global_idletimeout > 0 ) &&
+		if( ( SLAPD_GLOBAL(idletimeout) > 0 ) &&
 			difftime( last_idle_check +
-			global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 ) {
+			SLAPD_GLOBAL(idletimeout)/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 ) {
 			connections_timeout_idle( now );
 			last_idle_check = now;
 		}
 		tv = idle;
 
 #ifdef SIGHUP
-		if( slapd_gentle_shutdown ) {
+		if( SLAPD_GLOBAL(gentle_shutdown) ) {
 			ber_socket_t active;
 
-			if( slapd_gentle_shutdown == 1 ) {
+			if( SLAPD_GLOBAL(gentle_shutdown) == 1 ) {
 				Debug( LDAP_DEBUG_ANY, "slapd gentle shutdown\n", 0, 0, 0 );
 				close_listeners( 1 );
 				frontendDB->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
-				slapd_gentle_shutdown = 2;
+				SLAPD_GLOBAL(gentle_shutdown) = 2;
 			}
 
 			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 			active = slap_daemon.sd_nactives;
 			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 			if( active == 0 ) {
-				slapd_shutdown = 2;
+				SLAPD_GLOBAL(shutdown) = 2;
 				break;
 			}
 		}
@@ -1198,9 +1176,9 @@ slapd_daemon_task(
 #ifndef HAVE_WINSOCK
 		nfds = slap_daemon.sd_nfds;
 #else
-		nfds = dtblsize;
+		nfds = SLAPD_GLOBAL(dtblsize);
 #endif
-		if ( global_idletimeout && slap_daemon.sd_nactives )
+		if ( SLAPD_GLOBAL(idletimeout) && slap_daemon.sd_nactives )
 			at = 1;
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
@@ -1214,22 +1192,21 @@ slapd_daemon_task(
 		else
 			tvp = NULL;
 
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
+		rtask = ldap_pvt_runqueue_next_sched( &SLAPD_GLOBAL(runqueue), &cat );
 		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
-			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+			if ( ldap_pvt_runqueue_isrunning( &SLAPD_GLOBAL(runqueue), rtask )) {
+				ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), rtask, 0 );
 			} else {
-				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
-				ldap_pvt_thread_pool_submit( &connection_pool,
-											rtask->routine, (void *) rtask );
-				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_runqueue_runtask( &SLAPD_GLOBAL(runqueue), rtask );
+				ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), rtask, 0 );
+				ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
+				ldap_pvt_thread_pool_submit( &SLAPD_GLOBAL(connection_pool), rtask->routine, (void *) rtask );
+				ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 			}
-			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+			rtask = ldap_pvt_runqueue_next_sched( &SLAPD_GLOBAL(runqueue), &cat );
 		}
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 
 		if ( cat != NULL ) {
 			time_t diff = difftime( cat->tv_sec, now );
@@ -1279,7 +1256,7 @@ slapd_daemon_task(
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
-					slapd_shutdown = 2;
+					SLAPD_GLOBAL(shutdown) = 2;
 				}
 			}
 			continue;
@@ -1293,7 +1270,7 @@ slapd_daemon_task(
 			continue;
 
 		default:	/* something happened - deal with it */
-			if( slapd_shutdown ) continue;
+			if( SLAPD_GLOBAL(shutdown) ) continue;
 
 			ebadf = 0;
 			Debug( LDAP_DEBUG_CONNS, "daemon: activity on %d descriptors\n",
@@ -1396,10 +1373,10 @@ slapd_daemon_task(
 
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
-			if ( s >= dtblsize ) {
+			if ( s >= SLAPD_GLOBAL(dtblsize) ) {
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %ld beyond descriptor table size %ld\n",
-					(long) s, (long) dtblsize, 0 );
+					(long) s, (long) SLAPD_GLOBAL(dtblsize), 0 );
 
 				slapd_close(s);
 				ldap_pvt_thread_yield();
@@ -1467,7 +1444,7 @@ slapd_daemon_task(
 				}
 
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
-				ssf = local_ssf;
+				ssf = SLAPD_GLOBAL(local_ssf);
 				{
 					uid_t uid;
 					gid_t gid;
@@ -1525,7 +1502,7 @@ slapd_daemon_task(
 #endif
 			) {
 #ifdef SLAPD_RLOOKUPS
-				if ( use_reverse_lookup ) {
+				if ( SLAPD_GLOBAL(use_reverse_lookup) ) {
 					char *herr;
 					if (ldap_pvt_get_hname( (const struct sockaddr *)&from, len, hbuf,
 						sizeof(hbuf), &herr ) == 0) {
@@ -1685,12 +1662,12 @@ slapd_daemon_task(
 		ldap_pvt_thread_yield();
 	}
 
-	if( slapd_shutdown == 1 ) {
+	if( SLAPD_GLOBAL(shutdown) == 1 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: shutdown requested and initiated.\n",
 			0, 0, 0 );
 
-	} else if ( slapd_shutdown == 2 ) {
+	} else if ( SLAPD_GLOBAL(shutdown) == 2 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
 			Debug( LDAP_DEBUG_TRACE,
 			       "daemon: shutdown initiated by Service Manager.\n",
@@ -1706,22 +1683,22 @@ slapd_daemon_task(
 		       0, 0, 0 );
 	}
 
-	if( slapd_gentle_shutdown != 2 ) {
+	if( SLAPD_GLOBAL(gentle_shutdown) != 2 ) {
 		close_listeners ( 0 );
 	}
 
 	free ( slap_listeners );
 	slap_listeners = NULL;
 
-	if( !slapd_gentle_shutdown ) {
-		slapd_abrupt_shutdown = 1;
+	if( !SLAPD_GLOBAL(gentle_shutdown) ) {
+		SLAPD_GLOBAL(abrupt_shutdown) = 1;
 		connections_shutdown();
 	}
 
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
-	    ldap_pvt_thread_pool_backload(&connection_pool), 0, 0 );
-	ldap_pvt_thread_pool_destroy(&connection_pool, 1);
+	    ldap_pvt_thread_pool_backload(&SLAPD_GLOBAL(connection_pool)), 0, 0 );
+	ldap_pvt_thread_pool_destroy(&SLAPD_GLOBAL(connection_pool), 1);
 
 	return NULL;
 }
@@ -1828,11 +1805,11 @@ slap_sig_shutdown( int sig )
 	else
 #endif
 #ifdef SIGHUP
-	if (sig == SIGHUP && global_gentlehup && slapd_gentle_shutdown == 0)
-		slapd_gentle_shutdown = 1;
+	if (sig == SIGHUP && SLAPD_GLOBAL(gentlehup) && SLAPD_GLOBAL(gentle_shutdown) == 0)
+		SLAPD_GLOBAL(gentle_shutdown) = 1;
 	else
 #endif
-	slapd_shutdown = 1;
+	SLAPD_GLOBAL(shutdown) = 1;
 
 	WAKE_LISTENER(1);
 

@@ -355,16 +355,16 @@ lastmod_op_func( Operation *op, SlapReply *rs )
 
 return_referral:;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
-	rs->sr_ref = referral_rewrite( default_referral,
+	rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
 			NULL, &op->o_req_dn, op->ors_scope );
 
 	if ( !rs->sr_ref ) {
-		rs->sr_ref = default_referral;
+		rs->sr_ref = SLAPD_GLOBAL( default_referral );
 	}
 	rs->sr_err = LDAP_REFERRAL;
 	send_ldap_result( op, rs );
 
-	if ( rs->sr_ref != default_referral ) {
+	if ( rs->sr_ref != SLAPD_GLOBAL( default_referral )) {
 		ber_bvarray_free( rs->sr_ref );
 	}
 	rs->sr_ref = NULL;
@@ -400,14 +400,14 @@ best_guess( Operation *op,
 		currtime = op->o_time;
 
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL( gmtime_mutex ));
 		tm = gmtime( &currtime );
 #else /* HAVE_GMTIME_R */
 		tm = gmtime_r( &currtime, &tm_buf );
 #endif /* HAVE_GMTIME_R */
 		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
 #endif
 
 		ber_str2bv( tmbuf, 0, 1, bv_modifyTimestamp );
@@ -874,14 +874,14 @@ lastmod_db_open(
 	 * Start
 	 */
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	tms = gmtime( &starttime );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL( gmtime_mutex ));
+	tms = gmtime( &SLAPD_GLOBAL( starttime ));
 #else /* HAVE_GMTIME_R */
-	tms = gmtime_r( &starttime, &tm_buf );
+	tms = gmtime_r( &SLAPD_GLOBAL( starttime ), &tm_buf );
 #endif /* HAVE_GMTIME_R */
 	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL( gmtime_mutex ));
 #endif
 
 	if ( BER_BVISNULL( &lmi->lmi_rdnvalue ) ) {

@@ -71,9 +71,9 @@ shell_back_add(
 	fprintf( wfp, "ADD\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, op->o_bd );
-	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(entry2str_mutex) );
 	fprintf( wfp, "%s", entry2str( op->oq_add.rs_e, &len ) );
-	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(entry2str_mutex) );
 	fclose( wfp );
 
 	/* read in the result and send it along */

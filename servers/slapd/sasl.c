@@ -116,7 +116,7 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 				return( 1 );
 			}
 
-			if ( global_host != NULL ) {
+			if ( SLAPD_GLOBAL(host) != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-host!\n",
 					fname, lineno, 0 );
@@ -124,7 +124,7 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 				return 1;
 
 			} else {
-				global_host = ch_strdup( cargv[1] );
+				SLAPD_GLOBAL(host) = ch_strdup( cargv[1] );
 			}
 
 		/* set SASL realm */
@@ -137,7 +137,7 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 				return( 1 );
 			}
 
-			if ( global_realm != NULL ) {
+			if ( SLAPD_GLOBAL(realm) != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-realm!\n",
 					fname, lineno, 0 );
@@ -145,7 +145,7 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 				return 1;
 
 			} else {
-				global_realm = ch_strdup( cargv[1] );
+				SLAPD_GLOBAL(realm) = ch_strdup( cargv[1] );
 			}
 
 		/* SASL security properties */
@@ -969,8 +969,8 @@ int slap_sasl_destroy( void )
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
 #endif
-	free( global_host );
-	global_host = NULL;
+	free( SLAPD_GLOBAL(host) );
+	SLAPD_GLOBAL(host) = NULL;
 
 	return 0;
 }
@@ -1029,8 +1029,8 @@ int slap_sasl_open( Connection *conn, int reopen )
 
 	conn->c_sasl_layers = 0;
 
-	if( global_host == NULL ) {
-		global_host = ldap_pvt_get_fqdn( NULL );
+	if( SLAPD_GLOBAL(host) == NULL ) {
+		SLAPD_GLOBAL(host) = ldap_pvt_get_fqdn( NULL );
 	}
 
 	/* create new SASL context */
@@ -1061,7 +1061,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 			*p = ';';
 		}
 	}
-	sc = sasl_server_new( "ldap", global_host, global_realm,
+	sc = sasl_server_new( "ldap", SLAPD_GLOBAL(host), SLAPD_GLOBAL(realm),
 		iplocalport, ipremoteport, session_callbacks, SASL_SUCCESS_DATA, &ctx );
 	if ( iplocalport != NULL ) {
 		ch_free( iplocalport );
@@ -1070,7 +1070,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 		ch_free( ipremoteport );
 	}
 #else
-	sc = sasl_server_new( "ldap", global_host, global_realm,
+	sc = sasl_server_new( "ldap", SLAPD_GLOBAL(host), SLAPD_GLOBAL(realm),
 		session_callbacks, SASL_SECURITY_LAYER, &ctx );
 #endif
 

@@ -27,7 +27,7 @@ perl_back_add(
 	int count;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );
-	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(entry2str_mutex) );
 
 	{
 		dSP; ENTER; SAVETMPS;
@@ -55,7 +55,7 @@ perl_back_add(
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(entry2str_mutex) );
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	send_ldap_result( op, rs );

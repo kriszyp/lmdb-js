@@ -295,9 +295,9 @@ done2:;
 
 		if( rs->sr_err != SLAPD_ABANDON ) {
 			if ( rs->sr_err == LDAP_REFERRAL && rs->sr_ref == NULL ) {
-				rs->sr_ref = referral_rewrite( default_referral,
+				rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
 					NULL, NULL, LDAP_SCOPE_DEFAULT );
-				if ( !rs->sr_ref ) rs->sr_ref = default_referral;
+				if ( !rs->sr_ref ) rs->sr_ref = SLAPD_GLOBAL(default_referral);
 				if ( !rs->sr_ref ) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 					rs->sr_text = "referral missing";
@@ -306,7 +306,7 @@ done2:;
 
 			send_ldap_extended( op, rs );
 
-			if ( rs->sr_ref != default_referral ) {
+			if ( rs->sr_ref != SLAPD_GLOBAL(default_referral) ) {
 				ber_bvarray_free( rs->sr_ref );
 				rs->sr_ref = NULL;
 			}

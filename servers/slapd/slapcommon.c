@@ -121,6 +121,8 @@ slap_tool_init(
 	free( leakfilename );
 #endif
 
+	config_init();	/* sets frontendDB */
+
 	switch( tool ) {
 	case SLAPADD:
 		options = "b:cd:f:i:l:n:prtuvWw";

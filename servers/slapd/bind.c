@@ -183,7 +183,7 @@ do_bind(
 			"requested protocol version not supported" );
 		goto cleanup;
 
-	} else if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
+	} else if (!( SLAPD_GLOBAL(allows) & SLAP_ALLOW_BIND_V2 ) &&
 		version < LDAP_VERSION3 )
 	{
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
@@ -298,7 +298,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			}
 
 			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-				ber_len_t max = sockbuf_max_incoming_auth;
+				ber_len_t max = SLAPD_GLOBAL(sockbuf_max_incoming_auth);
 				ber_sockbuf_ctrl( op->o_conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
@@ -373,20 +373,20 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_SUCCESS;
 
 			if( !BER_BVISEMPTY( &op->orb_cred ) &&
-				!( global_allows & SLAP_ALLOW_BIND_ANON_CRED ))
+				!( SLAPD_GLOBAL(allows) & SLAP_ALLOW_BIND_ANON_CRED ))
 			{
 				/* cred is not empty, disallow */
 				rs->sr_err = LDAP_INVALID_CREDENTIALS;
 
 			} else if ( !BER_BVISEMPTY( &op->o_req_ndn ) &&
-				!( global_allows & SLAP_ALLOW_BIND_ANON_DN ))
+				!( SLAPD_GLOBAL(allows) & SLAP_ALLOW_BIND_ANON_DN ))
 			{
 				/* DN is not empty, disallow */
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				rs->sr_text =
 					"unauthenticated bind (DN with no password) disallowed";
 
-			} else if ( global_disallows & SLAP_DISALLOW_BIND_ANON ) {
+			} else if ( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_BIND_ANON ) {
 				/* disallow */
 				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
 				rs->sr_text = "anonymous bind disallowed";
@@ -404,7 +404,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_protocol, 0, 0 );
 			goto cleanup;
 
-		} else if ( global_disallows & SLAP_DISALLOW_BIND_SIMPLE ) {
+		} else if ( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_BIND_SIMPLE ) {
 			/* disallow simple authentication */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "unwilling to perform simple authentication";
@@ -418,7 +418,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	} else if ( op->orb_method == LDAP_AUTH_KRBV41 ) {
-		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
+		if ( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_BIND_KRBV4 ) {
 			/* disallow krbv4 authentication */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "unwilling to perform Kerberos V4 bind";
@@ -533,7 +533,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 				BER_BVZERO( &op->o_req_ndn );
 				if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-					ber_len_t max = sockbuf_max_incoming_auth;
+					ber_len_t max = SLAPD_GLOBAL(sockbuf_max_incoming_auth);
 					ber_sockbuf_ctrl( op->o_conn->c_sb,
 						LBER_SB_OPT_SET_MAX_INCOMING, &max );
 				}
@@ -572,7 +572,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
 
 			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-				ber_len_t max = sockbuf_max_incoming_auth;
+				ber_len_t max = SLAPD_GLOBAL(sockbuf_max_incoming_auth);
 				ber_sockbuf_ctrl( op->o_conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}

@@ -55,7 +55,7 @@ starttls_extop ( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( !( global_disallows & SLAP_DISALLOW_TLS_2_ANON ) &&
+	if ( !( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_TLS_2_ANON ) &&
 		( op->o_conn->c_dn.bv_len != 0 ) )
 	{
 		Statslog( LDAP_DEBUG_STATS,
@@ -66,7 +66,7 @@ starttls_extop ( Operation *op, SlapReply *rs )
 		connection2anonymous( op->o_conn );
 	}
 
-	if ( ( global_disallows & SLAP_DISALLOW_TLS_AUTHC ) &&
+	if ( ( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_TLS_AUTHC ) &&
 		( op->o_conn->c_dn.bv_len != 0 ) )
 	{
 		rs->sr_text = "cannot start TLS after authentication";
@@ -75,8 +75,8 @@ starttls_extop ( Operation *op, SlapReply *rs )
 	}
 
 	/* fail if TLS could not be initialized */
-	if ( slap_tls_ctx == NULL ) {
-		if (default_referral != NULL) {
+	if ( SLAPD_GLOBAL(tls_ctx) == NULL ) {
+		if (SLAPD_GLOBAL(default_referral) != NULL) {
 			/* caller will put the referral in the result */
 			rc = LDAP_REFERRAL;
 			goto done;

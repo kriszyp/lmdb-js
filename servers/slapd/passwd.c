@@ -119,7 +119,7 @@ int passwd_extop(
 	if(!( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op ))) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = op->o_bd->be_update_refs
-			? op->o_bd->be_update_refs : default_referral; 
+			? op->o_bd->be_update_refs : SLAPD_GLOBAL(default_referral); 
 
 		if( defref != NULL ) {
 			rs->sr_ref = referral_rewrite( op->o_bd->be_update_refs,
@@ -173,9 +173,9 @@ int passwd_extop(
 	ml = ch_malloc( sizeof(Modifications) );
 	if ( !qpw->rs_modtail ) qpw->rs_modtail = &ml->sml_next;
 
-	if ( default_passwd_hash ) {
-		for ( nhash = 0; default_passwd_hash[nhash]; nhash++ );
-		hashes = default_passwd_hash;
+	if ( SLAPD_GLOBAL(default_passwd_hash) ) {
+		for ( nhash = 0; SLAPD_GLOBAL(default_passwd_hash)[nhash]; nhash++ );
+		hashes = SLAPD_GLOBAL(default_passwd_hash);
 	} else {
 		nhash = 1;
 		hashes = (char **)defhash;
@@ -395,7 +395,7 @@ slap_passwd_check(
 	struct berval *bv;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_lock( &passwd_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(passwd_mutex) );
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = conn->c_sasl_authctx;
 #endif
@@ -412,7 +412,7 @@ slap_passwd_check(
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = NULL;
 #endif
-	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(passwd_mutex) );
 #endif
 
 	return result;
@@ -445,13 +445,13 @@ slap_passwd_hash_type(
 	assert( hash );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_lock( &passwd_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(passwd_mutex) );
 #endif
 
 	lutil_passwd_hash( cred , hash, new, text );
 	
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(passwd_mutex) );
 #endif
 
 }
@@ -462,8 +462,8 @@ slap_passwd_hash(
 	const char **text )
 {
 	char *hash = NULL;
-	if ( default_passwd_hash ) {
-		hash = default_passwd_hash[0];
+	if ( SLAPD_GLOBAL(default_passwd_hash) ) {
+		hash = SLAPD_GLOBAL(default_passwd_hash)[0];
 	}
 	if ( !hash ) {
 		hash = (char *)defhash[0];

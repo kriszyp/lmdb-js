@@ -265,7 +265,7 @@ ldbm_back_modify(
 					ber_bvarray_add( &deref, &tmpbv );
 				}
 			} else {
-				deref = default_referral;
+				deref = SLAPD_GLOBAL(default_referral);
 			}
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
 						LDAP_SCOPE_DEFAULT );
@@ -276,7 +276,7 @@ ldbm_back_modify(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		if ( deref != default_referral ) {
+		if ( deref != SLAPD_GLOBAL(default_referral) ) {
 			ber_bvarray_free( deref );
 		}
 		free( (char *)rs->sr_matched );

@@ -46,8 +46,6 @@ static int null_callback( struct slap_op *, struct slap_rep * );
 
 static AttributeDescription *sync_descs[4];
 
-struct runqueue_s syncrepl_rq;
-
 void
 init_syncrepl(syncinfo_t *si)
 {
@@ -405,7 +403,7 @@ do_syncrep1(
 	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
-	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
+	LDAP_STAILQ_FOREACH( sc, &SLAPD_GLOBAL(sync_cookie), sc_next ) {
 		if ( si->si_rid == sc->rid ) {
 			cmdline_cookie_found = 1;
 			break;
@@ -417,7 +415,7 @@ do_syncrep1(
 		BerVarray cookie = NULL;
 		struct berval cookie_bv;
 
-		LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
+		LDAP_STAILQ_REMOVE( &SLAPD_GLOBAL(sync_cookie), sc, sync_cookie, sc_next );
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
 
 		/* read stored cookie if it exists */
@@ -551,7 +549,7 @@ do_syncrep2(
 	BerVarray syncUUIDs = NULL;
 	ber_tag_t si_tag;
 
-	if ( slapd_shutdown ) {
+	if ( SLAPD_GLOBAL(shutdown) ) {
 		rc = -2;
 		goto done;
 	}
@@ -574,7 +572,7 @@ do_syncrep2(
 	while (( rc = ldap_result( si->si_ld, LDAP_RES_ANY, LDAP_MSG_ONE,
 		tout_p, &res )) > 0 )
 	{
-		if ( slapd_shutdown ) {
+		if ( SLAPD_GLOBAL(shutdown) ) {
 			rc = -2;
 			goto done;
 		}
@@ -889,7 +887,7 @@ do_syncrepl(
 		return NULL;
 	}
 
-	if ( slapd_shutdown && si->si_ld ) {
+	if ( SLAPD_GLOBAL(shutdown) && si->si_ld ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 		connection_client_stop( s );
 		ldap_unbind( si->si_ld );
@@ -951,10 +949,10 @@ do_syncrepl(
 	 * 3) for Refresh and Success, reschedule to run
 	 * 4) for Persist and Success, reschedule to defer
 	 */
-	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 
-	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
+	if ( ldap_pvt_runqueue_isrunning( &SLAPD_GLOBAL(runqueue), rtask )) {
+		ldap_pvt_runqueue_stoptask( &SLAPD_GLOBAL(runqueue), rtask );
 	}
 
 	if ( dostop ) {
@@ -966,7 +964,7 @@ do_syncrepl(
 			defer = 0;
 		}
 		rtask->interval.tv_sec = si->si_interval;
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, defer );
+		ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), rtask, defer );
 		if ( si->si_retrynum ) {
 			for ( i = 0; si->si_retrynum_init[i] != -2; i++ ) {
 				si->si_retrynum[i] = si->si_retrynum_init[i];
@@ -980,19 +978,19 @@ do_syncrepl(
 		}
 
 		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
-			ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+			ldap_pvt_runqueue_remove( &SLAPD_GLOBAL(runqueue), rtask );
 			LDAP_STAILQ_REMOVE( &be->be_syncinfo, si, syncinfo_s, si_next );
 			syncinfo_free( si );
 		} else if ( si->si_retrynum[i] >= -1 ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
 			rtask->interval.tv_sec = si->si_retryinterval[i];
-			ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+			ldap_pvt_runqueue_resched( &SLAPD_GLOBAL(runqueue), rtask, 0 );
 			slap_wake_listener();
 		}
 	}
 	
-	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(runqueue).rq_mutex );
 
 	return NULL;
 }
