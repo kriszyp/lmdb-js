@@ -4,6 +4,7 @@
 #define _BACK_LDBM_H_
 
 #include "ldbm.h"
+#include "ldapconfig.h"
 
 LDAP_BEGIN_DECL
 
@@ -15,7 +16,7 @@ LDAP_BEGIN_DECL
 #	define DEFAULT_DBCACHE_SIZE 100000
 #endif
 
-#define DEFAULT_DB_DIRECTORY	"/usr/tmp"
+#define DEFAULT_DB_DIRECTORY	DEFAULT_RUNDIR DEFAULT_DIRSEP "openldap-ldbm"
 #define DEFAULT_MODE		0600
 
 #define SUBLEN			3
