@@ -155,10 +155,6 @@ LDAP_END_DECL
 
 #endif /* no threads support */
 
-#ifndef NO_THREADS
-#	define HAVE_THREADS 1
-#endif
-
 LDAP_BEGIN_DECL
 
 LDAP_F( int )
