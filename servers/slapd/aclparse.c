@@ -196,7 +196,7 @@ check_scope( BackendDB *be, AccessControl *a )
 				int	rdnlen = -1, sep = 0;
 
 				if ( patlen > 0 ) {
-					if ( !DN_SEPARATOR( dn.bv_val[ dn.bv_len - patlen - 1 ] ) )
+					if ( !NDN_SEPARATOR( dn.bv_val[ dn.bv_len - patlen - 1 ] ) )
 						return ACL_SCOPE_ERR;
 					sep = 1;
 				}
@@ -227,7 +227,7 @@ check_scope( BackendDB *be, AccessControl *a )
 			break;
 		}
 
-		if ( dn.bv_len < patlen && !DN_SEPARATOR( a->acl_dn_pat.bv_val[ patlen -dn.bv_len - 1 ] ) ) {
+		if ( dn.bv_len < patlen && !NDN_SEPARATOR( a->acl_dn_pat.bv_val[ patlen -dn.bv_len - 1 ] ) ) {
 			return ACL_SCOPE_ERR;
 		}
 

@@ -551,7 +551,7 @@ acl_get(
 						continue;
 
 					if ( patlen > 0 ) {
-						if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
+						if ( !NDN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 							continue;
 						sep = 1;
 					}
@@ -561,13 +561,13 @@ acl_get(
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( dnlen > patlen && !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
+					if ( dnlen > patlen && !NDN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
 					if ( dnlen <= patlen )
 						continue;
-					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
+					if ( !NDN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 						continue;
 				}
 
@@ -652,7 +652,7 @@ acl_get(
 					} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
 						int rdnlen = -1;
 	
-						if ( !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+						if ( !NDN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
 							continue;
 	
 						rdnlen = dn_rdnlen( NULL, val );
@@ -660,14 +660,14 @@ acl_get(
 							continue;
 	
 					} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
-						if ( vdnlen > patlen && !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+						if ( vdnlen > patlen && !NDN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
 							continue;
 	
 					} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
 						if ( vdnlen <= patlen )
 							continue;
 	
-						if ( !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
+						if ( !NDN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
 							continue;
 					}
 	
@@ -880,7 +880,7 @@ acl_mask(
 						goto dn_match_cleanup;
 					}
 
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+					if ( !NDN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
 						goto dn_match_cleanup;
 					}
 
@@ -890,7 +890,7 @@ acl_mask(
 					}
 
 				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( odnlen > patlen && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+					if ( odnlen > patlen && !NDN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
 						goto dn_match_cleanup;
 					}
 
@@ -899,7 +899,7 @@ acl_mask(
 						goto dn_match_cleanup;
 					}
 
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+					if ( !NDN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
 						goto dn_match_cleanup;
 					}
 				}

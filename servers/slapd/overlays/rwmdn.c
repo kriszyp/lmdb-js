@@ -138,7 +138,10 @@ rwm_dn_massage(
 		if ( diff < 0 ) {
 			/* alias is longer than dn */
 			continue;
-		} else if ( diff > 0 && ( !DN_SEPARATOR(dn->bv_val[diff-1]))) {
+		} else if ( diff > 0 && ( !NDN_SEPARATOR(dn->bv_val[diff-1]))) {
+			/* FIXME: should use DN_SEPARATOR() instead of
+			 * NDN_SEPARATOR(), but the latter may fail if
+			 * an escaped ';' is present */
 			/* boundary is not at a DN separator */
 			continue;
 			/* At a DN Separator */
