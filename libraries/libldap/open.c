@@ -149,9 +149,11 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	memcpy(&ld->ld_options, &openldap_ldap_global_options,
 		sizeof(ld->ld_options));
 
-	/* but not pointers to malloc'ed strings */
+	/* but not pointers to malloc'ed items */
 	ld->ld_options.ldo_defbase = NULL;
 	ld->ld_options.ldo_defhost = NULL;
+	ld->ld_options.ldo_sctrls = NULL;
+	ld->ld_options.ldo_cctrls = NULL;
 
 	if ( defhost != NULL ) {
 		ld->ld_options.ldo_defhost = strdup( defhost );

@@ -540,7 +540,7 @@ build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 	ber_init_w_nullc( ber, 0 );
 	ldap_set_ber_options( ld, ber );
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
-	    (long)lr->lr_res_msgtype, lr->lr_res_errno,
+	    (unsigned long) lr->lr_res_msgtype, lr->lr_res_errno,
 	    lr->lr_res_matched ? lr->lr_res_matched : "",
 	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
 		return( LBER_ERROR );

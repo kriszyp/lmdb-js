@@ -71,7 +71,8 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 {
 	unsigned long	tag;
 	unsigned char	lc;
-	int		noctets, diff;
+	unsigned int	noctets;
+	int		diff;
 	unsigned long	netlen;
 
 	assert( ber != NULL );
@@ -109,7 +110,7 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 		if ( (unsigned) noctets > sizeof(unsigned long) )
 			return( LBER_DEFAULT );
 		diff = sizeof(unsigned long) - noctets;
-		if ( ber_read( ber, (char *) &netlen + diff, noctets )
+		if ( (unsigned) ber_read( ber, (char *) &netlen + diff, noctets )
 		    != noctets )
 			return( LBER_DEFAULT );
 		*len = AC_NTOHL( netlen );

@@ -99,7 +99,7 @@ ldap_simple_bind_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 	if ( (msgid = ldap_simple_bind( ld, dn, passwd )) == -1 )
 		return( ld->ld_errno );
 
-	if ( ldap_result( ld, msgid, 1, (struct timeval *) 0, &result ) == -1 )
+	if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 )
 		return( ld->ld_errno );	/* ldap_result sets ld_errno */
 
 	return( ldap_result2error( ld, result, 1 ) );

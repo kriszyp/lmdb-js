@@ -72,7 +72,7 @@ main( int argc, char **argv )
 
 #ifndef notdef
 	num = 7;
-	if ( ber_printf( ber, "{ti}", 0x1f44U, num ) == -1 ) {
+	if ( ber_printf( ber, "{ti}", 0x1f44UL, num ) == -1 ) {
 		fprintf( stderr, "ber_printf returns -1" );
 		exit( 1 );
 	}
