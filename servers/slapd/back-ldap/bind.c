@@ -869,8 +869,12 @@ done:;
  * If no server-side controls are defined for the operation,
  * simply add the proxyAuthz control; otherwise, if the
  * proxyAuthz control is not already set, add it as
- * the first one (FIXME: is controls order significant
- * for security?).
+ * the first one
+ *
+ * FIXME: is controls order significant for security?
+ * ANSWER: controls ordering and interoperability
+ * must be indicated by the specs of each control; if none
+ * is specified, the order is irrelevant.
  */
 int
 ldap_back_proxy_authz_ctrl(
