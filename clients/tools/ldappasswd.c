@@ -349,7 +349,7 @@ main( int argc, char *argv[] )
 		
 		rc = ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
 				sasl_authz_id, sasl_mech,
-				bindpw.bv_len ? &bindpw : NULL,
+				passwd.bv_len ? &passwd : NULL,
 				NULL, NULL );
 
 		if( rc != LDAP_SUCCESS ) {
