@@ -293,9 +293,8 @@ static int slap_get_listener_addresses(
 		}
 		if (*sap != NULL) {
 			(*sap)->sa_family = sai->ai_family;
-			(*sap)->sa_len = sai->ai_addrlen;
+			sap++;
 		}
-		sap++;
 	} while ((sai = sai->ai_next) != NULL);
 
 	freeaddrinfo(res);
