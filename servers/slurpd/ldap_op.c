@@ -609,7 +609,9 @@ do_bind(
 )
 {
     int		ldrc;
+#ifdef HAVE_CYRUS_SASL
 	void *defaults;
+#endif
 
 
     *lderr = 0;
@@ -698,6 +700,7 @@ do_bind(
 	Debug( LDAP_DEBUG_ARGS, "bind to %s as %s via %s (SASL)\n",
 		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
 
+#ifdef HAVE_CYRUS_SASL
 	defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
 	    NULL, ri->ri_authcId, NULL, NULL );
 	ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
@@ -712,6 +715,15 @@ do_bind(
 		return( BIND_ERR_SASL_FAILED );
 	}
 	break;
+#else
+	Debug( LDAP_DEBUG_ANY,
+		"Error: do_bind: SASL not supported %s:%d\n",
+		 ri->ri_hostname, ri->ri_port, NULL );
+	ldap_unbind( ri->ri_ldp );
+	ri->ri_ldp = NULL;
+	return( BIND_ERR_BAD_ATYPE );
+#endif
+
     default:
 	Debug(  LDAP_DEBUG_ANY,
 		"Error: do_bind: unknown auth type \"%d\" for %s:%d\n",
