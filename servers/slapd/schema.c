@@ -443,13 +443,14 @@ oc_add_sups(
 			code = oc_add_sups(soc,soc1->soc_sup_oids, err);
 			if ( code )
 				return code;
-			
-			if ( code = oc_create_required(soc,
-				soc1->soc_at_oids_must,err) )
+
+			code = oc_create_required(soc,soc1->soc_at_oids_must,err);
+			if ( code )
 				return code;
-			if ( code = oc_create_allowed(soc,
-				soc1->soc_at_oids_may,err) )
+			code = oc_create_allowed(soc,soc1->soc_at_oids_may,err);
+			if ( code )
 				return code;
+
 			nsups++;
 			sups1++;
 		}
@@ -520,11 +521,11 @@ oc_add(
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS));
-	if ( code = oc_add_sups(soc,soc->soc_sup_oids,err) )
+	if ( (code = oc_add_sups(soc,soc->soc_sup_oids,err)) != 0 )
 		return code;
-	if ( code = oc_create_required(soc,soc->soc_at_oids_must,err) )
+	if ( (code = oc_create_required(soc,soc->soc_at_oids_must,err)) != 0 )
 		return code;
-	if ( code = oc_create_allowed(soc,soc->soc_at_oids_may,err) )
+	if ( (code = oc_create_allowed(soc,soc->soc_at_oids_may,err)) != 0 )
 		return code;
 	code = oc_insert(soc,err);
 	return code;

@@ -40,10 +40,9 @@ main( int argc, char **argv )
 	if ( argc == 3 ) {
 		if ( strcmp( argv[1], "-b" ) != 0 ) {
 			usage( argv[0] );
-		} else {
-			binary = 1;
-			type = argv[2];
 		}
+		binary = 1;
+		type = argv[2];
 	} else {
 		if ( strcmp( argv[1], "-b" ) == 0 ) {
 			usage( argv[0] );

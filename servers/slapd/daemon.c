@@ -336,7 +336,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s (%d/%d)\n",
 		urls ? urls : "<null>", port, tls_port );
 
-	if( rc = sockinit() ) {
+	if( (rc = sockinit()) != 0 ) {
 		return rc;
 	}
 

@@ -328,7 +328,7 @@ static int ldap_is_attr_oid ( const char *attr )
 {
 	int i, c, digit=0;
 
-	for( i=0 ; c = attr[i] ; i++ ) {
+	for( i = 0; (c = attr[i]) != 0; i++ ) {
 		if( c >= '0' && c <= '9' ) {
 			digit=1;
 
@@ -355,7 +355,7 @@ static int ldap_is_attr_desc ( const char *attr )
 	/* cheap attribute description check */
 	int i, c;
 
-	for( i=0; c = attr[i]; i++ ) {
+	for( i = 0; (c = attr[i]) != 0; i++ ) {
 		if (( c >= '0' && c <= '9' )
 			|| ( c >= 'A' && c <= 'Z' )
 			|| ( c >= 'a' && c <= 'z' )
