@@ -866,13 +866,13 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_CERTFILE:
 	case LDAP_OPT_X_TLS_KEYFILE:
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
-		return ldap_pvt_tls_set_option( NULL, option, (void *) arg );
+		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		i = ( ( strcasecmp( arg, "on" ) == 0 ) ||
 		      ( strcasecmp( arg, "yes" ) == 0) ||
 		      ( strcasecmp( arg, "true" ) == 0 ) );
-		return ldap_pvt_tls_set_option( NULL, option, (void *) &i );
+		return ldap_pvt_tls_set_option( ld, option, (void *) &i );
 
 	case LDAP_OPT_X_TLS:
 		i = -1;
