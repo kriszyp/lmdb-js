@@ -86,6 +86,8 @@ static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
 	ber_len_t i;
 	int lower = TOLOWER( c );
 	int upper = TOUPPER( c );
+
+	if( c == 0 ) return NULL;
 	
 	for( i=0; i < bv->bv_len; i++ ) {
 		if( upper == bv->bv_val[i] || lower == bv->bv_val[i] ) {
