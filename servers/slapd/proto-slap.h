@@ -404,7 +404,9 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 
 LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
-LDAP_SLAPD_F (int) dnDCEnormalize LDAP_P(( char *dce, struct berval *out ));
+LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out ));
+
+LDAP_SLAPD_F (char *) dnX509peerNormalize LDAP_P(( void *ssl ));
 
 /*
  * entry.c
@@ -999,7 +1001,6 @@ LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
-LDAP_SLAPD_V (int)		sasl_external_x509dn_convert;
 LDAP_SLAPD_V (char *)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;

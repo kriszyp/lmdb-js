@@ -3480,16 +3480,6 @@ asn1_integer2str(ASN1_INTEGER *a, struct berval *bv)
 	return ber_str2bv( p, 0, 1, bv );
 }
 
-/* Get a DN in RFC2253 format from a X509_NAME internal struct */
-int
-dn_openssl2ldap(X509_NAME *name, struct berval *out)
-{
-	char buf[2048], *p;
-
-	p = X509_NAME_oneline( name, buf, sizeof( buf ) );
-	return dnDCEnormalize( p, out );
-}
-
 /*
  * Given a certificate in DER format, extract the corresponding
  * assertion value for certificateExactMatch
@@ -3522,7 +3512,7 @@ certificateExactConvert(
 		X509_free(xcert);
 		return LDAP_INVALID_SYNTAX;
 	}
-	if ( dn_openssl2ldap(X509_get_issuer_name(xcert), &issuer_dn ) != LDAP_SUCCESS ) {
+	if ( dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn ) != LDAP_SUCCESS ) {
 		X509_free(xcert);
 		ber_memfree(serial.bv_val);
 		return LDAP_INVALID_SYNTAX;
@@ -3636,7 +3626,7 @@ certificateExactMatch(
 	}
 
 	asn1_integer2str(xcert->cert_info->serialNumber, &serial);
-	dn_openssl2ldap(X509_get_issuer_name(xcert), &issuer_dn);
+	dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn);
 
 	X509_free(xcert);
 

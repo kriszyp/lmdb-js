@@ -831,38 +831,20 @@ dnIsSuffix(
 }
 
 /*
- * Convert a DN from X.500 format into a normalized DN
+ * Convert an X.509 DN into a normalized LDAP DN
  */
 int
-dnDCEnormalize( char *dce, struct berval *out )
+dnX509normalize( void *x509_name, struct berval *out )
 {
-	int rc;
-	LDAPDN *dn = NULL;
+	/* Invoke the LDAP library's converter with our schema-rewriter */
+	return ldap_X509dn2bv( x509_name, out, LDAPDN_rewrite, 0 );
+}
 
-	out->bv_val = NULL;
-	out->bv_len = 0;
-
-	rc = ldap_str2dn( dce, &dn, LDAP_DN_FORMAT_DCE );
-	if  ( rc != LDAP_SUCCESS )
-		return rc;
-
-	/*
-	 * Schema-aware rewrite
-	 */
-	if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
-		ldap_dnfree( dn );
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	/*
-	 * Back to string representation
-	 */
-	rc = ldap_dn2bv( dn, out, LDAP_DN_FORMAT_LDAPV3 );
-
-	ldap_dnfree( dn );
-
-	if ( rc != LDAP_SUCCESS ) {
-		rc = LDAP_INVALID_SYNTAX;
-	}
-	return rc;
+/*
+ * Get the TLS session's peer's DN into a normalized LDAP DN
+ */
+char *
+dnX509peerNormalize( void *ssl )
+{
+	return ldap_pvt_tls_get_peer_dn( ssl, (LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
 }

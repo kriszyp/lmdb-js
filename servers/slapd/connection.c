@@ -1201,7 +1201,7 @@ int connection_read(ber_socket_t s)
 				c->c_ssf = c->c_tls_ssf;
 			}
 
-			authid = (char *)ldap_pvt_tls_get_peer( ssl );
+			authid = dnX509peerNormalize( ssl );
 			slap_sasl_external( c, c->c_tls_ssf, authid );
 		}
 		connection_return( c );
