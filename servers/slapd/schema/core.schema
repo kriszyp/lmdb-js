@@ -9,7 +9,7 @@
 #	RFC2079 (URI)
 #	RFC1274 (uid/dc)
 #	RFC2247 (dc/dcObject)
-#	RFC2289 (Dynamic Directory Services)
+#	RFC2589 (Dynamic Directory Services)
 #
 # select informational schema items:
 #	RFC2377 (uidObject)
