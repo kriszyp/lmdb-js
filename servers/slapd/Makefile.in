@@ -8,14 +8,14 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
 		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
-		phonetic.c acl.c str2filter.c aclparse.c init.c \
+		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
 		repl.c lock.c \
 		suffixalias.c schema.c schemaparse.c monitor.c configinfo.c
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
 		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
-		phonetic.o acl.o str2filter.o aclparse.o init.o \
+		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
 		repl.o lock.o \
 		suffixalias.o schema.o schemaparse.o monitor.o configinfo.o
 

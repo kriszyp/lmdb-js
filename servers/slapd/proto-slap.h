@@ -257,6 +257,13 @@ int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
 char *suffixAlias LDAP_P(( char *dn, Operation *op, Backend *be ));
 
 /*
+ * user.c
+ */
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+void slap_init_user LDAP_P(( char *username, char *groupname ));
+#endif
+
+/*
  * Other...
  */
 
@@ -308,7 +315,8 @@ extern int	slap_shutdown LDAP_P((int dbnum));
 extern int	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
-extern int slapd_daemon LDAP_P((struct sockaddr_in *addr));
+extern int	set_socket LDAP_P((struct sockaddr_in *addr));
+extern int	slapd_daemon LDAP_P((int inetd, int tcps));
 
 extern void slapd_set_write LDAP_P((int s, int wake));
 extern void slapd_clr_write LDAP_P((int s, int wake));

@@ -1634,6 +1634,7 @@ AC_CHECK_HEADERS(	\
 	fcntl.h			\
 	filio.h			\
 	getopt.h		\
+	grp.h			\
 	libutil.h		\
 	limits.h		\
 	locale.h		\
@@ -1707,8 +1708,11 @@ fi
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
+	endgrent		\
+	endpwent		\
 	flock			\
 	getdtablesize		\
+	getgrgid		\
 	gethostname		\
 	getpass			\
 	getpwuid		\

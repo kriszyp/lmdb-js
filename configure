@@ -8945,6 +8945,7 @@ for ac_hdr in \
 	fcntl.h			\
 	filio.h			\
 	getopt.h		\
+	grp.h			\
 	libutil.h		\
 	limits.h		\
 	locale.h		\
@@ -10274,8 +10275,11 @@ fi
 
 for ac_func in \
 	bcopy			\
+	endgrent		\
+	endpwent		\
 	flock			\
 	getdtablesize		\
+	getgrgid		\
 	gethostname		\
 	getpass			\
 	getpwuid		\

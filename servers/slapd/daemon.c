@@ -146,12 +146,9 @@ static void slapd_close(int s) {
 	tcp_close(s);
 }
 
-static void *
-slapd_daemon_task(
-	void *ptr
-)
+int
+set_socket( struct sockaddr_in *addr )
 {
-	struct sockaddr_in *addr = ptr;
 	int	tcps = -1;
 
 #ifdef HAVE_SYSCONF
@@ -176,12 +173,6 @@ slapd_daemon_task(
 		err = WSAStartup( vers, &wsaData );
 	}
 #endif
-
-	connections_init();
-
-	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
-	FD_ZERO( &slap_daemon.sd_readers );
-	FD_ZERO( &slap_daemon.sd_writers );
 
 	if( addr != NULL ) {
 		int	tmp;
@@ -223,7 +214,27 @@ slapd_daemon_task(
 					? sys_errlist[errno] : "unknown" );
 			exit( 1 );
 		}
+	}
 
+	return tcps;
+}
+
+static void *
+slapd_daemon_task(
+	void *ptr
+)
+{
+	int inetd = ((int *)ptr) [0];
+	int tcps  = ((int *)ptr) [1];
+	free( ptr );
+
+	connections_init();
+
+	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
+	FD_ZERO( &slap_daemon.sd_readers );
+	FD_ZERO( &slap_daemon.sd_writers );
+
+	if( !inetd ) {
 		if ( listen( tcps, 5 ) == -1 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%d, 5) failed errno %d (%s)\n",
@@ -569,12 +580,15 @@ slapd_daemon_task(
 	return NULL;
 }
 
-int slapd_daemon( struct sockaddr_in *addr )
+int slapd_daemon( int inetd, int tcps )
 {
 	int status;
+	int *args = ch_malloc( sizeof( int[2] ) );
+	args[0] = inetd;
+	args[1] = tcps;
 
 	status = ldap_pvt_thread_create( &listener_tid, 0,
-		 slapd_daemon_task, addr );
+					 slapd_daemon_task, args );
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,

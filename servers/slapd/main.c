@@ -64,6 +64,9 @@ usage( char *name )
 #ifdef LOG_LOCAL4
     fprintf( stderr, " [-l sysloguser]" );
 #endif
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+    fprintf( stderr, " [-U user] [-G group]" );
+#endif
     fprintf( stderr, "\n" );
 }
 
@@ -75,10 +78,14 @@ main( int argc, char **argv )
 	int		i;
 	int		inetd = 0;
 	int		rc;
-	struct sockaddr_in	bind_addr, *slapd_addr;
+	struct sockaddr_in	bind_addr;
+	int		tcps;
 	int		udp;
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
+#endif
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+	char		*username = NULL, *groupname = NULL;
 #endif
 	char		*configfile;
 	char        *serverName;
@@ -101,6 +108,9 @@ main( int argc, char **argv )
 #endif
 #ifdef SLAPD_BDB2
 			     "t"
+#endif
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+			     "U:G:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -195,6 +205,16 @@ main( int argc, char **argv )
 			break;
 #endif
 
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+		case 'U':	/* user name */
+			username = ch_strdup( optarg );
+			break;
+
+		case 'G':	/* group name */
+			groupname = ch_strdup( optarg );
+			break;
+#endif /* HAVE_PWD_H && HAVE_GRP_H */
+
 		default:
 			usage( argv[0] );
 			exit( 1 );
@@ -217,6 +237,13 @@ main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
 #else
 	openlog( serverName, OPENLOG_OPTIONS );
+#endif
+
+	tcps = set_socket( inetd ? NULL : &bind_addr );
+
+#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+	if ( username != NULL || groupname != NULL )
+		slap_init_user( username, groupname );
 #endif
 
 	if ( slap_init( serverMode, serverName ) != 0 ) {
@@ -261,8 +288,6 @@ main( int argc, char **argv )
 	if(!inetd) {
 		FILE *fp;
 
-		slapd_addr = &bind_addr;
-
 		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
 		if (( slapd_pid_file != NULL ) &&
@@ -281,14 +306,11 @@ main( int argc, char **argv )
 			fprintf( fp, "\n" );
 			fclose( fp );
 		}
-
-	} else {
-		slapd_addr = NULL;
 	}
 
 	time( &starttime );
 
-	rc = slapd_daemon( slapd_addr );
+	rc = slapd_daemon( inetd, tcps );
 
 shutdown:
 	/* remember an error during shutdown */
