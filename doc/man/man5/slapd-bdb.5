@@ -41,14 +41,14 @@ The default is 1000 entries.
 .TP
 .B checkpoint <kbyte> <min>
 Specify the frequency for checkpointing the database transaction
-log upon updating of the database.  A checkpointing flushes the
+log upon updating of the database.  A checkpoint flushes the
 database buffers to disk and writes a checkpoint record in the log.
 Upon a database update, a checkpoint will occur if either <kbyte>
 data has been written or <min> minutes have passed since the last
 checkpoint.  Both arguments default to zero, in which case they are
 ignored.  Note: checkpointing by this directive occurs only upon execution of
-a database update.  If one desires checkpoinging to occur otherwise,
-db_checkpoint(1) or other external process should be used to cause
+a database update.  If one desires checkpointing to occur otherwise,
+db_checkpoint(1) or some other external process should be used to cause
 a database checkpoint to be taken.  See the Berkeley DB reference
 guide for more details.
 .TP
