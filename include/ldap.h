@@ -1773,13 +1773,15 @@ ldap_passwd_s LDAP_P((
  * LDAP Password Policy controls
  *	in ppcontrol.c
  */
+#define LDAP_API_FEATURE_PASSWORD_POLICY 1000
+
 typedef enum passpolicyerror_enum {
        PP_passwordExpired = 0,
        PP_accountLocked = 1,
        PP_changeAfterReset = 2,
        PP_passwordModNotAllowed = 3,
        PP_mustSupplyOldPassword = 4,
-       PP_invalidPasswordSyntax = 5,
+       PP_insufficientPasswordQuality = 5,
        PP_passwordTooShort = 6,
        PP_passwordTooYoung = 7,
        PP_passwordInHistory = 8,
