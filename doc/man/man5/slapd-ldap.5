@@ -124,7 +124,7 @@ The supported modes are:
 .RS
 .RS
 .TP
-.B <mode>={legacy|anonymous|self|none|<id>}
+.B <mode>={legacy|anonymous|none|<id>|self}
 .RE
 .RS
 .B <id>={u:<ID>|[dn:]<DN>}
@@ -139,7 +139,7 @@ Direct binds are always proxied.
 The other modes imply that the proxy will always bind as 
 .IR idassert-authcdn ,
 unless restricted by
-.BR idassert-authz
+.BR idassert-authzFrom
 rules (see below), in which case the operation will fail;
 eventually, it will assert some other identity according to
 .BR <mode> .
@@ -178,7 +178,7 @@ permissions.  Note, however, that the ID assertion feature is mostly
 useful when the asserted identities do not exist on the remote server.
 .RE
 .TP
-.B idassert-authz <authz>
+.B idassert-authzFrom <authz>
 if defined, selects what
 .I local
 identities are authorized to exploit the identity assertion feature.

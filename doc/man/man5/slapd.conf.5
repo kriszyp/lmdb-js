@@ -183,7 +183,9 @@ sequence.
 The
 .B all
 flag requires both authorizations to succeed.
-The rules are simply regular expressions specifying which DNs are allowed 
+.LP
+.RS
+The rules are mechanisms to specify which identities are allowed 
 to perform proxy authorization.
 The
 .I authzFrom
@@ -206,7 +208,6 @@ and
 describes an 
 .B identity 
 or a set of identities; it can take three forms:
-.RS
 .RS
 .TP
 .B ldap:///<base>??[<scope>]?<filter>
@@ -256,6 +257,9 @@ style, which causes
 .I <pattern>
 to be compiled according to 
 .BR regex (7).
+A pattern of
+.I *
+means any non-anonymous DN.
 The third form is a SASL
 .BR id ,
 with the optional fields
@@ -294,6 +298,13 @@ and
 .I authzTo
 can impact security, users are strongly encouraged 
 to explicitly set the type of identity specification that is being used.
+A subset of these rules can be used as third arg in the 
+.B authz-regexp
+statement (see below); significantly, the 
+.I URI
+and the
+.I dn.exact:<dn> 
+forms.
 .RE
 .TP
 .B authz-regexp <match> <replace>
