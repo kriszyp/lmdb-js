@@ -14,8 +14,8 @@ NT_DYN_LT_NO_UNDEF = -no-undefined
 LT_NO_UNDEF = $(@PLAT@_@LIB_LINKAGE@_LT_NO_UNDEF)
 
 COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(EXTRA_DEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link -rpath $(libdir) \
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
+LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(libdir) \
+	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
 
 MKDEPFLAG = -l
 

@@ -13,8 +13,8 @@ LIBSTAT = lib$(LIBBASE).a
 LTFLAGS = --only-$(LINKAGE)
 
 COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link -rpath $(moduledir) \
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
+LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(moduledir) \
+	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
 
 MKDEPFLAG = -l
 
