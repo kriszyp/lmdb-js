@@ -2297,9 +2297,10 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
 		NULL, NULL},
-	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP void' " X_HIDE ")" ,
-		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
 
+	/* OpenLDAP Void Syntax */
+	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' " X_HIDE ")" ,
+		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
 	{NULL, 0, NULL, NULL, NULL}
 };
 
