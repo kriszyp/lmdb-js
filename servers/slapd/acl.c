@@ -705,21 +705,21 @@ acl_mask(
 			 */
 			/*
 			 * NOTE: styles "anonymous", "users" and "self" 
-			 * have been moved to an enumeration, * whose value
-			 * is set in a_dn_style; however, the string
+			 * have been moved to enum slap_style_t, whose 
+			 * value is set in a_dn_style; however, the string
 			 * is maintaned in a_dn_pat.
 			 */
-			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS /* bvmatch( &b->a_dn_pat, &aci_bv_anonymous ) */ ) {
+			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS ) {
 				if ( op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( b->a_dn_style == ACL_STYLE_USERS /* bvmatch( &b->a_dn_pat, &aci_bv_users ) */ ) {
+			} else if ( b->a_dn_style == ACL_STYLE_USERS ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( b->a_dn_style == ACL_STYLE_SELF /* bvmatch( &b->a_dn_pat, &aci_bv_self ) */ ) {
+			} else if ( b->a_dn_style == ACL_STYLE_SELF ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
@@ -2643,8 +2643,6 @@ aci_mask(
 	return 0;
 }
 
-#endif	/* SLAPD_ACI_ENABLED */
-
 #ifdef SLAP_DYNACL
 static int
 dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *right, void **privp )
@@ -2856,10 +2854,27 @@ static slap_dynacl_t	dynacl_aci = {
 	NULL
 };
 
+#endif	/* SLAPD_ACI_ENABLED */
+
 int
 aci_init( void )
 {
-	return slap_dynacl_register( &dynacl_aci );
+	slap_dynacl_t	*known_dynacl[] = {
+#ifdef SLAPD_ACI_ENABLED
+		&dynacl_aci,
+#endif  /* SLAPD_ACI_ENABLED */
+		NULL
+	};
+	int		i, rc;
+
+	for ( i = 0; known_dynacl[ i ]; i++ ) {
+		rc = slap_dynacl_register( known_dynacl[ i ] ); 
+		if ( rc ) {
+			return rc;
+		}
+	}
+	
+	return 0;
 }
 
 /*
