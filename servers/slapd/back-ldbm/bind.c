@@ -41,7 +41,6 @@ ldbm_back_bind(
 #endif
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
-	AttributeDescription *entry = slap_schema.si_ad_entry;
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 
@@ -100,15 +99,6 @@ ldbm_back_bind(
 	*edn = ch_strdup( e->e_dn );
 
 	/* check for deleted */
-
-	if ( ! access_allowed( be, conn, op, e,
-		entry, NULL, ACL_AUTH ) )
-	{
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			NULL, NULL, NULL, NULL );
-		rc = 1;
-		goto return_results;
-	}
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */

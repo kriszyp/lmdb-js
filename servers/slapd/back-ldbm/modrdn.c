@@ -102,18 +102,6 @@ ldbm_back_modrdn(
 		return( -1 );
 	}
 
-#ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
-	if ( ! access_allowed( be, conn, op, e,
-		"entry", NULL, ACL_WRITE ) )
-	{
-		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
-			0, 0 );
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-#endif
-
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */

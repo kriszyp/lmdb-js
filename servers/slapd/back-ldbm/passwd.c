@@ -40,8 +40,6 @@ ldbm_back_exop_passwd(
 
 	char *dn;
 
-	AttributeDescription *entry = slap_schema.si_ad_entry;
-
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
@@ -91,12 +89,6 @@ ldbm_back_exop_passwd(
 	if( e == NULL ) {
 		*text = "could not locate authorization entry";
 		rc = LDAP_OPERATIONS_ERROR;
-		goto done;
-	}
-
-	if( ! access_allowed( be, conn, op, e, entry, NULL, ACL_WRITE ) ) {
-		*text = "access to authorization entry denied";
-		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto done;
 	}
 
