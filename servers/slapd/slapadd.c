@@ -79,6 +79,8 @@ slapadd( int argc, char **argv )
 	int ret;
 	struct berval bvtext;
 	int i;
+	struct berval mc;
+	struct sync_cookie sc;
 #ifdef NEW_LOGGING
 	lutil_log_initialize(argc, argv );
 #endif
@@ -436,21 +438,27 @@ slapadd( int argc, char **argv )
 		maxcsn.bv_len = 0;
 		maxcsn.bv_val = NULL;
 		LDAP_SLIST_FOREACH( sei, &consumer_subentry, sei_next ) {
+			sc.octet_str = &sei->cookie;
+			slap_parse_sync_cookie( &sc );
 			if ( maxcsn.bv_len != 0 ) {
 				value_match( &match, slap_schema.si_ad_syncreplCookie,
 					slap_schema.si_ad_syncreplCookie->ad_type->sat_ordering,
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					&maxcsn, &sei->cookie, &text );
+					&maxcsn, &sc.ctxcsn[0], &text );
 			} else {
 				match = -1;
 			}
 			if ( match < 0 ) {
 				if ( maxcsn.bv_val )
 					ch_free( maxcsn.bv_val );
-				ber_dupbv( &maxcsn, &sei->cookie );
+				ber_dupbv( &maxcsn, &sc.ctxcsn[0] );
 			}
+			sc.octet_str = NULL;
+			slap_sync_cookie_free( &sc, 0 );
 		}
 	}
+
+	slap_compose_sync_cookie( NULL, &mc, &maxcsn, -1, -1 );
 
 	if ( SLAP_LASTMOD(be) && replica_promotion ) {
 		if ( provider_subentry || update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH ||
@@ -536,7 +544,7 @@ slapadd( int argc, char **argv )
 			ctxcsn_id = be->be_dn2id_get( be, &ctxcsn_ndn );
 
 			if ( ctxcsn_id == NOID ) {
-				ctxcsn_e = slap_create_syncrepl_entry( be, &maxcsn,
+				ctxcsn_e = slap_create_syncrepl_entry( be, &mc,
 												&slap_syncrepl_cn_bv,
 												&slap_syncrepl_bv );
 				if ( !dryrun ) {
@@ -562,7 +570,7 @@ slapadd( int argc, char **argv )
 				if ( ret == LDAP_SUCCESS ) {
 					attr = attr_find( ctxcsn_e->e_attrs,
 									  slap_schema.si_ad_syncreplCookie );
-					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
+					AC_MEMCPY( attr->a_vals[0].bv_val, mc.bv_val, mc.bv_len );
 					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
 					attr->a_vals[0].bv_len = maxcsn.bv_len;
 					if ( !dryrun ) {
@@ -629,9 +637,9 @@ slapadd( int argc, char **argv )
 				if ( ret == LDAP_SUCCESS ) {
 					attr = attr_find( ctxcsn_e->e_attrs,
 									  slap_schema.si_ad_syncreplCookie );
-					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
-					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
-					attr->a_vals[0].bv_len = maxcsn.bv_len;
+					AC_MEMCPY( attr->a_vals[0].bv_val, sei->cookie.bv_val, sei->cookie.bv_len );
+					attr->a_vals[0].bv_val[sei->cookie.bv_len] = '\0';
+					attr->a_vals[0].bv_len = sei->cookie.bv_len;
 					if ( !dryrun ) {
 						ctxcsn_id = be->be_entry_modify( be,
 											ctxcsn_e, &bvtext );
