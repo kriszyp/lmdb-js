@@ -647,10 +647,6 @@ parse_acl(
 					ber_str2bv("self", STRLENOF( "self" ), 1, &bv);
 					sty = ACL_STYLE_SELF;
 
-				} else if ( strcasecmp( argv[i], "creator" ) == 0 ) {
-					ber_str2bv("creator", STRLENOF( "creator" ), 1, &bv);
-					sty = ACL_STYLE_CREATOR;
-
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					if ( sty == ACL_STYLE_REGEX ) {
 						b->a_dn_style = ACL_STYLE_REGEX;
@@ -733,7 +729,6 @@ parse_acl(
 							sty != ACL_STYLE_ANONYMOUS &&
 							sty != ACL_STYLE_USERS &&
 							sty != ACL_STYLE_SELF &&
-							sty != ACL_STYLE_CREATOR &&
 							expand == 0 )
 					{
 						rc = dnNormalize(0, NULL, NULL,
@@ -1797,7 +1792,7 @@ acl_usage( void )
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> [val[.<style>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n",
-		"<who> ::= [ * | anonymous | users | self | creator | dn[.<dnstyle>]=<DN> ]\n"
+		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
 			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
@@ -2032,8 +2027,7 @@ print_access( Access *b )
 		if ( ber_bvccmp( &b->a_dn_pat, '*' ) ||
 			b->a_dn_style == ACL_STYLE_ANONYMOUS /* strcmp( b->a_dn_pat.bv_val, "anonymous" ) == 0 */ ||
 			b->a_dn_style == ACL_STYLE_USERS /* strcmp( b->a_dn_pat.bv_val, "users" ) == 0 */ ||
-			b->a_dn_style == ACL_STYLE_SELF /* strcmp( b->a_dn_pat.bv_val, "self" ) == 0 */ ||
-			b->a_dn_style == ACL_STYLE_CREATOR /* strcmp( b->a_dn_pat.bv_val, "creator" ) == 0 */ )
+			b->a_dn_style == ACL_STYLE_SELF /* strcmp( b->a_dn_pat.bv_val, "self" ) == 0 */ )
 		{
 			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
 

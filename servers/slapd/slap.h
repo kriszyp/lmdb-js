@@ -1139,7 +1139,6 @@ typedef enum slap_style_e {
 	ACL_STYLE_ANONYMOUS,
 	ACL_STYLE_USERS,
 	ACL_STYLE_SELF,
-	ACL_STYLE_CREATOR,
 	ACL_STYLE_IP,
 	ACL_STYLE_PATH
 } slap_style_t;

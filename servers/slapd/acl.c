@@ -55,7 +55,6 @@ static struct berval
 	aci_bv_public		= BER_BVC("public"),
 	aci_bv_users		= BER_BVC("users"),
 	aci_bv_self 		= BER_BVC("self"),
-	aci_bv_creator 		= BER_BVC("creator"),
 	aci_bv_dnattr 		= BER_BVC("dnattr"),
 	aci_bv_group		= BER_BVC("group"),
 	aci_bv_role		= BER_BVC("role"),
@@ -698,10 +697,10 @@ acl_mask(
 			 * the entry, OR the given dn matches the dn pattern
 			 */
 			/*
-			 * NOTE: styles "anonymous", "users", "self" 
-			 * and "creator" have been moved to an enumeration,
-			 * whose value is set in a_dn_style; however,
-			 * the string is maintaned in a_dn_pat.
+			 * NOTE: styles "anonymous", "users" and "self" 
+			 * have been moved to an enumeration, * whose value
+			 * is set in a_dn_style; however, the string
+			 * is maintaned in a_dn_pat.
 			 */
 			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS /* bvmatch( &b->a_dn_pat, &aci_bv_anonymous ) */ ) {
 				if ( op->o_ndn.bv_len != 0 ) {
@@ -719,20 +718,6 @@ acl_mask(
 				}
 				
 				if ( e->e_dn == NULL || !dn_match( &e->e_nname, &op->o_ndn ) ) {
-					continue;
-				}
-
-			} else if ( b->a_dn_style == ACL_STYLE_CREATOR /* bvmatch ( &b->a_dn_pat, &aci_bv_creator ) */ ) {
-				/* creator */
-				Attribute	*a;
-
-				for ( a = e->e_attrs; a; a = a->a_next ) {
-					if ( a->a_desc == slap_schema.si_ad_creatorsName ) {
-						break;
-					}
-				}
-
-				if ( a == NULL || !dn_match( &a->a_nvals[ 0 ], &op->o_ndn ) ) {
 					continue;
 				}
 
@@ -2412,19 +2397,6 @@ aci_mask(
 
 	} else if ( ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0 ) {
 		if ( dn_match( &op->o_ndn, &e->e_nname ) ) {
-			return 1;
-		}
-
-	} else if ( ber_bvstrcasecmp( &aci_bv_creator, &bv ) == 0 ) {
-		Attribute	*a;
-
-		for ( a = e->e_attrs; a; a = a->a_next ) {
-			if ( a->a_desc == slap_schema.si_ad_creatorsName ) {
-				break;
-			}
-		}
-		
-		if ( a != NULL && dn_match( &op->o_ndn, &a->a_nvals[ 0 ] ) ) {
 			return 1;
 		}
 
