@@ -330,7 +330,6 @@ get_substring_filter(
 	ber_len_t	len;
 	ber_tag_t	rc;
 	struct berval value;
-	struct berval escaped;
 	char		*last;
 	struct berval bv;
 	*text = "error decoding filter";

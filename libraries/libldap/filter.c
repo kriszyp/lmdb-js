@@ -307,7 +307,7 @@ put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 }
 
 int
-ldap_int_put_filter( BerElement *ber, const char *str_in )
+ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 {
 	int rc;
 	char	*freeme;
@@ -349,7 +349,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "ldap_int_put_filter: \"%s\"\n",
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "ldap_pvt_put_filter: \"%s\"\n",
 		str_in ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str_in, 0, 0 );
@@ -373,7 +373,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			case '&':
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-					"ldap_int_put_filter: AND\n" ));
+					"ldap_pvt_put_filter: AND\n" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: AND\n",
 				    0, 0, 0 );
@@ -392,7 +392,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			case '|':
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-					"ldap_int_put_filter: OR\n" ));
+					"ldap_pvt_put_filter: OR\n" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: OR\n",
 				    0, 0, 0 );
@@ -411,7 +411,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			case '!':
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-					"ldap_int_put_filter: NOT\n" ));
+					"ldap_pvt_put_filter: NOT\n" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: NOT\n",
 				    0, 0, 0 );
@@ -430,7 +430,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 			default:
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-					"ldap_int_put_filter: simple\n" ));
+					"ldap_pvt_put_filter: simple\n" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "put_filter: simple\n",
 				    0, 0, 0 );
@@ -481,7 +481,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 		case /*'('*/ ')':
 #ifdef NEW_LOGGING
 			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-				"ldap_int_put_filter: end\n" ));
+				"ldap_pvt_put_filter: end\n" ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n",
 				0, 0, 0 );
@@ -501,7 +501,7 @@ ldap_int_put_filter( BerElement *ber, const char *str_in )
 		default:	/* assume it's a simple type=value filter */
 #ifdef NEW_LOGGING
 			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-				"ldap_int_put_filter: default\n" ));
+				"ldap_pvt_put_filter: default\n" ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n",
 				0, 0, 0 );
@@ -554,7 +554,7 @@ put_filter_list( BerElement *ber, char *str, ber_tag_t tag )
 
 		/* now we have "(filter)" with str pointing to it */
 		*next = '\0';
-		if ( ldap_int_put_filter( ber, str ) == -1 ) return -1;
+		if ( ldap_pvt_put_filter( ber, str ) == -1 ) return -1;
 		*next = save;
 		str = next;
 

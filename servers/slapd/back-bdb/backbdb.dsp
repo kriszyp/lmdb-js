@@ -231,6 +231,10 @@ SOURCE=.\nextid.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\operational.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\passwd.c
 # End Source File
 # Begin Source File

@@ -15,7 +15,7 @@
 
 #include <ldap.h>
 
-#include "ldap-int.h"
+#include "ldap_pvt.h"
 
 #include "ldif.h"
 #include "lutil.h"
@@ -88,7 +88,7 @@ static int filter2ber( char *filter )
 		return EXIT_FAILURE;
 	}
 
-	rc = ldap_int_put_filter( ber, filter );
+	rc = ldap_pvt_put_filter( ber, filter );
 	if( rc < 0 ) {
 		fprintf( stderr, "Filter error!\n");
 		return EXIT_FAILURE;

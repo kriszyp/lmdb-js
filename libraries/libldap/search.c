@@ -295,7 +295,7 @@ ldap_build_search_req(
 		filter = "(objectclass=*)";
 	}
 
-	err = ldap_int_put_filter( ber, filter );
+	err = ldap_pvt_put_filter( ber, filter );
 
 	if ( err  == -1 ) {
 		ld->ld_errno = LDAP_FILTER_ERROR;

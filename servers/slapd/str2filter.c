@@ -48,7 +48,7 @@ str2filter( const char *str )
 		return NULL;
 	}
 
-	rc = ldap_int_put_filter( ber, str );
+	rc = ldap_pvt_put_filter( ber, str );
 	if( rc < 0 ) {
 		goto done;
 	}
