@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.1.x
 	CVS Tag: OPENLDAP_REL_ENG_1_1
 	Fixed slapd/ldbm/delete initialization bug (ITS#31)
+	Fixed slapd/ldif2ldbm MAXARGS bug (ITS#34)
 	Fixed slapd/strtok needs mutex bug
 	Fixed salpd/tcpd DoS bug
 	Build environment
