@@ -133,9 +133,8 @@ it will listen on 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
 and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
 INADDR_ANY (any interface).
 A space separated list of URLs is expected.  The URLs should be of
-LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
-scheme without a DN or other optional parameters, except an experimental
-extension to indicate the permissions of the underlying listeners.
+the LDAP, LDAPS, or LDAPI schemes, and generally
+without a DN or other optional parameters (excepting as discussed below).
 Support for the latter two schemes depends on selected configuration 
 options.  Hosts may be specified by name or IPv4 and IPv6 address formats.
 Ports, if specified, must be numeric.  The default ldap:// port is 389
