@@ -24,112 +24,112 @@
 # Standard X.501(93) Operational Attribute Types from RFC2252
 
 attributetype ( 2.5.18.1 NAME 'createTimestamp'
-	DESC 'time which object was created'
+	DESC 'RFC2252: time which object was created'
 	EQUALITY generalizedTimeMatch
 	ORDERING generalizedTimeOrderingMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.18.2 NAME 'modifyTimestamp'
-	DESC 'time which object was last modified'
+	DESC 'RFC2252: time which object was last modified'
 	EQUALITY generalizedTimeMatch
 	ORDERING generalizedTimeOrderingMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.18.3 NAME 'creatorsName'
-	DESC 'name of creator'
+	DESC 'RFC2252: name of creator'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.18.4 NAME 'modifiersName'
-	DESC 'name of last modifier'
+	DESC 'RFC2252: name of last modifier'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.18.10 NAME 'subschemaSubentry'
-	DESC 'name of controlling subschema entry'
+	DESC 'RFC2252: name of controlling subschema entry'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
 	SINGLE-VALUE USAGE directoryOperation )
 
 attributetype ( 2.5.21.1 NAME 'dITStructureRules'
-	DESC 'RFC2252 DIT structure rules'
+	DESC 'RFC2252: DIT structure rules'
 	EQUALITY integerFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.17 USAGE directoryOperation )
 
 attributetype ( 2.5.21.2 NAME 'dITContentRules'
-	DESC 'RFC2252 DIT content rules'
+	DESC 'RFC2252: DIT content rules'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )
 
 attributetype ( 2.5.21.4 NAME 'matchingRules'
-	DESC 'RFC2252 matching rules'
+	DESC 'RFC2252: matching rules'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.30 USAGE directoryOperation )
 
 attributetype ( 2.5.21.5 NAME 'attributeTypes'
-	DESC 'RFC2252 attribute types'
+	DESC 'RFC2252: attribute types'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )
 
 attributetype ( 2.5.21.6 NAME 'objectClasses'
-	DESC 'RFC2252 object classes'
+	DESC 'RFC2252: object classes'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )
 
 attributetype ( 2.5.21.7 NAME 'nameForms'
-	DESC 'RFC2252 name forms '
+	DESC 'RFC2252: name forms '
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.35 USAGE directoryOperation )
 
 attributetype ( 2.5.21.8 NAME 'matchingRuleUse'
-	DESC 'RFC2252 matching rule uses'
+	DESC 'RFC2252: matching rule uses'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )
 
 # From X.500(93)
 attributetype ( 2.5.21.9 NAME 'structuralObjectClass'
-	DESC 'X.500(93) structural object class'
+	DESC 'X.500(93): structural object class of entry'
 	EQUALITY objectIdentifierMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
 	NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )
 
 # LDAP Operational Attributes from RFC2252
 attributetype ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
-	DESC 'RFC2252 naming contexts'
+	DESC 'RFC2252: naming contexts'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
-	DESC 'RFC2252 alternative servers'
+	DESC 'RFC2252: alternative servers'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.7 NAME 'supportedExtension'
-	DESC 'RFC2252 supported extended operations'
+	DESC 'RFC2252: supported extended operations'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.13 NAME 'supportedControl'
-	DESC 'RFC2252 supported controls'
+	DESC 'RFC2252: supported controls'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.14 NAME 'supportedSASLMechanisms'
-	DESC 'RFC2252 supported SASL mechanisms'
+	DESC 'RFC2252: supported SASL mechanisms'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.15 NAME 'supportedLDAPVersion'
-	DESC 'RFC2252 supported LDAP versions'
+	DESC 'RFC2252: supported LDAP versions'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
-	DESC 'RFC2252 LDAP syntaxes'
+	DESC 'RFC2252: LDAP syntaxes'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.54 USAGE directoryOperation )
 
 # Object Classes from RFC2252
 objectclass ( 2.5.20.1 NAME 'subschema' AUXILIARY
-	DESC 'RFC2252 controlling subschema (subentry)' 
+	DESC 'RFC2252: controlling subschema (subentry)' 
 	MAY ( dITStructureRules $ nameForms $ ditContentRules $
 		objectClasses $ attributeTypes $ matchingRules $
 		matchingRuleUse ) )
@@ -137,86 +137,86 @@ objectclass ( 2.5.20.1 NAME 'subschema' AUXILIARY
 # Standard attribute types used for subtyping from RFC2256
 
 attributetype ( 2.5.4.41 NAME 'name'
-	DESC 'common supertype of name attributes' 
+	DESC 'RFC2256: common supertype of name attributes' 
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 attributetype ( 2.5.4.49 NAME 'distinguishedName'
-	DESC 'common supertype of distingushed name attributes' 
+	DESC 'RFC2256: common supertype of distingushed name attributes' 
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
 # Standard attribute types from RFC2256
 
 attributetype ( 2.5.4.0 NAME 'objectClass'
-	DESC 'object classes of the entity' 
+	DESC 'RFC2256: object classes of the entity' 
 	EQUALITY objectIdentifierMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
 attributetype ( 2.5.4.1 NAME ( 'aliasedObjectName' 'aliasedEntryName' )
-	DESC 'name of aliased object'
+	DESC 'RFC2256: name of aliased object'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )
 
-# obsolete
-attributetype ( 2.5.4.2 NAME 'knowledgeInformation'
+attributetype ( 2.5.4.2 NAME 'knowledgeInformation' OBSOLETE
+	DESC 'use ref instead'
 	EQUALITY caseIgnoreMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768})
 
 attributetype ( 2.5.4.3 NAME ( 'cn' 'commonName' )
-	DESC 'common name(s) for which the entity is known by'
+	DESC 'RFC2256: common name(s) for which the entity is known by'
 	SUP name )
 
 attributetype ( 2.5.4.4 NAME ( 'sn' 'surname' )
-	DESC 'last (family) name(s) for which the entity is known by'
+	DESC 'RFC2256: last (family) name(s) for which the entity is known by'
 	SUP name )
 
 attributetype ( 2.5.4.5 NAME 'serialNumber'
-	DESC 'serial number of the entity'
+	DESC 'RFC2256: serial number of the entity'
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} )
 
 attributetype ( 2.5.4.6 NAME ( 'c' 'countryName' )
-	DESC 'ISO-3166 country 2-letter code'
+	DESC 'RFC2256: ISO-3166 country 2-letter code'
 	SUP name SINGLE-VALUE )
 
 attributetype ( 2.5.4.7 NAME ( 'l' 'localityName' )
-	DESC 'name of the locality which this object resides in'
+	DESC 'RFC2256: locality which this object resides in'
 	SUP name )
 
 attributetype ( 2.5.4.8 NAME ( 'st' 'stateOrProvinceName' )
-	DESC 'name of the state or province which this object resides in'
+	DESC 'RFC2256: state or province which this object resides in'
 	SUP name )
 
 attributetype ( 2.5.4.9 NAME ( 'street' 'streetAddress' )
-	DESC 'street address of this object'
+	DESC 'RFC2256: street address of this object'
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
 
 attributetype ( 2.5.4.10 NAME ( 'o' 'organizationName' )
-	DESC 'name of the organization this object belongs to'
+	DESC 'RFC2256: organization this object belongs to'
 	SUP name )
 
 attributetype ( 2.5.4.11 NAME ( 'ou' 'organizationalUnitName' )
-	DESC 'name of the organizational unit this object belongs to'
+	DESC 'RFC2256: organizational unit this object belongs to'
 	SUP name )
 
 attributetype ( 2.5.4.12 NAME 'title'
-	DESC 'title associated with the entity'
+	DESC 'RFC2256: title associated with the entity'
 	SUP name )
 
 attributetype ( 2.5.4.13 NAME 'description'
-	DESC 'descriptive information'
+	DESC 'RFC2256: descriptive information'
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )
 
 # Obsoleted by enhancedSearchGuide
 attributetype ( 2.5.4.14 NAME 'searchGuide'
-	DESC 'search guide - obsoleted by enhancedSearchGuide'
+	DESC 'RFC2256: search guide - obsoleted by enhancedSearchGuide'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.25 )
 
 attributetype ( 2.5.4.15 NAME 'businessCategory'
@@ -298,33 +298,33 @@ attributetype ( 2.5.4.33 NAME 'roleOccupant' SUP distinguishedName )
 attributetype ( 2.5.4.34 NAME 'seeAlso' SUP distinguishedName )
 
 attributetype ( 2.5.4.35 NAME 'userPassword'
-	DESC 'password of user -- cleartext or RFC 2307 format'
+	DESC 'RFC2256/2307: password of user'
 	EQUALITY octetStringMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
 
 # Must be transferred using ;binary
 attributetype ( 2.5.4.36 NAME 'userCertificate'
-	DESC 'X.509 user certificate, must be transferred using ;binary'
+	DESC 'RFC2256: X.509 user certificate, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # Must be transferred using ;binary
 attributetype ( 2.5.4.37 NAME 'cACertificate'
-	DESC 'X.509 CA certificate, must be transferred using ;binary'
+	DESC 'RFC2256: X.509 CA certificate, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # Must be transferred using ;binary
 attributetype ( 2.5.4.38 NAME 'authorityRevocationList'
-	DESC 'X.509 authority revocation list, must be transferred using ;binary'
+	DESC 'RFC2256: X.509 authority revocation list, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
 
 # Must be transferred using ;binary
 attributetype ( 2.5.4.39 NAME 'certificateRevocationList'
-	DESC 'X.509 certificate revocation list, must be transferred using ;binary'
+	DESC 'RFC2256: X.509 certificate revocation list, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
 
 # Must be stored and requested in the binary form
 attributetype ( 2.5.4.40 NAME 'crossCertificatePair'
-	DESC 'X.509 cross certificate pair, must be transferred using ;binary'
+	DESC 'RFC2256: X.509 cross certificate pair, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.10 )
 
 # 2.5.4.41 is defined above as it's used for subtyping
@@ -334,16 +334,15 @@ attributetype ( 2.5.4.40 NAME 'crossCertificatePair'
 #	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 attributetype ( 2.5.4.42 NAME ( 'givenName' 'gn' )
-	DESC 'first name(s) for which the entity is known by'
+	DESC 'RFC2256: first name(s) for which the entity is known by'
 	SUP name )
 
 attributetype ( 2.5.4.43 NAME 'initials'
-	DESC 'The initials attribute type contains the initials of some
-		or all of an individuals names, but not the surname(s).'
+	DESC 'RFC2256: initials of some or all of names, but not the surname(s).'
 	SUP name )
 
 attributetype ( 2.5.4.44 NAME 'generationQualifier' 
-	DESC 'name qualifier indicating a generation, e.g. Jr or II.'
+	DESC 'RFC2256: name qualifier indicating a generation'
 	SUP name )
 
 attributetype ( 2.5.4.45 NAME 'x500UniqueIdentifier'
@@ -650,18 +649,24 @@ attributetype ( 1.3.6.1.4.1.4203.1.3.5
 #
 # RFC 3112 (authPassword)
 #
-attributetype ( 1.3.6.1.4.1.4203.666.1.1
+attributetype ( 1.3.6.1.4.1.4203.1.3.4
 	NAME 'authPassword'
-	DESC 'OpenLDAP authentication password attribute'
+	DESC 'RFC3112: authentication password attribute'
 	SYNTAX 1.3.6.1.4.1.4203.666.2.2
 	USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.4203.666.1.2
+attributetype ( 1.3.6.1.4.1.4203.1.3.3
 	NAME 'supportedAuthPasswordSchemes'
-	DESC 'OpenLDAP supported authPassword schemes'
+	DESC 'RFC3112: supported authPassword schemes'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{32}
 	NO-USER-MODIFICATION USAGE dSAOperation )
+
+objectclass ( 1.3.6.1.4.1.4203.1.4.7
+	NAME 'authPasswordObject'
+	DESC 'RFC3112: authPassword mixin class'
+	MAY authPassword
+	AUXILIARY )
 
 #
 # OpenLDAP specific schema items
@@ -685,11 +690,6 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.5
 	EQUALITY OpenLDAPaciMatch
 	SYNTAX 1.3.6.1.4.1.4203.666.2.1
 	USAGE directoryOperation )
-
-objectclass ( 1.3.6.1.4.1.4203.666.3.1 NAME 'authPasswordObject'
-	DESC 'OpenLDAP authPassword mixin class'
-	MAY authPassword
-	AUXILIARY )
 
 #
 # Author:	Ando <ando@OpenLDAP.org>
