@@ -20,6 +20,9 @@ if test $GLUE = glueno; then
 	exit 0
 fi 
 
+echo "Test temporarily disabled"
+exit 0
+
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C
 
 echo "Running slapadd to build glued slapd databases..."

@@ -935,8 +935,18 @@ backend_check_restrictions(
 	int starttls = 0;
 	int session = 0;
 
-	if( op->o_bd ) {
-		if ( backend_check_controls( op, rs ) != LDAP_SUCCESS ) {
+	if ( op->o_bd ) {
+		int	rc = SLAP_CB_CONTINUE;
+
+		if ( op->o_bd->be_chk_controls ) {
+			rc = ( *op->o_bd->be_chk_controls )( op, rs );
+		}
+
+		if ( rc == SLAP_CB_CONTINUE ) {
+			rc = backend_check_controls( op, rs );
+		}
+
+		if ( rc != LDAP_SUCCESS ) {
 			return rs->sr_err;
 		}
 

@@ -1555,6 +1555,7 @@ struct slap_backend_db {
 #define		be_extended	bd_info->bi_extended
 
 #define		be_chk_referrals	bd_info->bi_chk_referrals
+#define		be_chk_controls		bd_info->bi_chk_controls
 #define		be_fetch	bd_info->bi_entry_get_rw
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_group	bd_info->bi_acl_group
@@ -1567,11 +1568,6 @@ struct slap_backend_db {
  * is fixed).
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
-
-	/* supported controls */
-	/* note: set to 0 if the database does not support the control;
-	 * be_ctrls[SLAP_MAX_CIDS] is set to 1 if initialized */
-	char		be_ctrls[SLAP_MAX_CIDS + 1];
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
@@ -1589,6 +1585,11 @@ struct slap_backend_db {
 #define		be_id2entry_get bd_info->bi_tool_id2entry_get
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
+
+	/* supported controls */
+	/* note: set to 0 if the database does not support the control;
+	 * be_ctrls[SLAP_MAX_CIDS] is set to 1 if initialized */
+	char		be_ctrls[SLAP_MAX_CIDS + 1];
 
 /* Database flags */
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
@@ -1876,6 +1877,8 @@ typedef int (BI_op_extended) LDAP_P((
 	struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_chk_referrals) LDAP_P((
 	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_chk_controls) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_entry_release_rw)
 	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
@@ -1977,6 +1980,7 @@ struct slap_backend_info {
 	/* Auxilary Functions */
 	BI_operational		*bi_operational;
 	BI_chk_referrals	*bi_chk_referrals;
+	BI_chk_controls		*bi_chk_controls;
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
 
