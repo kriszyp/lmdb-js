@@ -283,11 +283,13 @@ int backend_startup(Backend *be)
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
-			   be->be_suffix[0].bv_val, 0, 0 );
+			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+			0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"backend_startup: starting \"%s\"\n",
-			be->be_suffix[0].bv_val, 0, 0 );
+			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+			0, 0 );
 #endif
 
 		if ( be->bd_info->bi_open ) {
