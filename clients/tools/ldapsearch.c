@@ -54,9 +54,8 @@ usage( const char *s )
 "  -a deref   one of never (default), always, search, or find\n"
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
-"  -E <ctrl>[=<ctrlparam>] controls\n"
-"             manageDSAit[={no|yes|critical}]   (alternate form, see -M)\n"
-"             mv=<filter>                       (matched values filter)\n"
+"  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"
+"             [!]mv=<filter>   (matched values filter)\n"
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
@@ -74,6 +73,9 @@ usage( const char *s )
 "Common options:\n"
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
+"  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]manageDSAit   (alternate form, see -M)\n"
+"             [!]noop\n"
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
@@ -184,20 +186,20 @@ main( int argc, char **argv )
 {
 	char		*infile, *filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
-	int			rc, i, first, scope, deref, attrsonly, manageDSAit;
+	int			rc, i, first, scope, deref, attrsonly, manageDSAit, noop, crit;
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP		*ld = NULL;
 	int		valuesReturnFilter;
 	BerElement	*ber = NULL;
 	struct berval 	*bvalp = NULL;
-	char	*vrFilter  = NULL, *control  = NULL, *s;
+	char	*vrFilter  = NULL, *control = NULL, *cvalue;
 	char	*pw_file = NULL;
 
 
 	infile = NULL;
 	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
-		attrsonly = manageDSAit = ldif = want_bindpw = 0;
+		attrsonly = manageDSAit = noop = ldif = want_bindpw = 0;
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
 
@@ -231,7 +233,7 @@ main( int argc, char **argv )
 	urlize( def_urlpre );
 
 	while (( i = getopt( argc, argv, "Aa:b:E:F:f:Ll:S:s:T:tuz:"
-		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z")) != EOF )
+		"Cd:e:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z")) != EOF )
 	{
 	switch( i ) {
 	/* Search Options */
@@ -255,66 +257,44 @@ main( int argc, char **argv )
 	case 'b': /* search base */
 		base = strdup( optarg );
 		break;
-	case 'E': /* controls */
+	case 'E': /* search controls */
 		if( version == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s: -C incompatible with LDAPv%d\n",
+			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
 				prog, version );
 			return EXIT_FAILURE;
 		}
 
 		/* should be extended to support comma separated list of
-		 *	key/value pairs:  -E foo=123,bar=567
+		 *	[!]key[=value] parameters, e.g.  -E !foo,bar=567
 		 */
 
-		control = strdup( optarg );
-		if ( (s = strchr( control, '=' )) != NULL ) {
-			*s++ = '\0';
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
 		}
 
-		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
-			if ( s == NULL ) {
-				manageDSAit = 1;
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
 
-			} else if ( strcasecmp( s, "no" ) == 0 ) {
-				manageDSAit = 0;
-				
-			} else if ( strcasecmp( s, "yes" ) == 0 ) {
-				manageDSAit = 1;
-				
-			} else if ( strcasecmp( s, "critical" ) == 0 ) {
-				manageDSAit = 2;
-
-			} else {
-				fprintf( stderr, "unknown manageDSAit control "
-						"value: %s (accepts \"no\", "
-						"\"yes\", \"critical\")\n", 
-						s );
-				usage(prog);
-				return EXIT_FAILURE;
-			}
-			free( control );
-			break;
-			
-		} else if ( strcasecmp( control, "mv" ) == 0 ) {
+		if ( strcasecmp( control, "mv" ) == 0 ) {
 			/* ValuesReturnFilter control */
 			if (valuesReturnFilter!=0) {
 				fprintf( stderr, "ValuesReturnFilter previously specified");
 				return EXIT_FAILURE;
 			}
+			valuesReturnFilter= 1 + crit;
 
-			if ( s == NULL ) {
-				fprintf( stderr, "missing filter in ValuesReturnFilter control\n");
+			if ( cvalue == NULL ) {
+				fprintf( stderr,
+					"missing filter in ValuesReturnFilter control\n");
 				return EXIT_FAILURE;
 			}
 
-			if ( *s == '!' ){
-				s++;
-				valuesReturnFilter=2;
-			} else {
-				valuesReturnFilter=1;
-			}
-
-			vrFilter = s;
+			vrFilter = cvalue;
 			version = LDAP_VERSION3;
 			break;
 
@@ -388,6 +368,56 @@ main( int argc, char **argv )
 		}
 	    binddn = strdup( optarg );
 	    break;
+	case 'e': /* general controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -e incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+
+		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "manageDSAit: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			manageDSAit = 1 + crit;
+			free( control );
+			break;
+			
+		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "noop: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			noop = 1 + crit;
+			free( control );
+			break;
+
+		} else {
+			fprintf( stderr, "Invalid general control name: %s\n", control );
+			usage(prog);
+			return EXIT_FAILURE;
+		}
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
 			fprintf( stderr, "%s: -h incompatible with -H\n", prog );

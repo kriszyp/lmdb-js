@@ -62,6 +62,9 @@ usage( const char *s )
 "Common options:\n"
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
+"  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
+"             [!]manageDSAit   (alternate form, see -M)\n"
+"             [!]noop\n"
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
@@ -95,10 +98,12 @@ main( int argc, char **argv )
 {
 	char		buf[ 4096 ];
 	FILE		*fp;
-	int		i, rc, authmethod, referrals, want_bindpw, version, debug, manageDSAit;
+	int		i, rc, authmethod, referrals, want_bindpw, version, debug, manageDSAit, noop, crit;
 	char	*pw_file;
+	char	*control, *cvalue;
 
-    not = verbose = contoper = want_bindpw = debug = manageDSAit = referrals = 0;
+    not = verbose = contoper = want_bindpw = debug
+		= manageDSAit = noop = referrals = 0;
     fp = NULL;
     authmethod = -1;
 	version = -1;
@@ -107,13 +112,38 @@ main( int argc, char **argv )
     prog = lutil_progname( "ldapdelete", argc, argv );
 
     while (( i = getopt( argc, argv, "cf:r"
-		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z" )) != EOF )
+		"Cd:D:e:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z" )) != EOF )
 	{
 	switch( i ) {
 	/* Delete Specific Options */
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
 	    break;
+	case 'E': /* delete controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -E !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+		fprintf( stderr, "Invalid delete control name: %s\n", control );
+		usage(prog);
+		return EXIT_FAILURE;
 	case 'f':	/* read DNs from a file */
 		if( fp != NULL ) {
 			fprintf( stderr, "%s: -f previously specified\n", prog );
@@ -142,6 +172,56 @@ main( int argc, char **argv )
 		}
 	    binddn = strdup( optarg );
 	    break;
+	case 'e': /* general controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -e incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
+		 */
+
+		crit = 0;
+		cvalue = NULL;
+		if( optarg[0] == '!' ) {
+			crit = 1;
+			optarg++;
+		}
+
+		control = strdup( optarg );
+		if ( (cvalue = strchr( control, '=' )) != NULL ) {
+			*cvalue++ = '\0';
+		}
+
+		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "manageDSAit: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			manageDSAit = 1 + crit;
+			free( control );
+			break;
+			
+		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( cvalue != NULL ) {
+				fprintf( stderr, "noop: no control value expected" );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+
+			noop = 1 + crit;
+			free( control );
+			break;
+
+		} else {
+			fprintf( stderr, "Invalid general control name: %s\n", control );
+			usage(prog);
+			return EXIT_FAILURE;
+		}
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
 			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
