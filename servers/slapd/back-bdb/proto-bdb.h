@@ -114,7 +114,7 @@ int bdb_dup_compare(
 	const DBT *usrkey,
 	const DBT *curkey );
 
-int bdb_fix_dn( Entry *e );
+int bdb_fix_dn( Entry *e, int checkit );
 #endif
 
 

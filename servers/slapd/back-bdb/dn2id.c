@@ -545,17 +545,34 @@ bdb_dup_compare(
 /* This function constructs a full DN for a given entry.
  */
 int bdb_fix_dn(
-	Entry *e
+	Entry *e,
+	int checkit
 )
 {
 	EntryInfo *ei;
 	int rlen = 0, nrlen = 0;
 	char *ptr, *nptr;
+	int max = 0;
 	
 	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
 		rlen += ei->bei_rdn.bv_len + 1;
 		nrlen += ei->bei_nrdn.bv_len + 1;
+		if (ei->bei_modrdns > max) max = ei->bei_modrdns;
 	}
+
+	/* See if the entry DN was invalidated by a subtree rename */
+	if ( checkit ) {
+		if ( BEI(e)->bei_modrdns >= max ) {
+			return 0;
+		}
+		/* We found a mismatch, tell the caller to lock it */
+		if ( checkit == 1 ) {
+			return 1;
+		}
+		/* checkit == 2. do the fix. */
+		free( e->e_name.bv_val );
+	}
+
 	e->e_name.bv_len = rlen - 1;
 	e->e_nname.bv_len = nrlen - 1;
 	e->e_name.bv_val = ch_malloc(rlen + nrlen);
@@ -570,6 +587,7 @@ int bdb_fix_dn(
 			*nptr++ = ',';
 		}
 	}
+	BEI(e)->bei_modrdns = max;
 	ptr[-1] = '\0';
 	nptr[-1] = '\0';
 

@@ -260,6 +260,9 @@ bdb_entryinfo_add_internal(
 					elru->bei_lrunext = NULL;
 					elru->bei_lruprev = NULL;
 					elru->bei_state = 0;
+#ifdef BDB_HIER
+					elru->bei_modrdns = 0;
+#endif
 					ei2 = elru;
 				}
 				if (cache->c_cursize < cache->c_maxsize)
@@ -561,15 +564,29 @@ bdb_cache_find_id(
 					*eip, 1, 0, lock );
 				ep->e_private = *eip;
 #ifdef BDB_HIER
-				bdb_fix_dn( ep );
+				bdb_fix_dn( ep, 0 );
 #endif
 				(*eip)->bei_e = ep;
 				bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 					*eip, 0, 0, lock );
 			}
 		} else {
+#ifdef BDB_HIER
+			rc = bdb_fix_dn( (*eip)->bei_e, 1 );
+			if ( rc ) {
+				bdb_cache_entry_db_lock( bdb->bi_dbenv,
+					locker, *eip, 1, 0, lock );
+				rc = bdb_fix_dn( (*eip)->bei_e, 2 );
+				bdb_cache_entry_db_relock( bdb->bi_dbenv,
+					locker, *eip, 0, 0, lock );
+			} else {
+				bdb_cache_entry_db_lock( bdb->bi_dbenv,
+					locker, *eip, 0, 0, lock );
+			}
+#else
 			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
 					*eip, 0, 0, lock );
+#endif
 		}
 	}
 	if ( rc == 0 && (*eip)->bei_kids == NULL ) {
@@ -731,6 +748,16 @@ bdb_cache_modrdn(
 		bdb_cache_entryinfo_unlock( pei );
 		bdb_cache_entryinfo_lock( ein );
 	}
+#ifdef BDB_HIER
+	{ int max = ei->bei_modrdns;
+	/* Record the generation number of this change */
+		for ( pei = ein; pei->bei_parent; pei = pei->bei_parent ) {
+			if ( pei->bei_modrdns > max )
+				max = pei->bei_modrdns;
+		}
+		ei->bei_modrdns = max + 1;
+	}
+#endif
 	avl_insert( &ein->bei_kids, ei, bdb_rdn_cmp, avl_dup_error );
 	bdb_cache_entryinfo_unlock( ein );
 	return rc;
