@@ -573,7 +573,8 @@ doPluginFNs(
 
 	rc = getAllPluginFuncs(be, funcType, &tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
-		return rc;
+		/* Nothing to do, front-end should ignore. */
+		return 0;
 	}
 
 	for ( pGetPlugin = tmpPlugin ; *pGetPlugin != NULL; pGetPlugin++ ) {
