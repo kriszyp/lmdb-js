@@ -102,7 +102,7 @@ ldap_pvt_ndelay_on(LDAP *ld, int fd)
 #else
 {
 	ioctl_t	status = 1;
-	return ioctl( fd, FIONBIO, (caddr_t)&status );
+	return ioctl( fd, FIONBIO, &status );
 }
 #endif
 	return 0;
@@ -118,7 +118,7 @@ ldap_pvt_ndelay_off(LDAP *ld, int fd)
 #else
 {
 	ioctl_t	status = 0;
-	return ioctl( fd, FIONBIO, (caddr_t)&status );
+	return ioctl( fd, FIONBIO, &status );
 }
 #endif
 }
@@ -146,7 +146,7 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 #ifdef TCP_NODELAY
 {
 	int dummy = 1;
-	if ( setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&dummy,sizeof(dummy)) == -1 )
+	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, (char*) &dummy, sizeof(dummy) ) == -1 )
 		return -1;
 }
 #endif
@@ -206,7 +206,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 }
 
 static int
-ldap_pvt_connect(LDAP *ld, int s, struct sockaddr_in *sin, int async)
+ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 {
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
@@ -233,14 +233,16 @@ ldap_pvt_connect(LDAP *ld, int s, struct sockaddr_in *sin, int async)
 	ldap_pvt_set_errno( WSAGetLastError() );
 #endif
 
-	if ( (errno != EINPROGRESS) && (errno != EWOULDBLOCK) )
+	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
 		return ( -1 );
+	}
 	
 #ifdef notyet
 	if ( async ) return ( -2 );
 #endif
 
-	FD_ZERO(&wfds); FD_SET(s, &wfds );
+	FD_ZERO(&wfds);
+	FD_SET(s, &wfds );
 
 	if ( select(s + 1, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
 		return ( -1 );

@@ -74,6 +74,8 @@
 #	define AC_SOCKET_INVALID	((unsigned int) ~0)
 
 #define EWOULDBLOCK WSAEWOULDBLOCK
+#define EINPROGRESS WSAEINPROGRESS
+#define ETIMEDOUT	WSAETIMEDOUT
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
