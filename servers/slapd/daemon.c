@@ -1674,7 +1674,7 @@ slapd_daemon_task(
 
 		if ( cat != NULL ) {
 			time_t diff = difftime( cat->tv_sec, now );
-			if ( diff == 0 )
+			if ( diff < 1 )
 				diff = tdelta;
 			if ( tvp == NULL || diff < tv.tv_sec ) {
 				tv.tv_sec = diff;
