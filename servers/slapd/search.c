@@ -37,7 +37,7 @@ do_search(
 	struct berval nbase = { 0, NULL };
 	struct berval	fstr = { 0, NULL };
 	Filter		*filter = NULL;
-	AttributeName	*an;
+	AttributeName	*an = NULL;
 	ber_len_t	siz, off, i;
 	Backend		*be;
 	int			rc;
@@ -327,7 +327,7 @@ return_results:;
 
 	if( fstr.bv_val != NULL) free( fstr.bv_val );
 	if( filter != NULL) filter_free( filter );
-	free(an);
+	if( an != NULL ) free( an );
 
 	return rc;
 }
