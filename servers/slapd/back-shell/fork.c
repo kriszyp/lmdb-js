@@ -119,17 +119,24 @@ make_surrogate_parent( void )
 			char control[CMSG_SPACE(sizeof(io))];
 		} control_un;
 		struct cmsghdr *cmptr;
+# endif
+
+		/* clear msghdr */
+		memset( &msg, 0, sizeof msg );
+
+# ifdef CMSG_SPACE
 		msg.msg_control = control_un.control;
 		msg.msg_controllen = sizeof(control_un.control);
 # else
 		msg.msg_accrights = (caddr_t) io;
 		msg.msg_accrightslen = sizeof(io);
 # endif
+
 		msg.msg_name = NULL;
 		msg.msg_namelen = 0;
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
-		msg.msg_flags = 0;
+
 		switch( recvmsg( pair[p][1], &msg, MSG_WAITALL ) ) {
 		case -1:
 			if( errno == EINTR )
@@ -259,6 +266,12 @@ forkandexec(
 			char control[CMSG_SPACE(sizeof(io))];
 		} control_un;
 		struct cmsghdr *cmptr;
+# endif
+
+		/* clear msghdr */
+		memset( &msg, 0, sizeof msg );
+
+# ifdef CMSG_SPACE
 		msg.msg_control = control_un.control;
 		msg.msg_controllen = sizeof(control_un.control);
 		cmptr = CMSG_FIRSTHDR(&msg);
@@ -270,11 +283,12 @@ forkandexec(
 		msg.msg_accrights = (caddr_t) io;
 		msg.msg_accrightslen = sizeof(io);
 # endif
+
 		msg.msg_name = NULL;
 		msg.msg_namelen = 0;
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
-		msg.msg_flags = 0;
+
 		ldap_pvt_thread_mutex_lock( &shell_surrogate_index_mutex );
 		i = shell_surrogate_index ^= 1;
 		ldap_pvt_thread_mutex_unlock( &shell_surrogate_index_mutex );
