@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2003, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 P1: Making and Installing the OpenLDAP Distribution
@@ -55,10 +55,14 @@ determining compiler/linker options including:
 
 E:	% [env settings] ./configure [options]
 
-.If all goes well, the {{EX:configure}} script will automatically
-detect the appropriate settings.  However, you may need to
-specify options and/or environment variables to obtain desired
-results.
+.If all goes well, the {{EX:configure}} script will automatically detect
+the appropriate settings.  If the {{EX:configure}} script fails, you should
+read the {{FILE:config.log}} file that it generated to see what it was trying
+to do and exactly what failed.  You may need to specify additional
+options and/or environment variables besides those listed above to
+obtain desired results, depending on your operating system. The
+{{Platform Hints}} section of the {{FAQ}} provides help for operating system
+related problems.
 
 + Build dependencies
 
@@ -76,7 +80,7 @@ if you have not done so already.
 + Test the standalone system
 
 .This step requires the standalone LDAP server, {{slapd}}(8),
-with {{BDB}} or {{LDBM}} support.
+with {{HDB}}, {{BDB}}, and/or {{LDBM}} support.
 
 E:	% make test
 
@@ -98,13 +102,9 @@ for the individual applications for configuration and use information.
 You may also want to edit the configuration files used by the
 various components.  These configuration files are located in
 the OpenLDAP configuration directory (normally
-{{F:/usr/local/etc/openldap}}).
+{{FILE:/usr/local/etc/openldap}}).
 
 >	ldap.conf		client defaults
 >	slapd.conf		Standalone LDAP daemon
 >	schema/*.schema		Schema Definitions
 
-
-End of OpenLDAP INSTALL file.
-
-{{S:$OpenLDAP$}}

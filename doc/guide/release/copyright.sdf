@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2003, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 !if OPT_PP_HTML
@@ -13,7 +13,7 @@ H1: OpenLDAP Software Copyright Notices
 H2: OpenLDAP Copyright Notice
 
 !block nofill
-[[copyright]] 1998-2003 The OpenLDAP Foundation.
+[[copyright]] 1998-2005 The OpenLDAP Foundation.
 {{All rights reserved.}}
 !endblock
 
@@ -43,9 +43,9 @@ Additional information about OpenLDAP software can be obtained at
 H2: Additional Copyright Notice
 
 !block nofill
-Portions [[copyright]] 1998-2003 Kurt D. Zeilenga.
-Portions [[copyright]] 1998-2003 Net Boolean Incorporated.
-Portions [[copyright]] 2001-2003 IBM Corporation.
+Portions [[copyright]] 1998-2005 Kurt D. Zeilenga.
+Portions [[copyright]] 1998-2005 Net Boolean Incorporated.
+Portions [[copyright]] 2001-2005 IBM Corporation.
 {{All rights reserved.}}
 !endblock
 
