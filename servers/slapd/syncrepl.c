@@ -405,29 +405,23 @@ do_syncrepl(
 
 	psub = be->be_nsuffix[0];
 
-	/* Delete Attributes */
-	descs = sync_descs;
+	for ( n = 0; si->attrs[ n ] != NULL; n++ ) ;
 
-	for ( i = 0; descs[i] != NULL; i++ ) {
-		for ( j = 0; si->attrs[j] != NULL; j++ ) {
-			if ( !strcmp( si->attrs[j], descs[i]->ad_cname.bv_val )) {
-				ch_free( si->attrs[j] );
-				for ( k = j; si->attrs[k] != NULL; k++ ) {
-					si->attrs[k] = si->attrs[k+1];
+	if ( n != 0 ) {
+		/* Delete Attributes */
+		descs = sync_descs;
+		for ( i = 0; descs[i] != NULL; i++ ) {
+			for ( j = 0; si->attrs[j] != NULL; j++ ) {
+				if ( !strcmp( si->attrs[j], descs[i]->ad_cname.bv_val )) {
+					ch_free( si->attrs[j] );
+					for ( k = j; si->attrs[k] != NULL; k++ ) {
+						si->attrs[k] = si->attrs[k+1];
+					}
 				}
 			}
 		}
-	}
-
-	/* Add Attributes */
-
-	for ( n = 0; si->attrs[ n ] != NULL; n++ ) ;
-	
-	descs = sync_descs;
-
-	for ( i = 0; descs[i] != NULL; i++ ) {
-		tmp = ( char ** ) ch_realloc( si->attrs,
-				( n + 3 ) * sizeof( char * ));
+		for ( n = 0; si->attrs[ n ] != NULL; n++ );
+		tmp = ( char ** ) ch_realloc( si->attrs, ( n + 4 ) * sizeof( char * ));
 		if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
@@ -435,7 +429,24 @@ do_syncrepl(
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
 #endif
 		}
-		si->attrs = tmp;
+	} else {
+		tmp = ( char ** ) ch_realloc( si->attrs, 5 * sizeof( char * ));
+		if ( tmp == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
+#endif
+		}
+		tmp[ n++ ] = ch_strdup( "*" );
+	}
+	
+	descs = sync_descs;
+	si->attrs = tmp;
+
+	/* Add Attributes */
+
+	for ( i = 0; descs[ i ] != NULL; i++ ) {
 		si->attrs[ n++ ] = ch_strdup ( descs[i]->ad_cname.bv_val );
 		si->attrs[ n ] = NULL;
 	}
@@ -1618,9 +1629,14 @@ str2clist( char ***out, char *in, const char *brkstr )
 
 	/* find last element in list */
 	for (i = 0; *out && *out[i]; i++);
-	
+
 	/* protect the input string from strtok */
 	str = ch_strdup( in );
+
+	if ( *str == '\0' ) {
+		free( str );
+		return( *out );
+	}
 
 	/* Count words in string */
 	j=1;
