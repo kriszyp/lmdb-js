@@ -511,8 +511,8 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 					lc->bound = 1;
 				}
 				goto done;
-			}
 #endif /* HAVE_CYRUS_SASL */
+			}
 
 			switch ( li->idassert_authmethod ) {
 			case LDAP_AUTH_SIMPLE:
