@@ -206,10 +206,10 @@ searchit:
 	}
 
 	/* if not root, get appropriate limits */
-	if ( be_isroot( be, op->o_ndn ) ) {
+	if ( be_isroot( be, op->o_ndn.bv_val ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( be, op->o_ndn, &limit );
+		( void ) get_limits( be, op->o_ndn.bv_val, &limit );
 	}
 
 	/* if candidates exceed to-be-checked entries, abort */

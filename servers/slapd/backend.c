@@ -887,7 +887,7 @@ backend_check_restrictions(
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
 
-			if( op->o_ndn == NULL ) {
+			if( op->o_ndn.bv_len == 0 ) {
 				*text = "modifications require authentication";
 				return LDAP_OPERATIONS_ERROR;
 			}
@@ -901,8 +901,7 @@ backend_check_restrictions(
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
-			if( op->o_authmech == NULL ||
-				op->o_dn == NULL || *op->o_dn == '\0' )
+			if( op->o_authmech == NULL || op->o_dn.bv_len == 0 )
 			{
 				*text = "strong authentication required";
 				return LDAP_STRONG_AUTH_REQUIRED;
@@ -910,8 +909,7 @@ backend_check_restrictions(
 		}
 
 		if( requires & SLAP_REQUIRE_SASL ) {
-			if( op->o_authmech == NULL ||
-				op->o_dn == NULL || *op->o_dn == '\0' )
+			if( op->o_authmech == NULL || op->o_dn.bv_len == 0 )
 			{
 				*text = "SASL authentication required";
 				return LDAP_STRONG_AUTH_REQUIRED;
@@ -919,7 +917,7 @@ backend_check_restrictions(
 		}
 			
 		if( requires & SLAP_REQUIRE_AUTHC ) {
-			if( op->o_dn == NULL || *op->o_dn == '\0' ) {
+			if( op->o_dn.bv_len == 0 ) {
 				*text = "authentication required";
 				return LDAP_UNWILLING_TO_PERFORM;
 			}

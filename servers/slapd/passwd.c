@@ -33,8 +33,8 @@ int passwd_extop(
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
-	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		*text = "only authenicated users may change passwords";
+	if( op->o_dn.bv_len == 0 ) {
+		*text = "only authenticated users may change passwords";
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 

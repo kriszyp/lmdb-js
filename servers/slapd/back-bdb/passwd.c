@@ -73,7 +73,7 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	dn = id ? id->bv_val : op->o_dn;
+	dn = id ? id->bv_val : op->o_dn.bv_val;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
 		dn, id ? " (proxy)" : "", 0 );

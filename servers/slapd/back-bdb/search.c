@@ -157,10 +157,10 @@ bdb_search(
 	}
 
 	/* if not root, get appropriate limits */
-	if ( be_isroot( be, op->o_ndn ) ) {
+	if ( be_isroot( be, op->o_ndn.bv_val ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( be, op->o_ndn, &limit );
+		( void ) get_limits( be, op->o_ndn.bv_val, &limit );
 	}
 
 	/* The time/size limits come first because they require very little

@@ -62,14 +62,14 @@ starttls_extop (
 	}
 
 	if ( !( global_disallows & SLAP_DISALLOW_TLS_2_ANON ) &&
-		( conn->c_dn != NULL ) )
+		( conn->c_dn.bv_len != 0 ) )
 	{
 		/* force to anonymous */
 		connection2anonymous( conn );
 	}
 
 	if ( ( global_disallows & SLAP_DISALLOW_TLS_AUTHC ) &&
-		( conn->c_dn != NULL ) )
+		( conn->c_dn.bv_len != 0 ) )
 	{
 		*text = "cannot start TLS after authentication";
 		rc = LDAP_OPERATIONS_ERROR;

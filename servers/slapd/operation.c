@@ -23,11 +23,11 @@ slap_op_free( Operation *op )
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
 	}
-	if ( op->o_dn != NULL ) {
-		free( op->o_dn );
+	if ( op->o_dn.bv_val != NULL ) {
+		free( op->o_dn.bv_val );
 	}
-	if ( op->o_ndn != NULL ) {
-		free( op->o_ndn );
+	if ( op->o_ndn.bv_val != NULL ) {
+		free( op->o_ndn.bv_val );
 	}
 	if ( op->o_authmech != NULL ) {
 		free( op->o_authmech );
@@ -60,8 +60,10 @@ slap_op_alloc(
 	op->o_msgid = msgid;
 	op->o_tag = tag;
 
-	op->o_dn = NULL;
-	op->o_ndn = NULL;
+	op->o_dn.bv_val = NULL;
+	op->o_dn.bv_len = 0;
+	op->o_ndn.bv_val = NULL;
+	op->o_ndn.bv_len = 0;
 	op->o_authmech = NULL;
 	op->o_ctrls = NULL;
 

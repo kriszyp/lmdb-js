@@ -71,7 +71,7 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
 #endif
 
-			err = add_values( e, mod, op->o_ndn );
+			err = add_values( e, mod, op->o_ndn.bv_val );
 
 			if( err != LDAP_SUCCESS ) {
 				*text = "modify: add values failed";
@@ -94,7 +94,7 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
 #endif
 
-			err = delete_values( e, mod, op->o_ndn );
+			err = delete_values( e, mod, op->o_ndn.bv_val );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 				*text = "modify: delete values failed";
@@ -116,7 +116,7 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
 #endif
 
-			err = replace_values( e, mod, op->o_ndn );
+			err = replace_values( e, mod, op->o_ndn.bv_val );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 				*text = "modify: replace values failed";
@@ -143,7 +143,7 @@ int ldbm_modify_internal(
 			 * We need to add index if necessary.
 			 */
 			mod->sm_op = LDAP_MOD_ADD;
-			err = add_values( e, mod, op->o_ndn );
+			err = add_values( e, mod, op->o_ndn.bv_val );
 
 			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				err = LDAP_SUCCESS;

@@ -80,7 +80,7 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	dn = id ? id->bv_val : op->o_dn;
+	dn = id ? id->bv_val : op->o_dn.bv_val;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -141,7 +141,7 @@ ldbm_back_exop_passwd(
 		ml.sml_next = NULL;
 
 		rc = ldbm_modify_internal( be,
-			conn, op, op->o_ndn, &ml, e, text, textbuf, 
+			conn, op, op->o_ndn.bv_val, &ml, e, text, textbuf, 
 			sizeof( textbuf ) );
 
 		/* FIXME: ldbm_modify_internal may set *tex = textbuf,

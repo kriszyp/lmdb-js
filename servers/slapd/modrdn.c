@@ -313,7 +313,7 @@ do_modrdn(
 	 */
 	if ( be->be_modrdn ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, op->o_ndn );
+		int repl_user = be_isupdate( be, op->o_ndn.bv_val );
 #ifndef SLAPD_MULTIMASTER
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif

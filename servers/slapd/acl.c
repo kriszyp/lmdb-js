@@ -117,7 +117,7 @@ access_allowed(
 	assert( be != NULL );
 
 	/* grant database root access */
-	if ( be != NULL && be_isroot( be, op->o_ndn ) ) {
+	if ( be != NULL && be_isroot( be, op->o_ndn.bv_val ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
 		       "access_allowed: conn %d root access granted\n",
@@ -480,7 +480,7 @@ acl_mask(
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
 		val ? "value" : "all values",
-		op->o_ndn ?  op->o_ndn : "",
+		op->o_ndn.bv_val ?  op->o_ndn.bv_val : "",
 		accessmask2str( *mask, accessmaskbuf ) );
 #endif
 
@@ -490,43 +490,47 @@ acl_mask(
 		ACL_INVALIDATE( modmask );
 
 		/* AND <who> clauses */
-		if ( b->a_dn_pat != NULL ) {
+		if ( b->a_dn_pat.bv_len != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 				   "acl_mask: conn %d  check a_dn_pat: %s\n",
-				   conn->c_connid, b->a_dn_pat ));
+				   conn->c_connid, b->a_dn_pat.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_pat: %s\n",
-				b->a_dn_pat, 0, 0);
+				b->a_dn_pat.bv_val, 0, 0);
 #endif
 			/*
 			 * if access applies to the entry itself, and the
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( strcmp( b->a_dn_pat, "anonymous" ) == 0 ) {
-				if (op->o_ndn != NULL && op->o_ndn[0] != '\0' ) {
+			if ( b->a_dn_pat.bv_len == sizeof("anonymous") -1 &&
+			    strcmp( b->a_dn_pat.bv_val, "anonymous" ) == 0 ) {
+				if (op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( strcmp( b->a_dn_pat, "users" ) == 0 ) {
-				if (op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+			} else if ( b->a_dn_pat.bv_len == sizeof("users") - 1 &&
+			    strcmp( b->a_dn_pat.bv_val, "users" ) == 0 ) {
+				if (op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( strcmp( b->a_dn_pat, "self" ) == 0 ) {
-				if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+			} else if ( b->a_dn_pat.bv_len == sizeof("self") - 1 &&
+			    strcmp( b->a_dn_pat.bv_val, "self" ) == 0 ) {
+				if( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 				
-				if ( e->e_dn == NULL || strcmp( e->e_ndn, op->o_ndn ) != 0 ) {
+				if ( e->e_dn == NULL || strcmp( e->e_ndn, op->o_ndn.bv_val ) != 0 ) {
 					continue;
 				}
 
 			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
-				if ( strcmp( b->a_dn_pat, "*" ) != 0 ) {
-					int ret = regex_matches( b->a_dn_pat,
-						op->o_ndn, e->e_ndn, matches );
+				if ( b->a_dn_pat.bv_len != 1 || 
+				    strcmp( b->a_dn_pat.bv_val, "*" ) != 0 ) {
+					int ret = regex_matches( b->a_dn_pat.bv_val,
+						op->o_ndn.bv_val, e->e_ndn, matches );
 
 					if( ret == 0 ) {
 						continue;
@@ -537,8 +541,8 @@ acl_mask(
 				if ( e->e_dn == NULL )
 					continue;
 
-				patlen = strlen( b->a_dn_pat );
-				odnlen = strlen( op->o_ndn );
+				patlen = b->a_dn_pat.bv_len;
+				odnlen = op->o_ndn.bv_len;
 				if ( odnlen < patlen )
 					continue;
 
@@ -553,25 +557,25 @@ acl_mask(
 					if ( odnlen <= patlen )
 						continue;
 
-					if ( !DN_SEPARATOR( op->o_ndn[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn[odnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) )
 						continue;
 
-					rdnlen = dn_rdnlen( NULL, op->o_ndn );
+					rdnlen = dn_rdnlen( NULL, op->o_ndn.bv_val );
 					if ( rdnlen != odnlen - patlen - 1 )
 						continue;
 
 				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( odnlen > patlen && ( !DN_SEPARATOR( op->o_ndn[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn[odnlen - patlen - 2] ) ) )
+					if ( odnlen > patlen && ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) ) )
 						continue;
 
 				} else if ( b->a_dn_style == ACL_STYLE_CHILDREN ) {
 					if ( odnlen <= patlen )
 						continue;
-					if ( !DN_SEPARATOR( op->o_ndn[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn[odnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) )
 						continue;
 				}
 
-				if ( strcmp( b->a_dn_pat, op->o_ndn + odnlen - patlen ) != 0 )
+				if ( strcmp( b->a_dn_pat.bv_val, op->o_ndn.bv_val + odnlen - patlen ) != 0 )
 					continue;
 
 			}
@@ -670,7 +674,7 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
+		if ( b->a_dn_at != NULL && op->o_ndn.bv_len != 0 ) {
 			Attribute	*at;
 			struct berval	bv;
 			int rc, match = 0;
@@ -687,8 +691,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				attr, 0, 0);
 #endif
-			bv.bv_val = op->o_ndn;
-			bv.bv_len = strlen( bv.bv_val );
+			bv = op->o_ndn;
 
 			/* see if asker is listed in dnattr */
 			for( at = attrs_find( e->e_attrs, b->a_dn_at );
@@ -742,7 +745,7 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_group_pat != NULL && op->o_ndn != NULL ) {
+		if ( b->a_group_pat != NULL && op->o_ndn.bv_len != 0 ) {
 			char buf[1024];
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
@@ -761,7 +764,7 @@ acl_mask(
 				buf[sizeof(buf) - 1] = 0;
 			}
 
-			if (backend_group(be, conn, op, e, buf, op->o_ndn,
+			if (backend_group(be, conn, op, e, buf, op->o_ndn.bv_val,
 				b->a_group_oc, b->a_group_at) != 0)
 			{
 				continue;
@@ -1014,7 +1017,7 @@ acl_check_modlist(
 	assert( be != NULL );
 
 	/* short circuit root database access */
-	if ( be_isroot( be, op->o_ndn ) ) {
+	if ( be_isroot( be, op->o_ndn.bv_val ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 			   "acl_check_modlist: conn %d  access granted to root user\n",
@@ -1301,7 +1304,7 @@ aci_match_set (
 		cookie.e = e;
 		cookie.conn = conn;
 		cookie.op = op;
-		rc = (set_filter(aci_set_gather, &cookie, set, op->o_ndn, e->e_ndn, NULL) > 0);
+		rc = (set_filter(aci_set_gather, &cookie, set, op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
 		ch_free(set);
 	}
 	return(rc);

@@ -362,14 +362,15 @@ parse_acl(
 				}
 
 				if( pat != NULL ) {
-					if( b->a_dn_pat != NULL ) {
+					if( b->a_dn_pat.bv_len != 0 ) {
 						fprintf( stderr,
 						    "%s: line %d: dn pattern already specified.\n",
 						    fname, lineno );
 						acl_usage();
 					}
 
-					b->a_dn_pat = pat;
+					b->a_dn_pat.bv_val = pat;
+					b->a_dn_pat.bv_len = strlen( pat );
 					b->a_dn_style = sty;
 					if ( sty != ACL_STYLE_REGEX )
 						dn_normalize(pat);
@@ -1220,8 +1221,8 @@ acl_append( AccessControl **l, AccessControl *a )
 static void
 access_free( Access *a )
 {
-	if ( a->a_dn_pat )
-		free ( a->a_dn_pat );
+	if ( a->a_dn_pat.bv_val )
+		free ( a->a_dn_pat.bv_val );
 	if ( a->a_peername_pat )
 		free ( a->a_peername_pat );
 	if ( a->a_sockname_pat )
@@ -1341,16 +1342,16 @@ print_access( Access *b )
 
 	fprintf( stderr, "\tby" );
 
-	if ( b->a_dn_pat != NULL ) {
-		if( strcmp(b->a_dn_pat, "*") == 0
-			|| strcmp(b->a_dn_pat, "users") == 0 
-			|| strcmp(b->a_dn_pat, "anonymous") == 0 
-			|| strcmp(b->a_dn_pat, "self") == 0 )
+	if ( b->a_dn_pat.bv_len != 0 ) {
+		if( strcmp(b->a_dn_pat.bv_val, "*") == 0
+			|| strcmp(b->a_dn_pat.bv_val, "users") == 0 
+			|| strcmp(b->a_dn_pat.bv_val, "anonymous") == 0 
+			|| strcmp(b->a_dn_pat.bv_val, "self") == 0 )
 		{
-			fprintf( stderr, " %s", b->a_dn_pat );
+			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
 
 		} else {
-			fprintf( stderr, " dn.%s=%s", style_strings[b->a_dn_style], b->a_dn_pat );
+			fprintf( stderr, " dn.%s=%s", style_strings[b->a_dn_style], b->a_dn_pat.bv_val );
 		}
 	}
 

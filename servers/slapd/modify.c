@@ -334,7 +334,7 @@ do_modify(
 	 */
 	if ( be->be_modify ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, op->o_ndn );
+		int repl_user = be_isupdate( be, op->o_ndn.bv_val );
 #ifndef SLAPD_MULTIMASTER
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
@@ -613,12 +613,11 @@ int slap_mods_opattrs(
 	timestamp.bv_val = timebuf;
 	timestamp.bv_len = strlen(timebuf);
 
-	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
+	if( op->o_dn.bv_len == 0 ) {
 		name.bv_val = SLAPD_ANONYMOUS;
 		name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
 	} else {
-		name.bv_val = op->o_dn;
-		name.bv_len = strlen( op->o_dn );
+		name = op->o_dn;
 	}
 
 	if( op->o_tag == LDAP_REQ_ADD ) {

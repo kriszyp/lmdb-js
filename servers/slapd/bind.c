@@ -60,14 +60,16 @@ do_bind(
 	connection2anonymous( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-	if ( op->o_dn != NULL ) {
-		free( op->o_dn );
-		op->o_dn = ch_strdup( "" );
+	if ( op->o_dn.bv_val != NULL ) {
+		free( op->o_dn.bv_val );
+		op->o_dn.bv_val = ch_strdup( "" );
+		op->o_dn.bv_len = 0;
 	}
 
-	if ( op->o_ndn != NULL ) {
-		free( op->o_ndn );
-		op->o_ndn = ch_strdup( "" );
+	if ( op->o_ndn.bv_val != NULL ) {
+		free( op->o_ndn.bv_val );
+		op->o_ndn.bv_val = ch_strdup( "" );
+		op->o_ndn.bv_len = 0;
 	}
 
 	/*
@@ -295,10 +297,13 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if( rc == LDAP_SUCCESS ) {
-			conn->c_dn = edn;
+			conn->c_dn.bv_val = edn;
 			if( edn != NULL ) {
-				conn->c_ndn = ch_strdup( edn );
-				dn_normalize( conn->c_ndn );
+				struct berval *cndn;
+				conn->c_dn.bv_len = strlen( edn );
+				dnNormalize( NULL, &conn->c_dn, &cndn );
+				conn->c_ndn = *cndn;
+				free( cndn );
 			}
 			conn->c_authmech = conn->c_sasl_bind_mech;
 			conn->c_sasl_bind_mech = NULL;
@@ -309,7 +314,7 @@ do_bind(
 				conn->c_ssf = ssf;
 			}
 
-			if( conn->c_dn != NULL ) {
+			if( conn->c_dn.bv_len != 0 ) {
 				ber_len_t max = sockbuf_max_incoming;
 				ber_sockbuf_ctrl( conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
@@ -496,20 +501,22 @@ do_bind(
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
+			if(edn != NULL) {
+				conn->c_dn.bv_val = edn;
+				conn->c_dn.bv_len = strlen( edn );
+			} else {
+				conn->c_dn.bv_val = ch_strdup( pdn->bv_val );
+				conn->c_dn.bv_len = pdn->bv_len;
+			}
 			conn->c_cdn = pdn->bv_val;
 			pdn->bv_val = NULL;
 			pdn->bv_len = 0;
 
-			if(edn != NULL) {
-				conn->c_dn = edn;
-			} else {
-				conn->c_dn = ch_strdup( conn->c_cdn );
-			}
-			conn->c_ndn = ndn->bv_val;
+			conn->c_ndn = *ndn;
 			ndn->bv_val = NULL;
 			ndn->bv_len = 0;
 
-			if( conn->c_dn != NULL ) {
+			if( conn->c_dn.bv_len != 0 ) {
 				ber_len_t max = sockbuf_max_incoming;
 				ber_sockbuf_ctrl( conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
@@ -518,11 +525,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 				"do_bind: conn %d  v%d bind: \"%s\" to \"%s\" \n",
-				conn->c_connid, version, conn->c_cdn, conn->c_dn ));
+				conn->c_connid, version, conn->c_cdn, conn->c_dn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
-				version, conn->c_cdn, conn->c_dn );
+				version, conn->c_cdn, conn->c_dn.bv_val );
 #endif
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );

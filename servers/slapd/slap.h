@@ -706,8 +706,8 @@ typedef enum slap_style_e {
 typedef struct slap_authz_info {
 	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
 	char *		sai_mech;		/* SASL Mechanism */
-	char *		sai_dn;			/* DN for reporting purposes */
-	char *		sai_ndn;		/* Normalized DN */
+	struct berval	sai_dn;			/* DN for reporting purposes */
+	struct berval	sai_ndn;		/* Normalized DN */
 
 	/* Security Strength Factors */
 	slap_ssf_t	sai_ssf;			/* Overall SSF */

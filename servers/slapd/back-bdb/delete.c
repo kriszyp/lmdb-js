@@ -161,8 +161,8 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, must be root to delete */
-		if( ! be_isroot( be, op->o_ndn ) ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
+		if( ! be_isroot( be, op->o_ndn.bv_val ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn.bv_val ) ) {
 				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */

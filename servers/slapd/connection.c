@@ -413,8 +413,10 @@ long connection_init(
 
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
 		c->c_authmech = NULL;
-		c->c_dn = NULL;
-		c->c_ndn = NULL;
+		c->c_dn.bv_val = NULL;
+		c->c_dn.bv_len = 0;
+		c->c_ndn.bv_val = NULL;
+		c->c_ndn.bv_len = 0;
 		c->c_cdn = NULL;
 		c->c_groups = NULL;
 
@@ -451,8 +453,8 @@ long connection_init(
 
     assert( c->c_struct_state == SLAP_C_UNUSED );
 	assert( c->c_authmech == NULL );
-    assert(	c->c_dn == NULL );
-    assert(	c->c_ndn == NULL );
+    assert(	c->c_dn.bv_val == NULL );
+    assert(	c->c_ndn.bv_val == NULL );
     assert(	c->c_cdn == NULL );
     assert( c->c_groups == NULL );
     assert( c->c_listener_url == NULL );
@@ -578,14 +580,16 @@ void connection2anonymous( Connection *c )
 		c->c_authmech = NULL;
 	}
 
-    if(c->c_dn != NULL) {
-	free(c->c_dn);
-	c->c_dn = NULL;
+    if(c->c_dn.bv_val != NULL) {
+	free(c->c_dn.bv_val);
+	c->c_dn.bv_val = NULL;
     }
-    if(c->c_ndn != NULL) {
-	free(c->c_ndn);
-	c->c_ndn = NULL;
+    c->c_dn.bv_len = 0;
+    if(c->c_ndn.bv_val != NULL) {
+	free(c->c_ndn.bv_val);
+	c->c_ndn.bv_val = NULL;
     }
+    c->c_ndn.bv_len = 0;
 
 	if(c->c_cdn != NULL) {
 		free(c->c_cdn);
@@ -1463,10 +1467,12 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_conn = conn;
 	arg->co_op = op;
 
-	if (!arg->co_op->o_dn) {
+	if (!arg->co_op->o_dn.bv_len) {
 	    arg->co_op->o_authz = conn->c_authz;
-	    arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
-	    arg->co_op->o_ndn = ch_strdup( conn->c_ndn != NULL ? conn->c_ndn : "" );
+	    arg->co_op->o_dn.bv_val = ch_strdup( conn->c_dn.bv_val ?
+	    	conn->c_dn.bv_val : "" );
+	    arg->co_op->o_ndn.bv_val = ch_strdup( conn->c_ndn.bv_val ?
+	    	conn->c_ndn.bv_val : "" );
 	}
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
@@ -1576,7 +1582,8 @@ int connection_internal_open( Connection **conn, LDAP **ldp, const char *id )
 
 	/* A search operation, number 0 */
 	op = slap_op_alloc( NULL, 0, LDAP_REQ_SEARCH, 0);
-	op->o_ndn = ch_strdup( id );
+	op->o_ndn.bv_val = ch_strdup( id );
+	op->o_ndn.bv_len = strlen( id );
 	op->o_protocol = LDAP_VERSION3;
 
 	(*conn) = connection_get( fd[1] );

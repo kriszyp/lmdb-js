@@ -212,9 +212,9 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		isroot = be_isroot( be, op->o_ndn );
+		isroot = be_isroot( be, op->o_ndn.bv_val );
 		if ( ! isroot ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn.bv_val ) ) {
 
 				p = (Entry *)&slap_entry_root;
 
@@ -328,14 +328,14 @@ retry:	/* transaction retry */
 
 		} else {
 			if ( isroot == -1 ) {
-				isroot = be_isroot( be, op->o_ndn );
+				isroot = be_isroot( be, op->o_ndn.bv_val );
 			}
 			
 			np_dn = ch_strdup( "" );
 
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
-				if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
+				if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn.bv_val ) ) {
 
 					np = (Entry *)&slap_entry_root;
 
