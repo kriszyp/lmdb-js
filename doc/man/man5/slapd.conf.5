@@ -1421,7 +1421,11 @@ operation, a synchronization search remains persistent in the provider slapd.
 Further updates to the master replica will generate
 .B searchResultEntry
 to the consumer slapd as the search responses to the persistent
-synchronization search. The schema checking can be enforced at the LDAP Sync
+synchronization search. If the connection is lost, the consumer will
+attempt to reconnect at an interval time (specified by
+.B interval
+parameter; 60 seconds by default) until the session is re-established.
+The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
 parameter. The default is off.
