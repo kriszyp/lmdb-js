@@ -1710,8 +1710,7 @@ nonpresent_callback(
 static int
 null_callback(
 	Operation*	op,
-	SlapReply*	rs
-)
+	SlapReply*	rs )
 {
 	if ( rs->sr_err != LDAP_SUCCESS &&
 		rs->sr_err != LDAP_REFERRAL &&
@@ -1736,8 +1735,7 @@ slap_create_syncrepl_entry(
 	Backend *be,
 	struct berval *context_csn,
 	struct berval *rdn,
-	struct berval *cn
-)
+	struct berval *cn )
 {
 	Entry* e;
 

@@ -637,7 +637,10 @@ sasl_cb_checkpass( Operation *op, SlapReply *rs )
 	a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_userPassword );
 	if ( !a ) return 0;
 	if ( ! access_allowed( op, rs->sr_entry, slap_schema.si_ad_userPassword,
-		NULL, ACL_AUTH, NULL ) ) return 0;
+		NULL, ACL_AUTH, NULL ) )
+	{
+		return 0;
+	}
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 		if ( !lutil_passwd( bv, &ci->cred, NULL, &rs->sr_text ) ) {
