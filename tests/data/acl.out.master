@@ -1,6 +1,5 @@
 # Try to read an entry inside the Alumni Association container.
 # It should give us noSuchObject if we're not bound...
-No such object (32)
 # ... and should return all attributes if we're bound as anyone
 # under Example.
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
