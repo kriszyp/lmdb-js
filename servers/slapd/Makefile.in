@@ -5,6 +5,10 @@
 PROGRAMS=slapd
 XPROGRAMS=sslapd libbackends.a .backend
 XSRCS=version.c
+
+NT_SRCS = nt_svc.c
+NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
+
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
@@ -12,7 +16,8 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
 		repl.c lock.c controls.c extended.c \
 		schema.c schemaparse.c monitor.c configinfo.c \
-		root_dse.c sasl.c module.c suffixalias.c
+		root_dse.c sasl.c module.c suffixalias.c $(@PLAT@_SRCS)
+
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
@@ -20,7 +25,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
 		repl.o lock.o controls.o extended.o \
 		schema.o schemaparse.o monitor.o configinfo.o \
-		root_dse.o sasl.o module.o suffixalias.o
+		root_dse.o sasl.o module.o suffixalias.o $(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
@@ -31,7 +36,7 @@ XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
-XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
+XLIBS = libbackends.a -lavl -lldbm -lldif -llutil -lldap_r -llber
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
 	$(SLAPD_PERL_LDFLAGS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
@@ -42,8 +47,41 @@ BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
 
-slapd: libbackends.a version.o
-	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
+NT_GEN_DEFS = -DLIBLUTIL_DECL=dllexport -DLIBAVL_DECL=dllexport \
+	      -DLIBLDBM_DECL=dllexport -DLIBLDIF_DECL=dllexport
+
+NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport $(NT_GEN_DEFS)
+NT_STAT_DEFS = -DLIBLBER_DECL=dllexport -DLIBLDAP_DECL=dllexport $(NT_GEN_DEFS)
+
+DEFINES = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+
+slapd.def: slapd.syms
+	(							\
+	    echo EXPORTS > $@;					\
+	    _hint=1;						\
+	    for symbol in `cat $<`; do				\
+		echo " $$symbol @ $$_hint ; " >> $@;		\
+		_hint=`expr 1 + $$_hint`;			\
+	    done						\
+	)
+
+slapd.base: version.o
+	$(LTLINK) -o slapd $(OBJS) version.o $(LIBS) $(WRAP_LIBS) \
+	    -Wl,--base-file,$@
+	rm -f slapd
+
+slapd.exp: slapd.def slapd.base
+	dlltool --dllname slapd.exe --def slapd.def --base-file slapd.base \
+	    --output-exp $@
+
+libslapd.a: slapd.def
+	dlltool --dllname slapd.exe --def $< --output-lib $@
+
+NT_EXP = slapd.exp
+NT_IMP_LIB = libslapd.a
+
+slapd: $(@PLAT@_IMP_LIB) libbackends.a version.o $(@PLAT@_EXP)
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS) $(@PLAT@_EXP)
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 sslapd: version.o
@@ -92,6 +130,10 @@ depend-local-srv: FORCE
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
 		fi; \
 	done
+	@echo ""
+
+clean-local:
+	rm -f *.exp *.def *.base *.a
 
 clean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
@@ -115,7 +157,8 @@ install-local-srv: install-slapd install-conf install-tools
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd$(EXEEXT) \
+						$(DESTDIR)$(libexecdir)
 	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
 	    for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \

@@ -25,7 +25,7 @@ SLAPD_MODULES = @SLAPD_MODULES_LIST@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
-XLIBS = -lavl -lldif -lldbm -lldap_r -llber -llutil
+XLIBS = -lavl -lldif -lldbm -llutil -lldap_r -llber
 XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
@@ -35,6 +35,10 @@ PROGRAMS=ldif slapadd slapcat slapindex
 LDBMPROGRAMS=centipede sizecount
 BDB2PROGRAMS=
 QUIPUPROGRAMS=chlog2replog edb2ldif
+
+# CPPFLAGS will include the defines for dynamic libs in Mingw32.
+NT_DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
 
 SRCS = ldif.c mimic.c slapcommon.c
 
@@ -55,7 +59,9 @@ SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
 
-all-local: build-progs build-ldbm build-bdb2 build-quipu
+UNIX_PRGS = build-ldbm build-bdb2 build-quipu
+
+all-local: build-progs $(@PLAT@_PRGS)
 
 build-progs: $(PROGRAMS)
 
@@ -120,10 +126,10 @@ chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 
 clean-local: FORCE
 	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(BDB2PROGRAMS) $(QUIPUPROGRAMS) \
-		$(XPROGRAMS) $(XSRCS) *.o core .libs/*
+		$(XPROGRAMS) $(XSRCS) *.o core .libs/* *.exe
 
 depend-local: FORCE
-	@DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
+	DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
 	if [ "$(BUILD_LDBM)" != "no" ]; then \
 		DEPEND_LDBM="$(LDBMSRCS)"; \
 	fi; \
@@ -143,8 +149,9 @@ install-ldbm-no install-bdb2-no install-quipu-no:
 
 install-ldbm-yes install-ldbm-mod: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir) 
-	for bin in slapadd slapcat slapindex centipede ldif; do \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin $(DESTDIR)$(sbindir); \
+	@for bin in $(PROGRAMS); do \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin$(EXEEXT) \
+					    	    $(DESTDIR)$(sbindir); \
 	done
 
 install-bdb2-yes install-bdb2-mod: FORCE
