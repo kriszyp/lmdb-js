@@ -526,9 +526,12 @@ findcsn_cb( Operation *op, SlapReply *rs )
 
 /* Build a list of entryUUIDs for sending in a SyncID set */
 
+#define UUID_LEN	16
+
 typedef struct fpres_cookie {
 	int num;
 	BerVarray uuids;
+	char *last;
 } fpres_cookie;
 
 static int
@@ -539,33 +542,37 @@ findpres_cb( Operation *op, SlapReply *rs )
 	int ret = SLAP_CB_CONTINUE;
 
 	if ( rs->sr_type == REP_SEARCH ) {
-		ret = slap_build_syncUUID_set( op, &pc->uuids, rs->sr_entry );
-		if ( ret > 0 ) {
+		Attribute *a = attr_find( rs->sr_entry->e_attrs,
+			slap_schema.si_ad_entryUUID );
+		if ( a ) {
+			pc->uuids[pc->num].bv_val = pc->last;
+			AC_MEMCPY( pc->uuids[pc->num].bv_val, a->a_nvals[0].bv_val,
+				pc->uuids[pc->num].bv_len );
 			pc->num++;
-			ret = LDAP_SUCCESS;
-			if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
-				ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
-					0, pc->uuids, 0 );
-				ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
-				pc->uuids = NULL;
-				pc->num = 0;
-			}
-		} else {
-			ret = LDAP_OTHER;
+			pc->last = pc->uuids[pc->num].bv_val;
+			pc->uuids[pc->num].bv_val = NULL;
 		}
+		ret = LDAP_SUCCESS;
+		if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
+			ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
+				0, pc->uuids, 0 );
+			pc->uuids[pc->num].bv_val = pc->last;
+			pc->num = 0;
+			pc->last = pc->uuids[0].bv_val;
+		}
+
 	} else if ( rs->sr_type == REP_RESULT ) {
 		ret = rs->sr_err;
 		if ( pc->num ) {
 			ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 				0, pc->uuids, 0 );
-			ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
-			pc->uuids = NULL;
+			pc->uuids[pc->num].bv_val = pc->last;
 			pc->num = 0;
+			pc->last = pc->uuids[0].bv_val;
 		}
 	}
 	return ret;
 }
-
 
 static int
 syncprov_findcsn( Operation *op, int mode )
@@ -581,9 +588,8 @@ syncprov_findcsn( Operation *op, int mode )
 	struct berval fbuf, maxcsn;
 	Filter cf;
 	AttributeAssertion eq;
-	int rc = LDAP_SUCCESS;
+	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
-	int locked = 0;
 	sync_control *srs;
 
 	if ( mode != FIND_MAXCSN ) {
@@ -640,7 +646,18 @@ syncprov_findcsn( Operation *op, int mode )
 		cb.sc_private = &pcookie;
 		cb.sc_response = findpres_cb;
 		pcookie.num = 0;
-		pcookie.uuids = NULL;
+
+		/* preallocate storage for a full set */
+		pcookie.uuids = op->o_tmpalloc( (SLAP_SYNCUUID_SET_SIZE+1) *
+			sizeof(struct berval) + SLAP_SYNCUUID_SET_SIZE * UUID_LEN,
+			op->o_tmpmemctx );
+		pcookie.last = (char *)(pcookie.uuids + SLAP_SYNCUUID_SET_SIZE+1);
+		pcookie.uuids[0].bv_val = pcookie.last;
+		pcookie.uuids[0].bv_len = UUID_LEN;
+		for (i=1; i<SLAP_SYNCUUID_SET_SIZE; i++) {
+			pcookie.uuids[i].bv_val = pcookie.uuids[i-1].bv_val + UUID_LEN;
+			pcookie.uuids[i].bv_len = UUID_LEN;
+		}
 		break;
 	}
 	fop.o_callback = &cb;
@@ -665,6 +682,7 @@ syncprov_findcsn( Operation *op, int mode )
 		if ( !cb.sc_private ) rc = LDAP_NO_SUCH_OBJECT;
 		break;
 	case FIND_PRESENT:
+		op->o_tmpfree( pcookie.uuids, op->o_tmpmemctx );
 		break;
 	}
 
