@@ -27,7 +27,7 @@ int optind = 1;
 int optopt;
 char * optarg;
 
-static void ERR (char ** argv, char * s, char c)
+static void ERR (char * const argv[], const char * s, char c)
 {
 	char errbuf[2];
 
@@ -44,7 +44,7 @@ printf("DF_TRACE_DEBUG: 	static void ERR () in getopt.c\n");
 	}
 }
 
-int getopt (int argc, char ** argv, char * opts)
+int getopt (int argc, char * const argv [], const char * opts)
 {
 	static int sp = 1, error = (int) '?';
 	static char sw = '-', eos = '\0', arg = ':';

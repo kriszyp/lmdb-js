@@ -11,7 +11,8 @@
 #	define LDAP_END_DECL	
 #endif
 
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || \
+	(defined(_WIN32) && !defined(NOPROTOTYPES))
 	/* ANSI C or C++ */
 #	define LDAP_P(protos)	protos
 #	define LDAP_CONCAT1(x,y)	x ## y

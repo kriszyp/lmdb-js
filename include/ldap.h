@@ -692,7 +692,8 @@ LDAP_F void cldap_setretryinfo LDAP_P(( LDAP *ld, int tries, int timeout ));
  * in sort.c
  */
 LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld,
-	LDAPMessage **chain, char *attr, int (*cmp) () ));
+	LDAPMessage **chain, char *attr,
+	int (*cmp) LDAP_P((const char *, const char *)) ));
 LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld,
 	char **vals, int (*cmp) LDAP_P((const void *, const void *)) ));
 LDAP_F int ldap_sort_strcasecmp LDAP_P(( char **a, char **b ));

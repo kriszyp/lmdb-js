@@ -65,7 +65,6 @@ struct ol_attribute {
 
 static void openldap_ldap_init_w_conf(const char *file)
 {
-	char buf[MAX_LDAP_ATTR_LEN];
 	char linebuf[128];
 	FILE *fp;
 	int i;
@@ -166,22 +165,33 @@ static void openldap_ldap_init_w_conf(const char *file)
 static void openldap_ldap_init_w_userconf(const char *file)
 {
 	char *home = getenv("HOME");
-	char *path = malloc(strlen(home) + strlen(file) + 3);
+	char *path;
+	
+	if (home != NULL) {
+		path = malloc(strlen(home) + strlen(file) + 3);
+	} else {
+		path = malloc(strlen(file) + 3);
+	}
 
-	/* try ~/file */
-	sprintf(path, "%s/%s", home, file);
-	openldap_ldap_init_w_conf(path);
 
-	/* try ~/.file */
-	sprintf(path, "%s/.%s", home, file);
-	openldap_ldap_init_w_conf(path);
+	if(home != NULL && path != NULL) {
+		/* try ~/file */
+		sprintf(path, "%s/%s", home, file);
+		openldap_ldap_init_w_conf(path);
+
+		/* try ~/.file */
+		sprintf(path, "%s/.%s", home, file);
+		openldap_ldap_init_w_conf(path);
+	}
 
 	/* try file */
 	openldap_ldap_init_w_conf(file);
 
-	/* try .file */
-	sprintf(path, "%s/.%s", home, file);
-	openldap_ldap_init_w_conf(path);
+	if(path == NULL) {
+		/* try .file */
+		sprintf(path, ".%s", file);
+		openldap_ldap_init_w_conf(path);
+	}
 }
 
 static void openldap_ldap_init_w_env(const char *prefix)

@@ -21,8 +21,8 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "ldap-int.h"
 
+#include "ldap-int.h"
 
 struct entrything {
 	char		**et_vals;
@@ -78,7 +78,7 @@ ldap_sort_entries(
     LDAP	*ld,
     LDAPMessage	**chain,
     char	*attr,		/* NULL => sort by DN */
-    int		(*cmp) LDAP_P((char *, char *))
+    int		(*cmp) LDAP_P((const char *, const char *))
 )
 {
 	int			i, count;
