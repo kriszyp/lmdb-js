@@ -17,6 +17,8 @@
 #include "sets.h"
 #include "lber_pvt.h"
 
+#define ACL_BUF_SIZE 	1024	/* use most appropriate size */
+
 
 /*
  * speed up compares
@@ -641,7 +643,7 @@ acl_mask(
 
 				if ( b->a_dn_expand ) {
 					struct berval bv;
-					char buf[1024];
+					char buf[ACL_BUF_SIZE];
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
@@ -754,7 +756,7 @@ dn_match_cleanup:;
 						continue;
 					}
 				} else {
-					char buf[1024];
+					char buf[ACL_BUF_SIZE];
 
 					struct berval 	cmp = conn->c_peer_domain;
 					struct berval 	pat = b->a_domain_pat;
@@ -917,7 +919,7 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_group_pat.bv_len ) {
-			char buf[1024];
+			char buf[ACL_BUF_SIZE];
 			struct berval bv;
 			struct berval ndn = { 0, NULL };
 			int rc;
@@ -1644,7 +1646,6 @@ aci_group_member (
 	regmatch_t	*matches
 )
 {
-	struct berval bv;
 	struct berval subjdn;
 	struct berval grpoc;
 	struct berval grpat;
@@ -1676,15 +1677,13 @@ aci_group_member (
 	grp_oc = oc_bvfind( &grpoc );
 
 	if (grp_oc != NULL && grp_ad != NULL ) {
-		struct berval ndn;
-		bv.bv_val = (char *)ch_malloc(1024);
-		bv.bv_len = 1024;
+		char buf[ACL_BUF_SIZE];
+		struct berval bv = { sizeof(buf), buf }, ndn;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
 			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
 		}
-		ch_free(bv.bv_val);
 	}
 
 done:
