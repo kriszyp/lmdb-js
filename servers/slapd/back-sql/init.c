@@ -288,31 +288,7 @@ backsql_db_open(
 	}
 
 	if ( si->children_cond.bv_val == NULL ) {
-		/*
-		 * Prepare concat function for children search condition
-		 */
-		struct berval	concat;
 		ber_len_t	len = 0;
-		struct berval	values[] = {
-			{ sizeof( "'%,'" ) - 1,	"'%,'" },
-			{ sizeof( "?" ) - 1,	"?" },
-			{ 0,			NULL }
-		};
-
-		if ( backsql_prepare_pattern( si->concat_func, values, 
-				&concat ) ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-				"unable to prepare CONCAT pattern", 0, 0, 0 );
-			return 1;
-		}
-			
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"children search SQL condition not specified "
-			"(use \"children_cond\" directive in slapd.conf)\n", 
-			0, 0, 0);
-
-		si->children_cond.bv_val = NULL;
-		si->children_cond.bv_len = 0;
 
 		if ( si->upper_func.bv_val ) {
 
@@ -320,13 +296,12 @@ backsql_db_open(
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%,',?))
 			 */
 
-			backsql_strfcat( &si->children_cond, &len, "blbbb",
+			backsql_strfcat( &si->children_cond, &len, "blbl",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
-						"(ldap_entries.dn) LIKE ",
-					&si->upper_func_open,
-					&concat,
-					&si->upper_func_close );
+					(ber_len_t)sizeof( "(ldap_entries.dn)=" ) - 1,
+						"(ldap_entries.dn)=",
+					&si->upper_func,
+					(ber_len_t)sizeof( "(?)" ) - 1, "(?)" );
 
 		} else {
 
@@ -334,10 +309,9 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%,',?)
 			 */
 
-			backsql_strfcat( &si->children_cond, &len, "lb",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE " ) - 1,
-						"ldap_entries.dn LIKE ",
-					&concat );
+			backsql_strfcat( &si->children_cond, &len, "l",
+					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
+						"ldap_entries.dn=?");
 		}
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
@@ -445,8 +419,9 @@ backsql_db_open(
 
 	bv.bv_val = NULL;
 	bv.bv_len = 0;
-	backsql_strfcat( &bv, &idq_len, "sb", 
-			"select count(*) from ldap_entries where ",
+	backsql_strfcat( &bv, &idq_len, "sb",
+			"SELECT COUNT(distinct subordinates.id) FROM ldap_entries,ldap_entries AS subordinates WHERE subordinates.parent=ldap_entries.id AND ",
+
 			&si->children_cond );
 	si->has_children_query = bv.bv_val;
  
