@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.23 Engineering
+OpenLDAP 2.2.23 Release
 	Updated slapd extensibleMatch empty DN bug fix (ITS#3506)
 
 OpenLDAP 2.2.22 Release
