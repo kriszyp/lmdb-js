@@ -282,11 +282,11 @@ do_syncrep1(
 	psub = &si->si_be->be_nsuffix[0];
 
 	/* Init connection to master */
-	rc = ldap_initialize( &si->si_ld, si->si_provideruri );
+	rc = ldap_initialize( &si->si_ld, si->si_provideruri.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrep1: ldap_initialize failed (%s)\n",
-			si->si_provideruri, 0, 0 );
+			si->si_provideruri.bv_val, 0, 0 );
 		return rc;
 	}
 
@@ -317,7 +317,7 @@ do_syncrep1(
 			if( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_provideruri, si->si_secprops, 0 );
+					si->si_provideruri.bv_val, si->si_secprops, 0 );
 				goto done;
 			}
 		}
@@ -2074,11 +2074,8 @@ avl_ber_bvfree( void *v_bv )
 void
 syncinfo_free( syncinfo_t *sie )
 {
-	if ( sie->si_provideruri ) {
-		ch_free( sie->si_provideruri );
-	}
-	if ( sie->si_provideruri_bv ) {
-		ber_bvarray_free( sie->si_provideruri_bv );
+	if ( !BER_BVISNULL( &sie->si_provideruri ) ) {
+		ch_free( sie->si_provideruri.bv_val );
 	}
 	if ( sie->si_binddn ) {
 		ch_free( sie->si_binddn );

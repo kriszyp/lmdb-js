@@ -1681,7 +1681,8 @@ add_syncrepl(
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,
 			"Config: ** successfully added syncrepl \"%s\"\n",
-			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
+			BER_BVISNULL( &si->si_provideruri ) ?
+			"(null)" : si->si_provideruri.bv_val, 0, 0 );
 		if ( !si->si_schemachecking ) {
 			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
@@ -1770,13 +1771,7 @@ parse_syncrepl_line(
 					STRLENOF( PROVIDERSTR "=" ) ) )
 		{
 			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
-			si->si_provideruri = ch_strdup( val );
-			si->si_provideruri_bv = (BerVarray)
-				ch_calloc( 2, sizeof( struct berval ));
-			ber_str2bv( si->si_provideruri, strlen( si->si_provideruri ),
-				1, &si->si_provideruri_bv[0] );
-			si->si_provideruri_bv[1].bv_len = 0;
-			si->si_provideruri_bv[1].bv_val = NULL;
+			ber_str2bv( val, 0, 1, &si->si_provideruri );
 			gots |= GOT_PROVIDER;
 		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR "=",
 					STRLENOF(STARTTLSSTR "=") ) )

@@ -1481,8 +1481,7 @@ LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         long				si_rid;
-        char				*si_provideruri;
-        BerVarray			si_provideruri_bv;
+        struct berval			si_provideruri;
 #define SYNCINFO_TLS_OFF		0
 #define SYNCINFO_TLS_ON			1
 #define SYNCINFO_TLS_CRITICAL	2
