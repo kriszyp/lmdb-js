@@ -114,7 +114,7 @@ INTERNET-DRAFT               LDAP CSN                    1 December 2004
   The following is a LDAP syntax description [RFC2252] suitable for
   publication in the subschema.
 
-      ( IANA-ASSIGNED-OID.1 DESC 'UUID' )
+      ( IANA-ASSIGNED-OID.1 DESC 'CSN' )
 
 
 
@@ -127,7 +127,7 @@ INTERNET-DRAFT               LDAP CSN                    1 December 2004
 
 2.2 'csnMatch' Matching Rule
 
-  The 'csnMatch' matching rule compares an asserted UUID with a stored
+  The 'csnMatch' matching rule compares an asserted CSN with a stored
   CSN for equality.  Its semantics are same as the octetStringMatch
   [X.520][RFC2252] matching rule.
 
