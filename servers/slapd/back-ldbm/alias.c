@@ -31,7 +31,6 @@ Entry *derefAlias_r ( Backend     *be,
   struct ldbminfo *li = (struct ldbminfo *) be->be_private; /* to free cache entries */
   Attribute *a;
   int       depth;
-  char      **pastAliases;
   char      *matched;
   Entry     *origDN = e;
 
@@ -278,15 +277,17 @@ char *derefDN ( Backend     *be,
    * e.g. if we had started with dn = o=MyAliasedOrg,c=MyCountry the dn would match
    * and the above loop complete but we would still be left with an aliased DN.
    */
-  if ( (eNew = dn2entry_r( be, newDN, &matched )) != NULL) {
-    if ((eDeref = derefAlias_r( be, conn, op, eNew )) != NULL) {
-      free (newDN);
-      newDN = ch_strdup (eDeref->e_dn);
+  if (newDN != NULL) {
+    if ( (eNew = dn2entry_r( be, newDN, &matched )) != NULL) {
+      if ((eDeref = derefAlias_r( be, conn, op, eNew )) != NULL) {
+        free (newDN);
+        newDN = ch_strdup (eDeref->e_dn);
+        /* free reader lock */
+        cache_return_entry_r(&li->li_cache, eDeref);
+      }
       /* free reader lock */
-      cache_return_entry_r(&li->li_cache, eDeref);
+      cache_return_entry_r(&li->li_cache, eNew);
     }
-    /* free reader lock */
-    cache_return_entry_r(&li->li_cache, eNew);
   }
   if (matched != NULL) free(matched);
   
