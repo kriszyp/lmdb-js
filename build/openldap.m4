@@ -242,12 +242,12 @@ dnl
 dnl defines ol_cv_lib_db2 to '-ldb' or 'no'
 dnl
 dnl uses:
-dnl		AC_CHECK_LIB(db,db_open)
+dnl		AC_CHECK_LIB(db,db_appexit)
 dnl
 AC_DEFUN([OL_LIB_BERKELEY_DB2],
 [AC_CACHE_CHECK([for DB2 library], [ol_cv_lib_db2],
 [	ol_LIBS="$LIBS"
-	AC_CHECK_LIB(db,db_open,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
+	AC_CHECK_LIB(db,db_appexit,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
 	LIBS="$ol_LIBS"
 ])
 ])dnl
@@ -276,6 +276,48 @@ AC_DEFUN([OL_BERKELEY_DB2],
  fi
 ])dnl
 dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley db2 supports DB_THREAD
+AC_DEFUN([OL_BERKELEY_DB2_DB_THREAD],
+[AC_CACHE_CHECK([for DB_THREAD support], [ol_cv_berkeley_db2_db_thread], [
+	ol_LIBS="$LIBS"
+	if test $ol_cv_lib_db2 != yes ; then
+		LIBS="$ol_cv_lib_db2"
+	fi
+
+	AC_TRY_RUN([
+#include <db.h>
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+main()
+{
+	int rc;
+	DB_ENV env;
+	u_int32_t flags = DB_CREATE | DB_THREAD;
+
+	memset( &env, '\0', sizeof(env) );
+
+	rc = db_appinit( NULL, NULL, &env, flags );
+
+	if( rc == 0 ) {
+		db_appexit( &env );
+	}
+
+	return rc;
+}],
+	[ol_cv_berkeley_db2_db_thread=yes],
+	[ol_cv_berkeley_db2_db_thread=no],
+	[ol_cv_berkeley_db2_db_thread=cross])
+
+	LIBS="$ol_LIBS"
+
+	if test $ol_cv_berkeley_db2_db_thread != no ; then
+		AC_DEFINE(HAVE_BERKELEY_DB2_DB_THREAD, 1,
+			[define if BerkeleyDB2 has DB_THREAD support])
+	fi
+])])dnl
 dnl ====================================================================
 dnl Check for db.h/db_185.h is Berkeley DB
 dnl

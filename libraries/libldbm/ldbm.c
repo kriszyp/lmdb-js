@@ -59,12 +59,18 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 
 static int ldbm_initialized = 0;
 
-#ifndef HAVE_BERKELEY_DB2
-/* Everything but DB2 is non-reentrant */
-
+#ifndef HAVE_BERKELEY_DB2_DB_THREAD
+/* Only DB2 with DB_THREAD is thread-free */
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
 #define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+
+#else
+#define LDBM_LOCK	((void)0)
+#define LDBM_UNLOCK	((void)0)
+#endif
+
+#ifndef HAVE_BERKELEY_DB2
 
 int ldbm_initialize( void )
 {
@@ -108,10 +114,6 @@ ldbm_db_errcall( const char *prefix, char *message )
 static DB_ENV    ldbm_Env_internal;
 DB_ENV           *ldbm_Env = NULL;
 
-/* Berkeley DB 2.x is reentrant */
-#define LDBM_LOCK	((void)0)
-#define LDBM_UNLOCK	((void)0)
-
 int ldbm_initialize( void )
 {
 	int     err;
@@ -125,7 +127,11 @@ int ldbm_initialize( void )
 	ldbm_Env->db_errcall   = ldbm_db_errcall;
 	ldbm_Env->db_errpfx    = "==>";
 
-	envFlags = DB_CREATE | DB_THREAD;
+	envFlags = DB_CREATE
+#ifdef HAVE_BERKELEY_DB2_DB_THREAD
+		| DB_THREAD
+#endif
+		;
 
 	if ( ( err = db_appinit( NULL, NULL, ldbm_Env, envFlags )) ) {
 		char  error[BUFSIZ];

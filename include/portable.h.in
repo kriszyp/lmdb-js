@@ -687,6 +687,9 @@
 /* define this to use DBBTREE w/ LDBM backend */
 #undef LDBM_USE_DBBTREE
 
+/* define if BerkeleyDB2 has DB_THREAD support */
+#undef HAVE_BERKELEY_DB2_DB_THREAD
+
 /* define if Berkeley DB is available */
 #undef HAVE_BERKELEY_DB
 

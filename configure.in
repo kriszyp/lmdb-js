@@ -29,7 +29,6 @@ dnl ----------------------------------------------------------------
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
-dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
@@ -42,7 +41,6 @@ fi
 
 echo "Configuring OpenLDAP $OL_VERSION ..."
 
-dnl ----------------------------------------------------------------
 dnl Determine host platform
 dnl		we try not to use this for much
 AC_CANONICAL_SYSTEM
@@ -60,7 +58,7 @@ AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
-dnl ----------------------------------------------------------------
+dnl ================================================================
 dnl Start Args
 AC_MSG_CHECKING(configure arguments)
 AC_PREFIX_DEFAULT(/usr/local)
@@ -68,6 +66,8 @@ AC_PREFIX_DEFAULT(/usr/local)
 top_builddir=`pwd`
 AC_SUBST(top_builddir)dnl
 
+dnl ----------------------------------------------------------------
+dnl --with-subdir
 ldap_subdir="/openldap"
 
 AC_ARG_WITH(subdir,
@@ -88,8 +88,9 @@ esac
 
 AC_SUBST(ldap_subdir)dnl
 
+dnl ----------------------------------------------------------------
+dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
-dnl ol_enable_syslog=no
 OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
@@ -99,6 +100,7 @@ OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
+dnl ----------------------------------------------------------------
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
@@ -117,12 +119,14 @@ OL_ARG_WITH(tls,[  --with-tls		with TLS/SSL support],
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
 
+dnl ----------------------------------------------------------------
 dnl Server options
-
+dnl ----------------------------------------------------------------
 dnl LDAPD OPTIONS
 AC_ARG_WITH(xxldapdoptions,[LDAPD (X.500-to-LDAP Gateway) Options:])
 OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
+dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
 AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
@@ -165,14 +169,18 @@ OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
 OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
 	[static dynamic])
 
+dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
 AC_ARG_WITH(xxslurpdoptions,[SLURPD (Replication Daemon) Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
+dnl ----------------------------------------------------------------
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
 AC_ENABLE_STATIC
 dnl AC_DISABLE_SHARED
 AC_ENABLE_SHARED
+
+dnl ----------------------------------------------------------------
 
 dnl General "enable" options
 # validate options
@@ -371,7 +379,8 @@ fi
 
 AC_MSG_RESULT(done)
 
-## Initialize vars
+dnl ----------------------------------------------------------------
+dnl Initialize vars
 LDAP_LIBS=
 LDIF_LIBS=
 LDBM_LIBS=
@@ -418,13 +427,14 @@ TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
 
-dnl ----------------------------------------------------------------
+dnl ================================================================
 dnl Checks for programs
 
 dnl AC_PROG_INSTALL
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
+dnl ----------------------------------------------------------------
 dnl
 dnl Determine which C translator to use
 dnl
@@ -480,7 +490,6 @@ dnl CFLAGS=${CFLAGS-""}
 
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
-dnl AC_PROG_MAKE_SET
 
 AC_PROG_AWK
 OL_PROG_LN_H
@@ -495,6 +504,8 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
+dnl ----------------------------------------------------------------
+dnl Perl
 ol_link_perl=no
 if test $ol_enable_perl != no ; then
 	AC_PATH_PROG(PERLBIN, perl, /usr/bin/perl)
@@ -515,6 +526,8 @@ fi
 
 AC_PROG_CPP
 
+dnl ----------------------------------------------------------------
+dnl Cross compiling checks
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
 	AC_MSG_WARN([cross compiling....  some functionality will be removed.])
 
@@ -527,11 +540,13 @@ elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
 	AC_MSG_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
+dnl ----------------------------------------------------------------
 dnl Checks for UNIX Variants
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
 
+dnl ----------------------------------------------------------------
 dnl Checks for system services
 AC_CYGWIN
 AC_MINGW32
@@ -540,15 +555,18 @@ AC_OBJEXT
 
 AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
+dnl ----------------------------------------------------------------
 dnl BeOS requires -lbe -lroot -lnet
 AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
 
+dnl ----------------------------------------------------------------
 dnl OpenLDAP requires STDC features
 AM_PROG_CC_STDC
 if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
 	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC constructs.])
 fi
 
+dnl ----------------------------------------------------------------
 dnl Check cc depend flags
 OL_MKDEPEND
 if test "${ol_cv_mkdep}" = no ; then
@@ -556,16 +574,14 @@ if test "${ol_cv_mkdep}" = no ; then
 	AC_MSG_WARN([do not know how to generate dependencies])
 fi
 
-dnl
+dnl ----------------------------------------------------------------
 dnl Check for module support
-dnl
 ol_link_modules=no
 if test $ol_enable_modules != no ; then
 	AC_CHECK_HEADERS(ltdl.h)
 
 	if test $ac_cv_header_ltdl_h = no ; then
 		AC_MSG_ERROR([could not locate libtool ltdl.h])
-
 	fi
 
 	AC_CHECK_LIB(ltdl, lt_dlinit)
@@ -573,6 +589,7 @@ if test $ol_enable_modules != no ; then
 		AC_MSG_ERROR([could not locate libtool -lltdl])
 	fi
 	ol_link_modules=yes
+
 else
 	ol_with_bdb2_module=static
 	ol_with_ldap_module=static
@@ -643,6 +660,9 @@ AC_CHECK_HEADERS(	\
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+dnl HP-UX requires -lV3
+AC_CHECK_LIB(V3, sigset)
+
 dnl Find socket()
 dnl Likely combinations:
 dnl		-lsocket [ -lnsl_s | -lnsl ]
@@ -671,6 +691,7 @@ AC_FUNC_SELECT_ARGTYPES
 dnl check to see if system call automatically restart
 dnl AC_SYS_RESTARTABLE_SYSCALLS
 
+dnl ----------------------------------------------------------------
 dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
@@ -683,9 +704,7 @@ if test "$ol_cv_c_posix_regex" = no ; then
 	AC_MSG_ERROR([broken POSIX regex!])
 fi
 
-dnl HP-UX requires -lV3
-AC_CHECK_LIB(V3, sigset)
-
+dnl ----------------------------------------------------------------
 dnl Check for resolver routines
 AC_CHECK_FUNC(res_search,:)
 if test $ac_cv_func_res_search = no ; then 
@@ -713,7 +732,8 @@ elif test $ol_enable_dns != no ; then
 fi
 
 
-# ISODE tests
+dnl ----------------------------------------------------------------
+dnl ISODE tests
 ol_link_isode=no
 if test $ol_enable_ldapd != no ; then
 	AC_MSG_WARN([ldapd is not supported and may suffer from bit rot.])
@@ -745,6 +765,8 @@ if test $ol_link_isode != no; then
 	AC_PATH_PROG(PEPSY, pepsy)
 fi
 
+dnl ----------------------------------------------------------------
+dnl QUIPU
 if test $ol_enable_quipu != no ; then
 	AC_CHECK_HEADERS(quipu/commonarg.h)
 
@@ -757,9 +779,8 @@ if test $ol_enable_quipu != no ; then
 	fi
 fi
 
-dnl
-dnl check for kerberos
-dnl
+dnl ----------------------------------------------------------------
+dnl Kerberos
 ol_link_kerberos=no
 
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
@@ -822,9 +843,8 @@ if test $ol_link_kerberos = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 fi
 
-dnl
-dnl Check for SSL/TLS
-dnl
+dnl ----------------------------------------------------------------
+dnl TLS/SSL
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 	
@@ -874,6 +894,7 @@ if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
 fi	
 
+dnl ----------------------------------------------------------------
 dnl Tests for reentrant functions necessary to build a
 dnl thread_safe -lldap.
 AC_CHECK_FUNCS(		\
@@ -914,6 +935,8 @@ if test "$ac_cv_func_ctime_r" = yes \
  	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1)
 fi
 
+dnl ----------------------------------------------------------------
+dnl Threads?
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = posix ; then
@@ -1470,6 +1493,8 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
 				[define this to use DBBTREE w/ LDBM backend])
 		fi
 
+		OL_BERKELEY_DB2_DB_THREAD
+
 		dnl $ol_cv_lib_db2 should be yes or -ldb
 		dnl (it could be no, but that would be an error
 		if test $ol_cv_lib_db2 != yes ; then
@@ -1480,7 +1505,11 @@ fi
 
 ol_link_bdb2=no
 if test $ol_link_ldbm = db2 -a $ol_enable_bdb2 != no ; then
-	ol_link_bdb2=yes
+	if test $ol_cv_berkeley_db2_db_thread != no ; then
+		ol_link_bdb2=yes
+	else
+		AC_MSG_WARN([Installed BerkeleyDB does not provide DB_THREAD support.])
+	fi
 fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
@@ -1570,6 +1599,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	ol_enable_ldbm=no
 fi
 
+dnl ----------------------------------------------------------------
 if test $ol_enable_wrappers != no ; then
 	AC_CHECK_HEADERS(tcpd.h)
 
@@ -1598,6 +1628,7 @@ if test $ol_enable_wrappers != no ; then
 	fi
 fi
 
+dnl ----------------------------------------------------------------
 if test $ol_enable_syslog != no ; then
 	AC_CHECK_FUNC(openlog)
 	if test $ac_cv_func_openlog = no -a $ol_enable_syslog = yes; then
@@ -1606,11 +1637,14 @@ if test $ol_enable_syslog != no ; then
 	ol_enable_syslog=$ac_cv_func_openlog
 fi
 
+dnl ----------------------------------------------------------------
 if test $ol_enable_dmalloc != no ; then
 	AC_CHECK_HEADERS(dmalloc.h)
 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
 fi
 
+dnl ----------------------------------------------------------------
+dnl TCL
 if test $ol_enable_tcl != no ; then
 	AC_CHECK_HEADERS(tcl.h)
 
@@ -1644,7 +1678,8 @@ if test $ol_enable_tcl != no ; then
 	fi
 fi
 
-# ud needs termcap (should insert check here)
+dnl ----------------------------------------------------------------
+dnl ud needs termcap (should insert check here)
 ol_link_termcap=no
 AC_CHECK_HEADERS(termcap.h ncurses.h)
 
@@ -1671,6 +1706,7 @@ if test $ol_link_termcap = no ; then
 	TERMCAP_LIBS=
 fi
 
+dnl ----------------------------------------------------------------
 dnl
 dnl Check for fetch URL support
 dnl		should be extended to support other fetch URL APIs
@@ -1695,6 +1731,7 @@ if test $ol_with_cyrus_sasl != no ; then
 	fi
 fi
 
+dnl ----------------------------------------------------------------
 dnl
 dnl Check for fetch URL support
 dnl		should be extended to support other fetch URL APIs
@@ -1712,6 +1749,7 @@ if test $ol_with_fetch != no ; then
 	fi 
 fi
 
+dnl ----------------------------------------------------------------
 dnl
 dnl Check for GNU readline
 dnl
@@ -1740,7 +1778,8 @@ if test $ol_link_readline = yes ; then
 fi
 
 
-# FreeBSD (and others) have crypt(3) in -lcrypt
+dnl ----------------------------------------------------------------
+dnl FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
 	AC_CHECK_FUNC(crypt, [have_crypt=yes], [
 		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
@@ -1759,7 +1798,8 @@ if test $ol_enable_crypt != no ; then
 	fi
 fi
 
-# FreeBSD (and others) have setproctitle(3) in -lutil
+dnl ----------------------------------------------------------------
+dnl FreeBSD (and others) have setproctitle(3) in -lutil
 if test $ol_enable_proctitle != no ; then
 	AC_CHECK_FUNC(setproctitle,	[have_setproctitle=yes], [
 		AC_CHECK_LIB(util, setproctitle,

@@ -49,7 +49,11 @@ ldbm_back_startup(
 #else
 	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
 	DB_ENV           *dbEnv = &li->li_db_env;
-	u_int32_t    envFlags = DB_CREATE | DB_THREAD;
+	u_int32_t    envFlags = DB_CREATE
+#ifdef HAVE_BERKELEY_DB2_DB_THREAD
+		| DB_THREAD
+#endif
+		;
 	int    err      = 0;
 	char   *home;
 
