@@ -232,8 +232,6 @@ slapd_daemon_task(
 
 	slapd_listener=1;
 
-	connections_init();
-
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
 	FD_ZERO( &slap_daemon.sd_readers );
 	FD_ZERO( &slap_daemon.sd_writers );
@@ -582,6 +580,9 @@ slapd_daemon_task(
 		tcp_close( tcps );
 	}
 
+	/* we only implement "quick" shutdown */
+	connections_shutdown();
+
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
@@ -601,6 +602,8 @@ int slapd_daemon( int inetd, int tcps )
 	int *args = ch_malloc( sizeof( int[2] ) );
 	args[0] = inetd;
 	args[1] = tcps;
+
+	connections_init();
 
 #define SLAPD_LISTENER_THREAD 1
 #if SLAPD_LISTENER_THREAD
@@ -622,6 +625,7 @@ int slapd_daemon( int inetd, int tcps )
 	slapd_daemon_task( args );
 #endif
 
+	connections_destroy();
 	return 0;
 }
 

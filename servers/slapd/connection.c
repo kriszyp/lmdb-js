@@ -36,6 +36,7 @@ void slapd_remove(int s);
 static Connection* connection_get( int s );
 
 static int connection_input( Connection *c );
+static void connection_close( Connection *c );
 
 static int connection_op_activate( Connection *conn, Operation *op );
 static int connection_resched( Connection *conn );
@@ -54,7 +55,7 @@ int connections_init(void)
 
 	assert( connections == NULL );
 
-	if( connections != NULL) { /* probably should assert this */
+	if( connections != NULL) {
 		Debug( LDAP_DEBUG_ANY, "connections_init: already initialized.\n",
 			0, 0, 0 );
 		return -1;
@@ -81,6 +82,59 @@ int connections_init(void)
 	 */ 
 
 	return 0;
+}
+
+/*
+ * Destroy connection management infrastructure.
+ */
+int connections_destroy(void)
+{
+	int i;
+
+	/* should check return of every call */
+
+	if( connections == NULL) {
+		Debug( LDAP_DEBUG_ANY, "connections_destroy: nothing to destroy.\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	for ( i = 0; i < dtblsize; i++ ) {
+		ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
+		ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
+		ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+
+		free( &connections[i] );
+	}
+
+	free( connections );
+	connections = NULL;
+
+	ldap_pvt_thread_mutex_destroy( &connections_mutex );
+	return 0;
+}
+
+/*
+ * shutdown all connections
+ */
+int connections_shutdown(void)
+{
+	int i;
+
+	ldap_pvt_thread_mutex_lock( &connections_mutex );
+
+	for ( i = 0; i < dtblsize; i++ ) {
+		if( connections[i].c_struct_state != SLAP_C_USED ) {
+			continue;
+		}
+
+		ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
+		connection_closing( &connections[i] );
+		connection_close( &connections[i] );
+		ldap_pvt_thread_mutex_unlock( &connections[i].c_mutex );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 }
 
 static Connection* connection_get( int s )
@@ -310,11 +364,17 @@ connection_destroy( Connection *c )
 
 int connection_state_closing( Connection *c )
 {
+	int state;
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
-	assert( c->c_conn_state != SLAP_C_INVALID );
 
-	return c->c_conn_state == SLAP_C_CLOSING;
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
+	state = c->c_conn_state;
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+	assert( state != SLAP_C_INVALID );
+
+	return state == SLAP_C_CLOSING;
 }
 
 void connection_closing( Connection *c )

@@ -114,6 +114,8 @@ int read_config LDAP_P(( char *fname ));
  * connection.c
  */
 int connections_init LDAP_P((void));
+int connections_shutdown LDAP_P((void));
+int connections_destroy LDAP_P((void));
 
 long connection_init LDAP_P((
 	int s,
