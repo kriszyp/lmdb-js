@@ -3,9 +3,9 @@
 
 // (c) Copyright 1999-2001 TimesTen Performance Software. All rights reserved.
 
-// Note: This file was contributed by Sam Drake of TimesTen Performance
-//       Software for use and redistribution as an intregal part OpenLDAP
-//       Software.  -Kdz
+//// Note: This file was contributed by Sam Drake of TimesTen Performance
+////       Software for use and redistribution as an intregal part of
+////       OpenLDAP Software.  -Kdz
 
 #include <stdlib.h>
 

@@ -1,10 +1,13 @@
+## Copyright 1997-2003 The OpenLDAP Foundation, All Rights Reserved.
+##  COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+
 #
 # Build TimesTen ODBC Sample Programs for Solaris 2.5.1.
 # (c) Copyright 1996-1998, TimesTen Performance Software.
 # All rights reserved.
-#
-# $Revision: 1.1 $
-#
+## Note: This file was contributed by Sam Drake of TimesTen Performance
+##       Software for use and redistribution as an intregal part of
+##       OpenLDAP Software.  -Kdz
 
 CPLUSPLUS = CC
 TTCLASSES = ../../../../../../../../../cs/classes
