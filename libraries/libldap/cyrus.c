@@ -461,8 +461,7 @@ int
 ldap_int_sasl_open(
 	LDAP *ld, 
 	LDAPConn *lc,
-	const char * host,
-	ber_len_t ssf )
+	const char * host )
 {
 	int rc;
 	sasl_conn_t *ctx;
@@ -496,27 +495,6 @@ ldap_int_sasl_open(
 #endif
 
 	lc->lconn_sasl_ctx = ctx;
-
-	if( ssf ) {
-#if SASL_VERSION_MAJOR >= 2
-		(void) sasl_setprop( ctx, SASL_SSF_EXTERNAL,
-			(void *) &ssf );
-#else
-		sasl_external_properties_t extprops;
-		memset(&extprops, 0L, sizeof(extprops));
-		extprops.ssf = ssf;
-
-		(void) sasl_setprop( ctx, SASL_SSF_EXTERNAL,
-			(void *) &extprops );
-#endif
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TRANSPORT, DETAIL1, 
-			"ldap_int_sasl_open: ssf=%ld\n", (long) ssf, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: ssf=%ld\n",
-			(long) ssf, 0, 0 );
-#endif
-	}
 
 	return LDAP_SUCCESS;
 }

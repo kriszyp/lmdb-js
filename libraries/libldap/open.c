@@ -233,7 +233,6 @@ ldap_int_open_connection(
 	int rc = -1;
 #ifdef HAVE_CYRUS_SASL
 	char *sasl_host = NULL;
-	int sasl_ssf = 0;
 #endif
 	char *host;
 	int port, proto;
@@ -324,7 +323,6 @@ ldap_int_open_connection(
 
 #ifdef HAVE_CYRUS_SASL
 			sasl_host = ldap_host_connected_to( conn->lconn_sb );
-			sasl_ssf = LDAP_PVT_SASL_LOCAL_SSF;
 #endif
 			break;
 #endif /* LDAP_PF_LOCAL */
@@ -350,8 +348,11 @@ ldap_int_open_connection(
 	/* establish Cyrus SASL context prior to starting TLS so
 		that SASL EXTERNAL might be used */
 	if( sasl_host != NULL ) {
-		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+		ldap_int_sasl_open( ld, conn, sasl_host );
 		LDAP_FREE( sasl_host );
+	}
+	if( proto == LDAP_PROTO_IPC ) {
+		ldap_int_sasl_external( ld, conn, "nobody", LDAP_PVT_SASL_LOCAL_SSF );
 	}
 #endif
 
