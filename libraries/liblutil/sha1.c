@@ -25,6 +25,7 @@
  */
 
 #include "portable.h"
+#include <ac/bytes.h>
 #include <ac/string.h>
 
 /* include socket.h to get sys/types.h and/or winsock2.h */
@@ -33,6 +34,8 @@
 #include <ac/param.h>
 
 #include "lutil_sha1.h"
+
+#ifdef LUTIL_SHA1_BYTES
 
 /* undefining this will cause pointer alignment errors */
 #define SHA1HANDSOFF		/* Copies data before messing with it. */
@@ -275,3 +278,5 @@ lutil_SHA1Data( const unsigned char *data, size_t len, char *buf )
     lutil_SHA1Update(&ctx, data, len);
     return(lutil_SHA1End(&ctx, buf));
 }
+
+#endif

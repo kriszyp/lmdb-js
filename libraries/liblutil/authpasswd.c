@@ -67,11 +67,13 @@ static int chk_md5(
 	const struct berval *salt,
 	const struct berval *cred );
 
+#ifdef LUTIL_SHA1_BYTES
 static int chk_sha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *salt,
 	const struct berval *cred );
+#endif
 
 static int chk_crypt(
 	const struct pw_scheme *scheme,
@@ -95,7 +97,7 @@ static int chk_ext_unix(
 	const struct berval *passwd,
 	const struct berval *cred );
 
-
+#ifdef LUTIL_SHA1_BYTES
 /* password hash routines */
 static int *hash_sha1(
 	const struct pw_scheme *scheme,
@@ -103,6 +105,7 @@ static int *hash_sha1(
 	const struct berval *salt,
 	struct berval **passwd_out,
 	struct berval **salt_out );
+#endif
 
 static int *hash_md5(
 	const struct pw_scheme *scheme,
@@ -128,7 +131,9 @@ struct pw_scheme {
 
 static const struct pw_scheme pw_schemes[] =
 {
+#ifdef LUTIL_SHA1_BYTES
 	{ {sizeof("SHA1")-1, "SHA1"},	chk_sha1, 0 /* hash_sha1 */, 4 },
+#endif
 	{ {sizeof("MD5")-1, "MD5"},		chk_md5, 0 /* hash_md5 */, 4 },
 
 #ifdef SLAPD_CRYPT
@@ -364,6 +369,7 @@ static struct berval * base64(
 
 /* PASSWORD CHECK ROUTINES */
 
+#ifdef LUTIL_SHA1_BYTES
 static int chk_sha1(
 	const struct pw_scheme *sc,
 	const struct berval * passwd,
@@ -431,6 +437,7 @@ done:
 	ber_memfree(orig_salt);
 	return rc;
 }
+#endif
 
 static int chk_md5(
 	const struct pw_scheme *sc,
@@ -791,6 +798,7 @@ static int chk_unix(
 
 #ifdef SLAPD_GENERATE
 
+#ifdef LUTIL_SHA1_BYTES
 static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd )
@@ -837,6 +845,7 @@ static struct berval *hash_sha1(
             
 	return pw_string64( scheme, &digest, NULL);
 }
+#endif
 
 static struct berval *hash_smd5(
 	const struct pw_scheme *scheme,

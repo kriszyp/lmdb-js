@@ -93,6 +93,7 @@ static int chk_smd5(
 	const struct berval *passwd,
 	const struct berval *cred );
 
+#ifdef LUTIL_SHA1_BYTES
 static int chk_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
@@ -102,6 +103,7 @@ static int chk_sha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
+#endif
 
 #ifdef SLAPD_LMHASH
 static int chk_lanman(
@@ -139,6 +141,7 @@ static int chk_unix(
 #endif
 
 
+#ifdef LUTIL_SHA1_BYTES
 /* password hash routines */
 static struct berval *hash_sha1(
 	const struct pw_scheme *scheme,
@@ -147,6 +150,7 @@ static struct berval *hash_sha1(
 static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
+#endif
 
 static struct berval *hash_smd5(
 	const struct pw_scheme *scheme,
@@ -171,8 +175,10 @@ static struct berval *hash_crypt(
 
 static const struct pw_scheme pw_schemes[] =
 {
+#ifdef LUTIL_SHA1_BYTES
 	{ {sizeof("{SSHA}")-1, "{SSHA}"},	chk_ssha1, hash_ssha1 },
 	{ {sizeof("{SHA}")-1, "{SHA}"},		chk_sha1, hash_sha1 },
+#endif
 
 	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, hash_smd5 },
 	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, hash_md5 },
@@ -448,6 +454,7 @@ static struct berval * pw_string64(
 
 /* PASSWORD CHECK ROUTINES */
 
+#ifdef LUTIL_SHA1_BYTES
 static int chk_ssha1(
 	const struct pw_scheme *sc,
 	const struct berval * passwd,
@@ -520,6 +527,7 @@ static int chk_sha1(
 	ber_memfree(orig_pass);
 	return rc ? 1 : 0;
 }
+#endif
 
 static int chk_smd5(
 	const struct pw_scheme *sc,
@@ -952,6 +960,7 @@ static int chk_unix(
 
 /* PASSWORD GENERATION ROUTINES */
 
+#ifdef LUTIL_SHA1_BYTES
 static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
@@ -998,6 +1007,7 @@ static struct berval *hash_sha1(
             
 	return pw_string64( scheme, &digest, NULL);
 }
+#endif
 
 static struct berval *hash_smd5(
 	const struct pw_scheme *scheme,
