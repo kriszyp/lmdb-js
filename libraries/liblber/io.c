@@ -34,11 +34,6 @@
 
 #include "lber-int.h"
 
-static ber_slen_t BerRead LDAP_P((
-	Sockbuf *sb,
-	char *buf,
-	ber_len_t len ));
-
 #define EXBUFSIZ	1024
 
 /* probably far too large... */
@@ -52,7 +47,7 @@ static ber_slen_t BerRead LDAP_P((
 static ber_slen_t
 BerRead(
 	Sockbuf *sb,
-	char *buf,
+	unsigned char *buf,
 	ber_len_t len )
 {
 	ber_slen_t	c;

@@ -73,7 +73,6 @@ main( int argc, char **argv )
 		}
 	}
 
-done:
 	(void) be->be_entry_close( be );
 
 	slap_tool_destroy();
