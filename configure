@@ -95,7 +95,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-dnssrv	  enable dnssrv backend no|yes|mod [no]"
 ac_help="$ac_help
-    --enable-hdb	  enable Hierarchical DB backend no|yes|mod [no]"
+    --enable-hdb	  enable Hierarchical DB backend no|yes|mod [yes]"
 ac_help="$ac_help
     --enable-ldap	  enable ldap backend no|yes|mod [no]"
 ac_help="$ac_help
@@ -1993,7 +1993,7 @@ if test "${enable_hdb+set}" = set; then
 	ol_enable_hdb="$ol_arg"
 
 else
-  	ol_enable_hdb="no"
+  	ol_enable_hdb="yes"
 fi
 # end --enable-hdb
 # OpenLDAP --enable-ldap
