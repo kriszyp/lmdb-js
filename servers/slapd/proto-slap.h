@@ -521,22 +521,10 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
 
 /*
  * modify.c
- *	should be relocated to separate file
  */
-LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
-LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
-LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );
-
 LDAP_SLAPD_F( int ) slap_mods_check(
 	Modifications *ml,
 	int update,
-	const char **text,
-	char *textbuf, size_t textlen );
-
-LDAP_SLAPD_F( int ) slap_modlist2mods(
-	LDAPModList *ml,
-	int update,
-	Modifications **mods,
 	const char **text,
 	char *textbuf, size_t textlen );
 
@@ -546,6 +534,13 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Modifications **modlist,
 	const char **text,
 	char *textbuf, size_t textlen );
+
+/*
+ * mods.c
+ */
+LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
+LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
+LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );
 
 /*
  * module.c
