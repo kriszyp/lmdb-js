@@ -351,10 +351,9 @@ int main( int argc, char **argv )
 	}
 
 #ifdef HAVE_TLS
-	ldap_pvt_tls_init();
+	rc = ldap_pvt_tls_init();
 
-	if (ldap_pvt_tls_init_def_ctx() != 0)
-	{
+	if (rc || ldap_pvt_tls_init_def_ctx() != 0) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto destroy;
