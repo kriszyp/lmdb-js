@@ -56,6 +56,9 @@ bdb_db_cache(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
 	char *file;
+	DBT lockobj;
+	DB_LOCK lock;
+	u_int32_t locker = 0;
 
 	*dbout = NULL;
 
@@ -66,19 +69,33 @@ bdb_db_cache(
 		}
 	}
 
-	ldap_pvt_thread_mutex_lock( &bdb->bi_database_mutex );
+	lockobj.data = "bdb_db_cache";
+	lockobj.size = sizeof("bdb_db_cache");
+
+	if (tid) {
+		locker = TXN_ID( tid );
+	} else {
+#ifdef BDB_REUSE_LOCKERS
+#define	op	NULL	/* implicit arg in LOCK_ID */
+#endif
+		rc = LOCK_ID( bdb->bi_dbenv, &locker );
+		if (rc) return rc;
+	}
+	rc = LOCK_GET( bdb->bi_dbenv, locker, 0, &lockobj,
+		DB_LOCK_WRITE, &lock );
+	if (rc) return rc;
 
 	/* check again! may have been added by another thread */
 	for( i=BDB_NDB; bdb->bi_databases[i]; i++ ) {
 		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+			LOCK_PUT( bdb->bi_dbenv, &lock);
 			return 0;
 		}
 	}
 
 	if( i >= BDB_INDICES ) {
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+		LOCK_PUT( bdb->bi_dbenv, &lock);
 		return -1;
 	}
 
@@ -97,7 +114,7 @@ bdb_db_cache(
 			"bdb_db_cache: db_create(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
 #endif
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+		LOCK_PUT( bdb->bi_dbenv, &lock);
 		return rc;
 	}
 
@@ -131,7 +148,7 @@ bdb_db_cache(
 			"bdb_db_cache: db_open(%s) failed: %s (%d)\n",
 			name, db_strerror(rc), rc );
 #endif
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+		LOCK_PUT( bdb->bi_dbenv, &lock);
 		return rc;
 	}
 
@@ -141,6 +158,6 @@ bdb_db_cache(
 
 	*dbout = db->bdi_db;
 
-	ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+	LOCK_PUT( bdb->bi_dbenv, &lock );
 	return 0;
 }

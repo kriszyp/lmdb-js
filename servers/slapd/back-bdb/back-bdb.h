@@ -110,7 +110,6 @@ struct bdb_info {
 
 	int			bi_ndatabases;
 	struct bdb_db_info **bi_databases;
-	ldap_pvt_thread_mutex_t	bi_database_mutex;
 	int		bi_db_opflags;	/* db-specific flags */
 
 	slap_mask_t	bi_defaultmask;
