@@ -37,6 +37,8 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include <lutil.h>
+
 #include "slap.h"
 #include "proto-slap.h"
 #include "back-monitor.h"

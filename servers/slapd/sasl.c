@@ -24,8 +24,8 @@
 #include <sasl.h>
 #endif
 
-#if SASL_VERSION_MAJOR >= 2
 #include <lutil.h>
+#if SASL_VERSION_MAJOR >= 2
 #include <sasl/saslplug.h>
 #define	SASL_CONST const
 #else
