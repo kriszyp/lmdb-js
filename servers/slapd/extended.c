@@ -65,9 +65,7 @@ static SLAP_EXTOP_MAIN_FN whoami_extop;
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
-#ifdef LDAP_EXOP_X_CANCEL
 const struct berval slap_EXOP_CANCEL = BER_BVC(LDAP_EXOP_X_CANCEL);
-#endif
 const struct berval slap_EXOP_WHOAMI = BER_BVC(LDAP_EXOP_X_WHO_AM_I);
 const struct berval slap_EXOP_MODIFY_PASSWD = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
 const struct berval slap_EXOP_START_TLS = BER_BVC(LDAP_EXOP_START_TLS);
@@ -77,9 +75,7 @@ static struct {
 	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
-#ifdef LDAP_EXOP_X_CANCEL
 	{ &slap_EXOP_CANCEL, SLAP_EXOP_HIDE, cancel_extop },
-#endif
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
 	{ &slap_EXOP_MODIFY_PASSWD, 0, passwd_extop },
 #ifdef HAVE_TLS

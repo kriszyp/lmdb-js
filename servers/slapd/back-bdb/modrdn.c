@@ -58,8 +58,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	u_int32_t	locker = 0;
 	DB_LOCK		lock, plock, nplock;
 
-	int		noop = 0;
-
 	int		num_retries = 0;
 
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
@@ -975,8 +973,8 @@ retry:	/* transaction retry */
 		if(( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			noop = 1;
 			rs->sr_err = LDAP_SUCCESS;
+			goto return_results;
 		}
 
 	} else {
@@ -990,7 +988,7 @@ retry:	/* transaction retry */
 			}
 		}
 
-		if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+		if ( rs->sr_err == LDAP_SUCCESS ) {
 			/* Loop through in-scope entries for each psearch spec */
 			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -1034,11 +1032,13 @@ retry:	/* transaction retry */
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
 		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n", 
-		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+		op->o_noop ? " (no-op)" : "",
+		e->e_id, e->e_dn );
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
-		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+		op->o_noop ? " (no-op)" : "",
+		e->e_id, e->e_dn );
 #endif
 	rs->sr_text = NULL;
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
@@ -1106,5 +1106,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return ( ( rs->sr_err == LDAP_SUCCESS ) ? noop : rs->sr_err );
+	return rs->sr_err;
 }

@@ -40,7 +40,6 @@ bdb_add(Operation *op, SlapReply *rs )
 #endif
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
-	int		noop = 0;
 
 	int		num_retries = 0;
 
@@ -460,8 +459,8 @@ retry:	/* transaction retry */
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			noop = 1;
-			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_err = LDAP_NO_OPERATION;
+			goto return_results;
 		}
 
 	} else {
@@ -488,10 +487,11 @@ retry:	/* transaction retry */
 			}
 		}
 
-		if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
 			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
+				bdb_psearch( op, rs, ps_list, op->oq_add.rs_e,
+					LDAP_PSEARCH_BY_ADD );
 			}
 			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 		}
@@ -506,7 +506,7 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-	if (rs->sr_err != LDAP_SUCCESS) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
 			"bdb_add: %s : %s (%d)\n",  rs->sr_text,
@@ -548,5 +548,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return ( ( rs->sr_err == LDAP_SUCCESS ) ? noop : rs->sr_err );
+	return rs->sr_err;
 }

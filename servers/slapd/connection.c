@@ -1105,7 +1105,6 @@ operations_error:
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
-#ifdef LDAP_EXOP_X_CANCEL
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
 		op->o_cancel = LDAP_TOO_LATE;
 	}
@@ -1115,7 +1114,6 @@ operations_error:
 	{
 		ldap_pvt_thread_yield();
 	}
-#endif
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 

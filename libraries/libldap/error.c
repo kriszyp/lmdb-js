@@ -106,14 +106,14 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded")},
 
 	{LDAP_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required")},
+
+	{LDAP_NO_OPERATION,				N_("No Operation")},
 	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
 
-#ifdef LDAP_EXOP_X_CANCEL
 	{LDAP_CANCELLED,				N_("Cancelled")},
 	{LDAP_NO_SUCH_OPERATION,		N_("No Operation to Cancel")},
 	{LDAP_TOO_LATE,					N_("Too Late to Cancel")},
 	{LDAP_CANNOT_CANCEL,			N_("Cannot Cancel")},
-#endif
 
 	{0, NULL}
 };

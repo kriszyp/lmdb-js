@@ -40,8 +40,6 @@ bdb_delete( Operation *op, SlapReply *rs )
 	u_int32_t	locker = 0;
 	DB_LOCK		lock, plock;
 
-	int		noop = 0;
-
 	int		num_retries = 0;
 
 	Operation* ps_list;
@@ -505,8 +503,8 @@ retry:	/* transaction retry */
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			noop = 1;
-			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_err = LDAP_NO_OPERATION;
+			goto return_results;
 		}
 	} else {
 		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
@@ -519,7 +517,7 @@ retry:	/* transaction retry */
 			}
 		}
 
-		if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
 			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
@@ -536,7 +534,8 @@ retry:	/* transaction retry */
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
 			"bdb_delete: txn_%s failed: %s (%d)\n",
-			op->o_noop ? "abort (no-op)" : "commit", db_strerror(rs->sr_err), rs->sr_err );
+			op->o_noop ? "abort (no-op)" : "commit",
+			db_strerror(rs->sr_err), rs->sr_err );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_%s failed: %s (%d)\n",
@@ -552,7 +551,8 @@ retry:	/* transaction retry */
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
 		"bdb_delete: deleted%s id=%08lx db=\"%s\"\n",
-		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+		op->o_noop ? " (no-op)" : "",
+		e->e_id, e->e_dn );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_delete: deleted%s id=%08lx dn=\"%s\"\n",
@@ -566,7 +566,7 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-	if(rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
@@ -588,5 +588,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return ( ( rs->sr_err == LDAP_SUCCESS ) ? noop : rs->sr_err );
+	return rs->sr_err;
 }
