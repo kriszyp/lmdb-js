@@ -279,15 +279,15 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 		
-		if ( nosubordinates == 0 ) {
+		if ( nosubordinates == 0 && dbnum > 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, ERR, 
-"The first database does not allow %s; using the first available one\n",
-				name, 0, 0 );
+"The first database does not allow %s; using the first available one (%d)\n",
+				name, (int)(be - &backends[0]) + 1, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-"The first database does not allow %s; using the first available one\n",
-				name, 0, 0 );
+"The first database does not allow %s; using the first available one (%d)\n",
+				name, (int)(be - &backends[0]) + 1, 0 );
 #endif
 		}
 
