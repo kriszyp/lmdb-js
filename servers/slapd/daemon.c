@@ -679,7 +679,7 @@ static int slap_open_listener(
 	if ( lud->lud_exts ) {
 		err = get_url_perms( lud->lud_exts, &l.sl_perms, &crit );
 	} else {
-		l.sl_perms = S_IRWXU;
+		l.sl_perms = S_IRWXU | S_IRWXO;
 	}
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
