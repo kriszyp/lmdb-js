@@ -105,6 +105,7 @@ void connection_activity LDAP_P(( Connection *conn ));
 char * dn_normalize LDAP_P(( char *dn ));
 char * dn_normalize_case LDAP_P(( char *dn ));
 char * dn_parent LDAP_P(( Backend *be, char *dn ));
+char * dn_rdn LDAP_P(( Backend *be, char *dn ));
 int dn_issuffix LDAP_P(( char *dn, char *suffix ));
 int dn_type LDAP_P(( char *dn ));
 char * dn_upcase LDAP_P(( char *dn ));

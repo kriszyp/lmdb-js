@@ -220,6 +220,77 @@ dn_parent(
 	return( ch_strdup( "" ) );
 }
 
+char * dn_rdn( 
+    Backend	*be,
+    char	*dn )
+{
+	char	*s;
+	int	inquote, gotesc;
+
+	if( dn == NULL ) {
+		return NULL;
+	}
+
+	while(*dn && SPACE(*dn)) {
+		dn++;
+	}
+
+	if( *dn == '\0' ) {
+		return( NULL );
+	}
+
+	if ( be_issuffix( be, dn ) ) {
+		return( NULL );
+	}
+
+	dn = ch_strdup( dn );
+
+	/*
+	 * no =, assume it is a dns name, like blah@some.domain.name
+	 * if the blah@ part is there, return some.domain.name.  if
+	 * it's just some.domain.name, return domain.name.
+	 */
+	if ( strchr( dn, '=' ) == NULL ) {
+		if ( (s = strchr( dn, '@' )) == NULL ) {
+			if ( (s = strchr( dn, '.' )) == NULL ) {
+				return( dn );
+			}
+		}
+		*s = '\0';
+		return( dn );
+	}
+
+	/*
+	 * else assume it is an X.500-style name, which looks like
+	 * foo=bar,sha=baz,...
+	 */
+
+	inquote = 0;
+
+	for ( s = dn; *s; s++ ) {
+		if ( *s == '\\' ) {
+			if ( *(s + 1) ) {
+				s++;
+			}
+			continue;
+		}
+		if ( inquote ) {
+			if ( *s == '"' ) {
+				inquote = 0;
+			}
+		} else {
+			if ( *s == '"' ) {
+				inquote = 1;
+			} else if ( DNSEPARATOR( *s ) ) {
+				*s = '\0';
+				return( dn );
+			}
+		}
+	}
+
+	return( dn );
+}
+
 /*
  * dn_issuffix - tells whether suffix is a suffix of dn.  both dn
  * and suffix must be normalized.
