@@ -265,7 +265,9 @@ main( int argc, char **argv )
 #endif
 
     if ( verbose ) {
-	printf( "ldap_init( %s, %d )\n", ldaphost, ldapport );
+	printf( "ldap_init( %s, %d )\n",
+		(ldaphost != NULL) ? ldaphost : "<DEFAULT>",
+		ldapport );
     }
 
     if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
