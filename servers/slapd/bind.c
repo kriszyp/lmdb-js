@@ -47,6 +47,7 @@ do_bind(
 
 #ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;
+	int rc;
 #endif
 
 #ifdef NEW_LOGGING
@@ -526,8 +527,9 @@ do_bind(
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
 	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
+	slapi_pblock_set( pb, SLAPI_CONN_DN, (void *)(0) );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
+	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, INFO,
@@ -539,9 +541,7 @@ do_bind(
 		rs->sr_err, 0, 0);
 #endif
 
-	switch ( rs->sr_err ) {
-	case 1:	/* no plugins present, continue normally */
-		break;
+	switch ( rc ) {
 	case SLAPI_BIND_SUCCESS:
 		/* Continue with backend processing */
 		break;
@@ -554,7 +554,7 @@ do_bind(
 	case SLAPI_BIND_ANONYMOUS:
 		/* SLAPI_BIND_ANONYMOUS is undocumented XXX */
 	default:
-		/* Authoritative, plugin sent result */
+		/* Authoritative, plugin sent result, or no plugins called. */
 		if ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
 			(void *)&rs->sr_err) != 0 )
 		{
@@ -566,7 +566,12 @@ do_bind(
 
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
-			if ( op->orb_edn.bv_val != NULL ) {
+			if ( op->orb_edn.bv_val == NULL ) {
+				if ( rc == 1 ) {
+					/* No plugins were called; continue. */
+					break;
+				}
+			} else {
 				op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
 			}
 			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn,
