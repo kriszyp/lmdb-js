@@ -161,7 +161,8 @@ depend:	makeconfig
 	for i in $(SRCDIRS); do \
 	    echo; echo "cd $$i; $(MAKE) $(MFLAGS) depend"; \
 	    ( cd $$i; $(MAKE) $(MFLAGS) depend ); \
-	done;
+	done; 
+	@echo " "; echo Remember to \"make depend\" after each \"make makefiles\"
 
 #
 # rules to check out and in Make-template files
@@ -353,9 +354,7 @@ Make-common: Make-common.dist
 	done; \
 	$(RM) .makefiles; \
 	touch .makefiles; \
-	$(RM) $$HDRFILE $$DEFSFILE \
-	echo "Please \"make depend\" before building."
-	
+	$(RM) $$HDRFILE $$DEFSFILE
 
 #
 # rule to always build makefiles
@@ -363,6 +362,7 @@ Make-common: Make-common.dist
 makefiles:	FORCE
 	$(RM) .makefiles
 	$(MAKE) $(MFLAGS) .makefiles
+	@echo "Please \"make depend\" before building."
 
 #
 # rule to create any tools we need to build everything else
