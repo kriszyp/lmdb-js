@@ -8,30 +8,33 @@
 
 #include "ldap-int.h"
 
-static const char* features[] = {
+static const LDAPAPIFeatureInfo features[] = {
+#ifdef LDAP_API_FEATURE_INFO
+	{"INFO", LDAP_API_FEATURE_INFO},
+#endif
 #ifdef LDAP_API_FEATURE_THREAD_SAFE
-	"THREAD_SAFE",
+	{"THREAD_SAFE", LDAP_API_FEATURE_THREAD_SAFE},
 #endif
 #ifdef LDAP_API_FEATURE_SESSION_THREAD_SAFE
-	"SESSION_THREAD_SAFE",
+	{"SESSION_THREAD_SAFE", LDAP_API_FEATURE_SESSION_THREAD_SAFE},
 #endif
 #ifdef LDAP_API_FEATURE_OPERATION_THREAD_SAFE
-	"OPERATION_THREAD_SAFE",
+	{"OPERATION_THREAD_SAFE", LDAP_API_FEATURE_OPERATION_THREAD_SAFE},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_REEENTRANT
-	"X_OPENLDAP_REENTRANT",
+	{"X_OPENLDAP_REENTRANT", LDAP_API_FEATURE_X_OPENLDAP_REENTRANT},
 #endif
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE ) && \
 	defined( LDAP_THREAD_SAFE )
-	"X_OPENLDAP_THREAD_SAFE",
+	{"X_OPENLDAP_THREAD_SAFE", LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	"X_OPENLDAP_V2_DNS",
+	{"X_OPENLDAP_V2_DNS", LDAP_API_FEATURE_X_OPENLDAP_V2_DNS},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	"X_OPENLDAP_V2_REFERRALS",
+	{"X_OPENLDAP_V2_REFERRALS", LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS},
 #endif
-	NULL
+	{NULL, 0}
 };
 
 int
@@ -75,15 +78,17 @@ ldap_get_option(
 			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_protocol_version = LDAP_VERSION_MAX;
-			if(features[0] == NULL) {
+
+			if(features[0].ldapaif_name == NULL) {
 				info->ldapai_extensions = NULL;
 			} else {
 				int i;
-				info->ldapai_extensions = malloc(sizeof(features));
+				info->ldapai_extensions = malloc(sizeof(char *) *
+					sizeof(features)/sizeof(LDAPAPIFeatureInfo));
 
-				for(i=0; features[i] != NULL; i++) {
+				for(i=0; features[i].ldapaif_name != NULL; i++) {
 					info->ldapai_extensions[i] =
-						ldap_strdup(features[i]);
+						ldap_strdup(features[i].ldapaif_name);
 				}
 
 				info->ldapai_extensions[i] = NULL;
@@ -175,6 +180,23 @@ ldap_get_option(
 			* (char **) outvalue = NULL;
 		} else {
 			* (char **) outvalue = ldap_strdup(ld->ld_error);
+		}
+		break;
+
+	case LDAP_OPT_API_FEATURE_INFO: {
+			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
+			int i;
+
+			if(info == NULL) return -1;
+			if(info->ldapaif_name == NULL) return -1;
+
+			for(i=0; features[i].ldapaif_name != NULL; i++) {
+				if(!strcmp(info->ldapaif_name, features[i].ldapaif_name)) {
+					info->ldapaif_version =
+						features[i].ldapaif_version;
+					return 0;
+				}
+			}
 		}
 		break;
 
@@ -324,6 +346,10 @@ ldap_set_option(
 
 			ld->ld_error = err;
 		} return 0;
+
+	case LDAP_OPT_API_FEATURE_INFO:
+		/* read-only */
+		break;
 
 	case LDAP_OPT_DEBUG_LEVEL:
 		lo->ldo_debug = * (int *) invalue;

@@ -80,8 +80,19 @@ main(int argc, char **argv)
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) /* empty */;
 		printf("  Extensions:        %d\n", i);
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) {
+#ifndef LDAP_API_FEATURE_INFO
 			printf("                     %s\n",
 				api.ldapai_extensions[i]);
+#else
+			LDAPAPIFeatureInfo fi;
+			fi.ldapaif_name = api.ldapai_extensions[i];
+			fi.ldapaif_version = 0;
+
+			ldap_get_option(NULL, LDAP_OPT_API_FEATURE_INFO, &fi);
+
+			printf("                     %s (%d)\n",
+				api.ldapai_extensions[i], fi.ldapaif_version);
+#endif
 		}
 	}
 

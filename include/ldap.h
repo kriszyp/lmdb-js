@@ -51,6 +51,13 @@ LDAP_BEGIN_DECL
 /* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
 #endif
 
+#define LDAP_API_FEATURE_INFO 1
+
+typedef struct ldap_apifeature_info {
+	char*	ldapaif_name;    /* matches LDAP_API_FEATURE_... less the prefix */
+	int		ldapaif_version; /* matches the value LDAP_API_FEATURE_... */
+} LDAPAPIFeatureInfo;
+
 #define LDAP_PORT		389
 
 #define LDAP_ROOT_DSE				""
@@ -80,6 +87,9 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_HOST_NAME			0x0030
 #define	LDAP_OPT_ERROR_NUMBER		0x0031
 #define LDAP_OPT_ERROR_STRING		0x0032
+
+/* LDAP_OPTions under IETF discussion */
+#define LDAP_OPT_API_FEATURE_INFO	0x0100
 
 /* not defined by current draft */
 /*	for LDAPv2 compatibility */
