@@ -417,7 +417,13 @@ int backend_destroy(void)
 			backendDB[i].bd_info->bi_db_destroy(
 				&backendDB[i] );
 		}
+		charray_free( backendDB[i].be_suffix );
+		ber_bvecfree( backendDB[i].be_nsuffix );
+		free( backendDB[i].be_root_dn );
+		free( backendDB[i].be_root_ndn );
+		free( backendDB[i].be_root_pw.bv_val );
 	}
+	free( backendDB );
 
 	/* destroy each backend type */
 	for( i = 0; i < nBackendInfo; i++ ) {

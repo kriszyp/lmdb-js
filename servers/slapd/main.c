@@ -307,9 +307,9 @@ int main( int argc, char **argv )
 
 	if( serverName == NULL ) {
 		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
-			serverName = ch_strdup( argv[0] );
+			serverName = argv[0];
 		} else {
-			serverName = ch_strdup( serverName + 1 );
+			serverName = serverName + 1;
 		}
 	}
 
@@ -555,6 +555,8 @@ stop:
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
 #endif
+
+	config_destroy();
 
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );

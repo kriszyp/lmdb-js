@@ -1675,9 +1675,15 @@ slapd_daemon_task(
 			}
 #endif /* LDAP_PF_LOCAL */
 			slapd_close( slap_listeners[l]->sl_sd );
-			break;
 		}
+		if ( slap_listeners[l]->sl_url )
+			free ( slap_listeners[l]->sl_url );
+		if ( slap_listeners[l]->sl_name )
+			free ( slap_listeners[l]->sl_name );
+		free ( slap_listeners[l] );
 	}
+	free ( slap_listeners );
+	slap_listeners = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,

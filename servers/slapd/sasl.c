@@ -425,6 +425,9 @@ int slap_sasl_destroy( void )
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
 #endif
+	free( global_host );
+	global_host = NULL;
+
 	return 0;
 }
 

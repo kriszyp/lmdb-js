@@ -919,11 +919,12 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				char *dn = ch_strdup( cargv[1] );
+				char *dn;
 
 				if ( load_ucdata( NULL ) < 0 ) {
 					return( 1 );
 				}
+				dn = ch_strdup( cargv[1] );
 				if( dn_validate( dn ) == NULL ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -934,7 +935,7 @@ read_config( const char *fname )
 						"suffix DN invalid \"%s\"\n",
 				    	fname, lineno, cargv[1] );
 #endif
-
+					free( dn );
 					return 1;
 
 				} else if( *dn == '\0' && default_search_nbase != NULL ) {
@@ -966,6 +967,7 @@ read_config( const char *fname )
 						"unable to normalize suffix "
 						"\"%s\"\n", dn, NULL, NULL );
 #endif
+					free( dn );
 					return 1;
 				}
 #endif /* USE_LDAP_DN_PARSING */
@@ -2369,4 +2371,15 @@ load_ucdata( char *path )
 	}
 	loaded = 1;
 	return( 1 );
+}
+
+void
+config_destroy( )
+{
+	ucdata_unload( UCDATA_ALL );
+	free( line );
+	if ( slapd_args_file )
+		free ( slapd_args_file );
+	if ( slapd_pid_file )
+		free ( slapd_pid_file );
 }
