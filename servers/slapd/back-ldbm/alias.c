@@ -75,7 +75,7 @@ Entry *derefAlias_r ( Backend     *be,
 	Debug( LDAP_DEBUG_TRACE, 
 	       "<= %s alias is same as current %s\n", 
 	       oldDN, newDN, 0 );
-	send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
+	send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
 			  "Circular alias" );
 	free (newDN);
 	free (oldDN);
@@ -87,7 +87,7 @@ Entry *derefAlias_r ( Backend     *be,
 	Debug( LDAP_DEBUG_TRACE, 
 	       "<= %s alias is same as original %s\n", 
 	       oldDN, origDN->e_ndn, 0 );
-	send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
+	send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
 			  "Circular alias" );
 	free (newDN);
 	free (oldDN);
