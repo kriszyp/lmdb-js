@@ -113,7 +113,7 @@ entry_schema_check(
 #endif
 
 		*text = "no structuralObjectClass operational attribute";
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		return LDAP_OTHER;
 	}
 
 	assert( asc->a_vals != NULL );
