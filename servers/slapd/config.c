@@ -1304,6 +1304,114 @@ read_config( const char *fname, int depth )
 				}
 			}
 
+		/* restricts specific operations */
+		} else if ( strcasecmp( cargv[0], "restrict" ) == 0 ) {
+			slap_mask_t	restrict = 0;
+			struct restrictable_exops_t {
+				char	*name;
+				int	flag;
+			} restrictable_exops[] = {
+				{ LDAP_EXOP_START_TLS,		SLAP_RESTRICT_EXOP_START_TLS },
+				{ LDAP_EXOP_MODIFY_PASSWD,	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
+				{ LDAP_EXOP_X_WHO_AM_I,		SLAP_RESTRICT_EXOP_WHOAMI },
+				{ LDAP_EXOP_X_CANCEL,		SLAP_RESTRICT_EXOP_CANCEL },
+				{ NULL,				0 }
+			};
+			int		i;
+
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing <op_list> in \"restrict <op_list>\" "
+					"line.\n", fname, lineno ,0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: missing <op_list> in \"restrict <op_list>\" "
+					"line.\n", fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+
+			for ( i = 1; i < cargc; i++ ) {
+				if ( strcasecmp( cargv[ i ], "read" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_READS;
+
+				} else if ( strcasecmp( cargv[ i ], "write" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_WRITES;
+
+				} else if ( strcasecmp( cargv[ i ], "add" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_ADD;
+
+				} else if ( strcasecmp( cargv[ i ], "bind" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_BIND;
+
+				} else if ( strcasecmp( cargv[ i ], "compare" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_COMPARE;
+
+				} else if ( strcasecmp( cargv[ i ], "delete" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_DELETE;
+
+				} else if ( strncasecmp( cargv[ i ], "extended",
+							STRLENOF( "extended" ) ) == 0 ) {
+					char	*e = cargv[ i ] + STRLENOF( "extended" );
+
+					restrict |= SLAP_RESTRICT_OP_EXTENDED;
+
+					if ( e[0] == '=' ) {
+						int	j;
+
+						e++;
+						for ( j = 0; restrictable_exops[ j ].name; j++ ) {
+							if ( strcmp( e, restrictable_exops[ j ].name ) == 0 ) {
+								restrict |= restrictable_exops[ j ].flag;
+								break;
+							}
+						}
+
+						if ( restrictable_exops[ j ].name == NULL ) {
+							goto restrict_unknown;
+						}
+
+					} else if ( e[0] == '\0' ) {
+						restrict = SLAP_RESTRICT_EXOP_MASK;
+						
+					} else {
+						goto restrict_unknown;
+					}
+
+				} else if ( strcasecmp( cargv[ i ], "modify" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_MODIFY;
+
+				} else if ( strcasecmp( cargv[ i ], "rename" ) == 0
+						|| strcasecmp( cargv[ i ], "modrdn" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_RENAME;
+
+				} else if ( strcasecmp( cargv[ i ], "search" ) == 0 ) {
+					restrict |= SLAP_RESTRICT_OP_SEARCH;
+
+				} else {
+restrict_unknown:;
+
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
+						"unknown operation %s in \"allow <features>\" line.\n",
+						fname, lineno, cargv[i] );
+#else
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"unknown operation %s in \"allow <features>\" line\n",
+						fname, lineno, cargv[i] );
+#endif
+					return 1;
+				}
+			}
+
+			if ( be == NULL ) {
+				global_restrictops |= restrict;
+
+			} else {
+				be->be_restrictops |= restrict;
+			}
 
 		/* allow these features */
 		} else if ( strcasecmp( cargv[0], "allows" ) == 0 ||
@@ -1357,7 +1465,7 @@ read_config( const char *fname, int depth )
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line.\n",
-						fname, lineno, cargv[1] );
+						fname, lineno, cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line\n",

@@ -1273,6 +1273,34 @@ for more information.  The specified file should be located
 in a directory with limited read/write/execute access as the replication
 logs may contain sensitive information.
 .TP
+.B restrict <oplist>
+Specify a whitespace separated list of operations that are restricted.
+If defined inside a database specification, restrictions apply only
+to that database, otherwise they are global.
+Operations can be any of 
+.BR add ,
+.BR bind ,
+.BR compare ,
+.BR delete ,
+.BR extended[=<OID>] ,
+.BR modify ,
+.BR rename ,
+.BR search ,
+or the special pseudo-operations
+.B read
+and
+.BR write ,
+which respectively summarize read and write operations.
+The use of 
+.I restrict write
+is equivalent to 
+.I readonly on
+(see above).
+The 
+.B extended
+keyword allows to indicate the OID of the specific operation
+to be restricted.
+.TP
 .B rootdn <dn>
 Specify the distinguished name that is not subject to access control 
 or administrative limit restrictions for operations on this database.

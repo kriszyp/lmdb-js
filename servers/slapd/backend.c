@@ -940,6 +940,7 @@ backend_check_restrictions(
 	slap_mask_t restrictops;
 	slap_mask_t requires;
 	slap_mask_t opflag;
+	slap_mask_t exopflag;
 	slap_ssf_set_t *ssf;
 	int updateop = 0;
 	int starttls = 0;
@@ -989,14 +990,23 @@ backend_check_restrictions(
 		if( bvmatch( opdata, &slap_EXOP_START_TLS ) ) {
 			session++;
 			starttls++;
+			exopflag = SLAP_RESTRICT_EXOP_START_TLS;
 			break;
 		}
 
 		if( bvmatch( opdata, &slap_EXOP_WHOAMI ) ) {
+			exopflag = SLAP_RESTRICT_EXOP_WHOAMI;
 			break;
 		}
 
 		if ( bvmatch( opdata, &slap_EXOP_CANCEL ) ) {
+			exopflag = SLAP_RESTRICT_EXOP_CANCEL;
+			break;
+		}
+
+		if ( bvmatch( opdata, &slap_EXOP_MODIFY_PASSWD ) ) {
+			exopflag = SLAP_RESTRICT_EXOP_MODIFY_PASSWD;
+			updateop++;
 			break;
 		}
 
@@ -1179,9 +1189,12 @@ backend_check_restrictions(
 
 	}
 
-	if( restrictops & opflag ) {
-		if( restrictops == SLAP_RESTRICT_OP_READS ) {
+	if( ( restrictops & opflag )
+			|| ( exopflag && ( restrictops & exopflag ) ) ) {
+		if( ( restrictops & SLAP_RESTRICT_OP_MASK) == SLAP_RESTRICT_OP_READS ) {
 			rs->sr_text = "read operations restricted";
+		} else if ( restrictops & exopflag ) {
+			rs->sr_text = "extended operation restricted";
 		} else {
 			rs->sr_text = "operation restricted";
 		}
