@@ -387,30 +387,23 @@ slap_sasl_canonicalize(
 			in ? in : "<empty>" );
 #endif
 
-	if (flags == SASL_CU_AUTHID) {
-		rc = slap_sasl_getdn( conn, (char *)in, (char *)user_realm,
-			&dn, FLAG_GETDN_AUTHCID);
-		if ( rc != LDAP_SUCCESS ) {
-			sasl_seterror( sconn, 0, ldap_err2string( rc ) );
-			return SASL_NOAUTHZ;
-		}		
+	rc = slap_sasl_getdn( conn, (char *)in, (char *)user_realm, &dn,
+		(flags == SASL_CU_AUTHID) ? FLAG_GETDN_AUTHCID : FLAG_GETDN_AUTHZID );
+	if ( rc != LDAP_SUCCESS ) {
+		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
+		return SASL_NOAUTHZ;
+	}		
 
-		if ( out_max < dn.bv_len ) {
-			return SASL_BUFOVER;
-		}
-
-		AC_MEMCPY( out, dn.bv_val, dn.bv_len );
-		out[dn.bv_len] = '\0';
-
-		*out_len = dn.bv_len;
-
-		ch_free( dn.bv_val );
-
-	} else {
-		strcpy( out, in );
-
-		*out_len = strlen( in );
+	if ( out_max < dn.bv_len ) {
+		return SASL_BUFOVER;
 	}
+
+	AC_MEMCPY( out, dn.bv_val, dn.bv_len );
+	out[dn.bv_len] = '\0';
+
+	*out_len = dn.bv_len;
+
+	ch_free( dn.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
