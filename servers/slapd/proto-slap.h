@@ -893,6 +893,8 @@ LDAP_SLAPD_F (ObjectClass *) oc_find LDAP_P((
 	const char *ocname));
 LDAP_SLAPD_F (ObjectClass *) oc_bvfind LDAP_P((
 	struct berval *ocname));
+LDAP_SLAPD_F (ObjectClass *) oc_bvfind_undef LDAP_P((
+	struct berval *ocname));
 LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
 	ObjectClass *sup,
 	ObjectClass *sub ));
