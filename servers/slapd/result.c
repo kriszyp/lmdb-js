@@ -421,6 +421,8 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	const char *otext = rs->sr_text;
 	BerVarray oref = rs->sr_ref;
 
+	rs->sr_type = REP_RESULT;
+
 	assert( !LDAP_API_ERROR( rs->sr_err ) && ( rs->sr_err >= 0 ));
 
 #ifdef NEW_LOGGING
