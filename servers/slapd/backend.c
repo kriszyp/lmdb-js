@@ -143,7 +143,7 @@ static BackendInfo binfo[] = {
 	{"tcl",		tcl_back_initialize},
 #endif
 #if SLAPD_SQL == SLAPD_MOD_STATIC
-	{"sql",		sql_back_initialize},
+	{"sql",		backsql_initialize},
 #endif
 	/* for any private backend */
 #if SLAPD_PRIVATE == SLAPD_MOD_STATIC
