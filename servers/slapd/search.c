@@ -145,7 +145,7 @@ do_search(
 	base = suffixAlias ( base, op, be );
 
 	/* actually do the search and send the result(s) */
-	if ( be->be_search != NULL ) {
+	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {

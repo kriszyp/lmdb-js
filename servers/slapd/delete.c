@@ -69,7 +69,7 @@ do_delete(
 	 * 2) this backend is master for what it holds;
 	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
-	if ( be->be_delete != NULL ) {
+	if ( be->be_delete ) {
 		/* do the update here */
 		if ( be->be_update_ndn == NULL ||
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )

@@ -352,7 +352,7 @@ be_db_close( void )
 	int	i;
 
 	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].bd_info->bi_db_close != NULL ) {
+		if ( backends[i].bd_info->bi_db_close ) {
 			(*backends[i].bd_info->bi_db_close)( &backends[i] );
 		}
 	}
@@ -492,7 +492,7 @@ backend_unbind(
 	int	i;
 
 	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_unbind != NULL ) {
+		if ( backends[i].be_unbind ) {
 			(*backends[i].be_unbind)( &backends[i], conn, op );
 		}
 	}

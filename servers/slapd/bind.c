@@ -196,7 +196,7 @@ do_bind(
 		return;
 	}
 
-	if ( be->be_bind != NULL ) {
+	if ( be->be_bind ) {
 		/* alias suffix */
 		char *edn;
 

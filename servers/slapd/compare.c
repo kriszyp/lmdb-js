@@ -76,7 +76,7 @@ do_compare(
 	/* alias suffix if approp */
 	ndn = suffixAlias( ndn, op, be );
 
-	if ( be->be_compare != NULL ) {
+	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,

@@ -115,7 +115,7 @@ do_add( Connection *conn, Operation *op )
 	 * 2) this backend is master for what it holds;
 	 * 3) it's a replica and the dn supplied is the updatedn.
 	 */
-	if ( be->be_add != NULL ) {
+	if ( be->be_add ) {
 		/* do the update here */
 		if ( be->be_update_ndn == NULL ||
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )

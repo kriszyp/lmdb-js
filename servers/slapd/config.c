@@ -514,7 +514,7 @@ read_config( char *fname )
 		/* pass anything else to the current backend info/db config routine */
 		} else {
 			if ( bi != NULL ) {
-				if (bi->bi_config == NULL) {
+				if ( bi->bi_config == 0 ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" inside backend info definition (ignored)\n",
 				   		fname, lineno, cargv[0] );
@@ -526,7 +526,7 @@ read_config( char *fname )
 					}
 				}
 			} else if ( be != NULL ) {
-				if ( be->be_config == NULL ) {
+				if ( be->be_config == 0 ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" inside backend database definition (ignored)\n",
 				    	fname, lineno, cargv[0] );
