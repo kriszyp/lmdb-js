@@ -22,7 +22,7 @@ OpenLDAP 2.x Projects
 	SLAPD
 		Complete Unicode Support (ACLs, etc.)
 	client API update
-		Implement per referral callback
+		Implement per referral/continuation callback
 	clients
 		Implement referral chasing options w/ referral callback
 	Update manual pages
@@ -37,16 +37,11 @@ Implement LCUP
 
 Medium projects
 ---------------
-Modify -lldap to be reentrant/threadsafe implement LDAP
-	concurrency and ldap_dup drafts
-Modify libraries to use application specified logging routines
-Modify servers to use reentrant library functions
 Add support for in-directory SASL secrets
-Implement LDAP transactions
-Implement subentries and collective attributes
 Implement dNSReferral <draft-zeilenga-ldap-dnsref-xx.txt>
 Implement authPassword (RFC 3112)
 Implement localization
+Implement LDAP transactions
 
 
 Small projects
