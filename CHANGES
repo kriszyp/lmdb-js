@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.25 Engineering
+OpenLDAP 2.0.25 Release
 	Fixed slapd extended op reqdata crash bug (ITS#1721)
 
 OpenLDAP 2.0.24 Release
@@ -46,7 +46,7 @@ OpenLDAP 2.0.22 Release
 	Fixed back-ldbm ordering presence index bug
 	Fixed back-ldap modify bug (ITS#1547)
 	Fixed -lldap TLS errno bug
-	Fixed ud v2 kind bug
+	Fixed ud v2 kbind bug
 	Updated slapd slurpd friendly code
 	Build environment
 		Fixed Mach cthreads detection (ITS#1554)
