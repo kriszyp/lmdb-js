@@ -159,11 +159,11 @@ meta_back_db_init(
 		return -1;
 	}
 
-        cm->caching = 0; 
-        cm->qm = qm; 
+	cm->caching = 0; 
+	cm->qm = qm; 
 	cm->numattrsets = 0; 
 	cm->numtemplates = 0; 	
-        cm->num_entries_limit = 5;
+	cm->num_entries_limit = 5;
 	cm->cache_size = 0;
 	cm->thresh_hi = 500000;
 	cm->thresh_lo = 700000;
@@ -182,10 +182,10 @@ meta_back_db_init(
 	qm->qcfunc = query_containment; 
 	qm->crfunc = cache_replacement; 
 	qm->addfunc = add_query; 
-        ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
+	ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
         
-        ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
-        ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
+	ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
+	ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
 	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
 #endif /* LDAP_CACHING */
 
