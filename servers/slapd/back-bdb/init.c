@@ -92,6 +92,8 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
 
 	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
+	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
+	bdb->bi_search_stack = NULL;
 
 #ifdef LDAP_CLIENT_UPDATE
 	LDAP_LIST_INIT (&bdb->psearch_list);
@@ -106,6 +108,7 @@ bdb_db_init( BackendDB *be )
 #endif
 
 	be->be_private = bdb;
+
 	return 0;
 }
 
@@ -183,6 +186,13 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_mutex );
+		bdb->bi_idl_cache_size = 0;
+	}
+#endif
 
 #ifdef BDB_SUBDIRS
 	{
@@ -402,6 +412,9 @@ bdb_db_close( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
+#ifdef SLAP_IDL_CACHE
+	bdb_idl_cache_entry_t *entry, *next_entry;
+#endif
 
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
@@ -415,6 +428,19 @@ bdb_db_close( BackendDB *be )
 	bdb_attr_index_destroy( bdb->bi_attrs );
 
 	bdb_cache_release_all (&bdb->bi_cache);
+
+#ifdef SLAP_IDL_CACHE
+	ldap_pvt_thread_mutex_lock ( &bdb->bi_idl_tree_mutex );
+	entry = bdb->bi_idl_lru_head;
+	while ( entry != NULL ) {
+		next_entry = entry->idl_lru_next;
+		free( entry->idl );
+		free( entry->kstr.bv_val );
+		free( entry );
+		entry = next_entry;
+	}
+	ldap_pvt_thread_mutex_unlock ( &bdb->bi_idl_tree_mutex );
+#endif
 
 	return 0;
 }

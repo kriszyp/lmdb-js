@@ -135,6 +135,28 @@ bdb_db_config(
                  }
                  bdb->bi_cache.c_maxsize = atoi( argv[1] );
 
+	/* depth of search stack cache in units of (IDL)s */
+        } else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
+                 if ( argc < 2 ) {
+                         fprintf( stderr,
+                 "%s: line %d: missing depth in \"searchstack <depth>\" line\n",
+                             fname, lineno );
+                         return( 1 );
+                 }
+                 bdb->bi_search_stack_depth = atoi( argv[1] );
+
+#ifdef SLAP_IDL_CACHE
+	/* size of the IDL cache in entries */
+        } else if ( strcasecmp( argv[0], "idlcachesize" ) == 0 ) {
+                 if ( argc < 2 ) {
+                         fprintf( stderr,
+                 "%s: line %d: missing size in \"idlcachesize <size>\" line\n",
+                             fname, lineno );
+                         return( 1 );
+                 }
+                 bdb->bi_idl_cache_max_size = atoi( argv[1] );
+#endif
+
 	/* anything else */
 	} else {
 		fprintf( stderr, "%s: line %d: "
