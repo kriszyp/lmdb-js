@@ -65,7 +65,7 @@ slappasswd( int argc, char *argv[] )
 
 	int		i;
 	struct berval passwd;
-	struct berval *hash = NULL;
+	struct berval hash;
 
 	while( (i = getopt( argc, argv,
 		"c:d:h:s:T:vu" )) != EOF )
@@ -131,20 +131,20 @@ slappasswd( int argc, char *argv[] )
 		passwd.bv_len = strlen(passwd.bv_val);
 	}
 
-	hash = lutil_passwd_hash( &passwd, scheme, &text );
-	if( hash == NULL || hash->bv_val == NULL ) {
+	lutil_passwd_hash( &passwd, scheme, &hash, &text );
+	if( hash.bv_val == NULL ) {
 		fprintf( stderr,
 			"Password generation failed for scheme %s: %s\n",
 			scheme, text ? text : "" );
 		return EXIT_FAILURE;
 	}
 
-	if( lutil_passwd( hash, &passwd, NULL, &text ) ) {
+	if( lutil_passwd( &hash, &passwd, NULL, &text ) ) {
 		fprintf( stderr, "Password verification failed. %s\n",
 			text ? text : "" );
 		return EXIT_FAILURE;
 	}
 
-	printf( "%s\n" , hash->bv_val );
+	printf( "%s\n" , hash.bv_val );
 	return EXIT_SUCCESS;
 }
