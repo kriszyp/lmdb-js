@@ -141,7 +141,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 		return( NULLBER );
 	}
 
-	filter = ldap_strdup( filter );
+	filter = strdup( filter );
 	err = put_filter( ber, filter );
 	free( filter );
 
@@ -323,7 +323,7 @@ put_filter( BerElement *ber, char *str )
 					return( -1 );
 
 				*next = '\0';
-				tmp = ldap_strdup( str );
+				tmp = strdup( str );
 				if ( gotescape ) {
 					escape = 0;
 					for ( s = d = tmp; *s; s++ ) {
@@ -365,7 +365,7 @@ put_filter( BerElement *ber, char *str )
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n", 0, 0,
 			    0 );
 			next = strchr( str, '\0' );
-			tmp = ldap_strdup( str );
+			tmp = strdup( str );
 			if ( strchr( tmp, '\\' ) != NULL ) {
 				escape = 0;
 				for ( s = d = tmp; *s; s++ ) {

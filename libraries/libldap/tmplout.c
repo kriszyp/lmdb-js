@@ -905,7 +905,7 @@ time2text( char *ldtimestr, int dateonly )
 
     gmttime = gtime( &t );
 
-    timestr = ldap_int_ctime( &gmttime, timebuf );
+    timestr = ldap_pvt_ctime( &gmttime, timebuf );
    
     timestr[ strlen( timestr ) - 1 ] = zone;	/* replace trailing newline */
     if ( dateonly ) {

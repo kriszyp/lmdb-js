@@ -93,13 +93,13 @@ ldap_get_option(
 
 				for(i=0; features[i].ldapaif_name != NULL; i++) {
 					info->ldapai_extensions[i] =
-						ldap_strdup(features[i].ldapaif_name);
+						strdup(features[i].ldapaif_name);
 				}
 
 				info->ldapai_extensions[i] = NULL;
 			}
 
-			info->ldapai_vendor_name = ldap_strdup(LDAP_VENDOR_NAME);
+			info->ldapai_vendor_name = strdup(LDAP_VENDOR_NAME);
 			info->ldapai_vendor_version = LDAP_VENDOR_VERSION;
 
 			return 0;
@@ -165,7 +165,7 @@ ldap_get_option(
 		 * we do.
 		 */
 
-		* (char **) outvalue = ldap_strdup(lo->ldo_defhost);
+		* (char **) outvalue = strdup(lo->ldo_defhost);
 		return 0;
 
 	case LDAP_OPT_ERROR_NUMBER:
@@ -190,7 +190,7 @@ ldap_get_option(
 		if( ld->ld_error == NULL ) {
 			* (char **) outvalue = NULL;
 		} else {
-			* (char **) outvalue = ldap_strdup(ld->ld_error);
+			* (char **) outvalue = strdup(ld->ld_error);
 		}
 
 		return 0;
@@ -337,7 +337,7 @@ ldap_set_option(
 			}
 
 			if(host != NULL) {
-				lo->ldo_defhost = ldap_strdup(host);
+				lo->ldo_defhost = strdup(host);
 				return 0;
 			}
 
@@ -346,14 +346,14 @@ ldap_set_option(
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				lo->ldo_defhost = ldap_strdup("localhost");
+				lo->ldo_defhost = strdup("localhost");
 
 			} else {
 				/*
 				 * must want the session default
 				 *   updated to the current global default
 				 */
-				lo->ldo_defhost = ldap_strdup(
+				lo->ldo_defhost = strdup(
 					openldap_ldap_global_options.ldo_defhost);
 			}
 		} return 0;
@@ -381,7 +381,7 @@ ldap_set_option(
 				free(ld->ld_error);
 			}
 
-			ld->ld_error = ldap_strdup(err);
+			ld->ld_error = strdup(err);
 		} return 0;
 
 	case LDAP_OPT_API_FEATURE_INFO:

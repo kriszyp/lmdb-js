@@ -30,11 +30,38 @@
 
 #include "ldap-int.h"
 
+#if defined( LDAP_R_COMPILE )
+# include <ldap_pvt_thread.h>
+# if !defined( HAVE_REENTRANT_FUNCTIONS )
+#  if !defined( HAVE_CTIME_R )
+#   define LDAP_INT_CTIME_MUTEX 1
+#  endif
+#  if !defined( HAVE_GETHOSTBYNAME_R )
+#   define LDAP_INT_GETHOSTBYNAME_MUTEX 1
+#  endif
+#  if !defined( HAVE_GETHOSTBYADDR_R )
+#   define LDAP_INT_GETHOSTBYADDR_MUTEX 1
+#  endif
+# endif /* defined( HAVE_REENTRANT_FUNCTIONS ) */
+
+#if defined( LDAP_INT_CTIME_MUTEX )
+static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
+#endif
+#if defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
+static ldap_pvt_thread_mutex_t ldap_int_gethostbyname_mutex;
+#endif
+#if defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
+static ldap_pvt_thread_mutex_t ldap_int_gethostbyaddr_mutex;
+#endif
+#else /* LDAP_R_COMPILE */
+#undef HAVE_REENTRANT_FUNCTIONS
+#endif
+
+#if defined ( HAVE_STRSPN )
+#define int_strspn strspn
+#else
 static int int_strspn( const char *str, const char *delim )
 {
-#if defined( HAVE_STRSPN )
-	return strspn( str, delim );
-#else
 	int pos;
 	const char *p=delim;
 	for( pos=0; (*str) ; pos++,str++) {
@@ -47,14 +74,14 @@ static int int_strspn( const char *str, const char *delim )
 			return pos;
 	}
 	return pos;
-#endif	
 }
+#endif
 
+#if defined( HAVE_STRPBRK )
+#define int_strpbrk strpbrk
+#else
 static char *int_strpbrk( const char *str, const char *accept )
 {
-#if defined( HAVE_STRPBRK )
-	return strpbrk( str, accept );
-#else
 	const char *p;
 	for( ; (*str) ; str++ ) {
 		for( p=accept; (*p) ; p++) {
@@ -63,12 +90,12 @@ static char *int_strpbrk( const char *str, const char *accept )
 		}
 	}
 	return NULL;
-#endif
 }
+#endif
 
-char *ldap_int_strtok( char *str, const char *delim, char **pos )
+char *ldap_pvt_strtok( char *str, const char *delim, char **pos )
 {
-#ifdef HAVE_STRTOK_R
+#if defined( HAVE_STRTOK_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
 	return strtok_r(str, delim, pos);
 #else
 	char *p;
@@ -95,9 +122,10 @@ char *ldap_int_strtok( char *str, const char *delim, char **pos )
 #endif
 }
 
-char *ldap_int_ctime( const time_t *tp, char *buf )
+char *ldap_pvt_ctime( const time_t *tp, char *buf )
 {
-#if defined( HAVE_CTIME_R ) && defined( CTIME_R_NARGS )
+#if (defined( HAVE_CTIME_R ) || defined( HAVE_REENTRANT_FUNCTIONS)) \
+	&& defined( CTIME_R_NARGS )
 # if (CTIME_R_NARGS > 3) || (CTIME_R_NARGS < 2)
 	choke me!  nargs should have 2 or 3
 # elif CTIME_R_NARGS > 2
@@ -106,7 +134,13 @@ char *ldap_int_ctime( const time_t *tp, char *buf )
 	return ctime_r(tp,buf);
 # endif	  
 #else
+# if defined( LDAP_INT_CTIME_MUTEX )
+	ldap_pvt_thread_mutex_lock( &ldap_int_ctime_mutex );
+# endif	
 	memcpy( buf, ctime(tp), 26 );
+# if defined( LDAP_INT_CTIME_MUTEX )
+	ldap_pvt_thread_mutex_unlock( &ldap_int_ctime_mutex );
+# endif	
 	return buf;
 #endif	
 }
@@ -114,24 +148,18 @@ char *ldap_int_ctime( const time_t *tp, char *buf )
 #define BUFSTART 1024
 #define BUFMAX (32*1024)
 
-static char *safe_realloc( char **buf, int len )
-{
-	char *tmpbuf;
-	tmpbuf = realloc( *buf, len );
-	if (tmpbuf) {
-		*buf=tmpbuf;
-	} 
-	return tmpbuf;
-}
+static char *safe_realloc( char **buf, int len );
+static int copy_hostent( struct hostent *res, char **buf, struct hostent * src );
 
-int ldap_int_gethostbyname_a(
+int ldap_pvt_gethostbyname_a(
 	const char *name, 
 	struct hostent *resbuf,
 	char **buf,
 	struct hostent **result,
 	int *herrno_ptr )
 {
-#ifdef HAVE_GETHOSTBYNAME_R
+#if defined( HAVE_GETHOSTBYNAME_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
+# define NEED_SAFE_REALLOC 1   
 	int r=-1;
 	int buflen=BUFSTART;
 	*buf = NULL;
@@ -152,6 +180,29 @@ int ldap_int_gethostbyname_a(
 		return r;
 	}
 	return -1;
+#elif defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
+# define NEED_COPY_HOSTENT   
+	struct hostent *he;
+	int	retval;
+	
+	ldap_pvt_thread_mutex_lock( &ldap_int_gethostbyname_mutex );
+	
+	he = gethostbyname( name );
+	
+	if (he==NULL) {
+		*herrno_ptr = h_errno;
+		retval = -1;
+	} else if (copy_hostent( resbuf, buf, he )<0) {
+		*herrno_ptr = -1;
+		retval = -1;
+	} else {
+		*result = resbuf;
+		retval = 0;
+	}
+	
+	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostbyname_mutex );
+	
+	return retval;
 #else	
 	*result = gethostbyname( name );
 
@@ -165,7 +216,7 @@ int ldap_int_gethostbyname_a(
 #endif	
 }
 	 
-int ldap_int_gethostbyaddr_a(
+int ldap_pvt_gethostbyaddr_a(
 	const char *addr,
 	int len,
 	int type,
@@ -174,7 +225,9 @@ int ldap_int_gethostbyaddr_a(
 	struct hostent **result,
 	int *herrno_ptr )
 {
-#ifdef HAVE_GETHOSTBYADDR_R
+#if defined( HAVE_GETHOSTBYADDR_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
+# undef NEED_SAFE_REALLOC
+# define NEED_SAFE_REALLOC   
 	int r=-1;
 	int buflen=BUFSTART;
 	*buf = NULL;   
@@ -196,6 +249,30 @@ int ldap_int_gethostbyaddr_a(
 		return r;
 	}
 	return -1;
+#elif defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
+# undef NEED_COPY_HOSTENT
+# define NEED_COPY_HOSTENT   
+	struct hostent *he;
+	int	retval;
+	
+	ldap_pvt_thread_mutex_lock( &ldap_int_gethostbyaddr_mutex );
+	
+	he = gethostbyaddr( addr, len, type );
+	
+	if (he==NULL) {
+		*herrno_ptr = h_errno;
+		retval = -1;
+	} else if (copy_hostent( resbuf, buf, he )<0) {
+		*herrno_ptr = -1;
+		retval = -1;
+	} else {
+		*result = resbuf;
+		retval = 0;
+	}
+	
+	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostbyaddr_mutex );
+	
+	return retval;   
 #else /* gethostbyaddr() */
 	*result = gethostbyaddr( addr, len, type );
 
@@ -205,3 +282,119 @@ int ldap_int_gethostbyaddr_a(
 	return -1;
 #endif	
 }
+/* 
+ * ldap_pvt_init_utils() should be called before any other function.
+ */
+
+void ldap_pvt_init_utils( void )
+{
+	static int done=0;
+	if (done)
+	  return;
+	done=1;
+#if defined( LDAP_INT_CTIME_MUTEX )
+	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex, NULL );
+#endif	
+#if defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
+	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyname_mutex, NULL );
+#endif
+#if defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
+	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex, NULL );
+#endif
+#if defined( LDAP_R_COMPILE )
+	/* call other module init functions here... */
+#endif	
+}
+
+#if defined( NEED_COPY_HOSTENT )
+# undef NEED_SAFE_REALLOC
+#define NEED_SAFE_REALLOC
+
+static char *cpy_aliases( char ***tgtio, char *buf, char **src )
+{
+	int len;
+	char **tgt=*tgtio;
+	for( ; (*src) ; src++ ) {
+		len = strlen( *src ) + 1;
+		memcpy( buf, *src, len );
+		*tgt++=buf;
+		buf+=len;
+	}
+	*tgtio=tgt;   
+	return buf;
+}
+
+static char *cpy_addresses( char ***tgtio, char *buf, char **src, int len )
+{
+   	char **tgt=*tgtio;
+	for( ; (*src) ; src++ ) {
+		memcpy( buf, *src, len );
+		*tgt++=buf;
+		buf+=len;
+	}
+	*tgtio=tgt;      
+	return buf;
+}
+
+static int copy_hostent( struct hostent *res, char **buf, struct hostent * src )
+{
+	char	**p;
+	char	**tp;
+	char	*tbuf;
+	int	name_len;
+	int	n_alias;
+	int	total_alias_len;
+	int	n_addr;
+	int	total_addr_len;
+	int	total_len;
+	  
+	/* calculate the size needed for the buffer */
+	name_len = strlen( src->h_name ) + 1;
+	
+	for( n_alias=total_alias_len=0, p=src->h_aliases; (*p) ; p++ ) {
+		total_alias_len += strlen( *p ) + 1;
+		n_alias++;
+	}
+
+	for( n_addr=0, p=src->h_addr_list; (*p) ; p++ ) {
+		n_addr++;
+	}
+	total_addr_len = n_addr * src->h_length;
+	
+	total_len = (n_alias + n_addr + 2) * sizeof( char * ) +
+		total_addr_len + total_alias_len + name_len;
+	
+	if (safe_realloc( buf, total_len )) {			 
+		tp = (char **) *buf;
+		tbuf = *buf + (n_alias + n_addr + 2) * sizeof( char * );
+		memcpy( res, src, sizeof( struct hostent ) );
+		/* first the name... */
+		memcpy( tbuf, src->h_name, name_len );
+		res->h_name = tbuf; tbuf+=name_len;
+		/* now the aliases */
+		res->h_aliases = tp;
+		tbuf = cpy_aliases( &tp, tbuf, src->h_aliases );
+		*tp++=NULL;
+		/* finally the addresses */
+		res->h_addr_list = tp;
+		tbuf = cpy_addresses( &tp, tbuf, src->h_addr_list, src->h_length );
+		*tp++=NULL;
+		return 0;
+	}
+	return -1;
+}
+#endif
+
+#if defined( NEED_SAFE_REALLOC )
+static char *safe_realloc( char **buf, int len )
+{
+	char *tmpbuf;
+	tmpbuf = realloc( *buf, len );
+	if (tmpbuf) {
+		*buf=tmpbuf;
+	} 
+	return tmpbuf;
+}
+#endif
+
+

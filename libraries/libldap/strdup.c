@@ -12,14 +12,15 @@
 #include "ldap-int.h"
 
 char *
-(ldap_strdup)( const char *s )
+(ldap_pvt_strdup)( const char *s )
 {
         char    *p;
-
-        if ( (p = (char *) malloc( strlen( s ) + 1 )) == NULL )
+	int	len;
+	len = strlen( s ) + 1;
+        if ( (p = (char *) malloc( len )) == NULL )
                 return( (char *)0 );
 
-        strcpy( p, s );
+        memcpy( p, s, len );
 
         return( p );
 }

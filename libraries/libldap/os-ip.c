@@ -53,7 +53,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
    
-   	/* buffers for ldap_int_gethostbyname_a */
+   	/* buffers for ldap_pvt_gethostbyname_a */
    	struct hostent		he_buf;
    	int			local_h_errno;
    	char   			*ha_buf=NULL;
@@ -69,7 +69,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	    /* This was just a test for -1 until OSF1 let inet_addr return
 	       unsigned int, which is narrower than 'unsigned long address' */
 	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
-		if ( ( ldap_int_gethostbyname_a( host, &he_buf, &ha_buf,
+		if ( ( ldap_pvt_gethostbyname_a( host, &he_buf, &ha_buf,
 			&hp, &local_h_errno) < 0) || (hp==NULL))
 		{
 #ifdef HAVE_WINSOCK
@@ -198,13 +198,13 @@ ldap_host_connected_to( Sockbuf *sb )
 	 * this is necessary for kerberos to work right, since the official
 	 * hostname is used as the kerberos instance.
 	 */
-	if ((ldap_int_gethostbyaddr_a( (char *) &sin.sin_addr,
+	if ((ldap_pvt_gethostbyaddr_a( (char *) &sin.sin_addr,
 		sizeof( sin.sin_addr ), 
 		AF_INET, &he_buf, &ha_buf,
 		&hp,&local_h_errno ) ==0 ) && (hp != NULL) )
 	{
 		if ( hp->h_name != NULL ) {
-			DO_RETURN( ldap_strdup( hp->h_name ));
+			DO_RETURN( strdup( hp->h_name ));
 		}
 	}
 

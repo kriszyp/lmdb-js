@@ -54,7 +54,7 @@ ldap_open( char *host, int port )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    ldap_strdup( ld->ld_defhost )) == NULL )) {
+	    strdup( ld->ld_defhost )) == NULL )) {
 		ldap_ld_free( ld, 0 );
 		return( NULL );
 	}
@@ -153,9 +153,9 @@ ldap_init( char *defhost, int defport )
 	ld->ld_options.ldo_defhost = NULL;
 
 	if ( defhost != NULL ) {
-		ld->ld_options.ldo_defhost = ldap_strdup( defhost );
+		ld->ld_options.ldo_defhost = strdup( defhost );
 	} else {
-		ld->ld_options.ldo_defhost = ldap_strdup(
+		ld->ld_options.ldo_defhost = strdup(
 			openldap_ldap_global_options.ldo_defhost);
 	}
 
@@ -166,7 +166,7 @@ ldap_init( char *defhost, int defport )
 	}
 
 	if ( openldap_ldap_global_options.ldo_defbase != NULL ) {
-		ld->ld_options.ldo_defbase = ldap_strdup(
+		ld->ld_options.ldo_defbase = strdup(
 			openldap_ldap_global_options.ldo_defbase);
 	}
 

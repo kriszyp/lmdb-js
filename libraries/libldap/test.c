@@ -83,7 +83,7 @@ get_list( char *prompt )
 			result = (char **) realloc( result,
 			    sizeof(char *) * (num + 1) );
 
-		result[num++] = (char *) ldap_strdup( buf );
+		result[num++] = (char *) strdup( buf );
 	}
 	if ( result == (char **) 0 )
 		return( NULL );
@@ -177,7 +177,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 		getline( buf, sizeof(buf), stdin, prompt2 );
 		if ( buf[0] == '\0' )
 			break;
-		tmp.mod_type = ldap_strdup( buf );
+		tmp.mod_type = strdup( buf );
 
 		tmp.mod_values = get_list( prompt3 );
 
@@ -323,12 +323,12 @@ main( int argc, char **argv )
 			break;
 
 		case 't':	/* copy ber's to given file */
-			copyfname = ldap_strdup( optarg );
+			copyfname = strdup( optarg );
 			copyoptions = LBER_TO_FILE;
 			break;
 
 		case 'T':	/* only output ber's to given file */
-			copyfname = ldap_strdup( optarg );
+			copyfname = strdup( optarg );
 			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY);
 			break;
 

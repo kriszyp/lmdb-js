@@ -64,7 +64,7 @@ cldap_open( char *host, int port )
     char		*p;
     int			i;
 
-    /* buffers for ldap_int_gethostbyname_a ... */
+    /* buffers for ldap_pvt_gethostbyname_a ... */
     struct hostent      he_buf;
     int                 local_h_errno;
     char		*ha_buf=NULL;
@@ -117,7 +117,7 @@ cldap_open( char *host, int port )
 	    /* This was just a test for -1 until OSF1 let inet_addr return
 	       unsigned int, which is narrower than 'unsigned long address' */
 	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
-	        if ((ldap_int_gethostbyname_a( host, &he_buf, &ha_buf,
+	        if ((ldap_pvt_gethostbyname_a( host, &he_buf, &ha_buf,
 					      &hp,&local_h_errno)<0) || 
 		    (hp==NULL)) {
 		   errno = EHOSTUNREACH;
@@ -143,7 +143,7 @@ cldap_open( char *host, int port )
 	    }
 
 	    if ( ld->ld_host == NULL ) {
-		    ld->ld_host = ldap_strdup( host );
+		    ld->ld_host = strdup( host );
 	    }
 	}
     } else {

@@ -388,7 +388,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	for ( i = 0; !memerr && includeattrs[ i ] != NULL; ++i ) {
 	    if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
 		    sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-		    ldap_strdup( includeattrs[ i ] )) == NULL ) {
+		    strdup( includeattrs[ i ] )) == NULL ) {
 		memerr = 1;
 	    } else {
 		attrs[ attrcnt ] = NULL;
@@ -415,7 +415,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	    if ( ticolp->ti_attrname != NULL ) {
 		if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
 			sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-			ldap_strdup( ticolp->ti_attrname )) == NULL ) {
+			strdup( ticolp->ti_attrname )) == NULL ) {
 		    memerr = 1;
 		} else {
 		    attrs[ attrcnt ] = NULL;

@@ -54,9 +54,9 @@ ldap_dn2ufn( char *dn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
 	if ( ldap_is_dns_dn( dn ) || ( p = strchr( dn, '=' )) == NULL )
-		return( ldap_strdup( dn ) );
+		return( strdup( dn ) );
 
-	ufn = ldap_strdup( ++p );
+	ufn = strdup( ++p );
 
 #define INQUOTE		1
 #define OUTQUOTE	2
@@ -132,8 +132,8 @@ ldap_explode_dns( char *dn )
 
 	maxcomps = 8;
 	ncomps = 0;
-	for ( s = ldap_int_strtok( dn, "@.", &tok_r ); s != NULL; 
-	      s = ldap_int_strtok( NULL, "@.", &tok_r ) ) {
+	for ( s = ldap_pvt_strtok( dn, "@.", &tok_r ); s != NULL; 
+	      s = ldap_pvt_strtok( NULL, "@.", &tok_r ) ) {
 		if ( ncomps == maxcomps ) {
 			maxcomps *= 2;
 			if ( (rdns = (char **) realloc( rdns, maxcomps *
@@ -141,7 +141,7 @@ ldap_explode_dns( char *dn )
 				return( NULL );
 			}
 		}
-		rdns[ncomps++] = ldap_strdup( s );
+		rdns[ncomps++] = strdup( s );
 	}
 	rdns[ncomps] = NULL;
 

@@ -192,7 +192,7 @@ next_token( char **sp )
 	return( NULL );
     }
 
-    return( ldap_strdup( tokstart ));
+    return( strdup( tokstart ));
 }
 
 

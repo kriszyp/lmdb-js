@@ -115,7 +115,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		ldap_getfilter_free( lfdp );
 		return( NULL );
 	    }
-	    nextflp->lfl_tag = ldap_strdup( tag );
+	    nextflp->lfl_tag = strdup( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
 	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
 #ifdef LDAP_LIBUI
@@ -210,12 +210,12 @@ ldap_setfilteraffixes( LDAPFiltDesc *lfdp, char *prefix, char *suffix )
     if ( lfdp->lfd_filtprefix != NULL ) {
 	free( lfdp->lfd_filtprefix );
     }
-    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : ldap_strdup( prefix );
+    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : strdup( prefix );
 
     if ( lfdp->lfd_filtsuffix != NULL ) {
 	free( lfdp->lfd_filtsuffix );
     }
-    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : ldap_strdup( suffix );
+    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : strdup( suffix );
 }
 
 
@@ -264,7 +264,7 @@ ldap_getfirstfilter( LDAPFiltDesc *lfdp, char *tagpat, char *value )
 	return( NULL );
     }
 
-    if (( lfdp->lfd_curvalcopy = ldap_strdup( value )) == NULL ) {
+    if (( lfdp->lfd_curvalcopy = strdup( value )) == NULL ) {
 	return( NULL );
     }
 
@@ -413,7 +413,7 @@ break_into_words( char *str, char *delims, char ***wordsp )
     count = 0;
     words[ count ] = NULL;
 
-    word = ldap_int_strtok( str, delims, &tok_r );
+    word = ldap_pvt_strtok( str, delims, &tok_r );
     while ( word != NULL ) {
 	if (( words = (char **)realloc( words,
 		( count + 2 ) * sizeof( char * ))) == NULL ) {
@@ -422,7 +422,7 @@ break_into_words( char *str, char *delims, char ***wordsp )
 
 	words[ count ] = word;
 	words[ ++count ] = NULL;
-	word = ldap_int_strtok( NULL, delims, &tok_r );
+	word = ldap_pvt_strtok( NULL, delims, &tok_r );
     }
 	
     *wordsp = words;

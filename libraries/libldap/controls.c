@@ -109,7 +109,7 @@ LDAPControl *ldap_control_dup( LDAPControl *c )
 	}
 
 	if( c->ldctl_oid != NULL ) {
-		new->ldctl_oid = ldap_strdup( c->ldctl_oid );
+		new->ldctl_oid = strdup( c->ldctl_oid );
 
 		if(new->ldctl_oid == NULL) {
 			free( new );
