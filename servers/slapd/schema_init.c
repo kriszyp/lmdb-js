@@ -791,6 +791,7 @@ nameUIDValidate(
 		dn->bv_val[i-2] = '\0';
 	}
 
+	/* FIXME: should use dnValidate */
 	rc = dn_validate( dn->bv_val ) == NULL
 		? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
 
@@ -826,6 +827,7 @@ nameUIDNormalize(
 			*uid = '\0';
 		}
 
+		/* FIXME: should use dnNormalize */
 #ifdef USE_DN_NORMALIZE
 		dn = dn_normalize( out->bv_val );
 #else
