@@ -356,7 +356,7 @@ provider_ctxcsn_retry :
 			return LDAP_BUSY;
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			goto consumer_ctxcsn_retry;
+			goto provider_ctxcsn_retry;
 		case DB_NOTFOUND:
 			snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
 				bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
