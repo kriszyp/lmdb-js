@@ -317,8 +317,10 @@ ldap_int_open_connection(
 	{
 		rc = ldap_pvt_tls_start( ld, conn->lconn_sb,
 			ld->ld_options.ldo_tls_ctx );
-		if (rc != LDAP_SUCCESS)
-			return rc;
+
+		if (rc != LDAP_SUCCESS) {
+			return -1;
+		}
 	}
 #endif
 
