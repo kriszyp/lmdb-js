@@ -50,6 +50,8 @@ bdb_csn_commit(
 	size_t			textlen = sizeof textbuf;
 	EntryInfo		*eip = NULL;
 
+	assert( !BER_BVISNULL( &op->o_bd->be_context_csn ) );
+
 	if ( ei ) {
 		e = ei->bei_e;
 	}
