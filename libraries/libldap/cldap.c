@@ -40,10 +40,10 @@ static int add_addr LDAP_P((
 	LDAP *ld, struct sockaddr *sap ));
 static int cldap_result LDAP_P((
 	LDAP *ld, int msgid, LDAPMessage **res,
-	struct cldap_retinfo *crip, char *base ));
+	struct cldap_retinfo *crip, const char *base ));
 static int cldap_parsemsg LDAP_P((
 	LDAP *ld, int msgid, BerElement *ber,
-	LDAPMessage **res, char *base ));
+	LDAPMessage **res, const char *base ));
 
 /*
  * cldap_open - initialize and connect to an ldap server.  A magic cookie to
@@ -55,7 +55,7 @@ static int cldap_parsemsg LDAP_P((
  */
 
 LDAP *
-cldap_open( char *host, int port )
+cldap_open( LDAP_CONST char *host, int port )
 {
     int 		s;
     unsigned long	address;
@@ -94,7 +94,7 @@ cldap_open( char *host, int port )
     ld->ld_cldapaddrs = NULL;
 
     if (ber_pvt_sb_set_io( &(ld->ld_sb), &ber_pvt_sb_io_udp, NULL )<0) {
-       ldap_ld_free(ld, 1 );
+       ldap_ld_free(ld, 1, NULL, NULL );
        return NULL;
     }
 	
@@ -107,6 +107,8 @@ cldap_open( char *host, int port )
      * 'host' may be a space-separated list.
      */
     if ( host != NULL ) {
+	char *host_dup = LDAP_STRDUP( host );
+	host = host_dup;
 	for ( ; host != NULL; host = p ) {
 	    if (( p = strchr( host, ' ' )) != NULL ) {
 		for (*p++ = '\0'; *p == ' '; p++) {
@@ -130,7 +132,8 @@ cldap_open( char *host, int port )
 			    (char *)hp->h_addr_list[ i ],
 			    sizeof(sock.sin_addr.s_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-			ldap_ld_free( ld, 1 );
+			ldap_ld_free( ld, 1, NULL, NULL );
+			LDAP_FREE( host_dup );
 			DO_RETURN( NULL );
 		    }
 		}
@@ -138,7 +141,8 @@ cldap_open( char *host, int port )
 	    } else {
 		sock.sin_addr.s_addr = address;
 		if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-		    ldap_ld_free( ld, 1 );
+		    ldap_ld_free( ld, 1, NULL, NULL );
+		    LDAP_FREE( host_dup );
 		    DO_RETURN( NULL );
 		}
 	    }
@@ -147,11 +151,12 @@ cldap_open( char *host, int port )
 		    ld->ld_host = LDAP_STRDUP( host );
 	    }
 	}
+	LDAP_FREE( host_dup );
     } else {
 	address = INADDR_LOOPBACK;
 	sock.sin_addr.s_addr = htonl( address );
 	if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-	    ldap_ld_free( ld, 1 );
+	    ldap_ld_free( ld, 1, NULL, NULL );
 	    DO_RETURN( NULL );
 	}
     }
@@ -159,7 +164,7 @@ cldap_open( char *host, int port )
     if ( ld->ld_cldapaddrs == NULL
 	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
 	    ) {
-	ldap_ld_free( ld, 0 );
+	ldap_ld_free( ld, 0, NULL, NULL );
 	DO_RETURN( NULL );
     }
 
@@ -184,7 +189,7 @@ cldap_open( char *host, int port )
 void
 cldap_close( LDAP *ld )
 {
-	ldap_ld_free( ld, 0 );
+	ldap_ld_free( ld, 0, NULL, NULL );
 }
 
 
@@ -197,13 +202,19 @@ cldap_setretryinfo( LDAP *ld, int tries, int timeout )
 
 
 int
-cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
-	int attrsonly, LDAPMessage **res, char *logdn )
+cldap_search_s( LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPMessage **res,
+	char *logdn )
 {
     int				ret, msgid;
     struct cldap_retinfo	cri;
 
-    *res = NULLMSG;
+    *res = NULL;
 
     (void) memset( &cri, 0, sizeof( cri ));
 
@@ -274,7 +285,7 @@ add_addr( LDAP *ld, struct sockaddr *sap )
 
 static int
 cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
-	struct cldap_retinfo *crip, char *base )
+	struct cldap_retinfo *crip, const char *base )
 {
     Sockbuf 		*sb = &ld->ld_sb;
     BerElement		ber;
@@ -405,7 +416,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 
 static int
 cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
-	LDAPMessage **res, char *base )
+	LDAPMessage **res, const char *base )
 {
     ber_tag_t	tag;
 	ber_len_t	len;
@@ -416,7 +427,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
     struct berval	*bv;
 
     rc = LDAP_DECODING_ERROR;	/* pessimistic */
-    ldm = chain = prev = NULLMSG;
+    ldm = chain = prev = NULL;
     baselen = ( base == NULL ) ? 0 : strlen( base );
     bv = NULL;
 
@@ -526,6 +537,6 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 
     /* return chain, calling result2error if we got anything at all */
     *res = chain;
-    return(( *res == NULLMSG ) ? rc : ldap_result2error( ld, *res, 0 ));
+    return(( *res == NULL ) ? rc : ldap_result2error( ld, *res, 0 ));
 }
 #endif /* LDAP_CONNECTIONLESS */

@@ -762,7 +762,14 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	ber_len_t	len;
 
 	if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
-		rc = ldap_select1( ld, timeout );
+		/* restored from ldap_select1() in result.c version 1.24 */
+		fd_set	readfds;
+		if ( ldap_int_tblsize == 0 )
+			ldap_int_ip_init();
+		FD_ZERO( &readfds );
+		FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
+		rc = select( ldap_int_tblsize, &readfds, 0, 0, timeout );
+
 		if ( rc == -1 || rc == 0 ) {
 			ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 			    LDAP_TIMEOUT);

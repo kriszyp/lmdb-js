@@ -393,7 +393,7 @@ int ldap_append_referral( LDAP *ld, char **referralsp, char *s );
  * in result.c:
  */
 #ifdef LDAP_CONNECTIONLESS
-LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
+int cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber );
 #endif
 
 /*
