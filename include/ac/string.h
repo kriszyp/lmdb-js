@@ -65,7 +65,8 @@ extern char *ldap_pvt_strdup( const char * s );
  * some systems fail to declare strcasecmp() and strncasecmp()
  * we need them declared so we can obtain pointers to them
  */
-extern int strcasecmp(), strncasecmp();
+extern int (strcasecmp)();
+extern int (strncasecmp)();
 
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )
