@@ -87,9 +87,9 @@ static ber_tag_t req2res( ber_tag_t tag )
 		break;
 
 	default:
-		assert( 0 );
-		tag = LBER_ERROR;
+		tag = LBER_SEQUENCE;
 	}
+
 	return tag;
 }
 
