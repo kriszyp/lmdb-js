@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/string.h>
 
 #include <ac/setproctitle.h>
 #include <ac/string.h>

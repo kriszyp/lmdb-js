@@ -13,21 +13,12 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-#ifdef SLAPD_SHA1
-#include <lutil_sha1.h>
-#endif /* SLAPD_SHA1 */
-
-#ifdef SLAPD_MD5
-#include <lutil_md5.h>
-#endif /* SLAPD_MD5 */
-
 #include <lutil.h>
 
 #ifdef HAVE_KERBEROS
 extern int	krbv4_ldap_auth();
 #endif
 
-#ifdef SLAPD_CRYPT
 pthread_mutex_t crypt_mutex;
 
 static int
@@ -41,66 +32,19 @@ crypted_value_find(
 {
 	int     i;
 	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( syntax != SYNTAX_BIN && strncasecmp( "{CRYPT}",
-			vals[i]->bv_val, (sizeof("{CRYPT}") - 1 ) ) == 0 ) {
-				char *userpassword = vals[i]->bv_val + sizeof("{CRYPT}") - 1;
-				pthread_mutex_lock( &crypt_mutex );
-				if (strcmp(userpassword, crypt(cred->bv_val,
-						userpassword)) == 0) {
-					pthread_mutex_unlock( &crypt_mutex );
-					return ( 0 );
-				}
-				pthread_mutex_unlock( &crypt_mutex );
-#ifdef SLAPD_MD5
-		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{MD5}",
-			vals[i]->bv_val, (sizeof("{MD5}") - 1 ) ) == 0 ) {
-				ldap_MD5_CTX MD5context;
-				unsigned char MD5digest[20];
-				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
+		if ( syntax != SYNTAX_BIN ) {
+			int result;
 
-				char *userpassword = vals[i]->bv_val + sizeof("{MD5}") - 1;
+			pthread_mutex_lock( &crypt_mutex );
 
-				ldap_MD5Init(&MD5context);
-				ldap_MD5Update(&MD5context,
-					(unsigned char *) cred->bv_val,
-					strlen(cred->bv_val));
-				ldap_MD5Final(MD5digest, &MD5context);
+			result = lutil_passwd(
+				(char*) cred->bv_val,
+				(char*) vals[i]->bv_val);
 
-				if (b64_ntop(MD5digest, sizeof(MD5digest),
-					base64digest, sizeof(base64digest)) < 0)
-				{
-					return ( 1 );
-				}
+			pthread_mutex_unlock( &crypt_mutex );
 
-				if (strcmp(userpassword, base64digest) == 0) {
-					return ( 0 );
-				}
-#endif /* SLAPD_MD5 */
-#ifdef SLAPD_SHA1
-		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{SHA}",
-			vals[i]->bv_val, (sizeof("{SHA}") - 1 ) ) == 0 ) {
-				ldap_SHA1_CTX SHA1context;
-				unsigned char SHA1digest[20];
-				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
+			return result;
 
-				char *userpassword = vals[i]->bv_val + sizeof("{SHA}") - 1;
-
-				ldap_SHA1Init(&SHA1context);
-				ldap_SHA1Update(&SHA1context,
-					(unsigned char *) cred->bv_val,
-					strlen(cred->bv_val));
-				ldap_SHA1Final(SHA1digest, &SHA1context);
-
-				if (b64_ntop(SHA1digest, sizeof(SHA1digest),
-					base64digest, sizeof(base64digest)) < 0)
-				{
-					return ( 1 );
-				}
-
-				if (strcmp(userpassword, base64digest) == 0) {
-					return ( 0 );
-				}
-#endif /* SLAPD_SHA1 */
 		} else {
                 if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
                         return( 0 );
@@ -110,7 +54,6 @@ crypted_value_find(
 
 	return( 1 );
 }
-#endif /* SLAPD_CRYPT */
 
 int
 ldbm_back_bind(

@@ -65,7 +65,7 @@ putu32( uint32 data, unsigned char *addr )
  * initialization constants.
  */
 void
-ldap_MD5Init( struct ldap_MD5Context *ctx )
+lutil_MD5Init( struct lutil_MD5Context *ctx )
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -81,8 +81,8 @@ ldap_MD5Init( struct ldap_MD5Context *ctx )
  * of bytes.
  */
 void
-ldap_MD5Update(
-    struct ldap_MD5Context	*ctx,
+lutil_MD5Update(
+    struct lutil_MD5Context	*ctx,
     const unsigned char		*buf,
     unsigned int		len
 )
@@ -109,7 +109,7 @@ ldap_MD5Update(
 			return;
 		}
 		memcpy(p, buf, t);
-		ldap_MD5Transform(ctx->buf, ctx->in);
+		lutil_MD5Transform(ctx->buf, ctx->in);
 		buf += t;
 		len -= t;
 	}
@@ -118,7 +118,7 @@ ldap_MD5Update(
 
 	while (len >= 64) {
 		memcpy(ctx->in, buf, 64);
-		ldap_MD5Transform(ctx->buf, ctx->in);
+		lutil_MD5Transform(ctx->buf, ctx->in);
 		buf += 64;
 		len -= 64;
 	}
@@ -133,7 +133,7 @@ ldap_MD5Update(
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void
-ldap_MD5Final( unsigned char *digest, struct ldap_MD5Context *ctx )
+lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
 {
 	unsigned count;
 	unsigned char *p;
@@ -153,7 +153,7 @@ ldap_MD5Final( unsigned char *digest, struct ldap_MD5Context *ctx )
 	if (count < 8) {
 		/* Two lots of padding:  Pad the first block to 64 bytes */
 		memset(p, 0, count);
-		ldap_MD5Transform(ctx->buf, ctx->in);
+		lutil_MD5Transform(ctx->buf, ctx->in);
 
 		/* Now fill the next block with 56 bytes */
 		memset(ctx->in, 0, 56);
@@ -166,7 +166,7 @@ ldap_MD5Final( unsigned char *digest, struct ldap_MD5Context *ctx )
 	putu32(ctx->bits[0], ctx->in + 56);
 	putu32(ctx->bits[1], ctx->in + 60);
 
-	ldap_MD5Transform(ctx->buf, ctx->in);
+	lutil_MD5Transform(ctx->buf, ctx->in);
 	putu32(ctx->buf[0], digest);
 	putu32(ctx->buf[1], digest + 4);
 	putu32(ctx->buf[2], digest + 8);
@@ -194,7 +194,7 @@ ldap_MD5Final( unsigned char *digest, struct ldap_MD5Context *ctx )
  * the data and converts bytes into longwords for this routine.
  */
 void
-ldap_MD5Transform( uint32 *buf, const unsigned char *inraw )
+lutil_MD5Transform( uint32 *buf, const unsigned char *inraw )
 {
 	register uint32 a, b, c, d;
 	uint32 in[16];
@@ -291,7 +291,7 @@ ldap_MD5Transform( uint32 *buf, const unsigned char *inraw )
 int
 main (int  argc, char **argv )
 {
-	struct ldap_MD5Context context;
+	struct lutil_MD5Context context;
 	unsigned char checksum[16];
 	int i;
 	int j;
@@ -304,9 +304,9 @@ main (int  argc, char **argv )
 	for (j = 1; j < argc; ++j)
 	{
 		printf ("MD5 (\"%s\") = ", argv[j]);
-		ldap_MD5Init (&context);
-		ldap_MD5Update (&context, argv[j], strlen (argv[j]));
-		ldap_MD5Final (checksum, &context);
+		lutil_MD5Init (&context);
+		lutil_MD5Update (&context, argv[j], strlen (argv[j]));
+		lutil_MD5Final (checksum, &context);
 		for (i = 0; i < 16; i++)
 		{
 			printf ("%02x", (unsigned int) checksum[i]);

@@ -127,7 +127,7 @@ static const char Pad64 = '=';
    */
 
 int
-b64_ntop(
+lutil_b64_ntop(
 	u_char const *src,
 	size_t srclength,
 	char *target,
@@ -198,7 +198,7 @@ b64_ntop(
  */
 
 int
-b64_pton(
+lutil_b64_pton(
 	char const *src,
 	u_char *target, 
 	size_t targsize)

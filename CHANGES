@@ -4,6 +4,7 @@ Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	CVS Tag: OPENLDAP_REL_ENG_1_1_BETA
 	Added ldap.conf support
 	Added configuration preservation support
+	Added slapd passwd handling improvements
 	Updated shared library version to release 1
 	Fixed lib-shared.mk handling of static library
 	Fixed no-ldapd make install bugs

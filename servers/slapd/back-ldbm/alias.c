@@ -112,7 +112,7 @@ char *derefDN ( Backend     *be,
 )
 {
   struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-  char 	*matched;
+  char 	*matched = 0;
   char 	*newDN = NULL;
   int	depth, i;
   Entry 	*eMatched;

@@ -58,7 +58,7 @@
  * Hash a single 512-bit block. This is the core of the algorithm.
  */
 void
-ldap_SHA1Transform( uint32 *state, const unsigned char *buffer )
+lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
     typedef union {
@@ -117,10 +117,10 @@ ldap_SHA1Transform( uint32 *state, const unsigned char *buffer )
 
 
 /*
- * ldap_SHA1Init - Initialize new context
+ * lutil_SHA1Init - Initialize new context
  */
 void
-ldap_SHA1Init( ldap_SHA1_CTX *context )
+lutil_SHA1Init( lutil_SHA1_CTX *context )
 {
 
     /* SHA1 initialization constants */
@@ -137,8 +137,8 @@ ldap_SHA1Init( ldap_SHA1_CTX *context )
  * Run your data through this.
  */
 void
-ldap_SHA1Update(
-    ldap_SHA1_CTX	*context,
+lutil_SHA1Update(
+    lutil_SHA1_CTX	*context,
     const unsigned char	*data,
     u_int		len
 )
@@ -151,9 +151,9 @@ ldap_SHA1Update(
     j = (j >> 3) & 63;
     if ((j + len) > 63) {
 	(void)memcpy(&context->buffer[j], data, (i = 64-j));
-	ldap_SHA1Transform(context->state, context->buffer);
+	lutil_SHA1Transform(context->state, context->buffer);
 	for ( ; i + 63 < len; i += 64)
-	    ldap_SHA1Transform(context->state, &data[i]);
+	    lutil_SHA1Transform(context->state, &data[i]);
 	j = 0;
     } else {
 	i = 0;
@@ -166,7 +166,7 @@ ldap_SHA1Update(
  * Add padding and return the message digest.
  */
 void
-ldap_SHA1Final( unsigned char *digest, ldap_SHA1_CTX *context )
+lutil_SHA1Final( unsigned char *digest, lutil_SHA1_CTX *context )
 {
     u_int i;
     unsigned char finalcount[8];
@@ -175,10 +175,10 @@ ldap_SHA1Final( unsigned char *digest, ldap_SHA1_CTX *context )
 	finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
 	 >> ((3-(i & 3)) * 8) ) & 255);	 /* Endian independent */
     }
-    ldap_SHA1Update(context, (unsigned char *)"\200", 1);
+    lutil_SHA1Update(context, (unsigned char *)"\200", 1);
     while ((context->count[0] & 504) != 448)
-	ldap_SHA1Update(context, (unsigned char *)"\0", 1);
-    ldap_SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
+	lutil_SHA1Update(context, (unsigned char *)"\0", 1);
+    lutil_SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
 
     if (digest) {
 	for (i = 0; i < 20; i++)
@@ -225,7 +225,7 @@ static char rcsid[] = "$OpenBSD: sha1hl.c,v 1.1 1997/07/12 20:06:03 millert Exp 
 
 /* ARGSUSED */
 char *
-ldap_SHA1End( ldap_SHA1_CTX *ctx, char *buf )
+lutil_SHA1End( lutil_SHA1_CTX *ctx, char *buf )
 {
     int i;
     char *p = buf;
@@ -235,7 +235,7 @@ ldap_SHA1End( ldap_SHA1_CTX *ctx, char *buf )
     if (p == NULL && (p = malloc(41)) == NULL)
 	return 0;
 
-    ldap_SHA1Final(digest,ctx);
+    lutil_SHA1Final(digest,ctx);
     for (i = 0; i < 20; i++) {
 	p[i + i] = hex[digest[i] >> 4];
 	p[i + i + 1] = hex[digest[i] & 0x0f];
@@ -245,32 +245,32 @@ ldap_SHA1End( ldap_SHA1_CTX *ctx, char *buf )
 }
 
 char *
-ldap_SHA1File( char *filename, char *buf )
+lutil_SHA1File( char *filename, char *buf )
 {
     unsigned char buffer[BUFSIZ];
-    ldap_SHA1_CTX ctx;
+    lutil_SHA1_CTX ctx;
     int fd, num, oerrno;
 
-    ldap_SHA1Init(&ctx);
+    lutil_SHA1Init(&ctx);
 
     if ((fd = open(filename,O_RDONLY)) < 0)
 	return(0);
 
     while ((num = read(fd, buffer, sizeof(buffer))) > 0)
-	ldap_SHA1Update(&ctx, buffer, num);
+	lutil_SHA1Update(&ctx, buffer, num);
 
     oerrno = errno;
     close(fd);
     errno = oerrno;
-    return(num < 0 ? 0 : ldap_SHA1End(&ctx, buf));
+    return(num < 0 ? 0 : lutil_SHA1End(&ctx, buf));
 }
 
 char *
-ldap_SHA1Data( const unsigned char *data, size_t len, char *buf )
+lutil_SHA1Data( const unsigned char *data, size_t len, char *buf )
 {
-    ldap_SHA1_CTX ctx;
+    lutil_SHA1_CTX ctx;
 
-    ldap_SHA1Init(&ctx);
-    ldap_SHA1Update(&ctx, data, len);
-    return(ldap_SHA1End(&ctx, buf));
+    lutil_SHA1Init(&ctx);
+    lutil_SHA1Update(&ctx, data, len);
+    return(lutil_SHA1End(&ctx, buf));
 }

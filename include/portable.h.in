@@ -246,14 +246,14 @@ is provided ``as is'' without express or implied warranty.
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
 
+/* define this for ClearText password support */
+#undef SLAPD_CLEARTEXT
+
 /* define this for crypt(3) password support */
 #undef SLAPD_CRYPT
 
 /* define this to use SLAPD LDBM backend */
 #undef SLAPD_LDBM
-
-/* define this for MD5 password support */
-#undef SLAPD_MD5
 
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
@@ -263,9 +263,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* define this for Reverse Lookup support */
 #undef SLAPD_RLOOKUPS
-
-/* define this for SHA1 password support */
-#undef SLAPD_SHA1
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL

@@ -37,12 +37,13 @@ CHANGES
 	Changes from OpenLDAP 1.0
 	- improved build environment with dynamic library support,
 	- externally configurable client library support: ldap.conf(5),
+	- improved password security features include SHA1, MD5, crypt(3)
+	  user and root passwords instead of clear-text password
 	- integrated SDK and tools for MS NT,
 	- platforms updates, and
 	- numerous bug fixes and build changes.
 
 	Changes from U. Mich release 3.3
-
 	- TCP Wrappers support added to slapd,
 	- Berkely DB2 compatibility added to slapd,
 	- ACL enhancements including Access by Group and POSIX regex(3) support,
