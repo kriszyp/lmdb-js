@@ -97,6 +97,9 @@
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 
+/* Define if you have the pthread_init function.  */
+#undef HAVE_PTHREAD_INIT
+
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
 
@@ -112,11 +115,17 @@
 /* Define if you have the strrchr function.  */
 #undef HAVE_STRRCHR
 
+/* Define if you have the strsep function.  */
+#undef HAVE_STRSEP
+
 /* Define if you have the strstr function.  */
 #undef HAVE_STRSTR
 
 /* Define if you have the strtod function.  */
 #undef HAVE_STRTOD
+
+/* Define if you have the strtok_r function.  */
+#undef HAVE_STRTOK_R
 
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
@@ -177,6 +186,12 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* Define if you have the c_r library (-lc_r).  */
+#undef HAVE_LIBC_R
+
+/* Define if you have the pthread library (-lpthread).  */
+#undef HAVE_LIBPTHREAD
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>

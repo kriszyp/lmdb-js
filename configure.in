@@ -239,27 +239,96 @@ else
 			AC_MSG_ERROR(unknown pthread version)
 		fi
 
-		dnl Now the hard part, how to link
-
-		AC_CACHE_CHECK([compiler for -pthread option], cf_cv_pthread_flag,[
-			dnl save the CPPFLAGS
-			save_CPPFLAGS=$CPPFLAGS
-			CPPFLAGS="-pthread $CPPFLAGS"
-			AC_TRY_LINK([#include <pthread.h>],[
-				if(0) pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0);
-				], cf_cv_pthread_flag=yes, cf_cv_pthread_flag=no)
-			dnl restore the CPPFLAGS
-			CPPFLAGS=$save_CPPFLAGS
+		AC_CACHE_CHECK([for LinuxThreads], cf_cv_linux_threads, [
+			res=`grep Linuxthreads /usr/include/pthread.h 2>/dev/null | wc -l`
+			if test "$res" -gt 0 ; then
+				cf_cv_linux_threads=yes
+			else
+				cf_cv_linux_threads=no
+			fi
 		])
 
-		if test $cf_cv_pthread_flag = yes ; then
-			LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
+		if test $cf_cv_linux_threads = yes ; then
+dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
+			LTHREAD_DEFS="$LTHREAD_DEFS -DHAVE_LINUX_THREADS"
 		fi
-		
+
+		dnl Now the hard part, how to link
+
+		dnl A few platforms have pthread support in standard libraries
+		AC_CHECK_FUNC(pthread_create,pthread_link=yes,pthread_link=no)
+
+		if test $pthread_link = no ; then
+			dnl try -pthread
+			AC_CACHE_CHECK([for pthread_create with -pthread],
+				cf_cv_pthread_flag, [
+				dnl save the CPPFLAGS
+				save_CPPFLAGS=$CPPFLAGS
+				CPPFLAGS="-pthread $CPPFLAGS"
+				AC_TRY_LINK([#include <pthread.h>],[
+					if(0) pthread_create((pthread_t*) 0,
+						(pthread_attr_t*) 0, 0, 0);
+					], cf_cv_pthread_flag=yes, cf_cv_pthread_flag=no)
+				dnl restore the CPPFLAGS
+				CPPFLAGS=$save_CPPFLAGS
+			])
+
+			if test $cf_cv_pthread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
+				pthread_link=yes
+			fi
+		fi
+
+		if test $pthread_link = no ; then
+			dnl try -lpthread
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthread, pthread_create, [
+				pthread_link=yes
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $pthread_link = no ; then
+			dnl try -lc_r
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(c_r, pthread_create, [
+				pthread_link=yes
+				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $pthread_link = no ; then
+			dnl try DEC Threads
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthread, pthread_create, [
+				pthread_link=yes
+				LTHREAD_DEFS="$LTHREAD_DEFS -DDEC_THREADS"
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
+				[-lmach -lexc -lc])
+			LIBS="$save_LIBS"
+		fi
+
 	else
 		LTHREAD_DEFS="-DNO_THREADS"
 	fi
 fi
+
+# check for strtok_r
+save_LIBS="$LIBS"
+LIBS="$save_LIBS $LTHREAD_LIBS"
+AC_CHECK_LIB(pthread,strtok_r)
+
+if test $ac_cv_lib_pthread_strtok_r = no ; then
+	AC_CHECK_LIB(c_r,strtok_r)
+	AC_CHECK_FUNCS(strtok_r pthread_init)
+	if test $ac_cv_lib_c_r_strtok_r = yes ; then
+		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
+	fi
+else
+	AC_CHECK_FUNCS(strtok_r)
+fi
+
+LIBS="$save_LIBS"
 
 
 ldbm_use="none"
@@ -429,10 +498,11 @@ AC_CHECK_FUNCS(		\
 	strtod			\
 	strtol			\
 	strtoul			\
+	strsep			\
 	memcpy			\
 )
 
-AC_REPLACE_FUNCS(strdup)
+AC_REPLACE_FUNCS(strsep strdup)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
