@@ -7,7 +7,10 @@
 
 #include "portable.h"
 
+#include "lber_pvt.h"
+
 #include "slap.h"
+
 
 /*
  * global variables, in general, should be declared in the file
@@ -16,6 +19,6 @@
  * sensible home.
  */
 
-const struct berval slap_empty_bv = { 0, "" };
-const struct berval slap_unknown_bv = { sizeof("unknown") - 1, "unknown" };
+const struct berval slap_empty_bv = BER_BVC("");
+const struct berval slap_unknown_bv = BER_BVC("unknown");
 
