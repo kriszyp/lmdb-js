@@ -64,8 +64,7 @@ ldbm_back_modify(
 		if ( err != LDAP_SUCCESS ) {
 			/* unlock entry, delete from cache */
 			send_ldap_result( conn, op, err, NULL, NULL );
-			cache_return_entry( &li->li_cache, e );
-			return( -1 );
+			goto error_return;
 		}
 	}
 
@@ -73,46 +72,47 @@ ldbm_back_modify(
 	pthread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
 		pthread_mutex_unlock( &op->o_abandonmutex );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
 	/* check that the entry still obeys the schema */
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, NULL,
-		    NULL );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, NULL, NULL );
+		goto error_return;
 	}
 
 	/* modify indexes */
 	if ( index_add_mods( be, mods, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 
 	/* check for abandon */
 	pthread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
 		pthread_mutex_unlock( &op->o_abandonmutex );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		cache_return_entry( &li->li_cache, e );
-		return( -1 );
+		goto error_return;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 	cache_return_entry( &li->li_cache, e );
 
 	return( 0 );
+
+error_return:;
+	cache_delete_entry( &li->li_cache, e );
+	cache_return_entry( &li->li_cache, e );
+
+	return( -1 );
 }
 
 static int
