@@ -30,7 +30,7 @@
 **		LDAP_API_FEATURE_OPERATION_THREAD_SAFE
 **
 ** The preprocessor flag LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
-** can be used to determine if -lldap_r is availalbe at compile
+** can be used to determine if -lldap_r is available at compile
 ** time.  You must define LDAP_THREAD_SAFE if and only if you
 ** link with -lldap_r.
 **
