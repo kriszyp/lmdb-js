@@ -83,6 +83,7 @@ static int
 meta_back_do_single_bind(
 		struct metaconn		*lc,
 		Operation		*op,
+		SlapReply		*rs,
 		int			candidate
 );
 
@@ -94,7 +95,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 
 	int rc = -1, i, gotit = 0, ndnlen, isroot = 0;
 	int op_type = META_OP_ALLOW_MULTIPLE;
-	int err = LDAP_SUCCESS;
+
+	rs->sr_err = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_META, ENTRY, "meta_back_bind: dn: %s.\n",
@@ -173,9 +175,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			op->oq_bind.rb_method = LDAP_AUTH_SIMPLE;
 		}
 		
-		lerr = meta_back_do_single_bind( lc, op, i );
+		lerr = meta_back_do_single_bind( lc, op, rs, i );
 		if ( lerr != LDAP_SUCCESS ) {
-			err = lerr;
+			rs->sr_err = lerr;
 			( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		} else {
 			rc = LDAP_SUCCESS;
@@ -196,7 +198,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	 * err is the last error that occurred during a bind;
 	 * if at least (and at most?) one bind succeedes, fine.
 	 */
-	if ( rc != LDAP_SUCCESS /* && err != LDAP_SUCCESS */ ) {
+	if ( rc != LDAP_SUCCESS /* && rs->sr_err != LDAP_SUCCESS */ ) {
 		
 		/*
 		 * deal with bind failure ...
@@ -206,11 +208,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		 * no target was found within the naming context, 
 		 * so bind must fail with invalid credentials
 		 */
-		if ( err == LDAP_SUCCESS && gotit == 0 ) {
-			err = LDAP_INVALID_CREDENTIALS;
+		if ( rs->sr_err == LDAP_SUCCESS && gotit == 0 ) {
+			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		}
 
-		rs->sr_err = ldap_back_map_result( err );
+		rs->sr_err = ldap_back_map_result( rs );
 		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -227,12 +229,12 @@ static int
 meta_back_do_single_bind(
 		struct metaconn		*lc,
 		Operation		*op,
+		SlapReply		*rs,
 		int			candidate
 )
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct berval	mdn = { 0, NULL };
-	int		rc;
 	ber_int_t	msgid;
 	
 	/*
@@ -266,19 +268,19 @@ meta_back_do_single_bind(
 	}
 
 	if ( op->o_ctrls ) {
-		rc = ldap_set_option( lc->conns[ candidate ].ld, 
+		rs->sr_err = ldap_set_option( lc->conns[ candidate ].ld, 
 				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
-		if ( rc != LDAP_SUCCESS ) {
-			rc = ldap_back_map_result( rc );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			rs->sr_err = ldap_back_map_result( rs );
 			goto return_results;
 		}
 	}
 	
-	rc = ldap_sasl_bind(lc->conns[ candidate ].ld, mdn.bv_val,
+	rs->sr_err = ldap_sasl_bind(lc->conns[ candidate ].ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->oq_bind.rb_cred,
 			op->o_ctrls, NULL, &msgid);
-	if ( rc != LDAP_SUCCESS ) {
-		rc = ldap_back_map_result( rc );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		rs->sr_err = ldap_back_map_result( rs );
 
 	} else {
 		/*
@@ -311,7 +313,7 @@ return_results:;
 		free( mdn.bv_val );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 /*
@@ -459,12 +461,13 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 	char *rmatch = NULL;
 
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		int err = LDAP_SUCCESS;
 		char *msg = NULL;
 		char *match = NULL;
 
-		ldap_get_option( lsc->ld, LDAP_OPT_ERROR_NUMBER, &err );
-		if ( err != LDAP_SUCCESS ) {
+		rs->sr_err = LDAP_SUCCESS;
+
+		ldap_get_option( lsc->ld, LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
 			/*
 			 * better check the type of error. In some cases
 			 * (search ?) it might be better to return a
@@ -475,7 +478,7 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 					LDAP_OPT_ERROR_STRING, &msg );
 			ldap_get_option( lsc->ld,
 					LDAP_OPT_MATCHED_DN, &match );
-			err = ldap_back_map_result( err );
+			rs->sr_err = ldap_back_map_result( rs );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, RESULTS,
@@ -496,9 +499,9 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 			/*
 			 * FIXME: need to rewrite "match" (need rwinfo)
 			 */
-			switch ( err ) {
+			switch ( rs->sr_err ) {
 			default:
-				rerr = err;
+				rerr = rs->sr_err;
 				rmsg = msg;
 				msg = NULL;
 				rmatch = match;

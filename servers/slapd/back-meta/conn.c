@@ -221,13 +221,13 @@ metaconn_free(
  */
 static int
 init_one_conn(
-		Operation *op,
-		SlapReply *rs,
+		Operation		*op,
+		SlapReply		*rs,
 		struct metatarget	*lt, 
 		struct metasingleconn	*lsc
 		)
 {
-	int		err, vers;
+	int		vers;
 
 	/*
 	 * Already init'ed
@@ -239,9 +239,9 @@ init_one_conn(
 	/*
 	 * Attempts to initialize the connection to the target ds
 	 */
-	err = ldap_initialize( &lsc->ld, lt->uri );
-	if ( err != LDAP_SUCCESS ) {
-		return ldap_back_map_result( err );
+	rs->sr_err = ldap_initialize( &lsc->ld, lt->uri );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		return ldap_back_map_result( rs );
 	}
 
 	/*

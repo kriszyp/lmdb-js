@@ -105,8 +105,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	LDAPMessage	*res, *e;
 	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
 	char *match = NULL, *err = NULL;
-	char *mbase = NULL, *mmatch = NULL;
-	struct berval mfilter;
+	char *mmatch = NULL;
 	BerVarray v2refs = NULL;
 		
 	int i, last = 0, candidates = 0;
@@ -210,10 +209,12 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * Inits searches
 	 */
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		char 	*realbase = ( char * )op->o_req_dn.bv_val;
-		int 	realscope = op->oq_search.rs_scope;
-		ber_len_t suffixlen;
-		char	**mapped_attrs;
+		char		*realbase = ( char * )op->o_req_dn.bv_val;
+		int		realscope = op->oq_search.rs_scope;
+		ber_len_t	suffixlen = 0;
+		char		*mbase = NULL; 
+		struct berval	mfilter = { 0L, NULL };
+		char		**mapped_attrs = NULL;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
 			msgid[ i ] = -1;
@@ -312,83 +313,53 @@ meta_back_search( Operation *op, SlapReply *rs )
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
+#if 0
 			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "rewrite error";
+			rs->sr_text = "Rewrite error";
 			send_ldap_result( op, rs );
 			rc = -1;
 			goto finish;
-		}
+#endif 
 
-#if 0
-		/*
-		 * Rewrite the search filter, if required
-		 */
-		switch ( rewrite_session( li->targets[ i ]->rwinfo,
-					"searchFilter",
-					filterstr->bv_val, conn, &mfilter.bv_val ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( mfilter.bv_val != NULL && mfilter.bv_val[ 0 ] != '\0') {
-				mfilter.bv_len = strlen( mfilter.bv_val );
-			} else {
-				if ( mfilter.bv_val != NULL ) {
-					free( mfilter.bv_val );
-				}
-				mfilter = *filterstr;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] searchFilter [%d]: \"%s\" -> \"%s\"\n",
-				i, filterstr->bv_val, mfilter.bv_val );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS,
-				"rw> searchFilter [%d]: \"%s\" -> \"%s\"\n",
-				i, filterstr->bv_val, mfilter.bv_val );
-#endif /* !NEW_LOGGING */
-			break;
-		
-		case REWRITE_REGEXEC_UNWILLING:
-			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Operation not allowed",
-					NULL, NULL );
-			rc = -1;
-			goto finish;
-
-		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, "Rewrite error", NULL, NULL );
-			rc = -1;
-			goto finish;
+			/*
+			 * this target is no longer candidate
+			 */
+			msgid[ i ] = -1;
+			goto new_candidate;
 		}
 
 		/*
-		 * Maps attributes in filter
+		 * Maps filter
 		 */
-		mapped_filter = ldap_back_map_filter( &li->targets[ i ]->at_map,
-				&li->targets[ i ]->oc_map, &mfilter,
-				BACKLDAP_MAP );
-		if ( mapped_filter == NULL ) {
-			mapped_filter = ( char * )mfilter.bv_val;
-		} else {
-			if ( mfilter.bv_val != filterstr->bv_val ) {
-				free( mfilter.bv_val );
-			}
-		}
-		mfilter.bv_val = NULL;
-		mfilter.bv_len = 0;
-#endif
-	
 		rc = ldap_back_filter_map_rewrite_( li->targets[ i ]->rwinfo,
 				op->o_conn,
 				&li->targets[ i ]->at_map,
 				&li->targets[ i ]->oc_map, 
 				op->oq_search.rs_filter,
 				&mfilter, BACKLDAP_MAP );
+		if ( rc != 0 ) {
+			/*
+			 * this target is no longer candidate
+			 */
+			msgid[ i ] = -1;
+			goto new_candidate;
+		}
 
 		/*
 		 * Maps required attributes
 		 */
-		mapped_attrs = ldap_back_map_attrs( &li->targets[ i ]->at_map,
-				op->oq_search.rs_attrs, BACKLDAP_MAP );
+		rc = ldap_back_map_attrs( &li->targets[ i ]->at_map,
+				op->oq_search.rs_attrs, BACKLDAP_MAP,
+				&mapped_attrs );
+		if ( rc != LDAP_SUCCESS ) {
+			/*
+			 * this target is no longer candidate
+			 */
+			msgid[ i ] = -1;
+			goto new_candidate;
+		}
+
+#if 0
 		if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
 			for ( count = 0; op->oq_search.rs_attrs[ count ].an_name.bv_val; count++ );
 			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
@@ -397,6 +368,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			}
 			mapped_attrs[ count ] = NULL;
 		}
+#endif
 
 		/*
 		 * Starts the search
@@ -553,9 +525,9 @@ new_candidate:;
 				}
 
 			} else {
-				sres = ldap_result2error( lsc->ld,
+				rs->sr_err = ldap_result2error( lsc->ld,
 						res, 1 );
-				sres = ldap_back_map_result( sres );
+				sres = ldap_back_map_result( rs );
 				if ( err != NULL ) {
 					free( err );
 				}

@@ -233,8 +233,8 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					goto finish;
 				}
 				
-				cres = ldap_result2error( lsc->ld, res, 1 );
-				switch ( cres ) {
+				rs->sr_err = ldap_result2error( lsc->ld, res, 1 );
+				switch ( rs->sr_err ) {
 				case LDAP_COMPARE_TRUE:
 				case LDAP_COMPARE_FALSE:
 
@@ -251,7 +251,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					break;
 
 				default:
-					rres = ldap_back_map_result( cres );
+					rres = ldap_back_map_result( rs );
 
 					if ( err != NULL ) {
 						free( err );
