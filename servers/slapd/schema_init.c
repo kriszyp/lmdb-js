@@ -408,6 +408,7 @@ bitStringValidate(
 	if( in->bv_len < 3 ) {
 		return LDAP_INVALID_SYNTAX;
 	}
+
 	if( in->bv_val[0] != 'B' ||
 		in->bv_val[1] != '\'' ||
 		in->bv_val[in->bv_len-1] != '\'' )
@@ -3182,8 +3183,6 @@ numericStringValidate(
 {
 	ber_len_t i;
 
-	/* disallow empty numeric strings */
-
 	for(i=0; i < in->bv_len; i++) {
 		if( !SLAP_NUMERIC(in->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -3218,7 +3217,7 @@ numericStringNormalize(
 		}
 	}
 
-	assert( newval->bv_val < p );
+	assert( newval->bv_val <= p );
 	assert( q <= p );
 
 	/* null terminate */
