@@ -28,6 +28,13 @@
 #include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */
 #include "lutil_ldap.h"
 
+#if 0
+struct sync_cookie *slap_sync_cookie = NULL;
+#else
+struct slap_sync_cookie_s slap_sync_cookie =
+	LDAP_STAILQ_HEAD_INITIALIZER( slap_sync_cookie );
+#endif
+
 int
 slap_build_sync_state_ctrl(
 	Operation	*op,
