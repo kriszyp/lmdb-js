@@ -833,8 +833,13 @@ LDAP_SLAPD_F( int ) mods_structural_class(
 /*
  * schema_init.c
  */
-LDAP_SLAPD_F (int) schema_init LDAP_P((void));
-LDAP_SLAPD_F (int) schema_prep LDAP_P((void));
+LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
+
+/*
+ * schema_prep.c
+ */
+LDAP_SLAPD_F (int) slap_schema_load LDAP_P((void));
+LDAP_SLAPD_F (int) slap_schema_check LDAP_P((void));
 
 /*
  * schemaparse.c

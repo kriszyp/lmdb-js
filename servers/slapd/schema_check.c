@@ -46,11 +46,19 @@ entry_schema_check(
 
 	*text = textbuf;
 
-	/* check single-valued attrs for multiple values */
+	/* misc attribute checks */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		/* there should be at least one value */
 		assert( a->a_vals );
 		assert( a->a_vals[0].bv_val != NULL ); 
+
+		if( a->a_desc->ad_type->sat_check ) {
+			int rc = (a->a_desc->ad_type->sat_check)(
+				e, a, text, textbuf, textlen );
+			if( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
+		}
 
 		/* if single value type, check for multiple values */
 		if( is_at_single_value( a->a_desc->ad_type ) &&

@@ -4252,9 +4252,11 @@ static struct syntax_defs_rec {
 		UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
 		NULL, NULL},
 
+#ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
 		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
+#endif
 
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
@@ -4551,6 +4553,7 @@ static struct mrule_defs_rec {
 		caseExactIA5SubstringsFilter,
 		NULL},
 
+#ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
@@ -4558,6 +4561,7 @@ static struct mrule_defs_rec {
 		NULL, NULL,
 		authPasswordMatch, NULL, NULL,
 		NULL},
+#endif
 
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
@@ -4584,7 +4588,7 @@ static struct mrule_defs_rec {
 };
 
 int
-schema_init( void )
+slap_schema_init( void )
 {
 	int		res;
 	int		i;
@@ -4606,7 +4610,7 @@ schema_init( void )
 		);
 
 		if ( res ) {
-			fprintf( stderr, "schema_init: Error registering syntax %s\n",
+			fprintf( stderr, "slap_schema_init: Error registering syntax %s\n",
 				 syntax_defs[i].sd_desc );
 			return LDAP_OTHER;
 		}
@@ -4615,7 +4619,7 @@ schema_init( void )
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
 		if( mrule_defs[i].mrd_usage == SLAP_MR_NONE ) {
 			fprintf( stderr,
-				"schema_init: Ingoring unusable matching rule %s\n",
+				"slap_schema_init: Ingoring unusable matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
 			continue;
 		}
@@ -4632,13 +4636,15 @@ schema_init( void )
 
 		if ( res ) {
 			fprintf( stderr,
-				"schema_init: Error registering matching rule %s\n",
+				"slap_schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
 			return LDAP_OTHER;
 		}
 	}
+
+	res = slap_schema_load();
 	schema_init_done = 1;
-	return LDAP_SUCCESS;
+	return res;
 }
 
 void

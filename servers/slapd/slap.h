@@ -409,6 +409,12 @@ typedef struct slap_matching_rule {
 
 struct slap_attr_desc;
 
+typedef int (AttributeTypeSchemaCheckFN)(
+	struct slap_entry *e,
+	struct slap_attr *attr,
+	const char** text,
+	char *textbuf, size_t textlen );
+
 typedef struct slap_attribute_type {
 	LDAPAttributeType		sat_atype;
 	struct berval			sat_cname;
@@ -419,6 +425,7 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
+	AttributeTypeSchemaCheckFN	*sat_check;
 	struct slap_attr_desc		*sat_ad;
 	struct slap_attribute_type	*sat_next;
 	ldap_pvt_thread_mutex_t		sat_ad_mutex;
@@ -444,11 +451,18 @@ typedef struct slap_attribute_type {
 #define is_at_obsolete(at)		((at)->sat_obsolete)
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
 
+typedef int (ObjectClassSchemaCheckFN)(
+	struct slap_entry *e,
+	struct slap_object_class *oc,
+	const char** text,
+	char *textbuf, size_t textlen );
+
 typedef struct slap_object_class {
 	LDAPObjectClass		soc_oclass;
 	struct slap_object_class	**soc_sups;
 	AttributeType			**soc_required;
 	AttributeType			**soc_allowed;
+	ObjectClassSchemaCheckFN	*sco_check;
 	struct slap_object_class	*soc_next;
 #define soc_oid			soc_oclass.oc_oid
 #define soc_names		soc_oclass.oc_names
@@ -537,8 +551,12 @@ struct slap_internal_schema {
 #endif
 
 	/* Other attributes descriptions */
+	AttributeDescription *si_ad_name;
+	AttributeDescription *si_ad_cn;
 	AttributeDescription *si_ad_userPassword;
+#ifdef SLAPD_AUTHPASSWD
 	AttributeDescription *si_ad_authPassword;
+#endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif

@@ -15,6 +15,8 @@
 
 #include "portable.h"
 
+#ifdef SLAP_AUTHPASSWD
+
 #include <stdio.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
@@ -938,3 +940,4 @@ static struct berval *hash_crypt(
 }
 #endif
 #endif
+#endif /* SLAPD_AUTHPASSWD */

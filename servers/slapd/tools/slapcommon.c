@@ -183,7 +183,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	rc = schema_init();
+	rc = slap_schema_init();
 
 	if (rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
@@ -204,7 +204,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	rc = schema_prep();
+	rc = slap_schema_check();
 
 	if (rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );

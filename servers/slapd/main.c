@@ -363,7 +363,7 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-	if ( schema_init( ) != 0 ) {
+	if ( slap_schema_init( ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			   "main: schema initialization error\n" ));
@@ -394,7 +394,7 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-	if ( schema_prep( ) != 0 ) {
+	if ( slap_schema_check( ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			   "main: schema prep error\n"));

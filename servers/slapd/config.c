@@ -1687,6 +1687,15 @@ read_config( const char *fname )
 				return( 1 );
 			}
 			if ( strcasecmp( cargv[1], "off" ) == 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s: line %d: schema checking disabled! your mileage may vary!\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: schema checking disabled! your mileage may vary!\n",
+				    fname, lineno, 0 );
+#endif
 				global_schemacheck = 0;
 			} else {
 				global_schemacheck = 1;
