@@ -137,6 +137,39 @@ ldap_send_initial_request(
 }
 
 
+int
+ldap_int_flush_request(
+	LDAP *ld,
+	LDAPRequest *lr
+)
+{
+	LDAPConn *lc = lr->lr_conn;
+
+	if ( ber_flush( lc->lconn_sb, lr->lr_ber, 0 ) != 0 ) {
+		if ( errno == EWOULDBLOCK || errno == EAGAIN ) {
+			/* need to continue write later */
+			lr->lr_status = LDAP_REQST_WRITING;
+			ldap_mark_select_write( ld, lc->lconn_sb );
+			ld->ld_errno = LDAP_BUSY;
+			return -2;
+		} else {
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			ldap_free_request( ld, lr );
+			ldap_free_connection( ld, lc, 0, 0 );
+			return( -1 );
+		}
+	} else {
+		if ( lr->lr_parent == NULL ) {
+			lr->lr_ber->ber_end = lr->lr_ber->ber_ptr;
+			lr->lr_ber->ber_ptr = lr->lr_ber->ber_buf;
+		}
+		lr->lr_status = LDAP_REQST_INPROGRESS;
+
+		/* sent -- waiting for a response */
+		ldap_mark_select_read( ld, lc->lconn_sb );
+	}
+	return 0;
+}
 
 int
 ldap_send_server_request(
@@ -189,6 +222,18 @@ ldap_send_server_request(
 	}
 
 	use_connection( ld, lc );
+
+	/* If we still have an incomplete write, try to finish it before
+	 * dealing with the new request. If we don't finish here, return
+	 * LDAP_BUSY and let the caller retry later. We only allow a single
+	 * request to be in WRITING state.
+	 */
+	if ( ld->ld_requests &&
+		ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
+		ldap_int_flush_request( ld, ld->ld_requests ) < 0 ) {
+		return -1;
+	}
+
 	if (( lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ))) ==
 	    NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
@@ -225,30 +270,8 @@ ldap_send_server_request(
 	ld->ld_requests = lr;
 	lr->lr_prev = NULL;
 
-	if ( ber_flush( lc->lconn_sb, ber, 0 ) != 0 ) {
-#ifdef notyet
-		if ( errno == EWOULDBLOCK ) {
-			/* need to continue write later */
-			lr->lr_status = LDAP_REQST_WRITING;
-			ldap_mark_select_write( ld, lc->lconn_sb );
-		} else {
-#else /* notyet */
-			ld->ld_errno = LDAP_SERVER_DOWN;
-			ldap_free_request( ld, lr );
-			ldap_free_connection( ld, lc, 0, 0 );
-			return( -1 );
-#endif /* notyet */
-#ifdef notyet
-		}
-#endif /* notyet */
-	} else {
-		if ( parentreq == NULL ) {
-			ber->ber_end = ber->ber_ptr;
-			ber->ber_ptr = ber->ber_buf;
-		}
-
-		/* sent -- waiting for a response */
-		ldap_mark_select_read( ld, lc->lconn_sb );
+	if ( ldap_int_flush_request( ld, lr ) == -1 ) {
+		return -1;
 	}
 
 	ld->ld_errno = LDAP_SUCCESS;

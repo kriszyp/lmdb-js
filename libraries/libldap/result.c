@@ -334,6 +334,12 @@ wait4msg(
 				    rc = -2;	/* select interrupted: loop */
 			    } else {
 				    rc = -2;
+				    if ( ld->ld_requests &&
+						ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
+						ldap_is_write_ready( ld,
+							ld->ld_requests->lr_conn->lconn_sb ) ) {
+						ldap_int_flush_request( ld, ld->ld_requests );
+					}
 				    for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
 				        lc = nextlc ) {
 					    nextlc = lc->lconn_next;

@@ -467,6 +467,7 @@ LDAP_F (int) ldap_chase_referrals( LDAP *ld, LDAPRequest *lr,
 LDAP_F (int) ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr,
 	char **refs, int sref, char **referralsp, int *hadrefp );
 LDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
+LDAP_F (int) ldap_int_flush_request( LDAP *ld, LDAPRequest *lr );
 
 /*
  * in result.c:

@@ -224,7 +224,7 @@ do_abandon(
 	}
 
 	if ( lr != NULL ) {
-		if ( sendabandon ) {
+		if ( sendabandon || lr->lr_status == LDAP_REQST_WRITING ) {
 			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 		}
 		if ( origid == msgid ) {
