@@ -158,6 +158,10 @@ ldap_send_unbind(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
 
+#ifdef LDAP_CONNECTIONLESS
+	if (LDAP_IS_UDP(ld))
+		return LDAP_SUCCESS;
+#endif
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( ld->ld_errno );

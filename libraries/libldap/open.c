@@ -236,6 +236,8 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 			ldap_ld_free(ld, 1, NULL, NULL);
 			return rc;
 		}
+		if (ldap_is_ldapc_url(url))
+			ld->ld_options.ldo_valid |= LDAP_UDP_SESSION;
 	}
 
 	*ldp = ld;
@@ -255,12 +257,12 @@ ldap_int_open_connection(
 	int sasl_ssf = 0;
 #endif
 	char *host;
-	int port;
+	int port, proto;
 	long addr;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
 
-	switch ( ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
+	switch ( proto = ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
 			port = htons( (short) srv->lud_port );
 
@@ -272,8 +274,8 @@ ldap_int_open_connection(
 				host = srv->lud_host;
 			}
 
-			rc = ldap_connect_to_host( ld, conn->lconn_sb, 0,
-				host, addr, port, async );
+			rc = ldap_connect_to_host( ld, conn->lconn_sb,
+				proto, host, addr, port, async );
 
 			if ( rc == -1 ) return rc;
 
@@ -288,13 +290,36 @@ ldap_int_open_connection(
 			sasl_host = ldap_host_connected_to( conn->lconn_sb );
 #endif
 			break;
+#ifdef LDAP_CONNECTIONLESS
+		case LDAP_PROTO_UDP:
+			port = htons( (short) srv->lud_port );
+
+			addr = 0;
+			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
+				host = NULL;
+				addr = htonl( INADDR_LOOPBACK );
+			} else {
+				host = srv->lud_host;
+			}
+			ld->ld_options.ldo_valid |= LDAP_UDP_SESSION;
+			rc = ldap_connect_to_host( ld, conn->lconn_sb,
+				proto, host, addr, port, async );
+
+			if ( rc == -1 ) return rc;
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"udp_" );
+#endif
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+			break;
+#endif
 		case LDAP_PROTO_IPC:
 #ifdef LDAP_PF_LOCAL
 			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
 			rc = ldap_connect_to_path( ld, conn->lconn_sb,
 				srv->lud_host, async );
 			if ( rc == -1 ) return rc;
-
 #ifdef LDAP_DEBUG
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 				LBER_SBIOD_LEVEL_PROVIDER, (void *)"ipc_" );
@@ -319,6 +344,11 @@ ldap_int_open_connection(
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 		INT_MAX, (void *)"ldap_" );
+#endif
+
+#ifdef LDAP_CONNECTIONLESS
+	if( proto == LDAP_PROTO_UDP )
+		return 0;
 #endif
 
 #ifdef HAVE_CYRUS_SASL

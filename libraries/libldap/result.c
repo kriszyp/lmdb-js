@@ -372,6 +372,12 @@ try_read1msg(
 
 	/* get the next message */
 	errno = 0;
+#ifdef LDAP_CONNECTIONLESS
+	if ( LDAP_IS_UDP(ld) ) {
+		struct sockaddr from;
+		ber_int_sb_read(sb, &from, sizeof(struct sockaddr));
+	}
+#endif
 	if ( (tag = ber_get_next( sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
 		if ( tag == LBER_DEFAULT) {
@@ -419,7 +425,14 @@ try_read1msg(
 		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
-
+#ifdef LDAP_CONNECTIONLESS
+	if (LDAP_IS_UDP(ld)) {
+		char *blank;
+		ber_scanf(ber, "a{", &blank);
+		if (blank)
+			ber_memfree(blank);
+	}
+#endif
 	/* the message type */
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;

@@ -35,22 +35,14 @@ int deny_severity = LOG_NOTICE;
 time_t starttime;
 ber_socket_t dtblsize;
 
-typedef union slap_sockaddr {
-	struct sockaddr sa_addr;
-	struct sockaddr_in sa_in_addr;
-#ifdef LDAP_PF_INET6
-	struct sockaddr_in6 sa_in6_addr;
-#endif
-#ifdef LDAP_PF_LOCAL
-	struct sockaddr_un sa_un_addr;
-#endif
-} Sockaddr;
-
 typedef struct slap_listener {
 	char* sl_url;
 	char* sl_name;
 #ifdef HAVE_TLS
 	int		sl_is_tls;
+#endif
+#ifdef LDAP_CONNECTIONLESS
+	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
 	ber_socket_t		sl_sd;
 	Sockaddr sl_sa;
@@ -498,6 +490,7 @@ static Listener * slap_open_listener(
 	unsigned short port;
 	int err, addrlen;
 	struct sockaddr **sal, **psal;
+	int socktype = SOCK_STREAM;	/* default to COTS */
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -543,7 +536,8 @@ static Listener * slap_open_listener(
 
 	port = (unsigned short) lud->lud_port;
 
-	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
+	tmp = ldap_pvt_url_scheme2proto(lud->lud_scheme);
+	if ( tmp == LDAP_PROTO_IPC ) {
 #ifdef LDAP_PF_LOCAL
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
 			err = slap_get_listener_addresses(LDAPI_SOCK, 0, &sal);
@@ -564,6 +558,10 @@ static Listener * slap_open_listener(
 		return NULL;
 #endif
 	} else {
+#ifdef LDAP_CONNECTIONLESS
+		if ( tmp == LDAP_PROTO_UDP )
+			l.sl_is_udp = 1;
+#endif
 		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
 			|| strcmp(lud->lud_host, "*") == 0 )
 		{
@@ -593,7 +591,11 @@ static Listener * slap_open_listener(
 			sal++;
 			continue;
 		}
-		l.sl_sd = socket( (*sal)->sa_family, SOCK_STREAM, 0);
+#ifdef LDAP_CONNECTIONLESS
+		if (l.sl_is_udp)
+		    socktype = SOCK_DGRAM;
+#endif
+		l.sl_sd = socket( (*sal)->sa_family, socktype, 0);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
@@ -931,6 +933,17 @@ slapd_daemon_task(
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 			continue;
+#ifdef LDAP_CONNECTIONLESS
+		/* Since this is connectionless, the data port is the
+		 * listening port. The listen() and accept() calls
+		 * are unnecessary.
+		 */
+		if ( slap_listeners[l]->sl_is_udp )
+		{
+			slapd_add( slap_listeners[l]->sl_sd );
+			continue;
+		}
+#endif
 
 		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
 			int err = sock_errno();
@@ -1145,6 +1158,26 @@ slapd_daemon_task(
 
 			if ( !FD_ISSET( slap_listeners[l]->sl_sd, &readfds ) )
 				continue;
+
+#ifdef LDAP_CONNECTIONLESS
+			if ( slap_listeners[l]->sl_is_udp )
+			{
+			/* The first time we receive a query, we set this
+			 * up as a "connection". It remains open for the life
+			 * of the slapd.
+			 */
+				if ( slap_listeners[l]->sl_is_udp < 2 )
+				{
+				    id = connection_init(
+				    	slap_listeners[l]->sl_sd,
+					slap_listeners[l]->sl_url, "", "",
+					slap_listeners[l]->sl_name,
+					2, ssf, authid );
+				    slap_listeners[l]->sl_is_udp++;
+				}
+				continue;
+			}
+#endif
 
 			s = accept( slap_listeners[l]->sl_sd,
 				(struct sockaddr *) &from, &len );
@@ -1404,6 +1437,13 @@ slapd_daemon_task(
 
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 				if ( i == slap_listeners[l]->sl_sd ) {
+#ifdef LDAP_CONNECTIONLESS
+				/* The listener is the data port. Don't
+				 * skip it.
+				 */
+					if (slap_listeners[l]->sl_is_udp)
+						continue;
+#endif
 					is_listener = 1;
 					break;
 				}
@@ -1453,6 +1493,10 @@ slapd_daemon_task(
 
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 				if ( i == slap_listeners[l]->sl_sd ) {
+#ifdef LDAP_CONNECTIONLESS
+					if (slap_listeners[l]->sl_is_udp)
+						continue;
+#endif
 					is_listener = 1;
 					break;
 				}
@@ -1501,6 +1545,10 @@ slapd_daemon_task(
 
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 				if ( rd == slap_listeners[l]->sl_sd ) {
+#ifdef LDAP_CONNECTIONLESS
+					if (slap_listeners[l]->sl_is_udp)
+						continue;
+#endif
 					is_listener = 1;
 					break;
 				}

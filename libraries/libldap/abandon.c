@@ -147,10 +147,25 @@ do_abandon(
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
-			/* create a message to send */
-			err = ber_printf( ber, "{iti",  /* '}' */
+#ifdef LDAP_CONNECTIONLESS
+			if ( LDAP_IS_UDP(ld) ) {
+			    err = ber_write( ber, ld->ld_options.ldo_peer,
+				sizeof(struct sockaddr), 0);
+			    if (err == sizeof(struct sockaddr)) {
+			    	char *dn = ld->ld_options.ldo_cldapdn;
+				if (!dn) dn = "";
+				err = ber_printf( ber, "{isti",  /* '}' */
+				    ++ld->ld_msgid, dn,
+				    LDAP_REQ_ABANDON, msgid );
+			    }
+			} else
+#endif
+			{
+			    /* create a message to send */
+			    err = ber_printf( ber, "{iti",  /* '}' */
 				++ld->ld_msgid,
-			    LDAP_REQ_ABANDON, msgid );
+				LDAP_REQ_ABANDON, msgid );
+			}
 
 			if( err == -1 ) {
 				/* encoding error */

@@ -60,6 +60,11 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 	if( strcmp("ldaps", scheme) == 0 ) {
 		return LDAP_PROTO_TCP;
 	}
+#ifdef LDAP_CONNECTIONLESS
+	if( strcmp("cldap", scheme) == 0 ) {
+		return LDAP_PROTO_UDP;
+	}
+#endif
 
 	return -1;
 }
@@ -126,6 +131,25 @@ ldap_is_ldapi_url( LDAP_CONST char *url )
 	return strcmp(scheme, "ldapi") == 0;
 }
 
+#ifdef LDAP_CONNECTIONLESS
+int
+ldap_is_ldapc_url( LDAP_CONST char *url )
+{
+	int	enclosed;
+	const char * scheme;
+
+	if( url == NULL ) {
+		return 0;
+	}
+
+	if( skip_url_prefix( url, &enclosed, &scheme ) == NULL ) {
+		return 0;
+	}
+
+	return strcmp(scheme, "cldap") == 0;
+}
+#endif
+
 static const char*
 skip_url_prefix(
 	const char *url,
@@ -180,6 +204,16 @@ skip_url_prefix(
 		*scheme = "ldapi";
 		return( p );
 	}
+
+#ifdef LDAP_CONNECTIONLESS
+	/* check for "cldap://" prefix */
+	if ( strncasecmp( p, LDAPC_URL_PREFIX, LDAPC_URL_PREFIX_LEN ) == 0 ) {
+		/* skip over "cldap://" prefix and return success */
+		p += LDAPC_URL_PREFIX_LEN;
+		*scheme = "cldap";
+		return( p );
+	}
+#endif
 
 	return( NULL );
 }

@@ -423,7 +423,16 @@ ldap_sasl_interactive_bind_s(
 #if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
 	ldap_pvt_thread_mutex_lock( &ldap_int_sasl_mutex );
 #endif
-
+#ifdef LDAP_CONNECTIONLESS
+	if( LDAP_IS_UDP(ld) ) {
+		/* Just force it to simple bind, silly to make the user
+		 * ask all the time. No, we don't ever actually bind, but I'll
+		 * let the final bind handler take care of saving the cdn.
+		 */
+		rc = ldap_simple_bind(ld, dn, NULL);
+		return rc < 0 ? rc : 0;
+	} else
+#endif
 	if( mechs == NULL || *mechs == '\0' ) {
 		char *smechs;
 

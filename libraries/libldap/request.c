@@ -107,6 +107,18 @@ ldap_send_initial_request(
 		servers = NULL;
 	}	
 
+#ifdef LDAP_CONNECTIONLESS
+	if (LDAP_IS_UDP(ld)) {
+		if (msgtype == LDAP_REQ_BIND) {
+			if (ld->ld_options.ldo_cldapdn)
+				ldap_memfree(ld->ld_options.ldo_cldapdn);
+			ld->ld_options.ldo_cldapdn = ldap_strdup(dn);
+			return 0;
+		}
+		if (msgtype != LDAP_REQ_ABANDON && msgtype != LDAP_REQ_SEARCH)
+			return LDAP_PARAM_ERROR;
+	}
+#endif
 	rc = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL,
 									servers, NULL, NULL );
 	if (servers)

@@ -198,6 +198,18 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	fd_set		efds;
 #endif
 
+#ifdef LDAP_CONNECTIONLESS
+	/* We could do a connect() but that would interfere with
+	 * attempts to poll a broadcast address
+	 */
+	if (LDAP_IS_UDP(ld)) {
+		if (ld->ld_options.ldo_peer)
+			ldap_memfree(ld->ld_options.ldo_peer);
+		ld->ld_options.ldo_peer=ldap_memalloc(sizeof(struct sockaddr));
+		AC_MEMCPY(ld->ld_options.ldo_peer,sin,sizeof(struct sockaddr));
+		return ( 0 );
+	}
+#endif
 	if ( (opt_tv = ld->ld_options.ldo_tm_net) != NULL ) {
 		tv.tv_usec = opt_tv->tv_usec;
 		tv.tv_sec = opt_tv->tv_sec;
@@ -293,9 +305,18 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	int			rc, i, use_hp = 0;
 	struct hostent		*hp = NULL;
 	char   			*ha_buf=NULL, *p, *q;
+	int			socktype;
 
 	osip_debug(ld, "ldap_connect_to_host: %s\n",host,0,0);
 	
+	switch(proto) {
+	case LDAP_PROTO_TCP: socktype = SOCK_STREAM; break;
+	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM; break;
+	default: osip_debug(ld, "ldap_connect_to_host: unknown proto: %d\n",
+				proto, 0, 0);
+		return -1;
+	}
+
 	if (host != NULL) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 		char serv[7];
@@ -304,7 +325,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		memset( &hints, '\0', sizeof(hints) );
 		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_socktype = socktype;
 
 		snprintf(serv, sizeof serv, "%d", ntohs(port));
 		if ( err = getaddrinfo(host, serv, &hints, &res) ) {
@@ -316,7 +337,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		rc = -1;
 		do {
 			/* we assume AF_x and PF_x are equal for all x */
-			s = ldap_int_socket( ld, sai->ai_family, SOCK_STREAM );
+			s = ldap_int_socket( ld, sai->ai_family, socktype );
 			if ( s == AC_SOCKET_INVALID ) {
 				continue;
 			}
@@ -384,7 +405,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	rc = s = -1;
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
 
-		s = ldap_int_socket( ld, PF_INET, SOCK_STREAM );
+		s = ldap_int_socket( ld, PF_INET, socktype );
 		if ( s == AC_SOCKET_INVALID ) {
 			/* use_hp ? continue : break; */
 			break;

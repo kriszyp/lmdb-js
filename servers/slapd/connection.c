@@ -317,7 +317,7 @@ long connection_init(
 	const char* dnsname,
 	const char* peername,
 	const char* sockname,
-	int use_tls,
+	int tls_udp_option,
 	slap_ssf_t ssf,
 	const char *authid )
 {
@@ -331,7 +331,7 @@ long connection_init(
 	assert( sockname != NULL );
 
 #ifndef HAVE_TLS
-	assert( !use_tls );
+	assert( tls_udp_option != 1 );
 #endif
 
 	if( s == AC_SOCKET_INVALID ) {
@@ -474,12 +474,27 @@ long connection_init(
 
     c->c_activitytime = c->c_starttime = slap_get_time();
 
+#ifdef LDAP_CONNECTIONLESS
+	c->c_is_udp = 0;
+	if (tls_udp_option == 2)
+	{
+		c->c_is_udp = 1;
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+		LBER_SBIOD_LEVEL_PROVIDER, (void*)"udp_" );
+#endif
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_udp,
+		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+	} else
+#endif
+	{
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
 		LBER_SBIOD_LEVEL_PROVIDER, (void*)"tcp_" );
 #endif
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp,
 		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+	}
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
 		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
@@ -511,7 +526,7 @@ long connection_init(
 	c->c_tls_ssf = 0;
 
 #ifdef HAVE_TLS
-    if ( use_tls ) {
+    if ( tls_udp_option == 1 ) {
 	    c->c_is_tls = 1;
 	    c->c_needs_tls_accept = 1;
     } else {
@@ -1160,6 +1175,10 @@ connection_input(
 	ber_len_t	len;
 	ber_int_t	msgid;
 	BerElement	*ber;
+#ifdef LDAP_CONNECTIONLESS
+	Sockaddr	peeraddr;
+	char 		*cdn = NULL;
+#endif
 
 	if ( conn->c_currentber == NULL && (conn->c_currentber = ber_alloc())
 	    == NULL ) {
@@ -1174,6 +1193,21 @@ connection_input(
 
 	errno = 0;
 
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp)
+	{
+		char	peername[sizeof("IP=255.255.255.255:65336")];
+		len = ber_int_sb_read(conn->c_sb, &peeraddr,
+			sizeof(struct sockaddr));
+		sprintf( peername, "IP=%s:%d",
+			inet_ntoa( peeraddr.sa_in_addr.sin_addr ),
+			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
+		Statslog( LDAP_DEBUG_STATS,
+			    "conn=%ld UDP request from %s (%s) accepted.\n",
+			    conn->c_connid, peername,
+			    conn->c_sock_name, 0, 0 );
+	}
+#endif
 	tag = ber_get_next( conn->c_sb, &len, conn->c_currentber );
 	if ( tag != LDAP_TAG_MESSAGE ) {
 		int err = errno;
@@ -1216,6 +1250,11 @@ connection_input(
 		ber_free( ber, 1 );
 		return -1;
 	}
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp) {
+		tag = ber_get_stringa( ber, &cdn );
+	}
+#endif
 
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		/* log, close and send error */
@@ -1232,6 +1271,22 @@ connection_input(
 		return -1;
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp && (tag != LDAP_REQ_ABANDON &&
+		tag != LDAP_REQ_SEARCH))
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+			   "connection_input: conn %d  invalid req for UDP 0x%lx.\n",
+			   conn->c_connid, tag ));
+#else
+		Debug( LDAP_DEBUG_ANY, "invalid req for UDP 0x%lx\n", tag, 0,
+		    0 );
+#endif
+		ber_free( ber, 1 );
+		return 0;
+	}
+#endif
 	if(tag == LDAP_REQ_BIND) {
 		/* immediately abandon all exiting operations upon BIND */
 		connection_abandon( conn );
@@ -1239,6 +1294,10 @@ connection_input(
 
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
+#ifdef LDAP_CONNECTIONLESS
+	op->o_peeraddr = peeraddr;
+	op->o_dn = cdn;
+#endif
 	if ( conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING )
 	{
@@ -1366,8 +1425,10 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_conn = conn;
 	arg->co_op = op;
 
-	arg->co_op->o_authz = conn->c_authz;
-	arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
+	if (!arg->co_op->o_dn) {
+	    arg->co_op->o_authz = conn->c_authz;
+	    arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
+	}
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
 	arg->co_op->o_authtype = conn->c_authtype;

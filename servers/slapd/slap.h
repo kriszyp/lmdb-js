@@ -218,6 +218,17 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_NOT_SUPPORTED	15
 #define SLAP_SCHERR_BAD_DESCR	16
 
+typedef union slap_sockaddr {
+	struct sockaddr sa_addr;
+	struct sockaddr_in sa_in_addr;
+#ifdef LDAP_PF_INET6
+	struct sockaddr_in6 sa_in6_addr;
+#endif
+#ifdef LDAP_PF_LOCAL
+	struct sockaddr_un sa_un_addr;
+#endif
+} Sockaddr;
+
 typedef struct slap_oid_macro {
 	struct berval som_oid;
 	char **som_names;
@@ -1127,6 +1138,9 @@ struct slap_backend_info {
 typedef struct slap_op {
 	ber_int_t	o_opid;		/* id of this operation		  */
 	ber_int_t	o_msgid;	/* msgid of the request		  */
+#ifdef LDAP_CONNECTIONLESS
+	Sockaddr	o_peeraddr;	/* UDP peer address		  */
+#endif
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
 
@@ -1194,6 +1208,9 @@ typedef struct slap_conn {
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int		c_writewaiter;	/* true if writer is waiting */
 
+#ifdef LDAP_CONNECTIONLESS
+	int	c_is_udp;		/* true if this is (C)LDAP over UDP */
+#endif
 #ifdef HAVE_TLS
 	int	c_is_tls;		/* true if this LDAP over raw TLS */
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */

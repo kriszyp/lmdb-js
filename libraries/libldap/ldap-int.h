@@ -68,6 +68,10 @@ LDAP_BEGIN_DECL
 #define LDAPS_URL_PREFIX_LEN	(sizeof(LDAPS_URL_PREFIX)-1)
 #define LDAPI_URL_PREFIX	"ldapi://"
 #define LDAPI_URL_PREFIX_LEN	(sizeof(LDAPI_URL_PREFIX)-1)
+#ifdef LDAP_CONNECTIONLESS
+#define LDAPC_URL_PREFIX	"cldap://"
+#define LDAPC_URL_PREFIX_LEN	(sizeof(LDAPC_URL_PREFIX)-1)
+#endif
 #define LDAP_URL_URLCOLON		"URL:"
 #define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
 
@@ -114,6 +118,12 @@ struct ldapoptions {
 #define LDAP_UNINITIALIZED	0x0
 #define LDAP_INITIALIZED	0x1
 #define LDAP_VALID_SESSION	0x2
+#ifdef LDAP_CONNECTIONLESS
+#define	LDAP_UDP_SESSION	0x4
+#define	LDAP_IS_UDP(ld)		(ld->ld_options.ldo_valid & LDAP_UDP_SESSION)
+	void*			ldo_peer;	/* struct sockaddr* */
+	char*			ldo_cldapdn;
+#endif
 
 	int		ldo_debug;
 	/* per API call timeout */
@@ -291,7 +301,7 @@ struct ldap {
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
 };
-#define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
+#define LDAP_VALID(ld)	( (ld)->ld_valid & LDAP_VALID_SESSION )
 
 #ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>

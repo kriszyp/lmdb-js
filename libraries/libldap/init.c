@@ -396,6 +396,11 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 
 	LDAP_BOOL_SET(gopts, LDAP_BOOL_REFERRALS);
 
+#ifdef LDAP_CONNECTIONLESS
+	gopts->ldo_peer = NULL;
+	gopts->ldo_cldapdn = NULL;
+#endif
+
 #ifdef HAVE_CYRUS_SASL
 	gopts->ldo_def_sasl_mech = NULL;
 	gopts->ldo_def_sasl_realm = NULL;

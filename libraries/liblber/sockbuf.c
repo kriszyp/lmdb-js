@@ -871,3 +871,106 @@ Sockbuf_IO ber_sockbuf_io_debug = {
 	sb_debug_write,		/* sbi_write */
 	NULL				/* sbi_close */
 };
+
+#ifdef LDAP_CONNECTIONLESS
+
+/*
+ * Support for UDP (CLDAP)
+ *
+ * All I/O at this level must be atomic. For ease of use, the sb_readahead
+ * must be used above this module. All data reads and writes are prefixed
+ * with a sockaddr containing the address of the remote entity. Upper levels
+ * must read and write this sockaddr before doing the usual ber_printf/scanf
+ * operations on LDAP messages.
+ */
+
+static int 
+sb_dgram_setup( Sockbuf_IO_Desc *sbiod, void *arg )
+{
+	assert( sbiod != NULL);
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	if ( arg != NULL )
+		sbiod->sbiod_sb->sb_fd = *((int *)arg);
+	return 0;
+}
+
+static ber_slen_t
+sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
+{
+	ber_slen_t rc;
+	socklen_t  addrlen;
+	struct sockaddr *src;
+   
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+	assert( buf != NULL );
+
+	addrlen = sizeof( struct sockaddr );
+	src = buf;
+	buf += addrlen;
+	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src,
+		&addrlen );
+
+	return rc > 0 ? rc+sizeof(struct sockaddr) : rc;
+}
+
+static ber_slen_t 
+sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
+{
+	ber_slen_t rc;
+	struct sockaddr *dst;
+   
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+	assert( buf != NULL );
+
+	dst = buf;
+	buf += sizeof( struct sockaddr );
+	len -= sizeof( struct sockaddr );
+   
+	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
+	     sizeof( struct sockaddr ) );
+
+	if ( rc < 0 )
+		return -1;
+   
+	/* fake error if write was not atomic */
+	if (rc < len) {
+# ifdef EMSGSIZE
+	errno = EMSGSIZE;
+# endif
+		return -1;
+	}
+	rc = len + sizeof(struct sockaddr);
+	return rc;
+}
+
+static int 
+sb_dgram_close( Sockbuf_IO_Desc *sbiod )
+{
+	assert( sbiod != NULL );
+	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
+
+	tcp_close( sbiod->sbiod_sb->sb_fd );
+	return 0;
+}
+
+static int
+sb_dgram_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
+{
+	/* This is an end IO descriptor */
+	return 0;
+}
+
+Sockbuf_IO ber_sockbuf_io_udp =
+{
+	sb_dgram_setup,		/* sbi_setup */
+	NULL,			/* sbi_remove */
+	sb_dgram_ctrl,		/* sbi_ctrl */
+	sb_dgram_read,		/* sbi_read */
+	sb_dgram_write,		/* sbi_write */
+	sb_dgram_close		/* sbi_close */
+};
+
+#endif	/* LDAP_CONNECTIONLESS */

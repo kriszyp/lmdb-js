@@ -309,10 +309,32 @@ send_ldap_response(
 		return;
 	}
 
-	rc = ber_printf( ber, "{it{ess",
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp) {
+	    rc = ber_write(ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+	    if (rc != sizeof(struct sockaddr)) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "send_ldap_response: conn %d  ber_write failed\n",
+			   conn ? conn->c_connid : 0 ));
+#else
+		Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
+#endif
+		ber_free(ber, 1);
+		return;
+	    }
+	    rc = ber_printf( ber, "{is{t{ess",
+		msgid, "", tag, err,
+		matched == NULL ? "" : matched,
+		text == NULL ? "" : text );
+	} else
+#endif
+	{
+	    rc = ber_printf( ber, "{it{ess",
 		msgid, tag, err,
 		matched == NULL ? "" : matched,
 		text == NULL ? "" : text );
+	}
 
 	if( rc != -1 ) {
 		if ( ref != NULL ) {
@@ -342,6 +364,11 @@ send_ldap_response(
 	if( rc != -1 ) {
 		rc = ber_printf( ber, "N}N}" );
 	}
+#ifdef LDAP_CONNECTIONLESS
+	if( conn->c_is_udp && rc != -1 ) {
+		rc = ber_printf( ber, "N}" );
+	}
+#endif
 
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
@@ -731,8 +758,28 @@ send_search_entry(
 		goto error_return;
 	}
 
-	rc = ber_printf( ber, "{it{s{" /*}}}*/, op->o_msgid,
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp) {
+	    rc = ber_write(ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+	    if (rc != sizeof(struct sockaddr)) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "send_search_entry: conn %d  ber_printf failed\n",
+			   conn ? conn->c_connid : 0 ));
+#else
+		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+		ber_free(ber, 1);
+		return;
+	    }
+	    rc = ber_printf( ber, "{is{t{s{",
+		op->o_msgid, "", LDAP_RES_SEARCH_ENTRY, e->e_dn );
+	} else
+#endif
+	{
+	    rc = ber_printf( ber, "{it{s{" /*}}}*/, op->o_msgid,
 		LDAP_RES_SEARCH_ENTRY, e->e_dn );
+	}
 
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
@@ -974,6 +1021,10 @@ send_search_entry(
 
 	rc = ber_printf( ber, /*{{{*/ "}N}N}" );
 
+#ifdef LDAP_CONNECTIONLESS
+	if (conn->c_is_udp && rc != -1)
+		rc = ber_printf( ber, "}" );
+#endif
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
