@@ -625,7 +625,7 @@ slapd_daemon_task(
 			char	*dnsname;
 			char	*peeraddr;
 
-			char	peername[sizeof("IP:255.255.255.255:65336")];
+			char	peername[sizeof("IP=255.255.255.255:65336")];
 
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
@@ -685,7 +685,7 @@ slapd_daemon_task(
 			}
 
 			peeraddr = inet_ntoa( from.sin_addr );
-			sprintf( peername, "IP:%s:%d",
+			sprintf( peername, "IP=%s:%d",
 				peeraddr != NULL ? peeraddr : "unknown",
 				(unsigned) ntohs( from.sin_port ) );
 
