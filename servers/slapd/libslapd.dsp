@@ -268,6 +268,10 @@ SOURCE=.\schema.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\schema_init.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schemaparse.c
 # End Source File
 # Begin Source File
