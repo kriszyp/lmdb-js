@@ -397,6 +397,7 @@ LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
 LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask_t **ctrlmasks ));
+LDAP_SLAPD_F (int) slap_find_control_id LDAP_P (( const char *oid, int *cid ));
 
 /*
  * config.c

@@ -348,6 +348,19 @@ find_ctrl( const char *oid )
 	return NULL;
 }
 
+int
+slap_find_control_id(
+	const char *oid,
+	int *cid )
+{
+	slap_control *ctrl = find_ctrl( oid );
+	if ( ctrl && cid ) {
+		*cid = ctrl->sc_cid;
+		return LDAP_SUCCESS;
+	}
+	return LDAP_CONTROL_NOT_FOUND;
+}
+
 void slap_free_ctrls(
 	Operation *op,
 	LDAPControl **ctrls )
