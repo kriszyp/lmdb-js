@@ -57,6 +57,8 @@ ldap_back_db_config(
 
 	/* server address to query (depricated, use "uri" directive) */
 	if ( strcasecmp( argv[0], "server" ) == 0 ) {
+		ber_len_t	l;
+
 		if (argc != 2) {
 			fprintf( stderr,
 	"%s: line %d: missing address in \"server <address>\" line\n",
@@ -65,16 +67,19 @@ ldap_back_db_config(
 		}
 		if (li->url != NULL)
 			ch_free(li->url);
-		li->url = ch_calloc(strlen(argv[1]) + 9, sizeof(char));
-		if (li->url != NULL) {
-			strcpy(li->url, "ldap://");
-			strcat(li->url, argv[1]);
-			strcat(li->url, "/");
+		l = strlen( argv[1] ) + STRLENOF( "ldap:///") + 1;
+		li->url = ch_calloc( l, sizeof( char ) );
+		if (li->url == NULL) {
+			fprintf( stderr, "%s: line %d: malloc failed\n" );
+			return 1;
 		}
+
+		snprintf( li->url, l, "ldap://%s/", argv[1] );
 
 	/* URI of server to query (preferred over "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
-		LDAPURLDesc	tmplud;
+		LDAPURLDesc	tmplud, *tmpludp;
+		int		urlrc;
 
 		if (argc != 2) {
 			fprintf( stderr, "%s: line %d: "
@@ -87,46 +92,109 @@ ldap_back_db_config(
 			ch_free( li->url );
 		}
 		if ( li->lud != NULL ) {
-			ldap_free_urldesc( li->lud );
-		}
-
-		if ( ldap_url_parse( argv[ 1 ], &li->lud ) != LDAP_URL_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-				"unable to parse uri \"%s\" "
-				"in \"uri <uri>\" line\n",
-				fname, lineno, argv[ 1 ] );
-			return 1;
-		}
-
-		if ( ( li->lud->lud_dn != NULL && li->lud->lud_dn[0] != '\0' )
-				|| li->lud->lud_attrs != NULL
-				|| li->lud->lud_filter != NULL
-				|| li->lud->lud_exts != NULL )
-		{
-			fprintf( stderr, "%s: line %d: "
-				"warning, only protocol, "
-				"host and port allowed "
-				"in \"uri <uri>\" line\n",
-				fname, lineno );
+			ldap_free_urllist( li->lud );
 		}
 
 #if 0
-		tmplud = *lud;
-		tmplud.lud_dn = "";
-		tmplud.lud_attrs = NULL;
-		tmplud.lud_filter = NULL;
-		if ( !ldap_is_ldapi_url( argv[ 1 ] ) ) {
-			tmplud.lud_exts = NULL;
-			tmplud.lud_crit_exts = 0;
-		}
-		
-		li->url = ldap_url_desc2str( &tmplud );
-		if ( li->url == NULL ) {
+		/* PARANOID: DN and more are not required nor allowed */
+		urlrc = ldap_url_parselist_ext( &li->lud, argv[ 1 ], "\t" );
+#else
+		urlrc =  ldap_url_parselist( &li->lud, argv[ 1 ] );
+#endif
+		if ( urlrc != LDAP_SUCCESS ) {
+			char	*why;
+
+			switch ( urlrc ) {
+			case LDAP_URL_ERR_MEM:
+				why = "no memory";
+				break;
+			case LDAP_URL_ERR_PARAM:
+		  		why = "parameter is bad";
+				break;
+			case LDAP_URL_ERR_BADSCHEME:
+				why = "URL doesn't begin with \"[c]ldap[si]://\"";
+				break;
+			case LDAP_URL_ERR_BADENCLOSURE:
+				why = "URL is missing trailing \">\"";
+				break;
+			case LDAP_URL_ERR_BADURL:
+				why = "URL is bad";
+			case LDAP_URL_ERR_BADHOST:
+				why = "host/port is bad";
+				break;
+			case LDAP_URL_ERR_BADATTRS:
+				why = "bad (or missing) attributes";
+				break;
+			case LDAP_URL_ERR_BADSCOPE:
+				why = "scope string is invalid (or missing)";
+				break;
+			case LDAP_URL_ERR_BADFILTER:
+				why = "bad or missing filter";
+				break;
+			case LDAP_URL_ERR_BADEXTS:
+				why = "bad or missing extensions";
+				break;
+			default:
+				why = "unknown reason";
+				break;
+			}
 			fprintf( stderr, "%s: line %d: "
-				"unable to rebuild uri \"%s\" "
-				"in \"uri <uri>\" line\n",
-				fname, lineno, argv[ 1 ] );
+				"unable to parse uri \"%s\" "
+				"in \"uri <uri>\" line: %s\n",
+				fname, lineno, argv[ 1 ], why );
 			return 1;
+		}
+
+		for ( tmpludp = li->lud; tmpludp; tmpludp = tmpludp->lud_next ) {
+			if ( ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[0] != '\0' )
+					|| tmpludp->lud_attrs != NULL
+					|| tmpludp->lud_filter != NULL
+					|| tmpludp->lud_exts != NULL )
+			{
+				fprintf( stderr, "%s: line %d: "
+					"warning, only protocol, "
+					"host and port allowed "
+					"in \"uri <uri>\" statement "
+					"for \"%s\"\n",
+					fname, lineno, argv[1] );
+			}
+		}
+
+#if 0
+		for ( tmpludp = li->lud; tmpludp; tmpludp = tmpludp->lud_next ) {
+			char		*tmpurl;
+			ber_len_t	oldlen = 0, len;
+
+			tmplud = *tmpludp;
+			tmplud.lud_dn = "";
+			tmplud.lud_attrs = NULL;
+			tmplud.lud_filter = NULL;
+			if ( !ldap_is_ldapi_url( argv[ 1 ] ) ) {
+				tmplud.lud_exts = NULL;
+				tmplud.lud_crit_exts = 0;
+			}
+
+			tmpurl = ldap_url_desc2str( &tmplud );
+
+			if ( tmpurl == NULL ) {
+				fprintf( stderr, "%s: line %d: "
+					"unable to rebuild uri "
+					"in \"uri <uri>\" statement "
+					"for \"%s\"\n",
+					fname, lineno, argv[ 1 ] );
+				return 1;
+			}
+
+			len = strlen( tmpurl );
+			if ( li->url ) {
+				oldlen = strlen( li->url ) + STRLENOF( " " );
+			}
+			li->url = ch_realloc( li->url, oldlen + len + 1);
+			if ( oldlen ) {
+				li->url[oldlen - 1] = " ";
+			}
+			AC_MEMCPY( &li->url[oldlen], tmpurl, len + 1 );
+			ch_free( tmpurl );
 		}
 #else
 		li->url = ch_strdup( argv[ 1 ] );
