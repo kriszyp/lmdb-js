@@ -72,8 +72,8 @@ access_allowed(
 
 	if (a) {
 		for (i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++) {
-			Debug( LDAP_DEBUG_ARGS, "=> match[%d]: %d %d ",
-				i, matches[i].rm_so, matches[i].rm_eo );
+			Debug( LDAP_DEBUG_ARGS, "=> match[%d]: %d %d ", i,
+			       (int)matches[i].rm_so, (int)matches[i].rm_eo );
 
 			if( matches[i].rm_so <= matches[0].rm_eo ) {
 				for ( n = matches[i].rm_so; n < matches[i].rm_eo; n++) {
@@ -129,7 +129,7 @@ acl_get_applicable(
 	for ( i = 1, a = be->be_acl; a != NULL; a = a->acl_next, i++ ) {
 		if (a->acl_dnpat != NULL) {
 			Debug( LDAP_DEBUG_TRACE, "=> dnpat: [%d] %s nsub: %d\n", 
-				i, a->acl_dnpat, a->acl_dnre.re_nsub);
+				i, a->acl_dnpat, (int) a->acl_dnre.re_nsub);
 
 			if (regexec(&a->acl_dnre, edn, nmatch, matches, 0))
 				continue;
@@ -160,7 +160,7 @@ acl_get_applicable(
 	for ( i = 1, a = global_acl; a != NULL; a = a->acl_next, i++ ) {
 		if (a->acl_dnpat != NULL) {
 			Debug( LDAP_DEBUG_TRACE, "=> dnpat: [%d] %s nsub: %d\n", 
-				i, a->acl_dnpat, a->acl_dnre.re_nsub);
+				i, a->acl_dnpat, (int) a->acl_dnre.re_nsub);
 
 			if (regexec(&a->acl_dnre, edn, nmatch, matches, 0)) {
 				continue;
