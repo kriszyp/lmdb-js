@@ -468,3 +468,47 @@ ldap_back_filter_map_rewrite(
 	return 0;
 }
 
+int
+ldap_dnattr_rewrite(
+	dncookie		*dc,
+	BerVarray		a_vals
+)
+{
+	struct berval	bv;
+	int		i, last;
+
+	for ( last = 0; a_vals[last].bv_val != NULL; last++ );
+	last--;
+
+	for ( i = 0; a_vals[i].bv_val != NULL; i++ ) {
+		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
+		case LDAP_SUCCESS:
+		case LDAP_OTHER:	/* ? */
+		default:		/* ??? */
+			/* leave attr untouched if massage failed */
+			if ( bv.bv_val && bv.bv_val != a_vals[i].bv_val ) {
+				ch_free( a_vals[i].bv_val );
+				a_vals[i] = bv;
+			}
+			break;
+
+		case LDAP_UNWILLING_TO_PERFORM:
+			/*
+			 * FIXME: need to check if it may be considered 
+			 * legal to trim values when adding/modifying;
+			 * it should be when searching (see ACLs).
+			 */
+			ch_free( a_vals[i].bv_val );
+			if (last > i ) {
+				a_vals[i] = a_vals[last];
+			}
+			a_vals[last].bv_len = 0;
+			a_vals[last].bv_val = NULL;
+			last--;
+			break;
+		}
+	}
+	
+	return 0;
+}
+
