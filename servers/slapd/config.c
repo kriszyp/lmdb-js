@@ -2930,6 +2930,7 @@ fp_getline_init( int *lineno )
 static int
 load_ucdata( char *path )
 {
+#if 0
 	static int loaded = 0;
 	int err;
 	
@@ -2950,6 +2951,10 @@ load_ucdata( char *path )
 	}
 	loaded = 1;
 	return( 1 );
+#else
+	/* ucdata is now hardcoded */
+	return( 0 );
+#endif
 }
 
 void
