@@ -1593,10 +1593,14 @@ typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
 typedef int (slap_sendentry)( BackendDB *, struct slap_conn *,
 	struct slap_op *, Entry *, AttributeName *, int, LDAPControl **);
 
+typedef int (slap_sendreference)( BackendDB *, struct slap_conn *,
+	struct slap_op *, Entry *, BerVarray, LDAPControl **, BerVarray * );
+
 typedef struct slap_callback {
 	slap_response *sc_response;
 	slap_sresult *sc_sresult;
 	slap_sendentry *sc_sendentry;
+	slap_sendreference *sc_sendreference;
 	void *sc_private;
 } slap_callback;
 
@@ -1880,11 +1884,11 @@ typedef struct slap_conn {
 
 	void    *c_pb;                  /* Netscape plugin */
 
-    /*
+	/*
 	 * These are the "callbacks" that are available for back-ends to
 	 * supply data back to connected clients that are connected
 	 * through the "front-end".
-	*/
+	 */
 	SEND_LDAP_RESULT c_send_ldap_result;
 	SEND_SEARCH_ENTRY c_send_search_entry;
 	SEND_SEARCH_RESULT c_send_search_result;

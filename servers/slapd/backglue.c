@@ -276,6 +276,31 @@ glue_back_sendentry (
 }
 
 static int
+glue_back_sendreference (
+	BackendDB *be,
+	Connection *c,
+	Operation *op,
+	Entry *e,
+	BerVarray bv,
+	LDAPControl **ctrls,
+	BerVarray *v2
+)
+{
+	slap_callback *tmp = op->o_callback;
+	glue_state *gs = tmp->sc_private;
+	int rc;
+
+	op->o_callback = gs->prevcb;
+	if (op->o_callback && op->o_callback->sc_sendreference) {
+		rc = op->o_callback->sc_sendreference( be, c, op, e, bv, ctrls, v2 );
+	} else {
+		rc = send_search_reference( be, c, op, e, bv, ctrls, v2 );
+	}
+	op->o_callback = tmp;
+	return rc;
+}
+
+static int
 glue_back_search (
 	BackendDB *b0,
 	Connection *conn,

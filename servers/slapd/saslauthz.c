@@ -341,6 +341,12 @@ void slap_cb_null_sresult( Connection *conn, Operation *o, ber_int_t err,
 {
 }
 
+int slap_cb_null_sreference( BackendDB *db, Connection *conn, Operation *o, 
+	Entry *e, BerVarray r, LDAPControl **c, BerVarray *v2)
+{
+	return 0;
+}
+
 /* This callback actually does some work...*/
 static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 	Entry *e, AttributeName *an, int ao, LDAPControl **c)
@@ -564,7 +570,7 @@ void slap_sasl2dn( Connection *conn,
 	int scope = LDAP_SCOPE_BASE;
 	Filter *filter = NULL;
 	slap_callback cb = { slap_cb_null_response,
-		slap_cb_null_sresult, sasl_sc_sasl2dn, NULL};
+		slap_cb_null_sresult, sasl_sc_sasl2dn, slap_cb_null_sreference, NULL};
 	Operation op = {0};
 	struct berval regout = { 0, NULL };
 

@@ -1299,6 +1299,10 @@ slap_send_search_reference(
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
+	if (op->o_callback && op->o_callback->sc_sendreference) {
+		return op->o_callback->sc_sendreference( be, conn, op, e, refs, ctrls, v2refs );
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
 		"send_search_reference: conn %lu  dn=\"%s\"\n", 
