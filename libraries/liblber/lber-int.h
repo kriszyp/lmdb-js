@@ -33,10 +33,18 @@ struct lber_options {
 	long		lbo_meminuse;
 };
 
-#ifdef LDAP_LOG
-#undef LDAP_LOG
+#ifdef NEW_LOGGING
+#    ifdef LDAP_DEBUG
+#        ifdef LDAP_LOG
+#            undef LDAP_LOG
+#        endif
+#        define LDAP_LOG(a) ber_pvt_log_output a
+#        define BER_DUMP(a) ber_output_dump a
+#    else
+#        define LDAP_LOG(a)
+#        define BER_DUMP(a)
+#    endif
 #endif
-#define LDAP_LOG(a) ber_pvt_log_output a
 
 #define LBER_UNINITIALIZED		0x0
 #define LBER_INITIALIZED		0x1
@@ -106,6 +114,15 @@ int ber_realloc LDAP_P((
  * bprint.c
  */
 #define ber_log_printf ber_pvt_log_printf
+
+#ifdef NEW_LOGGING
+LBER_F( int )
+ber_output_dump LDAP_P((
+                        char *subsys,
+                        int level,
+                        BerElement *ber,
+                        int inout ));
+#endif
 
 LBER_F( int )
 ber_log_bprint LDAP_P((
