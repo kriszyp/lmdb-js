@@ -45,6 +45,7 @@ fi
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
 md5 $RELNAME.tgz > $RELNAME.md5
+rm -f $RELNAME.tar
 
 ls -l $RELNAME.*
 cat $RELNAME/build/version
