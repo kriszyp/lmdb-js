@@ -435,7 +435,7 @@ slap_sl_free(void *ptr, void *ctx)
 	unsigned long diff;
 	int i, k, inserted = 0;
 
-	Debug( LDAP_DEBUG_ANY, "slap_sl_free \n", 0, 0, 0);
+	Debug( LDAP_DEBUG_ANY, "==> slap_sl_free \n", 0, 0, 0);
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);

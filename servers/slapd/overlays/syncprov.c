@@ -65,17 +65,17 @@ typedef struct syncops {
 	ldap_pvt_thread_mutex_t	s_mutex;
 } syncops;
 
-static int	sync_cid;
-
 /* A received sync control */
 typedef struct sync_control {
 	struct sync_cookie sr_state;
 	int sr_rhint;
 } sync_control;
 
+#if 0 /* moved back to slap.h */
+#define	o_sync	o_ctrlflag[slap_cids.sc_LDAPsync]
+#endif
 /* o_sync_mode uses data bits of o_sync */
-#define	o_sync	o_ctrlflag[sync_cid]
-#define	o_sync_mode	o_ctrlflag[sync_cid]
+#define	o_sync_mode	o_ctrlflag[slap_cids.sc_LDAPsync]
 
 #define SLAP_SYNC_NONE					(LDAP_SYNC_NONE<<SLAP_CONTROL_SHIFT)
 #define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
@@ -558,7 +558,7 @@ syncprov_findcsn( Operation *op, int mode )
 	int rc;
 	fpres_cookie pcookie;
 	int locked = 0;
-	sync_control *srs = op->o_controls[sync_cid];
+	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
 		return LDAP_OTHER;
@@ -700,9 +700,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 		e_uuid.e_nname = opc->sndn;
 		rs.sr_entry = &e_uuid;
 		if ( opc->sreference ) {
-			struct berval bv;
-			bv.bv_val = NULL;
-			bv.bv_len = 0;
+			struct berval bv = BER_BVNULL;
 			rs.sr_ref = &bv;
 			send_search_reference( &sop, &rs );
 		} else {
@@ -977,7 +975,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		cbuf[0] = '\0';
 		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
 		slap_get_commit_csn( op, &maxcsn );
-		if ( maxcsn.bv_val ) {
+		if ( !BER_BVISNULL( &maxcsn ) ) {
 			strcpy( cbuf, maxcsn.bv_val );
 			if ( ber_bvcmp( &maxcsn, &si->si_ctxcsn ) > 0 ) {
 				strcpy( si->si_ctxcsnbuf, cbuf );
@@ -1056,7 +1054,7 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 		e.e_name = op->o_bd->be_suffix[0];
 		e.e_nname = op->o_bd->be_nsuffix[0];
 
-		bv[1].bv_val = NULL;
+		BER_BVZERO( &bv[1] );
 		bv[0] = si->si_ctxcsn;
 
 		a.a_desc = slap_schema.si_ad_contextCSN;
@@ -1202,7 +1200,7 @@ syncprov_detach_op( Operation *op, syncops *so )
 	char *ptr;
 
 	/* count the search attrs */
-	for (i=0; op->ors_attrs && op->ors_attrs[i].an_name.bv_val; i++) {
+	for (i=0; op->ors_attrs && !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++) {
 		alen += op->ors_attrs[i].an_name.bv_len + 1;
 	}
 	/* Make a new copy of the operation */
@@ -1219,13 +1217,12 @@ syncprov_detach_op( Operation *op, syncops *so )
 	if ( i ) {
 		op2->ors_attrs = (AttributeName *)(op2->o_hdr + 1);
 		ptr = (char *)(op2->ors_attrs+i+1);
-		for (i=0; op->ors_attrs[i].an_name.bv_val; i++) {
+		for (i=0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++) {
 			op2->ors_attrs[i] = op->ors_attrs[i];
 			op2->ors_attrs[i].an_name.bv_val = ptr;
 			ptr = lutil_strcopy( ptr, op->ors_attrs[i].an_name.bv_val ) + 1;
 		}
-		op2->ors_attrs[i].an_name.bv_val = NULL;
-		op2->ors_attrs[i].an_name.bv_len = 0;
+		BER_BVZERO( &op2->ors_attrs[i].an_name );
 	} else {
 		ptr = (char *)(op2->o_hdr + 1);
 	}
@@ -1257,7 +1254,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
 	syncprov_info_t		*si = on->on_bi.bi_private;
-	sync_control *srs = op->o_controls[sync_cid];
+	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
@@ -1366,7 +1363,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	srs = op->o_controls[sync_cid];
+	srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {
@@ -1738,7 +1735,7 @@ static int syncprov_parseCtrl (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "Sync control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1803,7 +1800,7 @@ static int syncprov_parseCtrl (
 		slap_parse_sync_cookie( &sr->sr_state );
 	}
 
-	op->o_controls[sync_cid] = sr;
+	op->o_controls[slap_cids.sc_LDAPsync] = sr;
 
 	(void) ber_free( ber, 1 );
 
@@ -1830,7 +1827,7 @@ syncprov_init()
 
 	rc = register_supported_control( LDAP_CONTROL_SYNC,
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
-		syncprov_parseCtrl, &sync_cid );
+		syncprov_parseCtrl, &slap_cids.sc_LDAPsync );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register control %d\n", rc );
 		return rc;

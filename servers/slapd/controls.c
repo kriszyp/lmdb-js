@@ -74,8 +74,19 @@ static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
 /*
  * all known request control OIDs should be added to this list
  */
+/*
+ * NOTE: initialize num_known_controls to 1 so that cid = 0 always
+ * addresses an undefined control; this allows to safely test for 
+ * well known controls even if they are not registered, e.g. if 
+ * they get moved to modules.  An example is sc_LDAPsync, which 
+ * is implemented in the syncprov overlay and thus, if configured 
+ * as dynamic module, may not be registered.  One side effect is that 
+ * slap_known_controls[0] == NULL, so it should always be used 
+ * starting from 1.
+ * FIXME: should we define the "undefined control" oid?
+ */
 char *slap_known_controls[SLAP_MAX_CIDS+1];
-static int num_known_controls;
+static int num_known_controls = 1;
 
 static char *proxy_authz_extops[] = {
 	LDAP_EXOP_MODIFY_PASSWD,
@@ -169,6 +180,7 @@ register_supported_control(const char *controloid,
 	int *controlcid)
 {
 	struct slap_control *sc;
+	int i;
 
 	if ( num_known_controls >= SLAP_MAX_CIDS ) {
 		Debug( LDAP_DEBUG_ANY, "Too many controls registered."
@@ -178,6 +190,16 @@ register_supported_control(const char *controloid,
 	}
 
 	if ( controloid == NULL ) return LDAP_PARAM_ERROR;
+
+	/* sanity check - should never happen */
+	for ( i = 1; slap_known_controls[ i ]; i++ ) {
+		if ( strcmp( controloid, slap_known_controls[ i ] ) == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Control %s already registered.\n",
+				controloid, 0, 0 );
+			return LDAP_PARAM_ERROR;
+		}
+	}
 
 	sc = (struct slap_control *)SLAP_MALLOC( sizeof( *sc ) );
 	if ( sc == NULL ) return LDAP_NO_MEMORY;
@@ -353,7 +375,7 @@ slap_find_control_id(
 	const char *oid,
 	int *cid )
 {
-	slap_control *ctrl = find_ctrl( oid );
+	struct slap_control *ctrl = find_ctrl( oid );
 	if ( ctrl ) {
 		if ( cid ) *cid = ctrl->sc_cid;
 		return LDAP_SUCCESS;

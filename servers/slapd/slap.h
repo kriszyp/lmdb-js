@@ -2131,6 +2131,7 @@ struct slap_control_ids {
 	int sc_treeDelete;
 	int sc_searchOptions;
 	int sc_subentries;
+	int sc_LDAPsync;
 };
 
 /*
@@ -2329,6 +2330,8 @@ typedef struct slap_op {
 
 #define o_pagedresults	o_ctrlflag[slap_cids.sc_pagedResults]
 #define o_pagedresults_state	o_controls[slap_cids.sc_pagedResults]
+
+#define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
 
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 

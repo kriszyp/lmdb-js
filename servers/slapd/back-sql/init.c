@@ -47,11 +47,6 @@ sql_back_initialize(
 
 	Debug( LDAP_DEBUG_TRACE,"==>sql_back_initialize()\n", 0, 0, 0 );
 	
-	bi->bi_open = 0;
-	bi->bi_config = 0;
-	bi->bi_close = 0;
-	bi->bi_destroy = 0;
-
 	bi->bi_db_init = backsql_db_init;
 	bi->bi_db_config = backsql_db_config;
 	bi->bi_db_open = backsql_db_open;
@@ -77,7 +72,6 @@ sql_back_initialize(
 	Debug( LDAP_DEBUG_TRACE,"<==sql_back_initialize()\n", 0, 0, 0 );
 	return 0;
 }
-
 
 int
 backsql_destroy( 
