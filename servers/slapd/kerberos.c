@@ -19,9 +19,6 @@
 
 #define LDAP_KRB_PRINCIPAL	"ldapserver"
 
-extern char		*ldap_srvtab;
-extern Attribute	*attr_find();
-
 krbv4_ldap_auth(
     Backend		*be,
     struct berval	*cred,

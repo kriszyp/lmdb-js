@@ -591,6 +591,7 @@ LIBSLAPD_F (int) slap_passwd_parse(
  * kerberos.c
  */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+extern char		*ldap_srvtab;
 LIBSLAPD_F (int)	krbv4_ldap_auth();
 #endif
 
