@@ -1010,7 +1010,7 @@ tls_seed_PRNG( const char *randfile )
 
 	if (randfile == NULL) {
 		Debug( LDAP_DEBUG_ANY,
-			"TLS: Use configuration file or $RANDFILE to define seed PRNG",
+			"TLS: Use configuration file or $RANDFILE to define seed PRNG\n",
 			0, 0, 0);
 		return -1;
 	}
@@ -1019,7 +1019,7 @@ tls_seed_PRNG( const char *randfile )
 
 	if (RAND_status() == 0) {
 		Debug( LDAP_DEBUG_ANY,
-			"TLS: PRNG not been seeded with enough data",
+			"TLS: PRNG not been seeded with enough data\n",
 			0, 0, 0);
 		return -1;
 	}
