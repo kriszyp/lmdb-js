@@ -340,13 +340,10 @@ int entry_decode( struct berval *bv, Entry **entry )
 	ber_len_t	len;
 	char *last;
 
-	Debug( LDAP_DEBUG_TRACE, "=> entry_decode\n",
-		0, 0, 0 );
-
 	ber = ber_init( bv );
 	if( ber == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= entry_encode: ber_init failed\n",
+		    "<= entry_decode: ber_init failed\n",
 		    0, 0, 0 );
 		return LDAP_LOCAL_ERROR;
 	}
@@ -356,7 +353,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= entry_encode: entry allocation failed\n",
+		    "<= entry_decode: entry allocation failed\n",
 		    0, 0, 0 );
 		return LDAP_LOCAL_ERROR;
 	}
@@ -375,7 +372,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "entry_encode: \"%s\"\n",
+	    "entry_decode: \"%s\"\n",
 	    e->e_dn, 0, 0 );
 
 	/* get the attrs */
@@ -415,7 +412,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
-					"<= str2entry: str2undef_ad(%s): %s\n",
+					"<= entry_decode: str2undef_ad(%s): %s\n",
 						type, text, 0 );
 				ber_bvfree( type );
 				ber_bvecfree( vals );
@@ -446,8 +443,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s) -> 0x%lx\n",
-		e->e_dn, (unsigned long) e, 0 );
+	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
+		e->e_dn, 0, 0 );
 
 	*entry = e;
 	return LDAP_SUCCESS;
@@ -461,8 +458,8 @@ int entry_encode(
 	Attribute *a;
 	BerElement *ber;
 	
-	Debug( LDAP_DEBUG_TRACE, "=> entry_encode\n",
-		0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
+		e->e_id, e->e_dn, 0 );
 
 	ber = ber_alloc_t( LBER_USE_DER );
 	if( ber == NULL ) {
@@ -492,6 +489,10 @@ int entry_encode(
 
 done:
 	ber_free( ber, 1 );
+	if( rc ) {
+		Debug( LDAP_DEBUG_ANY, "=> entry_encode(0x%08lx): failed (%d)\n",
+			e->e_id, rc, 0 );
+	}
 	return rc;
 }
 #endif
