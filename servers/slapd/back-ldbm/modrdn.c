@@ -50,8 +50,11 @@ ldbm_back_modrdn(
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
 	char		*old_rdn;		/* Old rdn's attr type & val */
+	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
+	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
 	struct berval	bv;			/* Stores new rdn att */
 	struct berval	*bvals[2];		/* Stores new rdn att */
+	LDAPMod		mod;			/* Used to delete old rdn */
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
@@ -209,6 +212,25 @@ ldbm_back_modrdn(
 
 	}
 
+	if ( (old_rdn_type = rdn_attr_type( old_rdn )) == NULL ) {
+	    
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		goto return_results;		
+		
+	}
+	
+	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
+
+	    /* Not a big deal but we may say something */
+	    Debug( LDAP_DEBUG_TRACE,\
+		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",\
+		   old_rdn_type, new_rdn_type, 0 );
+	    
+	}		
+
 	if ( dn_type( old_rdn ) == DN_X500 ) {
 
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
@@ -217,7 +239,62 @@ ldbm_back_modrdn(
 		bvals[0] = &bv;		/* Array of bervals */
 		bvals[1] = NULL;
 
-		/* XXX: MUST DO DELETEOLDRDN IF REQUESTED HERE */
+		/* Remove old rdn value if required */
+
+		if (deleteoldrdn) {
+
+			/* Get value of old rdn */
+	
+			if ((old_rdn_val = rdn_attr_value( old_rdn ))
+			    == NULL) {
+			    
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
+				       0, 0, 0 );
+				send_ldap_result( conn, op,
+						  LDAP_OPERATIONS_ERROR,
+						  "", "" );
+				goto return_results;		
+
+
+			}
+
+			/* Remove old value of rdn as an attribute. */
+		    
+			bv.bv_val = old_rdn_val;
+			bv.bv_len = strlen(old_rdn_val);
+
+			/* No need to normalize old_rdn_type, delete_values()
+			 * does that for us
+			 */
+			mod.mod_type = old_rdn_type;	
+			mod.mod_bvalues = bvals;
+			mod.mod_op = LDAP_MOD_DELETE;	/* XXX:really needed?*/
+
+			/* Assembly mod structure */
+
+			if ( delete_values( e, &mod, op->o_ndn )
+			     != LDAP_SUCCESS ) {
+
+				/* Could not find old_rdn as an attribute or
+				 * the old value was not present. Return an 
+				 * error.
+				 */
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: old rdn not found or att type doesn't exist\n",
+				       0, 0, 0);
+				send_ldap_result( conn, op,
+						  LDAP_OPERATIONS_ERROR,
+						  "", "");
+				goto return_results;
+
+			}
+
+			Debug( LDAP_DEBUG_TRACE,\
+			       "ldbm_back_modrdn: removed old_rdn_val=%s\n",\
+			       old_rdn_val, 0, 0 );
+		
+		}/* if (deleteoldrdn) */
 
 		/* Add new attribute value to the entry.
 		 */
@@ -229,6 +306,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: adding new rdn attr val =%s\n",
 		       new_rdn_val, 0, 0 );
+		
+		/* No need to normalize new_rdn_type, attr_merge does it */
 
 		attr_merge( e, new_rdn_type, bvals );
 	
@@ -268,6 +347,8 @@ return_results:
 	if( new_rdn_type != NULL ) free(new_rdn_type);
 	if( new_rdn_val != NULL ) free(new_rdn_val);
 	if( old_rdn != NULL ) free(old_rdn);
+	if( old_rdn_type != NULL ) free(old_rdn_type);
+	if( old_rdn_val != NULL ) free(old_rdn_val);
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
