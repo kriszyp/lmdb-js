@@ -6,6 +6,10 @@
 ldappasswd \- change the password of an LDAP entry
 .SH SYNOPSIS
 .B ldappasswd
+[\c
+.BR \-A ]
+[\c
+.BI \-a \ oldPasswd\fR]
 .BI \-D \ binddn\fR
 [\c
 .BI \-d \ debuglevel\fR]
@@ -15,6 +19,8 @@ ldappasswd \- change the password of an LDAP entry
 .BR \-n ]
 [\c
 .BI \-p \ ldapport\fR]
+[\c
+.BR \-S ]
 [\c
 .BI \-s \ newPasswd\fR]
 [\c
@@ -31,16 +37,24 @@ It is neither designed nor intended to be a replacement for
 and should not be installed as such.
 .LP
 .B ldappasswd
-sets the password of associated with the user associated with the
-bind DN.
-If the new password is not specified on the command line, the user
-will be prompted to enter it.
+sets the password of associated with the user.  If the new
+password is not specified on the command line or the user
+doesn't enable prompting, the server will be asked to generate
+a password for the user.
 .SH OPTIONS
+.TP
+.BI \-A
+Prompt for old password.
+This is used instead of specifying the password on the command line.
+.TP
+.BI \-a \ oldPasswd
+Set the old password to \fIoldPasswd\fP.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should
 be a string-represented DN as defined in RFC 2253.
-This flag is not optional.
+This flag is not optional.  The user DN will be used if the
+bind DN is not provided.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
@@ -55,8 +69,12 @@ Do not set password. (Can be useful when used in conjunction with
 .BR \-v \ or
 .BR \-d )
 .TP
+.BI \-S
+Prompt for new password.
+This is used instead of specifying the password on the command line.
+.TP
 .BI \-s \ newPasswd
-Set the user password to \fInewPasswd\fP.
+Set the new password to \fInewPasswd\fP.
 .TP
 .BI \-p \ ldapport
 Specify an alternate port on which the ldap server is running.

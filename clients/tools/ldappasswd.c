@@ -28,13 +28,15 @@ usage(const char *s)
 {
 	fprintf(stderr,
 		"Usage: %s [options] dn\n"
+		"  -A\t\tprompt for old password\n"
+		"  -a secret\told password\n"
 		"  -D binddn\tbind dn\n"
 		"  -d level\tdebugging level\n"
 		"  -h host\tldap server (default: localhost)\n"
 		"  -n\t\tmake no modifications\n"
 		"  -p port\tldap port\n"
-		"  -s secret\tnew password\n"
 		"  -S\t\tprompt for new password\n"
+		"  -s secret\tnew password\n"
 		"  -v\t\tincrease verbosity\n"
 		"  -W\t\tprompt for bind password\n"
 		"  -w passwd\tbind password (for simple authentication)\n"
