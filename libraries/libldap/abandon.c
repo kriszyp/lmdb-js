@@ -131,12 +131,18 @@ do_abandon(
 
 	err = 0;
 	if ( sendabandon ) {
-		/* create a message to send */
-		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		if( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
+			/* not connected */
+			err = -1;
+			ld->ld_errno = LDAP_SERVER_DOWN;
+
+		} else if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+			/* BER element alocation failed */
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
+			/* create a message to send */
 			err = ber_printf( ber, "{iti",  /* '}' */
 				++ld->ld_msgid,
 			    LDAP_REQ_ABANDON, msgid );
