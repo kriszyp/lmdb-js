@@ -49,7 +49,7 @@ usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]",
+		"usage: %s [-v] [-d debuglevel] [-f configfile] [-F configdir]",
 		progname );
 
 	switch( tool ) {
@@ -60,7 +60,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPADD:
-		options = "\n\t[-n databasenumber | -b suffix]\n"
+		options = " [-c]\n\t[-n databasenumber | -b suffix]\n"
 			"\t[-l ldiffile] [-q] [-u] [-w]\n";
 		break;
 
@@ -69,7 +69,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPCAT:
-		options = "\n\t[-n databasenumber | -b suffix]"
+		options = " [-c]\n\t[-n databasenumber | -b suffix]"
 			" [-l ldiffile] [-a filter]\n";
 		break;
 
@@ -78,7 +78,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = "\n\t[-n databasenumber | -b suffix] [-q]\n";
+		options = " [-c]\n\t[-n databasenumber | -b suffix] [-q]\n";
 		break;
 
 	case SLAPTEST:
