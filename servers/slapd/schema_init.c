@@ -1217,9 +1217,7 @@ int caseExactFilter(
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
 
-#if UTF8MATCH
 	ber_bvfree( value );
-#endif
 
 	*keysp = keys;
 	return LDAP_SUCCESS;
