@@ -1981,6 +1981,19 @@ proxy_cache_open(
 		ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
 			consistency_check, on );
 		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+
+		/* Cached database must have the rootdn */
+		if ( BER_BVISNULL( &cm->db.be_rootndn )
+				|| BER_BVISEMPTY( &cm->db.be_rootndn ) )
+		{
+			fprintf( stderr, "proxy_cache_open(): "
+				"underlying database of type \"%s\"\n"
+				"    serving naming context \"%s\"\n"
+				"    has no \"rootdn\", required by \"proxycache\".\n",
+				on->on_info->oi_orig->bi_type,
+				cm->db.be_suffix[0].bv_val );
+			return 1;
+		}
 	}
 
 	return rc;
