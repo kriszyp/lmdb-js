@@ -3506,7 +3506,7 @@ integerBitAndMatch(
 	long lValue, lAssertedValue;
 
 	/* safe to assume integers are NUL terminated? */
-	lValue = strtoul(value->bv_val, NULL, 10);
+	lValue = strtol(value->bv_val, NULL, 10);
 	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
@@ -3534,7 +3534,7 @@ integerBitOrMatch(
 	long lValue, lAssertedValue;
 
 	/* safe to assume integers are NUL terminated? */
-	lValue = strtoul(value->bv_val, NULL, 10);
+	lValue = strtol(value->bv_val, NULL, 10);
 	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
