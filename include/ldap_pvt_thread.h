@@ -40,7 +40,7 @@ typedef pthread_condattr_t	ldap_pvt_thread_condattr_t;
 
 #if defined( _POSIX_REENTRANT_FUNCTIONS ) || \
 	defined( _POSIX_THREAD_SAFE_FUNCTIONS ) || \
-	defined( _POSIX_THREAD_SAFE_FUNCTIONS )
+	defined( _POSIX_THREADSAFE_FUNCTIONS )
 #define HAVE_REENTRANT_FUNCTIONS 1
 #endif
 
