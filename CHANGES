@@ -3,6 +3,7 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.23 Engineering
 	Fixed slapd moddn acl bug (ITS#1562) (ITS#1582)
 	Fixed slapd acl regex (to dn="") portability bug (ITS#1579)
+	Disabled -lldap atexit() handler (ITS#1577)
 	Documentation
 		Fixed a number of typos (ITS#1578)
 

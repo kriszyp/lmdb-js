@@ -400,7 +400,10 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	 */
 	ldap_url_parselist(&gopts->ldo_defludp, "ldap://localhost/");
 	gopts->ldo_defport = LDAP_PORT;
+
+#if 0 /* don't register atexit() handler... breaks dlopen() apps */
 	atexit(ldap_int_destroy_global_options);
+#endif
 
 	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 	gopts->ldo_rebindproc = NULL;
