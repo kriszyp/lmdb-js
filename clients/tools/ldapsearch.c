@@ -691,7 +691,7 @@ getNextPage:
                                 err = ber_printf( cuber, "{ei}", abs(lcup), lcup_cint );
                         } else {
                                 err = ber_printf( cuber, "{ei{sO}}", abs(lcup), lcup_cint,
-                                                LDAP_LCUP_COOKIE_OID, &lcup_cookie );
+                                    LDAP_CUP_COOKIE_OID, &lcup_cookie );
                         }
 
                         if ( err == LBER_ERROR ) {

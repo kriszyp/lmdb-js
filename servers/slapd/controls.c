@@ -937,7 +937,7 @@ static int parseClientUpdate (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( tag == LDAP_TAG_INTERVAL ) {
+	if ( tag == LDAP_CUP_TAG_INTERVAL ) {
 		if ( (tag = ber_scanf( ber, "i", &interval )) == LBER_ERROR ) {
 			*text = "LCUP client update control : decoding error";
 			return LDAP_PROTOCOL_ERROR;
@@ -958,9 +958,10 @@ static int parseClientUpdate (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( tag == LDAP_LCUP_TAG_COOKIE ) {
+	if ( tag == LDAP_CUP_TAG_COOKIE ) {
 		if ( (tag = ber_scanf( ber, /*{*/ "{mm}}",
-					&scheme, &cookie )) == LBER_ERROR ) {
+			&scheme, &cookie )) == LBER_ERROR )
+		{
 			*text = "LCUP client update control : decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}

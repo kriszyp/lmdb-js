@@ -1263,7 +1263,7 @@ bdb_build_lcup_update_ctrl(
 			"{bb{sON}N}",
 			SLAP_LCUP_STATE_UPDATE_FALSE,
 			isdeleted,
-			LDAP_LCUP_COOKIE_OID, &entrycsn_bv );
+			LDAP_CUP_COOKIE_OID, &entrycsn_bv );
 	else /* Do not send cookie */
 		ber_printf( ber,
 			"{bbN}",
@@ -1313,7 +1313,7 @@ bdb_build_lcup_done_ctrl(
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
-	ber_printf( ber, "{sO", LDAP_LCUP_COOKIE_OID, latest_entrycsn_bv );
+	ber_printf( ber, "{sO", LDAP_CUP_COOKIE_OID, latest_entrycsn_bv );
 	ber_printf( ber, "N}" );
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE_DONE;
