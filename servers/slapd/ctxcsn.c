@@ -165,8 +165,8 @@ slap_create_context_csn_entry(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-	ber_str2bv( "syncProviderSubentry",
-			strlen("syncProviderSubentry"), 1, &socbva[0] );
+	ber_str2bv( "subentry",
+			strlen("subentry"), 1, &socbva[0] );
 
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
