@@ -246,6 +246,11 @@ AC_AIX
 AC_ISC_POSIX
 AC_MINIX
 
+dnl BeOS requires -lbe -lroot -lnet
+AC_CHECK_LIB(be, be_app,
+	[LIBS="$LIBS -lbe -lroot -lnet"], :,
+	[-lroot -lnet])
+
 dnl OpenLDAP requires STDC features
 AM_PROG_CC_STDC
 if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
