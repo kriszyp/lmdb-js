@@ -1791,7 +1791,6 @@ string_expand(
 				l = matches[n].rm_eo; 
 				for ( ; size < bv->bv_len && i < l; size++, i++ ) {
 					*dp++ = match[i];
-					size++;
 				}
 				*dp = '\0';
 			}
