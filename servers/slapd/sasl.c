@@ -224,7 +224,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	if( ( flags & FLAG_GETDN_FINAL ) == 0 )	 {
-		dn_normalize( dn );
+		dn_normalize( dn+3 );
 	}
 
 	*dnptr = dn;
