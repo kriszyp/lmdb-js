@@ -519,7 +519,7 @@ slapi_delete_internal(
 	SlapReply		rs = { REP_RESULT };
 	struct berval		dn = BER_BVNULL;
 
-	int			manageDsaIt = 0;
+	int			manageDsaIt = SLAP_CONTROL_NONE;
 	int			isCritical;
 
 	if ( ldn == NULL ) {
@@ -545,7 +545,7 @@ slapi_delete_internal(
 
 	if ( slapi_control_present( controls, 
 			SLAPI_CONTROL_MANAGEDSAIT_OID, NULL, &isCritical) ) {
-		manageDsaIt = 1; 
+		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL; 
 	}
 
 	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
@@ -599,7 +599,7 @@ slapi_int_add_entry_locked(
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
 
-	int			manageDsaIt = 0;
+	int			manageDsaIt = SLAP_CONTROL_NONE;
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
@@ -610,7 +610,7 @@ slapi_int_add_entry_locked(
 
 	if ( slapi_control_present( controls, LDAP_CONTROL_MANAGEDSAIT,
 				NULL, &isCritical ) ) {
-		manageDsaIt = 1; 
+		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL; 
 	}
 
 	op = (Operation *)pConn->c_pending_ops.stqh_first;
@@ -768,7 +768,7 @@ slapi_modrdn_internal(
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
-	int			manageDsaIt = 0;
+	int			manageDsaIt = SLAP_CONTROL_NONE;
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
@@ -784,7 +784,7 @@ slapi_modrdn_internal(
 
 	if ( slapi_control_present( controls, 
 			SLAPI_CONTROL_MANAGEDSAIT_OID, NULL, &isCritical ) ) {
-		manageDsaIt = 1;
+		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
 	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
@@ -889,7 +889,7 @@ slapi_modify_internal(
 
 	struct berval dn = BER_BVNULL;
 
-	int			manageDsaIt = 0;
+	int			manageDsaIt = SLAP_CONTROL_NONE;
 	int			isCritical;
 	struct berval		*bv;
 	LDAPMod			*pMod;
@@ -924,7 +924,7 @@ slapi_modify_internal(
 
 	if ( slapi_control_present( controls, 
 			SLAPI_CONTROL_MANAGEDSAIT_OID, NULL, &isCritical ) ) {
-        	manageDsaIt = 1;
+        	manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
 	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
@@ -1083,7 +1083,7 @@ slapi_search_internal(
 	AttributeName		*an = NULL;
 	const char		*text = NULL;
 
-	int			manageDsaIt = 0; 
+	int			manageDsaIt = SLAP_CONTROL_NONE; 
 	int			isCritical;
 	int			i;
 
@@ -1190,12 +1190,12 @@ slapi_search_internal(
 
 	if ( slapi_control_present( controls,
 			LDAP_CONTROL_MANAGEDSAIT, NULL, &isCritical ) ) {
-		manageDsaIt = 1;
+		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
 	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
 	if ( op->o_bd == NULL ) {
-		if ( manageDsaIt == 1 ) {
+		if ( manageDsaIt > SLAP_CONTROL_NONE  ) {
 			rs.sr_err = LDAP_NO_SUCH_OBJECT;
 		} else {
 			rs.sr_err = LDAP_PARTIAL_RESULTS;
