@@ -246,12 +246,33 @@ merge_func (
 		mod->sml_bvalues = (struct berval*) malloc(
 				(count+1) * sizeof( struct berval) );
 
+		mod->sml_nvalues = (struct berval*) malloc(
+				(count+1) * sizeof( struct berval) );
+
 		for ( i = 0; i < count; i++ ) {
 			ber_dupbv(mod->sml_bvalues+i, a_new->a_vals+i); 
+			if ( a_new->a_desc->ad_type->sat_equality &&
+				a_new->a_desc->ad_type->sat_equality->smr_normalize ) {
+				rc = a_new->a_desc->ad_type->sat_equality->smr_normalize(
+					0,
+					a_new->a_desc->ad_type->sat_syntax,
+					a_new->a_desc->ad_type->sat_equality,
+					a_new->a_vals+i, mod->sml_nvalues+i, NULL );
+				if (rc) {
+					info->err = MERGE_ERR; 
+					return 0; 
+			        } 
+			}
+			else {	
+				ber_dupbv( mod->sml_nvalues+i, a_new->a_vals+i ); 
+			} 
 		}
 
 		mod->sml_bvalues[count].bv_val = 0; 
 		mod->sml_bvalues[count].bv_len = 0; 
+
+		mod->sml_nvalues[count].bv_val = 0; 
+		mod->sml_nvalues[count].bv_len = 0; 
 
 		mod->sml_desc = NULL;
 		slap_bv2ad(&mod->sml_type, &mod->sml_desc, &text); 
@@ -266,10 +287,17 @@ merge_func (
 	mod->sml_op = LDAP_MOD_ADD;
 	mod->sml_desc = slap_schema.si_ad_queryid; 
 	ber_dupbv(&mod->sml_type, &mod->sml_desc->ad_cname); 
+
 	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( mod->sml_bvalues, uuid );
 	mod->sml_bvalues[1].bv_val = NULL;
 	mod->sml_bvalues[1].bv_len = 0;
+
+	mod->sml_nvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+	ber_dupbv( mod->sml_nvalues, uuid );
+	mod->sml_nvalues[1].bv_val = NULL;
+	mod->sml_nvalues[1].bv_len = 0;
+
 	*modtail = mod;
 	mod->sml_next = NULL; 
 
@@ -279,6 +307,7 @@ merge_func (
 	op_tmp.orm_modlist = modhead;
 
 	op_tmp.o_callback->sc_response = null_response; 
+	/* FIXME: &op_tmp ??? */
 	if (be->be_modify(&op_tmp, &sreply ) != 0 ) {
 		/* FIXME: cleanup ? */
 		info->err = MERGE_ERR;

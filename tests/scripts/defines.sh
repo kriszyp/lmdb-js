@@ -5,6 +5,7 @@ DATADIR=$SRCDIR/data
 PROGDIR=./progs
 DBDIR=./test-db
 REPLDIR=./test-repl
+CACHEDIR=./test-cache
 
 CONF=$DATADIR/slapd.conf
 MCONF=$DATADIR/slapd-master.conf
@@ -14,6 +15,8 @@ RCONF=$DATADIR/slapd-referrals.conf
 MASTERCONF=$DATADIR/slapd-repl-master.conf
 SRMASTERCONF=$DATADIR/slapd-syncrepl-master.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
+PROXYCACHECONF=$DATADIR/slapd-proxycache.conf
+CACHEMASTERCONF=$DATADIR/slapd-cache-master.conf
 SRREFSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh.conf
 SRPERSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
@@ -25,6 +28,7 @@ GLUECONF=$DATADIR/slapd-glue.conf
 DBCONF=$DBDIR/slapd.conf
 ADDCONF=$DBDIR/slapadd.conf
 REPLCONF=$REPLDIR/slapd.conf
+CACHECONF=$CACHEDIR/slapd.conf
 
 TOOLARGS="-x $LDAP_TOOLARGS"
 TOOLPROTO="-P 3"

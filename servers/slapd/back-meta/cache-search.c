@@ -241,6 +241,8 @@ meta_back_cache_search(
 	cache_manager*		cm = li->cm; 
 	query_manager*		qm = cm->qm; 
 
+	Operation		*oper;
+
 	time_t			curr_time; 
 
 	int count, rc = 0, *msgid = NULL; 
@@ -306,11 +308,13 @@ meta_back_cache_search(
 	Debug( LDAP_DEBUG_ANY, "Threads++ = %d\n", cm->threads, 0, 0 );
 #endif /* !NEW_LOGGING */
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
-    
+	
 	ldap_pvt_thread_mutex_lock(&cm->cc_mutex); 
 	if (!cm->cc_thread_started) {
+		oper = (Operation*)malloc(sizeof(Operation)); 
+		*oper = *op; 
 		cm->cc_thread_started = 1; 
-                ldap_pvt_thread_create(&(cm->cc_thread), 1, consistency_check, (void*)op); 
+                ldap_pvt_thread_create(&(cm->cc_thread), 1, consistency_check, (void*)oper); 
 	}	
 	ldap_pvt_thread_mutex_unlock(&cm->cc_mutex); 
 
@@ -402,8 +406,8 @@ meta_back_cache_search(
 
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 	} else {
-		Operation	op_tmp = *op;
-
+		Operation	op_tmp;
+		op_tmp = *op;
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY NOT ANSWERABLE\n",
 					0, 0, 0 );
@@ -411,14 +415,14 @@ meta_back_cache_search(
 		Debug( LDAP_DEBUG_ANY, "QUERY NOT ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 
-		if ( op_tmp.ors_scope == LDAP_SCOPE_BASE ) {
+		if ( op->ors_scope == LDAP_SCOPE_BASE ) {
 			op_type = META_OP_REQUIRE_SINGLE;
 		} else {
 			op_type = META_OP_ALLOW_MULTIPLE;
 		}
 
 		lc = metaConnect(&op_tmp, rs, op_type,
-				&op_tmp.o_req_ndn, result);
+				&op->o_req_ndn, result);
 
 		if (result->type != SUCCESS) 
 			goto Catch; 
@@ -430,14 +434,6 @@ meta_back_cache_search(
 		ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
 		
 		if (cacheable) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-					"QUERY TEMPLATE CACHEABLE\n",
-					0, 0, 0);
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "QUERY TEMPLATE CACHEABLE\n",
-					0, 0, 0);
-#endif /* !NEW_LOGGING */
 			add_filter_attrs(&new_attrs, attrs, filter_attrs);
 		} else {
 			new_attrs = attrs; 
@@ -462,6 +458,7 @@ meta_back_cache_search(
 		/*
 		 * Inits searches
 		 */
+
 		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 			char 	*realbase = ( char * )op->o_req_dn.bv_val;
 			int 	realscope = op->ors_scope;
@@ -618,9 +615,14 @@ meta_back_cache_search(
 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 						mapped_filter, mapped_attrs,
 						op->ors_attrsonly ); 
+
 			if ( msgid[ i ] == -1 ) {
+				result->type = CONN_ERR; 
+				goto Catch; 
+				/*
 				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
+				*/
 			}
 
 			if ( mapped_attrs ) {
@@ -679,6 +681,15 @@ meta_back_cache_search(
 				goto Catch; 
 			filter = 0; 
 			attrs = 0; 
+		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"QUERY NOT CACHEABLE no\n",
+					0, 0, 0);
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "QUERY NOT CACHEABLE no\n",
+					0, 0, 0);
+#endif /* !NEW_LOGGING */
 		}
 	}
 
@@ -1012,7 +1023,7 @@ is_one_level_rdn(
 
 static struct metaconn*  
 metaConnect(
-	Operation		*op, 
+	Operation*		op, 
 	SlapReply		*rs,
 	int			op_type, 
 	struct berval		*nbase, 
@@ -1035,8 +1046,11 @@ add_filter_attrs(
 	AttributeName* attrs, 
 	AttributeName* filter_attrs )
 {
-	struct berval all_user = BER_BVC(LDAP_ALL_USER_ATTRIBUTES);
-	struct berval all_op = BER_BVC(LDAP_ALL_OPERATIONAL_ATTRIBUTES);
+	struct berval all_user = { sizeof(LDAP_ALL_USER_ATTRIBUTES) -1,
+				   LDAP_ALL_USER_ATTRIBUTES };
+
+	struct berval all_op = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES) -1,
+					LDAP_ALL_OPERATIONAL_ATTRIBUTES}; 
 
 	int alluser = 0; 
 	int allop = 0; 
@@ -1044,40 +1058,36 @@ add_filter_attrs(
 	int count; 
 
 	/* duplicate attrs */
-	for (count=0; attrs[count].an_name.bv_val; count++) 
-		;
-	*new_attrs =  (AttributeName*)(malloc((count+1)*sizeof(AttributeName))); 
-	for (i=0; i<count; i++) {
-		/*
-		ber_dupbv(&((*new_attrs)[i].an_name), &(attrs[i].an_name)); 
-		*/
-		(*new_attrs)[i].an_name = attrs[i].an_name; 
-		(*new_attrs)[i].an_desc = attrs[i].an_desc;  
+        if (attrs == NULL) {
+		count = 1; 
+	} else { 
+		for (count=0; attrs[count].an_name.bv_val; count++) 
+			;
+	}
+	*new_attrs = (AttributeName*)(malloc((count+1)*sizeof(AttributeName))); 
+	if (attrs == NULL) { 
+		(*new_attrs)[0].an_name.bv_val = "*"; 
+		(*new_attrs)[0].an_name.bv_len = 1; 
+		alluser = 1; 
+		allop = 0; 
+	} else {  
+		for (i=0; i<count; i++) {
+			(*new_attrs)[i].an_name = attrs[i].an_name; 
+			(*new_attrs)[i].an_desc = attrs[i].an_desc;  
+		}
+		alluser = an_find(*new_attrs, &all_user); 
+		allop = an_find(*new_attrs, &all_op); 
 	}
 	(*new_attrs)[count].an_name.bv_val = NULL; 
 	(*new_attrs)[count].an_name.bv_len = 0; 
 
-
-	if ((*new_attrs)[0].an_name.bv_val == NULL) {
-		*new_attrs = (AttributeName*)(malloc(2*sizeof(AttributeName))); 
-		(*new_attrs)[0].an_name.bv_val = "*"; 
-		(*new_attrs)[0].an_name.bv_len = 1; 
-		(*new_attrs)[1].an_name.bv_val = NULL; 
-		(*new_attrs)[1].an_name.bv_len = 0; 
-		alluser = 1; 
-		count = 1; 
-	} else {
-		alluser = an_find(*new_attrs, &all_user); 
-		allop = an_find(*new_attrs, &all_op); 
-	}
-
 	for ( i=0; filter_attrs[i].an_name.bv_val; i++ ) {
 		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
 			continue; 
-		if ( is_at_operational(filter_attrs[i].an_desc->ad_type)
-						&& allop )
-			continue; 
-		else if (alluser) 
+		if ( is_at_operational(filter_attrs[i].an_desc->ad_type) ) {
+			if (allop) 
+				continue; 
+		} else if (alluser) 
 			continue; 
 		*new_attrs = (AttributeName*)(realloc(*new_attrs,
 					(count+2)*sizeof(AttributeName))); 
@@ -1423,8 +1433,12 @@ attrscmp(
 	AttributeName* attrs)
 {
 	int i, count1, count2; 
-	if ((attrs_in==NULL) || (attrs==NULL)) 
-		return 1; 
+	if ( attrs_in == NULL ) {
+		return (attrs ? 0 : 1); 
+	} 
+	if ( attrs == NULL ) 
+		return 0; 
+	
 	for ( count1=0;
 	      attrs_in && attrs_in[count1].an_name.bv_val != NULL;
 	      count1++ )
@@ -1640,12 +1654,11 @@ is_temp_answerable(
 static void* 
 consistency_check(void* operation)
 {
-	Operation* op_tmp = (Operation*)operation; 
+	Operation* op = (Operation*)operation; 
 
-	Operation op = *op_tmp; 
 	SlapReply rs = {REP_RESULT}; 
 
-	struct metainfo *li = ( struct metainfo * )op.o_bd->be_private;
+	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	cache_manager* 	cm = li->cm; 
 	query_manager* qm = cm->qm; 
 	CachedQuery* query, *query_prev; 
@@ -1656,7 +1669,7 @@ consistency_check(void* operation)
 	QueryTemplate* templ;
 
 
-	op.o_bd = li->glue_be;
+	op->o_bd = li->glue_be;
       
         for(;;) {
 	        ldap_pvt_thread_sleep(cm->cc_period);     
@@ -1696,7 +1709,7 @@ consistency_check(void* operation)
 				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
 				uuid.bv_val = query->q_uuid; 
 				uuid.bv_len = strlen(query->q_uuid); 
-				return_val = remove_query_data(&op, &rs, &uuid, &result); 
+				return_val = remove_query_data(op, &rs, &uuid, &result); 
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_META, DETAIL1,
 						"STALE QUERY REMOVED, SIZE=%d\n",
@@ -1772,14 +1785,11 @@ cache_back_sentry(
 		rs->sr_entry->e_nname = ndn; 
 
 		op->o_callback = cb; 
-		return 0;
-
+		return 0; 
 	} else if (rs->sr_type == REP_RESULT) { 
 		op->o_callback = NULL; 
 		send_ldap_result( op, rs ); 
 		return 0; 
 	}
-
-	return -1;
 }
 #endif
