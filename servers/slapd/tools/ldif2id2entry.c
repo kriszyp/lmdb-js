@@ -21,7 +21,6 @@ main( int argc, char **argv )
 {
 	char		*buf;
 	int         lineno;
-	char        line[BUFSIZ];
 	int         lmax;
 	ID		id;
 	ID		maxid;
@@ -30,7 +29,6 @@ main( int argc, char **argv )
 	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
-	FILE		*fp;
 
 	ldbm_ignore_nextid_file = 1;
 
