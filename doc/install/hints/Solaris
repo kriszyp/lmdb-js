@@ -8,25 +8,25 @@ Solaris 2.6, pthread_create() in -lc
 
 The Standard C library (-lc) contains pthread functions which
 are not compatible with <pthread.h> and are not useable.  The
-autoconf system does not detect this incompatibility nor
-attempts to resolve it.  Consequently, slapd/slurpd will not
-work correctly using out-of-the-box settings.  Slapd will
-report an error such as:
-	listener pthread_create failed
+autoconf system will detect this incompatibility but does not
+attempts to resolve it.  configure will exit using
+out-of-the-box settings with the error:
+  checking if pthread_create() works... no
+  configure: error: pthread.h and pthread_create are not compatible
 
 To resolve this problem, the installer must specify the
 proper Pthreads libraries:
-	LIBS="-lpthread -lposix4"
-	./configure
+  LIBS="-lpthread -lposix4"
+  ./configure
 
 OR use Solaris (LWP) Threads
-	./configure --with-threads=lwp
+  ./configure --with-threads=lwp
 
 OR disable threads: 
-	./configure --without-threads
+  ./configure --without-threads
 
 
 NDBM on Solaris
 
 Solaris NDBM and OpenLDAP appears to be incompatible.  Use
-GDBM or Berkeley DB2.
+Berkeley DB2 or GDBM.
