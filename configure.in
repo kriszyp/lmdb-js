@@ -594,7 +594,7 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
-AC_CHECK_PROGS(AR,ar gar)
+AC_CHECK_PROGS(AR,ar gar,ar)
 
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
