@@ -77,7 +77,7 @@ class LDAPAsynConnection{
         virtual ~LDAPAsynConnection();
 
         /** 
-         * Initzializes a connection to a server. 
+         * Initializes a connection to a server. 
          * 
          * There actually no
          * communication to the server. Just the object is initialized
@@ -88,6 +88,14 @@ class LDAPAsynConnection{
          * @param port      The Network Port the server is running on
          */
         void init(const string& hostname, int port);
+
+        /**
+         * Start TLS on this connection.  This isn't in the constructor,
+         * because it could fail (i.e. server doesn't have SSL cert, client
+         * api wasn't compiled against OpenSSL, etc.).  If you need TLS,
+         * then you should error if this call fails with an error code.
+         */
+        int start_tls();
 
         /** Simple authentication to a LDAP-Server
          *

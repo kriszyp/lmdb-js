@@ -22,6 +22,10 @@ LDAPConnection::LDAPConnection(const string& hostname, int port,
 
 LDAPConnection::~LDAPConnection(){
 }
+
+int LDAPConnection::start_tls(){
+    return LDAPAsynConnection::start_tls();
+}
    
 void LDAPConnection::bind(const string& dn, const string& passwd,
         LDAPConstraints* cons){

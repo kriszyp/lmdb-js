@@ -68,6 +68,14 @@ class LDAPConnection : private LDAPAsynConnection {
          */
         void init(const string& hostname, int port);
         
+        /**
+         * Start TLS on this connection.  This isn't in the constructor,
+         * because it could fail (i.e. server doesn't have SSL cert, client
+         * api wasn't compiled against OpenSSL, etc.).  If you need TLS,
+         * then you should error if this call fails with an error code.
+         */
+        int start_tls();
+
         /** 
          * Performs a simple authentication with the server
          *

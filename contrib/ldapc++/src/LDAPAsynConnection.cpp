@@ -36,8 +36,8 @@ LDAPAsynConnection::LDAPAsynConnection(const string& hostname, int port,
 LDAPAsynConnection::~LDAPAsynConnection(){
     DEBUG(LDAP_DEBUG_DESTROY,
             "LDAPAsynConnection::~LDAPAsynConnection()" << endl);
-    delete m_constr;        
     unbind();
+    //delete m_constr;        
 }
 
 void LDAPAsynConnection::init(const string& hostname, int port){
@@ -51,6 +51,10 @@ void LDAPAsynConnection::init(const string& hostname, int port){
     int opt=3;
     ldap_set_option(cur_session, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
     ldap_set_option(cur_session, LDAP_OPT_PROTOCOL_VERSION, &opt);
+}
+
+int LDAPAsynConnection::start_tls(){
+    return ldap_start_tls_s( cur_session, NULL, NULL );
 }
 
 LDAPMessageQueue* LDAPAsynConnection::bind(const string& dn,
