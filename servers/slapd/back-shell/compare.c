@@ -28,7 +28,7 @@ shell_back_compare(
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 
-	if ( si->si_compare == NULL ) {
+	if ( IS_NULLCMD( si->si_compare ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "compare not implemented", NULL, NULL );
 		return( -1 );

@@ -27,7 +27,7 @@ shell_back_add(
 	FILE			*rfp, *wfp;
 	int			len;
 
-	if ( si->si_add == NULL ) {
+	if ( IS_NULLCMD( si->si_add ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "add not implemented", NULL, NULL );
 		return( -1 );

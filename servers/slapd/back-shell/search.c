@@ -33,11 +33,10 @@ shell_back_search(
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
-	int 			i;
 	FILE			*rfp, *wfp;
 	AttributeName		*an;
 
-	if ( si->si_search == NULL ) {
+	if ( IS_NULLCMD( si->si_search ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "search not implemented", NULL, NULL );
 		return( -1 );

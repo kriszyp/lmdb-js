@@ -27,7 +27,7 @@ shell_back_delete(
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 
-	if ( si->si_delete == NULL ) {
+	if ( IS_NULLCMD( si->si_delete ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "delete not implemented", NULL, NULL );
 		return( -1 );

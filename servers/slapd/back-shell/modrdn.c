@@ -45,7 +45,7 @@ shell_back_modrdn(
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 
-	if ( si->si_modrdn == NULL ) {
+	if ( IS_NULLCMD( si->si_modrdn ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "modrdn not implemented", NULL, NULL );
 		return( -1 );

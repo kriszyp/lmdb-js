@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.417 2002/05/13 16:48:37 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.418 2002/05/13 18:16:47 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -19622,7 +19622,7 @@ else
 #if SASL_VERSION_MAJOR == 1  && SASL_VERSION_MINOR >= 5
 	char *__sasl_compat = "1.5.x okay";
 #elif SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR > 1
-	__sasl_compat "2.2+ or better okay";
+	__sasl_compat "2.2+ or better okay (we guess)";
 #elif SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR == 1 \
 	&& SASL_VERSION_STEP >=3
 	__sasl_compat = "2.1.3+ or better okay";
@@ -21790,6 +21790,7 @@ for ac_func in \
 	read			\
 	recv			\
 	recvfrom		\
+	recvmsg			\
 	setpwfile		\
 	setgid			\
 	setegid			\
@@ -21818,12 +21819,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:21822: checking for $ac_func" >&5
+echo "configure:21823: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21827 "configure"
+#line 21828 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -21847,7 +21848,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:21851: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21852: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -21875,12 +21876,12 @@ done
 for ac_func in getopt
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:21879: checking for $ac_func" >&5
+echo "configure:21880: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 21884 "configure"
+#line 21885 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -21904,7 +21905,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:21908: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21909: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -21937,13 +21938,13 @@ fi
 
 # Check Configuration
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:21941: checking declaration of sys_errlist" >&5
+echo "configure:21942: checking declaration of sys_errlist" >&5
 if eval "test \"\${ol_cv_dcl_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 21947 "configure"
+#line 21948 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -21956,7 +21957,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:21960: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:21961: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes
@@ -21979,20 +21980,20 @@ EOF
 
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:21983: checking existence of sys_errlist" >&5
+echo "configure:21984: checking existence of sys_errlist" >&5
 if eval "test \"\${ol_cv_have_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 21989 "configure"
+#line 21990 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:21996: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:21997: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else

@@ -30,7 +30,7 @@ shell_back_modify(
 	FILE			*rfp, *wfp;
 	int			i;
 
-	if ( si->si_modify == NULL ) {
+	if ( IS_NULLCMD( si->si_modify ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "modify not implemented", NULL, NULL );
 		return( -1 );
