@@ -26,44 +26,32 @@ ldapdelete:	lddversion.o
 ldapmodrdn:	ldrversion.o
 	$(LTLINK) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
 
-ldappasswd:	ldappasswd.o
-	$(LTLINK) -o $@ ldappasswd.o $(LIBS)
+ldappasswd:	ldpversion.o
+	$(LTLINK) -o $@ ldappasswd.o ldpversion.o $(LIBS)
 
 ldapadd:	ldapmodify
-	$(RM) $@
+	@-$(RM) $@
 	$(LN_H) ldapmodify ldapadd
 
 ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Versionlds.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) ldapsearch > $@
 
 ldmversion.c: ldapmodify.o $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Versionldm.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) ldapmodify > $@
 
 lddversion.c: ldapdelete.o $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Versionldd.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) ldapdelete > $@
+
+ldpversion.c: ldappasswd.o $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) ldappasswd > $@
 
 ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Versionldr.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) ldapmodrdn > $@
 
 install-local:	FORCE
 	-$(MKDIR) $(bindir)

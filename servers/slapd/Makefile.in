@@ -79,13 +79,9 @@ libbackends.a: .backend
 	@ls -l libbackends.a
 
 version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Version.c > $@)
-
+	@-$(RM) $@
+	$(MKVERSION) slapd > $@
+	
 depend-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \

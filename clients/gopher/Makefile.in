@@ -21,20 +21,12 @@ go500gw : gwversion.o
 	$(LTLINK) -o $@ $(GWOBJS) gwversion.o $(LIBS)
 
 goversion.c: ${GOOBJS} $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	    -e "s|%VERSION%|$${v}|" \
-	    < $(srcdir)/Version.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) go500 > $@
 
 gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	    -e "s|%VERSION%|$${v}|" \
-	    < $(srcdir)/Versiongw.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) go500gw > $@
 
 install-local: $(PROGRAMS) go500gw.help FORCE
 	-$(MKDIR) $(libexecdir) $(datadir)

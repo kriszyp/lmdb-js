@@ -44,6 +44,7 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 LINT = lint
 5LINT = 5lint
 MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -d "$(srcdir)" -c "$(CC)"
+MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = 0:0:0
@@ -81,9 +82,6 @@ SENDMAIL = @SENDMAIL@
 # MANCOMPRESSSUFFIX=@MANCOMPRESSSUFFIX@
 MANCOMPRESS=$(CAT)
 MANCOMPRESSSUFFIX=
-
-# Version
-VERSIONFILE = $(top_srcdir)/build/version
 
 INCLUDEDIR= $(top_srcdir)/include
 LDAP_INCPATH= -I$(LDAP_INCDIR) -I$(INCLUDEDIR)

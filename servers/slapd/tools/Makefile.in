@@ -80,12 +80,8 @@ edb2ldif:	edb2-vers.o
 	$(CC) $(LDFLAGS) -o $@ $(EDB2LDIFOBJS) edb2-vers.o $(LIBS)
 
 edb2-vers.c: $(EDB2LDIFOBJS)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< Vers-edb2.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) ebd2ldif > $@
 
 build-chlog2replog: FORCE
 	@if [ "$(HAVE_ISODE)" = "yes" ]; then \

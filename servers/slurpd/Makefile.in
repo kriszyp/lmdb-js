@@ -34,12 +34,8 @@ sslurpd:	version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
 version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Version.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) slurpd > $@
 
 install-local-srv: FORCE
 	@-$(MKDIR) $(libexecdir)

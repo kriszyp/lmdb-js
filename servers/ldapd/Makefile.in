@@ -33,11 +33,7 @@ sldapd:	version.o
 
 version.c: $(OBJS) $(LDAP_LIBLBER_DEPEND)
 	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	-e "s|%VERSION%|$${v}|" \
-	< $(srcdir)/Version.c > $@)
+	$(MKVERSION) ldapd > $@
 
 request.o:	LDAP-types.h
 

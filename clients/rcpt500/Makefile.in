@@ -14,12 +14,8 @@ rcpt500 : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
 
 version.c: ${OBJS} $(LDAP_LIBDEPEND)
-	$(RM) $@
-	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
-	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
-	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
-	    -e "s|%VERSION%|$${v}|" \
-	    < $(srcdir)/Version.c > $@)
+	@-$(RM) $@
+	$(MKVERSION) rcpt500 > $@
 
 install-local: $(PROGRAMS) rcpt500.help FORCE
 	-$(MKDIR) $(libexecdir) $(datadir)
