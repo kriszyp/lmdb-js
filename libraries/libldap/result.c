@@ -613,6 +613,19 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 
 
 int
+ldap_msgtype( LDAPMessage *lm )
+{
+	return( lm ? lm->lm_msgtype : -1 );
+}
+
+int
+ldap_msgid( LDAPMessage *lm )
+{
+	return( lm ? lm->lm_msgid : -1 );
+}
+
+
+int
 ldap_msgfree( LDAPMessage *lm )
 {
 	LDAPMessage	*next;

@@ -19,6 +19,16 @@ LDAPMessage **result;
 int ldap_msgfree(msg)
 .ft
 LDAPMessage *msg;
+.LP
+.ft B
+int ldap_msgtype(msg)
+.ft
+LDAPMessage *msg;
+.LP
+.ft B
+int ldap_msgid(msg)
+.ft
+LDAPMessage *msg;
 .SH DESCRIPTION
 The
 .B ldap_result()
@@ -92,10 +102,22 @@ or
 and friends.  It takes
 a pointer to the result to be freed and returns the type of the
 message it freed.
+.LP
+The
+.B ldap_msgtype()
+routine returns the type of a message.
+.LP
+The
+.B ldap_msgid()
+routine returns the message id of a message.
 .SH ERRORS
 .B ldap_result()
 returns -1 if something bad happens, and zero if the
 timeout specified was exceeded.
+.B ldap_msgtype()
+and
+.B ldap_msgid()
+return -1 on error.
 .SH NOTES
 This routine mallocs memory for results that it receives.  The memory
 can be freed by calling
