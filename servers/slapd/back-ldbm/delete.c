@@ -243,8 +243,6 @@ ldbm_back_delete(
 	rc = 0;
 
 return_results:;
-	if ( pdn != NULL ) free(pdn);
-
 	if( p != NULL ) {
 		/* free parent and writer lock */
 		cache_return_entry_w( &li->li_cache, p );

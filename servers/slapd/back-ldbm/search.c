@@ -346,7 +346,6 @@ searchit:
 						free( pdn );
 						goto loop_continue;
 					}
-					free(pdn);
 				}
 
 			} else if ( dn_issuffix( e->e_ndn, realbase ) ) {
@@ -379,12 +378,9 @@ searchit:
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					(void) dn_normalize( dn );
 					scopeok = (dn == realbase)
 						? 1
 						: (strcmp( dn, realbase ) ? 0 : 1 );
-					free( dn );
-
 				} else {
 					scopeok = (realbase == NULL || *realbase == '\0');
 				}
@@ -433,12 +429,9 @@ searchit:
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					(void) dn_normalize( dn );
 					scopeok = (dn == realbase)
 						? 1
 						: (strcmp( dn, realbase ) ? 0 : 1 );
-					free( dn );
-
 				} else {
 					scopeok = (realbase == NULL || *realbase == '\0');
 				}

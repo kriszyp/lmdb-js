@@ -60,7 +60,7 @@ bdb_dn2id_add(
 		goto done;
 	}
 
-	pdn = dn_parent1( be, ptr );
+	pdn = dn_parent( be, ptr );
 
 	if( pdn != NULL ) {
 		key.size -= pdn - ptr;
@@ -86,7 +86,7 @@ bdb_dn2id_add(
 			goto done;
 		}
 		ptr = pdn;
-		pdn = dn_parent1( be, pdn );
+		pdn = dn_parent( be, pdn );
 	}
 
 	while( pdn != NULL ) {
@@ -106,7 +106,7 @@ bdb_dn2id_add(
 			break;
 		}
 		ptr = pdn;
-		pdn = dn_parent1( be, pdn );
+		pdn = dn_parent( be, pdn );
 	}
 
 done:
@@ -157,7 +157,7 @@ bdb_dn2id_delete(
 		goto done;
 	}
 
-	pdn = dn_parent1( be, ptr );
+	pdn = dn_parent( be, ptr );
 
 	if( pdn != NULL ) {
 		key.size -= pdn - ptr;
@@ -184,7 +184,7 @@ bdb_dn2id_delete(
 			goto done;
 		}
 		ptr = pdn;
-		pdn = dn_parent1( be, pdn );
+		pdn = dn_parent( be, pdn );
 	}
 
 	while( pdn != NULL ) {
@@ -203,7 +203,7 @@ bdb_dn2id_delete(
 			goto done;
 		}
 		ptr = pdn;
-		pdn = dn_parent1( be, pdn );
+		pdn = dn_parent( be, pdn );
 	}
 
 done:
@@ -291,7 +291,7 @@ bdb_dn2id_matched(
 		rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 		if( rc == DB_NOTFOUND ) {
-			char *pdn = dn_parent1( be, dn );
+			char *pdn = dn_parent( be, dn );
 
 			if( pdn == NULL || *pdn == '\0' ) {
 				Debug( LDAP_DEBUG_TRACE,

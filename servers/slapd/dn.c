@@ -313,11 +313,11 @@ dn_match( const char *val, const char *asserted )
 }
 
 /*
- * dn_parent1 - return the dn's parent, in-place
+ * dn_parent - return the dn's parent, in-place
  */
 
 char *
-dn_parent1(
+dn_parent(
 	Backend	*be,
 	const char	*dn )
 {
@@ -367,22 +367,6 @@ dn_parent1(
 	}
 
 	return "";
-}
-
-/*
- * dn_parent - return a copy of the dn of dn's parent
- */
-
-char *
-dn_parent(
-	Backend	*be,
-	const char	*dn
-)
-{
-	dn = dn_parent1( be, dn );
-	if( dn != NULL )
-		dn = ch_strdup( dn );
-	return (char *)dn;
 }
 
 char * dn_rdn(
@@ -449,7 +433,7 @@ char **dn_subtree(
 	do {
 		charray_add( &subtree, dn );
 
-		dn = dn_parent1( be, dn );
+		dn = dn_parent( be, dn );
 
 	} while ( dn != NULL );
 

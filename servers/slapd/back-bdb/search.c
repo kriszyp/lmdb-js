@@ -328,7 +328,7 @@ bdb_search(
 
 			/* need to skip alias which deref into scope */
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
-				char *pdn = dn_parent1( NULL, e->e_ndn );
+				char *pdn = dn_parent( NULL, e->e_ndn );
 				if ( pdn != NULL ) {
 					if( strcmp( pdn, realbase ) ) {
 						goto loop_continue;
@@ -377,7 +377,7 @@ bdb_search(
 
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( (dn = dn_parent1( be, e->e_ndn )) != NULL ) {
+				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
 					scopeok = (dn == realbase)
 						? 1
 						: (strcmp( dn, realbase ) ? 0 : 1 );

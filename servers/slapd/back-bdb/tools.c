@@ -145,7 +145,7 @@ ID bdb_tool_entry_put(
 	}
 
 	/* add dn2id indices */
-	pdn = dn_parent1( be, e->e_ndn );
+	pdn = dn_parent( be, e->e_ndn );
 	rc = bdb_dn2id_add( be, tid, pdn, e );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -237,7 +237,7 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 
 	/* add dn2id indices */
-	pdn = dn_parent1( be, e->e_ndn );
+	pdn = dn_parent( be, e->e_ndn );
 	rc = bdb_dn2id_add( be, tid, pdn, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 		Debug( LDAP_DEBUG_ANY,

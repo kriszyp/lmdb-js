@@ -116,7 +116,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	pdn = dn_parent1( be, ndn );
+	pdn = dn_parent( be, ndn );
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		/* get parent */

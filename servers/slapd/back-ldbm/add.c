@@ -123,14 +123,11 @@ ldbm_back_add(
 			ber_bvecfree( refs );
 			free( matched_dn );
 
-			free( pdn );
 			return -1;
 		}
 
 		/* don't need the add lock anymore */
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-
-		free(pdn);
 
 		if ( ! access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE ) )
@@ -205,7 +202,6 @@ ldbm_back_add(
 	} else {
 		if(pdn != NULL) {
 			assert( *pdn == '\0' );
-			free(pdn);
 		}
 
 		/* no parent, must be adding entry to root */

@@ -74,7 +74,7 @@ passwd_back_search(
 		vals[0] = &val;
 		vals[1] = NULL;
 
-		matched = ch_strdup( base );
+		matched = base;
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
 			char *type;
@@ -191,7 +191,7 @@ passwd_back_search(
 			int i;
 			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
 				if( dn_issuffix( nbase, be->be_nsuffix[i]->bv_val ) ) {
-					matched = ch_strdup( be->be_suffix[i] );
+					matched = be->be_suffix[i];
 					break;
 				}
 			}
@@ -212,7 +212,6 @@ passwd_back_search(
 
 		if ( (pw = getpwnam( user )) == NULL ) {
 			matched = parent;
-			parent = NULL;
 			err = LDAP_NO_SUCH_OBJECT;
 			goto done;
 		}
@@ -233,8 +232,6 @@ done:
 		err, err == LDAP_NO_SUCH_OBJECT ? matched : NULL, NULL,
 		NULL, NULL );
 
-	if( matched != NULL ) free( matched );
-	if( parent != NULL ) free( parent );
 	if( rdn != NULL ) free( rdn );
 	if( user != NULL ) free( user );
 

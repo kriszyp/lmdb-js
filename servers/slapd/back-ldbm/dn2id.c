@@ -64,7 +64,7 @@ dn2id_add(
 	free( key.dptr );
 
 	if ( rc != -1 ) {
-		char *pdn = dn_parent( NULL, dn );
+		char *pdn = dn_parent( be, dn );
 
 		if( pdn != NULL ) {
 			ldbm_datum_init( key );
@@ -75,7 +75,6 @@ dn2id_add(
 			rc = idl_insert_key( be, db, key, id );
 			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 			free( key.dptr );
-			free( pdn );
 		}
 	}
 
@@ -297,7 +296,7 @@ dn2id_delete(
 
 
 	{
-		char *pdn = dn_parent( NULL, dn );
+		char *pdn = dn_parent( be, dn );
 
 		if( pdn != NULL ) {
 			ldbm_datum_init( key );
@@ -310,7 +309,6 @@ dn2id_delete(
 			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 			free( key.dptr );
-			free( pdn );
 		}
 	}
 
@@ -425,7 +423,6 @@ dn2entry_rw(
 		if ( (e = dn2entry_r( be, pdn, matched )) != NULL ) {
 			*matched = e;
 		}
-		free( pdn );
 	}
 
 	return NULL;

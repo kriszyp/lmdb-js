@@ -790,9 +790,6 @@ return_results:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
 
-	if( p_dn != NULL ) free( p_dn );
-	if( p_ndn != NULL ) free( p_ndn );
-
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free( new_rdn_types );
 	if( new_rdn_vals != NULL ) charray_free( new_rdn_vals );

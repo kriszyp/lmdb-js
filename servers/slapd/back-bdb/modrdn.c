@@ -160,7 +160,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	p_ndn = dn_parent1( be, e->e_ndn );
+	p_ndn = dn_parent( be, e->e_ndn );
 	np_ndn = p_ndn;
 	if ( p_ndn != NULL && p_ndn[ 0 ] != '\0' ) {
 		/* Make sure parent entry exist and we can write its 
@@ -204,7 +204,7 @@ retry:	/* transaction retry */
 			"bdb_modrdn: wr to children of entry %s OK\n",
 			p_ndn, 0, 0 );
 		
-		p_dn = dn_parent1( be, e->e_dn );
+		p_dn = dn_parent( be, e->e_dn );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",

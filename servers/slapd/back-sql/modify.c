@@ -336,8 +336,6 @@ int backsql_modrdn(BackendDB *be,Connection *conn,Operation *op,
  send_ldap_result(conn,op,LDAP_SUCCESS,"",NULL,NULL,NULL);
 modrdn_return:
  SQLFreeStmt(sth,SQL_DROP);
- if (p_dn)
-  ch_free(p_dn);
  if (newSuperior && new_pdn)
   ch_free(new_pdn);
  if (new_dn)
@@ -462,7 +460,6 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
   send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
   return 1;
  }
- free(pdn);
  backsql_BindParamStr(sth,1,e->e_dn,BACKSQL_MAX_DN_LEN);
  SQLBindParameter(sth,2,SQL_PARAM_INPUT,SQL_C_LONG,SQL_INTEGER,0,0,&oc->id,0,0);
  SQLBindParameter(sth,3,SQL_PARAM_INPUT,SQL_C_LONG,SQL_INTEGER,0,0,&parent_id.id,0,0);

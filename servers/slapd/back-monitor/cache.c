@@ -195,7 +195,6 @@ monitor_cache_dn2entry(
 	/* try with parent/ancestors */
 	p_ndn = dn_parent( NULL, ndn );
 	rc = monitor_cache_dn2entry( mi, p_ndn, &e_parent );
-	free( p_ndn );
 	if ( rc || e_parent == NULL) {
 		return( -1 );
 	}
