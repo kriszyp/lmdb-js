@@ -561,6 +561,7 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 	if( ndn->bv_val ) {
 		o->o_tmpfree(ndn->bv_val, o->o_tmpmemctx);
 		ndn->bv_val = NULL;
+		ndn->bv_len = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, DETAIL1,
