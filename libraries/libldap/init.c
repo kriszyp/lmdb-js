@@ -364,6 +364,17 @@ static void openldap_ldap_init_w_env(
 	}
 }
 
+static void
+ldap_int_destroy_global_options()
+{
+	struct ldapoptions *gopts = LDAP_INT_GLOBAL_OPT();
+
+	if ( gopts->ldo_defludp ) {
+		ldap_free_urllist( gopts->ldo_defludp );
+		gopts->ldo_defludp = NULL;
+	}
+}
+
 /* 
  * Initialize the global options structure with default values.
  */
@@ -382,11 +393,11 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_tm_api = (struct timeval *)NULL;
 	gopts->ldo_tm_net = (struct timeval *)NULL;
 
-	/* ldo_defludp is leaked, we should have an at_exit() handler
-	 * to free this and whatever else needs to cleaned up. 
+	/* ldo_defludp wll be freed by the atexit() handler
 	 */
 	ldap_url_parselist(&gopts->ldo_defludp, "ldap://localhost/");
 	gopts->ldo_defport = LDAP_PORT;
+	atexit(ldap_int_destroy_global_options);
 
 	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 	gopts->ldo_rebind_proc = NULL;
