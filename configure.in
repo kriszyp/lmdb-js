@@ -571,6 +571,7 @@ dnl Checks for programs
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
+AM_GNU_GETTEXT([external])
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
@@ -2925,6 +2926,6 @@ AC_CONFIG_FILES(servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:
 AC_CONFIG_FILES(tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk)
 AC_CONFIG_FILES(tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk)
 
-AC_CONFIG_COMMANDS([time-stamp], [date >time-stamp
+AC_CONFIG_COMMANDS([time-stamp], [date >stamp-h
 echo Please run \"make depend\" to build dependencies])
 AC_OUTPUT

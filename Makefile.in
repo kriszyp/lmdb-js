@@ -25,7 +25,7 @@ clean-local: FORCE
 	$(RM) config.log
 
 veryclean-local: FORCE
-	$(RM) config.cache config.status libtool stamp-h stamp-h.in
+	$(RM) config.cache config.status configure.lineno libtool stamp-h
 
 distclean: veryclean FORCE
 
