@@ -726,11 +726,33 @@ acl_mask(
 				}
 
 			} else if ( b->a_dn_style == ACL_STYLE_SELF ) {
-				if ( BER_BVISEMPTY( &op->o_ndn ) ) {
+				struct berval	ndn, selfndn;
+				int		level;
+
+				if ( BER_BVISEMPTY( &op->o_ndn ) || BER_BVISNULL( &e->e_nname ) ) {
 					continue;
 				}
+
+				level = b->a_dn_self_level;
+				if ( level < 0 ) {
+					selfndn = op->o_ndn;
+					ndn = e->e_nname;
+					level = -level;
+
+				} else {
+					ndn = op->o_ndn;
+					selfndn = e->e_nname;
+				}
+
+				for ( ; level > 0; level-- ) {
+					if ( BER_BVISEMPTY( &ndn ) ) {
+						break;
+					}
+					dnParent( &ndn, &ndn );
+				}
 				
-				if ( e->e_dn == NULL || !dn_match( &e->e_nname, &op->o_ndn ) ) {
+				if ( BER_BVISEMPTY( &ndn ) || !dn_match( &ndn, &selfndn ) )
+				{
 					continue;
 				}
 
@@ -901,9 +923,38 @@ acl_mask(
 					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
 						goto dn_match_cleanup;
 					}
+
+				} else if ( b->a_dn_style == ACL_STYLE_LEVEL ) {
+					int level;
+					struct berval ndn;
+
+					if ( odnlen <= patlen ) {
+						goto dn_match_cleanup;
+					}
+
+					if ( level > 0 && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
+					{
+						goto dn_match_cleanup;
+					}
+					
+					level = b->a_dn_level;
+					ndn = op->o_ndn;
+					for ( ; level > 0; level-- ) {
+						if ( BER_BVISEMPTY( &ndn ) ) {
+							goto dn_match_cleanup;
+						}
+						dnParent( &ndn, &ndn );
+						if ( ndn.bv_len < patlen ) {
+							goto dn_match_cleanup;
+						}
+					}
+					
+					if ( ndn.bv_len != patlen ) {
+						goto dn_match_cleanup;
+					}
 				}
 
-				got_match = !strcmp( pat.bv_val, op->o_ndn.bv_val + odnlen - patlen );
+				got_match = !strcmp( pat.bv_val, &op->o_ndn.bv_val[ odnlen - patlen ] );
 
 dn_match_cleanup:;
 				if ( pat.bv_val != b->a_dn_pat.bv_val ) {

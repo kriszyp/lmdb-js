@@ -229,7 +229,7 @@ It can have the forms
 	*
 	anonymous
 	users
-	self
+	self[.<selfstyle>]
 
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
@@ -253,8 +253,9 @@ with
 .LP
 .nf
 	<style>={exact|regex|expand}
+	<selfstyle>={level{<n>}}
 	<dnstyle>={{exact|base(object)}|regex
-		|one(level)|sub(tree)|children}
+		|one(level)|sub(tree)|children|level{<n>}}
 	<groupstyle>={exact|expand}
 	<peernamestyle>={<style>|ip|path}
 	<domainstyle>={exact|regex|sub(tree)}
@@ -286,6 +287,18 @@ The keyword
 .B self
 means access to an entry is allowed to the entry itself (e.g. the entry
 being accessed and the requesting entry must be the same).
+It allows the 
+.B level{<n>}
+style, where \fI<n>\fP indicates what ancestor of the DN 
+is to be used in matches.
+A positive value indicates that the <n>-th ancestor of the user's DN
+is to be considered; a negative value indicates that the <n>-th ancestor
+of the target is to be considered.
+For example, a "\fIby self.level{1} ...\fP" clause would match
+when the object "\fIdc=example,dc=com\fP" is accessed
+by "\fIcn=User,dc=example,dc=com\fP".
+A "\fIby self.level{-1} ...\fP" clause would match when the same user
+accesses the object "\fIou=Address Book,cn=User,dc=example,dc=com\fP".
 .LP
 The statement
 .B dn=<DN>
@@ -360,7 +373,7 @@ the
 the
 .BR one(level) ,
 and the
-.B children
+.BR children
 forms provide
 .B $0
 as the match of the entire string.
@@ -369,7 +382,7 @@ The
 the
 .BR one(level) ,
 and the
-.B children
+.BR children
 forms also provide
 .B $1
 as the match of the rightmost part of the DN as defined in the
@@ -386,6 +399,14 @@ ancestors of a user by defining
 which means that only access to entries that appear in the DN of the
 .B <by>
 clause is allowed.
+.LP
+The 
+.BR level{<n>}
+form is an extension and a generalization of the
+.BR onelevel
+form, which matches all DNs whose <n>-th ancestor is the pattern.
+So, \fIlevel{1}\fP is equivalent to \fIonelevel\fP, 
+and \fIlevel{0}\fP is equivalent to \fIbase\fP.
 .LP
 It is perfectly useless to give any access privileges to a DN 
 that exactly matches the
@@ -804,10 +825,15 @@ is set to 1.
 .LP
 The
 .B search
-operation, for each entry, requires
+operation, requires 
+.B search (=s)
+privileges on the 
+.B entry
+pseudo-attribute of the searchBase (NOTE: this was introduced with 2.3).
+Then, for each entry, it requires
 .B search (=s)
 privileges on the attributes that are defined in the filter.
-Then, the resulting entries are tested for 
+The resulting entries are finally tested for 
 .B read (=r)
 privileges on the pseudo-attribute
 .B entry

@@ -45,7 +45,11 @@ static char *style_strings[] = {
 	"one",
 	"subtree",
 	"children",
+	"level",
 	"attrof",
+	"anonymous",
+	"users",
+	"self",
 	"ip",
 	"path",
 	NULL
@@ -587,12 +591,35 @@ parse_acl(
 			for ( ; i < argc; i++ ) {
 				slap_style_t sty = ACL_STYLE_REGEX;
 				char *style_modifier = NULL;
+				char *style_level = NULL;
+				int level = 0;
 				int expand = 0;
 
 				split( argv[i], '=', &left, &right );
 				split( left, '.', &left, &style );
 				if ( style ) {
-					split( style, ',', &style, &style_modifier);
+					split( style, ',', &style, &style_modifier );
+
+					if ( strncasecmp( style, "level", STRLENOF( "level" ) ) == 0 ) {
+						split( style, '{', &style, &style_level );
+						if ( style_level != NULL ) {
+							char *p = strchr( style_level, '}' );
+							if ( p == NULL ) {
+								fprintf( stderr,
+									"%s: line %d: premature eol: "
+									"expecting closing '}' in \"level{n}\"\n",
+									fname, lineno );
+								acl_usage();
+							} else if ( p == style_level ) {
+								fprintf( stderr,
+									"%s: line %d: empty level "
+									"in \"level{n}\"\n",
+									fname, lineno );
+								acl_usage();
+							}
+							p[0] = '\0';
+						}
+					}
 				}
 
 				if ( style == NULL || *style == '\0' ||
@@ -614,6 +641,21 @@ parse_acl(
 
 				} else if ( strcasecmp( style, "children" ) == 0 ) {
 					sty = ACL_STYLE_CHILDREN;
+
+				} else if ( strcasecmp( style, "level" ) == 0 )
+				{
+					char	*next;
+
+					level = strtol( style_level, &next, 10 );
+					if ( next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse level "
+							"in \"level{n}\"\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					sty = ACL_STYLE_LEVEL;
 
 				} else if ( strcasecmp( style, "regex" ) == 0 ) {
 					sty = ACL_STYLE_REGEX;
@@ -794,6 +836,30 @@ parse_acl(
 					}
 					b->a_dn_style = sty;
 					b->a_dn_expand = expand;
+					if ( sty == ACL_STYLE_SELF ) {
+						b->a_dn_self_level = level;
+
+					} else {
+						if ( level < 0 ) {
+							fprintf( stderr,
+								"%s: line %d: bad negative level \"%d\" "
+								"in by DN clause\n",
+								fname, lineno, level );
+							acl_usage();
+						} else if ( level == 1 ) {
+							fprintf( stderr,
+								"%s: line %d: \"onelevel\" should be used "
+								"instead of \"level{1}\" in by DN clause\n",
+								fname, lineno, 0 );
+						} else if ( level == 0 && sty == ACL_STYLE_LEVEL ) {
+							fprintf( stderr,
+								"%s: line %d: \"base\" should be used "
+								"instead of \"level{0}\" in by DN clause\n",
+								fname, lineno, 0 );
+						}
+
+						b->a_dn_level = level;
+					}
 					continue;
 				}
 
@@ -2160,10 +2226,25 @@ access2text( Access *b, char *ptr )
 			b->a_dn_style == ACL_STYLE_SELF )
 		{
 			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );
+			if ( b->a_dn_style == ACL_STYLE_SELF && b->a_dn_self_level != 0 ) {
+				int n = sprintf( ptr, ".level{%d}", b->a_dn_self_level );
+				if ( n > 0 ) {
+					ptr += n;
+				} /* else ? */
+			}
 
 		} else {
 			ptr = lutil_strcopy( ptr, "dn." );
 			ptr = lutil_strcopy( ptr, style_strings[b->a_dn_style] );
+			if ( b->a_dn_style == ACL_STYLE_LEVEL ) {
+				int n = sprintf( ptr, "{%d}", b->a_dn_level );
+				if ( n > 0 ) {
+					ptr += n;
+				} /* else ? */
+			}
+			if ( b->a_dn_expand ) {
+				ptr = lutil_strcopy( ptr, ",expand" );
+			}
 			*ptr++ = '=';
 			*ptr++ = '"';
 			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );

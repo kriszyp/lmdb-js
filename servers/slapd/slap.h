@@ -1173,6 +1173,7 @@ typedef enum slap_style_e {
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
 	ACL_STYLE_CHILDREN,
+	ACL_STYLE_LEVEL,
 	ACL_STYLE_ATTROF,
 	ACL_STYLE_ANONYMOUS,
 	ACL_STYLE_USERS,
@@ -1302,6 +1303,8 @@ typedef struct slap_access {
 #define a_dn_pat	a_authz.sai_dn
 
 	slap_style_t a_dn_style;
+	int			a_dn_level;
+	int			a_dn_self_level;
 	AttributeDescription	*a_dn_at;
 	int			a_dn_self;
 	int 			a_dn_expand;
