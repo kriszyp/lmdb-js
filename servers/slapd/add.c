@@ -193,6 +193,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	Entry		*e = op->ora_e;
 	Modifications	*modlist = op->ora_modlist;
 	Modifications	**modtail = &modlist;
+	int		rc = 0;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -306,7 +307,12 @@ fe_op_add( Operation *op, SlapReply *rs )
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}
-			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
+			rc = (op->o_bd->be_add)( op, rs );
+			if ( rc == 0 ) {
+				/* FIXME: be_entry_release_w() should be
+				 * called by do_add(), so that global
+				 * overlays on the way back can
+				 * at least read the entry */
 				be_entry_release_w( op, e );
 				e = NULL;
 			}
@@ -370,7 +376,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 done:;
-	return rs->sr_err;
+	return rc;
 }
 
 int
