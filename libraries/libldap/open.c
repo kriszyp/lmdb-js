@@ -239,6 +239,14 @@ ldap_int_open_connection(
 				host = srv->lud_host;
 			}
 
+			if( !port ) {
+				if( strcmp(srv->lud_scheme, "ldaps") == 0 ) {
+					port = LDAPS_PORT;
+				} else {
+					port = LDAP_PORT;
+				}
+			}
+
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
 				proto, host, addr, port, async );
 
@@ -256,6 +264,7 @@ ldap_int_open_connection(
 #endif
 			break;
 #ifdef LDAP_CONNECTIONLESS
+
 		case LDAP_PROTO_UDP:
 			port = srv->lud_port;
 
@@ -266,6 +275,9 @@ ldap_int_open_connection(
 			} else {
 				host = srv->lud_host;
 			}
+
+			if( !port ) port = LDAP_PORT;
+
 			LDAP_IS_UDP(ld) = 1;
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
 				proto, host, addr, port, async );

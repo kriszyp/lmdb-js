@@ -318,13 +318,18 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	char   			*ha_buf=NULL, *p, *q;
 	int			socktype;
 
-	osip_debug(ld, "ldap_connect_to_host: %s\n",host,0,0);
 	
 	switch(proto) {
-	case LDAP_PROTO_TCP: socktype = SOCK_STREAM; break;
-	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM; break;
-	default: osip_debug(ld, "ldap_connect_to_host: unknown proto: %d\n",
-				proto, 0, 0);
+	case LDAP_PROTO_TCP: socktype = SOCK_STREAM;
+		osip_debug(ld, "ldap_connect_to_host: TCP %s:%d\n",host,port,0);
+		break;
+	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM;
+		osip_debug(ld, "ldap_connect_to_host: TCP %s:%d\n",host,port,0);
+		break;
+
+	default:
+		osip_debug(ld, "ldap_connect_to_host: unknown proto: %d\n",
+			proto, 0, 0);
 		return -1;
 	}
 
