@@ -87,10 +87,14 @@
 #	define ioctl_t				int
 #endif
 
-#if !defined(__alpha) || defined(VMS)
-#define AC_HTONL( l ) htonl( l )
-#define AC_NTOHL( l ) ntohl( l )
-#else /* __alpha && !VMS */
+#if	defined(__WIN32) && defined(_ALPHA)
+/* NT on Alpha is hosed. */
+#define AC_HTONL( l ) \
+        ((((l)&0xff)<<24) + (((l)&0xff00)<<8) + \
+         (((l)&0xff0000)>>8) + (((l)&0xff000000)>>24))
+#define AC_NTOHL(l) LBER_HTONL(l)
+
+#elif defined(__alpha) && !defined(VMS)
 /*
  * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
  * lower-order 32-bits of a (64-bit) long, so we define correct versions
@@ -102,7 +106,10 @@
 #define AC_NTOHL( l ) (((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
 	| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
 
-#endif /* __alpha && !VMS */
+#else
+#define AC_HTONL( l ) htonl( l )
+#define AC_NTOHL( l ) ntohl( l )
+#endif
 
 
 #endif /* _AC_SOCKET_H_ */
