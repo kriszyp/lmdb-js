@@ -114,7 +114,7 @@ ldap_result(
 		if ( msgid == LDAP_RES_ANY || lm->lm_msgid == msgid ) {
 			LDAPMessage	*tmp;
 
-			if ( all == 0
+			if ( all == LDAP_MSG_ONE
 			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) )
@@ -138,13 +138,13 @@ ldap_result(
 	}
 
 	if ( lastlm == NULL ) {
-		ld->ld_responses = (all == 0 && lm->lm_chain != NULL
+		ld->ld_responses = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	} else {
-		lastlm->lm_next = (all == 0 && lm->lm_chain != NULL
+		lastlm->lm_next = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	}
-	if ( all == 0 && lm->lm_chain != NULL )
+	if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL )
 	{
 		lm->lm_chain->lm_next = lm->lm_next;
 		lm->lm_chain = NULL;
@@ -477,7 +477,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
-		if ( all == 0
+		if ( all == LDAP_MSG_ONE
 		    || (new->lm_msgtype != LDAP_RES_SEARCH_RESULT
 		    && new->lm_msgtype != LDAP_RES_SEARCH_ENTRY) ) {
 			*result = new;
