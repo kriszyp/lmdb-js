@@ -92,7 +92,6 @@ retry:	/* transaction retry */
 #else
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
-
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -1052,9 +1051,15 @@ done:
 		Modifications *tmp;
 		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
+			/* slap_modrdn2mods does things one way,
+			 * slap_mods_opattrs does it differently
+			 */
+			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+				mod->sml_op != LDAP_MOD_DELETE ) break;
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			free( mod );
 		}
+		slap_mods_free( mod );
 	}
 
 	/* LDAP v3 Support */
