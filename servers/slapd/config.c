@@ -2275,22 +2275,29 @@ fp_parse_line(
 	token = strtok_quote( line, " \t" );
 
 	logline = line;
-	if ( token &&
-	     (strcasecmp( token, "rootpw" ) == 0 ||
-	      strcasecmp( token, "replica" ) == 0 || /* contains "credentials" */
-	      strcasecmp( token, "bindpw" ) == 0 ||       /* used in back-ldap */
-	      strcasecmp( token, "pseudorootpw" ) == 0 || /* used in back-meta */
-		  strcasecmp( token, "dbpasswd" ) == 0 ) )    /* used in back-sql */
-		sprintf( logline = logbuf, "%s ***", token );
-	if ( strtok_quote_ptr )
+
+	if ( token && ( strcasecmp( token, "rootpw" ) == 0 ||
+		strcasecmp( token, "replica" ) == 0 ||		/* contains "credentials" */
+		strcasecmp( token, "bindpw" ) == 0 ||		/* used in back-ldap */
+		strcasecmp( token, "pseudorootpw" ) == 0 ||	/* used in back-meta */
+		strcasecmp( token, "dbpasswd" ) == 0 ) )	/* used in back-sql */
+	{
+		snprintf( logline = logbuf, sizeof logbuf, "%s ***", token );
+	}
+
+	if ( strtok_quote_ptr ) {
 		*strtok_quote_ptr = ' ';
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONFIG, DETAIL1, "line %d (%s)\n", lineno, logline , 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, logline, 0 );
 #endif
-	if ( strtok_quote_ptr )
+
+	if ( strtok_quote_ptr ) {
 		*strtok_quote_ptr = '\0';
+	}
 
 	for ( ; token != NULL; token = strtok_quote( NULL, " \t" ) ) {
 		if ( cargc == cargv_size - 1 ) {
@@ -2373,18 +2380,18 @@ strtok_quote( char *line, char *sep )
 
 static char	buf[BUFSIZ];
 static char	*line;
-static int	lmax, lcur;
+static size_t lmax, lcur;
 
-#define CATLINE( buf )	{ \
-	int	len; \
-	len = strlen( buf ); \
-	while ( lcur + len + 1 > lmax ) { \
-		lmax += BUFSIZ; \
-		line = (char *) ch_realloc( line, lmax ); \
-	} \
-	strcpy( line + lcur, buf ); \
-	lcur += len; \
-}
+#define CATLINE( buf ) \
+	do { \
+		size_t len = strlen( buf ); \
+		while ( lcur + len + 1 > lmax ) { \
+			lmax += BUFSIZ; \
+			line = (char *) ch_realloc( line, lmax ); \
+		} \
+		strcpy( line + lcur, buf ); \
+		lcur += len; \
+	} while( 0 )
 
 static char *
 fp_getline( FILE *fp, int *lineno )

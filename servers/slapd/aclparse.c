@@ -201,8 +201,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "filter" ) == 0 ) {
-					if ( (a->acl_filter = str2filter(
-					    right )) == NULL ) {
+					if ( (a->acl_filter = str2filter( right )) == NULL ) {
 						fprintf( stderr,
 				"%s: line %d: bad filter \"%s\" in to clause\n",
 						    fname, lineno, right );
@@ -227,7 +226,7 @@ parse_acl(
 			}
 
 			if ( a->acl_dn_pat.bv_len != 0 &&
-				strcmp(a->acl_dn_pat.bv_val, "*") == 0)
+				strcmp(a->acl_dn_pat.bv_val, "*") == 0 )
 			{
 				free( a->acl_dn_pat.bv_val );
 				a->acl_dn_pat.bv_val = NULL;

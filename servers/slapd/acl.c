@@ -1906,7 +1906,7 @@ regex_matches(
 )
 {
 	regex_t re;
-	char newbuf[512];
+	char newbuf[ACL_BUF_SIZE];
 	struct berval bv;
 	int	rc;
 
@@ -1917,7 +1917,7 @@ regex_matches(
 
 	string_expand(&bv, pat, buf, matches);
 	if (( rc = regcomp(&re, newbuf, REG_EXTENDED|REG_ICASE))) {
-		char error[512];
+		char error[ACL_BUF_SIZE];
 		regerror(rc, &re, error, sizeof(error));
 
 #ifdef NEW_LOGGING

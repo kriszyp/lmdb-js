@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 2000, Mark Adamson, Carnegie Mellon.  All rights reserved.
  * This software is not subject to any license of Carnegie Mellon University.
  *
@@ -193,11 +197,9 @@ static int slap_sasl_rx_off(char *rep, int *off)
 	off[n] = -1;
 	return( LDAP_SUCCESS );
 }
-#endif /* HAVE_CYRUS_SASL */
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-#ifdef HAVE_CYRUS_SASL
 	const char *c;
 	int rc, n;
 	SaslRegexp_t *reg;
@@ -265,12 +267,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	}
 
 	nSaslRegexp++;
-#endif
 	return( LDAP_SUCCESS );
 }
 
-
-#ifdef HAVE_CYRUS_SASL
 
 /* Perform replacement on regexp matches */
 static void slap_sasl_rx_exp( char *rep, int *off, regmatch_t *str,

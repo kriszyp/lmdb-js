@@ -20,11 +20,11 @@
 #include "lber_pvt.h"
 
 static struct berval supportedFeatures[] = {
-	BER_BVC("1.3.6.1.4.1.4203.1.5.1"), /* all Operational Attributes ("+") */
-	BER_BVC("1.3.6.1.4.1.4203.1.5.2"), /* OCs in Attributes List */
-	BER_BVC("1.3.6.1.4.1.4203.1.5.3"), /* (&) and (|) search filters */
-	BER_BVC("1.3.6.1.4.1.4203.1.5.4"), /* Language Tag Options */
-	BER_BVC("1.3.6.1.4.1.4203.1.5.5"), /* Language Range Options */
+	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* all Operational Attributes ("+") */
+	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS), /* OCs in Attributes List */
+	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS), /* (&) and (|) search filters */
+	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS), /* Language Tag Options */
+	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS), /* Language Range Options */
 	{0,NULL}
 };
 
@@ -36,7 +36,6 @@ root_dse_info(
 	Entry **entry,
 	const char **text )
 {
-	char buf[BUFSIZ];
 	Entry		*e;
 	struct berval	vals[2], *bv;
 	int		i, j;
@@ -122,13 +121,14 @@ root_dse_info(
 
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
+		char buf[BUFSIZ];
 		if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
 			( i < LDAP_VERSION3 ) )
 		{
 			/* version 2 and lower are disallowed */
 			continue;
 		}
-		sprintf(buf,"%d",i);
+		snprintf(buf, sizeof buf, "%d", i);
 		vals[0].bv_val = buf;
 		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedLDAPVersion, vals );

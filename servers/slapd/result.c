@@ -593,7 +593,7 @@ send_search_result(
 
 	{
 	char nbuf[64];
-	sprintf( nbuf, "%d nentries=%d", err, nentries );
+	snprintf( nbuf, sizeof nbuf, "%d nentries=%d", err, nentries );
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%lu op=%lu SEARCH RESULT tag=%lu err=%s text=%s\n",

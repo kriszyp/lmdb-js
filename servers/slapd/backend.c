@@ -1026,6 +1026,7 @@ backend_group(
 	} 
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
 	for (g = conn->c_groups; g; g=g->ga_next) {
 		if (g->ga_be != be || g->ga_oc != group_oc ||
 			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
@@ -1033,7 +1034,9 @@ backend_group(
 		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
+
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
 	if (g) {
 		return g->ga_res;
 	}
