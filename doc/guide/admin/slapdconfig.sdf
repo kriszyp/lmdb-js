@@ -600,7 +600,9 @@ The first form is used to select all entries.  The second form may
 be used to select entries by matching a regular expression against
 the target entry's {{normalized DN}}.   (The second form is not
 discussed further in this document.)  The third form is used to
-select entries which are within the requested scope of DN.
+select entries which are within the requested scope of DN.  The
+<DN> is a string representation of the Distinguished Name, as
+described in {{REF:RFC2253}}.
 
 The scope can be either {{EX:base}}, {{EX:one}}, {{EX:subtree}},
 or {{EX:children}}.  Where {{EX:base}} matches only the entry with
