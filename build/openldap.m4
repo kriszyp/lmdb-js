@@ -1188,7 +1188,11 @@ dnl Check for Cyrus SASL version compatility, need 2.1.3 or newer
 AC_DEFUN([OL_SASL_COMPAT],
 [AC_CACHE_CHECK([Cyrus SASL library version], [ol_cv_sasl_compat],[
 	AC_EGREP_CPP(__sasl_compat,[
+#ifdef HAVE_SASL_SASL_H
 #include <sasl/sasl.h>
+#else
+#include <sasl.h>
+#endif
 
 /* require 2.1.3 or later */
 #if SASL_VERSION_MAJOR == 1  && SASL_VERSION_MINOR >= 5
