@@ -39,6 +39,12 @@ detach()
 	nbits = getdtablesize();
 #endif /* USE_SYSCONF */
 
+#ifdef FD_SETSIZE
+	if( nbits > FD_SETSIZE ) {
+		nbits = FD_SETSIZE;
+	}
+#endif /* FD_SETSIZE */
+
 #ifdef LDAP_DEBUG
 	if ( ldap_debug == 0 ) {
 #endif

@@ -18,18 +18,12 @@ LDBMINCLUDE=-I/usr/include
 # package.  Rather than resolve this globally, I have marked the
 # threading as "preeemptive", even though it is technically not.
 #
-# As far as I have been able to determine, there are not buzz-loop
-# based races in the LDAP code (at least not now that I've fixed
-# the bogus FD_SETSIZE assumptions about the select(2) system call
-# implementation being in any way related to getdtablesize(2) --
-# if it were, sys/types.h would define FD_SETSIZE in terms of the
-# getdtablesize(2) call, and there would be no implicit limits).
-#
 # This means that the implicit-yield threading is topologically
 # equivalent to preemptive threading.
 #
 THREADS= -D_THREAD_SAFE -DPOSIX_THREADS -DPTHREAD_PREEMPTIVE
 THREADSLIB= -pthread
+#THREADSLIB= -lc_r
 
 # we need to link in the V3 library to get sigset()
 PLATFORMLIBS= -lcrypt

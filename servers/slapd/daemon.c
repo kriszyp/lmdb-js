@@ -89,7 +89,7 @@ slapd_daemon(
 	if(dtblsize > FD_SETSIZE) {
 		dtblsize = FD_SETSIZE;
 	}
-#endif	/* !FD_SETSIZE*/
+#endif	/* !FD_SETSIZE */
 
 	c = (Connection *) ch_calloc( 1, dtblsize * sizeof(Connection) );
 

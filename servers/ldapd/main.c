@@ -241,6 +241,12 @@ char	**argv;
 	dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
 
+#ifdef FD_SETSIZE
+	if( dtblsize > FD_SETSIZE ) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif /* FD_SETSIZE */
+
 #ifndef NOSETPROCTITLE
 	/* for setproctitle */
 	Argv = argv;

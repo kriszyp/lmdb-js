@@ -33,6 +33,13 @@ int	debug;
 	nbits = getdtablesize();
 #endif /* USE_SYSCONF */
 
+#ifdef FD_SETSIZE
+	if (nbits > FD_SETSIZE) {
+		nbits = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
+
+
 	if ( debug == 0 || !(isatty( 1 )) ) {
 		for ( i = 0; i < 5; i++ ) {
 			switch ( fork() ) {

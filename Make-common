@@ -45,9 +45,9 @@ RUNTIMEETCDIR?= $(ETCDIR)
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
-EXTRACFLAGS=-O -g
+#EXTRACFLAGS=-O -g
 #EXTRACFLAGS=-O
-#EXTRACFLAGS=-g
+EXTRACFLAGS=-g
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
 EXTRALDFLAGS=-g
 
@@ -142,8 +142,15 @@ SLAPD_BACKENDS= -DLDAP_LDBM # -DLDAP_SHELL -DLDAP_PASSWD
 LDBMBACKEND?=-DLDBM_USE_NDBM
 LDBMINCLUDE?=
 LDBMLIB?=
-#
-# if you want to use a non-default threads package change these lines
+# if you want to use a non-default threads package change the defines below
+# to one of:
+#	-DPOSIX_THREADS         (draft 10 or standard)
+#	-DTHREAD_MIT_PTHREADS   (draft 4)
+#	-DTHREAD_NEXT_CTHREADS
+#	-DTHREAD_DCE_PTHREADS
+#	-DTHREAD_SUNOS4_LWP
+#	-DTHREAD_SUNOS5_LWP
+# and select the appropriate library.
 #THREADS?=-DNO_THREADS
 #THREADSLIB?=
 

@@ -140,20 +140,18 @@ char	**argv;
 	}
 #endif
 
-#ifdef FD_SETSIZE
-	/*
-	 * It is invalid to use a set size in excess of the type
-	 * scope, as defined for the fd_set in sys/types.h.  This
-	 * is true for any OS.
-	 */
-	dtblsize = FD_SETSIZE;
-#else	/* !FD_SETSIZE*/
 #ifdef USE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
 #else /* USE_SYSCONF */
 	dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
-#endif	/* !FD_SETSIZE*/
+
+#ifdef FD_SETSIZE
+	if (dtblsize > FD_SETSIZE) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
+
 
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )

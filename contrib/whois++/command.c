@@ -50,16 +50,14 @@ char	*token;
 	int		i, status, tablesize;
 
 	if ( buffer == NULL ) {
-#ifdef FD_SETSIZE
-		/*
-		 * It is invalid to use a set size in excess of the type
-		 * scope, as defined for the fd_set in sys/types.h.  This
-		 * is true for any OS.
-		 */
-		tablesize = FD_SETSIZE;
-#else	/* !FD_SETSIZE*/
 		tablesize = getdtablesize();
-#endif	/* !FD_SETSIZE*/
+
+#ifdef FD_SETSIZE
+		if ( tablesize > FD_SETSIZE ) {
+			tablesize = FD_SETSIZE;
+		}
+#endif	/* FD_SETSIZE */
+
 		timeout.tv_sec = 60;
 		timeout.tv_usec = 0;
 		FD_ZERO( &readfds );
