@@ -457,7 +457,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-kthread $LIBS"
-				AC_TRY_LINK([char pthread();],[
+				AC_TRY_LINK([char pthread_create();],[
 					pthread_create();
 					], ol_cv_kthread_flag=yes, ol_cv_kthread_flag=no)
 				dnl restore the LIBS
@@ -477,7 +477,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthread $LIBS"
-				AC_TRY_LINK([char pthread();],[
+				AC_TRY_LINK([char pthread_create();],[
 					pthread_create();
 					], ol_cv_pthread_flag=yes, ol_cv_pthread_flag=no)
 				dnl restore the LIBS
@@ -497,8 +497,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthreads $LIBS"
-				AC_TRY_LINK([char pthread();],[
-					pthread_create();
+				AC_TRY_LINK([
+#include <pthread.h>
+],[
+					pthread_create(NULL,NULL,NULL,NULL);
 					], ol_cv_pthreads_flag=yes, ol_cv_pthreads_flag=no)
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
@@ -517,7 +519,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-thread $LIBS"
-				AC_TRY_LINK([char pthread();],[
+				AC_TRY_LINK([char pthread_create();],[
 					pthread_create();
 					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
 				dnl restore the LIBS
@@ -645,7 +647,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-threads $LIBS"
-				AC_TRY_LINK([char pthread();],[
+				AC_TRY_LINK([char pthread_create();],[
 					pthread_create();
 					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
 				dnl restore the LIBS
@@ -1001,11 +1003,7 @@ if test $ol_link_threads != no ; then
 	dnl with the thread libraries
 	AC_CACHE_CHECK([for thread specific errno],
 		[ol_cv_errno_thread_specific], [
-		AC_TRY_LINK([
-#include <errno.h>
-			], [
-int x = errno;
-			],
+		AC_TRY_LINK([#include <errno.h>], [int x = errno;],
 			[ol_cv_errno_thread_specific=yes],
 			[ol_cv_errno_thread_specific=no])
 	])

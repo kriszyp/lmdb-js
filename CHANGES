@@ -5,7 +5,10 @@ Changes included in OpenLDAP 1.2
 	Fixed slapd/back-ldbm/cache entry lock assert bugs
 	Fixed slapd uncaught signals in main thread problem 
 	Build environment
+		Fixed detections requiring AC_TRY_LINK
 		Fixed build/man.mk "ln -sf" bug
+		Removed "ldap.openldap.org" as default HOST
+		Removed "dc=OpenLDAP, dc=org" as default BASE
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA2

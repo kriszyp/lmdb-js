@@ -316,7 +316,7 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	mods[1] =NULL;
 
 	if (!noupdates && (ret = ldap_modify_s (ld, targetdn, mods)) != LDAP_SUCCESS)
-		ldap_perror (ld, "ldap_modify_s");
+		ldap_perror (ld, "ldap_modify");
 
 	free (hashed_pw);
 	free (buf);
@@ -615,7 +615,7 @@ main (int argc, char *argv[])
 		    i != LDAP_TIMELIMIT_EXCEEDED &&
 		    i != LDAP_SIZELIMIT_EXCEEDED)
 		{
-			ldap_perror (ld, "ldap_search_s");
+			ldap_perror (ld, "ldap_search");
 			exit (1);
 		}
 
