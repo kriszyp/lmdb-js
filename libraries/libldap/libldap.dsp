@@ -167,10 +167,6 @@ SOURCE=.\delete.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dn.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\dnssrv.c
 # End Source File
 # Begin Source File

@@ -338,6 +338,10 @@ SOURCE=..\libldap\url.c
 # End Source File
 # Begin Source File
 
+SOURCE="..\libldap\utf-8-conv.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\libldap\utf-8.c"
 # End Source File
 # Begin Source File

@@ -85,14 +85,6 @@ static int rdn2DCEstrlen( LDAPRDN *rdn, unsigned flags, ber_len_t *len );
 static int rdn2DCEstr( LDAPRDN *rdn, char *str, unsigned flag, ber_len_t *len, int first );
 static int rdn2ADstrlen( LDAPRDN *rdn, unsigned flags, ber_len_t *len );
 static int rdn2ADstr( LDAPRDN *rdn, char *str, unsigned flags, ber_len_t *len, int first );
-	
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-#define NAME_TYPE_LDAP_RDN	0
-#define NAME_TYPE_LDAP_DN	1
-#define NAME_TYPE_DCE_DN	2
-
-static char **explode_name( const char *name, int notypes, int is_type );
-#endif /* !USE_LDAP_DN_PARSING */
 
 /*
  * RFC 1823 ldap_get_dn
@@ -125,43 +117,6 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 char *
 ldap_dn2ufn( LDAP_CONST char *dn )
 {
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-	char	*ufn;
-	char	**vals;
-	int i;
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
-
-	/* produces completely untyped UFNs */
-
-	if( dn == NULL ) {
-		return NULL;
-	}
-
-	vals = ldap_explode_dn( dn , 0 );
-	if( vals == NULL ) {
-		return NULL;
-	}
-
-	for ( i = 0; vals[i]; i++ ) {
-		char **rvals;
-
-		rvals = ldap_explode_rdn( vals[i] , 1 );
-		if ( rvals == NULL ) {
-			LDAP_VFREE( vals );
-			return NULL;
-		}
-
-		LDAP_FREE( vals[i] );
-		vals[i] = ldap_charray2str( rvals, " + " );
-		LDAP_VFREE( rvals );
-	}
-
-	ufn = ldap_charray2str( vals, ", " );
-
-	LDAP_VFREE( vals );
-	return ufn;
-#else /* USE_LDAP_DN_PARSING */
 	char	*out = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
@@ -169,7 +124,6 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_UFN );
 	
 	return( out );
-#endif /* USE_LDAP_DN_PARSING */
 }
 
 /*
@@ -178,11 +132,6 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 char **
 ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 {
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
-
-	return explode_name( dn, notypes, NAME_TYPE_LDAP_DN );
-#else /* USE_LDAP_DN_PARSING */
 	LDAPDN	*tmpDN;
 	char	**values = NULL;
 	int	iRDN;
@@ -212,17 +161,11 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 	values[ iRDN ] = NULL;
 
 	return( values );
-#endif /* USE_LDAP_DN_PARSING */
 }
 
 char **
 ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 {
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
-
-	return explode_name( rdn, notypes, NAME_TYPE_LDAP_RDN );
-#else /* USE_LDAP_DN_PARSING */
 	LDAPDN	*tmpDN;
 	char	**values = NULL;
 	int	iAVA;
@@ -299,47 +242,11 @@ error_return:;
 	LBER_VFREE( values );
 	ldap_dnfree( tmpDN );
 	return( NULL );
-#endif /* USE_LDAP_DN_PARSING */
 }
 
 char *
 ldap_dn2dcedn( LDAP_CONST char *dn )
 {
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-	char *dce, *q, **rdns, **p;
-	int len = 0;
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
-
-	rdns = explode_name( dn, 0, NAME_TYPE_LDAP_DN );
-	if ( rdns == NULL ) {
-		return NULL;
-	}
-	
-	for ( p = rdns; *p != NULL; p++ ) {
-		len += strlen( *p ) + 1;
-	}
-
-	q = dce = LDAP_MALLOC( len + 1 );
-	if ( dce == NULL ) {
-		return NULL;
-	}
-
-	p--; /* get back past NULL */
-
-	for ( ; p != rdns; p-- ) {
-		strcpy( q, "/" );
-		q++;
-		strcpy( q, *p );
-		q += strlen( *p );
-	}
-
-	strcpy( q, "/" );
-	q++;
-	strcpy( q, *p );
-	
-	return dce;
-#else /* USE_LDAP_DN_PARSING */
 	char	*out = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
@@ -347,55 +254,11 @@ ldap_dn2dcedn( LDAP_CONST char *dn )
 	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_DCE );
 
 	return( out );
-#endif /* USE_LDAP_DN_PARSING */
 }
 
 char *
 ldap_dcedn2dn( LDAP_CONST char *dce )
 {
-#ifndef USE_LDAP_DN_PARSING
-	char *dn, *q, **rdns, **p;
-	int len;
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
-
-	rdns = explode_name( dce, 0, NAME_TYPE_DCE_DN );
-	if ( rdns == NULL ) {
-		return NULL;
-	}
-
-	len = 0;
-
-	for ( p = rdns; *p != NULL; p++ ) {
-		len += strlen( *p ) + 1;
-	}
-
-	q = dn = LDAP_MALLOC( len );
-	if ( dn == NULL ) {
-		return NULL;
-	}
-
-	p--;
-
-	for ( ; p != rdns; p-- ) {
-		strcpy( q, *p );
-		q += strlen( *p );
-		strcpy( q, "," );
-		q++;
-	}
-
-	if ( *dce == '/' ) {
-		/* the name was fully qualified, thus the most-significant
-		 * RDN was empty. trash the last comma */
-		q--;
-		*q = '\0';
-	} else {
-		/* the name was relative. copy the most significant RDN */
-		strcpy( q, *p );
-	}
-
-	return dn;
-#else /* USE_LDAP_DN_PARSING */
 	char	*out = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
@@ -403,7 +266,6 @@ ldap_dcedn2dn( LDAP_CONST char *dce )
 	( void )dn2dn( dce, LDAP_DN_FORMAT_DCE, &out, LDAP_DN_FORMAT_LDAPV3 );
 
 	return( out );
-#endif /* USE_LDAP_DN_PARSING */
 }
 
 char *
@@ -419,152 +281,14 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
 	return( out );
 }
 
-#ifndef USE_LDAP_DN_PARSING	/* deprecated */
-#define INQUOTE		1
-#define OUTQUOTE	2
-
-static char **
-explode_name( const char *name, int notypes, int is_type )
-{
-	const char *p, *q, *rdn;
-	char **parts = NULL;
-	int	offset, state, have_equals, count = 0, endquote, len;
-
-	/* safe guard */
-	if(name == NULL) name = "";
-
-	/* skip leading whitespace */
-	while( ldap_utf8_isspace( name )) {
-		LDAP_UTF8_INCR( name );
-	}
-
-	p = rdn = name;
-	offset = 0;
-	state = OUTQUOTE;
-	have_equals=0;
-
-	do {
-		/* step forward */
-		p += offset;
-		offset = 1;
-
-		switch ( *p ) {
-		case '\\':
-			if ( p[1] != '\0' ) {
-				offset = LDAP_UTF8_OFFSET(++p);
-			}
-			break;
-		case '"':
-			if ( state == INQUOTE )
-				state = OUTQUOTE;
-			else
-				state = INQUOTE;
-			break;
-		case '=':
-			if( state == OUTQUOTE ) have_equals++;
-			break;
-		case '+':
-			if (is_type == NAME_TYPE_LDAP_RDN)
-				goto end_part;
-			break;
-		case '/':
-			if (is_type == NAME_TYPE_DCE_DN)
-				goto end_part;
-			break;
-		case ';':
-		case ',':
-			if (is_type == NAME_TYPE_LDAP_DN)
-				goto end_part;
-			break;
-		case '\0':
-		end_part:
-			if ( state == OUTQUOTE ) {
-				++count;
-				have_equals=0;
-
-				if ( parts == NULL ) {
-					if (( parts = (char **)LDAP_MALLOC( 8
-						 * sizeof( char *))) == NULL )
-						return( NULL );
-				} else if ( count >= 8 ) {
-					if (( parts = (char **)LDAP_REALLOC( parts,
-						(count+1) * sizeof( char *)))
-						== NULL )
-						return( NULL );
-				}
-
-				parts[ count ] = NULL;
-				endquote = 0;
-
-				if ( notypes ) {
-					for ( q = rdn; q < p && *q != '='; ++q ) {
-						/* EMPTY */;
-					}
-
-					if ( q < p ) {
-						rdn = ++q;
-					}
-
-					if ( *rdn == '"' ) {
-						++rdn;
-					}
-					
-					if ( p[-1] == '"' ) {
-						endquote = 1;
-						--p;
-					}
-				}
-
-				len = p - rdn;
-
-				if (( parts[ count-1 ] = (char *)LDAP_CALLOC( 1,
-				    len + 1 )) != NULL )
-				{
-				   	AC_MEMCPY( parts[ count-1 ], rdn, len );
-
-					if( !endquote ) {
-						/* skip trailing spaces */
-						while( len > 0 && ldap_utf8_isspace(
-							&parts[count-1][len-1] ) )
-						{
-							--len;
-						}
-					}
-
-					parts[ count-1 ][ len ] = '\0';
-				}
-
-				/*
-				 *  Don't forget to increment 'p' back to where
-				 *  it should be.  If we don't, then we will
-				 *  never get past an "end quote."
-				 */
-				if ( endquote == 1 )
-					p++;
-
-				rdn = *p ? &p[1] : p;
-				while ( ldap_utf8_isspace( rdn ) )
-					++rdn;
-			} break;
-		}
-	} while ( *p );
-
-	return( parts );
-}
-#endif /* !USE_LDAP_DN_PARSING */
-
 int
 ldap_dn_normalize( const char *in, unsigned iflags, char **out, unsigned oflags ) 
 {
 	assert( out );
 
-#ifdef USE_LDAP_DN_PARSING
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
 
 	return dn2dn( in, iflags, out, oflags);
-#else /* !USE_LDAP_DN_PARSING */
-	return( LDAP_OTHER );
-#endif /* !USE_LDAP_DN_PARSING */
 }
 
 /*
