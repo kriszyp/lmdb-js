@@ -124,7 +124,7 @@ bdb_csn_commit(
 		}
 
 		/* This serializes add. But this case is very rare : only once. */
-		rs->sr_err = bdb_next_id( op->o_bd, NULL, &ctxcsn_id );
+		rs->sr_err = bdb_next_id( op->o_bd, tid, &ctxcsn_id );
 		if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR,
