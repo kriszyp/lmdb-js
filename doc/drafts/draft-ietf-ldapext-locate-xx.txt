@@ -1,9 +1,9 @@
 
 
 INTERNET-DRAFT                                         Michael P. Armijo
-<draft-ietf-ldapext-locate-06.txt>                          Levon Esibov
-November 13, 2001                                             Paul Leach
-Expires: May 13, 2002                              Microsoft Corporation
+<draft-ietf-ldapext-locate-07.txt>                          Levon Esibov
+February 20, 2002                                             Paul Leach
+Expires: August 20, 2002                           Microsoft Corporation
 							     R.L. Morgan
 						University of Washington
 
@@ -31,7 +31,7 @@ Status of this Memo
    http://www.ietf.org/shadow.html.
 
    Distribution of this memo is unlimited.  It is filed as <draft-
-   ietf-ldapext-locate-04.txt>, and expires on February 25, 2001.  
+   ietf-ldapext-locate-07.txt>, and expires on August 20, 2002.
    Please send comments to the authors.
 
    Copyright Notice
@@ -56,7 +56,7 @@ Abstract
 
 Armijo, Esibov, Leach and Morgan                                [Page 1]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
 
 
@@ -114,7 +114,7 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
 
 Armijo, Esibov, Leach and Morgan                                [Page 2]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
 
 
@@ -137,7 +137,7 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
    The client would convert the DC components as defined above into 
    DNS name:
 
-   example.net.
+   example.net
 
    The determined DNS name will be submitted as a DNS query using the 
    algorithm defined in section 3.
@@ -153,7 +153,7 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
    appropriate server from multiple servers according to the algorithm
    described in [5].  The name of this record has the following format:
 
-      _<Service>._<Proto>.<Domain>
+      _<Service>._<Proto>.<Domain>.
 
    where <Service> is "ldap", and <Proto> is "tcp". <Domain> is the
    domain name formed by converting the DN of a naming context mastered
@@ -172,8 +172,7 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
 
 Armijo, Esibov, Leach and Morgan                                [Page 3]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
-
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
 
    Presence of such records enables clients to find the LDAP servers
@@ -201,7 +200,6 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
    portion of the constructed fully qualified domain name.
 
 
-
 4.  IANA Considerations
 
    This document does not require any IANA actions.
@@ -215,22 +213,24 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
    intended to contact.  See [7] for more information on security
    threats and security mechanisms.
 
-   The client MUST use the server hostname it used to open the LDAP
-   connection as the value to compare against the server name as
-   expressed in the server's certificate.  The client MUST NOT use the
-   server's canonical DNS name or any other derived form of name.
+   When using LDAP with TLS the client must check the server's name,
+   as described in section 3.6 of [RFC 2830].  As specified there, the
+   name the client checks for is the server's name before any
+   potentially insecure transformations, including the SRV record
+   lookup specified in this memo.  Thus the name the client must check
+   for is the name obtained by doing the mapping step defined in
+   section 2 above.  For example, if the DN "cn=John
+   Doe,ou=accounting,dc=example,dc=net" is converted to the DNS name
+   "example.net", the server's name must match "example.net".
 
    This document describes a method that uses DNS SRV records to 
    discover LDAP servers.  All security considerations related to DNS
    SRV records are inherited by this document.  See the security 
    considerations section in [5] for more details.
 
-
-
-
 Armijo, Esibov, Leach and Morgan                                [Page 4]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
 
 6. References
@@ -288,7 +288,7 @@ INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
 
 Armijo, Esibov, Leach and Morgan                                [Page 5]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
    RL "Bob" Morgan
    University of Washington
@@ -346,7 +346,7 @@ herein is provided on an "AS IS" basis and THE INTERNET SOCIETY AND THE
 
 Armijo, Esibov, Leach and Morgan                                [Page 6]
 
-INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+INTERNET-DRAFT   Discovering LDAP Services with DNS    February 20, 2002
 
 INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
@@ -357,6 +357,6 @@ WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE."
 10.  Expiration Date
 
    This documentis filed as <draft-ietf-ldapext-locate-06.txt>, and 
-   expires May 13, 2002.
+   expires August 20, 2002.
 
 Armijo, Esibov, Leach and Morgan                                [Page 7]
