@@ -1838,7 +1838,7 @@ nonpresent_callback(
 
 		if ( a == NULL ) return 0;
 
-		present_uuid = avl_find( si->si_presentlist, &a->a_vals[0],
+		present_uuid = avl_find( si->si_presentlist, &a->a_nvals[0],
 			syncuuid_cmp );
 
 		if ( present_uuid == NULL ) {
@@ -1850,7 +1850,7 @@ nonpresent_callback(
 
 		} else {
 			avl_delete( &si->si_presentlist,
-					&a->a_vals[0], syncuuid_cmp );
+					&a->a_nvals[0], syncuuid_cmp );
 			ch_free( present_uuid->bv_val );
 			ch_free( present_uuid );
 		}
@@ -1981,7 +1981,7 @@ syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
 	const struct berval *uuid2 = v_uuid2;
 	int rc = uuid1->bv_len - uuid2->bv_len;
 	if ( rc ) return rc;
-	return ( strcmp( uuid1->bv_val, uuid2->bv_val ) );
+	return ( memcmp( uuid1->bv_val, uuid2->bv_val, uuid1->bv_len ) );
 }
 
 static void
