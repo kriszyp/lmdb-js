@@ -1127,8 +1127,10 @@ int caseExactIA5SubstringsFilter(
 
 			value = sa->sa_any[i];
 
-			for(j=0; j<sa->sa_any[i]->bv_len; j+= SLAP_INDEX_SUBSTR_STEP ) {
-
+			for(j=0;
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
+				j += SLAP_INDEX_SUBSTR_STEP )
+			{
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					lutil_MD5Update( &MD5context,
@@ -1716,7 +1718,10 @@ int caseIgnoreIA5SubstringsFilter(
 			value = ber_bvdup( sa->sa_any[i] );
 			ldap_pvt_str2upper( value->bv_val );
 
-			for(j=0; j<sa->sa_any[i]->bv_len; j+= SLAP_INDEX_SUBSTR_STEP ) {
+			for(j=0;
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
+				j += SLAP_INDEX_SUBSTR_STEP )
+			{
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					lutil_MD5Update( &MD5context,
