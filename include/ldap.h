@@ -1206,6 +1206,11 @@ ldap_dn2str LDAP_P((
 	char **str,
 	unsigned flags ));
 
+LDAP_F( int )
+ldap_dn_normalize LDAP_P((
+	LDAP_CONST char *in, unsigned iflags,
+	char **out, unsigned oflags ));
+
 LDAP_F( char * )
 ldap_dn2ufn LDAP_P(( /* deprecated */
 	LDAP_CONST char *dn ));
