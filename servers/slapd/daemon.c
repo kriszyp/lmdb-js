@@ -589,7 +589,7 @@ slapd_daemon_task(
 #else
 		struct sockaddr_in	from;
 #endif /* LDAP_PF_LOCAL */
-#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
+#if defined(SLAPD_RLOOKUPS)
         struct hostent		*hp;
 #endif
 		struct timeval		zero;
@@ -793,7 +793,7 @@ slapd_daemon_task(
 				peeraddr != NULL ? peeraddr : "unknown",
 				(unsigned) ntohs( from.sin_port ) );
 
-#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
+#if defined(SLAPD_RLOOKUPS)
 			hp = gethostbyaddr( (char *)
 			    &(from.sin_addr),
 			    sizeof(from.sin_addr), AF_INET );
