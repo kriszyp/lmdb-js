@@ -346,18 +346,19 @@ bdb_db_destroy( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
-	/* force a checkpoint */
-	if( bdb->bi_txn ) {
-		rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-		}
-	}
-
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
+
+		/* force a checkpoint */
+		if( bdb->bi_txn ) {
+			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+			}
+		}
+
 		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
 		bdb->bi_dbenv = NULL;
 		if( rc != 0 ) {
