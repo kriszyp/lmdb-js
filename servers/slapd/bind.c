@@ -36,10 +36,11 @@ do_bind(
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
 	ber_tag_t method;
-	char *mech = NULL;
+	struct berval mech = { 0, NULL };
 	struct berval dn = { 0, NULL };
 	struct berval pdn = { 0, NULL };
 	struct berval ndn = { 0, NULL };
+	struct berval edn = { 0, NULL };
 	ber_tag_t tag;
 	int	rc = LDAP_SUCCESS;
 	const char *text;
@@ -113,7 +114,7 @@ do_bind(
 		tag = ber_scanf( ber, /*{*/ "m}", &cred );
 
 	} else {
-		tag = ber_scanf( ber, "{a" /*}*/, &mech );
+		tag = ber_scanf( ber, "{o" /*}*/, &mech );
 
 		if ( tag != LBER_ERROR ) {
 			ber_len_t len;
@@ -170,10 +171,10 @@ do_bind(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation",	 LDAP_LEVEL_DETAIL1,
 			"do_sasl_bind: conn %d  dn (%s) mech %s\n", conn->c_connid,
-			pdn.bv_val, mech ));
+			pdn.bv_val, mech.bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
-			pdn.bv_val, mech, NULL );
+			pdn.bv_val, mech.bv_val, NULL );
 #endif
 
 	} else {
@@ -231,7 +232,6 @@ do_bind(
 	}
 
 	if ( method == LDAP_AUTH_SASL ) {
-		char *edn;
 		slap_ssf_t ssf = 0;
 
 		if ( version < LDAP_VERSION3 ) {
@@ -249,7 +249,7 @@ do_bind(
 			goto cleanup;
 		}
 
-		if( mech == NULL || mech[0] == '\0' ) {
+		if( mech.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "do_bind: conn %d  no SASL mechanism provided\n",
@@ -265,7 +265,7 @@ do_bind(
 		}
 
 		/* check restrictions */
-		rc = backend_check_restrictions( NULL, conn, op, mech, &text );
+		rc = backend_check_restrictions( NULL, conn, op, mech.bv_val, &text );
 		if( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
@@ -274,30 +274,31 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if ( conn->c_sasl_bind_in_progress ) {
-			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
+			if((ber_bvcmp(&conn->c_sasl_bind_mech, &mech) != 0)) {
 				/* mechanism changed between bind steps */
 				slap_sasl_reset(conn);
 			}
 		} else {
 			conn->c_sasl_bind_mech = mech;
-			mech = NULL;
+			mech.bv_val = NULL;
+			mech.bv_len = 0;
 		}
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-		edn = NULL;
 		rc = slap_sasl_bind( conn, op,
 			&pdn, &ndn,
 			&cred, &edn, &ssf );
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if( rc == LDAP_SUCCESS ) {
-			conn->c_dn.bv_val = edn;
-			if( edn != NULL ) {
-				conn->c_dn.bv_len = strlen( edn );
-				dnNormalize2( NULL, &conn->c_dn, &conn->c_ndn );
+			conn->c_dn = edn;
+			if( edn.bv_len != 0 ) {
+				/* edn is always normalized already */
+				ber_dupbv( &conn->c_ndn, &conn->c_dn );
 			}
 			conn->c_authmech = conn->c_sasl_bind_mech;
-			conn->c_sasl_bind_mech = NULL;
+			conn->c_sasl_bind_mech.bv_val = NULL;
+			conn->c_sasl_bind_mech.bv_len = 0;
 			conn->c_sasl_bind_in_progress = 0;
 
 			conn->c_sasl_ssf = ssf;
@@ -315,9 +316,10 @@ do_bind(
 			conn->c_sasl_bind_in_progress = 1;
 
 		} else {
-			if ( conn->c_sasl_bind_mech ) {
-				free( conn->c_sasl_bind_mech );
-				conn->c_sasl_bind_mech = NULL;
+			if ( conn->c_sasl_bind_mech.bv_val ) {
+				free( conn->c_sasl_bind_mech.bv_val );
+				conn->c_sasl_bind_mech.bv_val = NULL;
+				conn->c_sasl_bind_mech.bv_len = 0;
 			}
 			conn->c_sasl_bind_in_progress = 0;
 		}
@@ -329,9 +331,10 @@ do_bind(
 		/* Not SASL, cancel any in-progress bind */
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-		if ( conn->c_sasl_bind_mech != NULL ) {
-			free(conn->c_sasl_bind_mech);
-			conn->c_sasl_bind_mech = NULL;
+		if ( conn->c_sasl_bind_mech.bv_val != NULL ) {
+			free(conn->c_sasl_bind_mech.bv_val);
+			conn->c_sasl_bind_mech.bv_val = NULL;
+			conn->c_sasl_bind_mech.bv_len = 0;
 		}
 		conn->c_sasl_bind_in_progress = 0;
 
@@ -364,7 +367,7 @@ do_bind(
 				text = "anonymous bind disallowed";
 
 			} else {
-				rc = backend_check_restrictions( NULL, conn, op, mech, &text );
+				rc = backend_check_restrictions( NULL, conn, op, mech.bv_val, &text );
 			}
 
 			/*
@@ -478,8 +481,6 @@ do_bind(
 
 	if ( be->be_bind ) {
 		int ret;
-		/* alias suffix */
-		struct berval edn = { 0, NULL };
 
 		/* deref suffix alias if appropriate */
 		suffix_alias( be, &ndn );
@@ -542,8 +543,8 @@ cleanup:
 	if( ndn.bv_val != NULL ) {
 		free( ndn.bv_val );
 	}
-	if ( mech != NULL ) {
-		free( mech );
+	if ( mech.bv_val != NULL ) {
+		free( mech.bv_val );
 	}
 
 	return rc;

@@ -824,7 +824,7 @@ typedef enum slap_style_e {
 
 typedef struct slap_authz_info {
 	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
-	char *		sai_mech;		/* SASL Mechanism */
+	struct berval	sai_mech;		/* SASL Mechanism */
 	struct berval	sai_dn;			/* DN for reporting purposes */
 	struct berval	sai_ndn;		/* Normalized DN */
 
@@ -1462,7 +1462,7 @@ typedef struct slap_conn {
 
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
-	char	*c_sasl_bind_mech;			/* mech in progress */
+	struct berval	c_sasl_bind_mech;			/* mech in progress */
 	struct berval	c_cdn;
 
 	/* authentication backend */

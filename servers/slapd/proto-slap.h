@@ -818,15 +818,17 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
 	struct berval *dn, struct berval *ndn,
 	struct berval *cred,
-	char **edn, slap_ssf_t *ssf ));
+	struct berval *edn, slap_ssf_t *ssf ));
 
 /*
  * saslauthz.c
  */
-LDAP_SLAPD_F (char *) slap_sasl2dn LDAP_P((	char *saslname ));
+LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
+	struct berval *saslname,
+	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
-	char *authcid,
-	char *authzid ));
+	struct berval *authcid,
+	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 

@@ -330,27 +330,29 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
  * entry, return the DN of that one entry.
  */
 
-char *slap_sasl2dn( char *saslname )
+void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 {
 	char *uri=NULL;
 	struct berval searchbase = {0, NULL};
-	struct berval dn = {0, NULL};
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
-	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, &dn};
+	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, NULL};
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname ));
+		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"==>slap_sasl2dn: Converting SASL name %s to a DN\n", saslname, 0,0 );
+		"==>slap_sasl2dn: Converting SASL name %s to a DN\n", saslname->bv_val, 0,0 );
 #endif
+	dn->bv_val = NULL;
+	dn->bv_len = 0;
+	cb.sc_private = dn;
 
 	/* Convert the SASL name into an LDAP URI */
-	uri = slap_sasl_regexp( saslname );
+	uri = slap_sasl_regexp( saslname->bv_val );
 	if( uri == NULL )
 		goto FINISHED;
 
@@ -361,7 +363,7 @@ char *slap_sasl2dn( char *saslname )
 
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		dn = searchbase;
+		*dn = searchbase;
 		searchbase.bv_len = 0;
 		searchbase.bv_val = NULL;
 		goto FINISHED;
@@ -387,8 +389,7 @@ char *slap_sasl2dn( char *saslname )
 	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn.bv_val = saslname;
-	op.o_ndn.bv_len = strlen(saslname);
+	op.o_ndn = *saslname;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 
@@ -406,13 +407,13 @@ FINISHED:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		"slap_sasl2dn: Converted SASL name to %s\n",
-		dn.bv_len ? dn.bv_val : "<nothing>" ));
+		dn->bv_len ? dn->bv_val : "<nothing>" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
-		dn.bv_len ? dn.bv_val : "<nothing>", 0, 0 );
+		dn->bv_len ? dn->bv_val : "<nothing>", 0, 0 );
 #endif
 
-	return( dn.bv_val );
+	return;
 }
 
 typedef struct smatch_info {
@@ -443,7 +444,7 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
  */
 
 static
-int slap_sasl_match( char *rule, struct berval *assertDN, char *authc )
+int slap_sasl_match( char *rule, struct berval *assertDN, struct berval *authc )
 {
 	struct berval searchbase = {0, NULL};
 	int rc, scope;
@@ -506,8 +507,7 @@ int slap_sasl_match( char *rule, struct berval *assertDN, char *authc )
 	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn.bv_val = authc;
-	op.o_ndn.bv_len = strlen(authc);
+	op.o_ndn = *authc;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 
@@ -546,7 +546,7 @@ CONCLUDED:
  * DN's passed in should have a dn: prefix
  */
 static int
-slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char *authc)
+slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, struct berval *attr, struct berval *authc)
 {
 	const char *errmsg;
 	int i, rc;
@@ -557,25 +557,25 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-		   assertDN, attr->bv_val, searchDN ));
+		   assertDN->bv_val, attr->bv_val, searchDN->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
-	   assertDN, attr->bv_val, searchDN);
+	   assertDN->bv_val, attr->bv_val, searchDN->bv_val);
 #endif
 
 	rc = slap_bv2ad( attr, &ad, &errmsg );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	bv.bv_val = searchDN+3;
-	bv.bv_len = strlen(bv.bv_val);
+	bv.bv_val = searchDN->bv_val + 3;
+	bv.bv_len = searchDN->bv_len - 3;
 	rc = backend_attribute( NULL, NULL, NULL, NULL, &bv, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	bv.bv_val = assertDN+3;
-	bv.bv_len = strlen(bv.bv_val);
+	bv.bv_val = assertDN->bv_val + 3;
+	bv.bv_len = assertDN->bv_len - 3;
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
 		rc = slap_sasl_match( vals[i].bv_val, &bv, authc );
@@ -609,7 +609,7 @@ static struct berval sasl_authz_src = {
 static struct berval sasl_authz_dst = {
 	sizeof(SASL_AUTHZ_DEST_ATTR)-1, SASL_AUTHZ_DEST_ATTR };
 
-int slap_sasl_authorized( char *authcDN, char *authzDN )
+int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 {
 	int rc = LDAP_INAPPROPRIATE_AUTH;
 
@@ -622,14 +622,14 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN ));
+		"slap_sasl_authorized: can %s become %s?\n", authcDN->bv_val, authzDN->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN, 0 );
+	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN->bv_val, authzDN->bv_val, 0 );
 #endif
 
 	/* If person is authorizing to self, succeed */
-	if ( !strcmp( authcDN, authzDN ) ) {
+	if ( dn_match( authcDN, authzDN ) ) {
 		rc = LDAP_SUCCESS;
 		goto DONE;
 	}

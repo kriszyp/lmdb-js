@@ -892,7 +892,7 @@ backend_check_restrictions(
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
-			if( op->o_authmech == NULL || op->o_dn.bv_len == 0 )
+			if( op->o_authmech.bv_len == 0 || op->o_dn.bv_len == 0 )
 			{
 				*text = "strong authentication required";
 				return LDAP_STRONG_AUTH_REQUIRED;
@@ -900,7 +900,7 @@ backend_check_restrictions(
 		}
 
 		if( requires & SLAP_REQUIRE_SASL ) {
-			if( op->o_authmech == NULL || op->o_dn.bv_len == 0 )
+			if( op->o_authmech.bv_len == 0 || op->o_dn.bv_len == 0 )
 			{
 				*text = "SASL authentication required";
 				return LDAP_STRONG_AUTH_REQUIRED;

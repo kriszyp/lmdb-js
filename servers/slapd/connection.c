@@ -412,7 +412,8 @@ long connection_init(
     assert( c != NULL );
 
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
-		c->c_authmech = NULL;
+		c->c_authmech.bv_val = NULL;
+		c->c_authmech.bv_len = 0;
 		c->c_dn.bv_val = NULL;
 		c->c_dn.bv_len = 0;
 		c->c_ndn.bv_val = NULL;
@@ -429,7 +430,8 @@ long connection_init(
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
 
-		c->c_sasl_bind_mech = NULL;
+		c->c_sasl_bind_mech.bv_val = NULL;
+		c->c_sasl_bind_mech.bv_len = 0;
 		c->c_sasl_context = NULL;
 		c->c_sasl_extra = NULL;
 
@@ -453,10 +455,10 @@ long connection_init(
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
     assert( c->c_struct_state == SLAP_C_UNUSED );
-	assert( c->c_authmech == NULL );
-    assert(	c->c_dn.bv_val == NULL );
-    assert(	c->c_ndn.bv_val == NULL );
-    assert(	c->c_cdn.bv_val == NULL );
+    assert( c->c_authmech.bv_val == NULL );
+    assert( c->c_dn.bv_val == NULL );
+    assert( c->c_ndn.bv_val == NULL );
+    assert( c->c_cdn.bv_val == NULL );
     assert( c->c_groups == NULL );
     assert( c->c_listener_url == NULL );
     assert( c->c_peer_domain == NULL );
@@ -464,7 +466,7 @@ long connection_init(
     assert( c->c_sock_name == NULL );
     assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
     assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
-	assert( c->c_sasl_bind_mech == NULL );
+	assert( c->c_sasl_bind_mech.bv_val == NULL );
 	assert( c->c_sasl_context == NULL );
 	assert( c->c_sasl_extra == NULL );
 	assert( c->c_currentber == NULL );
@@ -576,10 +578,11 @@ void connection2anonymous( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	if(c->c_authmech != NULL ) {
-		free(c->c_authmech);
-		c->c_authmech = NULL;
+	if(c->c_authmech.bv_val != NULL ) {
+		free(c->c_authmech.bv_val);
+		c->c_authmech.bv_val = NULL;
 	}
+	c->c_authmech.bv_len = 0;
 
     if(c->c_dn.bv_val != NULL) {
 	free(c->c_dn.bv_val);
@@ -667,10 +670,11 @@ connection_destroy( Connection *c )
 	}
 
 	c->c_sasl_bind_in_progress = 0;
-	if(c->c_sasl_bind_mech != NULL) {
-		free(c->c_sasl_bind_mech);
-		c->c_sasl_bind_mech = NULL;
+	if(c->c_sasl_bind_mech.bv_val != NULL) {
+		free(c->c_sasl_bind_mech.bv_val);
+		c->c_sasl_bind_mech.bv_val = NULL;
 	}
+	c->c_sasl_bind_mech.bv_len = 0;
 
 	slap_sasl_close( c );
 
@@ -1476,8 +1480,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	    	conn->c_ndn.bv_val : "" );
 	}
 	arg->co_op->o_authtype = conn->c_authtype;
-	arg->co_op->o_authmech = conn->c_authmech != NULL
-		?  ch_strdup( conn->c_authmech ) : NULL;
+	ber_dupbv( &arg->co_op->o_authmech, &conn->c_authmech );
 	
 	if (!arg->co_op->o_protocol) {
 	    arg->co_op->o_protocol = conn->c_protocol
