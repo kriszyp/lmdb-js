@@ -2484,7 +2484,6 @@ aci_mask(
 	/* see if we have a public (i.e. anonymous) access */
 	if ( ber_bvstrcasecmp( &aci_bv_public, &type ) == 0 ) {
 		return 1;
-
 	}
 	
 	/* otherwise require an identity */
@@ -2493,7 +2492,7 @@ aci_mask(
 	}
 
 	/* NOTE: this may fail if a DN contains a valid '#' (unescaped);
-	 * just grab all the berval up to its end.
+	 * just grab all the berval up to its end (ITS#3303).
 	 * NOTE: the problem could be solved by providing the DN with
 	 * the embedded '#' encoded as hexpairs: "cn=Foo#Bar" would 
 	 * become "cn=Foo\23Bar" and be safely used by aci_mask(). */
