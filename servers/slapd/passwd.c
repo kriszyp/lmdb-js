@@ -180,7 +180,7 @@ int passwd_extop(
 	ml->sml_values[i].bv_val = NULL;
 	ml->sml_nvalues = NULL;
 	ml->sml_desc = slap_schema.si_ad_userPassword;
-	ml->sml_op = qpw->rs_old.bv_val ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
+	ml->sml_op = LDAP_MOD_REPLACE;
 	ml->sml_next = qpw->rs_mods;
 	qpw->rs_mods = ml;
 
