@@ -1509,6 +1509,7 @@ int backend_operational(
 {
 	Attribute	**ap;
 	int		rc = 0;
+	BackendDB *be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
@@ -1532,6 +1533,10 @@ int backend_operational(
 		ap = &(*ap)->a_next;
 	}
 
+	/* Let the overlays have a chance at this */
+	be_orig = op->o_bd;
+	op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
+
 	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )
 	{
@@ -1548,6 +1553,7 @@ int backend_operational(
 		for ( ; *ap; ap = &(*ap)->a_next )
 			/* just count them */ ;
 	}
+	op->o_bd = be_orig;
 
 	return rc;
 }

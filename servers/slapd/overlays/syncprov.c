@@ -1050,10 +1050,9 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-#if 0
-/* We don't use a subentry to store the context CSN any more. But
- * we ought to expose the current context CSN as an operational attribute
- * somewhere, like on the suffix entry.
+/* We don't use a subentry to store the context CSN any more.
+ * We expose the current context CSN as an operational attribute
+ * of the suffix entry.
  */
 static int
 syncprov_op_compare( Operation *op, SlapReply *rs )
@@ -1062,47 +1061,53 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	int rc = SLAP_CB_CONTINUE;
 
-	if ( dn_match( &op->o_req_ndn, &si->si_e->e_nname ) )
+	if ( dn_match( &op->o_req_ndn, op->o_bd->be_nsuffix ) &&
+		op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_contextCSN )
 	{
-		Attribute *a;
+		Entry e = {0};
+		Attribute a = {0};
+		struct berval bv[2];
 
-		ldap_pvt_thread_mutex_lock( &si->si_e_mutex );
+		e.e_name = op->o_bd->be_suffix[0];
+		e.e_nname = op->o_bd->be_nsuffix[0];
 
-		if ( get_assert( op ) &&
-			( test_filter( op, si->si_e, get_assertion( op ) ) != LDAP_COMPARE_TRUE ) )
-		{
-			rs->sr_err = LDAP_ASSERTION_FAILED;
-			goto return_results;
-		}
+		bv[1].bv_val = NULL;
+		bv[0] = si->si_ctxcsn;
 
-		rs->sr_err = access_allowed( op, si->si_e, op->oq_compare.rs_ava->aa_desc,
+		a.a_desc = slap_schema.si_ad_contextCSN;
+		a.a_vals = bv;
+		a.a_nvals = a.a_vals;
+
+		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+
+		rs->sr_err = access_allowed( op, &e, op->oq_compare.rs_ava->aa_desc,
 			&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
 		if ( ! rs->sr_err ) {
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
 
-		rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
-
-		for ( a = attr_find( si->si_e->e_attrs, op->oq_compare.rs_ava->aa_desc );
-			a != NULL;
-			a = attr_find( a->a_next, op->oq_compare.rs_ava->aa_desc ) )
+		if ( get_assert( op ) &&
+			( test_filter( op, &e, get_assertion( op ) ) != LDAP_COMPARE_TRUE ) )
 		{
-			rs->sr_err = LDAP_COMPARE_FALSE;
+			rs->sr_err = LDAP_ASSERTION_FAILED;
+			goto return_results;
+		}
 
-			if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
-				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
-			{
-				rs->sr_err = LDAP_COMPARE_TRUE;
-				break;
-			}
+
+		rs->sr_err = LDAP_COMPARE_FALSE;
+
+		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+				a.a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
+		{
+			rs->sr_err = LDAP_COMPARE_TRUE;
 		}
 
 return_results:;
 
-		ldap_pvt_thread_mutex_unlock( &si->si_e_mutex );
+		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 
 		send_ldap_result( op, rs );
 
@@ -1112,9 +1117,8 @@ return_results:;
 		rc = rs->sr_err;
 	}
 
-	return SLAP_CB_CONTINUE;
+	return rc;
 }
-#endif
 	
 static int
 syncprov_op_mod( Operation *op, SlapReply *rs )
@@ -1483,7 +1487,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	fava->f_choice = LDAP_FILTER_LE;
 	fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 	fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
+	ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
 	ber_dupbv_x( &fava->f_ava->aa_value, &si->si_ctxcsn, op->o_tmpmemctx );
+	ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 	fand->f_and = fava;
 	if ( gotstate ) {
 		fava->f_next = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
@@ -1522,6 +1528,43 @@ shortcut:
 		return rs->sr_err;
 	}
 	return SLAP_CB_CONTINUE;
+}
+
+static int
+syncprov_operational(
+	Operation *op,
+	SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
+
+	if ( rs->sr_entry &&
+		dn_match( &rs->sr_entry->e_nname, op->o_bd->be_nsuffix )) {
+
+		Attribute **ap;
+
+		for ( ap = &rs->sr_operational_attrs; *ap; ap=&(*ap)->a_next ) ;
+
+		if ( SLAP_OPATTRS( rs->sr_attr_flags ) ||
+			ad_inlist( slap_schema.si_ad_contextCSN, rs->sr_attrs )) {
+			
+			Attribute *a = ch_malloc( sizeof(Attribute));
+			a->a_desc = slap_schema.si_ad_contextCSN;
+			a->a_vals = ch_malloc( 2 * sizeof(struct berval));
+
+			ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+			ber_dupbv( &a->a_vals[0], &si->si_ctxcsn );
+			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+
+			a->a_vals[1].bv_val = NULL;
+			a->a_nvals = a->a_vals;
+			a->a_next = NULL;
+			a->a_flags = 0;
+
+			*ap = a;
+		}
+	}
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -1724,14 +1767,13 @@ syncprov_init()
 	syncprov.on_bi.bi_op_cancel = syncprov_op_abandon;
 
 	syncprov.on_bi.bi_op_add = syncprov_op_mod;
-#if 0
 	syncprov.on_bi.bi_op_compare = syncprov_op_compare;
-#endif
 	syncprov.on_bi.bi_op_delete = syncprov_op_mod;
 	syncprov.on_bi.bi_op_modify = syncprov_op_mod;
 	syncprov.on_bi.bi_op_modrdn = syncprov_op_mod;
 	syncprov.on_bi.bi_op_search = syncprov_op_search;
 	syncprov.on_bi.bi_extended = syncprov_op_extended;
+	syncprov.on_bi.bi_operational = syncprov_operational;
 
 #if 0
 	syncprov.on_response = syncprov_response;
