@@ -1,13 +1,15 @@
 # $OpenLDAP$
 
 SRCS = init.c search.c compare.c abandon.c modify.c bind.c \
+	operational.c \
 	cache.c entry.c \
 	backend.c database.c thread.c conn.c rww.c log.c \
 	dummy.c
-OBJS = init.o search.o compare.o abandon.o modify.o bind.o \
-	cache.o entry.o \
-	backend.o database.o thread.o conn.o rww.o log.o \
-	dummy.o
+OBJS = init.lo search.lo compare.lo abandon.lo modify.lo bind.lo \
+	operational.lo \
+	cache.lo entry.lo \
+	backend.lo database.lo thread.lo conn.lo rww.lo log.lo \
+	dummy.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

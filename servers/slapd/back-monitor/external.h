@@ -72,6 +72,10 @@ extern int	monitor_back_bind LDAP_P(( BackendDB *bd,
 	const char *dn, const char *ndn, int method,
 	struct berval *cred, char** edn ));
 
+extern int	monitor_back_operational LDAP_P((BackendDB *bd,
+	Connection *conn, Operation *op,
+	Entry *e, char **attrs, int opattrs, Attribute **a ));
+
 LDAP_END_DECL
 
 #endif /* _MONITOR_EXTERNAL_H */

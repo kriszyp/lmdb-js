@@ -173,6 +173,7 @@ monitor_back_initialize(
 	bi->bi_acl_group = NULL;
 	bi->bi_acl_attribute = NULL;
 	bi->bi_chk_referrals = NULL;
+	bi->bi_operational = monitor_back_operational;
 
 	/*
 	 * hooks for slap tools

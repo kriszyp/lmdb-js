@@ -161,6 +161,8 @@ struct monitorsubsys {
 
 #define MONITOR_HAS_VOLATILE_CH( mp ) \
 	( ( mp )->mp_flags & MONITOR_F_VOLATILE_CH )
+#define MONITOR_HAS_CHILDREN( mp ) \
+	( ( mp )->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
 
 	/* initialize entry and subentries */
 	int		( *mss_init )( BackendDB * );
