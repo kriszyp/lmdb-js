@@ -327,6 +327,7 @@ glue_back_search (
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
 		op->o_callback = &cb;
+		rc = gs.err = LDAP_UNWILLING_TO_PERFORM;
 
 		/*
 		 * Execute in reverse order, most general first 
@@ -336,13 +337,17 @@ glue_back_search (
 				continue;
 			if (tlimit) {
 				t2limit = stoptime - slap_get_time ();
-				if (t2limit <= 0)
+				if (t2limit <= 0) {
+					rc = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
+				}
 			}
 			if (slimit) {
 				s2limit = slimit - gs.nentries;
-				if (s2limit <= 0)
+				if (s2limit <= 0) {
+					rc = gs.err = LDAP_SIZELIMIT_EXCEEDED;
 					break;
+				}
 			}
 			/*
 			 * check for abandon 
