@@ -27,9 +27,14 @@ static pth_attr_t detach_attr;
 int
 ldap_pvt_thread_initialize( void )
 {
+	if( !pth_init() ) {
+		return -1;
+	}
+
 	detach_attr = pth_attr_new();
 	pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, 0 );
-	return pth_init();
+
+	return 0;
 }
 
 int
