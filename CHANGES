@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.26 Engineering
+OpenLDAP 2.0.26 Release
 	Fixed slapd ACL buffer size bug (ITS#1963)
 	Fixed slapd ACL filters w/substrings bug (ITS#2023, ITS#2027)
 	Fxied slapd directory string space bug (ITS#2072)
