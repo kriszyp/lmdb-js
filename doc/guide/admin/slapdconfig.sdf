@@ -682,14 +682,9 @@ dn.<scope-style>=<DN>|Users within scope of a DN
 
 The DN specifier behaves much like <what> clause DN specifiers.
 
-Other control factors are also supported.
-For example, a {{EX:<who>}} can be restricted by a
-regular expression matching the client's domain name:
-
->	domain=<regular expression>
-
-or by an entry listed in a DN-valued attribute in the entry to
-which the access applies:
+Other control factors are also supported.  For example, a {{EX:<who>}}
+can be restricted by an entry listed in a DN-valued attribute in
+the entry to which the access applies:
 
 >	dnattr=<dn-valued attribute name>
 
@@ -697,6 +692,10 @@ The dnattr specification is used to give access to an entry
 whose DN is listed in an attribute of the entry (e.g., give
 access to a group entry to whoever is listed as the owner of
 the group entry).
+
+Some factors may not be appropriate in all environments (or any).
+For example, the domain factor relies on IP to domain name lookups.
+As these can easily spoofed, the domain factor should not be avoided.
 
 
 H3: The access to grant
@@ -823,7 +822,7 @@ attribute and various {{EX:<who>}} selectors.
 >	access to dn.subtree="dc=example,dc=com" attr=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
->		by domain=.*\.example\.com read
+>		by peername=IP:10\..+ read
 >	access to dn.subtree="dc=example,dc=com"
 >		by self write
 >		by dn.children="dc=example,dc=com" search
@@ -836,9 +835,9 @@ by them, anybody else has no access (implicit {{EX:by * none}})
 excepting for authentication/authorization (which is always done
 anonymously).  The {{EX:homePhone}} attribute is writable by the
 entry, searchable by entries under {{EX:example.com}}, readable by
-clients connecting from somewhere in the {{EX:example.com}} domain,
-and otherwise not readable (implicit {{EX:by * none}}).  All other
-access is denied by the implicit {{EX:access to * by * none}}.
+clients connecting from network 10, and otherwise not readable
+(implicit {{EX:by * none}}).  All other access is denied by the
+implicit {{EX:access to * by * none}}.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
