@@ -39,7 +39,7 @@
         * -llber - a lightweight BER/DER encoding/decoding library
         * LDIF tools - data conversion tools for use with slapd
         * LDAP gateways - finger, gopher, email to LDAP gateways
-        * LDAP mailer - sendmail-compatibile mail delivery agents
+        * LDAP mailer - sendmail-compatible mail delivery agents
         * LDAP tools - A collection of command line LDAP utility programs
 
     In addition, there are some contributed components:
@@ -98,7 +98,7 @@ SUPPORT
 SUPPORTED PLATFORMS
 
     This release has been ported to many UNIX (and UNIX-like) platforms
-    including FreeBSD, Linux, NetBSD, OpenBSD and most commericial
+    including FreeBSD, Linux, NetBSD, OpenBSD and most commercial
     UNIX systems.  The release has also been ported (in part or in whole)
     to other platforms including BeOS, MacOS, and MS Windows NT/2000.
 
