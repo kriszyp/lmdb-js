@@ -41,7 +41,6 @@ static SLAP_CTRL_PARSE_FN parseSearchOptions;
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
 #endif
-static SLAP_CTRL_PARSE_FN parseLDAPsync;
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -139,10 +138,6 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_noOp),
 		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-	{ LDAP_CONTROL_SYNC,
- 		(int)offsetof(struct slap_control_ids, sc_LDAPsync),
-		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
-		parseLDAPsync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_CONTROL_MODIFY_INCREMENT
 	{ LDAP_CONTROL_MODIFY_INCREMENT,
  		(int)offsetof(struct slap_control_ids, sc_modifyIncrement),
@@ -800,10 +795,12 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+#if 0	/* DELETE ME */
 	if ( op->o_sync != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "paged results control specified with sync control";
 		return LDAP_PROTOCOL_ERROR;
 	}
+#endif
 
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "paged results control value is empty (or absent)";
@@ -1286,105 +1283,3 @@ static int parseSearchOptions (
 }
 #endif
 
-static int parseLDAPsync (
-	Operation *op,
-	SlapReply *rs,
-	LDAPControl *ctrl )
-{
-	ber_tag_t tag;
-	BerElement *ber;
-	ber_int_t mode;
-	ber_len_t len;
-	struct slap_session_entry *se;
-	struct berval cookie = BER_BVNULL;
-	syncrepl_state *sr;
-	int rhint = 0;
-
-	if ( op->o_sync != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "Sync control specified multiple times";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "Sync control specified with pagedResults control";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "Sync control value is empty (or absent)";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	/* Parse the control value
-	 *      syncRequestValue ::= SEQUENCE {
-	 *              mode   ENUMERATED {
-	 *                      -- 0 unused
-	 *                      refreshOnly		(1),
-	 *                      -- 2 reserved
-	 *                      refreshAndPersist	(3)
-	 *              },
-	 *              cookie  syncCookie OPTIONAL
-	 *      }
-	 */
-
-	ber = ber_init( &ctrl->ldctl_value );
-	if( ber == NULL ) {
-		rs->sr_text = "internal error";
-		return LDAP_OTHER;
-	}
-
-	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
-		rs->sr_text = "Sync control : mode decoding error";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	switch( mode ) {
-	case LDAP_SYNC_REFRESH_ONLY:
-		mode = SLAP_SYNC_REFRESH;
-		break;
-	case LDAP_SYNC_REFRESH_AND_PERSIST:
-		mode = SLAP_SYNC_REFRESH_AND_PERSIST;
-		break;
-	default:
-		rs->sr_text = "Sync control : unknown update mode";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	tag = ber_peek_tag( ber, &len );
-
-	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
-		if (( ber_scanf( ber, /*{*/ "o", &cookie )) == LBER_ERROR ) {
-			rs->sr_text = "Sync control : cookie decoding error";
-			return LDAP_PROTOCOL_ERROR;
-		}
-	}
-	if ( tag == LDAP_TAG_RELOAD_HINT ) {
-		if (( ber_scanf( ber, /*{*/ "b", &rhint )) == LBER_ERROR ) {
-			rs->sr_text = "Sync control : rhint decoding error";
-			return LDAP_PROTOCOL_ERROR;
-		}
-	}
-	if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
-			rs->sr_text = "Sync control : decoding error";
-			return LDAP_PROTOCOL_ERROR;
-	}
-	sr = op->o_tmpcalloc( 1, sizeof(struct syncrepl_state), op->o_tmpmemctx );
-	sr->sr_rhint = rhint;
-	if (!BER_BVISNULL(&cookie)) {
-		ber_bvarray_add( &sr->sr_state.octet_str, &cookie );
-		slap_parse_sync_cookie( &sr->sr_state );
-	}
-
-	op->o_controls[slap_cids.sc_LDAPsync] = sr;
-
-	(void) ber_free( ber, 1 );
-
-	op->o_sync = ctrl->ldctl_iscritical
-		? SLAP_CONTROL_CRITICAL
-		: SLAP_CONTROL_NONCRITICAL;
-
-	op->o_sync_mode |= mode;	/* o_sync_mode shares o_sync */
-
-	return LDAP_SUCCESS;
-}

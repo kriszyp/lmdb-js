@@ -1410,20 +1410,21 @@ consistency_check(
 	slap_overinst *on = rtask->arg;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
-	Operation op = {0};
-	Opheader ohdr = {0};
 	Connection conn = {0};
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation *op;
 
 	SlapReply rs = {REP_RESULT};
 	CachedQuery* query, *query_prev;
 	int i, return_val, pause = 1;
 	QueryTemplate* templ;
 
-	connection_fake_init( &conn, &op, &ohdr, ctx );
+	op = (Operation *)opbuf;
+	connection_fake_init( &conn, op, ctx );
 
-	op.o_bd = &cm->db;
-	op.o_dn = cm->db.be_rootdn;
-	op.o_ndn = cm->db.be_rootndn;
+	op->o_bd = &cm->db;
+	op->o_dn = cm->db.be_rootdn;
+	op->o_ndn = cm->db.be_rootndn;
 
       	cm->cc_arg = arg;
 
@@ -1431,9 +1432,9 @@ consistency_check(
 		templ = qm->templates + i;
 		query = templ->query_last;
 		if ( query ) pause = 0;
-		op.o_time = slap_get_time();
+		op->o_time = slap_get_time();
 		ldap_pvt_thread_mutex_lock(&cm->remove_mutex);
-		while (query && (query->expiry_time < op.o_time)) {
+		while (query && (query->expiry_time < op->o_time)) {
 			ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 			remove_query(qm, query);
 			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
@@ -1446,7 +1447,7 @@ consistency_check(
 			Debug( LDAP_DEBUG_ANY, "Unlock CR index = %d\n",
 					i, 0, 0 );
 			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
-			return_val = remove_query_data(&op, &rs, &query->q_uuid);
+			return_val = remove_query_data(op, &rs, &query->q_uuid);
 			Debug( LDAP_DEBUG_ANY, "STALE QUERY REMOVED, SIZE=%d\n",
 						return_val, 0, 0 );
 			ldap_pvt_thread_mutex_lock(&cm->cache_mutex);

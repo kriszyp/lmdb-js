@@ -53,6 +53,21 @@ typedef struct syncops {
 
 static int	sync_cid;
 
+/* A received sync control */
+typedef struct sync_control {
+	struct sync_cookie sr_state;
+	int sr_rhint;
+} sync_control;
+
+/* o_sync_mode uses data bits of o_sync */
+#define	o_sync	o_ctrlflag[sync_cid]
+#define	o_sync_mode	o_ctrlflag[sync_cid]
+
+#define SLAP_SYNC_NONE					(LDAP_SYNC_NONE<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_PERSIST				(LDAP_SYNC_RESERVED<<SLAP_CONTROL_SHIFT)
+#define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
+
 #define	PS_IS_REFRESHING	0x01
 
 /* Record of which searches matched at premodify step */
@@ -90,6 +105,235 @@ typedef struct fbase_cookie {
 static AttributeName csn_anlist[2];
 static AttributeName uuid_anlist[2];
 
+static int
+syncprov_state_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	int			entry_sync_state,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval	*cookie)
+{
+	Attribute* a;
+	int ret;
+	int res;
+	const char *text = NULL;
+
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	struct berval entryuuid_bv	= BER_BVNULL;
+
+	ber_init2( ber, 0, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+	ctrls[num_ctrls] = slap_sl_malloc ( sizeof ( LDAPControl ), op->o_tmpmemctx );
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		AttributeDescription *desc = a->a_desc;
+		if ( desc == slap_schema.si_ad_entryUUID ) {
+			entryuuid_bv = a->a_nvals[0];
+			break;
+		}
+	}
+
+	if ( send_cookie && cookie ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, cookie );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
+	}
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+syncprov_done_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval *cookie,
+	int			refreshDeletes )
+{
+	int ret;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	ber_printf( ber, "{" );
+	if ( send_cookie && cookie ) {
+		ber_printf( ber, "O", cookie );
+	}
+	if ( refreshDeletes == LDAP_SYNC_REFRESH_DELETES ) {
+		ber_printf( ber, "b", refreshDeletes );
+	}
+	ber_printf( ber, "N}" );	
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"syncprov_done_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
+static int
+syncprov_state_ctrl_from_slog(
+	Operation	*op,
+	SlapReply	*rs,
+	struct slog_entry *slog_e,
+	int			entry_sync_state,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval	*cookie)
+{
+	Attribute* a;
+	int ret;
+	int res;
+	const char *text = NULL;
+
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	struct berval entryuuid_bv	= BER_BVNULL;
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	entryuuid_bv = slog_e->sl_uuid;
+
+	if ( send_cookie && cookie ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, cookie );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
+	}
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+int
+syncprov_sendinfo(
+	Operation	*op,
+	SlapReply	*rs,
+	int			type,
+	struct berval *cookie,
+	int			refreshDone,
+	BerVarray	syncUUIDs,
+	int			refreshDeletes )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	struct berval rspdata;
+
+	int ret;
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+	if ( type ) {
+		switch ( type ) {
+		case LDAP_TAG_SYNC_NEW_COOKIE:
+			ber_printf( ber, "tO", type, cookie );
+			break;
+		case LDAP_TAG_SYNC_REFRESH_DELETE:
+		case LDAP_TAG_SYNC_REFRESH_PRESENT:
+			ber_printf( ber, "t{", type );
+			if ( cookie ) {
+				ber_printf( ber, "O", cookie );
+			}
+			if ( refreshDone == 0 ) {
+				ber_printf( ber, "b", refreshDone );
+			}
+			ber_printf( ber, "N}" );
+			break;
+		case LDAP_TAG_SYNC_ID_SET:
+			ber_printf( ber, "t{", type );
+			if ( cookie ) {
+				ber_printf( ber, "O", cookie );
+			}
+			if ( refreshDeletes == 1 ) {
+				ber_printf( ber, "b", refreshDeletes );
+			}
+			ber_printf( ber, "[W]", syncUUIDs );
+			ber_printf( ber, "N}" );
+			break;
+		default:
+			Debug( LDAP_DEBUG_TRACE,
+				"syncprov_sendinfo: invalid syncinfo type (%d)\n",
+				type, 0, 0 );
+			return LDAP_OTHER;
+		}
+	}
+
+	ret = ber_flatten2( ber, &rspdata, 0 );
+
+	if ( ret < 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"syncprov_sendinfo: ber_flatten2 failed\n",
+			0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	rs->sr_rspdata = &rspdata;
+	send_ldap_intermediate( op, rs );
+	rs->sr_rspdata = NULL;
+	ber_free_buf( ber );
+
+	return LDAP_SUCCESS;
+}
 /* syncprov_findbase:
  *   finds the true DN of the base of a search (with alias dereferencing) and
  * checks to make sure the base entry doesn't get replaced with a different
@@ -229,7 +473,7 @@ findcsn_cb( Operation *op, SlapReply *rs )
 		if ( sc->sc_private ) {
 			int i;
 			fcsn_cookie *fc = sc->sc_private;
-			syncrepl_state *srs = op->o_controls[sync_cid];
+			sync_control *srs = op->o_controls[sync_cid];
 			Attribute *a = attr_find(rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
 			i = ber_bvcmp( &a->a_vals[0], srs->sr_state.ctxcsn );
@@ -270,7 +514,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 			ret = LDAP_SUCCESS;
 			if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
 				rs->sr_rspoid = LDAP_SYNC_INFO;
-				ret = slap_send_syncinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
+				ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 					0, pc->uuids, 0 );
 				ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
 				pc->uuids = NULL;
@@ -283,7 +527,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 		ret = rs->sr_err;
 		if ( pc->num ) {
 			rs->sr_rspoid = LDAP_SYNC_INFO;
-			ret = slap_send_syncinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
+			ret = syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 				0, pc->uuids, 0 );
 			ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
 			pc->uuids = NULL;
@@ -312,7 +556,7 @@ syncprov_findcsn( Operation *op, int mode )
 	fcsn_cookie fcookie;
 	fpres_cookie pcookie;
 	int locked = 0;
-	syncrepl_state *srs = op->o_controls[sync_cid];
+	sync_control *srs = op->o_controls[sync_cid];
 
 	if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
 		return LDAP_OTHER;
@@ -461,7 +705,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
 	a_uuid.a_nvals = &opc->suuid;
-	rs.sr_err = slap_build_sync_state_ctrl( &sop, &rs, &e_uuid,
+	rs.sr_err = syncprov_state_ctrl( &sop, &rs, &e_uuid,
 		mode, ctrls, 0, 1, &cookie );
 
 	rs.sr_entry = e;
@@ -803,6 +1047,8 @@ syncprov_detach_op( Operation *op, syncops *so )
 			op2->ors_attrs[i].an_name.bv_val = ptr;
 			ptr = lutil_strcopy( ptr, op->ors_attrs[i].an_name.bv_val ) + 1;
 		}
+		op2->ors_attrs[i].an_name.bv_val = NULL;
+		op2->ors_attrs[i].an_name.bv_len = 0;
 	} else {
 		ptr = (char *)(op2->o_hdr + 1);
 	}
@@ -833,7 +1079,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
 	syncprov_info_t		*si = on->on_bi.bi_private;
-	syncrepl_state *srs = op->o_controls[sync_cid];
+	sync_control *srs = op->o_controls[sync_cid];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
@@ -847,7 +1093,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
 		rs->sr_ctrls[1] = NULL;
-		rs->sr_err = slap_build_sync_state_ctrl( op, rs, rs->sr_entry,
+		rs->sr_err = syncprov_state_ctrl( op, rs, rs->sr_entry,
 			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
@@ -861,13 +1107,13 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 				op->o_tmpmemctx );
 			rs->sr_ctrls[1] = NULL;
-			rs->sr_err = slap_build_sync_done_ctrl( op, rs, rs->sr_ctrls,
+			rs->sr_err = syncprov_done_ctrl( op, rs, rs->sr_ctrls,
 				0, 1, &cookie, LDAP_SYNC_REFRESH_PRESENTS );
 		} else {
 			int locked = 0;
 		/* It's RefreshAndPersist, transition to Persist phase */
 			rs->sr_rspoid = LDAP_SYNC_INFO;
-			slap_send_syncinfo( op, rs, rs->sr_nentries ?
+			syncprov_sendinfo( op, rs, rs->sr_nentries ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
 			/* Flush any queued persist messages */
@@ -934,7 +1180,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	Filter *fand, *fava;
 	syncops *sop = NULL;
 	searchstate *ss;
-	syncrepl_state *srs;
+	sync_control *srs;
 
 	if ( !(op->o_sync_mode & SLAP_SYNC_REFRESH) ) return SLAP_CB_CONTINUE;
 
@@ -1007,7 +1253,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 					ctrls[0] = NULL;
 					ctrls[1] = NULL;
-					slap_build_sync_done_ctrl( op, rs, ctrls, 0, 0,
+					syncprov_done_ctrl( op, rs, ctrls, 0, 0,
 						NULL, LDAP_SYNC_REFRESH_DELETES );
 					rs->sr_ctrls = ctrls;
 					rs->sr_err = LDAP_SUCCESS;
@@ -1141,8 +1387,6 @@ syncprov_db_init(
 	uuid_anlist[0].an_desc = slap_schema.si_ad_entryUUID;
 	uuid_anlist[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
 
-	sync_cid = slap_cids.sc_LDAPsync;
-
 	return 0;
 }
 
@@ -1163,6 +1407,107 @@ syncprov_db_destroy(
 	return 0;
 }
 
+static int syncprov_parseCtrl (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	ber_tag_t tag;
+	BerElement *ber;
+	ber_int_t mode;
+	ber_len_t len;
+	struct berval cookie = BER_BVNULL;
+	sync_control *sr;
+	int rhint = 0;
+
+	if ( op->o_sync != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "Sync control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "Sync control specified with pagedResults control";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "Sync control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* Parse the control value
+	 *      syncRequestValue ::= SEQUENCE {
+	 *              mode   ENUMERATED {
+	 *                      -- 0 unused
+	 *                      refreshOnly		(1),
+	 *                      -- 2 reserved
+	 *                      refreshAndPersist	(3)
+	 *              },
+	 *              cookie  syncCookie OPTIONAL
+	 *      }
+	 */
+
+	ber = ber_init( &ctrl->ldctl_value );
+	if( ber == NULL ) {
+		rs->sr_text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
+		rs->sr_text = "Sync control : mode decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	switch( mode ) {
+	case LDAP_SYNC_REFRESH_ONLY:
+		mode = SLAP_SYNC_REFRESH;
+		break;
+	case LDAP_SYNC_REFRESH_AND_PERSIST:
+		mode = SLAP_SYNC_REFRESH_AND_PERSIST;
+		break;
+	default:
+		rs->sr_text = "Sync control : unknown update mode";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	tag = ber_peek_tag( ber, &len );
+
+	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
+		if (( ber_scanf( ber, /*{*/ "o", &cookie )) == LBER_ERROR ) {
+			rs->sr_text = "Sync control : cookie decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+	}
+	if ( tag == LDAP_TAG_RELOAD_HINT ) {
+		if (( ber_scanf( ber, /*{*/ "b", &rhint )) == LBER_ERROR ) {
+			rs->sr_text = "Sync control : rhint decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+	}
+	if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
+			rs->sr_text = "Sync control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
+	}
+	sr = op->o_tmpcalloc( 1, sizeof(struct sync_control), op->o_tmpmemctx );
+	sr->sr_rhint = rhint;
+	if (!BER_BVISNULL(&cookie)) {
+		ber_bvarray_add( &sr->sr_state.octet_str, &cookie );
+		slap_parse_sync_cookie( &sr->sr_state );
+	}
+
+	op->o_controls[sync_cid] = sr;
+
+	(void) ber_free( ber, 1 );
+
+	op->o_sync = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
+
+	op->o_sync_mode |= mode;	/* o_sync_mode shares o_sync */
+
+	return LDAP_SUCCESS;
+}
+
 /* This overlay is set up for dynamic loading via moduleload. For static
  * configuration, you'll need to arrange for the slap_overinst to be
  * initialized and registered by some other function inside slapd.
@@ -1173,6 +1518,16 @@ static slap_overinst 		syncprov;
 int
 syncprov_init()
 {
+	int rc;
+
+	rc = register_supported_control( LDAP_CONTROL_SYNC,
+		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
+		syncprov_parseCtrl, &sync_cid );
+	if ( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "Failed to register control %d\n", rc );
+		return rc;
+	}
+
 	syncprov.on_bi.bi_type = "syncprov";
 	syncprov.on_bi.bi_db_init = syncprov_db_init;
 	syncprov.on_bi.bi_db_config = syncprov_db_config;

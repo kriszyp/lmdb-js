@@ -889,8 +889,8 @@ do_syncrepl(
 	struct re_s* rtask = arg;
 	syncinfo_t *si = ( syncinfo_t * ) rtask->arg;
 	Connection conn = {0};
-	Operation op = {0};
-	Opheader ohdr = {0};
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation *op;
 	int rc = LDAP_SUCCESS;
 	int first = 0;
 	int dostop = 0;
@@ -919,30 +919,31 @@ do_syncrepl(
 		return NULL;
 	}
 
-	connection_fake_init( &conn, &op, &ohdr, ctx );
+	op = (Operation *)opbuf;
+	connection_fake_init( &conn, op, ctx );
 
 	/* use global malloc for now */
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
+	op->o_tmpmemctx = NULL;
+	op->o_tmpmfuncs = &ch_mfuncs;
 
-	op.o_dn = si->si_updatedn;
-	op.o_ndn = si->si_updatedn;
-	op.o_managedsait = SLAP_CONTROL_NONCRITICAL;
-	op.o_bd = be = si->si_be;
+	op->o_dn = si->si_updatedn;
+	op->o_ndn = si->si_updatedn;
+	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
+	op->o_bd = be = si->si_be;
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		first = 1;
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
-		rc = do_syncrep1( &op, si );
+		rc = do_syncrep1( op, si );
 	}
 
 	/* Process results */
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
-		rc = do_syncrep2( &op, si );
+		rc = do_syncrep2( op, si );
 
 		if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 			/* If we succeeded, enable the connection for further listening.
@@ -1293,7 +1294,7 @@ syncrepl_entry(
 	if ( rs_search.sr_err == LDAP_SUCCESS &&
 		 !BER_BVISNULL( &si->si_syncUUID_ndn ))
 	{
-#if 0
+#if 0	/* DELETE ME -- and fix this to do realy Modifies */
 		char *subseq_ptr;
 
 		if ( syncstate != LDAP_SYNC_DELETE ) {
@@ -1346,10 +1347,6 @@ syncrepl_entry(
 		op->o_req_dn = org_req_dn;
 		op->o_req_ndn = org_req_ndn;
 		op->o_delete_glue_parent = 0;
-
-#if 0
-		op->o_no_psearch = 0;
-#endif
 	}
 
 	switch ( syncstate ) {

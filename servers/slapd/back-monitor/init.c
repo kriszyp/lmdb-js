@@ -373,8 +373,8 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 		struct berval *ndn )
 {
 	Connection	conn = { 0 };
-	Operation	op = { 0 };
-	Opheader	ohdr = { 0 };
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation	*op;
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
 	AttributeName	anlist[ 2 ];
@@ -386,52 +386,53 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 		return -1;
 	}
 
-	connection_fake_init( &conn, &op, &ohdr, &conn );
+	op = (Operation *)opbuf;
+	connection_fake_init( &conn, op, &conn );
 
-	op.o_tag = LDAP_REQ_SEARCH;
+	op->o_tag = LDAP_REQ_SEARCH;
 
 	/* use global malloc for now */
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
+	op->o_tmpmemctx = NULL;
+	op->o_tmpmfuncs = &ch_mfuncs;
 
-	op.o_bd = be_monitor;
+	op->o_bd = be_monitor;
 	if ( base == NULL || BER_BVISNULL( base ) ) {
-		ber_dupbv_x( &op.o_req_dn, &op.o_bd->be_suffix[ 0 ],
-				op.o_tmpmemctx );
-		ber_dupbv_x( &op.o_req_ndn, &op.o_bd->be_nsuffix[ 0 ],
-				op.o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_dn, &op->o_bd->be_suffix[ 0 ],
+				op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &op->o_bd->be_nsuffix[ 0 ],
+				op->o_tmpmemctx );
 
 	} else {
-		if ( dnPrettyNormal( NULL, base, &op.o_req_dn, &op.o_req_ndn,
-					op.o_tmpmemctx ) ) {
+		if ( dnPrettyNormal( NULL, base, &op->o_req_dn, &op->o_req_ndn,
+					op->o_tmpmemctx ) ) {
 			/* error */
 		}
 	}
 
-	op.o_callback = &cb;
+	op->o_callback = &cb;
 	cb.sc_private = (void *)ndn;
 
-	op.ors_scope = scope;
-	ber_dupbv_x( &op.ors_filterstr, filter, op.o_tmpmemctx );
-	op.ors_filter = str2filter_x( &op, filter->bv_val );
-	op.ors_attrs = anlist;
+	op->ors_scope = scope;
+	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
+	op->ors_filter = str2filter_x( op, filter->bv_val );
+	op->ors_attrs = anlist;
 	BER_BVSTR( &anlist[ 0 ].an_name, LDAP_NO_ATTRS );
 	BER_BVZERO( &anlist[ 1 ].an_name );
-	op.ors_attrsonly = 0;
-	op.ors_tlimit = SLAP_NO_LIMIT;
-	op.ors_slimit = 1;
-	op.ors_limit = NULL;
-	op.ors_deref = LDAP_DEREF_NEVER;
+	op->ors_attrsonly = 0;
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_slimit = 1;
+	op->ors_limit = NULL;
+	op->ors_deref = LDAP_DEREF_NEVER;
 
-	op.o_nocaching = 1;
-	op.o_managedsait = 1;
+	op->o_nocaching = 1;
+	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
-	rc = op.o_bd->be_search( &op, &rs );
+	rc = op->o_bd->be_search( op, &rs );
 
-	filter_free_x( &op, op.ors_filter );
-	op.o_tmpfree( op.ors_filterstr.bv_val, op.o_tmpmemctx );
-	op.o_tmpfree( op.o_req_dn.bv_val, op.o_tmpmemctx );
-	op.o_tmpfree( op.o_req_ndn.bv_val, op.o_tmpmemctx );
+	filter_free_x( op, op->ors_filter );
+	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	if ( rc != 0 ) {
 		return rc;

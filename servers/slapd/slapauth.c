@@ -80,20 +80,21 @@ slapauth( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapauth";
 	Connection		conn = {0};
-	Operation		op = {0};
-	Opheader		ohdr = {0};
+	char			opbuf[OPERATION_BUFFER_SIZE];
+	Operation		*op;
 
 	slap_tool_init( progname, SLAPAUTH, argc, argv );
 
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	connection_fake_init( &conn, &op, &ohdr, &conn );
+	op = (Operation *)opbuf;
+	connection_fake_init( &conn, op, &conn );
 
 	if ( !BER_BVISNULL( &authzID ) ) {
 		struct berval	authzdn;
 		
-		rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzdn,
+		rc = slap_sasl_getdn( &conn, op, &authzID, NULL, &authzdn,
 				SLAP_GETDN_AUTHZID );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
@@ -110,7 +111,7 @@ slapauth( int argc, char **argv )
 
 	if ( !BER_BVISNULL( &authcID ) ) {
 		if ( !BER_BVISNULL( &authzID ) || argc == 0 ) {
-			rc = do_check( &conn, &op, &authcID );
+			rc = do_check( &conn, op, &authcID );
 			goto destroy;
 		}
 
@@ -119,7 +120,7 @@ slapauth( int argc, char **argv )
 		
 			ber_str2bv( argv[ 0 ], 0, 0, &authzID );
 
-			rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzdn,
+			rc = slap_sasl_getdn( &conn, op, &authzID, NULL, &authzdn,
 					SLAP_GETDN_AUTHZID );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
@@ -134,9 +135,9 @@ slapauth( int argc, char **argv )
 
 			authzID = authzdn;
 
-			rc = do_check( &conn, &op, &authcID );
+			rc = do_check( &conn, op, &authcID );
 
-			op.o_tmpfree( authzID.bv_val, op.o_tmpmemctx );
+			op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
 			BER_BVZERO( &authzID );
 
 			if ( rc && !continuemode ) {
@@ -152,7 +153,7 @@ slapauth( int argc, char **argv )
 
 		ber_str2bv( argv[ 0 ], 0, 0, &id );
 
-		rc = do_check( &conn, &op, &id );
+		rc = do_check( &conn, op, &id );
 
 		if ( rc && !continuemode ) {
 			goto destroy;
@@ -161,7 +162,7 @@ slapauth( int argc, char **argv )
 
 destroy:;
 	if ( !BER_BVISNULL( &authzID ) ) {
-		op.o_tmpfree( authzID.bv_val, op.o_tmpmemctx );
+		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
 	}
 	slap_tool_destroy();
 

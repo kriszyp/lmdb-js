@@ -2129,13 +2129,8 @@ struct slap_control_ids {
 	int sc_treeDelete;
 	int sc_searchOptions;
 	int sc_subentries;
-	int sc_LDAPsync;
 };
 
-typedef struct syncrepl_state {
-	struct sync_cookie sr_state;
-	int sr_rhint;
-} syncrepl_state;
 /*
  * represents an operation pending from an ldap client
  */
@@ -2335,14 +2330,6 @@ typedef struct slap_op {
 
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 
-#define	o_sync	o_ctrlflag[slap_cids.sc_LDAPsync]
-	/* o_sync_mode uses data bits of o_sync */
-#define	o_sync_mode	o_ctrlflag[slap_cids.sc_LDAPsync]
-
-#define SLAP_SYNC_NONE					(LDAP_SYNC_NONE<<SLAP_CONTROL_SHIFT)
-#define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
-#define SLAP_SYNC_PERSIST				(LDAP_SYNC_RESERVED<<SLAP_CONTROL_SHIFT)
-#define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
 #ifdef BDB_PSEARCH
 	struct sync_cookie	o_sync_state;
 	int					o_sync_rhint;
@@ -2381,6 +2368,7 @@ typedef struct slap_op {
 	int	o_delete_glue_parent;
 
 } Operation;
+#define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
 
 #define send_ldap_error( op, rs, err, text ) do { \
 		(rs)->sr_err = err; (rs)->sr_text = text; \

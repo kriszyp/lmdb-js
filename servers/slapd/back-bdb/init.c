@@ -630,7 +630,7 @@ bdb_back_initialize(
 
 	bi->bi_op_unbind = 0;
 
-#if 0
+#if 0	/* DELETE ME */
 	bi->bi_op_abandon = bdb_abandon;
 	bi->bi_op_cancel = bdb_cancel;
 #endif

@@ -40,8 +40,8 @@ slapacl( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapacl";
 	Connection		conn = {0};
-	Operation		op = {0};
-	Opheader		ohdr = {0};
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation		*op;
 	Entry			e = { 0 };
 	char			*attr = NULL;
 
@@ -50,10 +50,11 @@ slapacl( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	connection_fake_init( &conn, &op, &ohdr, &conn );
+	op = (Operation *)opbuf;
+	connection_fake_init( &conn, op, &conn );
 
 	if ( !BER_BVISNULL( &authcID ) ) {
-		rc = slap_sasl_getdn( &conn, &op, &authcID, NULL,
+		rc = slap_sasl_getdn( &conn, op, &authcID, NULL,
 				&authcDN, SLAP_GETDN_AUTHCID );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "ID: <%s> check failed %d (%s)\n",
@@ -93,10 +94,10 @@ slapacl( int argc, char **argv )
 		goto destroy;
 	}
 
-	op.o_bd = be;
+	op->o_bd = be;
 	if ( !BER_BVISNULL( &authcDN ) ) {
-		op.o_dn = authcDN;
-		op.o_ndn = authcDN;
+		op->o_dn = authcDN;
+		op->o_ndn = authcDN;
 	}
 
 	if ( argc == 0 ) {
@@ -150,7 +151,7 @@ slapacl( int argc, char **argv )
 			break;
 		}
 
-		rc = access_allowed_mask( &op, &e, desc, &val, access,
+		rc = access_allowed_mask( op, &e, desc, &val, access,
 				NULL, &mask );
 
 		if ( accessstr ) {

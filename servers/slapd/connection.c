@@ -1068,21 +1068,21 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
+#if 0	/* DELETE ME */
 	if ( op->o_cancel != SLAP_CANCEL_ACK &&
 		( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
 	{
 		slap_sl_mem_detach( ctx, memctx );
-
-#if 0
 	} else if ( op->o_sync_slog_size != -1 ) {
 		slap_sl_mem_detach( ctx, memctx );
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 		conn->c_n_ops_executing--;
 		conn->c_n_ops_completed++;
-#endif
 
-	} else {
+	} else
+#endif
+	{
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 		slap_op_free( op );
@@ -1695,7 +1695,6 @@ void
 connection_fake_init(
 	Connection *conn,
 	Operation *op,
-	Opheader *ohdr,
 	void *ctx )
 {
 	conn->c_connid = -1;
@@ -1706,7 +1705,9 @@ connection_fake_init(
 	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
-	op->o_hdr = ohdr;
+	memset(op, 0, OPERATION_BUFFER_SIZE);
+	op->o_hdr = (Opheader *)(op+1);
+	op->o_controls = (void **)(op->o_hdr+1);
 	/* set memory context */
 	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx);
 	op->o_tmpmfuncs = &slap_sl_mfuncs;

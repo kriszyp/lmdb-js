@@ -289,6 +289,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
 #endif
 
+#if 0	/* DELETE ME - verify ITS first */
 		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
 			if (op->o_bd && op->o_bd->be_search) {
 				rs->sr_err = op->o_bd->be_search( op, rs );
@@ -298,6 +299,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			}
 			return rs->sr_err;
 		}
+#endif
 
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;

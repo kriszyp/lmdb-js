@@ -108,7 +108,7 @@ slap_op_free( Operation *op )
 	op->o_hdr = (Opheader *)(op+1);
 	op->o_controls = (void **)(op->o_hdr+1);
 
-#if 0
+#if 0	/* DELETE ME */
 	slap_sync_cookie_free( &op->o_sync_state, 0 );
 	if ( op->o_sync_csn.bv_val != NULL ) {
 		ch_free( op->o_sync_csn.bv_val );
@@ -155,7 +155,7 @@ slap_op_alloc(
 	op->o_opid = id;
 	op->o_res_ber = NULL;
 
-#if 0
+#if 0	/* DELETE ME */
 	op->o_sync_state.sid = -1;
 	op->o_sync_slog_size = -1;
 	op->o_sync_state.rid = -1;

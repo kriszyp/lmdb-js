@@ -26,7 +26,7 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-#if 0
+#if 0	/* DELETE ME -- needs to be reimplemented with syncprov overlay */
 int
 slap_send_session_log(
 	Operation *op,

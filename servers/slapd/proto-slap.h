@@ -455,7 +455,6 @@ LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
 LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
 	Connection *conn,
 	Operation *op,
-	Opheader *ohdr,
 	void *threadctx ));
 LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));
 
@@ -728,18 +727,6 @@ LDAP_SLAPD_V (int)	krbv4_ldap_auth();
 /*
  * ldapsync.c
  */
-LDAP_SLAPD_F (int) slap_build_sync_state_ctrl LDAP_P((
-				Operation *, SlapReply *, Entry *, int,
-				LDAPControl **, int, int, struct berval * ));
-LDAP_SLAPD_F (int) slap_build_sync_done_ctrl LDAP_P((
-				Operation *, SlapReply *, LDAPControl **,
-				int, int, struct berval *, int ));
-LDAP_SLAPD_F (int) slap_build_sync_state_ctrl_from_slog LDAP_P((
-				Operation *, SlapReply *, struct slog_entry *, int,
-				LDAPControl **, int, int, struct berval * ));
-LDAP_SLAPD_F (int) slap_send_syncinfo LDAP_P((
-				Operation *, SlapReply *, int,
-				struct berval *, int, BerVarray, int ));
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
 				Operation *, struct berval *, struct berval *, int, int ));
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
