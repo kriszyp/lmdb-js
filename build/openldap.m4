@@ -1036,7 +1036,8 @@ fi
 ])dnl
 dnl
 AC_DEFUN([OL_STRERROR],
-[AC_CHECK_FUNCS(strerror strerror_r)
+[OL_SYS_ERRLIST dnl TEMPORARY
+AC_CHECK_FUNCS(strerror strerror_r)
 ol_cv_func_strerror_r=no
 if test "${ac_cv_func_strerror_r}" = yes ; then
 	OL_NONPOSIX_STRERROR_R
