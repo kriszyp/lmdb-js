@@ -400,7 +400,7 @@ monitor_subsys_conn_create(
 
 	} else {
 		char 		**values;
-		struct berval	*rdn;
+		struct berval	rdn;
 		unsigned long 	connid;
 	       
 		/* create exactly the required entry */
@@ -409,11 +409,11 @@ monitor_subsys_conn_create(
 			return( -1 );
 		}
 
-		if ( rdn_attrs( rdn->bv_val, NULL, &values ) != LDAP_SUCCESS ) {
-			ber_bvfree( rdn );
+		if ( rdn_attrs( rdn.bv_val, NULL, &values ) != LDAP_SUCCESS ) {
+			free( rdn.bv_val );
 			return( -1 );
 		}
-		ber_bvfree( rdn );
+		free( rdn.bv_val );
 
 		assert( values );
 		assert( values[ 0 ] );

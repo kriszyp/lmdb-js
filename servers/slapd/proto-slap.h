@@ -380,7 +380,7 @@ LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
 LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
-	struct berval *dn, struct berval **rdn ));
+	struct berval *dn, struct berval *rdn ));
 
 LDAP_SLAPD_F (int) rdnValidate LDAP_P(( struct berval * rdn ));
 
