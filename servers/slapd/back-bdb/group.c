@@ -109,7 +109,7 @@ dn2entry_retry:
 		/* can we find group entry */
 		rc = bdb_dn2entry_r( be, txn, gr_ndn, &e, NULL, 0, locker, &lock ); 
 		if( rc ) {
-			boi->boi_err = rc;
+			if ( boi ) boi->boi_err = rc;
 			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED ) {
 				if ( txn ) {
 				/* must let owning txn abort, but our result
