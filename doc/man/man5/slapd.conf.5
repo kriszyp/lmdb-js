@@ -242,6 +242,12 @@ Turn schema checking on or off. The default is on.
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 .TP
+.B sasl-realm <realm>
+Specify SASL realm.  Default is empty.
+.TP
+.B sasl-secprops <props>
+Cyrus SASL security properties.  Default is "noanonymous,noplain".
+.TP
 .B srvtab <filename>
 Specify the srvtab file in which the kerberos keys necessary for
 authenticating clients using kerberos can be found. This option is only
