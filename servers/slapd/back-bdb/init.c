@@ -566,7 +566,12 @@ bdb_initialize(
 	db_env_set_func_free( ber_memfree );
 	db_env_set_func_malloc( (db_malloc *)ber_memalloc );
 	db_env_set_func_realloc( (db_realloc *)ber_memrealloc );
+#ifndef NO_THREAD
+	/* This is a no-op on a NO_THREAD build. Leave the default
+	 * alone so that BDB will sleep on interprocess conflicts.
+	 */
 	db_env_set_func_yield( ldap_pvt_thread_yield );
+#endif
 
 	{
 		static char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
