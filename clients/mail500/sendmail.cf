@@ -1,3 +1,8 @@
+#
+# It's recommended use Sendmail's m4 configuration system to avoid
+# mucking directly with .cf files
+#
+
 # Mostly rfc1123 compliant sendmail.cf
 #
 # Mail sendmail-admins-request@itd.umich.edu to join
