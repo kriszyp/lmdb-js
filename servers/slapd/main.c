@@ -78,6 +78,7 @@ usage( char *name )
 }
 
 time_t starttime;
+struct sockaddr_in	bind_addr;
 
 int
 main( int argc, char **argv )
@@ -85,7 +86,6 @@ main( int argc, char **argv )
 	int		i;
 	int		inetd = 0;
 	int		rc;
-	struct sockaddr_in	bind_addr;
 	int		tcps;
 	int		udp;
 #ifdef LOG_LOCAL4
