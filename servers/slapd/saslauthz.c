@@ -143,6 +143,10 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 done:
 	if( rc != LDAP_SUCCESS ) {
 		if( *filter ) filter_free( *filter );
+		base->bv_val = NULL;
+		base->bv_len = 0;
+		fstr->bv_val = NULL;
+		fstr->bv_len = 0;
 	} else {
 		/* Don't free these, they're returned to caller */
 		ludp->lud_filter = NULL;
