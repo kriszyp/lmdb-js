@@ -28,7 +28,6 @@
 #define faxNumberNormalize				numericStringNormalize
 #define phoneNumberNormalize			numericStringNormalize
 #define telexNumberNormalize			numericStringNormalize
-#define integerNormalize				numericStringNormalize
 #define nameUIDNormalize				dnNormalize
 
 /* unimplemented normalizers */
@@ -42,6 +41,7 @@
 #define nameUIDPretty					dnPretty
 
 /* recycled matching routines */
+#define integerMatch					caseIgnoreIA5Match
 #define numericStringMatch				caseIgnoreMatch
 #define objectIdentifierMatch			numericStringMatch
 #define telephoneNumberMatch			numericStringMatch
@@ -74,6 +74,8 @@
 /* recycled indexing/filtering routines */
 #define dnIndexer						caseIgnoreIndexer
 #define dnFilter						caseIgnoreFilter
+#define integerIndexer					caseIgnoreIA5Indexer
+#define integerFilter					caseIgnoreIA5Filter
 
 static char *strcasechr( const char *str, int c )
 {
@@ -1700,7 +1702,13 @@ integerValidate(
 
 	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
-	for(i=0; i < val->bv_len; i++) {
+	if( val->bv_val[0] == '+' || val->bv_val[0] == '-' ) {
+		if( val->bv_len < 2 ) return LDAP_INVALID_SYNTAX;
+	} else if( !ASCII_DIGIT(val->bv_val[0]) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	for(i=1; i < val->bv_len; i++) {
 		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
@@ -1708,155 +1716,45 @@ integerValidate(
 }
 
 static int
-integerMatch(
-	int *matchp,
-	slap_mask_t flags,
+integerNormalize(
 	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *value,
-	void *assertedValue )
+	struct berval *val,
+	struct berval **normalized )
 {
-	int match;
-	char *vb, *ve, *avb, *ave;
+	int negative;
+	struct berval *newval;
+	char *p, *q;
 
-	vb = value->bv_val;
-	ve = vb + value->bv_len - 1;
-	avb = ((struct berval *) assertedValue)->bv_val;
-	ave = avb + ((struct berval *) assertedValue)->bv_len - 1;
+	p = val->bv_val;
 
-	/* Is '0' safe?  Should we ignore whitespace too?  Can they be
-	 * negative?  RFC2252 does not suggest so, and integerValidate
-	 * above doesn't either. */
+	/* save sign */
+	negative = ( *p == '-' );
+	if( *p == '-' || *p == '+' ) p++;
 
-	while ( *vb == '0' && vb <= ve )
-		vb++;
+	/* Ignore leading zeros */
+	while ( *p == '0' ) p++;
 
-	while ( *avb == '0' && avb <= ave )
-		avb++;
+	newval = (struct berval *) ch_malloc( sizeof(struct berval) );
 
-	match = (ve - vb) - (ave - avb);
-
-	if( match == 0 ) {
-		while ( *vb == *avb && vb < ve ) {
-			vb++;
-			avb++;
-		}
-		match = (unsigned char)*vb - (unsigned char)*avb;
+	if( *p == '\0' ) {
+		newval->bv_val = ch_strdup("0");
+		newval->bv_len = 1;
+		goto done;
 	}
 
-	*matchp = match;
-	return LDAP_SUCCESS;
-}
+	newval->bv_val = ch_malloc( val->bv_len + 1 );
+	newval->bv_len = 0;
 
-/* Index generation function */
-int integerIndexer(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	struct berval **values,
-	struct berval ***keysp )
-{
-	int i;
-	size_t slen, mlen;
-	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
-	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
-
-	for( i=0; values[i] != NULL; i++ ) {
-		/* just count them */
+	if( negative ) {
+		newval->bv_val[newval->bv_len++] = '-';
 	}
 
-	assert( i > 0 );
-
-	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
-
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
-
-	for( i=0; values[i] != NULL; i++ ) {
-		struct berval *value = values[i];
-		char *vb, *ve;
-
-		vb = value->bv_val;
-		ve = vb + value->bv_len - 1;
-		while ( *vb == '0' && vb <= ve )
-			vb++;
-
-		lutil_MD5Init( &MD5context );
-		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
-				prefix->bv_val, prefix->bv_len );
-		}
-		lutil_MD5Update( &MD5context,
-			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
-			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
-			vb, ve - vb + 1 );
-		lutil_MD5Final( MD5digest, &MD5context );
-
-		keys[i] = ber_bvdup( &digest );
+	for( ; *p != '\0'; p++ ) {
+		newval->bv_val[newval->bv_len++] = *p;
 	}
 
-	keys[i] = NULL;
-	*keysp = keys;
-	return LDAP_SUCCESS;
-}
-
-/* Index generation function */
-int integerFilter(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	void * assertValue,
-	struct berval ***keysp )
-{
-	size_t slen, mlen;
-	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
-	struct berval *value;
-	char *vb, *ve;
-	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
-
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
-
-	value = (struct berval *) assertValue;
-
-	vb = value->bv_val;
-	ve = vb + value->bv_len - 1;
-	while ( *vb == '0' && vb <= ve )
-		vb++;
-
-	keys = ch_malloc( sizeof( struct berval * ) * 2 );
-
-	lutil_MD5Init( &MD5context );
-	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
-			prefix->bv_val, prefix->bv_len );
-	}
-	lutil_MD5Update( &MD5context,
-		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
-		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
-		vb, ve - vb + 1 );
-	lutil_MD5Final( MD5digest, &MD5context );
-
-	keys[0] = ber_bvdup( &digest );
-	keys[1] = NULL;
-
-	*keysp = keys;
+done:
+	*normalized = newval;
 	return LDAP_SUCCESS;
 }
 
