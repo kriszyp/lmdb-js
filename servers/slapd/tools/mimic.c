@@ -140,11 +140,23 @@ int slap_sasl_destroy(void)
 	return LDAP_SUCCESS;
 }
 
+int slap_sasl_setpass(
+	Connection      *conn,
+	Operation       *op,
+	const char      *reqoid,
+	struct berval   *reqdata,
+	char            **rspoid,
+	struct berval   **rspdata,
+	LDAPControl     *** rspctrls,
+	const char      **text )
+{
+	return LDAP_SUCCESS;
+}
+
 char * slap_sasl_secprops( const char *in )
 {
 	return NULL;
 }
-
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {

@@ -830,6 +830,16 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	struct berval *cred,
 	struct berval *edn, slap_ssf_t *ssf ));
 
+LDAP_SLAPD_F (int) slap_sasl_setpass(
+	Connection      *conn,
+	Operation       *op,
+	const char      *reqoid,
+	struct berval   *reqdata,
+	char            **rspoid,
+	struct berval   **rspdata,
+	LDAPControl     *** rspctrls,
+	const char      **text );
+
 /*
  * saslauthz.c
  */

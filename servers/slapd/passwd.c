@@ -44,19 +44,13 @@ int passwd_extop(
 	be = conn->c_authz_backend;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-	if( be == NULL ) {
-		*text = "operation not supported for SASL user";
-		return LDAP_UNWILLING_TO_PERFORM;
-	}
-
-	if( !be->be_extended ) {
+	if( be && !be->be_extended ) {
 		*text = "operation not supported for current user";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	{
 		struct berval passwd = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
-
 		rc = backend_check_restrictions( be, conn, op, &passwd, text );
 	}
 
@@ -64,7 +58,18 @@ int passwd_extop(
 		return rc;
 	}
 
-	if( be->be_update_ndn.bv_len ) {
+	if( be == NULL ) {
+#ifdef HAVE_CYRUS_SASL
+		rc = slap_sasl_setpass( conn, op,
+			reqoid, reqdata,
+			rspoid, rspdata, rspctrls,
+			text );
+#else
+		*text = "no authz backend";
+		rc = LDAP_OTHER;
+#endif
+
+	} else if( be->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
 		*refs = referral_rewrite( be->be_update_refs,
 			NULL, NULL, LDAP_SCOPE_DEFAULT );

@@ -1281,3 +1281,79 @@ char* slap_sasl_secprops( const char *in )
 	return "SASL not supported";
 #endif
 }
+
+#ifdef HAVE_CYRUS_SASL
+int
+slap_sasl_setpass(
+	Connection      *conn,
+	Operation       *op,
+	const char      *reqoid,
+	struct berval   *reqdata,
+	char            **rspoid,
+	struct berval   **rspdata,
+	LDAPControl     *** rspctrls,
+	const char      **text )
+{
+	int rc;
+	struct berval id = { 0, NULL };	/* needs to come from connection */
+	struct berval new = { 0, NULL };
+
+	assert( reqoid != NULL );
+	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+
+	if( id.bv_len == 0 ) {
+		*text = "not yet implemented";
+		rc = LDAP_OTHER;
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		"slap_sasl_setpass: \"%s\"\n",
+		id.bv_val ? id.bv_val : "" ));
+#else
+	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
+		id.bv_val ? id.bv_val : "", 0, 0 );
+#endif
+
+	rc = slap_passwd_parse( reqdata,
+		NULL, NULL, &new, text );
+
+	if( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	if( new.bv_len == 0 ) {
+		slap_passwd_generate(&new);
+
+		if( new.bv_len == 0 ) {
+			*text = "password generation failed.";
+			rc = LDAP_OTHER;
+			goto done;
+		}
+		
+		*rspdata = slap_passwd_return( &new );
+	}
+
+	rc = sasl_setpass( conn->c_sasl_context,
+		id.bv_val, new.bv_val, new.bv_len, SASL_SET_CREATE,
+		text );
+
+	switch(rc) {
+		case SASL_OK:
+			rc = LDAP_SUCCESS;
+			break;
+
+		case SASL_NOCHANGE:
+		case SASL_NOMECH:
+		case SASL_DISABLED:
+		case SASL_PWLOCK:
+		case SASL_FAIL:
+		case SASL_BADPARAM:
+		default:
+			rc = LDAP_OTHER;
+	}
+
+done:
+	return rc;
+}
+#endif
