@@ -60,7 +60,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "libslap0"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -192,6 +192,10 @@ SOURCE=.\repl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\root_dse.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schema.c
 # End Source File
 # Begin Source File
@@ -221,10 +225,6 @@ SOURCE=.\user.c
 # Begin Source File
 
 SOURCE=.\value.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\Version.c
 # End Source File
 # End Target
 # End Project
