@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.25 Engineering
+	<insert changes here>
+
 OpenLDAP 2.0.24 Release
 	Fixed slapd max incoming macro bug (ITS#1828)
 	Fixed slapd acl group/dnaddr bug (ITS#1607)
