@@ -1909,6 +1909,7 @@ compiler."
 	    else
 	      # We cannot seem to hardcode it, guess we'll fake it.
 	      add_dir="-L$libdir"
+	      test -d "$ladir/.libs" && add_dir="-L$ladir/.libs $add_dir"
 	      add="-l$name"
 	    fi
 
