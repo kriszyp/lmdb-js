@@ -55,7 +55,8 @@ static int put_substring_filter LDAP_P((
 
 static int put_filter_list LDAP_P((
 	BerElement *ber,
-	char *str ));
+	char *str,
+	ber_tag_t tag ));
 
 /*
  * ldap_search_ext - initiate an ldap search operation.
@@ -541,7 +542,7 @@ put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 		return( NULL );
 
 	*next = '\0';
-	if ( put_filter_list( ber, str ) == -1 )
+	if ( put_filter_list( ber, str, tag ) == -1 )
 		return( NULL );
 	*next++ = ')';
 
@@ -705,33 +706,38 @@ put_filter( BerElement *ber, char *str )
  */
 
 static int
-put_filter_list( BerElement *ber, char *str )
+put_filter_list( BerElement *ber, char *str, ber_tag_t tag )
 {
-	char	*next;
+	char	*next = NULL;
 	char	save;
 
 	Debug( LDAP_DEBUG_TRACE, "put_filter_list \"%s\"\n", str, 0, 0 );
 
 	while ( *str ) {
-		while ( *str && LDAP_SPACE( (unsigned char) *str ) )
+		while ( *str && LDAP_SPACE( (unsigned char) *str ) ) {
 			str++;
-		if ( *str == '\0' )
-			break;
+		}
+		if ( *str == '\0' ) break;
 
-		if ( (next = find_right_paren( str + 1 )) == NULL )
+		if ( (next = find_right_paren( str + 1 )) == NULL ) {
 			return( -1 );
+		}
 		save = *++next;
 
 		/* now we have "(filter)" with str pointing to it */
 		*next = '\0';
-		if ( put_filter( ber, str ) == -1 )
-			return( -1 );
+		if ( put_filter( ber, str ) == -1 ) return -1;
 		*next = save;
-
 		str = next;
+
+		if( tag == LDAP_FILTER_NOT ) break;
 	}
 
-	return( 0 );
+	if( tag == LDAP_FILTER_NOT && ( next == NULL || *str )) {
+		return -1;
+	}
+
+	return 0;
 }
 
 static int
