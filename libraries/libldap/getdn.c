@@ -464,7 +464,7 @@ ldap_dn_normalize( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 #define	LDAP_DC_ATTR	"dc"
 #define	LDAP_DC_ATTRU	"DC"
 #define LDAP_DN_IS_RDN_DC( r ) \
-	( (r) && (r)[0][0] && !(r)[1] \
+	( (r) && (r)[0][0] && !(r)[0][1] \
 	  && ((r)[0][0]->la_flags == LDAP_AVA_STRING) \
 	  && ((r)[0][0]->la_attr.bv_len == 2) \
 	  && (((r)[0][0]->la_attr.bv_val[0] == LDAP_DC_ATTR[0]) \
