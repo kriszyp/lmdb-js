@@ -94,6 +94,19 @@ The default is the same as
 Specify the file protection mode that newly created database 
 index files should have.
 The default is 0600.
+.TP
+.B searchstack <depth>
+Specify the depth of the stack used for search filter evaluation.
+Search filters are evaluated on a stack to accomodate nested AND / OR
+clauses. An individual stack is assigned to each server thread.
+The depth of the stack determines how complex a filter can be
+evaluated without requiring any additional memory allocation. Filters that
+are nested deeper than the search stack depth will cause a separate
+stack to be allocated for that particular search operation. These
+allocations can have a major negative impact on server performance,
+but specifying too much stack will also consume a great deal of memory.
+Each search stack uses 512K bytes per level. The default stack depth
+is 16, thus 8MB per thread is used.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
