@@ -444,7 +444,7 @@ bdb_idl_fetch_key(
 	/* We sometimes test with tiny IDLs, and BDB always wants buffers
 	 * that are at least one page in size.
 	 */
-# if BDB_IDL_SIZE < 4096
+# if BDB_IDL_DB_SIZE < 4096
 #   define BDB_ENOUGH 2048
 # else
 #	define BDB_ENOUGH 1
