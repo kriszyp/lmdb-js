@@ -820,6 +820,7 @@ static void
 syncprov_free_syncop( syncops *so )
 {
 	syncres *sr, *srnext;
+	GroupAssertion *ga, *gnext;
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	so->s_inuse--;
@@ -829,6 +830,10 @@ syncprov_free_syncop( syncops *so )
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	filter_free( so->s_op->ors_filter );
+	for ( ga = so->s_op->o_groups; ga; ga=gnext ) {
+		gnext = ga->ga_next;
+		ch_free( ga );
+	}
 	ch_free( so->s_op );
 	ch_free( so->s_base.bv_val );
 	for ( sr=so->s_res; sr; sr=srnext ) {
@@ -840,12 +845,16 @@ syncprov_free_syncop( syncops *so )
 }
 
 static int
-syncprov_drop_psearch( syncops *so )
+syncprov_drop_psearch( syncops *so, int lock )
 {
-	ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
+	if ( lock )
+		ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
 	so->s_op->o_conn->c_n_ops_executing--;
 	so->s_op->o_conn->c_n_ops_completed++;
-	ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
+	LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, slap_op,
+		o_next );
+	if ( lock )
+		ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
 	syncprov_free_syncop( so );
 }
 
@@ -873,7 +882,7 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_CANCELLED;
 			send_ldap_result( so->s_op, rs );
 		}
-		syncprov_drop_psearch( so );
+		syncprov_drop_psearch( so, 0 );
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -947,7 +956,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			send_ldap_error( ss->s_op, &rs, LDAP_SYNC_REFRESH_REQUIRED,
 				"search base has changed" );
 			sprev->s_next = snext;
-			syncprov_drop_psearch( ss );
+			syncprov_drop_psearch( ss, 1 );
 			continue;
 		}
 
@@ -1562,10 +1571,11 @@ syncprov_detach_op( Operation *op, syncops *so )
 		op2->o_groups = g2;
 	}
 
-	/* Increment number of ops so that idletimeout ignores us */
+	/* Add op2 to conn so abandon will find us */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_n_ops_executing++;
 	op->o_conn->c_n_ops_completed--;
+	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op2, o_next );
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 }
 
