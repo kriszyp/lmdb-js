@@ -2435,8 +2435,14 @@ int slapi_attr_value_cmp( const Slapi_Attr *a, const struct berval *v1, const st
 	const char *text;
 
 	mr = a->a_desc->ad_type->sat_equality;
+#ifdef SLAP_NVALUES
+	rc = value_match( &ret, a->a_desc, mr,
+			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+		(struct berval *)v1, (void *)v2, &text );
+#else
 	rc = value_match( &ret, a->a_desc, mr, SLAP_MR_ASSERTION_SYNTAX_MATCH,
 		(struct berval *)v1, (void *)v2, &text );
+#endif
 	if ( rc != LDAP_SUCCESS ) 
 		return -1;
 
@@ -2458,8 +2464,13 @@ int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 
 	mr = a->a_desc->ad_type->sat_equality;
 	for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
+#ifdef SLAP_NVALUES
+		rc = value_match( &ret, a->a_desc, mr,
+			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, bv, v, &text );
+#else
 		rc = value_match( &ret, a->a_desc, mr,
 			SLAP_MR_ASSERTION_SYNTAX_MATCH, bv, v, &text );
+#endif
 		if ( rc != LDAP_SUCCESS ) {
 			return -1;
 		}
