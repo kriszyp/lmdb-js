@@ -841,9 +841,32 @@ entry_naming_check(
 		Attribute *attr;
 		const char *errtext;
 
+		if( ava->la_flags & LDAP_AVA_BINARY ) {
+			snprintf( textbuf, textlen, 
+				"value of naming attribute '%s' in unsupported BER form",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
+		}
+
 		rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
 		if ( rc != LDAP_SUCCESS ) {
 			snprintf( textbuf, textlen, "%s (in RDN)", errtext );
+			break;
+		}
+
+		if( desc->ad_type->sat_equality == NULL ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' has no equality matching rule",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
+			break;
+		}
+
+		if( desc->ad_type->sat_equality->smr_match == NULL ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' has unsupported equality matching rule",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
 			break;
 		}
 
@@ -857,21 +880,32 @@ entry_naming_check(
 			break;
 		}
 
-		if( ava->la_flags & LDAP_AVA_BINARY ) {
-			snprintf( textbuf, textlen, 
-				"value of naming attribute '%s' in unsupported BER form",
-				ava->la_attr.bv_val );
-			rc = LDAP_NAMING_VIOLATION;
-		}
+		rc = value_find_ex( desc, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			attr->a_nvals, &ava->la_value, NULL );
 
-		if ( value_find_ex( desc,
-			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
-				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			attr->a_nvals, &ava->la_value, NULL ) != 0 )
-		{
-			snprintf( textbuf, textlen, 
-				"value of naming attribute '%s' is not present in entry",
-				ava->la_attr.bv_val );
+		if( rc != 0 ) {
+			switch( rc ) {
+			case LDAP_INAPPROPRIATE_MATCHING:
+				snprintf( textbuf, textlen, 
+					"inappropriate matching for naming attribute '%s'",
+					ava->la_attr.bv_val );
+				break;
+			case LDAP_INVALID_SYNTAX:
+				snprintf( textbuf, textlen, 
+					"value of naming attribute '%s' is invalid",
+					ava->la_attr.bv_val );
+				break;
+			case LDAP_NO_SUCH_ATTRIBUTE:
+				snprintf( textbuf, textlen, 
+					"value of naming attribute '%s' is not present in entry",
+					ava->la_attr.bv_val );
+				break;
+			default:
+				snprintf( textbuf, textlen, 
+					"naming attribute '%s' is inappropriate",
+					ava->la_attr.bv_val );
+			}
 			rc = LDAP_NAMING_VIOLATION;
 			break;
 		}
