@@ -77,7 +77,7 @@ ldap_back_bind(
 	if ( op->o_ctrls ) {
 		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
 					op->o_ctrls ) != LDAP_SUCCESS ) {
-			ldap_back_op_result( lc, op );
+			ldap_back_op_result( lc, conn, op );
 			return( -1 );
 		}
 	}
@@ -114,11 +114,22 @@ ldap_back_bind(
 	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
+	if ( lc->bound_dn.bv_val ) {
+		ch_free( lc->bound_dn.bv_val );
+		lc->bound_dn.bv_len = 0;
+		lc->bound_dn.bv_val = NULL;
+	}
+	lc->bound = 0;
 	rc = ldap_bind_s(lc->ld, mdn.bv_val, cred->bv_val, method);
 	if (rc != LDAP_SUCCESS) {
-		rc = ldap_back_op_result( lc, op );
+		rc = ldap_back_op_result( lc, conn, op );
 	} else {
 		lc->bound = 1;
+		if ( mdn.bv_val != dn->bv_val ) {
+			lc->bound_dn = mdn;
+		} else {
+			ber_dupbv( &lc->bound_dn, dn );
+		}
 	}
 
 	if ( li->savecred ) {
@@ -128,14 +139,22 @@ ldap_back_bind(
 		ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
 	}
 
-	if ( lc->bound_dn.bv_val )
-		ch_free( lc->bound_dn.bv_val );
-	if ( mdn.bv_val != dn->bv_val ) {
-		lc->bound_dn = mdn;
-	} else {
-		ber_dupbv( &lc->bound_dn, dn );
+	/* must re-insert if local DN changed as result of bind */
+	if ( lc->bound && ber_bvcmp(ndn, &lc->local_dn ) ) {
+		int err;
+		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		lc = avl_delete( &li->conntree, (caddr_t)lc, ldap_back_conn_cmp );
+		if ( lc->local_dn.bv_val )
+			ch_free( lc->local_dn.bv_val );
+		ber_dupbv( &lc->local_dn, ndn );
+		err = avl_insert( &li->conntree, (caddr_t)lc,
+			ldap_back_conn_cmp, ldap_back_conn_dup );
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+		if ( err == -1 ) {
+			ldap_back_conn_free( lc );
+		}
 	}
-	
+
 	return( rc );
 }
 
@@ -153,8 +172,16 @@ ldap_back_conn_cmp(
 {
 	const struct ldapconn *lc1 = (const struct ldapconn *)c1;
 	const struct ldapconn *lc2 = (const struct ldapconn *)c2;
+	int rc;
 	
-	return ( ( lc1->conn < lc2->conn ) ? -1 : ( ( lc1->conn > lc2-> conn ) ? 1 : 0 ) );
+	/* If local DNs don't match, it is definitely not a match */
+	if ( ( rc = ber_bvcmp( &lc1->local_dn, &lc2->local_dn )) )
+		return rc;
+
+	/* For shared sessions, conn is NULL. Only explicitly
+	 * bound sessions will have non-NULL conn.
+	 */
+	return lc1->conn - lc2->conn;
 }
 
 /*
@@ -172,13 +199,18 @@ ldap_back_conn_dup(
 	struct ldapconn *lc1 = (struct ldapconn *)c1;
 	struct ldapconn *lc2 = (struct ldapconn *)c2;
 
-	return( ( lc1->conn == lc2->conn ) ? -1 : 0 );
+	/* Cannot have more than one shared session with same DN */
+	if ( dn_match( &lc1->local_dn, &lc2->local_dn ) &&
+		 lc1->conn == lc2->conn ) return -1;
+		
+	return 0;
 }
 
 #if PRINT_CONNTREE > 0
 static void ravl_print( Avlnode *root, int depth )
 {
 	int     i;
+	struct ldapconn *lc;
 	
 	if ( root == 0 )
 		return;
@@ -188,7 +220,8 @@ static void ravl_print( Avlnode *root, int depth )
 	for ( i = 0; i < depth; i++ )
 		printf( "   " );
 
-	printf( "c(%ld) %d\n", ((struct ldapconn *) root->avl_data)->conn->c_connid, root->avl_bf );
+	lc = root->avl_data;
+	printf( "lc(%lx) local(%s) conn(%lx) %d\n", lc, lc->local_dn.bv_val, lc->conn, root->avl_bf );
 	
 	ravl_print( root->avl_left, depth+1 );
 }
@@ -212,9 +245,24 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 {
 	struct ldapconn *lc, lc_curr;
 	LDAP *ld;
+	int is_priv = 0;
 
 	/* Searches for a ldapconn in the avl tree */
-	lc_curr.conn = conn;
+
+	/* Explicit binds must not be shared */
+	if ( op->o_tag == LDAP_REQ_BIND ) {
+		lc_curr.conn = conn;
+	} else {
+		lc_curr.conn = NULL;
+	}
+	
+	/* Internal searches are privileged. So is root. */
+	if ( op->o_do_not_cache || be_isroot( li->be, &op->o_ndn ) ) {
+		lc_curr.local_dn = li->be->be_rootndn;
+		is_priv = 1;
+	} else {
+		lc_curr.local_dn = op->o_ndn;
+	}
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 		(caddr_t)&lc_curr, ldap_back_conn_cmp );
@@ -237,11 +285,18 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &vers);
 
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
-		lc->conn = conn;
+		lc->conn = lc_curr.conn;
 		lc->ld = ld;
+		ber_dupbv( &lc->local_dn, &lc_curr.local_dn );
 
-		lc->cred.bv_len = 0;
-		lc->cred.bv_val = NULL;
+		if ( is_priv ) {
+			ber_str2bv( li->bindpw, 0, 1, &lc->cred );
+		} else {
+			lc->cred.bv_len = 0;
+			lc->cred.bv_val = NULL;
+		}
+
+		ldap_pvt_thread_mutex_init( &lc->lc_mutex );
 
 #ifdef ENABLE_REWRITE
 		/*
@@ -250,7 +305,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		( void )rewrite_session_init( li->rwinfo, conn );
 #endif /* ENABLE_REWRITE */
 
-		if ( lc->conn->c_dn.bv_len != 0 ) {
+		if ( conn->c_dn.bv_len != 0 ) {
 			
 			/*
 			 * Rewrite the bind dn if needed
@@ -259,24 +314,24 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			lc->bound_dn.bv_val = NULL;
 			lc->bound_dn.bv_len = 0;
 			switch ( rewrite_session( li->rwinfo, "bindDn",
-						lc->conn->c_dn.bv_val, conn,
+						conn->c_dn.bv_val, conn,
 						&lc->bound_dn.bv_val ) ) {
 			case REWRITE_REGEXEC_OK:
 				if ( lc->bound_dn.bv_val == NULL ) {
 					ber_dupbv( &lc->bound_dn,
-							&lc->conn->c_dn );
+							&conn->c_dn );
 				}
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDAP, DETAIL1, 
 						"[rw] bindDn: \"%s\" ->" 
 						" \"%s\"\n%s",
-						lc->conn->c_dn.bv_val, 
+						conn->c_dn.bv_val, 
 						lc->bound_dn.bv_val, "" );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ARGS,
 					       	"rw> bindDn: \"%s\" ->"
 						" \"%s\"\n%s",
-						lc->conn->c_dn.bv_val,
+						conn->c_dn.bv_val,
 						lc->bound_dn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 				break;
@@ -298,8 +353,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 
 #else /* !ENABLE_REWRITE */
 			struct berval bv;
-			ldap_back_dn_massage( li, &lc->conn->c_dn, &bv, 0, 1 );
-			if ( bv.bv_val == lc->conn->c_dn.bv_val ) {
+			ldap_back_dn_massage( li, &conn->c_dn, &bv, 0, 1 );
+			if ( bv.bv_val == conn->c_dn.bv_val ) {
 				ber_dupbv( &lc->bound_dn, &bv );
 			} else {
 				lc->bound_dn = bv;
@@ -320,34 +375,34 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 #if PRINT_CONNTREE > 0
 		myprint( li->conntree );
 #endif /* PRINT_CONNTREE */
-		
+	
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, INFO, 
-			"ldap_back_getconn: conn %ld inserted\n", lc->conn->c_connid, 0, 0);
+			"ldap_back_getconn: conn %lx inserted\n", lc, 0, 0);
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %ld inserted\n%s%s",
-			lc->conn->c_connid, "", "" );
+			"=>ldap_back_getconn: conn %lx inserted\n%s%s",
+			lc, "", "" );
 #endif /* !NEW_LOGGING */
-		
+	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( err != 0 ) {
+			ldap_back_conn_free( lc );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "internal server error", NULL, NULL );
-			/* better destroy the ldapconn struct? */
 			return( NULL );
 		}
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, INFO, 
-			"ldap_back_getconn: conn %ld inserted\n", 
-			lc->conn->c_connid, 0, 0 );
+			"ldap_back_getconn: conn %lx fetched\n", 
+			lc, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %ld fetched%s%s\n",
-			lc->conn->c_connid, "", "" );
+			"=>ldap_back_getconn: conn %lx fetched%s%s\n",
+			lc, "", "" );
 #endif /* !NEW_LOGGING */
 	}
 	
@@ -362,26 +417,34 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
  * it can be used to simplify the check.
  */
 int
-ldap_back_dobind( struct ldapconn *lc, Operation *op )
+ldap_back_dobind( struct ldapconn *lc, Connection *conn, Operation *op )
 {	
+	int rc = 0;
+
+	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( op->o_ctrls ) {
 		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
 				op->o_ctrls ) != LDAP_SUCCESS ) {
-			ldap_back_op_result( lc, op );
-			return( 0 );
+			ldap_back_op_result( lc, conn, op );
+			goto leave;
 		}
 	}
 	
 	if ( lc->bound ) {
-		return( lc->bound );
+		rc = lc->bound;
+		goto leave;
 	}
 
 	if ( ldap_bind_s( lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, 
 				LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
-		ldap_back_op_result( lc, op );
-		return( 0 );
+		ldap_back_op_result( lc, conn, op );
+		goto leave;
 	} /* else */
-	return( lc->bound = 1 );
+
+	rc = lc->bound = 1;
+leave:
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+	return rc;
 }
 
 /*
@@ -447,13 +510,17 @@ ldap_back_map_result(int err)
 }
 
 int
-ldap_back_op_result(struct ldapconn *lc, Operation *op)
+ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op)
 {
 	int err = LDAP_SUCCESS;
 	char *msg = NULL;
 	char *match = NULL;
 
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
+
+	/* internal ops must not reply to client */
+	if ( !conn || op->o_do_not_cache ) goto quiet;
+
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
 	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 	err = ldap_back_map_result(err);
@@ -463,7 +530,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 	/*
 	 * FIXME: need rewrite info for match; mmmh ...
 	 */
-	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
+	send_ldap_result( conn, op, err, match, msg, NULL, NULL );
 	/* better test the pointers before freeing? */
 	if ( match ) {
 		free( match );
@@ -471,7 +538,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 
 #else /* !ENABLE_REWRITE */
 
-	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
+	send_ldap_result( conn, op, err, match, msg, NULL, NULL );
 	/* better test the pointers before freeing? */
 	if ( match ) {
 		free( match );
@@ -480,6 +547,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 #endif /* !ENABLE_REWRITE */
 
 	if ( msg ) free( msg );
+quiet:
 	return( (err==LDAP_SUCCESS) ? 0 : -1 );
 }
 

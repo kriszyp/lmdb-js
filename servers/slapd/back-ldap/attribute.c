@@ -31,6 +31,7 @@ ldap_back_attribute(
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
+	struct ldapconn *lc;
 	int rc = 1, i, j, count, is_oc;
 	Attribute *attr = NULL;
 	BerVarray abv, v;
@@ -38,7 +39,6 @@ ldap_back_attribute(
 	char **vs = NULL;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[2];
-	LDAP *ld = NULL;
 
 	*vals = NULL;
 	if (target != NULL && dn_match( &target->e_nname, ndn )) {
@@ -68,28 +68,30 @@ ldap_back_attribute(
 		return 1;
 	}
 
-	if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
+	/* Tell getconn this is a privileged op */
+	is_oc = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
+	lc = ldap_back_getconn(li, conn, op);
+	if ( !lc || !ldap_back_dobind(lc, NULL, op) ) {
+		op->o_do_not_cache = is_oc;
 		return 1;
 	}
-
-	if (ldap_bind_s(ld, li->binddn, li->bindpw, LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		goto cleanup;
-	}
+	op->o_do_not_cache = is_oc;
 
 	gattr[0] = mapped.bv_val;
 	gattr[1] = NULL;
-	if (ldap_search_ext_s(ld, ndn->bv_val, LDAP_SCOPE_BASE, "(objectclass=*)",
+	if (ldap_search_ext_s(lc->ld, ndn->bv_val, LDAP_SCOPE_BASE, "(objectclass=*)",
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)
 	{
 		goto cleanup;
 	}
 
-	if ((e = ldap_first_entry(ld, result)) == NULL) {
+	if ((e = ldap_first_entry(lc->ld, result)) == NULL) {
 		goto cleanup;
 	}
 		
-	vs = ldap_get_values(ld, e, mapped.bv_val);
+	vs = ldap_get_values(lc->ld, e, mapped.bv_val);
 	if (vs == NULL) {
 		goto cleanup;
 	}
@@ -132,7 +134,6 @@ cleanup:
 	if (result) {
 		ldap_msgfree(result);
 	}
-	ldap_unbind(ld);
 
 	return(rc);
 }

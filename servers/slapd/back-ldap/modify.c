@@ -65,7 +65,7 @@ ldap_back_modify(
 	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind( lc, op ) ) {
+	if ( !lc || !ldap_back_dobind( lc, conn, op ) ) {
 		return( -1 );
 	}
 
@@ -170,6 +170,6 @@ cleanup:;
 		ch_free(modv[i]->mod_bvalues);
 	ch_free(mods);
 	ch_free(modv);
-	return( ldap_back_op_result( lc, op ));
+	return( ldap_back_op_result( lc, conn, op ));
 }
 

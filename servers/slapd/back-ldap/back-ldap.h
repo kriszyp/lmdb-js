@@ -49,13 +49,16 @@ LDAP_BEGIN_DECL
 
 struct slap_conn;
 struct slap_op;
+struct slap_backend_db;
 
 struct ldapconn {
 	struct slap_conn	*conn;
 	LDAP		*ld;
 	struct berval	cred;
 	struct berval 	bound_dn;
+	struct berval	local_dn;
 	int		bound;
+	ldap_pvt_thread_mutex_t		lc_mutex;
 };
 
 struct ldapmap {
@@ -71,6 +74,7 @@ struct ldapmapping {
 };
 
 struct ldapinfo {
+	struct slap_backend_db	*be;
 	char *url;
 	char *binddn;
 	char *bindpw;
@@ -89,9 +93,9 @@ struct ldapinfo {
 
 struct ldapconn *ldap_back_getconn(struct ldapinfo *li, struct slap_conn *conn,
 	struct slap_op *op);
-int ldap_back_dobind(struct ldapconn *lc, Operation *op);
+int ldap_back_dobind(struct ldapconn *lc, Connection *conn, Operation *op);
 int ldap_back_map_result(int err);
-int ldap_back_op_result(struct ldapconn *lc, Operation *op);
+int ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
 void ldap_back_dn_massage(struct ldapinfo *li, struct berval *dn,
@@ -99,6 +103,7 @@ void ldap_back_dn_massage(struct ldapinfo *li, struct berval *dn,
 
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_dup( void *c1, void *c2 );
+extern void ldap_back_conn_free( void *c );
 
 int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);

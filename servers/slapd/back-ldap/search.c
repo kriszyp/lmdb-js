@@ -48,7 +48,7 @@
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 
-static int ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
+static int ldap_send_entry( Backend *be, Operation *op, Connection *conn,
                              LDAPMessage *e, AttributeName *attrs, int attrsonly );
 
 int
@@ -95,7 +95,7 @@ ldap_back_search(
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( lc, op ) ) {
+	if ( !ldap_back_dobind( lc, conn, op ) ) {
 		return( -1 );
 	}
 
@@ -264,7 +264,7 @@ ldap_back_search(
 			mapped_attrs, attrsonly);
 	if ( msgid == -1 ) {
 fail:;
-		rc = ldap_back_op_result(lc, op);
+		rc = ldap_back_op_result(lc, conn, op);
 		goto finish;
 	}
 
@@ -291,7 +291,7 @@ fail:;
 
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_send_entry(be, op, lc, e, attrs, attrsonly) 
+			if ( ldap_send_entry(be, op, conn, e, attrs, attrsonly) 
 					== LDAP_SUCCESS ) {
 				count++;
 			}
@@ -425,7 +425,7 @@ static int
 ldap_send_entry(
 	Backend *be,
 	Operation *op,
-	struct ldapconn *lc,
+	Connection *conn,
 	LDAPMessage *e,
 	AttributeName *attrs,
 	int attrsonly
@@ -449,7 +449,7 @@ ldap_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->rwinfo, "searchResult",
-				bdn.bv_val, lc->conn, &ent.e_name.bv_val ) ) {
+				bdn.bv_val, conn, &ent.e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( ent.e_name.bv_val == NULL ) {
 			ent.e_name = bdn;
@@ -578,7 +578,7 @@ ldap_send_entry(
 				switch ( rewrite_session( li->rwinfo,
 							"searchResult",
 							bv->bv_val,
-							lc->conn, 
+							conn, 
 							&newval.bv_val )) {
 				case REWRITE_REGEXEC_OK:
 					/* left as is */
@@ -621,7 +621,7 @@ ldap_send_entry(
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
-	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, NULL );
+	send_search_entry( be, conn, op, &ent, attrs, attrsonly, NULL );
 	while (ent.e_attrs) {
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;

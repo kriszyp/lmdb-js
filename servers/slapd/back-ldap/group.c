@@ -33,13 +33,13 @@ ldap_back_group(
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
-	int rc = 1;
+	struct ldapconn *lc;
+	int rc = 1, oc;
 	Attribute   *attr;
 
 	LDAPMessage	*result;
 	char *gattr[2];
 	char *filter = NULL, *ptr;
-	LDAP *ld;
 	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
@@ -170,14 +170,15 @@ ldap_back_group(
 	if (filter == NULL)
 		goto cleanup;
 
-	if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
+	/* Tell getconn this is a privileged op */
+	oc = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
+	lc = ldap_back_getconn(li, conn, op);
+	if ( !lc || !ldap_back_dobind( lc, NULL, op ) ) {
+		op->o_do_not_cache = oc;
 		goto cleanup;
 	}
-
-	if (ldap_bind_s(ld, li->binddn, li->bindpw, LDAP_AUTH_SIMPLE)
-			!= LDAP_SUCCESS) {
-		goto cleanup;
-	}
+	op->o_do_not_cache = oc;
 
 	ptr = lutil_strcopy(filter, "(&(objectclass=");
 	ptr = lutil_strcopy(ptr, group_oc_name.bv_val);
@@ -189,18 +190,15 @@ ldap_back_group(
 
 	gattr[0] = "objectclass";
 	gattr[1] = NULL;
-	if (ldap_search_ext_s(ld, mgr_ndn.bv_val, LDAP_SCOPE_BASE, filter,
+	if (ldap_search_ext_s(lc->ld, mgr_ndn.bv_val, LDAP_SCOPE_BASE, filter,
 		gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 		LDAP_NO_LIMIT, &result) == LDAP_SUCCESS) {
-		if (ldap_first_entry(ld, result) != NULL)
+		if (ldap_first_entry(lc->ld, result) != NULL)
 			rc = 0;
 		ldap_msgfree(result);
 	}
 
 cleanup:;
-	if ( ld != NULL ) {
-		ldap_unbind(ld);
-	}
 	ch_free(filter);
 	if ( mop_ndn.bv_val != op_ndn->bv_val ) {
 		free( mop_ndn.bv_val );

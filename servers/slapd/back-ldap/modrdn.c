@@ -65,7 +65,7 @@ ldap_back_modrdn(
 	struct berval mdn = { 0, NULL }, mnewSuperior = { 0, NULL };
 
 	lc = ldap_back_getconn( li, conn, op );
-	if ( !lc || !ldap_back_dobind(lc, op) ) {
+	if ( !lc || !ldap_back_dobind(lc, conn, op) ) {
 		return( -1 );
 	}
 
@@ -156,5 +156,5 @@ ldap_back_modrdn(
 		free( mnewSuperior.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, op ) );
+	return( ldap_back_op_result( lc, conn, op ) );
 }

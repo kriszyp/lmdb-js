@@ -124,13 +124,14 @@ ldap_back_db_init(
 
 	ldap_back_map_init( &li->at_map, &mapping );
 
+	li->be = be;
 	be->be_private = li;
 
 	return 0;
 }
 
-static void
-conn_free( 
+void
+ldap_back_conn_free( 
 	void *v_lc
 )
 {
@@ -142,6 +143,10 @@ conn_free(
 	if ( lc->cred.bv_val ) {
 		ch_free( lc->cred.bv_val );
 	}
+	if ( lc->local_dn.bv_val ) {
+		ch_free( lc->local_dn.bv_val );
+	}
+	ldap_pvt_thread_mutex_destroy( &lc->lc_mutex );
 	ch_free( lc );
 }
 
@@ -179,7 +184,7 @@ ldap_back_db_destroy(
 			li->bindpw = NULL;
 		}
                 if (li->conntree) {
-			avl_free( li->conntree, conn_free );
+			avl_free( li->conntree, ldap_back_conn_free );
 		}
 #ifdef ENABLE_REWRITE
 		if (li->rwinfo) {
