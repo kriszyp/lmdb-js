@@ -24,6 +24,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/unistd.h>
+#include <ac/errno.h>
 
 #ifdef HAVE_CONSOLE_H
 #include <console.h>
@@ -73,14 +74,19 @@ main( int argc, char **argv )
 		return( EXIT_FAILURE );
 	}
 
-	tag = ber_get_next( sb, &len, ber);
-	if( tag == LBER_ERROR ) {
+	for (;;) {
+		tag = ber_get_next( sb, &len, ber);
+		if( tag != LBER_ERROR ) break;
+
+		if( errno == EWOULDBLOCK ) continue;
+		if( errno == EAGAIN ) continue;
+
 		perror( "ber_get_next" );
 		return( EXIT_FAILURE );
 	}
 
 	printf("decode: message tag 0x%lx and length %ld\n",
-	        (unsigned long) tag, (long) len );
+		(unsigned long) tag, (long) len );
 
 	for( s = argv[1]; *s; s++ ) {
 		char buf[128];

@@ -222,10 +222,10 @@ int slap_bv2ad(
 				} else if ( rc > 0 ||
 					( rc == 0 && (unsigned)optlen > tags[i].bv_len ))
 				{
-					AC_MEMCPY( &tags[i+1], &tags[i],
-						(ntags-i)*sizeof(struct berval) );
-					tags[i].bv_val = opt;
-					tags[i].bv_len = optlen;
+					AC_MEMCPY( &tags[i+2], &tags[i+1],
+						(ntags-i-1)*sizeof(struct berval) );
+					tags[i+1].bv_val = opt;
+					tags[i+1].bv_len = optlen;
 					goto done;
 				}
 			}

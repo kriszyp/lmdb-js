@@ -1,6 +1,12 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.20 Engineering
+OpenLDAP 2.1.21 Engineering
+	Fixed liblber ber_get_next trickle bug (ITS#2490)
+	Fixed ldapsearch -p without -h bug (ITS#2532)
+	Fixed slapd option ordering bug (ITS#2217)
+	Removed lint
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.20 Release
 	Fixed slapd idletimeout behavior (ITS#2374)

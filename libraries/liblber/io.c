@@ -227,7 +227,12 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	}
 
 	while ( towrite > 0 ) {
+#ifdef LBER_TRICKLE
+		sleep(1);
+		rc = ber_int_sb_write( sb, ber->ber_rwptr, 1 );
+#else
 		rc = ber_int_sb_write( sb, ber->ber_rwptr, towrite );
+#endif
 		if (rc<=0) {
 			return -1;
 		}
@@ -500,10 +505,7 @@ ber_get_next(
 	 */
 
 	if (ber->ber_rwptr == NULL) {
-		/* XXYYZ
-		 * dtest does like this assert.
-		 */
-		/* assert( ber->ber_buf == NULL ); */
+		assert( ber->ber_buf == NULL );
 		ber->ber_rwptr = (char *) &ber->ber_len-1;
 		ber->ber_ptr = ber->ber_rwptr;
 		ber->ber_tag = 0;
@@ -515,6 +517,7 @@ ber_get_next(
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
+		errno = 0;
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
 			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
@@ -540,34 +543,51 @@ ber_get_next(
 				}
 				/* Did we run out of bytes? */
 				if ((char *)p == ber->ber_rwptr) {
+#if defined( EWOULDBLOCK )
+					errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+					errno = EAGAIN;
+#endif			
 					return LBER_DEFAULT;
 				}
 			}
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
+		}
 
-			if (sblen == 1) continue;
+		if ( ber->ber_ptr == ber->ber_rwptr ) {
+#if defined( EWOULDBLOCK )
+			errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+			errno = EAGAIN;
+#endif			
+			return LBER_DEFAULT;
 		}
 
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
 			ber_len_t i;
-			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
+			unsigned char *p = (unsigned char *)ber->ber_ptr;
+			int llen = *p++ & 0x7f;
 			if (llen > (int)sizeof(ber_len_t)) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
 			/* Not enough bytes? */
-			if (ber->ber_rwptr - ber->ber_ptr < llen) {
+			if (ber->ber_rwptr - (char *)p < llen) {
+#if defined( EWOULDBLOCK )
+				errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+				errno = EAGAIN;
+#endif			
 				return LBER_DEFAULT;
 			}
-			for (i=0;
-				i<llen && ber->ber_ptr<ber->ber_rwptr;
-				i++,ber->ber_ptr++)
+			for (i=0; i<llen; i++)
 			{
 				tlen <<=8;
-				tlen |= *(unsigned char *)ber->ber_ptr;
+				tlen |= *p++;
 			}
+			ber->ber_ptr = p;
 		} else {
 			tlen = *(unsigned char *)ber->ber_ptr++;
 		}
@@ -645,6 +665,7 @@ ber_get_next(
 		to_go = ber->ber_end - ber->ber_rwptr;
 		assert( to_go > 0 );
 		
+		errno = 0;
 		res = ber_int_sb_read( sb, ber->ber_rwptr, to_go );
 		if (res<=0) return LBER_DEFAULT;
 		ber->ber_rwptr+=res;
