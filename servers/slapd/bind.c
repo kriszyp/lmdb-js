@@ -154,7 +154,7 @@ do_bind(
 	ndn = dn_normalize_case( ch_strdup( cdn ) );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d BIND dn=\"%s\" method=%d\n",
-	    conn->c_connid, op->o_opid, ndn, method, 0 );
+	    op->o_connid, op->o_opid, ndn, method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );

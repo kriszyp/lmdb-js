@@ -74,7 +74,7 @@ do_compare(
 	ndn = dn_normalize_case( ndn );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    conn->c_connid, op->o_opid, ndn, ava.ava_type, 0 );
+	    op->o_connid, op->o_opid, ndn, ava.ava_type, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the

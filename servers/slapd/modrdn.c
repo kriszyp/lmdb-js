@@ -170,7 +170,7 @@ do_modrdn(
 	dn_normalize_case( ndn );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MODRDN dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, ndn, 0, 0 );
+	    op->o_connid, op->o_opid, ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the

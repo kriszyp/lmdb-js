@@ -421,6 +421,7 @@ connection_destroy( Connection *c )
     backend_connection_destroy(c);
 
     c->c_protocol = 0;
+    c->c_connid = -1;
 
     c->c_activitytime = c->c_starttime = 0;
 
@@ -990,6 +991,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_op->o_ndn = dn_normalize_case( ch_strdup( arg->co_op->o_dn ) );
 
 	arg->co_op->o_protocol = conn->c_protocol;
+	arg->co_op->o_connid = conn->c_connid;
 
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL

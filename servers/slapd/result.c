@@ -342,7 +342,7 @@ send_ldap_disconnect(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld DISCONNECT err=%ld tag=%lu text=%s\n",
-		(long) conn->c_connid, (long) op->o_opid,
+		(long) op->o_connid, (long) op->o_opid,
 		(long) tag, (long) err, text );
 }
 
@@ -363,7 +363,9 @@ send_ldap_result(
 
 	assert( !LDAP_API_ERROR( err ) );
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_result %d:%s:%s\n",
+	Debug( LDAP_DEBUG_TRACE, "send_ldap_result: conn=%ld op=%ld p=%d\n",
+		(long) op->o_connid, (long) op->o_opid, op->o_protocol );
+	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: %d:%s:%s\n",
 		err, matched ?  matched : "", text ? text : "" );
 
 	assert( err != LDAP_PARTIAL_RESULTS );
@@ -402,7 +404,7 @@ send_ldap_result(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld RESULT err=%ld tag=%lu text=%s\n",
-		(long) conn->c_connid, (long) op->o_opid,
+		(long) op->o_connid, (long) op->o_opid,
 		(long) err, (long) tag, text );
 
 	if( tmp != NULL ) {
@@ -471,7 +473,7 @@ send_search_result(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld SEARCH RESULT err=%ld tag=%lu text=%s\n",
-		(long) conn->c_connid, (long) op->o_opid,
+		(long) op->o_connid, (long) op->o_opid,
 		(long) err, (long) tag, text );
 
 }

@@ -153,7 +153,7 @@ do_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%d op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    conn->c_connid, op->o_opid, base, scope, fstr );
+	    op->o_connid, op->o_opid, base, scope, fstr );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )

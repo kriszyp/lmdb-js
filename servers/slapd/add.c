@@ -117,7 +117,7 @@ do_add( Connection *conn, Operation *op )
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, e->e_ndn, 0, 0 );
+	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the

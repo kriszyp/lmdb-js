@@ -549,7 +549,7 @@ typedef struct slap_op {
 
 	LDAPControl	**o_ctrls;	 /* controls */
 
-/*	 long	o_connid;	*//* id of conn initiating this op  */
+	unsigned long	o_connid; /* id of conn initiating this op  */
 
 #ifdef LDAP_CONNECTIONLESS
 	int		o_cldap;	/* != 0 if this came in via CLDAP */
