@@ -3,14 +3,14 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: The Big Picture - Configuration Choices
 
-This section gives a brief overview of various LDAP directory
-configurations, and how your stand-alone LDAP server {{I:slapd}}
+This section gives a brief overview of various {{TERM:LDAP}} directory
+configurations, and how your stand-alone LDAP server {{slapd}}(8)
 fits in with the rest of the world.
 
 
 H2: Local Directory Service
 
-In this configuration, you run a {{I:slapd}} which provides directory
+In this configuration, you run a {{slapd}} which provides directory
 service for your local domain only. It does not interact with other
 directory servers in any way. This configuration is shown in Figure 3.1.
 
