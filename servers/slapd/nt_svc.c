@@ -18,7 +18,27 @@ void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
 int srv_install( char* service, char* filename );
 int srv_remove ( char* service, char* filename );
 
-int main( DWORD argc, LPTSTR *argv )
+static void stubs()
+{
+    ldap_add_s(NULL, NULL, NULL);
+    ldap_bind_s(NULL, NULL, NULL, 0);
+    ldap_delete_s(NULL, NULL);
+    ldap_first_attribute(NULL, NULL, NULL);
+    ldap_first_entry(NULL, NULL);
+    ldap_get_dn(NULL, NULL);
+    ldap_get_option(NULL, 0, NULL);
+    ldap_get_values_len(NULL, NULL, NULL);
+    ldap_init(NULL, 0);
+    ldap_modify_s(NULL, NULL, NULL);
+    ldap_modrdn_s(NULL, NULL, NULL);
+    ldap_msgfree(NULL);
+    ldap_next_attribute(NULL, NULL, NULL);
+    ldap_result(NULL, 0, 0, NULL, NULL);
+    ldap_search(NULL, NULL, 0, NULL, NULL, 0);
+    ldap_unbind(NULL);
+}
+
+int main( int argc, LPTSTR *argv )
 {
 	int		length;
 	char	filename[MAX_PATH], *fname_start;
