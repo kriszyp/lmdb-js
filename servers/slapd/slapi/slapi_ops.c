@@ -548,7 +548,7 @@ slapi_delete_internal(
 		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL; 
 	}
 
-	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
 	if ( op->o_bd == NULL ) {
 		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -617,7 +617,7 @@ slapi_int_add_entry_locked(
 	pPB = (Slapi_PBlock *)op->o_pb;
 	op->o_ctrls = controls;
 
-	op->o_bd = select_backend( &((*e)->e_nname), manageDsaIt, 0 );
+	op->o_bd = select_backend( &((*e)->e_nname), manageDsaIt, 1 );
 	if ( op->o_bd == NULL ) {
 		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -787,7 +787,7 @@ slapi_modrdn_internal(
 		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
-	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
 	if ( op->o_bd == NULL ) {
 		rs.sr_err =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -927,7 +927,7 @@ slapi_modify_internal(
         	manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
-	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
 	if ( op->o_bd == NULL ) {
 		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -1193,7 +1193,7 @@ slapi_search_internal(
 		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
 	}
 
-	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
 	if ( op->o_bd == NULL ) {
 		if ( manageDsaIt > SLAP_CONTROL_NONE  ) {
 			rs.sr_err = LDAP_NO_SUCH_OBJECT;

@@ -154,6 +154,45 @@ glue_op_response ( Operation *op, SlapReply *rs )
 	return 0;
 }
 
+enum glue_which {
+	op_modify = 0,
+	op_modrdn,
+	op_add,
+	op_delete
+};
+
+static int
+glue_op_func ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
+	BackendDB *b0 = op->o_bd;
+	BackendInfo *bi0 = op->o_bd->bd_info;
+	BI_op_modify **func;
+	enum glue_which which;
+	int rc;
+
+	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	b0->bd_info = on->on_info->oi_orig;
+
+	switch(op->o_tag) {
+	case LDAP_REQ_ADD: which = op_add; break;
+	case LDAP_REQ_DELETE: which = op_delete; break;
+	case LDAP_REQ_MODIFY: which = op_modify; break;
+	case LDAP_REQ_MODRDN: which = op_modrdn; break;
+	}
+
+	func = &op->o_bd->bd_info->bi_op_modify;
+	if ( func[which] )
+		rc = func[which]( op, rs );
+	else
+		rc = SLAP_CB_CONTINUE;
+
+	op->o_bd = b0;
+	op->o_bd->bd_info = bi0;
+	return rc;
+}
+
 static int
 glue_op_search ( Operation *op, SlapReply *rs )
 {
@@ -188,6 +227,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
 #endif
 
+#if 0
 		if ( op->o_sync ) {
 			if (op->o_bd && op->o_bd->be_search) {
 				rs->sr_err = op->o_bd->be_search( op, rs );
@@ -197,6 +237,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			}
 			return rs->sr_err;
 		}
+#endif
 
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
@@ -679,6 +720,10 @@ glue_init()
 	glue.on_bi.bi_db_destroy = glue_db_destroy;
 
 	glue.on_bi.bi_op_search = glue_op_search;
+	glue.on_bi.bi_op_modify = glue_op_func;
+	glue.on_bi.bi_op_modrdn = glue_op_func;
+	glue.on_bi.bi_op_add = glue_op_func;
+	glue.on_bi.bi_op_delete = glue_op_func;
 
 	return overlay_register( &glue );
 }

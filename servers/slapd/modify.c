@@ -297,7 +297,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );

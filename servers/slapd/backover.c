@@ -256,12 +256,15 @@ over_op_func(
 	slap_overinfo *oi = op->o_bd->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
 	BI_op_bind **func;
-	BackendDB *be = op->o_bd, db = *op->o_bd;
+	BackendDB *be = op->o_bd, db;
 	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
 
-	db.be_flags |= SLAP_DBFLAG_OVERLAY;
-	op->o_bd = &db;
+ 	if ( !SLAP_ISOVERLAY( op->o_bd )) {
+ 		db = *op->o_bd;
+		db.be_flags |= SLAP_DBFLAG_OVERLAY;
+		op->o_bd = &db;
+	}
 	cb.sc_next = op->o_callback;
 	cb.sc_private = oi;
 	op->o_callback = &cb;

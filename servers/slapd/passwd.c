@@ -81,7 +81,7 @@ int passwd_extop(
 			rc = rs->sr_err;
 			goto error_return;
 		}
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
 
 	} else {
 		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
