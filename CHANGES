@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.11 Engineering
+OpenLDAP 2.2.11 Release
 	Fixed slapd undefined objectclass bug (ITS#3097)
 	Fixed slapd acl dn="" bug
 	Updated slapd limits handling
