@@ -417,6 +417,28 @@ charray_free( char **array )
 	free( (char *) array );
 }
 
+/*
+ * Now come the parsers.  There is one parser for each entity type:
+ * objectclasses, attributetypes, etc.
+ *
+ * Each of them is written as a recursive-descent parser, except that
+ * none of them is really recursive.  But the idea is kept: there
+ * is one routine per non-terminal that eithers gobbles lexical tokens
+ * or calls lower-level routines, etc.
+ *
+ * The scanner is implemented in the routine get_token.  Actually,
+ * get_token is more than a scanner and will return tokens that are
+ * in fact non-terminals in the grammar.  So you can see the whole
+ * approach as the combination of a low-level bottom-up recognizer
+ * combined with a scanner and a number of top-down parsers.  Or just
+ * consider that the real grammars recognized by the parsers are not
+ * those of the standards.  As a matter of fact, our parsers are more
+ * liberal than the spec when there is no ambiguity.
+ *
+ * The difference is pretty academic (modulo bugs or incorrect
+ * interpretation of the specs).
+ */
+
 #define TK_NOENDQUOTE	-2
 #define TK_OUTOFMEM	-1
 #define TK_EOS		0
@@ -529,7 +551,7 @@ parse_numericoid(char **sp, int *code)
 	while (**sp) {
 		if ( !isdigit(**sp) ) {
 			/* Initial char is not a digit or char after dot is not a digit */
-			*code = SCHEMA_ERR_NODIGIT;
+			*code = LDAP_SCHERR_NODIGIT;
 			return NULL;
 		}
 		(*sp)++;
@@ -544,7 +566,7 @@ parse_numericoid(char **sp, int *code)
 	len = *sp - start;
 	res = malloc(len+1);
 	if (!res) {
-	  *code = SCHEMA_ERR_OUTOFMEM;
+	  *code = LDAP_SCHERR_OUTOFMEM;
 	  return(NULL);
 	}
 	strncpy(res,start,len);
@@ -570,7 +592,7 @@ parse_qdescrs(char **sp, int *code)
 		size = 3;
 		res = calloc(3,sizeof(char *));
 		if ( !res ) {
-			*code = SCHEMA_ERR_OUTOFMEM;
+			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
 		}
 		pos = 0;
@@ -585,7 +607,7 @@ parse_qdescrs(char **sp, int *code)
 					res1 = realloc(res,size*sizeof(char *));
 					if ( !res1 ) {
 						charray_free(res);
-						*code = SCHEMA_ERR_OUTOFMEM;
+						*code = LDAP_SCHERR_OUTOFMEM;
 						return(NULL);
 					}
 					res = res1;
@@ -595,7 +617,7 @@ parse_qdescrs(char **sp, int *code)
 				parse_whsp(sp);
 			} else {
 				charray_free(res);
-				*code = SCHEMA_ERR_UNEXPTOKEN;
+				*code = LDAP_SCHERR_UNEXPTOKEN;
 				return(NULL);
 			}
 		}
@@ -605,7 +627,7 @@ parse_qdescrs(char **sp, int *code)
 	} else if ( kind == TK_QDESCR ) {
 		res = calloc(2,sizeof(char *));
 		if ( !res ) {
-			*code = SCHEMA_ERR_OUTOFMEM;
+			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
 		}
 		res[0] = sval;
@@ -613,7 +635,7 @@ parse_qdescrs(char **sp, int *code)
 		parse_whsp(sp);
 		return res;
 	} else {
-		*code = SCHEMA_ERR_BADNAME;
+		*code = LDAP_SCHERR_BADNAME;
 		return NULL;
 	}
 }
@@ -628,7 +650,7 @@ parse_woid(char **sp, int *code)
 	parse_whsp(sp);
 	kind = get_token(sp, &sval);
 	if ( kind != TK_BAREWORD ) {
-		*code = SCHEMA_ERR_UNEXPTOKEN;
+		*code = LDAP_SCHERR_UNEXPTOKEN;
 		return NULL;
 	}
 	parse_whsp(sp);
@@ -645,7 +667,7 @@ parse_noidlen(char **sp, int *code, int *len)
 	*len = 0;
 	kind = get_token(sp, &sval);
 	if ( kind != TK_BAREWORD ) {
-		*code = SCHEMA_ERR_UNEXPTOKEN;
+		*code = LDAP_SCHERR_UNEXPTOKEN;
 		return NULL;
 	}
 	if ( **sp == '{' ) {
@@ -655,7 +677,7 @@ parse_noidlen(char **sp, int *code, int *len)
 			(*sp)++;
 		(*sp)++;
 		if ( **sp != '}' ) {
-			*code = SCHEMA_ERR_UNEXPTOKEN;
+			*code = LDAP_SCHERR_UNEXPTOKEN;
 			ldap_memfree(sval);
 			return NULL;
 		}
@@ -688,7 +710,7 @@ parse_oids(char **sp, int *code)
 		size = 3;
 		res = calloc(3,sizeof(char *));
 		if ( !res ) {
-			*code = SCHEMA_ERR_OUTOFMEM;
+			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
 		}
 		pos = 0;
@@ -698,7 +720,7 @@ parse_oids(char **sp, int *code)
 			res[pos] = sval;
 			pos++;
 		} else {
-			*code = SCHEMA_ERR_UNEXPTOKEN;
+			*code = LDAP_SCHERR_UNEXPTOKEN;
 			charray_free(res);
 			return NULL;
 		}
@@ -716,7 +738,7 @@ parse_oids(char **sp, int *code)
 						res1 = realloc(res,size*sizeof(char *));
 						if ( !res1 ) {
 						  charray_free(res);
-						  *code = SCHEMA_ERR_OUTOFMEM;
+						  *code = LDAP_SCHERR_OUTOFMEM;
 						  return(NULL);
 						}
 						res = res1;
@@ -724,13 +746,13 @@ parse_oids(char **sp, int *code)
 					res[pos] = sval;
 					pos++;
 				} else {
-					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*code = LDAP_SCHERR_UNEXPTOKEN;
 					charray_free(res);
 					return NULL;
 				}
 				parse_whsp(sp);
 			} else {
-				*code = SCHEMA_ERR_UNEXPTOKEN;
+				*code = LDAP_SCHERR_UNEXPTOKEN;
 				charray_free(res);
 				return NULL;
 			}
@@ -741,7 +763,7 @@ parse_oids(char **sp, int *code)
 	} else if ( kind == TK_BAREWORD ) {
 		res = calloc(2,sizeof(char *));
 		if ( !res ) {
-			*code = SCHEMA_ERR_OUTOFMEM;
+			*code = LDAP_SCHERR_OUTOFMEM;
 			return NULL;
 		}
 		res[0] = sval;
@@ -749,7 +771,7 @@ parse_oids(char **sp, int *code)
 		parse_whsp(sp);
 		return res;
 	} else {
-		*code = SCHEMA_ERR_BADNAME;
+		*code = LDAP_SCHERR_BADNAME;
 		return NULL;
 	}
 }
@@ -792,13 +814,13 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	at = calloc(1,sizeof(LDAP_ATTRIBUTE_TYPE));
 
 	if ( !at ) {
-		*code = SCHEMA_ERR_OUTOFMEM;
+		*code = LDAP_SCHERR_OUTOFMEM;
 		return NULL;
 	}
 
 	kind = get_token(&ss,&sval);
 	if ( kind != TK_LEFTPAREN ) {
-		*code = SCHEMA_ERR_NOLEFTPAREN;
+		*code = LDAP_SCHERR_NOLEFTPAREN;
 		free_at(at);
 		return NULL;
 	}
@@ -820,7 +842,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 		kind = get_token(&ss,&sval);
 		switch (kind) {
 		case TK_EOS:
-			*code = SCHEMA_ERR_NORIGHTPAREN;
+			*code = LDAP_SCHERR_NORIGHTPAREN;
 			*errp = ss;
 			free_at(at);
 			return NULL;
@@ -829,7 +851,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 		case TK_BAREWORD:
 			if ( !strcmp(sval,"NAME") ) {
 				if ( seen_name ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -837,15 +859,15 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				seen_name = 1;
 				at->at_names = parse_qdescrs(&ss,code);
 				if ( !at->at_names ) {
-					if ( *code != SCHEMA_ERR_OUTOFMEM )
-						*code = SCHEMA_ERR_BADNAME;
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
 					*errp = ss;
 					free_at(at);
 					return NULL;
 				}
 			} else if ( !strcmp(sval,"DESC") ) {
 				if ( seen_desc ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -854,7 +876,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 				kind = get_token(&ss,&sval);
 				if ( kind != TK_QDSTRING ) {
-					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
 					free_at(at);
 					return NULL;
@@ -863,7 +885,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"OBSOLETE") ) {
 				if ( seen_obsolete ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -873,7 +895,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SUP") ) {
 				if ( seen_sup ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -887,7 +909,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"EQUALITY") ) {
 				if ( seen_equality ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -901,7 +923,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"ORDERING") ) {
 				if ( seen_ordering ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -915,7 +937,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"SUBSTR") ) {
 				if ( seen_substr ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -929,7 +951,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"SYNTAX") ) {
 				if ( seen_syntax ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -944,7 +966,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"SINGLE-VALUE") ) {
 				if ( at->at_single_value ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -953,7 +975,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"COLLECTIVE") ) {
 				if ( at->at_collective ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -962,7 +984,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"NO-USER-MODIFICATION") ) {
 				if ( at->at_no_user_mod ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -971,7 +993,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"USAGE") ) {
 				if ( seen_usage ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_at(at);
 					return(NULL);
@@ -980,7 +1002,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 				kind = get_token(&ss,&sval);
 				if ( kind != TK_BAREWORD ) {
-					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
 					free_at(at);
 					return NULL;
@@ -994,20 +1016,20 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 				else if ( !strcasecmp(sval,"dSAOperation") )
 					at->at_usage = 3;
 				else {
-					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
 					free_at(at);
 					return NULL;
 				}
 			} else {
-				*code = SCHEMA_ERR_UNEXPTOKEN;
+				*code = LDAP_SCHERR_UNEXPTOKEN;
 				*errp = ss;
 				free_at(at);
 				return NULL;
 			}
 			break;
 		default:
-			*code = SCHEMA_ERR_UNEXPTOKEN;
+			*code = LDAP_SCHERR_UNEXPTOKEN;
 			*errp = ss;
 			free_at(at);
 			return NULL;
@@ -1046,13 +1068,13 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	oc = calloc(1,sizeof(LDAP_OBJECT_CLASS));
 
 	if ( !oc ) {
-		*code = SCHEMA_ERR_OUTOFMEM;
+		*code = LDAP_SCHERR_OUTOFMEM;
 		return NULL;
 	}
 
 	kind = get_token(&ss,&sval);
 	if ( kind != TK_LEFTPAREN ) {
-		*code = SCHEMA_ERR_NOLEFTPAREN;
+		*code = LDAP_SCHERR_NOLEFTPAREN;
 		free_oc(oc);
 		return NULL;
 	}
@@ -1074,7 +1096,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 		kind = get_token(&ss,&sval);
 		switch (kind) {
 		case TK_EOS:
-			*code = SCHEMA_ERR_NORIGHTPAREN;
+			*code = LDAP_SCHERR_NORIGHTPAREN;
 			*errp = ss;
 			free_oc(oc);
 			return NULL;
@@ -1083,7 +1105,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 		case TK_BAREWORD:
 			if ( !strcmp(sval,"NAME") ) {
 				if ( seen_name ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1091,15 +1113,15 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				seen_name = 1;
 				oc->oc_names = parse_qdescrs(&ss,code);
 				if ( !oc->oc_names ) {
-					if ( *code != SCHEMA_ERR_OUTOFMEM )
-						*code = SCHEMA_ERR_BADNAME;
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
 					*errp = ss;
 					free_oc(oc);
 					return NULL;
 				}
 			} else if ( !strcmp(sval,"DESC") ) {
 				if ( seen_desc ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1108,7 +1130,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 				kind = get_token(&ss,&sval);
 				if ( kind != TK_QDSTRING ) {
-					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
 					free_oc(oc);
 					return NULL;
@@ -1117,7 +1139,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"OBSOLETE") ) {
 				if ( seen_obsolete ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1127,7 +1149,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SUP") ) {
 				if ( seen_sup ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1144,7 +1166,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				}
 			} else if ( !strcmp(sval,"ABSTRACT") ) {
 				if ( seen_kind ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1154,7 +1176,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"STRUCTURAL") ) {
 				if ( seen_kind ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1164,7 +1186,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"AUXILIARY") ) {
 				if ( seen_kind ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1174,7 +1196,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"MUST") ) {
 				if ( seen_must ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1189,7 +1211,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"MAY") ) {
 				if ( seen_may ) {
-					*code = SCHEMA_ERR_DUPOPT;
+					*code = LDAP_SCHERR_DUPOPT;
 					*errp = ss;
 					free_oc(oc);
 					return(NULL);
@@ -1203,14 +1225,14 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				}
 				parse_whsp(&ss);
 			} else {
-				*code = SCHEMA_ERR_UNEXPTOKEN;
+				*code = LDAP_SCHERR_UNEXPTOKEN;
 				*errp = ss;
 				free_oc(oc);
 				return NULL;
 			}
 			break;
 		default:
-			*code = SCHEMA_ERR_UNEXPTOKEN;
+			*code = LDAP_SCHERR_UNEXPTOKEN;
 			*errp = ss;
 			free_oc(oc);
 			return NULL;

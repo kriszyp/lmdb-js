@@ -21,15 +21,15 @@ LDAP_BEGIN_DECL
 
 /* Codes for parsing errors */
 
-#define SCHEMA_ERR_OUTOFMEM		1
-#define SCHEMA_ERR_UNEXPTOKEN		2
-#define SCHEMA_ERR_NOLEFTPAREN		3
-#define SCHEMA_ERR_NORIGHTPAREN		4
-#define SCHEMA_ERR_NODIGIT		5
-#define SCHEMA_ERR_BADNAME		6
-#define SCHEMA_ERR_BADDESC		7
-#define SCHEMA_ERR_BADSUP		8
-#define SCHEMA_ERR_DUPOPT		9
+#define LDAP_SCHERR_OUTOFMEM		1
+#define LDAP_SCHERR_UNEXPTOKEN		2
+#define LDAP_SCHERR_NOLEFTPAREN		3
+#define LDAP_SCHERR_NORIGHTPAREN	4
+#define LDAP_SCHERR_NODIGIT		5
+#define LDAP_SCHERR_BADNAME		6
+#define LDAP_SCHERR_BADDESC		7
+#define LDAP_SCHERR_BADSUP		8
+#define LDAP_SCHERR_DUPOPT		9
 
 typedef struct ldap_attributetype {
 	char *at_oid;		/* REQUIRED */
@@ -57,11 +57,11 @@ typedef struct ldap_objectclass {
 	char **oc_sup_oids;	/* OPTIONAL */
 	int  oc_kind;		/* 0=ABSTRACT, 1=STRUCTURAL, 2=AUXILIARY */
 	char **oc_at_oids_must;	/* OPTIONAL */
-	char **oc_at_oids_may;	/* MAY */
+	char **oc_at_oids_may;	/* OPTIONAL */
 } LDAP_OBJECT_CLASS;
 
 LDAP_F(LDAP_OBJECT_CLASS *) ldap_str2objectclass LDAP_P(( char * s, int * code, char ** errp ));
-LDAP_F(LDAP_ATTRIBUTE_TYPE) ldap_str2attributetype LDAP_P(( char * sval, char ** errp ));
+LDAP_F(LDAP_ATTRIBUTE_TYPE *) ldap_str2attributetype LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F( char *) ldap_objectclass2str LDAP_P(( LDAP_OBJECT_CLASS * oc ));
 LDAP_F( char *) ldap_attributetype2str LDAP_P(( LDAP_ATTRIBUTE_TYPE * at ));
 
