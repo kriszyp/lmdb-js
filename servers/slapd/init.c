@@ -78,37 +78,44 @@ slap_init( int mode, char *name )
 
 	slapMode = mode;
 
-	if( ( slapMode != SLAP_SERVER_MODE ) && ( slapMode != SLAP_TOOL_MODE ) ) {
-		Debug( LDAP_DEBUG_ANY,
-	   	 "%s init: undefined mode (%d).\n",
-	   	 name, mode, 0 );
-		return 1;
-	}
+	switch ( slapMode ) {
 
-	Debug( LDAP_DEBUG_TRACE,
-		"%s init: initiated %s.\n",
-		name,
-		mode == SLAP_SERVER_MODE ? "server" : "tool",
-		0 );
-
-	slap_name = name;
-	
-	(void) ldap_pvt_thread_initialize();
-
-	ldap_pvt_thread_mutex_init( &active_threads_mutex );
-	ldap_pvt_thread_cond_init( &active_threads_cond );
-
-	ldap_pvt_thread_mutex_init( &new_conn_mutex );
-	ldap_pvt_thread_mutex_init( &currenttime_mutex );
-	ldap_pvt_thread_mutex_init( &entry2str_mutex );
-	ldap_pvt_thread_mutex_init( &replog_mutex );
-	ldap_pvt_thread_mutex_init( &ops_mutex );
-	ldap_pvt_thread_mutex_init( &num_sent_mutex );
-#ifdef SLAPD_CRYPT
-	ldap_pvt_thread_mutex_init( &crypt_mutex );
+		case SLAP_SERVER_MODE:
+		case SLAP_TOOL_MODE:
+#ifdef SLAPD_BDB2
+		case SLAP_TIMEDSERVER_MODE:
 #endif
 
-	rc = backend_init();
+			Debug( LDAP_DEBUG_TRACE,
+				"%s init: initiated %s.\n",
+				name, mode == SLAP_TOOL_MODE ? "tool" : "server", 0 );
+
+			slap_name = name;
+	
+			(void) ldap_pvt_thread_initialize();
+
+			ldap_pvt_thread_mutex_init( &active_threads_mutex );
+			ldap_pvt_thread_cond_init( &active_threads_cond );
+
+			ldap_pvt_thread_mutex_init( &new_conn_mutex );
+			ldap_pvt_thread_mutex_init( &currenttime_mutex );
+			ldap_pvt_thread_mutex_init( &entry2str_mutex );
+			ldap_pvt_thread_mutex_init( &replog_mutex );
+			ldap_pvt_thread_mutex_init( &ops_mutex );
+			ldap_pvt_thread_mutex_init( &num_sent_mutex );
+#ifdef SLAPD_CRYPT
+			ldap_pvt_thread_mutex_init( &crypt_mutex );
+#endif
+
+			rc = backend_init();
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	   	 		"%s init: undefined mode (%d).\n", name, mode, 0 );
+			rc = 1;
+			break;
+	}
 
 	return rc;
 }

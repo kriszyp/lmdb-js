@@ -25,6 +25,9 @@ bdb2i_back_init_private(
 	bt->lty_mpsize = DEFAULT_DBCACHE_SIZE;
 	bt->lty_dbenv  = &ldbm_Env;
 
+	if ( slapMode == SLAP_TIMEDSERVER_MODE )
+		bt->lty_betiming = 1;
+
 	bi->bi_private = bt;
 
 	return 0;
@@ -192,23 +195,13 @@ bdb2_back_db_init(
     BackendDB	*be
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_db_init_internal( be );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "DB-INIT elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "DB-INIT", NULL, NULL );
 
 	return( ret );
 }

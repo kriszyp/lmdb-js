@@ -201,14 +201,12 @@ bdb2_back_modrdn(
     int		deleteoldrdn
 )
 {
-	DB_LOCK  lock;
+	DB_LOCK         lock;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct timeval  time1;
+	int             ret;
 
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
-
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	if ( bdb2i_enter_backend_w( get_dbenv( be ), &lock ) != 0 ) {
 
@@ -221,16 +219,7 @@ bdb2_back_modrdn(
 					newrdn, deleteoldrdn );
 
 	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "conn=%d op=%d MODRDN elapsed=%s\n",
-				conn->c_connid, op->o_opid, elapsed_time );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "MODRDN", conn, op );
 
 	return( ret );
 }

@@ -155,6 +155,9 @@ int bdb2i_back_db_shutdown LDAP_P(( BackendDB *be ));
 
 char *bdb2i_elapsed LDAP_P(( struct timeval firsttime,
  struct timeval secondtime ));
+void bdb2i_start_timing LDAP_P(( BackendInfo *bi, struct timeval *time1 ));
+void bdb2i_stop_timing LDAP_P(( BackendInfo *bi, struct timeval time1,
+  char *func, Connection *conn, Operation *op ));
 
 /*
  * porter.c

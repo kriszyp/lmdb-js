@@ -134,14 +134,12 @@ bdb2_back_group(
 	char	*groupattrName
 )
 {
-	DB_LOCK  lock;
+	DB_LOCK         lock;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct timeval  time1;
+	int             ret;
 
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
-
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	if ( bdb2i_enter_backend_r( get_dbenv( be ), &lock ) != 0 ) {
 
@@ -153,16 +151,7 @@ bdb2_back_group(
 					objectclassValue, groupattrName );
 
 	(void) bdb2i_leave_backend( get_dbenv( be ), lock );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "GRP elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "GRP", NULL, NULL );
 
 	return( ret );
 }

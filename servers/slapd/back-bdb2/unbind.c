@@ -26,23 +26,13 @@ bdb2_back_unbind(
 	Operation   *op
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_unbind_internal( be, conn, op );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "conn=%d op=%d UNBIND elapsed=%s\n",
-				conn->c_connid, op->o_opid, elapsed_time );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "UNBIND", conn, op );
 
 	return( ret );
 }

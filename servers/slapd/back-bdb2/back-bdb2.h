@@ -160,12 +160,15 @@ typedef  struct _bdb2_txn_head {
 struct ldbtype {
 	char			*lty_dbhome;
 	size_t			lty_mpsize;
+	int				lty_betiming;
 
 	/*  XXX do we need a private DB_ENV for all DB2 backend types ?  */
 	DB_ENV			*lty_dbenv;
 };
 
 #define get_dbenv(be) ((struct ldbtype *) (be)->bd_info->bi_private)->lty_dbenv
+#define with_timing(bi) (((struct ldbtype *) \
+			(bi)->bi_private)->lty_betiming == 1)
 
 
 /*  the private description of a database  */

@@ -27,27 +27,18 @@ bdb2i_back_abandon_internal(
 int
 bdb2_back_abandon(
 	BackendDB    *be,
-	Connection *c,
-	Operation  *o,
+	Connection *conn,
+	Operation  *op,
 	int        msgid )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
-	ret = bdb2i_back_abandon_internal( be, c, o, msgid );
+	ret = bdb2i_back_abandon_internal( be, conn, op, msgid );
 
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "ABND elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "ABND", conn, op );
 
 	return( ret );
 }

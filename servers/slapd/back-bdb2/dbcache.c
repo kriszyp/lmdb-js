@@ -28,74 +28,91 @@ bdb2i_cache_open(
 )
 {
 	/*  all files are open, so return handle from file cache  */
-	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) ) {
-		struct	ldbminfo	*li = (struct ldbminfo *) be->be_private;
-		char	buf[MAXPATHLEN];
+	switch ( slapMode ) {
 
-		/*  use short name  */
-		sprintf( buf, "%s%s", name, suffix );
-		return( bdb2i_get_db_file_cache( li, buf ));
+		case SLAP_SERVER_MODE:
+		case SLAP_TIMEDSERVER_MODE:
+		case SLAP_TOOL_MODE:
+			{
+				struct	ldbminfo	*li = (struct ldbminfo *) be->be_private;
+				char	buf[MAXPATHLEN];
 
-	}
+				/*  use short name  */
+				sprintf( buf, "%s%s", name, suffix );
+				return( bdb2i_get_db_file_cache( li, buf ));
 
-	/*  if not SERVER or TOOL, who else would ask?
-		NO ONE, so return error  */
+			}
+			break;
 
-	Debug( LDAP_DEBUG_ANY,
+		default:
+			/*  if not SERVER or TOOL, who else would ask?
+				NO ONE, so return error  */
+
+			Debug( LDAP_DEBUG_ANY,
 	"bdb2i_cache_open: database user (%d) unknown -- cannot open \"%s%s\".\n",
-			slapMode, name, suffix );
-
-	return( NULL );
+					slapMode, name, suffix );
+			return( NULL );
+	}
 }
 
 void
 bdb2i_cache_close( BackendDB *be, struct dbcache *db )
 {
 	/*  all files stay open until SERVER or TOOL shut down  */
-	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+	switch ( slapMode ) {
+
+		case SLAP_SERVER_MODE:
+		case SLAP_TIMEDSERVER_MODE:
+		case SLAP_TOOL_MODE:
 			return;
 
-	/*  if unknown user, complain  */
-	Debug( LDAP_DEBUG_ANY,
-		"bdb2i_cache_close: database user (%d) unknown -- ignored.\n",
-		slapMode, 0, 0 );
-
-	return;
+		default:
+			/*  if unknown user, complain  */
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_cache_close: database user (%d) unknown -- ignored.\n",
+				slapMode, 0, 0 );
+			return;
+	}
 }
 
 void
 bdb2i_cache_really_close( BackendDB *be, struct dbcache *db )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-
 	/*  all files stay open until SERVER or TOOL shut down  */
-	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+	switch ( slapMode ) {
+
+		case SLAP_SERVER_MODE:
+		case SLAP_TIMEDSERVER_MODE:
+		case SLAP_TOOL_MODE:
 			return;
 
-	/*  if unknown user, complain  */
-	Debug( LDAP_DEBUG_ANY,
+		default:
+			/*  if unknown user, complain  */
+			Debug( LDAP_DEBUG_ANY,
 		"bdb2i_cache_really_close: database user (%d) unknown -- ignored.\n",
-		slapMode, 0, 0 );
-
-	return;
+				slapMode, 0, 0 );
+			return;
+	}
 }
 
 void
 bdb2i_cache_flush_all( BackendDB *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	int		i;
-
 	/*  if SERVER or TOOL, syncing is done by TP, or during shutdown  */
-	if ( ( slapMode == SLAP_SERVER_MODE ) || ( slapMode == SLAP_TOOL_MODE ) )
+	switch ( slapMode ) {
+
+		case SLAP_SERVER_MODE:
+		case SLAP_TIMEDSERVER_MODE:
+		case SLAP_TOOL_MODE:
 			return;
 
-	/*  if unknown user, complain  */
-	Debug( LDAP_DEBUG_ANY,
-		"bdb2i_cache_really_close: database user (%d) unknown -- ignored.\n",
-		slapMode, 0, 0 );
-
-	return;
+		default:
+			/*  if unknown user, complain  */
+			Debug( LDAP_DEBUG_ANY,
+		"bdb2i_cache_flush_all: database user (%d) unknown -- ignored.\n",
+				slapMode, 0, 0 );
+			return;
+	}
 }
 
 Datum

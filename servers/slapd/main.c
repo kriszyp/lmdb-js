@@ -69,13 +69,18 @@ main( int argc, char **argv )
 #endif
 	char		*configfile;
 	char        *serverName;
+	int         serverMode = SLAP_SERVER_MODE;
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
 	port = LDAP_PORT;
 	g_argc = argc;
 	g_argv = argv;
 
+#ifdef SLAPD_BDB2
+	while ( (i = getopt( argc, argv, "d:f:ip:s:ut" )) != EOF ) {
+#else
 	while ( (i = getopt( argc, argv, "d:f:ip:s:u" )) != EOF ) {
+#endif
 		switch ( i ) {
 #ifdef LDAP_DEBUG
 		case 'd':	/* turn on debugging */
@@ -148,6 +153,12 @@ main( int argc, char **argv )
 			udp = 1;
 			break;
 
+#ifdef SLAPD_BDB2
+		case 't':  /* timed server */
+			serverMode = SLAP_TIMEDSERVER_MODE;
+			break;
+#endif
+
 		default:
 			usage( argv[0] );
 			exit( 1 );
@@ -172,11 +183,7 @@ main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-#ifdef SLAPD_BDB2
-	bdb2i_do_timing = 1;
-#endif
-
-	if ( slap_init( SLAP_SERVER_MODE, serverName ) != 0 ) {
+	if ( slap_init( serverMode, serverName ) != 0 ) {
 		rc = 1;
 		goto destroy;
 	}

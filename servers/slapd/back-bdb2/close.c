@@ -29,23 +29,14 @@ bdb2i_back_db_close_internal( BackendDB *be )
 int
 bdb2_back_db_close( BackendDB *be )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_db_close_internal( be );
 
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "CLOSE elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "CLOSE", NULL, NULL );
 
 	return( ret );
 }

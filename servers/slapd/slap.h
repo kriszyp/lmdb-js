@@ -22,10 +22,6 @@
 #define ldap_debug slap_debug
 #endif
 
-#ifdef SLAPD_BDB2
-extern int bdb2i_do_timing;
-#endif
-
 
 #include "ldap_log.h"
 
@@ -234,6 +230,9 @@ extern int			slapMode;
 #define SLAP_UNDEFINED_MODE	0
 #define SLAP_SERVER_MODE	1
 #define SLAP_TOOL_MODE		2
+#ifdef SLAPD_BDB2
+#  define SLAP_TIMEDSERVER_MODE  3
+#endif
 
 /* temporary aliases */
 typedef BackendDB Backend;

@@ -112,23 +112,13 @@ bdb2i_back_startup(
     BackendInfo	*bi
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( bi, &time1 );
 
 	ret = bdb2i_back_startup_internal( bi );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "BE-START elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( bi, time1, "BE-START", NULL, NULL );
 
 	return( ret );
 }
@@ -139,23 +129,13 @@ bdb2i_back_shutdown(
     BackendInfo	*bi
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( bi, &time1 );
 
 	ret = bdb2i_back_shutdown_internal( bi );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "BE-SHUTDOWN elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( bi, time1, "BE-SHUTDOWN", NULL, NULL );
 
 	return( ret );
 }
@@ -208,23 +188,13 @@ bdb2_back_db_startup(
     BackendDB	*be
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_db_startup_internal( be );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "DB-START elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "DB-START", NULL, NULL );
 
 	return( ret );
 }
@@ -235,23 +205,13 @@ bdb2_back_db_shutdown(
     BackendDB	*be
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_db_shutdown_internal( be );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "DB-SHUTDOWN elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "DB-SHUTDOWN", NULL, NULL );
 
 	return( ret );
 }

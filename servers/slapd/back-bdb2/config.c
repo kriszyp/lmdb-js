@@ -70,23 +70,13 @@ bdb2_back_config(
     char	**argv
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( bi, &time1 );
 
 	ret = bdb2i_back_config_internal( bi, fname, lineno, argc, argv );
-
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_TRACE, "BE-CONFIG elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( bi, time1, "BE-CONFIG", NULL, NULL );
 
 	return( ret );
 }
@@ -196,23 +186,14 @@ bdb2_back_db_config(
     char	**argv
 )
 {
-	struct timeval  time1, time2;
-	char   *elapsed_time;
-	int    ret;
+	struct timeval  time1;
+	int             ret;
 
-	gettimeofday( &time1, NULL );
+	bdb2i_start_timing( be->be_private, &time1 );
 
 	ret = bdb2i_back_db_config_internal( be, fname, lineno, argc, argv );
 
-	if ( bdb2i_do_timing ) {
-
-		gettimeofday( &time2, NULL);
-		elapsed_time = bdb2i_elapsed( time1, time2 );
-		Debug( LDAP_DEBUG_ANY, "DB-CONFIG elapsed=%s\n",
-				elapsed_time, 0, 0 );
-		free( elapsed_time );
-
-	}
+	bdb2i_stop_timing( be->be_private, time1, "DB-CONFIG", NULL, NULL );
 
 	return( ret );
 }
