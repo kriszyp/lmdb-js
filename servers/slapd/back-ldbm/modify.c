@@ -225,8 +225,13 @@ int ldbm_modify_internal(
 	/* start with deleting the old index entries */
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
-			rc = index_values( be, ap->a_desc, ap->a_vals, e->e_id,
-				  	   SLAP_INDEX_DELETE_OP );
+			rc = index_values( be, ap->a_desc,
+#ifdef SLAP_NVALUES
+				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+#else
+				ap->a_vals,
+#endif
+				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, ERR,
@@ -246,8 +251,13 @@ int ldbm_modify_internal(
 	/* add the new index entries */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXADD ) {
-			rc = index_values( be, ap->a_desc, ap->a_vals, e->e_id,
-				  	   SLAP_INDEX_ADD_OP );
+			rc = index_values( be, ap->a_desc,
+#ifdef SLAP_NVALUES
+				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+#else
+				ap->a_vals,
+#endif
+				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, ERR,
