@@ -1009,10 +1009,6 @@ limits_check( Operation *op, SlapReply *rs )
 		return 0;
 	}
 
-	/* fail when at least one is set to a negative value... */
-	assert( op->ors_tlimit >= 0 );
-	assert( op->ors_slimit >= 0 );
-	
 	/* allow root to set no limit */
 	if ( be_isroot( op ) ) {
 		op->ors_limit = NULL;
