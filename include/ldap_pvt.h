@@ -170,6 +170,7 @@ LDAP_F (void) ldap_pvt_sasl_mutex_dispose LDAP_P((void *mutex));
 
 struct sockbuf; /* avoid pulling in <lber.h> */
 LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( struct sockbuf *, void * ));
+LDAP_F (int) ldap_pvt_sasl_remove LDAP_P(( struct sockbuf * ));
 #endif /* HAVE_CYRUS_SASL */
 
 #define LDAP_PVT_SASL_LOCAL_SSF	71	/* SSF for Unix Domain Sockets */

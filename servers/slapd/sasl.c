@@ -915,6 +915,9 @@ slap_sasl_err2ldap( int saslerr )
 	int rc;
 
 	switch (saslerr) {
+		case SASL_OK:
+			rc = LDAP_SUCCESS;
+			break;
 		case SASL_CONTINUE:
 			rc = LDAP_SASL_BIND_IN_PROGRESS;
 			break;
@@ -1234,14 +1237,32 @@ int slap_sasl_external(
 
 int slap_sasl_reset( Connection *conn )
 {
-#ifdef HAVE_CYRUS_SASL
+	int rc = LDAP_SUCCESS;
 	sasl_conn_t *ctx = conn->c_sasl_context;
-
-	if( ctx != NULL ) {
-	}
+	slap_ssf_t ssf = 0;
+	const char *authid = NULL;
+#ifdef HAVE_CYRUS_SASL
+#if SASL_VERSION_MAJOR >= 2
+	sasl_getprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+	sasl_getprop( ctx, SASL_AUTH_EXTERNAL, &authid );
+	if ( authid ) authid = ch_strdup( authid );
+#else
+	/* we can't retrieve the external properties from SASL 1.5.
+	 * we can get it again from the underlying TLS or IPC connection,
+	 * but it's simpler just to ignore it since 1.5 is obsolete.
+	 */
 #endif
-	/* must return "anonymous" */
-	return LDAP_SUCCESS;
+	rc = slap_sasl_close( conn );
+	ldap_pvt_sasl_remove( conn->c_sb );
+	if ( rc == LDAP_SUCCESS ) {
+		rc = slap_sasl_open( conn );
+	}
+	if ( rc == LDAP_SUCCESS ) {
+		rc = slap_sasl_external( conn, ssf, authid );
+	}
+	if ( authid ) ch_free( authid );
+#endif
+	return rc;
 }
 
 char ** slap_sasl_mechs( Connection *conn )

@@ -414,6 +414,16 @@ int ldap_pvt_sasl_install( Sockbuf *sb, void *ctx_arg )
 	return LDAP_SUCCESS;
 }
 
+void ldap_pvt_sasl_remove( Sockbuf *sb )
+{
+	ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_sasl,
+		LBER_SBIOD_LEVEL_APPLICATION );
+#ifdef LDAP_DEBUG
+	ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
+		LBER_SBIOD_LEVEL_APPLICATION );
+#endif
+}
+
 static int
 sasl_err2ldap( int saslerr )
 {
@@ -569,11 +579,20 @@ ldap_int_sasl_bind(
 
 	/* If we already have a context, shut it down */
 	if( ctx ) {
+		int msgid;
+		LDAPMessage *result;
 		/* Do an anonymous bind to kill the server's context */
-		rc = ldap_simple_bind_s( ld, "", NULL );
+		msgid = ldap_simple_bind( ld, "", NULL );
 
 		/* dispose of the old context */
 		ldap_int_sasl_close( ld, ld->ld_defconn );
+		ldap_pvt_sasl_remove( ld->ld_sb );
+
+		/* The reply is sent in the clear, we can't read it
+		 * until after the context and sockbuf are torn down
+		 */
+		rc = ldap_result( ld, msgid, 1, NULL, &result );
+		ldap_msgfree( result );
 	}
 
 	rc = ldap_int_sasl_open( ld, ld->ld_defconn,
