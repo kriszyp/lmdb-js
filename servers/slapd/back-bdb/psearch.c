@@ -1,4 +1,4 @@
-/* lcup.c - lcup operations */
+/* psearch.c - psearch operations */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
