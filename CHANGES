@@ -9,6 +9,8 @@ OpenLDAP 2.2.24 Release
 	Added libldap fast synchronous search result processing
 	Build Environment
 		Updated BDB version check (ITS#3581)
+		Updated memcmp replacement
+		Updated -lV3 configure check
 	Documentation
 		Add slapd-hdb(5)
 		Updated slapd(8) (ITS#3591)
