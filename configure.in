@@ -338,7 +338,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
-				if test $with_preemptive = auto ; then
+				if test $ol_with_preemptive = auto ; then
 					ol_with_preemptive=yes
 				fi
 				[-lmach -lexc -lc])
@@ -462,6 +462,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 			AC_DEFINE(HAVE_LWP)
 			AC_DEFINE(HAVE_LWP_THR)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+
+			if test $ol_with_preemptive = auto ; then
+				ol_with_preemptive=yes
+			fi
 		fi
 	fi
 
@@ -474,8 +478,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 			AC_DEFINE(HAVE_LWP)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 
-			if test $with_preemptive = auto ; then
-				with_preemptive=yes
+			if test $ol_with_preemptive = auto ; then
+				ol_with_preemptive=no
 			fi
 		fi
 	fi
@@ -756,10 +760,11 @@ AC_CHECK_FUNCS(		\
 	strtol			\
 	strtoul			\
 	sysconf			\
+	tempnam			\
 	waitpid			\
 )
 
-AC_REPLACE_FUNCS(getopt strdup)
+AC_REPLACE_FUNCS(getopt strdup tempnam)
 
 dnl ----------------------------------------------------------------
 # Check Configuration

@@ -4,7 +4,7 @@
 
 #include <ac/string.h>
 
-char *strdup( char *s )
+char *strdup( const char *s )
 {
         char    *p;
 

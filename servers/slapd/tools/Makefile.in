@@ -25,13 +25,13 @@ SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
 	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c
 
 EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
-EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o ../strdup.o
+EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
 
 OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../aclparse.o ../schema.o ../result.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../schemaparse.o ../strdup.o
+		../schemaparse.o
 
 all-local: build-ldbm build-edb2ldif build-chlog2replog
 
