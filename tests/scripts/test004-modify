@@ -65,13 +65,13 @@ version: 1
 
 # LEADING COMMENT AND WHITE SPACE
 
-dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US
 # EMBEDDED COMMENT
 changetype: modify
 add: drink
 drink: Orange Juice
 
-dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: modify
 # EMBEDDED COMMENT
  CONTINUED
@@ -98,7 +98,7 @@ delete: member
 add: member
 member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 
-dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: add
 objectclass: top
 objectclass: person
@@ -117,7 +117,7 @@ telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.umich.edu
 homephone: +1 313 555 8844
 
-dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: delete
 # TRAILING COMMENT AND WHITE SPACE
 

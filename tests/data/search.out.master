@@ -1,5 +1,5 @@
-dn: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Univer
- sity of Michigan, c=US
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
+ y of Michigan,c=US
 objectclass: top
 objectclass: person
 objectclass: organizationalPerson
@@ -21,8 +21,8 @@ pager: +1 313 555 3233
 facsimiletelephonenumber: +1 313 555 2274
 telephonenumber: +1 313 555 9022
 
-dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Universi
- ty of Michigan, c=US
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University 
+ of Michigan,c=US
 objectclass: top
 objectclass: person
 objectclass: organizationalPerson
@@ -102,8 +102,8 @@ member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=U
 member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
  ty of Michigan, c=US
 
-dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Mich
- igan, c=US
+dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
+ n,c=US
 objectclass: top
 objectclass: person
 objectclass: organizationalPerson
@@ -216,18 +216,17 @@ description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
 objectclass: groupofnames
 
-dn: ou=Alumni Association, ou=People, o=University of Michigan, c=US
+dn: ou=Alumni Association,ou=People,o=University of Michigan,c=US
 objectclass: top
 objectclass: organizationalUnit
 ou: Alumni Association
 
-dn: ou=Groups, o=University of Michigan, c=US
+dn: ou=Groups,o=University of Michigan,c=US
 objectclass: top
 objectclass: organizationalUnit
 ou: Groups
 
-dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
- =US
+dn: ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 objectclass: top
 objectclass: organizationalUnit
 ou: Information Technology Division
@@ -245,12 +244,12 @@ member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=U
 member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
  ty of Michigan, c=US
 
-dn: ou=People, o=University of Michigan, c=US
+dn: ou=People,o=University of Michigan,c=US
 objectclass: top
 objectclass: organizationalUnit
 ou: People
 
-dn: o=University of Michigan, c=US
+dn: o=University of Michigan,c=US
 objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
