@@ -523,6 +523,7 @@ ldap_back_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
+
 		} else {
 			*fstr = ftmp;
 		}
@@ -579,6 +580,14 @@ ldap_back_referral_result_rewrite(
 			continue;
 		}
 
+		/* FIXME: URLs like "ldap:///dc=suffix" if passed
+		 * thru ldap_url_parse() and ldap_url_desc2str()
+		 * get rewritten as "ldap:///dc=suffix??base";
+		 * we don't want this to occur... */
+		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
+			ludp->lud_scope = LDAP_SCOPE_DEFAULT;
+		}
+
 		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
 		
 		rc = ldap_back_dn_massage( dc, &olddn, &dn );
@@ -608,7 +617,8 @@ ldap_back_referral_result_rewrite(
 				newurl = ldap_url_desc2str( ludp );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
-					 * even if ldap_url_desc2str failed... */
+					 * even if ldap_url_desc2str failed...
+					 */
 					break;
 				}
 
