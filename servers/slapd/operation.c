@@ -99,7 +99,7 @@ slap_op_alloc(
 	Operation	*op;
 
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
-	if (op = LDAP_STAILQ_FIRST( &slap_free_ops )) {
+	if ((op = LDAP_STAILQ_FIRST( &slap_free_ops ))) {
 		LDAP_STAILQ_REMOVE_HEAD( &slap_free_ops, o_next );
 	}
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
