@@ -185,33 +185,33 @@ if test $? != 0 ; then
 fi
 
 # FIXME: this cannot work as is, because SASL bind cannot be proxied!
-#if test $USE_SASL != "no" ; then
-#	ID="bjorn"
-#	BASE="dc=example,dc=com"
-#	echo "Testing ldapsearch as $ID for \"$BASE\" with SASL bind and identity assertion..."
-#	$LDAPSASLSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
-#		-Q -U "$ID" -w bjorn -Y $MECH > $SEARCHOUT 2>&1
-#
-#	RC=$?
-#	if test $RC != 0 ; then
-#		echo "ldapsearch failed ($RC)!"
-#		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-#		exit $RC
-#	fi
-#
-#	echo "Filtering ldapsearch results..."
-#	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-#	echo "Filtering original ldif used to create database..."
-#	. $LDIFFILTER < $LDAPGLUEOUT > $LDIFFLT
-#	echo "Comparing filter output..."
-#	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
-#	
-#	if test $? != 0 ; then
-#		echo "comparison failed - glued search with SASL bind and identity assertion didn't succeed"
-#		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-#		exit 1
-#	fi
-#fi
+if test $USE_SASL != "no" ; then
+	ID="bjorn"
+	BASE="dc=example,dc=com"
+	echo "Testing ldapsearch as $ID for \"$BASE\" with SASL bind and identity assertion..."
+	$LDAPSASLSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
+		-Q -U "$ID" -w bjorn -Y $MECH > $SEARCHOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	echo "Filtering ldapsearch results..."
+	. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+	echo "Filtering original ldif used to create database..."
+	. $LDIFFILTER < $LDAPGLUEOUT > $LDIFFLT
+	echo "Comparing filter output..."
+	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+	
+	if test $? != 0 ; then
+		echo "comparison failed - glued search with SASL bind and identity assertion didn't succeed"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	fi
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

@@ -143,7 +143,7 @@ ldap_back_conn_cmp(
 	int rc;
 	
 	/* If local DNs don't match, it is definitely not a match */
-	if ( ( rc = ber_bvcmp( &lc1->local_dn, &lc2->local_dn )) )
+	if ( ( rc = ber_bvcmp( &lc1->local_dn, &lc2->local_dn ) ) )
 		return rc;
 
 	/* For shared sessions, conn is NULL. Only explicitly
@@ -226,17 +226,16 @@ ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 struct ldapconn *
 ldap_back_getconn(Operation *op, SlapReply *rs)
 {
-	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
-	struct ldapconn *lc, lc_curr;
-	LDAP *ld;
-	int is_priv = 0;
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	struct ldapconn	*lc, lc_curr;
+	LDAP		*ld;
+	int		is_priv = 0;
 
 	/* Searches for a ldapconn in the avl tree */
 
 	/* Explicit binds must not be shared */
 	if ( op->o_tag == LDAP_REQ_BIND
-		|| (op->o_conn
-		  && (op->o_bd == op->o_conn->c_authz_backend ))) {
+		|| ( op->o_conn && op->o_bd == op->o_conn->c_authz_backend ) ) {
 		lc_curr.conn = op->o_conn;
 
 	} else {
@@ -463,7 +462,9 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 				int		freeauthz = 0;
 
 				/* if SASL supports native authz, prepare for it */
-				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+				if ( ( !op->o_do_not_cache || !op->o_is_auth_check ) &&
+						( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) )
+				{
 					switch ( li->idassert_mode ) {
 					case LDAP_BACK_IDASSERT_OTHERID:
 					case LDAP_BACK_IDASSERT_OTHERDN:
@@ -753,7 +754,8 @@ ldap_back_proxy_authz_ctrl(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	LDAPControl	**ctrls = NULL;
-	int		i = 0;
+	int		i = 0,
+			mode;
 	struct berval	assertedID;
 
 	*pctrls = NULL;
@@ -845,7 +847,14 @@ ldap_back_proxy_authz_ctrl(
 		rs->sr_text = "proxyAuthz not allowed within namingContext";
 	}
 
-	switch ( li->idassert_mode ) {
+	if ( op->o_do_not_cache && op->o_is_auth_check ) {
+		mode = LDAP_BACK_IDASSERT_NOASSERT;
+
+	} else {
+		mode = li->idassert_mode;
+	}
+
+	switch ( mode ) {
 	case LDAP_BACK_IDASSERT_LEGACY:
 	case LDAP_BACK_IDASSERT_SELF:
 		/* original behavior:
