@@ -99,6 +99,12 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 		exit( EXIT_FAILURE );
 	}
 
+	{
+		int version = LDAP_VERSION3;
+		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+			&version ); 
+	}
+
 	if ( ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
 		 exit( EXIT_FAILURE );

@@ -241,6 +241,12 @@ do_addel(
 		exit( EXIT_FAILURE );
 	}
 
+	{
+		int version = LDAP_VERSION3;
+		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+			&version ); 
+	}
+
 	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE )
 				!= LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
