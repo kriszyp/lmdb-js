@@ -909,12 +909,19 @@ void connection_done( Connection *c )
  * calls the appropriate stub to handle it.
  */
 
+#define INCR_OP(var,index) \
+	do { \
+		ldap_pvt_thread_mutex_lock( &num_ops_mutex ); \
+		(var)[(index)]++; \
+		ldap_pvt_thread_mutex_unlock( &num_ops_mutex ); \
+	} while (0)
+
 static void *
 connection_operation( void *arg_v )
 {
 	int rc;
 	struct co_arg	*arg = arg_v;
-	ber_tag_t tag = arg->co_op->o_tag;
+	ber_tag_t tag = arg->co_op->o_tag, oldtag = tag;
 	Connection *conn = arg->co_conn;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
@@ -939,42 +946,52 @@ connection_operation( void *arg_v )
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
+		INCR_OP(num_ops_initiated_, SLAP_OP_BIND);
 		rc = do_bind( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_UNBIND:
+		INCR_OP(num_ops_initiated_, SLAP_OP_UNBIND);
 		rc = do_unbind( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_ADD:
+		INCR_OP(num_ops_initiated_, SLAP_OP_ADD);
 		rc = do_add( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_DELETE:
+		INCR_OP(num_ops_initiated_, SLAP_OP_DELETE);
 		rc = do_delete( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODRDN:
+		INCR_OP(num_ops_initiated_, SLAP_OP_MODRDN);
 		rc = do_modrdn( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODIFY:
+		INCR_OP(num_ops_initiated_, SLAP_OP_MODIFY);
 		rc = do_modify( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_COMPARE:
+		INCR_OP(num_ops_initiated_, SLAP_OP_COMPARE);
 		rc = do_compare( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_SEARCH:
+		INCR_OP(num_ops_initiated_, SLAP_OP_SEARCH);
 		rc = do_search( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_ABANDON:
+		INCR_OP(num_ops_initiated_, SLAP_OP_ABANDON);
 		rc = do_abandon( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_EXTENDED:
+		INCR_OP(num_ops_initiated_, SLAP_OP_EXTENDED);
 		rc = do_extended( conn, arg->co_op );
 		break;
 
@@ -994,11 +1011,44 @@ connection_operation( void *arg_v )
 		break;
 	}
 
+	oldtag = tag;
 	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
 operations_error:
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;
+	switch (oldtag) {
+	case LDAP_REQ_BIND:
+		num_ops_completed_[SLAP_OP_BIND]++;
+		break;
+	case LDAP_REQ_UNBIND:
+		num_ops_completed_[SLAP_OP_UNBIND]++;
+		break;
+	case LDAP_REQ_ADD:
+		num_ops_completed_[SLAP_OP_ADD]++;
+		break;
+	case LDAP_REQ_DELETE:
+		num_ops_completed_[SLAP_OP_DELETE]++;
+		break;
+	case LDAP_REQ_MODRDN:
+		num_ops_completed_[SLAP_OP_MODRDN]++;
+		break;
+	case LDAP_REQ_MODIFY:
+		num_ops_completed_[SLAP_OP_MODIFY]++;
+		break;
+	case LDAP_REQ_COMPARE:
+		num_ops_completed_[SLAP_OP_COMPARE]++;
+		break;
+	case LDAP_REQ_SEARCH:
+		num_ops_completed_[SLAP_OP_SEARCH]++;
+		break;
+	case LDAP_REQ_ABANDON:
+		num_ops_completed_[SLAP_OP_ABANDON]++;
+		break;
+	case LDAP_REQ_EXTENDED:
+		num_ops_completed_[SLAP_OP_EXTENDED]++;
+		break;
+	}
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );

@@ -1599,6 +1599,23 @@ typedef struct slap_listener {
 #define sl_addr	sl_sa.sa_in_addr
 } Listener;
 
+/*
+ * Operation indices
+ */
+enum {
+	SLAP_OP_BIND = 0,
+	SLAP_OP_UNBIND,
+	SLAP_OP_ADD,
+	SLAP_OP_DELETE,
+	SLAP_OP_MODRDN,
+	SLAP_OP_MODIFY,
+	SLAP_OP_COMPARE,
+	SLAP_OP_SEARCH,
+	SLAP_OP_ABANDON,
+	SLAP_OP_EXTENDED,
+	SLAP_OP_LAST
+};
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

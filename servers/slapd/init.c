@@ -43,8 +43,10 @@ ldap_pvt_thread_mutex_t	gmtime_mutex;
 ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
 
-unsigned long			num_ops_initiated;
-unsigned long			num_ops_completed;
+unsigned long			num_ops_initiated = 0;
+unsigned long			num_ops_initiated_[SLAP_OP_LAST];
+unsigned long			num_ops_completed = 0;
+unsigned long			num_ops_completed_[SLAP_OP_LAST];
 ldap_pvt_thread_mutex_t	num_ops_mutex;
 
 unsigned long			num_entries_sent;
@@ -110,6 +112,14 @@ slap_init( int mode, const char *name )
 			ldap_pvt_thread_mutex_init( &replog_mutex );
 			ldap_pvt_thread_mutex_init( &num_ops_mutex );
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
+
+			{
+				int i;
+				for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+					num_ops_initiated_[ i ] = 0;
+					num_ops_completed_[ i ] = 0;
+				}
+			}
 
 			ldap_pvt_thread_mutex_init( &gmtime_mutex );
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
