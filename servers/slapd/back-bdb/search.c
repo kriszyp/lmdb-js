@@ -1183,6 +1183,7 @@ id2entry_retry:
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_attrs = attrs;
 							rs->sr_ctrls = ctrls;
+							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
 							if ( cookie.bv_val ) ch_free( cookie.bv_val );	
 							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
@@ -1219,6 +1220,7 @@ id2entry_retry:
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_ctrls = ctrls;
 							rs->sr_attrs = sop->oq_search.rs_attrs;
+							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
 							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
 								 sop->o_tmpmemctx );
@@ -1258,6 +1260,7 @@ id2entry_retry:
 					} else {
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
+						rs->sr_flags = 0;
 						result = send_search_entry( sop, rs );
 					}
 				}
