@@ -29,6 +29,7 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
+#include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 
@@ -116,7 +117,7 @@ main(int argc, char **argv)
     authmethod = -1;
 	version = -1;
 
-    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
+    prog = lutil_progname( "ldapmodrdn", argc, argv );
 
     while (( i = getopt( argc, argv, "cf:rs:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )

@@ -194,6 +194,8 @@ main( int argc, char **argv )
 	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
+	prog = lutil_progname( "ldapsearch", argc, argv );
+
 	lutil_log_initialize(argc, argv);
 
 	deref = sizelimit = timelimit = version = -1;
@@ -222,8 +224,6 @@ main( int argc, char **argv )
 		def_tmpdir[0] == *LDAP_DIRSEP ? &def_tmpdir[1] : def_tmpdir );
 
 	urlize( def_urlpre );
-
-    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
 	while (( i = getopt( argc, argv, "Aa:b:E:F:f:Ll:S:s:T:tuz:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )

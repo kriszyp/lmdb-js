@@ -117,7 +117,7 @@ main( int argc, char **argv )
 
 	authmethod = -1;
 
-	prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
+	prog = lutil_progname( "ldapcompare", argc, argv );
 
 	while (( i = getopt( argc, argv,
 		"Cd:D:h:H:IkKMnO:p:P:qQR:U:vw:WxX:Y:zZ")) != EOF )

@@ -29,6 +29,7 @@
 
 #include <ldap.h>
 
+#include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldif.h"
 #include "ldap_defaults.h"
@@ -146,11 +147,7 @@ main( int argc, char **argv )
 	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, referrals;
 	int count, len;
 
-    if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
-	prog = argv[ 0 ];
-    } else {
-	++prog;
-    }
+    prog = lutil_progname( "ldapmodify", argc, argv );
 
     /* Print usage when no parameters */
     if( argc < 2 ) usage( prog );
