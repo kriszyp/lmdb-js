@@ -74,7 +74,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' >$SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -92,7 +92,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -113,7 +113,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -l $TIMELIMIT 
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -133,7 +133,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
@@ -154,7 +154,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -183,7 +183,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -212,7 +212,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Hard Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -233,7 +233,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Hard Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -256,7 +256,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US' \
 	'(uid=uncheckedlimited)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -276,7 +276,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -296,7 +296,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User 2,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -316,7 +316,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Foo User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -344,7 +344,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Bar User,ou=People,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -372,7 +372,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited Users,ou=Groups,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -400,7 +400,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User 3,ou=Admin,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -428,7 +428,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Special User,o=University of Michigan,c=US' \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -455,7 +455,7 @@ echo "Testing no limit requested for limited anonymous..."
 $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -500,7 +500,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null >$SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -518,7 +518,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -539,7 +539,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -l $TIMELIMIT 
 	-D 'cn=Unlimited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success (got $COUNT entries)"
@@ -559,7 +559,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
@@ -580,7 +580,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -609,7 +609,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Soft Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -638,7 +638,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Hard Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -659,7 +659,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret -z $SIZELIMIT 
 	-D 'cn=Hard Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
@@ -682,7 +682,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(uid=uncheckedlimited)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -702,7 +702,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -726,7 +726,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Unlimited User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side size limit (got $COUNT entries)"
@@ -746,7 +746,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Page Size Limited User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side page size limit (got $COUNT entries)"
@@ -769,7 +769,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Paged Results Disabled User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -792,7 +792,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Paged Results Limited User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
@@ -816,7 +816,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Paged Results Limited User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-z $SIZELIMIT -E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side unchecked limit (got $COUNT entries)"
@@ -848,7 +848,7 @@ $LDAPRSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 -w secret \
 	-D 'cn=Paged Results Limited User,ou=Paged Results Users,o=University of Michigan,c=US' \
 	-z $SIZELIMIT -E '!pr='$PAGESIZE '(objectClass=*)' </dev/null > $SEARCHOUT 2>&1
 RC=$?
-COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | sed 's;[^0-9]\+\([0-9]\+\)$;\1;'`
+COUNT=`cat $SEARCHOUT | egrep '^# numEntries:' | awk '{print $3}'`
 case $RC in
 	0)
 		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side unchecked limit (got $COUNT entries)"
