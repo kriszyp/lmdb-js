@@ -27,7 +27,7 @@
 struct rewrite_subst *
 rewrite_subst_compile(
 		struct rewrite_info *info,
-		const char *result
+		const char *str
 )
 {
 	size_t subs_len;
@@ -36,11 +36,16 @@ rewrite_subst_compile(
 
 	struct rewrite_subst *s = NULL;
 
-	const char *begin, *p;
+	char *result, *begin, *p;
 	int nsub = 0, l;
 
 	assert( info != NULL );
-	assert( result != NULL );
+	assert( str != NULL );
+
+	result = strdup( str );
+	if ( result == NULL ) {
+		return NULL;
+	}
 
 	/*
 	 * Take care of substitution string
@@ -63,8 +68,7 @@ rewrite_subst_compile(
 		tmps = ( struct berval * )realloc( subs,
 				sizeof( struct berval )*( nsub + 1 ) );
 		if ( tmps == NULL ) {
-			/* FIXME: cleanup */
-			return NULL;
+			goto cleanup;
 		}
 		subs = tmps;
 		
@@ -78,7 +82,7 @@ rewrite_subst_compile(
 			subs[ nsub ].bv_len = l;
 			subs[ nsub ].bv_val = malloc( l + 1 );
 			if ( subs[ nsub ].bv_val == NULL ) {
-				return NULL;
+				goto cleanup;
 			}
 			AC_MEMCPY( subs[ nsub ].bv_val, begin, l );
 			subs[ nsub ].bv_val[ l ] = '\0';
@@ -101,8 +105,7 @@ rewrite_subst_compile(
 			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
 					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
-				/* cleanup */
-				return NULL;
+				goto cleanup;
 			}
 			submatch = tmpsm;
 			submatch[ nsub ].ls_submatch = d;
@@ -124,10 +127,9 @@ rewrite_subst_compile(
 					REWRITE_SUBMATCH_XMAP;
 
 				map = rewrite_xmap_parse( info,
-						p + 3, &begin );
+						p + 3, (const char **)&begin );
 				if ( map == NULL ) {
-					/* cleanup */
-					return NULL;
+					goto cleanup;
 				}
 				submatch[ nsub ].ls_map = map;
 				p = begin - 1;
@@ -140,10 +142,10 @@ rewrite_subst_compile(
 			struct rewrite_map *map;
 			struct rewrite_submatch *tmpsm;
 
-			map = rewrite_map_parse( info, p + 2, &begin );
+			map = rewrite_map_parse( info, p + 2,
+					(const char **)&begin );
 			if ( map == NULL ) {
-				/* cleanup */
-				return NULL;
+				goto cleanup;
 			}
 			p = begin - 1;
 
@@ -153,8 +155,7 @@ rewrite_subst_compile(
 			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
 					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
-				/* cleanup */
-				return NULL;
+				goto cleanup;
 			}
 			submatch = tmpsm;
 			submatch[ nsub ].ls_type =
@@ -169,7 +170,7 @@ rewrite_subst_compile(
 			continue;
 
 		} else {
-			return NULL;
+			goto cleanup;
 		}
 
 		nsub++;
@@ -184,7 +185,7 @@ rewrite_subst_compile(
 		 * XXX need to free the value subst stuff!
 		 */
 		free( subs );
-		return NULL;
+		goto cleanup;
 	}
 	subs = tmps;
 	l = p - begin;
@@ -201,14 +202,16 @@ rewrite_subst_compile(
 
 	s = calloc( sizeof( struct rewrite_subst ), 1 );
 	if ( s == NULL ) {
-		/* cleanup */
-		return NULL;
+		goto cleanup;
 	}
 
 	s->lt_subs_len = subs_len;
         s->lt_subs = subs;
         s->lt_num_submatch = nsub;
         s->lt_submatch = submatch;
+
+cleanup:;
+	free( result );
 
 	return s;
 }
@@ -331,7 +334,6 @@ rewrite_subst_apply(
 			}
 			
 			if ( rc != REWRITE_SUCCESS ) {
-				rc = REWRITE_REGEXEC_ERR;
 				goto cleanup;
 			}
 			break;
@@ -382,7 +384,7 @@ rewrite_subst_apply(
 			rc = REWRITE_ERR;
 			break;
 		}
-		
+
 		if ( rc != REWRITE_SUCCESS ) {
 			rc = REWRITE_REGEXEC_ERR;
 		}

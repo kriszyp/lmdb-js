@@ -50,17 +50,17 @@ append_rule(
  */
 static int
 append_action(
-		struct rewrite_action *base,
+		struct rewrite_action **pbase,
 		struct rewrite_action *action
 )
 {
-	struct rewrite_action *a;
+	struct rewrite_action **pa;
 
-	assert( base != NULL );
+	assert( pbase != NULL );
 	assert( action != NULL );
 	
-	for ( a = base; a->la_next != NULL; a = a->la_next );
-	a->la_next = action;
+	for ( pa = pbase; *pa != NULL; pa = &(*pa)->la_next );
+	*pa = action;
 	
 	return REWRITE_SUCCESS;
 }
@@ -79,7 +79,8 @@ destroy_action(
 
 	/* do something */
 	switch ( action->la_type ) {
-	case REWRITE_FLAG_GOTO: {
+	case REWRITE_FLAG_GOTO:
+	case REWRITE_FLAG_USER: {
 		int *pi = (int *)action->la_args;
 
 		if ( pi ) {
@@ -208,11 +209,16 @@ rewrite_rule_compile(
 			action->la_type = REWRITE_ACTION_UNWILLING;
 			break;
 
-		case REWRITE_FLAG_GOTO: {			/* 'G' */
+		case REWRITE_FLAG_GOTO:				/* 'G' */
 			/*
 			 * After applying rule, jump N rules
 			 */
 
+		case REWRITE_FLAG_USER: {			/* 'U' */
+			/*
+			 * After applying rule, return user-defined
+			 * error code
+			 */
 			char buf[16], *q;
 			size_t l;
 			int *d;
@@ -228,7 +234,7 @@ rewrite_rule_compile(
 				return REWRITE_ERR;
 			}
 
-			l = q - p + 2;
+			l = q - p + 1;
 			if ( l >= sizeof( buf ) ) {
 				/* XXX Need to free stuff */
 				return REWRITE_ERR;
@@ -248,7 +254,19 @@ rewrite_rule_compile(
 				/* cleanup ... */       
 				return REWRITE_ERR;
 			}
-			action->la_type = REWRITE_ACTION_GOTO;
+			switch ( p[ 0 ] ) {
+			case REWRITE_FLAG_GOTO:
+				action->la_type = REWRITE_ACTION_GOTO;
+				break;
+
+			case REWRITE_FLAG_USER:
+				action->la_type = REWRITE_ACTION_USER;
+				break;
+
+			default:
+				assert(0);
+			}
+
 			action->la_args = (void *)d;
 
 			p = q;	/* p is incremented by the for ... */
@@ -283,11 +301,7 @@ rewrite_rule_compile(
 		 * Stupid way to append to a list ...
 		 */
 		if ( action != NULL ) {
-			if ( first_action == NULL ) {
-				first_action = action;
-			} else {
-				append_action( first_action, action );
-			}
+			append_action( &first_action, action );
 			action = NULL;
 		}
 	}

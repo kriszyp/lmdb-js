@@ -71,6 +71,7 @@
 #define REWRITE_FLAG_STOP			'@'
 #define REWRITE_FLAG_UNWILLING			'#'
 #define REWRITE_FLAG_GOTO			'G'	/* requires an arg */
+#define REWRITE_FLAG_USER			'U'	/* requires an arg */
 #define REWRITE_FLAG_IGNORE_ERR			'I'
 
 /*
@@ -97,6 +98,7 @@ struct rewrite_action {
 #define REWRITE_ACTION_UNWILLING	0x0002
 #define REWRITE_ACTION_GOTO		0x0003
 #define REWRITE_ACTION_IGNORE_ERR	0x0004
+#define REWRITE_ACTION_USER		0x0005
 	int                             la_type;
 	void                           *la_args;
 };

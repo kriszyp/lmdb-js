@@ -72,7 +72,8 @@
 #define REWRITE_REGEXEC_OK              0x0000
 #define REWRITE_REGEXEC_ERR             0x0001
 #define REWRITE_REGEXEC_STOP            0x0002
-#define REWRITE_REGEXEC_UNWILLING       0x0004
+#define REWRITE_REGEXEC_UNWILLING       0x0003
+#define REWRITE_REGEXEC_USER		0x0004 /* and above ... */
 
 /*
  * Rewrite variable flags
@@ -93,6 +94,7 @@
  *					referenced string is available for
  *					the entire life scope of the variable.
  */
+#define REWRITE_VAR_NONE		0x0000
 #define REWRITE_VAR_INSERT		0x0001
 #define REWRITE_VAR_UPDATE		0x0002
 #define REWRITE_VAR_COPY_NAME		0x0004
