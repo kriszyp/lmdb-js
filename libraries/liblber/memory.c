@@ -23,6 +23,7 @@ struct ber_mem_hdr {
 		void *	bmu_voidp;
 		double	bmu_double;
 		long	bmu_long;
+		long	(*bmu_funcp)( double );
 		char	bmu_char[4];
 	} ber_align;
 #define bm_junk	ber_align.bmu_len_t
