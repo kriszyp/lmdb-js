@@ -226,6 +226,7 @@ int main( int argc, char **argv )
 			     )) != EOF ) {
 		switch ( i ) {
 		case 'h':	/* listen URLs */
+			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
             break;
 
