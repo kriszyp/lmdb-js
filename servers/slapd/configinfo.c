@@ -87,8 +87,8 @@ config_info(
 	val.bv_len = sizeof("LDAPsubentry")-1;
 	attr_merge( e, "objectClass", vals );
 
-	val.bv_val = "extenisbleObject";
-	val.bv_len = sizeof("extenisbleObject")-1;
+	val.bv_val = "extensibleObject";
+	val.bv_len = sizeof("extensibleObject")-1;
 	attr_merge( e, "objectClass", vals );
 
 	send_search_entry( &backends[0], conn, op, e,
