@@ -22,13 +22,13 @@
 #include <ldap.h>
 #include <ldif.h>
 
-static LDAP	*ld = NULL;
 static char	*prog;
 static char	*binddn = NULL;
 static char	*passwd = NULL;
 static char	*ldaphost = NULL;
-static int	ldapport = LDAP_PORT;
+static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
+static LDAP	*ld;
 
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
@@ -50,30 +50,6 @@ static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 #define T_NEWRDNSTR		"newrdn"
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
 
-static void
-usage(char *s)
-{
-    fprintf(stderr, "Usage: %s [options] [dn]...\n", s);
-    fprintf(stderr, "  -a\t\tadd new entries\n");
-    fprintf(stderr, "  -b\t\tread in binary\n");
-    fprintf(stderr, "  -c\t\tcontinuous operation mode\n");
-    fprintf(stderr, "  -D bindnd\tbind dn\n");
-    fprintf(stderr, "  -d level\tdebugging level\n");
-    fprintf(stderr, "  -F\t\tforce changes regardless of input\n");
-    fprintf(stderr, "  -f file\tread from file\n");
-    fprintf(stderr, "  -h host\tldap sever\n");
-#ifdef HAVE_KERBEROS
-    fprintf(stderr, "  -K\t\tuse Kerberos step 1\n");
-    fprintf(stderr, "  -k\t\tuse Kerberos instead of Simple Password authentication\n");
-#endif
-    fprintf(stderr, "  -n\t\tmake no modifications\n");
-    fprintf(stderr, "  -p port\tldap port\n");
-    fprintf(stderr, "  -r\t\tremove old RDN\n");
-    fprintf(stderr, "  -v\t\tverbose\n");
-    fprintf(stderr, "  -W\t\tprompt for bind password\n");
-    fprintf(stderr, "  -w passwd\tbind password (for simple authentication)\n");
-    exit(1);
-}
 
 static int process_ldapmod_rec LDAP_P(( char *rbuf ));
 static int process_ldif_rec LDAP_P(( char *rbuf ));
@@ -86,45 +62,58 @@ static void freepmods LDAP_P(( LDAPMod **pmods ));
 static int fromfile LDAP_P(( char *path, struct berval *bv ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
+
 int
-main(int argc, char **argv)
+main( int argc, char **argv )
 {
-    char		*infile = NULL;
-    char                *rbuf, *start, *p, *q;
-    FILE		*fp = NULL;
-    int			rc, i, use_ldif, want_passwd;
-    int                 authmethod = LDAP_AUTH_SIMPLE;
+    char		*infile, *rbuf, *start, *p, *q;
+    FILE		*fp;
+    int			rc, i, kerberos, use_ldif, authmethod;
+    char		*usage = "usage: %s [-abcknrvF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
 
-    if ((prog = strrchr(argv[0], '/')) == NULL)
-	prog = argv[0];
-    else
-	prog++;
+    if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
+	prog = argv[ 0 ];
+    } else {
+	++prog;
+    }
+    new = ( strcmp( prog, "ldapadd" ) == 0 );
 
-    new = (strcmp(prog, "ldapadd") == 0);
+    infile = NULL;
+    kerberos = not = verbose = valsfromfiles = 0;
 
-    not = verbose = valsfromfiles = want_passwd = 0;
-
-    while ((i = getopt(argc, argv, "abcD:d:Ff:h:Kknp:rtvWw:")) != EOF)
-    {
-        switch(i)
-        {
+    while (( i = getopt( argc, argv, "FabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
+	switch( i ) {
 	case 'a':	/* add */
 	    new = 1;
 	    break;
-
-        case 'b':	/* read values from files (for binary attributes) */
+	case 'b':	/* read values from files (for binary attributes) */
 	    valsfromfiles = 1;
 	    break;
-
-        case 'c':	/* continuous operation */
+	case 'c':	/* continuous operation */
 	    contoper = 1;
 	    break;
-
-        case 'D':	/* bind DN */
+	case 'r':	/* default is to replace rather than add values */
+	    replace = 1;
+	    break;
+	case 'k':	/* kerberos bind */
+	    kerberos = 2;
+	    break;
+	case 'K':	/* kerberos bind, part 1 only */
+	    kerberos = 1;
+	    break;
+	case 'F':	/* force all changes records to be used */
+	    force = 1;
+	    break;
+	case 'h':	/* ldap host */
+	    ldaphost = strdup( optarg );
+	    break;
+	case 'D':	/* bind DN */
 	    binddn = strdup( optarg );
 	    break;
-
-        case 'd':
+	case 'w':	/* password */
+	    passwd = strdup( optarg );
+	    break;
+	case 'd':
 #ifdef LDAP_DEBUG
 	    ldap_debug = lber_debug = atoi( optarg );	/* */
 #else /* LDAP_DEBUG */
@@ -132,69 +121,28 @@ main(int argc, char **argv)
 		    prog );
 #endif /* LDAP_DEBUG */
 	    break;
-
-        case 'F':	/* force all changes records to be used */
-	    force = 1;
-	    break;
-
 	case 'f':	/* read from file */
 	    infile = strdup( optarg );
 	    break;
-
-        case 'h':	/* ldap host */
-	    ldaphost = strdup( optarg );
+	case 'p':
+	    ldapport = atoi( optarg );
 	    break;
-
-        case 'k':	/* kerberos bind */
-#ifdef HAVE_KERBEROS
-            authmethod = LDAP_AUTH_KRBV4;
-#else
-            fprintf(stderr, "%s was not compiled with Kerberos support\n", argv[0]);
-#endif
-	    break;
-
-        case 'K':	/* kerberos bind, part 1 only */
-#ifdef HAVE_KERBEROS
-	    authmethod = LDAP_AUTH_KRBV41;
-#else
-            fprintf(stderr, "%s was not compiled with Kerberos support\n", argv[0]);
-#endif
-	    break;
-
 	case 'n':	/* print adds, don't actually do them */
 	    ++not;
 	    break;
-
-        case 'p':
-	    ldapport = atoi( optarg );
-	    break;
-
-        case 'r':	/* default is to replace rather than add values */
-	    replace = 1;
-	    break;
-
-        case 'v':	/* verbose mode */
+	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
-
-        case 'W':
-            want_passwd++;
-            break;
-
-        case 'w':	/* password */
-	    passwd = strdup( optarg );
-	    break;
-
-        default:
-            usage(prog);
+	default:
+	    fprintf( stderr, usage, prog );
+	    exit( 1 );
 	}
     }
 
-    if (argc - optind != 0)
-        usage(prog);
-
-    if (want_passwd && !passwd)
-        passwd = strdup(getpass("Enter LDAP password: "));
+    if ( argc - optind != 0 ) {
+	fprintf( stderr, usage, prog );
+	exit( 1 );
+    }
 
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
@@ -215,6 +163,13 @@ main(int argc, char **argv)
 	/* this seems prudent */
 	ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
 
+	if ( !kerberos ) {
+	    authmethod = LDAP_AUTH_SIMPLE;
+	} else if ( kerberos == 1 ) {
+	    authmethod = LDAP_AUTH_KRBV41;
+	} else {
+	    authmethod = LDAP_AUTH_KRBV4;
+	}
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_bind" );
 	    exit( 1 );
@@ -280,7 +235,7 @@ process_ldif_rec( char *rbuf )
 
     new_entry = new;
 
-    modop = rc = got_all = saw_replica = delete_entry = expect_modop = 0;
+    rc = got_all = saw_replica = delete_entry = expect_modop = 0;
     expect_deleteoldrdn = expect_newrdn = expect_sep = expect_ct = 0;
     linenum = 0;
     deleteoldrdn = 1;
