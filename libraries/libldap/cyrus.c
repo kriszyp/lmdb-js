@@ -374,8 +374,11 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	p->buf_out.buf_end = p->buf_out.buf_size;
 
 	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-	if ( ret <= 0 )
+	if ( ret <= 0 ) {
+		/* caller will retry, so clear this buffer out */
+		p->buf_out.buf_ptr = p->buf_out.buf_end;
 		return ret;
+	}
 	return len;
 }
 
