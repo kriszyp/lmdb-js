@@ -7,6 +7,7 @@ OpenLDAP 2.0.26 Engineering
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
 	Fixed libldap buffer size bugs (ITS#1935, ITS#1936)
 	Fixed libldap gethostbyname mutex init bug (ITS#2019)
+	Fixed liblutil passwd bug (ITS#2055)
 	Fixed sasl large reads and writes (ITS#1983, also ITS#910,ITS#1861)
 	Updated back-ldbm reindexing - slapindex rebuilds dn2id index
 	Build environment
