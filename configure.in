@@ -30,14 +30,7 @@ if test -z "$OL_STRING"; then
 	AC_MSG_ERROR([could not determine version])
 fi
 
-if test -f "$ac_aux_dir/shtool" -a ! -d $ac_aux_dir/shtool; then
-	ac_cv_shtool="$ac_aux_dir/shtool"
-else
-	AC_MSG_ERROR([no shtool found in $ac_aux_dir])
-fi
-
-SHTOOL="$ac_cv_shtool"
-dnl AC_SUBST(SHTOOL)dnl
+AC_PROG_SHTOOL
 
 TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
 TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
