@@ -1,0 +1,46 @@
+#
+# LDAP FreeBSD GNU C Make-platform file
+#
+
+
+#
+# add any platform-specific overrides below here
+#
+EXTRACFLAGS=-O -g
+LDBMBACKEND=-DLDBM_USE_DBBTREE
+LDBMINCLUDE=-I/usr/include
+
+EDITOR=/usr/bin/vi
+FINGER=/usr/bin/finger
+SENDMAIL=/usr/sbin/sendmail
+
+LDAP_RUNDIR=/var/run
+
+MANCOMPRESS=gzip
+MANCOMPRESSSUFFIX=.gz
+
+
+#
+# LDAP has a problem with the idea of implicit vs. explicit yields
+# in call conversion threading packages, like the MIT pthreads
+# package.  Rather than resolve this globally, I have marked the
+# threading as "preeemptive", even though it is technically not.
+#
+# This means that the implicit-yield threading is topologically
+# equivalent to preemptive threading.
+#
+THREADS= -DPOSIX_THREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
+
+# use special gcc flag to include libc_r.a
+THREADSLIB= -pthread
+#THREADSLIB= -lc_r
+
+# crypt(3) is in a separate library
+LDAP_CRYPT_LIB= -lcrypt
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+CC	= gcc
+PLATFORMCFLAGS=	-Dfreebsd
