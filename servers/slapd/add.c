@@ -82,7 +82,7 @@ do_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		return SLAPD_DISCONNECT;
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
@@ -130,7 +130,7 @@ do_add( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
 #endif
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-			rs->sr_err = -1;
+			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
 		}
 
@@ -168,7 +168,7 @@ do_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-		rs->sr_err = -1;
+		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 

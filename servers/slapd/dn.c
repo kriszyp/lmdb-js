@@ -918,6 +918,7 @@ int
 dnX509peerNormalize( void *ssl, struct berval *dn )
 {
 
-	return ldap_pvt_tls_get_peer_dn( ssl, dn, (LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
+	return ldap_pvt_tls_get_peer_dn( ssl, dn,
+		(LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
 }
 #endif

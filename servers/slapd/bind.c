@@ -41,8 +41,7 @@
 int
 do_bind(
     Operation	*op,
-    SlapReply	*rs
-)
+    SlapReply	*rs )
 {
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
@@ -117,7 +116,7 @@ do_bind(
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 #endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-		rs->sr_err = -1;
+		rs->sr_err = SLAPD_DISCONNECT;
 		goto cleanup;
 	}
 

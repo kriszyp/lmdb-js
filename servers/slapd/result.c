@@ -524,7 +524,6 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 		rs->sr_err, rs->sr_text ? rs->sr_text : "", NULL );
 #endif
 
-
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		rs->sr_rspoid = NULL;
 		rs->sr_tag = req2res( op->o_tag );
@@ -614,11 +613,15 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	 */
 	if ( op->o_pb != NULL ) {
 		slapi_int_pblock_set_operation( op->o_pb, op );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,
+			(void *)rs->sr_err );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT,
+			(void *)rs->sr_text );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED,
+			(void *)rs->sr_matched );
 
-		(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
+		(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN,
+			op->o_pb );
 	}
 #endif /* LDAP_SLAPI */
 
@@ -949,7 +952,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-				send_ldap_error( op, rs, LDAP_OTHER, "encoding description error");
+				send_ldap_error( op, rs, LDAP_OTHER,
+					"encoding description error");
 				goto error_return;
 			}
 			finish = 1;
@@ -992,7 +996,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 
 						if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-						send_ldap_error( op, rs, LDAP_OTHER, "encoding description error");
+						send_ldap_error( op, rs, LDAP_OTHER,
+							"encoding description error");
 						goto error_return;
 					}
 				}
@@ -1147,7 +1152,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER, "encoding description error" );
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"encoding description error" );
 			attrs_free( aa );
 			goto error_return;
 		}
@@ -1232,9 +1238,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
 				rc = compute_evaluator( &ctx, anp->an_name.bv_val,
 					rs->sr_entry, slapi_int_compute_output_ber );
-				if ( rc == 1 ) {
-					break;
-				}
+				if ( rc == 1 ) break;
 			}
 		} else {
 			/*

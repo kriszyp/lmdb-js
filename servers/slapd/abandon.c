@@ -57,9 +57,8 @@ do_abandon( Operation *op, SlapReply *rs )
 #else
 		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
 #endif
-		send_ldap_discon( op, rs,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
+		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 0 ) != LDAP_SUCCESS ) {

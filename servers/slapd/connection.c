@@ -948,7 +948,7 @@ void connection_done( Connection *c )
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
-	int rc = SLAPD_DISCONNECT;
+	int rc = LDAP_OTHER;
 	Operation *op = arg_v;
 	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
@@ -966,6 +966,36 @@ connection_operation( void *ctx, void *arg_v )
 
 	op->o_threadctx = ctx;
 
+	switch ( tag ) {
+	case LDAP_REQ_BIND:
+	case LDAP_REQ_UNBIND:
+	case LDAP_REQ_ADD:
+	case LDAP_REQ_DELETE:
+	case LDAP_REQ_MODRDN:
+	case LDAP_REQ_MODIFY:
+	case LDAP_REQ_COMPARE:
+	case LDAP_REQ_SEARCH:
+	case LDAP_REQ_ABANDON:
+	case LDAP_REQ_EXTENDED:
+		break;
+	default:
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONNECTION, INFO, "connection_operation: "
+			"conn %lu unknown LDAP request 0x%lx\n",
+			conn->c_connid, tag, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "connection_operation: "
+			"conn %lu unknown LDAP request 0x%lx\n",
+			conn->c_connid, tag, 0 );
+#endif
+		op->o_tag = LBER_ERROR;
+		rs.sr_err = LDAP_PROTOCOL_ERROR;
+		rs.sr_text = "unknown LDAP request";
+		send_ldap_disconnect( op, &rs );
+		rc = SLAPD_DISCONNECT;
+		goto operations_error;
+	}
+
 	if( conn->c_sasl_bind_in_progress && tag != LDAP_REQ_BIND ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, ERR, 
@@ -978,6 +1008,7 @@ connection_operation( void *ctx, void *arg_v )
 #endif
 		send_ldap_error( op, &rs, LDAP_OPERATIONS_ERROR,
 			"SASL bind in progress" );
+		rc = LDAP_OPERATIONS_ERROR;
 		goto operations_error;
 	}
 
@@ -1053,29 +1084,15 @@ connection_operation( void *ctx, void *arg_v )
 		break;
 
 	default:
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			"connection_operation: conn %lu unknown LDAP request 0x%lx\n",
-			conn->c_connid, tag, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "unknown LDAP request 0x%lx\n",
-			tag, 0, 0 );
-#endif
-		op->o_tag = LBER_ERROR;
-		rs.sr_err = LDAP_PROTOCOL_ERROR;
-		rs.sr_text = "unknown LDAP request";
-		send_ldap_disconnect( op, &rs );
-		rc = -1;
-		break;
+		/* not reachable */
+		assert( 0 );
 	}
 
-#ifdef SLAPD_MONITOR
-	oldtag = tag;
-#endif /* SLAPD_MONITOR */
+operations_error:
 	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
-operations_error:
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
+
 	num_ops_completed++;
 #ifdef SLAPD_MONITOR
 	switch (oldtag) {
@@ -1109,6 +1126,9 @@ operations_error:
 	case LDAP_REQ_EXTENDED:
 		num_ops_completed_[SLAP_OP_EXTENDED]++;
 		break;
+	default:
+		/* not reachable */
+		assert( 0 );
 	}
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
@@ -1116,7 +1136,6 @@ operations_error:
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
 		op->o_cancel = LDAP_TOO_LATE;
 	}
-
 	while ( op->o_cancel != SLAP_CANCEL_NONE &&
 		op->o_cancel != SLAP_CANCEL_DONE )
 	{
@@ -1128,14 +1147,17 @@ operations_error:
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
 	if ( op->o_cancel != SLAP_CANCEL_ACK &&
-				( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
+		( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+	{
 		slap_sl_mem_detach( ctx, memctx );
+
 	} else if (( op->o_sync_slog_size != -1 )) {
 		slap_sl_mem_detach( ctx, memctx );
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 		conn->c_n_ops_executing--;
 		conn->c_n_ops_completed++;
+
 	} else {
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
@@ -1161,9 +1183,7 @@ operations_error:
 	}
 
 	connection_resched( conn );
-
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
 	return NULL;
 }
 
@@ -1174,11 +1194,12 @@ int connection_client_setup(
 	ldap_pvt_thread_start_t *func,
 	void *arg )
 {
+	int rc;
 	Connection *c;
 
-	if ( connection_init( s, (Listener *)&dummy_list, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
-		return -1;
-	}
+	rc = connection_init( s, (Listener *)&dummy_list, "", "",
+		CONN_IS_CLIENT, 0, NULL );
+	if ( rc < 0 ) return -1;
 
 	c = connection_get( s );
 	c->c_clientfunc = func;
@@ -1190,15 +1211,13 @@ int connection_client_setup(
 }
 
 void connection_client_enable(
-	ber_socket_t s
-)
+	ber_socket_t s )
 {
 	slapd_set_read( s, 1 );
 }
 
 void connection_client_stop(
-	ber_socket_t s
-)
+	ber_socket_t s )
 {
 	Connection *c;
 
