@@ -634,7 +634,8 @@ void slap_sasl2dn( Connection *conn,
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
-	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx:
+		ldap_pvt_thread_pool_context( &connection_pool );
 
 	(*be->be_search)( be, conn, &op, NULL, &dn,
 		scope, LDAP_DEREF_NEVER, 1, 0,
