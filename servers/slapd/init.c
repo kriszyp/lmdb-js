@@ -149,7 +149,9 @@ slap_init( int mode, const char *name )
 			if( rc == 0 ) {
 				Slapi_PBlock *pb = slapi_pblock_new();
 
-				rc = doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb );
+				if ( doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb ) < 0 ) {
+					rc = -1;
+				}
 				slapi_pblock_destroy( pb );
 			}
 #endif /* LDAP_SLAPI */
