@@ -40,7 +40,11 @@ bdb_bind(
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "bind", LDAP_LEVEL_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
+#endif
 
 	/* get entry */
 	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
@@ -112,8 +116,12 @@ bdb_bind(
 #ifdef BDB_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
-		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is subentry\n" ));
+#else
+		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
 			0, 0 );
+#endif
 
 		send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 			NULL, NULL, NULL, NULL );
@@ -125,8 +133,12 @@ bdb_bind(
 #ifdef BDB_ALIASES
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is alias\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
 			0, 0 );
+#endif
 
 		send_ldap_result( conn, op, rc = LDAP_ALIAS_PROBLEM,
 			NULL, "entry is alias", NULL, NULL );
@@ -140,8 +152,12 @@ bdb_bind(
 		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is referral\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
+#endif
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
