@@ -13,14 +13,14 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <time.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
 #ifdef DEBUG
@@ -597,9 +597,7 @@ time2text( char *ldtimestr, int dateonly )
 
 /* gtime.c - inverse gmtime */
 
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
+#include <ac/time.h>
 
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.

@@ -217,7 +217,7 @@ char *s;
 {
 	if (errno != 0)
 		perror(s);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(-1);

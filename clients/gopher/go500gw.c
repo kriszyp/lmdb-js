@@ -153,7 +153,7 @@ char	**argv;
 #elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
 #else
-	dtblsize = 32;
+	dtblsize = FD_SETSIZE;
 #endif
 
 #ifdef FD_SETSIZE

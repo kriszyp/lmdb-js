@@ -80,11 +80,11 @@ query_cmd( msgp, reply )
     /*
      * open connection to LDAP server and bind as dapuser
      */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( do_cldap )
 	ldp = cldap_open( ldaphost, ldapport );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	ldp = ldap_open( ldaphost, ldapport );
 
     if ( ldp == NULL ) {
@@ -94,9 +94,9 @@ query_cmd( msgp, reply )
 	return( 0 );
     }
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( !do_cldap )
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	if ( ldap_simple_bind_s( ldp, dapuser, NULL ) != LDAP_SUCCESS ) {
 	    report_ldap_err( ldp, reply );
 	    close_ldap( ldp );
@@ -113,11 +113,11 @@ query_cmd( msgp, reply )
     matches = 0;
 
 #ifdef RCPT500_UFN
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( !do_cldap && strchr( msgp->msg_arg, ',' ) != NULL ) {
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
     if ( strchr( msgp->msg_arg, ',' ) != NULL ) {
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	struct timeval	tv;
 
 	ldap_ufn_setprefix( ldp, searchbase );
@@ -136,12 +136,12 @@ query_cmd( msgp, reply )
     
 	for ( lfi = ldap_getfirstfilter( lfdp, "rcpt500", msgp->msg_arg );
 		lfi != NULL; lfi = ldap_getnextfilter( lfdp )) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    if ( do_cldap )
 		rc = cldap_search_s( ldp, searchbase, LDAP_SCOPE_SUBTREE,
 			lfi->lfi_filter, attrs, 0, &ldmsgp, dapuser );
 	    else 
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		rc = ldap_search_s( ldp, searchbase, LDAP_SCOPE_SUBTREE,
 			lfi->lfi_filter, attrs, 0, &ldmsgp );
 
@@ -223,11 +223,11 @@ query_cmd( msgp, reply )
 void
 close_ldap( LDAP *ld )
 {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( do_cldap )
 	cldap_close( ld );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	ldap_unbind( ld );
 }
 

@@ -170,11 +170,13 @@ static do_query()
 		exit( 1 );
 	}
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	tblsize = FD_SETSIZE;
+#endif
 
 #ifdef FD_SETSIZE
 	if (tblsize > FD_SETSIZE) {

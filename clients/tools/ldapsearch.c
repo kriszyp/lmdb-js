@@ -50,7 +50,7 @@ char	*s;
     fprintf( stderr, "    -z size lim\tsize limit (in entries) for search\n" );
     fprintf( stderr, "    -D binddn\tbind dn\n" );
     fprintf( stderr, "    -w passwd\tbind passwd (for simple authentication)\n" );
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     fprintf( stderr, "    -k\t\tuse Kerberos instead of Simple Password authentication\n" );
 #endif
     fprintf( stderr, "    -h host\tldap server\n" );
@@ -111,7 +111,7 @@ char	**argv;
     scope = LDAP_SCOPE_SUBTREE;
 
     while (( i = getopt( argc, argv,
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	    "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
 #else
 	    "nuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:"
@@ -131,7 +131,7 @@ char	**argv;
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
 	    break;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case 'k':	/* use kerberos bind */
 	    kerberos = 2;
 	    break;

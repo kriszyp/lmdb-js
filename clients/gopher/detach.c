@@ -31,7 +31,7 @@ int	debug;
 #elif defined( HAVE_GETDTABLESIZE )
 	nbits = getdtablesize();
 #else
-	nbits = 32;
+	nbits = FD_SETSIZE;
 #endif
 
 #ifdef FD_SETSIZE
@@ -73,14 +73,14 @@ int	debug;
 			(void) dup2( sd, 2 );
 		close( sd );
 
-#ifdef USE_SETSID
+#ifdef HAVE_SETSID
 		(void) setsid();
-#else /* USE_SETSID */
+#else /* HAVE_SETSID */
 		if ( (sd = open( "/dev/tty", O_RDWR )) != -1 ) {
 			(void) ioctl( sd, TIOCNOTTY, NULL );
 			(void) close( sd );
 		}
-#endif /* USE_SETSID */
+#endif /* HAVE_SETSID */
 	} 
 
 	(void) signal( SIGPIPE, SIG_IGN );

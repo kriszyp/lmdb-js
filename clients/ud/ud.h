@@ -10,14 +10,13 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #ifdef DOS
-#include "protoud.h"
-#define strncasecmp(a, b, n)	strnicmp(a, b, n)
-#define strcasecmp(a, b)	stricmp(a, b)
 #define MAX_VALUES	8
 #else
 #define MAX_VALUES	1000
-#endif /* end of DOS ifdef */
+#endif /* !DOS */
 
 /*****************************************************************************
  **
@@ -87,7 +86,7 @@
 /*
  *  Authentication method we will be using.
  */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 #define UD_AUTH_METHOD		LDAP_AUTH_KRBV4
 #else
 #define UD_AUTH_METHOD		LDAP_AUTH_SIMPLE
@@ -136,6 +135,8 @@
 #define ATTR_FLAG_IS_A_BOOL	0x4000
 #define ATTR_FLAG_IS_MULTILINE	0x8000
 
+LDAP_BEGIN_DECL
+
 /*
  *  These are the structures we use when parsing an answer we get from the LDAP
  *  server.
@@ -156,3 +157,5 @@ struct entry {
 	char *name;
 	struct attribute attrs[MAX_ATTRS];
 };
+
+LDAP_END_DECL

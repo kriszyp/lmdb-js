@@ -270,7 +270,7 @@ do_commands()
 	printf(" Thank you!\n");
 	
 	ldap_unbind(ld);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(0);
@@ -693,9 +693,9 @@ RETSIGTYPE attn()
 	fflush(stderr);
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
-#if defined(DOS) || defined(SYSV)
+
 	(void) signal(SIGINT, attn);
-#endif
+
 	longjmp(env, 1);
 }
 
@@ -711,6 +711,7 @@ RETSIGTYPE chwinsz()
 		if (win.ws_col != 0)
 			col_size = win.ws_col;
 	}
+
 	(void) signal(SIGWINCH, chwinsz);
 }
 #endif

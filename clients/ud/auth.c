@@ -34,7 +34,7 @@ extern char *mygetpass();	/* getpass() passwds are too short */
 extern int debug;		/* debug flag */
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();

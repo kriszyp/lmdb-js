@@ -44,7 +44,7 @@ struct attribute attrlist[] = {
 #ifdef UOFM
 	{ "multiLineDescription", "Description", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD | ATTR_FLAG_IS_MULTILINE },
 #endif
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	{ "krbName", "Kerberos name", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_READ },
 #endif
 	{ "description", "Brief description", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },

@@ -137,11 +137,13 @@ char	**argv;
 	}
 #endif
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	dtblsize = FD_SETSIZE;
+#endif
 
 #ifdef FD_SETSIZE
 	if (dtblsize > FD_SETSIZE) {
