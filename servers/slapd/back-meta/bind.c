@@ -192,18 +192,11 @@ meta_back_do_single_bind(
 		return -1;
 	}
 
-	if ( op->o_ctrls ) {
-		rs->sr_err = ldap_set_option( lsc->msc_ld, 
-				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			rs->sr_err = slap_map_api2result( rs );
-			goto return_results;
-		}
-	}
-
 	/* FIXME: this fixes the bind problem right now; we need
 	 * to use the asynchronous version to get the "matched"
 	 * and more in case of failure ... */
+	/* FIXME: should be check if at least some of the op->o_ctrls
+	 * can/should be passed? */
 	rs->sr_err = ldap_sasl_bind( lsc->msc_ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->orb_cred,
 			op->o_ctrls, NULL, &msgid );
@@ -309,17 +302,6 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		}
 
 		/*
-		 * If required, set controls
-		 */
-		if ( op->o_ctrls ) {
-			if ( ldap_set_option( lsc->msc_ld, LDAP_OPT_SERVER_CONTROLS,
-					op->o_ctrls ) != LDAP_SUCCESS ) {
-				( void )meta_clear_one_candidate( lsc, 1 );
-				continue;
-			}
-		}
-
-		/*
 		 * If the target is already bound it is skipped
 		 */
 		if ( lsc->msc_bound == META_BOUND && lc->mc_bound_target == i ) {
@@ -346,8 +328,10 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			BER_BVZERO( &lsc->msc_cred );
 		}
 
+		/* FIXME: should be check if at least some of the op->o_ctrls
+		 * can/should be passed? */
 		rc = ldap_sasl_bind( lsc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
-				op->o_ctrls, NULL, &msgid );
+				NULL, NULL, &msgid );
 		if ( rc == LDAP_SUCCESS ) {
 			LDAPMessage	*res;
 			struct timeval	tv = { 0, 0 };
