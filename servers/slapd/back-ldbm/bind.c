@@ -123,7 +123,7 @@ ldbm_back_bind(
 		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
-			if(*edn != NULL) free( edn );
+			if(*edn != NULL) free( *edn );
 			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
 			goto return_results;
