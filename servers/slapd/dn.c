@@ -454,13 +454,20 @@ rdn_attr_value( char * rdn )
 void
 build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
 {
+
+    if ( p_dn == NULL ) {
+
+	*new_dn = ch_strdup( newrdn );
+	return;
+
+    }
     
     *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
 
     if ( dn_type( e_dn ) == DN_X500 ) {
 
 	strcpy( *new_dn, newrdn );
-	strcat( *new_dn, ", " );
+	strcat( *new_dn, "," );
 	strcat( *new_dn, p_dn );
 
     } else {

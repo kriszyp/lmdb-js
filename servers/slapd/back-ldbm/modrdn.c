@@ -55,6 +55,15 @@ ldbm_back_modrdn(
 	struct berval	bv;			/* Stores new rdn att */
 	struct berval	*bvals[2];		/* Stores new rdn att */
 	LDAPMod		mod;			/* Used to delete old rdn */
+	/* Added to support newSuperior */ 
+	Entry		*np = NULL;	/* newSuperior Entry */
+	char		*np_dn = NULL;  /* newSuperior dn */
+	char		*np_ndn = NULL; /* newSuperior ndn */
+	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
+
+	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",\
+	       (newSuperior ? newSuperior : "NULL"),\
+	       0, 0 );
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
@@ -79,7 +88,11 @@ ldbm_back_modrdn(
 #endif
 
 	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) {
-		/* parent + rdn + separator(s) + null */
+
+	        /* Make sure parent entry exist and we can write its 
+		 * children.
+		 */
+
 		if( (p = dn2entry_w( be, p_ndn, &matched )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
@@ -99,29 +112,17 @@ ldbm_back_modrdn(
 				"", "" );
 			goto return_results;
 		}
-#endif
 
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: wr to children of entry %s OK\n",
+		       p_ndn, 0, 0 );
+#endif
+		
 		p_dn = dn_parent( be, e->e_dn );
-		new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn )
-		    + 3 );
-		if ( dn_type( e->e_dn ) == DN_X500 ) {
-			strcpy( new_dn, newrdn );
-			strcat( new_dn, "," );
-			strcat( new_dn, p_dn );
-		} else {
-			char *s;
-			strcpy( new_dn, newrdn );
-			s = strchr( newrdn, '\0' );
-			s--;
-			if ( *s != '.' && *s != '@' ) {
-				if ( (s = strpbrk( dn, ".@" )) != NULL ) {
-					sep[0] = *s;
-					sep[1] = '\0';
-					strcat( new_dn, sep );
-				}
-			}
-			strcat( new_dn, p_dn );
-		}
+	
+
+		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: parent dn=%s\n",
+		       p_dn, 0, 0 );
 
 	} else {
 		/* no parent, modrdn entry directly under root */
@@ -135,16 +136,85 @@ ldbm_back_modrdn(
 
 		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
 		rootlock = 1;
+		
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: no parent, locked root\n",
+		       0, 0, 0 );
 
-		new_dn = ch_strdup( newrdn );
+	}/* if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) else */
+
+	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
+
+	if ( (np_dn = newSuperior) != NULL) {
+
+
+		Debug( LDAP_DEBUG_TRACE, 
+		       "ldbm_back_modrdn: new parent requested...\n",
+		       0, 0, 0 );
+
+		np_ndn = dn_normalize_case( ch_strdup( np_dn ) );
+
+		/* newSuperior == oldParent?, if so ==> ERROR */
+
+		/* newSuperior == entry being moved?, if so ==> ERROR */
+
+		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
+
+		if( (np = dn2entry_w( be, np_ndn, &matched )) == NULL) {
+
+			Debug( LDAP_DEBUG_TRACE,
+			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
+			       np_ndn, 0, 0);
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "",
+					  "");
+			goto return_results;
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%d\n",
+		       np, np->e_id, 0 );
+	    
+#ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
+		/* check newSuperior for "children" acl */
+		if ( !access_allowed( be, conn, op, np, "children", NULL,
+				      ACL_WRITE ) )
+		{
+			Debug( LDAP_DEBUG_TRACE,
+			       "ldbm_back_modrdn: no wr to newSup children\n",
+			       0, 0, 0 );
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+					  "", "" );
+			goto return_results;
+		}
+#endif
+
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: wr to new parent's children OK\n",
+		       0, 0 , 0 );
+
+
+		new_parent_dn = np_dn;
+
 	}
+	
+	/* Build target dn and make sure target entry doesn't exist already. */
 
-	new_ndn = dn_normalize_case( ch_strdup( new_dn ) );
+	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn ); 
 
-	if ( (dn2id ( be, new_ndn ) ) != NOID ) {
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
+
+	new_ndn = dn_normalize_case( ch_strdup(new_dn) );
+
+	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
+	       new_ndn, 0, 0 );
+
+	if (dn2id ( be, new_ndn ) != NOID) {
+	        send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
 		goto return_results;
 	}
+
+	Debug( LDAP_DEBUG_TRACE,
+	       "ldbm_back_modrdn: new ndn=%s does not exist\n",
+	       new_ndn, 0, 0 );
 
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
@@ -351,6 +421,11 @@ return_results:
 	if( old_rdn != NULL ) free(old_rdn);
 	if( old_rdn_type != NULL ) free(old_rdn_type);
 	if( old_rdn_val != NULL ) free(old_rdn_val);
+
+
+	/* LDAP v3 Support */
+	if ( np_dn != NULL ) free( np_dn );
+	if ( np_ndn != NULL ) free( np_ndn );
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
