@@ -27,12 +27,8 @@
 #include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */
 #include "lutil_ldap.h"
 
-#if 0
-struct sync_cookie *slap_sync_cookie = NULL;
-#else
 struct slap_sync_cookie_s slap_sync_cookie =
 	LDAP_STAILQ_HEAD_INITIALIZER( slap_sync_cookie );
-#endif
 
 void
 slap_compose_sync_cookie(
@@ -43,7 +39,7 @@ slap_compose_sync_cookie(
 {
 	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 
-	if ( csn->bv_val == NULL ) {
+	if ( BER_BVISNULL( csn )) {
 		if ( rid == -1 ) {
 			cookiestr[0] = '\0';
 		} else {
