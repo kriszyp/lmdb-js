@@ -278,6 +278,79 @@ ber_get_stringb(
 	return tag;
 }
 
+enum bgbvc { ChArray, BvArray, BvVec };
+
+typedef struct bgbvr {
+	BerElement *ber;
+	enum bgbvc choice;
+	ber_tag_t tag;
+	ber_len_t len;
+	char *last;
+	union {
+		char ***c;
+		BVarray *ba;
+		struct berval ***bv;
+	} res;
+} bgbvr;
+
+ber_tag_t
+ber_get_stringbvr( bgbvr *b, int n )
+{
+	struct berval bv;
+
+	if ( n )
+		b->tag = ber_next_element( b->ber, &b->len, b->last );
+	else
+		b->tag = ber_first_element( b->ber, &b->len, &b->last );
+
+	if ( b->tag == LBER_DEFAULT )
+	{
+		if ( n == 0 ) {
+			*b->res.c = NULL;
+			return 0;
+		}
+		/* do the allocation */
+		switch (b->choice) {
+		case ChArray:
+			*b->res.c = LBER_MALLOC( (n+1) * sizeof( char * ));
+			(*b->res.c)[n] = NULL;
+			break;
+		case BvArray:
+			*b->res.ba = LBER_MALLOC( (n+1) * sizeof( struct berval ));
+			(*b->res.ba)[n].bv_val = NULL;
+			break;
+		case BvVec:
+			*b->res.bv = LBER_MALLOC( (n+1) * sizeof( struct berval *));
+			(*b->res.bv)[n] = NULL;
+			break;
+		}
+		return 0;
+	}
+
+	if ( ber_get_stringbv( b->ber, &bv ) == LBER_DEFAULT )
+		return LBER_DEFAULT;
+
+	b->tag = ber_get_stringbvr( b, n+1 );
+	if ( b->tag == 0 )
+	{
+		/* store my result */
+		switch (b->choice) {
+		case ChArray:
+			(*b->res.c)[n] = bv.bv_val;
+			break;
+		case BvArray:
+			(*b->res.ba)[n] = bv;
+			break;
+		case BvVec:
+			(*b->res.bv)[n] = ber_bvdup( &bv );
+			break;
+		}
+	} else {
+		LBER_FREE( bv.bv_val );
+	}
+	return b->tag;
+}
+
 ber_tag_t
 ber_get_stringbv( BerElement *ber, struct berval *bv )
 {
@@ -469,7 +542,7 @@ ber_next_element(
 }
 
 /* Hopefully no one sends vectors with more elements than this */
-#define	TMP_SLOTS	1024
+/* #define	TMP_SLOTS	1024 */
 
 /* VARARGS */
 ber_tag_t
@@ -580,6 +653,7 @@ ber_scanf ( BerElement *ber,
 
 		case 'v':	/* sequence of strings */
 		{
+#ifdef TMP_SLOTS
 			char *tmp[TMP_SLOTS];
 			sss = va_arg( ap, char *** );
 			*sss = NULL;
@@ -606,11 +680,17 @@ ber_scanf ( BerElement *ber,
 				for (j--; j>=0; j--)
 					LBER_FREE(tmp[j]);
 			}
+#else
+			bgbvr cookie = { ber, ChArray };
+			cookie.res.c = va_arg( ap, char *** );
+			rc = ber_get_stringbvr( &cookie, 0 );
+#endif
 			break;
 		}
 
 		case 'V':	/* sequence of strings + lengths */
 		{
+#ifdef TMP_SLOTS
 			struct berval *tmp[TMP_SLOTS];
 			bv = va_arg( ap, struct berval *** );
 			*bv = NULL;
@@ -637,11 +717,17 @@ ber_scanf ( BerElement *ber,
 				for (j--; j>=0; j--)
 					ber_bvfree(tmp[j]);
 			}
+#else
+			bgbvr cookie = { ber, BvVec };
+			cookie.res.bv = va_arg( ap, struct berval *** );
+			rc = ber_get_stringbvr( &cookie, 0 );
+#endif
 			break;
 		}
 
 		case 'W':	/* bvarray */
 		{
+#ifdef TMP_SLOTS
 			struct berval tmp[TMP_SLOTS];
 			bvp = va_arg( ap, struct berval ** );
 			*bvp = NULL;
@@ -669,6 +755,11 @@ ber_scanf ( BerElement *ber,
 				for (j--; j>=0; j--)
 					LBER_FREE(tmp[j].bv_val);
 			}
+#else
+			bgbvr cookie = { ber, BvArray };
+			cookie.res.ba = va_arg( ap, struct berval ** );
+			rc = ber_get_stringbvr( &cookie, 0 );
+#endif
 			break;
 		}
 
