@@ -52,7 +52,6 @@ ldap_back_modrdn(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	int rc;
 	ber_int_t msgid;
 
 	struct berval mdn = { 0, NULL }, mnewSuperior = { 0, NULL };

@@ -429,8 +429,6 @@ ldap_back_exop_whoami(
 
 	/* if auth'd by back-ldap and request is proxied, forward it */
 	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
-		struct ldapinfo *li =
-			(struct ldapinfo *)op->o_conn->c_authz_backend->be_private;
 		struct ldapconn *lc;
 
 		LDAPControl c, *ctrls[2] = {&c, NULL};

@@ -103,7 +103,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct metasingleconn *lsc;
 	struct timeval	tv = { 0, 0 };
 	LDAPMessage	*res, *e;
-	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
+	int	rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
 	char *match = NULL, *err = NULL;
 	char *mmatch = NULL;
 	BerVarray v2refs = NULL;
@@ -361,6 +361,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 #if 0
 		if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
+			int	count;
 			for ( count = 0; op->oq_search.rs_attrs[ count ].an_name.bv_val; count++ );
 			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
 			for ( count = 0; op->oq_search.rs_attrs[ count ].an_name.bv_val; count++ ) {
