@@ -6,25 +6,10 @@
    that it is guaranteed to work only when such column goes after last bound
    column. Or should we get ALL columns with SQLGetData (then something like 
    _SQLFetchAsStrings() wrapper would do SQLGetData() for all columns)...
-4) in some cases (particularly, when using OpenLink Generic ODBC driver with
+3) in some cases (particularly, when using OpenLink Generic ODBC driver with
    MS SQL Server), it returns "Function sequence error" after all records are
    fetched. I really don't know what it means, and after all
     - it works with any other driver I tried
-5) referral handling. this bug actually addresses all backends, as I can
-   understand. draft-ietf-ldapext-namedref-xx.txt says that referral should be
-   returned for ANY object containing "ref" attribute. And is_entry_referral
-   macro designed for "referral" objectclass only. This limits usability of
-   referrals too much. For instance, I could want to replicate some subtree on
-   another server, storing just "searchable" attributes + referral to full
-   object, and then use this subtree as kind of index for query routing.
-   If search returns referrals only for "referral" entries - I cannot do such
-   thing
-6) DO NOT EVER USE -O2 option (or any other optimization) under Un*x/gcc!!!
-   I have spent days trying to catch weird bugs, which went gone with optimization off
-7) The same thing that works on RedHat 6.0 (glibc 2.1.1), dumps core on
-   6.1 (glibc 2.1.2) (the same code behaves differently when built on 6.0 and 6.1)
-   my problem was solved by upgrading iODBC to 3.0 beta - but it is kinda strange
-   that beta works better than release (and release still works fine on 6.0)
-9) ldapsearch sometimes refuses to show some attributes ("NOT PRINTABLE" diags)
-   on Win32 (on linux everything's fine -- at least with mySQL)
+4) ldapsearch sometimes refuses to show some attributes ("NOT PRINTABLE" diags)
+   on Win32 (on linux everything's fine)
    
