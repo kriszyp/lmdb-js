@@ -24,8 +24,8 @@ E.g.:
 While the server can be configured to listen on a particular interface
 address, this doesn't necessarily restrict access to the server to
 only those networks accessible via that interface.   To selective
-restrict remote access, it is recommend that an IP Firewall be
-used to restrict access.
+restrict remote access, it is recommend that an {{SECT:IP Firewall}}
+be used to restrict access.
 
 See {{SECT:Command-line Options}} and {{slapd}}(8) for more
 information.
@@ -39,7 +39,10 @@ interface used to communicate with the client.
 
 Generally, {{slapd}}(8) listens on port 389/tcp for LDAP over
 {{TERM:TCP}} (e.g.  {{F:ldap://}}) and port 636/tcp for LDAP over
-{{TERM:SSL}} (e.g.  {{F:ldaps://}}).
+{{TERM:SSL}} (e.g.  {{F:ldaps://}}).  Note that LDAP over TCP
+sessions can be protected by {{TERM:TLS}} through the use of
+{{StartTLS}}.  StartTLS is the Standard Track mechanism for protecting
+LDAP sessions with TLS.
 
 As specifics of how to configure IP firewall are dependent on the
 particular kind of IP firewall used, no examples are provided here.
@@ -57,6 +60,8 @@ For example, the {{host_options}}(5) rule:
 
 allows only incoming connections from the private network {{F:10.0.0.0}}
 and localhost ({{F:127.0.0.1}}) to access the directory service.
+Note that IP addresses are used as {{slapd}}(8) is not normally
+configured to perform reverse lookups.
 
 It is noted that TCP wrappers require the connection to be accepted.
 As significant processing is required just to deny a connection,
