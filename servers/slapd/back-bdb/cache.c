@@ -230,6 +230,9 @@ bdb_entryinfo_add_internal(
 #ifdef BDB_HIER
 	ei2->bei_rdn = ei->bei_rdn;
 #endif
+#ifdef SLAP_ZONE_ALLOC
+	ei2->bei_bdb = bdb;
+#endif
 
 	/* Add to cache ID tree */
 	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
@@ -393,6 +396,9 @@ hdb_cache_find_parent(
 		ein->bei_nrdn = ei.bei_nrdn;
 		ein->bei_rdn = ei.bei_rdn;
 		ein->bei_ckids = ei.bei_ckids;
+#ifdef SLAP_ZONE_ALLOC
+		ein->bei_bdb = bdb;
+#endif
 		ei.bei_ckids = 0;
 		
 		/* This node is not fully connected yet */
@@ -530,27 +536,32 @@ bdb_cache_lru_add(
 			elprev = elru->bei_lruprev;
 
 			/* Too many probes, not enough idle, give up */
-			if (i > 10) break;
+			if (i > 10)
+				break;
 
 			/* If we can successfully writelock it, then
 			 * the object is idle.
 			 */
-			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, bdb->bi_cache.c_locker, elru, 1, 1,
-				lockp ) == 0 ) {
+			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv,
+					bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
 				int stop = 0;
 
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
 				 * or this node is being deleted, skip it.
 				 */
-				if ( !elru->bei_e || (elru->bei_state & 
+				if ( !elru->bei_e || (elru->bei_state &
 					( CACHE_ENTRY_NOT_LINKED | CACHE_ENTRY_DELETED ))) {
 					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
 				LRU_DELETE( &bdb->bi_cache, elru );
 				elru->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+				bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
+#else
 				bdb_entry_return( elru->bei_e );
+#endif
 				elru->bei_e = NULL;
 				ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 				--bdb->bi_cache.c_cursize;
@@ -606,6 +617,9 @@ bdb_cache_find_id(
 
 	ei.bei_id = id;
 
+#ifdef SLAP_ZONE_ALLOC
+	slap_zh_rlock(bdb->bi_cache.c_zctx);
+#endif
 	/* If we weren't given any info, see if we have it already cached */
 	if ( !*eip ) {
 again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
@@ -649,7 +663,11 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 				&ep->e_nname, eip );
 			if ( *eip ) islocked = 1;
 			if ( rc ) {
+#ifdef SLAP_ZONE_ALLOC
+				bdb_entry_return( bdb, ep, (*eip)->bei_zseq );
+#else
 				bdb_entry_return( ep );
+#endif
 				ep = NULL;
 			}
 		}
@@ -665,7 +683,15 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			rc = DB_NOTFOUND;
 		} else {
 			/* Make sure only one thread tries to load the entry */
-load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
+load1:
+#ifdef SLAP_ZONE_ALLOC
+			if ((*eip)->bei_e && !slap_zn_validate(
+					bdb->bi_cache.c_zctx, (*eip)->bei_e, (*eip)->bei_zseq)) {
+				(*eip)->bei_e = NULL;
+				(*eip)->bei_zseq = 0;
+			}
+#endif
+			if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 				load = 1;
 				(*eip)->bei_state |= CACHE_ENTRY_LOADING;
 			}
@@ -711,6 +737,9 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 						bdb_fix_dn( ep, 0 );
 #endif
 						(*eip)->bei_e = ep;
+#ifdef SLAP_ZONE_ALLOC
+						(*eip)->bei_zseq = *((ber_len_t *)ep - 2);
+#endif
 						ep = NULL;
 					}
 					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
@@ -771,7 +800,11 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 		bdb_cache_entryinfo_unlock( *eip );
 	}
 	if ( ep ) {
+#ifdef SLAP_ZONE_ALLOC
+		bdb_entry_return( bdb, ep, (*eip)->bei_zseq );
+#else
 		bdb_entry_return( ep );
+#endif
 	}
 	if ( rc == 0 ) {
 
@@ -800,6 +833,12 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 		}
 	}
 
+#ifdef SLAP_ZONE_ALLOC
+	if (rc == 0 && (*eip)->bei_e) {
+		slap_zn_rlock(bdb->bi_cache.c_zctx, (*eip)->bei_e);
+	}
+	slap_zh_runlock(bdb->bi_cache.c_zctx);
+#endif
 	return rc;
 }
 
@@ -865,7 +904,11 @@ bdb_cache_add(
 	/* bdb_csn_commit can cause this when adding the database root entry */
 	if ( new->bei_e ) {
 		new->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+		bdb_entry_return( bdb, new->bei_e, new->bei_zseq );
+#else
 		bdb_entry_return( new->bei_e );
+#endif
 	}
 	new->bei_e = e;
 	e->e_private = new;
@@ -1043,7 +1086,11 @@ bdb_cache_delete_cleanup(
 {
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+		bdb_entry_return( ei->bei_bdb, ei->bei_e, ei->bei_zseq );
+#else
 		bdb_entry_return( ei->bei_e );
+#endif
 		ei->bei_e = NULL;
 	}
 
@@ -1123,7 +1170,11 @@ bdb_entryinfo_release( void *data )
 	}
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+		bdb_entry_return( ei->bei_bdb, ei->bei_e, ei->bei_zseq );
+#else
 		bdb_entry_return( ei->bei_e );
+#endif
 	}
 	bdb_cache_entryinfo_destroy( ei );
 }
@@ -1310,7 +1361,11 @@ bdb_cache_delete_entry(
 		if ( ei->bei_e && !(ei->bei_state & CACHE_ENTRY_NOT_LINKED )) {
 			LRU_DELETE( &bdb->bi_cache, ei );
 			ei->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+			bdb_entry_return( bdb, ei->bei_e, ei->bei_zseq );
+#else
 			bdb_entry_return( ei->bei_e );
+#endif
 			ei->bei_e = NULL;
 			--bdb->bi_cache.c_cursize;
 		}

@@ -842,6 +842,9 @@ dn2entry_retry:
 				? get_entry_referrals( op, matched )
 				: NULL;
 
+#ifdef SLAP_ZONE_ALLOC
+			slap_zn_runlock(bdb->bi_cache.c_zctx, matched);
+#endif
 			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
 				matched, &lock);
 			matched = NULL;
@@ -853,6 +856,9 @@ dn2entry_retry:
 			}
 
 		} else {
+#ifdef SLAP_ZONE_ALLOC
+			slap_zn_runlock(bdb->bi_cache.c_zctx, matched);
+#endif
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &sop->o_req_dn, sop->oq_search.rs_scope );
 		}
@@ -882,6 +888,9 @@ dn2entry_retry:
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( op, e );
 
+#ifdef SLAP_ZONE_ALLOC
+		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 		e = NULL;
 
@@ -913,6 +922,9 @@ dn2entry_retry:
 		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
 	{
 		rs->sr_err = LDAP_ASSERTION_FAILED;
+#ifdef SLAP_ZONE_ALLOC
+		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 		send_ldap_result( sop, rs );
 		return 1;
 	}
@@ -930,6 +942,9 @@ dn2entry_retry:
 	base.e_nname = realbase;
 	base.e_id = e->e_id;
 
+#ifdef SLAP_ZONE_ALLOC
+	slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 	if ( e != &e_root ) {
 		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 	}
@@ -1230,7 +1245,7 @@ loop_begin:
 #ifdef BDB_PSEARCH
 		if (!IS_PSEARCH) {
 #endif
-id2entry_retry:
+fetch_entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
 			rs->sr_err = bdb_cache_find_id( op, ltid,
@@ -1244,7 +1259,7 @@ id2entry_retry:
 			} else if ( rs->sr_err == DB_LOCK_DEADLOCK
 				|| rs->sr_err == DB_LOCK_NOTGRANTED )
 			{
-				goto id2entry_retry;	
+				goto fetch_entry_retry;
 			}
 
 			if ( ei && rs->sr_err == LDAP_SUCCESS ) {
@@ -1472,6 +1487,9 @@ id2entry_retry:
 #ifdef BDB_PSEARCH
 				if (!IS_PSEARCH) {
 #endif
+#ifdef SLAP_ZONE_ALLOC
+					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
 						&bdb->bi_cache, e, &lock );
 #ifdef BDB_PSEARCH
@@ -1671,6 +1689,9 @@ post_search_no_entry:
 #ifdef BDB_PSEARCH
 					if (!IS_PSEARCH) {
 #endif
+#ifdef SLAP_ZONE_ALLOC
+						slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 						bdb_cache_return_entry_r(bdb->bi_dbenv,
 							&bdb->bi_cache, e, &lock);
 #ifdef BDB_PSEARCH
@@ -1697,6 +1718,9 @@ loop_continue:
 			if (!IS_PSEARCH) {
 				if (!(IS_POST_SEARCH &&
 						 entry_sync_state == LDAP_SYNC_DELETE)) {
+#ifdef SLAP_ZONE_ALLOC
+					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
 						&bdb->bi_cache, e , &lock );
 					if ( sop->o_nocaching ) {
@@ -1705,6 +1729,9 @@ loop_continue:
 				}
 			}
 #else
+#ifdef SLAP_ZONE_ALLOC
+			slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 			bdb_cache_return_entry_r( bdb->bi_dbenv,
 				&bdb->bi_cache, e , &lock );
 #endif
@@ -1867,6 +1894,9 @@ done:
 
 	if( !IS_PSEARCH && e != NULL ) {
 		/* free reader lock */
+#ifdef SLAP_ZONE_ALLOC
+		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 	ber_bvfree( search_context_csn );

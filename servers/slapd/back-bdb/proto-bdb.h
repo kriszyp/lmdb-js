@@ -189,11 +189,14 @@ int bdb_id2entry_delete(
 	DB_TXN *tid,
 	Entry *e);
 
+#ifdef SLAP_ZONE_ALLOC
+#else
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
 	ID id,
 	Entry **e);
+#endif
 
 #define bdb_entry_free				BDB_SYMBOL(entry_free)
 #define bdb_entry_return			BDB_SYMBOL(entry_return)
@@ -201,7 +204,11 @@ int bdb_id2entry(
 #define bdb_entry_get				BDB_SYMBOL(entry_get)
 
 void bdb_entry_free ( Entry *e );
+#ifdef SLAP_ZONE_ALLOC
+int bdb_entry_return( struct bdb_info *bdb, Entry *e, int seqno );
+#else
 int bdb_entry_return( Entry *e );
+#endif
 BI_entry_release_rw bdb_entry_release;
 BI_entry_get_rw bdb_entry_get;
 
@@ -427,7 +434,7 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_add				BDB_SYMBOL(cache_add)
 #define bdb_cache_children			BDB_SYMBOL(cache_children)
 #define bdb_cache_delete			BDB_SYMBOL(cache_delete)
-#define bdb_cache_delete_cleanup		BDB_SYMBOL(cache_delete_cleanup)
+#define bdb_cache_delete_cleanup	BDB_SYMBOL(cache_delete_cleanup)
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
 #define bdb_cache_find_info			BDB_SYMBOL(cache_find_info)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)

@@ -192,6 +192,16 @@ bdb_db_open( BackendDB *be )
 	/* One long-lived TXN per thread, two TXNs per write op */
 	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
 
+#ifdef SLAP_ZONE_ALLOC
+	if ( bdb->bi_cache.c_maxsize ) {
+		bdb->bi_cache.c_zctx = slap_zn_mem_create(
+								SLAP_ZONE_INITSIZE,
+								SLAP_ZONE_MAXSIZE,
+								SLAP_ZONE_DELTA,
+								SLAP_ZONE_SIZE);
+	}
+#endif
+
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );

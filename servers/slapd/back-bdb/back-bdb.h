@@ -114,6 +114,10 @@ typedef struct bdb_entry_info {
 #endif
 	Entry	*bei_e;
 	Avlnode	*bei_kids;
+#ifdef SLAP_ZONE_ALLOC
+	struct bdb_info *bei_bdb;
+	int bei_zseq;	
+#endif
 	ldap_pvt_thread_mutex_t	bei_kids_mutex;
 	
 	struct bdb_entry_info	*bei_lrunext;	/* for cache lru list */
@@ -135,6 +139,9 @@ typedef struct bdb_cache {
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t lru_mutex;
 	u_int32_t	c_locker;	/* used by lru cleaner */
+#ifdef SLAP_ZONE_ALLOC
+	void *c_zctx;
+#endif
 } Cache;
  
 #define CACHE_READ_LOCK                0

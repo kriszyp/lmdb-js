@@ -176,7 +176,12 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 #ifndef BDB_HIER
 	DBT2bv( &data, &bv );
 
+#ifdef SLAP_ZONE_ALLOC
+	/* FIXME: will add ctx later */
+	rc = entry_decode( &bv, &e, NULL );
+#else
 	rc = entry_decode( &bv, &e );
+#endif
 
 	if( rc == LDAP_SUCCESS ) {
 		e->e_id = id;
