@@ -346,7 +346,10 @@ main()
 
 	rc = db_env_create( &env, 0 );
 
-	if( rc ) return rc;
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 
 #ifdef DB_CDB_ALLDB
 	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
