@@ -447,13 +447,27 @@ no limit is set on
 If 
 .B pagedResults
 control is defined, additional size limits may be enforced; the syntax is
-.BR size.pr={<integer>|noEstimate} ,
+.BR size.pr={<integer>|noEstimate|disabled|none} ,
 where
-.BR integer
+.B integer
 is the max page size if no explicit limit is set; the keyword
-.IR noEstimate
+.I noEstimate
 inhibits the server to return an estimate of the total number
-of entries that will be returned.
+of entries that will be returned; the keyword
+.I disabled
+disables the control; the keyword
+.I none
+indicates that no limit is applied to the pagedResults control page size.
+The syntax
+.B size.prtotal={<integer>|none}
+allows to set a limit on the total number of entries that a pagedResults
+control allows to return.
+By default it is unlimited, which is indicated by the keyword
+.IR none .
+When set, 
+.B integer
+is the max number of entries that the whole search with pagedResults control
+can return.
 .RE
 .\"-- NEW_LOGGING option --
 .\".TP

@@ -1121,22 +1121,6 @@ id2entry_retry:
 			}
 
 			if ( get_pagedresults(sop) ) {
-				if ( sop->ors_limit	/* isroot == TRUE */
-						&& sop->ors_limit->lms_s_pr_total > 0
-						&& sop->ors_limit->lms_s_pr_total <= rs->sr_nentries + sop->o_pagedresults_state.ps_count ) {
-					if (!IS_PSEARCH) {
-						bdb_cache_return_entry_r( bdb->bi_dbenv,
-							&bdb->bi_cache, e, &lock );
-					}
-					e = NULL;
-					rs->sr_entry = NULL;
-					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-					rs->sr_ref = rs->sr_v2ref;
-					send_ldap_result( sop, rs );
-					rs->sr_err = LDAP_SUCCESS;
-					goto done;
-				}
-
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
 					send_pagerequest_response( sop, rs,
 						lastid, tentries );

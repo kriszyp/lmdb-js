@@ -601,18 +601,15 @@ limits_parse_one(
 	assert( limit );
 
 	if ( strncasecmp( arg, "time", STRLENOF( "time" ) ) == 0 ) {
-		arg += 4;
+		arg += STRLENOF( "time" );
 
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", STRLENOF( "soft" ) ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
+				arg += STRLENOF( "soft=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_soft = -1;
+
 				} else {
 					char	*next = NULL;
 
@@ -623,16 +620,14 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "hard", STRLENOF( "hard" ) ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "hard=", STRLENOF( "hard=" ) ) == 0 ) {
+				arg += STRLENOF( "hard=" );
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_t_hard = 0;
+
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_hard = -1;
+
 				} else {
 					char	*next = NULL;
 
@@ -666,16 +661,12 @@ limits_parse_one(
 		}
 
 	} else if ( strncasecmp( arg, "size", STRLENOF( "size" ) ) == 0 ) {
-		arg += 4;
+		arg += STRLENOF( "size" );
 		
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", STRLENOF( "soft" ) ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
+				arg += STRLENOF( "soft=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_soft = -1;
 				} else {
@@ -688,16 +679,14 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "hard", STRLENOF( "hard" ) ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "hard=", STRLENOF( "hard=" ) ) == 0 ) {
+				arg += STRLENOF( "hard=" );
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_s_hard = 0;
+
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_hard = -1;
+
 				} else {
 					char	*next = NULL;
 
@@ -708,12 +697,8 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "unchecked", STRLENOF( "unchecked" ) ) == 0 ) {
-				arg += 9;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "unchecked=", STRLENOF( "unchecked=" ) ) == 0 ) {
+				arg += STRLENOF( "unchecked=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_unchecked = -1;
 				} else {
@@ -731,6 +716,12 @@ limits_parse_one(
 				if ( strcasecmp( arg, "noEstimate" ) == 0 ) {
 					limit->lms_s_pr_hide = 1;
 
+				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_pr = -1;
+
+				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
+					limit->lms_s_pr_total = 0;
+
 				} else {
 					char	*next = NULL;
 
@@ -742,13 +733,18 @@ limits_parse_one(
 				}
 
 			} else if ( strncasecmp( arg, "prtotal=", STRLENOF( "prtotal=" ) ) == 0 ) {
-				char	*next = NULL;
-
 				arg += STRLENOF( "prtotal=" );
 
-				limit->lms_s_pr_total = strtol( arg, &next, 10 );
-				if ( next == arg || limit->lms_s_pr_total < -1 ) {
-					return( 1 );
+				if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_pr_total = -1;
+
+				} else {
+					char	*next = NULL;
+
+					limit->lms_s_pr_total = strtol( arg, &next, 10 );
+					if ( next == arg || limit->lms_s_pr_total < -1 ) {
+						return( 1 );
+					}
 				}
 
 			} else {
@@ -826,13 +822,65 @@ limits_check( Operation *op, SlapReply *rs )
 	
 			/* negative hard limit means no limit */
 		}
+
+		/* if paged results is requested */	
+		if ( get_pagedresults( op ) ) {
+			int	slimit = -2;
+
+			/* paged results is not allowed */
+			if ( op->ors_limit->lms_s_pr_total == 0 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				rs->sr_text = "pagedResults control not allowed";
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_text = NULL;
+				return -1;
 	
-		/* if no limit is required, use soft limit */
-		if ( op->ors_slimit <= 0 ) {
-			if ( get_pagedresults( op ) && op->ors_limit->lms_s_pr != 0 ) {
-				op->ors_slimit = op->ors_limit->lms_s_pr;
 			} else {
-				op->ors_slimit = op->ors_limit->lms_s_soft;
+				/* if no limit is required, use soft limit */
+				int	total = op->ors_limit->lms_s_pr_total - op->o_pagedresults_state.ps_count;
+
+				if ( total >= 0 && op->ors_limit->lms_s_pr > 0 ) {
+					/* use the smallest limit set by total/per page */
+					if ( total < op->ors_limit->lms_s_pr ) {
+						slimit = total;
+
+					} else {
+						/* use the perpage limit if any 
+						 * NOTE: + 1 because the given value must be legal */
+						slimit = op->ors_limit->lms_s_pr + 1;
+					}
+
+				} else if ( total >= 0 ) {
+					/* use the total limit if any */
+					slimit = total;
+
+				} else if ( op->ors_limit->lms_s_pr != 0 ) {
+					/* use the perpage limit if any 
+					 * NOTE: + 1 because the given value must be legal */
+					slimit = op->ors_limit->lms_s_pr + 1;
+
+				} else {
+					/* use the standard hard/soft limit if any */
+					slimit = ( op->ors_limit->lms_s_hard == 0 ? op->ors_limit->lms_s_soft : op->ors_limit->lms_s_hard );
+				}
+			}
+		
+			/* if got any limit, use it */
+			if ( slimit != -2 ) {
+				if ( op->ors_slimit <= 0 ) {
+					op->ors_slimit = slimit;
+
+				} else if ( op->ors_slimit > slimit ) {
+					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+					send_ldap_result( op, rs );
+					rs->sr_err = LDAP_SUCCESS;
+					return -1;
+				}
+
+			} else {
+				/* use the standard hard/soft limit if any */
+				op->ors_slimit = ( op->ors_limit->lms_s_hard == 0 ? op->ors_limit->lms_s_soft : op->ors_limit->lms_s_hard );
 			}
 
 		/* if requested limit higher than hard limit, abort */
@@ -852,6 +900,9 @@ limits_check( Operation *op, SlapReply *rs )
 			}
 		
 			/* negative hard limit means no limit */
+
+		} else if ( op->ors_slimit == 0 ) {
+			op->ors_slimit = op->ors_limit->lms_s_soft;
 		}
 	}
 

@@ -54,7 +54,8 @@ struct slap_limits_set deflimit = {
 	0,
 	-1,				/* no limit on unchecked size */
 	0,				/* page limit */
-	0				/* hide number of entries left */
+	0,				/* hide number of entries left */
+	-1				/* unlimited number of total entries returned by paged results */
 };
 
 AccessControl	*global_acl = NULL;
