@@ -495,11 +495,10 @@ void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn 
 		uri.scope, LDAP_DEREF_NEVER, 1, 0,
 		filter, NULL, NULL, 1 );
 	
+FINISHED:
 	if( dn->bv_len ) {
 		conn->c_authz_backend = be;
 	}
-
-FINISHED:
 	if( uri.dn.bv_len ) ch_free( uri.dn.bv_val );
 	if( uri.filter.bv_len ) ch_free( uri.filter.bv_val );
 	if( filter ) filter_free( filter );

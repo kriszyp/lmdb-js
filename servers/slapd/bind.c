@@ -57,7 +57,9 @@ do_bind(
 	 * Force to connection to "anonymous" until bind succeeds.
 	 */
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	if ( conn->c_sasl_bind_in_progress ) be = conn->c_authz_backend;
 	connection2anonymous( conn );
+	if ( conn->c_sasl_bind_in_progress ) conn->c_authz_backend = be;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if ( op->o_dn.bv_val != NULL ) {
