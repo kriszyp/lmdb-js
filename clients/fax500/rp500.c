@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 
+#include <ac/ctype.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>

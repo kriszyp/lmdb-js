@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include <ac/ctype.h>
 #include <ac/errno.h>
