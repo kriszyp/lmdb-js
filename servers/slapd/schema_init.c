@@ -1246,8 +1246,8 @@ static int caseExactIgnoreIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	int i;
-	unsigned casefold;
+	int i,j;
+	unsigned casefold,wasspace;
 	size_t slen, mlen;
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
@@ -1272,8 +1272,32 @@ static int caseExactIgnoreIndexer(
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		struct berval value;
+		struct berval value, nvalue;
 		UTF8bvnormalize( &values[i], &value, casefold );
+
+		/* collapse spaces (in place) */
+		nvalue.bv_len = 0;
+		nvalue.bv_val = value.bv_val;
+
+		wasspace=1;
+		for( j=0; j<value.bv_len; j++) {
+			if ( ASCII_SPACE( value.bv_val[j] )) {
+				if( wasspace++ == 0 ) {
+					nvalue.bv_val[nvalue.bv_len++] = value.bv_val[j];
+				}
+			} else {
+				wasspace = 0;
+				nvalue.bv_val[nvalue.bv_len++] = value.bv_val[j];
+			}
+		}
+
+		if( nvalue.bv_len == 0 ) {
+			nvalue.bv_val = " ";
+			nvalue.bv_len = sizeof(" ")-1;
+		} else {
+			if( wasspace ) --nvalue.bv_len;
+			nvalue.bv_val[nvalue.bv_len] = '\0';
+		}
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1285,11 +1309,10 @@ static int caseExactIgnoreIndexer(
 		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value.bv_val, value.bv_len );
+			nvalue.bv_val, nvalue.bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
 		free( value.bv_val );
-
 		ber_dupbv( &keys[i], &digest );
 	}
 
@@ -1367,11 +1390,11 @@ static int caseExactIgnoreSubstringsIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	unsigned casefold;
-	ber_len_t i, nkeys;
+	unsigned casefold, wasspace;
+	ber_len_t i, j, nkeys;
 	size_t slen, mlen;
 	BerVarray keys;
-	BerVarray nvalues;
+	BerVarray tvalues, nvalues;
 
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
@@ -1391,10 +1414,39 @@ static int caseExactIgnoreSubstringsIndexer(
 	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
+	tvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
 	nvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
+
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		UTF8bvnormalize( &values[i], &nvalues[i], casefold );
+		UTF8bvnormalize( &values[i], &tvalues[i], casefold );
+
+		/* collapse spaces (in place) */
+		nvalues[i].bv_len = 0;
+		nvalues[i].bv_val = tvalues[i].bv_val;
+
+		wasspace=1;
+		for( j=0; j<tvalues[i].bv_len; j++) {
+			if ( ASCII_SPACE( tvalues[i].bv_val[j] )) {
+				if( wasspace++ == 0 ) {
+					nvalues[i].bv_val[nvalues[i].bv_len++] =
+						tvalues[i].bv_val[j];
+				}
+			} else {
+				wasspace = 0;
+				nvalues[i].bv_val[nvalues[i].bv_len++] = tvalues[i].bv_val[j];
+			}
+		}
+
+		if( nvalues[i].bv_len == 0 ) {
+			nvalues[i].bv_val = " ";
+			nvalues[i].bv_len = sizeof(" ")-1;
+		} else {
+			if( wasspace ) --nvalues[i].bv_len;
+			nvalues[i].bv_val[nvalues[i].bv_len] = '\0';
+		}
 	}
+
+	tvalues[i].bv_val = NULL;
 	nvalues[i].bv_val = NULL;
 	values = nvalues;
 
@@ -1432,7 +1484,8 @@ static int caseExactIgnoreSubstringsIndexer(
 	if( nkeys == 0 ) {
 		/* no keys to generate */
 		*keysp = NULL;
-		ber_bvarray_free( nvalues );
+		ber_bvarray_free( tvalues );
+		ch_free( nvalues );
 		return LDAP_SUCCESS;
 	}
 
@@ -1533,7 +1586,8 @@ static int caseExactIgnoreSubstringsIndexer(
 		*keysp = NULL;
 	}
 
-	ber_bvarray_free( nvalues );
+	ber_bvarray_free( tvalues );
+	ch_free( nvalues );
 
 	return LDAP_SUCCESS;
 }

@@ -210,7 +210,7 @@ int bdb_modify_internal(
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
 			rc = bdb_index_values( be, tid, ap->a_desc, ap->a_vals,
-					       e->e_id, SLAP_INDEX_DELETE_OP );
+				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
 				attrs_free( e->e_attrs );
 				e->e_attrs = save_attrs;
@@ -233,7 +233,7 @@ int bdb_modify_internal(
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if (ap->a_flags & SLAP_ATTR_IXADD) {
 			rc = bdb_index_values( be, tid, ap->a_desc, ap->a_vals,
-					       e->e_id, SLAP_INDEX_ADD_OP );
+				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
 				attrs_free( e->e_attrs );
 				e->e_attrs = save_attrs;
@@ -319,6 +319,7 @@ retry:	/* transaction retry */
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
+		op->o_do_not_cache = opinfo.boi_acl_cache;
 		if( rc != 0 ) {
 			rc = LDAP_OTHER;
 			text = "internal error";
@@ -351,6 +352,7 @@ retry:	/* transaction retry */
 	opinfo.boi_txn = ltid;
 	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
+	opinfo.boi_acl_cache = op->o_do_not_cache;
 	op->o_private = &opinfo;
 
 	/* get entry */
@@ -449,6 +451,9 @@ retry:	/* transaction retry */
 			"bdb_modify: modify failed (%d)\n",
 			rc, 0, 0 );
 #endif
+		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
+			rc = opinfo.boi_err;
+		}
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

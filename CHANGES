@@ -1,5 +1,14 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.14 Engineering
+	Fix slapd directoryString exact index normalization bug
+	Fix back-bdb bdb_cache_find_entry* retry bug
+	Fix back-bdb log message bug
+	Fix back-bdb group/atttribute txn code
+	Updated slapadd to complain about holes in the DIT
+	Documentation
+		Misc man page updates
+
 OpenLDAP 2.1.13 Release
 	Fixed back-bdb group ACL deadlock bug (ITS#2195)
 	Fixed back-bdb passwd hang bug (ITS#2122)
@@ -29,8 +38,9 @@ OpenLDAP 2.1.13 Release
 	Build Environment
 		Check back-bdb requirement for BDB 4.1
 		Removed configure flags for deprecated features
-		Misc man page updates
 		Updated test suite
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.12 Release
 	Build Environment

@@ -87,6 +87,7 @@ str2entry( char *s )
 	e->e_id = NOID;
 
 	/* dn + attributes */
+	vals[0].bv_len = 0;
 	vals[1].bv_val = NULL;
 
 	next = s;

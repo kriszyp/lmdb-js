@@ -107,11 +107,21 @@ bdb_group(
 	} else {
 dn2entry_retry:
 		/* can we find group entry */
-		rc = bdb_dn2entry_r( be, NULL, gr_ndn, &e, NULL, 0, locker, &lock ); 
+		rc = bdb_dn2entry_r( be, txn, gr_ndn, &e, NULL, 0, locker, &lock ); 
 		if( rc ) {
-			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED )
-				goto dn2entry_retry;
 			boi->boi_err = rc;
+			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED ) {
+				if ( txn ) {
+				/* must let owning txn abort, but our result
+				 * is still inconclusive, so don't let it
+				 * get cached.
+				 */
+					op->o_do_not_cache = 1;
+					return( 1 );
+				}
+				ldap_pvt_thread_yield();
+				goto dn2entry_retry;
+			}
 			if ( free_lock_id ) {
 				LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 			}
@@ -206,8 +216,10 @@ dn2entry_retry:
 		group_oc_name, group_at_name, 0 ); 
 #endif
 
-	if( value_find_ex( group_at, SLAP_MR_VALUE_NORMALIZED_MATCH,
-		attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
+	if( value_find_ex( group_at,
+		SLAP_MR_VALUE_NORMALIZED_MATCH,
+		attr->a_vals, op_ndn ) != LDAP_SUCCESS )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, DETAIL1, 
 			"bdb_group: \"%s\" not in \"%s\": %s\n",

@@ -97,13 +97,19 @@ bdb_attribute(
 	} else {
 dn2entry_retry:
 		/* can we find entry */
-		rc = bdb_dn2entry_r( be, NULL, entry_ndn, &e, NULL, 0, locker, &lock );
+		rc = bdb_dn2entry_r( be, txn, entry_ndn, &e, NULL, 0, locker, &lock );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
 			break;
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			/* the txn must abort and retry */
+			if ( txn ) {
+				boi->boi_err = rc;
+				return LDAP_BUSY;
+			}
+			ldap_pvt_thread_yield();
 			goto dn2entry_retry;
 		default:
 			boi->boi_err = rc;

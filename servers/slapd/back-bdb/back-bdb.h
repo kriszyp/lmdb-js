@@ -157,6 +157,7 @@ struct bdb_op_info {
 	DB_TXN*		boi_txn;
 	u_int32_t	boi_err;
 	u_int32_t	boi_locker;
+	int		boi_acl_cache;
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \

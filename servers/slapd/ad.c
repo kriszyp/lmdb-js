@@ -325,6 +325,7 @@ done:;
 		}
 
 		d2 = ch_malloc(sizeof(AttributeDescription) + dlen);
+		d2->ad_next = NULL;
 		d2->ad_type = desc.ad_type;
 		d2->ad_flags = desc.ad_flags;
 		d2->ad_cname.bv_len = desc.ad_type->sat_cname.bv_len;

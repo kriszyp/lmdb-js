@@ -794,7 +794,7 @@ try_again:
 		/*
 		 * entry is deleted or not fully created yet
 		 */
-		if ( state != CACHE_ENTRY_READY ) {
+		if ( state != CACHE_ENTRY_READY && state != CACHE_ENTRY_COMMITTED ) {
 			assert(state != CACHE_ENTRY_UNDEFINED);
 
 			/* free cache read lock */
@@ -889,7 +889,7 @@ try_again:
 		/*
 		 * entry is deleted or not fully created yet
 		 */
-		if ( state != CACHE_ENTRY_READY ) {
+		if ( state != CACHE_ENTRY_READY && state != CACHE_ENTRY_COMMITTED ) {
 
 			assert(state != CACHE_ENTRY_UNDEFINED);
 

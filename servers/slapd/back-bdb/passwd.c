@@ -122,6 +122,7 @@ retry:	/* transaction retry */
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
+		op->o_do_not_cache = opinfo.boi_acl_cache;
 		if( rc != 0 ) {
 			rc = LDAP_OTHER;
 			*text = "internal error";
@@ -155,6 +156,7 @@ retry:	/* transaction retry */
 	opinfo.boi_txn = ltid;
 	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
+	opinfo.boi_acl_cache = op->o_do_not_cache;
 	op->o_private = &opinfo;
 
 	/* get entry */
@@ -221,6 +223,9 @@ retry:	/* transaction retry */
 		rc = bdb_modify_internal( be, conn, op, ltid,
 			&ml, e, text, textbuf, textlen );
 
+		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
+			rc = opinfo.boi_err;
+		}
 		switch(rc) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
