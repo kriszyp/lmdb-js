@@ -70,6 +70,8 @@ insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (6,'documentTitl
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'referral');
 
+insert into ldap_entry_objclasses (entry_id,oc_name) values (2,'posixAccount');
+
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
 --	url		the URI of the referral

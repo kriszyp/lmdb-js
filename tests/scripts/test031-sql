@@ -223,7 +223,7 @@ case ${RDBMS} in
 	# list here the RDBMSes whose mapping allows writes
 	postgres)
 		MANAGERDN="cn=Manager,${BASEDN}"
-		$LDAPMODIFY -v -D "$MANAGERDN" -w $PASSWD \
+		$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
 			-h $LOCALHOST -p $PORT1 > \
 			$TESTOUT 2>&1 << EOMODS
 version: 1
