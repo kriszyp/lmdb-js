@@ -1,9 +1,0 @@
-Sun SunOS Hints
-
-** This file covers SunOS 4.X and eariler releases. **
-** SunOS 5.X is covered in the Solaris hints file.  **
-
-http://www.openldap.org/faq/index.cgi?file=13
-
-You will likely need to install a POSIX regex library.
-
