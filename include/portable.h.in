@@ -816,14 +816,14 @@ typedef char * caddr_t;
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
 
+/* if you have spawnlp() */
+#undef HAVE_SPAWNLP
+
 /* define to snprintf routine */
 #undef snprintf
 
 /* define to vsnprintf routine */
 #undef vsnprintf
-
-/* if you have spawnlp() */
-#undef HAVE_SPAWNLP
 
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST

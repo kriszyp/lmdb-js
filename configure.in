@@ -1968,23 +1968,17 @@ dnl AM_FUNC_STRTOD
 
 OL_FUNC_INET_ATON
 
-dnl Check for Mingw32 specific functions.
-if test "$ac_cv_mingw32" = yes ; then
-    AC_CHECK_FUNC(_snprintf, [
-	ac_cv_func_snprintf=yes
+dnl Check for NT specific routines
+AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP,1,[if you have spawnlp()]))
+
+AC_CHECK_FUNC(_snprintf, [ac_cv_func_snprintf=yes
 	AC_DEFINE(snprintf, _snprintf, [define to snprintf routine])
-    ])
+])
 
-    AC_CHECK_FUNC(_vsnprintf, [
-	ac_cv_func_vsnprintf=yes
+AC_CHECK_FUNC(_vsnprintf, [ac_cv_func_vsnprintf=yes
 	AC_DEFINE(vsnprintf, _vsnprintf, [define to vsnprintf routine])
-    ])
+])
 
-    AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP,1,[if you have spawnlp()]))
-fi
-
-dnl we should use vfork instead of fork in a number of places...
-dnl AC_FUNC_VFORK
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
