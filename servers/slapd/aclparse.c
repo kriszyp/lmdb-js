@@ -136,9 +136,9 @@ parse_acl(
 				split( argv[i], '=', &left, &right );
 				split( left, '.', &left, &style );
 
-				if ( right == NULL || *right == '\0' ) {
+				if ( right == NULL ) {
 					fprintf( stderr,
-	"%s: line %d: missing \"=\" in (or value after) \"%s\" in to clause\n",
+	"%s: line %d: missing \"=\" in \"%s\" in to clause\n",
 					    fname, lineno, left );
 					acl_usage();
 				}
