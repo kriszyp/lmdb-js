@@ -1,5 +1,9 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.2.12 Engineering
+	CVS Tag: OPENLDAP_REL_ENG_1_2
+	<insert changes here>
+
 Changes included in OpenLDAP 1.2.11
 	CVS Tag: OPENLDAP_REL_ENG_1_2_11
 	Fixed /tmp races in ud, ldapsearch, ldbmtest and slurpd
