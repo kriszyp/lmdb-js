@@ -44,6 +44,7 @@ SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 unset DIFF_OPTIONS
 DIFF="diff -iu"
 CMP="diff -i"
+BCMP="diff -iB"
 CMPOUT=/dev/null
 SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd

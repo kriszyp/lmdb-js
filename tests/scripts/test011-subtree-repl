@@ -43,7 +43,7 @@ fi
 
 # quick hack to check for awk
 echo "looking for a POSIX compliant awk"
-awk -W version >/dev/null 2>&1
+awk -W version >$CMPOUT 2>&1
 if test $? != 0 ; then
 	echo "This test requires awk"
 	exit 0
@@ -261,7 +261,7 @@ echo "Stripping subtree entries from master output..."
 	| $STRIPATTR "description" > $SUBFLT2
 
 echo "Comparing master minus subtree and master minus slave..."
-$CMP $SUBFLT $SUBFLT2 > $CMPOUT
+$BCMP $SUBFLT $SUBFLT2 > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"
