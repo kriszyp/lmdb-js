@@ -1,34 +1,33 @@
 
-
-
-
 Change Record Object Class Definition                       Gordon Good
 INTERNET-DRAFT                                  Netscape Communications
-                                                          11 March 1998
+                                                          10 March 2000
 
        Definition of an Object Class to Hold LDAP Change Records
-               Filename: draft-good-ldap-changelog-00.txt
+               Filename: draft-good-ldap-changelog-01.txt
 
 Status of this Memo
 
-   This document is an Internet-Draft.  Internet-Drafts are working
-   documents of the Internet Engineering Task Force (IETF), its
-   areas, and its working groups.  Note that other groups may also
-   distribute working documents as Internet-Drafts.
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
 
-   Internet-Drafts are draft documents valid for a maximum of six
-   months and may be updated, replaced, or obsoleted by other
-   documents at any time.  It is inappropriate to use Internet-
-   Drafts as reference material or to cite them other than as
-   ``work in progress.''
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that other
+   groups may also distribute working documents as Internet-Drafts.
 
-   To learn the current status of any Internet-Draft, please check
-   the ``1id-abstracts.txt'' listing contained in the Internet-
-   Drafts Shadow Directories on ds.internic.net (US East Coast),
-   nic.nordu.net (Europe), ftp.isi.edu (US West Coast), or
-   munnari.oz.au (Pacific Rim).
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
 
-   This Internet Draft expires October 1st, 1998.
+     The list of current Internet-Drafts can be accessed at
+     http://www.ietf.org/ietf/1id-abstracts.txt
+
+     The list of Internet-Draft Shadow Directories can be accessed at
+     http://www.ietf.org/shadow.html.
+
+
+   This Internet Draft expires September 10, 2000.
 
 
 
@@ -50,22 +49,23 @@ Abstract
 Background and Intended Usage
 
    This document describes an objectclass which can be used to represent
+   changes which have been applied to a directory server.  It also
+   suggests a common location for a container which holds these objects.
 
 
 
-Good                         March 11, 1998                     [Page 1]
+Good                         March 9, 2000                      [Page 1]
 
 INTERNET-DRAFT         Change Record Object Class          11 March 1998
 
 
-   changes which have been applied to a directory server.  It also
-   suggests a common location for a container which holds these objects.
    A client may update its local copy of directory information by
    reading the entries within this container, and applying the changes
    to its local database.
 
-   The key words "MUST", "MAY", and "SHOULD" used in this document are
-   to be interpreted as described in [3].
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", and "MAY" in this document are
+   to be interpreted as described in RFC 2119 [3].
 
 New Attribute Types Used in the changeLogEntry Object Class
 
@@ -106,15 +106,14 @@ New Attribute Types Used in the changeLogEntry Object Class
        DESC 'a flag which indicates if the old RDN should be retained
              as an attribute of the entry'
        EQUALITY booleanMatch
+       SYNTAX 'BOOLEAN' )
 
 
 
-Good                         March 11, 1998                     [Page 2]
+Good                         March 9, 2000                      [Page 2]
 
 INTERNET-DRAFT         Change Record Object Class          11 March 1998
 
-
-       SYNTAX 'BOOLEAN' )
 
    ( 2.16.840.1.113730.3.1.11
        NAME 'newSuperior'
@@ -162,15 +161,15 @@ Discussion of changeLogEntry Attributes:
    changeType is "modrdn".  If the changeType attribute does not have the
    value "modrdn", then there should be no values contained in the newRDN
    attribute.
+   Syntax: DN
 
 
 
-Good                         March 11, 1998                     [Page 3]
+
+Good                         March 9, 2000                      [Page 3]
 
 INTERNET-DRAFT         Change Record Object Class          11 March 1998
 
-
-   Syntax: DN
 
    deleteOldRDN: a flag which tells whether the old RDN of the entry
    should be retained as a distinguished attribute of the entry, or
@@ -218,17 +217,14 @@ Discussion of the changeLogEntry object class
    "changes" attribute has no values, then it must read the entry given by
    the targetDN attribute, possibly only retrieving attributes it deems
    "interesting".  However, in the case of delete and modrdn operations, there
-
-
-
-Good                         March 11, 1998                     [Page 4]
-
-INTERNET-DRAFT         Change Record Object Class          11 March 1998
-
-
    is never a "changes" attribute, so it is never necessary to read the target
    entry in these cases.
 
+
+
+Good                         March 9, 2000                      [Page 4]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
 
 
 Examples of the changeLogEntry object class
@@ -274,18 +270,17 @@ Examples of the changeLogEntry object class
 
    dn: changenumber=10042, cn=changelog
    changenumber: 10042
-
-
-
-Good                         March 11, 1998                     [Page 5]
-
-INTERNET-DRAFT         Change Record Object Class          11 March 1998
-
-
    targetdn: cn=Bjorn Jensen, ou=Product Development, o=Ace Industry, c=US
    changetype: modrdn
    newrdn: cn=Bjorn J Jensen
    deleteoldrdn: FALSE
+
+
+
+
+Good                         March 9, 2000                      [Page 5]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
 
 
 Location of the container containing changeLogEntry objects
@@ -309,36 +304,26 @@ Location of the container containing changeLogEntry objects
    For LDAPv2 servers, the name of the changelog container must be
    "cn=changelog".
 
+Interoperability between LDAPv2 and LDAPv3 implementations
 
-Differences from previous versions of this document
+   Implementors are discouraged from developing implementations in which
+   an LDAPv2 server is synchronized from an LDAPv3 server using the
+   changelog method described in this document. Problems can arise when an
+   LDAPv2 server reads a "moddn" changelog entry which gives a new
+   superior. Since LDAPv2 does not support such an operation, there is not
+   way for the v2 server to perform the moddn operation atomically. It
+   could, of course, delete all the entries under the old superior and add
+   them under the new superior entry, but such an operation would either
+   not be atomic, or require extensive server-side support on the LDAPv2
+   server to make the operation appear as if it were atomic.
 
-   Differences between draft-ietf-asid-changelog-00.txt and
-   draft-ietf-asid-changelog-01.txt
-
-   1) Fixed a deficiency in the syntax of the changeNumber attribute.  The
-   attribute now has INTEGER syntax, with appropriate matching and
-   ordering rules defined.
-
-   2) Removed unneeded substring matching rules from the changeType and
-   deleteOldRDN attribute definitions.
-
-   3) Made use of MAY, SHOULD, etc. consistent with RFC 2119.
-
-   4) Renamed document (now an individual submission).
-
-   5) Changed syntax of "changes" attribute from "Binary" to "OctetString".
-
-   6) Removed references to X.500 supplier and consumer-initiated
-   replication.
-
-
-
-Good                         March 11, 1998                     [Page 6]
-
-INTERNET-DRAFT         Change Record Object Class          11 March 1998
-
-
-   7) Updated references to current drafts/proposed standards documents.
+   It is recommended that servers which only implement LDAPv2 should
+   refuse to synchronize from LDAPv3 servers. Before beginning
+   synchronization, the LDAPv2 server should attempt to read the root DSE
+   of the supplier server. If the root DSE is present, and the
+   supportedldapversion attribute contained in the root DSE contains the
+   value "3", then the LDAPv2 server should immediately disconnect and
+   proceed no further with synchronization.
 
 Security Considerations
 
@@ -346,6 +331,13 @@ Security Considerations
    attribute to be generally readable.  The "changes" attribute contains
    all modifications made to an entry, and some changes may contain
    sensitive data, e.g. passwords.
+
+
+
+Good                         March 9, 2000                      [Page 6]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
 
    If a server does allow read access on the "changes: attribute to a
    particular bound DN, then that DN should be trusted.  For example, two
@@ -376,8 +368,8 @@ Acknowledgements
 References
 
    [1] Good, G., "The LDAP Data Interchange Format", INTERNET-DRAFT
-   draft-good-ldap-ldif-03.txt, Netscape Communications Corp., March 1997,
-   <URL:ftp://ftp.ietf.org/internet-drafts/draft-good-ldap-ldif-03.txt>
+   draft-good-ldap-ldif-06.txt, Netscape Communications Corp., March 2000
+   <URL:ftp://ftp.ietf.org/internet-drafts/draft-good-ldap-ldif-06.txt>
 
    [2] Wahl, M., Howes, T., Kille, S., "Lightweight Directory Access
    Protocol (v3)", RFC 2251 Critical Angle, Inc., Netscape Communications Corp.,
@@ -386,14 +378,6 @@ References
 
    [3] S. Bradner, "Key Words for use in RFCs to Indicate Requirement
    Levels", Harvard University, RFC 2119, March 1997,
-
-
-
-Good                         March 11, 1998                     [Page 7]
-
-INTERNET-DRAFT         Change Record Object Class          11 March 1998
-
-
    <URL:http://ds.internic.net/rfc/rfc2119.txt>
 
 
@@ -403,11 +387,19 @@ Author's Address
    Netscape Communications Corp.
    501 E. Middlefield Rd.
    Mailstop MV068
+
+
+
+Good                         March 9, 2000                      [Page 7]
+
+INTERNET-DRAFT         Change Record Object Class          11 March 1998
+
+
    Mountain View, CA 94043, USA
-   Phone:  +1 415 937-3825
+   Phone:  +1 650 937-3825
    EMail:  ggood@netscape.com
 
-              This Internet Draft expires October 1st, 1998.
+              This Internet Draft expires September 10, 2000
 
 
 
@@ -445,5 +437,14 @@ Author's Address
 
 
 
-Good                         March 11, 1998                     [Page 8]
+
+
+
+
+
+
+
+
+
+Good                         March 9, 2000                      [Page 8]
 
