@@ -53,6 +53,7 @@ For those familiar with X.500, a {{named referral}} object is
 similar to an X.500 knowledge reference held in a {{subr}}
 {{TERM:DSE}}.
 
+
 !if 0
 H2: Immediate Superior Knowledge Information
 
@@ -104,15 +105,20 @@ For those familiar with X.500, this use of the {{EX:ref}} attribute
 is similar to an X.500 knowledge reference held in a
 {{Supr}} {{TERM:DSE}}.
 
+
 H2: The ManageDsaIT Control
 
 Adding, modifying, and deleting referral objects is generally done
-using {{ldapmodify}}(1) or similar tools which support the
-ManageDsaIT control.  The ManageDsaIT control informs the server
-that you intend to manage the referral object as a regular
-entry.  This keeps the server from sending a referral result
-for requests which interrogate or update referral objects.
-The -M option of {{ldapmodify}}(1) (and other tools) enables
+using {{ldapmodify}}(1) or similar tools which support the ManageDsaIT
+control.  The ManageDsaIT control informs the server that you intend
+to manage the referral object as a regular entry.  This keeps the
+server from sending a referral result for requests which interrogate
+or update referral objects.
+
+The ManageDsaIT control should not be specified when managing regular
+entries.
+
+The {{EX:-M}} option of {{ldapmodify}}(1) (and other tools) enables
 ManageDsaIT.  For example:
 
 >	ldapmodify -M -f referral.ldif -x -D "cn=Manager,dc=example,dc=net" -W
