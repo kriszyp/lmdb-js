@@ -106,11 +106,11 @@ monitor_subsys_ops_init(
 				"modifyTimestamp: %s\n",
 				bv_op[ i ].bv_val,
 				monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
-				mi->oc_monitorOperation->soc_cname.bv_val,
-				mi->oc_monitorOperation->soc_cname.bv_val,
+				mi->mi_oc_monitorOperation->soc_cname.bv_val,
+				mi->mi_oc_monitorOperation->soc_cname.bv_val,
 				bv_op[ i ].bv_val,
-				mi->ad_monitorOpInitiated->ad_cname.bv_val,
-				mi->ad_monitorOpCompleted->ad_cname.bv_val,
+				mi->mi_ad_monitorOpInitiated->ad_cname.bv_val,
+				mi->mi_ad_monitorOpCompleted->ad_cname.bv_val,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 
@@ -199,13 +199,13 @@ monitor_subsys_ops_update(
 		return( 0 );
 	}
 
-	a = attr_find( e->e_attrs, mi->ad_monitorOpInitiated );
+	a = attr_find( e->e_attrs, mi->mi_ad_monitorOpInitiated );
 	assert ( a != NULL );
 	snprintf( buf, sizeof( buf ), "%ld", nInitiated );
 	free( a->a_vals[ 0 ].bv_val );
 	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
 
-	a = attr_find( e->e_attrs, mi->ad_monitorOpCompleted );
+	a = attr_find( e->e_attrs, mi->mi_ad_monitorOpCompleted );
 	assert ( a != NULL );
 	snprintf( buf, sizeof( buf ), "%ld", nCompleted );
 	free( a->a_vals[ 0 ].bv_val );

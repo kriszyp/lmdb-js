@@ -99,10 +99,10 @@ monitor_subsys_database_init(
 				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
-				mi->ad_monitoredInfo->ad_cname.bv_val,
+				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
 				be->bd_info->bi_type,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
@@ -146,7 +146,7 @@ monitor_subsys_database_init(
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_merge_normalize_one( e, mi->ad_seeAlso,
+				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
 						&bv, NULL );
 				break;
 			}
@@ -236,7 +236,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
 		attr_merge_normalize_one( e_database,
-				mi->ad_monitoredInfo, &bv, NULL );
+				mi->mi_ad_monitoredInfo, &bv, NULL );
 
 		i++;
 

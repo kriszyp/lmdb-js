@@ -86,9 +86,9 @@ monitor_subsys_time_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n", 
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			mi->oc_monitoredObject->soc_cname.bv_val,
-			mi->oc_monitoredObject->soc_cname.bv_val,
-			mi->ad_monitorTimestamp->ad_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
@@ -148,9 +148,9 @@ monitor_subsys_time_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			mi->oc_monitoredObject->soc_cname.bv_val,
-			mi->oc_monitoredObject->soc_cname.bv_val,
-			mi->ad_monitorTimestamp->ad_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
@@ -239,7 +239,7 @@ monitor_subsys_time_update(
 
 		len = strlen( tmbuf );
 
-		a = attr_find( e->e_attrs, mi->ad_monitorTimestamp );
+		a = attr_find( e->e_attrs, mi->mi_ad_monitorTimestamp );
 		if ( a == NULL ) {
 			return( -1 );
 		}

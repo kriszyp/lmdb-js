@@ -85,8 +85,8 @@ monitor_subsys_sent_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -109,7 +109,7 @@ monitor_subsys_sent_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -148,8 +148,8 @@ monitor_subsys_sent_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -172,7 +172,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -211,8 +211,8 @@ monitor_subsys_sent_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -235,7 +235,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -274,8 +274,8 @@ monitor_subsys_sent_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 
@@ -298,7 +298,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -375,7 +375,7 @@ monitor_subsys_sent_update(
 		Attribute	*a;
 		char		buf[] = "+9223372036854775807L";
 
-		a = attr_find( e->e_attrs, mi->ad_monitorCounter);
+		a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter);
 		if ( a == NULL ) {
 			return( -1 );
 		}

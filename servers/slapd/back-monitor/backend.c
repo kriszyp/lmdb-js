@@ -91,8 +91,8 @@ monitor_subsys_backend_init(
 				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
@@ -118,9 +118,9 @@ monitor_subsys_backend_init(
 		bv.bv_val = bi->bi_type;
 		bv.bv_len = strlen( bv.bv_val );
 
-		attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
-		attr_merge_normalize_one( e_backend, mi->ad_monitoredInfo,
+		attr_merge_normalize_one( e_backend, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 
 		if ( bi->bi_controls ) {
@@ -147,7 +147,7 @@ monitor_subsys_backend_init(
 			dn.bv_val = buf;
 			dn.bv_len = strlen( buf );
 
-			attr_merge_normalize_one( e, mi->ad_seeAlso,
+			attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
 					&dn, NULL );
 		}
 		

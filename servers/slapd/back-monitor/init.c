@@ -41,6 +41,8 @@
 #include "lber_pvt.h"
 #include "back-monitor.h"
 
+#define INTEGRATE_CORE_SCHEMA
+
 /*
  * used by many functions to add description to entries
  */
@@ -303,7 +305,7 @@ monitor_back_db_open(
 	struct monitorsubsys	*ms;
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv	*mp;
-	int			i;
+	int			i, k;
 	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
 	const char 		*text;
 	struct berval		bv;
@@ -320,50 +322,52 @@ monitor_back_db_open(
 			"MAY ( "
 				"description "
 				"$ l "
+#if 0	/* temporarily disabled */
 				"$ st "
 				"$ street "
 				"$ postalAddress "
 				"$ postalCode "
+#endif
 				"$ seeAlso "
 				"$ monitoredInfo "
 				"$ managedInfo "
 			") )",
-			offsetof(struct monitorinfo, oc_monitor) },
+			offsetof(struct monitorinfo, mi_oc_monitor) },
 		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitorServer) },
+			offsetof(struct monitorinfo, mi_oc_monitorServer) },
 		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.8 "
 			"NAME 'monitorContainer' "
 			"DESC 'monitor container class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitorContainer) },
+			offsetof(struct monitorinfo, mi_oc_monitorContainer) },
 		{ "monitorCounterObject", "( 1.3.6.1.4.1.4203.666.3.9 "
 			"NAME 'monitorCounterObject' "
 			"DESC 'monitor counter class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitorCounterObject) },
+			offsetof(struct monitorinfo, mi_oc_monitorCounterObject) },
 		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.10 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitorOperation) },
+			offsetof(struct monitorinfo, mi_oc_monitorOperation) },
 		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.11 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitorConnection) },
+			offsetof(struct monitorinfo, mi_oc_monitorConnection) },
 		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.12 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_managedObject) },
+			offsetof(struct monitorinfo, mi_oc_managedObject) },
 		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.13 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL )",
-			offsetof(struct monitorinfo, oc_monitoredObject) },
+			offsetof(struct monitorinfo, mi_oc_monitoredObject) },
 		{ NULL, NULL, -1 }
 	}, mat[] = {
 		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14 "
@@ -375,12 +379,12 @@ monitor_back_db_open(
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitoredInfo) },
+			offsetof(struct monitorinfo, mi_ad_monitoredInfo) },
 		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.15 "
 			"NAME 'managedInfo' "
 			"DESC 'monitor managed info' "
 			"SUP name )",
-			offsetof(struct monitorinfo, ad_managedInfo) },
+			offsetof(struct monitorinfo, mi_ad_managedInfo) },
 		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.16 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter' "
@@ -389,28 +393,28 @@ monitor_back_db_open(
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorCounter) },
+			offsetof(struct monitorinfo, mi_ad_monitorCounter) },
 		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.17 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorOpCompleted) },
+			offsetof(struct monitorinfo, mi_ad_monitorOpCompleted) },
 		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.18 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorOpInitiated) },
+			offsetof(struct monitorinfo, mi_ad_monitorOpInitiated) },
 		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.19 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorConnectionNumber) },
+			offsetof(struct monitorinfo, mi_ad_monitorConnectionNumber) },
 		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.20 "
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
@@ -419,32 +423,60 @@ monitor_back_db_open(
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorConnectionAuthzDN) },
+			offsetof(struct monitorinfo, mi_ad_monitorConnectionAuthzDN) },
 		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.21 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorConnectionLocalAddress) },
+			offsetof(struct monitorinfo, mi_ad_monitorConnectionLocalAddress) },
 		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.22 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
-			offsetof(struct monitorinfo, ad_monitorConnectionPeerAddress) },
+			offsetof(struct monitorinfo, mi_ad_monitorConnectionPeerAddress) },
 		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.24 "
 			"NAME 'monitorTimestamp' "
 			"DESC 'monitor timestamp' "
 			"EQUALITY generalizedTimeMatch "
 			"ORDERING generalizedTimeOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-			"SINGLE-VALUE )",
-			offsetof(struct monitorinfo, ad_monitorTimestamp) },
+			"SINGLE-VALUE"
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
+			offsetof(struct monitorinfo, mi_ad_monitorTimestamp) },
+#ifdef INTEGRATE_CORE_SCHEMA
+		{ NULL, NULL, -1 },	/* description */
+		{ NULL, NULL, -1 },	/* seeAlso */
+		{ NULL, NULL, -1 },	/* l */
+#endif /* INTEGRATE_CORE_SCHEMA */
 		{ NULL, NULL, -1 }
+#ifdef INTEGRATE_CORE_SCHEMA
+	}, mat_core[] = {
+		{ "description", "( 2.5.4.13 "
+			"NAME 'description' "
+			"DESC 'RFC2256: descriptive information' "
+			"EQUALITY caseIgnoreMatch "
+			"SUBSTR caseIgnoreSubstringsMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )",
+			offsetof(struct monitorinfo, mi_ad_description) },
+		{ "seeAlso", "( 2.5.4.34 "
+			"NAME 'seeAlso' "
+			"DESC 'RFC2256: DN of related object' "
+			"SUP distinguishedName )",
+			offsetof(struct monitorinfo, mi_ad_seeAlso) },
+		{ "l", "( 2.5.4.7 "
+			"NAME ( 'l' 'localityName' ) "
+			"DESC 'RFC2256: locality which this object resides in' "
+			"SUP name )",
+			offsetof(struct monitorinfo, mi_ad_l) },
+		{ NULL, NULL, -1 }
+#endif /* INTEGRATE_CORE_SCHEMA */
 	};
-
+	
 	struct tm		*tms;
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
@@ -464,6 +496,42 @@ monitor_back_db_open(
 	mi->mi_startTime.bv_val = tmbuf;
 	mi->mi_startTime.bv_len = strlen( tmbuf );
 
+	/* prepare for schema integration */
+	for ( k = 0; mat[k].name != NULL; k++ );
+
+	for ( i = 0; mat_core[i].name != NULL; i++ ) {
+		AttributeDescription	**ad;
+		const char		*text;
+
+		ad = ((AttributeDescription **)&(((char *)mi)[mat_core[i].offset]));
+		ad[0] = NULL;
+
+		switch (slap_str2ad( mat_core[i].name, ad, &text ) ) {
+		case LDAP_SUCCESS:
+			break;
+
+#ifdef INTEGRATE_CORE_SCHEMA
+		case LDAP_UNDEFINED_TYPE:
+			mat[k] = mat_core[i];
+			k++;
+			break;
+#endif /* INTEGRATE_CORE_SCHEMA */
+
+		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT,
+				"monitor_back_db_init: %s: %s\n",
+				mat_core[i].name, text, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_db_init: %s: %s\n",
+				mat_core[i].name, text, 0 );
+#endif
+			return( -1 );
+		}
+	}
+
+	/* schema integration */
 	for ( i = 0; mat[i].name; i++ ) {
 		LDAPAttributeType	*at;
 		int			code;
@@ -525,28 +593,6 @@ monitor_back_db_open(
 #endif
 			return -1;
 		}
-	}
-
-	if ( slap_str2ad( "description", &mi->ad_description, &text ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_back_db_init: description: %s\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_back_db_init: description: %s\n", text, 0, 0 );
-#endif
-		return( -1 );
-	}
-
-	if ( slap_str2ad( "seeAlso", &mi->ad_seeAlso, &text ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_back_db_init: seeAlso: %s\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_back_db_init: seeAlso: %s\n", text, 0, 0 );
-#endif
-		return( -1 );
 	}
 
 	for ( i = 0; moc[i].name; i++ ) {
@@ -674,8 +720,8 @@ monitor_back_db_open(
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				monitor_subsys[ i ].mss_dn.bv_val,
-				mi->oc_monitorContainer->soc_cname.bv_val,
-				mi->oc_monitorContainer->soc_cname.bv_val,
+				mi->mi_oc_monitorContainer->soc_cname.bv_val,
+				mi->mi_oc_monitorContainer->soc_cname.bv_val,
 				monitor_subsys[ i ].mss_name,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
@@ -728,16 +774,20 @@ monitor_back_db_open(
 		"cn: Monitor\n"
 		"%s: This subtree contains monitoring/managing objects.\n"
 		"%s: This object contains information about this server.\n"
+#if 0
 		"%s: createTimestamp reflects the time this server instance was created.\n"
-		"%s: modifyTimestamp reflects the current time.\n"
+		"%s: modifyTimestamp reflects the time this server instance was last accessed.\n"
+#endif
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
-		mi->oc_monitorServer->soc_cname.bv_val,
-		mi->oc_monitorServer->soc_cname.bv_val,
-		mi->ad_description->ad_cname.bv_val,
-		mi->ad_description->ad_cname.bv_val,
-		mi->ad_description->ad_cname.bv_val,
-		mi->ad_description->ad_cname.bv_val,
+		mi->mi_oc_monitorServer->soc_cname.bv_val,
+		mi->mi_oc_monitorServer->soc_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+#if 0
+		mi->mi_ad_description->ad_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+#endif
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 
@@ -763,7 +813,7 @@ monitor_back_db_open(
 		bv.bv_len = strlen( Versionstr );
 	}
 
-	if ( attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+	if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 				&bv, NULL ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
@@ -778,21 +828,7 @@ monitor_back_db_open(
 	}
 
 	if ( mi->mi_l.bv_len ) {
-		AttributeDescription	*ad = NULL;
-		const char		*text = NULL;
-
-		if ( slap_str2ad( "l", &ad, &text ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT, "unable to get 'l'\n",
-				SLAPD_MONITOR_DN, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, "unable to get 'l'\n",
-				SLAPD_MONITOR_DN, 0, 0 );
-#endif
-			return( -1 );
-		}
-		
-		if ( attr_merge_normalize_one( e, ad, &mi->mi_l, NULL ) ) {
+		if ( attr_merge_normalize_one( e, mi->mi_ad_l, &mi->mi_l, NULL ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, CRIT,
 				"unable to add locality to '%s' entry\n",

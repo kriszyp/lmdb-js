@@ -118,13 +118,13 @@ monitor_subsys_log_init(
 	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 
-		if ( mi->ad_managedInfo->ad_type->sat_equality->smr_normalize ) {
+		if ( mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize ) {
 			int	rc;
 
-			rc = (*mi->ad_managedInfo->ad_type->sat_equality->smr_normalize)(
+			rc = (*mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize)(
 					0,
-					mi->ad_managedInfo->ad_type->sat_syntax,
-					mi->ad_managedInfo->ad_type->sat_equality,
+					mi->mi_ad_managedInfo->ad_type->sat_syntax,
+					mi->mi_ad_managedInfo->ad_type->sat_equality,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n, NULL );
 			if ( rc ) {
@@ -133,13 +133,13 @@ monitor_subsys_log_init(
 		}
 
 		if ( int_2_level[ i ].i & ldap_syslog ) {
-			attr_merge_one( e, mi->ad_managedInfo,
+			attr_merge_one( e, mi->mi_ad_managedInfo,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n );
 		}
 	}
 
-	attr_merge( e, mi->ad_description, desc, NULL );
+	attr_merge( e, mi->mi_ad_description, desc, NULL );
 
 	monitor_cache_release( mi, e );
 
@@ -183,7 +183,7 @@ monitor_subsys_log_modify(
 		/*
 		 * only the monitor description attribute can be modified
 		 */
-		} else if ( mod->sm_desc != mi->ad_managedInfo) {
+		} else if ( mod->sm_desc != mi->mi_ad_managedInfo) {
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}

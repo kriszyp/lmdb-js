@@ -87,31 +87,32 @@ struct monitorinfo {
 	/*
 	 * Specific schema entities
 	 */
-	ObjectClass *oc_monitor;
-	ObjectClass *oc_monitorServer;
-	ObjectClass *oc_monitorContainer;
-	ObjectClass *oc_monitorCounterObject;
-	ObjectClass *oc_monitorOperation;
-	ObjectClass *oc_monitorConnection;
-	ObjectClass *oc_managedObject;
-	ObjectClass *oc_monitoredObject;
+	ObjectClass *mi_oc_monitor;
+	ObjectClass *mi_oc_monitorServer;
+	ObjectClass *mi_oc_monitorContainer;
+	ObjectClass *mi_oc_monitorCounterObject;
+	ObjectClass *mi_oc_monitorOperation;
+	ObjectClass *mi_oc_monitorConnection;
+	ObjectClass *mi_oc_managedObject;
+	ObjectClass *mi_oc_monitoredObject;
 
-	AttributeDescription *ad_monitoredInfo;
-	AttributeDescription *ad_managedInfo;
-	AttributeDescription *ad_monitorCounter;
-	AttributeDescription *ad_monitorOpCompleted;
-	AttributeDescription *ad_monitorOpInitiated;
-	AttributeDescription *ad_monitorConnectionNumber;
-	AttributeDescription *ad_monitorConnectionAuthzDN;
-	AttributeDescription *ad_monitorConnectionLocalAddress;
-	AttributeDescription *ad_monitorConnectionPeerAddress;
-	AttributeDescription *ad_monitorTimestamp;
+	AttributeDescription *mi_ad_monitoredInfo;
+	AttributeDescription *mi_ad_managedInfo;
+	AttributeDescription *mi_ad_monitorCounter;
+	AttributeDescription *mi_ad_monitorOpCompleted;
+	AttributeDescription *mi_ad_monitorOpInitiated;
+	AttributeDescription *mi_ad_monitorConnectionNumber;
+	AttributeDescription *mi_ad_monitorConnectionAuthzDN;
+	AttributeDescription *mi_ad_monitorConnectionLocalAddress;
+	AttributeDescription *mi_ad_monitorConnectionPeerAddress;
+	AttributeDescription *mi_ad_monitorTimestamp;
 
 	/*
 	 * Generic description attribute
 	 */
-	AttributeDescription *ad_description;
-	AttributeDescription *ad_seeAlso;
+	AttributeDescription *mi_ad_description;
+	AttributeDescription *mi_ad_seeAlso;
+	AttributeDescription *mi_ad_l;
 };
 
 /*

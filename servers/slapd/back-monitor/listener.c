@@ -100,10 +100,10 @@ monitor_subsys_listener_init(
 				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
-				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
+				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
-				mi->ad_monitorConnectionLocalAddress->ad_cname.bv_val,
+				mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
 				l[i]->sl_name.bv_val,
 				l[i]->sl_url.bv_val,
 				mi->mi_startTime.bv_val,
@@ -134,7 +134,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "TLS";
 			bv.bv_len = sizeof("TLS")-1;
 
-			attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 					&bv, NULL );
 		}
 #endif /* HAVE_TLS */
@@ -145,7 +145,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "UDP";
 			bv.bv_len = sizeof("UDP")-1;
 
-			attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 					&bv, NULL );
 		}
 #endif /* HAVE_TLS */

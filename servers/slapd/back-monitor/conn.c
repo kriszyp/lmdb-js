@@ -88,8 +88,8 @@ monitor_subsys_conn_init(
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 	
@@ -112,7 +112,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -152,8 +152,8 @@ monitor_subsys_conn_init(
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_startTime.bv_val,
 		mi->mi_startTime.bv_val );
 	
@@ -176,7 +176,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -246,7 +246,7 @@ monitor_subsys_conn_update(
 		Attribute	*a;
 		char		buf[] = "+9223372036854775807L";
 
-		a = attr_find( e->e_attrs, mi->ad_monitorCounter );
+		a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 		if ( a == NULL ) {
 			return( -1 );
 		}
@@ -306,8 +306,8 @@ conn_create(
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
-		mi->oc_monitorConnection->soc_cname.bv_val,
-		mi->oc_monitorConnection->soc_cname.bv_val,
+		mi->mi_oc_monitorConnection->soc_cname.bv_val,
+		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid,
 		ctmbuf, mtmbuf );
 		
@@ -377,24 +377,24 @@ conn_create(
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->ad_monitoredInfo, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 
 	/* connection number */
 	snprintf( buf, sizeof( buf ), "%ld", c->c_connid );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->ad_monitorConnectionNumber, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, NULL );
 
 	/* authz DN */
-	attr_merge_one( e, mi->ad_monitorConnectionAuthzDN,
+	attr_merge_one( e, mi->mi_ad_monitorConnectionAuthzDN,
 			&c->c_dn, &c->c_ndn );
 
 	/* local address */
-	attr_merge_one( e, mi->ad_monitorConnectionLocalAddress,
+	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
 			&c->c_sock_name, NULL );
 
 	/* peer address */
-	attr_merge_one( e, mi->ad_monitorConnectionPeerAddress,
+	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
 			&c->c_peer_name, NULL );
 
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
