@@ -192,7 +192,7 @@ register_supported_control(const char *controloid,
 	if ( controloid == NULL ) return LDAP_PARAM_ERROR;
 
 	/* sanity check - should never happen */
-	for ( i = 1; slap_known_controls[ i ]; i++ ) {
+	for ( i = 0; slap_known_controls[ i ]; i++ ) {
 		if ( strcmp( controloid, slap_known_controls[ i ] ) == 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"Control %s already registered.\n",
@@ -221,8 +221,8 @@ register_supported_control(const char *controloid,
 	sc->sc_cid = num_known_controls;
 
 	/* Update slap_known_controls, too. */
-	slap_known_controls[num_known_controls++] = sc->sc_oid;
-	slap_known_controls[num_known_controls] = NULL;
+	slap_known_controls[num_known_controls-1] = sc->sc_oid;
+	slap_known_controls[num_known_controls++] = NULL;
 
 	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &controls_list, sc, sc_next );
