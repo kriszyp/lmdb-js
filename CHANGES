@@ -1,7 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.14 Engineering
-	<insert change description here>
+	Fixed slurpd millionth second bug (ITS#1323)
 
 OpenLDAP 2.0.13 Release
 	Fixed slapd substring filter_free bug
