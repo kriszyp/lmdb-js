@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -161,3 +163,5 @@ int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from)
  free(srcc);
  return 1;
 }
+
+#endif /* SLAPD_SQL */

@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <sys/types.h>
 #include "slap.h"
@@ -34,3 +36,5 @@ int backsql_abandon( BackendDB *be,
  Debug(LDAP_DEBUG_TRACE,"<==backsql_abandon()\n",0,0,0);
  return 0;
 }
+
+#endif /* SLAPD_SQL */

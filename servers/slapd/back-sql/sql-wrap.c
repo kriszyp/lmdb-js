@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -311,3 +313,4 @@ SQLHDBC backsql_get_db_conn(Backend *be,Connection *ldapc)
  return dbc->dbh;
 }
 
+#endif /* SLAPD_SQL */

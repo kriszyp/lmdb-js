@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -166,3 +168,4 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
                      fname,lineno,argv[0]);
  return 0;
 }
+#endif /* SLAPD_SQL */

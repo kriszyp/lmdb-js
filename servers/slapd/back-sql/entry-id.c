@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -176,3 +178,5 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* eid)
  Debug(LDAP_DEBUG_TRACE,"<==backsql_id2entry()\n",0,0,0);
  return e;
 }
+
+#endif /* SLAPD_SQL */

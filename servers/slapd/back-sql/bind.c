@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <sys/types.h>
 #include "slap.h"
@@ -33,3 +35,5 @@ int backsql_unbind(Backend *be,Connection *conn,Operation *op)
  Debug(LDAP_DEBUG_TRACE,"<==backsql_unbind()\n",0,0,0);
  return 0;
 }
+
+#endif /* SLAPD_SQL */

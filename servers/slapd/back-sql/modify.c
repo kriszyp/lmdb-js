@@ -9,6 +9,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_SQL
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -407,3 +409,5 @@ int backsql_delete(BackendDB *be,Connection *conn,Operation *op,
  Debug(LDAP_DEBUG_TRACE,"<==backsql_delete()\n",0,0,0);
  return 0;
 }
+
+#endif /* SLAPD_SQL */
