@@ -958,6 +958,7 @@ LDAP_SLAPD_F (void) slap_send_search_result LDAP_P(( Operation *op, SlapReply *r
 LDAP_SLAPD_F (int) slap_send_search_reference LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_send_search_entry LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_null_cb LDAP_P(( Operation *op, SlapReply *rs ));
+LDAP_SLAPD_F (int) slap_freeself_cb LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_replog_cb LDAP_P(( Operation *op, SlapReply *rs ));
 
 LDAP_SLAPD_V( const struct berval ) slap_pre_read_bv;

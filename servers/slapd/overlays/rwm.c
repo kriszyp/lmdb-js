@@ -454,16 +454,15 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-static int
-rwm_mentry_free( Operation *op, SlapReply *rs )
+static int rwm_freeself( Operation *op, SlapReply *rs )
 {
-	slap_callback	*cb = op->o_callback;
+	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_RESULT ) {
+		assert( op->o_callback );
 
-	if ( rs->sr_mentry ) {
-		entry_free( rs->sr_mentry );
-		rs->sr_mentry = NULL;
+		op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
+		op->o_callback = NULL;
 	}
-	
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -548,7 +547,7 @@ rwm_search( Operation *op, SlapReply *rs )
 	}
 
 	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = rwm_mentry_free;
+	cb->sc_cleanup = rwm_freeself;
 	cb->sc_private = (void *)op->ors_attrs;
 	cb->sc_next = op->o_callback;
 
@@ -674,30 +673,23 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif
 
+	e = rs->sr_entry;
 	flags = rs->sr_flags;
+	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+		/* FIXME: all we need to duplicate are:
+		 * - dn
+		 * - ndn
+		 * - attributes that are requested
+		 * - no values if attrsonly is set
+		 */
 
-	if ( rs->sr_mentry != NULL ) {
-		e = rs->sr_mentry;
-
-	} else {
-		e = rs->sr_entry;
-
-		if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
-			/* FIXME: all we need to duplicate are:
-			 * - dn
-			 * - ndn
-			 * - attributes that are requested
-			 * - no values if attrsonly is set
-			 */
-
-			e = entry_dup( e );
-			if ( e == NULL ) {
-				rc = LDAP_NO_MEMORY;
-				goto fail;
-			}
-
-			// flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+		e = entry_dup( e );
+		if ( e == NULL ) {
+			rc = LDAP_NO_MEMORY;
+			goto fail;
 		}
+
+		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	}
 
 	/*
@@ -847,7 +839,7 @@ next_attr:;
 	}
 
 
-	rs->sr_mentry = e;
+	rs->sr_entry = e;
 	rs->sr_flags = flags;
 
 	return SLAP_CB_CONTINUE;
@@ -861,7 +853,7 @@ fail:;
 		ch_free( ndn.bv_val );
 	}
 
-	if ( e != NULL && e != rs->sr_mentry ) {
+	if ( e != NULL && e != rs->sr_entry ) {
 		entry_free( e );
 	}
 
