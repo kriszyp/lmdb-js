@@ -16,8 +16,8 @@ MAKING AND INSTALLING THE DISTRIBUTION
     You should be able to make and install the distribution with a pretty
     standard default configuration by typing the following commands
 
-	% make
-		this will copy Make-common.dist to Make-common.
+	% cp Make-common.dist to Make-common
+		Note: if using gmake, instead copy Make-common.gmake to Make-common
 		Edit Make-common as desired.
 	% make 
 		this will build the system
@@ -35,6 +35,11 @@ MAKING AND INSTALLING THE DISTRIBUTION
 		contruct Make-common and should not be edited except to
 		add new features/options to the distribution.
 	
+	Make-common.gmake
+		contains distribution defaults (with GNU make compatibility).
+		This file can be used to contruct Make-common and should not
+		be edited except to add new features/options to the distribution.
+
 	Make-common
 		contains default definitions for where things will be
 		installed, where to find various things, etc.  These defaults
