@@ -228,7 +228,7 @@ static int slap_get_listener_addresses(
 		/* host specifies a service in this case */
 		if (err = getaddrinfo(NULL, host, &hints, &res)) {
 			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				gai_strerror(err), 0, 0);
+				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
 		}
 	} else

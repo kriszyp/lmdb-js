@@ -299,6 +299,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	if (host != NULL) {
 #ifdef HAVE_GETADDRINFO
 		char serv[7];
+		int err;
 		struct addrinfo hints, *res, *sai;
 
 		memset( &hints, '\0', sizeof(hints) );
@@ -306,8 +307,8 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		hints.ai_socktype = SOCK_STREAM;
 
 		snprintf(serv, sizeof serv, "%d", ntohs(port));
-		if ( getaddrinfo(host, serv, &hints, &res) ) {
-			osip_debug(ld, "ldap_connect_to_host:getaddrinfo failed\n",0,0,0);
+		if ( err = getaddrinfo(host, serv, &hints, &res) ) {
+			osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n", AC_GAI_STRERROR(err), 0, 0);
 			return -1;
 		}
 		sai = res;
