@@ -283,7 +283,7 @@ do_bind(
 
 	if ( be->be_bind ) {
 		/* alias suffix */
-		char *edn;
+		char *edn = NULL;
 
 		/* deref suffix alias if appropriate */
 		ndn = suffix_alias( be, ndn );
