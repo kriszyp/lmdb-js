@@ -6,13 +6,13 @@ OpenLDAP 2.2.9 Engineering
 	Fixed slapd inappropriate bind error disclosure bugs
 	Fixed slapd sun_path portability bug
 	Fixed slapd passwd referral memory leak
-	Fixed slapd sasl userdb checkpass bug
-	Fixed ldapmodify missing error information bug (ITS#3057)
+	Fixed slapd sasl userdb checkpass bug (ITS#3048)
 	Fixed back-meta compare return code (ITS#3042)
-	Added slapd Delivery Method syntax validation
+	Fixed back-ldbm IDL delete bug (ITS#3042)
+	Fixed back-ldbm modrdn indexing bug (ITS#3059)
+	Fixed ldapmodify missing error information bug (ITS#3057)
+	Added slapd Delivery Method syntax validation (ITS#3052)
 	Updated slapd overlay framework
-	Updated back-ldap backend
-	Updated back-meta backend
 	Build Environment
 		Fixed slapd dynamic backend build (ITS#3044)
 		Removed deprecated configure options
