@@ -532,7 +532,7 @@ acl_mask(
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
-			int match;
+			int match = 0;
 			const char *text;
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
 
