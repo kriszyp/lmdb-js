@@ -139,7 +139,7 @@ ber_bprint(
 	ber_len_t len )
 {
 	static const char	hexdig[] = "0123456789abcdef";
-#define BP_OFFSET 8
+#define BP_OFFSET 9
 #define BP_GRAPH 60
 #define BP_LEN	80
 	char	line[ BP_LEN ];
