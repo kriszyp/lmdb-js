@@ -10,6 +10,19 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -28,6 +41,11 @@ do_modrdn(
 	char	*ndn, *newrdn;
 	int	deloldrdn;
 	Backend	*be;
+	/* Vars for LDAP v3 newSuperior support */
+	char	*newSuperior = NULL;
+	char    *nnewSuperior = NULL;
+	Backend	*newSuperior_be = NULL;
+	unsigned long	length;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -37,10 +55,12 @@ do_modrdn(
 	 *	ModifyRDNRequest := SEQUENCE {
 	 *		entry	DistinguishedName,
 	 *		newrdn	RelativeDistinguishedName
+	 *		deleteoldrdn	BOOLEAN,
+	 *		newSuperior	[0] LDAPDN OPTIONAL (v3 Only!)
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab}", &ndn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
@@ -50,6 +70,81 @@ do_modrdn(
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) deloldrdn (%d)\n", ndn, newrdn,
 	    deloldrdn );
+
+
+	/* Check for newSuperior parameter, if present scan it */
+
+	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
+
+		if ( conn->c_protocol == LDAP_VERSION2 ) {
+
+			/* Conection record indicates v2 but field 
+			 * newSuperior is present: report error.
+			 */
+			Debug( LDAP_DEBUG_ANY,
+			       "modrdn(v2) has field newSuperior!\n",
+			       0, 0, 0 );
+			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+					  NULL, "" );
+			return;
+
+		} else if ( conn->c_protocol ==  0 ) {
+
+			/* The other side is talking v3 but did not Bind as v3
+			 * so we accept this and set the connection record
+			 * accordingly.
+			 */
+		    
+			conn->c_protocol == LDAP_VERSION3;
+
+		}/* else if ( conn->c_protocol ==  0 ) */
+
+
+		if ( ber_scanf( op->o_ber, "a}", &newSuperior ) 
+		     == LBER_ERROR ) {
+
+		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
+			   0, 0, 0 );
+		    send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+				      "" );
+		    return;
+
+		}/* if ( ber_scanf( ber, "a}", &newSuperior ) == ... ) */
+
+
+		Debug( LDAP_DEBUG_ARGS, "do_modrdn: newSuperior=(%s)\n",
+		       newSuperior, 0, 0 );
+
+		/* GET BACKEND FOR NEW SUPERIOR */
+
+		nnewSuperior = strdup( newSuperior );
+		dn_normalize_case( nnewSuperior );
+
+		if ( (newSuperior_be = select_backend( nnewSuperior )) 
+		     == NULL ) {
+		    
+			/* We do not have a backend for newSuperior so we send
+			 * a referral.
+			 * XXX: We may need to do something else here, not sure
+			 * what though.
+			 */
+		
+
+			Debug( LDAP_DEBUG_ARGS,
+			       "do_modrdn: cant find backend for=(%s)\n",
+			       newSuperior, 0, 0 );
+			
+			free( ndn );
+			free( newrdn );
+			free( newSuperior );
+			free( nnewSuperior );
+			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+					  default_referral );
+			return;
+			
+		}
+
+	}/* if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR )*/
 
 	dn_normalize_case( ndn );
 
@@ -64,11 +159,35 @@ do_modrdn(
 
 	if ( (be = select_backend( ndn )) == NULL ) {
 		free( ndn );
-		free( newrdn );
+		free( newrdn );	
+		free( newSuperior );
+		free( nnewSuperior );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 		return;
 	}
+
+	/* Make sure that the entry being changed and the newSuperior are in 
+	 * the same backend, otherwise we return an error.
+	 */
+
+	if ( (newSuperior_be != NULL) && ( be != newSuperior_be) ) {
+
+		Debug( LDAP_DEBUG_ANY, "dn=(%s), newSuperior=(%s)\n", ndn,
+		       newSuperior, 0 );
+		
+		free( ndn );
+		free( newrdn );
+		free( newSuperior );
+		free( nnewSuperior );
+		
+		send_ldap_result( conn, op, LDAP_AFFECTS_MULTIPLE_DSAS,
+				  NULL, "" );
+	    
+		return;
+
+	}/* if ( (newSuperior_be != NULL) && ( be != newSuperior_be) ) */
+
 
 	/* alias suffix if approp */
 	ndn = suffixAlias( ndn, op, be );
@@ -85,7 +204,8 @@ do_modrdn(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 		{
 			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
-			    deloldrdn ) == 0 ) {
+			    deloldrdn, newSuperior ) == 0 ) {
+			        /* XXX: MAY NEEED TO ADD newSuperior HERE */
 				replog( be, LDAP_REQ_MODRDN, ndn, newrdn,
 				    deloldrdn );
 			}
@@ -99,5 +219,7 @@ do_modrdn(
 	}
 
 	free( ndn );
-	free( newrdn );
+	free( newrdn );	
+	free( newSuperior );
+	free( nnewSuperior );
 }
