@@ -567,43 +567,71 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 	return res;
 }
 
-#if 0
-/*
- * Deprecated
- */
-backsql_at_map_rec *
-backsql_name2at( backsql_oc_map_rec* objclass, struct berval *attr )
+/* attributeType inheritance */
+struct supad2at_t {
+	backsql_at_map_rec	**ret;
+	AttributeDescription	*ad;
+	unsigned		n;
+};
+
+#define SUPAD2AT_STOP	(-1)
+
+static int
+supad2at_f( void *v_at, void *v_arg )
 {
-	backsql_at_map_rec	tmp, *res;
-	const char		*text = NULL;
- 
-#ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_name2at(): "
-		"searching for attribute '%s' for objectclass '%s'\n",
-		attr, BACKSQL_OC_NAME( objclass ), 0 );
-#endif /* BACKSQL_TRACE */
+	backsql_at_map_rec	*at = (backsql_at_map_rec *)v_at;
+	struct supad2at_t	*va = (struct supad2at_t *)v_arg;
 
-	if ( slap_bv2ad( attr, &tmp.bam_ad, &text ) != LDAP_SUCCESS ) {
-		return NULL;
+	if ( is_at_subtype( at->bam_ad->ad_type, va->ad->ad_type ) ) {
+		backsql_at_map_rec	**ret;
+
+		ret = ch_realloc( va->ret, sizeof( backsql_at_map_rec *) * ( va->n + 2 ) );
+		if ( ret == NULL ) {
+			ch_free( va->ret );
+			return SUPAD2AT_STOP;
+		}
+
+		ret[ va->n ] = at;
+		va->n++;
+		ret[ va->n ] = NULL;
+		va->ret = ret;
 	}
 
-	res = (backsql_at_map_rec *)avl_find( objclass->bom_attrs, &tmp,
-			backsql_cmp_attr );
-
-#ifdef BACKSQL_TRACE
-	if ( res != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_name2at(): "
-			"found name='%s', sel_expr='%s'\n",
-			res->bam_name, res->bam_sel_expr.bv_val, 0 );
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_name2at(): "
-			"not found\n", 0, 0, 0 );
-	}
-#endif /* BACKSQL_TRACE */
-
-	return res;
+	return 0;
 }
-#endif
+
+/*
+ * stores in *pret a NULL terminated array of pointers
+ * to backsql_at_map_rec whose attributeType is supad->ad_type 
+ * or derived from it
+ */
+int
+backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
+		backsql_at_map_rec ***pret )
+{
+	struct supad2at_t	va;
+	int			rc;
+
+	assert( objclass );
+	assert( supad );
+	assert( pret );
+
+	*pret = NULL;
+
+	va.ret = NULL;
+	va.ad = supad;
+	va.n = 0;
+	
+	rc = avl_apply( objclass->bom_attrs, supad2at_f, &va,
+			SUPAD2AT_STOP, AVL_INORDER );
+	if ( rc == SUPAD2AT_STOP ) {
+		return -1;
+	}
+
+	*pret = va.ret;
+
+	return 0;
+}
 
 static void
 backsql_free_attr( void *v_at )

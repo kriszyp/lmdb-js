@@ -126,31 +126,6 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	return SQLPrepare( *sth, query, SQL_NTS );
 }
 
-#if 0
-/*
- * Turned into macros --- see sql-wrap.h
- */
-RETCODE
-backsql_BindParamStr( SQLHSTMT sth, int par_ind, char *str, int maxlen )
-{
-	RETCODE		rc;
-
-	rc = SQLBindParameter( sth, (SQLUSMALLINT)par_ind, SQL_PARAM_INPUT,
-			SQL_C_CHAR, SQL_VARCHAR,
-         		(SQLUINTEGER)maxlen, 0, (SQLPOINTER)str,
-			(SQLUINTEGER)maxlen, NULL );
-	return rc;
-}
-
-RETCODE
-backsql_BindParamID( SQLHSTMT sth, int par_ind, unsigned long *id )
-{
-	return SQLBindParameter( sth, (SQLUSMALLINT)par_ind,
-			SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
-			0, 0, (SQLPOINTER)id, 0, (SQLINTEGER*)NULL );
-}
-#endif
-
 RETCODE
 backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 {

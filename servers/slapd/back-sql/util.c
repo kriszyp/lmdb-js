@@ -321,7 +321,7 @@ backsql_get_table_spec( char **p )
 
 #if 0
 	backsql_strcat( &res, " AS ", s, NULL );
-	/* oracle doesn't understand AS :( */
+	/* oracle doesn't understand AS :( and other RDBMSes don't need it */
 #endif
 
 	/* table alias */

@@ -215,10 +215,10 @@ backsql_process_filter_list( backsql_srch_info *bsi, Filter *f, int op )
 }
 
 static int
-backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
+backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
+	backsql_at_map_rec *at )
 {
 	int			i;
-	backsql_at_map_rec	*at;
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			casefold = 0;
 
@@ -234,10 +234,6 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 		casefold = 1;
 	}
 
-	at = backsql_ad2at( bsi->bsi_oc, f->f_sub_desc );
-
-	assert( at );
-
 	/*
 	 * When dealing with case-sensitive strings 
 	 * we may omit normalization; however, normalized
@@ -247,8 +243,9 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 	backsql_strfcat( &bsi->bsi_flt_where, "c", '(' /* ) */  );
 
 	/* TimesTen */
-	Debug( LDAP_DEBUG_TRACE, "expr: '%s' '%s'\n", at->bam_sel_expr.bv_val,
-		at->bam_sel_expr_u.bv_val ? at->bam_sel_expr_u.bv_val : "<NULL>", 0 );
+	Debug( LDAP_DEBUG_TRACE, "expr: '%s%s%s'\n", at->bam_sel_expr.bv_val,
+		at->bam_sel_expr_u.bv_val ? "' '" : "",
+		at->bam_sel_expr_u.bv_val ? at->bam_sel_expr_u.bv_val : "" );
 	if ( casefold && bi->upper_func.bv_val ) {
 		/*
 		 * If a pre-upper-cased version of the column exists, use it
@@ -294,9 +291,9 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, 
-				"==>backsql_process_sub_filter(): "
-				"sub_any='%s'\n", f->f_sub_any[ i ].bv_val,
-				0, 0 );
+				"==>backsql_process_sub_filter(%s): "
+				"sub_any='%s'\n", at->bam_ad->ad_cname.bv_val,
+				f->f_sub_any[ i ].bv_val, 0 );
 #endif /* BACKSQL_TRACE */
 
 			start = bsi->bsi_flt_where.bb_val.bv_len;
@@ -333,14 +330,18 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 static int
 backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 {
-	backsql_at_map_rec	*at;
+	backsql_at_map_rec	**vat = NULL;
 	AttributeDescription	*ad = NULL;
+	unsigned		i;
 	int 			done = 0;
 	int			rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_process_filter()\n", 0, 0, 0 );
-	if ( f == NULL || f->f_choice == SLAPD_FILTER_COMPUTED ) {
-		return 0;
+	if ( f->f_choice == SLAPD_FILTER_COMPUTED ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
+			"invalid filter\n", 0, 0, 0 );
+		rc = -1;
+		goto done;
 	}
 
 	switch( f->f_choice ) {
@@ -379,10 +380,11 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	}
 
 	if ( rc == -1 ) {
-		goto impossible;
+		goto done;
 	}
  
 	if ( done ) {
+		rc = 1;
 		goto done;
 	}
 
@@ -402,13 +404,20 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			ObjectClass	*oc = oc_bvfind( &f->f_av_value );
 
 			if ( oc == NULL ) {
+				Debug( LDAP_DEBUG_TRACE,
+						"backsql_process_filter(): "
+						"unknown objectClass \"%s\" "
+						"in filter\n",
+						f->f_av_value.bv_val, 0, 0 );
 				bsi->bsi_status = LDAP_OTHER;
-				goto impossible;
+				rc = -1;
+				goto done;
 			}
 
 			/*
-			 * objectClass inheritance:
-			 * - a search for "person" will also return "inetOrgPerson"
+			 * "structural" objectClass inheritance:
+			 * - a search for "person" will also return 
+			 *   "inetOrgPerson"
 			 * - a search for "top" will return everything
 			 */
 			if ( is_object_subclass( oc, bsi->bsi_oc->bom_oc ) ) {
@@ -423,11 +432,18 @@ filter_oc_success:;
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
 					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
 			bsi->bsi_status = LDAP_SUCCESS;
+			rc = 1;
 			goto done;
 			
 		default:
+			Debug( LDAP_DEBUG_TRACE,
+					"backsql_process_filter(): "
+					"illegal/unhandled filter "
+					"on objectClass attribute",
+					0, 0, 0 );
 			bsi->bsi_status = LDAP_OTHER;
-			goto impossible;
+			rc = -1;
+			goto done;
 		}
 
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
@@ -462,44 +478,76 @@ filter_oc_success:;
 			 */
 			backsql_attrlist_add( bsi, NULL );
 		}
+		rc = 1;
 		goto done;
 	}
 
-	/* look for attribute (also if objectClass but not structural one) */
-	at = backsql_ad2at( bsi->bsi_oc, ad );
-
-	if ( at == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
-			"attribute '%s' is not defined for objectclass '%s'\n",
-			ad->ad_cname.bv_val, BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
-		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=0" ) - 1, "1=0" );
-		bsi->bsi_status = LDAP_UNDEFINED_TYPE;
-		goto impossible;
+	/*
+	 * attribute inheritance:
+	 */
+	if ( backsql_supad2at( bsi->bsi_oc, ad, &vat ) ) {
+		bsi->bsi_status = LDAP_OTHER;
+		rc = -1;
+		goto done;
 	}
 
-	backsql_strfcat( &bsi->bsi_flt_where, "c", '(' );
+	if ( vat == NULL ) {
+		/* search anyway; other parts of the filter
+		 * may succeeed */
+		backsql_strfcat( &bsi->bsi_flt_where, "l",
+				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+		bsi->bsi_status = LDAP_SUCCESS;
+		rc = 1;
+		goto done;
+	}
+
+	/* if required, open extra level of parens */
+	done = 0;
+	if ( vat[0]->bam_next || vat[1] ) {
+		backsql_strfcat( &bsi->bsi_flt_where, "c", '(' );
+		done = 1;
+	}
+
+	i = 0;
 next:;
-	if ( backsql_process_filter_attr( bsi, f, at ) == -1 ) {
+	/* apply attr */
+	if ( backsql_process_filter_attr( bsi, f, vat[i] ) == -1 ) {
 		return -1;
 	}
 
-	if ( at->bam_next ) {
+	/* if more definitions of the same attr, apply */
+	if ( vat[i]->bam_next ) {
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				sizeof( " OR " ) - 1, " OR " );
-		at = at->bam_next;
+			sizeof( " OR " ) - 1, " OR " );
+		vat[i] = vat[i]->bam_next;
 		goto next;
 	}
-	backsql_strfcat( &bsi->bsi_flt_where, "c", ')' );
+
+	/* if more descendants of the same attr, apply */
+	i++;
+	if ( vat[i] ) {
+		backsql_strfcat( &bsi->bsi_flt_where, "l",
+			sizeof( " OR " ) - 1, " OR " );
+		goto next;
+	}
+
+	/* if needed, close extra level of parens */
+	if ( done ) {
+		backsql_strfcat( &bsi->bsi_flt_where, "c", ')' );
+	}
+
+	rc = 1;
 
 done:;
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_process_filter()\n", 0, 0, 0 );
-	return 1;
+	if ( vat ) {
+		ch_free( vat );
+	}
 
-impossible:;
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_process_filter() returns -1\n",
-			0, 0, 0 );
-	return -1;
+	Debug( LDAP_DEBUG_TRACE,
+			"<==backsql_process_filter() %s\n",
+			rc == 1 ? "succeeded" : "failed", 0, 0);
+
+	return rc;
 }
 
 static int
@@ -587,7 +635,7 @@ equality_match:;
 
 		} else {
 			backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
-					'(',
+					'(', /* ) */
 					&at->bam_sel_expr,
 					(ber_len_t)sizeof( "='" ) - 1, "='",
 					filter_value,
@@ -618,7 +666,7 @@ equality_match:;
 
 			if ( at->bam_sel_expr_u.bv_val ) {
 				backsql_strfcat( &bsi->bsi_flt_where, "cbbc",
-						'(',
+						'(', /* ) */
 						&at->bam_sel_expr_u, 
 						&ordering,
 						'\'' );
@@ -664,7 +712,7 @@ equality_match:;
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		backsql_process_sub_filter( bsi, f );
+		backsql_process_sub_filter( bsi, f, at );
 		break;
 
 	case LDAP_FILTER_APPROX:
@@ -1376,16 +1424,15 @@ backsql_search( Operation *op, SlapReply *rs )
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 			if ( op->o_noop ) {
 				sres = 0;
-			} else {
+			} else
 #endif
+			{
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_entry = entry;
 				sres = send_search_entry( op, rs );
 				rs->sr_entry = NULL;
 				rs->sr_attrs = NULL;
-#if 0
 			}
-#endif
 
 			switch ( sres ) {
 			case 0:
