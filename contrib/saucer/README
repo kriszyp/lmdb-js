@@ -3,18 +3,24 @@ program.  The program is command-line oriented and uses a syntax and
 command set roughly similar to ISODE's DISH program, hence it is
 named "saucer" (i.e. a very small "dish" :-)
 
-To build saucer, make sure the top-level LDAP 'make' has created all
-of the makefiles from their templates (you can force this by typing
-"make makefiles" in the LDAP root directory).  Then cd into
-contrib/saucer and type make.  With luck, saucer will compile and
-link without any warnings or errors.  You can then install it by
-doing an "su" and typing "make install".  This will copy the binary
-to the directory you specified for LDAP binaries, and the man page
-will be placed in the appropriate man directory.
+To build saucer, you must first build OpenLDAP, and then say
+	cd contrib/saucer
+	make depend
+	make
+You can then install it by doing an "su" and typing "make install".
+This will copy the binary to the directory you specified for LDAP
+binaries, and the man page will be placed in the appropriate man
+directory.
+
+If you wish saucer to use GNU Readline, you must have set CPPFLAGS and
+LDFLAGS so that <readline/readline.h> and -lreadline will be found when
+you configured OpenLDAP, e.g.
+  env CPPFLAGS="-I/usr/gnu/include" LDFLAGS="-L/usr/gnu/lib" ./configure
+
 
 Saucer runs from the Unix command line with the following arguments:
 
-  saucer [-h host] [-p portnumber] [-u X500UserName]
+  saucer [-h host] [-p portnumber] [-u 'X500UserName']
          [-c credentials] [-d debug-level]
 
 If no options are given, saucer will attempt to connect to an LDAP
@@ -23,7 +29,7 @@ bind anonymously.
 
 Typing "help" at saucer's command prompt will yield:
 
-Cmd? help
+saucer dn=> help
 Supported commands are:
   help
   list
@@ -39,3 +45,5 @@ Detailed instructions are available from the saucer man page.
 Any comments or questions should be directed to:
 
       Eric.Rosenquist@strataware.com
+
+or to an OpenLDAP mailinglist, see <URL:http://www.openldap.org/lists/>.
