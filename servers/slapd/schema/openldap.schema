@@ -7,6 +7,7 @@
 #	cosine.schema
 #	inetorgperson.schema
 #
+# These are provided for informational purposes only.
 
 objectClass ( 1.3.6.1.4.1.4203.1.4.3 NAME 'OpenLDAPorg'
 	DESC 'OpenLDAP Organizational Object'

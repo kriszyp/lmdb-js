@@ -1,5 +1,8 @@
 # $OpenLDAP$
 
+# DO NOT USE THESE DEFINITIONS
+# use cosine.schema instead!
+
 # These come from RFC1274 and are in ASN.1 syntax.  They have been
 # translated with some imagination.  Only attributes and classes we
 # already had are here.  In general, the matching rules in the
@@ -353,7 +356,3 @@ objectclass ( 0.9.2342.19200300.100.4.19 NAME 'simpleSecurityObject'
 
 objectclass ( 0.9.2342.19200300.100.4.20 NAME 'pilotOrganization'
 	SUP ( organization $ organizationalUnit ) MAY buildingName )
-
-
-
-
