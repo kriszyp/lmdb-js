@@ -1959,10 +1959,13 @@ ldap_create_passwordpolicy_control LDAP_P((
 LDAP_F( int )
 ldap_parse_passwordpolicy_control LDAP_P((
         LDAP *ld,
-        LDAPControl **ctrls,
+        LDAPControl *ctrl,
         int *expirep,
         int *gracep,
         LDAPPasswordPolicyError *errorp ));
+
+LDAP_F( const char * )
+ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

@@ -77,9 +77,9 @@ ldap_create_passwordpolicy_control( LDAP *ld,
 
    ld           (IN)   An LDAP session handle.
    
-   ctrls        (IN)   The address of a NULL-terminated array of 
-					   LDAPControl structures, typically obtained 
-					   by a call to ldap_parse_result().
+   ctrls        (IN)   The address of an
+					   LDAPControl structure, typically obtained 
+					   by a call to ldap_find_control().
 
    exptimep     (OUT)  This result parameter is filled in with the number of seconds before
                                            the password will expire, if expiration is imminent
@@ -115,13 +115,12 @@ ldap_create_passwordpolicy_control( LDAP *ld,
 int
 ldap_parse_passwordpolicy_control(
 	LDAP           *ld,
-	LDAPControl    **ctrls,
+	LDAPControl    *ctrl,
         int            *expirep,
         int            *gracep,
         LDAPPasswordPolicyError *errorp )
 {
 	BerElement  *ber;
-	LDAPControl *pControl;
 	int i, exp = -1, grace = -1;
 	ber_tag_t tag;
 	ber_len_t berLen;
@@ -130,26 +129,10 @@ ldap_parse_passwordpolicy_control(
         
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+	assert( ctrl );
 
-	if (ctrls == NULL) {
-		ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
-		return(ld->ld_errno);
-	}
-
-	/* Search the list of control responses for a VLV control. */
-	for (i=0; ctrls[i]; i++) {
-		pControl = ctrls[i];
-		if (!strcmp(LDAP_CONTROL_PASSWORDPOLICYRESPONSE, pControl->ldctl_oid))
-                       goto foundPPControl;
-	}
-
-	/* No sort control was found. */
-	ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
-	return(ld->ld_errno);
-
-foundPPControl:
 	/* Create a BerElement from the berval returned in the control. */
-	ber = ber_init(&pControl->ldctl_value);
+	ber = ber_init(&ctrl->ldctl_value);
 
 	if (ber == NULL) {
 		ld->ld_errno = LDAP_NO_MEMORY;
@@ -201,4 +184,22 @@ foundPPControl:
         ber_free(ber, 1);
         ld->ld_errno = LDAP_DECODING_ERROR;
         return(ld->ld_errno);
+}
+
+const char *
+ldap_passwordpolicy_err2txt( LDAPPasswordPolicyError err )
+{
+	switch(err) {
+		case PP_passwordExpired: return "Password expired";
+		case PP_accountLocked: return "Account locked";
+		case PP_changeAfterReset: return "Password must be changed";
+		case PP_passwordModNotAllowed: return "Policy prevents password modification";
+		case PP_mustSupplyOldPassword: return "Policy requires old password in order to change password";
+		case PP_insufficientPasswordQuality: return "Password fails quality checks";
+		case PP_passwordTooShort: return "Password is too short for policy";
+		case PP_passwordTooYoung: return "Password has been changed too recently";
+		case PP_passwordInHistory: return "New password is in list of old passwords";
+		case PP_noError: return "No error";
+		default: return "Unknown error code";
+	}
 }
