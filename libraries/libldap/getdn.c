@@ -174,25 +174,29 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 char **
 ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 {
-	LDAPDN	*tmpDN;
-	char	**values = NULL;
-	int	iAVA;
-	unsigned flag = notypes ? LDAP_DN_FORMAT_UFN : LDAP_DN_FORMAT_LDAPV3;
+	LDAPRDN		*tmpRDN;
+	char		**values = NULL;
+	const char 	*p;
+	int		iAVA;
+	unsigned 	flag = 
+		notypes ? LDAP_DN_FORMAT_UFN : LDAP_DN_FORMAT_LDAPV3;
 	
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
 
 	/*
-	 * we assume this dn is made of one rdn only
+	 * we only parse the first rdn
+	 * FIXME: we prefer efficiency over checking if the _ENTIRE_
+	 * dn can be parsed
 	 */
-	if ( ldap_str2dn( rdn, &tmpDN, LDAP_DN_FORMAT_LDAP ) 
+	if ( ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP ) 
 			!= LDAP_SUCCESS ) {
 		return( NULL );
 	}
 
-	for ( iAVA = 0; tmpDN[ 0 ][ 0 ][ iAVA ]; iAVA++ ) {
+	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) {
 		ber_len_t	l = 0, vl, al = 0;
 		char		*str, **v = NULL;
-		LDAPAVA		*ava = tmpDN[ 0 ][ 0 ][ iAVA ][ 0 ];
+		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
 		
 		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iAVA ) );
 		if ( v == NULL ) {
@@ -242,13 +246,13 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	}
 	values[ iAVA ] = NULL;
 
-	ldap_dnfree( tmpDN );
+	ldap_rdnfree( tmpRDN );
 
 	return( values );
 
 error_return:;
 	LBER_VFREE( values );
-	ldap_dnfree( tmpDN );
+	ldap_rdnfree( tmpRDN );
 	return( NULL );
 }
 
