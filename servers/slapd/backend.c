@@ -586,7 +586,7 @@ select_backend(
 {
 	int		i, j;
 	ber_len_t	len, dnlen = dn->bv_len;
-	Backend		*be, *b2;
+	Backend		*be, *b2 = NULL;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->be_nsuffix == NULL ) {
