@@ -132,12 +132,12 @@ int octetStringIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -853,7 +853,6 @@ approxIndexer(
 	return LDAP_SUCCESS;
 }
 
-
 int 
 approxFilter(
 	slap_mask_t use,
@@ -968,8 +967,10 @@ approxIndexer(
 	char *s;
 
 	for( i=0; values[i] != NULL; i++ ) {
-		/* just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
 	assert( i > 0 );
 
 	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * (i+1) );
@@ -1204,12 +1205,12 @@ int caseExactIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	for( i=0; values[i] != NULL; i++ ) {
-		/* just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -1320,15 +1321,15 @@ int caseExactSubstringsIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	nkeys=0;
 
-	/* create normalized copy of values */
 	for( i=0; values[i] != NULL; i++ ) {
-		/* empty */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
+
 	nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
 	for( i=0; values[i] != NULL; i++ ) {
 		nvalues[i] = ber_bvstr( UTF8normalize( values[i]->bv_val,
@@ -1829,12 +1830,12 @@ int caseIgnoreIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	for( i=0; values[i] != NULL; i++ ) {
-		/* just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -1944,15 +1945,15 @@ int caseIgnoreSubstringsIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	nkeys=0;
 
-	/* create normalized copy of values */
 	for( i=0; values[i] != NULL; i++ ) {
-		/* empty */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
+
 	nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
 	for( i=0; values[i] != NULL; i++ ) {
 		nvalues[i] = ber_bvstr( UTF8normalize( values[i]->bv_val,
@@ -2674,12 +2675,12 @@ int caseExactIA5Indexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0] != NULL );
-
 	for( i=0; values[i] != NULL; i++ ) {
-		/* just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
