@@ -1935,7 +1935,7 @@ BDecComponentVisibleString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
 /*
  * Routines for handling an ANY DEFINED Type
  */
-void
+int
 SetAnyTypeByComponentOid ( ComponentAny *v, ComponentOid *id ) {
 	Hash hash;
 	void *anyInfo;
@@ -1953,6 +1953,7 @@ SetAnyTypeByComponentOid ( ComponentAny *v, ComponentOid *id ) {
 	 * Yet-to-be-Implemented
 	 */
 	}
+	return LDAP_SUCCESS;
 }
 
 void
@@ -1980,6 +1981,8 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
         ComponentAny *k, **k2;
                                                                           
         k = (ComponentAny*) result;
+
+	if ( !k ) return (-1);
                                                                           
         if ( mode & DEC_ALLOC_MODE_0 ) {
                 k2 = (ComponentAny**) result;
