@@ -62,8 +62,7 @@ static void
 free_comp_filter( ComponentFilter* f );
 
 static int
-test_comp_filter( Syntax *syn, ComponentSyntaxInfo *a, struct berval *bv,
-			ComponentFilter *f );
+test_comp_filter( Syntax *syn, ComponentSyntaxInfo *a, ComponentFilter *f );
 
 int
 componentCertificateValidate(
@@ -98,10 +97,8 @@ componentFilterMatch (
 	struct berval *value, 
 	void *assertedValue )
 {
-	struct berval* bv;
-	Attribute *a = (Attribute*)value;
+	ComponentSyntaxInfo *csi_attr = (ComponentSyntaxInfo*)value;
 	MatchingRuleAssertion * ma = (MatchingRuleAssertion*)assertedValue;
-	void* assert_nm;
 	int num_attr, rc, i;
 
 	if ( !mr || !ma->ma_cf )
@@ -110,47 +107,20 @@ componentFilterMatch (
 	if ( !attr_converter || !nibble_mem_allocator )
 		return LDAP_INAPPROPRIATE_MATCHING;
 
-	/* Check if decoded component trees are already linked */
-	num_attr = 0;
-	if ( !a->a_comp_data ) {
-		for ( ; a->a_vals[num_attr].bv_val != NULL; num_attr++ );
-		if ( num_attr <= 0 )/* no attribute value */
-			return LDAP_INAPPROPRIATE_MATCHING;
-		num_attr++;
-		/* following malloced will be freed by comp_tree_free () */
-		a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr );
-		if ( !a->a_comp_data )
-			return LDAP_NO_MEMORY;
-		a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)((char*)a->a_comp_data + sizeof(ComponentData));
-		a->a_comp_data->cd_tree[ num_attr - 1] = (ComponentSyntaxInfo*)NULL;
-		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
+
+	rc = test_comp_filter( syntax, csi_attr, ma->ma_cf );
+
+	if ( rc == LDAP_COMPARE_TRUE ) {
+		*matchp = 0;
+		return LDAP_SUCCESS;
 	}
-
-	for ( bv = a->a_vals, i = 0 ; bv->bv_val != NULL; bv++, i++ ) {
-		/* decodes current attribute into components */
-		if ( num_attr != 0 ) {
-			a->a_comp_data->cd_tree[i] = attr_converter (a, syntax, bv);
-		}
-		/* decoding error */
-		if ( !a->a_comp_data->cd_tree[i] )
-			return LDAP_OPERATIONS_ERROR;
-
-		rc = test_comp_filter( syntax, a->a_comp_data->cd_tree[i], bv, ma->ma_cf );
-
-		if ( rc == LDAP_COMPARE_TRUE ) {
-			*matchp = 0;
-			return LDAP_SUCCESS;
-		}
-		else if ( rc == LDAP_COMPARE_FALSE ) {
-			continue;
-		}
-		else {
-			return LDAP_INAPPROPRIATE_MATCHING;
-		}
+	else if ( rc == LDAP_COMPARE_FALSE ) {
+		*matchp = 1;
+		return LDAP_SUCCESS;
 	}
-	*matchp = 1;
-	return LDAP_SUCCESS;
-	
+	else {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
 }
 
 int
@@ -1146,14 +1116,13 @@ static int
 test_comp_filter_and(
 	Syntax *syn,
 	ComponentSyntaxInfo *a,
-	struct berval  *bv,
 	ComponentFilter *flist )
 {
 	ComponentFilter *f;
 	int rtn = LDAP_COMPARE_TRUE;
 
 	for ( f = flist ; f != NULL; f = f->cf_next ) {
-		int rc = test_comp_filter( syn, a, bv, f );
+		int rc = test_comp_filter( syn, a, f );
 		if ( rc == LDAP_COMPARE_FALSE ) {
 			rtn = rc;
 			break;
@@ -1171,14 +1140,13 @@ static int
 test_comp_filter_or(
 	Syntax *syn,
 	ComponentSyntaxInfo *a,
-	struct berval	  *bv,
 	ComponentFilter *flist )
 {
 	ComponentFilter *f;
 	int rtn = LDAP_COMPARE_TRUE;
 
 	for ( f = flist ; f != NULL; f = f->cf_next ) {
-		int rc = test_comp_filter( syn, a, bv, f );
+		int rc = test_comp_filter( syn, a, f );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rtn = rc;
 			break;
@@ -1221,7 +1189,6 @@ static int
 test_comp_filter_item(
 	Syntax *syn,
 	ComponentSyntaxInfo *csi_attr,
-	struct berval	*bv,
 	ComponentAssertion *ca )
 {
 	int rc, len;
@@ -1230,7 +1197,7 @@ test_comp_filter_item(
 	if ( strcmp(ca->ca_ma_rule->smr_mrule.mr_oid,
 		OID_COMP_FILTER_MATCH ) == 0 && ca->ca_cf ) {
 		/* componentFilterMatch inside of componentFilterMatch */
-		rc = test_comp_filter( syn, csi_attr, bv, ca->ca_cf );
+		rc = test_comp_filter( syn, csi_attr, ca->ca_cf );
 		return rc;
 	}
 
@@ -1265,7 +1232,6 @@ static int
 test_comp_filter(
     Syntax *syn,
     ComponentSyntaxInfo *a,
-    struct berval *bv,
     ComponentFilter *f )
 {
 	int	rc;
@@ -1278,13 +1244,13 @@ test_comp_filter(
 		rc = f->cf_result;
 		break;
 	case LDAP_COMP_FILTER_AND:
-		rc = test_comp_filter_and( syn, a, bv, f->cf_and );
+		rc = test_comp_filter_and( syn, a, f->cf_and );
 		break;
 	case LDAP_COMP_FILTER_OR:
-		rc = test_comp_filter_or( syn, a, bv, f->cf_or );
+		rc = test_comp_filter_or( syn, a, f->cf_or );
 		break;
 	case LDAP_COMP_FILTER_NOT:
-		rc = test_comp_filter( syn, a, bv, f->cf_not );
+		rc = test_comp_filter( syn, a, f->cf_not );
 
 		switch ( rc ) {
 		case LDAP_COMPARE_TRUE:
@@ -1296,7 +1262,7 @@ test_comp_filter(
 		}
 		break;
 	case LDAP_COMP_FILTER_ITEM:
-		rc = test_comp_filter_item( syn, a, bv, f->cf_ca );
+		rc = test_comp_filter_item( syn, a, f->cf_ca );
 		break;
 	default:
 		rc = LDAP_PROTOCOL_ERROR;
