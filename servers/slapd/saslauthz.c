@@ -89,6 +89,75 @@ int slap_sasl_setpolicy( const char *arg )
 	return rc;
 }
 
+int slap_parse_user( struct berval *id, struct berval *user,
+		struct berval *realm, struct berval *mech )
+{
+	char	u;
+	
+	assert( id );
+	assert( id->bv_val );
+	assert( user );
+	assert( realm );
+	assert( mech );
+
+	u = id->bv_val[ 0 ];
+	
+	assert( u == 'u' || u == 'U' );
+
+	user->bv_val = strrchr( id->bv_val, ':' );
+	if ( user->bv_val == NULL ) {
+		return LDAP_PROTOCOL_ERROR;
+	}
+	user->bv_val[ 0 ] = '\0';
+	user->bv_val++;
+	user->bv_len = id->bv_len - ( user->bv_val - id->bv_val );
+
+	realm->bv_val = strchr( id->bv_val, '/' );
+	if ( realm->bv_val != NULL ) {
+		realm->bv_val[ 0 ] = '\0';
+		realm->bv_val++;
+		realm->bv_len = user->bv_val - realm->bv_val - 1;
+	}
+
+	mech->bv_val = strchr( id->bv_val, '.' );
+	if ( mech->bv_val != NULL ) {
+		mech->bv_val[ 0 ] = '\0';
+		mech->bv_val++;
+		if ( realm->bv_val ) {
+			mech->bv_len = realm->bv_val - mech->bv_val - 1;
+		} else {
+			mech->bv_len = user->bv_val - mech->bv_val - 1;
+		}
+	}
+
+	if ( id->bv_val[ 1 ] != '\0' ) {
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( mech->bv_val != NULL ) {
+		assert( mech->bv_val == id->bv_val + 2 );
+
+		memmove( mech->bv_val - 2, mech->bv_val, mech->bv_len + 1 );
+		mech->bv_val -= 2;
+	}
+
+	if ( realm->bv_val ) {
+		assert( realm->bv_val >= id->bv_val + 2 );
+
+		memmove( realm->bv_val - 2, realm->bv_val, realm->bv_len + 1 );
+		realm->bv_val -= 2;
+	}
+
+	if ( user->bv_val > id->bv_val + 2 ) {
+		user->bv_val -= 2;
+		user->bv_len += 2;
+		user->bv_val[ 0 ] = u;
+		user->bv_val[ 1 ] = ':';
+	}
+
+	return LDAP_SUCCESS;
+}
+
 static int slap_parseURI( Operation *op, struct berval *uri,
 	struct berval *base, struct berval *nbase,
 	int *scope, Filter **filter, struct berval *fstr )
@@ -115,8 +184,8 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #endif
 
+	rc = LDAP_PROTOCOL_ERROR;
 	if ( !strncasecmp( uri->bv_val, "dn", sizeof( "dn" ) - 1 ) ) {
-		rc = LDAP_PROTOCOL_ERROR;
 		bv.bv_val = uri->bv_val + sizeof( "dn" ) - 1;
 
 		if ( bv.bv_val[ 0 ] == '.' ) {
@@ -173,11 +242,46 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 			break;
 		}
 
-		return( rc );
+		return rc;
 
-	} else if ( !strncasecmp( uri->bv_val, "u:", sizeof( "u:" ) - 1 ) ) {
-		/* FIXME: I'll handle this later ... */
-		return LDAP_PROTOCOL_ERROR;
+	} else if ( ( uri->bv_val[ 0 ] == 'u' || uri->bv_val[ 0 ] == 'U' )
+			&& ( uri->bv_val[ 1 ] == ':' 
+				|| uri->bv_val[ 1 ] == '/' 
+				|| uri->bv_val[ 1 ] == '.' ) )
+	{
+		Connection	c = *op->o_conn;
+		char		buf[ SLAP_LDAPDN_MAXLEN ];
+		struct berval	id = { uri->bv_len, (char *)buf },
+				user = { 0, NULL },
+				realm = { 0, NULL },
+				mech = { 0, NULL };
+
+		if ( sizeof( buf ) <= uri->bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		strncpy( buf, uri->bv_val, sizeof( buf ) );
+
+		rc = slap_parse_user( &id, &user, &realm, &mech );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		if ( mech.bv_val ) {
+			c.c_sasl_bind_mech = mech;
+		} else {
+			c.c_sasl_bind_mech.bv_val = "AUTHZ";
+			c.c_sasl_bind_mech.bv_len = sizeof( "AUTHZ" ) - 1;
+		}
+		
+		rc = slap_sasl_getdn( &c, op, user.bv_val, user.bv_len,
+				realm.bv_val, nbase, SLAP_GETDN_AUTHZID );
+
+		if ( rc == LDAP_SUCCESS ) {
+			*scope = LDAP_X_SCOPE_EXACT;
+		}
+
+		return rc;
 	}
 		
 	rc = ldap_url_parse( uri->bv_val, &ludp );
@@ -433,10 +537,10 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, DETAIL1,
-			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
+			"slap_sc_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
+			"slap_sc_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #endif
 		return -1;
 	}

@@ -699,8 +699,8 @@ static int parseProxyAuthz (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	int rc;
-	struct berval dn = { 0, NULL };
+	int		rc;
+	struct berval	dn = { 0, NULL };
 
 	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
 		rs->sr_text = "proxy authorization control specified multiple times";
@@ -748,16 +748,38 @@ static int parseProxyAuthz (
 		return LDAP_SUCCESS;
 	}
 
-	rc = slap_sasl_getdn( op->o_conn, op,
-		ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
-		NULL, &dn, SLAP_GETDN_AUTHZID );
+	/* FIXME: how can we get the realm? */
+	{
+		int	rc;
+		char		buf[ SLAP_LDAPDN_MAXLEN ];
+		struct berval	id = { ctrl->ldctl_value.bv_len, (char *)buf },
+				user = { 0, NULL },
+				realm = { 0, NULL },
+				mech = { 0, NULL };
 
-	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
-		if ( dn.bv_val ) {
-			ch_free( dn.bv_val );
+		strncpy( buf, ctrl->ldctl_value.bv_val, sizeof( buf ) );
+
+		rc = slap_parse_user( &id, &user, &realm, &mech );
+		if ( rc == LDAP_SUCCESS ) {
+			if ( mech.bv_len ) {
+				rs->sr_text = "mech not allowed in authzId";
+				return LDAP_PROXY_AUTHZ_FAILURE;
+			}
+		} else {
+			user = ctrl->ldctl_value;
 		}
-		rs->sr_text = "authzId mapping failed";
-		return LDAP_PROXY_AUTHZ_FAILURE;
+
+		rc = slap_sasl_getdn( op->o_conn, op,
+				user.bv_val, user.bv_len,
+				realm.bv_val, &dn, SLAP_GETDN_AUTHZID );
+
+		if( rc != LDAP_SUCCESS || !dn.bv_len ) {
+			if ( dn.bv_val ) {
+				ch_free( dn.bv_val );
+			}
+			rs->sr_text = "authzId mapping failed";
+			return LDAP_PROXY_AUTHZ_FAILURE;
+		}
 	}
 
 #ifdef NEW_LOGGING
