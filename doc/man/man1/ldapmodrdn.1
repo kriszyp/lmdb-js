@@ -164,9 +164,9 @@ Specify the SASL mechanism to be used for authentication. If it's not
 specified, the program will choose the best mechanism the server knows.
 .TP
 .B \-Z[Z]
-Request the use of TLS (Transport Layer Security). If you use
+Issue StartTLS (Transport Layer Security) extended operation. If you use
 .B \-ZZ\c
-, the command will fail if TLS negotiation does not succeed for some reason.
+, the command will require the operation to be successful.
 .SH INPUT FORMAT
 If the command-line arguments \fIdn\fP and \fIrdn\fP are given, \fIrdn\fP
 will replace the RDN of the entry specified by the DN, \fIdn\fP.
