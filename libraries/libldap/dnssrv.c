@@ -106,7 +106,9 @@ int ldap_dn2domain(
 					return -5;
 				}
 
-				if( domain != NULL ) {
+				if( domain == NULL ) {
+					ndomain[0] = '\0';
+				} else {
 					strcat( ndomain, "." );
 				}
 				strcat( ndomain, dc );

@@ -76,8 +76,8 @@ dnssrv_back_request(
 	}
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%d DNSSRV dn=\"%s\" domain=%d url=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn, domain, urls[0]->bv_val );
+	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
+	    op->o_connid, op->o_opid, op->o_protocol, dn, urls[0]->bv_val );
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> url=\"%s\"\n",
 		dn == NULL ? "" : dn,
