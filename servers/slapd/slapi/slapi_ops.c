@@ -392,7 +392,7 @@ slapi_int_ldapmod_to_entry(
 				 * being passed in may not have been allocated on the
 				 * heap.
 				 */
-				rc = bvptr2obj_copy( pMod->mod_values, &bv );
+				rc = bvptr2obj_copy( pMod->mod_bvalues, &bv );
 				if ( rc != LDAP_SUCCESS ) goto cleanup;
 				tmp.sml_type.bv_val = pMod->mod_type;
 				tmp.sml_type.bv_len = strlen( pMod->mod_type );
@@ -954,7 +954,7 @@ slapi_modify_internal(
 			 * convert an array of pointers to bervals
 			 * to an array of bervals
 			 */
-			rs.sr_err = bvptr2obj_copy( pMod->mod_values, &bv );
+			rs.sr_err = bvptr2obj_copy( pMod->mod_bvalues, &bv );
 			if ( rs.sr_err != LDAP_SUCCESS )
 				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
