@@ -494,16 +494,7 @@ slap_passwd_hash(
 #ifdef SLAPD_CRYPT
 static ldap_pvt_thread_mutex_t passwd_mutex;
 static lutil_cryptfunc slapd_crypt;
-#endif
 
-void slap_passwd_init()
-{
-#ifdef SLAPD_CRYPT
-	ldap_pvt_thread_mutex_init( &passwd_mutex );
-	lutil_cryptptr = slapd_crypt;
-#endif
-}
-#ifdef SLAPD_CRYPT
 int slapd_crypt( const char *key, const char *salt, char **hash )
 {
 	char *cr;
@@ -527,4 +518,12 @@ int slapd_crypt( const char *key, const char *salt, char **hash )
 	return rc;
 }
 #endif /* SLAPD_CRYPT */
+
+void slap_passwd_init()
+{
+#ifdef SLAPD_CRYPT
+	ldap_pvt_thread_mutex_init( &passwd_mutex );
+	lutil_cryptptr = slapd_crypt;
+#endif
+}
 
