@@ -129,7 +129,9 @@ ldbm_back_db_init(
 	struct ldbminfo	*li;
 
 	/* indicate system schema supported */
-	be->be_flags |= SLAP_BFLAG_ALIASES|SLAP_BFLAG_REFERRALS;
+	be->be_flags |= 
+		SLAP_BFLAG_ALIASES |
+		SLAP_BFLAG_REFERRALS;
 
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
