@@ -87,6 +87,7 @@ do_modify(
 			free( dn );
 			free( odn );
 			free( *modtail );
+			*modtail = NULL;
 			modlist_free( modlist );
 			return;
 		}
