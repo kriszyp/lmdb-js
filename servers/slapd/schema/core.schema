@@ -339,6 +339,9 @@ attributetype ( 2.5.4.54 NAME 'dmdName'
 	DESC 'RFC2256: name of DMD'
 	SUP name )
 
+attributetype ( 2.5.4.65 NAME 'pseudonym'
+	DESC 'X.520(4th): pseudonym for the object'
+	SUP name )
 
 # Standard object classes from RFC2256
 
