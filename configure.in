@@ -323,7 +323,6 @@ AC_REPLACE_FUNCS(strdup)
 CF_SYS_ERRLIST
 
 dnl AC_OUTPUT( \
-dnl clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 dnl clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 dnl clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
@@ -340,7 +339,6 @@ dnl libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/
 dnl libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
 dnl libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
 dnl libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
-dnl servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 dnl servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 dnl servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 dnl servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
@@ -354,7 +352,9 @@ dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
 AC_OUTPUT( \
+clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
+servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])

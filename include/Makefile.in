@@ -1,6 +1,7 @@
-#
-# Makefile.in for OpenLDAP include directory
-#
+## Copyright 1998 Net Boolean Incorporated
+## COPYING RESTRICTIONS APPLY, See COPYING file
+##
+## include Makefile.in for OpenLDAP
 
 install: all FORCE
 		-$(MKDIR) -p $(includedir)
