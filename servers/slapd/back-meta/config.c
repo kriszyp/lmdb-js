@@ -197,8 +197,9 @@ meta_back_db_config(
 		for ( tmpludp = ludp->lud_next; tmpludp; tmpludp = tmpludp->lud_next ) {
 			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
 				fprintf( stderr, "%s: line %d: "
-						"multiple URIs must have no DN part\n",
-					fname, lineno, argv[ 1 ] );
+						"multiple URIs must have "
+						"no DN part\n",
+					fname, lineno );
 				return( 1 );
 
 			}
