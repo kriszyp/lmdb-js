@@ -47,6 +47,7 @@
 #include <ac/ctype.h>
 
 #include <ldap.h>
+#include <lutil.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -141,6 +142,7 @@ slurpd_read_config(
 			lineno, cargv[1] );
 		    fprintf( stderr, "line (ignored)\n" );
 		}
+		LUTIL_SLASHPATH( cargv[1] );
 		strcpy( sglob->slapd_replogfile, cargv[1] );
 	    }
 	} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -164,6 +166,7 @@ slurpd_read_config(
 		
                 return( 1 );
             }
+	    LUTIL_SLASHPATH( cargv[1] );
 	    savefname = strdup( cargv[1] );
 	    savelineno = lineno;
 	    
@@ -189,6 +192,7 @@ slurpd_read_config(
 			return( 1 );
 		}
 
+		LUTIL_SLASHPATH( cargv[1] );
 		slurpd_pid_file = ch_strdup( cargv[1] );
 
 	} else if ( strcasecmp( cargv[0], "replica-argsfile" ) == 0 ) {
@@ -207,6 +211,7 @@ slurpd_read_config(
 			return( 1 );
 		}
 
+		LUTIL_SLASHPATH( cargv[1] );
 		slurpd_args_file = ch_strdup( cargv[1] );
 	}
     }

@@ -41,6 +41,7 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
+#include <lutil.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -74,11 +75,7 @@ doargs(
     int		i;
     int		rflag = 0;
 
-    if ( (g->myname = strrchr( argv[0], LDAP_DIRSEP[0] )) == NULL ) {
-	g->myname = strdup( argv[0] );
-    } else {
-	g->myname = strdup( g->myname + 1 );
-    }
+    g->myname = strdup( lutil_progname( "slurpd", argc, argv ));
 
     while ( (i = getopt( argc, argv, "d:f:n:or:t:V" )) != EOF ) {
 	switch ( i ) {
@@ -120,6 +117,7 @@ doargs(
 #endif /* LDAP_DEBUG */
 	    break;
 	case 'f':	/* slapd config file */
+	    LUTIL_SLASHPATH( optarg );
 	    g->slapd_configfile = strdup( optarg );
 	    break;
 	case 'n':	/* NT service name */
@@ -130,13 +128,15 @@ doargs(
 	    g->one_shot_mode = 1;
 	    break;
 	case 'r':	/* slapd replog file */
+	    LUTIL_SLASHPATH( optarg );
 		snprintf( g->slapd_replogfile, sizeof g->slapd_replogfile,
 			"%s", optarg );
 	    rflag++;
 	    break;
 	case 't': {	/* dir to use for our copies of replogs */
 		size_t sz;
-	    g->slurpd_rdir = (char *)malloc (sz = (strlen(optarg) + sizeof("/replica")));
+	    LUTIL_SLASHPATH( optarg );
+	    g->slurpd_rdir = (char *)malloc (sz = (strlen(optarg) + sizeof(LDAP_DIRSEP "replica")));
 	    snprintf(g->slurpd_rdir, sz,
 			"%s" LDAP_DIRSEP "replica", optarg);
 	    } break;
