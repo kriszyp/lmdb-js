@@ -315,6 +315,10 @@ dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
 OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
