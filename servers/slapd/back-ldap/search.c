@@ -137,7 +137,7 @@ ldap_send_entry(
 	char *a;
 	Entry ent;
 	BerElement *ber = NULL;
-	Attribute *attr;
+	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
 
 	ent.e_dn = ldap_get_dn(lc->ld, e);
@@ -146,19 +146,19 @@ ldap_send_entry(
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;
-	attr = (Attribute *)4;
-	attr = (Attribute *)((long)&ent.e_attrs - ((long)&attr->a_next-4));
+	attrp = &ent.e_attrs;
 
 	for (a = ldap_first_attribute(lc->ld, e, &ber); a;
 		a = ldap_next_attribute(lc->ld, e, ber)) {
-		attr->a_next = (Attribute *)ch_malloc( sizeof(Attribute) );
-		attr=attr->a_next;
+		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
 		attr->a_next = 0;
 		attr->a_type = ch_strdup(a);
 		attr->a_syntax = attr_syntax(a);
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
+		*attrp = attr;
+		attrp = &attr->a_next;
 	}
 	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, NULL );
 	for (;ent.e_attrs;) {
