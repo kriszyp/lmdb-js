@@ -267,7 +267,7 @@ int
 main( int argc, char **argv )
 {
 	LDAP		*ld = NULL;
-	int		i, c, port, cldapflg, errflg, method, id, msgtype;
+	int		i, c, port, errflg, method, id, msgtype;
 	char		line[256], command1, command2, command3;
 	char		passwd[64], dn[256], rdn[64], attr[64], value[256];
 	char		filter[256], *host, **types;
@@ -284,18 +284,10 @@ main( int argc, char **argv )
 	host = NULL;
 	port = LDAP_PORT;
 	dnsuffix = "";
-	cldapflg = errflg = 0;
+	errflg = 0;
 
-	while (( c = getopt( argc, argv, "uh:d:s:p:t:T:" )) != -1 ) {
+	while (( c = getopt( argc, argv, "h:d:s:p:t:T:" )) != -1 ) {
 		switch( c ) {
-		case 'u':
-#ifdef LDAP_CONNECTIONLESS
-			cldapflg++;
-#else /* LDAP_CONNECTIONLESS */
-			printf( "Compile with -DLDAP_CONNECTIONLESS for UDP support\n" );
-#endif /* LDAP_CONNECTIONLESS */
-			break;
-
 		case 'd':
 #ifdef LDAP_DEBUG
 			ldap_debug = atoi( optarg );
@@ -346,20 +338,13 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 	
-	printf( "%s( %s, %d )\n",
-		cldapflg ? "cldap_open" : "ldap_init",
+	printf( "ldap_init( %s, %d )\n",
 		host == NULL ? "(null)" : host, port );
 
-	if ( cldapflg ) {
-#ifdef LDAP_CONNECTIONLESS
-		ld = cldap_open( host, port );
-#endif /* LDAP_CONNECTIONLESS */
-	} else {
-		ld = ldap_init( host, port );
-	}
+	ld = ldap_init( host, port );
 
 	if ( ld == NULL ) {
-		perror( cldapflg ? "cldap_open" : "ldap_init" );
+		perror( "ldap_init" );
 		exit( EXIT_FAILURE );
 	}
 
@@ -541,14 +526,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'q':	/* quit */
-#ifdef LDAP_CONNECTIONLESS
-			if ( cldapflg )
-				cldap_close( ld );
-#endif /* LDAP_CONNECTIONLESS */
-
-			if ( !cldapflg ) {
-				ldap_unbind( ld );
-			}
+			ldap_unbind( ld );
 			exit( EXIT_SUCCESS );
 			break;
 
@@ -607,28 +585,12 @@ main( int argc, char **argv )
 			    "attrsonly (0=attrs&values, 1=attrs only)? " );
 			attrsonly = atoi( line );
 
-			if ( cldapflg ) {
-#ifdef LDAP_CONNECTIONLESS
-			    getline( line, sizeof(line), stdin,
-				"Requestor DN (for logging)? " );
-			    if ( cldap_search_s( ld, dn, scope, filter, types,
-				    attrsonly, &res, line ) != 0 ) {
-				ldap_perror( ld, "cldap_search_s" );
-			    } else {
-				printf( "\nresult: msgid %d\n",
-				    res->lm_msgid );
-				handle_result( ld, res );
-				res = NULL;
-			    }
-#endif /* LDAP_CONNECTIONLESS */
-			} else {
 			    if (( id = ldap_search( ld, dn, scope, filter,
 				    types, attrsonly  )) == -1 ) {
 				ldap_perror( ld, "ldap_search" );
 			    } else {
 				printf( "Search initiated with id %d\n", id );
 			    }
-			}
 			free_list( types );
 			break;
 

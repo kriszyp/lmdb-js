@@ -137,18 +137,9 @@ do_abandon(
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
-#ifdef LDAP_CONNECTIONLESS
-			if ( ld->ld_cldapnaddr > 0 ) {
-				err = ber_printf( ber, "{isti", /* '}' */
-				    ++ld->ld_msgid, ld->ld_cldapdn,
-				    LDAP_REQ_ABANDON, msgid );
-			} else
-#endif /* LDAP_CONNECTIONLESS */
-			{
-				err = ber_printf( ber, "{iti",  /* '}' */
-					++ld->ld_msgid,
-				    LDAP_REQ_ABANDON, msgid );
-			}
+			err = ber_printf( ber, "{iti",  /* '}' */
+				++ld->ld_msgid,
+			    LDAP_REQ_ABANDON, msgid );
 
 			if( err == -1 ) {
 				/* encoding error */

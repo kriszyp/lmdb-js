@@ -319,13 +319,6 @@ ldap_int_open_connection(
 			sasl_host = ldap_host_connected_to( conn->lconn_sb );
 #endif
 			break;
-		case LDAP_PROTO_UDP:
-			rc = ldap_connect_to_host( ld, conn->lconn_sb, 1,
-				srv->lud_host, addr, port, async );
-			if ( rc == -1 ) return rc;
-			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
-				LBER_SBIOD_LEVEL_PROVIDER, NULL );
-			break;
 		case LDAP_PROTO_IPC:
 #ifdef LDAP_PF_LOCAL
 			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */

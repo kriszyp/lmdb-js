@@ -106,7 +106,6 @@ OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)d
 OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching], yes)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable V2 Kerberos IV bind], auto)dnl
-OL_ARG_ENABLE(cldap,[  --enable-cldap	  enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
@@ -2143,9 +2142,6 @@ if test "$ol_enable_proctitle" != no ; then
 fi
 if test "$ol_enable_referrals" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION)
-fi
-if test "$ol_enable_cldap" != no ; then
-	AC_DEFINE(LDAP_CONNECTIONLESS,1,[define to support CLDAP])
 fi
 if test "$ol_enable_local" != no; then
 	AC_DEFINE(LDAP_PF_LOCAL,1,[define to support PF_LOCAL])

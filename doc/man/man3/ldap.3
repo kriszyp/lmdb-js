@@ -111,22 +111,6 @@ the ldap search routines.  The
 routines are
 used to map from short two letter country codes (or other strings)
 to longer "friendlier" names.
-.SH CONNECTIONLESS ACCESS
-The
-.BR cldap_search_s (3)
-routine allows you to access the directory
-via Connectionless LDAP (CLDAP), which is similar to LDAP but
-operates over UDP, obviating the need to set up and tear down
-a connection by calling
-.BR ldap_open (3),
-.BR ldap_bind (3),
-and
-.BR ldap_unbind (3).
-.BR cldap_open (3)
-should be called before using
-.BR cldap_search_s (3).
-All the same getfilter, parsing, and display that can be used
-with regular LDAP routines can be used with the CLDAP routines.
 .SH BER LIBRARY
 Also included in the distribution is a set of lightweight Basic
 Encoding Rules routines.  These routines are used by the LDAP library
@@ -463,18 +447,6 @@ sort a list of attribute values
 .TP
 .SM ldap_sort_strcasecmp(3)
 case insensitive string comparison
-.TP
-.SM cldap_open(3)
-open a connectionless LDAP (CLDAP) session
-.TP
-.SM cldap_search_s(3)
-perform a search using connectionless LDAP
-.TP
-.SM cldap_setretryinfo(3)
-set retry and timeout information using connectionless LDAP
-.TP
-.SM cldap_close(3)
-terminate a connectionless LDAP session
 .SH SEE ALSO
 .BR slapd (8)
 .SH ACKNOWLEDGEMENTS

@@ -66,7 +66,6 @@ ldap_ld_free(
 	int		err = LDAP_SUCCESS;
 	LDAPRequest	*lr, *nextlr;
 
-	if ( ld->ld_cldapnaddr == 0 ) {
 		/* free LDAP structure and outstanding requests/responses */
 		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
 			nextlr = lr->lr_next;
@@ -77,14 +76,6 @@ ldap_ld_free(
 		while ( ld->ld_conns != NULL ) {
 			ldap_free_connection( ld, ld->ld_conns, 1, close );
 		}
-	} else {
-		int	i;
-
-		for ( i = 0; i < ld->ld_cldapnaddr; ++i ) {
-			LDAP_FREE( ld->ld_cldapaddrs[ i ] );
-		}
-		LDAP_FREE( ld->ld_cldapaddrs );
-	}
 
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
 		next = lm->lm_next;

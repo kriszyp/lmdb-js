@@ -137,11 +137,6 @@ struct ldapoptions {
 	struct sasl_security_properties	ldo_sasl_secprops;
 #endif
 
-#ifdef LDAP_CONNECTIONLESS
-	int		ldo_cldaptries;	/* connectionless search retry count */
-	int		ldo_cldaptimeout;/* time between retries */
-#endif
-
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
 	/* LDAPv3 server and client controls */
@@ -244,12 +239,6 @@ typedef struct ldapreqinfo {
 } LDAPreqinfo;
 
 /*
- * handy macro for checking if handle is connectionless
- */
-
-#define LDAP_IS_CLDAP(ld) ((ld)->ld_cldapnaddr>0)
-
-/*
  * structure representing an ldap connection
  */
 
@@ -270,8 +259,6 @@ struct ldap {
 #define ld_defhost		ld_options.ldo_defhost
 #define ld_defport		ld_options.ldo_defport
 
-#define ld_cldaptries	ld_options.ldo_cldaptries
-#define ld_cldaptimeout	ld_options.ldo_cldaptimeout
 #define ld_refhoplimit	ld_options.ldo_refhoplimit
 
 #define ld_sctrls		ld_options.ldo_sctrls
@@ -300,11 +287,6 @@ struct ldap {
 	ber_int_t		*ld_abandoned;	/* array of abandoned requests */
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
-	/* stuff used by connectionless searches. */
-
-   	char		*ld_cldapdn;	/* DN used in connectionless search */
-	int		ld_cldapnaddr; /* number of addresses */
-   	void		**ld_cldapaddrs;/* addresses to send request to */
 
 	/* do not mess with the rest though */
 
@@ -462,9 +444,6 @@ LDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 /*
  * in result.c:
  */
-#ifdef LDAP_CONNECTIONLESS
-LDAP_F (int) cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber );
-#endif
 LDAP_F (char *) ldap_int_msgtype2str( ber_tag_t tag );
 
 /*

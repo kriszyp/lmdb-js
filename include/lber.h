@@ -125,8 +125,6 @@ typedef struct lber_memory_fns {
 #define LBER_SB_OPT_SET_FD		2
 #define LBER_SB_OPT_HAS_IO		3
 #define LBER_SB_OPT_SET_NONBLOCK	4
-#define LBER_SB_OPT_UDP_GET_SRC		5
-#define LBER_SB_OPT_UDP_SET_DST		6
 #define LBER_SB_OPT_GET_SSL		7
 #define LBER_SB_OPT_DATA_READY		8
 #define LBER_SB_OPT_SET_READAHEAD	9
@@ -499,7 +497,6 @@ ber_sockbuf_ctrl LDAP_P((
 	void *arg ));
 
 LBER_F( Sockbuf_IO ) ber_sockbuf_io_tcp;
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_udp;
 LBER_F( Sockbuf_IO ) ber_sockbuf_io_readahead;
 LBER_F( Sockbuf_IO ) ber_sockbuf_io_fd;
 LBER_F( Sockbuf_IO ) ber_sockbuf_io_debug;

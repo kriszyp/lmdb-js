@@ -23,9 +23,6 @@
 #include "rcpt500.h"
 
 int dosyslog = 0;
-#ifdef LDAP_CONNECTIONLESS
-int do_cldap = 0;
-#endif /* LDAP_CONNECTIONLESS */
 
 int derefaliases = 1;
 int sizelimit = RCPT500_SIZELIMIT;
@@ -67,7 +64,7 @@ main( int argc, char **argv )
     }
 
     errflg = 0;
-    while (( c = getopt( argc, argv, "alUh:b:s:z:f:t:p:c:" )) != EOF ) {
+    while (( c = getopt( argc, argv, "alh:b:s:z:f:t:p:c:" )) != EOF ) {
 	switch( c ) {
 	case 'a':
 	    derefaliases = 0;
@@ -75,14 +72,6 @@ main( int argc, char **argv )
 	case 'l':
 	    dosyslog = 1;
 	    break;
-	case 'U':
-#ifdef LDAP_CONNECTIONLESS
-	    do_cldap = 1;
-#else /* LDAP_CONNECTIONLESS */
-	    fprintf( stderr,
-			"Compile with -DLDAP_CONNECTIONLESS for -U support\n" );
-#endif /* LDAP_CONNECTIONLESS */
-	    break;	
 	case 'b':
 	    searchbase = optarg;
 	    break;
