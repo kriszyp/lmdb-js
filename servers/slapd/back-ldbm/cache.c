@@ -574,16 +574,22 @@ cache_find_entry_dn2id(
     const char		*dn
 )
 {
-	char 			*ndn;
-	ID			id;
+	int rc;
+	struct berval bv;
+	struct berval *ndn = NULL;
+	ID id;
 
-	ndn = ch_strdup( dn );
-	(void) dn_normalize( ndn );
+	bv.bv_val = dn;
+	bv.bv_len = strlen( dn );
 
-	id = cache_find_entry_ndn2id( be, cache, ndn );
+	rc = dnNormalize( NULL, &bv, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+		return NOID;
+	}
 
-	free( ndn );
+	id = cache_find_entry_ndn2id( be, cache, ndn->bv_val );
 
+	ber_bvfree( ndn );
 	return ( id );
 }
 
